@@ -1,0 +1,18 @@
+<GuiXml>
+   
+	<Controls>
+        <TopLevelControl name="Kela_Sets" inherits="ZO_Gamepad_ParametricList_Screen">
+            <OnInitialized>
+                Kela_Sets_OnInitialize(self)
+            </OnInitialized>
+        </TopLevelControl>
+
+        <Control name="KelaSourceDropdownTemplate" inherits="ZO_Gamepad_Dropdown_Item_Indented" virtual="true"/>
+        <Control name="KelaObtainableDropdownTemplate" inherits="ZO_Gamepad_Dropdown_Item_Indented" virtual="true"/>
+        <Control name="KelaBonusDropdownTemplate" inherits="ZO_Gamepad_Dropdown_Item_Indented" virtual="true"/>
+        <Control name="KelaBoundDropdownTemplate" inherits="ZO_Gamepad_Dropdown_Item_Indented" virtual="true"/>
+        <Control name="KelaZoneDropdownTemplate" inherits="ZO_Gamepad_Dropdown_Item_Indented" virtual="true"/>
+        <Control name="KelaDLCDropdownTemplate" inherits="ZO_Gamepad_Dropdown_Item_Indented" virtual="true"/>
+
+    </Controls>
+</GuiXml>

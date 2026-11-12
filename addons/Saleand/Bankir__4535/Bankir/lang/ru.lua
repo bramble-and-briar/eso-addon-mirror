@@ -8,10 +8,14 @@ SafeAddString(BANKIR_MENU_PROFILE_COPY_DESC, "Создаст новый проф
 SafeAddString(BANKIR_MENU_PROFILE_DELETE, "Удалить профиль", 1)
 SafeAddString(BANKIR_MENU_PROFILE_DELETE_WARNING, "Это полностью удалит выбранный сейчас профиль!", 1)
 
+SafeAddString(BANKIR_MENU_ENABLE_AUTO_MODE, "Авто-режим включен", 1)
+SafeAddString(BANKIR_MENU_ENABLE_AUTO_MODE_DESC, "Автоматически ложить и забирать предметы при открытии меню банка.\nЕсли выключено, нужно нажать кнопку в меню банка для начала обработки предметов", 1)
 SafeAddString(BANKIR_MENU_MOVE_LOCKED_ITEMS, "Перемещать заблокированные предметы", 1)
 SafeAddString(BANKIR_MENU_MOVE_LOCKED_ITEMS_DESC, "Разрешить перемещение предметов, заблокированных игроком.", 1)
-SafeAddString(BANKIR_MENU_SHOW_DEPOSIT_NOT_ALLOWED_MESSAGE, "Показывать сообщения о неудачных перемещениях", 1)
-SafeAddString(BANKIR_MENU_SHOW_DEPOSIT_NOT_ALLOWED_MESSAGE_DESC, "Выводить в чат сообщения о неудавшихся попытках переместить предметы", 1)
+SafeAddString(BANKIR_MENU_MOVE_QUEST_ITEMS, "Забирать предметы для квестов", 1)
+SafeAddString(BANKIR_MENU_MOVE_QUEST_ITEMS_DESC, "Разрешить автоматически забирать из банка предметы, необходимые для активных квестов.", 1)
+SafeAddString(BANKIR_MENU_SHOW_FAIL_MESSAGES, "Показывать сообщения о неудачных перемещениях", 1)
+SafeAddString(BANKIR_MENU_SHOW_FAIL_MESSAGES_DESC, "Выводить в чат сообщения о неудавшихся попытках переместить предметы", 1)
 SafeAddString(BANKIR_MENU_BANK_SLIDERS_MAX_VALUE, "Макс. значения предметов", 1)
 SafeAddString(BANKIR_MENU_BANK_SLIDERS_MAX_VALUE_DESC, "Максимальное значение для ползунков правил '<<1>>' и '<<2>>' для предметов", 1)
 SafeAddString(BANKIR_MENU_CURRENCY_SLIDERS_MAX_VALUE, "Макс. значения валюты", 1)
@@ -44,3 +48,5 @@ SafeAddString(BANKIR_CHAT_ALREADY_HAVE_UNIQUE_ITEM, "|cFF0000Не удалось
 
 SafeAddString(BANKIR_MENU_INTEGRATIONS, "Интеграции", 1)
 SafeAddString(BANKIR_MENU_INTEGRATIONS_LCK_DESC, "Если включен аддон LibCharacterKnowledge, в правилах для снаряжения появляются особые правила для снаряжения, которое могут изучить (исследовать) ваши другие персонажи.\n\nНиже представлен список других ваших персонажей на этом сервере.\n\nЕсли вы установили правило отправлять в банк предметы, которые могут изучить другие пресонажи, то Bankir выполнит соответствующее действие только для включенных здесь персонажей. Правило не будет применяться для персонажей, которые отключены в этом списке.", 1)
+
+SafeAddString(BANKIR_START_QUEUE_MANUALLY, "Bankir: начать ввод/вывод вручную", 1)

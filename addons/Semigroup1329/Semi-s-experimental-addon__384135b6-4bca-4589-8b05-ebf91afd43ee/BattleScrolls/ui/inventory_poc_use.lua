@@ -5,9 +5,72 @@ if not SemisPlaygroundCheckAccess() then return end
 local ui = {}
 BattleScrolls.inventoryPocUseUI = ui
 local poc = BattleScrolls.inventoryPoc
-local hooked = {}
 local registered = false
 local USE_TIMEOUT_MS, LOOT_DRAIN_MS = 15000, 1000
+local EVENT_NAME = 'BattleScrollsInventoryPocUseUI'
+local GATE_WATCH_MS = 250
+
+---A wrapper on a native UI method puts an addon frame under everything that
+---method does, and every closure ESO creates there stays untrusted for the
+---session (docs/inventory-addon/ui-taint.md). A gate therefore exists only
+---while one of our own uses is waiting for that screen; ordinary loot and
+---books reach ESO's methods directly.
+---@class InventoryPocGate
+---@field target table
+---@field name string
+---@field wrapper function
+---@field previous function|nil The instance's own field before the gate; nil when inherited
+---@field needed fun(): boolean
+
+---@type table<string, InventoryPocGate>
+local gates = {}
+local watching = false
+
+---@param key string
+local function closeGate(key)
+    local gate = gates[key]
+    if not gate then return end
+    gates[key] = nil
+    -- A wrapper another addon added later keeps ours in its chain; ours then only passes calls through.
+    if rawget(gate.target, gate.name) == gate.wrapper then gate.target[gate.name] = gate.previous end
+end
+
+local function watchGates()
+    for key, gate in pairs(gates) do
+        if not gate.needed() then closeGate(key) end
+    end
+    if not next(gates) then
+        EVENT_MANAGER:UnregisterForUpdate(EVENT_NAME)
+        watching = false
+    end
+end
+
+---@param key string
+---@param target table
+---@param name string
+---@param take fun(...): boolean|nil True when the call belonged to our use and was handled
+---@param needed fun(): boolean
+local function openGate(key, target, name, take, needed)
+    local current = gates[key]
+    if current and current.target == target then return end
+    closeGate(key)
+    local original = target[name]
+    ---@type InventoryPocGate
+    local gate = { target = target, name = name, previous = rawget(target, name), needed = needed }
+    gate.wrapper = function(...)
+        if gates[key] == gate then
+            if take(...) then return end
+            if not needed() then closeGate(key) end
+        end
+        return original(...)
+    end
+    target[name] = gate.wrapper
+    gates[key] = gate
+    if not watching then
+        watching = true
+        EVENT_MANAGER:RegisterForUpdate(EVENT_NAME, GATE_WATCH_MS, watchGates)
+    end
+end
 
 ---@class InventoryPocContainerUse
 ---@field name string
@@ -21,6 +84,11 @@ local USE_TIMEOUT_MS, LOOT_DRAIN_MS = 15000, 1000
 ---@type InventoryPocContainerUse|nil
 local containerUse
 
+---@type fun()
+local gateLoot
+---@type fun()
+local gateBook
+
 ---@param pending InventoryPocPending
 function ui.beginUse(pending)
     if pending.action == 'open' then
@@ -29,6 +97,9 @@ function ui.beginUse(pending)
         pending.contents = {}
         containerUse = { name = pending.item.name, expiresAt = pending.started + USE_TIMEOUT_MS, taken = false, closed = false,
             contents = pending.contents, captured = false, currencyReceived = {} }
+        gateLoot()
+    elseif pending.action == 'learn' and pending.item.kind == 'motif' then
+        gateBook()
     end
 end
 
@@ -129,28 +200,52 @@ local function takeOwnContainer()
     return true
 end
 
-local function hookLoot()
+gateLoot = function()
     local loot = SYSTEMS:GetObject('loot')
-    if loot and not hooked[loot] then
-        hooked[loot] = true
-        ZO_PreHook(loot, 'UpdateLootWindow', takeOwnContainer)
+    if loot then
+        openGate('loot', loot, 'UpdateLootWindow', takeOwnContainer, function() return currentContainer() ~= nil end)
     end
+end
+
+---Suppress the reader for the motif being learned; any other book ends the gate.
+---@param title string
+---@return boolean|nil
+local function takeOwnBook(_, title)
+    local pending = currentUse('learn')
+    if not pending or pending.item.kind ~= 'motif' then return end
+    local expected = GetItemLinkBookTitle(pending.item.link)
+    if not expected or expected == '' or zo_strformat(SI_TOOLTIP_ITEM_NAME, title) ~= zo_strformat(SI_TOOLTIP_ITEM_NAME, expected) then
+        return
+    end
+    -- The reader's hide handler normally ends the book interaction.
+    EndInteraction(INTERACTION_BOOK)
+    return true
+end
+
+gateBook = function()
+    openGate('book', LORE_READER, 'Show', takeOwnBook, function()
+        local pending = currentUse('learn')
+        return pending ~= nil and pending.item.kind == 'motif'
+    end)
 end
 
 function ui.initialize()
     containerUse = nil
+    for key in pairs(gates) do closeGate(key) end
     if registered then return end
     registered = true
-    hookLoot()
-    EVENT_MANAGER:RegisterForEvent('BattleScrollsInventoryPocUseUI', EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, hookLoot)
-    EVENT_MANAGER:RegisterForEvent('BattleScrollsInventoryPocUseUI', EVENT_LOOT_CLOSED, function()
+    -- The loot object differs between input modes; follow a use across a switch.
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
+        if currentContainer() then gateLoot() end
+    end)
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_LOOT_CLOSED, function()
         local use = currentContainer()
         if use and not use.closed then
             use.closed = true
             use.expiresAt = GetFrameTimeMilliseconds() + LOOT_DRAIN_MS + GetLatency()
         end
     end)
-    EVENT_MANAGER:RegisterForEvent('BattleScrollsInventoryPocUseUI', EVENT_CURRENCY_UPDATE,
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_CURRENCY_UPDATE,
         function(_, currency, location, amount, oldAmount, reason)
             if reason ~= CURRENCY_CHANGE_REASON_LOOT_CURRENCY_CONTAINER or amount <= oldAmount
                 or location ~= GetCurrencyPlayerStoredLocation(currency) then return end
@@ -160,10 +255,4 @@ function ui.initialize()
             recordCurrency(use, currency, use.currencyReceived[currency], false)
             poc.revision = poc.revision + 1
         end)
-    ZO_PreHook(LORE_READER, 'Show', function(_, title)
-        local pending = currentUse('learn')
-        if not pending or pending.item.kind ~= 'motif' then return end
-        local expected = GetItemLinkBookTitle(pending.item.link)
-        return expected ~= '' and zo_strformat(SI_TOOLTIP_ITEM_NAME, title) == zo_strformat(SI_TOOLTIP_ITEM_NAME, expected)
-    end)
 end

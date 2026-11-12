@@ -1,5 +1,18 @@
 ARCLIGHT TAUNT - PUBLIC CHANGELOG
 
+VERSION 1.2.0 | Crosshair Taunt Status | 12 November 2026
+
+- Added an optional circle or bar at the crosshair to show your confirmed taunt on the enemy you are aiming at. It drains through the familiar turquoise, yellow and red warning stages without adding another number. Empty gray means no own taunt is confirmed; it does not prove lost aggro. Off by default, with a centered circle selected for first use and a bar available below the crosshair.
+- Added independent boss filters for the taunt list and crosshair indicator. Each can show only enemies covered by your boss-detection setting, including strong enemies in broader mode. Other taunts remain tracked; configured boss warnings continue.
+- Circle and bar keep separate size, thickness, background opacity and position settings. Use mouse dragging or exact X/Y values to place either shape. A separate running preview and small/large crosshair references help you align it, including in menus. Resetting one shape keeps the indicator enabled and preserves the other shape.
+- The live crosshair indicator appears only during combat and hides for unsuitable targets, including recognizable ambient critters. Loot prompts do not interrupt its display for a living enemy. Its preview is independent of the list, keeps running while moving the display, and ends when settings close or combat begins.
+- Reorganized settings by task, with boss warnings and detection grouped under Bosses. Combined list visibility/filtering into one selection and target highlighting into Off/Subtle/Strong. Fonts and countdown settings have their own section. Removed the redundant welcome-message test and clarified labels and help in all languages.
+- Fixed position edits and reset while dragging the list: releasing the mouse no longer overwrites the selected position. Clarified automatic shrinking and the anchor used by upward-growing lists.
+- The font sample no longer replaces active boss warnings or interrupts pending expiration alerts.
+- Disabled subtle warning-row tint in full-row mode, where the countdown fill already shows urgency.
+- New installations and restored defaults use 100% list HUD size instead of 115%. Existing saved sizes are preserved.
+- Hidden boss-warning banners no longer keep their animation updates running.
+
 VERSION 1.1.2 | Calmer Combat HUD | 5 November 2026
 
 CALMER LIST MOVEMENT

@@ -47,7 +47,7 @@ ZO_CreateStringId("ZONESETS_GROUP_TOAST_ON", "Group: ON")
 ZO_CreateStringId("ZONESETS_GROUP_TOAST_OFF", "Group: OFF")
 ZO_CreateStringId("ZONESETS_NEEDED_IN_COLL", "Needed for collection")
 ZO_CreateStringId("ZONESETS_GROUP_LOOTED_COUNT", "Looted needed items: %d")
-
+ZO_CreateStringId("ZONESETS_SOLO_TAG", "Solo")
 
 -- Hotkey
 ZO_CreateStringId("SI_BINDING_NAME_TOGGLE_ZONESETS_WINDOW", "Toggle ZoneSets Window")

@@ -1,8 +1,8 @@
 ## Title: |c66f2ffZoneSets|r
 ## Author: |cff6401Soul_Hagans|r
-## Version: 1.3.2
-## AddOnVersion: 10302
-## APIVersion: 101050 101051
+## Version: 1.4.0
+## AddOnVersion: 10400
+## APIVersion: 101051 101052
 ## SavedVariables: ZoneSets_AccountSavedVariables
 ## OptionalDependsOn: RuESO
 

@@ -8,8 +8,8 @@
   "category_id": "18",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:4864",
@@ -18,14 +18,15 @@
     "QuestTrackerImproved"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4864/",
-  "fingerprint": "d494d10bfa68eab2814cd9c3b84a9b8b8ed9e6fa1c9120e478b187e566ecef13",
+  "fingerprint": "43372d12ca940c1ecca0d1eea37ddebb90aaca1aa5b55143567b52a4fc95707c",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17931.png",
     "https://cdn-eso.mmoui.com/preview/pvw17499.png",
     "https://cdn-eso.mmoui.com/preview/pvw17953.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18390.png",
     "https://cdn-eso.mmoui.com/preview/pvw17498.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17954.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw18063.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18391.png"
   ],
   "platform": "pc",
   "published": true,
@@ -33,11 +34,11 @@
   "source_id": "4864",
   "source_url": "https://www.esoui.com/downloads/info4864-QuestTrackerImproved.html",
   "stats": {
-    "downloads": 793,
-    "favorites": 4,
-    "monthly_downloads": 508
+    "downloads": 910,
+    "favorites": 5,
+    "monthly_downloads": 538
   },
   "title": "Quest Tracker Improved",
-  "updated_at": 1793960030000,
-  "version": "2.4"
+  "updated_at": 1794370837000,
+  "version": "2.5"
 }

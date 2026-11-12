@@ -22,7 +22,7 @@
     "GridPadInventory"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4686/",
-  "fingerprint": "0cb94fa4fbdaa20fb6a4377112a7c72ed34a7454add9d2e7d2f2a34e4be7aee2",
+  "fingerprint": "2ae1471771bc863cdd417342f551d585c82a46d26e4ae7c4e5f9dd56928d2022",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16574.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw16575.jpg",
@@ -38,11 +38,11 @@
   "source_id": "4686",
   "source_url": "https://www.esoui.com/downloads/info4686-GridPadarealgridinventoryforgamepadplayers.html",
   "stats": {
-    "downloads": 782,
-    "favorites": 3,
-    "monthly_downloads": 158
+    "downloads": 984,
+    "favorites": 4,
+    "monthly_downloads": 259
   },
   "title": "Grid Pad \u2014 a real grid inventory for gamepad players",
-  "updated_at": 1792891902000,
-  "version": "1.45"
+  "updated_at": 1794454086000,
+  "version": "1.45.2"
 }

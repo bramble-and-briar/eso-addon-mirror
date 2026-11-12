@@ -18,7 +18,7 @@
     "SkullIssue"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5026/",
-  "fingerprint": "50cb5db15f0d86a4867288856e67002739f23b4994500752932a95113e623628",
+  "fingerprint": "9cb71591cae44df8f66d7f8b981dbb5c8753bf98c7a1990040b545c831d16036",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18340.png",
     "https://cdn-eso.mmoui.com/preview/pvw18341.png"
@@ -29,11 +29,11 @@
   "source_id": "5026",
   "source_url": "https://www.esoui.com/downloads/info5026-SkullIssue-AVenomSkulltracker.html",
   "stats": {
-    "downloads": 32,
+    "downloads": 77,
     "favorites": 1,
-    "monthly_downloads": 8
+    "monthly_downloads": 42
   },
   "title": "Skull Issue - A Venom Skull tracker",
-  "updated_at": 1793916004000,
-  "version": "1.0.0"
+  "updated_at": 1794464197000,
+  "version": "1.2.0"
 }

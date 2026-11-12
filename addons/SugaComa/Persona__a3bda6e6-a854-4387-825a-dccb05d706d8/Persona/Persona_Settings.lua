@@ -59,8 +59,20 @@ function Persona.Settings.Initialize()
     end
 
     local L=LibHarvensAddonSettings
-    local panel=L:AddAddon("Persona",{allowDefaults=true,allowRefresh=true})
+    local isConsole=ZO_IsConsoleOrGameCoreUI and ZO_IsConsoleOrGameCoreUI()
+    -- Console dropdowns use pooled rows. LHAS's change broadcast can try to
+    -- select an emote in a row currently displaying a different list.
+    local panel=L:AddAddon("Persona",{allowDefaults=true,allowRefresh=not isConsole})
     if not panel then return end
+
+    local function RefreshConsoleSettings()
+        if not isConsole then return end
+        zo_callLater(function()
+            if panel.selected and L.list then
+                L.list:RefreshVisible()
+            end
+        end,0)
+    end
 
     panel:AddSetting({
         type=L.ST_DROPDOWN,
@@ -70,6 +82,7 @@ function Persona.Settings.Initialize()
         getFunction=Persona.GetSettingsModeName,
         setFunction=function(_,_,item)
             Persona.SetSettingsMode(item.data)
+            RefreshConsoleSettings()
         end,
         default="ACCOUNT-WIDE",
     })
@@ -84,6 +97,7 @@ function Persona.Settings.Initialize()
         label="Outfit profiles belong to the selected ACCOUNT-WIDE or CURRENT CHARACTER settings profile. A mapped outfit loads automatically; an unmapped outfit uses that profile's normal settings.",
     })
 
+    local outfitActions={}
     panel:AddSetting({
         type=L.ST_DROPDOWN,
         label="Outfit Slot",
@@ -94,10 +108,17 @@ function Persona.Settings.Initialize()
         setFunction=function(_,name,item)
             selectedOutfitIndex=item.data
             selectedOutfitLabel=name
+            if isConsole then
+                for _,setting in ipairs(outfitActions) do
+                    if setting.control and setting.control.data==setting then
+                        setting:UpdateControl()
+                    end
+                end
+            end
         end,
     })
 
-    panel:AddSetting({
+    outfitActions[1]=panel:AddSetting({
         type=L.ST_BUTTON,
         label="Save current Persona settings",
         tooltip=function()
@@ -106,11 +127,14 @@ function Persona.Settings.Initialize()
                 .. " in the selected storage profile."
         end,
         buttonText="Save profile",
-        clickHandler=function() Persona.SaveSettingsToOutfit(selectedOutfitIndex) end,
+        clickHandler=function()
+            Persona.SaveSettingsToOutfit(selectedOutfitIndex)
+            RefreshConsoleSettings()
+        end,
         disable=function() return selectedOutfitIndex==0 end,
     })
 
-    panel:AddSetting({
+    outfitActions[2]=panel:AddSetting({
         type=L.ST_BUTTON,
         label="Remove outfit profile",
         tooltip=function()
@@ -119,13 +143,16 @@ function Persona.Settings.Initialize()
                 .. ". The outfit will return to the selected profile's normal settings."
         end,
         buttonText="Remove",
-        clickHandler=function() Persona.RemoveSettingsFromOutfit(selectedOutfitIndex) end,
+        clickHandler=function()
+            Persona.RemoveSettingsFromOutfit(selectedOutfitIndex)
+            RefreshConsoleSettings()
+        end,
         disable=function()
             return not Persona.HasOutfitSettings(selectedOutfitIndex)
         end,
     })
 
-    panel:AddSetting({
+    outfitActions[3]=panel:AddSetting({
         type=L.ST_LABEL,
         label=function()
             return Persona.GetOutfitSettingsStatus(selectedOutfitIndex)
@@ -164,6 +191,7 @@ function Persona.Settings.Initialize()
 
     panel:AddSetting({
         type=L.ST_SLIDER,label="Idle Timer",
+        tooltip="Time spent idle before a behaviour starts. For Custom Act, this timer starts again after the act finishes.",
         getFunction=function() return PersonaDB.idleSeconds end,
         setFunction=function(v) PersonaDB.idleSeconds=v end,
         default=60,min=15,max=300,step=5,unit="s",format="%d",
@@ -243,10 +271,15 @@ function Persona.Settings.Initialize()
         })
 
         panel:AddSetting({
-            type=L.ST_SLIDER,label="Act Step "..index.." Delay",
-            getFunction=function() return PersonaDB["idleDelay"..index] end,
-            setFunction=function(v) PersonaDB["idleDelay"..index]=v end,
-            default=2000,min=500,max=10000,step=100,unit="ms",format="%d",
+            type=L.ST_SLIDER,label="Act Step "..index.." Duration",
+            tooltip="Time in seconds before Custom Act starts the next configured emote or finishes. Looping emotes can keep playing during this time.",
+            getFunction=function()
+                return (PersonaDB["idleDelay"..index] or Persona.defaults["idleDelay"..index])/1000
+            end,
+            setFunction=function(seconds)
+                PersonaDB["idleDelay"..index]=math.floor(seconds*1000+0.5)
+            end,
+            default=2,min=0.5,max=180,step=0.1,unit="s",format="%.1f",
         })
     end
 
@@ -339,8 +372,8 @@ function Persona.Settings.Initialize()
     AddEmotePool(panel,L,"loot")
     AddTest(panel,L,"Test Epic Loot","loot")
 
-    panel:AddSetting({
-        type=L.ST_LABEL,
-        label="|cFFD700Built on tea, toast and ADHD — tested live on PS5.|r",
-    })
+    -- Signature and contact supplied by FrameworkSettings.lua.
+
+    Persona_Framework:AddProfileControls(panel)
+    Persona_Framework:AddFooter(panel)
 end

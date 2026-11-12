@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.2 | Bootstrap module
+-- Arclight Taunt 1.2.0 | Bootstrap module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -28,7 +28,15 @@ local function OnLoaded(_, name)
     -- Account-wide presentation preferences are intentionally shared across
     -- megaservers. No server-specific identities, combat records or progress
     -- are persisted. Keep the existing profile/schema to preserve user choices.
-    A.saved = ZO_SavedVars:NewAccountWide("ArclightTauntSaved", 1, nil, defaults)
+    -- The crosshair display is opt-in on fresh installs and upgrades alike.
+    -- Explicit bar/circle selections remain ordinary saved preferences.
+    local loadDefaults = {}
+    for key, value in pairs(defaults) do
+        if key ~= "reticleSize" and key ~= "reticleOffsetX" and key ~= "reticleOffsetY" and key ~= "reticleTrackOpacity" then
+            loadDefaults[key] = value
+        end
+    end
+    A.saved = ZO_SavedVars:NewAccountWide("ArclightTauntSaved", 1, nil, loadDefaults)
     -- Show one unobtrusive setup tip only to genuinely new installations.
     -- Older profiles already have a settingsVersion from previous migrations.
     -- Do not show a welcome banner after each update or UI reload.
@@ -166,6 +174,23 @@ local function OnLoaded(_, name)
     A.saved.showTauntList = A.saved.showTauntList ~= false
     A.saved.mirrorTauntList = A.saved.mirrorTauntList == true
     A.saved.highContrast = A.saved.highContrast == true
+    A.saved.bossListOnly = A.saved.bossListOnly == true
+    A.saved.reticleBossOnly = A.saved.reticleBossOnly == true
+    A.saved.reticleCombatOnly = nil -- live indicator is always combat-only
+    A.saved.reticleBossMarker = nil -- retire the unshipped visual experiment
+    if A.saved.reticleStyle ~= "circle" and A.saved.reticleStyle ~= "bar" then A.saved.reticleStyle = "off" end
+    -- Preserve an enabled shape; remember it across disable/enable without
+    -- changing the existing style field or any saved size/placement.
+    if A.saved.reticleStyle ~= "off" then A.saved.reticleLastStyle = A.saved.reticleStyle
+    elseif A.saved.reticleLastStyle ~= "bar" then A.saved.reticleLastStyle = "circle" end
+    local reticleDefaults = A.ReticleProfileDefaults()
+    A.saved.reticleTrackOpacity = math.floor(FiniteBoundedNumber(A.saved.reticleTrackOpacity, reticleDefaults.opacity, 0, 100) + 0.5)
+    A.saved.reticleSize = math.floor(FiniteBoundedNumber(A.saved.reticleSize, reticleDefaults.size, 16, 40))
+    A.saved.reticleBarHeight = math.floor(FiniteBoundedNumber(A.saved.reticleBarHeight, defaults.reticleBarHeight, 2, 8) * 2 + 0.5) / 2
+    A.saved.reticleRingWeight = math.floor(FiniteBoundedNumber(A.saved.reticleRingWeight, defaults.reticleRingWeight, 2, 8) * 2 + 0.5) / 2
+    A.saved.reticleOffsetX = math.floor(FiniteBoundedNumber(A.saved.reticleOffsetX, reticleDefaults.x, -10000, 10000))
+    A.saved.reticleOffsetY = math.floor(FiniteBoundedNumber(A.saved.reticleOffsetY, reticleDefaults.y, -10000, 10000))
+    A.InitializeReticleProfiles()
     A.saved.smartTime = A.saved.smartTime ~= false
     A.saved.growUp = A.saved.growUp == true
     A.saved.fitToScreen = A.saved.fitToScreen ~= false
@@ -217,6 +242,9 @@ local function OnLoaded(_, name)
     end
     EM:RegisterForEvent(ADDON .. "_Combat", EVENT_PLAYER_COMBAT_STATE, A.CombatChanged)
     EM:RegisterForEvent(ADDON .. "_Reticle", EVENT_RETICLE_TARGET_CHANGED, A.ReticleChanged)
+    if EVENT_RETICLE_HIDDEN_UPDATE then
+        EM:RegisterForEvent(ADDON .. "_ReticleVisibility", EVENT_RETICLE_HIDDEN_UPDATE, A.ReticleVisibilityChanged)
+    end
     for result in pairs(A.DEATH_RESULTS) do
         local deathEvent = ADDON .. "_Death_" .. tostring(result)
         EM:RegisterForEvent(deathEvent, EVENT_COMBAT_EVENT, A.CombatDeath)

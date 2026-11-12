@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="ItemShare">
+            <Action name="ITEMSHARE_TOGGLE_SHARE">
+                <Down>ItemShare_ToggleShare()</Down>
+            </Action>
+            <Action name="ITEMSHARE_TOGGLE_ALWAYS_SHARE">
+                <Down>ItemShare_ToggleAlwaysShare()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

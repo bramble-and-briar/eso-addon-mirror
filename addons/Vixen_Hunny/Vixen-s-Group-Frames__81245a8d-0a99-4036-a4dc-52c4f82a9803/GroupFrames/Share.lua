@@ -1,3 +1,16 @@
+---------------------------------------------------------------------------
+-- Share.lua - sharing tracked effects with groupmates
+--
+-- Flow: the sender presses "Share my effects" (GF.ShareTrackedEffects), the
+-- list travels through LibGroupBroadcast, and on every other GroupFrames
+-- user OnData files the effects under GF.sharedEffects until that player
+-- adds them (GF.AcceptSharedEffect) - or adds them straight away when they
+-- chose "add shared effects automatically".
+--
+-- Without LibGroupBroadcast nothing here does anything; GF.canShare tells
+-- the settings menu whether sharing is available.
+---------------------------------------------------------------------------
+
 local GF = GroupFrames
 
 -- Sharing of the user-added effects with groupmates through LibGroupBroadcast.
@@ -14,12 +27,15 @@ local PROTOCOL_NAME = "GroupFramesEffects"
 local MAX_SHARED = 30 -- per list
 local MAX_ABILITY_ID = 1048575 -- 20 bits
 
-local protocol
+local protocol -- the declared LibGroupBroadcast protocol, nil if unavailable
 
 -- Effects received from groupmates that are waiting to be added:
 -- key (as in sv.trackedEffects) -> { display, from, id }
 GF.sharedEffects = {}
 
+-- Returns an ability id that carries the given (lower-case) effect name, or
+-- nil if that effect has never been seen in game. Found ids are saved so
+-- the entry can still be shared in later sessions.
 local function FindAbilityIdForName(key)
     local sv = GF.sv
     if sv.effectIds[key] then return sv.effectIds[key] end
@@ -31,6 +47,8 @@ local function FindAbilityIdForName(key)
     end
 end
 
+-- Splits the tracked effects into the two id lists of the message. Returns
+-- ids, names and how many entries had to be left out.
 local function BuildPayload()
     local ids, names, skipped = {}, {}, 0
     for key in pairs(GF.sv.trackedEffects) do
@@ -84,9 +102,14 @@ function GF.ShareTrackedEffects()
     return true, message
 end
 
-local function Offer(key, display, abilityId, from)
+-- Handles one received effect: adds it, or queues it for the player to
+-- accept. Returns false when there is nothing to do: already tracked, a
+-- listed Major/Minor buff (those have their own checkboxes) or blacklisted.
+local function Offer(key, display, name, abilityId, from)
     local sv = GF.sv
-    if sv.trackedEffects[key] or sv.buffs[display] ~= nil then return false end
+    if sv.trackedEffects[key] or GF.IsListedBuff(name) or GF.IsBlacklisted(name, abilityId) then
+        return false
+    end
     if sv.autoAcceptShared then
         sv.trackedEffects[key] = display
         if type(key) == "string" then sv.effectIds[key] = abilityId end
@@ -96,21 +119,24 @@ local function Offer(key, display, abilityId, from)
     return true
 end
 
+-- Called by LibGroupBroadcast when a groupmate's list arrives. `data` holds
+-- the two arrays declared in InitSharing. Ids are turned back into names
+-- with this client's own language.
 local function OnData(unitTag, data)
-    if AreUnitsEqual(unitTag, "player") then return end
+    if AreUnitsEqual(unitTag, "player") then return end -- our own message
 
     local from = zo_strformat("<<1>>", GetUnitName(unitTag))
     local count = 0
 
     for _, abilityId in ipairs(data.ids or {}) do
         local name = zo_strformat("<<1>>", GetAbilityName(abilityId))
-        if name ~= "" and Offer(abilityId, name .. " (" .. abilityId .. ")", abilityId, from) then
+        if name ~= "" and Offer(abilityId, name .. " (" .. abilityId .. ")", name, abilityId, from) then
             count = count + 1
         end
     end
     for _, abilityId in ipairs(data.names or {}) do
         local name = zo_strformat("<<1>>", GetAbilityName(abilityId))
-        if name ~= "" and Offer(name:lower(), name, abilityId, from) then
+        if name ~= "" and Offer(name:lower(), name, name, abilityId, from) then
             count = count + 1
         end
     end
@@ -142,6 +168,10 @@ function GF.AcceptSharedEffect(key)
     end
 end
 
+-- Registers GroupFrames with LibGroupBroadcast and declares the message
+-- format: two arrays of ability ids, each id 20 bits wide. Called once at
+-- start-up. The handler is kept in GF.lgbHandler because an addon may only
+-- register once and Stats.lua declares a second protocol on it.
 function GF.InitSharing()
     local LGB = LibGroupBroadcast
     if not (LGB and LGB.RegisterHandler) then return end

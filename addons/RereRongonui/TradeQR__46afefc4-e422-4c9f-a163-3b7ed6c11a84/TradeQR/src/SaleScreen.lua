@@ -1,4 +1,4 @@
--- Full-screen scene that shows the first pending sale as a QR code plus readable details.
+-- Full-screen scene that shows the first pending record (sale or listing) as a QR code plus readable details.
 -- Opens by itself when there are pending sales and the player is idle in the HUD
 -- (no combat, no other menu open), so it never interrupts gameplay.
 local SaleScreen = ZO_InitializingObject:Subclass()
@@ -190,9 +190,10 @@ function SaleScreen:Refresh()
         return
     end
 
-    self.titleLabel:SetText(GetString(TRADEQR_SCREEN_TITLE))
+    local isListing = sale.kind == TradeQR.RECORD_KIND_LISTING
+    self.titleLabel:SetText(GetString(isListing and TRADEQR_SCREEN_TITLE_LISTING or TRADEQR_SCREEN_TITLE))
     self.counterLabel:SetText(zo_strformat(GetString(TRADEQR_COUNTER), 1, self.saleQueue:GetCount()))
-    self.detailsLabel:SetText(self:BuildDetailsText(sale))
+    self.detailsLabel:SetText(isListing and self:BuildListingDetailsText(sale) or self:BuildDetailsText(sale))
     self:RenderQRCode(sale)
     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindDescriptor)
 end
@@ -205,6 +206,18 @@ function SaleScreen:BuildDetailsText(sale)
         string.format("%s: %s |t32:32:EsoUI/Art/currency/currency_gold.dds|t", GetString(TRADEQR_LABEL_PRICE), ZO_CommaDelimitNumber(sale.price)),
         string.format("%s: %s", GetString(TRADEQR_LABEL_BUYER), sale.buyer),
         string.format("%s: %s", GetString(TRADEQR_LABEL_DATE), GetDateStringFromTimestamp(sale.timestamp)),
+    }
+    return table.concat(lines, "\n")
+end
+
+function SaleScreen:BuildListingDetailsText(listing)
+    local lines = {
+        string.format("%s: %s", GetString(TRADEQR_LABEL_GUILD), listing.guildName),
+        string.format("%s: %s", GetString(TRADEQR_LABEL_ITEM), listing.itemLink),
+        string.format("%s: %d", GetString(TRADEQR_LABEL_QUANTITY), listing.quantity),
+        string.format("%s: %s |t32:32:EsoUI/Art/currency/currency_gold.dds|t", GetString(TRADEQR_LABEL_PRICE), ZO_CommaDelimitNumber(listing.price)),
+        string.format("%s: %s |t32:32:EsoUI/Art/currency/currency_gold.dds|t", GetString(TRADEQR_LABEL_LISTING_FEE), ZO_CommaDelimitNumber(listing.fee or 0)),
+        string.format("%s: %s", GetString(TRADEQR_LABEL_DATE), GetDateStringFromTimestamp(listing.timestamp)),
     }
     return table.concat(lines, "\n")
 end

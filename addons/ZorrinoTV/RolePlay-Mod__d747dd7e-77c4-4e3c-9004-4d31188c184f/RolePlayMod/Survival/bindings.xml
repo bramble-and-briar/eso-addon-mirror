@@ -1,0 +1,18 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="SI_ROLEPLAYMOD_CATEGORY">
+            <Action name="RPN_CHECK_NEEDS">
+                <Down>RPN_CheckNeeds()</Down>
+            </Action>
+        </Category>
+    </Layer>
+
+
+    <!-- Blocks only the sprint action; all other actions fall through unchanged. -->
+    <Layer name="RPNExhaustionSprintLock" allowFallthrough="true">
+        <Category>
+            <BlockAction name="SPECIAL_MOVE_SPRINT" />
+            <BlockAction name="GAMEPAD_SPECIAL_MOVE_SPRINT" />
+        </Category>
+    </Layer>
+</Bindings>

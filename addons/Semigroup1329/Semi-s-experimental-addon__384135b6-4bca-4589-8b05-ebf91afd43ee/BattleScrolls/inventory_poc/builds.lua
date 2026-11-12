@@ -39,14 +39,13 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field request InventoryPocBuildRequest|nil
 ---@field registered boolean
 ---@field ownRequest boolean
----@field moving table<string, boolean>
 local builds = {
     profiles = {
         { id = 'healer', label = BATTLESCROLLS_IPOC_HEALER, armoryName = 'hehehealer', armoryIndex = 5, pageName = 'Page 18' },
         { id = 'damage', label = BATTLESCROLLS_IPOC_DAMAGE, armoryName = 'PvE', armoryIndex = 2, pageName = 'Reaving DD' },
         { id = 'pvp', label = BATTLESCROLLS_IPOC_PVP, armoryName = 'PvP', armoryIndex = 4, pageName = 'Page 18' },
     },
-    registered = false, ownRequest = false, moving = {},
+    registered = false, ownRequest = false,
 }
 BattleScrolls.inventoryPocBuilds = builds
 local poc = BattleScrolls.inventoryPoc
@@ -166,7 +165,7 @@ function builds.stop()
         setIssue(state, 'interrupted')
         log('uncertain')
     end
-    builds.request, builds.moving = nil, {}
+    builds.request = nil
 end
 
 ---@param choice InventoryPocBuildChoice
@@ -182,14 +181,6 @@ function builds.choose(choice)
             return
         end
     end
-end
-
----@param item InventoryPocItem
----@param toBackpack boolean
----@return boolean
-function builds.canMove(item, toBackpack)
-    local source = toBackpack and (item.bag == BAG_BANK or item.bag == BAG_SUBSCRIBER_BANK) or item.bag == BAG_BACKPACK
-    return source and builds.moving[item.uniqueId] == toBackpack
 end
 
 ---@param state InventoryPocBuildState
@@ -283,7 +274,7 @@ end
 ---@return boolean
 local function wornMatches(gear)
     for slot, id in pairs(gear) do
-        if Id64ToString(GetItemUniqueId(BAG_WORN, slot)) ~= id then return false end
+        if facts.uniqueId(BAG_WORN, slot) ~= id then return false end
     end
     return true
 end
@@ -324,7 +315,7 @@ end
 ---@return string|number|nil actual
 local function wardrobeMismatch(request, ww)
     for slot, id in pairs(request.expectedGear or request.base) do
-        local actual = Id64ToString(GetItemUniqueId(BAG_WORN, slot))
+        local actual = facts.uniqueId(BAG_WORN, slot)
         if actual ~= id then return 'gear', slot, nil, id, actual end
     end
     local setup = request.setup
@@ -361,6 +352,8 @@ local function restoreArmory(request)
             events:On(EVENT_ARMORY_BUILD_RESTORE_RESPONSE, function(_, result, index)
                 if index == request.armoryIndex then resolve(result) end
             end)
+            -- The work panel sets ESO's progress and success notices aside before the request.
+            BattleScrolls.inventoryPocWorkUI.refresh()
             builds.ownRequest = true
             local ok, err = pcall(RestoreArmoryBuild, request.armoryIndex)
             builds.ownRequest = false
@@ -445,20 +438,13 @@ function builds.step(reserved, pass)
         if pass then pass.bank = bank end
     end
     local wanted, all = gearPlan(state, selected, setups, reserved, backpack, bank)
-    builds.moving = {}
     if bankOpen then
         -- Make room first; worn items are never unequipped just to bank them.
         for _, item in ipairs(backpack) do
-            if all[item.uniqueId] and not wanted[item.uniqueId] then
-                builds.moving[item.uniqueId] = false
-                if poc.moveBuildItem(item, false) then return true end
-            end
+            if all[item.uniqueId] and not wanted[item.uniqueId] and poc.moveBuildItem(item, false) then return true end
         end
         for _, item in ipairs(bank) do
-            if wanted[item.uniqueId] then
-                builds.moving[item.uniqueId] = true
-                if poc.moveBuildItem(item, true) then return true end
-            end
+            if wanted[item.uniqueId] and poc.moveBuildItem(item, true) then return true end
         end
     end
     if state.status == 'done' then return false end
@@ -484,7 +470,10 @@ function builds.step(reserved, pass)
     end
     if not complete then state.status = 'bank'; return false end
     local interaction = GetInteractionType()
-    if (interaction ~= INTERACTION_NONE and interaction ~= INTERACTION_ARMORY) or IsPlayerMoving() then state.status = 'wardrobe'; return false end
+    if (interaction ~= INTERACTION_NONE and interaction ~= INTERACTION_ARMORY) or IsPlayerMoving() then
+        if interaction == INTERACTION_NONE then poc.useBlocked = true end
+        state.status = 'wardrobe'; return false
+    end
     LibEffect.Yield():Await()
     ww.pages.SUB[0].selected = page
     ww.gui.OnZoneSelect(ww.zones.SUB)

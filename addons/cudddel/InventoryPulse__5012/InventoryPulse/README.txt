@@ -1,5 +1,9 @@
-InventoryPulse 1.0.1
+InventoryPulse 1.0.2
 ====================
+
+AI disclosure: The code of this addon was written with the help of an AI
+assistant (Claude by Anthropic). The author reviewed it, tested it in-game
+and is responsible for it.
 
 --- English ---
 

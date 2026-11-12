@@ -1,17 +1,27 @@
-ARCLIGHT TAUNT 1.1.2
+ARCLIGHT TAUNT 1.2.0
 Modern Multi-Target Taunt HUD for The Elder Scrolls Online
 Author: tareN
 In-game contact: @uhtareN (PC/EU)
 
 ABOUT
-A compact overview of your own taunts from standard and Scribing skills,
-including your pets' taunts. Smooth countdown bars, target highlighting,
-boss indicators and separate early/expiration warnings keep priorities readable.
-Enemies with identical names remain separate. Short row transitions close gaps;
-a small light edge marks the remaining countdown fill.
-Reduce animations under Appearance & readability stops decorative motion while keeping smooth countdowns and configured warnings.
-List & layout groups HUD size, spacing and position. Appearance & readability
-groups bars/backgrounds, text/countdowns and target effects.
+Arclight shows your own taunts from standard and Scribing skills, including
+your pets' taunts. Enemies with the same name remain separate. Smooth
+countdowns, target highlighting and boss warnings show what needs attention.
+
+A small bar or circle at the crosshair shows your confirmed own taunt without
+numbers. Empty gray means no own taunt is confirmed; it does not prove lost
+aggro. The indicator is off by default; enable it under Crosshair taunt status.
+New setups start with a centered circle when enabled; the bar remains available.
+The selected shape is remembered while off. Existing sizes and positions are
+preserved. Both shapes can be positioned independently of the list.
+
+Independent boss filters can limit the list or crosshair indicator to ESO bosses
+and, in broader mode, strong enemies. Other taunts remain tracked and configured
+boss warnings continue. Move displays freezes the preview so you can drag
+both displays separately; Move this indicator edits just the crosshair display.
+
+Reduce animations stops decorative motion while countdowns, warnings and
+sounds stay active.
 
 INSTALLATION
 Install these required libraries separately; they are not bundled:
@@ -25,27 +35,38 @@ Documents/Elder Scrolls Online/live/AddOns/
 The manifest must be at AddOns/ArclightTaunt/ArclightTaunt.txt.
 
 UPDATING
-Replace the addon folder and keep your SavedVariables. Personal layout, media
-and supported sound selections are preserved. Old row-height percentages are
-converted once to extra height above the readable minimum. New installations
-use 115% HUD scale, Signature bars and 72% background opacity.
+Replace the addon folder and keep your SavedVariables to preserve your settings.
 Settings are account-wide and shared across megaservers. No combat history,
 character progress or other server-specific data is stored.
 
 SETTINGS
 ESC > Settings > Add-ons > Arclight Taunt
-- Quick settings: show and pause the list preview; enter drag mode.
-- List & layout: visibility, size, width, row height, spacing, one/two columns,
-  mirroring, position and boss pinning. Active taunts sort by remaining time.
-- Design & readability: narrow/full-row display, optional high contrast,
-  Subtle/Strong current-target highlighting, fonts, bar textures and countdown thresholds.
-- Bosses: boss detection, indicators, warning timing, appearance and sound.
-- Tracking & tests: player-target tracking and the welcome/language-font tests.
+- Quick settings: show/pause preview, move displays and choose preview enemies.
+- List & layout: visibility, size, spacing, columns and position.
+- Appearance & readability: bars, backgrounds, contrast and target highlighting.
+- Text & countdown: fonts, text size, countdown display and warning thresholds.
+- Crosshair taunt status: style, visibility, appearance and placement.
+- Bosses: submenus for warnings/sounds and enemy detection/markings.
+- Tracking: player targets, death removal and expired entries.
 
-The preview starts with several staggered timers, adds and re-taunts enemies
-irregularly, and chooses varied dungeon/trial names each cycle. Pause freezes
-timers, arrivals and focus; resume continues from the same point. Ending the
-preview clears its pause. The list preview itself does not create boss warnings.
+Preview shows varied enemies and staggered taunts. Pause it while adjusting the
+HUD; resume continues from the same point. The list preview itself does not
+create boss warnings.
+
+Under Crosshair taunt status, Show indicator preview runs a repeating countdown
+through turquoise, yellow and red, independently of the list. It keeps running
+while you move the indicator.
+Preview crosshair adds ESO's small or large crosshair as an alignment reference,
+also in menus. Preview and placement end when settings close or combat begins;
+the live indicator appears only during combat.
+
+Circle and bar remember size, thickness, track opacity and position separately.
+The circle starts centered; the bar starts below the crosshair. Use Move this
+indicator or the exact horizontal/vertical values to place either shape.
+Thickness changes bar height or relative ring line weight. Reset crosshair
+settings restores only the selected shape's appearance and position, keeping
+activation, preview, boss filters and the other shape unchanged.
+The general Defaults action resets both shapes and turns the indicator off.
 
 WARNINGS
 Turquoise early warnings appear before a recognized boss taunt expires
@@ -69,19 +90,13 @@ English, German, French, Spanish and Russian follow your ESO client language.
 Other client languages use English. Your saved layout/media are unchanged.
 
 GOOD TO KNOW
-- Tracks ESO-reported taunt effects (IDs 38254 and 38541), not measured aggro.
-  Expiration is not proof that the enemy has changed target.
-- Player targets are excluded by default; enable them under Tracking & tests.
-- Enemies to highlight offers ESO boss-bar targets only, or bosses and strong
-  enemies (default). Strong enemies are not necessarily bosses. Also show banners
-  for strong enemies extends enabled banners and sounds; off by default.
-  The old deadly-only selection becomes bosses and strong enemies; existing
-  warning preferences are retained.
-- HUD focus uses direct event identity or a unique own-taunt timing match.
-  Uncertain timer matches never authorize removing another target. There is
-  no separate crosshair HUD or other-player/group-taunt display.
-- Unavailable media temporarily fall back while keeping the saved choice.
-  Legacy row backgrounds are preserved, but their selector has been removed.
+- Tracks ESO-reported taunt effects, not measured aggro. Expiration does not
+  prove that the enemy has changed target.
+- Player targets are excluded by default; enable them under Tracking.
+- Broader boss detection can also include strong non-boss enemies. Warnings for
+  them are optional and off by default.
+- The crosshair indicator confirms only your own taunts; other players' taunts
+  are not tracked.
 
 FEEDBACK
 https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html#comments
@@ -89,11 +104,12 @@ Include your ability/morph or Scribing combination, client language, encounter,
 observed behavior and any Lua error. Screenshots help with visual issues.
 
 CREDITS / TRANSPARENCY
-Early alpha concept inspired by Untaunted by Solinur:
-https://www.esoui.com/downloads/info1475-Untaunted.html
-AI-assisted Lua programming under the direction of tareN. Features have been
-tested in live ESO gameplay, including DLC dungeons, with automated regression
-tests supporting development. These tests do not reproduce the game client.
+- Early alpha idea: Untaunted by Solinur:
+  https://www.esoui.com/downloads/info1475-Untaunted.html
+- Crosshair idea: Dryzler's Taunt Helper:
+  https://www.esoui.com/downloads/info1755-DryzlersTauntHelper.html
+
+Developed by tareN with AI-assisted Lua programming.
 Boss skull and promotional artwork were AI-generated. LibAddonMenu-2.0 and
 LibMediaProvider are independent third-party projects installed separately.
 Arclight Taunt is not affiliated with ZeniMax Online Studios.

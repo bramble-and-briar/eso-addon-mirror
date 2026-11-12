@@ -93,13 +93,38 @@ local function close(service)
     end
 end
 
+---ESO answers an interaction it ended itself (combat, the NPC leaving) by
+---calling the scene descriptor's OnInteractionCanceled, which changes scenes.
+---A handler created while this addon builds its scene would be untrusted and
+---run that whole transition untrusted (docs/inventory-addon/ui-taint.md).
+---ESO's own handlers, created at load, only consult their descriptor's scene
+---registry, so one of them can serve our scene once it is registered there.
+---@param interaction number
+---@return table|nil descriptor A native interaction descriptor with a trusted handler
+local function nativeInteraction(interaction)
+    local fallback
+    for _, scene in pairs(SCENE_MANAGER.scenes) do
+        local info = scene.GetInteractionInfo and scene:GetInteractionInfo()
+        if info and info.registeredScenes and info.OnInteractionCanceled and IsTrustedFunction(info.OnInteractionCanceled) then
+            for _, kind in ipairs(info.interactTypes) do
+                if kind == interaction then return info end
+            end
+            fallback = fallback or info
+        end
+    end
+    return fallback
+end
+
 ---@param interaction number
 ---@param action InventoryPocActivity
 local function create(interaction, action)
     local name = 'battleScrollsInventoryService' .. action
+    local native = nativeInteraction(interaction)
     local scene = ZO_InteractScene:New(name, SCENE_MANAGER, {
         type = name, interactTypes = { interaction },
+        OnInteractionCanceled = native and native.OnInteractionCanceled,
     })
+    if native then native.registeredScenes[scene] = true end
     scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
     scene:AddFragment(FRAME_INTERACTION_QUADRANT_4_GAMEPAD_FRAGMENT)
     scene:AddFragment(FRAME_TARGET_BLUR_QUADRANT_4_GAMEPAD_FRAGMENT)
@@ -119,7 +144,8 @@ local function create(interaction, action)
         end
         BattleScrolls.inventoryPocWorkUI.refresh()
     end)
-    ZO_PostHook(scene, 'OnRemovedFromQueue', function()
+    -- The native post-hook runs the scene's own removal under the caller's trust.
+    SecurePostHook(scene, 'OnRemovedFromQueue', function()
         -- Queue cancellation can happen before StateChange has established a visit.
         if service.armed then
             service.cooldownUntil = GetFrameTimeMilliseconds() + COOLDOWN_MS
@@ -136,8 +162,10 @@ local function arm(service)
     -- their original function identities throughout the visit.
     for name, scene in pairs(SCENE_MANAGER.scenes) do
         local info = scene.GetInteractionInfo and scene:GetInteractionInfo()
-        -- Every alchemy/provisioning subscene shares its station descriptor.
-        if scene ~= service.scene and info and info.type ~= 'Alchemy Station' and info.type ~= 'Provisioner Station' then
+        -- Every alchemy/provisioning subscene shares its station descriptor;
+        -- scribing altars have nothing to deconstruct either.
+        if scene ~= service.scene and info and info.type ~= 'Alchemy Station' and info.type ~= 'Provisioner Station'
+            and info.type ~= 'ScribingStation' then
             for _, interaction in ipairs(info.interactTypes) do
                 -- Merchants and stables share an interaction descriptor.
                 local merchant = service.interaction ~= INTERACTION_VENDOR or name == 'store' or name == 'gamepad_store'
@@ -162,7 +190,8 @@ function ui.canAutomate()
     local interaction = GetInteractionType()
     if interaction == INTERACTION_CRAFT then
         local craftingType = GetCraftingInteractionType()
-        if craftingType == CRAFTING_TYPE_ALCHEMY or craftingType == CRAFTING_TYPE_PROVISIONING then return false end
+        if craftingType == CRAFTING_TYPE_ALCHEMY or craftingType == CRAFTING_TYPE_PROVISIONING
+            or craftingType == CRAFTING_TYPE_SCRIBING then return false end
     end
     local service = services[interaction]
     return not service or service.armed
@@ -197,6 +226,9 @@ function ui.update()
             or (service.interaction == INTERACTION_VENDOR and interaction == INTERACTION_STABLE)
         if not usingDestination then
             local ready = service.interaction ~= INTERACTION_COMPANION_MENU or BattleScrolls.inventoryPocCompanions.hasUpgrade()
+            -- Storage chests and the furniture vault open the banking scene too;
+            -- hooking ESO's bank opening would taint it, so houses keep it native.
+            if service.interaction == INTERACTION_BANK and GetCurrentZoneHouseId() ~= 0 then ready = false end
             if service.armed and not ready then restore(service)
             elseif not service.armed and ready and now >= service.cooldownUntil then arm(service) end
         end

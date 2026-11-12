@@ -15,21 +15,17 @@ local debugEnabled = false
 
 local BLOCKED_ABILITIES = {
 	[54363] = true, -- Guard's Stop
-	[163818] = true, -- Teleport (Encounter In Progress)
-	[163850] = true, -- Teleport (Encounter In Progress) -- DSR
+	[138838] = true, -- CT | Scythe Pull
 	[167948] = true, -- Coral Aerie | Maligalig Tornadoe Silence
 	[159551] = true, -- Coral Aerie | Maligalig Tornadoe Stuns
 	[166794] = true, -- DSR | Water Charms
 	[167949] = true, -- DSR | Water Silence
 	[263940] = true, -- MoS | Tarcyr Teleport
 	[264680] = true, -- MoS | Tarcyr Ghostly Indriks
-	[194570] = true, -- IA | Entrance Stun
-	[194571] = true, -- IA | Room Portals
 	[203124] = true, -- IA | Verses Selection UI 1
 	[203125] = true, -- IA | Verses Selection UI 2
 	[202995] = true, -- IA | Visions Selection UI 1
 	[203101] = true, -- IA | Visions Selection UI 2
-	[211431] = true, -- IA | Extra Portal Teleport
 	[272971] = true, -- Nowhere Vault | Watchers Whistle
 	[267547] = true, -- Nowhere Vault | Watchres Teleport
 	[183787] = true, -- SE | FrostStun First Boss 1
@@ -38,6 +34,16 @@ local BLOCKED_ABILITIES = {
 	[187210] = true, -- SE | Ansuul Portal 2
 	[187216] = true, -- SE | Ansuul Portal 3
 	[113642] = true, -- FV | Skeever Transform
+}
+
+local isTP = {
+	[163818] = true, -- Teleport (Encounter In Progress)
+	[163850] = true, -- Teleport (Encounter In Progress) -- DSR
+	[132676] = true, -- Teleport (Encounter In Progress) -- CT
+	[132684] = true, -- (Encounter In Progress)2 -- CT
+	[194570] = true, -- IA | Entrance Stun
+	[194571] = true, -- IA | Room Portals
+	[211431] = true, -- IA | Extra Portal Teleport
 }
 
 local combatResults = {
@@ -175,7 +181,11 @@ function S.RemoveStunnedMode()
 end
 
 function S.CombatEventHandler(_, result, isError, abilityName, _, _, sourceName, _, targetName, _, _, _, _, _, _, _, abilityId)
-	if S.SV.combatOnly and not inCombat and result ~= ACTION_RESULT_EFFECT_FADED then return end
+	if S.SV.combatOnly and not inCombat then
+		if not (result == ACTION_RESULT_EFFECT_FADED and activeStunID ~= nil) then
+			return
+		end
+	end
 
 	if isError then
 		if result == ACTION_RESULT_STUNNED or result == ACTION_RESULT_FEARED or result == ACTION_RESULT_CHARMED then
@@ -184,9 +194,11 @@ function S.CombatEventHandler(_, result, isError, abilityName, _, _, sourceName,
 		end
 	end
 
+	if BLOCKED_ABILITIES[abilityId] then return end
+	if isTP[abilityId] then return end
+
 	local normalizedSource = zo_strformat("<<1>>", sourceName)
 	if normalizedSource == playerName then return end
-	if BLOCKED_ABILITIES[abilityId] then return end
 	local normalizedTarget = zo_strformat("<<1>>", targetName)
 
 	if normalizedTarget == playerName then
@@ -249,43 +261,41 @@ function S.CombatEventHandler(_, result, isError, abilityName, _, _, sourceName,
 	end
 end
 
--- function S.NoStunAfterTP()
-	-- S.RemoveStunnedMode()
--- end
-
-function S.OnInitPlayerActivated()
-	playerName = GetUnitName("player")
-	S.CreateUI()
-
-	EM:UnregisterForEvent(S.name, EVENT_PLAYER_ACTIVATED)
-	--EM:RegisterForEvent(S.name, EVENT_PLAYER_ACTIVATED, S.NoStunAfterTP)
-end
-
 function S.OnAddonLoaded(_, addonName)
-	if addonName == S.name then
-		EM:UnregisterForEvent(S.name, EVENT_ADD_ON_LOADED)
+	if addonName ~= S.name then return end
 
-		S.SV = ZO_SavedVars:NewAccountWide("Stunned_SV", 1, nil, defaultSV)
-		S.RegisterLAMPanel()
+	EM:UnregisterForEvent(S.name, EVENT_ADD_ON_LOADED)
 
-		EM:RegisterForEvent(S.name, EVENT_PLAYER_ACTIVATED, S.OnInitPlayerActivated)
+	S.SV = ZO_SavedVars:NewAccountWide("Stunned_SV", 1, nil, defaultSV)
 
-		if S.SV.combatOnly then
-			EM:RegisterForEvent(S.name .. "_CombatState", EVENT_PLAYER_COMBAT_STATE, function(_, isInCombat)
-				inCombat = isInCombat
-			end)
-		end
+	S.InitSettings()
 
-		for _, result in ipairs(combatResults) do
-			local ns = S.name .. "_" .. tostring(result)
-			EM:RegisterForEvent(ns, EVENT_COMBAT_EVENT, S.CombatEventHandler)
-			EM:AddFilterForEvent(ns, EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, result)
-		end
+	EM:RegisterForEvent(S.name .. "_Init", EVENT_PLAYER_ACTIVATED, function()
+		EM:UnregisterForEvent(S.name .. "_Init", EVENT_PLAYER_ACTIVATED)
 
-		SLASH_COMMANDS["/stundbg"] = function()
-			debugEnabled = not debugEnabled
-			d(string.format("Stunned debug: %s", debugEnabled and "|c00FF00ON|r" or "|cFF0000OFF|r"))
-		end
+		playerName = GetUnitName("player")
+		S.CreateUI()
+	end)
+
+	if S.SV.combatOnly then
+		EM:RegisterForEvent(S.name .. "_CombatState", EVENT_PLAYER_COMBAT_STATE, function(_, isInCombat)
+			inCombat = isInCombat
+		end)
+	end
+
+	EM:RegisterForEvent(S.name .. "_TP_Cleanse", EVENT_PLAYER_ACTIVATED, function()
+		S.RemoveStunnedMode()
+	end)
+
+	for _, result in ipairs(combatResults) do
+		local ns = S.name .. "_" .. tostring(result)
+		EM:RegisterForEvent(ns, EVENT_COMBAT_EVENT, S.CombatEventHandler)
+		EM:AddFilterForEvent(ns, EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, result)
+	end
+
+	SLASH_COMMANDS["/stundbg"] = function()
+		debugEnabled = not debugEnabled
+		d(string.format("Stunned debug: %s", debugEnabled and "|c00FF00ON|r" or "|cFF0000OFF|r"))
 	end
 end
 

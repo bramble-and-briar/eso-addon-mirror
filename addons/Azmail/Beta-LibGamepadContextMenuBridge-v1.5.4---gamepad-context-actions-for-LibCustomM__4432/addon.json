@@ -1,7 +1,8 @@
 {
-  "archive_path": "addons/Azmail/Beta-LibGamepadContextMenuBridge-v1.5.1---gamepad-context-actions-for-LibCustomM__4432",
+  "archive_format": "zip",
+  "archive_path": "addons/Azmail/Beta-LibGamepadContextMenuBridge-v1.5.4---gamepad-context-actions-for-LibCustomM__4432",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Azmail",
   "canonical_id": "esoui:4432",
   "category_id": "53",
@@ -69,7 +70,7 @@
     "LibGamepadContextMenuBridge"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4432/",
-  "fingerprint": "c432943033476accc57832095edeb419935c81a3f0498e8813deb3f173d16441",
+  "fingerprint": "ba88e7033e0b5eca106655d09f43df2736efd9432c440889bf1d8f82bdecbc10",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15891.png"
   ],
@@ -77,13 +78,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "4432",
-  "source_url": "https://www.esoui.com/downloads/info4432-BetaLibGamepadContextMenuBridgev1.5.1-gamepadcontextactionsforLibCustomMenu.html",
+  "source_url": "https://www.esoui.com/downloads/info4432-BetaLibGamepadContextMenuBridgev1.5.4-gamepadcontextactionsforLibCustomMenu.html",
   "stats": {
-    "downloads": 2015,
-    "favorites": 2,
-    "monthly_downloads": 515
+    "downloads": 3394,
+    "favorites": 3,
+    "monthly_downloads": 373
   },
-  "title": "[Beta] LibGamepadContextMenuBridge v1.5.1 - gamepad context actions for LibCustomMenu",
-  "updated_at": 1778242959000,
-  "version": "1.5.1"
+  "title": "[Beta] LibGamepadContextMenuBridge v1.5.4 - gamepad context actions for LibCustomMenu",
+  "updated_at": 1794435511000,
+  "version": "1.5.4"
 }

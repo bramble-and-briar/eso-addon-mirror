@@ -52,6 +52,94 @@ local Fight = ConsoleMetrics.Fight
 local BuildProtectionSummary = Fight.BuildProtectionSummary
 local InferProtectionFromDr = Fight.InferProtectionFromDr
 
+-- Row types for panel rows (same values as LibHarvensAddonSettings, which the
+-- gamepad viewer no longer needs; see ConsoleMetrics_GamepadScreen.lua).
+local ST = {
+    ST_CHECKBOX = 1, ST_SLIDER = 2, ST_EDIT = 3, ST_DROPDOWN = 4, ST_COLOR = 5,
+    ST_BUTTON = 6, ST_LABEL = 7, ST_SECTION = 8, ST_ICONPICKER = 9,
+}
+
+
+---------------------------------------------------------------------------
+-- Look and feel
+---------------------------------------------------------------------------
+-- The console dialog is a LibHarvensAddonSettings page (one gamepad list).
+-- Styling rules used by every panel:
+--   * the gamepad header shows the panel name plus Viewing / DPS / HPS / Time,
+--   * read-only stats are label rows (no "Select" prompt), values in white,
+--     details in the left tooltip panel,
+--   * actions are buttons whose keybind text says what they do ("Open", ...),
+--   * Back (B) goes to Main / closes, so pages carry no Back / Close rows,
+--   * Previous / Next / Live fight sit on the keybind strip when available.
+local VALUE_HEX = "FFFFFF"
+local MUTED_HEX = "9A9A9A"
+
+local PANEL_TITLES = {
+    main = "Console Metrics",
+    overview = "Overview",
+    save = "Save Fight",
+    resources = "Resources",
+    mitigation = "Mitigation & Healing",
+    build = "Build",
+    resistance = "Resistance",
+    buffs = "Buffs & Sets",
+    skills = "Abilities",
+    behavior = "Behavior Model",
+    formulas = "Formulas",
+    options = "Options",
+    share = "Share to Chat",
+    saves = "Saved Fights",
+    libfights = "LibFights",
+}
+
+local function EscapePattern(text)
+    return (tostring(text or ""):gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1"))
+end
+
+-- "Label: value" -> label in the row color, value in white. Text that already
+-- carries color markup is left alone.
+local function StyleStatText(text)
+    text = tostring(text or "")
+    if string.find(text, "|c", 1, true) then
+        return text
+    end
+    local label, value = string.match(text, "^([^:]+):%s+(.+)$")
+    if label and #label <= 40 then
+        return string.format("%s  |c%s%s|r", label, VALUE_HEX, value)
+    end
+    return text
+end
+
+-- Section titles: drop the "... Panel (Live)" noise; the header shows both.
+local function CleanSectionLabel(label, viewingText)
+    label = tostring(label or "")
+    if viewingText and viewingText ~= "" then
+        label = label:gsub("%s*%(" .. EscapePattern(viewingText) .. "%)%s*$", "")
+    end
+    label = label:gsub("%s+Panel%s*%(.-%)%s*$", "")
+    label = label:gsub("%s+Panel%s*$", "")
+    return label
+end
+
+-- Applied to every row a panel adds (including rows added straight through
+-- dialog:AddSetting), so all panels share one style.
+local function StyleSetting(params, viewingText)
+    local types = ST
+    if params.type == types.ST_SECTION then
+        params.label = CleanSectionLabel(params.label, viewingText)
+    elseif params.type == types.ST_BUTTON and type(params.label) == "string" and not params.buttonText then
+        local inner = params.label:match("^Open (.+) Panel$") or params.label:match("^Open (.+)$")
+        if inner then
+            params.label = inner
+            params.buttonText = "Open"
+        end
+    end
+    return params
+end
+
+local function Muted(text)
+    return string.format("|c%s%s|r", MUTED_HEX, tostring(text or ""))
+end
 
 ---------------------------------------------------------------------------
 -- Render context
@@ -85,66 +173,126 @@ end
 
 function RenderContext:AddSection(label, tooltip)
     self.dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = label,
         tooltip = tooltip,
     })
 end
 
--- Read-only rows are buttons with a no-op handler so they stay scrollable/selectable.
+-- Read-only row. Always selectable so the list can scroll through it; the
+-- tooltip (if any) shows in the left panel.
 function RenderContext:AddStat(text, tooltip)
+    if tooltip == text then
+        tooltip = nil
+    end
     self.dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_BUTTON,
-        label = text,
-        tooltip = tooltip or text,
-        clickHandler = function() end,
+        type = ST.ST_LABEL,
+        label = StyleStatText(text),
+        tooltip = tooltip,
+        canSelect = true,
     })
 end
 
-function RenderContext:Refresh()
+-- A row with a dimmed note (empty states, hints).
+function RenderContext:AddNote(text, tooltip)
+    self.dialog:AddSetting({
+        type = ST.ST_LABEL,
+        label = Muted(text),
+        tooltip = tooltip,
+        canSelect = true,
+    })
+end
+
+-- keepSelection: stay on the same row (same panel); otherwise go to the top.
+function RenderContext:Refresh(keepSelection)
     if self.closed then
         return
     end
     local addon = self.self
-    addon:PopulateFightViewDialog(self.dialog)
-    self.dialog:Show()
+    addon:NoteConsoleDialogInteraction()
+    -- Rebuild the rows in place. Calling Show() again would re-select the
+    -- dialog, reset the cursor and push the dialog onto its own back stack.
+    if not addon:RebuildConsoleDialog(keepSelection) then
+        addon:PopulateFightViewDialog(self.dialog)
+        self.dialog:Show()
+        addon:RefreshConsoleDialogHeader()
+    end
     addon:ArmDialogAutoHide()
 end
 
-function RenderContext:AddButton(label, tooltip, action, disable)
+-- keyText: what the A / Cross keybind says for this row (default "Select").
+function RenderContext:AddButton(label, tooltip, action, disable, keyText)
     local ctx = self
     self.dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_BUTTON,
+        type = ST.ST_BUTTON,
         label = label,
         tooltip = tooltip,
+        buttonText = keyText,
         clickHandler = function()
+            local addon = ctx.self
+            local panelBefore = addon.dialogPanel
+            addon:NoteConsoleDialogInteraction()
             action()
             if not ctx.closed then
-                ctx:Refresh()
+                ctx:Refresh(addon.dialogPanel == panelBefore)
             end
         end,
         disable = disable,
     })
 end
 
-function RenderContext:AddBackButton()
+-- Panel link on the hub.
+function RenderContext:AddPanelLink(label, panel, tooltip)
     local addon = self.self
-    self:AddButton("Back", "Return to the main panel", function()
-        addon.dialogPanel = "main"
-    end)
+    self:AddButton(label, tooltip, function()
+        addon.dialogPanel = panel
+    end, nil, "Open")
+end
+
+-- Real gamepad checkbox bound to a saved option.
+function RenderContext:AddToggle(label, tooltip, getter, setter)
+    local ctx = self
+    self.dialog:AddSetting({
+        type = ST.ST_CHECKBOX,
+        label = label,
+        tooltip = tooltip,
+        getFunction = getter,
+        setFunction = function(value)
+            ctx.self:NoteConsoleDialogInteraction()
+            setter(value)
+        end,
+        default = getter(),
+    })
+end
+
+-- Real gamepad slider bound to a saved option.
+function RenderContext:AddSlider(label, tooltip, minValue, maxValue, step, getter, setter, unit, disable)
+    local ctx = self
+    self.dialog:AddSetting({
+        type = ST.ST_SLIDER,
+        label = label,
+        tooltip = tooltip,
+        min = minValue,
+        max = maxValue,
+        step = step or 1,
+        unit = unit,
+        format = "%d",
+        getFunction = getter,
+        setFunction = function(value)
+            ctx.self:NoteConsoleDialogInteraction()
+            setter(value)
+        end,
+        default = getter(),
+        disable = disable,
+    })
+end
+
+-- B already goes back to Main (and closes from Main), so pages no longer
+-- add Back / Close rows. Kept as no-ops for the panel renderers.
+function RenderContext:AddBackButton()
 end
 
 function RenderContext:AddCloseButton()
-    local ctx = self
-    self.dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_BUTTON,
-        label = "Close",
-        tooltip = "Close fight data dialog",
-        clickHandler = function()
-            ctx.closed = true
-            ctx.self:CloseFightViewDialog(false, "button")
-        end,
-    })
 end
 
 ---------------------------------------------------------------------------
@@ -154,26 +302,32 @@ local function FormatMs(ms)
     return string.format("%.1fs", (ms or 0) / 1000)
 end
 
-local function AddFightNavButtons(ctx)
+-- Fight history navigation. When the keybind strip carries Previous / Next /
+-- Live (see RegisterConsoleFightKeybinds) the rows are not needed.
+local function AddFightNavButtons(ctx, force)
     local addon = ctx.self
+    if addon.consoleFightKeybindsRegistered and not force then
+        return
+    end
     local function NoHistory()
         return #(addon.fightHistory or {}) == 0
     end
-    ctx:AddButton("Previous Fight", "Cycle to previous fight in history", function()
+    ctx:AddSection("Fight History")
+    ctx:AddButton("Previous Fight", "Step back one fight in history", function()
         addon:StepFightView(-1)
-    end, NoHistory)
-    ctx:AddButton("Next Fight", "Cycle to next fight in history", function()
+    end, NoHistory, "Previous")
+    ctx:AddButton("Next Fight", "Step forward one fight in history", function()
         addon:StepFightView(1)
-    end, NoHistory)
-    ctx:AddButton("View Live Fight", "Return to current live fight view", function()
+    end, NoHistory, "Next")
+    ctx:AddButton("Live Fight", "Return to the current live fight", function()
         addon.viewFightIndex = 0
-    end)
+    end, function() return (addon.viewFightIndex or 0) == 0 end, "View")
 end
 
 -- Rows of the form "N) name [id:X] - value (crit%)" for a per-ability stat list.
 local function AddStatRows(ctx, list, limit, valueKey, colorHex, tooltipFn, emptyText, emptyTooltip)
     if not list or #list == 0 then
-        ctx:AddStat(emptyText, emptyTooltip)
+        ctx:AddNote(emptyText, emptyTooltip)
         return
     end
 
@@ -181,16 +335,18 @@ local function AddStatRows(ctx, list, limit, valueKey, colorHex, tooltipFn, empt
         local entry = list[i]
         local hits = entry.hits or 0
         local critPct = hits > 0 and (((entry.crits or 0) / hits) * 100) or 0
+        local details = tooltipFn(entry)
+        local idLine = string.format("Ability ID: %d", entry.abilityId or 0)
         ctx:AddStat(
-            string.format("%d) %s [id:%d] - %s (%.0f%% crit)", i, entry.name or "Unknown", entry.abilityId or 0, ColorShort(entry[valueKey] or 0, colorHex), critPct),
-            tooltipFn(entry)
+            string.format("%d.  %s   %s  %s", i, entry.name or "Unknown", ColorShort(entry[valueKey] or 0, colorHex), Muted(string.format("%.0f%% crit", critPct))),
+            details and (details .. "\n" .. idLine) or idLine
         )
     end
 end
 
 local function AddMomentRows(ctx, list, emptyText, emptyTooltip)
     if not list or #list == 0 then
-        ctx:AddStat(emptyText, emptyTooltip)
+        ctx:AddNote(emptyText, emptyTooltip)
         return
     end
     for i = 1, math.min(TOP_MOMENTS_LIMIT, #list) do
@@ -260,76 +416,70 @@ end
 ---------------------------------------------------------------------------
 local function RenderMain(ctx)
     local self = ctx.self
-    local dialog = ctx.dialog
     local snapshot = ctx.snapshot
-    local viewingText = ctx.viewingText
+    local duration = snapshot.duration or 0
+    local topDamage = (snapshot.skillList or {})[1]
+    local topHeal = (snapshot.healSkillList or {})[1]
 
-    dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
-        label = string.format("Console Metrics Main (%s)", viewingText),
-        tooltip = "Choose a panel for detailed breakdowns",
-    })
+    ctx:AddSection("Fight Summary")
+    ctx:AddStat(
+        string.format("Damage  %s  %s", ColorText(ShortNumber(snapshot.dps or 0) .. " DPS", COMBAT_COLOR_HEX.damage),
+            Muted(NumberText(snapshot.totalDamage or 0) .. " total")),
+        topDamage and string.format("Top ability: %s\n%s damage, %d hits\nPeak DPS: %s",
+            topDamage.name or "?", NumberText(topDamage.damage or 0), topDamage.hits or 0, ShortNumber(snapshot.peakDps or 0))
+            or "No damage recorded yet")
+    ctx:AddStat(
+        string.format("Healing  %s  %s", ColorText(ShortNumber(snapshot.hps or 0) .. " HPS", COMBAT_COLOR_HEX.heal),
+            Muted(NumberText(snapshot.totalHeal or 0) .. " total")),
+        topHeal and string.format("Top ability: %s\n%s healing\nPeak HPS: %s",
+            topHeal.name or "?", NumberText(topHeal.heal or 0), ShortNumber(snapshot.peakHps or 0))
+            or "No healing recorded yet")
+    ctx:AddStat(
+        string.format("Taken  %s  %s", ColorText(NumberText(snapshot.totalTaken or 0), COMBAT_COLOR_HEX.taken),
+            Muted(string.format("%s blocked / %s shielded",
+                ShortNumber(snapshot.totalIncomingBlockedDamage or 0), ShortNumber(snapshot.totalIncomingShieldedDamage or 0)))),
+        string.format("Incoming damage\nOverflow: %s\nBlocked: %s\nShielded: %s",
+            NumberText(snapshot.totalIncomingOverflowDamage or 0),
+            NumberText(snapshot.totalIncomingBlockedDamage or 0),
+            NumberText(snapshot.totalIncomingShieldedDamage or 0)))
+    ctx:AddStat(string.format("Critical: %.1f%%   Duration: %.1fs", snapshot.critPct or 0, duration),
+        string.format("Hit range: %s - %s", NumberText(snapshot.minHitValue or 0), NumberText(snapshot.maxHitValue or 0)))
+    ctx:AddStat(string.format("FPS: %s", self:GetRuntimeFpsText()), "Client framerate this session (average / minimum / 1% low)")
 
-    ctx:AddStat(string.format("Duration: %.1fs", snapshot.duration or 0), "Current viewed fight duration")
-    ctx:AddStat(string.format("FPS: %s", self:GetRuntimeFpsText()), "Current client framerate. Low FPS can indicate UI/combat load.")
-    ctx:AddStat(string.format("DPS: %s", ShortNumber(snapshot.dps)), "Current viewed fight DPS")
-    ctx:AddStat(string.format("HPS: %s", ShortNumber(snapshot.hps)), "Current viewed fight HPS")
-    local behaviorSummary = ctx:GetBehavior()
-    ctx:AddStat(string.format("Predicted Resistance: %s", NumberText(behaviorSummary.predictedResistance or 0)), "ML-lite resistance estimate")
-    ctx:AddStat(string.format("All Effects Tracked: %d", #(snapshot.allEffectList or {})), "Unique effects seen in combat state changes")
-    ctx:AddStat(string.format("Major/Minor Effects Tracked: %d", #(snapshot.majorMinorList or {})), "Unique Major and Minor effects seen this fight")
-    ctx:AddStat(string.format("Popular Sets Tracked: %d", #(snapshot.setProcList or {})), "Unique popular PvE/PvP sets seen this fight")
-    ctx:AddButton("Open Build Snapshot Panel", "Current front/back bars, equipped loadout, and boon snapshot", function()
-        self.dialogPanel = "build"
-    end)
-    ctx:AddButton("Open Save Fight Panel", "Name the current fight and save it into a persistent slot", function()
+    ctx:AddSection("Combat Metrics Report")
+    ctx:AddPanelLink("Full Fight Report", "cmx_hub",
+        "Combat Metrics style report from LibFights: damage and healing done / received by unit and ability, buffs, resources by source, stats, graph, combat log, casts, deaths, posting to chat and the fight list")
+
+    ctx:AddSection("Fight Breakdown")
+    ctx:AddPanelLink("Overview", "overview", "Totals, peaks and burst windows")
+    ctx:AddPanelLink("Abilities", "skills", "Damage and healing by ability")
+    ctx:AddPanelLink("Buffs & Sets", "buffs", "Major / Minor uptimes and set procs")
+    ctx:AddPanelLink("Mitigation & Healing", "mitigation", "Blocked and shielded damage, top moments")
+    ctx:AddPanelLink("Resistance", "resistance", "Resistance, damage reduction and protections")
+    ctx:AddPanelLink("Resources", "resources", "Health / Magicka / Stamina, sustain and ping")
+
+    ctx:AddSection("Character")
+    ctx:AddPanelLink("Build", "build", "Bars, gear, sets, mundus and champion points")
+    ctx:AddPanelLink("Behavior Model", "behavior", "Predictions and confidence across your fights")
+    if self.LibFightsBridge and self.LibFightsBridge.IsAvailable() then
+        ctx:AddPanelLink("LibFights", "libfights", "Fight metrics and predictions from LibFights")
+    end
+    ctx:AddPanelLink("Formulas", "formulas", "ESO stat math reference")
+
+    ctx:AddSection(string.format("Saved Fights  (%d)", #self:GetSavedFights()))
+    ctx:AddButton("Save This Fight", "Name this fight and keep it across sessions", function()
         if TrimText(self.saved.saveFightDraftName or "") == "" then
             self.saved.saveFightDraftName = BuildDefaultFightSaveName(snapshot, #self:GetSavedFights() + 1)
         end
         self.dialogPanel = "save"
-    end)
-    ctx:AddButton("Open Saved Fights Panel", string.format("Save and load fights across sessions (%d saved)", #self:GetSavedFights()), function()
-        self.dialogPanel = "saves"
-    end)
+    end, nil, "Save")
+    ctx:AddPanelLink("Saved Fights", "saves", string.format("Load or delete saved fights (%d saved)", #self:GetSavedFights()))
+
     AddFightNavButtons(ctx)
 
-    ctx:AddButton("Open Overview Panel", "General fight totals and timeline controls", function()
-        self.dialogPanel = "overview"
-    end)
-    ctx:AddButton("Open Resource Panel", "Fight resource averages, medians, and sustain profile", function()
-        self.dialogPanel = "resources"
-    end)
-    ctx:AddButton("Open Mitigation/Healing Panel", "Mitigation totals and top moments", function()
-        self.dialogPanel = "mitigation"
-    end)
-    ctx:AddButton("Open Resistance/DR Panel", "Resistance, DR, and inferred protections", function()
-        self.dialogPanel = "resistance"
-    end)
-    ctx:AddButton("Open Buff Uptime Panel", "All Major/Minor uptimes plus popular PvE/PvP set procs", function()
-        self.dialogPanel = "buffs"
-    end)
-    ctx:AddButton("Open Skills Panel", "Top damage and healing moments", function()
-        self.dialogPanel = "skills"
-    end)
-    ctx:AddButton("Open ML Model Panel", "Prediction model outputs and confidence", function()
-        self.dialogPanel = "behavior"
-    end)
-    if self.LibFightsBridge.IsAvailable() then
-        ctx:AddButton("Open LibFights Panel", "Fight metrics and predictions from the LibFights library", function()
-            self.dialogPanel = "libfights"
-        end)
-    end
-    ctx:AddButton("Open Formula Panel", "ESO stat math reference and addon equations", function()
-        self.dialogPanel = "formulas"
-    end)
-    ctx:AddButton("Open Options Panel", "Toggles, clear, and help explanations", function()
-        self.dialogPanel = "options"
-    end)
-    ctx:AddButton("Open Share Panel", "Send fight stats or build to chat", function()
-        self.dialogPanel = "share"
-    end)
-
-    ctx:AddCloseButton()
+    ctx:AddSection("Tools")
+    ctx:AddPanelLink("Share to Chat", "share", "Send fight stats or your build to chat")
+    ctx:AddPanelLink("Options", "options", "Toggles, clear data and command help")
 end
 
 local function RenderOverview(ctx)
@@ -338,7 +488,7 @@ local function RenderOverview(ctx)
     local viewingText = ctx.viewingText
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = string.format("Overview Panel (%s)", viewingText),
         tooltip = "Overall fight statistics and timeline",
     })
@@ -393,13 +543,13 @@ local function RenderSave(ctx)
     local viewingText = ctx.viewingText
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = string.format("Save Fight Panel (%s)", viewingText),
         tooltip = "Give the current viewed fight a custom name, then persist it across sessions.",
     })
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_EDIT,
+        type = ST.ST_EDIT,
         label = "Fight Save Name",
         tooltip = "Enter any name you want for this saved fight.",
         getFunction = function()
@@ -439,7 +589,7 @@ local function RenderResources(ctx)
     local viewingText = ctx.viewingText
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = string.format("Resource Panel (%s)", viewingText),
         tooltip = "Fight-duration average and median resource values with sustain profile",
     })
@@ -520,7 +670,7 @@ local function RenderResources(ctx)
 
     -- Regen / Drain / Ultimate Gen section
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = "Regen / Drain / Ultimate Gen",
         tooltip = "Cumulative resource gains (regen) and spends (drain) sampled each second during combat.",
     })
@@ -581,7 +731,7 @@ local function RenderResources(ctx)
     end
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = "Delay / Ping",
         tooltip = "Latency sampled each second during combat. Tracks dips, spikes, and high-delay windows.",
     })
@@ -642,7 +792,7 @@ local function RenderMitigation(ctx)
     local snapshot = ctx.snapshot
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = "Mitigation / Healing Panel",
         tooltip = "Incoming/outgoing mitigation with top moments",
     })
@@ -710,7 +860,7 @@ local function RenderBuild(ctx)
     local boons = BuildActiveBoonSnapshot()
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = "Build Snapshot Panel",
         tooltip = "Console-style build snapshot: player stats, equipped gear, bars, and active boon-style buffs.",
     })
@@ -736,7 +886,7 @@ local function RenderBuild(ctx)
     end
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = "Player Stats",
         tooltip = "Current character stats.",
     })
@@ -947,7 +1097,7 @@ local function RenderResistance(ctx)
 
     local behaviorSummary = ctx:GetBehavior()
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = "Resistance / DR Panel",
         tooltip = "Machine learning inference for target resistance and protections",
     })
@@ -988,7 +1138,7 @@ local function RenderBuffs(ctx)
     local setProcList = snapshot.setProcList or {}
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = "Buff Uptime Panel (Inferred)",
         tooltip = "Protection uptime, every Major/Minor effect, and popular set coverage",
     })
@@ -1089,7 +1239,7 @@ local function RenderSkills(ctx)
     local snapshot = ctx.snapshot
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = "Skills Panel (Damage)",
         tooltip = "Top 20 skills by total damage output this fight",
     })
@@ -1124,7 +1274,7 @@ local function RenderBehavior(ctx)
 
     local behaviorSummary = ctx:GetBehavior()
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = "Behavior Model Panel (ML-lite)",
         tooltip = "Model predictions built from fight history using EMA + trend extrapolation",
     })
@@ -1193,7 +1343,7 @@ local function RenderFormulas(ctx)
     local snapshot = ctx.snapshot
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = "Formula Panel (ESO + ConsoleMetrics)",
         tooltip = "Core ESO stat equations plus exact formulas used by this addon",
     })
@@ -1209,7 +1359,7 @@ local function RenderFormulas(ctx)
 
     local function AddFormulaSection(label)
         dialog:AddSetting({
-            type = LibHarvensAddonSettings.ST_SECTION,
+            type = ST.ST_SECTION,
             label = label,
             tooltip = "Formula reference",
         })
@@ -1606,60 +1756,43 @@ end
 
 local function RenderOptions(ctx)
     local self = ctx.self
-    local dialog = ctx.dialog
-    local snapshot = ctx.snapshot
+    local saved = self.saved
 
-    dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
-        label = "Options Panel",
-        tooltip = "Settings, control buttons, and command reference",
-    })
+    ctx:AddSection("Dialog")
+    ctx:AddToggle("Auto Hide After Combat", "Close this dialog a few seconds after combat ends (waits while you are using it)",
+        function() return saved.dialogAutoHide == true end,
+        function(value) self:SetDialogAutoHide(value) end)
+    ctx:AddSlider("Auto Hide Delay", "Seconds without input before the dialog closes", 3, 120, 1,
+        function() return tonumber(saved.dialogAutoHideSeconds) or self.defaults.dialogAutoHideSeconds end,
+        function(value) saved.dialogAutoHideSeconds = math.max(3, math.min(120, math.floor(value + 0.5))) end,
+        "s",
+        function() return not saved.dialogAutoHide end)
+    ctx:AddToggle("Jump To Live On New Fight", "Switch back to the live view when a new fight starts",
+        function() return saved.autoClearOnNextFight == true end,
+        function(value) saved.autoClearOnNextFight = value end)
 
-    ctx:AddButton(self.saved.dialogAutoHide and "Dialog Auto Hide: ON" or "Dialog Auto Hide: OFF", "Toggle automatic dialog close when out of combat", function()
-        self:SetDialogAutoHide(not self.saved.dialogAutoHide)
-    end)
-
-    ctx:AddButton(self.saved.autoClearOnNextFight and "Auto Clear: ON" or "Auto Clear: OFF", "Toggle auto clear when next combat starts", function()
-        self.saved.autoClearOnNextFight = not self.saved.autoClearOnNextFight
-    end)
-
-    ctx:AddButton("Clear Fight Data", "Clear current and historical fight data", function()
+    ctx:AddSection("Data")
+    ctx:AddButton("Clear Fight Data", "Clear the current fight and all fight history (saved fights are kept)", function()
         self:ResetFightData(false)
-    end)
+        self:Print("Fight data cleared.")
+    end, nil, "Clear")
 
-    dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
-        label = "Options Explained",
-        tooltip = "Descriptions of all available commands and toggles",
-    })
-
-    local optionHelpLines = {
-        "Previous/Next Fight: Navigate stored fight history.",
-        "View Live Fight: Return to current active combat data.",
-        "Formula Panel: ESO stat equations and addon formulas.",
-        "Build Snapshot Panel: Current bars, gear, and boon-style snapshot.",
-        "Resource Panel Delay/Ping: Tracks latency averages, dips, spikes, and high-delay samples.",
-        "Print Build Debug: Dumps build-panel data to chat for API verification.",
-        "Save Fight Panel: Type a custom save name before persisting.",
-        "Saved Fights Panel: Persist fights across sessions.",
-        "Load Saved Fight By Name: Type a saved label and load that one fight.",
-        "Dialog Auto Hide: Auto closes the dialog after combat.",
-        "Auto Clear: Switch back to the live fight view when a new fight starts.",
-        "Clear Fight Data: Wipes current fight and full history.",
-        "Print Debug Snapshot: Dumps only current-fight data to chat.",
-        "Slash /cm savefight [name]: Save viewed fight to saved slots.",
-        "Slash /cm loadfight <name>: Load one saved fight by name.",
-        "Slash /cm loadfightexact <name>: Load one saved fight by exact name only.",
-        "Slash /cm loadsaves: Load all saved fights into history.",
-        "Slash /cm dumpcpslottables: Dump confirmed Champion slottable IDs.",
-        "Slash /cm linkbuild: Pre-fill chat input with a compact build summary.",
+    ctx:AddSection("Help")
+    local helpRows = {
+        { "Back (B / Circle)", "On a page: return to Main. On Main: close the dialog." },
+        { "Previous / Next / Live", "Step through stored fights, or return to the live fight." },
+        { "Save This Fight", "Name the viewed fight and keep it across sessions." },
+        { "Saved Fights", "Load a saved fight into history, or delete it." },
+        { "Resources", "Health / Magicka / Stamina averages, regen and drain, ping dips and spikes." },
+        { "/cm savefight [name]", "Save the viewed fight from chat." },
+        { "/cm loadfight <name>", "Load one saved fight by name." },
+        { "/cm loadsaves", "Load all saved fights into history." },
+        { "/cm linkbuild", "Pre-fill chat with a compact build summary." },
+        { "/cm help", "Print every chat command." },
     }
-    for i = 1, #optionHelpLines do
-        ctx:AddStat(optionHelpLines[i], "Option explanation")
+    for i = 1, #helpRows do
+        ctx:AddStat(helpRows[i][1], helpRows[i][2])
     end
-
-    ctx:AddBackButton()
-    ctx:AddCloseButton()
 end
 
 local function RenderShare(ctx)
@@ -1670,7 +1803,7 @@ local function RenderShare(ctx)
     local viewLabel = isLive and "Live" or string.format("Fight %d", self.viewFightIndex or 0)
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = string.format("Share Panel (%s)", viewLabel),
         tooltip = "Pre-fill the chat virtual keyboard with stats or your build. Choose a channel and confirm to send.",
     })
@@ -1758,7 +1891,7 @@ local function RenderShare(ctx)
     )
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = "How It Works",
         tooltip = "On Xbox the virtual keyboard opens pre-filled with the text. Choose a channel (Say, Party, Zone, etc.) and press Confirm to post it.",
     })
@@ -1788,7 +1921,7 @@ local function RenderSaves(ctx)
     local saves = self:GetSavedFights()
     local maxSaves = tonumber(self.saved.maxSavedFights) or self.defaults.maxSavedFights
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
+        type = ST.ST_SECTION,
         label = string.format("Saved Fights (%d/%d)", #saves, maxSaves),
         tooltip = "Fights saved here persist across sessions. Load a slot to browse it in history.",
     })
@@ -1805,7 +1938,7 @@ local function RenderSaves(ctx)
     )
 
     dialog:AddSetting({
-        type = LibHarvensAddonSettings.ST_EDIT,
+        type = ST.ST_EDIT,
         label = "Load Saved Fight Name",
         tooltip = "Type the saved fight label to load that fight directly into history.",
         getFunction = function()
@@ -1956,7 +2089,202 @@ function ConsoleMetrics:PopulateFightViewDialog(dialog)
     end
 
     dialog:Clear()
-    renderer(NewRenderContext(self, dialog, snapshot, isLive))
+    local ctx = NewRenderContext(self, dialog, snapshot, isLive)
+
+    -- Gamepad header: panel name + what is being viewed and its key numbers.
+    local duration = snapshot.duration or 0
+    dialog.headerData = {
+        titleText = PANEL_TITLES[self.dialogPanel or "main"] or "Console Metrics",
+        data1HeaderText = "Viewing",
+        data1Text = ctx.viewingText .. ((isLive and self.inCombat) and "  (in combat)" or ""),
+        data2HeaderText = "DPS",
+        data2Text = ShortNumber(snapshot.dps or 0),
+        data3HeaderText = "HPS",
+        data3Text = ShortNumber(snapshot.hps or 0),
+        data4HeaderText = "Time",
+        data4Text = string.format("%d:%02d", math.floor(duration / 60), math.floor(duration % 60)),
+    }
+
+    -- Every row goes through the shared style (section titles, "Open" keys).
+    local addSetting = dialog.AddSetting
+    dialog.AddSetting = function(d, params)
+        return addSetting(d, StyleSetting(params, ctx.viewingText))
+    end
+    dialog.AddSetting = nil   -- the Back / Close rows skip the page styling
+
+    -- Back row at the top of every page (Close on Main) and again at the
+    -- bottom, so long pages can be left from either end.
+    local addon = self
+    local backLabel = self:GetConsoleBackLabel()
+    local function AddNavRow()
+        if backLabel then
+            dialog:AddSetting({
+                type = ST.ST_BUTTON,
+                label = "< " .. backLabel,
+                tooltip = "Go back one page (same as the Back button)",
+                buttonText = "Back",
+                clickHandler = function()
+                    if not addon:ConsoleGoBack() then
+                        addon:CloseFightViewDialog(true, "back")
+                    end
+                end,
+            })
+            -- Deeper pages also get a direct way home.
+            if backLabel ~= "Back to Main Menu" and (addon.dialogPanel or "main") ~= "main" then
+                dialog:AddSetting({
+                    type = ST.ST_BUTTON,
+                    label = "<< Main Menu",
+                    tooltip = "Go straight to the Main Menu (same as the Main Menu keybind)",
+                    buttonText = "Main Menu",
+                    clickHandler = function()
+                        if addon.ConsoleGoMain and addon:ConsoleGoMain() then
+                            return
+                        end
+                        addon.dialogPanel = "main"
+                    end,
+                })
+            end
+        else
+            dialog:AddSetting({
+                type = ST.ST_BUTTON,
+                label = "Close",
+                tooltip = "Close Console Metrics",
+                buttonText = "Close",
+                clickHandler = function()
+                    addon:CloseFightViewDialog(true, "button")
+                end,
+            })
+        end
+    end
+
+    if backLabel then
+        AddNavRow()
+    end
+    dialog.AddSetting = function(d, params)
+        return addSetting(d, StyleSetting(params, ctx.viewingText))
+    end
+    local ok, err = pcall(renderer, ctx)
+    dialog.AddSetting = nil   -- fall back to the class method again
+    if not ok then
+        dialog:AddSetting({ type = ST.ST_LABEL, label = "This page failed to build.", tooltip = tostring(err), canSelect = true })
+        self:DebugPrint("Console dialog render error: " .. tostring(err))
+    end
+    AddNavRow()
+    -- A page may describe a different fight (the Combat Metrics pages use the
+    -- LibFights fight); it then supplies its own header values.
+    if type(ctx.header) == "table" then
+        for key, value in pairs(ctx.header) do
+            dialog.headerData[key] = value
+        end
+    end
+end
+
+-- Lets other files add console pages (see ConsoleMetrics_DialogCMX.lua).
+ConsoleMetrics.ConsolePanels = PANEL_RENDERERS
+ConsoleMetrics.ConsolePanelTitles = PANEL_TITLES
+ConsoleMetrics.ConsoleDialogHelpers = {
+    Muted = Muted,
+    StyleStatText = StyleStatText,
+}
+
+-- Combat Metrics style pages browse LibFights fights instead of the
+-- ConsoleMetrics history.
+function ConsoleMetrics:IsCmxPanel()
+    return type(self.dialogPanel) == "string" and string.sub(self.dialogPanel, 1, 4) == "cmx_"
+end
+
+-- Pushes dialog.headerData into the gamepad header.
+function ConsoleMetrics:RefreshConsoleDialogHeader()
+    local dialog = self.ui.fightViewDialog
+    local lhas = LibHarvensAddonSettings
+    if not dialog or not dialog.headerData or not lhas or not lhas.scrollList or not lhas.scrollList.header then
+        return
+    end
+    if type(ZO_GamepadGenericHeader_RefreshData) == "function" then
+        pcall(ZO_GamepadGenericHeader_RefreshData, lhas.scrollList.header, dialog.headerData)
+    end
+end
+
+-- Previous / Next / Live on the keybind strip of the settings scene. Only
+-- visible while this dialog is the page on screen.
+function ConsoleMetrics:RegisterConsoleFightKeybinds()
+    if self.consoleFightKeybindsRegistered then
+        return
+    end
+    local lhas = LibHarvensAddonSettings
+    if not (LibConsoleDialogs and type(LibConsoleDialogs.RegisterKeybind) == "function" and lhas and lhas.scene) then
+        return
+    end
+    local addon = self
+    local function OurPage()
+        local dialog = addon.ui.fightViewDialog
+        return dialog ~= nil and dialog.selected == true
+    end
+    local function HasHistory()
+        if addon:IsCmxPanel() then
+            local _, _, count = addon:GetLibFightsViewedFight()
+            return (count or 0) > 1 or addon.cmxFightOverride ~= nil
+        end
+        return #(addon.fightHistory or {}) > 0
+    end
+    local function IsViewingLive()
+        if addon:IsCmxPanel() then
+            return addon.cmxFightOverride == nil and (addon.libFightsViewOffset or 0) == 0
+        end
+        return (addon.viewFightIndex or 0) == 0
+    end
+    -- step -1 = older fight, +1 = newer fight
+    local function StepFight(step)
+        if addon:IsCmxPanel() then
+            addon.cmxFightOverride = nil
+            addon.cmxLogPage = 1
+            addon:StepLibFightsView(step)
+        else
+            addon:StepFightView(step)
+        end
+    end
+    local function GoLive()
+        if addon:IsCmxPanel() then
+            addon.cmxFightOverride = nil
+            addon.cmxLogPage = 1
+            addon.libFightsViewOffset = 0
+            addon.libFightsRev = (addon.libFightsRev or 0) + 1
+        else
+            addon.viewFightIndex = 0
+        end
+    end
+    local function Step(apply)
+        apply()
+        addon:NoteConsoleDialogInteraction()
+        addon:RebuildConsoleDialog(true)
+        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+            pcall(KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups, KEYBIND_STRIP)
+        end
+    end
+    local ok = pcall(function()
+        LibConsoleDialogs:RegisterKeybind(lhas.scene, {
+            name = "Previous Fight",
+            order = 100,
+            visible = OurPage,
+            enabled = HasHistory,
+            callback = function() Step(function() StepFight(-1) end) end,
+        })
+        LibConsoleDialogs:RegisterKeybind(lhas.scene, {
+            name = "Next Fight",
+            order = 101,
+            visible = OurPage,
+            enabled = HasHistory,
+            callback = function() Step(function() StepFight(1) end) end,
+        })
+        LibConsoleDialogs:RegisterKeybind(lhas.scene, {
+            name = "Live",
+            order = 102,
+            visible = function() return OurPage() and not IsViewingLive() end,
+            enabled = function() return true end,
+            callback = function() Step(GoLive) end,
+        })
+    end)
+    self.consoleFightKeybindsRegistered = ok
 end
 
 ---------------------------------------------------------------------------
@@ -1988,8 +2316,22 @@ function ConsoleMetrics:OpenFightViewDialog(forceLive)
         self.ui.fightViewDialog = LibConsoleDialogs:Create("Console Metrics")
     end
 
-    self:PopulateFightViewDialog(self.ui.fightViewDialog)
-    self.ui.fightViewDialog:Show()
+    -- Set up the settings scene first so the fight keybinds exist before the
+    -- first page is built (pages then skip their Previous/Next rows).
+    if LibHarvensAddonSettings and type(LibHarvensAddonSettings.Initialize) == "function" then
+        pcall(LibHarvensAddonSettings.Initialize, LibHarvensAddonSettings)
+    end
+    self:RegisterConsoleFightKeybinds()
+    self:HookConsoleBackButton()
+
+    -- Already on screen (opened twice): rebuild in place instead of Show(),
+    -- which would stack the dialog on its own back history.
+    if not self:RebuildConsoleDialog(false) then
+        self:PopulateFightViewDialog(self.ui.fightViewDialog)
+        self.ui.fightViewDialog:Show()
+        self:RefreshConsoleDialogHeader()
+    end
+    self:NoteConsoleDialogInteraction()
     self:ArmDialogAutoHide()
     self.dialogRefreshAtMs = 0
     self.lastDialogRefreshKey = nil
@@ -2017,13 +2359,117 @@ end
 -- True while the player is actively using the PC window (cursor over it,
 -- typing, or interacted recently). Auto-hide waits while this is true.
 function ConsoleMetrics:IsFightViewDialogInUse()
-    return self:IsPCDialogInUse()
+    return self:IsPCDialogInUse() or self:IsConsoleDialogBusy()
 end
 
 -- True during a click / scrollbar drag / just after one, when a rebuild
 -- would swallow the click.
 function ConsoleMetrics:IsFightViewDialogBusy()
-    return self:IsPCDialogBusy()
+    return self:IsPCDialogBusy() or self:IsConsoleDialogBusy()
+end
+
+---------------------------------------------------------------------------
+-- Console dialog: in-place rebuild and input tracking
+---------------------------------------------------------------------------
+-- Live refreshes pause for this long after the player moves the cursor or
+-- presses a button, so a press always lands on the row it was aimed at.
+local CONSOLE_INPUT_HOLD_MS = 2000
+
+local function ConsoleList()
+    local lhas = LibHarvensAddonSettings
+    return lhas and lhas.list or nil
+end
+
+local function IsConsoleDialogOnScreen(dialog)
+    local lhas = LibHarvensAddonSettings
+    return dialog ~= nil
+        and dialog.selected == true
+        and lhas ~= nil
+        and lhas.scene ~= nil
+        and lhas.scene:IsShowing()
+end
+
+function ConsoleMetrics:NoteConsoleDialogInteraction()
+    self.consoleLastInputMs = GetFrameTimeMilliseconds()
+    if self.dialogAutoHideAtMs then
+        -- Browsing the dialog restarts the auto-hide countdown.
+        self:ArmDialogAutoHide()
+    end
+end
+
+-- Called from the update loop: a moved cursor counts as input.
+function ConsoleMetrics:TrackConsoleDialogInput()
+    local dialog = self.ui.fightViewDialog
+    if not IsConsoleDialogOnScreen(dialog) then
+        self.consoleLastSelectedIndex = nil
+        return
+    end
+    local list = ConsoleList()
+    if not list then
+        return
+    end
+    local ok, index = pcall(list.GetSelectedIndex, list)
+    if not ok then
+        return
+    end
+    if self.consoleLastSelectedIndex ~= nil and index ~= self.consoleLastSelectedIndex then
+        self:NoteConsoleDialogInteraction()
+    end
+    self.consoleLastSelectedIndex = index
+end
+
+function ConsoleMetrics:IsConsoleDialogBusy()
+    if not IsConsoleDialogOnScreen(self.ui.fightViewDialog) then
+        return false
+    end
+    return GetFrameTimeMilliseconds() < (self.consoleLastInputMs or 0) + CONSOLE_INPUT_HOLD_MS
+end
+
+-- Rebuilds the console dialog's rows while it stays on screen. Returns false
+-- (doing nothing visible) when the dialog is not currently shown, so callers
+-- can fall back to Show().
+function ConsoleMetrics:RebuildConsoleDialog(keepSelection)
+    local dialog = self.ui.fightViewDialog
+    if not IsConsoleDialogOnScreen(dialog) then
+        return false
+    end
+    local list = ConsoleList()
+    local oldIndex = nil
+    if keepSelection and list then
+        local ok, index = pcall(list.GetSelectedIndex, list)
+        oldIndex = ok and index or nil
+    end
+
+    self:PopulateFightViewDialog(dialog)
+    -- Clear() inside Populate drops the selected flag; the dialog never left
+    -- the screen, so restore it (the update loop reads it to detect "Back").
+    dialog.selected = true
+    dialog:CreateControls()
+
+    if list then
+        local target = nil
+        local okCount, count = pcall(list.GetNumItems, list)
+        if oldIndex and okCount and count and count > 0 then
+            target = math.max(1, math.min(oldIndex, count))
+        end
+        if not target then
+            local okFirst, first = pcall(list.CalculateFirstSelectableIndex, list)
+            target = okFirst and first or nil
+        end
+        if target then
+            pcall(list.SetSelectedIndexWithoutAnimation, list, target, true, false)
+        end
+        local ok, index = pcall(list.GetSelectedIndex, list)
+        self.consoleLastSelectedIndex = ok and index or nil
+    end
+
+    -- The primary keybind label ("Select" / button text) follows the selected row.
+    local lhas = LibHarvensAddonSettings
+    if KEYBIND_STRIP and lhas.scrollList and lhas.scrollList.keybindStripDescriptor then
+        pcall(KEYBIND_STRIP.UpdateKeybindButtonGroup, KEYBIND_STRIP, lhas.scrollList.keybindStripDescriptor)
+    end
+    self:RefreshConsoleDialogHeader()
+    return true
 end
 
 -- Re-renders whichever dialog is currently open.
@@ -2031,7 +2477,10 @@ function ConsoleMetrics:RefreshFightViewDialog()
     if self:IsFightViewDialogShowingPC() then
         self:RefreshPCDialog()
     elseif self.ui.fightViewDialog then
-        self:PopulateFightViewDialog(self.ui.fightViewDialog)
+        if not self:RebuildConsoleDialog(true) then
+            -- Not on screen: only refresh the data for the next Show().
+            self:PopulateFightViewDialog(self.ui.fightViewDialog)
+        end
     end
 end
 
@@ -2063,19 +2512,31 @@ function ConsoleMetrics:CloseFightViewDialog(silent, reason)
 
     local dialog = self.ui.fightViewDialog
     if dialog then
+        -- Only close the settings screen when this dialog is the page on it
+        -- (never another add-on's page), and not when it already closed itself.
+        local onScreen = IsConsoleDialogOnScreen(dialog)
         -- Clear selection state first so OnUpdate won't treat this as an active panel.
         dialog.selected = false
-        if dialog.Hide then
-            dialog:Hide()
+        -- Drop any copies of this dialog from LibConsoleDialogs' back stack so
+        -- "Back" in another dialog never reopens this one.
+        local stack = LibConsoleDialogs and LibConsoleDialogs.dialogCallStack
+        if type(stack) == "table" then
+            for i = #stack, 1, -1 do
+                if stack[i] == dialog then
+                    table.remove(stack, i)
+                end
+            end
         end
-        if LibHarvensAddonSettings and LibHarvensAddonSettings.scene and LibHarvensAddonSettings.scene.Hide then
-            LibHarvensAddonSettings.scene:Hide()
+        if onScreen and reason ~= "cancel" and SCENE_MANAGER then
+            local scene = LibHarvensAddonSettings.scene
+            if SCENE_MANAGER:GetCurrentScene() == scene then
+                SCENE_MANAGER:HideCurrentScene()
+            else
+                pcall(SCENE_MANAGER.Hide, SCENE_MANAGER, scene:GetName())
+            end
         end
-        if LibConsoleDialogs and type(LibConsoleDialogs.Close) == "function" then
-            LibConsoleDialogs:Close()
-        end
-        -- Force a fresh instance next open to avoid stale scene/selection state.
-        self.ui.fightViewDialog = nil
+        -- The dialog object is kept and reused: creating a new one on every
+        -- open registered another library callback each time.
     end
 
     self.wasFightViewDialogShowing = false
@@ -2084,4 +2545,88 @@ function ConsoleMetrics:CloseFightViewDialog(silent, reason)
     if not silent then
         self:Print(string.format("Fight data dialog closed (%s)", reason or "manual"))
     end
+end
+
+---------------------------------------------------------------------------
+-- Console dialog: Back navigation
+---------------------------------------------------------------------------
+-- Back (the B / Circle button and the Back rows) moves one page up inside
+-- the dialog without hiding the settings screen. Hiding and re-showing the
+-- screen is what used to scramble the view.
+local PARENT_PANEL = {
+    save = "main",
+    saves = "main",
+}
+
+function ConsoleMetrics:GetConsoleParentPanel(panel)
+    panel = panel or self.dialogPanel or "main"
+    if panel == "main" then
+        return nil
+    end
+    if PARENT_PANEL[panel] then
+        return PARENT_PANEL[panel]
+    end
+    if string.sub(panel, 1, 4) == "cmx_" and panel ~= "cmx_hub" then
+        return "cmx_hub"
+    end
+    return "main"
+end
+
+local PANEL_BACK_LABEL = {
+    main = "Back to Main",
+    cmx_hub = "Back to Fight Report",
+}
+
+function ConsoleMetrics:GetConsoleBackLabel()
+    local parent = self:GetConsoleParentPanel()
+    return parent and (PANEL_BACK_LABEL[parent] or "Back") or nil
+end
+
+function ConsoleMetrics:IsConsoleDialogOnScreen()
+    return IsConsoleDialogOnScreen(self.ui.fightViewDialog)
+end
+
+-- One step back. On Main this closes the dialog. Returns true when handled.
+function ConsoleMetrics:ConsoleGoBack()
+    if not self:IsConsoleDialogOnScreen() then
+        return false
+    end
+    local parent = self:GetConsoleParentPanel()
+    if not parent then
+        self:CloseFightViewDialog(true, "back")
+        return true
+    end
+    self.dialogPanel = parent
+    self:NoteConsoleDialogInteraction()
+    if not self:RebuildConsoleDialog(false) then
+        self:PopulateFightViewDialog(self.ui.fightViewDialog)
+        self.ui.fightViewDialog:Show()
+    end
+    self.lastDialogRefreshKey = nil
+    return true
+end
+
+-- The settings screen's Back keybind calls LibHarvensAddonSettings:GoBack()
+-- (wrapped by LibConsoleDialogs). While this dialog is on screen, Back is
+-- handled here; otherwise the original behaviour runs unchanged.
+function ConsoleMetrics:HookConsoleBackButton()
+    if self.consoleBackHooked or not LibHarvensAddonSettings then
+        return
+    end
+    local lhas = LibHarvensAddonSettings
+    local original = lhas.GoBack
+    if type(original) ~= "function" then
+        return
+    end
+    local addon = self
+    lhas.GoBack = function(lib, ...)
+        if addon:IsConsoleDialogOnScreen() then
+            local ok, handled = pcall(addon.ConsoleGoBack, addon)
+            if ok and handled then
+                return
+            end
+        end
+        return original(lib, ...)
+    end
+    self.consoleBackHooked = true
 end

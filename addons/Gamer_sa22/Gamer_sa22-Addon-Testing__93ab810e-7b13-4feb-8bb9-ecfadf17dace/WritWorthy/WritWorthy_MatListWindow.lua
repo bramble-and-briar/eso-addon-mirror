@@ -527,6 +527,7 @@ function WritWorthy.MatUI:BuildMasterlist()
           if mr2 then
             mr2.ct = mr2.ct + mat_row.ct
           else
+		  d("BuildMasterlist")
             -- Create new accumulator cell for this first appearance.
             mr2 = WritWorthy.MatRow:FromLink(item_link, mat_row.ct)
             mat_table[item_link] = mr2

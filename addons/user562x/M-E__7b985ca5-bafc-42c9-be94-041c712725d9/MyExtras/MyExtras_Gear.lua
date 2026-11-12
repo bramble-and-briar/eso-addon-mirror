@@ -19,6 +19,10 @@ local MOVE_SCENE    = "MyExtras_GearMove"
 local BOX_PAD_X     = 0.4
 local BOX_PAD_Y     = 0.2
 local BOX_CORNER    = 0.35
+local CARE_NAME     = ME.name .. "_GearCare"
+local CARE_SOON_MS  = 500
+local CARE_WAIT_MS  = 3000
+local CARE_CHECK_MS = 1000
 
 Gear.charDefaults = {
     gearUseCharacter = false,
@@ -37,6 +41,30 @@ Gear.defaults = {
     gearPosY          = 520,
     gearBackground        = false,
     gearBackgroundOpacity = 50,
+    gearAutoRepair        = false,
+    gearRepairBelow       = 10,
+    gearMerchantRepair    = false,
+    gearAutoCharge        = false,
+    gearChargeBelow       = 10,
+    gearAutoBind          = false,
+    gearLogRepair         = true,
+    gearLogCharge         = true,
+    gearLogBind           = true,
+}
+
+Gear.logChoices = {
+    { name = "Repairs", value = "repair" },
+    { name = "Charges", value = "charge" },
+    { name = "Binds",   value = "bind"   },
+}
+
+local LOG_KEYS = { repair = "gearLogRepair", charge = "gearLogCharge", bind = "gearLogBind" }
+
+local WEAPON_SLOTS = {
+    EQUIP_SLOT_MAIN_HAND,
+    EQUIP_SLOT_OFF_HAND,
+    EQUIP_SLOT_BACKUP_MAIN,
+    EQUIP_SLOT_BACKUP_OFF,
 }
 
 local ARMOR = {
@@ -75,6 +103,9 @@ local rows       = {}
 local lines      = {}
 local hudShowing = { hud = false, hudui = false }
 local pending    = false
+local careWatch  = false
+local careQueued = false
+local careWait   = {}
 
 --------------------------------------------------
 -- Helpers
@@ -569,6 +600,209 @@ function Gear:EndMove(save)
 end
 
 --------------------------------------------------
+-- Maintenance
+--------------------------------------------------
+local function CareWaiting(key)
+    local untilMs = careWait[key]
+    return untilMs ~= nil and GetFrameTimeMilliseconds() < untilMs
+end
+
+local function CareHold(key)
+    careWait[key] = GetFrameTimeMilliseconds() + CARE_WAIT_MS
+end
+
+local function CareLog(kind, text)
+    if SV()[LOG_KEYS[kind]] then ME:Chat(ME:ChatPrefix() .. text) end
+end
+
+local function CareConfirm(check, kind, text)
+    zo_callLater(function()
+        if check() then CareLog(kind, text) end
+    end, CARE_CHECK_MS)
+end
+
+local function FindRepairKits()
+    local best, bestTier, crown
+    for slot = 0, GetBagSize(BAG_BACKPACK) - 1 do
+        if IsItemNonCrownRepairKit(BAG_BACKPACK, slot) then
+            local tier = GetRepairKitTier(BAG_BACKPACK, slot) or 0
+            if not best or tier > bestTier then best, bestTier = slot, tier end
+        elseif not crown and GetItemType(BAG_BACKPACK, slot) == ITEMTYPE_CROWN_REPAIR then
+            crown = slot
+        end
+    end
+    return best, crown
+end
+
+local function FindSoulGem()
+    local crown
+    for slot = 0, GetBagSize(BAG_BACKPACK) - 1 do
+        if IsItemSoulGem(SOUL_GEM_TYPE_FILLED, BAG_BACKPACK, slot) then
+            if not IsItemFromCrownStore(BAG_BACKPACK, slot) then return slot end
+            crown = crown or slot
+        end
+    end
+    return crown
+end
+
+local function NeedsRepair(slot, below)
+    return HasItemInSlot(BAG_WORN, slot) and DoesItemHaveDurability(BAG_WORN, slot)
+        and GetItemCondition(BAG_WORN, slot) <= below
+end
+
+function Gear:RepairGear()
+    local sv = SV()
+    if not sv.gearAutoRepair or IsUnitInCombat("player") then return false end
+    if CareWaiting("crown") then return true end
+    local below = sv.gearRepairBelow or self.defaults.gearRepairBelow
+    for slot = 0, GetBagSize(BAG_WORN) - 1 do
+        if NeedsRepair(slot, below) then
+            if CareWaiting("repair" .. slot) then return true end
+            local kit, crown = FindRepairKits()
+            local before = GetItemCondition(BAG_WORN, slot)
+            if kit then
+                local link = GetItemLink(BAG_WORN, slot, LINK_STYLE_BRACKETS)
+                CareHold("repair" .. slot)
+                if ME:CallGame("RepairItemWithRepairKit", BAG_WORN, slot, BAG_BACKPACK, kit) then
+                    CareConfirm(function() return GetItemCondition(BAG_WORN, slot) > before end,
+                        "repair", "Repaired " .. link .. ".")
+                end
+                return true
+            elseif crown then
+                CareHold("crown")
+                if ME:CallGame("UseItem", BAG_BACKPACK, crown) then
+                    CareConfirm(function() return GetItemCondition(BAG_WORN, slot) > before end,
+                        "repair", "Repaired all your gear with a Crown Repair Kit.")
+                end
+                return true
+            end
+            return false
+        end
+    end
+    return false
+end
+
+function Gear:ChargeWeapons()
+    local sv = SV()
+    if not sv.gearAutoCharge then return false end
+    local below = sv.gearChargeBelow or self.defaults.gearChargeBelow
+    for i = 1, #WEAPON_SLOTS do
+        local slot = WEAPON_SLOTS[i]
+        if HasItemInSlot(BAG_WORN, slot) then
+            local charge, maxCharge = GetChargeInfoForItem(BAG_WORN, slot)
+            if (maxCharge or 0) > 0 and (charge or 0) / maxCharge * 100 <= below then
+                if CareWaiting("charge" .. slot) then return true end
+                local gem = FindSoulGem()
+                if not gem then return false end
+                local link = GetItemLink(BAG_WORN, slot, LINK_STYLE_BRACKETS)
+                CareHold("charge" .. slot)
+                if ME:CallGame("ChargeItemWithSoulGem", BAG_WORN, slot, BAG_BACKPACK, gem) then
+                    CareConfirm(function() return (GetChargeInfoForItem(BAG_WORN, slot) or 0) > (charge or 0) end,
+                        "charge", "Charged " .. link .. ".")
+                end
+                return true
+            end
+        end
+    end
+    return false
+end
+
+function Gear:CareCheck()
+    EVENT_MANAGER:UnregisterForUpdate(CARE_NAME)
+    careQueued = false
+    if not careWatch or IsUnitDead("player") then return end
+    local again = self:ChargeWeapons()
+    if self:RepairGear() then again = true end
+    if again then self:CareSoon(CARE_WAIT_MS + 100) end
+end
+
+function Gear:CareSoon(delay)
+    if careQueued or not careWatch then return end
+    careQueued = true
+    EVENT_MANAGER:RegisterForUpdate(CARE_NAME, delay or CARE_SOON_MS, function() Gear:CareCheck() end)
+end
+
+local function OnCareChanged()
+    Gear:CareSoon()
+end
+
+local function OnCombatState(_, inCombat)
+    if not inCombat then Gear:CareSoon() end
+end
+
+local function IsCareItem(bagId, slotId)
+    if GetItemType(bagId, slotId) == ITEMTYPE_CROWN_REPAIR then return true end
+    if IsItemNonCrownRepairKit(bagId, slotId) then return true end
+    return IsItemSoulGem(SOUL_GEM_TYPE_FILLED, bagId, slotId)
+end
+
+local function BindNewItem(bagId, slotId)
+    if not SV().gearAutoBind then return end
+    local itemType = GetItemType(bagId, slotId)
+    if itemType ~= ITEMTYPE_ARMOR and itemType ~= ITEMTYPE_WEAPON then return end
+    if IsItemBound(bagId, slotId) then return end
+    local link = GetItemLink(bagId, slotId, LINK_STYLE_BRACKETS)
+    if not IsItemLinkSetCollectionPiece(link) then return end
+    if IsItemSetCollectionPieceUnlocked(GetItemLinkItemId(link)) then return end
+    if ME:CallGame("BindItem", bagId, slotId) then
+        CareConfirm(function() return IsItemBound(bagId, slotId) end,
+            "bind", "Bound " .. link .. " and added it to your set collection.")
+    end
+end
+
+local function OnBagItem(_, bagId, slotId, isNewItem)
+    local sv = SV()
+    if (sv.gearAutoRepair or sv.gearAutoCharge) and IsCareItem(bagId, slotId) then
+        Gear:CareSoon()
+    end
+    if isNewItem then BindNewItem(bagId, slotId) end
+end
+
+local function OnOpenStore()
+    if not SV().gearMerchantRepair or not CanStoreRepair() then return end
+    local cost = GetRepairAllCost()
+    if not cost or cost <= 0 then return end
+    if cost > GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) then return end
+    if ME:CallGame("RepairAll") then
+        CareLog("repair", "Repaired all your gear for " .. ZO_CommaDelimitNumber(cost) .. " gold.")
+    end
+end
+
+function Gear:RefreshCare()
+    local sv = SV()
+    local on = sv.gearAutoRepair == true or sv.gearAutoCharge == true
+        or sv.gearMerchantRepair == true or sv.gearAutoBind == true
+    if on and not careWatch then
+        local charge, durability, new = CARE_NAME .. "Charge", CARE_NAME .. "Durability", CARE_NAME .. "New"
+        EVENT_MANAGER:RegisterForEvent(charge, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnCareChanged)
+        EVENT_MANAGER:AddFilterForEvent(charge, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+            REGISTER_FILTER_BAG_ID, BAG_WORN,
+            REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_ITEM_CHARGE)
+        EVENT_MANAGER:RegisterForEvent(durability, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnCareChanged)
+        EVENT_MANAGER:AddFilterForEvent(durability, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+            REGISTER_FILTER_BAG_ID, BAG_WORN,
+            REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DURABILITY_CHANGE)
+        EVENT_MANAGER:RegisterForEvent(new, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnBagItem)
+        EVENT_MANAGER:AddFilterForEvent(new, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+            REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
+        EVENT_MANAGER:RegisterForEvent(CARE_NAME .. "Combat", EVENT_PLAYER_COMBAT_STATE, OnCombatState)
+        EVENT_MANAGER:RegisterForEvent(CARE_NAME .. "Alive", EVENT_PLAYER_ALIVE, OnCareChanged)
+        EVENT_MANAGER:RegisterForEvent(CARE_NAME .. "Store", EVENT_OPEN_STORE, OnOpenStore)
+    elseif not on and careWatch then
+        EVENT_MANAGER:UnregisterForEvent(CARE_NAME .. "Charge", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+        EVENT_MANAGER:UnregisterForEvent(CARE_NAME .. "Durability", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+        EVENT_MANAGER:UnregisterForEvent(CARE_NAME .. "New", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+        EVENT_MANAGER:UnregisterForEvent(CARE_NAME .. "Combat", EVENT_PLAYER_COMBAT_STATE)
+        EVENT_MANAGER:UnregisterForEvent(CARE_NAME .. "Alive", EVENT_PLAYER_ALIVE)
+        EVENT_MANAGER:UnregisterForEvent(CARE_NAME .. "Store", EVENT_OPEN_STORE)
+        EVENT_MANAGER:UnregisterForUpdate(CARE_NAME)
+        careQueued = false
+    end
+    careWatch = on
+    if on then self:CareSoon() end
+end
+
+--------------------------------------------------
 -- Items
 --------------------------------------------------
 local function ItemDetails(entry, link)
@@ -690,120 +924,247 @@ function Gear:SettingOptions()
             func       = function() Gear:StartMove() end,
         },
         {
-            type    = "toggle",
-            name    = "Background",
-            preset  = "YES_NO",
-            default = defaults.gearBackground,
-            tooltip = "Puts a black box behind your sets so they're easier to read.",
-            getFunc = function() return SV().gearBackground end,
-            setFunc = function(val)
-                SV().gearBackground = val
-                Gear:Render()
-            end,
+            type     = "submenu",
+            name     = "Appearance",
+            tooltip  = "Title, font, colors and background for your gear list.",
+            options  = {
+                {
+                    type    = "toggle",
+                    name    = "Title",
+                    preset  = "YES_NO",
+                    default = defaults.gearTitle,
+                    tooltip = "Shows \"" .. TITLE_TEXT .. "\" above your sets.",
+                    getFunc = function() return SV().gearTitle end,
+                    setFunc = function(val)
+                        SV().gearTitle = val
+                        Gear:Render()
+                        Gear:UpdateVisibility()
+                    end,
+                },
+                {
+                    type    = "dropdown",
+                    name    = "Font",
+                    choices = ME.FONT_CHOICES,
+                    default = defaults.gearFont,
+                    sample  = function() return TITLE_TEXT, SampleFont(), 1, 1, 1 end,
+                    getFunc = function() return SV().gearFont end,
+                    setFunc = function(val)
+                        SV().gearFont = val
+                        Gear:Render()
+                    end,
+                },
+                {
+                    type         = "stylecolor",
+                    name         = ME.RainbowText("Complete Color"),
+                    choices      = { "Alliance", "Custom" },
+                    customValue  = "Custom",
+                    default      = defaults.gearCompleteStyle,
+                    colorDefault = { r = 1, g = 1, b = 1 },
+                    details      = function()
+                        if SV().gearCompleteStyle == "Custom" then
+                            return "Complete sets use your color."
+                        end
+                        return "Complete sets use your alliance color."
+                    end,
+                    sample   = function()
+                        local sv = SV()
+                        local r, g, b = StyleColor(sv.gearCompleteStyle, sv.gearCompleteColor)
+                        return SampleLine(true), SampleFont(), r, g, b
+                    end,
+                    getFunc  = function() return SV().gearCompleteStyle end,
+                    setFunc  = function(val)
+                        SV().gearCompleteStyle = val
+                        Gear:Render()
+                    end,
+                    getColor = function()
+                        local c = SV().gearCompleteColor
+                        if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
+                        return 1, 1, 1
+                    end,
+                    setColor = function(r, g, b)
+                        SV().gearCompleteColor = { r = r, g = g, b = b, a = 1 }
+                        Gear:Render()
+                    end,
+                },
+                {
+                    type         = "stylecolor",
+                    name         = ME.RainbowText("Incomplete Color"),
+                    choices      = { "Alliance", "Custom" },
+                    customValue  = "Custom",
+                    default      = defaults.gearPartialStyle,
+                    colorDefault = { r = 0.7, g = 0.7, b = 0.7 },
+                    details      = function()
+                        if SV().gearPartialStyle == "Custom" then
+                            return "Incomplete sets use your color."
+                        end
+                        return "Incomplete sets use your alliance color."
+                    end,
+                    sample   = function()
+                        local sv = SV()
+                        local r, g, b = StyleColor(sv.gearPartialStyle, sv.gearPartialColor)
+                        return SampleLine(false), SampleFont(), r, g, b
+                    end,
+                    getFunc  = function() return SV().gearPartialStyle end,
+                    setFunc  = function(val)
+                        SV().gearPartialStyle = val
+                        Gear:Render()
+                    end,
+                    getColor = function()
+                        local c = SV().gearPartialColor
+                        if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
+                        return 0.7, 0.7, 0.7
+                    end,
+                    setColor = function(r, g, b)
+                        SV().gearPartialColor = { r = r, g = g, b = b, a = 1 }
+                        Gear:Render()
+                    end,
+                },
+                {
+                    type    = "toggle",
+                    name    = "Background",
+                    preset  = "YES_NO",
+                    default = defaults.gearBackground,
+                    tooltip = "Puts a black box behind your sets so they're easier to read.",
+                    getFunc = function() return SV().gearBackground end,
+                    setFunc = function(val)
+                        SV().gearBackground = val
+                        Gear:Render()
+                    end,
+                },
+                {
+                    type     = "slider",
+                    name     = "Background Opacity",
+                    min      = 0, max = 100, step = 5,
+                    default  = defaults.gearBackgroundOpacity,
+                    tooltip  = "Default is " .. defaults.gearBackgroundOpacity .. ".",
+                    disabled = function() return not SV().gearBackground end,
+                    getFunc  = function() return SV().gearBackgroundOpacity end,
+                    setFunc  = function(val)
+                        SV().gearBackgroundOpacity = val
+                        Gear:Render()
+                    end,
+                },
+            },
         },
         {
-            type     = "slider",
-            name     = "Background Opacity",
-            min      = 0, max = 100, step = 5,
-            default  = defaults.gearBackgroundOpacity,
-            tooltip  = "Default is " .. defaults.gearBackgroundOpacity .. ".",
-            disabled = function() return not SV().gearBackground end,
-            getFunc  = function() return SV().gearBackgroundOpacity end,
-            setFunc  = function(val)
-                SV().gearBackgroundOpacity = val
-                Gear:Render()
-            end,
-        },
-        {
-            type    = "toggle",
-            name    = "Title",
-            preset  = "YES_NO",
-            default = defaults.gearTitle,
-            tooltip = "Shows \"" .. TITLE_TEXT .. "\" above your sets.",
-            getFunc = function() return SV().gearTitle end,
-            setFunc = function(val)
-                SV().gearTitle = val
-                Gear:Render()
-                Gear:UpdateVisibility()
-            end,
-        },
-        {
-            type    = "dropdown",
-            name    = "Font",
-            choices = ME.FONT_CHOICES,
-            default = defaults.gearFont,
-            sample  = function() return TITLE_TEXT, SampleFont(), 1, 1, 1 end,
-            getFunc = function() return SV().gearFont end,
-            setFunc = function(val)
-                SV().gearFont = val
-                Gear:Render()
-            end,
-        },
-        {
-            type         = "stylecolor",
-            name         = ME.RainbowText("Complete Color"),
-            choices      = { "Alliance", "Custom" },
-            customValue  = "Custom",
-            default      = defaults.gearCompleteStyle,
-            colorDefault = { r = 1, g = 1, b = 1 },
-            details      = function()
-                if SV().gearCompleteStyle == "Custom" then
-                    return "Complete sets use your color."
-                end
-                return "Complete sets use your alliance color."
-            end,
-            sample   = function()
-                local sv = SV()
-                local r, g, b = StyleColor(sv.gearCompleteStyle, sv.gearCompleteColor)
-                return SampleLine(true), SampleFont(), r, g, b
-            end,
-            getFunc  = function() return SV().gearCompleteStyle end,
-            setFunc  = function(val)
-                SV().gearCompleteStyle = val
-                Gear:Render()
-            end,
-            getColor = function()
-                local c = SV().gearCompleteColor
-                if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
-                return 1, 1, 1
-            end,
-            setColor = function(r, g, b)
-                SV().gearCompleteColor = { r = r, g = g, b = b, a = 1 }
-                Gear:Render()
-            end,
-        },
-        {
-            type         = "stylecolor",
-            name         = ME.RainbowText("Incomplete Color"),
-            choices      = { "Alliance", "Custom" },
-            customValue  = "Custom",
-            default      = defaults.gearPartialStyle,
-            colorDefault = { r = 0.7, g = 0.7, b = 0.7 },
-            details      = function()
-                if SV().gearPartialStyle == "Custom" then
-                    return "Incomplete sets use your color."
-                end
-                return "Incomplete sets use your alliance color."
-            end,
-            sample   = function()
-                local sv = SV()
-                local r, g, b = StyleColor(sv.gearPartialStyle, sv.gearPartialColor)
-                return SampleLine(false), SampleFont(), r, g, b
-            end,
-            getFunc  = function() return SV().gearPartialStyle end,
-            setFunc  = function(val)
-                SV().gearPartialStyle = val
-                Gear:Render()
-            end,
-            getColor = function()
-                local c = SV().gearPartialColor
-                if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
-                return 0.7, 0.7, 0.7
-            end,
-            setColor = function(r, g, b)
-                SV().gearPartialColor = { r = r, g = g, b = b, a = 1 }
-                Gear:Render()
-            end,
+            type     = "submenu",
+            name     = "Maintenance",
+            tooltip  = "Keeps your gear repaired, charged and bound for you.",
+            options  = {
+                {
+                    type    = "toggle",
+                    name    = "Auto Repair",
+                    preset  = "YES_NO",
+                    default = defaults.gearAutoRepair,
+                    tooltip = "Repairs your gear with a repair kit when a piece drops to Repair Below. "
+                           .. "It uses regular kits first, and only uses a Crown Repair Kit when you don't have any regular ones. "
+                           .. "It waits until you're out of combat.",
+                    getFunc = function() return SV().gearAutoRepair end,
+                    setFunc = function(val)
+                        SV().gearAutoRepair = val
+                        Gear:RefreshCare()
+                    end,
+                },
+                {
+                    type     = "slider",
+                    name     = "Repair Below",
+                    min      = 1, max = 99, step = 1,
+                    default  = defaults.gearRepairBelow,
+                    tooltip  = "Default is " .. defaults.gearRepairBelow .. ".",
+                    details  = function()
+                        return "Repairs a piece when its durability drops to " .. SV().gearRepairBelow .. "% or lower."
+                    end,
+                    disabled = function() return not SV().gearAutoRepair end,
+                    getFunc  = function() return SV().gearRepairBelow end,
+                    setFunc  = function(val)
+                        SV().gearRepairBelow = val
+                        Gear:CareSoon()
+                    end,
+                },
+                {
+                    type    = "toggle",
+                    name    = "Repair At Merchants",
+                    preset  = "YES_NO",
+                    default = defaults.gearMerchantRepair,
+                    tooltip = "Repairs all your gear at a merchant, as long as you have enough gold.",
+                    getFunc = function() return SV().gearMerchantRepair end,
+                    setFunc = function(val)
+                        SV().gearMerchantRepair = val
+                        Gear:RefreshCare()
+                    end,
+                },
+                {
+                    type    = "toggle",
+                    name    = "Auto Charge",
+                    preset  = "YES_NO",
+                    default = defaults.gearAutoCharge,
+                    tooltip = "Recharges your weapons with a filled soul gem when their charge drops to Charge Below. "
+                           .. "It uses regular soul gems before Crown soul gems.",
+                    getFunc = function() return SV().gearAutoCharge end,
+                    setFunc = function(val)
+                        SV().gearAutoCharge = val
+                        Gear:RefreshCare()
+                    end,
+                },
+                {
+                    type     = "slider",
+                    name     = "Charge Below",
+                    min      = 1, max = 99, step = 1,
+                    default  = defaults.gearChargeBelow,
+                    tooltip  = "Default is " .. defaults.gearChargeBelow .. ".",
+                    details  = function()
+                        return "Recharges a weapon when its charge drops to " .. SV().gearChargeBelow .. "% or lower."
+                    end,
+                    disabled = function() return not SV().gearAutoCharge end,
+                    getFunc  = function() return SV().gearChargeBelow end,
+                    setFunc  = function(val)
+                        SV().gearChargeBelow = val
+                        Gear:CareSoon()
+                    end,
+                },
+                {
+                    type    = "toggle",
+                    name    = "Auto Bind",
+                    preset  = "YES_NO",
+                    default = defaults.gearAutoBind,
+                    tooltip = "Binds new set pieces you pick up that aren't in your set collection yet, so they're added to it.",
+                    getFunc = function() return SV().gearAutoBind end,
+                    setFunc = function(val)
+                        SV().gearAutoBind = val
+                        Gear:RefreshCare()
+                    end,
+                },
+                {
+                    type     = "checklist",
+                    name     = "Show In Chat",
+                    choices  = Gear.logChoices,
+                    default  = { "repair", "charge", "bind" },
+                    tooltip  = "Tells you in chat when something is repaired, charged or bound.",
+                    disabled = function()
+                        local sv = SV()
+                        return not (sv.gearAutoRepair or sv.gearMerchantRepair or sv.gearAutoCharge or sv.gearAutoBind)
+                    end,
+                    getFunc  = function()
+                        local sv = SV()
+                        local values = {}
+                        for i = 1, #Gear.logChoices do
+                            local value = Gear.logChoices[i].value
+                            if sv[LOG_KEYS[value]] then values[#values + 1] = value end
+                        end
+                        return values
+                    end,
+                    setFunc  = function(values)
+                        local sv = SV()
+                        local set = {}
+                        if type(values) == "table" then
+                            for i = 1, #values do set[values[i]] = true end
+                        end
+                        for value, key in pairs(LOG_KEYS) do
+                            sv[key] = set[value] == true
+                        end
+                    end,
+                },
+            },
         },
     }
     return self.settingOptions
@@ -836,7 +1197,7 @@ function Gear:GetOptions()
             name    = "Gear",
             icon    = SUBMENU_ICON,
             tooltip = function()
-                return "Shows your equipped sets on screen.\n\n" .. SavedTip()
+                return "Shows your equipped sets on screen and keeps your gear repaired, charged and bound.\n\n" .. SavedTip()
             end,
             options = function() return Gear:PageOptions() end,
         }
@@ -867,11 +1228,13 @@ function Gear:Init()
     EVENT_MANAGER:RegisterForEvent(name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnWornChanged)
     EVENT_MANAGER:AddFilterForEvent(name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
     EVENT_MANAGER:RegisterForEvent(name, EVENT_ARMORY_BUILD_RESTORE_RESPONSE, function() Gear:QueueRefresh() end)
+    self:RefreshCare()
 end
 
 function Gear:OnPlayerActivated()
     self.dirty = true
     self:Refresh()
+    self:CareSoon()
 end
 
 function Gear:SetUseCharacterSettings(value)
@@ -883,6 +1246,7 @@ function Gear:SetUseCharacterSettings(value)
     self:ApplyPosition()
     self:Render()
     self:UpdateVisibility()
+    self:RefreshCare()
     RefreshPanelPages()
 end
 
@@ -914,6 +1278,7 @@ function Gear:OnReset()
     self:ApplyPosition()
     self:Render()
     self:UpdateVisibility()
+    self:RefreshCare()
 end
 
 ME:RegisterFeature(Gear)

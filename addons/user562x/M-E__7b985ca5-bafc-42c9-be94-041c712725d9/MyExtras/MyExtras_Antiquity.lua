@@ -32,6 +32,25 @@ local WAIT_NAME  = ME.name .. "_AntiquityWait"
 local TICK_NAME  = ME.name .. "_AntiquityTick"
 local TICK_MS    = 100
 
+local EYE_FALLBACK_ID = 8006
+local EYE_CONFIRM_MS  = 1200
+local EYE_RETRY_MS    = 1000
+local EYE_SAFETY_MS   = 5000
+local EYE_RETRY_NAME  = ME.name .. "_AntiquityEyeRetry"
+local EYE_SAFETY_NAME = ME.name .. "_AntiquityEyeSafety"
+local EYE_EVENT_NAME  = ME.name .. "_AntiquityEye"
+
+local EYE_WAIT_REASONS = {
+    "COLLECTIBLE_USAGE_BLOCK_REASON_IN_COMBAT",
+    "COLLECTIBLE_USAGE_BLOCK_REASON_MOUNT_IN_COMBAT",
+    "COLLECTIBLE_USAGE_BLOCK_REASON_ON_MOUNT",
+    "COLLECTIBLE_USAGE_BLOCK_REASON_IN_WATER",
+    "COLLECTIBLE_USAGE_BLOCK_REASON_IN_AIR",
+    "COLLECTIBLE_USAGE_BLOCK_REASON_DEAD",
+    "COLLECTIBLE_USAGE_BLOCK_REASON_COLLECTIBLE_ALREADY_QUEUED",
+    "COLLECTIBLE_USAGE_BLOCK_REASON_BLOCKED_BY_EFFECT",
+}
+
 local JOURNAL_SCENE    = "gamepad_antiquity_journal"
 local TRAVEL_WINDOW_MS = 30000
 local JOURNAL_DELAY_MS = 1500
@@ -48,6 +67,8 @@ AR.defaults = {
     antiquityPopupSize    = 120,
     antiquityPosX         = 0,
     antiquityPosY         = POPUP_Y,
+    antiquityAutoEye      = false,
+    antiquityEyeStill     = true,
 }
 
 AR.charDefaults = {
@@ -646,6 +667,196 @@ function AR:EndMove(save)
 end
 
 --------------------------------------------------
+-- Antiquarian's Eye
+--------------------------------------------------
+local eye = {
+    careful    = false,
+    confirming = false,
+    digging    = false,
+    retrying   = false,
+    safety     = false,
+    hooked     = false,
+    waitSet    = nil,
+}
+
+local function EyeId()
+    local id = GetAntiquityScryingToolCollectibleId and GetAntiquityScryingToolCollectibleId()
+    if id and id > 0 then return id end
+    return EYE_FALLBACK_ID
+end
+
+local function AutoEyeOn()
+    return SV().antiquityAutoEye == true
+end
+
+local function EyeZoneAllowed()
+    if IsUnitInDungeon("player") or IsPlayerInAvAWorld() or IsActiveWorldBattleground() then return false end
+    if GetCurrentZoneHouseId() > 0 then return false end
+    local contentType = GetMapContentType()
+    return contentType ~= MAP_CONTENT_AVA and contentType ~= MAP_CONTENT_BATTLEGROUND
+        and contentType ~= MAP_CONTENT_DUNGEON
+end
+
+local function EyeWanted()
+    if not AutoEyeOn() or eye.digging then return false end
+    local tracked = GetTrackedAntiquityId()
+    return tracked ~= nil and tracked > 0 and EyeZoneAllowed()
+end
+
+local function EyeOnCooldown(id)
+    local remaining = GetCollectibleCooldownAndDuration(id)
+    return remaining ~= nil and remaining > 0
+end
+
+local function WaitReasons()
+    if eye.waitSet then return eye.waitSet end
+    local set = {}
+    for i = 1, #EYE_WAIT_REASONS do
+        local value = _G[EYE_WAIT_REASONS[i]]
+        if value ~= nil then set[value] = true end
+    end
+    eye.waitSet = set
+    return set
+end
+
+local function EyeBlock(id)
+    if not IsCollectibleUnlocked(id) then return "never" end
+    if IsCollectibleValidForPlayer and not IsCollectibleValidForPlayer(id) then return "never" end
+    local reason = GetCollectibleBlockReason(id, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+    if reason == nil or reason == COLLECTIBLE_USAGE_BLOCK_REASON_NOT_BLOCKED then return nil end
+    if WaitReasons()[reason] then return "wait" end
+    return "never"
+end
+
+function AR:StartEyeRetry()
+    if eye.retrying then return end
+    eye.retrying = true
+    EVENT_MANAGER:RegisterForUpdate(EYE_RETRY_NAME, EYE_RETRY_MS, function() AR:TryEye() end)
+end
+
+function AR:StopEyeRetry()
+    if not eye.retrying then return end
+    eye.retrying = false
+    EVENT_MANAGER:UnregisterForUpdate(EYE_RETRY_NAME)
+end
+
+function AR:TryEye()
+    if not EyeWanted() then
+        self:StopEyeRetry()
+        return
+    end
+    if eye.confirming then return end
+    local id = EyeId()
+    if EyeOnCooldown(id) then
+        self:StopEyeRetry()
+        return
+    end
+    local block = EyeBlock(id)
+    if block == "never" then
+        self:StopEyeRetry()
+        return
+    elseif block == "wait" then
+        self:StartEyeRetry()
+        return
+    end
+    if SV().antiquityEyeStill and IsPlayerMoving() then
+        self:StartEyeRetry()
+        return
+    end
+    if eye.careful and (IsPlayerMoving() or IsUnitInCombat("player")) then
+        self:StartEyeRetry()
+        return
+    end
+    UseCollectible(id, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+    eye.confirming = true
+    zo_callLater(function()
+        eye.confirming = false
+        if EyeOnCooldown(id) then
+            eye.careful = false
+            AR:StopEyeRetry()
+        else
+            eye.careful = true
+            AR:StartEyeRetry()
+        end
+    end, EYE_CONFIRM_MS)
+end
+
+local function EyePromptType()
+    local types = ZO_INTERACT_TYPE
+    return types and types.DIG_SITE_EYE
+end
+
+function AR:HookEyePrompt()
+    local p2p = PLAYER_TO_PLAYER
+    if eye.hooked or not (p2p and type(p2p.ExistsInQueue) == "function") then return end
+    eye.hooked = true
+    local original = p2p.ExistsInQueue
+    p2p.ExistsInQueue = function(object, interactType, ...)
+        if interactType ~= nil and interactType == EyePromptType() and AutoEyeOn() then
+            return true
+        end
+        return original(object, interactType, ...)
+    end
+end
+
+function AR:ApplyEyePrompt()
+    local p2p = PLAYER_TO_PLAYER
+    if not p2p then return end
+    self:HookEyePrompt()
+    local promptType = EyePromptType()
+    if AutoEyeOn() and promptType and p2p.RemoveFromIncomingQueue then
+        p2p:RemoveFromIncomingQueue(promptType)
+    end
+end
+
+function AR:RefreshEye()
+    self:ApplyEyePrompt()
+    if EyeWanted() then
+        if not eye.safety then
+            eye.safety = true
+            EVENT_MANAGER:RegisterForUpdate(EYE_SAFETY_NAME, EYE_SAFETY_MS, function() AR:TryEye() end)
+        end
+        self:TryEye()
+    else
+        if eye.safety then
+            eye.safety = false
+            EVENT_MANAGER:UnregisterForUpdate(EYE_SAFETY_NAME)
+        end
+        self:StopEyeRetry()
+    end
+end
+
+function AR:InstallEye()
+    local function Refresh() AR:RefreshEye() end
+    local function Try() AR:TryEye() end
+    EVENT_MANAGER:RegisterForEvent(EYE_EVENT_NAME .. "Sites", EVENT_ANTIQUITY_DIG_SITES_UPDATED, Try)
+    EVENT_MANAGER:RegisterForEvent(EYE_EVENT_NAME .. "Tracking", EVENT_ANTIQUITY_TRACKING_UPDATE, Refresh)
+    EVENT_MANAGER:RegisterForEvent(EYE_EVENT_NAME .. "Ready", EVENT_ANTIQUITY_TRACKING_INITIALIZED, Refresh)
+    EVENT_MANAGER:RegisterForEvent(EYE_EVENT_NAME .. "Combat", EVENT_PLAYER_COMBAT_STATE, Try)
+    EVENT_MANAGER:RegisterForEvent(EYE_EVENT_NAME .. "Area", EVENT_PLAYER_IN_PIN_AREA_CHANGED, function(_, pinType)
+        if pinType == MAP_PIN_TYPE_ANTIQUITY_DIG_SITE or pinType == MAP_PIN_TYPE_TRACKED_ANTIQUITY_DIG_SITE then
+            AR:ApplyEyePrompt()
+            AR:TryEye()
+        end
+    end)
+    if EVENT_ANTIQUITY_DIGGING_READY_TO_PLAY then
+        EVENT_MANAGER:RegisterForEvent(EYE_EVENT_NAME .. "DigStart", EVENT_ANTIQUITY_DIGGING_READY_TO_PLAY, function()
+            eye.digging = true
+            AR:RefreshEye()
+        end)
+    end
+    if EVENT_ANTIQUITY_DIGGING_EXIT_RESPONSE then
+        EVENT_MANAGER:RegisterForEvent(EYE_EVENT_NAME .. "DigEnd", EVENT_ANTIQUITY_DIGGING_EXIT_RESPONSE, function()
+            eye.digging = false
+            AR:RefreshEye()
+        end)
+    end
+    if COLLECTIONS_BOOK_SINGLETON and COLLECTIONS_BOOK_SINGLETON.RegisterCallback then
+        COLLECTIONS_BOOK_SINGLETON:RegisterCallback("OnUpdateCooldowns", Try)
+    end
+end
+
+--------------------------------------------------
 -- Settings
 --------------------------------------------------
 local function IsOff()
@@ -679,6 +890,7 @@ function AR:SetUseCharacterSettings(value)
     self:ApplyPosition()
     self:ApplyPopupSize()
     self:RefreshPreview()
+    self:RefreshEye()
     RefreshPanelPages()
 end
 
@@ -719,88 +931,133 @@ function AR:SettingOptions()
             func       = function() AR:StartMove() end,
         },
         {
-            type     = "checklist",
-            name     = "Check On",
-            choices  = self.checkChoices,
-            default  = { "login" },
-            tooltip  = "When it checks your leads.",
+            type     = "submenu",
+            name     = "Reminder",
             disabled = IsOff,
-            getFunc = function()
-                local sv = SV()
-                local values = {}
-                for i = 1, #AR.checkChoices do
-                    local value = AR.checkChoices[i].value
-                    if sv[CHECK_KEYS[value]] then values[#values + 1] = value end
-                end
-                return values
-            end,
-            setFunc = function(values)
-                local sv = SV()
-                local set = {}
-                if type(values) == "table" then
-                    for i = 1, #values do set[values[i]] = true end
-                end
-                for value, key in pairs(CHECK_KEYS) do
-                    sv[key] = set[value] == true
-                end
-                AR:ApplyTimer()
-            end,
+            tooltip  = "When and how you're reminded about expiring leads.",
+            options  = {
+                {
+                    type     = "checklist",
+                    name     = "Check On",
+                    choices  = self.checkChoices,
+                    default  = { "login" },
+                    tooltip  = "When it checks your leads.",
+                    disabled = IsOff,
+                    getFunc = function()
+                        local sv = SV()
+                        local values = {}
+                        for i = 1, #AR.checkChoices do
+                            local value = AR.checkChoices[i].value
+                            if sv[CHECK_KEYS[value]] then values[#values + 1] = value end
+                        end
+                        return values
+                    end,
+                    setFunc = function(values)
+                        local sv = SV()
+                        local set = {}
+                        if type(values) == "table" then
+                            for i = 1, #values do set[values[i]] = true end
+                        end
+                        for value, key in pairs(CHECK_KEYS) do
+                            sv[key] = set[value] == true
+                        end
+                        AR:ApplyTimer()
+                    end,
+                },
+                {
+                    type    = "slider",
+                    name    = "Days",
+                    min     = 0, max = 30, step = 1,
+                    default = defaults.antiquityDays,
+                    tooltip = "Leads with less time left than your Days and Hours show up here and in the pop-up.\n\n"
+                           .. "Default is " .. defaults.antiquityDays .. ".",
+                    getFunc = function() return SV().antiquityDays end,
+                    setFunc = function(val)
+                        SV().antiquityDays = val
+                        RefreshPanelPages()
+                        AR:RefreshPreview()
+                    end,
+                },
+                {
+                    type    = "slider",
+                    name    = "Hours",
+                    min     = 0, max = 23, step = 1,
+                    default = defaults.antiquityHours,
+                    tooltip = "Leads with less time left than your Days and Hours show up here and in the pop-up.\n\n"
+                           .. "Default is " .. defaults.antiquityHours .. ".",
+                    getFunc = function() return SV().antiquityHours end,
+                    setFunc = function(val)
+                        SV().antiquityHours = val
+                        RefreshPanelPages()
+                        AR:RefreshPreview()
+                    end,
+                },
+                {
+                    type     = "slider",
+                    name     = "Timer Interval",
+                    min      = 5, max = 120, step = 5,
+                    default  = defaults.antiquityTimerMinutes,
+                    tooltip  = "How often it checks while you play, in minutes.\n\n"
+                            .. "Default is " .. defaults.antiquityTimerMinutes .. ".",
+                    disabled = function() return IsOff() or not SV().antiquityCheckTimer end,
+                    getFunc  = function() return SV().antiquityTimerMinutes end,
+                    setFunc  = function(val)
+                        SV().antiquityTimerMinutes = val
+                        AR:ApplyTimer()
+                    end,
+                },
+                {
+                    type     = "slider",
+                    name     = "Pop-Up Duration",
+                    min      = 10, max = 30, step = 1,
+                    default  = defaults.antiquityPopupSeconds,
+                    tooltip  = "How long the pop-up stays on screen, in seconds.\n\n"
+                            .. "Default is " .. defaults.antiquityPopupSeconds .. ".",
+                    disabled = IsOff,
+                    getFunc  = function() return SV().antiquityPopupSeconds end,
+                    setFunc  = function(val)
+                        SV().antiquityPopupSeconds = val
+                        AR:RefreshPreview()
+                    end,
+                },
+            },
         },
         {
-            type     = "slider",
-            name     = "Timer Interval",
-            min      = 5, max = 120, step = 5,
-            default  = defaults.antiquityTimerMinutes,
-            tooltip  = "How often it checks while you play, in minutes.\n\n"
-                    .. "Default is " .. defaults.antiquityTimerMinutes .. ".",
-            disabled = function() return IsOff() or not SV().antiquityCheckTimer end,
-            getFunc  = function() return SV().antiquityTimerMinutes end,
-            setFunc  = function(val)
-                SV().antiquityTimerMinutes = val
-                AR:ApplyTimer()
-            end,
-        },
-        {
-            type    = "slider",
-            name    = "Days",
-            min     = 0, max = 30, step = 1,
-            default = defaults.antiquityDays,
-            tooltip = "Leads with less time left than your Days and Hours show up here and in the pop-up.\n\n"
-                   .. "Default is " .. defaults.antiquityDays .. ".",
-            getFunc = function() return SV().antiquityDays end,
-            setFunc = function(val)
-                SV().antiquityDays = val
-                RefreshPanelPages()
-                AR:RefreshPreview()
-            end,
-        },
-        {
-            type    = "slider",
-            name    = "Hours",
-            min     = 0, max = 23, step = 1,
-            default = defaults.antiquityHours,
-            tooltip = "Leads with less time left than your Days and Hours show up here and in the pop-up.\n\n"
-                   .. "Default is " .. defaults.antiquityHours .. ".",
-            getFunc = function() return SV().antiquityHours end,
-            setFunc = function(val)
-                SV().antiquityHours = val
-                RefreshPanelPages()
-                AR:RefreshPreview()
-            end,
-        },
-        {
-            type     = "slider",
-            name     = "Pop-Up Duration",
-            min      = 10, max = 30, step = 1,
-            default  = defaults.antiquityPopupSeconds,
-            tooltip  = "How long the pop-up stays on screen, in seconds.\n\n"
-                    .. "Default is " .. defaults.antiquityPopupSeconds .. ".",
-            disabled = IsOff,
-            getFunc  = function() return SV().antiquityPopupSeconds end,
-            setFunc  = function(val)
-                SV().antiquityPopupSeconds = val
-                AR:RefreshPreview()
-            end,
+            type    = "submenu",
+            name    = "Antiquarian's Eye",
+            tooltip = "Uses your Antiquarian's Eye for you.",
+            options = {
+                {
+                    type    = "toggle",
+                    name    = "Auto Use",
+                    preset  = "YES_NO",
+                    default = defaults.antiquityAutoEye,
+                    tooltip = "Uses your Antiquarian's Eye for you when you're tracking a lead, "
+                           .. "and hides the game's prompt to use it.",
+                    sampleIcon = function()
+                        local icon = GetCollectibleIcon(EyeId())
+                        if type(icon) == "string" and icon ~= "" then return icon, 96 end
+                    end,
+                    getFunc = function() return SV().antiquityAutoEye end,
+                    setFunc = function(val)
+                        SV().antiquityAutoEye = val
+                        AR:RefreshEye()
+                    end,
+                },
+                {
+                    type     = "toggle",
+                    name     = "Wait Until Still",
+                    preset   = "YES_NO",
+                    default  = defaults.antiquityEyeStill,
+                    tooltip  = "Only uses your Antiquarian's Eye while you're standing still, so you don't miss where it points.",
+                    disabled = function() return not SV().antiquityAutoEye end,
+                    getFunc  = function() return SV().antiquityEyeStill end,
+                    setFunc  = function(val)
+                        SV().antiquityEyeStill = val
+                        AR:TryEye()
+                    end,
+                },
+            },
         },
     }
     return self.settingOptions
@@ -1033,6 +1290,7 @@ function AR:Init()
     self:InstallJournalHook()
     EVENT_MANAGER:RegisterForEvent(ME.name .. "_AntiquityTravel", EVENT_PLAYER_DEACTIVATED, OnPlayerDeactivated)
     self:ApplyTimer()
+    self:InstallEye()
 end
 
 local function CurrentZoneId()
@@ -1043,6 +1301,7 @@ local function CurrentZoneId()
 end
 
 function AR:OnPlayerActivated(initial)
+    self:RefreshEye()
     local sv = SV()
     local zoneId = CurrentZoneId()
     local changed = self.lastZoneId ~= nil and zoneId ~= self.lastZoneId
@@ -1071,6 +1330,7 @@ function AR:ResetSkipKeys()
 end
 
 function AR:OnReset()
+    zo_callLater(function() AR:RefreshEye() end, 0)
     self.pending = nil
     EVENT_MANAGER:UnregisterForUpdate(WAIT_NAME)
     if self:UsesCharacterSettings() then

@@ -60,6 +60,18 @@ local L = {
     groupToastOff = GetString(ZONESETS_GROUP_TOAST_OFF),
     neededInColl = GetString(ZONESETS_NEEDED_IN_COLL),
     groupLootedCount = GetString(ZONESETS_GROUP_LOOTED_COUNT),
+    soloTag = GetString(ZONESETS_SOLO_TAG),
+}
+
+-- ================= СПИСОК СОЛО-ПОДЗЕМЕЛИЙ (НАСТРОЙКИ) =================
+local SOLO_DUNGEONS = {
+    [1592] = { extraSets = { "тарсир", "tarcyr" } },     -- Путь Жертвоприношений
+    [1593] = { extraSets = { "миленн", "mylenne" } },    -- Крепость Лунного Охотника
+}
+
+-- Алиасы зон: перенаправление зон без собственного раздела стикербука в родительский регион
+ZS.ZoneAliases = {
+    [36] = 181, -- Джерольский перевал (36) -> Сиродил (181)
 }
 
 local createdRows = {}
@@ -372,11 +384,23 @@ function ZS:GetZoneSets(zoneId, zoneName)
     local results = {}
     if not ITEM_SET_COLLECTIONS_DATA_MANAGER then return results end
 
-    local cleanPlayerZone = CleanZoneString(zoneName)
+    -- Если у зоны есть родительский алиас (ID 36 -> ID 181), переключаем имя на родителя
+    local searchName = zoneName
+    local targetZoneId = (ZS.ZoneAliases and ZS.ZoneAliases[zoneId]) or zoneId
+    if targetZoneId ~= zoneId then
+        local parentName = GetZoneNameById(targetZoneId)
+        if parentName and parentName ~= "" then
+            searchName = zo_strformat("<<1>>", parentName)
+        end
+    end
+
+    local cleanPlayerZone = CleanZoneString(searchName)
     if cleanPlayerZone == "" then return results end
 
     local myClassName = zo_strformat("<<1>>", GetUnitClass("player"))
     local cleanMyClass = CleanZoneString(myClassName)
+
+    local soloConfig = SOLO_DUNGEONS[zoneId]
 
     -- 1. Детектор Полей сражений (БГ)
     local isBG = IsActiveWorldBattleground and IsActiveWorldBattleground()
@@ -406,6 +430,7 @@ function ZS:GetZoneSets(zoneId, zoneName)
 
                 local isMatch = false
                 local isClassSet = false
+                local isSoloSet = false
 
                 -- СЛУЧАЙ 1: Мы на Полях сражений (БГ)
                 if isBG then
@@ -424,7 +449,6 @@ function ZS:GetZoneSets(zoneId, zoneName)
                         or string.find(cleanSubCat, "imperial", 1, true)
                         or string.find(cleanSubCat, "cité impériale", 1, true)
                         or string.find(cleanSubCat, "kaiserstadt", 1, true)
-                    -- Исключаем данжи Имперского города, если мы не внутри них
                     local isImpDungeon = string.find(cleanSubCat, "тюрьм", 1, true) 
                         or string.find(cleanSubCat, "prison", 1, true) 
                         or string.find(cleanSubCat, "башн", 1, true) 
@@ -444,6 +468,18 @@ function ZS:GetZoneSets(zoneId, zoneName)
                     isArchiveMode = true
                 end
 
+                -- СЛУЧАЙ 5: Специфический монстр-сет соло-данжа из «Одиночных подземелий»
+                if soloConfig and not isMatch then
+                    local rawSetNameLower = string.lower(zo_strformat("<<1>>", itemSetData:GetFormattedName()))
+                    for _, pattern in ipairs(soloConfig.extraSets) do
+                        if string.find(rawSetNameLower, pattern, 1, true) then
+                            isMatch = true
+                            isSoloSet = true
+                            break
+                        end
+                    end
+                end
+
                 if isMatch then
                     local rawName = zo_strformat("<<1>>", itemSetData:GetFormattedName())
                     local displayName = rawName
@@ -455,6 +491,9 @@ function ZS:GetZoneSets(zoneId, zoneName)
                         if cleanSubCat == cleanMyClass or (cleanMyClass ~= "" and (string.find(cleanMyClass, cleanSubCat, 1, true) or string.find(cleanSubCat, cleanMyClass, 1, true))) then
                             isMyClassSet = true
                         end
+                    -- В Соло-данжах добавляем тег [Соло]
+                    elseif isSoloSet then
+                        displayName = string.format("%s |c00FFFF[%s]|r", rawName, L.soloTag or "Solo")
                     end
 
                     table.insert(results, {
@@ -466,20 +505,27 @@ function ZS:GetZoneSets(zoneId, zoneName)
                         numUnlocked = itemSetData:GetNumUnlockedPieces(),
                         itemSetData = itemSetData,
                         isMyClass = isMyClassSet,
+                        isSolo = isSoloSet,
                     })
                 end
             end
         end
     end
 
-    -- В Бесконечном Архиве сортируем свой класс на 1-е место
-    if isArchiveMode and #results > 1 then
+    -- Сортировка: в соло-данжах поднимаем соло-сет на 1-е место, в Архиве — свой класс
+    if (soloConfig or isArchiveMode) and #results > 1 then
         table.sort(results, function(a, b)
-            if a.isMyClass ~= b.isMyClass then
-                return a.isMyClass == true
-            end
-            if a.className ~= b.className then
-                return a.className < b.className
+            if soloConfig then
+                if a.isSolo ~= b.isSolo then
+                    return a.isSolo == true
+                end
+            elseif isArchiveMode then
+                if a.isMyClass ~= b.isMyClass then
+                    return a.isMyClass == true
+                end
+                if a.className ~= b.className then
+                    return a.className < b.className
+                end
             end
             return a.rawName < b.rawName
         end)
@@ -903,7 +949,8 @@ function ZS:ShowWindow()
     if self.CurrentTab == "history" then
         self.ZoneLabel:SetText(string.format("|cFFFF00%s:|r %s", L.historyTitle, zoneName))
     else
-        self.ZoneLabel:SetText(string.format("%s |cAAAAAA(ID: %d)|r", zoneName, zoneId))
+        local soloTag = (SOLO_DUNGEONS and SOLO_DUNGEONS[zoneId]) and string.format(" |c00FFFF[%s]|r", L.soloTag or "Solo") or ""
+        self.ZoneLabel:SetText(string.format("%s%s |cAAAAAA(ID: %d)|r", zoneName, soloTag, zoneId))
     end
 
     ClearScrollChild()
@@ -1184,88 +1231,100 @@ function ZS:ShowWindow()
                 local piecesContainer = WINDOW_MANAGER:CreateControl(nil, row, CT_CONTROL)
                 piecesContainer:SetAnchor(TOPLEFT, barFrame, BOTTOMLEFT, 0, 8)
                 piecesContainer:SetWidth(blockWidth - 30)
-
-                local piecesList = GetSetPiecesList(setInfo.itemSetData)
-                local tileSize = 40
-                local spacing = 6
-                local cols = math.max(math.floor((blockWidth - 30) / (tileSize + spacing)), 1)
-
-                for i, piece in ipairs(piecesList) do
-                    local colIdx = (i - 1) % cols
-                    local rowIdx = math.floor((i - 1) / cols)
-                    local posX = colIdx * (tileSize + spacing)
-                    local posY = rowIdx * (tileSize + spacing)
-
-                    local tile = WINDOW_MANAGER:CreateControl(nil, piecesContainer, CT_BUTTON)
-                    tile:SetDimensions(tileSize, tileSize)
-                    tile:SetAnchor(TOPLEFT, piecesContainer, TOPLEFT, posX, posY)
-                    tile:SetMouseEnabled(true)
-
-                    local tileBg = WINDOW_MANAGER:CreateControl(nil, tile, CT_BACKDROP)
-                    tileBg:SetAnchorFill()
-                    tileBg:SetCenterColor(0, 0, 0, 0.8)
-                    tileBg:SetEdgeTexture(nil, 1, 1, 1, 0)
-                    tileBg:SetMouseEnabled(false)
-
-                    if piece.isUnlocked then
-                        tileBg:SetEdgeColor(0.8, 0.65, 0.2, 0.9)
-                    else
-                        tileBg:SetEdgeColor(0.5, 0.1, 0.1, 0.6)
-                    end
-
-                    local icon = WINDOW_MANAGER:CreateControl(nil, tile, CT_TEXTURE)
-                    icon:SetDimensions(tileSize - 6, tileSize - 6)
-                    icon:SetAnchor(CENTER, tile, CENTER, 0, 0)
-                    icon:SetTexture(piece.icon)
-                    icon:SetMouseEnabled(false)
-
-                    if piece.isUnlocked then
-                        icon:SetColor(1, 1, 1, 1)
-                    else
-                        icon:SetColor(0.25, 0.25, 0.25, 0.65)
-                    end
-
-                    tile:SetHandler("OnMouseEnter", function()
-                        tileBg:SetCenterColor(0.2, 0.4, 0.8, 0.4)
-                        local tileCenterX = tile:GetCenter()
-                        local screenCenterX = GuiRoot:GetWidth() / 2
-                        if tileCenterX and screenCenterX and tileCenterX < screenCenterX then
-                            InitializeTooltip(ItemTooltip, tile, LEFT, 10, 0, RIGHT)
-                        else
-                            InitializeTooltip(ItemTooltip, tile, RIGHT, -10, 0, LEFT)
-                        end
-                        if piece.itemLink and piece.itemLink ~= "" then
-                            ItemTooltip:SetLink(piece.itemLink)
-                        end
-                    end)
-
-                    tile:SetHandler("OnMouseExit", function()
-                        tileBg:SetCenterColor(0, 0, 0, 0.8)
-                        ClearTooltip(ItemTooltip)
-                    end)
-
-                    tile:SetHandler("OnClicked", function()
-                        if piece.itemLink and piece.itemLink ~= "" then
-                            ZO_LinkHandler_InsertLink(piece.itemLink)
-                        end
-                    end)
-                end
-
-                local totalRows = math.ceil(#piecesList / cols)
-                local gridHeight = totalRows * (tileSize + spacing)
-                piecesContainer:SetHeight(gridHeight)
                 piecesContainer:SetHidden(true)
-
                 row.piecesContainer = piecesContainer
+
+                -- Ленивая загрузка: создаем иконки строго при клике на [+]
+                local isBuilt = false
+
+                local function BuildPieces()
+                    if isBuilt then return end
+                    isBuilt = true
+
+                    local piecesList = GetSetPiecesList(setInfo.itemSetData)
+                    local curWidth = piecesContainer:GetWidth()
+                    if not curWidth or curWidth <= 0 then curWidth = blockWidth - 30 end
+
+                    local tileSize = 40
+                    local spacing = 6
+                    local cols = math.max(math.floor(curWidth / (tileSize + spacing)), 1)
+
+                    for i, piece in ipairs(piecesList) do
+                        local colIdx = (i - 1) % cols
+                        local rowIdx = math.floor((i - 1) / cols)
+                        local posX = colIdx * (tileSize + spacing)
+                        local posY = rowIdx * (tileSize + spacing)
+
+                        local tile = WINDOW_MANAGER:CreateControl(nil, piecesContainer, CT_BUTTON)
+                        tile:SetDimensions(tileSize, tileSize)
+                        tile:SetAnchor(TOPLEFT, piecesContainer, TOPLEFT, posX, posY)
+                        tile:SetMouseEnabled(true)
+
+                        local tileBg = WINDOW_MANAGER:CreateControl(nil, tile, CT_BACKDROP)
+                        tileBg:SetAnchorFill()
+                        tileBg:SetCenterColor(0, 0, 0, 0.8)
+                        tileBg:SetEdgeTexture(nil, 1, 1, 1, 0)
+                        tileBg:SetMouseEnabled(false)
+
+                        if piece.isUnlocked then
+                            tileBg:SetEdgeColor(0.8, 0.65, 0.2, 0.9)
+                        else
+                            tileBg:SetEdgeColor(0.5, 0.1, 0.1, 0.6)
+                        end
+
+                        local icon = WINDOW_MANAGER:CreateControl(nil, tile, CT_TEXTURE)
+                        icon:SetDimensions(tileSize - 6, tileSize - 6)
+                        icon:SetAnchor(CENTER, tile, CENTER, 0, 0)
+                        icon:SetTexture(piece.icon)
+                        icon:SetMouseEnabled(false)
+
+                        if piece.isUnlocked then
+                            icon:SetColor(1, 1, 1, 1)
+                        else
+                            icon:SetColor(0.25, 0.25, 0.25, 0.65)
+                        end
+
+                        tile:SetHandler("OnMouseEnter", function()
+                            tileBg:SetCenterColor(0.2, 0.4, 0.8, 0.4)
+                            local tileCenterX = tile:GetCenter()
+                            local screenCenterX = GuiRoot:GetWidth() / 2
+                            if tileCenterX and screenCenterX and tileCenterX < screenCenterX then
+                                InitializeTooltip(ItemTooltip, tile, LEFT, 10, 0, RIGHT)
+                            else
+                                InitializeTooltip(ItemTooltip, tile, RIGHT, -10, 0, LEFT)
+                            end
+                            if piece.itemLink and piece.itemLink ~= "" then
+                                ItemTooltip:SetLink(piece.itemLink)
+                            end
+                        end)
+
+                        tile:SetHandler("OnMouseExit", function()
+                            tileBg:SetCenterColor(0, 0, 0, 0.8)
+                            ClearTooltip(ItemTooltip)
+                        end)
+
+                        tile:SetHandler("OnClicked", function()
+                            if piece.itemLink and piece.itemLink ~= "" then
+                                ZO_LinkHandler_InsertLink(piece.itemLink)
+                            end
+                        end)
+                    end
+
+                    local totalRows = math.ceil(#piecesList / cols)
+                    local gridHeight = totalRows * (tileSize + spacing)
+                    piecesContainer:SetHeight(gridHeight)
+                end
 
                 toggleBtn:SetHandler("OnClicked", function()
                     local wasHidden = piecesContainer:IsHidden()
-                    piecesContainer:SetHidden(not wasHidden)
                     if wasHidden then
+                        BuildPieces()
+                        piecesContainer:SetHidden(false)
                         toggleBtn:SetNormalTexture("/esoui/art/buttons/minus_up.dds")
                         toggleBtn:SetPressedTexture("/esoui/art/buttons/minus_down.dds")
                         toggleBtn:SetMouseOverTexture("/esoui/art/buttons/minus_over.dds")
                     else
+                        piecesContainer:SetHidden(true)
                         toggleBtn:SetNormalTexture("/esoui/art/buttons/plus_up.dds")
                         toggleBtn:SetPressedTexture("/esoui/art/buttons/plus_down.dds")
                         toggleBtn:SetMouseOverTexture("/esoui/art/buttons/plus_over.dds")

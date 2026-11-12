@@ -1,0 +1,8 @@
+<GuiXml>
+  <Controls>
+    <!-- The gamepad fight viewer. ZO_Gamepad_ParametricList_Screen must be
+         created as a top-level control (as LibHarvensAddonSettings does);
+         as a plain child of GuiRoot its list area is not drawn. -->
+    <TopLevelControl name="ConsoleMetricsGamepadTopLevel" inherits="ZO_Gamepad_ParametricList_Screen" virtual="true" />
+  </Controls>
+</GuiXml>

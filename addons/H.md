@@ -85,7 +85,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Hide Completed Tome Challenges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Infinite_1st/Hide-Completed-Tome-Challenges__4811) | Infinite_1st | PC / Mac | 1.0 |
 | [Hide Friend Status messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Hide-Friend-Status-messages__5034) | lousytourist | PC / Mac | 2026.11.08 |
 | [Hide Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/Hide-Group-Frames__2159) | init3 | PC / Mac | 1.0 |
-| [Hide MOTD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Hide-MOTD__5033) | lousytourist | PC / Mac | 2026.11.07 |
+| [Hide MOTD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Hide-MOTD__5033) | lousytourist | PC / Mac | 26.11.11 |
 | [Hide Performance Meter Background](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Zinival/Hide-Performance-Meter-Background__1567) | Zinival | PC / Mac | 1.1 |
 | [Hide Scrying Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Beacze/Hide-Scrying-Tooltips__4782) | Beacze | PC / Mac | 1.0.1 |
 | [Hide Smugger Fee](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Hide-Smugger-Fee__3000) | kawamonkey | PC / Mac | 1.0 |

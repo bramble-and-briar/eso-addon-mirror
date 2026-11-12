@@ -174,6 +174,19 @@ for _, suffix in ipairs({
 	end
 end
 
+-- A summoned creature's attacks are read too, and its breath may well arrive as ticks.
+local PET_RESULTS = {}
+for value in pairs(HIT_RESULTS) do
+	PET_RESULTS[value] = true
+end
+for _, suffix in ipairs({ "DOT_TICK", "DOT_TICK_CRITICAL" }) do
+	local value = _G["ACTION_RESULT_" .. suffix]
+	if value then
+		PET_RESULTS[value] = true
+	end
+end
+local PET_UNIT = "pet" -- the key a summoned creature's activity has in rec.units
+
 -- ---- state --------------------------------------------------------------------------
 -- A set is what is worn: its pieces, its name, its text. A rec is the timer of ONE timed effect of
 -- a set. A set whose bonus lines hold three timed effects gets up to three recs, each with its own
@@ -185,6 +198,7 @@ local activeRecs = {} -- the recs with a row: switched on by the worn pieces, or
 -- [abilityId] = rec | false, one table per kind of event; cleared whenever the sets change
 local verdictEffect = {}
 local verdictHit = {}
+local verdictPet = {}
 
 local state = {
 	hudShown = false,
@@ -327,6 +341,7 @@ end
 local function ClearVerdicts()
 	verdictEffect = {}
 	verdictHit = {}
+	verdictPet = {}
 end
 
 -- ---- matching events to effects -----------------------------------------------------
@@ -482,10 +497,17 @@ local function Pinned(pinned, abilityId, name, length)
 	return false
 end
 
+-- Tier 3, for a summoned creature's events: the creature is named in the effect's text ("summon a fire
+-- breathing Daedroth for 15 seconds"), whatever its attacks are called.
+local function SummonNamed(rec, owner)
+	return #owner >= MIN_NAME_BYTES and rec.bonus.text:find(owner, 1, true) ~= nil
+end
+
 -- The effect an ability belongs to, or nil. Decided once per ability id and kind of event: this
 -- runs for every combat event of the player, so the answer is cached until the worn sets
--- change. `length` is the effect's length in seconds, nil for a hit.
-local function Match(cache, abilityId, name, length)
+-- change. `length` is the effect's length in seconds, nil for a hit. `owner` is the name of the
+-- summoned creature the event came from, nil for the player's own events.
+local function Match(cache, abilityId, name, length, owner)
 	local cached = cache[abilityId]
 	if cached ~= nil then
 		return cached or nil
@@ -511,6 +533,14 @@ local function Match(cache, abilityId, name, length)
 					hit = rec
 					break
 				end
+			end
+		end
+	end
+	if not hit and owner and not sv.bind[abilityId] and not sv.ignore[abilityId] then
+		for _, rec in ipairs(activeRecs) do
+			if SummonNamed(rec, owner) then
+				hit = rec
+				break
 			end
 		end
 	end
@@ -703,24 +733,42 @@ local function OnEffectChanged(
 	end
 end
 
-local function OnCombatEvent(_, result, isError, abilityName, _, slotType, _, _, _, _, _, _, _, _, _, _, abilityId)
-	if isError or not HIT_RESULTS[result] then
+local function OnCombatEvent(_, result, isError, abilityName, _, slotType, sourceName, sourceType, _, _, _, _, _, _, _, _, abilityId)
+	local fromPet = sourceType == COMBAT_UNIT_TYPE_PLAYER_PET
+	if isError or not (fromPet and PET_RESULTS or HIT_RESULTS)[result] then
 		return
 	end
 	-- the text names Light Attacks; they must not be taken for the proc
 	if slotType == ACTION_SLOT_TYPE_LIGHT_ATTACK or slotType == ACTION_SLOT_TYPE_HEAVY_ATTACK then
 		return
 	end
-	local rec = Match(verdictHit, abilityId, abilityName, nil)
+	local owner = fromPet and ((sourceName or ""):gsub("%^.*$", "")) or nil
+	local rec = Match(fromPet and verdictPet or verdictHit, abilityId, abilityName, nil, owner)
 	if not rec then
-		Probe("hit", abilityId, abilityName, "result " .. tostring(result))
+		Probe(fromPet and "pet hit" or "hit", abilityId, abilityName, (fromPet and ("by " .. owner .. ", ") or "") .. "result " .. tostring(result))
 		return
 	end
-	Seen(rec, abilityId, abilityName, "hit")
+	Seen(rec, abilityId, abilityName, fromPet and "pet" or "hit")
+
+	local bonus = rec.bonus
+	if fromPet then
+		-- A summoned creature at work is the effect itself: it was summoned for as long as the text
+		-- says, and its first attack is the moment the proc is seen. Later attacks of the same
+		-- creature neither start another proc nor stretch the time.
+		local t = Now()
+		local wasActive = rec.actEnd > t
+		if StartProc(rec, t) and bonus.duration and not wasActive then
+			local finish = t + bonus.duration
+			rec.units[PET_UNIT] = finish
+			rec.unitStacks[PET_UNIT] = 0
+			rec.actTotal = bonus.duration
+			rec.actEnd = finish
+		end
+		return
+	end
 
 	-- The hit lands after the delay the text names (glass shards burst 1.3 s after the
 	-- critical), while the cooldown began at the critical.
-	local bonus = rec.bonus
 	local shift = (bonus.delay and bonus.delay <= MAX_DELAY_SECONDS) and bonus.delay or 0
 	StartProc(rec, Now() - shift)
 end
@@ -731,14 +779,18 @@ local function RefreshEvents()
 		return
 	end
 	state.listening = want
-	local effectNs, hitNs = addon.name .. "Effect", addon.name .. "Hit"
+	local effectNs, hitNs, petNs = addon.name .. "Effect", addon.name .. "Hit", addon.name .. "Pet"
 	if want then
 		em:RegisterForEvent(effectNs, EVENT_EFFECT_CHANGED, OnEffectChanged)
 		em:RegisterForEvent(hitNs, EVENT_COMBAT_EVENT, OnCombatEvent)
 		em:AddFilterForEvent(hitNs, EVENT_COMBAT_EVENT, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+		-- what the player's summoned creatures do arrives under another source type
+		em:RegisterForEvent(petNs, EVENT_COMBAT_EVENT, OnCombatEvent)
+		em:AddFilterForEvent(petNs, EVENT_COMBAT_EVENT, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER_PET)
 	else
 		em:UnregisterForEvent(effectNs, EVENT_EFFECT_CHANGED)
 		em:UnregisterForEvent(hitNs, EVENT_COMBAT_EVENT)
+		em:UnregisterForEvent(petNs, EVENT_COMBAT_EVENT)
 	end
 end
 

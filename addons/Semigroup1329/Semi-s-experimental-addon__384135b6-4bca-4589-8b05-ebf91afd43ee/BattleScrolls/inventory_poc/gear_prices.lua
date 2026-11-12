@@ -13,6 +13,15 @@ local facts = BattleScrolls.inventoryPocFacts
 local policy = BattleScrolls.inventoryPocPolicy
 local CACHE_MS = 60 * 60000
 
+---Collection filter of a set piece, with rings and necklaces as one class
+---to match `policy.sameSetGearClass`.
+---@param slot ItemSetCollectionSlot_id64
+---@return EquipmentFilterType
+local function collectionFilter(slot)
+    local filter = GetEquipmentFilterTypeForItemSetCollectionSlot(slot)
+    return filter == EQUIPMENT_FILTER_TYPE_NECK and EQUIPMENT_FILTER_TYPE_RING or filter
+end
+
 ---Read the piece first, then the median of matching pieces in its set.
 ---The collection catalogue keeps each lookup bounded to one set.
 ---@param link string
@@ -36,9 +45,14 @@ function prices.referencePrice(link)
     local quotes, seen = {}, {}
     local quality = item.quality
     ---@cast quality ItemQuality
+    local filter = collectionFilter(GetItemLinkItemSetCollectionSlot(link))
     for index = 1, GetNumItemSetCollectionPieces(item.setId) do
-        local pieceId = GetItemSetCollectionPieceInfo(item.setId, index)
-        local candidate = GetItemSetCollectionPieceItemLink(pieceId, LINK_STYLE_DEFAULT, item.trait, quality)
+        local pieceId, slot = GetItemSetCollectionPieceInfo(item.setId, index)
+        -- The client keeps native data for every distinct link it is asked about until
+        -- it exits (docs/addon-memory-research.md), so links are built only for pieces
+        -- that can share the item's gear class.
+        local candidate = (filter == EQUIPMENT_FILTER_TYPE_NONE or collectionFilter(slot) == filter)
+            and GetItemSetCollectionPieceItemLink(pieceId, LINK_STYLE_DEFAULT, item.trait, quality) or ''
         if candidate ~= '' then
             local variant = facts.variant(candidate)
             if not seen[variant.itemId] and policy.sameSetGearClass(item, variant) then

@@ -1,0 +1,8 @@
+## Title: ESO Combat Watch
+## Description: Flags unusual incoming PvP damage for personal review.
+## Author: Caleb
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101051 101052
+
+ESOCombatWatch.lua

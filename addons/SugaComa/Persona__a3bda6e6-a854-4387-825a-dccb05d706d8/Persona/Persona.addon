@@ -1,12 +1,20 @@
 ## Title: Persona
-## APIVersion: 101051
+## APIVersion: 101051 101050
 ## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
-## Version: 1.2.0-test1
+## Version: 1.3.3
 ## Description: Console-first outfit-aware personality and contextual emote addon.
 ## DependsOn: LibHarvensAddonSettings
 ## SavedVariables: Persona_SV
 
-## Disclaimer: This addon is fan-made using ZOS-provided APIs. It is not created, endorsed, or supported by ZeniMax Online Studios or Bethesda Softworks.
 
+; DISCLAIMER:
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms
+
+FrameworkSettings.lua
 Persona.lua
 Persona_Settings.lua

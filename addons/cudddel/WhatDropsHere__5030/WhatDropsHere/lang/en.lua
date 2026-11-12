@@ -1,7 +1,10 @@
 -- lang/en.lua
 -- English strings (default; other languages override single entries)
 
-WDH_STRINGS = {
+-- Only global of the addon (shared by all lua files): WhatDropsHere
+WhatDropsHere = {}
+
+local WDH_STRINGS = {
     -- General
     PREFIX              = "|c66CCFF[WDH]|r ",
     DEBUG_PREFIX        = "|c888888[WDH-Debug]|r ",
@@ -34,6 +37,8 @@ WDH_STRINGS = {
     RECORD_AOE          = " |cFFAA00[group loot]|r",
     RECORD_PICKPOCKET   = " |cFFAA00[pickpocketing]|r",
     RECORD_THEFT        = " |cFF6666[theft]|r",
+    RECORD_LOOSE        = "Loose items",
+    DEBUG_LOOSE_IGNORED = "|cFFAA00Item lying around (%s), not recorded:|r",
     -- %s = name, %d = count, %d = hits, %d = loots, %s = qualities
     RECORD_LINE         = "  %s: %d total, in %d of %d (%s)",
     RECORD_ITEM         = "      %s: %d total, in %d of %d (%s)",
@@ -137,7 +142,7 @@ WDH_STRINGS.MENU_COPY_WARNING     = "The display settings of this character will
 WDH_STRINGS.COPY_DONE             = "|c88FF88[WDH]|r Display settings copied from %s."
 
 -- Gear slots
-WDH_SLOT_NAMES = {
+local WDH_SLOT_NAMES = {
     armor   = "Armor",
     weapon  = "Weapon",
     jewelry = "Jewelry",
@@ -146,7 +151,7 @@ WDH_SLOT_NAMES = {
 }
 
 -- Category display names (keys from WDH_Categories.lua)
-WDH_CAT_NAMES = {
+local WDH_CAT_NAMES = {
     SET             = "Set gear",
     GEAR_ARMOR      = "Armor without set",
     GEAR_WEAPON     = "Weapon without set",
@@ -189,3 +194,7 @@ WDH_CAT_NAMES = {
     NO_ITEM         = "Other (no item)",
     MISC            = "Other",
 }
+
+WhatDropsHere.L          = WDH_STRINGS
+WhatDropsHere.SLOT_NAMES = WDH_SLOT_NAMES
+WhatDropsHere.CAT_NAMES  = WDH_CAT_NAMES

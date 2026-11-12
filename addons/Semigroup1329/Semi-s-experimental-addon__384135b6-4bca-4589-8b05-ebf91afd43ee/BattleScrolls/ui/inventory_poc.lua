@@ -23,6 +23,8 @@ function ui.refreshTradingHouse()
 end
 
 local screen, menuEntry, menuParent
+local LOG_TEMPLATE = 'ZO_GamepadItemSubEntryTemplate'
+local utils = BattleScrolls.utils
 ---@class InventoryPocLogScreen: ZO_Object
 ---@field logRevision number
 ---@field buildKey string
@@ -44,11 +46,12 @@ local REASONS = {
     valuablePlan = BATTLESCROLLS_IPOC_REASON_VALUABLE_PLAN, duplicate = BATTLESCROLLS_IPOC_REASON_DUPLICATE,
     sale = BATTLESCROLLS_IPOC_REASON_SALE,
     collection = BATTLESCROLLS_IPOC_REASON_COLLECTION,
+    -- ESO's own "Cannot Sell" label, localized by the game.
+    unsellable = _G['SI_ITEMSELLINFORMATION' .. ITEM_SELL_INFORMATION_CANNOT_SELL],
 }
 
 local function resetTooltips()
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-    GAMEPAD_TOOLTIPS:Reset(GAMEPAD_QUAD3_TOOLTIP)
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
 end
 
@@ -61,6 +64,8 @@ end
 ---@param bag number
 ---@return string
 local function bagName(bag)
+    if bag == BAG_WORN then return GetString(SI_ITEM_FORMAT_STR_EQUIPPED) end
+    if bag == BAG_COMPANION_WORN then return GetString(SI_ITEM_FORMAT_STR_EQUIPPED_COMPANION) end
     return GetString('SI_BAG', bag == BAG_SUBSCRIBER_BANK and BAG_BANK or bag)
 end
 
@@ -94,7 +99,7 @@ end
 
 ---@param entry InventoryPocLogEntry
 local function showLogTooltip(entry)
-    local lines = { os.date('%d %b %H:%M:%S', entry.timestamp), entry.character }
+    local lines = { utils.formatDate(entry.timestamp) .. ' ' .. utils.formatTime(entry.timestamp), entry.character }
     local function add(id, ...)
         lines[#lines + 1] = zo_strformat(GetString(id), ...)
     end
@@ -180,6 +185,17 @@ function LogScreen.new(control, scene)
     object:SetListsUseTriggerKeybinds(true)
     object.contentsPanel = BattleScrolls.inventoryPocContents.new(control:GetNamedChild('Contents'))
     return object
+end
+
+---Log rows are sentences with item links: the Journal's mixed-case item
+---template with date headers, not the uppercase menu template.
+---@param list ZO_ParametricScrollList
+function LogScreen:SetupList(list)
+    ZO_Gamepad_ParametricList_Screen.SetupList(self, list)
+    list:AddDataTemplate(LOG_TEMPLATE, ZO_SharedGamepadEntry_OnSetup, ZO_GamepadMenuEntryTemplateParametricListFunction)
+    list:AddDataTemplateWithHeader(LOG_TEMPLATE, ZO_SharedGamepadEntry_OnSetup,
+        ZO_GamepadMenuEntryTemplateParametricListFunction, nil, 'ZO_GamepadMenuEntryHeaderTemplate')
+    list:SetNoItemText(GetString(BATTLESCROLLS_IPOC_EMPTY))
 end
 
 ---@param focused boolean
@@ -269,7 +285,7 @@ function LogScreen:PerformUpdate()
         wardrobe = BATTLESCROLLS_IPOC_WAIT_WARDROBE, done = BATTLESCROLLS_IPOC_READY,
         paused = BATTLESCROLLS_IPOC_RETRY_BUILD, missing = BATTLESCROLLS_IPOC_MISSING_BUILD }
     if state then
-        for _, profile in ipairs(builds.profiles) do
+        for index, profile in ipairs(builds.profiles) do
             local isSelected = state.choice == profile.id
             local data = ZO_GamepadEntryData:New(GetString(profile.label), isSelected and SELECTED_ICON or nil)
             data.buildChoice = profile.id
@@ -278,22 +294,33 @@ function LogScreen:PerformUpdate()
                 data:AddSubLabel(state.status == 'wardrobe' and state.issue and buildIssueText(state.issue)
                     or GetString(statusLabels[state.status]))
             end
-            list:AddEntry('ZO_GamepadMenuEntryTemplate', data)
+            if index == 1 then
+                data:SetHeader(GetString(BATTLESCROLLS_TAB_BUILD))
+                list:AddEntryWithHeader('ZO_GamepadMenuEntryTemplate', data)
+            else
+                list:AddEntry('ZO_GamepadMenuEntryTemplate', data)
+            end
             row = row + 1
         end
     end
     local log = poc.saved and poc.saved.log or {}
+    local currentHeader
     for index = #log, 1, -1 do
         local entry = log[index]
         local data = ZO_GamepadEntryData:New(poc.formatLog(entry))
         data.logEntry = entry
-        data:AddSubLabel(os.date('%d %b %H:%M', entry.timestamp) .. ' · ' .. entry.character)
-        list:AddEntry('ZO_GamepadMenuEntryTemplate', data)
+        data:AddSubLabel(utils.formatTime(entry.timestamp) .. ' · ' .. entry.character)
+        data:SetNew(entry.unread == true)
+        local header = BattleScrolls.journal.utils.getTimeGroupHeader(entry.timestamp)
+        if header ~= currentHeader then
+            currentHeader = header
+            data:SetHeader(header)
+            list:AddEntryWithHeader(LOG_TEMPLATE, data)
+        else
+            list:AddEntry(LOG_TEMPLATE, data)
+        end
         row = row + 1
         if selected and selected.logEntry == entry then selectedIndex = row end
-    end
-    if #log == 0 then
-        list:AddEntry('ZO_GamepadMenuEntryTemplate', ZO_GamepadEntryData:New(GetString(BATTLESCROLLS_IPOC_EMPTY)))
     end
     list:Commit()
     if selected and selected.buildChoice and state then
@@ -321,6 +348,8 @@ end
 
 function LogScreen:OnHiding()
     EVENT_MANAGER:UnregisterForUpdate(SCENE_NAME)
+    -- Problems shown during this visit lose their marker on the next opening.
+    for _, entry in ipairs(poc.saved and poc.saved.log or {}) do entry.unread = nil end
     self.contentsFocused, self.selectedLogEntry = false, nil
     self.contentsPanel:hide()
     resetTooltips()

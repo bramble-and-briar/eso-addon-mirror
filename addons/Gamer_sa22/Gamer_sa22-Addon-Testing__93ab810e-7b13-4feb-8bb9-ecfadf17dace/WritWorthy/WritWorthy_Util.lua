@@ -175,19 +175,25 @@ function Util.MatPrice(link)
   if sv.enable_ttc_price then
     table.insert(price_sources, "ttc")
   end
-
+  if sv.enable_tsc_price then
+    table.insert(price_sources, "tsc")
+  end
   -- If all LibPrice source toggles are disabled, still query
   -- the default guild store sources so material selection does
   -- not collapse into unknown pricing.
   if #price_sources == 0 then
-    price_sources = { "mm", "att", "ttc" }
+    price_sources = { "mm", "att", "ttc","tsc" }
   end
-
   local gold, s, f = LibPrice.ItemLinkToPriceGold(link, unpack(price_sources))
-  -- if gold then
-  --     d(string.format( "|c999999%s.%s |cFFFFFF%d|c999999 for %s"
-  --                    , s, f, gold,link ))
-  -- end
+   if gold then
+       d(string.format( "|c999999%s.%s |cFFFFFF%d|c999999 for %s"
+                      , s, f, gold,link ))
+	else
+	link = string.gsub(link,"H0:","H1:")
+	gold, s, f = LibPrice.ItemLinkToPriceGold(link, unpack(price_sources))
+	d(link)
+	d(price_sources)
+  end
 
   -- Hardcoded fallback prices keep material selection stable
   -- when LibPrice has no usable price.

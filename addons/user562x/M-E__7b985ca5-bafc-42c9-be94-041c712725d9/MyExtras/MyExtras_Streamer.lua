@@ -456,31 +456,6 @@ function Streamer:GetOptions()
                     func       = function() Streamer:StartMove() end,
                 },
                 {
-                    type    = "toggle",
-                    name    = "Background",
-                    preset  = "YES_NO",
-                    default = defaults.streamerBackground,
-                    tooltip = "Puts a black box behind your message so it's easier to read.",
-                    getFunc = function() return SV().streamerBackground end,
-                    setFunc = function(val)
-                        SV().streamerBackground = val
-                        Streamer:ApplyBox()
-                    end,
-                },
-                {
-                    type     = "slider",
-                    name     = "Background Opacity",
-                    min      = 0, max = 100, step = 5,
-                    default  = defaults.streamerBackgroundOpacity,
-                    tooltip  = "Default is " .. defaults.streamerBackgroundOpacity .. ".",
-                    disabled = function() return not SV().streamerBackground end,
-                    getFunc  = function() return SV().streamerBackgroundOpacity end,
-                    setFunc  = function(val)
-                        SV().streamerBackgroundOpacity = val
-                        Streamer:ApplyBox()
-                    end,
-                },
-                {
                     type    = "editbox",
                     name    = "Text",
                     default = defaults.streamerText,
@@ -510,30 +485,62 @@ function Streamer:GetOptions()
                     end,
                 },
                 {
-                    type    = "dropdown",
-                    name    = "Font",
-                    choices = ME.FONT_CHOICES,
-                    default = defaults.streamerFont,
-                    sample  = Sample,
-                    getFunc = function() return SV().streamerFont end,
-                    setFunc = function(val)
-                        SV().streamerFont = val
-                        Streamer:ApplyStyle()
-                    end,
-                },
-                {
-                    type    = "colorpicker",
-                    name    = ME.RainbowText("Color"),
-                    default = defaults.streamerColor,
-                    sample  = Sample,
-                    getFunc = function()
-                        local r, g, b = MessageColor()
-                        return r, g, b, 1
-                    end,
-                    setFunc = function(r, g, b)
-                        SV().streamerColor = { r = r, g = g, b = b, a = 1 }
-                        Streamer:ApplyStyle()
-                    end,
+                    type     = "submenu",
+                    name     = "Appearance",
+                    tooltip  = "Font, color and background for your message.",
+                    options  = {
+                        {
+                            type    = "dropdown",
+                            name    = "Font",
+                            choices = ME.FONT_CHOICES,
+                            default = defaults.streamerFont,
+                            sample  = Sample,
+                            getFunc = function() return SV().streamerFont end,
+                            setFunc = function(val)
+                                SV().streamerFont = val
+                                Streamer:ApplyStyle()
+                            end,
+                        },
+                        {
+                            type    = "colorpicker",
+                            name    = ME.RainbowText("Color"),
+                            default = defaults.streamerColor,
+                            sample  = Sample,
+                            getFunc = function()
+                                local r, g, b = MessageColor()
+                                return r, g, b, 1
+                            end,
+                            setFunc = function(r, g, b)
+                                SV().streamerColor = { r = r, g = g, b = b, a = 1 }
+                                Streamer:ApplyStyle()
+                            end,
+                        },
+                        {
+                            type    = "toggle",
+                            name    = "Background",
+                            preset  = "YES_NO",
+                            default = defaults.streamerBackground,
+                            tooltip = "Puts a black box behind your message so it's easier to read.",
+                            getFunc = function() return SV().streamerBackground end,
+                            setFunc = function(val)
+                                SV().streamerBackground = val
+                                Streamer:ApplyBox()
+                            end,
+                        },
+                        {
+                            type     = "slider",
+                            name     = "Background Opacity",
+                            min      = 0, max = 100, step = 5,
+                            default  = defaults.streamerBackgroundOpacity,
+                            tooltip  = "Default is " .. defaults.streamerBackgroundOpacity .. ".",
+                            disabled = function() return not SV().streamerBackground end,
+                            getFunc  = function() return SV().streamerBackgroundOpacity end,
+                            setFunc  = function(val)
+                                SV().streamerBackgroundOpacity = val
+                                Streamer:ApplyBox()
+                            end,
+                        },
+                    },
                 },
             },
         },

@@ -4,12 +4,11 @@
 WerewolfTimerBar = {}
 local WWTB = WerewolfTimerBar
 WWTB.Name = "WerewolfTimerBar"
-WWTB.Version = 3.07
+WWTB.Version = 3.10
 WWTB.Default = 
 	{
-		Unlock = false,
-		BarOffsetX = 20,
-		BarOffsetY = 75,
+		BarOffsetX = 0,
+		BarOffsetY = 0,
 		BarColor = {0, 1, 0, 0.6},
 		BarWidth = 300,
 		BarHeight = 20,
@@ -33,27 +32,57 @@ WWTB.Default =
 		ShowBarLabels = false,
 	}
 local LAM2 = LibAddonMenu2
-local flag = true -- Flip-flop for prehook control
+local flag = true -- Flip-flop for prehook control --
 local text1, text2 -- Ultimate display message --
-local BarMax, FuryBarMax -- Max values for Fury & ult
-_, FuryBarMax, _ = GetUnitPower('player', POWERTYPE_WEREWOLF)
-_, BarMax, _ = GetUnitPower('player', COMBAT_MECHANIC_FLAGS_ULTIMATE)
+local BarMax, FuryBarMax = 0, 0 -- Max values for ult & Fury --
 local HeaderText = "Werewolf Form"
 local UltiText = "Ultimate"
 local FuryText = "Fury"
 local FuryMaxText = "RAMPAGE!!"
 local OldTime = GetTimeStamp()
--- Create string for the key bind
+local showUI = false
+-- Cache frequently used globals as locals --
+local GetUnitPower = GetUnitPower
+local unpack = unpack
+local POWERTYPE_WEREWOLF = POWERTYPE_WEREWOLF
+local COMBAT_MECHANIC_FLAGS_ULTIMATE = COMBAT_MECHANIC_FLAGS_ULTIMATE
+-- Cached references to the XML controls, filled once by UpdateXMLReferences --
+local window, backdrop, headerLabel, ultimateButton
+local statusBar, statusLabel, furyBar, furyLabel
+-- Create string for the key bind --
 ZO_CreateStringId("SI_BINDING_NAME_BAR_ULTIMATELOCK_TOGGLE", "Toggle Lock/Unlock Ultimate")
+
+
+local function ReadMaxPower()
+	local _, furyMax = GetUnitPower('player', POWERTYPE_WEREWOLF)
+	local _, ultMax = GetUnitPower('player', COMBAT_MECHANIC_FLAGS_ULTIMATE)
+	if furyMax and furyMax > 0 then FuryBarMax = furyMax end
+	if ultMax and ultMax > 0 then BarMax = ultMax end
+end
+ReadMaxPower() -- Initial check of max power values --
+
+-------------------------------------------------------------------------------------------------
+--  Update xml references --
+-------------------------------------------------------------------------------------------------
+local function UpdateXMLReferences()
+	window = window or WerewolfTimerBarWindow
+	backdrop = backdrop or WerewolfTimerBarWindow_Backdrop
+	headerLabel = headerLabel or WerewolfTimerBarWindow_Label
+	ultimateButton = ultimateButton or WerewolfTimerBarWindow_UltimateBlockButton
+	statusBar = statusBar or WerewolfTimerBarWindow_StatusBar
+	statusLabel = statusLabel or WerewolfTimerBarWindow_StatusBarLabel
+	furyBar = furyBar or WerewolfTimerBarWindow_FuryBar
+	furyLabel = furyLabel or WerewolfTimerBarWindow_FuryBarLabel
+end
 
 -------------------------------------------------------------------------------------------------
 --  Check if Player is Infected by Werewolf --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.IsPlayerWerewolf()
+function WWTB.IsPlayerWerewolf()
 	local numberOfBuffs = GetNumBuffs('player')
 	if numberOfBuffs ~= 0 then
-		for i = 0, numberOfBuffs do
-			local buffName, _, _, _, _, _, _, _, _, _, abilityId, _, _ = GetUnitBuffInfo('player', i)
+		for i = 1, numberOfBuffs do
+			local _, _, _, _, _, _, _, _, _, _, abilityId = GetUnitBuffInfo('player', i)
 			if abilityId == 35658 or abilityId == 40521 then
 				return true
 			end
@@ -65,48 +94,39 @@ end
 -------------------------------------------------------------------------------------------------
 --  Register for Events  --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.RegisterEvents()
+function WWTB.RegisterEvents()
 	-- Register events for werewolf (State change) updates --
-	EVENT_MANAGER:RegisterForEvent(WWTB.Name_WWState, EVENT_WEREWOLF_STATE_CHANGED, WWTB.OnWerewolfStateChanged)
+	EVENT_MANAGER:RegisterForEvent(WWTB.Name .. "_WWState", EVENT_WEREWOLF_STATE_CHANGED, WWTB.OnWerewolfStateChanged)
 end
 
 -------------------------------------------------------------------------------------------------
 --  Unregister for Events  --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.UnregisterEvents()
+function WWTB.UnregisterEvents()
 	-- Unregister events for werewolf (State change) updates --
-	EVENT_MANAGER:UnregisterForEvent(WWTB.Name_WWState, EVENT_WEREWOLF_STATE_CHANGED)
+	EVENT_MANAGER:UnregisterForEvent(WWTB.Name .. "_WWState", EVENT_WEREWOLF_STATE_CHANGED)
 	-- Unregister events for werewolf updates --
-	EVENT_MANAGER:UnregisterForEvent(WWTB.Name_Upd, EVENT_POWER_UPDATE)
-end
-
--------------------------------------------------------------------------------------------------
---  Save Location Function --
--------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.SaveLoc(Control)
-	WWTB.SV.BarOffsetX = Control:GetLeft()
-	WWTB.SV.BarOffsetY = Control:GetTop()
+	EVENT_MANAGER:UnregisterForEvent(WWTB.Name .. "_Upd", EVENT_POWER_UPDATE)
 end
 
 -------------------------------------------------------------------------------------------------
 --  Dimension Function --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.SetBarSize(Width, Height)
-	local Height = Height
+function WWTB.SetBarSize(Width, Height)
 	-- Dimensions used for both bars --
-	WerewolfTimerBarWindow_StatusBar:SetDimensions(Width, Height)
-	WerewolfTimerBarWindow_FuryBar:SetDimensions(Width, Height)
+	statusBar:SetDimensions(Width, Height)
+	furyBar:SetDimensions(Width, Height)
 	if WWTB.SV.ShowFury and WWTB.SV.ShowTimer then
 		-- If both bars enabled, double the backdrop height --
 		Height = Height*2
 	end
 	if not WWTB.SV.ShowFury then
 		-- Hide Fury bar --
-		WerewolfTimerBarWindow_FuryBar:SetDimensions(Width, 0)
+		furyBar:SetDimensions(Width, 0)
 	end
 	if not WWTB.SV.ShowTimer then
 		-- Hide Timer bar --
-		WerewolfTimerBarWindow_StatusBar:SetDimensions(Width, 0)
+		statusBar:SetDimensions(Width, 0)
 	end
 	if not WWTB.SV.ShowFury and not WWTB.SV.ShowTimer then
 		-- Reduce backdrop size if no bars --
@@ -115,111 +135,115 @@ function WerewolfTimerBar.SetBarSize(Width, Height)
 	if WWTB.SV.ShowHeader then
 		-- Add space for header bar and anchor bars to ultimate lock button --
 		Height = Height+WWTB.SV.BarFontSize+2
-		WerewolfTimerBarWindow_StatusBar:ClearAnchors()
-		WerewolfTimerBarWindow_StatusBar:SetAnchor(TOPLEFT, WerewolfTimerBarWindow_UltimateBlockButton, BOTTOMLEFT, 0, 2)
+		statusBar:ClearAnchors()
+		statusBar:SetAnchor(TOPLEFT, ultimateButton, BOTTOMLEFT, 0, 2)
 	else
 		-- Modify anchors for bars if no header --
-		WerewolfTimerBarWindow_StatusBar:ClearAnchors()
-		WerewolfTimerBarWindow_StatusBar:SetAnchor(TOPLEFT, WerewolfTimerBarWindow_Backdrop, TOPLEFT, 5, 5)
+		statusBar:ClearAnchors()
+		statusBar:SetAnchor(TOPLEFT, backdrop, TOPLEFT, 5, 5)
 	end
 	-- Set backdrop dimensions --
-	WerewolfTimerBarWindow_Backdrop:SetDimensions(WWTB.SV.BarWidth+10, Height+10)
-	WerewolfTimerBarWindow:SetDimensions(WWTB.SV.BarWidth+10, Height+10)
+	backdrop:SetDimensions(WWTB.SV.BarWidth+10, Height+10)
+	window:SetDimensions(WWTB.SV.BarWidth+10, Height+10)
+end
+
+-------------------------------------------------------------------------------------------------
+--  Shared Helpers --
+-------------------------------------------------------------------------------------------------
+function WWTB.GetFontString()
+	return '$(' .. WWTB.SV.BarFontName .. ')|' .. tostring(WWTB.SV.BarFontSize) .. '|' .. WWTB.SV.BarFontStyle
+end
+
+-- Re-read max power values (they may not be available when the file loads) --
+function WWTB.RefreshMaxPower()
+	ReadMaxPower()
+	statusBar:SetMinMax(0, BarMax)
+	furyBar:SetMinMax(0, FuryBarMax)
+end
+
+-- Set Ultimate timer bar value and color --
+function WWTB.UpdateTimerBar(power)
+	local color = WWTB.SV.BarColor
+	if WWTB.SV.WarningColor then
+		if power <= WWTB.SV.CriticalLevel then
+			color = WWTB.SV.CriticalBarColor
+		elseif power <= WWTB.SV.WarningLevel then
+			color = WWTB.SV.WarningBarColor
+		end
+	end
+	statusBar:SetValue(power)
+	statusBar:SetColor(unpack(color))
+end
+
+-- Set Fury bar value, color and label --
+function WWTB.UpdateFuryBar(fury)
+	local full = (fury == FuryBarMax)
+	furyBar:SetValue(fury)
+	furyBar:SetColor(unpack(full and WWTB.SV.FuryBarMaxColor or WWTB.SV.FuryBarColor))
+	furyLabel:SetText(full and FuryMaxText or FuryText)
 end
 
 -------------------------------------------------------------------------------------------------
 --  Show/Hide Function --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.ShowHide()
-	if IsPlayerInWerewolfForm() then
+function WWTB.ShowHide()
+	if IsPlayerInWerewolfForm() or showUI then
 		-- If werewolf then show the bars --
 		if WWTB.SV.ShowTimer then
 			-- Get Ultimate value --
 			local currentPower, _, _ = GetUnitPower('player', COMBAT_MECHANIC_FLAGS_ULTIMATE)
-			WerewolfTimerBarWindow_StatusBar:SetValue(currentPower)
-			-- Set Ultimate Bar color --
-			if WWTB.SV.WarningColor and currentPower <= WWTB.SV.CriticalLevel then
-				WerewolfTimerBarWindow_StatusBar:SetColor(unpack(WWTB.SV.CriticalBarColor))
-			elseif WWTB.SV.WarningColor and currentPower <= WWTB.SV.WarningLevel then
-				WerewolfTimerBarWindow_StatusBar:SetColor(unpack(WWTB.SV.WarningBarColor))
+			WWTB.UpdateTimerBar(currentPower)
+			if WWTB.SV.ShowBarLabels then
+				statusLabel:SetHidden(false)
+				statusLabel:SetText(UltiText)
 			else
-				WerewolfTimerBarWindow_StatusBar:SetColor(unpack(WWTB.SV.BarColor))
+				statusLabel:SetHidden(true)
 			end
-			WerewolfTimerBarWindow_StatusBarLabel:SetText(UltiText)
 		end
 		if WWTB.SV.ShowFury then
 			-- Get Fury value --
 			local currentFury, _, _ = GetUnitPower('player', POWERTYPE_WEREWOLF)
-			WerewolfTimerBarWindow_FuryBar:SetValue(currentFury)
-			-- Set Fury bar color --
-			if currentFury == FuryBarMax then
-				WerewolfTimerBarWindow_FuryBar:SetColor(unpack(WWTB.SV.FuryBarMaxColor))
-				WerewolfTimerBarWindow_FuryBarLabel:SetText(FuryMaxText)
+			WWTB.UpdateFuryBar(currentFury)
+			if WWTB.SV.ShowBarLabels then
+				furyLabel:SetHidden(false)
 			else
-				WerewolfTimerBarWindow_FuryBar:SetColor(unpack(WWTB.SV.FuryBarColor))
-				WerewolfTimerBarWindow_FuryBarLabel:SetText(FuryText)
+				furyLabel:SetHidden(true)
 			end
 		end
 		-- If any parts shown, show window --
 		if WWTB.SV.ShowTimer or WWTB.SV.ShowFury or WWTB.SV.ShowHeader then
-			WerewolfTimerBarWindow:SetHidden(false)
+			window:SetHidden(false)
 		else
-			WerewolfTimerBarWindow:SetHidden(true)
+			window:SetHidden(true)
+		end
+		if WWTB.SV.ShowHeader and WWTB.SV.ShowHeaderLabel then
+			headerLabel:SetHidden(false)
+		else
+			headerLabel:SetHidden(true)
 		end
 	else
-		-- If bars unlocked, show window regardless --
-		if WWTB.SV.Unlock then
-			WerewolfTimerBarWindow:SetHidden(false)
-		else
-			WerewolfTimerBarWindow:SetHidden(true)
-		end
+		window:SetHidden(true)
 	end
-end
-
--------------------------------------------------------------------------------------------------
---  Lock/Unlock UI Function --
--------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.UnlockUI(Control)
-	WWTB.SV.Unlock = true
-	Control:SetHidden(false)
-	WerewolfTimerBarWindow:SetMovable(true)
-	WerewolfTimerBarWindow:SetTopmost(true)
-	WerewolfTimerBarWindow:SetHidden(false)
-	if not IsPlayerInWerewolfForm() then
-		-- If not werewolf, fill bars so they are visible --
-		WerewolfTimerBarWindow_StatusBar:SetValue(BarMax)
-		WerewolfTimerBarWindow_FuryBar:SetValue(FuryBarMax)
-	end
-end
-
-function WerewolfTimerBar.ClickLockUIButton(Control)
-	WWTB.SV.Unlock = false
-	Control:SetHidden(true)
-	WerewolfTimerBarWindow:SetTopmost(false)
-	WerewolfTimerBarWindow:SetMovable(false)
-	WWTB.ShowHide()
 end
 
 -------------------------------------------------------------------------------------------------
 --  Ultimate Block/UnBlock Functions --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.DrawUltimateBlockButton(Control)
-	if WWTB.SV.ShowHeader then 
-		if WWTB.SV.UltimateEnable then
-			-- Draw the lock icon --
-			Control:SetNormalTexture("/esoui/art/miscellaneous/locked_up.dds")
-			Control:SetPressedTexture("/esoui/art/miscellaneous/locked_down.dds")
-			Control:SetMouseOverTexture("/esoui/art/miscellaneous/locked_over.dds")
-		else
-			-- Draw the unlock icon --
-			Control:SetNormalTexture("/esoui/art/miscellaneous/unlocked_up.dds")
-			Control:SetPressedTexture("/esoui/art/miscellaneous/unlocked_down.dds")
-			Control:SetMouseOverTexture("/esoui/art/miscellaneous/unlocked_over.dds")
-		end
+function WWTB.DrawUltimateBlockButton(Control)
+	if WWTB.SV.UltimateEnable then
+		-- Draw the lock icon --
+		Control:SetNormalTexture("/esoui/art/miscellaneous/locked_up.dds")
+		Control:SetPressedTexture("/esoui/art/miscellaneous/locked_down.dds")
+		Control:SetMouseOverTexture("/esoui/art/miscellaneous/locked_over.dds")
+	else
+		-- Draw the unlock icon --
+		Control:SetNormalTexture("/esoui/art/miscellaneous/unlocked_up.dds")
+		Control:SetPressedTexture("/esoui/art/miscellaneous/unlocked_down.dds")
+		Control:SetMouseOverTexture("/esoui/art/miscellaneous/unlocked_over.dds")
 	end
 end
 
-function WerewolfTimerBar.ClickUltimateBlockButton(Control)
+function WWTB.ClickUltimateBlockButton(Control)
 	-- Flip flop for lock and unlock state --
 	WWTB.SV.UltimateEnable = not WWTB.SV.UltimateEnable
 	-- Setup the display text --
@@ -232,12 +256,12 @@ function WerewolfTimerBar.ClickUltimateBlockButton(Control)
 		msg:MarkSuppressIconFrame()
 		CENTER_SCREEN_ANNOUNCE:DisplayMessage(msg)
 	end
-	d(string.format("%s", text1))
+	d(text1)
 	-- Update the button texture --
 	WWTB.DrawUltimateBlockButton(Control)
 end
 
-function WerewolfTimerBar.SetupUltimateBlockText()
+function WWTB.SetupUltimateBlockText()
 	-- Get keybinding --
 	local keyBind = ZO_Keybindings_GetHighestPriorityBindingStringFromAction("BAR_ULTIMATELOCK_TOGGLE")
 	-- Change text message depending on lock/unlock state --
@@ -258,7 +282,7 @@ function WerewolfTimerBar.SetupUltimateBlockText()
 	end
 end
 
-function WerewolfTimerBar.SetupUltimateBlock()
+function WWTB.SetupUltimateBlock()
 	ZO_PreHook("ZO_ActionBar_CanUseActionSlots", function()
 		-- Use a flag since ZO_ActionBar_CanUseActionSlots is called twice for each ability cast --
   		flag = not flag
@@ -267,7 +291,8 @@ function WerewolfTimerBar.SetupUltimateBlock()
 			-- Ultimate blocking set to true and is a werewolf --
 			if WWTB.SV.UltimateEnable and IsPlayerInWerewolfForm() then
 				-- Get the slot number for the actionbar button pressed --
-				slotNum = tonumber(debug.traceback():match('keybind = "ACTION_BUTTON_(%d)')) or tonumber(debug.traceback():match('keybind = "GAMEPAD_ACTION_BUTTON_(%d)'))
+				local tb = debug.traceback()
+				local slotNum = tonumber(tb:match('keybind = "ACTION_BUTTON_(%d)')) or tonumber(tb:match('keybind = "GAMEPAD_ACTION_BUTTON_(%d)'))
 				-- Ultimate button pressed --
 				if slotNum == 8 then
 					-- Get ability ID --
@@ -282,7 +307,7 @@ function WerewolfTimerBar.SetupUltimateBlock()
 							msg:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_CHAMPION_POINT_GAINED)
 							msg:MarkSuppressIconFrame()
 							CENTER_SCREEN_ANNOUNCE:DisplayMessage(msg)
-							d(string.format("%s", text1))
+							d(text1)
 						end
 						-- Returning true will block the keypress --
 						return true
@@ -296,78 +321,87 @@ end
 -------------------------------------------------------------------------------------------------
 -- Setup UI Function --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.SetupUIElements()
-	-- Lock UI button --
-	if not WWTB.SV.Unlock then
-		WerewolfTimerBarWindow_LockUIButton:SetHidden(true)
-	end
-	WerewolfTimerBarWindow_LockUIButton:SetHandler("OnMouseEnter", function(self) ZO_Tooltips_ShowTextTooltip(self, TOP, "Lock the UI") end)
-    WerewolfTimerBarWindow_LockUIButton:SetHandler("OnMouseExit", function(self)  ZO_Tooltips_HideTextTooltip() end)
+function WWTB.SetupUIHandlers()
+	-- Set once no need to repeat on every settings change --
+	ultimateButton:SetHandler("OnMouseEnter", function(self) ZO_Tooltips_ShowTextTooltip(self, TOP, "Enable/disable ultimate button keypress") end)
+	ultimateButton:SetHandler("OnMouseExit", function(self) ZO_Tooltips_HideTextTooltip() end)
+end
+
+function WWTB.SetupUIElements()
 	-- Show Headers --
+	-- Block ultimate button --
+	ultimateButton:SetHidden(false)
+	ultimateButton:SetDimensions(WWTB.SV.BarFontSize+2, WWTB.SV.BarFontSize+2)
 	if WWTB.SV.ShowHeader then
-		-- Block ultimate button --
-		WerewolfTimerBarWindow_UltimateBlockButton:SetHidden(false)
-		WerewolfTimerBarWindow_UltimateBlockButton:SetDimensions(WWTB.SV.BarFontSize+2, WWTB.SV.BarFontSize+2)
-		WerewolfTimerBarWindow_UltimateBlockButton:SetHandler("OnMouseEnter", function(self) ZO_Tooltips_ShowTextTooltip(self, TOP, "Enable/disable ultimate button keypress") end)
-		WerewolfTimerBarWindow_UltimateBlockButton:SetHandler("OnMouseExit", function(self)  ZO_Tooltips_HideTextTooltip() end)
+		ultimateButton:ClearAnchors()
+		ultimateButton:SetAnchor(TOPLEFT, backdrop, TOPLEFT, 6, 3)
 		-- Text --
-		WerewolfTimerBarWindow_Label:SetFont('$('..WWTB.SV.BarFontName..')|'..tostring(WWTB.SV.BarFontSize)..'|'..WWTB.SV.BarFontStyle..'')
-		WerewolfTimerBarWindow_Label:SetText(HeaderText)
+		headerLabel:SetFont(WWTB.GetFontString())
+		headerLabel:SetText(HeaderText)
 		if WWTB.SV.ShowHeaderLabel then
-			WerewolfTimerBarWindow_Label:SetHidden(false)
+			headerLabel:SetHidden(false)
 		else
-			WerewolfTimerBarWindow_Label:SetHidden(true)
+			headerLabel:SetHidden(true)
 		end
 	else
-		WerewolfTimerBarWindow_UltimateBlockButton:SetHidden(true)
-		WerewolfTimerBarWindow_Label:SetHidden(true)
+		ultimateButton:ClearAnchors()
+		ultimateButton:SetAnchor(TOPLEFT, backdrop, TOPLEFT, 6, 6)
+		headerLabel:SetHidden(true)
 	end
 	-- Timer Bar --
 	if WWTB.SV.ShowTimer then
-		WerewolfTimerBarWindow_StatusBar:SetColor(unpack(WWTB.SV.BarColor))
-		WerewolfTimerBarWindow_StatusBar:SetMinMax(0,BarMax)
+		statusBar:SetColor(unpack(WWTB.SV.BarColor))
+		statusBar:SetMinMax(0,BarMax)
 		-- Labels --
 		if WWTB.SV.ShowBarLabels then
-			WerewolfTimerBarWindow_StatusBarLabel:SetFont('$('..WWTB.SV.BarFontName..')|'..tostring(WWTB.SV.BarFontSize)..'|'..WWTB.SV.BarFontStyle..'')
-			WerewolfTimerBarWindow_StatusBarLabel:SetText(UltiText)
-			WerewolfTimerBarWindow_StatusBarLabel:SetHidden(false)
+			statusLabel:SetFont(WWTB.GetFontString())
+			statusLabel:SetText(UltiText)
+			statusLabel:SetHidden(false)
 		else
-			WerewolfTimerBarWindow_StatusBarLabel:SetHidden(true)
+			statusLabel:SetHidden(true)
 		end
 	else
-		WerewolfTimerBarWindow_StatusBarLabel:SetHidden(true)
+		statusLabel:SetHidden(true)
 	end
 	-- Fury Bar --
 	if WWTB.SV.ShowFury then
-		WerewolfTimerBarWindow_FuryBar:SetColor(unpack(WWTB.SV.FuryBarColor))
-		WerewolfTimerBarWindow_FuryBar:SetMinMax(0,FuryBarMax)
+		furyBar:SetColor(unpack(WWTB.SV.FuryBarColor))
+		furyBar:SetMinMax(0,FuryBarMax)
 		-- Labels --
 		if WWTB.SV.ShowBarLabels then
-			WerewolfTimerBarWindow_FuryBarLabel:SetFont('$('..WWTB.SV.BarFontName..')|'..tostring(WWTB.SV.BarFontSize)..'|'..WWTB.SV.BarFontStyle..'')
-			WerewolfTimerBarWindow_FuryBarLabel:SetHidden(false)
+			furyLabel:SetFont(WWTB.GetFontString())
+			furyLabel:SetHidden(false)
 		else
-			WerewolfTimerBarWindow_FuryBarLabel:SetHidden(true)
+			furyLabel:SetHidden(true)
 		end
 	else
-		WerewolfTimerBarWindow_FuryBarLabel:SetHidden(true)
+		furyLabel:SetHidden(true)
 	end
 	WWTB.SetBarSize(WWTB.SV.BarWidth, WWTB.SV.BarHeight)
-	
-	-- Position --
-	WerewolfTimerBarWindow:ClearAnchors()
-	WerewolfTimerBarWindow:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, WWTB.SV.BarOffsetX,WWTB.SV.BarOffsetY)
 	WWTB.ShowHide()
 end
 
-function WerewolfTimerBar.ResetPosition()
-	WerewolfTimerBarWindow:ClearAnchors()
-	WerewolfTimerBarWindow:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+-------------------------------------------------------------------------------------------------
+--  Edit HUD Registration --
+-------------------------------------------------------------------------------------------------
+-- Must be called from EVENT_ADD_ON_LOADED (registering later does not apply anchors/options) --
+function WWTB.SetupHudEditor()
+	local elementName = "Werewolf Timer Bar"
+	-- Offsets saved by the old drag system become the default position (migration) --
+	-- Once the player moves the bar in Edit HUD, the saved HUD position overrides this --
+	local function DefaultAnchor()
+		return ZO_Anchor:New(TOPLEFT, nil, TOPLEFT, WWTB.SV.BarOffsetX, WWTB.SV.BarOffsetY)
+	end
+	-- No custom options (empty table) --
+	local options = {}
+	WWTB.keyboardHUDElement = HUD_MANAGER:RegisterKeyboardElement(window, elementName, { defaultAnchor = DefaultAnchor() }, options)
+	WWTB.gamepadHUDElement = HUD_MANAGER:RegisterGamepadElement(window, elementName, { defaultAnchor = DefaultAnchor() }, options)
 end
 
 -------------------------------------------------------------------------------------------------
 --  Settings Panel Setup Function --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.SetupSettingsWindow()
+function WWTB.SetupSettingsWindow()
 	local panelData = {
 		type = "panel",
 		name = "Werewolf Timer Bar",
@@ -386,30 +420,38 @@ function WerewolfTimerBar.SetupSettingsWindow()
 	local optionsData = {
 		{
 			type = "description",
-			text = "This addon contains a status bar and prevention from using your ultimate when in werewolf form."
+			text = "This addon contains status bars and prevention from using your ultimate when in werewolf form."
 		},
 		{
 			type = "header",
 			name = "General Settings"
 		},
-		-- UI unlock --
+		-- Show/Hide UI --
 		{
 			type = "button",
-			name = "Unlock UI",
+			name = "Show/Hide UI",
 			width = "half",
-			tooltip = "Unlock the UI for moving",
+			tooltip = "Show/Hide UI",
 			func = function()
-				WWTB.UnlockUI(WerewolfTimerBarWindow_LockUIButton)
+				local UIHidden = window:IsHidden()
+				if UIHidden then
+					showUI = true
+					WWTB.ShowHide()
+					window:SetTopmost(true)
+				else
+					showUI = false
+					window:SetHidden(true)
+					window:SetTopmost(false)
+				end
 			end,
 		},
 		{
-			type = "button",
-			name = "Reset Position",
-			width = "half",
-			tooltip = "Reset UI position to center screen",
-			func = function()
-				WWTB.ResetPosition()
-			end,
+			type = "description",
+			text = "The Werewolf Timer Bar is now moved by the base game 'Edit HUD' interface."
+		},
+		{
+			type = "description",
+			text = "Note that keyboard and gamepad positions are set separately (Gameplay -> Gamepad mode -> on/off). 'Automatic' will not work for setting gamepad location, but can be used afterwards"
 		},
 		-- Account-wide/Characters settings --
 		WWTB.SV:GetLibAddonMenuAccountCheckbox(),
@@ -422,15 +464,11 @@ function WerewolfTimerBar.SetupSettingsWindow()
 					type = "checkbox",
 					name = "Header Bar",
 					width = "half",
-					tooltip = "Show/hide header bar with Ultimate lock icon & text",
+					tooltip = "Show/hide header bar",
 					default = WWTB.Default.ShowHeader,
 					getFunc = function() return WWTB.SV.ShowHeader end,
 					setFunc = function(value)
-						if not value then
-							WWTB.SV.ShowHeader = false
-						else
-							WWTB.SV.ShowHeader = true
-						end
+						WWTB.SV.ShowHeader = value
 						WWTB.SetupUIElements()
 					end
 				},
@@ -443,11 +481,7 @@ function WerewolfTimerBar.SetupSettingsWindow()
 					disabled = function() return not WWTB.SV.ShowHeader end,
 					getFunc = function() return WWTB.SV.ShowHeaderLabel end,
 					setFunc = function(value)
-						if not value then
-							WWTB.SV.ShowHeaderLabel = false
-						else
-							WWTB.SV.ShowHeaderLabel = true
-						end
+						WWTB.SV.ShowHeaderLabel = value
 						WWTB.SetupUIElements()
 					end
 				},
@@ -459,18 +493,17 @@ function WerewolfTimerBar.SetupSettingsWindow()
 					default = WWTB.Default.ShowTimer,
 					getFunc = function() return WWTB.SV.ShowTimer end,
 					setFunc = function(value)
-						if not value then
-							WWTB.SV.ShowTimer = false
-							-- If both bars disabled, unregister for updates --
-							if not WWTB.SV.ShowFury then
-								WWTB.UnregisterEvents()
-							end
-						else
-							WWTB.SV.ShowTimer = true
+						WWTB.SV.ShowTimer = value
+						if value then
 							-- Register for updates --
 							WWTB.RegisterEvents()
+						elseif not WWTB.SV.ShowFury then
+							-- If both bars disabled, unregister for updates --
+							WWTB.UnregisterEvents()
 						end
 						WWTB.SetupUIElements()
+						-- Start/stop power updates right away if already transformed --
+						WWTB.OnWerewolfStateChanged()
 					end
 				},
 				{
@@ -481,18 +514,17 @@ function WerewolfTimerBar.SetupSettingsWindow()
 					default = WWTB.Default.ShowFury,
 					getFunc = function() return WWTB.SV.ShowFury end,
 					setFunc = function(value)
-						if not value then
-							WWTB.SV.ShowFury = false
-							-- If both bars disabled, unregister for updates --
-							if not WWTB.SV.ShowTimer then
-								WWTB.UnregisterEvents()
-							end
-						else
-							WWTB.SV.ShowFury = true
+						WWTB.SV.ShowFury = value
+						if value then
 							-- Register for updates --
 							WWTB.RegisterEvents()
+						elseif not WWTB.SV.ShowTimer then
+							-- If both bars disabled, unregister for updates --
+							WWTB.UnregisterEvents()
 						end
 						WWTB.SetupUIElements()
+						-- Start/stop power updates right away if already transformed --
+						WWTB.OnWerewolfStateChanged()
 					end
 				},
 				{
@@ -504,11 +536,7 @@ function WerewolfTimerBar.SetupSettingsWindow()
 					disabled = function() return not WWTB.SV.ShowTimer and not WWTB.SV.ShowFury end,
 					getFunc = function() return WWTB.SV.ShowBarLabels end,
 					setFunc = function(value)
-						if not value then
-							WWTB.SV.ShowBarLabels = false
-						else
-							WWTB.SV.ShowBarLabels = true
-						end
+						WWTB.SV.ShowBarLabels = value
 						WWTB.SetupUIElements()
 					end
 				},
@@ -520,11 +548,7 @@ function WerewolfTimerBar.SetupSettingsWindow()
 					default = not WWTB.Default.HideCSA,
 					getFunc = function() return not WWTB.SV.HideCSA end,
 					setFunc = function(value)
-						if not value then
-							WWTB.SV.HideCSA = true
-						else
-							WWTB.SV.HideCSA = false
-						end
+						WWTB.SV.HideCSA = not value
 					end
 				},
 				{
@@ -535,11 +559,7 @@ function WerewolfTimerBar.SetupSettingsWindow()
 					default = WWTB.Default.BlockInCombatOnly,
 					getFunc = function() return WWTB.SV.BlockInCombatOnly end,
 					setFunc = function(value)
-						if not value then
-							WWTB.SV.BlockInCombatOnly = false
-						else
-							WWTB.SV.BlockInCombatOnly = true
-						end
+						WWTB.SV.BlockInCombatOnly = value
 					end
 				},
 				{
@@ -551,11 +571,7 @@ function WerewolfTimerBar.SetupSettingsWindow()
 					disabled = function() return not WWTB.SV.ShowTimer end,
 					getFunc = function() return WWTB.SV.WarningColor end,
 					setFunc = function(value)
-						if not value then
-							WWTB.SV.WarningColor = false
-						else
-							WWTB.SV.WarningColor = true
-						end
+						WWTB.SV.WarningColor = value
 						WWTB.SetupUIElements()
 					end
 				},
@@ -693,7 +709,7 @@ function WerewolfTimerBar.SetupSettingsWindow()
 					--height = 10, (optional)
 					--alpha = 0.25, (optional)
 				},
-				-- Warning 
+				-- Warning --
 				{
 					type = "slider",
 					name = "Warning Level",
@@ -706,8 +722,9 @@ function WerewolfTimerBar.SetupSettingsWindow()
 					disabled = function() return not WWTB.SV.ShowTimer or not WWTB.SV.WarningColor end,
 					getFunc = function() return WWTB.SV.WarningLevel end,
 					setFunc = function(newValue) 
-						WWTB.SV.WarningLevel= newValue end,
+						WWTB.SV.WarningLevel = newValue
 						WWTB.SetupUIElements()
+					end
 				},
 				{
 					type = "colorpicker",
@@ -718,10 +735,11 @@ function WerewolfTimerBar.SetupSettingsWindow()
 					disabled = function() return not WWTB.SV.ShowTimer or not WWTB.SV.WarningColor end,
 					getFunc = function() return unpack(WWTB.SV.WarningBarColor) end,
 					setFunc = function(r,g,b,a) 
-						WWTB.SV.WarningBarColor = {r, g, b, a} end,
+						WWTB.SV.WarningBarColor = {r, g, b, a}
 						WWTB.SetupUIElements()
+					end
 				},
-				-- Critical
+				-- Critical --
 				{
 					type = "slider",
 					name = "Critical Level",
@@ -734,8 +752,9 @@ function WerewolfTimerBar.SetupSettingsWindow()
 					disabled = function() return not WWTB.SV.ShowTimer or not WWTB.SV.WarningColor end,
 					getFunc = function() return WWTB.SV.CriticalLevel end,
 					setFunc = function(newValue) 
-						WWTB.SV.CriticalLevel= newValue end,
+						WWTB.SV.CriticalLevel = newValue
 						WWTB.SetupUIElements()
+					end
 				},
 				{
 					type = "colorpicker",
@@ -746,8 +765,9 @@ function WerewolfTimerBar.SetupSettingsWindow()
 					disabled = function() return not WWTB.SV.ShowTimer or not WWTB.SV.WarningColor end,
 					getFunc = function() return unpack(WWTB.SV.CriticalBarColor) end,
 					setFunc = function(r,g,b,a) 
-						WWTB.SV.CriticalBarColor = {r, g, b, a} end,
+						WWTB.SV.CriticalBarColor = {r, g, b, a}
 						WWTB.SetupUIElements()
+					end
 				},
 			},
 		},
@@ -758,104 +778,55 @@ end
 -------------------------------------------------------------------------------------------------
 --  Update UI Functions --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.onPowerUpdate(eventCode, unitTag, powerIndex, powerType, powerValue, powerMax, powerEffectiveMax)
-	-- Update the bar on any changes --
-	local currentPower
-	local currentFury
-	-- powerType 8 is Ultimate -
-	if powerType == 8 then
+function WWTB.onPowerUpdate(eventCode, unitTag, powerIndex, powerType, powerValue, powerMax, powerEffectiveMax)
+	-- Update the bars on any ultimate or Fury change --
+	local currentPower, currentFury
+	if powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE then
 		currentPower = powerValue
-		currentFury, _, _ = GetUnitPower('player', POWERTYPE_WEREWOLF)
-	-- powerType 2 is Fury --
-	elseif powerType == 2 then
+		currentFury = GetUnitPower('player', POWERTYPE_WEREWOLF)
+	elseif powerType == POWERTYPE_WEREWOLF then
 		currentFury = powerValue
-		currentPower, _, _ = GetUnitPower('player', COMBAT_MECHANIC_FLAGS_ULTIMATE)
+		currentPower = GetUnitPower('player', COMBAT_MECHANIC_FLAGS_ULTIMATE)
 	else
 		return
 	end
 	if WWTB.SV.ShowTimer then
-		WerewolfTimerBarWindow_StatusBar:SetValue(currentPower)
-		-- Set Ultimate bar color --
-		if WWTB.SV.WarningColor and currentPower <= WWTB.SV.CriticalLevel then
-			WerewolfTimerBarWindow_StatusBar:SetColor(unpack(WWTB.SV.CriticalBarColor))
-		elseif WWTB.SV.WarningColor and currentPower <= WWTB.SV.WarningLevel then
-			WerewolfTimerBarWindow_StatusBar:SetColor(unpack(WWTB.SV.WarningBarColor))
-		else
-			WerewolfTimerBarWindow_StatusBar:SetColor(unpack(WWTB.SV.BarColor))
-		end
+		WWTB.UpdateTimerBar(currentPower)
 	end
 	if WWTB.SV.ShowFury then
-		WerewolfTimerBarWindow_FuryBar:SetValue(currentFury)
-		-- Set Fury bar color --
-		if currentFury == FuryBarMax then
-			WerewolfTimerBarWindow_FuryBar:SetColor(unpack(WWTB.SV.FuryBarMaxColor))
-			WerewolfTimerBarWindow_FuryBarLabel:SetText(FuryMaxText)
-		else
-			WerewolfTimerBarWindow_FuryBar:SetColor(unpack(WWTB.SV.FuryBarColor))
-			WerewolfTimerBarWindow_FuryBarLabel:SetText(FuryText)
-		end
+		WWTB.UpdateFuryBar(currentFury)
 	end
 end
 
-function WerewolfTimerBar.OnWerewolfStateChanged(eventCode, isWerewolf)
+function WWTB.OnWerewolfStateChanged(eventCode, isWerewolf)
 	if IsPlayerInWerewolfForm() then
 		-- Register events for werewolf updates --
 		if WWTB.SV.ShowTimer or WWTB.SV.ShowFury then
-			EVENT_MANAGER:RegisterForEvent(WWTB.Name_Upd, EVENT_POWER_UPDATE, WWTB.onPowerUpdate)
-			EVENT_MANAGER:AddFilterForEvent(WWTB.Name_Upd, EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, 'player')
+			EVENT_MANAGER:RegisterForEvent(WWTB.Name .. "_Upd", EVENT_POWER_UPDATE, WWTB.onPowerUpdate)
+			EVENT_MANAGER:AddFilterForEvent(WWTB.Name .. "_Upd", EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, 'player')
 		end
-		-- If werewolf then show the bar --
-		if WWTB.SV.ShowTimer then
-			-- Get Ultimate value --
-			local currentPower, _, _ = GetUnitPower('player', COMBAT_MECHANIC_FLAGS_ULTIMATE)
-			WerewolfTimerBarWindow_StatusBar:SetValue(currentPower)
-			-- Set Ultimate bar color --
-			if currentPower <= WWTB.SV.CriticalLevel then
-				WerewolfTimerBarWindow_StatusBar:SetColor(unpack(WWTB.SV.CriticalBarColor))
-			elseif currentPower <= WWTB.SV.WarningLevel then
-				WerewolfTimerBarWindow_StatusBar:SetColor(unpack(WWTB.SV.WarningBarColor))
-			else
-				WerewolfTimerBarWindow_StatusBar:SetColor(unpack(WWTB.SV.BarColor))
-			end
-		end
-		
-		if WWTB.SV.ShowFury then
-			-- Get Fury value --
-			local currentFury, _, _ = GetUnitPower('player', POWERTYPE_WEREWOLF)
-			WerewolfTimerBarWindow_FuryBar:SetValue(currentFury)
-			-- Set Fury bar color --
-			if currentFury == FuryBarMax then
-				WerewolfTimerBarWindow_FuryBar:SetColor(unpack(WWTB.SV.FuryBarMaxColor))
-				WerewolfTimerBarWindow_FuryBarLabel:SetText(FuryMaxText)
-			else
-				WerewolfTimerBarWindow_FuryBar:SetColor(unpack(WWTB.SV.FuryBarColor))
-				WerewolfTimerBarWindow_FuryBarLabel:SetText(FuryText)
-			end
-		end
-		WerewolfTimerBarWindow:SetHidden(false)
 	else
-		EVENT_MANAGER:UnregisterForEvent(WWTB.Name_Upd, EVENT_POWER_UPDATE)
-		WerewolfTimerBarWindow:SetHidden(true)
-		WWTB.SV.Unlock = false
+		EVENT_MANAGER:UnregisterForEvent(WWTB.Name .. "_Upd", EVENT_POWER_UPDATE)
 	end
+	-- ShowHide sets bar values and visibility for both cases --
+	WWTB.ShowHide()
 end
 
 -------------------------------------------------------------------------------------------------
 --  On Reticle Hidden  --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.OnReticleHidden(eventCode, hidden)
+function WWTB.OnReticleHidden(eventCode, hidden)
 	if SCENE_MANAGER:GetCurrentScene() == nil then return end
 	local scene = SCENE_MANAGER:GetCurrentScene():GetName()
 	if hidden then
 		-- Press '.' --
 		if scene == "hudui" then
 			WWTB.ShowHide()
-		-- Press 'esc' --
-		elseif scene == "gameMenuInGame" then
+		elseif showUI then
 			WWTB.ShowHide()
 		else
 			-- Hide in all other mode/scene --
-			WerewolfTimerBarWindow:SetHidden(true)
+			window:SetHidden(true)
 		end
 	else
 		WWTB.ShowHide()
@@ -865,30 +836,29 @@ end
 -------------------------------------------------------------------------------------------------
 --  On Player Activated  --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.OnPlayerActivated(eventCode, initial)
-	if initial then
-		WWTB.ShowHide()
-	end
+function WWTB.OnPlayerActivated(eventCode, initial)
+	-- Max power values may not have been available at load --
+	WWTB.RefreshMaxPower()
 	WWTB.OnWerewolfStateChanged()
 end
 
 -------------------------------------------------------------------------------------------------
 --  On Skill Line Added  --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.SkillLineAdded(_, skillType, skillLineIndex)
+function WWTB.SkillLineAdded(_, skillType, skillLineIndex)
 	local NewTime = GetTimeStamp()
 	if (NewTime - OldTime) < 5 then return end
 	-- Is it World (4) & Werewolf (6) --
 	if skillType == 4 and skillLineIndex == 6 then 
 		WWTB.RegisterEvents()
+		OldTime = GetTimeStamp()
 	end
-	OldTime = GetTimeStamp()
 end
 
 -------------------------------------------------------------------------------------------------
 --  On Armory Station Use  --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.Armory()
+function WWTB.Armory()
 	local NewTime = GetTimeStamp()
 	if (NewTime - OldTime) < 5 then return end
 	if WWTB.IsPlayerWerewolf() then
@@ -902,9 +872,11 @@ end
 -------------------------------------------------------------------------------------------------
 --  On AddOn Loaded  --
 -------------------------------------------------------------------------------------------------
-function WerewolfTimerBar.OnAddOnLoaded(eventCode, addonName)
+function WWTB.OnAddOnLoaded(eventCode, addonName)
 	if addonName == WWTB.Name then
 		EVENT_MANAGER:UnregisterForEvent(WWTB.Name, EVENT_ADD_ON_LOADED)
+		-- Cache the XML controls before anything uses them --
+		UpdateXMLReferences()
 		-- Save variables using LibSavedVars --
 		WWTB.SV = LibSavedVars
 			:NewAccountWide("WerewolfTimerBarVars_Account", WWTB.Default)
@@ -912,26 +884,25 @@ function WerewolfTimerBar.OnAddOnLoaded(eventCode, addonName)
 		-- Setup settings panel --
 		WWTB.SetupSettingsWindow()
 		-- Setup UI elements --
+		WWTB.SetupUIHandlers()
 		WWTB.SetupUIElements()
+		-- Register the window with Edit HUD --
+		WWTB.SetupHudEditor()
 		-- Setup button press for ultimate prevention --
 		WWTB.SetupUltimateBlock()
 		-- Setup ultimate lock/unlock button ---
-		WWTB.DrawUltimateBlockButton(WerewolfTimerBarWindow_UltimateBlockButton)
+		WWTB.DrawUltimateBlockButton(ultimateButton)
 		-- Register event for player logging in and porting --
-		EVENT_MANAGER:RegisterForEvent(WWTB.Name_PlayerAct, EVENT_PLAYER_ACTIVATED, WWTB.OnPlayerActivated)
+		EVENT_MANAGER:RegisterForEvent(WWTB.Name .. "_PlayerAct", EVENT_PLAYER_ACTIVATED, WWTB.OnPlayerActivated)
 		-- Register event for showing and hiding UI when it's unlocked or in different scenes --
-		EVENT_MANAGER:RegisterForEvent(WWTB.Name_RetHide, EVENT_RETICLE_HIDDEN_UPDATE, WWTB.OnReticleHidden)
+		EVENT_MANAGER:RegisterForEvent(WWTB.Name .. "_RetHide", EVENT_RETICLE_HIDDEN_UPDATE, WWTB.OnReticleHidden)
 		-- Register event for player gaining a skill line --
-		EVENT_MANAGER:RegisterForEvent(WWTB.Name_Skill_Line, EVENT_SKILL_LINE_ADDED, WWTB.SkillLineAdded)
+		EVENT_MANAGER:RegisterForEvent(WWTB.Name .. "_Skill_Line", EVENT_SKILL_LINE_ADDED, WWTB.SkillLineAdded)
 		-- Register event for Armory Station Use --
-		EVENT_MANAGER:RegisterForEvent(WWTB.Name_Armory, EVENT_ARMORY_BUILD_RESTORE_RESPONSE, WWTB.Armory)
+		EVENT_MANAGER:RegisterForEvent(WWTB.Name .. "_Armory", EVENT_ARMORY_BUILD_RESTORE_RESPONSE, WWTB.Armory)
 		-- If player is a werewolf, register for relevant updates --
 		if WWTB.IsPlayerWerewolf() then
 			WWTB.RegisterEvents()
-		end
-		-- If UI was left unlocked, lock it --
-		if WWTB.SV.Unlock then
-			WWTB.ClickLockUIButton(WerewolfTimerBarWindow_LockUIButton)
 		end
 	end
 end

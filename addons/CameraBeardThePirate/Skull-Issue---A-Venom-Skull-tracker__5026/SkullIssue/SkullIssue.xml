@@ -8,7 +8,7 @@
                 <!-- Visual repositioning guide when unlocked via /skullissue unlock -->
                 <Backdrop name="$(parent)MoverBackdrop" edgeColor="00FF66" centerColor="00000088" hidden="true">
                     <AnchorFill />
-                    <Edge edgeFile="EsoUI/Art/Tooltips/UI-Border.dds" edgeFileWidth="16" edgeFileHeight="16" />
+                    <Edge file="EsoUI/Art/Tooltips/UI-Border.dds" edgeFileWidth="128" edgeFileHeight="16" />
                     <Controls>
                         <Label name="$(parent)MoverLabel" font="ZoFontGameSmall" text="Skull Issue (Drag to Move)" color="00FF66" horizontalAlignment="CENTER" verticalAlignment="CENTER">
                             <Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="-4" />

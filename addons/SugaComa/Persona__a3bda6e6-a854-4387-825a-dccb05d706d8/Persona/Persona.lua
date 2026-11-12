@@ -3,7 +3,7 @@ Persona = Persona or {}
 local ADDON_NAME = "Persona"
 local EM = EVENT_MANAGER
 
-Persona.version = "1.2.0-test1"
+Persona.version = "1.3.3"
 Persona.savedVersion = 1
 
 Persona.IDLE_DISABLED = 0
@@ -253,7 +253,7 @@ end
 
 local runtime = {
     ready = false,
-    queueRunning = false,
+    act = nil,
     idleSince = 0,
     idleFired = false,
     lastIdle = 0,
@@ -516,25 +516,53 @@ local function OnOutfitChanged(_, actorCategory)
     if actorCategory ~= GAMEPLAY_ACTOR_CATEGORY_PLAYER then return end
     RestoreNormalPersonality()
     SelectActiveSettings()
-    ResetIdle()
+    if not runtime.act then ResetIdle() end
     Persona.Debug("Persona profile refreshed for "
         .. Persona.GetOutfitDisplayName(Persona.GetCurrentOutfitIndex()) .. ".")
 end
 
-local function FinishQueue()
-    runtime.queueRunning=false
+local function FinishAct()
+    EM:UnregisterForUpdate("PersonaCustomAct")
+    runtime.act=nil
+    ResetIdle()
 end
 
-local function PlayActStep(step)
-    if not runtime.queueRunning then return end
-    if not Persona.IsSafe() then FinishQueue() ResetIdle() return end
-    if step>5 then FinishQueue() ResetIdle() return end
+local function AdvanceAct()
+    local act=runtime.act
+    if not act or Persona.NowMs()<act.nextAt then return end
+    if Persona.IsSafe() then
+        while act.index<#act.steps do
+            act.index=act.index+1
+            local step=act.steps[act.index]
+            if PlayEmote(step.emote) then
+                act.nextAt=Persona.NowMs()+step.durationMs
+                Persona.Debug("Custom Act step "..step.slot.." started for "..step.durationMs.." ms.")
+                return
+            end
+        end
+    end
+    FinishAct()
+end
 
-    local emote=PersonaDB["idleEmote"..step] or "NONE"
-    local delay=PersonaDB["idleDelay"..step] or 2000
-    if emote~="NONE" then PlayEmote(emote) end
+local function StartAct()
+    local steps={}
+    for slot=1,5 do
+        local emote=PersonaDB["idleEmote"..slot]
+        if emote and emote~="NONE" then
+            local durationKey="idleDelay"..slot
+            steps[#steps+1]={
+                slot=slot,
+                emote=emote,
+                durationMs=PersonaDB[durationKey] or Persona.defaults[durationKey],
+            }
+        end
+    end
+    if #steps==0 then return false end
 
-    zo_callLater(function() PlayActStep(step+1) end,delay)
+    runtime.act={steps=steps,index=0,nextAt=Persona.NowMs()}
+    EM:RegisterForUpdate("PersonaCustomAct",0,AdvanceAct)
+    AdvanceAct()
+    return runtime.act~=nil
 end
 
 local function RandomReaction(prefix)
@@ -548,25 +576,21 @@ local function RandomReaction(prefix)
 end
 
 local function PlayIdle()
-    if runtime.queueRunning or not Persona.IsSafe() then return false end
+    if runtime.act or not Persona.IsSafe() then return false end
 
     if PersonaDB.idleMode==Persona.IDLE_PERSONALITY then
         RandomizePersonality()
         ResetIdle()
         return true
     elseif PersonaDB.idleMode==Persona.IDLE_CUSTOM_ACT then
-        runtime.queueRunning=true
-        PlayActStep(1)
-        return true
+        return StartAct()
     end
     return false
 end
 
 local function PlayReaction(prefix)
-    if runtime.queueRunning or not Persona.IsSafe() then return false end
-    runtime.queueRunning=true
+    if runtime.act or not Persona.IsSafe() then return false end
     RandomReaction(prefix)
-    FinishQueue()
     return true
 end
 
@@ -599,7 +623,11 @@ local function CooldownReady(lastTime,cooldownSeconds)
 end
 
 local function Tick()
-    if not runtime.ready or not PersonaDB.enabled then return end
+    if not runtime.ready then return end
+    if not PersonaDB.enabled then
+        if runtime.act then FinishAct() end
+        return
+    end
 
     local now=Persona.NowMs()
     local moving=IsPlayerMoving()
@@ -627,7 +655,10 @@ local function Tick()
         Persona.Debug("Mounted state detected; pending dismount reaction cleared.")
     end
 
-    if moving or not Persona.IsSafe() then
+    local safe=Persona.IsSafe()
+    if runtime.act then
+        if not safe then FinishAct() end
+    elseif moving or not safe then
         RestoreNormalPersonality()
         ResetIdle()
     elseif not runtime.idleFired

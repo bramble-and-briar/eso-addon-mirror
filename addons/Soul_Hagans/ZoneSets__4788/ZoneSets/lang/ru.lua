@@ -47,6 +47,7 @@ ZO_CreateStringId("ZONESETS_GROUP_TOAST_ON", "Группа: ВКЛ")
 ZO_CreateStringId("ZONESETS_GROUP_TOAST_OFF", "Группа: ВЫКЛ")
 ZO_CreateStringId("ZONESETS_NEEDED_IN_COLL", "Нужно в коллекцию")
 ZO_CreateStringId("ZONESETS_GROUP_LOOTED_COUNT", "Выбил нужных вещей: %d шт.")
+ZO_CreateStringId("ZONESETS_SOLO_TAG", "Соло")
 
 
 -- Горячая клавиша

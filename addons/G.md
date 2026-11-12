@@ -89,7 +89,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Greymind Quick Slot Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bsrealm/Greymind-Quick-Slot-Bar__258) | bsrealm | PC / Mac | v2.7.2.25 |
 | [GREYMOOR - Enhanced Lockpicking - A Lockpicking Interface Retexture](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luxape/GREYMOOR---Enhanced-Lockpicking---A-Lockpicking-Interface-Retexture__2420) | luxape | PC / Mac | 1.4 |
 | [Greyskull : Weapon / Spell Damage Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/Greyskull-Weapon-Spell-Damage-Meter__1924) | ghostbane | PC / Mac | 1.1.1 |
-| [Grid Pad — a real grid inventory for gamepad players](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SquizzOC/Grid-Pad-a-real-grid-inventory-for-gamepad-players__4686) | SquizzOC | PC / Mac | 1.45 |
+| [Grid Pad — a real grid inventory for gamepad players](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SquizzOC/Grid-Pad-a-real-grid-inventory-for-gamepad-players__4686) | SquizzOC | PC / Mac | 1.45.2 |
 | [GridList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/GridList__2341) | KLISK | PC / Mac | 1.3.2 |
 | [GridList Clean Skin](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tonyleila/GridList-Clean-Skin__2299) | Tonyleila | PC / Mac | 02 |
 | [GridList Skins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/GridList-Skins__2304) | KLISK | PC / Mac | 0.2 |

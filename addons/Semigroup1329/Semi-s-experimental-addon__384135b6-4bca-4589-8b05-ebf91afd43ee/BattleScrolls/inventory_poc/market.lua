@@ -33,7 +33,6 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field fiber Fiber<boolean>|nil
 ---@field requestFiber Fiber<any>|nil Sent server work retains its response subscription until settlement
 ---@field tried table<string, boolean>
----@field skipped table<string, boolean>
 ---@field prepared table<string, InventoryPocSearch> Completed searches awaiting a listing slot
 ---@field registered boolean
 ---@field ownRequest boolean
@@ -48,7 +47,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field phaseSince number|nil
 ---@field trace string[]
 ---@field failureRecorded boolean
-local market = { tried = {}, skipped = {}, prepared = {}, registered = false, ownRequest = false, stopped = false, touched = false,
+local market = { tried = {}, prepared = {}, registered = false, ownRequest = false, stopped = false, touched = false,
     listings = {}, refreshUI = false, revision = 0, trace = {}, failureRecorded = false }
 BattleScrolls.inventoryPocMarket = market
 local poc = BattleScrolls.inventoryPoc
@@ -93,20 +92,19 @@ local function recordFailure(reason, result)
         marketIssue = { diagnostics = diagnostics, result = result } })
 end
 
+---One entry per item instance, stage and reason while the log retains it.
 ---@param item InventoryPocItem
 ---@param stage string
 ---@param reason string
 ---@param details string|nil
 local function recordSkip(item, stage, reason, details)
     if not poc.saved then return end
-    local key = item.uniqueId .. ':' .. tostring(item.slot) .. ':' .. tostring(item.stack) .. ':' .. reason
-    if market.skipped[key] then return end
-    market.skipped[key] = true
     local diagnostics = string.format('stage=%s reason=%s\nbag=%d slot=%d item=%d count=%d\nsearchName=%q\n%s',
         stage, reason, item.bag, item.slot, item.itemId, item.stack, item.searchName, details or '')
     poc.appendLog({ timestamp = GetTimeStamp(), character = GetUnitName('player'), action = 'list', result = 'deferred',
         itemLink = item.link, itemId = item.itemId, quantity = item.stack, fromBag = item.bag,
-        guildId = market.activityGuildId, marketIssue = { skipped = true, diagnostics = diagnostics } })
+        guildId = market.activityGuildId, marketIssue = { skipped = true, diagnostics = diagnostics },
+        noticeKey = item.uniqueId .. ':' .. stage .. ':' .. reason })
 end
 
 ---@param reason string
@@ -167,7 +165,7 @@ function market.stop(reason, result)
     market.fiber = nil
     if fiber then fiber:Cancel() end
     market.search, market.activityGuildId, market.prepared = nil, nil, {}
-    market.tried, market.skipped = {}, {}
+    market.tried = {}
     if hadWork then BattleScrolls.gc:RequestGC(2) end
 end
 
@@ -485,12 +483,15 @@ local function searchGuilds(search)
             end, function() return readPage(search) end):Await()
             local found = false
             for rowIndex, row in ipairs(page.rows) do
-                local variant = facts.variant(row.link)
-                local matches = search.item.kind == 'companion' and policy.sameCompanionClass(search.item, variant)
-                    or (search.item.kind ~= 'companion' and policy.sameVariant(search.item, variant))
-                if row.seller ~= GetDisplayName() and row.quantity > 0 and row.currency == CURT_MONEY and matches then
-                    local unit = row.total / row.quantity
-                    if policy.validPrice(unit) then
+                -- Lua checks first. Native item data for each new link or item
+                -- id stays allocated until the client exits, so only rows that
+                -- can match reach the link APIs.
+                local unit = row.quantity > 0 and row.total / row.quantity or 0
+                if row.seller ~= GetDisplayName() and row.currency == CURT_MONEY and policy.validPrice(unit)
+                    and (search.item.kind == 'companion' or facts.linkItemId(row.link) == search.item.itemId) then
+                    local variant = facts.variant(row.link)
+                    if search.item.kind == 'companion' and policy.sameCompanionClass(search.item, variant)
+                        or (search.item.kind ~= 'companion' and policy.sameVariant(search.item, variant)) then
                         found = true
                         if not search.lowest or unit < search.lowest or (unit == search.lowest and row.seconds < search.seconds) then
                             search.lowest, search.seconds = unit, row.seconds
@@ -595,41 +596,48 @@ local function maximumListingValue(item)
     return quote and quote.totalPrice or 0
 end
 
+---Rank candidates by the opening scan; only the chosen one is read again.
+---Inventory changes start a fresh pass through the queue.
 ---@param items InventoryPocItem[]
 ---@param reserved table<string, boolean>
 ---@return InventoryPocItem|nil
 ---@return number
 local function nextSearch(items, reserved)
-    local best, highest = nil, 0
-    for index, before in ipairs(items) do
-        -- The opening scan already classified the pack. Refresh eligible
-        -- candidates; inventory changes start a fresh pass through the queue.
-        local decision = searchDecision(before)
-        if decision.action == 'list' or (decision.action == 'defer' and decision.reason == 'price') then
-            local key = searchKey(before)
-            if not market.prepared[key] and not market.tried[key .. ':' .. tostring(before.stack)] then
-                local item = facts.item(before.bag, before.slot, reserved)
-                if not item or item.uniqueId ~= before.uniqueId or item.link ~= before.link then
-                    recordSkip(before, 'candidate', 'item-changed')
-                elseif before.priceLoading or item.priceLoading then
-                    recordSkip(item, 'candidate', 'price-loading')
-                else
-                    decision = searchDecision(item)
-                    local needsPrice = decision.action == 'defer' and decision.reason == 'price'
-                    if decision.action ~= 'list' and not needsPrice then
-                        recordSkip(item, 'candidate', 'policy-changed', 'action=' .. decision.action .. ' rule=' .. decision.reason)
-                    elseif not IsItemSellableOnTradingHouse(item.bag, item.slot) then
-                        recordSkip(item, 'candidate', 'game-ineligible')
+    while true do
+        local best, highest = nil, 0
+        for index, before in ipairs(items) do
+            local decision = searchDecision(before)
+            if decision.action == 'list' or (decision.action == 'defer' and decision.reason == 'price') then
+                local key = searchKey(before)
+                if not market.prepared[key] and not market.tried[key .. ':' .. tostring(before.stack)] then
+                    if before.priceLoading then recordSkip(before, 'candidate', 'price-loading')
                     else
-                        local maximum = maximumListingValue(item)
-                        if not best or maximum > highest then best, highest = item, maximum end
+                        local maximum = maximumListingValue(before)
+                        if not best or maximum > highest then best, highest = before, maximum end
                     end
                 end
             end
+            if index % 5 == 0 then Effect.Yield():Await() end
         end
-        if index % 5 == 0 then Effect.Yield():Await() end
+        if not best then return nil, 0 end
+        local item = facts.item(best.bag, best.slot, reserved)
+        if not item or item.uniqueId ~= best.uniqueId or item.link ~= best.link then
+            recordSkip(best, 'candidate', 'item-changed')
+        elseif item.priceLoading then recordSkip(item, 'candidate', 'price-loading')
+        else
+            local decision = searchDecision(item)
+            local needsPrice = decision.action == 'defer' and decision.reason == 'price'
+            if decision.action ~= 'list' and not needsPrice then
+                recordSkip(item, 'candidate', 'policy-changed', 'action=' .. decision.action .. ' rule=' .. decision.reason)
+            elseif not IsItemSellableOnTradingHouse(item.bag, item.slot) then
+                recordSkip(item, 'candidate', 'game-ineligible')
+            else
+                return item, highest
+            end
+        end
+        -- A rejected candidate leaves this visit's ranking; try the next best.
+        market.tried[searchKey(best) .. ':' .. tostring(best.stack)] = true
     end
-    return best, highest
 end
 
 ---@param search InventoryPocSearch

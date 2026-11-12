@@ -2,7 +2,7 @@ LibUser562 = LibUser562 or {}
 local L = LibUser562
 
 L.name = "LibUser562"
-L.version = 1.2
+L.version = 1.6
 
 --------------------------------------------------
 -- Platform

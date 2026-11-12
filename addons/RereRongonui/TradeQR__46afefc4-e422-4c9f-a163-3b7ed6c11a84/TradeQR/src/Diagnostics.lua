@@ -2,8 +2,9 @@
 -- (no PC, no access to SavedVariables or Lua errors there).
 local Diagnostics = ZO_InitializingObject:Subclass()
 
-function Diagnostics:Initialize(saleWatcher, saleQueue, savedVars)
+function Diagnostics:Initialize(saleWatcher, listingWatcher, saleQueue, savedVars)
     self.saleWatcher = saleWatcher
+    self.listingWatcher = listingWatcher
     self.saleQueue = saleQueue
     self.savedVars = savedVars
 end
@@ -11,6 +12,8 @@ end
 function Diagnostics:Print()
     local nowS = GetTimeStamp()
     d(string.format(GetString(TRADEQR_DIAG_HEADER), GetDisplayName(), GetNumGuilds(), self.saleQueue:GetCount(), self:CountSeen(), self.savedVars.scanWindowSeconds / 3600))
+    local listingStats = self.listingWatcher:GetStats()
+    d(string.format(GetString(TRADEQR_DIAG_LISTINGS), listingStats.requested, listingStats.confirmed, listingStats.failed))
     for guildIndex = 1, GetNumGuilds() do
         self:PrintGuild(GetGuildId(guildIndex), nowS)
     end

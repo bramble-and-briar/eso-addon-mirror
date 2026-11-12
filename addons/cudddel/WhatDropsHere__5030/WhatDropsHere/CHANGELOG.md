@@ -1,5 +1,21 @@
 # Änderungen
 
+## 0.3.1-beta (08.11.2026)
+
+- **ESOUI-Regeln:** Nur noch eine globale Variable (`WhatDropsHere`), `EVENT_MONEY_UPDATE` nur noch angemeldet,
+  solange ein von Auto-Loot geleertes Lootfenster auf Beute wartet. KI-Hinweis und Danksagungen in der Beschreibung.
+- **Daten je Server und Account.** Die SavedVariables heißen jetzt `WhatDropsHere_Saved` (vorher `WDH_Saved`) und sind
+  nach Server (EU/NA) und Account getrennt. Die bisherigen Daten übernimmt automatisch der erste Account, der sich nach
+  dem Update einloggt; weitere Accounts und der andere Server starten leer.
+- LibAddonMenu-2.0 ohne Versionsangabe bei den optionalen Abhängigkeiten (die Prüfung wirkt dort nicht).
+- **Herumliegende Gegenstände sind keine eigenen Quellen mehr.** Waffen und Rüstungen, die in der offenen Welt
+  herumliegen („Nehmen – Schild" ergibt „Nachtholzschild"), werden nicht mehr gespeichert. Gestohlene Einzelstücke
+  ohne Lootfenster (Brot, Flaschen … vom Tisch) landen in einem Sammeleintrag je Zone, „Einzelne Gegenstände [Diebstahl]".
+  Ändert Quellen-Schlüssel: vorhandene Daten werden beim ersten Einloggen automatisch umgestellt (Datenversion 3),
+  kein Zurücksetzen nötig.
+- Mehrere Gegenstände innerhalb von zwei Sekunden ohne Lootfenster nehmen oder stehlen: Ab dem zweiten wurde die Beute
+  als „kurz nach Lootfenster" verworfen. Die Nachlauffrist gilt jetzt nur noch nach echten Lootfenstern.
+
 ## 0.3.0-beta (07.11.2026)
 
 - **Anzeige-Einstellungen je Charakter.** Jeder Charakter hat seine eigene Anzeige; im Menü lassen sich

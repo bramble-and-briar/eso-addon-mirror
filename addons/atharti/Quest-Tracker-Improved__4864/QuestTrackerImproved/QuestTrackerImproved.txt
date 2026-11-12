@@ -1,6 +1,6 @@
 ## Title: |cFFD700Quest Tracker Improved|r
 ## APIVersion: 101051
-## Version: 2.4
+## Version: 2.5
 ## Author: |cFFD700@Atharti|r
 ## DependsOn: LibAddonMenu-2.0>=43
 ## SavedVariables: QuestTrackerImproved_SV
@@ -10,4 +10,5 @@ ActivityFinder.lua
 DynamicEvents.lua
 Housing.lua
 Archive.lua
+Achievements.lua
 QuestTrackerImproved_Settings.lua

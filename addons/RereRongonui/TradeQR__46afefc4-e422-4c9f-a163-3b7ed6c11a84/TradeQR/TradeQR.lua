@@ -3,6 +3,7 @@ local function OnPlayerActivated()
     EVENT_MANAGER:UnregisterForEvent(TradeQR.name, EVENT_PLAYER_ACTIVATED)
     TradeQR.saleQueue:PruneSeen(GetTimeStamp())
     TradeQR.saleWatcher:Start()
+    TradeQR.listingWatcher:Start()
     TradeQR.saleScreen:StartAutoShow()
 end
 
@@ -32,8 +33,9 @@ local function OnAddOnLoaded(_, addonName)
 
     TradeQR.saleQueue = TradeQR.SaleQueue:New(savedVars)
     TradeQR.saleWatcher = TradeQR.SaleWatcher:New(savedVars, TradeQR.saleQueue)
+    TradeQR.listingWatcher = TradeQR.ListingWatcher:New(savedVars, TradeQR.saleQueue)
     TradeQR.saleScreen = TradeQR.SaleScreen:New(TradeQR.saleQueue, salePayload, savedVars)
-    TradeQR.diagnostics = TradeQR.Diagnostics:New(TradeQR.saleWatcher, TradeQR.saleQueue, savedVars)
+    TradeQR.diagnostics = TradeQR.Diagnostics:New(TradeQR.saleWatcher, TradeQR.listingWatcher, TradeQR.saleQueue, savedVars)
 
     SLASH_COMMANDS["/tradeqr"] = OnSlashCommand
 

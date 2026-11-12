@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.2 | Native row and banner progress animations
+-- Arclight Taunt 1.2.0 | Native row and banner progress animations
 -- No frame-driven Lua loop: ESO animates cached visible controls directly.
 local A = ArclightTaunt
 local C, SetHidden, SetColor = A.C, A.SetHidden, A.SetColor
@@ -536,10 +536,7 @@ A.StopGloss = StopGloss
 function A.RefreshAnimationMode()
     local enabled = not A.saved.reduceAnimations
     for _, alert in pairs(A.bossAlerts) do
-        if alert.root and alert.frameHandler and alert.frameUpdatesEnabled ~= enabled then
-            alert.root:SetHandler("OnUpdate", enabled and alert.frameHandler or nil)
-            alert.frameUpdatesEnabled = enabled
-        end
+        A.SetBossAlertFrameUpdates(alert, enabled and alert.visibleUntil ~= nil)
     end
     A.Tick()
     A.UpdateBossAlert(A.Now())

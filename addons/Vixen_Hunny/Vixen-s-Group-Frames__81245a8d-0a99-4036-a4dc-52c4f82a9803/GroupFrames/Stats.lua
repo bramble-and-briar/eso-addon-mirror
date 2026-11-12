@@ -1,3 +1,11 @@
+---------------------------------------------------------------------------
+-- Stats.lua - ultimate, DPS/HPS and weapon bar of each member
+--
+-- Pure data: GroupFrames.lua calls GF.GetUlt, GF.GetCombat and GF.GetBar
+-- every tick and draws what they return. Each of them answers with nil
+-- when nothing is known about a member, and the frame then shows nothing.
+---------------------------------------------------------------------------
+
 local GF = GroupFrames
 
 -- Ultimate, DPS and HPS of group members come from LibGroupCombatStats.
@@ -11,14 +19,15 @@ local BAR_PROTOCOL_ID = 231
 local BAR_PROTOCOL_NAME = "GroupFramesWeaponBar"
 
 local lgcs -- LibGroupCombatStats object, nil when not installed
-local barProtocol
+local barProtocol -- LibGroupBroadcast protocol for the weapon bar, nil if unavailable
 local memberOnBackBar = {} -- @account -> true (back bar) / false (front bar)
-local lastSentBack
+local lastSentBack -- what we last told the group, to avoid repeating it
 
 ---------------------------------------------------------------------------
 -- Ultimate / DPS / HPS
 ---------------------------------------------------------------------------
 
+-- Action slot of the ultimate (the game's constant is zero-based).
 local ULTIMATE_SLOT = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1
 
 -- Your own current ultimate, read straight from the action bar.
@@ -85,6 +94,7 @@ end
 -- Weapon bar
 ---------------------------------------------------------------------------
 
+-- True while your second weapon set is active.
 local function IsPlayerOnBackBar()
     return GetActiveWeaponPairInfo() == ACTIVE_WEAPON_PAIR_BACKUP
 end
@@ -98,6 +108,9 @@ function GF.GetBar(unitTag)
     return memberOnBackBar[GetUnitDisplayName(unitTag) or ""]
 end
 
+-- Tells the group which bar you are on, if that changed since last time.
+-- The message is a single flag, the smallest LibGroupBroadcast can send,
+-- because bar swaps happen every few seconds in combat.
 local function SendBar()
     if not (barProtocol and GF.sv.shareBar and IsUnitGrouped("player")) then return end
     local back = IsPlayerOnBackBar()
@@ -114,11 +127,14 @@ local function ResendBar()
     zo_callLater(SendBar, 2000)
 end
 
+-- Called by LibGroupBroadcast when a groupmate reports their bar.
 local function OnBarData(unitTag, data)
     if AreUnitsEqual(unitTag, "player") then return end
     memberOnBackBar[GetUnitDisplayName(unitTag) or ""] = data.backBar == true
 end
 
+-- Declares the weapon bar protocol on the handler Share.lua registered and
+-- hooks the events that should trigger a send.
 local function InitBarSharing()
     local LGB = LibGroupBroadcast
     local handler = GF.lgbHandler
@@ -137,6 +153,7 @@ local function InitBarSharing()
     if not ok then return end
 
     local name = GF.name .. "Bar"
+    -- the event fires at the start (locked) and end of a swap; send at the end
     EVENT_MANAGER:RegisterForEvent(name, EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function(_, _, locked)
         if not locked then SendBar() end
     end)
@@ -150,6 +167,9 @@ local function InitBarSharing()
     end)
 end
 
+-- Called once at start-up, after GF.InitSharing. Registering with
+-- LibGroupCombatStats also makes it broadcast your own ultimate, DPS and
+-- HPS to the group - that is how the library works for every addon.
 function GF.InitStats()
     local LGCS = LibGroupCombatStats
     if LGCS and LGCS.RegisterAddon then

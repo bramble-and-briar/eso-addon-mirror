@@ -19,8 +19,8 @@ local ESO = {
     dimR = 0.55, dimG = 0.57, dimB = 0.60,                    -- muted/secondary
 }
 
-GPI.version = "1.45.0"
-GPI.addOnVersion = 164 -- keep in step with ## AddOnVersion in GridPadInventory.txt
+GPI.version = "1.45.2"
+GPI.addOnVersion = 166 -- keep in step with ## AddOnVersion in GridPadInventory.txt
 GPI.zoning = false -- true between PLAYER_DEACTIVATED and PLAYER_ACTIVATED (load screen)
 GPI.cols = 10
 GPI.rows = 6
@@ -707,7 +707,13 @@ local function Clamp(value, minValue, maxValue)
     return value
 end
 
-local function AddChatMessage(message)
+-- v1.45.2: routine status lines (equipped / deposited / withdrew / "loaded") can be
+-- switched off with the "Chat messages" setting (or /gpi chat). Three kinds of line
+-- always print: replies to a /gpi command the player just typed (GPI.chatForce is
+-- set while the slash handler runs), the /gpi debug live trace, and the few errors
+-- that have no on-screen alert of their own (force = true).
+local function AddChatMessage(message, force)
+    if not force and not GPI.chatForce and GPI.sv and GPI.sv.chatMessages == false then return end
     if CHAT_SYSTEM then
         CHAT_SYSTEM:AddMessage("|c318ACBGrid Pad|r: " .. tostring(message))
     end
@@ -722,7 +728,7 @@ function GPI:LogEquip(message)
     table.insert(self.equipLog, tostring(message))
     while #self.equipLog > 30 do table.remove(self.equipLog, 1) end
     if self.debugMode then
-        AddChatMessage(message)
+        AddChatMessage(message, true)
         self:UpdateDebugLabel()
     end
 end
@@ -4379,10 +4385,27 @@ end
 -- screen. Alpha 0 is visually identical while the engine keeps believing its own
 -- visibility state. nativeControlStates now stores the ORIGINAL ALPHA (number),
 -- not a hidden flag. Do not reintroduce SetHidden here.
+--
+-- v1.45.1: ONE answer to "what alpha did this control have before GridPad touched
+-- it". ZO_GamepadTooltipTopLevel is suppressed by BOTH bookkeepers -- the inventory
+-- chrome (nativeControlStates) and the bank chrome (bankChromeSuppressed). Each used
+-- to snapshot the LIVE alpha on first touch, so whichever went second recorded the
+-- 0 that the first had just written, and "restoring" that 0 could leave the shared
+-- gamepad tooltip host invisible for every other addon until /reloadui (reported by
+-- the GamePadHelper developers). A control already held by the other bookkeeper now
+-- inherits that bookkeeper's recorded original instead of reading our own 0 back.
+function GPI:GetChromeOriginalAlpha(control)
+    local inv = self.nativeControlStates and self.nativeControlStates[control]
+    if inv ~= nil then return tonumber(inv) or 1 end
+    local bank = self.bankChromeSuppressed and self.bankChromeSuppressed[control]
+    if bank and bank.alpha ~= nil then return tonumber(bank.alpha) or 1 end
+    return SafeCall(function() return control:GetAlpha() end) or 1
+end
+
 function GPI:SetNativeControlHidden(control, hidden)
     if not control or not control.SetAlpha or not control.GetAlpha then return end
     if self.nativeControlStates[control] == nil then
-        self.nativeControlStates[control] = SafeCall(function() return control:GetAlpha() end) or 1
+        self.nativeControlStates[control] = self:GetChromeOriginalAlpha(control)
     end
     if hidden then
         SafeCall(function() control:SetAlpha(0) end)
@@ -4399,7 +4422,9 @@ function GPI:SuppressBankControl(c)
     self.bankChromeSuppressed = self.bankChromeSuppressed or {}
     if not self.bankChromeSuppressed[c] then
         self.bankChromeSuppressed[c] = {
-            alpha = (c.GetAlpha and SafeCall(function() return c:GetAlpha() end)) or 1,
+            -- v1.45.1: the true pre-GridPad alpha, never our own 0 (see
+            -- GetChromeOriginalAlpha).
+            alpha = (c.GetAlpha and self:GetChromeOriginalAlpha(c)) or 1,
         }
     end
     -- v1.39: ALPHA-ONLY suppression. SetHidden on live banking-scene roots and the
@@ -4416,8 +4441,16 @@ end
 function GPI:ReleaseBankControl(c)
     local st = self.bankChromeSuppressed and self.bankChromeSuppressed[c]
     if not st then return end
-    if c.SetAlpha then SafeCall(function() c:SetAlpha(st.alpha) end) end
     self.bankChromeSuppressed[c] = nil
+    -- v1.45.1: a control the inventory chrome is ALSO holding (the shared tooltip
+    -- host) stays at alpha 0 -- exactly what it showed before this change -- and
+    -- RestoreNativeInventoryChrome gives it back its original alpha when GridPad
+    -- closes. Only controls the bank chrome holds alone are restored here.
+    if self.nativeControlsHidden and self.nativeControlStates
+        and self.nativeControlStates[c] ~= nil then
+        return
+    end
+    if c.SetAlpha then SafeCall(function() c:SetAlpha(st.alpha) end) end
 end
 
 function GPI:RestoreBankChrome()
@@ -4598,13 +4631,16 @@ end
 function GPI:RestoreNativeInventoryChrome()
     if not self.nativeControlsHidden then return end
 
+    -- v1.45.1 (per the GamePadHelper developers): nested bank state first, then the
+    -- original inventory state, so the inventory restore always has the last word
+    -- on controls both groups touched (ZO_GamepadTooltipTopLevel).
+    self:RestoreBankChrome()
+
     for control, origAlpha in pairs(self.nativeControlStates or {}) do
         if control and control.SetAlpha then
             SafeCall(function() control:SetAlpha(tonumber(origAlpha) or 1) end)
         end
     end
-
-    self:RestoreBankChrome()
 
     self.nativeControlStates = {}
     self.nativeControlsHidden = false
@@ -5211,7 +5247,7 @@ function GPI:ToggleJunkSelected()
     if not item then return end
 
     if item.bagId ~= BAG_BACKPACK then
-        AddChatMessage("Only backpack items can be marked as junk.")
+        AddChatMessage("Only backpack items can be marked as junk.", true)
         return
     end
 
@@ -5220,7 +5256,7 @@ function GPI:ToggleJunkSelected()
         local isJunk = SafeCall(IsItemJunk, item.bagId, item.slotIndex) or false
         local worked, errorText = self:CallPossiblyProtected("SetItemIsJunk", SetItemIsJunk, item.bagId, item.slotIndex, not isJunk)
         if worked == false then
-            AddChatMessage("Could not toggle junk: " .. tostring(errorText or "protected call failed"))
+            AddChatMessage("Could not toggle junk: " .. tostring(errorText or "protected call failed"), true)
             return
         end
 
@@ -5235,7 +5271,7 @@ function GPI:ToggleJunkSelected()
         end
         zo_callLater(function() self:Refresh() end, 150)
     else
-        AddChatMessage("Junk toggling is not available in this UI state.")
+        AddChatMessage("Junk toggling is not available in this UI state.", true)
     end
 end
 
@@ -5738,7 +5774,7 @@ function GPI:LinkSelected()
     if link and ZO_LinkHandler_InsertLink then
         ZO_LinkHandler_InsertLink(link)
     else
-        AddChatMessage(item.link or item.name or "Selected item")
+        AddChatMessage(item.link or item.name or "Selected item", true)
     end
 end
 
@@ -8189,7 +8225,7 @@ function GPI:Initialize()
     -- since LibAddonMenu must be fully initialized before we register with it.
     if self.InitSettings then self:InitSettings() end
 
-    SLASH_COMMANDS["/gpi"] = function(arg)
+    local function HandleSlashCommand(arg)
         local lower = (arg or ""):lower()
 
         do
@@ -8470,6 +8506,11 @@ function GPI:Initialize()
                 if not self.showKeybindStrip then self:HideNativeInventoryChrome(true) end
             end
             return
+        elseif command == "chat" then
+            if not self.sv then self:InitSettings() end
+            self.sv.chatMessages = (self.sv.chatMessages == false)
+            AddChatMessage("chat messages are now " .. (self.sv.chatMessages and "ON" or "OFF (on-screen alerts and replies to /gpi commands still show)") .. ".")
+            return
         elseif command == "filter" then
             self:SetFilter(rest)
             return
@@ -8485,6 +8526,14 @@ function GPI:Initialize()
             return
         end
         self:ToggleWindow()
+    end
+    -- v1.45.2: anything a /gpi command prints is a reply the player asked for, so it
+    -- shows even when routine chat messages are switched off.
+    SLASH_COMMANDS["/gpi"] = function(arg)
+        GPI.chatForce = true
+        local ok, err = pcall(HandleSlashCommand, arg)
+        GPI.chatForce = nil
+        if not ok then error(err, 0) end
     end
     SLASH_COMMANDS["/gridpad"] = SLASH_COMMANDS["/gpi"]
 

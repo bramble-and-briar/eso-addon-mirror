@@ -135,7 +135,7 @@ end
 
 local function canLearnOnOtherCharacters(itemLink)
 	if LCK then
-		for charId in pairs(Bankir.savedVarsServer.ResearchCharactersList) do
+		for charId in pairs(Bankir.SVServer.ResearchCharactersList) do
 			if LCK.GetItemKnowledgeForCharacter(itemLink, nil, charId) == LCK.KNOWLEDGE_UNKNOWN then
 				return true
 			end
@@ -146,7 +146,7 @@ end
 
 local function canLearnOnOtherCharacters(itemLink, traitType)
 	if LCK then
-		for charId in pairs(Bankir.savedVarsServer.ResearchCharactersList) do
+		for charId in pairs(Bankir.SVServer.ResearchCharactersList) do
 			if traitType then
 				if LCK.CanItemLinkBeTraitResearchedByCharacter(itemLink, nil, charId) then
 					return true
@@ -306,7 +306,7 @@ local function getEffectiveRule(id, idTypeStr, bankBagId, itemQuality, itemStack
 		rule.pull = math.max(ruleS.pull, ruleO.pull)
 		rule.pullInStacks = false
 	else
-		rule = copyData(Bankir.savedVarsProfile[bankBagId][idTypeStr][id]) or {}
+		rule = copyData(Bankir.SVProfile[bankBagId][idTypeStr][id]) or {}
 		
 		if itemQuality and rule.quality and not isInArray(rule.quality, itemQuality) then
 			rule = {}

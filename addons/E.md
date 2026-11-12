@@ -65,6 +65,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESO Build Tracker - Prototype](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ItsCraniBaby1/ESO-Build-Tracker---Prototype__23c4dbd3-8273-4fc3-8416-f6c79eeb76ab) | ItsCraniBaby1 | Console | — |
 | [ESO Calendar Reborn: RP Edition](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Priapia/ESO-Calendar-Reborn-RP-Edition__1685) | Priapia | PC / Mac | 1.0 |
 | [ESO Combat Lock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/solaegis/ESO-Combat-Lock__4754) | solaegis | PC / Mac | 1.2.0 |
+| [ESO combat watch (console only)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Stormy/ESO-combat-watch-console-only__5043) | Stormy | PC / Mac | 1.0 |
 | [ESO Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Khazaril/ESO-Companion__cbd43537-05b7-405f-b75d-511a3ceb083b) | Khazaril | Console | — |
 | [ESO Companion QR Test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Khazaril/ESO-Companion-QR-Test__95d71844-4b3c-4d6b-b4f1-15716d72792f) | Khazaril | Console | — |
 | [ESO Emoji](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kitkathy1994/ESO-Emoji__3376) | kitkathy1994 | PC / Mac | 0.4.2 |

@@ -8,8 +8,8 @@
 --   DETAIL_Q -> mit Namen ab "Mit Namen anzeigen ab" (Qualitaet), sonst als Kategorie
 --   COUNT    -> immer als Kategorie (Kategorie x Qualitaet)
 
-WDH_Categories = {}
-local CAT = WDH_Categories
+WhatDropsHere.Categories = {}
+local CAT = WhatDropsHere.Categories
 
 local SET      = "SET"
 local DETAIL   = "DETAIL"

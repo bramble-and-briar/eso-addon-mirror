@@ -1,5 +1,5 @@
 -- Deutsche Texte (überschreiben die englischen)
-local L = InventoryPulse_Strings
+local L = InventoryPulse.strings
 
 -- Meldungen
 L.INVENTORY_FULL    = "Inventar voll!"

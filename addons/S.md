@@ -46,6 +46,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Scrollkeeper Guild Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wolfstar/Scrollkeeper-Guild-Tools__4423) | wolfstar | PC / Mac | 1.4 |
 | [Scrooge McDuck](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mcouture/Scrooge-McDuck__1144) | mcouture | PC / Mac | 1.1 |
 | [Scry Master](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Scry-Master__899e2487-496c-40d0-9a7e-dad95a1807fc) | TheGreyWolf98 | Console | — |
+| [Scryer’s Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Scryer-s-Ledger__47f8828e-c68c-4a8d-ba6f-69a87c8539b8) | SugaComa | Console | — |
 | [ScrySpy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/ScrySpy__2647) | Sharlikran | PC / Mac | 1.44 |
 | [ScuttleBuddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/ScuttleBuddy__2719) | Sharlikran | PC / Mac | 1.14 |
 | [Seamstress](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Seamstress__8bc4c7c2-ee0d-488d-a3b5-ecab07912f95) | SugaComa | Console | — |
@@ -181,7 +182,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Skillbound - Skills & Build Presets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Skillbound---Skills-Build-Presets__4911) | brianmit | PC / Mac | 1.0.3 |
 | [SkillExp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awamani/SkillExp__4445) | awamani | PC / Mac | 1.1.1 |
 | [SkillTags](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HeiKyoma/SkillTags__4446) | HeiKyoma | PC / Mac | 1.2 |
-| [Skull Issue - A Venom Skull tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CameraBeardThePirate/Skull-Issue---A-Venom-Skull-tracker__5026) | CameraBeardThePirate | PC / Mac | 1.0.0 |
+| [Skull Issue - A Venom Skull tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CameraBeardThePirate/Skull-Issue---A-Venom-Skull-tracker__5026) | CameraBeardThePirate | PC / Mac | 1.2.0 |
 | [Skylike Dialog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptTatsu/Skylike-Dialog__1852) | CaptTatsu | PC / Mac | 1.5 |
 | [Skyrim Merchant Marines Guildhall teleport button](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Doomzday/Skyrim-Merchant-Marines-Guildhall-teleport-button__3847) | Doomzday | PC / Mac | 1.0 |
 | [Skyrim Style UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Half-Dead/Skyrim-Style-UI__1511) | Half-Dead | PC / Mac | 1.34 |
@@ -244,7 +245,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Solaris](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fosterwerks/Solaris__2521) | Fosterwerks | PC / Mac | 0.3.2 |
 | [Soldatii La Dreptate Guildhalls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/animalu/Soldatii-La-Dreptate-Guildhalls__3037) | animalu | PC / Mac | 0.0.6 |
 | [Soloists of Tamriel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptivAzn/Soloists-of-Tamriel__3873) | CaptivAzn | PC / Mac | 1.70 |
-| [Sora Reticle Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Reticle-Tracker__5015) | sora0v0 | PC / Mac | 1.0.2 |
+| [Sora Reticle Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Reticle-Tracker__5015) | sora0v0 | PC / Mac | 1.0.3 |
 | [Sora Sorc Reticle Tracker \[Discontinued\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Sorc-Reticle-Tracker-Discontinued__4959) | sora0v0 | PC / Mac | 1.0.2 |
 | [Sora Ultimate Pair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Ultimate-Pair__4583) | sora0v0 | PC / Mac | 1.0.61 |
 | [Sorc Overload Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smasharooisold/Sorc-Overload-Tracker__4785) | Smasharooisold | PC / Mac | 1.0 |

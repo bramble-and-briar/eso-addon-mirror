@@ -30,6 +30,19 @@ local REPEATABLE_COLOR = { r = 112/255, g = 180/255, b = 184/255, a = 1 }
 
 local TIMER_ICON = "|t24:24:esoui/art/miscellaneous/timer_32.dds|t"
 
+local priorities = {
+    QUEST             = 100,
+    ENDLESS_DUNGEON   = 200,
+    HOUSE_INFORMATION = 300,
+    ZONE_STORY        = 400,
+    DYNAMIC_EVENTS    = 500,
+    TIMED_ACTIVITY    = 600,
+    ACHIEVEMENT       = 610,
+    ADVENTURE_ZONE    = 700,
+    ACTIVITY          = 800,
+    READY_CHECK       = 810,
+}
+
 local defaultSV = {
 	headerFont = "$(ANTIQUE_FONT)",
 	headerSize = 20,
@@ -84,6 +97,24 @@ local defaultSV = {
 	houseTagsSize = 16,
 	houseTagsStyle = "soft-shadow-thin",
 	houseTagsColor = { r = 0.5450980663, g = 0.5490196347, b = 0.5215686560, a = 1 },
+	
+	achievementWidth = 265,
+	achievementIconSize = 24,
+
+	achievementHeaderFont = "$(ANTIQUE_FONT)",
+	achievementHeaderSize = 20,
+	achievementHeaderStyle = "soft-shadow-thin",
+	achievementHeaderColor = { r = 1, g = 0.8392156959, b = 0.3294117749, a = 1 },
+
+	achievementSubLabelFont = "$(BOLD_FONT)",
+	achievementSubLabelSize = 18,
+	achievementSubLabelStyle = "soft-shadow-thin",
+	achievementSubLabelColor = { r = 1, g = 1, b = 1, a = 1 },
+
+	achievementCriteriaFont = "$(ANTIQUE_FONT)",
+	achievementCriteriaSize = 15,
+	achievementCriteriaStyle = "soft-shadow-thin",
+	achievementCriteriaColor = { r = 1, g = 1, b = 1, a = 1 },
 
 	houseWidth = 350,
 	houseUseIcon = false,
@@ -97,8 +128,31 @@ local defaultSV = {
 
 	hidePursuits = false,
 	hideArchive = false,
-	stickyTrackers = true,
 }
+
+function QTI.ApplyPriorities()
+    local overrides = {
+        [ZO_Tracker] = priorities.QUEST,
+        [ZO_EndlessDungeonHUDTracker] = priorities.ENDLESS_DUNGEON,
+        [ZO_HouseInformationTracker] = priorities.HOUSE_INFORMATION,
+        [ZO_ZoneStoryTracker] = priorities.ZONE_STORY,
+        [ZO_DynamicEventsTracker] = priorities.DYNAMIC_EVENTS,
+        [ZO_TimedActivityTracker] = priorities.TIMED_ACTIVITY,
+        [ZO_AchievementTracker] = priorities.ACHIEVEMENT,
+        [ZO_AdventureZoneHUDTracker] = priorities.ADVENTURE_ZONE,
+        [ZO_ActivityTracker] = priorities.ACTIVITY,
+        [ZO_ReadyCheckTracker] = priorities.READY_CHECK,
+    }
+
+    for class, priority in pairs(overrides) do
+		class.GetPriority = function(self) return priority end
+    end
+
+	table.sort(HUD_TRACKER_MANAGER.trackers, function(left, right)
+		return left.owner:GetPriority() < right.owner:GetPriority()
+	end)
+	HUD_TRACKER_MANAGER:RefreshLayout()
+end
 
 function QTI.GetFont(font, size, style)
 	if style and style ~= "" and style ~= "none" then
@@ -329,6 +383,14 @@ end
 function QTI.TimerTweaks()
 	local managerHooked = false
 
+	QTI.TimerRoot = WINDOW_MANAGER:CreateTopLevelWindow("QTI_TimerRoot")
+	QTI.TimerRoot:SetDrawTier(DT_HIGH)
+	QTI.TimerRoot:SetDrawLevel(10)
+	
+	QTI.TimerFragment = ZO_HUDFadeSceneFragment:New(QTI.TimerRoot, nil, 0)
+	HUD_SCENE:AddFragment(QTI.TimerFragment)
+	HUD_UI_SCENE:AddFragment(QTI.TimerFragment)
+
 	ZO_PostHook(_G, "ZO_QuestTimer_OnUpdate", function(control)
 		if managerHooked then return end
 		managerHooked = true
@@ -357,8 +419,13 @@ function QTI.TimerTweaks()
 				timeLabel:SetAnchor(LEFT, timer, LEFT, 28, 0)
 
 				timer:SetExcludeFromResizeToFitExtents(true)
+
+				if timer:GetParent() ~= QTI.TimerRoot then
+					timer:SetParent(QTI.TimerRoot)
+				end
+
 				timer:ClearAnchors()
-				timer:SetAnchor(TOPLEFT, ZO_FocusedQuestTrackerPanel, TOPLEFT, -3, -22)
+				timer:SetAnchor(TOPLEFT, ZO_FocusedQuestTrackerPanel, TOPLEFT, -18, -22)
 			end
 		end)
 
@@ -366,43 +433,12 @@ function QTI.TimerTweaks()
 	end)
 end
 
-function QTI.DetachQuestTracker()
-	local hudTrackerElement = HUD_TRACKER_MANAGER:GetPlatformHUDElement()
-	if hudTrackerElement:GetCustomOptionValue("SeparatedTrackers", "Quest") ~= true then
-		hudTrackerElement:SetCustomOptionValue("SeparatedTrackers", "Quest", true)
-		HUD_TRACKER_MANAGER:RefreshLayout()
-	end
-end
-
-function QTI.AnchorSharedTrackersUnderQuest()
-	local questPanel = FOCUSED_QUEST_TRACKER:GetTrackerControl()
-
-	local function Anchor()
-		ZO_HUDTrackers:ClearAnchors()
-
-		if #FOCUSED_QUEST_TRACKER.tracked > 0 then
-			ZO_HUDTrackers:SetAnchor(TOPRIGHT, questPanel, BOTTOMRIGHT, 0, 10)
-		else
-			ZO_HUDTrackers:SetAnchor(TOPRIGHT, questPanel, TOPLEFT, 0, 0)
-		end
-	end
-
-	Anchor()
-
-	ZO_PostHook(HUD_TRACKER_MANAGER, "RefreshLayout", function()
-		Anchor()
-		QTI.ZeroFirstTrackerPadding()
-	end)
-end
-
-function QTI.ZeroFirstTrackerPadding()
-	for _, trackerData in ipairs(HUD_TRACKER_MANAGER.trackers) do
-		local control = trackerData.control
-		if not control:IsHidden() and control:GetParent() == HUD_TRACKER_MANAGER.scrollChild then
-			control:SetAnchor(TOPRIGHT, nil, TOPRIGHT, -2, 0)
-			return
-		end
-	end
+function QTI.FlushScrollToRightEdge()
+    local mgr = HUD_TRACKER_MANAGER
+    local scroll = mgr.scrollControl
+    scroll:ClearAnchors()
+    scroll:SetAnchor(TOPLEFT, mgr.scrollContainer, TOPLEFT, 0, 0)
+    scroll:SetAnchor(BOTTOMRIGHT, mgr.scrollContainer, BOTTOMRIGHT, 0, 0)
 end
 
 function QTI.ResizePanel()
@@ -435,6 +471,11 @@ function QTI.OnAddOnLoaded(_, addOnName)
 
 	QTI.HookDynamicEventsTracker()
 	QTI.HookHouseTracker()
+	QTI.HookAchievementTracker()
+	
+	ZO_PostHook(HUD_TRACKER_MANAGER, "RefreshLayout", function()
+		QTI.FlushScrollToRightEdge()
+	end)
 
 	if QTI.SV.hidePursuits then
 		EM:RegisterForEvent(QTI.name .. "_HidePursuits", EVENT_PLAYER_ACTIVATED, function()
@@ -442,6 +483,11 @@ function QTI.OnAddOnLoaded(_, addOnName)
 			ClearTrackedPromotionalEventActivity()
 		end)
 	end
+	
+	EM:RegisterForEvent(QTI.name .. "_TrackersSort", EVENT_PLAYER_ACTIVATED, function()
+		EM:UnregisterForEvent(QTI.name .. "_TrackersSort", EVENT_PLAYER_ACTIVATED)
+		QTI.ApplyPriorities()
+	end)
 
 	if QTI.SV.hideArchive then
 		ENDLESS_DUNGEON_HUD_TRACKER:GetFragment():SetHiddenForReason("QTI_HideArchive", true)
@@ -449,17 +495,12 @@ function QTI.OnAddOnLoaded(_, addOnName)
 
 	EM:RegisterForEvent(QTI.name, EVENT_ADD_ONS_LOADED, function()
 		EM:UnregisterForEvent(QTI.name, EVENT_ADD_ONS_LOADED)
-
-		QTI.DetachQuestTracker()
-
-		if QTI.SV.stickyTrackers then
-			QTI.AnchorSharedTrackersUnderQuest()
-		end
-
+		
+		HUD_TRACKER_MANAGER:GetPlatformHUDElement():SetCustomOptionValue("SeparatedTrackers", "Quest", false) --temp, to remove
 		QTI.RestoreLeftTreeAnchor()
 		QTI.HideArchiveButton()
 	end)
-
+		
 	EM:RegisterForEvent(QTI.name, EVENT_QUEST_ADVANCED, function(_, questIndex)
 		FOCUSED_QUEST_TRACKER:ForceAssist(questIndex)
 	end)

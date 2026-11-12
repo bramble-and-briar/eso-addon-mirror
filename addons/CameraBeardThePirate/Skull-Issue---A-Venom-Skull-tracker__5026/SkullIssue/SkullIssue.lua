@@ -4,14 +4,39 @@
 -- Ability Tracked: Venom Skull Passive (AbilityId: 117625)
 -------------------------------------------------------------------------------
 
-SkullIssue = SkullIssue or {}
-local SkullIssue = SkullIssue
+-------------------------------------------------------------------------------
+-- Upvalue Caching for ESO Engine Globals & Lua Standards (Best Practice)
+-------------------------------------------------------------------------------
+local CENTER = CENTER
+local EVENT_ADD_ON_LOADED = EVENT_ADD_ON_LOADED
+local EVENT_EFFECT_CHANGED = EVENT_EFFECT_CHANGED
+local EVENT_MANAGER = EVENT_MANAGER
+local EVENT_PLAYER_ACTIVATED = EVENT_PLAYER_ACTIVATED
+local GetNumBuffs = GetNumBuffs
+local GetUnitBuffInfo = GetUnitBuffInfo
+local GuiRoot = GuiRoot
+local HUD_SCENE = HUD_SCENE
+local HUD_UI_SCENE = HUD_UI_SCENE
+local PlaySound = PlaySound
+local SLASH_COMMANDS = SLASH_COMMANDS
+local SOUNDS = SOUNDS
+local ZO_HUDFadeSceneFragment = ZO_HUDFadeSceneFragment
+local ZO_SavedVars = ZO_SavedVars
+local d = d
+local string = string
+local tonumber = tonumber
+local tostring = tostring
 
-SkullIssue.name = "SkullIssue"
-SkullIssue.version = "1.0.0"
-SkullIssue.abilityId = 117625
-SkullIssue.currentStacks = 0
-SkullIssue.isUnlocked = false
+local SkullIssue = {
+    name = "SkullIssue",
+    version = "1.2.0",
+    abilityId = 117625,
+    currentStacks = 0,
+    isUnlocked = false,
+}
+
+-- Table of tracked ability IDs (Venom Skull passive)
+local myAbilityIds = { [SkullIssue.abilityId] = true }
 
 -- Default account-wide settings
 local defaults = {
@@ -22,6 +47,7 @@ local defaults = {
     showNumber = false,
     soundOnReady = true,
     showText = true,
+    showLoadedMessage = false, -- Default false to prevent startup chat spam
 }
 
 -------------------------------------------------------------------------------
@@ -97,8 +123,8 @@ end
 local function CheckPlayerBuffs()
     local numBuffs = GetNumBuffs("player")
     for i = 1, numBuffs do
-        local buffName, timeStarted, timeEnding, buffSlot, stackCount, iconFilename, buffType, effectType, abilityType, statusEffectType, abilityId = GetUnitBuffInfo("player", i)
-        if abilityId == SkullIssue.abilityId then
+        local _, _, _, _, stackCount, _, _, _, _, _, abilityId = GetUnitBuffInfo("player", i)
+        if myAbilityIds[abilityId] then
             local stacks = (stackCount and stackCount > 0) and stackCount or 1
             SkullIssue.UpdateDisplay(stacks)
             return
@@ -107,14 +133,14 @@ local function CheckPlayerBuffs()
     SkullIssue.UpdateDisplay(0)
 end
 
-local function OnEffectChanged(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
-    if abilityId == SkullIssue.abilityId then
-        if changeType == EFFECT_RESULT_FADED then
-            SkullIssue.UpdateDisplay(0)
-        else
-            local stacks = (stackCount and stackCount > 0) and stackCount or 1
-            SkullIssue.UpdateDisplay(stacks)
-        end
+-- Filtered natively in C++ engine space by EVENT_MANAGER (REGISTER_FILTER_ABILITY_ID & REGISTER_FILTER_UNIT_TAG).
+-- Only changeType (arg 2) and stackCount (arg 8) are needed; trailing unused parameters (args 9-17) are eliminated.
+local function OnEffectChanged(_, changeType, _, _, _, _, _, stackCount)
+    if changeType == EFFECT_RESULT_FADED then
+        SkullIssue.UpdateDisplay(0)
+    else
+        local stacks = (stackCount and stackCount > 0) and stackCount or 1
+        SkullIssue.UpdateDisplay(stacks)
     end
 end
 
@@ -203,6 +229,9 @@ local function SlashCommandHandler(str)
     elseif command == "sound" then
         SkullIssue.savedVars.soundOnReady = not SkullIssue.savedVars.soundOnReady
         d("|c00FF66Skull Issue:|r Sound alert on 3 stacks: " .. (SkullIssue.savedVars.soundOnReady and "|c00FF00ON|r" or "|cFF0000OFF|r"))
+    elseif command == "startup" or command == "loaded" then
+        SkullIssue.savedVars.showLoadedMessage = not SkullIssue.savedVars.showLoadedMessage
+        d("|c00FF66Skull Issue:|r Startup loaded chat message: " .. (SkullIssue.savedVars.showLoadedMessage and "|c00FF00ON|r" or "|cFF0000OFF|r"))
     elseif command == "reset" then
         SkullIssue.savedVars.offsetX = defaults.offsetX
         SkullIssue.savedVars.offsetY = defaults.offsetY
@@ -218,6 +247,7 @@ local function SlashCommandHandler(str)
         d("  |cFFFF00/skullissue number|r - Toggle numeric stack counter")
         d("  |cFFFF00/skullissue text|r - Toggle 'Spooky' text on/off")
         d("  |cFFFF00/skullissue sound|r - Toggle sound alert on 3 stacks")
+        d("  |cFFFF00/skullissue startup|r - Toggle startup loaded chat message")
         d("  |cFFFF00/skullissue reset|r - Reset position to center")
     end
 end
@@ -251,16 +281,24 @@ local function OnAddOnLoaded(eventCode, addOnName)
     SLASH_COMMANDS["/skullissue"] = SlashCommandHandler
     SLASH_COMMANDS["/si"] = SlashCommandHandler
 
-    -- Register Combat Buff / Effect Tracking Event
-    EVENT_MANAGER:RegisterForEvent(SkullIssue.name, EVENT_EFFECT_CHANGED, OnEffectChanged)
-    EVENT_MANAGER:AddFilterForEvent(SkullIssue.name, EVENT_EFFECT_CHANGED, REGISTER_FILTER_TARGET_ATTRIBUTE_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+    -- Register Combat Buff / Effect Tracking Event with native filters (abilityId & unitTag)
+    -- Per ESOUI Wiki: generate a unique eventHandleName per filter/abilityId, and pass
+    -- both REGISTER_FILTER_ABILITY_ID and REGISTER_FILTER_UNIT_TAG directly to AddFilterForEvent
+    for abilityId, _ in pairs(myAbilityIds) do
+        local eventHandleName = SkullIssue.name .. tostring(abilityId)
+        EVENT_MANAGER:RegisterForEvent(eventHandleName, EVENT_EFFECT_CHANGED, OnEffectChanged)
+        EVENT_MANAGER:AddFilterForEvent(eventHandleName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, abilityId, REGISTER_FILTER_UNIT_TAG, "player")
+    end
 
     -- Check player buffs on zone in / load
     EVENT_MANAGER:RegisterForEvent(SkullIssue.name, EVENT_PLAYER_ACTIVATED, function()
         CheckPlayerBuffs()
     end)
 
-    d("|c00FF66Skull Issue v" .. SkullIssue.version .. " Loaded.|r Type |cFFFFFF/skullissue|r for options.")
+    -- Startup chat notification is opt-in (toggled via /skullissue startup) to prevent chat spam
+    if SkullIssue.savedVars.showLoadedMessage then
+        d("|c00FF66Skull Issue v" .. SkullIssue.version .. " Loaded.|r Type |cFFFFFF/skullissue|r for options.")
+    end
 end
 
 EVENT_MANAGER:RegisterForEvent(SkullIssue.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)

@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.2 | BossAlerts module
+-- Arclight Taunt 1.2.0 | BossAlerts module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local ALERT_BATCH_SECONDS = A.ALERT_BATCH_SECONDS
@@ -105,6 +105,17 @@ local function SetStaticBossVisual(alert, now)
     SetAlertAlpha(alert, 1)
 end
 
+-- Animation frames are useful only while a visible banner is moving. Keep
+-- hidden slots detached even when decorative animations are enabled.
+local function SetBossAlertFrameUpdates(alert, enabled)
+    enabled = enabled and alert.root and alert.frameHandler and true or false
+    if alert.root and alert.frameUpdatesEnabled ~= enabled then
+        alert.root:SetHandler("OnUpdate", enabled and alert.frameHandler or nil)
+        alert.frameUpdatesEnabled = enabled
+    end
+end
+A.SetBossAlertFrameUpdates = SetBossAlertFrameUpdates
+
 -- With no kind, clear both independent slots (combat end / tracking reset).
 local function HideBossWarning(kind)
     local sequenceActive = A.pendingBossPreview ~= nil
@@ -117,6 +128,7 @@ local function HideBossWarning(kind)
             alert.progressUntil, alert.duration = nil, nil
             alert.previewRequest, alert.revealFrom = nil, nil
             if alert.root then
+                SetBossAlertFrameUpdates(alert, false)
                 A.SetHidden(alert.root, true)
                 SetAlertAlpha(alert, 0)
             end
@@ -284,17 +296,23 @@ local function ShowBossWarning(count, bossName, preview, kind, subjects, preview
         PositionBossAlert(alert)
     end
     A.SetHidden(alert.root, false)
+    SetBossAlertFrameUpdates(alert, not A.saved.reduceAnimations)
     A.AnimateAlertProgress(alert, now)
     A.RefreshUpdateState()
     return true
 end
 
-local function PreviewBossWarnings()
-    -- Never replace an actual fight warning with a settings sample.
+local function CanPreviewBossWarnings()
     for _, alert in pairs(A.bossAlerts) do
         if alert.visibleUntil and not alert.isPreview then return false end
     end
     if A.pendingBossWarnings and next(A.pendingBossWarnings) then return false end
+    return true
+end
+
+local function PreviewBossWarnings()
+    -- Never replace an actual fight warning with a settings sample.
+    if not CanPreviewBossWarnings() then return false end
     HideBossWarning()
     local now = Now()
     if A.saved.bossEarlyWarning then
@@ -501,6 +519,7 @@ A.PlayBossAlertSound = PlayBossAlertSound
 A.PreviewBossWarnings = PreviewBossWarnings
 A.ProcessBossPreview = ProcessBossPreview
 A.ShowBossWarning = ShowBossWarning
+A.CanPreviewBossWarnings = CanPreviewBossWarnings
 A.HideBossWarning = HideBossWarning
 A.DismissBossAlertForTarget = DismissBossAlertForTarget
 A.CheckEarlyBossWarnings = CheckEarlyBossWarnings

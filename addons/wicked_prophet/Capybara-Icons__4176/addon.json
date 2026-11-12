@@ -8,6 +8,10 @@
   "category_id": "33",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,9 +22,10 @@
     "CapybaraIcons"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4176/",
-  "fingerprint": "16b1842f1be3651b17bc4b08ad6ac62e7c7eddf96cc015448dc81151c2f66400",
+  "fingerprint": "7c06b35ec0d0089dca9c8fb793e5fdceb24fba1a3cd6c833e75d7ac76a3a5b40",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw16084.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18395.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18394.png"
   ],
   "platform": "pc",
   "published": true,
@@ -28,9 +33,9 @@
   "source_id": "4176",
   "source_url": "https://www.esoui.com/downloads/info4176-CapybaraIcons.html",
   "stats": {
-    "downloads": 3537,
-    "favorites": 4,
-    "monthly_downloads": 74
+    "downloads": 3850,
+    "favorites": 3,
+    "monthly_downloads": 110
   },
   "title": "Capybara Icons",
   "updated_at": 1790027584000,

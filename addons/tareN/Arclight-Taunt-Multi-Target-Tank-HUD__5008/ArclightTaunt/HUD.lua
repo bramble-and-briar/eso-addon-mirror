@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.2 | HUD module
+-- Arclight Taunt 1.2.0 | HUD module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -127,9 +127,21 @@ local function SavePosition()
 end
 -- In edit mode the *whole* HUD is an explicit drag surface. Unlike the old
 -- click-once-and-auto-lock approach, the user can reposition it repeatedly.
--- The LAM checkbox remains checked until the user intentionally locks it.
+-- Common placement temporarily owns a frozen list preview and both displays.
 local function SetMoving(moving)
-    if A.moving == moving then return end
+    moving = moving == true
+    if (A.moving == true) == moving then return end
+    if moving then
+        if A.SetReticleMoveMode then A.SetReticleMoveMode(false, true) end
+        A.moveStartedDemo = not A.demo
+        A.moveWasPaused = A.demoPausedAt ~= nil
+        if not A.demo or not A.demoEntries or #A.demoEntries == 0 then A.SetDemoEnabled(true) end
+        A.SetDemoPaused(true)
+        -- A previously running boss-only preview can happen to be between
+        -- boss applications. Refresh samples rather than dragging an empty box.
+        local active, lost = A.Gather(Now(), false, A.saved.bossListOnly)
+        if #active + #lost == 0 then A.demoEntries = A.CreateDemo(A.demoCount or 14) end
+    end
     A.moving = moving
     A.root:SetMouseEnabled(moving)
     A.root:SetMovable(moving)
@@ -141,7 +153,11 @@ local function SetMoving(moving)
             SavePosition()
             A.dragActive = false
         end
+        if A.moveStartedDemo then A.SetDemoEnabled(false)
+        elseif not A.moveWasPaused then A.SetDemoPaused(false) end
+        A.moveStartedDemo, A.moveWasPaused = nil, nil
     end
+    if A.SetReticleMoving then A.SetReticleMoving(moving) end
 end
 
 local function NewRow()
@@ -344,8 +360,7 @@ local function MakeBossAlert(kind)
     alert.frameHandler = function(_, time)
         if alert.visibleUntil then A.UpdateBossAlert(time or Now(), kind) end
     end
-    alert.frameUpdatesEnabled = not A.saved.reduceAnimations
-    root:SetHandler("OnUpdate", alert.frameUpdatesEnabled and alert.frameHandler or nil)
+    alert.frameUpdatesEnabled = false
     local body = root
     if compact then
         root:SetAutoRectClipChildren(true)
@@ -731,7 +746,7 @@ end
 local function ObserveTargets(now)
     if not A.demo and (A.reticleDirty or not A.lastReticleScan or now - A.lastReticleScan >= RETICLE_SCAN_INTERVAL) then
         A.lastReticleScan = now
-        if next(A.targets) then
+        if next(A.targets) or (A.ReticleNeedsUpdate and A.ReticleNeedsUpdate()) then
             A.TargetChanged()
         elseif A.activeTarget then
             A.activeTarget = nil
@@ -761,7 +776,7 @@ local function UpdateTargets(now, skipSort)
     -- Pending warnings still refer to their original target/generation. Process
     -- them before Gather can remove a two-second-old loss after a frame hitch.
     A.ProcessBossWarnings(now)
-    local active, lost = A.Gather(now, skipSort)
+    local active, lost = A.Gather(now, skipSort, not skipSort and A.saved.bossListOnly)
     A.ExpireBossAlert(now)
     A.CheckEarlyBossWarnings(now)
     return active, lost
@@ -903,10 +918,12 @@ local function RenderList(now, active, lost, items, saved)
     local rowCount = math.min(rowsPerCol, visible)
     local peakReset = A.peakColumns ~= saved.columns or A.peakLimit ~= saved.limit
         or A.peakScale ~= saved.scale or A.peakDemo ~= A.demoAt
+        or A.peakBossOnly ~= saved.bossListOnly or A.peakBossMode ~= saved.bossMode
     if peakReset or not (A.inCombat or A.demo) then
         A.listPeakRows, A.listPeakFooter = rowCount, 0
     end
     A.peakColumns, A.peakLimit, A.peakScale, A.peakDemo = saved.columns, saved.limit, saved.scale, A.demoAt
+    A.peakBossOnly, A.peakBossMode = saved.bossListOnly, saved.bossMode
     A.listPeakRows = math.max(A.listPeakRows or 0, rowCount)
     A.listPeakFooter = math.max(A.listPeakFooter or 0, hidden > 0 and FOOTER_HEIGHT or 0)
     local fullMode = saved.barDisplay == "full"
@@ -1006,6 +1023,7 @@ local function Tick()
     local show = A.demo or A.moving or #active + #lost > 0
     local hideRoot = not show or not canRenderList
     A.SetHidden(A.root, hideRoot)
+    if hideRoot and A.UpdateReticleIndicator then A.UpdateReticleIndicator(now) end
     A.RefreshUpdateState()
     -- Model/warnings keep running in menus and with the list switched off.
     -- Selection and all enemy-row
@@ -1022,6 +1040,7 @@ local function Tick()
     end
     local items = A.StabilizeVisible(A.SelectVisible(active, lost, saved.columns * saved.limit), A.DemoNow(now))
     RenderList(A.DemoNow(now), active, lost, items, saved)
+    if A.UpdateReticleIndicator then A.UpdateReticleIndicator(now) end
 end
 
 

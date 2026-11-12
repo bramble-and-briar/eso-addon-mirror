@@ -20,6 +20,7 @@ local defaults = {
     roarPanel = true,
     prowlPanel = false,
     panelDecimalSeconds = 0,
+    hitPoint = false,
     feedingpriority = true,
 }
 
@@ -28,6 +29,8 @@ local CARNAGE_ABILITY_ID = 137156
 local TRANSFORM_ABILITY_ID = 32455
 local RAMPAGE_ABILITY_ID = 267416
 local ROAR_ABILITY_ID = 32633
+local FEROCIOUS_ROAR_ABILITY_ID = 39113
+local DEAFENING_ROAR_ABILITY_ID = 39114
 local RENDING_CLAWS_ABILITY_ID = 58855
 local CLAW_FURY_ABILITY_ID = 58864
 local BLOODCLAWS_ABILITY_ID = 58879
@@ -35,6 +38,8 @@ local INSATIABLE_HUNGER_ABILITY_ID = 33208
 local FEEDING_FRENZY_ABILITY_ID = 58775
 local FEEDING_FRENZY_BUFF_ID = 131353
 local MAJOR_COURAGE_BUFF_ID = 109966
+local MAJOR_COWARDICE_ABILITY_ID = 111788
+local MAJOR_COWARDICE_BUFF_ID = 147643
 local PROWL_BUFF_ID = 252086
 
 local function LocalizeAbilityString(stringId, ...)
@@ -196,6 +201,7 @@ local HOLD_STROKE_SIDE = HOLD_ICON_SIZE + HOLD_FLASH_PADDING * 2
 local HOLD_STROKE_OFFSET = HOLD_STROKE_SIDE / 2 - HOLD_STROKE_THICKNESS / 2
 local HOLD_STROKE_START = 0.2
 local WORLD_PIXELS_PER_METER = 100
+local GROUND_LIFT_METERS = 0.05
 local holdIndicator = {}
 
 local function RiseProgress(elapsed, duration)
@@ -220,12 +226,6 @@ local function CreateWorldCanvas(name, root)
     canvas:SetAnchor(CENTER, GuiRoot, CENTER)
     canvas:SetHidden(false)
     return canvas
-end
-
-local function GetCameraPitchYaw()
-    local forwardX, forwardY, forwardZ = GetCameraForward(SPACE_WORLD)
-    return math.atan2(forwardY, math.sqrt(forwardX * forwardX + forwardZ * forwardZ)),
-        math.atan2(forwardX, forwardZ) - math.pi
 end
 
 local function PlaceWorldCanvas(canvas, worldX, worldY, worldZ, pitch, yaw)
@@ -342,7 +342,9 @@ local function UpdateHoldIndicator()
         return
     end
 
-    local pitch, yaw = GetCameraPitchYaw()
+    local forwardX, forwardY, forwardZ = GetCameraForward(SPACE_WORLD)
+    local pitch = math.atan2(forwardY, math.sqrt(forwardX * forwardX + forwardZ * forwardZ))
+    local yaw = math.atan2(forwardX, forwardZ) - math.pi
     local canvas = indicator.canvas
     local icon = indicator.icon
     if indicator.retractAt then
@@ -430,18 +432,50 @@ local function FlashHoldIndicator()
     holdIndicator.startedAt = GetGameTimeMilliseconds() - holdIndicator.duration
 end
 
-local ROAR_BUFF_IDS = { FEEDING_FRENZY_BUFF_ID, MAJOR_COURAGE_BUFF_ID }
-local PROWL_BUFF_IDS = { PROWL_BUFF_ID }
+local ROAR_PANEL_ICONS = {
+    ferocious = { FEEDING_FRENZY_BUFF_ID, MAJOR_COURAGE_BUFF_ID },
+    deafening = { DEAFENING_ROAR_ABILITY_ID, MAJOR_COWARDICE_BUFF_ID },
+}
+local PROWL_PANEL_ICONS = { PROWL_BUFF_ID }
 local PANEL_ICON_SIZE = 48
 local PANEL_ICON_PADDING = 4
 local PANEL_FLASH_PADDING = 6
 local PANEL_FLASH_MS = 300
 local FEEDING_REMINDER_MS = 20000
+local cowardiceUnits = {}
 local roarPanel, prowlPanel
+
+local function GetRoarSlots()
+    local deafeningRoarSlotted = false
+    for slotIndex = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1, ACTION_BAR_ULTIMATE_SLOT_INDEX + 1 do
+        if GetSlotBoundId(slotIndex, HOTBAR_CATEGORY_WEREWOLF) == DEAFENING_ROAR_ABILITY_ID then
+            deafeningRoarSlotted = true
+        end
+    end
+    if deafeningRoarSlotted then
+        return ROAR_PANEL_ICONS.deafening
+    end
+    return ROAR_PANEL_ICONS.ferocious
+end
+
+local function OnCowardiceChanged(_, changeType, _, _, unitTag, beginTime, endTime, _, _, _, _, _, _, _, unitId)
+    if not unitId or unitTag == "player" or unitTag == "companion" or unitTag:sub(1, 5) == "group" then
+        return
+    end
+    if changeType == EFFECT_RESULT_FADED then
+        cowardiceUnits[unitId] = nil
+    else
+        cowardiceUnits[unitId] = { endTime = endTime, duration = endTime - beginTime }
+    end
+end
 
 local function CreateBuffPanel(options)
     local panel = { buffs = {}, controls = {}, unlocked = false }
-    local armReminder
+    local armReminder, reminderIndex, bloom
+    local currentSlots
+
+    local initialSlots = options.getSlots and options.getSlots() or options.slots
+    local panelName = addonName .. options.controlName
 
     local function IsVisible()
         return panel.unlocked or (db[options.dbKey] and (not options.condition or options.condition()))
@@ -449,36 +483,48 @@ local function CreateBuffPanel(options)
 
     local function UpdatePanelNumber()
         local now = GetGameTimeSeconds()
-        for index, buff in ipairs(panel.buffs) do
-            local control = panel.controls[index]
-            local remain = buff.endTime - now
-            if remain > 0 then
-                if remain < db.panelDecimalSeconds then
-                    control.timer:SetText(string.format("%.1f", remain))
-                else
-                    control.timer:SetText(zo_ceil(remain))
+        local count, cowardiceEnd, cowardiceDuration = 0, 0, 0
+        for unitId, debuff in pairs(cowardiceUnits) do
+            if debuff.endTime > now then
+                count = count + 1
+                if debuff.endTime > cowardiceEnd then
+                    cowardiceEnd = debuff.endTime
+                    cowardiceDuration = debuff.duration
                 end
-                control.icon:SetAlpha(1)
-                control.sweep:StartCooldown(math.floor(remain * 1000), math.floor(buff.duration * 1000),
-                    CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_REMAINING, false)
-            elseif buff.active and buff.duration <= 0 then
-                control.timer:SetText("")
-                control.icon:SetAlpha(1)
-                control.sweep:StartCooldown(0, 1000, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_REMAINING, false)
             else
-                control.timer:SetText("")
-                control.icon:SetAlpha(0.5)
-                control.sweep:StartCooldown(0, 1000, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_REMAINING, false)
+                cowardiceUnits[unitId] = nil
             end
         end
-    end
-
-    local function Refresh()
-        panel.fragment:Refresh()
-        EVENT_MANAGER:UnregisterForUpdate(options.updateName)
-        if IsVisible() then
-            UpdatePanelNumber()
-            EVENT_MANAGER:RegisterForUpdate(options.updateName, 100, UpdatePanelNumber)
+        for index, buff in ipairs(panel.buffs) do
+            local control = panel.controls[index]
+            if panel.deafening and index == 1 then
+                control.timer:SetText(count > 0 and tostring(count) or "")
+                control.icon:SetAlpha(count > 0 and 1 or 0.5)
+            else
+                local endTime, duration, active = buff.endTime, buff.duration, buff.active
+                if panel.deafening then
+                    endTime, duration, active = cowardiceEnd, cowardiceDuration, count > 0
+                end
+                local remain = endTime - now
+                if remain > 0 then
+                    if remain < db.panelDecimalSeconds then
+                        control.timer:SetText(string.format("%.1f", remain))
+                    else
+                        control.timer:SetText(zo_ceil(remain))
+                    end
+                    control.icon:SetAlpha(1)
+                    control.sweep:StartCooldown(math.floor(remain * 1000), math.floor(duration * 1000),
+                        CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_REMAINING, false)
+                elseif active and duration <= 0 then
+                    control.timer:SetText("")
+                    control.icon:SetAlpha(1)
+                    control.sweep:StartCooldown(0, 1000, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_REMAINING, false)
+                else
+                    control.timer:SetText("")
+                    control.icon:SetAlpha(0.5)
+                    control.sweep:StartCooldown(0, 1000, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_REMAINING, false)
+                end
+            end
         end
     end
 
@@ -503,9 +549,56 @@ local function CreateBuffPanel(options)
         end
     end
 
-    local control = WINDOW_MANAGER:CreateTopLevelWindow(addonName .. options.controlName)
+    local function Refresh()
+        local slots = options.getSlots and options.getSlots() or options.slots
+        if slots ~= currentSlots then
+            currentSlots = slots
+            panel.deafening = slots == ROAR_PANEL_ICONS.deafening
+            reminderIndex = nil
+            for index, abilityId in ipairs(slots) do
+                local control = panel.controls[index]
+                local buff = panel.buffs[index]
+                control.icon:SetTexture(GetAbilityIcon(abilityId))
+                control.sweep:SetHidden(panel.deafening and index == 1)
+                control.timer:SetText("")
+                buff.abilityId = abilityId
+                buff.endTime = 0
+                buff.duration = 0
+                buff.active = false
+
+                local eventName = panelName .. "Buff" .. index
+                EVENT_MANAGER:UnregisterForEvent(eventName, EVENT_EFFECT_CHANGED)
+                if not panel.deafening then
+                    EVENT_MANAGER:RegisterForEvent(eventName, EVENT_EFFECT_CHANGED, OnBuffChanged)
+                    EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_EFFECT_CHANGED,
+                        REGISTER_FILTER_ABILITY_ID, abilityId)
+                end
+
+                if options.reminder and abilityId == options.reminder.abilityId then
+                    reminderIndex = index
+                end
+            end
+
+            if bloom then
+                if reminderIndex then
+                    bloom:SetAnchor(CENTER, panel.controls[reminderIndex].icon, CENTER)
+                else
+                    bloom:SetHidden(true)
+                end
+            end
+        end
+
+        panel.fragment:Refresh()
+        EVENT_MANAGER:UnregisterForUpdate(options.updateName)
+        if IsVisible() then
+            UpdatePanelNumber()
+            EVENT_MANAGER:RegisterForUpdate(options.updateName, 100, UpdatePanelNumber)
+        end
+    end
+
+    local control = WINDOW_MANAGER:CreateTopLevelWindow(panelName)
     control:SetDimensions(PANEL_ICON_SIZE + PANEL_ICON_PADDING * 2,
-        #options.buffIds * (PANEL_ICON_SIZE + PANEL_ICON_PADDING))
+        #initialSlots * (PANEL_ICON_SIZE + PANEL_ICON_PADDING))
     control:SetClampedToScreen(true)
     control:SetMovable(true)
     control:SetMouseEnabled(true)
@@ -518,16 +611,7 @@ local function CreateBuffPanel(options)
     HUD_SCENE:AddFragment(panel.fragment)
     HUD_UI_SCENE:AddFragment(panel.fragment)
 
-    local panelName = addonName .. options.controlName
-
-    local bloom, reminderIndex
     if options.reminder then
-        for index, abilityId in ipairs(options.buffIds) do
-            if abilityId == options.reminder.abilityId then
-                reminderIndex = index
-            end
-        end
-
         local flashName = options.updateName .. "Flash"
         bloom = WINDOW_MANAGER:CreateControl(panelName .. "Flash", control, CT_TEXTURE)
         bloom:SetTexture("LykeionsAwareWolf/assets/blank.dds")
@@ -551,10 +635,13 @@ local function CreateBuffPanel(options)
         end
 
         armReminder = function()
+            if not reminderIndex then
+                return
+            end
             local generation = flash.generation + 1
             flash.generation = generation
             zo_callLater(function()
-                if flash.generation ~= generation or not IsVisible() then
+                if flash.generation ~= generation or not reminderIndex or not IsVisible() then
                     return
                 end
                 flash.startedAt = GetGameTimeMilliseconds()
@@ -564,15 +651,11 @@ local function CreateBuffPanel(options)
         end
     end
 
-    for index, abilityId in ipairs(options.buffIds) do
+    for index = 1, #initialSlots do
         local icon = WINDOW_MANAGER:CreateControl(panelName .. "Icon" .. index, control, CT_TEXTURE)
         icon:SetDimensions(PANEL_ICON_SIZE, PANEL_ICON_SIZE)
         icon:SetAnchor(TOPLEFT, control, TOPLEFT, PANEL_ICON_PADDING,
             PANEL_ICON_PADDING + (index - 1) * (PANEL_ICON_SIZE + PANEL_ICON_PADDING))
-        icon:SetTexture(GetAbilityIcon(abilityId))
-        if index == reminderIndex then
-            bloom:SetAnchor(CENTER, icon, CENTER)
-        end
 
         local sweep = WINDOW_MANAGER:CreateControl(panelName .. "Sweep" .. index, control, CT_COOLDOWN)
         sweep:SetAnchorFill(icon)
@@ -586,11 +669,7 @@ local function CreateBuffPanel(options)
         timer:SetAnchor(CENTER, icon, CENTER, 0, 6)
 
         panel.controls[index] = { icon = icon, sweep = sweep, timer = timer }
-        table.insert(panel.buffs, { abilityId = abilityId, endTime = 0, duration = 0, active = false })
-
-        local eventName = panelName .. "Buff" .. abilityId
-        EVENT_MANAGER:RegisterForEvent(eventName, EVENT_EFFECT_CHANGED, OnBuffChanged)
-        EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, abilityId)
+        table.insert(panel.buffs, { endTime = 0, duration = 0, active = false })
     end
 
     if LibCombatAlerts and LibCombatAlerts.MoveableControl then
@@ -618,15 +697,17 @@ local function CreateBuffPanel(options)
         Refresh()
     end
 
+    Refresh()
+
     return panel
 end
 
 local CLAW_EDGE_TEXTURE = "esoui/art/miscellaneous/listitem_divider.dds"
-local CLAW_EDGE_HEIGHT = 0.15
-local CLAW_FADE_IN_MS = 180
+local CLAW_EDGE_TEXTURE_BOTTOM = 0.65
+local CLAW_FADE_IN_MS = 120
 local CLAW_FADE_OUT_MS = 180
 local CLAW_FURY_MAX_DURATION_MS = 4666
-local CLAW_MORPH_DURATION_MS = 1500
+local CLAW_DEFAULT_DURATION_MS = 1500
 local clawSector = { edges = {}, active = false, startedAt = 0, expiresAt = 0 }
 
 local function GetClampValue(value)
@@ -649,6 +730,7 @@ local function CreateClawSector()
         local bar = WINDOW_MANAGER:CreateControl(addonName .. "ClawEdgeTexture" .. edge, canvas, CT_TEXTURE)
         bar:SetAnchor(CENTER, canvas, CENTER)
         bar:SetTexture(CLAW_EDGE_TEXTURE)
+        bar:SetTextureCoords(0, 1, 0, CLAW_EDGE_TEXTURE_BOTTOM)
         bar:SetColor(1, 1, 1, 1)
         bar:SetTextureReleaseOption(RELEASE_TEXTURE_AT_ZERO_REFERENCES)
         bar:SetHidden(true)
@@ -696,7 +778,7 @@ local function UpdateClawSector()
         if alpha > 0.002 then
             PlaceWorldCanvas(controls.canvas,
                 worldX + math.sin(angle) * distance * WORLD_PIXELS_PER_METER,
-                worldY + CLAW_EDGE_HEIGHT * WORLD_PIXELS_PER_METER,
+                worldY + GROUND_LIFT_METERS * WORLD_PIXELS_PER_METER,
                 worldZ + math.cos(angle) * distance * WORLD_PIXELS_PER_METER,
                 -math.pi / 2, angle - math.pi / 2)
             SetWorldDimensions(controls.bar, length, 0.5)
@@ -727,7 +809,7 @@ local function OnSlotAbilityUsed(_, slotIndex)
     if abilityId == CLAW_FURY_ABILITY_ID then
         StartClawSector(CLAW_FURY_MAX_DURATION_MS)
     elseif abilityId == RENDING_CLAWS_ABILITY_ID or abilityId == BLOODCLAWS_ABILITY_ID then
-        StartClawSector(CLAW_MORPH_DURATION_MS)
+        StartClawSector(CLAW_DEFAULT_DURATION_MS)
     end
 end
 
@@ -769,6 +851,78 @@ local function SetClawRangeTrackingEnabled(enabled)
     end
 end
 
+local HIT_POINT_DIAMETER_METERS = 0.16
+local HIT_POINT_COLOR = { 1, 0.84, 0 }
+local HIT_POINT_ALPHA = 0.95
+local hitPoint = {}
+local hitPointUpdateName = addonName .. "_HitPoint"
+
+local function HideHitPoint()
+    EVENT_MANAGER:UnregisterForUpdate(hitPointUpdateName)
+    if hitPoint.texture then
+        hitPoint.texture:SetHidden(true)
+    end
+end
+
+local function UpdateHitPoint()
+    if not (db.hitPoint and IsUnitInCombat("player")) or IsPositivelyActive() then
+        hitPoint.texture:SetHidden(true)
+        return
+    end
+    local _, worldX, worldY, worldZ = GetUnitRawWorldPosition("player")
+    if not worldX then
+        hitPoint.texture:SetHidden(true)
+        return
+    end
+    PlaceWorldCanvas(hitPoint.canvas, worldX, worldY + GROUND_LIFT_METERS * WORLD_PIXELS_PER_METER,
+        worldZ, -math.pi / 2, 0)
+    hitPoint.texture:SetHidden(false)
+end
+
+local function OnHitPointCombatState(_, inCombat)
+    if db.hitPoint and inCombat then
+        EVENT_MANAGER:RegisterForUpdate(hitPointUpdateName, 16, UpdateHitPoint)
+        UpdateHitPoint()
+    else
+        HideHitPoint()
+    end
+end
+
+local function SetHitPointEnabled(enabled)
+    if not hitPoint.texture then
+        return
+    end
+    EVENT_MANAGER:UnregisterForEvent(hitPointUpdateName, EVENT_PLAYER_COMBAT_STATE)
+    HideHitPoint()
+    if enabled then
+        EVENT_MANAGER:RegisterForEvent(hitPointUpdateName, EVENT_PLAYER_COMBAT_STATE, OnHitPointCombatState)
+        OnHitPointCombatState(nil, IsUnitInCombat("player"))
+    end
+end
+
+local function CreateHitPoint()
+    local root = WINDOW_MANAGER:CreateTopLevelWindow(addonName .. "HitPoint")
+    root:SetDrawLayer(DL_BACKGROUND)
+    root:SetDrawTier(DT_LOW)
+    root:SetDrawLevel(0)
+    root:SetHidden(false)
+    AddHudFragment(root)
+    hitPoint.control = root
+
+    local canvas = CreateWorldCanvas(addonName .. "HitPointCanvas", root)
+    SetWorldDimensions(canvas, HIT_POINT_DIAMETER_METERS, HIT_POINT_DIAMETER_METERS)
+    hitPoint.canvas = canvas
+
+    local texture = WINDOW_MANAGER:CreateControl(addonName .. "HitPointTexture", canvas, CT_TEXTURE)
+    texture:SetAnchor(CENTER, canvas, CENTER)
+    SetWorldDimensions(texture, HIT_POINT_DIAMETER_METERS, HIT_POINT_DIAMETER_METERS)
+    texture:SetTexture("EsoUI/Art/quest/eso_questenum_mouseover.dds")
+    -- texture:SetTextureReleaseOption(RELEASE_TEXTURE_AT_ZERO_REFERENCES)
+    -- texture:SetColor(HIT_POINT_COLOR[1], HIT_POINT_COLOR[2], HIT_POINT_COLOR[3], HIT_POINT_ALPHA)
+    texture:SetHidden(true)
+    hitPoint.texture = texture
+end
+
 local function OnRezonning()
     if db.feedingpriority then
         SetSynergyPriorityOverride(FEEDING_FRENZY_ABILITY_ID, 4)
@@ -789,12 +943,18 @@ local function OnPlayerInit()
     end)
 
     CreateHoldIndicator()
+    EVENT_MANAGER:RegisterForEvent(addonName .. "_Cowardice", EVENT_EFFECT_CHANGED, OnCowardiceChanged)
+    EVENT_MANAGER:AddFilterForEvent(addonName .. "_Cowardice", EVENT_EFFECT_CHANGED,
+        REGISTER_FILTER_ABILITY_ID, MAJOR_COWARDICE_BUFF_ID)
+    EVENT_MANAGER:RegisterForEvent(addonName .. "_CowardiceAbility", EVENT_EFFECT_CHANGED, OnCowardiceChanged)
+    EVENT_MANAGER:AddFilterForEvent(addonName .. "_CowardiceAbility", EVENT_EFFECT_CHANGED,
+        REGISTER_FILTER_ABILITY_ID, MAJOR_COWARDICE_ABILITY_ID)
     roarPanel = CreateBuffPanel({
         controlName = "RoarPanel",
         dbKey = "roarPanel",
         updateName = addonName .. "_RoarPanel",
         positionKey = "roarPanel",
-        buffIds = ROAR_BUFF_IDS,
+        getSlots = GetRoarSlots,
         condition = IsPlayerInWerewolfForm,
         reminder = { abilityId = FEEDING_FRENZY_BUFF_ID, delayMs = FEEDING_REMINDER_MS },
     })
@@ -803,10 +963,11 @@ local function OnPlayerInit()
         dbKey = "prowlPanel",
         updateName = addonName .. "_ProwlPanel",
         positionKey = "prowlPanel",
-        buffIds = PROWL_BUFF_IDS,
+        slots = PROWL_PANEL_ICONS,
         condition = IsPlayerInWerewolfForm,
     })
     CreateClawSector()
+    CreateHitPoint()
 
     if ZO_IsConsoleOrGameCoreUI() then
         local function AddPanelMoveCommand(slash, panel)
@@ -822,6 +983,7 @@ local function OnPlayerInit()
 
 
     SetClawRangeTrackingEnabled(db.clawFuryRange)
+    SetHitPointEnabled(db.hitPoint)
 
     -- this part of soft blocker implement is based on the best practices used in NoAccidentalStealing by Shinni
     ZO_PreHook("ZO_ActionBar_OnActionButtonDown", function(slotNum)
@@ -875,6 +1037,15 @@ local function OnPlayerInit()
         roarPanel.refresh()
         prowlPanel.refresh()
     end)
+    EVENT_MANAGER:RegisterForEvent(addonName, EVENT_ACTION_SLOTS_FULL_UPDATE, function()
+        roarPanel.refresh()
+    end)
+    EVENT_MANAGER:RegisterForEvent(addonName, EVENT_ACTION_SLOT_UPDATED, function()
+        roarPanel.refresh()
+    end)
+    EVENT_MANAGER:RegisterForEvent(addonName, EVENT_SKILL_RESPEC_RESULT, function()
+        roarPanel.refresh()
+    end)
 
     roarPanel.refresh()
     prowlPanel.refresh()
@@ -890,11 +1061,26 @@ local function CreateMenu()
         name = "Lykeion's Aware Wolf",
         displayName = "|c2e5c8cL|r|c365f87y|r|c3f6282k|r|c47657de|r|c4f6778i|r|c586a74o|r|c606d6fn|r|c68706a'|r|c717365s|r|c797660 |r|c81785bA|r|c897b56w|r|c927e51a|r|c9a814cr|r|ca28447e|r|cab8743 |r|cb3893eW|r|cbb8c39o|r|cc48f34l|r|ccc922ff|r",
         author = "|c215895Lykeion|r",
-        version = "|ccc922f2.6|r",
+        version = "|ccc922f2.7|r",
         slashCommand = "/law",
         registerForRefresh = true,
         registerForDefaults = true,
     }
+
+    local roarTooltip = LocalizeAbilityString(LAW_ROAR_PANEL_TOOLTIP,
+        GetAbilityName(FEROCIOUS_ROAR_ABILITY_ID),
+        GetAbilityName(ROAR_ABILITY_ID),
+        GetAbilityName(FEEDING_FRENZY_BUFF_ID),
+        GetAbilityName(MAJOR_COURAGE_BUFF_ID),
+        GetAbilityName(DEAFENING_ROAR_ABILITY_ID),
+        GetAbilityName(MAJOR_COWARDICE_ABILITY_ID))
+    local roarTooltipGamepad = LocalizeAbilityString(LAW_ROAR_PANEL_TOOLTIP_GAMEPAD,
+        GetAbilityName(FEROCIOUS_ROAR_ABILITY_ID),
+        GetAbilityName(ROAR_ABILITY_ID),
+        GetAbilityName(FEEDING_FRENZY_BUFF_ID),
+        GetAbilityName(MAJOR_COURAGE_BUFF_ID),
+        GetAbilityName(DEAFENING_ROAR_ABILITY_ID),
+        GetAbilityName(MAJOR_COWARDICE_ABILITY_ID))
 
     local optionsData = {
         {
@@ -944,9 +1130,7 @@ local function CreateMenu()
         {
             type = "checkbox",
             name = LocalizeAbilityString(LAW_ROAR_PANEL, GetAbilityName(ROAR_ABILITY_ID)),
-            tooltip = GetPlatformText(
-                LocalizeAbilityString(LAW_ROAR_PANEL_TOOLTIP, GetAbilityName(FEEDING_FRENZY_BUFF_ID), GetAbilityName(MAJOR_COURAGE_BUFF_ID)),
-                LocalizeAbilityString(LAW_ROAR_PANEL_TOOLTIP_GAMEPAD, GetAbilityName(FEEDING_FRENZY_BUFF_ID), GetAbilityName(MAJOR_COURAGE_BUFF_ID))),
+            tooltip = GetPlatformText(roarTooltip, roarTooltipGamepad),
             default = defaults.roarPanel,
             getFunc = function()
                 return db.roarPanel
@@ -1000,6 +1184,19 @@ local function CreateMenu()
                 if not value then
                     StopClawSector()
                 end
+            end,
+        },
+        {
+            type = "checkbox",
+            name = GetString(LAW_HIT_POINT),
+            tooltip = GetString(LAW_HIT_POINT_TOOLTIP),
+            default = defaults.hitPoint,
+            getFunc = function()
+                return db.hitPoint
+            end,
+            setFunc = function(value)
+                db.hitPoint = value
+                SetHitPointEnabled(value)
             end,
         },
         {

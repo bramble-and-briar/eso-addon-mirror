@@ -14,6 +14,9 @@ src/ConsoleMetrics_Combat.lua
 src/ConsoleMetrics_Chat.lua
 src/ConsoleMetrics_LibFights.lua
 src/ConsoleMetrics_Dialog.lua
+src/ConsoleMetrics_DialogCMX.lua
+src/ConsoleMetrics_GamepadScreen.xml
+src/ConsoleMetrics_GamepadScreen.lua
 src/ConsoleMetrics_PCDialog.lua
 src/ConsoleMetrics_Integration.lua
 src/ConsoleMetrics_Debug.lua

@@ -4,7 +4,7 @@ BattleScrolls = BattleScrolls or {}
 
 ---@alias InventoryPocKind 'other'|'gear'|'companion'|'glyph'|'treasure'|'junk'|'food'|'poison'|'potion'|'script'|'motif'|'recipe'|'plan'|'collectible'|'fragment'|'container'|'soulGem'|'map'|'survey'|'writ'|'sealedContainer'|'sealedLead'
 ---@alias InventoryPocAction 'keep'|'defer'|'sell'|'deconstruct'|'bank'|'learn'|'list'|'destroy'|'open'|'bind'|'equip'
----@alias InventoryPocReason 'reserved'|'stolen'|'crown'|'junk'|'glyph'|'material'|'gear'|'knowledge'|'price'|'companion'|'container'|'supplies'|'unassigned'|'learn'|'valuablePlan'|'duplicate'|'sale'|'collection'
+---@alias InventoryPocReason 'reserved'|'stolen'|'crown'|'junk'|'glyph'|'material'|'gear'|'knowledge'|'price'|'companion'|'container'|'supplies'|'unassigned'|'learn'|'valuablePlan'|'duplicate'|'sale'|'collection'|'unsellable'
 
 ---@class InventoryPocItem: InventoryPocVariant
 ---@field bag number
@@ -34,6 +34,7 @@ BattleScrolls = BattleScrolls or {}
 ---@field crown boolean
 ---@field vendorUnit number
 ---@field prioritySell boolean|nil Native merchant recommendation
+---@field cannotSell boolean|nil Native "Cannot Sell" marker: merchants refuse the item
 ---@field marketUnit number|nil
 ---@field priceLoading boolean|nil TSC has not finished loading; distinct from a missing quote
 ---@field styleMaterialLink string
@@ -41,7 +42,7 @@ BattleScrolls = BattleScrolls or {}
 ---@field traitMaterialLink string
 ---@field traitMaterialUnit number|nil
 ---@field traitMaterialResolved boolean
----@field tradeable boolean|nil Native guild-store eligibility for player and companion gear
+---@field tradeable boolean|nil Native guild-store eligibility; nil when unread
 ---@field hasSet boolean|nil
 ---@field setCollected boolean|nil Nil when the gear has no sticker-book entry
 ---@field collectionKey string|nil Set ID and slot for a missing collection entry
@@ -186,6 +187,8 @@ end
 ---@param cheapAction InventoryPocAction
 ---@return InventoryPocDecision
 local function sellDuplicate(item, cheapAction)
+    -- A bound copy can never be listed: waiting for a price would strand it.
+    if item.tradeable == false then return decision(cheapAction, 'duplicate') end
     if not policy.validPrice(item.marketUnit) then return decision('defer', 'price') end
     if policy.listingQuantity(item) > 0 then return decision('list', 'duplicate') end
     return decision(cheapAction, 'duplicate')
@@ -194,13 +197,13 @@ end
 ---Priority is deliberate: protections, special uses, then generic cleanup.
 ---@param item InventoryPocItem
 ---@return InventoryPocDecision
-function policy.decide(item)
+local function classify(item)
     if item.reserved then return decision('keep', 'reserved') end
     if item.stolen then return decision('keep', 'stolen') end
     if item.kind == 'sealedLead' then
         if policy.disposalQuantity(item) == 0 then return decision('bank', 'knowledge') end
         if item.priceLoading then return decision('defer', 'price') end
-        return decision(policy.listingQuantity(item) > 0 and 'list' or 'sell', 'duplicate')
+        return decision(item.tradeable ~= false and policy.listingQuantity(item) > 0 and 'list' or 'sell', 'duplicate')
     end
     if item.kind == 'container' and item.openAfter then return decision('keep', 'container') end
     if item.kind == 'map' or item.kind == 'survey' or item.kind == 'writ' or item.kind == 'sealedContainer' then
@@ -215,7 +218,7 @@ function policy.decide(item)
     if item.prioritySell then return decision('sell', 'junk') end
     -- The native "Scroll" subtype also contains supplies worth keeping.
     -- This personal sale choice is for the unbound Scrying/Excavation treatise.
-    if item.itemId == 227303 then
+    if item.itemId == 227303 and item.tradeable ~= false then
         if not policy.validPrice(item.marketUnit) then return decision('defer', 'price') end
         return decision(policy.listingQuantity(item) > 0 and 'list' or 'keep', 'sale')
     end
@@ -242,7 +245,7 @@ function policy.decide(item)
         return sellDuplicate(item, 'destroy')
     end
     if item.kind == 'motif' or item.kind == 'recipe' or item.kind == 'plan' then
-        if item.kind == 'plan' then
+        if item.kind == 'plan' and item.tradeable ~= false then
             if not policy.validPrice(item.marketUnit) then return decision('defer', 'price') end
             if item.marketUnit > policy.EXPENSIVE_PLAN then return decision('list', 'valuablePlan') end
         end
@@ -286,6 +289,16 @@ function policy.decide(item)
     if item.kind == 'container' then return decision('open', 'container') end
     if item.kind == 'soulGem' then return decision('keep', 'supplies') end
     return decision('keep', 'unassigned')
+end
+
+---@param item InventoryPocItem
+---@return InventoryPocDecision
+function policy.decide(item)
+    local choice = classify(item)
+    -- ESO marks these "Cannot Sell" and merchants answer "That item cannot be
+    -- sold". Attempting it would time out and block the item on every visit.
+    if choice.action == 'sell' and item.cannotSell then return decision('keep', 'unsellable') end
+    return choice
 end
 
 ---Fragments can reach their use requirement across both account-bank bags

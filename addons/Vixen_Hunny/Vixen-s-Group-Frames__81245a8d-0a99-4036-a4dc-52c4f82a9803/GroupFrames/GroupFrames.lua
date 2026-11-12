@@ -1,20 +1,46 @@
+---------------------------------------------------------------------------
+-- GroupFrames.lua - the frames themselves
+--
+-- Builds one frame per group member and keeps it up to date. This file owns
+-- everything that is drawn; the other files only supply data or settings:
+--
+--   Buffs.lua     which effects count as tracked, and the user's own list
+--   Share.lua     sending/receiving that list through LibGroupBroadcast
+--   Stats.lua     ultimate, DPS/HPS and front/back bar of each member
+--   Settings.lua  the options menu (LibAddonMenu on PC, LibHarvens on console)
+--
+-- How it works: the frames are plain controls created in Lua (no XML). A
+-- timer (OnTick) runs ten times a second, works out who is in the group,
+-- and refreshes each frame by polling the game and the libraries. The only
+-- event that matters is EVENT_EFFECT_CHANGED, which marks a member's buffs
+-- as needing a rescan.
+--
+-- A "frame" is a Lua table holding its controls and current state:
+--   control      the frame's container control
+--   unitTag      who it shows right now ("group3", "player") or nil if unused
+--   icons        buff icon controls, created on demand
+--   buffs        the tracked effects currently on the member (sorted)
+--   forceRefresh set when everything must be redrawn (layout or member changed)
+---------------------------------------------------------------------------
+
 GroupFrames = GroupFrames or {}
 local GF = GroupFrames
 
-GF.name = "GroupFrames"
-GF.version = "1.2.0"
+GF.name = "GroupFrames" -- must match the folder / manifest name
+GF.version = "1.2.0" -- shown in the settings; keep in step with the manifest
 
 local WM = WINDOW_MANAGER
 local EM = EVENT_MANAGER
 
-local MAX_FRAMES = 12
-local PAD = 5
-local NAME_HEIGHT = 20
+local MAX_FRAMES = 12 -- largest group (a trial)
+local PAD = 5 -- space between the frame border and its contents
+local NAME_HEIGHT = 20 -- height of the name row
 local ROLE_ICON_SIZE = 18
 local LEADER_ICON_SIZE = 16
-local FRAME_SPACING = 6
-local TICK_MS = 100
+local FRAME_SPACING = 6 -- gap between neighbouring frames
+local TICK_MS = 100 -- how often OnTick runs
 
+-- Built-in game textures.
 local LEADER_ICON = "EsoUI/Art/UnitFrames/groupIcon_leader.dds"
 local ROLE_ICONS = {
     [LFG_ROLE_TANK] = "EsoUI/Art/LFG/LFG_icon_tank.dds",
@@ -31,36 +57,42 @@ local BAR_COLORS = {
     ultReady = { { 1.00, 0.72, 0.10 }, { 1.00, 0.97, 0.60 } },
 }
 
-local STATS_HEIGHT = 15
-local COLOR_FRONT_BAR = "7fd3ff"
+local STATS_HEIGHT = 15 -- height of the FRONT/BACK + DPS/HPS text line
+local COLOR_FRONT_BAR = "7fd3ff" -- text colours (hex) of the weapon bar label
 local COLOR_BACK_BAR = "ffa64d"
 
+-- Frame border: gold for your own frame, black for everyone else.
 local COLOR_SELF_EDGE = { 0.90, 0.74, 0.32, 0.95 }
 local COLOR_EDGE = { 0, 0, 0, 0.9 }
 
+-- Default settings. ZO_SavedVars copies these into GF.sv for every key the
+-- player has not changed, so GF.sv always has a value for each of them.
 GF.defaults = {
-    left = 40,
+    -- position and layout
+    left = 40, -- top-left corner of the frames on screen
     top = 300,
-    locked = true,
+    locked = true, -- false = draggable with the mouse (PC)
     scale = 1,
-    width = 200,
+    width = 200, -- width of one frame before adaptive shrinking
     orientation = "vertical", -- "vertical" stacks downwards, "horizontal" sideways
     wrapAfter = 6, -- frames per column/row (12 players = 6 left, 6 right), 0 = auto wrap at the screen edge
-    balanceWrap = true,
-    adaptiveSize = true,
-    compactAbove = 4,
-    compactFactor = 0.8,
-    showSolo = false,
-    replaceDefault = true,
-    sortMode = "default",
-    useDisplayName = false,
+    balanceWrap = true, -- split wrapped members evenly (4 + 4 instead of 6 + 2)
+    adaptiveSize = true, -- shrink the frames in large groups...
+    compactAbove = 4, -- ...once there are more members than this...
+    compactFactor = 0.8, -- ...to this fraction of their normal size
+    showSolo = false, -- show your own frame while not grouped
+    replaceDefault = true, -- hide the game's own group frames
+    sortMode = "default", -- order of the buff icons, see SORT_MODES
+    useDisplayName = false, -- @account names instead of character names
 
+    -- appearance
     bgAlpha = 0.6,
     showRoleIcons = true,
     highlightSelf = true,
     smoothBars = true,
     showShields = true,
 
+    -- what each frame shows
     showHealth = true,
     showMagicka = true,
     showStamina = true,
@@ -68,38 +100,47 @@ GF.defaults = {
     showUlt = true,
     showDps = true,
     showHps = true,
-    showBar = true,
-    shareBar = true,
+    showBar = true, -- FRONT / BACK weapon bar label
+    shareBar = true, -- tell groupmates which bar you are on
     ultHeight = 18,
     healthHeight = 18,
-    resourceHeight = 6,
+    resourceHeight = 6, -- magicka and stamina bars
 
+    -- buffs
     showBuffs = true,
-    trackMajor = true,
+    trackMajor = true, -- master switches for the two lists in sv.buffs
     trackMinor = true,
-    trackOtherMajorMinor = false,
-    trackDebuffs = false,
+    trackOtherMajorMinor = false, -- Major/Minor buffs missing from the lists
+    trackDebuffs = false, -- Major/Minor debuffs
     trackedEffects = {}, -- user-added effects, see Buffs.lua
+    blacklist = {}, -- effects never shown, same keys as trackedEffects
     effectIds = {}, -- lower-case effect name -> an ability id with that name (for sharing)
-    autoAcceptShared = false,
-    buffs = {}, -- filled from Buffs.lua below
+    autoAcceptShared = false, -- add effects groupmates share without asking
+    buffs = {}, -- "Major Resolve" -> true/false, filled from Buffs.lua below
     iconSize = 24,
     maxIcons = 7,
     showTimers = true,
 }
 
+-- Every known Major and Minor buff is tracked until the player unticks it.
 for _, name in ipairs(GF.MAJOR_BUFFS) do GF.defaults.buffs[name] = true end
 for _, name in ipairs(GF.MINOR_BUFFS) do GF.defaults.buffs[name] = true end
 
-local frames = {}
-local dirtyBuffs = {} -- unitTag -> true
+local frames = {} -- [1..MAX_FRAMES], all created up front and reused
+local dirtyBuffs = {} -- unitTag -> true: buffs changed since the last tick
 local groupResources -- LibGroupResources handler api, nil when not installed
-local root, container
+local root -- top level window: position, scale, dragging, HUD visibility
+local container -- child of root that the frames are anchored to
 
 ---------------------------------------------------------------------------
 -- Control creation
+--
+-- Everything is layered with draw levels (higher is on top):
+--   0 frame background   1 bar/icon backgrounds   2 bar fills and icons
+--   3 shield overlay, names and icon texts        4 bar gloss   5 bar texts
 ---------------------------------------------------------------------------
 
+-- Creates a white, vertically centred label that truncates with "...".
 local function CreateLabel(name, parent, font)
     local label = WM:CreateControl(name, parent, CT_LABEL)
     label:SetFont(font)
@@ -111,6 +152,9 @@ end
 
 -- A bar is: a dark inset with a 1px black rim, a gradient fill and a soft
 -- highlight over the top half that gives it a glossy look.
+-- `colors` is one entry of BAR_COLORS. The returned status bar carries two
+-- extra fields: `bg` (its background, hidden together with it) and `noData`
+-- (true while there is nothing to show, see SetBar).
 local function CreateBar(name, parent, colors)
     local dark, bright = colors[1], colors[2]
 
@@ -140,11 +184,15 @@ local function CreateBar(name, parent, colors)
     return bar
 end
 
+-- Shows or hides a bar together with its background.
 local function SetBarShown(bar, shown)
     bar:SetHidden(not shown)
     bar.bg:SetHidden(not shown)
 end
 
+-- Creates the index-th buff icon of a frame: a bordered ability icon with
+-- the remaining time at the bottom and the stack count in the top right.
+-- Icons are only created when a frame first needs that many.
 local function CreateIcon(frame, index)
     local name = frame.control:GetName() .. "Buff" .. index
     local icon = WM:CreateControl(name, frame.control, CT_CONTROL)
@@ -177,17 +225,22 @@ local function CreateIcon(frame, index)
     return icon
 end
 
+-- Creates all controls of one frame. Only what never changes is set here;
+-- sizes and positions are applied later by LayoutFrame, because they depend
+-- on the settings and on the group size.
 local function CreateFrame(index)
     local name = "GroupFramesUnit" .. index
     local control = WM:CreateControl(name, container, CT_CONTROL)
 
     local frame = { control = control, icons = {}, buffs = {}, index = index }
 
+    -- dark panel behind everything, with the 1px border
     frame.bg = WM:CreateControl(name .. "BG", control, CT_BACKDROP)
     frame.bg:SetAnchorFill(control)
     frame.bg:SetEdgeTexture("", 1, 1, 1)
     frame.bg:SetDrawLevel(0)
 
+    -- name row: role (or class) icon, name, leader crown
     frame.role = WM:CreateControl(name .. "Role", control, CT_TEXTURE)
     frame.role:SetDimensions(ROLE_ICON_SIZE, ROLE_ICON_SIZE)
     frame.role:SetAnchor(TOPLEFT, control, TOPLEFT, PAD - 1, PAD - 1)
@@ -206,6 +259,7 @@ local function CreateFrame(index)
 
     frame.health = CreateBar(name .. "Health", control, BAR_COLORS.health)
 
+    -- translucent pale blue bar on top of the health bar for damage shields
     frame.shield = WM:CreateControl(name .. "Shield", control, CT_STATUSBAR)
     frame.shield:SetAnchorFill(frame.health)
     frame.shield:SetGradientColors(0.55, 0.75, 1, 0.35, 0.9, 0.97, 1, 0.6)
@@ -214,7 +268,8 @@ local function CreateFrame(index)
     frame.shield:SetDrawLevel(3)
     frame.shield:SetHidden(true)
 
-    frame.healthText = CreateLabel(name .. "HealthText", control, "$(BOLD_FONT)|$(KB_14)|soft-shadow-thick")
+    -- "87%", "Dead" or "Offline" in the middle of the health bar
+    frame.healthText =CreateLabel(name .. "HealthText", control, "$(BOLD_FONT)|$(KB_14)|soft-shadow-thick")
     frame.healthText:SetAnchor(CENTER, frame.health, CENTER, 0, 0)
     frame.healthText:SetDrawLevel(5)
 
@@ -234,11 +289,12 @@ local function CreateFrame(index)
     frame.ultIcon:SetTextureCoords(0.07, 0.93, 0.07, 0.93)
     frame.ultIcon:SetDrawLevel(2)
 
-    frame.ultText = CreateLabel(name .. "UltText", control, "$(BOLD_FONT)|$(KB_13)|soft-shadow-thick")
+    -- "current / needed" ultimate points in the middle of the ult bar
+    frame.ultText =CreateLabel(name .. "UltText", control, "$(BOLD_FONT)|$(KB_13)|soft-shadow-thick")
     frame.ultText:SetAnchor(CENTER, frame.ult, CENTER, 0, 0)
     frame.ultText:SetDrawLevel(5)
 
-    -- line below the bars: weapon bar on the left, ult points / DPS / HPS on the right
+    -- line below the bars: weapon bar on the left, DPS / HPS on the right
     frame.barLabel = CreateLabel(name .. "Bar", control, "$(BOLD_FONT)|$(KB_13)|soft-shadow-thick")
     frame.barLabel:SetDrawLevel(3)
     frame.stats = CreateLabel(name .. "Stats", control, "$(BOLD_FONT)|$(KB_13)|soft-shadow-thick")
@@ -251,11 +307,15 @@ end
 
 ---------------------------------------------------------------------------
 -- Layout
+--
+-- Two steps: LayoutFrame sizes one frame and stacks its rows from top to
+-- bottom, Arrange places the frames next to each other and wraps them.
+-- Both run again whenever a setting or the group size changes.
 ---------------------------------------------------------------------------
 
 -- Effective sizes for the current group size (see UpdateMetrics).
-local metrics = { width = 200, healthHeight = 18, resourceHeight = 6, iconSize = 24 }
-local lastCount = 1
+local metrics = { width = 200, healthHeight = 18, resourceHeight = 6, ultHeight = 18, iconSize = 24 }
+local lastCount = 1 -- number of members the frames are currently laid out for
 
 -- Adaptive size: shrink the frames once the group is larger than the
 -- configured threshold so a full trial group still fits comfortably.
@@ -269,18 +329,24 @@ local function UpdateMetrics(count)
     metrics.iconSize = zo_max(12, zo_floor(sv.iconSize * factor))
 end
 
+-- Positions the rows of one frame and returns the frame's height. `y` is
+-- the running top offset: each visible row is placed at y and then moves y
+-- down by its own height, so hidden rows simply take no space.
+-- Row order: name, health, magicka, stamina, ultimate, stats line, buffs.
 local function LayoutFrame(frame)
     local sv = GF.sv
     local control = frame.control
     local width = metrics.width
-    local inner = width - PAD * 2
+    local inner = width - PAD * 2 -- usable width inside the padding
     local y = PAD
 
     frame.bg:SetCenterColor(0.04, 0.04, 0.06, sv.bgAlpha)
 
+    -- the name row is anchored by UpdateHeader, which knows the icons
     frame.nameY = y
     y = y + NAME_HEIGHT + 2
 
+    -- places a full-width bar at the current y, or hides it
     local function Place(bar, shown, height)
         SetBarShown(bar, shown)
         if shown then
@@ -310,6 +376,7 @@ local function LayoutFrame(frame)
         y = y + size + 3
     end
 
+    -- stats line: weapon bar label on the left, DPS / HPS right-aligned
     local showStats = sv.showDps or sv.showHps or sv.showBar
     frame.barLabel:SetHidden(not showStats)
     frame.stats:SetHidden(not showStats)
@@ -328,6 +395,7 @@ local function LayoutFrame(frame)
         frame.shield:SetHidden(true)
     end
 
+    -- buff icons are positioned by ScanBuffs; only reserve their row here
     frame.buffY = y + 1
     if sv.showBuffs then
         y = y + metrics.iconSize + 6
@@ -346,6 +414,7 @@ local function Arrange(count)
     count = zo_max(count, 1)
     UpdateMetrics(count)
 
+    -- all frames get the same size, so the height of the last one will do
     local height = 0
     for i = 1, MAX_FRAMES do
         height = LayoutFrame(frames[i])
@@ -354,6 +423,8 @@ local function Arrange(count)
     local width = metrics.width
     local vertical = sv.orientation ~= "horizontal"
 
+    -- A "line" is a column when vertical and a row when horizontal;
+    -- perLine is how many frames go into one before the next is started.
     local perLine = sv.wrapAfter
     if perLine <= 0 then
         -- auto wrap: as many as fit between the anchor and the screen edge
@@ -383,12 +454,16 @@ local function Arrange(count)
             column * (width + FRAME_SPACING), row * (height + FRAME_SPACING))
     end
 
+    -- shrink the window to what is used, so dragging and clamping to the
+    -- screen work on the visible area only
     local columns, rows = lines, perLine
     if not vertical then columns, rows = perLine, lines end
     root:SetDimensions(columns * (width + FRAME_SPACING) - FRAME_SPACING,
         rows * (height + FRAME_SPACING) - FRAME_SPACING)
 end
 
+-- Applies every setting that affects how the frames look or where they are.
+-- Called once at start-up and after each change in the settings menu.
 function GF.ApplyLayout()
     local sv = GF.sv
     root:SetScale(sv.scale)
@@ -414,6 +489,8 @@ end
 
 local getClassIcon = ZO_GetClassIcon or GetClassIcon
 
+-- Returns the texture shown left of the name: the member's selected group
+-- role, or their class icon when no role is set (e.g. while solo).
 local function GetHeaderIcon(unitTag)
     if not GF.sv.showRoleIcons then return nil end
     local texture = ROLE_ICONS[GetGroupMemberSelectedRole(unitTag)]
@@ -423,6 +500,9 @@ local function GetHeaderIcon(unitTag)
     return texture
 end
 
+-- Updates role icon, leader crown, name position and border colour. These
+-- rarely change, so the work is skipped unless something actually differs
+-- from last time (compared through `key`).
 local function UpdateHeader(frame)
     local sv = GF.sv
     local unitTag = frame.unitTag
@@ -443,6 +523,7 @@ local function UpdateHeader(frame)
     frame.role:SetHidden(texture == nil)
     frame.leader:SetHidden(not isLeader)
 
+    -- the name takes whatever width the icons on either side leave over
     local nameWidth = metrics.width - nameLeft - PAD - (isLeader and (LEADER_ICON_SIZE + 3) or 0)
     frame.name:ClearAnchors()
     frame.name:SetAnchor(TOPLEFT, control, TOPLEFT, nameLeft, frame.nameY)
@@ -466,6 +547,9 @@ local SORT_MODES = {
     durationDesc = { "duration", true },
 }
 
+-- Comparison for table.sort. With a sort mode the chosen field decides;
+-- ties, and the "default" mode, fall back to type (Major, Minor, added)
+-- and then name, so the order never jumps around between scans.
 local function SortBuffs(a, b)
     local mode = SORT_MODES[GF.sv.sortMode]
     if mode then
@@ -486,6 +570,11 @@ local function ApplyDefaultFrames()
 end
 GF.ApplyDefaultFrames = ApplyDefaultFrames
 
+-- Reads every effect on the frame's member, keeps the tracked ones and
+-- shows them as icons. Also records each effect name it comes across so the
+-- settings can offer it in the "effects seen" picker.
+--   list    the tracked effects, in display order
+--   byName  the same entries by name, to merge duplicates
 local function ScanBuffs(frame)
     local sv = GF.sv
     local unitTag = frame.unitTag
@@ -501,6 +590,7 @@ local function ScanBuffs(frame)
                 seen[buffName] = abilityId
                 GF.seenEffects[buffName] = abilityId
             end
+            -- nil priority = not tracked (see GF.GetBuffPriority in Buffs.lua)
             local priority = GF.GetBuffPriority(buffName, abilityId, effectType)
             if priority then
                 -- permanent effects report no (or a zero length) duration
@@ -560,6 +650,7 @@ local function ScanBuffs(frame)
             icon.border:SetEdgeColor(0, 0, 0, 1)
         end
     end
+    -- hide icons left over from a scan that had more effects
     for i = shown + 1, #frame.icons do
         frame.icons[i]:SetHidden(true)
         frame.icons[i].entry = nil
@@ -567,6 +658,10 @@ local function ScanBuffs(frame)
     frame.shownIcons = shown
 end
 
+-- Updates the countdown on each visible icon; runs every tick, unlike
+-- ScanBuffs. `now` is the game time in seconds, the same clock the effect
+-- end times use. Returns true when an effect has run out, so the caller can
+-- rescan and drop its icon.
 local function UpdateTimers(frame, now)
     local showTimers = GF.sv.showTimers
     local expired = false
@@ -608,6 +703,8 @@ end
 -- Resources
 ---------------------------------------------------------------------------
 
+-- Sets a bar to current/maximum. Called without values it empties and dims
+-- the bar, which is how "no data for this member" is shown.
 local function SetBar(bar, current, maximum)
     local smooth = GF.sv.smoothBars and ZO_StatusBar_SmoothTransition
     if current and maximum and maximum > 0 then
@@ -636,6 +733,9 @@ local function SetBar(bar, current, maximum)
     end
 end
 
+-- Returns current and maximum magicka or stamina of a unit. The game only
+-- tells you your own, so for everyone else the values come from
+-- LibGroupResources (nil when the member does not share them).
 local function GetSharedResource(unitTag, powerType)
     if AreUnitsEqual(unitTag, "player") then
         local current, maximum = GetUnitPower("player", powerType)
@@ -648,6 +748,8 @@ local function GetSharedResource(unitTag, powerType)
     return groupResources:GetStamina(unitTag)
 end
 
+-- Shows the member's damage shield as an overlay on the health bar, on the
+-- same scale as health (a shield worth half their health covers half).
 local function UpdateShield(frame, unitTag, maximum, visible)
     local value
     if visible and GF.sv.showShields and maximum > 0 then
@@ -663,12 +765,16 @@ local function UpdateShield(frame, unitTag, maximum, visible)
     end
 end
 
+-- Refreshes everything on a frame that is a number: health, shield,
+-- magicka, stamina, ultimate, weapon bar and DPS/HPS. Runs every tick.
+-- Texts are only pushed to their labels when they actually changed.
 local function UpdateResources(frame)
     local sv = GF.sv
     local unitTag = frame.unitTag
     local online = IsUnitOnline(unitTag)
     local dead = IsUnitDead(unitTag)
 
+    -- health comes straight from the game for every group member
     if sv.showHealth then
         local current, maximum = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
         if not online then
@@ -753,6 +859,7 @@ local function UpdateResources(frame)
         end
     end
 
+    -- weapon bar: GF.GetBar returns true (back), false (front) or nil (unknown)
     local barText = ""
     if sv.showBar and online then
         local onBack = GF.GetBar(unitTag)
@@ -767,6 +874,7 @@ local function UpdateResources(frame)
         frame.barLabel:SetText(barText)
     end
 
+    -- DPS (red) and HPS (green) in thousands, only while there is any
     local statsText = ""
     if online then
         local dps, hps = GF.GetCombat(unitTag)
@@ -784,6 +892,7 @@ local function UpdateResources(frame)
         frame.stats:SetText(statsText)
     end
 
+    -- fade members who are offline or too far away to be healed or buffed
     local inRange = frame.isSelf or unitTag == "player" or IsUnitInGroupSupportRange(unitTag)
     frame.control:SetAlpha((online and inRange) and 1 or 0.45)
     if not online or dead then
@@ -805,6 +914,8 @@ end
 -- the Diagnostics section of the settings. On PC errors surface as usual.
 local guarded = IsConsoleUI()
 
+-- Runs fn(...) and returns true plus its result, or false if it failed.
+-- `section` names the part of the update for the error message.
 local function Call(section, fn, ...)
     if not guarded then return true, fn(...) end
     local ok, result = pcall(fn, ...)
@@ -816,6 +927,8 @@ local function Call(section, fn, ...)
     return false
 end
 
+-- Returns the multi-line text of the settings' Diagnostics section: version,
+-- which libraries were found, a buff count for yourself and the first error.
 function GF.GetDiagnostics()
     local text = "Version " .. GF.version
         .. "\nLibGroupResources: " .. (GF.hasGroupResources and "found" or "missing")
@@ -830,8 +943,13 @@ function GF.GetDiagnostics()
     return text
 end
 
-local unitTags = {}
+local unitTags = {} -- reused every tick to avoid creating garbage
 
+-- Returns the unit tags to show, in frame order:
+--   preview on  -> "player" repeated (copies of your own frame)
+--   in a group  -> "group1".."groupN" in the game's group order
+--   solo        -> "player", if "show when not grouped" is on or the frames
+--                  are unlocked (so there is something to drag)
 local function CollectUnitTags()
     ZO_ClearNumericallyIndexedTable(unitTags)
     if GF.previewCount then
@@ -851,6 +969,9 @@ local function CollectUnitTags()
     return unitTags
 end
 
+-- The heart of the addon, run every TICK_MS: assigns members to frames and
+-- refreshes each one. Does nothing while the HUD (and so the frames) is
+-- hidden, e.g. in menus.
 local function OnTick()
     if root:IsHidden() then return end
 
@@ -868,6 +989,8 @@ local function OnTick()
         local frame = frames[i]
         local unitTag = tags[i]
         if unitTag then
+            -- Unit tags are reshuffled when people join or leave, so the name
+            -- is compared too: a new name means a different member.
             local name = sv.useDisplayName and GetUnitDisplayName(unitTag) or GetUnitName(unitTag)
             if frame.unitTag ~= unitTag or frame.unitName ~= name then
                 frame.unitTag = unitTag
@@ -896,6 +1019,7 @@ local function OnTick()
                 frame.forceRefresh = true -- something ran out, rescan next tick
             end
         else
+            -- more frames than members: this one is unused
             frame.unitTag = nil
             frame.unitName = nil
             frame.control:SetHidden(true)
@@ -905,6 +1029,9 @@ local function OnTick()
     ZO_ClearTable(dirtyBuffs)
 end
 
+-- EVENT_EFFECT_CHANGED: an effect was gained, lost or refreshed. Only notes
+-- whose buffs changed; the rescan happens on the next tick, so a burst of
+-- events for one member costs a single scan.
 local function OnEffectChanged(_, _, _, _, unitTag)
     dirtyBuffs[unitTag] = true
 end
@@ -913,6 +1040,9 @@ end
 -- Setup
 ---------------------------------------------------------------------------
 
+-- Creates the top level window, the drag/scale handling, the unlock
+-- outline and all frames, and ties the window to the HUD scenes so it is
+-- only visible during normal play.
 local function CreateRoot()
     local sv = GF.sv
 
@@ -959,21 +1089,28 @@ local function CreateRoot()
         CreateFrame(i).control:SetHidden(true)
     end
 
+    -- show with the HUD (combat view and cursor mode), hide in menus
     local fragment = ZO_SimpleSceneFragment:New(root)
     HUD_SCENE:AddFragment(fragment)
     HUD_UI_SCENE:AddFragment(fragment)
 end
 
+-- Locks or unlocks dragging of the frames.
 function GF.SetLocked(locked)
     GF.sv.locked = locked
     GF.ApplyLayout()
 end
 
+-- Start-up. EVENT_ADD_ON_LOADED fires once for every addon, so wait for our
+-- own; by then the saved variables and all libraries we depend on exist.
+-- Order matters: settings first, then the libraries, then the controls,
+-- and the update timer last so it never runs against half-built frames.
 local function OnAddOnLoaded(_, addonName)
     if addonName ~= GF.name then return end
     EM:UnregisterForEvent(GF.name, EVENT_ADD_ON_LOADED)
 
-    GF.sv = ZO_SavedVars:NewAccountWide("GroupFrames_SV", 1, nil, GF.defaults)
+    -- account-wide settings, stored in SavedVariables/GroupFrames.lua
+    GF.sv =ZO_SavedVars:NewAccountWide("GroupFrames_SV", 1, nil, GF.defaults)
     GF.MigrateCustomEffects()
     -- one-time switch of existing installs to the two-column layout
     if GF.sv.layoutVersion ~= 2 then
@@ -984,8 +1121,9 @@ local function OnAddOnLoaded(_, addonName)
     GF.InitSharing()
     GF.InitStats()
 
+    -- LibGroupResources is reached through LibGroupBroadcast, not a global
     if LibGroupBroadcast and LibGroupBroadcast.GetHandlerApi then
-        groupResources = LibGroupBroadcast:GetHandlerApi("GroupResources")
+        groupResources =LibGroupBroadcast:GetHandlerApi("GroupResources")
     end
     GF.hasGroupResources = groupResources ~= nil
 
@@ -1002,6 +1140,8 @@ local function OnAddOnLoaded(_, addonName)
         GF.CreateSettings()
     end
 
+    -- Buff changes, filtered so the handler only runs for group members and
+    -- yourself. Each registration needs its own name to carry its own filter.
     EM:RegisterForEvent(GF.name .. "Group", EVENT_EFFECT_CHANGED, OnEffectChanged)
     EM:AddFilterForEvent(GF.name .. "Group", EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
     EM:RegisterForEvent(GF.name .. "Player", EVENT_EFFECT_CHANGED, OnEffectChanged)
@@ -1011,6 +1151,7 @@ local function OnAddOnLoaded(_, addonName)
     -- the default frames are rebuilt on zone changes, hide them again
     EM:RegisterForEvent(GF.name .. "Default", EVENT_PLAYER_ACTIVATED, ApplyDefaultFrames)
 
+    -- /groupframes [lock|unlock|test [count]]; no argument toggles the lock
     SLASH_COMMANDS["/groupframes"] = function(arg)
         if arg == "lock" then
             GF.SetLocked(true)
@@ -1029,6 +1170,8 @@ local function OnAddOnLoaded(_, addonName)
         d("GroupFrames " .. (GF.sv.locked and "locked" or "unlocked"))
     end
 
+    -- one chat line after login when the resource library is missing (chat
+    -- is not ready yet while addons load, hence the wait)
     if not groupResources then
         EM:RegisterForEvent(GF.name .. "Notice", EVENT_PLAYER_ACTIVATED, function()
             EM:UnregisterForEvent(GF.name .. "Notice", EVENT_PLAYER_ACTIVATED)

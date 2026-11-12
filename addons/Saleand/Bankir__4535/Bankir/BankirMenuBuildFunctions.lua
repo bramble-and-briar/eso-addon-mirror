@@ -15,7 +15,7 @@ local qualityChoices = {
 }
 
 local function setRuleValue(valueName, value, id, idTypeStr, hasQualityRuleSet)
-	local ruleList = Bankir.savedVarsProfile[Bankir.Menu.selectedBankId][idTypeStr]
+	local ruleList = Bankir.SVProfile[Bankir.Menu.selectedBankId][idTypeStr]
 	local oldValue
 	
 	if ruleList[id] then
@@ -122,17 +122,17 @@ local function makeCurrencyTab(currencyTypes)
 			tooltip = GetString(BANKIR_MENU_CURRENCY_DEPOSIT_DESC),
 			width = "full",
 			getFunc = function()
-				if Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency then
-					return Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].push
+				if Bankir.SVProfile[Bankir.Menu.selectedBankId].currency then
+					return Bankir.SVProfile[Bankir.Menu.selectedBankId].currency[currencyType].push
 				else
 					return false
 				end
 			end,
 			setFunc = function(value)
-				Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].push = value
+				Bankir.SVProfile[Bankir.Menu.selectedBankId].currency[currencyType].push = value
 			end,
 			disabled = function()
-				if not Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency then
+				if not Bankir.SVProfile[Bankir.Menu.selectedBankId].currency then
 					return true
 				elseif Bankir.Menu.selectedBankId ~= BAG_BANK and currencyType ~= CURT_MONEY then
 					return true
@@ -146,17 +146,17 @@ local function makeCurrencyTab(currencyTypes)
 			tooltip = GetString(BANKIR_MENU_CURRENCY_WITHDRAW_DESC),
 			width = "full",
 			getFunc = function()
-				if Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency then
-					return Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].pull
+				if Bankir.SVProfile[Bankir.Menu.selectedBankId].currency then
+					return Bankir.SVProfile[Bankir.Menu.selectedBankId].currency[currencyType].pull
 				else
 					return false
 				end
 			end,
 			setFunc = function(value)
-				Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].pull = value
+				Bankir.SVProfile[Bankir.Menu.selectedBankId].currency[currencyType].pull = value
 			end,
 			disabled = function()
-				if not Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency then
+				if not Bankir.SVProfile[Bankir.Menu.selectedBankId].currency then
 					return true
 				elseif Bankir.Menu.selectedBankId ~= BAG_BANK and currencyType ~= CURT_MONEY then
 					return true
@@ -168,26 +168,26 @@ local function makeCurrencyTab(currencyTypes)
 			name = GetString(BANKIR_MENU_CURRENCY_AMOUNT),
 			tooltip = GetString(BANKIR_MENU_CURRENCY_AMOUNT_DESC),
 			min = 0,
-			max = Bankir.savedVarsCommon.currencySlidersMaxValue,
+			max = Bankir.SVCommon.currencySlidersMaxValue,
 			step = 500,
 			width = "full",
 			getFunc = function()
-				if Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency then
-					return Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].amount
+				if Bankir.SVProfile[Bankir.Menu.selectedBankId].currency then
+					return Bankir.SVProfile[Bankir.Menu.selectedBankId].currency[currencyType].amount
 				else
 					return 0
 				end
 			end,
 			setFunc = function(value)
-				Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].amount = value
+				Bankir.SVProfile[Bankir.Menu.selectedBankId].currency[currencyType].amount = value
 			end,
 			disabled = function()
-				if not Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency then
+				if not Bankir.SVProfile[Bankir.Menu.selectedBankId].currency then
 					return true
 				elseif Bankir.Menu.selectedBankId ~= BAG_BANK and currencyType ~= CURT_MONEY then
 					return true
-				elseif not Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].push
-				and not Bankir.savedVarsProfile[Bankir.Menu.selectedBankId].currency[currencyType].pull then
+				elseif not Bankir.SVProfile[Bankir.Menu.selectedBankId].currency[currencyType].push
+				and not Bankir.SVProfile[Bankir.Menu.selectedBankId].currency[currencyType].pull then
 					return true
 				end
 			end,
@@ -231,7 +231,7 @@ local function makeRulesProfileSelector()
 		width = "full",
 		reference = "BankirMenuRulesProfilesDropdown",
 		choices = Bankir.Profiles.getProfilesNames(),
-		getFunc = function() return Bankir.savedVarsCharacter.profile end,
+		getFunc = function() return Bankir.SVCharacter.profile end,
 		setFunc = function(selectedChoice)
 			Bankir.Profiles.setCurrentProfile(selectedChoice)
 			local settingsSelector = _G["BankirMenuSettingsProfilesDropdown"]
@@ -251,7 +251,7 @@ local function makeSettingsMenu()
 			width = "full",
 			reference = "BankirMenuSettingsProfilesDropdown",
 			choices = Bankir.Profiles.getProfilesNames(),
-			getFunc = function() return Bankir.savedVarsCharacter.profile end,
+			getFunc = function() return Bankir.SVCharacter.profile end,
 			setFunc = function(selectedChoice)
 				Bankir.Profiles.setCurrentProfile(selectedChoice)
 				_G["BankirMenuRulesProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
@@ -261,9 +261,9 @@ local function makeSettingsMenu()
 			type = "editbox",
 			name = GetString(BANKIR_MENU_PROFILE_EDIT_NAME),
 			width = "full",
-			getFunc = function() return Bankir.savedVarsCharacter.profile end,
+			getFunc = function() return Bankir.SVCharacter.profile end,
 			setFunc = function(text)
-				Bankir.Profiles.updateCurrentProfileName(Bankir.savedVarsCharacter.profile, text)
+				Bankir.Profiles.updateCurrentProfileName(Bankir.SVCharacter.profile, text)
 				_G["BankirMenuSettingsProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
 				_G["BankirMenuRulesProfilesDropdown"]:UpdateChoices(Bankir.Profiles.getProfilesNames())
 			end,
@@ -306,24 +306,46 @@ local function makeSettingsMenu()
 	table.insert(controls, divider)
 	table.insert(controls, {
 			type = "checkbox",
-			name = GetString(BANKIR_MENU_MOVE_LOCKED_ITEMS),
-			tooltip = GetString(BANKIR_MENU_MOVE_LOCKED_ITEMS_DESC),
+			name = GetString(BANKIR_MENU_ENABLE_AUTO_MODE),
+			tooltip = GetString(BANKIR_MENU_ENABLE_AUTO_MODE_DESC),
 			getFunc = function()
-				return Bankir.savedVarsCommon.moveLockedItems
+				return Bankir.SVCommon.autoModeEnabled
 			end,
 			setFunc = function(value)
-				Bankir.savedVarsCommon.moveLockedItems = value
+				Bankir.SVCommon.autoModeEnabled = value
 			end,
 		})
 	table.insert(controls, {
 			type = "checkbox",
-			name = GetString(BANKIR_MENU_SHOW_DEPOSIT_NOT_ALLOWED_MESSAGE),
-			tooltip = GetString(BANKIR_MENU_SHOW_DEPOSIT_NOT_ALLOWED_MESSAGE_DESC),
+			name = GetString(BANKIR_MENU_MOVE_LOCKED_ITEMS),
+			tooltip = GetString(BANKIR_MENU_MOVE_LOCKED_ITEMS_DESC),
 			getFunc = function()
-				return Bankir.savedVarsCommon.showOperationFailMessages
+				return Bankir.SVCommon.moveLockedItems
 			end,
 			setFunc = function(value)
-				Bankir.savedVarsCommon.showOperationFailMessages = value
+				Bankir.SVCommon.moveLockedItems = value
+			end,
+		})
+	table.insert(controls, {
+			type = "checkbox",
+			name = GetString(BANKIR_MENU_MOVE_QUEST_ITEMS),
+			tooltip = GetString(BANKIR_MENU_MOVE_QUEST_ITEMS_DESC),
+			getFunc = function()
+				return Bankir.SVCommon.moveQuestItems
+			end,
+			setFunc = function(value)
+				Bankir.SVCommon.moveQuestItems = value
+			end,
+		})
+	table.insert(controls, {
+			type = "checkbox",
+			name = GetString(BANKIR_MENU_SHOW_FAIL_MESSAGES),
+			tooltip = GetString(BANKIR_MENU_SHOW_FAIL_MESSAGES_DESC),
+			getFunc = function()
+				return Bankir.SVCommon.showOperationFailMessages
+			end,
+			setFunc = function(value)
+				Bankir.SVCommon.showOperationFailMessages = value
 			end,
 		})
 	table.insert(controls, {
@@ -333,11 +355,11 @@ local function makeSettingsMenu()
 			width = "full",
 			isMultiline = false,
 			textType = TEXT_TYPE_NUMERIC,
-			default = Bankir.savedVarsCommon.bankSlidersMaxValue,
+			default = Bankir.SVCommon.bankSlidersMaxValue,
 			requiresReload = true,
-			getFunc = function() return Bankir.savedVarsCommon.bankSlidersMaxValue end,
+			getFunc = function() return Bankir.SVCommon.bankSlidersMaxValue end,
 			setFunc = function(text)
-				Bankir.savedVarsCommon.bankSlidersMaxValue = tonumber(text)
+				Bankir.SVCommon.bankSlidersMaxValue = tonumber(text)
 			end,
 		})
 	table.insert(controls, {
@@ -347,11 +369,11 @@ local function makeSettingsMenu()
 			width = "full",
 			isMultiline = false,
 			textType = TEXT_TYPE_NUMERIC,
-			default = Bankir.savedVarsCommon.currencySlidersMaxValue,
+			default = Bankir.SVCommon.currencySlidersMaxValue,
 			requiresReload = true,
-			getFunc = function() return Bankir.savedVarsCommon.currencySlidersMaxValue end,
+			getFunc = function() return Bankir.SVCommon.currencySlidersMaxValue end,
 			setFunc = function(text)
-				Bankir.savedVarsCommon.currencySlidersMaxValue = tonumber(text)
+				Bankir.SVCommon.currencySlidersMaxValue = tonumber(text)
 			end,
 		})
 	
@@ -387,7 +409,7 @@ local function makeIdTypeSliders(id, idTypeStr, useHeader)
 		name = GetString(SI_ITEM_ACTION_BANK_DEPOSIT),
 		tooltip = GetString(BANKIR_MENU_PUSH_DESC),
 		min = 0,
-		max = Bankir.savedVarsCommon.bankSlidersMaxValue,
+		max = Bankir.SVCommon.bankSlidersMaxValue,
 		step = 1,
 		width = "full",
 		getFunc = function()
@@ -402,7 +424,7 @@ local function makeIdTypeSliders(id, idTypeStr, useHeader)
 		name = GetString(SI_ITEM_ACTION_BANK_WITHDRAW),
 		tooltip = GetString(BANKIR_MENU_PULL_DESC),
 		min = 0,
-		max = Bankir.savedVarsCommon.bankSlidersMaxValue,
+		max = Bankir.SVCommon.bankSlidersMaxValue,
 		step = 1,
 		width = "full",
 		getFunc = function()
@@ -492,10 +514,10 @@ local function makeLCKSettings()
 				name = charData.name,
 				width = "full",
 				getFunc = function()
-					return Bankir.savedVarsServer.ResearchCharactersList[charData.id] ~= nil
+					return Bankir.SVServer.ResearchCharactersList[charData.id] ~= nil
 				end,
 				setFunc = function(value)
-					Bankir.savedVarsServer.ResearchCharactersList[charData.id] = value and true or nil
+					Bankir.SVServer.ResearchCharactersList[charData.id] = value and true or nil
 				end,
 				disabled = function()
 					return LCK == nil
@@ -504,6 +526,61 @@ local function makeLCKSettings()
 		end
 	end
 	return controls
+end
+
+function Bankir.createProcessButton(processFunc)
+	local name = "BankirProcessButtonWindow"
+	
+	wnd = WINDOW_MANAGER:CreateControl(name, GuiRoot, CT_TOPLEVELCONTROL)
+	--setWindowSize()
+	wnd:SetClampedToScreenInsets(10)
+	wnd:SetAnchor(TOPLEFT, ZO_PlayerBankMenu, BOTTOMLEFT, 0, 0)
+	wnd:SetDimensionConstraints(60, 60)
+	wnd:SetMovable(true)
+	wnd:SetMouseEnabled(true)
+	wnd:SetClampedToScreen(true)
+	wnd:SetTopmost(true)
+	wnd:SetHidden(true)
+	
+	local bg = WINDOW_MANAGER:CreateControl(name .. "Bg", wnd, CT_BACKDROP)
+	bg:SetAnchorFill(wnd)
+	bg:SetCenterColor(0, 0, 0, 0.5)
+	bg:SetEdgeColor(0, 0, 0, 0)
+	
+	local btn = WINDOW_MANAGER:CreateControlFromVirtual(name .. "Button", wnd, "ZO_DefaultButton")
+	btn.title = GetString(BANKIR_START_QUEUE_MANUALLY)
+	--btn:SetNormalTexture("/esoui/art/guild/gamepad/gp_guild_options_changeicon.dds")
+	btn:SetPressedTexture("/esoui/art/guild/gamepad/gp_guild_options_changeicon.dds")
+	btn:SetState(1, true)
+	btn:SetWidth(60)
+	btn:SetHeight(60)
+	btn:SetAnchor(TOPLEFT, wnd, TOPLEFT, 0, 0)
+	
+	local function onProcessButtonClick()
+		processFunc()
+	end
+	
+	local function onProcessButtonMouseEnter(button)
+		if button.title then
+			ZO_Tooltips_ShowTextTooltip(button, TOP, button.title)
+		end
+	end
+	
+	local function onProcessButtonMouseExit()
+		ZO_Tooltips_HideTextTooltip()
+	end
+	
+	btn:SetHandler("OnClicked", onProcessButtonClick)
+	btn:SetHandler("OnMouseEnter", onProcessButtonMouseEnter)
+	btn:SetHandler("OnMouseExit", onProcessButtonMouseExit)
+	
+	local fragment = ZO_FadeSceneFragment:New(wnd)
+	local bankScene = SCENE_MANAGER:GetScene("bank")
+	bankScene:AddFragment(fragment)
+	local guildBankScene = SCENE_MANAGER:GetScene("guildBank")
+	guildBankScene:AddFragment(fragment)
+	
+	return wnd
 end
 
 Bankir.MenuBuildFunctions = {

@@ -198,7 +198,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Alternative Boss Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Boss-Bar__3052) | buldezir | PC / Mac | 1.0.19 |
 | [Alternative Boss Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Alternative-Boss-Bar__ab71c694-e122-4792-9268-fe2c2595f986) | j.hhh | Console | — |
 | [Alternative Buffs/Debuffs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Buffs-Debuffs__3875) | buldezir | PC / Mac | 1.0.3 |
-| [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Group-Frames__3053) | buldezir | PC / Mac | 1.6.40 |
+| [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Group-Frames__3053) | buldezir | PC / Mac | 1.6.42 |
 | [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Alternative-Group-Frames__21f64968-c492-4b43-82ff-b7b1f25c7500) | Copper0 | Console | — |
 | [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Alternative-Group-Frames__a020fed1-e58d-4c59-8ec5-6fb71e8ee9cc) | j.hhh | Console | — |
 | [ALTHI Suite – Farming & Fishing Toolkit &#127907;&#127807;](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Namorstradam/ALTHI-Suite-Farming-Fishing-Toolkit__4984) | Namorstradam | PC / Mac | 2.0.0 |
@@ -272,7 +272,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ArchdruidTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/ArchdruidTracker__3473) | tmbrinks | PC / Mac | 1.1.1 |
 | [Archive Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Archive-Helper__3772) | FlatBadger | PC / Mac | 1.4.2 |
 | [ArchiveAdvisor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/ArchiveAdvisor__4787) | NPViral | PC / Mac | 1.0.1 |
-| [Arclight Taunt – Multi-Target Tank HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tareN/Arclight-Taunt-Multi-Target-Tank-HUD__5008) | tareN | PC / Mac | 1.1.2 |
+| [Arclight Taunt – Multi-Target Tank HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tareN/Arclight-Taunt-Multi-Target-Tank-HUD__5008) | tareN | PC / Mac | 1.2.0 |
 | [ArcTech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTech__fd28ddff-8837-4702-8beb-110fee70b432) | Scribe_Rob | Console | — |
 | [ArcTechv2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTechv2__798e2650-33dc-48bb-80c5-8c09cabc36b5) | Scribe_Rob | Console | — |
 | [Ardy's Buff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Buff-Tracker__5021) | giga'chad | PC / Mac | 1.2.0 |

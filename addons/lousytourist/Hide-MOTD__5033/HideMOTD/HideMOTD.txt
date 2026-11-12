@@ -1,6 +1,6 @@
 ## Title: HideMOTD
 ## APIVersion: 101045
-## Version: 1.0.0
+## Version: 26.11.11
 ## Author: LousyTourist
 ## Description: Simple addon that completely suppresses Guild MOTD change notifications.
 

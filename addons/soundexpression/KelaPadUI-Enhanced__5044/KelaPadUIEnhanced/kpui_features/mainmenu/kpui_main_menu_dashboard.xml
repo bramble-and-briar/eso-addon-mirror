@@ -1,0 +1,71 @@
+<GuiXml>
+    <Controls>
+        <!-- Use the standard single gamepad panel (Q2, 470px) so the
+             dashboard reads like the Currencies overview instead of a
+             full-width two-column sheet. -->
+        <TopLevelControl name="Kela_MainMenuDashboard" inherits="ZO_GamepadGrid_NavQuadrant_2_Anchors" hidden="true">
+            <Controls>
+                <Control name="$(parent)Background" inherits="ZO_SharedGamepadNavQuadrant_2_Background_Template" layer="BACKGROUND"/>
+
+                <Label name="$(parent)Title" font="ZoFontGamepadCondensed54" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" modifyTextType="UPPERCASE" verticalAlignment="BOTTOM">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="ZO_GAMEPAD_CONTENT_INSET_X" offsetY="40"/>
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" offsetX="-ZO_GAMEPAD_CONTENT_INSET_X" offsetY="40"/>
+                    <Dimensions y="54"/>
+                </Label>
+                <Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDividerSimple">
+                    <Dimensions y="8"/>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="ZO_GAMEPAD_CONTENT_INSET_X" offsetY="100"/>
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" offsetX="-ZO_GAMEPAD_CONTENT_INSET_X" offsetY="100"/>
+                </Control>
+                <!-- Optional panel description. Set text and remove hidden to use. -->
+                <Label name="$(parent)Description" font="ZoFontGamepad22" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" hidden="true" wrapMode="WORD_WRAP" maxLineCount="2">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="ZO_GAMEPAD_CONTENT_INSET_X" offsetY="112"/>
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" offsetX="-ZO_GAMEPAD_CONTENT_INSET_X" offsetY="112"/>
+                </Label>
+
+                <Control name="$(parent)Content">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="ZO_GAMEPAD_CONTENT_INSET_X" offsetY="124"/>
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" offsetX="-ZO_GAMEPAD_CONTENT_INSET_X" offsetY="124"/>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+
+        <Control name="KelaDashboardRowTemplate" virtual="true">
+            <Dimensions x="390" y="32"/>
+            <Controls>
+                <Label name="$(parent)Label" font="ZoFontGamepadCondensed25" verticalAlignment="BOTTOM" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Anchor point="LEFT" relativeTo="$(parent)"/>
+                    <Dimensions x="170" y="32"/>
+                </Label>
+                <Label name="$(parent)Value" font="ZoFontGamepadCondensed25" verticalAlignment="BOTTOM" horizontalAlignment="RIGHT" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_WHITE" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Anchor point="RIGHT" relativeTo="$(parent)"/>
+                    <Dimensions x="210" y="32"/>
+                </Label>
+            </Controls>
+        </Control>
+
+        <Control name="KelaDashboardEventRowTemplate" virtual="true">
+            <Dimensions x="390" y="32"/>
+            <Controls>
+                <Label name="$(parent)Label" font="ZoFontGamepadCondensed25" verticalAlignment="BOTTOM" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Anchor point="LEFT" relativeTo="$(parent)"/>
+                    <Dimensions x="270" y="32"/>
+                </Label>
+                <Label name="$(parent)Value" font="ZoFontGamepadCondensed25" verticalAlignment="BOTTOM" horizontalAlignment="RIGHT" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Anchor point="RIGHT" relativeTo="$(parent)"/>
+                    <Dimensions x="110" y="32"/>
+                </Label>
+            </Controls>
+        </Control>
+
+        <Control name="KelaDashboardSectionTemplate" virtual="true">
+            <Dimensions x="390" y="32"/>
+            <Controls>
+                <Label name="$(parent)Label" font="ZoFontGamepadBold27" verticalAlignment="BOTTOM" modifyTextType="UPPERCASE" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)"/>
+                </Label>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

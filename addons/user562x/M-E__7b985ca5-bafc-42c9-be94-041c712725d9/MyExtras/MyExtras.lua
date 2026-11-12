@@ -1,6 +1,6 @@
 MyExtras = {}
 MyExtras.name = "MyExtras"
-MyExtras.version = "3.1"
+MyExtras.version = "5.1"
 MyExtras.savedVariables = nil
 MyExtras.charVariables = nil
 MyExtras.defaults = {
@@ -20,7 +20,7 @@ MyExtras.features = {}
 MyExtras.SAVED_ACCOUNT_TIP   = "Account wide: the same on all your characters."
 MyExtras.SAVED_CHARACTER_TIP = "Per character: set separately on each of your characters."
 
-local MENU_ORDER = { "ActionBar", "Trackers", "Gear", "DungeonsTrials", "FriendsStatus", "Streamer", "Antiquity", "ChatTravel", "GuildLoop" }
+local MENU_ORDER = { "ActionBar", "Trackers", "Gear", "DungeonsTrials", "FriendsStatus", "QualityOfLife", "Streamer", "Antiquity", "ChatTravel", "GuildLoop" }
 
 local ICON_SETTINGS = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_settings.dds"
 local ICON_MENU     = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_misc.dds"
@@ -66,6 +66,46 @@ MyExtras.RainbowText = RainbowText
 local function PanelCall(method)
     local panel = MyExtras.settingsPanel
     if panel and panel[method] then panel[method](panel) end
+end
+
+--------------------------------------------------
+-- Game Calls
+--------------------------------------------------
+function MyExtras:Chat(text)
+    if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+        CHAT_ROUTER:AddSystemMessage(text)
+    else
+        d(text)
+    end
+end
+
+function MyExtras:AccentHex()
+    local sv = self.savedVariables
+    if sv and sv.settingsHighlight == "Custom" and type(sv.settingsHighlightColor) == "table" then
+        local c = sv.settingsHighlightColor
+        return ZO_ColorDef:New(c.r or 1, c.g or 1, c.b or 1):ToHex()
+    end
+    local color = GetAllianceColor(GetUnitAlliance("player"))
+    if color then return color:ToHex() end
+    return "FFFFFF"
+end
+
+function MyExtras:ChatPrefix(feature)
+    local prefix = "|c" .. self:AccentHex() .. self.name .. "|r"
+    if feature and feature ~= "" then prefix = prefix .. " [" .. feature .. "]" end
+    return prefix .. ": "
+end
+
+function MyExtras:CallGame(name, ...)
+    local fn = rawget(_G, name)
+    if type(fn) ~= "function" then return false end
+    if IsPrivateFunction and IsPrivateFunction(name) then return false end
+    if IsProtectedFunction and IsProtectedFunction(name) then
+        if type(CallSecureProtected) ~= "function" then return false end
+        local ok, done = pcall(CallSecureProtected, name, ...)
+        return ok and done ~= false
+    end
+    return (pcall(fn, ...))
 end
 
 --------------------------------------------------
@@ -255,6 +295,110 @@ function MyExtras:ResetSettings()
 end
 
 --------------------------------------------------
+-- Info
+--------------------------------------------------
+local GAMERTAG = "user562"
+
+local STATUS_INSTALLED = "|c33DD33Installed|r"
+local STATUS_OFF       = "|cFFAA33Turned Off|r"
+local STATUS_MISSING   = "|c8C8C8CNot Installed|r"
+
+local MY_ADDONS = {
+    {
+        name        = "MyExtras",
+        title       = "MyExtras",
+        description = "Extra features in one place, like your action bar, trackers, gear tools, trial timer and more.",
+    },
+    {
+        name        = "PvPUA",
+        title       = "|c4F81BDP|r|cC2AA49v|r|cDE5B4EP|r |cFF8800UA!|r",
+        description = "Tells you when something is under attack in Cyrodiil, Imperial City and more.",
+    },
+    {
+        name        = "WhereIsIt",
+        title       = "Where Is It?",
+        description = "Shows where your items and currencies are across your characters, bank, guild banks and houses.",
+    },
+    {
+        name        = "AutoConsume",
+        title       = "AutoConsume",
+        description = "Uses your food, drinks and experience and Alliance Point boosts for you.",
+    },
+    {
+        name        = "VerticalBuffsDebuffs",
+        title       = "VerticalBuffsDebuffs",
+        description = "Shows your buffs and debuffs in vertical lists with timers.",
+    },
+    {
+        name        = "LibUser562",
+        title       = "LibUser562",
+        description = "The settings library these addons use.",
+    },
+}
+
+local function PlainName(text)
+    local plain = tostring(text or "")
+    plain = plain:gsub("|c%x%x%x%x%x%x", "")
+    plain = plain:gsub("|r", "")
+    plain = plain:gsub("[^%w]", "")
+    return plain:lower()
+end
+
+local function FindAddOn(entry)
+    if type(GetAddOnManager) ~= "function" then return nil end
+    local manager = GetAddOnManager()
+    if not manager then return nil end
+    local wantName, wantTitle = PlainName(entry.name), PlainName(entry.title)
+    for i = 1, manager:GetNumAddOns() do
+        local name, title, _, _, enabled = manager:GetAddOnInfo(i)
+        if PlainName(name) == wantName or PlainName(title) == wantTitle then
+            return title, enabled == true
+        end
+    end
+    return nil
+end
+
+local function AddOnRow(entry)
+    return {
+        type    = "button",
+        name    = function()
+            if entry.name == MyExtras.name then
+                return entry.title .. "   " .. STATUS_INSTALLED
+            end
+            local title, enabled = FindAddOn(entry)
+            if not title then return entry.title .. "   " .. STATUS_MISSING end
+            if title == "" then title = entry.title end
+            return title .. "   " .. (enabled and STATUS_INSTALLED or STATUS_OFF)
+        end,
+        tooltip = entry.description,
+    }
+end
+
+function MyExtras:InfoMenu()
+    local options = {
+        {
+            type    = "button",
+            name    = "Gamertag: " .. GAMERTAG,
+        },
+        {
+            type    = "button",
+            name    = "Version: " .. self.version,
+            tooltip = "The version of MyExtras you have.",
+        },
+        { type = "header", name = "My Addons" },
+    }
+    for i = 1, #MY_ADDONS do
+        options[#options + 1] = AddOnRow(MY_ADDONS[i])
+    end
+    return {
+        type    = "submenu",
+        name    = "Info",
+        tooltip = "Information.",
+        options = options,
+    }
+end
+
+--------------------------------------------------
 -- Settings
 --------------------------------------------------
 function MyExtras:SettingsMenu()
@@ -303,16 +447,16 @@ function MyExtras:SettingsMenu()
             },
             {
                 type         = "stylecolor",
-                name         = RainbowText("Highlight / Slider Color"),
+                name         = RainbowText("Menu Color"),
                 choices      = { "Alliance", "Custom" },
                 customValue  = "Custom",
                 default      = defaults.settingsHighlight,
                 colorDefault = { r = 1, g = 1, b = 1 },
                 details      = function()
                     if self.savedVariables.settingsHighlight == "Custom" then
-                        return "Highlights and sliders use your color."
+                        return "The settings window's highlight, arrow and sliders use your color."
                     end
-                    return "Highlights and sliders use your alliance color."
+                    return "The settings window's highlight, arrow and sliders use your alliance color."
                 end,
                 getFunc  = function() return self.savedVariables.settingsHighlight end,
                 setFunc  = function(val)
@@ -346,6 +490,7 @@ function MyExtras:SettingsMenu()
                 confirm    = "Reset every MyExtras setting to its default? This can't be undone.",
                 func       = function() self:ResetSettings() end,
             },
+            self:InfoMenu(),
         },
     }
 end
@@ -401,7 +546,7 @@ function MyExtras:CreateSettings()
         menuTitle       = "MyExtras",
         menuIcon        = ICON_MENU,
         title           = "MyExtras",
-        author          = "user562",
+        author          = GAMERTAG,
         version         = self.version,
         frameColor      = FRAME_GREY,
         previewControls = function() return MyExtras:SettingsPreviewControls() end,
@@ -475,6 +620,8 @@ end
 --------------------------------------------------
 local function OnAddonLoaded(event, addonName)
     if addonName ~= MyExtras.name then return end
+
+    MyExtras.freshInstall = MyExtras_SavedVars == nil
 
     MyExtras.savedVariables = ZO_SavedVars:NewAccountWide(
         "MyExtras_SavedVars",

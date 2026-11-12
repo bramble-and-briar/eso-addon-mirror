@@ -1,9 +1,9 @@
-InventoryPulse = {
-    name = "InventoryPulse",
-    version = "1.0.1",
-}
+-- InventoryPulse is the addon's only global table, shared with the language files in lang/
+InventoryPulse = InventoryPulse or {}
 local IP = InventoryPulse
-local L = InventoryPulse_Strings
+IP.name = "InventoryPulse"
+IP.version = "1.0.2"
+local L = IP.strings
 
 local defaults = {
     enabled      = "all",              -- "all", "bag" (BagCount only), "stack" (StackCount only), "none"
@@ -344,7 +344,7 @@ end
 local function CheckFreeSlots()
     EVENT_MANAGER:UnregisterForUpdate(IP.name .. "Check")
     local free = GetNumBagFreeSlots(BAG_BACKPACK)
-    if lastFree ~= nil and free ~= lastFree and BagCountEnabled() and not IsMuted() then
+    if lastFree ~= nil and free ~= lastFree and not IsMuted() then
         local size = GetBagSize(BAG_BACKPACK)
         local fillPercent = (size - free) / size * 100
         -- The step refers to the displayed number (used or free);
@@ -401,7 +401,7 @@ end
 
 -- In the craft bag the slotId is the itemId and the stack size is the total quantity
 local function OnCraftBagUpdate(_, _, slotId, _, _, _, stackCountChange)
-    if not StackCountEnabled() or IsMuted() or not stackCountChange or stackCountChange <= 0 then return end
+    if not stackCountChange or stackCountChange <= 0 or IsMuted() then return end
     local count = GetSlotStackSize(BAG_VIRTUAL, slotId)
     local before = count - stackCountChange
     if zo_floor(count / STACK_SIZE) > zo_floor(before / STACK_SIZE) then
@@ -424,7 +424,7 @@ end
 
 -- A message when a backpack stack reaches 200 (items that never go into the craft bag, or no ESO Plus)
 local function OnBackpackStackUpdate(_, _, slotIndex, _, _, _, stackCountChange)
-    if not IP.sv.stackBackpack or not StackCountEnabled() or IsMuted() or not stackCountChange or stackCountChange <= 0 then return end
+    if not stackCountChange or stackCountChange <= 0 or IsMuted() then return end
     local count, maxStack = GetSlotStackSize(BAG_BACKPACK, slotIndex)
     if maxStack >= STACK_SIZE and count >= STACK_SIZE and count - stackCountChange < STACK_SIZE then
         IP.ShowStackCount(BAG_BACKPACK, slotIndex, CountFullStacks(GetItemId(BAG_BACKPACK, slotIndex)))
@@ -451,6 +451,84 @@ function IP.TestStackCount()
         slotIndex = ZO_GetNextBagSlotIndex(BAG_BACKPACK, slotIndex)
     end
     Print(L.NO_STACKABLE)
+end
+
+-- ---------------------------------------------------------------------------
+-- Event registration: only what the current settings need
+-- ---------------------------------------------------------------------------
+
+local EVENT_BAG   = IP.name .. "Bag"
+local EVENT_CRAFT = IP.name .. "Craft"
+local EVENT_STACK = IP.name .. "Stack"
+local EVENT_BANK  = IP.name .. "Bank"
+local BANK_EVENTS = {
+    [EVENT_OPEN_BANK] = true, [EVENT_CLOSE_BANK] = false,
+    [EVENT_OPEN_GUILD_BANK] = true, [EVENT_CLOSE_GUILD_BANK] = false,
+}
+local sceneCallbackRegistered = false
+
+local function OnSceneStateChanged(_, _, newState)
+    if newState == SCENE_SHOWN then UpdateVisibility() end
+end
+
+-- Slot updates of one bag; only real item changes (no durability, dye or charge updates)
+local function RegisterSlotUpdate(namespace, bagId, callback)
+    EVENT_MANAGER:RegisterForEvent(namespace, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, callback)
+    EVENT_MANAGER:AddFilterForEvent(namespace, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+        REGISTER_FILTER_BAG_ID, bagId,
+        REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
+end
+
+-- Unregisters everything, then registers only the events the settings need.
+-- Called on load, once after login and whenever a relevant setting changes.
+local function CheckEvents()
+    local em = EVENT_MANAGER
+
+    em:UnregisterForEvent(EVENT_BAG, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    em:UnregisterForEvent(EVENT_BAG, EVENT_INVENTORY_FULL_UPDATE)
+    em:UnregisterForEvent(EVENT_BAG, EVENT_INVENTORY_BAG_CAPACITY_CHANGED)
+    em:UnregisterForUpdate(IP.name .. "Check")
+    em:UnregisterForEvent(EVENT_CRAFT, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    em:UnregisterForEvent(EVENT_STACK, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    for event in pairs(BANK_EVENTS) do
+        em:UnregisterForEvent(EVENT_BANK, event)
+    end
+    if sceneCallbackRegistered then
+        SCENE_MANAGER:UnregisterCallback("SceneStateChanged", OnSceneStateChanged)
+        sceneCallbackRegistered = false
+    end
+
+    local bagOn = BagCountEnabled()
+    local craftOn = StackCountEnabled() and UsesCraftBag()
+    local stackBagOn = StackCountEnabled() and IP.sv.stackBackpack
+    local anyOn = bagOn or craftOn or stackBagOn
+
+    if bagOn then
+        lastFree = GetNumBagFreeSlots(BAG_BACKPACK) -- starting value without a message
+        RegisterSlotUpdate(EVENT_BAG, BAG_BACKPACK, ScheduleCheck)
+        em:RegisterForEvent(EVENT_BAG, EVENT_INVENTORY_FULL_UPDATE, ScheduleCheck)
+        em:RegisterForEvent(EVENT_BAG, EVENT_INVENTORY_BAG_CAPACITY_CHANGED, ScheduleCheck)
+    end
+    if craftOn then
+        RegisterSlotUpdate(EVENT_CRAFT, BAG_VIRTUAL, OnCraftBagUpdate)
+    end
+    if stackBagOn then
+        RegisterSlotUpdate(EVENT_STACK, BAG_BACKPACK, OnBackpackStackUpdate)
+    end
+
+    if anyOn and IP.sv.bankMute then
+        for event, open in pairs(BANK_EVENTS) do
+            em:RegisterForEvent(EVENT_BANK, event, function() bankOpen = open end)
+        end
+    else
+        bankOpen = false
+    end
+
+    if anyOn and IP.sv.hudOnly then
+        SCENE_MANAGER:RegisterCallback("SceneStateChanged", OnSceneStateChanged)
+        sceneCallbackRegistered = true
+    end
+    UpdateVisibility()
 end
 
 -- ---------------------------------------------------------------------------
@@ -502,19 +580,19 @@ local function CreateSettingsMenu()
             choices = { L.ENABLED_NONE, L.ENABLED_BAG, L.ENABLED_STACK, L.ENABLED_ALL },
             choicesValues = { "none", "bag", "stack", "all" },
             getFunc = function() return IP.sv.enabled end,
-            setFunc = function(v) IP.sv.enabled = v end,
+            setFunc = function(v) IP.sv.enabled = v; CheckEvents() end,
             default = defaults.enabled,
         },
         {
             type = "checkbox", name = L.HUD_ONLY, tooltip = L.HUD_ONLY_TT,
             getFunc = function() return IP.sv.hudOnly end,
-            setFunc = function(v) IP.sv.hudOnly = v; UpdateVisibility() end,
+            setFunc = function(v) IP.sv.hudOnly = v; CheckEvents() end,
             default = defaults.hudOnly,
         },
         {
             type = "checkbox", name = L.BANK_MUTE, tooltip = L.BANK_MUTE_TT,
             getFunc = function() return IP.sv.bankMute end,
-            setFunc = function(v) IP.sv.bankMute = v end,
+            setFunc = function(v) IP.sv.bankMute = v; CheckEvents() end,
             default = defaults.bankMute,
         },
 
@@ -595,7 +673,7 @@ local function CreateSettingsMenu()
         {
             type = "checkbox", name = L.STACK_BACKPACK, tooltip = L.STACK_BACKPACK_TT,
             getFunc = function() return IP.sv.stackBackpack end,
-            setFunc = function(v) IP.sv.stackBackpack = v end,
+            setFunc = function(v) IP.sv.stackBackpack = v; CheckEvents() end,
             disabled = stackOff,
             default = defaults.stackBackpack,
         },
@@ -788,7 +866,7 @@ local function ResetSettings()
     for key, value in pairs(defaults) do
         IP.sv[key] = type(value) == "table" and ZO_ShallowTableCopy(value) or value
     end
-    UpdateVisibility()
+    CheckEvents()
     Print(L.RESET_DONE)
 end
 
@@ -826,11 +904,13 @@ local function SlashCommand(args)
         return
     elseif cmd == "show" and (arg == "all" or arg == "bag" or arg == "stack" or arg == "none") then
         sv.enabled = arg
+        CheckEvents()
     elseif cmd == "hudonly" and (arg == "on" or arg == "off") then
         sv.hudOnly = arg == "on"
-        UpdateVisibility()
+        CheckEvents()
     elseif cmd == "bankmute" and (arg == "on" or arg == "off") then
         sv.bankMute = arg == "on"
+        CheckEvents()
     elseif cmd == "mode" and (arg == "used" or arg == "free") then
         sv.mode = arg
     elseif cmd == "max" and (arg == "on" or arg == "off") then
@@ -862,6 +942,7 @@ local function SlashCommand(args)
         sv.stackDisplay = arg
     elseif cmd == "stackbag" and (arg == "on" or arg == "off") then
         sv.stackBackpack = arg == "on"
+        CheckEvents()
     elseif cmd == "font" and arg ~= "" then
         local _, keys = GetFontChoices()
         ok = false
@@ -914,54 +995,42 @@ end
 -- Init
 -- ---------------------------------------------------------------------------
 
+-- Up to 1.0.1 the settings were shared by all servers (profile "Default").
+-- They are copied once to every server that has no settings yet.
+local function MigrateToServerProfile(world)
+    local raw = InventoryPulse_SV
+    local account = GetDisplayName()
+    local old = raw and raw.Default and raw.Default[account]
+    if old and not (raw[world] and raw[world][account]) then
+        raw[world] = raw[world] or {}
+        raw[world][account] = ZO_DeepTableCopy(old)
+    end
+end
+
 local function OnAddOnLoaded(_, addonName)
     if addonName ~= IP.name then return end
     EVENT_MANAGER:UnregisterForEvent(IP.name, EVENT_ADD_ON_LOADED)
 
-    IP.sv = ZO_SavedVars:NewAccountWide("InventoryPulse_SV", 1, nil, defaults)
+    -- Settings are saved per server (EU, NA, PTS)
+    local world = GetWorldName()
+    MigrateToServerProfile(world)
+    IP.sv = ZO_SavedVars:NewAccountWide("InventoryPulse_SV", 1, nil, defaults, world)
 
     window = WINDOW_MANAGER:CreateTopLevelWindow("InventoryPulseWindow")
     window:SetAnchorFill(GuiRoot)
     window:SetMouseEnabled(false)
     window:SetDrawLayer(DL_OVERLAY)
     window:SetDrawTier(DT_HIGH)
-    UpdateVisibility()
 
-    SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(_, _, newState)
-        if newState == SCENE_SHOWN then UpdateVisibility() end
-    end)
+    CheckEvents()
 
-    local menuCreated = false
+    -- Once after login: build the menu (the ESO Plus status is only reliable then)
+    -- and check the events again, as the craft bag access may differ from load time
     EVENT_MANAGER:RegisterForEvent(IP.name, EVENT_PLAYER_ACTIVATED, function()
-        lastFree = GetNumBagFreeSlots(BAG_BACKPACK) -- starting value without a message
-        UpdateVisibility()
-        -- The menu is built here because the ESO Plus status is only reliable after login
-        if not menuCreated then
-            menuCreated = true
-            CreateSettingsMenu()
-        end
+        EVENT_MANAGER:UnregisterForEvent(IP.name, EVENT_PLAYER_ACTIVATED)
+        CheckEvents()
+        CreateSettingsMenu()
     end)
-
-    -- BagCount
-    EVENT_MANAGER:RegisterForEvent(IP.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, ScheduleCheck)
-    EVENT_MANAGER:AddFilterForEvent(IP.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
-    EVENT_MANAGER:RegisterForEvent(IP.name, EVENT_INVENTORY_FULL_UPDATE, ScheduleCheck)
-    EVENT_MANAGER:RegisterForEvent(IP.name, EVENT_INVENTORY_BAG_CAPACITY_CHANGED, ScheduleCheck)
-
-    -- StackCount
-    EVENT_MANAGER:RegisterForEvent(IP.name .. "Craft", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnCraftBagUpdate)
-    EVENT_MANAGER:AddFilterForEvent(IP.name .. "Craft", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_VIRTUAL)
-    EVENT_MANAGER:RegisterForEvent(IP.name .. "Stack", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnBackpackStackUpdate)
-    EVENT_MANAGER:AddFilterForEvent(IP.name .. "Stack", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
-
-    -- Bank mute
-    local function SetBankOpen(open)
-        return function() bankOpen = open end
-    end
-    EVENT_MANAGER:RegisterForEvent(IP.name, EVENT_OPEN_BANK, SetBankOpen(true))
-    EVENT_MANAGER:RegisterForEvent(IP.name, EVENT_CLOSE_BANK, SetBankOpen(false))
-    EVENT_MANAGER:RegisterForEvent(IP.name, EVENT_OPEN_GUILD_BANK, SetBankOpen(true))
-    EVENT_MANAGER:RegisterForEvent(IP.name, EVENT_CLOSE_GUILD_BANK, SetBankOpen(false))
 
     SLASH_COMMANDS["/ipulse"] = SlashCommand
 end

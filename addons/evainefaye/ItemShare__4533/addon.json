@@ -18,15 +18,11 @@
     "ItemShare"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4533/",
-  "fingerprint": "5d8d4cdda0d81389dd19ca83055e1279bb0e41eba330ea7accfc111c64bfea3e",
+  "fingerprint": "3e751f7ef469af52a4eb71ec7c4810ed8315587a245f7c2573bf4811c026dc93",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw15870.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15871.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15872.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15815.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15816.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15817.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15818.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18387.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18388.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18386.png"
   ],
   "platform": "pc",
   "published": true,
@@ -34,11 +30,11 @@
   "source_id": "4533",
   "source_url": "https://www.esoui.com/downloads/info4533-ItemShare.html",
   "stats": {
-    "downloads": 183,
+    "downloads": 272,
     "favorites": 0,
-    "monthly_downloads": 11
+    "monthly_downloads": 83
   },
   "title": "ItemShare",
-  "updated_at": 1794214364000,
-  "version": "1.11.3"
+  "updated_at": 1794388825000,
+  "version": "1.11.31"
 }

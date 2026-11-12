@@ -395,7 +395,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LycanMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LycanMeter__3839) | Masteroshi430 | PC / Mac | 2026.09.28 |
 | [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__3367) | Lykeion | PC / Mac | 8.3.12 |
 | [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__1156c297-4c51-44e7-8267-9f934307f36e) | Lykeion+ | Console | — |
-| [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__4628) | Lykeion | PC / Mac | 2.6 |
+| [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__4628) | Lykeion | PC / Mac | 2.7 |
 | [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__42a55498-b21a-4657-86ba-bdb954f7a09d) | Lykeion+ | Console | — |
 | [Lykeion's Home Sweet Home - Dedicated keybinding jumping to Sugar Bowl Suite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Home-Sweet-Home---Dedicated-keybinding-jumping-to-Sugar-Bowl-Suite__3517) | Lykeion | PC / Mac | 1.0.2 |
 | [Lykeion's Home Sweet Home - Dedicated Slash Command & Keybinding jumping to Sugar Bowl Suite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Home-Sweet-Home---Dedicated-Slash-Command-Keybinding-jumping-to-Sugar__339e95fd-5cd9-46ec-b4b1-3512364698e0) | Lykeion+ | Console | — |

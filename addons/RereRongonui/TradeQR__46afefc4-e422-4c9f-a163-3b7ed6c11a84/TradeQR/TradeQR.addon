@@ -1,8 +1,8 @@
 ## Title: TradeQR
-## Description: Shows a QR code for every guild store sale, so a phone app can register it.
+## Description: Shows a QR code for every guild store sale and listing, so a phone app can register it.
 ## Author: LineaContinua
-## Version: 0.2.1
-## AddOnVersion: 3
+## Version: 0.3.0
+## AddOnVersion: 4
 ## APIVersion: 101051
 ## SavedVariables: TradeQR_SavedVariables
 
@@ -14,6 +14,7 @@ src/JsonEncoder.lua
 src/SalePayload.lua
 src/SaleQueue.lua
 src/SaleWatcher.lua
+src/ListingWatcher.lua
 src/Diagnostics.lua
 src/QRRenderer.lua
 src/SaleScreen.lua

@@ -15,14 +15,17 @@ local LABELS = {
     search = BATTLESCROLLS_IPOC_WORK_SEARCH, listings = BATTLESCROLLS_IPOC_WORK_LISTINGS,
     list = BATTLESCROLLS_IPOC_WORK_LIST,
     armory = BATTLESCROLLS_IPOC_WORK_ARMORY, wardrobe = BATTLESCROLLS_IPOC_WORK_WARDROBE,
-    equip = BATTLESCROLLS_IPOC_WORK_EQUIP,
+    equip = BATTLESCROLLS_IPOC_WORK_EQUIP, bind = BATTLESCROLLS_IPOC_WORK_BIND,
 }
+local SERVICE_INTERACTIONS = { INTERACTION_BANK, INTERACTION_VENDOR, INTERACTION_CRAFT, INTERACTION_TRADINGHOUSE }
 local control, taskLabel, itemLabel, maskedScene
 local enabled, registered, showing, updating = false, false, false, false
-local action, itemLink, guildId, showAt
-local armoryRequest, armoryDialogName
-local ARMORY_PROGRESS = 'ARMORY_BUILD_RESTORE_DIALOG'
-local ARMORY_SUCCESS = 'ARMORY_BUILD_RESTORE_SUCCESS_DIALOG'
+local action, itemLink, guildId, itemCount, showAt
+local ARMORY_NOTICES = { 'ARMORY_BUILD_RESTORE_DIALOG', 'ARMORY_BUILD_RESTORE_SUCCESS_DIALOG' }
+---ESO's dialog functions return early for a definition that is not a table.
+local HIDDEN_NOTICE = ''
+---@type table<string, table> Native definitions set aside during our own restore
+local hiddenNotices = {}
 ---@type table<Control, number>
 local masked = {}
 
@@ -89,6 +92,10 @@ local function canCoverScene(nextAction)
     elseif nextAction == 'equip' then expected = INTERACTION_COMPANION_MENU
     elseif nextAction == 'wardrobe' and (interaction == INTERACTION_BANK or interaction == INTERACTION_ARMORY) then
         expected = interaction
+    elseif nextAction == 'bind' then
+        for _, candidate in ipairs(SERVICE_INTERACTIONS) do
+            if interaction == candidate then expected = interaction end
+        end
     end
     if not expected or interaction ~= expected then return false end
     local info = scene.GetInteractionInfo and scene:GetInteractionInfo()
@@ -113,26 +120,26 @@ local function maskScene()
     mask(KEYBIND_STRIP.control)
     mask(ZO_KeybindStripGamepadBackground)
     mask(ZO_KeybindStripMungeBackground)
-    if armoryDialogName then mask(ZO_Dialogs_FindDialog(armoryDialogName)) end
 end
 
----Release the native notices belonging to our restore through their normal
----lifecycle. Their existing callbacks finish the native Armory UI updates.
-local function releaseArmoryNotice()
-    if not enabled or poc.cancelled or poc.visitFinished then armoryRequest, armoryDialogName = nil, nil; return end
+---Keep ESO from showing its progress and success notices for our own Armory
+---restore. Releasing a shown dialog from addon code runs ESO's dialog queue
+---untrusted; a button descriptor created there joins the pool shared by every
+---gamepad dialog and later breaks unrelated prompts until the UI reloads
+---(docs/inventory-addon/ui-taint.md). Swapping the definition is a data
+---write: ESO's own handlers then skip the notice. Failures stay visible.
+local function routeArmoryNotices()
     local request = BattleScrolls.inventoryPocBuilds.request
-    if request and request.kind == 'armory' then armoryRequest = request end
-    if armoryDialogName and not ZO_Dialogs_IsShowing(armoryDialogName) then armoryDialogName = nil end
-    if armoryRequest then
-        local name = ZO_Dialogs_IsShowing(ARMORY_PROGRESS) and ARMORY_PROGRESS
-            or (ZO_Dialogs_IsShowing(ARMORY_SUCCESS) and ARMORY_SUCCESS)
-        if name then
-            armoryDialogName = name
-            if name == ARMORY_SUCCESS then armoryRequest = nil end
-            ZO_Dialogs_ReleaseDialog(name)
-        elseif not armoryDialogName and request ~= armoryRequest then armoryRequest = nil end
+    local own = enabled and not poc.cancelled and not poc.visitFinished and request ~= nil and request.kind == 'armory'
+    for _, name in ipairs(ARMORY_NOTICES) do
+        local definition = ESO_Dialogs[name]
+        if own and type(definition) == 'table' then
+            hiddenNotices[name], ESO_Dialogs[name] = definition, HIDDEN_NOTICE
+        elseif not own and hiddenNotices[name] then
+            if definition == HIDDEN_NOTICE then ESO_Dialogs[name] = hiddenNotices[name] end
+            hiddenNotices[name] = nil
+        end
     end
-    return armoryDialogName ~= nil
 end
 
 local function create()
@@ -159,7 +166,6 @@ local function show()
 end
 
 local function onUpdate()
-    services.update()
     ui.refresh()
     if not action then hide(); return end
     if not showing and showAt and GetFrameTimeMilliseconds() >= showAt then show() end
@@ -168,41 +174,34 @@ end
 
 function ui.refresh()
     if maskedScene and maskedScene ~= SCENE_MANAGER:GetCurrentScene() then hide() end
-    local previousArmoryDialog = armoryDialogName
-    local ownArmoryNotice = releaseArmoryNotice()
-    local nextAction, nextItem, nextGuild
-    if enabled then nextAction, nextItem, nextGuild = poc.activity() end
+    routeArmoryNotices()
+    local nextAction, nextItem, nextGuild, nextCount
+    if enabled then nextAction, nextItem, nextGuild, nextCount = poc.activity() end
     if enabled and not nextAction then
         nextAction = services.activity()
         if nextAction == 'listings' then nextGuild = GetSelectedTradingHouseGuildId() end
     end
-    if ownArmoryNotice and not nextAction then nextAction = 'armory' end
     if nextAction and not canCoverScene(nextAction) then nextAction = nil end
-    if nextAction and enabled and not poc.cancelled and not ownArmoryNotice and ZO_Dialogs_IsShowingDialog() then
+    if nextAction and enabled and not poc.cancelled and ZO_Dialogs_IsShowingDialog() then
         poc.cancelWork()
         return
     end
     if not nextAction then
-        action, itemLink, guildId = nil, nil, nil
+        action, itemLink, guildId, itemCount = nil, nil, nil, nil
         hide()
         return
     end
     if not control then create() end
-    if nextAction ~= action or nextItem ~= itemLink or nextGuild ~= guildId then
-        action, itemLink, guildId = nextAction, nextItem, nextGuild
+    if nextAction ~= action or nextItem ~= itemLink or nextGuild ~= guildId or nextCount ~= itemCount then
+        action, itemLink, guildId, itemCount = nextAction, nextItem, nextGuild, nextCount
         local label = GetString(LABELS[action])
         taskLabel:SetText(guildId and zo_strformat(label, GetGuildName(guildId)) or label)
-        itemLabel:SetText(itemLink or '')
+        itemLabel:SetText(itemLink or (itemCount and zo_strformat(GetString(BATTLESCROLLS_IPOC_WORK_COUNT), itemCount)) or '')
     end
     if not showing and not showAt then showAt = GetFrameTimeMilliseconds() + SHOW_DELAY_MS end
     if not updating then
         updating = true
         EVENT_MANAGER:RegisterForUpdate(UPDATE_NAME, 0, onUpdate)
-    end
-    if ownArmoryNotice and showing and previousArmoryDialog ~= armoryDialogName then
-        -- Keep Cancel above the native dialog's temporary input layer.
-        RemoveActionLayerByName(ACTION_LAYER)
-        PushActionLayerByName(ACTION_LAYER)
     end
 end
 

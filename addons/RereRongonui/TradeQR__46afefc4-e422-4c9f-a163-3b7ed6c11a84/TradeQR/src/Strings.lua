@@ -2,6 +2,7 @@
 -- so these are not localized through the client language).
 local strings = {
     TRADEQR_SCREEN_TITLE = "Vendita completata",
+    TRADEQR_SCREEN_TITLE_LISTING = "Messo in vendita",
     TRADEQR_COUNTER = "<<1>> di <<2>>",
     TRADEQR_LABEL_GUILD = "Gilda",
     TRADEQR_LABEL_ITEM = "Oggetto",
@@ -9,12 +10,13 @@ local strings = {
     TRADEQR_LABEL_PRICE = "Prezzo",
     TRADEQR_LABEL_BUYER = "Acquirente",
     TRADEQR_LABEL_DATE = "Data",
+    TRADEQR_LABEL_LISTING_FEE = "Costo inserzione",
     TRADEQR_HINT = "Inquadra il QR code con il telefono, poi premi \"Registrata\".",
     TRADEQR_KEYBIND_DONE = "Registrata",
     TRADEQR_KEYBIND_SKIP = "Salta",
     TRADEQR_KEYBIND_LATER = "Più tardi",
-    TRADEQR_CHAT_NEW_SALES = "TradeQR: <<1>> nuove vendite da registrare.",
-    TRADEQR_CHAT_NOTHING_PENDING = "TradeQR: nessuna vendita da registrare.",
+    TRADEQR_CHAT_NEW_SALES = "TradeQR: <<1>> nuovi QR da registrare.",
+    TRADEQR_CHAT_NOTHING_PENDING = "TradeQR: niente da registrare.",
     TRADEQR_CHAT_QR_ERROR = "TradeQR: impossibile generare il QR code (<<1>>).",
     TRADEQR_CHAT_SCAN_STARTED = "TradeQR: controllo vendite avviato, riprova /tradeqr diag tra un minuto.",
     -- "/tradeqr diag" lines (string.format placeholders).
@@ -22,6 +24,7 @@ local strings = {
     TRADEQR_DIAG_GUILD = "[%s] eventi negozio in cache %d, aggiornata %s, ultimo indice senza buchi %s",
     TRADEQR_DIAG_SCAN = "  scansione: eventi %d, vendite %d, mie %d, nuove %d (%s)",
     TRADEQR_DIAG_REQUEST = "  richiesta: %s, flag %s, completa %s, creata %s, aggiornamenti ricevuti %d (flag %s), ultimo poll %s",
+    TRADEQR_DIAG_LISTINGS = "TradeQR diag: inserzioni in questa sessione: richieste %d, confermate %d, fallite %d",
     TRADEQR_DIAG_NEWEST_SELLER = "  venditore più recente visto: %s (%s), sei tu: %s",
     TRADEQR_DIAG_MINUTES_AGO = "%.0f min fa",
     TRADEQR_DIAG_YES = "sì",

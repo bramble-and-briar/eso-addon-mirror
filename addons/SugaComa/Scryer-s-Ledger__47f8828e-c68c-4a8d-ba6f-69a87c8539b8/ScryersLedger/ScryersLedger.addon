@@ -1,0 +1,17 @@
+## Title: Scryer’s Ledger
+## Description: Sort and filter the Scryable Antiquities journal from Triangle Options.
+## APIVersion: 101050 101051 101052
+## Version: 1.0.3
+## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
+## OptionalDependsOn: LibHarvensAddonSettings
+## SavedVariables: ScryersLedger_SV ScryersLedger_CharacterSV ScryersLedger_ScopeSV
+
+; DISCLAIMER:
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms
+
+ScryersLedger.lua

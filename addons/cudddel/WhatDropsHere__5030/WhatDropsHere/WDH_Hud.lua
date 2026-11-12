@@ -18,7 +18,8 @@
 -- Prozent = Anteil der Pluenderungen, in denen der Eintrag mindestens einmal dabei war.
 
 local WDH = WhatDropsHere
-local CAT = WDH_Categories
+local CAT = WDH.Categories
+local WDH_STRINGS, WDH_SLOT_NAMES = WDH.L, WDH.SLOT_NAMES
 local Hud = {}
 WDH.Hud = Hud
 

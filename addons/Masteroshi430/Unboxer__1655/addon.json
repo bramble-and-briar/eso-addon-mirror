@@ -8,8 +8,8 @@
   "category_id": "20",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:1655",
@@ -18,7 +18,7 @@
     "Unboxer"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1655/",
-  "fingerprint": "c7dfc4636d58aca960a2e8c04fa8b1521a731c4b0299bf624ec9b41f05df8e7a",
+  "fingerprint": "752984e90f87db2b6f76ab0948081287b8c2d0d0e619f762e1d349356831c5de",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8199.png",
     "https://cdn-eso.mmoui.com/preview/pvw8200.png",
@@ -32,11 +32,11 @@
   "source_id": "1655",
   "source_url": "https://www.esoui.com/downloads/info1655-Unboxer.html",
   "stats": {
-    "downloads": 143937,
+    "downloads": 145067,
     "favorites": 99,
-    "monthly_downloads": 1001
+    "monthly_downloads": 2088
   },
   "title": "Unboxer",
-  "updated_at": 1793484213000,
-  "version": "2026.10.31"
+  "updated_at": 1794381507000,
+  "version": "2026.11.11"
 }

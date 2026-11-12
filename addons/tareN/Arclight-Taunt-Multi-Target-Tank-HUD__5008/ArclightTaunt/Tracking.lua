@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.2 | Tracking module
+-- Arclight Taunt 1.2.0 | Tracking module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -136,6 +136,7 @@ local function CreateDemo(count, keepRoster, startedAt)
 end
 
 local function SetDemoPaused(paused)
+    if A.moving and not paused then return end
     if not A.demo then A.demoPausedAt = nil; return end
     local now = Now()
     if paused then
@@ -161,6 +162,7 @@ local function SetDemoPaused(paused)
     end
 end
 local function SetDemoEnabled(enabled)
+    if A.moving then return end
     if A.StopGloss then A.StopGloss() end
     A.lastVisibleItems = nil
     A.listPeakRows, A.listPeakFooter = nil, nil
@@ -193,7 +195,7 @@ local function LostLess(a, b)
     return tostring(a.unitId) < tostring(b.unitId)
 end
 
-local function Gather(now, skipSort)
+local function Gather(now, skipSort, bossOnly)
     now = DemoNow(now)
     local active, lost = {}, {}
     if A.demo then
@@ -218,9 +220,9 @@ local function Gather(now, skipSort)
             if t.startTime <= now then
                 if t.endTime <= now and not t.expiredAt then t.expiredAt = t.endTime end
                 if not IsLost(t, now) then
-                    active[#active + 1] = t
+                    if not bossOnly or A.BossVisible(t) then active[#active + 1] = t end
                 elseif A.saved.showExpired or now - t.expiredAt < EXPIRED_LINGER then
-                    lost[#lost + 1] = t
+                    if not bossOnly or A.BossVisible(t) then lost[#lost + 1] = t end
                 end
             end
         end
@@ -228,10 +230,10 @@ local function Gather(now, skipSort)
         for key, t in pairs(A.targets) do
             if t.endTime <= now and not t.expiredAt then t.expiredAt = now end
             if not IsLost(t, now) then
-                active[#active + 1] = t
+                if not bossOnly or A.BossVisible(t) then active[#active + 1] = t end
             elseif A.saved.showExpired
                 or now - t.expiredAt < EXPIRED_LINGER then
-                lost[#lost + 1] = t
+                if not bossOnly or A.BossVisible(t) then lost[#lost + 1] = t end
             else
                 A.targets[key] = nil
                 if A.reticleUnitId == key then A.reticleUnitId = nil end
@@ -351,6 +353,8 @@ end
 -- Resolve focus from direct identity or a unique own-taunt timing match.
 local function TargetChanged()
     A.activeTarget = nil
+    A.reticleTaunt = nil
+    A.reticleBossTarget = nil
     A.reticleDirty = nil
     A.lastReticleScan = Now()
     if not DoesUnitExist("reticleover") then
@@ -376,19 +380,33 @@ local function TargetChanged()
     if identified and not identified.dead and not IsLost(identified, now) then
         A.activeTarget = identified.unitId
     end
+    local bossFilter = A.saved.reticleStyle ~= "off" and A.saved.reticleBossOnly
+        and A.inCombat
     if identified then
         -- Direct identity already resolves focus; timing guesses need no buff
         -- scan here. Boss observation still follows the current valid unit tag.
+        if A.activeTarget or bossFilter then A.ObserveBoss(identified, "reticleover") end
+        if bossFilter then A.reticleBossTarget = identified end
         if A.activeTarget then
-            A.ObserveBoss(identified, "reticleover")
+            if A.saved.reticleStyle ~= "off" then A.reticleTaunt = identified end
         end
         return
+    end
+    if bossFilter then
+        -- Classification of the current unit needs no guessed list identity or
+        -- active taunt. Reuse the existing observation and polling interval.
+        local observation = A.reticleObservation or {}
+        A.reticleObservation = observation
+        observation.isBoss, observation.bossDifficulty, observation.isPlayer = nil, nil, player
+        A.ObserveBoss(observation, "reticleover")
+        A.reticleBossTarget = observation
     end
     local candidates = {}
     for _, t in pairs(A.targets) do
         if not t.dead and not IsLost(t, now) then candidates[#candidates + 1] = t end
     end
-    if #candidates == 0 then return end
+    local observeReticle = A.ReticleNeedsUpdate and A.ReticleNeedsUpdate()
+    if #candidates == 0 and not observeReticle then return end
     local buffCount = GetNumBuffs("reticleover") or 0
     for i = 1, buffCount do
         local _, beginTime, endTime, _, _, _, _, _, _, _, abilityId, _, castByPlayer =
@@ -397,6 +415,17 @@ local function TargetChanged()
         -- reticle. They need a direct event identity instead of a timer guess.
         if castByPlayer == true and TAUNT_IDS[abilityId]
             and type(beginTime) == "number" and type(endTime) == "number" then
+            -- A supported own effect on this unit is sufficient for the small
+            -- indicator, even when identical timers cannot identify a list row.
+            -- Keep this observation out of combat records and boss warnings.
+            if observeReticle and beginTime <= now and endTime > now and beginTime > -math.huge
+                and endTime < math.huge and endTime > beginTime
+                and (not A.reticleTaunt or endTime < A.reticleTaunt.endTime) then
+                local observation = A.reticleObservation or {}
+                A.reticleObservation = observation
+                observation.startTime, observation.endTime = beginTime, endTime
+                A.reticleTaunt = observation
+            end
             local match, matchCount = nil, 0
             for _, t in ipairs(candidates) do
                 if t.sourceType == COMBAT_UNIT_TYPE_PLAYER and t.abilityId == abilityId
@@ -421,7 +450,16 @@ local function TargetChanged()
     end
     local matched = A.activeTarget and A.targets[A.activeTarget]
     if not matched then return end
-    A.ObserveBoss(matched, "reticleover")
+    if bossFilter then
+        -- A unique match may reuse this unit's already-read classification.
+        local observation = A.reticleBossTarget
+        if observation.isBoss then matched.isBoss = true end
+        if observation.bossDifficulty then
+            matched.bossDifficulty = math.max(matched.bossDifficulty or 0, observation.bossDifficulty)
+        end
+    else
+        A.ObserveBoss(matched, "reticleover")
+    end
 end
 
 local function ReticleChanged()
@@ -554,6 +592,15 @@ local function EffectChanged(_, changeType, _, _, unitTag, beginTime, endTime,
 end
 local function CombatChanged(_, inCombat)
     A.inCombat = inCombat == true
+    if A.inCombat and (A.reticlePreview or A.reticleMoving) then
+        A.SetReticleMoveMode(false, true)
+        A.reticlePreview, A.reticlePreviewAt = nil, nil
+        A.reticleDirty = true -- resume real evidence, never the preview sample
+        if A.RefreshSettingsPanel then A.RefreshSettingsPanel() end
+    end
+    -- Re-observe the aimed unit when the combat-only indicator becomes visible,
+    -- even if the crosshair itself did not move.
+    if A.saved.reticleStyle ~= "off" then A.reticleDirty = true end
     if not A.inCombat then
         A.lastVisibleItems = nil
         A.listPeakRows, A.listPeakFooter = nil, nil

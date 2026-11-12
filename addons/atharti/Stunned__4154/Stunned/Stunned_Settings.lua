@@ -1,8 +1,7 @@
 local S = Stunned
+local LAM = LibAddonMenu2
 
-function S.RegisterLAMPanel()
-	local LAM = LibAddonMenu2
-
+function S.InitSettings()
 	local soundChoices = {
 		"ARMORY_SAVE_SUCCESS",
 		"BATTLEGROUND_ROUND_RECAP_SCREEN_FINAL_WIN",

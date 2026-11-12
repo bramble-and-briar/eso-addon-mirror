@@ -243,7 +243,7 @@ local function upgradeAvailable(id)
     local active = id == GetActiveCompanionDefId()
     for _, move in ipairs(upgrade.moves) do
         local item = move.item
-        if Id64ToString(GetItemUniqueId(item.bag, item.slot)) ~= item.uniqueId
+        if facts.uniqueId(item.bag, item.slot) ~= item.uniqueId
             or GetItemLink(item.bag, item.slot, LINK_STYLE_DEFAULT) ~= item.link
             or IsItemPlayerLocked(item.bag, item.slot) or IsItemInArmory(item.bag, item.slot)
             or (active and not IsEquipable(item.bag, item.slot)) then return false end
@@ -256,7 +256,7 @@ local function upgradeAvailable(id)
     end
     if active then
         for _, slot in ipairs(EQUIPMENT_SLOTS) do
-            if Id64ToString(GetItemUniqueId(BAG_COMPANION_WORN, slot)) ~= (upgrade.worn[slot] or '0') then return false end
+            if facts.uniqueId(BAG_COMPANION_WORN, slot) ~= (upgrade.worn[slot] or '0') then return false end
         end
     end
     return true
@@ -284,23 +284,25 @@ function companions.apply(item)
 end
 
 ---@param backpack InventoryPocItem[]
----@param worn InventoryPocItem[]|nil
-function companions.refresh(backpack, worn)
+---@param worn InventoryPocItem[]|nil Fresh equipment of the active companion
+---@param bank InventoryPocItem[]|nil This pass's bank scan; the last one is reused when the bank is closed
+function companions.refresh(backpack, worn, bank)
     if not poc.saved then return end
     companions.capture(worn)
-    if IsBankOpen() and (GetBankingBag() == BAG_BANK or GetBankingBag() == BAG_SUBSCRIBER_BANK) then
+    if bank then
         companions.bank = {}
-        local bags = IsESOPlusSubscriber() and { BAG_BANK, BAG_SUBSCRIBER_BANK } or { BAG_BANK }
-        for _, bag in ipairs(bags) do for _, item in ipairs(facts.bag(bag)) do
+        for _, item in ipairs(bank) do
             if item.kind == 'companion' then companions.bank[#companions.bank + 1] = item end
-        end end
+        end
     end
     local loose = {}
     for _, item in ipairs(companions.bank) do loose[#loose + 1] = item end
     for _, item in ipairs(backpack) do loose[#loose + 1] = item end
     companions.kept, companions.complete, companions.assigned = companions.allocate(poc.saved.companions, loose)
-    for _, item in ipairs(backpack) do
-        if item.kind == 'companion' then companions.apply(item) end
+    for _, items in ipairs({ backpack, bank or {} }) do
+        for _, item in ipairs(items) do
+            if item.kind == 'companion' then companions.apply(item) end
+        end
     end
     upgrades = {}
     for _, id in ipairs(TARGETS) do

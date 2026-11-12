@@ -1,0 +1,57 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="SI_ROLEPLAYMOD_CATEGORY">
+            <Action name="IHR_ASK_FOR_INFORMATION">
+                <Down>IsTargetFriendlyNPC()</Down>
+            </Action>
+        </Category>
+    </Layer>
+    <Layer name="RPMGamepadEntry" allowFallthrough="true">
+        <Category name="SI_ROLEPLAYMOD_CATEGORY">
+            <Action name="RPM_GP_OPEN" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_RIGHT_SHOULDER">
+                <Down>RolePlayMod.Gamepad.Press()</Down>
+                <Up>RolePlayMod.Gamepad.Open()</Up>
+            </Action>
+        </Category>
+    </Layer>
+    <Layer name="RPMGamepadUI" allowFallthrough="true">
+        <Category name="SI_ROLEPLAYMOD_CATEGORY">
+            <Action name="RPM_GP_CONFIRM" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_PRIMARY">
+                <Down>return RolePlayMod.Gamepad.InputDown("UI_SHORTCUT_PRIMARY")</Down>
+                <Up>return RolePlayMod.Gamepad.InputUp("UI_SHORTCUT_PRIMARY")</Up>
+            </Action>
+            <Action name="RPM_GP_BACK" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_NEGATIVE">
+                <Down>return RolePlayMod.Gamepad.InputDown("UI_SHORTCUT_NEGATIVE")</Down>
+                <Up>return RolePlayMod.Gamepad.InputUp("UI_SHORTCUT_NEGATIVE")</Up>
+            </Action>
+            <Action name="RPM_GP_EXIT" hideAction="true" rebindable="false">
+                <Down>return RolePlayMod.Gamepad.ExitHoldDown()</Down>
+                <Up>return RolePlayMod.Gamepad.ExitHoldUp()</Up>
+            </Action>
+            <Action name="RPM_GP_PREVIOUS" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_LEFT_SHOULDER">
+                <Down>return RolePlayMod.Gamepad.InputDown("UI_SHORTCUT_LEFT_SHOULDER")</Down>
+                <Up>return RolePlayMod.Gamepad.InputUp("UI_SHORTCUT_LEFT_SHOULDER")</Up>
+            </Action>
+            <Action name="RPM_GP_NEXT" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_RIGHT_SHOULDER">
+                <Down>return RolePlayMod.Gamepad.InputDown("UI_SHORTCUT_RIGHT_SHOULDER")</Down>
+                <Up>return RolePlayMod.Gamepad.InputUp("UI_SHORTCUT_RIGHT_SHOULDER")</Up>
+            </Action>
+            <Action name="RPM_GP_UP" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_INPUT_UP">
+                <Down>return RolePlayMod.Gamepad.InputDown("UI_SHORTCUT_INPUT_UP")</Down>
+                <Up>return RolePlayMod.Gamepad.InputUp("UI_SHORTCUT_INPUT_UP")</Up>
+            </Action>
+            <Action name="RPM_GP_DOWN" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_INPUT_DOWN">
+                <Down>return RolePlayMod.Gamepad.InputDown("UI_SHORTCUT_INPUT_DOWN")</Down>
+                <Up>return RolePlayMod.Gamepad.InputUp("UI_SHORTCUT_INPUT_DOWN")</Up>
+            </Action>
+            <Action name="RPM_GP_LEFT" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_INPUT_LEFT">
+                <Down>return RolePlayMod.Gamepad.InputDown("UI_SHORTCUT_INPUT_LEFT")</Down>
+                <Up>return RolePlayMod.Gamepad.InputUp("UI_SHORTCUT_INPUT_LEFT")</Up>
+            </Action>
+            <Action name="RPM_GP_RIGHT" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_INPUT_RIGHT">
+                <Down>return RolePlayMod.Gamepad.InputDown("UI_SHORTCUT_INPUT_RIGHT")</Down>
+                <Up>return RolePlayMod.Gamepad.InputUp("UI_SHORTCUT_INPUT_RIGHT")</Up>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

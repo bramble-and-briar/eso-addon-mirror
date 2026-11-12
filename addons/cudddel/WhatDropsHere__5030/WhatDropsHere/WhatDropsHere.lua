@@ -5,7 +5,7 @@
 --   1. EVENT_LOOT_UPDATED (erstes)  -> Quelle sichern (GetLootTargetInfo), Liste lesen
 --   2. EVENT_LOOT_UPDATED (weitere) -> nur neue lootIds ergaenzen
 --      (Auto-Loot-Addons nehmen Items, die Liste wird kuerzer, das Event feuert erneut)
---   3. EVENT_LOOT_CLOSED            -> Sitzung in WDH_Saved schreiben
+--   3. EVENT_LOOT_CLOSED            -> Sitzung in SV schreiben
 --   4. EVENT_LOOT_RECEIVED          -> Spuren (Antiquitaeten), Taschendiebstahl und
 --                                      Beute ohne Lootfenster (siehe unten)
 --
@@ -22,12 +22,14 @@
 -- Die kommt erst mit EVENT_LOOT_RECEIVED (itemId = antiquityId). Spuren werden deshalb
 -- im Lootfenster uebersprungen und beim Empfang der laufenden bzw. letzten Sitzung zugeordnet.
 --
--- Datenmodell (accountweit):
---   WDH_Saved.zones[zoneId][key] = Quelle
+-- Datenmodell (je Server und Account):
+--   WhatDropsHere_Saved[GetWorldName()][GetDisplayName()] = SV
+--   SV.zones[zoneId][key] = Quelle
 --     zoneId 0      = Behaelter aus dem Inventar (ueberall gleich)
 --     key           = Name in Kleinbuchstaben, "#aoe" fuer Sammelpluenderung,
 --                     "pickpocket:" fuer Taschendiebstahl
---   Quelle = { name, kind, loots, gold, targetType, last, sets = {}, items = {}, cats = {} }
+--   Quelle = { name, kind, loots, gold, targetType, last, type, collective, sets = {}, items = {}, cats = {} }
+--     collective = Sammeleintrag (gestohlene Einzelstuecke der Zone, Schluessel LOOSE_THEFT_KEY)
 --     items[itemId] = Stat + cat (jeder Fund; "lead:<antiquityId>" bzw. "n:<Name>" fuer Nicht-Items)
 --     cats[key]     = Stat (Kategorie-Schluessel aus WDH_Categories.lua, alle Funde der Kategorie)
 --     sets[setId]   = Stat + slots[slot] = Anzahl (Set-Ausruestung zusaetzlich pro Set)
@@ -35,7 +37,9 @@
 --   Stat = { n = Anzahl gesamt, hits = Pluenderungen mit Treffer, min, max, q = { [Qualitaet] = Anzahl } }
 
 local ADDON_NAME         = "WhatDropsHere"
-local SAVED_VERSION      = 2  -- 2: jeder Fund mit Item-ID, Schwelle nur noch fuer die Anzeige
+local SAVED_VERSION      = 3  -- 2: jeder Fund mit Item-ID, Schwelle nur noch fuer die Anzeige
+                              -- 3: herumliegende Gegenstaende nicht mehr als eigene Quelle
+local LOOSE_THEFT_KEY    = "#loose#theft"  -- Sammeleintrag je Zone fuer gestohlene Einzelstuecke ohne Lootfenster
 local RECEIVED_GRACE_MS  = 2000  -- ms nach LOOT_CLOSED, in denen LOOT_RECEIVED noch zur Sitzung gehoert
 local SESSION_TIMEOUT_MS = 5000  -- ms ohne LOOT_UPDATED, nach denen eine Sitzung ohne LOOT_CLOSED gespeichert wird
 local INTERACT_VALID_MS  = 3000  -- ms nach der Interaktion, in denen Beute ohne Lootfenster ihr zugeordnet wird
@@ -45,11 +49,11 @@ local INTERACT_POLL_MS   = 100   -- Abfrage-Intervall fuer die Art der Interakti
 -- -----------------------------------------------------------------------------
 -- Addon-Objekt
 -- -----------------------------------------------------------------------------
-WhatDropsHere = {
-    VERSION = "0.3.0-beta",  -- wie "## Version" im Manifest
-}
+-- WhatDropsHere ist die einzige globale Variable des Addons (angelegt in lang/en.lua)
 local WDH = WhatDropsHere
-local CAT = WDH_Categories
+WDH.VERSION = "0.3.1-beta"  -- wie "## Version" im Manifest
+local CAT = WDH.Categories
+local WDH_STRINGS, WDH_SLOT_NAMES, WDH_CAT_NAMES = WDH.L, WDH.SLOT_NAMES, WDH.CAT_NAMES
 
 -- Schwelle je Art der Quelle: Anzeige fuer diese Art aus
 local SHOW_OFF = -1
@@ -99,6 +103,9 @@ end
 -- Interne Zustaende
 -- -----------------------------------------------------------------------------
 
+-- Gespeicherte Daten dieses Accounts auf diesem Server (Teil von WhatDropsHere_Saved, siehe OpenSaved)
+local SV = nil
+
 -- Laufende Pluender-Sitzung (nil, wenn kein Lootfenster offen)
 local WDH_Session = nil
 
@@ -139,7 +146,7 @@ local WDH_Initialized = false
 -- -----------------------------------------------------------------------------
 
 local function dbg(msg)
-    if not WDH_Saved or not WDH_Saved.settings.debug then return end
+    if not SV or not SV.settings.debug then return end
     d(WDH_STRINGS.DEBUG_PREFIX .. msg)
 end
 
@@ -193,7 +200,7 @@ local function ColorByQuality(quality, text)
 end
 
 local function CatName(key)
-    return (WDH_CAT_NAMES and WDH_CAT_NAMES[key]) or key
+    return WDH_CAT_NAMES[key] or key
 end
 
 local function SetName(setId)
@@ -203,10 +210,13 @@ local function SetName(setId)
 end
 
 -- Anzeigename fuer einen items-Schluessel (Item-ID, "lead:<id>" oder "n:<Name>")
+local function ItemLinkFromId(itemId)
+    return string.format("|H1:item:%d:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", itemId)
+end
+
 local function ItemName(id)
     if type(id) == "number" then
-        local link = string.format("|H1:item:%d:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", id)
-        return zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(link))
+        return zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(ItemLinkFromId(id)))
     end
     local leadId = id:match("^lead:(%d+)$")
     if leadId then
@@ -258,8 +268,14 @@ end
 -- Speicher
 -- -----------------------------------------------------------------------------
 
+-- Anzeigename einer Quelle; Sammeleintraege in der Sprache des Clients
+local function RecordName(rec)
+    if rec.collective then return WDH_STRINGS.RECORD_LOOSE end
+    return rec.name
+end
+
 local function GetRecord(zoneId, key, name, kind)
-    local zones = WDH_Saved.zones
+    local zones = SV.zones
     zones[zoneId] = zones[zoneId] or {}
     local rec = zones[zoneId][key]
     if not rec then
@@ -270,7 +286,7 @@ local function GetRecord(zoneId, key, name, kind)
 end
 
 local function FindRecord(zoneId, key)
-    local zone = WDH_Saved.zones[zoneId]
+    local zone = SV.zones[zoneId]
     return zone and zone[key]
 end
 
@@ -451,6 +467,7 @@ local function CommitSession(session)
     end
 
     local rec = GetRecord(session.zoneId, session.key, session.name, session.kind)
+    if session.collective then rec.collective = true end
     rec.loots      = rec.loots + 1
     rec.gold       = rec.gold + session.gold
     rec.targetType = session.targetType
@@ -467,10 +484,14 @@ local function CommitSession(session)
 
     WDH_Last.zoneId   = session.zoneId
     WDH_Last.key      = session.key
-    WDH_Last.closedAt = Now()
-    WDH_Last.itemIds  = session.itemIds
+    -- Nachlauffrist nur fuer Lootfenster: Beute ohne Fenster (mehrere Gegenstaende vom Tisch
+    -- stehlen, Taschendiebstahl) kommt nicht verspaetet an und darf die naechste nicht verschlucken
+    if session.fromWindow then
+        WDH_Last.closedAt = Now()
+        WDH_Last.itemIds  = session.itemIds
+    end
     -- Fuer /wdh ohne Argument auch nach Neustart merken
-    WDH_Saved.last = { zoneId = session.zoneId, key = session.key }
+    SV.last = { zoneId = session.zoneId, key = session.key }
 
     dbg(string.format(WDH_STRINGS.DEBUG_SESSION,
         session.name, ZoneName(session.zoneId), tostring(session.targetType),
@@ -496,6 +517,29 @@ end
 -- Event-Handler
 -- -----------------------------------------------------------------------------
 
+-- Sitzung, die Beute aus LOOT_RECEIVED/CURRENCY_UPDATE uebernimmt (nur bei leer vorgefundenem Fenster)
+local function LateTarget()
+    if WDH_Session then
+        return WDH_Session.emptyWindow and WDH_Session or nil
+    end
+    return WDH_Pending
+end
+
+-- Gold-Aenderungen werden nur gebraucht, solange es eine solche Sitzung gibt:
+-- EVENT_MONEY_UPDATE ist nur dann angemeldet (sonst liefe es bei jedem Kauf, Verkauf, Reparieren ...)
+local OnMoneyUpdate  -- unten definiert
+local moneyWatched = false
+local function UpdateMoneyWatch()
+    local needed = LateTarget() ~= nil
+    if needed == moneyWatched then return end
+    moneyWatched = needed
+    if needed then
+        EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_Money", EVENT_MONEY_UPDATE, OnMoneyUpdate)
+    else
+        EVENT_MANAGER:UnregisterForEvent(ADDON_NAME .. "_Money", EVENT_MONEY_UPDATE)
+    end
+end
+
 -- Laufende Sitzung speichern (LOOT_CLOSED, Zeitueberschreitung, Ladebildschirm)
 local function FinishPending()
     EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "_Pending")
@@ -503,6 +547,7 @@ local function FinishPending()
     local session = WDH_Pending
     WDH_Pending = nil
     CommitSession(session)
+    UpdateMoneyWatch()
 end
 
 local function FinishSession()
@@ -518,14 +563,7 @@ local function FinishSession()
     else
         CommitSession(session)
     end
-end
-
--- Sitzung, die Beute aus LOOT_RECEIVED/CURRENCY_UPDATE uebernimmt (nur bei leer vorgefundenem Fenster)
-local function LateTarget()
-    if WDH_Session then
-        return WDH_Session.emptyWindow and WDH_Session or nil
-    end
-    return WDH_Pending
+    UpdateMoneyWatch()
 end
 
 -- Im Test kam LOOT_CLOSED nicht immer (vermutlich wenn ein Auto-Loot-Addon das Fenster schliesst).
@@ -583,6 +621,7 @@ local function OnLootUpdated()
     if WDH_Session.emptyWindow and (next(WDH_Session.seen) or WDH_Session.gold > 0) then
         WDH_Session.emptyWindow = false
     end
+    UpdateMoneyWatch()
     ArmSessionTimeout()
 end
 
@@ -590,11 +629,31 @@ local function OnLootClosed()
     FinishSession()
 end
 
+-- Herumliegender Gegenstand ("Nehmen" ohne Fenster): Waffe/Ruestung (Interaktion heisst z. B. "Schild",
+-- das Item "Nachtholzschild") oder ein Item mit dem Namen der Quelle. Kleintiere geben andere Beute.
+local function IsLooseItem(itemLink, sourceName)
+    local itemType = GetItemLinkItemType(itemLink)
+    if itemType == ITEMTYPE_WEAPON or itemType == ITEMTYPE_ARMOR then return true end
+    return MakeKey(zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(itemLink))) == MakeKey(sourceName)
+end
+
 local function FinishDirectSession()
     EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "_DirectCommit")
-    if not WDH_Direct then return end
-    CommitSession(WDH_Direct)
+    local session = WDH_Direct
+    if not session then return end
     WDH_Direct = nil
+    if session.kind == "theft" then
+        -- Gestohlene Einzelstuecke: ein Sammeleintrag je Zone statt einer Quelle je Gegenstand
+        session.key        = LOOSE_THEFT_KEY
+        session.name       = WDH_STRINGS.RECORD_LOOSE
+        session.collective = true
+    elseif session.loose then
+        -- Herumliegende Waffen/Ruestung in der offenen Welt: Trash, nicht speichern
+        dbg(string.format(WDH_STRINGS.DEBUG_LOOSE_IGNORED, session.name))
+        for _, line in ipairs(session.lines) do dbg(line) end
+        return
+    end
+    CommitSession(session)
 end
 
 -- Beute ohne Lootfenster der letzten Interaktion zuordnen.
@@ -611,6 +670,7 @@ local function AddDirectLoot(itemLink, quantity)
         WDH_Direct = NewSession(WDH_Interact.name, nil, "take", WDH_Interact.owned)
         WDH_Direct.interactAt = WDH_Interact.at
     end
+    WDH_Direct.loose = WDH_Direct.loose ~= false and IsLooseItem(itemLink, WDH_Direct.name)
     AddItem(WDH_Direct, itemLink, quantity)
 
     EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "_DirectCommit")
@@ -645,7 +705,7 @@ local function OnInteractionStart()
 end
 
 -- Gold, das ein Auto-Loot-Addon aus einem leer vorgefundenen Fenster genommen hat
-local function OnMoneyUpdate(_, newMoney, oldMoney, reason)
+function OnMoneyUpdate(_, newMoney, oldMoney, reason)
     if reason ~= CURRENCY_CHANGE_REASON_LOOT and reason ~= CURRENCY_CHANGE_REASON_LOOT_STOLEN then return end
     local late = LateTarget()
     if late and newMoney > oldMoney then
@@ -752,7 +812,7 @@ WDH.SHOW_OFF       = SHOW_OFF
 
 -- Anzeige-Einstellungen des eingeloggten Charakters
 function WDH.Settings()
-    return WDH_Saved.chars[WDH.charId].settings
+    return SV.chars[WDH.charId].settings
 end
 
 -- Andere Charaktere des Accounts mit gespeicherten Einstellungen: Namen und IDs, sortiert.
@@ -761,7 +821,7 @@ function WDH.OtherCharacters()
     local list = {}
     for i = 1, GetNumCharacters() do
         local name, _, _, _, _, _, id = GetCharacterInfo(i)
-        if id ~= WDH.charId and WDH_Saved.chars[id] then
+        if id ~= WDH.charId and SV.chars[id] then
             list[#list + 1] = { name = zo_strformat("<<1>>", name), id = id }
         end
     end
@@ -776,15 +836,15 @@ end
 
 -- Uebernimmt die Anzeige-Einstellungen eines anderen Charakters
 function WDH.CopySettingsFrom(charId)
-    local source = WDH_Saved.chars[charId]
+    local source = SV.chars[charId]
     if not source or charId == WDH.charId then return false end
-    WDH_Saved.chars[WDH.charId].settings = CopyDisplay(source.settings)
+    SV.chars[WDH.charId].settings = CopyDisplay(source.settings)
     if WDH.Hud then WDH.Hud:Invalidate() end
     return true
 end
 
 function WDH:PrintRecord(zoneId, rec)
-    local header = string.format(WDH_STRINGS.RECORD_HEADER, rec.name, ZoneName(zoneId), rec.loots, rec.gold)
+    local header = string.format(WDH_STRINGS.RECORD_HEADER, RecordName(rec), ZoneName(zoneId), rec.loots, rec.gold)
     if rec.kind == "aoe" then header = header .. WDH_STRINGS.RECORD_AOE end
     if rec.kind == "pickpocket" then header = header .. WDH_STRINGS.RECORD_PICKPOCKET end
     if rec.kind == "theft" then header = header .. WDH_STRINGS.RECORD_THEFT end
@@ -829,8 +889,8 @@ end
 
 local function SearchZones(needle, zoneIds, found)
     for _, zoneId in ipairs(zoneIds) do
-        for key, rec in pairs(WDH_Saved.zones[zoneId] or {}) do
-            if zo_plainstrfind(key, needle) then
+        for key, rec in pairs(SV.zones[zoneId] or {}) do
+            if zo_plainstrfind(key, needle) or (rec.collective and zo_plainstrfind(MakeKey(RecordName(rec)), needle)) then
                 found[#found + 1] = { zoneId = zoneId, rec = rec }
             end
         end
@@ -846,7 +906,7 @@ local function SearchRecords(text)
     SearchZones(needle, { here, 0 }, found)
     if #found == 0 then
         local others = {}
-        for zoneId in pairs(WDH_Saved.zones) do
+        for zoneId in pairs(SV.zones) do
             if zoneId ~= here and zoneId ~= 0 then others[#others + 1] = zoneId end
         end
         SearchZones(needle, others, found)
@@ -858,7 +918,7 @@ end
 function WDH:PrintZones()
     d(WDH_STRINGS.ZONES_HEADER)
     local any = false
-    for zoneId, zone in pairs(WDH_Saved.zones) do
+    for zoneId, zone in pairs(SV.zones) do
         local sources, loots = 0, 0
         for _, rec in pairs(zone) do
             sources = sources + 1
@@ -874,8 +934,8 @@ end
 
 -- Alle gesammelten Daten loeschen, Einstellungen bleiben (/wdh_reset ja, Menue)
 function WDH:ResetData()
-    WDH_Saved.zones = {}
-    WDH_Saved.last  = nil
+    SV.zones = {}
+    SV.last  = nil
     WDH_Last.zoneId, WDH_Last.key = nil, nil
     WDH_Last.lootKey, WDH_Last.lootSeen = nil, nil
     WDH.Hud:Invalidate()
@@ -911,13 +971,13 @@ local function RegisterSlashCommands()
     SLASH_COMMANDS["/wdh_zone"] = function()
         local zoneId = CurrentZoneId()
         d(string.format(WDH_STRINGS.ZONE_HEADER, ZoneName(zoneId)))
-        local zone = WDH_Saved.zones[zoneId]
+        local zone = SV.zones[zoneId]
         if not zone or next(zone) == nil then
             d(WDH_STRINGS.RECORD_NONE)
             return
         end
         for _, rec in pairs(zone) do
-            local name = rec.name
+            local name = RecordName(rec)
             if rec.kind == "aoe" then name = name .. WDH_STRINGS.RECORD_AOE end
             if rec.kind == "pickpocket" then name = name .. WDH_STRINGS.RECORD_PICKPOCKET end
             if rec.kind == "theft" then name = name .. WDH_STRINGS.RECORD_THEFT end
@@ -956,8 +1016,8 @@ local function RegisterSlashCommands()
     end
 
     SLASH_COMMANDS["/wdh_debug"] = function()
-        WDH_Saved.settings.debug = not WDH_Saved.settings.debug
-        d(WDH_Saved.settings.debug and WDH_STRINGS.DEBUG_ON or WDH_STRINGS.DEBUG_OFF)
+        SV.settings.debug = not SV.settings.debug
+        d(SV.settings.debug and WDH_STRINGS.DEBUG_ON or WDH_STRINGS.DEBUG_OFF)
     end
 
     SLASH_COMMANDS["/wdh_names"] = function(args)
@@ -986,10 +1046,10 @@ end
 -- Initialisierung
 -- -----------------------------------------------------------------------------
 
--- Bis 0.2 lagen die Anzeige-Einstellungen Account-weit in WDH_Saved.settings.
+-- Bis 0.2 lagen die Anzeige-Einstellungen Account-weit in SV.settings.
 -- Sie werden zur Vorlage, mit der jeder Charakter beim ersten Einloggen startet.
 local function MigrateAccountDisplay()
-    local old = WDH_Saved.settings
+    local old = SV.settings
     if old.showQuality == nil and old.hud == nil then return end
     local template = {}
     for k in pairs(DEFAULT_DISPLAY) do template[k] = old[k] end
@@ -1003,32 +1063,113 @@ local function MigrateAccountDisplay()
     end
     for k in pairs(DEFAULT_DISPLAY) do old[k] = nil end
     old.showQuality = nil
-    WDH_Saved.template = CopyDisplay(template)
+    SV.template = CopyDisplay(template)
+end
+
+-- Fuehrt eine gespeicherte Quelle in eine andere zusammen (Migration)
+local function MergeRecord(dst, src)
+    dst.loots = dst.loots + src.loots
+    dst.gold  = dst.gold + src.gold
+    dst.last  = math.max(dst.last or 0, src.last or 0)
+    for _, field in ipairs({ "sets", "items", "cats" }) do
+        for id, s in pairs(src[field]) do
+            local d = dst[field][id]
+            if not d then
+                dst[field][id] = s
+            else
+                d.n    = d.n + s.n
+                d.hits = d.hits + s.hits
+                d.cat  = d.cat or s.cat
+                d.min  = (d.min and s.min) and math.min(d.min, s.min) or d.min or s.min
+                d.max  = math.max(d.max or 0, s.max or 0)
+                for quality, count in pairs(s.q) do d.q[quality] = (d.q[quality] or 0) + count end
+                for slot, count in pairs(s.slots or {}) do
+                    d.slots = d.slots or {}
+                    d.slots[slot] = (d.slots[slot] or 0) + count
+                end
+            end
+        end
+    end
+end
+
+-- Quelle aus "Nehmen" ohne Fenster, die nur herumliegende Gegenstaende enthaelt (siehe IsLooseItem)
+local function IsLooseRecord(rec)
+    if next(rec.items) == nil then return false end
+    for id in pairs(rec.items) do
+        if type(id) ~= "number" or not IsLooseItem(ItemLinkFromId(id), rec.name) then return false end
+    end
+    return true
+end
+
+-- Bis 0.3.0 wurde jeder herumliegende Gegenstand eine eigene Quelle.
+-- Ohne Lootfenster: targetType fehlt. Gestohlene -> Sammeleintrag der Zone, sonst loeschen.
+local function MigrateLooseItems()
+    for zoneId, zone in pairs(SV.zones) do
+        local stolen = {}
+        for key, rec in pairs(zone) do
+            if rec.targetType == nil and not rec.collective then
+                if rec.kind == "theft" then
+                    stolen[#stolen + 1] = key
+                elseif rec.kind == "take" and IsLooseRecord(rec) then
+                    zone[key] = nil
+                end
+            end
+        end
+        for _, key in ipairs(stolen) do
+            local rec = zone[key]
+            zone[key] = nil
+            local dst = GetRecord(zoneId, LOOSE_THEFT_KEY, WDH_STRINGS.RECORD_LOOSE, "theft")
+            dst.collective = true
+            dst.type       = "theft"
+            MergeRecord(dst, rec)
+        end
+    end
+end
+
+-- Bis 0.3.1 hiess die SavedVariable WDH_Saved und galt fuer alle Server und Accounts.
+-- Jetzt: WhatDropsHere_Saved[Server][@Account]. Die alten Daten uebernimmt der erste Account,
+-- der sich nach dem Update einloggt (bisher hat ohnehin jeder Account in dieselbe Tabelle geschrieben);
+-- danach wird WDH_Saved geleert und beim naechsten Speichern aus der Datei entfernt.
+local function OpenSaved()
+    if type(WhatDropsHere_Saved) ~= "table" then WhatDropsHere_Saved = {} end
+    local world, account = GetWorldName(), GetDisplayName()
+    local root = WhatDropsHere_Saved
+    root[world] = root[world] or {}
+    local data = root[world][account]
+    if not data then
+        data = type(WDH_Saved) == "table" and WDH_Saved or {}
+        root[world][account] = data
+    end
+    WDH_Saved = nil
+    return data
 end
 
 local function InitSaved()
-    if type(WDH_Saved) ~= "table" then WDH_Saved = {} end
-    WDH_Saved.version  = SAVED_VERSION
-    WDH_Saved.settings = WDH_Saved.settings or {}
+    SV = OpenSaved()
+    WDH.sv = SV
+    SV.zones = SV.zones or {}
+    if (SV.version or SAVED_VERSION) < 3 then MigrateLooseItems() end
+    SV.version  = SAVED_VERSION
+    SV.settings = SV.settings or {}
     MigrateAccountDisplay()
-    FillDefaults(WDH_Saved.settings, DEFAULT_ACCOUNT)
+    FillDefaults(SV.settings, DEFAULT_ACCOUNT)
 
     -- Anzeige-Einstellungen je Charakter (ID bleibt bei Umbenennung gleich)
-    WDH_Saved.chars = WDH_Saved.chars or {}
+    SV.chars = SV.chars or {}
     local charId = GetCurrentCharacterId()
-    local char = WDH_Saved.chars[charId]
+    local char = SV.chars[charId]
     if not char then
-        char = { settings = CopyDisplay(WDH_Saved.template or DEFAULT_DISPLAY) }
-        WDH_Saved.chars[charId] = char
+        char = { settings = CopyDisplay(SV.template or DEFAULT_DISPLAY) }
+        SV.chars[charId] = char
     end
     char.name = zo_strformat("<<1>>", GetUnitName("player"))
     FillDefaults(char.settings, DEFAULT_DISPLAY)
     WDH.charId = charId
 
-    WDH_Saved.zones = WDH_Saved.zones or {}
-    if WDH_Saved.last then
-        WDH_Last.zoneId = WDH_Saved.last.zoneId
-        WDH_Last.key    = WDH_Saved.last.key
+    SV.zones = SV.zones or {}
+    if SV.last then
+        WDH_Last.zoneId = SV.last.zoneId
+        WDH_Last.key    = SV.last.key
     end
 end
 
@@ -1036,8 +1177,8 @@ local function RegisterLootTracking()
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_LootUpdated",  EVENT_LOOT_UPDATED,  OnLootUpdated)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_LootClosed",   EVENT_LOOT_CLOSED,   OnLootClosed)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_LootReceived", EVENT_LOOT_RECEIVED, OnLootReceived)
+    -- EVENT_MONEY_UPDATE nur bei Bedarf, siehe UpdateMoneyWatch
     -- Vor Ladebildschirm, /reloadui und Logout offene Sitzungen sichern
-    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_Money",        EVENT_MONEY_UPDATE,  OnMoneyUpdate)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_Deactivated",  EVENT_PLAYER_DEACTIVATED, function()
         FinishSession()
         FinishPending()

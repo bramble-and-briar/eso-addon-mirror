@@ -21,17 +21,28 @@ local STYLES = {
 
 local defaults = {
     selected = 1,
-    size = 24,                  -- general UI
+    size = 24,
     style = 1,
-    nameplateSize = 26,         -- floating player names
-    overheadSize = 20,          -- the one that was previously called chatSize (overhead text)
-    chatWindowSize = 20,        -- NEW: actual chat window
+    nameplateSize = 26,
+    overheadSize = 20,
     nameplatesEnabled = true,
+    suppressLog = true,
+    experimentalMode = false,
 }
 
 local savedVars
+local chatHooksInstalled = false
+local loreHookInstalled = false
+local experimentalFontString = nil
+local forceTimerRunning = false
+
+local original = {
+    nameplateKeyboard = nil,
+    nameplateGamepad  = nil,
+}
 
 local function Log(msg)
+    if savedVars and savedVars.suppressLog then return end
     d("[Font Switcher] " .. tostring(msg))
 end
 
@@ -53,99 +64,71 @@ local function GetCurrentStyle()
     return STYLES[index]
 end
 
--- Apply only to the actual chat-window text buffers.
--- This deliberately does not touch chat window alpha, fading, or visibility.
-local function ApplyChatWindowFont(chatWindowString)
-    if not CHAT_SYSTEM or not CHAT_SYSTEM.containers then
-        return 0
+local function MakeFontString(path, size, styleValue)
+    if not styleValue or styleValue == "" then
+        return string.format("%s|%d", path, size)
     end
+    return string.format("%s|%d|%s", path, size, styleValue)
+end
+
+local function ReplaceFontFace(obj, newFace, forcedSize, forcedStyle)
+    if not obj or not obj.GetFontInfo or not obj.SetFont then return false end
+
+    local ok, face, size, style = pcall(function()
+        return obj:GetFontInfo()
+    end)
+    if not ok then return false end
+
+    local finalSize  = forcedSize or size or 18
+    local finalStyle = forcedStyle
+    if finalStyle == nil then finalStyle = style or "" end
+
+    local newString
+    if finalStyle == "" then
+        newString = string.format("%s|%d", newFace, finalSize)
+    else
+        newString = string.format("%s|%d|%s", newFace, finalSize, finalStyle)
+    end
+
+    return pcall(function() obj:SetFont(newString) end)
+end
+
+-------------------------------------------------
+-- WORKING CORE
+-------------------------------------------------
+local function ApplyFont()
+    local font  = GetCurrentFont()
+    local style = GetCurrentStyle()
+    local newFace = font.path
+
+    local uiSize        = math.max(12, math.min(48, tonumber(savedVars.size) or 24))
+    local nameplateSize = math.max(12, math.min(48, tonumber(savedVars.nameplateSize) or 26))
+    local overheadSize  = math.max(12, math.min(48, tonumber(savedVars.overheadSize) or 20))
+
+    savedVars.size          = uiSize
+    savedVars.nameplateSize = nameplateSize
+    savedVars.overheadSize  = overheadSize
+
+    local styleValue = style.value
+
+    Log("=== APPLYING FONT ===")
+    Log("Font: " .. font.name)
 
     local changed = 0
     local iterator = zo_insecurePairs or pairs
 
-    for _, container in iterator(CHAT_SYSTEM.containers) do
-        if container.windows then
-            for _, window in iterator(container.windows) do
-                local buffer = window and window.buffer
-                if buffer and buffer.SetFont then
-                    local ok = pcall(function()
-                        buffer:SetFont(chatWindowString)
-                    end)
-                    if ok then
-                        changed = changed + 1
-                    end
-                end
+    for key, value in iterator(_G) do
+        if type(key) == "string" and key:find("^Zo")
+            and key ~= "ZoFontChat" and key ~= "ZoFontEditChat"
+            and type(value) == "userdata" then
+            if ReplaceFontFace(value, newFace, uiSize, styleValue) then
+                changed = changed + 1
             end
         end
     end
 
-    return changed
-end
-
-local function ApplyFont()
-    local font = GetCurrentFont()
-    local style = GetCurrentStyle()
-
-    local uiSize         = math.max(12, math.min(48, tonumber(savedVars.size) or 24))
-    local nameplateSize  = math.max(12, math.min(48, tonumber(savedVars.nameplateSize) or 26))
-    local overheadSize   = math.max(12, math.min(48, tonumber(savedVars.overheadSize) or 20))
-    local chatWindowSize = math.max(12, math.min(48, tonumber(savedVars.chatWindowSize) or 20))
-
-    savedVars.size = uiSize
-    savedVars.nameplateSize = nameplateSize
-    savedVars.overheadSize = overheadSize
-    savedVars.chatWindowSize = chatWindowSize
-
-    -- UI font string
-    local fontString
-    if style.value == "" then
-        fontString = string.format("%s|%d", font.path, uiSize)
-    else
-        fontString = string.format("%s|%d|%s", font.path, uiSize, style.value)
-    end
-
-    local nameplateString = string.format("%s|%d", font.path, nameplateSize)
-
-    -- Overhead text string (whatever the previous "chat" slider was controlling)
-    local overheadString
-    if style.value == "" then
-        overheadString = string.format("%s|%d", font.path, overheadSize)
-    else
-        overheadString = string.format("%s|%d|%s", font.path, overheadSize, style.value)
-    end
-
-    -- Actual chat window string
-    local chatWindowString
-    if style.value == "" then
-        chatWindowString = string.format("%s|%d", font.path, chatWindowSize)
-    else
-        chatWindowString = string.format("%s|%d|%s", font.path, chatWindowSize, style.value)
-    end
-
-    Log("=== APPLYING FONT ===")
-    Log("Font: " .. font.name)
-    Log(string.format("UI:%d | Nameplate:%d | Overhead:%d | Chat Window:%d", uiSize, nameplateSize, overheadSize, chatWindowSize))
-
-    local changed = 0
-    local iterator = zo_insecurePairs or pairs
-
-    -- General UI. Chat font objects are handled separately below so their
-    -- dedicated overhead-text size is not overwritten by the general UI pass.
-    for key, value in iterator(_G) do
-        if type(key) == "string"
-            and key:find("^Zo")
-            and key ~= "ZoFontChat"
-            and key ~= "ZoFontEditChat"
-            and type(value) == "userdata"
-            and value.SetFont then
-            local ok = pcall(function()
-                value:SetFont(fontString)
-            end)
-            if ok then changed = changed + 1 end
-        end
-    end
-
     -- Nameplates
+    local nameplateString = string.format("%s|%d", newFace, nameplateSize)
     if savedVars.nameplatesEnabled then
         if SetNameplateKeyboardFont then
             pcall(function() SetNameplateKeyboardFont(nameplateString, 1) end)
@@ -153,19 +136,154 @@ local function ApplyFont()
         if SetNameplateGamepadFont then
             pcall(function() SetNameplateGamepadFont(nameplateString, 1) end)
         end
+    else
+        if original.nameplateKeyboard and SetNameplateKeyboardFont then
+            pcall(function() SetNameplateKeyboardFont(original.nameplateKeyboard, 1) end)
+        end
+        if original.nameplateGamepad and SetNameplateGamepadFont then
+            pcall(function() SetNameplateGamepadFont(original.nameplateGamepad, 1) end)
+        end
     end
 
-    -- Overhead text (previous chat slider behavior)
+    -- Overhead
+    local overheadString = MakeFontString(newFace, overheadSize, styleValue)
     if ZoFontChat then pcall(function() ZoFontChat:SetFont(overheadString) end) end
     if ZoFontEditChat then pcall(function() ZoFontEditChat:SetFont(overheadString) end) end
 
-    -- Actual chat window: change its text buffers only. Keep ZoFontChat and
-    -- ZoFontEditChat dedicated to overhead text; do not alter fade/alpha behavior.
-    local chatBuffersChanged = ApplyChatWindowFont(chatWindowString)
-    Log("Chat window buffers changed: " .. chatBuffersChanged)
+    Log("UI fonts touched: " .. changed)
 
-    Log("Fonts changed: " .. changed)
+    if savedVars.experimentalMode then
+        Experimental_StartPersistentForce(newFace, uiSize, styleValue)
+    end
+
     Log("=====================")
+end
+
+-------------------------------------------------
+-- EXPERIMENTAL - PERSISTENT FORCE
+-------------------------------------------------
+local function Experimental_ApplyOnce(newFace, uiSize, styleValue)
+    experimentalFontString = MakeFontString(newFace, uiSize, styleValue)
+
+    -- Chat fonts
+    if ZoFontChat then pcall(function() ZoFontChat:SetFont(experimentalFontString) end) end
+    if ZoFontEditChat then pcall(function() ZoFontEditChat:SetFont(experimentalFontString) end) end
+
+    -- Override the function that builds chat font strings
+    if SharedChatContainer then
+        if SharedChatContainer.GetChatFontFormatString then
+            SharedChatContainer.GetChatFontFormatString = function(self, fontSize)
+                return experimentalFontString
+            end
+        end
+
+        if not chatHooksInstalled and SharedChatContainer.SetFontSize then
+            local original = SharedChatContainer.SetFontSize
+            SharedChatContainer.SetFontSize = function(container, tabIndex, fontSize, ...)
+                original(container, tabIndex, fontSize, ...)
+                local window = container and container.windows and container.windows[tabIndex]
+                if window and window.buffer and window.buffer.SetFont then
+                    pcall(function() window.buffer:SetFont(experimentalFontString) end)
+                end
+            end
+            chatHooksInstalled = true
+        end
+    end
+
+    -- Force all chat buffers
+    if CHAT_SYSTEM then
+        local function ForceBuffers(container)
+            if not container or not container.windows then return end
+            for _, window in pairs(container.windows) do
+                if window and window.buffer and window.buffer.SetFont then
+                    pcall(function() window.buffer:SetFont(experimentalFontString) end)
+                end
+            end
+        end
+        ForceBuffers(CHAT_SYSTEM.primaryContainer)
+        if CHAT_SYSTEM.containers then
+            for _, container in pairs(CHAT_SYSTEM.containers) do
+                ForceBuffers(container)
+            end
+        end
+    end
+
+    -- SCT
+    if SetSCTKeyboardFont then pcall(function() SetSCTKeyboardFont(experimentalFontString, 1) end) end
+    if SetSCTGamepadFont then pcall(function() SetSCTGamepadFont(experimentalFontString, 1) end) end
+
+    -- Books
+    local bookFonts = {
+        "ZoFontBookPaper", "ZoFontBookPaperTitle",
+        "ZoFontBookLetter", "ZoFontBookLetterTitle",
+        "ZoFontBookNote", "ZoFontBookNoteTitle",
+        "ZoFontBookScroll", "ZoFontBookScrollTitle",
+        "ZoFontBookTablet", "ZoFontBookTabletTitle",
+        "ZoFontBookSkin", "ZoFontBookSkinTitle",
+        "ZoFontBookRubbing", "ZoFontBookRubbingTitle",
+    }
+    for _, name in ipairs(bookFonts) do
+        local obj = _G[name]
+        if obj and obj.SetFont then
+            pcall(function() obj:SetFont(experimentalFontString) end)
+        end
+    end
+
+    if LORE_READER and not loreHookInstalled then
+        ZO_PostHook(LORE_READER, "ApplyMedium", function()
+            if not savedVars.experimentalMode then return end
+            for _, name in ipairs(bookFonts) do
+                local obj = _G[name]
+                if obj and obj.SetFont then
+                    pcall(function() obj:SetFont(experimentalFontString) end)
+                end
+            end
+        end)
+        loreHookInstalled = true
+    end
+
+    -- Tooltips
+    for _, name in ipairs({"ZoFontTooltip", "ZoFontTooltipTitle", "ZoFontTooltipSubtitle"}) do
+        local obj = _G[name]
+        if obj then ReplaceFontFace(obj, newFace, uiSize, styleValue) end
+    end
+end
+
+function Experimental_StartPersistentForce(newFace, uiSize, styleValue)
+    if forceTimerRunning then return end
+    forceTimerRunning = true
+
+    Log("Experimental: Starting Persistent Force (4 seconds)...")
+
+    local count = 0
+    local maxCount = 12          -- 12 times
+    local interval = 350         -- every 350ms ≈ 4 seconds total
+
+    local function Tick()
+        if not savedVars.experimentalMode then
+            forceTimerRunning = false
+            return
+        end
+
+        Experimental_ApplyOnce(newFace, uiSize, styleValue)
+        count = count + 1
+
+        if count < maxCount then
+            zo_callLater(Tick, interval)
+        else
+            forceTimerRunning = false
+            Log("Experimental: Persistent Force finished")
+        end
+    end
+
+    Tick() -- run immediately, then continue
+end
+-------------------------------------------------
+-- END EXPERIMENTAL
+-------------------------------------------------
+
+local function LiveApply()
+    ApplyFont()
 end
 
 local function CreateSettings()
@@ -178,12 +296,10 @@ local function CreateSettings()
     local panel = library:AddAddon("Font Switcher")
     if not panel then return end
 
-    -- Font
     local fontItems = {}
     for i, f in ipairs(FONTS) do
         fontItems[#fontItems + 1] = { name = f.name, data = i }
     end
-
     panel:AddSetting({
         type = library.ST_DROPDOWN,
         label = "Select Font",
@@ -191,54 +307,17 @@ local function CreateSettings()
         default = FONTS[1].name,
         getFunction = function() return GetCurrentFont().name end,
         setFunction = function(_, _, item)
-            if item and item.data then savedVars.selected = item.data end
+            if item and item.data then
+                savedVars.selected = item.data
+                LiveApply()
+            end
         end,
     })
 
-    -- UI Size
-    panel:AddSetting({
-        type = library.ST_SLIDER,
-        label = "UI Font Size",
-        min = 12, max = 48, step = 1,
-        default = 24,
-        getFunction = function() return savedVars.size end,
-        setFunction = function(v)
-            savedVars.size = math.max(12, math.min(48, tonumber(v) or 24))
-        end,
-    })
-
-    -- Nameplate Size
-    panel:AddSetting({
-        type = library.ST_SLIDER,
-        label = "Nameplate Size",
-        tooltip = "Floating player names",
-        min = 12, max = 48, step = 1,
-        default = 26,
-        getFunction = function() return savedVars.nameplateSize end,
-        setFunction = function(v)
-            savedVars.nameplateSize = math.max(12, math.min(48, tonumber(v) or 26))
-        end,
-    })
-
-    -- Overhead Size (the one you already relabeled)
-    panel:AddSetting({
-        type = library.ST_SLIDER,
-        label = "Overhead Text Size",
-        tooltip = "Overhead / floating text size",
-        min = 12, max = 48, step = 1,
-        default = 20,
-        getFunction = function() return savedVars.overheadSize end,
-        setFunction = function(v)
-            savedVars.overheadSize = math.max(12, math.min(48, tonumber(v) or 20))
-        end,
-    })
-
-    -- Style
     local styleItems = {}
     for i, s in ipairs(STYLES) do
         styleItems[#styleItems + 1] = { name = s.name, data = i }
     end
-
     panel:AddSetting({
         type = library.ST_DROPDOWN,
         label = "Font Style",
@@ -246,25 +325,70 @@ local function CreateSettings()
         default = STYLES[1].name,
         getFunction = function() return GetCurrentStyle().name end,
         setFunction = function(_, _, item)
-            if item and item.data then savedVars.style = item.data end
+            if item and item.data then
+                savedVars.style = item.data
+                LiveApply()
+            end
         end,
     })
 
-    -- Nameplates toggle
+    panel:AddSetting({
+        type = library.ST_SLIDER,
+        label = "UI Font Size",
+        min = 12, max = 48, step = 1, default = 24,
+        getFunction = function() return savedVars.size end,
+        setFunction = function(v)
+            savedVars.size = math.max(12, math.min(48, tonumber(v) or 24))
+            LiveApply()
+        end,
+    })
+
     panel:AddSetting({
         type = library.ST_CHECKBOX,
         label = "Enable Nameplates",
-        tooltip = "Turn custom nameplate fonts on or off",
         getFunction = function() return savedVars.nameplatesEnabled end,
-        setFunction = function(value) savedVars.nameplatesEnabled = value end,
+        setFunction = function(v) savedVars.nameplatesEnabled = v LiveApply() end,
+    })
+    panel:AddSetting({
+        type = library.ST_SLIDER,
+        label = "Nameplate Size",
+        min = 12, max = 48, step = 1, default = 26,
+        getFunction = function() return savedVars.nameplateSize end,
+        setFunction = function(v)
+            savedVars.nameplateSize = math.max(12, math.min(48, tonumber(v) or 26))
+            LiveApply()
+        end,
     })
 
-    -- Apply
     panel:AddSetting({
-        type = library.ST_BUTTON,
-        label = "Apply Font",
-        buttonText = "Apply Font",
-        clickHandler = function() ApplyFont() end,
+        type = library.ST_SLIDER,
+        label = "Overhead Text Size",
+        min = 12, max = 48, step = 1, default = 20,
+        getFunction = function() return savedVars.overheadSize end,
+        setFunction = function(v)
+            savedVars.overheadSize = math.max(12, math.min(48, tonumber(v) or 20))
+            LiveApply()
+        end,
+    })
+
+    panel:AddSetting({
+        type = library.ST_CHECKBOX,
+        label = "Suppress Chat Log",
+        default = true,
+        getFunction = function() return savedVars.suppressLog end,
+        setFunction = function(v) savedVars.suppressLog = v end,
+    })
+
+    panel:AddSetting({
+        type = library.ST_CHECKBOX,
+        label = "Experimental Mode",
+        tooltip = "Aggressively and repeatedly forces Chat, SCT, Books and Tooltips for several seconds. Turn off if unstable.",
+        default = false,
+        getFunction = function() return savedVars.experimentalMode end,
+        setFunction = function(v)
+            savedVars.experimentalMode = v
+            LiveApply()
+        end,
     })
 end
 
@@ -279,8 +403,19 @@ local function OnAddonLoaded(_, name)
     savedVars.style           = tonumber(savedVars.style) or 1
     savedVars.nameplateSize   = math.max(12, math.min(48, tonumber(savedVars.nameplateSize) or 26))
     savedVars.overheadSize    = math.max(12, math.min(48, tonumber(savedVars.overheadSize) or 20))
-    savedVars.chatWindowSize  = math.max(12, math.min(48, tonumber(savedVars.chatWindowSize) or 20))
+
     if savedVars.nameplatesEnabled == nil then savedVars.nameplatesEnabled = true end
+    if savedVars.suppressLog == nil then savedVars.suppressLog = true end
+    if savedVars.experimentalMode == nil then savedVars.experimentalMode = false end
+
+    if GetNameplateKeyboardFont then
+        local f = GetNameplateKeyboardFont()
+        if f then original.nameplateKeyboard = f end
+    end
+    if GetNameplateGamepadFont then
+        local f = GetNameplateGamepadFont()
+        if f then original.nameplateGamepad = f end
+    end
 
     CreateSettings()
 

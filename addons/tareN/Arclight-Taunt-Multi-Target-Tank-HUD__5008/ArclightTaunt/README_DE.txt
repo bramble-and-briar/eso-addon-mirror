@@ -1,17 +1,30 @@
-ARCLIGHT TAUNT 1.1.2
+ARCLIGHT TAUNT 1.2.0
 Modernes Multi-Target-Taunt-HUD für The Elder Scrolls Online
-Author: tareN
+Autor: tareN
 Kontakt im Spiel: @uhtareN (PC/EU)
 
 FUNKTIONEN
-Kompakte Übersicht Eurer eigenen Taunts aus normalen und Scribing-Fähigkeiten,
-einschließlich Eurer eigenen Pets. Flüssige Countdown-Balken, Zielhervorhebung,
-Bosskennzeichnung und getrennte Früh-/Ablaufwarnungen machen Prioritäten sichtbar.
-Gegner mit gleichen Namen bleiben getrennte Einträge. Kurze Zeilenübergänge
-schließen Lücken; eine kleine Lichtkante markiert das Ende der Countdown-Füllung.
-Animationen reduzieren unter Design & Lesbarkeit stoppt dekorative Bewegungen. Flüssige Countdowns und eingestellte Warnungen bleiben erhalten.
-Liste & Anordnung bündelt Größe, Abstände und Position. Design & Lesbarkeit
-ordnet Balken/Hintergrund, Schrift/Countdown und Zielfokus/Animationen.
+Arclight zeigt deine eigenen Taunts aus normalen und Scribing-Fähigkeiten,
+auch die deiner Pets. Gegner mit gleichem Namen bleiben getrennte Einträge.
+Flüssige Countdowns, Zielhervorhebung und Bosswarnungen zeigen, was als
+Nächstes Aufmerksamkeit braucht.
+
+Eine kleine Leiste oder ein Kreis am Fadenkreuz zeigt den bestätigten eigenen
+Taunt ohne Zahlen. Grau bedeutet nur: kein eigener Taunt bestätigt, nicht
+zwingend Aggroverlust. Die Anzeige ist standardmäßig aus; aktivierbar unter
+„Tauntstatus am Fadenkreuz“. Neue Konfigurationen starten beim Einschalten mit
+einem mittigen Kreis; die Leiste bleibt wählbar. Die gewählte Form bleibt beim
+Ausschalten erhalten. Gespeicherte Größen und Positionen werden beibehalten.
+Beide Formen lassen sich unabhängig von der Liste platzieren.
+
+Unabhängige Bossfilter begrenzen Liste oder Fadenkreuzanzeige auf ESO-Bosse und,
+im umfassenden Modus, auch starke Gegner. Andere Taunts werden weiter erfasst;
+konfigurierte Bosswarnungen bleiben aktiv. „Anzeigen verschieben“ friert die
+Vorschau ein, damit sich beide Anzeigen getrennt platzieren lassen.
+„Anzeige verschieben“ im Fadenkreuz-Reiter bewegt nur die kleine Anzeige.
+
+„Animationen reduzieren“ stoppt dekorative Bewegungen. Countdown, Warnungen
+und Töne bleiben aktiv.
 
 INSTALLATION
 Diese Pflichtbibliotheken separat installieren; sie sind nicht enthalten:
@@ -25,30 +38,39 @@ Documents/Elder Scrolls Online/live/AddOns/
 Die Manifestdatei muss unter AddOns/ArclightTaunt/ArclightTaunt.txt liegen.
 
 UPDATE
-Addonordner ersetzen, SavedVariables behalten. Persönliche Position, Größe,
-Medien und weiterhin angebotene Sounds bleiben erhalten. Alte Zeilenhöhen in
-Prozent werden einmalig in zusätzliche Höhe über dem lesbaren Minimum
-umgerechnet. Neue Installationen starten mit 115 Prozent HUD-Größe,
-Signatur-Balken und 72 Prozent Hintergrunddeckkraft.
+Addonordner ersetzen und SavedVariables behalten, damit deine Einstellungen
+erhalten bleiben.
 Einstellungen gelten accountweit und gemeinsam für alle Megaserver. Kampfverläufe,
 Charakterfortschritt und andere serverspezifische Daten werden nicht gespeichert.
 
 EINSTELLUNGEN
 ESC > Einstellungen > Erweiterungen > Arclight Taunt
-- Schnellzugriff: Vorschau anzeigen/pausieren und Verschiebemodus.
-- Liste & Anordnung: Sichtbarkeit, Größe, Breite, Zeilenhöhe, Abstand,
-  eine/zwei Spalten, Spiegelung, Position und Bosse anheften.
-  Aktive Taunts werden nach verbleibender Zeit sortiert.
-- Design & Lesbarkeit: Schmal/Full-row, hoher Kontrast, dezente/deutliche Zielhervorhebung,
-  Schriften, Balkentexturen und Warnschwellen.
-- Bosse: Erkennung, Kennzeichnung, Warnzeit, Darstellung und Warntöne.
-- Tracking & Tests: Spieler-Taunts und Willkommens-/Sprach-Schrifttests.
+- Schnellzugriff: Vorschau anzeigen/pausieren, Anzeigen verschieben und Gegnerpool.
+- Liste & Anordnung: Sichtbarkeit, Größe, Abstände, Spalten und Position.
+- Design & Lesbarkeit: Balken, Hintergründe, Kontrast und Zielfokus.
+- Schrift & Countdown: Schriftarten, Textgröße, Sekundenanzeige und Warnschwellen.
+- Tauntstatus am Fadenkreuz: Anzeigeart, Sichtbarkeit, Darstellung und Position.
+- Bosse: Unterreiter für Bosswarnungen und Boss-Erkennung.
+- Erfassung: Spielerziele, Tote entfernen und abgelaufene Einträge.
 
-Die Vorschau beginnt mit versetzten Timern, fügt unregelmäßig Gegner hinzu
-und erneuert Taunts. Pro Zyklus wechseln Dungeon-/Prüfungsnamen. Pause friert
-Timer, Ankünfte und Zielfokus ein; danach geht es an derselben Stelle weiter.
-Beim Beenden der Vorschau wird die Pause gelöscht. Die Listenvorschau selbst
-erzeugt keine Bossbanner.
+Die Vorschau zeigt unterschiedliche Gegner und versetzte Taunts. Zum Einstellen
+pausieren; danach läuft sie an derselben Stelle weiter. Die Listenvorschau
+erzeugt selbst keine Bossbanner.
+
+Unter „Tauntstatus am Fadenkreuz“ lässt „Vorschau anzeigen“ einen Countdown
+wiederholt durch Türkis, Gelb und Rot laufen, unabhängig von der Liste und auch
+beim Verschieben. „Vorschau-Fadenkreuz“ hilft mit der kleinen oder großen
+ESO-Grafik beim Ausrichten, auch im Menü. Schließen der Einstellungen oder
+Kampfbeginn beendet Vorschau und Verschieben. Die echte Anzeige erscheint nur
+im Kampf.
+
+Kreis und Leiste merken sich Größe, Dicke, Hintergrund-Deckkraft und Position
+getrennt. Der Kreis startet mittig, die Leiste unter dem Fadenkreuz. Zum
+Platzieren „Anzeige verschieben“ oder genaue horizontale/vertikale Werte nutzen.
+„Dicke“ ändert die Leistenhöhe bzw. relative Ringstärke. „Anzeige zurücksetzen“
+setzt nur Darstellung und Position der gewählten Form zurück. Aktivierung,
+Vorschau, Bossfilter und andere Form bleiben erhalten. Die allgemeinen
+Standardwerte setzen beide Formen zurück und schalten die Anzeige aus.
 
 BOSSWARNUNGEN
 Türkis warnt vor dem Ablauf eines erkannten Bosstaunts, standardmäßig
@@ -57,12 +79,12 @@ eigene betroffene Bosse zusammenfassen. Re-Taunt oder erkannter Tod entfernt
 den jeweiligen Boss aus seiner Warnung. Angeheftete abgelaufene Bosse stehen
 vor angehefteten aktiven Bossen.
 
-Warnton bei Ablauf, Frühwarnung, beidem oder aus wählen. Frühwarnton ist
-standardmäßig aus, mit Duell-Grenzwarnung vorausgewählt. Ablauf nutzt
-Duellbeginn. Rote und unmittelbar anstehende Ablaufwarnungen haben Vorrang;
-unterdrückte Frühtöne werden nicht später nachgeholt.
+Warntöne lassen sich für Ablauf, Frühwarnung, beides oder keines aktivieren.
+Der Frühwarnton ist standardmäßig aus; Duell-Grenzwarnung ist vorausgewählt.
+Bei Ablauf ist Duellbeginn vorausgewählt. Rote und unmittelbar anstehende
+Ablaufwarnungen haben Tonvorrang; unterdrückte Frühtöne werden nicht nachgeholt.
 
-Warnablauf testen zeigt Frühwarnung, Ablauf und danach Türkis unter Rot.
+„Warnablauf testen“ zeigt Frühwarnung, Ablauf und danach Türkis unter Rot.
 Aktivierte Warnungen und Töne werden berücksichtigt; ohne Frühwarnung nur Rot.
 Echte Warnungen haben Vorrang. Die Tauntliste lässt sich ausblenden, während
 konfigurierte Bossbanner und Sounds weiterarbeiten. Vorschau/Verschiebemodus
@@ -74,20 +96,14 @@ ESO-Spielsprache gewählt. Andere Sprachen nutzen Englisch. Gespeicherte
 Positionen und Medien bleiben beim Sprachwechsel erhalten.
 
 GUT ZU WISSEN
-- Verwendet die von ESO gemeldeten Taunt-Effekte (38254 und 38541), keine
-  direkte Aggromessung. Ablauf beweist keinen Zielwechsel des Gegners.
-- Spielerziele sind standardmäßig ausgeschlossen, unter Tracking & Tests
+- Verwendet von ESO gemeldete Taunt-Effekte, keine direkte Aggromessung. Ablauf
+  beweist keinen Zielwechsel des Gegners.
+- Spielerziele sind standardmäßig ausgeschlossen, unter Erfassung
   jedoch optional aktivierbar.
-- Gegner hervorheben: nur Gegner mit ESO-Bossleiste oder Bosse und starke Gegner
-  (Standard). Starke Gegner sind nicht zwingend Bosse. „Banner auch bei starken
-  Gegnern“ erweitert aktivierte Banner und deren Warntöne. Standard: aus.
-  Die bisherige Zwischenstufe wird auf Bosse und starke Gegner umgestellt;
-  die Warneinstellung bleibt erhalten.
-- Zielfokus nutzt direkte Ereignisidentität oder einen eindeutigen eigenen
-  Taunt-Zeitabgleich. Unsichere Zeitabgleiche entfernen keinen anderen Gegner.
-  Keine separate Fadenkreuzanzeige oder fremde/Gruppentaunt-Anzeige.
-- Fehlende Medien verwenden vorübergehend einen Ersatz, ohne die Auswahl zu
-  löschen. Gespeicherte alte Zeilenhintergründe bleiben; ihr Auswahlfeld entfällt.
+- Umfassende Boss-Erkennung kann auch starke Gegner erfassen, die keine Bosse
+  sind. Warnungen für sie sind optional und standardmäßig aus.
+- Die Fadenkreuzanzeige bestätigt nur eigene Taunts; Taunts anderer Spieler
+  werden nicht erfasst.
 
 FEEDBACK
 https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html#comments
@@ -95,11 +111,12 @@ Bitte Fähigkeit/Morph oder Scribing-Kombination, Sprache, Begegnung,
 Beobachtung und gegebenenfalls Lua-Fehler nennen. Bei Bildfehlern hilft ein Screenshot.
 
 CREDITS / TRANSPARENZ
-Die frühe Alpha-Idee wurde von Untaunted von Solinur inspiriert:
-https://www.esoui.com/downloads/info1475-Untaunted.html
-KI-unterstützte Lua-Programmierung unter Leitung von tareN. Funktionen wurden
-im echten ESO-Spielbetrieb einschließlich DLC-Dungeons getestet, ergänzt durch
-automatisierte Regressionstests. Diese ersetzen keinen echten Spielclient.
+- Frühe Alpha-Idee: Untaunted von Solinur:
+  https://www.esoui.com/downloads/info1475-Untaunted.html
+- Fadenkreuz-Idee: Dryzler's Taunt Helper:
+  https://www.esoui.com/downloads/info1755-DryzlersTauntHelper.html
+
+Entwickelt von tareN mit KI-unterstützter Lua-Programmierung.
 Boss-Schädel und Werbegrafik wurden mit KI erzeugt. LibAddonMenu-2.0 und
 LibMediaProvider sind separate Projekte und werden nicht mitgeliefert.
 Arclight Taunt ist nicht mit ZeniMax Online Studios verbunden.

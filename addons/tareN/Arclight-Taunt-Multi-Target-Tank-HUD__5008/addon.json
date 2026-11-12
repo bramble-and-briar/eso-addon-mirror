@@ -8,8 +8,8 @@
   "category_id": "25",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:5008",
@@ -18,7 +18,7 @@
     "ArclightTaunt"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5008/",
-  "fingerprint": "ee6a2928a2e6733ea1c9a30725f63edb97cbab2b22c63a0b99de716e05e119aa",
+  "fingerprint": "cf61b413f95e78b3e8bc1ae98e93352bd5b14a0b6f546103f1030a2decea77c3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18277.png",
     "https://cdn-eso.mmoui.com/preview/pvw18283.png",
@@ -31,11 +31,11 @@
   "source_id": "5008",
   "source_url": "https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html",
   "stats": {
-    "downloads": 105,
-    "favorites": 4,
-    "monthly_downloads": 95
+    "downloads": 152,
+    "favorites": 6,
+    "monthly_downloads": 139
   },
   "title": "Arclight Taunt \u2013 Multi-Target Tank HUD",
-  "updated_at": 1793847458000,
-  "version": "1.1.2"
+  "updated_at": 1794448157000,
+  "version": "1.2.0"
 }

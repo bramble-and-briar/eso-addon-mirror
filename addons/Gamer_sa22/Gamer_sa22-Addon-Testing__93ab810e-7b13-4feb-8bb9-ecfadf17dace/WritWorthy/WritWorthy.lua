@@ -74,6 +74,7 @@ WritWorthy.defaultChar = {
   enable_mm_price = true,
   enable_att_price = true,
   enable_ttc_price = true,
+  enable_tsc_price = true,
   enable_station_colors = false,
   enable_banked_vouchers = false,
   lang = false,
@@ -330,17 +331,17 @@ end
 function WritWorthy.TooltipInsertOurText(control, item_link, purchase_gold, unique_id, style)
   -- Only fire for master writs.
   if ITEMTYPE_MASTER_WRIT ~= GetItemLinkItemType(item_link) then
-    return
+    return false
   end
 
   local mat_list, know_list, parser = WritWorthy.ToMatKnowList(item_link)
   if not parser then
-    return
+    return false
   end
   local voucher_ct = WritWorthy.ToVoucherCount(item_link)
   local mat_text = WritWorthy.MatTooltipText(mat_list, purchase_gold, voucher_ct)
   if not mat_text then
-    return
+    return false
   end
   if WritWorthy.savedVariables.enable_mat_price_tooltip ~= false then
     control:AddLine(mat_text, style)
@@ -390,6 +391,7 @@ function WritWorthy.TooltipInsertOurText(control, item_link, purchase_gold, uniq
       end
     end
   end
+  return true
 end
 
 -- Write a list of required knowledge to chat.
@@ -492,19 +494,33 @@ function WritWorthy.TooltipInterceptInstall()
     tt(control, link, ...)
     WritWorthy.TooltipInsertOurText(control, link)
   end
-
   local function SetupTradingHouseItemTooltipHook()
     local tt = ItemTooltip.SetTradingHouseItem
     ItemTooltip.SetTradingHouseItem = function(control, tradingHouseIndex, ...)
       tt(control, tradingHouseIndex, ...)
       local _, _, _, _, _, _, purchase_gold = GetTradingHouseSearchResultItemInfo(tradingHouseIndex)
+	  d(purchase_gold)
       WritWorthy.TooltipInsertOurText(
         control,
         GetTradingHouseSearchResultItemLink(tradingHouseIndex),
         purchase_gold
-      )
-    end
+      ) 
+    end 
+	local rightGamepadTooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_RIGHT_TOOLTIP)
+	ZO_PostHook(
+	  GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS , 
+	  "UpdateItemSelectedTooltip", 
+	  function(self, itemData)  
+	    if itemData then
+		  local section = rightGamepadTooltip:AcquireSection(rightGamepadTooltip:GetStyle("bodySection"))
+          if WritWorthy.TooltipInsertOurText(section, itemData.itemLink, itemData.purchasePrice, nil, rightGamepadTooltip:GetStyle("bodyDescription")) then
+            rightGamepadTooltip:AddSection(section)   
+		  end
+	    end  
+	  end
+	)	
   end
+  
   if AwesomeGuildStore then
     AwesomeGuildStore:RegisterCallback(
       AwesomeGuildStore.callback.AFTER_INITIAL_SETUP,
@@ -518,16 +534,6 @@ function WritWorthy.TooltipInterceptInstall()
     local leftGamepadTooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
     ZO_PostHook(
       leftGamepadTooltip,
-      "LayoutMasterWritItem",
-      function(self, itemLink)
-        local section = self:AcquireSection(self:GetStyle("bodySection"))
-        WritWorthy.TooltipInsertOurText(section, itemLink, nil, nil, self:GetStyle("bodyDescription"))
-        self:AddSection(section)
-      end
-    )
-	 local rightGamepadTooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_RIGHT_TOOLTIP)
-    ZO_PostHook(
-      rightGamepadTooltip,
       "LayoutMasterWritItem",
       function(self, itemLink)
         local section = self:AcquireSection(self:GetStyle("bodySection"))
@@ -622,7 +628,17 @@ function WritWorthy:CreateSettingsWindow()
       self.savedVariables.enable_ttc_price = e
     end
   }
-
+  optionsData[#optionsData + 1] = {
+    type = "checkbox",
+    name = "TSC for price",
+    tooltip = WW.Str("lam_ttc_price_desc"),
+    getFunc = function()
+      return self.savedVariables.enable_tsc_price
+    end,
+    setFunc = function(e)
+      self.savedVariables.enable_tsc_price = e
+    end
+  }
   optionsData[#optionsData + 1] = {
     type = "checkbox",
     name = WW.Str("lam_station_colors_title"),

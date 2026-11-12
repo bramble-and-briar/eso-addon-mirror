@@ -1,8 +1,13 @@
 # What Drops Here? (Beta)
 
-> **Beta-Version 0.3.0.** Die Grundfunktionen sind getestet, aber vieles lässt sich allein nicht in absehbarer Zeit prüfen:
+> **Beta-Version 0.3.1.** Die Grundfunktionen sind getestet, aber vieles lässt sich allein nicht in absehbarer Zeit prüfen:
 > Verliese und Prüfungen, Weltbosse, Taschendiebstahl, Diebstahl, Spuren, andere Auto-Loot-Addons, Gamepad-Modus.
 > Rückmeldungen sind sehr willkommen, siehe [Beta-Rückmeldung](#beta-rückmeldung).
+>
+> **Daten können während der Beta ungültig werden.** Wie Quellen und Beute eingeordnet werden, kann sich noch ändern
+> (z. B. eingefangene Kleintiere als Feinde, Truhen am Dunklen Anker zusammen mit gewöhnlichen Truhen).
+> Gesammelte Daten lassen sich nicht immer nachträglich korrigieren; ein Update kann dann empfehlen, alle Daten
+> mit `/wdh_reset ja` zu löschen. Das steht dann deutlich im CHANGELOG. Ab Version 1.0 bleibt die Datenbank stabil.
 
 Merkt sich, was dir jede Beutequelle bisher gegeben hat, und zeigt es dir neben dem Fadenkreuz,
 bevor du plünderst.
@@ -20,11 +25,16 @@ und vieles hängt von Zone und Level ab. What Drops Here? sammelt deshalb **dein
 - **Leichen** von Gegnern und Tieren
 - **Kleintiere**, die du mit „Nehmen" einsammelst (Insekten, Quallen, Motten …)
 - **Taschendiebstahl**
+- **Gestohlene Einzelstücke** ohne Lootfenster (Brot, Flaschen … vom Tisch): ein Sammeleintrag je Zone,
+  „Einzelne Gegenstände [Diebstahl]" (`/wdh_zone`, `/wdh einzelne`)
 - **Spuren** (Antiquitäten)
+
+**Nicht erfasst:** Waffen und Rüstungen, die in der offenen Welt herumliegen (z. B. „Nehmen – Schild").
+Sie sind keine Beutequelle, sondern nur der Gegenstand selbst, immer von geringer Qualität.
 
 Jeder Fund wird vollständig gespeichert: mit seiner Item-ID und seiner Kategorie (z. B. „Schmiedematerial").
 Ob ein Item am Fadenkreuz mit Namen oder zusammengefasst in seiner Kategorie erscheint, entscheidet erst die Anzeige.
-Die Statistik gilt pro Quelle und Zone und für alle Charaktere deines Accounts.
+Die Statistik gilt pro Quelle und Zone und für alle Charaktere deines Accounts, getrennt je Server (EU/NA).
 
 ## Anzeige am Fadenkreuz
 
@@ -48,7 +58,8 @@ lassen sich die eines anderen übernehmen. Die gesammelten Daten gelten weiterhi
 **Mit Namen anzeigen ab Qualität:** darunter erscheinen Items zusammengefasst in ihrer Kategorie, darüber einzeln
 mit Namen. Weil immer alles mit Item-ID gespeichert wird, wirkt die Einstellung sofort auch auf alle bisherigen Funde.
 
-**Diebstahl** aus fremden Behältern, Tresoren und von fremden Gegenständen wird getrennt gespeichert.
+**Diebstahl** aus fremden Behältern und Tresoren wird getrennt gespeichert, einzelne gestohlene Gegenstände
+im Sammeleintrag der Zone.
 Eine gestohlene „Kiste" verfälscht also nicht die Statistik freier Kisten, und am Fadenkreuz
 erscheint bei einem fremden Behälter die Diebstahl-Statistik.
 
@@ -134,6 +145,20 @@ Optional: [LibAddonMenu-2.0](https://www.esoui.com/downloads/info7-LibAddonMenu.
 - `python tools/build_release.py` baut `dist/WhatDropsHere-<Version>.zip` mit nur den Dateien, die Spieler brauchen.
 - `docs/` enthält das Konzept mit Testprotokollen und offenen Fragen sowie die ESOUI-Beschreibungen (Deutsch und Englisch) und die Änderungsliste für ESOUI.
 - Fehler und Ideen gern als [Issue](https://github.com/cudddel-spec/WhatDropsHere/issues).
+- **KI:** Der Code wurde nach Vorgaben des Autors mit einem KI-Assistenten (Claude von Anthropic) geschrieben und im Spiel getestet.
+- Einzige globale Variable ist `WhatDropsHere` (dazu die SavedVariables `WhatDropsHere_Saved`). Die Loot-Events sind immer angemeldet,
+  weil jede Plünderung gespeichert wird; `EVENT_MONEY_UPDATE` nur, solange ein von Auto-Loot geleertes Fenster auf Beute wartet.
+- `WhatDropsHere_Saved` ist nach Server und Account getrennt: `WhatDropsHere_Saved[Server][@Account]`.
+  Bis 0.3.1 hieß sie `WDH_Saved` und galt für alle; die alten Daten übernimmt der erste Account, der sich nach dem
+  Update einloggt. `WDH_Saved` steht nur noch für diese Übernahme im Manifest und fällt vor 1.0 weg.
+
+## Danke
+
+- **Votan's Fisherman** (votan): Idee, Informationen direkt am Fadenkreuz zu zeigen
+- **HarvestMap** (Shinni): Rohstoffvorkommen an der Art der Interaktion erkennen
+- **Much Smarter AutoLoot** (Lykeion): Gold des Lootfensters aus `LOOT_SHARED` lesen
+
+Aus diesen Addons wurde kein Code kopiert.
 
 ## Lizenz
 

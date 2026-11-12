@@ -940,6 +940,27 @@ function addon:InitSettings()
 		}
 	)
 
+	local emperorNames = {
+		{ name = GetString(SI_PBSCA_EMPEROR_NAME_ACCOUNT), data = "account" },
+		{ name = GetString(SI_PBSCA_EMPEROR_NAME_CHARACTER), data = "character" },
+	}
+	settings:AddSetting(
+		{
+			type = LibHarvensAddonSettings.ST_DROPDOWN,
+			label = GetString(SI_PBSCA_BOARD_EMPEROR_NAME),
+			tooltip = GetString(SI_PBSCA_BOARD_EMPEROR_NAME_TOOLTIP),
+			items = emperorNames,
+			default = emperorNames[1].name,
+			getFunction = function()
+				return self.sv.board.emperorName == "character" and emperorNames[2].name or emperorNames[1].name
+			end,
+			setFunction = function(combobox, name, item)
+				self.sv.board.emperorName = item.data
+				self.board:Refresh()
+			end
+		}
+	)
+
 	settings:AddSetting(
 		{
 			type = LibHarvensAddonSettings.ST_CHECKBOX,

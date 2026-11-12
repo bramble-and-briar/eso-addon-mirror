@@ -47,19 +47,20 @@ function ContentsPanel.new(control)
     return self
 end
 
+---Quadrant 3 overlaps quadrant 2 at 16:9; native screens never show both.
+---The reward tooltip takes quadrant 4, where the log shows its item preview.
 function ContentsPanel:showTooltip()
-    GAMEPAD_TOOLTIPS:Reset(GAMEPAD_QUAD3_TOOLTIP)
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
     if self.control:IsControlHidden() then return end
     local data = self.list:GetTargetData()
     local item = data and data.reward
     if not item then return end
     if item.currencyType then
-        GAMEPAD_TOOLTIPS:LayoutCurrency(GAMEPAD_QUAD3_TOOLTIP, item.currencyType, item.quantity)
+        GAMEPAD_TOOLTIPS:LayoutCurrency(GAMEPAD_RIGHT_TOOLTIP, item.currencyType, item.quantity)
     elseif item.questItemId and item.questItemId > 0 then
-        GAMEPAD_TOOLTIPS:LayoutQuestItem(GAMEPAD_QUAD3_TOOLTIP, item.questItemId)
+        GAMEPAD_TOOLTIPS:LayoutQuestItem(GAMEPAD_RIGHT_TOOLTIP, item.questItemId)
     elseif item.antiquityId and item.antiquityId > 0 then
-        GAMEPAD_TOOLTIPS:LayoutAntiquityLead(GAMEPAD_QUAD3_TOOLTIP, item.antiquityId)
+        GAMEPAD_TOOLTIPS:LayoutAntiquityLead(GAMEPAD_RIGHT_TOOLTIP, item.antiquityId)
     elseif item.tributePatronId and item.tributeCardIndex then
         local patron = TRIBUTE_DATA_MANAGER:GetTributePatronData(item.tributePatronId)
         if patron then
@@ -67,18 +68,17 @@ function ContentsPanel:showTooltip()
             if cardId then
                 ---@diagnostic disable-next-line: redundant-parameter -- The native constructor forwards both IDs to Initialize(patronDefId, cardDefId).
                 local card = ZO_TributeCardData:New(item.tributePatronId, cardId)
-                GAMEPAD_TOOLTIPS:LayoutTributeCard(GAMEPAD_QUAD3_TOOLTIP, card)
+                GAMEPAD_TOOLTIPS:LayoutTributeCard(GAMEPAD_RIGHT_TOOLTIP, card)
             end
         end
     elseif item.link and item.link ~= '' then
         if item.lootType == LOOT_TYPE_COLLECTIBLE then
-            GAMEPAD_TOOLTIPS:LayoutCollectibleFromLink(GAMEPAD_QUAD3_TOOLTIP, item.link)
+            GAMEPAD_TOOLTIPS:LayoutCollectibleFromLink(GAMEPAD_RIGHT_TOOLTIP, item.link)
         else
-            GAMEPAD_TOOLTIPS:LayoutItemWithStackCountSimple(GAMEPAD_QUAD3_TOOLTIP, item.link, item.quantity)
-            ZO_LayoutItemLinkEquippedComparison(GAMEPAD_RIGHT_TOOLTIP, item.link)
+            GAMEPAD_TOOLTIPS:LayoutItemWithStackCountSimple(GAMEPAD_RIGHT_TOOLTIP, item.link, item.quantity)
         end
     else
-        GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(GAMEPAD_QUAD3_TOOLTIP, item.name,
+        GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(GAMEPAD_RIGHT_TOOLTIP, item.name,
             BattleScrolls.inventoryPoc.formatLoot(item))
     end
 end
@@ -122,6 +122,5 @@ end
 function ContentsPanel:hide()
     self:setActive(false)
     self.control:SetHidden(true)
-    GAMEPAD_TOOLTIPS:Reset(GAMEPAD_QUAD3_TOOLTIP)
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
 end

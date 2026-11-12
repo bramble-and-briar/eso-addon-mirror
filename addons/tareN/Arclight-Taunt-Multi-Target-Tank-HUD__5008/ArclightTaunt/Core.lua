@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.2 | Core module
+-- Arclight Taunt 1.2.0 | Core module
 -- Lua implementation is original; uses only the public ESO UI API.
 local ADDON = "ArclightTaunt"
 local EM, WM = EVENT_MANAGER, WINDOW_MANAGER
@@ -98,7 +98,7 @@ local C = {
     alertEarlyHairline = {0.20, 0.95, 0.78, 0.95},
 }
 local defaults = {
-    x = 1507, y = 370, scale = 1.15,
+    x = 1507, y = 370, scale = 1.0,
     columns = 1, limit = 10, opacity = 0.72, width = 280, rowGap = 2,
     subtleWarningBg = true, warningAt = 7, dangerAt = 4, removeDead = true,
     showExpired = false, showBossIcon = true,
@@ -113,6 +113,12 @@ local defaults = {
     bossAlertOpacity = 72, bossAlertOffsetY = 290, bossAlertElites = false,
     hideInMenus = true, smartTime = true, growUp = false, fitToScreen = true,
     showTauntList = true, mirrorTauntList = false, highContrast = false, trackPlayerTargets = false,
+    bossListOnly = false,
+    reticleStyle = "off", reticleLastStyle = "circle", reticleSize = 40,
+    reticleBarHeight = 4.5, reticleOffsetX = 0, reticleOffsetY = 0,
+    reticleRingWeight = 5,
+    reticleBossOnly = false,
+    reticleTrackOpacity = 72,
     bossEarlyWarning = true, bossEarlySeconds = 2.5,
 }
 local FONT_NAME = "$(BOLD_FONT)|14|soft-shadow-thin"
@@ -193,10 +199,14 @@ end
 
 -- The periodic callback sleeps when no work remains.
 function A.RefreshUpdateState()
-    local needed = (A.demo and not A.demoPausedAt) or A.moving or A.effectTickPending or next(A.targets) ~= nil
+    -- Moving uses a frozen demo and native mouse dragging. It needs no idle
+    -- callback of its own; real tracking and warning work still keeps us awake.
+    local needed = (A.demo and not A.demoPausedAt) or A.effectTickPending or next(A.targets) ~= nil
+        or A.reticlePreview == true
         or A.bossAlerts.expired.visibleUntil ~= nil or A.bossAlerts.early.visibleUntil ~= nil
         or A.pendingBossPreview ~= nil
         or (A.pendingBossWarnings and next(A.pendingBossWarnings) ~= nil)
+        or (A.ReticleNeedsUpdate and A.ReticleNeedsUpdate())
     needed = not not needed
     if needed == (A.updateRunning == true) then return end
     A.updateRunning = needed

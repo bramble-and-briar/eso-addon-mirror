@@ -82,6 +82,11 @@ local COLOR_AD = AllianceColor(ALLIANCE_ALDMERI_DOMINION)
 local COLOR_EP = AllianceColor(ALLIANCE_EBONHEART_PACT)
 
 local ACCENT = { 1, 1, 1 }
+local POINTER_TEXTURE = "EsoUI/Art/Buttons/Gamepad/gp_menu_rightArrow.dds"
+local POINTER_SIZE    = 48
+local POINTER_INSET   = 2
+local POINTER_INDENT  = 36
+local POINTER_SPACE   = 50
 
 local DEFAULT_TEXT_SIZE = 27
 local TEXT_SIZE_MIN     = 18
@@ -318,7 +323,34 @@ function FixedList.New(control, template, rowHeight, rowGap, upArrow, downArrow)
     list.visibleRows = 1
     list.active = false
     list.canSelect = nil
+    local name = control:GetName() .. "Pointer"
+    local pointer = GetControl(name) or WINDOW_MANAGER:CreateControl(name, control, CT_TEXTURE)
+    pointer:SetTexture(POINTER_TEXTURE)
+    pointer:SetDimensions(POINTER_SIZE, POINTER_SIZE)
+    pointer:SetDrawLevel(10)
+    pointer:SetHidden(true)
+    list.pointer = pointer
     return list
+end
+
+function FixedList:RefreshPointer()
+    local pointer = self.pointer
+    if not pointer then return end
+    local controlling = self.active
+    if S.pane ~= nil then
+        controlling = (self == S.categoryList and S.pane == PANE_CATEGORIES)
+            or (self == S.settingsList and S.pane == PANE_SETTINGS)
+    end
+    local slot = self.selectedIndex - self.firstIndex + 1
+    local row = controlling and slot >= 1 and slot <= self.visibleRows and self.rows[slot]
+    if not row or row:IsHidden() then
+        pointer:SetHidden(true)
+        return
+    end
+    pointer:ClearAnchors()
+    pointer:SetAnchor(LEFT, row, LEFT, POINTER_INSET, 0)
+    pointer:SetColor(ACCENT[1], ACCENT[2], ACCENT[3], 1)
+    pointer:SetHidden(false)
 end
 
 function FixedList:SetCanSelect(callback)
@@ -485,6 +517,7 @@ function FixedList:RefreshVisible()
     end
     if self.upArrow then self.upArrow:SetHidden(first <= 1) end
     if self.downArrow then self.downArrow:SetHidden(first + self.visibleRows - 1 >= #self.entries) end
+    self:RefreshPointer()
 end
 
 function FixedList:Release(releaseRow)
@@ -496,6 +529,7 @@ function FixedList:Release(releaseRow)
     end
     if self.upArrow then self.upArrow:SetHidden(true) end
     if self.downArrow then self.downArrow:SetHidden(true) end
+    if self.pointer then self.pointer:SetHidden(true) end
 end
 
 --------------------------------------------------
@@ -878,13 +912,18 @@ local function SettingRowSetup(control, data, selected, reselectingDuringRebuild
     control:SetAlpha(disabled and DISABLED_ALPHA or 1)
 
     local iconTexture = data.libIcon
-    if control.libIconShown ~= (iconTexture ~= nil) or control.libIconShown == nil then
-        control.libIconShown = iconTexture ~= nil
+    local hasIcon = iconTexture ~= nil
+    local indent = focused and POINTER_INDENT or 0
+    if control.libIconShown ~= hasIcon or control.libIndent ~= indent then
+        control.libIconShown = hasIcon
+        control.libIndent = indent
         parts.name:ClearAnchors()
-        if iconTexture then
+        if hasIcon then
+            parts.icon:ClearAnchors()
+            parts.icon:SetAnchor(LEFT, control, LEFT, 14 + indent, 0)
             parts.name:SetAnchor(LEFT, parts.icon, RIGHT, 14, 0)
         else
-            parts.name:SetAnchor(LEFT, control, LEFT, 20, 0)
+            parts.name:SetAnchor(LEFT, control, LEFT, 20 + indent, 0)
         end
     end
     if iconTexture then
@@ -894,7 +933,7 @@ local function SettingRowSetup(control, data, selected, reselectingDuringRebuild
         parts.icon:SetHidden(true)
     end
     local wide = kind == "submenu" or kind == "button" or kind == "header"
-    parts.name:SetWidth(wide and NAME_WIDTH_WIDE or NAME_WIDTH)
+    parts.name:SetWidth((wide and NAME_WIDTH_WIDE or NAME_WIDTH) - indent)
     parts.name:SetText(data.libName)
     SetLabelColor(parts.name, focused)
 
@@ -962,15 +1001,23 @@ local CATEGORY_ICON_SIZE  = 38
 local CATEGORY_ICON_GAP   = 12
 local CATEGORY_LABEL_MAX  = 279
 
-local function CenterCategoryRow(control, parts, hasIcon)
+local function CenterCategoryRow(control, parts, hasIcon, pointed)
+    local reserve = pointed and POINTER_SPACE or 0
+    local iconSpace = hasIcon and (CATEGORY_ICON_SIZE + CATEGORY_ICON_GAP) or 0
+    local maxWidth = CATEGORY_LABEL_MAX
+    if pointed then
+        maxWidth = math.min(maxWidth, CATEGORY_ROW_WIDTH - reserve - POINTER_INSET - iconSpace)
+    end
     parts.label:SetWidth(CATEGORY_LABEL_MAX)
     local width = math.ceil(parts.label:GetTextWidth() or 0) + 2
-    if width > CATEGORY_LABEL_MAX then width = CATEGORY_LABEL_MAX end
+    if width > maxWidth then width = maxWidth end
     if width < 1 then width = 1 end
-    local total = width
-    if hasIcon then total = total + CATEGORY_ICON_SIZE + CATEGORY_ICON_GAP end
-    local startX = math.floor((CATEGORY_ROW_WIDTH - total) / 2 + 0.5)
-    if control.libStartX == startX and control.libLabelW == width and control.libHasIcon == hasIcon then return end
+    local total = width + iconSpace
+    local startX = reserve + math.floor((CATEGORY_ROW_WIDTH - reserve - total) / 2 + 0.5)
+    if control.libStartX == startX and control.libLabelW == width and control.libHasIcon == hasIcon then
+        parts.label:SetWidth(width)
+        return
+    end
     control.libStartX, control.libLabelW, control.libHasIcon = startX, width, hasIcon
     parts.label:SetWidth(width)
     parts.label:ClearAnchors()
@@ -1019,7 +1066,7 @@ local function CategoryRowSetup(control, data, selected, reselectingDuringRebuil
 
     label:SetText(ResolveText(opt.name))
     SetLabelColor(label, selected and active)
-    CenterCategoryRow(control, parts, hasIcon)
+    CenterCategoryRow(control, parts, hasIcon, selected and active)
 end
 
 --------------------------------------------------
@@ -1098,6 +1145,7 @@ function S:ApplyAccent()
     RefreshAccent()
     if not S.IsShowing() then return end
     if S.categoryList then S.categoryList:RefreshVisible() end
+    if S.settingsList then S.settingsList:RefreshPointer() end
 end
 
 function S:ApplyTextSize()
@@ -1593,12 +1641,24 @@ function S.RefreshKeybinds()
     KEYBIND_STRIP:UpdateKeybindButtonGroup(S.activeKeybinds)
 end
 
+function S.QueuePointerRefresh()
+    if S.pointerQueued then return end
+    S.pointerQueued = true
+    zo_callLater(function()
+        S.pointerQueued = false
+        if not S.IsShowing() then return end
+        if S.categoryList then S.categoryList:RefreshPointer() end
+        if S.settingsList then S.settingsList:RefreshPointer() end
+    end, 50)
+end
+
 function S.RefreshAll()
     if not S.IsShowing() then return end
     S.lastRefreshMs = GetFrameTimeMilliseconds()
     S.RefreshPageTitle()
     if S.settingsList then S.settingsList:RefreshVisible() end
     if S.categoryList then S.categoryList:RefreshVisible() end
+    S.QueuePointerRefresh()
     S.detailsOption = nil
     S.RefreshDetails()
     S.RefreshKeybinds()

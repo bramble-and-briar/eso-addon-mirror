@@ -146,6 +146,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Role-Play Town Portals](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baene/Role-Play-Town-Portals__3471) | Baene | PC / Mac | 2.9 |
 | [RoleCrowns](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheWizardLizard/RoleCrowns__2539) | TheWizardLizard | PC / Mac | 1.0.1 |
 | [Roleplay Marker 2020](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/Roleplay-Marker-2020__2878) | Phuein | PC / Mac | 1.11 |
+| [RolePlay Mod](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ZorrinoTV/RolePlay-Mod__d747dd7e-77c4-4e3c-9004-4d31188c184f) | ZorrinoTV | Console | — |
 | [Roleplay Plus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smaxx/Roleplay-Plus__351) | Smaxx | PC / Mac | 0.3b |
 | [Roleplay Post support](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aausten/Roleplay-Post-support__4888) | aausten | PC / Mac | 1.2.6 |
 | [Roleplay Suite - Character Skill & Needs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Christopherv1995/Roleplay-Suite---Character-Skill-Needs__1935) | Christopherv1995 | PC / Mac | 2.3 |

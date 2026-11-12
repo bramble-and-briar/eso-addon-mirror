@@ -151,7 +151,7 @@ function MatRow.ListTotal(mat_list)
     if row_total and total then
       total = total + row_total
     else
-      total = WritWorthy.GOLD_UNKNOWN
+     -- total = WritWorthy.GOLD_UNKNOWN
     end
   end
   return total

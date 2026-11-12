@@ -15,6 +15,10 @@ local POTION_CD_MS  = 5000
 local KEY_SCALE     = 100
 local NUMBER_DROP   = 0.12
 local PULSE_LOW     = 0.45
+local GLOW_INNER    = 1.18
+local GLOW_OUTER    = 1.36
+local GLOW_INNER_A  = 0.65
+local GLOW_OUTER_A  = 0.3
 local MOVE_SPEED    = 500
 local SCALE_SPEED   = 15
 local SIZE_MIN      = 30
@@ -29,7 +33,7 @@ local RESOURCE_SIDE_OFFSET     = 237
 local STACK_GAP    = 12
 local STACK_DELAY  = 50
 local PROMPT_GUESS = 50
-local BARS_GUESS   = 40
+local KEYBOARD_BAR_INSET = 20
 
 local FLOOR_CONTROLS = {
     "ZO_PlayerAttributeHealth",
@@ -61,6 +65,9 @@ local STACK_PLACED = {
     "ZO_RamTopLevel",
 }
 
+local DELVE_BUFF_ID  = 66282
+local ATTACK_ICON    = "EsoUI/Art/AvA/AvA_tooltipIcon_keep.dds"
+local ATTACK_RANK    = 3
 local FOOD_DIM      = 0.45
 local FOOD_SHOW_MIN = 59
 local FOOD_FALLBACK = 61259
@@ -111,8 +118,19 @@ AB.defaults = {
     actionBarStatic     = true,
     actionBarResources  = "Row",
     actionBarBuffs      = "Above",
-    actionBarPulse      = true,
-    actionBarPulseSpeed = 3,
+    actionBarShowFood     = true,
+    actionBarShowDelve    = false,
+    actionBarShowAttack   = false,
+    actionBarReadyUltimate = true,
+    actionBarReadyPotion   = false,
+    actionBarReadyPulsate = true,
+    actionBarReadyGlow    = false,
+    actionBarReadyTint    = false,
+    actionBarGlowStyle  = "Custom",
+    actionBarGlowColor  = { r = 1, g = 0.82, b = 0.2, a = 1 },
+    actionBarReadyStyle = "Custom",
+    actionBarReadyColor = { r = 1, g = 0.82, b = 0.2, a = 1 },
+    actionBarPulseSpeed = 5,
     actionBarRingStyle  = "Alliance",
     actionBarRingColor  = { r = 1, g = 1, b = 1, a = 1 },
     actionBarNumStyle   = "Alliance",
@@ -132,6 +150,40 @@ AB.showChoices = {
 AB.resourceChoices = {
     { name = "Same Row",      value = "Row"   },
     { name = "Health on Top", value = "Split" },
+}
+
+AB.readyChoices = {
+    { name = "Pulsate",      value = "Pulsate" },
+    { name = "Glow",         value = "Glow"    },
+    { name = "Color Change", value = "Color"   },
+}
+
+AB.potionRingChoices = {
+    { name = "Food",              value = "Food"   },
+    { name = "Delve Buff",        value = "Delve"  },
+    { name = "Continuous Attack", value = "Attack" },
+}
+
+local POTION_RING_KEYS = {
+    Food   = "actionBarShowFood",
+    Delve  = "actionBarShowDelve",
+    Attack = "actionBarShowAttack",
+}
+
+AB.readyOnChoices = {
+    { name = "Ultimate", value = "Ultimate" },
+    { name = "Potion",   value = "Potion"   },
+}
+
+local READY_ON_KEYS = {
+    Ultimate = "actionBarReadyUltimate",
+    Potion   = "actionBarReadyPotion",
+}
+
+local READY_KEYS = {
+    Pulsate = "actionBarReadyPulsate",
+    Glow    = "actionBarReadyGlow",
+    Color   = "actionBarReadyTint",
 }
 
 AB.buffChoices = {
@@ -157,6 +209,8 @@ local previewStart = 0
 local pulses    = {}
 local ringR, ringG, ringB    = 0.72, 0.56, 0.09
 local numR, numG, numB       = 1, 1, 1
+local readyR, readyG, readyB = 1, 0.82, 0.2
+local glowR, glowG, glowB    = 1, 0.82, 0.2
 local activeBar = HOTBAR_CATEGORY_PRIMARY
 local backBar   = HOTBAR_CATEGORY_BACKUP
 
@@ -300,6 +354,8 @@ local function ResolveColors()
     local sv = SV()
     ringR, ringG, ringB = PickColor(sv.actionBarRingStyle, sv.actionBarRingColor, r, g, b)
     numR, numG, numB = PickColor(sv.actionBarNumStyle, sv.actionBarNumColor, r, g, b)
+    readyR, readyG, readyB = PickColor(sv.actionBarReadyStyle, sv.actionBarReadyColor, r, g, b)
+    glowR, glowG, glowB = PickColor(sv.actionBarGlowStyle, sv.actionBarGlowColor, r, g, b)
 end
 
 local function ResolveBars()
@@ -460,9 +516,15 @@ function AB:CreatePanel()
         back[i]  = CreateSlot("MyExtras_ActionBarBack" .. i, panel, slotIndex, false, true)
     end
 
-    self.arrowEdge = NewTexture("MyExtras_ActionBarArrowEdge", panel, TEX_ARROW_EDGE, 1)
+    local arrowTop = WINDOW_MANAGER:CreateTopLevelWindow("MyExtras_ActionBarArrowPanel")
+    arrowTop:SetDrawLayer(DL_CONTROLS)
+    arrowTop:SetDrawTier(DT_LOW)
+    arrowTop:SetDrawLevel(2)
+    arrowTop:SetHidden(true)
+    self.arrowPanel = arrowTop
+    self.arrowEdge = NewTexture("MyExtras_ActionBarArrowEdge", arrowTop, TEX_ARROW_EDGE, 1)
     self.arrowEdge:SetColor(0, 0, 0, 1)
-    self.arrow = NewTexture("MyExtras_ActionBarArrow", panel, TEX_ARROW, 2)
+    self.arrow = NewTexture("MyExtras_ActionBarArrow", arrowTop, TEX_ARROW, 2)
 
     self.potion   = CreateRing("MyExtras_ActionBarPotion", panel, "ACTION_BUTTON_9", "GAMEPAD_ACTION_BUTTON_9")
     self.ultimate = CreateRing("MyExtras_ActionBarUltimate", panel, "ACTION_BUTTON_" .. ULT_SLOT,
@@ -482,6 +544,16 @@ function AB:CreatePanel()
     self.food.value = NewLabel("MyExtras_ActionBarFoodValue", self.food, 11)
     self.food.value:SetColor(1, 1, 1, 1)
     self.food.value:SetHidden(true)
+    self.delve = CreateRound("MyExtras_ActionBarDelve", miniTop, 1)
+    self.delve.value = NewLabel("MyExtras_ActionBarDelveValue", self.delve, 11)
+    self.delve.value:SetColor(1, 1, 1, 1)
+    self.delve.value:SetHidden(true)
+    self.delve.icon:SetTexture(GetAbilityIcon(DELVE_BUFF_ID))
+    self.attack = CreateRound("MyExtras_ActionBarAttack", miniTop, 1)
+    self.attack.value = NewLabel("MyExtras_ActionBarAttackValue", self.attack, 11)
+    self.attack.value:SetColor(1, 1, 1, 1)
+    self.attack.value:SetHidden(true)
+    self.attack.icon:SetTexture(ATTACK_ICON)
 end
 
 --------------------------------------------------
@@ -515,8 +587,15 @@ local function LayoutSlot(slot, panel, x, y, size, border, edge)
     slot.stacks:SetFont(Font(zo_floor(size * 0.3)))
 end
 
+local function SizeGlow(round, size)
+    if not round.glow then return end
+    round.glow:SetDimensions(zo_floor(size * GLOW_INNER), zo_floor(size * GLOW_INNER))
+    round.glowOuter:SetDimensions(zo_floor(size * GLOW_OUTER), zo_floor(size * GLOW_OUTER))
+end
+
 local function LayoutRound(round, size)
     round:SetDimensions(size, size)
+    SizeGlow(round, size)
     local iconSize = zo_floor(size * 0.8)
     round.icon:ClearAnchors()
     round.icon:SetAnchor(CENTER, round, CENTER, 0, 0)
@@ -616,6 +695,21 @@ function AB:Layout()
     food.value:ClearAnchors()
     food.value:SetAnchor(CENTER, food, CENTER, 0, 0)
     food.value:SetFont(Font(zo_floor(miniSize * 0.4)))
+
+    local extraSize = miniSize
+    local extras = {
+        { self.delve,  zo_floor(ringSize * 0.237), zo_floor(ringSize * 0.015) },
+        { self.attack, -zo_floor(ringSize * 0.047), zo_floor(ringSize * 0.428) },
+    }
+    for i = 1, #extras do
+        local round, offsetX, offsetY = extras[i][1], extras[i][2], extras[i][3]
+        round:ClearAnchors()
+        round:SetAnchor(CENTER, self.potion, TOPLEFT, offsetX, offsetY)
+        LayoutRound(round, extraSize)
+        round.value:ClearAnchors()
+        round.value:SetAnchor(CENTER, round, CENTER, 0, 0)
+        round.value:SetFont(Font(zo_floor(extraSize * 0.4)))
+    end
     self:ApplyStack()
     self:ApplyResourceLayout(GetControl("ZO_PlayerAttribute"))
 end
@@ -792,8 +886,20 @@ local function PulseEase(progress)
 end
 
 local function PulseDuration()
-    local speed = SV().actionBarPulseSpeed or 3
+    local speed = SV().actionBarPulseSpeed or 5
     return zo_floor(1000 / (speed * 2))
+end
+
+local function EnsureGlow(round)
+    if round.glow then return end
+    local name = round:GetName()
+    round.glowOuter = NewTexture(name .. "GlowOuter", round, TEX_DISC, 0)
+    round.glow = NewTexture(name .. "Glow", round, TEX_DISC, 0)
+    round.glowOuter:SetAnchor(CENTER, round, CENTER, 0, 0)
+    round.glow:SetAnchor(CENTER, round, CENTER, 0, 0)
+    round.glow:SetHidden(true)
+    round.glowOuter:SetHidden(true)
+    SizeGlow(round, round:GetWidth())
 end
 
 local function SetPulse(round, on)
@@ -807,17 +913,30 @@ local function SetPulse(round, on)
     state.on = on
     if on then
         if not state.timeline then
+            EnsureGlow(round)
             state.timeline = ANIMATION_MANAGER:CreateTimeline()
-            state.fade = state.timeline:InsertAnimation(ANIMATION_ALPHA, round.fill, 0)
-            state.fade:SetAlphaValues(PULSE_LOW, 1)
-            state.fade:SetEasingFunction(PulseEase)
+            state.fades = {}
+            local targets = { round.fill, round.glow, round.glowOuter }
+            for i = 1, #targets do
+                local fade = state.timeline:InsertAnimation(ANIMATION_ALPHA, targets[i], 0)
+                fade:SetAlphaValues(PULSE_LOW, 1)
+                fade:SetEasingFunction(PulseEase)
+                state.fades[i] = fade
+            end
             state.timeline:SetPlaybackType(ANIMATION_PLAYBACK_PING_PONG, LOOP_INDEFINITELY)
         end
-        state.fade:SetDuration(PulseDuration())
+        local duration = PulseDuration()
+        for i = 1, #state.fades do
+            state.fades[i]:SetDuration(duration)
+        end
         state.timeline:PlayFromStart()
     else
         if state.timeline then state.timeline:Stop() end
         round.fill:SetAlpha(1)
+        if round.glow then
+            round.glow:SetAlpha(1)
+            round.glowOuter:SetAlpha(1)
+        end
     end
 end
 
@@ -826,12 +945,55 @@ local function IsPulsing(round)
     return state ~= nil and state.on
 end
 
+local function ReadyOn(choice)
+    return SV()[READY_KEYS[choice]] == true
+end
+
+local function ReadyFor(kind)
+    return SV()[READY_ON_KEYS[kind]] == true
+end
+
+local function AnyReady()
+    return ReadyOn("Pulsate") or ReadyOn("Glow") or ReadyOn("Color")
+end
+
 local function CanPulse()
-    if not SV().actionBarPulse then return false end
+    if not AnyReady() then return false end
     return inCombat or AB.preview
 end
 
+local function ShowGlow(round, on)
+    if on then EnsureGlow(round) end
+    if not round.glow then return end
+    round.glow:SetColor(glowR, glowG, glowB, GLOW_INNER_A)
+    round.glowOuter:SetColor(glowR, glowG, glowB, GLOW_OUTER_A)
+    round.glow:SetHidden(not on)
+    round.glowOuter:SetHidden(not on)
+end
+
+local function SetReady(round, on)
+    on = on == true
+    local pulsate = on and ReadyOn("Pulsate")
+    local glow    = on and ReadyOn("Glow")
+    local tint    = on and ReadyOn("Color")
+    local key = (pulsate and "P" or "") .. (glow and "G" or "") .. (tint and "C" or "")
+    round.readyOn = on
+    if round.readyKey == key then return end
+    round.readyKey = key
+    round.readyTint = tint
+    SetPulse(round, pulsate)
+    ShowGlow(round, glow)
+    if tint then
+        round.fill:SetFillColor(readyR, readyG, readyB, 1)
+    else
+        round.fill:SetFillColor(ringR, ringG, ringB, 1)
+    end
+end
+
 local function SetRingFill(ring, pct, r, g, b)
+    if ring.readyTint then
+        r, g, b = readyR, readyG, readyB
+    end
     pct = zo_floor(pct * 200 + 0.5) / 200
     if ring.pct ~= pct then
         ring.pct = pct
@@ -844,7 +1006,7 @@ function AB:UpdatePotion(nowMs)
     local ring = self.potion
     if not ring.used then
         SetRingFill(ring, 0, ringR, ringG, ringB)
-        SetPulse(ring, false)
+        SetReady(ring, false)
         ring.value:SetHidden(true)
         ring.sub:SetHidden(true)
         return
@@ -868,7 +1030,7 @@ function AB:UpdatePotion(nowMs)
     end
 
     local onCooldown = duration > POTION_CD_MS and remain > 0
-    SetPulse(ring, not onCooldown and count ~= nil and count > 0 and CanPulse())
+    SetReady(ring, not onCooldown and count ~= nil and count > 0 and CanPulse() and ReadyFor("Potion"))
 
     if onCooldown then
         SetRingFill(ring, 1 - remain / duration, ringR, ringG, ringB)
@@ -907,7 +1069,7 @@ local function SetUltimateFill(round, pct, isBack)
         shade = isBack and 0.45 or 0.3
     end
     round.icon:SetColor(shade, shade, shade, 1)
-    SetPulse(round, pct >= 1 and CanPulse())
+    SetReady(round, pct >= 1 and CanPulse() and ReadyFor("Ultimate"))
 end
 
 function AB:UpdateUltimate(nowMs)
@@ -930,12 +1092,12 @@ function AB:UpdateUltimate(nowMs)
     if ring.mini.used then
         SetUltimateFill(ring.mini, UltimatePercent(current, backCost), true)
     else
-        SetPulse(ring.mini, false)
+        SetReady(ring.mini, false)
     end
 
     if not ring.used then
         SetRingFill(ring, 0, ringR, ringG, ringB)
-        SetPulse(ring, false)
+        SetReady(ring, false)
         ring.value:SetHidden(true)
         return
     end
@@ -970,63 +1132,94 @@ local function IsFood(abilityId, abilityType, effectType)
     return FOOD_IDS[abilityId] == true or abilityType == ABILITY_TYPE_INTERACTIVES
 end
 
-function AB:SetFood(started, ending, icon)
-    if ending and ending > 0 and started and ending > started then
-        self.foodStart = started
-        self.foodEnd = ending
-    else
-        self.foodStart = nil
-        self.foodEnd = nil
-    end
-    if icon and icon ~= "" then
-        self.foodIcon = icon
-        local cv = ME.charVariables
-        if cv then cv.actionBarFoodIcon = icon end
-    end
-    self.foodShown = nil
-    if self.food then
-        self.food.icon:SetTexture(self.foodIcon or GetAbilityIcon(FOOD_FALLBACK))
-    end
-end
+local attackIcons = nil
 
-function AB:ScanFood()
-    local cv = ME.charVariables
-    if not self.foodIcon and cv and type(cv.actionBarFoodIcon) == "string" then
-        self.foodIcon = cv.actionBarFoodIcon
-    end
-    for i = 1, GetNumBuffs("player") do
-        local _, started, ending, _, _, icon, _, effectType, abilityType, _, abilityId = GetUnitBuffInfo("player", i)
-        if ending and ending > 0 and IsFood(abilityId, abilityType, effectType) then
-            self:SetFood(started, ending, icon)
-            return
+local function AttackIcons()
+    if attackIcons then return attackIcons end
+    local typeData = SKILLS_DATA_MANAGER and SKILLS_DATA_MANAGER.GetSkillTypeData
+        and SKILLS_DATA_MANAGER:GetSkillTypeData(SKILL_TYPE_AVA)
+    if not typeData then return nil end
+    local icons = {}
+    for _, lineData in typeData:SkillLineIterator() do
+        for _, skillData in lineData:SkillIterator() do
+            if skillData:IsPassive() then
+                for rank = 1, skillData:GetNumRanks() do
+                    local rankData = skillData:GetRankData(rank)
+                    local abilityId = rankData and rankData:GetAbilityId()
+                    local icon = abilityId and GetAbilityIcon(abilityId)
+                    if type(icon) == "string" and icon ~= "" then
+                        icons[icon:lower()] = true
+                    end
+                end
+            end
         end
     end
-    self:SetFood(nil, nil, nil)
+    attackIcons = icons
+    return icons
 end
 
-function AB:OnEffectChanged(changeType, started, ending, icon, effectType, abilityType, abilityId)
-    if not IsFood(abilityId, abilityType, effectType) then return end
-    if changeType == EFFECT_RESULT_FADED then
-        self:ScanFood()
-    else
-        self:SetFood(started, ending, icon)
+local function AttackSkillIcon()
+    local typeData = SKILLS_DATA_MANAGER and SKILLS_DATA_MANAGER.GetSkillTypeData
+        and SKILLS_DATA_MANAGER:GetSkillTypeData(SKILL_TYPE_AVA)
+    if not typeData then return nil end
+    local best, bestLine
+    for lineIndex, lineData in typeData:SkillLineIterator() do
+        for _, skillData in lineData:SkillIterator() do
+            if skillData:IsPassive() and skillData.GetLineRankNeededToPurchase
+                and skillData:GetLineRankNeededToPurchase() == ATTACK_RANK then
+                local progression = skillData.GetCurrentProgressionData and skillData:GetCurrentProgressionData()
+                local icon = progression and progression.GetIcon and progression:GetIcon()
+                if type(icon) == "string" and icon ~= "" and (not bestLine or lineIndex < bestLine) then
+                    best, bestLine = icon, lineIndex
+                end
+            end
+        end
     end
+    return best
 end
 
-function AB:UpdateFood()
-    local food = self.food
-    if not food then return end
-    local remain = self.foodEnd and (self.foodEnd - GetGameTimeSeconds()) or 0
+local function IsAttack(icon, ending)
+    if not (ending and ending > 0) or type(icon) ~= "string" then return false end
+    local icons = AttackIcons()
+    return icons ~= nil and icons[icon:lower()] == true
+end
+
+local function InPvP()
+    return IsPlayerInAvAWorld() or IsInImperialCity()
+end
+
+local function ShowOnRing(choice)
+    return SV()[POTION_RING_KEYS[choice]] == true
+end
+
+local function SetRoundTimes(round, started, ending)
+    if ending and ending > 0 and started and ending > started then
+        round.started = started
+        round.ending = ending
+    else
+        round.started = nil
+        round.ending = nil
+    end
+    round.shown = nil
+end
+
+local function RoundActive(round)
+    return round.ending ~= nil and round.ending > GetGameTimeSeconds()
+end
+
+local function UpdateTimedRound(round)
+    if not round or round:IsHidden() then return end
+    local remain = round.ending and (round.ending - GetGameTimeSeconds()) or 0
     if remain <= 0 then
-        if self.foodShown ~= 0 then
-            self.foodShown = 0
-            SetRingFill(food, 0, ringR, ringG, ringB)
-            food.icon:SetColor(FOOD_DIM, FOOD_DIM, FOOD_DIM, 1)
-            food.value:SetHidden(true)
+        if round.shown ~= 0 then
+            round.shown = 0
+            SetRingFill(round, 0, ringR, ringG, ringB)
+            round.icon:SetColor(FOOD_DIM, FOOD_DIM, FOOD_DIM, 1)
+            round.value:SetHidden(true)
         end
         return
     end
-    SetRingFill(food, remain / (self.foodEnd - self.foodStart), ringR, ringG, ringB)
+    SetRingFill(round, remain / (round.ending - round.started), ringR, ringG, ringB)
     local minutes = zo_ceil(remain / 60)
     local shown
     if remain < 60 then
@@ -1036,18 +1229,124 @@ function AB:UpdateFood()
     else
         shown = 1000
     end
-    if shown == self.foodShown then return end
-    self.foodShown = shown
-    food.icon:SetColor(1, 1, 1, 1)
+    if shown == round.shown then return end
+    round.shown = shown
+    round.icon:SetColor(1, 1, 1, 1)
     if shown == 1000 then
-        food.value:SetHidden(true)
+        round.value:SetHidden(true)
     elseif shown < 0 then
-        SetLabel(food.value, -shown .. "s")
-        food.value:SetHidden(false)
+        SetLabel(round.value, -shown .. "s")
+        round.value:SetHidden(false)
     else
-        SetLabel(food.value, shown .. "m")
-        food.value:SetHidden(false)
+        SetLabel(round.value, shown .. "m")
+        round.value:SetHidden(false)
     end
+end
+
+function AB:SetFood(started, ending, icon)
+    if icon and icon ~= "" then
+        self.foodIcon = icon
+        local cv = ME.charVariables
+        if cv then cv.actionBarFoodIcon = icon end
+    end
+    if self.food then
+        SetRoundTimes(self.food, started, ending)
+        self.food.icon:SetTexture(self.foodIcon or GetAbilityIcon(FOOD_FALLBACK))
+    end
+end
+
+function AB:SetBuffRound(round, started, ending, icon)
+    if not round then return end
+    SetRoundTimes(round, started, ending)
+    if type(icon) == "string" and icon ~= "" then
+        round.icon:SetTexture(icon)
+        if round == self.attack then
+            local account = ME.savedVariables
+            if account then account.actionBarAttackIcon = icon end
+        end
+    end
+end
+
+local function PotionRingIcon(choice)
+    local icon
+    if choice == "Food" then
+        icon = AB.foodIcon or GetAbilityIcon(FOOD_FALLBACK)
+    elseif choice == "Delve" then
+        icon = GetAbilityIcon(DELVE_BUFF_ID)
+    elseif choice == "Attack" then
+        local account = ME.savedVariables
+        icon = account and account.actionBarAttackIcon
+        if type(icon) ~= "string" or icon == "" then icon = AttackSkillIcon() or ATTACK_ICON end
+    end
+    if type(icon) == "string" and icon ~= "" then return icon end
+end
+
+function AB:ApplyPotionRings()
+    if not self.food then return end
+    local preview = self.preview or self.moving or ME.placing
+    local pvp = InPvP()
+    self.food:SetHidden(not ShowOnRing("Food"))
+    self.delve:SetHidden(not (ShowOnRing("Delve") and (preview or pvp or RoundActive(self.delve))))
+    self.attack:SetHidden(not (ShowOnRing("Attack") and (preview or pvp or RoundActive(self.attack))))
+    self.food.shown = nil
+    self.delve.shown = nil
+    self.attack.shown = nil
+end
+
+function AB:SetAttackIcon()
+    local account = ME.savedVariables
+    local icon = account and account.actionBarAttackIcon
+    if type(icon) ~= "string" or icon == "" then icon = AttackSkillIcon() end
+    if type(icon) == "string" and icon ~= "" then self.attack.icon:SetTexture(icon) end
+end
+
+function AB:ScanFood()
+    if attackIcons and next(attackIcons) == nil then attackIcons = nil end
+    if self.attack and not self.attack.ending then self:SetAttackIcon() end
+    local cv = ME.charVariables
+    if not self.foodIcon and cv and type(cv.actionBarFoodIcon) == "string" then
+        self.foodIcon = cv.actionBarFoodIcon
+    end
+    local food, delve, attack = false, false, false
+    for i = 1, GetNumBuffs("player") do
+        local _, started, ending, _, _, icon, _, effectType, abilityType, _, abilityId = GetUnitBuffInfo("player", i)
+        if ending and ending > 0 and effectType ~= BUFF_EFFECT_TYPE_DEBUFF then
+            if not food and IsFood(abilityId, abilityType, effectType) then
+                self:SetFood(started, ending, icon)
+                food = true
+            elseif not delve and abilityId == DELVE_BUFF_ID then
+                self:SetBuffRound(self.delve, started, ending, icon)
+                delve = true
+            elseif not attack and IsAttack(icon, ending) then
+                self:SetBuffRound(self.attack, started, ending, icon)
+                attack = true
+            end
+        end
+    end
+    if not food then self:SetFood(nil, nil, nil) end
+    if not delve then self:SetBuffRound(self.delve) end
+    if not attack then self:SetBuffRound(self.attack) end
+    self:ApplyPotionRings()
+end
+
+function AB:OnEffectChanged(changeType, started, ending, icon, effectType, abilityType, abilityId)
+    if effectType == BUFF_EFFECT_TYPE_DEBUFF then return end
+    local faded = changeType == EFFECT_RESULT_FADED
+    if IsFood(abilityId, abilityType, effectType) then
+        if faded then self:ScanFood() else self:SetFood(started, ending, icon) end
+    elseif abilityId == DELVE_BUFF_ID then
+        if faded then self:SetBuffRound(self.delve) else self:SetBuffRound(self.delve, started, ending, icon) end
+        self:ApplyPotionRings()
+    elseif IsAttack(icon, ending) or (faded and self.attack and self.attack.ending and IsAttack(icon, 1)) then
+        if faded then self:SetBuffRound(self.attack) else self:SetBuffRound(self.attack, started, ending, icon) end
+        self:ApplyPotionRings()
+    end
+end
+
+function AB:UpdateFood()
+    UpdateTimedRound(self.food)
+    UpdateTimedRound(self.delve)
+    UpdateTimedRound(self.attack)
 end
 
 --------------------------------------------------
@@ -1063,10 +1362,12 @@ function AB:ShouldShow()
 end
 
 function AB:UpdateVisibility()
+    self:ApplyPotionRings()
     if not self.panel then return end
     local show = self:ShouldShow()
     self.panel:SetHidden(not show)
     self.miniPanel:SetHidden(not show)
+    self.arrowPanel:SetHidden(not show)
 
     if show and not ticking then
         ticking = true
@@ -1075,9 +1376,20 @@ function AB:UpdateVisibility()
     elseif not show and ticking then
         ticking = false
         EVENT_MANAGER:UnregisterForUpdate(ME.name .. "_ActionBar")
-        SetPulse(self.potion, false)
-        SetPulse(self.ultimate, false)
-        SetPulse(self.ultimate.mini, false)
+        SetReady(self.potion, false)
+        SetReady(self.ultimate, false)
+        SetReady(self.ultimate.mini, false)
+    end
+end
+
+function AB:RefreshReady()
+    local rounds = { self.potion, self.ultimate, self.ultimate.mini }
+    for i = 1, #rounds do
+        local round = rounds[i]
+        local wasReady = round.readyOn == true
+        round.readyKey = nil
+        SetReady(round, false)
+        if wasReady then SetReady(round, true) end
     end
 end
 
@@ -1182,25 +1494,19 @@ function AB:HookBuffs()
     end)
 end
 
-local function MeasureFloor()
-    local floor
-    for i = 1, #FLOOR_CONTROLS do
-        local control = GetControl(FLOOR_CONTROLS[i])
-        local top = control and control:GetTop()
-        if top and top > 0 then
-            floor = floor and math.min(floor, top) or top
-        end
-    end
-    for i = 1, #BUFF_ROWS do
-        local row = GetControl(BUFF_ROWS[i])
-        if row and not row:IsHidden() and row:GetHeight() > 0 then
-            local top = row:GetTop()
-            if top and top > 0 then
-                floor = floor and math.min(floor, top) or top
+local function StackTarget()
+    if SV().actionBarBuffs ~= "Below" then
+        for i = 1, #BUFF_ROWS do
+            local row = GetControl(BUFF_ROWS[i])
+            if row and not row:IsHidden() and row:GetHeight() > 0 then
+                local container = GetControl(BUFF_CONTAINER)
+                if container then return container, 0 end
             end
         end
     end
-    return floor
+    local bars = GetControl("ZO_PlayerAttribute")
+    if not bars then return nil end
+    return bars, IsInGamepadPreferredMode() and 0 or KEYBOARD_BAR_INSET
 end
 
 local function PromptReach()
@@ -1230,7 +1536,7 @@ function AB:ApplyStack()
     end)
 end
 
-function AB:PinStack(name, offsetY)
+function AB:PinStack(name, target, offsetY)
     local control = GetControl(name)
     if not control then return end
     self.stackAnchors = self.stackAnchors or {}
@@ -1240,12 +1546,12 @@ function AB:PinStack(name, offsetY)
         self.stackAnchors[name] = { point, relativeTo, relativePoint, offsetX, originalY }
     end
     local _, point, relativeTo, relativePoint, offsetX, currentY = control:GetAnchor(0)
-    if point == BOTTOM and relativeTo == GuiRoot and relativePoint == TOP
+    if point == BOTTOM and relativeTo == target and relativePoint == TOP
         and offsetX == 0 and currentY == offsetY then
         return
     end
     control:ClearAnchors()
-    control:SetAnchor(BOTTOM, GuiRoot, TOP, 0, offsetY)
+    control:SetAnchor(BOTTOM, target, TOP, 0, offsetY)
 end
 
 function AB:UnpinStack()
@@ -1262,22 +1568,21 @@ function AB:UnpinStack()
 end
 
 function AB:PlaceStack()
-    if not self.panelHeight then return end
+    if self.placingStack or not self.panelHeight then return end
+    self.placingStack = true
     if not IsEnabled() then
         self:UnpinStack()
-        return
+    else
+        local target, inset = StackTarget()
+        if target then
+            local offsetY = inset - STACK_GAP
+            self:PinStack(PROMPT_BASE, target, offsetY - PromptReach())
+            for i = 1, #STACK_PLACED do
+                self:PinStack(STACK_PLACED[i], target, offsetY)
+            end
+        end
     end
-    local floor = MeasureFloor()
-    if not floor and self.panel then
-        local top = self.panel:GetTop()
-        if top and top > 0 then floor = top - BARS_GUESS end
-    end
-    if not floor then return end
-    local baseline = zo_floor(floor - STACK_GAP)
-    self:PinStack(PROMPT_BASE, baseline - PromptReach())
-    for i = 1, #STACK_PLACED do
-        self:PinStack(STACK_PLACED[i], baseline)
-    end
+    self.placingStack = false
 end
 
 function AB:WatchStack()
@@ -1285,6 +1590,9 @@ function AB:WatchStack()
     self.stackWatched = true
     local function OnStackChanged()
         if IsEnabled() then AB:ApplyStack() end
+    end
+    local function OnPlacedMoved()
+        if IsEnabled() then AB:PlaceStack() end
     end
     for i = 1, #FLOOR_CONTROLS do
         local control = GetControl(FLOOR_CONTROLS[i])
@@ -1309,8 +1617,19 @@ function AB:WatchStack()
     end
     for i = 1, #STACK_PLACED do
         local control = GetControl(STACK_PLACED[i])
-        if control then control:SetHandler("OnEffectivelyShown", OnStackChanged, ME.name) end
+        if control then
+            control:SetHandler("OnEffectivelyShown", OnPlacedMoved, ME.name)
+            control:SetHandler("OnRectChanged", OnPlacedMoved, ME.name)
+        end
     end
+    if base then base:SetHandler("OnRectChanged", OnPlacedMoved, ME.name) end
+    if HUD_MANAGER and HUD_MANAGER.RegisterCallback then
+        HUD_MANAGER:RegisterCallback("PropagateSettings", OnPlacedMoved)
+    end
+    if SYNERGY and SYNERGY.ApplyTextStyle then
+        ZO_PostHook(SYNERGY, "ApplyTextStyle", OnPlacedMoved)
+    end
+    EVENT_MANAGER:RegisterForEvent(ME.name .. "_ActionBarSynergy", EVENT_SYNERGY_ABILITY_CHANGED, OnPlacedMoved)
 end
 
 function AB:HookResourceBars()
@@ -1327,6 +1646,7 @@ end
 function AB:ApplyColors()
     ResolveColors()
     self.arrow:SetColor(ringR, ringG, ringB, 1)
+    self:RefreshReady()
     self:RefreshIcons()
     if ticking then self:Update() end
 end
@@ -1456,7 +1776,7 @@ end
 function AB:OnMoveShowing()
     local sv = SV()
     self.moving = true
-    ME:RaiseWhilePlacing({ self.panel, self.miniPanel }, true)
+    ME:RaiseWhilePlacing({ self.panel, self.miniPanel, self.arrowPanel }, true)
     self.moveStartX = sv.actionBarPosX
     self.moveStartY = sv.actionBarPosY
     self.moveX = sv.actionBarPosX
@@ -1477,7 +1797,7 @@ function AB:OnMoveHidden()
         self:SetPosition(self.moveStartX, self.moveStartY)
     end
     self.moving = false
-    ME:RaiseWhilePlacing({ self.panel, self.miniPanel }, false)
+    ME:RaiseWhilePlacing({ self.panel, self.miniPanel, self.arrowPanel }, false)
     ME:SetPlacing(false)
     if self.movePreview then
         self.movePreview = false
@@ -1554,7 +1874,7 @@ end
 -- Settings
 --------------------------------------------------
 function AB:GetPreviewControls()
-    if self.panel then return { self.panel, self.miniPanel } end
+    if self.panel then return { self.panel, self.miniPanel, self.arrowPanel } end
     return {}
 end
 
@@ -1613,193 +1933,364 @@ function AB:GetOptions()
                     func       = function() AB:StartMove() end,
                 },
                 {
-                    type     = "dropdown",
-                    name     = "Show",
-                    choices  = AB.showChoices,
-                    default  = defaults.actionBarShow,
-                    details  = function()
-                        if SV().actionBarShow == "Combat" then
-                            return "Only shows the action bar while you're in combat."
-                        end
-                        return "Always shows the action bar."
-                    end,
+                    type     = "submenu",
+                    name     = "Layout",
                     disabled = IsOff,
-                    getFunc  = function() return SV().actionBarShow end,
-                    setFunc  = function(val)
-                        SV().actionBarShow = val
-                        AB:UpdateVisibility()
-                    end,
+                    tooltip  = "Where and how your action bar shows.",
+                    options  = {
+                        {
+                            type     = "dropdown",
+                            name     = "Show",
+                            choices  = AB.showChoices,
+                            default  = defaults.actionBarShow,
+                            details  = function()
+                                if SV().actionBarShow == "Combat" then
+                                    return "Only shows the action bar while you're in combat."
+                                end
+                                return "Always shows the action bar."
+                            end,
+                            disabled = IsOff,
+                            getFunc  = function() return SV().actionBarShow end,
+                            setFunc  = function(val)
+                                SV().actionBarShow = val
+                                AB:UpdateVisibility()
+                            end,
+                        },
+                        {
+                            type     = "toggle",
+                            name     = "Static Bars",
+                            preset   = "YES_NO",
+                            default  = defaults.actionBarStatic,
+                            details  = function()
+                                if SV().actionBarStatic then
+                                    return "Your front bar stays on top and the arrow moves to the bar you're using."
+                                end
+                                return "The bar you're using moves to the top when you swap."
+                            end,
+                            disabled = IsOff,
+                            getFunc  = function() return SV().actionBarStatic end,
+                            setFunc  = function(val)
+                                SV().actionBarStatic = val
+                                AB:PlaceRows(true)
+                            end,
+                        },
+                        {
+                            type     = "toggle",
+                            name     = "Show Buttons",
+                            preset   = "YES_NO",
+                            default  = defaults.actionBarButtons,
+                            tooltip  = "Shows the button for each skill, your potion and your ultimate.",
+                            disabled = IsOff,
+                            getFunc  = function() return SV().actionBarButtons end,
+                            setFunc  = function(val)
+                                SV().actionBarButtons = val
+                                AB:Layout()
+                            end,
+                        },
+                        {
+                            type     = "dropdown",
+                            name     = "Resource Bars",
+                            choices  = AB.resourceChoices,
+                            default  = defaults.actionBarResources,
+                            disabled = IsOff,
+                            details  = function()
+                                if SV().actionBarResources == "Split" then
+                                    return "Health sits above the action bar, with magicka and stamina on each side."
+                                end
+                                return "Health, magicka and stamina sit in a row above the action bar."
+                            end,
+                            getFunc  = function() return SV().actionBarResources end,
+                            setFunc  = function(val)
+                                SV().actionBarResources = val
+                                AB:ApplyResourceBars()
+                            end,
+                        },
+                        {
+                            type     = "dropdown",
+                            name     = "Buffs / Debuffs",
+                            choices  = AB.buffChoices,
+                            default  = defaults.actionBarBuffs,
+                            disabled = IsOff,
+                            details  = function()
+                                if SV().actionBarBuffs == "Below" then
+                                    return "Buffs and debuffs sit below the action bar."
+                                end
+                                return "Buffs and debuffs sit above your health, magicka and stamina."
+                            end,
+                            getFunc  = function() return SV().actionBarBuffs end,
+                            setFunc  = function(val)
+                                SV().actionBarBuffs = val
+                                AB:ApplyPosition()
+                                AB:ApplyBuffs()
+                            end,
+                        },
+                    },
                 },
                 {
-                    type     = "toggle",
-                    name     = "Static Bars",
-                    preset   = "YES_NO",
-                    default  = defaults.actionBarStatic,
-                    details  = function()
-                        if SV().actionBarStatic then
-                            return "Your front bar stays on top and the arrow moves to the bar you're using."
-                        end
-                        return "The bar you're using moves to the top when you swap."
-                    end,
+                    type     = "submenu",
+                    name     = "Appearance",
                     disabled = IsOff,
-                    getFunc  = function() return SV().actionBarStatic end,
-                    setFunc  = function(val)
-                        SV().actionBarStatic = val
-                        AB:PlaceRows(true)
-                    end,
+                    tooltip  = "Colors for your rings, arrow and skill timers.",
+                    options  = {
+                        {
+                            type         = "stylecolor",
+                            name         = ME.RainbowText("Ring / Arrow Color"),
+                            choices      = { "Alliance", "Custom" },
+                            customValue  = "Custom",
+                            default      = defaults.actionBarRingStyle,
+                            colorDefault = { r = 1, g = 1, b = 1 },
+                            disabled     = IsOff,
+                            details      = function()
+                                if SV().actionBarRingStyle == "Custom" then
+                                    return "Rings, the arrow and proc borders use your color."
+                                end
+                                return "Rings, the arrow and proc borders use your alliance color."
+                            end,
+                            getFunc  = function() return SV().actionBarRingStyle end,
+                            setFunc  = function(val)
+                                SV().actionBarRingStyle = val
+                                AB:ApplyColors()
+                            end,
+                            getColor = function()
+                                local c = SV().actionBarRingColor
+                                if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
+                                return 1, 1, 1
+                            end,
+                            setColor = function(r, g, b)
+                                SV().actionBarRingColor = { r = r, g = g, b = b, a = 1 }
+                                AB:ApplyColors()
+                            end,
+                        },
+                        {
+                            type         = "stylecolor",
+                            name         = ME.RainbowText("Skill Number Color"),
+                            choices      = { "Alliance", "Custom" },
+                            customValue  = "Custom",
+                            default      = defaults.actionBarNumStyle,
+                            colorDefault = { r = 1, g = 1, b = 1 },
+                            disabled     = IsOff,
+                            sample       = function() return "18", Font(40), numR, numG, numB end,
+                            details      = function()
+                                if SV().actionBarNumStyle == "Custom" then
+                                    return "Skill timers use your color, then turn orange and red as they run out."
+                                end
+                                return "Skill timers use your alliance color, then turn orange and red as they run out."
+                            end,
+                            getFunc  = function() return SV().actionBarNumStyle end,
+                            setFunc  = function(val)
+                                SV().actionBarNumStyle = val
+                                AB:ApplyColors()
+                            end,
+                            getColor = function()
+                                local c = SV().actionBarNumColor
+                                if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
+                                return 1, 1, 1
+                            end,
+                            setColor = function(r, g, b)
+                                SV().actionBarNumColor = { r = r, g = g, b = b, a = 1 }
+                                AB:ApplyColors()
+                            end,
+                        },
+                    },
                 },
                 {
-                    type     = "dropdown",
-                    name     = "Resource Bars",
-                    choices  = AB.resourceChoices,
-                    default  = defaults.actionBarResources,
+                    type     = "submenu",
+                    name     = "Ultimate & Potion",
                     disabled = IsOff,
-                    details  = function()
-                        if SV().actionBarResources == "Split" then
-                            return "Health sits above the action bar, with magicka and stamina on each side."
-                        end
-                        return "Health, magicka and stamina sit in a row above the action bar."
-                    end,
-                    getFunc  = function() return SV().actionBarResources end,
-                    setFunc  = function(val)
-                        SV().actionBarResources = val
-                        AB:ApplyResourceBars()
-                    end,
-                },
-                {
-                    type     = "dropdown",
-                    name     = "Buffs / Debuffs",
-                    choices  = AB.buffChoices,
-                    default  = defaults.actionBarBuffs,
-                    disabled = IsOff,
-                    details  = function()
-                        if SV().actionBarBuffs == "Below" then
-                            return "Buffs and debuffs sit below the action bar."
-                        end
-                        return "Buffs and debuffs sit above your health, magicka and stamina."
-                    end,
-                    getFunc  = function() return SV().actionBarBuffs end,
-                    setFunc  = function(val)
-                        SV().actionBarBuffs = val
-                        AB:ApplyPosition()
-                        AB:ApplyBuffs()
-                    end,
-                },
-                {
-                    type         = "stylecolor",
-                    name         = ME.RainbowText("Ring / Arrow Color"),
-                    choices      = { "Alliance", "Custom" },
-                    customValue  = "Custom",
-                    default      = defaults.actionBarRingStyle,
-                    colorDefault = { r = 1, g = 1, b = 1 },
-                    disabled     = IsOff,
-                    details      = function()
-                        if SV().actionBarRingStyle == "Custom" then
-                            return "Rings, the arrow and proc borders use your color."
-                        end
-                        return "Rings, the arrow and proc borders use your alliance color."
-                    end,
-                    getFunc  = function() return SV().actionBarRingStyle end,
-                    setFunc  = function(val)
-                        SV().actionBarRingStyle = val
-                        AB:ApplyColors()
-                    end,
-                    getColor = function()
-                        local c = SV().actionBarRingColor
-                        if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
-                        return 1, 1, 1
-                    end,
-                    setColor = function(r, g, b)
-                        SV().actionBarRingColor = { r = r, g = g, b = b, a = 1 }
-                        AB:ApplyColors()
-                    end,
-                },
-                {
-                    type         = "stylecolor",
-                    name         = ME.RainbowText("Skill Number Color"),
-                    choices      = { "Alliance", "Custom" },
-                    customValue  = "Custom",
-                    default      = defaults.actionBarNumStyle,
-                    colorDefault = { r = 1, g = 1, b = 1 },
-                    disabled     = IsOff,
-                    details      = function()
-                        if SV().actionBarNumStyle == "Custom" then
-                            return "Skill timers use your color, then turn orange and red as they run out."
-                        end
-                        return "Skill timers use your alliance color, then turn orange and red as they run out."
-                    end,
-                    getFunc  = function() return SV().actionBarNumStyle end,
-                    setFunc  = function(val)
-                        SV().actionBarNumStyle = val
-                        AB:ApplyColors()
-                    end,
-                    getColor = function()
-                        local c = SV().actionBarNumColor
-                        if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
-                        return 1, 1, 1
-                    end,
-                    setColor = function(r, g, b)
-                        SV().actionBarNumColor = { r = r, g = g, b = b, a = 1 }
-                        AB:ApplyColors()
-                    end,
-                },
-                {
-                    type     = "toggle",
-                    name     = "Show Buttons",
-                    preset   = "YES_NO",
-                    default  = defaults.actionBarButtons,
-                    tooltip  = "Shows the button for each skill, your potion and your ultimate.",
-                    disabled = IsOff,
-                    getFunc  = function() return SV().actionBarButtons end,
-                    setFunc  = function(val)
-                        SV().actionBarButtons = val
-                        AB:Layout()
-                    end,
-                },
-                {
-                    type     = "dropdown",
-                    name     = "Ultimate Number",
-                    choices  = AB.ultChoices,
-                    default  = defaults.actionBarUltNumber,
-                    details  = function()
-                        if SV().actionBarUltNumber == "Percent" then
-                            return "Shows your ultimate as a percentage."
-                        end
-                        return "Shows your ultimate points."
-                    end,
-                    disabled = IsOff,
-                    getFunc  = function() return SV().actionBarUltNumber end,
-                    setFunc  = function(val)
-                        SV().actionBarUltNumber = val
-                        if ticking then AB:Update() end
-                    end,
-                },
-                {
-                    type     = "toggle",
-                    name     = "Pulsate When Ready",
-                    preset   = "YES_NO",
-                    default  = defaults.actionBarPulse,
-                    tooltip  = "In combat, your potion and ultimate rings pulsate when they're ready to use.",
-                    disabled = IsOff,
-                    getFunc  = function() return SV().actionBarPulse end,
-                    setFunc  = function(val)
-                        SV().actionBarPulse = val
-                        if ticking then AB:Update() end
-                    end,
-                },
-                {
-                    type     = "slider",
-                    name     = "Pulse Speed",
-                    min      = 1, max = 10, step = 1,
-                    default  = defaults.actionBarPulseSpeed,
-                    tooltip  = "How fast the rings pulse. 1 is the slowest, 10 is the fastest. Default is "
-                            .. defaults.actionBarPulseSpeed .. ".",
-                    disabled = function() return IsOff() or not SV().actionBarPulse end,
-                    getFunc  = function() return SV().actionBarPulseSpeed end,
-                    setFunc  = function(val)
-                        SV().actionBarPulseSpeed = val
-                        AB:RestartPulses()
-                    end,
+                    tooltip  = "Your ultimate number and how your potion and ultimate rings show they're ready.",
+                    options  = {
+                        {
+                            type     = "dropdown",
+                            name     = "Ultimate Number",
+                            choices  = AB.ultChoices,
+                            default  = defaults.actionBarUltNumber,
+                            details  = function()
+                                if SV().actionBarUltNumber == "Percent" then
+                                    return "Shows your ultimate as a percentage."
+                                end
+                                return "Shows your ultimate points."
+                            end,
+                            disabled = IsOff,
+                            getFunc  = function() return SV().actionBarUltNumber end,
+                            setFunc  = function(val)
+                                SV().actionBarUltNumber = val
+                                if ticking then AB:Update() end
+                            end,
+                        },
+                        {
+                            type     = "checklist",
+                            name     = "Potion Ring",
+                            choices  = AB.potionRingChoices,
+                            default  = { "Food" },
+                            details  = function()
+                                local shown = {}
+                                for i = 1, #AB.potionRingChoices do
+                                    local value = AB.potionRingChoices[i].value
+                                    if ShowOnRing(value) then
+                                        local icon = PotionRingIcon(value)
+                                        if icon then shown[#shown + 1] = zo_iconFormat(icon, 48, 48) end
+                                    end
+                                end
+                                return table.concat(shown, "  ")
+                            end,
+                            tooltip  = "What shows in the small rings around your potion.",
+                            disabled = IsOff,
+                            getFunc  = function()
+                                local values = {}
+                                for i = 1, #AB.potionRingChoices do
+                                    local value = AB.potionRingChoices[i].value
+                                    if ShowOnRing(value) then values[#values + 1] = value end
+                                end
+                                return values
+                            end,
+                            setFunc  = function(values)
+                                local sv = SV()
+                                local set = {}
+                                if type(values) == "table" then
+                                    for i = 1, #values do set[values[i]] = true end
+                                end
+                                for value, key in pairs(POTION_RING_KEYS) do
+                                    sv[key] = set[value] == true
+                                end
+                                AB:ApplyPotionRings()
+                                if ticking then AB:Update() end
+                            end,
+                        },
+                        {
+                            type     = "checklist",
+                            name     = "When Ready",
+                            choices  = AB.readyChoices,
+                            default  = { "Pulsate" },
+                            tooltip  = "How your potion and ultimate rings show they're ready to use in combat.",
+                            disabled = IsOff,
+                            getFunc  = function()
+                                local values = {}
+                                for i = 1, #AB.readyChoices do
+                                    local value = AB.readyChoices[i].value
+                                    if ReadyOn(value) then values[#values + 1] = value end
+                                end
+                                return values
+                            end,
+                            setFunc  = function(values)
+                                local sv = SV()
+                                local set = {}
+                                if type(values) == "table" then
+                                    for i = 1, #values do set[values[i]] = true end
+                                end
+                                for value, key in pairs(READY_KEYS) do
+                                    sv[key] = set[value] == true
+                                end
+                                AB:RefreshReady()
+                                if ticking then AB:Update() end
+                            end,
+                        },
+                        {
+                            type     = "checklist",
+                            name     = "Apply To",
+                            choices  = AB.readyOnChoices,
+                            default  = { "Ultimate" },
+                            tooltip  = "Which rings use your When Ready effects.",
+                            disabled = function() return IsOff() or not AnyReady() end,
+                            getFunc  = function()
+                                local values = {}
+                                for i = 1, #AB.readyOnChoices do
+                                    local value = AB.readyOnChoices[i].value
+                                    if ReadyFor(value) then values[#values + 1] = value end
+                                end
+                                return values
+                            end,
+                            setFunc  = function(values)
+                                local sv = SV()
+                                local set = {}
+                                if type(values) == "table" then
+                                    for i = 1, #values do set[values[i]] = true end
+                                end
+                                for value, key in pairs(READY_ON_KEYS) do
+                                    sv[key] = set[value] == true
+                                end
+                                SetReady(AB.potion, false)
+                                SetReady(AB.ultimate, false)
+                                SetReady(AB.ultimate.mini, false)
+                                if ticking then AB:Update() end
+                            end,
+                        },
+                        {
+                            type     = "slider",
+                            name     = "Pulse Speed",
+                            min      = 1, max = 10, step = 1,
+                            default  = defaults.actionBarPulseSpeed,
+                            tooltip  = "How fast the rings pulse. 1 is the slowest, 10 is the fastest. Default is "
+                                    .. defaults.actionBarPulseSpeed .. ".",
+                            disabled = function() return IsOff() or not ReadyOn("Pulsate") end,
+                            getFunc  = function() return SV().actionBarPulseSpeed end,
+                            setFunc  = function(val)
+                                SV().actionBarPulseSpeed = val
+                                AB:RestartPulses()
+                            end,
+                        },
+                        {
+                            type         = "stylecolor",
+                            name         = ME.RainbowText("Glow Color"),
+                            choices      = { "Alliance", "Custom" },
+                            customValue  = "Custom",
+                            default      = defaults.actionBarGlowStyle,
+                            colorDefault = { r = 1, g = 0.82, b = 0.2 },
+                            disabled     = function() return IsOff() or not ReadyOn("Glow") end,
+                            details      = function()
+                                if SV().actionBarGlowStyle == "Custom" then
+                                    return "Your rings glow in your color when they're ready to use."
+                                end
+                                return "Your rings glow in your alliance color when they're ready to use."
+                            end,
+                            getFunc  = function() return SV().actionBarGlowStyle end,
+                            setFunc  = function(val)
+                                SV().actionBarGlowStyle = val
+                                AB:ApplyColors()
+                            end,
+                            getColor = function()
+                                local c = SV().actionBarGlowColor
+                                if type(c) == "table" then return c.r or 1, c.g or 0.82, c.b or 0.2 end
+                                return 1, 0.82, 0.2
+                            end,
+                            setColor = function(r, g, b)
+                                SV().actionBarGlowColor = { r = r, g = g, b = b, a = 1 }
+                                AB:ApplyColors()
+                            end,
+                        },
+                        {
+                            type         = "stylecolor",
+                            name         = ME.RainbowText("Ready Color"),
+                            choices      = { "Alliance", "Custom" },
+                            customValue  = "Custom",
+                            default      = defaults.actionBarReadyStyle,
+                            colorDefault = { r = 1, g = 0.82, b = 0.2 },
+                            disabled     = function() return IsOff() or not ReadyOn("Color") end,
+                            details      = function()
+                                local sv = SV()
+                                if sv.actionBarReadyStyle == "Custom" then
+                                    return "Your rings change to your color when they're ready to use."
+                                end
+                                if sv.actionBarRingStyle ~= "Custom" then
+                                    return "Your rings already use your alliance color, so pick Custom to see a change."
+                                end
+                                return "Your rings change to your alliance color when they're ready to use."
+                            end,
+                            getFunc  = function() return SV().actionBarReadyStyle end,
+                            setFunc  = function(val)
+                                SV().actionBarReadyStyle = val
+                                AB:ApplyColors()
+                            end,
+                            getColor = function()
+                                local c = SV().actionBarReadyColor
+                                if type(c) == "table" then return c.r or 1, c.g or 0.82, c.b or 0.2 end
+                                return 1, 0.82, 0.2
+                            end,
+                            setColor = function(r, g, b)
+                                SV().actionBarReadyColor = { r = r, g = g, b = b, a = 1 }
+                                AB:ApplyColors()
+                            end,
+                        },
+                    },
                 },
             },
         },
@@ -1821,6 +2312,31 @@ function AB:Init()
         account.actionBarPromptReach = nil
         account.actionBarPromptSpace = nil
         account.actionBarReadout = nil
+    end
+    local saved = { account, SV() }
+    for i = 1, #saved do
+        local sv = saved[i]
+        if type(sv) == "table" then
+            if sv.actionBarPulse == false then
+                sv.actionBarReadyPulsate = false
+                sv.actionBarReadyGlow = false
+                sv.actionBarReadyTint = false
+            end
+            sv.actionBarPulse = nil
+            local mode = sv.actionBarReady
+            if type(mode) == "string" then
+                sv.actionBarReadyPulsate = mode == "Pulsate"
+                sv.actionBarReadyGlow = mode == "Glow" or mode == "GlowColor"
+                sv.actionBarReadyTint = mode == "Color" or mode == "GlowColor"
+            end
+            sv.actionBarReady = nil
+            local readyOn = sv.actionBarReadyOn
+            if type(readyOn) == "string" then
+                sv.actionBarReadyUltimate = readyOn ~= "Potion"
+                sv.actionBarReadyPotion = readyOn ~= "Ultimate"
+            end
+            sv.actionBarReadyOn = nil
+        end
     end
     self:CreatePanel()
     self:HookResourceBars()

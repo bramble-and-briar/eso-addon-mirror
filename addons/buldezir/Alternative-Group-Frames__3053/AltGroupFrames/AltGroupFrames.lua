@@ -244,7 +244,7 @@ function UnitFrame:RefreshView()
 	self.levelControl:SetFont(fontLevel)
 
 	PRI = settings.SHOW_CUSTOM_ROLE_ICONS and PlayerRoleIndicator or nil
-	ODY = settings.SHOW_CUSTOM_ODY_ICONS and OSI and OSI.GetIconDataForPlayer or nil
+	ODY = settings.SHOW_CUSTOM_ODY_ICONS and OSI and OSI.GetIconDataForPlayer and OSI or nil
 
 	self.iconControl:ClearAnchors()
 	self.nameControl:ClearAnchors()
@@ -331,7 +331,7 @@ function UnitFrame:GetIconPath()
 	end
 	if ODY ~= nil then
 		local texture, color, size, hodor, offset =
-			ODY.GetIconDataForPlayer(GetUnitDisplayName(self.unitTag), osiConfig, self.unitTag)
+			ODY.GetIconDataForPlayer(self.accountName, osiConfig, self.unitTag)
 
 		if texture ~= nil then
 			return texture

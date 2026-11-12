@@ -141,6 +141,14 @@ local policy = BattleScrolls.inventoryPocPolicy
 ---@field price number
 ---@field expiredPrice number|nil
 
+---Item id from the link text. GetItemLinkItemId would create native item
+---data for a link or item id the client has not read before.
+---@param link string
+---@return number|nil
+function facts.linkItemId(link)
+    return tonumber(link:match('^|H%d:item:(%d+):'))
+end
+
 ---@param item InventoryPocVariant
 ---@return string
 function facts.variantKey(item)
@@ -189,13 +197,21 @@ local FRAGMENT_USE_QUANTITIES = {
 }
 ---@type table<number, string>|nil
 local traitMaterials
+---@type string|false|nil Roster lookup, resolved once: the roster only changes at character select
+local crafterIdCache
 
 ---@return string|nil
 function facts.crafterId()
-    for index = 1, GetNumCharacters() do
-        local name, _, _, _, _, _, id = GetCharacterInfo(index)
-        if zo_strformat(SI_UNIT_NAME, name) == CRAFTER_NAME then return id end
+    if crafterIdCache == nil then
+        local count = GetNumCharacters()
+        if count == 0 then return nil end
+        crafterIdCache = false
+        for index = 1, count do
+            local name, _, _, _, _, _, id = GetCharacterInfo(index)
+            if zo_strformat(SI_UNIT_NAME, name) == CRAFTER_NAME then crafterIdCache = id; break end
+        end
     end
+    return crafterIdCache or nil
 end
 
 local TRADING_GUILDS = { 'hermits', 'dynasty' }
@@ -479,6 +495,15 @@ local function knowledge(link, itemKind, characterId)
     return nil
 end
 
+---The slot's item id as a string; '0' for an empty slot.
+---@param bag number
+---@param slot number
+---@return string
+function facts.uniqueId(bag, slot)
+    local id = GetItemUniqueId(bag, slot)
+    return id and Id64ToString(id) or '0'
+end
+
 ---@param bag number
 ---@param slot number
 ---@param reserved table<string, boolean>|nil
@@ -486,8 +511,7 @@ end
 function facts.item(bag, slot, reserved)
     local link = GetItemLink(bag, slot, LINK_STYLE_DEFAULT)
     if link == '' then return nil end
-    local id = GetItemUniqueId(bag, slot)
-    local uniqueId = id and Id64ToString(id) or '0'
+    local uniqueId = facts.uniqueId(bag, slot)
     local stack, maxStack = GetSlotStackSize(bag, slot)
     local itemType, specializedType = GetItemLinkItemType(link)
     local itemKind = kind(link, itemType, specializedType)
@@ -515,6 +539,7 @@ function facts.item(bag, slot, reserved)
     local equipped = bag == BAG_WORN or bag == BAG_COMPANION_WORN
     local armorType = GetItemLinkArmorType(link)
     local itemId = GetItemLinkItemId(link)
+    local _, _, _, _, _, setId = GetItemLinkSetInfo(link, false)
     local learnQuantity = 1
     if itemKind == 'fragment' then
         if FRAGMENT_USE_QUANTITIES[itemId] then learnQuantity = FRAGMENT_USE_QUANTITIES[itemId]
@@ -525,10 +550,11 @@ function facts.item(bag, slot, reserved)
     local companions = BattleScrolls.inventoryPocCompanions
     local crafted, hasOnUseAbility, onUseAbilityId, alchemyTraitCount
     local tradeable, hasSet, setCollected, collectionKey, improvementMaterial
-    if itemKind == 'gear' or itemKind == 'companion' then tradeable = IsItemSellableOnTradingHouse(bag, slot) end
+    -- Bound copies of any listable kind (motifs, runeboxes, fragments, leads)
+    -- cannot reach a guild store; the policy routes them to their cheap action.
+    tradeable = IsItemSellableOnTradingHouse(bag, slot)
     if itemKind == 'gear' then
         crafted = IsItemLinkCrafted(link)
-        local _, _, _, _, _, setId = GetItemLinkSetInfo(link, false)
         hasSet = setId > 0
         if hasSet and IsItemLinkSetCollectionPiece(link) then
             local collectionSlot = GetItemLinkItemSetCollectionSlot(link)
@@ -551,6 +577,7 @@ function facts.item(bag, slot, reserved)
             if GetItemLinkTraitOnUseAbilityInfo(link, index) then alchemyTraitCount = alchemyTraitCount + 1 end
         end
     end
+    local sellInformation = GetItemSellInformation(bag, slot)
     local marketUnit, marketLoading = facts.marketPrice(link)
     local styleMaterialUnit, styleLoading, traitMaterialUnit, traitLoading, improvementUnit, improvementLoading
     if material ~= '' then styleMaterialUnit, styleLoading = facts.price(material) end
@@ -559,7 +586,7 @@ function facts.item(bag, slot, reserved)
     local item = {
         bag = bag, slot = slot, uniqueId = uniqueId, itemId = itemId, link = link,
         name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(link)), stack = stack, maxStack = maxStack,
-        searchName = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkTradingHouseItemSearchName(link)),
+        searchName = GetItemLinkTradingHouseItemSearchName(link),
         kind = itemKind, quality = quality, trait = trait, style = style,
         equipType = GetItemLinkEquipType(link), armorType = armorType, weaponType = GetItemLinkWeaponType(link),
         actorCategory = GetItemLinkActorCategory(link),
@@ -568,10 +595,11 @@ function facts.item(bag, slot, reserved)
         reserved = equipped or locked or IsItemInArmory(bag, slot) or (reserved and reserved[uniqueId]) == true,
         stolen = IsItemStolen(bag, slot), crown = IsItemLinkFromCrownStore(link) or IsItemLinkFromCrownCrate(link),
         vendorUnit = GetItemSellValueWithBonuses(bag, slot), marketUnit = marketUnit,
-        prioritySell = GetItemSellInformation(bag, slot) == ITEM_SELL_INFORMATION_PRIORITY_SELL,
+        prioritySell = sellInformation == ITEM_SELL_INFORMATION_PRIORITY_SELL,
+        cannotSell = sellInformation == ITEM_SELL_INFORMATION_CANNOT_SELL,
         styleMaterialLink = material, styleMaterialUnit = styleMaterialUnit,
         traitMaterialLink = traitLink, traitMaterialUnit = traitMaterialUnit, traitMaterialResolved = traitResolved,
-        tradeable = tradeable, hasSet = hasSet, setId = select(6, GetItemLinkSetInfo(link, false)),
+        tradeable = tradeable, hasSet = hasSet, setId = setId,
         setCollected = setCollected, collectionKey = collectionKey,
         improvementMaterialLink = improvementMaterial, improvementMaterialUnit = improvementUnit,
         priceLoading = marketLoading or styleLoading or traitLoading or improvementLoading or false,

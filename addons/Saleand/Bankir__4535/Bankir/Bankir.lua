@@ -1,7 +1,7 @@
 Bankir = Bankir or {}
 
 local name = "Bankir"
-local version = "2.9.2"
+local version = "2.9.3"
 local author = "vexaiv"
 
 local function debugPrint(message)
@@ -10,6 +10,7 @@ end
 
 local d = debugPrint --override built-in d(...)
 
+Bankir.bankBagOpen = nil
 local queue
 local totals
 local requiredForQuests
@@ -70,23 +71,31 @@ local function getEmptySlot(bagId)
 	end
 end
 
-local function getTargetSlot(bagId, itemLink, except)
-	for slotId in ZO_IterateBagSlots(bagId) do
-		if slotId ~= except then
-			local itemLinkInSlot = GetItemLink(bagId, slotId)
-			local stack, maxStack = GetSlotStackSize(bagId, slotId)
-			if Bankir.Functions.isEqualItemLink(itemLink, itemLinkInSlot) then
-				if stack == 0 or stack < maxStack then
-					return slotId
-				end
+local function getTargetSlot(sourceBagId, targetBagId, itemLink)
+	if not IsItemLinkStackable(itemLink) then
+		return getEmptySlot(targetBagId)
+	end
+	
+	local isGuildBank = sourceBagId == BAG_GUILDBANK or targetBagId == BAG_GUILDBANK
+	local comp1 = isGuildBank and Bankir.Functions.getNormalizedLink(itemLink) or itemLink
+	local emptySlot
+	for slotId in ZO_IterateBagSlots(targetBagId) do
+		local stack, maxStack = GetSlotStackSize(targetBagId, slotId)
+		if stack == 0 then
+			emptySlot = slotId
+		elseif stack < maxStack then
+			itemLinkInSlot = GetItemLink(targetBagId, slotId)
+			local comp2 = isGuildBank and Bankir.Functions.getNormalizedLink(itemLinkInSlot) or itemLinkInslot
+			if comp1 == comp2 then
+				return slotId
 			end
 		end
 	end
 	--no slots of same item or they are full, find free slot
-	return getEmptySlot(bagId)
+	return emptySlot or getEmptySlot(targetBagId)
 end
 
-local function countSameItemsInBag(bagId, itemLink, totalsId, neededQualities)
+local function countSameItemsInBag(bagId, totalsId, neededQualities)
 	local count = 0
 	for slotId in ZO_IterateBagSlots(bagId) do
 		repeat
@@ -99,15 +108,13 @@ local function countSameItemsInBag(bagId, itemLink, totalsId, neededQualities)
 					break
 				end
 			end
-			-- special case for armor/weapon to count totals of all intricate light armor
-			-- as same item, all companion shields as same item and so on
-			if totalsId ~= Bankir.Functions.getNormalizedLink(itemLink) then
+			if totalsId ~= Bankir.Functions.getNormalizedLink(itemLinkInSlot) then
+				-- special case for armor/weapon to count totals of all intricate light armor
+				-- as same item, all companion shields as same item and so on
 				local itemType, specializedItemType, itemId = Bankir.Functions.redefineItemTypes(itemLinkInSlot)
 				if itemId ~= totalsId and specializedItemType ~= totalsId and itemType ~= totalsId then
 					break
 				end
-			elseif not Bankir.Functions.isEqualItemLink(itemLinkInSlot, itemLink) then
-				break
 			end
 			local stack, maxStack = GetSlotStackSize(bagId, slotId)
 			count = count + stack
@@ -116,13 +123,13 @@ local function countSameItemsInBag(bagId, itemLink, totalsId, neededQualities)
 	return count
 end
 
-local function updateTotalItemsInBag(bagId, itemLink, totalsId, neededQualities)
-	local count = countSameItemsInBag(bagId, itemLink, totalsId, neededQualities)
+local function updateTotalItemsInBag(bagId, totalsId, neededQualities)
+	local count = countSameItemsInBag(bagId, totalsId, neededQualities)
 	if IsESOPlusSubscriber() then
 		if bagId == BAG_BANK then
-			count = count + countSameItemsInBag(BAG_SUBSCRIBER_BANK, itemLink, totalsId, neededQualities)
+			count = count + countSameItemsInBag(BAG_SUBSCRIBER_BANK, totalsId, neededQualities)
 		elseif bagId == BAG_SUBSCRIBER_BANK then
-			count = count + countSameItemsInBag(BAG_BANK, itemLink, totalsId, neededQualities)
+			count = count + countSameItemsInBag(BAG_BANK, totalsId, neededQualities)
 			bagId = BAG_BANK
 		end
 	end
@@ -151,8 +158,8 @@ local function printToChat(itemName, amount, targetBagId)
 end
 
 local function processCurrency(bagId)
-	if Bankir.savedVarsProfile[bagId].currency then
-		for currencyType, rules in pairs(Bankir.savedVarsProfile[bagId].currency) do
+	if Bankir.SVProfile[bagId].currency then
+		for currencyType, rules in pairs(Bankir.SVProfile[bagId].currency) do
 			local amount = GetCarriedCurrencyAmount(currencyType) - rules.amount
 			if amount > 0 and rules.push then
 				printToChat(ZO_Currency_GetPlatformFormattedCurrencyIcon(currencyType), amount, BAG_BANK)
@@ -182,7 +189,7 @@ local function populateQueue(sourceBagId, targetBagId)
 		repeat
 			if IsItemStolen(sourceBagId, slotId) then break end
 			if IsItemPlayerLocked(sourceBagId, slotId)
-		    and not Bankir.savedVarsCommon.moveLockedItems then break end
+		    and not Bankir.SVCommon.moveLockedItems then break end
 		    if targetBagId == BAG_GUILDBANK
 			and IsItemBound(sourceBagId, slotId) then break end
 			
@@ -198,15 +205,17 @@ local function populateQueue(sourceBagId, targetBagId)
 				getRuleForItem(itemLink, bankBagAlias, itemQuality, maxStackSize)
 			
 			local pullForQuests = 0
-			if requiredForQuests[itemLink] then
-				pullForQuests = requiredForQuests[itemLink]
-			else
-				--check whether it's required or not
-				local required = Bankir.Functions.checkItemForQuests(sourceBagId, slotId)
-				if required > 0 then
-					d(zo_strformat(GetString(BANKIR_CHAT_REQUIRED_FOR_QUESTS), itemLink, required))
-					requiredForQuests[itemLink] = required
-					pullForQuests = required
+			if Bankir.SVCommon.moveQuestItems then
+				if requiredForQuests[itemLink] then
+					pullForQuests = requiredForQuests[itemLink]
+				else
+					--check whether it's required or not
+					local required = Bankir.Functions.checkItemForQuests(sourceBagId, slotId)
+					if required > 0 then
+						d(zo_strformat(GetString(BANKIR_CHAT_REQUIRED_FOR_QUESTS), itemLink, required))
+						requiredForQuests[itemLink] = required
+						pullForQuests = required
+					end
 				end
 			end
 			
@@ -226,8 +235,8 @@ local function populateQueue(sourceBagId, targetBagId)
 			
 			--update how many of the item is already in target bag
 			if not getTotalItemsInBag(targetBagId, totalsId) or not getTotalItemsInBag(sourceBagId, totalsId) then
-				updateTotalItemsInBag(targetBagId, itemLink, totalsId, neededQualities)
-				updateTotalItemsInBag(sourceBagId, itemLink, totalsId, neededQualities)
+				updateTotalItemsInBag(targetBagId, totalsId, neededQualities)
+				updateTotalItemsInBag(sourceBagId, totalsId, neededQualities)
 			end
 			
 			if rule.pullInStacks then
@@ -321,7 +330,7 @@ local function processQueue()
 	
 	if IsItemLinkUnique(itemLink) then
 		if getTotalItemsInBag(targetBagId, totalsId) > 0 then
-			if Bankir.savedVarsCommon.showOperationFailMessages then
+			if Bankir.SVCommon.showOperationFailMessages then
 				d(zo_strformat(GetString(BANKIR_CHAT_ALREADY_HAVE_UNIQUE_ITEM), itemLink, Bankir.Functions.getBagName(targetBagId)))
 			end
 			processQueue()
@@ -351,18 +360,18 @@ local function processQueue()
 		processQueue()
 		return
 	else
-		local targetSlotId = getTargetSlot(targetBagId, itemLink)
+		local targetSlotId = getTargetSlot(sourceBagId, targetBagId, itemLink)
 		
 		-- try ESO+ bank slots
 		if not targetSlotId and targetBagId == BAG_BANK and IsESOPlusSubscriber() then
-			targetSlotId = getTargetSlot(BAG_SUBSCRIBER_BANK, itemLink)
+			targetSlotId = getTargetSlot(sourceBagId, BAG_SUBSCRIBER_BANK, itemLink)
 			if targetSlotId then
 				targetBagId = BAG_SUBSCRIBER_BANK
 			end
 		end
 		
 		if not targetSlotId then
-			if Bankir.savedVarsCommon.showOperationFailMessages then
+			if Bankir.SVCommon.showOperationFailMessages then
 				d(zo_strformat(GetString(BANKIR_CHAT_NO_FREE_SPACE), Bankir.Functions.getBagName(targetBagId), itemLink))
 			end
 			processQueue()
@@ -403,7 +412,7 @@ local function processQueue()
 				local backpackEmptySlotId = getEmptySlot(BAG_BACKPACK)
 				
 				if not backpackEmptySlotId then
-					if Bankir.savedVarsCommon.showOperationFailMessages then
+					if Bankir.SVCommon.showOperationFailMessages then
 						d(zo_strformat(GetString(BANKIR_CHAT_NO_FREE_SPACE), Bankir.Functions.getBagName(BAG_BACKPACK), itemLink))
 					end
 					processQueue()
@@ -423,6 +432,13 @@ local function processQueue()
 					moveItem(itemLink, fromBag, fromSlot, BAG_BACKPACK, backpackEmptySlotId, stack, maxStack)
 				end
 				return
+			else
+				-- trying to fix issue when ZO_IterateBagSlots() in getEmptySlot() fails for guild bank sometimes.
+				-- probably the reason is: if there's no temp backpack slot sequence and processQueue() starts right after the item in the queue arrived to backpack
+				-- it's not removed from guild bank yet, and right at the moment when next item is processed, the previous one is removed from guild bank
+				-- and guild bank cache is getting updated, so there's no slots data in cache during update, therefore ZO_IterateBagSlots doesn't iterate (no slots to iterate)
+				-- so, let's make the direct transaction wait for both events too (arrived to bag, removed from bag) that will make next processQueue() run only after all done and new cache is ready
+				queue.items[queue.index].tempState = 4
 			end
 		end
 		
@@ -550,7 +566,7 @@ local function onBankDepositNotAllowed()
 		return
 	end
 	
-	if Bankir.savedVarsCommon.showOperationFailMessages then
+	if Bankir.SVCommon.showOperationFailMessages then
 		local itemInQueue = queue.items[queue.index]
 		if itemInQueue then
 			d(itemInQueue.itemLink .. " " .. GetString(SI_INVENTORY_ERROR_BANK_DEPOSIT_NOT_ALLOWED))
@@ -560,9 +576,8 @@ local function onBankDepositNotAllowed()
 	processQueue()
 end
 
-local function onBankOpen(bagId)
-	--d("opened " .. Bankir.Functions.getBagName(bagId))
-	--local startTimeMs = GetGameTimeMilliseconds()
+local function initQueueProcess()
+	local bagId = Bankir.bankBagOpen
 	
 	totals = { [BAG_BACKPACK] = {}, [BAG_BANK] = {} }
 	queue = { index = 0, items = {} }
@@ -604,150 +619,30 @@ local function onBankOpen(bagId)
 	processQueue()
 end
 
+local function onBankOpen(bagId)
+	--d("opened " .. Bankir.Functions.getBagName(bagId))
+	--local startTimeMs = GetGameTimeMilliseconds()
+	
+	-- process only supported bank bags. Furniture vault is not one of them yet.
+	if bagId ~= BAG_BANK and bagId ~= BAG_SUBSCRIBER_BANK and bagId ~= BAG_GUILDBANK and not IsHouseBankBag(bagId) then
+		Bankir.Button:SetHidden(true)
+		return
+	end
+	
+	Bankir.bankBagOpen = bagId
+	if Bankir.SVCommon.autoModeEnabled then
+		initQueueProcess()
+	end
+end
+
 local function onBankClose()
 	--d("Bank closed")
 	onQueueProcessed()
 end
 
-local function upgradeVars()
-	if BankirSavedVariables then
-		if BankirSavedVariables.Default then
-			-- Profiles moved to higher level, same level as Default, in 2.7
-			if BankirSavedVariables.Default.Profiles then
-				BankirSavedVariables.Profiles = {}
-				BankirSavedVariables.Common = {}
-				for profileName, profileTable in pairs(BankirSavedVariables.Default.Profiles) do
-					BankirSavedVariables.Profiles[profileName] = {}
-					for settingName, settingValue in pairs(profileTable) do
-						if settingName == "rules" then
-							for bagId, bagRules in pairs(settingValue) do
-								for typeId, typeRules in pairs(bagRules) do
-									for itemId, itemRules in pairs(typeRules) do
-										if itemId == "RepairKit44879" then
-											BankirSavedVariables.Default.Profiles[profileName]["rules"][bagId]["byItemId"][44879] = itemRules
-											BankirSavedVariables.Default.Profiles[profileName]["rules"][bagId][typeId][itemId] = nil
-										end
-									end
-								end
-								BankirSavedVariables.Profiles[profileName][bagId] = bagRules
-							end
-						elseif settingName == "countAnyIdOfSameType" then
-							BankirSavedVariables.Default.Profiles[profileName][settingName] = nil
-						elseif settingName == "showDepositNotAllowedMessage" then
-							BankirSavedVariables.Common["showOperationFailMessages"] = settingValue
-							BankirSavedVariables.Default.Profiles[profileName][settingName] = nil
-						else
-							BankirSavedVariables.Common[settingName] = settingValue
-						end
-					end
-				end
-				BankirSavedVariables.Default.Profiles = nil
-				BankirSavedVariables.Common.bankSlidersMaxValue = 50
-				BankirSavedVariables.Common.currencySlidersMaxValue = 100000
-			end
-		end
-		if BankirSavedVariables.Common then
-			if BankirSavedVariables.Common.version ~= version then
-				for profileName, profileTable in pairs(BankirSavedVariables.Profiles) do
-					for bagId, bagRules in pairs(profileTable) do
-						local newTypeIds = {}
-						for typeId, typeRules in pairs(bagRules) do
-							-- "byType" renamed to "type" in 2.9
-							if typeId == "byItemType" then
-								newTypeIds.itemType = Bankir.Functions.copyData(typeRules)
-							elseif typeId == "bySpecializedItemType" then
-								newTypeIds.specializedItemType = Bankir.Functions.copyData(typeRules)
-							elseif typeId == "byItemId" then
-								newTypeIds.itemId = Bankir.Functions.copyData(typeRules)
-							end
-						end
-						BankirSavedVariables.Profiles[profileName][bagId].itemType = newTypeIds.itemType
-						BankirSavedVariables.Profiles[profileName][bagId].byItemType = nil
-						BankirSavedVariables.Profiles[profileName][bagId].specializedItemType = newTypeIds.specializedItemType
-						BankirSavedVariables.Profiles[profileName][bagId].bySpecializedItemType = nil
-						BankirSavedVariables.Profiles[profileName][bagId].itemId = newTypeIds.itemId
-						BankirSavedVariables.Profiles[profileName][bagId].byItemId = nil
-					end
-				end
-				for profileName, profileTable in pairs(BankirSavedVariables.Profiles) do
-					for bagId, bagRules in pairs(profileTable) do
-						for typeId, typeRules in pairs(bagRules) do
-							for itemId, itemRules in pairs(typeRules) do
-								if type(itemRules) == "table" and itemRules.quality and type(itemRules.quality) == "number" then
-									-- quality converted to table in 2.8, so 1=>{1,2,3,4,5}. 3=>{3,4,5}
-									local newQuality = {}
-									for i = itemRules.quality, 5 do
-										table.insert(newQuality, i)
-									end
-									itemRules.quality = newQuality
-								end
-								-- moved 'StyleMaterialRacial/Other' from itemId to specializedItemType in 2.8
-								if typeId == "itemType" then
-									if itemId == "StyleMaterialRacial" then
-										BankirSavedVariables.Profiles[profileName][bagId].specializedItemType["StyleMaterialRacial"] = Bankir.Functions.copyData(itemRules)
-										BankirSavedVariables.Profiles[profileName][bagId].itemId[itemId] = nil
-									elseif itemId == "StyleMaterialOther" then
-										BankirSavedVariables.Profiles[profileName][bagId].specializedItemType["StyleMaterialOther"] = Bankir.Functions.copyData(itemRules)
-										BankirSavedVariables.Profiles[profileName][bagId].itemId[itemId] = nil
-									end
-								elseif typeId == "specializedItemType" then
-									-- no more Both type in saved vars
-									if string.find(itemId, "Both") then
-										BankirSavedVariables.Profiles[profileName][bagId][typeId][itemId] = nil
-									-- change type string for researchable equipment
-									elseif string.find(itemId, "Research") then
-										local name = string.match(itemId, "^(%D+)") -- get starting word
-										if name == "ResearchAll" then
-											BankirSavedVariables.Profiles[profileName][bagId].specializedItemType["TraitUnknownAll"] = Bankir.Functions.copyData(itemRules)
-											BankirSavedVariables.Profiles[profileName][bagId][typeId][itemId] = nil
-										elseif name == "ResearchOthersAll" then
-											BankirSavedVariables.Profiles[profileName][bagId].specializedItemType["TraitUnknownOthersAll"] = Bankir.Functions.copyData(itemRules)
-											BankirSavedVariables.Profiles[profileName][bagId][typeId][itemId] = nil
-										else
-											local id = string.match(itemId, "(%d+)$") -- get ending number
-											if name == "ResearchOthers" then
-												BankirSavedVariables.Profiles[profileName][bagId].specializedItemType["TraitUnknownOthers" .. id] = Bankir.Functions.copyData(itemRules)
-												BankirSavedVariables.Profiles[profileName][bagId][typeId][itemId] = nil
-											else
-												BankirSavedVariables.Profiles[profileName][bagId].specializedItemType["TraitUnknown" .. id] = Bankir.Functions.copyData(itemRules)
-												BankirSavedVariables.Profiles[profileName][bagId][typeId][itemId] = nil
-											end
-										end
-									end
-								elseif typeId == "itemId" then
-									-- move unknown recipes from itemId to specializedItemType
-									if string.find(itemId, "RecipeUnknown") then
-										local id = string.match(itemId, "(%d+)$") -- get ending number
-										if id == SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_BOOK
-										or id == SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_CHAPTER
-										or id == SPECIALIZED_ITEMTYPE_COLLECTIBLE_STYLE_PAGE then
-											BankirSavedVariables.Profiles[profileName][bagId].specializedItemType["MotifUnknown" .. id] = Bankir.Functions.copyData(itemRules)
-										else
-											BankirSavedVariables.Profiles[profileName][bagId].specializedItemType["RecipeUnknown" .. id] = Bankir.Functions.copyData(itemRules)
-										end
-										BankirSavedVariables.Profiles[profileName][bagId][typeId][itemId] = nil
-									end
-								end
-							end
-						end
-					end
-				end
-				-- no Integrations and research chars list is on it's own since 2.9
-				if BankirSavedVariables.Server[GetWorldName()].Integrations then
-					BankirSavedVariables.Server[GetWorldName()].ResearchCharactersList = Bankir.Functions.copyData(
-					BankirSavedVariables.Server[GetWorldName()].Integrations.LCK.CharactersList)
-					BankirSavedVariables.Server[GetWorldName()].Integrations = nil
-				end
-			end
-		end
-	end
-end
-
 local function onAddOnLoaded(event, addonName)
 	if addonName ~= name then return end
 	EVENT_MANAGER:UnregisterForEvent(name, EVENT_ADD_ON_LOADED)
-	
-	upgradeVars()
 	
 	Bankir.Data.getBankBags()
 	Bankir.Data.getCharactersList()
@@ -757,15 +652,15 @@ local function onAddOnLoaded(event, addonName)
 	if #profiles > 0 then
 		defaultProfileName = profiles[1]
 	end
-	Bankir.savedVarsCharacter = ZO_SavedVars:NewCharacterIdSettings("BankirSavedVariables", 2, nil, { profile = defaultProfileName })
-	Bankir.Profiles.initProfile(Bankir.savedVarsCharacter.profile)
+	Bankir.SVCharacter = ZO_SavedVars:NewCharacterIdSettings("BankirSavedVariables", 2, nil, { profile = defaultProfileName })
+	Bankir.Profiles.initProfile(Bankir.SVCharacter.profile)
 	
 	BankirSavedVariables.Common = BankirSavedVariables.Common or Bankir.Data.getDefaultCommonSettings()
-	Bankir.savedVarsCommon = BankirSavedVariables.Common
+	Bankir.SVCommon = BankirSavedVariables.Common
 	
 	BankirSavedVariables.Server = BankirSavedVariables.Server or {}
 	BankirSavedVariables.Server[GetWorldName()] = BankirSavedVariables.Server[GetWorldName()] or Bankir.Data.getDefaultServerSettings()
-	Bankir.savedVarsServer = BankirSavedVariables.Server[GetWorldName()]
+	Bankir.SVServer = BankirSavedVariables.Server[GetWorldName()]
 	
 	if BankirSavedVariables.Common.version ~= version then
 		for profile in pairs(BankirSavedVariables.Profiles) do
@@ -778,6 +673,7 @@ local function onAddOnLoaded(event, addonName)
 	
 	Bankir.Data.cleanUpResearchCharactersList()
 	Bankir.createSettingsMenu(name, author, version)
+	Bankir.Button = Bankir.createProcessButton(initQueueProcess)
 	
 	EVENT_MANAGER:RegisterForEvent(name, EVENT_OPEN_BANK, function(eventCode, bankBag)
 		onBankOpen(bankBag)

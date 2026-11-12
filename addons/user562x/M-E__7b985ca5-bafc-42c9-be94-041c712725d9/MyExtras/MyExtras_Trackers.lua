@@ -720,6 +720,10 @@ function Trackers:GetOptions()
                     name    = "Crux",
                     preset  = "YES_NO",
                     default = defaults.showCrux,
+                    sampleIcon = function()
+                        ResolveIcons()
+                        if ValidIcon(icons.crux) then return icons.crux, 96 end
+                    end,
                     getFunc = function() return SV().showCrux end,
                     setFunc = function(val)
                         SV().showCrux = val
@@ -731,6 +735,10 @@ function Trackers:GetOptions()
                     name    = "Huntsman's Warmask",
                     preset  = "YES_NO",
                     default = defaults.showWarmask,
+                    sampleIcon = function()
+                        ResolveIcons()
+                        if ValidIcon(icons.warmask) then return icons.warmask, 96 end
+                    end,
                     getFunc = function() return SV().showWarmask end,
                     setFunc = function(val)
                         SV().showWarmask = val
@@ -742,6 +750,24 @@ function Trackers:GetOptions()
                     name    = "Layout",
                     choices = Trackers.layoutChoices,
                     default = defaults.trackerLayout,
+                    details = function()
+                        local sv = SV()
+                        ResolveIcons()
+                        local shown = {}
+                        if sv.showCrux and ValidIcon(icons.crux) then
+                            shown[#shown + 1] = zo_iconFormat(icons.crux, 48, 48)
+                        end
+                        if sv.showWarmask and ValidIcon(icons.warmask) then
+                            shown[#shown + 1] = zo_iconFormat(icons.warmask, 48, 48)
+                        end
+                        if #shown == 0 then
+                            return "Turn on a tracker to see its layout."
+                        end
+                        if sv.trackerLayout == "Horizontal" then
+                            return table.concat(shown, "  ") .. "\n\nYour trackers sit side by side."
+                        end
+                        return table.concat(shown, "\n") .. "\n\nYour trackers stack on top of each other."
+                    end,
                     getFunc = function() return SV().trackerLayout end,
                     setFunc = function(val)
                         SV().trackerLayout = val

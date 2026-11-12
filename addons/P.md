@@ -157,6 +157,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's UltraDetailedStats(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-UltraDetailedStats-Beta__61f70cc8-746a-48f4-90d2-6a3d490188d9) | PinkBanther | Console | — |
 | [PinkB's WarTable](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-WarTable__9741439f-fb9a-4429-bcbe-2202f24c279e) | PinkBanther | Console | — |
 | [PinkB's WarTable(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-WarTable-Beta__0e2f2124-0a27-485c-9912-c57878e87090) | PinkBanther | Console | — |
+| [PinkB's WayPoint(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-WayPoint-Beta__fc7e18ca-ae50-4284-8b26-df8f05312495) | PinkBanther | Console | — |
 | [PinkB's WeaveBlockTrainer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-WeaveBlockTrainer__79482b3e-9063-4aa7-a50f-81fedd155fc5) | PinkBanther | Console | — |
 | [PinkB's WeaveBlockTrainer(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-WeaveBlockTrainer-Beta__dca11eb6-a817-43a1-93f5-132e473a10b9) | PinkBanther | Console | — |
 | [PinKiller](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/PinKiller__190) | Shinni | PC / Mac | 2.5 |

@@ -126,10 +126,12 @@ Chalman
   Aldmeri Dominion  keeps 5  score 9,000  under attack 0  pop [▮▮▮]
   Daggerfall Covenant  keeps 2  score 3,000  under attack 0  pop [▮  ]
 Volendrung: Aldmeri Dominion
-Emperor: Someone (Aldmeri Dominion)
+Emperor: someone_psn (Aldmeri Dominion)
 ```
 
-Each line is in its alliance's own colour, yours is marked, and they are in score order.
+Each line is in its alliance's own colour, yours is marked, and they are in score order. The
+emperor is named by account name — the PSN ID on a console — or, if you prefer, by character name
+(`/pbalert board emperor account | character`).
 `/pbalert board` prints the same thing into chat without switching the screen one on.
 
 **The population is an estimate in four buckets**, not a headcount — Low, Medium, High, Full.
@@ -517,4 +519,4 @@ cannot be arranged on demand in a real campaign (a siege lasting past the repeat
 that flips while it is being hit) are played out in milliseconds. It also stubs the window
 manager, so what reaches the screen — which lines, in what colours, in what font, anchored
 where, and when they expire — and the campaign APIs, so the summary's numbers, ordering,
-colours and every way it degrades are checked too. 490 checks.
+colours and every way it degrades are checked too. 496 checks.

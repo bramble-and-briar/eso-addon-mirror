@@ -8,12 +8,12 @@
   "category_id": "159",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     },
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3814",
@@ -22,7 +22,7 @@
     "WerewolfTimerBar"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3814/",
-  "fingerprint": "8078ead5894a1d164fd4df1ae5f1cbde8072452a154c17d04898f440d6c475fc",
+  "fingerprint": "ceb739200554c31875ad042f2dc7412a78be9d9c8446ffd79e80f1e1676eee45",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16588.png",
     "https://cdn-eso.mmoui.com/preview/pvw16589.png",
@@ -35,11 +35,11 @@
   "source_id": "3814",
   "source_url": "https://www.esoui.com/downloads/info3814-WerewolfTimerBarUpdated.html",
   "stats": {
-    "downloads": 8679,
-    "favorites": 10,
-    "monthly_downloads": 248
+    "downloads": 9905,
+    "favorites": 13,
+    "monthly_downloads": 375
   },
   "title": "Werewolf Timer Bar Updated",
-  "updated_at": 1790046568000,
-  "version": "3.07"
+  "updated_at": 1794456835000,
+  "version": "3.10"
 }

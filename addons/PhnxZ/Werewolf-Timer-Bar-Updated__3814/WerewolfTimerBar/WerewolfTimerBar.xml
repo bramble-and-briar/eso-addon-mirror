@@ -1,30 +1,17 @@
 <GuiXml> 
    <Controls>
-		<TopLevelControl name="WerewolfTimerBarWindow" clampedToScreen="true" allowBringToTop="false" mouseEnabled="true" movable="false" hidden="true" tier="LOW" layer="CONTROLS">	
+		<TopLevelControl name="WerewolfTimerBarWindow" clampedToScreen="true" allowBringToTop="false" mouseEnabled="true" hidden="true" tier="LOW" layer="CONTROLS" inherits="ZO_HUDManager_Element">	
 			<Dimensions x="500" y="100"/>
 			<Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="0"/>
-			<OnMoveStop>
-				WerewolfTimerBar.SaveLoc(self)
-			</OnMoveStop>
 			<Controls>
-				<Backdrop name="$(parent)_Backdrop" edgeColor="000000" centerColor="000000" alpha="0.4"  hidden="false">
+ 				<Backdrop name="$(parent)_Backdrop" edgeColor="000000" centerColor="000000" alpha="0.4"  hidden="false">
 					<Dimensions x="305" y="50"/>
 					<Anchor point="TOPLEFT"  relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="1"/>
 					<Edge edgeSize="2"/>
 				</Backdrop>
-				<Button name="$(parent)_LockUIButton" font="ZoFontWinH5" color="ffffff" text="Lock UI" hidden="false">
-					<Dimensions x="60" y="20"/>
-					<Anchor point="BOTTOMLEFT"  relativeTo="$(parent)_Backdrop" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
-					<Textures normal="esoui/art/buttons/eso_buttonlarge_normal.dds"
-						pressed="esoui/art/buttons/eso_buttonlarge_mousedown.dds"
-						mouseOver="esoui/art/buttons/eso_buttonlarge_mouseover.dds"/>
-					<OnClicked>
-						WerewolfTimerBar.ClickLockUIButton(self)
-					</OnClicked>
-				</Button>
 				<Button name="$(parent)_UltimateBlockButton" hidden="false" mouseEnabled="true" tier="HIGH" layer="CONTROLS">
 					<Dimensions x="20" y="20"/>
-					<Anchor point="TOPLEFT"  relativeTo="$(parent)_Backdrop" relativePoint="TOPLEFT" offsetX="5" offsetY="3"/>
+					<Anchor point="TOPLEFT"  relativeTo="$(parent)_Backdrop" relativePoint="TOPLEFT" offsetX="6" offsetY="3"/>
 					<Textures normal="esoui/art/miscellaneous/unlocked_up.dds"
 						pressed="esoui/art/miscellaneous/locked_up.dds"
 						mouseOver="esoui/art/miscellaneous/unlocked_up.dds"/>

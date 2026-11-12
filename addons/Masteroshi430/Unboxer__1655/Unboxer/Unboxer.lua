@@ -2,7 +2,7 @@ Unboxer = {
     name = "Unboxer",
     title = GetString(SI_UNBOXER),
     author = "silvereyes, |c3CB371@Masteroshi430|r",
-    version = "2026.10.31", -- 3.9.3
+    version = "2026.11.11", -- 3.9.3
     itemSlotStack = {},
     defaultLanguage = "en",
     debugMode = false,
@@ -348,6 +348,26 @@ local function RefreshUnboxAllKeybind()
     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.unboxAllKeybindButtonGroup)
 end
 
+-- Debounced keybind refresh, called when backpack contents change so the button
+-- shows/hides as boxes arrive, leave, or free slots drop to the reserved amount.
+function addon.QueueKeybindRefresh()
+    local self = addon
+    if not self.unboxAllKeybindButton then return end
+    EVENT_MANAGER:UnregisterForUpdate(self.name .. "_KeybindRefresh")
+    EVENT_MANAGER:RegisterForUpdate(self.name .. "_KeybindRefresh", 100, function()
+        EVENT_MANAGER:UnregisterForUpdate(self.name .. "_KeybindRefresh")
+        RefreshUnboxAllKeybind()
+    end)
+end
+
+-- Enforces the user's "reserved slots" setting. Currency containers need no free slot.
+function addon:HasInventorySpaceToUnbox(bagId, slotIndex)
+    if GetItemType(bagId, slotIndex) == ITEMTYPE_CONTAINER_CURRENCY then
+        return true
+    end
+    return GetNumBagFreeSlots(BAG_BACKPACK) > (self.settings.reservedSlots or 0)
+end
+
 local function OnContainerOpened(itemLink, lootReceived, rule)
     local self = addon
     self.PrintUnboxedLink(itemLink)
@@ -385,6 +405,13 @@ function addon.UnboxAll()
     local self = addon
     
     if self.unboxAll:IsActive() then
+        -- Kill the in-flight opener too (pending DelayOpen timers, stackable re-loops,
+        -- loot events), otherwise it keeps opening after the queue is cleared.
+        local opener = self.unboxAll.currentOpener
+        if opener then
+            opener:Reset()
+            self.unboxAll.currentOpener = nil
+        end
         return self.CancelUnboxAll()
     end
     
@@ -404,7 +431,7 @@ function addon:AddKeyBind()
     self.unboxAllKeybindButton = {
         keybind = "UNBOX_ALL",
         enabled = true,
-        visible = function() return self.unboxAll:HasUnboxableSlots() end,
+        visible = function() return self.unboxAll:IsActive() or self.unboxAll:HasUnboxableSlots() end,
         order = 100,
         callback = self.UnboxAll,
     }

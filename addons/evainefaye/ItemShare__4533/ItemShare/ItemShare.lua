@@ -3,12 +3,11 @@ ItemShare.name = "ItemShare"
 -- Kept in step with ## Version in ItemShare.txt. Written into the saved
 -- variables so an uploaded file says which addon produced it, which is the only
 -- reliable way to answer "am I actually running the new version?".
-local ADDON_VERSION = "1.11.3"
+local ADDON_VERSION = "1.11.31"
 -- Bumped whenever the saved layout changes shape. A file written by a different
 -- number is not migrated: its tables are started over, so the file is rewritten in
 -- the current layout on the next save.
-local SAVED_VARS_VERSION = 4
-local CURRENT_CHARACTER_NAME = zo_strformat("<<t:1>>", GetUnitName("player")) or "Unknown"
+local SAVED_VARS_VERSION = 5
 local CURRENT_DISPLAY_NAME = GetDisplayName() or "@Unknown"
 
 ItemShare.savedVars = nil
@@ -26,7 +25,10 @@ local ALWAYS_RESERVE_TEXTURE_PATH = "ItemShare/media/itemshare_always_reserve.dd
 -- it. Without a badge of its own a reserve on an unshared item was invisible, so the
 -- only way to find out it needed clearing was to remember setting it.
 local RESERVE_ONLY_TEXTURE_PATH = "ItemShare/media/itemshare_reserve_only.dds"
-local SHARE_LIST_ICON = string.format("|t16:16:%s|t", SHARE_TEXTURE_PATH)
+-- A share that has been on offer past the limit in the saved variables wears this
+-- instead of the share glyph: same corner, same size, so nothing on the slot moves and
+-- an item that has quietly become clutter reads as clutter at a glance.
+local EXPIRED_TEXTURE_PATH = "ItemShare/media/itemshare_expired.dds"
 
 local defaults = {
     sharedItems = {},
@@ -43,14 +45,19 @@ local defaults = {
     platformRaw = 0,
     world = "",
     worldName = "",
-    serverCapturedAt = 0,
-    debugEnabled = false,
+    -- A share refuses to be sold or deconstructed from the place it was made from,
+    -- so an offer cannot be destroyed by accident while it is on the list.
+    shareProtection = true,
     guildBankSharingEnabled = false,
+    -- How long a share may stay on offer, in days, before its badge becomes the
+    -- stopwatch. 0 is off. One number for the whole file rather than a flag on each
+    -- share: what counts as "too long" is a decision about the list, and changing it
+    -- needs no pass over the entries.
+    expireDays = 0,
     -- Guilds are stored once, by ID, and pointed at rather than copied: every
     -- character's membership and every shared item used to carry its own list.
     guilds = {},
     characterGuilds = {},
-    guildsUpdatedAt = 0,
     listWindowState = {
         left = nil,
         top = nil,
@@ -58,7 +65,7 @@ local defaults = {
     }
 }
 
-local dmsg
+local PrintMessage
 local RemoveItemFromShareByKey
 -- Sharing and always sharing are one choice per item, so the code that turns one on
 -- has to be able to clear the other from here onwards in the file.
@@ -99,6 +106,52 @@ end
 GetEntryOfferedCount = function(entry)
     local link = entry and tostring(entry.itemLink or "") or ""
     return ShareableCount(link, GetEntryHeldCount(entry), entry and entry.locationKey or "")
+end
+
+local SECONDS_PER_DAY = 86400
+
+local function GetExpireDays()
+    local days = tonumber(ItemShare.savedVars and ItemShare.savedVars.expireDays) or 0
+    if days <= 0 then
+        return 0
+    end
+    return math.floor(days)
+end
+
+-- Days this share has been on offer, or nil when there is no timestamp to go by. An
+-- unknown age is never treated as old: a file that predates the timestamps would
+-- otherwise have every share show the stopwatch on its first load.
+local function GetShareAgeInDays(entry)
+    local firstDumpedAt = tonumber(entry and entry.firstDumpedAt) or 0
+    local now = tonumber(GetTimeStamp()) or 0
+    if firstDumpedAt <= 0 or now <= 0 or now < firstDumpedAt then
+        return nil
+    end
+    return (now - firstDumpedAt) / SECONDS_PER_DAY
+end
+
+local function IsShareEntryExpired(entry)
+    local days = GetExpireDays()
+    if days <= 0 then
+        return false
+    end
+    local age = GetShareAgeInDays(entry)
+    return age ~= nil and age >= days
+end
+
+-- What the command reports back: how many shares are past the limit, out of how many.
+local function CountSharesAboveExpireLimit()
+    local sharedItems = (ItemShare.savedVars and ItemShare.savedVars.sharedItems) or {}
+    local expired, total = 0, 0
+    for _, entry in pairs(sharedItems) do
+        if type(entry) == "table" and not entry.reserveOnly then
+            total = total + 1
+            if IsShareEntryExpired(entry) then
+                expired = expired + 1
+            end
+        end
+    end
+    return expired, total
 end
 
 -- Which of the four badges belongs on an item: standing offer or plain share, with
@@ -290,82 +343,62 @@ local function GetShareListEntries()
     local alwaysShare = ItemShare.savedVars.alwaysShare
     if type(alwaysShare) == "table" then
         local waiting = {}
-        for link, alwaysEntry in pairs(alwaysShare) do
-            if type(alwaysEntry) == "table" and not linksListed[tostring(link)] then
-                waiting[#waiting + 1] = alwaysEntry
+        for _, alwaysEntry in pairs(alwaysShare) do
+            if type(alwaysEntry) == "table" then
+                local entryLink = tostring(alwaysEntry.itemLink or "")
+                local entryPlace = tostring(alwaysEntry.locationKey or "")
+                -- A share in one bag says nothing about an offer in another, so the
+                -- offer is only folded away by a share in its own place.
+                if entryLink ~= ""
+                    and not placesListed[BuildSharedItemKey(entryLink, entryPlace)] then
+                    waiting[#waiting + 1] = alwaysEntry
+                end
             end
         end
 
         local alwaysIndex = #waiting > 0 and GetListInventoryIndex() or nil
-        if alwaysIndex then
-            for _, alwaysEntry in ipairs(waiting) do
-                local link = tostring(alwaysEntry.itemLink or "")
-                if link ~= "" then
-                    -- A standing offer is about the item, but the number beside it
-                    -- still belongs to one place: a promise held in the bags and in
-                    -- the bank is one row each, each counting only its own stacks,
-                    -- so no row ever adds two storages together.
-                    local places = {}
-                    for entryKey, actualEntry in pairs(alwaysIndex.countsByEntryKey or {}) do
-                        local entryLink, entryLocationKey = string.match(entryKey, "^(.*)||([^|]*)$")
-                        if tostring(entryLink or "") == link and type(actualEntry) == "table" then
-                            places[#places + 1] = {
-                                locationKey = tostring(entryLocationKey or ""),
-                                actual = actualEntry,
-                            }
-                        end
+        for _, alwaysEntry in ipairs(waiting) do
+            local link = tostring(alwaysEntry.itemLink or "")
+            if link ~= "" then
+                -- The place it was marked in, not wherever a copy happens to be now.
+                -- A standing offer's number is what that one place holds: hand the
+                -- last one over and the row reads 0 offered, pick one up again and it
+                -- reads 1, without the row moving to another bag in between.
+                local locationKey = tostring(alwaysEntry.locationKey or "")
+                local sharedFrom = tostring(alwaysEntry.sharedFrom or "")
+                local held = GetEntryHeldCount(alwaysEntry)
+                local itemData = nil
+
+                if alwaysIndex and locationKey ~= "" then
+                    local place = alwaysIndex.countsByEntryKey
+                        and alwaysIndex.countsByEntryKey[BuildSharedItemKey(link, locationKey)]
+                    if type(place) == "table" then
+                        held = math.max(0, tonumber(place.count or 0) or 0)
+                        sharedFrom = tostring(place.sharedFrom or sharedFrom)
+                        itemData = place.itemData
                     end
-
-                    table.sort(places, function(left, right)
-                        return tostring(left.locationKey or "") < tostring(right.locationKey or "")
-                    end)
-
-                    if #places == 0 then
-                        -- A standing offer is a promise, so it stays in the window
-                        -- even when there is nothing in a bag to hand over at this
-                        -- moment: the row says it is not in a bag and the badge says
-                        -- the offer still stands.
-                        entries[#entries + 1] = {
-                            itemKey = link,
-                            itemLink = link,
-                            itemName = tostring(alwaysEntry.itemName or link),
-                            itemType = alwaysEntry.itemType,
-                            itemTypeName = alwaysEntry.itemTypeName,
-                            quality = alwaysEntry.quality,
-                            trait = alwaysEntry.trait,
-                            heldCount = 0,
-                            reserve = GetShareReserve(link),
-                            count = 0,
-                            sharedFrom = "Not in a bag",
-                            locationKey = "",
-                            alwaysOnly = true,
-                        }
-                    else
-                        for _, place in ipairs(places) do
-                            local held = math.max(0, tonumber(place.actual.count or 0) or 0)
-                            entries[#entries + 1] = {
-                                itemKey = link,
-                                itemLink = link,
-                                itemName = tostring(alwaysEntry.itemName or link),
-                                itemType = alwaysEntry.itemType,
-                                itemTypeName = alwaysEntry.itemTypeName,
-                                quality = alwaysEntry.quality,
-                                trait = alwaysEntry.trait,
-                                heldCount = held,
-                                reserve = GetShareReserve(link, place.locationKey),
-                                count = ShareableCount(link, held, place.locationKey),
-                                sharedFrom = tostring(place.actual.sharedFrom or place.locationKey or "Not in a bag"),
-                                locationKey = place.locationKey,
-                                bagId = place.actual.bagId,
-                                slotIndex = place.actual.slotIndex,
-                                alwaysOnly = true,
-                            }
-                            placesListed[link .. "||" .. place.locationKey] = true
-                        end
-                    end
-
-                    linksListed[link] = true
                 end
+
+                entries[#entries + 1] = {
+                    itemKey = BuildSharedItemKey(link, locationKey),
+                    itemLink = link,
+                    itemName = tostring((itemData and itemData.itemName) or alwaysEntry.itemName or link),
+                    itemType = (itemData and itemData.itemType) or alwaysEntry.itemType,
+                    itemTypeName = (itemData and itemData.itemTypeName) or alwaysEntry.itemTypeName,
+                    quality = (itemData and itemData.quality) or alwaysEntry.quality,
+                    trait = (itemData and itemData.trait) or alwaysEntry.trait,
+                    heldCount = held,
+                    reserve = GetShareReserve(link, locationKey),
+                    count = ShareableCount(link, held, locationKey),
+                    sharedFrom = sharedFrom ~= "" and sharedFrom or "Not in a bag",
+                    locationKey = locationKey,
+                    bagId = (itemData and itemData.bagId) or alwaysEntry.bagId,
+                    slotIndex = (itemData and itemData.slotIndex) or alwaysEntry.slotIndex,
+                    alwaysOnly = true,
+                }
+
+                placesListed[link .. "||" .. locationKey] = true
+                linksListed[link] = true
             end
         end
     end
@@ -748,7 +781,7 @@ local function GetOrCreateShareListRow(index)
     local function updateRowSharedVisuals()
         local isShared = row.entryKey and ItemShare.savedVars and ItemShare.savedVars.sharedItems and ItemShare.savedVars.sharedItems[row.entryKey] ~= nil
         local link = row.itemLink or (row.entryData and row.entryData.itemLink) or ""
-        local isAlways = link ~= "" and IsItemLinkAlwaysShared(link)
+        local isAlways = link ~= "" and IsItemLinkAlwaysShared(link, (row.entryData and row.entryData.locationKey) or row.locationKey)
 
         -- A standing offer has no share entry to find, so "shared" has to include it,
         -- and the badge has to come from the same function the rest of the addon uses:
@@ -761,8 +794,11 @@ local function GetOrCreateShareListRow(index)
             or 0
         row.isReserveOnly = (not (isShared or isAlways)) and reserve > 0
         row.isShared = (isShared or isAlways) and true or false
+        local isExpired = row.entryData ~= nil and IsShareEntryExpired(row.entryData)
         statusIcon:SetTexture(
-            row.isReserveOnly and RESERVE_ONLY_TEXTURE_PATH or GetShareBadgeTexture(link, isAlways, row.entryData and row.entryData.locationKey)
+            (row.isReserveOnly and RESERVE_ONLY_TEXTURE_PATH)
+                or (isExpired and EXPIRED_TEXTURE_PATH)
+                or GetShareBadgeTexture(link, isAlways, row.entryData and row.entryData.locationKey)
         )
         statusIcon:SetHidden(not (isShared or isAlways or row.isReserveOnly))
         RefreshRowAppearance()
@@ -806,14 +842,14 @@ local function GetOrCreateShareListRow(index)
 
         if row.isAlwaysOnly then
             -- Always sharing -> not sharing.
-            local removed = RemoveAlwaysShareForItemLink(link)
+            local removed = RemoveAlwaysShareForItemLink(link, (row.entryData and row.entryData.locationKey) or row.locationKey)
             if not removed then
                 return
             end
 
             TryRefreshInventoryVisuals()
             RefreshShareListWindowIfVisible()
-            dmsg(string.format(
+            PrintMessage(string.format(
                 "Stopped always sharing %s. It is not offered at all now.",
                 tostring(removed.itemName or link)
             ))
@@ -824,10 +860,10 @@ local function GetOrCreateShareListRow(index)
             -- Sharing -> always sharing. The share goes in the same step, because an
             -- item is offered one way at a time.
             local currentEntry = row.entryKey and ItemShare.savedVars.sharedItems[row.entryKey] or row.entryData
-            local alwaysEntry = SaveAlwaysShareEntry(currentEntry)
+            local alwaysEntry = SaveAlwaysShareEntry(currentEntry, GetEntryHeldCount(currentEntry))
 
             if not alwaysEntry then
-                dmsg(string.format(
+                PrintMessage(string.format(
                     "Could not always share %s. It is still shared from %s.",
                     tostring(currentEntry and currentEntry.itemName or link),
                     tostring(currentEntry and currentEntry.sharedFrom or "-")
@@ -838,7 +874,7 @@ local function GetOrCreateShareListRow(index)
             RemoveSharesForItemLink(link)
             TryRefreshInventoryVisuals()
             RefreshShareListWindowIfVisible()
-            dmsg(string.format(
+            PrintMessage(string.format(
                 "Always sharing %s now. It stays offered even when you do not have one.",
                 tostring(alwaysEntry.itemName or link)
             ))
@@ -856,7 +892,7 @@ local function GetOrCreateShareListRow(index)
         -- until a copy turns up.
         if row.isReserveOnly
             and (tonumber(row.entryData.bagId) == nil or tonumber(row.entryData.slotIndex) == nil) then
-            dmsg(string.format(
+            PrintMessage(string.format(
                 "Cannot share %s yet: no copy of it is in a bag right now.",
                 tostring(row.entryData.itemName or link or "that item")
             ))
@@ -865,20 +901,20 @@ local function GetOrCreateShareListRow(index)
 
         local isEligible, reason = IsSavedEntryEligibleForShare(row.entryData)
         if not isEligible then
-            dmsg(string.format("Cannot add that item to share: %s", tostring(reason)))
+            PrintMessage(string.format("Cannot add that item to share: %s", tostring(reason)))
             return
         end
 
         local savedEntry = SaveSharedEntryFromSavedEntry(row.entryData, false)
         if not savedEntry then
-            dmsg("Could not re-add item from shared list window.")
+            PrintMessage("Could not re-add item from shared list window.")
             return
         end
 
-        RemoveAlwaysShareForItemLink(savedEntry.itemLink)
+        RemoveAlwaysShareForItemLink(savedEntry.itemLink, savedEntry.locationKey)
         TryRefreshInventoryVisuals()
         RefreshShareListWindowIfVisible()
-        dmsg(string.format(
+        PrintMessage(string.format(
             "Sharing %s from %s (%d offered). Right-click again to always share it.",
             tostring(savedEntry.itemName or link),
             tostring(savedEntry.sharedFrom or "-"),
@@ -909,7 +945,7 @@ local function GetOrCreateShareListRow(index)
             lines[#lines + 1] = "|cD8A24FShare reserve|r"
             lines[#lines + 1] = "Nothing is shared from this item, but some is kept back."
             lines[#lines + 1] = "Right-click the row to add it to the shared list."
-        elseif link and IsItemLinkAlwaysShared(link) then
+        elseif link and IsItemLinkAlwaysShared(link, (row.entryData and row.entryData.locationKey) or row.locationKey) then
             lines[#lines + 1] = "|cFFD266Always shared|r"
             lines[#lines + 1] = "You offer this whenever you have one."
         else
@@ -1044,7 +1080,8 @@ RefreshShareListWindow = function()
         -- icon in this window until the row happened to be reused for something else.
         row.statusIcon:SetTexture(
             (entry.reserveOnly and RESERVE_ONLY_TEXTURE_PATH)
-                or GetShareBadgeTexture(entry.itemLink, IsItemLinkAlwaysShared(entry.itemLink))
+                or (IsShareEntryExpired(entry) and EXPIRED_TEXTURE_PATH)
+                or GetShareBadgeTexture(entry.itemLink, IsItemLinkAlwaysShared(entry.itemLink, entry.locationKey), entry.locationKey)
         )
         row.statusIcon:SetHidden(false)
         if row.RefreshAppearance then
@@ -1072,11 +1109,11 @@ RefreshShareListWindowIfVisible = function()
     end
 end
 
-dmsg = function(text)
-    if not ItemShare.savedVars or not ItemShare.savedVars.debugEnabled then
-        return
-    end
-    d(string.format("[ItemShare] %s", tostring(text)))
+-- Every message this addon prints goes through here. It is a system message, so a
+-- command's answer reaches chat whether or not anything else is on, and a slash command
+-- that reports nothing is a bug rather than a setting.
+PrintMessage = function(message)
+    CHAT_ROUTER:AddSystemMessage("|cD8A24F[ItemShare]|r " .. tostring(message))
 end
 
 local function ConfirmReloadUI()
@@ -1094,7 +1131,7 @@ local function ConfirmReloadUI()
                 [1] = {
                     text = SI_DIALOG_ACCEPT,
                     callback = function()
-                        dmsg("Reloading UI.")
+                        PrintMessage("Reloading UI.")
                         ReloadUI()
                     end,
                 },
@@ -1131,11 +1168,6 @@ end
 local function GetCurrentCharacterName()
     return GetNormalizedText(GetUnitName("player")) or "Unknown"
 end
-
-local function GetCurrentDisplayName()
-    return CURRENT_DISPLAY_NAME
-end
-
 
 -- The platform arrives as one of the UI_PLATFORM_* numbers. The constants are read
 -- rather than hardcoded, so a client that renumbers them still records the right name;
@@ -1214,7 +1246,6 @@ CaptureServerEnvironment = function()
     saved.platformRaw = rawPlatform
     saved.world = GetWorldToken(worldName)
     saved.worldName = worldName
-    saved.serverCapturedAt = GetTimeStamp()
 
     return saved.platform, saved.world
 end
@@ -1223,7 +1254,7 @@ local function PrintServerEnvironment()
     local platform, world = CaptureServerEnvironment()
     local saved = ItemShare.savedVars or {}
 
-    dmsg(string.format(
+    PrintMessage(string.format(
         "This file is recorded for %s on %s.",
         string.upper(tostring(platform ~= "" and platform or "unknown")),
         string.upper(tostring(world ~= "" and world or "unknown"))
@@ -1231,14 +1262,14 @@ local function PrintServerEnvironment()
 
     local worldName = tostring(saved.worldName or "")
     if worldName ~= "" then
-        dmsg(string.format(
+        PrintMessage(string.format(
             "The game reports the megaserver as \"%s\" and the platform as %d.",
             worldName,
             tonumber(saved.platformRaw or 0) or 0
         ))
     end
 
-    dmsg("Every share in this file is offered on that platform and megaserver only.")
+    PrintMessage("Every share in this file is offered on that platform and megaserver only.")
 end
 
 local function GetCharacterGuilds()
@@ -1353,7 +1384,6 @@ local function RefreshGuildSnapshot()
         guildIds = guildIds,
         updatedAt = now,
     }
-    ItemShare.savedVars.guildsUpdatedAt = now
 
     return guilds
 end
@@ -1453,7 +1483,7 @@ PruneDepartedGuilds = function(quiet)
     end
 
     if (removedShares > 0 or removedReserves > 0) and not quiet then
-        dmsg(string.format(
+        PrintMessage(string.format(
             "Removed %d share%s and %d reserve%s filed against guilds you are no longer in.",
             removedShares,
             removedShares == 1 and "" or "s",
@@ -1514,11 +1544,6 @@ CanModifyGuildBankShare = function(bagId, slotIndex, guildId)
     return false
 end
 
-
-local function GetDisplaySharedItemName(itemName)
-    return string.format("%s %s", SHARE_LIST_ICON, tostring(itemName or ""))
-end
-
 -- The ten home storage chests are separate bags, so they are worth naming one
 -- by one: indices are kept explicit because a missing constant would otherwise
 -- shift every later chest by one.
@@ -1559,12 +1584,23 @@ local function GetCurrentZoneDisplayName()
     return GetNormalizedText(zoneName) or ""
 end
 
-local function GetPlacedFurnitureLocationInfo()
-    local zoneName = GetCurrentZoneDisplayName()
-    if zoneName ~= "" then
-        return "placedfurniture", string.format("Placed Furniture (%s)", zoneName)
+-- One bucket per house. Furniture offered from a house is not a stack in a bag, so
+-- the house is part of the key: two houses never collapse into one row, and no bag
+-- can ever confirm or deny the share.
+IsPlacedLocationKey = function(locationKey)
+    local text = tostring(locationKey or "")
+    return string.sub(text, 1, 7) == "placed:"
+end
+
+-- Where a /ishare scan files its pieces. The zone name is the house name while the
+-- character is inside a home, which is what makes "Placed (Mournoth Keep)" possible;
+-- with no house there is nothing to scan and nothing is filed.
+local function GetPlacedLocationInfo(houseName)
+    local name = tostring(houseName or "")
+    if name ~= "" then
+        return "placed:" .. zo_strlower(name), string.format("Placed (%s)", name)
     end
-    return "placedfurniture", "Placed Furniture"
+    return "placed", "Placed"
 end
 
 -- The ten home storage chests can each be renamed in game, and the name is the only
@@ -1653,8 +1689,14 @@ local function BuildLocationKeyFromSharedFrom(sharedFrom)
         return "housestorage"
     elseif string.find(value, "furnishing vault", 1, true) == 1 then
         return "furnishingvault"
-    elseif string.find(value, "placed furniture", 1, true) == 1 then
-        return "placedfurniture"
+elseif string.find(value, "placed %(", 1, true) == 1 then
+        -- The label carries the house, so the key has to carry it too, or two houses
+        -- would collapse back into one row the next time the file is read.
+        local houseName = string.match(tostring(sharedFrom or ""), "^Placed %((.*)%)$")
+        if houseName and houseName ~= "" then
+            return "placed:" .. zo_strlower(houseName)
+        end
+        return "placed"
     elseif string.find(value, "inventory %(", 1, true) == 1 then
         local characterName = string.match(tostring(sharedFrom or ""), "^Inventory %((.*)%)$")
         if characterName and characterName ~= "" then
@@ -1998,10 +2040,6 @@ local function CaptureItemDetails(itemLink, bagId, slotIndex)
     return details
 end
 
-local function IsEntryFurnishing(entry)
-    return entry and tonumber(entry.itemType or 0) == tonumber(ITEMTYPE_FURNISHING or -1)
-end
-
 local function GetItemDataFromBagSlot(bagId, slotIndex)
     local itemName = GetNormalizedItemName(bagId, slotIndex)
     local itemLink = GetNormalizedItemLink(bagId, slotIndex)
@@ -2052,27 +2090,44 @@ local function GetItemDataFromBagSlot(bagId, slotIndex)
     }
 end
 
+-- The client's own link check, captured before the helper below takes the name: it is
+-- the only bound test the housing API leaves for a placed piece, which has no bag slot.
+local EsoIsItemLinkBound = IsItemLinkBound
+
 -- The item link carries the item's own bound state, which still answers when the
 -- slot cannot: a guild bank tab that is not open, a house bank the client has not
 -- loaded, a saved row whose bag was reorganised. It is a second opinion behind
 -- IsItemBound, never a replacement for it.
+--
+-- GetItemLinkBoundStatus is not in the client's API - asking for it and giving up
+-- answered "not bound" for every link the game ever produced, which is how bound
+-- furnishings reached the share list. The client's IsItemLinkBound is the real test.
 local function IsItemLinkBound(itemLink)
     local link = tostring(itemLink or "")
-    if link == "" or type(GetItemLinkBoundStatus) ~= "function" then
+    if link == "" then
         return false
     end
 
-    local status = GetItemLinkBoundStatus(link)
-    if status == nil then
-        return false
+    if type(GetItemLinkBoundStatus) == "function" then
+        local ok, status = pcall(GetItemLinkBoundStatus, link)
+        if ok and status ~= nil then
+            -- The named constant is preferred so a client that renumbers the enum is
+            -- still read correctly; every version defines BOUND_STATUS_UNBOUND as 0.
+            if BOUND_STATUS_UNBOUND ~= nil then
+                return status ~= BOUND_STATUS_UNBOUND
+            end
+            return tonumber(status) ~= 0
+        end
     end
 
-    -- The named constant is preferred so a client that renumbers the enum is still
-    -- read correctly; every version defines BOUND_STATUS_UNBOUND as 0.
-    if BOUND_STATUS_UNBOUND ~= nil then
-        return status ~= BOUND_STATUS_UNBOUND
+    if type(EsoIsItemLinkBound) == "function" then
+        local ok, bound = pcall(EsoIsItemLinkBound, link)
+        if ok then
+            return bound == true
+        end
     end
-    return tonumber(status) ~= 0
+
+    return false
 end
 
 local function IsItemEligibleForShare(bagId, slotIndex)
@@ -2204,6 +2259,282 @@ local function IsItemLinkSharedInLocation(itemLink, locationKey)
     return ItemShare.savedVars.sharedItems[entryKey] ~= nil
 end
 
+-- A share reserves the copy it was made from, and only that copy: something shared
+-- from your bags is still yours to sell if it happens to be sitting in the bank, and
+-- a copy in a place nothing was shared from is not protected at all.
+--
+-- A standing offer is held just as tightly, because it is marked in one place and counts
+-- that place: the copy the offer is counted from is the copy it promises. Marking an
+-- offer also clears any share of the same item - the two states are one way at a time -
+-- so this used to be the one way to be on the list and be unprotected.
+--
+-- The second return says which of the two is holding the copy, because the message has
+-- to send you to the row that will actually release it.
+local function GetSharedEntryProtectingSlot(bagId, slotIndex)
+    if bagId == nil or slotIndex == nil or not ItemShare.savedVars then
+        return nil, nil
+    end
+    if ItemShare.savedVars.shareProtection == false then
+        return nil, nil
+    end
+
+    local itemLink = GetNormalizedItemLink(bagId, slotIndex)
+    if not itemLink or itemLink == "" then
+        return nil, nil
+    end
+
+    local locationKey = select(1, GetBagLocationInfo(bagId))
+    if not locationKey then
+        return nil, nil
+    end
+
+    local entry = ItemShare.savedVars.sharedItems and
+        ItemShare.savedVars.sharedItems[BuildSharedItemKey(itemLink, locationKey)]
+    if entry ~= nil then
+        return entry, "share"
+    end
+
+    local alwaysShare = ItemShare.savedVars.alwaysShare
+    if type(alwaysShare) == "table" and type(GetAlwaysShareKey) == "function" then
+        local alwaysEntry = alwaysShare[GetAlwaysShareKey(itemLink, locationKey)]
+        if alwaysEntry ~= nil then
+            return alwaysEntry, "always"
+        end
+    end
+
+    return nil, nil
+end
+
+-- One line per second at most: a blocked action can be tried repeatedly, and the
+-- reason only has to be said once for it to be read.
+local lastShareProtectionNotice = 0
+
+local function NotifyShareProtected(entry, source)
+    local now = GetTimeStamp()
+    if now == lastShareProtectionNotice then
+        return
+    end
+    lastShareProtectionNotice = now
+
+    -- A standing offer is released by stopping the offer, a share by removing the share, so
+    -- the message has to name the right one - and nothing else: the item's own menu is where
+    -- you would already be, and directions to the window read as noise mid-action.
+    local heldAs = "shared"
+    local release = "Remove the share to use it."
+    if source == "always" then
+        heldAs = "always shared"
+        release = "Stop always sharing it to use it."
+    end
+
+    PrintMessage(string.format(
+        "%s is %s from %s, so ItemShare is holding it: mailing, trading or storing it is all it will allow. %s",
+        tostring(entry and entry.itemName or "That item"),
+        heldAs,
+        tostring(entry and entry.sharedFrom or "that place"),
+        release
+    ))
+end
+
+-- Mailing is one of the two things that has to keep working, and the attachment picker is a
+-- bag list like any other, so its clicks are let through while it is on screen.
+local function IsMailSendShowing()
+    if type(SCENE_MANAGER) ~= "table" or type(MAIL_SEND) ~= "string" then
+        return false
+    end
+    if type(SCENE_MANAGER.IsShowing) ~= "function" then
+        return false
+    end
+
+    local ok, showing = pcall(SCENE_MANAGER.IsShowing, SCENE_MANAGER, MAIL_SEND)
+    return ok and showing == true
+end
+
+-- The guild store's sell tab is the one place a drag can file something: drop a row on the
+-- pending listing and the client takes it, with no menu involved. Posting is not something a
+-- share allows, so while that tab is up a locked copy cannot be picked up at all - there is
+-- nothing else to drop it on in that window - and a drag anywhere else stays available for
+-- mail and trade.
+local function IsGuildStoreSellMode()
+    if type(TRADING_HOUSE) ~= "table" or type(TRADING_HOUSE.IsInSellMode) ~= "function" then
+        return false
+    end
+
+    local ok, inSellMode = pcall(TRADING_HOUSE.IsInSellMode, TRADING_HOUSE)
+    return ok and inSellMode == true
+end
+
+local function ShouldRefuseSharedDrag(inventorySlot)
+    if not IsGuildStoreSellMode() then
+        return nil, nil
+    end
+
+    return GetSharedEntryProtectingSlot(GetBagAndSlotFromInventorySlot(inventorySlot))
+end
+
+-- The client reads a bag and slot out of a control with ZO_Inventory_GetBagAndIndex: it
+-- returns the bagId and slotIndex the inventory bound onto the control. The ...Slot... form
+-- these guards used to ask for is not in the client at all, so every lookup answered nil,
+-- both guards decided there was nothing in front of them to protect, and a shared copy went
+-- to the merchant anyway.
+--
+-- A control can also arrive before it has been resolved into its components, which is how
+-- ZO_InventorySlot_DoPrimaryAction starts, so that shape is read as well.
+local function GetBagAndSlotFromInventorySlot(inventorySlot)
+    local slotType = type(inventorySlot)
+    if slotType ~= "table" and slotType ~= "userdata" then
+        return nil, nil
+    end
+
+    if type(ZO_Inventory_GetBagAndIndex) == "function" then
+        local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
+        if bagId ~= nil and slotIndex ~= nil then
+            return bagId, slotIndex
+        end
+    end
+
+    local data = inventorySlot.dataEntry and inventorySlot.dataEntry.data
+    if type(data) == "table" and data.bagId ~= nil and data.slotIndex ~= nil then
+        return data.bagId, data.slotIndex
+    end
+
+    if inventorySlot.bagId ~= nil and inventorySlot.slotIndex ~= nil then
+        return inventorySlot.bagId, inventorySlot.slotIndex
+    end
+
+    if type(ZO_InventorySlot_GetInventorySlotComponents) == "function" then
+        local components = ZO_InventorySlot_GetInventorySlotComponents(inventorySlot)
+        if components ~= nil and components ~= inventorySlot
+            and type(components) == "table"
+            and components.bagId ~= nil and components.slotIndex ~= nil then
+            return components.bagId, components.slotIndex
+        end
+    end
+
+    return nil, nil
+end
+
+local function GetBagAndSlotFromSlotActions(slotActions)
+    if type(slotActions) ~= "table" then
+        return nil, nil
+    end
+
+    local slot = slotActions.m_inventorySlot or slotActions.inventorySlot
+    if slot ~= nil then
+        local bagId, slotIndex = GetBagAndSlotFromInventorySlot(slot)
+        if bagId ~= nil and slotIndex ~= nil then
+            return bagId, slotIndex
+        end
+    end
+
+    local data = slotActions.dataEntry and slotActions.dataEntry.data or slotActions.slotData
+    if type(data) == "table" then
+        return data.bagId, data.slotIndex
+    end
+
+    return nil, nil
+end
+
+-- What a share still allows. Everything the client can offer for a bag slot that is not on
+-- this list is refused, so an action nobody has thought of fails closed instead of handing
+-- the copy over. Mailing and trading are the two that have to keep working.
+local shareProtectedAllowedActions = {}
+
+local function AllowShareProtectedAction(actionId)
+    if actionId ~= nil then
+        shareProtectedAllowedActions[actionId] = true
+    end
+end
+
+AllowShareProtectedAction(SI_ITEM_ACTION_MAIL_ATTACH)
+AllowShareProtectedAction(SI_ITEM_ACTION_MAIL_DETACH)
+AllowShareProtectedAction(SI_ITEM_ACTION_TRADE_ADD)
+AllowShareProtectedAction(SI_ITEM_ACTION_TRADE_REMOVE)
+-- Looking at it changes nothing: linking, previewing, the map and quest entries, the junk
+-- and lock marks, and reporting it.
+AllowShareProtectedAction(SI_ITEM_ACTION_LINK_TO_CHAT)
+AllowShareProtectedAction(SI_ITEM_ACTION_PREVIEW)
+AllowShareProtectedAction(SI_ITEM_ACTION_PREVIEW_DYE_STAMP)
+AllowShareProtectedAction(SI_ITEM_ACTION_SHOW_MAP)
+AllowShareProtectedAction(SI_ITEM_ACTION_SHOW_QUEST)
+AllowShareProtectedAction(SI_ITEM_ACTION_MARK_AS_JUNK)
+AllowShareProtectedAction(SI_ITEM_ACTION_UNMARK_AS_JUNK)
+AllowShareProtectedAction(SI_ITEM_ACTION_MARK_AS_LOCKED)
+AllowShareProtectedAction(SI_ITEM_ACTION_UNMARK_AS_LOCKED)
+AllowShareProtectedAction(SI_ITEM_ACTION_REPORT_ITEM)
+-- Splitting keeps the share: both halves carry the same item link, so both stay protected.
+AllowShareProtectedAction(SI_ITEM_ACTION_SPLIT_STACK)
+-- Storage keeps the copy: putting a shared piece in the bank, a house chest or the
+-- furnishing vault and taking it back out again is where it lives between sessions, and
+-- refusing those made the vaults unusable for exactly the items the list is about. Both
+-- directions, because it is the same item on whichever side of the vault it sits.
+AllowShareProtectedAction(SI_ITEM_ACTION_BANK_DEPOSIT)
+AllowShareProtectedAction(SI_ITEM_ACTION_BANK_WITHDRAW)
+-- Placing a shared furnishing is storage with a view: it leaves the bag, stays yours, and
+-- has to be pickable again.
+AllowShareProtectedAction(SI_ITEM_ACTION_PLACE_FURNITURE)
+
+local shareProtectionInstalled = false
+
+-- A shared copy can be asked to do something in two places only: the action list a slot
+-- builds before it shows its menu, and the primary action a click or a double click runs.
+-- Refusing both is what stops the copy being sold, destroyed, deconstructed, refined,
+-- researched, enchanted, used, equipped, laundered, or turned over to a craft bag.
+local function InstallShareProtection()
+    if shareProtectionInstalled or not ZO_PreHook then
+        return
+    end
+    shareProtectionInstalled = true
+
+    if ZO_InventorySlotActions then
+        ZO_PreHook(ZO_InventorySlotActions, "AddSlotAction", function(slotActions, actionStringId, ...)
+            if shareProtectedAllowedActions[actionStringId] then
+                return false
+            end
+
+            local bagId, slotIndex = GetBagAndSlotFromSlotActions(slotActions)
+            local entry, source = GetSharedEntryProtectingSlot(bagId, slotIndex)
+            if not entry then
+                return false
+            end
+
+            NotifyShareProtected(entry, source)
+            return true
+        end)
+    end
+
+    if ZO_InventorySlot_DoPrimaryAction then
+        ZO_PreHook("ZO_InventorySlot_DoPrimaryAction", function(inventorySlot)
+            if IsMailSendShowing() then
+                return false
+            end
+
+            local entry, source = GetSharedEntryProtectingSlot(GetBagAndSlotFromInventorySlot(inventorySlot))
+            if not entry then
+                return false
+            end
+
+            NotifyShareProtected(entry, source)
+            return true
+        end)
+    end
+
+    -- Dragging is the third way to ask a slot to do something, and the one that never touches
+    -- the slot menu: the client starts a pickup on the row's OnDragStart and whatever control
+    -- is under the cursor takes it from there. That is how a shared piece reached the guild
+    -- store's listing slot while every click and menu entry on it was being refused.
+    if ZO_InventorySlot_OnDragStart then
+        ZO_PreHook("ZO_InventorySlot_OnDragStart", function(inventorySlot)
+            local entry, source = ShouldRefuseSharedDrag(inventorySlot)
+            if not entry then
+                return false
+            end
+
+            NotifyShareProtected(entry, source)
+            return true
+        end)
+    end
+end
+
 local function FindSharedEntryKeyForBagSlot(bagId, slotIndex)
     local itemLink = GetNormalizedItemLink(bagId, slotIndex)
     if not itemLink then
@@ -2219,24 +2550,37 @@ local function FindSharedEntryKeyForBagSlot(bagId, slotIndex)
 end
 
 -- An item can be in the share list and in the always-share list at the same time.
--- The offer is keyed by item link (not by bag and slot), so it follows the item
--- between bags and out of them entirely.
-IsItemLinkAlwaysShared = function(itemLink)
+-- The offer is keyed by item link and place, so the same stack in another bag is a
+-- different thing and stays unmarked.
+IsItemLinkAlwaysShared = function(itemLink, locationKey)
     local alwaysShare = ItemShare.savedVars and ItemShare.savedVars.alwaysShare
     if type(alwaysShare) ~= "table" then
         return false
     end
-    return alwaysShare[tostring(itemLink or "")] ~= nil
+    local link = tostring(itemLink or "")
+    if link == "" then
+        return false
+    end
+    return alwaysShare[GetAlwaysShareKey(link, locationKey)] ~= nil
 end
 
+-- Crafting panels own their inventories and are built when a station or the
+-- ragpicker first opens, so they are kept here and repainted with the bags: a share
+-- toggled while the deconstruction pane is open has to update in that pane too.
+local itemShareExtraListViews = {}
+
 TryRefreshInventoryVisuals = function()
-    if not PLAYER_INVENTORY or not PLAYER_INVENTORY.inventories then
-        return
+    if PLAYER_INVENTORY and PLAYER_INVENTORY.inventories then
+        for _, inventory in pairs(PLAYER_INVENTORY.inventories) do
+            local listView = inventory and inventory.listView
+            if listView and ZO_ScrollList_RefreshVisible then
+                ZO_ScrollList_RefreshVisible(listView)
+            end
+        end
     end
 
-    for _, inventory in pairs(PLAYER_INVENTORY.inventories) do
-        local listView = inventory and inventory.listView
-        if listView and ZO_ScrollList_RefreshVisible then
+    for listView in pairs(itemShareExtraListViews) do
+        if ZO_ScrollList_RefreshVisible then
             ZO_ScrollList_RefreshVisible(listView)
         end
     end
@@ -2257,8 +2601,10 @@ local function GetBagAndSlotFromSlotData(control, slotData)
             or (slotData.rawSlotData and slotData.rawSlotData.slotIndex)
     end
 
-    if (bagId == nil or slotIndex == nil) and ZO_InventorySlot_GetBagAndIndex then
-        bagId, slotIndex = ZO_InventorySlot_GetBagAndIndex(control)
+    if (bagId == nil or slotIndex == nil) and control ~= nil then
+        local controlBagId, controlSlotIndex = GetBagAndSlotFromInventorySlot(control)
+        bagId = bagId or controlBagId
+        slotIndex = slotIndex or controlSlotIndex
     end
 
     return bagId, slotIndex
@@ -2356,6 +2702,14 @@ local function EnsureShareMarker(control)
         InitializeTooltip(InformationTooltip, self, BOTTOMLEFT, 0, -4)
 
         local lines = {}
+        if self.ItemShareExpired then
+            lines[#lines + 1] = string.format("|cFF8A70Shared for %d days|r", tonumber(self.ItemShareAgeDays) or 0)
+            lines[#lines + 1] = string.format(
+                "Past the /itemshare expire limit of %d days.",
+                GetExpireDays()
+            )
+            lines[#lines + 1] = "It may be time to sell it."
+        end
         if self.ItemShareAlways then
             lines[#lines + 1] = "|cFFD266Always shared|r"
             lines[#lines + 1] = "You offer this whenever you have one."
@@ -2506,14 +2860,23 @@ local function UpdateSharedRowMarker(control, slotData)
     -- A standing offer deserves its badge even when no copy is in a bag right now:
     -- that is what the offer means. It used to show nothing at all in that state,
     -- which made the gold icon look as if it did not exist.
-    local isAlways = itemLink and IsItemLinkAlwaysShared(itemLink)
+    local isAlways = itemLink and IsItemLinkAlwaysShared(itemLink, locationKey)
     local reserve = (itemLink and GetShareReserve(itemLink, locationKey)) or 0
+
+    local isExpired = isShared and IsShareEntryExpired(sharedEntry)
+    marker.ItemShareExpired = isExpired and true or false
+    marker.ItemShareAgeDays = isExpired and math.floor(GetShareAgeInDays(sharedEntry) or 0) or 0
 
     if isShared or isAlways then
         -- The plain glyph, saying only what the item offers. A reserve is a separate
         -- fact and gets its own corner below, so a share that keeps some back shows
-        -- both instead of one badge having to mean two things.
-        marker:SetTexture(isAlways and ALWAYS_SHARE_TEXTURE_PATH or SHARE_TEXTURE_PATH)
+        -- both instead of one badge having to mean two things. A share past the expire
+        -- limit is the one case where the age is the thing to say, so the stopwatch
+        -- takes the glyph's place rather than being added to it.
+        marker:SetTexture(
+            isExpired and EXPIRED_TEXTURE_PATH
+                or (isAlways and ALWAYS_SHARE_TEXTURE_PATH or SHARE_TEXTURE_PATH)
+        )
         marker.ItemShareAlways = isAlways and true or false
         marker.ItemShareReserve = reserve
         marker.ItemShareHeld = GetEntryHeldCount(sharedEntry)
@@ -2535,46 +2898,117 @@ local function UpdateSharedRowMarker(control, slotData)
     end
 end
 
-local function HookInventoryRowCallbacks()
-    if not PLAYER_INVENTORY or not PLAYER_INVENTORY.inventories then
+-- Every item control in the game is bound to its bag item through ZO_Inventory_BindSlot, which
+-- the client's own comment describes as the call that "should be called for all item slots
+-- (trade, mail, store, backpack, bank, crafting, etc...)". Marking the control when it is bound
+-- stops the badge depending on a list, or on that list's row-setup callback still being the one
+-- the addon wrapped: a shared item used to go unmarked at the ragpicker, whose rows are painted
+-- through a repaint path the wrapped callback did not reach.
+local function HookInventorySlotBinding()
+    if type(ZO_PostHook) ~= "function" or type(ZO_Inventory_BindSlot) ~= "function" then
         return
     end
 
-    for _, inventory in pairs(PLAYER_INVENTORY.inventories) do
-        local listView = inventory and inventory.listView
-        local dataTypes = listView and listView.dataTypes
+    -- After the bind, not before: the bag and slot are only on the control once it has run.
+    ZO_PostHook("ZO_Inventory_BindSlot", function(slotControl)
+        if slotControl == nil then
+            return
+        end
 
-        if dataTypes then
-            for _, dataType in pairs(dataTypes) do
-                if dataType and not dataType.ItemShareWrapped then
-                    if type(dataType.callbackFunction) == "function" then
-                        local originalCallbackFunction = dataType.callbackFunction
-                        dataType.callbackFunction = function(control, slotData, ...)
-                            originalCallbackFunction(control, slotData, ...)
-                            UpdateSharedRowMarker(control, slotData)
-                        end
-                        dataType.ItemShareWrapped = true
-                    elseif type(dataType.callback) == "function" then
-                        local originalCallback = dataType.callback
-                        dataType.callback = function(control, slotData, ...)
-                            originalCallback(control, slotData, ...)
-                            UpdateSharedRowMarker(control, slotData)
-                        end
-                        dataType.ItemShareWrapped = true
-                    elseif type(dataType.setupCallback) == "function" then
-                        local originalSetupCallback = dataType.setupCallback
-                        dataType.setupCallback = function(control, slotData, ...)
-                            originalSetupCallback(control, slotData, ...)
-                            UpdateSharedRowMarker(control, slotData)
-                        end
-                        dataType.ItemShareWrapped = true
-                    end
+        local bagId, slotIndex = GetBagAndSlotFromInventorySlot(slotControl)
+        if bagId ~= nil and slotIndex ~= nil then
+            UpdateSharedRowMarker(slotControl, nil)
+        end
+    end)
+end
+
+-- Every item row in the game is drawn by a scroll list data type, whether it belongs
+-- to the bags or to a crafting panel. Hooking only PLAYER_INVENTORY left the
+-- deconstruction, refinement and ragpicker lists unmarked: those are separate
+-- inventories that the crafting UI builds when its panel first opens.
+local function HookListViewDataTypes(listView)
+    local dataTypes = listView and listView.dataTypes
+    if not dataTypes then
+        return false
+    end
+
+    local hooked = false
+    for _, dataType in pairs(dataTypes) do
+        if dataType and not dataType.ItemShareWrapped then
+            local wrapped = false
+
+            if type(dataType.callbackFunction) == "function" then
+                local originalCallbackFunction = dataType.callbackFunction
+                dataType.callbackFunction = function(control, slotData, ...)
+                    originalCallbackFunction(control, slotData, ...)
+                    UpdateSharedRowMarker(control, slotData)
                 end
+                wrapped = true
+            elseif type(dataType.callback) == "function" then
+                local originalCallback = dataType.callback
+                dataType.callback = function(control, slotData, ...)
+                    originalCallback(control, slotData, ...)
+                    UpdateSharedRowMarker(control, slotData)
+                end
+                wrapped = true
+            elseif type(dataType.setupCallback) == "function" then
+                local originalSetupCallback = dataType.setupCallback
+                dataType.setupCallback = function(control, slotData, ...)
+                    originalSetupCallback(control, slotData, ...)
+                    UpdateSharedRowMarker(control, slotData)
+                end
+                wrapped = true
+            end
+
+            if wrapped then
+                dataType.ItemShareWrapped = true
+                hooked = true
             end
         end
     end
 
+    if hooked then
+        itemShareExtraListViews[listView] = true
+        if ZO_ScrollList_RefreshVisible then
+            ZO_ScrollList_RefreshVisible(listView)
+        end
+    end
+
+    return hooked
+end
+
+local function HookInventoryRowCallbacks()
+    if PLAYER_INVENTORY and PLAYER_INVENTORY.inventories then
+        for _, inventory in pairs(PLAYER_INVENTORY.inventories) do
+            HookListViewDataTypes(inventory and inventory.listView)
+        end
+    end
+
     TryRefreshInventoryVisuals()
+end
+
+-- Where the crafting UI keeps the lists that show your items. Each lookup is pcall'd
+-- and may answer nothing yet: a panel is created the first time its scene opens, so
+-- anything missing here is hooked by a later pass rather than treated as an error.
+local CRAFTING_INVENTORY_LOOKUPS = {
+    function() return SMITHING and SMITHING.deconstructPanel and SMITHING.deconstructPanel.inventory end,
+    function() return SMITHING and SMITHING.refinePanel and SMITHING.refinePanel.inventory end,
+    function() return SMITHING and SMITHING.creationPanel and SMITHING.creationPanel.inventory end,
+    function() return ENCHANTING and ENCHANTING.deconstructPanel and ENCHANTING.deconstructPanel.inventory end,
+    function() return ENCHANTING and ENCHANTING.refinePanel and ENCHANTING.refinePanel.inventory end,
+    function() return ENCHANTING and ENCHANTING.creationPanel and ENCHANTING.creationPanel.inventory end,
+    function() return ALCHEMY and ALCHEMY.refinePanel and ALCHEMY.refinePanel.inventory end,
+    function() return PROVISIONER and PROVISIONER.refinePanel and PROVISIONER.refinePanel.inventory end,
+    function() return ZO_DeconstructPane and ZO_DeconstructPane.inventory end,
+}
+
+local function HookCraftingInventoryRows()
+    for _, lookup in ipairs(CRAFTING_INVENTORY_LOOKUPS) do
+        local ok, inventory = pcall(lookup)
+        if ok and type(inventory) == "table" and inventory.listView then
+            HookListViewDataTypes(inventory.listView)
+        end
+    end
 end
 
 -- What one bag holds of an item, as one number. Sharing any stack of soul gems in
@@ -2602,13 +3036,13 @@ end
 local function AddItemToShareFromBagSlot(bagId, slotIndex)
     local isEligible, reason = IsItemEligibleForShare(bagId, slotIndex)
     if not isEligible then
-        dmsg(string.format("Cannot add item to share: %s", tostring(reason)))
+        PrintMessage(string.format("Cannot add item to share: %s", tostring(reason)))
         return
     end
 
     local itemData = GetItemDataFromBagSlot(bagId, slotIndex)
     if not itemData then
-        dmsg("Could not determine item data.")
+        PrintMessage("Could not determine item data.")
         return
     end
 
@@ -2622,14 +3056,14 @@ local function AddItemToShareFromBagSlot(bagId, slotIndex)
     local savedEntry = SaveSharedEntry(itemData, stackCount, existing and existing.firstDumpedAt or GetTimeStamp(), true)
 
     if not savedEntry then
-        dmsg(string.format("Could not add %s to the shared list.", tostring(itemData.itemName or "that item")))
+        PrintMessage(string.format("Could not add %s to the shared list.", tostring(itemData.itemName or "that item")))
         return
     end
 
     -- The other direction: sharing it from a bag now replaces a standing offer. Done
     -- after the save, because a save that is refused (a bound item) must not take the
     -- offer away with it.
-    local removedAlways = RemoveAlwaysShareForItemLink(savedEntry.itemLink) ~= nil
+    local removedAlways = RemoveAlwaysShareForItemLink(savedEntry.itemLink, savedEntry.locationKey) ~= nil
     if removedAlways then
         TryRefreshInventoryVisuals()
         RefreshShareListWindowIfVisible()
@@ -2638,7 +3072,7 @@ local function AddItemToShareFromBagSlot(bagId, slotIndex)
     local reserve = tonumber(GetShareReserve(savedEntry.itemLink, savedEntry.locationKey)) or 0
 
     if reserve > 0 then
-        dmsg(string.format(
+        PrintMessage(string.format(
             "%s %s: keeping %d back, so %d of %d held are shared.",
             existing and "Updated" or "Added",
             itemData.itemName,
@@ -2647,7 +3081,7 @@ local function AddItemToShareFromBagSlot(bagId, slotIndex)
             stackCount
         ))
     else
-        dmsg(string.format(
+        PrintMessage(string.format(
             "%s shared item %s from %s (stack size: %d)",
             existing and "Updated" or "Added",
             itemData.itemName,
@@ -2657,7 +3091,7 @@ local function AddItemToShareFromBagSlot(bagId, slotIndex)
     end
 
     if removedAlways then
-        dmsg(string.format(
+        PrintMessage(string.format(
             "Stopped always sharing %s: an item is offered one way at a time.",
             itemData.itemName
         ))
@@ -2671,7 +3105,7 @@ RemoveItemFromShareByKey = function(itemKey, entry, refreshListWindow)
 
     local itemName = entry and entry.itemName or itemKey
     ItemShare.savedVars.sharedItems[itemKey] = nil
-    dmsg(string.format("Removed %s from shared list.", tostring(itemName)))
+    PrintMessage(string.format("Removed %s from shared list.", tostring(itemName)))
     TryRefreshInventoryVisuals()
     if refreshListWindow ~= false then
         RefreshShareListWindowIfVisible()
@@ -2787,6 +3221,387 @@ SaveSharedEntryFromSavedEntry = function(entry, refreshListWindow)
     return SaveSharedEntry(itemData, GetEntryHeldCount(entry), entry.firstDumpedAt or GetTimeStamp(), refreshListWindow)
 end
 
+-- "Placed" shares: furniture standing in a house rather than held in a bag.
+--
+-- Only the house the character is standing in can be read, and a piece on display
+-- says nothing about where it came from, so this is not something the addon can
+-- infer safely. The player says it instead: /ishare scan in the storage house files
+-- every non-bound furnishing standing there as Placed (<house>), one row per
+-- furnishing with the number of copies, and running it again is the record of what
+-- that house still holds.
+--
+-- Placed furniture is enumerated by id, never by index: there is no
+-- GetPlacedFurnitureCount/GetPlacedFurnitureIdInfo pair in the housing API, so the old
+-- code fell through to the iterator and then read the details out of the wrong positions.
+-- Each id is asked for its own details, and the link comes from the housing API instead of
+-- being rebuilt from a data id that was never read.
+local function GetPlacedFurniturePieces()
+    if not GetNextPlacedHousingFurnitureId then
+        return nil
+    end
+
+    local pieces = {}
+    local furnitureId = GetNextPlacedHousingFurnitureId(nil)
+    -- A guard rather than a trust: an iterator that stopped advancing would hang the
+    -- client, and 5000 placed pieces is far past any house limit.
+    local guard = 0
+
+    while furnitureId and guard < 5000 do
+        guard = guard + 1
+
+        local piece = { furnitureId = furnitureId, name = "", icon = "", furnitureDataId = 0 }
+
+        if GetPlacedHousingFurnitureInfo then
+            -- name, icon, furniture data id - in that order.
+            local infoOk, name, icon, furnitureDataId = pcall(GetPlacedHousingFurnitureInfo, furnitureId)
+            if infoOk then
+                piece.name = type(name) == "string" and name or ""
+                piece.icon = type(icon) == "string" and icon or ""
+                piece.furnitureDataId = tonumber(furnitureDataId) or 0
+            end
+        end
+
+        if GetPlacedFurnitureLink then
+            -- Two returns: the item link, and the collectible link of a collectible
+            -- furnishing, which is not an item and therefore has no item link at all.
+            -- Reading only the first made every collectible look like a failed call.
+            local linkOk, itemLink, collectibleLink = pcall(GetPlacedFurnitureLink, furnitureId, LINK_STYLE_DEFAULT)
+            if linkOk then
+                piece.link = type(itemLink) == "string" and itemLink or ""
+                piece.collectibleLink = type(collectibleLink) == "string" and collectibleLink or ""
+            end
+        end
+
+        if GetPlacedHousingFurnitureQuality then
+            local qualityOk, quality = pcall(GetPlacedHousingFurnitureQuality, furnitureId)
+            if qualityOk then
+                piece.quality = quality
+            end
+        end
+
+        pieces[#pieces + 1] = piece
+        furnitureId = GetNextPlacedHousingFurnitureId(furnitureId)
+    end
+
+    return pieces
+end
+
+-- A placed piece is described by its furniture data id, not by a bag slot, so the
+-- item link has to be made from that id. Each step is a getter the client may or may
+-- not have: a piece nothing can name is counted and reported rather than guessed at.
+local function GetLinkForFurnitureDataId(furnitureDataId, info, inventoryIndex)
+    local dataId = tonumber(furnitureDataId) or 0
+    if dataId <= 0 then
+        return ""
+    end
+
+    if GetItemLinkFromFurnitureDataId then
+        local ok, link = pcall(GetItemLinkFromFurnitureDataId, dataId)
+        if ok and type(link) == "string" and link ~= "" then
+            return link
+        end
+    end
+
+    for _, value in ipairs(info or {}) do
+        if type(value) == "string" and string.find(value, "|H1:item:", 1, true) then
+            return value
+        end
+    end
+
+    -- Last resort: the same furnishing sitting in a readable bag carries the link,
+    -- and matching on the data id is what the addon already trusts.
+    local index = inventoryIndex or BuildActualInventoryIndex()
+    for _, place in pairs(index.locationsByLink or {}) do
+        local itemData = place and place.itemData
+        if itemData and tonumber(itemData.furnitureDataId) == dataId and tostring(itemData.itemLink or "") ~= "" then
+            return itemData.itemLink
+        end
+    end
+
+    return ""
+end
+
+local function BuildPlacedItemData(link, furnitureDataId, sharedFrom, locationKey)
+    local nameOk, itemName = pcall(GetItemLinkName, link)
+    local iconOk, icon = pcall(GetItemLinkInfo, link)
+    local itemIdOk, itemId = pcall(GetItemLinkItemId, link)
+    local qualityOk, quality = pcall(GetItemLinkQuality, link)
+
+    return {
+        itemKey = BuildSharedItemKey(link, locationKey),
+        itemName = (nameOk and type(itemName) == "string" and itemName ~= "" and itemName) or link,
+        itemLink = link,
+        itemId = (itemIdOk and tonumber(itemId)) or 0,
+        icon = (iconOk and type(icon) == "string" and icon) or "",
+        itemType = ITEMTYPE_FURNISHING,
+        itemTypeName = "Furnishing",
+        quality = qualityOk and quality or nil,
+        furnitureDataId = tonumber(furnitureDataId) or 0,
+        locationKey = locationKey,
+        sharedFrom = sharedFrom,
+    }
+end
+
+-- Reads the house once and treats that reading as the truth for it: a piece on
+-- display is shared with the number of copies standing there, a share filed under
+-- this house that is no longer in it is taken back, and every other house is left
+-- alone because nothing here can see it.
+-- The house owner and the player are both display names, but one may carry the @ the
+-- other lacks and the case is not guaranteed, so both are flattened before comparing.
+local function NormalizeHouseOwnerName(name)
+    local text = string.gsub(tostring(name or ""), "^@", "")
+    return zo_strlower(text)
+end
+
+-- Where the scan is standing, and whether that is a house this character owns. Reading
+-- placed furniture works in any home, but filing it is only honest for your own: a
+-- piece in someone else's house is not yours to offer.
+local function GetCurrentHouseScanInfo()
+    if not GetCurrentZoneHouseId then
+        return nil, "This client cannot tell whether you are in a house, so there is nothing to scan or clear."
+    end
+
+    local idOk, idValue = pcall(GetCurrentZoneHouseId)
+    local houseId = idOk and (tonumber(idValue) or 0) or 0
+    if houseId <= 0 then
+        return nil, "You are not inside a house, so there is nothing to scan or clear. Stand in the house first."
+    end
+
+    local houseName = GetCurrentZoneDisplayName()
+
+    local ownerName = ""
+    if GetCurrentHouseOwner then
+        local ownerOk, ownerValue = pcall(GetCurrentHouseOwner)
+        if ownerOk and type(ownerValue) == "string" then
+            ownerName = GetNormalizedText(ownerValue) or ""
+        end
+    end
+
+    -- Best effort: a client that does not name the owner cannot prove ownership, so the
+    -- scan goes ahead rather than refusing a house the player is standing in.
+    if ownerName ~= "" then
+        local ownerKey = NormalizeHouseOwnerName(ownerName)
+        local ownsHouse = false
+
+        if GetDisplayName then
+            local nameOk, nameValue = pcall(GetDisplayName)
+            if nameOk and type(nameValue) == "string" and NormalizeHouseOwnerName(nameValue) == ownerKey then
+                ownsHouse = true
+            end
+        end
+        if not ownsHouse and NormalizeHouseOwnerName(GetCurrentCharacterName()) == ownerKey then
+            ownsHouse = true
+        end
+
+        if not ownsHouse then
+            return nil, string.format(
+                "This house belongs to %s. Furniture is only scanned or cleared for a house you own, so nothing was done.",
+                ownerName
+            )
+        end
+    end
+
+    return {
+        houseId = houseId,
+        houseName = houseName,
+        ownerName = ownerName,
+    }
+end
+
+-- Reads the house once and treats that reading as the truth for it: a piece on
+-- display is shared with the number of copies standing there, a share filed under
+-- this house that is no longer in it is taken back, and every other house is left
+-- alone because nothing here can see it.
+local function ScanPlacedFurnishings()
+    -- Said before anything is read: finding the house and listing its furniture both
+    -- take a moment, and a silent pause reads as a hung client.
+    PrintMessage("Scanning, one moment...")
+
+    local house, problem = GetCurrentHouseScanInfo()
+    if not house then
+        PrintMessage(problem)
+        return
+    end
+
+    local pieces = GetPlacedFurniturePieces()
+    if not pieces then
+        PrintMessage("This client cannot list placed furniture, so nothing was scanned.")
+        return
+    end
+
+    local houseLabel = house.houseName ~= "" and house.houseName or "this house"
+    local placedKey, placedLabel = GetPlacedLocationInfo(house.houseName)
+
+    local copiesByLink = {}
+    local dataIdByLink = {}
+    local boundCount, collectibleCount, unreadableCount, unboundCount = 0, 0, 0, 0
+    -- Built once, and only if a piece needs it: rebuilding the bag index for every
+    -- unlinked piece is most of what made a full house feel like a pause.
+    local bagIndex = nil
+
+    for _, piece in ipairs(pieces) do
+        local furnitureDataId = tonumber(piece.furnitureDataId) or 0
+        local collectibleLink = tostring(piece.collectibleLink or "")
+
+        local link = tostring(piece.link or "")
+        if link == "" then
+            -- Older clients may have no GetPlacedFurnitureLink; the data id is the only
+            -- other route to a link, and it stays 0 when even the info call failed.
+            if not bagIndex then
+                bagIndex = BuildActualInventoryIndex()
+            end
+            link = GetLinkForFurnitureDataId(furnitureDataId, { piece.name, piece.icon }, bagIndex)
+        end
+
+        if link == "" then
+            if collectibleLink ~= "" then
+                -- A collectible furnishing is not an item: it has no link to offer and
+                -- cannot be given away, so it is counted apart from a failure.
+                collectibleCount = collectibleCount + 1
+            else
+                unreadableCount = unreadableCount + 1
+            end
+        else
+            local boundOk, isBound = pcall(IsItemLinkBound, link)
+
+            if not boundOk then
+                -- A bound state nothing could answer is not a licence to offer it.
+                unreadableCount = unreadableCount + 1
+            elseif isBound == true then
+                -- Bound is bound: a piece that can never leave the account is not an
+                -- offer, whichever house it stands in.
+                boundCount = boundCount + 1
+            else
+                copiesByLink[link] = (copiesByLink[link] or 0) + 1
+                dataIdByLink[link] = dataIdByLink[link] or furnitureDataId
+                unboundCount = unboundCount + 1
+            end
+        end
+    end
+
+    local sharedItems = ItemShare.savedVars.sharedItems
+    local removedCount = 0
+
+    for itemKey, entry in pairs(sharedItems) do
+        local entryKey = tostring(entry and entry.locationKey or "")
+        if entryKey == placedKey and copiesByLink[tostring(entry and entry.itemLink or "")] == nil then
+            sharedItems[itemKey] = nil
+            removedCount = removedCount + 1
+        end
+    end
+
+    for link, copies in pairs(copiesByLink) do
+        local existing = sharedItems[BuildSharedItemKey(link, placedKey)]
+        local itemData = BuildPlacedItemData(link, dataIdByLink[link], placedLabel, placedKey)
+        SaveSharedEntry(itemData, copies, existing and existing.firstDumpedAt or GetTimeStamp(), false)
+    end
+
+    RefreshShareListWindowIfVisible()
+
+    local skippedParts = {}
+    if boundCount > 0 then
+        skippedParts[#skippedParts + 1] = string.format("%d bound", boundCount)
+    end
+    if collectibleCount > 0 then
+        skippedParts[#skippedParts + 1] = string.format("%d collectible", collectibleCount)
+    end
+    if unreadableCount > 0 then
+        skippedParts[#skippedParts + 1] = string.format("%d unreadable", unreadableCount)
+    end
+    local skippedText = ""
+    if #skippedParts > 0 then
+        skippedText = string.format(" (%s skipped)", table.concat(skippedParts, ", "))
+    end
+
+    PrintMessage(string.format(
+        "Scan complete: %d unbound item%s found in %s%s.",
+        unboundCount,
+        unboundCount == 1 and "" or "s",
+        houseLabel,
+        skippedText
+    ))
+
+    if removedCount > 0 then
+        PrintMessage(string.format(
+            "%d share%s filed under %s %s no longer in the house and %s removed.",
+            removedCount,
+            removedCount == 1 and "" or "s",
+            placedLabel,
+            removedCount == 1 and "was" or "were",
+            removedCount == 1 and "was" or "were"
+        ))
+    end
+
+    if unboundCount > 0 or removedCount > 0 then
+        PrintMessage("Use /ishare save or /reloadui to write the change to the file.")
+    end
+end
+
+-- /ishare scan clear: the way out of a house that was scanned by mistake, or one that
+-- has stopped being the storage house. Only the house the player is standing in is
+-- touched, and only rows keyed to it - the house name is the whole key, so a row filed
+-- under another house or under a bag cannot be caught by this.
+local function ClearPlacedFurnishingsForCurrentHouse()
+    local house, problem = GetCurrentHouseScanInfo()
+    if not house then
+        PrintMessage(problem)
+        return
+    end
+
+    local placedKey, placedLabel = GetPlacedLocationInfo(house.houseName)
+    local sharedItems = ItemShare.savedVars.sharedItems
+    local cleared = 0
+
+    for itemKey, entry in pairs(sharedItems) do
+        if tostring(entry and entry.locationKey or "") == placedKey then
+            sharedItems[itemKey] = nil
+            cleared = cleared + 1
+        end
+    end
+
+    TryRefreshInventoryVisuals()
+    RefreshShareListWindowIfVisible()
+
+    if cleared == 0 then
+        PrintMessage(string.format("No shares were filed under %s, so there was nothing to clear.", placedLabel))
+        return
+    end
+
+    PrintMessage(string.format(
+        "Cleared %d share%s filed under %s. Run /ishare save or /reloadui to write the change to the file.",
+        cleared,
+        cleared == 1 and "" or "s",
+        placedLabel
+    ))
+end
+
+
+-- Files written before this release recorded placed furniture under a key of their
+-- own, with no way to tell a piece that had been picked up from one that was never
+-- placed. That idea is gone, so those rows go with it, once, with a message saying
+-- how to file them again the new way.
+local function PruneLegacyPlacedFurnitureShares()
+    local sharedItems = ItemShare.savedVars and ItemShare.savedVars.sharedItems
+    if type(sharedItems) ~= "table" then
+        return 0
+    end
+
+    local removed = 0
+    for itemKey, entry in pairs(sharedItems) do
+        local locationKey = tostring(entry and entry.locationKey or "")
+        if locationKey == "" then
+            locationKey = BuildLocationKeyFromSharedFrom(entry and entry.sharedFrom)
+        end
+        local legacyPrefix = string.sub(locationKey, 1, 16)
+        if legacyPrefix == "placedfurniture" or legacyPrefix == "placed furniture" then
+            sharedItems[itemKey] = nil
+            removed = removed + 1
+        end
+    end
+
+    return removed
+end
+
 -- "Always share" is a standing offer rather than an inventory entry: it says "if
 -- I ever have this again, offer it". It lives in its own table so the rebuild
 -- pass, which prunes anything missing from a readable bag, can never delete it.
@@ -2800,13 +3615,48 @@ GetAlwaysShareTable = function()
     return ItemShare.savedVars.alwaysShare
 end
 
--- Keyed by item link, not by the inventory key: the offer is about the item, and
--- it has to survive the item being in a different bag or in no bag at all.
-GetAlwaysShareKey = function(itemLink)
-    return tostring(itemLink or "")
+-- Keyed by item link and place: a standing offer belongs to the place it was marked
+-- in, so marking lockpicks in your bags does not also mark the stack in the bank. The
+-- link stays in the key so the offer still names the item once that place holds none.
+GetAlwaysShareKey = function(itemLink, locationKey)
+    return BuildSharedItemKey(itemLink, locationKey)
 end
 
-SaveAlwaysShareEntry = function(itemData)
+-- A file written before offers were tied to a place keeps them under the item link
+-- alone. Those are moved onto a place key at load, using the place the offer recorded
+-- if it has one; one that recorded none is picked up by the next sync, which adopts the
+-- bag the item is in and re-keys it then.
+local function ReindexAlwaysShareTable()
+    local alwaysShare = GetAlwaysShareTable()
+    local moves = {}
+
+    for key, entry in pairs(alwaysShare) do
+        if type(entry) == "table" then
+            local link = tostring(entry.itemLink or "")
+            if link ~= "" then
+                local wanted = GetAlwaysShareKey(link, entry.locationKey)
+                if key ~= wanted then
+                    moves[#moves + 1] = { from = key, to = wanted, entry = entry }
+                end
+            end
+        end
+    end
+
+    local moved = 0
+    for _, move in ipairs(moves) do
+        if alwaysShare[move.from] == move.entry then
+            alwaysShare[move.from] = nil
+        end
+        if alwaysShare[move.to] == nil then
+            alwaysShare[move.to] = move.entry
+            moved = moved + 1
+        end
+    end
+
+    return moved
+end
+
+SaveAlwaysShareEntry = function(itemData, heldCount)
     if not itemData or not itemData.itemLink or itemData.itemLink == "" then
         return nil
     end
@@ -2816,7 +3666,7 @@ SaveAlwaysShareEntry = function(itemData)
     end
 
     local alwaysShare = GetAlwaysShareTable()
-    local key = GetAlwaysShareKey(itemData.itemLink)
+    local key = GetAlwaysShareKey(itemData.itemLink, itemData.locationKey)
     local now = GetTimeStamp()
     local entry = alwaysShare[key] or {}
 
@@ -2848,6 +3698,23 @@ SaveAlwaysShareEntry = function(itemData)
     entry.requiredCp = tonumber(itemData.requiredCp or 0) or 0
     entry.flavorText = itemData.flavorText or ""
     entry.esoDetails = itemData.esoDetails or {}
+    -- Where it was marked, and how many were there. A standing offer's number is the count
+    -- in that one place, so the offer has to remember the place as well as the number: the
+    -- site can only show what is held when it is told, and a reserve belongs to a place.
+    -- A caller that knows neither leaves what was recorded alone rather than wiping it.
+    entry.locationKey = tostring(itemData.locationKey or entry.locationKey or "")
+    entry.sharedFrom = tostring(itemData.sharedFrom or entry.sharedFrom or "")
+
+    local knownHeld = tonumber(heldCount)
+
+    if knownHeld == nil then
+        knownHeld = tonumber(itemData.heldCount)
+    end
+
+    if knownHeld ~= nil then
+        entry.heldCount = math.max(0, math.floor(knownHeld))
+    end
+
     entry.firstAddedAt = entry.firstAddedAt or now
     entry.lastUpdatedAt = now
     alwaysShare[key] = entry
@@ -2878,35 +3745,57 @@ RemoveSharesForItemLink = function(itemLink)
     return #keys
 end
 
-RemoveAlwaysShareForItemLink = function(itemLink)
+RemoveAlwaysShareForItemLink = function(itemLink, locationKey)
     local link = tostring(itemLink or "")
     if link == "" then
         return nil
     end
 
     local alwaysShare = GetAlwaysShareTable()
-    local existing = alwaysShare[link]
-    if existing ~= nil then
-        alwaysShare[link] = nil
+
+    -- With a place, only that place stops being offered. Without one, every place the
+    -- item was marked in stops, which is what taking the item off the list means.
+    if locationKey ~= nil then
+        local key = GetAlwaysShareKey(link, locationKey)
+        local existing = alwaysShare[key]
+        if existing ~= nil then
+            alwaysShare[key] = nil
+        end
+        return existing
     end
-    return existing
+
+    local removed = nil
+    for key, entry in pairs(alwaysShare) do
+        if type(entry) == "table" and tostring(entry.itemLink or "") == link then
+            alwaysShare[key] = nil
+            removed = removed or entry
+        end
+    end
+
+    return removed
 end
 
 local function AddAlwaysShareFromBagSlot(bagId, slotIndex)
     local isEligible, reason = IsItemEligibleForShare(bagId, slotIndex)
     if not isEligible then
-        dmsg(string.format("Cannot always share that item: %s", tostring(reason)))
+        PrintMessage(string.format("Cannot always share that item: %s", tostring(reason)))
         return
     end
 
     local itemData = GetItemDataFromBagSlot(bagId, slotIndex)
     if not itemData then
-        dmsg("Could not determine item data.")
+        PrintMessage("Could not determine item data.")
         return
     end
 
-    local existing = GetAlwaysShareTable()[GetAlwaysShareKey(itemData.itemLink)]
-    SaveAlwaysShareEntry(itemData)
+    local existing = GetAlwaysShareTable()[GetAlwaysShareKey(itemData.itemLink, itemData.locationKey)]
+    -- The offer starts at what this place holds of it right now, so marking the last
+    -- copy is an offer of one and handing it over later leaves the row at 0.
+    local markedCount = GetLocationShareCount(bagId, itemData.itemLink)
+    if markedCount <= 0 then
+        markedCount = GetItemShareCount(bagId, slotIndex)
+    end
+    SaveAlwaysShareEntry(itemData, markedCount)
 
     -- The standing offer replaces any share of the same item, in whichever bag it was
     -- filed from. Doing it before the refresh means the window redraws once, already
@@ -2915,13 +3804,13 @@ local function AddAlwaysShareFromBagSlot(bagId, slotIndex)
 
     TryRefreshInventoryVisuals()
     RefreshShareListWindowIfVisible()
-    dmsg(string.format(
+    PrintMessage(string.format(
         "%s always shared item %s. It stays offered even when you do not have one.",
         existing and "Updated" or "Added",
         itemData.itemName
     ))
     if removedShares > 0 then
-        dmsg(string.format(
+        PrintMessage(string.format(
             "Removed %s from the shared list: an item is offered one way at a time.",
             itemData.itemName
         ))
@@ -2933,29 +3822,43 @@ local function PrintAlwaysShareItems()
     local entries = {}
 
     for _, entry in pairs(alwaysShare) do
-        entries[#entries + 1] = entry
+        if type(entry) == "table" then
+            entries[#entries + 1] = entry
+        end
     end
 
     if #entries == 0 then
-        dmsg("Nothing is always shared yet. Right-click an item and choose \"Always Share This Item\".")
+        PrintMessage("Nothing is always shared yet. Right-click an item and choose \"Always Share This Item\".")
         return
     end
 
     table.sort(entries, function(left, right)
-        return zo_strlower(tostring(left.itemName or "")) < zo_strlower(tostring(right.itemName or ""))
+        local leftName = zo_strlower(tostring(left.itemName or ""))
+        local rightName = zo_strlower(tostring(right.itemName or ""))
+        if leftName ~= rightName then
+            return leftName < rightName
+        end
+        return zo_strlower(tostring(left.sharedFrom or left.locationKey or ""))
+            < zo_strlower(tostring(right.sharedFrom or right.locationKey or ""))
     end)
 
-    dmsg(string.format("Always shared (%d):", #entries))
+    PrintMessage(string.format("Always shared (%d):", #entries))
     for index, entry in ipairs(entries) do
-        dmsg(string.format("  %d. %s", index, tostring(entry.itemName or entry.itemLink or "Unknown item")))
+        local place = tostring(entry.sharedFrom or entry.locationKey or "")
+        PrintMessage(string.format(
+            "  %d. %s%s",
+            index,
+            tostring(entry.itemName or entry.itemLink or "Unknown item"),
+            place ~= "" and string.format(" - %s", place) or ""
+        ))
     end
-    dmsg("Remove one with /itemshare noalways <part of the name>.")
+    PrintMessage("Remove one with /itemshare noalways <part of the name>.")
 end
 
 local function RemoveAlwaysShareByName(searchText)
     local needle = zo_strlower(zo_strtrim(tostring(searchText or "")))
     if needle == "" then
-        dmsg("Usage: /itemshare noalways <part of the item name>")
+        PrintMessage("Usage: /itemshare noalways <part of the item name>")
         return
     end
 
@@ -2963,38 +3866,60 @@ local function RemoveAlwaysShareByName(searchText)
     local matches = {}
 
     for key, entry in pairs(alwaysShare) do
-        local name = zo_strlower(tostring(entry.itemName or ""))
-        if name ~= "" and string.find(name, needle, 1, true) then
-            matches[#matches + 1] = key
+        if type(entry) == "table" then
+            local name = zo_strlower(tostring(entry.itemName or ""))
+            if name ~= "" and string.find(name, needle, 1, true) then
+                matches[#matches + 1] = { key = key, entry = entry }
+            end
         end
     end
 
     if #matches == 0 then
-        dmsg(string.format("No always-shared item matches \"%s\".", tostring(searchText)))
+        PrintMessage(string.format("No always-shared item matches \"%s\".", tostring(searchText)))
         return
     end
 
-    if #matches > 1 then
-        dmsg(string.format(
-            "%d always-shared items match \"%s\"; use more of the name.",
-            #matches,
-            tostring(searchText)
+    -- One item can now stand in several places, so a name matches each place it was
+    -- marked in. Every one of them stops being offered, and the message says where.
+    local places = {}
+
+    for _, match in ipairs(matches) do
+        alwaysShare[match.key] = nil
+        local place = tostring(match.entry.sharedFrom or "")
+        if place == "" then
+            place = tostring(match.entry.locationKey or "")
+        end
+        if place == "" then
+            place = "unknown place"
+        end
+        places[#places + 1] = place
+    end
+
+    table.sort(places)
+    TryRefreshInventoryVisuals()
+    RefreshShareListWindowIfVisible()
+
+    if #matches == 1 then
+        PrintMessage(string.format(
+            "Stopped always sharing %s - %s.",
+            tostring(matches[1].entry.itemName or matches[1].key),
+            places[1]
         ))
         return
     end
 
-    local key = matches[1]
-    local entry = alwaysShare[key]
-    alwaysShare[key] = nil
-    TryRefreshInventoryVisuals()
-    RefreshShareListWindowIfVisible()
-    dmsg(string.format("Stopped always sharing %s.", tostring(entry and entry.itemName or key)))
+    PrintMessage(string.format(
+        "Stopped always sharing %s in %d places: %s.",
+        tostring(matches[1].entry.itemName or "that item"),
+        #matches,
+        table.concat(places, ", ")
+    ))
 end
 
 local function RemoveItemFromShareFromBagSlot(bagId, slotIndex)
     local itemData = GetItemDataFromBagSlot(bagId, slotIndex)
     if not itemData or not itemData.itemLink or not itemData.itemName then
-        dmsg("Could not determine item data.")
+        PrintMessage("Could not determine item data.")
         return
     end
 
@@ -3002,7 +3927,7 @@ local function RemoveItemFromShareFromBagSlot(bagId, slotIndex)
     if existing then
         RemoveItemFromShareByKey(itemData.itemKey, existing, true)
     else
-        dmsg(string.format("Item was not found in shared list: %s", itemData.itemName))
+        PrintMessage(string.format("Item was not found in shared list: %s", itemData.itemName))
     end
 end
 
@@ -3039,7 +3964,8 @@ local function AddInventoryContextMenu(slot)
     -- The standing offer is independent of this copy: an item can be shared right
     -- now and marked to always share at the same time, so it gets its own entry
     -- rather than replacing the one above.
-    local alwaysKey = GetAlwaysShareKey(itemLink)
+    local bagLocationKey = select(1, GetBagLocationInfo(bagId))
+    local alwaysKey = GetAlwaysShareKey(itemLink, bagLocationKey)
     if GetAlwaysShareTable()[alwaysKey] then
         AddCustomMenuItem("Stop Always Sharing", function()
             local entry = GetAlwaysShareTable()[alwaysKey]
@@ -3049,7 +3975,7 @@ local function AddInventoryContextMenu(slot)
             -- until the UI was reloaded, so the removal looked like it had failed.
             TryRefreshInventoryVisuals()
             RefreshShareListWindowIfVisible()
-            dmsg(string.format(
+            PrintMessage(string.format(
                 "Stopped always sharing %s.",
                 tostring(entry and entry.itemName or itemName)
             ))
@@ -3078,7 +4004,7 @@ local function AddInventoryContextMenu(slot)
         AddCustomMenuItem("Clear Share Reserve", function()
             if ApplyShareReserve then
                 ApplyShareReserve(itemLink, 0, reserveLocationKey)
-                d(string.format("[ItemShare] Share reserve cleared for %s.", tostring(itemName)))
+                PrintMessage(string.format("Share reserve cleared for %s.", tostring(itemName)))
             end
         end, MENU_ADD_OPTION_LABEL)
     elseif isEligible then
@@ -3090,9 +4016,102 @@ local function AddInventoryContextMenu(slot)
     end
 end
 
+-- ---------------------------------------------------------------- keybinds --
+-- Both menu entries are also keybinds, listed in the game's own keybind list: ESC, Controls,
+-- Keybinds, category ItemShare. A keybind has no row to click, so each one acts on the item
+-- last hovered - hovering is the only way the addon is told which item you mean.
+ZO_CreateStringId("SI_BINDING_NAME_ITEMSHARE_TOGGLE_SHARE", "Toggle share on the hovered item")
+ZO_CreateStringId("SI_BINDING_NAME_ITEMSHARE_TOGGLE_ALWAYS_SHARE", "Toggle always share on the hovered item")
+
+local hoveredShareBagId, hoveredShareSlotIndex = nil, nil
+
+local function RememberHoveredShareSlot(bagId, slotIndex)
+    if type(bagId) == "number" and type(slotIndex) == "number" then
+        hoveredShareBagId, hoveredShareSlotIndex = bagId, slotIndex
+    end
+end
+
+-- Every item tooltip in the game goes through ItemTooltip:SetBagItem - a bag row, the bank,
+-- house storage, the furnishing vault, the deconstruction panel - so hooking that is what
+-- keeps the remembered slot honest instead of guessing from what has focus.
+local function InstallHoveredShareSlotTracking()
+    if type(ZO_PreHook) ~= "function" then
+        return
+    end
+    if ItemTooltip == nil or type(ItemTooltip.SetBagItem) ~= "function" then
+        return
+    end
+
+    ZO_PreHook(ItemTooltip, "SetBagItem", function(_, bagId, slotIndex)
+        RememberHoveredShareSlot(bagId, slotIndex)
+        return false
+    end)
+end
+
+-- The remembered slot can go stale - the item was sold, moved, or the bag was closed - and
+-- sharing whatever has since taken its place would be worse than doing nothing.
+local function GetHoveredShareSlot()
+    if hoveredShareBagId == nil or hoveredShareSlotIndex == nil then
+        PrintMessage("Hover the item first, then press the key again.")
+        return nil, nil
+    end
+
+    local itemLink = GetNormalizedItemLink(hoveredShareBagId, hoveredShareSlotIndex)
+    if not itemLink or itemLink == "" then
+        PrintMessage("Nothing is in that slot any more - hover the item and press again.")
+        return nil, nil
+    end
+
+    return hoveredShareBagId, hoveredShareSlotIndex
+end
+
+-- Pressing the key on an item that is not shared shares it; pressing it again takes the share
+-- back off. Sharing a copy replaces a standing offer of the same item, which is what the menu
+-- does as well, so the two keybinds cannot leave an item in both states.
+function ItemShare_ToggleShare()
+    local bagId, slotIndex = GetHoveredShareSlot()
+    if not bagId then
+        return
+    end
+
+    if FindSharedEntryKeyForBagSlot(bagId, slotIndex) then
+        RemoveItemFromShareFromBagSlot(bagId, slotIndex)
+    else
+        AddItemToShareFromBagSlot(bagId, slotIndex)
+    end
+end
+
+-- The same for the standing offer: on, off, on, off. Marking one clears any share of the item,
+-- and stopping one leaves the copy alone, so this goes through the same entries the menu uses.
+function ItemShare_ToggleAlwaysShare()
+    local bagId, slotIndex = GetHoveredShareSlot()
+    if not bagId then
+        return
+    end
+
+    local itemLink = GetNormalizedItemLink(bagId, slotIndex)
+    local locationKey = select(1, GetBagLocationInfo(bagId))
+    local alwaysShare = GetAlwaysShareTable()
+    local key = (itemLink and locationKey) and GetAlwaysShareKey(itemLink, locationKey) or nil
+    local existing = key and alwaysShare[key] or nil
+
+    if existing then
+        alwaysShare[key] = nil
+        TryRefreshInventoryVisuals()
+        RefreshShareListWindowIfVisible()
+        PrintMessage(string.format(
+            "Stopped always sharing %s.",
+            tostring(existing.itemName or itemLink)
+        ))
+        return
+    end
+
+    AddAlwaysShareFromBagSlot(bagId, slotIndex)
+end
+
 local function RegisterContextMenus()
     if not LibCustomMenu then
-        dmsg("LibCustomMenu not found.")
+        PrintMessage("LibCustomMenu not found.")
         return
     end
 
@@ -3103,7 +4122,7 @@ end
 
 local function ResetSharedItems()
     ItemShare.savedVars.sharedItems = {}
-    dmsg("Saved variables reset. No shared items remain.")
+    PrintMessage("Saved variables reset. No shared items remain.")
     TryRefreshInventoryVisuals()
     RefreshShareListWindowIfVisible()
 end
@@ -3151,13 +4170,22 @@ local function GetTrackedBagIds()
     return bagIds
 end
 
+-- The bags this addon counts are a fixed list, so a change anywhere else is none of
+-- its business. Asked once per slot update, so it stays a plain walk of that list.
+local function IsTrackedBagId(bagId)
+    for _, trackedBagId in ipairs(GetTrackedBagIds()) do
+        if trackedBagId == bagId then
+            return true
+        end
+    end
+
+    return false
+end
+
 BuildActualInventoryIndex = function()
     local countsByEntryKey = {}
     local countsByLink = {}
     local locationsByLink = {}
-    local bagCountsByFurnitureDataId = {}
-    local placedCountsByFurnitureDataId = {}
-    local placedCountsByName = {}
     local observableLocationKeys = {}
 
     for _, bagId in ipairs(GetTrackedBagIds()) do
@@ -3200,42 +4228,9 @@ BuildActualInventoryIndex = function()
                             }
                         end
 
-                        if tonumber(itemData.furnitureDataId) > 0 then
-                            local furnitureDataId = tonumber(itemData.furnitureDataId)
-                            bagCountsByFurnitureDataId[furnitureDataId] = (bagCountsByFurnitureDataId[furnitureDataId] or 0) + stackCount
-                        end
                     end
                 end
             end
-        end
-    end
-
-    if GetPlacedFurnitureCount and GetPlacedFurnitureIdInfo then
-        local placedCount = GetPlacedFurnitureCount() or 0
-        for index = 1, placedCount do
-            local furnitureId = GetPlacedFurnitureIdInfo(index)
-            if furnitureId and GetPlacedFurnitureInfo then
-                local _, furnitureDataId = GetPlacedFurnitureInfo(furnitureId)
-                furnitureDataId = tonumber(furnitureDataId) or 0
-                if furnitureDataId > 0 then
-                    placedCountsByFurnitureDataId[furnitureDataId] = (placedCountsByFurnitureDataId[furnitureDataId] or 0) + 1
-                end
-            end
-        end
-    elseif GetNextPlacedHousingFurnitureId and GetPlacedHousingFurnitureInfo then
-        local furnitureId = GetNextPlacedHousingFurnitureId()
-        while furnitureId do
-            local _, itemName, _, _, _, _, _, _, furnitureDataId = GetPlacedHousingFurnitureInfo(furnitureId)
-            furnitureDataId = tonumber(furnitureDataId) or 0
-            if furnitureDataId > 0 then
-                placedCountsByFurnitureDataId[furnitureDataId] = (placedCountsByFurnitureDataId[furnitureDataId] or 0) + 1
-            elseif itemName and itemName ~= "" then
-                local normalizedName = GetNormalizedText(itemName)
-                if normalizedName then
-                    placedCountsByName[normalizedName] = (placedCountsByName[normalizedName] or 0) + 1
-                end
-            end
-            furnitureId = GetNextPlacedHousingFurnitureId(furnitureId)
         end
     end
 
@@ -3244,12 +4239,51 @@ BuildActualInventoryIndex = function()
         countsByEntryKey = countsByEntryKey,
         countsByLink = countsByLink,
         locationsByLink = locationsByLink,
-        bagCountsByFurnitureDataId = bagCountsByFurnitureDataId,
-        placedCountsByFurnitureDataId = placedCountsByFurnitureDataId,
-        placedCountsByName = placedCountsByName,
     }
 end
 
+-- The one place a readable index holds this link, if there is exactly one. A share whose
+-- own place has run out is asking this question, and the answer has to be single: three
+-- swords split across two bags and the bank is not an item that moved, and guessing would
+-- put a lock on a copy nobody shared.
+local function FindSolePlaceHoldingLink(inventoryIndex, itemLink, excludeLocationKey)
+    local link = tostring(itemLink or "")
+    if link == "" or not inventoryIndex then
+        return nil
+    end
+
+    local found = nil
+    for entryKey, place in pairs(inventoryIndex.countsByEntryKey or {}) do
+        if type(place) == "table" then
+            local placeLink, placeLocationKey = string.match(tostring(entryKey), "^(.*)||([^|]*)$")
+            placeLink = tostring(placeLink or "")
+            placeLocationKey = tostring(placeLocationKey or "")
+
+            if placeLink == link
+                and placeLocationKey ~= ""
+                and placeLocationKey ~= tostring(excludeLocationKey or "")
+                and (tonumber(place.count or 0) or 0) > 0 then
+                if found ~= nil then
+                    return nil
+                end
+
+                found = {
+                    locationKey = placeLocationKey,
+                    sharedFrom = tostring(place.sharedFrom or ""),
+                    count = math.max(0, tonumber(place.count or 0) or 0),
+                }
+            end
+        end
+    end
+
+    return found
+end
+
+-- A share is filed against the place it was made from, so it has to be re-filed when the
+-- copy moves: something shared from your bags and then banked used to drop off the list at
+-- the next pass, because the place it named held nothing and the addon could not tell that
+-- apart from sold. It can tell, as long as the item is plainly in one other place - and when
+-- it is not, the row is left exactly where it was rather than moved on a guess.
 local function FindAlternateSharedEntryMatch(entry, inventoryIndex)
     if not entry or not inventoryIndex then
         return nil
@@ -3263,6 +4297,8 @@ local function FindAlternateSharedEntryMatch(entry, inventoryIndex)
     local entryTrait = tostring(entry.trait or "")
     local entryLocationKey = tostring(entry.locationKey or BuildLocationKeyFromSharedFrom(entry.sharedFrom) or "")
 
+    local found = nil
+
     for entryKey, actualEntry in pairs(inventoryIndex.countsByEntryKey or {}) do
         if entryKey ~= "" and entryKey ~= BuildSharedItemKey(entry.itemLink, entry.locationKey) and type(actualEntry) == "table" then
             local actualItemLink, actualLocationKey = string.match(entryKey, "^(.*)||([^|]*)$")
@@ -3274,7 +4310,12 @@ local function FindAlternateSharedEntryMatch(entry, inventoryIndex)
                 local traitMatches = (entryTrait == "" and actualTrait == "") or (entryTrait ~= "" and actualTrait == entryTrait)
 
                 if traitMatches then
-                    return {
+                    if found ~= nil and found.locationKey ~= actualLocationKey then
+                        -- Two places hold it, so this is not a move and nothing follows.
+                        return nil
+                    end
+
+                    found = {
                         itemKey = entryKey,
                         locationKey = actualLocationKey,
                         sharedFrom = tostring(actualEntry.sharedFrom or entry.sharedFrom or "-"),
@@ -3288,37 +4329,115 @@ local function FindAlternateSharedEntryMatch(entry, inventoryIndex)
         end
     end
 
-    return nil
+    return found
 end
 
-local function ShowSyncSummary(actionName, updatedCount, removedCount, unchangedCount, furnishingProtectedCount, quiet)
+local function ShowSyncSummary(actionName, updatedCount, removedCount, unchangedCount, quiet)
     local summary = string.format(
-        "%s complete. Updated: %d, Removed: %d, Unchanged: %d, Kept furnishings: %d",
+        "%s complete. Updated: %d, Removed: %d, Unchanged: %d",
         tostring(actionName or "Sync"),
         updatedCount,
         removedCount,
-        unchangedCount,
-        furnishingProtectedCount
+        unchangedCount
     )
 
-    d("[ItemShare] " .. summary)
+    -- Left silent on purpose: a sync or rebuild is usually an automatic pass the player
+    -- never asked for, so the counts line read as spam. Kept here, commented out, so it
+    -- can be switched back on without being rewritten.
+    -- PrintMessage(summary)
     if not quiet then
-        if furnishingProtectedCount > 0 then
-            d("[ItemShare] " .. string.format(
-                "%d furnishing share%s kept: the bag was read and the piece was not in it, but a furnishing can be placed in a house, so it is kept rather than removed.",
-                furnishingProtectedCount,
-                furnishingProtectedCount == 1 and "" or "s"
-            ))
-        end
-        d("[ItemShare] Use /ishare save or /reloadui to persist changes.")
+        PrintMessage("Use /ishare save or /reloadui to persist changes.")
     end
-    dmsg(summary)
+end
+
+-- A standing offer is a promise about one place: the number beside it is what that
+-- place holds of the item, and sync, rebuild and the login pass all come through here
+-- to keep it true. A place that cannot be read this session keeps the number it had,
+-- because a shut bank proves nothing about what is inside it - the same rule shares use.
+RefreshAlwaysShareHeldCounts = function(inventoryIndex)
+    local alwaysShare = ItemShare.savedVars and ItemShare.savedVars.alwaysShare
+    if type(alwaysShare) ~= "table" or not inventoryIndex then
+        return 0
+    end
+
+    local changed = 0
+    local rekeys = {}
+    for key, entry in pairs(alwaysShare) do
+        if type(entry) == "table" then
+            local link = tostring(entry.itemLink or "")
+            local locationKey = tostring(entry.locationKey or "")
+
+            if link ~= "" then
+                local held = nil
+
+                if locationKey ~= "" then
+                    local place = inventoryIndex.countsByEntryKey
+                        and inventoryIndex.countsByEntryKey[BuildSharedItemKey(link, locationKey)]
+                    if type(place) == "table" then
+                        held = math.max(0, tonumber(place.count or 0) or 0)
+                        entry.sharedFrom = tostring(place.sharedFrom or entry.sharedFrom or "")
+                    elseif inventoryIndex.observableLocationKeys
+                        and inventoryIndex.observableLocationKeys[locationKey] == true then
+                        -- That place is readable and holds none of it, so the copy has
+                        -- moved or gone. If exactly one other place holds the item, the
+                        -- offer goes with it: an offer is about the item, and dropping to
+                        -- zero in a place you emptied read as the offer having stopped.
+                        local movedTo = FindSolePlaceHoldingLink(inventoryIndex, link, locationKey)
+                        if movedTo then
+                            entry.locationKey = tostring(movedTo.locationKey or "")
+                            entry.sharedFrom = tostring(movedTo.sharedFrom or "")
+                            held = movedTo.count
+                        else
+                            held = 0
+                        end
+                    end
+                else
+                    -- An offer saved before the place was recorded adopts the place the
+                    -- item is in now, once, so it has somewhere to count from.
+                    for entryKey, place in pairs(inventoryIndex.countsByEntryKey or {}) do
+                        local placeLink, placeLocationKey = string.match(tostring(entryKey), "^(.*)||([^|]*)$")
+                        if tostring(placeLink or "") == link and type(place) == "table" then
+                            entry.locationKey = tostring(placeLocationKey or "")
+                            entry.sharedFrom = tostring(place.sharedFrom or "")
+                            held = math.max(0, tonumber(place.count or 0) or 0)
+                            break
+                        end
+                    end
+                end
+
+                if held ~= nil and held ~= GetEntryHeldCount(entry) then
+                    entry.heldCount = held
+                    entry.lastUpdatedAt = GetTimeStamp()
+                    changed = changed + 1
+                end
+
+                -- Adopting a place changes the key the offer is filed under, so the move
+                -- is queued here and made once the table is no longer being walked.
+                local wanted = GetAlwaysShareKey(link, entry.locationKey)
+                if key ~= wanted then
+                    rekeys[#rekeys + 1] = { from = key, to = wanted, entry = entry }
+                end
+            end
+        end
+    end
+
+    for _, move in ipairs(rekeys) do
+        if alwaysShare[move.from] == move.entry then
+            alwaysShare[move.from] = nil
+        end
+        if alwaysShare[move.to] == nil then
+            alwaysShare[move.to] = move.entry
+            changed = changed + 1
+        end
+    end
+
+    return changed
 end
 
 SyncSharedItemsWithInventory = function(quiet)
     local sharedItems = ItemShare.savedVars.sharedItems
     local inventoryIndex = BuildActualInventoryIndex()
-    local removedCount, updatedCount, unchangedCount, furnishingProtectedCount = 0, 0, 0, 0
+    local removedCount, updatedCount, unchangedCount = 0, 0, 0
 
     local snapshot = {}
     for itemKey, entry in pairs(sharedItems) do
@@ -3332,33 +4451,16 @@ SyncSharedItemsWithInventory = function(quiet)
         local currentLocation = actualByEntry and tostring(actualByEntry.sharedFrom or entry.sharedFrom or "-") or tostring(entry.sharedFrom or "-")
         local currentLocationKey = actualByEntry and tostring(actualByEntry.locationKey or entry.locationKey or "") or tostring(entry.locationKey or "")
         local currentItemKey = itemKey
-        local isFurnishing = IsEntryFurnishing(entry)
-        local furnitureDataId = tonumber(entry.furnitureDataId) or 0
 
-        if actualCount == 0 then
+        -- A piece filed by /ishare scan stands in a house rather than in a bag, so
+        -- the bags must not claim it back: the scan of that house is its only record.
+        if actualCount == 0 and not IsPlacedLocationKey(entry.locationKey) then
             local alternateMatch = FindAlternateSharedEntryMatch(entry, inventoryIndex)
             if alternateMatch then
                 actualCount = tonumber(alternateMatch.count or 0) or 0
                 currentLocation = tostring(alternateMatch.sharedFrom or currentLocation or "-")
                 currentLocationKey = tostring(alternateMatch.locationKey or currentLocationKey or "")
                 currentItemKey = tostring(alternateMatch.itemKey or currentItemKey or itemKey)
-            end
-        end
-
-        if isFurnishing and actualCount == 0 then
-            local extraCount = 0
-            if furnitureDataId > 0 then
-                extraCount = (inventoryIndex.bagCountsByFurnitureDataId[furnitureDataId] or 0) + (inventoryIndex.placedCountsByFurnitureDataId[furnitureDataId] or 0)
-            else
-                extraCount = inventoryIndex.placedCountsByName[entry.itemName] or 0
-            end
-
-            if extraCount > 0 then
-                local placedKey, placedLabel = GetPlacedFurnitureLocationInfo()
-                actualCount = extraCount
-                currentLocation = placedLabel
-                currentLocationKey = placedKey
-                currentItemKey = BuildSharedItemKey(entry.itemLink, placedKey)
             end
         end
 
@@ -3370,21 +4472,11 @@ SyncSharedItemsWithInventory = function(quiet)
                 -- That bag could not be read this session, so "not found" proves
                 -- nothing about the item. Keep the share rather than delete blind.
                 unchangedCount = unchangedCount + 1
-            elseif isFurnishing then
-                -- The bag was read and the piece was not in it, but a furnishing can be
-                -- placed in a house, and only the house the character is standing in can
-                -- be read. Kept, and counted on its own so the number is never mistaken
-                -- for shares that were found.
-                furnishingProtectedCount = furnishingProtectedCount + 1
-                unchangedCount = unchangedCount + 1
-                if not quiet then
-                    dmsg(string.format("Kept furnishing share entry (not in its bag, and possibly placed in a house): %s", itemName))
-                end
             else
                 sharedItems[itemKey] = nil
                 removedCount = removedCount + 1
                 if not quiet then
-                    dmsg(string.format("Removed missing shared item: %s [%s]", itemName, tostring(entry.sharedFrom or "-")))
+                    PrintMessage(string.format("Removed missing shared item: %s [%s]", itemName, tostring(entry.sharedFrom or "-")))
                 end
             end
         else
@@ -3412,7 +4504,7 @@ SyncSharedItemsWithInventory = function(quiet)
                 or previousLocationKey ~= currentLocationKey then
                 updatedCount = updatedCount + 1
                 if not quiet then
-                    dmsg(string.format("Updated shared item: %s (%d) - %s", itemName, GetEntryOfferedCount(entry), currentLocation))
+                    PrintMessage(string.format("Updated shared item: %s (%d) - %s", itemName, GetEntryOfferedCount(entry), currentLocation))
                 end
             else
                 unchangedCount = unchangedCount + 1
@@ -3420,14 +4512,17 @@ SyncSharedItemsWithInventory = function(quiet)
         end
     end
 
-    ShowSyncSummary("Sync", updatedCount, removedCount, unchangedCount, furnishingProtectedCount, quiet)
+    RefreshAlwaysShareHeldCounts(inventoryIndex)
+    ShowSyncSummary("Sync", updatedCount, removedCount, unchangedCount, quiet)
     RefreshShareListWindowIfVisible()
 end
 
 RebuildSharedItemsWithInventory = function(quiet)
     local sharedItems = ItemShare.savedVars.sharedItems
     local inventoryIndex = BuildActualInventoryIndex()
-    local removedCount, updatedCount, unchangedCount, furnishingProtectedCount = 0, 0, 0, 0
+    -- Dropped here as well as at login: whatever wrote the file, a row from the
+    -- removed placed-furniture idea must not be carried forward into the next save.
+    local removedCount, updatedCount, unchangedCount = PruneLegacyPlacedFurnitureShares(), 0, 0
 
     local snapshot = {}
     for itemKey, entry in pairs(sharedItems) do
@@ -3442,10 +4537,10 @@ RebuildSharedItemsWithInventory = function(quiet)
         local currentLocationKey = actualByEntry and tostring(actualByEntry.locationKey or entry.locationKey or "") or tostring(entry.locationKey or "")
         local currentItemKey = itemKey
         local currentItemData = actualByEntry and actualByEntry.itemData or nil
-        local isFurnishing = IsEntryFurnishing(entry)
-        local furnitureDataId = tonumber(entry.furnitureDataId) or 0
 
-        if actualCount == 0 then
+        -- A piece filed by /ishare scan stands in a house rather than in a bag, so
+        -- the bags must not claim it back: the scan of that house is its only record.
+        if actualCount == 0 and not IsPlacedLocationKey(entry.locationKey) then
             local alternateMatch = FindAlternateSharedEntryMatch(entry, inventoryIndex)
             if alternateMatch then
                 actualCount = tonumber(alternateMatch.count or 0) or 0
@@ -3456,23 +4551,6 @@ RebuildSharedItemsWithInventory = function(quiet)
             end
         end
 
-        if isFurnishing and actualCount == 0 then
-            local extraCount = 0
-            if furnitureDataId > 0 then
-                extraCount = (inventoryIndex.bagCountsByFurnitureDataId[furnitureDataId] or 0) + (inventoryIndex.placedCountsByFurnitureDataId[furnitureDataId] or 0)
-            else
-                extraCount = inventoryIndex.placedCountsByName[entry.itemName] or 0
-            end
-
-            if extraCount > 0 then
-                local placedKey, placedLabel = GetPlacedFurnitureLocationInfo()
-                actualCount = extraCount
-                currentLocation = placedLabel
-                currentLocationKey = placedKey
-                currentItemKey = BuildSharedItemKey(entry.itemLink, placedKey)
-            end
-        end
-
         local entryLocationKey = tostring(entry.locationKey or BuildLocationKeyFromSharedFrom(entry.sharedFrom) or "")
         local canVerify = inventoryIndex.observableLocationKeys[entryLocationKey] == true
 
@@ -3480,19 +4558,11 @@ RebuildSharedItemsWithInventory = function(quiet)
             if not canVerify then
                 -- Unreadable bag: keep the share until a session can see it.
                 unchangedCount = unchangedCount + 1
-            elseif isFurnishing then
-                -- Readable bag, no piece in it, but a furnishing can be placed in a house
-                -- that cannot be read from here, so it is kept rather than removed.
-                furnishingProtectedCount = furnishingProtectedCount + 1
-                unchangedCount = unchangedCount + 1
-                if not quiet then
-                    dmsg(string.format("Kept furnishing share entry during rebuild (not in its bag, and possibly placed in a house): %s", itemName))
-                end
             else
                 sharedItems[itemKey] = nil
                 removedCount = removedCount + 1
                 if not quiet then
-                    dmsg(string.format("Removed missing shared item during rebuild: %s [%s]", itemName, tostring(entry.sharedFrom or "-")))
+                    PrintMessage(string.format("Removed missing shared item during rebuild: %s [%s]", itemName, tostring(entry.sharedFrom or "-")))
                 end
             end
         else
@@ -3541,7 +4611,7 @@ RebuildSharedItemsWithInventory = function(quiet)
                 or previousWeaponType ~= tostring(entry.weaponType or "") then
                 updatedCount = updatedCount + 1
                 if not quiet then
-                    dmsg(string.format("Rebuilt shared item: %s (%d) - %s", itemName, GetEntryOfferedCount(entry), tostring(entry.sharedFrom or "-")))
+                    PrintMessage(string.format("Rebuilt shared item: %s (%d) - %s", itemName, GetEntryOfferedCount(entry), tostring(entry.sharedFrom or "-")))
                 end
             else
                 unchangedCount = unchangedCount + 1
@@ -3549,7 +4619,8 @@ RebuildSharedItemsWithInventory = function(quiet)
         end
     end
 
-    ShowSyncSummary("Rebuild", updatedCount, removedCount, unchangedCount, furnishingProtectedCount, quiet)
+    RefreshAlwaysShareHeldCounts(inventoryIndex)
+    ShowSyncSummary("Rebuild", updatedCount, removedCount, unchangedCount, quiet)
     RefreshShareListWindowIfVisible()
 end
 
@@ -3559,6 +4630,23 @@ end
 -- data (item id, icon, guild ids, set, enchant, style, level, CP, flavour text),
 -- and entries whose location was readable but no longer holds the item are
 -- dropped. Locations that could not be read are left alone.
+-- Nothing to refresh means nothing to scan: a player with no shares and no standing
+-- offers should not pay for a rebuild every time they pick something up.
+local function HasEntriesToRefresh()
+    local savedVars = ItemShare.savedVars
+    if not savedVars then
+        return false
+    end
+
+    return next(savedVars.alwaysShare or {}) ~= nil or next(savedVars.sharedItems or {}) ~= nil
+end
+
+-- A slot change is worth a pass only when it happened in a bag this addon counts and
+-- there is a table that could have gone stale.
+local function ShouldReconcileForInventoryChange(bagId)
+    return IsTrackedBagId(bagId) and HasEntriesToRefresh()
+end
+
 local autoReconcilePending = false
 
 local function ScheduleAutoReconcile(reason)
@@ -3575,7 +4663,9 @@ local function ScheduleAutoReconcile(reason)
 
         RefreshGuildSnapshot()
         RebuildSharedItemsWithInventory(true)
-        d(string.format("[ItemShare] Shared items refreshed after %s.", tostring(reason or "login")))
+        -- This pass runs on login, on every bank visit and after most bag changes, so the
+        -- line was noise. Kept, commented out, for whenever it is wanted again.
+        -- PrintMessage(string.format("Shared items refreshed after %s.", tostring(reason or "login")))
     end, 4000)
 end
 
@@ -3600,7 +4690,7 @@ local function SetShareReserveByName(searchText, amount)
     local matches = SharedEntriesMatching(searchText)
 
     if #matches == 0 then
-        dmsg(string.format("No shared item matches \"%s\".", tostring(searchText)))
+        PrintMessage(string.format("No shared item matches \"%s\".", tostring(searchText)))
         return
     end
     if #matches > 1 then
@@ -3622,7 +4712,7 @@ local function SetShareReserveByName(searchText, amount)
         end
 
         if sameItem then
-            dmsg(string.format(
+            PrintMessage(string.format(
                 "%s is shared from more than one place (%s); set its reserve from the item's right-click menu in the bag you mean.",
                 tostring(matches[1].itemName or "that item"),
                 JoinSortedLocations(places)
@@ -3630,7 +4720,7 @@ local function SetShareReserveByName(searchText, amount)
             return
         end
 
-        dmsg(string.format(
+        PrintMessage(string.format(
             "%d shared items match \"%s\"; use more of the name.",
             #matches,
             tostring(searchText)
@@ -3654,7 +4744,7 @@ local function SetShareReserveByName(searchText, amount)
     RefreshShareListWindowIfVisible()
 
     if reserve > 0 then
-        dmsg(string.format(
+        PrintMessage(string.format(
             "%s: keeping %d back, sharing %d of %d held.",
             tostring(entry.itemName or "that item"),
             reserve,
@@ -3662,7 +4752,7 @@ local function SetShareReserveByName(searchText, amount)
             held
         ))
     else
-        dmsg(string.format(
+        PrintMessage(string.format(
             "%s: sharing everything held (%d).",
             tostring(entry.itemName or "that item"),
             offered
@@ -3696,7 +4786,8 @@ ApplyShareReserve = function(itemLink, amount, locationKey)
     local alwaysShare = ItemShare.savedVars.alwaysShare
     if type(alwaysShare) == "table" then
         for _, entry in pairs(alwaysShare) do
-            if type(entry) == "table" and tostring(entry.itemLink or "") == link then
+            if type(entry) == "table" and tostring(entry.itemLink or "") == link
+                and (placeKey == "" or tostring(entry.locationKey or "") == placeKey) then
                 updated = updated or entry
             end
         end
@@ -3858,16 +4949,16 @@ local function BuildReserveDialog()
         local offered = GetEntryOfferedCount(entry)
 
         if held > 0 then
-            d(string.format(
-                "[ItemShare] %s: keeping %d back, so %d of %d held are shared.",
+            PrintMessage(string.format(
+                "%s: keeping %d back, so %d of %d held are shared.",
                 tostring(pending.itemName),
                 amount,
                 offered,
                 held
             ))
         else
-            d(string.format(
-                "[ItemShare] %s: keeping %d back. Nothing is offered until you hold more.",
+            PrintMessage(string.format(
+                "%s: keeping %d back. Nothing is offered until you hold more.",
                 tostring(pending.itemName),
                 amount
             ))
@@ -3884,8 +4975,8 @@ local function BuildReserveDialog()
 
         local entry = ApplyShareReserve(pending.itemLink, 0, pending.locationKey)
         local held = GetEntryHeldCount(entry)
-        d(string.format(
-            "[ItemShare] %s: reserve cleared, so everything held is shared (%d).",
+        PrintMessage(string.format(
+            "%s: reserve cleared, so everything held is shared (%d).",
             tostring(pending.itemName),
             held
         ))
@@ -3916,8 +5007,8 @@ OpenShareReserveDialog = function(bagId, slotIndex)
     local dialog = BuildReserveDialog()
 
     if not dialog then
-        d(string.format(
-            "[ItemShare] The reserve box is unavailable in this client. Use /itemshare reserve <amount> %s.",
+        PrintMessage(string.format(
+            "The reserve box is unavailable in this client. Use /itemshare reserve <amount> %s.",
             tostring(itemName)
         ))
         return
@@ -4022,7 +5113,7 @@ local function PrintShareReserves()
     end
 
     if #rows == 0 then
-        dmsg("No item has a share reserve. Set one with /itemshare reserve <amount> <part of the name>.")
+        PrintMessage("No item has a share reserve. Set one with /itemshare reserve <amount> <part of the name>.")
         return
     end
 
@@ -4057,10 +5148,10 @@ local function PrintShareReserves()
         return PlaceOf(a) < PlaceOf(b)
     end)
 
-    dmsg(string.format("Share reserves (%d):", #rows))
+    PrintMessage(string.format("Share reserves (%d):", #rows))
     for _, row in ipairs(rows) do
         if row.entry then
-            dmsg(string.format(
+            PrintMessage(string.format(
                 "  %s [%s]: keep %d, sharing %d of %d held",
                 NameOf(row),
                 PlaceOf(row),
@@ -4069,7 +5160,7 @@ local function PrintShareReserves()
                 GetEntryHeldCount(row.entry)
             ))
         else
-            dmsg(string.format(
+            PrintMessage(string.format(
                 "  %s [%s]: keep %d, not shared",
                 NameOf(row),
                 PlaceOf(row),
@@ -4077,30 +5168,90 @@ local function PrintShareReserves()
             ))
         end
     end
-    dmsg("Clear one with /itemshare noreserve <part of the name>, or from the item's right-click menu.")
+    PrintMessage("Clear one with /itemshare noreserve <part of the name>, or from the item's right-click menu.")
+end
+
+-- /itemshare expire <days> is a statement about the list, not about one item, so it
+-- is kept in the saved variables and read when a badge is painted. That is what makes
+-- it apply by itself after a reload, and on the next inventory, bank or storage view.
+local function SetShareExpireDays(rawArg)
+    local value = zo_strtrim(tostring(rawArg or ""):match("^%s*[Ee]xpire%s*(.*)$") or "")
+    local days = tonumber(value)
+    local current = GetExpireDays()
+    local expired, total = CountSharesAboveExpireLimit()
+
+    if value == "" then
+        if current > 0 then
+            PrintMessage(string.format(
+                "Shares older than %d days show the stopwatch: %d of %d are past it.",
+                current,
+                expired,
+                total
+            ))
+        else
+            PrintMessage("No expire limit is set, so no share shows the stopwatch.")
+        end
+        PrintMessage("Use /itemshare expire <days> to mark shares older than that many days, or /itemshare expire 0 to stop marking them.")
+        return
+    end
+
+    if not days or days < 0 or days ~= math.floor(days) then
+        PrintMessage("Usage: /itemshare expire <days>   (0 turns the stopwatch off)")
+        return
+    end
+
+    ItemShare.savedVars.expireDays = days
+    TryRefreshInventoryVisuals()
+    RefreshShareListWindowIfVisible()
+
+    if days <= 0 then
+        PrintMessage("Expire limit cleared: no share shows the stopwatch.")
+    else
+        PrintMessage(string.format(
+            "Shares older than %d days now show the stopwatch: %d of %d are past it.",
+            days,
+            expired,
+            total
+        ))
+    end
+end
+
+-- One list, printed from one place. The bare command and the unknown-command fallback
+-- each carried their own copy of it, which is how a command that works - guildbank - ends
+-- up missing from the help, and how a line that made no sense survived in both copies.
+local function PrintCommandHelp()
+    PrintMessage("Commands:")
+    PrintMessage("/itemshare list      - Open the shared items window")
+    PrintMessage("/itemshare reset     - Clear all shared entries")
+    PrintMessage("/itemshare sync      - Recount and drop shares you no longer own, in bags that are readable now")
+    PrintMessage("/itemshare rebuild   - Rewrite every shared item from your current bags (also runs on login and when a bank opens)")
+    PrintMessage("/itemshare save      - Reload the UI")
+    PrintMessage("/itemshare guilds    - Show the guilds this character's shares are matched against")
+    PrintMessage("/itemshare always    - List the items you always offer, in or out of your bags")
+    PrintMessage("/itemshare noalways  - Stop always sharing one: /itemshare noalways <part of the name>")
+    PrintMessage("/itemshare reserve N <name> - Share only what you hold above N of that item")
+    PrintMessage("/itemshare noreserve <name> - Share everything you hold of that item again")
+    PrintMessage("/itemshare reserves  - List the items you keep a reserve on")
+    PrintMessage("/itemshare expire N  - Show a stopwatch on shares older than N days (0 turns it off)")
+    PrintMessage("/itemshare server    - Show the platform and megaserver this file is recorded for")
+    PrintMessage("/itemshare guildbank - Turn sharing from the guild bank on or off")
+    PrintMessage("/itemshare scan      - Share every unbound furnishing placed in the house you own and are standing in")
+    PrintMessage("/itemshare scan clear - Clear every share filed as Placed (<house>) for the house you are standing in")
+    PrintMessage("/itemshare protect   - Turn the lock on a shared copy on or off: mailing and trading still work")
+    PrintMessage("Right-click an item - Add to Share, Always Share This Item, Share Reserve")
 end
 
 local function OnSlashCommand(arg)
+    if not ItemShare.savedVars then
+        PrintMessage("The addon has not finished loading, so there is nothing to run yet. If this never changes, check the addon folder is named ItemShare.")
+        return
+    end
+
     local rawArg = zo_strtrim(arg or "")
     local lowerArg = zo_strlower(rawArg)
 
     if lowerArg == "" then
-        dmsg("Commands:")
-        dmsg("/itemshare list      - Open the shared items window")
-        dmsg("/itemshare reset     - Clear all shared entries")
-        dmsg("/itemshare sync      - Recount and drop shares you no longer own, in bags that are readable now")
-        dmsg("/itemshare rebuild   - Rewrite every shared item from your current bags (also runs on login and when a bank opens)")
-        dmsg("/itemshare save      - Reload the UI")
-        dmsg("/itemshare debug     - Toggle debug messages on or off")
-        dmsg("/itemshare guilds    - Show the guilds this character's shares are matched against")
-        dmsg("/itemshare always    - List the items you always offer, in or out of your bags")
-        dmsg("/itemshare noalways  - Stop always sharing one: /itemshare noalways <part of the name>")
-        dmsg("/itemshare reserve N <name> - Share only what you hold above N of that item")
-        dmsg("/itemshare noreserve <name> - Share everything you hold of that item again")
-        dmsg("/itemshare reserves  - List the items you keep a reserve on")
-        dmsg("/itemshare server    - Show the platform and megaserver this file is recorded for")
-        dmsg("Right-click an item - Share Reserve asks for a number to keep back")
-        dmsg("                   - Furnishings also check furnishing vault and placed furniture")
+        PrintCommandHelp()
     elseif lowerArg == "list" then
         local window = ItemShare.ui and ItemShare.ui.listWindow
         if window and not window:IsHidden() then
@@ -4113,18 +5264,19 @@ local function OnSlashCommand(arg)
         ResetSharedItems()
     elseif lowerArg == "sync" or lowerArg == "cleanup" or lowerArg == "reconcile" then
         SyncSharedItemsWithInventory()
+    elseif string.match(lowerArg, "^scan%s+clear$") or string.match(lowerArg, "^scan%s+reset$") then
+        ClearPlacedFurnishingsForCurrentHouse()
+    elseif lowerArg == "scan" then
+        ScanPlacedFurnishings()
     elseif lowerArg == "rebuild" then
         RebuildSharedItemsWithInventory()
     elseif lowerArg == "save" then
         RebuildSharedItemsWithInventory()
         ConfirmReloadUI()
-    elseif lowerArg == "debug" then
-        ItemShare.savedVars.debugEnabled = not ItemShare.savedVars.debugEnabled
-        d(string.format("[ItemShare] Debug %s.", ItemShare.savedVars.debugEnabled and "enabled" or "disabled"))
     elseif lowerArg == "guilds" then
         local guilds = RefreshGuildSnapshot()
         if #guilds == 0 then
-            dmsg("No guilds detected for this character yet. Try again once the guild list has loaded.")
+            PrintMessage("No guilds detected for this character yet. Try again once the guild list has loaded.")
         else
             PruneDepartedGuilds()
             RefreshShareListWindowIfVisible()
@@ -4133,19 +5285,19 @@ local function OnSlashCommand(arg)
             local snapshot = snapshots[GetCurrentCharacterName()]
             local slots = type(snapshot) == "table" and snapshot.guildIds or nil
 
-            dmsg(string.format("Guild slots for %s:", GetCurrentCharacterName()))
+            PrintMessage(string.format("Guild slots for %s:", GetCurrentCharacterName()))
             for slot = 1, MAX_GUILD_SLOTS do
                 local guildId = type(slots) == "table" and (tonumber(slots[slot]) or 0) or 0
                 if guildId > 0 then
                     local guildName = GetGuildNameById(guildId)
-                    dmsg(string.format(
+                    PrintMessage(string.format(
                         "  %d: %s (id: %d)",
                         slot,
                         guildName ~= "" and guildName or "Unknown guild",
                         guildId
                     ))
                 else
-                    dmsg(string.format("  %d: no guild", slot))
+                    PrintMessage(string.format("  %d: no guild", slot))
                 end
             end
         end
@@ -4160,51 +5312,71 @@ local function OnSlashCommand(arg)
     elseif string.match(lowerArg, "^reserve%s+") then
         local amount, needle = rawArg:match("^%s*[Rr]eserve%s+(%d+)%s+(.+)$")
         if not amount then
-            dmsg("Usage: /itemshare reserve <amount to keep> <part of the item name>")
+            PrintMessage("Usage: /itemshare reserve <amount to keep> <part of the item name>")
         else
             SetShareReserveByName(zo_strtrim(needle), tonumber(amount) or 0)
         end
+    elseif lowerArg == "protect" then
+        local wasEnabled = ItemShare.savedVars.shareProtection ~= false
+        ItemShare.savedVars.shareProtection = not wasEnabled
+        PrintMessage(string.format(
+            "Share protection %s. %s",
+            wasEnabled and "off" or "on",
+            wasEnabled and "Shared copies are unlocked: they can be sold, deconstructed or used again." or "A copy shared from a place is locked: it can be mailed or traded, nothing else."
+        ))
+    elseif lowerArg == "expire" or string.match(lowerArg, "^expire%s") then
+        SetShareExpireDays(rawArg)
     elseif lowerArg == "server" then
         PrintServerEnvironment()
     elseif lowerArg == "guildbank" then
         local current = ItemShare.savedVars.guildBankSharingEnabled == true
         ItemShare.savedVars.guildBankSharingEnabled = not current
 
-        d(string.format(
-            "[ItemShare] Guild bank sharing %s.",
+        PrintMessage(string.format(
+            "Guild bank sharing %s.",
             ItemShare.savedVars.guildBankSharingEnabled and "enabled" or "disabled"
         ))
         RefreshShareListWindowIfVisible()
     else
-        dmsg("Commands:")
-        dmsg("/itemshare list      - Open the shared items window")
-        dmsg("/itemshare reset     - Clear all shared entries")
-        dmsg("/itemshare sync      - Recount and drop shares you no longer own, in bags that are readable now")
-        dmsg("/itemshare rebuild   - Rewrite every shared item from your current bags (also runs on login and when a bank opens)")
-        dmsg("/itemshare save      - Reload the UI")
-        dmsg("/itemshare guilds    - Show the guilds this character's shares are matched against")
-        dmsg("/itemshare always    - List the items you always offer, in or out of your bags")
-        dmsg("/itemshare noalways  - Stop always sharing one: /itemshare noalways <part of the name>")
-        dmsg("/itemshare reserve N <name> - Share only what you hold above N of that item")
-        dmsg("/itemshare noreserve <name> - Share everything you hold of that item again")
-        dmsg("/itemshare reserves  - List the items you keep a reserve on")
-        dmsg("/itemshare server    - Show the platform and megaserver this file is recorded for")
-        dmsg("Right-click an item - Share Reserve asks for a number to keep back")
-        dmsg("                   - Furnishings also check furnishing vault and placed furniture")
+        PrintCommandHelp()
     end
 end
 
+-- ESO hands this event the addon's folder name, not the Title in the manifest. A copy
+-- unzipped from GitHub arrives as "ItemShare-main", so an exact comparison loaded this
+-- file, showed its version, and then returned before registering a single command,
+-- event or message - which looks exactly like an addon that is running but mute.
+local function IsItemShareAddonName(name)
+    local lower = zo_strlower(tostring(name or ""))
+    return lower == "itemshare" or string.sub(lower, 1, #"itemshare") == "itemshare"
+end
+
 local function OnAddonLoaded(event, addonName)
-    if addonName ~= ItemShare.name then
+    if not IsItemShareAddonName(addonName) then
         return
     end
 
     EVENT_MANAGER:UnregisterForEvent(ItemShare.name, EVENT_ADD_ON_LOADED)
 
+    -- Said first, before any setup that could go wrong, so a silent failure cannot be
+    -- mistaken for a command that did not run.
+    PrintMessage(string.format(
+        "Loaded (version %s) from the folder '%s'. Shared items refresh from your bags on login and when you open the bank.",
+        ADDON_VERSION,
+        tostring(addonName)
+    ))
+    if tostring(addonName) ~= ItemShare.name then
+        PrintMessage(string.format(
+            "That folder name is not '%s'. Renaming it to '%s' is what the update instructions expect.",
+            ItemShare.name,
+            ItemShare.name
+        ))
+    end
+
     ItemShare.savedVars = ZO_SavedVars:NewAccountWide(
         "ItemShareSavedVars",
         SAVED_VARS_VERSION,
-        nil,
+        GetWorldName(),
         defaults
     )
 
@@ -4223,6 +5395,16 @@ local function OnAddonLoaded(event, addonName)
     end
 
     GetAlwaysShareTable()
+    ReindexAlwaysShareTable()
+
+    local legacyPlacedShares = PruneLegacyPlacedFurnitureShares()
+    if legacyPlacedShares > 0 then
+        PrintMessage(string.format(
+            "Removed %d share%s that were filed as placed furniture. Run /ishare scan in your storage house to file them again.",
+            legacyPlacedShares,
+            legacyPlacedShares == 1 and "" or "s"
+        ))
+    end
 
     ItemShare.savedVars.addonVersion = ADDON_VERSION
     -- The platform and megaserver are read once per load, before anything is offered:
@@ -4241,7 +5423,6 @@ local function OnAddonLoaded(event, addonName)
         end, 3000)
     end
 
-    if EVENT_GUILD_SELF_LEFT_GUILD then
         EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_GUILD_SELF_LEFT_GUILD, function()
             -- The guild list is not always updated in the same frame as the event, so the
             -- snapshot is taken again shortly afterwards rather than immediately.
@@ -4252,32 +5433,62 @@ local function OnAddonLoaded(event, addonName)
                 end, 2000)
             end
         end)
-    end
 
-    if EVENT_PLAYER_ACTIVATED then
         EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_PLAYER_ACTIVATED, function()
             ScheduleAutoReconcile("login")
         end)
-    end
-    if EVENT_OPEN_BANK then
         EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_OPEN_BANK, function()
             ScheduleAutoReconcile("the bank opening")
         end)
-    end
-    if EVENT_CLOSE_BANK then
         EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_CLOSE_BANK, function()
             ScheduleAutoReconcile("the bank closing")
         end)
-    end
+
+    -- A count goes stale the moment something leaves a bag, and selling, deconstructing,
+    -- trading, mailing or destroying never opens the bank, so nothing used to notice and
+    -- the number kept whatever the last sync or reload left behind. A slot update covers
+    -- every one of those, and ScheduleAutoReconcile collapses a burst into one pass, so a
+    -- loot run or a stack split costs a single rebuild rather than one per item.
+        EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function(_, bagId)
+            if not ShouldReconcileForInventoryChange(bagId) then
+                return
+            end
+
+            ScheduleAutoReconcile("a change in your bags")
+        end)
+
+    -- A completed trade can move a whole stack without a slot update for the copy that
+    -- left, so the window closing is the second chance to notice it.
+        EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_CLOSE_TRADE_WINDOW, function()
+            if not HasEntriesToRefresh() then
+                return
+            end
+
+            ScheduleAutoReconcile("a trade")
+        end)
 
     RegisterContextMenus()
+    InstallShareProtection()
+    InstallHoveredShareSlotTracking()
     HookInventoryRowCallbacks()
+    HookCraftingInventoryRows()
+    HookInventorySlotBinding()
     if zo_callLater then
         zo_callLater(HookInventoryRowCallbacks, 500)
+        zo_callLater(HookCraftingInventoryRows, 1000)
     end
 
-    SLASH_COMMANDS["/itemshare"] = OnSlashCommand
-    SLASH_COMMANDS["/ishare"] = OnSlashCommand
+    -- A crafting panel is built as its scene opens, so the pass is repeated once the
+    -- scene has had a frame to create the inventory it holds.
+    if SCENE_MANAGER and SCENE_MANAGER.RegisterCallback then
+        SCENE_MANAGER:RegisterCallback("SceneStateChanged", function()
+            if zo_callLater then
+                zo_callLater(HookCraftingInventoryRows, 100)
+            else
+                HookCraftingInventoryRows()
+            end
+        end)
+    end
 
     if ItemShare.savedVars.listWindowState and ItemShare.savedVars.listWindowState.isOpen then
         PrintSharedItems()
@@ -4285,10 +5496,25 @@ local function OnAddonLoaded(event, addonName)
         CreateShareListWindow()
     end
 
-    dmsg(string.format(
-        "Loaded (version %s). Shared items refresh from your bags on login and when you open the bank.",
-        ADDON_VERSION
-    ))
 end
 
-EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_ADD_ON_LOADED, OnAddonLoaded)
+-- An error anywhere in the setup above used to abort the handler with nothing to show for
+-- it: no command, no event, no line in chat, and the addon still listed at its current
+-- version. The handler is called through pcall so the message lands in chat instead.
+local function OnAddonLoadedGuarded(event, addonName)
+    local ok, err = pcall(OnAddonLoaded, event, addonName)
+    if not ok then
+        PrintMessage(string.format(
+            "Setup stopped with an error, so most of the addon is not running: %s",
+            tostring(err)
+        ))
+    end
+end
+
+EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_ADD_ON_LOADED, OnAddonLoadedGuarded)
+
+-- Registered here rather than inside the load handler: the file only runs if the addon
+-- is enabled, so the command exists as soon as the addon does, and a setup error later
+-- in the handler can no longer leave the player with a slash command that does nothing.
+SLASH_COMMANDS["/itemshare"] = OnSlashCommand
+SLASH_COMMANDS["/ishare"] = OnSlashCommand

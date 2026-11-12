@@ -22,6 +22,11 @@ local SLOW_REFRESH_PANELS = { overview = true, resources = true, mitigation = tr
 
 local function DialogRefreshIntervalMs(self, panelName)
     local base = DIALOG_LIVE_REFRESH_MS
+    -- The console list is rebuilt row by row; refreshing it twice a second
+    -- makes it hard to navigate, so it updates at most every 1.5s.
+    if not self:IsFightViewDialogShowingPC() then
+        base = math.max(base, 1500)
+    end
     if self.saved and self.saved.performanceMode then
         if panelName == "main" then
             return math.max(base, 750)
@@ -81,23 +86,17 @@ end
 function ConsoleMetrics:OnUpdate()
     local nowMs = GetFrameTimeMilliseconds()
     self:RecordRuntimeFps()
+    -- Console dialog: a moved cursor counts as input (pauses refresh / auto-hide).
+    self:TrackConsoleDialogInput()
     local dialogShowing = self:IsFightViewDialogShowing()
 
-    -- Two-step gamepad cancel behavior (console dialog only):
-    -- 1) If cancel hides a subpanel, reopen at Main.
-    -- 2) If cancel hides Main, perform full close cleanup.
+    -- Console dialog left the screen without going through Back / Close
+    -- (another menu opened, the screen was dismissed): just tidy up. Back is
+    -- handled inside the dialog (ConsoleGoBack), so nothing is re-opened here;
+    -- re-showing the screen from this loop is what used to break the view.
     if self.wasFightViewDialogShowing and not dialogShowing and self.ui.fightViewDialog and not self.isClosingFightViewDialog then
-        if (self.dialogPanel or "main") ~= "main" then
-            self.dialogPanel = "main"
-            self:PopulateFightViewDialog(self.ui.fightViewDialog)
-            self.ui.fightViewDialog:Show()
-            self:ArmDialogAutoHide()
-            self.dialogRefreshAtMs = 0
-            dialogShowing = self:IsFightViewDialogShowing()
-        else
-            self:CloseFightViewDialog(true, "cancel")
-            dialogShowing = false
-        end
+        self:CloseFightViewDialog(true, "cancel")
+        dialogShowing = false
     end
 
     if self.dialogAutoHideAtMs and self.saved.dialogAutoHide and not self.inCombat and nowMs >= self.dialogAutoHideAtMs then

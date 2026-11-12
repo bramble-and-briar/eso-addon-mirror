@@ -1,0 +1,38 @@
+## Title: |cFF69B4PB's WayPoint|r 0.5.1
+## Author: |cFF69B4PinkBanther|r
+## Description: Mark several stops on the way to your destination. An arrow on the screen points at the next stop and shows how far it is, with a trail of beads on the ground and a beam of light on the stop; the stops are numbered pins on the map. Press L3 and R3 together on the map to reset the waypoints. With LibGroupBroadcast, the stops one group member marks are shared with the rest of the group.
+## Version: 0.5.1
+## AddOnVersion: 10
+## APIVersion: 101050 101051
+## OptionalDependsOn: LibHarvensAddonSettings>=20106 LibGroupBroadcast
+## SavedVariables: PBsWayPoint_Data
+
+lang/strings.lua
+lang/$(language).lua
+Core.lua
+Nav.lua
+Route.lua
+Pins.lua
+Guide.lua
+Chord.lua
+Share.lua
+Settings.lua
+Main.lua
+Bindings.xml
+assets/arrow.dds
+assets/dot.dds
+assets/beam.dds
+assets/pin01.dds
+assets/pin02.dds
+assets/pin03.dds
+assets/pin04.dds
+assets/pin05.dds
+assets/pin06.dds
+assets/pin07.dds
+assets/pin08.dds
+assets/pin09.dds
+assets/pin10.dds
+assets/pin11.dds
+assets/pin12.dds
+
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls© and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.

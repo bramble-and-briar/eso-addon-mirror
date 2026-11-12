@@ -26,6 +26,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Kel's-Patchs By The Ancestors ES](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ElKel/Kel-s-Patchs-By-The-Ancestors-ES__2117) | ElKel | PC / Mac | 0.1.1 |
 | [Kel's-Patchs Clock - Tamriel Standard Time ES](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ElKel/Kel-s-Patchs-Clock---Tamriel-Standard-Time-ES__2121) | ElKel | PC / Mac | 0.1.0 |
 | [KelaPadUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rkirgizov/KelaPadUI__2394) | rkirgizov | PC / Mac | 0.5a |
+| [KelaPadUI Enhanced](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/soundexpression/KelaPadUI-Enhanced__5044) | soundexpression | PC / Mac | 2.8.0 |
 | [KelaPadUI Gamepad UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rkirgizov/KelaPadUI-Gamepad-UI__2740) | rkirgizov | PC / Mac | 1.2.1 |
 | [KeybindCombos](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Swarog/KeybindCombos__4615) | Swarog | PC / Mac | 1.0.0 |
 | [KeyBinder!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheYcUtS/KeyBinder__2085) | TheYcUtS | PC / Mac | 1.4 |

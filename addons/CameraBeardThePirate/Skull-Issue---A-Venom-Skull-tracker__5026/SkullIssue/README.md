@@ -1,6 +1,6 @@
-# Skull Issue - Elder Scrolls Online Addon
+# Skull Issue v1.2.0 - Elder Scrolls Online Addon
 
-A lightweight, specialized UI tracker for the Necromancer **Venom Skull** passive (**AbilityId: 117625**).
+A lightweight, specialized UI tracker for the Necromancer **Venom Skull** passive (**AbilityId: 117625**) by **CameraBeardThePirate**.
 
 ## Features
 - **Accurate Stack Tracking**: Monitors the Venom Skull passive buff stacks in and out of combat.
@@ -44,4 +44,5 @@ A lightweight, specialized UI tracker for the Necromancer **Venom Skull** passiv
 | `/skullissue number` | Toggle numeric stack badge on or off |
 | `/skullissue text` | Toggle "Spooky" text overlay on or off |
 | `/skullissue sound` | Toggle subtle chime sound on reaching empowered state (2 or 3 stacks) |
+| `/skullissue startup` | Toggle startup loaded chat message on or off |
 | `/skullissue reset` | Reset position back to screen center |

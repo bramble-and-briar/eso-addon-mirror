@@ -23,6 +23,7 @@ function class.BoxOpener:Initialize(slotIndex)
     self.itemId = GetItemLinkItemId(self.itemLink)
 	local itemType, _ = GetItemType(BAG_BACKPACK, self.slotIndex)
 	self.isStackableContainer = itemType == ITEMTYPE_CONTAINER_STACKABLE
+	self.isCurrencyContainer = itemType == ITEMTYPE_CONTAINER_CURRENCY
 	self.stacks = GetSlotStackSize(BAG_BACKPACK, self.slotIndex)
     self.lootReceived = {}
     addon.Debug("BoxOpener:New("..tostring(self.slotIndex).."), name = " .. self.name, debug)
@@ -96,6 +97,17 @@ function class.BoxOpener:Open()
         return true
     end
     
+    -- Inventory protection: don't use the container at all if the bag is full
+    -- (or would drop into the reserved slots). Currency containers need no slot.
+    if not self.isCurrencyContainer then
+        local reservedSlots = addon.settings.reservedSlots or 0
+        if GetNumBagFreeSlots(BAG_BACKPACK) <= reservedSlots then
+            addon.Debug("Inventory full (free slots <= reserved " .. tostring(reservedSlots) .. "). Not opening " .. self.itemLink, debug)
+            self:OnFailed("Inventory full")
+            return true
+        end
+    end
+    
     self:Reset()
     
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_LOOT_RECEIVED, self:CreateLootReceivedHandler())
@@ -128,8 +140,8 @@ function class.BoxOpener:Open()
     addon.Print(zo_strformat("Failed to unbox <<1>>", self.itemLink))
 end
 
-function class.BoxOpener:OnFailed()
-    self:FireCallbacks("Failed", self.slotIndex, self.itemLink)
+function class.BoxOpener:OnFailed(reason)
+    self:FireCallbacks("Failed", self.slotIndex, self.itemLink, reason)
 end
 
 function class.BoxOpener:OnOpened()

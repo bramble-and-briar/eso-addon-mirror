@@ -1,0 +1,111 @@
+<GuiXml>
+   
+	<Controls>
+
+		<!-- SETS LIST -->
+		
+        <Control name="Kela_Sets_List_Row_Gamepad" inherits="ZO_GamepadInteractiveSortFilterListRow" virtual="true">
+            <Dimensions y="40"/>
+            <OnInitialized>
+                self.labelName = self:GetNamedChild("Name")
+                self.labelObtainableItems = self:GetNamedChild("ObtainableItems")
+                self.labelSetType = self:GetNamedChild("SetType")
+                self.labelSource = self:GetNamedChild("Source")
+                self.labelDLC = self:GetNamedChild("DLC")
+            </OnInitialized>
+            <Controls>
+                <Label name="$(parent)Name" inherits="ZO_GamepadInteractiveSortFilterListRowLabel" font="ZoFontGamepadCondensed25" maxLineCount="1">
+                    <Dimensions x="KELA_GAMEPAD_SETS_LIST_NAME_WIDTH" />
+                    <Anchor point="LEFT" offsetX="ZO_GAMEPAD_INTERACTIVE_FILTER_HIGHLIGHT_PADDING" />
+                </Label>
+                <Label name="$(parent)ObtainableItems" inherits="ZO_GamepadInteractiveSortFilterListRowLabel" font="ZoFontGamepadCondensed22" verticalAlignment="CENTER" maxLineCount="1">
+                    <Dimensions x="KELA_GAMEPAD_SETS_LIST_OBTAINABLEITEMS_WIDTH" />
+                    <Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)Name" offsetX="ZO_GAMEPAD_INTERACTIVE_FILTER_HIGHLIGHT_PADDING" />
+                </Label>
+                <Label name="$(parent)SetType" inherits="ZO_GamepadInteractiveSortFilterListRowLabel" font="ZoFontGamepadCondensed25" verticalAlignment="CENTER" maxLineCount="1">
+                    <Dimensions x="KELA_GAMEPAD_SETS_LIST_SETTYPE_WIDTH" />
+                    <Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)ObtainableItems" offsetX="ZO_GAMEPAD_INTERACTIVE_FILTER_HIGHLIGHT_PADDING" />
+                </Label>
+                <Label name="$(parent)Source" inherits="ZO_GamepadInteractiveSortFilterListRowLabel" font="ZoFontGamepadCondensed22" verticalAlignment="CENTER" maxLineCount="1">
+                    <Dimensions x="KELA_GAMEPAD_SETS_LIST_SOURCE_WIDTH" />
+                    <Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)SetType" offsetX="ZO_GAMEPAD_INTERACTIVE_FILTER_HIGHLIGHT_PADDING" />
+                </Label>
+                <Label name="$(parent)DLC" inherits="ZO_GamepadInteractiveSortFilterListRowLabel" font="ZoFontGamepadCondensed25" verticalAlignment="CENTER" maxLineCount="1">
+                    <Dimensions x="KELA_GAMEPAD_SETS_LIST_DLC_WIDTH" />
+                    <Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)Source" offsetX="ZO_GAMEPAD_INTERACTIVE_FILTER_HIGHLIGHT_PADDING" />
+                </Label>
+            </Controls>			
+        </Control>
+
+        <TopLevelControl name="Kela_Sets_List_Gamepad" inherits="ZO_GamepadGrid_NavQuadrant_2_3_4_Anchors  ZO_GamepadInteractiveSortFilterListControl" font="ZoFontGamepadCondensed27" hidden="true">
+            <OnInitialized>
+                Kela_Sets_List_OnInitialize(self)
+            </OnInitialized>
+            <Controls>
+                <Control name="$(parent)Container" override="true">
+                    <Controls>
+                        <Control name="$(parent)Headers" override="true">
+                            <Controls>
+							
+                                <Control name="$(parent)Name" inherits="ZO_GamepadInteractiveFilterHeader" font="ZoFontGamepadCondensed27" >
+                                    <Dimensions x="KELA_GAMEPAD_SETS_LIST_NAME_WIDTH" />
+                                    <Anchor point="TOPLEFT" offsetX="ZO_GAMEPAD_INTERACTIVE_FILTER_HIGHLIGHT_PADDING" />
+                                    <OnInitialized>
+                                        local headerName = GetString(KELA_SETSLIST_HEADER_NAME)
+										local sortType = "setName"
+                                        ZO_GamepadInteractiveSortFilterHeader_Initialize(self, headerName, sortType, TEXT_ALIGN_LEFT)
+                                    </OnInitialized>
+                                </Control>
+								
+                                <Control name="$(parent)ObtainableItems" inherits="ZO_GamepadInteractiveFilterHeader" font="ZoFontGamepadCondensed27" >
+                                    <Dimensions x="KELA_GAMEPAD_SETS_LIST_OBTAINABLEITEMS_WIDTH" />
+                                    <Anchor point="TOPLEFT" relativePoint="TOPRIGHT" relativeTo="$(parent)Name" offsetX="ZO_GAMEPAD_INTERACTIVE_FILTER_HIGHLIGHT_PADDING" />
+                                    <OnInitialized>
+                                        local headerName = GetString(KELA_SETSLIST_HEADER_OBTAINABLEITEMS)
+										local sortType = "setObtainableItemsSort"
+                                        ZO_GamepadInteractiveSortFilterHeader_Initialize(self, headerName, sortType, TEXT_ALIGN_LEFT)
+                                    </OnInitialized>
+                                </Control>
+																
+                                <Control name="$(parent)SetType" inherits="ZO_GamepadInteractiveFilterHeader" font="ZoFontGamepadCondensed27" >
+                                    <Dimensions x="KELA_GAMEPAD_SETS_LIST_SETTYPE_WIDTH" />
+                                    <Anchor point="TOPLEFT" relativePoint="TOPRIGHT" relativeTo="$(parent)ObtainableItems" offsetX="ZO_GAMEPAD_INTERACTIVE_FILTER_HIGHLIGHT_PADDING" />
+                                    <OnInitialized>
+                                        local headerName = GetString(KELA_SETSLIST_HEADER_SETTYPE)
+										local sortType = "setTypeNameSort"
+                                        ZO_GamepadInteractiveSortFilterHeader_Initialize(self, headerName, sortType, TEXT_ALIGN_LEFT)
+                                    </OnInitialized>
+                                </Control>
+
+                                <Control name="$(parent)Source" inherits="ZO_GamepadInteractiveFilterHeader" font="ZoFontGamepadCondensed27" >
+                                    <Dimensions x="KELA_GAMEPAD_SETS_LIST_SOURCE_WIDTH" />
+                                    <Anchor point="TOPLEFT" relativePoint="TOPRIGHT" relativeTo="$(parent)SetType" offsetX="ZO_GAMEPAD_INTERACTIVE_FILTER_HIGHLIGHT_PADDING" />
+                                    <OnInitialized>
+                                        local headerName = GetString(KELA_SETSLIST_HEADER_DROPZONE)
+										local sortType = "setZoneNames"
+                                        ZO_GamepadInteractiveSortFilterHeader_Initialize(self, headerName, sortType, TEXT_ALIGN_LEFT)
+                                    </OnInitialized>
+                                </Control>
+
+                                <Control name="$(parent)DLC" inherits="ZO_GamepadInteractiveFilterHeader" font="ZoFontGamepadCondensed27" >
+                                    <Dimensions x="KELA_GAMEPAD_SETS_LIST_DLC_WIDTH" />
+                                    <Anchor point="TOPLEFT" relativePoint="TOPRIGHT" relativeTo="$(parent)Source" offsetX="ZO_GAMEPAD_INTERACTIVE_FILTER_HIGHLIGHT_PADDING" />
+                                    <OnInitialized>
+                                        local headerName = GetString(KELA_SETSLIST_HEADER_DLC)
+										local sortType = "setDLCName"
+                                        ZO_GamepadInteractiveSortFilterHeader_Initialize(self, headerName, sortType, TEXT_ALIGN_LEFT)
+                                    </OnInitialized>
+                                </Control>
+	
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+
+
+
+
+    </Controls>
+</GuiXml>

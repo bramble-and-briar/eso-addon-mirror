@@ -1,5 +1,7 @@
 -- English strings (default; other languages override single entries)
-InventoryPulse_Strings = {
+-- InventoryPulse is the addon's only global table, shared by all of its files
+InventoryPulse = InventoryPulse or {}
+InventoryPulse.strings = {
     -- Messages
     INVENTORY_FULL      = "Inventory full!",
     CRAFTBAG_EMPTY      = "The craft bag is empty.",

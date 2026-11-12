@@ -6,7 +6,12 @@ TradeQR = {
     savedVariablesVersion = 1,
 
     -- Payload format version, bump it when the JSON shape changes (the phone app reads it).
-    payloadVersion = 1,
+    -- v2: "type" field ("sale" | "listing") and listing payloads.
+    payloadVersion = 2,
+
+    -- Queue record kinds. Records saved by 0.2.x have no kind: they are sales.
+    RECORD_KIND_SALE = "sale",
+    RECORD_KIND_LISTING = "listing",
 
     defaults = {
         -- Only sales where the current account is the seller.
@@ -21,6 +26,8 @@ TradeQR = {
 
         pendingSales = {},
         seenEventIds = {},
+        -- Last sequence number used to build listing ids.
+        listingSequence = 0,
     },
 
     pollIntervalMs = 5 * 60 * 1000,

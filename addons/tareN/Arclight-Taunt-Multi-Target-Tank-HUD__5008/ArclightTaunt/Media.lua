@@ -1,4 +1,4 @@
--- Arclight Taunt 1.1.2 | Media module
+-- Arclight Taunt 1.2.0 | Media module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local MEDIA_BAR_FLAT = A.MEDIA_BAR_FLAT

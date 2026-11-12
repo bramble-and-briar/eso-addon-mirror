@@ -195,7 +195,7 @@ local keepers = {}
 ---@return boolean
 local function validKeeper(itemId, keeper)
     return keeper ~= nil and GetItemId(keeper.bag, keeper.slot) == itemId
-        and Id64ToString(GetItemUniqueId(keeper.bag, keeper.slot)) == keeper.uniqueId
+        and BattleScrolls.inventoryPocFacts.uniqueId(keeper.bag, keeper.slot) == keeper.uniqueId
 end
 
 ---@param item InventoryPocItem
@@ -209,7 +209,7 @@ local function keeperFor(item)
     for _, bag in ipairs({ BAG_BANK, BAG_SUBSCRIBER_BANK }) do
         for slot = 0, GetBagSize(bag) - 1 do
             if GetItemId(bag, slot) == item.itemId then
-                keeper = { bag = bag, slot = slot, uniqueId = Id64ToString(GetItemUniqueId(bag, slot)) }
+                keeper = { bag = bag, slot = slot, uniqueId = BattleScrolls.inventoryPocFacts.uniqueId(bag, slot) }
                 keepers[item.itemId] = keeper
                 return keeper
             end

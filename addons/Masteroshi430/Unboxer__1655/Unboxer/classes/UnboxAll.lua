@@ -57,6 +57,16 @@ function class.UnboxAll:CreateFailedCallback()
     return function(slotIndex, itemLink, reason)
         addon.Debug("Failed "..tostring(itemLink).." ("..tostring(slotIndex)..") "..tostring(reason), debug)
         self:FireCallbacks("Failed", slotIndex, itemLink, reason)
+        -- Inventory full: retrying (or moving on to the next box) can't succeed, so stop the whole queue.
+        if reason == "Inventory full" or reason == "Not enough space" then
+            if reason == "Inventory full" then
+                PlaySound(SOUNDS.NEGATIVE_CLICK)
+                addon.Print("Inventory full, unboxing stopped.")
+            end
+            self:Reset()
+            self:FireCallbacks("Stopped")
+            return
+        end
         EVENT_MANAGER:RegisterForUpdate(self.name .. "_Start", 40, function() self:Start() end)
     end
 end
@@ -118,6 +128,7 @@ function class.UnboxAll:CreateSharedSlotRemovedCallback()
         if not self.uniqueItemSlotIndexes[bagId] then
             return
         end
+        addon.QueueKeybindRefresh()
         self.containerSlotIndexes[slotIndex] = nil
         if addon.IsDebugEnabled(debug) then
             addon.Debug("SharedSlotRemoved "..tostring(bagId).." "..tostring(slotIndex).." "..tostring(existingSlotData.itemLink), debug)
@@ -164,6 +175,7 @@ function class.UnboxAll:CreateSharedSlotUpdatedCallback(wasSameItemInSlotBefore)
         if not self.uniqueItemSlotIndexes[bagId] then
             return
         end
+        addon.QueueKeybindRefresh()
         if addon.containerItemTypes[slotData.itemType] then
             self.containerSlotIndexes[slotIndex] = true
         else
@@ -207,7 +219,10 @@ function class.UnboxAll:CreateSlotUpdateCallback()
         if not addon.containerItemTypes[itemType] then
             return
         end
-        if self:GetAutoQueue() and addon:IsItemUnboxable(bagId, slotIndex, not self.autoQueueManual) then
+        if self:GetAutoQueue()
+           and addon:IsItemUnboxable(bagId, slotIndex, not self.autoQueueManual)
+           and addon:HasInventorySpaceToUnbox(bagId, slotIndex)
+        then
             self:Queue({ slotIndex = slotIndex, itemLink = GetItemLink(bagId, slotIndex) })
             if self.state == "stopped" and #self.queue < 2 then
                 -- Was self.slotIndex, which doesn't exist on UnboxAll (that field only
@@ -290,6 +305,7 @@ function class.UnboxAll:HasUnboxableSlots()
     local bagId = BAG_BACKPACK
     for slotIndex, _ in pairs(self.containerSlotIndexes) do
         if addon:IsItemUnboxable(bagId, slotIndex) 
+           and addon:HasInventorySpaceToUnbox(bagId, slotIndex)
            and CanInteractWithItem(bagId, slotIndex) 
            and select(4,GetItemInfo(bagId, slotIndex)) -- meets usage requirement
         then
@@ -465,6 +481,7 @@ function class.UnboxAll:QueueAllInBackpack()
     local bagId = BAG_BACKPACK
     for slotIndex, _ in pairs(self.containerSlotIndexes) do
         if addon:IsItemUnboxable(bagId, slotIndex) 
+           and addon:HasInventorySpaceToUnbox(bagId, slotIndex)
            and CanInteractWithItem(bagId, slotIndex) 
            and select(4,GetItemInfo(bagId, slotIndex)) -- meets usage requirement
         then

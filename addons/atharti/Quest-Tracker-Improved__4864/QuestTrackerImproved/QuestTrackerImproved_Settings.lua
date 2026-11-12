@@ -71,16 +71,6 @@ function QTI.RegisterSettings()
 			requiresReload = true,
 		},
 		{
-			type = "checkbox",
-			name = "Keep ActivityTrackers Under QuestTracker",
-			tooltip = "Anchors the shared tracker container (activity, housing, etc.) under the quest tracker.",
-			getFunc = function() return QTI.SV.stickyTrackers end,
-			setFunc = function(value)
-				QTI.SV.stickyTrackers = value
-			end,
-			requiresReload = true,
-		},
-		{
 			type = "submenu",
 			name = "|t30:30:/esoui/art/notifications/gamepad/gp_notificationicon_quest.dds|t Quest Tracker",
 			tooltip = "Styling for the quest tracker panel.",
@@ -679,8 +669,182 @@ function QTI.RegisterSettings()
 					width = "half",
 					disabled = function() return not QTI.SV.houseShowTags end,
 				},
-			},
+			},			
 		},
+		{
+			type = "submenu",
+			name = "|t30:30:/esoui/art/achievements/achievements_icon_64.dds|t Achievements",
+			tooltip = "Styling for the Achievement tracker (header, sub-label, criteria).",
+			controls = {
+				{
+					type = "slider",
+					name = "Width",
+					tooltip = "Total width of the achievement tracker.",
+					min = 100,
+					max = 600,
+					step = 1,
+					getFunc = function() return QTI.SV.achievementWidth end,
+					setFunc = function(value) QTI.SV.achievementWidth = value; QTI.ResizeAchievementPanel() end,
+				},
+				{
+					type = "slider",
+					name = "Icon Size",
+					tooltip = "Size of the achievement icon shown next to the name.",
+					min = 20,
+					max = 30,
+					step = 1,
+					getFunc = function() return QTI.SV.achievementIconSize end,
+					setFunc = function(value) QTI.SV.achievementIconSize = value; QTI.ApplyAchievementIcon(ACHIEVEMENT_TRACKER) end,
+				},
+				{
+					type = "header",
+					name = "Header",
+				},
+				{
+					type = "dropdown",
+					name = "Font",
+					tooltip = "Font used for the achievement header.",
+					choices = FONT_CHOICES,
+					choicesValues = FONT_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.achievementHeaderFont end,
+					setFunc = function(value) QTI.SV.achievementHeaderFont = value; QTI.ApplyAchievementStyle() end,
+					width = "half",
+				},
+				{
+					type = "slider",
+					name = "Size",
+					tooltip = "Size of the achievement header font.",
+					min = 8,
+					max = 40,
+					step = 1,
+					getFunc = function() return QTI.SV.achievementHeaderSize end,
+					setFunc = function(value) QTI.SV.achievementHeaderSize = value; QTI.ApplyAchievementStyle() end,
+					width = "half",
+				},
+				{
+					type = "colorpicker",
+					name = "Color",
+					tooltip = "Text color of the achievement header.",
+					getFunc = function()
+						local c = QTI.SV.achievementHeaderColor
+						return c.r, c.g, c.b, c.a
+					end,
+					setFunc = function(r, g, b, a)
+						QTI.SV.achievementHeaderColor = { r = r, g = g, b = b, a = a }
+						QTI.ApplyAchievementStyle()
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = "Style",
+					tooltip = "Text style of the achievement header.",
+					choices = STYLE_CHOICES,
+					choicesValues = STYLE_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.achievementHeaderStyle end,
+					setFunc = function(value) QTI.SV.achievementHeaderStyle = value; QTI.ApplyAchievementStyle() end,
+					width = "half",
+				},
+				{
+					type = "header",
+					name = "Description (name line)",
+				},
+				{
+					type = "dropdown",
+					name = "Font",
+					tooltip = "Font used for the achievement name line.",
+					choices = FONT_CHOICES,
+					choicesValues = FONT_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.achievementSubLabelFont end,
+					setFunc = function(value) QTI.SV.achievementSubLabelFont = value; QTI.ApplyAchievementStyle() end,
+					width = "half",
+				},
+				{
+					type = "slider",
+					name = "Size",
+					tooltip = "Size of the achievement name font.",
+					min = 8,
+					max = 40,
+					step = 1,
+					getFunc = function() return QTI.SV.achievementSubLabelSize end,
+					setFunc = function(value) QTI.SV.achievementSubLabelSize = value; QTI.ApplyAchievementStyle() end,
+					width = "half",
+				},
+				{
+					type = "colorpicker",
+					name = "Color",
+					tooltip = "Text color of the achievement name line.",
+					getFunc = function()
+						local c = QTI.SV.achievementSubLabelColor
+						return c.r, c.g, c.b, c.a
+					end,
+					setFunc = function(r, g, b, a)
+						QTI.SV.achievementSubLabelColor = { r = r, g = g, b = b, a = a }
+						QTI.ApplyAchievementStyle()
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = "Style",
+					tooltip = "Text style of the achievement name line.",
+					choices = STYLE_CHOICES,
+					choicesValues = STYLE_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.achievementSubLabelStyle end,
+					setFunc = function(value) QTI.SV.achievementSubLabelStyle = value; QTI.ApplyAchievementStyle() end,
+					width = "half",
+				},
+				{
+					type = "header",
+					name = "Criteria",
+				},
+				{
+					type = "dropdown",
+					name = "Font",
+					tooltip = "Font used for the criteria lines.",
+					choices = FONT_CHOICES,
+					choicesValues = FONT_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.achievementCriteriaFont end,
+					setFunc = function(value) QTI.SV.achievementCriteriaFont = value; QTI.ApplyAchievementStyle() end,
+					width = "half",
+				},
+				{
+					type = "slider",
+					name = "Size",
+					tooltip = "Size of the criteria font.",
+					min = 8,
+					max = 40,
+					step = 1,
+					getFunc = function() return QTI.SV.achievementCriteriaSize end,
+					setFunc = function(value) QTI.SV.achievementCriteriaSize = value; QTI.ApplyAchievementStyle() end,
+					width = "half",
+				},
+				{
+					type = "colorpicker",
+					name = "Color",
+					tooltip = "Text color of the criteria lines.",
+					getFunc = function()
+						local c = QTI.SV.achievementCriteriaColor
+						return c.r, c.g, c.b, c.a
+					end,
+					setFunc = function(r, g, b, a)
+						QTI.SV.achievementCriteriaColor = { r = r, g = g, b = b, a = a }
+						QTI.ApplyAchievementStyle()
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = "Style",
+					tooltip = "Text style of the criteria lines.",
+					choices = STYLE_CHOICES,
+					choicesValues = STYLE_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.achievementCriteriaStyle end,
+					setFunc = function(value) QTI.SV.achievementCriteriaStyle = value; QTI.ApplyAchievementStyle() end,
+					width = "half",
+				},
+			},
+		},		
 	}
 
 	LAM:RegisterAddonPanel("QuestTrackerImprovedPanel", panelData)
@@ -706,6 +870,7 @@ local TRACKER_FRAGMENTS = {
 	ACTIVITY_TRACKER:GetFragment(),
 	TIMED_ACTIVITY_TRACKER:GetFragment(),
 	ENDLESS_DUNGEON_HUD_TRACKER:GetFragment(),
+	ACHIEVEMENT_TRACKER:GetFragment(),
 }
 
 function QTI.ShowPreview()

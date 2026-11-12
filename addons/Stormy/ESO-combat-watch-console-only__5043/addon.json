@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Stormy/ESO-combat-watch-console-only__5043",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Stormy",
+  "canonical_id": "esoui:5043",
+  "category_id": "96",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5043",
+  "deleted": false,
+  "directories": [
+    "ESOCombatWatch"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5043/",
+  "fingerprint": "cd1b326c3951df5c850614c0417bc3871a519dcef99cd4f509be8974eb3570fd",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5043",
+  "source_url": "https://www.esoui.com/downloads/info5043-ESOcombatwatchconsoleonly.html",
+  "stats": {
+    "downloads": 24,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "ESO combat watch (console only)",
+  "updated_at": 1794441297000,
+  "version": "1.0"
+}

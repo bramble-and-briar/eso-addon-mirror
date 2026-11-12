@@ -4,27 +4,36 @@ local HideMOTD = {
 
 function HideMOTD.SuppressMOTD()
     local handlers = ZO_ChatSystem_GetEventHandlers()
-    
-    -- Check if the handlers table and the guild MOTD event exist
-    if handlers and handlers[EVENT_GUILD_MOTD_CHANGED] then
-        -- Overwrite the default handler with an empty function
-        handlers[EVENT_GUILD_MOTD_CHANGED] = function(eventCode, guildId)
-            -- Returning true or keeping it blank swallows the text/chat alert
-            return true 
-        end
+    if not handlers then return end
+
+    -- 1. Suppress live Guild MOTD updates in chat
+    if handlers[EVENT_GUILD_MOTD_CHANGED] then
+        handlers[EVENT_GUILD_MOTD_CHANGED] = function() return true end
+    end
+
+    -- 2. Suppress Guild MOTDs printed when initially loading guild data
+    if handlers[EVENT_GUILD_DATA_LOADED] then
+        handlers[EVENT_GUILD_DATA_LOADED] = function() return true end
+    end
+
+    -- 3. Suppress Zenimax System/Server MOTDs on login
+    if handlers[EVENT_SYSTEM_MOTD_CHANGED] then
+        handlers[EVENT_SYSTEM_MOTD_CHANGED] = function() return true end
     end
 end
 
--- Hook into the game's startup sequence
+-- Wait until the UI and chat system are completely initialized
+function HideMOTD.OnPlayerActivated(event, initial)
+    EVENT_MANAGER:UnregisterForEvent(HideMOTD.name, EVENT_PLAYER_ACTIVATED)
+    HideMOTD.SuppressMOTD()
+end
+
 function HideMOTD.OnAddOnLoaded(event, addonName)
     if addonName == HideMOTD.name then
-        -- Clean up the startup hook immediately
         EVENT_MANAGER:UnregisterForEvent(HideMOTD.name, EVENT_ADD_ON_LOADED)
-        
-        -- Run the handler suppression
-        HideMOTD.SuppressMOTD()
+        -- Register for PLAYER_ACTIVATED instead of running immediately
+        EVENT_MANAGER:RegisterForEvent(HideMOTD.name, EVENT_PLAYER_ACTIVATED, HideMOTD.OnPlayerActivated)
     end
 end
 
--- Register to check when our specific addon loads into memory
 EVENT_MANAGER:RegisterForEvent(HideMOTD.name, EVENT_ADD_ON_LOADED, HideMOTD.OnAddOnLoaded)

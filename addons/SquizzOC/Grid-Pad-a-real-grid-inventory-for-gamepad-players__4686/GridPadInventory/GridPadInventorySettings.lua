@@ -15,6 +15,7 @@ local DEFAULTS = {
     simpleFrost = 0.35,        -- 0.00 (none) .. 0.80 (heavy frosted dim)
     esoStyleCompare = false,   -- true = use ESO's native compare tooltips instead of ours
     sortByType = false,        -- simple-view sort button: group the grid by item type
+    chatMessages = true,       -- false = no routine Grid Pad lines in chat (alerts still show)
     -- ESO Style Compare card geometry (screen/UI units). Tunable live via /gpi cmp*.
     cmpColX = 60,              -- left X of the first card
     cmpColW = 540,             -- width of each card (match a native currency bar)
@@ -168,11 +169,25 @@ function GPI:RegisterSettingsPanel()
             end,
             default = DEFAULTS.esoStyleCompare,
         },
+        {
+            type = "header",
+            name = "Chat",
+        },
+        {
+            type = "checkbox",
+            name = "Chat messages",
+            tooltip = "Show Grid Pad's status lines in the chat window (equipped, deposited, withdrew, loaded, and so on). Turn off for a quiet chat. On-screen alerts in the top-right corner still appear, and replies to /gpi commands you type always show.",
+            getFunc = function() return self.sv.chatMessages ~= false end,
+            setFunc = function(value) self.sv.chatMessages = (value == true) end,
+            default = DEFAULTS.chatMessages,
+        },
     }
     LAM:RegisterOptionControls(ADDON_NAME .. "_Panel", optionsTable)
 
     self.settingsPanelRegistered = true
-    d("[GridPad] Settings panel registered. Find it in Settings > Add-Ons > Grid Pad, or type /gpisettings.")
+    if self.sv.chatMessages ~= false then
+        d("[GridPad] Settings panel registered. Find it in Settings > Add-Ons > Grid Pad, or type /gpisettings.")
+    end
 end
 
 -- Deferred registration: fire on the FIRST addon-loaded event AFTER GridPad's own,

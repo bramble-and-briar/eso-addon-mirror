@@ -8,6 +8,10 @@
   "category_id": "25",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "LykeionsAwareWolf"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4628/",
-  "fingerprint": "002e66311864ab41eeee16b7c189a7ed6fe6082ef7c25d0263d0b931c82dbd22",
+  "fingerprint": "7057c8919237eda3d184d04a069845f0f6db89452c426e99dbd39d7fd6ab06ca",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17992.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18104.png",
@@ -30,11 +34,11 @@
   "source_id": "4628",
   "source_url": "https://www.esoui.com/downloads/info4628-LykeionsAwareWolf.html",
   "stats": {
-    "downloads": 1398,
+    "downloads": 1540,
     "favorites": 2,
-    "monthly_downloads": 548
+    "monthly_downloads": 595
   },
   "title": "Lykeion's Aware Wolf",
-  "updated_at": 1793457542000,
-  "version": "2.6"
+  "updated_at": 1794448180000,
+  "version": "2.7"
 }

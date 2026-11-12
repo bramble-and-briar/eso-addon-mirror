@@ -1,0 +1,23 @@
+## Title: Sora Reticle Tracker
+## APIVersion: 101050 101051
+## Version: 1.0.3
+## Author: sora0v0
+## Description: Compact reticle HUD for class skills, weapon timers, defensive buffs, target debuffs, and Ultimate. English and Japanese settings.
+## AddOnVersion: 10003
+## SavedVariables: SoraReticleTrackerSavedVariables
+## DependsOn: LibAddonMenu-2.0>=43
+## OptionalDependsOn: LibSkillBlocker
+
+lang/en.lua
+lang/ja.lua
+SoraReticleTrackerClassSkills.lua
+SoraReticleTrackerWeaponSkills.lua
+SoraReticleTrackerUltimate.lua
+SoraReticleTrackerShield.lua
+SoraReticleTracker.lua
+textures/guard_outline.dds
+textures/ultimate_round_fill.dds
+textures/ultimate_round_outline.dds
+textures/ultimate_soft_glow.dds
+textures/ultimate_surface_mist.dds
+textures/ultimate_shared_round_fill.dds

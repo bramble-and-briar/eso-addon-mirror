@@ -260,6 +260,7 @@ in a corner.
 　/pbalert board on | off           戦況を画面に表示
 　/pbalert board front|normal|back  戦況表示の重なり順
 　/pbalert board pop icon | text    人口をアイコンで出すか文字で出すか
+　/pbalert board emperor account | character  皇帝をPSN IDで出すかキャラクター名で出すか
 　/pbalert test                     各通知を1回ずつ表示（見た目の確認）
 　/pbalert ava on | off             AvAゾーンにいるときだけ監視
 　/pbalert existing on | off        入場時にすでに攻撃中の拠点も通知
@@ -490,6 +491,7 @@ Chat commands:
   /pbalert board on | off           keep it on screen
   /pbalert board front|normal|back  where it sits in the stack
   /pbalert board pop icon | text    population as an icon or as a word
+  /pbalert board emperor account | character  the emperor by PSN ID or character name
   /pbalert test                     one of each alert, to judge the look
   /pbalert ava on | off             check only while in an AvA zone
   /pbalert existing on | off        report attacks already in progress when you zone in

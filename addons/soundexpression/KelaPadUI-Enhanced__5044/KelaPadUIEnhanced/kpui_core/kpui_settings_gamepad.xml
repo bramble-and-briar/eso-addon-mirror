@@ -1,0 +1,21 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="Kela_Settings" inherits="ZO_Gamepad_ParametricList_Screen">
+            <OnInitialized>
+                Kela_GamepadOptions_OnInitialize(self)
+            </OnInitialized>
+			
+			
+			
+			<Controls>
+                <Control name="$(parent)LoadingContainer" hidden="true" inherits="ZO_GamepadLoadingIconAndLabelTemplate">
+                    <Anchor point="CENTER" relativePoint="TOPRIGHT" relativeTo="$(parent)Container"/>
+                    <Dimensions x="ZO_GAMEPAD_CONTENT_WIDTH"/>
+                </Control>
+
+            </Controls>
+			
+			
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

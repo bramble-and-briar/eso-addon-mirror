@@ -520,6 +520,8 @@ local DEFAULTS = {
 		-- In front of everything, which is what it has always done. The other two are there
 		-- for the case where the corner you want is a corner something else is already using.
 		draw = "FRONT",
+		-- The emperor by account name (the PSN ID on a console), not by character name.
+		emperorName = "account",
 		-- The icon, not the word. The word is one tick away, and is what a client that cannot
 		-- draw the icon falls back to on its own.
 		populationText = false,
@@ -968,6 +970,28 @@ function addon:InImperialCityCampaign()
 	return false
 end
 
+-- The emperor by account name -- the PSN ID on a console -- or by character name, as the
+-- player chooses. GetCampaignEmperorInfo hands over both. The account name goes through the
+-- client's own ZO_FormatUserFacingDisplayName, which is how it shows account names everywhere
+-- else (on console that means without the "@"). Whichever is asked for, an empty one falls back
+-- to the other rather than leaving the line without a name.
+function addon:EmperorName(characterName, displayName)
+	characterName = characterName or ""
+	displayName = displayName or ""
+	local account = displayName
+	if account ~= "" and ZO_FormatUserFacingDisplayName then
+		local ok, formatted = pcall(ZO_FormatUserFacingDisplayName, displayName)
+		if ok and type(formatted) == "string" and formatted ~= "" then
+			account = formatted
+		end
+	end
+	local wanted = self.sv and self.sv.board and self.sv.board.emperorName or DEFAULTS.board.emperorName
+	if wanted == "character" then
+		return characterName ~= "" and characterName or account
+	end
+	return account ~= "" and account or characterName
+end
+
 function addon:Situation()
 	local campaignId = GetCurrentCampaignId and GetCurrentCampaignId() or 0
 	local hasCampaign = campaignId ~= nil and campaignId ~= 0
@@ -1029,9 +1053,10 @@ function addon:Situation()
 		end
 	end
 	if hasCampaign and GetCampaignEmperorInfo then
-		local alliance, characterName = GetCampaignEmperorInfo(campaignId)
-		if alliance and alliance ~= ALLIANCE_NONE and characterName and characterName ~= "" then
-			situation.emperor = { alliance = alliance, name = characterName }
+		local alliance, characterName, displayName = GetCampaignEmperorInfo(campaignId)
+		local name = self:EmperorName(characterName, displayName)
+		if alliance and alliance ~= ALLIANCE_NONE and name ~= "" then
+			situation.emperor = { alliance = alliance, name = name }
 		end
 	end
 	return situation
@@ -2162,6 +2187,7 @@ function addon:PrintHelp()
 	Line(GetString(SI_PBSCA_HELP_BOARD))
 	Line(GetString(SI_PBSCA_HELP_BOARD_DRAW))
 	Line(GetString(SI_PBSCA_HELP_BOARD_POP))
+	Line(GetString(SI_PBSCA_HELP_BOARD_EMPEROR))
 	Line(GetString(SI_PBSCA_HELP_TEST))
 	Line(GetString(SI_PBSCA_HELP_AVA))
 	Line(GetString(SI_PBSCA_HELP_EXISTING))
@@ -2405,6 +2431,21 @@ function addon:HandleCommand(argumentString)
 			self:PrintSituation()
 			return
 		end
+		-- "board emperor account|character" -- which of the emperor's names is shown.
+		if second == "emperor" then
+			local which = words[3] or ""
+			if which ~= "account" and which ~= "character" then
+				Print(GetString(SI_PBSCA_ERROR_EMPEROR_NAME))
+				return
+			end
+			self.sv.board.emperorName = which
+			self.board:Refresh()
+			self:RefreshPanel()
+			Print(GetString(SI_PBSCA_BOARD_EMPEROR_NAME) .. ": "
+				.. GetString(which == "character" and SI_PBSCA_EMPEROR_NAME_CHARACTER or SI_PBSCA_EMPEROR_NAME_ACCOUNT))
+			return
+		end
+
 		-- "board pop icon|text" -- how the population column is drawn.
 		if second == "pop" or second == "population" then
 			local how = words[3] or ""

@@ -487,6 +487,17 @@ local qualityRuledItemTypes = {
 		ITEMTYPE_POTION,
 		ITEMTYPE_POISON,
 		"EquipmentAll",
+		"Equipment" .. EQUIPMENT_FILTER_TYPE_LIGHT,
+		"Equipment" .. EQUIPMENT_FILTER_TYPE_MEDIUM,
+		"Equipment" .. EQUIPMENT_FILTER_TYPE_HEAVY,
+		"Equipment" .. EQUIPMENT_FILTER_TYPE_BOW,
+		"Equipment" .. EQUIPMENT_FILTER_TYPE_SHIELD,
+		"Equipment" .. EQUIPMENT_FILTER_TYPE_RESTO_STAFF,
+		"Equipment" .. EQUIPMENT_FILTER_TYPE_DESTRO_STAFF,
+		"Equipment" .. EQUIPMENT_FILTER_TYPE_TWO_HANDED,
+		"Equipment" .. EQUIPMENT_FILTER_TYPE_ONE_HANDED,
+		"Equipment" .. EQUIPMENT_FILTER_TYPE_NECK,
+		"Equipment" .. EQUIPMENT_FILTER_TYPE_RING,
 	},
 	["specializedItemType"] = {
 		SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_FOOD,
@@ -632,9 +643,11 @@ end
 
 local function getDefaultCommonSettings()
 	local defaults = {
+		autoModeEnabled = true,
 		moveLockedItems = false,
+		moveQuestItems = true,
 		showOperationFailMessages = false,
-		bankSlidersMaxValue = 10,
+		bankSlidersMaxValue = 20,
 		currencySlidersMaxValue = 100000,
 	}
 	return defaults
@@ -649,7 +662,7 @@ end
 
 -- update saved vars list of characters to remove non-existing (deleted) ones
 local function cleanUpResearchCharactersList()
-	local list = Bankir.savedVarsServer.ResearchCharactersList
+	local list = Bankir.SVServer.ResearchCharactersList
 	for id in pairs(list) do
 		local isCharExists = false
 		for i = 1, #Bankir.Data.charactersList do
@@ -659,7 +672,7 @@ local function cleanUpResearchCharactersList()
 			end
 		end
 		if not isCharExists then
-			Bankir.savedVarsServer.ResearchCharactersList[id] = nil
+			Bankir.SVServer.ResearchCharactersList[id] = nil
 		end
 	end
 end

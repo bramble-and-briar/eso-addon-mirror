@@ -154,7 +154,8 @@ function returns.requestSync()
 end
 
 ---@param mailId id64
-local function prepareClaim(mailId)
+---@param baseline (fun(): table<string, number>)|nil Shared backpack counts for a bulk claim
+local function prepareClaim(mailId, baseline)
     if not poc.enabled or not poc.saved or not IsReadMailInfoReady(mailId) then return end
     local id = Id64ToString(mailId)
     if returns.claims[id] then return end
@@ -172,7 +173,7 @@ local function prepareClaim(mailId)
         local key = facts.variantKey(facts.variant(link))
         items[key] = (items[key] or 0) + quantity
     end
-    local before = assert(counts(BAG_BACKPACK))
+    local before = baseline and baseline() or assert(counts(BAG_BACKPACK))
     returns.claims[id] = { items = items, before = before, started = GetFrameTimeMilliseconds(), success = false }
     returns.requestSync()
     poc.wake()
@@ -190,10 +191,16 @@ function returns.initialize()
     ZO_PreHook('TakeMailAttachedItems', prepareClaim)
     ZO_PreHook('TakeAllMailAttachmentsInCategory', function(category)
         if not poc.enabled then return end
+        -- Every mail in the bulk claim starts from the same backpack: count it once.
+        local shared
+        local function baseline()
+            shared = shared or assert(counts(BAG_BACKPACK))
+            return shared
+        end
         local mailId = GetNextMailId()
         while mailId do
             local _, _, _, _, _, _, _, _, _, _, _, _, _, mailCategory = GetMailItemInfo(mailId)
-            if mailCategory == category then prepareClaim(mailId) end
+            if mailCategory == category then prepareClaim(mailId, baseline) end
             mailId = GetNextMailId(mailId)
         end
     end)

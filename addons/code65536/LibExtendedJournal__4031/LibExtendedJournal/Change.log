@@ -1,3 +1,6 @@
+Version 2.5.4 (2026/11/12)
+* API version bump for Update 52
+
 Version 2.5.3 (2026/07/28)
 * The context menu callback can now supply multiple entries as a list
 

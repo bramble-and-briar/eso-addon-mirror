@@ -133,8 +133,8 @@ end
 ---@param reason string
 local function SettleAndExit(reason)
     ArmSession()
-    -- Queue exactly one unbox sequence for the interaction-end events. Gating
-    -- on this (instead of "armed") stops phantom sequences: the loot window
+    -- Queue exactly one wait-for-the-satchel for the interaction-end events.
+    -- Gating on this (instead of "armed") stops phantom waits: the loot window
     -- our own unboxer opens also emits an interaction-end when it closes.
     SatchelExchange.state.unbox.pendingItemLink = GetRun().itemLink
     Stop(reason)

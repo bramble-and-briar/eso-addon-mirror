@@ -78,7 +78,7 @@ function Module:Initialize( )
 	Vars = self.vars
 
 	self.StatusPoll_B2 = function( )
-		local results = { }
+		local results = self:GetScratch()
 		for i = 1, 2 do
 			table.insert(results, string.format("|c%06X%d%%|r", LCA.RemoveAlpha(DATA.boss2Colors[i]), zo_floor(LCA.GetUnitHealthPercent("boss" .. i))))
 		end
@@ -87,21 +87,20 @@ function Module:Initialize( )
 	end
 
 	self.StatusInit_B3 = function( )
-		Vars.smashes = { }
+		ZO_ClearTable(Vars.smashes)
 	end
 
 	self.StatusUpdate_B3 = function( )
-		local units = { }
-		local lines = { }
+		local units = self:GetScratch()
 		for unitId, data in pairs(Vars.smashes) do
 			local color = (data[1] > 1) and 0xFF9900 or 0xFFFFFF
 			table.insert(units, { string.format("|c%06X%d – %s|r", color, data[1], select(2, LCA.IdentifyGroupUnitId(unitId, true))), data[2] })
 		end
 		table.sort(units, function(a, b) return a[2] > b[2] end)
-		for _, unit in ipairs(units) do
-			table.insert(lines, unit[1])
+		for i = 1, #units do
+			units[i] = units[i][1]
 		end
-		CA2.StatusSetCellText(1, 2, table.concat(lines, "\n"))
+		CA2.StatusSetCellText(1, 2, table.concat(units, "\n"))
 	end
 end
 

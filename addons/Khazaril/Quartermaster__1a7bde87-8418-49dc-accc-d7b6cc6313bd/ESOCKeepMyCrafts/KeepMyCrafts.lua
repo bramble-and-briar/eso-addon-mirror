@@ -18,6 +18,11 @@
 --     the bank or house storage. The bank's own X button (UI_SHORTCUT_SECONDARY) is only used to
 --     rename house storage, so at the bank that same descriptor is borrowed to show/hide them; adding
 --     a second button on a key the game already registered would trip its duplicate-keybind check.
+--   * Trade: GAMEPAD_TRADE builds its inventory list on first open (InitializeInventoryList) with
+--     the game's filter (TRADE_WINDOW:CanTradeItem: not bound, stolen or locked, and dungeon drops
+--     only if this partner was in the group). We add "dungeon loot only": just the bind-on-pickup
+--     drops (IsItemBoPAndTradeable) this partner can take. Its button goes on the left stick inside
+--     the game's own keybindStripDescriptorInventory group (that list doesn't use the left stick).
 --   * Toggle button: GAMEPAD_SMITHING_DECONSTRUCT_SCENE and UNIVERSAL_DECONSTRUCTION_GAMEPAD_SCENE add
 --     their buttons on SCENE_SHOWING and remove them on SCENE_HIDDEN; we do the same.
 
@@ -25,7 +30,7 @@ local ADDON_NAME = "ESOCKeepMyCrafts"
 ESOC_KeepMyCrafts = ESOC_KeepMyCrafts or {}
 local WS = ESOC_KeepMyCrafts
 
-local settings = { hide = true, hideBank = true }
+local settings = { hide = true, hideBank = true, tradeLootOnly = true }
 local myNames = nil
 WS.hiddenCount = 0
 
@@ -286,6 +291,117 @@ local function hookBank()
     return true
 end
 
+---------------------------------------------------------------------------
+-- Trade: dungeon / trial loot only
+---------------------------------------------------------------------------
+-- A bind-on-pickup drop you can still trade, and the game would let you offer to this partner.
+local function isTradeLoot(slot)
+    if not slot or not slot.bagId or not slot.slotIndex then return false end
+    if not IsItemBoPAndTradeable(slot.bagId, slot.slotIndex) then return false end
+    if TRADE_WINDOW and TRADE_WINDOW.CanTradeItem and not TRADE_WINDOW:CanTradeItem(slot) then return false end
+    if ZO_IsItemCurrentlyOfferedForTrade and ZO_IsItemCurrentlyOfferedForTrade(slot.bagId, slot.slotIndex) then return false end
+    return true
+end
+
+-- How many such drops are in the backpack right now.
+function WS.TradeLootCount()
+    local n = 0
+    for slot = 0, (GetBagSize(BAG_BACKPACK) or 0) - 1 do
+        local data = { bagId = BAG_BACKPACK, slotIndex = slot }
+        local ok, yes = pcall(function()
+            if (GetItemId(BAG_BACKPACK, slot) or 0) == 0 then return false end
+            data.stolen = IsItemStolen(BAG_BACKPACK, slot)
+            data.isPlayerLocked = IsItemPlayerLocked(BAG_BACKPACK, slot)
+            return isTradeLoot(data)
+        end)
+        if ok and yes then n = n + 1 end
+    end
+    return n
+end
+
+-- The filter is on only while you have dungeon loot to give; otherwise the list is the game's own.
+local function tradeFilterActive()
+    if not settings.tradeLootOnly then return false end
+    local ok, n = pcall(WS.TradeLootCount)
+    return ok and n > 0
+end
+
+local function wrapTradeFilter(list)
+    if not list or list.esocWrapped then return end
+    list.esocWrapped = true
+    local active = false
+    local function ours(slot)
+        if not active then return true end
+        local ok, yes = pcall(isTradeLoot, slot)
+        return not ok or yes -- if anything fails, leave the item in
+    end
+    local function wrap(fn)
+        return function(slot)
+            if fn and not fn(slot) then return false end
+            return ours(slot)
+        end
+    end
+    list.itemFilterFunction = wrap(list.itemFilterFunction)
+    local setFilter = list.SetItemFilterFunction
+    if setFilter then
+        list.SetItemFilterFunction = function(self, fn) return setFilter(self, wrap(fn)) end
+    end
+    -- decide once per rebuild (where the game runs the filter), not once per item
+    for _, method in ipairs({ "GenerateSlotTable", "IsEmpty" }) do
+        local original = list[method]
+        if type(original) == "function" then
+            list[method] = function(self, ...)
+                active = tradeFilterActive()
+                return original(self, ...)
+            end
+        end
+    end
+    active = tradeFilterActive()
+end
+
+local function addTradeButton(trade)
+    local group = trade.keybindStripDescriptorInventory
+    if type(group) ~= "table" or group.esocWrapped then return false end
+    for _, b in ipairs(group) do
+        if type(b) == "table" and b.keybind == "UI_SHORTCUT_LEFT_STICK" then return false end -- taken: don't clash
+    end
+    group.esocWrapped = true
+    group[#group + 1] = {
+        keybind = "UI_SHORTCUT_LEFT_STICK",
+        name = function()
+            if settings.tradeLootOnly then return "Show all items" end
+            return string.format("Dungeon loot only (%d)", WS.TradeLootCount())
+        end,
+        visible = function()
+            local ok, n = pcall(WS.TradeLootCount)
+            return ok and n > 0
+        end,
+        callback = function()
+            settings.tradeLootOnly = not settings.tradeLootOnly
+            if trade.inventoryList and trade.inventoryList.RefreshList then
+                pcall(trade.inventoryList.RefreshList, trade.inventoryList, true)
+            end
+            pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(group) end)
+        end,
+    }
+    return true
+end
+
+local function hookTrade()
+    local trade = GAMEPAD_TRADE
+    if not trade or not trade.InitializeInventoryList then return false end
+    pcall(addTradeButton, trade)
+    if trade.inventoryList then wrapTradeFilter(trade.inventoryList) end
+    local original = trade.InitializeInventoryList
+    trade.InitializeInventoryList = function(self, ...)
+        local result = original(self, ...)
+        pcall(wrapTradeFilter, self.inventoryList)
+        pcall(addTradeButton, self)
+        return result
+    end
+    return true
+end
+
 local function hookInventoryClass(class)
     if not class then return false end
     local original = class.AddFilteredDataToList -- inherited from ZO_GamepadCraftingInventory
@@ -317,6 +433,7 @@ function WS.Init(saved)
     if saved then
         if saved.hide == nil then saved.hide = true end
         if saved.hideBank == nil then saved.hideBank = true end
+        if saved.tradeLootOnly == nil then saved.tradeLootOnly = true end
         settings = setmetatable({}, {
             __index = function(_, k) return saved[k] end,
             __newindex = function(_, k, v) saved[k] = v end,
@@ -338,6 +455,7 @@ function WS.Init(saved)
             and hookScene(UNIVERSAL_DECONSTRUCTION_GAMEPAD_SCENE, panel)
     end)
     try("bank", hookBank)
+    try("trade", hookTrade)
     return done
 end
 
@@ -365,6 +483,12 @@ local function makeSettings()
             getFunction = function() return savedVars.hideBank end,
             setFunction = function(v) savedVars.hideBank = v end,
         },
+        {
+            type = LHAS.ST_CHECKBOX, label = "Trade: dungeon loot only", default = true,
+            tooltip = "When you trade with someone and have dungeon or trial drops they can take, the item list shows only those. The left stick on that list switches between them and all items.",
+            getFunction = function() return savedVars.tradeLootOnly end,
+            setFunction = function(v) savedVars.tradeLootOnly = v end,
+        },
     })
 end
 
@@ -382,7 +506,7 @@ EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, function(_, name
     end)
     if not ok then
         pcall(d, "[Quartermaster] could not start: " .. tostring(result))
-    elseif #result < 4 then
+    elseif #result < 5 then
         pcall(d, "[Quartermaster] only partly active (" .. table.concat(result, ", ") .. "); a game update may have changed these screens")
     end
     pcall(makeSettings)

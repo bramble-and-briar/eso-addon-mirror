@@ -57,10 +57,26 @@ function ListingWatcher:OnPostRequested(bagId, slotIndex, quantity, price)
         guildName = guildName,
         itemLink = itemLink,
         itemName = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(itemLink)),
+        itemUniqueId = self:GetPostedItemUniqueId(bagId, slotIndex, quantity),
         quantity = quantity,
         price = price,
         fee = listingFee,
     }
+end
+
+-- The unique id follows one item instance (gear, jewelry, furniture) across listings, so the API can count
+-- how many times the same piece was put on sale. A partial stack becomes a new item on the store while the
+-- bag keeps the old id: in that case there is no id to send.
+function ListingWatcher:GetPostedItemUniqueId(bagId, slotIndex, quantity)
+    local stackSize = GetSlotStackSize(bagId, slotIndex)
+    if stackSize and stackSize > quantity then
+        return ""
+    end
+    local uniqueId = GetItemUniqueId(bagId, slotIndex)
+    if not uniqueId then
+        return ""
+    end
+    return Id64ToString(uniqueId)
 end
 
 function ListingWatcher:OnResponseReceived(responseType, result)
@@ -75,7 +91,14 @@ function ListingWatcher:OnResponseReceived(responseType, result)
         return
     end
     self.stats.confirmed = self.stats.confirmed + 1
-    self.saleQueue:Add(self:BuildListing(post, GetTimeStamp()))
+    local listing = self:BuildListing(post, GetTimeStamp())
+    self.lastListing = listing
+    self.saleQueue:Add(listing)
+end
+
+-- Last confirmed listing of this session, shown by "/tradeqr diag" (item + unique id).
+function ListingWatcher:GetLastListing()
+    return self.lastListing
 end
 
 -- A timed-out post is dropped: queuing it could create a listing that never existed.
@@ -103,10 +126,13 @@ function ListingWatcher:BuildListing(post, timestampS)
         guildName = post.guildName,
         itemLink = post.itemLink,
         itemName = post.itemName,
+        itemUniqueId = post.itemUniqueId,
         quantity = post.quantity,
         price = post.price,
         fee = post.fee,
         seller = GetDisplayName(),
+        character = zo_strformat(SI_UNIT_NAME, GetUnitName("player")),
+        location = zo_strformat(SI_ZONE_NAME, GetPlayerLocationName()),
     }
 end
 

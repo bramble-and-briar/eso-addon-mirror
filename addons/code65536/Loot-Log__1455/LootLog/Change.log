@@ -1,3 +1,7 @@
+Version 4.10.7 (2026/11/12)
+* The antiquity lead tooltip extension now supports the Torc of Tonal Constancy
+  Antiquities Coffer 
+
 Version 4.10.6 (2026/10/14)
 * Added "+1" text to the Found counter for antiquity lead tooltips if the lead
   has been acquired but not yet excavated; this will make it easier to see if a

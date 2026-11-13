@@ -1,7 +1,7 @@
 -- SatchelExchange.lua: Root namespace
 SatchelExchange = {
     name = "SatchelExchange",
-    version = "0.9.3",
+    version = "0.10.0",
     savedVarsName = "SatchelExchangeSavedVars",
     -- v8: defaults reset so auto-unbox is on out of the box for everyone
     savedVarsVersion = 8,

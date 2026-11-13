@@ -22,7 +22,7 @@
     "LoreLibrary"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4756/",
-  "fingerprint": "5a0128e493e631a493e4d3066b68677132a13697143963232052477cb25fd5d5",
+  "fingerprint": "bef5fc6996664d02cf5d5315828ee07975165652dbd75e6f70e4fe7255962815",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16926.png",
     "https://cdn-eso.mmoui.com/preview/pvw16928.png",
@@ -34,11 +34,11 @@
   "source_id": "4756",
   "source_url": "https://www.esoui.com/downloads/info4756-LoreBookLocations3DCompassMapPins.html",
   "stats": {
-    "downloads": 8657,
+    "downloads": 8817,
     "favorites": 20,
-    "monthly_downloads": 3886
+    "monthly_downloads": 3777
   },
   "title": "LoreBook Locations (3D, Compass, Map Pins)",
-  "updated_at": 1794286802000,
-  "version": "1.0.112"
+  "updated_at": 1794546002000,
+  "version": "1.0.115"
 }

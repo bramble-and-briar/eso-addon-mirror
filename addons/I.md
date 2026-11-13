@@ -132,7 +132,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Item Quality as Text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cavalier07/Item-Quality-as-Text__745) | Cavalier07 | PC / Mac | 1.3.0 |
 | [Item Saver Lite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Item-Saver-Lite__4335) | atharti | PC / Mac | 2.4 |
 | [Item Scripting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Amerlite/Item-Scripting__2089) | Amerlite | PC / Mac | 2.3 |
-| [Item Set Browser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Item-Set-Browser__1480) | code65536 | PC / Mac | 4.7.1.2 |
+| [Item Set Browser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Item-Set-Browser__1480) | code65536 | PC / Mac | 4.7.2 |
 | [Item Set Collection Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/Item-Set-Collection-Tracker__2816) | zelenin | PC / Mac | 0.4.1 |
 | [Item Sets Summary Page Percentages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tombaa/Item-Sets-Summary-Page-Percentages__2831) | tombaa | PC / Mac | 0.4.2 |
 | [Item Stack Splitter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Item-Stack-Splitter__fd260c09-574e-4494-9d13-dad835b05662) | Eldibabalo | Console | — |
@@ -140,7 +140,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Item Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/A5ha/Item-Tracker__4351) | A5ha | PC / Mac | 5 |
 | [ItemHound](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/ItemHound__70b691c1-ae82-42c5-ad2d-4dad6bd53b36) | TheGreyWolf98 | Console | — |
 | [Items tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Upyachka/Items-tracker__1472) | Upyachka | PC / Mac | 1.1_ |
-| [ItemShare](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/ItemShare__4533) | evainefaye | PC / Mac | 1.11.31 |
+| [ItemShare](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/ItemShare__4533) | evainefaye | PC / Mac | 1.11.35 |
 | [ItemTrig](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DavidJCobb/ItemTrig__2312) | DavidJCobb | PC / Mac | 1.0.14 |
 | [ITTs Donation Bot ( ITTDB )](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/ITTs-Donation-Bot-ITTDB__2765) | ghostbane | PC / Mac | 2.1.3 |
 | [ITTs Ghostwriter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jnslevin/ITTs-Ghostwriter__3208) | jnslevin | PC / Mac | 2.2.3 |

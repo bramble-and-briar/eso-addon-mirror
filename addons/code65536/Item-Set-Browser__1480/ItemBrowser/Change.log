@@ -1,3 +1,6 @@
+Version 4.7.2 (2026/11/12)
+* API version bump for Update 52
+
 Version 4.7.1 (2026/08/27)
 * Worked around an issue reported by some players with weapon slot names in the
   set collection tooltip

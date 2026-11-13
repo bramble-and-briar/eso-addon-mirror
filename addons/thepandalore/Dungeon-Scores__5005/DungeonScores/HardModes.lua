@@ -10,7 +10,7 @@ local Evidence = DS.EncounterEvidence
 
 local HasHealthLoss = DS.Util.HasHealthLoss
 local ConditionalHMResolvers = DS.ConditionalHMResolvers or {}
-local HM_NONHM_RESET_CONFIRM_MS = 3000
+local HM_NONHM_RESET_CONFIRM_MS = 500
 
 local function IsPlayerSideCombatUnitType(unitType)
     return unitType == COMBAT_UNIT_TYPE_PLAYER
@@ -153,7 +153,7 @@ function DS:ClearBossHMHealthSignatureOnReset(boss)
     -- ESO can briefly report a full ordinary-Veteran pool and a false combat
     -- state while an HM boss changes health during a live pull. One such frame
     -- is not a wipe. Require the same full non-HM pool to remain out of combat
-    -- across multiple boss observations before invalidating the HM attempt.
+    -- across two boss observations before invalidating the HM attempt.
     if IsUnitInCombat(boss.unitTag) then
         boss.hmNormalHealthResetCandidate = nil
         return false
@@ -411,15 +411,44 @@ end
 function DS:ClearBossHMActiveHealthPoolEvidenceOnReset(
     boss, previousHealth, currentHealth, maxHealth, bossInCombat)
 
-    if not self.run or not boss
-        or boss.hmEncounterResolutionSource ~= "zone-active-health-pool"
-        or bossInCombat == true
-        or not previousHealth or not currentHealth
-        or tonumber(currentHealth) <= tonumber(previousHealth)
-        or not Scoring:IsHMActiveHealthPoolResetValue(
-            self.run.zoneId, currentHealth, maxHealth) then
+    if not self.run or not boss then
         return false
     end
+    if boss.hmEncounterResolutionSource ~= "zone-active-health-pool"
+        or bossInCombat == true
+        or not previousHealth or not currentHealth
+        or not Scoring:IsHMActiveHealthPoolResetValue(
+            self.run.zoneId, currentHealth, maxHealth) then
+        boss.hmActivePoolResetCandidate = nil
+        return false
+    end
+
+    -- A single full base-pool sample and a transient false combat flag can
+    -- occur during an HM phase change. Require the same reset-like health pool
+    -- to remain out of combat for another 500 ms before clearing the HM latch.
+    -- The first sample must be a rise; later unchanged samples confirm it.
+    local nowMs = GetGameTimeMilliseconds()
+    local candidate = boss.hmActivePoolResetCandidate
+    if type(candidate) ~= "table"
+        or candidate.currentHealth ~= tonumber(currentHealth)
+        or candidate.maxHealth ~= tonumber(maxHealth)
+        or nowMs < (tonumber(candidate.firstSeenAtMs) or nowMs) then
+        if tonumber(currentHealth) <= tonumber(previousHealth) then
+            boss.hmActivePoolResetCandidate = nil
+            return false
+        end
+        boss.hmActivePoolResetCandidate = {
+            currentHealth = tonumber(currentHealth),
+            maxHealth = tonumber(maxHealth),
+            firstSeenAtMs = nowMs,
+        }
+        return false
+    end
+    if nowMs - (tonumber(candidate.firstSeenAtMs) or nowMs)
+        < HM_NONHM_RESET_CONFIRM_MS then
+        return false
+    end
+    boss.hmActivePoolResetCandidate = nil
 
     local encounterKey = boss.hmEncounterKey
     local identity = Evidence:GetIdentity(self.run, boss, false)

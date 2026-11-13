@@ -230,7 +230,73 @@ function DS:RegisterEvents()
     end)
 end
 
+-- HM activation can change a visible boss's health pool before the first hostile
+-- combat event starts the run timer. Observe only boss health during that short
+-- pre-combat interval; the high-frequency listener is removed before combat.
+function DS:StartPrecombatHMHealthObserver()
+    if self.precombatHMHealthObserverRegistered or not self.run
+        or self.run.startedAtMs or self.run.finalized or not self:IsArmed()
+        or not self.Scoring:IsTrifectaSupported(self.run.zoneId) then
+        return
+    end
+
+    local name = self.NAME .. "_PrecombatHMHealth"
+    local generation = self.run.generation
+    EM:RegisterForEvent(name, EVENT_POWER_UPDATE,
+        function(_, unitTag, _, _, powerValue, powerMax, powerEffectiveMax)
+            if not self.run or self.run.finalized or self.run.startedAtMs
+                or not self:IsArmed() then
+                self:StopPrecombatHMHealthObserver()
+                return
+            end
+            if self.run.generation ~= generation or not powerMax or powerMax <= 0 then
+                return
+            end
+
+            -- The health event can precede EVENT_BOSSES_CHANGED. Acquire its
+            -- run-local identity, then retain this exact event sample even if a
+            -- subsequent GetUnitPower read has already moved to another pool.
+            if not (self.run.activeBosses and self.run.activeBosses[unitTag]) then
+                self:RefreshBosses()
+            end
+            self:OnBossPowerUpdate(unitTag, powerValue, powerMax, powerEffectiveMax)
+        end)
+    EM:AddFilterForEvent(name, EVENT_POWER_UPDATE,
+        REGISTER_FILTER_UNIT_TAG_PREFIX, "boss")
+    EM:AddFilterForEvent(name, EVENT_POWER_UPDATE,
+        REGISTER_FILTER_POWER_TYPE, POWERTYPE_HEALTH)
+    -- A candidate reset needs a second observation even if the boss's health
+    -- stops changing before combat. Keep this cheap: scan boss tags only while
+    -- a reset candidate exists, and stop the timer before the combat pulse.
+    EM:RegisterForUpdate(name .. "_ResetConfirm", self.PULSE_INTERVAL_MS,
+        function()
+            if not self.run or self.run.finalized or self.run.startedAtMs
+                or not self:IsArmed() then
+                self:StopPrecombatHMHealthObserver()
+                return
+            end
+            for _, boss in pairs(self.run.activeBosses or {}) do
+                if boss.hmNormalHealthResetCandidate
+                    or boss.hmActivePoolResetCandidate then
+                    self:RefreshBosses()
+                    return
+                end
+            end
+        end)
+    self.precombatHMHealthObserverRegistered = true
+end
+
+function DS:StopPrecombatHMHealthObserver()
+    if not self.precombatHMHealthObserverRegistered then
+        return
+    end
+    EM:UnregisterForEvent(self.NAME .. "_PrecombatHMHealth", EVENT_POWER_UPDATE)
+    EM:UnregisterForUpdate(self.NAME .. "_PrecombatHMHealth_ResetConfirm")
+    self.precombatHMHealthObserverRegistered = false
+end
+
 function DS:StartPulse()
+    self:StopPrecombatHMHealthObserver()
     if self.pulseActive then
         return
     end
@@ -304,6 +370,7 @@ function DS:StartPulse()
 end
 
 function DS:StopPulse()
+    self:StopPrecombatHMHealthObserver()
     if not self.pulseActive then
         return
     end

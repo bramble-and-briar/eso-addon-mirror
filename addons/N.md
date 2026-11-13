@@ -18,7 +18,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Near's Script Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Near-s-Script-Tooltips__3895) | notnear | PC / Mac | 1.0.1 |
 | [Neat Experience Info](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/qhil/Neat-Experience-Info__1581) | qhil | PC / Mac | 1.15.1 |
 | [Necro Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Necro-Tracker__4cd1ecbb-8d25-48e5-a67e-28b408761f77) | codeWarrior82 | Console | — |
-| [NecroCat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/NecroCat__4174) | Soul_Hagans | PC / Mac | 3.0.5 |
+| [NecroCat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/NecroCat__4174) | Soul_Hagans | PC / Mac | 3.0.7 |
 | [NecroCatIcons  (OdySupportIcons)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/NecroCatIcons-OdySupportIcons__4835) | Soul_Hagans | PC / Mac | 1.5.3 |
 | [NecromancerTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PersistentMemory/NecromancerTracker__2795) | PersistentMemory | PC / Mac | 1.3.3.1 |
 | [Ned's Group Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ned919x/Ned-s-Group-Manager__4f86b7c8-8fb6-432c-a1b9-2004263244ab) | Ned919x | Console | — |
@@ -26,7 +26,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Neltharions Cam Controler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/neltahrion11/Neltharions-Cam-Controler__3480) | neltahrion11 | PC / Mac | 1.14 |
 | [Neltharions Healer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/neltahrion11/Neltharions-Healer__2955) | neltahrion11 | PC / Mac | 2.22 |
 | [Nemesis](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rogue0rbit/Nemesis__88739d40-c764-4276-9157-ba0eb1d47805) | Rogue0rbit | Console | — |
-| [Neofox Support Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/smj2k/Neofox-Support-Icons__4111) | smj2k | PC / Mac | 1.0.1 |
+| [Neofox Icons for OdySupportIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/smj2k/Neofox-Icons-for-OdySupportIcons__4111) | smj2k | PC / Mac | 1.0.1 |
 | [Net Worth - You may be wealthier than you think!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KermitTheFrog88/Net-Worth---You-may-be-wealthier-than-you-think__3318) | KermitTheFrog88 | PC / Mac | 0.11 |
 | [NeverGonnaPickYouUp (BRP sigil synergy blocker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Psiioniic/NeverGonnaPickYouUp-BRP-sigil-synergy-blocker__2949) | Psiioniic | PC / Mac | 0.0.3 |
 | [New Crown](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rednas/New-Crown__3097) | Rednas | PC / Mac | 1.0.3 |

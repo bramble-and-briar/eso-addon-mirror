@@ -255,6 +255,7 @@ function VEQ.FindMyZone(dzone, dtype, dInstanceDisplayType, dRepeatType, qname, 
     else
          prepeat = ""
     end
+
     
     if dtype == QUEST_TYPE_AVA or dtype == QUEST_TYPE_AVA_GRAND or dtype == QUEST_TYPE_AVA_GROUP then
          zone = string.format("%s%s", VEQ.mylanguage.lang_tracker_type_ava, pzone)
@@ -265,6 +266,10 @@ function VEQ.FindMyZone(dzone, dtype, dInstanceDisplayType, dRepeatType, qname, 
          end
     elseif dtype == QUEST_TYPE_MAIN_STORY then
           zone = string.format("%s%s", VEQ.mylanguage.lang_tracker_type_mainstory, pzone)
+    elseif dInstanceDisplayType == ZONE_DISPLAY_TYPE_ZONE_STORY then 
+          local completed = GetNumCompletedZoneActivitiesForZoneCompletionType(GetZoneId(qZoneIndex), ZONE_COMPLETION_TYPE_PRIORITY_QUESTS) 
+          local total = GetNumZoneActivitiesForZoneCompletionType(GetZoneId(qZoneIndex), ZONE_COMPLETION_TYPE_PRIORITY_QUESTS)
+          zone = string.format("%s%s %s/%s", GetString(SI_ZONEDISPLAYTYPE10), pzone, completed, total)
     elseif dtype == QUEST_TYPE_CLASS then
           zone = string.format("%s%s%s", VEQ.mylanguage.lang_tracker_type_class, prepeat, pzone)
     elseif dtype == QUEST_TYPE_UNDAUNTED_PLEDGE then

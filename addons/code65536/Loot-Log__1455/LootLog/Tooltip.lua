@@ -4,6 +4,61 @@ local LootLog = LootLog
 
 
 --------------------------------------------------------------------------------
+-- Utility
+--------------------------------------------------------------------------------
+
+local scratch
+local function GetScratch( )
+	scratch = LCCC.PrepareScratchTable(scratch)
+	return scratch
+end
+
+
+--------------------------------------------------------------------------------
+-- AddAntiquitySetTooltipExtension
+--------------------------------------------------------------------------------
+
+local function AddAntiquitySetTooltipExtension( tooltipOrExtension, setId, antiquityId )
+	if (not setId or setId == 0) then return end
+
+	local extension = antiquityId and tooltipOrExtension or LEJ.TooltipExtensionInitialize(true, nil, nil, "Antiquity")
+
+	local results = GetScratch()
+	local leads = 0
+
+	for i = 1, GetNumAntiquitySetAntiquities(setId) do
+		local fragmentId = GetAntiquitySetAntiquityId(setId, i)
+		local name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetAntiquityName(fragmentId))
+
+		local color
+		if (DoesAntiquityNeedCombination(fragmentId)) then
+			color = LEJ.GetTooltipColor(1, 1)
+			leads = leads + 1
+		elseif (DoesAntiquityHaveLead(fragmentId)) then
+			color = LEJ.GetTooltipColor(1, 3)
+			leads = leads + 1
+		else
+			color = LEJ.GetTooltipColor(1, 2)
+		end
+
+		if (antiquityId == fragmentId) then
+			table.insert(results, string.format("|c%06X|l0:1:1:1:1:%06X|l%s|l|r", color, color, name))
+		else
+			table.insert(results, string.format("|c%06X%s|r", color, name))
+		end
+	end
+
+	extension:AddSection(string.format("%s (%d/%d)", GetString(SI_ANTIQUITY_FRAGMENTS), leads, #results), table.concat(results, ", "))
+
+	if (not antiquityId) then
+		extension:Finalize(tooltipOrExtension, true)
+	end
+
+	return true
+end
+
+
+--------------------------------------------------------------------------------
 -- LootLog.AddAntiquityTooltipExtension
 --------------------------------------------------------------------------------
 
@@ -26,35 +81,7 @@ function LootLog.AddAntiquityTooltipExtension( tooltip, antiquityId, showLocatio
 		extension:AddSection(nil, zo_strformat(SI_ANTIQUITY_TOOLTIP_ZONE, string.format("|cFFFFFF%s|r", LCCC.GetZoneName(GetAntiquityZoneId(antiquityId)))))
 	end
 
-	local setId = GetAntiquitySetId(antiquityId)
-	if (setId and setId ~= 0) then
-		local results = { }
-		local leads = 0
-
-		for i = 1, GetNumAntiquitySetAntiquities(setId) do
-			local fragmentId = GetAntiquitySetAntiquityId(setId, i)
-			local name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetAntiquityName(fragmentId))
-
-			local color
-			if (DoesAntiquityNeedCombination(fragmentId)) then
-				color = LEJ.GetTooltipColor(1, 1)
-				leads = leads + 1
-			elseif (DoesAntiquityHaveLead(fragmentId)) then
-				color = LEJ.GetTooltipColor(1, 3)
-				leads = leads + 1
-			else
-				color = LEJ.GetTooltipColor(1, 2)
-			end
-
-			if (antiquityId == fragmentId) then
-				table.insert(results, string.format("|c%06X|l0:1:1:1:1:%06X|l%s|l|r", color, color, name))
-			else
-				table.insert(results, string.format("|c%06X%s|r", color, name))
-			end
-		end
-
-		extension:AddSection(string.format("%s (%d/%d)", GetString(SI_ANTIQUITY_FRAGMENTS), leads, #results), table.concat(results, ", "))
-	end
+	AddAntiquitySetTooltipExtension(extension, GetAntiquitySetId(antiquityId), antiquityId)
 
 	extension:Finalize(tooltip, true)
 
@@ -69,11 +96,13 @@ end
 function LootLog.AddTreasureMapTooltipExtension( tooltip, itemLink )
 	-- Punt this over to AddAntiquityTooltipExtension for tradeable leads
 	if (LootLog.AddAntiquityTooltipExtension(tooltip, LootLog.GetAntiquityIdFromItem(itemLink), true)) then return end
+	-- Or AddAntiquitySetTooltipExtension for lead coffers
+	if (AddAntiquitySetTooltipExtension(tooltip, LootLog.GetAntiquitySetIdFromItem(itemLink))) then return end
 
 	local antiquityIds = LootLog.GetAntiquityIdsForTreasureMap(itemLink)
 	if (#antiquityIds == 0) then return end
 
-	local results = { }
+	local results = GetScratch()
 	local foundAtLeastOnce = 0
 	local totalRecovered = 0
 	local totalLoreAcquired = 0

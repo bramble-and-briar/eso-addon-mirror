@@ -301,6 +301,13 @@
 PvPTargetInfo = PvPTargetInfo or {}
 local PTI = PvPTargetInfo
 
+-- v2.5.1 変更点:
+--   ・UI③(Condition)に表示モード「常時表示 / 戦闘終了後は非表示(既定)」と猶予秒数
+--     (procUI.displayMode / hideDelay)を追加。スタック系バフが戦闘後も残って表示され続ける件への対応。
+--     表示だけを隠し、Conditionの検知(ScanActiveProcs)は止めない。
+--   ・設定画面を開くとUI①〜④(パネル表示ONのもの)をサンプル自動表示し、閉じたら元に戻す
+--     (PTI.UI.settingsOpen の一時フラグ。sv.previewModeは変更しない。手動プレビューも残す)。
+--   ・Proc CD設定「③ 手動登録」の先頭説明文が上で見切れる件を、見出しをtitle欄に分けて修正。
 -- v2.5.0 変更点:
 --   ・Proc CD: 登録履歴(AUTO/MANUAL)、登録後の信頼性チェック(正常/要確認/無効候補)、
 --     設定画面からのMANUAL登録(セット・Ability ID・ICD)。設定画面④を整理(折りたたみ式)。
@@ -335,7 +342,16 @@ local PTI = PvPTargetInfo
 --   ・設定画面を 基本/検知/表示の残し方/パネル/詳細設定 の順に整理(設定キーは変更なし)。
 --   ・決闘中の相手(GetDuelInfo)を敵として扱う(任意変更・PS5実機未検証)。
 PTI.name = "PvPTargetInfo"
-PTI.version = "2.5.0"
+PTI.version = "2.5.1"
+
+-- v2.5.1: 「プレビュー表示」判定の共通関数。手動のプレビュー表示(sv.previewMode)がONの間、
+-- または設定画面を開いている間(PTI.UI.settingsOpen。保存はしない一時フラグ)はtrue。
+-- 設定画面を開くとUI①〜④(パネル表示がONのもの)にサンプルが自動表示され、閉じると元に戻る。
+function PTI.IsPreview()
+    if PTI.sv and PTI.sv.previewMode then return true end
+    if PTI.UI and PTI.UI.settingsOpen then return true end
+    return false
+end
 
 local SV_VERSION = 2
 
@@ -391,6 +407,10 @@ local defaults = {
         scale = 1.0,
         fontSize = 16,
         maxRows = 3,
+        -- v2.5.1: 表示モード "always"(常時表示) / "combat"(戦闘終了後は非表示)と、
+        -- 戦闘終了から隠すまでの猶予秒数。表示するかどうかだけの設定で、検知は止めない。
+        displayMode = "combat",
+        hideDelay = 5,
     },
 
     procs = {

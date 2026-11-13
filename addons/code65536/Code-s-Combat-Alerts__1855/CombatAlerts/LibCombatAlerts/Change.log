@@ -1,3 +1,6 @@
+Version 0.9.0 (2026/11/12)
+* Added GetGradientUnpacked, GetGradientPacked, and IsUnitIdWithinDistance
+
 Version 0.8.6 (2026/10/21)
 * Added a few new SI_LCA_* localized string definitions
 

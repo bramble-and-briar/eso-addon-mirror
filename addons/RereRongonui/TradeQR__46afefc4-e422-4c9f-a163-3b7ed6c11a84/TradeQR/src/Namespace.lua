@@ -7,11 +7,13 @@ TradeQR = {
 
     -- Payload format version, bump it when the JSON shape changes (the phone app reads it).
     -- v2: "type" field ("sale" | "listing") and listing payloads.
-    payloadVersion = 2,
+    -- v3: "gid" (numeric guild id) on sales and listings; "uid", "char", "loc" on listings; "trader" payloads.
+    payloadVersion = 3,
 
     -- Queue record kinds. Records saved by 0.2.x have no kind: they are sales.
     RECORD_KIND_SALE = "sale",
     RECORD_KIND_LISTING = "listing",
+    RECORD_KIND_TRADER = "trader",
 
     defaults = {
         -- Only sales where the current account is the seller.

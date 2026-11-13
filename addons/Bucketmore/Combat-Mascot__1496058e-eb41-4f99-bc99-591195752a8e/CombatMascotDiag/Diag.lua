@@ -1,4 +1,7 @@
--- CombatMascotDiag v0.1.0
+-- CombatMascotDiag v0.1.1
+-- v0.1.1: ULT candidate slot (const+1), skill = slots 3-7, slot 1/2 counted separately,
+--         per-result-code counters (names from the game's own ACTION_RESULT_* constants),
+--         cheaper event handlers. DDS / animation / interrupt code is unchanged from v0.1.0.
 -- PS5/CS diagnostic ONLY. Not the CombatMascot addon.
 -- No libraries, no OnUpdate, no SavedVariables, no chat output.
 -- Every ESO API call below is wrapped in pcall; the result is shown on screen.
@@ -6,7 +9,7 @@
 
 local ADDON = "CombatMascotDiag"
 local PATH  = "CombatMascotDiag/"
-local VERSION = "0.1.0"
+local VERSION = "0.1.1"
 local FPS = 12                       -- test frame rate for every sheet
 
 ------------------------------------------------------------------
@@ -19,12 +22,13 @@ local S = {
     load = {},                       -- load[key] = { "-","-","-", cbMs=nil, dim=nil }
     inter = { i1 = "-", i2 = "-", i3 = "-", all = "-" },
     reg = { src = "-", tgt = "-", slot = "-" },
-    c = { light = 0, heavy = 0, skill = 0, ult = 0, kill = 0,
+    c = { light = 0, heavy = 0, skill = 0, ultCand = 0, kill = 0,
+          s1 = 0, s2 = 0, slotOther = 0,
           hitDirect = 0, hitDot = 0, hitShield = 0, hitOther = 0,
           src = 0, tgt = 0, slot = 0 },
     slotCnt = {},                    -- slotCnt[slotNum] = count
-    seenSrc = {}, seenTgt = {},      -- distinct result codes seen (capped)
-    last = { srcLine = "-", tgtLine = "-", slotLine = "-" },
+    resSrc = {}, resTgt = {},        -- resSrc[resultCode] = count (classification counters)
+    last = { srcLine = "-", tgtLine = "-", slotLine = "-", ultLine = "-" },
 }
 
 local started = false
@@ -38,6 +42,14 @@ local function Dirty()
     if dirty then return end
     dirty = true
     zo_callLater(function() Refresh() end, 500)   -- at most ~2 redraws/second, change-driven
+end
+
+-- low-rate redraw request for events that are only counted (classification counters)
+local slowPending = false
+local function DirtySlow()
+    if slowPending then return end
+    slowPending = true
+    zo_callLater(function() slowPending = false; Dirty() end, 2000)
 end
 
 local function Err(where, msg)
@@ -346,19 +358,41 @@ AddName(RESULT_NAMES, ACTION_RESULT_DOT_TICK, "DOT")
 AddName(RESULT_NAMES, ACTION_RESULT_DOT_TICK_CRITICAL, "DOTCRIT")
 AddName(RESULT_NAMES, ACTION_RESULT_DAMAGE_SHIELDED, "SHIELDED")
 AddName(RESULT_NAMES, ACTION_RESULT_KILLING_BLOW, "KILLBLOW")
-local function ResName(r) return RESULT_NAMES[r] or ("r" .. tostring(r)) end
+-- Names come from the game's own ACTION_RESULT_* globals (scanned once at start-up).
+-- A code with no such global stays "r<number>" and is NOT interpreted.
+local RNAME = {}
+local function BuildResultNames()
+    local n = 0
+    local ok = pcall(function()
+        for k, v in pairs(_G) do
+            if type(k) == "string" and type(v) == "number" and string.sub(k, 1, 14) == "ACTION_RESULT_" then
+                local nm = string.sub(k, 15)
+                local cur = RNAME[v]
+                if cur == nil then RNAME[v] = nm; n = n + 1
+                elseif nm < cur then RNAME[v] = nm end
+            end
+        end
+    end)
+    S.api.resultNameScan = ok and ("Y(" .. n .. ")") or "ERR"
+end
+local function ResName(r) return RNAME[r] or RESULT_NAMES[r] or ("r" .. tostring(r)) end
+
+-- Rough grouping by constant NAME only (heuristic, not a game-defined category)
+local function ClassOf(code)
+    local nm = RNAME[code]
+    if not nm then return "unknown" end
+    if string.find(nm, "DAMAGE", 1, true) or string.find(nm, "DOT_TICK", 1, true) then return "dmg" end
+    if string.find(nm, "HEAL", 1, true) or string.find(nm, "HOT_TICK", 1, true) then return "heal" end
+    if string.find(nm, "EFFECT_GAINED", 1, true) or string.find(nm, "EFFECT_FADED", 1, true) then return "effect" end
+    if string.find(nm, "KILLING_BLOW", 1, true) or string.find(nm, "DIED", 1, true) then return "death" end
+    return "other"
+end
 
 local function SlotTypeName(t)
     if t == nil then return "nil" end
     if ACTION_SLOT_TYPE_LIGHT_ATTACK ~= nil and t == ACTION_SLOT_TYPE_LIGHT_ATTACK then return "LIGHT" end
     if ACTION_SLOT_TYPE_HEAVY_ATTACK ~= nil and t == ACTION_SLOT_TYPE_HEAVY_ATTACK then return "HEAVY" end
     return "t" .. tostring(t)
-end
-
-local function SeeResult(list, r)
-    for i = 1, #list do if list[i] == r then return false end end
-    if #list < 8 then list[#list + 1] = r return true end
-    return false
 end
 
 local function Nm(abilityId)
@@ -374,6 +408,8 @@ local function OnSrc(_, result, isError, abilityName, _, slotType, sourceName, s
     if isError then return end
     local c = S.c
     c.src = c.src + 1
+    local rt = S.resSrc
+    rt[result] = (rt[result] or 0) + 1              -- classification counter (cheap)
     local changed = false
     if result == ACTION_RESULT_KILLING_BLOW then
         c.kill = c.kill + 1
@@ -391,8 +427,7 @@ local function OnSrc(_, result, isError, abilityName, _, slotType, sourceName, s
         S.last.srcLine = string.format("id=%s %s result=%s slotType=%s tgtType=%s",
             tostring(abilityId), Nm(abilityId), ResName(result), SlotTypeName(slotType), tostring(targetType))
     end
-    if SeeResult(S.seenSrc, result) then changed = true end
-    Dirty()
+    if changed then Dirty() else DirtySlow() end
 end
 
 -- EVENT_COMBAT_EVENT, target = player (direct / DoT / shielded)
@@ -401,6 +436,8 @@ local function OnTgt(_, result, isError, abilityName, _, slotType, sourceName, s
     if isError then return end
     local c = S.c
     c.tgt = c.tgt + 1
+    local rt = S.resTgt
+    rt[result] = (rt[result] or 0) + 1              -- classification counter (cheap)
     local counted = true
     if result == ACTION_RESULT_DAMAGE or result == ACTION_RESULT_CRITICAL_DAMAGE then
         c.hitDirect = c.hitDirect + 1
@@ -412,12 +449,11 @@ local function OnTgt(_, result, isError, abilityName, _, slotType, sourceName, s
         c.hitOther = c.hitOther + 1
         counted = false
     end
-    local newSeen = SeeResult(S.seenTgt, result)
     if counted then
         S.last.tgtLine = string.format("id=%s %s result=%s value=%s dmgType=%s",
             tostring(abilityId), Nm(abilityId), ResName(result), tostring(hitValue), tostring(damageType))
     end
-    if counted or newSeen then Dirty() end
+    if counted then Dirty() else DirtySlow() end
 end
 
 -- EVENT_ACTION_SLOT_ABILITY_USED (skill / ultimate)
@@ -432,15 +468,42 @@ local function BoundId(slotNum)
     return nil
 end
 
+-- Slot layout assumed from the v0.1.0 PS5 run: 1/2 = weapon attacks (light/heavy input, UNCONFIRMED),
+-- 3-7 = skills, ULT candidate = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1 (UNCONFIRMED until a real ULT cast is checked).
+local SKILL_FIRST, SKILL_LAST = 3, 7
+local ULT_CAND = (ACTION_BAR_ULTIMATE_SLOT_INDEX ~= nil) and (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) or nil
+
+local function SlotCost(slotNum)
+    if type(GetSlotAbilityCost) ~= "function" then S.api.GetSlotAbilityCost = "N" return "NA" end
+    local ok, cost, mech = pcall(GetSlotAbilityCost, slotNum)
+    if not ok then S.api.GetSlotAbilityCost = "ERR" return "ERR" end
+    S.api.GetSlotAbilityCost = "Y"
+    local u = ""
+    if COMBAT_MECHANIC_FLAGS_ULTIMATE ~= nil and mech ~= nil then
+        u = (mech == COMBAT_MECHANIC_FLAGS_ULTIMATE) and "(ULTIMATE)" or "(not ult)"
+    end
+    return tostring(cost) .. "/" .. tostring(mech) .. u
+end
+
 local function OnSlot(_, slotNum)
     local c = S.c
     c.slot = c.slot + 1
     S.slotCnt[slotNum] = (S.slotCnt[slotNum] or 0) + 1
-    local isUlt = (ACTION_BAR_ULTIMATE_SLOT_INDEX ~= nil) and (slotNum == ACTION_BAR_ULTIMATE_SLOT_INDEX)
-    if isUlt then c.ult = c.ult + 1 else c.skill = c.skill + 1 end
+    if slotNum == 1 then c.s1 = c.s1 + 1; DirtySlow() return end         -- weapon attack input (separate counter)
+    if slotNum == 2 then c.s2 = c.s2 + 1; DirtySlow() return end
+    local isUlt = (ULT_CAND ~= nil) and (slotNum == ULT_CAND)
+    if isUlt then
+        c.ultCand = c.ultCand + 1
+    elseif slotNum ~= nil and slotNum >= SKILL_FIRST and slotNum <= SKILL_LAST then
+        c.skill = c.skill + 1
+    else
+        c.slotOther = c.slotOther + 1
+    end
     local id = BoundId(slotNum)
-    S.last.slotLine = string.format("slot=%s ult=%s boundId=%s %s",
+    local line = string.format("slot=%s ult-cand=%s boundId=%s %s",
         tostring(slotNum), isUlt and "Y" or "N", tostring(id), Nm(id))
+    S.last.slotLine = line
+    if isUlt then S.last.ultLine = line .. "  cost/mech=" .. SlotCost(slotNum) end
     Dirty()
 end
 
@@ -463,6 +526,7 @@ local function RegisterCombat(name, nsKey, event, cb, filterConst, filterVal)
 end
 
 local function RegisterAllEvents()
+    BuildResultNames()
     RegisterCombat(ADDON .. "_Src", "src", EVENT_COMBAT_EVENT, OnSrc,
         REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
     RegisterCombat(ADDON .. "_Tgt", "tgt", EVENT_COMBAT_EVENT, OnTgt,
@@ -484,11 +548,24 @@ local function SlotLine()
     return table.concat(t, " ")
 end
 
-local function ListLine(list)
-    if #list == 0 then return "-" end
-    local t = {}
-    for i = 1, #list do t[i] = ResName(list[i]) end
-    return table.concat(t, ",")
+local function TopLine(t, n)
+    local arr = {}
+    for code, cnt in pairs(t) do arr[#arr + 1] = { code, cnt } end
+    table.sort(arr, function(a, b) if a[2] == b[2] then return a[1] < b[1] end return a[2] > b[2] end)
+    local parts = {}
+    for i = 1, math.min(n, #arr) do
+        parts[#parts + 1] = string.sub(ResName(arr[i][1]), 1, 18) .. "=" .. arr[i][2]
+    end
+    if #arr > n then parts[#parts + 1] = "(+" .. (#arr - n) .. " more codes)" end
+    if #parts == 0 then return "-" end
+    return table.concat(parts, "  ")
+end
+
+local function ClassLine(t)
+    local g = { dmg = 0, heal = 0, effect = 0, death = 0, other = 0, unknown = 0 }
+    for code, cnt in pairs(t) do local k = ClassOf(code); g[k] = g[k] + cnt end
+    return string.format("dmg=%d heal=%d effect=%d death=%d other=%d unknown(no const)=%d",
+        g.dmg, g.heal, g.effect, g.death, g.other, g.unknown)
 end
 
 local function ApiLine(names)
@@ -506,7 +583,8 @@ Refresh = function()
     L[#L + 1] = "API: " .. ApiLine({ "CreateTimeline", "InsertAnimation(ANIMATION_TEXTURE)", "SetImageData", "SetFramerate", "SetDuration" })
     L[#L + 1] = "API: " .. ApiLine({ "SetPlaybackType(ONE_SHOT)", "SetPlaybackType(LOOP)", "PlayFromStart", "Stop", "IsPlaying", "SetHandler(OnStop)" })
     L[#L + 1] = "API: IsTextureLoaded=" .. F(S.api.IsTextureLoaded) .. " OnTextureLoaded(set)=" .. F(S.api.OnTextureLoaded) ..
-                " GetTextureFileDimensions=" .. F(S.api.GetTextureFileDimensions) .. " boundIdForm=" .. F(S.api.boundIdForm)
+                " GetTextureFileDimensions=" .. F(S.api.GetTextureFileDimensions) .. " boundIdForm=" .. F(S.api.boundIdForm) ..
+                " GetSlotAbilityCost=" .. F(S.api.GetSlotAbilityCost) .. " resultNameScan=" .. F(S.api.resultNameScan)
     L[#L + 1] = "[DDS LOAD]  1s / 2s / 3s  (Y=loaded N=not NA=no function)  cb=OnTextureLoaded ms  dim=file size"
     for _, k in ipairs(ORDER) do
         local ld = S.load[k] or { "-", "-", "-" }
@@ -529,14 +607,21 @@ Refresh = function()
     L[#L + 1] = string.format("   token=%d stale=%d rejected=%d", ctl.token, ctl.stale, ctl.rejected)
     L[#L + 1] = string.format("[EVENTS]  register: src=%s | tgt=%s | slot=%s", S.reg.src, S.reg.tgt, S.reg.slot)
     L[#L + 1] = string.format("  passed filter: src=%d tgt=%d slot=%d  total=%d", c.src, c.tgt, c.slot, c.src + c.tgt + c.slot)
-    L[#L + 1] = string.format("  light=%d heavy=%d skill=%d ult=%d kill=%d   (ULT const=%s)", c.light, c.heavy, c.skill, c.ult, c.kill,
-        F(ACTION_BAR_ULTIMATE_SLOT_INDEX))
+    L[#L + 1] = string.format("  hit-light=%d hit-heavy=%d kill=%d   skill(s3-7)=%d   ult-cand(s%s)=%d  [ULT UNCONFIRMED]",
+        c.light, c.heavy, c.kill, c.skill, F(ULT_CAND), c.ultCand)
     L[#L + 1] = string.format("  hit taken: direct=%d dot=%d shielded=%d  non-hit results=%d", c.hitDirect, c.hitDot, c.hitShield, c.hitOther)
     L[#L + 1] = "  last light/heavy/kill: " .. S.last.srcLine
     L[#L + 1] = "  last hit taken:        " .. S.last.tgtLine
-    L[#L + 1] = "  last slot used:        " .. S.last.slotLine
-    L[#L + 1] = "  slots seen: " .. SlotLine()
-    L[#L + 1] = "  results seen src: " .. ListLine(S.seenSrc) .. "   tgt: " .. ListLine(S.seenTgt)
+    L[#L + 1] = string.format("[SLOTS]  s1(weapon input)=%d  s2(weapon input)=%d   other=%d   (separate from hit counts)", c.s1, c.s2, c.slotOther)
+    L[#L + 1] = string.format("  s3=%d s4=%d s5=%d s6=%d s7=%d  s8=%d  | ULT const=%s -> its own slot count=%s",
+        S.slotCnt[3] or 0, S.slotCnt[4] or 0, S.slotCnt[5] or 0, S.slotCnt[6] or 0, S.slotCnt[7] or 0, S.slotCnt[8] or 0,
+        F(ACTION_BAR_ULTIMATE_SLOT_INDEX), F(ACTION_BAR_ULTIMATE_SLOT_INDEX and S.slotCnt[ACTION_BAR_ULTIMATE_SLOT_INDEX] or nil))
+    L[#L + 1] = "  last slot used (3+): " .. S.last.slotLine
+    L[#L + 1] = "  last ult-cand:       " .. S.last.ultLine
+    L[#L + 1] = "[RESULT src] " .. TopLine(S.resSrc, 5)
+    L[#L + 1] = "   class(by const name, heuristic): " .. ClassLine(S.resSrc)
+    L[#L + 1] = "[RESULT tgt] " .. TopLine(S.resTgt, 5)
+    L[#L + 1] = "   class(by const name, heuristic): " .. ClassLine(S.resTgt)
     if S.err then L[#L + 1] = "ERR(" .. S.errCount .. "): " .. S.err end
     pcall(function() label:SetText(table.concat(L, "\n")) end)
 end

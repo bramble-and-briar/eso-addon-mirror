@@ -1006,7 +1006,7 @@ local function OnUpdate()
     local buffWin = PTI.UI.GetWindow("buff")
     local debuffWin = PTI.UI.GetWindow("debuff")
 
-    if PTI.sv.previewMode then
+    if PTI.IsPreview() then
         buffWin.titleLabel:SetText("BUFF (プレビュー)")
         debuffWin.titleLabel:SetText("DEBUFF (プレビュー)")
         RenderEntries("buff", BuildPreviewEntries("勇気の炎", "集中攻撃", "不屈の意志"))

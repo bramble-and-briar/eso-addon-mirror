@@ -1,5 +1,5 @@
 -- The route: the stops still to walk, then the destination. The only thing asked of the game in this file is whether it
--- still holds a destination (GameHasWaypoint, Nav.lua); Main.lua feeds it what the map says and Guide.lua asks it where to
+-- still holds a destination (GameHoldsDestination, Nav.lua); Main.lua feeds it what the map says and Guide.lua asks it where to
 -- go next.
 --
 --   route.vias  the stops not reached yet, in the order they are walked
@@ -154,7 +154,8 @@ function A:SettleRemoval(now)
 	if route.dest then
 		return false
 	end
-	if self:GameHasWaypoint() == true then
+	local holds = self:GameHoldsDestination(removal.stop)
+	if holds == true then
 		route.dest = removal.stop
 		self.destState = "kept (the game still holds a destination)"
 		self:Trace("route", "a removal was announced but the game still holds a destination: the destination is kept")
@@ -166,7 +167,8 @@ function A:SettleRemoval(now)
 		self:Complete()
 		return true
 	end
-	if removal.byHand then
+	-- by hand only when the game says so on a map the destination lies on; a guess must not wipe the group's markers
+	if removal.byHand and holds == false then
 		self:Trace("route", "the destination was taken off the map by hand: dropped, the stops stay")
 		self:ShareRoute("the destination was taken off the map")
 		return false
@@ -174,7 +176,8 @@ function A:SettleRemoval(now)
 	route.dest = removal.stop
 	route.destOwn = true -- the game no longer holds it: the add-on draws its pin
 	self.destState = "kept (the game dropped its own)"
-	self:Trace("route", "the game dropped its destination while you walked, far from it: kept, the guide goes on")
+	self:Trace("route", removal.byHand and "a removal was announced with the map up, but the game could not confirm it: kept"
+		or "the game dropped its destination while you walked, far from it: kept, the guide goes on")
 	self:RouteChanged()
 	return false
 end

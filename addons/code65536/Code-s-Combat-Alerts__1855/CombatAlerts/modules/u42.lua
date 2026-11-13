@@ -303,7 +303,7 @@ function Module:Initialize( )
 
 			if (unitId) then
 				local color, hasPassage, hasOverloaded
-				local timers = { }
+				local timers = self:GetScratch()
 
 				if (passage[unitId]) then
 					local remaining = passage[unitId].stop - currentTime
@@ -520,7 +520,7 @@ function Module:Initialize( )
 				Vars.platformHealth = select(2, GetUnitPower("boss2", COMBAT_MECHANIC_FLAGS_HEALTH))
 			end
 			if (Vars.platformHealth) then
-				local results = { }
+				local results = self:GetScratch()
 				for i = 1, 4 do
 					local current, max, effectiveMax = GetUnitPower("boss" .. i, COMBAT_MECHANIC_FLAGS_HEALTH)
 					if (max == Vars.platformHealth) then
@@ -662,10 +662,7 @@ function Module:Initialize( )
 end
 
 function Module:PostLoad( )
-	Vars.boss2Spawned = false
-
 	-- Vulnerability can only be tracked via EVENT_EFFECT_CHANGED
-
 	LCA.RegisterForFilteredEvent(Identifier("MAJ_VULN"), EVENT_EFFECT_CHANGED,
 		function( _, changeType, _, _, unitTag, _, endTime )
 			Vars.vuln[unitTag] = (changeType == EFFECT_RESULT_FADED) and 0 or zo_floor(endTime * 1000)
@@ -675,7 +672,6 @@ function Module:PostLoad( )
 	)
 
 	-- Events that need to be tracked at all times, even out of combat
-
 	LCA.RegisterForFilteredEvent(Identifier("ORB"), EVENT_COMBAT_EVENT,
 		self.OrbRefresh,
 		REGISTER_FILTER_ABILITY_ID, DATA.refresh,
@@ -830,6 +826,7 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 			rowLabels = LCA.GetAbilityName(abilityId),
 			pollingFunction = self.StatusPoll_Mini,
 		})
+		Vars.boss2Spawned = false -- Moved from PostLoad because that does not fire when porting from old to new instance
 
 	-- Boss 2
 	elseif (result == ACTION_RESULT_BEGIN and abilityId == DATA.fateSealer and (targetType == COMBAT_UNIT_TYPE_PLAYER or LCA.DoesPlayerHaveTauntSlotted() or self:GetSetting("raidLeadMode"))) then
@@ -994,7 +991,7 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 end
 
 function Module:GetSettingsControls( )
-	local extraAlertsTooltipNames = { }
+	local extraAlertsTooltipNames = self:GetScratch()
 	for _, abilityId in ipairs(DATA.extraAlertsTooltipIds) do
 		table.insert(extraAlertsTooltipNames, LCA.GetAbilityName(abilityId))
 	end

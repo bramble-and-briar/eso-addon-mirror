@@ -19,7 +19,7 @@
     "DungeonScoresRecords"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5005/",
-  "fingerprint": "159d7342424398b9b7e389f1992a9256215dfe3bb4260b6782eaf701fbb479bc",
+  "fingerprint": "3ccdd1705290a448f92da17df51c92a9c402c1719f4bb5411c817a431d4c270b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18209.png",
     "https://cdn-eso.mmoui.com/preview/pvw18212.png",
@@ -33,11 +33,11 @@
   "source_id": "5005",
   "source_url": "https://www.esoui.com/downloads/info5005-DungeonScores.html",
   "stats": {
-    "downloads": 41,
+    "downloads": 92,
     "favorites": 1,
-    "monthly_downloads": 24
+    "monthly_downloads": 85
   },
   "title": "Dungeon Scores",
-  "updated_at": 1793315622000,
-  "version": "0.5.37"
+  "updated_at": 1794516113000,
+  "version": "0.5.38"
 }

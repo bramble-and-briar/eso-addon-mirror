@@ -1,6 +1,11 @@
+Version 4.8.3 (2026/11/12)
+* Address an edge case where the status bar would fail to appear if the player
+  ports directly from an inactive instance of a trial into a new already-started
+  instance of the same trial
+
 Version 4.8.2 (2026/10/17)
-* Fixed a problem with repositioning achievement screenshot overview windows,
-  caused by changes in how anchors behave in Update 51
+* Workaround for what appears to be a bug in Update 51 that affects the
+  repositioning of achievement overview screenshot windows
 
 Version 4.8.1 (2026/10/06)
 * Added a 4s countdown delay before displaying the screenshot mode score banner,

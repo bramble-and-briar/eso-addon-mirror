@@ -30,14 +30,6 @@ If you like my work and want to support what I'm doing, consider supporting me o
 
 [b]Current changes:[/b]
 [list]
-[*]Fixed Sound 'tock' effect now playing at correct volume if in settings menu
-[*]Fixed 'tock' being played on heavy attacks even though turned off
-[*]Fixed bar behavior on heavy attacks with cast time lower 1sec
-[*]Fixed 'tick'&'tock' being played on initial load
-[*]Added 'tick'&'tock' queues for abilities > 1 sec if ended early
-[*]Fixed LATracker not showing when reset timer > 0
-[*]Fixed initial showing of LATracker when reset timer = 0
-[*]Fixed event.ending calculations to not end events too early
-[*]Fixed heavy attacks not being interrupted by bar swaps (only affects heavy attack tracking ofc)
-[*]Fixed stacks timers being hidden correctly
+[*]Added 'crystal weapon' to trackable stackable abilities
+[*]Added opacity settings for stack trackers
 [/list]

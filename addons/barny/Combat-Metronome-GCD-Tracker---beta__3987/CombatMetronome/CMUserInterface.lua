@@ -380,6 +380,7 @@ local StackTracker = CombatMetronome.StackTracker
 function StackTracker:BuildUI(skill)
 	local attributes = self.SKILL_ATTRIBUTES[skill]
 	local sv = CombatMetronome.SV.StackTracker[skill]
+	local isUnlocked = CombatMetronome.SV.StackTracker.isUnlocked
 	local size = sv.indicatorSize
 	local distance = size/5
 	local multiplier = attributes.multiplier or 1
@@ -518,20 +519,20 @@ function StackTracker:BuildUI(skill)
 		timer:SetColor(unpack(attributes.highlight))
 		timer:SetAlpha(1)
 		timer:SetFont(Util.Text.getFontString(tostring("$(BOLD_FONT)"), size*multiplier, "outline"))
-		timer:SetHidden(not CombatMetronome.SV.StackTracker.isUnlocked)
+		timer:SetHidden(not (isUnlocked and sv.showTimer))
 		timer:SetText("2.5s")
 		
 		local timerBarBackdrop = WINDOW_MANAGER:CreateControl(self.name..skill.."TimerBarBackdrop", stacksWindow, CT_BACKDROP)
 		timerBarBackdrop:SetDrawTier(DT_HIGH)
 		timerBarBackdrop:SetCenterColor(0.06, 0.06, 0.06, 0.7)
 		timerBarBackdrop:SetEdgeTexture("/esoui/art/miscellaneous/borderedinsettransparent_edgefile.dds", 128, 16, size/2)
-		timerBarBackdrop:SetHidden(not CombatMetronome.SV.StackTracker.isUnlocked)
+		timerBarBackdrop:SetHidden(not (isUnlocked and sv.showTimerBar))
 		
 		local timerBar = WINDOW_MANAGER:CreateControl(self.name..skill.."TimerBar", stacksWindow, CT_STATUSBAR)
 		timerBar:SetDrawTier(DT_HIGH)
 		local r,g,b,a = unpack(attributes.highlight)
 		timerBar:SetColor(r,g,b,0.35)
-		timerBar:SetHidden(not CombatMetronome.SV.StackTracker.isUnlocked)
+		timerBar:SetHidden(not (isUnlocked and sv.showTimerBar))
 		timerBar:SetValue(0.5)
 		
 		local timerBarGloss = WINDOW_MANAGER:CreateControl(self.name..skill.."TimerBarGloss", timerBar, CT_TEXTURE)
@@ -539,13 +540,13 @@ function StackTracker:BuildUI(skill)
 		timerBarGloss:SetAlpha(0.9)
 		timerBarGloss:SetTexture("/esoui/art/unitattributevisualizer/gamepad/gp_attributebar_dynamic_fill_gloss.dds")
 		timerBarGloss:SetTextureCoords(0, 1, 0.5, 0.36)
-		timerBarGloss:SetHidden(not CombatMetronome.SV.StackTracker.isUnlocked)
+		timerBarGloss:SetHidden(not (isUnlocked and sv.showTimerBar))
 		
 		local timerBarTimer = WINDOW_MANAGER:CreateControl(self.name..skill.."TimerBarTimer", timerBar, CT_LABEL)
 		timerBarTimer:SetDrawTier(DT_HIGH)
 		timerBarTimer:SetAlpha(1)
 		timerBarTimer:SetFont(Util.Text.getFontString(tostring("$(BOLD_FONT)"), size*0.7, "outline"))
-		timerBarTimer:SetHidden(not CombatMetronome.SV.StackTracker.isUnlocked and sv.showTimer)
+		timerBarTimer:SetHidden(not isUnlocked and sv.showTimer)
 		timerBarTimer:SetText("2.5s")
 				
 		local function TimerBarOrientation(orientation)
@@ -612,6 +613,8 @@ function StackTracker:BuildUI(skill)
 	
 	local function ApplySize(size)
 		local dis = size/5
+		stacksWindow:SetDimensions((size*attributes.iMax+dis*(attributes.iMax-1)), size*multiplier)
+		
 		for i=1,attributes.iMax*multiplier do 
 			indicator[i].controls.frame:SetDimensions(size,size)
 			indicator[i].controls.highlight:SetDimensions(size,size)
@@ -676,6 +679,23 @@ function StackTracker:BuildUI(skill)
 	end
 	indicator.ApplyIcon = ApplyIcon
 	
+	local function ApplyAlpha()
+		for i=1,attributes.iMax*multiplier do 
+			indicator[i].controls.frame:SetAlpha(sv.alpha)
+			indicator[i].controls.highlight:SetAlpha(sv.alpha*0.2)
+			indicator[i].controls.icon:SetAlpha(sv.alpha)
+			indicator[i].controls.highlightAnimation:SetAlpha(sv.alpha*0.8)
+		end
+		if indicator.timer then
+			indicator.timer:SetAlpha(sv.alpha)
+			indicator.timerBar:SetAlpha(sv.alpha)
+			indicator.timerBarBackdrop:SetAlpha(sv.alpha)
+			indicator.timerBarGloss:SetAlpha(sv.alpha)
+			indicator.timerBarTimer:SetAlpha(sv.alpha)
+		end
+	end
+	indicator.ApplyAlpha = ApplyAlpha
+	
 	local function Hide(value)
 		for i=1,attributes.iMax*multiplier do 
 			indicator[i].controls.stackIndicator:SetHidden(value)
@@ -684,11 +704,12 @@ function StackTracker:BuildUI(skill)
 			indicator[i].controls.highlight:SetHidden(value)
 		end
 		if indicator.timer then
-			indicator.timer:SetHidden(value)
-			indicator.timerBar:SetHidden(value)
-			indicator.timerBarGloss:SetHidden(value)
-			indicator.timerBarBackdrop:SetHidden(value)
-			indicator.timerBarTimer:SetHidden(value)
+			-- local hideTimer = value or ((CombatMetronome.StackTracker.timers and CombatMetronome.StackTracker.timers[skill] == nil) and not sv.isUnlocked)
+			indicator.timer:SetHidden(value or not sv.showTimer or (CombatMetronome.StackTracker.stacks[skill] == 0 and not isUnlocked))
+			indicator.timerBar:SetHidden(value or not sv.showTimerBar or (CombatMetronome.StackTracker.stacks[skill] == 0 and not isUnlocked))
+			indicator.timerBarGloss:SetHidden(value or not sv.showTimerBar or (CombatMetronome.StackTracker.stacks[skill] == 0 and not isUnlocked))
+			indicator.timerBarBackdrop:SetHidden(value or not sv.showTimerBar or (CombatMetronome.StackTracker.stacks[skill] == 0 and not isUnlocked))
+			indicator.timerBarTimer:SetHidden(value or not sv.showTimerBar or sv.showTimer or (CombatMetronome.StackTracker.stacks[skill] == 0 and not isUnlocked))
 		end
 	end
 	

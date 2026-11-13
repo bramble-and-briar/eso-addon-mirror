@@ -8,6 +8,10 @@
   "category_id": "25",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -74,7 +78,7 @@
     "CombatAlerts"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1855/",
-  "fingerprint": "feeb8286d3a1078fad897655d842be440d48c6cb5eb4c1030f17ca331a6e933e",
+  "fingerprint": "552317de5093da07bdcef5f1abd2af46c322c5430b3aed638c0e81a512e62ed8",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw7044.png",
     "https://cdn-eso.mmoui.com/preview/pvw7048.png",
@@ -89,11 +93,11 @@
   "source_id": "1855",
   "source_url": "https://www.esoui.com/downloads/info1855-CodesCombatAlerts.html",
   "stats": {
-    "downloads": 4713382,
-    "favorites": 717,
-    "monthly_downloads": 51970
+    "downloads": 4732928,
+    "favorites": 718,
+    "monthly_downloads": 46325
   },
   "title": "Code's Combat Alerts",
-  "updated_at": 1793485473000,
-  "version": "2.6.9"
+  "updated_at": 1794535281000,
+  "version": "2.7.0"
 }

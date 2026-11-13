@@ -259,13 +259,17 @@ function A:StatusLines()
 	else
 		add("camera heading: unavailable")
 	end
+	local mode = self:NwMode()
+	add("the game's normalised position is on: %s; the open map now is %s", mode == "zone" and ("the zone's map (" .. tostring(self.nwModeHow or "learned earlier") .. ")")
+		or mode == "current" and ("the open map (" .. tostring(self.nwModeHow or "learned earlier") .. ")") or "not known yet (the open map is assumed)",
+		tostring(self:CurrentMap()))
 	if sample then
 		add("player: zone %d, east %s, south %s, height %s", sample.zone, Metres(sample.x), Metres(sample.z), Metres(sample.y))
 		local frame = sample.frame
 		if frame then
 			local nx, ny = A.PlayerOnFrame(frame, sample.x, sample.z)
-			add("zone map %d: you are at %.4f, %.4f; 1 map unit = %.0f m east-west, %.0f m north-south; formula off by %s",
-				frame.mapId, nx, ny, frame.cmPerUnitX / 100, frame.cmPerUnitY / 100,
+			add("map %d (measured with map %s open; the zone's map is %s): you are at %.4f, %.4f; 1 map unit = %.0f m east-west, %.0f m north-south; formula off by %s",
+				frame.mapId, tostring(frame.calMap), tostring(frame.zoneMap), nx, ny, frame.cmPerUnitX / 100, frame.cmPerUnitY / 100,
 				frame.lastError and string.format("%.1f m", frame.lastError / 100) or "not checked yet")
 			if frame.anchored then
 				add("anchor: %s against the game's own map position (it was off by %s east, %s south)", frame.anchorWhy,
@@ -630,6 +634,7 @@ function A:CommandBody(input)
 		self.fnState = {}
 		self.frames = {}
 		self.rects = {}
+		self.sv.nwMode = nil
 		self.trailOff = nil
 		self.trailPausedUntil = nil
 		self.activatedAt = nil

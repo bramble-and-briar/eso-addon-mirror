@@ -1,0 +1,7 @@
+<GuiXml>
+    <Controls>
+        <!-- ZO_Gamepad_ParametricList_Screen must be created as a top-level
+             control; as a plain child of GuiRoot its list is not drawn. -->
+        <TopLevelControl name="BetterGroupFinderConsoleTopLevelTemplate" inherits="ZO_Gamepad_ParametricList_Screen" virtual="true" />
+    </Controls>
+</GuiXml>

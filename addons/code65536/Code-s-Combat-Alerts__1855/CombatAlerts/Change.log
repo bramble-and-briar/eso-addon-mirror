@@ -1,3 +1,15 @@
+Version 2.7.0 (2026/11/12)
+* Migrated Earthen Root Enclave and Graven Deep to the CCA2 framework
+* Migrated Kyne's Aegis to the CCA2 framework
+* Added options to show or improve telegraphs for Exploding Spear, Meteor, and
+  Instability in Kyne's Aegis
+* The Shrapnel status in Sanity's Edge will now always include the cooldown
+  timer (for groups that push pre-execute thresholds faster than the cooldown)
+* Added a counter to the Chaining Lightning timer in Sanity's Edge
+* Added settings to change the highlight colors of the Caustic Carrion and
+  Biting Blaze panel in Ossein Cage, to better accommodate players with color
+  vision deficiency
+
 Version 2.6.9 (2026/10/31)
 * The Darklight status in Bal Sunnar will now be colored red when non-zero
 * Tweaked the formatting of the alert for Astral Shield in Rockgrove

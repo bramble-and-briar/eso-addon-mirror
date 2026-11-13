@@ -41,18 +41,25 @@ local function TitleTable()
     return AnimatedActionBarPlus_Titles
 end
 
--- hat FancyTitles den spieler auch, bleibt es bei FancyTitles. sonst
--- würden beide addons denselben titel und chat einfärben
-local function FancyTitlesHas(key)
-    if type(FancyTitles) ~= "table" or type(FancyTitles.db) ~= "table" or not FancyTitles.db.enabled then return false end
-    return (type(FancyTitles_Data) == "table" and FancyTitles_Data[key] ~= nil)
-        or (type(FancyTitles_ChatData) == "table" and FancyTitles_ChatData[key] ~= nil)
+-- AABPlus hat vorrang: spieler aus der eigenen liste werden bei FancyTitles
+-- rausgenommen, sonst färben beide addons denselben titel und chat
+local function MuteFancyTitles()
+    local own = AnimatedActionBarPlus_Titles
+    if type(own) ~= "table" then return end
+    local function strip(list)
+        if type(list) ~= "table" then return end
+        for name in pairs(list) do
+            local k = TitleKey(name)
+            if k and own[k] then list[name] = nil end
+        end
+    end
+    strip(FancyTitles_Data)
+    strip(FancyTitles_ChatData)
 end
 
 local function ResolveEntry(key)
     local e = TitleTable()[key]
     if not e or type(e.title) ~= "string" or e.title == "" then return nil end
-    if FancyTitlesHas(key) then return nil end
     return e
 end
 
@@ -337,7 +344,11 @@ local function JoinTitles(game, custom)
 end
 
 function InstallTitleHooks()
-    EM:RegisterForEvent("AABPlusTitles", EVENT_PLAYER_ACTIVATED, ClearTitleCache)
+    MuteFancyTitles()
+    EM:RegisterForEvent("AABPlusTitles", EVENT_PLAYER_ACTIVATED, function()
+        MuteFancyTitles()
+        ClearTitleCache()
+    end)
     if type(GetUnitTitle) == "function" and GetUnitDisplayName then
         local original = GetUnitTitle
         GameTitle = function(unitTag) return original(unitTag) or "" end
@@ -536,7 +547,6 @@ local function FillTitlePreview(win, focus)
             local col = (type(e.color) == "string" and e.color ~= "") and e.color or "-"
             text = string.format("|c8088B4rank|r %s   |c8088B4%s|r   |c8088B4symbol color|r %s   |c8088B4title|r %s",
                 e.rank or "special", sym, col, TitleColorText(e))
-            if FancyTitlesHas(focus) then text = text .. "   |cFFAA00FancyTitles|r" end
         else
             text = "|c8088B4no title|r"
         end
@@ -799,7 +809,6 @@ function TitleCommand(args)
             TitleLog(key .. "  |c8A8A96rank:|r " .. (e.rank or "special") .. "  |c8A8A96icon:|r " .. (e.symbol or ((e.icon or "-") .. (e.iconAfter and ("/" .. e.iconAfter) or "")))
                 .. "  |c8A8A96symbol color:|r " .. (e.color or "-") .. "  |c8A8A96title color:|r " .. TitleColorText(e)
                 .. "  |c8A8A96title:|r " .. FormatTitle(e))
-            if FancyTitlesHas(key) then TitleLog("|cFFAA00shown by FancyTitles for users who have both addons|r") end
         else
             TitleLog(key .. " has no title")
         end

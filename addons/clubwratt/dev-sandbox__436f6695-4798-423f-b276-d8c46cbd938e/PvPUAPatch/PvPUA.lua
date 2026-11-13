@@ -1,7 +1,7 @@
 PvPUAPatch = PvPUAPatch or {} -- build.sh: private global, coexists with the unpatched PvPUA
 local PvPUA = PvPUAPatch
 PvPUA.name = "PvPUAPatch" -- build.sh: must match the addon folder (EVENT_ADD_ON_LOADED)
-PvPUA.version = "5.6.2" -- Patch: build.sh writes VERSION here; only used in the debug log
+PvPUA.version = "5.8.1" -- Patch: build.sh writes VERSION here; only used in the debug log
 
 --------------------------------------------------
 -- Config
@@ -64,8 +64,9 @@ PvPUA.constants.siegeTimeout = 5000
 -- Kill tally (see "Kill Tally" section). Normalized map units on the Cyrodiil/IC zone map.
 PvPUA.constants.killAttachRadius = 0.04   -- a kill marker belongs to the nearest tracked location within this
 PvPUA.constants.killMatchRadius  = 0.008  -- two snapshots this close apart are the same marker
--- A location's tally outlives its list entry by this long after its last kill or last listed tick, so a
--- fight that pauses (flag drops, marker lull) resumes its count instead of starting over.
+-- A location's tally runs this long past its last kill, or past the last tick its UA! flag / flip /
+-- siege kept it listed. A tally with kills in it holds the location ON the list for that window, so a
+-- fight that pauses (flag drops, marker lull) stays visible and resumes its count instead of starting over.
 PvPUA.constants.killTallyCacheMs = 60000
 -- Kill feed (see "Kill Feed" under Kill Tally). A chat-reported kill waits this long for the kill
 -- marker that will eventually carry it; a marker delta this recent is assumed to already hold a
@@ -139,7 +140,7 @@ PvPUA.constants.iconChoices = {
     { name = "EP Shield",  category = "alliances", texture = "PvPUAPatch/Textures/icon_ep_shield.dds" },
 }
 
-PvPUA.defaults = { posX = 100, posY = 450, timerColor = { r = 1, g = 1, b = 1, a = 1 }, enableAPChat = true, consolidateAPChat = false, consolidateRepairDelay = 5, consolidateCombatDelay = 10, alertsEnabled = false, alertLifespan = 10, font = "EsoUI/Common/Fonts/FTN57.otf", backdropStyle = "Alliance", backdropColor = { r = 0, g = 0, b = 0, a = 1 }, backdropOpacity = 25, settingsFontSize = 30, settingsOpacity = 100, settingsHighlight = "Alliance", settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 }, settingsRemember = true, listSize = "Default", uiScale = 1.0, barMode = "AP", showMilegates = true, showBridges = true, showTowns = true, showResources = true, showScrollCarriers = true, showVolendrungRow = true, showCredit = false --[[ patch: upstream default is true ]], showListInMenus = false, showListWhileSieging = false, showListWhileDead = true, showListDeadRepair = false, listCap = 0, showKillTally = true, debugLog = false --[[ patch: LibConsoleLogger diagnostics ]] }
+PvPUA.defaults = { posX = 100, posY = 450, timerColor = { r = 1, g = 1, b = 1, a = 1 }, enableAPChat = true, consolidateAPChat = false, consolidateRepairDelay = 5, consolidateCombatDelay = 10, alertsEnabled = false, alertLifespan = 10, font = "EsoUI/Common/Fonts/FTN57.otf", backdropStyle = "Alliance", backdropColor = { r = 0, g = 0, b = 0, a = 1 }, backdropOpacity = 25, settingsFontSize = 30, settingsOpacity = 100, settingsHighlight = "Alliance", settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 }, settingsRemember = true, listSize = "Default", uiScale = 1.0, barMode = "AP", showMilegates = true, showBridges = true, showTowns = true, showResources = true, showScrollCarriers = true, showVolendrungRow = true, showCredit = false --[[ patch: upstream default is true ]], showListInMenus = false, showListWhileSieging = false, showListWhileDead = true, showListDeadRepair = false, listCap = 0, showKillTally = true, debugLog = false --[[ patch: LibConsoleLogger diagnostics ]], autoRequeue = true --[[ patch: Campaign Queue: Auto Requeue ]] }
 
 PvPUA.capChoices = {
     { name = "All", value = 0  },
@@ -1434,21 +1435,26 @@ end
 -- and add deltas; the running total lives only on the item (item.killTally), never re-read from
 -- the markers.
 --
--- Lifetime: a tally starts at a location's first kill (or when it joins the list) and lives while
--- the location is listed, then killTallyCacheMs past its last kill / last listed tick. Inside that
--- window a returning fight resumes the count; past it the tally clears and the next fight there
--- starts at 0. Marker counts that were already on the map at a fresh init (history we never saw
--- happen) are added once, by the first tally at that location.
+-- Lifetime: a tally starts at a location's first kill (or when it joins the list) and runs until
+-- killTallyCacheMs past its last activity: its last kill, or the last tick the location was listed
+-- for a reason of its own (UA! flag, flip, siege, and their siegeTimeout linger). While a tally with
+-- kills in it is running, the location stays on the list (KillTallyHoldsListing), so the row and its
+-- count leave together: a returning fight resumes the count; past the window the tally clears and the
+-- next fight there starts at 0. Marker counts that were already on the map at a fresh init (history
+-- we never saw happen) are added once, by the first tally at that location.
 --
 --   CyroUpdateLoop / EVENT_KILL_LOCATIONS_UPDATED
 --     └─ KillTallyUpdate: read markers ─ match to last snapshot by position ─ credit deltas
 --   UpdateItem (per item, every tick)
---     └─ KillTallySync: listed?          ─ keep the tally (start one if none)
---                       off the list?    ─ keep it until killTallyCacheMs after its last activity
+--     ├─ KillTallyHoldsListing: nothing else lists it, tally has kills and is inside its window ─ listed
+--     └─ KillTallySync: listed by flag / flip / siege ─ keep the tally (start one if none), restart its window
+--                       listed by its kills alone      ─ keep the tally; only a kill restarts the window
+--                       off the list                   ─ clear it once the window has passed
 --
 -- Patch: kill-marker activity also puts a location ON the list. A marker that appears at, or whose
 -- count rises at, a keep / outpost / town / resource / district stamps item.lastKillSeen; UpdateItem
--- treats the item as interesting for siegeTimeout after that stamp, exactly like a dropped UA! flag.
+-- treats the item as interesting for siegeTimeout after that stamp, exactly like a dropped UA! flag
+-- (that covers activity with no kill counted yet; a counted kill then holds it for killTallyCacheMs).
 -- The first scan after a fresh init is a baseline (markers already on the map don't count as
 -- activity); after /reloadui the saved snapshot + lastKillSeen are restored instead.
 local KT_ALLIANCES = { ALLIANCE_DAGGERFALL_COVENANT, ALLIANCE_ALDMERI_DOMINION, ALLIANCE_EBONHEART_PACT }
@@ -2005,11 +2011,25 @@ function PvPUA:KillTallySeed(item)
     return tally
 end
 
+-- Whether a running kill tally keeps this location on the list by itself: the tally shows on the row,
+-- holds at least one kill, and is inside killTallyCacheMs of its last activity. Bridges and milegates
+-- are never listed for kills, so never held by them.
+function PvPUA:KillTallyHoldsListing(item, gameTime)
+    local tally = item.killTally
+    if tally == nil or not self:KillTallyEnabled() or not KTKillsMakeInteresting(self, item) then return false end
+    if gameTime - (tally.lastActiveMs or gameTime) > PvPUA.constants.killTallyCacheMs then return false end
+    for a = 1, #KT_ALLIANCES do
+        if (tally.counts[KT_ALLIANCES[a]] or 0) > 0 then return true end
+    end
+    return false
+end
+
 -- Called for every item each tick, after UpdateItem decided whether it is listed. A listed item
--- always has a tally; one that left the list keeps it cached for killTallyCacheMs after its last
--- kill or last listed tick, so a fight that pauses resumes its count. A UA! timer reset on a reflag
--- does not touch the tally.
-function PvPUA:KillTallySync(item, gameTime)
+-- always has a tally. `listedByOwnReason` (UA! flag, flip, siege, or their linger) restarts the
+-- tally's window every tick; an item listed by its kills alone keeps the window its last kill set,
+-- so the hold ends killTallyCacheMs after that kill instead of renewing itself. A UA! timer reset on
+-- a reflag does not touch the tally.
+function PvPUA:KillTallySync(item, gameTime, listedByOwnReason)
     if item.interestingSince == nil then
         local tally = item.killTally
         if tally and gameTime - (tally.lastActiveMs or gameTime) > PvPUA.constants.killTallyCacheMs then
@@ -2024,7 +2044,9 @@ function PvPUA:KillTallySync(item, gameTime)
         restoredSince[item.id] = nil
         item.interestingSince = since
     end
-    KTEnsureTally(self, item, gameTime)
+    if listedByOwnReason or item.killTally == nil then
+        KTEnsureTally(self, item, gameTime)
+    end
 end
 
 function PvPUA:KillTallyText(item)
@@ -2110,6 +2132,9 @@ function PvPUA:UpdateItem(items, gameTime)
                 item.lastSiegeWeaponSeen = nil
             end
         end
+        -- Patch: everything above is the location's own reason to be listed (UA! flag, flip, siege);
+        -- everything below lists it for its kills alone.
+        local listedByOwnReason = itemOfInterest
         -- Patch: recent kill-marker activity (see "Kill Tally") keeps a keep / outpost / town /
         -- resource / district on the list for siegeTimeout, same as a dropped UA! flag.
         if item.lastKillSeen ~= nil then
@@ -2120,6 +2145,15 @@ function PvPUA:UpdateItem(items, gameTime)
             else
                 item.lastKillSeen = nil
             end
+        end
+        -- Patch: a kill tally that is still running holds its location on the list (unflagged places
+        -- included), so the row stays for as long as its count is kept. The UA! timer keeps running.
+        local heldByTally = false
+        if itemOfInterest == false and self:KillTallyHoldsListing(item, gameTime) then
+            itemOfInterest = true
+            heldByTally = true
+            if item.interestingSince == nil then item.interestingSince = gameTime end
+            item.underAttackFor = gameTime - item.interestingSince
         end
         if item.keepType == KEEPTYPE_BRIDGE or item.keepType == KEEPTYPE_MILEGATE then
             item.isPassable = IsKeepPassable(key, BGQUERY_LOCAL)
@@ -2143,7 +2177,7 @@ function PvPUA:UpdateItem(items, gameTime)
         else
             item.interestingSince = nil
         end
-        self:KillTallySync(item, gameTime)
+        self:KillTallySync(item, gameTime, listedByOwnReason)
         -- Debug log: list membership changes only (never per tick), with why it is / was on the list.
         local isListed = item.interestingSince ~= nil
         if isListed ~= wasListed then
@@ -2155,6 +2189,7 @@ function PvPUA:UpdateItem(items, gameTime)
                     why[#why + 1] = "siege"
                 end
                 if item.lastKillSeen ~= nil then why[#why + 1] = "kills" end
+                if heldByTally then why[#why + 1] = "tally" end
                 local t = item.killTally
                 DLog("list + %s (%s) tally DC=%d AD=%d EP=%d", DLItemName(item), #why > 0 and table.concat(why, ",") or "?",
                      t and t.counts[ALLIANCE_DAGGERFALL_COVENANT] or 0, t and t.counts[ALLIANCE_ALDMERI_DOMINION] or 0,
@@ -2907,6 +2942,296 @@ function PvPUA:RegisterQueueEvents()
                 function() PvPUA:RefreshQueueWindow() end)
         end
     end
+end
+
+--------------------------------------------------
+-- Campaign Queue: Auto Requeue (Patch)
+--------------------------------------------------
+-- When the game refuses entry because the campaign is full ("Jump failed. Instance is full.", "The
+-- destination is full." ...), the base game drops the queue entry or leaves it stuck, and the player
+-- has to queue again by hand. With Settings > "Auto Requeue" on, a full-type failure soon after a
+-- campaign queue was seen does that for them, same campaign, same solo/group choice:
+--   dropped from the queue          -> QueueForCampaign again
+--   still WAITING with a position   -> left alone (it is still moving)
+--   offered, accept timer running   -> left alone (the player can still accept)
+--   queued in any other state 10 s  -> stuck: LeaveCampaignQueue, then QueueForCampaign on its LEFT
+-- At most RQ_MAX_ATTEMPTS requeues per queue the player joined himself; entering the campaign resets.
+-- Every queue / jump event goes to the Debug Log as a "Q ..." line, and any jump or queue failure
+-- within RQ_WINDOW_MS of a queue is echoed to chat with its code, so an unrecognised one can be named.
+local RQ_WINDOW_MS     = 60000 -- a failure this soon after the queue was last seen belongs to it
+local RQ_CHECK_MS      = 3000  -- let the game's own LEFT / STATE events land before deciding
+local RQ_STUCK_MS      = 10000 -- still queued, not WAITING, this long after a failure = stuck
+local RQ_OURS_MS       = 15000 -- a JOINED this soon after our QueueForCampaign is our requeue
+local RQ_LEAVE_MS      = 15000 -- our LeaveCampaignQueue's LEFT must land within this
+local RQ_MAX_ATTEMPTS  = 5
+local RQ_MAX_DELAY_MS  = 30000
+
+local function RQConstNames(prefix, names)
+    local out = {}
+    for i = 1, #names do
+        local value = rawget(_G, prefix .. names[i])
+        if value ~= nil then out[value] = names[i] end
+    end
+    return out
+end
+
+local RQ_STATE_NAMES = RQConstNames("CAMPAIGN_QUEUE_REQUEST_STATE_", { "WAITING", "PENDING_JOIN", "PENDING_LEAVE",
+    "PENDING_ACCEPT", "CONFIRMING", "FINISHED", "CAMPAIGN_CLOSED" })
+local RQ_FULL_JUMP = RQConstNames("JUMP_RESULT_JUMP_FAILED_", { "INSTANCE_FULL", "INSTANCE_CAP_REACHED" })
+local RQ_FULL_QUEUE = RQConstNames("QUEUE_FOR_CAMPAIGN_RESULT_", { "DESTINATION_WORLD_FULL", "CAMPAIGN_FULL" })
+
+PvPUA.requeue = { last = nil, attempts = 0, requeuedAtMs = nil, pendingLeave = nil, failure = nil, checkSeq = 0 }
+
+function PvPUA:AutoRequeueEnabled()
+    local sv = self.savedVariables
+    return sv == nil or sv.autoRequeue ~= false
+end
+
+local function RQStateName(state)
+    if state == nil then return "nil" end
+    return RQ_STATE_NAMES[state] or tostring(state)
+end
+
+local function RQChat(msg)
+    if not (CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage) then return end
+    pcall(CHAT_ROUTER.AddSystemMessage, CHAT_ROUTER, "|cFFFFFF[|r|cFF8800PvP UA|r|cFFFFFF]|r " .. msg)
+end
+
+local function RQCampaignLabel(campaignId, asGroup)
+    local name = ""
+    if GetCampaignName then
+        local ok, value = pcall(GetCampaignName, campaignId)
+        if ok and type(value) == "string" then name = zo_strformat("<<1>>", value) end
+    end
+    if name == "" then name = "Campaign " .. tostring(campaignId) end
+    return asGroup and (name .. " (group)") or name
+end
+
+-- queued, state, position, confirmation seconds left for one campaign queue entry.
+local function RQSnapshot(campaignId, asGroup)
+    local queued = IsQueuedForCampaign ~= nil and IsQueuedForCampaign(campaignId, asGroup) == true
+    if not queued then return false end
+    local state = GetCampaignQueueState and GetCampaignQueueState(campaignId, asGroup) or nil
+    local position = GetCampaignQueuePosition and GetCampaignQueuePosition(campaignId, asGroup) or 0
+    local confirmLeft = GetCampaignQueueRemainingConfirmationSeconds
+        and GetCampaignQueueRemainingConfirmationSeconds(campaignId, asGroup) or 0
+    return true, state, position or 0, confirmLeft or 0
+end
+
+local function RQInCampaign(campaignId)
+    return IsPlayerInAvAWorld ~= nil and IsPlayerInAvAWorld() == true
+        and GetCurrentCampaignId ~= nil and GetCurrentCampaignId() == campaignId
+end
+
+-- The queue entry the failure will be blamed on: the last one any queue event named.
+function PvPUA:RQRemember(campaignId, asGroup)
+    local rq = self.requeue
+    local last = rq.last
+    if last == nil or last.campaignId ~= campaignId or last.asGroup ~= (asGroup == true) then
+        last = { campaignId = campaignId, asGroup = asGroup == true }
+        rq.last = last
+    end
+    last.seenMs = GetGameTimeMilliseconds()
+    last.leftMs = nil
+    return last
+end
+
+function PvPUA:RQOnJoined(campaignId, isGroup, willLockToAlliance)
+    local rq = self.requeue
+    local now = GetGameTimeMilliseconds()
+    local ours = rq.requeuedAtMs ~= nil and now - rq.requeuedAtMs <= RQ_OURS_MS
+    if not ours then rq.attempts = 0 end -- a queue the player joined himself starts a fresh budget
+    self:RQRemember(campaignId, isGroup)
+    DLog("Q joined %s c=%s group=%s lock=%s (%s, attempts %d)", RQCampaignLabel(campaignId, isGroup),
+        tostring(campaignId), tostring(isGroup), tostring(willLockToAlliance), ours and "our requeue" or "player",
+        rq.attempts)
+end
+
+function PvPUA:RQOnLeft(campaignId, isGroup)
+    local rq = self.requeue
+    local now = GetGameTimeMilliseconds()
+    local last = rq.last
+    if last ~= nil and last.campaignId == campaignId and last.asGroup == (isGroup == true) then last.leftMs = now end
+    local pending = rq.pendingLeave
+    DLog("Q left c=%s group=%s inCampaign=%s%s", tostring(campaignId), tostring(isGroup),
+        tostring(RQInCampaign(campaignId)), pending and " (our leave)" or "")
+    if pending ~= nil and pending.campaignId == campaignId and pending.asGroup == (isGroup == true) then
+        rq.pendingLeave = nil
+        if now - pending.atMs <= RQ_LEAVE_MS then self:RQQueue(campaignId, isGroup == true, "stuck queue left") end
+    end
+end
+
+function PvPUA:RQOnPosition(campaignId, isGroup, position)
+    local last = self:RQRemember(campaignId, isGroup)
+    last.position = position
+    local secs = GetSecondsInCampaignQueue and GetSecondsInCampaignQueue(campaignId, isGroup) or -1
+    DLog("Q pos c=%s group=%s #%s (%s s in queue)", tostring(campaignId), tostring(isGroup), tostring(position),
+        tostring(secs))
+end
+
+function PvPUA:RQOnState(campaignId, isGroup, state)
+    local last = self:RQRemember(campaignId, isGroup)
+    last.state = state
+    local confirmLeft = GetCampaignQueueRemainingConfirmationSeconds
+        and GetCampaignQueueRemainingConfirmationSeconds(campaignId, isGroup) or -1
+    DLog("Q state c=%s group=%s %s (confirm %s s left)", tostring(campaignId), tostring(isGroup), RQStateName(state),
+        tostring(confirmLeft))
+end
+
+-- A failure with no queue seen within RQ_WINDOW_MS is not about a campaign queue (a wayshrine jump to a
+-- full instance, say): logged, nothing else.
+function PvPUA:RQRecentQueue()
+    local last = self.requeue.last
+    if last == nil then return nil end
+    local since = GetGameTimeMilliseconds() - (last.leftMs or last.seenMs or 0)
+    if since > RQ_WINDOW_MS then return nil end
+    return last
+end
+
+function PvPUA:RQOnQueueResponse(response, parameter)
+    local text = GetString and GetString("SI_QUEUEFORCAMPAIGNRESPONSETYPE", response) or ""
+    local successCode = rawget(_G, "QUEUE_FOR_CAMPAIGN_RESULT_SUCCESS")
+    DLog("Q response %s '%s' param=%s", tostring(response), tostring(text), tostring(parameter))
+    if response == successCode then return end
+    local full = RQ_FULL_QUEUE[response]
+    if full then return self:RQFailure("queue", response, text) end
+    if self:RQRecentQueue() then
+        RQChat(string.format("Queue refused: %s [queue %s] - not a full-campaign error, no requeue.",
+            text ~= "" and text or "?", tostring(response)))
+    end
+end
+
+function PvPUA:RQOnJumpFailed(result)
+    local text = GetString and GetString("SI_JUMPRESULT", result) or ""
+    DLog("Q jump failed %s '%s'", tostring(result), tostring(text))
+    if RQ_FULL_JUMP[result] then return self:RQFailure("jump", result, text) end
+    if self:RQRecentQueue() then
+        RQChat(string.format("Jump failed: %s [jump %s] - not a full-campaign error, no requeue.",
+            text ~= "" and text or "?", tostring(result)))
+    end
+end
+
+function PvPUA:RQOnLeaveResponse(response)
+    DLog("Q leave response %s", tostring(response))
+end
+
+function PvPUA:RQOnPlayerActivated()
+    local rq = self.requeue
+    local current = GetCurrentCampaignId and GetCurrentCampaignId() or 0
+    local inAvA = IsPlayerInAvAWorld ~= nil and IsPlayerInAvAWorld() == true
+    local n = GetNumCampaignQueueEntries and GetNumCampaignQueueEntries() or 0
+    DLog("Q activated campaign=%s avaWorld=%s queueEntries=%s", tostring(current), tostring(inAvA), tostring(n))
+    local last = rq.last
+    if last ~= nil and RQInCampaign(last.campaignId) then
+        DLog("Q entered %s after %d requeue(s)", RQCampaignLabel(last.campaignId, last.asGroup), rq.attempts)
+        rq.last, rq.attempts, rq.requeuedAtMs, rq.pendingLeave, rq.failure = nil, 0, nil, nil, nil
+    end
+end
+
+-- A full-type failure: decide what to do once the game's own queue events have landed.
+function PvPUA:RQFailure(kind, code, text)
+    local rq = self.requeue
+    local last = self:RQRecentQueue()
+    if last == nil then
+        DLog("RQ skip %s %s: no campaign queue within %d s", kind, tostring(code), RQ_WINDOW_MS / 1000)
+        return
+    end
+    local label = RQCampaignLabel(last.campaignId, last.asGroup)
+    local reason = string.format("%s [%s %s]", text ~= "" and text or "full", kind, tostring(code))
+    if not self:AutoRequeueEnabled() then
+        DLog("RQ off: %s %s", label, reason)
+        RQChat(string.format("%s: %s. Auto Requeue is off.", label, reason))
+        return
+    end
+    local now = GetGameTimeMilliseconds()
+    rq.failure = { kind = kind, code = code, reason = reason, atMs = now }
+    rq.checkSeq = rq.checkSeq + 1
+    local seq = rq.checkSeq
+    local delay = math.min(RQ_CHECK_MS * (2 ^ rq.attempts), RQ_MAX_DELAY_MS)
+    DLog("RQ %s: %s; checking in %d ms", label, reason, delay)
+    zo_callLater(function() PvPUA:RQCheck(seq, now) end, delay)
+end
+
+function PvPUA:RQCheck(seq, failedAtMs)
+    local rq = self.requeue
+    if seq ~= rq.checkSeq then return end -- a newer failure owns the decision
+    local last = rq.last
+    if last == nil or not self:AutoRequeueEnabled() then return end
+    local c, g = last.campaignId, last.asGroup
+    local label = RQCampaignLabel(c, g)
+    local reason = rq.failure and rq.failure.reason or "full"
+    if RQInCampaign(c) then
+        DLog("RQ hold %s: already in the campaign", label)
+        return
+    end
+    local queued, state, position, confirmLeft = RQSnapshot(c, g)
+    if not queued then return self:RQQueue(c, g, reason) end
+    if state == rawget(_G, "CAMPAIGN_QUEUE_REQUEST_STATE_WAITING") and position > 0 then
+        DLog("RQ hold %s: still WAITING at #%d", label, position)
+        RQChat(string.format("%s: %s. Still in queue at #%d, left as is.", label, reason, position))
+        return
+    end
+    if confirmLeft > 0 then
+        DLog("RQ hold %s: %s, %d s left to accept", label, RQStateName(state), confirmLeft)
+        RQChat(string.format("%s: %s. Entry still offered (%d s to accept), left as is.", label, reason, confirmLeft))
+        return
+    end
+    local now = GetGameTimeMilliseconds()
+    if now - failedAtMs < RQ_STUCK_MS then
+        DLog("RQ wait %s: queued in %s #%d, rechecking", label, RQStateName(state), position)
+        zo_callLater(function() PvPUA:RQCheck(seq, failedAtMs) end, failedAtMs + RQ_STUCK_MS - now)
+        return
+    end
+    if g and not (IsUnitGroupLeader and IsUnitGroupLeader("player")) then
+        DLog("RQ hold %s: stuck in %s, not group leader", label, RQStateName(state))
+        RQChat(string.format("%s: %s. Queue stuck (%s); the group leader has to requeue.", label, reason,
+            RQStateName(state)))
+        return
+    end
+    if rq.attempts >= RQ_MAX_ATTEMPTS then return self:RQQueue(c, g, reason) end -- reports the give-up
+    DLog("RQ leave %s: stuck in %s #%d", label, RQStateName(state), position)
+    RQChat(string.format("%s: %s. Queue stuck (%s); leaving it to queue again.", label, reason, RQStateName(state)))
+    rq.pendingLeave = { campaignId = c, asGroup = g, atMs = now }
+    LeaveCampaignQueue(c, g)
+end
+
+function PvPUA:RQQueue(campaignId, asGroup, reason)
+    local rq = self.requeue
+    local label = RQCampaignLabel(campaignId, asGroup)
+    if rq.attempts >= RQ_MAX_ATTEMPTS then
+        DLog("RQ give up %s after %d requeues", label, rq.attempts)
+        RQChat(string.format("%s: %s. Gave up after %d requeues; queue by hand.", label, reason, rq.attempts))
+        return
+    end
+    if asGroup and not (IsUnitGroupLeader and IsUnitGroupLeader("player")) then
+        DLog("RQ hold %s: dropped, not group leader", label)
+        RQChat(string.format("%s: %s. Dropped from the group queue; the group leader has to requeue.", label, reason))
+        return
+    end
+    rq.attempts = rq.attempts + 1
+    rq.requeuedAtMs = GetGameTimeMilliseconds()
+    self:RQRemember(campaignId, asGroup)
+    DLog("RQ queue %s (%d/%d): %s", label, rq.attempts, RQ_MAX_ATTEMPTS, reason)
+    RQChat(string.format("%s: %s. Queued again (%d/%d).", label, reason, rq.attempts, RQ_MAX_ATTEMPTS))
+    QueueForCampaign(campaignId, asGroup)
+end
+
+function PvPUA:RegisterRequeueEvents()
+    local function on(suffix, eventId, handler)
+        if eventId == nil then return end
+        EVENT_MANAGER:RegisterForEvent(PvPUA.name .. suffix, eventId, function(_, ...)
+            local ok, err = pcall(handler, PvPUA, ...)
+            if not ok then DLog("RQ error in %s: %s", suffix, tostring(err)) end
+        end)
+    end
+    on("_RqJoined",    EVENT_CAMPAIGN_QUEUE_JOINED,           PvPUA.RQOnJoined)
+    on("_RqLeft",      EVENT_CAMPAIGN_QUEUE_LEFT,             PvPUA.RQOnLeft)
+    on("_RqPosition",  EVENT_CAMPAIGN_QUEUE_POSITION_CHANGED, PvPUA.RQOnPosition)
+    on("_RqState",     EVENT_CAMPAIGN_QUEUE_STATE_CHANGED,    PvPUA.RQOnState)
+    on("_RqResponse",  EVENT_QUEUE_FOR_CAMPAIGN_RESPONSE,     PvPUA.RQOnQueueResponse)
+    on("_RqLeaveResp", EVENT_LEAVE_CAMPAIGN_QUEUE_RESPONSE,   PvPUA.RQOnLeaveResponse)
+    on("_RqJumpFail",  EVENT_JUMP_FAILED,                     PvPUA.RQOnJumpFailed)
+    on("_RqActivated", EVENT_PLAYER_ACTIVATED,                PvPUA.RQOnPlayerActivated)
 end
 
 --------------------------------------------------
@@ -3996,7 +4321,7 @@ function PvPUA:CreateSettings()
         menuIcon        = PVPUA_ADDON_ICON,
         title           = PVPUA_MENU_TITLE_COLORED,
         author          = PVPUA_TOOLTIP_AUTHOR_COLORED,
-        version         = "5.6.2",
+        version         = "5.8.1",
         previewControls = function() return PvPUA:SettingsPreviewControls() end,
         textSize        = function() return PvPUA.savedVariables.settingsFontSize end,
         windowOpacity   = function() return PvPUA.savedVariables.settingsOpacity end,
@@ -4264,6 +4589,7 @@ local function OnAddonLoaded(event, addonName)
     PvPUA:CreateUI()
     PvPUA:CreateQueueUI()
     PvPUA:RegisterQueueEvents()
+    PvPUA:RegisterRequeueEvents() -- patch
     PvPUA:StartQueueSafetyPoll()
     PvPUA:RefreshQueueSoon()
     PvPUA:RefreshBackdropColors()

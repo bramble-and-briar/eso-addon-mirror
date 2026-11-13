@@ -1,4 +1,4 @@
--- PlayerMascotHealth v1.3.6  (v1.3.5-diag minus the diagnostics; NORMAL sheet renamed + automatic still-image fallback)
+-- PlayerMascotHealth v1.5.0  (v1.4.0 + new sprite-sheet spec: every state is 8 frames, 1024x512, 4 x 2 cells of 256x256, 8 FPS; ZERO played once and held on frame 8)
 -- Shows one animation per HP state (5 states: NORMAL / CAUTION / DANGER / CRITICAL / ZERO) depending on the PLAYER's own HP. Own HP only (no enemy/NPC/target HP).
 -- Each state is either STATIC (one image) or ANIMATION (sprite sheet played by the game engine through
 -- ANIMATION_TEXTURE - no Lua timer, no OnUpdate). See STATE_IMAGE below.
@@ -6,13 +6,13 @@
 -- rare lifecycle events. The texture is only swapped when the state actually changes.
 
 local ADDON      = "PlayerMascotHealth"
-local VERSION    = "1.3.6"
+local VERSION    = "1.5.0"
 local DEBUG      = false      -- true prints "[PMH]" debug lines (max DEBUG_MAX per session); off in the release
 local SV_NAME    = "PlayerMascotHealth_SV"
 local SV_VERSION = 1
 
 -- PS5 verified: PNG / DDS display with alpha via CT_TEXTURE:SetTexture("<AddOn>/tex/<file>"),
--- 1024x1024 DDS sheet, SetTextureCoords, and ANIMATION_TEXTURE (SetImageData / SetFramerate / loop) playback.
+-- 1024x1024 DDS sheet (v1.5.0 uses 1024x512 sheets: not yet verified on PS5), SetTextureCoords, and ANIMATION_TEXTURE (SetImageData / SetFramerate / loop) playback.
 local TEX_DIR = "PlayerMascotHealth/tex/"
 
 -- Image per HP state. type = "STATIC"    : one image (file)
@@ -23,28 +23,30 @@ local TEX_DIR = "PlayerMascotHealth/tex/"
 -- To animate another state later, change its entry (e.g. CAUTION = { type = "ANIMATION", file = ".../CAUTION_SHEET.dds",
 -- cols = 4, rows = 2, fps = 8, fallback = ".../CAUTION.png", contentBottom = ... }). No other code change is needed.
 local STATE_IMAGE = {
-    -- v1.3.6: sheet renamed NORMAL_SHEET.dds -> NORMAL_ANIMATION.dds (the old name never reported "loaded" on PS5; the file bytes are
-    -- unchanged). fallbackAfter = after this many unanswered load checks (1 s apart) the sheet is given up for this session and
-    -- NORMAL.png is shown instead. Only NORMAL has it; the other states keep their original behaviour.
+    -- v1.5.0 sheets (256x256 cells, frames left->right, top->bottom): every state is 1024x512 = 4 x 2 = 8 frames, 8 FPS.
+    -- Fixed texts / decorations are drawn into the images; Lua adds none. contentBottom = lowest visible pixel of any frame of the state / 256.
+    -- once = true : played one time and held on the LAST frame (ZERO). Everything else loops.
+    -- v1.3.6 NORMAL protection kept: fallbackAfter = after this many unanswered load checks (1 s apart) the sheet is given up for
+    -- this session and NORMAL.png (static, 256x256) is shown instead. Only NORMAL has it; the other states keep their behaviour.
     NORMAL   = { type = "ANIMATION", file = TEX_DIR .. "NORMAL_ANIMATION.dds", cols = 4, rows = 2, fps = 8,
-                 fallback = TEX_DIR .. "NORMAL.png", contentBottom = 498 / 512, fallbackAfter = 3 },
+                 fallback = TEX_DIR .. "NORMAL.png", contentBottom = 255 / 256, fallbackAfter = 3 },
     CAUTION  = { type = "ANIMATION", file = TEX_DIR .. "CAUTION_SHEET.dds", cols = 4, rows = 2, fps = 8,
-                 fallback = TEX_DIR .. "CAUTION.png", contentBottom = 498 / 512 },
+                 fallback = TEX_DIR .. "CAUTION.png", contentBottom = 254 / 256 },
     DANGER   = { type = "ANIMATION", file = TEX_DIR .. "DANGER_SHEET.dds", cols = 4, rows = 2, fps = 8,
-                 fallback = TEX_DIR .. "DANGER.png", contentBottom = 498 / 512 },
+                 fallback = TEX_DIR .. "DANGER.png", contentBottom = 252 / 256 },
     CRITICAL = { type = "ANIMATION", file = TEX_DIR .. "CRITICAL_SHEET.dds", cols = 4, rows = 2, fps = 8,
-                 fallback = TEX_DIR .. "CRITICAL.png", contentBottom = 498 / 512 },
-    ZERO     = { type = "ANIMATION", file = TEX_DIR .. "ZERO_SHEET.dds", cols = 4, rows = 2, fps = 8,
-                 fallback = TEX_DIR .. "ZERO.png", contentBottom = 498 / 512 },
+                 fallback = TEX_DIR .. "CRITICAL.png", contentBottom = 252 / 256 },
+    ZERO     = { type = "ANIMATION", file = TEX_DIR .. "ZERO_SHEET.dds", cols = 4, rows = 2, fps = 8, once = true,
+                 fallback = TEX_DIR .. "ZERO.png", contentBottom = 251 / 256 },
 }
 
-local ASPECT    = 2                      -- image is 256x512 -> height = width * 2
+local ASPECT    = 1                      -- v1.5.0: every frame is 256x256 -> width = height
 local SIZE_MIN, SIZE_MAX, SIZE_STEP = 128, 768, 8   -- size = displayed HEIGHT in UI px
 local NORMAL_MIN, NORMAL_MAX = 20, 95
 local CAUTION_MIN, CAUTION_MAX = 10, 90
 local DANGER_MIN, DANGER_MAX = 5, 80
 -- HP% text: sits just under the visible character (per-state contentBottom above)
-local DEFAULT_CONTENT_BOTTOM = 404 / 512
+local DEFAULT_CONTENT_BOTTOM = 252 / 256
 local LABEL_GAP, LABEL_H = 2, 40
 local FONT_CANDIDATES = { "ZoFontGamepad34", "ZoFontGamepad27", "ZoFontGameBold", "ZoFontGame" }
 
@@ -79,6 +81,7 @@ local lastEventMax      -- max HP seen in the previous HP event (detects max-HP 
 local resyncGen = 0     -- cancels a pending delayed re-read as soon as a newer valid value arrives
 local timelines = {}    -- state -> animation timeline (created once, then reused: no leak)
 local animBroken = {}   -- state -> true when the animation API failed (static fallback is used)
+local onceDone   = {}   -- state -> true once a one-shot sheet (ZERO) reached its last frame; cleared when the state is left
 local activeTL          -- timeline that is playing right now (nil = nothing playing)
 local rawCur, rawMax, rawEff   -- what GetUnitPower returned last (for the debug line only)
 local shownFile            -- file currently set on the control (debug only)
@@ -168,8 +171,9 @@ end
 ---------------------------------------------------------------------------
 local function StopAnim()
     if activeTL then
-        pcall(activeTL.Stop, activeTL)
-        activeTL = nil
+        local tl = activeTL
+        activeTL = nil                -- detach first: a late OnStop of this timeline is then ignored
+        pcall(tl.Stop, tl)
     end
 end
 
@@ -179,8 +183,13 @@ end
 
 -- Same calls as the PS5-verified diagnostic: CreateTimeline / InsertAnimation(ANIMATION_TEXTURE) /
 -- SetImageData / SetFramerate / loop / PlayFromStart. The timeline is built once per state and reused.
+local function HoldLastFrame(cfg)     -- one-shot sheets: keep showing the final cell (never the whole sheet, never blank)
+    pcall(tex.SetTextureCoords, tex, (cfg.cols - 1) / cfg.cols, 1, (cfg.rows - 1) / cfg.rows, 1)
+end
+
 local function StartAnim(state, cfg)
     if activeTL then return true end
+    if cfg.once and onceDone[state] then HoldLastFrame(cfg); return true end   -- already finished: stay on the last frame
     local ok = pcall(function()
         pcall(tex.SetTextureCoords, tex, 0, 1 / cfg.cols, 0, 1 / cfg.rows)   -- first cell, never the whole sheet
         local tl = timelines[state]
@@ -189,7 +198,21 @@ local function StartAnim(state, cfg)
             local a = tl:InsertAnimation(ANIMATION_TEXTURE, tex)
             a:SetImageData(cfg.cols, cfg.rows)
             a:SetFramerate(cfg.fps)
-            tl:SetPlaybackType(ANIMATION_PLAYBACK_LOOP, LOOP_INDEFINITELY)
+            if cfg.once then
+                -- play the sheet once; when it completes (and only then) hold the last frame
+                if ANIMATION_PLAYBACK_ONE_SHOT then
+                    tl:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
+                else
+                    tl:SetPlaybackType(ANIMATION_PLAYBACK_LOOP, 1)
+                end
+                tl:SetHandler("OnStop", function(_, completedPlaying)
+                    if activeTL ~= tl or completedPlaying == false then return end   -- stopped by us (state change), not finished
+                    onceDone[state] = true
+                    HoldLastFrame(cfg)
+                end)
+            else
+                tl:SetPlaybackType(ANIMATION_PLAYBACK_LOOP, LOOP_INDEFINITELY)
+            end
             timelines[state] = tl
         end
         tl:PlayFromStart()
@@ -215,7 +238,10 @@ end
 
 -- Re-starts the animation of the shown state (after the control was hidden / re-enabled).
 local function EnsurePlayback()
-    if activeTL or not shownState then return end
+    if not shownState then return end
+    local c0 = STATE_IMAGE[shownState]
+    if c0 and c0.once and onceDone[shownState] then HoldLastFrame(c0); return end   -- finished one-shot: keep the last frame
+    if activeTL then return end
     local cfg = STATE_IMAGE[shownState]
     if cfg and cfg.type == "ANIMATION" and not animBroken[shownState] then
         if not StartAnim(shownState, cfg) then
@@ -288,6 +314,7 @@ local function ApplyTexture()
     if not tex or not currentState then return end
     if shownState == currentState then return end   -- same state: never reload
     StopAnim()                                      -- nothing of the previous state keeps playing
+    onceDone[currentState] = nil                    -- entering a state = its one-shot (ZERO) starts again from frame 1
     shownState = currentState
     Dbg("state -> " .. currentState .. "  file=" .. tostring(STATE_IMAGE[currentState].file))
     ShowImage(currentState, STATE_IMAGE[currentState])

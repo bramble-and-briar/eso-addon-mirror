@@ -355,7 +355,7 @@ function Module:Initialize( )
 		end
 
 		-- Boss health
-		local results = { }
+		local results = self:GetScratch()
 		for i = 1, 2 do
 			table.insert(results, string.format("|c%06X%d%%|r", LCA.RemoveAlpha(DATA.twinsColors[i]), zo_floor(LCA.GetUnitHealthPercent("boss" .. i))))
 		end
@@ -462,7 +462,7 @@ function Module:Initialize( )
 		)
 	end
 
-	local reefs -- Scratch table
+	local reefs -- scratch
 	local defaultReefStatus = string.format("|c00FFFF%s|r", GetString(SI_LCA_ACTIVE))
 	self.StatusPoll_B2 = function( )
 		local currentTime = GetGameTimeMilliseconds()
@@ -557,7 +557,7 @@ function Module:Initialize( )
 		end
 
 		-- Summon Channelers
-		local results = { }
+		local results = self:GetScratch()
 		for i, channel in ipairs(Vars.bridge.channels) do
 			if (channel.time) then
 				local remaining = channel.time - currentTime
@@ -817,7 +817,7 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 		local currentTime = GetGameTimeMilliseconds()
 		if (currentTime - Vars.deluge.eruptionTime > 1000) then
 			Vars.deluge.eruptionTime = currentTime
-			local landlubbers = { }
+			local landlubbers = self:GetScratch()
 			for unitTag, swimming in pairs(Vars.deluge.units) do
 				if (not swimming) then
 					table.insert(landlubbers, GetUnitDisplayName(unitTag))

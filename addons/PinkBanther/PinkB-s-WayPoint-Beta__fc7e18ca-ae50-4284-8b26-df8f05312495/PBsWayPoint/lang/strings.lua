@@ -32,6 +32,7 @@ PBS_WAYPOINT_STRINGS = {
 	testLine = "Test marker",
 	elsewhere = "The next stop is in another area",
 	noPosition = "Position unknown",
+	noPositionOpenMap = "Open the map once to find your position",
 
 	bannerLine = "%s is ready. /pbwp status shows what it reads.",
 	help = "/pbwp status | why | share | check | list | skip | undo | remove 2 | clear | test | on | off | reset | retry\n/pbwp add on | arrow on | trail on | pins on | sound on | chat on | preview on | chord on | send on | receive on\n/pbwp radius 20 | size 80 | opacity 90 | x 0 | y 130 | length 40",

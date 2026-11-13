@@ -31,6 +31,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [QuestArrow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/QuestArrow__4833) | alabuzya | PC / Mac | 0.2.2 |
 | [Questbound - Tracker, Nav & Auto Skip](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Questbound---Tracker-Nav-Auto-Skip__4893) | brianmit | PC / Mac | 1.1.0 |
 | [QuestSkipper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/helixanon/QuestSkipper__3062) | helixanon | PC / Mac | 1.4.0 |
+| [Queue Sounds](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Queue-Sounds__311a560b-a6b2-4545-ba13-2c6142e34001) | Vixen_Hunny | Console | — |
 | [queueNextWrit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/queueNextWrit__2ea327f5-7b87-49e2-a306-9e7ce0021db9) | Dack.Janiels | Console | — |
 | [queueNextWrit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/queueNextWrit__5024) | DakJaniels | PC / Mac | 2 |
 | [Quick Bank](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ranckor90/Quick-Bank__4109) | Ranckor90 | PC / Mac | v1.0.2 |

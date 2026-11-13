@@ -40,9 +40,9 @@ do
 end
 
 do
-	local scratch = { }
+	local scratch
 	function Internal.GetScratchTable( )
-		ZO_ClearTable(scratch)
+		scratch = Public.PrepareScratchTable(scratch)
 		return scratch
 	end
 end

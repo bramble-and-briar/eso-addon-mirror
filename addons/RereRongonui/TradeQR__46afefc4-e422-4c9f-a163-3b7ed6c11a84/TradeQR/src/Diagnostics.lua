@@ -14,6 +14,11 @@ function Diagnostics:Print()
     d(string.format(GetString(TRADEQR_DIAG_HEADER), GetDisplayName(), GetNumGuilds(), self.saleQueue:GetCount(), self:CountSeen(), self.savedVars.scanWindowSeconds / 3600))
     local listingStats = self.listingWatcher:GetStats()
     d(string.format(GetString(TRADEQR_DIAG_LISTINGS), listingStats.requested, listingStats.confirmed, listingStats.failed))
+    local lastListing = self.listingWatcher:GetLastListing()
+    if lastListing then
+        local uniqueId = lastListing.itemUniqueId ~= "" and lastListing.itemUniqueId or "-"
+        d(string.format(GetString(TRADEQR_DIAG_LAST_LISTING), lastListing.itemLink, uniqueId))
+    end
     for guildIndex = 1, GetNumGuilds() do
         self:PrintGuild(GetGuildId(guildIndex), nowS)
     end

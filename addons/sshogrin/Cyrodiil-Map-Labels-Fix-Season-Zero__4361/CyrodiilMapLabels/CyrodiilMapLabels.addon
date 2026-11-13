@@ -1,7 +1,7 @@
 ## Title: |c2046e5Cyrodiil Map Labels|r
 ## Author: Neurowise & |c2046e5sshogrin|r
-## Version: 1.9.0
-## AddOnVersion 010900
+## Version: 1.9.1
+## AddOnVersion 010901
 ## APIVersion: 101050 101051
 ## DependsOn: LibAddonMenu-2.0>=41
 ## SavedVariables: CyrodiilMapLabelsSavedVars

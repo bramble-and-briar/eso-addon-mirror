@@ -18,7 +18,7 @@
     "AnimatedActionBarPlus"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4598/",
-  "fingerprint": "1dbbaaee2ad1d54be234a1605d2744f4b33c183ce073709d696c54c40a007afd",
+  "fingerprint": "7c3df4abc9b0347d6b652a57df446407832f3652db8ae03c22295d308766d304",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16133.png",
     "https://cdn-eso.mmoui.com/preview/pvw16132.png"
@@ -29,11 +29,11 @@
   "source_id": "4598",
   "source_url": "https://www.esoui.com/downloads/info4598-AnimatedActionBar.html",
   "stats": {
-    "downloads": 3052,
+    "downloads": 3172,
     "favorites": 9,
-    "monthly_downloads": 642
+    "monthly_downloads": 776
   },
   "title": "AnimatedActionBar+",
-  "updated_at": 1794356897000,
+  "updated_at": 1794520489000,
   "version": "2.0"
 }

@@ -7,7 +7,7 @@ local DIALOG_NAME = "MYEXTRAS_WHATS_NEW"
 local EVENT_NAME  = ME.name .. "_WhatsNew"
 
 ME.whatsNew = {
-    version = MyExtras.version,
+    version = "",
     title   = "MyExtras " .. MyExtras.version,
     message = "New features and options have been added. Open the MyExtras settings to check everything out.",
 }

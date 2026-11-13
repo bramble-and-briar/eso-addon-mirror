@@ -224,6 +224,8 @@ function VEQ.AddNewTitle(qindex, qlevel, qname, qtype, qzone, qfocusedzoneval)
 			end   
 		elseif qtype == QUEST_TYPE_MAIN_STORY then
 			VEQ.icon[VEQ.boxmarker]:SetTexture("esoui/art/tutorial/poi_soloinstance_complete.dds") 
+    elseif qInstanceDisplayType == ZONE_DISPLAY_TYPE_ZONE_STORY then
+      VEQ.icon[VEQ.boxmarker]:SetTexture("EsoUI/Art/Journal/journal_Quest_ZoneStory.dds") 
 		elseif qtype == QUEST_TYPE_CLASS then
 		    VEQ.icon[VEQ.boxmarker]:SetTexture(ZO_GetGamepadClassIcon(classID)) 
 		elseif qtype == QUEST_TYPE_COMPANION then
@@ -565,7 +567,7 @@ function VEQ.LoadQuestsInfo(i)
 			local qRepeatType = GetJournalQuestRepeatType(i)
  
 			-- My Zone Determinate
-			VEQ.QuestList[VEQ.varnumquest].myzone = VEQ.FindMyZone(qzone,qtype,qInstanceDisplayType,qRepeatType,qname,qzoneidx)
+			VEQ.QuestList[VEQ.varnumquest].myzone = VEQ.FindMyZone(qzone, qtype, qInstanceDisplayType, qRepeatType, qname, qzoneidx)
  
 			-- Check to see if the current quest is current focused quest, set QuestList[x].focusquest to 1 if focused quest else zero.
 			if i == VEQ.FocusedQIndex then VEQ.QuestList[VEQ.varnumquest].focusquest = 1 else VEQ.QuestList[VEQ.varnumquest].focusquest = 0 end
@@ -1428,7 +1430,7 @@ function VEQ.QuestsLoop()
 	-- Update Journal and tracker
 	--if valcheck == 1 then
 		-- Compass Update For 10023
-	FOCUSED_QUEST_TRACKER:InitialTrackingUpdate()
+	--FOCUSED_QUEST_TRACKER:InitialTrackingUpdate()
 	local noUpdate = false
 	if BUI then noUpdate = true end
 	if noUpdate == false then

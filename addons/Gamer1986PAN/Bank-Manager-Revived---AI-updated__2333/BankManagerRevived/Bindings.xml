@@ -1,0 +1,33 @@
+<Bindings>
+	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+		<Category name="|c3366FFBank|r Manager |c990000Revived|r">
+			<Action name="BMR_PROFILE1">
+				<Down>BankManagerRevived_runProfile(1)</Down>
+			</Action>
+			<Action name="BMR_PROFILE2">
+				<Down>BankManagerRevived_runProfile(2)</Down>
+			</Action>
+			<Action name="BMR_PROFILE3">
+				<Down>BankManagerRevived_runProfile(3)</Down>
+			</Action>
+			<Action name="BMR_PROFILE4">
+				<Down>BankManagerRevived_runProfile(4)</Down>
+			</Action>
+			<Action name="BMR_PROFILE5">
+				<Down>BankManagerRevived_runProfile(5)</Down>
+			</Action>
+			<Action name="BMR_PROFILE6">
+				<Down>BankManagerRevived_runProfile(6)</Down>
+			</Action>
+			<Action name="BMR_PROFILE7">
+				<Down>BankManagerRevived_runProfile(7)</Down>
+			</Action>
+			<Action name="BMR_PROFILE8">
+				<Down>BankManagerRevived_runProfile(8)</Down>
+			</Action>
+			<Action name="BMR_PROFILE9">
+				<Down>BankManagerRevived_runProfile(9)</Down>
+			</Action>
+		</Category>
+	</Layer>
+</Bindings>

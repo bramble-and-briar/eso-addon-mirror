@@ -138,7 +138,7 @@ local function RefreshProcUI()
     local maxRows = sv.maxRows or 3
     local index = 0
 
-    if PTI.sv.previewMode then
+    if PTI.IsPreview() then
         local preview = BuildPreviewEntry()
         index = 1
         local row = PTI.UI.AcquireRow("proc", 1)

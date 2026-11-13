@@ -1,7 +1,7 @@
 ## Title: |c0d0d0dNothingWasted|r |ce90101Tracker|r
 ## Author: |c09e8ech|r|c4509eca|r|c094decz|r|c09e8ece|r|cec09e5068|r
-## Version: 2.0
-## AddOnVersion: 6
+## Version: 2.1
+## AddOnVersion: 7
 ## APIVersion: 101051
 ## SavedVariables: NothingWastedTrackerSV
 ## DependsOn: LibAddonMenu-2.0>=43

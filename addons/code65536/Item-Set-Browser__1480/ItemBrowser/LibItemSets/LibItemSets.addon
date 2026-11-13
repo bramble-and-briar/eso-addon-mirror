@@ -10,7 +10,7 @@
 ## IsLibrary: true
 ## Version: 1.0.1
 ## AddOnVersion: 100010
-## APIVersion: 101050 101051
+## APIVersion: 101051 101052
 
 LibItemSets.lua
 Data.$(APIVersion).lua

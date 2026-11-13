@@ -1,0 +1,10 @@
+## Title: Custom Queue Sounds (Console)
+## APIVersion: 101048 101049 101050
+## AddOnVersion: 1
+## Version: 1.0.0
+## Author: Vixen Hunny
+## Description: Keeps playing an alert sound while a dungeon, battleground or Cyrodiil queue pop is up, until you accept or decline. Pick the sound and how often it repeats in Settings > Addons.
+## DependsOn: LibAddonMenu-2.0>=40
+## SavedVariables: CustomQueueSoundsConsoleSV
+
+CustomQueueSoundsConsole.lua

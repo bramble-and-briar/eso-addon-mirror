@@ -20,6 +20,8 @@ local enStrings = {
     -- Special Challenges and Dividers
     specialHeader = "——— Major Challenges ———",
     otherHeader = "——— Other Achievements ———",
+    vetHeader = "——— Veteran Mode ———",
+    vetKeywords = { "veteran" },
     tagVet = "|c9370DB[VET]|r ",
     tagSpeed = "|c00FFFF[SPEED]|r ",
     tagNoDeath = "|cE6E6FA[NO-DEATH]|r ",

@@ -162,6 +162,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ALC Benchmark](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/ALC-Benchmark__e96f0d83-b3f0-47a8-a59a-2d6020816550) | APH0NlC | Console | — |
 | [Alchemiewerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Alchemiewerk__4912) | Torfason | PC / Mac | 1.0.2 |
 | [Alchemist (Continued by Koenari)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Koenari/Alchemist-Continued-by-Koenari__2419) | Koenari | PC / Mac | 7.1.5-1.0 |
+| [Alchemy Favorite Potions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TenienteR/Alchemy-Favorite-Potions__5046) | TenienteR | PC / Mac | 1.0.0 |
 | [Alchemy Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Alchemy-Opener__8f125308-c2a5-40e6-b249-d29e85f81020) | Vixen_Hunny | Console | — |
 | [Alchemy Quantity Input](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chuaznega/Alchemy-Quantity-Input__4520) | Chuaznega | PC / Mac | 1.0 |
 | [Alchemy Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyperioxes/Alchemy-Tooltips__2531) | Hyperioxes | PC / Mac | 1.32 |
@@ -385,6 +386,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto-Claim or Hide Tome Challenges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Auto-Claim-or-Hide-Tome-Challenges__910446ca-4e83-47c8-8c9b-a5d99bcec73e) | code65536 | Console | — |
 | [Auto-Claim or Hide Tome Challenges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Auto-Claim-or-Hide-Tome-Challenges__4484) | code65536 | PC / Mac | 2.0.1 |
 | [Auto-Tabard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aldericon/Auto-Tabard__1853) | aldericon | PC / Mac | 12.0 |
+| [AutoAcceptQ](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/AutoAcceptQ__485900c9-f745-42fa-a0f4-d0bc09f8bc3c) | Vixen_Hunny | Console | — |
 | [AutoBank](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/one_kharin/AutoBank__2957) | one_kharin | PC / Mac | 0.3v |
 | [Autobanker (Automatic Bank Deposit)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/r4cken/Autobanker-Automatic-Bank-Deposit__2199) | r4cken | PC / Mac | 2.5 |
 | [AutoBankMats+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeman1734/AutoBankMats__f2ed8662-096e-46fa-bed1-9a73691c8f8f) | codeman1734 | Console | — |

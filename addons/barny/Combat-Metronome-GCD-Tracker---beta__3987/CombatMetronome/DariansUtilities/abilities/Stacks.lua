@@ -178,6 +178,7 @@ function Stacks:GetCurrentNumStacksOnPlayer(skill)
 		["GF"] = 0,
 		["FS"] = 0,
 		["FI"] = 0,
+		["CW"] = 0,
 	}
 	
 	local abilityToCheck
@@ -192,7 +193,7 @@ function Stacks:GetCurrentNumStacksOnPlayer(skill)
 	end
 	if abilityToCheck then
 		for i=1,GetNumBuffs("player") do
-			local name,_,_,_,stack,_,_,_,_,statusEffectType,abilityId = GetUnitBuffInfo("player", i)
+			local _,_,_,_,stack,_,_,_,_,_,abilityId = GetUnitBuffInfo("player", i)
 			if abilityId == abilityToCheck then
 				if skill == "FI" then
 					stacks[skill] = 1

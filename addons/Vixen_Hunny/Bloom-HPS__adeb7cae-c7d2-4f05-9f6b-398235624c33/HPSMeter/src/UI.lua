@@ -150,6 +150,7 @@ function UI.Create()
 
     CreateProbes(wm)
     UI.ApplyLayout()
+    UI.ApplySceneVisibility()
     -- texture checking starts from Init once the loading screen is gone
 end
 
@@ -225,6 +226,55 @@ function UI.VerifyTextures()
     verifyStartMs = GetGameTimeMilliseconds()
     EVENT_MANAGER:RegisterForUpdate(VERIFY_NAME, CHECK_INTERVAL_MS, CheckTextures)
     CheckTextures()
+end
+
+-- Hide in menus: the meter only shows with the normal HUD (HUD_SCENE) and the
+-- HUD with a mouse cursor (HUD_UI_SCENE), and fades out in inventory, map,
+-- settings and every other menu, like the game's own HUD pieces.
+local HUD_SCENES = { "HUD_SCENE", "HUD_UI_SCENE" }
+local hudFragment, fragmentAdded
+
+function UI.ApplySceneVisibility()
+    local root = controls.root
+    if not root then return end
+    local want = M.saved.hideInMenus
+
+    if want and not fragmentAdded then
+        hudFragment = hudFragment or ZO_HUDFadeSceneFragment:New(root)
+        for _, name in ipairs(HUD_SCENES) do
+            local scene = _G[name]
+            if scene then scene:AddFragment(hudFragment) end
+        end
+        fragmentAdded = true
+        -- match the current scene straight away
+        local current = SCENE_MANAGER and SCENE_MANAGER:GetCurrentScene()
+        local onHud = false
+        for _, name in ipairs(HUD_SCENES) do
+            if current and current == _G[name] then onHud = true end
+        end
+        root:SetHidden(not onHud and not (LibAddonMenu2 and LibAddonMenu2.currentAddonPanel
+            and LibAddonMenu2.currentAddonPanel:GetName() == M.name .. "Panel"))
+    elseif not want and fragmentAdded then
+        for _, name in ipairs(HUD_SCENES) do
+            local scene = _G[name]
+            if scene then scene:RemoveFragment(hudFragment) end
+        end
+        fragmentAdded = false
+        root:SetHidden(false)
+        root:SetAlpha(1)
+    end
+end
+
+-- Shows the meter over the settings menu while its settings page is open.
+function UI.SetPreview(on)
+    local root = controls.root
+    if not root or not fragmentAdded then return end
+    if on then
+        root:SetHidden(false)
+        root:SetAlpha(1)
+    else
+        root:SetHidden(not hudFragment:IsShowing())
+    end
 end
 
 -- Re-applies position, scale and visibility from the saved settings.

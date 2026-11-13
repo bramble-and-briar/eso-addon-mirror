@@ -7,7 +7,9 @@
 ---@field autoCloseStore boolean Exit the vendor interaction automatically after the buy
 ---@field resumeWindowMs integer How long the auto-resume arm survives between visits
 ---@field autoUnbox boolean Use the satchel and take all after leaving the vendor
----@field unboxTimeoutMs integer Give up on an unbox sequence this long after the interaction ends
+---@field unboxTimeoutMs integer Stop waiting for a bought satchel to arrive this long after the interaction ends
+---@field autoOpenMode string "all" | "bound" | "off": which containers are opened the moment they arrive
+---@field openGeodes boolean Transmute geodes count as openable (off keeps a hoard intact)
 
 ---@class SatchelExchangeRunState
 ---@field active boolean
@@ -24,21 +26,33 @@
 ---@field resumeArmedAtMs integer
 ---@field buysThisSession integer Total satchels bought since UI load
 
+---@class SatchelExchangeUnboxInFlight The one UseItem awaiting its result
+---@field slotIndex integer
+---@field itemId integer
+---@field uniqueId string Unique id (Id64ToString) of the exact container the request targeted
+---@field stack integer Stack size at send; a smaller stack means one was opened
+---@field sentAtMs integer When the request was dispatched (dropped-request detection)
+---@field sends integer Requests sent for this container so far
+---@field lootAllAtMs integer|nil When Take All ran on the loot window this use opened
+
 ---@class SatchelExchangeUnboxState
----@field active boolean
+---@field active boolean The loop is registered
 ---@field pendingItemLink string|nil Satchel a settled run left to open; consumed by the next interaction-end event
----@field itemId integer|nil
----@field startedAtMs integer When the sequence started (all diagnostics log "+Nms" from here)
----@field deadlineMs integer Give up when the game clock passes this
----@field seenInBag boolean The satchel has been observed in the backpack this sequence
----@field seenAtMs integer When the satchel first appeared in the backpack
----@field useSent boolean A UseItem request is in flight (at most one; see UnboxActions)
----@field useSentAtMs integer When the in-flight UseItem was dispatched (dropped-request detection)
----@field useUniqueId string|nil Unique id (Id64ToString) of the exact satchel the request targeted
+---@field expectItemId integer|nil A bought satchel that has not reached the backpack yet
+---@field expectDeadlineMs integer Stop waiting for the expected satchel when the game clock passes this
+---@field queue integer[] Backpack slots waiting to be opened, in order
+---@field queuedSource table<integer, string> slotIndex -> "auto" | "manual" | "vendor" (also the de-dupe set)
+---@field skipped table<string, string> uniqueId -> reason; containers given up on until the next manual run
+---@field inFlight SatchelExchangeUnboxInFlight|nil The use awaiting its result (at most one; see UnboxActions)
+---@field resendSends integer Sends already spent on the container about to be retried
+---@field resendUniqueId string|nil The container those sends belong to
+---@field startedAtMs integer When the run started (all diagnostics log "+Nms" from here)
+---@field openedCount integer Containers opened this run
 ---@field attemptIntervalMs integer Current send-attempt backoff (grows 16ms per blocked attempt, caps at 200ms)
 ---@field nextAttemptAtMs integer Earliest game time for the next send attempt
 ---@field attemptCount integer Blocked send attempts so far (diagnostics)
----@field lastBlockReason string|nil Last logged block reason (log only on change)
+---@field itemBlockSinceMs integer When the container itself (not the player's state) started blocking; 0 = not blocked
+---@field lastBlockKey integer|nil Key of the last logged set of blocking gates (log only on change)
 ---@field lootWatchUntilMs integer Loot windows opened before this time get Take All
 
 ---@class SatchelExchangeUseReadiness
@@ -48,6 +62,10 @@
 ---@field cooldownRemainMs integer
 ---@field hudScene boolean The current scene is the plain HUD (UseItem is dropped otherwise)
 ---@field interactionType integer GetInteractionType(); must be INTERACTION_NONE to use items
+---@field inCombat boolean UseItem is protected, so it is refused in combat
+---@field dead boolean
+---@field swimming boolean Lazy Writ Crafter holds its opener back in water too
+---@field looting boolean A loot window is open
 
 ---@class SatchelExchangeState
 ---@field savedVars SatchelExchangeSavedVars

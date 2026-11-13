@@ -242,7 +242,9 @@ function A:UpdateArrow(view)
 	elseif mode == "elsewhere" then
 		text = S.elsewhere
 	elseif mode == "nopos" then
-		text = S.noPosition
+		-- the one case the player can mend: the client's open map is another area (opening the map puts it where the player is)
+		local why = tostring(view.why or "")
+		text = why:find("outside the map the game answers for", 1, true) and S.noPositionOpenMap or S.noPosition
 	end
 
 	if mode ~= "none" then

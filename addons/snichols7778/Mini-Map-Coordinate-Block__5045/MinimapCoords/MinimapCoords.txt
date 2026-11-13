@@ -1,0 +1,9 @@
+## Title: Minimap Coords
+## Description: Shows player map coordinates attached to the new built-in minimap (PTS).
+## Author: snichols7778
+## Version: 1.0.0
+## AddOnVersion: 100
+## APIVersion: 101052
+## SavedVariables: MinimapCoords_SavedVariables
+
+MinimapCoords.lua

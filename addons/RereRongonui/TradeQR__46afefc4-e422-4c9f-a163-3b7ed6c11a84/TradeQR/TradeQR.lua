@@ -7,7 +7,8 @@ local function OnPlayerActivated()
     TradeQR.saleScreen:StartAutoShow()
 end
 
--- "/tradeqr" opens the screen, "/tradeqr diag" prints the watcher state, "/tradeqr scan" polls now.
+-- "/tradeqr" opens the screen, "/tradeqr diag" prints the watcher state, "/tradeqr scan" polls now,
+-- "/tradeqr trader" queues the guild traders hired this week.
 local function OnSlashCommand(arguments)
     local command = string.lower(string.match(arguments or "", "^%s*(.-)%s*$"))
     if command == "diag" then
@@ -15,6 +16,10 @@ local function OnSlashCommand(arguments)
     elseif command == "scan" then
         TradeQR.saleWatcher:PollAllGuilds()
         d(GetString(TRADEQR_CHAT_SCAN_STARTED))
+    elseif command == "trader" then
+        if TradeQR.traderReporter:QueueCurrentTraders() > 0 then
+            TradeQR.saleScreen:Show()
+        end
     else
         TradeQR.saleScreen:Show()
     end
@@ -34,6 +39,7 @@ local function OnAddOnLoaded(_, addonName)
     TradeQR.saleQueue = TradeQR.SaleQueue:New(savedVars)
     TradeQR.saleWatcher = TradeQR.SaleWatcher:New(savedVars, TradeQR.saleQueue)
     TradeQR.listingWatcher = TradeQR.ListingWatcher:New(savedVars, TradeQR.saleQueue)
+    TradeQR.traderReporter = TradeQR.TraderReporter:New(TradeQR.saleQueue)
     TradeQR.saleScreen = TradeQR.SaleScreen:New(TradeQR.saleQueue, salePayload, savedVars)
     TradeQR.diagnostics = TradeQR.Diagnostics:New(TradeQR.saleWatcher, TradeQR.listingWatcher, TradeQR.saleQueue, savedVars)
 

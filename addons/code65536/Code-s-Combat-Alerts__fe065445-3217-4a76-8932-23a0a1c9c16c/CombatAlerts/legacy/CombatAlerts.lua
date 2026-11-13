@@ -137,24 +137,6 @@ CombatAlerts = {
 		shagraths = { },
 	},
 
-	ka = {
-		leaperMonitor = false,
-		meteor = {
-			units = { },
-		},
-		ichor = {
-			endTime = 0,
-			counter = 0,
-		},
-		panelMode = 0,
-		lastHarpoon = 0,
-		chains = 0,
-		groundIchor = {
-			result = 0,
-			abilityId = 0,
-		},
-	},
-
 	stonethorn = {
 		memoryGame = {
 			enabled = false,
@@ -168,21 +150,12 @@ CombatAlerts = {
 		bombs = { },
 		link1 = "",
 	},
-
-	ld = {
-		soul1 = "",
-		orbs = { ids = {} },
-		orbCooldown = 0,
-	},
 }
 
 function CombatAlerts.OnAddOnLoaded( )
 	CombatAlerts.vars = ZO_SavedVars:NewAccountWide("CombatAlertsSavedVariables", 1, nil, CombatAlerts.defaults, nil, "$InstallationWide")
 
 	SLASH_COMMANDS[CombatAlerts.slashCommand] = CombatAlerts.HandleSlashCommand
-
-	EVENT_MANAGER:RegisterForEvent(CombatAlerts.name, EVENT_RAID_TRIAL_STARTED, CombatAlerts.OnRaidTrialStarted)
-	EVENT_MANAGER:RegisterForEvent(CombatAlerts.name, EVENT_RAID_TRIAL_COMPLETE, CombatAlerts.OnRaidTrialComplete)
 end
 
 local function UnpackRGBA( rgba )
@@ -301,10 +274,6 @@ function CombatAlerts.PlayerActivated( eventCode, initial )
 		EVENT_MANAGER:UnregisterForEvent(CombatAlerts.name, EVENT_BOSSES_CHANGED)
 	end
 
-	if (CombatAlerts.zoneId ~= CombatAlertsData.ka.zone) then
-		CombatAlerts.KynesLeaperMonitor(false)
-	end
-
 	CombatAlerts.ThornMemoryGame(CombatAlerts.isVet and CombatAlerts.zoneId == CombatAlertsData.stonethorn.memoryGame.zoneId)
 end
 
@@ -324,12 +293,6 @@ function CombatAlerts.StartListening( )
 		CombatAlerts.sunspire.tombId = 0
 		CombatAlerts.maarselok.wickedBonds = nil
 		CombatAlerts.maarselok.shagraths = { }
-
-		if (CombatAlerts.zoneId == CombatAlertsData.ka.zone and string.find(string.lower(GetUnitName("boss1")), CombatAlertsData.ka.vrolName)) then
-			CombatAlerts.ka.lastHarpoon = GetGameTimeMilliseconds()
-			CombatAlerts.ka.panelMode = 1
-			CombatAlerts.TogglePanel(true, LCA.GetAbilityName(CombatAlertsData.ka.shockingHarpoon), true, true)
-		end
 
 		LCA.RegisterForFilteredEvent(CombatAlerts.name, EVENT_COMBAT_EVENT, CombatAlerts.CombatEvent, REGISTER_FILTER_IS_ERROR, false)
 
@@ -837,141 +800,6 @@ function CombatAlerts.CombatEvent( eventCode, result, isError, abilityName, abil
 		CombatAlerts.AlertCast(abilityId, sourceName, hitValue, { -2, 2 })
 
 
-	-- Kyne's Aegis ------------------------------------------------------------
-
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ka.crashingWave.cast) then
-		local id = CombatAlerts.AlertCast(CombatAlertsData.ka.crashingWave.name, nil, hitValue, { 650, 2, false, { 0.3, 0.9, 1, 0.6 }, { 0, 0.5, 1, 1 } })
-		if (LCA.IsUnitIdValid(targetUnitId)) then
-			CombatAlerts.castAlerts.sources[targetUnitId] = id
-		end
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ka.spear) then
-		if (targetType == COMBAT_UNIT_TYPE_PLAYER or CombatAlerts.DistanceCheck(targetUnitId, 4.2)) then
-			CombatAlerts.Alert(nil, LCA.GetAbilityName(abilityId), 0xFF6600FF, SOUNDS.CHAMPION_POINTS_COMMITTED, 1500)
-		end
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ka.hailShield) then
-		CombatAlerts.Alert(nil, LCA.GetAbilityName(abilityId), 0xEEEEFFFF, SOUNDS.CHAMPION_POINTS_COMMITTED, hitValue)
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ka.gust) then
-		CombatAlerts.Alert("Gryphon", LCA.GetAbilityName(abilityId) .. " — Block", 0xFF99FFFF, SOUNDS.CHAMPION_POINTS_COMMITTED, hitValue)
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ka.slam) then
-		CombatAlerts.Alert("Sea Adder", LCA.GetAbilityName(abilityId) .. " — Block", 0xFF99FFFF, SOUNDS.CHAMPION_POINTS_COMMITTED, hitValue)
-	elseif (result == ACTION_RESULT_BEGIN and CombatAlertsData.ka.totems[abilityId]) then
-		local totem = CombatAlertsData.ka.totems[abilityId]
-		CombatAlerts.Alert(LCA.GetAbilityName(abilityId), LCA.GetAbilityName(totem[1]), totem[2], SOUNDS.OBJECTIVE_DISCOVERED, hitValue)
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ka.frigidFog) then
-		if (targetType == COMBAT_UNIT_TYPE_PLAYER) then
-			CombatAlerts.Alert(nil, LCA.GetAbilityName(abilityId), 0x3399CCFF, SOUNDS.CHAMPION_POINTS_COMMITTED, 1500)
-		elseif (CombatAlerts.DistanceCheck(targetUnitId, 5.3)) then
-			CombatAlerts.Alert(nil, LCA.GetAbilityName(abilityId), 0x3399CCFF, SOUNDS.DUEL_START, hitValue)
-		end
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ka.shockingHarpoon) then
-		CombatAlerts.ka.lastHarpoon = GetGameTimeMilliseconds()
-		CombatAlerts.ka.panelMode = 1
-		CombatAlerts.TogglePanel(true, LCA.GetAbilityName(abilityId), true, true)
-
-		if (CombatAlerts.units[targetUnitId]) then
-			targetName = CombatAlerts.units[targetUnitId].name
-		end
-		CombatAlerts.Alert(LCA.GetAbilityName(abilityId), targetName, 0x66CCFFFF, SOUNDS.CHAMPION_POINTS_COMMITTED, 1500)
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ka.fountain) then
-		CombatAlerts.Alert(CombatAlerts.incomingText, LCA.GetAbilityName(abilityId), 0xCC0000FF, SOUNDS.CHAMPION_POINTS_COMMITTED, hitValue)
-	elseif (result == ACTION_RESULT_EFFECT_GAINED and abilityId == CombatAlertsData.ka.chaurus.spawn) then
-		CombatAlerts.ka.chaurus = GetGameTimeMilliseconds()
-	elseif (result == ACTION_RESULT_EFFECT_GAINED and abilityId == CombatAlertsData.ka.chaurus.projectile and CombatAlerts.ka.chaurus) then
-		CombatAlerts.Debug(string.format("Chaurus Bile: %dms since spawn", GetGameTimeMilliseconds() - CombatAlerts.ka.chaurus))
-		CombatAlerts.ka.chaurus = nil
-	elseif (result == ACTION_RESULT_EFFECT_GAINED and CombatAlertsData.ka.knights[abilityId] and hitValue == 1) then
-		local knight = CombatAlertsData.ka.knights[abilityId]
-		if (not knight[3] or LCA.isTank) then
-			CombatAlerts.Alert(CombatAlertsData.ka.knights.spawnText, LocalizeString(knight[1], GetAbilityName(abilityId)), knight[2], SOUNDS.CHAMPION_POINTS_COMMITTED, 2000)
-		end
-	elseif (result == ACTION_RESULT_EFFECT_GAINED and abilityId == CombatAlertsData.ka.sanguinePrison) then
-		if (CombatAlerts.units[targetUnitId]) then
-			targetName = CombatAlerts.units[targetUnitId].name
-		end
-		CombatAlerts.Alert(LCA.GetAbilityName(abilityId), targetName, 0xCC00FFFF, SOUNDS.CHAMPION_POINTS_COMMITTED, 2000)
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ka.sanguineGrasp and hitValue > 4000) then
-		CombatAlerts.Alert(nil, LCA.GetAbilityName(abilityId), 0xCC0000FF, SOUNDS.CHAMPION_POINTS_COMMITTED, 2000)
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ka.frenzy and not LCA.isTank) then
-		CombatAlerts.Alert(nil, LCA.GetAbilityName(abilityId), 0xCC3366FF, SOUNDS.CHAMPION_POINTS_COMMITTED, hitValue)
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ka.callLightning and hitValue < 3000) then
-		CombatAlerts.ka.chains = 0
-		CombatAlerts.ka.panelMode = 2
-		CombatAlerts.TogglePanel(true, { "Completed", "Position" }, true, true)
-	elseif (result == ACTION_RESULT_EFFECT_GAINED and abilityId == CombatAlertsData.ka.proxLightning) then
-		CombatAlerts.AlertBorder(true, 1000, "blue")
-		PlaySound(SOUNDS.DUEL_FORFEIT)
-		CombatAlerts.ka.chains = CombatAlerts.ka.chains + 1
-		if (CombatAlerts.ka.chains == 4) then
-			CombatAlerts.TogglePanel(false, nil, true)
-		end
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ka.falgFloor1End) then
-		CombatAlerts.TogglePanel(false, nil, true)
-	elseif (CombatAlertsData.ka.meteor.ids[abilityId] and targetUnitId) then
-		local currentTime = GetGameTimeMilliseconds()
-		if ((result == ACTION_RESULT_EFFECT_GAINED and hitValue > 1000) or result == ACTION_RESULT_EFFECT_GAINED_DURATION) then
-			local hitTime = currentTime + hitValue
-			local paramId = CombatAlertsData.ka.meteor.ids[abilityId]
-			if (paramId == 2 and zo_abs(CombatAlerts.ka.ichor.endTime - hitTime) < 1600) then
-				paramId = 3
-			end
-			CombatAlerts.ka.meteor.units[targetUnitId] = hitTime
-			if (targetType == COMBAT_UNIT_TYPE_PLAYER) then
-				CombatAlerts.ka.meteor.selfId = targetUnitId
-			end
-			CombatAlerts.ka.meteor.params = CombatAlertsData.ka.meteor.params[paramId]
-			CombatAlerts.ka.meteor.duration = hitValue
-			if (not CombatAlerts.ka.meteor.bannerId and not (CombatAlerts.ka.meteor.params.excludeTanks and LCA.isTank and targetType ~= COMBAT_UNIT_TYPE_PLAYER)) then
-				CombatAlerts.ka.meteor.bannerId = CombatAlerts.AlertBannerEx(nil, nil, nil, CombatAlerts.ka.meteor.params.id, false, SOUNDS.CHAMPION_POINTS_COMMITTED, CombatAlerts.KynesMeteorUpdate)
-			end
-		elseif (result == ACTION_RESULT_EFFECT_FADED) then
-			if (CombatAlerts.ka.meteor.units[targetUnitId] and CombatAlerts.ka.meteor.units[targetUnitId] - CombatAlerts.ka.meteor.duration < currentTime - 10) then
-				CombatAlerts.ka.meteor.units[targetUnitId] = nil
-			end
-		end
-	elseif (abilityId == CombatAlertsData.ka.ichorTimer) then
-		if (result == ACTION_RESULT_EFFECT_GAINED_DURATION) then
-			CombatAlerts.ka.panelMode = 3
-			CombatAlerts.ka.ichor.endTime = GetGameTimeMilliseconds() + hitValue
-			CombatAlerts.ka.ichor.counter = 0
-			CombatAlerts.TogglePanel(true, LCA.GetAbilityName(CombatAlertsData.ka.ichorEruption), true, true)
-		elseif (result == ACTION_RESULT_EFFECT_FADED) then
-			CombatAlerts.TogglePanel(false, nil, true)
-		end
-	elseif (abilityId == CombatAlertsData.ka.apotheosis) then
-		if (result == ACTION_RESULT_EFFECT_GAINED) then
-			CombatAlerts.ka.apotId = targetUnitId
-		elseif (result == ACTION_RESULT_EFFECT_FADED) then
-			CombatAlerts.ka.apotId = nil
-		end
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ka.hemorrhage) then
-		-- Change the color of existing Instability alert
-		CombatAlerts.ka.meteor.params = CombatAlertsData.ka.meteor.params[3]
-		-- Disabled the apotheosis check in Update 29
-		--if (targetUnitId == CombatAlerts.ka.apotId and not LCA.isTank) then
-		if (not LCA.isTank) then
-			CombatAlerts.Alert(nil, LCA.GetAbilityName(abilityId) .. " — Block", 0xFF99FFFF, SOUNDS.CHAMPION_POINTS_COMMITTED, hitValue)
-		end
-	elseif (result == ACTION_RESULT_EFFECT_GAINED and abilityId == CombatAlertsData.ka.bloodCounter) then
-		CombatAlerts.ka.ichor.counter = hitValue
-	elseif (CombatAlertsData.damageEvents[result] and CombatAlertsData.ka.groundIchor[abilityId]) then
-		if (targetType == COMBAT_UNIT_TYPE_PLAYER) then
-			local ichorParams = CombatAlertsData.ka.groundIchor[abilityId]
-			if (not (ichorParams[2] and LCA.isTank)) then
-				CombatAlerts.AlertBorder(true, ichorParams[1])
-			end
-		elseif (targetUnitId == CombatAlerts.guardUnit) then
-			CombatAlerts.ka.groundIchor.result = result
-			CombatAlerts.ka.groundIchor.abilityId = abilityId
-			CombatAlerts.divertNextEvent = CombatAlerts.KynesGroundIchorGuardEvent
-		end
-	elseif (abilityId == CombatAlertsData.ka.toxicTide and targetType == COMBAT_UNIT_TYPE_PLAYER) then
-		if (result == ACTION_RESULT_EFFECT_GAINED) then
-			CombatAlerts.AlertBorder(true)
-		elseif (result == ACTION_RESULT_EFFECT_FADED) then
-			CombatAlerts.AlertBorder(false)
-		end
-
-
 	-- Stonethorn --------------------------------------------------------------
 
 	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.stonethorn.annihilate) then
@@ -1066,68 +894,6 @@ function CombatAlerts.CombatEvent( eventCode, result, isError, abilityName, abil
 		end
 	elseif (result == ACTION_RESULT_EFFECT_GAINED and CombatAlertsData.at.gryphons[abilityId]) then
 		CombatAlerts.Alert(LCA.GetAbilityName(CombatAlertsData.at.gryphons.call), CombatAlertsData.at.gryphons[abilityId], 0xFF9900FF, SOUNDS.OBJECTIVE_DISCOVERED, 2000)
-
-
-	-- Lost Depths -------------------------------------------------------------
-
-	elseif (result == ACTION_RESULT_EFFECT_GAINED and targetType == COMBAT_UNIT_TYPE_PLAYER and abilityId == CombatAlertsData.ld.sunbolt and hitValue > 1000) then
-		local adjustedTime = hitValue - 500
-		CombatAlerts.AlertCast(abilityId, nil, adjustedTime, { adjustedTime, 0, false, { 0, 0.8, 0, 0.3 }, { 0, 0.8, 0, 0.6 } })
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ld.fear) then
-		local name = LCA.GetAbilityName(abilityId)
-		CombatAlerts.Alert(nil, name, 0xFF3366FF, SOUNDS.DUEL_START, 2000)
-		CombatAlerts.CastAlertsStart(CombatAlertsData.ld.fearDamage, name, hitValue, nil, nil, { hitValue, "Turn Away!", 1, 0.2, 0.4, 0.5, nil })
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ld.barrage) then
-		local id = CombatAlerts.AlertCast(abilityId, nil, hitValue, { -3, 0, false, { 0.7, 0.3, 1, 0.3 }, { 0.7, 0.3, 1, 0.7 } })
-		if (LCA.IsUnitIdValid(targetUnitId)) then
-			CombatAlerts.castAlerts.sources[targetUnitId] = id
-		end
-	elseif (result == ACTION_RESULT_EFFECT_GAINED_DURATION and CombatAlertsData.ld.soulSplit[abilityId]) then
-		if (CombatAlerts.units[targetUnitId]) then
-			targetName = CombatAlerts.units[targetUnitId].name
-		end
-		if (CombatAlertsData.ld.soulSplit[abilityId] == 1) then
-			CombatAlerts.ld.soul1 = targetName
-			if (select(3, GetUnitPower("boss1", COMBAT_MECHANIC_FLAGS_HEALTH)) < CombatAlertsData.ld.soulSplit.hmHealth) then
-				CombatAlerts.Alert(LCA.GetAbilityName(abilityId), targetName, 0xCC3399FF, SOUNDS.CHAMPION_POINTS_COMMITTED, 2000)
-			end
-		else
-			CombatAlerts.Alert(LCA.GetAbilityName(abilityId), string.format("%s / %s", CombatAlerts.ld.soul1, targetName), 0xCC3399FF, SOUNDS.CHAMPION_POINTS_COMMITTED, 2000)
-			CombatAlerts.ld.soul1 = ""
-		end
-	elseif (CombatAlertsData.ld.orbs[abilityId] and LCA.IsUnitIdValid(targetUnitId)) then
-		local currentTime = GetGameTimeMilliseconds()
-		if (currentTime > CombatAlerts.ld.orbCooldown) then
-			if (CombatAlerts.panel.tag ~= "gdorbs") then
-				CombatAlerts.ld.orbs = { ids = {} }
-				CombatAlerts.TogglePanel(true, "Sea Orbs", true, true)
-				CombatAlerts.panel.tag = "gdorbs"
-			end
-			local params = CombatAlertsData.ld.orbs[abilityId]
-			if (result == params[1]) then
-				if (not CombatAlerts.ld.orbs[targetUnitId]) then
-					table.insert(CombatAlerts.ld.orbs.ids, targetUnitId)
-				end
-				CombatAlerts.ld.orbs[targetUnitId] = currentTime + params[2]
-			end
-		end
-	elseif (result == ACTION_RESULT_BEGIN and abilityId == CombatAlertsData.ld.orbs.afterlife) then
-		CombatAlerts.ld.orbs = { ids = {} }
-		CombatAlerts.ld.orbCooldown = GetGameTimeMilliseconds() + 10000
-	elseif (CombatAlertsData.ld.purgeables[abilityId] and targetType == COMBAT_UNIT_TYPE_PLAYER) then
-		local id = "u35purgeables"
-		if (result == ACTION_RESULT_EFFECT_GAINED) then
-			CombatAlerts.ScreenBorderEnable(0xFFDD0066, nil, id)
-		elseif (result == ACTION_RESULT_EFFECT_FADED) then
-			CombatAlerts.ScreenBorderDisable(id)
-		end
-	elseif (result == ACTION_RESULT_BEGIN and CombatAlertsData.ld.banners[abilityId]) then
-		CombatAlerts.Alert(nil, LCA.GetAbilityName(abilityId), CombatAlertsData.ld.banners[abilityId], SOUNDS.CHAMPION_POINTS_COMMITTED, 1500)
-	elseif (CombatAlertsData.damageEvents[result] and targetType == COMBAT_UNIT_TYPE_PLAYER and CombatAlertsData.ld.standingInAoe[abilityId]) then
-		local params = CombatAlertsData.ld.standingInAoe[abilityId]
-		if (not (params[2] and LCA.isTank)) then
-			CombatAlerts.AlertBorder(true, params[1])
-		end
 	end
 end
 
@@ -1200,42 +966,6 @@ function CombatAlerts.BossesChanged( eventCode )
 		CombatAlerts.FangLairToggleTimer(true)
 	else
 		CombatAlerts.FangLairToggleTimer(false)
-	end
-end
-
-function CombatAlerts.OnRaidTrialStarted( trialName, weekly )
-	if (GetCurrentParticipatingRaidId() == 13) then
-		CombatAlerts.KynesLeaperMonitor(not IsAchievementComplete(2816))
-	end
-end
-
-function CombatAlerts.OnRaidTrialComplete( trialName, score, totalTime )
-	CombatAlerts.KynesLeaperMonitor(false)
-end
-
-do
-	local name = CombatAlerts.name .. "KynesLeaperMonitor"
-
-	local LeaperMonitorEvent = function( eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId )
-		if (CombatAlertsData.damageEvents[result] and CombatAlertsData.ka.lightningBolt[abilityId] and targetType == COMBAT_UNIT_TYPE_PLAYER) then
-			CombatAlerts.AlertChat(LocalizeString("Failed |H1:achievement:2816:0:0|h|h (<<1>>)", sourceName))
-			if (not CombatAlerts.vars.debugEnabled) then
-				CombatAlerts.KynesLeaperMonitor(false)
-			end
-		end
-	end
-
-	function CombatAlerts.KynesLeaperMonitor( enable )
-		if (enable and not CombatAlerts.ka.leaperMonitor) then
-			CombatAlerts.ka.leaperMonitor = true
-			CombatAlerts.AlertChat("Starting |H1:achievement:2816:0:0|h|h monitoring...")
-			EVENT_MANAGER:RegisterForEvent(name, EVENT_COMBAT_EVENT, LeaperMonitorEvent)
-			EVENT_MANAGER:AddFilterForEvent(name, EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
-		elseif (not enable and CombatAlerts.ka.leaperMonitor) then
-			CombatAlerts.ka.leaperMonitor = false
-			CombatAlerts.AlertChat("Stopping |H1:achievement:2816:0:0|h|h monitoring...")
-			EVENT_MANAGER:UnregisterForEvent(name, EVENT_COMBAT_EVENT)
-		end
 	end
 end
 
@@ -1474,50 +1204,6 @@ function CombatAlerts.Poll( )
 				CombatAlerts.panel.SetRowColor(2, 1, 1, 0, 1)
 			end
 		end
-	elseif (CombatAlerts.zoneId == CombatAlertsData.ka.zone) then
-		if (CombatAlerts.ka.panelMode == 1) then
-			local time = GetGameTimeMilliseconds() - CombatAlerts.ka.lastHarpoon
-			CombatAlerts.panel.rows[1].data:SetText(CombatAlerts.FormatTime(time, true))
-			if (time < 38000) then
-				CombatAlerts.panel.SetRowColor(1, 1, 1, 1, 1)
-			else
-				CombatAlerts.panel.SetRowColor(1, 1, 0.5, 0, 1)
-			end
-		elseif (CombatAlerts.ka.panelMode == 2) then
-			CombatAlerts.panel.rows[1].data:SetText(CombatAlerts.ka.chains)
-			CombatAlerts.panel.rows[2].data:SetText(string.format("%.1fm", CombatAlerts.GetDistance("player", CombatAlertsData.ka.falgRoomCenter, false, false, true)))
-		elseif (CombatAlerts.ka.panelMode == 3) then
-			local time = CombatAlerts.ka.ichor.endTime - GetGameTimeMilliseconds()
-			CombatAlerts.panel.rows[1].data:SetText(CombatAlerts.FormatTime(time, false, true) .. string.format(" (%d)", CombatAlerts.ka.ichor.counter))
-			if (time < 3000 and CombatAlerts.ka.ichor.counter > 1) then
-				CombatAlerts.panel.SetRowColor(1, 1, 0, 0, 1)
-			elseif (CombatAlerts.ka.ichor.counter > 0) then
-				CombatAlerts.panel.SetRowColor(1, 1, 1, 0, 1)
-			else
-				CombatAlerts.panel.SetRowColor(1, 1, 1, 1, 1)
-			end
-		end
-	elseif (CombatAlerts.panel.tag == "gdorbs") then
-		local currentTime = GetGameTimeMilliseconds()
-
-		local lines = { }
-		for i, id in ipairs(CombatAlerts.ld.orbs.ids) do
-			local remaining = CombatAlerts.ld.orbs[id] - currentTime
-			local ratio = remaining / 12500
-			if (ratio > 1) then
-				ratio = 1
-			elseif (ratio < 0) then
-				ratio = 0
-			end
-			table.insert(lines, string.format(
-				"|c%06X#%d: %s|r",
-				LCA.PackRGB(LCA.HSLToRGB(ratio / 3, 1, 0.5)),
-				i,
-				(remaining < 20000) and CombatAlerts.FormatTime(remaining, true, true) or "OK"
-			))
-		end
-
-		CombatAlerts.panel.data:SetText(table.concat(lines, "\n"))
 	end
 end
 
@@ -1621,62 +1307,6 @@ function CombatAlerts.ScalecallerBreathEvent( eventCode, result, isError, abilit
 	end
 
 	return(true)
-end
-
-
-function CombatAlerts.KynesGroundIchorGuardEvent( eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId )
-	if (result == CombatAlerts.ka.groundIchor.result and abilityId == CombatAlerts.ka.groundIchor.abilityId and targetType == COMBAT_UNIT_TYPE_PLAYER) then
-		return(true)
-	else
-		return(false)
-	end
-end
-
-function CombatAlerts.KynesMeteorUpdate( )
-	local currentTime = GetGameTimeMilliseconds()
-	local nextHit = nil
-	local nearby = 0
-	local onSelf = false
-	for unitId, hitTime in pairs(CombatAlerts.ka.meteor.units) do
-		if (currentTime > hitTime + 100) then
-			CombatAlerts.ka.meteor.units[unitId] = nil
-		else
-			if (not nextHit or nextHit > hitTime) then
-				nextHit = hitTime
-			end
-			if (unitId == CombatAlerts.ka.meteor.selfId) then
-				onSelf = true
-				nearby = nearby + 1
-			elseif (CombatAlerts.DistanceCheck(unitId, 5.5)) then
-				nearby = nearby + 1
-			end
-		end
-	end
-
-	if (nextHit) then
-		local params = CombatAlerts.ka.meteor.params
-
-		local color = 0xDDFFDDFF
-		if (nearby == 1) then
-			color = 0xFFAADDFF
-		elseif (nearby > 1) then
-			color = 0xFF0000FF
-		end
-
-		CombatAlerts.ModifyBanner(
-			CombatAlerts.ka.meteor.bannerId,
-			nil,
-			LCA.GetAbilityName(params.id) .. ((onSelf) and " (You)" or " (Others)"),
-			(onSelf) and params.colorSelf or params.colorOthers,
-			1 - ((nextHit - currentTime) / CombatAlerts.ka.meteor.duration),
-			nearby,
-			color,
-			true
-		)
-	else
-		CombatAlerts.DisableBanner(CombatAlerts.ka.meteor.bannerId)
-		CombatAlerts.ka.meteor = { units = { } }
-	end
 end
 
 CombatAlerts.ToggleUIFragment = LCA.ToggleUIFragment

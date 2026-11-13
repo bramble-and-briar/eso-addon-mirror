@@ -6,8 +6,8 @@
 
 ## Title: Dungeon Scores |c88CCFFBeta|r
 ## APIVersion: 101051
-## Version: 0.5.37
-## AddOnVersion: 537
+## Version: 0.5.38
+## AddOnVersion: 538
 ## Author: @thepandalore
 ## Description: Requires LibAddonMenu-2.0 r43 or newer. AI-assisted development reviewed and maintained by @thepandalore. Veteran-dungeon scoring with automatic first-combat timing, peak-party divisions and bounded smaller-party challenge scoring, optional global and guild-event record publication, completed-run summaries, reload-persistent active runs, multilingual UI, authoritative completion recovery, language-independent boss/HM evidence, route-aware integrity gating, proportional difficulty coefficients, and compact BETA support snapshots.
 ## SavedVariables: DungeonScoresSavedVariables

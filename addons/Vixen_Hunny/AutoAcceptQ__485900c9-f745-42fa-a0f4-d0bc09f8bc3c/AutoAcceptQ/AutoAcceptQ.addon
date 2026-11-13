@@ -1,0 +1,11 @@
+## Title: AutoAcceptQ
+## Author: Vixen Hunny
+## Version: 1.3.0
+## AddOnVersion: 4
+## APIVersion: 101048 101049
+## Description: Automatically accepts ready checks for Dungeons, Battlegrounds and Campaigns (Cyrodiil, Imperial City, Jerall Pass). Configure in Settings > Addons.
+## SavedVariables: AutoAcceptQ_SV
+## DependsOn: LibAddonMenu-2.0>=32
+
+AutoAcceptQ.lua
+Settings.lua

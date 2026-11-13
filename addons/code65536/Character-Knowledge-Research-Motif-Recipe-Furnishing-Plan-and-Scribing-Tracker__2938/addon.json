@@ -8,6 +8,10 @@
   "category_id": "18",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -74,7 +78,7 @@
     "CharacterKnowledge"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2938/",
-  "fingerprint": "59f777a8859b6630e6ca1827f30886ff902809bd37fed4e8145428d2462996a3",
+  "fingerprint": "ca9cb75b449ee243e02ee5501bcd1468896f9ceb6cc06ea4ecdc36e0f9898178",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15692.png",
     "https://cdn-eso.mmoui.com/preview/pvw13225.png",
@@ -93,11 +97,11 @@
   "source_id": "2938",
   "source_url": "https://www.esoui.com/downloads/info2938-CharacterKnowledgeResearchMotifRecipeFurnishingPlanandScribingTracker.html",
   "stats": {
-    "downloads": 816309,
-    "favorites": 479,
-    "monthly_downloads": 15812
+    "downloads": 831165,
+    "favorites": 483,
+    "monthly_downloads": 14429
   },
   "title": "Character Knowledge (Research, Motif, Recipe, Furnishing Plan and Scribing Tracker)",
-  "updated_at": 1792031276000,
-  "version": "3.1.4"
+  "updated_at": 1794535130000,
+  "version": "3.1.5"
 }

@@ -291,7 +291,7 @@ do
 
 		-- Positioning
 
-		local x, y, z
+		local x, y, z, _
 
 		if (type(p.pos) == "table") then
 			x, y, z = unpack(p.pos)

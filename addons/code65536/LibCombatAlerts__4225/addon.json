@@ -8,6 +8,10 @@
   "category_id": "53",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -38,7 +42,7 @@
     "LibCombatAlerts"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4225/",
-  "fingerprint": "438352ac45e6aba22acf63def270e233e719b75c29847d100f62c01cb31db7ee",
+  "fingerprint": "9b2c92df8d3abfc38941690c57cff0bca3f18a771ad7a09c0036a6e92315124e",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -46,11 +50,11 @@
   "source_id": "4225",
   "source_url": "https://www.esoui.com/downloads/info4225-LibCombatAlerts.html",
   "stats": {
-    "downloads": 70539,
-    "favorites": 25,
-    "monthly_downloads": 9106
+    "downloads": 74206,
+    "favorites": 26,
+    "monthly_downloads": 5288
   },
   "title": "LibCombatAlerts",
-  "updated_at": 1792572731000,
-  "version": "0.8.6"
+  "updated_at": 1794535257000,
+  "version": "0.9.0"
 }

@@ -112,11 +112,10 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 		CA1.Alert(GetString(SI_LCA_INCOMING), LCA.GetAbilityName(abilityId), 0xFFCC33FF, SOUNDS.CHAMPION_POINTS_COMMITTED, 2000)
 	elseif (result == ACTION_RESULT_BEGIN and abilityId == DATA.verge.boss) then
 		local sound = SOUNDS.DUEL_START
-		local unitTag, name = LCA.IdentifyGroupUnitIdWithRole(targetUnitId)
 		if (LCA.isTank) then sound = nil end
 		if (targetType == COMBAT_UNIT_TYPE_PLAYER) then
 			CA1.Alert(nil, zo_strformat(SI_LCA_TARGET_YOU, LCA.GetAbilityName(DATA.verge.nameId)), 0xCC3399FF, sound, 1000)
-		elseif (unitTag and LCA.GetDistance("player", unitTag) <= 5) then
+		elseif (LCA.IsUnitIdWithinDistance(targetUnitId, 5)) then
 			CA1.Alert(nil, zo_strformat(SI_LCA_TARGET_OTHERS, LCA.GetAbilityName(DATA.verge.nameId)), 0xCC3399FF, sound, 1000)
 		end
 	elseif (result == ACTION_RESULT_EFFECT_GAINED_DURATION and abilityId == DATA.verge.shade) then

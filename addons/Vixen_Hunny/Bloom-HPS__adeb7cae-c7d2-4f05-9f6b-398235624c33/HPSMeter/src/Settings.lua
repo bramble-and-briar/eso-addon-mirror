@@ -48,7 +48,7 @@ function Settings.Create()
     if not LAM or not LAM.RegisterAddonPanel then return end
 
     local panelName = M.name .. "Panel"
-    LAM:RegisterAddonPanel(panelName, {
+    local panel = LAM:RegisterAddonPanel(panelName, {
         type = "panel",
         name = M.title,
         displayName = string.format("|t28:28:%s|t |cffb3d1%s|r |t28:28:%s|t",
@@ -59,6 +59,15 @@ function Settings.Create()
         registerForDefaults = true,
     })
 
+    -- keep the meter visible on its own settings page so position / scale
+    -- changes can be seen, even with "Hide in Menus" on
+    CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(opened)
+        if opened == panel then M.UI.SetPreview(true) end
+    end)
+    CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", function(closed)
+        if closed == panel then M.UI.SetPreview(false) end
+    end)
+
     LAM:RegisterOptionControls(panelName, {
         { type = "header", name = "Display" },
         Checkbox("Show Meter", "showLabel"),
@@ -66,6 +75,17 @@ function Settings.Create()
         Slider("Position Y", "labelY", 0, 2000, 1),
         Slider("Scale", "scale", 0.1, 10, 0.05),
         Checkbox("Show Title", "showTitle"),
+        {
+            type = "checkbox", name = "Hide in Menus",
+            tooltip = "Only show the meter on the normal HUD. It hides while the inventory, "
+                .. "map, settings or any other menu is open.",
+            getFunc = function() return M.saved.hideInMenus end,
+            setFunc = function(value)
+                M.saved.hideInMenus = value
+                M.UI.ApplySceneVisibility()
+            end,
+            default = M.defaults.hideInMenus,
+        },
 
         { type = "header", name = "Flowers" },
         Checkbox("Show Flowers & Sparkles", "showFlowers"),

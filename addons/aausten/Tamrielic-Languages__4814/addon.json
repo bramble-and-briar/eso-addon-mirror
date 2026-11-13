@@ -8,6 +8,10 @@
   "category_id": "114",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -22,7 +26,7 @@
     "TamrielicTongues"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4814/",
-  "fingerprint": "433b91c85b73a50199d135f5c0bc8a3f7c289a408f85b289fad6dbf71a4ac3b1",
+  "fingerprint": "8aa71225de1d6b88b5c38a22dabf7a87f3c9e01dda34a1a5451318509e87be1f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17334.png"
   ],
@@ -32,11 +36,11 @@
   "source_id": "4814",
   "source_url": "https://www.esoui.com/downloads/info4814-TamrielicLanguages.html",
   "stats": {
-    "downloads": 37,
-    "favorites": 0,
-    "monthly_downloads": 35
+    "downloads": 129,
+    "favorites": 1,
+    "monthly_downloads": 46
   },
   "title": "Tamrielic Languages",
-  "updated_at": 1788915336000,
-  "version": "1.5.0"
+  "updated_at": 1794516001000,
+  "version": "2.0.1"
 }

@@ -1,5 +1,5 @@
 local NAME = "LibCodesCommonCode"
-local VERSION = 39
+local VERSION = 40
 
 if (type(_G[NAME]) == "table" and type(_G[NAME].version) == "number" and _G[NAME].version >= VERSION) then return end
 
@@ -8,7 +8,7 @@ _G[NAME] = Lib
 
 
 --------------------------------------------------------------------------------
--- Color conversions
+-- Color functions
 --------------------------------------------------------------------------------
 
 do
@@ -75,6 +75,33 @@ do
 		local h, s, l = ConvertRGBToHSL(r, g, b)
 		return h, s, l, a
 	end
+
+	local hslCache
+	function Lib.GetGradientRGBA( rgbaStart, rgbaEnd, ratio, reverseColorWheelDirection )
+		hslCache = hslCache or { }
+		local s = hslCache[rgbaStart] or { Lib.Int32ToHSLA(rgbaStart) }
+		local e = hslCache[rgbaEnd] or { Lib.Int32ToHSLA(rgbaEnd) }
+		hslCache[rgbaStart] = s
+		hslCache[rgbaEnd] = e
+
+		local ehue = e[1]
+		if (reverseColorWheelDirection) then
+			ehue = ehue + (ehue < s[1] and 1 or -1)
+		end
+
+		local er = zo_clamp(ratio, 0, 1)
+		local sr = 1 - er
+		return Lib.HSLToRGB(
+			s[1] * sr + ehue * er,
+			s[2] * sr + e[2] * er,
+			s[3] * sr + e[3] * er,
+			s[4] * sr + e[4] * er
+		)
+	end
+
+	function Lib.GetGradientInt32( ... )
+		return Lib.RGBAToInt32(Lib.GetGradientRGBA(...))
+	end
 end
 
 
@@ -139,8 +166,7 @@ do
 	end
 
 	function Lib.Decode( encoded )
-		local result = Lib.ReadAndDecode(encoded, 1, zo_strlen(encoded))
-		return result
+		return (Lib.ReadAndDecode(encoded, 1, zo_strlen(encoded)))
 	end
 
 	function Lib.ReadAndDecode( encoded, pos, bytes )
@@ -179,8 +205,7 @@ do
 				index = index % itemsPerLine
 			end
 			if (type(data) == "string") then
-				local result = Lib.ReadAndDecode(data, index * bytesPerItem + 1, bytesPerItem)
-				return result
+				return (Lib.ReadAndDecode(data, index * bytesPerItem + 1, bytesPerItem))
 			end
 		end
 		return 0
@@ -459,14 +484,6 @@ function Lib.GetSortedKeys( tbl, first, compare )
 	return keys
 end
 
-function Lib.CountTable( tbl )
-	local count = 0
-	for _ in pairs(tbl) do
-		count = count + 1
-	end
-	return count
-end
-
 function Lib.ProcessNumericTable( tbl, func, ... )
 	local index = 0
 	local prev = 0
@@ -512,6 +529,12 @@ function Lib.ConcatTables( dest, src )
 	return dest
 end
 
+function Lib.PrepareScratchTable( tbl )
+	if (not tbl) then return { } end
+	ZO_ClearTable(tbl)
+	return tbl
+end
+
 function Lib.SetupOnDemandDataTable( dataTable, dataFunctions )
 	setmetatable(dataTable, { __index = function( tbl, key )
 		local func = dataFunctions[key]
@@ -545,7 +568,7 @@ end
 
 -- Are two strings identical, ignoring case and formatting flags?
 function Lib.MatchStrings( a, b )
-	return zo_strformat("<<z:1>>", a) == zo_strformat("<<z:1>>", b)
+	return LocalizeString("<<z:1>>", a) == LocalizeString("<<z:1>>", b)
 end
 
 function Lib.ReplaceSubString( origString, pos, bytes, newSubString )
@@ -654,18 +677,22 @@ function Lib.GetAddOnVersion( name )
 	return nil
 end
 
-function Lib.FormatVersion( version )
+do
 	local fields = { }
-	if (type(version) == "number") then
-		for i, base in ipairs({ 10, 100, 100, 10000 }) do
-			fields[5 - i] = version % base
-			version = zo_floor(version / base)
+	function Lib.FormatVersion( version )
+		ZO_ClearTable(fields)
+		if (type(version) == "number") then
+			for i = 1, 4 do
+				local base = (i > 1) and 100 or 10
+				fields[5 - i] = version % base
+				version = zo_floor(version / base)
+			end
+			if (fields[4] == 0) then
+				fields[4] = nil
+			end
 		end
-		if (fields[4] == 0) then
-			fields[4] = nil
-		end
+		return table.concat(fields, ".")
 	end
-	return table.concat(fields, ".")
 end
 
 
@@ -701,3 +728,4 @@ end
 --------------------------------------------------------------------------------
 
 Lib.Clamp = zo_clamp
+Lib.CountTable = NonContiguousCount

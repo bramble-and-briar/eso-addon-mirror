@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/smj2k/Neofox-Icons-for-OdySupportIcons__4111",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "smj2k",
+  "canonical_id": "esoui:4111",
+  "category_id": "95",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    }
+  ],
+  "content_id": "esoui:4111",
+  "deleted": false,
+  "directories": [
+    "NeofoxSupportIcons"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4111/",
+  "fingerprint": "47cab618013ab2e30be913ba2fda73b141dcc572e27a72c63ce8da3ca908183a",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw14048.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4111",
+  "source_url": "https://www.esoui.com/downloads/info4111-NeofoxIconsforOdySupportIcons.html",
+  "stats": {
+    "downloads": 490,
+    "favorites": 0,
+    "monthly_downloads": 14
+  },
+  "title": "Neofox Icons for OdySupportIcons",
+  "updated_at": 1749191602000,
+  "version": "1.0.1"
+}

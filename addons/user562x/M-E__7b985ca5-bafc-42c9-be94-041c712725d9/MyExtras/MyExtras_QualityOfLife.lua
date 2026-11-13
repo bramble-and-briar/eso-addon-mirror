@@ -13,6 +13,7 @@ local RIDING_NAME    = EVENT_NAME .. "_Riding"
 local CLAIM_WAIT_MS  = 5000
 local REWARD_WAIT_MS = 30000
 local CLAIM_DELAY_MS = 250
+local CLAIM_CHECK_MS = 1500
 local RIDING_MAX_MS  = 3600000
 local ERROR_KEEP     = 20
 local ERROR_FEATURE  = "Lua Errors"
@@ -298,14 +299,6 @@ end
 
 local function Announce(text)
     ME:Chat(ME:ChatPrefix() .. text)
-    if not (CENTER_SCREEN_ANNOUNCE and CENTER_SCREEN_ANNOUNCE.CreateMessageParams) then return end
-    local params = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT, SOUNDS.NONE)
-    if not params then return end
-    params:SetText(text)
-    if CENTER_SCREEN_ANNOUNCE_TYPE_DISPLAY_ANNOUNCEMENT then
-        params:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_DISPLAY_ANNOUNCEMENT)
-    end
-    CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(params)
 end
 
 function QoL:CheckRiding()
@@ -352,12 +345,24 @@ end
 --------------------------------------------------
 -- Auto Claim
 --------------------------------------------------
-local function Claim(key, waitMs, name, ...)
+local function Claim(key, waitMs, confirm, text, name, ...)
     local now = GetFrameTimeMilliseconds()
     local untilMs = claimWait[key]
     if untilMs and now < untilMs then return end
     claimWait[key] = now + waitMs
-    ME:CallGame(name, ...)
+    if not ME:CallGame(name, ...) then return end
+    zo_callLater(function()
+        if confirm() then ME:Chat(ME:ChatPrefix() .. text) end
+    end, CLAIM_CHECK_MS)
+end
+
+local function IsClaimed(flags)
+    return ZO_FlagHelpers.MaskHasFlag(flags or 0, PROMOTIONAL_EVENTS_REWARD_FLAG_CLAIMED)
+end
+
+local function CleanName(name)
+    if type(name) ~= "string" or name == "" then return nil end
+    return zo_strformat("<<1>>", name)
 end
 
 local function OffersChoice(rewardId, depth)
@@ -376,7 +381,7 @@ end
 local function Ready(threshold, progress, flags, rewardId)
     if type(rewardId) ~= "number" or rewardId == 0 then return false end
     if (threshold or 0) <= 0 or (progress or 0) < threshold then return false end
-    if ZO_FlagHelpers.MaskHasFlag(flags or 0, PROMOTIONAL_EVENTS_REWARD_FLAG_CLAIMED) then return false end
+    if IsClaimed(flags) then return false end
     return not OffersChoice(rewardId)
 end
 
@@ -389,7 +394,10 @@ local function ClaimTomePoints()
             local claimed = GetTimedActivityNumTimesClaimed(index) or 0
             if maxProgress > 0 and (GetTimedActivityProgress(index) or 0) >= maxProgress and claimed < total then
                 local id = GetTimedActivityId and GetTimedActivityId(index) or index
-                Claim("tome" .. tostring(id), CLAIM_WAIT_MS, "ClaimTimedActivityReward", index)
+                local text = "Claimed " .. (CleanName(GetTimedActivityName(index)) or "a Tamriel Tomes activity") .. "."
+                Claim("tome" .. tostring(id), CLAIM_WAIT_MS, function()
+                    return (GetTimedActivityNumTimesClaimed(index) or 0) > claimed
+                end, text, "ClaimTimedActivityReward", index)
             end
         end
     end
@@ -400,10 +408,14 @@ local function ClaimCampaign(campaignKey)
     local name = Id64ToString and Id64ToString(campaignKey) or tostring(campaignKey)
 
     for activityIndex = 1, GetNumPromotionalEventCampaignActivities(campaignKey) do
-        local _, _, _, threshold, rewardId = GetPromotionalEventCampaignActivityInfo(campaignKey, activityIndex)
+        local _, activityName, _, threshold, rewardId = GetPromotionalEventCampaignActivityInfo(campaignKey, activityIndex)
         local progress, flags = GetPromotionalEventCampaignActivityProgress(campaignKey, activityIndex)
         if Ready(threshold, progress, flags, rewardId) then
-            Claim(name .. "a" .. activityIndex, CLAIM_WAIT_MS, "TryClaimPromotionalEventActivityReward", campaignKey, activityIndex)
+            local text = "Claimed " .. (CleanName(activityName) or "an activity") .. " from Golden Pursuits."
+            Claim(name .. "a" .. activityIndex, CLAIM_WAIT_MS, function()
+                local _, nowFlags = GetPromotionalEventCampaignActivityProgress(campaignKey, activityIndex)
+                return IsClaimed(nowFlags)
+            end, text, "TryClaimPromotionalEventActivityReward", campaignKey, activityIndex)
         end
     end
 
@@ -412,13 +424,18 @@ local function ClaimCampaign(campaignKey)
         local threshold, rewardId = GetPromotionalEventCampaignMilestoneInfo(campaignKey, milestoneIndex)
         local flags = GetPromotionalEventCampaignMilestoneRewardFlags(campaignKey, milestoneIndex)
         if Ready(threshold, completed, flags, rewardId) then
-            Claim(name .. "m" .. milestoneIndex, CLAIM_WAIT_MS, "TryClaimPromotionalEventMilestoneReward", campaignKey, milestoneIndex)
+            Claim(name .. "m" .. milestoneIndex, CLAIM_WAIT_MS, function()
+                return IsClaimed(GetPromotionalEventCampaignMilestoneRewardFlags(campaignKey, milestoneIndex))
+            end, "Claimed a Golden Pursuits milestone reward.", "TryClaimPromotionalEventMilestoneReward", campaignKey, milestoneIndex)
         end
     end
 
     local _, _, _, threshold, rewardId = GetPromotionalEventCampaignInfo(campaignKey)
     if Ready(threshold, completed, capstoneFlags, rewardId) then
-        Claim(name .. "c", CLAIM_WAIT_MS, "TryClaimPromotionalEventCapstoneReward", campaignKey)
+        Claim(name .. "c", CLAIM_WAIT_MS, function()
+            local _, nowFlags = GetPromotionalEventCampaignProgress(campaignKey)
+            return IsClaimed(nowFlags)
+        end, "Claimed the final Golden Pursuits reward.", "TryClaimPromotionalEventCapstoneReward", campaignKey)
     end
 end
 
@@ -437,7 +454,9 @@ local function ClaimVeterancy()
     if not trackId or trackId == 0 then return end
     local trackIndex = GetReferenceTrackIndex(trackType, trackId)
     if not trackIndex or not HasUnclaimedRewardTrackRewards(trackType, trackIndex) then return end
-    Claim("veterancy", REWARD_WAIT_MS, "ClaimAllRewardTrackRewards", trackType, trackIndex)
+    Claim("veterancy", REWARD_WAIT_MS, function()
+        return not HasUnclaimedRewardTrackRewards(trackType, trackIndex)
+    end, "Claimed your PvP Veterancy rewards.", "ClaimAllRewardTrackRewards", trackType, trackIndex)
 end
 
 function QoL:ClaimAll()

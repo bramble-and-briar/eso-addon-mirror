@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/PinkBanther/PinkB-s-QuickChat__e71bb4da-eb0c-4506-a479-9a4260b65fd9",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "PinkBanther",
+  "canonical_id": "bethesda:e71bb4da-eb0c-4506-a479-9a4260b65fd9",
+  "content_id": "e71bb4da-eb0c-4506-a479-9a4260b65fd9",
+  "deleted": false,
+  "fingerprint": "8cf3c9c055f7d258c1e035dabd53dc10d2ccb067c2b522212f7649db2ca89df7",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "e71bb4da-eb0c-4506-a479-9a4260b65fd9",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/e71bb4da-eb0c-4506-a479-9a4260b65fd9",
+  "title": "PinkB's QuickChat"
+}

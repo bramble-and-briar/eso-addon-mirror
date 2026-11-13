@@ -8,6 +8,10 @@
   "category_id": "155",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -22,7 +26,7 @@
     "ZoneSets"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4788/",
-  "fingerprint": "c07e43275e09de91329d160fc7312cf0606a830c598eabcd49ac80b6a57e23b1",
+  "fingerprint": "08312a1672fa924ae7faa53941783ac5f8a10329cbfad09e56398ca0528dbc71",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17084.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17085.jpg",
@@ -35,9 +39,9 @@
   "source_id": "4788",
   "source_url": "https://www.esoui.com/downloads/info4788-ZoneSets.html",
   "stats": {
-    "downloads": 186,
+    "downloads": 211,
     "favorites": 0,
-    "monthly_downloads": 28
+    "monthly_downloads": 50
   },
   "title": "ZoneSets",
   "updated_at": 1794486872000,

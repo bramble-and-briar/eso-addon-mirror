@@ -44,7 +44,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tamriel Trade Centre jpPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marify/Tamriel-Trade-Centre-jpPatch__2193) | Marify | PC / Mac | 0.11.0 |
 | [Tamriel Trade Centre Simple Price](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kriax/Tamriel-Trade-Centre-Simple-Price__3078) | _Kriax | PC / Mac | 1.1.3 |
 | [TamrielGuard - disable accidental stealing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/TamrielGuard---disable-accidental-stealing__2780) | Schrodi | PC / Mac | 1.0 |
-| [Tamrielic Languages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aausten/Tamrielic-Languages__4814) | aausten | PC / Mac | 1.5.0 |
+| [Tamrielic Languages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aausten/Tamrielic-Languages__4814) | aausten | PC / Mac | 2.0.1 |
 | [TamrielTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NWDD/TamrielTime__232) | NWDD | PC / Mac | 0.9.9.3 |
 | [TamrielTradeCentre-KR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ricci-Curvature/TamrielTradeCentre-KR__4505) | Ricci Curvature | PC / Mac | 1.0.0 |
 | [Tank](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Criscal/Tank__1192) | Criscal | PC / Mac | 1.1.42 |

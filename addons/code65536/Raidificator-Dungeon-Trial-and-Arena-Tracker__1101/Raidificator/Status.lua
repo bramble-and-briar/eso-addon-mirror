@@ -92,6 +92,7 @@ function RCR.InitializeStatus( )
 	RCR.statusFragment = ZO_SimpleSceneFragment:New(Frame)
 
 	LCCC.MonitorZoneChanges(RCR.name, RCR.OnNewZone)
+	EVENT_MANAGER:RegisterForEvent(RCR.name, EVENT_PLAYER_ACTIVATED, function() zo_callLater(RCR.ZoneSanityCheck, 1500) end)
 
 	-- Dungeons
 	EVENT_MANAGER:RegisterForEvent(RCR.name, EVENT_ACTIVITY_FINDER_STATUS_UPDATE, RCR.OnActivityFinderStatusUpdate)
@@ -237,6 +238,16 @@ function RCR.OnNewZoneDelayed( zoneId )
 	end
 	RCR.vars.zoneId = zoneId
 	RCR.HandleSpecialDungeons()
+end
+
+function RCR.ZoneSanityCheck( )
+	-- Handle edge case where someone in instance A ports directly to
+	-- instance B (avoiding rezone event) after instance B has started
+	if (RCR.statusMode ~= RCR.MODE_TRIAL and IsRaidInProgress()) then
+		RCR.SwitchMode(RCR.MODE_TRIAL)
+	elseif (RCR.statusMode ~= RCR.MODE_ENDLESS and IsEndlessDungeonStarted()) then
+		RCR.SwitchMode(RCR.MODE_ENDLESS)
+	end
 end
 
 function RCR.Poll( )

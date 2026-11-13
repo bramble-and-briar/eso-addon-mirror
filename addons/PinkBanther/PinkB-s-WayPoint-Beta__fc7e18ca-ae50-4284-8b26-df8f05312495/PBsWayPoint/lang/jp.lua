@@ -33,6 +33,7 @@ local jp = {
 	testLine = "テスト用の目印",
 	elsewhere = "次の経由地は別のエリアです",
 	noPosition = "位置を取得できません",
+	noPositionOpenMap = "マップを一度開くと位置を取得できます",
 
 	bannerLine = "%s を読み込みました。/pbwp status で読み取り状況を確認できます。",
 	help = "/pbwp status | why | share | check | list | skip | undo | remove 2 | clear | test | on | off | reset | retry\n/pbwp add on | arrow on | trail on | pins on | sound on | chat on | preview on | chord on | send on | receive on\n/pbwp radius 20 | size 80 | opacity 90 | x 0 | y 130 | length 40",

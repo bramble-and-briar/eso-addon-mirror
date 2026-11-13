@@ -11,7 +11,7 @@ local GUIDE_THICKNESS = 2
 local GUIDE_COLOR_NORMAL = 0xFFFFFF44
 local GUIDE_COLOR_HILITE = 0xFFFFFFFF
 local CENTER_SENSITIVITY = 12
-local CENTER_THRESHOLD = 1000 -- 1s
+local CENTER_THRESHOLD = 2000 -- 2s
 local GAMEPAD_DEFAULT_TIMEOUT = 3000 -- 3s
 
 local DEFAULT_OPTIONS = {
@@ -129,19 +129,23 @@ local function SnapPosition( pos, snap )
 	return pos
 end
 
-local function PositionToAnchorParameters( pos, obj )
-	obj = obj or { }
+local PositionToAnchorParameters
+do
 	local offsets = { }
+	PositionToAnchorParameters = function( pos, obj )
+		obj = obj or { }
+		ZO_ClearTable(offsets)
 
-	for name, data in pairs(POSITION_NAMES) do
-		if (type(pos[name]) == "number") then
-			obj[data[1]] = data[2]
-			offsets[data[1]] = pos[name]
+		for name, data in pairs(POSITION_NAMES) do
+			if (type(pos[name]) == "number") then
+				obj[data[1]] = data[2]
+				offsets[data[1]] = pos[name]
+			end
 		end
-	end
 
-	local anchorPoint = ANCHOR_POINTS[obj.X][obj.Y]
-	return anchorPoint, GuiRoot, anchorPoint, offsets.X or 0, offsets.Y or 0
+		local anchorPoint = ANCHOR_POINTS[obj.X][obj.Y]
+		return anchorPoint, GuiRoot, anchorPoint, offsets.X or 0, offsets.Y or 0
+	end
 end
 
 
@@ -177,15 +181,16 @@ function LCA_MoveableControl:New( control, options )
 end
 
 function LCA_MoveableControl:UpdatePosition( pos )
-	self.posCache = pos
+	self.pos = pos
 	self.control:ClearAnchors()
 	self.control:SetAnchor(PositionToAnchorParameters(pos, self))
 end
 
 function LCA_MoveableControl:GetPosition( bypassCache )
-	if (bypassCache or not self.posCache) then
+	if (bypassCache or not self.pos) then
 		local control = self.control
-		local pos = { }
+		local pos = self.pos or { }
+		ZO_ClearTable(pos)
 
 		if (self.X == "C") then
 			pos.center = control:GetCenter() - GuiRoot:GetCenter()
@@ -203,10 +208,10 @@ function LCA_MoveableControl:GetPosition( bypassCache )
 			pos.top = control:GetTop()
 		end
 
-		self.posCache = pos
+		self.pos = pos
 	end
 
-	return self.posCache
+	return self.pos
 end
 
 function LCA_MoveableControl:GetLeftTopPosition( )
@@ -247,24 +252,24 @@ function LCA_MoveableControl:FireCallback( eventCode, ... )
 end
 
 function LCA_MoveableControl:ToggleLines( enable )
-	if (enable and not self.lines) then
+	local lines = self.lines or { }
+	self.lines = lines
+
+	if (enable and not lines[1]) then
 		local opt = self.options
-		local lines = {
-			LinePool.Add(self.control, opt.color, opt.size, true),
-			LinePool.Add(self.control, opt.color, opt.size, false),
-			LinePool.Add(self.control, GUIDE_COLOR_NORMAL, GUIDE_THICKNESS, true, true),
-			LinePool.Add(self.control, GUIDE_COLOR_NORMAL, GUIDE_THICKNESS, false, true),
-		}
+		lines[1] = LinePool.Add(self.control, opt.color, opt.size, true)
+		lines[2] = LinePool.Add(self.control, opt.color, opt.size, false)
+		lines[3] = LinePool.Add(self.control, GUIDE_COLOR_NORMAL, GUIDE_THICKNESS, true, true)
+		lines[4] = LinePool.Add(self.control, GUIDE_COLOR_NORMAL, GUIDE_THICKNESS, false, true)
 		self.anchorX = lines[1].control
 		self.anchorY = lines[2].control
 		self.guideX = lines[3].control
 		self.guideY = lines[4].control
-		self.lines = lines
-	elseif (not enable and self.lines) then
-		for _, line in ipairs(self.lines) do
+	elseif (not enable and lines[1]) then
+		for _, line in ipairs(lines) do
 			LinePool.Remove(line)
 		end
-		self.lines = nil
+		ZO_ClearTable(lines)
 	end
 end
 
@@ -281,6 +286,8 @@ end
 function LCA_MoveableControl:ToggleMovement( enable )
 	if (enable and not self.activeMovement) then
 		self.activeMovement = true
+		self.timeX = nil
+		self.timeY = nil
 		EVENT_MANAGER:RegisterForUpdate(self.ID, POLLING_INTERVAL, function() self:MovementPoll() end)
 		self:ToggleLines(true)
 		self:MovementPoll()

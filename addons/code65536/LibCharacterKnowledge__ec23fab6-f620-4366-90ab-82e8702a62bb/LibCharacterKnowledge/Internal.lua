@@ -239,9 +239,9 @@ Internal.KnowFunctions = {
 }
 
 Internal.CategoryLabels = {
-	[Internal.CATEGORY_RECIPE] = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_RECIPE)),
-	[Internal.CATEGORY_PLAN] = zo_strformat("<<1>>", GetString("SI_PROVISIONERSPECIALINGREDIENTTYPE_TRADINGHOUSERECIPECATEGORY", PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING)),
-	[Internal.CATEGORY_MOTIF] = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_RACIAL_STYLE_MOTIF)),
+	[Internal.CATEGORY_RECIPE] = LocalizeString("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_RECIPE)),
+	[Internal.CATEGORY_PLAN] = LocalizeString("<<1>>", GetString("SI_PROVISIONERSPECIALINGREDIENTTYPE_TRADINGHOUSERECIPECATEGORY", PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING)),
+	[Internal.CATEGORY_MOTIF] = LocalizeString("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_RACIAL_STYLE_MOTIF)),
 	[Internal.CATEGORY_SCRIBING] = GetString(SI_SCRIBING_TITLE),
 	[Internal.CATEGORY_RESEARCH] = GetString(SI_SMITHING_TAB_RESEARCH),
 }
@@ -900,7 +900,7 @@ function Internal.InitializeCharacterData( )
 				charactersLocal[id] = { }
 			end
 			charactersLocal[id].account = Internal.userId
-			charactersLocal[id].name = zo_strformat("<<1>>", name)
+			charactersLocal[id].name = LocalizeString("<<1>>", name)
 			exists[id] = true
 		end
 	end

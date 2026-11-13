@@ -18,7 +18,7 @@
     "FancyActionBar+"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3938/",
-  "fingerprint": "40aa13d908c5e6610ca656f9f601f367907faa38cb6a50a47577c49b60ac0656",
+  "fingerprint": "80243723e88802803f1c6c71c76ad56d30030e40be2539daa5d489209cd3a2dc",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13326.png",
     "https://cdn-eso.mmoui.com/preview/pvw13327.png",
@@ -30,11 +30,11 @@
   "source_id": "3938",
   "source_url": "https://www.esoui.com/downloads/info3938-FancyActionBar.html",
   "stats": {
-    "downloads": 194259,
-    "favorites": 93,
-    "monthly_downloads": 4943
+    "downloads": 201033,
+    "favorites": 98,
+    "monthly_downloads": 2766
   },
   "title": "Fancy Action Bar+",
-  "updated_at": 1790800702000,
-  "version": "2.19.8"
+  "updated_at": 1794555826000,
+  "version": "2.19.9"
 }

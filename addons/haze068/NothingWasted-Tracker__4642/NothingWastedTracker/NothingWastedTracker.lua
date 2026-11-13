@@ -3,7 +3,7 @@ local NWT = NothingWastedTracker
 
 NWT.name = "NothingWastedTracker"
 NWT.displayName = "Nothing Wasted Tracker"
-NWT.version = "2.0"
+NWT.version = "2.1"
 
 local EM = EVENT_MANAGER
 local AM = ANIMATION_MANAGER
@@ -68,6 +68,9 @@ local defaults = {
     posY = 200,
 
     scale = 72,
+    iconSource = "buff",
+    iconPath = "",
+    dimWhenZero = true,
     showBorder = true,
     showPips = true,
     showBar = true,
@@ -186,6 +189,54 @@ local function ScanPlayerBuffs()
         end
     end
     return 0, 0
+end
+
+-- ------------------------------------------------------------------
+-- icon: buff-icon, icon der passiven faehigkeit oder eigener pfad
+-- ------------------------------------------------------------------
+
+local FALLBACK_ICON = "EsoUI/Art/Icons/icon_missing.dds"
+local passiveIcon
+
+-- passive "Nothing Wasted" im fertigkeitenbaum suchen. der name ist
+-- lokalisiert, deshalb wird gegen den namen des buffs verglichen.
+local function FindPassiveIcon()
+    if passiveIcon ~= nil then return passiveIcon or nil end
+    local wanted = zo_strformat(SI_ABILITY_NAME, GetAbilityName(ABILITY_IDS[1]))
+    local buffIcon = GetAbilityIcon(ABILITY_IDS[1])
+    for skillType = 1, GetNumSkillTypes() do
+        for line = 1, GetNumSkillLines(skillType) do
+            for i = 1, GetNumSkillAbilities(skillType, line) do
+                local name, icon, _, passive = GetSkillAbilityInfo(skillType, line, i)
+                if passive and icon and icon ~= "" and icon ~= buffIcon
+                    and zo_strformat(SI_ABILITY_NAME, name) == wanted then
+                    passiveIcon = icon
+                    return icon
+                end
+            end
+        end
+    end
+    -- nichts gefunden, beim naechsten aufruf nicht nochmal alles durchsuchen
+    passiveIcon = false
+    return nil
+end
+
+local function ResolveIcon()
+    local sv = NWT.sv
+    local icon
+    if sv.iconSource == "custom" and sv.iconPath ~= "" then
+        icon = sv.iconPath
+    elseif sv.iconSource == "passive" then
+        icon = FindPassiveIcon()
+    end
+    if not icon or icon == "" then
+        icon = GetAbilityIcon(ABILITY_IDS[1])
+    end
+    return (icon and icon ~= "") and icon or FALLBACK_ICON
+end
+
+local function ApplyIcon()
+    iconTex:SetTexture(ResolveIcon())
 end
 
 -- ------------------------------------------------------------------
@@ -587,8 +638,9 @@ local function Show(stacks, endMs, durMs, animate)
     frameTex:SetHidden(not sv.showBorder)
     SetColor(frameTex, col)
 
-    iconTex:SetDesaturation(stacks > 0 and 0 or 1)
-    iconTex:SetAlpha(stacks > 0 and 1 or 0.55)
+    local dim = stacks <= 0 and sv.dimWhenZero
+    iconTex:SetDesaturation(dim and 1 or 0)
+    iconTex:SetAlpha(dim and 0.55 or 1)
 
     stacksLbl:SetHidden(not sv.showStacks)
     stacksLbl:SetText(tostring(stacks))
@@ -704,6 +756,11 @@ local function OnPlayerActivated()
     -- klasse hier nochmal lesen, beim addon-laden ist der wert nicht immer gesetzt
     UpdateClass()
     inCombat = IsUnitInCombat("player")
+    -- skill-daten sind erst jetzt sicher geladen
+    if NWT.sv.iconSource == "passive" then
+        passiveIcon = nil
+        ApplyIcon()
+    end
     ForceRefresh()
 end
 
@@ -817,6 +874,41 @@ local function BuildMenu()
             type = "submenu", name = CatHeader(SI_NWT_CAT_DISPLAY, "display"),
             controls = {
                 SliderOption(SI_NWT_SIZE, "scale", 40, 200, 2, Relayout),
+                {
+                    type = "dropdown", name = GetString(SI_NWT_ICON),
+                    choices = {
+                        GetString(SI_NWT_ICON_BUFF),
+                        GetString(SI_NWT_ICON_PASSIVE),
+                        GetString(SI_NWT_ICON_CUSTOM),
+                    },
+                    choicesValues = { "buff", "passive", "custom" },
+                    tooltip = GetString(SI_NWT_ICON_TT),
+                    getFunc = function() return NWT.sv.iconSource end,
+                    setFunc = function(v)
+                        NWT.sv.iconSource = v
+                        if v == "passive" then
+                            passiveIcon = nil
+                            if not FindPassiveIcon() then
+                                Msg(GetString(SI_NWT_ICON_NOT_FOUND), CHAT.info)
+                            end
+                        end
+                        ApplyIcon()
+                    end,
+                    default = defaults.iconSource,
+                },
+                {
+                    type = "editbox", name = GetString(SI_NWT_ICON_PATH),
+                    tooltip = GetString(SI_NWT_ICON_PATH_TT),
+                    getFunc = function() return NWT.sv.iconPath end,
+                    setFunc = function(v)
+                        NWT.sv.iconPath = (v or ""):gsub("^%s+", ""):gsub("%s+$", "")
+                        ApplyIcon()
+                    end,
+                    isMultiline = false,
+                    default = defaults.iconPath,
+                    disabled = function() return NWT.sv.iconSource ~= "custom" end,
+                },
+                CheckOption(SI_NWT_DIM_ZERO, "dimWhenZero", Render),
                 CheckOption(SI_NWT_BORDER, "showBorder", Render),
                 CheckOption(SI_NWT_SHOW_PIPS, "showPips", Relayout),
                 CheckOption(SI_NWT_SHOW_BAR, "showBar", Relayout),
@@ -938,10 +1030,6 @@ local function GrabControls()
         shineTex:SetAddressMode(TEX_MODE_CLAMP)
     end
 
-    local icon = GetAbilityIcon(ABILITY_IDS[1])
-    if icon and icon ~= "" then
-        iconTex:SetTexture(icon)
-    end
 end
 
 local function OnAddOnLoaded(_, addonName)
@@ -966,6 +1054,7 @@ local function OnAddOnLoaded(_, addonName)
     HUD_UI_SCENE:AddFragment(fragment)
 
     RestorePosition()
+    ApplyIcon()
     ApplyLayout()
     ApplyColors()
     ApplyLock()

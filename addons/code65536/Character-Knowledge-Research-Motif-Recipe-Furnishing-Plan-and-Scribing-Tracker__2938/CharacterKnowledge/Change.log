@@ -1,3 +1,6 @@
+Version 3.1.5 (2026/11/12)
+* Added support for Update 52
+
 Version 3.1.4 (2026/10/14)
 * Fixed a minor problem with the calculation of the multi-character indicator in
   the research grid

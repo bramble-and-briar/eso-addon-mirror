@@ -62,6 +62,42 @@ function ZA:GetAchievementProgress(achievementId)
     return done, total
 end
 
+-- Черный список ачивок, содержащих слово "ветеран", но не являющихся ветеранским режимом
+local VET_BLACKLIST = {
+    [4062] = true, -- Ветеран Архива I
+    [4063] = true, -- Ветеран Архива II
+}
+
+-- Проверка, требует ли ачивка ветеранский режим (по названию, описанию и критериям)
+function ZA:IsVeteranAchievement(achInfo)
+    if not achInfo or VET_BLACKLIST[achInfo.id] then return false end
+    local keywords = { "ветеран", "veteran", "vétéran" }
+
+    -- 1. Сканируем название и описание (через zo_strlower для идеального учета русского регистра)
+    local fullText = zo_strlower(string.format("%s %s", achInfo.name or "", achInfo.desc or ""))
+    for _, kw in ipairs(keywords) do
+        if string.find(fullText, kw, 1, true) then
+            return true
+        end
+    end
+
+    -- 2. Страховка: сканируем условия (критерии) ачивки
+    local numCriteria = GetAchievementNumCriteria(achInfo.id) or 0
+    for i = 1, numCriteria do
+        local critDesc = GetAchievementCriterion(achInfo.id, i)
+        if critDesc and critDesc ~= "" then
+            local critText = zo_strlower(critDesc)
+            for _, kw in ipairs(keywords) do
+                if string.find(critText, kw, 1, true) then
+                    return true
+                end
+            end
+        end
+    end
+
+    return false
+end
+
 -- Получить особый тип ачивки (сначала смотрим в SavedVars, потом в ZA_Data.lua)
 function ZA:GetAchievementSpecialType(achievementId)
     if self.SavedVars and self.SavedVars.SpecialTypes and self.SavedVars.SpecialTypes[achievementId] then
@@ -492,7 +528,7 @@ function ZA:ShowZoneAchievementsWindow()
     if self.CurrentTab == "history" then
         ordered = cache
     else
-        local specialList, recentList, completedList, incompleteList = {}, {}, {}, {}
+        local specialList, vetList, recentList, completedList, incompleteList = {}, {}, {}, {}, {}
         
         for _, entry in ipairs(cache) do
             local sType = self:GetAchievementSpecialType(entry.info.id)
@@ -501,6 +537,8 @@ function ZA:ShowZoneAchievementsWindow()
 
             if sType then
                 table.insert(specialList, entry)
+            elseif self:IsVeteranAchievement(entry.info) then
+                table.insert(vetList, entry)
             elseif isRecent then
                 table.insert(recentList, entry)
             elseif entry.info and entry.info.completed then
@@ -509,6 +547,14 @@ function ZA:ShowZoneAchievementsWindow()
                 table.insert(incompleteList, entry)
             end
         end
+
+        -- Внутри ветеранского списка сначала показываем невыполненные
+        table.sort(vetList, function(a, b)
+            if a.info.completed ~= b.info.completed then
+                return not a.info.completed
+            end
+            return a.info.id < b.info.id
+        end)
 
         -- Лестница сложности: 1.ВЕТ -> 2.СПИДРАН -> 3.НЕУМИРАЙКА -> 4.ХМ (+1,+2,+3) -> 5.ТРИФЕКТА -> 6.НЕВЗГОДЫ (1..3)
         local typeWeight = { 
@@ -527,12 +573,22 @@ function ZA:ShowZoneAchievementsWindow()
             end
         end)
 
+        -- 1. Выводим ТОП-лестницу испытаний
+        if #specialList > 0 then
+            table.insert(ordered, { isDivider = true, text = L.specialHeader or "Главные испытания" })
+        end
         for _, e in ipairs(specialList) do table.insert(ordered, e) end
 
-        -- Вставляем разделитель, если есть и особые, и обычные ачивки
+        -- 2. Разделитель и блок ветеранских ачивок
+        if #vetList > 0 then
+            table.insert(ordered, { isDivider = true, text = L.vetHeader or "Ветеранский режим" })
+            for _, e in ipairs(vetList) do table.insert(ordered, e) end
+        end
+
+        -- 3. Разделитель и блок обычных/прочих ачивок
         local hasRegulars = (#recentList > 0) or (#completedList > 0) or (#incompleteList > 0)
-        if #specialList > 0 and hasRegulars then
-            table.insert(ordered, { isDivider = true })
+        if (#specialList > 0 or #vetList > 0) and hasRegulars then
+            table.insert(ordered, { isDivider = true, text = L.otherHeader or "Прочие достижения" })
         end
 
         for _, e in ipairs(recentList) do table.insert(ordered, e) end
@@ -553,7 +609,7 @@ function ZA:ShowZoneAchievementsWindow()
             divLabel:SetFont("ZoFontHeader2")
             divLabel:SetAnchor(CENTER, divRow, CENTER, 0, 0)
             divLabel:SetColor(0.8, 0.7, 0.2, 0.9)
-            divLabel:SetText(L.otherHeader)
+            divLabel:SetText(entry.text or L.otherHeader)
 
             table.insert(rows, divRow)
             table.insert(createdRows, divRow)

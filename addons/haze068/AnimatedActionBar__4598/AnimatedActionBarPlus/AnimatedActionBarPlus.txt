@@ -6,7 +6,7 @@
 ## APIVersion: 101050 101051
 ## SavedVariables: AnimatedActionBarPlusSV
 ## DependsOn: LibAddonMenu-2.0>=43
-## OptionalDependsOn: FancyActionBar+ LuiExtended Azurah AlphaGear
+## OptionalDependsOn: FancyActionBar+ LuiExtended Azurah AlphaGear FancyTitles
 
 lang/en.lua
 lang/$(language).lua

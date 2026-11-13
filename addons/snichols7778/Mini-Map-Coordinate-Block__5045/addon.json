@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/snichols7778/Mini-Map-Coordinate-Block__5045",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "snichols7778",
+  "canonical_id": "esoui:5045",
+  "category_id": "24",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    }
+  ],
+  "content_id": "esoui:5045",
+  "deleted": false,
+  "directories": [
+    "MinimapCoords"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5045/",
+  "fingerprint": "e8617e7523f3c74862b60e0ab34eb19d2ba34d0ee5c2fa60f72479749dfb4772",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18409.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5045",
+  "source_url": "https://www.esoui.com/downloads/info5045-MiniMapCoordinateBlock.html",
+  "stats": {
+    "downloads": 4,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Mini Map Coordinate Block",
+  "updated_at": 1794534140000,
+  "version": "1.03"
+}

@@ -353,6 +353,10 @@ function DataGen.ec() return {
 
 			13632, 13633, -- Dramaturge's Delirium
 			14583, -- Runegathering of the Mad God
+
+			14825, -- Ghostsea Reefborn Wolf
+			14837, -- Ghostsea Coral Crab
+			15006, -- Antiquities: A Primer
 		},
 	},
 

@@ -1,0 +1,21 @@
+## Title: Better Group Finder (Console)
+## Description: A better group finder for console and gamepad: browse and search groups with filters, pick what you're doing from descriptive activity presets, and post listings with automatically generated roles, title and description. Main Menu > Better Group Finder, R3 on the Activity Finder, or /bgf.
+## Author: Vixen Hunny
+## Version: 1.0.0
+## AddOnVersion: 100
+## APIVersion: 101049 101050
+## SavedVariables: BetterGroupFinderConsoleSV
+## OptionalDependsOn: LibAddonMenu-2.0>=40 LibHarvensAddonSettings
+
+Core/BGF_Core.lua
+Core/BGF_Activities.lua
+Core/BGF_Roles.lua
+Core/BGF_Api.lua
+Core/BGF_Commands.lua
+Core/BGF_Settings.lua
+
+Console/BGFC_Gamepad.xml
+Console/BGFC_Gamepad.lua
+Console/BGFC_Init.lua
+
+Bindings.xml

@@ -190,12 +190,39 @@ function SaleScreen:Refresh()
         return
     end
 
-    local isListing = sale.kind == TradeQR.RECORD_KIND_LISTING
-    self.titleLabel:SetText(GetString(isListing and TRADEQR_SCREEN_TITLE_LISTING or TRADEQR_SCREEN_TITLE))
+    self.titleLabel:SetText(self:GetTitleText(sale))
     self.counterLabel:SetText(zo_strformat(GetString(TRADEQR_COUNTER), 1, self.saleQueue:GetCount()))
-    self.detailsLabel:SetText(isListing and self:BuildListingDetailsText(sale) or self:BuildDetailsText(sale))
+    self.detailsLabel:SetText(self:BuildRecordDetailsText(sale))
     self:RenderQRCode(sale)
     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindDescriptor)
+end
+
+function SaleScreen:GetTitleText(record)
+    if record.kind == TradeQR.RECORD_KIND_LISTING then
+        return GetString(TRADEQR_SCREEN_TITLE_LISTING)
+    elseif record.kind == TradeQR.RECORD_KIND_TRADER then
+        return GetString(TRADEQR_SCREEN_TITLE_TRADER)
+    end
+    return GetString(TRADEQR_SCREEN_TITLE)
+end
+
+function SaleScreen:BuildRecordDetailsText(record)
+    if record.kind == TradeQR.RECORD_KIND_LISTING then
+        return self:BuildListingDetailsText(record)
+    elseif record.kind == TradeQR.RECORD_KIND_TRADER then
+        return self:BuildTraderDetailsText(record)
+    end
+    return self:BuildDetailsText(record)
+end
+
+function SaleScreen:BuildTraderDetailsText(trader)
+    local lines = {
+        string.format("%s: %s", GetString(TRADEQR_LABEL_GUILD), trader.guildName),
+        string.format("%s: %s", GetString(TRADEQR_LABEL_TRADER), trader.traderName),
+        string.format("%s: %s", GetString(TRADEQR_LABEL_WEEK_FROM), GetDateStringFromTimestamp(trader.weekStartS)),
+        string.format("%s: %s", GetString(TRADEQR_LABEL_WEEK_TO), GetDateStringFromTimestamp(trader.weekEndS)),
+    }
+    return table.concat(lines, "\n")
 end
 
 function SaleScreen:BuildDetailsText(sale)

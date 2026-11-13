@@ -29,7 +29,11 @@ end
 ---@param itemLink string
 ---@return boolean
 function SatchelExchangeStoreUtils.IsContainerItemLink(itemLink)
-    local itemType = GetItemLinkItemType(itemLink)
+    local itemType, specializedItemType = GetItemLinkItemType(itemLink)
+    -- A style page is a container to the game, but using it learns the style.
+    if specializedItemType == SPECIALIZED_ITEMTYPE_CONTAINER_STYLE_PAGE then
+        return false
+    end
     return itemType == ITEMTYPE_CONTAINER
         or itemType == ITEMTYPE_CONTAINER_STACKABLE
         or itemType == ITEMTYPE_CONTAINER_CURRENCY

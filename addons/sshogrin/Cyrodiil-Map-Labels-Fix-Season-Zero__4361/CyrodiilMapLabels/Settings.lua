@@ -82,17 +82,17 @@ function CyrodiilMapLabelsAddon.CreateSettingsMenu()
                         end
                     end
                 end
-                return "Standard Bold"
+                return "Standard Sans-Serif (BOLD)"
             end,
             setFunc = function(value) 
                 if CyrodiilMapLabelsFonts then
-                    db.fontStyle = CyrodiilMapLabelsFonts[value] or "ZoFontGameBold"
+                    db.fontStyle = CyrodiilMapLabelsFonts[value] or "EsoUI/Common/Fonts/Univers67.slug|14|soft-shadow-thick"
                 else
-                    db.fontStyle = "ZoFontGameBold"
+                    db.fontStyle = "EsoUI/Common/Fonts/Univers67.slug|14|soft-shadow-thick"
                 end
                 CyrodiilMapLabelsAddon.UpdateLabels() 
             end,
-            default = "Standard Bold",
+            default = "Standard Sans-Serif (BOLD)",
         },
     }
 

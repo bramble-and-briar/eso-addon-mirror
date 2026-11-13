@@ -3,7 +3,7 @@ local LCA = LibCombatAlerts
 CombatAlerts2 = {
 	ID = "CombatAlerts2",
 	NAME = "CombatAlerts",
-	EXPECTED_VERSION = 206090,
+	EXPECTED_VERSION = 207000,
 	URL = "https://www.esoui.com/downloads/info1855.html",
 
 	registeredModules = { },
@@ -175,6 +175,7 @@ function CA2.HandleLegacyAddOns( )
 		PurgeTrackerData.zones[725] = nil
 		PurgeTrackerData.zones[975] = nil
 		PurgeTrackerData.zones[1082] = nil
+		PurgeTrackerData.zones[1361] = nil
 	end
 
 	-- Halls of Fabrication Status Panel

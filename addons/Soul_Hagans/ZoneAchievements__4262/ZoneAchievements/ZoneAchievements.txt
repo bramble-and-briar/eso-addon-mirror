@@ -1,7 +1,7 @@
 ## Title: |c66f2ffZoneAchievements|r
-## APIVersion: 101050 101051
-## Version: 2.0.5
-## AddOnVersion: 20005
+## APIVersion: 101051 101052
+## Version: 2.1.0
+## AddOnVersion: 20100
 ## Author: |cff6401Soul_Hagans|r
 ## Description: Shows achievements for current zone
 ## SavedVariables: ZoneAchievements_SavedVars

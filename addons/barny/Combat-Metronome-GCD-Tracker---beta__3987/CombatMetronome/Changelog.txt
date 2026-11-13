@@ -1,3 +1,9 @@
+2026-10-03 v1.7.8
++  Added crystal weapon to trackable stackable abilities
++  Added opacity settings for stack trackers
+!  Fixed timer bar resizing when changing tracker size
+!  Fixed StackTracker visibility when unlocked/on initial load
+
 2026-09-28 v1.7.7
 +  API bump
 +  Moved 'Show permanently' settings option to 'Behavior' submenu

@@ -124,6 +124,7 @@ function Module:Initialize( )
 		shrapnelIdx = 1,
 		shrapnelEnd = 0,
 		nextField = 0,
+		chainNumber = 1,
 		b2next = { },
 		phobia = { },
 		attuned = 0,
@@ -175,19 +176,26 @@ function Module:Initialize( )
 				Vars.shrapnelIdx = Vars.shrapnelIdx + 1
 			end
 
+			local timeToNext = remaining2 + DATA.shrapnel.interval
 			local threshold = DATA.shrapnel.thresholds[Vars.shrapnelIdx]
 			local alpha = 1
 
 			if (remaining2 > 0) then
+				-- Active Shrapnel
 				CA2.StatusSetCellText(2, 2, zo_strformat(SI_LCA_TIME_REMAINING, LCA.FormatTime(remaining2, LCA.TIME_FORMAT_COUNTDOWN)))
 			elseif (threshold) then
+				-- Pre-execute
 				remaining = zo_max(health - threshold, 0)
 				if (remaining > 5) then alpha = 0.5 end
-				CA2.StatusSetCellText(2, 2, string.format("%.1f%%", remaining))
+				if (timeToNext <= 0) then
+					CA2.StatusSetCellText(2, 2, string.format("%.1f%%", remaining))
+				else
+					CA2.StatusSetCellText(2, 2, string.format("%.1f%% / %s", remaining, LCA.FormatTime(timeToNext, LCA.TIME_FORMAT_SHORT)))
+				end
 			else
-				remaining = remaining2 + DATA.shrapnel.interval
-				if (remaining > 7500) then alpha = 0.5 end
-				CA2.StatusSetCellText(2, 2, LCA.FormatTime(remaining, LCA.TIME_FORMAT_SHORT))
+				-- Execute
+				if (timeToNext > 7500) then alpha = 0.5 end
+				CA2.StatusSetCellText(2, 2, LCA.FormatTime(timeToNext, LCA.TIME_FORMAT_SHORT))
 			end
 			CA2.StatusSetRowAlpha(2, alpha)
 		end
@@ -195,12 +203,10 @@ function Module:Initialize( )
 
 	self.StatusInit_B2 = function( )
 		local currentTime = GetGameTimeMilliseconds()
-		Vars.b2next = {
-			petrify = currentTime + DATA.petrify.duration,
-			inferno = currentTime + DATA.inferno.interval + DATA.inferno.initialOffset,
-			chain = currentTime + DATA.chain.initial,
-			spawn = currentTime + DATA.spawn.interval + DATA.spawn.initialOffset,
-		}
+		Vars.b2next.petrify = currentTime + DATA.petrify.duration
+		Vars.b2next.inferno = currentTime + DATA.inferno.interval + DATA.inferno.initialOffset
+		Vars.b2next.chain = currentTime + DATA.chain.initial
+		Vars.b2next.spawn = currentTime + DATA.spawn.interval + DATA.spawn.initialOffset
 		if (not LCA.DoesPlayerHaveTauntSlotted()) then
 			CA2.StatusSetRowHidden(4, true)
 		end
@@ -221,6 +227,10 @@ function Module:Initialize( )
 		end
 	end
 
+	self.GetChainLabel = function( )
+		return string.format("%s #%d", LCA.GetAbilityName(DATA.chain.cast), Vars.chainNumber)
+	end
+
 	self.IsTwelvaneActive = function( )
 		return GetUnitPower("boss2", COMBAT_MECHANIC_FLAGS_HEALTH) > 0x10000
 	end
@@ -234,10 +244,8 @@ function Module:Initialize( )
 	end
 
 	self.StatusInit_B3 = function( )
-		Vars.phobia = {
-			previous = 0,
-			nextHealth = 91,
-		}
+		Vars.phobia.previous = 0
+		Vars.phobia.nextHealth = 91
 	end
 
 	self.StatusPoll_B3 = function( )
@@ -330,7 +338,7 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 		if (result == ACTION_RESULT_EFFECT_FADED) then
 			CA2.StatusEnable({
 				ownerId = "u38b2",
-				rowLabels = { LCA.GetAbilityName(abilityId), LCA.GetAbilityName(DATA.inferno.cast), LCA.GetAbilityName(DATA.chain.cast), self:GetString("spawn") },
+				rowLabels = { LCA.GetAbilityName(abilityId), LCA.GetAbilityName(DATA.inferno.cast), self.GetChainLabel(), self:GetString("spawn") },
 				pollingFunction = self.StatusPoll_B2,
 				initFunction = self.StatusInit_B2,
 			})
@@ -344,10 +352,13 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 			rowLabels = LCA.GetAbilityName(abilityId),
 			pollingFunction = self.StatusPoll_B2F,
 		})
+		Vars.chainNumber = 1
 	elseif (result == ACTION_RESULT_BEGIN and abilityId == DATA.chain.cast) then
 		Vars.b2next.chain = GetGameTimeMilliseconds() + DATA.chain.interval
 		local _, name = LCA.IdentifyGroupUnitIdWithRole(targetUnitId, true)
 		CA1.Alert(LCA.GetAbilityName(abilityId), name, 0x66CCFFFF, nil, 1500)
+		Vars.chainNumber = Vars.chainNumber + 1
+		CA2.StatusSetCellText(3, 1, self.GetChainLabel())
 	elseif (result == ACTION_RESULT_EFFECT_GAINED and DATA.mantles[abilityId] and targetType == COMBAT_UNIT_TYPE_PLAYER) then
 		CA1.Alert(nil, LCA.GetAbilityName(abilityId), 0x00CC99FF, SOUNDS.CHAMPION_POINTS_COMMITTED, 2500)
 	elseif (result == ACTION_RESULT_BEGIN and abilityId == DATA.inferno.cast and hitValue < 2000) then

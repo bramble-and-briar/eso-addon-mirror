@@ -8,8 +8,8 @@
   "category_id": "33",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:4361",
@@ -18,7 +18,7 @@
     "CyrodiilMapLabels"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4361/",
-  "fingerprint": "26b4ac1dac2d779d2eee977daff60eb029959d74cd93600ec6d4bbb62a0daf47",
+  "fingerprint": "d0a79e5a6a3a0a067e45858fc5d3ee00df00d2ec194d5463bfbaccaf54f1a007",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17081.png",
     "https://cdn-eso.mmoui.com/preview/pvw17082.png",
@@ -33,11 +33,11 @@
   "source_id": "4361",
   "source_url": "https://www.esoui.com/downloads/info4361-CyrodiilMapLabelsFixSeasonZero.html",
   "stats": {
-    "downloads": 1115,
+    "downloads": 1387,
     "favorites": 4,
-    "monthly_downloads": 220
+    "monthly_downloads": 133
   },
   "title": "Cyrodiil Map Labels (Fix: Season Zero)",
-  "updated_at": 1790377133000,
-  "version": "1.9.0"
+  "updated_at": 1794503579000,
+  "version": "1.9.1"
 }

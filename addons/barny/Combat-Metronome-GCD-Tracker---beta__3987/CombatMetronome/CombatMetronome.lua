@@ -10,7 +10,7 @@ CombatMetronome = {
     version = {
 		["patch"] = 1,
 		["major"] = 7,
-		["minor"] = 7,
+		["minor"] = 8,
 	},
 	API = GetAPIVersion(),
 	beta = beta,
@@ -251,6 +251,15 @@ function CombatMetronome:RegisterMetadata()
 					StackTracker:HideTracker(skill, false)
 				end
 			end
+			-- reset unlocked status on StackTrackers upon inCombat change
+			if self.SV.StackTracker.isUnlocked then
+				self.SV.StackTracker.isUnlocked = false
+				for skill, _ in pairs(StackTracker.availableSkills) do
+					if StackTracker.UI[skill] then 
+						StackTracker.UI[skill].stacksWindow:SetMovable(false)
+					end
+				end
+			end
         end
     )		
 end
@@ -364,6 +373,19 @@ function CombatMetronome:RegisterCombatEvents()
 --	------------------------------
 		function (_,   res,  err, aName, aGraphic, aSlotType, sName, sType, tName, 
 				tType, hVal, pType, dType, _, 		sUId, 	 tUId,  aId,   _     )
+			if self.SV.StackTracker.CW.tracked then 
+				-- if aId == 46331 and tType == COMBAT_UNIT_TYPE_PLAYER and res == ACTION_RESULT_EFFECT_GAINED then
+					-- self.StackTracker.stacks.CW = hVal
+					-- self.StackTracker.lastCW = GetFrameTimeMilliseconds()
+					-- self.StackTracker:ChangeStackCount("CW", self.StackTracker.stacks.CW)
+				local time = GetFrameTimeMilliseconds()
+				if aId == 143805 and tType == COMBAT_UNIT_TYPE_PLAYER and self.StackTracker.stacks.CW and self.StackTracker.lastCW ~= time then
+					-- self.StackTracker.stacks.CW = self.StackTracker.stacks.CW - 1
+					-- CombatMetronome.debug:Print(string.format("%s - stacks:%d - aId:%d",aName,self.StackTracker.stacks.CW,aId))
+					self.StackTracker.lastCW = time
+					self.StackTracker:ChangeStackCount("CW", self.StackTracker.stacks.CW - 1)
+				end
+			end
 			if CombatMetronome.SV.Progressbar.trackGCD and self.gcdEvent.finished <= GetFrameTimeMilliseconds() then
 				aName = Util.Text.CropZOSString(aName, "ability")
 				if aId == 16565 then

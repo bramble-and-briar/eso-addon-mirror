@@ -8,8 +8,8 @@
   "category_id": "165",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:4642",
@@ -18,7 +18,7 @@
     "NothingWastedTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4642/",
-  "fingerprint": "ea85a2a67058756a120bcc066f1a2e2484f850753baf7dc660df59d6b8f73682",
+  "fingerprint": "d4dde4e7f2ae5677249847d058cc5ce5c9316d458ea1f4875f841c285aec0d82",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17622.png",
     "https://cdn-eso.mmoui.com/preview/pvw17623.png",
@@ -35,11 +35,11 @@
   "source_id": "4642",
   "source_url": "https://www.esoui.com/downloads/info4642-NothingWastedTracker.html",
   "stats": {
-    "downloads": 374,
+    "downloads": 668,
     "favorites": 2,
-    "monthly_downloads": 147
+    "monthly_downloads": 148
   },
   "title": "NothingWasted Tracker",
-  "updated_at": 1790714093000,
+  "updated_at": 1794546188000,
   "version": "2.0"
 }

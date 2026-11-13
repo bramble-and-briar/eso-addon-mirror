@@ -32,6 +32,16 @@
 -- player's calibrated place shows up as a stop that is "greatly off" from where it was marked. The scale (the
 -- matrix J below) is a difference of two answers and is unaffected; the offset is what the anchor measures:
 -- the game's own map position of the player, minus the formula's, is added once to the zone's frame.
+--
+-- WHICH MAP THE GAME'S NORMALISED POSITION IS ON (0.6.0). GetNormalizedWorldPosition takes a zone id, but LibGPS (written by
+-- the author of LibGroupBroadcast) uses it as "the player's position on the map that is OPEN now", after SetMapToPlayerLocation;
+-- ImperialCartographer and this add-on until 0.5.2 used it as the position on the ZONE's map. The client changes the open map
+-- by itself (to the player's city or sub-zone while its map updates, and PB's MiniMap keeps it updating on the HUD; it stays on a
+-- map the player chose), so the two readings give different answers exactly where the guide was reported to be off or missing.
+-- This file does not guess: a frame records the open map it was measured on (`calMap`), the reading is learned from the game's
+-- own answers (A:LearnNwMode: the game's own map position, or the answer staying put or moving when the open map changes) and
+-- kept in the saved variables (`sv.nwMode`), and until it is known the open map is assumed (LibGPS's reading). The answer is
+-- never compared across two different open maps unless the reading is known to be the zone's.
 local A = PBS_WAYPOINT
 
 local DELTA_CM = 20000 -- the calibration step: 200 m
@@ -237,6 +247,48 @@ local function Normalized(zone, x, y, z)
 	return A:Call("GetNormalizedWorldPosition", zone, floor(x + 0.5), floor(y + 0.5), floor(z + 0.5))
 end
 
+-- The id of the map the client has open (also while the map screen is closed: it is the map the client last set). nil if none.
+function A:CurrentMap()
+	local mapId = self:Call("GetCurrentMapId")
+	if type(mapId) ~= "number" or mapId ~= mapId or mapId == 0 then
+		return nil
+	end
+	return mapId
+end
+
+-- "current" (the answer is on the open map), "zone" (on the zone's map), or nil (not known yet: the open map is assumed).
+function A:NwMode()
+	local mode = self.sv and self.sv.nwMode
+	if mode == "current" or mode == "zone" then
+		return mode
+	end
+	return nil
+end
+
+-- What was learned, and how. A change to "zone" throws away the frames measured on another map than their zone's.
+function A:SetNwMode(mode, how)
+	if self:NwMode() == mode then
+		return
+	end
+	self.sv.nwMode = mode
+	self.nwModeHow = how
+	self:Trace("position", string.format("the game's normalised position is on the %s (learned: %s)",
+		mode == "zone" and "zone's map" or "map that is open", tostring(how)))
+	if mode == "zone" then
+		-- the frames measured on another map than their zone's were read wrongly: they go (the others are right as they are)
+		for zone, frame in pairs(self.frames) do
+			if frame.failed or frame.mapId ~= frame.zoneMap then
+				self.frames[zone] = nil
+			end
+		end
+	end
+end
+
+-- A clamped answer (0 or 1 on an axis) means the place is outside the map the answer is for.
+local function Clamped(nx, ny)
+	return nx <= 0.0005 or nx >= 0.9995 or ny <= 0.0005 or ny >= 0.9995
+end
+
 local function Number(v)
 	return type(v) == "number" and v == v
 end
@@ -262,17 +314,31 @@ end
 
 -- nil and a reason, or the frame.
 function A:BuildFrame(zone, x, y, z)
-	local mapId = self:Call("GetMapIdByZoneId", zone)
-	if not Number(mapId) or mapId == 0 then
+	local zoneMap = self:Call("GetMapIdByZoneId", zone)
+	if not Number(zoneMap) or zoneMap == 0 then
+		zoneMap = nil
+	end
+	-- the map the game's answer is for: the zone's once that is known, the open one otherwise (see the top of this file)
+	local current = self:CurrentMap()
+	local mapId
+	if self:NwMode() == "zone" then
+		mapId = zoneMap
+	else
+		mapId = current or zoneMap
+	end
+	if not mapId then
 		return nil, "the zone has no map"
 	end
 	local ox, oy, sx, sy = self:MapRect(mapId)
 	if not ox then
-		return nil, "the zone's map is not in the universal space"
+		return nil, "the map the game answers for is not in the universal space (" .. mapId .. ")"
 	end
 	local n0x, n0y = Normalized(zone, x, y, z)
 	if not (Number(n0x) and Number(n0y)) then
 		return nil, "the game gave no map position for the zone"
+	end
+	if Clamped(n0x, n0y) then
+		return nil, "you are outside the map the game answers for (map " .. mapId .. "; opening the map once sets it to where you are)"
 	end
 	-- One step along each axis of the ground. A step that would leave the map is not used: the game's answer
 	-- stops changing at the edge, and a matrix built from that is wrong.
@@ -286,8 +352,14 @@ function A:BuildFrame(zone, x, y, z)
 		return nil, "the zone's map does not change with position"
 	end
 	self.diag.frames = self.diag.frames + 1
+	local zox, zoy, zsx, zsy
+	if zoneMap then
+		zox, zoy, zsx, zsy = self:MapRect(zoneMap)
+	end
 	return {
 		zone = zone, mapId = mapId, ox = ox, oy = oy, sx = sx, sy = sy,
+		calMap = current, -- the map that was open while this was measured
+		zoneMap = zoneMap, zox = zox, zoy = zoy, zsx = zsx, zsy = zsy, -- the zone's own map: what "in this area" means
 		px = x, pz = z, nx = n0x, ny = n0y,
 		shiftX = 0, shiftY = 0, -- what the anchor added (see TryAnchor)
 		sc = 1, -- the factor the scale check multiplied the matrix by (see TryScale)
@@ -342,9 +414,21 @@ function A:VerifyFrame(frame, x, y, z, now)
 		return true
 	end
 	frame.verifiedAt = now
+	local current = self:CurrentMap()
+	if current ~= frame.calMap and self:NwMode() ~= "zone" then
+		-- another map is open now: the answer may be for that map, so it cannot be compared with this frame (whose formula
+		-- stays good: it turns world positions into places on the map it was measured on). It tells which reading is right.
+		if not self:NwMode() then
+			self:LearnFromMapChange(frame, x, y, z, current)
+		end
+		return true
+	end
 	local nx, ny = Normalized(frame.zone, x, y, z)
 	if not (Number(nx) and Number(ny)) then
 		return true
+	end
+	if Clamped(nx, ny) then
+		return true -- the player is past the edge of that map: the answer stops changing there and proves nothing
 	end
 	-- Against the formula as it was MEASURED from this very function (the anchor and the scale check change the
 	-- one in use, not this): is the game's answer still a straight line of the player's place?
@@ -359,6 +443,39 @@ function A:VerifyFrame(frame, x, y, z, now)
 		return false
 	end
 	return true
+end
+
+-- The open map changed since `frame` was measured, and the reading is not known: does the game's answer stay where it was
+-- (it is the zone's map's) or move with the open map (it is the open map's)? Only a clear difference decides.
+function A:LearnFromMapChange(frame, x, y, z, current)
+	if not current or not frame.calMap then
+		return
+	end
+	local r1x, r1y, r1w, r1h = self:MapRect(frame.calMap)
+	local r2x, r2y, r2w, r2h = self:MapRect(current)
+	if not (r1x and r2x) or (abs(r1x - r2x) < 1e-9 and abs(r1y - r2y) < 1e-9 and abs(r1w - r2w) < 1e-9) then
+		return
+	end
+	local nx, ny = Normalized(frame.zone, x, y, z)
+	if not (Number(nx) and Number(ny)) or Clamped(nx, ny) then
+		return
+	end
+	-- what the answer was at calibration, extended to here
+	local px = frame.nx + frame.a0 * (x - frame.px) + frame.b0 * (z - frame.pz)
+	local py = frame.ny + frame.c0 * (x - frame.px) + frame.d0 * (z - frame.pz)
+	local function cm(ex, ey)
+		local dx, dz = frame.ia0 * ex + frame.ib0 * ey, frame.ic0 * ex + frame.id0 * ey
+		return sqrt(dx * dx + dz * dz)
+	end
+	-- the zone's reading: the same answer; the open map's: the same place, on the new map
+	local stays = cm(nx - px, ny - py)
+	local cx, cy = (r1x + px * r1w - r2x) / r2w, (r1y + py * r1h - r2y) / r2h
+	local moves = cm((nx - cx) * r2w / r1w, (ny - cy) * r2h / r1h)
+	if stays <= VERIFY_TOLERANCE_CM and moves > 10 * VERIFY_TOLERANCE_CM then
+		self:SetNwMode("zone", "the answer stayed put when the open map changed")
+	elseif moves <= VERIFY_TOLERANCE_CM and stays > 10 * VERIFY_TOLERANCE_CM then
+		self:SetNwMode("current", "the answer moved with the open map")
+	end
 end
 
 -- The formula no longer agrees with what the game says: calibrate again where the player stands now. The new frame takes
@@ -418,7 +535,16 @@ function A:VectorTo(stop, sample)
 	local pnx, pny = A.PlayerOnFrame(frame, sample.x, sample.z)
 	local dnx, dny = qx - pnx, qy - pny
 	local dx, dz = frame.ia * dnx + frame.ib * dny, frame.ic * dnx + frame.id * dny
-	local inside = qx > 0 and qx < 1 and qy > 0 and qy < 1
+	-- In this area = on the ZONE's map. The frame may have been measured on a city's map (the open map while the player was in
+	-- it): a stop outside the city but in the zone is still walked to (0.5.2 said "another area" and drew no arrow).
+	local inside
+	if frame.zsx then
+		local ux, uy = frame.ox + qx * frame.sx, frame.oy + qy * frame.sy
+		local zx, zy = (ux - frame.zox) / frame.zsx, (uy - frame.zoy) / frame.zsy
+		inside = zx > 0 and zx < 1 and zy > 0 and zy < 1
+	else
+		inside = qx > 0 and qx < 1 and qy > 0 and qy < 1
+	end
 	-- ... and the same offset on the MAP's own axes, which are the only ones whose compass directions are known:
 	-- east is +x and south is +y.
 	return { dx = dx, dz = dz, distance = A.Distance(dx, dz), inside = inside,
@@ -449,6 +575,10 @@ function A:ReadSample(now)
 		self:TryAnchor(frame, sample, now)
 	elseif frame and frame.anchored and now >= (frame.scaleAt or 0) then
 		self:TryScale(frame, sample, now)
+	end
+	-- the reading of the game's answer was learned just now and the frames measured on the wrong map went: measure again
+	if frame and self.frames[zone] ~= frame then
+		sample.frame, sample.why = self:Frame(zone, x, y, z, now)
 	end
 	return sample
 end
@@ -509,6 +639,30 @@ function A:GameHasWaypoint()
 	return not (x == 0 and y == 0)
 end
 
+-- Does the game still hold THIS destination? true (it holds a destination), false (it holds none), or nil when that cannot be
+-- told. GetMapPlayerWaypoint answers for the OPEN map, and gives 0, 0 when the destination is simply not on that map (the
+-- client's own RefreshMapPings draws no pin then): so "none" is believed only when the open map is one the destination lies on.
+-- (0.5.1 believed it on any map: with a city or the minimap's map open after the map screen closed, a destination that had just
+-- been put down read as "taken off by hand", was dropped, and the route without it was sent to the group, so every member's
+-- markers went.)
+function A:GameHoldsDestination(stop)
+	if not stop or not self:MapTypeGate() then
+		return nil
+	end
+	local x, y = self:ReadWaypoint()
+	if not x then
+		return nil
+	end
+	if not (x == 0 and y == 0) then
+		return true
+	end
+	local mapId = self:Call("GetCurrentMapId")
+	if type(mapId) ~= "number" or not self:StopOnMap(stop, mapId) then
+		return nil
+	end
+	return false
+end
+
 -- The game's own place for its destination on the open map, while the player is putting it down (the map screen is
 -- up then, so only the map's type is checked): x, y, or nil. The destination EVENT carries a place too; this is the
 -- one the client itself draws the pin from.
@@ -563,6 +717,11 @@ function A:GameMapPosition(frame)
 	if not x then
 		return nil, y -- (a refusal comes back as nil and the reason)
 	end
+	return self:ToFrame(frame, x, y, mapId, heading)
+end
+
+-- A place on map `mapId` as a place on the frame's map (through the universal space); nil and a reason.
+function A:ToFrame(frame, x, y, mapId, heading)
 	if mapId == frame.mapId then
 		return x, y, mapId, heading
 	end
@@ -580,7 +739,20 @@ function A:TryAnchor(frame, sample, now)
 		return
 	end
 	frame.anchorAt = now + ANCHOR_RETRY_MS
-	local qx, qy = self:GameMapPosition(frame)
+	local gate, gateWhy = self:MapGate()
+	if not gate then
+		frame.anchorWhy = "not yet: " .. tostring(gateWhy)
+		return
+	end
+	local gx, gy, gmap = self:ReadMapPosition()
+	if not gx then
+		frame.anchorWhy = "not yet: " .. tostring(gy)
+		return
+	end
+	if not self:NwMode() and self:LearnFromGame(frame, sample, gx, gy, gmap) == "rebuilt" then
+		return
+	end
+	local qx, qy = self:ToFrame(frame, gx, gy, gmap)
 	if not qx then
 		frame.anchorWhy = "not yet: " .. tostring(qy)
 		return
@@ -596,6 +768,36 @@ function A:TryAnchor(frame, sample, now)
 	frame.anchorEast, frame.anchorSouth = dx, dz
 	frame.anchorWhy = frame.anchorCm <= ANCHOR_OK_CM and "verified" or "corrected"
 	self.diag.anchors = self.diag.anchors + 1
+end
+
+-- The game's own map position of the player (on the open map) against the answer read both ways: on the open map and on the
+-- zone's map. Only when those two are different maps, and one is clearly closer. Returns "rebuilt" when the frames went.
+function A:LearnFromGame(frame, sample, gx, gy, gmap)
+	local current = self:CurrentMap()
+	local zoneMap = frame.zoneMap
+	if not current or not zoneMap or current == zoneMap then
+		return nil
+	end -- (the caller has passed MapGate and read the game's map position: gx, gy on map gmap)
+	local rgx, rgy, rgw, rgh = self:MapRect(gmap)
+	local rcx, rcy, rcw, rch = self:MapRect(current)
+	local rzx, rzy, rzw, rzh = self:MapRect(zoneMap)
+	if not (rgx and rcx and rzx) then
+		return nil
+	end
+	local nx, ny = Normalized(frame.zone, sample.x, sample.y, sample.z)
+	if not (Number(nx) and Number(ny)) then
+		return nil
+	end
+	local ux, uy = rgx + gx * rgw, rgy + gy * rgh -- where the game puts the player, in the universal space
+	local dc = A.Distance(rcx + nx * rcw - ux, rcy + ny * rch - uy)
+	local dz = A.Distance(rzx + nx * rzw - ux, rzy + ny * rzh - uy)
+	if dc < 0.25 * dz then
+		self:SetNwMode("current", "the game's own map position")
+	elseif dz < 0.25 * dc then
+		self:SetNwMode("zone", "the game's own map position")
+		return "rebuilt"
+	end
+	return nil
 end
 
 -- Multiplies the frame's matrix by `factor` (the offset is put right again by the caller).
@@ -640,6 +842,21 @@ function A:TryScale(frame, sample, now)
 	self.diag.scales = self.diag.scales + 1
 	local ratio = actual / predicted
 	frame.scaleRatio = ratio
+	-- Walking also tells which map the game's answer is on, when the frame was measured with another map than the zone's open:
+	-- read as the open map's, the game's map moves as the formula says (ratio 1); if it is the zone's, the ratio is the two maps'
+	-- widths. (Standing still, the two readings can put the player in nearly the same place: this is the sure test.)
+	if not self:NwMode() and frame.calMap and frame.zoneMap and frame.calMap ~= frame.zoneMap and frame.mapId == frame.calMap then
+		local _, _, cw = self:MapRect(frame.calMap)
+		local _, _, zw = self:MapRect(frame.zoneMap)
+		if cw and zw and abs(zw / cw - 1) > 0.3 and abs(turn) <= SCALE_MAX_TURN then
+			if abs(ratio - 1) < 0.1 then
+				self:SetNwMode("current", "walking: the game's map moved as the open map's answer said")
+			elseif abs(ratio / (zw / cw) - 1) < 0.1 then
+				self:SetNwMode("zone", "walking: the game's map moved by the zone map's measure")
+				return
+			end
+		end
+	end
 	if math.abs(turn) > SCALE_MAX_TURN then
 		-- not a question of scale: the map moves in another direction than the formula says (rotated or mirrored)
 		frame.scaleWhy = string.format("the game's map moved %d° away from the formula's direction", math.floor(math.deg(math.abs(turn)) + 0.5))

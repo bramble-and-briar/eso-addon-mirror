@@ -8,6 +8,10 @@
   "category_id": "155",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -30,7 +34,7 @@
     "ZoneAchievements"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4262/",
-  "fingerprint": "5b20a3af88b63bc6c7e8dc710087afd6f99dbbf6fca24ed40f9107b904fc2407",
+  "fingerprint": "4cd554a6d937a269845d2af58d58b269c4b0315c5b453135e34e8a9f4cecdc2d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17051.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17052.jpg",
@@ -46,11 +50,11 @@
   "source_id": "4262",
   "source_url": "https://www.esoui.com/downloads/info4262-ZoneAchievements.html",
   "stats": {
-    "downloads": 884,
+    "downloads": 1153,
     "favorites": 3,
-    "monthly_downloads": 333
+    "monthly_downloads": 124
   },
   "title": "ZoneAchievements",
-  "updated_at": 1789389518000,
-  "version": "2.0.5"
+  "updated_at": 1794491369000,
+  "version": "2.1.0"
 }

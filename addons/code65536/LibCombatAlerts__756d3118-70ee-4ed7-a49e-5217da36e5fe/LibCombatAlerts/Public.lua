@@ -55,6 +55,8 @@ Public.RemoveAlpha = LCCC.Int32ToInt24
 Public.HSLToRGB = LCCC.HSLToRGB
 Public.UnpackHSL = LCCC.Int24ToHSL
 Public.UnpackHSLA = LCCC.Int32ToHSLA
+Public.GetGradientUnpacked = LCCC.GetGradientRGBA
+Public.GetGradientPacked = LCCC.GetGradientInt32
 
 setmetatable(Public, { __index = function( tbl, key )
 	local external = LCCC[key]
@@ -128,10 +130,19 @@ function Public.SetTexture( control, textureId )
 	end
 end
 
-function Public.GetTelegraphColor( isFriendly )
-	local r, g, b = ZO_ColorDef:New(GetSetting(SETTING_TYPE_COMBAT, isFriendly and COMBAT_SETTING_MONSTER_TELLS_FRIENDLY_COLOR or COMBAT_SETTING_MONSTER_TELLS_ENEMY_COLOR)):UnpackRGB()
-	local brightness = tonumber(GetSetting(SETTING_TYPE_COMBAT, isFriendly and COMBAT_SETTING_MONSTER_TELLS_FRIENDLY_BRIGHTNESS or COMBAT_SETTING_MONSTER_TELLS_ENEMY_BRIGHTNESS))
-	return Public.PackRGBA(r, g, b, 0.4 * brightness / 50 + 0.2)
+do
+	local colorDef -- Scratch object, defined here to avoid recreating with each call
+	function Public.GetTelegraphColor( isFriendly )
+		local colorString = GetSetting(SETTING_TYPE_COMBAT, isFriendly and COMBAT_SETTING_MONSTER_TELLS_FRIENDLY_COLOR or COMBAT_SETTING_MONSTER_TELLS_ENEMY_COLOR)
+		if (colorDef) then
+			colorDef:Initialize(colorString)
+		else
+			colorDef = ZO_ColorDef:New(colorString)
+		end
+		local r, g, b = colorDef:UnpackRGB()
+		local brightness = tonumber(GetSetting(SETTING_TYPE_COMBAT, isFriendly and COMBAT_SETTING_MONSTER_TELLS_FRIENDLY_BRIGHTNESS or COMBAT_SETTING_MONSTER_TELLS_ENEMY_BRIGHTNESS))
+		return Public.PackRGBA(r, g, b, 0.4 * brightness / 50 + 0.2)
+	end
 end
 
 function Public.FormatTime( ms, format )
@@ -252,6 +263,14 @@ function Public.GetDistance( unitTag1, unitTag2, useHeight, validate, useMapPosi
 	else
 		return zo_sqrt(Public.GetDistanceSquared(x1, 0, z1, x2, 0, z2)) / 100
 	end
+end
+
+function Public.IsUnitIdWithinDistance( unitId, distance )
+	local unitTag = Public.IdentifyGroupUnitId(unitId or -1)
+	if (unitTag and IsUnitInGroupSupportRange(unitTag)) then
+		return Public.GetDistance("player", unitTag) <= (distance or 0)
+	end
+	return false
 end
 
 

@@ -8,6 +8,10 @@
   "category_id": "53",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -74,7 +78,7 @@
     "LibCharacterKnowledge"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3317/",
-  "fingerprint": "8797128cad8a27bf64c6cf5366f3c57b1361157c22e2baa42d7494a9eeb6fed8",
+  "fingerprint": "98630dc0795de3dfce7f6a77931a37d7fb75253e8ce7e8097203c5196cbc13f4",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -82,11 +86,11 @@
   "source_id": "3317",
   "source_url": "https://www.esoui.com/downloads/info3317-LibCharacterKnowledge.html",
   "stats": {
-    "downloads": 1894088,
-    "favorites": 373,
-    "monthly_downloads": 40602
+    "downloads": 1938497,
+    "favorites": 379,
+    "monthly_downloads": 9326
   },
   "title": "LibCharacterKnowledge",
-  "updated_at": 1788193821000,
-  "version": "3.1.2"
+  "updated_at": 1794535077000,
+  "version": "3.1.3"
 }

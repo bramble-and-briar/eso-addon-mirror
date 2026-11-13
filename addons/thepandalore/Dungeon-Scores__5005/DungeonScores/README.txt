@@ -1,4 +1,4 @@
-Dungeon Scores 0.5.37 (PC beta)
+Dungeon Scores 0.5.38 (PC beta)
 ================================
 
 INSTALL

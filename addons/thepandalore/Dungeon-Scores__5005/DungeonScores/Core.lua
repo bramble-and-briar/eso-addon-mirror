@@ -7,7 +7,7 @@ DS.Util = DS.Util or {}
 local Util = DS.Util
 
 DS.NAME = "DungeonScores"
-DS.VERSION = "0.5.37"
+DS.VERSION = "0.5.38"
 DS.SV_NAME = "DungeonScoresSavedVariables"
 DS.SV_VERSION = 3
 DS.MAX_BOSS_TAGS = 20 -- simultaneous boss unit-tag scan ceiling, not a dungeon boss-count assumption

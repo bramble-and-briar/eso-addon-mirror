@@ -111,7 +111,7 @@ function Module:Initialize( )
 	end
 
 	self.StatusPoll_MultiBoss = function( )
-		local results = { }
+		local results = self:GetScratch()
 		for i = 1, 2 do
 			table.insert(results, string.format("%d%%", zo_floor(LCA.GetUnitHealthPercent("boss" .. i))))
 		end

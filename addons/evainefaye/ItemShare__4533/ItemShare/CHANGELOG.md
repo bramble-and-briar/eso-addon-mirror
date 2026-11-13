@@ -10,6 +10,51 @@ in the addon's status messages.
 
 ## Addon
 
+### 1.11.35
+- The addon reads your bags at login and when you change zone, and nowhere else. It used to read them
+  whenever a slot changed - every pickup, sale, stack split and loot - which meant the most expensive
+  thing it does ran while you were playing. A count can now be a zone out of date; `/ishare sync` asks
+  for it immediately.
+- The badges cost almost nothing to keep on screen. Every item control the game binds was being
+  re-drawn, re-anchored and re-textured even when nothing about it had changed, and a list rebinds
+  every row it shows on every repaint. A row whose item, place, share state, reserve and counts match
+  what it showed last time is now left alone, and a badge is only re-anchored when the icon under it
+  is actually a different control.
+
+### 1.11.34
+- The inventory pass now reads twenty slots at a time instead of forty, and waits eighty
+  milliseconds between slices instead of forty. Each frame does half the work and gets twice
+  as long back, which is the setting for a client that still stuttered at forty: a full 240-slot
+  bank is twelve short slices, and the counts land a little later than they did - around a
+  second - in exchange for each slice fitting between the client's own drawing.
+
+### 1.11.33
+- Hovering an item no longer writes the protection line into the chat. The client builds a
+  slot's action list as soon as the pointer reaches the slot, and the guard explained its
+  refusal there - so sweeping the mouse across a bag printed a line for every shared item
+  passed over. The menu still leaves out what a share does not allow and the badge still
+  marks the item; the explanation now only appears when you actually ask for something, on a
+  click, a double click or a drag.
+- That guard answers a bag with nothing shared or offered with one table lookup, instead of
+  resolving an item link and a bag for every slot the pointer crosses. On a full bank that
+  is the per-hover cost of the addon gone when it has nothing to protect.
+
+### 1.11.32
+- The inventory pass no longer runs in one frame. It reads the bags forty slots at a time with a
+  forty-millisecond pause between slices, so a full bank is a handful of slices instead of one long
+  hitch, and the counts land a fraction of a second later rather than stalling the client while
+  the bank opens or a stack is picked up. Nothing about what it collects has changed: the sliced
+  pass builds exactly the index the whole-bag pass did.
+- An automatic pass now runs at most once every ten seconds. Events that arrive inside that window
+  are not dropped - one timer re-schedules the pass when the window ends - so a move is still
+  noticed, but a loot run or a trade can no longer cost a scan per item.
+- Rows cost nothing to skip when there is nothing to draw: with no shares, offers or reserves, the
+  marker code answers with one table lookup instead of building and anchoring a badge per item
+  control the game binds - which is every row of every list you open.
+- The explicit commands still scan in one go: `/ishare sync`, `/ishare rebuild` and `/ishare save`
+  are things you asked for and then wait on, and `/ishare save` reloads the UI straight after, so
+  its pass has to be finished before the prompt appears.
+
 ### 1.11.31
 - A shared copy can no longer be posted to the guild store by dragging it. Posting was refused
   from the item's menu and from a click, but the listing is filed from a drop, and a drop never

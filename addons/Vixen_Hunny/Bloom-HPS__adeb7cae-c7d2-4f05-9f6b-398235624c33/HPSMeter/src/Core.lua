@@ -40,6 +40,7 @@ M.defaults = {
     groupMode   = true,  -- LibFights group mode (needed for group shields)
     showTitle   = true,
     showFlowers = true,
+    hideInMenus = true,  -- only show on the HUD, not in inventory / map / menus
     flowerAlpha = 0.6,
 }
 

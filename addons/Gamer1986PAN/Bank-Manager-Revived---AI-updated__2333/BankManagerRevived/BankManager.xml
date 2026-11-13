@@ -1,0 +1,82 @@
+<GuiXml>
+   <Controls>
+		<TopLevelControl name="BankManager" mouseEnabled="true" hidden="true" movable="true">
+			<OnMoveStop>
+				BankManagerRevived_saveGuiPosition()
+			</OnMoveStop>
+			<Dimensions x="230" y="200" />
+			<Anchor offsetX="-600" offsetY="-400" point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" relativeTo="GuiRoot" />
+			<Controls>
+				<Backdrop name="$(parent)Bg" integralWrapping="true">
+					<Anchor point="TOPLEFT" offsetX="-8" offsetY="-6"/>
+					<Anchor point="BOTTOMRIGHT" offsetX="4" offsetY="4"/>
+					<Edge file="EsoUI/Art/ChatWindow/chat_BG_edge.dds" edgeFileWidth="256" edgeFileHeight="256" edgeSize="32"/>
+					<Center file="EsoUI/Art/ChatWindow/chat_BG_center.dds" />
+					<Insets left="32" top="32" right="-32" bottom="-32" />
+				</Backdrop>
+				<Label name="$(parent)Title" text="BankManagerRevived" font="ZoFontBookPaper" horizontalAlignment="CENTER">
+               <Dimensions x="185" />
+					<Anchor offsetY="10" point="TOP" relativePoint="TOP" relativeTo="$(parent)" />
+				</Label>
+				
+				<Button name="$(parent)Before" inherits="ZO_ButtonBehaviorClickSound" hidden="true">
+					<Dimensions x="64" y="64" />
+					<OnClicked>
+						BankManagerRevived_nextRule(_, -1)
+					</OnClicked>
+					<Textures
+						normal="/esoui/art/tutorial/smithing_leftarrow_up.dds"
+						pressed="/esoui/art/tutorial/smithing_leftarrow_down.dds"
+						mouseOver="/esoui/art/tutorial/smithing_leftarrow_over.dds"
+					/>
+					<Anchor point="RIGHT" relativePoint="LEFT" offsetX="55" relativeTo="$(parent)" />
+				</Button>
+				
+				<Button name="$(parent)Execute" inherits="ZO_ButtonBehaviorClickSound">
+					<Dimensions x="120" y="120" />
+					<OnMouseEnter>
+						self:SetDimensions(140, 140)
+					</OnMouseEnter>
+					<OnMouseExit>
+						self:SetDimensions(120, 120)
+					</OnMouseExit>
+					<OnClicked>
+						BankManagerRevived_executeRule()
+					</OnClicked>
+					<OnMouseWheel>
+						BankManagerRevived_nextRule(_, delta)
+					</OnMouseWheel>
+					<FontColors
+						normalColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL"
+						pressedColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED"
+						mouseOverColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_HIGHLIGHT"
+					/>
+					<Textures
+						normal="BankManagerRevived/img/gold-normal.dds"
+						pressed="BankManagerRevived/img/gold-pressed.dds"
+					/>
+					<Anchor point="CENTER" relativePoint="CENTER" relativeTo="$(parent)" />
+				</Button>
+				
+				<Button name="$(parent)After" inherits="ZO_ButtonBehaviorClickSound" hidden="true">
+					<Dimensions x="64" y="64" />
+					<OnClicked>
+						BankManagerRevived_nextRule(_, 1)
+					</OnClicked>
+					<Textures
+						normal="/esoui/art/tutorial/smithing_rightarrow_up.dds"
+						pressed="/esoui/art/tutorial/smithing_rightarrow_down.dds"
+						mouseOver="/esoui/art/tutorial/smithing_rightarrow_over.dds"
+					/>
+					<Anchor point="LEFT" relativePoint="RIGHT" offsetX="-55" relativeTo="$(parent)" />
+				</Button>
+				
+				<Label name="$(parent)RuleName" text="BankManagerRevived" font="ZoFontTooltipTitle" horizontalAlignment="CENTER">
+               <Dimensions x="185" />
+					<Anchor offsetY="-10" point="BOTTOM" relativePoint="BOTTOM" relativeTo="$(parent)" />
+				</Label>
+				
+			</Controls>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

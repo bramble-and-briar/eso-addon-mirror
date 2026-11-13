@@ -9,7 +9,7 @@ CyrodiilMapLabelsAddon = {
 }
 
 CyrodiilMapLabelsDefaults = {
-    version = "1.9.0",
+    version = "1.9.1",
     variableVersion = 1,
     datasetChoice = "Long Names",
     useAllianceColors = true,

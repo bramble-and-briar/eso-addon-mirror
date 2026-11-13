@@ -20,9 +20,12 @@ Module.STRINGS = {
 
 Module.DEFAULT_SETTINGS = {
 	groupPanel = true,
+	colorCarrionLow = 0x00FF00CC,
+	colorCarrionHigh = 0xFF0000CC,
+	colorBlaze = 0x3399FFFF,
 	scalesChat = true,
 	scalesBorder = 0xFF990099,
-	scalesNoTanks = false,
+	scalesNoTanks = true,
 }
 
 Module.DATA = {
@@ -108,7 +111,7 @@ function Module:Initialize( )
 		end
 	end, 1000)
 
-	self.CarrionUpdate = function( _, changeType, _, _, unitTag, _, endTime, stackCount, _, _, _, _, _, _, unitId, abilityId )
+	self.CarrionUpdate = function( _, changeType, _, _, unitTag, _, _, stackCount, _, _, _, _, _, _, _, abilityId )
 		if (self.panelMode ~= "carrion") then
 			if (changeType == EFFECT_RESULT_GAINED) then
 				self:TogglePanelMode("carrion")
@@ -124,16 +127,14 @@ function Module:Initialize( )
 		local max = DATA.carrionThreshold[abilityId]
 
 		if (stackCount > 0) then
-			local remaining = max - stackCount
-			local ratio = zo_clamp(remaining / max, 0, 1)
-			CA2.GroupPanelUpdate(unitTag, nil, LCA.PackRGBA(LCA.HSLToRGB(ratio / 3, 1, 0.5, 0.8)), stackCount)
+			CA2.GroupPanelUpdate(unitTag, nil, LCA.GetGradientPacked(self:GetSetting("colorCarrionLow"), self:GetSetting("colorCarrionHigh"), stackCount / max), stackCount)
 		else
 			-- Clear the cell
 			CA2.GroupPanelUpdate(unitTag)
 		end
 	end
 
-	self.BlazeUpdate = function( _, changeType, _, _, unitTag, _, endTime, stackCount, _, _, _, _, _, _, unitId, abilityId )
+	self.BlazeUpdate = function( _, changeType, _, _, unitTag )
 		if (self.panelMode ~= "blaze") then
 			if (changeType == EFFECT_RESULT_GAINED) then
 				self:TogglePanelMode("blaze")
@@ -143,13 +144,13 @@ function Module:Initialize( )
 		end
 
 		if (changeType == EFFECT_RESULT_GAINED) then
-			CA2.GroupPanelUpdate(unitTag, nil, 0x3399FFFF)
+			CA2.GroupPanelUpdate(unitTag, nil, self:GetSetting("colorBlaze"))
 		elseif (changeType == EFFECT_RESULT_FADED) then
 			CA2.GroupPanelUpdate(unitTag)
 		end
 	end
 
-	self.ScalesUpdate = function( _, result, _, _, _, _, _, _, _, _, hitValue, _, _, _, _, targetUnitId, abilityId )
+	self.ScalesUpdate = function( _, result, _, _, _, _, _, _, _, _, _, _, _, _, _, targetUnitId )
 		Vars.scales[targetUnitId] = (result ~= ACTION_RESULT_EFFECT_FADED) and true or nil
 	end
 end
@@ -233,6 +234,8 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 end
 
 function Module:GetSettingsControls( )
+	local groupPanelDisabled = function() return not self:GetSetting("groupPanel") end
+
 	return {
 		--------------------
 		{
@@ -243,6 +246,30 @@ function Module:GetSettingsControls( )
 				self:SetSetting("groupPanel", enabled)
 				self:TogglePanelMode("carrion")
 			end,
+		},
+		--------------------
+		{
+			type = "colorpicker",
+			name = string.format("|u40:0::%s|u", GetString(SI_LCA_LOW)),
+			getFunc = function() return LCA.UnpackRGBA(self:GetSetting("colorCarrionLow")) end,
+			setFunc = function(...) self:SetSetting("colorCarrionLow", LCA.PackRGBA(...)) end,
+			disabled = groupPanelDisabled,
+		},
+		--------------------
+		{
+			type = "colorpicker",
+			name = string.format("|u40:0::%s|u", GetString(SI_LCA_HIGH)),
+			getFunc = function() return LCA.UnpackRGBA(self:GetSetting("colorCarrionHigh")) end,
+			setFunc = function(...) self:SetSetting("colorCarrionHigh", LCA.PackRGBA(...)) end,
+			disabled = groupPanelDisabled,
+		},
+		--------------------
+		{
+			type = "colorpicker",
+			name = string.format("|u40:0::%s|u", LCA.GetAbilityName(DATA.blaze)),
+			getFunc = function() return LCA.UnpackRGBA(self:GetSetting("colorBlaze")) end,
+			setFunc = function(...) self:SetSetting("colorBlaze", LCA.PackRGBA(...)) end,
+			disabled = groupPanelDisabled,
 		},
 		--------------------
 		{

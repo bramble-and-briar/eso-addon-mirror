@@ -21,7 +21,9 @@ local ruStrings = {
     hoursAgo = "%d ч. назад",
     -- Особые испытания и разделители
     specialHeader = "——— Главные испытания ———",
+    vetHeader = "——— Ветеранский режим ———",
     otherHeader = "——— Прочие достижения ———",
+    vetKeywords = { "ветеран", "ветеранск" },
     tagVet = "|c9370DB[ВЕТ]|r ",
     tagSpeed = "|c00FFFF[СПИДРАН]|r ",
     tagNoDeath = "|cE6E6FA[НЕУМИРАЙКА]|r ",

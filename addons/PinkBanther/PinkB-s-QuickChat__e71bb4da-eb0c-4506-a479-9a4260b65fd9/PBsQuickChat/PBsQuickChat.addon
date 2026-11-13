@@ -1,0 +1,18 @@
+## Title: |cFF69B4PB's Quick Chat|r 0.2.0
+## Author: |cFF69B4PinkBanther|r
+## Description: Keeps eight chat messages you wrote in the settings, shows them as an extra page of the D-pad up wheel (right after Emotes) and puts the chosen one into the chat box, on the channel you picked, ready to send.
+## Version: 0.2.0
+## AddOnVersion: 1
+## APIVersion: 101050 101051
+## OptionalDependsOn: LibHarvensAddonSettings>=20106
+## SavedVariables: PBsQuickChat_Data
+
+lang/strings.lua
+lang/$(language).lua
+Core.lua
+Chat.lua
+Wheel.lua
+Settings.lua
+Main.lua
+
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls© and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.

@@ -33,7 +33,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Zone Mount and Pet Switcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MadeByQwerty/Zone-Mount-and-Pet-Switcher__03172246-c90c-4b8b-9821-06a74a01ce96) | MadeByQwerty | Console | — |
 | [Zone Mount and Pet Switcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MadeByQwerty/Zone-Mount-and-Pet-Switcher__4216) | MadeByQwerty | PC / Mac | 1.2.1 |
 | [Zone Name Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dorrino/Zone-Name-Alert__1383) | dorrino | PC / Mac | 1.15 |
-| [ZoneAchievements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/ZoneAchievements__4262) | Soul_Hagans | PC / Mac | 2.0.5 |
+| [ZoneAchievements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/ZoneAchievements__4262) | Soul_Hagans | PC / Mac | 2.1.0 |
 | [ZoneDailyTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thewizadt/ZoneDailyTracker__722c9210-1e17-4104-b9d8-b3b79b069984) | thewizadt | Console | — |
 | [ZoneNameLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/ZoneNameLogger__2194) | Coorbin | PC / Mac | 1.0 |
 | [ZoneSets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/ZoneSets__4788) | Soul_Hagans | PC / Mac | 1.4.0 |

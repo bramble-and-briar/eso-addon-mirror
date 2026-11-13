@@ -8,6 +8,10 @@
   "category_id": "20",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -74,7 +78,7 @@
     "LootLog"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1455/",
-  "fingerprint": "69bb49663e421e021ba5ec1487b20d392a42a736084d090b9898c1b8923e559c",
+  "fingerprint": "7ec32deacd520212757ac99b9c11f17d80778cf016ee9e082d8d7b1b028b8172",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw9816.png",
     "https://cdn-eso.mmoui.com/preview/pvw9817.png",
@@ -92,11 +96,11 @@
   "source_id": "1455",
   "source_url": "https://www.esoui.com/downloads/info1455-LootLog.html",
   "stats": {
-    "downloads": 1694228,
-    "favorites": 506,
-    "monthly_downloads": 43880
+    "downloads": 1708595,
+    "favorites": 508,
+    "monthly_downloads": 14402
   },
   "title": "Loot Log",
-  "updated_at": 1792031300000,
-  "version": "4.10.6"
+  "updated_at": 1794535213000,
+  "version": "4.10.7"
 }

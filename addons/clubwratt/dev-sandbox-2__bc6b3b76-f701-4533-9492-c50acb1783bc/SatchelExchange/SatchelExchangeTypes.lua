@@ -1,0 +1,89 @@
+---@meta SatchelExchangeTypes
+-- SatchelExchangeTypes.lua: Centralized type definitions for SatchelExchange
+
+---@class SatchelExchangeSavedVars
+---@field enabled boolean Master switch for all automation
+---@field watchdogMs integer Time allowed in the buying phase before aborting
+---@field autoCloseStore boolean Exit the vendor interaction automatically after the buy
+---@field resumeWindowMs integer How long the auto-resume arm survives between visits
+---@field autoUnbox boolean Use the satchel and take all after leaving the vendor
+---@field unboxTimeoutMs integer Stop waiting for a bought satchel to arrive this long after the interaction ends
+---@field autoOpenMode string "all" | "bound" | "off": which containers are opened the moment they arrive
+---@field openGeodes boolean Transmute geodes count as openable (off keeps a hoard intact)
+
+---@class SatchelExchangeRunState
+---@field active boolean
+---@field phase string "idle" | "buying"
+---@field token integer Monotonic counter that invalidates stale timers/watchdogs
+---@field entryIndex integer|nil Store entry index of the target item
+---@field itemLink string|nil
+---@field itemId integer|nil
+---@field entryName string|nil
+---@field startedAtMs integer
+
+---@class SatchelExchangeSessionState
+---@field resumeItemLink string|nil Item to auto-buy on the next store open (nil = disarmed)
+---@field resumeArmedAtMs integer
+---@field buysThisSession integer Total satchels bought since UI load
+
+---@class SatchelExchangeUnboxInFlight The one UseItem awaiting its result
+---@field slotIndex integer
+---@field itemId integer
+---@field uniqueId string Unique id (Id64ToString) of the exact container the request targeted
+---@field stack integer Stack size at send; a smaller stack means one was opened
+---@field sentAtMs integer When the request was dispatched (dropped-request detection)
+---@field sends integer Requests sent for this container so far
+---@field lootAllAtMs integer|nil When Take All ran on the loot window this use opened
+
+---@class SatchelExchangeUnboxState
+---@field active boolean The loop is registered
+---@field pendingItemLink string|nil Satchel a settled run left to open; consumed by the next interaction-end event
+---@field expectItemId integer|nil A bought satchel that has not reached the backpack yet
+---@field expectDeadlineMs integer Stop waiting for the expected satchel when the game clock passes this
+---@field queue integer[] Backpack slots waiting to be opened, in order
+---@field queuedSource table<integer, string> slotIndex -> "auto" | "manual" | "vendor" (also the de-dupe set)
+---@field skipped table<string, string> uniqueId -> reason; containers given up on until the next manual run
+---@field inFlight SatchelExchangeUnboxInFlight|nil The use awaiting its result (at most one; see UnboxActions)
+---@field resendSends integer Sends already spent on the container about to be retried
+---@field resendUniqueId string|nil The container those sends belong to
+---@field startedAtMs integer When the run started (all diagnostics log "+Nms" from here)
+---@field openedCount integer Containers opened this run
+---@field attemptIntervalMs integer Current send-attempt backoff (grows 16ms per blocked attempt, caps at 200ms)
+---@field nextAttemptAtMs integer Earliest game time for the next send attempt
+---@field attemptCount integer Blocked send attempts so far (diagnostics)
+---@field itemBlockSinceMs integer When the container itself (not the player's state) started blocking; 0 = not blocked
+---@field lastBlockKey integer|nil Key of the last logged set of blocking gates (log only on change)
+---@field lootWatchUntilMs integer Loot windows opened before this time get Take All
+
+---@class SatchelExchangeUseReadiness
+---@field usable boolean
+---@field usableOnlyFromActionSlot boolean
+---@field canInteract boolean
+---@field cooldownRemainMs integer
+---@field hudScene boolean The current scene is the plain HUD (UseItem is dropped otherwise)
+---@field interactionType integer GetInteractionType(); must be INTERACTION_NONE to use items
+---@field inCombat boolean UseItem is protected, so it is refused in combat
+---@field dead boolean
+---@field swimming boolean Lazy Writ Crafter holds its opener back in water too
+---@field looting boolean A loot window is open
+
+---@class SatchelExchangeState
+---@field savedVars SatchelExchangeSavedVars
+---@field run SatchelExchangeRunState
+---@field session SatchelExchangeSessionState
+---@field unbox SatchelExchangeUnboxState
+
+---@class SatchelExchangeEntryDiagnostics
+---@field name string
+---@field stack integer
+---@field price integer
+---@field currencyType1 integer
+---@field currencyQuantity1 integer
+---@field currencyType2 integer
+---@field currencyQuantity2 integer
+---@field entryType integer
+---@field meetsRequirementsToBuy boolean
+---@field buyStoreFailure integer
+---@field buyErrorStringId integer
+---@field maxBuyable integer
+---@field itemLink string

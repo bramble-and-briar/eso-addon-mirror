@@ -29,6 +29,8 @@ SI_LCA_BLOCK							= SI_BINDING_NAME_SPECIAL_MOVE_BLOCK
 SI_LCA_INTERRUPT						= SI_BINDING_NAME_SPECIAL_MOVE_INTERRUPT
 SI_LCA_ROLL_DODGE						= SI_BINDING_NAME_ROLL_DODGE
 SI_LCA_COLOR							= SI_GUILD_HERALDRY_COLOR
+SI_LCA_LOW								= SI_SUBSAMPLINGMODE0
+SI_LCA_HIGH								= SI_SUBSAMPLINGMODE2
 
 -- Adapted from SI_GUILD_KEEP_ATTACK_UPDATE
 Register("SI_LCA_PLAYERS_COUNT"			, Localize({ default = "<<1>> <<1[player/players]>>", de = "<<1>> <<1[Spieler/Spielern]>>", es = "<<1>> <<1[jugador/jugadores]>>", fr = "<<1>> <<1[joueur/joueurs]>>", jp = "<<1>> プレイヤー", ru = "<<1>> <<1[игрок/игрока/игроков]>>", zh = "<<1>> 位玩家" }))

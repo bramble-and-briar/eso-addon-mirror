@@ -1064,6 +1064,9 @@ function DS:RefreshBosses(forceReset)
         end
     end
     self:UpdateHardModeEncounterCohortPresence(observedAtMs)
+    if not self.run.startedAtMs then
+        self:StartPrecombatHMHealthObserver()
+    end
     self:RefreshHud()
 end
 
@@ -1084,7 +1087,8 @@ function DS:OnBossPowerUpdate(unitTag, powerValue, powerMax, powerEffectiveMax)
     -- A settled, engaged boss with the same health sample has supplied no new
     -- evidence. Skip the encounter and HM reconciliation work on idle polls.
     local activeEncounter = self.run.activeBossEncounter
-    if boss.hasTakenDamage == true and activeEncounter and activeEncounter.engaged == true
+    if boss.hmActivePoolResetCandidate == nil
+        and boss.hasTakenDamage == true and activeEncounter and activeEncounter.engaged == true
         and boss.currentHealth == powerValue and boss.maxHealth == powerMax
         and boss.effectiveMaxHealth == powerEffectiveMax then
         return
@@ -1107,7 +1111,9 @@ function DS:OnBossPowerUpdate(unitTag, powerValue, powerMax, powerEffectiveMax)
     local bossInCombatForPoolReset = nil
     local activePoolResetChanged = false
     if boss.hmEncounterResolutionSource == "zone-active-health-pool"
-        and oldCurrent and powerValue and tonumber(powerValue) > tonumber(oldCurrent) then
+        and oldCurrent and powerValue
+        and (tonumber(powerValue) > tonumber(oldCurrent)
+            or boss.hmActivePoolResetCandidate ~= nil) then
         bossInCombatForPoolReset = IsUnitInCombat(unitTag)
         activePoolResetChanged = self:ClearBossHMActiveHealthPoolEvidenceOnReset(
             boss,

@@ -362,11 +362,14 @@ function PTI.UI.SetWindowVisible(key)
     local sv = SVFor(key)
     if not entry or not sv then return end
 
-    local hiddenByScene = PTI.UI.hiddenByScene and not PTI.sv.previewMode
+    -- v2.5.1: sv.previewModeに加え、設定画面を開いている間(PTI.UI.settingsOpen)も
+    -- プレビュー扱い(PTI.IsPreview)にして、各パネルを隠す条件を無効にする。
+    local preview = PTI.IsPreview()
+    local hiddenByScene = PTI.UI.hiddenByScene and not preview
 
     local hiddenByCombat = false
     if key == "buff" or key == "debuff" then
-        hiddenByCombat = PTI.UI.hiddenByCombat and not PTI.sv.previewMode
+        hiddenByCombat = PTI.UI.hiddenByCombat and not preview
     end
 
     -- v2.1.0: UI④(cd)は、パネルON(PTI.ProcCD.Sync)で監視を開始し、表示する行が
@@ -375,19 +378,24 @@ function PTI.UI.SetWindowVisible(key)
     local hiddenByEmptyCd = false
     if key == "cd" then
         if PTI.ProcCD and PTI.ProcCD.Sync then PTI.ProcCD.Sync() end
-        hiddenByEmptyCd = (not PTI.sv.previewMode) and not PTI.UI.cdHasContent
+        hiddenByEmptyCd = (not preview) and not PTI.UI.cdHasContent
     end
 
     -- v2.4.0: UI④の表示モード「戦闘終了後は非表示」(ProcCD.luaがフラグを更新する。計測は止めない)
-    local hiddenByCdMode = (key == "cd") and PTI.UI.cdHiddenAfterCombat and not PTI.sv.previewMode
+    local hiddenByCdMode = (key == "cd") and PTI.UI.cdHiddenAfterCombat and not preview
 
     local hiddenByEmptyProc = false
+    -- v2.5.1: UI③の表示モード「戦闘終了後は非表示」(PTI.UI.procHiddenAfterCombat。
+    -- OnCombatStateChanged/ApplyProcModeが更新する。検知・スキャンは止めない)
+    local hiddenByProcMode = false
     if key == "proc" then
-        hiddenByEmptyProc = (not PTI.sv.previewMode) and not PTI.UI.procHasContent
+        hiddenByEmptyProc = (not preview) and not PTI.UI.procHasContent
+        hiddenByProcMode = PTI.UI.procHiddenAfterCombat and not preview
     end
 
     local shouldShow = PTI.sv.enabled and not hiddenByScene and not hiddenByCombat
-        and not hiddenByEmptyProc and not hiddenByEmptyCd and not hiddenByCdMode and sv.enabled ~= false
+        and not hiddenByEmptyProc and not hiddenByProcMode
+        and not hiddenByEmptyCd and not hiddenByCdMode and sv.enabled ~= false
     entry.window:SetHidden(not shouldShow)
 end
 
@@ -401,8 +409,46 @@ end
 -- 抜けた瞬間にだけ1回発火する標準イベントで、常時ポーリングは発生しない
 -- (PS5/CS向けの軽量方針に合致)。UI①②の表示だけを切り替え、検知ロジック・
 -- UI③には一切触れない。
+-- v2.5.1: UI③(Condition)の表示モード。
+--   "always"=常時表示 / "combat"=戦闘終了後は非表示(戦闘終了からhideDelay秒後に隠し、
+--   次の戦闘開始で即再表示)。戦闘の出入りは同じEVENT_PLAYER_COMBAT_STATEで判定する
+--   (常時ポーリングは追加しない)。猶予中に再戦闘したら隠さない(世代番号でタイマーを無効化)。
+local procHideToken = 0
+
+function PTI.UI.ApplyProcMode()
+    procHideToken = procHideToken + 1
+    local mode = PTI.sv and PTI.sv.procUI and PTI.sv.procUI.displayMode
+    PTI.UI.procHiddenAfterCombat = (mode == "combat") and not IsUnitInCombat("player")
+    PTI.UI.SetWindowVisible("proc")
+end
+
+-- v2.5.1: 設定画面の開閉で呼ぶ。開いている間はUI①〜④(パネル表示ONのもの)をサンプル表示する
+-- 一時フラグ(保存しない)。sv.previewMode(手動プレビュー)の値は変更しない。
+function PTI.UI.SetSettingsOpen(flag)
+    flag = flag and true or false
+    if (PTI.UI.settingsOpen and true or false) == flag then return end
+    PTI.UI.settingsOpen = flag
+    PTI.UI.RefreshVisibility()
+end
+
 function PTI.UI.OnCombatStateChanged(_, inCombat)
     PTI.UI.hiddenByCombat = not inCombat
+
+    procHideToken = procHideToken + 1
+    if inCombat then
+        PTI.UI.procHiddenAfterCombat = false
+    elseif PTI.sv.procUI.displayMode == "combat" then
+        local tk = procHideToken
+        local delay = math.max(0, tonumber(PTI.sv.procUI.hideDelay) or 5) * 1000
+        zo_callLater(function()
+            if tk == procHideToken and not IsUnitInCombat("player")
+                and PTI.sv.procUI.displayMode == "combat" then
+                PTI.UI.procHiddenAfterCombat = true
+                PTI.UI.SetWindowVisible("proc")
+            end
+        end, delay)
+    end
+
     PTI.UI.RefreshVisibility()
 end
 
@@ -421,6 +467,9 @@ function PTI.UI.Initialize()
     -- STEP5で追加: リロードUI等で既に戦闘中の場合に備え、IsUnitInCombatで
     -- 初期値を正しく設定してからRefreshVisibility()する(以後はイベント駆動)。
     PTI.UI.hiddenByCombat = not IsUnitInCombat("player")
+
+    -- v2.5.1: UI③の表示モード初期値(「戦闘終了後は非表示」で戦闘外なら最初は隠す)
+    PTI.UI.procHiddenAfterCombat = (PTI.sv.procUI.displayMode == "combat") and not IsUnitInCombat("player")
 
     -- STEP6で追加: procHasContentはProcs.lua側の最初のTickが来るまではfalse
     -- (=非表示)としておく(「発動していない時は勝手に表示しない」仕様のため)。
@@ -444,6 +493,9 @@ function PTI.UI.Initialize()
         local isGameplayScene = (sceneName == "hud" or sceneName == "hudui")
 
         PTI.UI.hiddenByScene = not isGameplayScene
+        -- v2.5.1: 通常プレイ画面に戻ったら、設定画面表示中フラグを必ず解除する
+        -- (閉じるイベントが届かなかった場合でも、サンプル表示が残らないための保険)
+        if isGameplayScene then PTI.UI.settingsOpen = false end
         PTI.UI.RefreshVisibility()
     end)
 end

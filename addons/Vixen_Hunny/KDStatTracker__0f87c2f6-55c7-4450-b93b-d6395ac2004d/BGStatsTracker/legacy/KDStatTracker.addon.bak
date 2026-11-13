@@ -1,0 +1,10 @@
+## Title: KDStatTracker
+## APIVersion: 101048
+## AddOnVersion: 2.0
+## Author: Vixen Hunny
+## DependsOn: LibAddonMenu-2.0
+## Description: Tracks duels and Battleground Kill Death (also works in Cyrodiil).
+## SavedVariables: KDStatTrackerVars KDStatTrackerKDA KDStatTrackerSettings
+
+KDStatTracker.lua
+KDStatTrackerSettings.lua

@@ -1,0 +1,9 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Better Group Finder">
+            <Action name="BGFC_TOGGLE">
+                <Down>BetterGroupFinderConsole.ToggleUI()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

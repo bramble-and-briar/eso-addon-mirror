@@ -1,3 +1,6 @@
+2026-10-03 v1.8.8
++  Added crystal weapon to stackable abilities
+
 2026-09-11 v1.8.7
 -  Reverted the changes to sound cues
 +  Fixed event.ending calculations

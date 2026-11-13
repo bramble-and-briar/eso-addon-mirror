@@ -35,7 +35,7 @@ function PvPUA:ApplyListSize()
     self.config.nameWidth           = 180
     self.config.siegeWidth          = 38
     self.config.underAttackForWidth = 65
-    self.config.killsWidth          = 85
+    self.config.killsWidth          = 120 -- three 3-digit counts at the default font (85 cut off past ~7 digits)
     self.config.width               = 510 + self.config.killsWidth + 4
     self.config.flagFlipWidth       = 60
     self:InvalidateFontCache()

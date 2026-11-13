@@ -1,0 +1,44 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Gamer1986PAN/Bank-Manager-Revived---AI-updated__2333",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Gamer1986PAN",
+  "canonical_id": "esoui:2333",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:2333",
+  "deleted": false,
+  "directories": [
+    "BankManagerRevived"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl2333/",
+  "fingerprint": "f2094292321d79773b1f6eff8f159030417020071b67e45f38ee4e5c8248aa7f",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw7960.png",
+    "https://cdn-eso.mmoui.com/preview/pvw8318.png",
+    "https://cdn-eso.mmoui.com/preview/pvw7961.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "2333",
+  "source_url": "https://www.esoui.com/downloads/info2333-BankManagerRevived-AIupdated.html",
+  "stats": {
+    "downloads": 46198,
+    "favorites": 53,
+    "monthly_downloads": 354
+  },
+  "title": "Bank Manager Revived - AI updated",
+  "updated_at": 1794526159000,
+  "version": "16.00"
+}

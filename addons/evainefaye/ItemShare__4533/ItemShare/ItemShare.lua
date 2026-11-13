@@ -3,7 +3,7 @@ ItemShare.name = "ItemShare"
 -- Kept in step with ## Version in ItemShare.txt. Written into the saved
 -- variables so an uploaded file says which addon produced it, which is the only
 -- reliable way to answer "am I actually running the new version?".
-local ADDON_VERSION = "1.11.31"
+local ADDON_VERSION = "1.11.35"
 -- Bumped whenever the saved layout changes shape. A file written by a different
 -- number is not migrated: its tables are started over, so the file is rewritten in
 -- the current layout on the next save.
@@ -2491,13 +2491,28 @@ local function InstallShareProtection()
                 return false
             end
 
+            -- A slot builds its action list when the pointer reaches it, so everything here
+            -- runs on every hover. Nothing shared and no standing offers means no slot can
+            -- be protected: one table lookup answers that, instead of resolving an item link
+            -- and a bag for every row the pointer crosses on the way to the one you want.
+            local savedVars = ItemShare.savedVars
+            if not savedVars
+                or (next(savedVars.sharedItems or {}) == nil
+                    and next(savedVars.alwaysShare or {}) == nil) then
+                return false
+            end
+
             local bagId, slotIndex = GetBagAndSlotFromSlotActions(slotActions)
             local entry, source = GetSharedEntryProtectingSlot(bagId, slotIndex)
             if not entry then
                 return false
             end
 
-            NotifyShareProtected(entry, source)
+            -- Refused, and nothing said: what the share does not allow is simply not in the
+            -- menu, the badge on the item already says it is shared, and a chat line for every
+            -- slot the pointer passed over was noise while browsing a bag. The refusal is
+            -- explained where the player actually asks for something - a click, a double
+            -- click or a drag - by the two hooks below.
             return true
         end)
     end
@@ -2646,8 +2661,9 @@ end
 --
 -- The size follows what it is sitting on: a fixed 14 px read as a speck next to a
 -- 36 px slot icon, so it is a little over half the icon now.
-local function AnchorShareMarker(marker, control)
-    local icon = FindItemIconControl(control)
+local function AnchorShareMarker(marker, control, icon)
+    icon = icon or FindItemIconControl(control)
+    control.ItemShareMarkerIcon = icon
 
     marker:ClearAnchors()
 
@@ -2683,8 +2699,13 @@ local function EnsureShareMarker(control)
 
     if control.ItemShareMarker and control.ItemShareMarker.SetTexture then
         -- Rows are recycled and the icon a row borrows can change, so the anchor is
-        -- re-applied rather than only set once at creation.
-        AnchorShareMarker(control.ItemShareMarker, control)
+        -- re-applied - but only when it is a different icon. Re-anchoring is the
+        -- expensive half of drawing a badge, and the common case is the same icon on a
+        -- row being repainted, not a row that changed what it holds.
+        local icon = FindItemIconControl(control)
+        if icon ~= control.ItemShareMarkerIcon then
+            AnchorShareMarker(control.ItemShareMarker, control, icon)
+        end
         return control.ItemShareMarker
     end
 
@@ -2827,73 +2848,131 @@ local function EnsureReserveMarker(control)
     return marker
 end
 
+-- Nothing shared, nothing offered and nothing reserved means every row looks the same, and this
+-- runs for every item control the game binds - every row of a bank you open. Answering "nothing
+-- to draw" with one table lookup keeps that opening cost off players who have nothing on their
+-- list, and off everyone before the first share of the session.
+local function HasAnyMarkerState()
+    local savedVars = ItemShare.savedVars
+    if not savedVars then
+        return false
+    end
+
+    return next(savedVars.sharedItems or {}) ~= nil
+        or next(savedVars.alwaysShare or {}) ~= nil
+        or next(savedVars.reserves or {}) ~= nil
+        or next(savedVars.locationReserves or {}) ~= nil
+end
+
 local function UpdateSharedRowMarker(control, slotData)
     if not control then
         return
     end
+
+    if not HasAnyMarkerState() then
+        if control.ItemShareMarker and control.ItemShareMarker.SetHidden then
+            control.ItemShareMarker:SetHidden(true)
+        end
+        if control.ItemShareReserveMarker and control.ItemShareReserveMarker.SetHidden then
+            control.ItemShareReserveMarker:SetHidden(true)
+        end
+        return
+    end
+
+    local bagId, slotIndex = GetBagAndSlotFromSlotData(control, slotData)
+    if bagId == nil or slotIndex == nil then
+        if control.ItemShareMarker and control.ItemShareMarker.SetHidden then
+            control.ItemShareMarker:SetHidden(true)
+        end
+        if control.ItemShareReserveMarker and control.ItemShareReserveMarker.SetHidden then
+            control.ItemShareReserveMarker:SetHidden(true)
+        end
+        return
+    end
+
+    local itemLink = GetNormalizedItemLink(bagId, slotIndex)
+    local locationKey = select(1, GetBagLocationInfo(bagId))
+    local sharedEntry = itemLink and locationKey and IsItemLinkSharedInLocation(itemLink, locationKey)
+            and ItemShare.savedVars
+            and ItemShare.savedVars.sharedItems
+            and ItemShare.savedVars.sharedItems[BuildSharedItemKey(itemLink, locationKey)]
+        or nil
+    -- The entry existing is what "shared" means. How much is on offer belongs in the
+    -- tooltip, not in whether the badge is drawn at all.
+    local isShared = sharedEntry ~= nil
+    -- A standing offer deserves its badge even when no copy is in a bag right now: that is
+    -- what the offer means.
+    local isAlways = itemLink and IsItemLinkAlwaysShared(itemLink, locationKey)
+    local reserve = (itemLink and GetShareReserve(itemLink, locationKey)) or 0
+    local isExpired = isShared and IsShareEntryExpired(sharedEntry) or false
+    local ageDays = isExpired and math.floor(GetShareAgeInDays(sharedEntry) or 0) or 0
+    local held = GetEntryHeldCount(sharedEntry)
+    local offered = GetEntryOfferedCount(sharedEntry)
+
+    -- Same item, same place, same answer as last time: leave the control alone.
+    --
+    -- This runs for every item control in the game every time the game binds it, and a
+    -- list rebinds every row it shows on every repaint - opening a bank, scrolling it, a
+    -- slot changing under the pointer. Working out what the badge says is a handful of
+    -- table lookups; moving it is a dozen client calls - anchoring, draw layer, draw tier,
+    -- texture. So the work is dropped early when nothing changed, and only a row whose
+    -- answer changed is redrawn.
+    local unchanged = control.ItemShareMarkerLink == itemLink
+        and control.ItemShareMarkerLocation == locationKey
+        and control.ItemShareMarkerShared == isShared
+        and control.ItemShareMarkerAlways == isAlways
+        and control.ItemShareMarkerReserve == reserve
+        and control.ItemShareMarkerExpired == isExpired
+        and control.ItemShareMarkerAgeDays == ageDays
+        and control.ItemShareMarkerHeld == held
+        and control.ItemShareMarkerOffered == offered
+
+    if unchanged then
+        return
+    end
+
+    control.ItemShareMarkerLink = itemLink
+    control.ItemShareMarkerLocation = locationKey
+    control.ItemShareMarkerShared = isShared
+    control.ItemShareMarkerAlways = isAlways
+    control.ItemShareMarkerReserve = reserve
+    control.ItemShareMarkerExpired = isExpired
+    control.ItemShareMarkerAgeDays = ageDays
+    control.ItemShareMarkerHeld = held
+    control.ItemShareMarkerOffered = offered
 
     local marker = EnsureShareMarker(control)
     if not marker then
         return
     end
 
-    local bagId, slotIndex = GetBagAndSlotFromSlotData(control, slotData)
-    if bagId == nil or slotIndex == nil then
-        marker:SetHidden(true)
-        return
-    end
-
-    local itemLink = GetNormalizedItemLink(bagId, slotIndex)
-    local locationKey = select(1, GetBagLocationInfo(bagId))
-    local isSharedInList = itemLink and locationKey and IsItemLinkSharedInLocation(itemLink, locationKey)
-    local sharedEntry = isSharedInList
-            and ItemShare.savedVars
-            and ItemShare.savedVars.sharedItems
-            and ItemShare.savedVars.sharedItems[BuildSharedItemKey(itemLink, locationKey)]
-        or nil
-    -- The entry existing is what "shared" means. This used to be decided by reading
-    -- the count the entry carried, and when that count stopped being stored every
-    -- share lost its badge: the marking was there, the list showed it, and the bag
-    -- said nothing. How much is on offer belongs in the tooltip, not in whether the
-    -- badge is drawn at all.
-    local isShared = sharedEntry ~= nil
-    -- A standing offer deserves its badge even when no copy is in a bag right now:
-    -- that is what the offer means. It used to show nothing at all in that state,
-    -- which made the gold icon look as if it did not exist.
-    local isAlways = itemLink and IsItemLinkAlwaysShared(itemLink, locationKey)
-    local reserve = (itemLink and GetShareReserve(itemLink, locationKey)) or 0
-
-    local isExpired = isShared and IsShareEntryExpired(sharedEntry)
     marker.ItemShareExpired = isExpired and true or false
-    marker.ItemShareAgeDays = isExpired and math.floor(GetShareAgeInDays(sharedEntry) or 0) or 0
+    marker.ItemShareAgeDays = ageDays
 
     if isShared or isAlways then
-        -- The plain glyph, saying only what the item offers. A reserve is a separate
-        -- fact and gets its own corner below, so a share that keeps some back shows
-        -- both instead of one badge having to mean two things. A share past the expire
-        -- limit is the one case where the age is the thing to say, so the stopwatch
-        -- takes the glyph's place rather than being added to it.
+        -- The plain glyph, saying only what the item offers. A reserve is a separate fact
+        -- and gets its own corner below. A share past the expire limit is the one case
+        -- where the age is the thing to say, so the stopwatch takes the glyph's place.
         marker:SetTexture(
             isExpired and EXPIRED_TEXTURE_PATH
                 or (isAlways and ALWAYS_SHARE_TEXTURE_PATH or SHARE_TEXTURE_PATH)
         )
         marker.ItemShareAlways = isAlways and true or false
         marker.ItemShareReserve = reserve
-        marker.ItemShareHeld = GetEntryHeldCount(sharedEntry)
-        marker.ItemShareOffered = GetEntryOfferedCount(sharedEntry)
+        marker.ItemShareHeld = held
+        marker.ItemShareOffered = offered
     end
 
     marker:SetHidden(not (isShared or isAlways))
 
-    -- The reserve tag, bottom-left: a reserved share shows the parcel above and the
-    -- amber tag below, and a reserve on an item that is not shared at all shows only
-    -- the tag. One place for it means the reserve is never the badge that got hidden.
+    -- The reserve tag, bottom-left, so a share that keeps some back shows both facts and
+    -- an item that is only reserved shows the tag on its own.
     local reserveMarker = EnsureReserveMarker(control)
     if reserveMarker then
         reserveMarker.ItemShareReserve = reserve
         reserveMarker.ItemShareUnshared = not (isShared or isAlways)
-        reserveMarker.ItemShareHeld = GetEntryHeldCount(sharedEntry)
-        reserveMarker.ItemShareOffered = GetEntryOfferedCount(sharedEntry)
+        reserveMarker.ItemShareHeld = held
+        reserveMarker.ItemShareOffered = offered
         reserveMarker:SetHidden(reserve <= 0)
     end
 end
@@ -4246,6 +4325,161 @@ end
 -- own place has run out is asking this question, and the answer has to be single: three
 -- swords split across two bags and the bank is not an item that moved, and guessing would
 -- put a lock on a copy nobody shared.
+-- The bag walk itself is cheap; what costs is the per-item work behind it - item link, trait,
+-- furniture data, icon, stack count - a handful of getters per slot, over every tracked bag. On a
+-- full bank that is thousands of calls, and it all used to happen in one frame, which is the
+-- pause you feel when the bank opens or when a stack is picked up. The same work is now done in
+-- slices with a pause between them: the client gets its frames back and the pass finishes a
+-- moment later instead of hitching for a moment now.
+local SCAN_SLOTS_PER_SLICE = 20
+local SCAN_PAUSE_MS = 80
+
+local StartInventoryScan
+local scanJob = nil
+
+-- A slice is a count of slots rather than milliseconds because a slot costs about the same
+-- everywhere; the pause is what keeps the client responsive. Twenty slots with eighty
+-- milliseconds between them is half the work in each frame and twice the breathing room, so
+-- a full 240-slot bank is twelve short slices rather than one long stall.
+local function BuildScanUnits()
+    local units = {}
+    local index = {
+        observableLocationKeys = {},
+        countsByEntryKey = {},
+        countsByLink = {},
+        locationsByLink = {},
+    }
+
+    for _, bagId in ipairs(GetTrackedBagIds()) do
+        local locationKey, locationLabel = GetBagLocationInfo(bagId)
+        local bagSize = GetBagSize(bagId) or 0
+        if bagSize > 0 then
+            -- Only a bag that can be read right now is allowed to judge an entry missing.
+            index.observableLocationKeys[locationKey] = true
+            units[#units + 1] = {
+                bagId = bagId,
+                locationKey = locationKey,
+                locationLabel = locationLabel,
+                bagSize = bagSize,
+            }
+        end
+    end
+
+    return units, index
+end
+
+-- One slot of the pass, doing exactly what BuildActualInventoryIndex does per slot so the two
+-- produce the same index - the synchronous version is kept for the explicit commands.
+local function ScanOneSlot(index, unit, slotIndex)
+    local bagId = unit.bagId
+    local slotItemName = GetItemName(bagId, slotIndex)
+    if not slotItemName or slotItemName == "" then
+        return
+    end
+
+    if not IsItemEligibleForShare(bagId, slotIndex) then
+        return
+    end
+
+    local itemData = GetItemDataFromBagSlot(bagId, slotIndex)
+    if not itemData or not itemData.itemLink then
+        return
+    end
+
+    local stackCount = GetItemShareCount(bagId, slotIndex)
+    local entryKey = BuildSharedItemKey(itemData.itemLink, unit.locationKey)
+    local existing = index.countsByEntryKey[entryKey]
+
+    index.countsByEntryKey[entryKey] = {
+        count = (existing and existing.count or 0) + stackCount,
+        sharedFrom = unit.locationLabel,
+        locationKey = unit.locationKey,
+        trait = tostring(itemData.trait or ""),
+        furnitureDataId = tonumber(itemData.furnitureDataId) or 0,
+        bagId = bagId,
+        slotIndex = slotIndex,
+        itemData = itemData,
+    }
+    index.countsByLink[itemData.itemLink] = (index.countsByLink[itemData.itemLink] or 0) + stackCount
+    if not index.locationsByLink[itemData.itemLink] then
+        index.locationsByLink[itemData.itemLink] = {
+            sharedFrom = unit.locationLabel,
+            locationKey = unit.locationKey,
+            bagId = bagId,
+            slotIndex = slotIndex,
+            itemData = itemData,
+        }
+    end
+end
+
+local function FinishScan(job)
+    scanJob = nil
+
+    local onDone = job.onDone
+    if onDone then
+        onDone(job.index)
+    end
+
+    -- A request that arrived mid-scan is honoured now rather than dropped: one more pass, not
+    -- one pass per event that landed while the first was running.
+    if job.again then
+        StartInventoryScan(job.again)
+    end
+end
+
+local function RunScanSlice(job)
+    local units = job.units
+    local budget = SCAN_SLOTS_PER_SLICE
+
+    while budget > 0 and job.unitIndex <= #units do
+        local unit = units[job.unitIndex]
+        ScanOneSlot(job.index, unit, job.slotIndex)
+
+        job.slotIndex = job.slotIndex + 1
+        budget = budget - 1
+
+        if job.slotIndex >= unit.bagSize then
+            job.unitIndex = job.unitIndex + 1
+            job.slotIndex = 0
+        end
+    end
+
+    if job.unitIndex > #units then
+        FinishScan(job)
+        return
+    end
+
+    zo_callLater(function()
+        if scanJob == job then
+            RunScanSlice(job)
+        end
+    end, SCAN_PAUSE_MS)
+end
+
+StartInventoryScan = function(onDone)
+    if scanJob then
+        scanJob.again = scanJob.again or onDone
+        return
+    end
+
+    local units, index = BuildScanUnits()
+    local job = {
+        units = units,
+        index = index,
+        unitIndex = 1,
+        slotIndex = 0,
+        onDone = onDone,
+    }
+    scanJob = job
+
+    if #units == 0 or not zo_callLater then
+        FinishScan(job)
+        return
+    end
+
+    RunScanSlice(job)
+end
+
 local function FindSolePlaceHoldingLink(inventoryIndex, itemLink, excludeLocationKey)
     local link = tostring(itemLink or "")
     if link == "" or not inventoryIndex then
@@ -4434,9 +4668,9 @@ RefreshAlwaysShareHeldCounts = function(inventoryIndex)
     return changed
 end
 
-SyncSharedItemsWithInventory = function(quiet)
+SyncSharedItemsWithInventory = function(quiet, prebuiltIndex)
     local sharedItems = ItemShare.savedVars.sharedItems
-    local inventoryIndex = BuildActualInventoryIndex()
+    local inventoryIndex = prebuiltIndex or BuildActualInventoryIndex()
     local removedCount, updatedCount, unchangedCount = 0, 0, 0
 
     local snapshot = {}
@@ -4517,9 +4751,9 @@ SyncSharedItemsWithInventory = function(quiet)
     RefreshShareListWindowIfVisible()
 end
 
-RebuildSharedItemsWithInventory = function(quiet)
+RebuildSharedItemsWithInventory = function(quiet, prebuiltIndex)
     local sharedItems = ItemShare.savedVars.sharedItems
-    local inventoryIndex = BuildActualInventoryIndex()
+    local inventoryIndex = prebuiltIndex or BuildActualInventoryIndex()
     -- Dropped here as well as at login: whatever wrote the file, a row from the
     -- removed placed-furniture idea must not be carried forward into the next save.
     local removedCount, updatedCount, unchangedCount = PruneLegacyPlacedFurnitureShares(), 0, 0
@@ -4624,33 +4858,35 @@ RebuildSharedItemsWithInventory = function(quiet)
     RefreshShareListWindowIfVisible()
 end
 
--- The saved file is meant to be a snapshot of what the account owns right now, so
--- the addon refreshes it without being asked: once when a character loads, and
--- again when a bank opens or closes. Every entry it can see is rewritten from live
--- data (item id, icon, guild ids, set, enchant, style, level, CP, flavour text),
--- and entries whose location was readable but no longer holds the item are
--- dropped. Locations that could not be read are left alone.
--- Nothing to refresh means nothing to scan: a player with no shares and no standing
--- offers should not pay for a rebuild every time they pick something up.
-local function HasEntriesToRefresh()
-    local savedVars = ItemShare.savedVars
-    if not savedVars then
-        return false
-    end
-
-    return next(savedVars.alwaysShare or {}) ~= nil or next(savedVars.sharedItems or {}) ~= nil
-end
-
--- A slot change is worth a pass only when it happened in a bag this addon counts and
--- there is a table that could have gone stale.
-local function ShouldReconcileForInventoryChange(bagId)
-    return IsTrackedBagId(bagId) and HasEntriesToRefresh()
-end
-
 local autoReconcilePending = false
+local autoReconcileDeferred = false
+local lastAutoReconcileAt = nil
+-- Ten seconds is enough for counts that only have to be roughly right while you play, and it is
+-- the difference between a busy bag costing one pass and costing one per pickup.
+local AUTO_RECONCILE_MIN_INTERVAL_SECONDS = 10
 
 local function ScheduleAutoReconcile(reason)
-    if autoReconcilePending or not ItemShare.savedVars or not zo_callLater then
+    if not ItemShare.savedVars or not zo_callLater then
+        return
+    end
+
+    if autoReconcilePending then
+        return
+    end
+
+    local now = (GetTimeStamp and GetTimeStamp()) or 0
+
+    if lastAutoReconcileAt and (now - lastAutoReconcileAt) < AUTO_RECONCILE_MIN_INTERVAL_SECONDS then
+        -- Deferred, not dropped: a copy that moved still has to be noticed, but a burst of slot
+        -- updates must not each pay for a scan. One timer covers the whole burst.
+        if not autoReconcileDeferred then
+            autoReconcileDeferred = true
+            local waitSeconds = AUTO_RECONCILE_MIN_INTERVAL_SECONDS - (now - lastAutoReconcileAt)
+            zo_callLater(function()
+                autoReconcileDeferred = false
+                ScheduleAutoReconcile(reason)
+            end, math.max(500, math.floor(waitSeconds * 1000)))
+        end
         return
     end
 
@@ -4661,11 +4897,13 @@ local function ScheduleAutoReconcile(reason)
             return
         end
 
+        lastAutoReconcileAt = (GetTimeStamp and GetTimeStamp()) or 0
         RefreshGuildSnapshot()
-        RebuildSharedItemsWithInventory(true)
-        -- This pass runs on login, on every bank visit and after most bag changes, so the
-        -- line was noise. Kept, commented out, for whenever it is wanted again.
-        -- PrintMessage(string.format("Shared items refreshed after %s.", tostring(reason or "login")))
+
+        -- The pass is the same work as before, spread over slices instead of one frame.
+        StartInventoryScan(function(index)
+            RebuildSharedItemsWithInventory(true, index)
+        end)
     end, 4000)
 end
 
@@ -5437,34 +5675,17 @@ local function OnAddonLoaded(event, addonName)
         EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_PLAYER_ACTIVATED, function()
             ScheduleAutoReconcile("login")
         end)
-        EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_OPEN_BANK, function()
-            ScheduleAutoReconcile("the bank opening")
-        end)
-        EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_CLOSE_BANK, function()
-            ScheduleAutoReconcile("the bank closing")
-        end)
 
-    -- A count goes stale the moment something leaves a bag, and selling, deconstructing,
-    -- trading, mailing or destroying never opens the bank, so nothing used to notice and
-    -- the number kept whatever the last sync or reload left behind. A slot update covers
-    -- every one of those, and ScheduleAutoReconcile collapses a burst into one pass, so a
-    -- loot run or a stack split costs a single rebuild rather than one per item.
-        EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function(_, bagId)
-            if not ShouldReconcileForInventoryChange(bagId) then
-                return
-            end
-
-            ScheduleAutoReconcile("a change in your bags")
-        end)
-
-    -- A completed trade can move a whole stack without a slot update for the copy that
-    -- left, so the window closing is the second chance to notice it.
-        EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_CLOSE_TRADE_WINDOW, function()
-            if not HasEntriesToRefresh() then
-                return
-            end
-
-            ScheduleAutoReconcile("a trade")
+    -- The bags are read here and on a zone change, and nowhere else.
+    --
+    -- Reading them is the most expensive thing this addon does: sixteen bags, the craft
+    -- bag, both banks, ten house chests, the furnishing vault and the guild bank, at about
+    -- a dozen client calls per slot. Doing it because a slot changed - which is every
+    -- pickup, sale, split and loot - kept the client busy while the player was playing. A
+    -- count can now be a zone out of date, and a share whose place emptied re-files itself
+    -- on the next read rather than the same second; /ishare sync asks for it sooner.
+        EVENT_MANAGER:RegisterForEvent(ItemShare.name, EVENT_ZONE_CHANGED, function()
+            ScheduleAutoReconcile("a new zone")
         end)
 
     RegisterContextMenus()

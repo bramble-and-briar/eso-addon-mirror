@@ -1,4 +1,5 @@
--- SatchelExchangeMain.lua: Entry point; wires state, saved vars, and the store keybind.
+-- SatchelExchangeMain.lua: Entry point; wires state, saved vars, the store keybind,
+-- the unboxer's triggers, and the wheel entry.
 
 local SatchelExchange = SatchelExchange
 
@@ -17,6 +18,7 @@ local function Initialize()
     SatchelExchange.StoreActions.InitializeSessionHandlers()
     SatchelExchange.UnboxActions.InitializePersistentHandlers()
     SatchelExchange.SettingsActions.Initialize()
+    SatchelExchange.RadialActions.Initialize()
 
     SatchelExchange.Log(string.format("Loaded v%s", SatchelExchange.version))
 end

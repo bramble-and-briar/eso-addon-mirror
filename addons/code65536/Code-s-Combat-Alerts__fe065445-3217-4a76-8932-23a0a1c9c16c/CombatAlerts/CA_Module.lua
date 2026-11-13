@@ -234,6 +234,11 @@ function CA_Module:GetString( key )
 	return LCA.GetLocalizedData(self.STRINGS[key])
 end
 
+function CA_Module:GetScratch( )
+	self._scratch = LCA.PrepareScratchTable(self._scratch)
+	return self._scratch
+end
+
 function CA_Module:GetSettings( )
 	if (type(self.currentSettings) ~= "table") then
 		if (type(CombatAlertsModules) ~= "table") then

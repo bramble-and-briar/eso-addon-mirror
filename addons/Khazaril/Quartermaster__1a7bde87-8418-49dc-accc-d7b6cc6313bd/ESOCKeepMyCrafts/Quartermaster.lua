@@ -12,6 +12,9 @@
 -- Gear with a trait you keep (per armor / weapons / jewelry / companion gear) is never sold, and set
 -- pieces with a kept trait are also hidden from deconstruction, like your crafted items.
 --
+-- Containers: loot boxes and money pouches in your backpack are opened when you're out of combat
+-- with no menu open, and everything inside is taken (Crown, locked and stolen ones are left alone).
+--
 -- Weapon charge: when an equipped weapon (either bar) drops to the charge you set (default 10%), it
 -- is recharged with a filled soul gem from your backpack, ordinary gems before Crown ones.
 
@@ -42,6 +45,7 @@ QM.DEFAULTS = {
     sellCompanionGreen = true,
     sellCompanionBlue = true, -- unless it has a kept companion trait
     sellCompanionPurple = false,
+    autoOpen = true, -- open loot containers and money pouches when out of combat
     autoCharge = true, -- recharge equipped weapons with soul gems
     chargePercent = 10, -- ...when their charge is at or below this
     keepTraits = {}, -- filled from DEFAULT_KEEP below
@@ -239,6 +243,7 @@ end
 ---------------------------------------------------------------------------
 local atStore, atFence = false, false
 local watchCharge -- defined in the Weapon charge section below
+local watchContainers -- defined in the Containers section below
 local selling = nil -- { list, index, gold, items }
 local SELL_GAP_MS = 150 -- one sale at a time, so the server doesn't refuse a burst
 
@@ -346,6 +351,7 @@ function QM.Init(saved, isMine)
         atStore, atFence = false, false
     end)
     watchCharge()
+    watchContainers()
 end
 
 ---------------------------------------------------------------------------
@@ -439,6 +445,177 @@ watchCharge = function()
 end
 
 ---------------------------------------------------------------------------
+-- Containers: open loot boxes and money pouches when it's safe
+---------------------------------------------------------------------------
+-- Opening an item is a protected action: add-ons may only do it out of combat, through
+-- CallSecureProtected("UseItem", ...). We open one container at a time, only when you're out of
+-- combat, alive, on the normal game view (no menu or conversation open) and have room in your bags,
+-- then take everything without showing the loot window. What comes out is sold at the next
+-- merchant by the rules above.
+local OPEN_GAP_MS = 800 -- between containers
+local LOOT_WAIT_MS = 3000 -- give up on a container's loot window after this long
+local FREE_SLOTS_NEEDED = 5
+local opening = nil -- { opened, goldBefore, waiting }
+local blocked = false -- the game refused to let us open items this session
+
+local function isContainerType(itemType)
+    if itemType == nil then return false end
+    return itemType == ITEMTYPE_CONTAINER or (ITEMTYPE_CONTAINER_CURRENCY ~= nil and itemType == ITEMTYPE_CONTAINER_CURRENCY)
+end
+
+-- Would we open this backpack slot?
+function QM.IsOpenable(bag, slot)
+    if (safe(GetItemId, bag, slot) or 0) == 0 then return false end
+    if not isContainerType(safe(GetItemType, bag, slot)) then return false end
+    if safe(IsItemPlayerLocked, bag, slot) then return false end
+    if safe(IsItemStolen, bag, slot) then return false end
+    if safe(IsItemFromCrownStore, bag, slot) or safe(IsItemFromCrownCrate, bag, slot) then return false end
+    if IsItemUsable then
+        local usable, onlyFromActionSlot = safe(IsItemUsable, bag, slot)
+        if not usable or onlyFromActionSlot then return false end
+    end
+    if CanInteractWithItem and not safe(CanInteractWithItem, bag, slot) then return false end
+    return true
+end
+
+local function nextContainer()
+    for slot = 0, (safe(GetBagSize, BAG_BACKPACK) or 0) - 1 do
+        if QM.IsOpenable(BAG_BACKPACK, slot) then return slot end
+    end
+    return nil
+end
+
+local function gold()
+    return safe(GetCurrencyAmount, CURT_MONEY, CURRENCY_LOCATION_CHARACTER)
+        or safe(GetCarriedCurrencyAmount, CURT_MONEY) or 0
+end
+
+-- Is now a good moment? Out of combat, alive, nothing else on screen, bags not nearly full.
+function QM.CanOpenNow()
+    if not opts.autoOpen or blocked then return false end
+    if safe(IsUnitInCombat, "player") or safe(IsUnitDead, "player") then return false end
+    if SCENE_MANAGER and SCENE_MANAGER.IsShowingBaseScene and not safe(SCENE_MANAGER.IsShowingBaseScene, SCENE_MANAGER) then
+        return false
+    end
+    if (safe(GetNumBagFreeSlots, BAG_BACKPACK) or 0) < FREE_SLOTS_NEEDED then return false end
+    return true
+end
+
+local function finishOpening()
+    local o = opening
+    opening = nil
+    if not o or o.opened == 0 then return end
+    local got = gold() - o.goldBefore
+    local text = string.format("Opened %d container%s", o.opened, o.opened == 1 and "" or "s")
+    if got > 0 then text = text .. " (+" .. money(got) .. " gold)" end
+    say(text .. ".")
+    if QM.onChanged then pcall(QM.onChanged) end
+end
+
+local openNext
+local function later(fn, ms) if zo_callLater then zo_callLater(fn, ms) else fn() end end
+
+openNext = function()
+    local o = opening
+    if not o then return end
+    if o.waiting then return end
+    if not QM.CanOpenNow() then finishOpening(); return end
+    local slot = nextContainer()
+    if not slot then finishOpening(); return end
+    local ok, result = pcall(CallSecureProtected, "UseItem", BAG_BACKPACK, slot)
+    if not ok or result == false then
+        blocked = true
+        say("The game didn't let Quartermaster open containers here, so it won't try again this session.")
+        finishOpening()
+        return
+    end
+    o.opened = o.opened + 1
+    o.waiting = { slot = slot, token = {} }
+    local token = o.waiting.token
+    -- if no loot window shows up (an empty pouch, money straight to your purse), carry on anyway
+    later(function()
+        if opening and opening.waiting and opening.waiting.token == token then
+            opening.waiting = nil
+            safe(EndLooting) -- don't leave a hidden loot window open (e.g. bags filled up)
+            later(openNext, OPEN_GAP_MS)
+        end
+    end, LOOT_WAIT_MS)
+end
+
+-- Start (or continue) opening, if there's anything to open and it's a good moment.
+function QM.OpenContainers()
+    if opening then return false end
+    if not QM.CanOpenNow() or not nextContainer() then return false end
+    opening = { opened = 0, goldBefore = gold() }
+    openNext()
+    return true
+end
+
+local function onLootUpdated()
+    if not opening or not opening.waiting then return end
+    -- take everything (stolen items aside; containers we open aren't stolen). LootAll directly,
+    -- since the game's own Take All reads the loot window we kept hidden.
+    if LootAll then safe(LootAll, true)
+    elseif LOOT_SHARED and LOOT_SHARED.LootAllItems then pcall(LOOT_SHARED.LootAllItems, LOOT_SHARED) end
+end
+
+-- While we're opening a container, keep the game's loot window from showing: we take everything
+-- ourselves. Wraps both the gamepad and keyboard loot windows; anything else loots as normal.
+local function quietLootWindow(window)
+    if type(window) ~= "table" or type(window.UpdateLootWindow) ~= "function" or window.esocQuiet then return end
+    local original = window.UpdateLootWindow
+    window.UpdateLootWindow = function(self, ...)
+        if opening and opening.waiting then return end
+        return original(self, ...)
+    end
+    window.esocQuiet = true
+end
+
+function QM.QuietLootWindows()
+    quietLootWindow(LOOT_COMMON_GAMEPAD)
+    quietLootWindow(LOOT_WINDOW)
+end
+
+local function onLootClosed()
+    if not opening or not opening.waiting then return end
+    opening.waiting = nil
+    later(openNext, OPEN_GAP_MS)
+end
+
+local pendingCheck = false
+local function soon()
+    if pendingCheck then return end
+    pendingCheck = true
+    later(function() pendingCheck = false; pcall(QM.OpenContainers) end, 1500)
+end
+
+watchContainers = function()
+    pcall(QM.QuietLootWindows)
+    if not EVENT_MANAGER then return end
+    local name = "ESOC_QuartermasterOpen"
+    if EVENT_LOOT_UPDATED then EVENT_MANAGER:RegisterForEvent(name, EVENT_LOOT_UPDATED, function() pcall(onLootUpdated) end) end
+    if EVENT_LOOT_CLOSED then EVENT_MANAGER:RegisterForEvent(name, EVENT_LOOT_CLOSED, function() pcall(onLootClosed) end) end
+    if EVENT_INVENTORY_SINGLE_SLOT_UPDATE then
+        EVENT_MANAGER:RegisterForEvent(name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function(_, bagId, slotIndex, isNewItem)
+            if bagId == BAG_BACKPACK and isNewItem and isContainerType(safe(GetItemType, bagId, slotIndex)) then soon() end
+        end)
+        if EVENT_MANAGER.AddFilterForEvent and REGISTER_FILTER_BAG_ID then
+            pcall(EVENT_MANAGER.AddFilterForEvent, EVENT_MANAGER, name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
+        end
+    end
+    if EVENT_PLAYER_COMBAT_STATE then
+        EVENT_MANAGER:RegisterForEvent(name, EVENT_PLAYER_COMBAT_STATE, function(_, inCombat) if not inCombat then soon() end end)
+    end
+    if EVENT_PLAYER_ACTIVATED then EVENT_MANAGER:RegisterForEvent(name, EVENT_PLAYER_ACTIVATED, function() soon() end) end
+    -- leaving a menu (inventory, a merchant, a conversation) back to the game view
+    if SCENE_MANAGER and SCENE_MANAGER.RegisterCallback then
+        pcall(SCENE_MANAGER.RegisterCallback, SCENE_MANAGER, "SceneStateChanged", function(scene, _, newState)
+            if newState == SCENE_SHOWN and SCENE_MANAGER.IsShowingBaseScene and safe(SCENE_MANAGER.IsShowingBaseScene, SCENE_MANAGER) then soon() end
+        end)
+    end
+end
+
+---------------------------------------------------------------------------
 -- Settings page: Settings > Add-Ons > Quartermaster (needs LibHarvensAddonSettings)
 ---------------------------------------------------------------------------
 local settingsMade = false
@@ -468,6 +645,8 @@ function QM.CreateSettings(saved, extra)
         { type = LHAS.ST_SECTION, label = "At a merchant" },
         check("Sell automatically", "Sell the items ticked below as soon as you open a merchant (not fences or guild traders). Off: a Sell trash button (left stick) on the Sell screen instead.", "autoSell"),
         check("Repair automatically", "Repair all your gear when you open a merchant, if you have the gold.", "autoRepair"),
+        { type = LHAS.ST_SECTION, label = "Containers" },
+        check("Open containers automatically", "Open loot boxes and money pouches from your backpack when you're out of combat with no menu open, and take what's inside. Crown, locked and stolen containers are left alone. It waits if you have fewer than 5 free bag slots.", "autoOpen"),
         { type = LHAS.ST_SECTION, label = "Weapon charge" },
         check("Recharge weapons automatically", "Use a filled soul gem from your backpack when an equipped weapon (either bar) runs low. Ordinary soul gems are used before Crown ones.", "autoCharge"),
         {

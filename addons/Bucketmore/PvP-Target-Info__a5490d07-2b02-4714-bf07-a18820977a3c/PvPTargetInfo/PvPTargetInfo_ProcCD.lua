@@ -1063,7 +1063,7 @@ local function Render(now)
     local showReady = PTI.sv.cd.showReady ~= false
     local index = 0
 
-    if PTI.sv.previewMode then
+    if PTI.IsPreview() then
         -- 位置確認用サンプル(実際のCD値ではない)
         local samples = {
             { "サンプルA", "12.4", false }, { "サンプルB", "5.8", false }, { "サンプルC", READY_TEXT, true },
@@ -1166,8 +1166,8 @@ local function OnTick()
     if equippedDirty then RescanEquipped() end
     tickCount = tickCount + 1
     if tickCount % SCAN_EVERY == 0 and not PTI.sv.previewMode then ScanBuffs(now) end
-    if PTI.UI.cdHiddenAfterCombat and not PTI.sv.previewMode then return end -- 非表示中は表示更新しない
-    if listCount > 0 or next(states) ~= nil or PTI.sv.previewMode or lastHasContent then
+    if PTI.UI.cdHiddenAfterCombat and not PTI.IsPreview() then return end -- 非表示中は表示更新しない
+    if listCount > 0 or next(states) ~= nil or PTI.IsPreview() or lastHasContent then
         Render(now)
     end
 end

@@ -140,14 +140,20 @@ function PvPUA:SettingsMenu()
           tooltip = "Reopens the last page where you left off.",
           getFunc = function() return self.savedVariables.settingsRemember end,
           setFunc = function(v) self.savedVariables.settingsRemember = v end },
+        -- Patch: requeue when the campaign turns out full ("Campaign Queue: Auto Requeue" in PvPUA.lua).
+        { type = "toggle", name = "Auto Requeue", preset = "YES_NO",
+          default = PvPUA.defaults.autoRequeue,
+          tooltip = "When a campaign you queued for turns you away because it is full (\"Jump failed. Instance is full.\" and the like), queues you for it again, up to 5 times. A queue that is still moving is left alone. Each step is posted in chat.",
+          getFunc = function() return self.savedVariables.autoRequeue ~= false end,
+          setFunc = function(v) self.savedVariables.autoRequeue = v == true end },
         -- Patch: kill-marker / kill-feed diagnostics through the optional LibConsoleLogger (buffer only, no chat).
         { type = "toggle", name = "Debug Log", preset = "YES_NO",
           default = PvPUA.defaults.debugLog,
           tooltip = function()
               if not self:DebugLogAvailable() then
-                  return "Needs the LibConsoleLogger add-on (not installed). Records why places are or aren't listed from battle markers and kill-feed chat lines, for bug reports."
+                  return "Needs the LibConsoleLogger add-on (not installed). Records why places are or aren't listed from battle markers and kill-feed chat lines, and every campaign queue / jump event, for bug reports."
               end
-              return "Records why places are or aren't listed from battle markers and kill-feed chat lines into LibConsoleLogger's buffer (never chat). Also enable logging in LibConsoleLogger's own settings, and cap its Buffer size (300 is plenty) so an export is only a few browser round trips."
+              return "Records why places are or aren't listed from battle markers and kill-feed chat lines, and every campaign queue / jump event, into LibConsoleLogger's buffer (never chat). Also enable logging in LibConsoleLogger's own settings, and cap its Buffer size (300 is plenty) so an export is only a few browser round trips."
           end,
           getFunc = function() return self.savedVariables.debugLog == true end,
           setFunc = function(v)

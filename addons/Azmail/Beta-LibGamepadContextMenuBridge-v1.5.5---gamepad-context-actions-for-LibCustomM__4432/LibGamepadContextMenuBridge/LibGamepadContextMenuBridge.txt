@@ -1,0 +1,14 @@
+## Title: LibGamepadContextMenuBridge
+## Author: Azmail
+## APIVersion: 101051
+## Version: 1.5.5
+## AddOnVersion: 155
+## IsLibrary: true
+## DependsOn: LibCustomMenu>=730
+## OptionalDependsOn: LibAddonMenu-2.0 TamrielTradeCentre
+## SavedVariables: LibGamepadContextMenuBridge_SavedVars
+## Description: Mirrors LibCustomMenu inventory context menu entries into gamepad inventory actions.
+
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+
+LibGamepadContextMenuBridge.lua

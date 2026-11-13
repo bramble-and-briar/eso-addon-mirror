@@ -8,6 +8,10 @@
   "category_id": "26",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -74,7 +78,7 @@
     "ItemBrowser"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1480/",
-  "fingerprint": "fe0fabd80a80e464580448683e35aa97988c45720a892497316e2d0d4edc10a7",
+  "fingerprint": "fafb0a54640e5c8c0e7cf5f3024fca7317b1a0d9c8701d51132f983bad305e70",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw9635.png",
     "https://cdn-eso.mmoui.com/preview/pvw4789.png",
@@ -93,11 +97,11 @@
   "source_id": "1480",
   "source_url": "https://www.esoui.com/downloads/info1480-ItemSetBrowser.html",
   "stats": {
-    "downloads": 1923251,
-    "favorites": 752,
-    "monthly_downloads": 17698
+    "downloads": 1936323,
+    "favorites": 755,
+    "monthly_downloads": 3087
   },
   "title": "Item Set Browser",
-  "updated_at": 1788610013000,
-  "version": "4.7.1.2"
+  "updated_at": 1794535191000,
+  "version": "4.7.2"
 }

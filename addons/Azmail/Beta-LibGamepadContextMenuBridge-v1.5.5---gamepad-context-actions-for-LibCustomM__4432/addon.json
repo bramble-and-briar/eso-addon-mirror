@@ -1,0 +1,99 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Azmail/Beta-LibGamepadContextMenuBridge-v1.5.5---gamepad-context-actions-for-LibCustomM__4432",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Azmail",
+  "canonical_id": "esoui:4432",
+  "category_id": "53",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
+    {
+      "name": "Season Zero",
+      "version": "11.3.0"
+    },
+    {
+      "name": "Seasons of the Worm Cult Pt2",
+      "version": "11.2.0"
+    },
+    {
+      "name": "Feast of Shadows",
+      "version": "11.1.0"
+    },
+    {
+      "name": " Seasons of the Worm Cult Pt1",
+      "version": "11.0.0"
+    },
+    {
+      "name": "Fallen Banners",
+      "version": "10.3.5"
+    },
+    {
+      "name": "Update 44",
+      "version": "10.2.0"
+    },
+    {
+      "name": "Update 43",
+      "version": "10.1.0"
+    },
+    {
+      "name": "Gold Road",
+      "version": "10.0.0"
+    },
+    {
+      "name": "Scions of Ithelia",
+      "version": "9.3.0"
+    },
+    {
+      "name": "Endless Archive",
+      "version": "9.2.5"
+    },
+    {
+      "name": "base-game patch",
+      "version": "9.1.5"
+    },
+    {
+      "name": "Necrom",
+      "version": "9.0.0"
+    },
+    {
+      "name": "Scribes of Fate",
+      "version": "8.3.5"
+    }
+  ],
+  "content_id": "esoui:4432",
+  "deleted": false,
+  "directories": [
+    "LibGamepadContextMenuBridge"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4432/",
+  "fingerprint": "108d4f3e9154219a016de000bb38a80683b4f3fb92ef6d73b80646302cb840a1",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18407.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18408.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4432",
+  "source_url": "https://www.esoui.com/downloads/info4432-BetaLibGamepadContextMenuBridgev1.5.5-gamepadcontextactionsforLibCustomMenu.html",
+  "stats": {
+    "downloads": 3499,
+    "favorites": 3,
+    "monthly_downloads": 471
+  },
+  "title": "[Beta] LibGamepadContextMenuBridge v1.5.5 - gamepad context actions for LibCustomMenu",
+  "updated_at": 1794515672000,
+  "version": "1.5.5"
+}

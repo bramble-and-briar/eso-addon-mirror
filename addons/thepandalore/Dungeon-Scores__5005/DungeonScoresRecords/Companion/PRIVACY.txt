@@ -1,6 +1,6 @@
 Dungeon Scores publication and privacy summary
 ==============================================
-Applies to DungeonScores 0.5.37 and the optional DungeonScoresRecords
+Applies to DungeonScores 0.5.38 and the optional DungeonScoresRecords
 Companion 0.5.15. This notice describes the bundled client's behavior and the
 public-record data it exchanges; server-side retention and Discord delivery
 are controlled by the community service.

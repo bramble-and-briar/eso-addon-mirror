@@ -8,8 +8,8 @@
   "category_id": "17",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:3228",
@@ -18,7 +18,7 @@
     "VEQ"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3228/",
-  "fingerprint": "33bfbb40047ee3bc520006a722eba76b9acb311e61a9498d10251182eef9f8b1",
+  "fingerprint": "9fb6988c99c20ece532fc682e4b4936c7753b813a6759b6929c19ec2a2160770",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw11147.png",
     "https://cdn-eso.mmoui.com/preview/pvw14291.png",
@@ -55,11 +55,11 @@
   "source_id": "3228",
   "source_url": "https://www.esoui.com/downloads/info3228-VestigesEpicQuest.html",
   "stats": {
-    "downloads": 162770,
+    "downloads": 163550,
     "favorites": 144,
-    "monthly_downloads": 2360
+    "monthly_downloads": 2894
   },
   "title": "Vestige's Epic Quest",
-  "updated_at": 1793859104000,
-  "version": "2026.11.02"
+  "updated_at": 1794496701000,
+  "version": "2026.11.12"
 }

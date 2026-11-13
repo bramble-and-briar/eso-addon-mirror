@@ -202,7 +202,9 @@ function A:ExportRoute()
 	for _, stop in ipairs(route.vias) do
 		points[#points + 1] = { mapId = stop.mapId, nx = stop.nx, ny = stop.ny }
 	end
-	local dest = route.dest
+	-- a removal the game announced but that is not settled yet is still the destination (0.5.1 sent the route without it, and
+	-- a route of one destination went out as "cleared")
+	local dest = route.dest or (self.removal and self.removal.stop) or nil
 	if dest then
 		points[#points + 1] = { mapId = dest.mapId, nx = dest.nx, ny = dest.ny }
 	end
@@ -472,6 +474,11 @@ function A:ShareReceive(sender, data)
 	if not Number(rev) or (kind ~= T.ROUTE and kind ~= T.CLEAR) then
 		share.ignored = share.ignored + 1
 		share.lastWhy = "a message that could not be read (from " .. sender .. ")"
+		return
+	end
+	-- our own route coming back (the library hands a sender its broadcasts; the names may not compare equal on a console)
+	if share.ownRev and rev == share.rev then
+		share.ignored = share.ignored + 1
 		return
 	end
 	if not Newer(share, rev, sender) then

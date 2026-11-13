@@ -262,9 +262,19 @@ function PTI.Settings.Initialize()
     }
     local lamPanel = LAM:RegisterAddonPanel("PTI_LAM_Panel", panelData)
     -- v2.5.0: 設定画面を開いた時に、Proc CDの登録一覧・履歴表示を最新にする
+    -- v2.5.1: 開いている間はUI①〜④(パネル表示ONのもの)をサンプル自動表示し、閉じたら元に戻す。
+    --   PTI.UI.SetSettingsOpenは保存しない一時フラグで、「プレビュー表示」チェックの値は変えない。
+    --   閉じるイベントが届かない場合は、通常プレイ画面へ戻った時にUI側で解除される。
+    --   (手動の「プレビュー表示」チェックは保険として残す)
     if CALLBACK_MANAGER and CALLBACK_MANAGER.RegisterCallback then
         CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
-            if panel == lamPanel and PTI.Settings.RefreshCdUI then PTI.Settings.RefreshCdUI() end
+            if panel ~= lamPanel then return end
+            if PTI.Settings.RefreshCdUI then PTI.Settings.RefreshCdUI() end
+            if PTI.UI and PTI.UI.SetSettingsOpen then PTI.UI.SetSettingsOpen(true) end
+        end)
+        CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", function(panel)
+            if panel ~= lamPanel then return end
+            if PTI.UI and PTI.UI.SetSettingsOpen then PTI.UI.SetSettingsOpen(false) end
         end)
     end
 
@@ -431,6 +441,28 @@ function PTI.Settings.Initialize()
         text = "自分が使っているセット効果(発動型Proc)の発動状態・残り時間に加えて、自分に付与されたデバフ(敵のデバフ自動検知と同じ判定方法)も自動で表示するパネルです。",
     })
     BuildPanelControls(procControls, "proc", "procUI", { x = 0, y = -80 })
+    -- v2.5.1: 表示モードと隠すまでの猶予(表示だけの設定。Conditionの検知は止めない)
+    table.insert(procControls, {
+        type = "dropdown",
+        name = "表示モード",
+        tooltip = "常時表示: 戦闘外でも表示します。戦闘終了後は非表示: 戦闘終了の数秒後にパネルを隠し、次の戦闘開始で即再表示します。スタック系のバフが戦闘後も残って表示され続ける場合に使います。",
+        choices = { "常時表示", "戦闘終了後は非表示(既定)" },
+        choicesValues = { "always", "combat" },
+        getFunc = function() return PTI.sv.procUI.displayMode or "combat" end,
+        setFunc = function(value)
+            PTI.sv.procUI.displayMode = value
+            if PTI.UI and PTI.UI.ApplyProcMode then PTI.UI.ApplyProcMode() end
+        end,
+    })
+    table.insert(procControls, {
+        type = "slider",
+        name = "非表示にするまでの猶予(秒)",
+        tooltip = "戦闘終了からパネルを隠すまでの秒数です。猶予の間に再び戦闘に入れば隠しません。「戦闘終了後は非表示」の時だけ有効です。",
+        min = 0, max = 30, step = 1,
+        getFunc = function() return PTI.sv.procUI.hideDelay or 5 end,
+        setFunc = function(value) PTI.sv.procUI.hideDelay = value end,
+        width = "full",
+    })
 
     table.insert(procControls, { type = "header", name = "登録(セット効果Proc)" })
     table.insert(procControls, {
@@ -591,13 +623,21 @@ function PTI.Settings.Initialize()
 
     -- ③ 手動登録(折りたたみ)
     local manualControls = {}
+    -- v2.5.1: サブメニュー先頭の説明文の1行目(見出し)が上で見切れる不具合の修正。
+    --   見出しを本文に改行で連結するのをやめて description の title 欄に分け、
+    --   先頭に空行の説明欄を1つ挟んで、高さ計算で先頭が切れても本文が隠れないようにした。
+    table.insert(manualControls, { type = "description", text = " ", width = "full" })
     table.insert(manualControls, {
         type = "description",
-        text = "|cFFC247【手動登録とは】|r\n" .. GRAY .. "手動登録は、セット効果の発動を検知するAbility IDと再発動までの待ち時間（ICD）を指定する機能です。Ability IDが正しくない場合やICDが実際の効果と異なる場合、Proc CDは正しく表示されません。|r",
+        title = "|cFFC247【手動登録とは】|r",
+        text = GRAY .. "手動登録は、セット効果の発動を検知するAbility IDと再発動までの待ち時間（ICD）を指定する機能です。Ability IDが正しくない場合やICDが実際の効果と異なる場合、Proc CDは正しく表示されません。|r",
+        width = "full",
     })
     table.insert(manualControls, {
         type = "description",
-        text = "|cFFC247【Ability IDの確認方法】|r\n" .. GRAY .. "Ability IDはゲーム内の戦闘ログや診断機能などで確認した数値を入力してください。スキルのIDとセット効果のIDは異なる場合があります。|r",
+        title = "|cFFC247【Ability IDの確認方法】|r",
+        text = GRAY .. "Ability IDはゲーム内の戦闘ログや診断機能などで確認した数値を入力してください。スキルのIDとセット効果のIDは異なる場合があります。|r",
+        width = "full",
     })
     table.insert(manualControls, { type = "header", name = "新規登録" })
     table.insert(manualControls, {

@@ -9,13 +9,11 @@ CombatAlertsData = {
 		[1121] = true, -- Sunspire
 		[1122] = true, -- Moongrave Fane
 		[1153] = true, -- Unhallowed Grave
-		[1196] = true, -- Kyne's Aegis
 		[1197] = true, -- Stone Garden
 		[1201] = true, -- Castle Thorn
 		[1267] = true, -- Red Petal Bastion
 		[1301] = true, -- Coral Aerie
 		[1302] = true, -- Shipwright's Regret
-		[1361] = true, -- Graven Deep
 	},
 
 
@@ -137,19 +135,6 @@ CombatAlertsData = {
 			[122124] = { -2, 2 }, -- Sunspire -- Bite
 			[120838] = { -2, 0 }, -- Sunspire -- Glacial Fist
 
-			[132511] = { -3, 2 }, -- Kyne's Aegis -- Toxic Tide
-			[133685] = { -2, 2 }, -- Kyne's Aegis -- Shield Bash
-			[133756] = { -2, 2 }, -- Kyne's Aegis -- Thunderous Bash
-			[134050] = { -3, 2, false, { 1, 0, 0.6, 0.4 }, { 1, 0, 0.6, 0.8 } }, -- Kyne's Aegis -- Wrath of Tides
-			[135324] = { -2, 2 }, -- Kyne's Aegis -- Butcher's Blade
-			[135991] = { -2, 2 }, -- Kyne's Aegis -- Toppling Blow
-			[136591] = { -3, 2 }, -- Kyne's Aegis -- Bile Spray
-			[136817] = { -2, 2 }, -- Kyne's Aegis -- Cross Swipe
-			[136961] = { -2, 2 }, -- Kyne's Aegis -- Uppercut
-			[136976] = { -3, 2 }, -- Kyne's Aegis -- Blood Cleave
-			[140230] = { -2, 2 }, -- Kyne's Aegis -- Heavy Strike
-			[140231] = { -3, 2, true }, -- Kyne's Aegis -- Javelin
-
 			[165644] = { -3, 2 }, -- Shipwright's Regret -- Furious Blast
 			[163929] = { -2, 2 }, -- Shipwright's Regret -- Soul Bash
 			[166981] = { -2, 2 }, -- Shipwright's Regret -- Lacerate
@@ -168,21 +153,6 @@ CombatAlertsData = {
 			[158346] = { -2, 2 }, -- Coral Aerie -- Brand
 			[159864] = { -2, 2 }, -- Coral Aerie -- Monstrous Claw
 			[158778] = { 0, 0, false, { 1, 0, 0.6, 0.8 }, cutthroat = true }, -- Coral Aerie -- Obliterate
-
-		--	[112995] = { -2, 0 }, -- Graven Deep -- Hammer (Duplicate of Frostvault)
-			[168375] = { -2, 0 }, -- Graven Deep -- Lacerate
-			[171986] = { -2, 0 }, -- Graven Deep -- Bristlebombard
-			[175763] = { -2, 2 }, -- Graven Deep -- Feint Stab
-			[171112] = { -2, 2 }, -- Graven Deep -- Clash of Bones
-			[178900] = { -2, 2 }, -- Graven Deep -- Clash of Bones
-			[175964] = { -2, 2 }, -- Graven Deep -- Soul Bash
-			[172217] = { -2, 2 }, -- Graven Deep -- Necrotic Wave
-
-			[171918] = { -2, 2 }, -- Earthen Root Enclave -- Crackdown
-			[172130] = { -2, 2 }, -- Earthen Root Enclave -- Knuckle Duster
-			[172147] = { -2, 0, false, { 1, 0, 0.6, 0.8 } }, -- Earthen Root Enclave -- Chin Shatter
-			[172790] = { -2, 2 }, -- Earthen Root Enclave -- Mince
-			[172983] = { -2, 2 }, -- Earthen Root Enclave -- Hammerfall
 
 			-- Taking Aim
 			[70695] = { -3, 2, true }, -- Maelstrom Arena
@@ -440,90 +410,6 @@ CombatAlertsData = {
  	},
 
 
-	-- Kyne's Aegis ------------------------------------------------------------
-	ka = {
-		zone = 1196,
-		crashingWave = {
-			cast = 134196,
-			name = 134197,
-		},
-		meteor = {
-			ids = {
-				[134023] = 1, -- Vrol
-				[140606] = 1, -- Yandir
-				[140941] = 2, -- Falgravn non-HM
-				[140944] = 2, -- Falgravn HM
-			},
-			params = {
-				[1] = { -- Meteor
-					id = 140606,
-					colorSelf = 0xFF6600FF,
-					colorOthers = 0xFFFF00FF,
-					excludeTanks = false,
-				},
-				[2] = { -- Instability
-					id = 140941,
-					colorSelf = 0x3399FFFF,
-					colorOthers = 0xBBDDFFFF,
-					excludeTanks = true,
-				},
-				[3] = { -- Instability Coincide
-					id = 140941,
-					colorSelf = 0xDD4400FF,
-					colorOthers = 0xFF9933FF,
-					excludeTanks = true,
-				},
-			},
-		},
-		totems = {
-			[133045] = { 133264, 0xCC3300FF }, -- Dragon Totem
-			[133510] = { 133511, 0x66CCFFFF }, -- Harpy Totem
-			[133513] = { 133514, 0xDDCC66FF }, -- Gargoyle Totem
-			[133515] = { 133516, 0x00CC00FF }, -- Chaurus Totem
-		},
-		knights = {
-			[140183] = { "Bitter Knight (<<t:1>>)", 0xCC00FFFF }, -- Prison
-			[140184] = { "Crimson Knight (<<t:1>>)", 0xFF9999FF, true }, -- Bloodlust
-			[140185] = { "Blood Knight (<<t:1>>)", 0xCC0000FF }, -- Fountains
-			spawnText = LCA.GetAbilityName(136622),
-		},
-		spear = 133936,
-		gust = 136381,
-		chaurus = {
-			spawn = 133516,
-			projectile = 133559,
-		},
-		slam = 136559,
-		hailShield = 133004,
-		toxicTide = 132513,
-		frigidFog = 133808,
-		shockingHarpoon = 133913,
-		fountain = 140294,
-		frenzy = 136953,
-		sanguineGrasp = 136965,
-		sanguinePrison = 132473,
-		proxLightning = 134880,
-		vrolName = "vrol",
-		callLightning = 133428,
-		falgRoomCenter = { 79075, 21670, 56040 },
-		falgFloor1End = 135271,
-		apotheosis = 138196,
-		hemorrhage = 132927,
-		ichorEruption = 136482,
-		ichorTimer = 136548,
-		bloodCounter = 133334,
-		groundIchor = {
-			-- { alert_duration, exclude_tanks }
-			[133294] = { 350, true }, -- Pool of Ichor
-			[141615] = { 600, false }, -- Corrupted Ichor
-		},
-		lightningBolt = {
-			[136808] = true, -- Storm
-			[139945] = true, -- Half-Giant Storm Caller
-		},
-	},
-
-
 	-- Stonethorn --------------------------------------------------------------
 	stonethorn = {
 		charges = {
@@ -582,42 +468,6 @@ CombatAlertsData = {
 		standingInAoe = {
 			-- { alert_duration, exclude_tanks }
 			[168924] = { 400, false }, -- Lightning Storm
-		},
-	},
-
-
-	-- Lost Depths -------------------------------------------------------------
-	ld = {
-		sunbolt = 171580,
-		fear = 172543,
-		fearDamage = 174228,
-		barrage = 176182,
-		soulSplit = {
-			[173970] = 1,
-			[173972] = 2,
-			hmHealth = 10000000,
-		},
-		orbs = {
-			[172618] = { ACTION_RESULT_EFFECT_GAINED, 15500 }, -- Damage Shield
-			[172650] = { ACTION_RESULT_EFFECT_GAINED,  5500 }, -- Slow FX
-			[178599] = { ACTION_RESULT_EFFECT_GAINED, 99999 }, -- Impact FX
-			[178612] = { ACTION_RESULT_EFFECT_FADED , 12500 }, -- Climbing FX
-			afterlife = 172552,
-		},
-		banners = {
-			[170362] = 0x66CCFFFF, -- Shockwave Bash
-			[172484] = 0xFFCC33FF, -- Earthquake Stomp
-			[170823] = 0x66CCFFFF, -- Lightning Pillar (Human)
-			[179139] = 0x66CCFFFF, -- Lightning Pillar (Bear)
-		},
-		purgeables = {
-			[173406] = true, -- Crippling Grasp
-			[179212] = true, -- Crippling Grasp
-		},
-		standingInAoe = {
-			-- { alert_duration, exclude_tanks }
-			[171400] = { 1200, false }, -- Corrupted Pulp
-			[172166] = { 400, false }, -- Necrotic Wake
 		},
 	},
 }

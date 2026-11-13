@@ -1,4 +1,4 @@
--- Persistent queue of sales waiting to be scanned, backed by SavedVariables.
+-- Persistent queue of records (sales, listings, guild traders) waiting to be scanned, backed by SavedVariables.
 -- Fires "Changed" whenever the pending list changes.
 local SaleQueue = ZO_InitializingCallbackObject:Subclass()
 
@@ -16,6 +16,20 @@ function SaleQueue:Add(sale)
     end
     self.savedVars.seenEventIds[sale.eventId] = sale.timestamp
     table.insert(self.savedVars.pendingSales, sale)
+    table.sort(self.savedVars.pendingSales, function(a, b) return a.timestamp < b.timestamp end)
+    self:FireCallbacks("Changed")
+    return true
+end
+
+-- For records asked for on demand (guild traders): no seen-id check, so the command can show them again,
+-- but never twice in the queue at the same time.
+function SaleQueue:AddUnlessPending(record)
+    for _, pending in ipairs(self.savedVars.pendingSales) do
+        if pending.eventId == record.eventId then
+            return false
+        end
+    end
+    table.insert(self.savedVars.pendingSales, record)
     table.sort(self.savedVars.pendingSales, function(a, b) return a.timestamp < b.timestamp end)
     self:FireCallbacks("Changed")
     return true

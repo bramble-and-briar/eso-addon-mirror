@@ -1,0 +1,10 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Alchemy Favorite Potions">
+            <Action name="ALCHEMY_FAVORITE_POTIONS_TOGGLE">
+                <Down>return ZO_KeybindStrip_HandleKeybindDown("ALCHEMY_FAVORITE_POTIONS_TOGGLE")</Down>
+                <Up>return ZO_KeybindStrip_HandleKeybindUp("ALCHEMY_FAVORITE_POTIONS_TOGGLE")</Up>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

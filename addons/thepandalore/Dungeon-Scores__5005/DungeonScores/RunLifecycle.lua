@@ -144,7 +144,8 @@ local function IsCurrentRunShape(run)
                 or run.runtimeVersion == "0.5.30" or run.runtimeVersion == "0.5.31"
                 or run.runtimeVersion == "0.5.32" or run.runtimeVersion == "0.5.33"
                 or run.runtimeVersion == "0.5.34"))
-        or ((DS.VERSION == "0.5.36" or DS.VERSION == "0.5.37")
+        or ((DS.VERSION == "0.5.36" or DS.VERSION == "0.5.37"
+                or DS.VERSION == "0.5.38")
             and (run.runtimeVersion == "0.5.18" or run.runtimeVersion == "0.5.19"
                 or run.runtimeVersion == "0.5.20" or run.runtimeVersion == "0.5.21"
                 or run.runtimeVersion == "0.5.22" or run.runtimeVersion == "0.5.23"
@@ -154,7 +155,8 @@ local function IsCurrentRunShape(run)
                 or run.runtimeVersion == "0.5.30" or run.runtimeVersion == "0.5.31"
                 or run.runtimeVersion == "0.5.32" or run.runtimeVersion == "0.5.33"
                 or run.runtimeVersion == "0.5.34" or run.runtimeVersion == "0.5.35"
-                or run.runtimeVersion == "0.5.36"))
+                or run.runtimeVersion == "0.5.36"
+                or run.runtimeVersion == "0.5.37"))
         )
     if type(run) ~= "table" or run.finalized
         or (run.runtimeVersion ~= DS.VERSION and not compatibleEarlierRun) then

@@ -1,0 +1,26 @@
+## Title: Satchel Exchange
+## Author: clubwratt
+## Version: 0.10.0
+## APIVersion: 101050
+## Description: Opens containers the moment they reach your backpack (turn it on in settings), as fast as the game allows, with an Open Containers wheel entry (LibRadialMenu). Also the one-press satchel vendor loop: Talk, and it opens the store, buys one satchel, exits and unboxes it (e.g. Dremora Vendor Tur).
+## SavedVariables: SatchelExchangeSavedVars
+## ConsoleDependsOn: LibHarvensAddonSettings
+## OptionalDependsOn: LibConsoleLogger LibRadialMenu
+## DevId: bc6b3b76-f701-4533-9492-c50acb1783bc
+## ProdId: 979371c6-2e58-4b2f-84af-cc9276c86b94
+
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+
+SatchelExchange.lua
+SatchelExchangeTypes.lua
+SatchelExchangeState.lua
+SatchelExchangeStoreUtils.lua
+SatchelExchangeBagUtils.lua
+SatchelExchangeChatterUtils.lua
+SatchelExchangeKeybindUtils.lua
+SatchelExchangeStoreActions.lua
+SatchelExchangeUnboxActions.lua
+SatchelExchangeKeybindActions.lua
+SatchelExchangeSettingsActions.lua
+SatchelExchangeRadialActions.lua
+SatchelExchangeMain.lua

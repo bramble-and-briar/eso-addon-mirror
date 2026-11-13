@@ -8,6 +8,10 @@
   "category_id": "53",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -46,7 +50,7 @@
     "LibExtendedJournal"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4031/",
-  "fingerprint": "f222b7b5dcaa7540eb8b3ac4fc341c2baf5a265553ae711217927952e77247c2",
+  "fingerprint": "74ddacca3ad3beb5d955ca85aa3bad67ca7f6fc2959bbd43eba3cf861fa12ca1",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -54,11 +58,11 @@
   "source_id": "4031",
   "source_url": "https://www.esoui.com/downloads/info4031-LibExtendedJournal.html",
   "stats": {
-    "downloads": 40822,
-    "favorites": 16,
-    "monthly_downloads": 1893
+    "downloads": 44382,
+    "favorites": 17,
+    "monthly_downloads": 963
   },
   "title": "LibExtendedJournal",
-  "updated_at": 1788193793000,
-  "version": "2.5.3.1"
+  "updated_at": 1794535036000,
+  "version": "2.5.4"
 }

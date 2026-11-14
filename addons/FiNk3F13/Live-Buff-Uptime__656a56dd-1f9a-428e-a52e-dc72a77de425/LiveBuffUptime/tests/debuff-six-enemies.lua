@@ -25,7 +25,7 @@ send("EVENT_MESSAGES", 100, LIBCOMBAT_MESSAGE_COMBATSTART)
 -- Sixth recipient is never targeted; its library effect precedes our first damage notification.
 send("EVENT_EFFECTS_OUT", 100, 106, 34384, 1, 2, 1, 1, 1)
 for id = 101, 106 do
-    LiveBuffUptimeReports.RecordDamage(1, 4, id, "Gegner " .. id, 100)
+    LiveBuffUptimeReports.RecordEnemy(1, 4, id, "Gegner " .. id, 100)
     send("EVENT_DAMAGE_OUT", 100, 1, 1, id, 123, 100)
 end
 for id = 101, 105 do
@@ -53,7 +53,7 @@ end
 -- Different recipients must keep individual results, not inherit the all-enemy average.
 send("EVENT_MESSAGES", 200, LIBCOMBAT_MESSAGE_COMBATSTART)
 for id = 101, 106 do
-    LiveBuffUptimeReports.RecordDamage(1, 4, id, "Gegner " .. id, 100)
+    LiveBuffUptimeReports.RecordEnemy(1, 4, id, "Gegner " .. id, 100)
     send("EVENT_DAMAGE_OUT", 200, 1, 1, id, 123, 100)
     env.rawEvents[EVENT_EFFECT_CHANGED](nil, 1, 1, "", "reticleover", 200, 200 + id - 100,
         1, "icon", 0, 2, 0, 0, "Gegner " .. id, id, 34384, 1)

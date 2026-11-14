@@ -132,14 +132,15 @@ function GamepadOptions.ResetPanelOptionsToDefaults(panelId)
 end
 
 function GamepadOptions.ResetAllPanelsToDefaults()
-    NGear.Settings.ResetAllOptions()
+    -- Stop tracking before resetting preferences so pending inventory changes
+    -- are flushed and event handlers are removed through the normal lifecycle.
     if NGear.ItemLocator then
         NGear.ItemLocator.SetEnabled(false)
-        NGear.ItemLocator.ResetCategoryVisibility()
-        NGear.ItemLocator.ResetDisplaySettings()
     end
+    -- Saved-variable defaults also contain collected indexes. Only reset the
+    -- preferences explicitly owned by each panel, never entire saved scopes.
     for _, panelId in pairs(PanelIds) do
-        GamepadOptions.ApplyPanelOptions(panelId)
+        GamepadOptions.ResetPanelOptionsToDefaults(panelId)
     end
     GamepadOptions.RefreshCurrentOptionsList()
 end

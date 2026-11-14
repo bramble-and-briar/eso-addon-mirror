@@ -3,6 +3,8 @@ local Vermilion = Vermilion
 
 Vermilion.Probe = {}
 
+if not Vermilion.Constants.DEBUG then return end
+
 local d                          = d
 local string_format              = string.format
 local table_remove               = table.remove
@@ -12,8 +14,6 @@ local tostring                   = tostring
 local api                        = Vermilion.zenimax.api
 local GetGameTimeMilliseconds    = api.GetGameTimeMilliseconds
 local GetAPIVersion              = api.GetAPIVersion
-local IsUnitGrouped              = api.IsUnitGrouped
-local GetGroupSize               = api.GetGroupSize
 local GetUnitName                = api.GetUnitName
 local GetUnitDisplayName         = api.GetUnitDisplayName
 local GetUnitClass               = api.GetUnitClass

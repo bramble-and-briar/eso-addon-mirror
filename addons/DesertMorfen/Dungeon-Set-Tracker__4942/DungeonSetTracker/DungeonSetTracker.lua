@@ -5,7 +5,7 @@
 DungeonSetTracker = DungeonSetTracker or {}
 local DST = DungeonSetTracker
 DST.name = "DungeonSetTracker"
-DST.version = "1.1.0"
+DST.version = "1.2.0"
 local L = DST.L
 
 local SV_VERSION = 1
@@ -502,9 +502,14 @@ local SET_GAP = 14
 local COLUMN_GAP = 20
 local GRID_WIDTH = ICONS_PER_ROW * CELL_STEP
 -- Window size: room for two rows of sets (four sets); with fewer the rest of the window stays empty, so nothing
--- moves between dungeons. Places with more sets (arenas, trials) get a taller window with icons of the same size.
--- The legend always sits at the bottom.
-local CONTENT_TOP = TIP_PADDING + TITLE_HEIGHT
+-- moves between dungeons. Places with more sets (Infinite Archive, Cyrodiil, trials) get tabs instead: the sections
+-- of the place in the Sets book, or numbered pages. The row of tabs is always kept free, the legend always sits at
+-- the bottom.
+local TABS_HEIGHT = 30
+local TAB_HEIGHT = 24
+local TAB_GAP = 4
+local PAGE_TAB_WIDTH = 28
+local CONTENT_TOP = TIP_PADDING + TITLE_HEIGHT + TABS_HEIGHT
 local CONTENT_HEIGHT = 2 * (HEADER_HEIGHT + 5 * CELL_STEP) + SET_GAP
 local LEGEND_AREA = 34
 local HINT_HEIGHT = 36          -- the Shift hint under the legend, up to two lines
@@ -682,13 +687,204 @@ local function PlaceChart(chart, height)
     chart:SetScale(scale)
 end
 
+-- Icon rows of a block: { { pieces = { pieceData, ... }, perfected = true or nil }, ... }, the perfected rows last.
+local function GetBlockRows(block)
+    if not block.rows then
+        local rows = {}
+        for _, pieces in ipairs(LayoutPieces(block.setData)) do
+            table.insert(rows, { pieces = pieces })
+        end
+        if block.perfected then
+            for _, pieces in ipairs(LayoutPieces(block.perfected)) do
+                table.insert(rows, { pieces = pieces, perfected = true })
+            end
+        end
+        block.rows = rows
+    end
+    return block.rows
+end
+
+local function GetRowHeight(blocks, rowStart)
+    local height = 0
+    for i = rowStart, zo_min(rowStart + NUM_COLUMNS - 1, #blocks) do
+        height = zo_max(height, HEADER_HEIGHT + #GetBlockRows(blocks[i]) * CELL_STEP)
+    end
+    return height
+end
+
+-- Adds the blocks of a group as pages that fit the window: whole rows of sets, at least one row per page.
+local function AddGroupPages(group, pages)
+    local blocks = group.blocks
+    local page, y
+    group.firstPage, group.numPages = #pages + 1, 0
+    for rowStart = 1, #blocks, NUM_COLUMNS do
+        local rowHeight = GetRowHeight(blocks, rowStart)
+        if page and y + SET_GAP + rowHeight <= CONTENT_HEIGHT then
+            y = y + SET_GAP + rowHeight
+        else
+            page = { group = group, blocks = {}, unlocked = 0, total = 0 }
+            table.insert(pages, page)
+            group.numPages = group.numPages + 1
+            y = rowHeight
+        end
+        for i = rowStart, zo_min(rowStart + NUM_COLUMNS - 1, #blocks) do
+            local block = blocks[i]
+            table.insert(page.blocks, block)
+            page.unlocked, page.total = page.unlocked + block.unlocked, page.total + block.total
+        end
+    end
+end
+
+-- Pages of a place. Sets from several sections of the Sets book (the Infinite Archive) are grouped by section,
+-- each with a tab of its own; a section, or a place, with more sets than one page holds gets numbered pages.
+local function BuildPages(blocks)
+    local groups, groupsByKey = {}, {}
+    for _, block in ipairs(blocks) do
+        local category = block.setData:GetCategoryData()
+        local key = NormalizeName(category:GetName()) or category:GetId()
+        local group = groupsByKey[key]
+        if not group then
+            group = { name = category:GetFormattedName(), blocks = {}, unlocked = 0, total = 0 }
+            groupsByKey[key] = group
+            table.insert(groups, group)
+        end
+        table.insert(group.blocks, block)
+        group.unlocked, group.total = group.unlocked + block.unlocked, group.total + block.total
+    end
+    local pages = {}
+    for _, group in ipairs(groups) do
+        AddGroupPages(group, pages)
+    end
+    return pages, groups
+end
+
+local TAB_BG = ZO_ColorDef:New(1, 1, 1, 0.05)
+local TAB_HOVER_BG = ZO_ColorDef:New(1, 1, 1, 0.15)
+local TAB_SELECTED_BG = ZO_ColorDef:New(1, 1, 1, 0.2)
+local TAB_LINE = ZO_ColorDef:New(0.95, 0.75, 0.25, 1)
+
+local function UpdateTabLook(tab)
+    local color = tab.selected and TAB_SELECTED_BG or tab.hovered and TAB_HOVER_BG or TAB_BG
+    tab.bg:SetColor(color:UnpackRGBA())
+    tab.line:SetHidden(not tab.selected)
+end
+
+local ShowSetChart
+
+-- Shows another page of the chart shown, from a tab or the mouse wheel: the mouse only reaches the chart while
+-- Shift keeps it open.
+local function ShowChartPage(pageIndex)
+    local shown = ui.chart.shown
+    if shown and pageIndex ~= shown.page then
+        OnCellMouseExit()
+        ShowSetChart(shown.dungeon, shown.zoneId, shown.isNormalDifficulty, pageIndex)
+    end
+end
+
+local function OnTabMouseEnter(tab)
+    tab.hovered = true
+    UpdateTabLook(tab)
+end
+
+local function OnTabMouseExit(tab)
+    tab.hovered = false
+    UpdateTabLook(tab)
+end
+
+local function OnTabMouseUp(tab, button, upInside)
+    if upInside and button == MOUSE_BUTTON_INDEX_LEFT then
+        ShowChartPage(tab.page)
+    end
+end
+
+-- The mouse wheel on the chart turns the pages, through all tabs.
+local function OnChartMouseWheel(_, delta)
+    local shown = ui.chart.shown
+    if shown and shown.numPages > 1 then
+        ShowChartPage(zo_max(1, zo_min(shown.numPages, shown.page - delta)))
+    end
+end
+
+local function AcquireTab(index)
+    local chart = ui.chart
+    local tab = chart.tabs[index]
+    if not tab then
+        tab = CreateControlFromVirtual("$(parent)Tab", chart.tabStrip, "DungeonSetTracker_ChartTab", index)
+        tab.bg = tab:GetNamedChild("Bg")
+        tab.line = tab:GetNamedChild("Line")
+        tab.line:SetHeight(2)
+        tab.line:SetColor(TAB_LINE:UnpackRGBA())
+        tab.text = tab:GetNamedChild("Text")
+        tab:SetHandler("OnMouseEnter", OnTabMouseEnter)
+        tab:SetHandler("OnMouseExit", OnTabMouseExit)
+        tab:SetHandler("OnMouseUp", OnTabMouseUp)
+        chart.tabs[index] = tab
+    end
+    tab:SetHidden(false)
+    return tab
+end
+
+-- Tabs: one per section when there are several sections, then the page numbers of the current section. Their
+-- places only depend on the place shown, not on the page, so nothing moves when another tab is chosen.
+local function LayoutTabs(pages, groups, pageIndex)
+    local chart = ui.chart
+    local numTabs = 0
+    local stripWidth = TIP_WIDTH - 2 * TIP_PADDING
+
+    local function AddTab(text, color, x, width, page, selected)
+        numTabs = numTabs + 1
+        local tab = AcquireTab(numTabs)
+        tab:ClearAnchors()
+        tab:SetAnchor(TOPLEFT, chart.tabStrip, TOPLEFT, x, 0)
+        tab:SetDimensions(width, TAB_HEIGHT)
+        tab.text:SetText(text)
+        tab.text:SetColor(color:UnpackRGBA())
+        tab.page, tab.selected = page, selected
+        UpdateTabLook(tab)
+    end
+
+    if #pages > 1 then
+        local current = pages[pageIndex].group
+        local maxPages = 0
+        for _, group in ipairs(groups) do
+            maxPages = zo_max(maxPages, group.numPages)
+        end
+        local hasGroupTabs = #groups > 1
+        local pageStep = PAGE_TAB_WIDTH + TAB_GAP
+        local pagesWidth = 0
+        if maxPages > 1 then
+            -- Many pages get narrower number tabs, so they always fit.
+            local room = hasGroupTabs and stripWidth / 2 or stripWidth
+            pageStep = zo_min(pageStep, (room + TAB_GAP) / maxPages)
+            pagesWidth = maxPages * pageStep + TAB_GAP
+        end
+        if hasGroupTabs then
+            local groupStep = (stripWidth - pagesWidth + TAB_GAP) / #groups
+            for i, group in ipairs(groups) do
+                AddTab(group.name, ProgressColor(group.unlocked, group.total), (i - 1) * groupStep, groupStep - TAB_GAP,
+                    group.firstPage, group == current)
+            end
+        end
+        if current.numPages > 1 then
+            -- After the section tabs, at the right end; without section tabs, from the left.
+            local firstX = hasGroupTabs and stripWidth - current.numPages * pageStep + TAB_GAP or 0
+            for i = 1, current.numPages do
+                local pageNumber = current.firstPage + i - 1
+                local page = pages[pageNumber]
+                AddTab(tostring(i), ProgressColor(page.unlocked, page.total), firstX + (i - 1) * pageStep,
+                    pageStep - TAB_GAP, pageNumber, pageNumber == pageIndex)
+            end
+        end
+    end
+    HideUnused(chart.tabs, numTabs)
+end
+
 -- isNormalDifficulty: hovering the normal version of a dungeon, where monster sets don't drop (their helms drop
--- on veteran only); their names get the veteran icon.
-local function ShowSetChart(dungeon, zoneId, isNormalDifficulty)
+-- on veteran only); their names get the veteran icon. pageIndex: the page to show, the first by default.
+function ShowSetChart(dungeon, zoneId, isNormalDifficulty, pageIndex)
     local chart = ui.chart
     local content = chart.content
     local numLabels, numCells, numBars = 0, 0, 0
-    chart.shown = { dungeon = dungeon, zoneId = zoneId, isNormalDifficulty = isNormalDifficulty }
 
     local function AddLabel(text, color, x, y, labelWidth)
         numLabels = numLabels + 1
@@ -703,11 +899,24 @@ local function ShowSetChart(dungeon, zoneId, isNormalDifficulty)
 
     local allSets = GetZoneSets(dungeon, zoneId)
     local blocks = {}
+    local markedVeteran, markedPerfected = false, false
     for _, block in ipairs(GroupPerfectedSets(allSets)) do
         if not (sv.tipHideCompleted and block.unlocked >= block.total) then
             table.insert(blocks, block)
+            -- The legend covers all pages of the place, so it does not change with the tabs.
+            if block.perfected then
+                markedPerfected = true
+            end
+            if isNormalDifficulty and block.setData:GetSetType() == ITEM_SET_TYPE_MONSTER then
+                markedVeteran = true
+            end
         end
     end
+    local pages, groups = BuildPages(blocks)
+    pageIndex = zo_max(1, zo_min(#pages, pageIndex or 1))
+    chart.shown = { dungeon = dungeon, zoneId = zoneId, isNormalDifficulty = isNormalDifficulty, page = pageIndex, numPages = #pages }
+    LayoutTabs(pages, groups, pageIndex)
+    local pageBlocks = pages[pageIndex] and pages[pageIndex].blocks or {}
 
     -- Long dungeon names get a smaller font instead of being cut off.
     chart.title:SetFont("ZoFontWinH2")
@@ -717,18 +926,17 @@ local function ShowSetChart(dungeon, zoneId, isNormalDifficulty)
     end
     SetProgress(chart.totalBar, SumPieces(allSets))
 
-    local markedVeteran, markedPerfected = false, false
     local y = 0
     local rowHeight = 0
-    for rowStart = 1, #blocks, NUM_COLUMNS do
+    for rowStart = 1, #pageBlocks, NUM_COLUMNS do
         if rowStart > 1 then
             y = y + rowHeight + SET_GAP
         end
+        rowHeight = GetRowHeight(pageBlocks, rowStart)
         -- Every set header has the same fixed height, with name and progress bar centered in it, so names,
         -- bars and icons always stay at the same place whatever the length of the names.
-        local rowBlocks = {}
         for column = 0, NUM_COLUMNS - 1 do
-            local block = blocks[rowStart + column]
+            local block = pageBlocks[rowStart + column]
             if block then
                 local setData = block.setData
                 local x = TIP_PADDING + column * (GRID_WIDTH + COLUMN_GAP)
@@ -736,7 +944,6 @@ local function ShowSetChart(dungeon, zoneId, isNormalDifficulty)
                 local name = setData:GetFormattedName()
                 if isNormalDifficulty and setData:GetSetType() == ITEM_SET_TYPE_MONSTER then
                     name = zo_iconTextFormat(ZO_GetVeteranIcon(), 20, 20, name)
-                    markedVeteran = true
                 end
                 AddLabel(name, ProgressColor(su, st), x, y, GRID_WIDTH - SET_BAR_WIDTH - 8)
                 numBars = numBars + 1
@@ -744,44 +951,30 @@ local function ShowSetChart(dungeon, zoneId, isNormalDifficulty)
                 bar:ClearAnchors()
                 bar:SetAnchor(TOPRIGHT, content, TOPLEFT, x + GRID_WIDTH - 4, y + (HEADER_HEIGHT - 4 - SET_BAR_HEIGHT) / 2)
                 SetProgress(bar, su, st)
-                table.insert(rowBlocks, { block = block, x = x })
-            end
-        end
 
-        rowHeight = 0
-        for _, entry in ipairs(rowBlocks) do
-            local rows = {}
-            for _, pieces in ipairs(LayoutPieces(entry.block.setData)) do
-                table.insert(rows, { pieces = pieces })
-            end
-            if entry.block.perfected then
-                for _, pieces in ipairs(LayoutPieces(entry.block.perfected)) do
-                    table.insert(rows, { pieces = pieces, perfected = true })
-                end
-                markedPerfected = true
-            end
-            for rowIndex, row in ipairs(rows) do
-                local cellY = y + HEADER_HEIGHT + (rowIndex - 1) * CELL_STEP
-                for i, pieceData in ipairs(row.pieces) do
-                    numCells = numCells + 1
-                    local cell = AcquireChartControl(chart.cells, numCells, "DungeonSetTracker_ChartCell", "Cell")
-                    cell:ClearAnchors()
-                    cell:SetAnchor(TOPLEFT, content, TOPLEFT, entry.x + (i - 1) * CELL_STEP, cellY)
-                    cell.pieceData = pieceData
-                    SetCell(cell, pieceData:GetIcon(), pieceData:IsUnlocked(), row.perfected)
+                for rowIndex, row in ipairs(GetBlockRows(block)) do
+                    local cellY = y + HEADER_HEIGHT + (rowIndex - 1) * CELL_STEP
+                    for i, pieceData in ipairs(row.pieces) do
+                        numCells = numCells + 1
+                        local cell = AcquireChartControl(chart.cells, numCells, "DungeonSetTracker_ChartCell", "Cell")
+                        cell:ClearAnchors()
+                        cell:SetAnchor(TOPLEFT, content, TOPLEFT, x + (i - 1) * CELL_STEP, cellY)
+                        cell.pieceData = pieceData
+                        SetCell(cell, pieceData:GetIcon(), pieceData:IsUnlocked(), row.perfected)
+                    end
                 end
             end
-            rowHeight = zo_max(rowHeight, HEADER_HEIGHT + #rows * CELL_STEP)
         end
     end
-    if #blocks == 0 then
+    if #pageBlocks == 0 then
         AddLabel(L.ALL_COLLECTED, ZO_SUCCEEDED_TEXT, TIP_PADDING, y, TIP_WIDTH - 2 * TIP_PADDING)
         rowHeight = HEADER_HEIGHT
     end
     HideUnused(chart.labels, numLabels)
     HideUnused(chart.cells, numCells)
     HideUnused(chart.bars, numBars)
-    -- More sets than the window holds: the window grows (PlaceChart keeps it within the screen).
+    -- The window keeps its size; only a single row of sets taller than it (not seen in the game) makes it grow.
+    -- PlaceChart keeps it within the screen.
     local contentHeight = zo_max(CONTENT_HEIGHT, y + rowHeight)
     local height = TIP_HEIGHT + contentHeight - CONTENT_HEIGHT
     content:SetHeight(contentHeight)
@@ -791,6 +984,7 @@ local function ShowSetChart(dungeon, zoneId, isNormalDifficulty)
     local legend = chart.legend
     legend:SetHidden(not sv.tipShowLegend)
     chart.hint:SetHidden(not sv.tipShowLegend)
+    chart.hint:SetText(#pages > 1 and L.HINT_KEEP_OPEN_TABS or L.HINT_KEEP_OPEN)
     local sampleIcon = FALLBACK_ICON
     if dungeon.sets[1] then
         for _, pieceData in dungeon.sets[1]:PieceIterator() do
@@ -866,7 +1060,8 @@ end
 local function RefreshSetChart()
     local chart = ui.chart
     if chart.shown and not chart:IsHidden() then
-        ShowSetChart(chart.shown.dungeon, chart.shown.zoneId, chart.shown.isNormalDifficulty)
+        -- The page stays, e.g. when a piece is collected while the chart is shown.
+        ShowSetChart(chart.shown.dungeon, chart.shown.zoneId, chart.shown.isNormalDifficulty, chart.shown.page)
     end
 end
 
@@ -1033,6 +1228,12 @@ local function CreateSetChart()
     local divider = chart:GetNamedChild("Divider")
     divider:SetAnchor(TOPLEFT, chart.totalBar, BOTTOMLEFT, -TIP_PADDING, 6)
     divider:SetAnchor(TOPRIGHT, chart.totalBar, BOTTOMRIGHT, TIP_PADDING, 6)
+
+    chart.tabStrip = chart:GetNamedChild("Tabs")
+    chart.tabStrip:SetAnchor(TOPLEFT, chart, TOPLEFT, TIP_PADDING, TIP_PADDING + TITLE_HEIGHT)
+    chart.tabStrip:SetDimensions(TIP_WIDTH - 2 * TIP_PADDING, TAB_HEIGHT)
+    chart.tabs = {}
+    chart:SetHandler("OnMouseWheel", OnChartMouseWheel)
 
     chart.content = chart:GetNamedChild("Content")
     chart.content:SetAnchor(TOP, chart, TOP, 0, CONTENT_TOP)

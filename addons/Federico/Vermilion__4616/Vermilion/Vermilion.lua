@@ -38,7 +38,7 @@ local function on_slash(input)
         local ring = Vermilion.SavedVars.traces
         d("[trace] " .. Vermilion.Trace.status_line()
           .. "  auto=" .. (Vermilion.Trace.auto_enabled(Vermilion.SavedVars) and "ON" or "OFF")
-          .. "  staged=" .. tostring(ring and #ring or 0) .. "/3"
+          .. "  staged=" .. tostring(ring and #ring or 0)
           .. "  (subcmd: start | stop | save | clear | auto)")
       end
       return
@@ -52,6 +52,9 @@ local function on_slash(input)
       local on = not Vermilion.Graph.pixel_grid()
       Vermilion.Graph.set_pixel_grid(on)
       d("[Vm] pixel grid: " .. (on and "on" or "off"))
+      return
+    elseif cmd == "bgcost" then
+      Vermilion.BackgroundCost.run()
       return
     elseif cmd == "sessions" then
       for _, line in ipairs(Vermilion.SessionStore.report_lines()) do d("[Vm] " .. line) end
@@ -83,6 +86,16 @@ local function on_slash(input)
 
       local sub = string_match(string_lower(input), "^%s*%S+%s+(%S+)") or ""
       Vermilion.Diagnostics.full_report(sub == "gc" or sub == "full") ; return
+    elseif cmd == "filmtest" then
+      local TB = Vermilion.TemporalBuffer
+      if TB.is_recording() or VermilionGraphWindow:IsHidden() then d("[filmtest] open the window and stop recording first") return end
+      local list = {}
+      for m in string.gmatch(input, "(%d+)") do list[#list + 1] = tonumber(m) end
+      if #list == 0 then list = { 8, 20, 30, 45, 60 } end
+      Vermilion.CopyBox.show("Vermilion film test", Vermilion.FilmTest.run(list, GetGameTimeMilliseconds)) ; return
+    elseif cmd == "copytest" then
+      local size, got = Vermilion.Export.copy_test(tonumber(string.match(input, "(%d+)")))
+      d(string.format("[copytest] sent %d, box holds %d", size, got)) ; return
     elseif cmd == "gcprobe" then
 
       local n = tonumber(string_match(input, "^%s*%S+%s+(%d+)")) or 1000
@@ -91,6 +104,24 @@ local function on_slash(input)
       local sub = string_match(string_lower(input), "^%s*%S+%s+(%S+)") or ""
       if sub == "reset" then Vermilion.Profiler.reset(); d("[prof] reset")
       else Vermilion.Profiler.dump_to_chat() end
+      return
+    elseif cmd == "calib" then
+      if Vermilion.Calib.run() then
+        d("[Vm] measuring what each call into the game costs, a few seconds with short stalls")
+      else
+        d("[Vm] the calibration is already running")
+      end
+      return
+    elseif cmd == "hitch" then
+      local sub = string_match(string_lower(input), "^%s*%S+%s+(%S+)") or ""
+      if sub == "reset" then
+        Vermilion.Hitch.reset()
+        d("[Vm] hitch log cleared")
+        return
+      end
+      local lines = Vermilion.Hitch.lines()
+      for _, line in ipairs(lines) do d("[Vm] " .. line) end
+      Vermilion.CopyBox.show("Vermilion hitch", table.concat(lines, "\n"))
       return
     elseif cmd == "log" then
       local sub = string_match(string_lower(input), "^%s*%S+%s+(%S+)") or ""
@@ -147,6 +178,24 @@ local function on_slash(input)
       Vermilion.Diagnostics.reset()
       d("[Vm] " .. GetString(VERMILION_BUFFER_CLEARED))
       return
+    elseif cmd == "dev" then
+      Vermilion.DevTools.toggle() ; return
+    elseif cmd == "castprobe" then
+      Vermilion.CopyBox.show("Vermilion Cast Probe", table.concat(Vermilion.Casts.probe_lines(), "\n"))
+      return
+    elseif cmd == "elog" then
+      local sub = string_match(string_lower(input), "^%s*%S+%s+(%S+)") or ""
+      local EL = Vermilion.EncounterLog
+      if sub == "on" then EL.set_enabled(true)
+      elseif sub == "off" then EL.set_enabled(false)
+      elseif sub ~= "status" then EL.toggle() end
+      d("[Vm] " .. EL.status_line())
+      Vermilion.DevTools.refresh()
+      return
+    elseif cmd == "mark" then
+      local label = string_match(input, "^%s*%S+%s+(.-)%s*$") or ""
+      d("[Vm] " .. Vermilion.Trace.mark(label))
+      return
     end
   end
 
@@ -175,30 +224,41 @@ local function on_addon_loaded()
 
 
   local world = GetWorldName()
+  local sv_defaults = { graph = {}, temporal = {}, copybox = {}, settings = {}, skill_overrides = {}, logo = {}, log_lamp = {} }
+  if C.DEBUG then sv_defaults.probe = {} end
   Vermilion.SavedVars = Vermilion.zenimax.savedvars.new_account_wide(
-    C.SV_TABLE, C.SV_VERSION, world,
-    { probe = {}, graph = {}, temporal = {}, copybox = {}, settings = {}, skill_overrides = {}, logo = {} })
+    C.SV_TABLE, C.SV_VERSION, world, sv_defaults)
 
 
   Vermilion.SkillColors.load_persisted(Vermilion.SavedVars)
+  Vermilion.Skin.load_background(Vermilion.SavedVars.settings.background)
 
   Log:info("savedvars opened: world=", world, "version=", C.SV_VERSION)
 
 
   if C.DEBUG then Vermilion.Probe.init() end
   Vermilion.GC.init()          -- GC pacing (ported): smooth the incremental collector
+  Vermilion.Hitch.init()
   Vermilion.Pipeline.init()
   Vermilion.Ultimate.init()
+  Vermilion.Resources.init()
+  Vermilion.Casts.init()
+  Vermilion.Restores.init()
   Vermilion.SessionStore.init()
   Vermilion.Trace.init()
   Vermilion.Logo.init()
+  Vermilion.LogLamp.init()
   Vermilion.Settings.init()
+  Vermilion.DevTools.init()
   Vermilion.Graph.init()
   Vermilion.AutoRecord.init()
   Vermilion.Assign.init()
   Vermilion.Library.init()
+  Vermilion.About.init()
+  Vermilion.Export.init()
   Vermilion.Visibility.init()
 
+  Vermilion.slash = on_slash
   SLASH_COMMANDS[C.SLASH_COMMAND] = on_slash
 
   Log:info("loaded v" .. C.VERSION, "DEBUG=" .. tostring(C.DEBUG))

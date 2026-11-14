@@ -208,16 +208,6 @@ function Settings.RemovePath(path)
     return removed
 end
 
-function Settings.ResetAllOptions()
-    for _, scope in ipairs(Settings.savedVariableScopes) do
-        if scope.defaults then
-            for key, value in pairs(scope.defaults) do
-                SetPath(scope.savedVariables, { key }, value)
-            end
-        end
-    end
-end
-
 function Settings.EnsurePath(root, path)
     local current = root
     for index = 1, #path do

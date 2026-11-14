@@ -12,6 +12,7 @@ M.report       = function() return {}, 0 end
 M.report_lines = function() return { "[prof] disabled (DEBUG=false)" } end
 M.dump_to_chat = function() d("[prof] disabled (DEBUG=false)") end
 M.reset        = NOOP
+M.take_frame   = function() return 0, nil end
 
 if not Vermilion.Constants.DEBUG then return end
 
@@ -52,6 +53,7 @@ local stages       = {}
 local enter_stack  = {}
 local stack_top    = 0
 local started_at   = now_ms()
+local frame_ms, frame_top, frame_top_ms = 0, nil, 0
 
 --  the real thing (replace stubs at the bottom)
 function M.enter(name)
@@ -83,6 +85,10 @@ function M.exit(name)
   end
   local dt = now_ms() - frame.t0
   stack_top = stack_top - 1
+  if stack_top == 0 then
+    frame_ms = frame_ms + dt
+    if frame_top == nil or dt > frame_top_ms then frame_top, frame_top_ms = name, dt end
+  end
 
   local h = stages[name]
   if not h then h = new_histogram(); stages[name] = h end
@@ -111,6 +117,13 @@ function M.reset()
   stages = {}
   stack_top = 0
   started_at = now_ms()
+  frame_ms, frame_top, frame_top_ms = 0, nil, 0
+end
+
+function M.take_frame()
+  local ms, top = frame_ms, frame_top
+  frame_ms, frame_top, frame_top_ms = 0, nil, 0
+  return ms, top
 end
 
 function M.report()

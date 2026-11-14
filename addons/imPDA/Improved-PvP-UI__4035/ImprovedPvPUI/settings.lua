@@ -305,6 +305,21 @@ DE (Arboretum) - Same as "Ingame Default," but "Baumgartenbezirk" is replaced wi
         end
     }
 
+    klh[#klh + 1] = {
+		type = 'slider',
+		name = 'Pin Scale Factor',
+		tooltip = 'Changes pin size',
+		getFunc = function() return klhsv.pinScale end,
+		setFunc = function(value)
+            klhsv.pinScale = value
+            IMP_KLH_UpdateMap()
+        end,
+		min = 0.1,
+		max = 3,
+		step = 0.01,
+		decimals = 2,
+	}
+
     optionsData[#optionsData+1] = {
         type = 'submenu',
         name = 'Kill Locations History',

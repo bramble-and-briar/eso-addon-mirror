@@ -269,7 +269,7 @@ end
 
 EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_ADD_ON_LOADED, function(_, addonName)
 	if addonName ~= lib.name then return end
-	EVENT_MANAGER:UnregisterForEvent(lib.name, EVENT_ADD_ON_LOADED)
+	EVENT_MANAGER:UnregisterForEvent(EVENT_NAMESPACE, EVENT_ADD_ON_LOADED)
 
     lib:OnLoad()
 end)

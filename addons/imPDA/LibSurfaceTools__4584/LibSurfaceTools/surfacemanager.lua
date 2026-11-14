@@ -9,15 +9,16 @@ local function __surfaceProxy(compositeManager, stableId)
     local proxy = {}
 
     local mt = {
-        __index = function(_, methodName)
+        __index = function(t, methodName)
             local method = compositeControl[methodName]
             -- does not check is correct method called btw
             if method then
-                return function(_, ...)
+                local f = function(_, ...)
                     method(compositeControl, stableId, ...)
-
-                    return proxy
+                    return t
                 end
+                t[methodName] = f
+                return f
             end
             return nil
         end
@@ -26,6 +27,17 @@ local function __surfaceProxy(compositeManager, stableId)
     function proxy:RemoveSurface()
         compositeManager:RemoveSurface(stableId)
     end
+
+    function proxy:SetInsets(iL, iR, iT, iB)
+        compositeControl:SetInsets(stableId, iL, iR, iT, iB)
+        return proxy
+    end
+
+    -- TODO: it seems to work incorrectly when called via proxy?
+    -- can't reproduce because I don't need this function anymore
+    -- function proxy:GetInsets()
+    --     return compositeControl:GetInsets(stableId)
+    -- end
 
     setmetatable(proxy, mt)
     return proxy

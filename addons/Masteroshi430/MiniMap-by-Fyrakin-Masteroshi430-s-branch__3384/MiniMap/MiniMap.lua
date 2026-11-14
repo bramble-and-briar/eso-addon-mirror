@@ -4964,7 +4964,7 @@ local function LogPosition() -- called every 30ms
 					  
 					  local afkAnimation = GetControl("Fyr_MM_AFK_animation")
 					  if afkAnimation == nil then
-						 afkAnimation = WINDOW_MANAGER:CreateControl("Fyr_MM_AFK_animation", Fyr_MM_Frame_Wheel, CT_TEXTURE)
+						    afkAnimation = WINDOW_MANAGER:CreateControl("Fyr_MM_AFK_animation", Fyr_MM_Frame_Wheel, CT_TEXTURE)
 					  end
 	 
 					  local radius = Fyr_MM_Frame_Wheel:GetWidth()/2
@@ -4973,7 +4973,7 @@ local function LogPosition() -- called every 30ms
 					  local x = zo_cos(angle)*radius
 					  local y = zo_sin(angle)*radius
 					  
-					  afkAnimation:SetTexture("/esoui/art/pregameanimatedbackground/magma/ouroborosinner.dds")
+					  afkAnimation:SetTexture("MiniMap/Textures/hermaeusmoraeyes.dds")
 					  
 					  local randomReset = math.random(1, 2)
 					  if randomReset == 1 then
@@ -5006,7 +5006,7 @@ local function LogPosition() -- called every 30ms
 					  local randomTime = math.random(5000, 12000)
 					  zo_callLater(function()
 						  ChangeAfkSize(afkAnimation, 0)
-					  end, randomTime) 				  
+					  end, randomTime)
 			   
 					  CurrentMap.afkAnimTimeStamp = CurrentMap.currentTimeStamp
 				  
@@ -5017,7 +5017,7 @@ local function LogPosition() -- called every 30ms
 							 afkAnimation = WINDOW_MANAGER:CreateControl("Fyr_MM_AFK_animation", Fyr_MM, CT_TEXTURE)
 						  end
 						  
-						  afkAnimation:SetTexture("/esoui/art/pregameanimatedbackground/magma/ouroborosinner.dds")
+						  afkAnimation:SetTexture("MiniMap/Textures/hermaeusmoraeyes.dds")
 						  
 						  local randomReset = math.random(1, 2)
 						  if randomReset == 1 then

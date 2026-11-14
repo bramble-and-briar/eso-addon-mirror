@@ -1,0 +1,17 @@
+<Bindings>
+    <!-- Listens to the two stick clicks (L3 and R3) on the gamepad map screen. Never consumes a press: every handler
+         returns false, so the game's own handlers get them as before. The layer is raised by Chord.lua only while the
+         map scene shows. The L3 action is also the keybind of the row Chord.lua adds to the map's button guide. -->
+    <Layer name="PBsWayPointMapLayer" allowFallthrough="true">
+        <Category>
+            <Action name="PBSWAYPOINT_MAP_L3" inheritsBindFrom="UI_SHORTCUT_LEFT_STICK" hideAction="true" rebindable="false" preventAutomaticInputModeChange="true">
+                <Down>if PBS_WAYPOINT then return PBS_WAYPOINT:OnChordDown("L3") end return false</Down>
+                <Up>if PBS_WAYPOINT then return PBS_WAYPOINT:OnChordUp("L3") end return false</Up>
+            </Action>
+            <Action name="PBSWAYPOINT_MAP_R3" inheritsBindFrom="UI_SHORTCUT_RIGHT_STICK" hideAction="true" rebindable="false" preventAutomaticInputModeChange="true">
+                <Down>if PBS_WAYPOINT then return PBS_WAYPOINT:OnChordDown("R3") end return false</Down>
+                <Up>if PBS_WAYPOINT then return PBS_WAYPOINT:OnChordUp("R3") end return false</Up>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

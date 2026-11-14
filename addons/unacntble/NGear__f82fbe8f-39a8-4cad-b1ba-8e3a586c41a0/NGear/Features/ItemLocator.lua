@@ -61,7 +61,9 @@ local houseBankBag
 local bankCacheReady = false
 local furnitureVaultCacheReady = false
 local houseBankCacheReady = false
+local characterCacheReady = false
 local catalogLookupReady = false
+local catalogCompactionNeeded = true
 local unavailableData = false
 -- The identity itself is the lookup key. This keeps lookups exact while avoiding
 -- the former second unpack/API/identity pass required to verify every hash hit.
@@ -366,6 +368,7 @@ local function GetOrCreateCatalogId(bagId, slotIndex, itemLink)
     local catalog = savedVariables.c
     catalogId = #catalog + 1
     catalog[catalogId] = packed
+    catalogCompactionNeeded = true
     AddCatalogLookup(identity, catalogId)
     return catalogId
 end
@@ -421,6 +424,23 @@ local function EncodeLocation(location)
     )
 end
 
+local function SaveLocation(record, key, location)
+    -- Identical rescans update timestamps without rewriting payloads or forcing
+    -- another account-wide compaction on the next zone transition.
+    local payload = EncodeLocation(location)
+    local previous = record[key]
+    local changed = type(previous) ~= "table" or #previous ~= #payload
+    if not changed then
+        for index = 1, #payload do
+            if previous[index] ~= payload[index] then changed = true break end
+        end
+    end
+    if changed then
+        record[key] = payload
+        catalogCompactionNeeded = true
+    end
+end
+
 local function NotifyDataChanged()
     if type(ItemLocator.RefreshBrowser) == "function" then ItemLocator.RefreshBrowser() end
 end
@@ -429,13 +449,13 @@ local function FlushDirty()
     if not savedVariables then return end
     if dirty.b or dirty.w then
         local record = GetCharacterRecord()
-        if dirty.b then record.b = EncodeLocation("b") end
-        if dirty.w then record.w = EncodeLocation("w") end
+        if dirty.b then SaveLocation(record, "b", "b") end
+        if dirty.w then SaveLocation(record, "w", "w") end
     end
-    if dirty.k then savedVariables.k.p = EncodeLocation("k") end
-    if dirty.m then savedVariables.m.p = EncodeLocation("m") end
-    if dirty.f then savedVariables.f.p = EncodeLocation("f") end
-    if dirty.h and houseBankBag then GetHouseBankRecord(houseBankBag).p = EncodeLocation("h") end
+    if dirty.k then SaveLocation(savedVariables.k, "p", "k") end
+    if dirty.m then SaveLocation(savedVariables.m, "p", "m") end
+    if dirty.f then SaveLocation(savedVariables.f, "p", "f") end
+    if dirty.h and houseBankBag then SaveLocation(GetHouseBankRecord(houseBankBag), "p", "h") end
     dirty.b, dirty.w, dirty.k, dirty.m, dirty.f, dirty.h = false, false, false, false, false, false
     NotifyDataChanged()
 end
@@ -511,6 +531,7 @@ local function RemapRuntime(remap)
 end
 
 CompactCatalog = function()
+    if not catalogCompactionNeeded then return true end
     local liveIds = {}
     if not ValidatePayloads(liveIds) then return false end
 
@@ -569,8 +590,9 @@ CompactCatalog = function()
     end
     savedVariables.c = newCatalog
     RemapRuntime(remap)
-    catalogLookupReady = false
-    RebuildCatalogLookup()
+    catalogIdentityToId = identityToNew
+    catalogLookupReady = true
+    catalogCompactionNeeded = false
     return true
 end
 
@@ -676,6 +698,7 @@ local function CommitScanRuntime(job)
         if not catalogId then
             catalogId = #savedVariables.c + 1
             savedVariables.c[catalogId] = job.packed[ref]
+            catalogCompactionNeeded = true
             AddCatalogLookup(job.identities[ref], catalogId)
         end
         refToCatalogId[ref] = catalogId
@@ -704,14 +727,15 @@ local function CommitCharacterScan(job)
     local timestamp = GetTimeStamp and Number(GetTimeStamp()) or 0
     local record = GetCharacterRecord()
     record.t = timestamp
-    record.b = EncodeLocation("b")
-    record.w = EncodeLocation("w")
+    SaveLocation(record, "b", "b")
+    SaveLocation(record, "w", "w")
     dirty.b, dirty.w = false, false
     if job.refCounts.m then
         savedVariables.m.t = timestamp
-        savedVariables.m.p = EncodeLocation("m")
+        SaveLocation(savedVariables.m, "p", "m")
         dirty.m = false
     end
+    characterCacheReady = true
     RequestPrioritySave()
     NotifyDataChanged()
 end
@@ -723,18 +747,18 @@ local function CommitStorageScan(job)
     local location = job.location
     if location == "k" then
         savedVariables.k.t = timestamp
-        savedVariables.k.p = EncodeLocation("k")
+        SaveLocation(savedVariables.k, "p", "k")
         dirty.k = false
         bankCacheReady = bankOpen
     elseif location == "f" then
         savedVariables.f.t = timestamp
-        savedVariables.f.p = EncodeLocation("f")
+        SaveLocation(savedVariables.f, "p", "f")
         dirty.f = false
         furnitureVaultCacheReady = furnitureVaultOpen
     else
         local record = GetHouseBankRecord(job.targetBag)
         record.t = timestamp
-        record.p = EncodeLocation("h")
+        SaveLocation(record, "p", "h")
         dirty.h = false
         houseBankCacheReady = houseBankBag == job.targetBag
     end
@@ -824,6 +848,7 @@ end
 
 StartCharacterScan = function()
     CancelCharacterScan()
+    characterCacheReady = false
     if not savedVariables or not savedVariables.e then return end
     if not catalogLookupReady then RebuildCatalogLookup() end
 
@@ -898,7 +923,8 @@ local function OnInventorySlotUpdate(_, bagId, slotIndex)
     end
     if (location == "k" and not bankCacheReady)
         or (location == "f" and not furnitureVaultCacheReady)
-        or (location == "h" and not houseBankCacheReady) then return end
+        or (location == "h" and not houseBankCacheReady)
+        or ((location == "b" or location == "w" or location == "m") and not characterCacheReady) then return end
 
     local ids = slotIds[bagId] or {}
     local counts = slotCounts[bagId] or {}
@@ -996,11 +1022,26 @@ local function OnCloseBank()
 end
 
 local function OnPlayerDeactivated()
+    -- Preserve the last complete snapshots until activation can finish a new
+    -- baseline. Slot events during loading must not write partial aggregates.
+    characterCacheReady = false
     CancelCharacterScan()
     CancelStorageScan()
     CancelUpdate(C.FLUSH_UPDATE)
+    CancelUpdate(C.FULL_SCAN_UPDATE)
+    CancelUpdate(C.BANK_SCAN_UPDATE)
     if dirty.b or dirty.w or dirty.k or dirty.m or dirty.f or dirty.h then FlushDirty() end
+    OnCloseBank()
     CompactCatalog()
+end
+
+local function OnPlayerActivated()
+    if not savedVariables or not savedVariables.e then return end
+    RefreshOpenBankBag()
+    StartCharacterScan()
+    if bankOpen then ScanBank() end
+    if furnitureVaultOpen then ScanFurnitureVault() end
+    if houseBankBag then ScanHouseBank() end
 end
 
 local function RegisterEvents()
@@ -1010,6 +1051,7 @@ local function RegisterEvents()
     EVENT_MANAGER:RegisterForEvent(C.EVENT_NAMESPACE, EVENT_OPEN_BANK, OnOpenBank)
     EVENT_MANAGER:RegisterForEvent(C.EVENT_NAMESPACE, EVENT_CLOSE_BANK, OnCloseBank)
     EVENT_MANAGER:RegisterForEvent(C.EVENT_NAMESPACE, EVENT_PLAYER_DEACTIVATED, OnPlayerDeactivated)
+    EVENT_MANAGER:RegisterForEvent(C.EVENT_NAMESPACE, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
     eventsRegistered = true
 end
 
@@ -1020,6 +1062,7 @@ local function UnregisterEvents()
     EVENT_MANAGER:UnregisterForEvent(C.EVENT_NAMESPACE, EVENT_OPEN_BANK)
     EVENT_MANAGER:UnregisterForEvent(C.EVENT_NAMESPACE, EVENT_CLOSE_BANK)
     EVENT_MANAGER:UnregisterForEvent(C.EVENT_NAMESPACE, EVENT_PLAYER_DEACTIVATED)
+    EVENT_MANAGER:UnregisterForEvent(C.EVENT_NAMESPACE, EVENT_PLAYER_ACTIVATED)
     CancelUpdate(C.FLUSH_UPDATE)
     CancelUpdate(C.FULL_SCAN_UPDATE)
     CancelUpdate(C.BANK_SCAN_UPDATE)
@@ -1029,6 +1072,7 @@ local function UnregisterEvents()
 end
 
 local function ClearRuntime()
+    characterCacheReady = false
     CancelCharacterScan()
     CancelStorageScan()
     Clear(aggregates.b)
@@ -1130,6 +1174,7 @@ end
 function ItemLocator.InitializeSavedVariables()
     savedVariables = NGear.Settings.GetAccountWideSection(C.NAMESPACE)
     EnsureSchema()
+    catalogCompactionNeeded = true
 end
 
 function ItemLocator.Initialize()
@@ -1182,6 +1227,7 @@ function ItemLocator.ClearData()
     savedVariables.m = { t = 0, p = {} }
     savedVariables.f = { t = 0, p = {} }
     savedVariables.h = {}
+    catalogCompactionNeeded = false
     ClearRuntime()
     if savedVariables.e then
         BuildBagLists()
@@ -1453,14 +1499,40 @@ end
 function ItemLocator.BuildCategoryList(output)
     output = output or {}
     Clear(output)
-    local records = ItemLocator.BuildBrowserRecords({})
-    local seen = {}
-    for index = 1, #records do
-        local record = records[index]
-        if not seen[record.categoryKey] then
-            seen[record.categoryKey] = true
-            output[#output + 1] = { key = record.categoryKey, label = record.category }
+    if not savedVariables then return output end
+    unavailableData = false
+    local categoryIdsByLabel = BuildGamepadCategoryIdsByLabel()
+    local seenIds, seenCategories = {}, {}
+    local function AddPayloadCategories(payload)
+        local counts = Codec.DecodeCounts(payload or {}, decodeScratch)
+        if not counts then unavailableData = true return end
+        for catalogId in pairs(counts) do
+            if not seenIds[catalogId] then
+                seenIds[catalogId] = true
+                local itemLink = Codec.UnpackVariant(savedVariables.c[catalogId], codecFields)
+                if itemLink then
+                    local label, key = GetItemCategory(itemLink, categoryIdsByLabel)
+                    if not seenCategories[key] then
+                        seenCategories[key] = true
+                        output[#output + 1] = { key = key, label = label }
+                    end
+                else
+                    unavailableData = true
+                end
+            end
         end
+    end
+    for _, record in pairs(savedVariables.p) do
+        if type(record) == "table" then
+            AddPayloadCategories(record.b)
+            AddPayloadCategories(record.w)
+        end
+    end
+    AddPayloadCategories(savedVariables.k.p)
+    AddPayloadCategories(savedVariables.m.p)
+    AddPayloadCategories(savedVariables.f.p)
+    for bagId, record in pairs(savedVariables.h) do
+        if Number(bagId) > 0 and type(record) == "table" then AddPayloadCategories(record.p) end
     end
     table.sort(output, function(left, right)
         return NGear.Util.Lower(left.label) < NGear.Util.Lower(right.label)

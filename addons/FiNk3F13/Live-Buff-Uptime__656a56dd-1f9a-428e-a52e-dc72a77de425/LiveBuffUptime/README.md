@@ -1,5 +1,13 @@
 # LiveBuffUptime
 
+2.5.1: Skill-Schaden und DPS vollstaendig in das eigenstaendige Addon
+SkillDamageStats ausgelagert. LiveBuffUptime zeigt nur Buffs und Debuffs
+mit unveraenderter Uptime-Berechnung. Gegner-Metadaten sowie Schadens- und
+Heilereignisse bleiben fuer die bestehenden Bezugszeiten erhalten; es werden
+keine Skill-Schadenssummen oder DPS mehr erfasst. Alte gespeicherte Berichte
+bleiben erhalten, ihre frueheren Skills-Daten werden nicht mehr angezeigt.
+SkillDamageStats hat eine eigene Historie und eigene SavedVariables.
+
 2.4.10: Mechanikblick als eigene Cooldown-Quelle ergaenzt. Tracker: Effekt-ID
 99204, Einheit Auf mir, Cooldown-Quelle Mechanikblick (eigener Proc). Der
 25-Sekunden-Cooldown startet auf das separate eigene Proc-Ereignis 164087;

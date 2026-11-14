@@ -1,12 +1,12 @@
 ## Title: NGear
 ## Author: unacntble
 ## APIVersion: 101050 101051
-## AddOnVersion: 36
-## LastProdVersionCommitID: ce4275b
-## LastDevVersionCommitID: 84a5f39
+## AddOnVersion: 41
+## LastProdVersionCommitID: eb2eb70
+## LastDevVersionCommitID: f58b56d
 ## Description: Item locator and Sticker Book browser.
 ## SavedVariables: NGearSavedVariables NGearLanguageSettings
-## DependsOn: LibHarvensAddonSettings>=20109
+## OptionalDependsOn: LibHarvensAddonSettings>=20109
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax
 ; Media Inc. or its affiliates. The Elder Scrolls® and related logos are

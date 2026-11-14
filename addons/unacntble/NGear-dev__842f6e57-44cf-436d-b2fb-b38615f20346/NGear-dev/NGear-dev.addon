@@ -1,12 +1,12 @@
 ## Title: NGear-dev
 ## Author: unacntble
 ## APIVersion: 101050 101051
-## AddOnVersion: 32
-## LastProdVersionCommitID: a6fd1cf
-## LastDevVersionCommitID: 0b664a0
-## Description: Item locator and gear set collection browser.
-## SavedVariables: NGearSavedVariablesDev NGearLanguageSettings
-## DependsOn: LibHarvensAddonSettings>=20109
+## AddOnVersion: 40
+## LastProdVersionCommitID: 1465725
+## LastDevVersionCommitID: 8cd92c7
+## Description: Item locator and Sticker Book browser.
+## SavedVariables: NGearSavedVariablesDev NGearLanguageSettingsDev
+## OptionalDependsOn: LibHarvensAddonSettings>=20109
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax
 ; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
@@ -19,7 +19,7 @@ Core/Util.lua
 Core/Settings.lua
 Features/ItemLocatorCodec.lua
 Features/ItemLocator.lua
-Features/CollectionsGear.lua
+Features/StickerBook.lua
 UI/ItemLocator.lua
 UI/GamepadOptions.lua
 UI/GamepadOptions/Navigation.lua

@@ -17,6 +17,7 @@ M.is_visible = function() return false end
 
 
 local zui = Vermilion.zenimax.ui
+local zev = Vermilion.zenimax.events
 local zc  = Vermilion.zenimax.constants
 local WINDOW_MANAGER         = zui.WINDOW_MANAGER
 local CreateControlFromVirtual = zui.CreateControlFromVirtual
@@ -26,11 +27,19 @@ local BOTTOMLEFT     = zc.BOTTOMLEFT
 local BOTTOMRIGHT    = zc.BOTTOMRIGHT
 local CT_LABEL       = zc.CT_LABEL
 local CT_BACKDROP    = zc.CT_BACKDROP
-local TEXT_ALIGN_CENTER = zc.TEXT_ALIGN_CENTER
 local GuiRoot        = zc.GuiRoot
 
+local table_concat = table.concat
+
+local KEEP   = 120
+local UPDATE = "VermilionCopyBoxFlush"
+
 local controls
-local buffer = ""
+local head = ""
+local tail = {}
+local tail_first, tail_n = 1, 0
+local parts = {}
+local pending = false
 
 local function build()
   local win = WINDOW_MANAGER:CreateTopLevelWindow("VermilionCopyBoxWindow")
@@ -104,14 +113,40 @@ local function ensure_built()
   if not controls then build() end
 end
 
+local function compose()
+  local n = 0
+  if head ~= "" then
+    n = 1
+    parts[1] = head
+  end
+  for i = 0, tail_n - 1 do
+    n = n + 1
+    parts[n] = tail[(tail_first + i - 1) % KEEP + 1]
+  end
+  for i = n + 1, #parts do parts[i] = nil end
+  return table_concat(parts, "\n")
+end
+
+local function drop_pending()
+  pending = false
+  zev.unregister_update(UPDATE)
+end
+
+local function flush()
+  drop_pending()
+  controls.edit:SetText(compose())
+end
+
 function M.show(title, text)
   ensure_built()
   if title then
     controls.window:GetNamedChild("Title"):SetText(title)
   end
   if text then
-    buffer = text
-    controls.edit:SetText(buffer)
+    drop_pending()
+    head = text
+    tail_first, tail_n = 1, 0
+    controls.edit:SetText(text)
   end
   controls.window:SetHidden(false)
   controls.window:BringWindowToTop()
@@ -119,17 +154,26 @@ end
 
 function M.append(text)
   ensure_built()
-  if buffer == "" then
-    buffer = text or ""
+  local slot
+  if tail_n < KEEP then
+    tail_n = tail_n + 1
+    slot = (tail_first + tail_n - 2) % KEEP + 1
   else
-    buffer = buffer .. "\n" .. (text or "")
+    slot = tail_first
+    tail_first = tail_first % KEEP + 1
   end
-  controls.edit:SetText(buffer)
+  tail[slot] = text or ""
+  if not pending then
+    pending = true
+    zev.register_update(UPDATE, 0, flush)
+  end
   controls.window:SetHidden(false)
 end
 
 function M.clear()
-  buffer = ""
+  drop_pending()
+  head = ""
+  tail_first, tail_n = 1, 0
   if controls then controls.edit:SetText("") end
 end
 

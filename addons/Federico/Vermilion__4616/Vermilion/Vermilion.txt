@@ -1,8 +1,8 @@
 ## Title: Vermilion
 ## Description: Real-time damage-dealer analytics — eDPS, shield-cracking and skill-line breakdown
 ## Author: Federico Vergelli
-## Version: 1.2.1
-## AddOnVersion: 10
+## Version: 2.0.0
+## AddOnVersion: 11
 ## APIVersion: 101051 101050
 ## SavedVariables: VermilionSavedVars
 
@@ -10,7 +10,8 @@
 # The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
 # in the United States and/or other countries. All rights reserved.
 #
-# License: MIT (code) — see the LICENSE file. Name, logo & artwork (c) 2026 Federico Vergelli, all rights reserved.
+# License: Vermilion License, version 1. The full text is in the LICENSE file of this folder.
+# Code, name, logo and artwork (c) 2026 Federico Vergelli. All rights reserved.
 
 
 bindings.xml
@@ -33,9 +34,21 @@ lib/plot/style.lua
 lib/plot/primitives.lua
 lib/plot/pool.lua
 lib/plot/plot_stacked_bar.lua
+lib/viz/surface.lua
+lib/viz/spans.lua
+lib/viz/stems.lua
+lib/viz/scatter.lua
+lib/viz/ring.lua
+lib/viz/heat.lua
+lib/viz/race.lua
 observability/copybox.lua
+observability/encounter_log.lua
+observability/background_cost.lua
+observability/devtools.lua
 observability/log.lua
 observability/profiler.lua
+observability/hitch.lua
+observability/calib.lua
 observability/validation.lua
 core/mode.lua
 core/skill_colors.lua
@@ -46,7 +59,6 @@ observability/trace.lua
 pipeline/acquisition.lua
 pipeline/filter.lua
 pipeline/processing.lua
-pipeline/presentation.lua
 pipeline/pipeline.lua
 core/probe.lua
 core/temporal_buffer.lua
@@ -54,21 +66,72 @@ core/content_kind.lua
 core/session_store.lua
 core/debuff_tracker.lua
 core/ultimate.lua
+core/resources.lua
+core/fight_stats.lua
+core/casts.lua
+core/restores.lua
+core/uptime.lua
+core/damage_names.lua
 core/kills.lua
 core/heat.lua
 core/auto_record.lua
 core/visibility.lua
+ui/skin.lua
 ui/settings.xml
 ui/settings.lua
 ui/contrib.lua
 ui/debuffs.lua
 ui/targets.lua
+ui/resources.lua
+ui/uptime.lua
+ui/film/window.lua
+ui/widgets/fader.lua
+ui/widgets/hover_card.lua
+ui/widgets/slider.lua
+ui/widgets/radio.lua
+ui/widgets/meter.lua
+ui/widgets/dropdown.lua
+ui/widgets/dock.lua
+ui/record_panel.lua
+ui/film/columns.lua
+ui/film/overview.lua
+ui/film/bands.lua
+core/film_test.lua
+core/storage_report.lua
+ui/format.lua
+ui/chart/pools.lua
+ui/chart/grid.lua
+ui/chart/hit.lua
+ui/chart/overlay.lua
+ui/cards/report.lua
+ui/cards/hover.lua
+ui/views/skill.lua
+ui/views/type.lua
+ui/views/crit.lua
+ui/views/registry.lua
+ui/shell/tabs.lua
+ui/shell/chip.lua
+ui/shell/light.lua
+ui/shell/sampler.lua
+ui/shell/saving.lua
+ui/shell/opened.lua
+ui/shell/recorder.lua
+ui/chart/drag.lua
+ui/chart/build.lua
 ui/graph.xml
 ui/graph.lua
 ui/assign.xml
 ui/assign.lua
 ui/library.xml
 ui/library.lua
+ui/about.xml
+ui/export.xml
+ui/export_report.lua
+ui/export.lua
+ui/say.lua
+ui/about.lua
 ui/logo.xml
 ui/logo.lua
+ui/log_lamp.xml
+ui/log_lamp.lua
 Vermilion.lua

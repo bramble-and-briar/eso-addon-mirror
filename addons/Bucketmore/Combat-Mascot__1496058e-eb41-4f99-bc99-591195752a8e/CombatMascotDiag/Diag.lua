@@ -1,4 +1,7 @@
--- CombatMascotDiag v0.1.1
+-- CombatMascotDiag v0.1.2
+-- v0.1.2: result names via explicit constant references (the _G scan failed on PS5), source-type of
+--         taken hits + self-overlap counters, ability cost for every slot use, IsAbilityUltimate evidence.
+--         DDS / animation / interrupt code is unchanged since v0.1.0.
 -- v0.1.1: ULT candidate slot (const+1), skill = slots 3-7, slot 1/2 counted separately,
 --         per-result-code counters (names from the game's own ACTION_RESULT_* constants),
 --         cheaper event handlers. DDS / animation / interrupt code is unchanged from v0.1.0.
@@ -9,7 +12,7 @@
 
 local ADDON = "CombatMascotDiag"
 local PATH  = "CombatMascotDiag/"
-local VERSION = "0.1.1"
+local VERSION = "0.1.2"
 local FPS = 12                       -- test frame rate for every sheet
 
 ------------------------------------------------------------------
@@ -24,9 +27,11 @@ local S = {
     reg = { src = "-", tgt = "-", slot = "-" },
     c = { light = 0, heavy = 0, skill = 0, ultCand = 0, kill = 0,
           s1 = 0, s2 = 0, slotOther = 0,
+          hitFromSelf = 0, hitFromOther = 0, srcToSelf = 0, tgtFromSelf = 0,
           hitDirect = 0, hitDot = 0, hitShield = 0, hitOther = 0,
           src = 0, tgt = 0, slot = 0 },
     slotCnt = {},                    -- slotCnt[slotNum] = count
+    slotCost = {},                   -- slotCost[slotNum] = last cost text (GetSlotAbilityCost 1st return)
     resSrc = {}, resTgt = {},        -- resSrc[resultCode] = count (classification counters)
     last = { srcLine = "-", tgtLine = "-", slotLine = "-", ultLine = "-" },
 }
@@ -362,18 +367,34 @@ AddName(RESULT_NAMES, ACTION_RESULT_KILLING_BLOW, "KILLBLOW")
 -- A code with no such global stays "r<number>" and is NOT interpreted.
 local RNAME = {}
 local function BuildResultNames()
-    local n = 0
-    local ok = pcall(function()
-        for k, v in pairs(_G) do
-            if type(k) == "string" and type(v) == "number" and string.sub(k, 1, 14) == "ACTION_RESULT_" then
-                local nm = string.sub(k, 15)
-                local cur = RNAME[v]
-                if cur == nil then RNAME[v] = nm; n = n + 1
-                elseif nm < cur then RNAME[v] = nm end
-            end
+    -- Direct global reads (no _G scan: that failed on PS5 in v0.1.1). A missing constant is simply nil.
+    local KNOWN = {
+        { "DAMAGE", ACTION_RESULT_DAMAGE }, { "CRITICAL_DAMAGE", ACTION_RESULT_CRITICAL_DAMAGE },
+        { "DOT_TICK", ACTION_RESULT_DOT_TICK }, { "DOT_TICK_CRITICAL", ACTION_RESULT_DOT_TICK_CRITICAL },
+        { "DAMAGE_SHIELDED", ACTION_RESULT_DAMAGE_SHIELDED }, { "BLOCKED_DAMAGE", ACTION_RESULT_BLOCKED_DAMAGE },
+        { "KILLING_BLOW", ACTION_RESULT_KILLING_BLOW }, { "DIED", ACTION_RESULT_DIED }, { "DIED_XP", ACTION_RESULT_DIED_XP },
+        { "HEAL", ACTION_RESULT_HEAL }, { "CRITICAL_HEAL", ACTION_RESULT_CRITICAL_HEAL },
+        { "HOT_TICK", ACTION_RESULT_HOT_TICK }, { "HOT_TICK_CRITICAL", ACTION_RESULT_HOT_TICK_CRITICAL },
+        { "EFFECT_GAINED", ACTION_RESULT_EFFECT_GAINED }, { "EFFECT_GAINED_DURATION", ACTION_RESULT_EFFECT_GAINED_DURATION },
+        { "EFFECT_FADED", ACTION_RESULT_EFFECT_FADED }, { "BEGIN", ACTION_RESULT_BEGIN },
+        { "BEGIN_CHANNEL", ACTION_RESULT_BEGIN_CHANNEL }, { "INTERRUPT", ACTION_RESULT_INTERRUPT },
+        { "STUNNED", ACTION_RESULT_STUNNED }, { "MISS", ACTION_RESULT_MISS }, { "DODGED", ACTION_RESULT_DODGED },
+        { "REFLECTED", ACTION_RESULT_REFLECTED }, { "ABSORBED", ACTION_RESULT_ABSORBED }, { "IMMUNE", ACTION_RESULT_IMMUNE },
+        { "POWER_ENERGIZE", ACTION_RESULT_POWER_ENERGIZE }, { "POWER_DRAIN", ACTION_RESULT_POWER_DRAIN },
+        { "ABILITY_ON_COOLDOWN", ACTION_RESULT_ABILITY_ON_COOLDOWN }, { "FALL_DAMAGE", ACTION_RESULT_FALL_DAMAGE },
+        { "PRECISE_DAMAGE", ACTION_RESULT_PRECISE_DAMAGE }, { "WRECKING_DAMAGE", ACTION_RESULT_WRECKING_DAMAGE },
+        { "SNARED", ACTION_RESULT_SNARED }, { "ROOTED", ACTION_RESULT_ROOTED }, { "KNOCKBACK", ACTION_RESULT_KNOCKBACK },
+    }
+    local found = 0
+    for i = 1, #KNOWN do
+        local nm, v = KNOWN[i][1], KNOWN[i][2]
+        if type(v) == "number" then
+            local cur = RNAME[v]
+            if cur == nil then RNAME[v] = nm; found = found + 1
+            elseif nm < cur then RNAME[v] = nm end
         end
-    end)
-    S.api.resultNameScan = ok and ("Y(" .. n .. ")") or "ERR"
+    end
+    S.api.resultNames = "Y(" .. found .. "/" .. #KNOWN .. ")"
 end
 local function ResName(r) return RNAME[r] or RESULT_NAMES[r] or ("r" .. tostring(r)) end
 
@@ -410,6 +431,7 @@ local function OnSrc(_, result, isError, abilityName, _, slotType, sourceName, s
     c.src = c.src + 1
     local rt = S.resSrc
     rt[result] = (rt[result] or 0) + 1              -- classification counter (cheap)
+    if COMBAT_UNIT_TYPE_PLAYER ~= nil and targetType == COMBAT_UNIT_TYPE_PLAYER then c.srcToSelf = c.srcToSelf + 1 end
     local changed = false
     if result == ACTION_RESULT_KILLING_BLOW then
         c.kill = c.kill + 1
@@ -438,6 +460,8 @@ local function OnTgt(_, result, isError, abilityName, _, slotType, sourceName, s
     c.tgt = c.tgt + 1
     local rt = S.resTgt
     rt[result] = (rt[result] or 0) + 1              -- classification counter (cheap)
+    local fromSelf = (COMBAT_UNIT_TYPE_PLAYER ~= nil) and (sourceType == COMBAT_UNIT_TYPE_PLAYER)
+    if fromSelf then c.tgtFromSelf = c.tgtFromSelf + 1 end
     local counted = true
     if result == ACTION_RESULT_DAMAGE or result == ACTION_RESULT_CRITICAL_DAMAGE then
         c.hitDirect = c.hitDirect + 1
@@ -450,8 +474,10 @@ local function OnTgt(_, result, isError, abilityName, _, slotType, sourceName, s
         counted = false
     end
     if counted then
-        S.last.tgtLine = string.format("id=%s %s result=%s value=%s dmgType=%s",
-            tostring(abilityId), Nm(abilityId), ResName(result), tostring(hitValue), tostring(damageType))
+        if fromSelf then c.hitFromSelf = c.hitFromSelf + 1 else c.hitFromOther = c.hitFromOther + 1 end
+        S.last.tgtLine = string.format("id=%s %s result=%s value=%s dmgType=%s srcType=%s%s",
+            tostring(abilityId), Nm(abilityId), ResName(result), tostring(hitValue), tostring(damageType),
+            tostring(sourceType), fromSelf and "(SELF)" or "")
     end
     if counted then Dirty() else DirtySlow() end
 end
@@ -478,11 +504,17 @@ local function SlotCost(slotNum)
     local ok, cost, mech = pcall(GetSlotAbilityCost, slotNum)
     if not ok then S.api.GetSlotAbilityCost = "ERR" return "ERR" end
     S.api.GetSlotAbilityCost = "Y"
-    local u = ""
-    if COMBAT_MECHANIC_FLAGS_ULTIMATE ~= nil and mech ~= nil then
-        u = (mech == COMBAT_MECHANIC_FLAGS_ULTIMATE) and "(ULTIMATE)" or "(not ult)"
-    end
-    return tostring(cost) .. "/" .. tostring(mech) .. u
+    return tostring(cost) .. (mech ~= nil and ("/m" .. tostring(mech)) or "")
+end
+
+-- Independent evidence for "is this ability an ultimate" (API existence/meaning UNVERIFIED on PS5)
+local function UltApi(abilityId)
+    if abilityId == nil then return "NA" end
+    if type(IsAbilityUltimate) ~= "function" then S.api.IsAbilityUltimate = "N" return "NA" end
+    local ok, v = pcall(IsAbilityUltimate, abilityId)
+    if not ok then S.api.IsAbilityUltimate = "ERR" return "ERR" end
+    S.api.IsAbilityUltimate = "Y"
+    return v and "Y" or "N"
 end
 
 local function OnSlot(_, slotNum)
@@ -500,10 +532,12 @@ local function OnSlot(_, slotNum)
         c.slotOther = c.slotOther + 1
     end
     local id = BoundId(slotNum)
-    local line = string.format("slot=%s ult-cand=%s boundId=%s %s",
-        tostring(slotNum), isUlt and "Y" or "N", tostring(id), Nm(id))
+    local cost = SlotCost(slotNum)
+    S.slotCost[slotNum] = cost
+    local line = string.format("slot=%s ult-cand=%s boundId=%s %s cost=%s IsAbilityUltimate=%s",
+        tostring(slotNum), isUlt and "Y" or "N", tostring(id), Nm(id), cost, UltApi(id))
     S.last.slotLine = line
-    if isUlt then S.last.ultLine = line .. "  cost/mech=" .. SlotCost(slotNum) end
+    if isUlt then S.last.ultLine = line end
     Dirty()
 end
 
@@ -584,7 +618,7 @@ Refresh = function()
     L[#L + 1] = "API: " .. ApiLine({ "SetPlaybackType(ONE_SHOT)", "SetPlaybackType(LOOP)", "PlayFromStart", "Stop", "IsPlaying", "SetHandler(OnStop)" })
     L[#L + 1] = "API: IsTextureLoaded=" .. F(S.api.IsTextureLoaded) .. " OnTextureLoaded(set)=" .. F(S.api.OnTextureLoaded) ..
                 " GetTextureFileDimensions=" .. F(S.api.GetTextureFileDimensions) .. " boundIdForm=" .. F(S.api.boundIdForm) ..
-                " GetSlotAbilityCost=" .. F(S.api.GetSlotAbilityCost) .. " resultNameScan=" .. F(S.api.resultNameScan)
+                " GetSlotAbilityCost=" .. F(S.api.GetSlotAbilityCost) .. " IsAbilityUltimate=" .. F(S.api.IsAbilityUltimate) .. " resultNames=" .. F(S.api.resultNames)
     L[#L + 1] = "[DDS LOAD]  1s / 2s / 3s  (Y=loaded N=not NA=no function)  cb=OnTextureLoaded ms  dim=file size"
     for _, k in ipairs(ORDER) do
         local ld = S.load[k] or { "-", "-", "-" }
@@ -609,13 +643,18 @@ Refresh = function()
     L[#L + 1] = string.format("  passed filter: src=%d tgt=%d slot=%d  total=%d", c.src, c.tgt, c.slot, c.src + c.tgt + c.slot)
     L[#L + 1] = string.format("  hit-light=%d hit-heavy=%d kill=%d   skill(s3-7)=%d   ult-cand(s%s)=%d  [ULT UNCONFIRMED]",
         c.light, c.heavy, c.kill, c.skill, F(ULT_CAND), c.ultCand)
-    L[#L + 1] = string.format("  hit taken: direct=%d dot=%d shielded=%d  non-hit results=%d", c.hitDirect, c.hitDot, c.hitShield, c.hitOther)
+    L[#L + 1] = string.format("  hit taken: direct=%d dot=%d shielded=%d  non-hit results=%d   source: self=%d other=%d",
+        c.hitDirect, c.hitDot, c.hitShield, c.hitOther, c.hitFromSelf, c.hitFromOther)
+    L[#L + 1] = string.format("  overlap: src-events with target=player %d | tgt-events with source=player %d   (both PLAYER type = self events)",
+        c.srcToSelf, c.tgtFromSelf)
     L[#L + 1] = "  last light/heavy/kill: " .. S.last.srcLine
     L[#L + 1] = "  last hit taken:        " .. S.last.tgtLine
     L[#L + 1] = string.format("[SLOTS]  s1(weapon input)=%d  s2(weapon input)=%d   other=%d   (separate from hit counts)", c.s1, c.s2, c.slotOther)
     L[#L + 1] = string.format("  s3=%d s4=%d s5=%d s6=%d s7=%d  s8=%d  | ULT const=%s -> its own slot count=%s",
         S.slotCnt[3] or 0, S.slotCnt[4] or 0, S.slotCnt[5] or 0, S.slotCnt[6] or 0, S.slotCnt[7] or 0, S.slotCnt[8] or 0,
         F(ACTION_BAR_ULTIMATE_SLOT_INDEX), F(ACTION_BAR_ULTIMATE_SLOT_INDEX and S.slotCnt[ACTION_BAR_ULTIMATE_SLOT_INDEX] or nil))
+    L[#L + 1] = string.format("  cost(last use): s3=%s s4=%s s5=%s s6=%s s7=%s s8=%s   (1st return of GetSlotAbilityCost; unit unverified)",
+        F(S.slotCost[3]), F(S.slotCost[4]), F(S.slotCost[5]), F(S.slotCost[6]), F(S.slotCost[7]), F(S.slotCost[8]))
     L[#L + 1] = "  last slot used (3+): " .. S.last.slotLine
     L[#L + 1] = "  last ult-cand:       " .. S.last.ultLine
     L[#L + 1] = "[RESULT src] " .. TopLine(S.resSrc, 5)

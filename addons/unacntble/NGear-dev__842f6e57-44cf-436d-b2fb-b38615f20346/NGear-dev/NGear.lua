@@ -42,13 +42,13 @@ local function OnAddonLoaded(_, addonName)
 
     NGear.Settings.InitializeAccountWide()
     NGear.ItemLocator.InitializeSavedVariables()
-    NGear.Features.CollectionsGear.InitializeSavedVariables()
+    NGear.Features.StickerBook.InitializeSavedVariables()
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED, function()
         EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED)
 
         NGear.ItemLocator.Initialize()
-        NGear.Features.CollectionsGear.Initialize()
+        NGear.Features.StickerBook.Initialize()
         NGear.GamepadOptions.Initialize()
     end)
 end

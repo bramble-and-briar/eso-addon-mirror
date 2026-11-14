@@ -1,0 +1,22 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="KnownVendorFilterOptions" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true">
+            <Dimensions x="480" y="390" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" />
+            <Controls>
+                <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop"><AnchorFill /></Backdrop>
+                <Label name="$(parent)Title" font="ZoFontWinH2" color="E8DFAF"><Dimensions x="440" y="32" /><Anchor point="TOPLEFT" offsetX="20" offsetY="18" /></Label>
+                <Label name="$(parent)Description" font="ZoFontGame"><Dimensions x="440" y="25" /><Anchor point="TOPLEFT" offsetX="20" offsetY="52" /></Label>
+                <Button name="$(parent)recipes" inherits="ZO_CheckButton"><Anchor point="TOPLEFT" offsetX="22" offsetY="82" /></Button>
+                <Button name="$(parent)plans" inherits="ZO_CheckButton"><Anchor point="TOPLEFT" offsetX="22" offsetY="112" /></Button>
+                <Button name="$(parent)motifs" inherits="ZO_CheckButton"><Anchor point="TOPLEFT" offsetX="22" offsetY="142" /></Button>
+                <Button name="$(parent)stylePages" inherits="ZO_CheckButton"><Anchor point="TOPLEFT" offsetX="22" offsetY="172" /></Button>
+                <Button name="$(parent)scribing" inherits="ZO_CheckButton"><Anchor point="TOPLEFT" offsetX="22" offsetY="202" /></Button>
+                <Button name="$(parent)collectibles" inherits="ZO_CheckButton"><Anchor point="TOPLEFT" offsetX="22" offsetY="232" /></Button>
+                <Button name="$(parent)sets" inherits="ZO_CheckButton"><Anchor point="TOPLEFT" offsetX="22" offsetY="262" /></Button>
+                <Label name="$(parent)Note" font="ZoFontGameSmall" color="AAAAAA"><Dimensions x="440" y="38" /><Anchor point="TOPLEFT" offsetX="20" offsetY="302" /></Label>
+                <Button name="$(parent)Close" inherits="ZO_DefaultButton"><Dimensions x="160" y="30" /><Anchor point="BOTTOM" offsetY="-14" /></Button>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

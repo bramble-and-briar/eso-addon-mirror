@@ -2,12 +2,13 @@
   <Controls>
 
     <TopLevelControl name="VermilionSettingsPanel"
+                     tier="MEDIUM"
                      hidden="true"
                      clampedToScreen="true"
                      movable="true"
                      mouseEnabled="true">
 
-      <Dimensions x="600" y="374"/>
+      <Dimensions x="600" y="300"/>
 
       <OnMoveStop>Vermilion.Settings.on_move_stop()</OnMoveStop>
 
@@ -26,14 +27,6 @@
           <Dimensions x="24" y="24"/>
         </Texture>
 
-        <Label name="$(parent)WindowTitle"
-               font="ZoFontWindowTitle"
-               horizontalAlignment="LEFT"
-               verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="42" offsetY="10"/>
-          <Dimensions y="18"/>
-        </Label>
-
         <Label name="$(parent)VersionLabel"
                font="ZoFontGameSmall"
                horizontalAlignment="RIGHT"
@@ -46,230 +39,105 @@
                 mouseOverBlendMode="ADD" inherits="ZO_ButtonBehaviorClickSound">
           <Anchor point="TOPRIGHT" offsetX="-8" offsetY="8"/>
           <Dimensions x="16" y="16"/>
-          <Textures normal="EsoUI/Art/Buttons/decline_up.dds"
-                    pressed="EsoUI/Art/Buttons/decline_down.dds"
-                    mouseOver="EsoUI/Art/Buttons/decline_over.dds"/>
           <OnClicked>Vermilion.Settings.toggle()</OnClicked>
         </Button>
 
-        <Label name="$(parent)SecProfile" font="ZoFontGameSmall"
+        <Button name="$(parent)DevBtn" font="ZoFontGameSmall" hidden="true"
+                inherits="ZO_DefaultButton">
+          <Anchor point="TOPRIGHT" offsetX="-96" offsetY="8"/>
+          <Dimensions x="44" y="20"/>
+          <OnClicked>Vermilion.DevTools.toggle()</OnClicked>
+        </Button>
+
+
+
+
+
+
+
+        <Label name="$(parent)SecGraph" font="ZoFontGameSmall"
                horizontalAlignment="LEFT" verticalAlignment="CENTER">
           <Anchor point="TOPLEFT" offsetX="14" offsetY="46"/>
           <Dimensions x="200" y="12"/>
         </Label>
-        <Texture name="$(parent)SepProfile">
+        <Texture name="$(parent)SepGraph">
           <Anchor point="TOPLEFT" offsetX="14" offsetY="60"/>
           <Dimensions x="272" y="1"/>
         </Texture>
 
-        <Label name="$(parent)ProfileLabel"
-               font="ZoFontGameSmall"
-               horizontalAlignment="LEFT"
-               verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="14" offsetY="72"/>
-          <Dimensions x="56" y="14"/>
-        </Label>
 
-        <Control name="$(parent)ProfileDropdown" inherits="ZO_ComboBox">
-          <Anchor point="TOPLEFT" offsetX="74" offsetY="66"/>
-          <Dimensions x="212" y="26"/>
-        </Control>
-
-        <Backdrop name="$(parent)PNameBox" inherits="ZO_EditBackdrop">
-          <Anchor point="TOPLEFT" offsetX="14" offsetY="98"/>
-          <Dimensions x="134" y="24"/>
-          <Controls>
-            <EditBox name="$(parent)Edit" inherits="ZO_DefaultEditForBackdrop" maxInputCharacters="20"
-                     defaultTextColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_DISABLED">
-              <Anchor point="TOPLEFT"     offsetX="8"  offsetY="0"/>
-              <Anchor point="BOTTOMRIGHT" offsetX="-8" offsetY="0"/>
-              <OnEnter>Vermilion.Settings.on_profile_save_click()</OnEnter>
-              <OnFocusGained>Vermilion.Settings.on_pname_focus(true)</OnFocusGained>
-              <OnFocusLost>Vermilion.Settings.on_pname_focus(false)</OnFocusLost>
-            </EditBox>
-          </Controls>
-        </Backdrop>
-
-        <Button name="$(parent)PSaveBtn"
-                mouseEnabled="true"
-                font="ZoFontGameSmall"
-                inherits="ZO_DefaultButton">
-          <Anchor point="TOPLEFT" offsetX="156" offsetY="99"/>
-          <Dimensions x="58" y="22"/>
-          <OnClicked>Vermilion.Settings.on_profile_save_click()</OnClicked>
-        </Button>
-
-        <Button name="$(parent)PDeleteBtn"
-                mouseEnabled="true"
-                font="ZoFontGameSmall"
-                inherits="ZO_DefaultButton">
-          <Anchor point="TOPLEFT" offsetX="228" offsetY="99"/>
-          <Dimensions x="58" y="22"/>
-          <OnClicked>Vermilion.Settings.on_profile_delete_click()</OnClicked>
-        </Button>
-
-        <Label name="$(parent)SecGraph" font="ZoFontGameSmall"
-               horizontalAlignment="LEFT" verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="14" offsetY="134"/>
-          <Dimensions x="200" y="12"/>
-        </Label>
-        <Texture name="$(parent)SepGraph">
-          <Anchor point="TOPLEFT" offsetX="14" offsetY="148"/>
-          <Dimensions x="272" y="1"/>
-        </Texture>
-
-        <Label name="$(parent)SampleTitle"
-               font="ZoFontGameSmall"
-               horizontalAlignment="LEFT"
-               verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="14" offsetY="156"/>
-          <Dimensions x="160" y="12"/>
-        </Label>
-        <Label name="$(parent)SampleLabel"
-               font="ZoFontGameSmall"
-               horizontalAlignment="RIGHT"
-               verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="206" offsetY="156"/>
-          <Dimensions x="80" y="12"/>
-        </Label>
-        <Control name="$(parent)SliderTrackSample" mouseEnabled="true">
-          <Anchor point="TOPLEFT" offsetX="14" offsetY="171"/>
-          <Dimensions x="272" y="14"/>
-          <OnMouseUp>Vermilion.Settings.on_sample_track_click(self)</OnMouseUp>
-        </Control>
-
-        <Label name="$(parent)TWindowTitle"
-               font="ZoFontGameSmall"
-               horizontalAlignment="LEFT"
-               verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="14" offsetY="194"/>
-          <Dimensions x="160" y="12"/>
-        </Label>
-        <Label name="$(parent)TWindowLabel"
-               font="ZoFontGameSmall"
-               horizontalAlignment="RIGHT"
-               verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="206" offsetY="194"/>
-          <Dimensions x="80" y="12"/>
-        </Label>
-        <Control name="$(parent)SliderTrackTWindow" mouseEnabled="true">
-          <Anchor point="TOPLEFT" offsetX="14" offsetY="209"/>
-          <Dimensions x="272" y="14"/>
-          <OnMouseUp>Vermilion.Settings.on_twindow_track_click(self)</OnMouseUp>
-        </Control>
 
         <Label name="$(parent)VPAlphaTitle"
                font="ZoFontGameSmall"
                horizontalAlignment="LEFT"
                verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="14" offsetY="232"/>
+          <Anchor point="TOPLEFT" offsetX="14" offsetY="68"/>
           <Dimensions x="160" y="12"/>
         </Label>
         <Label name="$(parent)VPAlphaLabel"
                font="ZoFontGameSmall"
                horizontalAlignment="RIGHT"
                verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="206" offsetY="232"/>
+          <Anchor point="TOPLEFT" offsetX="206" offsetY="68"/>
           <Dimensions x="80" y="12"/>
         </Label>
         <Control name="$(parent)SliderTrackVPAlpha" mouseEnabled="true">
-          <Anchor point="TOPLEFT" offsetX="14" offsetY="247"/>
+          <Anchor point="TOPLEFT" offsetX="14" offsetY="83"/>
           <Dimensions x="272" y="14"/>
-          <OnMouseUp>Vermilion.Settings.on_vpalpha_track_click(self)</OnMouseUp>
         </Control>
 
-        <Label name="$(parent)CritThreshTitle"
-               font="ZoFontGameSmall"
-               horizontalAlignment="LEFT"
-               verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="14" offsetY="270"/>
-          <Dimensions x="160" y="12"/>
-        </Label>
-        <Label name="$(parent)CritThreshLabel"
-               font="ZoFontGameSmall"
-               horizontalAlignment="RIGHT"
-               verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="206" offsetY="270"/>
-          <Dimensions x="80" y="12"/>
-        </Label>
-        <Control name="$(parent)SliderTrackCritThresh" mouseEnabled="true">
-          <Anchor point="TOPLEFT" offsetX="14" offsetY="285"/>
-          <Dimensions x="272" y="14"/>
-          <OnMouseUp>Vermilion.Settings.on_critthresh_track_click(self)</OnMouseUp>
-        </Control>
+        <Button name="$(parent)SampleBtn" mouseEnabled="true" font="ZoFontGameSmall" inherits="ZO_DefaultButton">
+          <Anchor point="TOPLEFT" offsetX="14" offsetY="108"/>
+          <Dimensions x="272" y="24"/>
+          <OnClicked>Vermilion.Settings.on_sample_click()</OnClicked>
+        </Button>
 
-        <Label name="$(parent)SecRecording" font="ZoFontGameSmall"
+
+
+        <Label name="$(parent)SecGeneral" font="ZoFontGameSmall"
                horizontalAlignment="LEFT" verticalAlignment="CENTER">
           <Anchor point="TOPLEFT" offsetX="314" offsetY="46"/>
           <Dimensions x="200" y="12"/>
         </Label>
-        <Texture name="$(parent)SepRecording">
+        <Texture name="$(parent)SepGeneral">
           <Anchor point="TOPLEFT" offsetX="314" offsetY="60"/>
           <Dimensions x="272" y="1"/>
         </Texture>
 
-        <Button name="$(parent)AutoRecBtn"
-                mouseEnabled="true"
-                font="ZoFontGameSmall"
-                inherits="ZO_DefaultButton">
-          <Anchor point="TOPLEFT" offsetX="314" offsetY="68"/>
-          <Dimensions x="272" y="22"/>
-          <OnClicked>Vermilion.Settings.on_autorec_click()</OnClicked>
-        </Button>
-
-        <Button name="$(parent)AutosaveBtn"
-                mouseEnabled="true"
-                font="ZoFontGameSmall"
-                inherits="ZO_DefaultButton">
-          <Anchor point="TOPLEFT" offsetX="314" offsetY="96"/>
-          <Dimensions x="132" y="22"/>
-          <OnClicked>Vermilion.Settings.on_autosave_click()</OnClicked>
-        </Button>
-
-        <Button name="$(parent)AutoStopBtn"
-                mouseEnabled="true"
-                font="ZoFontGameSmall"
-                inherits="ZO_DefaultButton">
-          <Anchor point="TOPLEFT" offsetX="454" offsetY="96"/>
-          <Dimensions x="132" y="22"/>
-          <OnClicked>Vermilion.Settings.on_autostop_click()</OnClicked>
-        </Button>
-
-        <Label name="$(parent)SecGeneral" font="ZoFontGameSmall"
-               horizontalAlignment="LEFT" verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="314" offsetY="134"/>
-          <Dimensions x="200" y="12"/>
-        </Label>
-        <Texture name="$(parent)SepGeneral">
-          <Anchor point="TOPLEFT" offsetX="314" offsetY="148"/>
-          <Dimensions x="272" y="1"/>
-        </Texture>
-
         <Button name="$(parent)UnknownBtn" mouseEnabled="true"
-                mouseOverBlendMode="ADD" inherits="ZO_ButtonBehaviorClickSound">
-          <Anchor point="TOPLEFT" offsetX="314" offsetY="156"/>
-          <Dimensions x="28" y="28"/>
-          <Textures normal="EsoUI/Art/Dye/dyes_toolIcon_fill_up.dds"
-                    pressed="EsoUI/Art/Dye/dyes_toolIcon_fill_down.dds"
-                    mouseOver="EsoUI/Art/Dye/dyes_toolIcon_fill_over.dds"/>
+                mouseOverBlendMode="ALPHA" inherits="ZO_ButtonBehaviorClickSound">
+          <Anchor point="TOPLEFT" offsetX="14" offsetY="168"/>
+          <Dimensions x="64" y="64"/>
+          <Textures normal="Vermilion/assets/skin/bucket_up.dds"
+                    pressed="Vermilion/assets/skin/bucket_down.dds"
+                    mouseOver="Vermilion/assets/skin/bucket_over.dds"/>
           <OnClicked>Vermilion.Settings.on_unknown_click()</OnClicked>
         </Button>
 
         <Label name="$(parent)UnknownLabel"
-               font="ZoFontGameSmall"
+               font="ZoFontGame"
                horizontalAlignment="LEFT"
                verticalAlignment="CENTER"
                mouseEnabled="true">
           <Anchor point="LEFT" relativeTo="$(parent)UnknownBtn" relativePoint="RIGHT" offsetX="10" offsetY="0"/>
-          <Dimensions x="220" y="28"/>
+          <Dimensions x="196" y="64"/>
           <OnMouseUp>Vermilion.Settings.on_unknown_click()</OnMouseUp>
         </Label>
+
+        <Button name="$(parent)ZoomScaleBtn"
+                mouseEnabled="true"
+                font="ZoFontGameSmall"
+                inherits="ZO_DefaultButton">
+          <Anchor point="TOPLEFT" offsetX="14" offsetY="138"/>
+          <Dimensions x="272" y="22"/>
+          <OnClicked>Vermilion.Settings.on_zoom_scale_click()</OnClicked>
+        </Button>
 
         <Button name="$(parent)LogoBtn"
                 mouseEnabled="true"
                 font="ZoFontGameSmall"
                 inherits="ZO_DefaultButton">
-          <Anchor point="TOPLEFT" offsetX="314" offsetY="190"/>
+          <Anchor point="TOPLEFT" offsetX="314" offsetY="68"/>
           <Dimensions x="272" y="22"/>
           <OnClicked>Vermilion.Settings.on_logo_click()</OnClicked>
         </Button>
@@ -278,7 +146,7 @@
                 mouseEnabled="true"
                 font="ZoFontGameSmall"
                 inherits="ZO_DefaultButton">
-          <Anchor point="TOPLEFT" offsetX="314" offsetY="218"/>
+          <Anchor point="TOPLEFT" offsetX="314" offsetY="96"/>
           <Dimensions x="272" y="22"/>
           <OnClicked>Vermilion.Settings.on_sounds_click()</OnClicked>
         </Button>
@@ -287,7 +155,7 @@
                 mouseEnabled="true"
                 font="ZoFontGameSmall"
                 inherits="ZO_DefaultButton">
-          <Anchor point="TOPLEFT" offsetX="314" offsetY="246"/>
+          <Anchor point="TOPLEFT" offsetX="314" offsetY="124"/>
           <Dimensions x="272" y="22"/>
           <OnClicked>Vermilion.Settings.on_light_click()</OnClicked>
         </Button>
@@ -296,34 +164,73 @@
                 mouseEnabled="true"
                 font="ZoFontGameSmall"
                 inherits="ZO_DefaultButton">
-          <Anchor point="TOPLEFT" offsetX="314" offsetY="274"/>
+          <Anchor point="TOPLEFT" offsetX="314" offsetY="190"/>
           <Dimensions x="272" y="22"/>
           <OnClicked>Vermilion.Settings.on_kills_click()</OnClicked>
+        </Button>
+
+        <Button name="$(parent)AvgBtn"
+                mouseEnabled="true"
+                font="ZoFontGameSmall"
+                inherits="ZO_DefaultButton">
+          <Anchor point="TOPLEFT" offsetX="314" offsetY="218"/>
+          <Dimensions x="134" y="22"/>
+          <OnClicked>Vermilion.Settings.on_avg_click()</OnClicked>
+        </Button>
+
+        <Button name="$(parent)MedianBtn"
+                mouseEnabled="true"
+                font="ZoFontGameSmall"
+                inherits="ZO_DefaultButton">
+          <Anchor point="TOPLEFT" offsetX="452" offsetY="218"/>
+          <Dimensions x="134" y="22"/>
+          <OnClicked>Vermilion.Settings.on_median_click()</OnClicked>
         </Button>
 
         <Label name="$(parent)LightAlphaTitle"
                font="ZoFontGameSmall"
                horizontalAlignment="LEFT"
                verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="314" offsetY="302"/>
+          <Anchor point="TOPLEFT" offsetX="314" offsetY="152"/>
           <Dimensions x="160" y="12"/>
         </Label>
         <Label name="$(parent)LightAlphaLabel"
                font="ZoFontGameSmall"
                horizontalAlignment="RIGHT"
                verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="506" offsetY="302"/>
+          <Anchor point="TOPLEFT" offsetX="506" offsetY="152"/>
           <Dimensions x="80" y="12"/>
         </Label>
         <Control name="$(parent)SliderTrackLightAlpha" mouseEnabled="true">
-          <Anchor point="TOPLEFT" offsetX="314" offsetY="317"/>
+          <Anchor point="TOPLEFT" offsetX="314" offsetY="167"/>
           <Dimensions x="272" y="14"/>
-          <OnMouseUp>Vermilion.Settings.on_lightalpha_track_click(self)</OnMouseUp>
         </Control>
+
+        <Button name="$(parent)BackgroundBtn"
+                mouseEnabled="true"
+                font="ZoFontGameSmall"
+                inherits="ZO_DefaultButton">
+          <Anchor point="TOPLEFT" offsetX="314" offsetY="246"/>
+          <Dimensions x="272" y="22"/>
+          <OnClicked>Vermilion.Settings.on_background_click()</OnClicked>
+        </Button>
+        <Texture name="$(parent)BackgroundCaret" textureFile="Vermilion/assets/skin/caret.dds" level="5">
+          <Anchor point="RIGHT" relativeTo="$(parent)BackgroundBtn" relativePoint="RIGHT" offsetX="-6" offsetY="0"/>
+          <Dimensions x="14" y="14"/>
+        </Texture>
+
+        <Button name="$(parent)LampBtn"
+                mouseEnabled="true"
+                font="ZoFontGameSmall"
+                inherits="ZO_DefaultButton">
+          <Anchor point="TOPLEFT" offsetX="314" offsetY="270"/>
+          <Dimensions x="272" y="22"/>
+          <OnClicked>Vermilion.Settings.on_lamp_click()</OnClicked>
+        </Button>
 
         <Texture name="$(parent)SepColumns">
           <Anchor point="TOPLEFT" offsetX="300" offsetY="46"/>
-          <Dimensions x="1" y="288"/>
+          <Dimensions x="1" y="246"/>
         </Texture>
 
         <Button name="$(parent)ResetBtn"
@@ -337,58 +244,5 @@
 
       </Controls>
     </TopLevelControl>
-
-    <TopLevelControl name="VermilionSettingsConfirm"
-                     hidden="true"
-                     clampedToScreen="true"
-                     mouseEnabled="true">
-      <Dimensions x="420" y="200"/>
-      <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER"/>
-
-      <Controls>
-        <Backdrop name="$(parent)Bg">
-          <AnchorFill/>
-          <Edge file="EsoUI/Art/Tooltips/UI-Border.dds"
-                edgeFileWidth="128" edgeFileHeight="16" edgeSize="6"/>
-          <Center file="EsoUI/Art/Tooltips/UI-TooltipCenter.dds"/>
-          <Insets left="6" top="6" right="-6" bottom="-6"/>
-        </Backdrop>
-
-        <Label name="$(parent)Title"
-               font="ZoFontWindowTitle"
-               horizontalAlignment="LEFT"
-               verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="16" offsetY="14"/>
-          <Dimensions y="18"/>
-        </Label>
-
-        <Label name="$(parent)Msg"
-               font="ZoFontGame"
-               horizontalAlignment="LEFT"
-               verticalAlignment="TOP">
-          <Anchor point="TOPLEFT"     offsetX="16"  offsetY="44"/>
-          <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-44"/>
-        </Label>
-
-        <Button name="$(parent)NoBtn"
-                mouseEnabled="true"
-                font="ZoFontGameSmall"
-                inherits="ZO_DefaultButton">
-          <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12"/>
-          <Dimensions x="152" y="24"/>
-          <OnClicked>Vermilion.Settings.on_confirm_no()</OnClicked>
-        </Button>
-
-        <Button name="$(parent)YesBtn"
-                mouseEnabled="true"
-                font="ZoFontGameSmall"
-                inherits="ZO_DefaultButton">
-          <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-12"/>
-          <Dimensions x="152" y="24"/>
-          <OnClicked>Vermilion.Settings.on_confirm_yes()</OnClicked>
-        </Button>
-      </Controls>
-    </TopLevelControl>
-
   </Controls>
 </GuiXml>

@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Ypselon/Known-Vendor-Filter__5049",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Ypselon",
+  "canonical_id": "esoui:5049",
+  "category_id": "94",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5049",
+  "deleted": false,
+  "directories": [
+    "KnownVendorFilter"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5049/",
+  "fingerprint": "20307188ecb877858f266b09cd0074344d3dd7ced6fc9d2bf0e37c0127b1bcc8",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18430.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18432.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18431.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5049",
+  "source_url": "https://www.esoui.com/downloads/info5049-KnownVendorFilter.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Known Vendor Filter",
+  "updated_at": 1794602515000,
+  "version": "1.1"
+}

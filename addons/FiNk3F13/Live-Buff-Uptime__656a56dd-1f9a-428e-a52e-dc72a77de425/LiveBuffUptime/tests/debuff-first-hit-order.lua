@@ -35,7 +35,7 @@ raw(71259, 3.054, 1, 0.053)
 raw(71259, 3.054, 2, 8.053)
 assert(not LiveBuffUptimeReports.IsEnemy(18836))
 for _, id in ipairs({18836, 71259}) do
-    LiveBuffUptimeReports.RecordDamage(1, 4, id, "Gegner " .. id, 100)
+    LiveBuffUptimeReports.RecordEnemy(1, 4, id, "Gegner " .. id, 100)
     raw(id, 6.893, 2, 11.892, id == 71259 and "reticleover" or "")
     raw(id, 11.139, 2, 16.138, id == 71259 and "reticleover" or "")
 end

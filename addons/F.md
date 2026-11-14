@@ -114,7 +114,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Forgetfulness Poison XI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Forgetfulness-Poison-XI__2559) | ownedbynico | PC / Mac | 1.2 |
 | [Forpl-KDA-Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Forpl/Forpl-KDA-Bar__844b3c4f-aa76-42d6-8ef7-dcf6dec3b447) | Forpl | Console | — |
 | [Forward Camp Preview](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Valve/Forward-Camp-Preview__1776) | Valve | PC / Mac | 1.1.3 |
-| [Foundry Tactical Combat (FTC)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Foundry-Tactical-Combat-FTC__1611) | Rhyono | PC / Mac | 1.32 |
+| [Foundry Tactical Combat (FTC)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Foundry-Tactical-Combat-FTC__1611) | Rhyono | PC / Mac | 1.33 |
 | [FOV Zoom](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/UsefulEejit/FOV-Zoom__4519) | UsefulEejit | PC / Mac | 1.0 |
 | [Fr Localization PersonalAssistant V3](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bellad0ne/Fr-Localization-PersonalAssistant-V3__3956) | Bellad0ne | PC / Mac | 0.0 |
 | [Fragment Collectible Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XJDHDR/Fragment-Collectible-Tracker__4272) | XJDHDR | PC / Mac | 2510.0 |

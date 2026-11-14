@@ -23,11 +23,11 @@
                      mouseEnabled="true"
                      resizeHandleSize="8">
 
-      <Dimensions x="420" y="312"/>
+      <Dimensions x="718" y="472"/>
       <OnMouseDoubleClick>Vermilion.Graph.on_title_double_click()</OnMouseDoubleClick>
       <OnMoveStart>Vermilion.Graph.on_move_start()</OnMoveStart>
       <OnMoveStop>Vermilion.Graph.on_move_stop()</OnMoveStop>
-      <OnResizeStart>Vermilion.Graph.on_move_start()</OnResizeStart>
+      <OnResizeStart>Vermilion.Graph.on_resize_start()</OnResizeStart>
       <OnResizeStop>Vermilion.Graph.on_resize_stop()</OnResizeStop>
 
       <Controls>
@@ -42,28 +42,28 @@
 
         <!-- Chrome donut: 4 strips around the viewport. Anchors mirror the
              Viewport's (top=50, bottom=-14, left=14, right=-14). -->
-        <Texture name="$(parent)ChromeTop"
+        <Texture name="$(parent)ChromeTop" addressMode="WRAP" autoAdjustTextureCoords="false"
                  textureFile="EsoUI/Art/Tooltips/UI-TooltipCenter.dds">
-          <Anchor point="TOPLEFT"     relativeTo="$(parent)" relativePoint="TOPLEFT"  offsetX="6"  offsetY="6"/>
-          <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-6" offsetY="100"/>
+          <Anchor point="TOPLEFT"     relativeTo="$(parent)" relativePoint="TOPLEFT"  offsetX="2"  offsetY="2"/>
+          <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-2" offsetY="100"/>
         </Texture>
 
-        <Texture name="$(parent)ChromeBottom"
+        <Texture name="$(parent)ChromeBottom" addressMode="WRAP" autoAdjustTextureCoords="false"
                  textureFile="EsoUI/Art/Tooltips/UI-TooltipCenter.dds">
-          <Anchor point="TOPLEFT"     relativeTo="$(parent)" relativePoint="BOTTOMLEFT"  offsetX="6"  offsetY="-14"/>
-          <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-6" offsetY="-6"/>
+          <Anchor point="TOPLEFT"     relativeTo="$(parent)" relativePoint="BOTTOMLEFT"  offsetX="2"  offsetY="-14"/>
+          <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-2" offsetY="-2"/>
         </Texture>
 
-        <Texture name="$(parent)ChromeLeft"
+        <Texture name="$(parent)ChromeLeft" addressMode="WRAP" autoAdjustTextureCoords="false"
                  textureFile="EsoUI/Art/Tooltips/UI-TooltipCenter.dds">
-          <Anchor point="TOPLEFT"     relativeTo="$(parent)" relativePoint="TOPLEFT"    offsetX="6"  offsetY="100"/>
+          <Anchor point="TOPLEFT"     relativeTo="$(parent)" relativePoint="TOPLEFT"    offsetX="2"  offsetY="100"/>
           <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="14" offsetY="-14"/>
         </Texture>
 
-        <Texture name="$(parent)ChromeRight"
+        <Texture name="$(parent)ChromeRight" addressMode="WRAP" autoAdjustTextureCoords="false"
                  textureFile="EsoUI/Art/Tooltips/UI-TooltipCenter.dds">
           <Anchor point="TOPLEFT"     relativeTo="$(parent)" relativePoint="TOPRIGHT"    offsetX="-14" offsetY="100"/>
-          <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-6"  offsetY="-14"/>
+          <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-2"  offsetY="-14"/>
         </Texture>
 
         <!-- Brand mark: small logo at the left of the title bar. Identity /
@@ -74,37 +74,35 @@
           <Dimensions x="26" y="26"/>
         </Texture>
 
-        <!-- Title -->
-        <Label name="$(parent)TitleLabel"
-               font="ZoFontGameSmall"
-               horizontalAlignment="LEFT"
-               verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="42" offsetY="12"/>
-          <Dimensions x="128" y="14"/>
-        </Label>
+        <Texture name="$(parent)OrnamentTop" textureFile="Vermilion/assets/skin/ornament.dds" level="8">
+          <Dimensions x="256" y="32"/>
+          <Anchor point="CENTER" relativePoint="TOP" offsetY="2"/>
+        </Texture>
 
-        <!-- Settings toggle — 28x28 gear. -->
         <Button name="$(parent)SettingsBtn"
                 mouseEnabled="true"
-                mouseOverBlendMode="ADD"
-                inherits="ZO_ButtonBehaviorClickSound">
-          <Anchor point="TOPRIGHT" offsetX="-30" offsetY="4"/>
-          <Dimensions x="28" y="28"/>
-          <Textures normal="EsoUI/Art/MenuBar/menuBar_mainMenu_over.dds"
-                    pressed="EsoUI/Art/MenuBar/menuBar_mainMenu_down.dds"
-                    mouseOver="EsoUI/Art/MenuBar/menuBar_mainMenu_over.dds"/>
+                font="ZoFontGameSmall"
+                inherits="ZO_DefaultButton">
+          <Anchor point="TOPRIGHT" offsetX="-34" offsetY="7"/>
+          <Dimensions x="64" y="22"/>
           <OnClicked>Vermilion.Settings.toggle()</OnClicked>
+        </Button>
+
+        <Button name="$(parent)AboutBtn"
+                mouseEnabled="true"
+                font="ZoFontGameSmall"
+                inherits="ZO_DefaultButton">
+          <Anchor point="TOPRIGHT" offsetX="-102" offsetY="7"/>
+          <Dimensions x="48" y="22"/>
+          <OnClicked>Vermilion.About.toggle()</OnClicked>
         </Button>
 
         <Button name="$(parent)CloseBtn"
                 mouseEnabled="true"
                 mouseOverBlendMode="ADD"
                 inherits="ZO_ButtonBehaviorClickSound">
-          <Anchor point="TOPRIGHT" offsetX="-8" offsetY="9"/>
-          <Dimensions x="18" y="18"/>
-          <Textures normal="EsoUI/Art/Buttons/decline_up.dds"
-                    pressed="EsoUI/Art/Buttons/decline_down.dds"
-                    mouseOver="EsoUI/Art/Buttons/decline_over.dds"/>
+          <Anchor point="TOPRIGHT" offsetX="-8" offsetY="7"/>
+          <Dimensions x="22" y="22"/>
           <OnClicked>Vermilion.Graph.on_close_click()</OnClicked>
         </Button>
 
@@ -113,16 +111,26 @@
                 mouseEnabled="true"
                 font="ZoFontGameSmall"
                 inherits="ZO_DefaultButton">
-          <Anchor point="TOPLEFT" offsetX="14" offsetY="34"/>
-          <Dimensions x="56" y="22"/>
-          <OnClicked>Vermilion.Graph.on_record_click()</OnClicked>
+          <Anchor point="TOPLEFT" offsetX="14" offsetY="33"/>
+          <Dimensions x="72" y="24"/>
+          <OnClicked>Vermilion.Graph.on_record_main_click()</OnClicked>
         </Button>
+
+        <Button name="$(parent)RecordMenuBtn"
+                mouseEnabled="true"
+                font="ZoFontGameSmall"
+                inherits="ZO_DefaultButton">
+          <Anchor point="TOPLEFT" offsetX="86" offsetY="33"/>
+          <Dimensions x="20" y="24"/>
+          <OnClicked>Vermilion.Graph.on_record_menu_click()</OnClicked>
+        </Button>
+
 
         <Button name="$(parent)StopBtn"
                 mouseEnabled="true"
                 font="ZoFontGameSmall"
                 inherits="ZO_DefaultButton">
-          <Anchor point="TOPLEFT" offsetX="76" offsetY="34"/>
+          <Anchor point="TOPLEFT" offsetX="112" offsetY="34"/>
           <Dimensions x="56" y="22"/>
           <OnClicked>Vermilion.Graph.on_stop_click()</OnClicked>
         </Button>
@@ -131,7 +139,7 @@
                 mouseEnabled="true"
                 font="ZoFontGameSmall"
                 inherits="ZO_DefaultButton">
-          <Anchor point="TOPLEFT" offsetX="138" offsetY="34"/>
+          <Anchor point="TOPLEFT" offsetX="174" offsetY="34"/>
           <Dimensions x="56" y="22"/>
           <OnClicked>Vermilion.Graph.on_flush_click()</OnClicked>
         </Button>
@@ -140,11 +148,11 @@
                 mouseEnabled="true"
                 mouseOverBlendMode="ADD"
                 inherits="ZO_ButtonBehaviorClickSound">
-          <Anchor point="TOPLEFT" offsetX="200" offsetY="31"/>
+          <Anchor point="TOPLEFT" offsetX="236" offsetY="31"/>
           <Dimensions x="28" y="28"/>
-          <Textures normal="EsoUI/Art/Journal/journal_tabIcon_loreLibrary_up.dds"
-                    pressed="EsoUI/Art/Journal/journal_tabIcon_loreLibrary_down.dds"
-                    mouseOver="EsoUI/Art/Journal/journal_tabIcon_loreLibrary_over.dds"/>
+          <Textures normal="Vermilion/assets/skin/lib_up.dds"
+                    pressed="Vermilion/assets/skin/lib_down.dds"
+                    mouseOver="Vermilion/assets/skin/lib_over.dds"/>
           <OnClicked>Vermilion.Library.toggle()</OnClicked>
         </Button>
 
@@ -152,24 +160,50 @@
                 mouseEnabled="true"
                 mouseOverBlendMode="ADD"
                 inherits="ZO_ButtonBehaviorClickSound">
-          <Anchor point="TOPLEFT" offsetX="232" offsetY="31"/>
+          <Anchor point="TOPLEFT" offsetX="268" offsetY="31"/>
           <Dimensions x="28" y="28"/>
-          <Textures normal="EsoUI/Art/Buttons/edit_save_up.dds"
-                    pressed="EsoUI/Art/Buttons/edit_save_down.dds"
-                    mouseOver="EsoUI/Art/Buttons/edit_save_over.dds"
-                    disabled="EsoUI/Art/Buttons/edit_save_disabled.dds"/>
+          <Textures normal="Vermilion/assets/skin/save_up.dds"
+                    pressed="Vermilion/assets/skin/save_down.dds"
+                    mouseOver="Vermilion/assets/skin/save_over.dds"
+                    disabled="Vermilion/assets/skin/save_disabled.dds"/>
           <OnClicked>Vermilion.Graph.on_save_click()</OnClicked>
+        </Button>
+
+        <Button name="$(parent)ExportBtn"
+                mouseEnabled="true"
+                mouseOverBlendMode="ADD"
+                inherits="ZO_ButtonBehaviorClickSound">
+          <Anchor point="TOPRIGHT" offsetX="-34" offsetY="33"/>
+          <Dimensions x="20" y="20"/>
+          <Textures normal="Vermilion/assets/skin/export_up.dds"
+                    pressed="Vermilion/assets/skin/export_down.dds"
+                    mouseOver="Vermilion/assets/skin/export_over.dds"
+                    disabled="Vermilion/assets/skin/export_disabled.dds"/>
+          <OnClicked>Vermilion.Export.open()</OnClicked>
+        </Button>
+
+        <Button name="$(parent)SayBtn"
+                mouseEnabled="true"
+                mouseOverBlendMode="ADD"
+                inherits="ZO_ButtonBehaviorClickSound">
+          <Anchor point="TOPRIGHT" offsetX="-9" offsetY="33"/>
+          <Dimensions x="20" y="20"/>
+          <Textures normal="Vermilion/assets/skin/say_up.dds"
+                    pressed="Vermilion/assets/skin/say_down.dds"
+                    mouseOver="Vermilion/assets/skin/say_over.dds"
+                    disabled="Vermilion/assets/skin/say_disabled.dds"/>
+          <OnClicked>Vermilion.Say.post()</OnClicked>
         </Button>
 
         <Button name="$(parent)PrevSessBtn"
                 mouseEnabled="true"
                 mouseOverBlendMode="ADD"
                 inherits="ZO_ButtonBehaviorClickSound">
-          <Anchor point="TOPLEFT" offsetX="266" offsetY="35"/>
+          <Anchor point="TOPLEFT" offsetX="302" offsetY="35"/>
           <Dimensions x="20" y="20"/>
-          <Textures normal="EsoUI/Art/Buttons/large_leftArrow_up.dds"
-                    pressed="EsoUI/Art/Buttons/large_leftArrow_down.dds"
-                    mouseOver="EsoUI/Art/Buttons/large_leftArrow_over.dds"/>
+          <Textures normal="Vermilion/assets/skin/arrow_left_up.dds"
+                    pressed="Vermilion/assets/skin/arrow_left_down.dds"
+                    mouseOver="Vermilion/assets/skin/arrow_left_over.dds"/>
           <OnClicked>Vermilion.Graph.step_session(-1)</OnClicked>
         </Button>
 
@@ -177,11 +211,11 @@
                 mouseEnabled="true"
                 mouseOverBlendMode="ADD"
                 inherits="ZO_ButtonBehaviorClickSound">
-          <Anchor point="TOPLEFT" offsetX="288" offsetY="35"/>
+          <Anchor point="TOPLEFT" offsetX="324" offsetY="35"/>
           <Dimensions x="20" y="20"/>
-          <Textures normal="EsoUI/Art/Buttons/large_rightArrow_up.dds"
-                    pressed="EsoUI/Art/Buttons/large_rightArrow_down.dds"
-                    mouseOver="EsoUI/Art/Buttons/large_rightArrow_over.dds"/>
+          <Textures normal="Vermilion/assets/skin/arrow_right_up.dds"
+                    pressed="Vermilion/assets/skin/arrow_right_down.dds"
+                    mouseOver="Vermilion/assets/skin/arrow_right_over.dds"/>
           <OnClicked>Vermilion.Graph.step_session(1)</OnClicked>
         </Button>
 
@@ -189,40 +223,15 @@
                font="ZoFontGameSmall"
                horizontalAlignment="LEFT"
                verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT"  offsetX="314"  offsetY="38"/>
-          <Anchor point="TOPRIGHT" offsetX="-14"  offsetY="38"/>
+          <Anchor point="TOPLEFT"  offsetX="350"  offsetY="38"/>
           <Dimensions y="14"/>
         </Label>
-
-        <!-- Live DPS readout: weapons icon (idle/active) + current EOS value.
-             Sits in the TITLE row on the LEFT, just after the title (well clear
-             of the gear); the view nav owns the controls-row right like Verdant. -->
-        <Texture name="$(parent)DpsIcon"
-                 textureFile="/esoui/art/treeicons/collection_indexicon_weapons_up.dds">
-          <Anchor point="TOPLEFT" offsetX="174" offsetY="6"/>
-          <Dimensions x="26" y="26"/>
-        </Texture>
-
-        <Label name="$(parent)ReadoutLabel"
-               font="ZoFontGameLarge"
-               horizontalAlignment="LEFT"
-               verticalAlignment="CENTER">
-          <Anchor point="TOPLEFT" offsetX="204" offsetY="6"/>
-          <Dimensions x="64" y="26"/>
+        <Label name="$(parent)RecModeLabel" font="ZoFontGameSmall"
+               horizontalAlignment="LEFT" verticalAlignment="CENTER">
+          <Anchor point="LEFT" relativeTo="$(parent)StatusLabel" relativePoint="RIGHT" offsetX="10" offsetY="0"/>
+          <Anchor point="RIGHT" relativePoint="TOPRIGHT" offsetX="-60" offsetY="45"/>
+          <Dimensions y="14"/>
         </Label>
-
-        <Label name="$(parent)CritLabel"
-               font="ZoFontGame"
-               horizontalAlignment="LEFT"
-               verticalAlignment="CENTER">
-          <Anchor point="LEFT" relativeTo="$(parent)CritIcon" relativePoint="RIGHT" offsetX="3" offsetY="0"/>
-          <Dimensions x="40" y="18"/>
-        </Label>
-
-        <Texture name="$(parent)CritIcon" textureFile="EsoUI/Art/LFG/LFG_icon_dps.dds">
-          <Anchor point="LEFT" relativeTo="$(parent)ReadoutLabel" relativePoint="RIGHT" offsetX="6" offsetY="0"/>
-          <Dimensions x="20" y="20"/>
-        </Texture>
 
         <!-- View navigation: [<<] [SKILL] [>] — in the controls row, far right,
              matching Verdant's layout (the DPS readout moved up to the title). -->
@@ -263,9 +272,9 @@
 
         <!-- ── Inner viewport: single canvas for both views ─────────────── -->
         <Control name="$(parent)Tabs" mouseEnabled="false">
-          <Anchor point="TOPLEFT"  offsetX="14"  offsetY="66"/>
-          <Anchor point="TOPRIGHT" offsetX="-14" offsetY="66"/>
-          <Dimensions y="20"/>
+          <Anchor point="TOPLEFT"  offsetX="20"  offsetY="76"/>
+          <Anchor point="TOPRIGHT" offsetX="-20" offsetY="76"/>
+          <Dimensions y="24"/>
         </Control>
 
         <Control name="$(parent)Viewport" mouseEnabled="false">
@@ -297,6 +306,19 @@
           </Controls>
         </Control>
 
+      </Controls>
+    </TopLevelControl>
+
+    <TopLevelControl name="VermilionRecPanel" mouseEnabled="true" hidden="true" tier="HIGH">
+      <Dimensions x="344" y="96"/>
+      <Controls>
+        <Backdrop name="$(parent)Bg">
+          <AnchorFill/>
+          <Edge file="EsoUI/Art/Tooltips/UI-Border.dds"
+                edgeFileWidth="128" edgeFileHeight="16" edgeSize="4"/>
+          <Center file="EsoUI/Art/Tooltips/UI-TooltipCenter.dds"/>
+          <Insets left="4" top="4" right="-4" bottom="-4"/>
+        </Backdrop>
       </Controls>
     </TopLevelControl>
 

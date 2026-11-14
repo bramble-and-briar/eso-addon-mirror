@@ -1,0 +1,618 @@
+<!-- Tooltip Templates -->
+<GuiXml>
+    <!-- Custom trading-house tooltip controls. See the repository backlog file for the future replacement work. -->
+    <Controls>
+
+		<!-- ANALYSIS PERIOD SELECTOR FOR ATT -->
+		<Control name="KPUI_SelectorContainer" virtual="true">
+			<Controls>
+				<Control name="$(parent)Selector" inherits="ZO_GamepadCurrencySelectorTemplate" hidden="true" horizontalAlignment="RIGHT">
+					<Anchor point="TOP" relativePoint="TOP" offsetX="-20" offsetY="20"/>
+				</Control>
+			</Controls>
+		</Control>
+
+		<Control name="KPUI_CraftingTooltip" inherits="ZO_CraftingTooltip_Gamepad" virtual="true">
+			<OnInitialized>
+				ZO_GamepadCraftingUtils_CraftingTooltip_Gamepad_Initialize(self, ZO_GamepadSmithingImprovement_TooltipScreenResizeHandler)
+			</OnInitialized>
+		</Control>
+
+		<Control name="KPUI_LabelValue" virtual="true" >
+			<Controls>
+				<Label name="$(parent)Label" horizontalAlignment="LEFT" modifyTextType="UPPERCASE" font="ZoFontGamepad27" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >	
+					<Anchor point="LEFT" />
+				</Label>								
+				<Label name="$(parent)Value" horizontalAlignment="RIGHT"  font="ZoFontGamepad42" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Anchor point="RIGHT" />
+				</Label>		
+			</Controls>
+		</Control>
+
+
+
+		<!-- GUILD SALES STATISTICS BY PRODUCT TYPE -->
+		<Control name="KPUI_ItemTypeGuildStatRow" virtual="true">
+			<Dimensions x="KELA_TOOLTIPS_CONTENT_WIDTH" />
+			<Dimensions y="25" />
+			<Controls>		
+				<Label name="$(parent)StatGuild" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+					<Anchor point="LEFT" />
+				</Label>				
+				<Label name="$(parent)ValueGuild" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+                    <Dimensions x="60" />
+					<Anchor point="RIGHT" />
+				</Label>						
+				<Label name="$(parent)PriceGuild" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="100" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)ValueGuild" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+				</Label>						
+				<Label name="$(parent)QuantityGuild" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="100" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceGuild" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+				</Label>		
+			</Controls>
+		</Control>
+		<Control name="KPUI_ItemTypeGuildStat" virtual="true">
+			<Dimensions y="150" />
+			<OnInitialized>
+				KPUI_ItemTypeGuildStat_OnInitialize(self)
+			</OnInitialized>
+
+			<Controls>
+				<Control name="$(parent)Header">
+					<Dimensions y="47" />
+					<Controls>
+						<Label name="$(parent)StatGuild" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Anchor point="LEFT"/>
+						</Label>				
+						<Label name="$(parent)ValueGuild" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="60" />
+							<Anchor point="RIGHT" />
+						</Label>						
+						<Label name="$(parent)PriceGuild" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="100" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)ValueGuild" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+						</Label>								
+						<Label name="$(parent)QuantityGuild" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="100" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceGuild" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+						</Label>	
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Anchor point="TOPLEFT" relativeTo="$(parent)StatGuild" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)ValueGuild" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
+						</Control>
+					</Controls>
+				</Control>				
+				<Control name="$(parent)Footer">
+					<Anchor point="LEFT"/>
+					<Anchor point="RIGHT"/>
+					<Dimensions y="10" />
+					<Controls>
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Anchor point="LEFT" offsetY="0"/>
+							<Anchor point="RIGHT" offsetY="0"/>
+						</Control>
+					</Controls>
+				</Control>
+			</Controls>
+		</Control>
+
+ 
+		<!-- MAIN PRODUCT TABLE -->
+		<Control name="KPUI_MainRow" virtual="true">
+			<Dimensions x="KELA_TOOLTIPS_CONTENT_WIDTH" />
+			<Dimensions y="25" />
+			<Controls>
+				<Label name="$(parent)TTC" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="80" />
+					<Anchor point="RIGHT"/>
+				</Label>				
+				<Label name="$(parent)ATT" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="80" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)TTC" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+				</Label>				
+				<Label name="$(parent)Stat" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+					<Anchor point="LEFT"/>
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)ATT" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+				</Label>					
+			</Controls>
+		</Control>
+        <Control name="KPUI_MainInfo" virtual="true">
+			<Dimensions x="KELA_TOOLTIPS_CONTENT_WIDTH" />
+			<OnInitialized>
+				KPUI_MainInfo_OnInitialize(self)
+            </OnInitialized>
+            <Controls>
+				<Control name="$(parent)Header">
+					<Anchor point="LEFT"/>
+					<Anchor point="RIGHT"/>
+					<Dimensions y="37" />
+					<Controls>
+						<Label name="$(parent)TTC" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+							<Dimensions x="80" />
+							<Anchor point="RIGHT"/>
+						</Label>				
+						<Label name="$(parent)ATT" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+							<Dimensions x="80" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)TTC" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+						</Label>				
+						<Label name="$(parent)Stat" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Anchor point="LEFT"/>
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)ATT" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+						</Label>							
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Stat" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)TTC" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
+						</Control>
+					</Controls>
+				</Control>
+				<Control name="$(parent)Footer">
+					<Anchor point="LEFT"/>
+					<Anchor point="RIGHT"/>
+					<Dimensions y="10" />
+					<Controls>
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Anchor point="LEFT" offsetX="0" />
+							<Anchor point="RIGHT" offsetX="0" />
+						</Control>
+						<Label name="$(parent)EffectOfDeal" horizontalAlignment="CENTER"  font="ZoFontGamepadBold48" verticalAlignment="CENTER" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="30" y="30" />
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Divider" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+						</Label>
+						<Label name="$(parent)Recomend" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="100" />
+							<Anchor point="TOPLEFT" relativeTo="$(parent)EffectOfDeal" relativePoint="TOPRIGHT" offsetX="0" offsetY="0" />
+						</Label>
+						<Label name="$(parent)TTC" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="80" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)Divider" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
+						</Label>
+						<Label name="$(parent)ATT" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="80" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)TTC" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+						</Label>
+						<Label name="$(parent)AVG" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+							<Dimensions x="100" />	
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)ATT" relativePoint="TOPLEFT" offsetX="-10" offsetY="0" />
+						</Label>					
+						<Label name="$(parent)RecomendStack" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="100" />
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Recomend" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+						</Label>
+						<Label name="$(parent)TTCStack" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="80" />
+							<Anchor point="TOPLEFT" relativeTo="$(parent)TTC" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+						</Label>
+						<Label name="$(parent)ATTStack" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="80" />
+							<Anchor point="TOPLEFT" relativeTo="$(parent)ATT" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+						</Label>
+						<Label name="$(parent)AVGStack" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1">
+							<Dimensions x="100" />
+							<Anchor point="TOPLEFT" relativeTo="$(parent)AVG" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0"  />
+						</Label>
+					</Controls>
+				</Control>
+			</Controls>
+		</Control>		
+		
+		
+ 		<!-- ATT GRAPH -->		
+		<Control name="KPUI_GraphRow" virtual="true">
+			<Dimensions x="KELA_TOOLTIPS_CONTENT_WIDTH" />
+			<Dimensions y="25" />
+			<Controls>		
+				<Label name="$(parent)Stat" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+					<Anchor point="LEFT" />
+				</Label>				
+				<Label name="$(parent)Value" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+                    <Dimensions x="70" />
+					<Anchor point="RIGHT" />
+				</Label>						
+				<Label name="$(parent)AVG" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="80" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)Value" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+				</Label>						
+				<Label name="$(parent)AVGStack" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="90" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)AVG" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+				</Label>		
+			</Controls>
+		</Control>
+		<!-- ATT graph child is created at runtime only when ATT is available. -->
+		<Control name="KPUI_Graph" tier="HIGH" virtual="true">
+			<Dimensions y="150" />
+			<OnInitialized>
+				KPUI_Graph_OnInitialize(self)
+			</OnInitialized>
+
+			<Controls>
+				<Control name="$(parent)Header">
+					<Dimensions y="47" />
+					<Controls>
+						<Label name="$(parent)Stat" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Anchor point="LEFT"/>
+						</Label>				
+						<Label name="$(parent)Value" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="70" />
+							<Anchor point="RIGHT"/>
+						</Label>					
+						<Label name="$(parent)AVG" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="80" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)Value" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+						</Label>								
+						<Label name="$(parent)AVGStack" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="90" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)AVG" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+						</Label>	
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Stat" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)Value" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
+						</Control>
+					</Controls>
+				</Control>				
+				<Control name="$(parent)Footer">
+					<Anchor point="LEFT"/>
+					<Anchor point="RIGHT"/>
+					<Dimensions y="10" />
+					<Controls>
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Anchor point="LEFT" offsetY="0"/>
+							<Anchor point="RIGHT" offsetY="0"/>
+						</Control>
+					</Controls>
+				</Control>
+			</Controls>
+		</Control>
+ 		
+			
+		<!-- PREVIOUS LISTINGS -->
+		<Control name="KPUI_PreviousListingsRow" virtual="true">
+			<Dimensions x="KELA_TOOLTIPS_CONTENT_WIDTH" />
+			<Dimensions y="25" />
+			<Controls>		
+				<Label name="$(parent)Guild" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Anchor point="LEFT" />
+				</Label>				
+				<Label name="$(parent)Result" horizontalAlignment="CENTER"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+                    <Dimensions x="33" />
+					<Anchor point="RIGHT" />
+				</Label>						
+				<Label name="$(parent)Period" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="110" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)Result" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+				</Label>						
+				<Label name="$(parent)PriceForOne" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="65" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)Period" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+				</Label>						
+				<Label name="$(parent)PriceForLot" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="92" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceForOne" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+				</Label>		
+			</Controls>
+		</Control>
+		<Control name="KPUI_PreviousListings" virtual="true">
+			<Dimensions x="KELA_TOOLTIPS_CONTENT_WIDTH" />
+			<OnInitialized>
+				KPUI_PreviousListings_OnInitialize(self)
+			</OnInitialized>
+			<Controls>
+				<Control name="$(parent)Header">
+					<Anchor point="LEFT"/>
+					<Anchor point="RIGHT"/>
+					<Dimensions y="97" />
+					<Controls>
+						<Label name="$(parent)Title" modifyTextType="UPPERCASE" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="BOTTOM" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+							<Anchor point="LEFT" offsetY="0"/>
+						</Label>
+						<Label name="$(parent)TitleValue" modifyTextType="UPPERCASE" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="BOTTOM" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+							<Anchor point="RIGHT" offsetY="0"/>
+						</Label>
+						<Label name="$(parent)Guild" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+						</Label>				
+						<Label name="$(parent)Result" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="33" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)TitleValue" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
+						</Label>					
+						<Label name="$(parent)Period" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="110" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)Result" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+						</Label>	
+						<Label name="$(parent)PriceForOne" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="65" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)Period" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+						</Label>						
+						<Label name="$(parent)PriceForLot" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="92" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceForOne" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+						</Label>	
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Guild" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)Result" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
+						</Control>
+					</Controls>
+				</Control>				
+				<Control name="$(parent)Footer">
+					<Anchor point="LEFT"/>
+					<Anchor point="RIGHT"/>
+					<Dimensions y="10" />
+					<Controls>
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Anchor point="LEFT" offsetY="0"/>
+							<Anchor point="RIGHT" offsetY="0"/>
+						</Control>
+					</Controls>
+				</Control>
+			</Controls>
+		</Control>
+		
+		
+		<!-- OTHER QUALITY ITEM INFO -->
+		<Control name="KPUI_OtherQualityInfoRow" virtual="true">
+			<Dimensions x="KELA_TOOLTIPS_CONTENT_WIDTH" />
+			<Dimensions y="25" />
+			<Controls>		
+				<Label name="$(parent)TradeSystem" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Anchor point="LEFT" />
+				</Label>			
+				<Label name="$(parent)PriceRec" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="70" />
+					<Anchor point="RIGHT" />
+				</Label>			
+				<Label name="$(parent)PriceAvg" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="65" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceRec" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+				</Label>
+				<Label name="$(parent)AmountCount" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="70" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceAvg" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+				</Label>	
+				<Label name="$(parent)EntryCount" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="40" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)AmountCount" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+				</Label>
+			</Controls>
+		</Control>
+        <Control name="KPUI_OtherQualityInfo" virtual="true">
+			<Dimensions x="KELA_TOOLTIPS_CONTENT_WIDTH" />
+            <OnInitialized>
+				KPUI_OtherQualityInfo_OnInitialize(self)
+            </OnInitialized>
+            <Controls>
+				<Control name="$(parent)Header">
+					<Anchor point="LEFT"/>
+					<Anchor point="RIGHT"/>
+					<Dimensions y="10" />
+					<Controls>
+						<Label name="$(parent)Title" modifyTextType="UPPERCASE" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="BOTTOM" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+							<Anchor point="LEFT" offsetY="0"/>
+						</Label>
+						<Label name="$(parent)TitleValue" modifyTextType="UPPERCASE" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="BOTTOM" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+							<Anchor point="RIGHT" offsetY="0"/>
+						</Label>			
+					</Controls>
+				</Control>
+				<Control name="$(parent)ColumnTitle">
+					<Anchor point="LEFT"/>
+					<Anchor point="RIGHT"/>
+					<Dimensions y="43" />
+					<Controls>
+						<Label name="$(parent)TradeSystem" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Anchor point="LEFT" offsetY="0"/>
+						</Label>				
+						<Label name="$(parent)PriceRec" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="70" />
+							<Anchor point="RIGHT" offsetY="0"/>
+						</Label>			
+						<Label name="$(parent)PriceAvg" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="65" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceRec" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+						</Label>
+						<Label name="$(parent)AmountCount" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="70" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceAvg" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+						</Label>	
+						<Label name="$(parent)EntryCount" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="40" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)AmountCount" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+						</Label>					
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Anchor point="TOPLEFT" relativeTo="$(parent)TradeSystem" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceRec" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
+						</Control>
+					</Controls>
+				</Control>
+				<Control name="$(parent)Footer">
+					<Anchor point="LEFT"/>
+					<Anchor point="RIGHT"/>
+					<Dimensions y="10" />
+					<Controls>
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Dimensions x="2"/>
+							<Anchor point="LEFT" offsetY="0"/>
+							<Anchor point="RIGHT" offsetY="0"/>
+						</Control>
+					</Controls>
+				</Control>
+			</Controls>
+		</Control>
+
+
+		<!-- TABLE FOR PRODUCT (PRODUCTS, RESOURCES) -->
+		<Control name="KPUI_ProductMaterialInfoRow" virtual="true">
+			<Dimensions x="KELA_TOOLTIPS_CONTENT_WIDTH" />
+			<Dimensions y="25" />
+			<Controls>		
+				<Label name="$(parent)TradeSystem" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Anchor point="LEFT" />
+				</Label>			
+				<Label name="$(parent)PriceRec" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="70" />
+					<Anchor point="RIGHT" />
+				</Label>			
+				<Label name="$(parent)PriceAvg" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="65" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceRec" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+				</Label>
+				<Label name="$(parent)EntryCount" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="40" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceAvg" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+				</Label>	
+				<Label name="$(parent)AmountCount" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="70" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)EntryCount" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+				</Label>
+			</Controls>
+		</Control>
+        <Control name="KPUI_ProductMaterialInfo" virtual="true">
+			<Dimensions x="KELA_TOOLTIPS_CONTENT_WIDTH" />
+            <OnInitialized>
+				KPUI_ProductMaterialInfo_OnInitialize(self)
+            </OnInitialized>
+            <Controls>
+				<Control name="$(parent)Header">
+					<Anchor point="LEFT"/>
+					<Anchor point="RIGHT"/>
+					<Dimensions y="97" />
+					<Controls>
+						<Label name="$(parent)Title" modifyTextType="UPPERCASE" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="BOTTOM" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+							<Anchor point="LEFT" offsetY="0"/>
+						</Label>
+						<Label name="$(parent)TitleValue" modifyTextType="UPPERCASE" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="BOTTOM" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+							<Anchor point="RIGHT" offsetY="0"/>
+						</Label>
+						<Label name="$(parent)TradeSystem" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+						</Label>				
+						<Label name="$(parent)PriceRec" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="70" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)TitleValue" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
+						</Label>			
+						<Label name="$(parent)PriceAvg" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="65" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceRec" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+						</Label>
+						<Label name="$(parent)EntryCount" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="40" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceAvg" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+						</Label>	
+						<Label name="$(parent)AmountCount" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="70" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)EntryCount" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+						</Label>					
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Anchor point="TOPLEFT" relativeTo="$(parent)TradeSystem" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)PriceRec" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
+						</Control>
+					</Controls>
+				</Control>
+				<Control name="$(parent)Footer">
+					<Anchor point="LEFT"/>
+					<Anchor point="RIGHT"/>
+					<Dimensions y="10" />
+					<Controls>
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Dimensions x="2"/>
+							<Anchor point="LEFT" offsetY="0"/>
+							<Anchor point="RIGHT" offsetY="0"/>
+						</Control>
+					</Controls>
+				</Control>
+			</Controls>
+		</Control>
+		
+
+		<!-- CRAFT TABLE FOR MASTER WRITS -->
+		<Control name="KPUI_CraftingInfoRow" virtual="true">
+			<Dimensions x="KELA_TOOLTIPS_CONTENT_WIDTH" />
+			<Dimensions y="25" />
+			<Controls>
+				<Label name="$(parent)Quantity" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+					<Dimensions x="40" />
+					<Anchor point="LEFT"/>
+				</Label>				
+				<Label name="$(parent)CurrencyTTC" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="75" />
+					<Anchor point="RIGHT"/>
+				</Label>
+				<Label name="$(parent)CurrencyATT" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+					<Dimensions x="70" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)CurrencyTTC" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+				</Label>
+
+				<Label name="$(parent)ItemName" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="CENTER" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Quantity" relativePoint="TOPRIGHT" offsetX="3" offsetY="0" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)CurrencyATT" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+				</Label>
+			</Controls>
+		</Control>
+        <Control name="KPUI_CraftingInfo" virtual="true">
+			<Dimensions x="KELA_TOOLTIPS_CONTENT_WIDTH" />
+            <OnInitialized>
+				KPUI_CraftingInfo_OnInitialize(self)
+            </OnInitialized>
+            <Controls>
+				<Control name="$(parent)Header">
+					<Anchor point="LEFT"/>
+					<Anchor point="RIGHT"/>
+					<Dimensions y="97" />
+					<Controls>
+						<Label name="$(parent)Title" modifyTextType="UPPERCASE" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="BOTTOM" color="GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1" >
+							<Anchor point="LEFT" offsetY="0"/>
+							<Anchor point="RIGHT" offsetY="0"/>
+						</Label>
+						<Label name="$(parent)Quantity" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="BOTTOM" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="40" />
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+						</Label>
+						<Label name="$(parent)CurrencyTTC" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="BOTTOM" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="75" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)Title" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
+						</Label>
+						<Label name="$(parent)CurrencyATT" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="BOTTOM" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="70" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)CurrencyTTC" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+						</Label>						
+						
+						<Label name="$(parent)ItemName" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="BOTTOM" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Quantity" relativePoint="TOPRIGHT" offsetX="3" offsetY="0" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)CurrencyATT" relativePoint="TOPLEFT" offsetX="-3" offsetY="0" />
+						</Label>
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Quantity" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)CurrencyTTC" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
+						</Control>
+					</Controls>
+				</Control>
+				<Control name="$(parent)Footer">
+					<Anchor point="LEFT"/>
+					<Anchor point="RIGHT"/>
+					<Dimensions y="10" />
+					<Controls>
+						<Control name="$(parent)Divider" inherits="ZO_GamepadHeaderHorizontalDivider" tier="HIGH" >
+							<Anchor point="LEFT" offsetX="0" />
+							<Anchor point="RIGHT" offsetX="0" />
+						</Control>
+						<Label name="$(parent)SummaryLabel" horizontalAlignment="LEFT"  font="ZoFontGamepad20" verticalAlignment="CENTER" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Divider" relativePoint="BOTTOMLEFT" offsetX="42" offsetY="0" />
+						</Label>
+						<Label name="$(parent)SummaryValueTTC" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="75" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)Divider" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
+						</Label>
+						<Label name="$(parent)SummaryValueATT" horizontalAlignment="RIGHT"  font="ZoFontGamepad20" verticalAlignment="CENTER" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" >
+							<Dimensions x="70" />
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)SummaryValueTTC" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+						</Label>
+					</Controls>
+				</Control>
+			</Controls>
+		</Control>
+		
+
+		
+    </Controls>
+</GuiXml>

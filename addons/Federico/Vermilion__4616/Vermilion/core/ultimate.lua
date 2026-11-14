@@ -11,7 +11,10 @@ local STEP_CAP      = 4800
 local USED_CAP      = 100
 local ABIL_CAP      = 64
 local BARS          = 2
+local CAST_DROP     = 50
+local PRESS_LOOKBACK_MS = 2000
 
+local FULL      = 500
 local recording = false
 local t_start   = 0
 local t_end     = 0
@@ -29,6 +32,10 @@ local abil_t    = {}
 local abil_bar  = {}
 local abil_id   = {}
 local abil_cost = {}
+local n_casts   = 0
+local casts_seen = 1
+local cast_t    = {}
+local cast_bar  = {}
 local bar_id    = { 0, 0 }
 local bar_cost  = { 0, 0 }
 
@@ -105,8 +112,10 @@ function M.on_power(value, powerMax, effectiveMax)
   elseif powerMax and powerMax > 0 then
     cur_max = powerMax
   end
-  saw_power = true
-  if recording then push_step(now_ms()) end
+  if recording then
+    saw_power = true
+    push_step(now_ms())
+  end
 end
 
 function M.on_used()
@@ -124,6 +133,7 @@ function M.start_session(t)
   n_steps   = 0
   n_used    = 0
   n_abil    = 0
+  n_casts, casts_seen = 0, 1
   saw_power = false
   local api = Vermilion.zenimax.api
   local zc  = Vermilion.zenimax.constants
@@ -140,6 +150,14 @@ function M.finalize(t)
   if not recording then return end
   recording = false
   t_end = t
+  if n_steps == 1 then
+    local c = bar_cost[1]
+    if bar_cost[2] > 0 and (c <= 0 or bar_cost[2] < c) then c = bar_cost[2] end
+    if c > 0 and step_v[1] >= c then
+      saw_power = true
+      push_step(t)
+    end
+  end
   log:info("session finalize: steps=", n_steps, "used=", n_used, "abilities=", n_abil)
 end
 
@@ -150,13 +168,39 @@ function M.reset()
   n_steps   = 0
   n_used    = 0
   n_abil    = 0
+  n_casts, casts_seen = 0, 1
   saw_power = false
 end
 
 function M.steps()      return step_t, step_v, n_steps end
 function M.used()       return used_t, used_bar, n_used end
+
+local function bar_of_press(t)
+  for i = n_used, 1, -1 do
+    local dt = t - used_t[i]
+    if dt >= 0 then
+      if dt <= PRESS_LOOKBACK_MS then return used_bar[i] end
+      break
+    end
+  end
+  return 1
+end
+
+function M.casts()
+  local last = recording and n_steps - 1 or n_steps
+  for i = casts_seen + 1, last do
+    if step_v[i - 1] - step_v[i] >= CAST_DROP then
+      n_casts = n_casts + 1
+      cast_t[n_casts] = step_t[i]
+      cast_bar[n_casts] = bar_of_press(step_t[i])
+    end
+  end
+  if last > casts_seen then casts_seen = last end
+  return cast_t, cast_bar, n_casts
+end
+
 function M.abilities()  return abil_t, abil_bar, abil_id, abil_cost, n_abil end
-function M.has_data()   return saw_power and n_steps > 0 end
+function M.has_data()   return saw_power and n_steps > 1 end
 function M.cost(b)      return bar_cost[b or active_bar()] end
 function M.bar_id(b)    return bar_id[b or active_bar()] end
 function M.active_bar() return active_bar() end
@@ -185,7 +229,7 @@ function M.load_session(steps, used, abilities)
     abil_cost[i] = r.cost or 0
   end
   n_abil = #abilities
-  saw_power = n_steps > 0
+  saw_power = n_steps > 1
   log:info("session loaded: steps=", n_steps, "used=", n_used, "abilities=", n_abil)
 end
 
@@ -201,21 +245,27 @@ function M.value_at(t)
 end
 
 function M.cost_at(b, t)
-  local c = 0
+  local c, first = 0, 0
   for i = 1, n_abil do
-    if abil_bar[i] == b and abil_t[i] <= t then c = abil_cost[i] end
+    if abil_bar[i] == b then
+      if first <= 0 then first = abil_cost[i] end
+      if abil_t[i] <= t then c = abil_cost[i] end
+    end
   end
-  if c <= 0 then c = bar_cost[b] or 0 end
-  if c <= 0 then c = (cur_max > 0) and cur_max or 500 end
+  if c <= 0 then c = first end
+  if c <= 0 then c = FULL end
   return c
 end
 
 function M.id_at(b, t)
-  local id = 0
+  local id, first = 0, 0
   for i = 1, n_abil do
-    if abil_bar[i] == b and abil_t[i] <= t then id = abil_id[i] end
+    if abil_bar[i] == b then
+      if first == 0 then first = abil_id[i] end
+      if abil_t[i] <= t then id = abil_id[i] end
+    end
   end
-  if id == 0 and n_abil == 0 then id = bar_id[b] or 0 end
+  if id == 0 then id = first end
   return id
 end
 
@@ -230,30 +280,44 @@ local sum_scratch = { ready_ms = 0, dur_ms = 0, ready_pct = 0, casts = 0, mean_g
 
 function M.summary()
   local r = sum_scratch
-  r.ready_ms, r.dur_ms, r.ready_pct, r.casts, r.mean_gap_ms = 0, 0, 0, n_used, 0
+  local ct, _, cn = M.casts()
+  r.ready_ms, r.dur_ms, r.ready_pct, r.casts, r.mean_gap_ms = 0, 0, 0, cn, 0
   if n_steps == 0 then return r end
   local t_lo = (t_start > 0) and t_start or step_t[1]
   local t_hi = (t_end > 0) and t_end or step_t[n_steps]
-  if n_used > 0 and used_t[n_used] > t_hi then t_hi = used_t[n_used] end
+  local fight_lo, fight_hi = Vermilion.Metrics.fight_bounds()
+  if fight_lo then t_lo, t_hi = fight_lo, fight_hi end
   if t_hi <= t_lo then return r end
-  r.dur_ms = t_hi - t_lo
+  local dts, dn, dte = Vermilion.Resources.deaths()
+  local function dead_overlap(a, b)
+    local sum = 0
+    for k = 1, dn do
+      local d0, d1 = dts[k], (dte[k] > 0) and dte[k] or t_hi
+      if d0 < a then d0 = a end
+      if d1 > b then d1 = b end
+      if d1 > d0 then sum = sum + (d1 - d0) end
+    end
+    return sum
+  end
+  r.dur_ms = t_hi - t_lo - dead_overlap(t_lo, t_hi)
+  if r.dur_ms <= 0 then return r end
   local ready = 0
   for i = 1, n_steps do
     local t0 = step_t[i]
     local t1 = (i < n_steps) and step_t[i + 1] or t_hi
+    if t0 < t_lo then t0 = t_lo end
+    if t1 > t_hi then t1 = t_hi end
     if t1 > t0 then
       local c = M.cost_at(1, t0)
-      if bar_id[2] > 0 or n_abil > 0 then
-        local c2 = M.cost_at(2, t0)
-        if c2 > 0 and c2 < c then c = c2 end
-      end
-      if step_v[i] >= c then ready = ready + (t1 - t0) end
+      local c2 = M.cost_at(2, t0)
+      if c2 < c then c = c2 end
+      if step_v[i] >= c then ready = ready + (t1 - t0) - dead_overlap(t0, t1) end
     end
   end
   r.ready_ms  = ready
   r.ready_pct = ready / r.dur_ms
-  if n_used > 1 then
-    r.mean_gap_ms = (used_t[n_used] - used_t[1]) / (n_used - 1)
+  if cn > 1 then
+    r.mean_gap_ms = (ct[cn] - ct[1]) / (cn - 1)
   end
   return r
 end

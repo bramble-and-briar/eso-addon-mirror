@@ -1,12 +1,12 @@
 ## Title: |c7c42f2Imp|ceeeeee-proved PvP UI|r
 ## Description: Collection of PvP-related UI improvements
 ## Author: |c7c42f2@impda|r [EU]
-## AddOnVersion: 1175000
-## APIVersion: 101050
+## AddOnVersion: 1177000
+## APIVersion: 101051
 ## IsLibrary: false
 ## SavedVariables: IMP_PVP_UI_SV
-## DependsOn: LibMainMenu-2.0>=40500 LibAddonMenu-2.0>=43 LibCustomMenu>=730 LibKeepTooltip>=1101000 LibImplex>=24 LibSurfaceTools>=8
-## OptionalDependsOn: LibDebugLogger>=268 PerfectPixel>=001324
+## DependsOn: LibMainMenu-2.0>=40500 LibAddonMenu-2.0>=43 LibCustomMenu>=730 LibKeepTooltip>=1101000 LibImplex>=25 LibSurfaceTools>=9
+## OptionalDependsOn: LibDebugLogger PerfectPixel
 
 logger.lua
 
@@ -35,6 +35,9 @@ Labels/bankedap.lua
 
 killlocations/controls.xml
 killlocations/main.lua
+
+; KeepTracker/controls.xml
+; KeepTracker/main.lua
 
 settings.lua
 

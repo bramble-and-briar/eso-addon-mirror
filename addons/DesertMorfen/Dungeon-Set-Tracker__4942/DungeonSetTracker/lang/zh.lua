@@ -9,6 +9,7 @@ for key, text in pairs({
     LEGEND_VETERAN_ONLY = "仅限老兵",
     LEGEND_PERFECTED = "完美",
     HINT_KEEP_OPEN = "按住 Shift 可保持此窗口打开，然后将鼠标悬停在物品上查看详情。",
+    HINT_KEEP_OPEN_TABS = "按住 Shift 可保持此窗口打开：将鼠标悬停在物品上查看详情，使用标签页或鼠标滚轮切换页面。",
 
     CHAT_ENTER = "%s：已收集 %s 件",
     CHAT_NEW_PIECE = "新物品：%s（%s %s）",

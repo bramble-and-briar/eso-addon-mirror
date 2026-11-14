@@ -57,6 +57,7 @@ local function rec_reset(rec, id)
   rec.open_t0      = nil
   wipe(rec.holders)
   wipe(rec.holders_n)
+  wipe(rec.holder_ids)
   wipe(rec.units_ever)
   wipe(rec.ids)
 end
@@ -69,7 +70,7 @@ local function rec_acquire(id)
     n_free = n_free - 1
   else
     rec = { iv_t0 = {}, iv_t1 = {}, step_t = {}, step_c = {}, holders = {},
-            holders_n = {}, units_ever = {}, ids = {} }
+            holders_n = {}, holder_ids = {}, units_ever = {}, ids = {} }
   end
   rec_reset(rec, id)
   return rec
@@ -222,33 +223,49 @@ local function close_interval(rec, t)
   rec.open_t0 = nil
 end
 
-local function holder_add(rec, unitId, endTime, t)
-  local n = rec.holders_n[unitId]
-  if n == nil or n == 0 then
-    rec.holders_n[unitId] = 1
+local function holder_add(rec, unitId, endTime, t, abilityId)
+  local n = rec.holders_n[unitId] or 0
+  local ids = rec.holder_ids[unitId]
+  if not ids then
+    ids = {}
+    rec.holder_ids[unitId] = ids
+  end
+  local fresh = n == 0
+  if fresh then
     rec.conc = rec.conc + 1
     if rec.conc > rec.max_conc then rec.max_conc = rec.conc end
     if rec.conc == 1 then open_interval(rec, t) end
     push_step(rec, t)
     rec.holders[unitId] = endTime or 0
   else
-    rec.holders_n[unitId] = n + 1
     local et = endTime or 0
     if et > (rec.holders[unitId] or 0) then rec.holders[unitId] = et end
+  end
+  if not ids[abilityId] then
+    ids[abilityId] = true
+    rec.holders_n[unitId] = n + 1
   end
   if not rec.units_ever[unitId] then
     rec.units_ever[unitId] = true
     rec.unique_units = rec.unique_units + 1
   end
+  return fresh
 end
 
-local function holder_remove(rec, unitId, t, force)
+local function holder_remove(rec, unitId, t, force, abilityId)
   local n = rec.holders_n[unitId]
   if n == nil or n == 0 then return end
-  if force then n = 1 end
-  if n > 1 then
-    rec.holders_n[unitId] = n - 1
-    return
+  local ids = rec.holder_ids[unitId]
+  if not force then
+    if not ids or not ids[abilityId] then return end
+    ids[abilityId] = nil
+    n = n - 1
+    if n > 0 then
+      rec.holders_n[unitId] = n
+      return
+    end
+  elseif ids then
+    wipe(ids)
   end
   rec.holders_n[unitId] = 0
   rec.holders[unitId] = nil
@@ -278,20 +295,24 @@ function M.on_effect(changeType, abilityId, unitId, endTime, now_ms, unitTag, ef
       note_excluded(abilityId, effectType, "not a debuff")
       return
     end
+    if changeType == EFFECT_RESULT_UPDATED and (endTime or 0) * 1000 <= now_ms then
+      local known = by_id[abilityId]
+      if not known or (known.holders_n[unitId] or 0) == 0 then
+        bump("debuffs.empty_update")
+        return
+      end
+    end
     local rec = get_rec(abilityId)
     if not rec then return end
-    if changeType == EFFECT_RESULT_GAINED then
+    if changeType == EFFECT_RESULT_GAINED then bump("debuffs.gained") else bump("debuffs.refreshed") end
+    if holder_add(rec, unitId, endTime, now_ms, abilityId) then
       rec.applications = rec.applications + 1
-      bump("debuffs.gained")
-    else
-      bump("debuffs.refreshed")
     end
-    holder_add(rec, unitId, endTime, now_ms)
   elseif changeType == EFFECT_RESULT_FADED then
     local rec = by_id[abilityId]
     if rec then
       bump("debuffs.faded")
-      holder_remove(rec, unitId, now_ms)
+      holder_remove(rec, unitId, now_ms, false, abilityId)
     end
   end
 end
@@ -355,19 +376,23 @@ end
 
 local function finalize_rec(rec, t)
   close_interval(rec, t)
+  local lo, hi = Vermilion.Metrics.fight_bounds()
+  if not lo then lo, hi = t_start, t end
   local uptime = 0
+  local longest = 0
+  local prev_end = lo
   for i = 1, rec.n_iv do
-    uptime = uptime + (rec.iv_t1[i] - rec.iv_t0[i])
+    local a, b = rec.iv_t0[i], rec.iv_t1[i]
+    if a > hi then a = hi end
+    if b > hi then b = hi end
+    local gap = a - prev_end
+    if gap > longest then longest = gap end
+    if b > prev_end then prev_end = b end
+    if a < lo then a = lo end
+    if b > a then uptime = uptime + (b - a) end
   end
   rec.uptime_ms = uptime
-  local longest = 0
-  local prev_end = t_start
-  for i = 1, rec.n_iv do
-    local gap = rec.iv_t0[i] - prev_end
-    if gap > longest then longest = gap end
-    prev_end = rec.iv_t1[i]
-  end
-  local tail = t - prev_end
+  local tail = hi - prev_end
   if tail > longest then longest = tail end
   rec.longest_gap_ms = longest
 end
@@ -401,6 +426,17 @@ function M.is_recording() return recording end
 function M.count() return n_tracked end
 function M.session_start() return t_start end
 function M.session_end() return t_end end
+function M.fight_ms()
+  local f = Vermilion.Metrics.fight_ms()
+  if f > 0 then return f end
+  return t_end - t_start
+end
+function M.uptime_of(rec)
+  local f = M.fight_ms()
+  if f <= 0 then return 0 end
+  local p = rec.uptime_ms / f
+  return (p > 1) and 1 or p
+end
 
 function M.load_session(metas, steps, t0, t1)
   M.reset()
@@ -416,7 +452,7 @@ function M.load_session(metas, steps, t0, t1)
       conc_avg = m.conc_avg or 0, longest_gap_ms = m.longest_gap_ms or 0,
       n_steps = 0, step_t = {}, step_c = {},
       n_iv = 0, iv_t0 = {}, iv_t1 = {},
-      holders = {}, holders_n = {}, units_ever = {}, ids = { m.id }, n_ids = 1,
+      holders = {}, holders_n = {}, holder_ids = {}, units_ever = {}, ids = { m.id }, n_ids = 1,
     }
     n_tracked = i
   end

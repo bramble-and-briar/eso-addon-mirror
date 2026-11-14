@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/imPDA/LibImplex__4108",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "imPDA",
   "canonical_id": "esoui:4108",
   "category_id": "53",
@@ -17,7 +18,7 @@
     "LibImplex"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4108/",
-  "fingerprint": "7be4cdfde601bb8c244c841eaf0636146ea3f6dbffd3199f53475134ae4ab1f1",
+  "fingerprint": "5380833be1d76e1a577789ac92afccd536c0dead754a8cd13aec080fbc990462",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14172.png"
   ],
@@ -27,11 +28,11 @@
   "source_id": "4108",
   "source_url": "https://www.esoui.com/downloads/info4108-LibImplex.html",
   "stats": {
-    "downloads": 22084,
+    "downloads": 23859,
     "favorites": 13,
-    "monthly_downloads": 627
+    "monthly_downloads": 490
   },
   "title": "LibImplex",
-  "updated_at": 1779315034000,
-  "version": "24"
+  "updated_at": 1794600852000,
+  "version": "25"
 }

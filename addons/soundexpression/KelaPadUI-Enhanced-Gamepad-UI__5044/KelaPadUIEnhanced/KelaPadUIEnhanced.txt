@@ -1,0 +1,72 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls(R) and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+;
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms
+
+## APIVersion: 101051
+## Title: KelaPadUI Enhanced - Gamepad UI
+## Version: 2.8.1
+## AddOnVersion: 20801
+## Author: @slice_o'life
+## Description: This addon improves the gamepad's UI by adding additional information and features. Maintained successor to KelaPadUI by @rkirgizov; delete the original KelaPadUI folder before installing.
+## SavedVariables: kpuiSavedVariables
+## DependsOn: LibSets
+## OptionalDependsOn: TamrielTradeCentre ArkadiusTradeTools LibCustomMenu LibItemLink USPF LibDebugLogger LibCharacterKnowledge PersonalAssistant
+
+kpui_lang/en.lua
+kpui_lang/$(language).lua
+
+kpui_core/kpui_constants.lua
+kpui_core/kpui_utils.lua
+kpui_core/kpui_tooltip_styles.lua
+
+kpui_core/kpui_templates.xml
+
+kpui_core/kpui_settings_gamepad.lua
+kpui_core/kpui_settings_gamepad.xml
+
+kpui_core/kpui_tooltip_gamepad.lua
+kpui_core/kpui_tooltip_gamepad.xml
+
+kpui_features/sets/kpui_sets_gamepad.lua
+kpui_features/sets/kpui_sets_gamepad.xml
+kpui_features/sets/kpui_sets_list_gamepad.xml
+
+kpui_features/kpui_trait_research_gamepad.lua
+
+kpui_features/filters/kpui_antiquityfilters_gamepad.lua
+kpui_features/antiquities/kpui_antiquityleads_gamepad.lua
+
+kpui_features/tradinghouse/kpui_trading_history.lua
+kpui_features/tradinghouse/kpui_tradinghouse_shared.lua
+kpui_features/tradinghouse/kpui_tradinghouse_hooks.lua
+kpui_features/tradinghouse/kpui_tradinghouse_tooltips.lua
+kpui_features/tradinghouse/kpui_tradinghouse_data.lua
+kpui_features/tradinghouse/kpui_tradinghouse_controls.lua
+kpui_features/tradinghouse/kpui_tradinghouse_gamepad.xml
+
+kpui_data/kpui_data.lua
+kpui_features/kpui_info_tooltip.lua
+kpui_features/mainmenu/kpui_main_menu.lua
+kpui_features/mainmenu/kpui_main_menu_dashboard.xml
+kpui_features/mainmenu/kpui_main_menu_dashboard.lua
+kpui_features/mainmenu/kpui_main_menu_shortcuts.lua
+kpui_features/filters/kpui_reconstruct_search.lua
+kpui_features/filters/kpui_recipe_filters.lua
+kpui_features/filters/kpui_achievement_filters.lua
+kpui_features/kpui_pa_junk.lua
+kpui_features/companion/kpui_companion.lua
+kpui_features/companion/kpui_companion_collections.lua
+kpui_features/kpui_dungeon_finder.lua
+kpui_features/kpui_chat_tools.lua
+kpui_features/kpui_map_rally.lua
+kpui_features/kpui_basegame_fixes.lua
+kpui_features/kpui_controller_buttons.lua
+
+KelaPadUI.lua
+
+; Enable this for debugging. Exposes /kpuidiag to dump debug info for some components
+; kpui_core/kpui_diag.lua

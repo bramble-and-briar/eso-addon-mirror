@@ -1,0 +1,12 @@
+## Title: Known Vendor Filter
+## Description: Hide known collectibles at NPC merchants and bank withdrawal.
+## Author: Ypselon
+## Version: 1.0.4
+## AddOnVersion: 5
+## APIVersion: 101051
+## OptionalDependsOn: LibFilters-3.0 LibAddonMenu-2.0
+## SavedVariables: KnownVendorFilterSavedVars
+
+Localization.lua
+KnownVendorFilter.lua
+KnownVendorFilter.xml

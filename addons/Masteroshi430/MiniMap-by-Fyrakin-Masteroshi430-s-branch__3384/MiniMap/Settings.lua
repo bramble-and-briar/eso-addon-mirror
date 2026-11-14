@@ -1956,7 +1956,7 @@ FyrMM.Panel = {
 	name = "MiniMap by Fyrakin",
 	displayName = GetString(SI_MM_STRING_SETTINGS),
 	author = "|c3CB371@Masteroshi430|r, |c006600Fyrakin|r, Zerorez, deathangel1479",
-	version = "2026.11.10",
+	version = "2026.11.13",
 	website = "https://www.esoui.com/downloads/info3384-MiniMapbyFyrakinMasteroshi430sbranch.html",
 	slashCommand = "/fyrmmset",
 	registerForRefresh = true,
@@ -1989,7 +1989,7 @@ FyrMM.Panel = {
 	[7] = { type = "button", name = GetString(SI_MM_SETTING_SQUAREDEFAULTS), tooltip = GetString(SI_MM_SETTING_SQUAREDEFAULTS_TOOLTIP),
 								func = function() MM_SquareModeDefaults() end, width = "half", },
 								
-	[8] = { type = "submenu", name = GetString(SI_MM_SETTING_COMPASSOPTIONS),							
+	[8] = { type = "submenu", name = GetString(SI_MM_SETTING_COMPASSOPTIONS),
 			controls = {
 						[1] = { type = "checkbox", name = GetString(SI_MM_SETTING_COMPASS), tooltip = GetString(SI_MM_SETTING_COMPASS_TOOLTIP),
 								getFunc = function() return MM_GetHideCompass() end,

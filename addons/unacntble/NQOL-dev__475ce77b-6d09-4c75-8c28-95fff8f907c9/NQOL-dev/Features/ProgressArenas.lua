@@ -126,8 +126,7 @@ local RefreshScrollActivation
 local ApplyHudPosition
 local RenderFooter
 local RenderWatermark
-local ApplyArenaRow
-local ApplyAchievementRow
+local StandardRows = {}
 local RenderVisibleFullRows
 local Refresh
 
@@ -865,24 +864,10 @@ local function GetLayoutMetrics(renderRows, detailLevel, rows, visibleTrackedTyp
 end
 
 local function HideRowControls(rowControl)
-    if rowControl.container then
-        rowControl.container:SetHidden(true)
-    end
-    rowControl.clipTop = nil
-    rowControl.clipBottom = nil
-    rowControl.background:SetHidden(true)
+    rowControl.container:SetHidden(true)
     rowControl.name:SetHidden(true)
-    rowControl.meta:SetHidden(true)
-    rowControl.description:SetHidden(true)
-    for _, label in ipairs(rowControl.headers) do
-        label:SetHidden(true)
-    end
-    for _, icon in ipairs(rowControl.icons) do
-        icon:SetHidden(true)
-    end
-    for _, dateLabel in ipairs(rowControl.dates) do
-        dateLabel:SetHidden(true)
-    end
+    for _, icon in pairs(rowControl.icons) do icon:SetHidden(true) end
+    for _, label in pairs(rowControl.dates) do label:SetHidden(true) end
 end
 
 local function ClearLabelText(label)
@@ -965,28 +950,14 @@ local function HideFullRows(hud, clearVirtualState)
 end
 
 local function HideStandardRows(hud)
-    if not hud then
-        return
-    end
-
-    for _, rowControl in ipairs(hud.rows or {}) do
-        HideRowControls(rowControl)
-    end
+    if not hud then return end
+    hud.standardData = nil
+    for _, rowControl in ipairs(hud.rows or {}) do HideRowControls(rowControl) end
+    for _, label in ipairs(hud.standardHeaders or {}) do label:SetHidden(true) end
 end
 
 local function UpdateRowClipVisibility(hud)
-    if not hud or not hud.rows then
-        return
-    end
-
-    local scrollTop = tonumber(hud.scrollOffset) or 0
-    local scrollBottom = scrollTop + (tonumber(hud.tableViewportHeight) or 0)
-    for _, rowControl in ipairs(hud.rows) do
-        if rowControl.container and rowControl.clipTop and rowControl.clipBottom then
-            local visible = rowControl.clipTop >= scrollTop and rowControl.clipBottom <= scrollBottom
-            rowControl.container:SetHidden(not visible)
-        end
-    end
+    StandardRows.Render(hud)
 end
 
 local function EnsureFullSummaryRowControl(hud, index)
@@ -1048,35 +1019,14 @@ local function EnsureFullAchievementRowControl(hud, index)
 end
 
 local function EnsureRowControl(hud, index)
-    if hud.rows[index] then
-        return hud.rows[index]
-    end
-
+    if hud.rows[index] then return hud.rows[index] end
     local rowControl = {
         container = WINDOW_MANAGER:CreateControl(nil, hud.content, CT_CONTROL),
-        headers = {},
         icons = {},
         dates = {},
     }
-    rowControl.container:SetAnchorFill(hud.content)
-    MoveControlAbove(rowControl.container, DRAW_LEVEL + 1)
-
-    rowControl.background = WINDOW_MANAGER:CreateControl(nil, rowControl.container, CT_TEXTURE)
-    rowControl.content = WINDOW_MANAGER:CreateControl(nil, rowControl.container, CT_CONTROL)
-    MoveControlAbove(rowControl.content, DRAW_LEVEL + 2)
-    rowControl.name = CreateLabel(rowControl.content, -3, { 1, 1, 1, 0.92 })
-    rowControl.meta = CreateLabel(rowControl.content, -5, { 0.72, 0.86, 1, 0.92 }, TEXT_ALIGN_RIGHT)
-    rowControl.description = CreateLabel(rowControl.content, -6, { 0.82, 0.82, 0.82, 0.9 })
-
-    rowControl.background:SetHidden(true)
-    MoveControlAbove(rowControl.background, DRAW_LEVEL + 1)
-
-    for index = 1, #TRACKED_TYPES do
-        rowControl.headers[index] = CreateLabel(rowControl.content, -6, { 0.72, 0.86, 1, 0.95 }, TEXT_ALIGN_CENTER)
-        rowControl.icons[index] = CreateIcon(rowControl.content)
-        rowControl.dates[index] = CreateLabel(rowControl.content, -7, { 0.72, 0.86, 1, 0.85 }, TEXT_ALIGN_CENTER)
-    end
-
+    MoveControlAbove(rowControl.container, DRAW_LEVEL + 2)
+    rowControl.name = CreateLabel(rowControl.container, -3, { 1, 1, 1, 0.92 })
     hud.rows[index] = rowControl
     return rowControl
 end
@@ -1084,6 +1034,7 @@ end
 local function HideHud(hud)
     if hud and hud.control then
         SaveFullScrollRatio(hud)
+        HideStandardRows(hud)
         hud.control:SetHidden(true)
         hud.hasRenderedContent = false
         if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT:IsListening(hud) then
@@ -1160,9 +1111,7 @@ local function SetHudLoading(hud, isLoading, layout)
         counter:SetHidden(hud.isLoading)
     end
     if hud.isLoading then
-        for _, rowControl in ipairs(hud.rows or {}) do
-            HideRowControls(rowControl)
-        end
+        HideStandardRows(hud)
         HideFullRows(hud)
     end
 
@@ -1869,210 +1818,111 @@ RenderVisibleFullRows = function(hud)
     end
 end
 
-ApplyArenaRow = function(rowControl, renderRow, x, y, layout, detailLevel, showHeaders, visibleTrackedTypes)
-    local row = renderRow.row
-    local content = huds[ARENAS_GROUP] and huds[ARENAS_GROUP].content
-    if not content then
-        return
-    end
-    local contentInsetX = detailLevel == DETAIL_FULL and FULL_ROW_CONTENT_INSET_X or 0
-    local contentInsetY = detailLevel == DETAIL_FULL and FULL_ROW_CONTENT_INSET_Y or 0
-    rowControl.content:ClearAnchors()
-    rowControl.content:SetDimensions(math.max(layout.columnWidth - contentInsetX, 1), math.max(layout.rowHeight - contentInsetY, 1))
-    rowControl.content:SetAnchor(TOPLEFT, content, TOPLEFT, x + contentInsetX, y + contentInsetY)
-    local nameWidth = math.max(layout.nameColumnWidth - contentInsetX, 1)
-    local iconStartX = layout.nameColumnWidth + 8 - contentInsetX
-    local primaryLineHeight = detailLevel == DETAIL_FULL and math.max(layout.rowHeight - contentInsetY, 1) or layout.rowHeight
-    local backgroundWidth = detailLevel == DETAIL_FULL and layout.columnWidth or nameWidth
-    local backgroundHeight = layout.rowHeight + ROW_GAP
+-- Basic/Dates use viewport-sized row slots. Full has its own row pools below.
+-- Controls persist in ESO, so unused cell types and per-row headings are never
+-- allocated until needed; headings are shared by the rows in each column.
+function StandardRows.Render(hud)
+    local state = hud and hud.standardData
+    if not state then return end
+    local layout = state.layout
+    local stride = layout.rowHeight + ROW_GAP
+    local scrollTop = tonumber(hud.scrollOffset) or 0
+    local scrollBottom = scrollTop + layout.tableViewportHeight
+    local firstRow = math.max(0, math.ceil((scrollTop - layout.rowAreaTop) / stride))
+    local lastRow = math.min(layout.rowsPerColumn - 1, math.floor((scrollBottom - layout.rowAreaTop - layout.rowHeight) / stride))
+    if state.firstRow == firstRow and state.lastRow == lastRow then return end
+    state.firstRow, state.lastRow = firstRow, lastRow
 
-    rowControl.background:ClearAnchors()
-    rowControl.background:SetDimensions(backgroundWidth, backgroundHeight)
-    rowControl.background:SetAnchor(TOPLEFT, content, TOPLEFT, x, y)
-    if detailLevel == DETAIL_FULL then
-        ClearTexture(rowControl.background)
-    end
-    rowControl.background:SetHidden(true)
-
-    rowControl.name:SetFont(ResolveFont(-3))
-    rowControl.name:SetColor(1, 1, 1, 0.92)
-    rowControl.name:SetText(row.name)
-    rowControl.name:ClearAnchors()
-    rowControl.name:SetDimensions(nameWidth, primaryLineHeight)
-    rowControl.name:SetAnchor(TOPLEFT, rowControl.content, TOPLEFT, 0, 0)
-    rowControl.name:SetHidden(false)
-
-    rowControl.description:SetHidden(true)
-
-    rowControl.meta:SetFont(ResolveFont(-6))
-    rowControl.meta:ClearAnchors()
-    rowControl.meta:SetDimensions(math.max(nameWidth, 1), primaryLineHeight)
-    rowControl.meta:SetAnchor(TOPLEFT, rowControl.content, TOPLEFT, 0, primaryLineHeight)
-    rowControl.meta:SetHidden(true)
-
-    local renderableTrackedTypes = GetRenderableTrackedTypesForRow(row, visibleTrackedTypes, detailLevel)
-    for index, trackedType in ipairs(renderableTrackedTypes) do
-        local columnX = iconStartX + ((index - 1) * layout.statusColumnWidth)
-        local status = row.statuses[trackedType.key]
-
-        rowControl.headers[index]:SetFont(ResolveFont(-7))
-        rowControl.headers[index]:SetText(trackedType.label)
-        rowControl.headers[index]:ClearAnchors()
-        rowControl.headers[index]:SetDimensions(layout.statusColumnWidth, layout.columnHeaderHeight)
-        rowControl.headers[index]:SetAnchor(TOPLEFT, rowControl.content, TOPLEFT, columnX, -contentInsetY - layout.columnHeaderHeight - 4)
-        rowControl.headers[index]:SetHidden(detailLevel == DETAIL_FULL or not showHeaders)
-
-        rowControl.dates[index]:ClearAnchors()
-        rowControl.dates[index]:SetDimensions(layout.statusColumnWidth, primaryLineHeight)
-        if status and status.unavailable then
-            rowControl.icons[index]:SetHidden(true)
-            rowControl.dates[index]:SetFont(ResolveFont(-7))
-            rowControl.dates[index]:SetColor(0.72, 0.72, 0.68, 0.9)
-            rowControl.dates[index]:SetHorizontalAlignment(detailLevel == DETAIL_FULL and TEXT_ALIGN_LEFT or TEXT_ALIGN_CENTER)
-            if detailLevel == DETAIL_FULL then
-                rowControl.dates[index]:SetText(string.format("|cb8dbff%s:|r -", trackedType.label))
-            else
-                rowControl.dates[index]:SetText("-")
-            end
-            rowControl.dates[index]:SetAnchor(TOPLEFT, rowControl.content, TOPLEFT, columnX, 0)
-            rowControl.dates[index]:SetHidden(false)
-        elseif trackedType.aggregate then
-            rowControl.icons[index]:SetHidden(true)
-            rowControl.dates[index]:SetFont(ResolveFont(-7))
-            if (tonumber(status and status.total) or 0) <= 0 then
-                rowControl.dates[index]:SetColor(0.72, 0.72, 0.68, 0.9)
-            elseif status and status.completed then
-                rowControl.dates[index]:SetColor(0.33, 1, 0.43, 1)
-            else
-                rowControl.dates[index]:SetColor(1, 0.22, 0.22, 1)
-            end
-            rowControl.dates[index]:SetText(GetAggregateText(status))
-            rowControl.dates[index]:SetAnchor(TOPLEFT, rowControl.content, TOPLEFT, columnX, 0)
-            rowControl.dates[index]:SetHidden(false)
-        elseif detailLevel == DETAIL_ADVANCED or detailLevel == DETAIL_FULL then
-            local dateText, completed = GetAdvancedDateText(status)
-            rowControl.icons[index]:SetHidden(true)
-            rowControl.dates[index]:SetFont(ResolveFont(-7))
-            if detailLevel == DETAIL_FULL then
-                if completed then
-                    rowControl.dates[index]:SetColor(1, 1, 1, 1)
-                    rowControl.dates[index]:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-                    dateText = string.format("|cb8dbff%s:|r |c33f05a%s|r", trackedType.label, dateText)
-                else
-                    dateText = string.format("|cb8dbff%s:|r", trackedType.label)
-                    rowControl.dates[index]:SetColor(1, 1, 1, 1)
-                    rowControl.dates[index]:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-                    rowControl.icons[index]:ClearAnchors()
-                    rowControl.icons[index]:SetDimensions(STATUS_ICON_SIZE, STATUS_ICON_SIZE)
-                    rowControl.icons[index]:SetAnchor(TOPLEFT, rowControl.content, TOPLEFT, columnX + EstimateTextWidth(trackedType.label .. ":", -7, 0.56) + 4, ((primaryLineHeight - STATUS_ICON_SIZE) / 2))
-                    ApplyCompletionIcon(rowControl.icons[index], false)
+    for _, rowControl in ipairs(hud.rows) do HideRowControls(rowControl) end
+    for _, label in ipairs(hud.standardHeaders or {}) do label:SetHidden(true) end
+    hud.standardHeaders = hud.standardHeaders or {}
+    local slot = 0
+    for column = 0, layout.columns - 1 do
+        local x = column * (layout.columnWidth + COLUMN_GAP)
+        if firstRow == 0 and lastRow >= 0 and state.rows[column * layout.rowsPerColumn + 1] then
+            for index, trackedType in ipairs(state.types) do
+                local headerIndex = column * #state.types + index
+                local label = hud.standardHeaders[headerIndex]
+                if not label then
+                    label = CreateLabel(hud.content, -7, { 0.72, 0.86, 1, 0.95 }, TEXT_ALIGN_CENTER)
+                    hud.standardHeaders[headerIndex] = label
                 end
-            elseif completed then
-                rowControl.dates[index]:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-                rowControl.dates[index]:SetColor(0.33, 1, 0.43, 1)
-            else
-                rowControl.dates[index]:SetHidden(true)
-                rowControl.icons[index]:ClearAnchors()
-                rowControl.icons[index]:SetDimensions(STATUS_ICON_SIZE, STATUS_ICON_SIZE)
-                rowControl.icons[index]:SetAnchor(TOPLEFT, rowControl.content, TOPLEFT, columnX + ((layout.statusColumnWidth - STATUS_ICON_SIZE) / 2), ((primaryLineHeight - STATUS_ICON_SIZE) / 2))
-                ApplyCompletionIcon(rowControl.icons[index], false)
-                dateText = nil
+                label:SetFont(ResolveFont(-7))
+                label:SetText(trackedType.label)
+                label:ClearAnchors()
+                label:SetDimensions(layout.statusColumnWidth, layout.columnHeaderHeight)
+                label:SetAnchor(TOPLEFT, hud.content, TOPLEFT, x + layout.nameColumnWidth + 8 + ((index - 1) * layout.statusColumnWidth), 0)
+                label:SetHidden(false)
             end
-            if dateText then
-                rowControl.dates[index]:SetText(dateText)
-                rowControl.dates[index]:SetAnchor(TOPLEFT, rowControl.content, TOPLEFT, columnX, 0)
-                rowControl.dates[index]:SetHidden(false)
-            end
-        else
-            rowControl.icons[index]:ClearAnchors()
-            rowControl.icons[index]:SetDimensions(STATUS_ICON_SIZE, STATUS_ICON_SIZE)
-            rowControl.icons[index]:SetAnchor(TOPLEFT, rowControl.content, TOPLEFT, columnX + ((layout.statusColumnWidth - STATUS_ICON_SIZE) / 2), ((primaryLineHeight - STATUS_ICON_SIZE) / 2))
-            ApplyCompletionIcon(rowControl.icons[index], status and status.completed or nil)
-
-            rowControl.dates[index]:SetHidden(true)
         end
-    end
-
-    for index = #renderableTrackedTypes + 1, #TRACKED_TYPES do
-        rowControl.headers[index]:SetHidden(true)
-        rowControl.icons[index]:SetHidden(true)
-        rowControl.dates[index]:SetHidden(true)
-    end
-end
-
-ApplyAchievementRow = function(rowControl, renderRow, x, y, layout)
-    local content = huds[ARENAS_GROUP] and huds[ARENAS_GROUP].content
-    if not content then
-        return
-    end
-    local achievementId = renderRow.achievementId or (renderRow.achievement and renderRow.achievement.id)
-    if type(achievementId) == "table" then
-        achievementId = achievementId.id
-    end
-    local completed = IsAchievementIdComplete(achievementId)
-    local date = GetAchievementDate(achievementId)
-    local name = GetAchievementName(achievementId)
-    local description = GetAchievementDescription(achievementId)
-    rowControl.content:ClearAnchors()
-    rowControl.content:SetDimensions(layout.columnWidth, math.max(layout.rowHeight - FULL_ROW_CONTENT_INSET_Y, 1))
-    rowControl.content:SetAnchor(TOPLEFT, content, TOPLEFT, x, y + FULL_ROW_CONTENT_INSET_Y)
-    local rowStartX = layout.nameColumnWidth + 8
-    local contentLineHeight = math.max(layout.rowHeight - FULL_ROW_CONTENT_INSET_Y, 1)
-    local contentX = rowStartX + EXTRA_BULLET_SIZE + EXTRA_BULLET_GAP
-    local statusText = FormatDate(date)
-    local statusWidth = completed and 0 or STATUS_ICON_SIZE
-    local descriptionX = completed and contentX or (contentX + statusWidth + 4)
-
-    rowControl.background:ClearAnchors()
-    local backgroundHeight = layout.rowHeight + ROW_GAP
-    if renderRow.blockRowIndex == renderRow.blockRows then
-        backgroundHeight = backgroundHeight + FULL_ROW_CONTENT_INSET_Y
-    end
-    rowControl.background:SetDimensions(layout.columnWidth, backgroundHeight)
-    rowControl.background:SetAnchor(TOPLEFT, content, TOPLEFT, x, y)
-    ClearTexture(rowControl.background)
-    rowControl.background:SetHidden(true)
-    rowControl.name:SetHidden(true)
-    for _, icon in ipairs(rowControl.icons) do
-        icon:SetHidden(true)
-    end
-
-    rowControl.icons[1]:ClearAnchors()
-    rowControl.icons[1]:SetTexture(BULLET_TEXTURE)
-    rowControl.icons[1]:SetDimensions(EXTRA_BULLET_SIZE, EXTRA_BULLET_SIZE)
-    rowControl.icons[1]:SetColor(0.72, 0.86, 1, 0.9)
-    rowControl.icons[1]:SetAnchor(TOPLEFT, rowControl.content, TOPLEFT, rowStartX, ((contentLineHeight - EXTRA_BULLET_SIZE) / 2))
-    rowControl.icons[1]:SetHidden(false)
-
-    rowControl.meta:SetFont(ResolveFont(-6))
-    rowControl.meta:SetColor(1, 1, 1, 0.82)
-    rowControl.meta:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-    rowControl.meta:SetText(NQOL.L("features.progress_arenas.c33f05a_d80ad69") .. statusText .. "|r " .. (name or "") .. " - " .. (description or ""))
-    rowControl.meta:ClearAnchors()
-    rowControl.meta:SetDimensions(math.max(layout.columnWidth - contentX, 1), contentLineHeight)
-    rowControl.meta:SetAnchor(TOPLEFT, rowControl.content, TOPLEFT, contentX, 0)
-    rowControl.meta:SetHidden(not completed)
-
-    if not completed then
-        rowControl.icons[2]:ClearAnchors()
-        rowControl.icons[2]:SetDimensions(STATUS_ICON_SIZE, STATUS_ICON_SIZE)
-        rowControl.icons[2]:SetAnchor(TOPLEFT, rowControl.content, TOPLEFT, contentX, ((contentLineHeight - STATUS_ICON_SIZE) / 2))
-        ApplyCompletionIcon(rowControl.icons[2], false)
-    end
-
-    rowControl.description:SetFont(ResolveFont(-6))
-    rowControl.description:SetColor(1, 1, 1, 0.82)
-    rowControl.description:SetText((name or "") .. " - " .. (description or ""))
-    rowControl.description:ClearAnchors()
-    rowControl.description:SetDimensions(math.max(layout.columnWidth - descriptionX, 1), contentLineHeight)
-    rowControl.description:SetAnchor(TOPLEFT, rowControl.content, TOPLEFT, descriptionX, 0)
-    rowControl.description:SetHidden(completed)
-
-    for _, label in ipairs(rowControl.headers) do
-        label:SetHidden(true)
-    end
-    for _, dateLabel in ipairs(rowControl.dates) do
-        dateLabel:SetHidden(true)
+        for rowIndex = firstRow, lastRow do
+            local renderRow = state.rows[column * layout.rowsPerColumn + rowIndex + 1]
+            if renderRow then
+                slot = slot + 1
+                local rowControl = EnsureRowControl(hud, slot)
+                local row = renderRow.row
+                rowControl.container:ClearAnchors()
+                rowControl.container:SetDimensions(layout.columnWidth, layout.rowHeight)
+                rowControl.container:SetAnchor(TOPLEFT, hud.content, TOPLEFT, x, layout.rowAreaTop + rowIndex * stride)
+                rowControl.container:SetHidden(false)
+                rowControl.name:SetFont(ResolveFont(-3))
+                rowControl.name:SetText(row.name)
+                rowControl.name:ClearAnchors()
+                rowControl.name:SetDimensions(layout.nameColumnWidth, layout.rowHeight)
+                rowControl.name:SetAnchor(TOPLEFT, rowControl.container, TOPLEFT, 0, 0)
+                rowControl.name:SetHidden(false)
+                for index, trackedType in ipairs(state.types) do
+                    local status = row.statuses[trackedType.key]
+                    local text, red, green, blue
+                    local completed = status and status.completed or false
+                    if status and status.unavailable then
+                        text, red, green, blue = "-", 0.72, 0.72, 0.68
+                    elseif trackedType.aggregate then
+                        text = GetAggregateText(status)
+                        if (tonumber(status and status.total) or 0) <= 0 then
+                            red, green, blue = 0.72, 0.72, 0.68
+                        elseif completed then
+                            red, green, blue = 0.33, 1, 0.43
+                        else
+                            red, green, blue = 1, 0.22, 0.22
+                        end
+                    elseif state.detailLevel == DETAIL_ADVANCED then
+                        local hasDate
+                        text, hasDate = GetAdvancedDateText(status)
+                        if hasDate then
+                            red, green, blue = 0.33, 1, 0.43
+                        else
+                            text, completed = nil, false
+                        end
+                    end
+                    local columnX = layout.nameColumnWidth + 8 + ((index - 1) * layout.statusColumnWidth)
+                    if text then
+                        local label = rowControl.dates[index]
+                        if not label then
+                            label = CreateLabel(rowControl.container, -7, { 0.72, 0.86, 1, 0.85 }, TEXT_ALIGN_CENTER)
+                            rowControl.dates[index] = label
+                        end
+                        label:SetFont(ResolveFont(-7))
+                        label:SetColor(red, green, blue, 1)
+                        label:SetText(text)
+                        label:ClearAnchors()
+                        label:SetDimensions(layout.statusColumnWidth, layout.rowHeight)
+                        label:SetAnchor(TOPLEFT, rowControl.container, TOPLEFT, columnX, 0)
+                        label:SetHidden(false)
+                    else
+                        local icon = rowControl.icons[index]
+                        if not icon then
+                            icon = CreateIcon(rowControl.container)
+                            rowControl.icons[index] = icon
+                        end
+                        icon:ClearAnchors()
+                        icon:SetDimensions(STATUS_ICON_SIZE, STATUS_ICON_SIZE)
+                        icon:SetAnchor(TOPLEFT, rowControl.container, TOPLEFT, columnX + ((layout.statusColumnWidth - STATUS_ICON_SIZE) / 2), (layout.rowHeight - STATUS_ICON_SIZE) / 2)
+                        ApplyCompletionIcon(icon, completed)
+                    end
+                end
+            end
+        end
     end
 end
 
@@ -2140,33 +1990,9 @@ local function RenderHud(generation)
     end
 
     HideFullRows(hud)
-    ApplyScrollOffset(hud)
-
-    for index, rowControl in ipairs(hud.rows) do
-        if index > #renderRows then
-            HideRowControls(rowControl)
-        end
-    end
-
+    hud.standardData = { rows = renderRows, layout = layout, types = visibleTrackedTypes, detailLevel = detailLevel }
     SetHudLoading(hud, false, layout)
-
-    for index, renderRow in ipairs(renderRows) do
-        local rowControl = EnsureRowControl(hud, index)
-        local column = math.floor((index - 1) / layout.rowsPerColumn)
-        local rowIndex = (index - 1) % layout.rowsPerColumn
-        local x = column * (layout.columnWidth + COLUMN_GAP)
-        local y = layout.rowAreaTop + (rowIndex * (layout.rowHeight + ROW_GAP))
-        rowControl.clipTop = y
-        rowControl.clipBottom = y + layout.rowHeight
-
-        if renderRow.kind == "spacer" then
-            HideRowControls(rowControl)
-        elseif renderRow.kind == "achievement" then
-            ApplyAchievementRow(rowControl, renderRow, x, y, layout)
-        else
-            ApplyArenaRow(rowControl, renderRow, x, y, layout, detailLevel, rowIndex == 0, visibleTrackedTypes)
-        end
-    end
+    ApplyScrollOffset(hud)
 
     FinishHudRender(hud, rows, layout)
 end

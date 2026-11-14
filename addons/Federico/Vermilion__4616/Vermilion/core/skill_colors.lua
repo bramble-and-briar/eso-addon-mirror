@@ -250,6 +250,22 @@ local function classify_by_skill_tree_api(abilityId)
   return SKILL_LINE_TO_GROUP[skillLineId]
 end
 
+local function classify_by_slotted_name(abilityId)
+  local name = GetAbilityName(abilityId)
+  if not name or name == "" or not api.GetSlotBoundId then return nil end
+  local zc = Vermilion.zenimax.constants
+  for _, cat in ipairs({ zc.HOTBAR_CATEGORY_PRIMARY, zc.HOTBAR_CATEGORY_BACKUP }) do
+    for slot = 3, 8 do
+      local id = api.GetSlotBoundId(slot, cat)
+      if id and id > 0 and id ~= abilityId and GetAbilityName(id) == name then
+        local g = classify_by_skill_tree_api(id)
+        if g then return g end
+      end
+    end
+  end
+  return nil
+end
+
 local function lookup_group(abilityId, quiet)
   if not abilityId or abilityId <= 0 then return "other" end
 
@@ -269,6 +285,9 @@ local function lookup_group(abilityId, quiet)
   if g then ability_cache[abilityId] = g return g end
 
   g = classify_by_skill_tree_api(abilityId)
+  if g then ability_cache[abilityId] = g return g end
+
+  g = classify_by_slotted_name(abilityId)
   if g then ability_cache[abilityId] = g return g end
 
   if BASIC_ABILITY_IDS[abilityId] then

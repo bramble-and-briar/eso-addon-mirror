@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/imPDA/Improved-PvP-UI__4035",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "imPDA",
   "canonical_id": "esoui:4035",
   "category_id": "17",
@@ -17,7 +18,7 @@
     "ImprovedPvPUI"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4035/",
-  "fingerprint": "e6b0e3c50afca30198f4b3a3be519f11d6a5421d511345eae4774c652ba7a9ac",
+  "fingerprint": "ca944c294409b344a4ad3aa18ec7df2d9c8c675e8e174365ba89a261d7ad8473",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16093.png",
     "https://cdn-eso.mmoui.com/preview/pvw13791.png",
@@ -36,11 +37,11 @@
   "source_id": "4035",
   "source_url": "https://www.esoui.com/downloads/info4035-ImprovedPvPUI.html",
   "stats": {
-    "downloads": 7984,
+    "downloads": 8411,
     "favorites": 20,
-    "monthly_downloads": 132
+    "monthly_downloads": 138
   },
   "title": "Improved PvP UI",
-  "updated_at": 1781190296000,
-  "version": "1.7.5"
+  "updated_at": 1794580612000,
+  "version": "1.7.7"
 }

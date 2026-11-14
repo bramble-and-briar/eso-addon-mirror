@@ -1478,7 +1478,7 @@ local function Refresh()
     UpdateResourceValues()
     PlayerBars.UpdateHealthVisualValues()
     ApplyResourceValuesToPreset(preset)
-    preset.layout(preset)
+    preset.layout(preset, resourceValues)
     ApplyResourceValuesToPreset(preset)
     ApplyRootPosition(preset.root, GetRootSettingsForPreset(preset))
     if previewVisible then
@@ -1570,7 +1570,7 @@ local function OnPowerUpdate(_, unitTag, _, powerType, powerValue, powerMaximum,
     local settings = GetPresetSettings(preset)
     local isSecondary = IsSecondaryPlayerBarResource(powerType)
     if isSecondary and oldHidden ~= resourceValue.hidden then
-        preset.layout(preset)
+        preset.layout(preset, resourceValues)
         ApplyResourceValuesToPreset(preset)
         ApplyRootPosition(preset.root, GetRootSettingsForPreset(preset))
     else

@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/imPDA/LibSurfaceTools__4584",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "imPDA",
   "canonical_id": "esoui:4584",
   "category_id": "53",
@@ -17,7 +18,7 @@
     "LibSurfaceTools"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4584/",
-  "fingerprint": "f52dab8151ab882d53edc17280487d3d6f1a6c26d2e436c30d7bdf2b19e76c3c",
+  "fingerprint": "91048e3704d321494e121ef378ca638ca56afa39c109ece299a0befd0b27d66c",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -25,11 +26,11 @@
   "source_id": "4584",
   "source_url": "https://www.esoui.com/downloads/info4584-LibSurfaceTools.html",
   "stats": {
-    "downloads": 1771,
-    "favorites": 1,
-    "monthly_downloads": 433
+    "downloads": 3030,
+    "favorites": 2,
+    "monthly_downloads": 388
   },
   "title": "LibSurfaceTools",
-  "updated_at": 1781188850000,
-  "version": "8"
+  "updated_at": 1794578677000,
+  "version": "9"
 }

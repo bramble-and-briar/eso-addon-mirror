@@ -22,6 +22,7 @@ local C = {
     DETAIL_BOTTOM_PADDING = 12,
     DETAIL_MEASURE_HEIGHT = 4096,
     DETAIL_LINE_HEIGHT = 28,
+    DETAIL_HINT_HEIGHT = 44,
     FOOTER_HEIGHT = 52,
     ROW_HEIGHT = 48,
     ROW_GAP = 4,
@@ -415,18 +416,45 @@ local function ReleaseItemIcon()
     ui.currentItemIconPath = nil
 end
 
+local function ResetDetailInput()
+    if not ui then return end
+    ui.detailSortHeld, ui.detailScrollUsed, ui.detailScrollReleasePending = false, false, false
+    ui.inputDirection, ui.nextInputAt = 0, 0
+end
+
+local function ApplyDetailOffset()
+    ui.detailScrollOffset = NGear.Util.Clamp(ui.detailScrollOffset or 0, 0, ui.detailScrollMaximum or 0)
+    ui.detailScrollViewport:SetVerticalScroll(ui.detailScrollOffset)
+end
+
+local function ScrollDetails(direction)
+    -- Even a gesture at the boundary consumes the held click; releasing it must not sort.
+    ui.detailScrollUsed = true
+    ui.detailScrollOffset = (ui.detailScrollOffset or 0) + direction * C.DETAIL_LINE_HEIGHT
+    ApplyDetailOffset()
+end
+
 local function RenderDetails(record)
+    local selectedId = record and record.id
+    if ui.detailRecordId ~= selectedId then
+        ui.detailScrollOffset = 0
+        ui.detailRecordId = selectedId
+    end
     if not record then
         ReleaseItemIcon()
-        ui.detailContentHeight = 0
+        ui.detailContentHeight, ui.detailMinimumHeight, ui.detailScrollMaximum = 0, 0, 0
+        ui.detailScrollViewport:SetHidden(true)
+        ui.detailScrollHint:SetHidden(true)
         ui.detailEmpty:SetText(NGear.L("item_locator.no_selection"))
         ui.detailEmpty:SetHidden(false)
         ui.itemName:SetHidden(true)
         ui.itemMeta:SetHidden(true)
         ui.details:SetHidden(true)
+        ui.details:SetText("")
         return
     end
     ui.detailEmpty:SetHidden(true)
+    ui.detailScrollViewport:SetHidden(false)
     local icon = GetItemLinkIcon and GetItemLinkIcon(record.link) or ""
     if icon ~= "" then
         if ui.currentItemIconPath ~= icon then
@@ -451,7 +479,8 @@ local function RenderDetails(record)
     local measuredHeight = ui.details.GetTextHeight and math.ceil(ui.details:GetTextHeight()) or 0
     local lineCount = 1
     for _ in string.gmatch(detailText, "\n") do lineCount = lineCount + 1 end
-    ui.detailContentHeight = math.max(measuredHeight, lineCount * C.DETAIL_LINE_HEIGHT)
+    ui.detailMinimumHeight = lineCount * C.DETAIL_LINE_HEIGHT
+    ui.detailContentHeight = math.max(measuredHeight, ui.detailMinimumHeight)
 end
 
 local function KeepSelectionVisible()
@@ -700,7 +729,10 @@ end
 local function RefreshKeybinds()
     if not KEYBIND_STRIP or not keybindGroup then return end
     local shouldShow = IsBrowserVisible() and not searchDialogOpen
-    if not shouldShow and StopCategoryRepeat then StopCategoryRepeat() end
+    if not shouldShow then
+        if StopCategoryRepeat then StopCategoryRepeat() end
+        ResetDetailInput()
+    end
     if shouldShow and not keybindsActive then
         SuspendOptionsTertiaryKeybind()
         KEYBIND_STRIP:AddKeybindButtonGroup(keybindGroup)
@@ -756,6 +788,10 @@ local function ReleaseBrowserData()
     activeCategoryIndex = 1
     selectedIndex = 1
     visibleFirstIndex = 1
+    if ui then
+        ui.detailRecordId, ui.detailScrollOffset, ui.detailScrollMaximum = nil, 0, 0
+        ResetDetailInput()
+    end
 end
 
 local function MoveSelection(delta)
@@ -846,6 +882,7 @@ RefreshDirectionalInput = function()
     if not ui or not DIRECTIONAL_INPUT then return end
     local listening = DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT:IsListening(ui)
     local hasDirectionalNavigation = #filtered > 1 or ui.visibleTabColumns == C.TAB_COLUMNS
+        or (ui.detailScrollMaximum or 0) > 0
     local shouldListen = IsBrowserVisible() and not searchDialogOpen and hasDirectionalNavigation
     if shouldListen and not listening then
         DIRECTIONAL_INPUT:Activate(ui, ui.control)
@@ -853,6 +890,7 @@ RefreshDirectionalInput = function()
         DIRECTIONAL_INPUT:Deactivate(ui)
     end
     if not shouldListen then
+        ResetDetailInput()
         ui.inputDirection, ui.nextInputAt = 0, 0
         ui.columnInputDirection = 0
     end
@@ -1059,6 +1097,7 @@ local function OpenSearchDialog()
     RegisterDialogs()
     if not dialogsRegistered then return end
     searchDialogOpen = true
+    ResetDetailInput()
     RefreshDirectionalInput()
     RefreshKeybinds()
     ZO_Dialogs_ShowGamepadDialog(C.SEARCH_DIALOG, { searchText = searchText })
@@ -1084,7 +1123,20 @@ keybindGroup = {
         keybind = "UI_SHORTCUT_RIGHT_STICK",
         ethereal = true,
         visible = function() return ItemLocator.HasData() end,
-        callback = ToggleSortMode,
+        handlesKeyUp = true,
+        callback = function(isKeyUp)
+            if not ui or not IsBrowserVisible() or searchDialogOpen then return end
+            if isKeyUp then
+                local shouldSort = ui.detailSortHeld and not ui.detailScrollUsed
+                local consumedGesture = ui.detailSortHeld and ui.detailScrollUsed
+                ResetDetailInput()
+                ui.detailScrollReleasePending = consumedGesture
+                if shouldSort then ToggleSortMode() end
+            elseif not ui.detailSortHeld then
+                ui.detailSortHeld, ui.detailScrollUsed, ui.detailScrollReleasePending = true, false, false
+                ui.inputDirection, ui.nextInputAt = 0, 0
+            end
+        end,
     },
     {
         keybind = "UI_SHORTCUT_LEFT_SHOULDER",
@@ -1269,7 +1321,27 @@ LayoutUI = function()
     end
     ui.itemName:SetDimensions(rightWidth - 100, 58)
     ui.itemMeta:SetDimensions(rightWidth - 100, 40)
-    ui.details:SetDimensions(rightWidth, math.max(viewportHeight - C.DETAIL_TOP_OFFSET, 1))
+    -- Measure at the final width, then clip only the scrolling body, below the item heading.
+    ui.details:SetDimensions(rightWidth, math.max(C.DETAIL_MEASURE_HEIGHT, ui.detailMinimumHeight or 0))
+    local measuredHeight = ui.details.GetTextHeight and math.ceil(ui.details:GetTextHeight()) or 0
+    ui.detailContentHeight = math.max(measuredHeight, ui.detailMinimumHeight or 0)
+    local detailHeight = math.max(viewportHeight - C.DETAIL_TOP_OFFSET, 1)
+    local hasOverflow = ui.detailContentHeight > detailHeight
+    ui.detailScrollHint:SetDimensions(rightWidth, C.DETAIL_MEASURE_HEIGHT)
+    ui.detailScrollHint:SetHidden(not hasOverflow or GetSelectedRecord() == nil)
+    local hintHeight = C.DETAIL_HINT_HEIGHT
+    if hasOverflow then
+        ui.detailScrollHint:SetText(NGear.L("item_locator.details_scroll_hint", GetBindingIcon("UI_SHORTCUT_RIGHT_STICK", "R3")))
+        if ui.detailScrollHint.GetTextHeight then
+            hintHeight = math.max(hintHeight, math.ceil(ui.detailScrollHint:GetTextHeight()))
+        end
+        detailHeight = math.max(detailHeight - hintHeight, 1)
+    end
+    ui.detailScrollHint:SetHeight(hintHeight)
+    ui.detailScrollViewport:SetDimensions(rightWidth, detailHeight)
+    ui.details:SetHeight(math.max(ui.detailContentHeight, detailHeight))
+    ui.detailScrollMaximum = math.max(ui.detailContentHeight - detailHeight, 0)
+    ApplyDetailOffset()
     ui.empty:SetDimensions(leftWidth - 40, 150)
     ui.detailEmpty:SetDimensions(rightWidth - 40, 150)
 end
@@ -1278,7 +1350,7 @@ local function ApplyFonts()
     if not ui then return end
     local labels = {
         ui.title, ui.summary, ui.leftHeader, ui.rightHeader, ui.empty, ui.detailEmpty,
-        ui.itemName, ui.itemMeta, ui.details, ui.status, ui.hint,
+        ui.itemName, ui.itemMeta, ui.details, ui.detailScrollHint, ui.status, ui.hint,
     }
     for index = 1, #labels do
         local label = labels[index]
@@ -1327,12 +1399,16 @@ local function EnsureHud()
         stickX, stickY = stickX or 0, stickY or 0
         local absoluteX, absoluteY = math.abs(stickX), math.abs(stickY)
         if absoluteX <= C.INPUT_DEADZONE and absoluteY <= C.INPUT_DEADZONE then
+            ui.detailScrollReleasePending = false
             ui.inputDirection, ui.nextInputAt = 0, 0
             ui.columnInputDirection = 0
             return
         end
 
+        if ui.detailScrollReleasePending then return end
+
         if absoluteX > C.INPUT_DEADZONE and absoluteX > absoluteY then
+            if ui.detailSortHeld then ui.detailScrollUsed = true end
             ui.inputDirection, ui.nextInputAt = 0, 0
             if ui.columnInputDirection == 0 then
                 ui.columnInputDirection = stickX > 0 and 1 or -1
@@ -1341,17 +1417,18 @@ local function EnsureHud()
             return
         end
 
-        if ui.columnInputDirection ~= 0 or #filtered <= 1
+        if ui.columnInputDirection ~= 0 or (not ui.detailSortHeld and #filtered <= 1)
             or absoluteY <= C.INPUT_DEADZONE or absoluteY <= absoluteX then return end
+        if ui.detailSortHeld then ui.detailScrollUsed = true end
         local direction = stickY < 0 and 1 or -1
         local now = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
         if direction ~= ui.inputDirection then
             ui.inputDirection = direction
             ui.nextInputAt = now + C.INPUT_INITIAL_DELAY_MS
-            MoveSelection(direction)
+            if ui.detailSortHeld then ScrollDetails(direction) else MoveSelection(direction) end
         elseif now >= ui.nextInputAt then
             ui.nextInputAt = now + C.INPUT_REPEAT_DELAY_MS
-            MoveSelection(direction)
+            if ui.detailSortHeld then ScrollDetails(direction) else MoveSelection(direction) end
         end
     end
     ui.panel = WINDOW_MANAGER:CreateControl(nil, ui.control, CT_CONTROL)
@@ -1407,10 +1484,14 @@ local function EnsureHud()
     ui.itemName:SetAnchor(TOPLEFT, ui.itemIconFrame, TOPRIGHT, 16, 0)
     ui.itemMeta = CreateLabel(ui.rightViewport, "ZoFontGamepad22", COLORS.muted)
     ui.itemMeta:SetAnchor(TOPLEFT, ui.itemName, BOTTOMLEFT, 0, 0)
-    ui.details = CreateLabel(ui.rightViewport, "ZoFontGamepad22", COLORS.text)
+    ui.detailScrollViewport = WINDOW_MANAGER:CreateControl(nil, ui.rightViewport, CT_SCROLL)
+    ui.detailScrollViewport:SetAnchor(TOPLEFT, ui.rightViewport, TOPLEFT, 0, C.DETAIL_TOP_OFFSET)
+    ui.details = CreateLabel(ui.detailScrollViewport, "ZoFontGamepad22", COLORS.text)
     ui.details:SetVerticalAlignment(TEXT_ALIGN_TOP)
-    ui.details:SetAnchor(TOPLEFT, ui.rightViewport, TOPLEFT, 0, C.DETAIL_TOP_OFFSET)
-    if ui.details.SetWrapMode and TEXT_WRAP_MODE_TRUNCATE then ui.details:SetWrapMode(TEXT_WRAP_MODE_TRUNCATE) end
+    ui.details:SetAnchor(TOPLEFT, ui.detailScrollViewport, TOPLEFT, 0, 0)
+    ui.detailScrollHint = CreateLabel(ui.rightViewport, "ZoFontGamepad18", COLORS.muted)
+    ui.detailScrollHint:SetAnchor(BOTTOMLEFT, ui.rightViewport, BOTTOMLEFT, 0, 0)
+    ui.detailScrollHint:SetHidden(true)
     ui.footerDivider = WINDOW_MANAGER:CreateControl(nil, ui.panel, CT_TEXTURE)
     ui.footerDivider:SetAnchor(BOTTOMLEFT, ui.panel, BOTTOMLEFT, C.PADDING, -(C.FOOTER_HEIGHT + 1))
     SetColor(ui.footerDivider, COLORS.divider)
@@ -1459,9 +1540,12 @@ end
 function ItemLocator.RefreshDisplay()
     if not ui then return end
     fontStringCache = {}
-    LayoutUI()
     ApplyFonts()
+    RenderDetails(GetSelectedRecord())
+    LayoutUI()
     ApplyBackgroundOpacity()
+    RefreshHeader()
+    RefreshDirectionalInput()
 end
 
 ItemLocator.RefreshBrowser = function()

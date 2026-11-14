@@ -1,0 +1,42 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/blazeofmoon/TodoList__5051",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "blazeofmoon",
+  "canonical_id": "esoui:5051",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5051",
+  "deleted": false,
+  "directories": [
+    "TodoList"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5051/",
+  "fingerprint": "417e4ef464b172f586cd2173907aff2cde401d610cb38405920cc2ee55f3b66b",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18445.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18446.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18447.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18448.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5051",
+  "source_url": "https://www.esoui.com/downloads/info5051-TodoList.html",
+  "stats": {
+    "downloads": 1,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "TodoList",
+  "updated_at": 1794644949000,
+  "version": "1.1"
+}

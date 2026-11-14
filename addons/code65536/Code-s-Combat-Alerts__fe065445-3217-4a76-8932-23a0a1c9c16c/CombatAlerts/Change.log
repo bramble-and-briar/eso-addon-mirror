@@ -1,3 +1,6 @@
+Version 2.7.1 (2026/11/13)
+* Added telegraph for Ichor Sphere in Kyne's Aegis using M0R's coordinates
+
 Version 2.7.0 (2026/11/12)
 * Migrated Earthen Root Enclave and Graven Deep to the CCA2 framework
 * Migrated Kyne's Aegis to the CCA2 framework

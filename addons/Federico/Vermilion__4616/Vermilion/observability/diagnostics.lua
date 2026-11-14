@@ -94,7 +94,6 @@ function M.snapshot()
   end
 
   local ts = {}
-  local ts_len = math.min(ts_count, TS_CAP)
   if ts_count <= TS_CAP then
     for i = 1, ts_count do ts[i] = ts_buf[i] end
   else
@@ -201,6 +200,7 @@ function M.full_report(include_gc)
   if Vermilion.Profiler and Vermilion.Profiler.report_lines then
     section("profiler",   Vermilion.Profiler.report_lines())
   end
+  section("hitch", Vermilion.Hitch.lines())
   if Vermilion.Validation and Vermilion.Validation.report_lines then
     section("validation", Vermilion.Validation.report_lines())
   end

@@ -51,7 +51,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Improved Item Set Collection Filters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Improved-Item-Set-Collection-Filters__3402) | MrPikPik | PC / Mac | 1.1.1 |
 | [Improved Night Market HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Night-Market-HUD__b344faa0-0b93-431e-ae22-befcaaa36333) | code65536 | Console | — |
 | [Improved Night Market HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Night-Market-HUD__4560) | code65536 | PC / Mac | 1.0.3 |
-| [Improved PvP UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/Improved-PvP-UI__4035) | imPDA | PC / Mac | 1.7.5 |
+| [Improved PvP UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/Improved-PvP-UI__4035) | imPDA | PC / Mac | 1.7.7 |
 | [Improved Tomes UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/Improved-Tomes-UI__4496) | imPDA | PC / Mac | 6 |
 | [Improved Worldmap Infopanel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/remosito/Improved-Worldmap-Infopanel__3580) | remosito | PC / Mac | 37.0 |
 | [ImprovedTitleizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomstock/ImprovedTitleizer__3542) | tomstock | PC / Mac | 1.16 |

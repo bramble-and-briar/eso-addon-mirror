@@ -23,7 +23,7 @@ local function send(name, time, ...)
     callbacks[_G["LIBCOMBAT_" .. name]](_G["LIBCOMBAT_" .. name], time * 1000 + 100000, ...)
     if name == "EVENT_DAMAGE_OUT" then
         local _, _, target, _, damage = ...
-        LiveBuffUptimeReports.RecordDamage(1, 4, target, "Uebungsskelett", damage)
+        LiveBuffUptimeReports.RecordEnemy(1, 4, target, "Uebungsskelett", damage)
     end
 end
 send("EVENT_MESSAGES", 100, LIBCOMBAT_MESSAGE_COMBATSTART)

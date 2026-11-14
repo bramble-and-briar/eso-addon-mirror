@@ -48,7 +48,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [DeBluedIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/DeBluedIcons__5006) | DakJaniels | PC / Mac | 1 |
 | [DebuffMe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Floliroy/DebuffMe__2260) | Floliroy | PC / Mac | 1.7 |
 | [DebuffMe - Stonethorn Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bitrock/DebuffMe---Stonethorn-Update__2777) | bitrock | PC / Mac | 1.7.1 |
-| [DebuffTracker - Track Debuff Durations!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/DebuffTracker---Track-Debuff-Durations__4030) | SkullElf | PC / Mac | 3.3a |
+| [DebuffTracker - Track Debuff Durations!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/DebuffTracker---Track-Debuff-Durations__4030) | SkullElf | PC / Mac | 5.21.20 |
 | [DebugLogViewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/DebugLogViewer__2389) | sirinsidiator | PC / Mac | 1.2.0 |
 | [Decluttered Scrying Leads](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Decluttered-Scrying-Leads__3009) | kawamonkey | PC / Mac | 1.0.1 |
 | [DeconIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cmw69krinkle/DeconIcon__3347) | cmw69krinkle | PC / Mac | 1.0.0 |
@@ -143,6 +143,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Don't push the horses!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Frozenshtoldts/Don-t-push-the-horses__4184) | Frozenshtoldts | PC / Mac | 1.0.6 |
 | [Donation Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Libum/Donation-Tracker__2191) | Libum | PC / Mac | 1.20 |
 | [Dont Portal Twice (Cloudrest)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Dont-Portal-Twice-Cloudrest__2511) | ownedbynico | PC / Mac | 1.3 |
+| [DontD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/DontD__21a2a61f-e085-4a88-b299-587a33bff1f5) | FiNk3F13 | Console | — |
 | [DontDownload](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/DontDownload__2baada60-80d6-4b37-b1d3-5f78ad7b2c5a) | FiNk3F13 | Console | — |
 | [DontDownload](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/DontDownload__97b7ad12-cdb2-4cf2-83b4-25c152e0d74f) | FiNk3F13 | Console | — |
 | [DontLeaveGuild](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/uberswe/DontLeaveGuild__3335) | uberswe | PC / Mac | 1.2 |
@@ -181,7 +182,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Dungeon Quest Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Dungeon-Quest-Reminder__4346) | atharti | PC / Mac | 1.7 |
 | [Dungeon Queue 4 Stickerbook](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/Dungeon-Queue-4-Stickerbook__3254) | tim99 | PC / Mac | 1.2.8 |
 | [Dungeon Scores](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thepandalore/Dungeon-Scores__5005) | thepandalore | PC / Mac | 0.5.38 |
-| [Dungeon Set Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DesertMorfen/Dungeon-Set-Tracker__4942) | DesertMorfen | PC / Mac | 1.1.0 |
+| [Dungeon Set Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DesertMorfen/Dungeon-Set-Tracker__4942) | DesertMorfen | PC / Mac | 1.2.0 |
 | [Dungeon Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Dungeon-Tracker__75746296-2f24-4d95-8fb5-1954d00fc1d6) | Eldibabalo | Console | — |
 | [Dungeon Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Dungeon-Tracker__1552) | Phinix | PC / Mac | 1.48 |
 | [Dungeon Travel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/secretrob/Dungeon-Travel__3139) | secretrob | PC / Mac | 2.3.6 |

@@ -772,13 +772,6 @@ local function captureFallbackReport(receiptStart, receiptEnd)
 end
 
 local function combatChanged(_, value)
-    if value and liveUptimeMode and BuffReports then BuffReports.StartSkillEncounterClock(GetGameTimeMilliseconds(),true) end
-    if value and liveUptimeMode and LibCombat and LibCombat.name == "LibCombat2" and BuffReports then
-        -- Start at ESO's actual combat transition. A queued library COMBATSTART
-        -- can arrive later than the one-second pre-combat lookback.
-        BuffReports.BeginNativeDamage(nowSeconds(), false, true)
-        BuffReports.StartNativeEncounterClock(GetGameTimeMilliseconds())
-    end
     if useLibCombat then return end
     if value == inCombat then return end
     if value then
@@ -1141,10 +1134,6 @@ local function registerLibCombat()
                 local continuation = LibCombat.IsContinuation and LibCombat.IsContinuation()
                 if LibCombat.IsContinuation and not continuation then inCombat = false end
                 startLibraryFight(libTime(timeMS))
-                if BuffReports then BuffReports.StartSkillEncounterClock(timeMS,false) end
-                if LibCombat.name == "LibCombat2" and BuffReports then
-                    BuffReports.BeginNativeDamage(libTime(timeMS), continuation, true)
-                end
             end
         end)
         for _, name in ipairs(liveUptimeEvents) do
@@ -1214,12 +1203,7 @@ local function registerLibCombat()
                     end
                     LiveUptime.Action(liveUptimeFight, eventName, time, source, target, value, overflow)
                     if eventName == "EVENT_DAMAGE_OUT" and BuffReports then
-                        -- Both libraries aggregate hitValue + overflow. Use one
-                        -- authoritative stream so raw callback order cannot lose
-                        -- the opening hit or count a library hit twice.
-                        local targetKind = LibCombat.GetUnitType and LibCombat.GetUnitType(target)
-                        BuffReports.RecordDamage(COMBAT_UNIT_TYPE_PLAYER, targetKind, target, nil,
-                            (value or 0) + (overflow or 0), abilityId, nil, false, time)
+                        BuffReports.RecordEnemy(COMBAT_UNIT_TYPE_PLAYER,LibCombat.GetUnitType and LibCombat.GetUnitType(target),target,nil)
                     end
                     -- SELF can involve pets as well; never infer player identity from its target.
                     activeStartedAt, lastActiveAt = liveUptimeFight.starts, liveUptimeFight.ends
@@ -1253,14 +1237,7 @@ local function registerLibCombat()
             finalDuration = liveUptimeFight.starts and liveUptimeFight.ends and math.max(1, liveUptimeFight.ends - liveUptimeFight.starts) or nil
             inCombat = false
             update()
-            if BuffReports then
-                local snapshot, damageDuration = fight.skillDamageSnapshot, fight.dpstime
-                if LibCombat.name == "LibCombat2" then
-                    local native = BuffReports.FinishNativeDamage()
-                    if native then snapshot, damageDuration = native, native.duration end
-                end
-                BuffReports.SkillDamageSummary(damageDuration, fight.units, snapshot, BuffReports.FinishSkillEncounterClock())
-            end
+            if BuffReports then BuffReports.EnemySummary(fight.units) end
             local report = BuffReports and BuffReports.Capture(liveUptimeFight, enabledTrackers, liveUptimePlayerId, liveUptimeTargetId, displayName)
             for _, tracker in ipairs(enabledTrackers) do
                 if tracker.config.unit == "reticleover" then
@@ -1393,22 +1370,10 @@ end
 
 local function combatActivity(_, result, isError, abilityName, _, _, _, sourceType, targetName, targetType, hitValue, _, _, _, sourceId, targetId, ability)
     if liveUptimeMode then
-        if not isError and damageResults[result] and BuffReports and type(hitValue)=="number" and hitValue>=0 and hitValue<math.huge then
-            BuffReports.RecordSkillEncounterDamage(GetGameTimeMilliseconds())
-        end
-        if not isError and damageResults[result] and BuffReports and LibCombat.name == "LibCombat2"
-            and type(hitValue) == "number" and hitValue >= 0 and hitValue < math.huge then
-            BuffReports.RecordNativeEncounterDamage(GetGameTimeMilliseconds())
-            if hitValue>0 then BuffReports.ObserveNativeUnitDamage(nowSeconds(),sourceId,targetId) end
-        end
-        if not isError and damageResults[result] and BuffReports and LibCombat.name == "LibCombat2" then
-            BuffReports.RecordNativeDamage(nowSeconds(), sourceType, targetType, targetId, targetName, hitValue, ability, abilityName)
-        end
         if isError or not inCombat or not liveUptimeFight then return end
         if damageResults[result] then LiveUptime.EncounterDamage(liveUptimeFight, nowSeconds()) end
         if damageResults[result] and BuffReports then
-            BuffReports.RecordDamage(sourceType, targetType, targetId, targetName, hitValue, ability, abilityName,
-                true)
+            BuffReports.RecordEnemy(sourceType, targetType, targetId, targetName)
         end
         LiveUptime.Kind(liveUptimeFight, sourceId, sourceType)
         LiveUptime.Kind(liveUptimeFight, targetId, targetType)
@@ -1437,7 +1402,7 @@ local function combatActivity(_, result, isError, abilityName, _, _, _, sourceTy
             tracker.group.lastDamageAt = now
         end
     end
-    if inCombat and BuffReports then BuffReports.RecordDamage(sourceType, targetType, targetId, targetName, hitValue, ability, abilityName) end
+    if inCombat and BuffReports then BuffReports.RecordEnemy(sourceType, targetType, targetId, targetName) end
 end
 
 local function isOwnProc(sourceName, sourceType)

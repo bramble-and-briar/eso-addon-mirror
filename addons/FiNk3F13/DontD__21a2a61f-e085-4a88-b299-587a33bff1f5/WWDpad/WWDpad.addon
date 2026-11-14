@@ -1,0 +1,15 @@
+## Title: WW D-Pad
+## Author: FiNk3--F13--
+## Version: 0.6.1
+## AddOnVersion: 14
+## APIVersion: 101052
+## Description: Gamepad setup hotkeys, one deferred combat swap and optional WW-style automatic boss/room recognition.
+## DependsOn: WizardsWardrobe LibRadialMenu
+## PCDependsOn: LibAddonMenu-2.0>=43
+## ConsoleDependsOn: LibHarvensAddonSettings>=20103
+## SavedVariables: WWDpadSV
+
+SetupRouting.lua
+BossAutomation.lua
+WWDpad.lua
+Bindings.xml

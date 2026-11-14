@@ -1839,6 +1839,13 @@ l.createRow = function()
   -- (负 tier 被钳)。KeybindBG 虽更早但手柄下隐藏(隐藏父级会藏整个子树)不可用
   local weaponSwapHost = ZO_ActionBar1 and ZO_ActionBar1:GetNamedChild("WeaponSwap")
   l.container = WINDOW_MANAGER:CreateControl("ADRBackBarRow", weaponSwapHost or parent, CT_CONTROL)
+  -- 切断对宿主自身 alpha 的继承：Azurah 的 "Hide Weapon Swap Icon" 会把
+  -- WeaponSwap SetAlpha(0)(2.4.47 ActionBar.lua:146，仅 alpha 不 SetHidden)，
+  -- 作为其子控件的容器会连坐失明(动态只剩主条/静态两行全无，已实测复现)。
+  -- 场景淡入淡出的跟随由 onCoreUpdate 心跳同步 ZO_ActionBar1 的 alpha 补回。
+  -- 依赖事实：Azurah 用 alpha 而非 hidden 藏切手钮(hidden 父级藏子树无法
+  -- 用 inheritAlpha 切断，若它改用 SetHidden 此修复失效需换宿主)
+  l.container:SetInheritAlpha(false)
   local hotbar = l.inactiveHotbar() or HOTBAR_CATEGORY_BACKUP
   for slotNum = 3, 8 do
     local template = slotNum == 8 and "ZO_UltimateActionButton" or "ZO_ActionButton"
@@ -2159,6 +2166,13 @@ end
 ---@type fun()
 l.onCoreUpdate = function()
   local sv = l.getSavedVars()
+  -- 容器 alpha 跟随 ZO_ActionBar1(场景淡入淡出)：容器已 SetInheritAlpha(false)
+  -- 切断对宿主 WeaponSwap 自身 alpha 的继承(Azurah hideWeaponSwap 置 0 会
+  -- 连坐整行)，改由心跳按原生条自身 alpha 同步；100ms 粒度对 ~200ms 的
+  -- 场景过渡足够平滑。Azurah 的置 0 只作用于 WeaponSwap，不再到达容器
+  if l.container and ZO_ActionBar1 then
+    l.container:SetAlpha(ZO_ActionBar1:GetAlpha())
+  end
   -- FAB 存在时任何预设都不激活克隆行(回退贴图经典)；否则所有预设激活，
   -- classic 仅作为可见性模式(每槽有计时才显示，由 Bar 模块每帧传入可见集)；
   -- mainonly/mini 完全不激活(无克隆行，原生条零干预；mini 由 MiniBar 模块自管)
@@ -2436,6 +2450,53 @@ SLASH_COMMANDS["/adrbackbar"] = function()
     oneLine("D8", l.buttons[8])
     oneLine("N3", ZO_ActionBar_GetButton(3))
     oneLine("N8", ZO_ActionBar_GetButton(8))
+    -- 主条 widget 冷却段诊断：健康时单行汇总，异常才逐条展开
+    -- (异常=段隐藏/透明度归零/triple 偏离 [0/1/1]/祖先链隐藏)
+    do
+      local bar = addon.load("Bar#M")
+      if bar and bar.getMainWidget then
+        local allOk = true
+        local names = { "topRight", "right", "bottom", "left", "topLeft" }
+        for slotNum = 3, 8 do
+          local w = bar.getMainWidget(slotNum)
+          if w and w.cooldown then
+            for i = 1, #names do
+              local p = w.cooldown[names[i]]
+              if p then
+                local issues = {}
+                if p:IsControlHidden() then
+                  issues[#issues + 1] = "hid"
+                end
+                if (p:GetAlpha() or 1) < 0.99 then
+                  issues[#issues + 1] = string.format("a=%.2f", p:GetAlpha())
+                end
+                if (p:GetDrawLayer() or 0) ~= 0 or (p:GetDrawTier() or 0) ~= 1 or (p:GetDrawLevel() or 0) ~= 1 then
+                  issues[#issues + 1] = string.format("tri=%d/%d/%d",
+                    p:GetDrawLayer() or -1, p:GetDrawTier() or -1, p:GetDrawLevel() or -1)
+                end
+                local anc = p:GetParent()
+                while anc do
+                  if anc:IsHidden() then
+                    issues[#issues + 1] = "anc:" .. (anc.GetName and anc:GetName() or "?")
+                    break
+                  end
+                  anc = anc:GetParent()
+                end
+                if #issues > 0 then
+                  allOk = false
+                  d(string.format("[ADR] MW%d.%s ISSUE %s @%.0f,%.0f",
+                    slotNum, names[i], table.concat(issues, ","),
+                    p:GetLeft() or -1, p:GetTop() or -1))
+                end
+              end
+            end
+          end
+        end
+        if allOk then
+          d("[ADR] MW3-8 segments all OK")
+        end
+      end
+    end
     -- 键位钉扎健康检查(旧案已结：叠堆篡改/Q飞位)：健康时一行汇总，异常才展开明细
     do
       local issues = {}

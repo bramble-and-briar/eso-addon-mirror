@@ -10,6 +10,7 @@ for key, text in pairs({
     LEGEND_VETERAN_ONLY = "Somente veterano",
     LEGEND_PERFECTED = "Perfeito",
     HINT_KEEP_OPEN = "Segure Shift para manter esta janela aberta e passe o cursor sobre uma peça para vê-la.",
+    HINT_KEEP_OPEN_TABS = "Segure Shift para manter esta janela aberta: passe o cursor sobre uma peça para vê-la e troque de página com as abas ou a roda do mouse.",
 
     CHAT_ENTER = "%s: %s peças coletadas",
     CHAT_NEW_PIECE = "Peça nova: %s (%s %s)",

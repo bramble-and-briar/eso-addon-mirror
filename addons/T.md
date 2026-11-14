@@ -157,6 +157,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Title Loop](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Title-Loop__5e051775-8c73-4e96-bb6b-dcaa188dc064) | Copper0 | Console | — |
 | [TitleFlex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Skvysh/TitleFlex__2509) | Skvysh | PC / Mac | 1.8 |
 | [TitleFlex - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/TitleFlex---Updated__4027) | wicked_prophet | PC / Mac | 1.9.1 |
+| [TodoList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/blazeofmoon/TodoList__5051) | blazeofmoon | PC / Mac | 1.1 |
 | [Toggle FPS and Ping](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tnrsn/Toggle-FPS-and-Ping__3812) | Tnrsn | PC / Mac | 1.001 |
 | [ToggleGroupFrame (and Companion Unit Frame)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/ToggleGroupFrame-and-Companion-Unit-Frame__3698) | Saint-Ange | PC / Mac | 1.5.1 |
 | [ToggleQuestTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/ToggleQuestTracker__3809) | Saint-Ange | PC / Mac | 1.2.2 |

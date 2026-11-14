@@ -12,6 +12,7 @@ DungeonSetTracker.L = {
     LEGEND_VETERAN_ONLY = "Veteran only",
     LEGEND_PERFECTED = "Perfected",
     HINT_KEEP_OPEN = "Hold Shift to keep this window open, then point at a piece to see it.",
+    HINT_KEEP_OPEN_TABS = "Hold Shift to keep this window open: point at a piece to see it, switch pages with the tabs or the mouse wheel.",
 
     -- Chat
     CHAT_ENTER = "%s: %s pieces collected",

@@ -1,7 +1,7 @@
 ## Title: Dungeon Set Tracker
 ## Author: @DesertMorfen
-## Version: 1.1.0
-## AddOnVersion: 10100
+## Version: 1.2.0
+## AddOnVersion: 10200
 ## APIVersion: 101051
 ## SavedVariables: DungeonSetTrackerSV
 ## OptionalDependsOn: LibAddonMenu-2.0 LibSets

@@ -13,6 +13,7 @@ local MODE_COMBAT = "combat"
 local MODES = { MODE_OFF, MODE_BOSS, MODE_COMBAT }
 
 local GRACE_MS  = 5000
+local OPENING_MS = 1000
 local TICK_MS   = 1000
 local TICK_NAME = "VermilionAutoRecTick"
 local HIST_CAP  = 12
@@ -24,8 +25,10 @@ local boss_name      = nil
 local auto_active    = false
 local session_auto   = false
 local grace_deadline = nil
+local opening_since  = nil
 local hist           = {}
 local hist_n         = 0
+local zone_id        = nil
 
 local function bump(key) Vermilion.Diagnostics.bump(key) end
 
@@ -98,6 +101,7 @@ local function try_start()
   bump("autorec.start")
   push_hist(boss_present and ("start boss=" .. tostring(boss_name)) or "start combat")
   log:info("auto-start", boss_present and boss_name or "combat")
+  if opening_since then Vermilion.Pipeline.flush_pending(now_ms(), true) end
   Vermilion.Graph.on_record_click()
   auto_active  = true
   session_auto = true
@@ -133,12 +137,39 @@ local function evaluate()
 end
 
 function M.on_combat_state(inCombat)
+  local was = in_combat
   in_combat = inCombat and true or false
   bump(in_combat and "autorec.combat_in" or "autorec.combat_out")
+  if in_combat and not was then opening_since = now_ms() - OPENING_MS end
   evaluate()
+  opening_since = nil
 end
 
+function M.opening_since() return opening_since end
+
+local session_bosses = {}
+
+local function note_session_bosses()
+  local api = Vermilion.zenimax.api
+  local zc  = Vermilion.zenimax.constants
+  for i = zc.BOSS_RANK_ITERATION_BEGIN, zc.BOSS_RANK_ITERATION_END do
+    local tag = "boss" .. i
+    if api.DoesUnitExist(tag) then
+      local name = api.GetUnitName(tag)
+      if name and name ~= "" then session_bosses[name] = true end
+    end
+  end
+end
+
+function M.on_session_start()
+  for k in pairs(session_bosses) do session_bosses[k] = nil end
+  note_session_bosses()
+end
+
+function M.session_bosses() return session_bosses end
+
 function M.on_bosses_changed()
+  if Vermilion.TemporalBuffer.is_recording() then note_session_bosses() end
   local found, name = scan_bosses()
   bump("autorec.bosses_changed")
   if found ~= boss_present then
@@ -151,7 +182,29 @@ function M.on_bosses_changed()
   evaluate()
 end
 
+local function current_zone()
+  local api = Vermilion.zenimax.api
+  if not api.GetZoneId or not api.GetUnitZoneIndex then return nil end
+  local idx = api.GetUnitZoneIndex("player")
+  if not idx then return nil end
+  local z = api.GetZoneId(idx)
+  if not z or z <= 0 then return nil end
+  return z
+end
+
 function M.on_zone_changed()
+  local z = current_zone()
+  local same = z ~= nil and z == zone_id
+  zone_id = z
+  if same then
+    bump("autorec.same_zone")
+    push_hist("activated in the same zone")
+    if mode == MODE_OFF and not auto_stop_on() then return end
+    in_combat = Vermilion.zenimax.api.IsUnitInCombat("player") and true or false
+    boss_present, boss_name = scan_bosses()
+    evaluate()
+    return
+  end
   if auto_active and Vermilion.TemporalBuffer.is_recording() then
     do_stop("zone")
   end
@@ -209,6 +262,7 @@ function M.set_mode(m)
   log:info("mode:", mode, "->", m)
   push_hist("mode " .. m)
   mode = m
+  Vermilion.Metrics.hold_opening(mode ~= MODE_OFF)
   if mode == MODE_OFF then
     if auto_active and Vermilion.TemporalBuffer.is_recording() then
       do_stop("disabled")
@@ -287,6 +341,7 @@ function M.init()
   end)
   zev.register("Vermilion_AR_Bosses", zc.EVENT_BOSSES_CHANGED, M.on_bosses_changed)
   zev.register("Vermilion_AR_Zone", zc.EVENT_PLAYER_ACTIVATED, M.on_zone_changed)
+  zone_id = current_zone()
 
   local saved = sv and sv.settings and sv.settings.auto_record or MODE_OFF
   mode = MODE_OFF

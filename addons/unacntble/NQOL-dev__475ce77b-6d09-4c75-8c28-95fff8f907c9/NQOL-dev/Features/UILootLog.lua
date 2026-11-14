@@ -14,6 +14,17 @@ local lootHistoryHookInstalled = false
 local pendingLootLogItemId
 local pendingLootLogItemLink
 local hookedLootHistoryObjects = {}
+local lootHistoryStreams = {}
+local TOTALS_NAMESPACE = "NQOL_LootLogTotals"
+local totalIndex
+local totalBagSlots
+local totalBagIds
+local totalBuild
+local totalRebuildQueued = false
+local totalWorkerRunning = false
+local totalEventsRegistered = false
+local totalLabelsQueued = false
+local QueueLootLogTotalRefresh
 
 local function GetLootLogSettings()
     return UI.GetLootLogSettings()
@@ -138,6 +149,7 @@ local function ApplyLootLogBufferSettingsToStream(stream)
         return
     end
 
+    lootHistoryStreams[stream] = true
     local settings = GetLootLogSettings()
     stream.maxDisplayedEntries = tonumber(settings.bufferSize) or 5
 
@@ -217,139 +229,130 @@ local function GetLootLogSlotStackCount(bagId, slotIndex)
     return 1
 end
 
-local function GetLootLogSlotDataLink(bagId, slotKey, slotData)
-    local itemLink = slotData and (slotData.itemLink or slotData.link or (slotData.itemData and slotData.itemData.itemLink))
-    if (not itemLink or itemLink == "") and type(GetItemLink) == "function" and slotKey ~= nil then
-        local slotIndex = tonumber(slotData and (slotData.slotIndex or slotData.slotId or slotData.slot) or slotKey) or slotKey
-        local ok, link = pcall(GetItemLink, bagId, slotIndex, LINK_STYLE_DEFAULT)
-        if ok then
-            itemLink = link
-        end
-    end
+-- Keep the existing item-ID totals (including different item-link variants),
+-- without scanning every bag again for each loot entry.
+local function UpdateLootLogTotalSlot(bagId, slotIndex)
+    local slots = totalBagSlots and totalBagSlots[bagId]
+    if not slots then return end
 
-    return itemLink
+    local previousId = slots.ids[slotIndex]
+    local previousCount = slots.counts[slotIndex] or 0
+    local itemId = GetItemId(bagId, slotIndex)
+    local count = itemId and itemId > 0 and GetLootLogSlotStackCount(bagId, slotIndex) or 0
+    if previousId == itemId and previousCount == count then return end
+    if previousId then
+        local remaining = (totalIndex[previousId] or 0) - previousCount
+        totalIndex[previousId] = remaining > 0 and remaining or nil
+    end
+    if count > 0 then
+        slots.ids[slotIndex] = itemId
+        slots.counts[slotIndex] = count
+        totalIndex[itemId] = (totalIndex[itemId] or 0) + count
+    else
+        slots.ids[slotIndex] = nil
+        slots.counts[slotIndex] = nil
+    end
 end
 
-local function GetLootLogSlotDataCount(bagId, slotKey, slotData)
-    local stackCount = tonumber(slotData and (slotData.stackCount or slotData.quantity or slotData.stack))
-    if stackCount and stackCount > 0 then
-        return stackCount
+local function HasLootLogTotalBudget(started)
+    if started and GetGameTimeMilliseconds() - started >= 3 then return false end
+    if GetTotalUserAddOnCPUTimeAvailableEachFrameMS and GetTotalUserAddOnCPUTimeUsedNowMS then
+        local available = GetTotalUserAddOnCPUTimeAvailableEachFrameMS()
+        if available and available > 0 and GetTotalUserAddOnCPUTimeUsedNowMS() >= available * 0.8 then
+            return false
+        end
     end
-
-    local slotIndex = tonumber(slotData and (slotData.slotIndex or slotData.slotId or slotData.slot) or slotKey)
-    if slotIndex then
-        return GetLootLogSlotStackCount(bagId, slotIndex)
-    end
-
-    return 1
+    return true
 end
 
-local function GetLootLogSlotItemId(bagId, slotIndex)
-    if type(GetItemLink) == "function" then
-        local ok, itemLink = pcall(GetItemLink, bagId, slotIndex, LINK_STYLE_DEFAULT)
-        if ok then
-            local itemId = GetLootLogItemIdFromLink(itemLink)
-            if itemId then
-                return itemId
-            end
-        end
-    end
-
-    if type(GetItemId) == "function" then
-        local ok, itemId = pcall(GetItemId, bagId, slotIndex)
-        if ok and itemId and itemId > 0 then
-            return itemId
-        end
-    end
-
-    return nil
+local function StopLootLogTotalWorker()
+    EVENT_MANAGER:UnregisterForUpdate(TOTALS_NAMESPACE)
+    totalWorkerRunning = false
 end
 
-local function CountLootLogSharedInventoryBag(itemId, bagId)
-    if not SHARED_INVENTORY then
-        return nil
+local function BuildLootLogTotals()
+    if GetLootLogSettings().showTotals ~= true then
+        UI.RefreshLootLogTotals()
+        return
+    end
+    local started = GetGameTimeMilliseconds and GetGameTimeMilliseconds()
+    if not HasLootLogTotalBudget(started) then return end
+    if totalRebuildQueued then
+        totalRebuildQueued = false
+        totalIndex, totalBagSlots = {}, {}
+        totalBagIds = GetLootLogTotalBagIds()
+        for _, bagId in ipairs(totalBagIds) do
+            totalBagSlots[bagId] = { ids = {}, counts = {} }
+        end
+        totalBuild = { bagIndex = 1 }
     end
 
-    local total = 0
-    local scanned = false
-    local methods = { "GenerateFullSlotData", "GetBagCache", "GetOrCreateBagCache" }
-
-    for _, methodName in ipairs(methods) do
-        if type(SHARED_INVENTORY[methodName]) == "function" then
-            local ok, bagData
-            if methodName == "GenerateFullSlotData" then
-                ok, bagData = pcall(function()
-                    return SHARED_INVENTORY:GenerateFullSlotData(nil, bagId)
-                end)
-            else
-                ok, bagData = pcall(function()
-                    return SHARED_INVENTORY[methodName](SHARED_INVENTORY, bagId)
-                end)
-            end
-
-            if ok and type(bagData) == "table" then
-                for slotKey, slotData in pairs(bagData) do
-                    local itemLink = GetLootLogSlotDataLink(bagId, slotKey, slotData)
-                    if GetLootLogItemIdFromLink(itemLink) == itemId then
-                        total = total + GetLootLogSlotDataCount(bagId, slotKey, slotData)
-                    end
-                    scanned = true
-                end
-            end
-
-            if scanned then
-                return total
-            end
+    -- The iterator is resumable; virtual-bag slot IDs are sparse item IDs.
+    local remaining = 64
+    while totalBuild and remaining > 0 and HasLootLogTotalBudget(started) do
+        local bagId = totalBagIds[totalBuild.bagIndex]
+        if not bagId then
+            totalBuild = nil
+            StopLootLogTotalWorker()
+            QueueLootLogTotalRefresh()
+            return
+        end
+        if not totalBuild.iterator then
+            totalBuild.iterator, totalBuild.state, totalBuild.slot = ZO_IterateBagSlots(bagId)
+        end
+        local slot = totalBuild.iterator(totalBuild.state, totalBuild.slot)
+        remaining = remaining - 1
+        if slot == nil then
+            totalBuild.bagIndex = totalBuild.bagIndex + 1
+            totalBuild.iterator = nil
+        else
+            totalBuild.slot = slot
+            UpdateLootLogTotalSlot(bagId, slot)
         end
     end
-
-    return nil
 end
 
-local function CountLootLogBag(itemId, bagId)
-    if bagId == nil or type(GetBagSize) ~= "function" then
-        return 0
+local function QueueLootLogTotalRebuild()
+    totalRebuildQueued = true
+    if not totalWorkerRunning then
+        totalWorkerRunning = true
+        EVENT_MANAGER:RegisterForUpdate(TOTALS_NAMESPACE, 0, BuildLootLogTotals)
     end
+end
 
-    if bagId == _G.BAG_VIRTUAL then
-        local sharedTotal = CountLootLogSharedInventoryBag(itemId, bagId)
-        if sharedTotal then
-            return sharedTotal
+local function OnLootLogInventorySlotUpdated(_, bagId, slotIndex)
+    if GetLootLogSettings().showTotals ~= true then return end
+    if totalBagSlots and totalBagSlots[bagId] then
+        UpdateLootLogTotalSlot(bagId, slotIndex)
+        if not totalBuild and not totalRebuildQueued then QueueLootLogTotalRefresh() end
+    end
+end
+
+function UI.RefreshLootLogTotals()
+    local enabled = GetLootLogSettings().showTotals == true
+        and type(GetItemId) == "function" and type(ZO_IterateBagSlots) == "function"
+    if enabled and not totalEventsRegistered then
+        totalEventsRegistered = true
+        EVENT_MANAGER:RegisterForEvent(TOTALS_NAMESPACE, EVENT_INVENTORY_FULL_UPDATE, QueueLootLogTotalRebuild)
+        EVENT_MANAGER:RegisterForEvent(TOTALS_NAMESPACE, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnLootLogInventorySlotUpdated)
+        QueueLootLogTotalRebuild()
+    elseif not enabled then
+        if totalEventsRegistered then
+            EVENT_MANAGER:UnregisterForEvent(TOTALS_NAMESPACE, EVENT_INVENTORY_FULL_UPDATE)
+            EVENT_MANAGER:UnregisterForEvent(TOTALS_NAMESPACE, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+            totalEventsRegistered = false
         end
+        if totalWorkerRunning then StopLootLogTotalWorker() end
+        totalIndex, totalBagSlots, totalBagIds, totalBuild = nil, nil, nil, nil
+        totalRebuildQueued = false
     end
-
-    local sizeOk, bagSize = pcall(GetBagSize, bagId)
-    if not sizeOk or not bagSize or bagSize <= 0 then
-        return 0
-    end
-
-    local total = 0
-    for slotIndex = 0, bagSize - 1 do
-        if GetLootLogSlotItemId(bagId, slotIndex) == itemId then
-            total = total + GetLootLogSlotStackCount(bagId, slotIndex)
-        end
-    end
-
-    return total
+    if QueueLootLogTotalRefresh then QueueLootLogTotalRefresh() end
 end
 
 local function CountLootLogItemTotal(itemId)
-    if not itemId or itemId <= 0 or type(GetBagSize) ~= "function" then
-        return nil
-    end
-
-    local total = 0
-    local bagIds = GetLootLogTotalBagIds()
-
-    for _, bagId in ipairs(bagIds) do
-        total = total + CountLootLogBag(itemId, bagId)
-    end
-
-    if total > 0 then
-        return total
-    end
-
-    return nil
+    if not totalEventsRegistered then UI.RefreshLootLogTotals() end
+    if totalBuild or totalRebuildQueued or not totalIndex then return nil end
+    return totalIndex[itemId]
 end
 
 local function FormatLootLogNumber(value)
@@ -528,6 +531,25 @@ local function ApplyLootLogStatusText(control, data)
     end
 end
 
+local function RefreshLootLogTotalLabels()
+    totalLabelsQueued = false
+    for stream in pairs(lootHistoryStreams) do
+        for _, entryControl in ipairs(stream.activeEntries or {}) do
+            for _, data in ipairs(entryControl.entry and entryControl.entry.lines or {}) do
+                if data.control and data.nqolLootLogCustomStatus then
+                    ApplyLootLogStatusText(data.control, data)
+                end
+            end
+        end
+    end
+end
+
+QueueLootLogTotalRefresh = function()
+    if totalLabelsQueued then return end
+    totalLabelsQueued = true
+    zo_callLater(RefreshLootLogTotalLabels, 50)
+end
+
 local function WrapLootHistoryTemplate(templateName, templateData)
     if templateName ~= "ZO_LootHistory_GamepadEntry" or type(templateData) ~= "table" then
         return
@@ -662,6 +684,7 @@ local function InstallLootHistoryHook()
 end
 
 function UI.InitializeLootLog()
+    UI.RefreshLootLogTotals()
     InstallLootHistoryTemplateHook()
     InstallLootHistoryHook()
 end

@@ -8,7 +8,6 @@ local string_format = string.format
 local math_floor    = math.floor
 local d             = d
 local api           = Vermilion.zenimax.api
-local zui           = Vermilion.zenimax.ui
 local zc            = Vermilion.zenimax.constants
 local zev           = Vermilion.zenimax.events
 local Scene         = Vermilion.zenimax.scene
@@ -19,34 +18,41 @@ local ROW_GAP = 2
 local MAX_ROWS = 10
 
 local C_PIP_HOT   = { r = 0.95, g = 0.78, b = 0.30 }
-local C_PIP_COLD  = { r = 0.88, g = 0.30, b = 0.26 }
 local C_PIP_NONE  = { r = 0.48, g = 0.45, b = 0.45 }
 local C_NAME      = { r = 0.94, g = 0.88, b = 0.86 }
 local C_DIM       = { r = 0.60, g = 0.55, b = 0.55 }
 local C_SEL       = { r = 1.00, g = 0.62, b = 0.58 }
-local C_STAR      = { r = 0.91, g = 0.72, b = 0.29 }
 local VET_ICON    = "EsoUI/Art/LFG/LFG_veteranDungeon_up.dds"
+local TICK_OFF    = "EsoUI/Art/Buttons/checkbox_unchecked.dds"
+local TICK_ON     = "EsoUI/Art/Buttons/checkbox_checked.dds"
+local TICK_X      = 10
+local TICK_ROOM   = 20
 
 local controls = {}
 local rows = {}
 local row_session = {}
 local selected = nil
-local pending_idx = nil
+local picked = nil
+local pending_sess = nil
 local delete_armed = false
+local marked = {}
+local marked_n = 0
 local scroll_off = 0
 local drag = { on = false, y0 = 0, off0 = 0 }
 local log
 
-local function crit_hot(sum)
-  local pct = (sum.crit_pct or 0) * 100
-  local threshold = Vermilion.Graph.get_crit_threshold and Vermilion.Graph.get_crit_threshold() or 50
-  return pct >= threshold
+local function picked_index()
+  if not picked then return nil end
+  local SS = Vermilion.SessionStore
+  for i = 1, SS.count() do
+    if SS.get(i) == picked then return i end
+  end
+  return nil
 end
 
 local function pip_color(sum)
   if (sum.total_damage or 0) <= 0 then return C_PIP_NONE end
-  if crit_hot(sum) then return C_PIP_HOT end
-  return C_PIP_COLD
+  return C_PIP_HOT
 end
 
 local function fmt_dur(ms)
@@ -59,6 +65,10 @@ local function fmt_ago(ts)
   local days = math_floor((now - (ts or now)) / 86400)
   if days <= 0 then return GetString(VERMILION_LIB_TODAY) end
   return days .. "d"
+end
+
+local function fmt_date(ts)
+  return (api.GetDateStringFromTimestamp and ts and api.GetDateStringFromTimestamp(ts)) or fmt_ago(ts)
 end
 
 local function fmt_k(v)
@@ -129,14 +139,14 @@ local function make_row(i)
 
   local kind = WM:CreateControl(nm .. "Kind", row, CT_TEXTURE)
   kind:SetDimensions(22, 22)
-  kind:SetAnchor(LEFT, row, LEFT, 7, 0)
+  kind:SetAnchor(LEFT, row, LEFT, 7 + TICK_ROOM, 0)
   kind:SetColor(0.92, 0.86, 0.85, 0.95)
   kind:SetHidden(true)
 
   local vet = WM:CreateControl(nm .. "Vet", row, CT_TEXTURE)
   vet:SetTexture(VET_ICON)
   vet:SetDimensions(13, 13)
-  vet:SetAnchor(LEFT, row, LEFT, 31, 0)
+  vet:SetAnchor(LEFT, row, LEFT, 31 + TICK_ROOM, 0)
   vet:SetColor(0.95, 0.80, 0.35, 1)
   vet:SetHidden(true)
 
@@ -144,8 +154,8 @@ local function make_row(i)
   name:SetFont("ZoFontGameSmall")
   name:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
   name:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-  name:SetDimensions(96, ROW_H)
-  name:SetAnchor(LEFT, row, LEFT, 46, 0)
+  name:SetDimensions(86, ROW_H)
+  name:SetAnchor(LEFT, row, LEFT, 46 + TICK_ROOM, 0)
   name:SetMaxLineCount(1)
   name:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
 
@@ -154,7 +164,7 @@ local function make_row(i)
   stats:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
   stats:SetVerticalAlignment(TEXT_ALIGN_CENTER)
   stats:SetDimensions(176, ROW_H)
-  stats:SetAnchor(LEFT, row, LEFT, 144, 0)
+  stats:SetAnchor(LEFT, row, LEFT, 154, 0)
 
   local when = WM:CreateControl(nm .. "When", row, CT_LABEL)
   when:SetFont("ZoFontGameSmall")
@@ -164,19 +174,36 @@ local function make_row(i)
   when:SetAnchor(RIGHT, row, RIGHT, -20, 0)
 
   local star = WM:CreateControl(nm .. "Star", row, CT_TEXTURE)
-  star:SetTexture("EsoUI/Art/Miscellaneous/status_locked.dds")
-  star:SetDimensions(13, 15)
+  star:SetTexture("Vermilion/assets/skin/lock_closed.dds")
+  star:SetDimensions(15, 15)
   star:SetAnchor(RIGHT, row, RIGHT, -4, 0)
-  star:SetColor(C_STAR.r, C_STAR.g, C_STAR.b, 0.95)
   star:SetHidden(true)
 
+  local tick = WM:CreateControl(nm .. "Tick", row, CT_TEXTURE)
+  tick:SetTexture(TICK_OFF)
+  tick:SetDimensions(15, 15)
+  tick:SetAnchor(LEFT, row, LEFT, TICK_X, 0)
+  tick:SetColor(C_SEL.r, C_SEL.g, C_SEL.b, 0.55)
+  tick:SetHidden(true)
+
+  local tick_hit = WM:CreateControl(nm .. "TickHit", row, CT_CONTROL)
+  tick_hit:SetDimensions(TICK_X + 17, ROW_H)
+  tick_hit:SetAnchor(LEFT, row, LEFT, 0, 0)
+  tick_hit:SetMouseEnabled(true)
+  tick_hit:SetHidden(true)
+  tick_hit:SetHandler("OnMouseUp", function(_, _, upInside)
+    if upInside ~= false then M.on_tick_click(i) end
+  end)
+  tick_hit:SetHandler("OnMouseEnter", function() M.on_row_enter(i) end)
+  tick_hit:SetHandler("OnMouseExit", function() M.on_row_exit(i) end)
+
   return { root = row, bg = bg, sel = sel, hov = hov, pip = pip, vet = vet, kind = kind,
-           name = name, stats = stats, when = when, star = star }
+           name = name, stats = stats, when = when, star = star, tick = tick, tick_hit = tick_hit }
 end
 
-local HAND_GLYPH  = "|t12:12:EsoUI/Art/Buttons/edit_save_up.dds|t "
-local ICON_LOCK   = "EsoUI/Art/Miscellaneous/locked_up.dds"
-local ICON_UNLOCK = "EsoUI/Art/Miscellaneous/unlocked_up.dds"
+local HAND_GLYPH  = "|t14:14:Vermilion/assets/skin/save_up.dds|t "
+local ICON_LOCK   = "Vermilion/assets/skin/lock_closed.dds"
+local ICON_UNLOCK = "Vermilion/assets/skin/lock_open.dds"
 
 local function tint_icon(icon, on, r, g, b)
   icon:SetColor(r, g, b, on and 0.9 or 0.25)
@@ -186,8 +213,7 @@ local function set_buttons()
   local has = selected ~= nil
   local locked = false
   if has then
-    local s = Vermilion.SessionStore.get(row_session[selected])
-    locked = (s and s.head.locked) or false
+    locked = (picked and picked.head.locked) or false
     controls.lock_btn:SetText(locked
       and GetString(VERMILION_LIB_UNLOCK) or GetString(VERMILION_LIB_LOCK))
   else
@@ -196,17 +222,47 @@ local function set_buttons()
   controls.lock_icon:SetTexture(locked and ICON_UNLOCK or ICON_LOCK)
   controls.open_btn:SetEnabled(has)
   controls.lock_btn:SetEnabled(has)
-  controls.delete_btn:SetEnabled(has and not locked)
-  controls.delete_btn:SetText(delete_armed and GetString(VERMILION_LIB_CONFIRM)
-                                            or GetString(VERMILION_LIB_DELETE))
+  local many = marked_n > 0
+  local can_delete = many or (has and not locked)
+  controls.delete_btn:SetEnabled(can_delete)
+  if many then
+    controls.delete_btn:SetText(string_format(
+      GetString(delete_armed and VERMILION_LIB_CONFIRM_N or VERMILION_LIB_DELETE_N), marked_n))
+  else
+    controls.delete_btn:SetText(delete_armed and GetString(VERMILION_LIB_CONFIRM)
+                                              or GetString(VERMILION_LIB_DELETE))
+  end
   tint_icon(controls.open_icon,   has, 1.00, 0.62, 0.58)
   tint_icon(controls.lock_icon,   has, 1.00, 0.62, 0.58)
-  tint_icon(controls.delete_icon, has and not locked, 1.00, 0.45, 0.40)
+  tint_icon(controls.delete_icon, can_delete, 1.00, 0.45, 0.40)
+end
+
+local function tidy_marks()
+  local SS = Vermilion.SessionStore
+  for sess in pairs(marked) do marked[sess] = false end
+  local live = 0
+  for i = 1, SS.count() do
+    local sess = SS.get(i)
+    if marked[sess] == false and not sess.head.locked then
+      marked[sess] = true
+      live = live + 1
+    end
+  end
+  for sess, on in pairs(marked) do
+    if not on then marked[sess] = nil end
+  end
+  marked_n = live
+end
+
+local function clear_marks()
+  for sess in pairs(marked) do marked[sess] = nil end
+  marked_n = 0
 end
 
 function M.refresh()
   local SS = Vermilion.SessionStore
   local n = SS.count()
+  tidy_marks()
   local max_off = (n > MAX_ROWS) and (n - MAX_ROWS) or 0
   if scroll_off > max_off then scroll_off = max_off end
   if scroll_off < 0 then scroll_off = 0 end
@@ -232,6 +288,8 @@ function M.refresh()
   controls.empty:SetText(GetString(VERMILION_LIB_EMPTY))
   controls.empty:SetColor(0.5, 0.5, 0.5, 1)
 
+  local want = picked_index()
+  selected = nil
   local shown = 0
   for i = n - scroll_off, 1, -1 do
     if shown >= MAX_ROWS then break end
@@ -239,83 +297,71 @@ function M.refresh()
     local row = rows[shown]
     if not row then row = make_row(shown); rows[shown] = row end
     row_session[shown] = i
+    if i == want then selected = shown end
     local sess = SS.get(i)
     local h = sess.head
     local sum = h.sum or {}
     local pc = pip_color(sum)
     row.root:SetHidden(false)
     row.bg:SetColor(1, 1, 1, (shown % 2 == 0) and 0.04 or 0.02)
-    row.sel:SetHidden(shown ~= selected)
+    row.sel:SetHidden(i ~= want)
     row.pip:SetColor(pc.r, pc.g, pc.b, 1)
-    row.name:SetText(h.label or h.zone or "?")
+    row.name:SetText(SS.title(h))
     row.name:SetColor(C_NAME.r, C_NAME.g, C_NAME.b, 1)
     row.stats:SetText(string_format(
-      "|cf28c7a%s|r  |cffe0b0%s|r  |c%s%d%%|r",
-      fmt_k(sum.avg or 0), fmt_k(sum.peak or 0),
-      (pc == C_PIP_HOT) and "f2c74c" or "d95a4e",
-      math_floor((sum.crit_pct or 0) * 100 + 0.5)))
+      "|cf28c7a%s|r  |cffe0b0%s|r  |c%s%d%%|r  |c9e9490%s|r",
+      fmt_k(Vermilion.Metrics.session_avg(sum)), fmt_k(sum.peak or 0),
+      "f2c74c",
+      math_floor(Vermilion.Metrics.session_crit_rate(sum) * 100 + 0.5),
+      fmt_date(h.ts)))
     row.stats:SetColor(1, 1, 1, 1)
     local kind_icon = Vermilion.ContentKind.icon(h.kind)
     if kind_icon then row.kind:SetTexture(kind_icon) end
     row.kind:SetHidden(kind_icon == nil)
     row.vet:SetHidden((h.difficulty or 0) ~= zc.DUNGEON_DIFFICULTY_VETERAN)
-    row.when:SetText((h.manual and HAND_GLYPH or "") .. fmt_dur(h.dur_ms) .. "  " .. fmt_ago(h.ts))
+    row.when:SetText((h.manual and HAND_GLYPH or "") .. fmt_dur(h.dur_ms))
     row.when:SetColor(C_DIM.r, C_DIM.g, C_DIM.b, 1)
     row.star:SetHidden(not h.locked)
+    local on = marked[sess] == true
+    row.tick:SetTexture(on and TICK_ON or TICK_OFF)
+    row.tick:SetColor(C_SEL.r, C_SEL.g, C_SEL.b, on and 1 or 0.55)
+    row.tick:SetHidden(h.locked == true)
+    row.tick_hit:SetHidden(h.locked == true)
   end
   for i = shown + 1, #rows do
     rows[i].root:SetHidden(true)
     row_session[i] = nil
   end
-  if selected and (selected > shown) then selected = nil end
+  if not selected then
+    picked = nil
+    delete_armed = false
+  end
   set_buttons()
 end
 
 function M.on_row_exit(i)
-  ZO_Tooltips_HideTextTooltip()
   if rows[i] then rows[i].hov:SetHidden(true) end
 end
 
 function M.on_row_enter(i)
-  local idx = row_session[i]
-  if not idx then return end
-  rows[i].hov:SetHidden(false)
-  local s = Vermilion.SessionStore.get(idx)
-  if not s then return end
-  local sum = s.head.sum or {}
-  local h = s.head
-  local when = (api.GetDateStringFromTimestamp and h.ts and api.GetDateStringFromTimestamp(h.ts)) or fmt_ago(h.ts)
-  local diff = ""
-  local kind_label = Vermilion.ContentKind.label(h.kind)
-  if kind_label then diff = "  ·  " .. kind_label end
-  if (h.difficulty or 0) == zc.DUNGEON_DIFFICULTY_VETERAN then diff = diff .. "  ·  " .. GetString(VERMILION_LIB_VETERAN)
-  elseif (h.difficulty or 0) == zc.DUNGEON_DIFFICULTY_NORMAL then diff = diff .. "  ·  " .. GetString(VERMILION_LIB_NORMAL) end
-  local text = string_format(GetString(VERMILION_LIB_ROW_HEAD),
-    when, h.zone or "?", diff, h.group_size or 0, fmt_dur(h.dur_ms))
-  text = text .. "\n" .. string_format(GetString(VERMILION_LIB_ROW_TIP),
-    fmt_k(sum.total_damage or 0), fmt_k(sum.total_shield or 0),
-    math_floor((sum.crit_pct or 0) * 100 + 0.5), sum.hits or 0)
-  if s.head.locked then
-    text = text .. "\n" .. GetString(VERMILION_LIB_ROW_TIP_LOCKED)
-  end
-  ZO_Tooltips_ShowTextTooltip(rows[i].root, TOP, text)
+  if row_session[i] then rows[i].hov:SetHidden(false) end
 end
 
 function M.on_label_focus(on)
   local box = controls.label_box
   if not box then return end
   if on then
-    box:SetEdgeColor(1.00, 0.62, 0.58, 0.80)
+    box:SetEdgeColor(1, 1, 1, 1)
     if controls.label_edit.SelectAll then controls.label_edit:SelectAll() end
   else
-    box:SetEdgeColor(1.00, 0.45, 0.40, 0.30)
+    box:SetEdgeColor(1, 1, 1, 0.75)
   end
 end
 
 local function sync_label_box()
   local edit = controls.label_edit
   if not edit then return end
-  local s = selected and Vermilion.SessionStore.get(row_session[selected])
+  local s = selected and picked
   edit:SetText((s and s.head and s.head.label) or "")
   controls.label_btn:SetEnabled(selected ~= nil)
 end
@@ -336,6 +382,7 @@ end
 function M.on_row_click(i)
   if not row_session[i] then return end
   selected = i
+  picked = Vermilion.SessionStore.get(row_session[i])
   disarm_delete()
   for k = 1, #rows do
     rows[k].sel:SetHidden(k ~= i)
@@ -344,27 +391,38 @@ function M.on_row_click(i)
   sync_label_box()
 end
 
+function M.on_tick_click(i)
+  local idx = row_session[i]
+  local sess = idx and Vermilion.SessionStore.get(idx)
+  if not sess or sess.head.locked then return end
+  local on = not marked[sess]
+  marked[sess] = on or nil
+  disarm_delete()
+  Sound.play(on and "on" or "off")
+  M.refresh()
+end
+
+function M.marked_count() return marked_n end
+
 function M.on_label_save()
-  if not selected then
+  local idx = selected and picked_index()
+  if not idx then
     Sound.play("deny")
     return
   end
-  local idx = row_session[selected]
   local text = controls.label_edit:GetText() or ""
   if Vermilion.SessionStore.set_label(idx, text) then
     Sound.play("confirm")
-    local keep = selected
     M.refresh()
-    selected = keep
-    for k = 1, #rows do rows[k].sel:SetHidden(k ~= keep) end
-    set_buttons()
     sync_label_box()
+    Vermilion.Graph.refresh_loaded_status()
   end
 end
 
 function M.on_open_click()
-  if not selected then return end
-  local sess = Vermilion.SessionStore.get(row_session[selected])
+  local idx = selected and picked_index()
+  if not idx then return end
+  local sess = Vermilion.SessionStore.get(idx)
   if sess and Vermilion.Graph.load_session(sess) then
     Sound.play("page")
     M.hide()
@@ -372,8 +430,8 @@ function M.on_open_click()
 end
 
 function M.on_lock_click()
-  if not selected then return end
-  local idx = row_session[selected]
+  local idx = selected and picked_index()
+  if not idx then return end
   local s = Vermilion.SessionStore.get(idx)
   if s then
     Vermilion.SessionStore.set_locked(idx, not s.head.locked)
@@ -394,6 +452,7 @@ local function set_scroll(off)
   if off ~= scroll_off then
     scroll_off = off
     selected = nil
+    picked = nil
     delete_armed = false
     M.refresh()
   end
@@ -436,9 +495,33 @@ function M.on_thumb_up()
   controls.window:SetHandler("OnUpdate", nil)
 end
 
+local function delete_marked()
+  if not delete_armed then
+    arm_delete()
+    Sound.play("deny")
+    set_buttons()
+    return
+  end
+  disarm_delete()
+  Sound.play("discard")
+  local SS = Vermilion.SessionStore
+  for i = SS.count(), 1, -1 do
+    local sess = SS.get(i)
+    if marked[sess] and not sess.head.locked then SS.delete(i) end
+  end
+  M.refresh()
+  sync_label_box()
+  Vermilion.Graph.refresh_loaded_status()
+end
+
 function M.on_delete_click()
-  if not selected then return end
-  local s = Vermilion.SessionStore.get(row_session[selected])
+  if marked_n > 0 then
+    delete_marked()
+    return
+  end
+  local idx = selected and picked_index()
+  if not idx then return end
+  local s = Vermilion.SessionStore.get(idx)
   if s and s.head.locked then return end
   if not delete_armed then
     arm_delete()
@@ -448,50 +531,60 @@ function M.on_delete_click()
   end
   disarm_delete()
   Sound.play("discard")
-  Vermilion.SessionStore.delete(row_session[selected])
+  Vermilion.SessionStore.delete(idx)
   selected = nil
+  picked = nil
   M.refresh()
+  Vermilion.Graph.refresh_loaded_status()
 end
 
-local function dock_window()
-  local win = controls.window
-  local host = VermilionGraphWindow
-  if not host or host:IsHidden() then return end
-  local screen_h = GuiRoot:GetHeight()
-  win:ClearAnchors()
-  if host:GetBottom() + win:GetHeight() + 16 <= screen_h then
-    win:SetAnchor(TOPLEFT, host, BOTTOMLEFT, 0, 8)
-  else
-    win:SetAnchor(BOTTOMLEFT, host, TOPLEFT, 0, -8)
+local dock
+
+local function dock_of()
+  if not dock then
+    local sv = Vermilion.SavedVars
+    sv.settings = sv.settings or {}
+    sv.settings.library_dock = sv.settings.library_dock or {}
+    dock = Vermilion.Dock.new(controls.window, VermilionGraphWindow, sv.settings.library_dock, { "bottom", "top" })
   end
+  return dock
 end
+
+function M.on_move_stop() Vermilion.Dock.released(dock_of()) end
+function M.is_detached() return Vermilion.Dock.is_detached(dock_of()) end
+function M.forget_dock() Vermilion.Dock.forget(dock_of()) end
 
 local function select_pending()
-  if not pending_idx then return end
+  if not pending_sess then return end
   for k = 1, #rows do
-    if row_session[k] == pending_idx then
+    if row_session[k] and Vermilion.SessionStore.get(row_session[k]) == pending_sess then
       M.on_row_click(k)
       break
     end
   end
-  pending_idx = nil
+  pending_sess = nil
 end
 
 function M.show()
   selected = nil
+  picked = nil
+  clear_marks()
   disarm_delete()
   scroll_off = 0
-  dock_window()
+  Vermilion.Dock.open(dock_of())
   M.refresh()
   select_pending()
   sync_label_box()
   Scene.show_top_level(controls.window)
+  controls.window:BringWindowToTop()
   Sound.play("open")
 end
 
 function M.hide()
   M.on_thumb_up()
   if controls.window:IsHidden() then return end
+  clear_marks()
+  disarm_delete()
   Sound.play("close")
   Scene.hide_top_level(controls.window)
 end
@@ -500,8 +593,10 @@ function M.toggle()
   if controls.window:IsHidden() then M.show() else M.hide() end
 end
 
+function M.row_index(i) return row_session[i] end
+
 function M.on_session_saved(manual)
-  if manual then pending_idx = Vermilion.SessionStore.count() end
+  if manual then pending_sess = Vermilion.SessionStore.get(Vermilion.SessionStore.count()) end
   if not controls.window or controls.window:IsHidden() then return end
   scroll_off = 0
   M.refresh()
@@ -533,10 +628,6 @@ function M.init()
   controls.label_edit:SetDefaultText(GetString(VERMILION_LIB_LABEL_HINT))
   controls.label_btn:SetText(GetString(VERMILION_LIB_LABEL_SAVE))
   controls.label_btn:SetEnabled(false)
-  zui.tooltip(controls.open_btn,   VERMILION_TIP_LIB_OPEN,   TOP)
-  zui.tooltip(controls.lock_btn,   VERMILION_TIP_LIB_LOCK,   TOP)
-  zui.tooltip(controls.delete_btn, VERMILION_TIP_LIB_DELETE, TOP)
-  zui.tooltip(VermilionLibraryCloseBtn, VERMILION_TIP_CLOSE)
 
   controls.title:SetText(GetString(VERMILION_LIB_TITLE))
   controls.title:SetColor(0.75, 0.75, 0.75, 1)
@@ -544,18 +635,17 @@ function M.init()
   controls.lock_btn:SetText(GetString(VERMILION_LIB_LOCK))
   controls.delete_btn:SetText(GetString(VERMILION_LIB_DELETE))
   set_buttons()
-  VermilionLibraryBg:SetCenterColor(1.00, 0.62, 0.58, 1.0)
-  VermilionLibraryBg:SetEdgeColor(1.00, 0.45, 0.40, 1.0)
+  Vermilion.Skin.panel(VermilionLibraryBg)
+  Vermilion.Skin.close(VermilionLibraryCloseBtn)
+  Vermilion.Skin.buttons({ VermilionLibraryOpenBtn, VermilionLibraryLockBtn, VermilionLibraryDeleteBtn, VermilionLibraryLabelBtn })
   VermilionLibraryListBg:SetEdgeColor(1.00, 0.45, 0.40, 0.55)
   VermilionLibraryListBg:SetCenterColor(0, 0, 0, 0)
   VermilionLibraryListFill:SetTextureCoords(0, 1, 0, 0.05)
   VermilionLibraryListFill:SetColor(0.055, 0.046, 0.046, 0.92)
+  Vermilion.Skin.frame(controls.label_box)
   controls.label_box:SetCenterColor(0, 0, 0, 0)
   controls.label_edit:SetDefaultTextColor(0.70, 0.62, 0.62, 0.45)
-  VermilionLibraryScrollTrackBg:SetTextureCoords(0, 1, 0, 0.05)
-  VermilionLibraryScrollTrackBg:SetColor(1.00, 0.45, 0.40, 0.12)
-  VermilionLibraryScrollTrackThumbTex:SetTextureCoords(0, 1, 0, 0.05)
-  VermilionLibraryScrollTrackThumbTex:SetColor(1.00, 0.62, 0.58, 0.55)
+  Vermilion.Skin.icons({ VermilionLibraryScrollUp, VermilionLibraryScrollDown })
   M.on_label_focus(false)
   set_buttons()
 end

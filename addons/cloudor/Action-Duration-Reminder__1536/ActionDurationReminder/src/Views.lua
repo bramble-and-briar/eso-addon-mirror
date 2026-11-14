@@ -268,11 +268,14 @@ m.newWidget = function(slotNum, shifted, appendIndex, nativeSlotControl)
   local progressBar = WINDOW_MANAGER:CreateControl(nil, backdrop or slot, CT_BACKDROP)
   -- 同冷却线段：浮动行平级匹配 level=1(树序裁决双胜)，主条恢复高位
   if shifted then
-    progressBar:SetDrawTier(1) -- (0/1/0)：同冷却线段——与图标平齐靠创建序压上，随子树沉
-    progressBar:SetDrawLevel(0)
-  else
-    progressBar:SetDrawLayer(DL_CONTROLS)
+    -- [—/1/1]：同冷却段，高克隆图标一级脱离平局
+    progressBar:SetDrawTier(1)
     progressBar:SetDrawLevel(1)
+  else
+    -- [0/1/2]：同冷却段，高图标一级脱离平局
+    progressBar:SetDrawLayer(DL_BACKGROUND)
+    progressBar:SetDrawTier(1)
+    progressBar:SetDrawLevel(2)
   end
   local progressColor = savedVars.barProgressColor
   local progressAlpha = savedVars.barProgressOpacity / 100
@@ -435,10 +438,17 @@ mCooldown.createPart = function(self)
   -- 树序裁决(创建更晚→图标之上)，与原生图标打平由子树序裁决(容器在 WeaponSwap
   -- 宿主下→原生条之下)。主条(非浮动行)不下沉，恢复高位
   if self.shifted then
-    part:SetDrawTier(1) -- (0/1/0)：与克隆图标及原生边框(BD=0/1/0)平齐——
-    part:SetDrawLevel(0) -- 平局均落树序：晚于克隆图标→其上；WeaponSwap 子树→原生条之下
+    -- [—/1/1]：高克隆图标([—/1/0])一级。铁律：段永不与图标完全平齐——
+    -- 平局在多段同现时会错序(后出现的段把先出现的甩到图标之下，克隆条
+    -- 图标不满处可见细边，实测)；高一级脱离平局，与原生图标 [0/1/1] 平齐
+    -- →树序(WeaponSwap 宿主在前)→重叠时沉入原生条之下
+    part:SetDrawTier(1)
+    part:SetDrawLevel(1)
   else
-    part:SetDrawLayer(DL_CONTROLS)
+    -- [0/1/2]：高原生图标([0/1/1])一级。铁律：段永不与图标完全平齐
+    -- (平局多段同现会错序，实测)；仍在 Background 层内不跳出树序桶
+    part:SetDrawLayer(DL_BACKGROUND)
+    part:SetDrawTier(1)
     part:SetDrawLevel(2)
   end
   part:SetColor(unpack(l.getSavedVars().barCooldownColor))

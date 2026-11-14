@@ -71,35 +71,183 @@ end
 function M.window_seconds() return W_MS / 1000 end
 function M.shield_window_seconds() return W_SHIELD_MS / 1000 end
 
-local tot_damage, tot_shield, tot_crit, tot_hits = 0, 0, 0, 0
+local tot_damage, tot_shield, tot_crit, tot_hits, tot_crit_hits, tot_overkill = 0, 0, 0, 0, 0, 0
 
-function M.session_mark()
-  tot_damage, tot_shield, tot_crit, tot_hits = 0, 0, 0, 0
+local fight_first, fight_last, fight_loaded, fight_loaded_first = nil, nil, nil, nil
+local session_closed = true
+
+local OPENING_CAP = 64
+local KIND_SHIELD_OUT = Vermilion.Constants.ABILITY_KIND.SHIELD_OUT
+local opening, opening_head, opening_n, opening_on = {}, 1, 0, false
+
+local function keep_or_release(ev)
+  if not opening_on or (ev.amount or 0) <= 0 then
+    event_pool:release(ev)
+    return
+  end
+  local slot
+  if opening_n < OPENING_CAP then
+    slot = ((opening_head + opening_n - 1) % OPENING_CAP) + 1
+    opening_n = opening_n + 1
+  else
+    slot = opening_head
+    event_pool:release(opening[slot])
+    opening_head = (opening_head % OPENING_CAP) + 1
+  end
+  opening[slot] = ev
+end
+
+function M.adopt_opening(since, seen)
+  local head, n = opening_head, opening_n
+  opening_head, opening_n = 1, 0
+  for i = 0, n - 1 do
+    local slot = ((head + i - 1) % OPENING_CAP) + 1
+    local ev = opening[slot]
+    opening[slot] = nil
+    if since and not session_closed and ev.t >= since then
+      if seen then seen(ev) end
+      if ev.kind == KIND_SHIELD_OUT then M.ingest_shield_out(ev) else M.ingest_damage_out(ev) end
+    else
+      event_pool:release(ev)
+    end
+  end
+end
+
+function M.hold_opening(on)
+  opening_on = on and true or false
+  if not opening_on then M.adopt_opening(nil) end
+end
+
+local ex_skills, ex_skills_abs, ex_shields = {}, {}, {}
+local ex_tg, ex_tg_abs, ex_tg_name, ex_tg_type = {}, {}, {}, {}
+local ex_live = {
+  skills = ex_skills, skills_abs = ex_skills_abs, shields = ex_shields,
+  targets = ex_tg, targets_abs = ex_tg_abs, target_names = ex_tg_name, target_types = ex_tg_type,
+}
+local ex_loaded = nil
+
+function M.session_mark(open)
+  if Vermilion.Pipeline and Vermilion.Pipeline.drop_pending then Vermilion.Pipeline.drop_pending() end
+  for _, t in pairs(ex_live) do
+    for k in pairs(t) do t[k] = nil end
+  end
+  ex_loaded = nil
+  tot_damage, tot_shield, tot_crit, tot_hits, tot_crit_hits, tot_overkill = 0, 0, 0, 0, 0, 0
+  fight_first, fight_last, fight_loaded, fight_loaded_first = nil, nil, nil, nil
+  session_closed = not open
+  damage_out_buf:reset()
+  shield_out_buf:reset()
+end
+
+function M.close_session() session_closed = true end
+
+local function note_fight(t)
+  if not t then return end
+  if not fight_first or t < fight_first then fight_first = t end
+  if not fight_last or t > fight_last then fight_last = t end
+  local R = Vermilion.Resources
+  if R then R.note_hit(t) end
+end
+
+function M.set_fight_ms(ms, first, exact) fight_loaded, fight_loaded_first, ex_loaded = ms, first, exact end
+
+function M.is_loaded() return fight_loaded ~= nil end
+
+function M.exact()
+  if fight_loaded then return ex_loaded end
+  return ex_live
+end
+
+function M.exact_copy()
+  local out = {}
+  for name, t in pairs(ex_live) do
+    local c = {}
+    for k, v in pairs(t) do c[k] = v end
+    out[name] = c
+  end
+  out.pool = Vermilion.Resources.flow_copy()
+  return out
+end
+
+function M.output_total()
+  local ex = M.exact()
+  if not ex then return nil end
+  local total = 0
+  for _, v in pairs(ex.skills) do total = total + v end
+  return total
+end
+
+function M.fight_bounds()
+  if fight_loaded then
+    if fight_loaded_first then return fight_loaded_first, fight_loaded_first + fight_loaded end
+    return nil, nil
+  end
+  if fight_first and fight_last > fight_first then return fight_first, fight_last end
+  return nil, nil
+end
+
+function M.fight_ms()
+  if fight_loaded then return fight_loaded end
+  if fight_first and fight_last > fight_first then return fight_last - fight_first end
+  return 0
+end
+
+function M.session_avg(sum)
+  if sum.fight_ms and sum.fight_ms > 0 then
+    return ((sum.total_damage or 0) + (sum.total_shield or 0)) / (sum.fight_ms / 1000)
+  end
+  return sum.avg or 0
 end
 
 function M.totals()
-  return tot_damage, tot_shield, tot_crit, tot_hits
+  return tot_damage, tot_shield, tot_crit, tot_hits, tot_crit_hits, tot_overkill
 end
 
 function M.ingest_damage_out(ev)
   local amt = ev.amount
-  if amt > 0 then
+  if amt > 0 and not session_closed then
     tot_damage = tot_damage + amt
     tot_hits   = tot_hits + 1
-    if is_crit(ev) then tot_crit = tot_crit + amt end
+    tot_overkill = tot_overkill + (ev.overflow or 0)
+    note_fight(ev.t)
+    local key = (ev.ability_id or 0) * 64 + (ev.damage_type or 0) + 1
+    ex_skills[key] = (ex_skills[key] or 0) + amt
+    local uid = ev.target_unit_id or 0
+    ex_tg[uid] = (ex_tg[uid] or 0) + amt
+    ex_tg_name[uid] = ev.target_name
+    ex_tg_type[uid] = ev.target_type
+    if is_crit(ev) then
+      tot_crit = tot_crit + amt
+      tot_crit_hits = tot_crit_hits + 1
+    end
     damage_out_buf:push(ev)
   else
-    event_pool:release(ev)
+    keep_or_release(ev)
   end
 end
 
 function M.ingest_shield_out(ev)
   local amt = ev.amount
-  if amt > 0 then
+  if amt > 0 and not session_closed then
     tot_shield = tot_shield + amt
+    note_fight(ev.t)
+    local aid = ev.attack_id or 0
+    local dt = (aid > 0) and (ev.attack_dtype or 0) or DT_SHIELD
+    local key = aid * 64 + dt + 1
+    ex_skills[key] = (ex_skills[key] or 0) + amt
+    ex_skills_abs[key] = (ex_skills_abs[key] or 0) + amt
+    local sid = ev.ability_id or 0
+    ex_shields[sid] = (ex_shields[sid] or 0) + amt
+    local uid = ev.target_unit_id or 0
+    ex_tg[uid] = (ex_tg[uid] or 0) + amt
+    ex_tg_abs[uid] = (ex_tg_abs[uid] or 0) + amt
+    if ex_tg_name[uid] == nil then
+      ex_tg_name[uid] = ev.target_name
+      ex_tg_type[uid] = ev.target_type
+    end
     shield_out_buf:push(ev)
   else
-    event_pool:release(ev)
+    keep_or_release(ev)
   end
 end
 
@@ -128,6 +276,11 @@ function M.crit_split(now_ms)
   end
   crit = crit / ws
   return crit, (total / ws) - crit
+end
+
+function M.session_crit_rate(sum)
+  if sum.crit_hits and (sum.hits or 0) > 0 then return sum.crit_hits / sum.hits end
+  return sum.crit_pct or 0
 end
 
 local accum_buckets = {}
@@ -453,6 +606,7 @@ function M.reset()
   log:info("reset: damage=", damage_out_buf:size(), "shield=", shield_out_buf:size(),
            "pool_in_use=", event_pool:in_use())
   if Vermilion.Pipeline and Vermilion.Pipeline.drop_pending then Vermilion.Pipeline.drop_pending() end
+  M.adopt_opening(nil)
   damage_out_buf:reset()
   shield_out_buf:reset()
 end

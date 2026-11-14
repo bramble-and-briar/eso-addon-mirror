@@ -26,7 +26,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Kel's-Patchs By The Ancestors ES](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ElKel/Kel-s-Patchs-By-The-Ancestors-ES__2117) | ElKel | PC / Mac | 0.1.1 |
 | [Kel's-Patchs Clock - Tamriel Standard Time ES](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ElKel/Kel-s-Patchs-Clock---Tamriel-Standard-Time-ES__2121) | ElKel | PC / Mac | 0.1.0 |
 | [KelaPadUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rkirgizov/KelaPadUI__2394) | rkirgizov | PC / Mac | 0.5a |
-| [KelaPadUI Enhanced](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/soundexpression/KelaPadUI-Enhanced__5044) | soundexpression | PC / Mac | 2.8.0 |
+| [KelaPadUI Enhanced Gamepad UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/soundexpression/KelaPadUI-Enhanced-Gamepad-UI__5044) | soundexpression | PC / Mac | 2.8.1 |
 | [KelaPadUI Gamepad UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rkirgizov/KelaPadUI-Gamepad-UI__2740) | rkirgizov | PC / Mac | 1.2.1 |
 | [KeybindCombos](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Swarog/KeybindCombos__4615) | Swarog | PC / Mac | 1.0.0 |
 | [KeyBinder!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheYcUtS/KeyBinder__2085) | TheYcUtS | PC / Mac | 1.4 |
@@ -54,6 +54,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [KInfo - Inventory INFO \[GERMAN / ENGLISH\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KostiK/KInfo---Inventory-INFO-GERMAN-ENGLISH__1489) | KostiK | PC / Mac | 1.4.5 |
 | [Kinras Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/helixanon/Kinras-Tracker__3229) | helixanon | PC / Mac | v0 |
 | [KMailMaterials](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Konten/KMailMaterials__4934) | Konten | PC / Mac | 2.0.0 |
+| [Known Vendor Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ypselon/Known-Vendor-Filter__5049) | Ypselon | PC / Mac | 1.1 |
 | [KoMGuild](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awfuldead/KoMGuild__2656) | awfuldead | PC / Mac | 1.2.3b |
 | [KOTATSU' STATION JP](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/fujisanndei/KOTATSU-STATION-JP__3504) | fujisanndei | PC / Mac | 1.0 |
 | [kozy-eso BuildPort](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KozyESO/kozy-eso-BuildPort__4938) | KozyESO | PC / Mac | 0.10.2 |

@@ -22,7 +22,7 @@ local function acquire()
   return Vermilion.Metrics.acquire_event()
 end
 
-function M.acquire_damage_out(t, hit, targetUnitId, targetType, abilityId, result, sourceUnitId, damageType, targetName)
+function M.acquire_damage_out(t, hit, targetUnitId, targetType, abilityId, result, sourceUnitId, damageType, targetName, overflow)
   if (hit or 0) <= 0 then return nil end
   local ev = acquire()
   if not ev then return nil end
@@ -31,6 +31,7 @@ function M.acquire_damage_out(t, hit, targetUnitId, targetType, abilityId, resul
   ev.result         = result        or 0
   ev.amount         = hit
   ev.damage_type    = damageType    or 0
+  ev.overflow       = overflow      or 0
   ev.target_unit_id = targetUnitId  or 0
   ev.target_type    = targetType    or 0
   ev.ability_id     = abilityId     or 0

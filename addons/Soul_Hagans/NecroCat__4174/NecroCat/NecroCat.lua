@@ -2527,7 +2527,7 @@ local function GetAccountWideCurrency(curtId, curt)
     if not sv then return 0 end
 
     -- 1. Чисто аккаунтные валюты (Архивные фортуны, Торговые слитки)
-    if curt == (CURT_TRADE_BARS or 9) or curt == (CURT_ARCHIVAL_FORTUNES or 12) then
+    if curt == (CURT_TRADE_BARS or 9) or curt == (CURT_ARCHIVAL_FORTUNES or 12) or curt == (CURT_UNDAUNTED_EMBLEMS or 18) then
         return GetCurrencyAmount(curt, CURRENCY_LOCATION_ACCOUNT or 3) or 0
     end
 
@@ -2733,6 +2733,7 @@ function NC.UpdateCurrencyTracker()
         local defs = {
             { id = "gold",    curt = CURT_MONEY,                    opt = "currencyShowGold",    pvp = false, arc = false },
             { id = "bars",    curt = CURT_TRADE_BARS or 9,          opt = "currencyShowBars",    pvp = false, arc = false },
+            { id = "emblems", curt = CURT_UNDAUNTED_EMBLEMS or 18, opt = "currencyShowEmblems", pvp = false, arc = false },
             { id = "ap",      curt = CURT_ALLIANCE_POINTS,          opt = "currencyShowAP",      pvp = true,  arc = false },
             { id = "telvar",  curt = CURT_TELVAR_STONES,            opt = "currencyShowTelVar",  pvp = true,  arc = false },
             { id = "archive", curt = CURT_ARCHIVAL_FORTUNES or 12,  opt = "currencyShowArchive", pvp = false, arc = true },
@@ -3780,6 +3781,128 @@ function NC.OnCameraCombatStateChanged(inCombat)
         NC.ApplyCameraPreset("cameraInCombat", false)
     else
         NC.ApplyCameraPreset("cameraOutCombat", false)
+    end
+end
+
+---------------------------------------------------------
+-- МОДУЛЬ: РЕЖИМ СКРИНШОТА (CLEAN SCREEN)
+---------------------------------------------------------
+
+NC.cleanScreenActive = false
+NC.cleanScreenSavedCam = nil
+NC.cleanScreenSavedNameplates = nil
+
+function NC.OnCleanScreenHudStateChange(oldState, newState)
+    if not NC.cleanScreenActive then return end
+
+    if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
+        SetGuiHidden("ingame", true)
+    elseif newState == SCENE_HIDING or newState == SCENE_HIDDEN then
+        SetGuiHidden("ingame", false)
+    end
+end
+
+function NC.ToggleCleanScreen()
+    NC.cleanScreenActive = not NC.cleanScreenActive
+
+    if NC.cleanScreenActive then
+        -- 1. Сохраняем слепок камеры до миллиметра
+        NC.cleanScreenSavedCam = {
+            horizPos    = tonumber(GetSetting(2, 9)) or 0,
+            horizOffset = tonumber(GetSetting(2, 10)) or 0,
+            vertOffset  = tonumber(GetSetting(2, 11)) or 0,
+            fov         = tonumber(GetSetting(2, 12)) or 50,
+        }
+
+        -- 2. Если включена галочка в настройках — тушим имена над головой
+        if NC.savedVars and NC.savedVars.cleanScreenHideNames then
+            NC.cleanScreenSavedNameplates = tostring(GetSetting(0, 8))
+            SetSetting(0, 8, "0")
+        else
+            NC.cleanScreenSavedNameplates = nil
+        end
+
+        -- 3. Прячем интерфейс
+        if HUD_SCENE:GetState() == SCENE_SHOWN then
+            SetGuiHidden("ingame", true)
+        end
+
+        local msg = (GetString(SI_NC_CLEAN_SCREEN_ON) ~= "" and GetString(SI_NC_CLEAN_SCREEN_ON)) or "Включен"
+        d("|c00FF00[NecroCat CleanScreen]|r " .. msg)
+    else
+        -- 1. Возвращаем интерфейс и глушим движение камеры
+        SetGuiHidden("ingame", false)
+        NC.cleanScreenHeldDirs = {}
+        EVENT_MANAGER:UnregisterForUpdate(NC.name .. "_CleanScreenCam")
+
+        -- 2. Железный возврат камеры ровно туда, где она была
+        if NC.cleanScreenSavedCam then
+            SetSetting(2, 9,  string.format("%.6f", NC.cleanScreenSavedCam.horizPos or 0))
+            SetSetting(2, 10, string.format("%.6f", NC.cleanScreenSavedCam.horizOffset or 0))
+            SetSetting(2, 11, string.format("%.6f", NC.cleanScreenSavedCam.vertOffset or 0))
+            SetSetting(2, 12, string.format("%.6f", NC.cleanScreenSavedCam.fov or 50))
+            NC.cleanScreenSavedCam = nil
+        end
+
+        -- 3. Возвращаем имена над головой на место
+        if NC.cleanScreenSavedNameplates then
+            SetSetting(0, 8, NC.cleanScreenSavedNameplates)
+            NC.cleanScreenSavedNameplates = nil
+        end
+
+        local msg = (GetString(SI_NC_CLEAN_SCREEN_OFF) ~= "" and GetString(SI_NC_CLEAN_SCREEN_OFF)) or "Выключен"
+        d("|cFF5555[NecroCat CleanScreen]|r " .. msg)
+    end
+end
+
+NC.cleanScreenHeldDirs = {}
+
+local function DoCamStep(direction)
+    local step = ((NC.savedVars and NC.savedVars.cleanScreenStep) or 0.05) * 0.4
+
+    if direction == "UP" then
+        local cur = tonumber(GetSetting(2, 11)) or 0
+        SetSetting(2, 11, string.format("%.6f", math.min(1.0, cur + step)))
+    elseif direction == "DOWN" then
+        local cur = tonumber(GetSetting(2, 11)) or 0
+        SetSetting(2, 11, string.format("%.6f", math.max(-1.0, cur - step)))
+    elseif direction == "LEFT" then
+        local cur = tonumber(GetSetting(2, 10)) or 0
+        SetSetting(2, 10, string.format("%.6f", math.max(-2.0, cur - step)))
+    elseif direction == "RIGHT" then
+        local cur = tonumber(GetSetting(2, 10)) or 0
+        SetSetting(2, 10, string.format("%.6f", math.min(2.0, cur + step)))
+    end
+end
+
+function NC.OnCleanScreenCamTick()
+    if not NC.cleanScreenActive then
+        NC.cleanScreenHeldDirs = {}
+        EVENT_MANAGER:UnregisterForUpdate(NC.name .. "_CleanScreenCam")
+        return
+    end
+
+    for dir, isHeld in pairs(NC.cleanScreenHeldDirs) do
+        if isHeld then
+            DoCamStep(dir)
+        end
+    end
+end
+
+function NC.CleanScreenCamStart(direction)
+    if not NC.cleanScreenActive then return end
+
+    NC.cleanScreenHeldDirs[direction] = true
+    DoCamStep(direction) -- мгновенный сдвиг при одиночном нажатии
+
+    EVENT_MANAGER:RegisterForUpdate(NC.name .. "_CleanScreenCam", 30, NC.OnCleanScreenCamTick)
+end
+
+function NC.CleanScreenCamStop(direction)
+    NC.cleanScreenHeldDirs[direction] = nil
+
+    if not next(NC.cleanScreenHeldDirs) then
+        EVENT_MANAGER:UnregisterForUpdate(NC.name .. "_CleanScreenCam")
     end
 end
 
@@ -4944,6 +5067,10 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
             vertOffset  = -0.12,
         },
 
+        -- Модуль: Режим скриншота (Clean Screen)
+        cleanScreenHideNames  = false,
+        cleanScreenStep       = 0.05,
+
         -- Модуль: Умный фильтр истории лута
         lootFilterEnabled        = false,
         lootFilterMinQuality     = 0,     -- 0: Все, 2: Зеленый+, 3: Синий+, 4: Фиолет+, 5: Золото
@@ -5022,12 +5149,14 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         currencyTrackerContextOnly  = true,
         currencyShowGold            = true,
         currencyShowBars            = true,
+        currencyShowEmblems         = false,
         currencyShowAP              = true,
         currencyShowTelVar          = true,
         currencyShowArchive         = true,
         currencyShowXP              = true,
         currencyDailyDate           = "",
         currencyDailyStarts         = {},
+        housePlacedCounts           = {},
     }, GetWorldName())
     
     
@@ -5141,6 +5270,7 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
     NC.CreateVeterancyUI()
     NC.CreateCurrencyTrackerUI()
     NC.CreatePlanarKeyWidgetUI()
+    if NC.InitHouseSlotsInfo then NC.InitHouseSlotsInfo() end
 
     -- Отслеживание событий триала
     EVENT_MANAGER:RegisterForEvent(NC.name .. "_TrialStart", EVENT_RAID_TRIAL_STARTED, function()
@@ -5427,6 +5557,8 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
 -- Запуск фильтра истории лута
     HookLootHistoryFilter()
     
+    HUD_SCENE:RegisterCallback("StateChange", NC.OnCleanScreenHudStateChange)
+
     NecroCat.Follow.Init()
     
     EVENT_MANAGER:UnregisterForEvent(NC.name, EVENT_ADD_ON_LOADED)
@@ -6029,6 +6161,8 @@ SLASH_COMMANDS["/necrocat"] = function() NC.OpenSettings() end
 SLASH_COMMANDS["/nc"]       = function() NC.OpenSettings() end
 SLASH_COMMANDS["/kickrandoms"] = function() NC.KickNonFavorites() end
 SLASH_COMMANDS["/nckick"]       = function() NC.KickNonFavorites() end
+SLASH_COMMANDS["/cs"]          = function() NC.ToggleCleanScreen() end
+SLASH_COMMANDS["/cleanscreen"]  = function() NC.ToggleCleanScreen() end
 -- =========================================================
 -- СПРАВОЧНАЯ КОМАНДА NECROCAT
 -- =========================================================

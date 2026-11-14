@@ -1,0 +1,18 @@
+<Bindings>
+    <Layer name="WWDpadMap">
+        <Category>
+            <Action name="WWDPAD_MAP" inheritsBindFrom="TOGGLE_MAP" rebindable="false" hideAction="true">
+                <Down>WWDpadInput.Down("map")</Down>
+                <Up>WWDpadInput.Up("map")</Up>
+            </Action>
+        </Category>
+    </Layer>
+    <Layer name="WWDpadSheathe">
+        <Category>
+            <Action name="WWDPAD_SHEATHE" inheritsBindFrom="SHEATHE_WEAPON_TOGGLE" rebindable="false" hideAction="true">
+                <Down>WWDpadInput.Down("sheathe")</Down>
+                <Up>WWDpadInput.Up("sheathe")</Up>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

@@ -69,6 +69,7 @@ local function row_factory(row, counter)
   local pick = CreateControlFromVirtual(nm .. "Pick", row, "ZO_DefaultButton")
   pick:SetDimensions(130, 24)
   pick:SetAnchor(RIGHT, row, RIGHT, 0, 0)
+  Vermilion.Skin.button(pick)
   pick:SetHandler("OnClicked", function() open_flyout_for(row) end)
   row.vm_pick = pick
 
@@ -105,6 +106,8 @@ local function build_flyout()
     e:SetAnchor(TOPLEFT, fly, TOPLEFT, FLYOUT_PAD + col * FLYOUT_COL_W, FLYOUT_PAD + r * FLYOUT_ENTRY_H)
     e:SetText(g.label)
     e:SetColor(g.r, g.g, g.b, 1)
+    e:SetDrawLayer(DL_OVERLAY)
+    e:SetDrawLevel(103)
     e:SetMouseEnabled(true)
 
     local key = g.key
@@ -285,6 +288,12 @@ function M.on_move_stop()
 end
 
 function M.init()
+  Vermilion.Skin.panel(VermilionAssignPanelBg)
+  Vermilion.Skin.panel(VermilionAssignConfirmBg)
+  Vermilion.Skin.close(VermilionAssignPanelCloseBtn)
+  Vermilion.Skin.button(VermilionAssignPanelAssignBtn, true)
+  Vermilion.Skin.button(VermilionAssignConfirmNoBtn)
+  Vermilion.Skin.button(VermilionAssignConfirmYesBtn, true)
   controls.window     = VermilionAssignPanel
   controls.title      = VermilionAssignPanelWindowTitle
   controls.help       = VermilionAssignPanelHelpLabel
@@ -298,10 +307,6 @@ function M.init()
   controls.confirm_yes   = VermilionAssignConfirmYesBtn
   controls.confirm_no    = VermilionAssignConfirmNoBtn
 
-  VermilionAssignPanelBg:SetCenterColor(1.00, 0.62, 0.58, 1.0)
-  VermilionAssignPanelBg:SetEdgeColor(1.00, 0.45, 0.40, 1.0)
-  VermilionAssignConfirmBg:SetCenterColor(1.00, 0.62, 0.58, 1.0)
-  VermilionAssignConfirmBg:SetEdgeColor(1.00, 0.45, 0.40, 1.0)
   VermilionAssignPanelFlyoutFill:SetTexture("EsoUI/Art/UnitAttributeVisualizer/attributeBar_dynamic_fill.dds")
   VermilionAssignPanelFlyoutFill:SetTextureCoords(0, 1, 0, 0.05)
   VermilionAssignPanelFlyoutFill:SetColor(0.070, 0.050, 0.050, 0.985)

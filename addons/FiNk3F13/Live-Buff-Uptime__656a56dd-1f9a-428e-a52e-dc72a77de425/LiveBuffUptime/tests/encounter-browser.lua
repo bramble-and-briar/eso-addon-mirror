@@ -36,7 +36,7 @@ zone = "Schnittermark"
 finish(111)
 local first = saved.lastUptimeReport
 assert(first.zone == "Das Glattbachhaus" and first.enemyName == "Anfuehrer" and #first.enemies == 2)
-assert(first.enemies[1].damage == 200 and first.enemies[2].name == "Trainingspuppe")
+assert(first.enemies[1].damage == nil and first.skills == nil and first.enemies[2].name == "Trainingspuppe")
 zone = "Das Glattbachhaus"
 start(120); hit(120, 1, 4, 102, "Andere Puppe", 100); hit(130, 1, 4, 102, "Andere Puppe", 100); finish(131)
 local second = saved.lastUptimeReport
@@ -51,7 +51,7 @@ assert(#list.entries == 2 and list.entries[1].text == "Schnittermark" and list.e
 assert(bindings[6].visible(), "Area grouping must offer confirmed deletion of its saved encounters")
 list:SetSelectedIndex(2)
 bindings[5].callback()
-assert(#list.entries == 2 and list.entries[1].text == "Gegnergruppe: Andere Puppe" and list.entries[2].text == "Gegnergruppe: Anfuehrer")
+assert(#list.entries == 2 and list.entries[1].text == "Gegnergruppe: Andere Puppe" and list.entries[2].text == first.encounterLabel)
 assert(list.entries[2].subtitle and not list.entries[2].subtitle:find("Trainingspuppe", 1, true),
     "Fight entries must show only time/duration below the main opponent, not the extra enemy list")
 assert(#first.enemies == 2, "Hiding extra names must not remove recorded enemy data")
@@ -61,7 +61,7 @@ bindings[5].callback()
 assert(list.entries[1].buffIndex and not bindings[6].visible())
 assert(env.controls.LiveBuffUptimeReportSubtitle.text:find("Anfuehrer", 1, true))
 reports.Back()
-assert(list.index == 2 and list.entries[2].text == "Gegnergruppe: Anfuehrer", "Returning from statistics must retain the chosen fight")
+assert(list.index == 2 and list.entries[2].text == first.encounterLabel, "Returning from statistics must retain the chosen fight")
 reports.Back()
 assert(list.index == 2 and list.entries[2].zoneKey)
 reports.Close()

@@ -5,7 +5,7 @@ NGear.GamepadOptions = GamepadOptions
 
 GamepadOptions.PanelIds = {
     ROOT = 19100,
-    GEAR = 19101,
+    STICKER_BOOK = 19101,
     ITEM_LOCATOR = 19102,
     ITEM_CATEGORIES = 19111,
 }
@@ -31,14 +31,14 @@ local backOverrideInstalled = false
 local headerVersionHooked = false
 
 local SUBPANEL_PARENT_IDS = {
-    [PanelIds.GEAR] = ROOT_PANEL_ID,
+    [PanelIds.STICKER_BOOK] = ROOT_PANEL_ID,
     [PanelIds.ITEM_LOCATOR] = ROOT_PANEL_ID,
     [PanelIds.ITEM_CATEGORIES] = ROOT_PANEL_ID,
 }
 
 local PANEL_RESET_PATHS = {
     [ROOT_PANEL_ID] = {},
-    [PanelIds.GEAR] = { { "collections", "gearSet" } },
+    [PanelIds.STICKER_BOOK] = { { "collections", "stickerBook" } },
     [PanelIds.ITEM_LOCATOR] = {},
     [PanelIds.ITEM_CATEGORIES] = {},
 }
@@ -97,8 +97,8 @@ local function SetFeaturePreview(panelId)
     if NGear.ItemLocator and NGear.ItemLocator.SetSettingsPanelVisible then
         NGear.ItemLocator.SetSettingsPanelVisible(panelId == PanelIds.ITEM_LOCATOR)
     end
-    if features.CollectionsGear then
-        features.CollectionsGear.SetSettingsPanelVisible(panelId == PanelIds.GEAR)
+    if features.StickerBook then
+        features.StickerBook.SetSettingsPanelVisible(panelId == PanelIds.STICKER_BOOK)
     end
 end
 
@@ -132,14 +132,15 @@ function GamepadOptions.ResetPanelOptionsToDefaults(panelId)
 end
 
 function GamepadOptions.ResetAllPanelsToDefaults()
-    NGear.Settings.ResetAllOptions()
+    -- Stop tracking before resetting preferences so pending inventory changes
+    -- are flushed and event handlers are removed through the normal lifecycle.
     if NGear.ItemLocator then
         NGear.ItemLocator.SetEnabled(false)
-        NGear.ItemLocator.ResetCategoryVisibility()
-        NGear.ItemLocator.ResetDisplaySettings()
     end
+    -- Saved-variable defaults also contain collected indexes. Only reset the
+    -- preferences explicitly owned by each panel, never entire saved scopes.
     for _, panelId in pairs(PanelIds) do
-        GamepadOptions.ApplyPanelOptions(panelId)
+        GamepadOptions.ResetPanelOptionsToDefaults(panelId)
     end
     GamepadOptions.RefreshCurrentOptionsList()
 end
@@ -545,7 +546,7 @@ end
 function GamepadOptions.RegisterPanelHeaderStrings()
     local headers = {
         [ROOT_PANEL_ID] = "NGear",
-        [PanelIds.GEAR] = NGear.L("ui.navigation.gear_def2b5f"),
+        [PanelIds.STICKER_BOOK] = NGear.L("ui.navigation.sticker_book"),
         [PanelIds.ITEM_LOCATOR] = NGear.L("ui.navigation.item_locator"),
         [PanelIds.ITEM_CATEGORIES] = NGear.L("ui.navigation.item_categories"),
     }
@@ -577,7 +578,7 @@ function GamepadOptions.RegisterPanels()
     GamepadOptions.HookHeaderVersionSubtitle()
     GamepadOptions.RegisterPanelHeaderStrings()
     GamepadOptions.RegisterPanel(ROOT_PANEL_ID, GamepadOptions.BuildRootOptionsData())
-    GamepadOptions.RegisterPanel(PanelIds.GEAR, GamepadOptions.BuildGearOptionsData())
+    GamepadOptions.RegisterPanel(PanelIds.STICKER_BOOK, GamepadOptions.BuildStickerBookOptionsData())
     GamepadOptions.RegisterPanel(PanelIds.ITEM_LOCATOR, GamepadOptions.BuildItemLocatorOptionsData())
     -- Category construction decodes the complete account item index. Register an
     -- empty shell at login and populate it only when the player opens the panel.

@@ -1,12 +1,12 @@
 ## Title: NQOL-dev
 ## Author: unacntble
 ## APIVersion: 101050 101051
-## AddOnVersion: 366
-## LastProdVersionCommitID: 1d6d42b
-## LastDevVersionCommitID: 1518227
+## AddOnVersion: 369
+## LastProdVersionCommitID: 681f9a8
+## LastDevVersionCommitID: c1e174e
 ## Description: Console-focused quality-of-life tools.
 ## SavedVariables: NQOLSavedVariablesDev NQOLLanguageSettingsDev
-## OptionalDependsOn: LibFoodDrinkBuff LibCustomNames LibGPS>=73 LibQRC>=046 LibLazyCrafting>=4035 DolgubonsLazyWritCreator
+## OptionalDependsOn: LibFoodDrinkBuff LibCustomNames LibGPS>=73 LibQRC>=046 LibLazyCrafting>=4035 DolgubonsLazyWritCreator AddonLoadouts
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax
 ; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
@@ -23,10 +23,12 @@ Vendor/LibFoodDrinkBuff/API.lua
 Core/Lexicon.lua
 Core/Util.lua
 Core/Settings.lua
+Core/Initialization.lua
 Core/Chat.lua
 Core/FirstRun.lua
 Data/WhatsNew.lua
 Core/WhatsNew.lua
+Features/AddonLoadouts.lua
 Features/SlashCommands.lua
 Features/Mounts.lua
 Features/Antiquities.lua
@@ -59,6 +61,7 @@ Features/Chat.lua
 Features/ChatMissingItemRequests.lua
 Features/ChatReminders.lua
 Features/Friends.lua
+Features/Guilds.lua
 Features/GroupFinderMonitor.lua
 Features/GroupFinderMonitorHud.lua
 Features/Grouping.lua

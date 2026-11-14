@@ -9,12 +9,14 @@ local in_hud = true
 local user_visible = { graph = false }
 local restore = {}
 local graph_shown = false
-local AUX_WINDOWS = { "VermilionSettingsPanel", "VermilionSettingsConfirm", "VermilionLibrary", "VermilionAssignPanel" }
+local AUX_WINDOWS = { "VermilionSettingsPanel", "VermilionLibrary", "VermilionAbout", "VermilionAssignPanel" }
+local hud_watchers = {}
 
 local function apply()
   if VermilionGraphWindow then
     local show = in_hud and user_visible.graph
     VermilionGraphWindow:SetHidden(not show)
+    if not show and Vermilion.Graph and Vermilion.Graph.record_panel_close then Vermilion.Graph.record_panel_close() end
     if show and not graph_shown and Vermilion.Graph and Vermilion.Graph.on_shown then
       Vermilion.Graph.on_shown()
     end
@@ -37,13 +39,12 @@ local function apply()
   if Vermilion.Logo then
     Vermilion.Logo.sync(in_hud and not user_visible.graph)
   end
+  for i = 1, #hud_watchers do hud_watchers[i](in_hud) end
 end
 
-local function persist()
-  local sv = Vermilion.SavedVars
-  if not sv then return end
-  sv.graph = sv.graph or {}
-  sv.graph.visible = user_visible.graph
+function M.watch_hud(fn)
+  hud_watchers[#hud_watchers + 1] = fn
+  fn(in_hud)
 end
 
 function M.set(key, visible)
@@ -51,7 +52,6 @@ function M.set(key, visible)
   log:info("set", key, "->", visible and "visible" or "hidden")
   user_visible[key] = visible
   apply()
-  persist()
 end
 
 function M.get(key) return user_visible[key] or false end
@@ -61,10 +61,7 @@ function M.master_toggle()
 end
 
 function M.init()
-  local sv = Vermilion.SavedVars
-  if sv then
-    user_visible.graph = (sv.graph and sv.graph.visible) or false
-  end
+  user_visible.graph = false
 
   Scene.register_callback("SceneStateChanged",
     function(scene, oldState, newState)

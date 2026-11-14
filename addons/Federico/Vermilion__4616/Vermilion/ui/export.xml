@@ -1,0 +1,88 @@
+<GuiXml>
+  <Controls>
+
+    <TopLevelControl name="VermilionExport"
+                     tier="HIGH"
+                     hidden="true"
+                     clampedToScreen="true"
+                     movable="true"
+                     mouseEnabled="true">
+      <Dimensions x="680" y="500"/>
+      <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER"/>
+      <Controls>
+        <Backdrop name="$(parent)Bg">
+          <AnchorFill/>
+          <Edge file="EsoUI/Art/Tooltips/UI-Border.dds"
+                edgeFileWidth="128" edgeFileHeight="16" edgeSize="6"/>
+          <Center file="EsoUI/Art/Tooltips/UI-TooltipCenter.dds"/>
+          <Insets left="6" top="6" right="-6" bottom="-6"/>
+        </Backdrop>
+        <Texture name="$(parent)BrandLogo" textureFile="Vermilion/assets/logo.dds">
+          <Anchor point="TOPLEFT" offsetX="12" offsetY="8"/>
+          <Dimensions x="24" y="24"/>
+        </Texture>
+        <Label name="$(parent)WindowTitle"
+               font="ZoFontWindowTitle"
+               horizontalAlignment="LEFT"
+               verticalAlignment="CENTER">
+          <Anchor point="TOPLEFT" offsetX="42" offsetY="10"/>
+          <Dimensions y="18"/>
+        </Label>
+        <Button name="$(parent)CloseBtn" mouseEnabled="true"
+                inherits="ZO_ButtonBehaviorClickSound">
+          <Anchor point="TOPRIGHT" offsetX="-8" offsetY="8"/>
+          <Dimensions x="16" y="16"/>
+          <OnClicked>Vermilion.Export.hide()</OnClicked>
+        </Button>
+        <Backdrop name="$(parent)Body">
+          <Anchor point="TOPLEFT" offsetX="14" offsetY="40"/>
+          <Anchor point="BOTTOMRIGHT" offsetX="-14" offsetY="-46"/>
+        </Backdrop>
+        <Control name="$(parent)Progress" hidden="true">
+          <Anchor point="CENTER" offsetY="-10"/>
+          <Dimensions x="320" y="30"/>
+        </Control>
+        <Button name="$(parent)SelectBtn" mouseEnabled="true" font="ZoFontGameSmall"
+                inherits="ZO_DefaultButton">
+          <Anchor point="BOTTOMLEFT" offsetX="14" offsetY="-12"/>
+          <Dimensions x="104" y="24"/>
+          <OnClicked>Vermilion.Export.on_select_click()</OnClicked>
+        </Button>
+        <Label name="$(parent)Hint" font="ZoFontGameSmall"
+               horizontalAlignment="LEFT" verticalAlignment="CENTER">
+          <Anchor point="BOTTOMLEFT" offsetX="126" offsetY="-12"/>
+          <Dimensions x="160" y="24"/>
+        </Label>
+        <Label name="$(parent)Size" font="ZoFontGameSmall"
+               horizontalAlignment="RIGHT" verticalAlignment="CENTER">
+          <Anchor point="BOTTOMRIGHT" offsetX="-190" offsetY="-12"/>
+          <Dimensions x="150" y="24"/>
+        </Label>
+        <Button name="$(parent)PrevBtn" mouseEnabled="true" mouseOverBlendMode="ADD"
+                inherits="ZO_ButtonBehaviorClickSound">
+          <Anchor point="BOTTOMRIGHT" offsetX="-160" offsetY="-14"/>
+          <Dimensions x="20" y="20"/>
+          <Textures normal="Vermilion/assets/skin/arrow_left_up.dds"
+                    pressed="Vermilion/assets/skin/arrow_left_down.dds"
+                    mouseOver="Vermilion/assets/skin/arrow_left_over.dds"/>
+          <OnClicked>Vermilion.Export.prev_page()</OnClicked>
+        </Button>
+        <Label name="$(parent)Part" font="ZoFontGameSmall"
+               horizontalAlignment="CENTER" verticalAlignment="CENTER">
+          <Anchor point="BOTTOMRIGHT" offsetX="-38" offsetY="-12"/>
+          <Dimensions x="120" y="24"/>
+        </Label>
+        <Button name="$(parent)NextBtn" mouseEnabled="true" mouseOverBlendMode="ADD"
+                inherits="ZO_ButtonBehaviorClickSound">
+          <Anchor point="BOTTOMRIGHT" offsetX="-14" offsetY="-14"/>
+          <Dimensions x="20" y="20"/>
+          <Textures normal="Vermilion/assets/skin/arrow_right_up.dds"
+                    pressed="Vermilion/assets/skin/arrow_right_down.dds"
+                    mouseOver="Vermilion/assets/skin/arrow_right_over.dds"/>
+          <OnClicked>Vermilion.Export.next_page()</OnClicked>
+        </Button>
+      </Controls>
+    </TopLevelControl>
+
+  </Controls>
+</GuiXml>

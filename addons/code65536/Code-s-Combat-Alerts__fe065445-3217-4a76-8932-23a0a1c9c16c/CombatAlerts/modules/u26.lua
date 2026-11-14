@@ -26,12 +26,14 @@ Module.STRINGS = {
 	telegraphSpear = { default = "Show telepgrah for Exploding Spear" },
 	telegraphMeteor = { default = "Show telegraph for Meteor" },
 	telegraphInstability = { default = "Improve telegraph for Instability" },
+	telegraphIchorSphere = { default = "Show telegraph for Ichor Sphere" },
 }
 
 Module.DEFAULT_SETTINGS = {
 	telegraphSpear = true,
 	telegraphMeteor = true,
 	telegraphInstability = true,
+	telegraphIchorSphere = true,
 }
 
 Module.DATA = {
@@ -377,8 +379,10 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 				rowLabels = LCA.GetAbilityName(DATA.ichorEruption),
 				pollingFunction = self.StatusPoll_B3B,
 			})
+			self:ToggleIchorSphereTelegraph(true)
 		elseif (result == ACTION_RESULT_EFFECT_FADED) then
 			CA2.StatusDisable()
+			self:ToggleIchorSphereTelegraph(false)
 		end
 	elseif (abilityId == DATA.apotheosis) then
 		if (result == ACTION_RESULT_EFFECT_GAINED) then
@@ -426,6 +430,28 @@ do
 	end
 end
 
+function Module:ToggleIchorSphereTelegraph( enable )
+	-- Always clear out any existing telegraphs
+	if (Vars.ichorTelegraphId) then
+		CA2.WorldElementRemove(Vars.ichorTelegraphId)
+		Vars.ichorTelegraphId = nil
+	end
+
+	if (enable and self:GetSetting("telegraphIchorSphere")) then
+		Vars.ichorTelegraphId = CA2.WorldTexturePlace({
+			pos = { 25026, 14569, 9972 },
+			texture = "world-circle",
+			size = 800,
+			color = LCA.GetTelegraphColor(false),
+		})
+	end
+
+	-- Coordinates use here were converted from esologs by M0R
+	-- For reference, less precise coordinates manually obtained were:
+	-- WP 79118,14569,56007
+	-- RWP 25043,14569,9991
+end
+
 function Module:GetSettingsControls( )
 	return {
 		--------------------
@@ -448,6 +474,13 @@ function Module:GetSettingsControls( )
 			name = self:GetString("telegraphInstability"),
 			getFunc = function() return self:GetSetting("telegraphInstability") end,
 			setFunc = function(enabled) self:SetSetting("telegraphInstability", enabled) end,
+		},
+		--------------------
+		{
+			type = "checkbox",
+			name = self:GetString("telegraphIchorSphere"),
+			getFunc = function() return self:GetSetting("telegraphIchorSphere") end,
+			setFunc = function(enabled) self:SetSetting("telegraphIchorSphere", enabled) end,
 		},
 	}
 end

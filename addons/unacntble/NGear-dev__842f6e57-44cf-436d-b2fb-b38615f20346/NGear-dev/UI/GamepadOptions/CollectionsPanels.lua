@@ -62,44 +62,44 @@ function GamepadOptions.BuildItemLocatorOptionsData()
     }
 end
 
-function GamepadOptions.BuildGearOptionsData()
-    local panelId = PanelIds.GEAR
-    local gear = NGear.Features.CollectionsGear
+function GamepadOptions.BuildStickerBookOptionsData()
+    local panelId = PanelIds.STICKER_BOOK
+    local stickerBook = NGear.Features.StickerBook
     local options = {}
     options[#options + 1] = GamepadOptions.BuildCheckboxOption(
         panelId, 1,
-        gear.GetSetCardLabel(), gear.GetSetCardTooltip(), gear.GetSetCard, gear.SetSetCard
+        stickerBook.GetSetCardLabel(), stickerBook.GetSetCardTooltip(), stickerBook.GetSetCard, stickerBook.SetSetCard
     )
     options[#options + 1] = GamepadOptions.BuildCheckboxOption(
         panelId, 2,
-        gear.GetShowWatermarkLabel(), gear.GetShowWatermarkTooltip(),
-        gear.GetShowWatermark, gear.SetShowWatermark, nil, gear.GetShowWatermarkDefault
+        stickerBook.GetShowWatermarkLabel(), stickerBook.GetShowWatermarkTooltip(),
+        stickerBook.GetShowWatermark, stickerBook.SetShowWatermark, nil, stickerBook.GetShowWatermarkDefault
     )
     options[#options + 1] = GamepadOptions.BuildPositionSliderOption(
             panelId, 3,
-            gear.GetHorizontalPositionLabel(), gear.GetHorizontalPositionTooltip(),
-            0, 100, "%.0f", gear.GetHorizontalPosition, gear.SetHorizontalPosition
+            stickerBook.GetHorizontalPositionLabel(), stickerBook.GetHorizontalPositionTooltip(),
+            0, 100, "%.0f", stickerBook.GetHorizontalPosition, stickerBook.SetHorizontalPosition
         )
     options[#options + 1] = GamepadOptions.BuildPositionSliderOption(
             panelId, 4,
-            gear.GetVerticalPositionLabel(), gear.GetVerticalPositionTooltip(),
-            0, 100, "%.0f", gear.GetVerticalPosition, gear.SetVerticalPosition
+            stickerBook.GetVerticalPositionLabel(), stickerBook.GetVerticalPositionTooltip(),
+            0, 100, "%.0f", stickerBook.GetVerticalPosition, stickerBook.SetVerticalPosition
         )
     options[#options + 1] = GamepadOptions.BuildFiniteListOption(
             panelId, 5,
-            gear.GetFontLabel(), gear.GetFontTooltip(),
-            gear.GetFontChoices(), gear.GetFontChoiceNames(), gear.GetFont, gear.SetFont
+            stickerBook.GetFontLabel(), stickerBook.GetFontTooltip(),
+            stickerBook.GetFontChoices(), stickerBook.GetFontChoiceNames(), stickerBook.GetFont, stickerBook.SetFont
         )
     options[#options + 1] = GamepadOptions.BuildValueStepSliderOption(
             panelId, 6,
-            gear.GetScaleLabel(), gear.GetScaleTooltip(),
-            gear.GetScaleMin(), gear.GetScaleMax(), "%.0f%%", gear.GetScale, gear.SetScale, 5
+            stickerBook.GetScaleLabel(), stickerBook.GetScaleTooltip(),
+            stickerBook.GetScaleMin(), stickerBook.GetScaleMax(), "%.0f%%", stickerBook.GetScale, stickerBook.SetScale, 5
         )
     options[#options + 1] = GamepadOptions.BuildSliderOption(
             panelId, 7,
-            gear.GetBackgroundOpacityLabel(), gear.GetBackgroundOpacityTooltip(),
-            gear.GetBackgroundOpacityMin(), gear.GetBackgroundOpacityMax(), "%.0f",
-            gear.GetBackgroundOpacity, gear.SetBackgroundOpacity, 1
+            stickerBook.GetBackgroundOpacityLabel(), stickerBook.GetBackgroundOpacityTooltip(),
+            stickerBook.GetBackgroundOpacityMin(), stickerBook.GetBackgroundOpacityMax(), "%.0f",
+            stickerBook.GetBackgroundOpacity, stickerBook.SetBackgroundOpacity, 1
         )
     return options
 end

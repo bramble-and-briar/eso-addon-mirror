@@ -23,14 +23,13 @@ assert(report.buffs[1].covered == 120 and report.buffs[1].duration == 1200 and r
 local count = #saved.uptimeHistory
 showReports.setFunction(false)
 fight(2000)
-assert(#saved.uptimeHistory == count + 1 and #saved.lastUptimeReport.buffs == 0
-    and #saved.lastUptimeReport.skills > 0 and saved.uptimeHistory[2] == report,
-    "Tracker exclusion removes that buff from new reports; independent skill damage and saved history remain")
+assert(#saved.uptimeHistory == count and saved.lastUptimeReport == report,
+    "With all trackers excluded, no empty report or skill damage report is stored")
 showHud.setFunction(true)
 assert(not hud.hidden and config.showInReports == false, "HUD and report switches are independent")
 showReports.setFunction(true)
 fight(3000)
-assert(#saved.uptimeHistory == count + 2 and saved.lastUptimeReport ~= report)
+assert(#saved.uptimeHistory == count + 1 and saved.lastUptimeReport ~= report)
 
 -- Exercise fallback capture and enemy filtering independently of the library.
 local reports = LiveBuffUptimeReports
@@ -41,7 +40,7 @@ local personal = {config = {id = 61771, unit = "player", showHud = false}, displ
 local enemy = {config = {id = 39077, unit = "reticleover", showInReports = false}}
 local function capture(time)
     reports.BeginEncounter(time, true, "player")
-    reports.RecordDamage(COMBAT_UNIT_TYPE_PLAYER, 999, 900, "Boss", 100)
+    reports.RecordEnemy(COMBAT_UNIT_TYPE_PLAYER, 999, 900, "Boss", 100)
     reports.RecordDebuff(39077, 900, "Boss", 1, time, time + 5, true)
     personal.state = {since = time, intervals = {{time, time + 5}}}
     reports.CaptureFallback({personal, enemy}, time, time + 10, 10, false,

@@ -13,6 +13,7 @@ Vermilion.zenimax.api = {}
 local M = Vermilion.zenimax.api
 
 M.GetGameTimeMilliseconds = GetGameTimeMilliseconds
+M.GetFrameDeltaMilliseconds = GetFrameDeltaMilliseconds
 M.GetAPIVersion           = GetAPIVersion
 M.GetWorldName            = GetWorldName
 
@@ -35,6 +36,14 @@ M.GetZoneNameByIndex      = GetZoneNameByIndex
 M.GetSlotName                            = GetSlotName
 M.GetSlotBoundId                         = GetSlotBoundId
 M.GetSlotAbilityCost                     = GetSlotAbilityCost
+M.GetAbilityBaseCostInfo                 = GetAbilityBaseCostInfo
+M.GetSlotType                            = GetSlotType
+M.GetAbilityIdForCraftedAbilityId        = GetAbilityIdForCraftedAbilityId
+M.GetAbilityCost                         = GetAbilityCost
+M.GetAbilityCastInfo                     = GetAbilityCastInfo
+M.IsUnitDead                             = IsUnitDead
+M.GetDuelInfo                            = GetDuelInfo
+M.GetPlayerStat                          = GetPlayerStat
 M.GetActiveHotbarCategory                = GetActiveHotbarCategory
 M.GetUnitPower                           = GetUnitPower
 M.GetAbilityName                         = GetAbilityName
@@ -50,7 +59,12 @@ M.GetDateStringFromTimestamp = GetDateStringFromTimestamp
 M.AreUnitsEqual    = AreUnitsEqual
 M.DoesUnitExist    = DoesUnitExist
 M.ReloadUI         = ReloadUI
+M.StartChatInput   = StartChatInput
+M.SetEncounterLogEnabled = SetEncounterLogEnabled
+M.IsEncounterLogEnabled  = IsEncounterLogEnabled
+M.GetEncounterLogVersion = GetEncounterLogVersion
 M.GetUIMousePosition = GetUIMousePosition
+M.IsShiftKeyDown     = IsShiftKeyDown
 M.GetUIGlobalScale   = GetUIGlobalScale
 M.MouseIsOver        = MouseIsOver
 

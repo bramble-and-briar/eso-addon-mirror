@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/snichols7778/Mini-Map-Coordinate-Block__5045",
+  "archive_path": "addons/snichols7778/Mini-Map-Coordinate-Block-PTS__5045",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "snichols7778",
@@ -18,7 +18,7 @@
     "MinimapCoords"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5045/",
-  "fingerprint": "e8617e7523f3c74862b60e0ab34eb19d2ba34d0ee5c2fa60f72479749dfb4772",
+  "fingerprint": "f3a2568819f9123e1e490cce6d2041a3c6e5d6b8b9c68a9ee9b5c9cae208c28e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18409.png"
   ],
@@ -26,13 +26,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "5045",
-  "source_url": "https://www.esoui.com/downloads/info5045-MiniMapCoordinateBlock.html",
+  "source_url": "https://www.esoui.com/downloads/info5045-MiniMapCoordinateBlockPTS.html",
   "stats": {
-    "downloads": 4,
+    "downloads": 13,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 8
   },
-  "title": "Mini Map Coordinate Block",
+  "title": "Mini Map Coordinate Block(PTS)",
   "updated_at": 1794534140000,
   "version": "1.03"
 }

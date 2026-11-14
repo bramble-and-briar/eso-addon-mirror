@@ -59,6 +59,7 @@ local autoInvitePendingNames = {}
 local autoInvitePendingTimes = {}
 local autoInviteLastInviteTimes = {}
 local autoInviteDeclinedTimes = {}
+local RefreshInviteResponseEvent
 
 local StripChatMarkup = NQOL.Util.StripChatMarkup
 
@@ -208,7 +209,7 @@ local function NormalizePlayerName(name)
         normalizedName = zo_strformat("<<1>>", normalizedName)
     end
 
-    return string.lower(normalizedName)
+    return NQOL.Util.Lower(normalizedName)
 end
 
 local function NamesMatch(leftName, rightName)
@@ -246,7 +247,10 @@ local function IsGroupedPlayer(targetName, fromName, fromDisplayName)
 end
 
 local function HasReachedAutoInviteGroupSize(maxGroupSize)
-    return GetGroupSize and GetGroupSize() >= maxGroupSize
+    -- ESO reports zero when solo, but the player still occupies a group slot.
+    local reservedSize = math.max(1, GetGroupSize and GetGroupSize() or 0)
+    for _ in pairs(autoInvitePendingTimes) do reservedSize = reservedSize + 1 end
+    return reservedSize >= maxGroupSize
 end
 
 local function GetNowMilliseconds()
@@ -350,6 +354,10 @@ local function GetAutoInviteDelayReason(targetName, fromName, fromDisplayName, s
     local declinedDelay = settings.declinedDelayMinutes or AUTO_INVITE_DECLINED_DELAY_MINUTES_DEFAULT
     local reinviteDelay = settings.reinviteDelayMinutes or AUTO_INVITE_REINVITE_DELAY_MINUTES_DEFAULT
 
+    if autoInvitePendingNames[targetKey] or autoInvitePendingNames[fromKey] or autoInvitePendingNames[displayKey] then
+        return "invited"
+    end
+
     if IsDelayActive(autoInviteDeclinedTimes[targetKey], declinedDelay)
         or IsDelayActive(autoInviteDeclinedTimes[fromKey], declinedDelay)
         or IsDelayActive(autoInviteDeclinedTimes[displayKey], declinedDelay) then
@@ -363,6 +371,14 @@ local function GetAutoInviteDelayReason(targetName, fromName, fromDisplayName, s
     end
 
     return nil
+end
+
+local function ReconcileAutoInviteMembers()
+    -- Retain accepted reservations until the member is actually in ESO's roster.
+    -- This also handles membership arriving before the acceptance response.
+    for nameKey, inviteKey in pairs(autoInvitePendingNames) do
+        if IsGroupedPlayer(nameKey) then ClearAutoInvitePending(inviteKey) end
+    end
 end
 
 local function OnGroupInviteResponse(_, characterName, response, displayName)
@@ -381,15 +397,21 @@ local function OnGroupInviteResponse(_, characterName, response, displayName)
         return
     end
 
-    ClearAutoInvitePending(inviteKey)
-
-    if response == GROUP_INVITE_RESPONSE_DECLINED then
-        autoInviteLastInviteTimes[inviteKey] = nil
-        autoInviteDeclinedTimes[inviteKey] = GetNowMilliseconds()
-    elseif response == GROUP_INVITE_RESPONSE_ACCEPTED then
+    if response == GROUP_INVITE_RESPONSE_INVITED then return end
+    if response == GROUP_INVITE_RESPONSE_ACCEPTED then
+        autoInvitePendingTimes[inviteKey] = GetNowMilliseconds()
         autoInviteLastInviteTimes[inviteKey] = nil
         autoInviteDeclinedTimes[inviteKey] = nil
+        ReconcileAutoInviteMembers()
+    else
+        -- Declines and terminal invitation errors both free the reserved slot.
+        ClearAutoInvitePending(inviteKey)
+        autoInviteLastInviteTimes[inviteKey] = nil
+        if response == GROUP_INVITE_RESPONSE_DECLINED then
+            autoInviteDeclinedTimes[inviteKey] = GetNowMilliseconds()
+        end
     end
+    RefreshInviteResponseEvent()
 end
 
 local function RegisterInviteResponseEvent()
@@ -399,6 +421,12 @@ local function RegisterInviteResponseEvent()
 
     inviteResponseEventRegistered = true
     EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE .. "_InviteResponse", EVENT_GROUP_INVITE_RESPONSE, OnGroupInviteResponse)
+    if EVENT_GROUP_MEMBER_JOINED then
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE .. "_InviteMembers", EVENT_GROUP_MEMBER_JOINED, ReconcileAutoInviteMembers)
+    end
+    if EVENT_GROUP_UPDATE then
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE .. "_InviteMembers", EVENT_GROUP_UPDATE, ReconcileAutoInviteMembers)
+    end
 end
 
 local function UnregisterInviteResponseEvent()
@@ -408,11 +436,17 @@ local function UnregisterInviteResponseEvent()
 
     inviteResponseEventRegistered = false
     EVENT_MANAGER:UnregisterForEvent(EVENT_NAMESPACE .. "_InviteResponse", EVENT_GROUP_INVITE_RESPONSE)
+    if EVENT_GROUP_MEMBER_JOINED then
+        EVENT_MANAGER:UnregisterForEvent(EVENT_NAMESPACE .. "_InviteMembers", EVENT_GROUP_MEMBER_JOINED)
+    end
+    if EVENT_GROUP_UPDATE then
+        EVENT_MANAGER:UnregisterForEvent(EVENT_NAMESPACE .. "_InviteMembers", EVENT_GROUP_UPDATE)
+    end
 end
 
-local function RefreshInviteResponseEvent()
+RefreshInviteResponseEvent = function()
     local settings = GetSettings()
-    if settings.mode ~= AUTO_INVITE_OFF and settings.triggerText ~= "" then
+    if (settings.mode ~= AUTO_INVITE_OFF and settings.triggerText ~= "") or next(autoInvitePendingTimes) ~= nil then
         RegisterInviteResponseEvent()
     else
         UnregisterInviteResponseEvent()
@@ -438,6 +472,7 @@ function GroupingFeature.HandleChatMessage(messageType, fromName, rawText, fromD
     local triggerText = settings.triggerText
 
     PruneAutoInviteState(settings)
+    ReconcileAutoInviteMembers()
 
     if settings.mode == AUTO_INVITE_OFF or triggerText == "" then
         return
@@ -476,8 +511,15 @@ function GroupingFeature.HandleChatMessage(messageType, fromName, rawText, fromD
         return
     end
 
-    GroupInviteByName(targetName)
+    -- Reserve first: a synchronous failure/response must see this invitation.
     TrackAutoInvite(targetName, fromName, fromDisplayName)
+    local ok, failure = pcall(GroupInviteByName, targetName)
+    if not ok then
+        local targetKey = NormalizePlayerName(targetName)
+        ClearAutoInvitePending(targetKey)
+        autoInviteLastInviteTimes[targetKey] = nil
+        error(failure)
+    end
 
     if settings.logInChat then
         NQOL.Chat.Message(NQOL.L("features.grouping.invited_after_request", targetName), NQOL.L("features.grouping.feature_name"))

@@ -40,7 +40,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [WerewolfHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/im_rookie/WerewolfHelper__3832) | im_rookie | PC / Mac | 1.1 |
 | [Werra's Guild Addons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werra/Werra-s-Guild-Addons__3982) | Werra | PC / Mac | 1.0 |
 | [WestonUi](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BuckleyChance/WestonUi__c2664980-589b-4f81-a99e-02204268cab3) | BuckleyChance | Console | — |
-| [Weyland Huntsman's Warmask Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weyland/Weyland-Huntsman-s-Warmask-Tracker__5040) | Weyland | PC / Mac | 1.0.1 |
+| [Weyland Huntsman's Warmask Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weyland/Weyland-Huntsman-s-Warmask-Tracker__5040) | Weyland | PC / Mac | 1.1.0 |
 | [Weyland Vampire Stage Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weyland/Weyland-Vampire-Stage-Tracker__5035) | Weyland | PC / Mac | 1.2.2 |
 | [What Bar Am I On](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CyberOnEso/What-Bar-Am-I-On__1667) | CyberOnEso | PC / Mac | 1 |
 | [What Class Am I?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ace-r/What-Class-Am-I__4138) | Ace'r | PC / Mac | 1.0 |

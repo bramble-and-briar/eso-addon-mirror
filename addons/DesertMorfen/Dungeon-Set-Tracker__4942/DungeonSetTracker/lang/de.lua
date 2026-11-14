@@ -9,6 +9,7 @@ for key, text in pairs({
     LEGEND_VETERAN_ONLY = "Nur Veteran",
     LEGEND_PERFECTED = "Perfektioniert",
     HINT_KEEP_OPEN = "Halte Umschalt gedrückt, damit das Fenster offen bleibt, und zeige dann auf ein Teil, um es anzusehen.",
+    HINT_KEEP_OPEN_TABS = "Halte Umschalt gedrückt, damit das Fenster offen bleibt: Zeige auf ein Teil, um es anzusehen; Seiten wechselst du mit den Reitern oder dem Mausrad.",
 
     CHAT_ENTER = "%s: %s Teile gesammelt",
     CHAT_NEW_PIECE = "Neues Teil: %s (%s %s)",

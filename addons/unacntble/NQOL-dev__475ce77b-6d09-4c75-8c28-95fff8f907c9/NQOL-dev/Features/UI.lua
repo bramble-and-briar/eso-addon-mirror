@@ -34,7 +34,7 @@ local ACTIVE_COMBAT_TIPS_PREVIEW_WIDTH = 250
 local ACTIVE_COMBAT_TIPS_PREVIEW_HEIGHT = 20
 local SYNERGY_PROMPTS_PREVIEW_WIDTH = 200
 local SYNERGY_PROMPTS_PREVIEW_HEIGHT = 50
-local ACTIVE_QUEST_SEPARATION_KEYS = { { false, "originalSeparatedKeyboard" }, { true, "originalSeparatedGamepad" } }
+local HUD_TRACKER_SEPARATION_KEYS = { { false, "originalSeparatedKeyboard" }, { true, "originalSeparatedGamepad" } }
 local MOVABLE_UI_FRAMES = {
     announcements = {
         controlName = "ZO_AlertTextNotificationGamepad",
@@ -63,6 +63,26 @@ local MOVABLE_UI_FRAMES = {
                 control:SetAnchor(TOPRIGHT, ZO_EndDunHUDTracker, TOPRIGHT, -15, 0)
             end
         end,
+    },
+    goldenPursuit = {
+        trackerName = "TIMED_ACTIVITY_TRACKER",
+        separationKey = "Aspiration",
+        previewName = "GoldenPursuit",
+        label = NQOL.L("features.ui.golden_pursuit"),
+        width = 350,
+        height = 120,
+        defaultHorizontalPosition = 100,
+        defaultVerticalPosition = 0,
+    },
+    houseTracker = {
+        trackerName = "HOUSE_INFORMATION_TRACKER",
+        separationKey = "House",
+        previewName = "HouseTracker",
+        label = NQOL.L("features.ui.house_tracker"),
+        width = 350,
+        height = 120,
+        defaultHorizontalPosition = 100,
+        defaultVerticalPosition = 15,
     },
     playerInteraction = {
         controlName = "ZO_PlayerToPlayerAreaPromptContainer",
@@ -100,6 +120,8 @@ local PREVIEW_BORDER_LABELS = {
     ActiveQuest = NQOL.L("ui.gamepad_options.active_quest_8036d24"),
     Announcements = NQOL.L("features.ui.announcements"),
     InfiniteArchive = NQOL.L("features.ui.infinite_archive"),
+    GoldenPursuit = NQOL.L("features.ui.golden_pursuit"),
+    HouseTracker = NQOL.L("features.ui.house_tracker"),
     PlayerInteraction = NQOL.L("features.ui.player_interaction"),
     SynergyPrompts = NQOL.L("features.ui.synergy_prompts"),
     Subtitles = NQOL.L("features.ui.subtitles"),
@@ -108,12 +130,16 @@ local PREVIEW_BORDER_LABELS = {
 NQOL.Lexicon.RegisterRefreshCallback(function()
     MOVABLE_UI_FRAMES.announcements.label = NQOL.L("features.ui.announcements")
     MOVABLE_UI_FRAMES.infiniteArchive.label = NQOL.L("features.ui.infinite_archive_frame_53d0c3a")
+    MOVABLE_UI_FRAMES.goldenPursuit.label = NQOL.L("features.ui.golden_pursuit")
+    MOVABLE_UI_FRAMES.houseTracker.label = NQOL.L("features.ui.house_tracker")
     MOVABLE_UI_FRAMES.playerInteraction.label = NQOL.L("features.ui.player_interaction_e138127")
     MOVABLE_UI_FRAMES.subtitles.label = NQOL.L("features.ui.subtitles_1777047")
     PREVIEW_BORDER_LABELS.ActiveCombatTips = NQOL.L("features.ui.active_combat_tips")
     PREVIEW_BORDER_LABELS.ActiveQuest = NQOL.L("ui.gamepad_options.active_quest_8036d24")
     PREVIEW_BORDER_LABELS.Announcements = NQOL.L("features.ui.announcements")
     PREVIEW_BORDER_LABELS.InfiniteArchive = NQOL.L("features.ui.infinite_archive")
+    PREVIEW_BORDER_LABELS.GoldenPursuit = NQOL.L("features.ui.golden_pursuit")
+    PREVIEW_BORDER_LABELS.HouseTracker = NQOL.L("features.ui.house_tracker")
     PREVIEW_BORDER_LABELS.PlayerInteraction = NQOL.L("features.ui.player_interaction")
     PREVIEW_BORDER_LABELS.SynergyPrompts = NQOL.L("features.ui.synergy_prompts")
     PREVIEW_BORDER_LABELS.Subtitles = NQOL.L("features.ui.subtitles")
@@ -123,6 +149,7 @@ end)
 local defaults = {
     ui = {
         combatReticle = {
+            showWhen = "always",
             shape = "default",
             scale = 1,
             animated = true,
@@ -167,6 +194,16 @@ local defaults = {
             horizontalPosition = 100,
             verticalPosition = 0,
         },
+        goldenPursuit = {
+            enabled = false,
+            horizontalPosition = 100,
+            verticalPosition = 0,
+        },
+        houseTracker = {
+            enabled = false,
+            horizontalPosition = 100,
+            verticalPosition = 15,
+        },
         playerInteraction = {
             enabled = false,
             horizontalPosition = 50,
@@ -189,7 +226,7 @@ local defaults = {
 local savedVariables
 local initialized = false
 local activeQuestApplyQueued = false
-local activeQuestLayoutHookInstalled = false
+local hudTrackerLayoutHookInstalled = false
 local activeCombatTipsApplyQueued = false
 local synergyPromptsApplyQueued = false
 local centerScreenAnnounceApplyQueued = false
@@ -224,6 +261,9 @@ local runtimeState = {
     synergyPromptsActive = false,
     centerScreenAnnounceActive = false,
     movableUiFrameActive = {},
+    hudTrackerApplying = {},
+    hudTrackerUpdateHooks = {},
+    hudTrackerFragmentHooks = {},
     anyMovableUiFrameActive = false,
     alertTextsActive = false,
     dungeonFinderSortActive = false,
@@ -255,6 +295,7 @@ local function GetSettings()
 
     local combatReticleSettings = NQOL.Settings.EnsureTable(settings, "combatReticle")
     local combatReticleDefaults = defaults.ui.combatReticle
+    NQOL.Settings.Default(combatReticleSettings, combatReticleDefaults, "showWhen")
     NQOL.Settings.Default(combatReticleSettings, combatReticleDefaults, "shape")
     NQOL.Settings.ClampedNumber(combatReticleSettings, combatReticleDefaults, "scale", 1, 10)
     NQOL.Settings.Boolean(combatReticleSettings, combatReticleDefaults, "animated")
@@ -467,7 +508,7 @@ local function ApplyActiveQuestPosition()
         end
     else
         local hadSeparationOverride = false
-        for _, entry in ipairs(ACTIVE_QUEST_SEPARATION_KEYS) do
+        for _, entry in ipairs(HUD_TRACKER_SEPARATION_KEYS) do
             local original = settings[entry[2]]
             if original ~= nil then
                 hadSeparationOverride = true
@@ -503,13 +544,18 @@ local function ApplyActiveQuestPosition()
     UpdatePositionPreviewBorder("ActiveQuest", settings, activeQuestSettingsPanelVisible, width, height)
 end
 
-local function InstallActiveQuestLayoutHook()
-    if activeQuestLayoutHookInstalled or not HUD_TRACKER_MANAGER or not HUD_TRACKER_MANAGER.RefreshLayout then
+local function InstallHudTrackerLayoutHook()
+    if hudTrackerLayoutHookInstalled or not HUD_TRACKER_MANAGER or not HUD_TRACKER_MANAGER.RefreshLayout then
         return
     end
 
-    activeQuestLayoutHookInstalled = true
-    SecurePostHook(HUD_TRACKER_MANAGER, "RefreshLayout", ApplyActiveQuestPosition)
+    hudTrackerLayoutHookInstalled = true
+    SecurePostHook(HUD_TRACKER_MANAGER, "RefreshLayout", function()
+        ApplyActiveQuestPosition()
+        for key, frame in pairs(MOVABLE_UI_FRAMES) do
+            if frame.trackerName then runtimeState.ApplyHudTrackerPosition(key) end
+        end
+    end)
 end
 
 local function ApplyMovedControlPosition(control, settings, settingsPanelVisible, showControlInPreview)
@@ -532,6 +578,82 @@ local function ApplyMovedControlPosition(control, settings, settingsPanelVisible
     if settingsPanelVisible and settings.showInSettings == true and showControlInPreview ~= false then
         control:SetHidden(false)
     end
+end
+
+function runtimeState.ApplyHudTrackerPosition(key)
+    if runtimeState.hudTrackerApplying[key] then return end
+    local settings = GetMovableUiFrameSettings(key)
+    local frame = MOVABLE_UI_FRAMES[key]
+    local manager = HUD_TRACKER_MANAGER
+    local tracker = _G[frame.trackerName]
+    local control = tracker and tracker.control
+    if manager and manager.isFullyLoaded and control and GuiRoot then
+        -- Native separation removes the clipping scroll parent and keeps housing
+        -- out of this tracker's anchor chain. ESO still owns tracker visibility
+        -- and the achievement tracker linked to the Aspiration HUD element.
+        runtimeState.hudTrackerApplying[key] = true
+        if settings.enabled == true then
+            local element = manager:GetPlatformHUDElement()
+            local originalKey = IsInGamepadPreferredMode() and "originalSeparatedGamepad" or "originalSeparatedKeyboard"
+            local separated = element:GetCustomOptionValue("SeparatedTrackers", frame.separationKey) == true
+            if settings[originalKey] == nil then
+                settings[originalKey] = separated
+            end
+            if not separated then
+                element:SetCustomOptionValue("SeparatedTrackers", frame.separationKey, true)
+            end
+            ApplyMovedControlPosition(control, settings, false, false)
+        else
+            local restored = false
+            for _, entry in ipairs(HUD_TRACKER_SEPARATION_KEYS) do
+                local original = settings[entry[2]]
+                if original ~= nil then
+                    settings[entry[2]] = nil
+                    local element = manager:GetHUDElement(entry[1])
+                    if element:GetCustomOptionValue("SeparatedTrackers", frame.separationKey) ~= original then
+                        element:SetCustomOptionValue("SeparatedTrackers", frame.separationKey, original)
+                    end
+                    restored = true
+                end
+            end
+            if restored then manager:RefreshLayout() end
+        end
+        runtimeState.hudTrackerApplying[key] = nil
+    end
+    local width = control and control:GetWidth() or 0
+    local height = control and control:GetHeight() or 0
+    UpdatePositionPreviewBorder(frame.previewName, settings, IsMovableUiFramePreviewActive(key),
+        width > 0 and width or frame.width, height > 0 and height or frame.height)
+end
+
+local nativeFrameAnchors = {}
+
+local function ApplyNativeFramePosition(control, settings)
+    if not control then return end
+    if settings.enabled == true then
+        if not nativeFrameAnchors[control] then
+            local valid, point, relativeTo, relativePoint, x, y, constraints = control:GetAnchor(0)
+            nativeFrameAnchors[control] = valid and { point, relativeTo, relativePoint, x, y, constraints } or {}
+        end
+        ApplyMovedControlPosition(control, settings, false, false)
+        return
+    end
+
+    local original = nativeFrameAnchors[control]
+    if not original then return end
+    -- These three controls are registered HUD_MANAGER elements. Restore ESO's
+    -- current platform/saved placement, without changing the HUD editor setting.
+    local getter = HUD_MANAGER and (IsInGamepadPreferredMode()
+        and HUD_MANAGER.GetGamepadElementForControl or HUD_MANAGER.GetKeyboardElementForControl)
+    local element = getter and getter(HUD_MANAGER, control)
+    if element and element.RevertOffsetModifications then
+        element:RevertOffsetModifications()
+    elseif original[1] then
+        -- Preserve the pre-override anchor if the native manager is not ready.
+        control:ClearAnchors()
+        control:SetAnchor(original[1], original[2], original[3], original[4], original[5], original[6])
+    end
+    nativeFrameAnchors[control] = nil
 end
 
 local function GetGlobalControl(name)
@@ -629,6 +751,10 @@ end
 local function ApplyMovableUiFramePosition(key)
     local frame = MOVABLE_UI_FRAMES[key]
     if not frame then
+        return
+    end
+    if frame.trackerName then
+        runtimeState.ApplyHudTrackerPosition(key)
         return
     end
 
@@ -853,7 +979,7 @@ end
 local function ApplyActiveCombatTipsPosition()
     local control = ZO_ActiveCombatTipsTip
     local settings = GetActiveCombatTipsSettings()
-    ApplyMovedControlPosition(control, settings, false, false)
+    ApplyNativeFramePosition(control, settings)
 
     UpdatePositionPreviewBorder(
         "ActiveCombatTips",
@@ -867,7 +993,7 @@ end
 local function ApplySynergyPromptsPosition()
     local control = ZO_SynergyTopLevelContainer
     local settings = GetSynergyPromptsSettings()
-    ApplyMovedControlPosition(control, settings, false, false)
+    ApplyNativeFramePosition(control, settings)
     ClearNamedChildText(control, "Action", NQOL.L("features.ui.synergy_prompt"))
 
     UpdatePositionPreviewBorder(
@@ -882,7 +1008,7 @@ end
 local function ApplyCenterScreenAnnouncePosition()
     local control = ZO_CenterScreenAnnounce
     local settings = GetCenterScreenAnnounceSettings()
-    ApplyMovedControlPosition(control, settings, false, false)
+    ApplyNativeFramePosition(control, settings)
 
     local bounds = GetCenterScreenAnnounceActiveBounds()
     if bounds then
@@ -1263,6 +1389,35 @@ local function InstallMovableUiFrameHooks()
         movableUiFrameEventsInstalled = true
     end
 
+    -- Content can resize a visible tracker without a manager layout refresh.
+    -- Recompute percentage positioning after ESO has updated its text bounds.
+    for key, frame in pairs(MOVABLE_UI_FRAMES) do
+        local tracker = frame.trackerName and _G[frame.trackerName]
+        if runtimeState.movableUiFrameActive[key] and tracker then
+            if type(tracker.Update) == "function" and not runtimeState.hudTrackerUpdateHooks[tracker] then
+                runtimeState.hudTrackerUpdateHooks[tracker] = true
+                SecurePostHook(tracker, "Update", function()
+                    if runtimeState.movableUiFrameActive[key] then
+                        QueueMovableUiFrameApply(key)
+                    end
+                end)
+            end
+            local fragment = tracker.GetFragment and tracker:GetFragment()
+            if fragment and not runtimeState.hudTrackerFragmentHooks[fragment] then
+                runtimeState.hudTrackerFragmentHooks[fragment] = true
+                fragment:RegisterCallback("StateChange", function(_, newState)
+                    -- Native OnShowing refreshes layout before revealing the
+                    -- content. Reposition after its real dimensions return.
+                    if runtimeState.movableUiFrameActive[key]
+                        and (newState == SCENE_FRAGMENT_SHOWING or newState == SCENE_FRAGMENT_SHOWN)
+                    then
+                        QueueMovableUiFrameApply(key)
+                    end
+                end)
+            end
+        end
+    end
+
     if infiniteArchiveFrameHookInstalled
         or not ENDLESS_DUNGEON_HUD_TRACKER
         or type(ZO_PostHook) ~= "function"
@@ -1291,6 +1446,7 @@ function runtimeState.RefreshActiveCombatTips()
         end
         activeCombatTipsEventsInstalled = false
     end
+    if not runtimeState.activeCombatTipsActive then ApplyActiveCombatTipsPosition() end
 end
 
 function runtimeState.RefreshSynergyPrompts()
@@ -1305,6 +1461,7 @@ function runtimeState.RefreshSynergyPrompts()
         end
         synergyPromptsEventsInstalled = false
     end
+    if not runtimeState.synergyPromptsActive then ApplySynergyPromptsPosition() end
 end
 
 function runtimeState.RefreshCenterScreenAnnounce()
@@ -1319,6 +1476,7 @@ function runtimeState.RefreshCenterScreenAnnounce()
         end
         centerScreenAnnounceEventsInstalled = false
     end
+    if not runtimeState.centerScreenAnnounceActive then ApplyCenterScreenAnnouncePosition() end
 end
 
 function runtimeState.RefreshMovableUiFrames()
@@ -1759,8 +1917,11 @@ function UI.Initialize()
     runtimeState.RefreshOfficialPlayerFrame()
     runtimeState.RefreshOfficialCompanionFrame()
     runtimeState.RefreshOfficialGroupFrame()
-    InstallActiveQuestLayoutHook()
+    InstallHudTrackerLayoutHook()
     QueueActiveQuestApply()
+    for key, frame in pairs(MOVABLE_UI_FRAMES) do
+        if frame.trackerName then runtimeState.ApplyHudTrackerPosition(key) end
+    end
 end
 
 function UI.SetActiveQuestSettingsPanelVisible(visible)
@@ -1808,6 +1969,14 @@ end
 
 function UI.SetInfiniteArchiveSettingsPanelVisible(visible)
     SetMovableUiFrameSettingsPanelVisible("infiniteArchive", visible)
+end
+
+function UI.SetGoldenPursuitSettingsPanelVisible(visible)
+    SetMovableUiFrameSettingsPanelVisible("goldenPursuit", visible)
+end
+
+function UI.SetHouseTrackerSettingsPanelVisible(visible)
+    SetMovableUiFrameSettingsPanelVisible("houseTracker", visible)
 end
 
 function UI.SetSubtitlesSettingsPanelVisible(visible)
@@ -1909,6 +2078,8 @@ end
 
 RegisterMovableUiFrameApi("playerInteraction", "PlayerInteraction")
 RegisterMovableUiFrameApi("infiniteArchive", "InfiniteArchive")
+RegisterMovableUiFrameApi("goldenPursuit", "GoldenPursuit")
+RegisterMovableUiFrameApi("houseTracker", "HouseTracker")
 RegisterMovableUiFrameApi("subtitles", "Subtitles")
 RegisterMovableUiFrameApi("announcements", "Announcements")
 
@@ -2081,6 +2252,9 @@ end
 
 function UI.SetLootLogShowTotals(value)
     GetLootLogSettings().showTotals = value == true
+    if UI.RefreshLootLogTotals then
+        UI.RefreshLootLogTotals()
+    end
 end
 
 function UI.GetLootLogShowPrice()

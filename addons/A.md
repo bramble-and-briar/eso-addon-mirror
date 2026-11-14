@@ -32,7 +32,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [AchievementInfo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Asto/AchievementInfo__350) | Asto | PC / Mac | 4.17 |
 | [Action Bar Labels](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CMDRMitchcraft/Action-Bar-Labels__4348) | CMDRMitchcraft | PC / Mac | 1.0 |
 | [Action Bar Skill Styles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Anthonysc/Action-Bar-Skill-Styles__3928) | Anthonysc | PC / Mac | 0.0.4 |
-| [Action Duration Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cloudor/Action-Duration-Reminder__1536) | cloudor | PC / Mac | 3.172 |
+| [Action Duration Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cloudor/Action-Duration-Reminder__1536) | cloudor | PC / Mac | 3.173 |
 | [Action Duration Reminder ES by Kroon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KKroon/Action-Duration-Reminder-ES-by-Kroon__3706) | KKroon | PC / Mac | 3.96 |
 | [Activity Finder Plus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FirewoodDoge/Activity-Finder-Plus__4676) | FirewoodDoge | PC / Mac | 1.0.2 |
 | [Acuity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/Acuity__1950) | Wheels | PC / Mac | 2.4 |
@@ -162,7 +162,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ALC Benchmark](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/ALC-Benchmark__e96f0d83-b3f0-47a8-a59a-2d6020816550) | APH0NlC | Console | — |
 | [Alchemiewerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Alchemiewerk__4912) | Torfason | PC / Mac | 1.0.2 |
 | [Alchemist (Continued by Koenari)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Koenari/Alchemist-Continued-by-Koenari__2419) | Koenari | PC / Mac | 7.1.5-1.0 |
-| [Alchemy Favorite Potions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TenienteR/Alchemy-Favorite-Potions__5046) | TenienteR | PC / Mac | 1.0.0 |
+| [Alchemy Favorite Potions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TenienteR/Alchemy-Favorite-Potions__5046) | TenienteR | PC / Mac | 1.1.0 |
 | [Alchemy Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Alchemy-Opener__8f125308-c2a5-40e6-b249-d29e85f81020) | Vixen_Hunny | Console | — |
 | [Alchemy Quantity Input](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chuaznega/Alchemy-Quantity-Input__4520) | Chuaznega | PC / Mac | 1.0 |
 | [Alchemy Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyperioxes/Alchemy-Tooltips__2531) | Hyperioxes | PC / Mac | 1.32 |

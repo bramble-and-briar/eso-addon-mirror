@@ -10,6 +10,7 @@ for key, text in pairs({
     LEGEND_VETERAN_ONLY = "Tylko weteran",
     LEGEND_PERFECTED = "Udoskonalony",
     HINT_KEEP_OPEN = "Przytrzymaj Shift, aby okno pozostało otwarte, i najedź kursorem na przedmiot, aby go obejrzeć.",
+    HINT_KEEP_OPEN_TABS = "Przytrzymaj Shift, aby okno pozostało otwarte: najedź kursorem na przedmiot, aby go obejrzeć, a strony zmieniaj kartami lub kółkiem myszy.",
 
     CHAT_ENTER = "%s: zebrano %s",
     CHAT_NEW_PIECE = "Nowy przedmiot: %s (%s %s)",

@@ -9,6 +9,7 @@ for key, text in pairs({
     LEGEND_VETERAN_ONLY = "Vétéran uniquement",
     LEGEND_PERFECTED = "Parfait",
     HINT_KEEP_OPEN = "Maintenez Maj enfoncée pour garder cette fenêtre ouverte, puis survolez une pièce pour la voir.",
+    HINT_KEEP_OPEN_TABS = "Maintenez Maj enfoncée pour garder cette fenêtre ouverte : survolez une pièce pour la voir, changez de page avec les onglets ou la molette.",
 
     CHAT_ENTER = "%s : %s pièces collectées",
     CHAT_NEW_PIECE = "Nouvelle pièce : %s (%s %s)",

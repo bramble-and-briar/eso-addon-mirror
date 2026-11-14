@@ -10,6 +10,7 @@
       ui/assign.lua; the Flyout is declared LAST so it draws over the rows.
     -->
     <TopLevelControl name="VermilionAssignPanel"
+                     tier="MEDIUM"
                      hidden="true"
                      clampedToScreen="true"
                      movable="true"
@@ -42,9 +43,6 @@
                 mouseOverBlendMode="ADD" inherits="ZO_ButtonBehaviorClickSound">
           <Anchor point="TOPRIGHT" offsetX="-8" offsetY="8"/>
           <Dimensions x="16" y="16"/>
-          <Textures normal="EsoUI/Art/Buttons/decline_up.dds"
-                    pressed="EsoUI/Art/Buttons/decline_down.dds"
-                    mouseOver="EsoUI/Art/Buttons/decline_over.dds"/>
           <OnClicked>Vermilion.Assign.on_close_click()</OnClicked>
         </Button>
 
@@ -110,6 +108,7 @@
       review before committing.
     -->
     <TopLevelControl name="VermilionAssignConfirm"
+                     tier="HIGH"
                      hidden="true"
                      clampedToScreen="true"
                      mouseEnabled="true">

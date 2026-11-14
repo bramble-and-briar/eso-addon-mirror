@@ -17,11 +17,13 @@ M.PlaySound = function(id)
   return zos_PlaySound(id)
 end
 
-function M.tooltip(control, string_id, side)
+function M.tooltip(control, string_id, side, on_enter, on_exit)
   control:SetHandler("OnMouseEnter", function(self)
     ZO_Tooltips_ShowTextTooltip(self, side or BOTTOM, GetString(string_id))
+    if on_enter then on_enter() end
   end)
   control:SetHandler("OnMouseExit", function()
     ZO_Tooltips_HideTextTooltip()
+    if on_exit then on_exit() end
   end)
 end

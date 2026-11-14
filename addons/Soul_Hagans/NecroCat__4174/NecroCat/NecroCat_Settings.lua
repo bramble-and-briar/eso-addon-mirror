@@ -1244,6 +1244,17 @@ RenderTabContent = function(tabId)
             currentY
         )
 
+        currentY = CreateCheckbox(scrollChild, GetString(SI_NC_LAM_CUR_EMBLEMS),
+            function() return NC.savedVars and NC.savedVars.currencyShowEmblems ~= false end,
+            function(v) 
+                if NC.savedVars then 
+                    NC.savedVars.currencyShowEmblems = v 
+                    if NC.UpdateCurrencyTracker then NC.UpdateCurrencyTracker() end
+                end
+            end,
+            currentY
+        )
+
         currentY = CreateCheckbox(scrollChild, GetString(SI_NC_LAM_CUR_AP),
             function() return NC.savedVars and NC.savedVars.currencyShowAP ~= false end,
             function(v) 
@@ -4250,6 +4261,32 @@ elseif tabId == 9 then
                 if NC.savedVars and NC.savedVars.cameraInCombat then
                     NC.savedVars.cameraInCombat.vertOffset = v
                     SetSetting(2, 11, string.format("%.6f", v))
+                end
+            end,
+            currentY,
+            2
+        )
+
+        -- -----------------------------------------------------
+        -- 3. РЕЖИМ СКРИНШОТА (CLEAN SCREEN)
+        -- -----------------------------------------------------
+        currentY = CreateHeader(scrollChild, GetString(SI_NC_LAM_CS_HDR), currentY + 6)
+
+        currentY = CreateCheckbox(scrollChild, GetString(SI_NC_LAM_CS_HIDE_NAMES),
+            function() return NC.savedVars and NC.savedVars.cleanScreenHideNames end,
+            function(v)
+                if NC.savedVars then
+                    NC.savedVars.cleanScreenHideNames = v
+                end
+            end,
+            currentY
+        )
+
+        currentY = CreateSlider(scrollChild, GetString(SI_NC_LAM_CS_STEP), 0.01, 0.20, 0.01,
+            function() return (NC.savedVars and NC.savedVars.cleanScreenStep) or 0.05 end,
+            function(v)
+                if NC.savedVars then
+                    NC.savedVars.cleanScreenStep = v
                 end
             end,
             currentY,

@@ -8,6 +8,10 @@
   "category_id": "149",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -26,21 +30,12 @@
     "Vermilion"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4616/",
-  "fingerprint": "2a6a3fb7adb0348b95832d6052dbcbc897cbef5893b39034eb01ca02ab2cd6a9",
+  "fingerprint": "7e274d5ae7da062df2acc87bcb99211c3456cf6e1c3355f54ab4de171f476f81",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16226.png",
-    "https://cdn-eso.mmoui.com/preview/pvw16233.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17340.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17341.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17342.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17343.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17357.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18427.png",
     "https://cdn-eso.mmoui.com/preview/pvw16249.png",
-    "https://cdn-eso.mmoui.com/preview/pvw16231.png",
-    "https://cdn-eso.mmoui.com/preview/pvw16230.png",
-    "https://cdn-eso.mmoui.com/preview/pvw16250.png",
-    "https://cdn-eso.mmoui.com/preview/pvw16232.png",
-    "https://cdn-eso.mmoui.com/preview/pvw16223.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18426.png"
   ],
   "platform": "pc",
   "published": true,
@@ -48,11 +43,11 @@
   "source_id": "4616",
   "source_url": "https://www.esoui.com/downloads/info4616-Vermilion.html",
   "stats": {
-    "downloads": 150,
+    "downloads": 306,
     "favorites": 2,
-    "monthly_downloads": 32
+    "monthly_downloads": 74
   },
   "title": "Vermilion",
-  "updated_at": 1789246897000,
-  "version": "1.2.1"
+  "updated_at": 1794586789000,
+  "version": "2.0.0"
 }

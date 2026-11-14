@@ -59,12 +59,12 @@ function GamepadOptions.BuildItemCategoriesEntry()
     )
 end
 
-function GamepadOptions.BuildGearEntry()
+function GamepadOptions.BuildStickerBookEntry()
     return BuildEntry(
-        PanelIds.GEAR,
+        PanelIds.STICKER_BOOK,
         1,
-        NGear.L("ui.navigation.gear_def2b5f"),
-        NGear.L("ui.navigation.browse_every_reconstructable_gear_set_and_its_collec_86e2576")
+        NGear.L("ui.navigation.sticker_book"),
+        NGear.L("ui.navigation.sticker_book_tooltip")
     )
 end
 
@@ -94,7 +94,7 @@ function GamepadOptions.BuildRootOptionsData()
         GamepadOptions.BuildScanItemsOption(),
         GamepadOptions.BuildItemLocatorEntry(),
         GamepadOptions.BuildItemCategoriesEntry(),
-        GamepadOptions.BuildGearEntry(),
+        GamepadOptions.BuildStickerBookEntry(),
         GamepadOptions.AddHeader(
             GamepadOptions.BuildLanguageOption(),
             NGear.L("ui.headers.global_options")

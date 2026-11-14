@@ -1,0 +1,21 @@
+<GuiXml>
+	<Controls>
+        <Control name="Kela_GamepadFullWidthLabelEntryTemplate" inherits="ZO_GamepadMenuEntryDimensionsTemplate ZO_GamepadMenuEntryLabelSizedTemplate" horizontalAlignment="LEFT" virtual="true">
+            <Controls>
+                <Label name="$(parent)Label" inherits="ZO_GamepadFullWidthLabelTemplate" horizontalAlignment="LEFT" />
+                <Texture name="$(parent)Icon" inherits="ZO_GamepadMenuEntryIconTemplate">
+                    <Anchor point="CENTER" relativeTo="$(parent)Label" relativePoint="RIGHT" offsetX="ZO_GAMEPAD_DEFAULT_LIST_ENTRY_ICON_X_OFFSET" />
+					<Controls>
+                        <Label name="$(parent)StackCount" inherits="ZO_GamepadMenuEntryStackCountTemplate" />
+                    </Controls>
+                </Texture>
+            </Controls>
+        </Control>
+
+        <Label name="Kela_GamepadMenuEntryFullWidthHeaderTemplate" inherits="ZO_GamepadMenuEntryHeaderFontTemplate" horizontalAlignment="LEFT" virtual="true">
+            <Anchor point="BOTTOMLEFT" relativePoint="TOPLEFT" />
+            <Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" offsetY="80"/>
+            <Dimensions y="123" />
+        </Label>
+    </Controls>
+</GuiXml>

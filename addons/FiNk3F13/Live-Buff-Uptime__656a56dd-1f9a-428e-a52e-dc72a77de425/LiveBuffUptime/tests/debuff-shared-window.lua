@@ -4,7 +4,7 @@ local saved = {uptimeHistory = {}}
 reports.Init(saved)
 COMBAT_UNIT_TYPE_PLAYER = 1
 reports.BeginEncounter(100, true, "player")
-reports.RecordDamage(1, 4, 99, "Uebungsskelett", 100)
+reports.RecordEnemy(1, 4, 99, "Uebungsskelett", 100)
 reports.RecordDebuff(34384, 99, "Uebungsskelett", 1, 102, 107, true)
 reports.RecordDebuff(34384, 99, "Uebungsskelett", 2, 104, 110, true)
 local live = assert(reports.DebuffResult(34384, 99, 100, 106))

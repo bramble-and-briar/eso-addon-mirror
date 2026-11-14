@@ -155,6 +155,7 @@ function addon:Initialize(sv)
 		end
 
 		if not self:ShouldListen() then  -- tp to different location
+			-- Log('Should not listen, stopping')
 			self:StopListening()
 			return
 		end
@@ -162,6 +163,7 @@ function addon:Initialize(sv)
 		self.onWorldMapChangedCallback()  -- TODO: it might be not necessery, refactor later
 
 		if not self.listening then
+			-- Log('Should be listening, starting')
 			self:StartListening()
 		end
 	end)
@@ -182,15 +184,6 @@ function addon:Initialize(sv)
 	composite:SetDrawLevel(99)
 	-- control:SetDesaturation(1)
 
-	ZO_PostHook(_G, 'ZO_WorldMap_MouseEnter', function(_, ...)
-		if composite:IsHidden() then return end
-		composite:GetHandler('OnMouseEnter')(composite)
-	end)
-
-    ZO_PostHook(_G, 'ZO_WorldMap_MouseExit', function(_, ...)
-		if composite:IsHidden() then return end
-		composite:GetHandler('OnMouseExit')(composite)
-	end)
 
 	self.onCompositeShown = function()
 		self:OnCompositeShown()
@@ -275,6 +268,11 @@ function addon:InitializeTooltip()
 	end
 
 	local historyPinsMouseOver = {}
+
+	local function LATEST_FIRST(l, r)
+		return l[5] > r[5]
+	end
+
 	local function UpdateTooltip()
 		if next(historyPinsMouseOver) then
 			InitializeTooltip(KillLocationsTooltip)
@@ -282,8 +280,15 @@ function addon:InitializeTooltip()
 			anchorTooltip()
 
 			local now = os.time()
+
+			local temp = {}
 			for k, v in pairs(historyPinsMouseOver) do
-				-- tbl[#tbl+1] = formatKills(v[3], now - v[5])   -- ('(%d, %d, %d) %ds ago'):format(v[3][1], v[3][2], v[3][3], ts - v[5])
+				temp[#temp+1] = v
+			end
+			table.sort(temp, LATEST_FIRST)
+
+			for i = 1, #temp do
+				local v = temp[i]
 				KillLocationsTooltip:AddLine(_formatKills(v[3]) .. (' (%s ago)'):format(IMP_PVP_UI_SHARED.SecondsToTime(now - v[5])), '', 1, 1, 1, CENTER, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_LEFT)
 			end
 		else
@@ -296,6 +301,9 @@ function addon:InitializeTooltip()
 	self.OnMouseEnter = function(tag, surface)
 		-- local tag = self.map.surfaces[surface].tag  -- TODO: a mess...
 		historyPinsMouseOver[tag] = self.historyBuffer[tag]
+		-- TODO: this makes tooltip be updated several times
+		-- because in composite update loop this function called for every new mouse over pin
+		-- 2 new mouse over pins -> two UpdateTooltip calls, not ideal
 		UpdateTooltip()
 		self.map:AnimateScale(surface, 1, 1.3, 150)
 	end
@@ -319,7 +327,8 @@ function addon:StartListening()
 	CALLBACK_MANAGER:RegisterCallback('OnWorldMapChanged', self.onWorldMapChangedCallback)
 	WORLD_MAP_SCENE:RegisterCallback('StateChange', self.onWorldMapSceneShown)
 
-	self.map.composite:SetHandler('OnEffectivelyShown', self.onCompositeShown)
+	ZO_PostHookHandler(self.map.composite, 'OnEffectivelyShown', self.onCompositeShown)
+	self.map.composite:SetHidden(false)
 
 	self:OnKillLocationsUpdate()
 end
@@ -332,7 +341,7 @@ function addon:StopListening()
 	WORLD_MAP_SCENE:UnregisterCallback('StateChange', self.onWorldMapSceneShown)
 	-- self.campaignId = nil
 
-	self.map.composite:SetHandler('OnEffectivelyShown', nil)
+	self.map.composite:SetHidden(true)
 	self.map:Clear()
 end
 
@@ -476,7 +485,7 @@ function addon:OnWorldMapSceneShown()
 end
 
 function addon:OnCompositeShown()
-	-- Log\('Composite is showing')
+	-- Log('Composite is showing')
 	self:UpdateMap()
 end
 
@@ -494,7 +503,7 @@ local function _getKillLocationSize(kills)
 end
 
 function addon:UpdateMap()
-	-- Log\('UpdateMap called')
+	-- Log('UpdateMap called')
 	if WORLD_MAP_SCENE:IsHiding() then
 		self.mapIsDirty = true
 		-- Log\('Map is hidden, don\'t update mapd')
@@ -526,7 +535,7 @@ function addon:UpdateMap()
 		local n_x, n_z = data[X], data[Z]
 
 		if _sum3(data[KILLS]) >= self.MIN_KILLS_TO_DISPLAY then
-			local size = _getKillLocationSize(data[KILLS])
+			local size = _getKillLocationSize(data[KILLS]) * self.sv.pinScale
 			-- local alpha = sqrt(1 - 0.7 * (now - data[TIMESTAMP]) / self.sv.retention)
 
 			local fraction = 0.7 * (now - data[TIMESTAMP]) / self.sv.retention

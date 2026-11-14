@@ -61,6 +61,12 @@ local function lane_seg(c, canvas, x0, x1, y, row_h, conc, rec, col, dim)
   seg:SetHidden(false)
 end
 
+local function card_icon(id)
+  local icon = Vermilion.SkillColors.ability_icon(id)
+  if not icon or icon == "" or icon:find("icon_missing", 1, true) then return nil end
+  return icon
+end
+
 function M.attach(t) ctx = t end
 
 function M.unfolded()
@@ -82,7 +88,7 @@ function M.render()
   local n     = 0
   local recording = Vermilion.TemporalBuffer.is_recording()
   local unfolded = M.unfolded()
-  local fold_dur = (not recording) and (BT.session_end() - BT.session_start()) or 0
+  local fold_dur = (not recording) and BT.fight_ms() or 0
   local always_n = 0
   FOLD.n = 0
   FOLD.on = false
@@ -205,7 +211,7 @@ function M.render()
   hit.t0     = t0
   hit.span   = span
   local hk = hover_id
-  local dur = capture and (BT.session_end() - BT.session_start()) or 0
+  local dur = capture and BT.fight_ms() or 0
 
   for i = 1, rows do
     local rec = vis[i + off]
@@ -275,7 +281,7 @@ function M.render()
     if capture and dur > 0 then
       local pct = c.lbl:AcquireObject()
       pct:ClearAnchors()
-      pct:SetText(string_format("%d%%", math_floor(rec.uptime_ms / dur * 100 + 0.5)))
+      pct:SetText(string_format("%d%%", math_floor(BT.uptime_of(rec) * 100 + 0.5)))
       pct:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
       if dim then
         pct:SetColor(C_PCT.r * 0.45, C_PCT.g * 0.45, C_PCT.b * 0.45, 0.6)
@@ -327,8 +333,7 @@ end
 local function show_rec_card(c, rec, t_at, conc_at, mx, my)
   local BT  = Vermilion.DebuffTracker
   local col = color_of(rec)
-  local dur = BT.session_end() - BT.session_start()
-  local pct = (dur > 0) and math_floor(rec.uptime_ms / dur * 100 + 0.5) or 0
+  local pct = math_floor(BT.uptime_of(rec) * 100 + 0.5)
   local stat = string_format("%s %d%%  ·  %s", GetString(VERMILION_DEBUFFH_UPTIME), pct, c.fmt_secs(rec.uptime_ms))
   local time = string_format("t  %s  ·  %d %s", c.fmt_secs(t_at), conc_at, GetString(VERMILION_DEBUFFH_TARGETS_NOW))
   local rows = ROWS
@@ -349,7 +354,7 @@ local function show_rec_card(c, rec, t_at, conc_at, mx, my)
     Vermilion.Diagnostics.bump("debuffs.desc_miss")
     desc = nil
   end
-  c.show_card(col, rec.name or tostring(rec.id), stat, time, rows, n_rows, desc, mx, my)
+  c.show_card(col, rec.name or tostring(rec.id), stat, time, rows, n_rows, desc, mx, my, card_icon(rec.id))
 end
 
 function M.hover(mx, my)
@@ -435,4 +440,5 @@ function M.reset_scroll() FOLD.scroll = 0 end
 function M.scroll_state() return FOLD.scroll, FOLD.max_scroll end
 function M.hovered() return hover_id end
 function M.clear_hover() hover_id = nil end
+function M.click_sound() return M.unfolded() and "on" or "off" end
 function M.fold_state() return FOLD.on, FOLD.n end

@@ -7,15 +7,34 @@ local M = Vermilion.SessionStore
 local math_floor = math.floor
 local table_remove = table.remove
 
-local CAP = 24
+local CAP = 100
 
 local DESC = {
+  spans = {
+    { name = "t0",   width = 4 },
+    { name = "t1",   width = 4 },
+    { name = "key",  width = 1 },
+    { name = "unit", width = 4 },
+  },
+  press = {
+    { name = "t",    width = 4 },
+    { name = "key",  width = 1 },
+    { name = "unit", width = 4 },
+    { name = "e",    width = 3 },
+    { name = "kind", width = 1 },
+  },
   series = {
     { name = "t",       width = 4, delta = true },
     { name = "eDPS",    width = 4, scale = 10 },
     { name = "ShDPS",   width = 4, scale = 10 },
     { name = "crit",    width = 4, scale = 10 },
     { name = "noncrit", width = 4, scale = 10 },
+    { name = "mag",     width = 2, scale = 1000 },
+    { name = "sta",     width = 2, scale = 1000 },
+    { name = "mag_in",  width = 3 },
+    { name = "mag_out", width = 3 },
+    { name = "sta_in",  width = 3 },
+    { name = "sta_out", width = 3 },
   },
   steps = {
     { name = "b", width = 1 },
@@ -64,6 +83,23 @@ local DESC = {
     { name = "id",   width = 4 },
     { name = "cost", width = 2 },
   },
+  casts = {
+    { name = "t",    width = 4 },
+    { name = "id",   width = 4 },
+    { name = "pool", width = 1 },
+    { name = "cost", width = 3 },
+    { name = "tick", width = 1 },
+  },
+  restores = {
+    { name = "t",    width = 4 },
+    { name = "id",   width = 4 },
+    { name = "pool", width = 1 },
+    { name = "amt",  width = 3 },
+  },
+  deaths = {
+    { name = "t", width = 4 },
+    { name = "e", width = 4 },
+  },
 }
 
 M.DESC = DESC
@@ -79,6 +115,8 @@ local start_diff  = 0
 local start_kind  = nil
 local start_ms    = nil
 local end_ms      = nil
+local start_class = nil
+local start_bars  = nil
 
 function M.on_session_start()
   start_zone  = api.GetUnitZone("player") or ""
@@ -87,9 +125,22 @@ function M.on_session_start()
   start_kind  = Vermilion.ContentKind and Vermilion.ContentKind.detect() or nil
   start_ms    = api.GetGameTimeMilliseconds()
   end_ms      = nil
+  local zc = Vermilion.zenimax.constants
+  start_class = api.GetUnitClass and api.GetUnitClass("player") or nil
+  start_bars  = { Vermilion.Casts.bar_ids(zc.HOTBAR_CATEGORY_PRIMARY), Vermilion.Casts.bar_ids(zc.HOTBAR_CATEGORY_BACKUP) }
 end
 
 function M.session_start() return start_ms end
+
+local function session_zero(first_t)
+  local t0 = start_ms or first_t
+  if first_t < t0 then t0 = first_t end
+  local opened = Vermilion.Metrics.fight_bounds()
+  if opened and opened < t0 then t0 = opened end
+  return t0
+end
+function M.start_meta() return start_zone, start_group end
+function M.live_build() return start_class, start_bars end
 
 local function lib_root()
   local sv = Vermilion.SavedVars
@@ -101,6 +152,40 @@ end
 
 local YIELD_EVERY = 40
 
+local function plain_name(raw)
+  return (raw:gsub("%^.*$", ""))
+end
+
+local function fight_names(exact)
+  local bosses = {}
+  for name in pairs(Vermilion.AutoRecord.session_bosses()) do bosses[plain_name(name)] = true end
+  local player = Vermilion.zenimax.constants.COMBAT_UNIT_TYPE_OTHER
+  local by_name = {}
+  for id, amount in pairs(exact.targets) do
+    local raw = exact.target_names[id]
+    if raw and raw ~= "" and exact.target_types[id] ~= player then
+      local name = plain_name(raw)
+      by_name[name] = (by_name[name] or 0) + amount
+    end
+  end
+  local boss, boss_v, top, top_v = nil, 0, nil, 0
+  for name, amount in pairs(by_name) do
+    if amount > top_v then top, top_v = name, amount end
+    if bosses[name] and amount > boss_v then boss, boss_v = name, amount end
+  end
+  return boss, top
+end
+
+function M.live_names()
+  local ex = Vermilion.Metrics.exact()
+  if not (ex and ex.targets) then return nil, nil end
+  return fight_names(ex)
+end
+
+function M.title(head)
+  return head.label or head.boss or head.top or head.zone or "?"
+end
+
 function M.capture(cooperative)
   local ye = cooperative and YIELD_EVERY or nil
   local coroutine_yield = coroutine.yield
@@ -110,8 +195,7 @@ function M.capture(cooperative)
   local n_series = TB.count()
   if n_series == 0 then return nil end
   local first_t = TB.at(1).t
-  local t0 = start_ms or first_t
-  if first_t < t0 then t0 = first_t end
+  local t0 = session_zero(first_t)
   local t_end = end_ms or api.GetGameTimeMilliseconds()
   local last_t = TB.at(n_series).t
   if t_end < last_t then t_end = last_t end
@@ -165,7 +249,6 @@ function M.capture(cooperative)
   local sum_eos, peak_eos = 0, 0
   local sum_edps, peak_edps = 0, 0
   local sum_crit, sum_noncrit = 0, 0
-  local active = 0
   for i = 1, n_series do
     local s = TB.at(i)
     local eos = s.eDPS + s.ShDPS
@@ -175,7 +258,6 @@ function M.capture(cooperative)
     if s.eDPS > peak_edps then peak_edps = s.eDPS end
     sum_crit = sum_crit + (s.crit or 0)
     sum_noncrit = sum_noncrit + (s.noncrit or 0)
-    if s.eDPS > 0 then active = active + 1 end
     harvest(i, 0, s.eos_groups)
     harvest(i, 1, s.dtype_groups)
     harvest_abilities(i, 0, s.eos_abilities)
@@ -246,15 +328,63 @@ function M.capture(cooperative)
     if cost > 65535 then cost = 65535 end
     ulta_recs[i] = { t = rel, bar = uab[i] or 1, id = uai[i], cost = cost }
   end
+  local usk, usu, ust0, ust1, usn = Vermilion.Uptime.spans()
+  local span_recs = {}
+  for i = 1, usn do
+    local a, b = ust0[i] - t0, ust1[i] - t0
+    if a < 0 then a = 0 end
+    if b < a then b = a end
+    span_recs[i] = { t0 = a, t1 = b, key = usk[i] or 0, unit = usu[i] or 0 }
+  end
+  local upk, upu, upt, upe, upkind, upn = Vermilion.Uptime.presses()
+  local press_recs = {}
+  local E_LIMIT = Vermilion.Uptime.E_LIMIT()
+  for i = 1, upn do
+    local rel = upt[i] - t0
+    if rel < 0 then rel = 0 end
+    press_recs[i] = { t = rel, key = upk[i] or 0, unit = upu[i] or 0, e = (upe[i] or 0) + E_LIMIT, kind = upkind[i] or 1 }
+  end
+  local ukn, uks, uknn, uki = Vermilion.Uptime.keys()
+  local uptime_meta = { names = {}, slotted = {}, ids = {} }
+  for k = 1, uknn do uptime_meta.names[k] = ukn[k]; uptime_meta.slotted[k] = uks[k] and 1 or 0; uptime_meta.ids[k] = uki[k] or 0 end
+  local ctt, cti, ctp, ctc, ctn, ctk = Vermilion.Casts.records()
+  local cast_recs = {}
+  for i = 1, ctn do
+    local rel = ctt[i] - t0
+    if rel < 0 then rel = 0 end
+    local cost = ctc[i] or 0
+    if cost > 65535 then cost = 65535 end
+    cast_recs[i] = { t = rel, id = cti[i] or 0, pool = ctp[i] or 0, cost = cost, tick = ctk[i] or 0 }
+  end
+  local rtt, rti, rtp, rta, rtn = Vermilion.Restores.records()
+  local restore_recs = {}
+  for i = 1, rtn do
+    local rel = rtt[i] - t0
+    if rel < 0 then rel = 0 end
+    local amt = rta[i] or 0
+    if amt > 65535 then amt = 65535 end
+    restore_recs[i] = { t = rel, id = rti[i] or 0, pool = rtp[i] or 0, amt = amt }
+  end
+  local dts, dn, dte = Vermilion.Resources.deaths()
+  local death_recs = {}
+  for i = 1, dn do
+    local rel = dts[i] - t0
+    if rel < 0 then rel = 0 end
+    local back = (dte[i] > 0) and (dte[i] - t0) or (t_end - t0)
+    if back < rel then back = rel end
+    death_recs[i] = { t = rel, e = back }
+  end
 
-  local total_damage, total_shield, total_crit, hits = Vermilion.Metrics.totals()
-  local sv = Vermilion.SavedVars
-  local temporal = sv and sv.temporal or {}
+  local total_damage, total_shield, total_crit, hits, crit_hits, overkill = Vermilion.Metrics.totals()
   local C = Vermilion.Constants
 
+  local exact = Vermilion.Metrics.exact_copy()
+  local boss_name, top_name = fight_names(exact)
   local session = {
     v = 1,
     head = {
+      boss = boss_name,
+      top = top_name,
       ts = api.GetTimeStamp(),
       zone = (start_zone ~= "") and start_zone or (api.GetUnitZone("player") or ""),
       dur_ms = t_end - t0,
@@ -264,22 +394,33 @@ function M.capture(cooperative)
       locked = false,
       difficulty = start_diff or 0,
       kind = start_kind,
+      class = start_class,
+      bars = start_bars,
+      regen = { mag = Vermilion.Restores.regen(1), sta = Vermilion.Restores.regen(2) },
+      uptime = uptime_meta,
       sum = {
         avg = math_floor(sum_eos / n_series + 0.5),
         peak = math_floor(peak_eos + 0.5),
         avg_edps = math_floor(sum_edps / n_series + 0.5),
         peak_edps = math_floor(peak_edps + 0.5),
-        crit_pct = (sum_crit + sum_noncrit) > 0 and (sum_crit / (sum_crit + sum_noncrit)) or 0,
-        active_pct = active / n_series,
+        crit_pct = (total_damage > 0 and total_crit / total_damage) or ((sum_crit + sum_noncrit) > 0 and (sum_crit / (sum_crit + sum_noncrit))) or 0,
         total_damage = total_damage,
         total_shield = total_shield,
         total_crit = total_crit,
         hits = hits,
+        crit_hits = crit_hits,
+        overkill = overkill,
+        exact = exact,
+        fight_ms = Vermilion.Metrics.fight_ms(),
+        fight_t0 = (function()
+          local lo = Vermilion.Metrics.fight_bounds()
+          return lo and math.max(0, lo - t0) or nil
+        end)(),
       },
       cfg = {
         window_ms = math_floor(Vermilion.Metrics.window_seconds() * 1000 + 0.5),
         shield_window_ms = math_floor(Vermilion.Metrics.shield_window_seconds() * 1000 + 0.5),
-        sample_rate_ms = temporal.sample_rate_ms or C.TEMPORAL.SAMPLE_RATE_DEFAULT,
+        sample_rate_ms = Vermilion.TemporalBuffer.period(),
       },
     },
     gkeys = gkeys,
@@ -295,6 +436,11 @@ function M.capture(cooperative)
       ult       = vsf.pack(ult_recs, DESC.ult, nil, ye),
       ultu      = vsf.pack(ultu_recs, DESC.ultu, nil, ye),
       ulta      = vsf.pack(ulta_recs, DESC.ulta, nil, ye),
+      casts     = vsf.pack(cast_recs, DESC.casts, nil, ye),
+      spans     = vsf.pack(span_recs, DESC.spans, nil, ye),
+      press     = vsf.pack(press_recs, DESC.press, nil, ye),
+      restores  = vsf.pack(restore_recs, DESC.restores, nil, ye),
+      deaths    = vsf.pack(death_recs, DESC.deaths, nil, ye),
     },
   }
   return session
@@ -339,7 +485,7 @@ end
 
 local function autosave_step()
   if not autosave_co then return end
-  if Vermilion.Hitch then Vermilion.Hitch.mark("stop") end
+  Vermilion.Hitch.mark("save")
   autosave_frames = autosave_frames + 1
   local ok, res = coroutine.resume(autosave_co)
   if not ok then
@@ -364,19 +510,127 @@ function M.on_session_stop()
   end_ms = api.GetGameTimeMilliseconds()
   local sv = Vermilion.SavedVars
   if not (sv and sv.settings and sv.settings.session_autosave) then return end
+  local damage, shield = Vermilion.Metrics.totals()
+  if damage + shield <= 0 then
+    d("[Vm] " .. GetString(VERMILION_LIB_SKIPPED))
+    return
+  end
   manual_pending = false
   begin_capture()
 end
 
 function M.save_now()
   if Vermilion.TemporalBuffer.count() == 0 then return false end
+  local damage, shield = Vermilion.Metrics.totals()
+  if damage + shield <= 0 then return false end
   begin_capture()
   manual_pending = true
   return true
 end
 
+function M.live_duration()
+  local TB = Vermilion.TemporalBuffer
+  local n = TB.count()
+  if n == 0 then return 0 end
+  local first_t, last_t = TB.at(1).t, TB.at(n).t
+  local t0 = session_zero(first_t)
+  local t_end = end_ms or api.GetGameTimeMilliseconds()
+  if t_end < last_t then t_end = last_t end
+  return t_end - t0
+end
+
 function M.autosave_pending()
   return autosave_co ~= nil
+end
+
+local function attach_shares(series, sess, vsf)
+  local gkeys = sess.gkeys or {}
+  local SC = Vermilion.SkillColors
+  local DTC = Vermilion.DamageTypeColors
+  local shares = sess.streams.shares and sess.desc.shares and vsf.unpack(sess.streams.shares, sess.desc.shares)
+  for i = 1, (shares and #shares or 0) do
+    local r = shares[i]
+    local sample = series[r.si]
+    if sample then
+      local key = gkeys[r.key + 1]
+      local field = (r.ch == 0) and "eg" or "dg"
+      local tbl = sample[field]
+      if not tbl then tbl = { count = 0 }; sample[field] = tbl end
+      local c = (r.ch == 0) and SC.group_color(key or "other") or DTC.lookup(key or 0)
+      tbl.count = tbl.count + 1
+      tbl[tbl.count] = { r = c.r, g = c.g, b = c.b, a = c.a, share = r.sh, key = (r.ch == 0) and (key or "other") or (key or 0) }
+    end
+  end
+  local abilities = sess.streams.abilities and sess.desc.abilities and vsf.unpack(sess.streams.abilities, sess.desc.abilities)
+  for i = 1, (abilities and #abilities or 0) do
+    local r = abilities[i]
+    local sample = series[r.si]
+    if sample then
+      local field = (r.ch == 0) and "ea" or ((r.ch == 2) and "sa" or "da")
+      local tbl = sample[field]
+      if not tbl then tbl = { count = 0 }; sample[field] = tbl end
+      local key = (r.key ~= nil) and gkeys[r.key + 1] or nil
+      local c
+      if r.ch == 0 then
+        if not key or key == "other" then
+          local now_group = SC.group_of(r.id)
+          key = key or now_group
+        end
+        c = SC.group_color(key)
+      elseif r.ch == 2 then
+        key = "shield"
+        c = SC.group_color(key)
+      else
+        key = key or 0
+        c = DTC.lookup(key)
+      end
+      tbl.count = tbl.count + 1
+      tbl[tbl.count] = { id = r.id, share = r.sh, abs = r.ab or 0, key = key, r = c.r, g = c.g, b = c.b, a = c.a }
+    end
+  end
+  local targets = sess.streams.targets and sess.desc.targets and vsf.unpack(sess.streams.targets, sess.desc.targets)
+  for i = 1, (targets and #targets or 0) do
+    local r = targets[i]
+    local sample = series[r.si]
+    if sample then
+      local tbl = sample.tg
+      if not tbl then tbl = { count = 0 }; sample.tg = tbl end
+      tbl.count = tbl.count + 1
+      tbl[tbl.count] = { id = r.id, name = gkeys[r.key + 1] or "", ttype = r.tt or 0, share = r.sh, abs = r.ab or 0 }
+    end
+  end
+end
+
+function M.decode(sess)
+  if not (sess and sess.streams and sess.desc and sess.head) then return nil, "missing structure" end
+  local vsf = Vermilion.lib.vsf
+  local series, err = vsf.unpack(sess.streams.series, sess.desc.series)
+  if not series then return nil, err end
+  attach_shares(series, sess, vsf)
+  local function stream(name)
+    if sess.streams[name] and sess.desc[name] then return vsf.unpack(sess.streams[name], sess.desc[name]) or {} end
+    return nil
+  end
+  local dec = { series = series }
+  dec.steps = (sess.streams.steps and sess.desc.steps) and vsf.unpack(sess.streams.steps, sess.desc.steps) or nil
+  dec.ult = stream("ult")
+  if dec.ult then
+    dec.ultu = (sess.streams.ultu and sess.desc.ultu) and vsf.unpack(sess.streams.ultu, sess.desc.ultu) or nil
+    dec.ulta = (sess.streams.ulta and sess.desc.ulta) and vsf.unpack(sess.streams.ulta, sess.desc.ulta) or nil
+  end
+  dec.casts = stream("casts")
+  dec.spans = stream("spans")
+  if dec.spans then
+    dec.press = (sess.streams.press and sess.desc.press) and vsf.unpack(sess.streams.press, sess.desc.press) or nil
+  end
+  dec.restores = stream("restores")
+  dec.deaths = stream("deaths")
+  dec.kills = stream("kills")
+  if dec.kills then
+    local gk = sess.gkeys or {}
+    for i = 1, #dec.kills do dec.kills[i].name = gk[(dec.kills[i].key or 0) + 1] or "" end
+  end
+  return dec
 end
 
 function M.finish_autosave()

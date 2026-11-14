@@ -9,6 +9,7 @@ for key, text in pairs({
     LEGEND_VETERAN_ONLY = "ベテランのみ",
     LEGEND_PERFECTED = "パーフェクト",
     HINT_KEEP_OPEN = "Shiftキーを押している間はこのウィンドウが開いたままになります。アイテムにカーソルを合わせると詳細が表示されます。",
+    HINT_KEEP_OPEN_TABS = "Shiftキーを押している間はこのウィンドウが開いたままになります。アイテムにカーソルを合わせると詳細を表示、タブまたはマウスホイールでページを切り替えます。",
 
     CHAT_ENTER = "%s: %s 個収集済み",
     CHAT_NEW_PIECE = "新しいアイテム: %s (%s %s)",

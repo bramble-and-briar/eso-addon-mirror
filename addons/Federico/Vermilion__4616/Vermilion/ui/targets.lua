@@ -37,11 +37,13 @@ local dom = {}
 local focus = { on_top = 0, switches = 0, samples = 0 }
 local order = { n = 0 }
 local hit = { n = 0, y0 = {}, y1 = {}, lane = {}, lane_x = 0, lane_w = 0, t0 = 0, span = 0 }
+local xs = {}
 local totals = { damage = 0, cell_max = 0, t0 = 0, t_hi = 0 }
 local hover_id = nil
 local scroll = 0
 local max_scroll = 0
 local gen = 0
+local done_gen, done_live = -1, true
 local ROWS = { {}, {}, {}, {}, {}, {}, {}, {}, {} }
 local str = nil
 
@@ -59,6 +61,17 @@ end
 
 local function by_total_desc(a, b) return a.total > b.total end
 
+local base_of = {}
+
+local function base_name(raw)
+  local b = base_of[raw]
+  if not b then
+    b = raw:gsub("%^%a+$", "")
+    base_of[raw] = b
+  end
+  return b
+end
+
 local function entry_in(list, id)
   for k = 1, (list and list.count or 0) do
     local e = list[k]
@@ -75,7 +88,7 @@ local function lane_share(list, rec)
   else
     for k = 1, (list and list.count or 0) do
       local e = list[k]
-      if e.name == rec.raw then sh = sh + (e.share or 0); ab = ab + (e.abs or 0) end
+      if base_name(e.name or "") == rec.raw then sh = sh + (e.share or 0); ab = ab + (e.abs or 0) end
     end
   end
   return sh, ab
@@ -92,8 +105,44 @@ local function lane_label(rec)
   return rec.name ~= "" and rec.name or tostring(rec.id)
 end
 
+local function rec_for(id, raw, ttype)
+  local is_player = (ttype == UNIT_ENEMY_PLAYER)
+  local rec
+  if is_player then
+    rec = by_id[id]
+    if not rec then rec = { id = id, name = "", raw = nil, is_player = true, n = 1, ttype = 0, total = 0, abs = 0, gen = -1, disp = -1, text = "" }; by_id[id] = rec end
+  else
+    local base = base_name(raw)
+    rec = by_name[base]
+    if not rec then rec = { id = id, name = "", raw = nil, is_player = false, n = 0, ttype = 0, total = 0, abs = 0, gen = -1, disp = -1, text = "" }; by_name[base] = rec end
+  end
+  if rec.gen ~= gen then
+    rec.gen = gen
+    rec.total = 0
+    rec.abs = 0
+    rec.n = is_player and 1 or 0
+    order.n = order.n + 1
+    order[order.n] = rec
+  end
+  local plain = base_name(raw)
+  if plain ~= rec.raw then
+    rec.raw = plain
+    rec.name = plain
+  end
+  if not is_player and seen[id] ~= gen then
+    seen[id] = gen
+    rec.n = rec.n + 1
+    rec.id = id
+  end
+  rec.ttype = ttype or rec.ttype
+  return rec
+end
+
 local function aggregate()
   local TB = Vermilion.TemporalBuffer
+  local live = TB.is_recording()
+  if not live and not done_live and TB.gen() == done_gen then return end
+  done_gen, done_live = TB.gen(), live
   local n = TB.count()
   gen = gen + 1
   order.n = 0
@@ -108,35 +157,7 @@ local function aggregate()
     local best, best_v = nil, 0
     for k = 1, (list and list.count or 0) do
       local e = list[k]
-      local id = e.id or 0
-      local raw = e.name or ""
-      local is_player = (e.ttype == UNIT_ENEMY_PLAYER)
-      local rec
-      if is_player then
-        rec = by_id[id]
-        if not rec then rec = { id = id, name = "", raw = nil, is_player = true, n = 1, ttype = 0, total = 0, abs = 0, gen = -1, disp = -1, text = "" }; by_id[id] = rec end
-      else
-        rec = by_name[raw]
-        if not rec then rec = { id = id, name = "", raw = nil, is_player = false, n = 0, ttype = 0, total = 0, abs = 0, gen = -1, disp = -1, text = "" }; by_name[raw] = rec end
-      end
-      if rec.gen ~= gen then
-        rec.gen = gen
-        rec.total = 0
-        rec.abs = 0
-        rec.n = is_player and 1 or 0
-        order.n = order.n + 1
-        order[order.n] = rec
-      end
-      if raw ~= rec.raw then
-        rec.raw = raw
-        rec.name = (raw:gsub("%^%a+$", ""))
-      end
-      if not is_player and seen[id] ~= gen then
-        seen[id] = gen
-        rec.n = rec.n + 1
-        rec.id = id
-      end
-      rec.ttype = e.ttype or rec.ttype
+      local rec = rec_for(e.id or 0, e.name or "", e.ttype)
       local v = (e.share or 0) * eos
       if dt > 0 then
         rec.total = rec.total + v * dt
@@ -150,19 +171,38 @@ local function aggregate()
     totals.t_hi = s.t
     prev_t = s.t
   end
+  local ex = Vermilion.Metrics.exact()
+  if ex and ex.targets then
+    for r = 1, order.n do order[r].total = 0; order[r].abs = 0 end
+    totals.damage = 0
+    local names, types, abs = ex.target_names, ex.target_types, ex.targets_abs
+    for id, amt in pairs(ex.targets) do
+      local rec = rec_for(id, names[id] or "", types[id])
+      rec.total = rec.total + amt
+      rec.abs = rec.abs + (abs[id] or 0)
+      totals.damage = totals.damage + amt
+    end
+  end
   for k = order.n + 1, #order do order[k] = nil end
   for k = n + 1, #dom do dom[k] = nil end
   if order.n > 1 then table_sort(order, by_total_desc) end
   totals.cell_max = 0
   totals.abs_max = 0
+  for r = 1, order.n do
+    local rec = order[r]
+    if not rec.pv then rec.pv, rec.av = {}, {} end
+  end
   for i = 1, n do
     local s = TB.at(i)
     local eos = (s.eDPS or 0) + (s.ShDPS or 0)
     for r = 1, order.n do
-      local sh, ab = lane_share(s.targets, order[r])
+      local rec = order[r]
+      local sh, ab = lane_share(s.targets, rec)
       local v = sh * eos
+      rec.pv[i] = v
       if v > totals.cell_max then totals.cell_max = v end
       local w = ab * eos
+      rec.av[i] = w
       if w > totals.abs_max then totals.abs_max = w end
     end
   end
@@ -204,18 +244,48 @@ local function cell(c, canvas, x0, x1, y, row_h, level, dim, sub)
   seg:SetHidden(false)
 end
 
-local function pressure_at(TB, k, rec)
-  local s = TB.at(k)
-  if not s then return 0 end
-  local sh = lane_share(s.targets, rec)
-  return sh * ((s.eDPS or 0) + (s.ShDPS or 0))
+local function cached(arr, k, ns)
+  if k < 1 or k > ns then return 0 end
+  return arr[k]
 end
 
-local function absorb_at(TB, k, rec)
-  local s = TB.at(k)
-  if not s then return 0 end
-  local _, ab = lane_share(s.targets, rec)
-  return ab * ((s.eDPS or 0) + (s.ShDPS or 0))
+local function lane_cells(c, canvas, vals, ns, vmax, y, h, dim, sub)
+  local run_x0, run_x1, run_lv = nil, nil, -1
+  local col_x0, col_x1, col_sum, col_n = nil, nil, 0, 0
+  local v_prev, v_here, v_next = 0, cached(vals, 1, ns), cached(vals, 2, ns)
+  for k = 1, ns + 1 do
+    local x0, x1, v = nil, nil, 0
+    if k <= ns then
+      if v_here > 0 or v_prev > 0 or v_next > 0 then
+        v = 0.25 * v_prev + 0.5 * v_here + 0.25 * v_next
+        if v_here <= 0 then v = v * 0.5 end
+      end
+      x0, x1 = xs[k], xs[k + 1]
+      if x1 <= x0 then x1 = x0 + 1 end
+      v_prev, v_here, v_next = v_here, v_next, cached(vals, k + 2, ns)
+    end
+    if x0 ~= nil and x0 == col_x0 then
+      col_sum = col_sum + v
+      col_n = col_n + 1
+      if x1 > col_x1 then col_x1 = x1 end
+    else
+      if col_x0 then
+        local level = 0
+        if vmax > 0 and col_sum > 0 then
+          level = math_floor(math_sqrt(col_sum / col_n / vmax) * (LUT_N - 1) + 0.5)
+          if level < 1 then level = 1 end
+        end
+        if level > 0 and run_x0 and level == run_lv then
+          run_x1 = col_x1
+        else
+          if run_x0 then cell(c, canvas, run_x0, run_x1, y, h, run_lv, dim, sub) end
+          if level > 0 then run_x0, run_x1, run_lv = col_x0, col_x1, level else run_x0 = nil end
+        end
+      end
+      col_x0, col_x1, col_sum, col_n = x0, x1, v, 1
+    end
+  end
+  if run_x0 then cell(c, canvas, run_x0, run_x1, y, h, run_lv, dim, sub) end
 end
 
 function M.attach(t) ctx = t end
@@ -283,6 +353,10 @@ function M.render()
   local abs_max = totals.abs_max or 0
   local sub_h = (abs_max > 0) and math_max(2, math_floor(row_h * 0.22)) or 0
   local main_h = row_h - ((sub_h > 0) and (sub_h + 1) or 0)
+  for k = 1, ns do
+    xs[k] = lane_x + math_floor((TB.at(k).t - t0) / span * lane_w + 0.5)
+  end
+  xs[ns + 1] = lane_x + lane_w
 
   for i = 1, rows do
     local rec = order[i + off]
@@ -378,59 +452,9 @@ function M.render()
     val:SetAnchor(TOPLEFT, canvas, TOPLEFT, cw - VAL_W - BAR_PAD, y)
     val:SetHidden(false)
 
-    local run_x0, run_x1, run_lv = nil, nil, -1
-    local v_prev, v_here, v_next = 0, pressure_at(TB, 1, rec), pressure_at(TB, 2, rec)
-    for k = 1, ns do
-      local s = TB.at(k)
-      local level = 0
-      if cell_max > 0 and (v_here > 0 or v_prev > 0 or v_next > 0) then
-        local v = 0.25 * v_prev + 0.5 * v_here + 0.25 * v_next
-        if v_here <= 0 then v = v * 0.5 end
-        level = math_floor(math_sqrt(v / cell_max) * (LUT_N - 1) + 0.5)
-        if level < 1 then level = 1 end
-        if level > LUT_N - 1 then level = LUT_N - 1 end
-      end
-      local x0 = lane_x + math_floor((s.t - t0) / span * lane_w + 0.5)
-      local nxt = TB.at(k + 1)
-      local x1 = nxt and (lane_x + math_floor((nxt.t - t0) / span * lane_w + 0.5)) or (lane_x + lane_w)
-      if x1 <= x0 then x1 = x0 + 1 end
-      if level > 0 and run_x0 and level == run_lv and x0 <= run_x1 then
-        run_x1 = x1
-      else
-        if run_x0 then cell(c, canvas, run_x0, run_x1, y, main_h, run_lv, dim) end
-        if level > 0 then run_x0, run_x1, run_lv = x0, x1, level
-        else run_x0 = nil end
-      end
-      v_prev, v_here, v_next = v_here, v_next, pressure_at(TB, k + 2, rec)
-    end
-    if run_x0 then cell(c, canvas, run_x0, run_x1, y, main_h, run_lv, dim) end
+    lane_cells(c, canvas, rec.pv, ns, cell_max, y, main_h, dim, false)
     if sub_h > 0 then
-      local ys = y + row_h - sub_h
-      local rx0, rx1, rlv = nil, nil, -1
-      local a_prev, a_here, a_next = 0, absorb_at(TB, 1, rec), absorb_at(TB, 2, rec)
-      for k = 1, ns do
-        local s = TB.at(k)
-        local level = 0
-        if a_here > 0 or a_prev > 0 or a_next > 0 then
-          local v = 0.25 * a_prev + 0.5 * a_here + 0.25 * a_next
-          if a_here <= 0 then v = v * 0.5 end
-          level = math_floor(math_sqrt(v / abs_max) * (LUT_N - 1) + 0.5)
-          if level < 1 then level = 1 end
-          if level > LUT_N - 1 then level = LUT_N - 1 end
-        end
-        local x0 = lane_x + math_floor((s.t - t0) / span * lane_w + 0.5)
-        local nxt = TB.at(k + 1)
-        local x1 = nxt and (lane_x + math_floor((nxt.t - t0) / span * lane_w + 0.5)) or (lane_x + lane_w)
-        if x1 <= x0 then x1 = x0 + 1 end
-        if level > 0 and rx0 and level == rlv and x0 <= rx1 then
-          rx1 = x1
-        else
-          if rx0 then cell(c, canvas, rx0, rx1, ys, sub_h, rlv, dim, true) end
-          if level > 0 then rx0, rx1, rlv = x0, x1, level else rx0 = nil end
-        end
-        a_prev, a_here, a_next = a_here, a_next, absorb_at(TB, k + 2, rec)
-      end
-      if rx0 then cell(c, canvas, rx0, rx1, ys, sub_h, rlv, dim, true) end
+      lane_cells(c, canvas, rec.av, ns, abs_max, y + row_h - sub_h, sub_h, dim, true)
     end
   end
 
@@ -445,7 +469,7 @@ function M.render()
       local row_i = nil
       for r = 1, rows do
         local rec = order[r + off]
-        if (rec.is_player and rec.id == kuid) or (not rec.is_player and rec.raw == kname) then row_i = r break end
+        if (rec.is_player and rec.id == kuid) or (not rec.is_player and rec.raw == base_name(kname or "")) then row_i = r break end
       end
       if row_i and kt >= t0 and kt <= t_hi then
         local sz = (row_h < 16) and row_h or 16
@@ -527,14 +551,17 @@ function M.hover(mx, my)
   local n_rows = 0
   n_rows = n_rows + 1
   ROWS[n_rows][1], ROWS[n_rows][2] = S.damage, c.fmt_val(rec.total)
+  ROWS[n_rows][3] = c.kinds and c.kinds.damage
   if rec.abs > 0 then
     n_rows = n_rows + 1
     ROWS[n_rows][1] = S.absorbed
     ROWS[n_rows][2] = string_format("%s  ·  %s", c.fmt_val(rec.abs), PCT_TEXT[math_floor(rec.abs / math_max(rec.total, 1) * 100 + 0.5)] or "")
+    ROWS[n_rows][3] = c.kinds and c.kinds.shield
   end
   n_rows = n_rows + 1
   ROWS[n_rows][1] = S.share
   ROWS[n_rows][2] = PCT_TEXT[math_floor(rec.total / math_max(totals.damage, 1) * 100 + 0.5)] or ""
+  ROWS[n_rows][3] = c.kinds and c.kinds.neutral
   if av > 0 and s and s.shield_abilities and (s.shield_abilities.count or 0) > 0 then
     local SC = Vermilion.SkillColors
     local sa = s.shield_abilities
@@ -543,6 +570,7 @@ function M.hover(mx, my)
       n_rows = n_rows + 1
       ROWS[n_rows][1] = S.shield
       ROWS[n_rows][2] = SC.ability_name(sa[k].id)
+      ROWS[n_rows][3] = c.kinds and c.kinds.shield
     end
   end
   c.crosshair(math_floor(rel_x))
@@ -565,5 +593,9 @@ function M.scroll_state() return scroll, max_scroll end
 function M.hovered() return hover_id end
 function M.clear_hover() hover_id = nil end
 function M.rows() return order, order.n end
+function M.compute()
+  aggregate()
+  return order, order.n, totals
+end
 function M.totals() return totals end
 function M.lut(i) return Heat.lut(i) end

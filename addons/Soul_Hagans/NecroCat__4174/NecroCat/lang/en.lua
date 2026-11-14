@@ -322,6 +322,7 @@ ZO_CreateStringId("SI_NC_LAM_CUR_AP",                "Alliance Points (AP)")
 ZO_CreateStringId("SI_NC_LAM_CUR_TELVAR",            "Tel Var Stones")
 ZO_CreateStringId("SI_NC_LAM_CUR_ARCHIVE",           "Archival Fortunes")
 ZO_CreateStringId("SI_NC_LAM_CUR_XP",                "Daily Experience (XP)")
+ZO_CreateStringId("SI_NC_LAM_CUR_EMBLEMS", "Undaunted Emblems")
 ZO_CreateStringId("SI_NC_LAM_CUR_RESET",             "Reset Tracker Position")
 
 -- SUBMENU 6: Auto-Recharge & Repair
@@ -704,3 +705,18 @@ ZO_CreateStringId("SI_NC_LAM_CAM_VERT_OFFSET",       "Vertical Offset")
 ZO_CreateStringId("SI_NC_LAM_CAM_HDR_IN_COMBAT",     "2. In Combat (Fight)")
 ZO_CreateStringId("SI_NC_LAM_CAM_CAPTURE_IN",        "Save as Combat Preset")
 ZO_CreateStringId("SI_NC_LAM_CAM_TEST_IN",           "Preview Combat Camera")
+-- 3. Photo Mode (Clean Screen)
+ZO_CreateStringId("SI_NC_LAM_CS_HDR",                "3. Photo Mode (Clean Screen)")
+ZO_CreateStringId("SI_NC_LAM_CS_HIDE_NAMES",         "Hide nameplates in photo mode")
+ZO_CreateStringId("SI_NC_LAM_CS_STEP",               "Camera movement speed with hotkeys")
+
+-- Keybindings in Controls menu
+ZO_CreateStringId("SI_BINDING_NAME_NC_CLEAN_SCREEN_TOGGLE",    "Toggle Clean Screen")
+ZO_CreateStringId("SI_BINDING_NAME_NC_CLEAN_SCREEN_CAM_UP",     "Camera: Up (Photo Mode)")
+ZO_CreateStringId("SI_BINDING_NAME_NC_CLEAN_SCREEN_CAM_DOWN",   "Camera: Down (Photo Mode)")
+ZO_CreateStringId("SI_BINDING_NAME_NC_CLEAN_SCREEN_CAM_LEFT",   "Camera: Left (Photo Mode)")
+ZO_CreateStringId("SI_BINDING_NAME_NC_CLEAN_SCREEN_CAM_RIGHT",  "Camera: Right (Photo Mode)")
+
+-- Chat Notifications
+ZO_CreateStringId("SI_NC_CLEAN_SCREEN_ON",           "Photo mode enabled")
+ZO_CreateStringId("SI_NC_CLEAN_SCREEN_OFF",          "Photo mode disabled")

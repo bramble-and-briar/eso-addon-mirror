@@ -1,7 +1,7 @@
 PvPUAPatch = PvPUAPatch or {} -- build.sh: private global, coexists with the unpatched PvPUA
 local PvPUA = PvPUAPatch
 PvPUA.name = "PvPUAPatch" -- build.sh: must match the addon folder (EVENT_ADD_ON_LOADED)
-PvPUA.version = "5.8.1" -- Patch: build.sh writes VERSION here; only used in the debug log
+PvPUA.version = "5.9.0" -- Patch: build.sh writes VERSION here; only used in the debug log
 
 --------------------------------------------------
 -- Config
@@ -2868,7 +2868,7 @@ end
 function PvPUA:RefreshQueueWindow()
     if not self.controls.queueTLW then return end
 
-    local entries = self:GetQueueEntries()
+    local entries = self:RQMarkStuck(self:GetQueueEntries()) -- patch: a stuck queue keeps its row
     if #entries == 0 then
         self.controls.queueTLW:SetHidden(true)
         self.queue.active = false
@@ -2891,9 +2891,10 @@ function PvPUA:RefreshQueueWindow()
                 positionText = tostring(entry.position)
             end
             local groupTag = entry.asGroup and " |c9090A0(G)|r" or ""
+            local positionPart = " |c00FF00#|r" .. ColorText(positionText, ac.r, ac.g, ac.b)
+            if entry.stuck then positionPart = self:RQStuckText(entry) end -- patch: "STUCK #9"
             row:SetText(ColorText(QueueCampaignName(entry.campaignId), ac.r, ac.g, ac.b) ..
-                " |c00FF00#|r" ..
-                ColorText(positionText, ac.r, ac.g, ac.b) .. groupTag)
+                positionPart .. groupTag)
             row:SetHidden(false)
         else
             row:SetText("")
@@ -2956,6 +2957,7 @@ end
 --   offered, accept timer running   -> left alone (the player can still accept)
 --   queued in any other state 10 s  -> stuck: LeaveCampaignQueue, then QueueForCampaign on its LEFT
 -- At most RQ_MAX_ATTEMPTS requeues per queue the player joined himself; entering the campaign resets.
+-- Whatever the setting, the failure also marks the queue window's row "STUCK #<last position>" (Stuck mark).
 -- Every queue / jump event goes to the Debug Log as a "Q ..." line, and any jump or queue failure
 -- within RQ_WINDOW_MS of a queue is echoed to chat with its code, so an unrecognised one can be named.
 local RQ_WINDOW_MS     = 60000 -- a failure this soon after the queue was last seen belongs to it
@@ -2963,6 +2965,7 @@ local RQ_CHECK_MS      = 3000  -- let the game's own LEFT / STATE events land be
 local RQ_STUCK_MS      = 10000 -- still queued, not WAITING, this long after a failure = stuck
 local RQ_OURS_MS       = 15000 -- a JOINED this soon after our QueueForCampaign is our requeue
 local RQ_LEAVE_MS      = 15000 -- our LeaveCampaignQueue's LEFT must land within this
+local RQ_DROP_MS       = 10000 -- a LEFT this soon after a failure is the game dropping the entry, not the player
 local RQ_MAX_ATTEMPTS  = 5
 local RQ_MAX_DELAY_MS  = 30000
 
@@ -2980,7 +2983,8 @@ local RQ_STATE_NAMES = RQConstNames("CAMPAIGN_QUEUE_REQUEST_STATE_", { "WAITING"
 local RQ_FULL_JUMP = RQConstNames("JUMP_RESULT_JUMP_FAILED_", { "INSTANCE_FULL", "INSTANCE_CAP_REACHED" })
 local RQ_FULL_QUEUE = RQConstNames("QUEUE_FOR_CAMPAIGN_RESULT_", { "DESTINATION_WORLD_FULL", "CAMPAIGN_FULL" })
 
-PvPUA.requeue = { last = nil, attempts = 0, requeuedAtMs = nil, pendingLeave = nil, failure = nil, checkSeq = 0 }
+PvPUA.requeue = { last = nil, attempts = 0, requeuedAtMs = nil, pendingLeave = nil, failure = nil, checkSeq = 0,
+    stuck = nil }
 
 function PvPUA:AutoRequeueEnabled()
     local sv = self.savedVariables
@@ -3023,6 +3027,60 @@ local function RQInCampaign(campaignId)
         and GetCurrentCampaignId ~= nil and GetCurrentCampaignId() == campaignId
 end
 
+-- Stuck mark. The game's "full" alert fades in seconds and is the only sign that the queue broke, so the
+-- failure is kept on screen: the queue window's row for that campaign reads "STUCK #9" (the last position
+-- the queue had; "STUCK" when it never had one), and the row stays even when the game dropped the entry.
+function PvPUA:RQSetStuck(last)
+    local rq = self.requeue
+    local position = 0
+    local queued, _, livePosition = RQSnapshot(last.campaignId, last.asGroup)
+    if queued and type(livePosition) == "number" and livePosition > 0 then
+        position = livePosition
+    elseif type(last.position) == "number" and last.position > 0 then
+        position = last.position
+    end
+    rq.stuck = { campaignId = last.campaignId, asGroup = last.asGroup, position = position,
+        atMs = GetGameTimeMilliseconds() }
+    DLog("Q stuck %s #%d", RQCampaignLabel(last.campaignId, last.asGroup), position)
+    self:RefreshQueueWindow()
+end
+
+-- The queue window's entries with the stuck one marked, or added when the game no longer lists it.
+function PvPUA:RQMarkStuck(entries)
+    local stuck = self.requeue.stuck
+    if stuck == nil then return entries end
+    for i = 1, #entries do
+        local entry = entries[i]
+        if entry.campaignId == stuck.campaignId and entry.asGroup == stuck.asGroup then
+            entry.stuck = stuck
+            return entries
+        end
+    end
+    table.insert(entries, 1, { campaignId = stuck.campaignId, asGroup = stuck.asGroup, position = stuck.position,
+        stuck = stuck })
+    return entries
+end
+
+function PvPUA:RQStuckText(entry)
+    local position = entry.stuck.position
+    return " |cFF2020STUCK" .. (position > 0 and (" #" .. tostring(position)) or "") .. "|r"
+end
+
+-- The mark goes when the queue is seen alive again: queued again, position moved, entry offered, campaign
+-- entered, or the player left the queue himself (a LEFT later than RQ_DROP_MS after the failure).
+function PvPUA:RQStuckIs(campaignId, isGroup)
+    local stuck = self.requeue.stuck
+    return stuck ~= nil and stuck.campaignId == campaignId and stuck.asGroup == (isGroup == true)
+end
+
+function PvPUA:RQClearStuck(why)
+    local stuck = self.requeue.stuck
+    if stuck == nil then return end
+    self.requeue.stuck = nil
+    DLog("Q unstuck %s: %s", RQCampaignLabel(stuck.campaignId, stuck.asGroup), why)
+    self:RefreshQueueWindow()
+end
+
 -- The queue entry the failure will be blamed on: the last one any queue event named.
 function PvPUA:RQRemember(campaignId, asGroup)
     local rq = self.requeue
@@ -3041,7 +3099,9 @@ function PvPUA:RQOnJoined(campaignId, isGroup, willLockToAlliance)
     local now = GetGameTimeMilliseconds()
     local ours = rq.requeuedAtMs ~= nil and now - rq.requeuedAtMs <= RQ_OURS_MS
     if not ours then rq.attempts = 0 end -- a queue the player joined himself starts a fresh budget
-    self:RQRemember(campaignId, isGroup)
+    local last = self:RQRemember(campaignId, isGroup)
+    if not ours then last.position = nil end -- and has no position yet
+    if self:RQStuckIs(campaignId, isGroup) then self:RQClearStuck("queued again") end
     DLog("Q joined %s c=%s group=%s lock=%s (%s, attempts %d)", RQCampaignLabel(campaignId, isGroup),
         tostring(campaignId), tostring(isGroup), tostring(willLockToAlliance), ours and "our requeue" or "player",
         rq.attempts)
@@ -3055,6 +3115,9 @@ function PvPUA:RQOnLeft(campaignId, isGroup)
     local pending = rq.pendingLeave
     DLog("Q left c=%s group=%s inCampaign=%s%s", tostring(campaignId), tostring(isGroup),
         tostring(RQInCampaign(campaignId)), pending and " (our leave)" or "")
+    if pending == nil and self:RQStuckIs(campaignId, isGroup) and now - rq.stuck.atMs > RQ_DROP_MS then
+        self:RQClearStuck("left the queue")
+    end
     if pending ~= nil and pending.campaignId == campaignId and pending.asGroup == (isGroup == true) then
         rq.pendingLeave = nil
         if now - pending.atMs <= RQ_LEAVE_MS then self:RQQueue(campaignId, isGroup == true, "stuck queue left") end
@@ -3067,6 +3130,10 @@ function PvPUA:RQOnPosition(campaignId, isGroup, position)
     local secs = GetSecondsInCampaignQueue and GetSecondsInCampaignQueue(campaignId, isGroup) or -1
     DLog("Q pos c=%s group=%s #%s (%s s in queue)", tostring(campaignId), tostring(isGroup), tostring(position),
         tostring(secs))
+    if self:RQStuckIs(campaignId, isGroup) and type(position) == "number" and position > 0
+        and position ~= self.requeue.stuck.position then
+        self:RQClearStuck("position moved to #" .. tostring(position))
+    end
 end
 
 function PvPUA:RQOnState(campaignId, isGroup, state)
@@ -3076,6 +3143,10 @@ function PvPUA:RQOnState(campaignId, isGroup, state)
         and GetCampaignQueueRemainingConfirmationSeconds(campaignId, isGroup) or -1
     DLog("Q state c=%s group=%s %s (confirm %s s left)", tostring(campaignId), tostring(isGroup), RQStateName(state),
         tostring(confirmLeft))
+    if self:RQStuckIs(campaignId, isGroup) and state ~= nil
+        and state == rawget(_G, "CAMPAIGN_QUEUE_REQUEST_STATE_CONFIRMING") then
+        self:RQClearStuck("entry offered")
+    end
 end
 
 -- A failure with no queue seen within RQ_WINDOW_MS is not about a campaign queue (a wayshrine jump to a
@@ -3125,6 +3196,7 @@ function PvPUA:RQOnPlayerActivated()
     if last ~= nil and RQInCampaign(last.campaignId) then
         DLog("Q entered %s after %d requeue(s)", RQCampaignLabel(last.campaignId, last.asGroup), rq.attempts)
         rq.last, rq.attempts, rq.requeuedAtMs, rq.pendingLeave, rq.failure = nil, 0, nil, nil, nil
+        self:RQClearStuck("entered the campaign")
     end
 end
 
@@ -3138,6 +3210,7 @@ function PvPUA:RQFailure(kind, code, text)
     end
     local label = RQCampaignLabel(last.campaignId, last.asGroup)
     local reason = string.format("%s [%s %s]", text ~= "" and text or "full", kind, tostring(code))
+    self:RQSetStuck(last)
     if not self:AutoRequeueEnabled() then
         DLog("RQ off: %s %s", label, reason)
         RQChat(string.format("%s: %s. Auto Requeue is off.", label, reason))
@@ -4321,7 +4394,7 @@ function PvPUA:CreateSettings()
         menuIcon        = PVPUA_ADDON_ICON,
         title           = PVPUA_MENU_TITLE_COLORED,
         author          = PVPUA_TOOLTIP_AUTHOR_COLORED,
-        version         = "5.8.1",
+        version         = "5.9.0",
         previewControls = function() return PvPUA:SettingsPreviewControls() end,
         textSize        = function() return PvPUA.savedVariables.settingsFontSize end,
         windowOpacity   = function() return PvPUA.savedVariables.settingsOpacity end,

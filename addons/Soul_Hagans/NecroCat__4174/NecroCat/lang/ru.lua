@@ -322,6 +322,7 @@ ZO_CreateStringId("SI_NC_LAM_CUR_AP",                "Очки Альянса (A
 ZO_CreateStringId("SI_NC_LAM_CUR_TELVAR",            "Камни Тель-Вар (Tel Var)")
 ZO_CreateStringId("SI_NC_LAM_CUR_ARCHIVE",           "Осколки Архива (Archival Fortunes)")
 ZO_CreateStringId("SI_NC_LAM_CUR_XP",                "Опыт за день (Daily XP)")
+ZO_CreateStringId("SI_NC_LAM_CUR_EMBLEMS", "Эмблемы Неустрашимых")
 ZO_CreateStringId("SI_NC_LAM_CUR_RESET",             "Сбросить позицию строки")
 
 -- ВКЛАДКА 6: Авто-зарядка и починка
@@ -704,3 +705,20 @@ ZO_CreateStringId("SI_NC_LAM_CAM_VERT_OFFSET",       "Вертикальное �
 ZO_CreateStringId("SI_NC_LAM_CAM_HDR_IN_COMBAT",     "2. Боевой режим (В бою)")
 ZO_CreateStringId("SI_NC_LAM_CAM_CAPTURE_IN",        "Запомнить для Боя")
 ZO_CreateStringId("SI_NC_LAM_CAM_TEST_IN",           "Примерить боевой вид")
+
+-- 3. Режим скриншота (Clean Screen)
+ZO_CreateStringId("SI_NC_LAM_CS_HDR",                "3. Режим фото (Чистый экран)")
+ZO_CreateStringId("SI_NC_LAM_CS_HIDE_NAMES",         "Скрывать имена над головой в режиме фото")
+ZO_CreateStringId("SI_NC_LAM_CS_STEP",               "Скорость смещения камеры клавишами")
+
+-- Названия клавиш в Управлении
+ZO_CreateStringId("SI_BINDING_NAME_NC_CLEAN_SCREEN_TOGGLE",    "Вкл / Выкл чистый экран")
+ZO_CreateStringId("SI_BINDING_NAME_NC_CLEAN_SCREEN_CAM_UP",     "Камера: Вверх (фоторежим)")
+ZO_CreateStringId("SI_BINDING_NAME_NC_CLEAN_SCREEN_CAM_DOWN",   "Камера: Вниз (фоторежим)")
+ZO_CreateStringId("SI_BINDING_NAME_NC_CLEAN_SCREEN_CAM_LEFT",   "Камера: Влево (фоторежим)")
+ZO_CreateStringId("SI_BINDING_NAME_NC_CLEAN_SCREEN_CAM_RIGHT",  "Камера: Вправо (фоторежим)")
+
+-- Уведомления в чате
+ZO_CreateStringId("SI_NC_CLEAN_SCREEN_ON",           "Режим скриншота включен")
+ZO_CreateStringId("SI_NC_CLEAN_SCREEN_OFF",          "Режим скриншота выключен")
+

@@ -14,6 +14,8 @@
 --
 -- Containers: loot boxes and money pouches in your backpack are opened when you're out of combat
 -- with no menu open, and everything inside is taken (Crown, locked and stolen ones are left alone).
+-- Each kind is a switch: money pouches, event boxes and other loot boxes are opened; writ rewards
+-- (left for writ add-ons) and boxes of set gear such as curated coffers are not, unless you say so.
 --
 -- Weapon charge: when an equipped weapon (either bar) drops to the charge you set (default 10%), it
 -- is recharged with a filled soul gem from your backpack, ordinary gems before Crown ones.
@@ -46,6 +48,11 @@ QM.DEFAULTS = {
     sellCompanionBlue = true, -- unless it has a kept companion trait
     sellCompanionPurple = false,
     autoOpen = true, -- open loot containers and money pouches when out of combat
+    openMoney = true, -- ...money pouches
+    openEvent = true, -- ...event and festival boxes
+    openOther = true, -- ...any other loot box
+    openWrit = false, -- ...crafting writ rewards (other add-ons handle these)
+    openGear = false, -- ...boxes of set gear, e.g. dungeon and trial curated coffers
     autoCharge = true, -- recharge equipped weapons with soul gems
     chargePercent = 10, -- ...when their charge is at or below this
     keepTraits = {}, -- filled from DEFAULT_KEEP below
@@ -463,10 +470,46 @@ local function isContainerType(itemType)
     return itemType == ITEMTYPE_CONTAINER or (ITEMTYPE_CONTAINER_CURRENCY ~= nil and itemType == ITEMTYPE_CONTAINER_CURRENCY)
 end
 
+-- Writ reward boxes all share one flavour text; compare with two known ones (works in any language).
+local WRIT_REFERENCE_LINKS = {
+    "|H1:item:121302:175:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h", -- a daily writ reward box
+    "|H1:item:99256:3:1:0:0:0:0:0:0:0:0:0:0:0:1:0:0:1:0:0:0|h|h", -- a writ shipment of materials
+}
+local writFlavours = nil
+local function isWritReward(link)
+    if not writFlavours then
+        writFlavours = {}
+        for _, ref in ipairs(WRIT_REFERENCE_LINKS) do
+            local text = safe(GetItemLinkFlavorText, ref)
+            if text and text ~= "" then writFlavours[text] = true end
+        end
+    end
+    local text = safe(GetItemLinkFlavorText, link)
+    return text ~= nil and text ~= "" and writFlavours[text] == true
+end
+
+-- What kind of container is this? "writ", "gear", "money", "event", "other", or nil if it isn't one.
+local KIND_OPTION = { writ = "openWrit", gear = "openGear", money = "openMoney", event = "openEvent", other = "openOther" }
+function QM.ContainerKind(bag, slot)
+    local itemType, specialized = safe(GetItemType, bag, slot)
+    if not isContainerType(itemType) then return nil end
+    local link = safe(GetItemLink, bag, slot) or ""
+    if isWritReward(link) then return "writ" end
+    -- the tooltip lists the sets a box can give: curated coffers, dungeon and trial reward boxes
+    if (safe(GetItemLinkNumContainerSetIds, link) or 0) > 0 then return "gear" end
+    if itemType == ITEMTYPE_CONTAINER_CURRENCY
+        or (SPECIALIZED_ITEMTYPE_CONTAINER_CURRENCY ~= nil and specialized == SPECIALIZED_ITEMTYPE_CONTAINER_CURRENCY) then
+        return "money"
+    end
+    if SPECIALIZED_ITEMTYPE_CONTAINER_EVENT ~= nil and specialized == SPECIALIZED_ITEMTYPE_CONTAINER_EVENT then return "event" end
+    return "other"
+end
+
 -- Would we open this backpack slot?
 function QM.IsOpenable(bag, slot)
     if (safe(GetItemId, bag, slot) or 0) == 0 then return false end
-    if not isContainerType(safe(GetItemType, bag, slot)) then return false end
+    local kind = QM.ContainerKind(bag, slot)
+    if not kind or not opts[KIND_OPTION[kind]] then return false end
     if safe(IsItemPlayerLocked, bag, slot) then return false end
     if safe(IsItemStolen, bag, slot) then return false end
     if safe(IsItemFromCrownStore, bag, slot) or safe(IsItemFromCrownCrate, bag, slot) then return false end
@@ -634,6 +677,11 @@ function QM.CreateSettings(saved, extra)
             setFunction = function(v) o[name] = v; if QM.onChanged then pcall(QM.onChanged) end end,
         }
     end
+    local function kind(label, tooltip, name)
+        local c = check(label, tooltip, name)
+        c.disable = function() return not o.autoOpen end
+        return c
+    end
     local function keep(constName, label)
         return {
             type = LHAS.ST_CHECKBOX, label = label, default = DEFAULT_KEEP[constName] == true,
@@ -646,7 +694,12 @@ function QM.CreateSettings(saved, extra)
         check("Sell automatically", "Sell the items ticked below as soon as you open a merchant (not fences or guild traders). Off: a Sell trash button (left stick) on the Sell screen instead.", "autoSell"),
         check("Repair automatically", "Repair all your gear when you open a merchant, if you have the gold.", "autoRepair"),
         { type = LHAS.ST_SECTION, label = "Containers" },
-        check("Open containers automatically", "Open loot boxes and money pouches from your backpack when you're out of combat with no menu open, and take what's inside. Crown, locked and stolen containers are left alone. It waits if you have fewer than 5 free bag slots.", "autoOpen"),
+        check("Open containers automatically", "Open the kinds of container ticked below from your backpack when you're out of combat with no menu open, and take what's inside. Crown, locked and stolen containers are left alone. It waits if you have fewer than 5 free bag slots.", "autoOpen"),
+        kind("Money pouches", "Coin purses and other pouches of gold or currency.", "openMoney"),
+        kind("Event and festival boxes", "Boxes from in-game events and festivals.", "openEvent"),
+        kind("Other loot boxes", "Any other box, bag or coffer: quest rewards, companion finds and so on.", "openOther"),
+        kind("Writ rewards", "The boxes and shipments you get for crafting writs. Off by default so a writ add-on can open them.", "openWrit"),
+        kind("Boxes of set gear", "Curated coffers and other dungeon or trial reward boxes that give set pieces. Off by default so you can open them yourself and fill your set collection.", "openGear"),
         { type = LHAS.ST_SECTION, label = "Weapon charge" },
         check("Recharge weapons automatically", "Use a filled soul gem from your backpack when an equipped weapon (either bar) runs low. Ordinary soul gems are used before Crown ones.", "autoCharge"),
         {

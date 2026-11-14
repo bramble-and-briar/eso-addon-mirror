@@ -28,12 +28,15 @@ local SYNERGY_PROMPTS_PANEL_ID = PanelIds.SYNERGY_PROMPTS
 local CENTER_SCREEN_ANNOUNCE_PANEL_ID = PanelIds.CENTER_SCREEN_ANNOUNCE
 local ANNOUNCEMENTS_PANEL_ID = PanelIds.ANNOUNCEMENTS
 local INFINITE_ARCHIVE_FRAME_PANEL_ID = PanelIds.INFINITE_ARCHIVE_FRAME
+local GOLDEN_PURSUIT_PANEL_ID = PanelIds.GOLDEN_PURSUIT
+local HOUSE_TRACKER_PANEL_ID = PanelIds.HOUSE_TRACKER
 local LOOT_LOG_PANEL_ID = PanelIds.LOOT_LOG
 local PLAYER_INFO_PANEL_ID = PanelIds.PLAYER_INFO
 local PLAYER_INTERACTION_PANEL_ID = PanelIds.PLAYER_INTERACTION
 local SUBTITLES_PANEL_ID = PanelIds.SUBTITLES
 local CHAT_PANEL_ID = PanelIds.CHAT
 local SOCIAL_PANEL_ID = PanelIds.SOCIAL
+local GUILDS_PANEL_ID = PanelIds.GUILDS
 local FRIENDS_PANEL_ID = PanelIds.FRIENDS
 local GROUP_FINDER_MONITOR_PANEL_ID = PanelIds.GROUP_FINDER_MONITOR
 local TICKER_PANEL_ID = PanelIds.TICKER
@@ -805,6 +808,24 @@ function GamepadOptions.BuildFriendsEntry()
     }
 end
 
+function GamepadOptions.BuildGuildsEntry()
+    return {
+        panel = SOCIAL_PANEL_ID,
+        system = SOCIAL_PANEL_ID,
+        settingId = 4,
+        controlType = OPTIONS_INVOKE_CALLBACK,
+        text = GetString(SI_MAIN_MENU_GUILDS),
+        gamepadTextOverride = GetString(SI_MAIN_MENU_GUILDS),
+        onInitializeFunction = GamepadOptions.InitializeNavigationEntry,
+        gamepadCustomTooltipFunction = function(tooltipControl)
+            GAMEPAD_TOOLTIPS:LayoutTextBlockTooltip(tooltipControl, NQOL.L("features.guilds.entry_tooltip"))
+        end,
+        callback = function()
+            GamepadOptions.ShowPanel(GUILDS_PANEL_ID)
+        end,
+    }
+end
+
 function GamepadOptions.BuildGroupFinderMonitorEntry()
     local monitor = NQOL.Features.GroupFinderMonitor
 
@@ -1230,6 +1251,42 @@ function GamepadOptions.BuildCenterScreenAnnounceEntry()
     }
 end
 
+function GamepadOptions.BuildGoldenPursuitEntry()
+    return {
+        panel = DEFAULT_FRAMES_PANEL_ID,
+        system = DEFAULT_FRAMES_PANEL_ID,
+        settingId = 11,
+        controlType = OPTIONS_INVOKE_CALLBACK,
+        text = NQOL.L("features.ui.golden_pursuit"),
+        gamepadTextOverride = NQOL.L("features.ui.golden_pursuit"),
+        onInitializeFunction = GamepadOptions.InitializeNavigationEntry,
+        gamepadCustomTooltipFunction = function(tooltipControl)
+            GAMEPAD_TOOLTIPS:LayoutTextBlockTooltip(tooltipControl, NQOL.Features.UI.GetGoldenPursuitEnabledTooltip())
+        end,
+        callback = function()
+            GamepadOptions.ShowPanel(GOLDEN_PURSUIT_PANEL_ID)
+        end,
+    }
+end
+
+function GamepadOptions.BuildHouseTrackerEntry()
+    return {
+        panel = DEFAULT_FRAMES_PANEL_ID,
+        system = DEFAULT_FRAMES_PANEL_ID,
+        settingId = 12,
+        controlType = OPTIONS_INVOKE_CALLBACK,
+        text = NQOL.L("features.ui.house_tracker"),
+        gamepadTextOverride = NQOL.L("features.ui.house_tracker"),
+        onInitializeFunction = GamepadOptions.InitializeNavigationEntry,
+        gamepadCustomTooltipFunction = function(tooltipControl)
+            GAMEPAD_TOOLTIPS:LayoutTextBlockTooltip(tooltipControl, NQOL.Features.UI.GetHouseTrackerEnabledTooltip())
+        end,
+        callback = function()
+            GamepadOptions.ShowPanel(HOUSE_TRACKER_PANEL_ID)
+        end,
+    }
+end
+
 function GamepadOptions.BuildInfiniteArchiveFrameEntry()
     return {
         panel = DEFAULT_FRAMES_PANEL_ID,
@@ -1568,6 +1625,18 @@ function GamepadOptions.BuildAllowTalkInteractionsOption()
         mounts.GetAllowTalkInteractionsTooltip(),
         mounts.GetAllowTalkInteractions,
         mounts.SetAllowTalkInteractions
+    )
+end
+
+function GamepadOptions.BuildAllowActivateInteractionsOption()
+    local mounts = NQOL.Features.Mounts
+    return GamepadOptions.BuildCheckboxOption(
+        MOUNTS_PANEL_ID,
+        7,
+        mounts.GetAllowActivateInteractionsLabel(),
+        mounts.GetAllowActivateInteractionsTooltip(),
+        mounts.GetAllowActivateInteractions,
+        mounts.SetAllowActivateInteractions
     )
 end
 

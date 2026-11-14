@@ -46,13 +46,16 @@ local function MergeValue(target, defaults)
     return target
 end
 
-local function HasPath(root, path)
+local function HasDefaultPath(root, path)
     local current = root
     for index = 1, #path do
         if type(current) ~= "table" then
             return false
         end
 
+        -- Empty default tables own their dynamic children too (for example
+        -- per-panel scroll positions). Unrelated feature scopes do not.
+        if next(current) == nil then return true end
         current = current[path[index]]
     end
 
@@ -145,7 +148,7 @@ function Settings.ResetPath(path)
     local reset = false
     for _, scope in ipairs(Settings.savedVariableScopes) do
         local defaultValue = Settings.GetPath(scope.defaults, path)
-        if defaultValue ~= nil or HasPath(scope.savedVariables, path) then
+        if HasDefaultPath(scope.defaults, path) then
             SetPath(scope.savedVariables, path, defaultValue)
             reset = true
         end

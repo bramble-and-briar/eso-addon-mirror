@@ -61,7 +61,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Less Bling Golden Pursuits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Less-Bling-Golden-Pursuits__3993) | kawamonkey | PC / Mac | 1.0 |
 | [Let There Be Light](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Let-There-Be-Light__1906) | Cardinal05 | PC / Mac | 1.0.4 |
 | [Let's Talk Later](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Let-s-Talk-Later__4304) | Saleand | PC / Mac | 0.1.4 |
-| [Lethal PvP Insights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lethal2k/Lethal-PvP-Insights__5037) | Lethal2k | PC / Mac | 1.9.74 |
+| [Lethal PvP Insights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lethal2k/Lethal-PvP-Insights__5037) | Lethal2k | PC / Mac | 1.10.4 |
 | [LFG Auto Accept](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/gitright/LFG-Auto-Accept__1754) | gitright | PC / Mac | 1.2.019 |
 | [LGM - Lilith's Group Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drummerx04/LGM---Lilith-s-Group-Manager__2088) | Drummerx04 | PC / Mac | 4.5.3 |
 | [Lib3DArrow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/Lib3DArrow__2663) | kadeer | PC / Mac | v0.1 alpha |
@@ -179,7 +179,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibHyper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyperioxes/LibHyper__3532) | Hyperioxes | PC / Mac | 1.1 |
 | [LibId64](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibId64__0faeb5c6-5fc7-48bc-91c6-61d863d7bf6e) | sirinsidiator | Console | — |
 | [LibId64](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibId64__3585) | sirinsidiator | PC / Mac | 1.0.1 |
-| [LibImplex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibImplex__4108) | imPDA | PC / Mac | 24 |
+| [LibImplex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibImplex__4108) | imPDA | PC / Mac | 25 |
 | [LibInteractionHook](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IsJustaGhost/LibInteractionHook__3644) | IsJustaGhost | PC / Mac | 3.2 |
 | [LibInteriorDetection](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/LibInteriorDetection__4816) | kreksar@gmail.com | PC / Mac | 1.3.7 |
 | [LibItemLink](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/LibItemLink__3855) | Sharlikran | PC / Mac | 9.4.0 |
@@ -279,7 +279,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibSTARSConnect](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/LibSTARSConnect__40ce0c52-4479-40d1-b9d0-3f8fc4d53c4f) | SugaComa | Console | — |
 | [LibStatic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/LibStatic__4367) | static_recharge | PC / Mac | 2.1.0 |
 | [LibStub](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibStub__44) | sirinsidiator | PC / Mac | 1.0 r7 |
-| [LibSurfaceTools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibSurfaceTools__4584) | imPDA | PC / Mac | 8 |
+| [LibSurfaceTools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibSurfaceTools__4584) | imPDA | PC / Mac | 9 |
 | [LibTableFunctions-1.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Onigar/LibTableFunctions-1.0__2624) | Onigar | PC / Mac | 1.0.1 |
 | [LibTarget](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fyeur/LibTarget__4830) | Fyeur | PC / Mac | 1.0.0 |
 | [LibTeamshadows](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/teamfky/LibTeamshadows__4669) | teamfky | PC / Mac | 1.3.3 |

@@ -33,6 +33,23 @@
             </Controls>
         </Control>
 
+        <!-- Tab of the set chart: a section of the place, or a page number; clicked while Shift keeps the chart open -->
+        <Control name="DungeonSetTracker_ChartTab" virtual="true" mouseEnabled="true">
+            <Controls>
+                <Texture name="$(parent)Bg">
+                    <AnchorFill/>
+                </Texture>
+                <Texture name="$(parent)Line">
+                    <Anchor point="BOTTOMLEFT"/>
+                    <Anchor point="BOTTOMRIGHT"/>
+                </Texture>
+                <Label name="$(parent)Text" font="ZoFontGameSmall" wrapMode="ELLIPSIS" maxLineCount="1" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                    <Anchor point="TOPLEFT" offsetX="4"/>
+                    <Anchor point="BOTTOMRIGHT" offsetX="-4"/>
+                </Label>
+            </Controls>
+        </Control>
+
         <!-- Icon on the map of an open zone; pointing at it shows the zone's sets (created and placed in Lua) -->
         <Button name="DungeonSetTracker_ZoneButton" virtual="true" tier="HIGH" mouseEnabled="true">
             <Textures normal="EsoUI/Art/Collections/collections_tabIcon_itemSets_up.dds"
@@ -47,7 +64,9 @@
                 <Backdrop name="$(parent)Bg" inherits="ZO_DefaultBackdrop"/>
                 <Label name="$(parent)Title" font="ZoFontWinH2" wrapMode="ELLIPSIS" maxLineCount="1" modifyTextType="UPPERCASE" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED"/>
                 <Texture name="$(parent)Divider" inherits="ZO_HorizontalDivider"/>
-                <!-- Sets of the dungeon; taller for places with many sets -->
+                <!-- Tabs, for places with more sets than one page holds -->
+                <Control name="$(parent)Tabs"/>
+                <!-- Sets of the dungeon: one page -->
                 <Control name="$(parent)Content"/>
                 <!-- Legend: a piece in color "collected", as a silhouette "missing", the veteran icon when shown -->
                 <Control name="$(parent)Legend">

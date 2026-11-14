@@ -9,6 +9,7 @@ for key, text in pairs({
     LEGEND_VETERAN_ONLY = "Solo veterano",
     LEGEND_PERFECTED = "Perfeccionado",
     HINT_KEEP_OPEN = "Mantén pulsada Mayús para que esta ventana siga abierta y señala una pieza para verla.",
+    HINT_KEEP_OPEN_TABS = "Mantén pulsada Mayús para que esta ventana siga abierta: señala una pieza para verla y cambia de página con las pestañas o la rueda del ratón.",
 
     CHAT_ENTER = "%s: %s piezas conseguidas",
     CHAT_NEW_PIECE = "Pieza nueva: %s (%s %s)",

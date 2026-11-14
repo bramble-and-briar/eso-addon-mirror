@@ -593,6 +593,12 @@ end
 --========================================
 --        register
 --========================================
+---供诊断(/adrbackbar)读取主条 widget
+---@type fun(slotNum: number): adr.views.Widget|nil
+m.getMainWidget = function(slotNum)
+  return l.mainBarWidgetMap[slotNum]
+end
+
 addon.register("Bar#M", m)
 
 addon.register("Bar", m)

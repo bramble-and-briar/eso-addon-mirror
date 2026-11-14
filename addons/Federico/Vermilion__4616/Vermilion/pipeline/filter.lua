@@ -10,6 +10,12 @@ local M = Vermilion.Pipeline.Filter
 local bump = Vermilion.Diagnostics.bump   -- no-op in release (DEBUG=false)
 local KIND_DAMAGE_OUT = Vermilion.Constants.ABILITY_KIND.DAMAGE_OUT
 local UNIT_SELF = Vermilion.zenimax.constants.COMBAT_UNIT_TYPE_PLAYER
+local UNIT_PET = Vermilion.zenimax.constants.COMBAT_UNIT_TYPE_PLAYER_PET
+local UNIT_GROUP = Vermilion.zenimax.constants.COMBAT_UNIT_TYPE_GROUP or 3
+local dueling = false
+
+function M.set_dueling(on) dueling = on and true or false end
+function M.dueling() return dueling end
 
 --* I left it this way for research purposes, 
 --* the main filter right now is a simple source-attribution guard r <=> (k != K OR f(i) > 0).
@@ -20,8 +26,12 @@ function M.allow(ev)
     bump("filter.dropped_env")
     return false
   end
-  if ev.target_type == UNIT_SELF then
+  if ev.target_type == UNIT_SELF or ev.target_type == UNIT_PET then
     bump("filter.dropped_self")
+    return false
+  end
+  if ev.target_type == UNIT_GROUP and not dueling then
+    bump("filter.dropped_group")
     return false
   end
   return true

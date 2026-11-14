@@ -35,6 +35,26 @@
             <Action name="NECROCAT_TELEPORT_VIVEC">
                 <Down>NecroCat.TeleportToVivec()</Down>
             </Action>
+            <!-- Режим скриншота (Clean Screen) -->
+            <Action name="NC_CLEAN_SCREEN_TOGGLE">
+                <Down>NecroCat.ToggleCleanScreen()</Down>
+            </Action>
+            <Action name="NC_CLEAN_SCREEN_CAM_UP">
+                <Down>NecroCat.CleanScreenCamStart('UP')</Down>
+                <Up>NecroCat.CleanScreenCamStop('UP')</Up>
+            </Action>
+            <Action name="NC_CLEAN_SCREEN_CAM_DOWN">
+                <Down>NecroCat.CleanScreenCamStart('DOWN')</Down>
+                <Up>NecroCat.CleanScreenCamStop('DOWN')</Up>
+            </Action>
+            <Action name="NC_CLEAN_SCREEN_CAM_LEFT">
+                <Down>NecroCat.CleanScreenCamStart('LEFT')</Down>
+                <Up>NecroCat.CleanScreenCamStop('LEFT')</Up>
+            </Action>
+            <Action name="NC_CLEAN_SCREEN_CAM_RIGHT">
+                <Down>NecroCat.CleanScreenCamStart('RIGHT')</Down>
+                <Up>NecroCat.CleanScreenCamStop('RIGHT')</Up>
+            </Action>
         </Category>
     </Layer>
 </Bindings>

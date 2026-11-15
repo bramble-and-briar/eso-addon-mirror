@@ -14,6 +14,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [t](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/t__bbe159f8-5b9f-4b54-aa51-36d94bab4683) | user562x | Console | — |
 | [t](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/t__eb9e1258-2704-4f27-ae8a-ac3d34541fb9) | user562x | Console | — |
 | [TABEPHA BOPOH CEBEPA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BOPOH-CEBEPA/TABEPHA-BOPOH-CEBEPA__4076) | BOPOH CEBEPA | PC / Mac | 1.0 |
+| [Tactical Display (WIP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/moo_2021/Tactical-Display-WIP__5048) | moo_2021 | PC / Mac | 0.2.0 |
 | [Tagarn's Hard Mode Reminders (In Development)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagarn/Tagarn-s-Hard-Mode-Reminders-In-Development__4310) | Tagarn | PC / Mac | 0.51 |
 | [Tagarn's Skill Point Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagarn/Tagarn-s-Skill-Point-Alerts__3989) | Tagarn | PC / Mac | 1.29 |
 | [Taichou's Icon Highlight](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VitorTaichou/Taichou-s-Icon-Highlight__4599) | VitorTaichou | PC / Mac | 1.1.0 |
@@ -70,7 +71,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Taz's Chat Notifier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tazmyr/Taz-s-Chat-Notifier__2764) | Tazmyr | PC / Mac | 1.29 |
 | [TBag Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kafeijao/TBag-Counter__1976) | kafeijao | PC / Mac | 0.4 |
 | [Tbudko's icons for Makos's ContentHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tbudko/Tbudko-s-icons-for-Makos-s-ContentHelper__4140) | Tbudko | PC / Mac | 1.1.0 |
-| [TDAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/TDAddon__4194) | Masteroshi430 | PC / Mac | 2026.10.14 |
+| [TDAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/TDAddon__4194) | Masteroshi430 | PC / Mac | 2026.11.14 |
 | [Tea and Toast](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Tea-and-Toast__8394c641-1cb2-45f3-8b73-b6f424d6c630) | SugaComa | Console | — |
 | [TeamShadowBuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/teamfky/TeamShadowBuff__4673) | teamfky | PC / Mac | 1.1.10 |
 | [TeamShadowsManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/teamfky/TeamShadowsManager__4670) | teamfky | PC / Mac | 1.1.20 |
@@ -81,6 +82,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Teleport Tool](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/deagl0r/Teleport-Tool__1333) | deagl0r | PC / Mac | 1.24.0.0 |
 | [TemplarMastery](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/TemplarMastery__4827) | its_wifey | PC / Mac | 1.7 |
 | [TESO Ingame Messenger - TIM (for Update 6)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Migoda/TESO-Ingame-Messenger---TIM-for-Update-6__944) | Migoda | PC / Mac | 5.52 |
+| [Test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Test__5d54d232-188f-4ee1-a2fa-61c641f2538b) | FiNk3F13 | Console | — |
 | [Test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Test__f8bc38ae-b26d-4071-83f7-5987dbc4045f) | FiNk3F13 | Console | — |
 | [test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/satuve/test__3735024b-209d-4fab-966c-339f5adffcb5) | satuve | Console | — |
 | [test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/test__081b2e52-b426-454f-9be3-3a9a4aa5678f) | sirinsidiator | Console | — |
@@ -96,6 +98,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Testing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Testing__8cd10e06-846e-4b81-9858-f1a6943f0b32) | FiNk3F13 | Console | — |
 | [TestMapAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/TestMapAddon__cee315a7-bef0-44c7-9a12-dbc6bdb6674d) | PinkBanther | Console | — |
 | [Testo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Testo__216fbb06-0224-40a3-bc08-d47f6a6a1157) | FiNk3F13 | Console | — |
+| [Testo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Testo__937915ef-c930-46a4-ad1d-baf147c74e87) | FiNk3F13 | Console | — |
 | [testt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/testt__27d04e89-fb05-4cae-98d1-bbb320a1b2f1) | FiNk3F13 | Console | — |
 | [TESTUPDATE2112](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rob82668/TESTUPDATE2112__4435) | rob82668 | PC / Mac | 1.0.0 |
 | [Tetris for Fishing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sem/Tetris-for-Fishing__3314) | Sem | PC / Mac | 1.7 |
@@ -157,7 +160,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Title Loop](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Title-Loop__5e051775-8c73-4e96-bb6b-dcaa188dc064) | Copper0 | Console | — |
 | [TitleFlex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Skvysh/TitleFlex__2509) | Skvysh | PC / Mac | 1.8 |
 | [TitleFlex - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/TitleFlex---Updated__4027) | wicked_prophet | PC / Mac | 1.9.1 |
-| [TodoList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/blazeofmoon/TodoList__5051) | blazeofmoon | PC / Mac | 1.1 |
+| [TodoList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/blazeofmoon/TodoList__5051) | blazeofmoon | PC / Mac | 1.2.1 |
 | [Toggle FPS and Ping](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tnrsn/Toggle-FPS-and-Ping__3812) | Tnrsn | PC / Mac | 1.001 |
 | [ToggleGroupFrame (and Companion Unit Frame)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/ToggleGroupFrame-and-Companion-Unit-Frame__3698) | Saint-Ange | PC / Mac | 1.5.1 |
 | [ToggleQuestTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/ToggleQuestTracker__3809) | Saint-Ange | PC / Mac | 1.2.2 |
@@ -249,6 +252,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TurningTide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/TurningTide__853b60aa-f47b-4f79-bd43-88c1f37e8a9a) | tmbrinks | Console | — |
 | [TurningTide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/TurningTide__3330) | tmbrinks | PC / Mac | 1.1.1 |
 | [TxtOutput](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jellyalex978/TxtOutput__1686) | jellyalex978 | PC / Mac | 1.4.5 |
-| [Türkçe çeviri - ESOTR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOS/Türkçe-çeviri---ESOTR__4417) | XANTOS | PC / Mac | 1.0.6a |
+| [Türkçe çeviri - ESOTR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOS/Türkçe-çeviri---ESOTR__4417) | XANTOS | PC / Mac | 1.0.7 |
 | [Türkçe çeviri - ESOTR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOSTR/Türkçe-çeviri---ESOTR__56b19964-a32d-4e97-b922-6d446ff6b6fc) | XANTOSTR | Console | — |
 | [Türkçe çeviri - ESOTR_Lite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOSTR/Türkçe-çeviri---ESOTR_Lite__b7f56e79-7bdd-41c5-89d4-a0b61b7719af) | XANTOSTR | Console | — |

@@ -15,10 +15,10 @@
     (7) Group Frames
 
     Author:   		Atropos / Philgo68 / Demiknight (Dark Brotherhood) / Rhyono (Homestead/Morrowind/HotR/CC/Dragon Bones/Summerset/Wolfhunter/Murkmire/Wrathstone/Elsweyr/Scalebreaker/Dragonhold/Harrowstorm/Greymoor/Stonethorn/Markarth/FoA/Blackwood/Walking Flame/Deadlands)
-	  Contributors:	decay2 / Scootworks / Hoft / Antisenil / sirinsidiator / mitbulls / fugue / hypatian / Sharlikran
+	  Contributors:	decay2 / Scootworks / Hoft / Antisenil / sirinsidiator / mitbulls / fugue / hypatian / Sharlikran / klarix
     Email:    		atropos@tamrielfoundry.com
-    Version:  		1.32
-    Updated:  		2023-07-12
+    Version:  		1.34
+    Updated:  		2026-11-15
   ]]--
 
 --[[----------------------------------------------------------
@@ -29,7 +29,7 @@
 FTC.addOnName = "FoundryTacticalCombat"
 FTC.tag = "FTC"
 FTC.modName = "Foundry Tactical Combat"
-FTC.version = 1.32
+FTC.version = 1.34
 FTC.settings = 0.60
 FTC.language = GetCVar("language.2")
 FTC.UI = WINDOW_MANAGER:CreateTopLevelWindow("FTC_UI")
@@ -43,6 +43,7 @@ FTC.Defaults = {
   ["EnableSCT"] = false,
   ["EnableHotbar"] = true,
   ["EnableStats"] = true,
+  ["EnableRoleSorting"] = false,
   ["welcomed"] = 0,
 }
 

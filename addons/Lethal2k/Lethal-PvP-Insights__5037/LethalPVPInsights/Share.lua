@@ -288,6 +288,8 @@ function Share:ResetAll(t)
     sv.saved, sv.savedBuilds, sv.follows = {}, {}, {}
     sv.sharedKept, sv.names, sv.mineLog = {}, {}, {}
     sv.importedBuilds, sv.captureStarts = {}, {}
+    sv.ap, sv.apEvents = {}, {}
+    if sv.lifetime then sv.lifetime.ap = {} end
     sv.resetSeen = t
     if sv.me then sv.me.resetSeen = t end
 end
@@ -332,7 +334,7 @@ function Share:CheckPendingClear()
     else
         zo_callLater(function()
             PDI.Msg("Clearing local data is waiting for the upload to esopvp.com. Wait ~10 seconds, then type " ..
-                "/reloadui (it finishes then). |cFFFFFF/pvpdi clearlocal cancel|r stops it.")
+                "/reloadui (it finishes then). |cFFFFFF/lpi clearlocal cancel|r stops it.")
         end, 2000)
     end
 end

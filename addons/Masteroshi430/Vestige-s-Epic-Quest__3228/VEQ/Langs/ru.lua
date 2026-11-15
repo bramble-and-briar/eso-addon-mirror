@@ -297,7 +297,7 @@ VEQ.mylanguage = {
     ["quest_hiddenhint"] = "Скрытая подсказка",
     
     ["lang_tracker_type_guild"] = "Гильдия",
-    ["lang_tracker_type_mainstory"] = "Главный квест",
+    ["lang_tracker_type_mainstory"] = "Главная история",
     ["lang_tracker_type_undaunted"] = "Непобежденный",
     ["lang_tracker_type_prologue"] = "Пролог",    
     ["lang_tracker_type_companion"] = "Спутник",

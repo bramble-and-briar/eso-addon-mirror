@@ -2,7 +2,6 @@ local WR = Wegesruhe
 
 WR.compassOriginalAlpha = {}
 WR.compassHooked = false
-WR.compassAreaHooked = false
 
 function WR:InitializeCompass()
     if not COMPASS or not COMPASS.container then
@@ -26,16 +25,16 @@ function WR:InitializeCompass()
             return original(self, pinIndex, ...)
         end
     end
-
-    if not self.compassAreaHooked and COMPASS.PlayAreaPinOutAnimation and COMPASS.StopAreaPinOutAnimation then
-        self.compassAreaHooked = true
-        self.originalPlayAreaPinOutAnimation = COMPASS.PlayAreaPinOutAnimation
-    end
 end
 
 function WR:RefreshCompass()
     if not COMPASS or not COMPASS.container then
         return
+    end
+
+    -- Compute quest eligibility once per refresh, not every compass frame.
+    if self.RefreshQuestCompassEligibility then
+        self:RefreshQuestCompassEligibility()
     end
 
     for _, pinType in ipairs(self.managedCompassPins) do
@@ -52,18 +51,9 @@ function WR:RefreshCompass()
         end
     end
 
-    if self.originalPlayAreaPinOutAnimation and COMPASS.StopAreaPinOutAnimation then
-        local profile = self:GetActiveProfile()
-        if profile.compass.questAreas == false then
-            COMPASS.PlayAreaPinOutAnimation = COMPASS.StopAreaPinOutAnimation
-        else
-            COMPASS.PlayAreaPinOutAnimation = self.originalPlayAreaPinOutAnimation
-        end
-        if COMPASS.PerformFullAreaQuestUpdate then
-            COMPASS:PerformFullAreaQuestUpdate()
-        end
-    end
-
+    -- Quest-area animations are not normal compass pins. Their display is
+    -- controlled by the guarded PlayQuestAreaPinOutAnimation hook in
+    -- QuestFilters.lua; refresh only when those filter settings actually change.
     if self.ApplyQuestAreaFilters then
         self:ApplyQuestAreaFilters()
     end

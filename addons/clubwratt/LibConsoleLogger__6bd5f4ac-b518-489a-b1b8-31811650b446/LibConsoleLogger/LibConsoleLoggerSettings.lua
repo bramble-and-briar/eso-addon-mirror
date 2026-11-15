@@ -211,7 +211,7 @@ function Settings.Initialize()
     panel:AddSetting({
         type = LAS.ST_SLIDER,
         label = "Buffer size",
-        tooltip = "How many lines the log buffer keeps; the oldest are dropped first. Each export round trip (one browser open/close) carries roughly 80 short lines, so a smaller buffer means fewer round trips. Lowering it trims the buffer immediately. Default 4000.",
+        tooltip = "How many lines the log buffer keeps; the oldest are dropped first. Each export round trip (one browser open/close) carries roughly 80 short lines, so a smaller buffer means fewer round trips. Lowering it trims the buffer immediately. The buffer is saved with these settings, so it survives /reloadui, zone changes and relogs; exporting or disabling logging empties it. Default 4000.",
         min = (webExport and webExport.GetMinLines and webExport.GetMinLines()) or 50,
         max = (webExport and webExport.GetMaxLinesCeiling and webExport.GetMaxLinesCeiling()) or 4000,
         step = 50,

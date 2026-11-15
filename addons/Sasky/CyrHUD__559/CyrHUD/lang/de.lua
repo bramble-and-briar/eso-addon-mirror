@@ -43,6 +43,9 @@ ZO_CreateStringId("SI_CYRHUD_HIDE_KILLSDEATHS_INFO", "Versteckt deinen Kills/Tod
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES", "Verstecke Brücken und Meilentore")
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES_INFO", "Verstecke Brücken und Meilentore")
 
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD", "Verstecke Feuerlord")
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD_INFO", "Zeigt die Feuerlord-Benachrichtigung nicht in CyrHUD an")
+
 local CZ = "|cC5C29E" -- ZOS standard text color
 local CR = "|cFFFFFF" -- Reset color
 ZO_CreateStringId("SI_CYRHUD_KEYBIND_HEADER", "Tastenkombination")

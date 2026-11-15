@@ -445,8 +445,13 @@ local BUFF_UNCERTAIN = {
     ["share the spoils"] = true, ["bountiful harvest"] = true, ["bright harbinger"] = true,
     ["erudite's rigor"] = true, ["ink-scribe's verve"] = true,
     -- cast by another player too (a group member's buff, or the synergy of another player's ultimate)
-    ["chakram of destiny"] = true, ["summon charged atronach"] = true,
+    ["chakram of destiny"] = true, ["summon charged atronach"] = true, ["gibbering shelter"] = true,
 }
+-- cast on you by other players too: only listed for a player when it's on their captured skill bars
+local NEEDS_BARS = { ["gibbering shelter"] = true }
+function Skills:NeedsBars(name)
+    return NEEDS_BARS[string.lower(zo_strtrim(zo_strformat("<<1>>", name or "")))] == true
+end
 function Skills:BuffUncertain(name)
     return BUFF_UNCERTAIN[string.lower(zo_strtrim(zo_strformat("<<1>>", name or "")))] == true
 end

@@ -1,0 +1,13 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Who Wants Spaulder?">
+            <!-- (action names kept from 1.0, so keys people already bound stay bound) -->
+            <Action name="WhoWantsSpaulder_REINVITE">
+                <Down>WhoWantsSpaulder.ReinviteChecked()</Down>
+            </Action>
+            <Action name="WhoWantsSpaulder_OPEN">
+                <Down>WhoWantsSpaulder.ToggleWindow()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

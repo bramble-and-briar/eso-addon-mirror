@@ -1,0 +1,64 @@
+AI disclosure: Survey Sidekick was developed with ChatGPT-assisted code generation. Maintained by FoulMouthxAmazon. Released as a public beta; in-game testing and community feedback are ongoing.
+
+**Survey Sidekick**
+**By FoulMouthxAmazon**
+
+Your surveys are piling up. Your crafting bag demands tribute. Let’s turn that backlog into a haul!
+
+Survey Sidekick organizes your crafting surveys, helps you travel to their locations, and tracks the materials you collect along the way.
+
+**Optional Addons**
+
+- [**LibTreasure**](https://www.esoui.com/downloads/info3227-LibTreasure.html) — Enables survey locations, map waypoints, and wayshrine selection.
+- [**Tamriel Trade Centre**](https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html) — Provides estimated material values when price data is available.
+
+Gathering totals and collection goals work without either addon. Install optional addons and their dependencies separately.
+
+**Features**
+
+- **Organized survey list:** View backpack surveys by crafting type, with duplicate copies combined into one entry.
+- **Travel tools:** Place a map waypoint, preview a destination and recall cost, or travel to the closest unlocked wayshrine on the survey’s map.
+- **Live harvest tracking:** Track material quantities and gathering time with Start, Pause, and Resume controls.
+- **Collection goals:** Choose a survey type, select a material by name, and enter your target quantity. No item IDs needed!
+- **The Hoard Report:** Save gathering sessions, track your biggest haul, and copy summaries or detailed material lists.
+- **Estimated values:** See available price estimates alongside clearly marked unpriced quantities.
+- **Compact interface:** Resize the window or minimize it to a live tracker bar. Window position and visibility are remembered per character.
+- **Color choices:** Click Colors in the title bar for six presets or separate background, title bar and border choices. Colors apply instantly and save per character.
+
+**Getting Started**
+
+1. Type `/surveys` to open the addon.
+2. Open **Current Run** and click **Start / Resume**.
+3. Gather materials.
+4. Click **Finish Run** to view **The Hoard Report**.
+
+For survey travel, select a survey under **My Surveys**, then use the map, wayshrine, or gold-coin preview icon.
+
+Open **Help** or type `/surveys help` for instructions.
+
+**Useful Commands**
+
+- `/surveys` — Open or close the window.
+- `/surveys colors` - Open the appearance menu.
+- `/surveyport` — Travel to the selected survey’s closest unlocked wayshrine.
+- `/surveys goal` — Open collection goal setup.
+- `/surveys scale 70` — Make the window smaller.
+- `/surveys scale 80` — Restore the default size.
+
+**Things to Know**
+
+All supported crafting materials looted during an active run count, including surveys, regular nodes, containers, and creature drops. The Craft Bag can remain enabled.
+
+The **Regular-sized / Survey-Large** breakdown is an estimate. Other unusually large drops may appear under Survey/Large. Bank quantities are last-seen snapshots refreshed while your bank is open.
+
+Normal ESO travel costs and restrictions apply. Price estimates are not guaranteed sale prices.
+
+**Public Beta**
+
+For ESO PC/Mac with an English interface. Feedback and bug reports are welcome! Please include your addon version, the steps that caused the problem, any exact Lua error, and whether LibTreasure or TTC is installed.
+
+**Credits**
+
+Thanks to the LibTreasure authors and contributors for survey location data, and cyxui and the Tamriel Trade Centre contributors for the optional pricing API. Their code and databases are not bundled.
+
+Built-in interface icons are provided by The Elder Scrolls Online and referenced in-game. The included refresh-arrow icon was drawn with a Python/Pillow script created with ChatGPT assistance.

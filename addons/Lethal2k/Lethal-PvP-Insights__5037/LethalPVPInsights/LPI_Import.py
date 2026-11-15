@@ -355,7 +355,7 @@ def main():
 
     if not os.path.isfile(args.log):
         print("Encounter.log not found at:\n  " + args.log)
-        print("Turn on the log in game with /pvpdi capture (or /encounterlog), fight, then run this again.")
+        print("Turn on the log in game with /lpi capture (or /encounterlog), fight, then run this again.")
         return 1
 
     r = run_import(args.log, args.addon, args.reset)

@@ -229,6 +229,10 @@ ZO_CreateStringId("FTC_Menu_FRFontSDesc",   "Changer la taille des polices utili
 ZO_CreateStringId("FTC_Menu_FReset",        "Rénitialiser les Cadres Unitaires")
 ZO_CreateStringId("FTC_Menu_FResetDesc",    "Réinitialiser les paramètres originaux du composant de cadres unitaires de FTC.")
 
+local sortDefaultFr = ( FTC.Defaults.EnableRoleSorting ) and "Activé" or "Désactivé"
+ZO_CreateStringId("FTC_Menu_SortRoles", "Trier le groupe par rôles")
+ZO_CreateStringId("FTC_Menu_SortRolesDesc", "Trie les fenêtres de groupe et de raid dans l'ordre : Tank -> Soigneur -> DPS. [Défaut : " .. sortDefaultFr .. "]")
+
 --[[----------------------------------------------------------
     BUFF TRACKING
   ]]----------------------------------------------------------

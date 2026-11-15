@@ -1,6 +1,6 @@
 MyExtras = {}
 MyExtras.name = "MyExtras"
-MyExtras.version = "5.3"
+MyExtras.version = "5.6"
 MyExtras.savedVariables = nil
 MyExtras.charVariables = nil
 MyExtras.defaults = {
@@ -20,7 +20,9 @@ MyExtras.features = {}
 MyExtras.SAVED_ACCOUNT_TIP   = "Account wide: the same on all your characters."
 MyExtras.SAVED_CHARACTER_TIP = "Per character: set separately on each of your characters."
 
-local MENU_ORDER = { "ActionBar", "Trackers", "Gear", "DungeonsTrials", "FriendsStatus", "QualityOfLife", "Streamer", "Antiquity", "ChatTravel", "GuildLoop" }
+local MENU_ORDER = { "ActionBar", "Trackers", "Gear", "DungeonsTrials", "QualityOfLife", "Antiquity" }
+local MISC_FIRST = { "FriendsStatus" }
+local MISC_LAST  = { "Streamer", "ChatTravel", "GuildLoop" }
 
 local ICON_SETTINGS = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_settings.dds"
 local ICON_MENU     = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_misc.dds"
@@ -71,12 +73,39 @@ end
 --------------------------------------------------
 -- Game Calls
 --------------------------------------------------
+local function ShowOnScreenChat(text)
+    local chat = GAMEPAD_CHAT_SYSTEM
+    local container = chat and chat.primaryContainer
+    if not (container and container.currentBuffer and container.AddMessageToWindow) then return end
+    local window = container.currentBuffer:GetParent()
+    if not window then return end
+    local category = CHAT_CATEGORY_SYSTEM or 0
+    if IsChatContainerTabCategoryEnabled and window.tab and window.tab.index
+        and IsChatContainerTabCategoryEnabled(container.id, window.tab.index, category) then
+        return
+    end
+    container:AddMessageToWindow(window, text, 1, 1, 1, category)
+    if container.windowContainer and container.windowContainer.SetHidden then
+        container.windowContainer:SetHidden(false)
+    end
+    if chat.StartVisibilityTimer then chat:StartVisibilityTimer() end
+end
+
 function MyExtras:Chat(text)
     if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
         CHAT_ROUTER:AddSystemMessage(text)
+    elseif CHAT_SYSTEM and CHAT_SYSTEM.AddMessage then
+        CHAT_SYSTEM:AddMessage(text)
     else
         d(text)
+        return
     end
+    pcall(ShowOnScreenChat, text)
+end
+
+function MyExtras:Icon(texture)
+    if type(texture) ~= "string" or texture == "" then return "" end
+    return zo_iconFormat(texture, "100%", "100%") .. " "
 end
 
 function MyExtras:AccentHex()
@@ -90,9 +119,9 @@ function MyExtras:AccentHex()
     return "FFFFFF"
 end
 
-function MyExtras:ChatPrefix(feature)
+function MyExtras:ChatPrefix(feature, icon)
     local prefix = "|c" .. self:AccentHex() .. self.name .. "|r"
-    if feature and feature ~= "" then prefix = prefix .. " [" .. feature .. "]" end
+    if feature and feature ~= "" then prefix = prefix .. " [" .. self:Icon(icon) .. feature .. "]" end
     return prefix .. ": "
 end
 
@@ -231,11 +260,12 @@ local function TintPieces(pieces, r, g, b, a)
     for i = 1, #pieces do pieces[i]:SetColor(r, g, b, a) end
 end
 
-function MyExtras:CreateRoundBox(name, parent)
+function MyExtras:CreateRoundBox(name, parent, level)
+    level = level or 0
     local control = WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
     local box = setmetatable({ control = control, corner = 0 }, RoundBox)
-    box.fill = BoxPieces(name .. "Fill", control, BOX_FILL, 0)
-    box.edge = BoxPieces(name .. "Edge", control, BOX_EDGE, 1)
+    box.fill = BoxPieces(name .. "Fill", control, BOX_FILL, level)
+    box.edge = BoxPieces(name .. "Edge", control, BOX_EDGE, level + 1)
     TintPieces(box.edge, BOX_SILVER, BOX_SILVER, BOX_SILVER, 1)
     box:SetCorner(12)
     return box
@@ -251,6 +281,10 @@ end
 
 function RoundBox:SetFillColor(r, g, b, a)
     TintPieces(self.fill, r, g, b, a)
+end
+
+function RoundBox:SetEdgeColor(r, g, b, a)
+    TintPieces(self.edge, r, g, b, a)
 end
 
 function RoundBox:SetHidden(hidden)
@@ -306,31 +340,37 @@ local STATUS_MISSING   = "|c8C8C8CNot Installed|r"
 local MY_ADDONS = {
     {
         name        = "MyExtras",
+        search      = "MyExtras",
         title       = "MyExtras",
         description = "Extra features in one place, like your action bar, trackers, gear tools, trial timer and more.",
     },
     {
         name        = "PvPUA",
+        search      = "PvP UA",
         title       = "|c4F81BDP|r|cC2AA49v|r|cDE5B4EP|r |cFF8800UA!|r",
         description = "Tells you when something is under attack in Cyrodiil, Imperial City and more.",
     },
     {
         name        = "WhereIsIt",
+        search      = "Where Is It",
         title       = "Where Is It?",
         description = "Shows where your items and currencies are across your characters, bank, guild banks and houses.",
     },
     {
         name        = "AutoConsume",
+        search      = "AutoConsume",
         title       = "AutoConsume",
         description = "Uses your food, drinks and experience and Alliance Point boosts for you.",
     },
     {
         name        = "VerticalBuffsDebuffs",
+        search      = "VerticalBuffsDebuffs",
         title       = "VerticalBuffsDebuffs",
         description = "Shows your buffs and debuffs in vertical lists with timers.",
     },
     {
         name        = "LibUser562",
+        search      = "LibUser562",
         title       = "LibUser562",
         description = "The settings library these addons use.",
     },
@@ -358,20 +398,123 @@ local function FindAddOn(entry)
     return nil
 end
 
+local BROWSE_SCENE = "modBrowserGamepad"
+local MANAGE_SCENE = "gamepad_addons"
+local BROWSE_CHECK_MS = 300
+
+local browseText    = nil
+local browseOldText = nil
+local browseId      = nil
+local browseHooked  = false
+
+local function BrowseAvailable()
+    if type(DoesPlatformSupportModBrowser) ~= "function" or not DoesPlatformSupportModBrowser() then return false end
+    if type(AreUserAddOnsSupported) == "function" and not AreUserAddOnsSupported() then return false end
+    return SCENE_MANAGER:GetScene(BROWSE_SCENE) ~= nil
+end
+
+local function ManageAvailable()
+    return BrowseAvailable() and SCENE_MANAGER:GetScene(MANAGE_SCENE) ~= nil
+end
+
+local function BrowseFilters()
+    local manager = rawget(_G, "MOD_BROWSER_SEARCH_MANAGER")
+    local browseType = rawget(_G, "MOD_BROWSER_SEARCH_TYPE_BROWSE")
+    if not (manager and manager.GetSearchFilters and browseType) then return nil, manager end
+    return manager:GetSearchFilters(browseType), manager
+end
+
+local function FillBrowseSearch()
+    local text = browseText
+    browseText = nil
+    if not text then return end
+    local filters, manager = BrowseFilters()
+    if filters and manager and manager.GetSearchId and manager:GetSearchId() == browseId then
+        filters:SetSearchText(browseOldText or "")
+    end
+    local browser = rawget(_G, "MOD_BROWSER_GAMEPAD")
+    if browser and browser.searchEdit then browser.searchEdit:SetText(text) end
+end
+
+local function HookBrowseScene()
+    if browseHooked then return end
+    local scene = SCENE_MANAGER:GetScene(BROWSE_SCENE)
+    if not scene then return end
+    scene:RegisterCallback("StateChange", function(oldState, newState)
+        if newState == SCENE_SHOWN and browseText then
+            zo_callLater(FillBrowseSearch, BROWSE_CHECK_MS)
+        elseif newState == SCENE_HIDDEN then
+            browseText = nil
+        end
+    end)
+    browseHooked = true
+end
+
+local function OpenBrowse(text)
+    if not BrowseAvailable() then return end
+    HookBrowseScene()
+    local filters, manager = BrowseFilters()
+    if filters then
+        browseOldText = filters:GetSearchText()
+        filters:SetSearchText(text)
+    end
+    browseId = manager and manager.GetSearchId and manager:GetSearchId() or nil
+    browseText = text
+    SCENE_MANAGER:Push(BROWSE_SCENE)
+end
+
+local function OpenManage()
+    if not ManageAvailable() then return end
+    SCENE_MANAGER:Push(MANAGE_SCENE)
+end
+
 local function AddOnRow(entry)
-    return {
-        type    = "button",
-        name    = function()
-            if entry.name == MyExtras.name then
-                return entry.title .. "   " .. STATUS_INSTALLED
-            end
-            local title, enabled = FindAddOn(entry)
-            if not title then return entry.title .. "   " .. STATUS_MISSING end
-            if title == "" then title = entry.title end
-            return title .. "   " .. (enabled and STATUS_INSTALLED or STATUS_OFF)
+    local function State()
+        if entry.name == MyExtras.name then return "installed", entry.title end
+        local title, enabled = FindAddOn(entry)
+        if not title then return "missing", entry.title end
+        if title == "" then title = entry.title end
+        return enabled and "installed" or "off", title
+    end
+
+    local function Action()
+        local state = State()
+        if state == "missing" and BrowseAvailable() then
+            return function() OpenBrowse(entry.search or entry.name) end, "Browse Add-Ons"
+        elseif state == "off" and ManageAvailable() then
+            return OpenManage, "Manage My Add-Ons"
+        end
+        return nil
+    end
+
+    local row = {
+        type       = "button",
+        name       = function()
+            local state, title = State()
+            if state == "missing" then return title .. "   " .. STATUS_MISSING end
+            if state == "off" then return title .. "   " .. STATUS_OFF end
+            return title .. "   " .. STATUS_INSTALLED
         end,
-        tooltip = entry.description,
+        buttonText = function()
+            local _, text = Action()
+            return text
+        end,
+        tooltip    = function()
+            local state = State()
+            if state == "missing" and BrowseAvailable() then
+                return entry.description .. "\n\nBrowse Add-Ons opens with its name in the search box. "
+                    .. "If the list doesn't change, select the search box and confirm it."
+            elseif state == "off" and ManageAvailable() then
+                return entry.description .. "\n\nManage My Add-Ons opens so you can turn it back on."
+            end
+            return entry.description
+        end,
     }
+    return setmetatable(row, {
+        __index = function(_, key)
+            if key == "func" then return (Action()) end
+        end,
+    })
 end
 
 function MyExtras:InfoMenu()
@@ -394,6 +537,40 @@ function MyExtras:InfoMenu()
         type    = "submenu",
         name    = "Info",
         tooltip = "Information.",
+        options = options,
+    }
+end
+
+--------------------------------------------------
+-- Miscellaneous
+--------------------------------------------------
+local function MiscOrder()
+    local order = {}
+    for i = 1, #MISC_FIRST do order[#order + 1] = MISC_FIRST[i] end
+    for i = 1, #MISC_LAST do order[#order + 1] = MISC_LAST[i] end
+    return order
+end
+
+function MyExtras:MiscellaneousMenu()
+    local options = {}
+    local order = MiscOrder()
+    for i = 1, #order do
+        local feature = self[order[i]]
+        if feature and type(feature.GetOptions) == "function" then
+            local featureOptions = feature:GetOptions()
+            for j = 1, #featureOptions do
+                local option = featureOptions[j]
+                if type(option) == "table" and option.type == "submenu" then option.icon = nil end
+                options[#options + 1] = option
+            end
+        end
+    end
+    if #options == 0 then return nil end
+    return {
+        type    = "submenu",
+        name    = "Miscellaneous",
+        icon    = ICON_MENU,
+        tooltip = "Friends' Status, Streamer, Chat Travel and Guild Loop.",
         options = options,
     }
 end
@@ -515,28 +692,39 @@ function MyExtras:CreateSettings()
         return
     end
 
-    local ordered = {}
+    local ordered, listed = {}, {}
     for i = 1, #MENU_ORDER do
         local feature = self[MENU_ORDER[i]]
-        if feature then ordered[#ordered + 1] = feature end
-    end
-    for _, feature in ipairs(self.features) do
-        local listed = false
-        for i = 1, #ordered do
-            if ordered[i] == feature then listed = true break end
+        if feature then
+            ordered[#ordered + 1] = feature
+            listed[feature] = true
         end
-        if not listed then ordered[#ordered + 1] = feature end
+    end
+    local miscOrder = MiscOrder()
+    for i = 1, #miscOrder do
+        local feature = self[miscOrder[i]]
+        if feature then listed[feature] = true end
+    end
+    local extra = {}
+    for _, feature in ipairs(self.features) do
+        if not listed[feature] then extra[#extra + 1] = feature end
     end
 
     local options = {}
-    for _, feature in ipairs(ordered) do
-        if type(feature.GetOptions) == "function" then
-            local featureOptions = feature:GetOptions()
-            for i = 1, #featureOptions do
-                options[#options + 1] = featureOptions[i]
+    local function AddFeatures(list)
+        for _, feature in ipairs(list) do
+            if type(feature.GetOptions) == "function" then
+                local featureOptions = feature:GetOptions()
+                for i = 1, #featureOptions do
+                    options[#options + 1] = featureOptions[i]
+                end
             end
         end
     end
+    AddFeatures(ordered)
+    AddFeatures(extra)
+    local misc = self:MiscellaneousMenu()
+    if misc then options[#options + 1] = misc end
     options[#options + 1] = self:SettingsMenu()
 
     local sv = self.savedVariables
@@ -616,10 +804,36 @@ function MyExtras:OpenPage(option, row)
 end
 
 --------------------------------------------------
+-- Access
+--------------------------------------------------
+local ALLOWED_ACCOUNTS = { "user562", "SGT BEAR78FH", "Zavaki Akena" }
+
+local function PlainAccount(name)
+    local plain = tostring(name or "")
+    plain = plain:gsub("^@", "")
+    plain = plain:gsub("%s", "")
+    return plain:lower()
+end
+
+local function IsAllowedAccount()
+    if type(GetDisplayName) ~= "function" then return false end
+    local mine = PlainAccount(GetDisplayName())
+    if mine == "" then return false end
+    for i = 1, #ALLOWED_ACCOUNTS do
+        if PlainAccount(ALLOWED_ACCOUNTS[i]) == mine then return true end
+    end
+    return false
+end
+
+--------------------------------------------------
 -- Load
 --------------------------------------------------
 local function OnAddonLoaded(event, addonName)
     if addonName ~= MyExtras.name then return end
+    if not IsAllowedAccount() then
+        EVENT_MANAGER:UnregisterForEvent(MyExtras.name, EVENT_ADD_ON_LOADED)
+        return
+    end
 
     MyExtras.freshInstall = MyExtras_SavedVars == nil
 

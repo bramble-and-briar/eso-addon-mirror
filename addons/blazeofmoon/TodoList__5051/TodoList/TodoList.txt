@@ -1,0 +1,8 @@
+## Title: TodoList
+## Author: blazeofmoon
+## Version: 1.2.1
+## AddOnVersion: 121
+## APIVersion: 101051
+## SavedVariables: TodoListSavedVariables
+
+TodoList.lua

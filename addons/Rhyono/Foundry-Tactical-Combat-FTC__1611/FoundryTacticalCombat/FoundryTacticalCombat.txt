@@ -1,8 +1,8 @@
 ## Title: Foundry Tactical Combat
 ## Description: A combat enhancement addon designed to give players access to relevant combat data in an easy to process framework which allows them to respond quickly and effectively to evolving combat situations.
-## Version: 1.32
-## AddOnVersion: 132
-## APIVersion: 101040 101041
+## Version: 1.34
+## AddOnVersion: 134
+## APIVersion: 101051
 ## SavedVariables: FTC_VARS
 ## DependsOn: LibAddonMenu-2.0>=36 LibMsgWin-1.0>=11 LibMediaProvider-1.0>=28
 ## OptionalDependsOn: UnitFramesRebirth LibDebugLogger DebugLogViewer

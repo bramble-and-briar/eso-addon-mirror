@@ -1,11 +1,14 @@
 <Bindings>
     <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
         <Category name="DebuffTracker">
-            <Action name="DebuffTracker_OpenMenu">
-                <Down>DebuffTracker_ToggleSettings()</Down>
+            <Action name="DEBUFFTRACKER5_EDITOR">
+                <Down>DebuffTracker_ToggleEditor()</Down>
             </Action>
-            <Action name="DebuffTracker_OpenProfiles">
-                <Down>DebuffTrackerProfileManager:Show()</Down>
+            <Action name="DEBUFFTRACKER5_MOVE">
+                <Down>DebuffTracker_ToggleMove()</Down>
+            </Action>
+            <Action name="DEBUFFTRACKER5_TEST">
+                <Down>DebuffTracker_ToggleTest()</Down>
             </Action>
         </Category>
     </Layer>

@@ -18,7 +18,7 @@
     "ItemShare"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4533/",
-  "fingerprint": "123bc00de7f41e932518481594117932ba73f925a728e52992e62c3868eede98",
+  "fingerprint": "931f1721615c64a3ced62555c35cfdf644a845f1081406502f12f3c240aab3b3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18387.png",
     "https://cdn-eso.mmoui.com/preview/pvw18388.png",
@@ -30,11 +30,11 @@
   "source_id": "4533",
   "source_url": "https://www.esoui.com/downloads/info4533-ItemShare.html",
   "stats": {
-    "downloads": 276,
+    "downloads": 297,
     "favorites": 0,
-    "monthly_downloads": 105
+    "monthly_downloads": 124
   },
   "title": "ItemShare",
   "updated_at": 1794511733000,
-  "version": "1.11.35"
+  "version": "1.11.43"
 }

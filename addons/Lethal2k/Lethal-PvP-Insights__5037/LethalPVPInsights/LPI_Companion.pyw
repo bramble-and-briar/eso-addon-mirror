@@ -732,8 +732,19 @@ def run_gui():
     newid_btn.pack(side="left")
     del_btn = tk.Button(bf, text="Clear collected data", command=clear_local)
     del_btn.pack(side="left", padx=6)
-    tk.Label(web, textvariable=upstat_var, fg="#555", anchor="w", wraplength=760, justify="left").grid(
-        row=2, column=0, columnspan=2, sticky="w", padx=6, pady=(0, 4))
+    up_lbl = tk.Label(web, textvariable=upstat_var, fg="#555", anchor="w", wraplength=760, justify="left", cursor="hand2")
+    up_lbl.grid(row=2, column=0, columnspan=2, sticky="w", padx=6, pady=(0, 4))
+
+    def copy_upstat(_e=None):   # click: show the whole message and copy it
+        t = upstat_var.get()
+        if not t:
+            return
+        try:
+            root.clipboard_clear(); root.clipboard_append(t)
+        except Exception:
+            pass
+        messagebox.showinfo("esopvp.com upload", t + "\n\n(Copied - you can paste it anywhere with Ctrl+V.)")
+    up_lbl.bind("<Button-1>", copy_upstat)
     refresh_cloud()
 
     def start_upload():

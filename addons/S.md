@@ -334,7 +334,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Stripped out version of AutoDecline by Dio](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FatalForce/Stripped-out-version-of-AutoDecline-by-Dio__2350) | FatalForce | PC / Mac | 1.0.0 |
 | [Stud's Group Finder Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Stud-s-Group-Finder-Tweaks__4118) | STUDLETON | PC / Mac | 1.0.0 |
 | [StunBreak](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solaris-Lorica/StunBreak__2594) | Solaris Lorica | PC / Mac | 1.1 |
-| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 3.3 |
+| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 3.4 |
 | [Style and Elegance ( Outfit, Idle Animation, Title, Mount, Etc. Loadouts )](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jodynn/Style-and-Elegance-Outfit-Idle-Animation-Title-Mount-Etc.-Loadouts__2201) | Jodynn | PC / Mac | 2.13 |
 | [Style New Cleaner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Style-New-Cleaner__a77b6722-e51b-4b17-9543-632248774cf3) | Eldibabalo | Console | — |
 | [Style Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kryne/Style-Tracker__4088) | Kryne | PC / Mac | 1.0.0 |
@@ -352,6 +352,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Survey Resetter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Survey-Resetter__5001) | Lykeion | PC / Mac | 1.0 |
 | [Survey Resetter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Survey-Resetter__be74c988-2267-4f01-a4e5-c54cbf6aba19) | Lykeion+ | Console | — |
 | [Survey Sentinel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ReliktKoala/Survey-Sentinel__d9ba289c-0a0a-4233-80ab-25f3be9c35eb) | ReliktKoala | Console | — |
+| [Survey Sidekick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FoulMouthxAmazon/Survey-Sidekick__5050) | FoulMouthxAmazon | PC / Mac | 0.2.3-beta |
 | [Survey The World](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Survey-The-World__1817) | manavortex | PC / Mac | 1.5a |
 | [Survey Zone List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bulton-fr/Survey-Zone-List__2797) | bulton-fr | PC / Mac | 2.0.1 |
 | [SurvivalMode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TankiestTank/SurvivalMode__79d39b6d-3f2c-48e3-a08f-b6c2c69751fd) | TankiestTank | Console | — |

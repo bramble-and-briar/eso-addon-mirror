@@ -37,6 +37,9 @@ ZO_CreateStringId("SI_CYRHUD_HIDE_KILLSDEATHS_INFO", "キル/デス カウンタ
 
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES", "橋とマイルゲートを隠す")
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES_INFO", "橋とマイルゲートを隠す")
+
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD", "パイアロードを隠す")
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD_INFO", "CyrHUDからパイアロードの通知を隠す")
  
 local CZ = "|cC5C29E" -- ZOS standard text color
 local CR = "|cFFFFFF" -- Reset color

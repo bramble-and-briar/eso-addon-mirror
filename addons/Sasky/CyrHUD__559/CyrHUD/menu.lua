@@ -42,6 +42,13 @@ CyrHUD.menuOptions = {
     },
     {
         type = "checkbox",
+        name = GetString(SI_LFG_VIEW_VETERANCY),
+        getFunc = function() return CyrHUD.cfg.showVeterancyCyro end,
+        setFunc = function(v) CyrHUD.cfg.showVeterancyCyro = v CyrHUD:refresh() end,
+		default = true,
+    },
+    {
+        type = "checkbox",
         name = GetString(SI_CYRHUD_POPBAR),
         tooltip = GetString(SI_CYRHUD_POPBAR_INFO),
         getFunc = function() return CyrHUD.cfg.showPopBars end,
@@ -84,6 +91,13 @@ CyrHUD.menuOptions = {
     },
     {
         type = "checkbox",
+        name = GetString(SI_LFG_VIEW_VETERANCY),
+        getFunc = function() return CyrHUD.cfg.showVeterancyIC end,
+        setFunc = function(v) CyrHUD.cfg.showVeterancyIC = v CyrHUD:refresh() end,
+		default = true,
+    },
+    {
+        type = "checkbox",
         name = GetString(SI_CYRHUD_HIDE_IC),
         tooltip = GetString(SI_CYRHUD_HIDE_IC_INFO),
         getFunc = function() return CyrHUD.cfg.hideImpBattles end,
@@ -98,7 +112,41 @@ CyrHUD.menuOptions = {
         setFunc = function(v) CyrHUD.cfg.hidePatrollingHorrors = v CyrHUD:refresh() CyrHUD:reconfigureLabels() end,
 		default = false,
     },
-	{ type = "submenu", name = GetString(SI_CYRHUD_QT),							
+	{
+	    type = "header",
+        name = GetString(SI_CAMPAIGNRULESETTYPE5),
+	},
+	{
+        type = "checkbox",
+        name = GetString(SI_ITEM_ACTION_USE).." CyrHUD",
+        getFunc = function() return CyrHUD.cfg.enableInJerall end,
+        setFunc = function(v) CyrHUD.cfg.enableInJerall = v CyrHUD.playerInit() end,
+		default = true,
+    },
+    {
+        type = "checkbox",
+        name = GetString(SI_LFG_VIEW_VETERANCY),
+        getFunc = function() return CyrHUD.cfg.showVeterancyJerall end,
+        setFunc = function(v) CyrHUD.cfg.showVeterancyJerall = v CyrHUD:refresh() end,
+		default = true,
+    },
+    {
+        type = "checkbox",
+        name = GetString(SI_CYRHUD_POPBAR),
+        tooltip = GetString(SI_CYRHUD_POPBAR_INFO),
+        getFunc = function() return CyrHUD.cfg.showPopBars end,
+        setFunc = function(v) CyrHUD.cfg.showPopBars = v CyrHUD:reconfigureLabels() end,
+		default = false,
+    },
+    {
+        type = "checkbox",
+        name = GetString(SI_CYRHUD_HIDE_PYRELORD),
+        tooltip = GetString(SI_CYRHUD_HIDE_PYRELORD_INFO),
+        getFunc = function() return CyrHUD.cfg.hidePyreLord end,
+        setFunc = function(v) CyrHUD.cfg.hidePyreLord = v CyrHUD:refresh() CyrHUD:reconfigureLabels() end,
+		default = false,
+    },
+	{ type = "submenu", name = GetString(SI_CYRHUD_QT),
 			controls = {
 							{
 								type = "header",
@@ -138,6 +186,26 @@ CyrHUD.menuOptions = {
 								tooltip = GetString(SI_CYRHUD_QT_TOOLTIP),
 								getFunc = function() return CyrHUD.cfg.ravTrackerDisableIC end,
 								setFunc = function(v) CyrHUD.cfg.ravTrackerDisableIC = v end,
+								default = false,
+							},
+							{
+								type = "header",
+								name = GetString(SI_CAMPAIGNRULESETTYPE5),
+							},
+							{
+								type = "checkbox",
+								name = GetString(SI_CYRHUD_QT_DEFAULT),
+								tooltip = GetString(SI_CYRHUD_QT_TOOLTIP),
+								getFunc = function() return CyrHUD.cfg.zosTrackerDisableJerall end,
+								setFunc = function(v) CyrHUD.cfg.zosTrackerDisableJerall = v end,
+								default = false,
+							},
+							{
+								type = "checkbox",
+								name = GetString(SI_CYRHUD_QT_WYKKYD),
+								tooltip = GetString(SI_CYRHUD_QT_TOOLTIP),
+								getFunc = function() return CyrHUD.cfg.ravTrackerDisableJerall end,
+								setFunc = function(v) CyrHUD.cfg.ravTrackerDisableJerall = v end,
 								default = false,
 							},
 			

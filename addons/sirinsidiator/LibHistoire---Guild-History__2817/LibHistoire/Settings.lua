@@ -39,7 +39,7 @@ function internal:InitializeSettingsMenu()
         type = "panel",
         name = "LibHistoire",
         author = "sirinsidiator",
-        version = "2.7.2.1105",
+        version = "2.8.0.1112",
         website = "https://www.esoui.com/downloads/info2817-LibHistoire-GuildHistory.html",
         feedback = "https://www.esoui.com/downloads/info2817-LibHistoire-GuildHistory.html#comments",
         donation = "https://www.esoui.com/downloads/info2817-LibHistoire-GuildHistory.html#donate",

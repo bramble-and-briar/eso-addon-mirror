@@ -62,6 +62,27 @@ local function num(key) return function(r) return PDI.Num(r[key]) end end
 local R = TEXT_ALIGN_RIGHT
 
 local COLUMNS = {
+    ap = {
+        { t = "Time",      w = 150, key = "tm",  nosort = true },
+        { t = "Event",     w = 330, key = "who", nosort = true },
+        { t = "AP",        w = 100, key = "k",   nosort = true, fmt = function(r) return (r.k > 0 and "+" or "") .. PDI.Num(r.k) end, align = R },
+        { t = "Zone",      w = 160, key = "z",   nosort = true },
+    },
+    apSum = {
+        { t = "Kind",      w = 380, key = "who", nosort = true },
+        { t = "Times",     w = 90,  key = "a",   nosort = true, fmt = num("a"), align = R },
+        { t = "AP",        w = 120, key = "k",   nosort = true, fmt = function(r) return (r.k > 0 and "+" or "") .. PDI.Num(r.k) end, align = R },
+    },
+    apSources = {
+        { t = "Source",    w = 260, key = "n",   nosort = true },
+        { t = "AP",        w = 110, key = "v",   nosort = true, align = R },
+        { t = "Events",    w = 80,  key = "c",   nosort = true, align = R },
+    },
+    apZones = {
+        { t = "Zone",      w = 280, key = "z",   nosort = true },
+        { t = "AP",        w = 110, key = "v",   nosort = true, align = R },
+        { t = "Events",    w = 80,  key = "n",   nosort = true, align = R },
+    },
     my = {
         { t = "#",         w = 40,  key = "rank", align = R, nosort = true },
         { t = "Account",   w = 210, key = "who" },
@@ -476,7 +497,7 @@ function UI:Init()
 
     -- Tabs
     self.tabs = {}
-    local tabDefs = { { "my", "My Kills" }, { "feed", "Kill Feed" }, { "opp", "Opponents" },
+    local tabDefs = { { "ap", "Alliance Points" }, { "my", "My Kills" }, { "feed", "Kill Feed" }, { "opp", "Opponents" },
                       { "saved", "Following" }, { "group", "Group" } }
     local prev
     for i, def in ipairs(tabDefs) do
@@ -747,9 +768,23 @@ end
 
 function UI:ResetPeriod(kind, period)
     PDI.Data:ResetPeriod(kind, period)
-    PDI.Msg(string.format("%s counters reset: %s.", kind == "my" and "My Kills" or "Kill Feed", self:PeriodLabel(period)))
+    if kind == "ap" then             -- the feed's lines of that period go too
+        local inP, keep = self:InPeriod(period), {}
+        for _, e in ipairs(PDI.sv.apEvents or {}) do
+            if type(e) == "table" and inP and not inP(e.t or 0) then keep[#keep + 1] = e end
+        end
+        PDI.sv.apEvents = keep
+    end
+    PDI.Msg(string.format("%s counters reset: %s.", kind == "my" and "My Kills" or kind == "ap" and "Alliance Points" or "Kill Feed", self:PeriodLabel(period)))
     self.sel = nil
     self:Refresh()
+end
+
+-- the Alliance Points tab lists every line for Session / Today / Yesterday, and totals per kind for longer periods
+local AP_LINES = { session = true, today = true, yesterday = true }
+function UI:Cols()
+    if self.tab == "ap" and not AP_LINES[self.period] then return COLUMNS.apSum end
+    return COLUMNS[self.tab]
 end
 
 function UI:SetPeriod(p)
@@ -778,7 +813,7 @@ function UI:CycleDate(step)
 end
 
 function UI:SortBy(colIdx)
-    local col = COLUMNS[self.tab][colIdx]
+    local col = self:Cols()[colIdx]
     if not col or col.nosort then return end
     local s = self.sort[self.tab]
     if s.key == col.key then s.desc = not s.desc else s.key = col.key; s.desc = col.num and true or false end
@@ -846,10 +881,37 @@ function UI:RemoveGroup(acct)
     self:Refresh()
 end
 
+-- Whisper / Invite to group, for any @account (right-click a player's row)
+local function addPlayerItems(acct)
+    if type(acct) ~= "string" or acct:sub(1, 1) ~= "@" then return false end
+    AddMenuItem("Whisper", function()
+        if StartChatInput then StartChatInput("", CHAT_CHANNEL_WHISPER, acct) end
+    end)
+    AddMenuItem("Invite to group", function()
+        if GroupInviteByName then GroupInviteByName(acct); PDI.Msg("Group invite sent to " .. acct .. ".") end
+    end)
+    return true
+end
+
+function UI:ShowPlayerMenu(row, acct)
+    if not (ClearMenu and AddMenuItem and ShowMenu) then return end
+    if type(acct) ~= "string" or acct:sub(1, 1) ~= "@" then return end
+    ClearMenu()
+    AddMenuItem("|cFFFFFF" .. acct .. "|r", function() end)
+    addPlayerItems(acct)
+    AddMenuItem(PDI.Data:IsFollowed(acct) and "Unfollow" or "Follow", function()
+        if PDI.Data:IsFollowed(acct) then PDI.Data:Unfollow(acct); PDI.Msg("Unfollowed " .. acct .. ".")
+        else PDI.Data:Follow(acct); PDI.Msg("Following " .. acct .. " - a snapshot is added every day you meet them.") end
+        UI:Refresh()
+    end)
+    ShowMenu(row)
+end
+
 function UI:ShowGroupRowMenu(row, acct)
     if not (ClearMenu and AddMenuItem and ShowMenu) then return end
     ClearMenu()
     AddMenuItem("|cFFFFFF" .. acct .. "|r", function() end)
+    addPlayerItems(acct)
     AddMenuItem("Remove from Group tab", function() UI:ConfirmRemoveGroup(acct) end)
     ShowMenu(row)
 end
@@ -1301,7 +1363,49 @@ function UI:BuildRows()
     local rows = {}
     local fac, q = self.faction, self.search
 
-    if self.tab == "my" or self.tab == "feed" then
+    if self.tab == "ap" and not AP_LINES[self.period] then
+        -- longer periods: totals per kind (Capturing Keeps, Capturing Resources...), Player Kills last
+        local sum, kills = PDI.AP:Summary(self.period)
+        local earned, spent = 0, 0
+        for _, x in ipairs(sum) do
+            if matchesSearch(q, x.e) then
+                rows[#rows + 1] = { who = x.e, a = x.n, k = x.v, key = "ap:" .. x.e }
+                if x.v > 0 then earned = earned + x.v else spent = spent - x.v end
+            end
+        end
+        local nKills = 0
+        for _, kx in ipairs(kills) do
+            if matchesSearch(q, kx.e) then
+                rows[#rows + 1] = { who = kx.e, a = kx.n, k = kx.v, key = "ap:" .. kx.e }
+                earned = earned + kx.v
+                if kx.kill then nKills = nKills + kx.n end      -- (Repairs, resurrections, spending aren't kills)
+            end
+        end
+        self.apTotals = { earned = earned, spent = spent, kills = nKills }
+        if #rows > 0 then
+            local times = 0
+            for _, r in ipairs(rows) do times = times + (r.a or 0) end
+            rows[#rows + 1] = { who = "Total", k = earned - spent, a = times, isTotal = true, key = "ap:__total" }
+        end
+    elseif self.tab == "ap" then
+        -- chronological: every capture / defense / quest... on its own line; player kills summed in one last line
+        local feed, kills = PDI.AP:Feed(self:InPeriod(self.period))
+        local earned, spent = 0, 0
+        local function add(e, isKills)
+            if matchesSearch(q, e.e, e.z) then
+                rows[#rows + 1] = { tm = PDI.FormatTime(e.t), who = e.e, k = e.v or 0, z = e.z or "",
+                                    key = "ap:" .. tostring(e.t) .. "|" .. tostring(e.e) }
+                if (e.v or 0) > 0 then earned = earned + e.v else spent = spent - (e.v or 0) end
+            end
+        end
+        for _, e in ipairs(feed) do add(e) end
+        local nKills = 0
+        for _, kx in ipairs(kills) do add(kx, true); if kx.kill then nKills = nKills + kx.n end end
+        self.apTotals = { earned = earned, spent = spent, kills = nKills }
+        if #rows > 0 then
+            rows[#rows + 1] = { who = "Total", k = earned - spent, z = "", isTotal = true, key = "ap:__total" }
+        end
+    elseif self.tab == "my" or self.tab == "feed" then
         -- one row per player and class (that class's characters listed)
         for who, e in pairs(PDI.Data:GetPeriod(self.tab, self.period)) do
             for _, r in ipairs(killRowsByClass(e)) do
@@ -1312,7 +1416,8 @@ function UI:BuildRows()
                     rows[#rows + 1] = { who = who, c = c, al = e.al or 0,
                                         clsName = r.cls ~= 0 and PDI.ClassText(r.cls) or "-",
                                         k = r.k, a = r.a, tot = r.k + r.a, key = key,
-                                        onClick = function() selectFromKills(who, first, e.al, cls, key) end }
+                                        onClick = function() selectFromKills(who, first, e.al, cls, key) end,
+                                        onRightClick = function(row) UI:ShowPlayerMenu(row, who) end }
                 end
             end
         end
@@ -1339,6 +1444,7 @@ function UI:BuildRows()
                     hp = rec.hp or 0, mundusText = oppMundusText(who, g.cls, rec), nSkills = countVisibleSkills(oppView(newest, g.cls)),
                     nDays = #g.days, killedYou = killed, last = rec.last or 0, key = key,
                     onClick = function() UI:SelectOpp(who, cls, nil, key) end,
+                    onRightClick = function(row) UI:ShowPlayerMenu(row, who) end,
                 }
             end
         end
@@ -1371,6 +1477,7 @@ function UI:BuildRows()
                     nSkills = countVisibleSkills(view.rec) + countVisibleSkills({ skills = view.web.sk }),
                     killedYou = isPlayer and "-" or killed, key = key,
                     onClick = function() UI:SelectFollow(who, cls, nil, key) end,
+                    onRightClick = function(row) UI:ShowPlayerMenu(row, who) end,
                 }
             end
         end
@@ -1451,12 +1558,13 @@ function UI:EmptyText()
         return scope == "pvp" and "No group history yet. Group up in Cyrodiil, Imperial City or a Battleground."
             or "No group history yet - group up with someone."
     end
+    if self.tab == "ap" then return "No Alliance Points earned or spent in this period yet." end
     if self.tab == "saved" then return "Nobody followed yet. Select a player (Opponents, Group...) and press Follow." end
     return "No kills recorded for this period."
 end
 
 function UI:UpdateToolbar()
-    local showPeriods = (self.tab == "my" or self.tab == "feed")
+    local showPeriods = (self.tab == "my" or self.tab == "feed" or self.tab == "ap")
     for k, b in pairs(self.periodBtns) do
         b:SetHidden(not showPeriods)
         setPressed(b, k == self.period)
@@ -1630,11 +1738,14 @@ function UI:RefreshPane()
     end
     self.paneEmpty:SetHidden(hasSel)
 
+    if self.tab == "ap" then return self:RefreshApPane() end
     if not s then
-        self.paneTitle:SetText("Player details")
-        self.paneEmpty:SetText("Click a player on the left to see their skills, mundus, gear and skill bars here.")
+        self.paneTitle:SetText(self.tab == "ap" and "Alliance Points" or "Player details")
+        self.paneEmpty:SetText(self.tab == "ap" and "Click a source on the left to see its latest events and zones here."
+            or "Click a player on the left to see their skills, mundus, gear and skill bars here.")
         return
     end
+    self.gearTitle:SetText("Gear & Sets")
 
     -- data other players shared about this player (esopvp.com, via the Companion)
     -- data other players shared about this player: the same class, the same day only
@@ -1925,6 +2036,14 @@ function UI:RefreshPane()
                 if n and n ~= "" then onBars[string.lower(zo_strformat("<<1>>", n))] = true; haveBars = true end
             end
         end
+        -- skills other players cast on you (Gibbering Shelter...): only listed when on this player's captured bars
+        local kept = {}
+        for _, r in ipairs(skills) do
+            local plain = type(r.n) == "string"
+                and string.lower(zo_strtrim((r.n:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", ""):gsub(" %*$", "")))) or nil
+            if not (plain and PDI.Skills:NeedsBars(plain) and not onBars[plain]) then kept[#kept + 1] = r end
+        end
+        skills = kept
         for _, r in ipairs(skills) do
             if (r.cat == "skill" or r.cat == "ultimate") and type(r.n) == "string" and not r.n:find("*", 1, true) then
                 local plain = string.lower(zo_strtrim((r.n:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", ""))))
@@ -1954,11 +2073,89 @@ function UI:RefreshPane()
     self:UpdatePaneMore()
 end
 
+-- Alliance Points: is time t inside the period shown (same periods as My Kills)?
+function UI:InPeriod(period)
+    local today = PDI.DateKey()
+    local now = PDI.Now()
+    if period == "session" then local from = PDI.sessionStart or 0; return function(t) return t >= from end end
+    if period == "today" then return function(t) return PDI.DateKey(t) == today end end
+    if period == "yesterday" then local y = PDI.DateKey(now - 86400); return function(t) return PDI.DateKey(t) == y end end
+    if period == "week" then
+        local days = {}
+        for i = 0, 6 do days[PDI.DateKey(now - i * 86400)] = true end
+        return function(t) return days[PDI.DateKey(t)] == true end
+    end
+    if period == "mtd" or period == "lastmonth" then
+        local ym = math.floor(today / 100)
+        if period == "lastmonth" then
+            local y, m = math.floor(ym / 100), ym % 100 - 1
+            if m == 0 then y, m = y - 1, 12 end
+            ym = y * 100 + m
+        end
+        return function(t) return math.floor(PDI.DateKey(t) / 100) == ym end
+    end
+    return nil                                                  -- lifetime: everything kept
+end
+
+-- Alliance Points tab, details: AP per source and per zone in the period shown
+function UI:RefreshApPane()
+    for _, c in ipairs({ self.info, self.skillTitle, self.gearTitle, self.skillGrid.box, self.gearGrid.box,
+                         self.skillGrid.more, self.gearGrid.more }) do c:SetHidden(false) end
+    self.paneEmpty:SetHidden(true)
+    self.saveBtn:SetHidden(true)
+    self.removeBtn:SetHidden(true)
+    self.variantBtn:SetHidden(true)
+    if self.linkBtn then self.linkBtn:SetHidden(true) end
+    local sources, total = {}, 0
+    for name, e in pairs(PDI.Data:GetPeriod("ap", self.period)) do
+        local place = PDI.AP.KillsKind(name)
+        local n = place ~= false and PDI.AP.KillsLabel(place) or (PDI.AP.OLD_KINDS[name] or name)
+        local x = sources[n]
+        if not x then x = { n = n, v = 0, c = 0 }; sources[n] = x end
+        x.v, x.c = x.v + (e.k or 0), x.c + (e.a or 0)
+        if (e.k or 0) > 0 then total = total + e.k end
+    end
+    local srows = {}
+    for _, x in pairs(sources) do srows[#srows + 1] = x end
+    table.sort(srows, function(a, b) return a.v > b.v end)
+    for _, x in ipairs(srows) do x.v = PDI.Num(x.v); x.c = tostring(x.c) end
+    local zones, zrows = {}, {}
+    local feed, kills = PDI.AP:Feed(self:InPeriod(self.period))
+    local lines = AP_LINES[self.period]
+    for _, kx in ipairs(kills) do feed[#feed + 1] = kx end
+    for _, e in ipairs(feed) do
+        local z = e.z or "-"
+        if not zones[z] then zones[z] = { z = z, v = 0, n = 0 }; zrows[#zrows + 1] = zones[z] end
+        zones[z].v = zones[z].v + (e.v or 0)
+        zones[z].n = zones[z].n + (e.n or 1)
+    end
+    table.sort(zrows, function(a, b) return a.v > b.v end)
+    for _, z in ipairs(zrows) do z.v = PDI.Num(z.v); z.n = tostring(z.n) end
+    self.paneTitle:SetText("Alliance Points: " .. self:PeriodLabel(self.period))
+    self.info:SetText(string.format("Earned |cFFFFFF%s AP|r\n|c999999%s|r", PDI.Num(total), lines
+        and "The list on the left is in order of time; player kills are added up in its last line."
+        or "Line by line is kept for today and yesterday; longer periods show totals per kind."))
+    self.skillTitle:SetText("By source")
+    self.gearTitle:SetText(lines and "By zone" or "By zone  |c999999(today and yesterday)|r")
+    self.skillGrid.offset, self.gearGrid.offset = 0, 0
+    self.skillGrid:SetData(srows)
+    self.skillGrid:Layout(COLUMNS.apSources, nil)
+    self.skillGrid:Render()
+    self.skillGrid.empty:SetHidden(#srows > 0)
+    self.skillGrid.empty:SetText("No Alliance Points in this period.")
+    self.gearGrid:SetData(zrows)
+    self.gearGrid:Layout(COLUMNS.apZones, nil)
+    self.gearGrid:Render()
+    self.gearGrid.empty:SetHidden(#zrows > 0)
+    self.gearGrid.empty:SetText("")
+    self:UpdatePaneMore()
+end
+
 function UI:Refresh()
     if not self.win then return end
     self:UpdateToolbar()
     local rows = self:BuildRows()
-    sortRows(rows, self.sort[self.tab], COLUMNS[self.tab])
+    sortRows(rows, self.sort[self.tab], self:Cols())
     local k, a = 0, 0
     for _, r in ipairs(rows) do k = k + (r.k or 0); a = a + (r.a or 0) end
     local nPlayers = #rows
@@ -1968,8 +2165,13 @@ function UI:Refresh()
         table.insert(rows, 1, { isTotal = true, rankText = "", who = "Total", c = string.format("%d players", nPlayers),
                                 al = 0, k = k, a = a, tot = k + a, key = "k:__total" })
     end
+    local atEnd = self.tab == "ap" and self.list.offset >= math.max(0, (self.apShown or 0) - self.list.numRows)
     self.list:SetData(rows)
-    self.list:Layout(COLUMNS[self.tab], self.sort[self.tab])
+    if self.tab == "ap" then
+        if atEnd then self.list.offset = math.max(0, #rows - self.list.numRows) end   -- follow the newest line
+        self.apShown = #rows
+    end
+    self.list:Layout(self:Cols(), self.sort[self.tab])
     self.list:Render(self.sel and self.sel.key or false)
 
     local total = nPlayers
@@ -1980,6 +2182,10 @@ function UI:Refresh()
         local shift = (#rows > nPlayers) and 1 or 0   -- the Total row isn't a player
         footer = string.format("%d-%d of %d  |  mouse wheel or drag the scrollbar",
             math.max(1, self.list.offset + 1 - shift), math.min(self.list.offset + NUM_ROWS - shift, total), total)
+        if self.tab == "ap" then
+            local t = self.apTotals or {}
+            footer = footer .. string.format("  |  earned: %s AP  spent: %s AP  (%d kills)", PDI.Num(t.earned or 0), PDI.Num(t.spent or 0), t.kills or 0)
+        end
         if self.tab == "my" or self.tab == "feed" then
             footer = footer .. string.format("  |  kills: %s", PDI.Num(k))
             if self.tab == "my" then footer = footer .. string.format("  assists: %s", PDI.Num(a)) end

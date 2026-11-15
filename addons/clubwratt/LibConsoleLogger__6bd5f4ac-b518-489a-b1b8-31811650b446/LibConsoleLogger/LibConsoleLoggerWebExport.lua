@@ -140,18 +140,19 @@ end
 -- Shared buffer (compat with SmartTrader's LogExport module)
 -- ============================================================================
 
----@type string[]|nil
 -- Ring buffer: lines live at indices head..tail (monotonically increasing); eviction is O(1) - no table.remove(1).
 -- Bounded by bytes (MAX_CAPTURE_BYTES) AND lines (MAX_CAPTURE_LINES): short lines would otherwise reach thousands of
 -- entries before the byte cap, and every eviction used to shift the whole array.
-local exportBuffer = nil
-local exportBufferBytes = 0
-local exportHead, exportTail = 1, 0
+-- The ring is a plain in-memory table until the saved variables load; WebExport.AdoptSavedBuffer then makes it
+-- the saved table itself, so the game writes the log out with the settings (every loading screen, /reloadui,
+-- logout) and the next UI load reads it back. Every change below is made in place for that reason.
+---@type { lines: string[]|nil, head: number, tail: number, bytes: number }
+local ring = { lines = nil, head = 1, tail = 0, bytes = 0 }
 
 local function ClearExportBuffer()
-    exportBuffer = nil
-    exportBufferBytes = 0
-    exportHead, exportTail = 1, 0
+    ring.lines = nil
+    ring.bytes = 0
+    ring.head, ring.tail = 1, 0
 end
 
 ---@return number
@@ -184,13 +185,13 @@ end
 -- Drop oldest lines until within both caps (O(1) each).
 ---@param maxLines number
 local function TrimExportBuffer(maxLines)
-    while exportHead <= exportTail and (exportBufferBytes > MAX_CAPTURE_BYTES or (exportTail - exportHead + 1) > maxLines) do
-        local removed = exportBuffer[exportHead]
-        exportBuffer[exportHead] = nil
-        exportHead = exportHead + 1
-        exportBufferBytes = exportBufferBytes - (#removed + 1)
+    while ring.head <= ring.tail and (ring.bytes > MAX_CAPTURE_BYTES or (ring.tail - ring.head + 1) > maxLines) do
+        local removed = ring.lines[ring.head]
+        ring.lines[ring.head] = nil
+        ring.head = ring.head + 1
+        ring.bytes = ring.bytes - (#removed + 1)
     end
-    if exportHead > exportTail then
+    if ring.head > ring.tail then
         ClearExportBuffer()
     end
 end
@@ -207,7 +208,7 @@ function WebExport.SetMaxLines(n)
     else
         LibConsoleLogger._pendingMaxLines = n
     end
-    if exportBuffer ~= nil then
+    if ring.lines ~= nil then
         TrimExportBuffer(n)
     end
     return n
@@ -216,6 +217,53 @@ end
 ---@return boolean
 local function IsRuntimeEnabled()
     return LibConsoleLogger.IsEnabled and LibConsoleLogger:IsEnabled()
+end
+
+---The strings a saved ring holds, oldest first; an unreadable one (older format, hand-edited) reads as empty.
+---@param saved any
+---@return string[]
+local function SavedLines(saved)
+    local out = {}
+    if type(saved) ~= "table" or type(saved.lines) ~= "table" then return out end
+    local head, tail = tonumber(saved.head), tonumber(saved.tail)
+    if head == nil or tail == nil or tail - head >= MAX_CAPTURE_LINES * 5 then return out end
+    for i = head, tail do
+        local line = saved.lines[i]
+        if type(line) == "string" then out[#out + 1] = line end
+    end
+    return out
+end
+
+---Make the saved variables hold the ring: the lines saved by the previous UI load come first, then any
+---buffered in memory since this one started. Called once the saved variables are loaded (Main.lua).
+---With keep == false (logging disabled) the saved lines are dropped instead.
+---@param keep boolean
+---@return number kept lines carried over from before this UI load
+function WebExport.AdoptSavedBuffer(keep)
+    if not (EnsureSavedVars() and LibConsoleLogger.savedVars ~= nil) then
+        return 0
+    end
+    local sv = LibConsoleLogger.savedVars
+    local lines = keep and SavedLines(sv.log) or {}
+    local kept = #lines
+    for i = ring.head, ring.tail do
+        lines[#lines + 1] = ring.lines[i]
+    end
+    local bytes = 0
+    for i = 1, #lines do
+        bytes = bytes + #lines[i] + 1
+    end
+
+    local adopted = { lines = (#lines > 0) and lines or nil, head = 1, tail = #lines, bytes = bytes }
+    sv.log = adopted
+    ring = adopted
+    if ring.lines ~= nil then
+        local before = ring.tail - ring.head + 1
+        TrimExportBuffer(WebExport.GetMaxLines())
+        local trimmed = before - WebExport.BufferCount()
+        kept = (trimmed < kept) and (kept - trimmed) or 0
+    end
+    return kept
 end
 
 -- Buffer functions
@@ -245,47 +293,47 @@ function WebExport.BufferD(line)
         s = s:sub(1, maxLineLen)
     end
 
-    if exportBuffer == nil then
-        exportBuffer = {}
-        exportBufferBytes = 0
-        exportHead, exportTail = 1, 0
+    if ring.lines == nil then
+        ring.lines = {}
+        ring.bytes = 0
+        ring.head, ring.tail = 1, 0
     end
 
-    exportTail = exportTail + 1
-    exportBuffer[exportTail] = s
-    exportBufferBytes = exportBufferBytes + #s + 1
+    ring.tail = ring.tail + 1
+    ring.lines[ring.tail] = s
+    ring.bytes = ring.bytes + #s + 1
 
     TrimExportBuffer(WebExport.GetMaxLines())
-    if exportBuffer == nil then
+    if ring.lines == nil then
         return
     end
 
     -- Renumber occasionally so indices never grow without bound (cheap: at most once per MAX_CAPTURE_LINES appends).
-    if exportHead > MAX_CAPTURE_LINES * 4 then
+    if ring.head > MAX_CAPTURE_LINES * 4 then
         local compact, n = {}, 0
-        for i = exportHead, exportTail do n = n + 1; compact[n] = exportBuffer[i] end
-        exportBuffer, exportHead, exportTail = compact, 1, n
+        for i = ring.head, ring.tail do n = n + 1; compact[n] = ring.lines[i] end
+        ring.lines, ring.head, ring.tail = compact, 1, n
     end
 end
 
 ---@return number
 function WebExport.BufferCount()
-    if exportBuffer == nil then
+    if ring.lines == nil then
         return 0
     end
-    return exportTail - exportHead + 1
+    return ring.tail - ring.head + 1
 end
 
 ---@return string[]
 function WebExport.BufferGetLines()
-    if exportBuffer == nil or exportHead > exportTail then
+    if ring.lines == nil or ring.head > ring.tail then
         return EMPTY_STRING_ARRAY
     end
 
     local copy, n = {}, 0
-    for i = exportHead, exportTail do
+    for i = ring.head, ring.tail do
         n = n + 1
-        copy[n] = exportBuffer[i]
+        copy[n] = ring.lines[i]
     end
     return copy
 end
@@ -650,7 +698,7 @@ function WebExport.SubmitBuffered(cfg)
         return false, "disabled"
     end
 
-    if exportBuffer == nil or WebExport.BufferCount() == 0 then
+    if WebExport.BufferCount() == 0 then
         return false, "empty"
     end
 

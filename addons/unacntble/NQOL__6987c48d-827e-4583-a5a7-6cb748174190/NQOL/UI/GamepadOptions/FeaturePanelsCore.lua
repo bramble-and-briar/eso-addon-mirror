@@ -24,6 +24,8 @@ local SYNERGY_PROMPTS_PANEL_ID = PanelIds.SYNERGY_PROMPTS
 local CENTER_SCREEN_ANNOUNCE_PANEL_ID = PanelIds.CENTER_SCREEN_ANNOUNCE
 local ANNOUNCEMENTS_PANEL_ID = PanelIds.ANNOUNCEMENTS
 local INFINITE_ARCHIVE_FRAME_PANEL_ID = PanelIds.INFINITE_ARCHIVE_FRAME
+local GOLDEN_PURSUIT_PANEL_ID = PanelIds.GOLDEN_PURSUIT
+local HOUSE_TRACKER_PANEL_ID = PanelIds.HOUSE_TRACKER
 local LOOT_LOG_PANEL_ID = PanelIds.LOOT_LOG
 local PLAYER_INFO_PANEL_ID = PanelIds.PLAYER_INFO
 local PLAYER_INTERACTION_PANEL_ID = PanelIds.PLAYER_INTERACTION
@@ -393,6 +395,36 @@ function GamepadOptions.BuildAnnouncementsEnabledOption()
     return GamepadOptions.BuildCheckboxOption(ANNOUNCEMENTS_PANEL_ID, 1, ui.GetAnnouncementsEnabledLabel(), ui.GetAnnouncementsEnabledTooltip(), ui.GetAnnouncementsEnabled, ui.SetAnnouncementsEnabled, nil, ui.GetAnnouncementsEnabledDefault)
 end
 
+function GamepadOptions.BuildGoldenPursuitEnabledOption()
+    local ui = NQOL.Features.UI
+    return GamepadOptions.BuildCheckboxOption(GOLDEN_PURSUIT_PANEL_ID, 1, ui.GetGoldenPursuitEnabledLabel(), ui.GetGoldenPursuitEnabledTooltip(), ui.GetGoldenPursuitEnabled, ui.SetGoldenPursuitEnabled, nil, ui.GetGoldenPursuitEnabledDefault)
+end
+
+function GamepadOptions.BuildGoldenPursuitHorizontalOffsetOption()
+    local ui = NQOL.Features.UI
+    return GamepadOptions.BuildPositionSliderOption(GOLDEN_PURSUIT_PANEL_ID, 3, ui.GetGoldenPursuitHorizontalOffsetLabel(), ui.GetGoldenPursuitHorizontalOffsetTooltip(), ui.GetGoldenPursuitHorizontalOffsetMin(), ui.GetGoldenPursuitHorizontalOffsetMax(), "%.0f", ui.GetGoldenPursuitHorizontalOffset, ui.SetGoldenPursuitHorizontalOffset)
+end
+
+function GamepadOptions.BuildGoldenPursuitVerticalOffsetOption()
+    local ui = NQOL.Features.UI
+    return GamepadOptions.BuildPositionSliderOption(GOLDEN_PURSUIT_PANEL_ID, 4, ui.GetGoldenPursuitVerticalOffsetLabel(), ui.GetGoldenPursuitVerticalOffsetTooltip(), ui.GetGoldenPursuitVerticalOffsetMin(), ui.GetGoldenPursuitVerticalOffsetMax(), "%.0f", ui.GetGoldenPursuitVerticalOffset, ui.SetGoldenPursuitVerticalOffset, nil, ui.GetGoldenPursuitVerticalOffsetDefault)
+end
+
+function GamepadOptions.BuildHouseTrackerEnabledOption()
+    local ui = NQOL.Features.UI
+    return GamepadOptions.BuildCheckboxOption(HOUSE_TRACKER_PANEL_ID, 1, ui.GetHouseTrackerEnabledLabel(), ui.GetHouseTrackerEnabledTooltip(), ui.GetHouseTrackerEnabled, ui.SetHouseTrackerEnabled, nil, ui.GetHouseTrackerEnabledDefault)
+end
+
+function GamepadOptions.BuildHouseTrackerHorizontalOffsetOption()
+    local ui = NQOL.Features.UI
+    return GamepadOptions.BuildPositionSliderOption(HOUSE_TRACKER_PANEL_ID, 3, ui.GetHouseTrackerHorizontalOffsetLabel(), ui.GetHouseTrackerHorizontalOffsetTooltip(), ui.GetHouseTrackerHorizontalOffsetMin(), ui.GetHouseTrackerHorizontalOffsetMax(), "%.0f", ui.GetHouseTrackerHorizontalOffset, ui.SetHouseTrackerHorizontalOffset)
+end
+
+function GamepadOptions.BuildHouseTrackerVerticalOffsetOption()
+    local ui = NQOL.Features.UI
+    return GamepadOptions.BuildPositionSliderOption(HOUSE_TRACKER_PANEL_ID, 4, ui.GetHouseTrackerVerticalOffsetLabel(), ui.GetHouseTrackerVerticalOffsetTooltip(), ui.GetHouseTrackerVerticalOffsetMin(), ui.GetHouseTrackerVerticalOffsetMax(), "%.0f", ui.GetHouseTrackerVerticalOffset, ui.SetHouseTrackerVerticalOffset, nil, ui.GetHouseTrackerVerticalOffsetDefault)
+end
+
 function GamepadOptions.BuildInfiniteArchiveFrameHorizontalOffsetOption()
     local ui = NQOL.Features.UI
     return GamepadOptions.BuildPositionSliderOption(INFINITE_ARCHIVE_FRAME_PANEL_ID, 3, ui.GetInfiniteArchiveHorizontalOffsetLabel(), ui.GetInfiniteArchiveHorizontalOffsetTooltip(), ui.GetInfiniteArchiveHorizontalOffsetMin(), ui.GetInfiniteArchiveHorizontalOffsetMax(), "%.0f", ui.GetInfiniteArchiveHorizontalOffset, ui.SetInfiniteArchiveHorizontalOffset)
@@ -441,6 +473,11 @@ end
 function GamepadOptions.BuildCombatReticleColorOption()
     local ui = NQOL.Features.UI
     return GamepadOptions.BuildColorOption(COMBAT_RETICLE_PANEL_ID, 1, ui.GetCombatReticleColorLabel(), ui.GetCombatReticleColorTooltip(), ui.GetCombatReticleColor, ui.SetCombatReticleColor)
+end
+
+function GamepadOptions.BuildCombatReticleShowWhenOption()
+    local ui = NQOL.Features.UI
+    return GamepadOptions.BuildFiniteListOption(COMBAT_RETICLE_PANEL_ID, 7, ui.GetCombatReticleShowWhenLabel(), ui.GetCombatReticleShowWhenTooltip(), ui.GetCombatReticleShowWhenChoices(), ui.GetCombatReticleShowWhenChoiceNames(), ui.GetCombatReticleShowWhen, ui.SetCombatReticleShowWhen, ui.GetCombatReticleShowWhenDefault)
 end
 
 function GamepadOptions.BuildCombatReticleFightColorOption()

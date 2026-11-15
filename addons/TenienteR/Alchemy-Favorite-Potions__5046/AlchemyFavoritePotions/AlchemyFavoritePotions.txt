@@ -1,7 +1,8 @@
-## Title: Alchemy Favorite Potions
-## Author: Teniente.R
-## Version: 1.0.0
-## AddOnVersion: 1
+## Title: |c37D5FAAlchemy Favorite Potions|r
+## Author: |c37FAC6Teniente.R|r
+## Description: Save your favorite potion and poison recipes at the alchemy station and prepare them in one click. Type /afp to browse them anywhere.
+## Version: 1.2.0
+## AddOnVersion: 3
 ## APIVersion: 101051
 ## SavedVariables: AlchemyFavoritePotions_SV
 
@@ -16,4 +17,6 @@ AlchemyFavoritePotions.xml
 Hooks.lua
 SlotButton.lua
 OrderToggle.lua
+KindFilters.lua
+Window.lua
 Bindings.xml

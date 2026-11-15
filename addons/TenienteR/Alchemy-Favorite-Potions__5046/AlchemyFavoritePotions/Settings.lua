@@ -16,4 +16,8 @@ AFP.defaults = {
     lastFavoriteId = 0,
     -- true: las nuevas van al principio de la lista; false: al final
     newestFirst = true,
+    -- true: al enlazar una poción en el chat se incluye también el disolvente
+    includeSolvent = false,
+    -- true: ya se enseñó el mensaje de bienvenida del chat (una vez por servidor)
+    welcomeShown = false,
 }

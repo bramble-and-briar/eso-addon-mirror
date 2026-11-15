@@ -307,7 +307,7 @@ VEQ.mylanguage = {
 	["quest_hiddenhint"] = "隐藏提示",
 	
 	["lang_tracker_type_guild"] = "公会",
-	["lang_tracker_type_mainstory"] = "主线任务",
+	["lang_tracker_type_mainstory"] = "主线",
 	["lang_tracker_type_undaunted"] = "无畏",
 	["lang_tracker_type_prologue"] = "序幕",	
 	["lang_tracker_type_companion"] = "同伴",

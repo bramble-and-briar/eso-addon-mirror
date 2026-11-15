@@ -184,7 +184,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Coming Back Home](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Coming-Back-Home__1920) | Saleand | PC / Mac | 1.5.1 |
 | [Command Codex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Command-Codex__4871) | brianmit | PC / Mac | 1.0.1 |
 | [Common Works UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lean/Common-Works-UI__4838) | Lean | PC / Mac | 1.0 |
-| [Community Leveling Guides](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hydra9268/Community-Leveling-Guides__2062) | Hydra9268 | PC / Mac | 1157 |
+| [Community Leveling Guides](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hydra9268/Community-Leveling-Guides__2062) | Hydra9268 | PC / Mac | 1185 |
 | [Comp's Pot Swapper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Complicative/Comp-s-Pot-Swapper__3634) | Complicative | PC / Mac | 1.1.2 |
 | [Comp's Quickslot Swapper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Complicative/Comp-s-Quickslot-Swapper__3635) | Complicative | PC / Mac | 1.0.0 |
 | [Comp's World Boss Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Complicative/Comp-s-World-Boss-Timer__3880) | Complicative | PC / Mac | 1.0.2 |
@@ -332,7 +332,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CustomKillFeed](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/CustomKillFeed__3770) | Masteroshi430 | PC / Mac | 2026.07.06 |
 | [Cute Zodiac Icons - icon pack for OdySupportIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/def-venom/Cute-Zodiac-Icons---icon-pack-for-OdySupportIcons__3400) | def venom | PC / Mac | 1.001 |
 | [Cutthroat's Focus/MAJOR VULNERABILITY Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Cutthroat-s-Focus-MAJOR-VULNERABILITY-Tracker__4820) | its_wifey | PC / Mac | 1.4 |
-| [CyrHUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sasky/CyrHUD__559) | Sasky | PC / Mac | 2026.09.26 |
+| [CyrHUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sasky/CyrHUD__559) | Sasky | PC / Mac | 2026.11.15 |
 | [Cyrillic Chat Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Revived-AddOns/Cyrillic-Chat-Filter__2328) | Revived AddOns | PC / Mac | 5 |
 | [Cyro Quest Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/scobster007/Cyro-Quest-Manager__4208) | scobster007 | PC / Mac | 2.1 |
 | [CyroChat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aldericon/CyroChat__1938) | aldericon | PC / Mac | 11.0 |

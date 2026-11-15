@@ -261,9 +261,15 @@ local function getNameOfType(itemType, idTypeStr)
 							if string.find(name, "Unknown") then
 								s = zo_strformat(GetString(SI_ALCHEMY_UNKNOWN_RESULT), s) -- e.g., "Food recipe (unknown)"
 							end
-							if string.find(name, "Others") then
-								s = s .. GetString(BANKIR_MENU_OTHER_CHARACTERS) -- "Food recipe (unknown) on Other Characters"
-							end
+						elseif name == "Intricate" then
+							s = GetString(SI_ITEMTRAITTYPE20) -- "Intricate"
+						elseif name == "Companion" then
+							s = GetString(SI_ITEM_FORMAT_STR_COMPANION) -- "Companion Item"
+						elseif string.find(name, "Trait") then
+							s = GetString(SI_ITEMSELLINFORMATION3) -- "Can research"
+						end
+						if string.find(name, "Others") then
+							s = s .. GetString(BANKIR_MENU_OTHER_CHARACTERS) -- "Food recipe (unknown) on Other Characters"
 						end
 					end
 				end
@@ -359,6 +365,8 @@ local function getBagName(bagId)
 		return GetString(SI_BAG1)
 	elseif bagId == BAG_BANK or bagId == BAG_SUBSCRIBER_BANK then
 		return GetString(SI_BAG2)
+	elseif bagId == BAG_VIRTUAL then
+		return GetString(SI_GAMEPAD_INVENTORY_CRAFT_BAG_HEADER) -- "Craft Bag"
 	elseif string.find(bagId, "Guild") then
 		return getGuildNameFromString(bagId)
 	elseif bagId == BAG_GUILDBANK then

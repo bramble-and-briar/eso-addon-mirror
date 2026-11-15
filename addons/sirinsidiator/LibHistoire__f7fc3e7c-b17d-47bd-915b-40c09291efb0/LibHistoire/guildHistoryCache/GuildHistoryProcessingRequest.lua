@@ -45,6 +45,26 @@ function GuildHistoryProcessingRequest:StartProcessing(endId)
     end
 
     local startIndex, endIndex = processor.categoryCache:GetIndexRangeForEventIdRange(startId, endId)
+    if not startIndex then
+        logger:Debug("startId is not cached anymore - find a new one", startId)
+        startId = self:FindStartId()
+        if not startId then
+            logger:Debug("no startId available - treat iteration as complete")
+            self.onCompleted(processor)
+            return
+        end
+        startIndex, endIndex = processor.categoryCache:GetIndexRangeForEventIdRange(startId, endId)
+        if not startIndex then
+            logger:Debug("new startId is not cached either - treat iteration as complete", startId)
+            self.onCompleted(processor)
+            return
+        end
+    end
+    if not endIndex then
+        logger:Debug("endId is not cached anymore - treat iteration as complete", endId)
+        self.onCompleted(processor)
+        return
+    end
     self.currentIndex = startIndex
     self.endIndex = endIndex
     self.performanceTracker:Reset()
@@ -116,11 +136,14 @@ end
 function GuildHistoryProcessingRequest:EnsureIterationIsComplete(hasProcessedEvents)
     local endId = self:FindEndId()
     local processor = self.processor
-    if not processor.currentEventId or processor.currentEventId == endId then
+    if not endId or not processor.currentEventId or processor.currentEventId == endId then
         logger:Debug("iterated all stored events - register for callback")
         self.onCompleted(processor)
     elseif hasProcessedEvents then
         logger:Debug("has not reached the end yet - go for another round")
+        self:StartProcessing(endId)
+    elseif endId and endId > processor.currentEventId then
+        logger:Debug("managed range moved forward - go for another round", processor.currentEventId, endId)
         self:StartProcessing(endId)
     else
         error("no events processed and not at the end - something went wrong")

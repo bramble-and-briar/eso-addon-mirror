@@ -1,18 +1,50 @@
 ## Title: DebuffTracker
 ## Author: SkullElf
-## Version: 1.0
-## APIVersion: 101046
-
-## Description: Tracks the effect of a debuff on enemies and visualizes it in user-friendly UI!
-
-## DependsOn: LibAddonMenu-2.0>=40 LibSetDetection
+## Version: 5.21.20
+## AddOnVersion: 52120
+## APIVersion: 101050 101051
+## Description: Track anything: buffs, debuffs, missing effects, procs, cooldowns and resources as bars, icons, text or big alerts - with rules, sounds, load conditions, profiles, a preset library, an effect recorder and live in-game editing.
+## OptionalDependsOn: LibAddonMenu-2.0 LibSets
 ## SavedVariables: DebuffTrackerSavedVars
 
-DebuffTracker_Namespace.lua
-DebuffTracker.xml
-DebuffTrackerProfileManager.lua
+Core/Namespace.lua
+Core/Localization.lua
+Core/Util.lua
+Core/Constants.lua
+Core/Schema.lua
+Core/Serializer.lua
+Core/Units.lua
+Core/Effects.lua
+Core/TabTarget.lua
+Core/Quickslot.lua
+Core/Combat.lua
+Core/Resources.lua
+Core/Ticks.lua
+Core/GlobalCooldown.lua
+Data/Procs.lua
+Core/Procs.lua
+Core/Triggers.lua
+Core/Conditions.lua
+Core/Load.lua
+Core/Toggles.lua
+Core/Stats.lua
+Display/Style.lua
+Display/Displays.lua
+Display/World.lua
+Display/Marker.lua
+Display/Announcer.lua
+Display/Unlock.lua
+Core/Engine.lua
+Systems/Profiles.lua
+Systems/Migration.lua
+Systems/Presets.lua
+Systems/HyperTools.lua
+Systems/Recorder.lua
+Systems/AbilitySearch.lua
+Systems/Probe.lua
+UI/Widgets.lua
+UI/Editor.lua
+UI/TrackersPage.lua
+UI/Pages.lua
 DebuffTracker.lua
-GroupSetTracker.lua
-SetAbilityTracker.lua
 bindings.xml
-

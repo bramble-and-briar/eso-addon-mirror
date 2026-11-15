@@ -56,6 +56,9 @@ lib.internal = {
         MANAGED_RANGE_LOST = "HistyDetectedTheManagedRangeHasBeenLost",
         MANAGED_RANGE_FOUND = "HistyDetectedTheManagedRangeHasBeenFound",
         CATEGORY_LINKED = "HistyDetectedACategoryHasBeenLinked",
+        CATEGORY_RESET = "HistyDetectedACategoryHasBeenReset",
+        CATEGORY_AUTO_REQUESTING_CHANGED = "HistyDetectedTheAutoRequestingStateOfACategoryHasChanged",
+        CATEGORY_PROCESSING_CHANGED = "HistyDetectedTheProcessingStateOfACategoryHasChanged",
         DEPRECATED = "deprecated"
     },
     class = {},

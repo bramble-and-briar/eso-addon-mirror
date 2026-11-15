@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Arkadius/Arkadius-Trade-Tools__1752",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Arkadius",
   "canonical_id": "esoui:1752",
   "category_id": "94",
   "compatibility": [
     {
-      "name": "Scions of Ithelia",
-      "version": "9.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1752",
@@ -17,7 +18,7 @@
     "ArkadiusTradeTools"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1752/",
-  "fingerprint": "3f14ec4f2a5e19a86499dbe3c555d6cfe16af338df58f31b0d9c25d4ac6503f4",
+  "fingerprint": "efa8bb82110c37bc4f33e935701d5f311568bbb9e71429a6fb0389bca79e8eab",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5812.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw5813.jpg",
@@ -30,11 +31,11 @@
   "source_id": "1752",
   "source_url": "https://www.esoui.com/downloads/info1752-ArkadiusTradeTools.html",
   "stats": {
-    "downloads": 847861,
-    "favorites": 458,
-    "monthly_downloads": 1393
+    "downloads": 852953,
+    "favorites": 456,
+    "monthly_downloads": 1967
   },
   "title": "Arkadius' Trade Tools",
-  "updated_at": 1710479104000,
-  "version": "2.0.0"
+  "updated_at": 1794674274000,
+  "version": "3.0.0"
 }

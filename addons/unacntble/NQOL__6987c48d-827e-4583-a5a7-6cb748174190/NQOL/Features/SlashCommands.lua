@@ -8,8 +8,10 @@ local HELP_COMMAND = "/nqol"
 local COMMAND_PREFIX = "/nqol:"
 local GPS_LOG_COMMAND = "gpslog"
 local WRIT_STATUS_COMMAND = "writs-status"
+local LOADOUT_COMMAND = "loadout"
 local gpsLogDescription = NQOL.L("features.slash_commands.gps_log")
 local writStatusDescription = NQOL.L("features.slash_commands.writ_status")
+local loadoutDescription = NQOL.L("features.slash_commands.loadout")
 
 local COMMANDS = {
     { "remount", NQOL.L("features.slash_commands.remain_mounted"), "Mounts", "GetRemainMounted", "SetRemainMounted" },
@@ -35,6 +37,7 @@ NQOL.Lexicon.RegisterRefreshCallback(function()
     FEATURE_NAME = NQOL.L("features.slash_commands.feature_name")
     gpsLogDescription = NQOL.L("features.slash_commands.gps_log")
     writStatusDescription = NQOL.L("features.slash_commands.writ_status")
+    loadoutDescription = NQOL.L("features.slash_commands.loadout")
     local keys = {
         "features.slash_commands.remain_mounted", "features.slash_commands.auto_eye",
         "features.slash_commands.auto_charge", "features.slash_commands.auto_repair",
@@ -112,6 +115,7 @@ local function ShowHelp()
 
     Chat(NQOL.L("features.slash_commands.help_entry", COMMAND_PREFIX, GPS_LOG_COMMAND, gpsLogDescription))
     Chat(NQOL.L("features.slash_commands.help_entry", COMMAND_PREFIX, WRIT_STATUS_COMMAND, writStatusDescription))
+    Chat(NQOL.L("features.slash_commands.help_entry", COMMAND_PREFIX, LOADOUT_COMMAND, loadoutDescription))
 end
 
 local function LogGPSCoordinates()
@@ -164,6 +168,9 @@ function SlashCommands.Initialize()
 
     Register(COMMAND_PREFIX .. GPS_LOG_COMMAND, LogGPSCoordinates)
     Register(COMMAND_PREFIX .. WRIT_STATUS_COMMAND, ShowWritStatus)
+    Register(COMMAND_PREFIX .. LOADOUT_COMMAND, function(args)
+        NQOL.Features.AddonLoadouts.Load(args)
+    end)
 end
 
 NQOL.Features.SlashCommands = SlashCommands

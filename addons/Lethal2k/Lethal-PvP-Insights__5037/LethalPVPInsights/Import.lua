@@ -282,7 +282,7 @@ function Import:ResolveAnon()
     return resolved
 end
 
--- /pvpdi importcheck: what was imported and how anonymous players were matched
+-- /lpi importcheck: what was imported and how anonymous players were matched
 function Import:PrintDiagnostics()
     local n = 0
     for acct, b in pairs(self.builds) do

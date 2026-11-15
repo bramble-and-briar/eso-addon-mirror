@@ -309,7 +309,7 @@ VEQ.mylanguage = {
 	["quest_hiddenhint"] = "Pista oculta",
 	
 	["lang_tracker_type_guild"] = "Gremio",
-	["lang_tracker_type_mainstory"] = "Misión principal de historia",
+	["lang_tracker_type_mainstory"] = "Historia Principal",
 	["lang_tracker_type_undaunted"] = "Intrépidos",
 	["lang_tracker_type_prologue"] = "Prólogo",	
 	["lang_tracker_type_companion"] = "Compañero",

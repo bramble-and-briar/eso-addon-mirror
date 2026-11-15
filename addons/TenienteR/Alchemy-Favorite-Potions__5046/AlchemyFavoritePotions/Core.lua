@@ -139,6 +139,21 @@ local function PrintDevLoadedMessage(svName)
     end)
 end
 
+--- Mensaje de bienvenida, solo la primera vez: confirma que el addon funciona y da a conocer /afp.
+-- Se espera a EVENT_PLAYER_ACTIVATED porque durante la carga el chat aún no existe.
+local function PrintWelcomeMessage()
+    if AFP.sv.welcomeShown then
+        return
+    end
+
+    local eventName = AFP.name .. "Welcome"
+    EVENT_MANAGER:RegisterForEvent(eventName, EVENT_PLAYER_ACTIVATED, function()
+        EVENT_MANAGER:UnregisterForEvent(eventName, EVENT_PLAYER_ACTIVATED)
+        AFP.Print(AFP.L("WELCOME_MESSAGE"))
+        AFP.sv.welcomeShown = true
+    end)
+end
+
 local function Initialize(isDev)
     AFP.isDev = isDev
 
@@ -152,6 +167,11 @@ local function Initialize(isDev)
     if not installed then
         AFP.hooksError = errorMessage
     end
+
+    -- Ventana de consulta con las favoritas, se abre con /afp
+    AFP.InitWindow()
+    SLASH_COMMANDS["/afp"] = AFP.ToggleWindow
+    PrintWelcomeMessage()
 
     if isDev then
         PrintDevLoadedMessage(svName)

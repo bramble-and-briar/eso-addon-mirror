@@ -30,7 +30,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [WeaveDelays](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Psiioniic/WeaveDelays__2657) | Psiioniic | PC / Mac | 1.1.1 |
 | [WeaveDelays](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ThePsiioniic/WeaveDelays__1428d8ab-7f1f-4741-833a-93180287dd09) | ThePsiioniic | Console | — |
 | [Weaving Metronome](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Weaving-Metronome__c1b4f7e7-7899-4d68-ab6a-6ce46c563cc5) | FiNk3F13 | Console | — |
-| [Wegesruhe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Wegesruhe__4849) | Torfason | PC / Mac | 2.0.1 |
+| [Wegesruhe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Wegesruhe__4849) | Torfason | PC / Mac | 2.1.0 |
 | [Well Eater](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/esorochinskiy/Well-Eater__3378) | esorochinskiy | PC / Mac | 1.2.0 |
 | [Werewolf Rave](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Erickson9610/Werewolf-Rave__4739) | Erickson9610 | PC / Mac | 1.3.9 |
 | [Werewolf Timer Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maximoz/Werewolf-Timer-Bar__2911) | maximoz | PC / Mac | 2.6 |
@@ -60,6 +60,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Whispers Beyond](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Volcano_Beetle/Whispers-Beyond__5aa01879-0f7a-42e6-a52d-979261f97cf1) | Volcano_Beetle | Console | — |
 | [Who Mudballed Me?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Who-Mudballed-Me__3341) | code65536 | PC / Mac | 1.0.0 |
 | [Who Pulled - Shows Who Was First To Attack!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Who-Pulled---Shows-Who-Was-First-To-Attack__4328) | Duesentrieb | PC / Mac | 20251229-0001 |
+| [Who Wants Spaulder?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/Who-Wants-Spaulder__4052) | SkullElf | PC / Mac | 2.1.0 |
 | [Whoison?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/broekman/Whoison__4079) | broekman | PC / Mac | 1.0.0 |
 | [Wide Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagaris/Wide-Tooltips__3785) | Tagaris | PC / Mac | 1.0.1 |
 | [Wifey DPS Positions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Wifey-DPS-Positions__4861) | its_wifey | PC / Mac | 1.7 |

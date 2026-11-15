@@ -35,115 +35,143 @@ local function OnAddonLoaded(_, addonName)
         return
     end
 
+    NQOL.Lexicon.Initialize()
     EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
     NQOL.version = GetAddonVersion()
-    NQOL.Lexicon.Initialize()
 
-    NQOL.FirstRun.InitializeSavedVariables()
-    NQOL.WhatsNew.InitializeSavedVariables()
-    NQOL.Features.Mounts.InitializeSavedVariables()
-    NQOL.Features.Antiquities.InitializeSavedVariables()
-    NQOL.Features.Gear.InitializeSavedVariables()
-    NQOL.Features.Provisioning.InitializeSavedVariables()
-    NQOL.Features.Map.InitializeSavedVariables()
-    NQOL.Features.Minimap.InitializeSavedVariables()
-    NQOL.Features.GPS.InitializeSavedVariables()
-    NQOL.Features.Fishing.InitializeSavedVariables()
-    NQOL.Features.UI.InitializeSavedVariables()
-    NQOL.Features.Camera.InitializeSavedVariables()
-    NQOL.Features.UIPlayerInfo.InitializeSavedVariables()
-    NQOL.Features.PlayerBars.InitializeSavedVariables()
-    NQOL.Features.Chat.InitializeSavedVariables()
-    NQOL.Features.ChatReminders.InitializeSavedVariables()
-    NQOL.Features.Friends.InitializeSavedVariables()
-    NQOL.Features.GroupFinderMonitor.InitializeSavedVariables()
-    NQOL.Features.Grouping.InitializeSavedVariables()
-    NQOL.Features.TomePoints.InitializeSavedVariables()
-    NQOL.Features.VeterancyRewards.InitializeSavedVariables()
-    NQOL.Features.TransmuteWatch.InitializeSavedVariables()
-    NQOL.Features.SkipLogoutConfirmation.InitializeSavedVariables()
-    NQOL.Features.ErrorsDismissal.InitializeSavedVariables()
-    NQOL.Features.Positioning.InitializeSavedVariables()
-    NQOL.Features.LuaGc.InitializeSavedVariables()
-    NQOL.Features.UltimateCountdown.InitializeSavedVariables()
-    NQOL.Features.TrialTimer.InitializeSavedVariables()
-    NQOL.Features.CombatInfiniteArchive.InitializeSavedVariables()
-    NQOL.Features.CombatMiscellaneous.InitializeSavedVariables()
-    NQOL.Features.BuffsDebuffs.InitializeSavedVariables()
-    NQOL.Features.Ticker.InitializeSavedVariables()
-    NQOL.Features.Progress.InitializeSavedVariables()
-    NQOL.Features.ProgressGold.InitializeSavedVariables()
-    NQOL.Features.ProgressDungeons.InitializeSavedVariables()
-    NQOL.Features.ProgressSoloDungeons.InitializeSavedVariables()
-    NQOL.Features.ProgressTrials.InitializeSavedVariables()
-    NQOL.Features.ProgressArenas.InitializeSavedVariables()
-    NQOL.Features.ProgressInfiniteArchive.InitializeSavedVariables()
-    if NQOL.IsDevMode() then
-        NQOL.Features.Debug.InitializeSavedVariables()
+    local steps = {}
+    local function AddStep(name, run, requiresPlayer, yieldAfter)
+        steps[#steps + 1] = {
+            name = name,
+            run = run,
+            requiresPlayer = requiresPlayer,
+            yieldAfter = yieldAfter,
+        }
     end
-    NQOL.Settings.RemovePath({ "collections" })
-    NQOL.Settings.RemovePath({ "mounts", "randomMount" })
-    NQOL.Settings.RemovePath({ "ui", "customFrames", "playerFrame", "defaultFrame" })
-    NQOL.Settings.RemovePath({ "ui", "customFrames", "companionFrame", "defaultFrame" })
-    NQOL.Settings.RemovePath({ "ui", "customFrames", "groupFrame", "defaultFrame" })
-    NQOL.Settings.RemovePath({ "utility", "cameraSensitivity" })
-    NQOL.Features.SlashCommands.Initialize()
-    NQOL.Features.Chat.Initialize()
-    NQOL.Features.ErrorsDismissal.Initialize()
-    NQOL.Features.ChatMissingItemRequests.Initialize()
-    NQOL.Features.ChatReminders.Initialize()
 
-    EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED, function()
-        EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED)
+    local savedVariableModules = {
+        NQOL.FirstRun,
+        NQOL.WhatsNew,
+        NQOL.Features.Mounts,
+        NQOL.Features.Antiquities,
+        NQOL.Features.Gear,
+        NQOL.Features.Provisioning,
+        NQOL.Features.Map,
+        NQOL.Features.Minimap,
+        NQOL.Features.GPS,
+        NQOL.Features.Fishing,
+        NQOL.Features.UI,
+        NQOL.Features.Camera,
+        NQOL.Features.UIPlayerInfo,
+        NQOL.Features.PlayerBars,
+        NQOL.Features.Chat,
+        NQOL.Features.ChatReminders,
+        NQOL.Features.Friends,
+        NQOL.Features.Guilds,
+        NQOL.Features.GroupFinderMonitor,
+        NQOL.Features.Grouping,
+        NQOL.Features.TomePoints,
+        NQOL.Features.VeterancyRewards,
+        NQOL.Features.TransmuteWatch,
+        NQOL.Features.SkipLogoutConfirmation,
+        NQOL.Features.ErrorsDismissal,
+        NQOL.Features.Positioning,
+        NQOL.Features.LuaGc,
+        NQOL.Features.UltimateCountdown,
+        NQOL.Features.TrialTimer,
+        NQOL.Features.CombatInfiniteArchive,
+        NQOL.Features.CombatMiscellaneous,
+        NQOL.Features.BuffsDebuffs,
+        NQOL.Features.Ticker,
+        NQOL.Features.Progress,
+        NQOL.Features.ProgressGold,
+        NQOL.Features.ProgressDungeons,
+        NQOL.Features.ProgressSoloDungeons,
+        NQOL.Features.ProgressTrials,
+        NQOL.Features.ProgressArenas,
+        NQOL.Features.ProgressInfiniteArchive,
+    }
+    if NQOL.IsDevMode() then
+        savedVariableModules[#savedVariableModules + 1] = NQOL.Features.Debug
+    end
+    for index, module in ipairs(savedVariableModules) do
+        AddStep("SavedVariables " .. index, module.InitializeSavedVariables)
+    end
+    AddStep("Settings cleanup", function()
+        NQOL.Settings.RemovePath({ "collections" })
+        NQOL.Settings.RemovePath({ "mounts", "randomMount" })
+        NQOL.Settings.RemovePath({ "ui", "customFrames", "playerFrame", "defaultFrame" })
+        NQOL.Settings.RemovePath({ "ui", "customFrames", "companionFrame", "defaultFrame" })
+        NQOL.Settings.RemovePath({ "ui", "customFrames", "groupFrame", "defaultFrame" })
+        NQOL.Settings.RemovePath({ "utility", "cameraSensitivity" })
+    end)
+    -- Install chat/error handlers before activation when possible. Their initializers
+    -- also read current state, so an activation received during this phase is safe.
+    AddStep("Chat", NQOL.Features.Chat.Initialize, false, true)
+    AddStep("ErrorsDismissal", NQOL.Features.ErrorsDismissal.Initialize, false, true)
+    AddStep("ChatMissingItemRequests", NQOL.Features.ChatMissingItemRequests.Initialize, false, true)
+    AddStep("ChatReminders", NQOL.Features.ChatReminders.Initialize, false, true)
 
-        NQOL.Features.Mounts.Initialize()
-        NQOL.Features.Antiquities.Initialize()
-        NQOL.Features.Gear.Initialize()
-        NQOL.Features.Provisioning.Initialize()
-        NQOL.Features.Map.Initialize()
-        NQOL.Features.MapTravelTabs.Initialize()
-        NQOL.Features.Minimap.Initialize()
-        NQOL.Features.GPS.Initialize()
-        NQOL.Features.Fishing.Initialize()
-        NQOL.Features.Freeport.Initialize()
-        NQOL.Features.Camera.Initialize()
-        NQOL.Features.UI.Initialize()
-        NQOL.Features.UIPlayerInfo.Initialize()
-        NQOL.Features.PlayerBars.Initialize()
-        NQOL.Features.Grouping.Initialize()
-        NQOL.Features.TomePoints.Initialize()
-        NQOL.Features.VeterancyRewards.Initialize()
-        NQOL.Features.TransmuteWatch.Initialize()
-        NQOL.Features.SkipLogoutConfirmation.Initialize()
-        NQOL.Features.LuaGc.Initialize()
-        NQOL.Features.UltimateCountdown.Initialize()
-        NQOL.Features.TrialTimer.Initialize()
-        NQOL.Features.CombatInfiniteArchive.Initialize()
-        NQOL.Features.CombatMiscellaneous.Initialize()
-        NQOL.Features.BuffsDebuffs.Initialize()
-        NQOL.Features.Ticker.Initialize()
-        NQOL.Features.Friends.Initialize()
-        NQOL.Features.GroupFinderMonitor.Initialize()
-        NQOL.Features.Progress.Initialize()
-        NQOL.Features.ProgressGold.Initialize()
-        NQOL.Features.ProgressDungeons.Initialize()
-        NQOL.Features.ProgressSoloDungeons.Initialize()
-        NQOL.Features.ProgressTrials.Initialize()
-        NQOL.Features.ProgressArenas.Initialize()
-        NQOL.Features.ProgressInfiniteArchive.Initialize()
-        if NQOL.IsDevMode() then
-            NQOL.Features.Debug.Initialize()
-        end
-
-        if NQOL.GamepadOptions then
-            NQOL.GamepadOptions.Initialize()
-        end
-
+    -- Preserve feature dependencies, but run at most one feature initializer per
+    -- frame. Each module reads the latest player/UI state when it starts.
+    local featureModules = {
+        NQOL.Features.Mounts,
+        NQOL.Features.Antiquities,
+        NQOL.Features.Gear,
+        NQOL.Features.Provisioning,
+        NQOL.Features.Map,
+        NQOL.Features.MapTravelTabs,
+        NQOL.Features.Minimap,
+        NQOL.Features.GPS,
+        NQOL.Features.Fishing,
+        NQOL.Features.Freeport,
+        NQOL.Features.Camera,
+        NQOL.Features.UI,
+        NQOL.Features.UIPlayerInfo,
+        NQOL.Features.PlayerBars,
+        NQOL.Features.Grouping,
+        NQOL.Features.TomePoints,
+        NQOL.Features.VeterancyRewards,
+        NQOL.Features.TransmuteWatch,
+        NQOL.Features.SkipLogoutConfirmation,
+        NQOL.Features.LuaGc,
+        NQOL.Features.UltimateCountdown,
+        NQOL.Features.TrialTimer,
+        NQOL.Features.CombatInfiniteArchive,
+        NQOL.Features.CombatMiscellaneous,
+        NQOL.Features.BuffsDebuffs,
+        NQOL.Features.Ticker,
+        NQOL.Features.Friends,
+        NQOL.Features.Guilds,
+        NQOL.Features.GroupFinderMonitor,
+        NQOL.Features.Progress,
+        NQOL.Features.ProgressGold,
+        NQOL.Features.ProgressDungeons,
+        NQOL.Features.ProgressSoloDungeons,
+        NQOL.Features.ProgressTrials,
+        NQOL.Features.ProgressArenas,
+        NQOL.Features.ProgressInfiniteArchive,
+    }
+    if NQOL.IsDevMode() then
+        featureModules[#featureModules + 1] = NQOL.Features.Debug
+    end
+    for index, module in ipairs(featureModules) do
+        AddStep("Feature " .. index, module.Initialize, true, true)
+    end
+    -- Commands and menu actions must not expose features that are still starting.
+    AddStep("SlashCommands", NQOL.Features.SlashCommands.Initialize, true, true)
+    if NQOL.GamepadOptions then
+        AddStep("GamepadOptions", NQOL.GamepadOptions.Initialize, true, true)
+    end
+    AddStep("Onboarding", function()
         local isFirstRun = NQOL.FirstRun.Initialize()
         NQOL.WhatsNew.Initialize(isFirstRun)
-    end)
+    end, true, true)
+    AddStep("Loaded", function()
+        NQOL.Chat.Message(NQOL.L("addon.loaded", tostring(NQOL.version)))
+    end, true)
 
-    NQOL.Chat.Message(NQOL.L("addon.loaded", tostring(NQOL.version)))
+    NQOL.Initialization.Start(steps)
 end
 
 EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, OnAddonLoaded)

@@ -3,6 +3,7 @@ local WR = Wegesruhe
 WR.pinCategories = {}
 WR.managedCompassPins = {}
 WR.managedFloatingPins = {}
+WR.managedFloatingPinSet = {}
 
 local function AddPin(targetList, constantName, category)
     local pinType = _G[constantName]
@@ -10,6 +11,9 @@ local function AddPin(targetList, constantName, category)
         return
     end
     targetList[#targetList + 1] = pinType
+    if targetList == WR.managedFloatingPins then
+        WR.managedFloatingPinSet[pinType] = true
+    end
     WR.pinCategories[pinType] = category
 end
 
@@ -22,10 +26,15 @@ function WR:BuildMarkerCatalog()
     self.pinCategories = {}
     self.managedCompassPins = {}
     self.managedFloatingPins = {}
+    self.managedFloatingPinSet = {}
 
     AddBoth("MAP_PIN_TYPE_QUEST_OFFER", "questOffers")
     AddBoth("MAP_PIN_TYPE_QUEST_OFFER_REPEATABLE", "questOffers")
     AddBoth("MAP_PIN_TYPE_QUEST_OFFER_ZONE_STORY", "questOffers")
+
+    -- ESO also uses a tracked zone-story quest-offer marker in the 3D world.
+    -- Keep it world-only: do not introduce new compass filtering behavior.
+    AddPin(self.managedFloatingPins, "MAP_PIN_TYPE_TRACKED_QUEST_OFFER_ZONE_STORY", "questOffers")
 
     local assisted = {
         "MAP_PIN_TYPE_ASSISTED_QUEST_CONDITION",
@@ -76,7 +85,18 @@ function WR:IsCompassPinVisible(pinType)
         return true
     end
     local profile = self:GetActiveProfile()
-    return profile.compass[category] ~= false
+    if profile.compassPins == false or profile.compass[category] == false then
+        return false
+    end
+
+    -- Per-pin quest identity is not exposed by the compass container. Only
+    -- suppress a whole quest-icon category when NO eligible journal quest
+    -- remains in that category. Mixed allowed/blocked secondary quests stay
+    -- visible, rather than accidentally hiding an allowed quest's guidance.
+    if self.questCompassEligibility and self.questCompassEligibility[category] == false then
+        return false
+    end
+    return true
 end
 
 function WR:IsFloatingPinVisible(pinType)

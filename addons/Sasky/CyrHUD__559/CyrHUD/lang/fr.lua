@@ -38,6 +38,9 @@ ZO_CreateStringId("SI_CYRHUD_HIDE_KILLSDEATHS_INFO", "Masque votre compteur de k
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES", "Masquer les ponts et postes-frontières")
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES_INFO", "Masquer les ponts et postes-frontières")
 
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD", "Masquer le Seigneur du Bûcher")
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD_INFO", "Masque la notification du Seigneur du Bûcher dans CyrHUD")
+
 local CZ = "|cC5C29E" -- ZOS standard text color
 local CR = "|cFFFFFF" -- Reset color
 ZO_CreateStringId("SI_CYRHUD_KEYBIND_HEADER", "Raccourci")

@@ -181,6 +181,16 @@ function FTC.Menu:Controls()
       default = FTC.Defaults.RaidFrames,
       requiresReload = true,
     }
+    -- Enable Role Sorting?
+    FTC.Menu.options[#FTC.Menu.options + 1] = {
+      type = "checkbox",
+      name = GetString(FTC_Menu_SortRoles),
+      tooltip = GetString(FTC_Menu_SortRolesDesc),
+      getFunc = function() return FTC.Vars.EnableRoleSorting or false end,
+      setFunc = function(value) FTC.Menu:Update('EnableRoleSorting', value, true) end,
+      default = FTC.Defaults.EnableRoleSorting,
+      requiresReload = true,
+    }
 
     -- Ignore Critters?
     FTC.Menu.options[#FTC.Menu.options + 1] = {

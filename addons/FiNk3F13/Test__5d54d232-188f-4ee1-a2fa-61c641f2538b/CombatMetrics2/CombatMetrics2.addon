@@ -1,0 +1,28 @@
+## Title: Combat Metrics 2
+## APIVersion: 101051 101052
+## Author: test
+## Version: 1.7.10
+## AddOnVersion: 1071001
+## OptionalDependsOn: LibRadialMenu
+## SavedVariables: CombatMetrics2_Save CombatMetrics2FightDataSV
+## Description: Controller reports using the original Combat Metrics calculation engine. Includes isolated combat collection and fight storage.
+
+; Modified version of Combat Metrics 1.7.8 by Solinur; see LICENSE.md.
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls and related logos are registered trademarks of ZeniMax Media Inc.
+; https://account.elderscrollsonline.com/add-on-terms
+
+libs/Encode/LibDataEncode.lua
+libs/Combat/lang/en.lua
+libs/Combat/LibCombat.lua
+lang/en.lua
+lang/$(language).lua
+CombatMetrics2FightData/CombatMetrics2FightData.lua
+CombatMetrics2.lua
+CombatMetrics2Legacy.lua
+CombatMetrics2Controller.lua
+CombatMetrics2UI.lua
+CombatMetrics2ControllerInit.lua
+Bindings.xml
+CombatMetrics2.xml
+CombatMetrics2Controller.xml

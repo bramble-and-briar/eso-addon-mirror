@@ -4,7 +4,7 @@ local PDI = PVPDataInsight
 
 PDI.name        = "LethalPVPInsights"   -- the addon folder (PVPDataInsight before 1.9.59)
 PDI.displayName = "Lethal PVP Insights"
-PDI.version     = "1.9.74"
+PDI.version     = "1.10.5"
 
 -- Retention
 PDI.OPPONENT_RETENTION_DAYS = 7    -- combat/opponent data (feature 3)
@@ -49,7 +49,9 @@ PDI.MUNDUS_IDS = {
 PDI.defaults = {
     my        = {},  -- [dateKey] = { [who] = { k=, a=, al=, c= } }
     feed      = {},  -- [dateKey] = { [who] = { k=, al= } }
-    lifetime  = { my = {}, feed = {} },
+    lifetime  = { my = {}, feed = {}, ap = {} },
+    ap        = {},   -- Alliance Points per day and source: [dateKey][source] = { k = AP, a = events }
+    apEvents  = {},   -- latest Alliance Points events
     opponents = {},  -- [dateKey] = { [who] = record }
     saved     = {},  -- [id] = { who=, date=, savedAt=, rec= }
     names     = {},  -- [charName] = { acct=, al=, t= }
@@ -72,6 +74,10 @@ PDI.defaults = {
         groupScope = "pvp",
         killEventDays = 7,    -- kill feed event log retention (days)   -- group history: "pvp" | "pve" | "both" -- buffs of a targeted player build up for this long, then start from scratch
         window     = {},
+        autoQuest  = "off",   -- hand in quests automatically: off | pvp | all
+        foodNotice = false,   -- remind me when I have no food / drink buff
+        foodPvPOnly = true,   -- ... only in PvP areas
+        skillBlock = { enabled = true, pvp = true, showError = true, recastSeconds = 0, blocked = {}, recast = {} },
     },
 }
 

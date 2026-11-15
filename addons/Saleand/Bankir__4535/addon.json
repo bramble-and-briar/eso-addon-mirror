@@ -18,7 +18,7 @@
     "Bankir"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4535/",
-  "fingerprint": "d7546bd519e7a7dba5d38c464b59fdb510136d43c27980543cf51e5653a7b26f",
+  "fingerprint": "437e213353b7063074ca2a5b63d8ada75e1d833a0d4ae22b2150ebc9ad52de9a",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18262.png",
     "https://cdn-eso.mmoui.com/preview/pvw18144.png",
@@ -35,11 +35,11 @@
   "source_id": "4535",
   "source_url": "https://www.esoui.com/downloads/info4535-Bankir.html",
   "stats": {
-    "downloads": 505,
+    "downloads": 540,
     "favorites": 3,
-    "monthly_downloads": 166
+    "monthly_downloads": 200
   },
   "title": "Bankir",
-  "updated_at": 1794406987000,
-  "version": "2.9.3"
+  "updated_at": 1794654889000,
+  "version": "2.9.6"
 }

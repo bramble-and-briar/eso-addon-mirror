@@ -10,14 +10,17 @@
 
 ## Title: LibHistoire
 ## Author: sirinsidiator
-## Version: 2.7.2
-## AddOnVersion: 1105
-## APIVersion: 101050 101051
+## Version: 2.8.0
+## AddOnVersion: 1112
+## APIVersion: 101051 101052
 ## IsLibrary: true
 ## DependsOn: LibDebugLogger LibAsync LibAddonMenu-2.0
+## OptionalDependsOn: Taneth
 ## PCDependsOn: LibCustomMenu
 ## SavedVariables: LibHistoire_Settings LibHistoire_GuildNames LibHistoire_NameDictionary LibHistoire_GuildHistory LibHistoire_GuildHistoryCache
 ## Description: |c000000|u1:800::|u|u1:800::.|u|u1:800::.|u|u1:800::|u|t256:256:LibHistoire/histoire.dds|t|u1:800::.|u|u1:800::.|u|u1:800::.|u|u1:800::.|u|u1:800::.|u|rHisty takes good care of all your data, so others don't have to.
+
+test/mocks.lua
 
 StartUp.lua
 Dialogs.lua
@@ -41,3 +44,7 @@ guildHistoryCache/GuildHistoryLegacyEventListener.lua
 guildHistoryCache/GuildHistoryServerRequest.lua
 guildHistoryCache/GuildHistoryServerRequestManager.lua
 api.lua
+
+test/compatibility.lua
+test/categoryState.lua
+test/processingRequest.lua

@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/blazeofmoon/TodoList__5051",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "blazeofmoon",
   "canonical_id": "esoui:5051",
   "category_id": "159",
@@ -19,12 +18,12 @@
     "TodoList"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5051/",
-  "fingerprint": "417e4ef464b172f586cd2173907aff2cde401d610cb38405920cc2ee55f3b66b",
+  "fingerprint": "1aaf83ce5a6c4dcbc777c9e48c29f70e84425ba33f3a3fca8a827a4dc5f7db68",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw18445.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18446.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18447.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18448.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18454.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18455.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18457.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18456.png"
   ],
   "platform": "pc",
   "published": true,
@@ -32,11 +31,11 @@
   "source_id": "5051",
   "source_url": "https://www.esoui.com/downloads/info5051-TodoList.html",
   "stats": {
-    "downloads": 1,
+    "downloads": 9,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 6
   },
   "title": "TodoList",
-  "updated_at": 1794644949000,
-  "version": "1.1"
+  "updated_at": 1794664947000,
+  "version": "1.2.1"
 }

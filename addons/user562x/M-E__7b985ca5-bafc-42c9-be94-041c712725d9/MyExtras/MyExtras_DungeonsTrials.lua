@@ -115,6 +115,7 @@ function DT:SetUseCharacterSettings(value)
     cv.dungeonsUseCharacter = value
     self:Apply()
     if ME.TrialTimer then ME.TrialTimer:Refresh() end
+    if ME.GroupFinder then ME.GroupFinder:Refresh(false) end
     local panel = ME.settingsPanel
     if panel and panel.Refresh then panel:Refresh() end
 end
@@ -265,13 +266,18 @@ function DT:GetOptions()
 
     local function IsOff() return not IsOn() end
 
-    return {
+    local pages = {}
+    if ME.TrialTimer then pages[#pages + 1] = ME.TrialTimer:SubmenuOption() end
+    if ME.GroupFinder then pages[#pages + 1] = ME.GroupFinder:SubmenuOption() end
+
+    local page = {
         {
             type    = "submenu",
             name    = "Dungeons & Trials",
             icon    = SUBMENU_ICON,
             tooltip = function()
-                return "Hides other players in dungeons and trials, sorts the Dungeon Finder and times your trials.\n\n" .. SavedTip()
+                return "Hides other players in dungeons and trials, sorts the Dungeon Finder, times your trials "
+                    .. "and checks the Group Finder for you.\n\n" .. SavedTip()
             end,
             options = {
                 {
@@ -344,10 +350,14 @@ function DT:GetOptions()
                         DT:HookFinder()
                     end,
                 },
-                ME.TrialTimer and ME.TrialTimer:SubmenuOption() or nil,
             },
         },
     }
+    local options = page[1].options
+    for i = 1, #pages do
+        options[#options + 1] = pages[i]
+    end
+    return page
 end
 
 --------------------------------------------------

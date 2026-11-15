@@ -1,0 +1,47 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/FoulMouthxAmazon/Survey-Sidekick__5050",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "FoulMouthxAmazon",
+  "canonical_id": "esoui:5050",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5050",
+  "deleted": false,
+  "directories": [
+    "SurveySidekick"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5050/",
+  "fingerprint": "aecd059ebe4c1c757651cfb32f637836ee8162c8ef623cb403eb91d5e23e309d",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18434.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18435.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18436.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18437.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18438.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18439.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18440.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18459.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18460.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18461.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5050",
+  "source_url": "https://www.esoui.com/downloads/info5050-SurveySidekick.html",
+  "stats": {
+    "downloads": 40,
+    "favorites": 0,
+    "monthly_downloads": 34
+  },
+  "title": "Survey Sidekick",
+  "updated_at": 1794673694000,
+  "version": "0.2.3-beta"
+}

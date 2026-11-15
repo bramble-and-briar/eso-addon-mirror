@@ -1,0 +1,7 @@
+Version 1.2.0
+- Added adjustable middle gap between Health and Stamina/Magicka bars.
+- Theme decorations follow their respective bar groups without stretching.
+- Preserved centered Spooky Cute bat and corrected Sunflower texture sizing.
+- Preserved v1.1.0 LibAddonMenu-2.0 r43+ requirement, server-specific NA/EU/PTS SavedVariables, and migration logic.
+- No private Stitch theme or assets included.
+- Existing resource bar geometry and dimensions unchanged.

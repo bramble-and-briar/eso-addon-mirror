@@ -18,9 +18,11 @@
     "KnownVendorFilter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5049/",
-  "fingerprint": "20307188ecb877858f266b09cd0074344d3dd7ced6fc9d2bf0e37c0127b1bcc8",
+  "fingerprint": "546fff1e4cdb0acda7265b8e0630b9e772dc0aa9e5e33c3be8da1fe77dba4900",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18430.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18452.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18453.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18432.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18431.jpg"
   ],
@@ -30,11 +32,11 @@
   "source_id": "5049",
   "source_url": "https://www.esoui.com/downloads/info5049-KnownVendorFilter.html",
   "stats": {
-    "downloads": 8,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 19,
+    "favorites": 1,
+    "monthly_downloads": 17
   },
   "title": "Known Vendor Filter",
-  "updated_at": 1794602515000,
+  "updated_at": 1794657742000,
   "version": "1.1"
 }

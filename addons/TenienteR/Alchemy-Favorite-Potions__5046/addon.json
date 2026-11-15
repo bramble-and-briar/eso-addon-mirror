@@ -22,9 +22,10 @@
     "AlchemyFavoritePotions"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5046/",
-  "fingerprint": "73c6db963628ae6bb2f4f9624209c2fb86ad8082435c43ec9132be967f8a865a",
+  "fingerprint": "74db519f1903d420a3bb1e3bec2a71ffa2d0d2242897a5d84e13bde66f641c99",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18411.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18458.png",
     "https://cdn-eso.mmoui.com/preview/pvw18412.png",
     "https://cdn-eso.mmoui.com/preview/pvw18413.png",
     "https://cdn-eso.mmoui.com/preview/pvw18414.png",
@@ -36,11 +37,11 @@
   "source_id": "5046",
   "source_url": "https://www.esoui.com/downloads/info5046-AlchemyFavoritePotions.html",
   "stats": {
-    "downloads": 1,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 29,
+    "favorites": 1,
+    "monthly_downloads": 21
   },
   "title": "Alchemy Favorite Potions",
-  "updated_at": 1794548099000,
-  "version": "1.0.0"
+  "updated_at": 1794680330000,
+  "version": "1.2.0"
 }

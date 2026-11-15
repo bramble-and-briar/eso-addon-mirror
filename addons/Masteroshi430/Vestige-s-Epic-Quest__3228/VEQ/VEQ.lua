@@ -567,7 +567,7 @@ function VEQ.LoadQuestsInfo(i)
 			local qRepeatType = GetJournalQuestRepeatType(i)
  
 			-- My Zone Determinate
-			VEQ.QuestList[VEQ.varnumquest].myzone = VEQ.FindMyZone(qzone, qtype, qInstanceDisplayType, qRepeatType, qname, qzoneidx)
+			VEQ.QuestList[VEQ.varnumquest].myzone = VEQ.FindMyZone(qzone, qtype, qInstanceDisplayType, qRepeatType, qname, qzoneidx, i)
  
 			-- Check to see if the current quest is current focused quest, set QuestList[x].focusquest to 1 if focused quest else zero.
 			if i == VEQ.FocusedQIndex then VEQ.QuestList[VEQ.varnumquest].focusquest = 1 else VEQ.QuestList[VEQ.varnumquest].focusquest = 0 end

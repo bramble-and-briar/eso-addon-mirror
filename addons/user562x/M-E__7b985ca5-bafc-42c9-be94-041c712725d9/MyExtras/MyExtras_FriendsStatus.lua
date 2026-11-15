@@ -9,11 +9,12 @@ local SUBMENU_ICON   = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_contacts.dd
 local UPDATE_NAME    = "MyExtras_FriendsStatus"
 local CHECK_INTERVAL = 3000
 
-local ONLINE_TEXT            = "<<1>> is now |c33DD33online|r."
-local ONLINE_CHARACTER_TEXT  = "<<1>> (<<2>>) is now |c33DD33online|r."
-local OFFLINE_TEXT           = "<<1>> is now |cFF4444offline|r."
-local OFFLINE_CHARACTER_TEXT = "<<1>> (<<2>>) is now |cFF4444offline|r."
-local SWITCH_TEXT            = "<<1>> is now on <<2>>."
+local CHAT_FEATURE           = "Friends"
+local ONLINE_TEXT            = "<<1>> is |c33DD33online|r."
+local ONLINE_CHARACTER_TEXT  = "<<1>> (<<2>>) is |c33DD33online|r."
+local OFFLINE_TEXT           = "<<1>> is |cFF4444offline|r."
+local OFFLINE_CHARACTER_TEXT = "<<1>> (<<2>>) is |cFF4444offline|r."
+local SWITCH_TEXT            = "<<1>> is on <<2>>."
 
 local SAMPLE_NAME      = "user562"
 local SAMPLE_CHARACTER = "The Rōck"
@@ -64,12 +65,24 @@ local function SetCharacter(entry, raw)
     entry.character = raw ~= "" and zo_strformat("<<1>>", raw) or ""
 end
 
-local function Print(text)
-    if CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
-        CHAT_ROUTER:AddSystemMessage(text)
-    else
-        d(text)
+local function StatusIcon(online)
+    local status = online and PLAYER_STATUS_ONLINE or PLAYER_STATUS_OFFLINE
+    local texture
+    if IsInGamepadPreferredMode() and ZO_GetGamepadPlayerStatusIcon then
+        texture = ZO_GetGamepadPlayerStatusIcon(status)
+    elseif ZO_GetPlayerStatusIcon then
+        texture = ZO_GetPlayerStatusIcon(status)
     end
+    return ME:Icon(texture)
+end
+
+local function Line(text, online)
+    local icon = online ~= nil and StatusIcon(online) or ""
+    return ME:ChatPrefix(CHAT_FEATURE, SUBMENU_ICON) .. icon .. text
+end
+
+local function Print(text)
+    ME:Chat(text)
 end
 
 --------------------------------------------------
@@ -82,15 +95,15 @@ local function PrintStatus(displayName, characterName, online)
 
     local nameLink = ZO_LinkHandler_CreateDisplayNameLink(displayName)
     if sv.friendsStatusCharacter and characterName ~= "" then
-        Print(zo_strformat(online and ONLINE_CHARACTER_TEXT or OFFLINE_CHARACTER_TEXT, nameLink, characterName))
+        Print(Line(zo_strformat(online and ONLINE_CHARACTER_TEXT or OFFLINE_CHARACTER_TEXT, nameLink, characterName), online))
     else
-        Print(zo_strformat(online and ONLINE_TEXT or OFFLINE_TEXT, nameLink))
+        Print(Line(zo_strformat(online and ONLINE_TEXT or OFFLINE_TEXT, nameLink), online))
     end
 end
 
 local function PrintSwitch(displayName, characterName)
     if not SV().friendsStatusCharacter then return end
-    Print(zo_strformat(SWITCH_TEXT, ZO_LinkHandler_CreateDisplayNameLink(displayName), characterName))
+    Print(Line(zo_strformat(SWITCH_TEXT, ZO_LinkHandler_CreateDisplayNameLink(displayName), characterName)))
 end
 
 --------------------------------------------------
@@ -197,9 +210,9 @@ end
 
 local function SampleText(online)
     if SV().friendsStatusCharacter then
-        return zo_strformat(online and ONLINE_CHARACTER_TEXT or OFFLINE_CHARACTER_TEXT, SAMPLE_NAME, SAMPLE_CHARACTER)
+        return Line(zo_strformat(online and ONLINE_CHARACTER_TEXT or OFFLINE_CHARACTER_TEXT, SAMPLE_NAME, SAMPLE_CHARACTER), online)
     end
-    return zo_strformat(online and ONLINE_TEXT or OFFLINE_TEXT, SAMPLE_NAME)
+    return Line(zo_strformat(online and ONLINE_TEXT or OFFLINE_TEXT, SAMPLE_NAME), online)
 end
 
 local function Sample(online)

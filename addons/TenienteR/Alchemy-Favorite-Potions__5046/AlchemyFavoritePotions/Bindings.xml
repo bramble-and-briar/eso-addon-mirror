@@ -5,6 +5,9 @@
                 <Down>return ZO_KeybindStrip_HandleKeybindDown("ALCHEMY_FAVORITE_POTIONS_TOGGLE")</Down>
                 <Up>return ZO_KeybindStrip_HandleKeybindUp("ALCHEMY_FAVORITE_POTIONS_TOGGLE")</Up>
             </Action>
+            <Action name="ALCHEMY_FAVORITE_POTIONS_OPEN_WINDOW">
+                <Down>if AlchemyFavoritePotions and AlchemyFavoritePotions.ToggleWindow then AlchemyFavoritePotions.ToggleWindow() end</Down>
+            </Action>
         </Category>
     </Layer>
 </Bindings>

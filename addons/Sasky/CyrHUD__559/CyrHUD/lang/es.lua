@@ -46,6 +46,9 @@ ZO_CreateStringId("SI_CYRHUD_HIDE_KILLSDEATHS_INFO", "Oculta tu contador de elim
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES", "Ocultar puentes y puertas de camino")
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES_INFO", "Ocultar puentes y puertas de camino")
 
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD", "Ocultar al Señor de la Pira")
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD_INFO", "Oculta la notificación del Señor de la Pira en CyrHUD")
+
 
 local CZ = "|cC5C29E" -- ZOS standard text color
 local CR = "|cFFFFFF" -- Reset color

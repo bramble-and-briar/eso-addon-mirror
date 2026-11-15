@@ -32,10 +32,11 @@ local DEFAULTS = {
     trialTimerBest              = true,
     trialTimerFont              = "EsoUI/Common/Fonts/FTN57.otf",
     trialTimerSize              = 30,
+    trialTimerColor             = { r = 1, g = 1, b = 1, a = 1 },
     trialTimerPosX              = 0,
     trialTimerPosY              = -440,
     trialTimerBackground        = true,
-    trialTimerBackgroundOpacity = 50,
+    trialTimerBackgroundOpacity = 100,
 }
 DT:AddDefaults(DEFAULTS)
 
@@ -86,6 +87,12 @@ end
 
 local function SampleFont()
     return string.format("%s|40|soft-shadow-thick", SV().trialTimerFont)
+end
+
+local function TextColor()
+    local c = SV().trialTimerColor
+    if type(c) ~= "table" then return 1, 1, 1 end
+    return c.r or 1, c.g or 1, c.b or 1
 end
 
 local function FormatTime(ms)
@@ -237,6 +244,7 @@ function TT:Render(force)
     if text == lastText and not force then return end
     lastText = text
     self.label:SetFont(TextFont())
+    self.label:SetColor(TextColor())
     self.label:SetText(text)
     self:ApplyBox()
 end
@@ -545,17 +553,37 @@ function TT:SubmenuOption()
             {
                 type    = "submenu",
                 name    = "Appearance",
-                tooltip = "Font and background for your timer.",
+                tooltip = "Font, text color and background for your timer.",
                 options = {
                     {
                         type    = "dropdown",
                         name    = "Font",
                         choices = ME.FONT_CHOICES,
                         default = DEFAULTS.trialTimerFont,
-                        sample  = function() return SampleText(), SampleFont(), 1, 1, 1 end,
+                        sample  = function()
+                            local r, g, b = TextColor()
+                            return SampleText(), SampleFont(), r, g, b
+                        end,
                         getFunc = function() return SV().trialTimerFont end,
                         setFunc = function(val)
                             SV().trialTimerFont = val
+                            TT:Render(true)
+                        end,
+                    },
+                    {
+                        type    = "colorpicker",
+                        name    = ME.RainbowText("Text Color"),
+                        default = DEFAULTS.trialTimerColor,
+                        sample  = function()
+                            local r, g, b = TextColor()
+                            return SampleText(), SampleFont(), r, g, b
+                        end,
+                        getFunc = function()
+                            local r, g, b = TextColor()
+                            return r, g, b, 1
+                        end,
+                        setFunc = function(r, g, b)
+                            SV().trialTimerColor = { r = r, g = g, b = b, a = 1 }
                             TT:Render(true)
                         end,
                     },

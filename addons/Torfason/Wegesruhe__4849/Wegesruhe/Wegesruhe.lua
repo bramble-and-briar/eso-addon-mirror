@@ -2,7 +2,7 @@ Wegesruhe = Wegesruhe or {}
 local WR = Wegesruhe
 
 WR.name = "Wegesruhe"
-WR.version = "2.0.1"
+WR.version = "2.1.0"
 WR.savedVarsVersion = 1
 WR.helpHeld = false
 WR.initialized = false
@@ -48,6 +48,7 @@ WR.defaults = {
     enabled = true,
     preset = "explorer",
     mapQuestPins = false,
+    compassPins = true,
     compass = {
         questOffers = true,
         assistedObjectives = false,
@@ -63,7 +64,9 @@ WR.defaults = {
         breadcrumbs = false,
     },
     questTypes = AllQuestTypesEnabled(),
+    compassQuestTypes = AllQuestTypesEnabled(),
     repeatTypes = AllRepeatTypesEnabled(),
+    compassRepeatTypes = AllRepeatTypesEnabled(),
     pvpOverride = true,
     pvpPreset = "normal",
 }
@@ -71,6 +74,7 @@ WR.defaults = {
 WR.presets = {
     normal = {
         mapQuestPins = true,
+        compassPins = true,
         compass = {
             questOffers = true,
             assistedObjectives = true,
@@ -86,10 +90,13 @@ WR.presets = {
             breadcrumbs = true,
         },
         questTypes = AllQuestTypesEnabled(),
+    compassQuestTypes = AllQuestTypesEnabled(),
         repeatTypes = AllRepeatTypesEnabled(),
+    compassRepeatTypes = AllRepeatTypesEnabled(),
     },
     gentle = {
         mapQuestPins = true,
+        compassPins = true,
         compass = {
             questOffers = true,
             assistedObjectives = true,
@@ -105,10 +112,13 @@ WR.presets = {
             breadcrumbs = true,
         },
         questTypes = AllQuestTypesEnabled(),
+    compassQuestTypes = AllQuestTypesEnabled(),
         repeatTypes = AllRepeatTypesEnabled(),
+    compassRepeatTypes = AllRepeatTypesEnabled(),
     },
     explorer = {
         mapQuestPins = false,
+        compassPins = true,
         compass = {
             questOffers = true,
             assistedObjectives = false,
@@ -124,10 +134,13 @@ WR.presets = {
             breadcrumbs = false,
         },
         questTypes = AllQuestTypesEnabled(),
+    compassQuestTypes = AllQuestTypesEnabled(),
         repeatTypes = AllRepeatTypesEnabled(),
+    compassRepeatTypes = AllRepeatTypesEnabled(),
     },
     hardcore = {
         mapQuestPins = false,
+        compassPins = false,
         compass = {
             questOffers = false,
             assistedObjectives = false,
@@ -143,7 +156,9 @@ WR.presets = {
             breadcrumbs = false,
         },
         questTypes = AllQuestTypesEnabled(),
+    compassQuestTypes = AllQuestTypesEnabled(),
         repeatTypes = AllRepeatTypesEnabled(),
+    compassRepeatTypes = AllRepeatTypesEnabled(),
     },
 }
 
@@ -201,10 +216,13 @@ function WR:ApplyPreset(presetKey, refresh)
         return false
     end
     self.settings.mapQuestPins = preset.mapQuestPins
+    self.settings.compassPins = preset.compassPins
     self.settings.compass = self:CopyTable(preset.compass)
     self.settings.world = self:CopyTable(preset.world)
     self.settings.questTypes = self:CopyTable(preset.questTypes)
     self.settings.repeatTypes = self:CopyTable(preset.repeatTypes)
+    self.settings.compassQuestTypes = self:CopyTable(preset.compassQuestTypes)
+    self.settings.compassRepeatTypes = self:CopyTable(preset.compassRepeatTypes)
     self.settings.preset = presetKey
     if refresh ~= false then
         self:RefreshAll()
@@ -329,10 +347,13 @@ local SETTINGS_KEYS = {
     "enabled",
     "preset",
     "mapQuestPins",
+    "compassPins",
     "compass",
     "world",
     "questTypes",
     "repeatTypes",
+    "compassQuestTypes",
+    "compassRepeatTypes",
     "pvpOverride",
     "pvpPreset",
 }
@@ -454,6 +475,24 @@ function WR:InitializeSavedVariables()
     self.storage.characterSettings = self.storage.characterSettings or {}
     self.storage.characterScopes = self.storage.characterScopes or {}
     EnsureDefaults(self.storage.account, self.defaults)
+    -- Version 3: legacy quest filters applied to BOTH the map and compass.
+    -- On first upgrade, copy each saved profile's legacy map filters into the
+    -- new compass filters. Never copy again after the surfaces diverge.
+    -- Do not rely on whether the new keys are nil: ZO_SavedVars may already
+    -- have filled those fields from the latest defaults during initialization.
+    if self.storage.questFilterSplitVersion ~= 1 then
+        local function CopyOldFilters(profile)
+            if type(profile) ~= "table" then return end
+            profile.compassQuestTypes = CopyValue(profile.questTypes or self.defaults.questTypes)
+            profile.compassRepeatTypes = CopyValue(profile.repeatTypes or self.defaults.repeatTypes)
+        end
+        CopyOldFilters(self.storage.account)
+        for _, characterSettings in pairs(self.storage.characterSettings or {}) do
+            CopyOldFilters(characterSettings)
+        end
+        self.storage.questFilterSplitVersion = 1
+    end
+
 
     -- Keep any already-created character settings forward-compatible when new
     -- options are added in later Wegesruhe versions.
@@ -461,8 +500,32 @@ function WR:InitializeSavedVariables()
         EnsureDefaults(characterSettings, self.defaults)
     end
 
-    self.storage.storageVersion = 2
+    self.storage.storageVersion = 3
+    -- Language did not exist in 2.0.1. Leave old account/character settings as-is.
+    -- An account-wide separate key ensures the chosen language follows characters.
+    if not self.supportedLanguages[self.storage.language] then
+        self.storage.language = "auto"
+    end
     self:ActivateSettingsForCurrentCharacter()
+end
+
+-- Addon-only language preference, shared by all characters on the current megaserver.
+-- Stored separately from navigation presets/scopes to preserve existing profiles.
+function WR:SetLanguagePreference(language)
+    if not self.supportedLanguages[language] or not self.storage then
+        return false
+    end
+    if self.storage.language == language then
+        return true
+    end
+    self.storage.language = language
+    -- All locale tables are already loaded. Switch only this addon's strings,
+    -- update the existing settings controls in-place, and leave ESO's CVar alone.
+    self:InitializeLanguage()
+    if self.RefreshSettingsLanguage then
+        self:RefreshSettingsLanguage()
+    end
+    return true
 end
 
 function WR:Initialize()
@@ -472,6 +535,7 @@ function WR:Initialize()
     self.initialized = true
 
     self:InitializeSavedVariables()
+    self:InitializeLanguage()
     self:BuildMarkerCatalog()
     self:InitializeQuestFilters()
     self:InitializeCompass()

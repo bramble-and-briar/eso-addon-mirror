@@ -8,6 +8,10 @@
   "category_id": "53",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "LibHistoire"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2817/",
-  "fingerprint": "5f25b6ef9018db83e4a744a39212127441dddd458d9bd47faeda26d026174434",
+  "fingerprint": "ab65f2a5715636a4b0a2173bb25ea79122bcc16fd7bde3079cd8f01d7542af9b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw9521.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw9510.jpg",
@@ -34,11 +38,11 @@
   "source_id": "2817",
   "source_url": "https://www.esoui.com/downloads/info2817-LibHistoire-GuildHistory.html",
   "stats": {
-    "downloads": 1555592,
+    "downloads": 1584489,
     "favorites": 430,
-    "monthly_downloads": 11019
+    "monthly_downloads": 32485
   },
   "title": "LibHistoire - Guild History",
-  "updated_at": 1792342041000,
-  "version": "2.7.2"
+  "updated_at": 1794693848000,
+  "version": "2.8.0"
 }

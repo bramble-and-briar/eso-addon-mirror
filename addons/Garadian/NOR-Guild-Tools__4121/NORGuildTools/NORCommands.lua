@@ -63,7 +63,7 @@ NORRecruiting = {}
 
 -- Function to send "Recruiting Message" to chat when /recruit is used
 function NORRecruiting.SendGuildMessage()
-	StartChatInput("|H1:guild:13021|hNew OutRiders|h [NOR] One of the world's oldest gaming guilds (est. 1992) is recruiting! If you're looking for a relaxed, social guild rich in history and tradition; where you can create long-term friendships, check out our guild link and apply if it resonates!", CHAT_CHANNEL_G1) -- Change if needed
+	StartChatInput("|H1:guild:13021|hNew OutRiders|h [NOR] Looking for a guild to call home? Since 1992, NOR has brought gamers together through friendship and adventure! We're a mature, family-friendly community growing our ESO ranks. Enjoy questing, crafting, dungeons, or Saturday trials? Help shape NOR's next chapter! Check out our guild listing and apply today!", CHAT_CHANNEL_G1) -- Change if needed
 end
 
 -- Register the slash command

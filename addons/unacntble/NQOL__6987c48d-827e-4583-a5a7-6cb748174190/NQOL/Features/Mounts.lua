@@ -11,6 +11,7 @@ local defaults = {
         allowUseInteractions = false,
         allowOpenInteractions = false,
         allowTalkInteractions = false,
+        allowActivateInteractions = false,
         trainingCheck = false,
     },
 }
@@ -63,6 +64,7 @@ local function GetSettings()
     NQOL.Settings.Default(settings, defaultSettings, "allowUseInteractions")
     NQOL.Settings.Default(settings, defaultSettings, "allowOpenInteractions")
     NQOL.Settings.Default(settings, defaultSettings, "allowTalkInteractions")
+    NQOL.Settings.Default(settings, defaultSettings, "allowActivateInteractions")
     NQOL.Settings.Default(settings, defaultSettings, "trainingCheck")
 
     return settings
@@ -82,6 +84,9 @@ local function IsAllowedMountedInteraction()
     end
     if action == GetString(SI_GAMECAMERAACTIONTYPE2) then
         return Mounts.GetAllowTalkInteractions()
+    end
+    if action == GetString(SI_BINDING_NAME_RIGHT_MOUSE_IN_WORLD) then
+        return Mounts.GetAllowActivateInteractions()
     end
 
     return false
@@ -310,6 +315,18 @@ function Mounts.SetAllowTalkInteractions(value)
     GetSettings().allowTalkInteractions = value == true
 end
 
+function Mounts.GetAllowActivateInteractions()
+    if not savedVariables then
+        return defaults.mounts.allowActivateInteractions
+    end
+
+    return GetSettings().allowActivateInteractions
+end
+
+function Mounts.SetAllowActivateInteractions(value)
+    GetSettings().allowActivateInteractions = value == true
+end
+
 function Mounts.GetTrainingCheck()
     if not savedVariables then
         return defaults.mounts.trainingCheck
@@ -361,6 +378,14 @@ end
 
 function Mounts.GetAllowTalkInteractionsTooltip()
     return NQOL.L("features.mounts.allow_talk_interactions_tooltip")
+end
+
+function Mounts.GetAllowActivateInteractionsLabel()
+    return NQOL.L("features.mounts.allow_activate_interactions_label", GetString(SI_BINDING_NAME_RIGHT_MOUSE_IN_WORLD))
+end
+
+function Mounts.GetAllowActivateInteractionsTooltip()
+    return NQOL.L("features.mounts.allow_activate_interactions_tooltip", GetString(SI_BINDING_NAME_RIGHT_MOUSE_IN_WORLD))
 end
 
 function Mounts.GetTrainingCheckLabel()

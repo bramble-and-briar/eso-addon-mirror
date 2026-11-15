@@ -3,7 +3,7 @@ TDAddon.name = "TDAddon"
 -- Reused color constants (avoid allocating a new ZO_ColorDef per group member on every UI refresh)
 TDAddon.GreenColor = ZO_ColorDef:New("2FC821")
 TDAddon.RedColor = ZO_ColorDef:New("FF0000")
-TDAddon.version = "2026.10.14"
+TDAddon.version = "2026.11.14"
 TDAddon.defaults = {
   UltiWindowSelfPoint = CENTER, 
   UltiWindowAnchPoint = CENTER,
@@ -19,6 +19,7 @@ TDAddon.defaults = {
   WantedScrollQuest = "All",
   KillTwentyPlayersOnly = false,
   CampaignGroupOnlyEncounterLog = false,
+  AutoClaimVeterancy = true,
   MainCircle = {
                 r = 1,
                 g = 1,
@@ -152,7 +153,7 @@ function TDAddon.CreateMenu()
 					width = "half"
 			},
 			[13] = { type = "description",
-		            title = "|c5282BD|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tQuick Grand Warlord Dortene interactions & wanted scroll quest\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tCampaign queue position & ETA display\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tSigil Circle (don't miss the group leader)\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tRapids indicator\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tUse Keep Recall Stone or Sigil keybind\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tAll in One keybind:\nIf alive uses Keep Recal Stone or Sigil, if dead tries to revive in closest forward camp if none tries to res in closest keep in range if none lets you choose on the map.|r", 
+		            title = "|c5282BD|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tQuick Grand Warlord Dortene interactions & wanted scroll quest\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tCampaign queue position & ETA display\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tSigil Circle (don't miss the group leader)\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tRapids indicator\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tUse Keep Recall Stone or Sigil keybind\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tAll in One keybind:\nIf alive uses Keep Recal Stone or Sigil, if dead tries to revive in closest forward camp if none tries to res in closest keep in range if none lets you choose on the map.\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tAutomatically claims available Veterancy rewards once you leave combat (not in Imperial City)|r", 
 					width = "half"
 			},
 			[14] = {type = "header",
@@ -253,6 +254,14 @@ function TDAddon.CreateMenu()
 				   getFunc = function() return TDAddon.vars.CampaignGroupOnlyEncounterLog end,
 				   setFunc = function(value) TDAddon.vars.CampaignGroupOnlyEncounterLog = value end,
 				   default = TDAddon.defaults.CampaignGroupOnlyEncounterLog,
+				   width = "half",
+            },
+			[28] ={type = "checkbox",
+				   name = "Auto claim Veterancy rewards",
+				   tooltip = "Automatically claims available Veterancy rewards once you leave combat (not in Imperial City)",
+				   getFunc = function() return TDAddon.vars.AutoClaimVeterancy end,
+				   setFunc = function(value) TDAddon.vars.AutoClaimVeterancy = value end,
+				   default = TDAddon.defaults.AutoClaimVeterancy,
 				   width = "half",
             },
 		}
@@ -852,7 +861,7 @@ function TDAddon.GroupUltimateStateLoop()
                   ultTwoPercentage = "NEG"
                            else 
                    ultTwoPercentage = ""
-                           end 						 
+                           end
              else
                 ultTwoTextControl:SetColor(1,1,1)
              end
@@ -863,7 +872,7 @@ function TDAddon.GroupUltimateStateLoop()
              ultTwoTextControl:SetAlpha(globalAlpha)
              
             
-                      -- holding object				
+                      -- holding object
             if carriableObjectIcon then
                 local carriableObjectControl = GetControl("carriableObjectControl"..index)
               if not carriableObjectControl then
@@ -1486,18 +1495,6 @@ function TDAddon.AutoacceptQueue(code, campaignId, isGroup, CampaignQueueRequest
 end
 
 
-
-
-
--- save ultimate window position after a drag and drop 
-function TDAddon.saveUltiWindowPosition( window )
-    local _, sP, _, aP, x, y = window:GetAnchor()
-    TDAddon.vars.UltiWindowAnchPoint = aP
-    TDAddon.vars.UltiWindowSelfPoint = sP
-    TDAddon.vars.UltiWindowXoff = x
-    TDAddon.vars.UltiWindowYoff = y
-end
-
 function TDAddon.ShareQuests()
  
     local shareableCyroQuests = {}
@@ -1848,6 +1845,12 @@ function TDAddon.CheckEverySecond()
   end
 end
 
+function TDAddon.AutoClaimVeterancyRewards()
+    if (not IsInImperialCity()) and ZO_VETERANCY_MANAGER and (ZO_VETERANCY_MANAGER:HasRepeatableRankReward() or ZO_VETERANCY_MANAGER:HasUnclaimedRankRewards()) then
+        ZO_VETERANCY_MANAGER:TryClaimAllRewards()
+    end
+end
+
 
 local function OnAddonLoaded(event, addonName)
 	if addonName == TDAddon.name then
@@ -1857,22 +1860,15 @@ local function OnAddonLoaded(event, addonName)
 		TDAddon.ultiUi = GetControl("TDAddon_ultiUi")
 		TDAddon.ultiUi:SetDimensions(80, 480)
 		TDAddon.ultiUi:SetMouseEnabled(true)
-		--if TDAddon.vars.LockUltiWindow then
-		    TDAddon.ultiUi:SetMovable(false)
-		--else
-		  --  TDAddon.ultiUi:SetMovable(true)
-		--end
+    TDAddon.ultiUi:SetMovable(false)
 		TDAddon.ultiUi:SetClampedToScreen(true)
-		--TDAddon.ultiUi:SetHandler("OnMoveStop", TDAddon.saveUltiWindowPosition) 
     TDAddon.ultiUi:ClearAnchors()
-    --TDAddon.ultiUi:SetAnchor(TDAddon.vars.UltiWindowSelfPoint or TOPLEFT, GuiRoot, TDAddon.vars.UltiWindowAnchPoint or CENTER, TDAddon.vars.UltiWindowXoff, TDAddon.vars.UltiWindowYoff)
 		
 		-- forward camp container
 		TDAddon.fwcUi = GetControl("TDAddon_fwcUi")
 		TDAddon.fwcUi:SetClampedToScreen(true)
     TDAddon.fwcUi:SetDimensions(80, 80)
 		TDAddon.fwcUi:ClearAnchors()
-		--TDAddon.fwcUi:SetAnchor(BOTTOMLEFT, GuiRoot, TOPLEFT, 0, 40)
     
     HUD_MANAGER:RegisterKeyboardElement(TDAddon.ultiUi, "TDAddon ultimate bar", { defaultAnchor = ZO_Anchor:New(TOP, nil, TOP, 0, 40) }, COMPASS_OPTIONS) -- for Keyboard UI 
     HUD_MANAGER:RegisterGamepadElement(TDAddon.ultiUi, "TDAddon ultimate bar", { defaultAnchor = ZO_Anchor:New(TOP, nil, TOP, 0, 40) }, COMPASS_OPTIONS) --for Gamepad UI
@@ -1956,7 +1952,17 @@ local function OnAddonLoaded(event, addonName)
 	   EVENT_MANAGER:RegisterForUpdate("CheckEverySecond", 1000, TDAddon.CheckEverySecond)
 	   TDAddon.isInGuild = IsPlayerInGuild(2897)
 	   TDAddon.rapidsEndTime = 0
-	   
+
+	   -- auto claim veterancy rewards when leaving combat (guild members only)
+	   EVENT_MANAGER:RegisterForEvent(TDAddon.name .. "_VetRewards", EVENT_PLAYER_COMBAT_STATE, function(_, inCombat)
+	       if inCombat or not TDAddon.isInGuild or not TDAddon.vars.AutoClaimVeterancy then return end
+	       zo_callLater(function()
+	           if TDAddon.vars.AutoClaimVeterancy and not IsUnitInCombat("player") then
+	               TDAddon.AutoClaimVeterancyRewards()
+	           end
+	       end, 2000)
+	   end)
+
 	   
 	   SLASH_COMMANDS["/scall"] = function()
 			TDAddon.vars.WantedScrollQuest = "All"

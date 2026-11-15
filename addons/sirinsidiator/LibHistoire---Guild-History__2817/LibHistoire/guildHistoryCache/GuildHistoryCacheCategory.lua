@@ -9,6 +9,7 @@ local logger = internal.logger
 local MISSING_EVENT_COUNT_THRESHOLD = 4000
 local NO_PROCESSOR_THRESHOLD = 3 * 24 * 3600           -- 3 days
 local INITIAL_REQUEST_RESEND_THRESHOLD = 7 * 24 * 3600 -- 7 days
+local LINK_TIMOUT_THRESHOLD = 60 * 60 * 24 * 7         -- 1 week
 local BASE_PRIORITY = {
     [GUILD_HISTORY_EVENT_CATEGORY_TRADER] = 40,
     [GUILD_HISTORY_EVENT_CATEGORY_BANKED_CURRENCY] = 30,
@@ -37,6 +38,8 @@ function GuildHistoryCacheCategory:Initialize(adapter, requestManager, categoryD
     self.rangeInfoDirty = true
     self.progressDirty = true
     self.wasLinked = false
+    self.wasAutoRequesting = self:IsAutoRequesting()
+    self.wasProcessing = false
     self.processingQueue = {}
     self.processors = {}
     self:RefreshManagedRangeInfo()
@@ -76,12 +79,13 @@ function GuildHistoryCacheCategory:RefreshManagedRangeInfo()
         return
     end
 
-    self:CheckHasLinked()
+    self:CheckState()
 end
 
 function GuildHistoryCacheCategory:RegisterProcessor(processor)
     self.saveData.lastProcessorRegisteredTime = GetTimeStamp()
     self.processors[processor] = true
+    self:CheckState()
 end
 
 function GuildHistoryCacheCategory:UnregisterProcessor(processor)
@@ -125,6 +129,7 @@ function GuildHistoryCacheCategory:ShouldSendInitialRequest(oldestManagedEventId
 end
 
 function GuildHistoryCacheCategory:RequestMissingData()
+    self:CheckState()
     if self:ContinueExistingRequest() or not self:IsAutoRequesting() then return end
     logger:Debug("Request missing data for", self.key)
 
@@ -308,6 +313,7 @@ function GuildHistoryCacheCategory:SetRequestMode(mode)
     logger:Info("Set request mode for guild %d category %d to %s", self.guildId, self.category, mode)
     self.saveData.requestMode = mode
     internal:FireCallbacks(internal.callback.REQUEST_MODE_CHANGED, self.guildId, self.category, mode)
+    self:CheckState()
 end
 
 function GuildHistoryCacheCategory:SetNewestManagedEventInfo(eventId, eventTime)
@@ -404,6 +410,7 @@ function GuildHistoryCacheCategory:OnCategoryUpdated(flags)
     if newestManagedEventId and oldestManagedEventId then
         self:StartProcessingEvents(newestManagedEventId, oldestManagedEventId, isNewManagedRange)
     end
+    self:CheckState()
 end
 
 function GuildHistoryCacheCategory:Reset()
@@ -427,7 +434,6 @@ function GuildHistoryCacheCategory:Reset()
 
     self.rangeInfoDirty = true
     self.progressDirty = true
-    self.wasLinked = false
 
     self:SetNewestManagedEventInfo()
     self:SetOldestManagedEventInfo()
@@ -435,6 +441,10 @@ function GuildHistoryCacheCategory:Reset()
     for processor in pairs(self.processors) do
         processor:StopInternal(internal.STOP_REASON_MANAGED_RANGE_LOST)
     end
+
+    self.wasLinked = false
+    self.wasProcessing = self:IsProcessing()
+    internal:FireCallbacks(internal.callback.CATEGORY_RESET, self.guildId, self.category)
 
     zo_callLater(function() self:OnCategoryUpdated() end, 0)
 end
@@ -456,9 +466,11 @@ function GuildHistoryCacheCategory:RemoveProcessingRequest(request)
         if self.processingQueue[i] == request then
             table.remove(self.processingQueue, i)
             self:ProcessNextRequest()
+            self:CheckState()
             return
         end
     end
+    self:CheckState()
 end
 
 function GuildHistoryCacheCategory:ProcessNextRequest()
@@ -467,6 +479,7 @@ function GuildHistoryCacheCategory:ProcessNextRequest()
     if request then
         self.processingRequest = request
         request:StartProcessing()
+        self:CheckState()
     end
 end
 
@@ -562,7 +575,7 @@ function GuildHistoryCacheCategory:StartProcessingEvents(newestManagedEventId, o
             if isNewManagedRange then
                 internal:FireCallbacks(internal.callback.MANAGED_RANGE_FOUND, guildId, category)
             end
-            self:CheckHasLinked()
+            self:CheckState()
             internal:FireCallbacks(internal.callback.PROCESS_LINKED_EVENTS_FINISHED, guildId, category)
 
             self.processingCurrentTime = nil
@@ -615,9 +628,8 @@ function GuildHistoryCacheCategory:StartProcessingEvents(newestManagedEventId, o
             end
             internal:FireCallbacks(internal.callback.PROCESS_MISSED_EVENTS_FINISHED, guildId, category)
             self:ProcessNextRequest()
+            self:CheckState()
         end)
-    else
-        self:CheckHasLinked()
     end
 end
 
@@ -626,6 +638,7 @@ function GuildHistoryCacheCategory:RestartProcessingTask()
         logger:Info("Restart processing events for guild %d category %d", self.guildId, self.category)
         self.processingTask:Cancel()
         self.processingTask = nil
+        self:CheckState()
         local newestManagedEventId = self:GetNewestManagedEventInfo()
         local oldestManagedEventId = self:GetOldestManagedEventInfo()
         self:StartProcessingEvents(newestManagedEventId, oldestManagedEventId)
@@ -654,13 +667,13 @@ function GuildHistoryCacheCategory:HasLinked()
     local newestManagedEventId = self:GetNewestManagedEventInfo()
     if newestManagedEventId then
         local index = GetGuildHistoryEventIndex(guildId, category, newestManagedEventId)
-        return index == 1
+        return index ~= nil and index <= gaplessIndex
     end
 
     return false
 end
 
-function GuildHistoryCacheCategory:CheckHasLinked()
+function GuildHistoryCacheCategory:CheckState()
     if self:HasLinked() then
         logger:Debug("Category is linked", self.key)
         self.saveData.lastLinkedTime = GetTimeStamp()
@@ -669,10 +682,32 @@ function GuildHistoryCacheCategory:CheckHasLinked()
             internal:FireCallbacks(internal.callback.CATEGORY_LINKED, self.guildId, self.category)
         end
     end
+
+    local isAutoRequesting = self:IsAutoRequesting()
+    if isAutoRequesting ~= self.wasAutoRequesting then
+        self.wasAutoRequesting = isAutoRequesting
+        logger:Debug("Category auto requesting changed", self.key, isAutoRequesting)
+        internal:FireCallbacks(internal.callback.CATEGORY_AUTO_REQUESTING_CHANGED, self.guildId, self.category, isAutoRequesting)
+    end
+
+    local isProcessing = self:IsProcessing()
+    if isProcessing ~= self.wasProcessing then
+        self.wasProcessing = isProcessing
+        logger:Debug("Category processing changed", self.key, isProcessing)
+        internal:FireCallbacks(internal.callback.CATEGORY_PROCESSING_CHANGED, self.guildId, self.category, isProcessing)
+    end
 end
 
 function GuildHistoryCacheCategory:GetLastLinkedTime()
     return self.saveData.lastLinkedTime or 0
+end
+
+function GuildHistoryCacheCategory:HasLinkedRecently()
+    if not self:HasCachedEvents() then
+        return true
+    end
+    local linkTimeout = GetTimeStamp() - self:GetLastLinkedTime()
+    return linkTimeout <= LINK_TIMOUT_THRESHOLD
 end
 
 function GuildHistoryCacheCategory:IsManagedRangeConnectedToPresent()

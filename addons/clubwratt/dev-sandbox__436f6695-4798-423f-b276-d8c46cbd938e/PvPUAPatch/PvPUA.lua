@@ -1,7 +1,7 @@
 PvPUAPatch = PvPUAPatch or {} -- build.sh: private global, coexists with the unpatched PvPUA
 local PvPUA = PvPUAPatch
 PvPUA.name = "PvPUAPatch" -- build.sh: must match the addon folder (EVENT_ADD_ON_LOADED)
-PvPUA.version = "5.9.0" -- Patch: build.sh writes VERSION here; only used in the debug log
+PvPUA.version = "5.10.1" -- Patch: build.sh writes VERSION here; only used in the debug log
 
 --------------------------------------------------
 -- Config
@@ -2958,9 +2958,12 @@ end
 --   queued in any other state 10 s  -> stuck: LeaveCampaignQueue, then QueueForCampaign on its LEFT
 -- At most RQ_MAX_ATTEMPTS requeues per queue the player joined himself; entering the campaign resets.
 -- Whatever the setting, the failure also marks the queue window's row "STUCK #<last position>" (Stuck mark).
+-- A failure belongs to a queue the game still lists, however long that queue has been quiet, or to one
+-- dropped within RQ_WINDOW_MS (RQRecentQueue).
+-- Settings > "Requeue Now" asks the game to queue again on demand (Requeue Now, below).
 -- Every queue / jump event goes to the Debug Log as a "Q ..." line, and any jump or queue failure
--- within RQ_WINDOW_MS of a queue is echoed to chat with its code, so an unrecognised one can be named.
-local RQ_WINDOW_MS     = 60000 -- a failure this soon after the queue was last seen belongs to it
+-- that belongs to a queue is echoed to chat with its code, so an unrecognised one can be named.
+local RQ_WINDOW_MS     = 60000 -- a failure this soon after an unlisted queue was last seen belongs to it
 local RQ_CHECK_MS      = 3000  -- let the game's own LEFT / STATE events land before deciding
 local RQ_STUCK_MS      = 10000 -- still queued, not WAITING, this long after a failure = stuck
 local RQ_OURS_MS       = 15000 -- a JOINED this soon after our QueueForCampaign is our requeue
@@ -2968,6 +2971,9 @@ local RQ_LEAVE_MS      = 15000 -- our LeaveCampaignQueue's LEFT must land within
 local RQ_DROP_MS       = 10000 -- a LEFT this soon after a failure is the game dropping the entry, not the player
 local RQ_MAX_ATTEMPTS  = 5
 local RQ_MAX_DELAY_MS  = 30000
+local RQ_MANUAL_MS     = 5000  -- a Requeue Now step the game has not answered this long moves on
+local RQ_POLL_MS       = 5000  -- Debug Log: how often the queue listing is compared with the last one logged
+local RQ_POP_QUERY_MS  = 10000 -- Debug Log: fresh population data is asked for at most this often
 
 local function RQConstNames(prefix, names)
     local out = {}
@@ -2982,9 +2988,14 @@ local RQ_STATE_NAMES = RQConstNames("CAMPAIGN_QUEUE_REQUEST_STATE_", { "WAITING"
     "PENDING_ACCEPT", "CONFIRMING", "FINISHED", "CAMPAIGN_CLOSED" })
 local RQ_FULL_JUMP = RQConstNames("JUMP_RESULT_JUMP_FAILED_", { "INSTANCE_FULL", "INSTANCE_CAP_REACHED" })
 local RQ_FULL_QUEUE = RQConstNames("QUEUE_FOR_CAMPAIGN_RESULT_", { "DESTINATION_WORLD_FULL", "CAMPAIGN_FULL" })
+-- The server holds no entry to leave: no LEFT event follows this answer.
+local RQ_LEAVE_NOT_QUEUED = RQConstNames("LEAVE_CAMPAIGN_QUEUE_ERROR_", { "NOT_QUEUED_FOR_CAMPAIGN",
+    "NOT_QUEUED_FOR_ANYTHING" })
+
+local RQ_POP_NAMES = RQConstNames("CAMPAIGN_POP_", { "LOW", "MEDIUM", "HIGH", "FULL" })
 
 PvPUA.requeue = { last = nil, attempts = 0, requeuedAtMs = nil, pendingLeave = nil, failure = nil, checkSeq = 0,
-    stuck = nil }
+    stuck = nil, manual = nil, manualSeq = 0, call = nil, pollText = nil, popQuery = nil }
 
 function PvPUA:AutoRequeueEnabled()
     local sv = self.savedVariables
@@ -3022,9 +3033,117 @@ local function RQSnapshot(campaignId, asGroup)
     return true, state, position or 0, confirmLeft or 0
 end
 
+-- The first queue entry the game lists, in any state: campaignId, asGroup.
+local function RQListedEntry()
+    if not (GetNumCampaignQueueEntries and GetCampaignQueueEntry) then return nil end
+    for i = 1, GetNumCampaignQueueEntries() or 0 do
+        local campaignId, asGroup = GetCampaignQueueEntry(i)
+        if type(campaignId) == "number" and campaignId ~= 0 then return campaignId, asGroup == true end
+    end
+    return nil
+end
+
 local function RQInCampaign(campaignId)
     return IsPlayerInAvAWorld ~= nil and IsPlayerInAvAWorld() == true
         and GetCurrentCampaignId ~= nil and GetCurrentCampaignId() == campaignId
+end
+
+-- Debug Log diagnostics. Lines only: nothing here changes what the queue code does.
+--   Q list ...  every entry the game lists (state, position), plus the remembered queue once it is unlisted
+--   Q poll ...  the listing every RQ_POLL_MS, logged only when it differs from the one at the last queue
+--               event or poll: a change the game announced with no event (a silent drop, a silent state)
+--   Q pop ...   the campaign's population per alliance and its estimated wait, from the campaign selection
+--               data: cached at once, fresh when the game answers QueryCampaignSelectionData
+--   our call    whether a JOINED / queue response follows a QueueForCampaign of ours or the player's own
+function PvPUA:RQListText()
+    local parts, lastListed = {}, false
+    local last = self.requeue.last
+    local n = tonumber(GetNumCampaignQueueEntries and GetNumCampaignQueueEntries()) or 0
+    for i = 1, n do
+        local c, g = GetCampaignQueueEntry(i)
+        if type(c) == "number" and c ~= 0 then
+            g = g == true
+            local queued, state, position = RQSnapshot(c, g)
+            parts[#parts + 1] = string.format("c=%s group=%s %s", tostring(c), tostring(g),
+                queued and (RQStateName(state) .. " #" .. tostring(position)) or "listed, IsQueued=false")
+            if last ~= nil and last.campaignId == c and last.asGroup == g then lastListed = true end
+        end
+    end
+    if last ~= nil and not lastListed then
+        parts[#parts + 1] = string.format("c=%s group=%s %s", tostring(last.campaignId), tostring(last.asGroup),
+            RQSnapshot(last.campaignId, last.asGroup) and "unlisted, IsQueued=true" or "unlisted")
+    end
+    return #parts > 0 and table.concat(parts, "; ") or "no queue"
+end
+
+function PvPUA:RQNoteListing()
+    if self:DebugLogEnabled() then self.requeue.pollText = self:RQListText() end
+end
+
+function PvPUA:RQPoll()
+    if not self:DebugLogEnabled() then return end
+    local text = self:RQListText()
+    if text == self.requeue.pollText then return end
+    self.requeue.pollText = text
+    DLog("Q poll (changed with no queue event): %s", text)
+end
+
+function PvPUA:RQLogPopulation(campaignId, why)
+    local n = tonumber(GetNumSelectionCampaigns and GetNumSelectionCampaigns()) or 0
+    local index = nil
+    for i = 1, n do
+        if GetSelectionCampaignId(i) == campaignId then index = i; break end
+    end
+    if index == nil then
+        DLog("Q pop %s: campaign %s not in the selection data (%d campaigns)", why, tostring(campaignId), n)
+        return
+    end
+    local function pop(alliance)
+        local value = GetSelectionCampaignPopulationData(index, alliance)
+        return RQ_POP_NAMES[value] or tostring(value)
+    end
+    DLog("Q pop %s: %s DC=%s AD=%s EP=%s, est wait %s s; you are %s", why, RQCampaignLabel(campaignId, false),
+        pop(ALLIANCE_DAGGERFALL_COVENANT), pop(ALLIANCE_ALDMERI_DOMINION), pop(ALLIANCE_EBONHEART_PACT),
+        tostring(GetSelectionCampaignQueueWaitTime and GetSelectionCampaignQueueWaitTime(index)),
+        DLAlliance(GetUnitAlliance("player")))
+end
+
+function PvPUA:RQQueryPopulation(campaignId, why)
+    if not self:DebugLogEnabled() then return end
+    local rq = self.requeue
+    local now = GetGameTimeMilliseconds()
+    self:RQLogPopulation(campaignId, why .. ", cached")
+    local query = rq.popQuery
+    if query ~= nil and now - query.atMs < RQ_POP_QUERY_MS then return end
+    rq.popQuery = { campaignId = campaignId, why = why, atMs = now, open = true }
+    if QueryCampaignSelectionData then pcall(QueryCampaignSelectionData) end
+end
+
+function PvPUA:RQOnSelectionData()
+    local query = self.requeue.popQuery
+    if query == nil or not query.open then return end
+    query.open = false
+    if GetGameTimeMilliseconds() - query.atMs > RQ_POP_QUERY_MS then return end
+    self:RQLogPopulation(query.campaignId, query.why .. ", fresh")
+end
+
+-- Marks a QueueForCampaign of ours, so the answer and the JOINED that follow can be told from the player's own.
+function PvPUA:RQNoteCall(kind)
+    self.requeue.call = { kind = kind, atMs = GetGameTimeMilliseconds(), answer = nil }
+end
+
+function PvPUA:RQCallText()
+    local call = self.requeue.call
+    if call == nil then return "no call of ours" end
+    local age = (GetGameTimeMilliseconds() - call.atMs) / 1000
+    if call.answer == nil then return string.format("our %s call %.1f s ago, unanswered", call.kind, age) end
+    return string.format("our %s call %.1f s ago, answered %s", call.kind, age, tostring(call.answer))
+end
+
+function PvPUA:RQOnPlayerDeactivated()
+    local stuck = self.requeue.stuck
+    DLog("Q deactivated (loading screen, reload or logout): %s; stuck=%s", self:RQListText(),
+        stuck and ("#" .. tostring(stuck.position)) or "no")
 end
 
 -- Stuck mark. The game's "full" alert fades in seconds and is the only sign that the queue broke, so the
@@ -3102,9 +3221,14 @@ function PvPUA:RQOnJoined(campaignId, isGroup, willLockToAlliance)
     local last = self:RQRemember(campaignId, isGroup)
     if not ours then last.position = nil end -- and has no position yet
     if self:RQStuckIs(campaignId, isGroup) then self:RQClearStuck("queued again") end
-    DLog("Q joined %s c=%s group=%s lock=%s (%s, attempts %d)", RQCampaignLabel(campaignId, isGroup),
+    DLog("Q joined %s c=%s group=%s lock=%s (%s, attempts %d; %s)", RQCampaignLabel(campaignId, isGroup),
         tostring(campaignId), tostring(isGroup), tostring(willLockToAlliance), ours and "our requeue" or "player",
-        rq.attempts)
+        rq.attempts, self:RQCallText())
+    self:RQQueryPopulation(campaignId, "at join")
+    local manual = rq.manual
+    if manual ~= nil and manual.campaignId == campaignId and manual.asGroup == (isGroup == true) then
+        self:RQManualEnd("queued again.")
+    end
 end
 
 function PvPUA:RQOnLeft(campaignId, isGroup)
@@ -3120,7 +3244,8 @@ function PvPUA:RQOnLeft(campaignId, isGroup)
     end
     if pending ~= nil and pending.campaignId == campaignId and pending.asGroup == (isGroup == true) then
         rq.pendingLeave = nil
-        if now - pending.atMs <= RQ_LEAVE_MS then self:RQQueue(campaignId, isGroup == true, "stuck queue left") end
+        if pending.manual then self:RQManualQueue("requeue")
+        elseif now - pending.atMs <= RQ_LEAVE_MS then self:RQQueue(campaignId, isGroup == true, "stuck queue left") end
     end
 end
 
@@ -3149,23 +3274,37 @@ function PvPUA:RQOnState(campaignId, isGroup, state)
     end
 end
 
--- A failure with no queue seen within RQ_WINDOW_MS is not about a campaign queue (a wayshrine jump to a
--- full instance, say): logged, nothing else.
+-- The queue a failure belongs to, remembered as rq.last:
+--   the remembered queue while the game still lists it, however long it has been quiet (logged 2026-11-14:
+--     "destination is full" 263 s after the last position event, entry still listed at #5);
+--   the remembered queue within RQ_WINDOW_MS of its last event (the game dropped it around the failure);
+--   any queue the game lists when none is remembered (after a /reloadui).
+-- A failure with none of these is not about a campaign queue (a wayshrine jump to a full instance, say):
+-- logged, nothing else.
 function PvPUA:RQRecentQueue()
     local last = self.requeue.last
-    if last == nil then return nil end
-    local since = GetGameTimeMilliseconds() - (last.leftMs or last.seenMs or 0)
-    if since > RQ_WINDOW_MS then return nil end
-    return last
+    if last ~= nil then
+        if RQSnapshot(last.campaignId, last.asGroup) then return last end
+        if GetGameTimeMilliseconds() - (last.leftMs or last.seenMs or 0) <= RQ_WINDOW_MS then return last end
+    end
+    local campaignId, asGroup = RQListedEntry()
+    if campaignId == nil then return nil end
+    return self:RQRemember(campaignId, asGroup)
 end
 
 function PvPUA:RQOnQueueResponse(response, parameter)
     local text = GetString and GetString("SI_QUEUEFORCAMPAIGNRESPONSETYPE", response) or ""
     local successCode = rawget(_G, "QUEUE_FOR_CAMPAIGN_RESULT_SUCCESS")
-    DLog("Q response %s '%s' param=%s", tostring(response), tostring(text), tostring(parameter))
+    local call = self.requeue.call
+    local answersOurs = call ~= nil and call.answer == nil and GetGameTimeMilliseconds() - call.atMs <= RQ_OURS_MS
+    if answersOurs then call.answer = response end
+    DLog("Q response %s '%s' param=%s (%s)", tostring(response), tostring(text), tostring(parameter),
+        answersOurs and ("answers our " .. call.kind .. " call") or "not an answer to a call of ours")
+    local manual = self:RQManualOnQueueResponse(response, text) -- a Requeue Now step reports its own answer
     if response == successCode then return end
     local full = RQ_FULL_QUEUE[response]
     if full then return self:RQFailure("queue", response, text) end
+    if manual then return end
     if self:RQRecentQueue() then
         RQChat(string.format("Queue refused: %s [queue %s] - not a full-campaign error, no requeue.",
             text ~= "" and text or "?", tostring(response)))
@@ -3182,8 +3321,29 @@ function PvPUA:RQOnJumpFailed(result)
     end
 end
 
+-- Our own LeaveCampaignQueue answered with an error gets no LEFT event, so the requeue that waits on LEFT
+-- runs here. "Not queued" means the server holds no entry while the game still lists one (logged 2026-11-14:
+-- the entry then sits in PENDING_LEAVE for good). A leave the player pressed himself is logged, nothing else.
 function PvPUA:RQOnLeaveResponse(response)
-    DLog("Q leave response %s", tostring(response))
+    local rq = self.requeue
+    local text = GetString and GetString("SI_LEAVECAMPAIGNQUEUERESPONSETYPE", response) or ""
+    DLog("Q leave response %s '%s'%s; now %s", tostring(response), tostring(text),
+        rq.pendingLeave and " (our leave)" or " (the player's leave)", self:RQListText())
+    local pending = rq.pendingLeave
+    if pending == nil or response == (rawget(_G, "LEAVE_CAMPAIGN_QUEUE_ERROR_NONE") or 0) then return end
+    rq.pendingLeave = nil
+    local label = RQCampaignLabel(pending.campaignId, pending.asGroup)
+    local answer = string.format("%s [leave %s]", text ~= "" and text or "?", tostring(response))
+    if pending.manual then
+        self:RQManualNotify(string.format("%s: could not leave: %s; queueing anyway.", label, answer))
+        return self:RQManualQueue("requeue")
+    end
+    if RQ_LEAVE_NOT_QUEUED[response] then
+        DLog("RQ leave %s refused: %s; queueing", label, answer)
+        return self:RQQueue(pending.campaignId, pending.asGroup, "the server had no queue entry")
+    end
+    DLog("RQ leave %s refused: %s", label, answer)
+    RQChat(string.format("%s: could not leave the stuck queue: %s.", label, answer))
 end
 
 function PvPUA:RQOnPlayerActivated()
@@ -3191,7 +3351,10 @@ function PvPUA:RQOnPlayerActivated()
     local current = GetCurrentCampaignId and GetCurrentCampaignId() or 0
     local inAvA = IsPlayerInAvAWorld ~= nil and IsPlayerInAvAWorld() == true
     local n = GetNumCampaignQueueEntries and GetNumCampaignQueueEntries() or 0
-    DLog("Q activated campaign=%s avaWorld=%s queueEntries=%s", tostring(current), tostring(inAvA), tostring(n))
+    DLog("Q activated campaign=%s avaWorld=%s queueEntries=%s home=%s zone=%s", tostring(current), tostring(inAvA),
+        tostring(n), tostring(GetAssignedCampaignId and GetAssignedCampaignId()),
+        tostring(GetUnitZone and GetUnitZone("player")))
+    DLog("Q list at activation: %s", self:RQListText())
     local last = rq.last
     if last ~= nil and RQInCampaign(last.campaignId) then
         DLog("Q entered %s after %d requeue(s)", RQCampaignLabel(last.campaignId, last.asGroup), rq.attempts)
@@ -3204,8 +3367,11 @@ end
 function PvPUA:RQFailure(kind, code, text)
     local rq = self.requeue
     local last = self:RQRecentQueue()
+    DLog("Q list at failure (%s %s): %s; last queue event %s s ago", kind, tostring(code), self:RQListText(),
+        rq.last and string.format("%.1f", (GetGameTimeMilliseconds() - (rq.last.seenMs or 0)) / 1000) or "?")
+    if last ~= nil then self:RQQueryPopulation(last.campaignId, "at failure") end
     if last == nil then
-        DLog("RQ skip %s %s: no campaign queue within %d s", kind, tostring(code), RQ_WINDOW_MS / 1000)
+        DLog("RQ skip %s %s: no campaign queue listed or within %d s", kind, tostring(code), RQ_WINDOW_MS / 1000)
         return
     end
     local label = RQCampaignLabel(last.campaignId, last.asGroup)
@@ -3241,7 +3407,8 @@ function PvPUA:RQCheck(seq, failedAtMs)
     if not queued then return self:RQQueue(c, g, reason) end
     if state == rawget(_G, "CAMPAIGN_QUEUE_REQUEST_STATE_WAITING") and position > 0 then
         DLog("RQ hold %s: still WAITING at #%d", label, position)
-        RQChat(string.format("%s: %s. Still in queue at #%d, left as is.", label, reason, position))
+        RQChat(string.format("%s: %s. Still in queue at #%d, left as is. If it stays there: Settings > Requeue Now.",
+            label, reason, position))
         return
     end
     if confirmLeft > 0 then
@@ -3285,8 +3452,160 @@ function PvPUA:RQQueue(campaignId, asGroup, reason)
     rq.requeuedAtMs = GetGameTimeMilliseconds()
     self:RQRemember(campaignId, asGroup)
     DLog("RQ queue %s (%d/%d): %s", label, rq.attempts, RQ_MAX_ATTEMPTS, reason)
+    self:RQNoteCall("auto")
     RQChat(string.format("%s: %s. Queued again (%d/%d).", label, reason, rq.attempts, RQ_MAX_ATTEMPTS))
     QueueForCampaign(campaignId, asGroup)
+end
+
+-- Requeue Now (Settings button): asks the game to queue again on demand, to learn whether a broken queue can
+-- be repaired without restarting the game. Target: the STUCK queue, else the queue the game lists, else the
+-- last one seen, else the home campaign (solo). Steps, each a Debug Log "RQ manual ..." line, an alert and a
+-- chat line:
+--   queue    QueueForCampaign as is. Accepted or JOINED: done.
+--   leave    only when the game answered "already queued" (or nothing) AND still lists the entry AND that
+--            entry is marked STUCK or is not WAITING: LeaveCampaignQueue. A queue with neither mark is alive
+--            and is left as is, so a press on a healthy queue costs no position.
+--   requeue  QueueForCampaign again on LEFT, on a leave error, or with no answer to the leave.
+-- A step the game does not answer within RQ_MANUAL_MS moves on; a refused or unanswered requeue ends it.
+function PvPUA:RQManualNotify(msg)
+    RQChat(msg)
+    local alert = rawget(_G, "ZO_Alert") -- console chat is easy to miss; the alert line is not
+    if type(alert) == "function" then pcall(alert, rawget(_G, "UI_ALERT_CATEGORY_ALERT"), nil, "PvP UA - " .. msg) end
+end
+
+function PvPUA:RQManualTarget()
+    local rq = self.requeue
+    local stuck, last = rq.stuck, rq.last
+    if stuck ~= nil then return stuck.campaignId, stuck.asGroup, "stuck queue" end
+    if last ~= nil and RQSnapshot(last.campaignId, last.asGroup) then
+        return last.campaignId, last.asGroup, "current queue"
+    end
+    local campaignId, asGroup = RQListedEntry()
+    if campaignId ~= nil then return campaignId, asGroup, "listed queue" end
+    if last ~= nil then return last.campaignId, last.asGroup, "last queue" end
+    local home = GetAssignedCampaignId and GetAssignedCampaignId() or 0
+    if type(home) == "number" and home ~= 0 then return home, false, "home campaign" end
+    return nil
+end
+
+function PvPUA:RQManual()
+    local rq = self.requeue
+    local c, g, source = self:RQManualTarget()
+    if c == nil then
+        DLog("RQ manual press: no campaign known")
+        self:RQManualNotify("Requeue: no campaign known. Queue once by hand first.")
+        return
+    end
+    local label = RQCampaignLabel(c, g)
+    local queued, state, position, confirmLeft = RQSnapshot(c, g)
+    DLog("RQ manual press %s c=%s group=%s (%s): listed=%s state=%s #%s confirm=%s canLeave=%s stuck=%s", label,
+        tostring(c), tostring(g), source, tostring(queued), RQStateName(state), tostring(position),
+        tostring(confirmLeft), tostring(CanLeaveCampaignQueue and CanLeaveCampaignQueue(c, g)),
+        tostring(self:RQStuckIs(c, g)))
+    if RQInCampaign(c) then
+        self:RQManualNotify(label .. ": you are already in this campaign.")
+        return
+    end
+    if g and not (IsUnitGroupLeader and IsUnitGroupLeader("player")) then
+        self:RQManualNotify(label .. ": only the group leader can requeue.")
+        return
+    end
+    if queued and confirmLeft > 0 then
+        self:RQManualNotify(string.format("%s: entry is offered (%d s to accept), left as is.", label, confirmLeft))
+        return
+    end
+    rq.checkSeq = rq.checkSeq + 1 -- the player took over: a pending Auto Requeue check stands down
+    rq.pendingLeave, rq.attempts = nil, 0
+    rq.manualSeq = rq.manualSeq + 1
+    rq.manual = { campaignId = c, asGroup = g, label = label, seq = rq.manualSeq, stepSeq = 0 }
+    self:RQManualNotify(label .. ": requeue sent.")
+    self:RQManualQueue("queue")
+end
+
+-- Starts a step's clock: the step moves on when the game has not answered it within RQ_MANUAL_MS.
+function PvPUA:RQManualStep(step)
+    local manual = self.requeue.manual
+    manual.step, manual.stepSeq = step, manual.stepSeq + 1
+    local seq, stepSeq = manual.seq, manual.stepSeq
+    zo_callLater(function() PvPUA:RQManualTimeout(seq, stepSeq) end, RQ_MANUAL_MS)
+end
+
+function PvPUA:RQManualQueue(step)
+    local rq = self.requeue
+    local manual = rq.manual
+    if manual == nil then return end
+    self:RQManualStep(step)
+    rq.requeuedAtMs = GetGameTimeMilliseconds()
+    self:RQRemember(manual.campaignId, manual.asGroup)
+    DLog("RQ manual %s %s", step, manual.label)
+    self:RQNoteCall("manual")
+    QueueForCampaign(manual.campaignId, manual.asGroup)
+end
+
+function PvPUA:RQManualLeave(answer)
+    local rq = self.requeue
+    local manual = rq.manual
+    self:RQManualStep("leave")
+    rq.pendingLeave = { campaignId = manual.campaignId, asGroup = manual.asGroup, atMs = GetGameTimeMilliseconds(),
+        manual = true }
+    DLog("RQ manual leave %s: %s", manual.label, answer)
+    self:RQManualNotify(string.format("%s: %s; leaving the stuck entry first.", manual.label, answer))
+    LeaveCampaignQueue(manual.campaignId, manual.asGroup)
+end
+
+function PvPUA:RQManualEnd(outcome)
+    local manual = self.requeue.manual
+    if manual == nil then return end
+    self.requeue.manual = nil
+    DLog("RQ manual end %s: %s", manual.label, outcome)
+    self:RQManualNotify(manual.label .. ": " .. outcome)
+end
+
+-- The first try was refused as "already queued" or went unanswered (alreadyQueued): leave the entry when it
+-- is the broken one, else stop.
+function PvPUA:RQManualBlocked(answer)
+    local manual = self.requeue.manual
+    local c, g = manual.campaignId, manual.asGroup
+    local queued, state, position = RQSnapshot(c, g)
+    if not queued then
+        return self:RQManualEnd(answer .. ", and the game lists no queue. Press again in a few seconds.")
+    end
+    if self:RQStuckIs(c, g) or state ~= rawget(_G, "CAMPAIGN_QUEUE_REQUEST_STATE_WAITING") then
+        return self:RQManualLeave(answer)
+    end
+    self:RQManualEnd(string.format("%s; the queue looks alive at #%d, left as is.", answer, position))
+end
+
+-- true when the answer belonged to a Requeue Now step.
+function PvPUA:RQManualOnQueueResponse(response, text)
+    local manual = self.requeue.manual
+    if manual == nil or (manual.step ~= "queue" and manual.step ~= "requeue") then return false end
+    if response == rawget(_G, "QUEUE_FOR_CAMPAIGN_RESULT_SUCCESS") then
+        self:RQManualEnd("the game accepted the requeue.")
+        return true
+    end
+    local answer = string.format("refused: %s [queue %s]", text ~= "" and text or "?", tostring(response))
+    if manual.step == "requeue" then
+        self:RQManualEnd("still " .. answer .. " after leaving. Only a restart clears it.")
+    elseif response == rawget(_G, "QUEUE_FOR_CAMPAIGN_RESULT_ALREADY_QUEUED") then
+        self:RQManualBlocked(answer)
+    else
+        self:RQManualEnd(answer .. ".")
+    end
+    return true
+end
+
+function PvPUA:RQManualTimeout(seq, stepSeq)
+    local rq = self.requeue
+    local manual = rq.manual
+    if manual == nil or manual.seq ~= seq or manual.stepSeq ~= stepSeq then return end
+    if manual.step == "queue" then return self:RQManualBlocked("no answer from the game") end
+    if manual.step == "leave" then
+        rq.pendingLeave = nil
+        DLog("RQ manual leave %s: no answer; queueing anyway", manual.label)
+        return self:RQManualQueue("requeue")
+    end
+    self:RQManualEnd("no answer from the game after leaving. Only a restart clears it.")
 end
 
 function PvPUA:RegisterRequeueEvents()
@@ -3295,6 +3614,7 @@ function PvPUA:RegisterRequeueEvents()
         EVENT_MANAGER:RegisterForEvent(PvPUA.name .. suffix, eventId, function(_, ...)
             local ok, err = pcall(handler, PvPUA, ...)
             if not ok then DLog("RQ error in %s: %s", suffix, tostring(err)) end
+            pcall(PvPUA.RQNoteListing, PvPUA) -- the listing as of this event; RQPoll logs what changes without one
         end)
     end
     on("_RqJoined",    EVENT_CAMPAIGN_QUEUE_JOINED,           PvPUA.RQOnJoined)
@@ -3305,6 +3625,9 @@ function PvPUA:RegisterRequeueEvents()
     on("_RqLeaveResp", EVENT_LEAVE_CAMPAIGN_QUEUE_RESPONSE,   PvPUA.RQOnLeaveResponse)
     on("_RqJumpFail",  EVENT_JUMP_FAILED,                     PvPUA.RQOnJumpFailed)
     on("_RqActivated", EVENT_PLAYER_ACTIVATED,                PvPUA.RQOnPlayerActivated)
+    on("_RqDeactivated", EVENT_PLAYER_DEACTIVATED,            PvPUA.RQOnPlayerDeactivated)
+    on("_RqSelection", EVENT_CAMPAIGN_SELECTION_DATA_CHANGED, PvPUA.RQOnSelectionData)
+    EVENT_MANAGER:RegisterForUpdate(PvPUA.name .. "_RqPoll", RQ_POLL_MS, function() pcall(PvPUA.RQPoll, PvPUA) end)
 end
 
 --------------------------------------------------
@@ -4394,7 +4717,7 @@ function PvPUA:CreateSettings()
         menuIcon        = PVPUA_ADDON_ICON,
         title           = PVPUA_MENU_TITLE_COLORED,
         author          = PVPUA_TOOLTIP_AUTHOR_COLORED,
-        version         = "5.9.0",
+        version         = "5.10.1",
         previewControls = function() return PvPUA:SettingsPreviewControls() end,
         textSize        = function() return PvPUA.savedVariables.settingsFontSize end,
         windowOpacity   = function() return PvPUA.savedVariables.settingsOpacity end,

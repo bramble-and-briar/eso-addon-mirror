@@ -1,8 +1,32 @@
 <Bindings>
     <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
-        <Category name="PVP Data Insight">
+        <Category name="|cE0694FLethal|r PVP Insights">
             <Action name="PVPDI_TOGGLE">
                 <Down>PVPDataInsight.UI:Toggle()</Down>
+            </Action>
+            <Action name="LPI_QUICKSLOT_1">
+                <Down>LPI_PvPTools.UseQuickSlot(1)</Down>
+            </Action>
+            <Action name="LPI_QUICKSLOT_2">
+                <Down>LPI_PvPTools.UseQuickSlot(2)</Down>
+            </Action>
+            <Action name="LPI_QUICKSLOT_3">
+                <Down>LPI_PvPTools.UseQuickSlot(3)</Down>
+            </Action>
+            <Action name="LPI_QUICKSLOT_4">
+                <Down>LPI_PvPTools.UseQuickSlot(4)</Down>
+            </Action>
+            <Action name="LPI_QUICKSLOT_5">
+                <Down>LPI_PvPTools.UseQuickSlot(5)</Down>
+            </Action>
+            <Action name="LPI_QUICKSLOT_6">
+                <Down>LPI_PvPTools.UseQuickSlot(6)</Down>
+            </Action>
+            <Action name="LPI_QUICKSLOT_7">
+                <Down>LPI_PvPTools.UseQuickSlot(7)</Down>
+            </Action>
+            <Action name="LPI_QUICKSLOT_8">
+                <Down>LPI_PvPTools.UseQuickSlot(8)</Down>
             </Action>
         </Category>
     </Layer>

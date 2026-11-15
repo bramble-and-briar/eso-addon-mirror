@@ -12,6 +12,17 @@ local TARGET_EFFECT_EVENT_NAMESPACE = EVENT_NAMESPACE .. "_TargetEffects"
 local TARGET_EFFECT_UPDATE_NAMESPACE = UPDATE_NAMESPACE .. "_TargetEffects"
 local HIT_INDICATOR_DURATION_MS = 750
 local SHAPE_DEFAULT = "default"
+local SHOW_WHEN = {
+    default = "always",
+    choices = { "never", "always", "inCombat", "outOfCombat" },
+    names = NQOL.Lexicon.LocalizedList({
+        "features.ui_combat_reticle.show_when_never",
+        "features.ui_combat_reticle.show_when_always",
+        "features.ui_combat_reticle.show_when_in_combat",
+        "features.ui_combat_reticle.show_when_out_of_combat",
+    }),
+    valid = { never = true, always = true, inCombat = true, outOfCombat = true },
+}
 local RETICLE_DEFAULT_TEXTURE = "EsoUI/Art/Reticle/reticleAnim.dds"
 local DEFAULT_COLOR = { r = 1, g = 1, b = 1, a = 1 }
 local DEFAULT_FIGHT_COLOR = { r = 1, g = 1, b = 1, a = 1 }
@@ -160,6 +171,7 @@ local hookAttempts = 0
 local eventsInstalled = false
 local runtimeActive = false
 local settingsPreviewVisible = false
+local visibilitySuppressed = false
 local updateLoopInstalled = false
 local sceneCallbackInstalled = false
 local appliedShape
@@ -193,6 +205,19 @@ local RefreshZensEquipmentState
 
 local function GetSettings()
     return UI.GetCombatReticleSettings()
+end
+
+local function GetShowWhen()
+    local settings = GetSettings()
+    if SHOW_WHEN.valid[settings.showWhen] ~= true then
+        settings.showWhen = SHOW_WHEN.default
+    end
+    return settings.showWhen
+end
+
+local function ShouldShowReticle()
+    local showWhen = GetShowWhen()
+    return showWhen == "always" or (showWhen == "inCombat" and inFight) or (showWhen == "outOfCombat" and not inFight)
 end
 
 local function GetShape()
@@ -455,6 +480,9 @@ local function RestoreDefaultReticleState()
     HideCustomReticle()
     RestoreVanillaReticleControls()
     if reticleTexture then
+        if visibilitySuppressed then
+            reticleTexture:SetHidden(IsPlayerInStealthOrDisguise())
+        end
         reticleTexture:SetTexture(RETICLE_DEFAULT_TEXTURE)
         reticleTexture:SetDimensions(64, 64)
         if reticleTexture.SetTextureCoords then
@@ -463,6 +491,7 @@ local function RestoreDefaultReticleState()
     end
     appliedShape = SHAPE_DEFAULT
     appliedTexturePath = nil
+    visibilitySuppressed = false
 end
 
 local function EnsureSettingsPreviewReticle()
@@ -748,14 +777,33 @@ local function ApplyCombatReticle()
     local useVanillaShape = useCustomShape and style.controlType == "vanilla"
     local useDdsShape = useCustomShape and style.controlType == "dds"
 
-    ApplyReticleInfo()
-
     if settingsPreviewVisible then
+        ApplyReticleInfo()
         ApplySettingsPreviewReticle(shape, style)
         return
     end
 
     HideSettingsPreviewReticle()
+    if not ShouldShowReticle() then
+        HideCustomReticle()
+        HideReticleInfo()
+        HideVanillaReticleControls()
+        if reticleTexture then
+            reticleTexture:SetHidden(true)
+        end
+        visibilitySuppressed = true
+        return
+    end
+
+    if visibilitySuppressed then
+        RestoreVanillaReticleControls()
+        if reticleTexture then
+            reticleTexture:SetHidden(IsPlayerInStealthOrDisguise())
+        end
+        visibilitySuppressed = false
+    end
+
+    ApplyReticleInfo()
     local ddsTexture = useDdsShape and EnsureCustomReticle() or nil
 
     if not useCustomShape and (appliedShape == nil or appliedShape == SHAPE_DEFAULT) then
@@ -1322,7 +1370,7 @@ function SUL_XAN.RefreshRuntime()
 end
 
 RefreshReticleRuntime = function()
-    runtimeActive = settingsPreviewVisible or UsesCustomShape() or HasEnabledReticleInfo()
+    runtimeActive = settingsPreviewVisible or GetShowWhen() ~= SHOW_WHEN.default or UsesCustomShape() or HasEnabledReticleInfo()
     if IsReticleRuntimeActive() then
         RefreshFightState()
         InstallReticleEvents()
@@ -1425,6 +1473,35 @@ end
 
 function UI.GetCombatReticleShape()
     return GetShape()
+end
+
+function UI.GetCombatReticleShowWhen()
+    return GetShowWhen()
+end
+
+function UI.SetCombatReticleShowWhen(value)
+    GetSettings().showWhen = SHOW_WHEN.valid[value] and value or SHOW_WHEN.default
+    RefreshReticleRuntime()
+end
+
+function UI.GetCombatReticleShowWhenChoices()
+    return SHOW_WHEN.choices
+end
+
+function UI.GetCombatReticleShowWhenChoiceNames()
+    return SHOW_WHEN.names
+end
+
+function UI.GetCombatReticleShowWhenDefault()
+    return SHOW_WHEN.default
+end
+
+function UI.GetCombatReticleShowWhenLabel()
+    return NQOL.L("features.ui_combat_reticle.show_when_label")
+end
+
+function UI.GetCombatReticleShowWhenTooltip()
+    return NQOL.L("features.ui_combat_reticle.show_when_tooltip")
 end
 
 function UI.SetCombatReticleShape(shape)

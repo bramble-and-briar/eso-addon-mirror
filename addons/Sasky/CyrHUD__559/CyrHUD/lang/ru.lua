@@ -41,6 +41,9 @@ ZO_CreateStringId("SI_CYRHUD_HIDE_KILLSDEATHS_INFO", "Скрывает счёт�
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES", "Скрыть мосты и мильные ворота")
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES_INFO", "Скрыть мосты и мильные ворота")
 
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD", "Скрыть Владыку Костра")
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD_INFO", "Убирает уведомление о Владыке Костра из CyrHUD")
+
 local CZ = "|cC5C29E" -- ZOS standard text color
 local CR = "|cFFFFFF" -- Reset color
 ZO_CreateStringId("SI_CYRHUD_KEYBIND_HEADER", "Назначения клавиш")

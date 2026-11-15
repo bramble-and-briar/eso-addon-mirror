@@ -1344,7 +1344,7 @@ function Write-Heartbeat([string]$addon, [bool]$running) {
 # esopvp.com: upload PVPDataInsight.lua (SavedVariables) after the game writes it - only after the
 # player agreed. Same settings ("cloud" in PVPDataInsight_companion.json) as the Python edition.
 # --------------------------------------------------------------------------
-$COMPANION_VER = '2.3.2'
+$COMPANION_VER = '2.3.4'
 $API = 'https://esopvp.com/api/v1'
 if ($env:PDI_API) { $API = $env:PDI_API.TrimEnd('/') }
 $SITE = $API -replace '/api/.*$', ''
@@ -1455,7 +1455,12 @@ function Cloud-Call([string]$method, [string]$path, [string]$key, [byte[]]$body,
             $res['ok'] = $false; $res['status'] = $code
             if (-not $res['error']) { $res['error'] = "server answered $code" }
         } else {
-            $res['ok'] = $false; $res['error'] = 'could not reach esopvp.com (' + $_.Exception.Status + ')'
+            # the inner message says why (e.g. which address refused the connection)
+            $why = [string]$_.Exception.Status
+            $in = $_.Exception.InnerException
+            while ($in -and $in.InnerException) { $in = $in.InnerException }
+            if ($in -and $in.Message) { $why = $why + ': ' + $in.Message.Trim() }
+            $res['ok'] = $false; $res['error'] = 'could not reach esopvp.com (' + $why + ')'
         }
     } catch {
         $res['ok'] = $false; $res['error'] = 'could not reach esopvp.com (' + $_.Exception.Message + ')'
@@ -1905,6 +1910,17 @@ $btnNewId = New-Object System.Windows.Forms.Button; $btnNewId.Text = 'New Identi
 $btnDelCloud = New-Object System.Windows.Forms.Button; $btnDelCloud.Text = 'Clear collected data'; [void](Add-G $btnDelCloud 383 48 170 28)
 $lblUp = New-Object System.Windows.Forms.Label; $lblUp.ForeColor = [System.Drawing.Color]::DimGray; $lblUp.Anchor = 'Top,Left,Right'
 [void](Add-G $lblUp 10 80 720 22)
+# long messages end in "..." - hover shows the whole line, a click shows it in a box and copies it
+$lblUp.AutoEllipsis = $true
+$lblUp.Cursor = [System.Windows.Forms.Cursors]::Hand
+$tipUp = New-Object System.Windows.Forms.ToolTip; $tipUp.AutoPopDelay = 30000
+$lblUp.Add_TextChanged({ $tipUp.SetToolTip($lblUp, $lblUp.Text + "`n(click to copy)") })
+$lblUp.Add_Click({
+    $t = [string]$lblUp.Text
+    if (-not $t) { return }
+    try { [System.Windows.Forms.Clipboard]::SetText($t) } catch { }
+    [void][System.Windows.Forms.MessageBox]::Show($t + "`n`n(Copied - you can paste it anywhere with Ctrl+V.)", 'esopvp.com upload')
+})
 $script:cloudInit = $true
 $chkCloud.Checked = [bool]$script:Cloud['consent']
 $script:cloudInit = $false

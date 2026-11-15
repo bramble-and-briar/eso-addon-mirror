@@ -188,7 +188,7 @@ function S.CombatEventHandler(_, result, isError, abilityName, _, _, sourceName,
 	end
 
 	if isError then
-		if result == ACTION_RESULT_STUNNED or result == ACTION_RESULT_FEARED or result == ACTION_RESULT_CHARMED then
+		if result == ACTION_RESULT_STUNNED or result == ACTION_RESULT_FEARED or result == ACTION_RESULT_CHARMED or result == ACTION_RESULT_SILENCED then
 			if debugEnabled then d(string.format("|cFF0000ERROR|r %s abilityId=%s name=%s", tostring(result), tostring(abilityId), tostring(abilityName))) end
 			return
 		end
@@ -255,6 +255,8 @@ function S.CombatEventHandler(_, result, isError, abilityName, _, _, sourceName,
 			S.ShowNotification("OFF-BALANCE!", sound, S.SV.offBalanceColor, 1000)
 
 		elseif result == ACTION_RESULT_STAGGERED and S.SV.trackStaggered then
+			--if debugEnabled then d(string.format("STAGGERED: abilityId=%s name=%s source=%s", tostring(abilityId), tostring(abilityName), tostring(normalizedSource))) end
+	
 			local sound = S.SV.staggeredSoundEnabled and S.SV.staggeredSound
 			S.ShowNotification("STAGGER!", sound, S.SV.staggeredColor, 1000)
 		end
@@ -284,6 +286,10 @@ function S.OnAddonLoaded(_, addonName)
 	end
 
 	EM:RegisterForEvent(S.name .. "_TP_Cleanse", EVENT_PLAYER_ACTIVATED, function()
+		S.RemoveStunnedMode()
+	end)
+	
+	EM:RegisterForEvent(S.name .. "_Wipe_Cleanse", EVENT_PLAYER_DEAD, function()
 		S.RemoveStunnedMode()
 	end)
 

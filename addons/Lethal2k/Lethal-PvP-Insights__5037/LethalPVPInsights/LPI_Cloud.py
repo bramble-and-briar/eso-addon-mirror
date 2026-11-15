@@ -14,7 +14,7 @@ import urllib.request
 
 API = os.environ.get("PDI_API", "https://esopvp.com/api/v1").rstrip("/")
 SITE = API.rsplit("/api/", 1)[0]
-VERSION = "2.3.2"
+VERSION = "2.3.4"
 SETTLE_SEC = 3            # the file must be unchanged this long before it is read
 RETRY_SEC = (60, 120, 300, 600)
 
@@ -90,7 +90,8 @@ def _request(method, path, key=None, body=None, content_type="application/json",
         except Exception:
             return {"ok": False, "error": "server answered %d" % e.code, "status": e.code}
     except Exception as e:  # network down, DNS, TLS...
-        return {"ok": False, "error": "could not reach esopvp.com (%s)" % e.__class__.__name__}
+        reason = getattr(e, "reason", None) or e
+        return {"ok": False, "error": "could not reach esopvp.com (%s: %s)" % (e.__class__.__name__, reason)}
 
 
 def register():

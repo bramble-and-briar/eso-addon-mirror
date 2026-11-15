@@ -230,10 +230,26 @@ function VEQ.CombatState()
 end
 
 
+local mainStoryQuestOrder = {
+    [4296] = 0,  -- Soul Shriven in Coldharbour
+    [4831] = 1,  -- The Harborage
+    [4474] = 2,  -- Daughter of Giants
+    [4552] = 3,  -- Chasing Shadows
+    [4607] = 4,  -- Castle of the Worm
+    [4764] = 5,  -- The Tharn Speaks
+    [4836] = 6,  -- Halls of Torment
+    [4837] = 7,  -- Valley of Blades
+    [4867] = 8,  -- Shadow of Sancre Tor
+    [4832] = 9,  -- Council of the Five Companions
+    [4780] = 10, -- Messages Across Tamriel
+    [4783] = 11, -- The Weight of Three Crowns
+    [4847] = 12, -- God of Schemes
+    [4998] = 13, -- Cadwell's Silver
+    [5000] = 14, -- Cadwell's Gold
+}
 
 
-
-function VEQ.FindMyZone(dzone, dtype, dInstanceDisplayType, dRepeatType, qname, qZoneIndex)
+function VEQ.FindMyZone(dzone, dtype, dInstanceDisplayType, dRepeatType, qname, qZoneIndex, journalQuestIndex)
   
   local parentZone = ""
   if qZoneIndex and type(qZoneIndex) == "number" then  
@@ -265,7 +281,8 @@ function VEQ.FindMyZone(dzone, dtype, dInstanceDisplayType, dRepeatType, qname, 
            zone = string.format("%s%s%s", VEQ.GetQuestLine(qname), prepeat, pzone)
          end
     elseif dtype == QUEST_TYPE_MAIN_STORY then
-          zone = string.format("%s%s", VEQ.mylanguage.lang_tracker_type_mainstory, pzone)
+           local questId = GetJournalQuestId(journalQuestIndex)
+           zone = string.format("%s%s %s/%s", VEQ.mylanguage.lang_tracker_type_mainstory, pzone, mainStoryQuestOrder[questId], 15)
     elseif dInstanceDisplayType == ZONE_DISPLAY_TYPE_ZONE_STORY then 
           local completed = GetNumCompletedZoneActivitiesForZoneCompletionType(GetZoneId(qZoneIndex), ZONE_COMPLETION_TYPE_PRIORITY_QUESTS) 
           local total = GetNumZoneActivitiesForZoneCompletionType(GetZoneId(qZoneIndex), ZONE_COMPLETION_TYPE_PRIORITY_QUESTS)
@@ -334,7 +351,7 @@ function VEQ.FocusedQuestInfo()
       VEQ.FocusedZoneIdx = fzoneidx
       VEQ.FocusedZonePoiIndx = fpoiIndex
       VEQ.FocusedQType = fqtype
-      VEQ.FocusedMyZone = VEQ.FindMyZone(fzone,fqtype)
+      VEQ.FocusedMyZone = VEQ.FindMyZone(fzone, fqtype, GetJournalQuestZoneDisplayType(i), GetJournalQuestRepeatType(i), fname, fzoneidx, i)
       break;
     end
   end
@@ -558,7 +575,7 @@ function VEQ.AutoFilterZone()
       local qname, backgroundText, activeStepText, activeStepType, activeStepTrackerOverrideText, completed, tracked, qlevel, pushed, qtype = GetJournalQuestInfo(x)
       local qzone, qobjective, qzoneidx, poiIndex = GetJournalQuestLocationInfo(x)
       -- find my zone
-      myzone = VEQ.FindMyZone(qzone,qtype)
+      myzone = VEQ.FindMyZone(qzone, qtype, GetJournalQuestZoneDisplayType(x), GetJournalQuestRepeatType(x), qname, qzoneidx, x)
       -- Set Vars for loop
       i = 1
       tmp = 0

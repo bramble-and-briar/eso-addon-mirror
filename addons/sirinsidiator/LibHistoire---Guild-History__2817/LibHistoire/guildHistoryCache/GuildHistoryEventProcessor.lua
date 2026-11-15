@@ -106,6 +106,8 @@ end
 
 --- public api
 
+--[[ doc.lua begin ]] --
+
 --- Returns the name of the addon that created the processor.
 --- @return string addonName The name of the addon that created the processor.
 function GuildHistoryEventProcessor:GetAddonName()
@@ -382,3 +384,5 @@ end
 function GuildHistoryEventProcessor:IsRunning()
     return self.running
 end
+
+--[[ doc.lua end ]] --

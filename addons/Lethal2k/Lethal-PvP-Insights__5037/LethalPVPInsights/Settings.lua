@@ -1,11 +1,5 @@
--- Lethal PVP Insights - Settings panel (LibAddonMenu-2.0)
--- Same approach as PvP FPS Limiter:
---  * LibAddonMenu-2.0 is an OPTIONAL dependency - every setting also has a /pvpdi command
---  * look for the LibAddonMenu2 global first (LibStub is optional nowadays), LibStub as fallback
---  * registration is wrapped in pcall and retried on EVENT_PLAYER_ACTIVATED, because some load
---    orders / addon managers make LAM look missing at EVENT_ADD_ON_LOADED time
---  * no panelData.slashCommand (it would clash with /pvpdi) - /pvpdi settings opens the panel
---    with LAM:OpenToPanel() instead, and /pvpdi lamcheck prints diagnostics
+-- Lethal PVP Insights - settings: the option list, shown in the addon's own entry of the game's Settings
+-- menu (SettingsPanel.lua draws it; no LibAddonMenu needed). Every setting also has a /lpi command.
 local PDI = PVPDataInsight
 local S = {}
 PDI.Settings = S
@@ -14,15 +8,6 @@ local PANEL_NAME = "PVPDataInsightOptions"
 S.diagnostics = nil
 S.triedOnce = false
 
-local function GetLAM()
-    local LAM = LibAddonMenu2
-    local viaLibStub = false
-    if not LAM and LibStub then
-        LAM = LibStub("LibAddonMenu-2.0", true)
-        viaLibStub = LAM ~= nil
-    end
-    return LAM, viaLibStub
-end
 
 local function sv() return PDI.sv.settings end
 
@@ -30,14 +15,38 @@ local function refreshUI()
     if PDI.UI and PDI.UI.RefreshIfVisible then PDI.UI:RefreshIfVisible() end
 end
 
-local function BuildOptions()
-    local opts = {
-        { type = "header", name = "General" },
+-- General: the window, update notice and death recap
+local function GeneralLPI()
+    return {
+        { type = "header", name = "Lethal PVP Insights" },
         {
             type = "button", name = "Open Lethal PVP Insights", width = "half",
-            tooltip = "Opens the main window (same as /pvpdi or the keybind).",
+            tooltip = "Opens the main window (same as /lpi or the keybind).",
             func = function() PDI.UI:Show() end,
         },
+        {
+            type = "checkbox", name = "New version notice",
+            tooltip = "Tells you in chat (and next to the window title) when a newer Lethal PVP Insights is available " ..
+                      "on esopvp.com. Needs the LPI Companion with uploads on.",
+            getFunc = function() return sv().updateNotice ~= false end,
+            setFunc = function(v) sv().updateNotice = v and true or false end,
+            default = PDI.defaults.settings.updateNotice,
+        },
+        {
+            type = "checkbox", name = "Real Death Recap",
+            tooltip = "When you die in a PvP area (Cyrodiil, Imperial City, Battlegrounds), shows the 5 skills/players that did the most damage to you in that fight and the " ..
+                      "last 10 hits before death. /lpi recap shows the last one again.",
+            getFunc = function() return sv().deathRecap == true end,
+            setFunc = function(v) PDI.Recap:SetOn(v) end,
+            default = PDI.defaults.settings.deathRecap,
+        },
+    }
+end
+
+-- Data Handling: everything about recording, importing and sharing the data
+local function BuildOptions()
+    local opts = {
+        { type = "header", name = "Tracking" },
         {
             type = "button", name = "Reset session counters", width = "half",
             tooltip = "Clears the 'Session' period of My Kills and Kill Feed.",
@@ -49,22 +58,6 @@ local function BuildOptions()
             getFunc = function() return sv().onlyPvP end,
             setFunc = function(v) sv().onlyPvP = v end,
             default = PDI.defaults.settings.onlyPvP,
-        },
-        {
-            type = "checkbox", name = "Real Death Recap",
-            tooltip = "When you die in a PvP area (Cyrodiil, Imperial City, Battlegrounds), shows the 5 skills/players that did the most damage to you in that fight and the " ..
-                      "last 10 hits before death. /pvpdi recap shows the last one again.",
-            getFunc = function() return sv().deathRecap == true end,
-            setFunc = function(v) PDI.Recap:SetOn(v) end,
-            default = PDI.defaults.settings.deathRecap,
-        },
-        {
-            type = "checkbox", name = "New version notice",
-            tooltip = "Tells you in chat (and next to the window title) when a newer Lethal PVP Insights is available " ..
-                      "on esopvp.com. Needs the LPI Companion with uploads on.",
-            getFunc = function() return sv().updateNotice ~= false end,
-            setFunc = function(v) sv().updateNotice = v and true or false end,
-            default = PDI.defaults.settings.updateNotice,
         },
         {
             type = "checkbox", name = "Chat message on kills and assists",
@@ -112,7 +105,7 @@ local function BuildOptions()
         },
         {
             type = "dropdown", name = "Encounter log while grouped",
-            tooltip = "Automatic: switch on/off by itself.\nAsk first: show a prompt before switching on.\nNever: only manually (/pvpdi capture).",
+            tooltip = "Automatic: switch on/off by itself.\nAsk first: show a prompt before switching on.\nNever: only manually (/lpi capture).",
             choices = { "Automatic", "Ask first", "Never" },
             choicesValues = { "auto", "ask", "never" },
             getFunc = function() return sv().autoLog end,
@@ -230,87 +223,78 @@ local function BuildOptions()
     return opts
 end
 
--- Safe to call more than once: no-op once registered; otherwise retries.
-function S:Create()
-    if self.diagnostics and self.diagnostics.panelRegistered then return end
-
-    local keyboardUI = IsKeyboardUISupported and IsKeyboardUISupported()
-    local LAM, viaLibStub = GetLAM()
-    self.diagnostics = {
-        libAddonMenu2Found = LibAddonMenu2 ~= nil,
-        libStubFound = LibStub ~= nil,
-        lamFound = LAM ~= nil,
-        foundVia = LAM and (viaLibStub and "LibStub" or "LibAddonMenu2 global") or nil,
-        keyboardUI = keyboardUI,
-        panelRegistered = false,
-        lastError = nil,
-    }
-
-    if not LAM then
-        if not self.triedOnce then
-            self.triedOnce = true
-        else
-            PDI.Msg("LibAddonMenu-2.0 not found, so there's no Settings panel. Install it, or use /pvpdi commands " ..
-                "(/pvpdi help). Run /pvpdi lamcheck for details.")
-        end
-        return
+-- PvP FPS Limiter options (PvPTools.lua), grouped by their headers
+local function toolsBy(...)
+    local want, out = {}, {}
+    for _, h in ipairs({ ... }) do want[h] = true end
+    local ok, opts = pcall(function() return LPI_PvPTools and LPI_PvPTools.GetOptions and LPI_PvPTools.GetOptions() end)
+    if not ok or type(opts) ~= "table" then
+        return { { type = "description", text = "|cFF6655These options are not available (" .. tostring(opts) .. ").|r" } }
     end
-
-    if keyboardUI == false then
-        PDI.Msg("Gamepad-mode UI detected: LibAddonMenu's Settings panel only shows in keyboard mode. Use /pvpdi commands instead.")
+    local keep = false
+    for _, o in ipairs(opts) do
+        if o.type == "header" then keep = want[o.name] == true end
+        if keep then out[#out + 1] = o end
     end
-
-    local panelData = {
-        type = "panel",
-        name = PDI.displayName,
-        displayName = PDI.displayName,
-        author = "Lethal2k",
-        version = PDI.version,
-        registerForRefresh = true,
-        registerForDefaults = true,
-    }
-    local ok, panelOrErr = pcall(function() return LAM:RegisterAddonPanel(PANEL_NAME, panelData) end)
-    if not ok then
-        self.diagnostics.lastError = tostring(panelOrErr)
-        PDI.Msg("RegisterAddonPanel failed: " .. tostring(panelOrErr))
-        return
-    end
-    self.panel = panelOrErr
-
-    local ok2, err2 = pcall(function() LAM:RegisterOptionControls(PANEL_NAME, BuildOptions()) end)
-    if not ok2 then
-        self.diagnostics.lastError = tostring(err2)
-        PDI.Msg("RegisterOptionControls failed: " .. tostring(err2))
-        return
-    end
-    self.diagnostics.panelRegistered = true
+    return out
 end
 
-function S:Open()
-    local LAM = GetLAM()
-    if LAM and self.panel then
-        LAM:OpenToPanel(self.panel)
-    elseif LAM then
-        PDI.Msg("LibAddonMenu-2.0 is loaded, but the panel hasn't registered yet. Run /pvpdi lamcheck for details.")
-    else
-        PDI.Msg("LibAddonMenu-2.0 isn't installed, so there's no Settings panel. Use /pvpdi help for commands.")
+local function join(...)
+    local out = {}
+    for _, list in ipairs({ ... }) do
+        for _, o in ipairs(list or {}) do out[#out + 1] = o end
+    end
+    return out
+end
+
+local function moduleOptions(mod)
+    if mod and mod.GetOptions then
+        local ok, opts = pcall(mod.GetOptions, mod)
+        if ok and type(opts) == "table" then return opts end
+        return { { type = "description", text = "|cFF6655Error: " .. tostring(opts) .. "|r" } }
+    end
+    return {}
+end
+
+S.SECTIONS = {
+    { name = "Data Handling",   icon = "EsoUI/Art/MainMenu/menuBar_journal_up.dds",
+      options = function() return BuildOptions() end },
+    { name = "Alerts",          icon = "EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds",
+      options = function() return toolsBy("PvP Notifications", "Notification Display", "Break Free Alert", "Critical Alerts", "Blocking Alert") end },
+    { name = "Group Features",  icon = "EsoUI/Art/MainMenu/menuBar_group_up.dds",
+      options = function() return toolsBy("Group Leader Marker") end },
+    { name = "General",         icon = "EsoUI/Art/Guild/tabIcon_home_up.dds",
+      options = function() return join(GeneralLPI(), toolsBy("Campaign Queue"), moduleOptions(PDI.Quests)) end },
+    { name = "PvP Performance", icon = "EsoUI/Art/MainMenu/menuBar_ava_up.dds",
+      options = function() return toolsBy("Zone FPS Limits", "Performance Boost (PvP Graphics Preset)") end },
+    { name = "Quick Slots",     icon = "EsoUI/Art/Inventory/inventory_tabIcon_quickslot_up.dds",
+      options = function() return toolsBy("Quickslots") end },
+    { name = "Skill Blocker",   icon = "EsoUI/Art/MainMenu/menuBar_skills_up.dds",
+      options = function() return moduleOptions(PDI.SkillBlocker) end },
+}
+
+-- Settings > Lethal PVP Insights: the addon's own entry in the game's Settings menu (no library needed)
+function S:Create()
+    if self.created then return end
+    local ok, res = pcall(function() return PDI.SettingsPanel:Create(S.SECTIONS) end)
+    self.created = ok and res == true
+    self.diagnostics = { panelRegistered = self.created, lastError = (not ok) and tostring(res) or nil,
+                         keyboardUI = IsKeyboardUISupported and IsKeyboardUISupported() }
+    if not ok then PDI.Msg("Settings panel could not be created: " .. tostring(res)) end
+end
+
+function S:Open(section)
+    if not (self.created and PDI.SettingsPanel:Open(section)) then
+        PDI.Msg("The Settings panel isn't available (gamepad mode?). Use /lpi help for commands.")
     end
 end
 
 function S:PrintDiagnostics()
     local diag = self.diagnostics or {}
-    PDI.Msg(string.format("LibAddonMenu2 global: %s | LibStub: %s | LAM found: %s (via %s) | Keyboard UI: %s | Panel registered: %s%s",
-        tostring(diag.libAddonMenu2Found), tostring(diag.libStubFound), tostring(diag.lamFound), tostring(diag.foundVia),
-        tostring(diag.keyboardUI), tostring(diag.panelRegistered),
-        diag.lastError and (" | Last error: " .. diag.lastError) or ""))
+    PDI.Msg(string.format("Settings panel: %s | Keyboard UI: %s%s", tostring(diag.panelRegistered),
+        tostring(diag.keyboardUI), diag.lastError and (" | Error: " .. diag.lastError) or ""))
 end
 
 function S:Init()
     self:Create()
-    EVENT_MANAGER:RegisterForEvent(PDI.name .. "_Settings", EVENT_PLAYER_ACTIVATED, function()
-        S:Create()
-        if S.diagnostics and S.diagnostics.panelRegistered then
-            EVENT_MANAGER:UnregisterForEvent(PDI.name .. "_Settings", EVENT_PLAYER_ACTIVATED)
-        end
-    end)
 end

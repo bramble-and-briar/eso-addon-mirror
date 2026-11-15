@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0
+
+- New "Potions only" and "Poisons only" checkboxes in the favorites tab and in the `/afp` window (they exclude each other).
+- New "Add solvent" checkbox in the `/afp` window: includes the solvent when you link a recipe in the chat.
+- New keybind (Controls > Addons) to open the `/afp` window.
+- Hints about the `/afp` command in the empty list, in the favorites tab tooltip and in a one-time chat message.
+- The favorites tab is now called "Favorites".
+- Added an addon description and colored title and author in the addon list.
+
+## 1.1.0
+
+- New `/afp` command: opens a window with your favorite potions, in the same order as the alchemy station tab.
+- Click a potion in the window and choose "Link in Chat" to write its recipe in the chat box.
+
 ## 1.0.0
 
 - Initial release

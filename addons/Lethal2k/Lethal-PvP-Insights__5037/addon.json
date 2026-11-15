@@ -18,16 +18,19 @@
     "LethalPVPInsights"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5037/",
-  "fingerprint": "b76d696d36cceb247cbfe3c0aed70b9b9157487852936d03821b31a0ecaae011",
+  "fingerprint": "74381054bf3a66d31cbee5574a0d2432e6e792637990bb4cb8e07e3f39a4649d",
   "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18396.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18367.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18374.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18375.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw18376.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18370.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18372.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18373.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw18371.jpg"
+    "https://cdn-eso.mmoui.com/preview/pvw18371.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18449.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18450.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18451.jpg"
   ],
   "platform": "pc",
   "published": true,
@@ -35,11 +38,11 @@
   "source_id": "5037",
   "source_url": "https://www.esoui.com/downloads/info5037-LethalPvPInsights.html",
   "stats": {
-    "downloads": 34,
-    "favorites": 0,
-    "monthly_downloads": 11
+    "downloads": 123,
+    "favorites": 1,
+    "monthly_downloads": 90
   },
   "title": "Lethal PvP Insights",
-  "updated_at": 1794163645000,
-  "version": "1.9.74"
+  "updated_at": 1794681645000,
+  "version": "1.10.5"
 }

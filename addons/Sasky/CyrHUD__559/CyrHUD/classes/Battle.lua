@@ -195,12 +195,12 @@ local ICON_ROE = "img31"
 
 function CyrHUD.Battle:configureLabel(label)
     label:exposeControls(2,4)
-    label:positionControl(L_ICON, 40, 40, -2, -2)
 
 	-- CyroChat Battles
 	label:positionControl(CYROCHAT_ICON, 40, 40, -35, -2)
 
     -- Objective icon
+    label:positionControl(L_ICON, 40, 40, -2, -2)
     label:getControl(L_ICON):SetDrawLayer(2)
 
     -- Under attack graphic
@@ -374,7 +374,7 @@ end
 
 function CyrHUD.SetFlagGauges(label,keep) -- set flag gauges
     local holder = label:getControl(L_HOLDER)
-	local gaugeMessage = ""
+	  local gaugeMessage = ""
     local iconsize = 14
     
     if CyrHUD.flags and CyrHUD.flags[keep.keepID] and NonContiguousCount(CyrHUD.flags[keep.keepID]) > 0 then 
@@ -435,8 +435,8 @@ function CyrHUD.SetFlagGauges(label,keep) -- set flag gauges
 		   
 	   elseif keep.keepType == KEEPTYPE_TOWN then
 
-       	   local merchantFlagId = CyrHUD.keepsToObjectivesMap[keep.keepID].merchant
-	       local centralFlagId = CyrHUD.keepsToObjectivesMap[keep.keepID].central
+       local merchantFlagId = CyrHUD.keepsToObjectivesMap[keep.keepID].merchant
+	     local centralFlagId = CyrHUD.keepsToObjectivesMap[keep.keepID].central
 		   local outlierFlagId = CyrHUD.keepsToObjectivesMap[keep.keepID].outlier
 		   
 		   CyrHUD.flags[keep.keepID][merchantFlagId] = CyrHUD.flags[keep.keepID][merchantFlagId] or {}
@@ -734,13 +734,13 @@ end
 
 function CyrHUD.Battle:updateLabel(label)
 
-    label:getControl(L_ICON_DEATHS_AD):SetHidden(true)
+  label:getControl(L_ICON_DEATHS_AD):SetHidden(true)
 	label:getControl(L_ICON_DEATHS_EP):SetHidden(true)
 	label:getControl(L_ICON_DEATHS_DC):SetHidden(true)
-    label:getControl(L_DEATHS_AD):SetHidden(true)
+  label:getControl(L_DEATHS_AD):SetHidden(true)
 	label:getControl(L_DEATHS_EP):SetHidden(true)
 	label:getControl(L_DEATHS_DC):SetHidden(true)
-    label:getControl(L_KILLS_AD):SetHidden(true)
+  label:getControl(L_KILLS_AD):SetHidden(true)
 	label:getControl(L_KILLS_EP):SetHidden(true)
 	label:getControl(L_KILLS_DC):SetHidden(true)
 	label:getControl(LEGEND_KILLS):SetHidden(true)
@@ -1132,10 +1132,10 @@ function CyrHUD.Battle:update()
 
     end
 	
-	-- update imperial keeps ownership when in Cyrodiil / imperial district ownership list when in Imperial City
-    if self.keepID == 6 or self.keepID == 7 or self.keepID == 9 or self.keepID == 13 or self.keepID == 15 or self.keepID == 17 or self.keepType == KEEPTYPE_IMPERIAL_CITY_DISTRICT then
+	-- update imperial keeps ownership when in Cyrodiil / imperial district ownership list when in Imperial City, JerallPass
+    if self.keepID == 6 or self.keepID == 7 or self.keepID == 9 or self.keepID == 13 or self.keepID == 15 or self.keepID == 17 or self.keepType == KEEPTYPE_IMPERIAL_CITY_DISTRICT or self.keepID == 1 or self.keepID == 25 or self.keepID == 26 or self.keepID == 27 then
 	    CyrHUD.imperialKeeps = CyrHUD.imperialKeeps or {}
-		CyrHUD.imperialKeeps[self.keepID] = self.defender
+		  CyrHUD.imperialKeeps[self.keepID] = self.defender
 	end
 	
 end

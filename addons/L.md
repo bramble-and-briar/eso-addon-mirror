@@ -61,7 +61,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Less Bling Golden Pursuits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Less-Bling-Golden-Pursuits__3993) | kawamonkey | PC / Mac | 1.0 |
 | [Let There Be Light](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Let-There-Be-Light__1906) | Cardinal05 | PC / Mac | 1.0.4 |
 | [Let's Talk Later](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Let-s-Talk-Later__4304) | Saleand | PC / Mac | 0.1.4 |
-| [Lethal PvP Insights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lethal2k/Lethal-PvP-Insights__5037) | Lethal2k | PC / Mac | 1.10.4 |
+| [Lethal PvP Insights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lethal2k/Lethal-PvP-Insights__5037) | Lethal2k | PC / Mac | 1.10.5 |
 | [LFG Auto Accept](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/gitright/LFG-Auto-Accept__1754) | gitright | PC / Mac | 1.2.019 |
 | [LGM - Lilith's Group Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drummerx04/LGM---Lilith-s-Group-Manager__2088) | Drummerx04 | PC / Mac | 4.5.3 |
 | [Lib3DArrow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/Lib3DArrow__2663) | kadeer | PC / Mac | v0.1 alpha |
@@ -175,7 +175,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibHarvensAddonSettings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/LibHarvensAddonSettings__584) | Harven | PC / Mac | 2.2.1 |
 | [LibHarvensAddonSettings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/LibHarvensAddonSettings__ff73a91e-28b3-476c-be2b-ac5e47d079eb) | votan73 | Console | — |
 | [LibHistoire](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibHistoire__f7fc3e7c-b17d-47bd-915b-40c09291efb0) | sirinsidiator | Console | — |
-| [LibHistoire - Guild History](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibHistoire---Guild-History__2817) | sirinsidiator | PC / Mac | 2.7.2 |
+| [LibHistoire - Guild History](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibHistoire---Guild-History__2817) | sirinsidiator | PC / Mac | 2.8.0 |
 | [LibHyper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyperioxes/LibHyper__3532) | Hyperioxes | PC / Mac | 1.1 |
 | [LibId64](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibId64__0faeb5c6-5fc7-48bc-91c6-61d863d7bf6e) | sirinsidiator | Console | — |
 | [LibId64](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibId64__3585) | sirinsidiator | PC / Mac | 1.0.1 |

@@ -3,7 +3,8 @@ local PDI = PVPDataInsight
 local Data = {}
 PDI.Data = Data
 
-PDI.session = { my = {}, feed = {} }
+PDI.session = { my = {}, feed = {}, ap = {} }
+PDI.sessionStart = GetTimeStamp and GetTimeStamp() or 0
 
 local function sv() return PDI.sv end
 
@@ -645,6 +646,7 @@ function Data:Prune()
     local dailyCut = PDI.DateKey(now - PDI.DAILY_RETENTION_DAYS * 86400)
     for dk in pairs(sv().opponents) do if dk < oppCut then sv().opponents[dk] = nil end end
     for dk in pairs(sv().my) do if dk < dailyCut then sv().my[dk] = nil end end
+    for dk in pairs(sv().ap or {}) do if dk < dailyCut then sv().ap[dk] = nil end end
     -- with esopvp.com's Kill Feed leaderboard (and uploads confirmed), the addon keeps only 8 days of its own
     local sent = self:SentUntil()
     local serverHasFeed = sent and self:FeedFromServer("feed", "lifetime")
@@ -665,6 +667,7 @@ function Data:Prune()
             end
         end
     end
+    if PDI.AP and PDI.AP.Prune then pcall(PDI.AP.Prune, PDI.AP) end    -- AP lines: today and yesterday only
     local ml = sv().mineLog
     if type(ml) == "table" and #ml > 100 then
         local keep = {}
@@ -728,7 +731,8 @@ function Data:FixDoubleAssists()
 end
 
 function Data:ResetSession()
-    PDI.session = { my = {}, feed = {} }
+    PDI.session = { my = {}, feed = {}, ap = {} }
+    PDI.sessionStart = PDI.Now()
 end
 
 -- Clear the counters of one tab ("my" | "feed") for one period, as shown in the window.

@@ -40,7 +40,7 @@ Gear.defaults = {
     gearPosX          = 60,
     gearPosY          = 520,
     gearBackground        = false,
-    gearBackgroundOpacity = 50,
+    gearBackgroundOpacity = 100,
     gearAutoRepair        = false,
     gearRepairBelow       = 10,
     gearMerchantRepair    = false,
@@ -612,7 +612,11 @@ local function CareHold(key)
 end
 
 local function CareLog(kind, text)
-    if SV()[LOG_KEYS[kind]] then ME:Chat(ME:ChatPrefix() .. text) end
+    if SV()[LOG_KEYS[kind]] then ME:Chat(ME:ChatPrefix("Gear", SUBMENU_ICON) .. text) end
+end
+
+local function LinkText(link)
+    return ME:Icon(GetItemLinkIcon(link)) .. link
 end
 
 local function CareConfirm(check, kind, text)
@@ -621,14 +625,21 @@ local function CareConfirm(check, kind, text)
     end, CARE_CHECK_MS)
 end
 
+local function IsGroupKit(slot)
+    if not (IsItemRepairKit and IsItemNonGroupRepairKit) then return false end
+    return IsItemRepairKit(BAG_BACKPACK, slot) and not IsItemNonGroupRepairKit(BAG_BACKPACK, slot)
+end
+
 local function FindRepairKits()
     local best, bestTier, crown
     for slot = 0, GetBagSize(BAG_BACKPACK) - 1 do
-        if IsItemNonCrownRepairKit(BAG_BACKPACK, slot) then
-            local tier = GetRepairKitTier(BAG_BACKPACK, slot) or 0
-            if not best or tier > bestTier then best, bestTier = slot, tier end
-        elseif not crown and GetItemType(BAG_BACKPACK, slot) == ITEMTYPE_CROWN_REPAIR then
-            crown = slot
+        if not IsGroupKit(slot) then
+            if IsItemNonCrownRepairKit(BAG_BACKPACK, slot) then
+                local tier = GetRepairKitTier(BAG_BACKPACK, slot) or 0
+                if not best or tier > bestTier then best, bestTier = slot, tier end
+            elseif not crown and GetItemType(BAG_BACKPACK, slot) == ITEMTYPE_CROWN_REPAIR then
+                crown = slot
+            end
         end
     end
     return best, crown
@@ -665,14 +676,15 @@ function Gear:RepairGear()
                 CareHold("repair" .. slot)
                 if ME:CallGame("RepairItemWithRepairKit", BAG_WORN, slot, BAG_BACKPACK, kit) then
                     CareConfirm(function() return GetItemCondition(BAG_WORN, slot) > before end,
-                        "repair", "Repaired " .. link .. ".")
+                        "repair", "Repaired " .. LinkText(link) .. ".")
                 end
                 return true
             elseif crown then
                 CareHold("crown")
+                local kitIcon = ME:Icon((GetItemInfo(BAG_BACKPACK, crown)))
                 if ME:CallGame("UseItem", BAG_BACKPACK, crown) then
                     CareConfirm(function() return GetItemCondition(BAG_WORN, slot) > before end,
-                        "repair", "Repaired all your gear with a Crown Repair Kit.")
+                        "repair", "Used a " .. kitIcon .. "Crown Repair Kit.")
                 end
                 return true
             end
@@ -698,7 +710,7 @@ function Gear:ChargeWeapons()
                 CareHold("charge" .. slot)
                 if ME:CallGame("ChargeItemWithSoulGem", BAG_WORN, slot, BAG_BACKPACK, gem) then
                     CareConfirm(function() return (GetChargeInfoForItem(BAG_WORN, slot) or 0) > (charge or 0) end,
-                        "charge", "Charged " .. link .. ".")
+                        "charge", "Charged " .. LinkText(link) .. ".")
                 end
                 return true
             end
@@ -746,7 +758,7 @@ local function BindNewItem(bagId, slotId)
     if IsItemSetCollectionPieceUnlocked(GetItemLinkItemId(link)) then return end
     if ME:CallGame("BindItem", bagId, slotId) then
         CareConfirm(function() return IsItemBound(bagId, slotId) end,
-            "bind", "Bound " .. link .. " and added it to your set collection.")
+            "bind", "Added " .. LinkText(link) .. " to your collection.")
     end
 end
 
@@ -764,7 +776,8 @@ local function OnOpenStore()
     if not cost or cost <= 0 then return end
     if cost > GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) then return end
     if ME:CallGame("RepairAll") then
-        CareLog("repair", "Repaired all your gear for " .. ZO_CommaDelimitNumber(cost) .. " gold.")
+        CareLog("repair", "Repaired all for " .. ZO_CommaDelimitNumber(cost) .. " "
+            .. ZO_Currency_GetPlatformFormattedCurrencyIcon(CURT_MONEY) .. ".")
     end
 end
 

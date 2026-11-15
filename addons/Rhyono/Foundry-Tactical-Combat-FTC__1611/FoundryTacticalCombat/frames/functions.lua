@@ -279,9 +279,33 @@ function FTC.Frames:SetupGroup()
   if context == "Raid" then maxGroupSize = LARGE_GROUP_SIZE_THRESHOLD end
 
   if not showCompanion then
+    local sortedIndices = {}
+    for i = 1, FTC.Group.groupSize do
+      table.insert(sortedIndices, i)
+    end
+
+    local roleWeights = { [LFG_ROLE_TANK] = 1, [LFG_ROLE_HEAL] = 2, [LFG_ROLE_DPS] = 3, [LFG_ROLE_INVALID] = 4 }
+
+    table.sort(sortedIndices, function(a, b)
+        local tagA = GetGroupUnitTagByIndex(a)
+        local tagB = GetGroupUnitTagByIndex(b)
+        
+        local existsA = DoesUnitExist(tagA) and 1 or 0
+        local existsB = DoesUnitExist(tagB) and 1 or 0
+        if existsA ~= existsB then return existsA > existsB end
+        
+        if FTC.Vars.EnableRoleSorting then
+            local wA = roleWeights[GetGroupMemberSelectedRole(tagA)] or 4
+            local wB = roleWeights[GetGroupMemberSelectedRole(tagB)] or 4
+            if wA ~= wB then return wA < wB end
+        end
+        
+        return GetUnitName(tagA) < GetUnitName(tagB)
+    end)
+
     -- Iterate over only group members first
     for i = 1, FTC.Group.groupSize do
-      local unitTag = GetGroupUnitTagByIndex(i)
+      local unitTag = GetGroupUnitTagByIndex(sortedIndices[i])
       local hidePlayer = (context == "Group") and FTC.Vars.GroupHidePlayer and (GetDisplayName() == GetUnitDisplayName(unitTag))
       if (DoesUnitExist(unitTag)) and not hidePlayer then
         groupIndex = groupIndex + 1

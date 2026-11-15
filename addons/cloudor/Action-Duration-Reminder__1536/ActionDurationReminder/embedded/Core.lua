@@ -882,12 +882,37 @@ l.onCombatEvent = function(
     ---@type adr.models.Action?
     local action = l.idActionMap[abilityId]
     if action and action.channelUnitId == targetUnitId then
-      if addon.debugEnabled(DSS_COMBAT_FADE, action.ability.name) then
-        addon.debug("[C-c]cancel channeling %s", action:toLogString())
+      -- Scribed channeled multi-swing skills (Heroic Torch): each swing's GAINED_DURATION
+      -- re-grant (hitValue=20000, the script buff duration) is followed in the same frame
+      -- by the fade of the PREVIOUS swing's channel instance (result 2250, hit=2000),
+      -- including the final fade at channel end. Pinning channelEndTime to now there
+      -- truncates live 20s effects (the buff verifiably survives on the player) because
+      -- getEndTime's channel branch short-circuits all effect times. When live effects
+      -- remain, drop the channel tracking state instead so getEndTime/getDuration fall
+      -- back to optEffect; keep the instant-kill path for channels with nothing left.
+      local hasLiveEffect = action.stackEffect ~= nil and action.stackEffect.endTime > now
+      if not hasLiveEffect then
+        for _, e in ipairs(action.effectList) do
+          if not e.ignored and e.endTime > now then
+            hasLiveEffect = true
+            break
+          end
+        end
       end
-      action.channelEndTime = now
-      if #action.effectList == 0 then
-        action.endTime = now
+      if hasLiveEffect then
+        if addon.debugEnabled(DSS_COMBAT_FADE, action.ability.name) then
+          addon.debug("[CCf]channel fade with live effects, fall back to effects %s", action:toLogString())
+        end
+        action.channelStartTime = 0
+        action.channelEndTime = 0
+      else
+        if addon.debugEnabled(DSS_COMBAT_FADE, action.ability.name) then
+          addon.debug("[C-c]cancel channeling %s", action:toLogString())
+        end
+        action.channelEndTime = now
+        if #action.effectList == 0 then
+          action.endTime = now
+        end
       end
     end
     for key, var in pairs(l.idActionMap) do

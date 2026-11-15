@@ -36,7 +36,7 @@
 
 local ADDON_NAME = "EsoTR"
 EsoTR = {}
-EsoTR.Version = "1.0.6a"
+EsoTR.Version = "1.0.7"
 
 -- >>> EKLENDİ: Session bazlı mesaj kontrol bayrakları
 local sessionLanguageMessageShown = false

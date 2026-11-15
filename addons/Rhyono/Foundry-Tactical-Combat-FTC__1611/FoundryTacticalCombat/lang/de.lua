@@ -229,6 +229,10 @@ ZO_CreateStringId("FTC_Menu_FRFontSDesc", "Ändert die Schriftgröße für das S
 ZO_CreateStringId("FTC_Menu_FReset", "Zurücksetzen")
 ZO_CreateStringId("FTC_Menu_FResetDesc", "Setzt die FTC Einheitenfenster zurück auf die Standardwerte.")
 
+local sortDefault = (FTC.Defaults.EnableRoleSorting) and "Ein" or "Aus"
+ZO_CreateStringId("FTC_Menu_SortRoles", "Gruppe nach Rollen sortieren")
+ZO_CreateStringId("FTC_Menu_SortRolesDesc", "Sortiert das Gruppen- und Raidfenster nach der Reihenfolge: Tank -> Heiler -> DD. [Standard: " .. sortDefault .. "]")
+
 --[[----------------------------------------------------------
     BUFF TRACKING
   ]]----------------------------------------------------------

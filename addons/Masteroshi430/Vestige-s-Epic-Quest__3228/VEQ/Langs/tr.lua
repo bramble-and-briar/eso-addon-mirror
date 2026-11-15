@@ -305,7 +305,7 @@ VEQ.mylanguage = {
 ["quest_hiddenhint"] = "Gizli İpucu",
  
 ["lang_tracker_type_guild"] = "Lonca",
-["lang_tracker_type_mainstory"] = "Ana Hikaye Görevi",
+["lang_tracker_type_mainstory"] = "Ana Hikaye",
 ["lang_tracker_type_undaunted"] = "Korkusuz",
 ["lang_tracker_type_prologue"] = "Giriş",
 ["lang_tracker_type_companion"] = "Yardımcı",

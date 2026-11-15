@@ -7,7 +7,7 @@ ME.Streamer = Streamer
 --------------------------------------------------
 local SUBMENU_ICON  = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_social.dds"
 local DEFAULT_TEXT  = "Thanks for watching!"
-local DEFAULT_FONT  = "EsoUI/Common/Fonts/univers67.otf"
+local DEFAULT_FONT  = "EsoUI/Common/Fonts/FTN57.otf"
 local PANEL_WIDTH   = 1200
 local CHECK_MS      = 250
 local MOVE_SPEED    = 500
@@ -33,7 +33,7 @@ Streamer.defaults = {
     streamerPosY     = -400,
     streamerShowing  = false,
     streamerBackground        = false,
-    streamerBackgroundOpacity = 50,
+    streamerBackgroundOpacity = 100,
 }
 
 Streamer.durationChoices = {

@@ -1,0 +1,30 @@
+<Bindings>
+	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+		<Category name="CombatMetrics2">
+			<Action name="CMX2_REPORT_TOGGLE">
+				<Up>CombatMetrics2_Report:Toggle()</Up>
+			</Action>
+			<Action name="CMX2_POST_DPS">
+				<Up>CMX2.PosttoChat(CMX2_POSTTOCHAT_MODE_SINGLEANDMULTI)</Up>
+			</Action>
+			<Action name="CMX2_POST_DPS_SMART">
+				<Up>CMX2.PosttoChat(CMX2_POSTTOCHAT_MODE_SMART)</Up>
+			</Action>
+			<Action name="CMX2_POST_DPS_SINGLE">
+				<Up>CMX2.PosttoChat(CMX2_POSTTOCHAT_MODE_SINGLE)</Up>
+			</Action>
+			<Action name="CMX2_POST_DPS_MULTI">
+				<Up>CMX2.PosttoChat(CMX2_POSTTOCHAT_MODE_MULTI)</Up>
+			</Action>
+			<Action name="CMX2_POST_HPS">
+				<Up>CMX2.PosttoChat(CMX2_POSTTOCHAT_MODE_HEALING)</Up>
+			</Action>
+			<Action name="CMX2_RESET_FIGHT">
+				<Up>CMX2.ResetFight()</Up>
+			</Action>
+			<Action name="CMX2_LIVEREPORT_TOGGLE">
+				<Up>CombatMetrics2_LiveReport:Toggle()</Up>
+			</Action>
+		</Category>
+	</Layer>
+</Bindings>

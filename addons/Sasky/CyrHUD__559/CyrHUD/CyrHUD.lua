@@ -17,7 +17,7 @@
 
 CyrHUD = CyrHUD or {}
 CyrHUD.addonVars = {}
-CyrHUD.addonVars.version	= "2026.09.28"
+CyrHUD.addonVars.version	= "2026.11.15"
 CyrHUD.addonVars.name 		= "CyrHUD"
 CyrHUD.addonVars.author 	= "Sasky, |c4779ce@aldericon|r, |c3CB371@Masteroshi430|r"
 CyrHUD.addonVars.website	= "http://www.esoui.com/downloads/fileinfo.php?id=559#info"
@@ -27,6 +27,9 @@ CyrHUD.addonVars.website	= "http://www.esoui.com/downloads/fileinfo.php?id=559#i
 
 
 CyrHUD.keepsToObjectivesMap = {}
+
+-- Fanthor Keep
+CyrHUD.keepsToObjectivesMap[1] = {lower = 38, upper = 613} -- after U52 invert them if ZOS doesn't fix it
 
 -- Fort Warden
 CyrHUD.keepsToObjectivesMap[3] = {lower = 55, upper = 56}
@@ -109,6 +112,18 @@ CyrHUD.keepsToObjectivesMap[151] = {merchant = 299, central = 296, outlier = 297
 -- Cropsford
 CyrHUD.keepsToObjectivesMap[152] = {merchant = 301, central = 300, outlier = 302}
 
+
+    -- Pyre Lord display announcement match strings
+    CYRHUD_STRING_PL_ALIGNS_COVENANT = "The Pyre Lord Aligns with the Covenant"
+    CYRHUD_STRING_PL_ALIGNS_PACT = "The Pyre Lord Aligns with the Pact"
+    CYRHUD_STRING_PL_ALIGNS_DOMINION = "The Pyre Lord Aligns with the Dominion"
+    CYRHUD_STRING_PL_STIRS = "The Pyre Lord Stirs"
+    CYRHUD_STRING_PL_AWAKENS = "The Pyre Lord Awakens"
+    CYRHUD_STRING_PL_VANISHES = "The Pyre Lord Vanishes"
+    CYRHUD_STRING_PL_VANQUISHED = "The Pyre Lord Is Vanquished"
+    CYRHUD_STRING_PL_SLUMBER = "The Pyre Lord Returns to Slumber"
+    CYRHUD_STRING_PL_ENTREAT = "You Entreat the Pyre Lord"
+
 ----------------------------------------------
 -- Utility
 ----------------------------------------------
@@ -123,6 +138,23 @@ local function nn(val)
 end
 
 function CyrHUD.formatTime(delta, inclueSec, doAdditional)
+    delta = delta or 0
+
+    if delta >= 3600 then
+        if ZO_FormatTimeLargestTwo then
+            return ZO_FormatTimeLargestTwo(delta, TIME_FORMAT_STYLE_DESCRIPTIVE_MINIMAL)
+        end
+        local hours = math.floor(delta / 3600)
+        local days = math.floor(hours / 24)
+        hours = hours % 24
+        if days > 0 then
+            return string.format("%dd %dh", days, hours)
+        else
+            local min = math.floor((delta % 3600) / 60)
+            return string.format("%dh %dm", hours, min)
+        end
+    end
+
     local sec = delta % 60
     delta = (delta - sec) / 60
     local min = delta % 60
@@ -291,6 +323,11 @@ function CyrHUD.SetMovingObjective(_, keepId, objectiveId, battlegroundContext, 
    self.battleContext = battlegroundContext 
 end
 
+-- antispam: last time (ms) a given victim was registered, to ignore duplicates
+local VICTIM_ANTISPAM_MS = 2000
+local g_lastVictimTime = {}
+local g_lastVictimPrune = 0
+
 local g_pvpKillFeedDeathRecurrenceTracker = nil
 do
     -- The PvP Kill Feed uses ZO_RecurrenceTracker to track whether any given
@@ -303,34 +340,13 @@ do
     g_pvpKillFeedDeathRecurrenceTracker = ZO_RecurrenceTracker:New(EXPIRATION_MS, EXTENSION_MS)
 end
 
--- 20/07/2026 bug fix:
--- This function's parameter list previously named its 3rd/4th and 7th/8th
--- parameters "killerPlayerDisplayName, killerPlayerCharacterName" and
--- "victimPlayerDisplayName, victimPlayerCharacterName", but the event
--- registration wrapper below (see CyrHUD:init) calls this function passing
--- CharacterName before DisplayName for both killer and victim (matching the
--- actual EVENT_PVP_KILL_FEED_DEATH argument order). That meant the local
--- variable named killerPlayerDisplayName actually held the character name
--- value, and vice versa. This was silently harmless today because only the
--- "DisplayName" locals are read below (for the spam-filter key) and the
--- "CharacterName" locals were never used elsewhere in this function, but it
--- was mislabeled and would silently misbehave the moment that assumption
--- changed (e.g. the commented-out "yourDisplayName" kill/death tally further
--- down, which compares against GetDisplayName() and needs an actual display
--- name, not a character name). Parameter names now match the order they're
--- actually called with.
---
--- Separately: `isKillLocation` below is referenced but is not a parameter of
--- this function (nor a local), so it always reads as the undefined global
--- `nil`. That doesn't crash, but it does mean the "this message was kill
--- location sourced" branch of the spam-filter is permanently dead code --
--- every call takes the "locally sourced" branch. If a second call site
--- (e.g. a kill-location-broadcast event) is meant to pass true here, it
--- needs to be wired up and this function needs an `isKillLocation` parameter;
--- as written, the two-key ZO_RecurrenceTracker dedup this function sets up
--- can never actually use its second key.
+
 function CyrHUD.playerKilled(_, killLocation, killerPlayerCharacterName, killerPlayerDisplayName, killerPlayerAlliance, killerPlayerRank, victimPlayerCharacterName, victimPlayerDisplayName, victimPlayerAlliance, victimPlayerRank)
     local self = CyrHUD
+    
+    if killLocation == "" and IsInJerallPass() then
+        killLocation = GetString(SI_CAMPAIGNRULESETTYPE5)
+    end
 	
 	killLocation = LocalizeString('<<1>>', killLocation)
 	
@@ -340,6 +356,26 @@ function CyrHUD.playerKilled(_, killLocation, killerPlayerCharacterName, killerP
     end	
 
 	
+	-- antispam: ignore the same victim if already registered within the last 2 seconds
+	local nowMs = GetGameTimeMilliseconds()
+	if victimPlayerDisplayName and victimPlayerDisplayName ~= "" then
+		local lastMs = g_lastVictimTime[victimPlayerDisplayName]
+		if lastMs and (nowMs - lastMs) < VICTIM_ANTISPAM_MS then
+			return
+		end
+		g_lastVictimTime[victimPlayerDisplayName] = nowMs
+	end
+
+	-- prune stale entries every 30s so the table doesn't grow forever
+	if nowMs - g_lastVictimPrune > 30000 then
+		g_lastVictimPrune = nowMs
+		for name, ms in pairs(g_lastVictimTime) do
+			if nowMs - ms > VICTIM_ANTISPAM_MS then
+				g_lastVictimTime[name] = nil
+			end
+		end
+	end
+
 	-- ZOS' spam filter
 	local messageKeySuffix = string.format("%s___%s", killerPlayerDisplayName, victimPlayerDisplayName)
 	local messageKeyLocal = "L" .. messageKeySuffix
@@ -381,14 +417,7 @@ function CyrHUD.playerKilled(_, killLocation, killerPlayerCharacterName, killerP
        end
 	end
 	
-	-- 05/07/2026 performance improvement:
-	-- playerKilled() fires on every EVENT_PVP_KILL_FEED_DEATH, which in a busy
-	-- zerg fight can happen many times per second -- making this by far the
-	-- hottest path in the addon. The old code re-indexed the global table
-	-- chain `CyrHUD.Graveyard[killLocation]` well over 25 times below (each one
-	-- a global lookup plus a table index) to read/write fields on the exact
-	-- same table. We now resolve it once into a local and reuse that local for
-	-- every field access.
+
 	CyrHUD.Graveyard = CyrHUD.Graveyard or {}
 	CyrHUD.Graveyard[killLocation] = CyrHUD.Graveyard[killLocation] or {}
 	local grave = CyrHUD.Graveyard[killLocation]
@@ -488,31 +517,24 @@ function CyrHUD.onMonsterDeath(_, unitTag, isDead)
 end
 
 function CyrHUD.onMonsterReticle(_)
-    if GetCurrentMapId() ~= 660 then return end -- only in imperial city upper district
-    local self = CyrHUD
+  if GetCurrentMapId() ~= 660 then return end -- only in imperial city upper district
+  local self = CyrHUD
 	local unitName = GetUnitNameHighlightedByReticle()
-    local isDeadly = GetUnitDifficulty('reticleover') == MONSTER_DIFFICULTY_DEADLY
+  local isDeadly = GetUnitDifficulty('reticleover') == MONSTER_DIFFICULTY_DEADLY
 		
 	if unitName == nil or unitName == "" or not isDeadly then return end -- Abort if unit is not part of Patrolling Horrors
 	
 	local isDead = IsUnitDead('reticleover')
-    local currentAreaName = string.gsub(GetPlayerLocationName(), "(%w+)[%^]+.*", "%1")
+  local currentAreaName = string.gsub(GetPlayerLocationName(), "(%w+)[%^]+.*", "%1")
 	if not currentAreaName then return end
 	local areaBossName = currentAreaName.." "..GetString(SI_CUSTOMERSERVICESUBMITFEEDBACKSUBCATEGORIES501) 
-	
-	-- 05/07/2026 performance improvement:
-	-- onMonsterReticle() fires on every EVENT_RETICLE_TARGET_CHANGED while in
-	-- the Imperial City upper district -- easily multiple times per second
-	-- just from moving the camera, making this one of the hottest event
-	-- handlers in the addon. The old code re-indexed the global table chain
-	-- `self.PatrollingHorrors[areaBossName]` up to 8 times in a row below.
-	-- We resolve it once per branch into a local and reuse that local.
+
 	if isDead == true then -- Imperial City Boss is dead on the floor 
 		local horror = self.PatrollingHorrors[areaBossName]
 		if horror then
 			if horror.lastSeenAlive and GetDiffBetweenTimeStamps( GetTimeStamp(), horror.lastSeenAlive) < 5 then -- died before your eyes
 			       horror.lastSeenAlive = nil
-                   horror:restart()  			
+             horror:restart()
 			elseif horror:getRawDuration() > 960 then -- Already dead before you arrive, we end the notification
 				horror.endPatrollingHorror = GetTimeStamp()
 			end
@@ -525,9 +547,9 @@ function CyrHUD.onMonsterReticle(_)
         elseif (900 - horror:getRawDuration()) > 0 then -- adjust time
 		     horror.startPatrollingHorror = GetTimeStamp() - 900
 		else
-             horror.lastSeenAlive = GetTimeStamp()		
+         horror.lastSeenAlive = GetTimeStamp()
 		end	
-         		
+
 	end
 end
 
@@ -577,20 +599,6 @@ function CyrHUD:getUIRow(index)
     return self.entries[index]
 end
 
--- 20/07/2026 performance improvement:
--- This logic used to live inline inside CyrHUD.Battle:updateLabel() in
--- Battle.lua, which runs once a second for EVERY displayed keep row. Since
--- it scans *all* AvA objectives with GetNumObjectives()/GetAvAObjectiveKeysByIndex()
--- looking for captured Elder Scrolls, and even re-counts the entire
--- CyrHUD.scrolls table with an inner pairs() loop every time it finds one,
--- running it once per keep row per second made the actual engine-call cost
--- O(displayed keeps x AvA objectives) every second, even though the result
--- (which keep holds which scroll, and the AD/DC/EP scroll totals) doesn't
--- depend on which keep row is being drawn at all -- it's the same answer for
--- every row. We now compute it exactly once per second here, cache "which
--- keepID currently displays which scroll pin" in self.scrollHolderByKeep,
--- and have Battle:updateLabel() do a single cheap table lookup into that
--- cache instead of re-scanning every objective itself.
 function CyrHUD:updateElderScrollHolders()
     self.scrolls = self.scrolls or {}
     local scrollHolderByKeep = {}
@@ -639,15 +647,6 @@ function CyrHUD:printAll()
     local rowDislpayedCount = 0
     -- we reorder by priority: keeps, outposts, towns and then the rest
 
-    -- 05/07/2026 performance improvement:
-    -- This used to loop over self.battles with `pairs()` five separate times
-    -- (once per keepType bucket) every second via the UIUpdate timer, i.e. O(5n)
-    -- table traversals just to bucket/sort entries by keepType. Instead, we now
-    -- walk self.battles a single time and bucket each battle into a small table
-    -- based on its keepType, then iterate those (much smaller) buckets in the
-    -- desired priority order. This turns the 5x O(n) pairs() scans into a single
-    -- O(n) scan plus cheap O(bucket size) ipairs() scans, with identical output
-    -- ordering and identical rowDislpayedCount/thrashKeepCount semantics.
     local artifactGateBattles, keepBattles, outpostBattles, townBattles, otherBattles = {}, {}, {}, {}, {}
 
     for _,battle in pairs(self.battles) do
@@ -700,39 +699,34 @@ function CyrHUD:printAll()
     
     ----------------------------------------
 	
-	for _,MovingObjective in pairs(self.MovingObjectives) do
+  	for _,MovingObjective in pairs(self.MovingObjectives) do
         self:getUIRow(i):update(MovingObjective)
         i = i + 1
         rowDislpayedCount = rowDislpayedCount +1
     end
 	
-	for _,Graveyard in pairs(self.Graveyards) do
+  	for _,Graveyard in pairs(self.Graveyards) do
         self:getUIRow(i):update(Graveyard)
         i = i + 1
         rowDislpayedCount = rowDislpayedCount +1
     end
 	
-	for _,PatrollingHorror in pairs(self.PatrollingHorrors) do
+	  for _,PatrollingHorror in pairs(self.PatrollingHorrors) do
         self:getUIRow(i):update(PatrollingHorror)
+        i = i + 1
+        rowDislpayedCount = rowDislpayedCount +1
+    end
+    
+    for _,PyreLord in pairs(self.PyreLords) do
+        self:getUIRow(i):update(PyreLord)
         i = i + 1
         rowDislpayedCount = rowDislpayedCount +1
     end
 
     --Fix since auto-resize doesn't seem to work well
     self.ui:SetHeight(math.max(i*35,70))
-	
-	-- 05/07/2026 bug fix:
-	-- `i` starts at 1 and is incremented exactly once for every row actually
-	-- displayed above (status bars, battles, moving objectives, graveyards,
-	-- patrolling horrors), so the true displayed row count is i-1, not i-2.
-	-- The old `i-2` undercounted by one, which matters because playerKilled()
-	-- checks `CyrHUD.entryCount > 10` to decide when to clear out graveyard
-	-- entries to avoid clutter -- with the off-by-one, that cleanup only
-	-- kicked in once 12 rows were actually displayed instead of the intended
-	-- 11, letting the HUD get one row more cluttered than the comment there
-	-- ("more than 10 entries") describes.
-	CyrHUD.entryCount = i-1
-  CyrHUD.rowDisplayedCount = rowDislpayedCount
+	  CyrHUD.entryCount = i-1
+    CyrHUD.rowDisplayedCount = rowDislpayedCount
 
 
     for j=i,#self.entries do
@@ -748,7 +742,8 @@ end
 CyrHUD.battles = {}
 CyrHUD.MovingObjectives = {}
 CyrHUD.Graveyards = {} 
-CyrHUD.PatrollingHorrors = {} 
+CyrHUD.PatrollingHorrors = {}
+CyrHUD.PyreLords = {}
 
 function CyrHUD:add(keepID)
     if self.battles[keepID] == nil then
@@ -779,7 +774,7 @@ end
 
 function CyrHUD:scanKeeps()
 
-    if IsInImperialCity() then
+  if IsInImperialCity() then
 	    -- Districts
 		self:checkAdd(141)
 		self:checkAdd(142)
@@ -809,7 +804,7 @@ function CyrHUD:scanKeeps()
 		self:checkAdd(151)
 		self:checkAdd(152)
 
-        if not CyrHUD.cfg.hideBridgesAndMilegates then
+    if not CyrHUD.cfg.hideBridgesAndMilegates then
 			-- Bridges / Milegates
 			for i=154,162 do 
 				self:checkAdd(i)
@@ -835,20 +830,26 @@ function CyrHUD:scanKeeps()
 		-- held Volendrung & Scrolls
 		for i = 1, GetNumObjectives() do
 		   local okeepId, objectiveId, obgContext = GetAvAObjectiveKeysByIndex(i)
-	        if(IsLocalBattlegroundContext(obgContext)) then
+	     if(IsLocalBattlegroundContext(obgContext)) then
 			    local objectiveName, objectiveType, objectiveState = GetObjectiveInfo(okeepId, objectiveId, obgContext)
 			   if objectiveType == OBJECTIVE_ARTIFACT_DEFENSIVE or objectiveType == OBJECTIVE_ARTIFACT_OFFENSIVE or objectiveType == OBJECTIVE_DAEDRIC_WEAPON then
 			      local objectiveControlEvent = GetLastObjectiveControlEvent(okeepId, objectiveId, obgContext)
 			      if objectiveState == OBJECTIVE_CONTROL_STATE_FLAG_DROPPED or objectiveState == OBJECTIVE_CONTROL_STATE_FLAG_HELD or objectiveControlEvent == OBJECTIVE_CONTROL_EVENT_FLAG_SPAWNED then
 			         local holdingAlliance, lastHoldingAlliance = GetCarryableObjectiveHoldingAllianceInfo(okeepId, objectiveId, obgContext)
-				     local pinType = GetObjectivePinInfo(okeepId, objectiveId, obgContext) 
+				       local pinType = GetObjectivePinInfo(okeepId, objectiveId, obgContext) 
 			         CyrHUD.SetMovingObjective(nil, okeepId, objectiveId, obgContext, objectiveName, objectiveType, objectiveControlEvent, objectiveState, holdingAlliance, lastHoldingAlliance, pinType)
 			       
 			      end 
 			   end
-		    end 
-        end		
-
+		   end 
+    end
+  elseif IsInJerallPass() then
+     -- keep
+		 self:checkAdd(1)
+     -- resources
+		 self:checkAdd(25)
+		 self:checkAdd(26)
+		 self:checkAdd(27)
 	end
 end
 
@@ -890,11 +891,7 @@ function CyrHUD:addGraveyard(killLocation)
     end
 end
 
--- 05/07/2026 bug fix:
--- checkAddGraveyard indexed `self.Graveyard[killLocation]` instead of calling
--- the constructor `self.Graveyard(killLocation)`. self.Graveyard is the class
--- table, not keyed by location, so this always evaluated to nil -- meaning
--- checkAddGraveyard could never actually create a new Graveyard entry.
+
 function CyrHUD:checkAddGraveyard(killLocation)
     if self.Graveyards[killLocation] == nil then
         local Graveyard = self.Graveyard(killLocation)
@@ -911,12 +908,6 @@ end
 ----------------------------------------------
 
 
--- 05/07/2026 bug fix:
--- The restart branch referenced `self.PatrollingHorror[areaBossName]`
--- (singular -- the class table) instead of `self.PatrollingHorrors[areaBossName]`
--- (plural -- the instance table checked in the `if` just above). Indexing the
--- class table by name returns nil, so calling :restart() on it would error
--- with "attempt to call a nil value" if this branch were ever reached.
 function CyrHUD:addPatrollingHorror(areaBossName)
     if self.PatrollingHorrors[areaBossName] == nil then
          self.PatrollingHorrors[areaBossName] = self.PatrollingHorror(areaBossName)
@@ -931,12 +922,7 @@ function CyrHUD:engagePatrollingHorror(areaBossName)
     end
 end
 
--- 05/07/2026 bug fix:
--- checkAddPatrollingHorror indexed `self.PatrollingHorror[areaBossName]`
--- instead of calling the constructor `self.PatrollingHorror(areaBossName)`.
--- self.PatrollingHorror is the class table, not keyed by boss name, so this
--- always evaluated to nil -- meaning checkAddPatrollingHorror could never
--- actually create a new entry.
+
 function CyrHUD:checkAddPatrollingHorror(areaBossName)
     if self.PatrollingHorrors[areaBossName] == nil then
         local PatrollingHorror = self.PatrollingHorror(areaBossName)
@@ -951,50 +937,65 @@ end
 --------------------------------------------------
 
 
--- 05/07/2026 performance improvement:
--- updateAll() runs on the 5-second KeepCheck timer and iterates every tracked
--- battle/objective/graveyard/patrolling horror. The old code took the value
--- pairs() already hands back on each iteration, threw it away as `_`, and then
--- re-indexed the same table with the key (self.battles[i], self.MovingObjectives[j],
--- self.Graveyards[k], self.PatrollingHorrors[k]) just to call :update() on it --
--- an extra, unnecessary table lookup per tracked entity per cycle for a value
--- we already had in hand.
+
+----------------------------------------------
+-- Pyre lord management
+----------------------------------------------
+
+
+function CyrHUD:checkAddPyreLord()
+    if self.cfg.hidePyreLord then return end
+    if self.PyreLords.PyreLord == nil then
+        self.PyreLords.PyreLord = self.PyreLord()
+    else
+        self.PyreLords.PyreLord:restart()
+    end
+end
+
+
+--------------------------------------------------
+
+
 function CyrHUD:updateAll()
     for _,battle in pairs(self.battles) do
         --Update in-place
         battle:update()
     end
 	
-	for _,movingObjective in pairs(self.MovingObjectives) do
+	  for _,movingObjective in pairs(self.MovingObjectives) do
        movingObjective:update()
     end
 	
-	for _,graveyard in pairs(self.Graveyards) do
+  	for _,graveyard in pairs(self.Graveyards) do
        graveyard:update()
     end
 	
-	for _,patrollingHorror in pairs(self.PatrollingHorrors) do
+	  for _,patrollingHorror in pairs(self.PatrollingHorrors) do
        patrollingHorror:update()
     end
 
     for _,status in pairs(self.statusBars) do
         status:update()
     end
+    
+    for _,pyreLord in pairs(self.PyreLords) do
+        pyreLord:update()
+    end
 
-	-- to test
-	if GetAssignedCampaignId() == self.campaign then
-	   if #self.statusBars == 1 then
-			CyrHUD:refresh()
-	   end
-	elseif IsInImperialCity() then
-	   if #self.statusBars == 1 then
-			CyrHUD:refresh()
-	   end       
-	else
-	    if #self.statusBars == 2 then
-			table.remove(self.statusBars, 2)
-	   end 
-	end
+
+    if IsInImperialCity() or IsInCyrodiil() or IsInJerallPass() then
+        local hasVeterancy = false
+        for _, bar in ipairs(self.statusBars) do
+            if bar.type == "VeterancyBar" then hasVeterancy = true break end
+        end
+        if #self.statusBars == 2 or hasVeterancy ~= CyrHUD.isVeterancyEnabled() then
+            CyrHUD:refresh()
+        end
+    else
+        while #self.statusBars > 2 do
+            table.remove(self.statusBars)
+        end
+    end
 end
 
 
@@ -1095,19 +1096,6 @@ function CyrHUD:init()
 	EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name.."ArtifactControlStatePreSet", EVENT_DAEDRIC_ARTIFACT_OBJECTIVE_STATE_CHANGED, self.PreSetArtifactStateData) 
 	EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name.."ArtifactControlSpawned", EVENT_DAEDRIC_ARTIFACT_OBJECTIVE_SPAWNED_BUT_NOT_REVEALED, self.ArtifactSpawned)
 	EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name.."GateChange", EVENT_KEEP_GATE_STATE_CHANGED, function(_, keepID, open) self.eventAttackChange(_, keepID, CyrHUD.battleContext)  end)
-    -- 20/07/2026 bug fix:
-    -- This closure's own parameter is named `keepId` (lowercase d), but the
-    -- call below referenced `keepID` (uppercase D) -- a different, never-
-    -- assigned identifier. Lua is case-sensitive and there's no local/upvalue
-    -- named `keepID` in scope here, so that reference silently resolved to
-    -- the undefined global `keepID`, i.e. always nil. That meant every
-    -- EVENT_KEEP_IS_PASSABLE_CHANGED (a milegate or bridge becoming passable
-    -- or impassable) called eventAttackChange(_, nil, ...) instead of
-    -- eventAttackChange(_, keepId, ...) -- so GetKeepType(nil) was queried
-    -- instead of the actual keep that changed, and CyrHUD:add()/update()
-    -- never ran for the correct milegate/bridge on this event. The handler
-    -- right above it (GateChange) uses a parameter actually named `keepID`
-    -- and was unaffected. Fixed to reference the correct parameter.
   EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name.."PassableChange", EVENT_KEEP_IS_PASSABLE_CHANGED, function(_, keepId, battlegroundContext, isPassable) self.eventAttackChange(_, keepId, CyrHUD.battleContext) end)
 	EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name.."KillFeed", EVENT_PVP_KILL_FEED_DEATH, function(_, killLocation, killerPlayerCharacterName, killerPlayerDisplayName, killerPlayerAlliance, killerPlayerRank, victimPlayerCharacterName, victimPlayerDisplayName, victimPlayerAlliance, victimPlayerRank)  CyrHUD.playerKilled(_, killLocation, killerPlayerCharacterName, killerPlayerDisplayName, killerPlayerAlliance, killerPlayerRank, victimPlayerCharacterName, victimPlayerDisplayName, victimPlayerAlliance, victimPlayerRank) end)
 	EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name.."CampaignDataReceived",EVENT_CAMPAIGN_LEADERBOARD_DATA_RECEIVED, function() CyrHUD.CampaignDataPending = false end)
@@ -1119,30 +1107,24 @@ function CyrHUD:init()
     EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name, EVENT_ACTION_LAYER_PUSHED, self.actionLayerChange)
 end
 
+function CyrHUD.isVeterancyEnabled()
+    if IsInImperialCity() then
+        return CyrHUD.cfg.showVeterancyIC and true or false
+    elseif IsInJerallPass() then
+        return CyrHUD.cfg.showVeterancyJerall and true or false
+    end
+    return CyrHUD.cfg.showVeterancyCyro and true or false
+end
+
 function CyrHUD:refresh()
     --Get initial scan
     self.battles = {}
 	  self.MovingObjectives = {}
 	  self.Graveyards = {}
 	  self.PatrollingHorrors  = {}
+    self.PyreLords = {}
     self.battleContext = BGQUERY_LOCAL
 
-    -- 20/07/2026 bug fix:
-    -- This register/unregister block used to live inside the
-    -- "self.campaign ~= GetCurrentCampaignId()" branch below, which only runs
-    -- when the player's campaign has actually changed. But it's the only
-    -- code that reacts to CyrHUD.cfg.hidePatrollingHorrors, and menu.lua's
-    -- "Hide Patrolling Horrors" checkbox setFunc calls CyrHUD:refresh()
-    -- directly, with no campaign change involved. That meant toggling the
-    -- checkbox mid-session never actually registered/unregistered
-    -- EVENT_UNIT_DEATH_STATE_CHANGED/EVENT_RETICLE_TARGET_CHANGED -- it only
-    -- cleared self.PatrollingHorrors once (line above), which onMonsterDeath/
-    -- onMonsterReticle would then just start repopulating on the very next
-    -- boss death or reticle-over, or (if starting from "hidden") the events
-    -- would simply never get registered until the player changed campaigns
-    -- or reloaded the UI. Moved out of the campaign-change gate so every
-    -- refresh() call -- whichever of scanKeeps/playerInit/the settings menu
-    -- triggered it -- re-evaluates the current setting.
     if IsInImperialCity() and not CyrHUD.cfg.hidePatrollingHorrors then -- reset Imperial City Boss timers & manage corresponding events
         EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name, EVENT_UNIT_DEATH_STATE_CHANGED, self.onMonsterDeath)
         EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name, EVENT_RETICLE_TARGET_CHANGED, self.onMonsterReticle)
@@ -1165,10 +1147,12 @@ function CyrHUD:refresh()
     --Could separate this with a data refresh eventually, but just do a hard reset for now
     self.statusBars = {}
     table.insert(self.statusBars, self.ScoringBar())
-	if GetAssignedCampaignId() == self.campaign or IsInImperialCity() then
-	   table.insert(self.statusBars, 2, self.RankingBar())
-	end
-    self:scanKeeps()
+    table.insert(self.statusBars, self.ScoringBar2())
+    table.insert(self.statusBars, self.RankingBar())
+    if CyrHUD.isVeterancyEnabled() then
+        table.insert(self.statusBars, self.VeterancyBar())
+    end
+	  self:scanKeeps()
 
     --Force update on status bar
     self:reconfigureLabels()
@@ -1214,6 +1198,17 @@ function CyrHUD:disableQuestTrackers()
 		--ZOs build in game quest tracker
 		self.trackers.ZO_FocusedQuestTrackerPanel = self.trackers.ZO_FocusedQuestTrackerPanel or ZO_FocusedQuestTrackerPanel:IsHidden() -- Tracker hidden state before CyrHUD init to restore on CyrHUD deinit  
 		ZO_FocusedQuestTrackerPanel:SetHidden(self.cfg.zosTrackerDisableIC)
+
+	elseif IsInJerallPass() then
+		--Ravalox Questtracker
+		if QuestTrackerWin then
+			self.trackers.QuestTrackerWin = self.trackers.QuestTrackerWin or QuestTrackerWin:IsHidden() -- Tracker hidden state before CyrHUD init to restore on CyrHUD deinit
+			QuestTrackerWin:SetHidden(self.cfg.ravTrackerDisableJerall)
+		end
+
+		--ZOs build in game quest tracker
+		self.trackers.ZO_FocusedQuestTrackerPanel = self.trackers.ZO_FocusedQuestTrackerPanel or ZO_FocusedQuestTrackerPanel:IsHidden() -- Tracker hidden state before CyrHUD init to restore on CyrHUD deinit
+		ZO_FocusedQuestTrackerPanel:SetHidden(self.cfg.zosTrackerDisableJerall)
 	end
 end
 
@@ -1268,15 +1263,22 @@ function CyrHUD.addonInit()
         xoff = -10,
         yoff = 60,
         ravTrackerDisableCyro = false,
-		zosTrackerDisableCyro = false,
-		ravTrackerDisableIC = false,
-		zosTrackerDisableIC = false,
-		hideImpBattles = false,
-		hideBridgesAndMilegates = false,
-		hidePatrollingHorrors = false,
-		enableInCyro = true,
-		enableInIC = true,
-    showPopBars = false,
+        zosTrackerDisableCyro = false,
+        ravTrackerDisableIC = false,
+        zosTrackerDisableIC = false,
+        ravTrackerDisableJerall = false,
+        zosTrackerDisableJerall = false,
+        hideImpBattles = false,
+        hideBridgesAndMilegates = false,
+        hidePatrollingHorrors = false,
+        hidePyreLord = false,
+        enableInCyro = true,
+        enableInIC = true,
+        enableInJerall = true,
+        showPopBars = false,
+        showVeterancyCyro = true,
+        showVeterancyIC = true,
+        showVeterancyJerall = true,
     }
 
     self.cfg = ZO_SavedVars:NewAccountWide("CyrHUD_SavedVars", 1.0, "config", def)
@@ -1302,6 +1304,53 @@ function CyrHUD.addonInit()
     LAM:RegisterAddonPanel(CyrHUD.addonVars.name .. "-LAM", self.menuPanel)
     LAM:RegisterOptionControls(CyrHUD.addonVars.name .. "-LAM", self.menuOptions)
     self.initLAM = true
+    
+    -- intercept Pyre Lord state
+    SecurePostHook(CENTER_SCREEN_ANNOUNCE, "DisplayMessage", function(self, messageParams)
+        local mainText = messageParams:GetMainText()
+        if IsInJerallPass() and not CyrHUD.cfg.hidePyreLord and mainText then
+               if mainText ==  CYRHUD_STRING_PL_ALIGNS_COVENANT then
+                   CyrHUD.lastPyreLordState = mainText
+                   CyrHUD.lastPyreLordAlliance = ALLIANCE_DAGGERFALL_COVENANT
+                   CyrHUD:checkAddPyreLord()
+               elseif mainText == CYRHUD_STRING_PL_ALIGNS_PACT then
+                   CyrHUD.lastPyreLordState = mainText
+                   CyrHUD.lastPyreLordAlliance = ALLIANCE_EBONHEART_PACT
+                   CyrHUD:checkAddPyreLord()
+               elseif mainText == CYRHUD_STRING_PL_ALIGNS_DOMINION then
+                   CyrHUD.lastPyreLordState = mainText
+                   CyrHUD.lastPyreLordAlliance = ALLIANCE_ALDMERI_DOMINION
+                   CyrHUD:checkAddPyreLord()
+               elseif mainText == CYRHUD_STRING_PL_STIRS then
+                   CyrHUD.lastPyreLordState = mainText
+                   CyrHUD.lastPyreLordAlliance = ALLIANCE_NONE
+                   CyrHUD:checkAddPyreLord()
+               elseif mainText == CYRHUD_STRING_PL_AWAKENS then
+                   CyrHUD.lastPyreLordState = mainText
+                   CyrHUD.lastPyreLordAlliance = ALLIANCE_NONE
+                   CyrHUD:checkAddPyreLord()
+               elseif mainText == CYRHUD_STRING_PL_VANISHES then
+                   CyrHUD.lastPyreLordState = mainText
+                   CyrHUD.lastPyreLordAlliance = ALLIANCE_NONE
+                   CyrHUD:checkAddPyreLord()
+               elseif mainText == CYRHUD_STRING_PL_VANQUISHED then
+                   CyrHUD.lastPyreLordState = mainText
+                   CyrHUD.lastPyreLordAlliance = ALLIANCE_NONE
+                   CyrHUD:checkAddPyreLord()
+               elseif mainText == CYRHUD_STRING_PL_SLUMBER then
+                   CyrHUD.lastPyreLordState = mainText
+                   CyrHUD.lastPyreLordAlliance = ALLIANCE_NONE
+                   CyrHUD:checkAddPyreLord()
+               elseif mainText == CYRHUD_STRING_PL_ENTREAT then
+                   CyrHUD.lastPyreLordState = mainText
+                   CyrHUD.lastPyreLordAlliance = ALLIANCE_NONE
+                   CyrHUD:checkAddPyreLord()
+               end
+
+        end
+    end)
+    
+    
 end
 
 function CyrHUD.playerInit()
@@ -1316,7 +1365,10 @@ function CyrHUD.playerInit()
           if IsInImperialCity() and not self.cfg.enableInIC then
              self:deinit()
              return
-          elseif not IsInImperialCity() and not self.cfg.enableInCyro then
+          elseif IsInJerallPass() and not self.cfg.enableInJerall then
+             self:deinit()
+             return
+          elseif not IsInImperialCity() and not IsInJerallPass() and not self.cfg.enableInCyro then
              self:deinit()
              return
           end

@@ -1,11 +1,36 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/SkullElf/DebuffTracker---Track-Debuff-Durations__4030",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "SkullElf",
   "canonical_id": "esoui:4030",
   "category_id": "112",
   "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
+    {
+      "name": "Season Zero",
+      "version": "11.3.0"
+    },
+    {
+      "name": "Seasons of the Worm Cult Pt2",
+      "version": "11.2.0"
+    },
+    {
+      "name": "Feast of Shadows",
+      "version": "11.1.0"
+    },
     {
       "name": " Seasons of the Worm Cult Pt1",
       "version": "11.0.0"
@@ -53,10 +78,17 @@
     "DebuffTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4030/",
-  "fingerprint": "e177e0531b1328b16b3f55d746e9473051ebb4979be9ebc10573a3643935b84a",
+  "fingerprint": "0d6396325c79630cb77845f598ae909ab0386a7089ab3310afbb495f2cdb5604",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw13927.png",
-    "https://cdn-eso.mmoui.com/preview/pvw13928.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18418.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18417.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18419.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18420.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18421.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18422.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18423.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18424.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18425.png"
   ],
   "platform": "pc",
   "published": true,
@@ -64,11 +96,11 @@
   "source_id": "4030",
   "source_url": "https://www.esoui.com/downloads/info4030-DebuffTracker-TrackDebuffDurations.html",
   "stats": {
-    "downloads": 3066,
-    "favorites": 13,
-    "monthly_downloads": 57
+    "downloads": 3424,
+    "favorites": 14,
+    "monthly_downloads": 165
   },
   "title": "DebuffTracker - Track Debuff Durations!",
-  "updated_at": 1749935720000,
-  "version": "3.3a"
+  "updated_at": 1794655462000,
+  "version": "5.21.20"
 }

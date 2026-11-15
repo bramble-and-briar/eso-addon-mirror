@@ -307,7 +307,7 @@ VEQ.mylanguage = {
 	["quest_hiddenhint"] = "Hidden Hint",
 	
 	["lang_tracker_type_guild"] = "Guild",
-	["lang_tracker_type_mainstory"] = "Main Story Quest",
+	["lang_tracker_type_mainstory"] = "Main Story",
 	["lang_tracker_type_undaunted"] = "Undaunted",
 	["lang_tracker_type_prologue"] = "Prologue",	
 	["lang_tracker_type_companion"] = "Companion",

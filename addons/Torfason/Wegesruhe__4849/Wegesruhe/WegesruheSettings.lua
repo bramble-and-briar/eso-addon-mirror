@@ -8,7 +8,32 @@ local WM = WINDOW_MANAGER
 local BLUE_R, BLUE_G, BLUE_B = 127 / 255, 199 / 255, 1
 local CONTENT_WIDTH = 720
 
-local function ShowSettingsTooltip(control, text)
+-- Every visible label looks up the CURRENT language rather than a copy made
+-- when the settings panel was first opened.
+local function LocalizedText(key)
+    if type(key) ~= "string" then return "" end
+    return (WR.L and WR.L[key]) or key
+end
+
+local function MaxTranslationTextHeight(control, key)
+    -- Reserve adequate vertical space even when the user switches from a
+    -- short translation to a longer one without reconstructing the window.
+    local tallest = control:GetTextHeight() or 0
+    for _, language in pairs(WR.Localization or {}) do
+        if type(language) == "table" then
+            local translated = language[key] or (WR.Localization.en and WR.Localization.en[key])
+            if translated then
+                control:SetText(translated)
+                tallest = math.max(tallest, control:GetTextHeight() or 0)
+            end
+        end
+    end
+    control:SetText(LocalizedText(key))
+    return tallest
+end
+
+local function ShowSettingsTooltip(control, key)
+    local text = LocalizedText(key)
     if not text or text == "" then return end
 
     ClearTooltip(InformationTooltip)
@@ -38,8 +63,8 @@ local function ShowSettingsTooltip(control, text)
     SetTooltipText(InformationTooltip, text)
 end
 
-local function AddTooltip(control, text, enableMouse)
-    if not control or not text or text == "" then return end
+local function AddTooltip(control, key, enableMouse)
+    if not control or not key or key == "" then return end
 
     -- Do not make whole rows mouse-enabled: they can otherwise swallow child clicks.
     if enableMouse then
@@ -47,7 +72,7 @@ local function AddTooltip(control, text, enableMouse)
     end
 
     control:SetHandler("OnMouseEnter", function(self)
-        ShowSettingsTooltip(self, text)
+        ShowSettingsTooltip(self, key)
     end)
     control:SetHandler("OnMouseExit", function()
         ClearTooltip(InformationTooltip)
@@ -64,6 +89,21 @@ end
 function WR:RegisterSettingsRefresher(callback)
     self.settingsRefreshers = self.settingsRefreshers or {}
     self.settingsRefreshers[#self.settingsRefreshers + 1] = callback
+end
+
+function WR:RegisterSettingsLanguageRefresher(callback)
+    self.settingsLanguageRefreshers = self.settingsLanguageRefreshers or {}
+    self.settingsLanguageRefreshers[#self.settingsLanguageRefreshers + 1] = callback
+end
+
+function WR:RefreshSettingsLanguage()
+    if not self.settingsLanguageRefreshers then return end
+    ClearTooltip(InformationTooltip)
+    for _, callback in ipairs(self.settingsLanguageRefreshers) do
+        callback()
+    end
+    -- Refresh dropdown values, too: their choice labels are localized lazily.
+    self:RefreshSettingsControls()
 end
 
 function WR:RefreshSettingsControls()
@@ -85,8 +125,8 @@ end
 function WR:CreateSettingsWindow()
     if self.settingsWindow then return end
 
-    local L = self.L
     self.settingsRefreshers = {}
+    self.settingsLanguageRefreshers = {}
 
     local window = WM:CreateTopLevelWindow("WegesruheSettingsWindow")
     self.settingsWindow = window
@@ -114,7 +154,10 @@ function WR:CreateSettingsWindow()
     title:SetAnchor(TOPLEFT, window, TOPLEFT, 30, 20)
     title:SetFont("ZoFontWinH1")
     title:SetColor(BLUE_R, BLUE_G, BLUE_B, 1)
-    title:SetText(L.ADDON_NAME .. " - " .. L.SETTINGS_WINDOW_TITLE)
+    self:RegisterSettingsLanguageRefresher(function()
+        title:SetText(LocalizedText("ADDON_NAME") .. " - " .. LocalizedText("SETTINGS_WINDOW_TITLE"))
+    end)
+    title:SetText(LocalizedText("ADDON_NAME") .. " - " .. LocalizedText("SETTINGS_WINDOW_TITLE"))
 
     local version = WM:CreateControl(nil, window, CT_LABEL)
     version:SetAnchor(TOPRIGHT, window, TOPRIGHT, -30, 28)
@@ -132,8 +175,11 @@ function WR:CreateSettingsWindow()
     local defaultsButton = WM:CreateControlFromVirtual("WegesruheSettingsDefaults", window, "ZO_DefaultButton")
     defaultsButton:SetDimensions(190, 30)
     defaultsButton:SetAnchor(BOTTOMLEFT, window, BOTTOMLEFT, 28, -22)
-    defaultsButton:SetText(L.DEFAULTS_BUTTON)
-    AddTooltip(defaultsButton, L.DEFAULTS_TOOLTIP)
+    defaultsButton:SetText(LocalizedText("DEFAULTS_BUTTON"))
+    self:RegisterSettingsLanguageRefresher(function()
+        defaultsButton:SetText(LocalizedText("DEFAULTS_BUTTON"))
+    end)
+    AddTooltip(defaultsButton, "DEFAULTS_TOOLTIP")
     defaultsButton:SetHandler("OnClicked", function()
         self:ResetDefaults()
         self:RefreshSettingsControls()
@@ -142,7 +188,10 @@ function WR:CreateSettingsWindow()
     local closeButton = WM:CreateControlFromVirtual("WegesruheSettingsClose", window, "ZO_DefaultButton")
     closeButton:SetDimensions(150, 30)
     closeButton:SetAnchor(BOTTOMRIGHT, window, BOTTOMRIGHT, -28, -22)
-    closeButton:SetText(L.CLOSE_BUTTON)
+    closeButton:SetText(LocalizedText("CLOSE_BUTTON"))
+    self:RegisterSettingsLanguageRefresher(function()
+        closeButton:SetText(LocalizedText("CLOSE_BUTTON"))
+    end)
     closeButton:SetHandler("OnClicked", function()
         self:HideSettings()
     end)
@@ -157,59 +206,99 @@ function WR:CreateSettingsWindow()
     scroll:SetWidth(CONTENT_WIDTH)
 
     local y = 0
+    -- The main section headings stay flush left; their options are inset.
+    -- Quest-type and repeat-type filters sit one level deeper beneath Quest Filters.
+    local SECTION_INDENT = 20
+    local SUBSECTION_INDENT = 40
+    local optionIndent = 0
     local controlId = 0
     local function NextName(prefix)
         controlId = controlId + 1
         return "WegesruheSettings" .. prefix .. tostring(controlId)
     end
 
-    local function AddHeader(text)
+    local function AddHeader(textKey)
+        optionIndent = SECTION_INDENT
         local label = WM:CreateControl(NextName("Header"), scroll, CT_LABEL)
         label:SetAnchor(TOPLEFT, scroll, TOPLEFT, 0, y)
         label:SetDimensions(CONTENT_WIDTH, 32)
         label:SetFont("ZoFontWinH2")
         label:SetColor(BLUE_R, BLUE_G, BLUE_B, 1)
-        label:SetText(text)
+        label:SetText(LocalizedText(textKey))
+        self:RegisterSettingsLanguageRefresher(function()
+            label:SetText(LocalizedText(textKey))
+        end)
         y = y + 38
         return label
     end
 
-    local function AddDescription(text, small)
+    local function AddSubheader(textKey)
+        -- A subordinate heading only groups controls visually; it never changes options.
+        optionIndent = SUBSECTION_INDENT
+        local label = WM:CreateControl(NextName("Subheader"), scroll, CT_LABEL)
+        label:SetAnchor(TOPLEFT, scroll, TOPLEFT, SECTION_INDENT, y)
+        label:SetDimensions(CONTENT_WIDTH - SECTION_INDENT, 28)
+        label:SetFont("ZoFontGameBold")
+        label:SetColor(0.78, 0.86, 0.92, 1)
+        label:SetText(LocalizedText(textKey))
+        self:RegisterSettingsLanguageRefresher(function()
+            label:SetText(LocalizedText(textKey))
+        end)
+        y = y + 32
+        return label
+    end
+
+    local function AddDescription(textKey, small)
         local label = WM:CreateControl(NextName("Description"), scroll, CT_LABEL)
-        label:SetAnchor(TOPLEFT, scroll, TOPLEFT, 8, y)
-        label:SetWidth(CONTENT_WIDTH - 16)
+        label:SetAnchor(TOPLEFT, scroll, TOPLEFT, 8 + optionIndent, y)
+        label:SetWidth(CONTENT_WIDTH - 16 - optionIndent)
         label:SetFont(small and "ZoFontGameSmall" or "ZoFontGame")
         if small then
             label:SetColor(0.72, 0.72, 0.72, 1)
         else
             label:SetColor(0.85, 0.85, 0.85, 1)
         end
-        label:SetText(text or "")
-        local h = math.max(small and 28 or 42, (label:GetTextHeight() or 20) + 10)
+        label:SetText(LocalizedText(textKey))
+        local h = math.max(small and 28 or 42, MaxTranslationTextHeight(label, textKey) + 10)
+        self:RegisterSettingsLanguageRefresher(function()
+            label:SetText(LocalizedText(textKey))
+        end)
         label:SetHeight(h)
         y = y + h + 6
         return label
     end
 
-    local function AddCheckbox(text, getter, setter, tooltip)
+    local function AddCheckbox(textKey, getter, setter, tooltipKey, disabledFunc)
         local row = WM:CreateControl(NextName("CheckboxRow"), scroll, CT_CONTROL)
-        row:SetAnchor(TOPLEFT, scroll, TOPLEFT, 8, y)
-        row:SetDimensions(CONTENT_WIDTH - 16, 32)
+        row:SetAnchor(TOPLEFT, scroll, TOPLEFT, 8 + optionIndent, y)
+        row:SetDimensions(CONTENT_WIDTH - 16 - optionIndent, 32)
 
         local checkbox = WM:CreateControlFromVirtual(NextName("Checkbox"), row, "ZO_CheckButton")
         checkbox:SetAnchor(LEFT, row, LEFT, 0, 0)
         checkbox:SetMouseEnabled(true)
-        ZO_CheckButton_SetLabelText(checkbox, text)
+        ZO_CheckButton_SetLabelText(checkbox, LocalizedText(textKey))
+        self:RegisterSettingsLanguageRefresher(function()
+            ZO_CheckButton_SetLabelText(checkbox, LocalizedText(textKey))
+        end)
         ZO_CheckButton_SetToggleFunction(checkbox, function(_, checked)
+            if disabledFunc and disabledFunc() then return end
             setter(checked)
             self:RefreshSettingsControls()
         end)
 
         local checkboxLabel = GetControl(checkbox, "Label")
-        AddTooltip(checkboxLabel or checkbox, tooltip, checkboxLabel ~= nil)
+        AddTooltip(checkboxLabel or checkbox, tooltipKey, checkboxLabel ~= nil)
 
         local function Refresh()
             ZO_CheckButton_SetCheckState(checkbox, not not getter())
+            -- ZO_CheckButton manages its own enabled/click state. Do NOT call
+            -- SetEnabled on every refresh: Test 7 broke checkbox interaction.
+            -- Only subordinate options need mouse suppression when disabled.
+            if disabledFunc then
+                local enabled = not disabledFunc()
+                checkbox:SetMouseEnabled(enabled)
+                checkbox:SetAlpha(enabled and 1 or 0.35)
+            end
         end
         self:RegisterSettingsRefresher(Refresh)
         Refresh()
@@ -218,16 +307,19 @@ function WR:CreateSettingsWindow()
         return row
     end
 
-    local function AddDropdown(text, choices, getter, setter, tooltip, disabledFunc)
+    local function AddDropdown(textKey, choices, getter, setter, tooltipKey, disabledFunc)
         local row = WM:CreateControl(NextName("DropdownRow"), scroll, CT_CONTROL)
-        row:SetAnchor(TOPLEFT, scroll, TOPLEFT, 8, y)
-        row:SetDimensions(CONTENT_WIDTH - 16, 38)
+        row:SetAnchor(TOPLEFT, scroll, TOPLEFT, 8 + optionIndent, y)
+        row:SetDimensions(CONTENT_WIDTH - 16 - optionIndent, 38)
 
         local label = WM:CreateControl(NextName("DropdownLabel"), row, CT_LABEL)
         label:SetAnchor(LEFT, row, LEFT, 0, 0)
         label:SetDimensions(430, 30)
         label:SetFont("ZoFontGame")
-        label:SetText(text)
+        label:SetText(LocalizedText(textKey))
+        self:RegisterSettingsLanguageRefresher(function()
+            label:SetText(LocalizedText(textKey))
+        end)
 
         local button = WM:CreateControl(NextName("DropdownButton"), row, CT_BUTTON)
         button:SetDimensions(240, 28)
@@ -265,11 +357,15 @@ function WR:CreateSettingsWindow()
         arrow:SetTexture("EsoUI/Art/Buttons/dropbox_arrow_normal.dds")
         arrow:SetMouseEnabled(false)
 
+        local function ChoiceLabel(choice)
+            return choice.key and LocalizedText(choice.key) or choice.label
+        end
+
         local function DisplayForValue(value)
             for _, choice in ipairs(choices) do
-                if choice.value == value then return choice.label end
+                if choice.value == value then return ChoiceLabel(choice) end
             end
-            return L.DROPDOWN_FALLBACK or tostring(value or "")
+            return LocalizedText("DROPDOWN_FALLBACK")
         end
 
         local function IsDisabled()
@@ -298,7 +394,7 @@ function WR:CreateSettingsWindow()
                 end
                 for _, choice in ipairs(choices) do
                     local selectedChoice = choice
-                    AddMenuItem(selectedChoice.label, function()
+                    AddMenuItem(ChoiceLabel(selectedChoice), function()
                         setter(selectedChoice.value)
                         self:RefreshSettingsControls()
                     end)
@@ -323,19 +419,19 @@ function WR:CreateSettingsWindow()
 
         button:SetHandler("OnClicked", ShowChoices)
 
-        AddTooltip(label, tooltip, true)
-        AddTooltip(button, tooltip)
+        AddTooltip(label, tooltipKey, true)
+        AddTooltip(button, tooltipKey)
 
         y = y + 42
         return row
     end
 
-    local function AddCheckboxColumns(definitions, valueGetter, valueSetter, tooltip, columns)
+    local function AddCheckboxColumns(definitions, valueGetter, valueSetter, tooltipKey, columns, disabledFunc)
         columns = columns or 2
         local columnGap = 18
-        local availableWidth = CONTENT_WIDTH - 16
+        local availableWidth = CONTENT_WIDTH - 16 - optionIndent
         local columnWidth = math.floor((availableWidth - ((columns - 1) * columnGap)) / columns)
-        local startX = 8
+        local startX = 8 + optionIndent
         local startY = y
         local index = 0
 
@@ -351,8 +447,15 @@ function WR:CreateSettingsWindow()
             local checkbox = WM:CreateControlFromVirtual(NextName("CheckboxGrid"), row, "ZO_CheckButton")
             checkbox:SetAnchor(LEFT, row, LEFT, 0, 0)
             checkbox:SetMouseEnabled(true)
-            ZO_CheckButton_SetLabelText(checkbox, L[definition.label] or definition.constant)
+            local function GridLabel()
+                return (self.L and self.L[definition.label]) or definition.constant or definition.label
+            end
+            ZO_CheckButton_SetLabelText(checkbox, GridLabel())
+            self:RegisterSettingsLanguageRefresher(function()
+                ZO_CheckButton_SetLabelText(checkbox, GridLabel())
+            end)
             ZO_CheckButton_SetToggleFunction(checkbox, function(_, checked)
+                if disabledFunc and disabledFunc() then return end
                 valueSetter(key, checked)
                 self:RefreshSettingsControls()
             end)
@@ -361,10 +464,16 @@ function WR:CreateSettingsWindow()
             if checkboxLabel then
                 checkboxLabel:SetWidth(columnWidth - 34)
             end
-            AddTooltip(checkboxLabel or checkbox, tooltip, checkboxLabel ~= nil)
+            AddTooltip(checkboxLabel or checkbox, tooltipKey, checkboxLabel ~= nil)
 
             local function Refresh()
                 ZO_CheckButton_SetCheckState(checkbox, not not valueGetter(key))
+                -- Keep the known-good CheckButton behavior for normal options.
+                if disabledFunc then
+                    local enabled = not disabledFunc()
+                    checkbox:SetMouseEnabled(enabled)
+                    checkbox:SetAlpha(enabled and 1 or 0.35)
+                end
             end
             self:RegisterSettingsRefresher(Refresh)
             Refresh()
@@ -376,42 +485,69 @@ function WR:CreateSettingsWindow()
         y = startY + (rows * 34)
     end
 
-    local function AddSmallButton(text, callback, tooltip, x, width)
+    local function AddSmallButton(textKey, callback, tooltipKey, x, width, disabledFunc)
         local button = WM:CreateControlFromVirtual(NextName("SmallButton"), scroll, "ZO_DefaultButton")
         button:SetDimensions(width or 190, 28)
-        button:SetAnchor(TOPLEFT, scroll, TOPLEFT, 8 + (x or 0), y)
-        button:SetText(text)
-        button:SetHandler("OnClicked", callback)
-        AddTooltip(button, tooltip)
+        button:SetAnchor(TOPLEFT, scroll, TOPLEFT, 8 + optionIndent + (x or 0), y)
+        button:SetText(LocalizedText(textKey))
+        self:RegisterSettingsLanguageRefresher(function()
+            button:SetText(LocalizedText(textKey))
+        end)
+        button:SetHandler("OnClicked", function()
+            if disabledFunc and disabledFunc() then return end
+            callback()
+        end)
+        if disabledFunc then
+            self:RegisterSettingsRefresher(function()
+                SetControlEnabled(button, not disabledFunc())
+            end)
+        end
+        AddTooltip(button, tooltipKey)
         return button
     end
 
-    AddDescription(L.PANEL_DESCRIPTION or L.ADDON_SHORT_DESCRIPTION)
+    AddDescription("PANEL_DESCRIPTION")
 
-    AddHeader(L.SETTINGS_SCOPE_HEADER)
-    AddDropdown(L.SETTINGS_SCOPE, {
-        { label = L.SETTINGS_SCOPE_ACCOUNT, value = "account" },
-        { label = L.SETTINGS_SCOPE_CHARACTER, value = "character" },
+    AddHeader("SETTINGS_SCOPE_HEADER")
+    AddDropdown("SETTINGS_SCOPE", {
+        { key = "SETTINGS_SCOPE_ACCOUNT", value = "account" },
+        { key = "SETTINGS_SCOPE_CHARACTER", value = "character" },
     }, function()
         return self:GetSettingsScope()
     end, function(value)
         self:SetSettingsScope(value)
         self:RefreshSettingsControls()
-    end, L.SETTINGS_SCOPE_TOOLTIP)
-    AddDescription(L.SETTINGS_SCOPE_INFO, true)
+    end, "SETTINGS_SCOPE_TOOLTIP")
+    AddDescription("SETTINGS_SCOPE_INFO", true)
 
-    AddHeader(L.SETTINGS_GENERAL_HEADER)
-    AddCheckbox(L.ENABLED,
+    AddHeader("LANGUAGE_HEADER")
+    AddDropdown("LANGUAGE", {
+        { key = "LANGUAGE_AUTO", value = "auto" },
+        { label = "Deutsch", value = "de" },
+        { label = "English", value = "en" },
+        { label = "Français", value = "fr" },
+        { label = "Español", value = "es" },
+        { label = "Русский", value = "ru" },
+        { label = "简体中文", value = "zh" },
+        { label = "日本語", value = "jp" },
+    }, function()
+        return self.storage.language or "auto"
+    end, function(value)
+        self:SetLanguagePreference(value)
+    end, "LANGUAGE_TOOLTIP")
+
+    AddHeader("SETTINGS_GENERAL_HEADER")
+    AddCheckbox("ENABLED",
         function() return self.settings.enabled end,
         function(value) self:SetEnabled(value, false) end,
-        L.ENABLED_TOOLTIP)
+        "ENABLED_TOOLTIP")
 
-    AddDropdown(L.PRESET, {
-        { label = L.PRESET_NORMAL, value = "normal" },
-        { label = L.PRESET_GENTLE, value = "gentle" },
-        { label = L.PRESET_EXPLORER, value = "explorer" },
-        { label = L.PRESET_HARDCORE, value = "hardcore" },
-        { label = L.PRESET_CUSTOM, value = "custom" },
+    AddDropdown("PRESET", {
+        { key = "PRESET_NORMAL", value = "normal" },
+        { key = "PRESET_GENTLE", value = "gentle" },
+        { key = "PRESET_EXPLORER", value = "explorer" },
+        { key = "PRESET_HARDCORE", value = "hardcore" },
+        { key = "PRESET_CUSTOM", value = "custom" },
     }, function()
         return self.settings.preset
     end, function(value)
@@ -420,65 +556,87 @@ function WR:CreateSettingsWindow()
         else
             self:ApplyPreset(value)
         end
-    end, L.PRESET_TOOLTIP)
+    end, "PRESET_TOOLTIP")
 
-    AddHeader(L.PVP_HEADER)
-    AddCheckbox(L.PVP_OVERRIDE,
+    AddHeader("PVP_HEADER")
+    AddCheckbox("PVP_OVERRIDE",
         function() return self.settings.pvpOverride end,
         function(value)
             self.settings.pvpOverride = value
             self:RefreshAll()
         end,
-        L.PVP_OVERRIDE_TOOLTIP)
+        "PVP_OVERRIDE_TOOLTIP")
 
-    AddDropdown(L.PVP_PRESET, {
-        { label = L.PRESET_OFF, value = "off" },
-        { label = L.PRESET_NORMAL, value = "normal" },
-        { label = L.PRESET_GENTLE, value = "gentle" },
-        { label = L.PRESET_EXPLORER, value = "explorer" },
-        { label = L.PRESET_HARDCORE, value = "hardcore" },
+    -- PvP preset belongs to the switch directly above it.
+    optionIndent = SUBSECTION_INDENT
+    AddDropdown("PVP_PRESET", {
+        { key = "PRESET_OFF", value = "off" },
+        { key = "PRESET_NORMAL", value = "normal" },
+        { key = "PRESET_GENTLE", value = "gentle" },
+        { key = "PRESET_EXPLORER", value = "explorer" },
+        { key = "PRESET_HARDCORE", value = "hardcore" },
     }, function()
         return self.settings.pvpPreset
     end, function(value)
         self.settings.pvpPreset = value
         self:RefreshAll()
-    end, L.PVP_PRESET_TOOLTIP, function()
+    end, "PVP_PRESET_TOOLTIP", function()
         return not self.settings.pvpOverride
     end)
 
-    AddHeader(L.KEYBIND_HEADER)
-    AddDescription(L.KEYBIND_INFO, true)
+    AddHeader("KEYBIND_HEADER")
+    AddDescription("KEYBIND_INFO", true)
 
-    AddHeader(L.MAP_HEADER)
-    AddCheckbox(L.MAP_QUESTS,
+    AddHeader("MAP_HEADER")
+    AddCheckbox("MAP_QUESTS",
         function() return self.settings.mapQuestPins end,
         function(value)
             self.settings.mapQuestPins = value
             self:MarkCustom()
             self:RefreshAll(true)
         end,
-        L.MAP_QUESTS_TOOLTIP)
+        "MAP_QUESTS_TOOLTIP")
 
-    AddHeader(L.QUEST_FILTERS_HEADER)
-    AddDescription(L.QUEST_FILTERS_DESCRIPTION, true)
+    -- Quest category filters under World Map apply ONLY to the world map.
+    -- When the map quest-pin master is off, these options have no map effect.
+    -- Keep their saved values while showing them visibly inactive.
+    local function IsMapQuestPinsOff()
+        return self.settings.mapQuestPins == false
+    end
 
-    local function SetAll(definitions, target, value)
+    local function DimWhenDisabled(control, disabledFunc)
+        self:RegisterSettingsRefresher(function()
+            control:SetAlpha(disabledFunc() and 0.40 or 1)
+        end)
+    end
+
+    DimWhenDisabled(AddDescription("MAP_FILTERS_DESCRIPTION", true), IsMapQuestPinsOff)
+
+    local function RefreshSurface(surface)
+        if surface == "compass" then
+            self:RefreshCompass()
+        else
+            self:RefreshMap(true)
+        end
+    end
+
+    local function SetAll(definitions, target, value, surface)
         for _, definition in ipairs(definitions or {}) do
             target[definition.key] = value
         end
         self:MarkCustom()
-        self:RefreshAll(true)
+        RefreshSurface(surface)
         self:RefreshSettingsControls()
     end
 
-    AddHeader(L.QUEST_TYPES_HEADER)
-    AddDescription(L.QUEST_TYPES_DESCRIPTION, true)
-    AddSmallButton(L.ENABLE_ALL_SHORT, function()
-        SetAll(self.questTypeDefinitions, self.settings.questTypes, true)
-    end, L.ALL_ENABLE_QUEST_TYPES_TOOLTIP, 0, 190)
-    AddSmallButton(L.DISABLE_ALL_SHORT, function()
-        SetAll(self.questTypeDefinitions, self.settings.questTypes, false)
-    end, L.ALL_DISABLE_QUEST_TYPES_TOOLTIP, 200, 190)
+    DimWhenDisabled(AddSubheader("QUEST_TYPES_HEADER"), IsMapQuestPinsOff)
+    DimWhenDisabled(AddDescription("QUEST_TYPES_DESCRIPTION", true), IsMapQuestPinsOff)
+    AddSmallButton("ENABLE_ALL_SHORT", function()
+        SetAll(self.questTypeDefinitions, self.settings.questTypes, true, "map")
+    end, "ALL_ENABLE_QUEST_TYPES_TOOLTIP", 0, 190, IsMapQuestPinsOff)
+    AddSmallButton("DISABLE_ALL_SHORT", function()
+        SetAll(self.questTypeDefinitions, self.settings.questTypes, false, "map")
+    end, "ALL_DISABLE_QUEST_TYPES_TOOLTIP", 200, 190, IsMapQuestPinsOff)
     y = y + 34
 
     AddCheckboxColumns(self.questTypeDefinitions,
@@ -488,19 +646,19 @@ function WR:CreateSettingsWindow()
         function(key, value)
             self.settings.questTypes[key] = value
             self:MarkCustom()
-            self:RefreshAll(true)
+            RefreshSurface("map")
         end,
-        L.QUEST_FILTER_TOOLTIP,
-        2)
+        "MAP_QUEST_FILTER_TOOLTIP",
+        2, IsMapQuestPinsOff)
 
-    AddHeader(L.REPEAT_TYPES_HEADER)
-    AddDescription(L.REPEAT_TYPES_DESCRIPTION, true)
-    AddSmallButton(L.ENABLE_ALL_SHORT, function()
-        SetAll(self.repeatTypeDefinitions, self.settings.repeatTypes, true)
-    end, L.ALL_ENABLE_REPEAT_TYPES_TOOLTIP, 0, 190)
-    AddSmallButton(L.DISABLE_ALL_SHORT, function()
-        SetAll(self.repeatTypeDefinitions, self.settings.repeatTypes, false)
-    end, L.ALL_DISABLE_REPEAT_TYPES_TOOLTIP, 200, 190)
+    DimWhenDisabled(AddSubheader("REPEAT_TYPES_HEADER"), IsMapQuestPinsOff)
+    DimWhenDisabled(AddDescription("REPEAT_TYPES_DESCRIPTION", true), IsMapQuestPinsOff)
+    AddSmallButton("ENABLE_ALL_SHORT", function()
+        SetAll(self.repeatTypeDefinitions, self.settings.repeatTypes, true, "map")
+    end, "ALL_ENABLE_REPEAT_TYPES_TOOLTIP", 0, 190, IsMapQuestPinsOff)
+    AddSmallButton("DISABLE_ALL_SHORT", function()
+        SetAll(self.repeatTypeDefinitions, self.settings.repeatTypes, false, "map")
+    end, "ALL_DISABLE_REPEAT_TYPES_TOOLTIP", 200, 190, IsMapQuestPinsOff)
     y = y + 34
 
     AddCheckboxColumns(self.repeatTypeDefinitions,
@@ -510,19 +668,32 @@ function WR:CreateSettingsWindow()
         function(key, value)
             self.settings.repeatTypes[key] = value
             self:MarkCustom()
-            self:RefreshAll(true)
+            RefreshSurface("map")
         end,
-        L.QUEST_FILTER_TOOLTIP,
-        2)
+        "MAP_QUEST_FILTER_TOOLTIP",
+        2, IsMapQuestPinsOff)
 
-    AddHeader(L.COMPASS_HEADER)
+    AddHeader("COMPASS_HEADER")
+    AddCheckbox("COMPASS_PINS",
+        function() return self.settings.compassPins ~= false end,
+        function(value)
+            self.settings.compassPins = value
+            self:MarkCustom()
+            self:RefreshCompass()
+        end,
+        "COMPASS_PINS_TOOLTIP")
+
+    local function IsCompassMarkersOff()
+        return self.settings.compassPins == false
+    end
+
     local compassRows = {
-        { L.COMPASS_QUEST_OFFERS, L.COMPASS_GENERIC_TOOLTIP, "questOffers" },
-        { L.COMPASS_ASSISTED, L.COMPASS_GENERIC_TOOLTIP, "assistedObjectives" },
-        { L.COMPASS_SECONDARY, L.COMPASS_GENERIC_TOOLTIP, "secondaryObjectives" },
-        { L.COMPASS_POI_SEEN, L.COMPASS_GENERIC_TOOLTIP, "poiSeen" },
-        { L.COMPASS_POI_COMPLETE, L.COMPASS_GENERIC_TOOLTIP, "poiComplete" },
-        { L.COMPASS_AREAS, L.COMPASS_AREAS_TOOLTIP, "questAreas" },
+        { "COMPASS_QUEST_OFFERS", "COMPASS_GENERIC_TOOLTIP", "questOffers" },
+        { "COMPASS_ASSISTED", "COMPASS_GENERIC_TOOLTIP", "assistedObjectives" },
+        { "COMPASS_SECONDARY", "COMPASS_GENERIC_TOOLTIP", "secondaryObjectives" },
+        { "COMPASS_POI_SEEN", "COMPASS_POI_SEEN_TOOLTIP", "poiSeen" },
+        { "COMPASS_POI_COMPLETE", "COMPASS_POI_COMPLETE_TOOLTIP", "poiComplete" },
+        { "COMPASS_AREAS", "COMPASS_AREAS_TOOLTIP", "questAreas" },
     }
     for _, rowData in ipairs(compassRows) do
         local key = rowData[3]
@@ -533,16 +704,63 @@ function WR:CreateSettingsWindow()
                 self:MarkCustom()
                 self:RefreshAll()
             end,
-            rowData[2])
+            rowData[2], IsCompassMarkersOff)
     end
 
-    AddHeader(L.WORLD_HEADER)
-    AddDescription(L.WORLD_SAFETY_INFO, true)
+    -- The compass owns its OWN quest-type/repeat-type filters. They are
+    -- initialized from legacy filters during migration, then independent.
+    AddDescription("COMPASS_FILTERS_DESCRIPTION", true)
+    AddSubheader("QUEST_TYPES_HEADER")
+    AddDescription("QUEST_TYPES_DESCRIPTION", true)
+    AddSmallButton("ENABLE_ALL_SHORT", function()
+        SetAll(self.questTypeDefinitions, self.settings.compassQuestTypes, true, "compass")
+    end, "ALL_ENABLE_QUEST_TYPES_TOOLTIP", 0, 190, IsCompassMarkersOff)
+    AddSmallButton("DISABLE_ALL_SHORT", function()
+        SetAll(self.questTypeDefinitions, self.settings.compassQuestTypes, false, "compass")
+    end, "ALL_DISABLE_QUEST_TYPES_TOOLTIP", 200, 190, IsCompassMarkersOff)
+    y = y + 34
+
+    AddCheckboxColumns(self.questTypeDefinitions,
+        function(key)
+            return self.settings.compassQuestTypes[key] ~= false
+        end,
+        function(key, value)
+            self.settings.compassQuestTypes[key] = value
+            self:MarkCustom()
+            RefreshSurface("compass")
+        end,
+        "COMPASS_QUEST_FILTER_TOOLTIP",
+        2, IsCompassMarkersOff)
+
+    AddSubheader("REPEAT_TYPES_HEADER")
+    AddDescription("REPEAT_TYPES_DESCRIPTION", true)
+    AddSmallButton("ENABLE_ALL_SHORT", function()
+        SetAll(self.repeatTypeDefinitions, self.settings.compassRepeatTypes, true, "compass")
+    end, "ALL_ENABLE_REPEAT_TYPES_TOOLTIP", 0, 190, IsCompassMarkersOff)
+    AddSmallButton("DISABLE_ALL_SHORT", function()
+        SetAll(self.repeatTypeDefinitions, self.settings.compassRepeatTypes, false, "compass")
+    end, "ALL_DISABLE_REPEAT_TYPES_TOOLTIP", 200, 190, IsCompassMarkersOff)
+    y = y + 34
+
+    AddCheckboxColumns(self.repeatTypeDefinitions,
+        function(key)
+            return self.settings.compassRepeatTypes[key] ~= false
+        end,
+        function(key, value)
+            self.settings.compassRepeatTypes[key] = value
+            self:MarkCustom()
+            RefreshSurface("compass")
+        end,
+        "COMPASS_QUEST_FILTER_TOOLTIP",
+        2, IsCompassMarkersOff)
+
+    AddHeader("WORLD_HEADER")
+    AddDescription("WORLD_SAFETY_INFO", true)
     local worldRows = {
-        { L.WORLD_QUEST_OFFERS, L.WORLD_GENERIC_TOOLTIP, "questOffers" },
-        { L.WORLD_ASSISTED, L.WORLD_GENERIC_TOOLTIP, "assistedObjectives" },
-        { L.WORLD_SECONDARY, L.WORLD_GENERIC_TOOLTIP, "secondaryObjectives" },
-        { L.WORLD_BREADCRUMBS, L.WORLD_BREADCRUMBS_TOOLTIP, "breadcrumbs" },
+        { "WORLD_QUEST_OFFERS", "WORLD_GENERIC_TOOLTIP", "questOffers" },
+        { "WORLD_ASSISTED", "WORLD_GENERIC_TOOLTIP", "assistedObjectives" },
+        { "WORLD_SECONDARY", "WORLD_GENERIC_TOOLTIP", "secondaryObjectives" },
+        { "WORLD_BREADCRUMBS", "WORLD_BREADCRUMBS_TOOLTIP", "breadcrumbs" },
     }
     for _, rowData in ipairs(worldRows) do
         local key = rowData[3]
@@ -560,6 +778,9 @@ function WR:CreateSettingsWindow()
 end
 
 function WR:ShowSettings(source)
+    -- A key-up can be swallowed when entering a menu. Clear a stale
+    -- hold-to-show navigation state so the next press remains usable.
+    if self.helpHeld then self:SetHelpMode(false) end
     self:CreateSettingsWindow()
     self.settingsOpenSource = source
     self:RefreshSettingsControls()
@@ -574,6 +795,8 @@ function WR:ShowSettings(source)
 end
 
 function WR:HideSettings()
+    -- Also guard the reverse transition (menu -> game).
+    if self.helpHeld then self:SetHelpMode(false) end
     ClearTooltip(InformationTooltip)
     if not self.settingsWindow then return end
 

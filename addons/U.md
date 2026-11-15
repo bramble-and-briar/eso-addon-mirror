@@ -39,7 +39,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Universal Effect Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Universal-Effect-Tracker__0b7868ba-bd96-4cff-a633-8ad4ff7c5829) | Shienar | Console | — |
 | [UniversalAssistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/The.Invis/UniversalAssistant__4856) | The.Invis | PC / Mac | 1.0.3 |
 | [Unknown Insight (with Scribing)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/Unknown-Insight-with-Scribing__2513) | zelenin | PC / Mac | 0.7.0 |
-| [Unknown POI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/f1rex/Unknown-POI__2966) | f1rex | PC / Mac | 5 |
+| [Unknown POI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/f1rex/Unknown-POI__2966) | f1rex | PC / Mac | 6 |
 | [Unknown Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/Unknown-Tracker__2325) | kadeer | PC / Mac | v0.79 |
 | [UnknownFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Xarador/UnknownFilter__670babe5-297e-4cb3-88d6-cda790275d1a) | Xarador | Console | — |
 | [Unlimited Camera Zoom](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Unlimited-Camera-Zoom__1273) | CaptainBlagbird | PC / Mac | 1.0.15 |

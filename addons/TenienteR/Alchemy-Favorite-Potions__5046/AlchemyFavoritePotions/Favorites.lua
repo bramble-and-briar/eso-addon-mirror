@@ -1,6 +1,12 @@
 -- Datos de las favoritas: combinación puesta en las ranuras, guardado y filas de la lista.
 local AFP = AlchemyFavoritePotions
 
+--- Tipo de resultado de una favorita, para filtrar la lista (nil = todas)
+AFP.KIND = {
+    POTION = "potion",
+    POISON = "poison",
+}
+
 --- Estado de la combinación puesta en las ranuras
 AFP.COMBINATION_STATUS = {
     READY = 1,      -- se puede guardar
@@ -162,15 +168,17 @@ local function GetFavoritesOldestFirst()
     return favorites
 end
 
+--- Fila de una favorita. Si availableItems es nil no se calculan los problemas
+-- (la ventana de consulta no atenúa ni marca nada).
 local function CreateFavoriteRow(favorite, availableItems)
-    local problems = AFP.GetFavoriteProblems(favorite, availableItems)
+    local problems = availableItems and AFP.GetFavoriteProblems(favorite, availableItems) or nil
 
     local ingredients = { CreateIngredientRow(favorite.solvent) }
     for _, reagentLink in ipairs(favorite.reagents) do
         ingredients[#ingredients + 1] = CreateIngredientRow(reagentLink)
     end
     for index, ingredient in ipairs(ingredients) do
-        ingredient.isMissing = problems.missingIngredients[index] == true
+        ingredient.isMissing = problems ~= nil and problems.missingIngredients[index] == true
     end
 
     return {
@@ -180,16 +188,40 @@ local function CreateFavoriteRow(favorite, availableItems)
         ingredients = ingredients,
         favorite = favorite,
         -- nil si se puede preparar; si no, el motivo para atenuar la fila y mostrar el tooltip
-        problems = problems.hasAny and problems or nil,
+        problems = (problems and problems.hasAny) and problems or nil,
     }
 end
 
---- Devuelve las filas que muestra la pestaña de favoritas.
+--- Indica si la favorita es del tipo pedido. Sin tipo, entran todas.
+-- Se mira el objeto resultante, así que también vale para las guardadas antes de existir el filtro.
+local function MatchesKind(favorite, kind)
+    if not kind then
+        return true
+    end
+
+    local isPoison = GetItemLinkItemType(favorite.potion) == ITEMTYPE_POISON
+    return isPoison == (kind == AFP.KIND.POISON)
+end
+
+--- Devuelve las filas que muestran la pestaña de favoritas y la ventana de consulta.
 -- Van de la más reciente a la más antigua, o al revés, según AFP.IsNewestFirst().
-function AFP.GetFavoriteRows()
-    local favorites = GetFavoritesOldestFirst()
+-- Opciones: skipProblems (no se miran las bolsas ni se calcula si se pueden preparar)
+-- y kind (AFP.KIND.POTION o AFP.KIND.POISON; sin él salen todas).
+function AFP.GetFavoriteRows(options)
+    options = options or {}
+
+    local favorites = {}
+    for _, favorite in ipairs(GetFavoritesOldestFirst()) do
+        if MatchesKind(favorite, options.kind) then
+            favorites[#favorites + 1] = favorite
+        end
+    end
+
     -- Se recorren las bolsas una vez por refresco, no una por fila
-    local availableItems = AFP.BuildAvailableItems()
+    local availableItems = nil
+    if not options.skipProblems then
+        availableItems = AFP.BuildAvailableItems()
+    end
     local rows = {}
 
     if AFP.IsNewestFirst() then

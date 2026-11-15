@@ -1,6 +1,7 @@
 NQOL = NQOL or {}
 local GamepadOptions = NQOL.GamepadOptions
 
+local GUILDS_PANEL_ID = GamepadOptions.PanelIds.GUILDS
 local FRIENDS_PANEL_ID = GamepadOptions.PanelIds.FRIENDS
 local GROUP_FINDER_MONITOR_PANEL_ID = GamepadOptions.PanelIds.GROUP_FINDER_MONITOR
 
@@ -194,4 +195,18 @@ end
 function GamepadOptions.BuildGroupFinderMonitorBorderSizeOption()
     local monitor = NQOL.Features.GroupFinderMonitor
     return GamepadOptions.BuildValueStepSliderOption(GROUP_FINDER_MONITOR_PANEL_ID, 20, monitor.GetBorderSizeLabel(), monitor.GetBorderSizeTooltip(), monitor.GetBorderSizeMin(), monitor.GetBorderSizeMax(), "%.0f", monitor.GetBorderSize, monitor.SetBorderSize, 1)
+end
+
+function GamepadOptions.BuildGuildsTrackGoldDepositsOption()
+    local guilds = NQOL.Features.Guilds
+    return GamepadOptions.BuildCheckboxOption(
+        GUILDS_PANEL_ID,
+        1,
+        NQOL.L("features.guilds.track_gold_deposits.label"),
+        NQOL.L("features.guilds.track_gold_deposits.tooltip"),
+        guilds.GetTrackGoldDeposits,
+        guilds.SetTrackGoldDeposits,
+        nil,
+        guilds.GetTrackGoldDepositsDefault
+    )
 end

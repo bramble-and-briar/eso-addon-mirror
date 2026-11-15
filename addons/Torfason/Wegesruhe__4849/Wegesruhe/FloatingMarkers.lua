@@ -25,7 +25,9 @@ function WR:InitializeFloatingMarkers()
     local original = self.originalSetFloatingMarkerInfo
 
     function SetFloatingMarkerInfo(pinType, size, texture, breadcrumbTexture, ...)
-        local managed = WR.pinCategories[pinType] ~= nil
+        -- Only intercept explicitly registered 3D world-marker types.
+        -- Compass-only POI types share the category table, but do not belong here.
+        local managed = WR.managedFloatingPinSet[pinType] == true
 
         if managed then
             if not WR:IsFloatingPinVisible(pinType) then

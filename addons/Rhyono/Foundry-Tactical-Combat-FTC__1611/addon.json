@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Rhyono/Foundry-Tactical-Combat-FTC__1611",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Rhyono",
   "canonical_id": "esoui:1611",
   "category_id": "25",
   "compatibility": [
     {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:1611",
@@ -17,9 +18,10 @@
     "FoundryTacticalCombat"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1611/",
-  "fingerprint": "fcdda08200af90b9c333ace54a3c3d01d5eb5627a8a13888ac28f528b9d1f581",
+  "fingerprint": "4d687c6794b553e85433b6d3e01ec0c9f88f92d4c0a9100097243e828c547926",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw5285.png"
+    "https://cdn-eso.mmoui.com/preview/pvw5285.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18433.jpg"
   ],
   "platform": "pc",
   "published": true,
@@ -27,11 +29,11 @@
   "source_id": "1611",
   "source_url": "https://www.esoui.com/downloads/info1611-FoundryTacticalCombatFTC.html",
   "stats": {
-    "downloads": 1098746,
+    "downloads": 1101405,
     "favorites": 507,
-    "monthly_downloads": 551
+    "monthly_downloads": 1187
   },
   "title": "Foundry Tactical Combat (FTC)",
-  "updated_at": 1713315116000,
-  "version": "1.32"
+  "updated_at": 1794734769000,
+  "version": "1.34"
 }

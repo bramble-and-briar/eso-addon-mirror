@@ -18,7 +18,7 @@
     "RSSThemeBars"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4957/",
-  "fingerprint": "6d3a5505fdc513736e78e1ddac590df58178a62f6195bfeac1fcaf64e383b9bc",
+  "fingerprint": "bb7cfdd6073628a31d5c67f0bcd3890788a7c5271bc3576b54f0b8c341087110",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18017.png",
     "https://cdn-eso.mmoui.com/preview/pvw18018.png",
@@ -30,11 +30,11 @@
   "source_id": "4957",
   "source_url": "https://www.esoui.com/downloads/info4957-RSSThemeBars.html",
   "stats": {
-    "downloads": 7,
+    "downloads": 85,
     "favorites": 0,
-    "monthly_downloads": 4
+    "monthly_downloads": 83
   },
   "title": "RSS Theme Bars",
-  "updated_at": 1792180061000,
-  "version": "1.1.0"
+  "updated_at": 1794622132000,
+  "version": "1.2.0"
 }

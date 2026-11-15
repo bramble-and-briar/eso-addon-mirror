@@ -22,6 +22,7 @@ GamepadOptions.PanelIds = {
     SOCIAL = 9162,
     FRIENDS = 9163,
     GROUP_FINDER_MONITOR = 9182,
+    GUILDS = 9195,
     TICKER = 9116,
     UTILITY = 9117,
     GROUPING = 9118,
@@ -67,6 +68,8 @@ GamepadOptions.PanelIds = {
     MINIMAP = 9166,
     INFINITE_ARCHIVE = 9179,
     INFINITE_ARCHIVE_FRAME = 9180,
+    GOLDEN_PURSUIT = 9196,
+    HOUSE_TRACKER = 9197,
     COMBAT_INFINITE_ARCHIVE = 9181,
     COMBAT_MISCELLANEOUS = 9183,
     MAP_OPTIONS = 9184,
@@ -115,6 +118,8 @@ local SYNERGY_PROMPTS_PANEL_ID = PanelIds.SYNERGY_PROMPTS
 local CENTER_SCREEN_ANNOUNCE_PANEL_ID = PanelIds.CENTER_SCREEN_ANNOUNCE
 local ANNOUNCEMENTS_PANEL_ID = PanelIds.ANNOUNCEMENTS
 local INFINITE_ARCHIVE_FRAME_PANEL_ID = PanelIds.INFINITE_ARCHIVE_FRAME
+local GOLDEN_PURSUIT_PANEL_ID = PanelIds.GOLDEN_PURSUIT
+local HOUSE_TRACKER_PANEL_ID = PanelIds.HOUSE_TRACKER
 local LOOT_LOG_PANEL_ID = PanelIds.LOOT_LOG
 local PLAYER_INFO_PANEL_ID = PanelIds.PLAYER_INFO
 local PLAYER_INTERACTION_PANEL_ID = PanelIds.PLAYER_INTERACTION
@@ -131,6 +136,7 @@ local CHAT_PANEL_ID = PanelIds.CHAT
 local CHAT_GUILD_COLORS_PANEL_ID = PanelIds.CHAT_GUILD_COLORS
 local CHAT_REMINDERS_PANEL_ID = PanelIds.CHAT_REMINDERS
 local SOCIAL_PANEL_ID = PanelIds.SOCIAL
+local GUILDS_PANEL_ID = PanelIds.GUILDS
 local FRIENDS_PANEL_ID = PanelIds.FRIENDS
 local GROUP_FINDER_MONITOR_PANEL_ID = PanelIds.GROUP_FINDER_MONITOR
 local TICKER_PANEL_ID = PanelIds.TICKER
@@ -188,6 +194,7 @@ GamepadOptions.ULTIMATE_COUNTDOWN_FRONT_PANEL_ID = PanelIds.ULTIMATE_COUNTDOWN_F
 GamepadOptions.ULTIMATE_COUNTDOWN_BACK_PANEL_ID = PanelIds.ULTIMATE_COUNTDOWN_BACK
 GamepadOptions.DEBUG_PANEL_ID = PanelIds.DEBUG
 GamepadOptions.SOCIAL_PANEL_ID = PanelIds.SOCIAL
+GamepadOptions.GUILDS_PANEL_ID = PanelIds.GUILDS
 GamepadOptions.FRIENDS_PANEL_ID = PanelIds.FRIENDS
 GamepadOptions.GROUP_FINDER_MONITOR_PANEL_ID = PanelIds.GROUP_FINDER_MONITOR
 local CATEGORY_NAME = "|cff0000N|r|c007fffQOL|r"
@@ -269,32 +276,28 @@ function GamepadOptions.ResetNQOLSettingToDefault(control, settingData)
 end
 
 function GamepadOptions.ResetPanelOptionsToDefaults(panelId)
-    if panelResetInProgress[panelId] then
+    if panelResetInProgress[panelId] then return end
+    if panelId == ROOT_PANEL_ID then
+        GamepadOptions.ResetAllNQOLPanelsToDefaults()
         return
     end
-
-    panelResetInProgress[panelId] = true
-
     local resetPaths = PANEL_RESET_PATHS[panelId]
-    if resetPaths and NQOL.Settings and NQOL.Settings.ResetPath then
+    if not resetPaths then return end
+    panelResetInProgress[panelId] = true
+    local ok, message = pcall(function()
         for _, path in ipairs(resetPaths) do
             NQOL.Settings.ResetPath(path)
         end
-    end
-
-    GamepadOptions.ApplyPanelOptions(panelId)
+        GamepadOptions.ReapplySettingsPaths(resetPaths)
+    end)
     panelResetInProgress[panelId] = nil
+    if not ok then error(message) end
+    GamepadOptions.RefreshCurrentOptionsList()
 end
 
 function GamepadOptions.ResetAllNQOLPanelsToDefaults()
-    if NQOL.Settings and NQOL.Settings.ResetAllOptions then
-        NQOL.Settings.ResetAllOptions()
-    end
-
-    for _, panelId in pairs(GamepadOptions.PanelIds) do
-        GamepadOptions.ApplyPanelOptions(panelId)
-    end
-
+    NQOL.Settings.ResetAllOptions()
+    GamepadOptions.ReapplySettingsPaths(nil)
     GamepadOptions.RefreshCurrentOptionsList()
 end
 
@@ -313,16 +316,10 @@ function GamepadOptions.AttachPanelReset(optionsData, panelId)
 end
 
 function GamepadOptions.ApplyPanelOptions(panelId)
-    local panelSettings = GAMEPAD_SETTINGS_DATA and GAMEPAD_SETTINGS_DATA[panelId]
-    if not panelSettings or not GAMEPAD_OPTIONS or not GAMEPAD_OPTIONS.GetSettingsData then
-        return
-    end
-
-    for _, setting in ipairs(panelSettings) do
-        local settingData = GAMEPAD_OPTIONS:GetSettingsData(setting.panel, setting.system, setting.settingId)
-        if settingData and settingData.GetSettingOverride and settingData.SetSettingOverride then
-            settingData.SetSettingOverride(nil, settingData.GetSettingOverride())
-        end
+    if panelId == ROOT_PANEL_ID then
+        GamepadOptions.ReapplySettingsPaths(nil)
+    elseif PANEL_RESET_PATHS[panelId] then
+        GamepadOptions.ReapplySettingsPaths(PANEL_RESET_PATHS[panelId])
     end
 end
 
@@ -446,6 +443,8 @@ local SUBPANEL_PARENT_IDS = {
     [CENTER_SCREEN_ANNOUNCE_PANEL_ID] = DEFAULT_FRAMES_PANEL_ID,
     [ANNOUNCEMENTS_PANEL_ID] = DEFAULT_FRAMES_PANEL_ID,
     [INFINITE_ARCHIVE_FRAME_PANEL_ID] = DEFAULT_FRAMES_PANEL_ID,
+    [GOLDEN_PURSUIT_PANEL_ID] = DEFAULT_FRAMES_PANEL_ID,
+    [HOUSE_TRACKER_PANEL_ID] = DEFAULT_FRAMES_PANEL_ID,
     [LOOT_LOG_PANEL_ID] = UI_PANEL_ID,
     [PLAYER_INFO_PANEL_ID] = UI_PANEL_ID,
     [PLAYER_INTERACTION_PANEL_ID] = DEFAULT_FRAMES_PANEL_ID,
@@ -463,6 +462,7 @@ local SUBPANEL_PARENT_IDS = {
     [CHAT_PANEL_ID] = SOCIAL_PANEL_ID,
     [CHAT_GUILD_COLORS_PANEL_ID] = CHAT_PANEL_ID,
     [CHAT_REMINDERS_PANEL_ID] = CHAT_PANEL_ID,
+    [GUILDS_PANEL_ID] = SOCIAL_PANEL_ID,
     [FRIENDS_PANEL_ID] = SOCIAL_PANEL_ID,
     [GROUP_FINDER_MONITOR_PANEL_ID] = SOCIAL_PANEL_ID,
     [TICKER_PANEL_ID] = ROOT_PANEL_ID,
@@ -490,9 +490,9 @@ PANEL_RESET_PATHS = {
     [MOUNTS_PANEL_ID] = { { "mounts" } },
     [ANTIQUITIES_PANEL_ID] = { { "antiquities" } },
     [GEAR_PANEL_ID] = { { "gear" } },
-    [AUTO_CHARGE_PANEL_ID] = { { "gear" } },
-    [AUTO_REPAIR_PANEL_ID] = { { "gear" } },
-    [AUTO_BOUND_PANEL_ID] = { { "gear" } },
+    [AUTO_CHARGE_PANEL_ID] = { { "gear", "autoCharge" }, { "gear", "chargeThreshold" }, { "gear", "logCharge" } },
+    [AUTO_REPAIR_PANEL_ID] = { { "gear", "autoRepair" }, { "gear", "repairThreshold" }, { "gear", "repairAllInMerchants" }, { "gear", "logRepair" } },
+    [AUTO_BOUND_PANEL_ID] = { { "gear", "autoBound" }, { "gear", "logBind" } },
     [COMBAT_PANEL_ID] = { { "trialTimer" }, { "ultimateCountdown" }, { "combat", "infiniteArchive" }, { "combat", "miscellaneous" }, { "ui", "combatReticle" } },
     [COMBAT_INFINITE_ARCHIVE_PANEL_ID] = { { "combat", "infiniteArchive" } },
     [COMBAT_MISCELLANEOUS_PANEL_ID] = { { "combat", "miscellaneous" } },
@@ -517,6 +517,8 @@ PANEL_RESET_PATHS = {
         { "ui", "centerScreenAnnounce" },
         { "ui", "announcements" },
         { "ui", "infiniteArchive" },
+        { "ui", "goldenPursuit" },
+        { "ui", "houseTracker" },
         { "ui", "playerInteraction" },
         { "ui", "subtitles" },
         { "ui", "lootLog" },
@@ -524,7 +526,7 @@ PANEL_RESET_PATHS = {
         { "ui", "playerInfo" },
     },
     [CAMERA_PANEL_ID] = { { "ui", "camera" } },
-    [DEFAULT_FRAMES_PANEL_ID] = { { "ui", "activeQuest" }, { "ui", "activeCombatTips" }, { "ui", "synergyPrompts" }, { "ui", "centerScreenAnnounce" }, { "ui", "announcements" }, { "ui", "infiniteArchive" }, { "ui", "playerInteraction" }, { "ui", "subtitles" } },
+    [DEFAULT_FRAMES_PANEL_ID] = { { "ui", "activeQuest" }, { "ui", "activeCombatTips" }, { "ui", "synergyPrompts" }, { "ui", "centerScreenAnnounce" }, { "ui", "announcements" }, { "ui", "infiniteArchive" }, { "ui", "goldenPursuit" }, { "ui", "houseTracker" }, { "ui", "playerInteraction" }, { "ui", "subtitles" } },
     [COMBAT_RETICLE_PANEL_ID] = { { "ui", "combatReticle" } },
     [RETICLE_INFO_PANEL_ID] = { { "ui", "combatReticle", "info" } },
     [RETICLE_INFO_TOP_LEFT_PANEL_ID] = { { "ui", "combatReticle", "info", "topLeft" } },
@@ -537,6 +539,8 @@ PANEL_RESET_PATHS = {
     [CENTER_SCREEN_ANNOUNCE_PANEL_ID] = { { "ui", "centerScreenAnnounce" } },
     [ANNOUNCEMENTS_PANEL_ID] = { { "ui", "announcements" } },
     [INFINITE_ARCHIVE_FRAME_PANEL_ID] = { { "ui", "infiniteArchive" } },
+    [GOLDEN_PURSUIT_PANEL_ID] = { { "ui", "goldenPursuit" } },
+    [HOUSE_TRACKER_PANEL_ID] = { { "ui", "houseTracker" } },
     [LOOT_LOG_PANEL_ID] = { { "ui", "lootLog" } },
     [PLAYER_INFO_PANEL_ID] = { { "ui", "playerInfo" } },
     [PLAYER_INTERACTION_PANEL_ID] = { { "ui", "playerInteraction" } },
@@ -553,16 +557,17 @@ PANEL_RESET_PATHS = {
     [CHAT_PANEL_ID] = { { "chat" } },
     [CHAT_GUILD_COLORS_PANEL_ID] = { { "chat", "guildMessageColors" } },
     [CHAT_REMINDERS_PANEL_ID] = { { "chat", "reminders" } },
-    [SOCIAL_PANEL_ID] = { { "chat" }, { "friends" }, { "groupFinderMonitor" } },
+    [SOCIAL_PANEL_ID] = { { "chat" }, { "friends" }, { "groupFinderMonitor" }, { "guilds", "trackGoldDeposits" } },
+    [GUILDS_PANEL_ID] = { { "guilds", "trackGoldDeposits" } },
     [FRIENDS_PANEL_ID] = { { "friends" } },
     [GROUP_FINDER_MONITOR_PANEL_ID] = { { "groupFinderMonitor" } },
     [TICKER_PANEL_ID] = { { "ticker" } },
     [UTILITY_PANEL_ID] = { { "utility" } },
-    [LUA_GC_PANEL_ID] = { { "utility" } },
+    [LUA_GC_PANEL_ID] = { { "utility", "luaGc" }, { "utility", "luaGcDebugOutput" } },
     [GROUPING_PANEL_ID] = { { "grouping" } },
     [AUTO_INVITE_PANEL_ID] = { { "grouping", "autoInvite" } },
     [BUFFS_DEBUFFS_PANEL_ID] = { { "buffsDebuffs" } },
-    [BUFFS_DEBUFFS_TRACKERS_PANEL_ID] = { { "buffsDebuffs" } },
+    [BUFFS_DEBUFFS_TRACKERS_PANEL_ID] = { { "buffsDebuffs", "trackerMode" }, { "buffsDebuffs", "selectedBuffs" }, { "buffsDebuffs", "selectedDebuffs" } },
     [PROGRESS_PANEL_ID] = { { "progress" } },
     [XP_TRACKER_PANEL_ID] = { { "progress", "xp" } },
     [XP_TIMERS_PANEL_ID] = { { "progress", "xp", "timers" } },
@@ -614,6 +619,97 @@ function GamepadOptions.ReplaceSubpanelBackKeybind()
     end)
 end
 
+-- Runtime refreshes deliberately do not depend on materialized menu descriptors.
+-- Paths match both ancestors and descendants, so category resets refresh every
+-- affected feature while leaf resets leave unrelated settings alone. These
+-- setters reapply the complete runtime state (events, hooks, HUD and caches).
+local RESET_RUNTIME = {
+    { "mounts", "Mounts", { "TrainingCheck" } },
+    { "antiquities", "Antiquities", { "ShowMissingActiveLeadsButton", "AutoEye", "VendorLeadIndicators" } },
+    { "gear.autoCharge", "Gear", { "AutoCharge" } },
+    { "gear.autoRepair", "Gear", { "AutoRepair" } },
+    { "gear.autoBound", "Gear", { "AutoBound" } },
+    { "gear.repairAllInMerchants", "Gear", { "RepairAllInMerchants" } },
+    { "provisioning", "Provisioning", { "AutoFood" } },
+    { "map", "Map", { "Freeport", "BypassFastTravelConfirmation", "ShowDungeons" } },
+    { "minimap", "Minimap", { "Enabled", "UpdateFrequency", "HarvestMapCompatibility", "Size", "BorderColor", "WayshrineWayfinderEnabled" } },
+    { "gps", "GPS", { "Enabled", "DisplayFormat" } },
+    { "fishing", "Fishing", { "AutoSelectBait", "ReelNotification", "FishingTracker", "FishingTrackerFont" } },
+    { "grouping", "Grouping", { "AutoInviteMode" } },
+    { "ui.camera", "Camera", { "Enabled" } },
+    { "ui.disableAlertTexts", "UI", { "DisableAlertTexts" } },
+    { "ui.sortDungeonsFinder", "UI", { "SortDungeonsFinder" } },
+    { "ui.activeQuest", "UI", { "ActiveQuestEnabled" } },
+    { "ui.activeCombatTips", "UI", { "ActiveCombatTipsEnabled" } },
+    { "ui.synergyPrompts", "UI", { "SynergyPromptsEnabled" } },
+    { "ui.centerScreenAnnounce", "UI", { "CenterScreenAnnounceEnabled" } },
+    { "ui.announcements", "UI", { "AnnouncementsEnabled" } },
+    { "ui.infiniteArchive", "UI", { "InfiniteArchiveEnabled" } },
+    { "ui.goldenPursuit", "UI", { "GoldenPursuitEnabled" } },
+    { "ui.houseTracker", "UI", { "HouseTrackerEnabled" } },
+    { "ui.playerInteraction", "UI", { "PlayerInteractionEnabled" } },
+    { "ui.subtitles", "UI", { "SubtitlesEnabled" } },
+    { "ui.lootLog", "UI", { "LootLogShowTotals", "LootLogBufferSize" } },
+    { "ui.combatReticle", "UI", { "CombatReticleShowWhen" } },
+    { "ui.playerInfo", "UIPlayerInfo", { "Font", "XpBarFont", "Enabled" } },
+    { "ui.customFrames.playerFrame", "PlayerBars", { "ClassicFont", "PyramidFont", "StackFont", "VerticalFont", "RadialFont", "ClassicSmoothTransitions", "PyramidSmoothTransitions", "StackSmoothTransitions", "VerticalSmoothTransitions", "RadialSmoothTransitions", "ClassicFlyingPositiveAnimation", "PyramidFlyingPositiveAnimation", "StackFlyingPositiveAnimation", "VerticalFlyingPositiveAnimation", "RadialFlyingPositiveAnimation", "ShowShield", "ShowTrauma", "ShowNqolPlayerFrame" } },
+    { "ui.customFrames.companionFrame", "PlayerBars", { "CompanionFont", "CompanionSmoothTransitions", "ShowNqolCompanionFrame" } },
+    { "ui.customFrames.groupFrame", "PlayerBars", { "GroupFont", "GroupSmoothTransitions", "GroupShowShield", "GroupShowTrauma", "ShowNqolGroupFrame" } },
+    { "chat", "Chat", { "TimestampMode", "SavedMessages", "KeepHudOpen", "RemoveBackground", "SilenceInDungeons" } },
+    { "chat.reminders", "ChatReminders", { "Enabled" } },
+    { "friends", "Friends", { "Enabled", "Font" } },
+    { "guilds.trackGoldDeposits", "Guilds", { "TrackGoldDeposits" } },
+    { "groupFinderMonitor", "GroupFinderMonitor", { "Enabled", "Font" } },
+    { "ticker", "Ticker", { "Enabled", "Font" } },
+    { "buffsDebuffs", "BuffsDebuffs", { "Enabled", "Font", "TrackerMode" } },
+    { "utility.luaGc", "LuaGc", { "Enabled" } },
+    { "utility.skipLogoutConfirmation", "SkipLogoutConfirmation", { "Enabled" } },
+    { "utility.errorsDismissal", "ErrorsDismissal", { "Mode" } },
+    { "utility.autoClaimTomePoints", "TomePoints", { "AutoClaimTomePoints" } },
+    { "utility.autoClaimGoldenPursuits", "TomePoints", { "AutoClaimGoldenPursuits" } },
+    { "utility.autoClaimVeterancyRewards", "VeterancyRewards", { "Enabled" } },
+    { "utility.transmuteWatch", "TransmuteWatch", { "Enabled" } },
+    { "combat.infiniteArchive", "CombatInfiniteArchive", { "TrackProgress" } },
+    { "combat.miscellaneous", "CombatMiscellaneous", { "LCCrutchMirrorsRotate" } },
+    { "trialTimer", "TrialTimer", { "Font", "Enabled" } },
+    { "ultimateCountdown.frontBar", "UltimateCountdown", { "Font", "Enabled" }, "frontBar" },
+    { "ultimateCountdown.backBar", "UltimateCountdown", { "Font", "Enabled" }, "backBar" },
+    { "progress.xp", "Progress", { "XpFont", "XpEnabled" } },
+    { "progress.gold", "ProgressGold", { "GoldFont", "GoldEnabled" } },
+    { "progress.dungeons", "ProgressDungeons", { "BaseDungeonsFont", "DlcDungeonsFont" } },
+    { "progress.trials", "ProgressTrials", { "TrialsFont" } },
+    { "progress.arenas", "ProgressArenas", { "ArenasFont" } },
+    { "progress.soloDungeons", "ProgressSoloDungeons", { "SoloDungeonsFont" } },
+    { "progress.infiniteArchive", "ProgressInfiniteArchive", { "Font" } },
+}
+
+local function ResetTouchesPath(paths, target)
+    if not paths then return true end
+    for _, path in ipairs(paths) do
+        local key = table.concat(path, ".")
+        if target == key or target:sub(1, #key + 1) == key .. "." or key:sub(1, #target + 1) == target .. "." then
+            return true
+        end
+    end
+    return false
+end
+
+function GamepadOptions.ReapplySettingsPaths(paths)
+    for _, entry in ipairs(RESET_RUNTIME) do
+        if ResetTouchesPath(paths, entry[1]) then
+            local feature = NQOL.Features[entry[2]]
+            for _, name in ipairs(entry[3]) do
+                local get, set = feature["Get" .. name], feature["Set" .. name]
+                if entry[4] then
+                    set(entry[4], get(entry[4]))
+                else
+                    set(get())
+                end
+            end
+        end
+    end
+end
+
 local function SetDefaultFramePreviewPanel(panelId)
     if not NQOL.Features or not NQOL.Features.UI then return end
 
@@ -624,11 +720,14 @@ local function SetDefaultFramePreviewPanel(panelId)
     ui.SetCenterScreenAnnounceSettingsPanelVisible(panelId == CENTER_SCREEN_ANNOUNCE_PANEL_ID)
     ui.SetAnnouncementsSettingsPanelVisible(panelId == ANNOUNCEMENTS_PANEL_ID)
     ui.SetInfiniteArchiveSettingsPanelVisible(panelId == INFINITE_ARCHIVE_FRAME_PANEL_ID)
+    ui.SetGoldenPursuitSettingsPanelVisible(panelId == GOLDEN_PURSUIT_PANEL_ID)
+    ui.SetHouseTrackerSettingsPanelVisible(panelId == HOUSE_TRACKER_PANEL_ID)
     ui.SetPlayerInteractionSettingsPanelVisible(panelId == PLAYER_INTERACTION_PANEL_ID)
     ui.SetSubtitlesSettingsPanelVisible(panelId == SUBTITLES_PANEL_ID)
 end
 
 function GamepadOptions.ShowPanel(panelId, selectedIndex)
+    if not GamepadOptions.EnsurePanelRegistered(panelId) then return end
     local currentPanelId = GAMEPAD_OPTIONS.currentCategory
 
     if panelId == GamepadOptions.GROUP_FRAME_PANEL_ID and NQOL.Features and NQOL.Features.PlayerBars then
@@ -1778,6 +1877,12 @@ function GamepadOptions.RegisterPanelHeaderStrings()
     ZO_CreateStringId("SI_SETTINGSYSTEMPANEL" .. INFINITE_ARCHIVE_FRAME_PANEL_ID, NQOL.L("ui.gamepad_options.infinite_archive_52c9059"))
     SafeAddVersion("SI_SETTINGSYSTEMPANEL" .. INFINITE_ARCHIVE_FRAME_PANEL_ID, 1)
 
+    ZO_CreateStringId("SI_SETTINGSYSTEMPANEL" .. GOLDEN_PURSUIT_PANEL_ID, NQOL.L("features.ui.golden_pursuit"))
+    SafeAddVersion("SI_SETTINGSYSTEMPANEL" .. GOLDEN_PURSUIT_PANEL_ID, 1)
+
+    ZO_CreateStringId("SI_SETTINGSYSTEMPANEL" .. HOUSE_TRACKER_PANEL_ID, NQOL.L("features.ui.house_tracker"))
+    SafeAddVersion("SI_SETTINGSYSTEMPANEL" .. HOUSE_TRACKER_PANEL_ID, 1)
+
     ZO_CreateStringId("SI_SETTINGSYSTEMPANEL" .. LOOT_LOG_PANEL_ID, NQOL.L("ui.gamepad_options.loot_log_f30da82"))
     SafeAddVersion("SI_SETTINGSYSTEMPANEL" .. LOOT_LOG_PANEL_ID, 1)
 
@@ -1828,6 +1933,9 @@ function GamepadOptions.RegisterPanelHeaderStrings()
 
     ZO_CreateStringId("SI_SETTINGSYSTEMPANEL" .. SOCIAL_PANEL_ID, NQOL.L("ui.gamepad_options.social_41a5750"))
     SafeAddVersion("SI_SETTINGSYSTEMPANEL" .. SOCIAL_PANEL_ID, 1)
+
+    ZO_CreateStringId("SI_SETTINGSYSTEMPANEL" .. GUILDS_PANEL_ID, GetString(SI_MAIN_MENU_GUILDS))
+    SafeAddVersion("SI_SETTINGSYSTEMPANEL" .. GUILDS_PANEL_ID, 1)
 
     ZO_CreateStringId("SI_SETTINGSYSTEMPANEL" .. FRIENDS_PANEL_ID, NQOL.L("ui.gamepad_options.friends_c11d5e1"))
     SafeAddVersion("SI_SETTINGSYSTEMPANEL" .. FRIENDS_PANEL_ID, 1)
@@ -1935,319 +2043,111 @@ function GamepadOptions.HookHeaderVersionSubtitle()
     end)
 end
 
-function GamepadOptions.RegisterPanels()
-    if panelsRegistered then
-        return true
-    end
+local PANEL_BUILDERS = {
+    [ROOT_PANEL_ID] = "BuildRootOptionsData",
+    [MOUNTS_PANEL_ID] = "BuildMountsOptionsData",
+    [ANTIQUITIES_PANEL_ID] = "BuildAntiquitiesOptionsData",
+    [GEAR_PANEL_ID] = "BuildGearOptionsData",
+    [AUTO_CHARGE_PANEL_ID] = "BuildAutoChargeOptionsData",
+    [AUTO_REPAIR_PANEL_ID] = "BuildAutoRepairOptionsData",
+    [AUTO_BOUND_PANEL_ID] = "BuildAutoBoundOptionsData",
+    [COMBAT_PANEL_ID] = "BuildCombatOptionsData",
+    [COMBAT_INFINITE_ARCHIVE_PANEL_ID] = "BuildCombatInfiniteArchiveOptionsData",
+    [COMBAT_MISCELLANEOUS_PANEL_ID] = "BuildCombatMiscellaneousOptionsData",
+    [TRIAL_TIMER_PANEL_ID] = "BuildTrialTimerOptionsData",
+    [ULTIMATE_COUNTDOWN_PANEL_ID] = "BuildUltimateCountdownOptionsData",
+    [ULTIMATE_COUNTDOWN_FRONT_PANEL_ID] = "BuildUltimateCountdownFrontOptionsData",
+    [ULTIMATE_COUNTDOWN_BACK_PANEL_ID] = "BuildUltimateCountdownBackOptionsData",
+    [DEBUG_PANEL_ID] = "BuildDebugOptionsData",
+    [GROUPING_PANEL_ID] = "BuildGroupingOptionsData",
+    [AUTO_INVITE_PANEL_ID] = "BuildAutoInviteOptionsData",
+    [PROVISIONING_PANEL_ID] = "BuildProvisioningOptionsData",
+    [MAP_PANEL_ID] = "BuildMapOptionsData",
+    [MAP_OPTIONS_PANEL_ID] = "BuildMapSettingsOptionsData",
+    [MINIMAP_PANEL_ID] = "BuildMinimapOptionsData",
+    [GPS_PANEL_ID] = "BuildGPSOptionsData",
+    [FISHING_PANEL_ID] = "BuildFishingOptionsData",
+    [FISHING_TRACKER_PANEL_ID] = "BuildFishingTrackerOptionsData",
+    [UI_PANEL_ID] = "BuildUIOptionsData",
+    [CAMERA_PANEL_ID] = "BuildCameraOptionsData",
+    [DEFAULT_FRAMES_PANEL_ID] = "BuildDefaultFramesOptionsData",
+    [COMBAT_RETICLE_PANEL_ID] = "BuildCombatReticleOptionsData",
+    [RETICLE_INFO_PANEL_ID] = "BuildReticleInfoOptionsData",
+    [RETICLE_INFO_TOP_LEFT_PANEL_ID] = "BuildReticleInfoTopLeftOptionsData",
+    [RETICLE_INFO_TOP_RIGHT_PANEL_ID] = "BuildReticleInfoTopRightOptionsData",
+    [RETICLE_INFO_BOTTOM_LEFT_PANEL_ID] = "BuildReticleInfoBottomLeftOptionsData",
+    [RETICLE_INFO_BOTTOM_RIGHT_PANEL_ID] = "BuildReticleInfoBottomRightOptionsData",
+    [ACTIVE_QUEST_PANEL_ID] = "BuildActiveQuestOptionsData",
+    [ACTIVE_COMBAT_TIPS_PANEL_ID] = "BuildActiveCombatTipsOptionsData",
+    [SYNERGY_PROMPTS_PANEL_ID] = "BuildSynergyPromptsOptionsData",
+    [CENTER_SCREEN_ANNOUNCE_PANEL_ID] = "BuildCenterScreenAnnounceOptionsData",
+    [ANNOUNCEMENTS_PANEL_ID] = "BuildAnnouncementsOptionsData",
+    [INFINITE_ARCHIVE_FRAME_PANEL_ID] = "BuildInfiniteArchiveFrameOptionsData",
+    [GOLDEN_PURSUIT_PANEL_ID] = "BuildGoldenPursuitOptionsData",
+    [HOUSE_TRACKER_PANEL_ID] = "BuildHouseTrackerOptionsData",
+    [LOOT_LOG_PANEL_ID] = "BuildLootLogOptionsData",
+    [PLAYER_INFO_PANEL_ID] = "BuildPlayerInfoOptionsData",
+    [PLAYER_INTERACTION_PANEL_ID] = "BuildPlayerInteractionOptionsData",
+    [SUBTITLES_PANEL_ID] = "BuildSubtitlesOptionsData",
+    [GamepadOptions.FRAME_STYLING_PANEL_ID] = "BuildFrameStylingOptionsData",
+    [GamepadOptions.PLAYER_FRAME_PANEL_ID] = "BuildPlayerFrameOptionsData",
+    [GamepadOptions.PLAYER_FRAME_CLASSIC_PANEL_ID] = "BuildClassicOptionsData",
+    [GamepadOptions.PLAYER_FRAME_PYRAMID_PANEL_ID] = "BuildPyramidOptionsData",
+    [GamepadOptions.PLAYER_FRAME_STACK_PANEL_ID] = "BuildStackOptionsData",
+    [GamepadOptions.PLAYER_FRAME_VERTICAL_PANEL_ID] = "BuildVerticalOptionsData",
+    [GamepadOptions.PLAYER_FRAME_RADIAL_PANEL_ID] = "BuildRadialOptionsData",
+    [GamepadOptions.COMPANION_FRAME_PANEL_ID] = "BuildCompanionFrameOptionsData",
+    [GamepadOptions.GROUP_FRAME_PANEL_ID] = "BuildGroupFrameOptionsData",
+    [CHAT_PANEL_ID] = "BuildChatOptionsData",
+    [SOCIAL_PANEL_ID] = "BuildSocialOptionsData",
+    [GUILDS_PANEL_ID] = "BuildGuildsOptionsData",
+    [FRIENDS_PANEL_ID] = "BuildFriendsOptionsData",
+    [GROUP_FINDER_MONITOR_PANEL_ID] = "BuildGroupFinderMonitorOptionsData",
+    [CHAT_GUILD_COLORS_PANEL_ID] = "BuildChatGuildColorsOptionsData",
+    [CHAT_REMINDERS_PANEL_ID] = "BuildChatRemindersOptionsData",
+    [TICKER_PANEL_ID] = "BuildTickerOptionsData",
+    [UTILITY_PANEL_ID] = "BuildUtilityOptionsData",
+    [LUA_GC_PANEL_ID] = "BuildLuaGcOptionsData",
+    [BUFFS_DEBUFFS_PANEL_ID] = "BuildBuffsDebuffsOptionsData",
+    [BUFFS_DEBUFFS_TRACKERS_PANEL_ID] = "BuildBuffsDebuffsTrackersOptionsData",
+    [PROGRESS_PANEL_ID] = "BuildProgressOptionsData",
+    [XP_TRACKER_PANEL_ID] = "BuildXpTrackerOptionsData",
+    [XP_TIMERS_PANEL_ID] = "BuildXpTimersOptionsData",
+    [GamepadOptions.GOLD_TRACKER_PANEL_ID] = "BuildGoldTrackerOptionsData",
+    [GamepadOptions.GOLD_TIMERS_PANEL_ID] = "BuildGoldTimersOptionsData",
+    [GamepadOptions.DUNGEONS_PANEL_ID] = "BuildBaseDungeonsOptionsData",
+    [GamepadOptions.DLC_DUNGEONS_PANEL_ID] = "BuildDlcDungeonsOptionsData",
+    [GamepadOptions.TRIALS_PANEL_ID] = "BuildTrialsOptionsData",
+    [GamepadOptions.ARENAS_PANEL_ID] = "BuildArenasOptionsData",
+    [GamepadOptions.SOLO_DUNGEONS_PANEL_ID] = "BuildSoloDungeonsOptionsData",
+    [GamepadOptions.INFINITE_ARCHIVE_PANEL_ID] = "BuildInfiniteArchiveOptionsData",
+}
 
-    if not GAMEPAD_OPTIONS or not GAMEPAD_SETTINGS_DATA or not ZO_GamepadEntryData then
-        return false
-    end
+-- Register each descriptor set only when its panel is first opened. Keep the
+-- shared-options metadata and gamepad data in sync before native navigation.
+function GamepadOptions.EnsurePanelRegistered(panelId)
+    if not GAMEPAD_SETTINGS_DATA or not GAMEPAD_OPTIONS then return false end
+    if panelId == DEBUG_PANEL_ID and not (NQOL.IsDevMode and NQOL.IsDevMode()) then return false end
+    if GAMEPAD_SETTINGS_DATA[panelId] then return true end
+    local builder = GamepadOptions[PANEL_BUILDERS[panelId]]
+    if not builder then return false end
+    GamepadOptions.RegisterPanel(panelId, builder())
+    return true
+end
+
+function GamepadOptions.RegisterPanels()
+    if panelsRegistered then return true end
+    if not GAMEPAD_OPTIONS or not GAMEPAD_SETTINGS_DATA or not ZO_GamepadEntryData then return false end
 
     GamepadOptions.HookHeaderVersionSubtitle()
     GamepadOptions.RegisterPanelHeaderStrings()
-    if not GAMEPAD_SETTINGS_DATA[ROOT_PANEL_ID] then
-        GamepadOptions.RegisterPanel(ROOT_PANEL_ID, GamepadOptions.BuildRootOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[MOUNTS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(MOUNTS_PANEL_ID, GamepadOptions.BuildMountsOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[ANTIQUITIES_PANEL_ID] then
-        GamepadOptions.RegisterPanel(ANTIQUITIES_PANEL_ID, GamepadOptions.BuildAntiquitiesOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GEAR_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GEAR_PANEL_ID, GamepadOptions.BuildGearOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[AUTO_CHARGE_PANEL_ID] then
-        GamepadOptions.RegisterPanel(AUTO_CHARGE_PANEL_ID, GamepadOptions.BuildAutoChargeOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[AUTO_REPAIR_PANEL_ID] then
-        GamepadOptions.RegisterPanel(AUTO_REPAIR_PANEL_ID, GamepadOptions.BuildAutoRepairOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[AUTO_BOUND_PANEL_ID] then
-        GamepadOptions.RegisterPanel(AUTO_BOUND_PANEL_ID, GamepadOptions.BuildAutoBoundOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[COMBAT_PANEL_ID] then
-        GamepadOptions.RegisterPanel(COMBAT_PANEL_ID, GamepadOptions.BuildCombatOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[COMBAT_INFINITE_ARCHIVE_PANEL_ID] then
-        GamepadOptions.RegisterPanel(COMBAT_INFINITE_ARCHIVE_PANEL_ID, GamepadOptions.BuildCombatInfiniteArchiveOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[COMBAT_MISCELLANEOUS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(COMBAT_MISCELLANEOUS_PANEL_ID, GamepadOptions.BuildCombatMiscellaneousOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[TRIAL_TIMER_PANEL_ID] then
-        GamepadOptions.RegisterPanel(TRIAL_TIMER_PANEL_ID, GamepadOptions.BuildTrialTimerOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[ULTIMATE_COUNTDOWN_PANEL_ID] then
-        GamepadOptions.RegisterPanel(ULTIMATE_COUNTDOWN_PANEL_ID, GamepadOptions.BuildUltimateCountdownOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[ULTIMATE_COUNTDOWN_FRONT_PANEL_ID] then
-        GamepadOptions.RegisterPanel(ULTIMATE_COUNTDOWN_FRONT_PANEL_ID, GamepadOptions.BuildUltimateCountdownFrontOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[ULTIMATE_COUNTDOWN_BACK_PANEL_ID] then
-        GamepadOptions.RegisterPanel(ULTIMATE_COUNTDOWN_BACK_PANEL_ID, GamepadOptions.BuildUltimateCountdownBackOptionsData())
-    end
-
-    if NQOL.IsDevMode and NQOL.IsDevMode() and not GAMEPAD_SETTINGS_DATA[DEBUG_PANEL_ID] then
-        GamepadOptions.RegisterPanel(DEBUG_PANEL_ID, GamepadOptions.BuildDebugOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GROUPING_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GROUPING_PANEL_ID, GamepadOptions.BuildGroupingOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[AUTO_INVITE_PANEL_ID] then
-        GamepadOptions.RegisterPanel(AUTO_INVITE_PANEL_ID, GamepadOptions.BuildAutoInviteOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[PROVISIONING_PANEL_ID] then
-        GamepadOptions.RegisterPanel(PROVISIONING_PANEL_ID, GamepadOptions.BuildProvisioningOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[MAP_PANEL_ID] then
-        GamepadOptions.RegisterPanel(MAP_PANEL_ID, GamepadOptions.BuildMapOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[MAP_OPTIONS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(MAP_OPTIONS_PANEL_ID, GamepadOptions.BuildMapSettingsOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[MINIMAP_PANEL_ID] then
-        GamepadOptions.RegisterPanel(MINIMAP_PANEL_ID, GamepadOptions.BuildMinimapOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GPS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GPS_PANEL_ID, GamepadOptions.BuildGPSOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[FISHING_PANEL_ID] then
-        GamepadOptions.RegisterPanel(FISHING_PANEL_ID, GamepadOptions.BuildFishingOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[FISHING_TRACKER_PANEL_ID] then
-        GamepadOptions.RegisterPanel(FISHING_TRACKER_PANEL_ID, GamepadOptions.BuildFishingTrackerOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[UI_PANEL_ID] then
-        GamepadOptions.RegisterPanel(UI_PANEL_ID, GamepadOptions.BuildUIOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[CAMERA_PANEL_ID] then
-        GamepadOptions.RegisterPanel(CAMERA_PANEL_ID, GamepadOptions.BuildCameraOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[DEFAULT_FRAMES_PANEL_ID] then
-        GamepadOptions.RegisterPanel(DEFAULT_FRAMES_PANEL_ID, GamepadOptions.BuildDefaultFramesOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[COMBAT_RETICLE_PANEL_ID] then
-        GamepadOptions.RegisterPanel(COMBAT_RETICLE_PANEL_ID, GamepadOptions.BuildCombatReticleOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[RETICLE_INFO_PANEL_ID] then
-        GamepadOptions.RegisterPanel(RETICLE_INFO_PANEL_ID, GamepadOptions.BuildReticleInfoOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[RETICLE_INFO_TOP_LEFT_PANEL_ID] then
-        GamepadOptions.RegisterPanel(RETICLE_INFO_TOP_LEFT_PANEL_ID, GamepadOptions.BuildReticleInfoTopLeftOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[RETICLE_INFO_TOP_RIGHT_PANEL_ID] then
-        GamepadOptions.RegisterPanel(RETICLE_INFO_TOP_RIGHT_PANEL_ID, GamepadOptions.BuildReticleInfoTopRightOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[RETICLE_INFO_BOTTOM_LEFT_PANEL_ID] then
-        GamepadOptions.RegisterPanel(RETICLE_INFO_BOTTOM_LEFT_PANEL_ID, GamepadOptions.BuildReticleInfoBottomLeftOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[RETICLE_INFO_BOTTOM_RIGHT_PANEL_ID] then
-        GamepadOptions.RegisterPanel(RETICLE_INFO_BOTTOM_RIGHT_PANEL_ID, GamepadOptions.BuildReticleInfoBottomRightOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[ACTIVE_QUEST_PANEL_ID] then
-        GamepadOptions.RegisterPanel(ACTIVE_QUEST_PANEL_ID, GamepadOptions.BuildActiveQuestOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[ACTIVE_COMBAT_TIPS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(ACTIVE_COMBAT_TIPS_PANEL_ID, GamepadOptions.BuildActiveCombatTipsOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[SYNERGY_PROMPTS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(SYNERGY_PROMPTS_PANEL_ID, GamepadOptions.BuildSynergyPromptsOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[CENTER_SCREEN_ANNOUNCE_PANEL_ID] then
-        GamepadOptions.RegisterPanel(CENTER_SCREEN_ANNOUNCE_PANEL_ID, GamepadOptions.BuildCenterScreenAnnounceOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[ANNOUNCEMENTS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(ANNOUNCEMENTS_PANEL_ID, GamepadOptions.BuildAnnouncementsOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[INFINITE_ARCHIVE_FRAME_PANEL_ID] then
-        GamepadOptions.RegisterPanel(INFINITE_ARCHIVE_FRAME_PANEL_ID, GamepadOptions.BuildInfiniteArchiveFrameOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[LOOT_LOG_PANEL_ID] then
-        GamepadOptions.RegisterPanel(LOOT_LOG_PANEL_ID, GamepadOptions.BuildLootLogOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[PLAYER_INFO_PANEL_ID] then
-        GamepadOptions.RegisterPanel(PLAYER_INFO_PANEL_ID, GamepadOptions.BuildPlayerInfoOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[PLAYER_INTERACTION_PANEL_ID] then
-        GamepadOptions.RegisterPanel(PLAYER_INTERACTION_PANEL_ID, GamepadOptions.BuildPlayerInteractionOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[SUBTITLES_PANEL_ID] then
-        GamepadOptions.RegisterPanel(SUBTITLES_PANEL_ID, GamepadOptions.BuildSubtitlesOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.FRAME_STYLING_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.FRAME_STYLING_PANEL_ID, GamepadOptions.BuildFrameStylingOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.PLAYER_FRAME_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.PLAYER_FRAME_PANEL_ID, GamepadOptions.BuildPlayerFrameOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.PLAYER_FRAME_CLASSIC_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.PLAYER_FRAME_CLASSIC_PANEL_ID, GamepadOptions.BuildClassicOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.PLAYER_FRAME_PYRAMID_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.PLAYER_FRAME_PYRAMID_PANEL_ID, GamepadOptions.BuildPyramidOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.PLAYER_FRAME_STACK_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.PLAYER_FRAME_STACK_PANEL_ID, GamepadOptions.BuildStackOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.PLAYER_FRAME_VERTICAL_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.PLAYER_FRAME_VERTICAL_PANEL_ID, GamepadOptions.BuildVerticalOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.PLAYER_FRAME_RADIAL_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.PLAYER_FRAME_RADIAL_PANEL_ID, GamepadOptions.BuildRadialOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.COMPANION_FRAME_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.COMPANION_FRAME_PANEL_ID, GamepadOptions.BuildCompanionFrameOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.GROUP_FRAME_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.GROUP_FRAME_PANEL_ID, GamepadOptions.BuildGroupFrameOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[CHAT_PANEL_ID] then
-        GamepadOptions.RegisterPanel(CHAT_PANEL_ID, GamepadOptions.BuildChatOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[SOCIAL_PANEL_ID] then
-        GamepadOptions.RegisterPanel(SOCIAL_PANEL_ID, GamepadOptions.BuildSocialOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[FRIENDS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(FRIENDS_PANEL_ID, GamepadOptions.BuildFriendsOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GROUP_FINDER_MONITOR_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GROUP_FINDER_MONITOR_PANEL_ID, GamepadOptions.BuildGroupFinderMonitorOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[CHAT_GUILD_COLORS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(CHAT_GUILD_COLORS_PANEL_ID, GamepadOptions.BuildChatGuildColorsOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[CHAT_REMINDERS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(CHAT_REMINDERS_PANEL_ID, GamepadOptions.BuildChatRemindersOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[TICKER_PANEL_ID] then
-        GamepadOptions.RegisterPanel(TICKER_PANEL_ID, GamepadOptions.BuildTickerOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[UTILITY_PANEL_ID] then
-        GamepadOptions.RegisterPanel(UTILITY_PANEL_ID, GamepadOptions.BuildUtilityOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[LUA_GC_PANEL_ID] then
-        GamepadOptions.RegisterPanel(LUA_GC_PANEL_ID, GamepadOptions.BuildLuaGcOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[BUFFS_DEBUFFS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(BUFFS_DEBUFFS_PANEL_ID, GamepadOptions.BuildBuffsDebuffsOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[BUFFS_DEBUFFS_TRACKERS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(BUFFS_DEBUFFS_TRACKERS_PANEL_ID, GamepadOptions.BuildBuffsDebuffsTrackersOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[PROGRESS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(PROGRESS_PANEL_ID, GamepadOptions.BuildProgressOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[XP_TRACKER_PANEL_ID] then
-        GamepadOptions.RegisterPanel(XP_TRACKER_PANEL_ID, GamepadOptions.BuildXpTrackerOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[XP_TIMERS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(XP_TIMERS_PANEL_ID, GamepadOptions.BuildXpTimersOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.GOLD_TRACKER_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.GOLD_TRACKER_PANEL_ID, GamepadOptions.BuildGoldTrackerOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.GOLD_TIMERS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.GOLD_TIMERS_PANEL_ID, GamepadOptions.BuildGoldTimersOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.DUNGEONS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.DUNGEONS_PANEL_ID, GamepadOptions.BuildBaseDungeonsOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.DLC_DUNGEONS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.DLC_DUNGEONS_PANEL_ID, GamepadOptions.BuildDlcDungeonsOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.TRIALS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.TRIALS_PANEL_ID, GamepadOptions.BuildTrialsOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.ARENAS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.ARENAS_PANEL_ID, GamepadOptions.BuildArenasOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.SOLO_DUNGEONS_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.SOLO_DUNGEONS_PANEL_ID, GamepadOptions.BuildSoloDungeonsOptionsData())
-    end
-
-    if not GAMEPAD_SETTINGS_DATA[GamepadOptions.INFINITE_ARCHIVE_PANEL_ID] then
-        GamepadOptions.RegisterPanel(GamepadOptions.INFINITE_ARCHIVE_PANEL_ID, GamepadOptions.BuildInfiniteArchiveOptionsData())
-    end
-
+    if not GamepadOptions.EnsurePanelRegistered(ROOT_PANEL_ID) then return false end
     panelsRegistered = true
     return true
 end
 
 local function OpenRootPanel()
-    if not GAMEPAD_OPTIONS or not SCENE_MANAGER then
+    if not GAMEPAD_OPTIONS or not SCENE_MANAGER or not GamepadOptions.EnsurePanelRegistered(ROOT_PANEL_ID) then
         return
     end
 

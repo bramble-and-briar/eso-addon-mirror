@@ -8,8 +8,8 @@
   "category_id": "96",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:559",
@@ -18,7 +18,7 @@
     "CyrHUD"
   ],
   "download_url": "https://www.esoui.com/downloads/dl559/",
-  "fingerprint": "3e9844eeebf067b517044a92188e8d153cc9d1a19ee68de133739d88b2a5680b",
+  "fingerprint": "ccd6af16863ed330276496c413be689c13eb3361c0be827edad3d1c4c6608858",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw12203.png",
     "https://cdn-eso.mmoui.com/preview/pvw12155.png",
@@ -34,11 +34,11 @@
   "source_id": "559",
   "source_url": "https://www.esoui.com/downloads/info559-CyrHUD.html",
   "stats": {
-    "downloads": 332231,
+    "downloads": 334295,
     "favorites": 156,
-    "monthly_downloads": 1933
+    "monthly_downloads": 842
   },
   "title": "CyrHUD",
-  "updated_at": 1791060110000,
-  "version": "2026.09.26"
+  "updated_at": 1794725545000,
+  "version": "2026.11.15"
 }

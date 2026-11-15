@@ -229,6 +229,10 @@ ZO_CreateStringId("FTC_Menu_FRFontSDesc", "Change the scale of the fonts used in
 ZO_CreateStringId("FTC_Menu_FReset", "Reset Unit Frames")
 ZO_CreateStringId("FTC_Menu_FResetDesc", "Reset original settings for FTC unit frames component.")
 
+local sortDefaultEn = (FTC.Defaults.EnableRoleSorting) and "On" or "Off"
+ZO_CreateStringId("FTC_Menu_SortRoles", "Sort Group by Roles")
+ZO_CreateStringId("FTC_Menu_SortRolesDesc", "Sorts the group and raid frames in the order: Tank -> Healer -> DD. [Standard: " .. sortDefaultEn .. "]")
+
 --[[----------------------------------------------------------
     BUFF TRACKING
   ]]----------------------------------------------------------

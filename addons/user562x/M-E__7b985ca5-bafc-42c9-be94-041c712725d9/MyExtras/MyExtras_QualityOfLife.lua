@@ -19,7 +19,12 @@ local ERROR_KEEP     = 20
 local ERROR_FEATURE  = "Lua Errors"
 local ERROR_KEYBIND  = "Show Error"
 local BLOCKED_TEXT   = "Dismount to interact."
-local RIDING_TEXT    = "Your riding lesson is ready."
+local RIDING_TEXT    = "Your lesson is ready."
+local RIDING_FEATURE = "Riding"
+local CLAIM_FEATURE  = "Auto Claim"
+local RIDING_ICON    = "EsoUI/Art/Mounts/ridingSkill_ready.dds"
+local ERROR_ICON     = "EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds"
+local GOLDEN_ICON    = "EsoUI/Art/LFG/Gamepad/LFG_menuIcon_PromotionalEvents.dds"
 
 QoL.charDefaults = {
     qolUseCharacter = false,
@@ -91,6 +96,7 @@ local ridingShown = false
 local printing    = false
 local showing     = false
 local claimWait   = {}
+local vetBlocked  = nil
 local seenErrors  = {}
 local errorList   = {}
 local errorOrder  = {}
@@ -298,7 +304,14 @@ local function RidingLeft()
 end
 
 local function Announce(text)
-    ME:Chat(ME:ChatPrefix() .. text)
+    ME:Chat(ME:ChatPrefix(RIDING_FEATURE, RIDING_ICON) .. text)
+end
+
+local function CurrencyIcon(currency)
+    if not currency then return "" end
+    local ok, icon = pcall(ZO_Currency_GetPlatformFormattedCurrencyIcon, currency)
+    if ok and type(icon) == "string" and icon ~= "" then return icon .. " " end
+    return ""
 end
 
 function QoL:CheckRiding()
@@ -352,7 +365,7 @@ local function Claim(key, waitMs, confirm, text, name, ...)
     claimWait[key] = now + waitMs
     if not ME:CallGame(name, ...) then return end
     zo_callLater(function()
-        if confirm() then ME:Chat(ME:ChatPrefix() .. text) end
+        if confirm() then ME:Chat(ME:ChatPrefix(CLAIM_FEATURE, SUBMENU_ICON) .. text) end
     end, CLAIM_CHECK_MS)
 end
 
@@ -385,6 +398,14 @@ local function Ready(threshold, progress, flags, rewardId)
     return not OffersChoice(rewardId)
 end
 
+local function ClearTomeBanner()
+    local csa = CENTER_SCREEN_ANNOUNCE
+    local bannerType = rawget(_G, "CENTER_SCREEN_ANNOUNCE_TYPE_TIMED_ACTIVITY_COMPLETED")
+    if csa and csa.ClearActiveLinesByType and bannerType then
+        pcall(csa.ClearActiveLinesByType, csa, bannerType)
+    end
+end
+
 local function ClaimTomePoints()
     if not (IsTimedActivitySystemAvailable and IsTimedActivitySystemAvailable()) or not CURT_TOME_POINTS then return end
     for index = 1, GetNumTimedActivities() do
@@ -394,9 +415,12 @@ local function ClaimTomePoints()
             local claimed = GetTimedActivityNumTimesClaimed(index) or 0
             if maxProgress > 0 and (GetTimedActivityProgress(index) or 0) >= maxProgress and claimed < total then
                 local id = GetTimedActivityId and GetTimedActivityId(index) or index
-                local text = "Claimed " .. (CleanName(GetTimedActivityName(index)) or "a Tamriel Tomes activity") .. "."
+                local text = "Claimed " .. CurrencyIcon(CURT_TOME_POINTS)
+                    .. (CleanName(GetTimedActivityName(index)) or "a Tamriel Tomes activity") .. "."
                 Claim("tome" .. tostring(id), CLAIM_WAIT_MS, function()
-                    return (GetTimedActivityNumTimesClaimed(index) or 0) > claimed
+                    local done = (GetTimedActivityNumTimesClaimed(index) or 0) > claimed
+                    if done then ClearTomeBanner() end
+                    return done
                 end, text, "ClaimTimedActivityReward", index)
             end
         end
@@ -411,7 +435,7 @@ local function ClaimCampaign(campaignKey)
         local _, activityName, _, threshold, rewardId = GetPromotionalEventCampaignActivityInfo(campaignKey, activityIndex)
         local progress, flags = GetPromotionalEventCampaignActivityProgress(campaignKey, activityIndex)
         if Ready(threshold, progress, flags, rewardId) then
-            local text = "Claimed " .. (CleanName(activityName) or "an activity") .. " from Golden Pursuits."
+            local text = "Claimed " .. ME:Icon(GOLDEN_ICON) .. (CleanName(activityName) or "a Golden Pursuits activity") .. "."
             Claim(name .. "a" .. activityIndex, CLAIM_WAIT_MS, function()
                 local _, nowFlags = GetPromotionalEventCampaignActivityProgress(campaignKey, activityIndex)
                 return IsClaimed(nowFlags)
@@ -426,7 +450,7 @@ local function ClaimCampaign(campaignKey)
         if Ready(threshold, completed, flags, rewardId) then
             Claim(name .. "m" .. milestoneIndex, CLAIM_WAIT_MS, function()
                 return IsClaimed(GetPromotionalEventCampaignMilestoneRewardFlags(campaignKey, milestoneIndex))
-            end, "Claimed a Golden Pursuits milestone reward.", "TryClaimPromotionalEventMilestoneReward", campaignKey, milestoneIndex)
+            end, "Claimed a " .. ME:Icon(GOLDEN_ICON) .. "milestone.", "TryClaimPromotionalEventMilestoneReward", campaignKey, milestoneIndex)
         end
     end
 
@@ -435,7 +459,7 @@ local function ClaimCampaign(campaignKey)
         Claim(name .. "c", CLAIM_WAIT_MS, function()
             local _, nowFlags = GetPromotionalEventCampaignProgress(campaignKey)
             return IsClaimed(nowFlags)
-        end, "Claimed the final Golden Pursuits reward.", "TryClaimPromotionalEventCapstoneReward", campaignKey)
+        end, "Claimed the final " .. ME:Icon(GOLDEN_ICON) .. "reward.", "TryClaimPromotionalEventCapstoneReward", campaignKey)
     end
 end
 
@@ -447,16 +471,36 @@ local function ClaimGoldenPursuits()
     end
 end
 
+local function VeterancyMark(trackType, trackId, trackIndex)
+    local tier = 0
+    if GetInfoForRewardTrack then
+        local _, currentTier = GetInfoForRewardTrack(trackType, trackIndex)
+        tier = currentTier or 0
+    end
+    return tostring(trackId) .. ":" .. tostring(tier)
+end
+
 local function ClaimVeterancy()
     if not (IsVeterancySeasonActive and IsVeterancySeasonActive()) or not REWARD_TRACK_TYPE_AVA_VETERANCY then return end
     local trackType = REWARD_TRACK_TYPE_AVA_VETERANCY
     local trackId = GetActiveReferenceTrackIdsForRewardTrackType(trackType)
     if not trackId or trackId == 0 then return end
     local trackIndex = GetReferenceTrackIndex(trackType, trackId)
-    if not trackIndex or not HasUnclaimedRewardTrackRewards(trackType, trackIndex) then return end
+    if not trackIndex then return end
+    if not HasUnclaimedRewardTrackRewards(trackType, trackIndex) then
+        vetBlocked = nil
+        return
+    end
+    if vetBlocked == VeterancyMark(trackType, trackId, trackIndex) then return end
     Claim("veterancy", REWARD_WAIT_MS, function()
-        return not HasUnclaimedRewardTrackRewards(trackType, trackIndex)
-    end, "Claimed your PvP Veterancy rewards.", "ClaimAllRewardTrackRewards", trackType, trackIndex)
+        local done = not HasUnclaimedRewardTrackRewards(trackType, trackIndex)
+        if done then
+            vetBlocked = nil
+        else
+            vetBlocked = VeterancyMark(trackType, trackId, trackIndex)
+        end
+        return done
+    end, "Claimed " .. CurrencyIcon(CURT_ALLIANCE_POINTS) .. "PvP Veterancy rewards.", "ClaimAllRewardTrackRewards", trackType, trackIndex)
 end
 
 function QoL:ClaimAll()
@@ -539,7 +583,7 @@ local function ListError(errorString, errorCode)
     local id = KeepError(errorString, errorCode)
     local before = LatestChatEntry()
     printing = true
-    pcall(ME.Chat, ME, ME:ChatPrefix(ERROR_FEATURE) .. ErrorTitle(errorCode))
+    pcall(ME.Chat, ME, ME:ChatPrefix(ERROR_FEATURE, ERROR_ICON) .. ErrorTitle(errorCode))
     printing = false
     local entry = LatestChatEntry()
     if entry and entry ~= before and type(entry.data) == "table" then
@@ -722,10 +766,11 @@ function QoL:GetOptions()
                     tooltip = "Claims these rewards for you as soon as they're ready.\n\n"
                            .. "Tome Points: finished Tamriel Tomes activities.\n"
                            .. "Golden Pursuits: finished activities, milestones and the final reward. Rewards where you choose an item are left for you to pick.\n"
-                           .. "PvP Veterancy: your veterancy rank rewards.",
+                           .. "PvP Veterancy: your veterancy rank rewards. If a claim doesn't go through, it tries again when you reach a new rank.",
                     getFunc = function() return ChecklistGet(QoL.claimChoices, CLAIM_KEYS) end,
                     setFunc = function(values)
                         ChecklistSet(values, CLAIM_KEYS)
+                        vetBlocked = nil
                         QoL:Refresh()
                     end,
                 },

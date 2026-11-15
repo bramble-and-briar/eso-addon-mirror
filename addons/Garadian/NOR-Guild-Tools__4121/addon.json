@@ -8,6 +8,10 @@
   "category_id": "95",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -74,7 +78,7 @@
     "NORGuildTools"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4121/",
-  "fingerprint": "c5654054dc9d60891ca1c44173f839cc3a41a162ecfcea6c08753566542d1643",
+  "fingerprint": "f7828582992501d9af0d4f4f390e6aa29e9663416672d6be6911ea043aee6a95",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14072.png"
   ],
@@ -84,11 +88,11 @@
   "source_id": "4121",
   "source_url": "https://www.esoui.com/downloads/info4121-NORGuildTools.html",
   "stats": {
-    "downloads": 786,
+    "downloads": 832,
     "favorites": 1,
     "monthly_downloads": 27
   },
   "title": "NOR Guild Tools",
-  "updated_at": 1791199893000,
-  "version": "5.00"
+  "updated_at": 1794701279000,
+  "version": "5.01"
 }

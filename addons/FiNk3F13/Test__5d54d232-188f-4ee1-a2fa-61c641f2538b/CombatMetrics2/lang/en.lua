@@ -1,0 +1,501 @@
+local strings = {
+
+	-- Colors
+
+	SI_COMBAT_METRICS2_SEP_COLOR = "FFAAAAAA",
+	SI_COMBAT_METRICS2_HEALTH_COLOR = "FFDE6531",
+	SI_COMBAT_METRICS2_MAGICKA_COLOR = "FF5EBDE7",
+	SI_COMBAT_METRICS2_STAMINA_COLOR = "FFA6D852",
+	SI_COMBAT_METRICS2_ULTIMATE_COLOR = "FFffe785",
+
+	-- URLs (Feedback Menu)
+
+	SI_COMBAT_METRICS2_FEEDBACK_ESOUIURL = "https://www.esoui.com/downloads/info1360-CombatMetrics2.html",
+	SI_COMBAT_METRICS2_FEEDBACK_GITHUBURL = "https://github.com/Solinur/CombatMetrics2",
+	SI_COMBAT_METRICS2_FEEDBACK_DISCORDURL = "https://discord.gg/2eqYt2n5M5",
+	SI_COMBAT_METRICS2_DONATE_ESOUIURL = "https://www.esoui.com/downloads/info1360-CombatMetrics2.html#donate",
+
+	-- Localization Start
+
+	-- Functionality
+
+	SI_COMBAT_METRICS2_LANG = "en",
+	SI_COMBAT_METRICS2_ENCHANTMENT_TRIM = " Enchantment", -- this will be removed from the items enchantment string to show the rest in the info panel, e.g. "Spell Damage Enchantment" is reduced to "Spell Damage".
+
+	-- Fonts
+
+	SI_COMBAT_METRICS2_STD_FONT = "$(MEDIUM_FONT)",
+	SI_COMBAT_METRICS2_BOLD_FONT = "$(BOLD_FONT)",
+
+	SI_COMBAT_METRICS2_FONT_SIZE_SMALL = "14",
+	SI_COMBAT_METRICS2_FONT_SIZE = "15",
+	SI_COMBAT_METRICS2_FONT_SIZE_TITLE = "20",
+
+	-- Main UI
+
+	SI_COMBAT_METRICS2_CALC = "Calculating...",
+	SI_COMBAT_METRICS2_LOADING = "Loading...",
+	SI_COMBAT_METRICS2_FINALIZING = "Finalizing...",
+	SI_COMBAT_METRICS2_GROUP = "Group",
+	SI_COMBAT_METRICS2_SELECTION = "Selection",
+
+	SI_COMBAT_METRICS2_BASE_REG = "Base Regeneration",
+	SI_COMBAT_METRICS2_DRAIN = "Drain",
+	SI_COMBAT_METRICS2_UNKNOWN = "Unknown",
+
+	SI_COMBAT_METRICS2_BLOCKS = "Blocks",
+	SI_COMBAT_METRICS2_CRITS = "Crits",
+
+	SI_COMBAT_METRICS2_DAMAGE = "Damage",
+	SI_COMBAT_METRICS2_DAMAGEC = "Damage: ",
+	SI_COMBAT_METRICS2_HIT = "Hit",
+	SI_COMBAT_METRICS2_DPS = "DPS",
+	SI_COMBAT_METRICS2_INCOMING_DPS = "Incoming DPS",
+
+	SI_COMBAT_METRICS2_HEALING = "Healing",
+	SI_COMBAT_METRICS2_HEALS = "Heals",
+	SI_COMBAT_METRICS2_HPS = "HPS",
+	SI_COMBAT_METRICS2_HPSA = "HPS + Overheal",
+	SI_COMBAT_METRICS2_INCOMING_HPS = "Incoming HPS",
+
+	SI_COMBAT_METRICS2_EDIT_TITLE = "Double click to edit fight name",
+
+	SI_COMBAT_METRICS2_DAMAGE_CAUSED = "Damage Caused",
+	SI_COMBAT_METRICS2_DAMAGE_RECEIVED = "Damage Received",
+	SI_COMBAT_METRICS2_HEALING_DONE = "Healing Done",
+	SI_COMBAT_METRICS2_HEALING_RECEIVED = "Healing Received",
+
+	SI_COMBAT_METRICS2_TOGGLE_FIGHTSTATS = "Fight Stats",
+	SI_COMBAT_METRICS2_TOGGLE_COMBAT_LOG = "Combat Log",
+	SI_COMBAT_METRICS2_TOGGLE_GRAPH = "Graph",
+	SI_COMBAT_METRICS2_TOGGLE_INFO = "Info",
+	SI_COMBAT_METRICS2_TOGGLE_SETTINGS = "Options",
+
+	SI_COMBAT_METRICS2_SIGIL_WARNING = "This Icon indicates that a sigil has been used.",
+
+	SI_COMBAT_METRICS2_NOTIFICATION = "Mein Raid |cffff00Beyond Infinity|r sucht einen MagDK/Necro für vCR+3 (Greifenherz).",
+	SI_COMBAT_METRICS2_NOTIFICATION_GUILD = "Info: |cffff00Beyond Infinity|r",
+	SI_COMBAT_METRICS2_NOTIFICATION_ACCEPT = "Message Read",
+	SI_COMBAT_METRICS2_NOTIFICATION_DISCARD = "Turn off notifications",
+
+	-- Options Menu Strings
+
+	SI_COMBAT_METRICS2_SHOWIDS = "Show IDs", -- (for units, buffs and abilities)
+	SI_COMBAT_METRICS2_HIDEIDS = "Hide IDs", -- (for units, buffs and abilities)
+
+	SI_COMBAT_METRICS2_SHOWOVERHEAL = "Show overheal", -- (for units, buffs and abilities)
+	SI_COMBAT_METRICS2_HIDEOVERHEAL = "Hide overheal", -- (for units, buffs and abilities)
+
+	SI_COMBAT_METRICS2_POSTDPS = "Post DPS/HPS",
+	SI_COMBAT_METRICS2_POSTSINGLEDPS = "Post single target DPS",
+	SI_COMBAT_METRICS2_POSTSMARTDPS = "Post boss target DPS",
+	SI_COMBAT_METRICS2_POSTMULTIDPS = "Post total DPS",
+	SI_COMBAT_METRICS2_POSTALLDPS = "Post single and total DPS",
+	SI_COMBAT_METRICS2_POSTHPS = "Post HPS",
+	SI_COMBAT_METRICS2_POSTUNITDPS = "Post DPS to this unit",
+	SI_COMBAT_METRICS2_POSTUNITNAMEDPS = "Post DPS to '<<tm:1>>' units", -- <<tm:1>> is unitname
+	SI_COMBAT_METRICS2_POSTSELECTIONDPS = "Post DPS to selected units",
+	SI_COMBAT_METRICS2_POSTSELECTIONHPS = "Post HPS to selected units",
+
+	-- Format Strings for DPS posting
+
+	SI_COMBAT_METRICS2_BOSS_DPS = "Boss DPS",
+
+	SI_COMBAT_METRICS2_POSTDPS_FORMAT = "<<1>> - DPS: <<2>> (<<3>> in <<4>>)", -- for single target DPS (<<1>> = fightname, <<2>> = DPS, <<3>> = damage, <<4>> =  ) e.g. Z'Maja - DPS: 10000 (1000000 in 1:40.0)
+	SI_COMBAT_METRICS2_POSTSMARTDPS_FORMAT = "<<1>><<2>> - Boss DPS: <<3>> (<<4>> in <<5>>)", -- (<<1>> = fightname, <<2>> = extraunits (can be ""), <<3>> = DPS, <<4>> = damage, <<5>> = time) e.g. Valariel (+5) - Boss DPS: 10000 (1000000 in 1:40.0)
+	SI_COMBAT_METRICS2_POSTMULTIDPS_FORMAT = "<<1>> (+<<2>>) - DPS: <<3>> (<<4>> in <<5>>)", -- (<<1>> = fightname, <<2>> = extraunits, <<3>> = DPS, <<4>> = damage, <<5>> = time) e.g. Some random Mob (+5) - DPS: 10000 (1000000 in 1:40.0)
+	SI_COMBAT_METRICS2_POSTALLDPS_FORMAT_A = "<<1>> - Total DPS (+<<2>>): <<3>> (<<4>> in <<5>>)", -- multi target part (<<1>> = fightname, <<2>> = extraunits, <<3>> = DPS, <<4>> = damage, <<5>> = time) e.g. Valariel - Total DPS (+5): 10000 (1000000 in 1:40.0)
+	SI_COMBAT_METRICS2_POSTALLDPS_FORMAT_B = "<<1>>: <<2>> (<<3>> in <<4>>)", --  single target part (<<1>> = Label, <<2>> = DPS, <<3>> = damage) e.g. Boss DPS (+2): 10000 (1000000 in 1:40.0)
+	SI_COMBAT_METRICS2_POSTSELECTIONDPS_FORMAT = "<<1>><<2>> - Selection DPS: <<3>> (<<4>> in <<5>>)", -- (<<1>> = fightname, <<2>> = extraunits (can be ""), <<3>> = DPS, <<4>> = damage, <<5>> = time) e.g. Valariel (+5) - Boss DPS: 10000 (1000000 in 1:40.0)
+	SI_COMBAT_METRICS2_POSTHPS_FORMAT = "<<1>> - HPS: <<2>> (<<3>> in <<4>>)", -- (<<1>> = fightname, <<2>> = HPS, <<3>> = damage, <<4>> = time)  e.g. Z'Maja - HPS: 10000 (1000000 in 1:40.0)
+	SI_COMBAT_METRICS2_POSTSELECTIONHPS_FORMAT = "<<1>> - Selection HPS (x<<2>>): <<3>> (<<4>> in <<5>>)", -- (<<1>> = fightname, <<2>> = units, <<3>> = HPS, <<4>> = damage, <<5>> = time) e.g. Z'Maja - HPS (12): 10000 (1000000 in 1:40.0)
+
+	SI_COMBAT_METRICS2_POSTBUFF = "Post buff uptime",
+	SI_COMBAT_METRICS2_POSTBUFF_BOSS = "Post buff uptime on bosses",
+	SI_COMBAT_METRICS2_POSTBUFF_GROUP = "Post buff uptime on group members",
+	SI_COMBAT_METRICS2_POSTBUFF_FORMAT = "<<1>> - Uptime: <<2>> (<<3>><<4[/ on $d/ on $d units]>>)", -- (<<1>> = buff name, <<2>> = relative uptime, <<3>> = uptime, <<4>> = time) e.g. Major Intellect - Uptime: 93.2% (9:26 in 10:07)
+	SI_COMBAT_METRICS2_POSTBUFF_FORMAT_GROUP = "<<1>> - Uptime: <<2>>/<<5>> (<<3>>/<<6>><<4[/ on $d/ on $d units]>>)", -- (<<1>> = buff name, <<2>> = relative uptime, <<3>> = uptime, <<4>> = units, <<5>> = relative group uptime, <<6>> = group uptime) e.g. Minor Sorcery - Uptime: 55.4%/100.6% (5:36/10:11 in 10:07)
+
+	SI_COMBAT_METRICS2_SETTINGS = "Addon Settings",
+
+	-- Graph
+
+	SI_COMBAT_METRICS2_TOGGLE_CURSOR = "Toggle to show cursor and value tooltip",
+	SI_COMBAT_METRICS2_GRAPH_BUFF_GROUP_SELECTOR = "Toggle to show group uptime",
+
+	SI_COMBAT_METRICS2_RECALCULATE = "Recalculate Fight",
+	SI_COMBAT_METRICS2_SMOOTHED = "Smoothed",
+	SI_COMBAT_METRICS2_TOTAL = "Total",
+	SI_COMBAT_METRICS2_ABSOLUTE = "Absolute %",
+	SI_COMBAT_METRICS2_SMOOTH_LABEL = "Smooth: %d s",
+	SI_COMBAT_METRICS2_NONE = "None",
+	SI_COMBAT_METRICS2_BOSS_HP = "Boss HP",
+	SI_COMBAT_METRICS2_ENLARGE = "Enlarge",
+	SI_COMBAT_METRICS2_SHRINK = "Shrink",
+
+	SI_COMBAT_METRICS2_EXPORT_BUILD = "Export Build (ESO-hub.com)",
+
+	-- Feedback
+
+	SI_COMBAT_METRICS2_FEEDBACK = "Feedback",
+
+	SI_COMBAT_METRICS2_FEEDBACK_SEND = "Send feedback",
+
+	SI_COMBAT_METRICS2_FEEDBACK_EUONLY_FORMAT = "<<1>> (EU only)",
+	SI_COMBAT_METRICS2_FEEDBACK_MAIL = "Ingame mail",
+	SI_COMBAT_METRICS2_FEEDBACK_MAIL_HEADER = "Feedback: Combat Metrics %s",
+
+	SI_COMBAT_METRICS2_FEEDBACK_ESOUI = "ESOUI page",
+	SI_COMBAT_METRICS2_FEEDBACK_GITHUB = "GitHub repository",
+	SI_COMBAT_METRICS2_FEEDBACK_DISCORD = "Discord",
+
+	SI_COMBAT_METRICS2_DONATE = "Donate",
+	SI_COMBAT_METRICS2_DONATE_GOLD = "Gold",
+	SI_COMBAT_METRICS2_DONATE_GOLD_HEADER = "Donation: Combat Metrics %s",
+	SI_COMBAT_METRICS2_DONATE_CROWNS = "Crowns",
+	SI_COMBAT_METRICS2_DONATE_CROWNS_TEXT = "If you wish to gift something from the crown store, I'd be happy to receive some crown crates or consumable items. \nYou can also contact me if you wish to gift something else.",
+	SI_COMBAT_METRICS2_DONATE_CROWNS_ACCOUNT = "My account:",
+	SI_COMBAT_METRICS2_DONATE_ESOUI = "Donation Page",
+
+	SI_COMBAT_METRICS2_OK = "OK",
+
+	SI_COMBAT_METRICS2_SAVEDFIGHTS_FULL = "You're exceeding the maximum number of saved fights. Delete <<1[a fight/a fight/$d fights]>> or increase the allowed number in the settings!",
+	SI_COMBAT_METRICS2_CONVERT_DB_TITLE = "COMBAT METRICS",
+	SI_COMBAT_METRICS2_CONVERT_DB_TEXT = "This version features a new way to store fights. It takes up less space and reduces UI loading times, even with much more fights saved. \n\nTo benefit from this and allow new fights to be saved, all stored fights need to be converted. \n\nThis process may take a up to a few minutes.",
+	SI_COMBAT_METRICS2_CONVERT_DB_BUTTON1_TEXT = "Convert",
+	SI_COMBAT_METRICS2_CONVERT_DB_BUTTON2_TEXT = "Abort",
+	SI_COMBAT_METRICS2_CONVERSION_TITLE_TEXT = "Converting Fight <<1>>/<<2>> ...",
+	SI_COMBAT_METRICS2_CONVERSION_FINISHED_TEXT = "Conversion Finished!",
+
+	-- Fight Control Button Tooltips
+
+	SI_COMBAT_METRICS2_PREVIOUS_FIGHT = "Previous Fight",
+	SI_COMBAT_METRICS2_NEXT_FIGHT = "Next Fight",
+	SI_COMBAT_METRICS2_MOST_RECENT_FIGHT = "Most Recent Fight",
+	SI_COMBAT_METRICS2_LOAD_FIGHT = "Load Fight",
+	SI_COMBAT_METRICS2_SAVE_FIGHT = "Click: Save fight",
+	SI_COMBAT_METRICS2_SAVE_FIGHT2 = "Shift+Click: Save fight with combat log",
+	SI_COMBAT_METRICS2_DELETE_COMBAT_LOG = "Delete Combat Log",
+	SI_COMBAT_METRICS2_DELETE_FIGHT = "Delete Fight",
+
+	-- Fight List
+
+	SI_COMBAT_METRICS2_RECENT_FIGHT = "Recent Fights",
+	SI_COMBAT_METRICS2_DURATION = "Duration",
+	SI_COMBAT_METRICS2_CHARACTER = "Character",
+	SI_COMBAT_METRICS2_ZONE = "Zone",
+	SI_COMBAT_METRICS2_TIME = "Time",
+	SI_COMBAT_METRICS2_TIME2 = "Time",
+	SI_COMBAT_METRICS2_TIMEC = "Time: ",
+
+	SI_COMBAT_METRICS2_SHOW = "Show",
+	SI_COMBAT_METRICS2_DELETE = "Delete",
+
+	SI_COMBAT_METRICS2_SAVED_FIGHTS = "Saved Fights",
+
+	-- More UI Strings
+
+	SI_COMBAT_METRICS2_ACTIVE_TIME = "Active Time: ",
+	SI_COMBAT_METRICS2_ZERO_SEC = "0 s",
+	SI_COMBAT_METRICS2_IN_COMBAT = "In Combat: ",
+
+	SI_COMBAT_METRICS2_PLAYER = "Player",
+
+	SI_COMBAT_METRICS2_TOTALC = " Total: ",
+	SI_COMBAT_METRICS2_NORMAL = "Normal: ",
+	SI_COMBAT_METRICS2_CRITICAL = "Critical: ",
+	SI_COMBAT_METRICS2_BLOCKED = "Blocked: ",
+	SI_COMBAT_METRICS2_SHIELDED = "Shielded: ",
+	SI_COMBAT_METRICS2_ABSOLUTEC = "Absolute: ",
+	SI_COMBAT_METRICS2_OVERHEAL = "Overheal: ", -- as in overheal
+
+	SI_COMBAT_METRICS2_HITS = "Hits",
+	SI_COMBAT_METRICS2_NORM = "Norm", -- Normal, short
+	SI_COMBAT_METRICS2_OH = "OH", -- Overheal, short
+
+	SI_COMBAT_METRICS2_RESOURCES = "Resources",
+
+	SI_COMBAT_METRICS2_STATS = "Stats",
+	SI_COMBAT_METRICS2_AVE = "Avg", -- Average, short
+	SI_COMBAT_METRICS2_AVE_N = "Avg N", -- Average Normal, short
+	SI_COMBAT_METRICS2_AVE_C = "Avg C", -- Average Crit, short
+	SI_COMBAT_METRICS2_AVE_B = "Avg B", -- Average Blocked, short
+	SI_COMBAT_METRICS2_AVERAGE = "Average",
+	SI_COMBAT_METRICS2_NORMAL_HITS = "Normal Hits",
+	SI_COMBAT_METRICS2_MAX = "Max", -- Maximum
+	SI_COMBAT_METRICS2_MIN = "Min", -- Minimum
+	SI_COMBAT_METRICS2_EFFECTIVE = "Effective", -- Effective
+
+	SI_COMBAT_METRICS2_STATS_MAGICKA1 = "Max Magicka",
+	SI_COMBAT_METRICS2_STATS_MAGICKA2 = "Spell Damage",
+	SI_COMBAT_METRICS2_STATS_MAGICKA3 = "Spell Critical",
+	SI_COMBAT_METRICS2_STATS_MAGICKA_FORMAT3 = "%.1f %%", -- e.g. 12.3%
+	SI_COMBAT_METRICS2_STATS_MAGICKA4 = "Critical Damage",
+	SI_COMBAT_METRICS2_STATS_MAGICKA5 = "Spell Penetration",
+	SI_COMBAT_METRICS2_STATS_MAGICKA6 = "Overpenetration",
+	SI_COMBAT_METRICS2_STATS_MAGICKA_FORMAT6 = "%.1f %%", -- e.g. 12.3%
+	SI_COMBAT_METRICS2_STATS_MAGICKA7 = "Status Effect Procs",
+
+	SI_COMBAT_METRICS2_STATS_STAMINA1 = "Max Stamina",
+	SI_COMBAT_METRICS2_STATS_STAMINA2 = "Weapon Damage",
+	SI_COMBAT_METRICS2_STATS_STAMINA3 = "Weapon Critical",
+	SI_COMBAT_METRICS2_STATS_STAMINA_FORMAT3 = "%.1f %%", -- e.g. 12.3%
+	SI_COMBAT_METRICS2_STATS_STAMINA4 = "Critical Damage",
+	SI_COMBAT_METRICS2_STATS_STAMINA5 = "Phys. Penetration",
+	SI_COMBAT_METRICS2_STATS_STAMINA6 = "Overpenetration",
+	SI_COMBAT_METRICS2_STATS_STAMINA_FORMAT6 = "%.1f %%", -- e.g. 12.3%
+	SI_COMBAT_METRICS2_STATS_STAMINA7 = "Status Effect Procs",
+
+	SI_COMBAT_METRICS2_STATS_HEALTH1 = "Max Health",
+	SI_COMBAT_METRICS2_STATS_HEALTH2 = "Physical Resist.",
+	SI_COMBAT_METRICS2_STATS_HEALTH3 = "Spell Resistance",
+	SI_COMBAT_METRICS2_STATS_HEALTH4 = "Critical Resist.",
+	SI_COMBAT_METRICS2_STATS_HEALTH_FORMAT4 = "%.1f %%", -- e.g. 12.3%
+
+	SI_COMBAT_METRICS2_PERFORMANCE = "Performance",
+	SI_COMBAT_METRICS2_PERFORMANCE_FPSAVG = "Average FPS",
+	SI_COMBAT_METRICS2_PERFORMANCE_FPSMIN = "Minimum FPS",
+	SI_COMBAT_METRICS2_PERFORMANCE_FPSMAX = "Maximum FPS",
+	SI_COMBAT_METRICS2_PERFORMANCE_FPSPING = "Ping",
+	SI_COMBAT_METRICS2_PERFORMANCE_DESYNC = "Skill Desync",
+
+	SI_COMBAT_METRICS2_PENETRATION_TT = "Penetration vs. Damage",
+	SI_COMBAT_METRICS2_CRITBONUS_TT = "Crit vs. Damage",
+	SI_COMBAT_METRICS2_BACKSTABBER_TT = "*Backstabber is included as if all targets were always flanked",
+
+	SI_COMBAT_METRICS2_COMBAT_LOG = "Combat Log",
+
+	SI_COMBAT_METRICS2_GOTO_PREVIOUS = "Go to previous page",
+	SI_COMBAT_METRICS2_PAGE = "Go to page <<1>>", -- <<1>> = page number
+	SI_COMBAT_METRICS2_GOTO_NEXT = "Go to next page",
+
+	SI_COMBAT_METRICS2_COPY_PASTE = "Toggle copy paste mode of the combat log.",
+
+	SI_COMBAT_METRICS2_TOGGLE_HEAL = "Toggle received healing events",
+	SI_COMBAT_METRICS2_TOGGLE_DAMAGE = "Toggle received damage events",
+	SI_COMBAT_METRICS2_TOGGLE_YOUR_HEAL = "Toggle your healing events",
+	SI_COMBAT_METRICS2_TOGGLE_YOUR_DAMAGE = "Toggle your damage events",
+
+	SI_COMBAT_METRICS2_TOGGLE_BUFFIN_EVENTS = "Toggle incoming buff events",
+	SI_COMBAT_METRICS2_TOGGLE_BUFFOUT_EVENTS = "Toggle outbound buff events",
+	SI_COMBAT_METRICS2_TOGGLE_GROUPBUFFIN_EVENTS = "Toggle incoming groupbuff events",
+	SI_COMBAT_METRICS2_TOGGLE_GROUPBUFFOUT_EVENTS = "Toggle outbound groupbuff events",
+	SI_COMBAT_METRICS2_TOGGLE_RESOURCE_EVENTS = "Toggle resource events",
+	SI_COMBAT_METRICS2_TOGGLE_STATS_CHANGE_EVENTS = "Toggle stats change events",
+	SI_COMBAT_METRICS2_TOGGLE_MESSAGE_CHANGE_EVENTS = "Toggle info events (e.g. weapon swap)",
+	SI_COMBAT_METRICS2_TOGGLE_SKILL_USE_EVENTS = "Toggle used skills events",
+	SI_COMBAT_METRICS2_TOGGLE_PERFORMANCE_EVENTS = "Toggle performance info",
+
+	-- \n = new line
+
+	SI_COMBAT_METRICS2_DEBUFF_IN = "(De-)Buffs\nIn",
+	SI_COMBAT_METRICS2_DEBUFF_OUT = "(De-)Buffs\nOut",
+	SI_COMBAT_METRICS2_MAGICKA_PM = "Magicka\n +/-",
+	SI_COMBAT_METRICS2_STAMINA_PM = "Stamina\n +/-",
+	SI_COMBAT_METRICS2_RESOURCES_PM = "Resources\n +/-",
+
+	SI_COMBAT_METRICS2_BUFF = "Buff",
+	SI_COMBAT_METRICS2_BUFFS = "Buffs",
+	SI_COMBAT_METRICS2_DEBUFFS = "Debuffs",
+	SI_COMBAT_METRICS2_SHARP = "#",
+	SI_COMBAT_METRICS2_BUFFCOUNT_TT = "Player / Overall",
+	SI_COMBAT_METRICS2_UPTIME = "Uptime %",
+	SI_COMBAT_METRICS2_UPTIME_TT = "Player % / Overall %",
+
+	SI_COMBAT_METRICS2_REGENERATION = "Regeneration",
+	SI_COMBAT_METRICS2_CONSUMPTION = "Consumption",
+	SI_COMBAT_METRICS2_PM_SEC = "±/s",
+	SI_COMBAT_METRICS2_TARGET = "Target",
+	SI_COMBAT_METRICS2_PERCENT = "%",
+	SI_COMBAT_METRICS2_UNITDPS_TT = "Real DPS, e.g. the damage per second between your first and your last hit to that target",
+
+	SI_COMBAT_METRICS2_ABILITY = "Ability",
+	SI_COMBAT_METRICS2_PER_HITS = "/Hits",
+	SI_COMBAT_METRICS2_CRITS_PER = "Crit %",
+
+	SI_COMBAT_METRICS2_FAVOURITE_ADD = "Add to Favourites",
+	SI_COMBAT_METRICS2_FAVOURITE_REMOVE = "Remove from Favourites",
+
+	SI_COMBAT_METRICS2_UNCOLLAPSE = "Show Details",
+	SI_COMBAT_METRICS2_COLLAPSE = "Collapse",
+
+	SI_COMBAT_METRICS2_SKILL = "Skill",
+
+	SI_COMBAT_METRICS2_BAR = "Bar ",
+	SI_COMBAT_METRICS2_AVERAGEC = "Average: ",
+
+	SI_COMBAT_METRICS2_SKILLTIME_LABEL2 = "weave", -- weaving time
+	SI_COMBAT_METRICS2_SKILLTIME_LABEL3 = "miss", -- errors
+
+	SI_COMBAT_METRICS2_SKILLTIME_TT1 = "Number of casts of this skill",
+	SI_COMBAT_METRICS2_SKILLTIME_TT2 = "Weaving Time\n\nThe average time wasted until the next skill was cast.",
+	SI_COMBAT_METRICS2_SKILLTIME_TT3 = "Weaving Errors\n\nNumber of times the skill activation wasn't followed by a weapon attack or vice versa",
+	SI_COMBAT_METRICS2_SKILLTIME_TT4 = "Average time between subsequent activations of this skill",
+
+	SI_COMBAT_METRICS2_SKILLTIME_WEAVING = "Weaving Average: ",
+
+	SI_COMBAT_METRICS2_SKILLAVG_TT = "Average time wasted between two skill casts",
+	SI_COMBAT_METRICS2_SKILLTOTAL_TT = "Total time wasted between skill casts",
+
+	SI_COMBAT_METRICS2_TOTALWA = "Weapon attacks: ",
+	SI_COMBAT_METRICS2_TOTALWA_TT = "Total light and heavy attacks",
+	SI_COMBAT_METRICS2_TOTALSKILLS = "Skills: ",
+	SI_COMBAT_METRICS2_TOTALSKILLS_TT = "Total skills cast",
+
+	SI_COMBAT_METRICS2_SAVED_DATA = "Saved Data",
+
+	-- Live report window
+
+	SI_COMBAT_METRICS2_SHOW_XPS = "<<1>> / <<2>> (<<3>>%)", -- Format to show DPS/HPS. <<1>> = own value, <<2>> = group value, <<3>> = percentage
+
+	-- Settings Menu
+
+	SI_COMBAT_METRICS2_MENU_PROFILES = "Profiles",
+
+	SI_COMBAT_METRICS2_MENU_AC_NAME = "Use accountwide settings",
+	SI_COMBAT_METRICS2_MENU_AC_TOOLTIP = "If enabled all chars of an account will share their settings",
+
+	SI_COMBAT_METRICS2_MENU_GS_NAME = "General Settings",
+
+	SI_COMBAT_METRICS2_MENU_FH_NAME = "Fight History",
+	SI_COMBAT_METRICS2_MENU_FH_TOOLTIP = "Number of recent fights to save",
+
+	SI_COMBAT_METRICS2_MENU_MAXSAVEDFIGHTS_NAME = "Saved Fights",
+	SI_COMBAT_METRICS2_MENU_MAXSAVEDFIGHTS_TOOLTIP = "Maximum number of fights that can be saved",
+	SI_COMBAT_METRICS2_MENU_MAXSAVEDFIGHTS_WARNING = "Saving too many fights may increase loading times.",
+
+	SI_COMBAT_METRICS2_MENU_BOSSFIGHTS_NAME = "Keep Boss Fights",
+	SI_COMBAT_METRICS2_MENU_BOSSFIGHTS_TOOLTIP = "Delete trash fights first before deleting boss fights when limit of fights is reached",
+
+	SI_COMBAT_METRICS2_MENU_MG_NAME = "Monitor Group Damage",
+	SI_COMBAT_METRICS2_MENU_MG_TOOLTIP = "Monitor the events of the whole group",
+
+	SI_COMBAT_METRICS2_MENU_STACKS_NAME = "Show stacks of buffs",
+	SI_COMBAT_METRICS2_MENU_STACKS_TOOLTIP = "Show individual stacks in the buff panel",
+
+	SI_COMBAT_METRICS2_MENU_GL_NAME = "Monitor Damage in large groups",
+	SI_COMBAT_METRICS2_MENU_GL_TOOLTIP = "Monitor group damage in large groups (more than 4 group members)",
+
+	SI_COMBAT_METRICS2_MENU_LM_NAME = "Light Mode",
+	SI_COMBAT_METRICS2_MENU_LM_TOOLTIP = "When in light mode, combat metrics will only calculate the DPS/HPS in the live report window. No statistics will be calculated and the fight report window will be disabled",
+
+	SI_COMBAT_METRICS2_MENU_NOPVP_NAME = "Turn off in PvP",
+	SI_COMBAT_METRICS2_MENU_NOPVP_TOOLTIP = "Turns all fight logging off in Cyrodil and Battlegrounds",
+
+	SI_COMBAT_METRICS2_MENU_LMPVP_NAME = "Light Mode in PvP",
+	SI_COMBAT_METRICS2_MENU_LMPVP_TOOLTIP = "Switches to light mode in Cyrodil and Battlegrounds. When in light mode, Combat Metrics will only calculate the DPS/HPS in the live report window. No statistics will be calculated and the fight report window will be disabled",
+
+	SI_COMBAT_METRICS2_MENU_ASCC_NAME = "Auto Select Channel",
+	SI_COMBAT_METRICS2_MENU_ASCC_TOOLTIP = "Automatically select the channel when posting DPS/HPS to chat. When in group the /group chat is used otherwise the /say chat.",
+	SI_COMBAT_METRICS2_MENU_AS_NAME = "Auto Screenshot",
+	SI_COMBAT_METRICS2_MENU_AS_TOOLTIP = "Automatically take a Screenshot when opening the fight report window",
+	SI_COMBAT_METRICS2_MENU_ML_NAME = "Minimum fight length for screenshot",
+	SI_COMBAT_METRICS2_MENU_ML_TOOLTIP = "Minimum fight length in s for auto screenshot",
+	SI_COMBAT_METRICS2_MENU_SF_NAME = "Scale of fight report window",
+	SI_COMBAT_METRICS2_MENU_SF_TOOLTIP = "Adjusts the size of all elements of the fight report window",
+
+	SI_COMBAT_METRICS2_MENU_DISPLAYNAMES_NAME = "Show account names",
+	SI_COMBAT_METRICS2_MENU_DISPLAYNAMES_TOOLTIP = "Shows account names (@Name) instead of character names for group members",
+
+	SI_COMBAT_METRICS2_MENU_SHOWPETS_NAME = "Show Pets",
+	SI_COMBAT_METRICS2_MENU_HIDEPETS = "Hide Pets",
+	SI_COMBAT_METRICS2_MENU_SHOWPETS_TOOLTIP = "Shows pets in the fight report window",
+
+	SI_COMBAT_METRICS2_MENU_NOTIFICATIONS = "Allow Notifications",
+	SI_COMBAT_METRICS2_MENU_NOTIFICATIONS_TOOLTIP = "From time to time, I may add a notification to the report window, for example to gather data or to recruit people to my raid (to save time that I'd rather use on addons). Turn this off, if you don't want this.",
+
+	SI_COMBAT_METRICS2_MENU_RESPEN_NAME = "Resistance and Penetration",
+	SI_COMBAT_METRICS2_MENU_CRUSHER = "Crusher",
+	SI_COMBAT_METRICS2_MENU_CRUSHER_TOOLTIP = "Resistance reduction from the Crusher glyph debuff. \nFor CP160 gold glyph: \nstandard: 1622 \ninfused: 2108 \ninfused + Torug's: 2740",
+	SI_COMBAT_METRICS2_MENU_ALKOSH = "Alkosh",
+	SI_COMBAT_METRICS2_MENU_ALKOSH_TOOLTIP = "Resistance reduction from the Roar of Alkosh debuff. \nIt is given by the higher of weapon or spell damage of the caster, up to a maximum of 6000.",
+	SI_COMBAT_METRICS2_MENU_TREMORSCALE = "Tremorscale",
+	SI_COMBAT_METRICS2_MENU_TREMORSCALE_TOOLTIP = "Resistance reduction from the Tremorscale debuff. \nIt is given by the higher of physical or spell resistance of the caster, multiplied by 0.08.",
+	SI_COMBAT_METRICS2_MENU_MOBRESISTANCE = "Target resistance",
+	SI_COMBAT_METRICS2_MENU_MOBRESISTANCE_TOOLTIP = "Target resistance that is assumed for overpenetration calculation",
+
+	SI_COMBAT_METRICS2_MENU_LR_NAME = "Live report window",
+	SI_COMBAT_METRICS2_MENU_ENABLE_NAME = "Enable",
+	SI_COMBAT_METRICS2_MENU_ENABLE_TOOLTIP = "Enable Live report window which shows DPS & HPS during combat",
+
+	SI_COMBAT_METRICS2_MENU_LR_LOCK = "Lock",
+	SI_COMBAT_METRICS2_MENU_LR_LOCK_TOOLTIP = "Lock the Live report window, so it can't be moved",
+
+	SI_COMBAT_METRICS2_MENU_LR_ALIGNMENT = "Use left-aligned numbers",
+	SI_COMBAT_METRICS2_MENU_LR_ALIGNMENT_TOOLTIP = "Sets positioning of Damage/Heal/etc. numbers for the Live report window to left-aligned",
+
+	SI_COMBAT_METRICS2_MENU_LAYOUT_NAME = "Layout",
+	SI_COMBAT_METRICS2_MENU_LAYOUT_TOOLTIP = "Select the Layout of the Live report window",
+	SI_COMBAT_METRICS2_MENU_SCALE_NAME = "Scale",
+	SI_COMBAT_METRICS2_MENU_SCALE_TOOLTIP = "Scale of the Live report window.",
+
+	SI_COMBAT_METRICS2_MENU_BGALPHA_NAME = "Background Opacity",
+	SI_COMBAT_METRICS2_MENU_BGALPHA_TOOLTIP = "Set the Opacity of the Background",
+
+	SI_COMBAT_METRICS2_MENU_SHOW_DPS_NAME = "Show DPS",
+	SI_COMBAT_METRICS2_MENU_SHOW_DPS_TOOLTIP = "Show DPS you deal in Live report window",
+	SI_COMBAT_METRICS2_MENU_SHOW_SDPS_NAME = "Show single target DPS",
+	SI_COMBAT_METRICS2_MENU_SHOW_SDPS_TOOLTIP = "Show single target DPS you deal in Live report window",
+	SI_COMBAT_METRICS2_MENU_SHOW_HPS_NAME = "Show HPS",
+	SI_COMBAT_METRICS2_MENU_SHOW_HPS_TOOLTIP = "Show HPS you cast in Live report window",
+	SI_COMBAT_METRICS2_MENU_SHOW_HPSA_NAME = "Show HPS + overheal",
+	SI_COMBAT_METRICS2_MENU_SHOW_HPSA_TOOLTIP = "Show HPS including overheal that you cast in Live report window",
+	SI_COMBAT_METRICS2_MENU_SHOW_INC_DPS_NAME = "Show Incoming DPS",
+	SI_COMBAT_METRICS2_MENU_SHOW_INC_DPS_TOOLTIP = "Show DPS you receive in Live report window",
+	SI_COMBAT_METRICS2_MENU_SHOW_INC_HPS_NAME = "Show Incoming HPS",
+	SI_COMBAT_METRICS2_MENU_SHOW_INC_HPS_TOOLTIP = "Show HPS you receive in Live report window",
+	SI_COMBAT_METRICS2_MENU_SHOW_TIME_NAME = "Show Time",
+	SI_COMBAT_METRICS2_MENU_SHOW_TIME_TOOLTIP = "Show Time you have been dealing damage in Live report window",
+
+	SI_COMBAT_METRICS2_MENU_CHAT_TITLE = "Stream Combat Log to chat",
+	SI_COMBAT_METRICS2_MENU_CHAT_WARNING = "Use with caution! Creating text lines requires a lot of work from the CPU. It is better to disable this if you expect heavy fights (trials, cyrodil)",
+
+	SI_COMBAT_METRICS2_MENU_CHAT_DH_TOOLTIP = "Streams Damage and Heal Events to chat window",
+	SI_COMBAT_METRICS2_MENU_CHAT_TITLE_NAME = "Chat Log Title",
+	SI_COMBAT_METRICS2_MENU_CHAT_TITLE_TOOLTIP = "Show damage you deal in chat stream",
+	SI_COMBAT_METRICS2_MENU_CHAT_SD_NAME = "Show damage",
+	SI_COMBAT_METRICS2_MENU_CHAT_SD_TOOLTIP = "Show damage you deal in chat stream",
+	SI_COMBAT_METRICS2_MENU_CHAT_SH_NAME = "Show heals",
+	SI_COMBAT_METRICS2_MENU_CHAT_SH_TOOLTIP = "Show heals you cast in chat stream",
+	SI_COMBAT_METRICS2_MENU_CHAT_SID_NAME = "Show Incoming damage",
+	SI_COMBAT_METRICS2_MENU_CHAT_SID_TOOLTIP = "Show damage you receive in chat stream",
+	SI_COMBAT_METRICS2_MENU_CHAT_SIH_NAME = "Show Incoming heal",
+	SI_COMBAT_METRICS2_MENU_CHAT_SIH_TOOLTIP = "Show heals you receive in chat stream",
+
+	-- Live Report Tooltips
+
+	SI_COMBAT_METRICS2_LIVEREPORT_GROUP_TOOLTIP = "Player / Group",
+	SI_COMBAT_METRICS2_LIVEREPORT_DPSSINGLE_TOOLTIP = "Single Target DPS",
+	SI_COMBAT_METRICS2_LIVEREPORT_DPSBOSS_TOOLTIP = "Boss DPS",
+	SI_COMBAT_METRICS2_LIVEREPORT_DPSMULTI_TOOLTIP = "Multi Target DPS",
+	SI_COMBAT_METRICS2_LIVEREPORT_HPSOUT_TOOLTIP = "HPS",
+	SI_COMBAT_METRICS2_LIVEREPORT_HPSRAW_TOOLTIP = "Raw HPS (incl. overheal)",
+	SI_COMBAT_METRICS2_LIVEREPORT_DPSINC_TOOLTIP = "Incoming DPS",
+	SI_COMBAT_METRICS2_LIVEREPORT_HPSINC_TOOLTIP = "Incoming HPS",
+	SI_COMBAT_METRICS2_LIVEREPORT_TIME_TOOLTIP = "Combat duration",
+
+	-- make a label for keybinding
+
+	SI_BINDING_NAME_CMX_REPORT_TOGGLE = "Toggle Fight Report",
+	SI_BINDING_NAME_CMX_LIVEREPORT_TOGGLE = "Toggle Live Report",
+	SI_BINDING_NAME_CMX_POST_DPS_SMART = "Post Boss or Total DPS",
+	SI_BINDING_NAME_CMX_POST_DPS_SINGLE = "Post Single Target DPS",
+	SI_BINDING_NAME_CMX_POST_DPS_MULTI = "Post Multi Target DPS",
+	SI_BINDING_NAME_CMX_POST_DPS = "Post Single + Multi Target DPS",
+	SI_BINDING_NAME_CMX_POST_HPS = "Post Heal to Chat",
+	SI_BINDING_NAME_CMX_RESET_FIGHT = "Manually Reset the Fight",
+}
+
+-- Ingame (Use ZOS Tranlations, change only for languages which are not supported)
+
+strings["SI_COMBAT_METRICS2_HEALTH"] = GetString(SI_COMBATMECHANICFLAGS32) -- Health
+strings["SI_COMBAT_METRICS2_MAGICKA"] = GetString(SI_COMBATMECHANICFLAGS1) -- Magicka
+strings["SI_COMBAT_METRICS2_STAMINA"] = GetString(SI_COMBATMECHANICFLAGS4) -- Stamina
+strings["SI_COMBAT_METRICS2_ULTIMATE"] = GetString(SI_COMBATMECHANICFLAGS8) -- Ultimate
+
+-- Localization End
+
+for stringId, stringValue in pairs(strings) do
+	ZO_CreateStringId(stringId, stringValue)
+	SafeAddVersion(stringId, 1)
+end

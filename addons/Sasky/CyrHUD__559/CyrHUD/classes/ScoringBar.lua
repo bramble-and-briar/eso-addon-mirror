@@ -67,7 +67,7 @@ function bar:update()
     self.dc_points = GetCampaignAlliancePotentialScore(self.campaign, DC)
     self.ep_points = GetCampaignAlliancePotentialScore(self.campaign, EP)
 	
-	self.ad_lowPopBonus = IsUnderpopBonusEnabled(self.campaign, AD)
+  	self.ad_lowPopBonus = IsUnderpopBonusEnabled(self.campaign, AD)
     self.dc_lowPopBonus = IsUnderpopBonusEnabled(self.campaign, DC)
     self.ep_lowPopBonus = IsUnderpopBonusEnabled(self.campaign, EP)
 	
@@ -108,17 +108,17 @@ local LowPopBonus_DC, LowPopBonus_EP, LowPopBonus_AD = "img19", "img20", "img21"
 local LowScoreBonus_DC, LowScoreBonus_EP, LowScoreBonus_AD = "img22", "img23", "img24"
 
 function bar:configureLabel(label)
-    label:exposeControls(3,4)
-    label.main:SetCenterColor(CyrHUD.info.invisColor:UnpackRGBA())
-    label:getControl(ICON_DC):SetTexture(CyrHUD.info[DC].flag)
-    label:getControl(ICON_EP):SetTexture(CyrHUD.info[EP].flag)
-    label:getControl(ICON_AD):SetTexture(CyrHUD.info[AD].flag)
+  label:exposeControls(3,4)
+  label.main:SetCenterColor(CyrHUD.info.invisColor:UnpackRGBA())
+  label:getControl(ICON_DC):SetTexture(CyrHUD.info[DC].flag)
+  label:getControl(ICON_EP):SetTexture(CyrHUD.info[EP].flag)
+  label:getControl(ICON_AD):SetTexture(CyrHUD.info[AD].flag)
 	label:getControl(ICON_DC):SetDrawLayer(3)
 	label:getControl(ICON_EP):SetDrawLayer(3)
 	label:getControl(ICON_AD):SetDrawLayer(3)
-    label:getControl(SCROLL_DC):SetTexture(CyrHUD.icons["scrollDC"])
-    label:getControl(SCROLL_EP):SetTexture(CyrHUD.icons["scrollEP"])
-    label:getControl(SCROLL_AD):SetTexture(CyrHUD.icons["scrollAD"])
+  label:getControl(SCROLL_DC):SetTexture(CyrHUD.icons["scrollDC"])
+  label:getControl(SCROLL_EP):SetTexture(CyrHUD.icons["scrollEP"])
+  label:getControl(SCROLL_AD):SetTexture(CyrHUD.icons["scrollAD"])
 	label:getControl(SCROLL_DC):SetDrawLayer(2)
 	label:getControl(SCROLL_EP):SetDrawLayer(2)
 	label:getControl(SCROLL_AD):SetDrawLayer(2)
@@ -146,21 +146,21 @@ function bar:configureLabel(label)
 	label:positionControl(LowScoreBonus_AD, 24, 24, 238, -5) 
 	
 	label:getControl(LowScoreBonus_DC):SetColor(CyrHUD.info[DC].color:UnpackRGBA())
-    label:getControl(LowScoreBonus_EP):SetColor(CyrHUD.info[EP].color:UnpackRGBA())
-    label:getControl(LowScoreBonus_AD):SetColor(CyrHUD.info[AD].color:UnpackRGBA())
+  label:getControl(LowScoreBonus_EP):SetColor(CyrHUD.info[EP].color:UnpackRGBA())
+  label:getControl(LowScoreBonus_AD):SetColor(CyrHUD.info[AD].color:UnpackRGBA())
 	
 	label:getControl(LowPopBonus_DC):SetColor(CyrHUD.info[DC].color:UnpackRGBA())
-    label:getControl(LowPopBonus_EP):SetColor(CyrHUD.info[EP].color:UnpackRGBA())
-    label:getControl(LowPopBonus_AD):SetColor(CyrHUD.info[AD].color:UnpackRGBA())
+  label:getControl(LowPopBonus_EP):SetColor(CyrHUD.info[EP].color:UnpackRGBA())
+  label:getControl(LowPopBonus_AD):SetColor(CyrHUD.info[AD].color:UnpackRGBA())
 	
 	
 
     label:positionControl(TEXT_SCROLL_DC, 50, 40, 86, -4)
     label:positionControl(TEXT_SCROLL_EP, 50, 40, 156, -4)
     label:positionControl(TEXT_SCROLL_AD, 50, 40, 226, -4)
-	label:getControl(TEXT_SCROLL_DC):SetDrawLayer(3)
-	label:getControl(TEXT_SCROLL_EP):SetDrawLayer(3)
-	label:getControl(TEXT_SCROLL_AD):SetDrawLayer(3)
+	  label:getControl(TEXT_SCROLL_DC):SetDrawLayer(3)
+	  label:getControl(TEXT_SCROLL_EP):SetDrawLayer(3)
+	  label:getControl(TEXT_SCROLL_AD):SetDrawLayer(3)
     label:positionControl(TEXT_TIME, 90, 40, 10, 10)
     label:positionControl(TEXT_DC, 50, 40, 100, 10)
     label:positionControl(TEXT_EP, 50, 40, 170, 10)
@@ -193,17 +193,7 @@ function bar:configureLabel(label)
 end
 
 function bar:updateLabel(label)
-    local pre = "+"
-
-	-- 05/07/2026 performance improvement:
-	-- updateLabel() runs once a second for this status bar. Nearly every
-	-- control below was being re-fetched via label:getControl(...) 2-4 times
-	-- each (TEXT_TIME x3, TEXT_DC/EP/AD x3 each, LowPopBonus_x2 each,
-	-- LowScoreBonus_x4 each, SCROLL_x/TEXT_SCROLL_x x2-4 each) -- each call
-	-- being a method invocation plus a table index. We fetch every control
-	-- once up front and reuse the cached reference everywhere below. (Same
-	-- fix already applied to the equivalent pattern in PatrollingHorrors.lua
-	-- and MovingObjectives.lua.)
+  local pre = "+"
 	local timeControl = label:getControl(TEXT_TIME)
 	local textDC, textEP, textAD = label:getControl(TEXT_DC), label:getControl(TEXT_EP), label:getControl(TEXT_AD)
 	local lowPopAD, lowPopDC, lowPopEP = label:getControl(LowPopBonus_AD), label:getControl(LowPopBonus_DC), label:getControl(LowPopBonus_EP)
@@ -270,8 +260,8 @@ function bar:updateLabel(label)
 	
 	
 
-   if IsInCampaign() and not IsInImperialCity() then
-       timeControl:SetHidden(false)
+   if IsInCampaign() and not IsInImperialCity() and not IsInJerallPass() then
+     timeControl:SetHidden(false)
 	   textDC:SetHidden(false)
 	   textEP:SetHidden(false)
 	   textAD:SetHidden(false)
@@ -281,11 +271,24 @@ function bar:updateLabel(label)
 	   textScrollDC:SetHidden(false)
 	   textScrollEP:SetHidden(false)
 	   textScrollAD:SetHidden(false)
-   else
-       timeControl:SetHidden(true)
-	   textDC:SetHidden(true)
-	   textEP:SetHidden(true)
-	   textAD:SetHidden(true)
+     
+   elseif IsInJerallPass() then
+     timeControl:SetHidden(false)
+	   textDC:SetHidden(false)
+	   textEP:SetHidden(false)
+	   textAD:SetHidden(false)
+	   scrollDC:SetHidden(true)
+	   scrollEP:SetHidden(true)
+	   scrollAD:SetHidden(true)
+	   textScrollDC:SetHidden(true)
+	   textScrollEP:SetHidden(true)
+	   textScrollAD:SetHidden(true)
+     
+   else -- Imperial City
+     timeControl:SetHidden(false)
+	   textDC:SetHidden(false)
+	   textEP:SetHidden(false)
+	   textAD:SetHidden(false)
 	   scrollDC:SetHidden(true)
 	   scrollEP:SetHidden(true)
 	   scrollAD:SetHidden(true)

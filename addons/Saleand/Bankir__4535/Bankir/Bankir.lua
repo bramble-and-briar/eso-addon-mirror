@@ -1,7 +1,7 @@
 Bankir = Bankir or {}
 
 local name = "Bankir"
-local version = "2.9.3"
+local version = "2.9.6"
 local author = "vexaiv"
 
 local function debugPrint(message)
@@ -15,6 +15,12 @@ local queue
 local totals
 local requiredForQuests
 local reprocessNeeded
+
+local function unifiedBagId(bagId)
+	if bagId == BAG_VIRTUAL then return BAG_BACKPACK end
+	if bagId ~= BAG_BACKPACK then return BAG_BANK end
+	return bagId
+end
 
 local function getRuleForItem(itemLink, bagIdAlias, itemQuality, itemStackSize)
 	local itemType, specializedItemType, itemId = Bankir.Functions.redefineItemTypes(itemLink)
@@ -58,12 +64,12 @@ local function getEmptySlot(bagId)
 		end
 		-- after getting the last slotId we know that next transfer will end up at lastSlot+1
 		if count < GetBagSize(bagId) then
-			return lastSlot + 1
+			return (lastSlot or -1) + 1
 		end
 	else
 		-- other bags simply have slots from 0 up to GetBagSize-1
 		for slotId = 0, GetBagSize(bagId) - 1 do
-			local size, _ = GetSlotStackSize(bagId, slotId)
+			local size = GetSlotStackSize(bagId, slotId)
 			if size == 0 then
 				return slotId
 			end
@@ -71,43 +77,91 @@ local function getEmptySlot(bagId)
 	end
 end
 
-local function getTargetSlot(sourceBagId, targetBagId, itemLink)
-	if not IsItemLinkStackable(itemLink) then
-		return getEmptySlot(targetBagId)
-	end
-	
+local function tryGetNotFullSlot(sourceBagId, targetBagId, itemLink)
 	local isGuildBank = sourceBagId == BAG_GUILDBANK or targetBagId == BAG_GUILDBANK
 	local comp1 = isGuildBank and Bankir.Functions.getNormalizedLink(itemLink) or itemLink
-	local emptySlot
+	local emptySlot, targetSlot, itemLinkInSlot
+	local targetStack = 0
 	for slotId in ZO_IterateBagSlots(targetBagId) do
 		local stack, maxStack = GetSlotStackSize(targetBagId, slotId)
 		if stack == 0 then
-			emptySlot = slotId
+			if not emptySlot then
+				emptySlot = slotId
+			end
 		elseif stack < maxStack then
 			itemLinkInSlot = GetItemLink(targetBagId, slotId)
-			local comp2 = isGuildBank and Bankir.Functions.getNormalizedLink(itemLinkInSlot) or itemLinkInslot
+			local comp2 = isGuildBank and Bankir.Functions.getNormalizedLink(itemLinkInSlot) or itemLinkInSlot
 			if comp1 == comp2 then
-				return slotId
+				if stack > targetStack then
+					targetStack = stack
+					targetSlot = slotId
+				end
 			end
 		end
 	end
-	--no slots of same item or they are full, find free slot
-	return emptySlot or getEmptySlot(targetBagId)
+	if targetSlot then
+		return targetSlot, targetStack
+	end
+	return emptySlot, 0
 end
 
-local function countSameItemsInBag(bagId, totalsId, neededQualities)
+local function getTargetSlot(sourceBagId, targetBagId, itemLink)
+	if targetBagId == BAG_BACKPACK and IsESOPlusSubscriber() and CanItemLinkBeVirtual(itemLink) then
+		if GetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_ADD_TO_CRAFT_BAG) == "1" then
+			-- if craft items set to go to craft bag. Slots in craft bag are itemId-numbered
+			local itemId = GetItemLinkItemId(itemLink)
+			return itemId, BAG_VIRTUAL
+		end
+	end
+
+	-- non-stackable items need new empty slot
+	if not IsItemLinkStackable(itemLink) then
+		slotId = getEmptySlot(targetBagId)
+		-- try ESO+ bank
+		if not slotId and targetBagId == BAG_BANK and IsESOPlusSubscriber() then
+			slotId = getEmptySlot(BAG_SUBSCRIBER_BANK)
+			if slotId then
+				return slotId, BAG_SUBSCRIBER_BANK
+			end
+		end
+		-- return anyway because not stackable items won't fit into occupied anyway
+		return slotId, targetBagId
+	end
+	
+	-- try find appropriate half-occupied slot or empty slot
+	local slotId, stack = tryGetNotFullSlot(sourceBagId, targetBagId, itemLink)
+	
+	-- return half-occupied if found
+	if slotId and stack > 0 then
+		return slotId, targetBagId
+	end
+	
+	-- try ESO+ extra bank bag
+	local subSlotId, subStack
+	if targetBagId == BAG_BANK and IsESOPlusSubscriber() then
+		subSlotId, subStack = tryGetNotFullSlot(sourceBagId, BAG_SUBSCRIBER_BANK, itemLink)
+		if subSlotId and subStack > 0 then
+			return subSlotId, BAG_SUBSCRIBER_BANK
+		end
+	end
+	
+	-- no appropriate half-occupied slot found, use empty slot, found earlier or new
+	slotId = slotId or getEmptySlot(targetBagId)
+	
+	-- if only ESO+ bank has empty slots
+	if not slotId and subSlotId then
+		return subSlotId, BAG_SUBSCRIBER_BANK
+	end
+	
+	return slotId, targetBagId
+end
+
+local function countSameItemsInBag(bagId, totalsId)
 	local count = 0
 	for slotId in ZO_IterateBagSlots(bagId) do
 		repeat
 			local itemLinkInSlot = GetItemLink(bagId, slotId)
 			if not itemLinkInSlot then break end
-			if neededQualities then
-				-- don't count if quality rule is set and this item is not needed quality
-				local displayQuality = GetItemLinkDisplayQuality(itemLinkInSlot)
-				if not Bankir.Functions.isInArray(neededQualities, displayQuality) then
-					break
-				end
-			end
 			if totalsId ~= Bankir.Functions.getNormalizedLink(itemLinkInSlot) then
 				-- special case for armor/weapon to count totals of all intricate light armor
 				-- as same item, all companion shields as same item and so on
@@ -116,34 +170,34 @@ local function countSameItemsInBag(bagId, totalsId, neededQualities)
 					break
 				end
 			end
-			local stack, maxStack = GetSlotStackSize(bagId, slotId)
+			local stack = GetSlotStackSize(bagId, slotId)
 			count = count + stack
 		until true
 	end
 	return count
 end
 
-local function updateTotalItemsInBag(bagId, totalsId, neededQualities)
-	local count = countSameItemsInBag(bagId, totalsId, neededQualities)
-	if IsESOPlusSubscriber() then
-		if bagId == BAG_BANK then
-			count = count + countSameItemsInBag(BAG_SUBSCRIBER_BANK, totalsId, neededQualities)
-		elseif bagId == BAG_SUBSCRIBER_BANK then
-			count = count + countSameItemsInBag(BAG_BANK, totalsId, neededQualities)
-			bagId = BAG_BANK
-		end
-	end
-	if bagId ~= BAG_BACKPACK then bagId = BAG_BANK end
-	totals[bagId][totalsId] = count
-end
-
 local function getTotalItemsInBag(bagId, totalsId)
-	if bagId ~= BAG_BACKPACK then bagId = BAG_BANK end
-	return totals[bagId][totalsId]
+	uBagId = unifiedBagId(bagId)
+	
+	if not totals[uBagId][totalsId] then
+		local count = countSameItemsInBag(bagId, totalsId)
+		if bagId == BAG_BANK then
+			count = count + countSameItemsInBag(BAG_SUBSCRIBER_BANK, totalsId)
+		elseif bagId == BAG_SUBSCRIBER_BANK then
+			count = count + countSameItemsInBag(BAG_BANK, totalsId)
+		elseif bagId == BAG_BACKPACK then
+			count = count + countSameItemsInBag(BAG_VIRTUAL, totalsId)
+		elseif bagId == BAG_VIRTUAL then
+			count = count + countSameItemsInBag(BAG_BACKPACK, totalsId)
+		end
+		totals[uBagId][totalsId] = count
+	end
+	return totals[uBagId][totalsId]
 end
 
-local function updateTotals(itemLink, totalsId, bagId, movedCount, maxStackSize)
-	if bagId ~= BAG_BACKPACK then bagId = BAG_BANK end
+local function updateTotals(totalsId, bagId, movedCount)
+	bagId = unifiedBagId(bagId)
 	totals[bagId][totalsId] = totals[bagId][totalsId] + movedCount
 	--d("totals of " .. itemLink .. " in " .. Bankir.Functions.getBagName(bagId) .. ": " .. totals[bagId][totalsId])
 end
@@ -234,10 +288,8 @@ local function populateQueue(sourceBagId, targetBagId)
 			end
 			
 			--update how many of the item is already in target bag
-			if not getTotalItemsInBag(targetBagId, totalsId) or not getTotalItemsInBag(sourceBagId, totalsId) then
-				updateTotalItemsInBag(targetBagId, totalsId, neededQualities)
-				updateTotalItemsInBag(sourceBagId, totalsId, neededQualities)
-			end
+			getTotalItemsInBag(targetBagId, totalsId)
+			getTotalItemsInBag(sourceBagId, totalsId)
 			
 			if rule.pullInStacks then
 				rule.pull = rule.pull * maxStackSize
@@ -258,7 +310,7 @@ local function populateQueue(sourceBagId, targetBagId)
 			table.insert(queue.items, { sourceBagId = sourceBagId, sourceSlotId = slotId,
 				targetBagId = targetBagId, itemLink = itemLink,
 				targetMax = targetMax, sourceMin = rule.pull,
-				totalsId = totalsId, maxStackSize = maxStackSize })
+				totalsId = totalsId })
 		until true
 	end
 end
@@ -280,10 +332,13 @@ local function onQueueProcessed()
 	queue = nil
 	totals = nil
 	requiredForQuests = nil
+	Bankir.bankBagOpen = nil
+	
 	EVENT_MANAGER:UnregisterForEvent(name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
 	EVENT_MANAGER:UnregisterForEvent(name, EVENT_BANK_DEPOSIT_NOT_ALLOWED)
 	EVENT_MANAGER:UnregisterForEvent(name, EVENT_GUILD_BANK_ITEM_ADDED)
 	EVENT_MANAGER:UnregisterForEvent(name, EVENT_GUILD_BANK_ITEM_REMOVED)
+	EVENT_MANAGER:UnregisterForEvent(name, EVENT_GUILD_BANK_SELECTED)
 end
 
 local function moveItem(itemLink, sourceBagId, sourceSlotId, targetBagId, targetSlotId, stackSize, maxStackSize)
@@ -359,91 +414,88 @@ local function processQueue()
 	if sourceStackSizeFinal <= 0 then
 		processQueue()
 		return
-	else
-		local targetSlotId = getTargetSlot(sourceBagId, targetBagId, itemLink)
-		
-		-- try ESO+ bank slots
-		if not targetSlotId and targetBagId == BAG_BANK and IsESOPlusSubscriber() then
-			targetSlotId = getTargetSlot(sourceBagId, BAG_SUBSCRIBER_BANK, itemLink)
-			if targetSlotId then
-				targetBagId = BAG_SUBSCRIBER_BANK
+	end
+	
+	local targetSlotId
+	targetSlotId, targetBagId = getTargetSlot(sourceBagId, targetBagId, itemLink)
+	
+	if not targetSlotId then
+		if Bankir.SVCommon.showOperationFailMessages then
+			d(zo_strformat(GetString(BANKIR_CHAT_NO_FREE_SPACE), Bankir.Functions.getBagName(targetBagId), itemLink))
+		end
+		processQueue()
+		return
+	end
+	
+	queue.items[queue.index].targetSlotId = targetSlotId
+	
+	local targetStackSize = GetSlotStackSize(targetBagId, targetSlotId)
+	--d("targetSlot " .. targetSlotId .. " in " .. Bankir.Functions.getBagName(targetBagId) .. " stack size: " .. targetStackSize)
+	
+	if targetBagId == BAG_VIRTUAL then
+		-- craft bag no limits
+		targetStackSize = 0
+		maxStackSize = math.max
+	elseif sourceStackSizeFinal > maxStackSize - targetStackSize then
+		--d("sourceStackSize (" .. sourceStackSizeFinal .. ") doesn't fit into the target slot, will be maxStackSize(".. maxStackSize .. ") - targetStackSize(".. targetStackSize .. ")")
+		sourceStackSizeFinal = maxStackSize - targetStackSize
+	end
+	
+	if IsBankOpen() and sourceStackSize ~= sourceStackSizeFinal then
+		--to step back and re-process what remains in this slot in next iteration
+		reprocessNeeded = true
+	end
+	
+	-- special temporary transfer for guild bank. We move the whole stack to backpack where it'll be split if needed.
+	-- it only works if player has WITHDRAW permission. Without permission this section is skipped and regular moveItem is called
+	if IsGuildBankOpen()
+	and DoesPlayerHaveGuildPermission(GetSelectedGuildBankId(), GUILD_PERMISSION_BANK_WITHDRAW)
+	then
+		local fromBag, fromSlot
+		if targetStackSize > 0 or sourceStackSize ~= sourceStackSizeFinal then
+			if sourceBagId == BAG_GUILDBANK then
+				fromBag = sourceBagId
+				fromSlot = sourceSlotId
+			elseif sourceBagId == BAG_BACKPACK then
+				fromBag = targetBagId
+				fromSlot = targetSlotId
 			end
 		end
-		
-		if not targetSlotId then
-			if Bankir.SVCommon.showOperationFailMessages then
-				d(zo_strformat(GetString(BANKIR_CHAT_NO_FREE_SPACE), Bankir.Functions.getBagName(targetBagId), itemLink))
+		if fromBag then
+			--d("need to split. targetStackSize: " .. targetStackSize .. " sourceStackSize: " .. sourceStackSize .. " sourceStackSizeFinal: " .. sourceStackSizeFinal)
+			local stack, maxStack = GetSlotStackSize(fromBag, fromSlot)
+			local backpackEmptySlotId = getEmptySlot(BAG_BACKPACK)
+			
+			if not backpackEmptySlotId then
+				if Bankir.SVCommon.showOperationFailMessages then
+					d(zo_strformat(GetString(BANKIR_CHAT_NO_FREE_SPACE), Bankir.Functions.getBagName(BAG_BACKPACK), itemLink))
+				end
+				processQueue()
 			end
-			processQueue()
+			
+			if targetStackSize == 0 and sourceBagId == BAG_BACKPACK then
+				-- if target in guild bank is empty, we skip the step where we pull slot from guild bank and go right to state 2
+				queue.items[queue.index].tempState = 2
+				queue.items[queue.index].tempSlotId = backpackEmptySlotId
+				--d("move " .. sourceStackSizeFinal .. " of " .. itemLink .. " from " .. Bankir.Functions.getBagName(BAG_BACKPACK) .. " source slot " .. sourceSlotId .. " to " .. Bankir.Functions.getBagName(BAG_BACKPACK) .. " empty slot " .. backpackEmptySlotId)
+				moveItem(itemLink, BAG_BACKPACK, sourceSlotId, BAG_BACKPACK, backpackEmptySlotId, sourceStackSizeFinal, maxStack)
+			else
+				queue.items[queue.index].tempState = 0
+				queue.items[queue.index].tempSlotId = backpackEmptySlotId
+				queue.items[queue.index].tempAmount = sourceStackSizeFinal
+				--d("move " .. stack .. " of " .. itemLink .. " from " .. Bankir.Functions.getBagName(fromBag) .. " slot " .. fromSlot .. " to " .. Bankir.Functions.getBagName(BAG_BACKPACK) .. " empty slot " .. backpackEmptySlotId)
+				moveItem(itemLink, fromBag, fromSlot, BAG_BACKPACK, backpackEmptySlotId, stack, maxStack)
+			end
 			return
 		end
-		
-		queue.items[queue.index].targetSlotId = targetSlotId
-		
-		local targetStackSize, _ = GetSlotStackSize(targetBagId, targetSlotId)
-		--d("targetSlot " .. targetSlotId .. " in " .. Bankir.Functions.getBagName(targetBagId) .. " stack size: " .. targetStackSize)
-		
-		if sourceStackSizeFinal > maxStackSize - targetStackSize then
-			--d("sourceStackSize (" .. sourceStackSizeFinal .. ") doesn't fit into the target slot, will be maxStackSize(".. maxStackSize .. ") - targetStackSize(".. targetStackSize .. ")")
-			sourceStackSizeFinal = maxStackSize - targetStackSize
-		end
-		
-		if IsBankOpen() and sourceStackSize ~= sourceStackSizeFinal then
-			--to step back and re-process what remains in this slot in next iteration
-			reprocessNeeded = true
-		end
-		
-		-- special temporary transfer for guild bank. We move the whole stack to backpack where it'll be split if needed.
-		-- it only works if player has WITHDRAW permission. Without permission this section is skipped and regular moveItem is called
-		if IsGuildBankOpen() and DoesPlayerHaveGuildPermission(GetSelectedGuildBankId(), GUILD_PERMISSION_BANK_WITHDRAW) then
-			local fromBag, fromSlot
-			if targetStackSize > 0 or sourceStackSize ~= sourceStackSizeFinal then
-				if sourceBagId == BAG_GUILDBANK then
-					fromBag = sourceBagId
-					fromSlot = sourceSlotId
-				elseif sourceBagId == BAG_BACKPACK then
-					fromBag = targetBagId
-					fromSlot = targetSlotId
-				end
-			end
-			if fromBag then
-				--d("need to split. targetStackSize: " .. targetStackSize .. " sourceStackSize: " .. sourceStackSize .. " sourceStackSizeFinal: " .. sourceStackSizeFinal)
-				local stack, maxStack = GetSlotStackSize(fromBag, fromSlot)
-				local backpackEmptySlotId = getEmptySlot(BAG_BACKPACK)
-				
-				if not backpackEmptySlotId then
-					if Bankir.SVCommon.showOperationFailMessages then
-						d(zo_strformat(GetString(BANKIR_CHAT_NO_FREE_SPACE), Bankir.Functions.getBagName(BAG_BACKPACK), itemLink))
-					end
-					processQueue()
-				end
-				
-				if targetStackSize == 0 and sourceBagId == BAG_BACKPACK then
-					-- if target in guild bank is empty, we skip the step where we pull slot from guild bank and go right to state 2
-					queue.items[queue.index].tempState = 2
-					queue.items[queue.index].tempSlotId = backpackEmptySlotId
-					--d("move " .. sourceStackSizeFinal .. " of " .. itemLink .. " from " .. Bankir.Functions.getBagName(BAG_BACKPACK) .. " source slot " .. sourceSlotId .. " to " .. Bankir.Functions.getBagName(BAG_BACKPACK) .. " empty slot " .. backpackEmptySlotId)
-					moveItem(itemLink, BAG_BACKPACK, sourceSlotId, BAG_BACKPACK, backpackEmptySlotId, sourceStackSizeFinal, maxStack)
-				else
-					queue.items[queue.index].tempState = 0
-					queue.items[queue.index].tempSlotId = backpackEmptySlotId
-					queue.items[queue.index].tempAmount = sourceStackSizeFinal
-					--d("move " .. stack .. " of " .. itemLink .. " from " .. Bankir.Functions.getBagName(fromBag) .. " slot " .. fromSlot .. " to " .. Bankir.Functions.getBagName(BAG_BACKPACK) .. " empty slot " .. backpackEmptySlotId)
-					moveItem(itemLink, fromBag, fromSlot, BAG_BACKPACK, backpackEmptySlotId, stack, maxStack)
-				end
-				return
-			else
-				-- trying to fix issue when ZO_IterateBagSlots() in getEmptySlot() fails for guild bank sometimes.
-				-- probably the reason is: if there's no temp backpack slot sequence and processQueue() starts right after the item in the queue arrived to backpack
-				-- it's not removed from guild bank yet, and right at the moment when next item is processed, the previous one is removed from guild bank
-				-- and guild bank cache is getting updated, so there's no slots data in cache during update, therefore ZO_IterateBagSlots doesn't iterate (no slots to iterate)
-				-- so, let's make the direct transaction wait for both events too (arrived to bag, removed from bag) that will make next processQueue() run only after all done and new cache is ready
-				queue.items[queue.index].tempState = 4
-			end
-		end
-		
-		moveItem(itemLink, sourceBagId, sourceSlotId, targetBagId, targetSlotId, sourceStackSizeFinal, maxStackSize)
 	end
+	-- trying to fix issue when ZO_IterateBagSlots() in getEmptySlot() fails for guild bank sometimes.
+	-- probably the reason is: if there's no temp backpack slot sequence and processQueue() starts right after the item in the queue arrived to backpack
+	-- it's not removed from guild bank yet, and right at the moment when next item is processed, the previous one is removed from guild bank
+	-- and guild bank cache is getting updated, so there's no slots data in cache during update, therefore ZO_IterateBagSlots doesn't iterate (no slots to iterate)
+	-- so, let's make the direct transaction wait for both events too (arrived to bag, removed from bag) that will make next processQueue() run only after all done and new cache is ready
+	queue.items[queue.index].tempState = 4
+	moveItem(itemLink, sourceBagId, sourceSlotId, targetBagId, targetSlotId, sourceStackSizeFinal, maxStackSize)
 end
 
 local function onSlotChanged(bagId, slotId, countChange, byLocalPlayer)
@@ -459,104 +511,121 @@ local function onSlotChanged(bagId, slotId, countChange, byLocalPlayer)
 	end
 	
 	local itemInQueue = queue.items[queue.index]
-	local itemLink = itemInQueue.itemLink -- GetItemLink(bagId, slotId)
+	local itemLink = itemInQueue.itemLink
+	local totalsId = itemInQueue.totalsId
+	local stack, maxStack = GetSlotStackSize(bagId, slotId)
 	
-	if itemInQueue and itemLink then
-		local totalsId = itemInQueue.totalsId
-		local stack, maxStack = GetSlotStackSize(bagId, slotId)
-		
-		if countChange > 0 and bagId == BAG_GUILDBANK then
+	if countChange > 0 then
+		if bagId == BAG_GUILDBANK then
 			-- giuld bank only returns countChange as 1 or -1, and moves whole stacks
 			countChange = stack * countChange
 		end
-		
-		if itemInQueue.tempState then
-			itemInQueue.tempState = itemInQueue.tempState + 1
-			--[[
-			local stateNamesByTargetBag = {
-				[BAG_GUILDBANK] = { -- target
-					[0] = "state 0",
-					[1] = "arrived to temp OR moved from GBANK",
-					[2] = "arrived to temp AND moved from GBANK",
-					[3] = "arrived to temp OR moved from BAG",
-					[4] = "arrived to temp AND moved from BAG",
-					[5] = "arrived to GBANK OR moved from temp",
-					[6] = "arrived to GBANK AND moved from temp",
-				},
-				[BAG_BACKPACK] = { -- target
-					[0] = "state 0",
-					[1] = "arrived to temp OR moved from GBANK",
-					[2] = "arrived to temp AND moved from GBANK",
-					[3] = "arrived to BAG OR moved from temp",
-					[4] = "arrived to BAG AND moved from temp",
-					[5] = "arrived to GBANK OR moved from temp",
-					[6] = "arrived to GBANK AND moved from temp",
-				},
-			}
-			d("STATE: " .. itemInQueue.tempState .. " " .. stateNamesByTargetBag[itemInQueue.targetBagId][itemInQueue.tempState])
-			]]--
-		end
-		
-		local state = itemInQueue.tempState
-		
-		-- For 'no temp state' case or states about tempBAG<=>GUILDBANK, not BAG<=>BAG
-		if countChange > 0
-		and (not state or state == 1 or state == 2 or state == 5 or state == 6)
-		then
-			printToChat(itemLink, countChange, bagId)
-			
-			local otherBag = bagId == BAG_BACKPACK and BAG_BANK or BAG_BACKPACK
-			updateTotals(itemLink, itemInQueue.totalsId, bagId, countChange, itemInQueue.maxStackSize)
-			updateTotals(itemLink, itemInQueue.totalsId, otherBag, -countChange, itemInQueue.maxStackSize)
-		end
-		
-		if not state then
-			if countChange > 0 then processQueue() end
-			return
-		end
-		
-		if state == 2 then
-			if itemInQueue.targetBagId == BAG_GUILDBANK then
-				--d("~= bagId. now move inside " .. Bankir.Functions.getBagName(BAG_BACKPACK) .. " from slot " .. itemInQueue.sourceSlotId .. " to temp slot " .. itemInQueue.tempSlotId .. " move  tempAmount: " .. itemInQueue.tempAmount)
-				moveItem(itemLink, BAG_BACKPACK, itemInQueue.sourceSlotId, BAG_BACKPACK, itemInQueue.tempSlotId, itemInQueue.tempAmount, maxStack)
-			else
-				if itemInQueue.targetSlotId == itemInQueue.tempSlotId then
-					local newTargetSlotId = getEmptySlot(BAG_BACKPACK)
-					itemInQueue.targetSlotId = newTargetSlotId
-				end
-				--d("==bagId. now move inside " .. Bankir.Functions.getBagName(BAG_BACKPACK) .. " from temp slot " .. itemInQueue.tempSlotId .. " to target slot " .. itemInQueue.targetSlotId .. " move tempAmount: " .. itemInQueue.tempAmount)
-				moveItem(itemLink, BAG_BACKPACK, itemInQueue.tempSlotId, BAG_BACKPACK, itemInQueue.targetSlotId, itemInQueue.tempAmount, maxStack)
+	end
+	
+	--[[if state then
+		local isBankirs
+		if state == 0 or state == 1 then
+			if countChange > 0 and bagId == BAG_BACKPACK and slotId == itemInQueue.tempSlotId then
+				isBankirs = true
+			elseif countChange < 0 and bagId ==  and slotId == itemInQueue.tempSlotId then
 			end
-		elseif state == 4 then
-			if itemInQueue.targetBagId == BAG_GUILDBANK then
-				local newTargetSlotId = getEmptySlot(itemInQueue.targetBagId)
+		end
+		local itemLinkInSlot = GetItemLink(bagId, slotId)
+		local totalsIdInSlot = Bankir.Functions.getNormalizedLink(itemLinkInSlot)
+		local thisBag = unifiedBagId(bagId)
+		local otherBag = thisBag == BAG_BACKPACK and BAG_BANK or BAG_BACKPACK
+		--d("other " .. itemLinkInSlot .. " instead of " .. itemLink)
+		updateTotals(totalsIdInSlot, thisBag, countChange)
+		updateTotals(totalsIdInSlot, otherBag, -countChange)
+		return
+	end]]--
+	
+	if itemInQueue.tempState then
+		itemInQueue.tempState = itemInQueue.tempState + 1
+		
+		--[[
+		local stateNamesByTargetBag = {
+			[BAG_GUILDBANK] = { -- target
+				[0] = "state 0",
+				[1] = "arrived to temp OR moved from GBANK",
+				[2] = "arrived to temp AND moved from GBANK",
+				[3] = "arrived to temp OR moved from BAG",
+				[4] = "arrived to temp AND moved from BAG",
+				[5] = "arrived to GBANK OR moved from temp",
+				[6] = "arrived to GBANK AND moved from temp",
+			},
+			[BAG_BACKPACK] = { -- target
+				[0] = "state 0",
+				[1] = "arrived to temp OR moved from GBANK",
+				[2] = "arrived to temp AND moved from GBANK",
+				[3] = "arrived to BAG OR moved from temp",
+				[4] = "arrived to BAG AND moved from temp",
+				[5] = "arrived to GBANK OR moved from temp",
+				[6] = "arrived to GBANK AND moved from temp",
+			},
+		}
+		d("STATE: " .. itemInQueue.tempState .. " " .. stateNamesByTargetBag[itemInQueue.targetBagId][itemInQueue.tempState])
+		]]--
+	end
+	
+	local state = itemInQueue.tempState
+	
+	-- for regular transfers without tempBAG, or tempBAG<=>GUILDBANK, and not BAG<=>BAG (states 3, 4)
+	if countChange > 0 and state ~= 3 and state ~= 4 then
+		printToChat(itemLink, countChange, bagId)
+		local thisBag = unifiedBagId(bagId)
+		local otherBag = thisBag == BAG_BACKPACK and BAG_BANK or BAG_BACKPACK
+		updateTotals(itemInQueue.totalsId, thisBag, countChange)
+		updateTotals(itemInQueue.totalsId, otherBag, -countChange)
+	end
+	
+	if not state then
+		if countChange > 0 then processQueue() end
+		return
+	end
+	
+	if state == 2 then
+		if itemInQueue.targetBagId == BAG_GUILDBANK then
+			--d("~= bagId. now move inside " .. Bankir.Functions.getBagName(BAG_BACKPACK) .. " from slot " .. itemInQueue.sourceSlotId .. " to temp slot " .. itemInQueue.tempSlotId .. " move  tempAmount: " .. itemInQueue.tempAmount)
+			moveItem(itemLink, BAG_BACKPACK, itemInQueue.sourceSlotId, BAG_BACKPACK, itemInQueue.tempSlotId, itemInQueue.tempAmount, maxStack)
+		else
+			if itemInQueue.targetSlotId == itemInQueue.tempSlotId then
+				local newTargetSlotId = getEmptySlot(BAG_BACKPACK)
 				itemInQueue.targetSlotId = newTargetSlotId
-				--d("~= bagId. now move back to " .. Bankir.Functions.getBagName(itemInQueue.targetBagId) .. " from temp slot " .. itemInQueue.tempSlotId  .. " to new target slot " .. newTargetSlotId .. " move stack amount: " .. stack)
-				moveItem(itemInQueue.itemLink, BAG_BACKPACK, itemInQueue.tempSlotId, itemInQueue.targetBagId, newTargetSlotId, stack, maxStack)
-			else
-				local stack, maxStack = GetSlotStackSize(BAG_BACKPACK, itemInQueue.tempSlotId)
-				--d("stack remains in temp slot " .. itemInQueue.tempSlotId .. ": " .. stack)
-				if stack > 0 then
-					reprocessNeeded = true
-					itemInQueue.sourceSlotId = getEmptySlot(itemInQueue.sourceBagId)
-					--d("now move back to " .. Bankir.Functions.getBagName(itemInQueue.sourceBagId) .. " from slot " .. itemInQueue.tempSlotId  .. " to new source slot " .. itemInQueue.sourceSlotId .. " move stack amount: " .. stack)
-					moveItem(itemInQueue.itemLink, BAG_BACKPACK, itemInQueue.tempSlotId, itemInQueue.sourceBagId, itemInQueue.sourceSlotId, stack, maxStack)
-				else
-					itemInQueue.tempState = nil
-					processQueue()
-				end
 			end
-		elseif state == 6 then
-			if itemInQueue.targetBagId == BAG_GUILDBANK then
-				local stack, maxStack = GetSlotStackSize(itemInQueue.sourceBagId, itemInQueue.sourceSlotId)
-				--d("stack remains in source slot " .. itemInQueue.sourceSlotId .. ": " .. stack)
-				if stack > 0 then
-					reprocessNeeded = true
-				end
-			end
-			itemInQueue.tempState = nil
-			processQueue()
+			--d("==bagId. now move inside " .. Bankir.Functions.getBagName(BAG_BACKPACK) .. " from temp slot " .. itemInQueue.tempSlotId .. " to target slot " .. itemInQueue.targetSlotId .. " move tempAmount: " .. itemInQueue.tempAmount)
+			moveItem(itemLink, BAG_BACKPACK, itemInQueue.tempSlotId, BAG_BACKPACK, itemInQueue.targetSlotId, itemInQueue.tempAmount, maxStack)
 		end
+	elseif state == 4 then
+		if itemInQueue.targetBagId == BAG_GUILDBANK then
+			local newTargetSlotId = getEmptySlot(itemInQueue.targetBagId)
+			itemInQueue.targetSlotId = newTargetSlotId
+			local stack, maxStack = GetSlotStackSize(BAG_BACKPACK, itemInQueue.tempSlotId)
+			--d("~= bagId. now move back to " .. Bankir.Functions.getBagName(itemInQueue.targetBagId) .. " from temp slot " .. itemInQueue.tempSlotId  .. " to new target slot " .. newTargetSlotId .. " move stack amount: " .. stack)
+			moveItem(itemInQueue.itemLink, BAG_BACKPACK, itemInQueue.tempSlotId, itemInQueue.targetBagId, newTargetSlotId, stack, maxStack)
+		else
+			local stack, maxStack = GetSlotStackSize(BAG_BACKPACK, itemInQueue.tempSlotId)
+			--d("stack remains in temp slot " .. itemInQueue.tempSlotId .. ": " .. stack)
+			if stack > 0 then
+				reprocessNeeded = true
+				itemInQueue.sourceSlotId = getEmptySlot(itemInQueue.sourceBagId)
+				--d("now move back to " .. Bankir.Functions.getBagName(itemInQueue.sourceBagId) .. " from slot " .. itemInQueue.tempSlotId  .. " to new source slot " .. itemInQueue.sourceSlotId .. " move stack amount: " .. stack)
+				moveItem(itemInQueue.itemLink, BAG_BACKPACK, itemInQueue.tempSlotId, itemInQueue.sourceBagId, itemInQueue.sourceSlotId, stack, maxStack)
+			else
+				itemInQueue.tempState = nil
+				processQueue()
+			end
+		end
+	elseif state == 6 then
+		if itemInQueue.targetBagId == BAG_GUILDBANK then
+			local stack, maxStack = GetSlotStackSize(itemInQueue.sourceBagId, itemInQueue.sourceSlotId)
+			--d("stack remains in source slot " .. itemInQueue.sourceSlotId .. ": " .. stack)
+			if stack > 0 then
+				reprocessNeeded = true
+			end
+		end
+		itemInQueue.tempState = nil
+		processQueue()
 	end
 end
 
@@ -577,6 +646,7 @@ local function onBankDepositNotAllowed()
 end
 
 local function initQueueProcess()
+	--local startTimeMs = GetGameTimeMilliseconds()
 	local bagId = Bankir.bankBagOpen
 	
 	totals = { [BAG_BACKPACK] = {}, [BAG_BANK] = {} }
@@ -586,16 +656,12 @@ local function initQueueProcess()
 	if IsBankOpen() or DoesPlayerHaveGuildPermission(GetSelectedGuildBankId(), GUILD_PERMISSION_BANK_DEPOSIT) then
 		populateQueue(BAG_BACKPACK, bagId)
 	end
-	
 	if IsBankOpen() or DoesPlayerHaveGuildPermission(GetSelectedGuildBankId(), GUILD_PERMISSION_BANK_WITHDRAW) then
 		populateQueue(bagId, BAG_BACKPACK)
 	end
-	
 	if bagId == BAG_BANK and IsESOPlusSubscriber() then
 		populateQueue(BAG_SUBSCRIBER_BANK, BAG_BACKPACK)
 	end
-	
-	--d("Queue building took " .. GetGameTimeMilliseconds() - startTimeMs .. " ms")
 	
 	if #queue.items > 0 then
 		EVENT_MANAGER:RegisterForEvent(name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
@@ -616,15 +682,31 @@ local function initQueueProcess()
 		end
 	end
 	
+	--d("Queue building took " .. GetGameTimeMilliseconds() - startTimeMs .. " ms")
 	processQueue()
 end
 
 local function onBankOpen(bagId)
 	--d("opened " .. Bankir.Functions.getBagName(bagId))
-	--local startTimeMs = GetGameTimeMilliseconds()
 	
+	local supportedBanks = {
+		[BAG_BANK] = true,
+		[BAG_GUILDBANK] = true,
+		[BAG_HOUSE_BANK_ONE] = true,
+		[BAG_HOUSE_BANK_TWO] = true,
+		[BAG_HOUSE_BANK_THREE] = true,
+		[BAG_HOUSE_BANK_FOUR] = true,
+		[BAG_HOUSE_BANK_FIVE] = true,
+		[BAG_HOUSE_BANK_SIX] = true,
+		[BAG_HOUSE_BANK_SEVEN] = true,
+		[BAG_HOUSE_BANK_EIGHT] = true,
+	}
 	-- process only supported bank bags. Furniture vault is not one of them yet.
-	if bagId ~= BAG_BANK and bagId ~= BAG_SUBSCRIBER_BANK and bagId ~= BAG_GUILDBANK and not IsHouseBankBag(bagId) then
+	if supportedBanks[bagId] then
+		Bankir.Button.button:SetState(B_STATE_NORMAL, true)
+		Bankir.Button.button:SetAlpha(1.0)
+		Bankir.Button.button:SetMouseEnabled(true)
+	else
 		Bankir.Button:SetHidden(true)
 		return
 	end
@@ -638,6 +720,9 @@ end
 local function onBankClose()
 	--d("Bank closed")
 	onQueueProcessed()
+	Bankir.Button.button:SetState(B_STATE_DISABLED, false)
+	Bankir.Button.button:SetAlpha(0.5)
+	Bankir.Button.button:SetMouseEnabled(false)
 end
 
 local function onAddOnLoaded(event, addonName)
@@ -683,6 +768,11 @@ local function onAddOnLoaded(event, addonName)
 	end)
 	EVENT_MANAGER:RegisterForEvent(name, EVENT_CLOSE_BANK, onBankClose)
 	EVENT_MANAGER:RegisterForEvent(name, EVENT_CLOSE_GUILD_BANK, onBankClose)
+	EVENT_MANAGER:RegisterForEvent(name, EVENT_GUILD_BANK_SELECTED, function()
+		if Bankir.bankBagOpen then
+			onBankClose()
+		end
+	end)
 end
 
 EVENT_MANAGER:RegisterForEvent(name, EVENT_ADD_ON_LOADED, onAddOnLoaded)

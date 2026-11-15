@@ -42,6 +42,9 @@ ZO_CreateStringId("SI_CYRHUD_HIDE_KILLSDEATHS_INFO", "Hide your Kills/Deaths Cou
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES", "Hide Bridges and Milegates")
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES_INFO", "Hide Bridges and Milegates")
 
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD", "Hide Pyre Lord")
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD_INFO", "Hides the Pyre Lord notification from CyrHUD")
+
 
 local CZ = "|cC5C29E" -- ZOS standard text color
 local CR = "|cFFFFFF" -- Reset color

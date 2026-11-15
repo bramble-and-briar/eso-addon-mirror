@@ -9,6 +9,9 @@ AFP.FAVORITES_FILTER = FAVORITES_FILTER
 local FAVORITE_DATA_TYPE = 100
 local FAVORITE_ROW_TEMPLATE = "AlchemyFavoritePotions_Row"
 local FAVORITE_ROW_HEIGHT = 108
+-- La ventana de consulta (Window.lua) usa las mismas filas
+AFP.FAVORITE_ROW_TEMPLATE = FAVORITE_ROW_TEMPLATE
+AFP.FAVORITE_ROW_HEIGHT = FAVORITE_ROW_HEIGHT
 local DEFAULT_NAME_QUALITY = ITEM_DISPLAY_QUALITY_MAGIC or 2
 -- Fila de una favorita que no se puede preparar, y color del ingrediente que falta
 local UNAVAILABLE_ROW_ALPHA = 0.5
@@ -26,6 +29,8 @@ local function SetupTabs(inventory)
         AFP.GetTexturePath("heart_over"),
         AFP.GetTexturePath("heart_disabled")
     )
+    -- El título de la pestaña no cambia; solo el tooltip lleva la pista del comando
+    favoritesTab.tooltipText = AFP.L("TAB_FAVORITES_TOOLTIP") .. "\n" .. AFP.L("COMMAND_HINT")
     local reagentsTab = inventory:CreateNewTabFilterData(
         ITEMTYPE_REAGENT,
         GetString(SI_ALCHEMY_REAGENTS_TAB),
@@ -84,6 +89,8 @@ local function SetupFavoriteRow(rowControl, data)
     end
 end
 
+AFP.SetupFavoriteRow = SetupFavoriteRow
+
 --- Limpia la fila cuando el juego la devuelve al pool.
 --- Al pasar un reset propio, el juego ya no aplica el suyo, así que hay que ocultar la fila aquí
 local function ResetFavoriteRow(rowControl)
@@ -96,6 +103,17 @@ local function ResetFavoriteRow(rowControl)
     rowControl.favoriteData = nil
     rowControl.highlight:SetHidden(true)
 end
+AFP.ResetFavoriteRow = ResetFavoriteRow
+
+--- Texto de la lista vacía: depende del filtro de tipo
+local function GetEmptyListText()
+    local text = AFP.GetNoFavoritesText(AFP.stationKind)
+    if AFP.stationKind == nil then
+        -- Sin filtro: de verdad no hay ninguna favorita, se aprovecha para dar la pista del comando
+        return text .. "\n" .. AFP.L("COMMAND_HINT")
+    end
+    return text
+end
 
 --- Sustituye Refresh y SortData de la lista solo mientras está activa la pestaña de favoritas
 local function InstallListOverrides(inventory)
@@ -105,11 +123,11 @@ local function InstallListOverrides(inventory)
             return baseRefresh(self, data)
         end
 
-        for _, favorite in ipairs(AFP.GetFavoriteRows()) do
+        for _, favorite in ipairs(AFP.GetFavoriteRows({ kind = AFP.stationKind })) do
             data[#data + 1] = ZO_ScrollList_CreateDataEntry(FAVORITE_DATA_TYPE, favorite)
         end
 
-        self:SetNoItemLabelText(AFP.L("NO_FAVORITES"))
+        self:SetNoItemLabelText(GetEmptyListText())
         self:SetNoItemLabelHidden(#data > 0)
     end
 
@@ -192,6 +210,12 @@ function AFP.OnFavoriteRowMouseUp(rowControl, button, upInside)
         return
     end
 
+    -- Las filas de la ventana de consulta traen su propio manejador
+    if rowControl.mouseUpHandler then
+        rowControl.mouseUpHandler(rowControl, button, upInside)
+        return
+    end
+
     if button == MOUSE_BUTTON_INDEX_LEFT then
         AFP.OnFavoriteSelected(rowControl.favoriteData)
     elseif button == MOUSE_BUTTON_INDEX_RIGHT then
@@ -215,6 +239,7 @@ function AFP.InstallHooks()
         SetupFavoriteRow, nil, nil, ResetFavoriteRow)
     InstallListOverrides(inventory)
     AFP.CreateOrderToggle(inventory)
+    AFP.CreateKindFilters(inventory)
     -- Al desbloquear la tercera ranura cambia qué favoritas se pueden preparar
     ZO_PostHook(ALCHEMY, "UpdateThirdAlchemySlot", AFP.RefreshFavoritesList)
     AFP.CreateSlotButton()

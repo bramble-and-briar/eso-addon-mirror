@@ -12,6 +12,8 @@ local logger = internal.logger
 
 --- public api
 
+--[[ doc.lua begin ]] --
+
 --- This function can be used to check if the library is ready to be used. It will return true after the INITIALIZED callback has been fired.
 --- When the library is not ready yet, make sure to register to the INITIALIZED callback to know when it is.
 --- @see Callbacks.INITIALIZED
@@ -44,6 +46,8 @@ local Callbacks = {
     --- Fired when the library has finished setting everything up.
     --- Any calls to the api (aside of registering for the event) should happen after this has fired.
     --- It will receive the LibHistoire object as an argument.
+    --- This is the recommended place to query the initial state of the category caches via IsCategoryLinked, IsCategoryLinkedRecently,
+    --- IsCategoryAutoRequesting and IsCategoryProcessing.
     ---
     --- Keep in mind that this may fire before EVENT_ADD_ON_LOADED, so make sure to check if the library is ready before listening to the callback.
     --- @see LibHistoire.IsReady
@@ -78,8 +82,37 @@ local Callbacks = {
     --- @type string
     MANAGED_RANGE_FOUND = internal.callback.MANAGED_RANGE_FOUND,
 
-    --- @type string Fired when a category has linked the managed range to present events. The guildId and category are passed as arguments.
+    --- Fired when a category has closed the gap between its managed range and the game's gapless range.
+    --- The guildId and category are passed as arguments.
+    --- The gap stays closed once it is established, so this fires once per session unless the managed range is lost.
+    --- @see LibHistoire.IsCategoryLinked
+    --- @type string
     CATEGORY_LINKED = internal.callback.CATEGORY_LINKED,
+
+    --- Fired when the cache of a category has been reset. The guildId and category are passed as arguments.
+    --- This happens when the managed range is lost, when the saved data is found to be inconsistent,
+    --- or when the cache is reset manually. All processors of the category are stopped, and all state
+    --- derived from the cached events is cleared.
+    --- The changes caused by the reset itself do not fire the other category state callbacks.
+    --- Treat this similar to the library's INITIALIZED callback and re-query IsCategoryLinked, IsCategoryAutoRequesting
+    --- and IsCategoryProcessing. Callbacks for changes after the reset are fired as usual.
+    --- @see LibHistoire.IsCategoryLinked
+    --- @see LibHistoire.IsCategoryAutoRequesting
+    --- @see LibHistoire.IsCategoryProcessing
+    --- @type string
+    CATEGORY_RESET = internal.callback.CATEGORY_RESET,
+
+    --- Fired when the auto requesting state of a category has changed. The guildId, category and the new state are passed as arguments.
+    --- The state changes on its own when the mode is automatic and the last processor was unregistered for longer than 3 days,
+    --- so it is also detected as part of the automated requests in addition to the moments when it can change directly.
+    --- @see LibHistoire.IsCategoryAutoRequesting
+    --- @type string
+    CATEGORY_AUTO_REQUESTING_CHANGED = internal.callback.CATEGORY_AUTO_REQUESTING_CHANGED,
+
+    --- Fired when the processing state of a category has changed. The guildId, category and the new state are passed as arguments.
+    --- @see LibHistoire.IsCategoryProcessing
+    --- @type string
+    CATEGORY_PROCESSING_CHANGED = internal.callback.CATEGORY_PROCESSING_CHANGED,
 }
 
 --- The exposed callbacks that can be used with RegisterCallback and UnregisterCallback.
@@ -141,6 +174,63 @@ function lib:CreateGuildHistoryProcessor(guildId, category, addonName)
     return processor
 end
 
+--- Returns the current linking state of a category cache. A category is linked once the gap between its
+--- managed range and the game's gapless range is closed, and it stays linked until that gap reopens.
+--- Can be used to query the same state that the CATEGORY_LINKED callback reports when it fires.
+--- The library also takes IsCategoryAutoRequesting into account when determining the overall linking state.
+--- @see Callbacks.CATEGORY_LINKED
+--- @param guildId integer The id of the guild to check.
+--- @param category GuildHistoryEventCategory The category to check.
+--- @return boolean|nil isLinked True if the category cache has no gap between its managed range and the gapless range, false if it has one, nil if no cache was found for the provided guildId and category.
+function lib:IsCategoryLinked(guildId, category)
+    local categoryCache = internal.historyCache:GetCategoryCache(guildId, category)
+    if not categoryCache then
+        return
+    end
+    return categoryCache:HasLinked()
+end
+
+--- Returns the linking recency of a category cache as used for the logout warnings. It counts as linked recently if it has no cached events, or was linked within the last 7 days.
+--- The library also takes IsCategoryAutoRequesting into account when determining the overall state.
+--- @see Callbacks.CATEGORY_LINKED
+--- @see LibHistoire.IsCategoryLinked
+--- @param guildId integer The id of the guild to check.
+--- @param category GuildHistoryEventCategory The category to check.
+--- @return boolean|nil hasLinkedRecently True if the category cache has been linked within the last 7 days, false if it has not, nil if no cache was found for the provided guildId and category.
+function lib:IsCategoryLinkedRecently(guildId, category)
+    local categoryCache = internal.historyCache:GetCategoryCache(guildId, category)
+    if not categoryCache then
+        return
+    end
+    return categoryCache:HasLinkedRecently()
+end
+
+--- Returns the auto requesting state of a category cache.
+--- @see Callbacks.CATEGORY_AUTO_REQUESTING_CHANGED
+--- @param guildId integer The id of the guild to check.
+--- @param category GuildHistoryEventCategory The category to check.
+--- @return boolean|nil isAutoRequesting True if the category cache requests missing data on its own, false if it does not, nil if no cache was found for the provided guildId and category.
+function lib:IsCategoryAutoRequesting(guildId, category)
+    local categoryCache = internal.historyCache:GetCategoryCache(guildId, category)
+    if not categoryCache then
+        return
+    end
+    return categoryCache:IsAutoRequesting()
+end
+
+--- Returns the processing state of a category cache.
+--- @see Callbacks.CATEGORY_PROCESSING_CHANGED
+--- @param guildId integer The id of the guild to check.
+--- @param category GuildHistoryEventCategory The category to check.
+--- @return boolean|nil isProcessing True if the category cache is currently processing events, false if it is not, nil if no cache was found for the provided guildId and category.
+function lib:IsCategoryProcessing(guildId, category)
+    local categoryCache = internal.historyCache:GetCategoryCache(guildId, category)
+    if not categoryCache then
+        return
+    end
+    return categoryCache:IsProcessing()
+end
+
 --- Utility function to convert id64s that have been artificially created by a legacy listener to the new id53 equivalent.
 --- Should be used one time only to convert all id64s that have been stored by the addon when switching to the new event processor api, since it's not the fastest operation.
 --- @param id64 string The id64 to convert.
@@ -177,5 +267,7 @@ local StopReason = {
 --- @see StopReason
 --- @see GuildHistoryEventProcessor.SetOnStopCallback
 lib.StopReason = StopReason
+
+--[[ doc.lua end ]] --
 
 internal:Initialize()

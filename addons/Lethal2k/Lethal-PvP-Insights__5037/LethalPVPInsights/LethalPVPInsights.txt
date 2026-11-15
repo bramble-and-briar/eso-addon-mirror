@@ -1,16 +1,17 @@
 ## Title: Lethal PVP Insights
 ## Author: Lethal2k
-## Version: 1.9.74
-## AddOnVersion: 264
+## Version: 1.10.5
+## AddOnVersion: 285
 ## APIVersion: 101047 101048
-## Description: Tracks your PvP kills/assists, kill-feed leaderboards per faction, and what enemy players hit you with (skills, procs, faction, max health, mundus), plus a history of players you grouped with and their builds (gear and skill bars via the encounter log importer). Configure via Settings > Add-Ons (requires LibAddonMenu-2.0; /pvpdi settings jumps there) or /pvpdi.
-## SavedVariables: PVPDataInsight_SV
-## OptionalDependsOn: LibAddonMenu-2.0 LibChatMessage
+## Description: Tracks your PvP kills/assists, kill-feed leaderboards per faction, and what enemy players hit you with (skills, procs, faction, max health, mundus), plus a history of players you grouped with and their builds (gear and skill bars via the encounter log importer). Also PvP alerts, group leader marker, FPS limits and performance boost per zone, quickslot keybinds, a skill blocker and auto quest hand-in. Configure via Settings > Lethal PVP Insights (/lpi settings jumps there) or /lpi.
+## SavedVariables: PVPDataInsight_SV LPI_PvPTools_SV
+## OptionalDependsOn: LibChatMessage
 
 Core.lua
 Data.lua
 Tracker.lua
 Recap.lua
+AP.lua
 Group.lua
 LPI_Imported.lua
 LPI_Companion.lua
@@ -19,8 +20,13 @@ Import.lua
 LogAssist.lua
 Skills.lua
 Share.lua
+PvPTools.lua
+SkillBlocker.lua
+Quests.lua
+SettingsPanel.lua
 Settings.lua
 UI.lua
 Link.lua
+Keybinds.lua
 Main.lua
 Bindings.xml

@@ -12,7 +12,7 @@ local HEALTH = {0.95, 0.08, 0.08}
 local STAM   = {0.05, 0.88, 0.28}
 local MAG    = {0.12, 0.32, 1.00}
 
-local defaults = { enabled=true, locked=true, scale=100, theme="Default", x=0, y=0 }
+local defaults = { enabled=true, locked=true, scale=100, theme="Default", x=0, y=0, winterGap=0, themeGap=0 }
 local Bars, saved = {}, nil
 local THEMES = {"Default", "Dragon", "Halloween", "Spooky Cute", "Hibiscus", "Sunflower", "Swords", "Winter"}
 local hudFragment, playerDead = nil, false
@@ -100,6 +100,62 @@ local function applyScale()
     if Bars.hud then Bars.hud:SetScale((saved.scale or 100)/100) end
 end
 
+-- Move both bar groups and their corresponding theme decorations symmetrically.
+-- The right stamina/magicka pair retains its original relative alignment.
+local function applyThemeGap()
+    if not Bars.hud or not saved then return end
+    local gap = (saved.theme == "Winter") and (tonumber(saved.winterGap) or 0) or (tonumber(saved.themeGap) or 0)
+    gap = math.max(0, math.min(40, gap))
+    local hud = Bars.hud
+    if Bars.healthBack then
+        Bars.healthBack:ClearAnchors()
+        Bars.healthBack:SetAnchor(CENTER,hud,CENTER,-190-gap,0)
+    end
+    if Bars.staminaBack then
+        Bars.staminaBack:ClearAnchors()
+        Bars.staminaBack:SetAnchor(BOTTOM,hud,CENTER,190+gap,OVERLAP/2)
+    end
+    if Bars.magickaBack then
+        Bars.magickaBack:ClearAnchors()
+        Bars.magickaBack:SetAnchor(TOP,hud,CENTER,190+gap,-OVERLAP/2)
+    end
+    if Bars.winterLeft then
+        Bars.winterLeft:ClearAnchors()
+        Bars.winterLeft:SetAnchor(CENTER,hud,CENTER,-140-gap,0)
+    end
+    if Bars.winterRight then
+        Bars.winterRight:ClearAnchors()
+        Bars.winterRight:SetAnchor(CENTER,hud,CENTER,140+gap,0)
+    end
+    -- Reposition theme-specific cropped slices, keeping the center bat fixed.
+    if Bars.splitThemes then
+        for _, pieces in pairs(Bars.splitThemes) do
+            for _, part in ipairs(pieces) do
+                part.control:ClearAnchors()
+                part.control:SetAnchor(CENTER,hud,CENTER,part.x + (part.side * gap),0)
+            end
+        end
+    end
+    for _,group in ipairs({{Bars.healthText,Bars.healthGlowText,-110,-gap},
+                            {Bars.staminaText,Bars.staminaGlowText,0,gap},
+                            {Bars.magickaText,Bars.magickaGlowText,110,gap}}) do
+        local label, glows, x, shift = group[1],group[2],group[3],group[4]
+        if label then
+            label:ClearAnchors()
+            label:SetAnchor(CENTER,hud,CENTER,x+shift,-165)
+        end
+        if glows then
+            for _,g in ipairs(glows) do
+                -- Preserve each glow's original offset relative to the main label.
+                local offsets = Bars.labelGlowOffsets and Bars.labelGlowOffsets[g] or {0,0}
+                local dx,dy = offsets[1],offsets[2]
+                g:ClearAnchors()
+                g:SetAnchor(CENTER,hud,CENTER,x+shift+dx,-165+dy)
+            end
+        end
+    end
+end
+
 local function applyLock()
     if not Bars.hud then return end
     local unlocked = not saved.locked
@@ -142,14 +198,15 @@ local function applyTheme()
     local swords = saved.theme == "Swords"
     local winter = saved.theme == "Winter"
     Bars.themeLayer:SetHidden(true)
-    if Bars.hibiscus then Bars.hibiscus:SetHidden(not hibiscus) end
-    if Bars.dragon then Bars.dragon:SetHidden(not dragon) end
-    if Bars.halloween then Bars.halloween:SetHidden(not halloween) end
-    if Bars.spookycute then Bars.spookycute:SetHidden(not spookycute) end
-    if Bars.sunflower then Bars.sunflower:SetHidden(not sunflower) end
-    if Bars.swords then Bars.swords:SetHidden(not swords) end
-    if Bars.winter then Bars.winter:SetHidden(not winter) end
-    -- Winter changes only the health-bar rendering. Every other theme keeps the proven red bar/glow.
+    if Bars.winterLeft then Bars.winterLeft:SetHidden(not winter) end
+    if Bars.winterRight then Bars.winterRight:SetHidden(not winter) end
+    if Bars.splitThemes then
+        for name, pieces in pairs(Bars.splitThemes) do
+            for _, part in ipairs(pieces) do part.control:SetHidden(saved.theme ~= name) end
+        end
+    end
+    applyThemeGap()
+    -- Winter changes only the health-bar rendering. Other themes retain the normal red bar/glow.
     if Bars.health then Bars.health:SetHidden(winter) end
     if Bars.healthGlow then Bars.healthGlow:SetHidden(winter) end
     if Bars.winterHealth then Bars.winterHealth:SetHidden(not winter) end
@@ -160,7 +217,7 @@ local function createSettings()
     local LAM = LibAddonMenu2
     if not LAM then return end
     local panel = LAM:RegisterAddonPanel("RSSThemeBarsOptions", {
-        type="panel", name=DISPLAY, displayName=DISPLAY, author="WifeyRytic", version="1.0.0",
+        type="panel", name=DISPLAY, displayName=DISPLAY, author="WifeyRytic", version="1.2.0",
         registerForRefresh=true, registerForDefaults=true,
     })
     local options = {
@@ -176,6 +233,12 @@ local function createSettings()
           getFunc=function() return saved.scale end,
           setFunc=function(v) saved.scale=v; applyScale() end,
           default=defaults.scale, width="full" },
+        { type="slider", name="Middle Gap",
+          tooltip="Adjusts the space between the health bar and the stamina/magicka bars without changing their sizes. Theme decorations move with the bars.",
+          min=0, max=40, step=2,
+          getFunc=function() return saved.theme == "Winter" and (saved.winterGap or 0) or (saved.themeGap or 0) end,
+          setFunc=function(v) if saved.theme == "Winter" then saved.winterGap=v else saved.themeGap=v end; applyThemeGap() end,
+          default=0, width="full" },
         { type="dropdown", name="Theme", tooltip="Choose the visual theme.",
           choices=THEMES, choicesValues=THEMES,
           getFunc=function() return saved.theme end,
@@ -186,7 +249,21 @@ local function createSettings()
 end
 
 local function create()
-    saved=ZO_SavedVars:NewAccountWide("RSSThemeBarsSaved",1,nil,defaults)
+    -- v1.1: Keep existing 1.0 account-wide preferences as plain defaults for
+    -- the initial per-server profile, without changing the old saved table.
+    local legacy = ZO_SavedVars:NewAccountWide("RSSThemeBarsSaved", 1, nil, defaults)
+    local serverDefaults = {
+        enabled = legacy.enabled,
+        locked = legacy.locked,
+        scale = legacy.scale,
+        theme = legacy.theme,
+        x = legacy.x,
+        y = legacy.y,
+        winterGap = legacy.winterGap or 0,
+        themeGap = legacy.themeGap or 0,
+    }
+    -- Namespace separates NA, EU, and PTS profiles; existing server data wins.
+    saved=ZO_SavedVars:NewAccountWide("RSSThemeBarsSaved",1,GetWorldName(),serverDefaults)
     -- Unavailable or obsolete themes reset safely to the default.
     local validTheme = false
     for _, themeName in ipairs(THEMES) do
@@ -240,6 +317,8 @@ local function create()
         for i,spec in ipairs(glowSpecs) do
             local g=WM:CreateControl(nil,hud,CT_LABEL)
             g:SetFont("ZoFontGameBold"); g:SetDimensions(100,28); g:SetAnchor(CENTER,hud,CENTER,x+spec[1],y+spec[2])
+            Bars.labelGlowOffsets=Bars.labelGlowOffsets or {}
+            Bars.labelGlowOffsets[g]={spec[1],spec[2]}
             g:SetHorizontalAlignment(TEXT_ALIGN_CENTER); g:SetVerticalAlignment(TEXT_ALIGN_CENTER)
             g:SetColor(color[1],color[2],color[3],spec[3]); g:SetDrawLayer(DL_OVERLAY); g:SetDrawTier(DT_HIGH)
             glows[i]=g
@@ -260,69 +339,54 @@ local function create()
     themeLayer:SetAnchorFill(hud); themeLayer:SetMouseEnabled(false)
 
 
-    local halloween=makeTexture(hud,TEX.."rss_v1_halloween.dds"); Bars.halloween=halloween
-    halloween:SetDimensions(512,512)
-    halloween:SetTextureCoords(0,1,0,1)
-    halloween:SetAnchor(CENTER,hud,CENTER,0,0)
-    halloween:SetDrawLayer(DL_OVERLAY)
-    halloween:SetDrawTier(DT_HIGH)
-    halloween:SetMouseEnabled(false)
-    halloween:SetHidden(true)
+    -- Theme artwork is displayed as texture-coordinate slices of the ORIGINAL DDS.
+    -- This avoids re-encoding and lets left/right decoration travel with its bars.
+    Bars.splitThemes = {}
+    local function addSlice(theme, path, fullW, fullH, u0, u1, x, side, v0, v1)
+        local piece=makeTexture(hud,TEX..path)
+        piece:SetDimensions(fullW*(u1-u0),fullH)
+        piece:SetTextureCoords(u0,u1,v0 or 0,v1 or 1)
+        piece:SetAnchor(CENTER,hud,CENTER,x,0)
+        piece:SetDrawLayer(DL_OVERLAY); piece:SetDrawTier(DT_HIGH)
+        piece:SetMouseEnabled(false); piece:SetHidden(true)
+        Bars.splitThemes[theme]=Bars.splitThemes[theme] or {}
+        table.insert(Bars.splitThemes[theme],{control=piece,x=x,side=side})
+    end
+    local function splitTheme(theme,path,w,h,cx,u0,u1)
+        u0=u0 or 0; u1=u1 or 1
+        local mid=(u0+u1)/2
+        local half=w/2
+        addSlice(theme,path,w,h,u0,mid,cx-half/2,-1)
+        addSlice(theme,path,w,h,mid,u1,cx+half/2,1)
+    end
+    splitTheme("Halloween","rss_v1_halloween.dds",512,512,0)
+    splitTheme("Hibiscus","rss_v1_hibiscus.dds",560,560,0)
+    splitTheme("Dragon","rss_v1_dragon.dds",560,560,0)
+    splitTheme("Swords","rss_v1_swords.dds",560,560,0)
+    -- Sunflower DDS is 1024x1024, but the original theme renders its upper-left
+    -- 512x512 quadrant at 512x512. Preserve that exact display scale.
+    addSlice("Sunflower","rss_v1_sunflower.dds",1024,512,0,0.25,-122,-1,0,0.5)
+    addSlice("Sunflower","rss_v1_sunflower.dds",1024,512,0.25,0.5,134,1,0,0.5)
+    -- Spooky Cute: the full bottom bat spans roughly x=180..325.
+    -- Keep that entire 145px center strip stationary; move outer art only.
+    addSlice("Spooky Cute","rss_v1_spookycute.dds",512,512,0,180/512,-166,-1)
+    addSlice("Spooky Cute","rss_v1_spookycute.dds",512,512,180/512,325/512,-3.5,0)
+    addSlice("Spooky Cute","rss_v1_spookycute.dds",512,512,325/512,1,162.5,1)
 
-    local spookycute=makeTexture(hud,TEX.."rss_v1_spookycute.dds"); Bars.spookycute=spookycute
-    spookycute:SetDimensions(512,512)
-    spookycute:SetTextureCoords(0,1,0,1)
-    spookycute:SetAnchor(CENTER,hud,CENTER,0,0)
-    spookycute:SetDrawLayer(DL_OVERLAY)
-    spookycute:SetDrawTier(DT_HIGH)
-    spookycute:SetMouseEnabled(false)
-    spookycute:SetHidden(true)
-
-
-    local dragon=makeTexture(hud,TEX.."rss_v1_dragon.dds"); Bars.dragon=dragon
-    dragon:SetDimensions(560,560)
-    dragon:SetTextureCoords(0,1,0,1)
-    dragon:SetAnchor(CENTER,hud,CENTER,0,0)
-    dragon:SetDrawLayer(DL_OVERLAY)
-    dragon:SetDrawTier(DT_HIGH)
-    dragon:SetMouseEnabled(false)
-    dragon:SetHidden(true)
-
-    local swords=makeTexture(hud,TEX.."rss_v1_swords.dds"); Bars.swords=swords
-    swords:SetDimensions(560,560)
-    swords:SetTextureCoords(0,1,0,1)
-    swords:SetAnchor(CENTER,hud,CENTER,0,0)
-    swords:SetDrawLayer(DL_OVERLAY)
-    swords:SetDrawTier(DT_HIGH)
-    swords:SetMouseEnabled(false)
-    swords:SetHidden(true)
-
-    local hibiscus=makeTexture(hud,TEX.."rss_v1_hibiscus.dds"); Bars.hibiscus=hibiscus
-    hibiscus:SetDimensions(560,560)
-    hibiscus:SetTextureCoords(0,1,0,1)
-    hibiscus:SetAnchor(CENTER,hud,CENTER,0,0)
-    hibiscus:SetDrawLayer(DL_OVERLAY)
-    hibiscus:SetDrawTier(DT_HIGH)
-    hibiscus:SetMouseEnabled(false)
-    hibiscus:SetHidden(true)
-
-    local sunflower=makeTexture(hud,TEX.."rss_v1_sunflower.dds"); Bars.sunflower=sunflower
-    sunflower:SetDimensions(512,512)
-    sunflower:SetTextureCoords(0,0.5000000000,0,0.5000000000)
-    sunflower:SetAnchor(CENTER,hud,CENTER,6,0)
-    sunflower:SetDrawLayer(DL_OVERLAY)
-    sunflower:SetDrawTier(DT_HIGH)
-    sunflower:SetMouseEnabled(false)
-    sunflower:SetHidden(true)
-
-    local winter=makeTexture(hud,TEX.."rss_v1_winter.dds"); Bars.winter=winter
-    winter:SetDimensions(560,560)
-    winter:SetTextureCoords(0,1,0,1)
-    winter:SetAnchor(CENTER,hud,CENTER,0,0)
-    winter:SetDrawLayer(DL_OVERLAY)
-    winter:SetDrawTier(DT_HIGH)
-    winter:SetMouseEnabled(false)
-    winter:SetHidden(true)
+    -- Split the ORIGINAL Winter DDS at its center using texture coordinates.
+    -- No image re-encoding or artwork loss: each half moves with its bars.
+    local winterLeft=makeTexture(hud,TEX.."rss_v1_winter.dds"); Bars.winterLeft=winterLeft
+    winterLeft:SetDimensions(280,560)
+    winterLeft:SetTextureCoords(0,0.5,0,1)
+    winterLeft:SetAnchor(CENTER,hud,CENTER,-140,0)
+    winterLeft:SetDrawLayer(DL_OVERLAY); winterLeft:SetDrawTier(DT_HIGH)
+    winterLeft:SetMouseEnabled(false); winterLeft:SetHidden(true)
+    local winterRight=makeTexture(hud,TEX.."rss_v1_winter.dds"); Bars.winterRight=winterRight
+    winterRight:SetDimensions(280,560)
+    winterRight:SetTextureCoords(0.5,1,0,1)
+    winterRight:SetAnchor(CENTER,hud,CENTER,140,0)
+    winterRight:SetDrawLayer(DL_OVERLAY); winterRight:SetDrawTier(DT_HIGH)
+    winterRight:SetMouseEnabled(false); winterRight:SetHidden(true)
 
 
 

@@ -124,6 +124,7 @@ function GamepadOptions.BuildMountsOptionsData()
         GamepadOptions.BuildAllowUseInteractionsOption(),
         GamepadOptions.BuildAllowOpenInteractionsOption(),
         GamepadOptions.BuildAllowTalkInteractionsOption(),
+        GamepadOptions.BuildAllowActivateInteractionsOption(),
         GamepadOptions.BuildTrainingCheckOption(),
     }
 end
@@ -196,6 +197,13 @@ function GamepadOptions.BuildSocialOptionsData()
         GamepadOptions.BuildChatEntry(),
         GamepadOptions.BuildFriendsEntry(),
         GamepadOptions.BuildGroupFinderMonitorEntry(),
+        GamepadOptions.BuildGuildsEntry(),
+    }
+end
+
+function GamepadOptions.BuildGuildsOptionsData()
+    return {
+        GamepadOptions.BuildGuildsTrackGoldDepositsOption(),
     }
 end
 
@@ -359,6 +367,8 @@ function GamepadOptions.BuildDefaultFramesOptionsData()
         GamepadOptions.BuildActiveQuestEntry(),
         GamepadOptions.BuildAnnouncementsEntry(),
         GamepadOptions.BuildCenterScreenAnnounceEntry(),
+        GamepadOptions.BuildGoldenPursuitEntry(),
+        GamepadOptions.BuildHouseTrackerEntry(),
         GamepadOptions.BuildInfiniteArchiveFrameEntry(),
         GamepadOptions.BuildPlayerInteractionEntry(),
         GamepadOptions.BuildSubtitlesEntry(),
@@ -368,6 +378,7 @@ end
 
 function GamepadOptions.BuildCombatReticleOptionsData()
     return {
+        GamepadOptions.BuildCombatReticleShowWhenOption(),
         GamepadOptions.BuildCombatReticleColorOption(),
         GamepadOptions.BuildCombatReticleFightColorOption(),
         GamepadOptions.BuildCombatReticleShapeOption(),
@@ -481,6 +492,22 @@ function GamepadOptions.BuildAnnouncementsOptionsData()
         GamepadOptions.BuildAnnouncementsEnabledOption(),
         GamepadOptions.WithHeader(GamepadOptions.BuildAnnouncementsHorizontalOffsetOption(), NQOL.L("ui.headers.position_cf1c85a")),
         GamepadOptions.BuildAnnouncementsVerticalOffsetOption(),
+    }
+end
+
+function GamepadOptions.BuildGoldenPursuitOptionsData()
+    return {
+        GamepadOptions.BuildGoldenPursuitEnabledOption(),
+        GamepadOptions.WithHeader(GamepadOptions.BuildGoldenPursuitHorizontalOffsetOption(), NQOL.L("ui.headers.position_cf1c85a")),
+        GamepadOptions.BuildGoldenPursuitVerticalOffsetOption(),
+    }
+end
+
+function GamepadOptions.BuildHouseTrackerOptionsData()
+    return {
+        GamepadOptions.BuildHouseTrackerEnabledOption(),
+        GamepadOptions.WithHeader(GamepadOptions.BuildHouseTrackerHorizontalOffsetOption(), NQOL.L("ui.headers.position_cf1c85a")),
+        GamepadOptions.BuildHouseTrackerVerticalOffsetOption(),
     }
 end
 

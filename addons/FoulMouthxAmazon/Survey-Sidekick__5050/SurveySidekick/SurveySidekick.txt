@@ -1,0 +1,14 @@
+## Title: Survey Sidekick
+## Description: Survey inventory, travel, harvest goals, and The Hoard Report.
+## Author: FoulMouthxAmazon
+## Version: 0.2.3-beta
+## AddOnVersion: 203
+## APIVersion: 101051
+## SavedVariables: SurveySidekickSavedVariables
+## OptionalDependsOn: LibTreasure TamrielTradeCentre
+
+QuantityFilter.lua
+GoalMaterials.lua
+Core.lua
+Travel.lua
+UI.lua

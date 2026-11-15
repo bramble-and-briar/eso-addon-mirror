@@ -1,0 +1,34 @@
+<GuiXml>
+  <Controls>
+    <TopLevelControl name="CombatMetrics2_ContextWindow" inherits="ZO_Gamepad_ParametricList_Screen" hidden="true" />
+    <TopLevelControl name="CombatMetrics2_ControllerFocus" hidden="true" mouseEnabled="false" tier="HIGH" level="100">
+      <Controls>
+        <Backdrop name="$(parent)Top" centerColor="FFFFFFFF" edgeColor="00000000">
+          <Anchor point="TOPLEFT" /><Anchor point="TOPRIGHT" /><Dimensions y="2" />
+        </Backdrop>
+        <Backdrop name="$(parent)Bottom" centerColor="FFFFFFFF" edgeColor="00000000">
+          <Anchor point="BOTTOMLEFT" /><Anchor point="BOTTOMRIGHT" /><Dimensions y="2" />
+        </Backdrop>
+        <Backdrop name="$(parent)Left" centerColor="FFFFFFFF" edgeColor="00000000">
+          <Anchor point="TOPLEFT" /><Anchor point="BOTTOMLEFT" /><Dimensions x="2" />
+        </Backdrop>
+        <Backdrop name="$(parent)Right" centerColor="FFFFFFFF" edgeColor="00000000">
+          <Anchor point="TOPRIGHT" /><Anchor point="BOTTOMRIGHT" /><Dimensions x="2" />
+        </Backdrop>
+      </Controls>
+    </TopLevelControl>
+    <TopLevelControl name="CombatMetrics2_ControllerHint" hidden="true" mouseEnabled="false" clampedToScreen="true" tier="HIGH" level="110">
+      <Dimensions x="460" y="70" />
+      <Controls>
+        <Backdrop name="$(parent)Background" centerColor="60080B10" edgeColor="00000000"><AnchorFill /></Backdrop>
+        <Backdrop name="$(parent)Accent" centerColor="FFFFFFFF" edgeColor="00000000">
+          <Anchor point="TOPLEFT" /><Anchor point="BOTTOMLEFT" /><Dimensions x="4" />
+        </Backdrop>
+        <Label name="$(parent)Text" font="ZoFontGamepad27" color="FFF5F0E8" verticalAlignment="TOP">
+          <Anchor point="TOPLEFT" offsetX="20" offsetY="14" />
+          <Anchor point="TOPRIGHT" offsetX="-20" offsetY="14" />
+        </Label>
+      </Controls>
+    </TopLevelControl>
+  </Controls>
+</GuiXml>

@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Hydra9268/Community-Leveling-Guides__2062",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Hydra9268",
   "canonical_id": "esoui:2062",
   "category_id": "24",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:2062",
@@ -17,16 +18,16 @@
     "CGESO"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2062/",
-  "fingerprint": "652f07dd32a3f5f1439b7b72c2af8b5b13e303a249dd6a8256060dbc5627f6c6",
+  "fingerprint": "6cc4a1771ec1de4921085366a2c32c4ff81f4821dcd8851efff0a9824bac384e",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw14405.png",
-    "https://cdn-eso.mmoui.com/preview/pvw12374.png",
-    "https://cdn-eso.mmoui.com/preview/pvw11498.png",
-    "https://cdn-eso.mmoui.com/preview/pvw10961.png",
-    "https://cdn-eso.mmoui.com/preview/pvw8283.png",
-    "https://cdn-eso.mmoui.com/preview/pvw7419.png",
-    "https://cdn-eso.mmoui.com/preview/pvw6961.png",
-    "https://cdn-eso.mmoui.com/preview/pvw6962.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18472.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18469.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18468.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18470.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18473.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18471.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18466.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18467.png"
   ],
   "platform": "pc",
   "published": true,
@@ -34,11 +35,11 @@
   "source_id": "2062",
   "source_url": "https://www.esoui.com/downloads/info2062-CommunityLevelingGuides.html",
   "stats": {
-    "downloads": 162713,
-    "favorites": 141,
-    "monthly_downloads": 970
+    "downloads": 163928,
+    "favorites": 142,
+    "monthly_downloads": 270
   },
   "title": "Community Leveling Guides",
-  "updated_at": 1784352823000,
-  "version": "1157"
+  "updated_at": 1794703370000,
+  "version": "1185"
 }

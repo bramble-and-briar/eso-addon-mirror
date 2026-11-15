@@ -149,7 +149,7 @@ function LA:Finish(reason)
     end
 end
 
--- /pvpdi capture [seconds|off]
+-- /lpi capture [seconds|off]
 function LA:Capture(arg)
     if arg == "off" then self:Finish("manual"); return end
     local secs = tonumber(arg)
@@ -340,7 +340,7 @@ function LA:BuildImportWindow()
     later:SetAnchor(BOTTOMRIGHT, win, BOTTOMRIGHT, -18, -16)
     local never = btn("PVPDataInsightImportNever", "Don't show again", 180, function()
         settings().importPopup = false
-        PDI.Msg("Import window disabled. Turn it back on with |cFFFFFF/pvpdi popup on|r.")
+        PDI.Msg("Import window disabled. Turn it back on with |cFFFFFF/lpi popup on|r.")
         LA:HideImportWindow()
     end)
     never:SetAnchor(BOTTOMLEFT, win, BOTTOMLEFT, 18, -16)

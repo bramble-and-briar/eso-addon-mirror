@@ -40,6 +40,9 @@ ZO_CreateStringId("SI_CYRHUD_HIDE_KILLSDEATHS_INFO", "隐藏您的击杀/死亡�
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES", "隐藏桥梁和里程门")
 ZO_CreateStringId("SI_CYRHUD_HIDE_BRIDGESANDMILEGATES_INFO", "隐藏桥梁和里程门")
 
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD", "隐藏火葬之主")
+ZO_CreateStringId("SI_CYRHUD_HIDE_PYRELORD_INFO", "隐藏 CyrHUD 中的火葬之主通知")
+
 
 local CZ = "|cC5C29E" -- ZOS standard text color
 local CR = "|cFFFFFF" -- Reset color

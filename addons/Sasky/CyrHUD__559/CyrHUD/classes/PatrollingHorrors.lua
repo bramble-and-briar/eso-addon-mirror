@@ -108,26 +108,26 @@ end
 function CyrHUD.PatrollingHorror:updateLabel(label)
 
 	-- turn off other module's stuff
-    label:getControl(L_UA):SetHidden(true)
+  label:getControl(L_UA):SetHidden(true)
 	label:getControl(L_LUMB):SetHidden(true)
 	label:getControl(L_MINE):SetHidden(true)
 	label:getControl(L_FARM):SetHidden(true)
-    label:getControl(L_SCROLL):SetHidden(true)
+  label:getControl(L_SCROLL):SetHidden(true)
 	label:getControl(L_ATT_SIEGE):SetHidden(true)
 	label:getControl(L_DEF_SIEGE):SetHidden(true)
 	label:getControl(CYROCHAT_ICON):SetHidden(true)
 	label:getControl(L_ICON_DEATHS_AD):SetHidden(true)  
 	label:getControl(L_ICON_DEATHS_EP):SetHidden(true)
 	label:getControl(L_ICON_DEATHS_DC):SetHidden(true)
-    label:getControl(L_DEATHS_AD):SetHidden(true)
+  label:getControl(L_DEATHS_AD):SetHidden(true)
 	label:getControl(L_DEATHS_EP):SetHidden(true)
 	label:getControl(L_DEATHS_DC):SetHidden(true)
-    label:getControl(L_KILLS_AD):SetHidden(true)
+  label:getControl(L_KILLS_AD):SetHidden(true)
 	label:getControl(L_KILLS_EP):SetHidden(true)
 	label:getControl(L_KILLS_DC):SetHidden(true)
 	label:getControl(LEGEND_KILLS):SetHidden(true)
 	label:getControl(LEGEND_DEATHS):SetHidden(true)
-    label:getControl(L_ATT_SIEGE_ICON):SetHidden(true)
+  label:getControl(L_ATT_SIEGE_ICON):SetHidden(true)
 	label:getControl(L_DEF_SIEGE_ICON):SetHidden(true)
 	label:getControl(L_CONNECTED):SetHidden(true)
 	label:getControl(L_HOLDER):SetHidden(true)
@@ -147,13 +147,7 @@ function CyrHUD.PatrollingHorror:updateLabel(label)
 	label:getControl(ICON_SIA):SetHidden(true)
 	label:getControl(ICON_ROE):SetHidden(true)
 	
-	-- 05/07/2026 performance improvement:
-	-- updateLabel() runs once a second for every displayed Patrolling Horror
-	-- row. Below this point, the old code called label:getControl(L_NAME),
-	-- label:getControl(L_ICON), and label:getControl(L_TIME) repeatedly (5-6
-	-- times each) to fetch the exact same three controls over and over --
-	-- each call being a method invocation plus a table index. We fetch each
-	-- one once here and reuse the cached reference for every subsequent use.
+
 	local nameControl = label:getControl(L_NAME)
 	local iconControl = label:getControl(L_ICON)
 	local timeControl = label:getControl(L_TIME)
@@ -247,15 +241,6 @@ function CyrHUD.PatrollingHorror:getBGColor()
         return CyrHUD.info.endAttackColor
     end
 
-    -- 05/07/2026 bug fix (supersedes the earlier performance-only note here):
-    -- This block originally called CyrHUD.info.newAttackColor:Lerp(...) during
-    -- the first 60 seconds of a horror encounter but never returned or used
-    -- the result, so the intended "flash red then fade to the normal
-    -- background" effect never actually appeared. We previously removed that
-    -- call entirely as dead code; now that the missing behavior has been
-    -- flagged as wanted, we restore it properly by returning the interpolated
-    -- color. (Same fix applied to the equivalent code in Battle.lua and
-    -- MovingObjectives.lua.)
     local delta = GetDiffBetweenTimeStamps(GetTimeStamp(), self.startPatrollingHorror)
 
     if delta < 60 then

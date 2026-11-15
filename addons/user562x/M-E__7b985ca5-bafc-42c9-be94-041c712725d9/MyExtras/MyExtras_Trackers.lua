@@ -40,8 +40,8 @@ Trackers.defaults = {
     trackerPosY   = 400,
     trackerSize   = 31,
     trackerLayout = "Vertical",
-    showCrux      = true,
-    showWarmask   = true,
+    showCrux      = false,
+    showWarmask   = false,
 }
 
 Trackers.layoutChoices = {

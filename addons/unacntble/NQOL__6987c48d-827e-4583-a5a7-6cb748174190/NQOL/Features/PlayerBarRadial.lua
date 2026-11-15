@@ -73,6 +73,7 @@ local BORDER_DIRECTIONS = {
     { -0.707, -0.707 }, { 0.707, -0.707 }, { -0.707, 0.707 }, { 0.707, 0.707 },
 }
 local BAR_LANE_GAP = 8
+local SECONDARY_LANE_WIDTH = 36
 local TOP_VALUE_Y = 10
 local BOTTOM_VALUE_Y = 414
 local MAGICKA_VALUE_X = 42
@@ -368,9 +369,14 @@ local function GetWidgetX(widget, side, screenCenter, halfGap)
     return screenCenter + halfGap - (WIDTH - inwardExtent)
 end
 
-local function MoveLaneOutward(x, side, laneIndex, borderSize)
-    local laneOffset = laneIndex * (22 + borderSize * 2 + BAR_LANE_GAP)
+local function MoveLaneOutward(x, side, laneIndex, borderSize, secondaryOffset)
+    local laneOffset = laneIndex * (22 + borderSize * 2 + BAR_LANE_GAP) + secondaryOffset
     return side == C.FLYING_ORIENTATION_LEFT and x - laneOffset or x + laneOffset
+end
+
+local function IsSecondaryVisible(resourceValues, resourceType)
+    local value = resourceValues and resourceValues[resourceType]
+    return value ~= nil and value.hidden ~= true
 end
 
 local function AnchorLabel(label, root, originX, originY, x, y, mirrored)
@@ -410,7 +416,7 @@ local function GetLaneValueLabelX(widget, normalX, laneIndex, outermostLane)
     return math.min(inwardExtent + normalGap, WIDTH)
 end
 
-function Radial.Layout(preset)
+function Radial.Layout(preset, resourceValues)
     local root = preset.root
     local controls = preset.controls
     local settings = Shared.GetRadialSettings()
@@ -468,11 +474,21 @@ function Radial.Layout(preset)
         [C.FLYING_ORIENTATION_LEFT] = 0,
         [C.FLYING_ORIENTATION_RIGHT] = 0,
     }
+    local secondaryOffsets = {
+        [C.FLYING_ORIENTATION_LEFT] = 0,
+        [C.FLYING_ORIENTATION_RIGHT] = 0,
+    }
     local healthLane = laneCounts[settings.healthSide]
-    healthX = MoveLaneOutward(healthX, settings.healthSide, healthLane, borderSize)
+    healthX = MoveLaneOutward(healthX, settings.healthSide, healthLane, borderSize, 0)
     laneCounts[settings.healthSide] = laneCounts[settings.healthSide] + 1
     local magickaLane = laneCounts[magickaSide]
-    magickaX = MoveLaneOutward(magickaX, magickaSide, magickaLane, borderSize)
+    -- An extra bar reaches inward from its parent. Open space before that
+    -- lane only while needed, then carry the offset to later lanes on its side.
+    if magickaLane > 0 and (IsSecondaryVisible(resourceValues, COMBAT_MECHANIC_FLAGS_WEREWOLF)
+        or (stacked and IsSecondaryVisible(resourceValues, C.RESOURCE_MOUNT_STAMINA))) then
+        secondaryOffsets[magickaSide] = secondaryOffsets[magickaSide] + SECONDARY_LANE_WIDTH
+    end
+    magickaX = MoveLaneOutward(magickaX, magickaSide, magickaLane, borderSize, secondaryOffsets[magickaSide])
     local staminaLane
     if stacked then
         staminaX = magickaX
@@ -481,7 +497,10 @@ function Radial.Layout(preset)
     else
         laneCounts[magickaSide] = laneCounts[magickaSide] + 1
         staminaLane = laneCounts[staminaSide]
-        staminaX = MoveLaneOutward(staminaX, staminaSide, staminaLane, borderSize)
+        if staminaLane > 0 and IsSecondaryVisible(resourceValues, C.RESOURCE_MOUNT_STAMINA) then
+            secondaryOffsets[staminaSide] = secondaryOffsets[staminaSide] + SECONDARY_LANE_WIDTH
+        end
+        staminaX = MoveLaneOutward(staminaX, staminaSide, staminaLane, borderSize, secondaryOffsets[staminaSide])
         laneCounts[staminaSide] = laneCounts[staminaSide] + 1
     end
 
@@ -816,7 +835,7 @@ local function UpdateResourceSplit(preset, resourceValues, settings)
         preset.radialStaminaMaximum = staminaMaximum
         if preset.radialSplit ~= stackSplit then
             preset.radialSplit = stackSplit
-            Radial.Layout(preset)
+            Radial.Layout(preset, resourceValues)
             return true
         end
     end

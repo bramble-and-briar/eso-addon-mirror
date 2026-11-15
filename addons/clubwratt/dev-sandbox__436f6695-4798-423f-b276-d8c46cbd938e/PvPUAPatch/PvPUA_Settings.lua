@@ -146,6 +146,16 @@ function PvPUA:SettingsMenu()
           tooltip = "When a campaign you queued for turns you away because it is full (\"Jump failed. Instance is full.\" and the like), queues you for it again, up to 5 times. A queue that is still moving is left alone. Each step is posted in chat.",
           getFunc = function() return self.savedVariables.autoRequeue ~= false end,
           setFunc = function(v) self.savedVariables.autoRequeue = v == true end },
+        -- Patch: queue again on demand ("Requeue Now" in PvPUA.lua); the probe for a queue the game broke.
+        { type = "button", name = "Requeue Now",
+          buttonText = "Requeue",
+          tooltip = "Asks the game to queue you again for the campaign whose queue broke: the one marked STUCK, otherwise the queue you are in or were last in, otherwise your home campaign. A queue the game says is alive is left alone. If the game refuses and still lists a STUCK entry, that entry is left first. Each step shows as an alert and in chat, and goes to the Debug Log.",
+          func = function()
+              local ok, err = pcall(self.RQManual, self)
+              if not ok and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
+                  pcall(CHAT_ROUTER.AddSystemMessage, CHAT_ROUTER, "PvP UA requeue failed: " .. tostring(err))
+              end
+          end },
         -- Patch: kill-marker / kill-feed diagnostics through the optional LibConsoleLogger (buffer only, no chat).
         { type = "toggle", name = "Debug Log", preset = "YES_NO",
           default = PvPUA.defaults.debugLog,

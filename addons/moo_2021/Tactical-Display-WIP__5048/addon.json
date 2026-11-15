@@ -1,0 +1,42 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/moo_2021/Tactical-Display-WIP__5048",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "moo_2021",
+  "canonical_id": "esoui:5048",
+  "category_id": "96",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5048",
+  "deleted": false,
+  "directories": [
+    "TacticalDisplay"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5048/",
+  "fingerprint": "e43bfe941f25b3b0a8293b7beca0751e8828e0aa789fc379292cced555620659",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18429.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5048",
+  "source_url": "https://www.esoui.com/downloads/info5048-TacticalDisplayWIP.html",
+  "stats": {
+    "downloads": 10,
+    "favorites": 0,
+    "monthly_downloads": 7
+  },
+  "title": "Tactical Display (WIP)",
+  "updated_at": 1794685689000,
+  "version": "0.2.0"
+}

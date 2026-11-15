@@ -205,19 +205,6 @@ function Label:exposeControls(nImg, nText)
         self.entry["img"..i]:SetHidden(i > nImg)
     end
 
-    -- 20/07/2026 bug fix:
-    -- This loop only ran i=1..3, but every call site in the addon passes
-    -- nText=4 (see Battle.lua, Graveyards.lua, MovingObjectives.lua,
-    -- PatrollingHorrors.lua, RankingBar.lua, ScoringBar.lua), and txt4 (the
-    -- shared "time" label, L_TIME) exists in the entry table just like
-    -- txt1-txt3. With the loop capped at 3, txt4's hidden state was never
-    -- touched by this function at all -- every entity type happens to also
-    -- set txt4's hidden state explicitly and unconditionally inside its own
-    -- updateLabel(), which is why this was never visibly broken, but it
-    -- silently made the nText parameter incapable of ever affecting txt4,
-    -- unlike nImg which correctly covers all 4 image slots. Widening the
-    -- loop to match nImg's 1..4 range makes exposeControls behave the way
-    -- its signature promises.
     for i=1,4 do
         self.entry["txt"..i]:SetHidden(i > nText)
     end

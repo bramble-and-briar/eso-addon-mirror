@@ -25,7 +25,7 @@ CyrHUD.colors = {}
 local colors = CyrHUD.colors
 
 --Transparent BG colors
-colors.blackTrans = ZO_ColorDef:New(0, 0, 0, .3)
+colors.blackTrans = ZO_ColorDef:New(0, 0, 0, .5)
 colors.greenTrans = ZO_ColorDef:New(.2, .5, .2, .6)
 colors.greyTrans = ZO_ColorDef:New(.5, .5, .5, .3)
 colors.invisible = ZO_ColorDef:New(0,0,0,0)
@@ -90,7 +90,7 @@ CyrHUD.icons["offSiege"] = "/esoui/art/icons/ava_siege_weapon_001.dds"
 CyrHUD.icons["defSiege"] = "/esoui/art/icons/ava_siege_weapon_002.dds"
 CyrHUD.icons["scrollAD"] = "/esoui/art/campaign/overview_scrollicon_aldmeri.dds"
 CyrHUD.icons["scrollEP"] = "/esoui/art/campaign/overview_scrollicon_ebonheart.dds"
-CyrHUD.icons["scrollDC"] = "/esoui/art/campaign/overview_scrollicon_daggefall.dds"
+CyrHUD.icons["scrollDC"] = "/esoui/art/campaign/overview_scrollicon_daggerfall.dds"
 CyrHUD.icons["ConnectedKeep"] = "/CyrHUD/textures/keep_connected_to_fast_travel_network.dds" 
 CyrHUD.icons["DisconnectedKeep"] = "/CyrHUD/textures/keep_disconnected_from_fast_travel_network.dds"
 CyrHUD.icons["arrow"] = "/esoui/art/unitattributevisualizer/attributebar_arrow.dds"

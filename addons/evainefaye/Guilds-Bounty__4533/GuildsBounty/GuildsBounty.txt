@@ -1,0 +1,9 @@
+## Title: Guilds Bounty
+## Author: evainefaye
+## Version: 1.12.0
+## APIVersion: 101051
+## SavedVariables: GuildsBountySavedVars
+## DependsOn: LibCustomMenu>=7.3.0
+
+GuildsBounty.lua
+Bindings.xml

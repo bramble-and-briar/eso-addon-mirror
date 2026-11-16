@@ -12,7 +12,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Fancy Action Bar+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/acastanza/Fancy-Action-Bar__922792c1-1d90-4415-ada5-c356757e857f) | acastanza | Console | — |
 | [Fancy Action Bar+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Anthonysc/Fancy-Action-Bar__3938) | Anthonysc | PC / Mac | 2.19.9 |
 | [Fang Lair Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GioBozza/Fang-Lair-Helper__2447) | GioBozza | PC / Mac | 1.0.1 |
-| [Fantasy ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m1lkst3ak/Fantasy-ESO__b6cb7ba1-4505-427c-811d-0a008aeb4e79) | m1lkst3ak | Console | — |
+| [Fantasy ESO Battleground Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m1lkst3ak/Fantasy-ESO-Battleground-Stats__b6cb7ba1-4505-427c-811d-0a008aeb4e79) | m1lkst3ak | Console | — |
 | [Farm Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dirtdart/Farm-Manager__2496) | dirtdart | PC / Mac | 0.8.0.0 |
 | [Farmers ToolKit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vilkasmanga/Farmers-ToolKit__3789) | Vilkasmanga | PC / Mac | 260302-V2 |
 | [Farming Party](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aldanga/Farming-Party__1822) | Aldanga | PC / Mac | 2.15.0 |

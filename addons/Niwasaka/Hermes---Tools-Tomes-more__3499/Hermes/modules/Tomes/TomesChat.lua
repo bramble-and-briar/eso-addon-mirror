@@ -14,7 +14,7 @@ function Hermes.GetTomeRewards(index)
         if rewardType == REWARD_ENTRY_TYPE_ADD_CURRENCY then
             local currencyType = GetAddCurrencyRewardInfo(rewardId)
             local currencyIcon = GetCurrencyLootKeyboardIcon(currencyType)
-            reward = string.format("%s+%s |t15:15:%s|t", reward, quantity, currencyIcon)
+            reward = string.format("%s+%s |t15:15:%s|t", reward, ZO_CommaDelimitNumber(quantity), currencyIcon)
         end
     end
 
@@ -53,7 +53,7 @@ local function printTomeProgress(index, currentProgress)
     if currentProgress >= maxProgress then
         progressText = res.IconCheck
     else
-        progressText = string.format("%d/%d", currentProgress, maxProgress)
+        progressText = string.format("%s/%s", ZO_CommaDelimitNumber(currentProgress), ZO_CommaDelimitNumber(maxProgress))
     end
 
     if activityType == TIMED_ACTIVITY_TYPE_SEASONAL then

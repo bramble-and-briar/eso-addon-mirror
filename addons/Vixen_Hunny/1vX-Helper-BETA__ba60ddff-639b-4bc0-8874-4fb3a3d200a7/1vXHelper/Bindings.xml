@@ -1,0 +1,24 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="1vX Helper">
+            <Action name="ONEVX_ADD_KITE">
+                <Down>OneVXHelper.Pins.AddAtPlayer("kite")</Down>
+            </Action>
+            <Action name="ONEVX_ADD_SAFE">
+                <Down>OneVXHelper.Pins.AddAtPlayer("safe")</Down>
+            </Action>
+            <Action name="ONEVX_ADD_CHOKE">
+                <Down>OneVXHelper.Pins.AddAtPlayer("choke")</Down>
+            </Action>
+            <Action name="ONEVX_REMOVE_NEAREST">
+                <Down>OneVXHelper.Pins.RemoveNearest()</Down>
+            </Action>
+            <Action name="ONEVX_TEST_BURST">
+                <Down>OneVXHelper.Burst.Test()</Down>
+            </Action>
+            <Action name="ONEVX_GAMEPAD_PINS">
+                <Down>OneVXHelper.Gamepad.Show()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

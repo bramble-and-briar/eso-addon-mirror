@@ -1,8 +1,8 @@
 ## Title: Combat Metrics 2
 ## APIVersion: 101051 101052
 ## Author: test
-## Version: 1.7.10
-## AddOnVersion: 1071001
+## Version: 1.7.17
+## AddOnVersion: 1071700
 ## OptionalDependsOn: LibRadialMenu
 ## SavedVariables: CombatMetrics2_Save CombatMetrics2FightDataSV
 ## Description: Controller reports using the original Combat Metrics calculation engine. Includes isolated combat collection and fight storage.
@@ -21,6 +21,7 @@ CombatMetrics2FightData/CombatMetrics2FightData.lua
 CombatMetrics2.lua
 CombatMetrics2Legacy.lua
 CombatMetrics2Controller.lua
+CombatMetrics2Details.lua
 CombatMetrics2UI.lua
 CombatMetrics2ControllerInit.lua
 Bindings.xml

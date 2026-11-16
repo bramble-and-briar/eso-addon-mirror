@@ -1,0 +1,96 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/alezhu/Patch-BanditsUI-for-Select-Dangeons__5056",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "alezhu",
+  "canonical_id": "esoui:5056",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
+    {
+      "name": "Season Zero",
+      "version": "11.3.0"
+    },
+    {
+      "name": "Seasons of the Worm Cult Pt2",
+      "version": "11.2.0"
+    },
+    {
+      "name": "Feast of Shadows",
+      "version": "11.1.0"
+    },
+    {
+      "name": " Seasons of the Worm Cult Pt1",
+      "version": "11.0.0"
+    },
+    {
+      "name": "Fallen Banners",
+      "version": "10.3.5"
+    },
+    {
+      "name": "Update 44",
+      "version": "10.2.0"
+    },
+    {
+      "name": "Update 43",
+      "version": "10.1.0"
+    },
+    {
+      "name": "Gold Road",
+      "version": "10.0.0"
+    },
+    {
+      "name": "Scions of Ithelia",
+      "version": "9.3.0"
+    },
+    {
+      "name": "Endless Archive",
+      "version": "9.2.5"
+    },
+    {
+      "name": "base-game patch",
+      "version": "9.1.5"
+    },
+    {
+      "name": "Necrom",
+      "version": "9.0.0"
+    },
+    {
+      "name": "Scribes of Fate",
+      "version": "8.3.5"
+    }
+  ],
+  "content_id": "esoui:5056",
+  "deleted": false,
+  "directories": [
+    "PatchBanditsUI4SelectDangeons"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5056/",
+  "fingerprint": "d8e4fba31513d246559bca54bdb9a7dad13f4a7fd3a189356600064204f2a9ee",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5056",
+  "source_url": "https://www.esoui.com/downloads/info5056-PatchBanditsUIforSelectDangeons.html",
+  "stats": {
+    "downloads": 14,
+    "favorites": 0,
+    "monthly_downloads": 1
+  },
+  "title": "Patch BanditsUI for Select Dangeons",
+  "updated_at": 1794771649000,
+  "version": "1.0.0"
+}

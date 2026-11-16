@@ -8,6 +8,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@class InventoryPocCofferSaved
 ---@field untilReset table<string, number>
 ---@field observed table<number, table<number, boolean>> Coffer IDs and the motif item IDs found inside
+---@field currencies table<number, table<number, number>>|nil Container IDs and the largest amount of each currency seen inside
 ---@class InventoryPocCoffers
 local coffers = {}
 BattleScrolls.inventoryPocCoffers = coffers
@@ -149,6 +150,60 @@ local function isMotif(group, itemId)
     return group.firstMotif ~= nil and itemId >= group.firstMotif and itemId <= group.lastMotif
 end
 
+---ESO has no item-to-currency lookup, so a container's currencies are learned
+---from its loot. A geode cannot be emptied once its crystals pass the cap.
+---@param itemId number
+---@param contents InventoryPocLootEntry[]
+local function learnCurrencies(itemId, contents)
+    local currencies = saved and saved.currencies
+    if not currencies then return end
+    for _, entry in ipairs(contents) do
+        if entry.currencyType and entry.quantity > 0 then
+            local amounts = currencies[itemId] or {}
+            currencies[itemId] = amounts
+            amounts[entry.currencyType] = math.max(amounts[entry.currencyType] or 0, entry.quantity)
+        end
+    end
+end
+
+---@param contents InventoryPocLootEntry[] Loot shown by the container being opened
+function coffers.learn(contents)
+    if openingId then learnCurrencies(openingId, contents) end
+end
+
+---@type table<number, boolean> Currencies whose cap is holding a container back
+local held = {}
+
+---@param itemId number
+---@return number|nil currency A currency without room for what this container is known to hold
+function coffers.cappedCurrency(itemId)
+    local amounts = saved and saved.currencies and saved.currencies[itemId]
+    if not amounts then return nil end
+    for currency, amount in pairs(amounts) do
+        local location = GetCurrencyPlayerStoredLocation(currency)
+        if GetCurrencyAmount(currency, location) + amount > GetMaxPossibleCurrency(currency, location) then
+            held[currency] = true
+            return currency
+        end
+    end
+end
+
+---ESO refuses a geode outright while Transmute Crystals are full, before any
+---loot is shown. A currency container that stayed shut in that state is
+---taken for one and held until a crystal is spent.
+---@param itemId number
+---@return boolean held
+function coffers.refused(itemId)
+    local currencies = saved and saved.currencies
+    if not currencies or currencies[itemId] then return false end
+    local location = GetCurrencyPlayerStoredLocation(CURT_CHAOTIC_CREATIA)
+    if GetCurrencyAmount(CURT_CHAOTIC_CREATIA, location) < GetMaxPossibleCurrency(CURT_CHAOTIC_CREATIA, location) then
+        return false
+    end
+    currencies[itemId] = { [CURT_CHAOTIC_CREATIA] = 1 }
+    return true
+end
+
 ---@param cofferId number
 ---@param link string
 local function observe(cofferId, link)
@@ -183,11 +238,18 @@ local function isCurrentLoot(group)
 end
 
 ---@param state InventoryPocCofferSaved
----@param log InventoryPocLogEntry[]|nil Existing openings recover today's cooldown on first installation
-function coffers.initialize(state, log)
+---@param log InventoryPocLogEntry[] Existing openings seed what each tracker starts without
+---@param recoverLimits boolean First installation: recover today's cooldowns
+function coffers.initialize(state, log, recoverLimits)
     saved = state
+    if not state.currencies then
+        state.currencies = {}
+        for _, entry in ipairs(log) do
+            if entry.action == 'open' and entry.result == 'done' then learnCurrencies(entry.itemId, entry.contents or {}) end
+        end
+    end
     local previousReset = nextReset() - 86400
-    for _, entry in ipairs(log or {}) do
+    for _, entry in ipairs(recoverLimits and log or {}) do
         if entry.action == 'open' and entry.result == 'done' and entry.timestamp >= previousReset then
             coffers.opened(entry.itemId, entry.contents)
         end
@@ -209,6 +271,11 @@ function coffers.initialize(state, log)
                 end
             end
         end)
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_CURRENCY_UPDATE, function(_, currency, _, amount, oldAmount)
+        if not held[currency] or amount >= oldAmount then return end
+        held[currency] = nil
+        BattleScrolls.inventoryPoc.wake()
+    end)
     EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_LOOT_CLOSED, function()
         if not openingId then return end
         local id = openingId

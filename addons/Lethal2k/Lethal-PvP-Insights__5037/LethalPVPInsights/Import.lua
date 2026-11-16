@@ -448,9 +448,9 @@ function Import:Init()
         PDI.sv.settings.uploadRequestedAt = nil
         if self.generated < asked - 5 then
             zo_callLater(function()
-                PDI.Msg("|cFF8866Upload didn't reach the LPI Companion|r - it isn't running. Double-click " ..
-                    "|cFFFFFFLPI COMPANION.bat|r (or the LPI Companion desktop shortcut) once (it then starts with Windows), " ..
-                    "then click Upload again.")
+                PDI.Msg("|cFF8866Upload didn't reach the LPI Companion|r - it isn't running. Start it " ..
+                    "(|cFFFFFFLPI Companion.bat|r in its folder, or its desktop shortcut), then click Upload again. " ..
+                    "Don't have it yet? Free download: |cFFFFFF" .. PDI.COMPANION_URL .. "|r")
             end, 3000)
         end
     end

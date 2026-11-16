@@ -218,12 +218,13 @@ local function pinTooltip(d)
     hideTooltip()
     if d.tooltipLink and ZO_PopupTooltip_SetLink then
         pcall(ZO_PopupTooltip_SetLink, d.tooltipLink)
-    elseif d.tooltipId and PopupTooltip and ZO_PopupTooltip_Show then
+    elseif d.tooltipId and PopupTooltip then
+        -- skills have no item link: show the pop-up tooltip the way ZO_PopupTooltip_SetLink does
         pcall(function()
-            ZO_PopupTooltip_Show()
-            PopupTooltip.lastLink = nil
+            PopupTooltip:SetHidden(false)
             PopupTooltip:ClearLines()
             PopupTooltip:SetAbilityId(d.tooltipId)
+            PopupTooltip.lastLink = nil
         end)
     end
 end
@@ -2318,7 +2319,7 @@ function UI:ShowLinked(b)
 end
 
 ---------------------------------------------------------------------------
--- Real Death Recap window: the 5 biggest damage sources of the fight you died in, and the last 10 hits
+-- Real Death Recap window: the 5 biggest damage sources of the fight you died in, and the last 20 hits
 ---------------------------------------------------------------------------
 COLUMNS.recapTop = {
     { t = "Skill",   w = 300, key = "n",   nosort = true },
@@ -2340,9 +2341,13 @@ function UI:CreateRecapWindow()
     local w = WM:CreateTopLevelWindow("PVPDataInsightRecapWindow")
     local topY = 112
     local logY = topY + PANE_ROW_H * 6 + 52
-    local h = logY + PANE_ROW_H * 11 + 24
+    -- the last 20 hits; on a short screen fewer rows show and the rest scroll (mouse wheel)
+    local logRows = 20
+    local screenH = GuiRoot and GuiRoot:GetHeight() or 1080
+    while logRows > 8 and logY + PANE_ROW_H * (logRows + 1) + 24 > screenH - 30 do logRows = logRows - 1 end
+    local h = logY + PANE_ROW_H * (logRows + 1) + 24
     w:SetDimensions(RW_W, h)
-    w:SetAnchor(CENTER, GuiRoot, CENTER, 0, -60)
+    w:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
     w:SetMouseEnabled(true)
     w:SetMovable(true)
     w:SetClampedToScreen(true)
@@ -2390,8 +2395,21 @@ function UI:CreateRecapWindow()
     end
     section("Top", topY, "Top damage sources in the fight")
     section("Log", logY, "Last hits before death")
-    self.rw = { win = w, info = info, top = grid("Top", topY, 5), log = grid("Log", logY, 10) }
+    self.rw = { win = w, info = info, top = grid("Top", topY, 5), log = grid("Log", logY, logRows) }
     return self.rw
+end
+
+-- the Real Death Recap key (Controls > Addon Keybinds): shows the last recap, or hides it when it is open
+function UI:ToggleRecap()
+    if self.rw and not self.rw.win:IsHidden() then
+        if SCENE_MANAGER and SCENE_MANAGER.HideTopLevel then pcall(SCENE_MANAGER.HideTopLevel, SCENE_MANAGER, self.rw.win) end
+        if not self.rw.win:IsHidden() then self.rw.win:SetHidden(true) end
+        return
+    end
+    local r = PDI.Recap and PDI.Recap.last
+    if r then self:ShowRecap(r)
+    elseif PDI.Recap and not PDI.Recap:IsOn() then PDI.Msg("Real Death Recap is off - switch it on in Settings > Lethal PVP Insights > General.")
+    else PDI.Msg("No death recorded yet.") end
 end
 
 function UI:ShowRecap(r)

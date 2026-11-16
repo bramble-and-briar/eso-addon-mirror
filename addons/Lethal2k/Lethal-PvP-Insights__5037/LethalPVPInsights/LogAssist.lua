@@ -279,8 +279,8 @@ function LA:BuildImportWindow()
     body:SetDimensions(604, 100)
     body:SetWrapMode(TEXT_WRAP_MODE_TRUNCATE)
     body:SetText("|cFF6655The LPI Companion must be running on your PC before you click Upload|r - " ..
-        "otherwise the browser only shows \"can't be reached\". Start it with |cFFFFFFLPI COMPANION.bat|r in the " ..
-        "addon folder (or the LPI Companion desktop shortcut).\n" ..
+        "otherwise the browser only shows \"can't be reached\". Start it with |cFFFFFFLPI Companion.bat|r in its " ..
+        "folder (or its desktop shortcut). Free download: |cFFFFFF" .. PDI.COMPANION_URL .. "|r\n" ..
         "1. Click |cFFFFFFUpload|r and confirm the game's \"open link\" prompt.   2. Click |cFFFFFFReload UI|r.")
     self.body = body
 
@@ -385,7 +385,7 @@ function LA:Upload()
     settings().uploadRequestedAt = PDI.Now()   -- checked after the reload to tell whether it worked
     if self.uploadStatus then
         self.uploadStatus:SetText(self:CompanionRunning() and "After confirming, wait for the browser page to say \"Imported\", then click Reload UI."
-            or "If the browser says the page can't be reached, start LPI COMPANION.bat and click Upload again.")
+            or "If the browser says the page can't be reached, start the LPI Companion and click Upload again.")
     end
 end
 
@@ -407,9 +407,9 @@ function LA:UpdateCompanionStatus()
     if st == "running" then
         self.companionStatus:SetText("|c66DD66Companion: running|r |c999999(when the UI loaded)|r")
     elseif st == "never" then
-        self.companionStatus:SetText("|cFF6655Companion: never started - double-click LPI COMPANION.bat before Upload|r")
+        self.companionStatus:SetText("|cFF6655Companion: never started - get it from " .. PDI.COMPANION_URL .. " and start it before Upload|r")
     else
-        self.companionStatus:SetText("|cFF6655Companion: not running at the last UI load - start LPI COMPANION.bat first|r")
+        self.companionStatus:SetText("|cFF6655Companion: not running at the last UI load - start the LPI Companion first|r")
     end
 end
 

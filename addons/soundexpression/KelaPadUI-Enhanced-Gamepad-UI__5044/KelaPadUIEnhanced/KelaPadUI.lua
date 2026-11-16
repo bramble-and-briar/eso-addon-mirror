@@ -170,8 +170,11 @@ local function KelaPadUI_OnLoaded(eventType, addonName)
 		KelaSetupRecipeFilters()
 		KelaSetupAchievementFilters()
 	end
-	if IsFeatureEnabled(KELA_SETTING_PANEL_FEATURES_BASE_GAME_FIXES) then
+	if IsFeatureEnabled(KELA_SETTING_PANEL_FIXES_BG_U51) then
 		KelaSetupBaseGameFixes()
+	end
+	if IsFeatureEnabled(KELA_SETTING_PANEL_FIXES_GROUP_MENU) then
+		KelaSetupGroupMenuFix()
 	end
 
 	KELA_SETS_LIST:SetMasterSetsList()

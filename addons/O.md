@@ -49,6 +49,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Only Cast Crystal Fragments Proc](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/stybbe/Only-Cast-Crystal-Fragments-Proc__2577) | stybbe | PC / Mac | 1.7 |
 | [Oops I Did It Again](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Oops-I-Did-It-Again__1946) | Cardinal05 | PC / Mac | 1.0.2 |
 | [Open Glaza (Cloudrest Assistant)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fortan/Open-Glaza-Cloudrest-Assistant__2055) | Fortan | PC / Mac | 1.003 |
+| [Open Tamriel · Seamless World Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/Open-Tamriel-Seamless-World-Map__5057) | Wrynch | PC / Mac | 1.0.1 |
 | [Optimal Weave](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/Optimal-Weave__4211) | VollständigerName | PC / Mac | 1.18.0 |
 | [Opulent Ordeal Navigator (OON)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/donlup/Opulent-Ordeal-Navigator-OON__4647) | donlup | PC / Mac | 0.1.1 |
 | [Orgeborn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lledos/Orgeborn__4278) | Lledos | PC / Mac | 1.0 |

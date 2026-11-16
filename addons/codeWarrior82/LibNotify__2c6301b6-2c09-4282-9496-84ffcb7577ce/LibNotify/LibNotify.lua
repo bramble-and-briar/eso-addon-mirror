@@ -1,4 +1,5 @@
 local appName = "LibNotify"
+local appVersion = 3  -- bump this on each update
 local notifyInProgress = false
 local colourStartup
 local colourSet
@@ -14,6 +15,9 @@ local messageStore1 = ""
 local messageStore2 = ""
 local messageStore3 = ""
 local messageStore4 = ""
+local provider
+local updateMessage
+local notifications = {}
 
 LibNotify = {}
 
@@ -29,6 +33,7 @@ yAxisBox = 200,
 xAxisBox = 1050,
 yAxisStatic = 500,
 xAxisStatic = 1050,
+lastSeenVersion = 0,
 }
 
 LibNotify.notificationType = {
@@ -40,11 +45,14 @@ LibNotify.addons = {
 ["advancingYokedaTracker"] = true,
 ["aeriesCryTracker"] = true,
 ["archdruidTracker"] = true,
+["atronachTracker"] = true,
+["CyroAlerts"] = true,
 ["darkConvergenceTracker"] = true,
 ["essenceThiefTracker"] = true,
 ["feedingFrenzyTracker"] = true,
 ["FrenziedMomentumTracker"] = true,
 ["gorethiefTracker"] = true,
+["LibNotify"] = true,--lol
 ["mechAcuityTracker"] = true,
 ["rallyingCryTracker"] = true,
 ["riposteTracker"] = true,
@@ -53,8 +61,7 @@ LibNotify.addons = {
 ["wardTracker"] = true,
 ["warHornTracker"] = true,
 ["warmaskTracker"] = true,
-["wretchedVitalityTracker"] = true,
-["atronachTracker"] = true
+["wretchedVitalityTracker"] = true
 }
 
 LibNotify.samples = {
@@ -147,6 +154,7 @@ local function printMessage(msg)
 	chat:Print(msg)
 end
 
+
 -------------------------------------------start check sets
 
 --check add-on validity
@@ -210,6 +218,7 @@ function LibNotify.getSet(addonName, setId, setCount)
 end
 
 -------------------------------------------end check sets
+
 
 -------------------------------------------start notifications
 
@@ -424,6 +433,112 @@ end
 
 -------------------------------------------end notifications
 
+
+--------------------------------------------------------------------start post sytem notification
+
+--render entries (custom icon + heading)
+local function HookEntryRendering()
+    local originalAddDataEntry = GAMEPAD_NOTIFICATIONS.AddDataEntry
+
+    function GAMEPAD_NOTIFICATIONS:AddDataEntry(dataType, data, isHeader)
+        if not data.isMyAddonNotification then
+            return originalAddDataEntry(self, dataType, data, isHeader)
+        end
+
+        local entryData = ZO_GamepadEntryData:New(data.shortDisplayText, data.texture)
+        entryData.data = data
+        entryData:SetIconTintOnSelection(true)
+        entryData:SetIconDisabledTintOnSelection(true)
+
+        local template = ZO_NOTIFICATION_TYPE_TO_GAMEPAD_TEMPLATE[dataType]
+        if isHeader then
+            entryData:SetHeader(data.heading)
+            self.list:AddEntryWithHeader(template, entryData)
+        else
+            self.list:AddEntry(template, entryData)
+        end
+    end
+end
+
+--provider: feeds messages into the notification list in the menu
+local MyProvider = ZO_NotificationProvider:Subclass()
+function MyProvider:New(notificationManager)
+    local newProvider = ZO_NotificationProvider.New(self, notificationManager)
+    table.insert(notificationManager.providers, newProvider)
+    return newProvider
+end
+function MyProvider:BuildNotificationList()
+    ZO_ClearNumericallyIndexedTable(self.list)
+    self.list = ZO_DeepTableCopy(notifications)
+end
+function MyProvider:Accept(data)
+    if data.acceptCallback then data.acceptCallback(data) end
+end
+function MyProvider:Decline(data)
+    if data.declineCallback then data.declineCallback(data) end
+end
+
+--dismiss notification
+local function dismissUpdateMessage()
+    if not updateMessage then return end
+    for i, msg in ipairs(notifications) do
+        if msg == updateMessage then
+            table.remove(notifications, i)
+            break
+        end
+    end
+    updateMessage = nil
+    provider:pushUpdateCallback()
+end
+
+--post notification
+function LibNotify.postUpdateNotification(name, noteTmp, shortDisplayTextTmp)
+
+    --if not listed add-on tries to access notify service, quit
+    if not isAddonValid(name) then printMessage("Restricted Access") return end
+
+    updateMessage = {
+        isMyAddonNotification = true,
+        dataType = NOTIFICATIONS_ALERT_DATA,
+        secsSinceRequest = ZO_NormalizeSecondsSince(0),
+        heading = appName,--seems to be blank
+        message = "Add-on has been updated.",--upper text
+        note = noteTmp,--lower text
+        shortDisplayText = shortDisplayTextTmp,--addon name on left panel, shown as caps
+        texture = "/esoui/art/icons/achievements_indexicon_quests_down.dds",-- icon next to addon name on left panel
+        controlsOwnSounds = true,
+        acceptCallback = dismissUpdateMessage,
+        declineCallback = dismissUpdateMessage,
+    }
+
+    table.insert(notifications, updateMessage)
+    provider:pushUpdateCallback()
+end
+
+--------------------------------------------------------------------end post sytem notification
+
+
+--when player has loaded
+local function onPlayerActivated()
+    EVENT_MANAGER:UnregisterForEvent(appName, EVENT_PLAYER_ACTIVATED)
+
+    if LibNotify.savedVariables.lastSeenVersion ~= appVersion then
+        LibNotify.postUpdateNotification(appName, "What's New:\nAdded option for all addons using this library to use the games notification system.", "LibNotify")
+        LibNotify.savedVariables.lastSeenVersion = appVersion
+    end
+end
+
+--check notification possibility
+local function checkNotifications()
+	if GAMEPAD_NOTIFICATIONS then
+        HookEntryRendering()
+        provider = MyProvider:New(GAMEPAD_NOTIFICATIONS)
+        EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, onPlayerActivated)
+    else
+        printMessage("error trying to enable system notifications")
+    end
+end
+
 --setup options menu
 local function createOptions()
 
@@ -614,6 +729,8 @@ local function libLoaded(event, name)
     enableCallbacksGear()
     --check what sets are currently equiped
     checkCurrentSets()
+	--check whether notifications can be sent and hook in
+	checkNotifications()
 end
 
 --register for notification that an addon has been loaded
@@ -625,3 +742,6 @@ EVENT_MANAGER:RegisterForEvent(appName, EVENT_ADD_ON_LOADED, libLoaded)
 
 --example of message from other addon,
 --LibNotify.getSet(appName, setId, setCount)
+
+--example of message from other addon,
+--LibNotify.postUpdateNotification(appName, "What's New:\nAdded option for all addons using this library to use the games notification system.", "LibNotify")

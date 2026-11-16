@@ -25,6 +25,13 @@ local function GeneralLPI()
             func = function() PDI.UI:Show() end,
         },
         {
+            type = "button", name = "Get the LPI Companion", width = "half",
+            tooltip = "Opens esopvp.com/companion in your browser (the game asks first). The Companion is an optional " ..
+                "Windows helper: it imports group members' gear and skill bars from Encounter.log and, only if you " ..
+                "agree, uploads your data to esopvp.com. It isn't part of the addon download.",
+            func = function() PDI.OpenCompanionPage() end,
+        },
+        {
             type = "checkbox", name = "New version notice",
             tooltip = "Tells you in chat (and next to the window title) when a newer Lethal PVP Insights is available " ..
                       "on esopvp.com. Needs the LPI Companion with uploads on.",
@@ -35,7 +42,8 @@ local function GeneralLPI()
         {
             type = "checkbox", name = "Real Death Recap",
             tooltip = "When you die in a PvP area (Cyrodiil, Imperial City, Battlegrounds), shows the 5 skills/players that did the most damage to you in that fight and the " ..
-                      "last 10 hits before death. /lpi recap shows the last one again.",
+                      "last 20 hits before death. Set a key under Controls > Addon Keybinds > Lethal PVP Insights to show or hide it " ..
+                      "(like the game's own death recap); /lpi recap shows the last one again.",
             getFunc = function() return sv().deathRecap == true end,
             setFunc = function(v) PDI.Recap:SetOn(v) end,
             default = PDI.defaults.settings.deathRecap,
@@ -101,7 +109,15 @@ local function BuildOptions()
             type = "description",
             text = "While you're grouped in a PvP area, the addon can switch the game's encounter log on, " ..
                 "capture your group members' gear and skill bars at the next fight, then switch it off and " ..
-                "pop up the import window. Keep 'LPI COMPANION.bat' running on your desktop to import with one click.",
+                "pop up the import window. Keep the LPI Companion running on your PC to import with one click. The Companion is " ..
+                "an optional Windows helper and a separate download (button below).",
+        },
+        {
+            type = "button", name = "Get the LPI Companion", width = "half",
+            tooltip = "Opens esopvp.com/companion in your browser (the game asks first). The Companion is an optional " ..
+                "Windows helper: it imports group members' gear and skill bars from Encounter.log and, only if you " ..
+                "agree, uploads your data to esopvp.com. It isn't part of the addon download.",
+            func = function() PDI.OpenCompanionPage() end,
         },
         {
             type = "dropdown", name = "Encounter log while grouped",

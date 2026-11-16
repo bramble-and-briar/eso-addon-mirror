@@ -1,7 +1,8 @@
 ## Title: CaracVentes
-## Description: Suivi des ventes en guildes marchandes
-## Author: Roccesar & Claude IA
-## Version: 1.2
+## Description: [AI-assisted code] Sales tracking in merchant guilds
+## Author: Roccesar & Claude AI, Anthropic
+## Version: 1.3
+## AddOnVersion: 10300
 ## APIVersion: 101051
 ## SavedVariables: CaracVentes_Data
 

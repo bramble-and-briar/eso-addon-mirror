@@ -95,7 +95,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [WritGrabber](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kendaron/WritGrabber__1179) | kendaron | PC / Mac | 1.0.14 |
 | [WritHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/WritHelper__1610) | Wheels | PC / Mac | 1.0.1 |
 | [Written Item Quality](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SatinderESO/Written-Item-Quality__4721) | SatinderESO | PC / Mac | 1.0.1 |
-| [WritWorthy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/WritWorthy__1605) | ziggr | PC / Mac | 7.6.2 |
+| [WritWorthy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/WritWorthy__1605) | ziggr | PC / Mac | 7.6.3 |
 | [WTBConduits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/WTBConduits__2176) | init3 | PC / Mac | 3.1 |
 | [WtWsGuildhall for GuildMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sityDJVEN25/WtWsGuildhall-for-GuildMenu__3286) | sityDJVEN25 | PC / Mac | 2.0 beta |
 | [WtWsGuildhallforChat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sityDJVEN25/WtWsGuildhallforChat__3278) | sityDJVEN25 | PC / Mac | 2.0 beta |

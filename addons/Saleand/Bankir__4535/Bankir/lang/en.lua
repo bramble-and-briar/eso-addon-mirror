@@ -16,6 +16,8 @@ local strings = {
 	BANKIR_MENU_MOVE_QUEST_ITEMS = "Withdraw quest items",
 	BANKIR_MENU_MOVE_QUEST_ITEMS_DESC = "Allow automatically withdraw items required for currently active quests",
 	BANKIR_MENU_SHOW_MOVE_REASON = "Show move reason",
+	BANKIR_MENU_RESTART_ON_INTERFERED = "Restart on interfered",
+	BANKIR_MENU_RESTART_ON_INTERFERED_DESC = "When Bankir is processing items and someone else (you or some addon) moves an item, restart the processing again",
 	BANKIR_MENU_SHOW_MOVE_REASON_DESC = "Moved item info in chat will have an additional tag with rule name based on which the item has been moved by Bankir",
 	BANKIR_MENU_SHOW_FAIL_MESSAGES = "Show fail messages",
 	BANKIR_MENU_SHOW_FAIL_MESSAGES_DESC = "Print in chat if item transaction failed",
@@ -42,12 +44,14 @@ local strings = {
 	BANKIR_MENU_PULL_IN_STACKS_DESC = "If enabled - the value in '<<1>>' is amount of full stacks.\nIf disabled - amount of items.\nFor non-stackable items (e.g., armor and weapon) this setting doesn't matter.",
 	BANKIR_MENU_QUALITY_SELECT = "Quality",
 	BANKIR_MENU_QUALITY_SELECT_DESC = "The rule will only apply to items with quality of selected levels",
-
+	
 	BANKIR_MENU_OTHER_CHARACTERS = " on other characters",
 	
 	BANKIR_CHAT_REQUIRED_FOR_QUESTS = "<<1>> x<<2>> required for quests",
 	BANKIR_CHAT_NO_FREE_SPACE = "|cFF0000Failed.|r No free space left in <<1>> for <<2>>.",
 	BANKIR_CHAT_ALREADY_HAVE_UNIQUE_ITEM = "|cFF0000Failed.|r You can only have one <<1>> in a storage, and you already have one in <<2>>.",
+	BANKIR_CHAT_QUEUE_INTERFERED = "|cFF0000Cancel.|r Someone else moved items, queue stopped",
+	BANKIR_CHAT_QUEUE_RESTARTED = "Queue restart...",
 	
 	BANKIR_MENU_INTEGRATIONS = "Integrations",
 	BANKIR_MENU_INTEGRATIONS_LCK_DESC = "If LibCharacterKnowledge addon is enabled, Bankir will have special rules for equipment that can be trait-researched on your other characters.\n\nHere is a list of your other characters on this server.\n\nIf you have set a rule to deposit items that can be researched on other characters, Bankir will move such items only for the characters enabled in this list. Not enabled characters will be ignored.",

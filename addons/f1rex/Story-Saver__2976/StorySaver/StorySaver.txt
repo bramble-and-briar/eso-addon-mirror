@@ -1,0 +1,26 @@
+﻿; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+
+## Title: Story Saver
+## Description: Saves dialogues, subtitles, books and quest items so you can read them again later
+## Author: f1rex
+## Version: 19
+## AddOnVersion: 19
+## APIVersion: 101051
+## SavedVariables: StorySaverSavedVariables
+## OptionalDependsOn: LibMapPing
+## DependsOn: LibGPS>=73 LibAddonMenu-2.0>=43
+
+lang/en.lua
+lang/$(language).lua
+
+OldData.lua
+Settings.lua
+StorySaver.lua
+
+Interface.lua
+Interface.xml
+
+Bindings.xml

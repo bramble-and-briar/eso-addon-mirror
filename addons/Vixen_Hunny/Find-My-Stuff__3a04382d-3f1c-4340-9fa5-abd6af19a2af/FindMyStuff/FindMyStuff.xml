@@ -1,0 +1,115 @@
+<GuiXml>
+	<Controls>
+		<!-- One result row in the keyboard window -->
+		<Label name="FindMyStuffRow" virtual="true" font="ZoFontGame" color="FFFFFF" wrapMode="ELLIPSIS"
+			verticalAlignment="CENTER" mouseEnabled="true" linkEnabled="true">
+			<Dimensions x="690" y="26" />
+			<OnMouseEnter>FindMyStuff.Window.OnRowEnter(self)</OnMouseEnter>
+			<OnMouseExit>FindMyStuff.Window.OnRowExit(self)</OnMouseExit>
+			<OnLinkMouseUp>ZO_LinkHandler_OnLinkMouseUp(linkText, button, self)</OnLinkMouseUp>
+		</Label>
+
+		<!-- Keyboard window -->
+		<TopLevelControl name="FindMyStuffWindow" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true">
+			<Dimensions x="740" y="640" />
+			<Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+			<OnMoveStop>FindMyStuff.Window.SavePosition()</OnMoveStop>
+			<Controls>
+				<Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" />
+
+				<Label name="$(parent)Title" font="ZoFontWinH2" color="FFFFFF" text="Find My Stuff">
+					<Anchor point="TOPLEFT" offsetX="20" offsetY="14" />
+				</Label>
+
+				<Button name="$(parent)Close" inherits="ZO_CloseButton">
+					<Anchor point="TOPRIGHT" offsetX="-14" offsetY="14" />
+					<OnClicked>FindMyStuff.Window.Hide()</OnClicked>
+				</Button>
+
+				<Button name="$(parent)TabItems" inherits="ZO_DefaultButton" text="My Items">
+					<Dimensions x="160" y="30" />
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="-6" offsetY="10" />
+					<OnClicked>FindMyStuff.Window.SetTab("items")</OnClicked>
+				</Button>
+				<Button name="$(parent)TabTraders" inherits="ZO_DefaultButton" text="Guild Traders">
+					<Dimensions x="160" y="30" />
+					<Anchor point="LEFT" relativeTo="$(parent)TabItems" relativePoint="RIGHT" offsetX="6" />
+					<OnClicked>FindMyStuff.Window.SetTab("traders")</OnClicked>
+				</Button>
+				<Button name="$(parent)TabLeads" inherits="ZO_DefaultButton" text="Leads">
+					<Dimensions x="160" y="30" />
+					<Anchor point="LEFT" relativeTo="$(parent)TabTraders" relativePoint="RIGHT" offsetX="6" />
+					<OnClicked>FindMyStuff.Window.SetTab("leads")</OnClicked>
+				</Button>
+
+				<Backdrop name="$(parent)Search" inherits="ZO_SingleLineEditBackdrop_Keyboard">
+					<Dimensions x="440" y="30" />
+					<Anchor point="TOPLEFT" relativeTo="$(parent)TabItems" relativePoint="BOTTOMLEFT" offsetX="6" offsetY="14" />
+					<Controls>
+						<EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop">
+							<OnEnter>
+								FindMyStuff.Window.RunSearch()
+								self:LoseFocus()
+							</OnEnter>
+							<OnEscape>self:LoseFocus()</OnEscape>
+						</EditBox>
+					</Controls>
+				</Backdrop>
+				<Button name="$(parent)Go" inherits="ZO_DefaultButton" text="Search">
+					<Dimensions x="120" y="30" />
+					<Anchor point="LEFT" relativeTo="$(parent)Search" relativePoint="RIGHT" offsetX="8" />
+					<OnClicked>FindMyStuff.Window.RunSearch()</OnClicked>
+				</Button>
+				<Button name="$(parent)Stop" inherits="ZO_DefaultButton" text="Stop">
+					<Dimensions x="120" y="30" />
+					<Anchor point="LEFT" relativeTo="$(parent)Go" relativePoint="RIGHT" offsetX="4" />
+					<OnClicked>FindMyStuff.Window.Stop()</OnClicked>
+				</Button>
+
+				<!-- Dropdowns: Look for (items / leads / mythic leads) and Show (have / missing / never found) -->
+				<Control name="$(parent)Options">
+					<Dimensions x="700" y="30" />
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Search" relativePoint="BOTTOMLEFT" offsetY="8" />
+					<Controls>
+						<Label name="$(parent)TypeLabel" font="ZoFontGame" color="CCCCCC" text="Look for:">
+							<Anchor point="LEFT" />
+						</Label>
+						<Control name="$(parent)Type" inherits="ZO_ComboBox">
+							<Dimensions x="170" y="30" />
+							<Anchor point="LEFT" relativeTo="$(parent)TypeLabel" relativePoint="RIGHT" offsetX="8" />
+						</Control>
+						<Label name="$(parent)ShowLabel" font="ZoFontGame" color="CCCCCC" text="Show:">
+							<Anchor point="LEFT" relativeTo="$(parent)Type" relativePoint="RIGHT" offsetX="16" />
+						</Label>
+						<Control name="$(parent)Show" inherits="ZO_ComboBox">
+							<Dimensions x="180" y="30" />
+							<Anchor point="LEFT" relativeTo="$(parent)ShowLabel" relativePoint="RIGHT" offsetX="8" />
+						</Control>
+						<Button name="$(parent)FindInTraders" inherits="ZO_DefaultButton" text="Find in Traders">
+							<Dimensions x="160" y="30" />
+							<Anchor point="RIGHT" offsetX="0" />
+							<OnClicked>FindMyStuff.Window.FindInTraders()</OnClicked>
+						</Button>
+					</Controls>
+				</Control>
+
+				<Label name="$(parent)Hint" font="ZoFontGameSmall" color="AAAAAA" wrapMode="ELLIPSIS">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Options" relativePoint="BOTTOMLEFT" offsetY="6" />
+					<Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-20" />
+				</Label>
+				<Label name="$(parent)Status" font="ZoFontGame" color="FFFF00" wrapMode="ELLIPSIS">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Hint" relativePoint="BOTTOMLEFT" offsetY="4" />
+					<Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-20" />
+				</Label>
+
+				<Control name="$(parent)List" inherits="ZO_ScrollList">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Status" relativePoint="BOTTOMLEFT" offsetY="8" />
+					<Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-16" />
+				</Control>
+			</Controls>
+		</TopLevelControl>
+
+		<!-- Gamepad screen template (created from Lua) -->
+		<TopLevelControl name="FindMyStuffGamepadTemplate" inherits="ZO_Gamepad_ParametricList_Screen" virtual="true" />
+	</Controls>
+</GuiXml>

@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Wrynch/Open-Tamriel-Seamless-World-Map__5057",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Wrynch",
+  "canonical_id": "esoui:5057",
+  "category_id": "24",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5057",
+  "deleted": false,
+  "directories": [
+    "OpenTamriel"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5057/",
+  "fingerprint": "7160a286d44eab1a1b5339769153f9c7ce027a65b05b905a0b76421e0ff9759c",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18488.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18487.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18486.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5057",
+  "source_url": "https://www.esoui.com/downloads/info5057-OpenTamrielSeamlessWorldMap.html",
+  "stats": {
+    "downloads": 138,
+    "favorites": 1,
+    "monthly_downloads": 124
+  },
+  "title": "Open Tamriel \u00b7 Seamless World Map",
+  "updated_at": 1794780685000,
+  "version": "1.0.1"
+}

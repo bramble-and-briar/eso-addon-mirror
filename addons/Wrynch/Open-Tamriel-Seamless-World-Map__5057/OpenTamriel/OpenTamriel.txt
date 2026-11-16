@@ -1,0 +1,16 @@
+## Title: |cD9B878OpenTamriel|r
+## APIVersion: 101051
+## DependsOn: LibAddonMenu-2.0>=43
+## Version: 1.0.1
+## Author: |cFFFF00Wrynch|r
+## SavedVariables: OpenTamrielDiagnostics OpenTamrielSettings
+## Description: Seamless world map zoom for ESO.
+
+OpenTamrielNamespace.lua
+OpenTamriel.xml
+OpenTamrielFit.lua
+OpenTamrielRegions.lua
+OpenTamrielRealms.lua
+OpenTamrielProof.lua
+OpenTamrielBackdrop.lua
+OpenTamriel.lua

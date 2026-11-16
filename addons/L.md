@@ -61,7 +61,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Less Bling Golden Pursuits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Less-Bling-Golden-Pursuits__3993) | kawamonkey | PC / Mac | 1.0 |
 | [Let There Be Light](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Let-There-Be-Light__1906) | Cardinal05 | PC / Mac | 1.0.4 |
 | [Let's Talk Later](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Let-s-Talk-Later__4304) | Saleand | PC / Mac | 0.1.4 |
-| [Lethal PvP Insights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lethal2k/Lethal-PvP-Insights__5037) | Lethal2k | PC / Mac | 1.10.5 |
+| [Lethal PvP Insights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lethal2k/Lethal-PvP-Insights__5037) | Lethal2k | PC / Mac | 1.11.0 |
 | [LFG Auto Accept](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/gitright/LFG-Auto-Accept__1754) | gitright | PC / Mac | 1.2.019 |
 | [LGM - Lilith's Group Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drummerx04/LGM---Lilith-s-Group-Manager__2088) | Drummerx04 | PC / Mac | 4.5.3 |
 | [Lib3DArrow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/Lib3DArrow__2663) | kadeer | PC / Mac | v0.1 alpha |
@@ -85,7 +85,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibAPH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/LibAPH__4917) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
 | [LibAPH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/LibAPH__dac0d37e-2d2f-4813-a148-6198c2d54687) | APH0NlC | Console | — |
 | [LibArmorInsulation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/LibArmorInsulation__4709) | kreksar@gmail.com | PC / Mac | 2.7.11 |
-| [LibAsync](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/LibAsync__2125) | votan | PC / Mac | 3.1.5 |
+| [LibAsync](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/LibAsync__2125) | votan | PC / Mac | 3.1.6 |
 | [LibAsync](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/LibAsync__72c475de-1f9e-433f-8047-57f7fb4ff786) | votan73 | Console | — |
 | [LibBase64](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/LibBase64__3795) | akamatsu02 | PC / Mac | 1.0 |
 | [LibBinaryEncode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/LibBinaryEncode__1647) | Rhyono | PC / Mac | 1.34 |
@@ -116,11 +116,11 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibCraftText](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/LibCraftText__2184) | ziggr | PC / Mac | 5.3.1 |
 | [LibCrypto](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/LibCrypto__4010) | akamatsu02 | PC / Mac | 1.1 |
 | [LibCustomDialog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/LibCustomDialog__2708) | MrPikPik | PC / Mac | 0.3 |
-| [LibCustomIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomIcons__4161) | m00nyONE | PC / Mac | 2026-11-09 |
+| [LibCustomIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomIcons__4161) | m00nyONE | PC / Mac | 2026-11-16 |
 | [LibCustomMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mYoda01/LibCustomMenu__fff7f7e3-b518-4545-9e96-a4f6c2a28dea) | mYoda01 | Console | — |
 | [LibCustomMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/LibCustomMenu__1146) | votan | PC / Mac | 7.3.0 |
 | [LibCustomNames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomNames__5eaa0d91-47f8-4c5e-8673-db3ab518a752) | m00nyONE | Console | — |
-| [LibCustomNames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomNames__4155) | m00nyONE | PC / Mac | 2026-11-09 |
+| [LibCustomNames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomNames__4155) | m00nyONE | PC / Mac | 2026-11-16 |
 | [LibDailyReset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/LibDailyReset__4424) | atharti | PC / Mac | 2.0 |
 | [LibDataEncode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/LibDataEncode__3980) | Solinur | PC / Mac | 2 |
 | [LibDataPacker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibDataPacker__4082) | imPDA | PC / Mac | v5 |

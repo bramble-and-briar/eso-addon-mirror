@@ -1,0 +1,10 @@
+## Title: Chill Giveaway
+## Description: Mark inventory items for giveaways and link them in chat.
+## Author: HellWhyNot
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101051 101052 101053
+## DependsOn: LibCustomMenu>=730 LibAddonMenu-2.0>=43
+## SavedVariables: InventoryLinkerSaved
+ChillGiveaway.lua
+Bindings.xml

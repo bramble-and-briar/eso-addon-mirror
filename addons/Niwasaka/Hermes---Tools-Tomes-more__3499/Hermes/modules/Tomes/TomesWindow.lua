@@ -8,6 +8,8 @@ local TIME_REMAINING_UPDATE_INTERVAL_MS = 1000
 local TOME_REROLL_CURRENCY_TYPE = CURT_TOME_CHALLENGE_REROLLS
 local TOME_POINTS_CURRENCY_TYPE = CURT_TOME_POINTS
 local TOME_MONEY_CURRENCY_TYPE = CURT_MONEY
+local TOME_ICON_WEEKLY = "/esoui/art/tamrieltomes/timedactivitycategory_weekly_up.dds"
+local TOME_ICON_SEASONAL = "/esoui/art/tamrieltomes/timedactivitycategory_seasonal_up.dds"
 
 local TAB_ICON_ALPHA_ACTIVE = 1
 local TAB_ICON_ALPHA_INACTIVE = 0.45
@@ -19,16 +21,22 @@ local COLOR_CLAIMABLE = { 0.20, 0.78, 0.60, 1 }
 local COLOR_PROGRESS = { 0.90, 0.62, 0.00, 1 }
 local COLOR_COMPLETED = { 0.62, 0.62, 0.62, 1 }
 local COLOR_OPEN = { 0.82, 0.82, 0.82, 1 }
+local COLOR_TIER = { 1, 0.82, 0.40, 1 }
 
 local COMPACT_WINDOW_WIDTH = 420
-local COMPACT_TOP_HEIGHT = 94
-local COMPACT_BOTTOM_MARGIN = 14
+local TOME_LIST_TOP = 94
+local TOME_BOTTOM_MARGIN = 44
+local COMPACT_BOTTOM_MARGIN = 56
 local TOME_ROW_HEIGHT = 38
 local TOME_COMPACT_ROW_HEIGHT = 55
-local TOME_LIST_BASE_HEIGHT = 152
-local TOME_COMPACT_LIST_BASE_HEIGHT = 124
+local TOME_SECTION_TOP = 40
+local TOME_SECTION_GAP = 8
+local TOME_LIST_BASE_HEIGHT = 182
+local TOME_COMPACT_LIST_BASE_HEIGHT = 166
 local TOME_MIN_VISIBLE_ROWS = 3
 local TOME_MAX_VISIBLE_ROWS = 6
+local TOME_SECTION_BASE_ROWS = 3
+local TRACK_REQUEST_INTERVAL_MS = 1000
 
 local function showTooltip(control, text)
     InitializeTooltip(InformationTooltip, control, TOP, 0, -4, BOTTOM)
@@ -310,7 +318,7 @@ local function getTomeProgressText(data)
     elseif data.isCycleClaimed then
         progressText = res.IconCheck
     else
-        progressText = string.format("%d/%d", data.progress, data.maxProgress)
+        progressText = string.format("%s/%s", ZO_CommaDelimitNumber(data.progress), ZO_CommaDelimitNumber(data.maxProgress))
     end
 
     if data.runText ~= "" then
@@ -353,7 +361,7 @@ local function setupTrackAndActionHandlers(control)
             showTooltip(button, Hermes.GetDefaultLocaleString("TOME_WINDOW_BUTTON_UNTRACK"))
         elseif data.isMarked then
             showTooltip(button, Hermes.GetDefaultLocaleString("TOME_WINDOW_BUTTON_UNMARK"))
-        elseif Hermes:IsTrackedTomeQueued() then
+        elseif GetTrackedTimedActivityInfo() then
             showTooltip(button, Hermes.GetDefaultLocaleString("TOME_WINDOW_BUTTON_MARK"))
         else
             showTooltip(button, Hermes.GetDefaultLocaleString("TOME_WINDOW_BUTTON_TRACK"))
@@ -366,16 +374,7 @@ local function setupTrackAndActionHandlers(control)
     end)
 
     control.trackButton:SetHandler("OnClicked", function()
-        local data = control.data
-        if not data.canTrack then
-            if data.isTracked then
-                ClearTrackedTimedActivity()
-                Hermes:RefreshTomeWindow()
-            end
-            return
-        end
-
-        Hermes:ToggleTomeQueue(data)
+        Hermes:ToggleTomeQueue(control.data)
         Hermes:RefreshTomeWindow()
     end)
 
@@ -389,7 +388,7 @@ local function setupTrackAndActionHandlers(control)
             control.actionButtonIcon:SetAlpha(1)
             if data.usesGoldReroll and data.goldRerollCost then
                 local goldIcon = GetCurrencyLootKeyboardIcon(TOME_MONEY_CURRENCY_TYPE)
-                showTooltip(button, string.format("%s (%d |t16:16:%s|t)", Hermes.GetDefaultLocaleString("TOME_WINDOW_BUTTON_REROLL"), data.goldRerollCost, goldIcon))
+                showTooltip(button, string.format("%s (%s |t16:16:%s|t)", Hermes.GetDefaultLocaleString("TOME_WINDOW_BUTTON_REROLL"), ZO_CommaDelimitNumber(data.goldRerollCost), goldIcon))
             else
                 showTooltip(button, string.format("%s (%d)", Hermes.GetDefaultLocaleString("TOME_WINDOW_BUTTON_REROLL"), data.rerollsLeft))
             end
@@ -536,6 +535,60 @@ local function setupTomeCompactEntry(control, data)
     refreshProgressBar(control, data)
 end
 
+local function initializeTomeSection(control, activityType)
+    local bg = control:GetNamedChild("BG")
+    local accent = control:GetNamedChild("Accent")
+    local isSeasonal = activityType == TIMED_ACTIVITY_TYPE_SEASONAL
+
+    bg:SetCenterColor(1, 1, 1, 0.06)
+    bg:SetEdgeColor(0, 0, 0, 0)
+    accent:SetCenterColor(unpack(COLOR_TIER))
+    accent:SetEdgeColor(0, 0, 0, 0)
+    control:GetNamedChild("Icon"):SetTexture(isSeasonal and TOME_ICON_SEASONAL or TOME_ICON_WEEKLY)
+
+    return {
+        control = control,
+        activityType = activityType,
+        nameKey = isSeasonal and "TOME_WINDOW_TAB_SEASONAL" or "TOME_WINDOW_TAB_WEEKLY",
+        nameLabel = control:GetNamedChild("Name"),
+        timeLabel = control:GetNamedChild("Time"),
+    }
+end
+
+local function refreshTomeSectionTime(section)
+    section.timeLabel:SetText(zo_strformat(Hermes.GetDefaultLocaleString("TOME_WINDOW_TIME_LEFT"),
+            Hermes:GetTomeTypeTimeRemainingText(section.activityType)))
+end
+
+local function refreshTomeSection(section, numEntries)
+    section.nameLabel:SetText(string.format("%s (%d)", Hermes.GetDefaultLocaleString(section.nameKey), numEntries))
+    refreshTomeSectionTime(section)
+end
+
+local function fillTomeList(list, rowType, entries)
+    local scrollData = ZO_ScrollList_GetDataList(list)
+
+    ZO_ClearNumericallyIndexedTable(scrollData)
+
+    for _, entry in ipairs(entries) do
+        table.insert(scrollData, ZO_ScrollList_CreateDataEntry(rowType, entry))
+    end
+
+    ZO_ScrollList_Commit(list)
+end
+
+local function splitTomeRows(numEntries, numSeasonalEntries)
+    local weeklyRows = zo_min(numEntries, TOME_SECTION_BASE_ROWS)
+    local seasonalRows = zo_min(numSeasonalEntries, TOME_SECTION_BASE_ROWS)
+    local freeRows = TOME_MAX_VISIBLE_ROWS - weeklyRows - seasonalRows
+    local extraWeeklyRows = zo_min(freeRows, numEntries - weeklyRows)
+
+    weeklyRows = weeklyRows + extraWeeklyRows
+    seasonalRows = seasonalRows + zo_min(freeRows - extraWeeklyRows, numSeasonalEntries - seasonalRows)
+
+    return zo_max(weeklyRows, 1), zo_max(seasonalRows, 1)
+end
+
 function Hermes:RestoreTomeWindowPosition()
     local control = self.tomeWindow.control
 
@@ -644,23 +697,50 @@ function Hermes:IsTomeWindowCompactMode()
     return self.db.tomeWindowCompactMode == true
 end
 
+function Hermes:ApplyTomeWindowPointsLayout()
+    local window = self.tomeWindow
+
+    window.pointsLabel:ClearAnchors()
+    window.pointsValue:ClearAnchors()
+
+    if self:IsTomeWindowCompactMode() then
+        local labelWidth = window.pointsLabel:GetTextDimensions()
+
+        window.pointsLabel:SetAnchor(TOPLEFT, window.tier, TOPLEFT, 4, 0)
+        window.pointsLabel:SetDimensions(labelWidth, 20)
+        window.pointsLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+
+        window.pointsValue:SetAnchor(LEFT, window.pointsLabel, RIGHT, 6, 0)
+        window.pointsValue:SetDimensions(120, 20)
+        window.pointsValue:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+        return
+    end
+
+    local offsetX = window.currentFilter == "all" and -57 or -228
+
+    window.pointsLabel:SetAnchor(TOPRIGHT, window.control, TOPRIGHT, offsetX, 40)
+    window.pointsLabel:SetDimensions(160, 20)
+    window.pointsLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+
+    window.pointsValue:SetAnchor(TOPRIGHT, window.control, TOPRIGHT, offsetX, 56)
+    window.pointsValue:SetDimensions(160, 20)
+    window.pointsValue:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+end
+
 function Hermes:ApplyTomeWindowLayout()
     local window = self.tomeWindow
     local control = window.control
     local listBg = control:GetNamedChild("ListBG")
+    local isCompact = self:IsTomeWindowCompactMode()
+    local isSplit = window.currentFilter == "all"
+    local mainList = isCompact and window.compactList or window.list
+    local listTop = isSplit and TOME_SECTION_TOP or (isCompact and 6 or 34)
 
-    if self:IsTomeWindowCompactMode() then
-        control:SetDimensions(COMPACT_WINDOW_WIDTH, 424)
+    window.tierLabel:ClearAnchors()
+    window.tierBarBG:ClearAnchors()
 
-        window.pointsLabel:ClearAnchors()
-        window.pointsLabel:SetAnchor(TOP, control, TOP, 0, 40)
-        window.pointsLabel:SetDimensions(160, 20)
-        window.pointsLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-
-        window.pointsValue:ClearAnchors()
-        window.pointsValue:SetAnchor(TOP, control, TOP, 0, 56)
-        window.pointsValue:SetDimensions(160, 20)
-        window.pointsValue:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    if isCompact then
+        control:SetWidth(COMPACT_WINDOW_WIDTH)
 
         window.timeRemainingLabel:ClearAnchors()
         window.timeRemainingLabel:SetAnchor(TOPRIGHT, control, TOPRIGHT, -14, 40)
@@ -672,32 +752,15 @@ function Hermes:ApplyTomeWindowLayout()
         window.timeRemainingValue:SetDimensions(200, 20)
         window.timeRemainingValue:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 
-        window.headerName:SetHidden(true)
-        window.headerProgress:SetHidden(true)
-        window.headerReward:SetHidden(true)
-
-        window.list:SetHidden(true)
-        window.compactList:SetHidden(false)
-
-        listBg:ClearAnchors()
-        listBg:SetAnchor(TOPLEFT, control, TOPLEFT, 14, COMPACT_TOP_HEIGHT)
-        listBg:SetAnchor(BOTTOMRIGHT, control, BOTTOMRIGHT, -14, -COMPACT_BOTTOM_MARGIN)
-
-        window.compactList:ClearAnchors()
-        window.compactList:SetAnchor(TOPLEFT, listBg, TOPLEFT, 6, 6)
-        window.compactList:SetAnchor(BOTTOMRIGHT, listBg, BOTTOMRIGHT, -6, -10)
+        window.tier:SetHeight(36)
+        window.tierLabel:SetAnchor(TOPRIGHT, window.tier, TOPRIGHT, -4, 0)
+        window.tierLabel:SetDimensions(190, 20)
+        window.tierLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+        window.tierValue:SetHidden(true)
+        window.tierBarBG:SetAnchor(BOTTOMLEFT, window.tier, BOTTOMLEFT, 4, 0)
+        window.tierBarWidth = 384
     else
-        control:SetDimensions(716, 352)
-
-        window.pointsLabel:ClearAnchors()
-        window.pointsLabel:SetAnchor(TOPRIGHT, control, TOPRIGHT, -228, 40)
-        window.pointsLabel:SetDimensions(160, 20)
-        window.pointsLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-
-        window.pointsValue:ClearAnchors()
-        window.pointsValue:SetAnchor(TOPRIGHT, control, TOPRIGHT, -228, 56)
-        window.pointsValue:SetDimensions(160, 20)
-        window.pointsValue:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        control:SetWidth(716)
 
         window.timeRemainingLabel:ClearAnchors()
         window.timeRemainingLabel:SetAnchor(TOPRIGHT, control, TOPRIGHT, -42, 40)
@@ -709,33 +772,105 @@ function Hermes:ApplyTomeWindowLayout()
         window.timeRemainingValue:SetDimensions(190, 20)
         window.timeRemainingValue:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 
-        window.headerName:SetHidden(false)
-        window.headerProgress:SetHidden(false)
-        window.headerReward:SetHidden(false)
-
-        window.compactList:SetHidden(true)
-        window.list:SetHidden(false)
-
-        listBg:ClearAnchors()
-        listBg:SetAnchor(TOPLEFT, control, TOPLEFT, 14, 94)
-        listBg:SetAnchor(BOTTOMRIGHT, control, BOTTOMRIGHT, -14, -14)
-
-        window.list:ClearAnchors()
-        window.list:SetAnchor(TOPLEFT, listBg, TOPLEFT, 6, 34)
-        window.list:SetAnchor(BOTTOMRIGHT, listBg, BOTTOMRIGHT, -6, -10)
+        window.tier:SetHeight(22)
+        window.tierLabel:SetAnchor(LEFT, window.tier, LEFT, 4, 0)
+        window.tierLabel:SetDimensions(130, 22)
+        window.tierLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+        window.tierValue:SetHidden(false)
+        window.tierBarBG:SetAnchor(LEFT, window.tierLabel, RIGHT, 12, 0)
+        window.tierBarWidth = 356
     end
+
+    window.headerName:SetHidden(isCompact or isSplit)
+    window.headerProgress:SetHidden(isCompact or isSplit)
+    window.headerReward:SetHidden(isCompact or isSplit)
+
+    window.list:SetHidden(isCompact)
+    window.seasonalList:SetHidden(isCompact)
+    window.compactList:SetHidden(not isCompact)
+    window.seasonalCompactList:SetHidden(not isCompact)
+
+    window.weeklySection.control:SetHidden(not isSplit)
+    window.seasonalListBg:SetHidden(not isSplit)
+
+    mainList:ClearAnchors()
+    mainList:SetAnchor(TOPLEFT, listBg, TOPLEFT, 6, listTop)
+    mainList:SetAnchor(BOTTOMRIGHT, listBg, BOTTOMRIGHT, -6, -10)
+
+    window.emptyLabel:ClearAnchors()
+    window.emptyLabel:SetAnchor(TOPLEFT, listBg, TOPLEFT, 10, listTop + 4)
+
+    window.tierBarBG:SetWidth(window.tierBarWidth)
+    self:ApplyTomeWindowPointsLayout()
+    self:UpdateTomeTierProgress()
 
     local alpha = self.db.tomeWindowBackgroundAlpha / 100
     control:GetNamedChild("BG"):SetAlpha(alpha)
     listBg:SetCenterColor(0, 0, 0, alpha * 0.8)
     listBg:SetEdgeColor(1, 1, 1, alpha)
+    window.seasonalListBg:SetCenterColor(0, 0, 0, alpha * 0.8)
+    window.seasonalListBg:SetEdgeColor(1, 1, 1, alpha)
 end
 
 function Hermes:UpdateTomeWindowPoints()
     local points = self:GetTomePointsTotal()
     local icon = GetCurrencyLootKeyboardIcon(TOME_POINTS_CURRENCY_TYPE)
 
-    self.tomeWindow.pointsValue:SetText(string.format("%d |t18:18:%s|t", points, icon))
+    self.tomeWindow.pointsLabel:SetText(self.GetDefaultLocaleString("TOME_WINDOW_LABEL_TOTAL"))
+    self.tomeWindow.pointsValue:SetText(string.format("%s |t18:18:%s|t", ZO_CommaDelimitNumber(points), icon))
+end
+
+function Hermes:GetTomeTierProgress()
+    local tomeId = GetActiveReferenceTrackIdsForRewardTrackType(REWARD_TRACK_TYPE_TAMRIEL_TOMES)
+    local tomeIndex = tomeId and GetReferenceTrackIndex(REWARD_TRACK_TYPE_TAMRIEL_TOMES, tomeId)
+
+    if not tomeIndex then
+        return nil
+    end
+
+    local rewardTrackId = GetRewardTrackIdFromReferenceTrackId(REWARD_TRACK_TYPE_TAMRIEL_TOMES, tomeId)
+    local _, currentTier, progress = GetInfoForRewardTrack(REWARD_TRACK_TYPE_TAMRIEL_TOMES, tomeIndex)
+    local numTiers = GetTotalNumTiersForRewardTrack(rewardTrackId)
+
+    if currentTier >= numTiers then
+        return currentTier
+    end
+
+    return currentTier, progress, GetCostToProgressToNextTier(rewardTrackId, currentTier)
+end
+
+function Hermes:UpdateTomeTierProgress()
+    local window = self.tomeWindow
+    local currentTier, progress, cost = self:GetTomeTierProgress()
+
+    window.tier:SetHidden(currentTier == nil)
+    window.tierTooltip = nil
+
+    if not currentTier then
+        return
+    end
+
+    if not cost then
+        window.tierLabel:SetText(self.GetDefaultLocaleString("TOME_WINDOW_TIER_MAX"))
+        window.tierValue:SetText("")
+        window.tierBarFill:SetWidth(window.tierBarWidth)
+        return
+    end
+
+    local icon = GetCurrencyLootKeyboardIcon(TOME_POINTS_CURRENCY_TYPE)
+    local nextTier = currentTier + 1
+
+    if self:IsTomeWindowCompactMode() then
+        window.tierLabel:SetText(zo_strformat(self.GetDefaultLocaleString("TOME_WINDOW_TIER_REMAINING"),
+                ZO_CommaDelimitNumber(zo_max(cost - progress, 0)), nextTier))
+    else
+        window.tierLabel:SetText(zo_strformat(self.GetDefaultLocaleString("TOME_WINDOW_TIER_NEXT"), nextTier))
+    end
+
+    window.tierValue:SetText(string.format("%s / %s |t18:18:%s|t", ZO_CommaDelimitNumber(progress), ZO_CommaDelimitNumber(cost), icon))
+    window.tierBarFill:SetWidth(window.tierBarWidth * (cost > 0 and zo_min(progress / cost, 1) or 1))
+    window.tierTooltip = zo_strformat(self.GetDefaultLocaleString("TOME_WINDOW_TIER_TOOLTIP"),
+            ZO_CommaDelimitNumber(zo_max(cost - progress, 0)), nextTier)
 end
 
 function Hermes:GetTomeTypeTimeRemainingSeconds(activityType)
@@ -777,6 +912,16 @@ function Hermes:UpdateTomeWindowTimeRemaining()
         self.tomeWindow.pointsValue:SetText("")
         self.tomeWindow.timeRemainingLabel:SetText("")
         self.tomeWindow.timeRemainingValue:SetText("")
+        return
+    end
+
+    if self.tomeWindow.currentFilter == "all" then
+        self.tomeWindow.timeRemainingLabel:SetText("")
+        self.tomeWindow.timeRemainingValue:SetText("")
+
+        refreshTomeSectionTime(self.tomeWindow.weeklySection)
+        refreshTomeSectionTime(self.tomeWindow.seasonalSection)
+
         return
     end
 
@@ -935,6 +1080,7 @@ function Hermes:InitializeTomeWindow()
     local viewModeButton = control:GetNamedChild("ViewMode")
     local viewModeButtonIcon = viewModeButton and viewModeButton:GetNamedChild("Icon")
     local compactList = listBg:GetNamedChild("CompactList")
+    local seasonalListBg = control:GetNamedChild("SeasonalListBG")
 
     self.tomeWindow = {
         control = control,
@@ -943,23 +1089,33 @@ function Hermes:InitializeTomeWindow()
         pointsValue = control:GetNamedChild("PointsValue"),
         timeRemainingLabel = control:GetNamedChild("TimeRemainingLabel"),
         timeRemainingValue = control:GetNamedChild("TimeRemainingValue"),
-        weeklyTab = control:GetNamedChild("WeeklyTab"),
-        seasonalTab = control:GetNamedChild("SeasonalTab"),
-        weeklyTabIcon = control:GetNamedChild("WeeklyTab"):GetNamedChild("Icon"),
-        seasonalTabIcon = control:GetNamedChild("SeasonalTab"):GetNamedChild("Icon"),
-        weeklyTabIndicator = createTabIndicator(control:GetNamedChild("WeeklyTab")),
-        seasonalTabIndicator = createTabIndicator(control:GetNamedChild("SeasonalTab")),
+        tabs = {
+            weekly = { control = control:GetNamedChild("WeeklyTab"), tooltipKey = "TOME_WINDOW_TAB_WEEKLY" },
+            seasonal = { control = control:GetNamedChild("SeasonalTab"), tooltipKey = "TOME_WINDOW_TAB_SEASONAL" },
+            all = { control = control:GetNamedChild("AllTab"), tooltipKey = "TOME_WINDOW_TAB_ALL" },
+        },
+        tier = control:GetNamedChild("Tier"),
+        tierLabel = control:GetNamedChild("Tier"):GetNamedChild("Label"),
+        tierValue = control:GetNamedChild("Tier"):GetNamedChild("Value"),
+        tierBarBG = control:GetNamedChild("Tier"):GetNamedChild("BarBG"),
+        tierBarFill = control:GetNamedChild("Tier"):GetNamedChild("BarFill"),
+        tierBarWidth = 356,
         claimAllButton = claimAllButton,
         viewModeButton = viewModeButton,
         viewModeButtonIcon = viewModeButtonIcon,
         list = listBg:GetNamedChild("List"),
         compactList = compactList,
+        seasonalListBg = seasonalListBg,
+        seasonalList = seasonalListBg:GetNamedChild("List"),
+        seasonalCompactList = seasonalListBg:GetNamedChild("CompactList"),
+        weeklySection = initializeTomeSection(listBg:GetNamedChild("Section"), TIMED_ACTIVITY_TYPE_WEEKLY),
+        seasonalSection = initializeTomeSection(seasonalListBg:GetNamedChild("Section"), TIMED_ACTIVITY_TYPE_SEASONAL),
         emptyLabel = listBg:GetNamedChild("Empty"),
         headerName = listBg:GetNamedChild("HeaderName"),
         headerProgress = listBg:GetNamedChild("HeaderProgress"),
         headerReward = listBg:GetNamedChild("HeaderReward"),
-        currentFilter = self.db.tomeWindowLastFilter == "seasonal" and "seasonal" or "weekly",
-        entries = {},
+        currentFilter = (self.db.tomeWindowLastFilter == "seasonal" or self.db.tomeWindowLastFilter == "all")
+                and self.db.tomeWindowLastFilter or "weekly",
     }
 
     local window = self.tomeWindow
@@ -1042,38 +1198,41 @@ function Hermes:InitializeTomeWindow()
         end)
     end
 
-    window.weeklyTab:SetHandler("OnClicked", function()
-        self:SetTomeWindowFilter("weekly")
-    end)
+    for filterKey, tab in pairs(window.tabs) do
+        tab.icon = tab.control:GetNamedChild("Icon")
+        tab.indicator = createTabIndicator(tab.control)
 
-    window.weeklyTab:SetHandler("OnMouseEnter", function(button)
-        showTooltip(button, self.GetDefaultLocaleString("TOME_WINDOW_TAB_WEEKLY"))
+        tab.control:SetHandler("OnClicked", function()
+            self:SetTomeWindowFilter(filterKey)
+        end)
 
-        if window.currentFilter ~= "weekly" then
-            window.weeklyTabIcon:SetAlpha(TAB_ICON_ALPHA_HOVER)
+        tab.control:SetHandler("OnMouseEnter", function(button)
+            showTooltip(button, self.GetDefaultLocaleString(tab.tooltipKey))
+
+            if window.currentFilter ~= filterKey then
+                tab.icon:SetAlpha(TAB_ICON_ALPHA_HOVER)
+            end
+        end)
+
+        tab.control:SetHandler("OnMouseExit", function()
+            hideTooltip()
+            self:UpdateTomeTabState()
+        end)
+    end
+
+    window.tierBarBG:SetCenterColor(0.32, 0.32, 0.32, 0.55)
+    window.tierBarBG:SetEdgeColor(0, 0, 0, 0)
+    window.tierBarFill:SetCenterColor(unpack(COLOR_TIER))
+    window.tierBarFill:SetEdgeColor(0, 0, 0, 0)
+
+    window.tier:SetHandler("OnMouseEnter", function()
+        if window.tierTooltip then
+            showTooltip(window.tier, window.tierTooltip)
         end
     end)
 
-    window.weeklyTab:SetHandler("OnMouseExit", function()
+    window.tier:SetHandler("OnMouseExit", function()
         hideTooltip()
-        self:UpdateTomeTabState()
-    end)
-
-    window.seasonalTab:SetHandler("OnClicked", function()
-        self:SetTomeWindowFilter("seasonal")
-    end)
-
-    window.seasonalTab:SetHandler("OnMouseEnter", function(button)
-        showTooltip(button, self.GetDefaultLocaleString("TOME_WINDOW_TAB_SEASONAL"))
-
-        if window.currentFilter ~= "seasonal" then
-            window.seasonalTabIcon:SetAlpha(TAB_ICON_ALPHA_HOVER)
-        end
-    end)
-
-    window.seasonalTab:SetHandler("OnMouseExit", function()
-        hideTooltip()
-        self:UpdateTomeTabState()
     end)
 
     control:SetHandler("OnMoveStop", function()
@@ -1082,10 +1241,9 @@ function Hermes:InitializeTomeWindow()
 
     control:SetHandler("OnEffectivelyShown", function()
         self:RestoreTomeWindowPosition()
+        self:UpdateTomeWindowPoints()
         self:ApplyTomeWindowLayout()
         self:RefreshTomeViewModeButtonVisual("up")
-        window.pointsLabel:SetText(self.GetDefaultLocaleString("TOME_WINDOW_LABEL_TOTAL"))
-        self:UpdateTomeWindowPoints()
         self:UpdateTomeWindowTimeRemaining()
         self:RefreshTomeClaimAllButton()
         self:StartTomeWindowTimeRemainingUpdate()
@@ -1103,6 +1261,8 @@ function Hermes:InitializeTomeWindow()
 
     ZO_ScrollList_AddDataType(window.list, ROW_TYPE_TOME, "HermesTomeRow", TOME_ROW_HEIGHT, setupTomeRow)
     ZO_ScrollList_AddDataType(window.compactList, ROW_TYPE_TOME_COMPACT, "HermesTomeCompactEntry", TOME_COMPACT_ROW_HEIGHT, setupTomeCompactEntry)
+    ZO_ScrollList_AddDataType(window.seasonalList, ROW_TYPE_TOME, "HermesTomeRow", TOME_ROW_HEIGHT, setupTomeRow)
+    ZO_ScrollList_AddDataType(window.seasonalCompactList, ROW_TYPE_TOME_COMPACT, "HermesTomeCompactEntry", TOME_COMPACT_ROW_HEIGHT, setupTomeCompactEntry)
 
     EVENT_MANAGER:RegisterForEvent(self.name .. "TomeWindow", EVENT_TIMED_ACTIVITIES_UPDATED, requestRefresh)
     EVENT_MANAGER:RegisterForEvent(self.name .. "TomeWindow", EVENT_TIMED_ACTIVITY_PROGRESS_UPDATED, requestRefresh)
@@ -1114,14 +1274,32 @@ function Hermes:InitializeTomeWindow()
             return
         end
 
-        if currencyType == TOME_REROLL_CURRENCY_TYPE or currencyType == TOME_MONEY_CURRENCY_TYPE then
+        if currencyType == TOME_REROLL_CURRENCY_TYPE then
             requestRefresh()
+            return
+        end
+
+        if currencyType == TOME_MONEY_CURRENCY_TYPE then
+            local canAffordGoldReroll = self:GetTomeRerollsLeft() <= 0 and self:CanAffordTomeGoldReroll(self:GetTomeGoldRerollCost())
+
+            if canAffordGoldReroll ~= window.canAffordGoldReroll then
+                window.canAffordGoldReroll = canAffordGoldReroll
+                requestRefresh()
+            end
+
             return
         end
 
         if currencyType == TOME_POINTS_CURRENCY_TYPE and window.isEnabled and not window.control:IsHidden() then
             self:UpdateTomeWindowPoints()
+            self:UpdateTomeTierProgress()
             self:RefreshTomeClaimAllButton()
+        end
+    end)
+
+    EVENT_MANAGER:RegisterForEvent(self.name .. "TomeWindowTier", EVENT_REWARD_TRACK_PROGRESS_GAINED, function(_, rewardTrackType)
+        if rewardTrackType == REWARD_TRACK_TYPE_TAMRIEL_TOMES and window.isEnabled and not window.control:IsHidden() then
+            self:UpdateTomeTierProgress()
         end
     end)
 
@@ -1129,8 +1307,10 @@ function Hermes:InitializeTomeWindow()
 
     EVENT_MANAGER:RegisterForEvent(self.name .. "TomeWindowRerollResult", EVENT_TIMED_ACTIVITY_REROLL_RESULT, requestRefresh)
 
-    EVENT_MANAGER:RegisterForEvent(self.name .. "TomeQueue", EVENT_TIMED_ACTIVITY_PROGRESS_UPDATED, function()
-        self:UpdateTomeQueue()
+    EVENT_MANAGER:RegisterForEvent(self.name .. "TomeQueue", EVENT_TIMED_ACTIVITY_PROGRESS_UPDATED, function(_, _, _, _, complete)
+        if complete then
+            self:UpdateTomeQueue()
+        end
     end)
     EVENT_MANAGER:RegisterForEvent(self.name .. "TomeQueue", EVENT_TIMED_ACTIVITIES_UPDATED, function()
         self:UpdateTomeQueue()
@@ -1149,6 +1329,7 @@ end
 
 function Hermes:RefreshTomeWindowIfVisible()
     if self.tomeWindow.isEnabled and not self.tomeWindow.control:IsHidden() then
+        self:UpdateTomeWindowPoints()
         self:UpdateTomeWindowTimeRemaining()
         self:RefreshTomeWindow()
     end
@@ -1162,32 +1343,26 @@ function Hermes:SetTomeWindowFilter(filterKey)
     self.tomeWindow.currentFilter = filterKey
     self.db.tomeWindowLastFilter = filterKey
     self:UpdateTomeTabState()
+    self:ApplyTomeWindowLayout()
     self:UpdateTomeWindowTimeRemaining()
     self:RefreshTomeWindow()
 end
 
 function Hermes:UpdateTomeTabState()
-    local isWeekly = self.tomeWindow.currentFilter == "weekly"
-    self.tomeWindow.weeklyTabIndicator:SetHidden(not isWeekly)
-    self.tomeWindow.seasonalTabIndicator:SetHidden(isWeekly)
-
-    if isWeekly then
-        self.tomeWindow.weeklyTabIcon:SetAlpha(TAB_ICON_ALPHA_ACTIVE)
-        self.tomeWindow.seasonalTabIcon:SetAlpha(TAB_ICON_ALPHA_INACTIVE)
-    else
-        self.tomeWindow.weeklyTabIcon:SetAlpha(TAB_ICON_ALPHA_INACTIVE)
-        self.tomeWindow.seasonalTabIcon:SetAlpha(TAB_ICON_ALPHA_ACTIVE)
+    for filterKey, tab in pairs(self.tomeWindow.tabs) do
+        local isActive = self.tomeWindow.currentFilter == filterKey
+        tab.indicator:SetHidden(not isActive)
+        tab.icon:SetAlpha(isActive and TAB_ICON_ALPHA_ACTIVE or TAB_ICON_ALPHA_INACTIVE)
     end
 end
 
-function Hermes:BuildTomeWindowEntries()
+function Hermes:BuildTomeWindowEntries(activityType)
     local entries = {}
 
     if not IsTimedActivitySystemAvailable() then
         return entries
     end
 
-    local activityType = getFilterActivityType(self.tomeWindow.currentFilter)
     local trackedIndex = select(1, GetTrackedTimedActivityInfo())
     local numTimedActivities = GetNumTimedActivities()
     local rerollsLeft = self:GetTomeRerollsLeft()
@@ -1223,15 +1398,7 @@ function Hermes:BuildTomeWindowEntries()
                     and not canClaim
                     and not isFullyCompleted
             local canTrack = not isCompleted and not canClaim and not isFullyCompleted
-            if activityType ~= TIMED_ACTIVITY_TYPE_SEASONAL then
-                canTrack = canTrack and not isCycleClaimed
-            end
             local activityTimeRemainingText = nil
-
-            if trackedIndex == index and not canTrack then
-                ClearTrackedTimedActivity()
-                trackedIndex = nil
-            end
 
             if activityType == TIMED_ACTIVITY_TYPE_SEASONAL and seasonEndTimeS then
                 local activityEndTimeS = GetTimedActivityEndTimeS(index)
@@ -1285,30 +1452,16 @@ function Hermes:BuildTomeWindowEntries()
     return entries
 end
 
-function Hermes:RefreshTomeWindowNormal(entries)
+function Hermes:RefreshTomeLists(entries, seasonalEntries)
     local window = self.tomeWindow
-    local scrollData = ZO_ScrollList_GetDataList(window.list)
 
-    ZO_ClearNumericallyIndexedTable(scrollData)
-
-    for _, entry in ipairs(entries) do
-        table.insert(scrollData, ZO_ScrollList_CreateDataEntry(ROW_TYPE_TOME, entry))
+    if self:IsTomeWindowCompactMode() then
+        fillTomeList(window.compactList, ROW_TYPE_TOME_COMPACT, entries)
+        fillTomeList(window.seasonalCompactList, ROW_TYPE_TOME_COMPACT, seasonalEntries)
+    else
+        fillTomeList(window.list, ROW_TYPE_TOME, entries)
+        fillTomeList(window.seasonalList, ROW_TYPE_TOME, seasonalEntries)
     end
-
-    ZO_ScrollList_Commit(window.list)
-end
-
-function Hermes:RefreshTomeWindowCompact(entries)
-    local window = self.tomeWindow
-    local scrollData = ZO_ScrollList_GetDataList(window.compactList)
-
-    ZO_ClearNumericallyIndexedTable(scrollData)
-
-    for _, entry in ipairs(entries) do
-        table.insert(scrollData, ZO_ScrollList_CreateDataEntry(ROW_TYPE_TOME_COMPACT, entry))
-    end
-
-    ZO_ScrollList_Commit(window.compactList)
 end
 
 local function isTomeTrackable(index)
@@ -1332,14 +1485,26 @@ local function findTomeIndex(activityId)
     end
 end
 
-function Hermes:IsTrackedTomeQueued()
-    local trackedIndex = GetTrackedTimedActivityInfo()
-    if not trackedIndex then
-        return false
+local function findBestTomeIndex()
+    local bestIndex = nil
+    local bestProgress = 0
+
+    for index = 1, GetNumTimedActivities() do
+        local activityType = GetTimedActivityType(index)
+        local progress = GetTimedActivityProgress(index)
+
+        if (activityType == TIMED_ACTIVITY_TYPE_WEEKLY or activityType == TIMED_ACTIVITY_TYPE_SEASONAL)
+                and progress > bestProgress
+                and isTomeTrackable(index) then
+            bestIndex = index
+            bestProgress = progress
+        end
     end
 
-    return ZO_IsElementInNumericallyIndexedTable(self.db.tomeQueue, GetTimedActivityId(trackedIndex))
+    return bestIndex
 end
+
+local lastTrackRequestTime = -TRACK_REQUEST_INTERVAL_MS
 
 function Hermes:ToggleTomeQueue(data)
     local queue = self.db.tomeQueue
@@ -1348,12 +1513,20 @@ function Hermes:ToggleTomeQueue(data)
         ZO_RemoveFirstElementFromNumericallyIndexedTable(queue, data.activityId)
 
         if data.isTracked then
+            lastTrackRequestTime = GetGameTimeMilliseconds()
             ClearTrackedTimedActivity()
         end
-    elseif self:IsTrackedTomeQueued() then
+    elseif GetTrackedTimedActivityInfo() then
+        local trackedId = GetTimedActivityId(GetTrackedTimedActivityInfo())
+
+        if not ZO_IsElementInNumericallyIndexedTable(queue, trackedId) then
+            table.insert(queue, 1, trackedId)
+        end
+
         table.insert(queue, data.activityId)
     else
         table.insert(queue, 1, data.activityId)
+        lastTrackRequestTime = GetGameTimeMilliseconds()
         TrackTimedActivity(data.index)
     end
 
@@ -1377,78 +1550,97 @@ function Hermes:UpdateTomeQueue()
 
     local trackedIndex = GetTrackedTimedActivityInfo()
 
-    if trackedIndex and not isTomeTrackable(trackedIndex) then
-        ClearTrackedTimedActivity()
-        trackedIndex = nil
+    if trackedIndex and isTomeTrackable(trackedIndex) then
+        return
     end
 
-    if not trackedIndex and queue[1] then
-        TrackTimedActivity(findTomeIndex(queue[1]))
+    local nextIndex = queue[1] and findTomeIndex(queue[1])
+
+    if not nextIndex and self.db.autoTrackTomes then
+        nextIndex = findBestTomeIndex()
+    end
+
+    if not nextIndex and not trackedIndex then
+        return
+    end
+
+    local now = GetGameTimeMilliseconds()
+
+    if now - lastTrackRequestTime < TRACK_REQUEST_INTERVAL_MS then
+        Hermes.Debounce("HermesTomeQueueRetry", TRACK_REQUEST_INTERVAL_MS - (now - lastTrackRequestTime), function()
+            self:UpdateTomeQueue()
+        end)
+        return
+    end
+
+    lastTrackRequestTime = now
+
+    if nextIndex then
+        TrackTimedActivity(nextIndex)
+    else
+        ClearTrackedTimedActivity()
     end
 end
 
-function Hermes:UpdateTomeWindowHeight(numEntries)
-    local rows = zo_clamp(numEntries, TOME_MIN_VISIBLE_ROWS, TOME_MAX_VISIBLE_ROWS)
+function Hermes:UpdateTomeWindowHeight(numEntries, numSeasonalEntries)
+    local window = self.tomeWindow
+    local control = window.control
+    local listBg = control:GetNamedChild("ListBG")
+    local isCompact = self:IsTomeWindowCompactMode()
+    local rowHeight = isCompact and TOME_COMPACT_ROW_HEIGHT or TOME_ROW_HEIGHT
+    local bottomMargin = isCompact and COMPACT_BOTTOM_MARGIN or TOME_BOTTOM_MARGIN
 
-    if self:IsTomeWindowCompactMode() then
-        self.tomeWindow.control:SetHeight(TOME_COMPACT_LIST_BASE_HEIGHT + rows * TOME_COMPACT_ROW_HEIGHT)
-    else
-        self.tomeWindow.control:SetHeight(TOME_LIST_BASE_HEIGHT + rows * TOME_ROW_HEIGHT)
+    listBg:ClearAnchors()
+    listBg:SetAnchor(TOPLEFT, control, TOPLEFT, 14, TOME_LIST_TOP)
+
+    if window.currentFilter ~= "all" then
+        local rows = zo_clamp(numEntries, TOME_MIN_VISIBLE_ROWS, TOME_MAX_VISIBLE_ROWS)
+
+        listBg:SetAnchor(BOTTOMRIGHT, control, BOTTOMRIGHT, -14, -bottomMargin)
+        control:SetHeight((isCompact and TOME_COMPACT_LIST_BASE_HEIGHT or TOME_LIST_BASE_HEIGHT) + rows * rowHeight)
+        return
     end
+
+    local weeklyRows, seasonalRows = splitTomeRows(numEntries, numSeasonalEntries)
+    local weeklyHeight = TOME_SECTION_TOP + weeklyRows * rowHeight + 10
+    local seasonalHeight = TOME_SECTION_TOP + seasonalRows * rowHeight + 10
+
+    listBg:SetAnchor(TOPRIGHT, control, TOPRIGHT, -14, TOME_LIST_TOP)
+    listBg:SetHeight(weeklyHeight)
+    window.seasonalListBg:SetHeight(seasonalHeight)
+    control:SetHeight(TOME_LIST_TOP + weeklyHeight + TOME_SECTION_GAP + seasonalHeight + bottomMargin)
 end
 
 function Hermes:RefreshTomeWindow()
     local window = self.tomeWindow
 
     if not IsTimedActivitySystemAvailable() then
-        window.entries = {}
         window.emptyLabel:SetText(self.GetDefaultLocaleString("TOME_WINDOW_EMPTY"))
-        self:UpdateTomeWindowHeight(0)
-
-        if self:IsTomeWindowCompactMode() then
-            local scrollData = ZO_ScrollList_GetDataList(window.compactList)
-            ZO_ClearNumericallyIndexedTable(scrollData)
-            ZO_ScrollList_Commit(window.compactList)
-        else
-            local scrollData = ZO_ScrollList_GetDataList(window.list)
-            ZO_ClearNumericallyIndexedTable(scrollData)
-            ZO_ScrollList_Commit(window.list)
-        end
-
+        self:UpdateTomeWindowHeight(0, 0)
+        self:RefreshTomeLists({}, {})
         self:RefreshTomeClaimAllButton()
         return
     end
 
     self:UpdateTomeQueue()
 
-    local entries = self:BuildTomeWindowEntries()
-    window.entries = entries
-    self:UpdateTomeWindowHeight(#entries)
+    local entries
+    local seasonalEntries = {}
 
-    if self.db.autoTrackTomes then
-        local trackedIndex = select(1, GetTrackedTimedActivityInfo())
-        if not trackedIndex or trackedIndex == 0 then
-            local bestEntry = nil
-            for _, entry in ipairs(entries) do
-                if not entry.isFullyCompleted and not entry.canClaim and entry.progress > 0 then
-                    if not bestEntry or entry.progress > bestEntry.progress then
-                        bestEntry = entry
-                    end
-                end
-            end
-            if bestEntry then
-                TrackTimedActivity(bestEntry.index)
-            end
-        end
-    end
-
-    if self:IsTomeWindowCompactMode() then
-        self:RefreshTomeWindowCompact(entries)
+    if window.currentFilter == "all" then
+        entries = self:BuildTomeWindowEntries(TIMED_ACTIVITY_TYPE_WEEKLY)
+        seasonalEntries = self:BuildTomeWindowEntries(TIMED_ACTIVITY_TYPE_SEASONAL)
+        refreshTomeSection(window.weeklySection, #entries)
+        refreshTomeSection(window.seasonalSection, #seasonalEntries)
     else
-        self:RefreshTomeWindowNormal(entries)
+        entries = self:BuildTomeWindowEntries(getFilterActivityType(window.currentFilter))
     end
 
-    if #entries == 0 then
+    self:UpdateTomeWindowHeight(#entries, #seasonalEntries)
+
+    self:RefreshTomeLists(entries, seasonalEntries)
+
+    if #entries + #seasonalEntries == 0 then
         window.emptyLabel:SetText(self.GetDefaultLocaleString("TOME_WINDOW_EMPTY"))
     else
         window.emptyLabel:SetText("")

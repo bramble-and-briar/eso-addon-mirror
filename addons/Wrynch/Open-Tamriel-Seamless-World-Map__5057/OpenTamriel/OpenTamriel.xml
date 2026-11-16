@@ -1,0 +1,6 @@
+<GuiXml>
+    <Font name="OpenTamrielZoneNameFont" font="$(STONE_TABLET_FONT)|40|soft-shadow-thick"/>
+    <Controls>
+        <Texture name="OpenTamrielMapTile" inherits="ZO_MapTile" autoAdjustTextureCoords="false" virtual="true"/>
+    </Controls>
+</GuiXml>

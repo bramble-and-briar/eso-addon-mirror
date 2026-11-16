@@ -1,0 +1,13 @@
+## Title: CaracMarchandise
+## Description: [AI-assisted code] Sales helper for guild traders (quantity, unit price, automatic total, remembered prices, optional Tamriel Trade Centre average). 
+## Author: Roccesar & Claude AI, Anthropic
+## Version: 1.1
+## APIVersion: 101051
+## SavedVariables: CaracMarchandiseSV
+## OptionalDependsOn: TamrielTradeCentre
+
+lang/default.lua
+lang/$(language).lua
+CaracMarchandise.lua
+
+

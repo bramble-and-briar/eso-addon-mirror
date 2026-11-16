@@ -1,8 +1,9 @@
 ## Title: Cyrodiil Alerts
 ## Author: CodeWarrior82
 ## Description: A collection of useful notifications that help in Cyrodiil.
-## APIVersion: 101050
+## APIVersion: 101051
 ## DependsOn: LibChatMessage LibAddonMenu-2.0>=42 LibMapPins-1.0>=47
+## OptionalDependsOn: LibNotify
 ## SavedVariables: cyrodiilAlertsSavedVariables
 
 CyroAlerts.lua

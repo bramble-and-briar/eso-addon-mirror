@@ -1,4 +1,4 @@
-UnknownPOI = {}
+local UnknownPOI = {}
 
 UnknownPOI.name = 'UnknownPOI'
 

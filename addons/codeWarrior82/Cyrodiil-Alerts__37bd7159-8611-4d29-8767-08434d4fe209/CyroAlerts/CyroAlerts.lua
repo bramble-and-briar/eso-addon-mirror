@@ -7,7 +7,7 @@
 appName = "CyroAlerts"
 
 appStart = {}
-
+appStart.appVersion = 1  -- bump this on each update
 appStart.isVamp = false
 appStart.vampStage = 0
 appStart.loaded = false
@@ -16,6 +16,8 @@ appStart.corrosiveID = 17879
 appStart.onslaughtID = 83229
 appStart.wellPinsIcon = "CyroAlerts/pins.dds"
 appStart.wellPinsName = "CyroWellPins"
+appStart.hammerPinsIcon = "CyroAlerts/hammerPins.dds"
+appStart.hammerPinsName = "CyroHammerPins"
 appStart.LMP = LibMapPins
 appStart.isMenuOpen = false
 
@@ -33,8 +35,19 @@ appStart.defaults = {
     xAxisTextCorro = 640,
     yAxisTextOnslaught = 270,
     xAxisTextOnslaught = 640,
-    showWellMapPins = false
+    showWellMapPins = false,
+    showHammerMapPins = false,
+    lastSeenVersion = 0
 }
+
+--check if LibNotify is available
+local function isLibAvailable()
+    if LibNotify and type(LibNotify.notifyForAddonPlease) == "function" then
+        return true
+    else 
+		return false
+    end
+end
 
 --start function once addon has been loaded
 function appStart.OnAddOnLoaded(event, name)
@@ -50,8 +63,14 @@ function appStart.OnAddOnLoaded(event, name)
     --load saved variables
     appStart.savedVariables = ZO_SavedVars:NewCharacterIdSettings("cyrodiilAlertsSavedVariables", 1, "Settings", appStart.defaults, GetUnitName("player"))
 
-    --notify that addon has been loaded
-    zo_callLater(function() functions.printMessage("add-on loaded") end, 500)
+    --notify about new library
+	if not isLibAvailable() then
+		zo_callLater(function() functions.printMessage("add-on Disabled") functions.printMessage("Please install LibNotify from the browse add-ons menu") end, 500)
+		return
+    elseif isLibAvailable() then
+		--notify that add-on has been loaded
+		zo_callLater(function() functions.printMessage("add-on loaded") end, 500)
+	end
 
     --load text positions from saved vars
     cyroText:SetMovable(true)
@@ -138,11 +157,20 @@ function appStart.OnAddOnLoaded(event, name)
         appStart.LMP:SetEnabled(appStart.wellPinsName, false)
     end
 
+    --setup map pins for volendrung spawn locations
+    functions.registerPinsHammer()
+
+    --show or hide volendrung map pins
+    if appStart.savedVariables.showHammerMapPins then
+        appStart.LMP:Enable(appStart.hammerPinsName)
+        appStart.LMP:SetEnabled(appStart.hammerPinsName, true)
+    else
+        appStart.LMP:Disable(appStart.hammerPinsName)
+        appStart.LMP:SetEnabled(appStart.hammerPinsName, false)
+    end
+
     --register for notifications of UI opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", functions.onSceneStateChange)
-
-    --new things here
-
 
     --setup options menu
     functions.createOptions()

@@ -1,0 +1,20 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+
+## Title: Group Builds
+## Description: Live sharing of builds between group members, with the option to save them to view later.
+## Author: @f1rex
+## Version: 2
+## AddOnVersion: 2
+## APIVersion: 101051
+## SavedVariables: GroupBuildsSavedVariables
+## DependsOn: SuperStar>=80001 LibGroupBroadcast>=95 LibAddonMenu-2.0>=43
+
+Window.xml
+Browser.xml
+GroupBuilds.lua
+Settings.lua
+Browser.lua
+Bindings.xml

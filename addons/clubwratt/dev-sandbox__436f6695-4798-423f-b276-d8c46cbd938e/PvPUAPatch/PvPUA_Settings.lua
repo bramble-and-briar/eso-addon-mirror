@@ -149,13 +149,19 @@ function PvPUA:SettingsMenu()
         -- Patch: queue again on demand ("Requeue Now" in PvPUA.lua); the probe for a queue the game broke.
         { type = "button", name = "Requeue Now",
           buttonText = "Requeue",
-          tooltip = "Asks the game to queue you again for the campaign whose queue broke: the one marked STUCK, otherwise the queue you are in or were last in, otherwise your home campaign. A queue the game says is alive is left alone. If the game refuses and still lists a STUCK entry, that entry is left first. Each step shows as an alert and in chat, and goes to the Debug Log.",
+          tooltip = "Repairs a broken campaign queue. A queue marked STUCK that the game still shows cannot be queued or left: this logs you out at once, which is the only thing that clears it, and you queue again once you are back in. Otherwise it asks the game to queue you again: the queue you are in or were last in, or your home campaign. A queue the game says is alive is left alone. Each step shows as an alert and in chat, and goes to the Debug Log.",
           func = function()
               local ok, err = pcall(self.RQManual, self)
               if not ok and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
                   pcall(CHAT_ROUTER.AddSystemMessage, CHAT_ROUTER, "PvP UA requeue failed: " .. tostring(err))
               end
           end },
+        -- Patch: repeating error sound while a queue is marked STUCK ("Stuck alarm" in PvPUA.lua).
+        { type = "toggle", name = "Stuck Alarm", preset = "YES_NO",
+          default = PvPUA.defaults.stuckAlarm,
+          tooltip = "Plays an error sound every 3 seconds while a campaign queue is marked STUCK, until the queue works again or you log out.",
+          getFunc = function() return self.savedVariables.stuckAlarm ~= false end,
+          setFunc = function(v) self.savedVariables.stuckAlarm = v == true end },
         -- Patch: kill-marker / kill-feed diagnostics through the optional LibConsoleLogger (buffer only, no chat).
         { type = "toggle", name = "Debug Log", preset = "YES_NO",
           default = PvPUA.defaults.debugLog,

@@ -195,7 +195,15 @@ local function runReportLayout(root, visit, completed)
 	local pending = { root }
 	local function step()
 		if root.layoutGeneration ~= generation then return end
-		for count = 1, 12 do
+        -- Background warm-up yields completely during combat. An explicit
+        -- report request takes priority, still within the bounded UI budget.
+        if root.layoutWarmup and not root.toggleAfterLayout
+            and IsUnitInCombat and IsUnitInCombat("player") then
+            zo_callLater(step, 250)
+            return
+        end
+        local started = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
+        for count = 1, 48 do
 			local control = table.remove(pending)
 			if not control then
 				completed()
@@ -206,10 +214,11 @@ local function runReportLayout(root, visit, completed)
 				local child = control:GetChild(i)
 				if child then pending[#pending + 1] = child end
 			end
-		end
-		zo_callLater(step, 1)
-	end
-	zo_callLater(step, 1)
+            if GetGameTimeMilliseconds and GetGameTimeMilliseconds() - started >= 2 then break end
+        end
+        zo_callLater(step, 1)
+    end
+    zo_callLater(step, 1)
 end
 
 local function toggleFightList(panel, show)
@@ -5436,6 +5445,9 @@ function CMX2.ToggleCursorDisplay(self)
 end
 
 function CMX2.SkillTooltip_OnMouseEnter(control)
+    local row=control:GetParent()
+    if CMX2.Controller.ShowDetail and CMX2.Controller.ShowDetail("ability",row.id,
+        row.delay and string.format("Durchschnittliche Verzögerung: %d ms",row.delay)) then return end
 	InitializeTooltip(SkillTooltip, control, TOPLEFT, 0, 5, BOTTOMLEFT)
 
 	local rowControl = control:GetParent()
@@ -5464,6 +5476,7 @@ function CMX2.SkillTooltip_OnMouseEnter(control)
 end
 
 function CMX2.SkillTooltip_OnMouseExit(control)
+    if CMX2.Controller.HideDetails then CMX2.Controller.HideDetails() end
 	ClearTooltip(SkillTooltip)
 end
 
@@ -5481,10 +5494,15 @@ function CMX2.ScribedSkillTooltip_OnMouseEnter(control)
 		scriptIds[2],
 		scriptIds[3]
 	)
-	SkillTooltip:SetAbilityId(abilityId)
+	if CMX2.Controller.ShowDetail and CMX2.Controller.ShowDetail("ability",abilityId) then
+        ClearTooltip(SkillTooltip)
+        return
+    end
+    SkillTooltip:SetAbilityId(abilityId)
 end
 
 function CMX2.ScribedSkillTooltip_OnMouseExit(control)
+    if CMX2.Controller.HideDetails then CMX2.Controller.HideDetails() end
 	ClearTooltip(SkillTooltip)
 end
 
@@ -5505,6 +5523,9 @@ function CMX2.CPTooltip_OnMouseEnter(starControl)
 		return
 	end
 
+    if CMX2.Controller.ShowDetail and CMX2.Controller.ShowDetail("champion",starControl.starId,
+        {points=starControl.points,slotted=starControl.slotted}) then return end
+
 	InitializeTooltip(ChampionSkillTooltip, starControl, TOPLEFT, 0, 5, BOTTOMLEFT)
 
 	ChampionSkillTooltip:SetChampionSkill(starControl.starId, starControl.points, nil, starControl.slotted)
@@ -5515,10 +5536,18 @@ function CMX2.CPTooltip_OnMouseExitLegacy(control)
 end
 
 function CMX2.CPTooltip_OnMouseExit(control)
+    if CMX2.Controller.HideDetails then CMX2.Controller.HideDetails() end
 	ClearTooltip(ChampionSkillTooltip)
 end
 
 function CMX2.ItemTooltip_OnMouseEnter(control)
+    if CMX2.Controller.ShowDetail then
+        if control.itemLink and control.itemLink~="" then
+            if CMX2.Controller.ShowDetail("item",control.itemLink) then return end
+        elseif control.enchantDescription and control.enchantDescription~="" then
+            if CMX2.Controller.ShowDetail("text","Verzauberung",control.enchantDescription) then return end
+        end
+    end
 	local itemLink = control.itemLink
 	local enchantDescription = control.enchantDescription
 
@@ -5533,6 +5562,7 @@ function CMX2.ItemTooltip_OnMouseEnter(control)
 end
 
 function CMX2.ItemTooltip_OnMouseExit(control)
+    if CMX2.Controller.HideDetails then CMX2.Controller.HideDetails() end
 	ClearTooltip(ItemTooltip)
 	ClearTooltip(SkillTooltip)
 end
@@ -7072,6 +7102,8 @@ local function completeFightReportInit()
 			zo_callLater(function()
 				if fightReport.layoutGeneration ~= generation then return end
 				fightReport.layoutPending = false
+                fightReport.layoutWarmup = nil
+                if CMX2.Controller.IsReportOpen() then CMX2.Controller.RestoreFocus() end
 				local left = fightReport:GetNamedChild("_SelectorRow"):GetLeft()
 				if left < 0 then
 					local x, y = fightReport:GetCenter()
@@ -7167,11 +7199,18 @@ local function completeFightReportInit()
 	fightReport.requestedScale = nil
 end
 
-local function initFightReport()
-	if fightReportInitialized or CombatMetrics2_Report.layoutPending then return end
-	CombatMetrics2_Report.layoutPending = true
+local function initFightReport(background)
+    if fightReportInitialized or CombatMetrics2_Report.layoutPending then return end
+    CombatMetrics2_Report.layoutWarmup = background == true
+    CombatMetrics2_Report.layoutPending = true
 	-- Snapshot every control before changing any parent dimensions or anchors.
 	runReportLayout(CombatMetrics2_Report, storeControlLayout, completeFightReportInit)
+end
+
+-- Only UI geometry, panel methods and initial scale are prepared here.
+-- Fight collection and calculations remain independent.
+function CMX2.PrepareReport()
+    initFightReport(true)
 end
 
 local function initLiveReport()
@@ -7191,29 +7230,23 @@ local function initLiveReport()
 	local fragment = ZO_HUDFadeSceneFragment:New(liveReport)
 
 	function liveReport.Toggle(liveReport, value)
-		if value == nil then
-			value = liveReport:IsHidden()
-		end
-
-		if value == true and SCENE_MANAGER then
-			SCENE_MANAGER:GetScene("hud"):AddFragment(fragment)
-			SCENE_MANAGER:GetScene("hudui"):AddFragment(fragment)
-			SCENE_MANAGER:GetScene("siegeBar"):AddFragment(fragment)
-
-			local currentScene = SCENE_MANAGER.currentScene and SCENE_MANAGER.currentScene.name or ""
-			local isShownForCurrentScene = currentScene == "hud"
-				or currentScene == "hudui"
-				or currentScene == "siegeBar"
-
-			liveReport:SetHidden(not isShownForCurrentScene)
-		else
-			SCENE_MANAGER:GetScene("hud"):RemoveFragment(fragment)
-			SCENE_MANAGER:GetScene("hudui"):RemoveFragment(fragment)
-			SCENE_MANAGER:GetScene("siegeBar"):RemoveFragment(fragment)
-
-			liveReport:SetHidden(true)
-		end
-	end
+        if value == nil then value = liveReport:IsHidden() end
+        local preview = CMX2.Controller.hudPreview == true
+        for _, name in ipairs({"hud", "hudui", "siegeBar"}) do
+            local targetScene = SCENE_MANAGER:GetScene(name)
+            if value == true then targetScene:AddFragment(fragment)
+            else targetScene:RemoveFragment(fragment) end
+        end
+        local context = SCENE_MANAGER:GetScene("CMX2_CONTEXT_SCENE")
+        if context then
+            if preview then context:AddFragment(fragment)
+            else context:RemoveFragment(fragment) end
+        end
+        local current = SCENE_MANAGER:GetCurrentScene()
+        local name = current and current:GetName() or ""
+        local gameplay = name == "hud" or name == "hudui" or name == "siegeBar"
+        liveReport:SetHidden(not ((value == true and gameplay) or (preview and name == "CMX2_CONTEXT_SCENE")))
+    end
 
 	local function refreshBG()
 		local newwidth, newheight = liveReport:GetDimensions()

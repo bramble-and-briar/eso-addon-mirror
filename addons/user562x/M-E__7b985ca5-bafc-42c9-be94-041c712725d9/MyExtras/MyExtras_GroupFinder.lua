@@ -36,12 +36,10 @@ local WHITE_TEXTURE   = "EsoUI/Art/Miscellaneous/white.dds"
 
 local GAMEPLAY_SCENES = { hud = true, hudui = true, siegeBar = true }
 
-local NORMAL_COLOR  = { 0.24, 0.76, 1 }
 local VETERAN_COLOR = { 1, 0.65, 0.19 }
 local OTHER_COLOR   = { 0.70, 0.49, 1 }
 local NEW_COLOR     = { 0.49, 0.95, 0.56 }
 local ALARM_COLOR   = { 1, 0.20, 0.17 }
-local HEADER_COLOR  = { 0.35, 0.84, 1 }
 local TEXT_COLOR    = { 0.96, 0.98, 1 }
 
 local DEFAULTS = {
@@ -56,7 +54,10 @@ local DEFAULTS = {
     groupFinderZone              = false,
     groupFinderCustom            = false,
     groupFinderAlarm             = false,
-    groupFinderAlarmWords        = "",
+    groupFinderAlarmDungeons     = {},
+    groupFinderAlarmTrials       = {},
+    groupFinderAlarmArenas       = {},
+    groupFinderAlarmOther        = {},
     groupFinderAlarmSound        = "duelStart",
     groupFinderFont              = "EsoUI/Common/Fonts/FTN57.otf",
     groupFinderScale             = 100,
@@ -98,6 +99,25 @@ GF.otherChoices = {
     { name = "PvP",              value = "pvp"     },
     { name = "Zone",             value = "zone"    },
     { name = "Custom",           value = "custom"  },
+}
+
+GF.alarmDungeonChoices = {}
+GF.alarmTrialChoices   = {}
+GF.alarmArenaChoices   = {}
+
+local ALARM_ALL = "*all*"
+
+local ALARM_LISTS = {
+    { id = "GROUP_FINDER_CATEGORY_DUNGEON", key = "groupFinderAlarmDungeons", choices = GF.alarmDungeonChoices, all = "All Dungeons" },
+    { id = "GROUP_FINDER_CATEGORY_TRIAL",   key = "groupFinderAlarmTrials",   choices = GF.alarmTrialChoices,   all = "All Trials"   },
+    { id = "GROUP_FINDER_CATEGORY_ARENA",   key = "groupFinderAlarmArenas",   choices = GF.alarmArenaChoices,   all = "All Arenas"   },
+}
+
+local OTHER_CATEGORY_IDS = {
+    archive = "GROUP_FINDER_CATEGORY_ENDLESS_DUNGEON",
+    pvp     = "GROUP_FINDER_CATEGORY_PVP",
+    zone    = "GROUP_FINDER_CATEGORY_ZONE",
+    custom  = "GROUP_FINDER_CATEGORY_CUSTOM",
 }
 
 local OTHER_KEYS = {
@@ -170,7 +190,7 @@ local scanRows       = {}
 local previousRows   = {}
 local sourceOrder    = {}
 local alarmedKeys    = {}
-local alarmWords     = {}
+local namesLoaded    = false
 local scanConfig     = {}
 local hadScan        = false
 local publishedCount = 0
@@ -248,6 +268,17 @@ end
 
 local function IsOn()
     return SV().groupFinderShow == true
+end
+
+local function AccentColor()
+    local sv = ME.savedVariables
+    if sv and sv.settingsHighlight == "Custom" and type(sv.settingsHighlightColor) == "table" then
+        local c = sv.settingsHighlightColor
+        return { c.r or 1, c.g or 1, c.b or 1 }
+    end
+    local c = GetAllianceColor(GetUnitAlliance("player"))
+    if c then return { c.r, c.g, c.b } end
+    return { 1, 1, 1 }
 end
 
 local function CurrentSceneName()
@@ -433,22 +464,65 @@ local function CleanText(value)
     return text
 end
 
-local function FillAlarmWords(words, text)
-    ClearArray(words)
-    for value in string.gmatch(text or "", "[^,]+") do
-        local word = Lower(value:gsub("^%s+", ""):gsub("%s+$", ""))
-        if word ~= "" then words[#words + 1] = word end
+local function PickList(value)
+    local list = {}
+    if type(value) == "table" then
+        for i = 1, #value do
+            if type(value[i]) == "string" and value[i] ~= "" then list[#list + 1] = value[i] end
+        end
     end
-    return words
+    return list
 end
 
-local function MatchesAlarm(activity, title, description)
-    if #alarmWords == 0 then return false end
-    local text = Lower(activity .. "\n" .. title .. "\n" .. description)
-    for i = 1, #alarmWords do
-        if string.find(text, alarmWords[i], 1, true) then return true end
+local function UnnamedText(category)
+    return Lower(CleanText(GetString("SI_GROUPFINDERCATEGORY_SINGLESELECTDEFAULT", category)))
+end
+
+local function BuildAlarmPicks(sv)
+    local picks, other = {}, {}
+    for i = 1, #ALARM_LISTS do
+        local list = ALARM_LISTS[i]
+        local category = rawget(_G, list.id)
+        if category then
+            local unnamed = UnnamedText(category)
+            local set, count = {}, 0
+            local names = PickList(sv[list.key])
+            local cleaned, changed = {}, false
+            for j = 1, #names do
+                local name = names[j]
+                if unnamed ~= "" and Lower(name) == unnamed then
+                    name = ALARM_ALL
+                    changed = true
+                end
+                if not set[Lower(name)] then
+                    set[Lower(name)] = true
+                    count = count + 1
+                    cleaned[#cleaned + 1] = name
+                end
+            end
+            if changed then sv[list.key] = cleaned end
+            picks[category] = { names = set, count = count, unnamed = unnamed }
+        end
     end
-    return false
+    local others = PickList(sv.groupFinderAlarmOther)
+    for i = 1, #others do
+        local category = rawget(_G, OTHER_CATEGORY_IDS[others[i]] or "")
+        if category then other[category] = true end
+    end
+    return picks, other
+end
+
+local function MatchesAlarm(category, secondary)
+    local picks = scanConfig.picks
+    local pick = picks and picks[category]
+    if pick then
+        if pick.count == 0 then return false end
+        if pick.names[ALARM_ALL] then return true end
+        local name = Lower(secondary)
+        if name == "" or name == pick.unnamed then return true end
+        return pick.names[name] == true
+    end
+    return scanConfig.other ~= nil and scanConfig.other[category] == true
 end
 
 local function RoleCount(role, count)
@@ -513,6 +587,34 @@ local function LeaderChampionPoints(displayName)
     return 0
 end
 
+local function LoadActivityNames()
+    if namesLoaded or scanActive or GroupFinderShowing() then return end
+    local ok, saved = pcall(CaptureFilters)
+    if not ok then return end
+    local found = 0
+    for i = 1, #ALARM_LISTS do
+        local list = ALARM_LISTS[i]
+        local category = rawget(_G, list.id)
+        ClearArray(list.choices)
+        if category then
+            list.choices[1] = { name = list.all, value = ALARM_ALL }
+            local unnamed = UnnamedText(category)
+            local loaded = pcall(function()
+                BroadSearch(category)
+                for option = 1, GetGroupFinderFilterNumSecondaryOptions() do
+                    local name = CleanText(GetGroupFinderFilterSecondaryOptionByIndex(option))
+                    if name ~= "" and Lower(name) ~= unnamed then
+                        list.choices[#list.choices + 1] = { name = name, value = name }
+                    end
+                end
+            end)
+            if loaded then found = found + #list.choices - 1 end
+        end
+    end
+    pcall(ApplyFilters, saved)
+    namesLoaded = found > 0
+end
+
 local function CaptureResults(task)
     local results = GROUP_FINDER_SEARCH_MANAGER:GetSearchResults() or {}
     for _, data in ipairs(results) do
@@ -557,7 +659,9 @@ local function CaptureResults(task)
                 description           = description,
                 supportsRoles         = hasRoles,
                 roleText              = roleText,
-                isAlarm               = scanConfig.alarm and MatchesAlarm(activity, title, description),
+                category              = category,
+                secondary             = secondary,
+                isAlarm               = scanConfig.alarm and MatchesAlarm(category, secondary),
                 isVeteran             = primary ~= "" and primary == scanConfig.veteranText,
             }
         end
@@ -629,7 +733,6 @@ local function ResetScan()
     ClearTable(previousRows)
     ClearTable(sourceOrder)
     ClearTable(alarmedKeys)
-    ClearArray(alarmWords)
     ClearTable(scanConfig)
     hadScan = false
     publishedCount = 0
@@ -739,7 +842,7 @@ local function TryStartScan()
     scanConfig.alarm = sv.groupFinderAlarm == true
     scanConfig.sound = sv.groupFinderAlarmSound
     scanConfig.veteranText = GetString("SI_DUNGEONDIFFICULTY", DUNGEON_DIFFICULTY_VETERAN)
-    FillAlarmWords(alarmWords, scanConfig.alarm and sv.groupFinderAlarmWords or "")
+    scanConfig.picks, scanConfig.other = BuildAlarmPicks(sv)
     hadScan = completedScan
     ClearArray(scanRows)
     publishedCount = 0
@@ -811,6 +914,19 @@ local function RefreshCategories()
     end
     if not scanActive and not TryStartScan() then ScheduleNextScan(delay) end
     GF:QueueStatus()
+end
+
+local function RecolorRows()
+    local sv = SV()
+    scanConfig.alarm = sv.groupFinderAlarm == true
+    scanConfig.picks, scanConfig.other = BuildAlarmPicks(sv)
+    for _, row in ipairs(rows) do
+        if row.category ~= nil then
+            row.isAlarm = scanConfig.alarm and MatchesAlarm(row.category, row.secondary or "")
+            if row.isAlarm then alarmedKeys[row.key] = true end
+        end
+    end
+    GF:QueueRender()
 end
 
 local function RescanSoon()
@@ -1058,7 +1174,7 @@ end
 local function RowAccent(data)
     if data.isAlarm then return ALARM_COLOR end
     if data.isVeteran then return VETERAN_COLOR end
-    if data.primary ~= "" then return NORMAL_COLOR end
+    if data.primary ~= "" then return AccentColor() end
     return OTHER_COLOR
 end
 
@@ -1167,7 +1283,8 @@ end
 
 function GF:StatusText()
     if ShowingPreview() then
-        return "Preview", 0.55, 0.72, 0.88
+        local accent = AccentColor()
+        return "Preview", accent[1], accent[2], accent[3]
     elseif paused or CategoryCount() == 0 or (not scanActive and not completedScan) then
         return "Paused", 0.82, 0.57, 0.24
     elseif scanActive then
@@ -1250,7 +1367,8 @@ function GF:Render()
 
     self.title:SetFont(Font(3))
     self.title:SetText("GROUP FINDER")
-    self.title:SetColor(HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3], 1)
+    local accent = AccentColor()
+    self.title:SetColor(accent[1], accent[2], accent[3], 1)
     self.title:ClearAnchors()
     self.title:SetAnchor(TOPLEFT, self.frame, TOPLEFT, PADDING, PADDING + 2)
     self.title:SetDimensions(width * 0.58, 30)
@@ -1267,7 +1385,7 @@ function GF:Render()
     self.status:SetAnchor(TOPLEFT, self.frame, TOPLEFT, PADDING, PADDING + 33)
     self.status:SetDimensions(width - PADDING * 2, 20)
 
-    self.divider:SetColor(HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3], 0.24)
+    self.divider:SetColor(accent[1], accent[2], accent[3], 0.24)
     self.divider:ClearAnchors()
     self.divider:SetAnchor(TOPLEFT, self.frame, TOPLEFT, PADDING, PADDING + HEADER_HEIGHT - 7)
     self.divider:SetDimensions(width - PADDING * 2, 1)
@@ -1505,6 +1623,23 @@ local function ModeOption(name, key, what)
     }
 end
 
+local function PickOption(name, key, choices, note, disabled)
+    return {
+        type     = "checklist",
+        name     = name,
+        choices  = choices,
+        default  = {},
+        tooltip  = "Which ones set off your alarm.\n\n" .. note,
+        disabled = disabled,
+        getFunc  = function() return PickList(SV()[key]) end,
+        setFunc  = function(values)
+            SV()[key] = PickList(values)
+            RecolorRows()
+            RescanSoon()
+        end,
+    }
+end
+
 function GF:SubmenuOption()
     if not ApiReady() then return nil end
     local function AlarmOff() return not SV().groupFinderAlarm end
@@ -1601,32 +1736,31 @@ function GF:SubmenuOption()
             {
                 type    = "submenu",
                 name    = "Alarm",
-                tooltip = "Plays a sound and highlights groups that mention your words.",
+                tooltip = "Plays a sound and highlights the groups you pick.",
                 options = {
                     {
                         type    = "toggle",
                         name    = "Alarm",
                         preset  = "YES_NO",
                         default = DEFAULTS.groupFinderAlarm,
-                        tooltip = "Plays a sound and highlights a group in red when its activity, title or description has one of your Alarm Words.",
+                        tooltip = "Plays a sound and highlights a group in red when it's one you picked below. "
+                               .. "With nothing picked, it stays quiet.\n\n"
+                               .. "It only works for groups Group Finder is checking, so turn on their category in Categories too.",
                         getFunc = function() return SV().groupFinderAlarm end,
                         setFunc = function(val)
                             SV().groupFinderAlarm = val
+                            RecolorRows()
                             RescanSoon()
                         end,
                     },
-                    {
-                        type     = "editbox",
-                        name     = "Alarm Words",
-                        default  = DEFAULTS.groupFinderAlarmWords,
-                        tooltip  = "Words to look for, separated by commas. For example: vMA, hm, carry",
-                        disabled = AlarmOff,
-                        getFunc  = function() return SV().groupFinderAlarmWords end,
-                        setFunc  = function(val)
-                            SV().groupFinderAlarmWords = tostring(val or "")
-                            RescanSoon()
-                        end,
-                    },
+                    PickOption("Dungeons", "groupFinderAlarmDungeons", self.alarmDungeonChoices,
+                        "All Dungeons covers every dungeon group. Groups that don't name a dungeon count for any dungeon you pick.\n\nDungeons also has to be on in Categories.", AlarmOff),
+                    PickOption("Trials", "groupFinderAlarmTrials", self.alarmTrialChoices,
+                        "All Trials covers every trial group. Groups that don't name a trial count for any trial you pick.\n\nTrials also has to be on in Categories.", AlarmOff),
+                    PickOption("Arenas", "groupFinderAlarmArenas", self.alarmArenaChoices,
+                        "All Arenas covers every arena group. Groups that don't name an arena count for any arena you pick.\n\nArenas also has to be on in Categories.", AlarmOff),
+                    PickOption("Other", "groupFinderAlarmOther", self.otherChoices,
+                        "The ones you pick also have to be checked in Other Categories.", AlarmOff),
                     {
                         type     = "dropdown",
                         name     = "Alarm Sound",
@@ -1716,6 +1850,7 @@ function GF:SubmenuOption()
 end
 
 function GF:OnSettingsState(newState)
+    if newState == SCENE_SHOWING then LoadActivityNames() end
     if newState == SCENE_HIDDEN and self.preview then
         self:SetPreview(false)
     end
@@ -1735,6 +1870,7 @@ end
 
 function GF:OnPlayerActivated()
     if not ready then return end
+    LoadActivityNames()
     InstallKeybinds()
     OnStatusChanged()
     self:Refresh(false)

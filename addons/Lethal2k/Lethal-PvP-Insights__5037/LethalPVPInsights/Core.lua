@@ -3,8 +3,14 @@ PVPDataInsight = PVPDataInsight or {}
 local PDI = PVPDataInsight
 
 PDI.name        = "LethalPVPInsights"   -- the addon folder (PVPDataInsight before 1.9.59)
+-- the LPI Companion (optional Windows helper) is a separate download, not part of the addon
+PDI.COMPANION_URL = "https://esopvp.com/companion"
+function PDI.OpenCompanionPage()
+    if RequestOpenUnsafeURL then RequestOpenUnsafeURL(PDI.COMPANION_URL)      -- the game asks before opening it
+    else PDI.Msg("Get the LPI Companion at |cFFFFFF" .. PDI.COMPANION_URL .. "|r") end
+end
 PDI.displayName = "Lethal PVP Insights"
-PDI.version     = "1.10.5"
+PDI.version     = "1.11.0"
 
 -- Retention
 PDI.OPPONENT_RETENTION_DAYS = 7    -- combat/opponent data (feature 3)

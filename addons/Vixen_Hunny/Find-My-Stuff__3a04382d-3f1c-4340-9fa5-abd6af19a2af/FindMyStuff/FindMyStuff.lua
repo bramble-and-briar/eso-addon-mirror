@@ -1,7 +1,7 @@
 FindMyStuff = FindMyStuff or {}
 FindMyStuff.Name = "FindMyStuff"
 FindMyStuff.Author = "Vixen Hunny"
-FindMyStuff.Version = "1.0.0"
+FindMyStuff.Version = "1.1.0"
 FindMyStuff.SettingsVersion = "1.0"
 local pmax = 184000
 local gmin = 1
@@ -170,6 +170,16 @@ FindMyStuff.EquipSynonymTable = {
 FindMyStuff.ItemTable = {built=0,items={},}	
 
 FindMyStuff.Default = {quality=364,level=50}
+-- User settings (edited from the LibAddonMenu panel)
+FindMyStuff.SettingDefaults = {
+	showLogin = true,    -- print the "loaded" line on login
+	autoScan = true,     -- rescan bags after looting
+	maxResults = 100,    -- lines per page for chat output
+	traderPages = 10,    -- default pages per guild for trader scans
+	traderChat = true,   -- print trader matches to chat as well as the UI
+	windowLocked = false,
+}
+ZO_CreateStringId("SI_BINDING_NAME_FINDMYSTUFF_TOGGLE", "Open Find My Stuff")
 -- Acts as a bridge between input and cycle
 local function bridge(text,min,max,trait,etype,weight)
 	if min == nil then gmin = 1 else gmin = min end
@@ -740,6 +750,9 @@ end
 --Shows command usage
 local function IFHelp()
 	d("Item Finder Command Usage")
+	d("Command: |cFF7700/fms|r")
+	d("Purpose: Opens the Find My Stuff window (gamepad screen in gamepad mode). Add items, traders or leads to pick a tab.")
+	d("Usage: /fms leads")
 	--Find item in inventory (cross-character)
 	d("Command: |cFF7700/finditem|r")
 	d("Purpose: Searches your saved cross-character inventory for an item by name.")
@@ -749,6 +762,21 @@ local function IFHelp()
 	d("Command: |cFF7700/fmsscan|r")
 	d("Purpose: Manually rescans and saves the current character's inventory.")
 	d("Usage: /fmsscan")
+	--Guild trader filter
+	d("Command: |cFF7700/fmstrader|r")
+	d("Purpose: Pages through guild trader listings and shows only the ones matching your filter.")
+	d("Usage: /fmstrader words [trait:x] [quality:epic] [max:gold] [unit:gold] [pages:N] [unknown] [all]")
+	d("Example: /fmstrader dreugh wax unit:9000")
+	d("Example: /fmstrader unknown max:20000 all")
+	d("Also: /fmstrader stop, /fmstrader last")
+	d("Command: |cFF7700/fmstraderlead|r - scan guild stores for antiquity leads")
+	d("Example: /fmstraderlead mythic    Example: /fmstraderlead ring of the wild hunt missing")
+	--Lead search
+	d("Command: |cFF7700/fmslead|r")
+	d("Purpose: Searches every antiquity lead in the game by name, set or zone.")
+	d("Usage: /fmslead [words] [have] [missing] [new] [all] [page:N]")
+	d("Example: /fmslead ring of the wild hunt")
+	d("Example: /fmslead summerset missing")
 	--Find item in database
 	d("Command: |cFF7700/findindb|r or |cFF7700/findid|r or |cFF7700/findbyname|r")
 	d("Purpose: Searches all possible game items by ID (full database search).")
@@ -864,7 +892,7 @@ local function FMS_ScanBag(bag, inv)
 				if existing and type(existing) == "table" then
 					existing.n = existing.n + stack
 				else
-					inv[key] = {n = stack, q = quality, t = traitName, name = itemName, bound = boundStr, known = knownStr}
+					inv[key] = {n = stack, q = quality, t = traitName, name = itemName, bound = boundStr, known = knownStr, l = itemLink}
 				end
 			end
 		end
@@ -895,19 +923,103 @@ function FindMyStuff.ScanInventory()
 	end
 end
 
-local function FindInInventory(searchText)
-	if not FindMyStuff.SavedVariables or not FindMyStuff.SavedVariables.charInventory then
-		d("|cFF7700FindMyStuff:|r No inventory data saved. Log in with each character to populate.")
+
+-- ========================
+-- SHARED HELPERS
+-- ========================
+
+local PREFIX = "|cFF7700FindMyStuff:|r "
+
+local function FMS_Trim(s)
+	return ((s or ""):gsub("^%s+", ""):gsub("%s+$", ""))
+end
+FindMyStuff.Trim = FMS_Trim
+
+-- Calls fn only if this API version has it (fn is passed as a global value, so it is nil when missing)
+local function FMS_Call(fn, ...)
+	if type(fn) == "function" then return fn(...) end
+end
+
+-- Strips ESO grammar suffixes ("^n", "^F") from names
+local function FMS_CleanName(name)
+	if not name or name == "" then return "" end
+	return zo_strformat("<<1>>", name)
+end
+
+-- Splits "words key:value flag" input into {words={}, flags={}, key=value}
+local function FMS_ParseOptions(text, knownFlags)
+	local opts = {words = {}, flags = {}}
+	for token in (text or ""):lower():gmatch("%S+") do
+		local key, value = token:match("^(%a+):(.+)$")
+		if key then
+			opts[key] = value
+		elseif knownFlags and knownFlags[token] then
+			opts.flags[token] = true
+		else
+			opts.words[#opts.words + 1] = token
+		end
+	end
+	return opts
+end
+
+local function FMS_MatchesAllWords(haystack, words)
+	for i = 1, #words do
+		if not haystack:find(words[i], 1, true) then return false end
+	end
+	return true
+end
+
+local function FMS_Gold(n)
+	n = n or 0
+	if ZO_CommaDelimitNumber then return ZO_CommaDelimitNumber(n) end
+	return tostring(n)
+end
+
+local function FMS_Setting(key)
+	local sv = FindMyStuff.SavedVariables
+	if sv and sv[key] ~= nil then return sv[key] end
+	return FindMyStuff.SettingDefaults[key]
+end
+FindMyStuff.GetSetting = FMS_Setting
+
+-- Every search returns rows shaped like:
+--   line   = full chat / keyboard line (may contain item links)
+--   title  = short coloured name for the gamepad list
+--   detail = plain description for tooltips
+--   link   = item link, when there is one
+local function FMS_PrintRows(rows, summary, err)
+	if err then
+		d(PREFIX .. err)
 		return
 	end
-	searchText = searchText and searchText:gsub("^%s+", ""):gsub("%s+$", "") or ""
+	if summary then d(PREFIX .. summary) end
+	for i = 1, #(rows or {}) do d(rows[i].line) end
+end
+
+-- ========================
+-- CROSS-CHARACTER INVENTORY SEARCH
+-- ========================
+
+local function FMS_BoundTag(bound)
+	if bound == "Unbound" then return " |c2DC50E[Unbound]|r", "Unbound"
+	elseif bound == "BoE" then return " |cF5A9B8[Bind On Equip]|r", "Bind on equip"
+	elseif bound == "Bound" then return " |caaaaaa[Bound]|r", "Bound" end
+	return "", nil
+end
+
+-- Returns rows, summary, errorText
+function FindMyStuff.SearchInventory(searchText)
+	local sv = FindMyStuff.SavedVariables
+	if not sv or not sv.charInventory then
+		return nil, nil, "No inventory data saved. Log in with each character to populate."
+	end
+	searchText = FMS_Trim(searchText)
 	if searchText == "" then
-		d("|cFF7700FindMyStuff:|r Usage: /finditem <item name>")
-		return
+		return nil, nil, "Type the name of an item to search for."
 	end
 	local search = searchText:lower()
 	local results = {}
-	for charName, items in pairs(FindMyStuff.SavedVariables.charInventory) do
+	for charName, items in pairs(sv.charInventory) do
 		for key, entry in pairs(items) do
 			-- handle legacy format where entry was just a count number
 			if type(entry) == "number" then
@@ -919,56 +1031,882 @@ local function FindInInventory(searchText)
 			end
 		end
 	end
-	if #results == 0 then
-		d("|cFF7700FindMyStuff:|r No items found: |cffff00" .. searchText .. "|r")
+	table.sort(results, function(a, b)
+		if a.char ~= b.char then return a.char < b.char end
+		return a.name < b.name
+	end)
+
+	local rows = {}
+	for _, r in ipairs(results) do
+		local e = r.entry
+		local qColor = FMS_QUALITY_COLORS[e.q] or FMS_QUALITY_COLORS[1]
+		local traitStr = e.t and (" |caaaaaa[" .. e.t .. "]|r") or ""
+		local boundStr, boundPlain = FMS_BoundTag(e.bound)
+		local knownStr = e.known == "Known" and " |caaaaaa[Known]|r" or (e.known == "Unknown" and " |c5BCEFA[Unknown]|r" or "")
+		local name = FMS_CleanName(r.name)
+		local detail = {"On: " .. r.char, "Amount: " .. (e.n or 1)}
+		if e.t then detail[#detail + 1] = "Trait: " .. e.t end
+		if boundPlain then detail[#detail + 1] = boundPlain end
+		if e.known then detail[#detail + 1] = e.known end
+		rows[#rows + 1] = {
+			line = "  |caaaaaaCharacter:|r |cffff00" .. r.char .. "|r  - " .. qColor .. name .. "|r" .. traitStr .. boundStr .. knownStr .. " |caaaaaa(x" .. (e.n or 1) .. ")|r",
+			title = qColor .. name .. "|r |caaaaaax" .. (e.n or 1) .. " - " .. r.char .. "|r",
+			detail = table.concat(detail, "\n"),
+			link = e.l,
+		}
+	end
+	local summary
+	if #rows == 0 then
+		summary = "No items found: |cffff00" .. searchText .. "|r"
 	else
-		table.sort(results, function(a, b) return a.char < b.char end)
-		d("|cFF7700FindMyStuff:|r |cffff00" .. #results .. "|r result(s) for: |cffff00" .. searchText .. "|r")
-		for _, r in ipairs(results) do
-			local e = r.entry
-			local qColor = FMS_QUALITY_COLORS[e.q] or FMS_QUALITY_COLORS[1]
-			local traitStr = e.t and (" |caaaaaa[" .. e.t .. "]|r") or ""
-			local boundStr
-			if e.bound == "Unbound" then
-				boundStr = " |c2DC50E[Unbound]|r"
-			elseif e.bound == "BoE" then
-				boundStr = " |cF5A9B8[Bind On Equip]|r"
-			elseif e.bound == "Bound" then
-				boundStr = " |caaaaaa[Bound]|r"
-			else
-				boundStr = ""
+		summary = "|cffff00" .. #rows .. "|r result(s) for: |cffff00" .. searchText .. "|r"
+	end
+	return rows, summary
+end
+
+local function FindInInventory(searchText)
+	if FMS_Trim(searchText) == "" then
+		d(PREFIX .. "Usage: /finditem <item name>")
+		return
+	end
+	FMS_PrintRows(FindMyStuff.SearchInventory(searchText))
+end
+
+-- ========================
+-- GUILD TRADER FILTER
+-- ========================
+
+local FMS_QUALITY_NAMES = {
+	trash = 0, normal = 1, white = 1, fine = 2, green = 2, superior = 3, blue = 3,
+	epic = 4, purple = 4, legendary = 5, gold = 5, mythic = 6,
+}
+local FMS_TRADER_LOG_MAX = 200
+local TRADER_CALLBACK = "FindMyStuff_TraderUpdate"
+FindMyStuff.TRADER_CALLBACK = TRADER_CALLBACK
+
+local trader = {
+	open = false,        -- is a guild store currently open
+	filter = nil,        -- active filter, also applied to manual searches
+	filterText = "",
+	pendingScan = false, -- start a scan as soon as a store opens
+	scanning = false,
+	guildQueue = {},
+	guildIndex = 0,
+	guildName = nil,
+	page = 0,
+	token = 0,           -- increments per search request, used by the watchdog
+	matches = 0,
+	pagesDone = 0,
+	seen = {},
+	rows = {},
+}
+
+local function FMS_TraderChanged()
+	CALLBACK_MANAGER:FireCallbacks(TRADER_CALLBACK)
+end
+
+local function FMS_TraderGuildName(guildId)
+	local num = FMS_Call(GetNumTradingHouseGuilds) or 0
+	for i = 1, num do
+		local id, name = GetTradingHouseGuildDetails(i)
+		if id == guildId and name and name ~= "" then return name end
+	end
+	local name = guildId and FMS_Call(GetGuildName, guildId)
+	if name and name ~= "" then return name end
+	return "Guild Trader"
+end
+
+-- True for recipes, motifs and style/collectible containers you have not learned yet
+local function FMS_IsUnknownLearnable(link)
+	local itemType = GetItemLinkItemType(link)
+	if itemType == ITEMTYPE_RECIPE then
+		return not IsItemLinkRecipeKnown(link)
+	elseif itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
+		return not IsItemLinkBookKnown(link)
+	end
+	local collectibleId = FMS_Call(GetItemLinkContainerCollectibleId, link)
+	if collectibleId and collectibleId ~= 0 then
+		return not IsCollectibleUnlocked(collectibleId)
+	end
+	return false
+end
+
+-- Antiquity helpers shared by the trader lead search and /fmslead -------------
+
+-- The item an antiquity (or its set) rewards, as a link, or nil
+local function FMS_AntiquityRewardLink(antiquityId)
+	local rewardId = FMS_Call(GetAntiquityRewardId, antiquityId)
+	if not rewardId or rewardId == 0 then
+		local setId = FMS_Call(GetAntiquitySetId, antiquityId) or 0
+		if setId ~= 0 then rewardId = FMS_Call(GetAntiquitySetRewardId, setId) end
+	end
+	if not rewardId or rewardId == 0 then return nil end
+	local link = FMS_Call(GetItemRewardItemLink, rewardId, 1, LINK_STYLE_BRACKETS)
+	if link and link ~= "" then return link end
+	return nil
+end
+
+-- True when the antiquity is part of a mythic item
+function FindMyStuff.IsMythicAntiquity(antiquityId)
+	local link = FMS_AntiquityRewardLink(antiquityId)
+	if link and ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE and GetItemLinkDisplayQuality then
+		return GetItemLinkDisplayQuality(link) == ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE, link
+	end
+	-- no reward data: mythic fragments are the gold (legendary) antiquities
+	local quality = FMS_Call(GetAntiquityQuality, antiquityId) or 0
+	return quality >= (ANTIQUITY_QUALITY_GOLD or 5), link
+end
+
+-- Builds the list of antiquities a trader lead search looks for.
+-- words match the antiquity, its set, its zone or the item it rewards.
+local function FMS_BuildLeadTargets(words, flags)
+	local targets = {}
+	if type(GetNextAntiquityId) ~= "function" then return targets end
+	local id = GetNextAntiquityId()
+	while id and id ~= 0 do
+		if FMS_Call(DoesAntiquityRequireLead, id) ~= false then
+			local name = FMS_CleanName(GetAntiquityName(id))
+			local setId = FMS_Call(GetAntiquitySetId, id) or 0
+			local setName = setId ~= 0 and FMS_CleanName(FMS_Call(GetAntiquitySetName, setId)) or ""
+			local zoneId = FMS_Call(GetAntiquityZoneId, id) or 0
+			local zoneName = zoneId ~= 0 and FMS_CleanName(GetZoneNameById(zoneId)) or "Anywhere"
+			local isMythic, rewardLink = FindMyStuff.IsMythicAntiquity(id)
+			local rewardName = rewardLink and FMS_CleanName(GetItemLinkName(rewardLink)) or ""
+			local hasLead = FMS_Call(DoesAntiquityHaveLead, id) and true or false
+			local recovered = FMS_Call(GetNumAntiquitiesRecovered, id) or 0
+			local haystack = (name .. " " .. setName .. " " .. zoneName .. " " .. rewardName):lower()
+			local keep = FMS_MatchesAllWords(haystack, words)
+				and not (flags.mythic and not isMythic)
+				and not (flags.have and not hasLead)
+				and not (flags.missing and hasLead)
+				and not (flags.new and recovered > 0)
+			if keep and name ~= "" then
+				targets[#targets + 1] = {
+					key = name:lower(), name = name, set = setName, zone = zoneName,
+					reward = rewardName, rewardKey = rewardName:lower(),
+					mythic = isMythic, hasLead = hasLead,
+				}
 			end
-			local knownStr = e.known == "Known" and " |caaaaaa[Known]|r" or (e.known == "Unknown" and " |c5BCEFA[Unknown]|r" or "")
-			d("  |caaaaaaCharacter:|r |cffff00" .. r.char .. "|r  - " .. qColor .. r.name .. "|r" .. traitStr .. boundStr .. knownStr .. " |caaaaaa(x" .. e.n .. ")|r")
 		end
+		id = GetNextAntiquityId(id)
+	end
+	return targets
+end
+
+-- Finds the antiquity a store listing belongs to, or nil.
+-- Listings can be named after the lead ("Lead: X"), the antiquity, or the
+-- item it makes (e.g. the mythic itself).
+local function FMS_MatchLeadTarget(targets, listingName)
+	local n = listingName:gsub("^lead:%s*", "")
+	for _, t in ipairs(targets) do
+		if n == t.key or n:find(t.key, 1, true)
+			or (t.rewardKey ~= "" and (n == t.rewardKey or n:find(t.rewardKey, 1, true))) then
+			return t
+		end
+	end
+	return nil
+end
+
+local FMS_LEAD_TRADER_FLAGS = {all = true, unknown = true, mythic = true, have = true, missing = true, new = true}
+
+local function FMS_BuildTraderFilter(text)
+	-- "leads ..." switches the filter to lead mode
+	local leadMode = false
+	local first, rest = (text or ""):match("^(%S+)%s*(.*)$")
+	if first and (first:lower() == "lead" or first:lower() == "leads") then
+		leadMode = true
+		text = rest
+	end
+	local o = FMS_ParseOptions(text, leadMode and FMS_LEAD_TRADER_FLAGS or {all = true, unknown = true})
+	local f = {
+		words = o.words,
+		trait = o.trait,
+		maxPrice = tonumber(o.max),
+		maxUnit = tonumber(o.unit),
+		allGuilds = o.flags.all or false,
+		unknown = o.flags.unknown or false,
+		maxPages = tonumber(o.pages) or FMS_Setting("traderPages"),
+	}
+	if o.quality then
+		f.quality = tonumber(o.quality) or FMS_QUALITY_NAMES[o.quality]
+	end
+	if leadMode then
+		f.leadMode = true
+		f.mythic = o.flags.mythic or false
+		f.leadFlags = o.flags
+		f.leadWords = o.words
+		f.leadTargets = FMS_BuildLeadTargets(o.words, o.flags)
+		-- The words pick antiquities, so listings are matched against those
+		-- instead. Only hand the words to the store's name search when they're
+		-- part of every chosen antiquity's (or mythic's) name; a zone or set
+		-- word would otherwise hide the listings we want.
+		f.words = {}
+		f.hashWords = {}
+		local joined = table.concat(o.words, " ")
+		if joined ~= "" and #f.leadTargets > 0 then
+			local allNamed = true
+			for _, t in ipairs(f.leadTargets) do
+				if not (t.key:find(joined, 1, true) or t.rewardKey:find(joined, 1, true)) then
+					allNamed = false
+					break
+				end
+			end
+			if allNamed then f.hashWords = o.words end
+		end
+	end
+	return f
+end
+
+local function FMS_DescribeTraderFilter(f)
+	local parts = {}
+	if f.leadMode then
+		local what = f.mythic and "mythic leads" or "leads"
+		if #f.leadWords > 0 then what = what .. " for \"" .. table.concat(f.leadWords, " ") .. "\"" end
+		local lf = f.leadFlags
+		if lf.have then what = what .. " you have" elseif lf.missing then what = what .. " you're missing" end
+		if lf.new then what = what .. " (never found)" end
+		parts[#parts + 1] = what .. " [" .. #f.leadTargets .. " antiquities]"
+	end
+	if #f.words > 0 then parts[#parts + 1] = "\"" .. table.concat(f.words, " ") .. "\"" end
+	if f.trait then parts[#parts + 1] = "trait:" .. f.trait end
+	if f.quality then parts[#parts + 1] = "quality " .. f.quality .. "+" end
+	if f.maxPrice then parts[#parts + 1] = "max " .. FMS_Gold(f.maxPrice) .. "g" end
+	if f.maxUnit then parts[#parts + 1] = "max " .. FMS_Gold(f.maxUnit) .. "g each" end
+	if f.unknown then parts[#parts + 1] = "unknown only" end
+	if f.allGuilds then parts[#parts + 1] = "all guilds" end
+	return #parts > 0 and table.concat(parts, ", ") or "everything"
+end
+
+-- Returns a row and a de-duplication key for a matching result, or nil
+local function FMS_TraderCheckResult(f, index, guildName)
+	local _, name, quality, stack, seller, _, price, _, uid, unitPrice = GetTradingHouseSearchResultItemInfo(index)
+	if not name or name == "" or not price then return nil end
+	stack = stack or 1
+	unitPrice = unitPrice or (stack > 0 and price / stack or price)
+	local cleanName = FMS_CleanName(name)
+
+	if #f.words > 0 and not FMS_MatchesAllWords(cleanName:lower(), f.words) then return nil end
+	local lead
+	if f.leadMode then
+		lead = FMS_MatchLeadTarget(f.leadTargets, cleanName:lower())
+		if not lead then return nil end
+	end
+	if f.maxPrice and price > f.maxPrice then return nil end
+	if f.maxUnit and unitPrice > f.maxUnit then return nil end
+	if f.quality and (quality or 0) < f.quality then return nil end
+
+	local link = GetTradingHouseSearchResultItemLink(index, LINK_STYLE_BRACKETS)
+	local traitName = FindMyStuff.TraitTable[select(1, GetItemLinkTraitInfo(link))]
+	if traitName == "None" then traitName = nil end
+	if f.trait and not (traitName and traitName:lower():find(f.trait, 1, true)) then return nil end
+	if f.unknown and not FMS_IsUnknownLearnable(link) then return nil end
+
+	local key = (uid and Id64ToString) and Id64ToString(uid) or (guildName .. link .. price .. (seller or ""))
+	local each = math.floor(unitPrice + 0.5)
+	local qColor = FMS_QUALITY_COLORS[quality] or FMS_QUALITY_COLORS[1]
+	local detail = {"Guild: " .. guildName, "Price: " .. FMS_Gold(price) .. "g for " .. stack}
+	if stack > 1 then detail[#detail + 1] = "Each: " .. FMS_Gold(each) .. "g" end
+	if traitName then detail[#detail + 1] = "Trait: " .. traitName end
+	if seller and seller ~= "" then detail[#detail + 1] = "Seller: " .. seller end
+	local leadTag = ""
+	if lead then
+		detail[#detail + 1] = "Antiquity: " .. lead.name .. " (" .. lead.zone .. ")"
+		if lead.reward ~= "" then detail[#detail + 1] = (lead.mythic and "Mythic: " or "Makes: ") .. lead.reward end
+		detail[#detail + 1] = lead.hasLead and "You have this lead" or "You don't have this lead"
+		leadTag = (lead.mythic and " |cFFA500[Mythic]|r" or "")
+			.. (lead.hasLead and " |c2DC50E[Have lead]|r" or " |c5BCEFA[No lead]|r")
+	end
+	local row = {
+		line = "|cFF7700[" .. guildName .. "]|r " .. link .. leadTag
+			.. (traitName and (" |caaaaaa[" .. traitName .. "]|r") or "")
+			.. " |caaaaaax" .. stack .. "|r - |cffff00" .. FMS_Gold(price) .. "g|r"
+			.. (stack > 1 and (" |caaaaaa(" .. FMS_Gold(each) .. "g ea)|r") or "")
+			.. " |caaaaaa" .. (seller or "") .. "|r",
+		title = qColor .. cleanName .. "|r |cffff00" .. FMS_Gold(price) .. "g|r",
+		detail = table.concat(detail, "\n"),
+		link = link,
+	}
+	return row, key
+end
+
+local FMS_TraderQueueSearch -- forward declaration
+
+local function FMS_TraderFinish(reason)
+	trader.scanning = false
+	trader.awaiting = false
+	trader.guildName = nil
+	trader.token = trader.token + 1
+	d(PREFIX .. "Trader scan " .. (reason or "finished") .. ". |cffff00" .. trader.matches
+		.. "|r match(es) across " .. trader.pagesDone .. " page(s).")
+	FMS_TraderChanged()
+end
+
+local function FMS_TraderNextGuild()
+	trader.guildIndex = trader.guildIndex + 1
+	local guildId = trader.guildQueue[trader.guildIndex]
+	if not guildId then
+		FMS_TraderFinish()
+		return
+	end
+	trader.guildName = FMS_TraderGuildName(guildId)
+	d(PREFIX .. "Scanning |cffff00" .. trader.guildName .. "|r...")
+	FMS_TraderChanged()
+	if FMS_Call(GetSelectedTradingHouseGuildId) == guildId then
+		FMS_TraderQueueSearch(0)
+	else
+		SelectTradingHouseGuildId(guildId)
+		zo_callLater(function()
+			if trader.scanning then FMS_TraderQueueSearch(0) end
+		end, 1000)
 	end
 end
 
+-- Sets the store's search terms: whatever category/filters are picked in the
+-- store UI, plus our name, price and quality filters, so the server only sends
+-- back listings that can match (the local check below still runs on each one).
+local function FMS_TraderApplySearchTerms(f)
+	local applied = false
+	if TRADING_HOUSE_SEARCH and TRADING_HOUSE_SEARCH.ApplyFilters then
+		applied = pcall(TRADING_HOUSE_SEARCH.ApplyFilters, TRADING_HOUSE_SEARCH, true)
+	end
+	if not applied then FMS_Call(ClearAllTradingHouseSearchTerms) end
+
+	if trader.nameHashes and #trader.nameHashes > 0 then
+		pcall(SetTradingHouseFilter, TRADING_HOUSE_FILTER_TYPE_NAME_HASH, unpack(trader.nameHashes))
+	end
+	if f.maxPrice then
+		pcall(SetTradingHouseFilterRange, TRADING_HOUSE_FILTER_TYPE_PRICE, nil, f.maxPrice)
+	end
+	if f.quality then
+		local qualities = {}
+		for q = f.quality, 6 do qualities[#qualities + 1] = q end
+		pcall(SetTradingHouseFilter, TRADING_HOUSE_FILTER_TYPE_QUALITY, unpack(qualities))
+	end
+end
+
+-- Waits out the store's search cooldown (and any search the store UI itself
+-- is running), then requests a page
+FMS_TraderQueueSearch = function(page)
+	trader.page = page
+	trader.token = trader.token + 1
+	local myToken = trader.token
+	local wait = (FMS_Call(GetTradingHouseCooldownRemaining) or 0) + 250
+	zo_callLater(function()
+		if not trader.scanning or not trader.open or myToken ~= trader.token then return end
+		local cooldown = FMS_Call(GetTradingHouseCooldownRemaining) or 0
+		local uiBusy = TRADING_HOUSE_SEARCH and TRADING_HOUSE_SEARCH.CanPerformSearch
+			and not TRADING_HOUSE_SEARCH:CanPerformSearch()
+		if cooldown > 0 or uiBusy then
+			FMS_TraderQueueSearch(page)
+			return
+		end
+		FMS_TraderApplySearchTerms(trader.filter)
+		trader.awaiting = true
+		local ok, err = pcall(ExecuteTradingHouseSearch, page,
+			TRADING_HOUSE_SORT_SALE_PRICE or TRADING_HOUSE_SORT_SALE_PRICE_PER_UNIT,
+			ZO_SORT_ORDER_UP ~= nil and ZO_SORT_ORDER_UP or true, false)
+		if not ok then
+			trader.awaiting = false
+			FMS_TraderFinish("failed (" .. tostring(err) .. ")")
+			return
+		end
+		-- Watchdog: if the server never answers, move on to the next guild
+		zo_callLater(function()
+			if trader.scanning and myToken == trader.token then
+				trader.awaiting = false
+				d(PREFIX .. "No response from the trader, skipping to the next guild.")
+				FMS_TraderNextGuild()
+			end
+		end, 20000)
+	end, wait)
+end
+
+-- Turns the filter words into the store's item-name hashes (the same lookup
+-- the store's own name search uses). Calls done() when finished.
+local function FMS_TraderMatchNames(words, done)
+	trader.nameHashes = nil
+	local text = table.concat(words, " ")
+	local minLetters = FMS_Call(GetMinLettersInTradingHouseItemNameForCurrentLanguage) or 2
+	if text == "" or #text < minLetters or not MatchTradingHouseItemNames then
+		done()
+		return
+	end
+	local ok, id = pcall(MatchTradingHouseItemNames, text)
+	if not ok or not id then
+		done()
+		return
+	end
+	trader.nameMatchId = id
+	local eventName = FindMyStuff.Name .. "_TraderNames"
+	local finished = false
+	local function finish()
+		if finished then return end
+		finished = true
+		EVENT_MANAGER:UnregisterForEvent(eventName, EVENT_MATCH_TRADING_HOUSE_ITEM_NAMES_COMPLETE)
+		trader.nameMatchId = nil
+		done()
+	end
+	EVENT_MANAGER:RegisterForEvent(eventName, EVENT_MATCH_TRADING_HOUSE_ITEM_NAMES_COMPLETE, function(_, matchId, numResults)
+		if matchId ~= trader.nameMatchId then return end
+		numResults = numResults or FMS_Call(GetNumMatchTradingHouseItemNamesResults, matchId) or 0
+		local maxTerms = FMS_Call(GetMaxTradingHouseFilterExactTerms, TRADING_HOUSE_FILTER_TYPE_NAME_HASH) or 0
+		if numResults == 0 then
+			d(PREFIX .. "No item names contain \"" .. text .. "\", scanning without a name filter.")
+		elseif maxTerms > 0 and numResults > maxTerms then
+			d(PREFIX .. "\"" .. text .. "\" matches " .. numResults .. " item names (the store takes " .. maxTerms
+				.. "), so the name is checked on each page instead. Use more words for a faster scan.")
+		else
+			local hashes = {}
+			for i = 1, numResults do
+				local _, hash = GetMatchTradingHouseItemNamesResult(matchId, i)
+				if hash then hashes[#hashes + 1] = hash end
+			end
+			trader.nameHashes = hashes
+		end
+		finish()
+	end)
+	-- never hang the scan on the name lookup
+	zo_callLater(function()
+		if not finished then
+			FMS_Call(CancelMatchTradingHouseItemNames, id)
+			finish()
+		end
+	end, 5000)
+end
+
+-- Puts the filter words into the store's own name search box, so the store
+-- shows what is being searched for. It also stops an old word left in that box
+-- from narrowing our search (the store's name filter is applied with ours).
+local function FMS_SyncStoreSearchBox(text)
+	local feature
+	if TRADING_HOUSE_SEARCH and TRADING_HOUSE_SEARCH.features then
+		feature = TRADING_HOUSE_SEARCH.features.nameSearchFeature
+	end
+	if not feature and GAMEPAD_TRADING_HOUSE_BROWSE and GAMEPAD_TRADING_HOUSE_BROWSE.GetNameSearchFeature then
+		local ok, f = pcall(GAMEPAD_TRADING_HOUSE_BROWSE.GetNameSearchFeature, GAMEPAD_TRADING_HOUSE_BROWSE)
+		if ok then feature = f end
+	end
+	if not feature or not feature.SetSearchText then return end
+	local current = feature.GetSearchText and feature:GetSearchText() or nil
+	if current == text then return end
+	local ok, err = pcall(feature.SetSearchText, feature, text)
+	if not ok then
+		d(PREFIX .. "Couldn't fill the store's search box: " .. tostring(err))
+	end
+end
+
+local function FMS_StartTraderScan()
+	trader.pendingScan = false
+	trader.scanning = true
+	trader.matches = 0
+	trader.pagesDone = 0
+	trader.seen = {}
+	trader.rows = {}
+	trader.guildQueue = {}
+	trader.guildIndex = 0
+	FindMyStuff.SavedVariables.traderLog = {}
+	if trader.filter.allGuilds then
+		for i = 1, (FMS_Call(GetNumTradingHouseGuilds) or 0) do
+			trader.guildQueue[#trader.guildQueue + 1] = (GetTradingHouseGuildDetails(i))
+		end
+	end
+	if #trader.guildQueue == 0 then
+		trader.guildQueue[1] = FMS_Call(GetSelectedTradingHouseGuildId)
+	end
+	d(PREFIX .. "Filtering guild trader listings for " .. FMS_DescribeTraderFilter(trader.filter)
+		.. " (up to " .. trader.filter.maxPages .. " page(s) per guild). Uses the category you picked in the store.")
+	FMS_TraderChanged()
+	FMS_SyncStoreSearchBox(table.concat(trader.filter.hashWords or trader.filter.words, " "))
+	FMS_TraderMatchNames(trader.filter.hashWords or trader.filter.words, function()
+		if trader.scanning then FMS_TraderNextGuild() end
+	end)
+end
+
+local FMS_ProcessTraderPage -- forward declaration
+
+-- The store reports search results through EVENT_TRADING_HOUSE_RESPONSE_RECEIVED;
+-- the page itself is read with GetTradingHouseSearchResultsInfo().
+local function FMS_OnTraderResponse(_, responseType, result)
+	if responseType ~= TRADING_HOUSE_RESULT_SEARCH_PENDING then return end
+	if not trader.scanning or not trader.awaiting then return end
+	trader.awaiting = false
+	if result ~= TRADING_HOUSE_RESULT_SUCCESS then
+		trader.token = trader.token + 1 -- cancel the watchdog
+		if FMS_Call(GetTradingHouseCooldownRemaining) and GetTradingHouseCooldownRemaining() > 0 then
+			FMS_TraderQueueSearch(trader.page) -- rate limited, try this page again
+		else
+			d(PREFIX .. "The store refused the search, skipping to the next guild.")
+			FMS_TraderNextGuild()
+		end
+		return
+	end
+	local numItems, page, hasMorePages = GetTradingHouseSearchResultsInfo()
+	FMS_ProcessTraderPage(FMS_Call(GetSelectedTradingHouseGuildId), numItems, page or trader.page, hasMorePages)
+end
+
+FMS_ProcessTraderPage = function(guildId, numItems, page, hasMorePages)
+	if not trader.filter then return end
+	local guildName = FMS_TraderGuildName(guildId)
+	local log = FindMyStuff.SavedVariables.traderLog or {}
+	FindMyStuff.SavedVariables.traderLog = log
+	local toChat = FMS_Setting("traderChat")
+	local cheapest
+	for i = 1, (numItems or 0) do
+		local _, _, _, _, _, _, price = GetTradingHouseSearchResultItemInfo(i)
+		if price and (not cheapest or price < cheapest) then cheapest = price end
+		local row, key = FMS_TraderCheckResult(trader.filter, i, guildName)
+		if row and not trader.seen[key] then
+			trader.seen[key] = true
+			trader.matches = trader.matches + 1
+			trader.rows[#trader.rows + 1] = row
+			if toChat then d(row.line) end
+			if #log < FMS_TRADER_LOG_MAX then log[#log + 1] = row end
+		end
+	end
+	FMS_TraderChanged()
+
+	if not trader.scanning then return end
+	trader.pagesDone = trader.pagesDone + 1
+	trader.token = trader.token + 1 -- cancels the watchdog for this page
+	-- Results are sorted cheapest first, so once a whole page is over budget we can stop
+	local overBudget = trader.filter.maxPrice and cheapest and cheapest > trader.filter.maxPrice
+	if hasMorePages and not overBudget and (page + 1) < trader.filter.maxPages then
+		FMS_TraderQueueSearch(page + 1)
+	else
+		FMS_TraderNextGuild()
+	end
+end
+
+-- Public trader API (used by slash commands, the window and the gamepad screen)
+function FindMyStuff.StartTraderFilter(text)
+	local filterText = FMS_Trim(text)
+	local filter = FMS_BuildTraderFilter(filterText)
+	if filter.leadMode and #filter.leadTargets == 0 then
+		d(PREFIX .. "No antiquities match " .. FMS_DescribeTraderFilter(filter) .. ", so there's nothing to look for.")
+		FMS_TraderChanged()
+		return false
+	end
+	trader.filterText = filterText
+	trader.filter = filter
+	if trader.open then
+		FMS_StartTraderScan()
+	else
+		trader.pendingScan = true
+		d(PREFIX .. "Filter set for " .. FMS_DescribeTraderFilter(trader.filter) .. ". Open a guild trader and the scan starts automatically.")
+		FMS_TraderChanged()
+	end
+	return true
+end
+
+-- Searches guild trader listings for antiquity leads.
+-- text: item / antiquity / set / zone words, plus the flags
+--   mythic (only mythic leads), have, missing, new, and the usual trader
+--   options (max:gold, unit:gold, pages:N, all).
+-- e.g. FindMyStuff.StartTraderLeadSearch("mythic")
+--      FindMyStuff.StartTraderLeadSearch("ring of the wild hunt")
+function FindMyStuff.StartTraderLeadSearch(text)
+	return FindMyStuff.StartTraderFilter("leads " .. FMS_Trim(text or ""))
+end
+
+function FindMyStuff.IsTraderLeadSearch()
+	return trader.filter ~= nil and trader.filter.leadMode == true
+end
+
+function FindMyStuff.StopTrader()
+	local wasScanning = trader.scanning
+	trader.filter = nil
+	trader.pendingScan = false
+	trader.scanning = false
+	trader.awaiting = false
+	trader.guildName = nil
+	trader.token = trader.token + 1
+	d(PREFIX .. "Trader filter " .. (wasScanning and "stopped." or "cleared."))
+	FMS_TraderChanged()
+end
+
+function FindMyStuff.IsTraderFilterActive()
+	return trader.filter ~= nil
+end
+
+function FindMyStuff.GetTraderFilterText()
+	return trader.filterText or ""
+end
+
+-- Matches from this session, or the saved matches from the last scan
+function FindMyStuff.GetTraderRows()
+	if #trader.rows > 0 then return trader.rows end
+	local rows = {}
+	for _, entry in ipairs(FindMyStuff.SavedVariables.traderLog or {}) do
+		if type(entry) == "table" then
+			rows[#rows + 1] = entry
+		elseif type(entry) == "string" then
+			rows[#rows + 1] = {line = entry, title = entry, detail = ""}
+		end
+	end
+	return rows
+end
+
+function FindMyStuff.GetTraderStatus()
+	if trader.scanning then
+		return "Scanning " .. (trader.guildName or "guild trader") .. ", page " .. (trader.page + 1)
+			.. " - " .. trader.matches .. " match(es) so far"
+	elseif trader.pendingScan then
+		return "Filter set for " .. FMS_DescribeTraderFilter(trader.filter) .. ". Open a guild trader to start."
+	elseif trader.filter then
+		return "Filter active for " .. FMS_DescribeTraderFilter(trader.filter) .. " - " .. trader.matches .. " match(es)"
+	elseif #trader.rows == 0 and #(FindMyStuff.SavedVariables.traderLog or {}) > 0 then
+		return "Showing the matches from your last scan."
+	end
+	return trader.open and "Guild store open. Enter a filter and search." or "Open a guild store, pick a category, then search."
+end
+
+local function FMS_TraderHelp()
+	d(PREFIX .. "Usage: /fmstrader <words> [trait:x] [quality:epic] [max:gold] [unit:gold] [pages:N] [unknown] [all]")
+	d("  Pick a category in the guild store, then run the command to page through and filter the listings.")
+	d("  all = scan every guild store you can reach (at a bank).  unknown = only recipes/motifs/styles you don't know.")
+	d("  /fmstrader stop - turn the filter off    /fmstrader last - show the last matches")
+	d("  /fmstrader leads [mythic] [item words] [have|missing|new] - look for antiquity leads (also /fmstraderlead)")
+end
+
+local function TraderLeadCommand(text)
+	if FMS_Trim(text):lower() == "help" then
+		d(PREFIX .. "Usage: /fmstraderlead [mythic] [item words] [have] [missing] [new] [max:gold] [pages:N] [all]")
+		d("  Scans guild store listings for antiquity leads. Words match the antiquity, its set, its zone,")
+		d("  or the item it makes. mythic = only leads for mythic items. Example: /fmstraderlead mythic")
+		d("  Example: /fmstraderlead ring of the wild hunt")
+		return
+	end
+	FindMyStuff.StartTraderLeadSearch(text)
+end
+
+local function TraderCommand(text)
+	text = FMS_Trim(text)
+	local lower = text:lower()
+	if lower == "" or lower == "help" then
+		FMS_TraderHelp()
+	elseif lower == "stop" or lower == "clear" or lower == "off" then
+		FindMyStuff.StopTrader()
+	elseif lower == "last" then
+		local rows = FindMyStuff.GetTraderRows()
+		if #rows == 0 then
+			d(PREFIX .. "No saved trader matches.")
+		else
+			FMS_PrintRows(rows, "Last " .. #rows .. " trader match(es):")
+		end
+	else
+		FindMyStuff.StartTraderFilter(text)
+	end
+end
+
+local function FMS_OnTraderOpen()
+	trader.open = true
+	FMS_TraderChanged()
+	if trader.pendingScan and trader.filter then
+		-- give the store UI a moment to finish opening
+		zo_callLater(function()
+			if trader.open and trader.pendingScan then FMS_StartTraderScan() end
+		end, 1500)
+	end
+end
+
+local function FMS_OnTraderClose()
+	trader.open = false
+	if trader.scanning then
+		FMS_TraderFinish("stopped (store closed)")
+	else
+		FMS_TraderChanged()
+	end
+end
+
+-- ========================
+-- ANTIQUITY LEAD SEARCH
+-- ========================
+
+local LEAD_FLAGS = {have = true, missing = true, new = true, all = true, help = true, mythic = true}
+
+local function FMS_FormatDuration(seconds)
+	seconds = seconds or 0
+	local days = math.floor(seconds / 86400)
+	if days >= 1 then return days .. "d" end
+	local hours = math.floor(seconds / 3600)
+	if hours >= 1 then return hours .. "h" end
+	return math.max(1, math.floor(seconds / 60)) .. "m"
+end
+
+-- Returns rows, summary, errorText, parsedOptions
+function FindMyStuff.SearchLeads(text)
+	if type(GetNextAntiquityId) ~= "function" then
+		return nil, nil, "Antiquities aren't available in this game version."
+	end
+	local o = FMS_ParseOptions(FMS_Trim(text), LEAD_FLAGS)
+
+	local results = {}
+	local totalLeads, held = 0, 0
+	local id = GetNextAntiquityId()
+	while id and id ~= 0 do
+		local requiresLead = FMS_Call(DoesAntiquityRequireLead, id)
+		if requiresLead ~= false or o.flags.all then
+			local name = FMS_CleanName(GetAntiquityName(id))
+			local zoneId = FMS_Call(GetAntiquityZoneId, id) or 0
+			local zoneName = zoneId ~= 0 and FMS_CleanName(GetZoneNameById(zoneId)) or "Anywhere"
+			local setId = FMS_Call(GetAntiquitySetId, id) or 0
+			local setName = setId ~= 0 and FMS_CleanName(FMS_Call(GetAntiquitySetName, setId)) or ""
+			local hasLead = FMS_Call(DoesAntiquityHaveLead, id) and true or false
+			local recovered = FMS_Call(GetNumAntiquitiesRecovered, id) or 0
+			totalLeads = totalLeads + 1
+			if hasLead then held = held + 1 end
+
+			local haystack = (name .. " " .. setName .. " " .. zoneName):lower()
+			local keep = FMS_MatchesAllWords(haystack, o.words)
+				and not (o.flags.have and not hasLead)
+				and not (o.flags.missing and hasLead)
+				and not (o.flags.new and recovered > 0)
+				and not (o.flags.mythic and not FindMyStuff.IsMythicAntiquity(id))
+			if keep then
+				results[#results + 1] = {
+					id = id, name = name, zone = zoneName, set = setName, hasLead = hasLead,
+					recovered = recovered, quality = FMS_Call(GetAntiquityQuality, id) or 1,
+				}
+			end
+		end
+		id = GetNextAntiquityId(id)
+	end
+
+	table.sort(results, function(a, b)
+		if a.zone ~= b.zone then return a.zone < b.zone end
+		return a.name < b.name
+	end)
+
+	local rows = {}
+	for _, r in ipairs(results) do
+		local qColor = FMS_QUALITY_COLORS[r.quality] or FMS_QUALITY_COLORS[1]
+		local leadStr, leadPlain
+		if r.hasLead then
+			local remaining = FMS_Call(GetAntiquityLeadTimeRemainingSeconds, r.id)
+			local left = (remaining and remaining > 0) and (", " .. FMS_FormatDuration(remaining) .. " left") or ""
+			leadStr = " |c2DC50E[Have lead" .. left .. "]|r"
+			leadPlain = "You have this lead" .. left
+		else
+			leadStr = " |caaaaaa[No lead]|r"
+			leadPlain = "You don't have this lead"
+		end
+		local foundStr = r.recovered > 0 and (" |caaaaaa(dug up x" .. r.recovered .. ")|r") or " |c5BCEFA(never found)|r"
+		local detail = {"Zone: " .. r.zone}
+		if r.set ~= "" then detail[#detail + 1] = "Set: " .. r.set end
+		detail[#detail + 1] = leadPlain
+		detail[#detail + 1] = r.recovered > 0 and ("Dug up " .. r.recovered .. " time(s)") or "Never found"
+		rows[#rows + 1] = {
+			line = "  " .. qColor .. r.name .. "|r" .. (r.set ~= "" and (" |caaaaaa<" .. r.set .. ">|r") or "")
+				.. " - |cffff00" .. r.zone .. "|r" .. leadStr .. foundStr,
+			title = qColor .. r.name .. "|r" .. (r.hasLead and " |c2DC50E(lead)|r" or ""),
+			detail = table.concat(detail, "\n"),
+		}
+	end
+
+	local summary
+	if #rows == 0 then
+		summary = "No leads found" .. (#o.words > 0 and (" for |cffff00" .. table.concat(o.words, " ") .. "|r") or "") .. "."
+	else
+		summary = "|cffff00" .. #rows .. "|r lead(s) found (you hold " .. held .. " of " .. totalLeads .. ")."
+	end
+	return rows, summary, nil, o
+end
+
+local function LeadCommand(text)
+	if FMS_Trim(text):lower() == "help" then
+		d(PREFIX .. "Usage: /fmslead [words] [mythic] [have] [missing] [new] [all] [page:N]")
+		d("  mythic = only antiquities that make a mythic item. /fmstraderlead looks for leads in guild stores.")
+		d("  Words match the antiquity, its set, or its zone. have = leads you hold, missing = leads you don't,")
+		d("  new = never recovered, all = include antiquities that don't need a lead.")
+		return
+	end
+	local rows, summary, err, o = FindMyStuff.SearchLeads(text)
+	if err or #rows == 0 then
+		FMS_PrintRows(nil, summary, err)
+		return
+	end
+	local perPage = FMS_Setting("maxResults")
+	local pages = math.ceil(#rows / perPage)
+	local page = math.min(math.max(1, tonumber(o.page) or 1), pages)
+	local first = (page - 1) * perPage + 1
+	local last = math.min(#rows, page * perPage)
+	d(PREFIX .. summary .. " Showing " .. first .. "-" .. last
+		.. (pages > 1 and (", page " .. page .. "/" .. pages .. " - add page:" .. (page % pages + 1) .. " for more") or "") .. ".")
+	for i = first, last do d(rows[i].line) end
+end
+
+-- ========================
+-- INITIALIZATION
+-- ========================
+
 function FindMyStuff:Initialize()
+	for key, value in pairs(FindMyStuff.SettingDefaults) do
+		if FindMyStuff.Default[key] == nil then FindMyStuff.Default[key] = value end
+	end
 	FindMyStuff.SavedVariables = ZO_SavedVars:NewAccountWide("FindMyStuffSV", FindMyStuff.SettingsVersion, nil, FindMyStuff.Default)
 	EVENT_MANAGER:UnregisterForEvent(FindMyStuff.Name, EVENT_ADD_ON_LOADED)
 	FindMyStuff.Default = {quality=FindMyStuff.SavedVariables.quality,level=FindMyStuff.SavedVariables.level}
 	link_suffix = ":" .. FindMyStuff.Default.quality .. ":" .. FindMyStuff.Default.level .. base_suffix
-    d("FindMyStuff v" .. FindMyStuff.Version .. " loaded. Type /fmshelp to begin searching for items.")
-    -- Inventory cross-character search
-    SLASH_COMMANDS["/finditem"] = FindInInventory
-    SLASH_COMMANDS["/fmsscan"] = function() FindMyStuff.ScanInventory() end
-    --Tries to find all recipes/blueprints
-    SLASH_COMMANDS["/fmsdump"] = Dump
-    --Allows changing the found item quality
-    SLASH_COMMANDS["/fmssetquality"] = SetQuality
-    --Shows command usage
-    SLASH_COMMANDS["/fmshelp"] = IFHelp
-    -- Auto-scan inventory on each login (3 second delay to ensure bags are loaded)
-    EVENT_MANAGER:RegisterForEvent(FindMyStuff.Name .. "_Inv", EVENT_PLAYER_ACTIVATED, function()
-        zo_callLater(FindMyStuff.ScanInventory, 3000)
-    end)
-	EVENT_MANAGER:RegisterForEvent(FindMyStuff.Name, EVENT_LOOT_UPDATED, function(eventCode)
-		-- Only scan if the bag is one of the tracked bags
-		zo_callLater(function()
-			FindMyStuff.ScanInventory()
-		end, 3000)
+	max_results = FMS_Setting("maxResults")
+	if FMS_Setting("showLogin") then
+		d("FindMyStuff v" .. FindMyStuff.Version .. " loaded. Type /fms to open the window or /fmshelp for commands.")
+	end
+	-- Inventory cross-character search
+	SLASH_COMMANDS["/finditem"] = FindInInventory
+	SLASH_COMMANDS["/fmsscan"] = function()
+		FindMyStuff.ScanInventory()
+		d(PREFIX .. "Inventory rescanned.")
+	end
+	--Tries to find all recipes/blueprints
+	SLASH_COMMANDS["/fmsdump"] = Dump
+	--Allows changing the found item quality
+	SLASH_COMMANDS["/fmssetquality"] = SetQuality
+	--Shows command usage
+	SLASH_COMMANDS["/fmshelp"] = IFHelp
+	-- Guild trader filtering
+	SLASH_COMMANDS["/fmstrader"] = TraderCommand
+	SLASH_COMMANDS["/fmstraderlead"] = TraderLeadCommand
+	SLASH_COMMANDS["/fmstraderleads"] = TraderLeadCommand
+	EVENT_MANAGER:RegisterForEvent(FindMyStuff.Name .. "_Trader", EVENT_OPEN_TRADING_HOUSE, FMS_OnTraderOpen)
+	EVENT_MANAGER:RegisterForEvent(FindMyStuff.Name .. "_Trader", EVENT_CLOSE_TRADING_HOUSE, FMS_OnTraderClose)
+	EVENT_MANAGER:RegisterForEvent(FindMyStuff.Name .. "_Trader", EVENT_TRADING_HOUSE_RESPONSE_RECEIVED, FMS_OnTraderResponse)
+	-- Antiquity lead search
+	SLASH_COMMANDS["/fmslead"] = LeadCommand
+	SLASH_COMMANDS["/fmsleads"] = LeadCommand
+	-- Window / gamepad screen
+	SLASH_COMMANDS["/fms"] = function(text) FindMyStuff.ShowUI(FMS_Trim(text):lower()) end
+
+	-- Auto-scan inventory on each login (3 second delay to ensure bags are loaded)
+	EVENT_MANAGER:RegisterForEvent(FindMyStuff.Name .. "_Inv", EVENT_PLAYER_ACTIVATED, function()
+		zo_callLater(FindMyStuff.ScanInventory, 3000)
 	end)
+	EVENT_MANAGER:RegisterForEvent(FindMyStuff.Name, EVENT_LOOT_UPDATED, function()
+		if FMS_Setting("autoScan") then
+			zo_callLater(FindMyStuff.ScanInventory, 3000)
+		end
+	end)
+
+	-- UI pieces live in their own files; each is optional
+	for _, init in ipairs({FindMyStuff.InitWindow, FindMyStuff.InitGamepad, FindMyStuff.InitSettings}) do
+		if type(init) == "function" then
+			local ok, err = pcall(init)
+			if not ok then d(PREFIX .. "UI setup error: " .. tostring(err)) end
+		end
+	end
+end
+
+-- Opens the gamepad screen in gamepad mode, the window otherwise. tab = "items" | "traders" | "leads"
+function FindMyStuff.ShowUI(tab)
+	if tab == "" then tab = nil end
+	if IsInGamepadPreferredMode() and FindMyStuff.ShowGamepad then
+		if not tab and FindMyStuff.IsGamepadShowing and FindMyStuff.IsGamepadShowing() then
+			FindMyStuff.CloseGamepad()
+		else
+			FindMyStuff.ShowGamepad(tab)
+		end
+	elseif FindMyStuff.ToggleWindow then
+		FindMyStuff.ToggleWindow(tab)
+	end
 end
 
 function FindMyStuff:OnAddOnLoaded(event, addonName)
@@ -976,7 +1914,7 @@ function FindMyStuff:OnAddOnLoaded(event, addonName)
 end
 
 EVENT_MANAGER:RegisterForEvent(FindMyStuff.Name, EVENT_ADD_ON_LOADED, function(event, addonName)
-    if addonName == FindMyStuff.Name then
-        FindMyStuff:OnAddOnLoaded(event, addonName)
-    end
+	if addonName == FindMyStuff.Name then
+		FindMyStuff:OnAddOnLoaded(event, addonName)
+	end
 end)

@@ -14,11 +14,17 @@ local function Normalize(name)
     return (zo_strlower or string.lower)(name)
 end
 
-local function Context()
+local function SelectedContext()
     local ww = WizardsWardrobe
     local zone, pageId = ww.selection.zone, ww.selection.pageId
     local character = ww.storage and ww.storage.selectedCharacterId or ww.currentCharacterId or "player"
     local key = tostring(character) .. ":" .. zone.tag .. ":" .. tostring(pageId)
+    return key, zone, pageId
+end
+
+local function Context()
+    local ww = WizardsWardrobe
+    local key, zone, pageId = SelectedContext()
     if not diverted[key] then cursors[key] = ww.currentIndex end
     if cursors[key] == nil then cursors[key] = ww.currentIndex end
     local page = ww.setups and ww.setups[zone.tag] and ww.setups[zone.tag][pageId]
@@ -80,7 +86,11 @@ function R.Plan(direct, quiet)
 end
 
 function R.IsCurrent(plan)
-    local key, _, _, page = Context()
+    -- Verification must not overwrite the saved normal index while a direct
+    -- jump has finished in WW but has not yet been committed by this add-on.
+    local key, zone, pageId = SelectedContext()
+    local ww = WizardsWardrobe
+    local page = ww.setups and ww.setups[zone.tag] and ww.setups[zone.tag][pageId]
     return plan and key == plan.context and page and page[plan.index] == plan.setupRef
 end
 

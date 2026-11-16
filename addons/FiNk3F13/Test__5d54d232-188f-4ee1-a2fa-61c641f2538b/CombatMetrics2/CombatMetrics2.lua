@@ -28,7 +28,7 @@ local CMX2 = CMX2
 
 -- Basic values
 CMX2.name = "CombatMetrics2"
-CMX2.version = "1.7.10-integriert.1"
+CMX2.version = "1.7.17"
 
 -- Logger
 

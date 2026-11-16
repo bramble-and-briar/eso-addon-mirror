@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/f1rex/Story-Saver__2976",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "f1rex",
   "canonical_id": "esoui:2976",
   "category_id": "26",
@@ -12,7 +13,7 @@
     "StorySaver"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2976/",
-  "fingerprint": "7600cf006b7973dc080f72a0425caccf88b868cbaf9ef65f984322397da34355",
+  "fingerprint": "741d890191172242bd5fa5d6ce92aec2089d2639456ded0c715c2a1844c1b402",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw12950.png",
     "https://cdn-eso.mmoui.com/preview/pvw12949.png",
@@ -31,11 +32,11 @@
   "source_id": "2976",
   "source_url": "https://www.esoui.com/downloads/info2976-StorySaver.html",
   "stats": {
-    "downloads": 7141,
+    "downloads": 7220,
     "favorites": 25,
-    "monthly_downloads": 40
+    "monthly_downloads": 30
   },
   "title": "Story Saver",
-  "updated_at": 1779794938000,
-  "version": "18"
+  "updated_at": 1794756725000,
+  "version": "19"
 }

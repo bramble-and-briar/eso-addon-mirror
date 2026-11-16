@@ -100,6 +100,7 @@ local CRAFTING_TYPE_JEWELRYCRAFTING = CRAFTING_TYPE_JEWELRYCRAFTING or 7
 WritWorthyInventoryList.SORT_KEYS = {
   ["ui_type"] = { tiebreaker = "ui_voucher_ct" },
   ["ui_voucher_ct"] = { tiebreaker = "ui_detail1", isNumeric = true },
+  ["ui_craft_ct"] = { tiebreaker = "ui_voucher_ct", isNumeric = true },
   ["ui_detail1"] = { tiebreaker = "ui_detail2" },
   ["ui_detail2"] = { tiebreaker = "ui_detail3" },
   ["ui_detail3"] = { tiebreaker = "ui_detail4" },
@@ -107,6 +108,7 @@ WritWorthyInventoryList.SORT_KEYS = {
   ["ui_detail5"] = { tiebreaker = "ui_is_queued" },
   ["ui_is_queued"] = { tiebreaker = "ui_use_mimic" },
   ["ui_use_mimic"] = { tiebreaker = "ui_can_queue" },
+  ["ui_gold_per_voucher"] = { tiebreaker = "ui_voucher_ct", isNumeric = true },
   -- Not visible columns, but still affect sort.
   ["ui_can_queue"] = {},
   ["ui_station_sort"] = { tiebreaker = "ui_voucher_ct" }
@@ -139,6 +141,7 @@ WritWorthyInventoryList.CELL_DETAIL4 = "Detail4"
 WritWorthyInventoryList.CELL_DETAIL5 = "Detail5"
 WritWorthyInventoryList.CELL_ENQUEUE = "Enqueue"
 WritWorthyInventoryList.CELL_MIMIC = "Mimic"
+WritWorthyInventoryList.CELL_GOLD = "Gold"
 WritWorthyInventoryList.CELL_ENQUEUE_MASK = "EnqueueMask" -- not a cell on its own.
 WritWorthyInventoryList.CELL_NAME_LIST = {
   WritWorthyInventoryList.CELL_TYPE,
@@ -150,7 +153,8 @@ WritWorthyInventoryList.CELL_NAME_LIST = {
   WritWorthyInventoryList.CELL_DETAIL4,
   WritWorthyInventoryList.CELL_DETAIL5,
   WritWorthyInventoryList.CELL_MIMIC,
-  WritWorthyInventoryList.CELL_ENQUEUE
+  WritWorthyInventoryList.CELL_ENQUEUE,
+  WritWorthyInventoryList.CELL_GOLD
 }
 -- Cells that are shown/hidden click buttons, not text data.
 WritWorthyInventoryList.CELL_UNTEXT_LIST = {
@@ -162,6 +166,12 @@ WritWorthyInventoryList.CELL_UNTEXT_LIST = {
 
 function WritWorthyUI_RestorePos()
   Util.RestorePos(WritWorthyUI, "position")
+  -- Saved sizes from before the Gold/V column was added
+  -- are too narrow. Widen to the XML's minimum.
+  local min_width = WritWorthyUI:GetDimensionConstraints()
+  if WritWorthyUI:GetWidth() < min_width then
+    WritWorthyUI:SetWidth(min_width)
+  end
 end
 
 function WritWorthyUI_SavePos()
@@ -171,6 +181,10 @@ end
 
 function WritWorthyUI_OnMoveStop()
   Util.OnMoveStop(WritWorthyUI, "position")
+end
+
+function WritWorthyUI_OnResizeStart()
+  Util.OnResizeStart(WritWorthyUI, WritWorthy.InventoryList)
 end
 
 function WritWorthyUI_OnResizeStop()
@@ -277,7 +291,8 @@ function WritWorthyInventoryList_HeaderInit(control, name, text, key)
     [WritWorthyInventoryList.CELL_DETAIL4] = WW.Str("header_tooltip_Detail4"),
     [WritWorthyInventoryList.CELL_DETAIL5] = WW.Str("header_tooltip_Detail5"),
     [WritWorthyInventoryList.CELL_ENQUEUE] = WW.Str("header_tooltip_Q"),
-    [WritWorthyInventoryList.CELL_MIMIC] = WW.Str("header_tooltip_M")
+    [WritWorthyInventoryList.CELL_MIMIC] = WW.Str("header_tooltip_M"),
+    [WritWorthyInventoryList.CELL_GOLD] = WW.Str("header_tooltip_Gold")
   }
 
   local tooltip_text = WritWorthyInventoryList.HEADER_TOOLTIPS[name]
@@ -413,6 +428,9 @@ function WritWorthyInventoryList:BuildMasterlist()
 
   -- We need UI data before we can sort.
   for _, inventory_data in pairs(self.inventory_data_list) do
+    -- Material prices do not change between row redraws,
+    -- so price the mat list once per scan, not per SetupRowControl().
+    inventory_data.ui_gold_per_voucher = self:GetGoldPerVoucher(inventory_data)
     self:PopulateUIFields(inventory_data)
     u[inventory_data.unique_id] = inventory_data
   end
@@ -656,6 +674,10 @@ function WritWorthyInventoryList:IsUseMimic(inventory_data)
 end
 
 function WritWorthyInventoryList:IsCompleted(inventory_data)
+  -- A holiday writ whose result items are already in the backpack.
+  if inventory_data and inventory_data.parser and inventory_data.parser.still_needed_count == 0 then
+    return true
+  end
   if
   not (inventory_data and inventory_data.unique_id and WritWorthy.savedChariables and
     WritWorthy.savedChariables.writ_unique_id and
@@ -665,6 +687,25 @@ function WritWorthyInventoryList:IsCompleted(inventory_data)
   end
   return WritWorthy.savedChariables.writ_unique_id[inventory_data.unique_id].state ==
     WritWorthyInventoryList.STATE_COMPLETED
+end
+
+-- Material cost per voucher for the whole writ, the same figure that the
+-- "Max gold per voucher" filter compares against.
+-- Returns -1 if the cost is unknown or the writ pays no vouchers, so that
+-- the value still sorts numerically.
+function WritWorthyInventoryList:GetGoldPerVoucher(inventory_data)
+  if not inventory_data.parser then
+    return -1
+  end
+  local voucher_ct = WritWorthy.ToVoucherCount(inventory_data.item_link)
+  if not (voucher_ct and 0 < voucher_ct) then
+    return -1
+  end
+  local mat_gold = WritWorthy.MatRow.ListTotal(inventory_data.parser:ToMatList())
+  if not mat_gold then
+    return -1
+  end
+  return mat_gold / voucher_ct
 end
 
 -- Can this row be queued in LibLazyCrafting?
@@ -690,12 +731,11 @@ function WritWorthyInventoryList:CanQueue(inventory_data)
   end
 
   -- Is it below the maximum allowed cost per voucher?
-  local voucher_ct = WritWorthy.ToVoucherCount(inventory_data.item_link)
-  local mat_list = inventory_data.parser:ToMatList()
-  local mat_gold = WritWorthy.MatRow.ListTotal(mat_list) or 0
+  -- Unknown cost (-1) never exceeds the maximum.
   local max_gpv = WritWorthy.savedVariables.filter_max_gold_per_voucher
   if max_gpv then
-    if max_gpv <= mat_gold / voucher_ct then
+    local gold_per_voucher = inventory_data.ui_gold_per_voucher or self:GetGoldPerVoucher(inventory_data)
+    if 0 <= gold_per_voucher and max_gpv <= gold_per_voucher then
       local msg = string.format("> %d gold per voucher", max_gpv)
       return false, msg
     end
@@ -1075,6 +1115,11 @@ function WritWorthyInventoryList:SetupRowControl(row_control, inventory_data)
   rc[self.CELL_DETAIL3]:SetText(fn(c, i_d.ui_detail3))
   rc[self.CELL_DETAIL4]:SetText(fn(c, i_d.ui_detail4))
   rc[self.CELL_DETAIL5]:SetText(fn(c, i_d.ui_detail5))
+  local gold_per_voucher_text = ""
+  if i_d.ui_voucher_ct and 0 < i_d.ui_voucher_ct then
+    gold_per_voucher_text = Util.ToMoney(i_d.ui_gold_per_voucher)
+  end
+  rc[self.CELL_GOLD]:SetText(fn(c, gold_per_voucher_text))
 
   local bm = rc[self.CELL_MIMIC]
   bm.inventory_data = inventory_data
@@ -1097,10 +1142,7 @@ function WritWorthyInventoryList:SetupRowControl(row_control, inventory_data)
   b.inventory_data = inventory_data
   b_mask.inventory_data = inventory_data
   ZO_CheckButton_SetCheckState(b, i_d.ui_is_queued)
-  -- A completed row stays clickable so a writ crafted with the wrong
-  -- count can be queued again. The mask only blocks rows that cannot
-  -- be crafted at all.
-  if i_d.ui_can_queue or i_d.ui_is_completed then
+  if i_d.ui_can_queue then
     b_mask:SetHidden(true)
   else
     b_mask:SetHidden(false)
@@ -1486,7 +1528,8 @@ function WritWorthy_LLC_IsItemCraftable(self, station_crafting_type, request)
   if not inventory_data then
     return orig_can_craft
   end
-  local mat_list = inventory_data.parser:ToMatList()
+  local parser = inventory_data.parser
+  local mat_list = parser.ToCraftMatList and parser:ToCraftMatList() or parser:ToMatList()
   if not mat_list then
     return orig_can_craft
   end

@@ -18,7 +18,7 @@
     "CaracTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5038/",
-  "fingerprint": "fe94ba0c5b981ef2ff18c112009ebb49245db690f4531b85782f90ebc6aace11",
+  "fingerprint": "640eeb6835670b0a4178f56829f953dc6795f2ad3a9d4eb366c3df44f0a4cf3a",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18362.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18363.jpg",
@@ -31,11 +31,11 @@
   "source_id": "5038",
   "source_url": "https://www.esoui.com/downloads/info5038-CaracTracker.html",
   "stats": {
-    "downloads": 31,
+    "downloads": 55,
     "favorites": 0,
-    "monthly_downloads": 8
+    "monthly_downloads": 52
   },
   "title": "CaracTracker",
-  "updated_at": 1794144956000,
-  "version": "1"
+  "updated_at": 1794776515000,
+  "version": "1.1"
 }

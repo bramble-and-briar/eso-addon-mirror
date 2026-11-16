@@ -5,7 +5,7 @@
 --- @class LibCustomNames
 local lib = {
     name = "LibCustomNames",
-    version = "2026-11-09",
+    version = "2026-11-16",
     author = "@m00nyONE",
 }
 

@@ -50,6 +50,7 @@ SafeAddString(BATTLESCROLLS_IPOC_REASON_UNASSIGNED, "一致するルールなし
 SafeAddString(BATTLESCROLLS_IPOC_REASON_LEARN, "クラフターで習得", 1)
 SafeAddString(BATTLESCROLLS_IPOC_REASON_VALUABLE_PLAN, "高価な家具の設計図", 1)
 SafeAddString(BATTLESCROLLS_IPOC_REASON_DUPLICATE, "重複したアイテム", 1)
+SafeAddString(BATTLESCROLLS_IPOC_REASON_CRAFTED, "クラフト品", 1)
 
 SafeAddString(BATTLESCROLLS_IPOC_HEALER, "ヒーラー", 1)
 SafeAddString(BATTLESCROLLS_IPOC_DAMAGE, "ダメージ", 1)
@@ -70,6 +71,7 @@ SafeAddString(BATTLESCROLLS_IPOC_WORK_REOPEN, "このサービスをもう一度
 SafeAddString(BATTLESCROLLS_IPOC_EQUIPPED, "<<2>>に<<1>>を装備しました", 1)
 SafeAddString(BATTLESCROLLS_IPOC_LISTED, "<<4>>に<<1>> × <<2>>を<<3>>ゴールドで出品しました。手数料：<<5>>ゴールド", 1)
 SafeAddString(BATTLESCROLLS_IPOC_OPENED, "<<1>>を開きました", 1)
+SafeAddString(BATTLESCROLLS_IPOC_CONTAINER_HELD, "<<1>>を開けられません: <<2>> <<3>>/<<4>>", 1)
 SafeAddString(BATTLESCROLLS_IPOC_TITLE, "持ち物", 1)
 SafeAddString(BATTLESCROLLS_IPOC_WORK_BANK, "アイテムを移動中", 1)
 SafeAddString(BATTLESCROLLS_IPOC_WORK_SELL, "アイテムを売却中", 1)

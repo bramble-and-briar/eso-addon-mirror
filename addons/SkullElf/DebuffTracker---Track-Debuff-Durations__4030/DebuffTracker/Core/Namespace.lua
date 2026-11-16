@@ -8,7 +8,7 @@
 DebuffTracker = {
     name = "DebuffTracker",
     displayName = "DebuffTracker",
-    version = "5.21.20",
+    version = "5.21.21",
     author = "SkullElf",
 
     Util = {},

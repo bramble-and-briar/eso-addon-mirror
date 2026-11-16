@@ -21,6 +21,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PantherXP](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rynzaii/PantherXP__3404) | Rynzaii | PC / Mac | v2.1.0 |
 | [PapaCrown Fixed and Improved](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/triase/PapaCrown-Fixed-and-Improved__1544) | triase | PC / Mac | 1.6.5 |
 | [ParlezPlus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/numpad0to9/ParlezPlus__2383) | numpad0to9 | PC / Mac | 1.3 |
+| [Patch BanditsUI for Select Dangeons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alezhu/Patch-BanditsUI-for-Select-Dangeons__5056) | alezhu | PC / Mac | 1.0.0 |
 | [Patch for "Provision's TeamFormation" : Necromancer/Arcanist Icon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DoonerSeraph/Patch-for-Provision-s-TeamFormation-Necromancer-Arcanist-Icon__2543) | DoonerSeraph | PC / Mac | 1.1.0 |
 | [Patcher for Bandits User Interface](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/Patcher-for-Bandits-User-Interface__2480) | Phuein | PC / Mac | 1.02 |
 | [Patchs AutoInvite ES by Kelsucristo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ElKel/Patchs-AutoInvite-ES-by-Kelsucristo__2116) | ElKel | PC / Mac | 0.1.4 |
@@ -42,6 +43,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Pawksickles Updated and jpFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/Pawksickles-Updated-and-jpFix__1401) | 2ch | PC / Mac | 1.5.2 |
 | [Pawksickles updated for High Isle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/trollusk/Pawksickles-updated-for-High-Isle__3422) | trollusk | PC / Mac | 1.6.1 |
 | [PB](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alexdragian/PB__2499) | alexdragian | PC / Mac | 0.0.23 |
+| [PBsOnlineStatusAlert(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PBsOnlineStatusAlert-Beta__c27b406e-b19f-441b-876b-260e195df26d) | PinkBanther | Console | — |
 | [pChat (Chat customization & help: look/notification/sound/automation/history)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Puddy/pChat-Chat-customization-help-look-notification-sound-automation-history__93) | Puddy | PC / Mac | 10.0.7.6 |
 | [pChat - jp Nickname Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marify/pChat---jp-Nickname-Patch__2697) | Marify | PC / Mac | 1.3.12 |
 | [pChatZHPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/pChatZHPatch__3908) | FusRoDah | PC / Mac | 10.0.5.3 |
@@ -90,6 +92,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinAutoResizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/PinAutoResizer__f386385b-2805-4720-8481-1d87d1cd1d0c) | Masteroshi430 | Console | — |
 | [PinAutoResizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/PinAutoResizer__3365) | Masteroshi430 | PC / Mac | 2026.07.24 |
 | [PinHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/olegbl/PinHelper__3259) | olegbl | PC / Mac | 1.06 |
+| [PinkB's AutoLoot](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-AutoLoot__4d5ab3e7-7762-40f6-bbb8-a64c1696dbde) | PinkBanther | Console | — |
+| [PinkB's AutoLoot(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-AutoLoot-Beta__981d34f1-c0ba-4bc4-afa2-490348db8c16) | PinkBanther | Console | — |
 | [PinkB's ChatAssistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ChatAssistant__416eb892-aa32-4a10-8d1a-7ba7cf27cedf) | PinkBanther | Console | — |
 | [PinkB's ChatAssistant(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ChatAssistant-Beta__8409de55-043d-4bcc-8876-395671fdc7b5) | PinkBanther | Console | — |
 | [PinkB's ChatFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ChatFilter__f4b50a99-0e05-4748-95a8-d062f94401f3) | PinkBanther | Console | — |

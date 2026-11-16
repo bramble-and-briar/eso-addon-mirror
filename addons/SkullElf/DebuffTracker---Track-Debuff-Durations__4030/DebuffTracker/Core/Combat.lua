@@ -142,6 +142,12 @@ local function Start(trackerId, result, abilityName, sourceName, targetName, tar
             end
             return
         end
+        -- A proc with a cooldown can't proc again until that cooldown is over: an event while the timer runs is the
+        -- same proc arriving late, not a new one (tutsuraki: Pillager's Profit's cooldown "renewed itself a couple times"
+        -- in DebuffTracker while HodorReflexes' 45 s was right -- group members who get its Ultimate a bit later each
+        -- send their own "gained", and every one after the first 0.5 s restarted the 45 s). The last second is left
+        -- open so a real next proc that beats our timer by a little still starts it.
+        if cfg.cdLock and EndOf(t) - now > Cb.PROC_SLACK then return end
         -- "restart when it fires again" off: ignored until the whole timer (incl. cooldown) is over
         if not cfg.restartOnRefresh and EndOf(t) > now then return end
     end
@@ -415,6 +421,8 @@ function Cb.ResetCounts()
         end
     end
 end
+
+Cb.PROC_SLACK = 1.0     -- s: a proc's own cooldown accepts a new proc in its last second
 
 function Cb.Fire(trackerId, abilityId)   -- used by tests and the "test fire" editor button
     Start(trackerId, nil, GetAbilityName(abilityId) or "", "", "", 0, abilityId)

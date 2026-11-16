@@ -8,8 +8,8 @@
 
 ## APIVersion: 101051
 ## Title: KelaPadUI Enhanced - Gamepad UI
-## Version: 2.8.1
-## AddOnVersion: 20801
+## Version: 2.8.2
+## AddOnVersion: 20802
 ## Author: @slice_o'life
 ## Description: This addon improves the gamepad's UI by adding additional information and features. Maintained successor to KelaPadUI by @rkirgizov; delete the original KelaPadUI folder before installing.
 ## SavedVariables: kpuiSavedVariables
@@ -63,7 +63,8 @@ kpui_features/companion/kpui_companion_collections.lua
 kpui_features/kpui_dungeon_finder.lua
 kpui_features/kpui_chat_tools.lua
 kpui_features/kpui_map_rally.lua
-kpui_features/kpui_basegame_fixes.lua
+kpui_features/fixes/kpui_basegame_fixes.lua
+kpui_features/fixes/kpui_group_menu_fix.lua
 kpui_features/kpui_controller_buttons.lua
 
 KelaPadUI.lua

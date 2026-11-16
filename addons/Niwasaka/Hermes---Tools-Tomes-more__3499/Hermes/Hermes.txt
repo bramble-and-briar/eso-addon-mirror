@@ -8,8 +8,8 @@
 ## APIVersion: 101051
 ## Author: Niwasaka
 
-## Version: 1.6.0
-## AddOnVersion: 10600
+## Version: 1.7.0
+## AddOnVersion: 10700
 ## Description: Hermes adds quick chat-based teleport options, a compact Tamriel Tome helper, and a few extra utility features. Required libraries: LibAddonMenu-2.0, LibCustomMenu.
 ## DependsOn: LibAddonMenu-2.0>=43 LibCustomMenu>=730
 ## SavedVariables: HermesSavedVars

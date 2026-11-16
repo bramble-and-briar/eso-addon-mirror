@@ -1,6 +1,15 @@
-# WW D-Pad — Version 0.6.1
+# WW D-Pad — Version 0.7.0
 
 Autor: FiNk3--F13--
+
+Version 0.7.0 behebt die dauerhafte Abschaltung nach fehlender WW-Erfolgsmeldung.
+Leere oder abgelehnte Setups werden direkt erkannt. WWs asynchrone Aufgaben
+werden zusätzlich beobachtet. Wo WW keine Abschlussprüfung startet oder einen
+Fehlschlag ausdrücklich meldet, kann die Sperre nach zwei bestätigten
+Ruheprüfungen aufgehoben werden. Laufende und verzögerte Aufgaben bleiben
+gesperrt. Ein solcher Abschluss bedeutet nicht, dass fehlende Gegenstände
+erfolgreich angelegt wurden; entsprechende Hinweise in WW weiterhin beachten.
+Die WW-Aufgaben werden weder abgebrochen noch verändert.
 
 ## Manuelle Hotkeys
 
@@ -82,9 +91,15 @@ Auf PC/PTS kann /wwdpad den Hauptschalter umschalten.
 
 ## Schutz und Update
 
-Alle Wechsel teilen sich eine Sperre: WW-Abschluss abwarten und danach 800 ms Pause. Ohne Bestätigung nach 45 Sekunden oder bei einem Fehler während
-des gestarteten Wechsels schaltet sich das Add-on ab. Dann WW prüfen, /reloadui
-ausführen und gegebenenfalls wieder aktivieren.
+Alle Wechsel teilen sich eine Sperre: WW-Abschluss abwarten und danach 800 ms
+Pause. Auch nach einer nativen Erfolgsmeldung werden noch beobachtete laufende
+WW-Aufgaben berücksichtigt. Ohne Bestätigung nach 45 Sekunden erscheint nur
+noch eine einmalige Warnung. Das Add-on bleibt eingeschaltet und wartet weiter;
+die Zeit allein gibt keinen weiteren Wechsel frei. Kampf- und Todeszeit zählen
+nicht in diese Frist. Ein später nachweisbarer Abschluss gibt die Sperre ohne
+/reloadui frei. Bei unbekanntem Aufgabenstatus bleibt sie zum Schutz bestehen.
+Ein echter Fehler beim Start eines WW-Wechsels kann das Add-on weiterhin
+vorsorglich deaktivieren; dann WW prüfen, neu laden und wieder aktivieren.
 
 Die gemerkte normale Position ist je ausgewählter WW-Seite und Charakter
 getrennt und gilt bis zum Neuladen. Ein zwischenzeitlich manuell geladenes
@@ -92,7 +107,9 @@ Prebuff-Setup verschiebt die gemerkte Position nach einem direkten Sprung nicht.
 
 PTS: WWDpad ist im PTS-AddOns-Ordner installiert; nach Update /reloadui.
 Manuell den alten WWDpad-Paketordner ersetzen. Vorhandene Hotkey-Einstellungen
-und der Zielsetupname bleiben erhalten; die neue Automatik startet AUS.
+und der Zielsetupname bleiben erhalten; die Automatik startet bei Erstinstallation
+AUS und behält bei Updates den bisherigen Zustand. War die alte Version bereits
+ausgeschaltet, nach dem Update einmal im Menü wieder einschalten.
 
 PS5: Paket über den ESO-Konsolen-Uploader veröffentlichen und anschließend aus
 dem Add-on-Katalog installieren. Die PTS-Installation aktualisiert keine Konsole.
@@ -109,6 +126,12 @@ Menüs, Tastenbelegungen und Migration, 1.000 Eingaben über beide Tasten,
 Vormerkung, 800-ms-Sperre, Automatik-Schalter, WW-Bossraum ohne sichtbare
 Boss-Einheiten, Namens-/Bedingungszuordnung, fester Automatik-Zielmodus und
 Vorrang manueller Eingaben. Test im laufenden ESO und auf Konsole steht aus.
+
+Zusätzliche Regressionstests für 0.7.0: fehlende WW-Abschlussmeldung bei fehlender
+Ausrüstung und deaktiviertem Ausrüstungswechsel, aktive/delayed CP-Aufgaben,
+Ablehnung leerer Setups, verspätete Erfolgsmeldung, pausierte Kampfzeit und
+ausdrücklicher WW-Validierungsfehlschlag. Dabei wird ohne UI-Neuladen fortgesetzt,
+sobald der jeweilige Abschluss nachweisbar ist.
 
 Mit KI-Unterstützung erstellt. Nicht von ZeniMax Media Inc. oder verbundenen
 Unternehmen erstellt, unterstützt oder gesponsert.

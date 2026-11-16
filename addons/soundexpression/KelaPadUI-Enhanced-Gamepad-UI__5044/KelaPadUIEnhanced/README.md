@@ -6,7 +6,11 @@ information, trading data, daily-progress tracking, and quick access to the
 screens you use most. It is designed for the gamepad UI and keeps the core
 controller layout intact.
 
-Original add-on by @rkirgizov. Current maintenance by @slice_o'life.
+U51 Note: This addon fixes some base-game bugs in battlegrounds that should be resolved
+in U52. I'll remove the fixes when ZOS gets their sh** together.
+
+It also works around a long-standing gamepad bug where the group menu's empty
+member list pops up over the HUD at random while playing.
 
 ## Requirements
 
@@ -215,6 +219,19 @@ for any character on the server you are playing.
 - Replaces Xbox controller button icons with PlayStation 5 icons.
 - Off by default; the setting applies without a reload.
 
+### Fixes and patches
+
+- **Group menu fix** - Stops the gamepad group menu from reacting to group
+  events while it is closed. This is a long-standing gamepad bug: a background
+  rebuild attaches the menu's empty member list and background panel to whichever
+  scene is current, and clears that scene's help or item panel. Summoning or
+  dismissing a pet is enough to trigger it. Add-ons that rebuild the closed menu
+  are covered as well. On by default and reload-gated.
+- **U51 BG Fixes** - Restores L2/R2 battle-round paging on the Battleground
+  scoreboard, corrects the 6v6v6 and 9v9 scoreboard row heights, and unlocks the
+  Activity Finder Battleground entry as soon as its data loads. These mirror the
+  ZOS fixes expected in U52.
+
 ## Settings
 
 All settings live in the KelaPadUI section of the gamepad settings menu. They are
@@ -223,6 +240,8 @@ stored account-wide in `kpuiSavedVariables`.
 - Feature toggles for companion info, dungeon finder, chat tools, map rally,
   additional gamepad filters, antiquity lead details, main-menu quick access, the
   dashboard, PersonalAssistant junk marking, and the PS5 button map.
+- Fixes and Patches toggles for the group menu fix and the U51 battleground
+  fixes.
 - Sets interface toggle.
 - Trading master toggle, ATT analysis period, and per-surface tooltip toggles for
   the guild store, bank, vendors, and crafting stations.
@@ -252,6 +271,23 @@ and IDs.
 - No automation, botting, or gameplay automation is included. All features are
   read-only information or UI shortcuts.
 
+## Reporting bugs and requesting features
+
+The preferred place for bug reports and feature requests is the GitHub issue
+tracker:
+
+- [Open a bug report or feature request](https://github.com/delli007/KelaPadUIEnhanced/issues/new/choose)
+- [Browse open and closed issues](https://github.com/delli007/KelaPadUIEnhanced/issues)
+
+If you do not have a GitHub account, you can also comment on the add-on page:
+[KelaPadUI Enhanced on ESOUI](https://www.esoui.com/downloads/info5044-KelaPadUIEnhanced.html).
+Tag the comment with `#bug`, `#enhancement`, `#request`, or `#issue` so it is
+mirrored into this tracker automatically.
+
+Include the add-on version from the listing or `changelog.txt`, your platform
+(PC, PS5, or Xbox), whether ESO Plus is active, the steps that reproduce it, and the expected and actual result.
+`LibDebugLogger` (https://www.esoui.com/downloads/info2275-LibDebugLogger.html) output helps when the game logs an error.
+
 ## Documentation
 
 - `docs/SETTINGS.md` - settings model, IDs, and how to add or retire a setting.
@@ -265,7 +301,7 @@ and IDs.
 ## Credits
 
 - Original add-on: @rkirgizov.
-- Current maintenance: @slice_o'life.
+- Current maintenance: Only me for now.
 - `LibSets` and the optional libraries listed above are maintained by their
   respective authors.
 - The Elder Scrolls Online is a trademark of ZeniMax Media Inc. This add-on is

@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/PinkBanther/PBsOnlineStatusAlert-Beta__c27b406e-b19f-441b-876b-260e195df26d",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "PinkBanther",
+  "canonical_id": "bethesda:c27b406e-b19f-441b-876b-260e195df26d",
+  "content_id": "c27b406e-b19f-441b-876b-260e195df26d",
+  "deleted": false,
+  "fingerprint": "ec0435e9a6acd541e73ae54d50121ea9ab4f9dd26e5acb0273ba3cde70f55ba5",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "c27b406e-b19f-441b-876b-260e195df26d",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/c27b406e-b19f-441b-876b-260e195df26d",
+  "title": "PBsOnlineStatusAlert(Beta)"
+}

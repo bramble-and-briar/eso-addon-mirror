@@ -1,0 +1,60 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/alezhu/TomesGuard__5055",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "alezhu",
+  "canonical_id": "esoui:5055",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
+    {
+      "name": "Season Zero",
+      "version": "11.3.0"
+    },
+    {
+      "name": "Seasons of the Worm Cult Pt2",
+      "version": "11.2.0"
+    },
+    {
+      "name": "Feast of Shadows",
+      "version": "11.1.0"
+    },
+    {
+      "name": " Seasons of the Worm Cult Pt1",
+      "version": "11.0.0"
+    }
+  ],
+  "content_id": "esoui:5055",
+  "deleted": false,
+  "directories": [
+    "TomesGuard"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5055/",
+  "fingerprint": "0a43208be6a032aad5c3c62c331c5417f411f277844e4bc79709b41aedbc495e",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5055",
+  "source_url": "https://www.esoui.com/downloads/info5055-TomesGuard.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "TomesGuard",
+  "updated_at": 1794770880000,
+  "version": "1.0.2"
+}

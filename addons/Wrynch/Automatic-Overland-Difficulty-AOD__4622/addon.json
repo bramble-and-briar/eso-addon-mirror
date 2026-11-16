@@ -22,7 +22,7 @@
     "AOD"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4622/",
-  "fingerprint": "9499550d2a42e5e80c58755df3ba42b89a6a4d0c16df3a8c8b9d5409bcd2a5e7",
+  "fingerprint": "b094dea0511ef50256ae2a218d6d5f4e1c385c0598aafe31f2883cd09fabbc59",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16278.png",
     "https://cdn-eso.mmoui.com/preview/pvw17106.png",
@@ -35,11 +35,11 @@
   "source_id": "4622",
   "source_url": "https://www.esoui.com/downloads/info4622-AutomaticOverlandDifficultyAOD.html",
   "stats": {
-    "downloads": 5427,
-    "favorites": 10,
-    "monthly_downloads": 278
+    "downloads": 5812,
+    "favorites": 12,
+    "monthly_downloads": 206
   },
   "title": "Automatic Overland Difficulty (AOD)",
-  "updated_at": 1791290158000,
-  "version": "1.5.2"
+  "updated_at": 1794774840000,
+  "version": "1.5.3"
 }

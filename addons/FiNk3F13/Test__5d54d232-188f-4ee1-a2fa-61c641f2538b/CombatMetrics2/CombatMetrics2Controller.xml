@@ -4,29 +4,87 @@
     <TopLevelControl name="CombatMetrics2_ControllerFocus" hidden="true" mouseEnabled="false" tier="HIGH" level="100">
       <Controls>
         <Backdrop name="$(parent)Top" centerColor="FFFFFFFF" edgeColor="00000000">
-          <Anchor point="TOPLEFT" /><Anchor point="TOPRIGHT" /><Dimensions y="2" />
+          <Anchor point="TOPLEFT" />
+          <Anchor point="TOPRIGHT" />
+          <Dimensions y="2" />
         </Backdrop>
         <Backdrop name="$(parent)Bottom" centerColor="FFFFFFFF" edgeColor="00000000">
-          <Anchor point="BOTTOMLEFT" /><Anchor point="BOTTOMRIGHT" /><Dimensions y="2" />
+          <Anchor point="BOTTOMLEFT" />
+          <Anchor point="BOTTOMRIGHT" />
+          <Dimensions y="2" />
         </Backdrop>
         <Backdrop name="$(parent)Left" centerColor="FFFFFFFF" edgeColor="00000000">
-          <Anchor point="TOPLEFT" /><Anchor point="BOTTOMLEFT" /><Dimensions x="2" />
+          <Anchor point="TOPLEFT" />
+          <Anchor point="BOTTOMLEFT" />
+          <Dimensions x="2" />
         </Backdrop>
         <Backdrop name="$(parent)Right" centerColor="FFFFFFFF" edgeColor="00000000">
-          <Anchor point="TOPRIGHT" /><Anchor point="BOTTOMRIGHT" /><Dimensions x="2" />
+          <Anchor point="TOPRIGHT" />
+          <Anchor point="BOTTOMRIGHT" />
+          <Dimensions x="2" />
         </Backdrop>
       </Controls>
     </TopLevelControl>
     <TopLevelControl name="CombatMetrics2_ControllerHint" hidden="true" mouseEnabled="false" clampedToScreen="true" tier="HIGH" level="110">
       <Dimensions x="460" y="70" />
       <Controls>
-        <Backdrop name="$(parent)Background" centerColor="60080B10" edgeColor="00000000"><AnchorFill /></Backdrop>
+        <Backdrop name="$(parent)Background" centerColor="FA080B10" edgeColor="00000000">
+          <AnchorFill />
+          <OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 1, 1, 1, 1)</OnInitialized>
+        </Backdrop>
         <Backdrop name="$(parent)Accent" centerColor="FFFFFFFF" edgeColor="00000000">
-          <Anchor point="TOPLEFT" /><Anchor point="BOTTOMLEFT" /><Dimensions x="4" />
+          <Anchor point="TOPLEFT" />
+          <Anchor point="BOTTOMLEFT" />
+          <Dimensions x="4" />
         </Backdrop>
         <Label name="$(parent)Text" font="ZoFontGamepad27" color="FFF5F0E8" verticalAlignment="TOP">
           <Anchor point="TOPLEFT" offsetX="20" offsetY="14" />
           <Anchor point="TOPRIGHT" offsetX="-20" offsetY="14" />
+        </Label>
+      </Controls>
+    </TopLevelControl>
+    <TopLevelControl name="CombatMetrics2_HUDPreview" hidden="true" mouseEnabled="false" tier="HIGH" level="120">
+      <Controls>
+        <Backdrop name="$(parent)Top" centerColor="FFFFFFFF" edgeColor="00000000">
+          <Anchor point="TOPLEFT" />
+          <Anchor point="TOPRIGHT" />
+          <Dimensions y="2" />
+        </Backdrop>
+        <Backdrop name="$(parent)Bottom" centerColor="FFFFFFFF" edgeColor="00000000">
+          <Anchor point="BOTTOMLEFT" />
+          <Anchor point="BOTTOMRIGHT" />
+          <Dimensions y="2" />
+        </Backdrop>
+        <Backdrop name="$(parent)Left" centerColor="FFFFFFFF" edgeColor="00000000">
+          <Anchor point="TOPLEFT" />
+          <Anchor point="BOTTOMLEFT" />
+          <Dimensions x="2" />
+        </Backdrop>
+        <Backdrop name="$(parent)Right" centerColor="FFFFFFFF" edgeColor="00000000">
+          <Anchor point="TOPRIGHT" />
+          <Anchor point="BOTTOMRIGHT" />
+          <Dimensions x="2" />
+        </Backdrop>
+        <Label name="$(parent)Title" text="HUD-VORSCHAU" font="ZoFontGamepad22" color="FFFFFFFF">
+          <Anchor point="TOPLEFT" offsetX="8" offsetY="5" />
+        </Label>
+      </Controls>
+    </TopLevelControl>
+    <TopLevelControl name="CombatMetrics2_ConsoleDetails" hidden="true" mouseEnabled="false" tier="HIGH" level="140">
+      <Dimensions x="480" y="720" />
+      <Controls>
+        <Backdrop name="$(parent)Background" centerColor="FA10131A" edgeColor="FFFFFFFF">
+          <AnchorFill />
+          <OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 1, 1, 1, 1)</OnInitialized>
+        </Backdrop>
+        <Control name="$(parent)Content" inherits="ZO_ScrollTooltip_Gamepad">
+          <Anchor point="TOPLEFT" offsetX="12" offsetY="12" />
+          <Anchor point="BOTTOMRIGHT" offsetX="-12" offsetY="-52" />
+        </Control>
+        <Label name="$(parent)Footer" font="ZoFontGamepad22" color="FFFFFFFF">
+          <Anchor point="BOTTOMLEFT" offsetX="12" offsetY="-8" />
+          <Anchor point="BOTTOMRIGHT" offsetX="-12" offsetY="-8" />
+          <Dimensions y="44" />
         </Label>
       </Controls>
     </TopLevelControl>

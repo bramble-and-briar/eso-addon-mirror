@@ -4,7 +4,7 @@ BattleScrolls = BattleScrolls or {}
 
 ---@alias InventoryPocKind 'other'|'gear'|'companion'|'glyph'|'treasure'|'junk'|'food'|'poison'|'potion'|'script'|'motif'|'recipe'|'plan'|'collectible'|'fragment'|'container'|'soulGem'|'map'|'survey'|'writ'|'sealedContainer'|'sealedLead'
 ---@alias InventoryPocAction 'keep'|'defer'|'sell'|'deconstruct'|'bank'|'learn'|'list'|'destroy'|'open'|'bind'|'equip'
----@alias InventoryPocReason 'reserved'|'stolen'|'crown'|'junk'|'glyph'|'material'|'gear'|'knowledge'|'price'|'companion'|'container'|'supplies'|'unassigned'|'learn'|'valuablePlan'|'duplicate'|'sale'|'collection'|'unsellable'
+---@alias InventoryPocReason 'reserved'|'stolen'|'crown'|'junk'|'glyph'|'material'|'gear'|'knowledge'|'price'|'companion'|'container'|'supplies'|'unassigned'|'learn'|'valuablePlan'|'duplicate'|'sale'|'collection'|'unsellable'|'crafted'
 
 ---@class InventoryPocItem: InventoryPocVariant
 ---@field bag number
@@ -18,6 +18,8 @@ BattleScrolls = BattleScrolls or {}
 ---@field keepQuantity number|nil Copies reserved for a missing antiquity fragment
 ---@field antiquityId number|nil Sealed lead's target
 ---@field openAfter number|nil Next daily reset for a gated reward coffer
+---@field cappedCurrency number|nil Currency this container holds that has no room left
+---@field currencyContainer boolean|nil Native currency container, such as a geode
 ---@field maxStack number
 ---@field kind InventoryPocKind
 ---@field quality number
@@ -42,6 +44,8 @@ BattleScrolls = BattleScrolls or {}
 ---@field traitMaterialLink string
 ---@field traitMaterialUnit number|nil
 ---@field traitMaterialResolved boolean
+---@field baseMaterialLink string|nil Refined material of the item's craft and level; nil or empty when it has none
+---@field baseMaterialUnit number|nil
 ---@field tradeable boolean|nil Native guild-store eligibility; nil when unread
 ---@field hasSet boolean|nil
 ---@field setCollected boolean|nil Nil when the gear has no sticker-book entry
@@ -58,10 +62,7 @@ BattleScrolls = BattleScrolls or {}
 ---@field learnProgress number|nil Pieces already used toward a skill-style collectible
 ---@field learnRequired number|nil Total pieces to finish that progress
 ---@field filledSoulGem boolean
----@field crafted boolean|nil Set for player gear, potions and poisons
----@field hasOnUseAbility boolean|nil Set for potions and poisons
----@field onUseAbilityId number|nil Native fixed ability for potions and poisons
----@field alchemyTraitCount number|nil Counted across all native alchemy trait slots
+---@field crafted boolean|nil Made by a player
 
 ---@class InventoryPocDecision
 ---@field action InventoryPocAction
@@ -85,6 +86,8 @@ BattleScrolls.inventoryPocPolicy = policy
 -- Estimates for maxed extraction passives and Meticulous Disassembly.
 -- Samples, limitations and the chosen rounding: docs/inventory-addon/material-recovery.md.
 local STYLE_MATERIAL_CHANCE, TRAIT_MATERIAL_CHANCE = 0.40, 0.75
+-- Refined base materials returned by one dropped piece: an unmeasured working value.
+local BASE_MATERIAL_YIELD = 1
 local MATERIAL_VENDOR_MULTIPLIER = 2
 local JEWELRY_TRAIT_PIECES = 10
 
@@ -101,32 +104,37 @@ function policy.validPrice(price)
     return type(price) == 'number' and price > 0 and price < math.huge
 end
 
+---A material without a usable quote counts as zero and clears `complete`.
 ---@param item InventoryPocItem
----@return number|nil value Nil means a material or its price is unresolved
+---@return number|nil value Nil while the trait material lookup is unresolved
+---@return boolean complete Every material present has a quote
 local function expectedMaterialValue(item)
-    if not item.traitMaterialResolved then return nil end
-    local value = 0
-    if item.styleMaterialLink ~= '' then
-        if not policy.validPrice(item.styleMaterialUnit) then return nil end
-        value = STYLE_MATERIAL_CHANCE * item.styleMaterialUnit
+    if not item.traitMaterialResolved then return nil, false end
+    local value, complete = 0, true
+    ---@param link string|nil
+    ---@param unit number|nil
+    ---@param share number
+    local function add(link, unit, share)
+        if not link or link == '' then return end
+        if policy.validPrice(unit) then value = value + share * unit else complete = false end
     end
-    if item.traitMaterialLink ~= '' then
-        if not policy.validPrice(item.traitMaterialUnit) then return nil end
-        -- GetSmithingTraitItemLink supplies the refined trait stone, but jewelry
-        -- deconstruction returns one pulverized piece: ten pieces make a stone.
-        local pieces = (item.equipType == EQUIP_TYPE_RING or item.equipType == EQUIP_TYPE_NECK) and JEWELRY_TRAIT_PIECES or 1
-        value = value + TRAIT_MATERIAL_CHANCE * item.traitMaterialUnit / pieces
-    end
-    return value
+    add(item.baseMaterialLink, item.baseMaterialUnit, BASE_MATERIAL_YIELD)
+    add(item.styleMaterialLink, item.styleMaterialUnit, STYLE_MATERIAL_CHANCE)
+    -- GetSmithingTraitItemLink supplies the refined trait stone, but jewelry
+    -- deconstruction returns one pulverized piece: ten pieces make a stone.
+    local pieces = (item.equipType == EQUIP_TYPE_RING or item.equipType == EQUIP_TYPE_NECK) and JEWELRY_TRAIT_PIECES or 1
+    add(item.traitMaterialLink, item.traitMaterialUnit, TRAIT_MATERIAL_CHANCE / pieces)
+    return value, complete
 end
 
+---A material the price source does not cover counts as zero: no visit can
+---price it, so waiting for it would hold a saleable item indefinitely.
 ---@param item InventoryPocItem
----@return number|nil floor A missing recovery quote leaves the sale floor unresolved
+---@return number|nil floor Nil while the trait material lookup is unresolved
 function policy.gearSaleMinimum(item)
     local materialValue = expectedMaterialValue(item)
     if materialValue == nil then return nil end
-    if item.quality >= 5 then
-        if not policy.validPrice(item.improvementMaterialUnit) then return nil end
+    if item.quality >= 5 and policy.validPrice(item.improvementMaterialUnit) then
         -- Reserve one full upgrade material's value for gold gear. This sale
         -- floor covers its possible return without assuming an extraction rate.
         materialValue = materialValue + item.improvementMaterialUnit
@@ -200,12 +208,14 @@ end
 local function classify(item)
     if item.reserved then return decision('keep', 'reserved') end
     if item.stolen then return decision('keep', 'stolen') end
+    -- Nothing a player made is sold, listed or taken apart.
+    if item.crafted then return decision('keep', 'crafted') end
     if item.kind == 'sealedLead' then
         if policy.disposalQuantity(item) == 0 then return decision('bank', 'knowledge') end
         if item.priceLoading then return decision('defer', 'price') end
         return decision(item.tradeable ~= false and policy.listingQuantity(item) > 0 and 'list' or 'sell', 'duplicate')
     end
-    if item.kind == 'container' and item.openAfter then return decision('keep', 'container') end
+    if item.kind == 'container' and (item.openAfter or item.cappedCurrency) then return decision('keep', 'container') end
     if item.kind == 'map' or item.kind == 'survey' or item.kind == 'writ' or item.kind == 'sealedContainer' then
         return decision('bank', 'supplies')
     end
@@ -225,11 +235,9 @@ local function classify(item)
     if item.kind == 'treasure' or item.kind == 'junk' then return decision('sell', 'junk') end
     if item.kind == 'glyph' then return decision('deconstruct', 'glyph') end
     if item.kind == 'food' and item.quality == 1 then return decision('sell', 'junk') end
-    if item.kind == 'poison' and item.quality == 1 and item.crafted == false then return decision('sell', 'junk') end
-    if item.kind == 'potion' and item.quality == 1 and item.crafted == false and item.hasOnUseAbility == false
-        and (item.alchemyTraitCount == 1 or item.alchemyTraitCount == 2) then return decision('sell', 'junk') end
+    if (item.kind == 'potion' or item.kind == 'poison') and item.quality == 1 then return decision('sell', 'junk') end
     if item.kind == 'script' then
-        if item.known == true then return decision('sell', 'junk') end
+        if item.known == true then return sellDuplicate(item, 'sell') end
         return decision('keep', 'knowledge')
     end
     if item.kind == 'collectible' or item.kind == 'fragment' then
@@ -278,10 +286,10 @@ local function classify(item)
         end
         if item.quality >= 5 then return decision('deconstruct', 'gear') end
         if item.priceLoading then return decision('defer', 'price') end
-        local materialValue = expectedMaterialValue(item)
+        local materialValue, complete = expectedMaterialValue(item)
         -- No tax deduction: the required 100% margin already covers selling costs.
         -- An absent material contributes zero; a missing quote still favors decon.
-        if materialValue == nil or (materialValue > 0 and materialValue >= MATERIAL_VENDOR_MULTIPLIER * item.vendorUnit) then
+        if not complete or (materialValue > 0 and materialValue >= MATERIAL_VENDOR_MULTIPLIER * item.vendorUnit) then
             return decision('deconstruct', 'material')
         end
         return decision('sell', 'junk')

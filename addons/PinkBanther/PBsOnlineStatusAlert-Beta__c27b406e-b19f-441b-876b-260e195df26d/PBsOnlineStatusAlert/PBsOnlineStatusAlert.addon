@@ -1,0 +1,20 @@
+## Title: |cFF69B4PB's Online Status Alert|r 0.1.0
+## Author: |cFF69B4PinkBanther|r
+## Description: Shows a banner at the top right of the screen when a member of a guild you pick comes online or goes offline: who it is, and which guild.
+## Version: 0.1.0
+## AddOnVersion: 1
+## APIVersion: 101050 101051
+## OptionalDependsOn: LibHarvensAddonSettings>=20106
+## SavedVariables: PBsOnlineStatusAlert_Data
+
+Boot.lua
+lang/strings.lua
+lang/$(language).lua
+PBsOnlineStatusAlert.xml
+Core.lua
+Alert.lua
+Watch.lua
+Settings.lua
+Main.lua
+
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls© and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.

@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Guilds Bounty">
+            <Action name="GUILDSBOUNTY_TOGGLE_SHARE">
+                <Down>GuildsBounty_ToggleShare()</Down>
+            </Action>
+            <Action name="GUILDSBOUNTY_TOGGLE_ALWAYS_SHARE">
+                <Down>GuildsBounty_ToggleAlwaysShare()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

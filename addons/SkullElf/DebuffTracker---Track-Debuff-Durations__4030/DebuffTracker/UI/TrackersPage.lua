@@ -543,6 +543,24 @@ local function AbilityListEditor(panel, width)
             for _, n in ipairs(U.ParseNames(text)) do
                 if not U.Contains(tr.names, n) then tr.names[#tr.names + 1] = n end
             end
+        else
+            -- the other trigger types listen for IDs only: a name typed here becomes every ID with that name, as
+            -- one entry (the first ID, the rest its variants) -- like Srendarr's "add by name" (zFinrod: "Do I really
+            -- need to add all the id variants manually ... like in srendarr?"). Before, the name was dropped silently.
+            for _, n in ipairs(U.ParseNames(text)) do
+                local ids = DT.AbilitySearch.IdsForName(n)
+                if ids == nil then
+                    UI.Message(L("One moment"), L("DebuffTracker is still building its list of abilities (a few seconds, once per session). Add \"<<1>>\" again in a moment.", n))
+                elseif #ids == 0 then
+                    UI.Message(L("Not found"), L("No ability is called \"<<1>>\". Check the spelling (the name in your game's language), or use Search...", n))
+                else
+                    local first = ids[1]
+                    if not U.Contains(tr.abilityIds, first) then tr.abilityIds[#tr.abilityIds + 1] = first end
+                    local rest = {}
+                    for i = 2, #ids do rest[#rest + 1] = ids[i] end
+                    if #rest > 0 then tr.variants[tostring(first)] = rest end
+                end
+            end
         end
         pending = ""
         add.edit:SetText("")
@@ -573,8 +591,11 @@ local function AbilityListEditor(panel, width)
                     copies > 0 and L(" (+<<1>> variants)", copies) or ""))
             else
                 r.icon:SetTexture(DT.Triggers.CustomIcon(TR(), it.value) or DT.Triggers.NameIcon(it.value) or C.DEFAULT_ICON)
+                -- by name every ID with that name counts (zFinrod wondered whether it "recognized all the IDs"): say how many
                 local own = #DT.Triggers.Variants(TR(), it.value)
-                r.label:SetText(string.format("\"%s\"  |c888888%s%s|r", it.value, L("by name"),
+                local all = DT.AbilitySearch.IdsForName(it.value)
+                local count = all and #all > 0 and L(" - matches all <<1>> IDs with this name", #all) or ""
+                r.label:SetText(string.format("\"%s\"  |c888888%s%s%s|r", it.value, L("by name"), count,
                     own > 0 and L(" (+<<1>> variants)", own) or ""))
             end
         end)

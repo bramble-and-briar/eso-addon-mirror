@@ -78,7 +78,7 @@ end
 
 local function Line(text, online)
     local icon = online ~= nil and StatusIcon(online) or ""
-    return ME:ChatPrefix(CHAT_FEATURE, SUBMENU_ICON) .. icon .. text
+    return ME:ChatPrefix(CHAT_FEATURE) .. icon .. text
 end
 
 local function Print(text)

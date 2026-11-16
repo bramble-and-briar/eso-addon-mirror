@@ -1,0 +1,139 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="GroupBuildsWindow" clampedToScreen="true" movable="true" mouseEnabled="true" hidden="true">
+            <Dimensions x="240" y="340" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="400" offsetY="300" />
+            <OnMoveStop>GroupBuilds:OnWindowMoved()</OnMoveStop>
+            <Controls>
+                <Texture name="$(parent)BG" color="000000">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)BorderTop" color="999999" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" />
+                    <Dimensions y="2" />
+                </Texture>
+                <Texture name="$(parent)BorderBottom" color="999999" hidden="true">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" />
+                    <Dimensions y="2" />
+                </Texture>
+                <Texture name="$(parent)BorderLeft" color="999999" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" />
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" />
+                    <Dimensions x="2" />
+                </Texture>
+                <Texture name="$(parent)BorderRight" color="999999" hidden="true">
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" />
+                    <Dimensions x="2" />
+                </Texture>
+                <Label name="$(parent)Title" font="ZoFontGameLargeBold" horizontalAlignment="CENTER" text="Group Builds">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="8" offsetY="10" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-68" offsetY="10" />
+                </Label>
+                <Button name="$(parent)Gear" clickSound="Click">
+                    <Dimensions x="28" y="28" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-6" offsetY="6" />
+                    <Textures normal="EsoUI/Art/ChatWindow/chat_options_up.dds" pressed="EsoUI/Art/ChatWindow/chat_options_down.dds" mouseOver="EsoUI/Art/ChatWindow/chat_options_over.dds" />
+                    <OnClicked>GroupBuilds:OpenSettings()</OnClicked>
+                </Button>
+                <Button name="$(parent)Saved" clickSound="Click">
+                    <Dimensions x="28" y="28" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Gear" relativePoint="LEFT" offsetX="-4" />
+                    <Textures normal="EsoUI/Art/MainMenu/menubar_journal_up.dds" pressed="EsoUI/Art/MainMenu/menubar_journal_down.dds" mouseOver="EsoUI/Art/MainMenu/menubar_journal_over.dds" />
+                    <OnClicked>GroupBuilds:ToggleBrowser()</OnClicked>
+                </Button>
+                <Button name="$(parent)Share" inherits="ZO_DefaultButton">
+                    <Dimensions x="150" y="28" />
+                    <Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="34" />
+                    <OnClicked>GroupBuilds:OnShareToggled()</OnClicked>
+                </Button>
+                <Control name="$(parent)Rows">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="8" offsetY="68" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-8" offsetY="68" />
+                </Control>
+                <Texture name="$(parent)Loading" textureFile="EsoUI/Art/Miscellaneous/wait_icon.dds" layer="OVERLAY" hidden="true">
+                    <Dimensions x="20" y="20" />
+                </Texture>
+            </Controls>
+        </TopLevelControl>
+
+        <TopLevelControl name="GroupBuildsRolePicker" clampedToScreen="true" mouseEnabled="true" topmost="true" hidden="true">
+            <Dimensions x="330" y="300" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontGameLargeBold" horizontalAlignment="CENTER" text="Save build">
+                    <Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" offsetY="12" />
+                </Label>
+                <Label name="$(parent)NameLabel" font="ZoFontWinH4" text="Name">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="16" offsetY="46" />
+                </Label>
+                <Backdrop name="$(parent)Name" inherits="ZO_EditBackdrop">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="16" offsetY="68" />
+                    <Dimensions x="258" y="28" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" />
+                    </Controls>
+                </Backdrop>
+                <Button name="$(parent)NameInsert" hidden="true">
+                    <Dimensions x="28" y="28" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Name" relativePoint="RIGHT" offsetX="8" />
+                    <Textures normal="/esoui/art/contacts/tabicon_friends_up.dds" pressed="/esoui/art/contacts/tabicon_friends_down.dds" mouseOver="/esoui/art/contacts/tabicon_friends_over.dds" />
+                    <OnClicked>GroupBuilds:InsertSuggestedName()</OnClicked>
+                </Button>
+                <Label name="$(parent)RoleLabel" font="ZoFontWinH4" text="Role">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="16" offsetY="106" />
+                </Label>
+                <Control name="$(parent)Roles">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="16" offsetY="128" />
+                    <Dimensions x="294" y="36" />
+                </Control>
+                <Label name="$(parent)ClassLabel" font="ZoFontWinH4" text="Class">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="16" offsetY="172" />
+                </Label>
+                <Control name="$(parent)Classes">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="16" offsetY="194" />
+                    <Dimensions x="294" y="36" />
+                </Control>
+                <Button name="$(parent)Save" inherits="ZO_DefaultButton" text="Save">
+                    <Dimensions x="110" y="30" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="-6" offsetY="-14" />
+                    <OnClicked>GroupBuilds:ConfirmSave()</OnClicked>
+                </Button>
+                <Button name="$(parent)Cancel" inherits="ZO_DefaultButton" text="Cancel">
+                    <Dimensions x="110" y="30" />
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="6" offsetY="-14" />
+                    <OnClicked>GroupBuilds:CancelSave()</OnClicked>
+                </Button>
+            </Controls>
+        </TopLevelControl>
+
+        <Control name="GroupBuildsRow" virtual="true" mouseEnabled="true">
+            <Dimensions y="26" />
+            <OnMouseEnter>GroupBuilds:OnRowMouse(self, true)</OnMouseEnter>
+            <OnMouseExit>GroupBuilds:OnRowMouse(self, false)</OnMouseExit>
+            <OnMouseUp>GroupBuilds:OnRowClicked(self, button, upInside)</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)_Highlight" color="FFFFFF" alpha="0.18" hidden="true">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)_Role" textureFile="/esoui/art/lfg/lfg_icon_dps.dds">
+                    <Dimensions x="22" y="22" />
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="2" />
+                </Texture>
+                <Texture name="$(parent)_Class">
+                    <Dimensions x="22" y="22" />
+                    <Anchor point="LEFT" relativeTo="$(parent)_Role" relativePoint="RIGHT" offsetX="2" />
+                </Texture>
+                <Label name="$(parent)_Name" font="ZoFontGame" verticalAlignment="CENTER" wrapMode="TRUNCATE" maxLineCount="1" text="@Player">
+                    <Anchor point="LEFT" relativeTo="$(parent)_Role" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-4" />
+                </Label>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

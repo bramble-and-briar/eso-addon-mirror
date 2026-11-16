@@ -83,6 +83,22 @@ function AS.IconForName(lname)
     return best
 end
 
+-- Every ability ID with exactly this name (Srendarr's "add by name" does the same scan: FindIDByName walks the ID
+-- range comparing names). nil while the index is still being built (started here if needed).
+function AS.IdsForName(name)
+    local lname = U.Lower(U.Trim(name or ""))
+    if lname == "" then return {} end
+    if AS.state ~= "ready" then
+        if AS.state == "idle" then AS.Build() end
+        return nil
+    end
+    local out = {}
+    for i = 1, #AS.ids do
+        if AS.names[i] == lname then out[#out + 1] = AS.ids[i] end
+    end
+    return out
+end
+
 -- Returns up to `limit` results { id, name, icon, duration }.
 -- Numeric queries match the ID directly (works before the index is built).
 function AS.Search(query, limit)

@@ -1,9 +1,9 @@
 ## Title: Lethal PVP Insights
 ## Author: Lethal2k
-## Version: 1.10.5
-## AddOnVersion: 285
-## APIVersion: 101047 101048
-## Description: Tracks your PvP kills/assists, kill-feed leaderboards per faction, and what enemy players hit you with (skills, procs, faction, max health, mundus), plus a history of players you grouped with and their builds (gear and skill bars via the encounter log importer). Also PvP alerts, group leader marker, FPS limits and performance boost per zone, quickslot keybinds, a skill blocker and auto quest hand-in. Configure via Settings > Lethal PVP Insights (/lpi settings jumps there) or /lpi.
+## Version: 1.11.0
+## AddOnVersion: 287
+## APIVersion: 101048 101051
+## Description: PvP companion for Cyrodiil, Imperial City and Battlegrounds: combat alerts, FPS per zone, kills, Alliance Points, kill feed leaderboards, enemy skills and sets, group builds. Settings > Lethal PVP Insights, or /lpi.
 ## SavedVariables: PVPDataInsight_SV LPI_PvPTools_SV
 ## OptionalDependsOn: LibChatMessage
 

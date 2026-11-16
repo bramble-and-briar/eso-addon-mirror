@@ -1,0 +1,15 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Group Builds">
+            <Action name="GROUP_BUILDS_TOGGLE">
+                <Down>GroupBuilds:Toggle()</Down>
+            </Action>
+            <Action name="GROUP_BUILDS_SAVED">
+                <Down>GroupBuilds:ToggleBrowser()</Down>
+            </Action>
+            <Action name="GROUP_BUILDS_SAVE_DISPLAYED">
+                <Down>GroupBuilds:SaveDisplayedPrompt()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

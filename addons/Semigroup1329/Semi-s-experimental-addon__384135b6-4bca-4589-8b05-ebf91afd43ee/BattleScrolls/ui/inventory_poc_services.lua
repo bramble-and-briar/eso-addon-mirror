@@ -226,9 +226,12 @@ function ui.update()
             or (service.interaction == INTERACTION_VENDOR and interaction == INTERACTION_STABLE)
         if not usingDestination then
             local ready = service.interaction ~= INTERACTION_COMPANION_MENU or BattleScrolls.inventoryPocCompanions.hasUpgrade()
-            -- Storage chests and the furniture vault open the banking scene too;
-            -- hooking ESO's bank opening would taint it, so houses keep it native.
-            if service.interaction == INTERACTION_BANK and GetCurrentZoneHouseId() ~= 0 then ready = false end
+            -- Storage chests and the furniture vault open the banking scene too,
+            -- and the route has to be chosen before ESO opens it: switching
+            -- afterwards would be an addon-started transition. A banker is an
+            -- NPC under the reticle; chests and the vault are furniture.
+            if service.interaction == INTERACTION_BANK and GetCurrentZoneHouseId() ~= 0
+                and not DoesUnitExist('reticleover') then ready = false end
             if service.armed and not ready then restore(service)
             elseif not service.armed and ready and now >= service.cooldownUntil then arm(service) end
         end

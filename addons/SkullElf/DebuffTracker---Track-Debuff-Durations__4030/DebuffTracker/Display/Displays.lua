@@ -172,7 +172,7 @@ function Items.bars.Configure(it, display)
     it.icon:ClearAnchors()
     it.bar:ClearAnchors()
     if it.bar2 then it.bar2:SetHidden(true) end
-    it.centred, it.zoneSide = false, nil
+    it.centred, it.zoneSide, it.barCut = false, nil, 0
     if ds.vertical then
         -- a column: icon at the bottom, the bar above it filling upward, timer on top
         local colW, colH = h, ds.width
@@ -382,34 +382,86 @@ end
 
 -- s.zone (0-1 of the bar): a window at the end the bar runs out toward (left; right with "Fill from the right";
 -- the bottom of a column), in the display's zone colour
+-- The bar's full length (without an end window cut off it)
+local function BarFullLength(it, ds)
+    if ds.vertical then
+        return ds.width - (ds.showRowIcon and ds.height or 0)
+    end
+    return it.barLen or ds.width
+end
+
+-- The bar(s), `cut` px short at the end they run out toward: the end window (the global cooldown's ping) sits there
+-- BESIDE the fill, the way Combat Metronome draws it -- its ping segment and its progress segment never overlap
+-- (DariansUtilities Bar:Update lays the segments end to end). Before 5.21.21 the window was laid OVER the bar, so its
+-- colour mixed with the bar's (Shaxigaming: "get the ping zone color above the bar color ... like on Combat Metronome").
+local function AnchorBars(it, ds, cut)
+    it.barCut = cut
+    it.bar:ClearAnchors()
+    if ds.vertical then
+        local iconH = ds.showRowIcon and ds.height or 0
+        it.bar:SetAnchor(TOPLEFT, it.control, TOPLEFT, 0, 0)
+        it.bar:SetAnchor(BOTTOMRIGHT, it.control, BOTTOMRIGHT, 0, -iconH - cut)
+        return
+    end
+    local iconW = ds.showRowIcon and ds.height or 0
+    if it.centred and it.bar2 then
+        it.bar:SetAnchor(TOPLEFT, it.control, TOPLEFT, iconW, 0)
+        it.bar:SetAnchor(BOTTOMRIGHT, it.control, BOTTOM, iconW / 2 - cut / 2, 0)
+        it.bar2:ClearAnchors()
+        it.bar2:SetAnchor(TOPLEFT, it.control, TOP, iconW / 2 + cut / 2, 0)
+        it.bar2:SetAnchor(BOTTOMRIGHT, it.control, BOTTOMRIGHT, 0, 0)
+    elseif ds.fillReverse then
+        it.bar:SetAnchor(TOPLEFT, it.control, TOPLEFT, iconW, 0)
+        it.bar:SetAnchor(BOTTOMRIGHT, it.control, BOTTOMRIGHT, -cut, 0)
+    else
+        it.bar:SetAnchor(TOPLEFT, it.control, TOPLEFT, iconW + cut, 0)
+        it.bar:SetAnchor(BOTTOMRIGHT, it.control, BOTTOMRIGHT, 0, 0)
+    end
+end
+D.AnchorBars = AnchorBars
+
+-- what the (shortened) bar shows for a fraction of the whole: the fill reaches the window's edge when the time left
+-- is the window
+local function CutValue(it, ds, frac)
+    local cut = it.barCut or 0
+    if cut <= 0 then return frac end
+    local full = BarFullLength(it, ds)
+    if full <= cut then return 0 end
+    return U.Clamp((frac * full - cut) / (full - cut), 0, 1)
+end
+
 local function ShowZone(it, ds, s)
     local z = s.active and s.zone or 0
     if z <= 0 then
         if it.zoneShown then it.zone:SetHidden(true); it.zoneShown = false end
+        if (it.barCut or 0) > 0 then AnchorBars(it, ds, 0) end
         return
     end
     local key = (ds.vertical and "v" or (it.centred and "c") or (ds.fillReverse and "r" or "l"))
     if it.zoneSide ~= key then
+        -- (anchored to the row, not the bar: the bar itself is shortened by the window)
         it.zone:ClearAnchors()
+        local icon = ds.showRowIcon and ds.height or 0
         if key == "c" then
             -- both halves run out toward the middle: the window sits there
-            it.zone:SetAnchor(CENTER, it.control, CENTER, (it.control:GetWidth() - (it.barLen or 0)) / 2, 0)
+            it.zone:SetAnchor(CENTER, it.control, CENTER, icon / 2, 0)
             it.zone:SetHeight(ds.height)
         elseif ds.vertical then
-            it.zone:SetAnchor(BOTTOMLEFT, it.bar, BOTTOMLEFT, 0, 0); it.zone:SetAnchor(BOTTOMRIGHT, it.bar, BOTTOMRIGHT, 0, 0)
+            it.zone:SetAnchor(BOTTOMLEFT, it.control, BOTTOMLEFT, 0, -icon); it.zone:SetAnchor(BOTTOMRIGHT, it.control, BOTTOMRIGHT, 0, -icon)
         elseif ds.fillReverse then
-            it.zone:SetAnchor(TOPRIGHT, it.bar, TOPRIGHT, 0, 0); it.zone:SetAnchor(BOTTOMRIGHT, it.bar, BOTTOMRIGHT, 0, 0)
+            it.zone:SetAnchor(TOPRIGHT, it.control, TOPRIGHT, 0, 0); it.zone:SetAnchor(BOTTOMRIGHT, it.control, BOTTOMRIGHT, 0, 0)
         else
-            it.zone:SetAnchor(TOPLEFT, it.bar, TOPLEFT, 0, 0); it.zone:SetAnchor(BOTTOMLEFT, it.bar, BOTTOMLEFT, 0, 0)
+            it.zone:SetAnchor(TOPLEFT, it.control, TOPLEFT, icon, 0); it.zone:SetAnchor(BOTTOMLEFT, it.control, BOTTOMLEFT, icon, 0)
         end
         it.zoneSide = key
     end
     local c = ds.zoneColor or { 1, 0.88, 0.5, 0.45 }
     it.zone:SetColor(c[1], c[2], c[3], c[4] or 1)
-    local len = ds.vertical and it.bar:GetHeight() or (it.centred and it.barLen) or it.bar:GetWidth()
+    local len = BarFullLength(it, ds)
     if not len or len <= 0 then len = ds.width end
-    it.zoneLen = math.max(1, z * len)
+    it.zoneLen = math.max(1, math.floor(z * len + 0.5))
     if ds.vertical then it.zone:SetHeight(it.zoneLen) else it.zone:SetWidth(it.zoneLen) end
+    if it.barCut ~= it.zoneLen then AnchorBars(it, ds, it.zoneLen) end
     if not it.zoneShown then it.zone:SetHidden(false); it.zoneShown = true end
 end
 
@@ -418,9 +470,10 @@ function Items.bars.Animate(it, display, now, nowMs)
     if not s then return end
     local look = s.look
     local frac = Style.Fraction(s, now, ds)
-    it.bar:SetValue(frac)
-    if it.centred and it.bar2 then it.bar2:SetValue(frac) end
     if s.zone or it.zoneShown then ShowZone(it, ds, s) end
+    local v = CutValue(it, ds, frac)
+    it.bar:SetValue(v)
+    if it.centred and it.bar2 then it.bar2:SetValue(v) end
     local color
     -- a rule colour wins even on missing/ready entries (e.g. "ready" in green)
     if look and look.color then color = look.color

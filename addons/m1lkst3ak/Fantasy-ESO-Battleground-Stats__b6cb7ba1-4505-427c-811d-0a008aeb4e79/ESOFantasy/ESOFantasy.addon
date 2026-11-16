@@ -1,0 +1,9 @@
+## Title: ESO Fantasy
+## Description: Live fantasy scoring, player history and MVP rankings
+## Author: Trash Man Enterprises
+## Version: 3.4.7
+## AddOnVersion: 30.0.0
+## APIVersion: 2.5.3.0
+## SavedVariables: ESOFantasySaved
+ESOFantasy.lua
+Bindings.xml

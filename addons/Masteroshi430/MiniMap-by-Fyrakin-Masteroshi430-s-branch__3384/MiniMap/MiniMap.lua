@@ -2010,6 +2010,15 @@ function FyrMM.RemoveAvailableQuestGiver(pin)
     end
 end
 
+-- the previous zone story pin is cleared (removed from the minimap) before the new one takes its place
+function FyrMM.SetZoneStoryPin(pin)
+    local old = FyrMM.ZoneStoryPin
+    if old ~= nil and old ~= pin then
+        FyrMM.RemoveCustomPin(old)
+    end
+    FyrMM.ZoneStoryPin = pin
+end
+
 function FyrMM.RemoveCustomPin(p)
     if p == nil then
 	-- d("FyrMM.RemoveCustomPin pin is nil")
@@ -2017,7 +2026,8 @@ function FyrMM.RemoveCustomPin(p)
     end
 
     FyrMM.RemoveAvailableQuestGiver(p)
-    if FyrMM.ZoneStoryPin == p then
+    local wasZoneStoryPin = FyrMM.ZoneStoryPin == p
+    if wasZoneStoryPin then
         FyrMM.ZoneStoryPin = nil
     end
 
@@ -2034,7 +2044,12 @@ function FyrMM.RemoveCustomPin(p)
 
     local key = string.format("%s:%s:%s", p.nX, p.nY, p.radius)
     if p.m_PinType and FyrMM.CustomPinCheckList[p.m_PinType] and FyrMM.CustomPinCheckList[p.m_PinType][key] then
-        FyrMM.CustomPinCheckList[p.m_PinType][key].Id = 0
+        if wasZoneStoryPin then
+            -- Id = 0 makes CheckForNewCustomPins() re-add the entry, which redisplays the old zone story pin (stamped with the new tracked activity)
+            FyrMM.CustomPinCheckList[p.m_PinType][key] = nil
+        else
+            FyrMM.CustomPinCheckList[p.m_PinType][key].Id = 0
+        end
     end
 	
     p:ClearAnchors()
@@ -4632,6 +4647,108 @@ function FyrMM.customPinsUpdate(count) -- added by @Masteroshi430
     --d("check custompins attempt "..count..": resetting custompins!")
 end
 
+-- Zone story pin generation.
+-- The game only emits the zone story pin from its own map refresh (WORLD_MAP_MANAGER:RefreshSuggestionPins), which FyrMM ignores on a map change
+-- (CurrentMap.MapId is still the previous map), and Reload()/CleanUpPins wipe it. So the pin is built here for the current map, like the game does.
+local zoneStoryGenMapId = nil
+local zoneStoryGenTries = 0
+local zoneStoryGenTime = 0
+local ZONE_STORY_GEN_MAX_TRIES = 6
+local ZONE_STORY_GEN_DELAY = 300
+
+local ZONE_STORY_NO_PIN = {
+    [ZONE_COMPLETION_TYPE_MAGES_GUILD_BOOKS] = true,
+    [ZONE_COMPLETION_TYPE_FEATURED_ACHIEVEMENTS] = true,
+}
+
+-- returns pinType, tag, x, y, radius of the tracked zone story activity on the current map, nil if it has no pin here
+local function GetZoneStoryPinData()
+    local zoneId, completionType, activityId = GetTrackedZoneStoryActivityInfo()
+    if not zoneId or zoneId == 0 or not activityId or activityId == 0 or ZONE_STORY_NO_PIN[completionType] then
+        return nil
+    end
+
+    local x, y, radius, isShownInCurrentMap = GetNormalizedPositionForZoneStoryActivityId(zoneId, completionType, activityId)
+    if not isShownInCurrentMap or x == nil or y == nil then
+        return nil
+    end
+
+    if completionType == ZONE_COMPLETION_TYPE_PRIORITY_QUESTS then
+        local tag = ZO_MapPin.CreateZoneStoryTag(zoneId, completionType, activityId)
+        tag.isBreadcrumb = false
+        return MAP_PIN_TYPE_TRACKED_QUEST_OFFER_ZONE_STORY, tag, x, y, radius or 0, activityId
+    elseif completionType == ZONE_COMPLETION_TYPE_SKYSHARDS then
+        return MAP_PIN_TYPE_SKYSHARD_SUGGESTED, ZO_MapPin.CreateSkyshardPinTag(activityId), x, y, radius or 0, activityId
+    end
+
+    local zoneIndex, poiIndex = GetPOIIndices(activityId)
+    if zoneIndex ~= GetCurrentMapZoneIndex() then
+        return nil
+    end
+    return MAP_PIN_TYPE_POI_SUGGESTED, ZO_MapPin.CreatePOIPinTag(zoneIndex, poiIndex, GetPOIPinIcon(activityId, false)), x, y, radius or 0, activityId
+end
+
+local function EnsureZoneStoryPin()
+    local now = GetGameTimeMilliseconds()
+    if zoneStoryGenMapId ~= CurrentMap.MapId then -- new map: start over
+        zoneStoryGenMapId = CurrentMap.MapId
+        zoneStoryGenTries = 0
+        zoneStoryGenTime = now - ZONE_STORY_GEN_DELAY
+    end
+
+    local old = FyrMM.ZoneStoryPin
+    if old then -- kept only when built for this map and for the tracked activity, otherwise replaced
+        local _, _, trackedActivityId = GetTrackedZoneStoryActivityInfo()
+        if old.MapId == CurrentMap.MapId and type(old.m_PinTag) == "table" and old.m_PinTag.isZoneStory
+            and old.m_PinTag.activityId == trackedActivityId then
+            zoneStoryGenTries = 0
+            return
+        end
+    end
+
+    if zoneStoryGenTries >= ZONE_STORY_GEN_MAX_TRIES or now - zoneStoryGenTime < ZONE_STORY_GEN_DELAY then
+        return
+    end
+
+    if FyrMM.Reloading or FyrMM.CheckingZone or FyrMM.worldMapShowing or FyrMM.FastTravelOpen
+        or not CurrentMap.ready or CurrentMap.MapId ~= FyrMM.GetMapId() or IsCustomPinsLoading() then
+        return
+    end
+
+    local mapType = GetMapType()
+    if mapType ~= MAPTYPE_ZONE and mapType ~= MAPTYPE_SUBZONE then
+        return
+    end
+
+    zoneStoryGenTime = now
+    zoneStoryGenTries = zoneStoryGenTries + 1
+
+    local ok, pinType, tag, x, y, radius, activityId = pcall(GetZoneStoryPinData)
+    if old then -- the old pin belongs to another map/activity: always replaced or dropped
+        FyrMM.RemoveCustomPin(old) -- also clears FyrMM.ZoneStoryPin
+    end
+    if not ok or not pinType then
+        return
+    end
+
+    local key = string.format("%s:%s:%s", x, y, radius)
+    FyrMM.CustomPinList[pinType] = FyrMM.CustomPinList[pinType] or {}
+    FyrMM.CustomPinCheckList[pinType] = FyrMM.CustomPinCheckList[pinType] or {}
+    local known = FyrMM.CustomPinCheckList[pinType][key]
+    if known ~= nil and known.Id ~= 0 then
+        return -- already registered, the regular pipeline builds it
+    end
+
+    local r = { m_PinType = pinType, m_PinTag = tag, normalizedX = x, normalizedY = y, radius = radius, zoneStoryActivityId = activityId }
+    table.insert(FyrMM.CustomPinList[pinType], r)
+    FyrMM.CustomPinCheckList[pinType][key] = r
+    r.Id = #FyrMM.CustomPinList[pinType]
+    FyrMM.InsertCustomPin(r, r.Id) -- builds the control and sets FyrMM.ZoneStoryPin
+    if FyrMM.ZoneStoryPin == nil then
+        detectedNewCustomPin = true -- let the regular pipeline retry
+    end
+end
+
 local lastCustomPinCountCheck = 0
 function FyrMM.PinUpdate()
     if FyrMM.Halted then
@@ -4708,6 +4825,7 @@ function FyrMM.PinUpdate()
     end
 	
 	FyrMM.skyshardPinsZoneCheck()
+	EnsureZoneStoryPin()
 
 
     if FyrMM.DebugMode and a then
@@ -5727,6 +5845,12 @@ function FyrMM.InsertCustomPin(p, key)
     if p.m_PinType == nil then
         return
     end
+    if p.zoneStoryActivityId then -- zone story record of an activity which is not tracked anymore: never display it
+        local _, _, trackedActivityId = GetTrackedZoneStoryActivityInfo()
+        if p.zoneStoryActivityId ~= trackedActivityId then
+            return
+        end
+    end
     if ZOpinData == nil then
         return
     end
@@ -5926,11 +6050,14 @@ function FyrMM.InsertCustomPin(p, key)
                     pin.m_PinTag.IsAvailableQuest = true
                     pin.IsAvailableQuest = true
                     local mapType = GetMapType()
-                    if ZO_MapPin.SUGGESTION_PIN_TYPES[p.m_PinType] and IsZoneStoryComplete(ZO_ExplorationUtils_GetZoneStoryZoneIdForCurrentMap()) == false and (mapType == MAPTYPE_ZONE or mapType == MAPTYPE_SUBZONE) then
+                    local trackedZoneId, _, trackedActivityId = GetTrackedZoneStoryActivityInfo()
+                    -- an old record must keep its own activity: stamping the tracked one made the previous zone story pin come back
+                    local activityId = p.zoneStoryActivityId or trackedActivityId
+                    -- the tracked activity carries its own zone id (the zone of the current map can differ, e.g. on subzones)
+                    if ZO_MapPin.SUGGESTION_PIN_TYPES[p.m_PinType] and activityId and activityId ~= 0 and activityId == trackedActivityId and IsZoneStoryComplete(trackedZoneId) ~= true and (mapType == MAPTYPE_ZONE or mapType == MAPTYPE_SUBZONE) then
                         pin.m_PinTag.isZoneStory = true
-                        local _, _, activityId = GetTrackedZoneStoryActivityInfo()
                         pin.m_PinTag.activityId = activityId
-                        FyrMM.ZoneStoryPin = pin
+                        FyrMM.SetZoneStoryPin(pin)
                     end
                     FyrMM.AddAvailableQuestGiver(pin)
 
@@ -6056,10 +6183,12 @@ function FyrMM.CustomPins()
             (pin.m_PinTag.IsAvailableQuest or pin.m_PinTag.isZoneStory or ZO_MapPin.SUGGESTION_PIN_TYPES[pin.m_PinType]) then
             pin.m_PinTag.IsAvailableQuest = true
             pin.IsAvailableQuest = true
-            if pin.m_PinTag.isZoneStory and CanZoneStoryContinueTrackingActivities(ZO_ExplorationUtils_GetZoneStoryZoneIdForCurrentMap()) then
-                local _, _, activityId = GetTrackedZoneStoryActivityInfo()
+            -- keep the zone story pin while its activity is the tracked one (CanZoneStoryContinueTrackingActivities() of the current map's zone
+            -- is not a reliable test and made the pin remove itself on map change)
+            local trackedZoneId, _, activityId = GetTrackedZoneStoryActivityInfo()
+            if pin.m_PinTag.isZoneStory and activityId and activityId ~= 0 and IsZoneStoryComplete(trackedZoneId) ~= true then
                 if pin.m_PinTag.activityId == activityId or pin.m_PinTag[3] == activityId then 
-                    FyrMM.ZoneStoryPin = pin
+                    FyrMM.SetZoneStoryPin(pin)
                 else
                     if pin == FyrMM.ZoneStoryPin then
                         FyrMM.RemoveCustomPin(pin)
@@ -9444,7 +9573,8 @@ function FyrMM.CheckForNewCustomPins()
                             m_PinTag = j.m_PinTag,
                             normalizedX = j.normalizedX,
                             normalizedY = j.normalizedY,
-                            radius = j.radius
+                            radius = j.radius,
+                            zoneStoryActivityId = j.zoneStoryActivityId
                         }
                         table.insert(FyrMM.CustomPinList[i], r)
                         FyrMM.CustomPinCheckList[i][p].Id = #FyrMM.CustomPinList[i]

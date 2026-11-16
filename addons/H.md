@@ -75,7 +75,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Helmet Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Helmet-Toggle__792) | CaptainBlagbird | PC / Mac | 1.5.16 |
 | [Helmet Toggle, Dragon Bones](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/glorinand/Helmet-Toggle-Dragon-Bones__1915) | glorinand | PC / Mac | v. 1.1 |
 | [HelmetPal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/fallinintheblak/HelmetPal__1872) | fallinintheblak | PC / Mac | 0.3 |
-| [Hermes - Tools, Tomes & more](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Niwasaka/Hermes---Tools-Tomes-more__3499) | Niwasaka | PC / Mac | 1.6.0 |
+| [Hermes - Tools, Tomes & more](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Niwasaka/Hermes---Tools-Tomes-more__3499) | Niwasaka | PC / Mac | 1.7.0 |
 | [Hero's Compass](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/murphyx/Hero-s-Compass__282169ec-5b28-4744-bed7-c866d07adb4a) | murphyx | Console | — |
 | [Heroism Potions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saenic/Heroism-Potions__3568) | Saenic | PC / Mac | 1.0.1 |
 | [Hidden Rolls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Akardra/Hidden-Rolls__3197) | Akardra | PC / Mac | 1.00 |

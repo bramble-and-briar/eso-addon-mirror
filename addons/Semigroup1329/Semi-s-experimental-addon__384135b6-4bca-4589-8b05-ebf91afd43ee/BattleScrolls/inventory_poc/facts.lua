@@ -319,6 +319,57 @@ local function traitMaterial(trait)
     return traitMaterials[trait] or '', true
 end
 
+-- Refined materials by craft and tier. No native API maps equipment to its
+-- base material away from a station; IDs and level bands match LibLazyCrafting.
+local INGOTS = { 5413, 4487, 23107, 6000, 6001, 46127, 46128, 46129, 46130, 64489 }
+local CLOTH = { 811, 4463, 23125, 23126, 23127, 46131, 46132, 46133, 46134, 64504 }
+local LEATHER = { 794, 4447, 23099, 23100, 23101, 46135, 46136, 46137, 46138, 64506 }
+local WOOD = { 803, 533, 23121, 23122, 23123, 46139, 46140, 46141, 46142, 64502 }
+local OUNCES = { 135138, 135140, 135142, 135144, 135146 }
+---@type table<number, string>
+local baseMaterialLinks = {}
+
+---@param level number
+---@param championPoints number
+---@param jewelry boolean
+---@return number
+local function materialTier(level, championPoints, jewelry)
+    if jewelry then
+        if championPoints >= 150 then return 5 end
+        if championPoints >= 80 then return 4 end
+        if championPoints >= 10 then return 3 end
+        return level >= 26 and 2 or 1
+    end
+    if championPoints >= 150 then return 10 end
+    if championPoints >= 90 then return 9 end
+    if championPoints >= 70 then return 8 end
+    if championPoints >= 40 then return 7 end
+    if championPoints >= 10 then return 6 end
+    if level >= 46 then return 5 end
+    if level >= 36 then return 4 end
+    if level >= 26 then return 3 end
+    return level >= 16 and 2 or 1
+end
+
+---@param craft number
+---@param armorType number
+---@param level number
+---@param championPoints number
+---@return string link Empty for equipment no station makes
+function facts.baseMaterial(craft, armorType, level, championPoints)
+    local materials
+    if craft == CRAFTING_TYPE_BLACKSMITHING then materials = INGOTS
+    elseif craft == CRAFTING_TYPE_CLOTHIER then materials = armorType == ARMORTYPE_MEDIUM and LEATHER or CLOTH
+    elseif craft == CRAFTING_TYPE_WOODWORKING then materials = WOOD
+    elseif craft == CRAFTING_TYPE_JEWELRYCRAFTING then materials = OUNCES
+    else return '' end
+    local itemId = materials[materialTier(level, championPoints, craft == CRAFTING_TYPE_JEWELRYCRAFTING)]
+    -- One link per material keeps the client's per-link data to a fixed handful.
+    baseMaterialLinks[itemId] = baseMaterialLinks[itemId]
+        or string.format('|H0:item:%d:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h', itemId)
+    return baseMaterialLinks[itemId]
+end
+
 ---Run inside LibEffect.Async. Cleanup needs only IDs, not a sorted report.
 ---@param reservationsOnly boolean|nil
 ---@return InventoryPocSetup[], table<string, boolean>
@@ -518,12 +569,16 @@ function facts.item(bag, slot, reserved)
     local quality = GetItemLinkFunctionalQuality(link)
     local style = GetItemLinkItemStyle(link)
     local trait = GetItemLinkTraitType(link)
-    local material, traitLink, traitResolved = '', '', true
+    local level, championPoints = GetItemLinkRequiredLevel(link), GetItemLinkRequiredChampionPoints(link)
+    local armorType = GetItemLinkArmorType(link)
+    local material, traitLink, traitResolved, baseMaterial, craft = '', '', true, '', CRAFTING_TYPE_INVALID
     -- Glyphs and other non-equipment items can carry style IDs too. Retain the
     -- raw metadata for inspection without treating it as recoverable material.
     if itemKind == 'gear' then
         if style > 0 then material = GetItemStyleMaterialLink(style, LINK_STYLE_DEFAULT) end
         traitLink, traitResolved = traitMaterial(trait)
+        craft = GetItemLinkCraftingSkillType(link)
+        baseMaterial = facts.baseMaterial(craft, armorType, level, championPoints)
     end
     local crafterId = facts.crafterId()
     local known, crafterKnown, learnProgress, learnRequired
@@ -537,7 +592,6 @@ function facts.item(bag, slot, reserved)
     local usable = IsItemUsable(bag, slot)
     local locked = IsItemPlayerLocked(bag, slot)
     local equipped = bag == BAG_WORN or bag == BAG_COMPANION_WORN
-    local armorType = GetItemLinkArmorType(link)
     local itemId = GetItemLinkItemId(link)
     local _, _, _, _, _, setId = GetItemLinkSetInfo(link, false)
     local learnQuantity = 1
@@ -548,38 +602,26 @@ function facts.item(bag, slot, reserved)
         else learnQuantity = nil end
     end
     local companions = BattleScrolls.inventoryPocCompanions
-    local crafted, hasOnUseAbility, onUseAbilityId, alchemyTraitCount
     local tradeable, hasSet, setCollected, collectionKey, improvementMaterial
     -- Bound copies of any listable kind (motifs, runeboxes, fragments, leads)
     -- cannot reach a guild store; the policy routes them to their cheap action.
     tradeable = IsItemSellableOnTradingHouse(bag, slot)
     if itemKind == 'gear' then
-        crafted = IsItemLinkCrafted(link)
         hasSet = setId > 0
         if hasSet and IsItemLinkSetCollectionPiece(link) then
             local collectionSlot = GetItemLinkItemSetCollectionSlot(link)
             setCollected = IsItemSetCollectionSlotUnlocked(setId, collectionSlot)
             if not setCollected then collectionKey = tostring(setId) .. ':' .. Id64ToString(collectionSlot) end
         end
-        if tradeable and quality >= 5 then
-            local craft = GetItemLinkCraftingSkillType(link)
-            if craft ~= CRAFTING_TYPE_INVALID then
-                improvementMaterial = GetSmithingImprovementItemLink(craft, quality - 1, LINK_STYLE_DEFAULT)
-            end
-        end
-    end
-    if itemKind == 'potion' or itemKind == 'poison' then
-        crafted = IsItemLinkCrafted(link)
-        hasOnUseAbility = GetItemLinkOnUseAbilityInfo(link)
-        onUseAbilityId = GetItemLinkOnUseAbilityId(link)
-        alchemyTraitCount = 0
-        for index = 1, GetMaxTraits() do
-            if GetItemLinkTraitOnUseAbilityInfo(link, index) then alchemyTraitCount = alchemyTraitCount + 1 end
+        if tradeable and quality >= 5 and craft ~= CRAFTING_TYPE_INVALID then
+            improvementMaterial = GetSmithingImprovementItemLink(craft, quality - 1, LINK_STYLE_DEFAULT)
         end
     end
     local sellInformation = GetItemSellInformation(bag, slot)
     local marketUnit, marketLoading = facts.marketPrice(link)
     local styleMaterialUnit, styleLoading, traitMaterialUnit, traitLoading, improvementUnit, improvementLoading
+    local baseMaterialUnit, baseLoading
+    if baseMaterial ~= '' then baseMaterialUnit, baseLoading = facts.price(baseMaterial) end
     if material ~= '' then styleMaterialUnit, styleLoading = facts.price(material) end
     if traitLink ~= '' then traitMaterialUnit, traitLoading = facts.price(traitLink) end
     if improvementMaterial and improvementMaterial ~= '' then improvementUnit, improvementLoading = facts.price(improvementMaterial) end
@@ -590,7 +632,7 @@ function facts.item(bag, slot, reserved)
         kind = itemKind, quality = quality, trait = trait, style = style,
         equipType = GetItemLinkEquipType(link), armorType = armorType, weaponType = GetItemLinkWeaponType(link),
         actorCategory = GetItemLinkActorCategory(link),
-        level = GetItemLinkRequiredLevel(link), championPoints = GetItemLinkRequiredChampionPoints(link),
+        level = level, championPoints = championPoints,
         locked = locked,
         reserved = equipped or locked or IsItemInArmory(bag, slot) or (reserved and reserved[uniqueId]) == true,
         stolen = IsItemStolen(bag, slot), crown = IsItemLinkFromCrownStore(link) or IsItemLinkFromCrownCrate(link),
@@ -599,10 +641,11 @@ function facts.item(bag, slot, reserved)
         cannotSell = sellInformation == ITEM_SELL_INFORMATION_CANNOT_SELL,
         styleMaterialLink = material, styleMaterialUnit = styleMaterialUnit,
         traitMaterialLink = traitLink, traitMaterialUnit = traitMaterialUnit, traitMaterialResolved = traitResolved,
+        baseMaterialLink = baseMaterial, baseMaterialUnit = baseMaterialUnit,
         tradeable = tradeable, hasSet = hasSet, setId = setId,
         setCollected = setCollected, collectionKey = collectionKey,
         improvementMaterialLink = improvementMaterial, improvementMaterialUnit = improvementUnit,
-        priceLoading = marketLoading or styleLoading or traitLoading or improvementLoading or false,
+        priceLoading = marketLoading or styleLoading or traitLoading or improvementLoading or baseLoading or false,
         known = known, crafterKnown = crafterKnown,
         isCrafter = crafterId == GetCurrentCharacterId(),
         -- Batch fragments consume their required pieces together. Progress-based
@@ -610,11 +653,15 @@ function facts.item(bag, slot, reserved)
         learnQuantity = learnQuantity,
         learnProgress = learnProgress, learnRequired = learnRequired,
         usable = usable, filledSoulGem = itemKind == 'soulGem' and IsItemSoulGem(SOUL_GEM_TYPE_FILLED, bag, slot),
-        crafted = crafted, hasOnUseAbility = hasOnUseAbility, onUseAbilityId = onUseAbilityId, alchemyTraitCount = alchemyTraitCount,
+        crafted = IsItemLinkCrafted(link),
     }
     if itemKind == 'companion' and companions then companions.apply(item) end
     BattleScrolls.inventoryPocSealedLeads.apply(item)
-    if itemKind == 'container' then item.openAfter = BattleScrolls.inventoryPocCoffers.openAfter(itemId) end
+    if itemKind == 'container' then
+        local coffers = BattleScrolls.inventoryPocCoffers
+        item.openAfter, item.cappedCurrency = coffers.openAfter(itemId), coffers.cappedCurrency(itemId)
+        item.currencyContainer = itemType == ITEMTYPE_CONTAINER_CURRENCY or specializedType == SPECIALIZED_ITEMTYPE_CONTAINER_CURRENCY
+    end
     local returns = BattleScrolls.inventoryPocReturns
     if returns and returns.isDiscounted(item) then
         item.marketUnit, marketLoading = facts.marketPrice(link, true)

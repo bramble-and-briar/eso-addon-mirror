@@ -91,27 +91,27 @@
 
 		</Label>
 
-		<Line name="CombatMetrics2_Line_Thin" thickness="16" textureFile="CombatMetrics2/art/line1.dds" virtual="true" />
-		<Line name="CombatMetrics2_Line" thickness="16" textureFile="CombatMetrics2/art/line2.dds" virtual="true" />
-		<Line name="CombatMetrics2_Line_Graph" thickness="16" textureFile="CombatMetrics2/art/line2.dds" pixelRoundingEnabled="false"
+		<Line name="CombatMetrics2_Line_Thin" thickness="1" textureFile="blank.dds" virtual="true" />
+		<Line name="CombatMetrics2_Line" thickness="2" textureFile="blank.dds" virtual="true" />
+		<Line name="CombatMetrics2_Line_Graph" thickness="2" textureFile="blank.dds" pixelRoundingEnabled="false"
 			virtual="true" />
-		<Line name="CombatMetrics2_Line_Solid" thickness="16" textureFile="CombatMetrics2/art/line4.dds" virtual="true" />
+		<Line name="CombatMetrics2_Line_Solid" thickness="4" textureFile="blank.dds" virtual="true" />
 
 		<Backdrop name="CombatMetrics2_BackgroundFramed_Solid" virtual="true" edgeColor="FFFFFFFF" centerColor="00000000">
 
-			<Edge file="CombatMetrics2/art/simpleframe4.dds" edgeFileWidth="128" edgeFileHeight="16" edgeSize="8" />
+			
 
 		</Backdrop>
 
 		<Backdrop name="CombatMetrics2_BackgroundFramed" virtual="true" edgeColor="FFFFFFFF" centerColor="00000000">
 
-			<Edge file="CombatMetrics2/art/simpleframe2.dds" edgeFileWidth="128" edgeFileHeight="16" edgeSize="8" />
+			
 
 		</Backdrop>
 
 		<Backdrop name="CombatMetrics2_BackgroundFramed_Thin" virtual="true" edgeColor="FFAAAAAA" centerColor="00000000">
 
-			<Edge file="CombatMetrics2/art/simpleframe1.dds" edgeFileWidth="128" edgeFileHeight="16" edgeSize="8" />
+			
 
 		</Backdrop>
 
@@ -127,7 +127,9 @@
 			<Controls>
 				<Backdrop name="$(parent)BG" inherits="CombatMetrics2_BackgroundFramed">
 					<AnchorFill />
-				</Backdrop>
+				
+<OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 1,1,1,1)</OnInitialized>
+</Backdrop>
 			</Controls>
 		</Control>
 
@@ -358,7 +360,9 @@
 					<Controls>
 						<Backdrop name="$(parent)Bg" inherits="CombatMetrics2_BackgroundFramed">
 							<AnchorFill />
-						</Backdrop>
+						
+<OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 1,1,1,1)</OnInitialized>
+</Backdrop>
 
 						<Texture name="$(parent)Texture" textureFile="art/fx/texture/footprint_wolf_01.dds">
 							<AnchorFill />
@@ -1601,9 +1605,11 @@
 			<Dimensions x="1000" y="770" />
 
 			<Controls>
-				<Backdrop name="$(parent)BG" inherits="CombatMetrics2_BackgroundFramed_Solid" edgeColor="FF000000" centerColor="EE000000">
+				<Backdrop name="$(parent)BG" inherits="CombatMetrics2_BackgroundFramed_Solid" edgeColor="FFFFFFFF" centerColor="EE000000">
 					<AnchorFill />
-				</Backdrop>
+				
+<OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 1,1,1,1)</OnInitialized>
+</Backdrop>
 
 				<Backdrop name="$(parent)ResizeFrame" inherits="CombatMetrics2_BackgroundFramed_Solid" edgeColor="00000000"
 					centerColor="00000000" mouseEnabled="true" resizeHandleSize="10" layer="CONTROLS">
@@ -1615,7 +1621,9 @@
 					<OnResizeStart>CMX2.Resizing(self, true)</OnResizeStart>
 					<OnResizeStop>CMX2.Resizing(self, false)</OnResizeStop>
 
-				</Backdrop>
+				
+<OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 0,0,0,0)</OnInitialized>
+</Backdrop>
 
 				<Control name="$(parent)_Title">
 					<Anchor point="TOPLEFT" relativePoint="TOPLEFT" offsetX="4" offsetY="4" />
@@ -2819,7 +2827,9 @@
 													<Anchor point="TOPLEFT" offsetX="0" />
 													<Anchor point="BOTTOMRIGHT" offsetX="0" />
 
-												</Backdrop>
+												
+<OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 1,1,1,1)</OnInitialized>
+</Backdrop>
 
 												<Label name="$(parent)Label" inherits="CombatMetrics2_LabelFontControl"
 													text="SI_COMBAT_METRICS2_ENLARGE" verticalAlignment="CENTER"
@@ -3272,7 +3282,9 @@
 						<Backdrop name="$(parent)BG" inherits="CombatMetrics2_BackgroundFramed_Solid" excludeFromResizeToFitExtents="true"
 							edgeColor="FF000000" centerColor="EE000000">
 							<AnchorFill />
-						</Backdrop>
+						
+<OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 0,0,0,1)</OnInitialized>
+</Backdrop>
 
 					</Controls>
 				</Control>
@@ -4037,7 +4049,9 @@
 
 									<AnchorFill />
 
-								</Backdrop>
+								
+<OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 0.8,0.8,0.8,1)</OnInitialized>
+</Backdrop>
 
 							</Controls>
 
@@ -4053,7 +4067,9 @@
 					<Controls>
 						<Backdrop name="$(parent)BG" inherits="CombatMetrics2_BackgroundFramed" edgeColor="FFEEEEEE" centerColor="F8050510">
 							<AnchorFill />
-						</Backdrop>
+						
+<OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 0.9333333333333333,0.9333333333333333,0.9333333333333333,1)</OnInitialized>
+</Backdrop>
 
 						<Control name="$(parent)Recent" inherits="CombatMetrics2_FightListTemplate">
 							<Anchor point="TOPLEFT" />
@@ -4101,7 +4117,9 @@
 
 							<AnchorFill />
 
-						</Backdrop>
+						
+<OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 0.9333333333333333,0.9333333333333333,0.8,1)</OnInitialized>
+</Backdrop>
 
 						<Label name="$(parent)TextField" text="SI_COMBAT_METRICS2_DONATE_CROWNS_TEXT" verticalAlignment="CENTER"
 							horizontalAlignment="CENTER" inherits="CombatMetrics2_LabelFontControl">
@@ -4145,7 +4163,9 @@
 
 									<AnchorFill />
 
-								</Backdrop>
+								
+<OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 0.9333333333333333,0.9333333333333333,0.9333333333333333,1)</OnInitialized>
+</Backdrop>
 							</Controls>
 
 						</Button>
@@ -4166,7 +4186,9 @@
 				<Backdrop name="$(parent)BG" excludeFromResizeToFitExtents="true" inherits="CombatMetrics2_BackgroundFramed_Solid"
 					edgeColor="FF000000" centerColor="FF000000">
 					<AnchorFill />
-				</Backdrop>
+				
+<OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 0,0,0,1)</OnInitialized>
+</Backdrop>
 
 				<Backdrop name="$(parent)ResizeFrame" excludeFromResizeToFitExtents="true" inherits="CombatMetrics2_BackgroundFramed_Solid"
 					edgeColor="00000000" centerColor="00000000" mouseEnabled="true" resizeHandleSize="8">
@@ -4180,7 +4202,9 @@
 
 					<OnMouseDown>CombatMetrics2_LiveReport:StartMoving()</OnMouseDown>
 
-				</Backdrop>
+				
+<OnInitialized>CMX2.Controller.InitializeFrame(self, 2, 0,0,0,0)</OnInitialized>
+</Backdrop>
 
 				<Control name="$(parent)DamageOutSingle">
 					<Anchor point="TOPLEFT" relativePoint="TOPLEFT" offsetX="2" offsetY="2" />

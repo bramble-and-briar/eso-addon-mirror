@@ -26,9 +26,10 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CanThisBeCraftedAtHome](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/CanThisBeCraftedAtHome__434ce5ca-211a-4a6b-8682-21f39dcb2d25) | Masteroshi430 | Console | — |
 | [CapsLOCK](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkOODaT/CapsLOCK__653) | SkOODaT | PC / Mac | 101032.1 |
 | [Capybara Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Capybara-Icons__4176) | wicked_prophet | PC / Mac | 1.9.4 |
-| [CaracBuffDebuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracBuffDebuff__5002) | roccesar | PC / Mac | 1.9.4 |
-| [CaracTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracTracker__5038) | roccesar | PC / Mac | 1 |
-| [CaracVentes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracVentes__4995) | roccesar | PC / Mac | 1.2 |
+| [CaracBuffDebuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracBuffDebuff__5002) | roccesar | PC / Mac | 1.9.5 |
+| [CaracMarchandise](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracMarchandise__5052) | roccesar | PC / Mac | 1.1 |
+| [CaracTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracTracker__5038) | roccesar | PC / Mac | 1.1 |
+| [CaracVentes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracVentes__4995) | roccesar | PC / Mac | 1.3 |
 | [Card Combo - Mini Game](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Traybair/Card-Combo---Mini-Game__4512) | Traybair | PC / Mac | 1.0.2 |
 | [Caro's Auto Marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irniben/Caro-s-Auto-Marker__3500) | Irniben | PC / Mac | 0.1.2 |
 | [Caro's Collection Mail Group](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irniben/Caro-s-Collection-Mail-Group__3234) | Irniben | PC / Mac | 1.0.0 |
@@ -103,6 +104,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Chess multiplayer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drako-Ei/Chess-multiplayer__2082) | Drako-Ei | PC / Mac | 5.0 |
 | [Chest Master 9000](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CrazyDutchGuy/Chest-Master-9000__713) | CrazyDutchGuy | PC / Mac | 2.3 |
 | [ChestFarmer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xgoku1/ChestFarmer__3045) | xgoku1 | PC / Mac | 1.22 |
+| [Chill Giveaway](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HellWhyNot/Chill-Giveaway__5054) | HellWhyNot | PC / Mac | 1.0 |
 | [Chorus - Minimal Combat Text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Krogdalo/Chorus---Minimal-Combat-Text__4810) | Krogdalo | PC / Mac | 0.2.4 |
 | [Christmas Bongo cat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Emma/Christmas-Bongo-cat__2206) | Emma | PC / Mac | 1 |
 | [ChromaConfig](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/otac0n/ChromaConfig__3361) | otac0n | PC / Mac | 1.1 |

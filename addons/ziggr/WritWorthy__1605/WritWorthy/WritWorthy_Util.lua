@@ -183,17 +183,37 @@ function Util.MatPrice(link)
     price_sources = { "mm", "att", "ttc" }
   end
 
-  local gold, s, f = LibPrice.ItemLinkToPriceGold(link, unpack(price_sources))
-  -- if gold then
-  --     d(string.format( "|c999999%s.%s |cFFFFFF%d|c999999 for %s"
-  --                    , s, f, gold,link ))
-  -- end
+  local gold = nil
+  if sv.enable_average_price then
+    -- LibPrice.ItemLinkToPriceGold returns the first source with a price,
+    -- so ask each source on its own and average what comes back.
+    local price_total = 0
+    local price_count = 0
+    for _, source_key in ipairs(price_sources) do
+      local source_gold = LibPrice.ItemLinkToPriceGold(link, source_key)
+      if source_gold then
+        price_total = price_total + source_gold
+        price_count = price_count + 1
+      end
+    end
+    if 0 < price_count then
+      gold = price_total / price_count
+    end
+  else
+    gold = LibPrice.ItemLinkToPriceGold(link, unpack(price_sources))
+  end
 
   -- Hardcoded fallback prices keep material selection stable
   -- when LibPrice has no usable price.
   local fb = WritWorthy.FallbackPrice(link)
 
-  return gold or fb or WritWorthy.GOLD_UNKNOWN
+  -- Last resort: the item's vendor value.
+  local vendor_gold = GetItemLinkValue(link, false)
+  if vendor_gold == 0 then
+    vendor_gold = nil
+  end
+
+  return gold or fb or vendor_gold or WritWorthy.GOLD_UNKNOWN
 end
 
 -- Prevent access to LibSets until
@@ -254,7 +274,19 @@ function WritWorthy.Util.OnMoveStop(top_level_control, saved_var_key_name)
   WritWorthy.Util.SavePos(top_level_control, saved_var_key_name)
 end
 
+-- Row cells are anchored at fixed offsets copied from the header cells,
+-- so they must be re-laid out every frame while the user drags the edge.
+function WritWorthy.Util.OnResizeStart(top_level_control, list)
+  top_level_control:SetHandler(
+    "OnUpdate",
+    function()
+      list:UpdateAllCellWidths()
+    end
+  )
+end
+
 function WritWorthy.Util.OnResizeStop(top_level_control, list, singleton, saved_var_key_name)
+  top_level_control:SetHandler("OnUpdate", nil)
   list:UpdateAllCellWidths()
   WritWorthy.Util.SavePos(top_level_control, saved_var_key_name)
 

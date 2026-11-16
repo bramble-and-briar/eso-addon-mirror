@@ -22,7 +22,7 @@
     "WritWorthy"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1605/",
-  "fingerprint": "2069b82e49a04872cbb5fd22097222b67d355f4153c63d290f928d895af3deca",
+  "fingerprint": "a9ca61146913c7010007169edf7f96dbe558948212d17da7618e055b338672f3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5719.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw5262.jpg",
@@ -40,11 +40,11 @@
   "source_id": "1605",
   "source_url": "https://www.esoui.com/downloads/info1605-WritWorthy.html",
   "stats": {
-    "downloads": 2569728,
+    "downloads": 2581793,
     "favorites": 989,
-    "monthly_downloads": 28226
+    "monthly_downloads": 35558
   },
   "title": "WritWorthy",
-  "updated_at": 1794282906000,
-  "version": "7.6.2"
+  "updated_at": 1794788047000,
+  "version": "7.6.3"
 }

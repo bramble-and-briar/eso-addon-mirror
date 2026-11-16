@@ -1,7 +1,8 @@
-## Title: Carac Tracker
-## Description: suivi en temps réel de certaines caractéristiques de son personnage.
-## Author: Roccesar & Claude IA
-## Version: 1
+## Title: CaracTracker
+## Description: [AI-assisted code] Real-time monitoring of certain characteristics of his character.
+## Author: Roccesar & Claude AI, Anthropic
+## Version: 1.1
+## AddOnVersion: 10100
 ## APIVersion: 101051
 ## SavedVariables: CaracTrackerSV 
 

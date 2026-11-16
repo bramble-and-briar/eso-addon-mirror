@@ -4,6 +4,14 @@ Version numbers before 2.5.0 were assigned retrospectively to the dated
 changelog entries; they do not imply those versions were released. Future
 entries use major.minor.patch and match the add-on manifest version.
 
+2.8.2 - 11/15/2026
+- Added a Fixes and Patches settings group directly below Features.
+- Added a Group menu fix option that stops the gamepad group menu from reacting to group events while it is closed. The game attaches the menu's panel to whatever scene is current when it rebuilds its list, even while the menu is closed.
+- The Group menu fix also keeps the help or item panel of the screen you are on from disappearing when that rebuild happens in the background, such as when a pet is summoned or dismissed or another add-on refreshes the group menu.
+- The main-menu Bank row now adds the ESO Plus subscriber bank slots instead of doubling the bank size, so the reported total matches the bank's real capacity.
+- Moved the battleground fixes into Fixes and Patches and renamed the option U51 BG Fixes. Its saved value is preserved.
+- Moved the fix modules into kpui_features/fixes/.
+
 2.8.1 - 11/13/2026
 - Fixed the main-menu dashboard's Bank row reporting half of the real capacity on ESO Plus accounts.
 - Shortened the gamepad main-menu entry to KelaPadUI² so it fits on one line.

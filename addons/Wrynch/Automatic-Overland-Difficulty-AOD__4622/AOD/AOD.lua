@@ -1500,9 +1500,9 @@ function Addon.OnOverlandDifficultyChanged(_, newDifficulty)
         Addon.nextDifficultyRequestTimeMS = GetFrameTimeMilliseconds() + DIFFICULTY_REQUEST_COOLDOWN_MS
 
         if newDifficulty ~= Addon.lastObservedDifficulty then
-            Addon.lastObservedDifficulty = newDifficulty
             if GetOverlandDifficultyDisabledReason() == OVERLAND_DIFFICULTY_DISABLED_REASON_NONE
                 and GetOverlandDifficulty() == newDifficulty then
+                Addon.lastObservedDifficulty = newDifficulty
                 Addon.AnnounceDifficultyChanged(newDifficulty)
                 Addon.TryAnnounceLevelingJourneyEntry()
             end

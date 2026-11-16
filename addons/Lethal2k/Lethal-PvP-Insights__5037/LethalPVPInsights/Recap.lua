@@ -1,6 +1,6 @@
 -- Lethal PVP Insights - Real Death Recap
 -- While switched on (Settings, off by default) and in a PvP area it remembers the damage you take. When you die it shows the
--- 5 sources (skill + player) that hurt you most in that fight and the last 10 hits before death.
+-- 5 sources (skill + player) that hurt you most in that fight and the last 20 hits before death.
 local PDI = PVPDataInsight
 local Recap = {}
 PDI.Recap = Recap
@@ -10,7 +10,7 @@ local NS = PDI.name .. "_Recap"
 local KEEP_MS = 120000          -- keep 2 minutes of damage taken
 local MAX_ENTRIES = 800
 local FIGHT_GAP_MS = 2000       -- hits up to this long before "in combat" started belong to the fight
-local TOP_N, LAST_N = 5, 10
+local TOP_N, LAST_N = 5, 20
 
 local DAMAGE = {}
 for _, k in ipairs({ "ACTION_RESULT_DAMAGE", "ACTION_RESULT_CRITICAL_DAMAGE", "ACTION_RESULT_DOT_TICK",
@@ -82,7 +82,7 @@ function Recap:Build()
         if h.shield then e.abs = e.abs + h.v; absorbed = absorbed + h.v end
     end
     -- top 5: an attack's absorbed part counts with it (Molten Whip 7k to health + 3k absorbed = 10k), but a skill
-    -- that never reached your health (only absorbed hits, e.g. Calculated Defense) is left out; the last 10 keep all
+    -- that never reached your health (only absorbed hits, e.g. Calculated Defense) is left out; the last 20 keep all
     local ranked = {}
     for _, e in ipairs(order) do if e.v > e.abs then ranked[#ranked + 1] = e end end
     table.sort(ranked, function(a, b) return a.v > b.v end)

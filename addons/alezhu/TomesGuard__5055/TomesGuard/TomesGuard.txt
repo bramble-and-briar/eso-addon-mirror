@@ -1,0 +1,11 @@
+## Title: |cFFD700TomesGuard|r
+## Description: Prevents UI lockups and fatal taint errors when opening Tamriel Tomes while other scenes (mail, inventory, notifications) are active.
+## Author: alezhu
+## Version: 1.0.2
+## APIVersion: 101044 101045 101046 101047 101051 101052
+## SavedVariables: TomesGuardSV
+
+lang/en.lua
+lang/$(language).lua
+
+TomesGuard.lua

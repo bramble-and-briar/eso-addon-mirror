@@ -53,7 +53,7 @@ local WW = WritWorthy
 local LAM2 = LibAddonMenu2
 
 WritWorthy.name = "WritWorthy"
-WritWorthy.version = "7.6.2"
+WritWorthy.version = "7.6.3"
 WritWorthy.savedVarVersion = 1
 
 WritWorthy.default = {
@@ -74,6 +74,7 @@ WritWorthy.defaultChar = {
   enable_mm_price = true,
   enable_att_price = true,
   enable_ttc_price = true,
+  enable_average_price = false,
   enable_station_colors = false,
   enable_banked_vouchers = false,
   lang = false,
@@ -632,6 +633,18 @@ function WritWorthy:CreateSettingsWindow()
     end,
     setFunc = function(e)
       self.savedVariables.enable_ttc_price = e
+    end
+  }
+
+  optionsData[#optionsData + 1] = {
+    type = "checkbox",
+    name = WW.Str("lam_average_price_title"),
+    tooltip = WW.Str("lam_average_price_desc"),
+    getFunc = function()
+      return self.savedVariables.enable_average_price
+    end,
+    setFunc = function(e)
+      self.savedVariables.enable_average_price = e
     end
   }
 

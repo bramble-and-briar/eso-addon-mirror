@@ -1,7 +1,8 @@
 ## Title: CaracBuffDebuff
-## Description: Trois blocs deplacables : tes buffs et les debuffs que tu appliques et ceux que tu reçois, avec leur timer.
-## Author: Roccesar & Claude IA
-## AddOnVersion: 1.9.4
+## Description: [AI-assisted code] Displays buffs and debuffs on customizable panels.
+## Author: Roccesar & Claude AI, Anthropic.
+## Version: 1.9.5
+## AddOnVersion: 10905
 ## APIVersion: 101051
 ## SavedVariables: CaracBuffDebuffSV
 

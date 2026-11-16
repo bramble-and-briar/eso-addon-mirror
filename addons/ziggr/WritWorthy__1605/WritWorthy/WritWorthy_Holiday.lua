@@ -132,6 +132,21 @@ function Parser:New()
   return parser
 end
 
+local function CreateMatList(parser, craft_count)
+  local mat_list = {}
+  if craft_count < 1 then
+    return mat_list
+  end
+  for ingredient_index = 1, parser.ingredient_count do
+    local _, _, required_count = GetRecipeIngredientItemInfo(parser.recipe_list_index, parser.recipe_index, ingredient_index)
+    local ingredient_link = GetRecipeIngredientItemLink(parser.recipe_list_index, parser.recipe_index, ingredient_index, LINK_STYLE_DEFAULT)
+    if 0 < required_count and ingredient_link ~= "" then
+      table.insert(mat_list, WritWorthy.MatRow:FromLink(ingredient_link, required_count * craft_count))
+    end
+  end
+  return mat_list
+end
+
 function Parser:ParseItemLink(item_link)
   local fields = Util.ToWritFields(item_link)
   local festival = Holiday.WRIT_ITEM_ID[fields.item_id]
@@ -163,6 +178,7 @@ function Parser:ParseItemLink(item_link)
   self.requested_item_name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(result_link))
   self.requested_item_type = GetItemLinkItemType(result_link)
   self.needed_count = needed_count
+  self.mat_list = CreateMatList(self, zo_ceil(needed_count / result_per_craft))
   self.backpack_count = GetItemLinkStacks(result_link)
   self:SetOwnedCount(self.backpack_count)
   return self
@@ -174,30 +190,17 @@ function Parser:SetOwnedCount(owned_count)
   self.owned_count = owned_count
   self.still_needed_count = zo_max(self.needed_count - owned_count, 0)
   self.times_to_craft = zo_ceil(self.still_needed_count / self.result_per_craft)
-  self.mat_list = {}
-  self.mat_list_fail_reason = nil
-
-  if self.times_to_craft < 1 then
-    self.mat_list_fail_reason = string.format(
-      WritWorthy.Str("holiday_have_enough"),
-      self.owned_count,
-      self.needed_count,
-      self.requested_item_name
-    )
-    return
-  end
-
-  for ingredient_index = 1, self.ingredient_count do
-    local _, _, required_count = GetRecipeIngredientItemInfo(self.recipe_list_index, self.recipe_index, ingredient_index)
-    local ingredient_link = GetRecipeIngredientItemLink(self.recipe_list_index, self.recipe_index, ingredient_index, LINK_STYLE_DEFAULT)
-    if 0 < required_count and ingredient_link ~= "" then
-      table.insert(self.mat_list, WritWorthy.MatRow:FromLink(ingredient_link, required_count * self.times_to_craft))
-    end
-  end
+  self.craft_mat_list = CreateMatList(self, self.times_to_craft)
 end
 
+-- Materials for the whole writ, ignoring the backpack. Used for prices.
 function Parser:ToMatList()
   return self.mat_list
+end
+
+-- Materials for the crafts still needed after the backpack.
+function Parser:ToCraftMatList()
+  return self.craft_mat_list
 end
 
 function Parser:ToKnowList()

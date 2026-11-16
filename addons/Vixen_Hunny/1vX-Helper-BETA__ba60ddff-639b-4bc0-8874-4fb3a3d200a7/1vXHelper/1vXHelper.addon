@@ -1,0 +1,20 @@
+## Title: |cFF33331vX|r Helper
+## Description: Burst monitor (tells you when to kite), map pins for kite spots / safe places / choke points, a nearest-spot tracker and other 1vX tools. Everything toggleable in LibAddonMenu-2.0.
+## Author: Vixen Hunny
+## Version: 1.0.0
+## AddOnVersion: 100
+## APIVersion: 101048 101049
+## SavedVariables: OneVXHelper_SV
+## DependsOn: LibAddonMenu-2.0>=32
+## OptionalDependsOn: LibMapPins-1.0
+
+1vXHelper.lua
+UI.lua
+modules/Burst.lua
+modules/MapPins.lua
+modules/Tracker.lua
+modules/Extras.lua
+GamepadPins.xml
+modules/GamepadPins.lua
+Settings.lua
+Bindings.xml

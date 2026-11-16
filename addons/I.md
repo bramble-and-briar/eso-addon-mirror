@@ -70,7 +70,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Innocent Blade of Woe (and Vampire Feed)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dorrino/Innocent-Blade-of-Woe-and-Vampire-Feed__1386) | dorrino | PC / Mac | 1.24 |
 | [ins:Mobs2Level](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ins/ins-Mobs2Level__58) | ins | PC / Mac | 20211111 |
 | [insjunkyard update for ESO 1.4.3](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Klingo/insjunkyard-update-for-ESO-1.4.3__719) | Klingo | PC / Mac | 1.03 |
-| [Inspect Vestige](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LuckyRome13/Inspect-Vestige__4706) | LuckyRome13 | PC / Mac | 1.4.0 |
+| [Inspect Vestige](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LuckyRome13/Inspect-Vestige__4706) | LuckyRome13 | PC / Mac | 1.4.1 |
 | [Instance Leaver \[leave instance with one key bind\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VaalHazac/Instance-Leaver-leave-instance-with-one-key-bind__4867) | VaalHazac | PC / Mac | 0.2 |
 | [Instant Swap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/delstrega/Instant-Swap__2987) | delstrega | PC / Mac | 1.2 |
 | [InstaQ](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Synkronist/InstaQ__5da20bd4-9950-42b8-aca8-deadd5817210) | Synkronist | Console | — |
@@ -140,7 +140,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Item Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/A5ha/Item-Tracker__4351) | A5ha | PC / Mac | 5 |
 | [ItemHound](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/ItemHound__70b691c1-ae82-42c5-ad2d-4dad6bd53b36) | TheGreyWolf98 | Console | — |
 | [Items tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Upyachka/Items-tracker__1472) | Upyachka | PC / Mac | 1.1_ |
-| [ItemShare](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/ItemShare__4533) | evainefaye | PC / Mac | 1.11.43 |
 | [ItemTrig](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DavidJCobb/ItemTrig__2312) | DavidJCobb | PC / Mac | 1.0.14 |
 | [ITTs Donation Bot ( ITTDB )](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/ITTs-Donation-Bot-ITTDB__2765) | ghostbane | PC / Mac | 2.1.3 |
 | [ITTs Ghostwriter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jnslevin/ITTs-Ghostwriter__3208) | jnslevin | PC / Mac | 2.2.3 |

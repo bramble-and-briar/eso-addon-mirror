@@ -1,14 +1,14 @@
 MyExtras = {}
 MyExtras.name = "MyExtras"
-MyExtras.version = "5.6"
+MyExtras.version = "7"
 MyExtras.savedVariables = nil
 MyExtras.charVariables = nil
 MyExtras.defaults = {
     settingsFontSize       = 30,
     settingsFont           = "EsoUI/Common/Fonts/FTN57.otf",
     settingsOpacity        = 100,
-    settingsHighlight      = "Alliance",
-    settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 },
+    settingsHighlight      = "Custom",
+    settingsHighlightColor = { r = 214 / 255, g = 90 / 255, b = 214 / 255, a = 1 },
     settingsRemember       = true,
 }
 MyExtras.charDefaults = {}
@@ -331,7 +331,10 @@ end
 --------------------------------------------------
 -- Info
 --------------------------------------------------
-local GAMERTAG = "user562"
+local GAMERTAG       = "user562"
+local NAME_COLOR     = "D65AD6"
+local TITLE_COLORED  = "|c" .. NAME_COLOR .. "MyExtras|r"
+local AUTHOR_COLORED = "user|c" .. NAME_COLOR .. "562|r"
 
 local STATUS_INSTALLED = "|c33DD33Installed|r"
 local STATUS_OFF       = "|cFFAA33Turned Off|r"
@@ -340,37 +343,31 @@ local STATUS_MISSING   = "|c8C8C8CNot Installed|r"
 local MY_ADDONS = {
     {
         name        = "MyExtras",
-        search      = "MyExtras",
-        title       = "MyExtras",
+        title       = TITLE_COLORED,
         description = "Extra features in one place, like your action bar, trackers, gear tools, trial timer and more.",
     },
     {
         name        = "PvPUA",
-        search      = "PvP UA",
         title       = "|c4F81BDP|r|cC2AA49v|r|cDE5B4EP|r |cFF8800UA!|r",
         description = "Tells you when something is under attack in Cyrodiil, Imperial City and more.",
     },
     {
         name        = "WhereIsIt",
-        search      = "Where Is It",
         title       = "Where Is It?",
         description = "Shows where your items and currencies are across your characters, bank, guild banks and houses.",
     },
     {
         name        = "AutoConsume",
-        search      = "AutoConsume",
         title       = "AutoConsume",
         description = "Uses your food, drinks and experience and Alliance Point boosts for you.",
     },
     {
         name        = "VerticalBuffsDebuffs",
-        search      = "VerticalBuffsDebuffs",
         title       = "VerticalBuffsDebuffs",
         description = "Shows your buffs and debuffs in vertical lists with timers.",
     },
     {
         name        = "LibUser562",
-        search      = "LibUser562",
         title       = "LibUser562",
         description = "The settings library these addons use.",
     },
@@ -398,69 +395,12 @@ local function FindAddOn(entry)
     return nil
 end
 
-local BROWSE_SCENE = "modBrowserGamepad"
 local MANAGE_SCENE = "gamepad_addons"
-local BROWSE_CHECK_MS = 300
-
-local browseText    = nil
-local browseOldText = nil
-local browseId      = nil
-local browseHooked  = false
-
-local function BrowseAvailable()
-    if type(DoesPlatformSupportModBrowser) ~= "function" or not DoesPlatformSupportModBrowser() then return false end
-    if type(AreUserAddOnsSupported) == "function" and not AreUserAddOnsSupported() then return false end
-    return SCENE_MANAGER:GetScene(BROWSE_SCENE) ~= nil
-end
 
 local function ManageAvailable()
-    return BrowseAvailable() and SCENE_MANAGER:GetScene(MANAGE_SCENE) ~= nil
-end
-
-local function BrowseFilters()
-    local manager = rawget(_G, "MOD_BROWSER_SEARCH_MANAGER")
-    local browseType = rawget(_G, "MOD_BROWSER_SEARCH_TYPE_BROWSE")
-    if not (manager and manager.GetSearchFilters and browseType) then return nil, manager end
-    return manager:GetSearchFilters(browseType), manager
-end
-
-local function FillBrowseSearch()
-    local text = browseText
-    browseText = nil
-    if not text then return end
-    local filters, manager = BrowseFilters()
-    if filters and manager and manager.GetSearchId and manager:GetSearchId() == browseId then
-        filters:SetSearchText(browseOldText or "")
-    end
-    local browser = rawget(_G, "MOD_BROWSER_GAMEPAD")
-    if browser and browser.searchEdit then browser.searchEdit:SetText(text) end
-end
-
-local function HookBrowseScene()
-    if browseHooked then return end
-    local scene = SCENE_MANAGER:GetScene(BROWSE_SCENE)
-    if not scene then return end
-    scene:RegisterCallback("StateChange", function(oldState, newState)
-        if newState == SCENE_SHOWN and browseText then
-            zo_callLater(FillBrowseSearch, BROWSE_CHECK_MS)
-        elseif newState == SCENE_HIDDEN then
-            browseText = nil
-        end
-    end)
-    browseHooked = true
-end
-
-local function OpenBrowse(text)
-    if not BrowseAvailable() then return end
-    HookBrowseScene()
-    local filters, manager = BrowseFilters()
-    if filters then
-        browseOldText = filters:GetSearchText()
-        filters:SetSearchText(text)
-    end
-    browseId = manager and manager.GetSearchId and manager:GetSearchId() or nil
-    browseText = text
-    SCENE_MANAGER:Push(BROWSE_SCENE)
+    if type(DoesPlatformSupportModBrowser) ~= "function" or not DoesPlatformSupportModBrowser() then return false end
+    if type(AreUserAddOnsSupported) == "function" and not AreUserAddOnsSupported() then return false end
+    return SCENE_MANAGER:GetScene(MANAGE_SCENE) ~= nil
 end
 
 local function OpenManage()
@@ -479,9 +419,7 @@ local function AddOnRow(entry)
 
     local function Action()
         local state = State()
-        if state == "missing" and BrowseAvailable() then
-            return function() OpenBrowse(entry.search or entry.name) end, "Browse Add-Ons"
-        elseif state == "off" and ManageAvailable() then
+        if state == "off" and ManageAvailable() then
             return OpenManage, "Manage My Add-Ons"
         end
         return nil
@@ -501,10 +439,7 @@ local function AddOnRow(entry)
         end,
         tooltip    = function()
             local state = State()
-            if state == "missing" and BrowseAvailable() then
-                return entry.description .. "\n\nBrowse Add-Ons opens with its name in the search box. "
-                    .. "If the list doesn't change, select the search box and confirm it."
-            elseif state == "off" and ManageAvailable() then
+            if state == "off" and ManageAvailable() then
                 return entry.description .. "\n\nManage My Add-Ons opens so you can turn it back on."
             end
             return entry.description
@@ -624,16 +559,18 @@ function MyExtras:SettingsMenu()
             },
             {
                 type         = "stylecolor",
-                name         = RainbowText("Menu Color"),
+                name         = RainbowText("Accent Color"),
                 choices      = { "Alliance", "Custom" },
                 customValue  = "Custom",
                 default      = defaults.settingsHighlight,
-                colorDefault = { r = 1, g = 1, b = 1 },
+                colorDefault = { r = 214 / 255, g = 90 / 255, b = 214 / 255 },
                 details      = function()
+                    local where = ": the settings window, the MyExtras name in chat, the Antiquity Reminder pop-up, "
+                        .. "Group Finder and the Quest Tracker box."
                     if self.savedVariables.settingsHighlight == "Custom" then
-                        return "The settings window's highlight, arrow and sliders use your color."
+                        return "MyExtras' highlights use your color" .. where
                     end
-                    return "The settings window's highlight, arrow and sliders use your alliance color."
+                    return "MyExtras' highlights use your alliance color" .. where
                 end,
                 getFunc  = function() return self.savedVariables.settingsHighlight end,
                 setFunc  = function(val)
@@ -730,11 +667,12 @@ function MyExtras:CreateSettings()
     local sv = self.savedVariables
     self.settingsPanel = lib:RegisterSettings({
         name            = "MyExtras",
-        placement       = "addons",
-        menuTitle       = "MyExtras",
+        placement       = "main",
+        menuAfter       = "SOCIAL",
+        menuTitle       = TITLE_COLORED,
         menuIcon        = ICON_MENU,
-        title           = "MyExtras",
-        author          = GAMERTAG,
+        title           = TITLE_COLORED,
+        author          = AUTHOR_COLORED,
         version         = self.version,
         frameColor      = FRAME_GREY,
         previewControls = function() return MyExtras:SettingsPreviewControls() end,
@@ -804,6 +742,60 @@ function MyExtras:OpenPage(option, row)
 end
 
 --------------------------------------------------
+-- Main Menu
+--------------------------------------------------
+local MENU_ENTRY_ID   = "LibUser562_MyExtras"
+local ADDONS_ENTRY_ID = "LibUser562_Addons"
+
+local function EntryText(entry)
+    local text = entry.text
+    if (text == nil or text == "") and entry.data then text = entry.data.name end
+    if type(text) == "function" then text = text() end
+    return text
+end
+
+local function AddonsEntryIndex()
+    for i = 1, #ZO_MENU_ENTRIES do
+        if ZO_MENU_ENTRIES[i].id == ADDONS_ENTRY_ID then return i end
+    end
+    local title = GetString(SI_GAME_MENU_ADDONS)
+    for i = 1, #ZO_MENU_ENTRIES do
+        local entry = ZO_MENU_ENTRIES[i]
+        if type(entry.subMenu) == "table" and EntryText(entry) == title then return i end
+    end
+    return nil
+end
+
+local function KeepBeforeAddons()
+    if type(ZO_MENU_ENTRIES) ~= "table" then return end
+    local own
+    for i = 1, #ZO_MENU_ENTRIES do
+        if ZO_MENU_ENTRIES[i].id == MENU_ENTRY_ID then own = i break end
+    end
+    if not own then return end
+    local addons = AddonsEntryIndex()
+    if not addons or own == addons - 1 then return end
+    local entry = table.remove(ZO_MENU_ENTRIES, own)
+    if own < addons then addons = addons - 1 end
+    table.insert(ZO_MENU_ENTRIES, addons, entry)
+    if MAIN_MENU_GAMEPAD and MAIN_MENU_GAMEPAD.UpdateEntryEnabledStates then
+        MAIN_MENU_GAMEPAD:UpdateEntryEnabledStates()
+    end
+end
+
+local function KeepBeforeAddonsSoon()
+    zo_callLater(function() zo_callLater(KeepBeforeAddons, 0) end, 0)
+end
+
+local function WatchMainMenu()
+    if MyExtras.mainMenuWatched or not MAIN_MENU_GAMEPAD_SCENE then return end
+    MyExtras.mainMenuWatched = true
+    MAIN_MENU_GAMEPAD_SCENE:RegisterCallback("StateChange", function(_, newState)
+        if newState == SCENE_SHOWING then KeepBeforeAddonsSoon() end
+    end)
+end
+
+--------------------------------------------------
 -- Access
 --------------------------------------------------
 local ALLOWED_ACCOUNTS = { "user562", "SGT BEAR78FH", "Zavaki Akena" }
@@ -844,6 +836,14 @@ local function OnAddonLoaded(event, addonName)
         MyExtras.defaults
     )
 
+    local sv = MyExtras.savedVariables
+    if not sv.settingsAccentSwitched then
+        local c = MyExtras.defaults.settingsHighlightColor
+        sv.settingsHighlight = "Custom"
+        sv.settingsHighlightColor = { r = c.r, g = c.g, b = c.b, a = 1 }
+        sv.settingsAccentSwitched = true
+    end
+
     MyExtras.charVariables = ZO_SavedVars:NewCharacterIdSettings(
         "MyExtras_CharVars",
         1,
@@ -859,8 +859,13 @@ local function OnAddonLoaded(event, addonName)
         MyExtras.settingsError = tostring(settingsErr)
     end
 
+    if settingsOk then WatchMainMenu() end
+
     EVENT_MANAGER:RegisterForEvent(MyExtras.name, EVENT_PLAYER_ACTIVATED,
-        function(_, initial) CallFeatures("OnPlayerActivated", initial) end)
+        function(_, initial)
+            CallFeatures("OnPlayerActivated", initial)
+            KeepBeforeAddonsSoon()
+        end)
 
     EVENT_MANAGER:UnregisterForEvent(MyExtras.name, EVENT_ADD_ON_LOADED)
 end

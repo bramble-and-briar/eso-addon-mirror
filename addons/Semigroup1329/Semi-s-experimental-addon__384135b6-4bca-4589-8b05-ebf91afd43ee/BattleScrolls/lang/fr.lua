@@ -50,6 +50,7 @@ SafeAddString(BATTLESCROLLS_IPOC_REASON_UNASSIGNED, "Aucune règle correspondant
 SafeAddString(BATTLESCROLLS_IPOC_REASON_LEARN, "Apprentissage par l’artisan", 1)
 SafeAddString(BATTLESCROLLS_IPOC_REASON_VALUABLE_PLAN, "Plan de mobilier de valeur", 1)
 SafeAddString(BATTLESCROLLS_IPOC_REASON_DUPLICATE, "Exemplaire en trop", 1)
+SafeAddString(BATTLESCROLLS_IPOC_REASON_CRAFTED, "Objet fabriqué", 1)
 
 SafeAddString(BATTLESCROLLS_IPOC_HEALER, "Soigneur", 1)
 SafeAddString(BATTLESCROLLS_IPOC_DAMAGE, "Dégâts", 1)
@@ -70,6 +71,7 @@ SafeAddString(BATTLESCROLLS_IPOC_WORK_REOPEN, "Rouvrez ce service pour utiliser 
 SafeAddString(BATTLESCROLLS_IPOC_EQUIPPED, "<<1>> équipé sur <<2>>", 1)
 SafeAddString(BATTLESCROLLS_IPOC_LISTED, "Mis en vente : <<1>> × <<2>> pour <<3>> pièces d’or chez <<4>>. Frais : <<5>> pièces d’or", 1)
 SafeAddString(BATTLESCROLLS_IPOC_OPENED, "Ouvert : <<1>>", 1)
+SafeAddString(BATTLESCROLLS_IPOC_CONTAINER_HELD, "Impossible d'ouvrir <<1>> : <<2>> <<3>>/<<4>>", 1)
 SafeAddString(BATTLESCROLLS_IPOC_TITLE, "Votre inventaire", 1)
 SafeAddString(BATTLESCROLLS_IPOC_WORK_BANK, "Déplacement des objets", 1)
 SafeAddString(BATTLESCROLLS_IPOC_WORK_SELL, "Vente des objets", 1)

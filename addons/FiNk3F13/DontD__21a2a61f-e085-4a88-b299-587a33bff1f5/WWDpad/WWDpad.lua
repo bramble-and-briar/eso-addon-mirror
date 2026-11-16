@@ -1,7 +1,7 @@
 -- Uses ESO's quest-cycle action, normally D-pad quest-cycle button in gamepad mode.
 -- Does not change the player's saved key bindings.
 local NAME = "WWDpad"
-local VERSION = "0.6.1"
+local VERSION = "0.7.0"
 local RADIAL_ID = "wwdpad"
 local settings
 local hooked = false
@@ -17,6 +17,7 @@ local pendingPlan
 local queuedPlan
 local drainScheduled = false
 local DrainDeferred
+local FinishPending
 local actionFragments = {}
 local activeFragments = {}
 local customPress = {}
@@ -90,22 +91,19 @@ local function NextSetup(directMode, suppliedPlan, automatic)
         swapGeneration = swapGeneration + 1
         local generation = swapGeneration
         lastSwap = now
+        WWDpadMonitor.Begin(plan, function(notice)
+            if swapPending and swapGeneration == generation then FinishPending(notice) end
+        end, Say)
         zo_callLater(function()
             if not swapPending or swapGeneration ~= generation then return end
-            -- Fail closed: an elapsed timer is not proof that WW finished.
-            swapUncertain = true
-            settings.enabled = false
-            RefreshSettings()
-            Say("Kein bestaetigter WW-Abschluss nach 45 Sekunden. Hotkey deaktiviert. WW pruefen und /reloadui ausfuehren.")
+            WWDpadMonitor.Check()
         end, SWAP_TIMEOUT_MS)
         submitted = true
-        local accepted
-        if plan.adjacent then
-            accepted = ww.LoadSetupAdjacent(1)
-        else
-            accepted = ww.LoadSetup(plan.zone, plan.pageId, plan.index, false)
-        end
+        -- Adjacent loading discards WW.LoadSetup's false result (empty setup).
+        -- Submit the already resolved index directly so rejection is visible.
+        local accepted = ww.LoadSetup(plan.zone, plan.pageId, plan.index, false)
         if accepted == false and swapPending then
+            WWDpadMonitor.Stop()
             swapPending = false
             pendingPlan = nil
             swapGeneration = swapGeneration + 1
@@ -113,6 +111,7 @@ local function NextSetup(directMode, suppliedPlan, automatic)
         end
     end)
     if not ok then
+        WWDpadMonitor.Stop()
         if not submitted then
             swapPending = false
             swapGeneration = swapGeneration + 1
@@ -126,6 +125,18 @@ local function NextSetup(directMode, suppliedPlan, automatic)
         Say("WW-Wechsel fehlgeschlagen; Hotkey deaktiviert: " .. tostring(message))
     end
     return ok and submitted
+end
+
+FinishPending = function(notice)
+    if not swapPending or swapUncertain then return end
+    WWDpadMonitor.Stop()
+    WWDpadRouting.Commit(pendingPlan)
+    pendingPlan = nil
+    swapPending = false
+    swapGeneration = swapGeneration + 1
+    lastSwap = GetFrameTimeMilliseconds()
+    if notice then Say(notice) end
+    DrainDeferred()
 end
 
 DrainDeferred = function()
@@ -333,16 +344,11 @@ end
 local function InstallHooks()
     if hooked then return end
     local ww = WizardsWardrobe
+    if ww then WWDpadMonitor.Initialize(ww) end
     if not completionSignalReady and ww and ww.callbackManager
         and type(ww.callbackManager.RegisterCallback) == "function" then
         ww.callbackManager:RegisterCallback("WW_OnSetupSwapSuccess", function()
-            if not swapPending or swapUncertain then return end
-            WWDpadRouting.Commit(pendingPlan)
-            pendingPlan = nil
-            swapPending = false
-            swapGeneration = swapGeneration + 1
-            lastSwap = GetFrameTimeMilliseconds()
-            DrainDeferred()
+            if not WWDpadMonitor.Signal() then FinishPending() end
         end)
         completionSignalReady = true
     end
@@ -419,6 +425,7 @@ EVENT_MANAGER:RegisterForEvent(NAME, EVENT_ADD_ON_LOADED, function(_, addonName)
         WWDpadAuto.Schedule()
     end)
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_COMBAT_STATE, function(_, inCombat)
+        WWDpadMonitor.ResetClock()
         if not inCombat then DrainDeferred() end
     end)
     if EVENT_PLAYER_DEAD then EVENT_MANAGER:RegisterForEvent(NAME .. "Death", EVENT_PLAYER_DEAD, function() queuedPlan = nil end) end

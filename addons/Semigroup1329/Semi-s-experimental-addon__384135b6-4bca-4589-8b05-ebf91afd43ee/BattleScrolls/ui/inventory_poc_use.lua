@@ -188,11 +188,19 @@ local function takeOwnContainer()
     end
     if use.taken then return true end
     captureContents(use)
-    if GetNumBagFreeSlots(BAG_BACKPACK) == 0 or capped then
+    BattleScrolls.inventoryPocCoffers.learn(use.contents)
+    if GetNumBagFreeSlots(BAG_BACKPACK) == 0 then
         containerUse = nil
         return
     end
     use.taken = true
+    if capped then
+        -- Close without taking: the container stays in the pack until its
+        -- currency has room, and the chat reminder says why.
+        EndLooting()
+        poc.holdContainer()
+        return true
+    end
     BattleScrolls.inventoryPocCoffers.capture(use.contents)
     LootAll(false)
     EndLooting()

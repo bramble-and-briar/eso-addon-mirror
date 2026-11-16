@@ -19,11 +19,10 @@ local ERROR_KEEP     = 20
 local ERROR_FEATURE  = "Lua Errors"
 local ERROR_KEYBIND  = "Show Error"
 local BLOCKED_TEXT   = "Dismount to interact."
-local RIDING_TEXT    = "Your lesson is ready."
 local RIDING_FEATURE = "Riding"
 local CLAIM_FEATURE  = "Auto Claim"
 local RIDING_ICON    = "EsoUI/Art/Mounts/ridingSkill_ready.dds"
-local ERROR_ICON     = "EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds"
+local VETERAN_ICON   = "EsoUI/Art/Campaign/Gamepad/gp_campaign_menuIcon_veterancy.dds"
 local GOLDEN_ICON    = "EsoUI/Art/LFG/Gamepad/LFG_menuIcon_PromotionalEvents.dds"
 
 QoL.charDefaults = {
@@ -139,6 +138,18 @@ local function SV()
         return CharSettings() or ME.savedVariables
     end
     return ME.savedVariables
+end
+
+function QoL:Settings()
+    return SV()
+end
+
+function QoL:AddDefaults(list)
+    for key, value in pairs(list) do
+        self.defaults[key] = value
+        ME.defaults[key] = value
+    end
+    charFilled = false
 end
 
 local function SavedTip()
@@ -304,7 +315,7 @@ local function RidingLeft()
 end
 
 local function Announce(text)
-    ME:Chat(ME:ChatPrefix(RIDING_FEATURE, RIDING_ICON) .. text)
+    ME:Chat(ME:ChatPrefix(RIDING_FEATURE) .. text)
 end
 
 local function CurrencyIcon(currency)
@@ -324,7 +335,7 @@ function QoL:CheckRiding()
     if wait <= 0 then
         if not ridingShown then
             ridingShown = true
-            Announce(RIDING_TEXT)
+            Announce(ME:Icon(RIDING_ICON) .. "Lesson ready.")
         end
         return
     end
@@ -365,7 +376,7 @@ local function Claim(key, waitMs, confirm, text, name, ...)
     claimWait[key] = now + waitMs
     if not ME:CallGame(name, ...) then return end
     zo_callLater(function()
-        if confirm() then ME:Chat(ME:ChatPrefix(CLAIM_FEATURE, SUBMENU_ICON) .. text) end
+        if confirm() then ME:Chat(ME:ChatPrefix(CLAIM_FEATURE) .. text) end
     end, CLAIM_CHECK_MS)
 end
 
@@ -415,8 +426,8 @@ local function ClaimTomePoints()
             local claimed = GetTimedActivityNumTimesClaimed(index) or 0
             if maxProgress > 0 and (GetTimedActivityProgress(index) or 0) >= maxProgress and claimed < total then
                 local id = GetTimedActivityId and GetTimedActivityId(index) or index
-                local text = "Claimed " .. CurrencyIcon(CURT_TOME_POINTS)
-                    .. (CleanName(GetTimedActivityName(index)) or "a Tamriel Tomes activity") .. "."
+                local text = CurrencyIcon(CURT_TOME_POINTS)
+                    .. (CleanName(GetTimedActivityName(index)) or "Tamriel Tomes activity") .. "."
                 Claim("tome" .. tostring(id), CLAIM_WAIT_MS, function()
                     local done = (GetTimedActivityNumTimesClaimed(index) or 0) > claimed
                     if done then ClearTomeBanner() end
@@ -435,7 +446,7 @@ local function ClaimCampaign(campaignKey)
         local _, activityName, _, threshold, rewardId = GetPromotionalEventCampaignActivityInfo(campaignKey, activityIndex)
         local progress, flags = GetPromotionalEventCampaignActivityProgress(campaignKey, activityIndex)
         if Ready(threshold, progress, flags, rewardId) then
-            local text = "Claimed " .. ME:Icon(GOLDEN_ICON) .. (CleanName(activityName) or "a Golden Pursuits activity") .. "."
+            local text = ME:Icon(GOLDEN_ICON) .. (CleanName(activityName) or "Golden Pursuits activity") .. "."
             Claim(name .. "a" .. activityIndex, CLAIM_WAIT_MS, function()
                 local _, nowFlags = GetPromotionalEventCampaignActivityProgress(campaignKey, activityIndex)
                 return IsClaimed(nowFlags)
@@ -450,7 +461,7 @@ local function ClaimCampaign(campaignKey)
         if Ready(threshold, completed, flags, rewardId) then
             Claim(name .. "m" .. milestoneIndex, CLAIM_WAIT_MS, function()
                 return IsClaimed(GetPromotionalEventCampaignMilestoneRewardFlags(campaignKey, milestoneIndex))
-            end, "Claimed a " .. ME:Icon(GOLDEN_ICON) .. "milestone.", "TryClaimPromotionalEventMilestoneReward", campaignKey, milestoneIndex)
+            end, ME:Icon(GOLDEN_ICON) .. "Milestone.", "TryClaimPromotionalEventMilestoneReward", campaignKey, milestoneIndex)
         end
     end
 
@@ -459,7 +470,7 @@ local function ClaimCampaign(campaignKey)
         Claim(name .. "c", CLAIM_WAIT_MS, function()
             local _, nowFlags = GetPromotionalEventCampaignProgress(campaignKey)
             return IsClaimed(nowFlags)
-        end, "Claimed the final " .. ME:Icon(GOLDEN_ICON) .. "reward.", "TryClaimPromotionalEventCapstoneReward", campaignKey)
+        end, ME:Icon(GOLDEN_ICON) .. "Final reward.", "TryClaimPromotionalEventCapstoneReward", campaignKey)
     end
 end
 
@@ -500,7 +511,7 @@ local function ClaimVeterancy()
             vetBlocked = VeterancyMark(trackType, trackId, trackIndex)
         end
         return done
-    end, "Claimed " .. CurrencyIcon(CURT_ALLIANCE_POINTS) .. "PvP Veterancy rewards.", "ClaimAllRewardTrackRewards", trackType, trackIndex)
+    end, ME:Icon(VETERAN_ICON) .. "PvP Veterancy rewards.", "ClaimAllRewardTrackRewards", trackType, trackIndex)
 end
 
 function QoL:ClaimAll()
@@ -540,8 +551,9 @@ end
 --------------------------------------------------
 local function ErrorTitle(errorCode)
     local code = tonumber(errorCode) and string.format("%X", tonumber(errorCode)) or ""
-    if ZO_SELECTED_TEXT and code ~= "" then code = ZO_SELECTED_TEXT:Colorize(code) end
-    return zo_strformat(SI_WINDOW_TITLE_UI_ERROR, code)
+    if code == "" then return "Unknown error." end
+    if ZO_SELECTED_TEXT then code = ZO_SELECTED_TEXT:Colorize(code) end
+    return code
 end
 
 local function SelectedError()
@@ -583,7 +595,7 @@ local function ListError(errorString, errorCode)
     local id = KeepError(errorString, errorCode)
     local before = LatestChatEntry()
     printing = true
-    pcall(ME.Chat, ME, ME:ChatPrefix(ERROR_FEATURE, ERROR_ICON) .. ErrorTitle(errorCode))
+    pcall(ME.Chat, ME, ME:ChatPrefix(ERROR_FEATURE) .. ErrorTitle(errorCode))
     printing = false
     local entry = LatestChatEntry()
     if entry and entry ~= before and type(entry.data) == "table" then
@@ -671,6 +683,7 @@ function QoL:SetUseCharacterSettings(value)
     if (cv.qolUseCharacter == true) == value then return end
     cv.qolUseCharacter = value
     self:Refresh()
+    if ME.QuestTracker then ME.QuestTracker:Apply() end
     local panel = ME.settingsPanel
     if panel and panel.Refresh then panel:Refresh() end
 end
@@ -683,13 +696,14 @@ function QoL:GetOptions()
 
     local function MountOff() return not SV().qolStayMounted end
 
-    return {
+    local page = {
         {
             type    = "submenu",
             name    = "Quality of Life",
             icon    = SUBMENU_ICON,
             tooltip = function()
-                return "Skips confirmations, keeps you on your mount, claims rewards for you and handles Lua errors.\n\n" .. SavedTip()
+                return "Skips confirmations, keeps you on your mount, claims rewards for you, handles Lua errors "
+                    .. "and moves your quest tracker.\n\n" .. SavedTip()
             end,
             options = {
                 {
@@ -799,6 +813,17 @@ function QoL:GetOptions()
             },
         },
     }
+    local options = page[1].options
+    local tracker = ME.QuestTracker and ME.QuestTracker:SubmenuOption()
+    if tracker then options[#options + 1] = tracker end
+    for i = 1, #options do
+        if options[i].name == "Lua Errors" then
+            local luaErrors = table.remove(options, i)
+            options[#options + 1] = luaErrors
+            break
+        end
+    end
+    return page
 end
 
 --------------------------------------------------

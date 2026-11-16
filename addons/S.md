@@ -328,13 +328,13 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [StoreHelper - maintain stocks of basic craft style mats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rexorn/StoreHelper---maintain-stocks-of-basic-craft-style-mats__3195) | Rexorn | PC / Mac | 0.26 |
 | [StoreHelperRune - manage potency runes for glyph writs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rexorn/StoreHelperRune---manage-potency-runes-for-glyph-writs__3220) | Rexorn | PC / Mac | 0.23 |
 | [Storm Atronach Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Storm-Atronach-Tracker__a70e4425-99f9-4fdb-85da-dc21b578e10f) | codeWarrior82 | Console | — |
-| [Story Saver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/f1rex/Story-Saver__2976) | f1rex | PC / Mac | 18 |
+| [Story Saver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/f1rex/Story-Saver__2976) | f1rex | PC / Mac | 19 |
 | [Stow It Auto-Sheather](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RunningDuck/Stow-It-Auto-Sheather__862) | RunningDuck | PC / Mac | 3.2.7 |
 | [Stow Keybind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Stow-Keybind__1900) | manavortex | PC / Mac | 1.0 |
 | [Stripped out version of AutoDecline by Dio](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FatalForce/Stripped-out-version-of-AutoDecline-by-Dio__2350) | FatalForce | PC / Mac | 1.0.0 |
 | [Stud's Group Finder Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Stud-s-Group-Finder-Tweaks__4118) | STUDLETON | PC / Mac | 1.0.0 |
 | [StunBreak](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solaris-Lorica/StunBreak__2594) | Solaris Lorica | PC / Mac | 1.1 |
-| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 3.4 |
+| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 3.5 |
 | [Style and Elegance ( Outfit, Idle Animation, Title, Mount, Etc. Loadouts )](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jodynn/Style-and-Elegance-Outfit-Idle-Animation-Title-Mount-Etc.-Loadouts__2201) | Jodynn | PC / Mac | 2.13 |
 | [Style New Cleaner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Style-New-Cleaner__a77b6722-e51b-4b17-9543-632248774cf3) | Eldibabalo | Console | — |
 | [Style Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kryne/Style-Tracker__4088) | Kryne | PC / Mac | 1.0.0 |

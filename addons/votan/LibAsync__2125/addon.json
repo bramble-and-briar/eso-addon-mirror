@@ -8,6 +8,10 @@
   "category_id": "53",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "LibAsync"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2125/",
-  "fingerprint": "5ba9eac376a81b9405f1f23e91b008452a8024793fbaaa2748b09d5a4ceb8b1d",
+  "fingerprint": "b2ece56604f51a068b862fa43eefd0ecd47f8949a70cbf95801c77b1b1e8af07",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw7179.jpg"
   ],
@@ -28,11 +32,11 @@
   "source_id": "2125",
   "source_url": "https://www.esoui.com/downloads/info2125-LibAsync.html",
   "stats": {
-    "downloads": 2980407,
-    "favorites": 1224,
-    "monthly_downloads": 24360
+    "downloads": 3043470,
+    "favorites": 1231,
+    "monthly_downloads": 34449
   },
   "title": "LibAsync",
-  "updated_at": 1791116390000,
-  "version": "3.1.5"
+  "updated_at": 1794753710000,
+  "version": "3.1.6"
 }

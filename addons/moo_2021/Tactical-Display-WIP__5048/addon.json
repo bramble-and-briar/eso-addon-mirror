@@ -22,7 +22,7 @@
     "TacticalDisplay"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5048/",
-  "fingerprint": "e43bfe941f25b3b0a8293b7beca0751e8828e0aa789fc379292cced555620659",
+  "fingerprint": "05fcaf37ed5c05003a6fa85127a903d8c4798a62cf6bbca8e3013b0ecac31a52",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18429.jpg"
   ],
@@ -32,11 +32,11 @@
   "source_id": "5048",
   "source_url": "https://www.esoui.com/downloads/info5048-TacticalDisplayWIP.html",
   "stats": {
-    "downloads": 10,
+    "downloads": 15,
     "favorites": 0,
-    "monthly_downloads": 7
+    "monthly_downloads": 14
   },
   "title": "Tactical Display (WIP)",
-  "updated_at": 1794685689000,
-  "version": "0.2.0"
+  "updated_at": 1794775082000,
+  "version": "0.3.1"
 }

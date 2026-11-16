@@ -1,10 +1,10 @@
 ## Title: CombatMascot
 ## Author: CombatMascot project
-## Version: 0.2.0-stage1
-## AddOnVersion: 20
+## Version: 0.5.0-diag
+## AddOnVersion: 28
 ## APIVersion: 101048 101049 101050 101051
 ## SavedVariables: CombatMascot_SV
 ## OptionalDependsOn: LibAddonMenu-2.0
-## Description: Combat-reaction mascot (attack / skill / ultimate / damage taken). Independent addon. PS5 unverified build.
+## Description: Combat-reaction mascot (attack / skill / ultimate / damage taken / heal / guard). Independent addon. v0.5.0-diag: heal and guard reactions added, diagnostic counters on. PS5 unverified.
 
 CombatMascot.lua

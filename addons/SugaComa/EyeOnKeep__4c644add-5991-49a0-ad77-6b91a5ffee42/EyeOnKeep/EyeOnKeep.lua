@@ -1,17 +1,21 @@
 ﻿--------------------------------------------------------------
--- EyeOnKeep.lua — v1.2.0
+-- EyeOnKeep.lua — v1.3.2
 -- Author: SugaComa (Rik Sprint)
 -- RESOURCES NOW FILTER BY HOME TERRITORY (same as keeps/outposts/towns)
 --------------------------------------------------------------
 local ADDON_NAME = "EyeOnKeep"
 EyeOnKeep = EyeOnKeep or {}
-EyeOnKeep.version = "1.2.0"
+EyeOnKeep.version = "1.3.2"
 local EM = EVENT_MANAGER
 local EOK_SV_VERSION = 44
 local EOK_SV = nil
 local _inited = false
 local muted = false
 local BG_CONTEXT = BGQUERY_LOCAL
+local tacticalEnabled = false
+local lastTacticalAdvice
+local populationRequestedAt, populationReceivedAt
+local tacticalPopulation, tacticalPopulationCampaign
 
 -- SavedVars defaults
 local DEFAULTS = {
@@ -56,6 +60,10 @@ function EyeOnKeep.Chat(msg, force)
 end
 
 local chat = EyeOnKeep.Chat
+
+local function TacticalEligible()
+    return tacticalEnabled and (not IsUnitGrouped("player") or IsUnitGroupLeader("player"))
+end
 
 --------------------------------------------------------------
 -- Keep Types
@@ -572,23 +580,169 @@ local function OnObjectiveControlState(_, id, objectiveId, context, objectiveNam
     -- Objective capture is not necessarily whole-town ownership. The owner event handles that.
 end
 
+local function OnTacticalPopulationReady()
+    if not populationRequestedAt or not TacticalEligible() or not InCyrodiil()
+        or tacticalPopulationCampaign ~= GetCurrentCampaignId() then return end
+    tacticalPopulation = nil
+    for index = 1, GetNumSelectionCampaigns() do
+        if GetSelectionCampaignId(index) == tacticalPopulationCampaign then
+            local population = {}
+            for alliance = 1, NUM_ALLIANCES do
+                local tier = GetSelectionCampaignPopulationData(index, alliance)
+                if type(tier) ~= "number" or tier < CAMPAIGN_POP_LOW or tier > CAMPAIGN_POP_FULL then return end
+                population[alliance] = tier
+            end
+            tacticalPopulation = population
+            populationReceivedAt = nowMs()
+            return
+        end
+    end
+end
+
+local function TacticalPopulationPressure(alliance)
+    local now = nowMs()
+    local campaignId = GetCurrentCampaignId()
+    if not campaignId or campaignId <= 0 then return false end
+    if tacticalPopulationCampaign ~= campaignId then
+        tacticalPopulation, lastTacticalAdvice = nil, nil
+        tacticalPopulationCampaign = campaignId
+    end
+    if not populationRequestedAt or now - populationRequestedAt >= 60000 then
+        populationRequestedAt = now
+        QueryCampaignSelectionData()
+    end
+    if not tacticalPopulation or now - populationReceivedAt > 120000 then return false end
+    for enemy, tier in pairs(tacticalPopulation) do
+        if enemy ~= alliance and tier - tacticalPopulation[alliance] >= 2 then return true end
+    end
+    return false
+end
+
+local function CountFriendlyLinks(keeps, alliance)
+    local links = {}
+    for index = 1, GetNumKeepTravelNetworkLinks(BG_CONTEXT) do
+        local first, second = GetKeepTravelNetworkLinkEndpoints(index, BG_CONTEXT)
+        if first and first > 0 and second and second > 0 then
+            local a = GetKeepTravelNetworkNodeKeepId(first, BG_CONTEXT)
+            local b = GetKeepTravelNetworkNodeKeepId(second, BG_CONTEXT)
+            if keeps[a] and keeps[b] then
+                if keeps[a].owner == alliance then links[b] = (links[b] or 0) + 1 end
+                if keeps[b].owner == alliance then links[a] = (links[a] or 0) + 1 end
+            end
+        end
+    end
+    return links
+end
+
+local function UpdateTacticalAdvice()
+    if not TacticalEligible() then
+        lastTacticalAdvice = nil
+        return
+    end
+
+    local alliance = GetUnitAlliance("player")
+    if not FACTION[alliance] or alliance == ALLIANCE_NONE then return end
+    local solo = not IsUnitGrouped("player")
+    local pressured = TacticalPopulationPressure(alliance)
+    local keeps, expectedHomes, knownHomes = {}, 0, 0
+    for _, homeAlliance in pairs(HOME_KEEPS) do
+        if homeAlliance == alliance then expectedHomes = expectedHomes + 1 end
+    end
+    for _, id in ipairs(OBJECTIVES) do
+        local name = GetKeepName(id)
+        local homeAlliance = HOME_KEEPS[canon(name)]
+        local state = STATE[id]
+        if homeAlliance and state and FACTION[state.owner] then
+            keeps[id] = { name = name, home = homeAlliance, owner = state.owner, under = state.under,
+                siege = state.siege }
+            if homeAlliance == alliance then knownHomes = knownHomes + 1 end
+        end
+    end
+    if knownHomes < expectedHomes then return end
+
+    local links = CountFriendlyLinks(keeps, alliance)
+    local best
+    for id, keep in pairs(keeps) do
+        local friendly = keep.owner == alliance
+        local home = keep.home == alliance
+        local friendlySiege = keep.siege[alliance] ~= nil
+        local friendlyLinks = links[id] or 0
+        local priority, action, reason
+        if home and friendly and (keep.under or next(keep.siege)) then
+            priority, action, reason = 4, "Defend", "a home keep is under pressure."
+        elseif home and not friendly then
+            priority, action, reason = 3, "Retake", "your alliance has lost a home keep."
+            if friendlySiege then
+                action, reason = "Join the retake at", "your alliance has siege deployed."
+            end
+        elseif not friendly and keep.owner ~= ALLIANCE_NONE and friendlyLinks > 0
+            and (friendlySiege or (not solo and not pressured)) then
+            priority, action, reason = 2, "Push", friendlySiege and "your alliance has siege on the front line."
+                or "it has a Transitus link to a friendly keep."
+        elseif friendly and (home or keep.under) then
+            priority, action, reason = 1, "Hold", pressured and "an enemy alliance has a higher campaign population tier."
+                or "there is no supported push on the map."
+        end
+
+        local support = (friendlySiege and 1 or 0)
+        if priority and (not best or priority > best.priority
+            or (priority == best.priority and (friendlyLinks > best.links
+                or (friendlyLinks == best.links and (support > best.support
+                    or (support == best.support and id < best.id)))))) then
+            best = { id = id, name = keep.name, priority = priority, links = friendlyLinks,
+                support = support, action = action, reason = reason }
+        end
+    end
+
+    if best and best.action == "Retake" and (solo or pressured) then
+        local target, targetName
+        for id, parent in pairs(RESOURCE_PARENTS) do
+            if parent == best.id and (not target or id < target) then
+                local owner, name = GetKeepAlliance(id, BG_CONTEXT), GetKeepName(id)
+                if owner ~= alliance and owner ~= ALLIANCE_NONE and FACTION[owner] and name and name ~= "" then
+                    target, targetName = id, name
+                end
+            end
+        end
+        if target then
+            best.reason = "secure a resource for the retake of " .. best.name .. "."
+            best.id, best.name, best.action = target, targetName, "Take"
+        else
+            best.action, best.reason = "Rally for", "it is a lost home keep with no friendly siege reported."
+        end
+    end
+
+    local key = best and (best.action .. ":" .. best.id)
+    if key and key ~= lastTacticalAdvice and not muted then
+        chat("Tactical: " .. best.action .. " " .. best.name .. ". " .. best.reason)
+        lastTacticalAdvice = key
+    elseif not key then
+        lastTacticalAdvice = nil
+    end
+end
+
 local function Scan()
     if not EnsureContext() then return end
     scanNumber = scanNumber + 1
     for _, id in ipairs(OBJECTIVES) do
         if GetKeepType(id) == KEEPTYPE_KEEP or scanNumber % 5 == 0 then HandleUpdate(id) end
     end
+    UpdateTacticalAdvice()
 end
 local function ActivateTracking()
     trackingSuspended = false
     EM:UnregisterForUpdate(ADDON_NAME .. "_Scan")
     STATE, activeCampaign = {}, nil
-    if not InCyrodiil() then return end
+    if not InCyrodiil() then
+        lastTacticalAdvice, tacticalPopulation = nil, nil
+        return
+    end
     ResetTracking()
     EM:RegisterForUpdate(ADDON_NAME .. "_Scan", 2000, Scan)
 end
 local function DeactivateTracking()
     trackingSuspended = true
+    lastTacticalAdvice, tacticalPopulation = nil, nil
     EM:UnregisterForUpdate(ADDON_NAME .. "_Scan")
     STATE, activeCampaign = {}, nil
 end
@@ -634,6 +788,9 @@ local function BuildSettingsMenu()
             })
         end
     end
+
+    EyeOnKeep_Framework:AddProfileControls(panel)
+    EyeOnKeep_Framework:AddFooter(panel)
 end
 
 
@@ -644,6 +801,16 @@ end
 SLASH_COMMANDS["/eyemute"] = function()
     muted = not muted
     chat("Alerts " .. (muted and "|cFF4444muted|r" or "|c00FF00resumed|r") .. ".", true)
+    if not muted then lastTacticalAdvice = nil end
+end
+
+SLASH_COMMANDS["/eoktactical"] = function()
+    tacticalEnabled = not tacticalEnabled
+    lastTacticalAdvice = nil
+    local status = tacticalEnabled and "on" or "off"
+    local paused = tacticalEnabled and (not InCyrodiil() or not TacticalEligible())
+    chat("Tactical mode " .. status .. (paused and ". Advice requires Cyrodiil and solo play or crown." or "."), true)
+    if TacticalEligible() and EnsureContext() then Scan() end
 end
 
 --------------------------------------------------------------
@@ -658,7 +825,7 @@ local function EyeOnKeep_Init()
     _inited = true
 
     -- 🔧 Create SavedVars FIRST
-    EOK_SV = ZO_SavedVars:NewAccountWide("EyeOnKeep_SV", EOK_SV_VERSION, nil, DEFAULTS)
+    EOK_SV = EyeOnKeep_Framework:NewAccountWide("EyeOnKeep_SV", EOK_SV_VERSION, nil, DEFAULTS)
 
     -- 🔧 Restore saved message style (fallback = immersive)
     STYLE = EOK_SV.messageStyle or "immersive"
@@ -685,6 +852,7 @@ local function EyeOnKeep_Init()
     EM:RegisterForEvent(ADDON_NAME.."_Owner", EVENT_KEEP_ALLIANCE_OWNER_CHANGED, OnKeepOwnerChanged)
     EM:RegisterForEvent(ADDON_NAME.."_Objective", EVENT_OBJECTIVE_CONTROL_STATE, OnObjectiveControlState)
     EM:RegisterForEvent(ADDON_NAME.."_Resource", EVENT_KEEP_RESOURCE_UPDATE, OnKeepResourceUpdate)
+    EM:RegisterForEvent(ADDON_NAME.."_TacticalPopulation", EVENT_CAMPAIGN_SELECTION_DATA_CHANGED, OnTacticalPopulationReady)
 
     
     --------------------------------------------------------------

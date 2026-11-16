@@ -36,7 +36,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Banker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/Banker__362) | Nols1000 | PC / Mac | 1.6 |
 | [Banker Shutup](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mctaylor/Banker-Shutup__869) | mctaylor | PC / Mac | 3.5c |
 | [Banker Shutup Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rkuhnjr/Banker-Shutup-Patch__839) | rkuhnjr | PC / Mac | 3.5b |
-| [Bankir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Bankir__4535) | Saleand | PC / Mac | 2.9.6 |
+| [Bankir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Bankir__4535) | Saleand | PC / Mac | 2.9.7 |
 | [BankManagerTESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IgorSab/BankManagerTESO__4072) | IgorSab | PC / Mac | 1 |
 | [Banner Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phamo1000/Banner-Status__608b7ab5-db64-423a-af5c-2438027f0eed) | Phamo1000 | Console | — |
 | [Bar Steward - Multi Toolbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Bar-Steward---Multi-Toolbar__3375) | FlatBadger | PC / Mac | 3.5.14 |
@@ -186,6 +186,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BugCatcher Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/BugCatcher-Updated__2566) | Shadowfen | PC / Mac | 043 |
 | [bugfixxxxx](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/bugfixxxxx__b057d22b-1ffd-455c-834a-af582e3e270a) | Vixen_Hunny | Console | — |
 | [BUGGED](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/BUGGED__8c264217-f547-488b-ad19-55ac23a45e88) | j.hhh | Console | — |
+| [Buggy DontD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Buggy-DontD__7a5d051d-6b7c-4117-8748-0b3ec7a3c234) | FiNk3F13 | Console | — |
 | [BuildAdvisor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/yodased-mods/BuildAdvisor__c0db4e1c-b7ae-4821-b7e8-4a8cfed56e96) | yodased-mods | Console | — |
 | [Bulk buy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Bulk-buy__0ad00225-1c8b-4f4a-8e95-ca8986209a7f) | Copper0 | Console | — |
 | [Bunny's Dice Roller](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBunnynator1001/Bunny-s-Dice-Roller__2931) | TheBunnynator1001 | PC / Mac | 1.0.1.1a |

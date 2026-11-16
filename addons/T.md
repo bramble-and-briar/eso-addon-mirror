@@ -14,7 +14,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [t](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/t__bbe159f8-5b9f-4b54-aa51-36d94bab4683) | user562x | Console | — |
 | [t](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/t__eb9e1258-2704-4f27-ae8a-ac3d34541fb9) | user562x | Console | — |
 | [TABEPHA BOPOH CEBEPA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BOPOH-CEBEPA/TABEPHA-BOPOH-CEBEPA__4076) | BOPOH CEBEPA | PC / Mac | 1.0 |
-| [Tactical Display (WIP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/moo_2021/Tactical-Display-WIP__5048) | moo_2021 | PC / Mac | 0.2.0 |
+| [Tactical Display (WIP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/moo_2021/Tactical-Display-WIP__5048) | moo_2021 | PC / Mac | 0.3.1 |
 | [Tagarn's Hard Mode Reminders (In Development)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagarn/Tagarn-s-Hard-Mode-Reminders-In-Development__4310) | Tagarn | PC / Mac | 0.51 |
 | [Tagarn's Skill Point Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagarn/Tagarn-s-Skill-Point-Alerts__3989) | Tagarn | PC / Mac | 1.29 |
 | [Taichou's Icon Highlight](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VitorTaichou/Taichou-s-Icon-Highlight__4599) | VitorTaichou | PC / Mac | 1.1.0 |
@@ -168,6 +168,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TOM - Tamriel Online Messenger - Reborn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/P5ych3/TOM---Tamriel-Online-Messenger---Reborn__3428) | P5ych3 | PC / Mac | 6.5.0 |
 | [TOM Guild's Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Splat/TOM-Guild-s-Addon__3703) | Splat | PC / Mac | 2.70 |
 | [Tomes Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Tomes-Tracker__4488) | atharti | PC / Mac | 3.3 |
+| [TomesGuard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alezhu/TomesGuard__5055) | alezhu | PC / Mac | 1.0.2 |
 | [Tooltip Resizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ifridius/Tooltip-Resizer__4409) | ifridius | PC / Mac | 2.2 |
 | [Tooltipruhe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Tooltipruhe__4865) | Torfason | PC / Mac | 2.0.0 |
 | [ToonCurrencies](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Noobanidus/ToonCurrencies__1282) | Noobanidus | PC / Mac | 3.0.0 |

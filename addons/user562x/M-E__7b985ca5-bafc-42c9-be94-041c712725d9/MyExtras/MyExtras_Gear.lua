@@ -612,7 +612,7 @@ local function CareHold(key)
 end
 
 local function CareLog(kind, text)
-    if SV()[LOG_KEYS[kind]] then ME:Chat(ME:ChatPrefix("Gear", SUBMENU_ICON) .. text) end
+    if SV()[LOG_KEYS[kind]] then ME:Chat(ME:ChatPrefix("Gear") .. text) end
 end
 
 local function LinkText(link)
@@ -758,7 +758,7 @@ local function BindNewItem(bagId, slotId)
     if IsItemSetCollectionPieceUnlocked(GetItemLinkItemId(link)) then return end
     if ME:CallGame("BindItem", bagId, slotId) then
         CareConfirm(function() return IsItemBound(bagId, slotId) end,
-            "bind", "Added " .. LinkText(link) .. " to your collection.")
+            "bind", "Bound " .. LinkText(link) .. ".")
     end
 end
 

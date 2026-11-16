@@ -14,6 +14,8 @@ SafeAddString(BANKIR_MENU_MOVE_LOCKED_ITEMS, "Перемещать заблок�
 SafeAddString(BANKIR_MENU_MOVE_LOCKED_ITEMS_DESC, "Разрешить перемещение предметов, заблокированных игроком.", 1)
 SafeAddString(BANKIR_MENU_MOVE_QUEST_ITEMS, "Забирать предметы для квестов", 1)
 SafeAddString(BANKIR_MENU_MOVE_QUEST_ITEMS_DESC, "Разрешить автоматически забирать из банка предметы, необходимые для активных квестов.", 1)
+SafeAddString(BANKIR_MENU_RESTART_ON_INTERFERED, "Рестарт при вмешательстве", 1)
+SafeAddString(BANKIR_MENU_RESTART_ON_INTERFERED_DESC, "Когда Bankir обрабатывает предметы и кто-то другой (вы или какой-то аддон) перемещает предмет, перезапускать процесс заново", 1)
 SafeAddString(BANKIR_MENU_SHOW_FAIL_MESSAGES, "Показывать сообщения о неудачных перемещениях", 1)
 SafeAddString(BANKIR_MENU_SHOW_FAIL_MESSAGES_DESC, "Выводить в чат сообщения о неудавшихся попытках переместить предметы", 1)
 SafeAddString(BANKIR_MENU_BANK_SLIDERS_MAX_VALUE, "Макс. значения предметов", 1)
@@ -45,6 +47,8 @@ SafeAddString(BANKIR_MENU_OTHER_CHARACTERS, " на других персонаж
 SafeAddString(BANKIR_CHAT_REQUIRED_FOR_QUESTS, "<<1>> x<<2>> требуется для квестов", 1)
 SafeAddString(BANKIR_CHAT_NO_FREE_SPACE, "|cFF0000Не удалось.|r Нет свободного места в <<1>> для <<2>>", 1)
 SafeAddString(BANKIR_CHAT_ALREADY_HAVE_UNIQUE_ITEM, "|cFF0000Не удалось.|r Вы можете иметь только один экземпляр <<1>> в хранилище, и у вас уже есть один в <<2>>.", 1)
+SafeAddString(BANKIR_CHAT_QUEUE_INTERFERED, "|cFF0000Отмена.|r Кто-то другой переместил предметы, очередь остановлена", 1)
+SafeAddString(BANKIR_CHAT_QUEUE_RESTARTED, "Перезапуск очереди...", 1)
 
 SafeAddString(BANKIR_MENU_INTEGRATIONS, "Интеграции", 1)
 SafeAddString(BANKIR_MENU_INTEGRATIONS_LCK_DESC, "Если включен аддон LibCharacterKnowledge, в правилах для снаряжения появляются особые правила для снаряжения, которое могут изучить (исследовать) ваши другие персонажи.\n\nНиже представлен список других ваших персонажей на этом сервере.\n\nЕсли вы установили правило отправлять в банк предметы, которые могут изучить другие пресонажи, то Bankir выполнит соответствующее действие только для включенных здесь персонажей. Правило не будет применяться для персонажей, которые отключены в этом списке.", 1)

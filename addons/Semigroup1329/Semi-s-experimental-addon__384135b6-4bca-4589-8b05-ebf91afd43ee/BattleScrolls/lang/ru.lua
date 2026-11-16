@@ -50,6 +50,7 @@ SafeAddString(BATTLESCROLLS_IPOC_REASON_UNASSIGNED, "Нет подходящег
 SafeAddString(BATTLESCROLLS_IPOC_REASON_LEARN, "Изучение ремесленником", 1)
 SafeAddString(BATTLESCROLLS_IPOC_REASON_VALUABLE_PLAN, "Дорогой мебельный чертёж", 1)
 SafeAddString(BATTLESCROLLS_IPOC_REASON_DUPLICATE, "Лишний экземпляр", 1)
+SafeAddString(BATTLESCROLLS_IPOC_REASON_CRAFTED, "Созданный предмет", 1)
 
 SafeAddString(BATTLESCROLLS_IPOC_HEALER, "Лекарь", 1)
 SafeAddString(BATTLESCROLLS_IPOC_DAMAGE, "Урон", 1)
@@ -70,6 +71,7 @@ SafeAddString(BATTLESCROLLS_IPOC_WORK_REOPEN, "Откройте эту услу�
 SafeAddString(BATTLESCROLLS_IPOC_EQUIPPED, "Экипировано: <<1>>. Спутник: <<2>>", 1)
 SafeAddString(BATTLESCROLLS_IPOC_LISTED, "Выставлено: <<1>> × <<2>> за <<3>> золота в гильдии «<<4>>». Пошлина: <<5>> золота", 1)
 SafeAddString(BATTLESCROLLS_IPOC_OPENED, "Открыто: <<1>>", 1)
+SafeAddString(BATTLESCROLLS_IPOC_CONTAINER_HELD, "Не удаётся открыть <<1>>: <<2>> <<3>>/<<4>>", 1)
 SafeAddString(BATTLESCROLLS_IPOC_TITLE, "Ваш инвентарь", 1)
 SafeAddString(BATTLESCROLLS_IPOC_WORK_BANK, "Перемещаем предметы", 1)
 SafeAddString(BATTLESCROLLS_IPOC_WORK_SELL, "Продаём предметы", 1)

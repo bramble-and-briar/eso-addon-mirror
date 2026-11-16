@@ -646,6 +646,7 @@ local function getDefaultCommonSettings()
 		autoModeEnabled = true,
 		moveLockedItems = false,
 		moveQuestItems = true,
+		restartOnInterfered = true,
 		showOperationFailMessages = false,
 		bankSlidersMaxValue = 20,
 		currencySlidersMaxValue = 100000,

@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/roccesar/CaracMarchandise__5052",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "roccesar",
+  "canonical_id": "esoui:5052",
+  "category_id": "94",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5052",
+  "deleted": false,
+  "directories": [
+    "CaracMarchandise"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5052/",
+  "fingerprint": "ceb10421c0e8306bbf0317bd4ad0e86400c67a2f90308487280e82864597616a",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18485.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5052",
+  "source_url": "https://www.esoui.com/downloads/info5052-CaracMarchandise.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 5
+  },
+  "title": "CaracMarchandise",
+  "updated_at": 1794768655000,
+  "version": "1.1"
+}

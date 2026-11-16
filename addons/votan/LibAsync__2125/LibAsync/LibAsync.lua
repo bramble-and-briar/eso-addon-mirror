@@ -25,6 +25,7 @@ local ASYNC_MIN_STALL_THRESHOLD = 15
 local UPPER_FPS_BOUND = 200 -- for slash command
 local MIN_DELAY_FOR_ASYNC = 10 -- minimum ms before using async delay
 local INIT_DELAY_MS = 50 -- delay for initialization
+local MAX_STEPS_PER_FRAME = 10000 -- safety cap, generous compared to a normal frame
 
 -- Scheduler Operation Constants
 local DEBUG_FREEZE_THRESHOLD_MS = 0.016 -- Threshold in ms before considering a frame freeze
@@ -68,15 +69,7 @@ local function runProtectedCall(job, contextLabel)
 	if debug and stepStart then
 		local elapsedMs = (GetGameTimeSeconds() - stepStart) * DEBUG_TIME_MULTIPLIER
 		if elapsedMs >= DEBUG_STEP_THRESHOLD_MS then
-			Warn(
-				format(
-					"LibAsync step %s [%s] callstack depth %d took %.3fms",
-					job.name,
-					contextLabel,
-					currentStackIndex,
-					elapsedMs
-				)
-			)
+			Warn(format("LibAsync step %s [%s] callstack depth %d took %.3fms", job.name, contextLabel, currentStackIndex, elapsedMs))
 		end
 	end
 	return success, shouldContinue
@@ -202,6 +195,7 @@ end
 
 local job = nil
 local cpuLoad = 0
+local name = nil
 
 function async.Scheduler()
 	local start, now = GetFrameTimeSeconds(), GetGameTimeSeconds()
@@ -214,18 +208,19 @@ function async.Scheduler()
 	end
 
 	job = nil
-	local name = nil
 	local runTime = start
 
 	jobsDone = false
 	local spendTime = min(spendTime - nextFrameReduce, GetConsoleRemainingBudgetSeconds())
+    local steps = 0
 	-- Include oncePerFrame
-	while (now - start) <= spendTime do
+	while (now - start) <= spendTime and steps < MAX_STEPS_PER_FRAME do
 		name, job = next(jobs, name)
 		if job then
 			runTime = now
 			DoJob(job)
 			now = GetGameTimeSeconds()
+			steps = steps + 1
 		else
 			jobsDone = true
 			break
@@ -234,7 +229,7 @@ function async.Scheduler()
 
 	-- loops: Exclude oncePerFrame
 	local allOnlyOnce = true
-	while (now - start) <= spendTime do
+	while (now - start) <= spendTime and steps < MAX_STEPS_PER_FRAME do
 		name, job = next(jobs, name)
 		if not job then
 			if allOnlyOnce then
@@ -251,6 +246,7 @@ function async.Scheduler()
 				runTime = now
 				DoJob(job)
 				now = GetGameTimeSeconds()
+				steps = steps + 1
 			end
 		else
 			running = next(jobs) ~= nil

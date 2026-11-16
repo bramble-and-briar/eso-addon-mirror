@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/evainefaye/ItemShare__4533",
+  "archive_path": "addons/evainefaye/Guilds-Bounty__4533",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "evainefaye",
@@ -8,18 +8,31 @@
   "category_id": "20",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
+    {
+      "name": "Season Zero",
+      "version": "11.3.0"
     }
   ],
   "content_id": "esoui:4533",
   "deleted": false,
   "directories": [
-    "ItemShare"
+    "GuildsBounty"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4533/",
-  "fingerprint": "931f1721615c64a3ced62555c35cfdf644a845f1081406502f12f3c240aab3b3",
+  "fingerprint": "419667b999c7c1ba2a66b982b734dda35c9313fa2ea6848687fb0451be4a0398",
   "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18512.png",
     "https://cdn-eso.mmoui.com/preview/pvw18387.png",
     "https://cdn-eso.mmoui.com/preview/pvw18388.png",
     "https://cdn-eso.mmoui.com/preview/pvw18386.png"
@@ -28,13 +41,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "4533",
-  "source_url": "https://www.esoui.com/downloads/info4533-ItemShare.html",
+  "source_url": "https://www.esoui.com/downloads/info4533-GuildsBounty.html",
   "stats": {
-    "downloads": 297,
+    "downloads": 298,
     "favorites": 0,
-    "monthly_downloads": 124
+    "monthly_downloads": 128
   },
-  "title": "ItemShare",
-  "updated_at": 1794511733000,
-  "version": "1.11.43"
+  "title": "Guilds Bounty",
+  "updated_at": 1794812586000,
+  "version": "1.12.0"
 }

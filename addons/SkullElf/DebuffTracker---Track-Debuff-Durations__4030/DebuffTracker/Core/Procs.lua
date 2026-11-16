@@ -279,6 +279,8 @@ function P.TimerTrigger(e, gameDur)
         duration = d, cooldown = cd, startOn = e.on == "effect" and "effect" or "combat",
         cooldownIds = e.cdIds or {}, endIds = e.endIds or {},
         perTarget = false, restartOnRefresh = true, minInterval = 0.5, showReady = true,
+        -- a proc can't fire again during its own cooldown (Combat.lua: events in that time are the same proc)
+        cdLock = cd > 0 or nil,
         count = e.count or nil,
         durationFromHit = e.hitDuration or nil,
         burst = e.burst or nil,

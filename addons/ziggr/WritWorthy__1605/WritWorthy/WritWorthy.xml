@@ -5,8 +5,8 @@
   <Controls>
     <!-- writ list window -->
     <TopLevelControl name="WritWorthyUI" hidden="true" movable="true" mouseEnabled="true" resizeHandleSize="2" allowBringToTop="true" clampedToScreen="false">
-      <Dimensions x="1125" y="550" />
-      <DimensionConstraints minX="1105" minY="350" maxX="1805" maxY="950" />
+      <Dimensions x="1215" y="550" />
+      <DimensionConstraints minX="1195" minY="350" maxX="1805" maxY="950" />
       <!-- Positive LT/Negative RB offsets allow sliding
                past edge of screen. Negative LT/Positive RB
                offsets inset from edge of screen.
@@ -15,6 +15,7 @@
       <ClampedToScreenInsets left="-20" top="-20" right="20" bottom="20" />
       <!-- React to window move/resize -->
       <OnMoveStop>WritWorthyUI_OnMoveStop()</OnMoveStop>
+      <OnResizeStart>WritWorthyUI_OnResizeStart()</OnResizeStart>
       <OnResizeStop>WritWorthyUI_OnResizeStop()</OnResizeStop>
       <Controls>
         <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" />
@@ -91,40 +92,45 @@
                 </Control>
                 <Control name="$(parent)Detail1" inherits="ZO_SortHeader">
                   <Anchor relativeTo="$(parent)" relativePoint="TOPLEFT" point="TOPLEFT" offsetX="210" />
-                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-645" />
+                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-735" />
                   <Dimensions x="300" y="20" />
                   <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Detail1", "Detail 1", "ui_detail1")</OnInitialized>
                 </Control>
                 <Control name="$(parent)Detail2" inherits="ZO_SortHeader">
-                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-540" />
+                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-630" />
                   <Dimensions x="200" y="20" />
                   <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Detail2", "Detail 2", "ui_detail2")</OnInitialized>
                 </Control>
                 <Control name="$(parent)Detail3" inherits="ZO_SortHeader">
-                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-340" />
+                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-430" />
                   <Dimensions x="150" y="20" />
                   <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Detail3", "Detail 3", "ui_detail3")</OnInitialized>
                 </Control>
                 <Control name="$(parent)Detail4" inherits="ZO_SortHeader">
-                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-185" />
+                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-275" />
                   <Dimensions x="150" y="20" />
                   <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Detail4", "Detail 4", "ui_detail4")</OnInitialized>
                 </Control>
                 <Control name="$(parent)Detail5" inherits="ZO_SortHeader">
-                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-80" />
+                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-170" />
                   <Dimensions x="100" y="20" />
                   <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Detail5", "Quality", "ui_detail5")</OnInitialized>
                 </Control>
                 <!-- Mimic sits with Q: both are per-row action checkboxes. -->
                 <Control name="$(parent)Mimic" inherits="ZO_SortHeader">
-                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-45" />
+                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-135" />
                   <Dimensions x="30" y="20" />
                   <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Mimic", "M", "ui_use_mimic")</OnInitialized>
                 </Control>
                 <Control name="$(parent)Enqueue" inherits="ZO_SortHeader">
-                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-10" />
+                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-100" />
                   <Dimensions x="30" y="20" />
                   <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Enqueue", "Q", "ui_is_queued")</OnInitialized>
+                </Control>
+                <Control name="$(parent)Gold" inherits="ZO_SortHeader">
+                  <Anchor relativeTo="$(parent)" relativePoint="TOPRIGHT" point="TOPRIGHT" offsetX="-10" />
+                  <Dimensions x="80" y="20" />
+                  <OnInitialized>WritWorthyInventoryList_HeaderInit(self, "Gold", "GoldV", "ui_gold_per_voucher")</OnInitialized>
                 </Control>
               </Controls>
             </Control>
@@ -190,6 +196,7 @@
       <ClampedToScreenInsets left="-20" top="-20" right="20" bottom="20" />
       <!-- React to window move/resize -->
       <OnMoveStop>WritWorthy.MatUI.OnMoveStop()</OnMoveStop>
+      <OnResizeStart>WritWorthy.MatUI.OnResizeStart()</OnResizeStart>
       <OnResizeStop>WritWorthy.MatUI.OnResizeStop()</OnResizeStop>
       <!-- OnInitialized(this control)
 

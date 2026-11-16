@@ -6,7 +6,7 @@ Hermes = {
     author = "Niwasaka",
     website = "https://www.esoui.com/downloads/fileinfo.php?id=3499",
     slashCommand = "/hermes",
-    version = "1.6.0",
+    version = "1.7.0",
     guildIndex = 0,
 
     defaults = {

@@ -133,6 +133,7 @@ local PROBE_BATCH_SIZE = 5
 local ACCOUNTS = { ['@Semigroup'] = true, ['@Semigroup1329'] = true }
 local MAX_LOG = 200
 local INITIALIZE_DELAY_MS, START_DELAY_MS = 2000, 1000
+local HELD_REPORT_DELAY_MS = 3000
 local WORK_INTERVAL_MS, IDLE_INTERVAL_MS = 400, 1000
 ---A world interaction the player just attempted gets this long before a pack use may interrupt it.
 local INTERACT_HOLD_MS = 2500
@@ -586,6 +587,44 @@ local function useItem(pending)
     CallSecureProtected('UseItem', pending.item.bag, pending.item.slot)
 end
 
+---Containers whose currency has no room, one line each. Repeated on every
+---activation on purpose: they wait until that currency is spent.
+function poc.reportHeldContainers()
+    if not poc.enabled then return end
+    local coffers = BattleScrolls.inventoryPocCoffers
+    ---@type table<number, boolean>
+    local reported = {}
+    for slot = 0, GetBagSize(BAG_BACKPACK) - 1 do
+        local itemId = GetItemId(BAG_BACKPACK, slot)
+        local currency = itemId ~= 0 and not reported[itemId] and coffers.cappedCurrency(itemId)
+        if currency then
+            reported[itemId] = true
+            local location = GetCurrencyPlayerStoredLocation(currency)
+            d(zo_strformat(GetString(BATTLESCROLLS_IPOC_CONTAINER_HELD), GetItemLink(BAG_BACKPACK, slot, LINK_STYLE_BRACKETS),
+                GetCurrencyName(currency, false, false), GetCurrencyAmount(currency, location),
+                GetMaxPossibleCurrency(currency, location)))
+        end
+    end
+end
+
+---The container stays shut because its currency has no room: a wait, not a failure.
+---@param pending InventoryPocPending
+local function holdContainer(pending)
+    openRetries[itemKey(pending.item)] = nil
+    pending.finished = true
+    if poc.saved.pending == pending then poc.saved.pending = nil end
+    dropPass()
+    poc.dirty = true
+    poc.reportHeldContainers()
+end
+
+---The loot handler found the open container's currency over its cap.
+function poc.holdContainer()
+    local pending = poc.enabled and poc.saved and poc.saved.pending
+    if pending and pending.action == 'open' then holdContainer(pending) end
+    poc.resume()
+end
+
 ---@param pending InventoryPocPending
 local function reconcile(pending)
     if pending.conflicted then finish(pending, 'uncertain'); return end
@@ -639,6 +678,10 @@ local function reconcile(pending)
         local item = pending.item
         local unchanged = count == item.stack and countBag(item.bag, item.link) == pending.sourceTotal
             and facts.uniqueId(item.bag, item.slot) == item.uniqueId
+        if unchanged and item.currencyContainer and BattleScrolls.inventoryPocCoffers.refused(item.itemId) then
+            holdContainer(pending)
+            return
+        end
         if unchanged and not poc.cancelled and not poc.visitFinished
             and not IsItemPlayerLocked(item.bag, item.slot) and (pending.useAttempts or 1) < 3 then
             pending.retryAt = now + 1000 + GetLatency()
@@ -1311,16 +1354,19 @@ function poc.inspectItem(bag, slot)
                 tostring(item.reserved), tostring(item.stolen), tostring(item.crown), tostring(item.known), tostring(item.crafterKnown)),
             string.format('IPOC styleMat=%d price=%s traitMat=%d price=%s resolved=%s', styleMaterial,
                 tostring(item.styleMaterialUnit), traitMaterial, tostring(item.traitMaterialUnit), tostring(item.traitMaterialResolved)),
+            string.format('IPOC crafted=%s cannotSell=%s', tostring(item.crafted), tostring(item.cannotSell)),
         }
         local flavor = GetItemLinkFlavorText(item.link)
         if item.kind == 'gear' then
-            lines[#lines + 1] = string.format('IPOC tradeable=%s crafted=%s collected=%s upgradeMat=%s price=%s saleMin=%s',
-                tostring(item.tradeable), tostring(item.crafted), tostring(item.setCollected),
+            lines[#lines + 1] = string.format('IPOC tradeable=%s collected=%s upgradeMat=%s price=%s saleMin=%s',
+                tostring(item.tradeable), tostring(item.setCollected),
                 tostring(item.improvementMaterialLink), tostring(item.improvementMaterialUnit), tostring(policy.gearSaleMinimum(item)))
+            lines[#lines + 1] = string.format('IPOC baseMat=%d price=%s',
+                item.baseMaterialLink ~= '' and GetItemLinkItemId(item.baseMaterialLink) or 0, tostring(item.baseMaterialUnit))
         end
-        if item.kind == 'potion' or item.kind == 'poison' then
-            lines[#lines + 1] = string.format('IPOC crafted=%s onUse=%s abilityId=%s alchemyTraits=%s',
-                tostring(item.crafted), tostring(item.hasOnUseAbility), tostring(item.onUseAbilityId), tostring(item.alchemyTraitCount))
+        if item.kind == 'container' then
+            lines[#lines + 1] = string.format('IPOC currencyContainer=%s cappedCurrency=%s openAfter=%s',
+                tostring(item.currencyContainer), tostring(item.cappedCurrency), tostring(item.openAfter))
         end
         if flavor ~= '' then lines[#lines + 1] = 'IPOC flavor=' .. flavor end
         printProbe(lines)
@@ -1420,6 +1466,11 @@ local function activate()
         end)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_PLAYER_ACTIVATED, function()
             BattleScrolls.inventoryPocCompanions.requestReport()
+            -- The pack read stays out of the activation frame, like the other reminders.
+            LibEffect.Async(function()
+                LibEffect.Sleep(HELD_REPORT_DELAY_MS):Await()
+                poc.reportHeldContainers()
+            end):Run()
             poc.beginVisit()
         end)
         EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_OPEN_BANK, poc.beginVisit)
@@ -1484,7 +1535,10 @@ local function activate()
     BattleScrolls.inventoryPocMarket.initialize()
     BattleScrolls.inventoryPocBuilds.initialize()
     BattleScrolls.inventoryPocUI.setEnabled(true)
-    if IsPlayerActivated() then BattleScrolls.inventoryPocCompanions.requestReport() end
+    if IsPlayerActivated() then
+        BattleScrolls.inventoryPocCompanions.requestReport()
+        poc.reportHeldContainers()
+    end
     poc.beginVisit()
     -- Activation may precede the helper's delayed startup. Start the reminder
     -- here as well so that enabling after login does not miss that activation.
@@ -1583,7 +1637,7 @@ local function initialize()
     poc.saved.quotes = poc.saved.quotes or {}
     local firstCofferTracking = poc.saved.coffers == nil
     poc.saved.coffers = poc.saved.coffers or { untilReset = {}, observed = {} }
-    BattleScrolls.inventoryPocCoffers.initialize(poc.saved.coffers, firstCofferTracking and poc.saved.log or nil)
+    BattleScrolls.inventoryPocCoffers.initialize(poc.saved.coffers, poc.saved.log, firstCofferTracking)
     facts.quotes = poc.saved.quotes
     if startupCancelled then poc.saved.enabled = false end
     -- An interrupted request cannot be declared successful or blindly retried

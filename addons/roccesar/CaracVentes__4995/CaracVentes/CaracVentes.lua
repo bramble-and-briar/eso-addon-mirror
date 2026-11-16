@@ -2,7 +2,7 @@
 -- RÉGLAGES (modifie ici)
 -- Les textes affichés sont dans lang/default.lua (anglais) et lang/fr.lua (français)
 ------------------------------------------------------------
-local VERSION_ADDON       = "v1.2"   -- version affichée à côté du titre (même couleur que le titre)
+local VERSION_ADDON       = "v1.3"   -- version affichée à côté du titre (même couleur que le titre)
 
 local TAILLE_ICONE        = 60     -- taille de l'icône de l'addon (en pixels)
 local FOND_BOUTON         = false  -- true = fond noir translucide derrière l'icône

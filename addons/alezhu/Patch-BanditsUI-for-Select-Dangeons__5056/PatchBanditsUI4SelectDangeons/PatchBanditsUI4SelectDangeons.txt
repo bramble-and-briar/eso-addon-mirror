@@ -1,0 +1,12 @@
+## Title: |c4B8BFEBanditsUI Patch|r: Select Dungeons
+## Description: Patches Bandits User Interface dungeon selection based on Group difficulty and adds an Uncompleted quests selector.
+## Author: alezhu
+## Version: 1.0.0
+## APIVersion: 101051 101052
+## DependsOn: BanditsUserInterface
+
+lang/en.lua
+lang/$(language).lua
+
+DungeonData.lua
+PatchBanditsUI4SelectDangeons.lua

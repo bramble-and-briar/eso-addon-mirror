@@ -1,18 +1,23 @@
 TacticalDisplay = TacticalDisplay or {}
 TacticalDisplay.Panel = TacticalDisplay.Panel or {}
 local _Panel = TacticalDisplay.Panel
-local _Data = TacticalDisplay.Data
+local _OnOpponentUpdated = TacticalDisplay.Data.OnOpponentUpdated
 
-local OPPONENT_RENDER_NAME = "TacticalDisplay_OpponentListRender"
-local OPPONENT_RENDER_DELAY_MS = 100
+local _config
+local _defaults = {
+    offsetX = 40,
+    offsetY = 240,
+}
 
-local OPPONENT_CLEANUP_NAME = "TacticalDisplay_OpponentListCleanup"
-local OPPONENT_CLEANUP_INTERVAL_MS = 2000
-local OPPONENT_PURGE_SECONDS = 30
-local OPPONENT_RECENT_SECONDS = 2
+local _opponentActiveDuration = 2
+local _opponentVisibleDuration = 30
 
-local DEFAULT_OFFSET_X = 40
-local DEFAULT_OFFSET_Y = 240
+local UPDATE_RENDER_NAME = "TacticalDisplay_Panel_Render"
+local UPDATE_RENDER_DELAY_MS = 100
+
+local UPDATE_CLEANUP_NAME = "TacticalDisplay_Panel_Cleanup"
+local UPDATE_CLEANUP_INTERVAL_MS = 1000
+
 local MIN_WIDTH = 240
 local MIN_HEIGHT = 100
 local CONTENT_PADDING = 8
@@ -27,10 +32,9 @@ local OPPONENT_ICON_SIZE = 20
 local OPPONENT_DETAILS_OFFSET = OPPONENT_NAME_WIDTH
     + OPPONENT_ICON_MARGIN_L + OPPONENT_ICON_SIZE + OPPONENT_ICON_MARGIN_R
 
-local _visibleOpponentEntries = {} -- [index] = { opponent, isRecent }
+local _visibleOpponentEntries = {} -- [index] = { opponent, isActive }
 
-local _config
-local _isPanelEnabled
+local _isPanelEnabled = false
 local _fragment
 local _window
 local _opponentRows = {}
@@ -57,14 +61,14 @@ end
 local function AddVisibleOpponent(opponent)
     for _, entry in ipairs(_visibleOpponentEntries) do
         if entry.opponent == opponent then
-            entry.isRecent = true
+            entry.isActive = true
             return
         end
     end
 
     table.insert(_visibleOpponentEntries, 1, {
         opponent = opponent,
-        isRecent = true,
+        isActive = true,
     })
     EnforceVisibleOpponentLimit()
 end
@@ -82,7 +86,7 @@ local function RenderOpponentList()
         local opponentEntry = _visibleOpponentEntries[index]
         local opponent = opponentEntry and opponentEntry.opponent
         if opponent then
-            local rowFont = opponentEntry.isRecent and "ZoFontGameBold" or "ZoFontGame"
+            local rowFont = opponentEntry.isActive and "ZoFontGameBold" or "ZoFontGame"
             row.nameLabel:SetFont(rowFont)
             row.detailLabel:SetFont(rowFont)
 
@@ -106,8 +110,10 @@ local function RenderOpponentList()
 
                 local damageText = (attack.damage or -1) >= 0 and tostring(attack.damage) or ""
                 local damageMarkup = damageText
-                if damageText ~= "" and attack.blocked then
+                if attack.blocked then
                     damageMarkup = "|c7F00FF" .. damageText .. "|r"
+                elseif attack.shielded then
+                    damageMarkup = "|c00FF00" .. damageText .. "|r"
                 end
 
                 if damageText ~= "" then
@@ -160,8 +166,8 @@ local function ScheduleOpponentRender()
     end
     _opponentRenderScheduled = true
 
-    EVENT_MANAGER:RegisterForUpdate(OPPONENT_RENDER_NAME, OPPONENT_RENDER_DELAY_MS, function()
-        EVENT_MANAGER:UnregisterForUpdate(OPPONENT_RENDER_NAME)
+    EVENT_MANAGER:RegisterForUpdate(UPDATE_RENDER_NAME, UPDATE_RENDER_DELAY_MS, function()
+        EVENT_MANAGER:UnregisterForUpdate(UPDATE_RENDER_NAME)
         _opponentRenderScheduled = false
         RenderOpponentList()
     end)
@@ -175,13 +181,13 @@ local function CleanupOpponentEntries()
         local opponent = opponentEntry and opponentEntry.opponent
         if not opponent
             or not opponent.lastSeen
-            or now - opponent.lastSeen >= OPPONENT_PURGE_SECONDS then
+            or now - opponent.lastSeen >= _opponentVisibleDuration then
             table.remove(_visibleOpponentEntries, index)
             changed = true
         else
-            local isRecent = now - opponent.lastSeen <= OPPONENT_RECENT_SECONDS
-            if opponentEntry.isRecent ~= isRecent then
-                opponentEntry.isRecent = isRecent
+            local isActive = now - opponent.lastSeen <= _opponentActiveDuration
+            if opponentEntry.isActive ~= isActive then
+                opponentEntry.isActive = isActive
                 changed = true
             end
         end
@@ -213,7 +219,7 @@ end
 local function CreateUI()
     _window = WINDOW_MANAGER:CreateTopLevelWindow("TacticalDisplayWindow")
     _window:SetDimensions(MIN_WIDTH, MIN_HEIGHT)
-    _window:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, DEFAULT_OFFSET_X, DEFAULT_OFFSET_Y)
+    _window:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, _defaults.offsetX, _defaults.offsetY)
     _window:SetDrawTier(DT_LOW)
     _window:SetDrawLayer(DL_OVERLAY)
     _window:SetClampedToScreen(true)
@@ -295,19 +301,13 @@ end
 local function ApplyLayout()
     _window:ClearAnchors()
     _window:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT,
-        _config.offsetX or DEFAULT_OFFSET_X,
-        _config.offsetY or DEFAULT_OFFSET_Y)
+        _config.offsetX or _defaults.offsetX,
+        _config.offsetY or _defaults.offsetY)
     UpdateContentSize()
 end
 
-function _Panel.ResetLayout()
-    _config.offsetX = DEFAULT_OFFSET_X
-    _config.offsetY = DEFAULT_OFFSET_Y
-    ApplyLayout()
-end
-
 function _Panel.Initialize(savedVars)
-    savedVars.panel = savedVars.panel or {}
+    savedVars.panel = savedVars.panel or _defaults
     _config = savedVars.panel
 
     CreateUI()
@@ -315,8 +315,12 @@ function _Panel.Initialize(savedVars)
 end
 
 function _Panel.Enable()
-    _Data.OnOpponentUpdated[OPPONENT_UPDATE_NAME] = OnOpponentUpdated
-    EVENT_MANAGER:RegisterForUpdate(OPPONENT_CLEANUP_NAME, OPPONENT_CLEANUP_INTERVAL_MS, CleanupOpponentEntries)
+    if _isPanelEnabled then
+        return
+    end
+
+    _OnOpponentUpdated[OPPONENT_UPDATE_NAME] = OnOpponentUpdated
+    EVENT_MANAGER:RegisterForUpdate(UPDATE_CLEANUP_NAME, UPDATE_CLEANUP_INTERVAL_MS, CleanupOpponentEntries)
 
     _isPanelEnabled = true
     _fragment:Refresh()
@@ -325,9 +329,24 @@ function _Panel.Enable()
 end
 
 function _Panel.Disable()
-    EVENT_MANAGER:UnregisterForUpdate(OPPONENT_CLEANUP_NAME)
-    _Data.OnOpponentUpdated[OPPONENT_UPDATE_NAME] = nil
+    if not _isPanelEnabled then
+        return
+    end
+
+    EVENT_MANAGER:UnregisterForUpdate(UPDATE_CLEANUP_NAME)
+    _OnOpponentUpdated[OPPONENT_UPDATE_NAME] = nil
 
     _isPanelEnabled = false
     _fragment:Refresh()
+end
+
+function _Panel.UpdateParameters(activeDuration, visibleDuration)
+    _opponentActiveDuration = activeDuration or 1
+    _opponentVisibleDuration = visibleDuration or 1
+end
+
+function _Panel.ResetLayout()
+    _config.offsetX = _defaults.offsetX
+    _config.offsetY = _defaults.offsetY
+    ApplyLayout()
 end

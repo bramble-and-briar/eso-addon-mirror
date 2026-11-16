@@ -3,6 +3,7 @@ local PDI = PVPDataInsight
 local EM = EVENT_MANAGER
 
 ZO_CreateStringId("SI_BINDING_NAME_PVPDI_TOGGLE", "Toggle Lethal PVP Insights window")
+ZO_CreateStringId("SI_BINDING_NAME_LPI_RECAP_TOGGLE", "Show / hide Real Death Recap")
 
 local function onOff(v) return v and "|c00FF00on|r" or "|cFF4444off|r" end
 

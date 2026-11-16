@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/HellWhyNot/Chill-Giveaway__5054",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "HellWhyNot",
+  "canonical_id": "esoui:5054",
+  "category_id": "55",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    }
+  ],
+  "content_id": "esoui:5054",
+  "deleted": false,
+  "directories": [
+    "ChillGiveaway"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5054/",
+  "fingerprint": "f881f0b027631667814aa3f6fbd3f5b3d41d91181361b2f56c05c57295a9848b",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18478.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5054",
+  "source_url": "https://www.esoui.com/downloads/info5054-ChillGiveaway.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 3
+  },
+  "title": "Chill Giveaway",
+  "updated_at": 1794765197000,
+  "version": "1.0"
+}

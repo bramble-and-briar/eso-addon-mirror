@@ -4,7 +4,7 @@ by **Lethal2k**
 ## Install
 Install it with **Minion**, or download it from [ESOUI](https://www.esoui.com/downloads/info5037-LethalPvPInsights.html) or esopvp.com. To install by hand, copy the `LethalPVPInsights` folder to `Documents/Elder Scrolls Online/live/AddOns/`, then enable it in the in-game AddOns menu.
 
-**Updating from PVP Data Insight (1.9.58 or older):** delete the old `AddOns/PVPDataInsight` folder, unzip the new one, then start `LPI COMPANION.bat` once with the game closed: it moves your saved data (`SavedVariables/PVPDataInsight.lua`) to the renamed addon.
+**Updating from PVP Data Insight (1.9.58 or older):** delete the old `AddOns/PVPDataInsight` folder, unzip the new one, then start the LPI Companion once with the game closed: it moves your saved data (`SavedVariables/PVPDataInsight.lua`) to the renamed addon.
 In **Settings > Social**, turn on the **PvP kill feed**. The kill feed is the main data source for kills, assists and the Kill Feed tab.
 
 ## Settings
@@ -41,9 +41,9 @@ Right-click a player's row in any list (My Kills, Kill Feed, Opponents, Followin
 ## Real Death Recap
 Off by default: tick **Real Death Recap** in Settings. It only runs in PvP areas (Cyrodiil, Imperial City, Battlegrounds). When you die, a window shows:
 - the **top 5 damage sources** of that fight: skill and player, damage, hits and share. An attack's part absorbed by your damage shield counts with it (*Molten Whip 10,000 (3,000 absorbed)*); a skill that only ever hit your shield is left out of the top 5;
-- the **last 10 hits** before death, with time before death, crit, blocked, *absorbed by shield* and the killing blow.
+- the **last 20 hits** before death, with time before death, crit, blocked, *absorbed by shield* and the killing blow.
 
-`/lpi recap` shows the last recap again. Esc, Alt or the Close button closes it.
+Bind a key under **Controls > Addon Keybinds > Lethal PVP Insights > Show / hide Real Death Recap** to open and close it like the game's own death recap. `/lpi recap` also shows the last recap. Esc, Alt or the Close button closes it.
 
 ## Build links in chat
 Select a player and press **Link** (or `/lpi link`): a *[LPI build: @Name]* link goes into the chat input. Anyone with Lethal PVP Insights can click it to see that build (class, race, CP, role, mundus, skill bars or skills seen, gear).
@@ -62,9 +62,9 @@ The LPI Companion can upload your LPI data to **esopvp.com**: tick **Upload my L
 Besides the Kill Feed counters, every kill feed message is stored as its own record, so kills can later be matched across players (same campaign, killer, victim and location, times within a few seconds). Each record has: time (UTC seconds), megaserver, campaign (id and name), zone, the kill feed's location name and whether the game flagged it as the kill spot, the killer's and victim's @account, character, alliance and rank, and your own map position and location when the message arrived. A repeated message for the same kill is stored once. Records are kept 7 days by default (Settings, or `/lpi killdays <1-60>`); `/lpi status` shows how many are stored.
 
 ## Gear and skill bars (encounter log)
-Addons can't read another player's gear or skill bars directly, but the game's encounter log can. The addon and a small desktop **Companion** handle the whole process:
+Addons can't read another player's gear or skill bars directly, but the game's encounter log can. The addon and a small desktop **Companion** (separate download, see step 1) handle the whole process:
 
-1. **Start the Companion once** by double-clicking **LPI COMPANION.bat** in the addon folder. You don't need to install anything. It uses Python 3 if you have it, and otherwise the PowerShell edition that comes with Windows 10 and 11. Either way it runs without a console window; only the Companion window (with the LPI shield icon) appears. The first start also adds a **LPI Companion** shortcut to your desktop and makes it start with Windows (both can be switched off in its window), and puts a **Lethal PVP Insights Companion** shortcut with the LPI icon in the addon folder. It finds the addon folder from the Encounter.log path by itself, and imports captured fights automatically. Big logs are imported in the background, so the window never freezes.
+1. **Get the Companion and start it.** The LPI Companion is an optional Windows helper and a **separate download** from [esopvp.com/companion](https://esopvp.com/companion) (or the *Get the LPI Companion* button in Settings); it is not part of the addon. Unzip its folder anywhere outside AddOns (for example `Documents\Elder Scrolls Online\live\LPI Companion`) and double-click **LPI Companion.bat**. Nothing to install: it uses Python 3 if you have it, otherwise the PowerShell that comes with Windows 10/11. It finds the game folder by itself. Tick *Start with Windows* in its window if you want it to start by itself.
    **The Companion must be running before you click Upload in game**, otherwise the browser only shows "can't be reached". The in-game import window shows whether the Companion was running when the UI last loaded.
 2. **Play as usual.** When you're grouped in Cyrodiil, Imperial City or a Battleground and some online members have no gear data yet, the addon turns the encounter log on by itself.
 3. **The addon decides when it has enough.** The game writes each member's gear and both skill bars into the log when you enter combat. On each combat start, everyone still missing who is in group support range counts as captured. Once nobody is left, the log turns off a few seconds later, so the file stays small. If someone was out of range, it waits for the next fight. It also turns off after 10 minutes, or when you leave the group or the PvP area.

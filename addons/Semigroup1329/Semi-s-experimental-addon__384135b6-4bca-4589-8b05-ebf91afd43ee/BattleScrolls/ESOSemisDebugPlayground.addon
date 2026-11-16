@@ -1,8 +1,8 @@
 ## Title: Semi's Debug Playground
 ## Author: Semigroup1329
 ## APIVersion: 101050 101051
-## AddOnVersion: 575
-## Version: 0.0.575
+## AddOnVersion: 576
+## Version: 0.0.576
 ## IsLibrary: False
 ## DependsOn: LibGroupBroadcast LibAsync>=30100
 ## OptionalDependsOn: LibHarvensAddonSettings WizardsWardrobe LibCharacterKnowledge TSCPriceFetcher2
@@ -167,6 +167,9 @@ ui/inventory_poc.lua
 
 ; Personal antiquity reminders (requires inventory automation)
 antiquity_leads.lua
+
+; Personal UI trust checks: /bst (docs/inventory-addon/ui-taint.md)
+ui/taint_tests.lua
 
 ; Reclaim load-time garbage before SavedVariables: must be the last file
 core/startup_gc.lua

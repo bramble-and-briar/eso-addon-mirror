@@ -1,11 +1,11 @@
 ## Title: Inspect Vestige |cAAAAAAby LuckyRome13|r
 ## Author: LuckyRome13
-## Version: 1.4.0
-## AddOnVersion: 140
+## Version: 1.4.1
+## AddOnVersion: 141
 ; -- APIVersion is set to the live value. Re-check it after each ESO update:
 ; --   /script d(GetAPIVersion())
 ; -- LibGroupBroadcast requires the Update 45 API (101045) or newer.
-## APIVersion: 101049
+## APIVersion: 101051
 ; -- Two stores: settings are account-wide (carry across servers); the received-build CACHE is
 ; -- per-server (an @account you meet on NA is not the one on EU) -- see IV.InitCache in Main.lua.
 ## SavedVariables: InspectVestige_SavedVariables InspectVestige_Cache

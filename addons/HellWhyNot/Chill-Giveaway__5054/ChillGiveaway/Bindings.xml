@@ -1,0 +1,1 @@
+<Bindings><Layer name="SI_KEYBINDINGS_LAYER_GENERAL"><Category name="Chill Giveaway"><Action name="CHILL_GIVEAWAY_OPEN"><Down>ChillGiveaway.Toggle()</Down></Action><Action name="CHILL_GIVEAWAY_POST"><Down>ChillGiveaway.Post()</Down></Action></Category></Layer></Bindings>

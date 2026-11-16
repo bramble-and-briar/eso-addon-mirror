@@ -18,7 +18,7 @@
     "KelaPadUIEnhanced"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5044/",
-  "fingerprint": "27f38db72fb87957237246ca2e536193e7ec80a993d77eadba0db9d4eafaf983",
+  "fingerprint": "465287cb678d5df7e61bd8288b0d3bf50fe61c675a0ae386c1deea0d304d7a5d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18397.png",
     "https://cdn-eso.mmoui.com/preview/pvw18398.png",
@@ -37,11 +37,11 @@
   "source_id": "5044",
   "source_url": "https://www.esoui.com/downloads/info5044-KelaPadUIEnhancedGamepadUI.html",
   "stats": {
-    "downloads": 22,
-    "favorites": 2,
-    "monthly_downloads": 12
+    "downloads": 53,
+    "favorites": 3,
+    "monthly_downloads": 47
   },
   "title": "KelaPadUI Enhanced Gamepad UI",
-  "updated_at": 1794573289000,
-  "version": "2.8.1"
+  "updated_at": 1794796944000,
+  "version": "2.8.2"
 }

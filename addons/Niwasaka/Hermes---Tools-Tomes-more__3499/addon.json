@@ -18,12 +18,15 @@
     "Hermes"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3499/",
-  "fingerprint": "9504fb091c6820d33565f1cdd05c76cd7559dbf8d6e0e4ea28431dd4cb642e10",
+  "fingerprint": "1a13095b6845a711a862d1cae5f8c040f174f064310c9838b925ad2725b9339f",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17946.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17947.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17950.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17949.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18476.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18477.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18479.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18480.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18481.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18482.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18484.png",
     "https://cdn-eso.mmoui.com/preview/pvw17948.png",
     "https://cdn-eso.mmoui.com/preview/pvw15700.png",
     "https://cdn-eso.mmoui.com/preview/pvw15415.png"
@@ -34,11 +37,11 @@
   "source_id": "3499",
   "source_url": "https://www.esoui.com/downloads/info3499-Hermes-ToolsTomesmore.html",
   "stats": {
-    "downloads": 3285,
+    "downloads": 3418,
     "favorites": 2,
-    "monthly_downloads": 43
+    "monthly_downloads": 103
   },
   "title": "Hermes - Tools, Tomes & more",
-  "updated_at": 1791742622000,
-  "version": "1.6.0"
+  "updated_at": 1794765299000,
+  "version": "1.7.0"
 }

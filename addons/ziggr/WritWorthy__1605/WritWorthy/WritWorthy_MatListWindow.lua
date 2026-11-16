@@ -192,6 +192,10 @@ function WritWorthy.MatUI.OnMoveStop()
   Util.OnMoveStop(WritWorthyMatWindow, WINDOW_POS_KEY)
 end
 
+function WritWorthy.MatUI.OnResizeStart()
+  Util.OnResizeStart(WritWorthyMatWindow, WritWorthy.MatUI)
+end
+
 function WritWorthy.MatUI.OnResizeStop()
   Log.Debug("WWMUI_OnResizeStop()")
   Util.OnResizeStop(WritWorthyMatWindow, WritWorthy.MatUI, WritWorthy.MatUI.scroll_filter_list, WINDOW_POS_KEY)
@@ -318,7 +322,6 @@ end
 
 -- After a resize, widen our "detail1" column and nudge the others to its right.
 function WritWorthy.MatUI:UpdateAllCellWidths()
-  Log.Debug("WWML:UpdateAllCellWidths")
   for _, row_control in ipairs(self.row_control_list) do
     self:UpdateColumnWidths(row_control)
   end
@@ -514,7 +517,7 @@ function WritWorthy.MatUI:BuildMasterlist()
     local is_use_mimic = WritWorthyInventoryList:IsUseMimic(inventory_data)
     if is_queued and not is_completed then
       local parser = inventory_data.parser
-      local mat_list = parser:ToMatList()
+      local mat_list = parser.ToCraftMatList and parser:ToCraftMatList() or parser:ToMatList()
       if mat_list then
         for _, mat_row in ipairs(mat_list) do
           -- Replace style mat with mimic stone, if requested.

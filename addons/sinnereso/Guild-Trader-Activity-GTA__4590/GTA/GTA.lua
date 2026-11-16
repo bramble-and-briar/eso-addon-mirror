@@ -1,20 +1,22 @@
 GuildTraderActivity = {
 	name = "GTA",
 	author = "@sinnereso",
-	version = "2026.11.08",
+	version = "2026.11.16",
 	svName = "GTAVars",
 	svVersion = 1,
 }
+local CATEGORY = GUILD_HISTORY_EVENT_CATEGORY_TRADER
 local SELECTED_GUILD_LIST
 local SELECTED_GUILD_ID
 local SELECTED_GUILD_DATA
 local SELECTED_GUILD_IS_CURRENT
 local SELECTED_USER_DISPLAY_NAME
---local LINKED_MARKER = "|t18:18:/esoui/art/buttons/checkbox_checked.dds|t "--radiobuttondown --checkbox_checked_disabled --featuredot_active --art/tooltips/greenarrow
---local UNLINKED_MARKER = "|t18:18:/esoui/art/buttons/checkbox_unchecked.dds|t "--radiobuttonup --checkbox_unchecked_disabled --featuredot_inactive
-local LINKED_MARKER = "|t18:18:/esoui/art/tooltips/arrow_up.dds|t"
-local UNLINKED_MARKER = "|t18:18:/esoui/art/tooltips/arrow_down.dds|t"
---/script local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskResetNEW() df(tostring(resetTime))
+local LINKED_INDICATOR
+--local LINKED_IMAGE = "|t18:18:/esoui/art/buttons/checkbox_checked.dds|t "--radiobuttondown --checkbox_checked_disabled --featuredot_active --art/tooltips/greenarrow
+--local UNLINKED_IMAGE = "|t18:18:/esoui/art/buttons/checkbox_unchecked.dds|t "--radiobuttonup --checkbox_unchecked_disabled --featuredot_inactive
+local LINKED_IMAGE = "|t18:18:/esoui/art/tooltips/arrow_up.dds|t"
+local UNLINKED_IMAGE = "|t18:18:/esoui/art/tooltips/arrow_down.dds|t"
+--/script local resetStamp, previousStamp = GetLastKioskResetNEW() df(string.lower(tostring(os.date("%I %p %a %b %d", previousStamp))))
 local function GetLastKioskResetOLD()
 	local utcReset = {["NA Megaserver"] = 19, ["EU Megaserver"] = 14, ["PTS"] = 19,}
 	local now = os.time()
@@ -31,14 +33,13 @@ local function GetLastKioskResetOLD()
 	if daysToSubtract == 0 and (utc_table.hour + offset) < t.hour then daysToSubtract = 7 end
 	t.day = t.day - daysToSubtract
 	local resetStamp = os.time({year = t.year, month = t.month, day = t.day, hour = t.hour, min = 0, sec = 0})
-	local resetTime = tostring(os.date("%Y-%m-%d %I:%M:%S %p", resetStamp))
 	local previousStamp = (resetStamp - 604800)
-	local prevresetTime = tostring(os.date("%Y-%m-%d %I:%M:%S %p", previousStamp))
 	--df("Last Reset: " .. tostring(os.date("%Y-%m-%d %H:%M:%S", resetStamp)) .. ", Stamp: " .. tostring(resetStamp) .. ", Timezone: (" .. tostring(offset) .. ")")
-	--if GuildTraderActivity.author == GetUnitDisplayName("player") then GetLastKioskResetNEW() end
-	return resetStamp, resetTime, previousStamp, prevresetTime
+	return resetStamp, previousStamp
 end
-
+--/script local resetStamp, previousStamp = GetLastKioskResetNEW() df(string.lower(tostring(os.date("%I %p %a %b %d", previousStamp))))
+--local resetTime = tostring(os.date("%Y-%m-%d %I:%M:%S %p", resetStamp))
+--local prevresetTime = tostring(os.date("%Y-%m-%d %I:%M:%S %p", previousStamp))
 local function GetLastKioskReset()
 	local ONE_WEEK = 604800
 	local despawn, bidend, respawn = GetGuildKioskCycleTimes()
@@ -47,19 +48,23 @@ local function GetLastKioskReset()
 		resetStamp = resetStamp + ONE_WEEK
 	end
 	local previousStamp = (resetStamp - ONE_WEEK)
-	local resetTime = tostring(os.date("%Y-%m-%d %I:%M:%S %p", resetStamp))
-	local prevresetTime = tostring(os.date("%Y-%m-%d %I:%M:%S %p", previousStamp))
-	return resetStamp, resetTime, previousStamp, prevresetTime
+	return resetStamp, previousStamp
 end
 
-local function GuildTraderHistoryTrim()
-	local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
-	if GuildTraderActivity.savedVariables.cacheTrim and GuildTraderActivity.savedVariables.lastReset ~= resetStamp then
+local function GuildTraderHistoryTrim(isSlash)
+	local TWO_WEEK = 1209600
+	local resetStamp, previousStamp = GetLastKioskReset()
+	if (GuildTraderActivity.savedVariables.cacheTrim and GuildTraderActivity.savedVariables.lastReset ~= resetStamp) or isSlash then
 		GuildTraderActivity.savedVariables.lastReset = resetStamp
 		for i = 1, GetNumGuilds() do
 			local guildId = GetGuildId(i)
 			local guildName = GetGuildName(guildId)
-			ClearGuildHistoryCache(guildId, GUILD_HISTORY_EVENT_CATEGORY_TRADER, (GetTimeStamp() - previousStamp))
+			local newestIndex, oldestIndex = GetGuildHistoryEventIndicesForTimeRange(guildId, CATEGORY, previousStamp, previousStamp - TWO_WEEK)
+			local targetTime = GetGuildHistoryEventTimestamp(guildId, CATEGORY, newestIndex)
+			if not (targetTime < (previousStamp - TWO_WEEK)) and not (targetTime > previousStamp) then
+				ClearGuildHistoryCache(guildId, CATEGORY, (GetTimeStamp() - targetTime))
+			end
+			if isSlash then df(guildName .. " - 1st before prev reset: " .. tostring(os.date("%c", GetTimeStamp() - targetTime))) end
 		end
 		df("|c6666FF[GTA]|r Trimmed trader cache data")
 	end
@@ -74,10 +79,10 @@ local function LayoutNameRow(ctrl, data, scrollList)
 	ctrl:SetHandler("OnMouseEnter", function(self)
 		ctrl:SetColor(0.1, 0.1, 0.1, 0.9)
 		InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
-		if string.find(data.name, LINKED_MARKER, 1, true) then
-			SetTooltipText(InformationTooltip, "(CURRENT) ~ VIEW GUILD DETAILS")
+		if string.find(data.name, LINKED_IMAGE, 1, true) then
+			SetTooltipText(InformationTooltip, "(COMPLETE) ~ VIEW GUILD DETAILS")
 		else
-			SetTooltipText(InformationTooltip, "(PENDING) ~ VIEW GUILD DETAILS")
+			SetTooltipText(InformationTooltip, "(INCOMPLETE) ~ VIEW GUILD DETAILS")
 		end
 	end)
 	ctrl:SetHandler("OnMouseExit", function(self)
@@ -150,10 +155,10 @@ local function LayoutPreviousNameRow(ctrl, data, scrollList)
 	ctrl:SetHandler("OnMouseEnter", function(self)
 		ctrl:SetColor(0.1, 0.1, 0.1, 0.9)
 		InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
-		if string.find(data.name, LINKED_MARKER, 1, true) then
-			SetTooltipText(InformationTooltip, "(CURRENT) ~ VIEW GUILD DETAILS")
+		if string.find(data.name, LINKED_IMAGE, 1, true) then
+			SetTooltipText(InformationTooltip, "(COMPLETE) ~ VIEW GUILD DETAILS")
 		else
-			SetTooltipText(InformationTooltip, "(PENDING) ~ VIEW GUILD DETAILS")
+			SetTooltipText(InformationTooltip, "(INCOMPLETE) ~ VIEW GUILD DETAILS")
 		end
 	end)
 	ctrl:SetHandler("OnMouseExit", function(self)
@@ -337,14 +342,7 @@ end)
 GTACloseButton:SetHandler("OnMouseUp", function(self, button, upInside)
 	if button == 1 and upInside then
 		PlaySound("Click")
-		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_ADDED)
-		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_REMOVED)
-		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_RANK_CHANGED)
-		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_NOTE_CHANGED)
-		GuildTraderHistoryTrim()
-		GTAMain:SetHidden(true)
-		--ZO_SceneManager_ToggleUIModeBinding()
-		SetGameCameraUIMode(false)
+		GuildTraderActivity.Toggle()
 	end
 end)
 ---------------------------------------------
@@ -371,7 +369,7 @@ GTANameList:SetDimensions(380, scrollListHeight)--350
 GTANameList:SetAnchor(TOPLEFT, GTAPersonalView, TOPLEFT, 0, 58)
 ZO_ScrollList_AddDataType(GTANameList, 1, "ZO_SelectableLabel", 20, LayoutNameRow)
 local GTANameLabel = WINDOW_MANAGER:CreateControl("GTANameLabel", GTAPersonalView, CT_LABEL)
-GTANameLabel:SetAnchor(BOTTOMLEFT, GTANameList, TOPLEFT, 17, 0)-- 0, 0)-->> TESTING
+GTANameLabel:SetAnchor(BOTTOMLEFT, GTANameList, TOPLEFT, 17, 0)-- 0, 0)-->> Adjusted for LINKED indicator
 GTANameLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
 GTANameLabel:SetFont("ZoFontGameMedium")
 GTANameLabel:SetColor(0.3, 0.3, 0.2, 0.9)
@@ -917,6 +915,38 @@ GTAGuildListControl:SetAnchor(TOP, GTASelectedGuildLabel, BOTTOM, 0, -14)
 --GTAMain:SetTopmost()
 GTAMain:SetHidden(true)
 GTASelectedGuildView:SetHidden(true)
+--================================ TESTING NEW SHIT ==========================
+--GetKioskGuildInfo(*integer* _guildId_) --GetGuildKioskAttribute(*integer* _guildId_)
+local function IsGuildHistoryGaplessBetween(guildId, category, oldestTimeS, newestTimeS)
+	-- 1. Find the oldest event index that is connected to the present without any gaps. Index 1 is newest.
+	local oldestGaplessIndex = GetOldestGuildHistoryEventIndexForUpToDateEventsWithoutGaps(guildId, category)
+	if not oldestGaplessIndex then
+		return true, "No up-to-date gapless history cached yet."--false
+	end
+	-- 2. Get the event indices covering your target time range.
+	local newestEventIndex, oldestEventIndex = GetGuildHistoryEventIndicesForTimeRange(
+		guildId,
+		category,
+		newestTimeS,
+		oldestTimeS
+	)
+	if not newestEventIndex or not oldestEventIndex then
+		return false, "No cached events found in the specified time range."
+	end
+	-- 3. Verify that the oldest event in your target range is within the gapless boundary &
+	-- verify the cache actually extends at least as far back as oldestTimeS.
+	if oldestEventIndex <= oldestGaplessIndex then
+		local _, actualOldestTimestamp = GetGuildHistoryEventBasicInfo(guildId, category, oldestEventIndex)
+		local _, oldestGaplessTimestamp = GetGuildHistoryEventBasicInfo(guildId, category, oldestGaplessIndex)
+		if oldestGaplessTimestamp <= oldestTimeS then
+			return true, "Range is completely cached and gapless."
+		else
+			return false, "Events exist, but gapless history does not reach all the way back to oldestTimeS."
+		end
+	end
+	return true, "There is an uncached gap between the present and your target time range."--false
+end
+--================================ TESTING NEW SHIT ==========================
 ---------------------------------------------
 --------- POPULATE VIEW FUNCTIONS --
 ---------------------------------------------
@@ -930,7 +960,6 @@ local function PopulateTraderActivity()
 	local allSales = 0
 	local allPurchases = 0
 	local allActivity = 0
-	local CATEGORY = GUILD_HISTORY_EVENT_CATEGORY_TRADER
 	local previousCounter = 0
 	local prevGuildTotal = 0
 	local prevSales = 0
@@ -939,11 +968,10 @@ local function PopulateTraderActivity()
 	local prevAllPurchases = 0
 	local prevAllActivity = 0
 	if GetNumGuilds() > 0 then
-		local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
+		local resetStamp, previousStamp = GetLastKioskReset()
 		for i = 1, GetNumGuilds() do
 			local guildId = GetGuildId(i)
-			local guildName = (LINKED_MARKER .. GetGuildName(guildId))--GetGuildName(guildId)-->> TESTING--(LINKED_MARKER .. GetGuildName(guildId))
-			--if LibHistoire.gtaLinked[guildId][CATEGORY] or not GetGuildOwnedKioskInfo(guildId) then guildName = (LINKED_MARKER .. guildName) else guildName = (UNLINKED_MARKER .. guildName) end-->> TESTING
+			local guildName = GetGuildName(guildId)
 			for x = 1, GetNumGuildHistoryEvents(guildId, CATEGORY) do
 				local param1, eventStamp, param3, param4, sellerName, buyerName, itemLink, itemQuantity, itemPrice, itemTax = GetGuildHistoryTraderEventInfo(guildId, x)
 				if eventStamp > resetStamp then
@@ -957,11 +985,14 @@ local function PopulateTraderActivity()
 				end
 			end
 			if guildTotal ~= 0 or GuildTraderActivity.savedVariables.showAll then
+				local isComplete, status = IsGuildHistoryGaplessBetween(guildId, CATEGORY, resetStamp, GetTimeStamp())
+				if LibHistoire:IsCategoryLinked(guildId, CATEGORY) and isComplete then LINKED_INDICATOR = LINKED_IMAGE else LINKED_INDICATOR = UNLINKED_IMAGE end
+				--df(guildName .. " - " .. tostring(isComplete) .. " - " .. status)
 				currentCounter = currentCounter + 1
 				currentList[currentCounter] = {
 					index = i,
 					id = guildId,
-					name = guildName,
+					name = (LINKED_INDICATOR .. guildName),
 					total = guildTotal,
 					sales = sales,
 					purchases = purchases,
@@ -969,11 +1000,14 @@ local function PopulateTraderActivity()
 				}
 			end
 			if prevGuildTotal ~= 0 or GuildTraderActivity.savedVariables.showAll then
+				local isComplete, status = IsGuildHistoryGaplessBetween(guildId, CATEGORY, previousStamp, resetStamp)
+				if isComplete then LINKED_INDICATOR = LINKED_IMAGE else LINKED_INDICATOR = UNLINKED_IMAGE end
+				--df(guildName .. " - " .. tostring(isComplete) .. " - " .. status)
 				previousCounter = previousCounter + 1
 				previousList[previousCounter] = {
 					index = i,
 					id = guildId,
-					name = guildName,
+					name = (LINKED_INDICATOR .. guildName),
 					total = prevGuildTotal,
 					sales = prevSales,
 					purchases = prevPurchases,
@@ -993,7 +1027,7 @@ local function PopulateTraderActivity()
 		GTATotalPreviousSalesLabel:SetText ("TOTAL   -->   " .. tostring(ZO_LocalizeDecimalNumber(prevAllSales)))
 		GTATotalPreviousPurchaseLabel:SetText (tostring(ZO_LocalizeDecimalNumber(prevAllPurchases)))
 		GTATotalPreviousActivityLabel:SetText (tostring(ZO_LocalizeDecimalNumber(prevAllActivity)))
-		GTADisclaimer:SetText (("Based on cached data after " .. prevresetTime))
+		GTADisclaimer:SetText (("Based on cached data after " .. string.lower(tostring(os.date("%I %p %a %b %d", previousStamp)))))
 	else
 		return
 	end
@@ -1001,8 +1035,7 @@ local function PopulateTraderActivity()
 end
 
 function GuildTraderActivity.CreateGuildList(data, isCurrent)
-	local CATEGORY = GUILD_HISTORY_EVENT_CATEGORY_TRADER
-	local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
+	local resetStamp, previousStamp = GetLastKioskReset()
 	local guildId = GetGuildId(data.index)
 	local guildName = data.name
 	SELECTED_GUILD_ID = guildId
@@ -1049,7 +1082,7 @@ function GuildTraderActivity.CreateGuildList(data, isCurrent)
     end
 	if isCurrent then
 		SELECTED_GUILD_LIST:Update(1, salesData)
-		GTASelectedGuildLabel:SetText ("~ " .. string.gsub(guildName, "|t.-|t", "") .. " (Current Week) ~")-->> TESTING
+		GTASelectedGuildLabel:SetText ("~ " .. string.gsub(guildName, "|t.-|t", "") .. " (Current Week) ~")
 		GTAPersonalView:SetHidden(true)
 		GTASelectedGuildView:SetHidden(false)
 		if DoesPlayerHaveGuildPermission(SELECTED_GUILD_ID, GUILD_PERMISSION_INVITE) then
@@ -1059,7 +1092,7 @@ function GuildTraderActivity.CreateGuildList(data, isCurrent)
 		end
 	else
 		SELECTED_GUILD_LIST:Update(1, salesData)
-		GTASelectedGuildLabel:SetText ("~ " .. string.gsub(guildName, "|t.-|t", "") .. " (Previous Week) ~")-->> TESTING
+		GTASelectedGuildLabel:SetText ("~ " .. string.gsub(guildName, "|t.-|t", "") .. " (Previous Week) ~")
 		GTAPersonalView:SetHidden(true)
 		GTASelectedGuildView:SetHidden(false)
 		if DoesPlayerHaveGuildPermission(SELECTED_GUILD_ID, GUILD_PERMISSION_INVITE) then
@@ -1130,7 +1163,7 @@ function GuildTraderActivity.Toggle(mailCallback)
 		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_NOTE_CHANGED)
 		GuildTraderHistoryTrim()
 		GTAMain:SetHidden(true)
-		SetGameCameraUIMode(false)
+		if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE then SetGameCameraUIMode(false) end
 	end	
 end
 --SCENE_MANAGER:Show("hud")--SCENE_MANAGER:Show("hudui")--ZO_SceneManager_ToggleUIModeBinding()
@@ -1139,8 +1172,8 @@ SLASH_COMMANDS["/gta"] = function (option)
 end
 
 if GetUnitDisplayName("player") == GuildTraderActivity.author then
-	SLASH_COMMANDS["/gtatest"] = function (option)
-		GuildTraderHistoryTrim()
+	SLASH_COMMANDS["/gtatrim"] = function (option)
+		GuildTraderHistoryTrim(true)
 	end
 end
 
@@ -1151,14 +1184,17 @@ local function AddOnLoaded(eventCode, addOnName)
 		LibHistoire_Settings.markGapsInHistory = false
 		--SetSetting(SETTING_TYPE_USER_INTERFACE, UI_SETTING_GUILD_HISTORY_CACHE_MAX_NUMBER_OF_DAYS_TRADER, "15")
 		LibHistoire:OnReady(function(lib)
-			local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
+			local resetStamp, previousStamp = GetLastKioskReset()
 			for i = 1, GetNumGuilds() do
 				local guildId = GetGuildId(i)
-				local processor = lib:CreateGuildHistoryProcessor(guildId, GUILD_HISTORY_EVENT_CATEGORY_TRADER, "GTA")
-				processor:SetEventCallback(function() end)
+				local processor = lib:CreateGuildHistoryProcessor(guildId, CATEGORY, "GTA")
 				processor:SetAfterEventTime(previousStamp)
+				--processor:SetBeforeEventTime(GetTimeStamp())
+				processor:SetEventCallback(function(event) end)
+				--processor:SetNextEventCallback(function(event) end)
+				--processor:SetMissedEventCallback(function(event) end)
+				processor:SetStopOnLastCachedEvent(false)
 				processor:Start()
-				--processor:Stop()
 			end
 		end)
 	end

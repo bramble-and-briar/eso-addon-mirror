@@ -77,6 +77,11 @@ end
 --handle zone change
 function functions.zoneChanged(_, initial)
 
+	if appStart.savedVariables.lastSeenVersion ~= appStart.appVersion then
+        zo_callLater(function() LibNotify.postUpdateNotification(appName, "What's New:\nAdded map pins to show Volendrung spawn points on the map, disabled by default.", "Cyrodiil Alerts") end, 500)
+        appStart.savedVariables.lastSeenVersion = appStart.appVersion
+    end
+
     if IsPlayerInAvAWorld() then
 
         local campaignID = GetCurrentCampaignId()
@@ -88,15 +93,17 @@ function functions.zoneChanged(_, initial)
         local GH = 102
         local RW = 103
         local IR = 104
+        local EG = 0
 
         local campaign = "unknown"
 
-        if campaignID == 95 then campaign = "Imperial City" end
-        if campaignID == 96 then campaign = "NO_CP IC" end
-        if campaignID == 101 then campaign = "Blackreach" end
-        if campaignID == 102 then campaign = "Grey Host" end
-        if campaignID == 103 then campaign = "Ravenwatch" end
-        if campaignID == 104 then campaign = "Icereach" end
+        if campaignID == 95 then campaign = "Imperial City"
+        elseif campaignID == 96 then campaign = "NO_CP IC"
+        elseif campaignID == 101 then campaign = "Blackreach"
+        elseif campaignID == 102 then campaign = "Grey Host"
+        elseif campaignID == 103 then campaign = "Ravenwatch"
+        elseif campaignID == 104 then campaign = "Icereach"
+        elseif campaignID == 105 then campaign = "Evergloam" end
 
         if campaignID ~= appStart.currentZone then
             zo_callLater(function() functions.printMessage(zo_strformat("PvP zone detected - <<C:1>>",campaign)) end, 1000)
@@ -409,19 +416,42 @@ function functions.registerPins()
 
     local layout  = {
         level   = 50,
-        size    = 25,
+        size    = 24,
         texture = appStart.wellPinsIcon,
     }
 
     local tooltip = {
         tooltip = ZO_MAP_TOOLTIP_MODE.INFORMATION,
         creator = function( pin )
-            InformationTooltip:AddLine( "Ayleid Well" )
+
+        local tooltip = ZO_MapLocationTooltip_Gamepad.tooltip
+        local lineSection = tooltip:AcquireSection(tooltip:GetStyle("mapLocationTooltipContentSection"))
+        lineSection:AddLine(
+            "\nAYLEID WELL",
+            {
+                fontFace = "$(GAMEPAD_BOLD_FONT)",
+                fontSize = "$(GP_36)",
+                fontStyle = "soft-shadow-thick",
+            },
+            tooltip:GetStyle("mapLocationTooltipContentLabel")
+        )
+        lineSection:AddLine(
+            "     Increases Max Health by 10%\n     for 30 minutes.",
+            {
+                fontFace = "$(GAMEPAD_MEDIUM_FONT)",
+                fontSize = "$(GP_27)",
+                fontStyle = "soft-shadow-thick",
+            },
+            tooltip:GetStyle("mapLocationTooltipContentLabel")
+        )
+
+
+        tooltip:AddSection(lineSection)
+
         end,
     }
 
     local pinData    = {
-        
         ["cyrodiil/ava_whole"] = {                   -- +
             { x = 0.1854, y = 0.4076 },
             { x = 0.2614, y = 0.6707 },
@@ -440,7 +470,7 @@ function functions.registerPins()
             { x = 0.6585, y = 0.6944 },
             { x = 0.7062, y = 0.5809 },              -- 18
         }
-                    }
+    }
 
     appStart.LMP:AddPinType(appStart.wellPinsName, function( pinManager )
         local mapName = appStart.LMP:GetZoneAndSubzone( true )
@@ -454,6 +484,106 @@ function functions.registerPins()
     end, nil, layout, tooltip )
 end
 
+--register map pins for volendrung spawn locations
+function functions.registerPinsHammer()
+
+    local layout  = {
+        level   = 99,
+        size    = 23,
+        texture = appStart.hammerPinsIcon,
+    }
+
+    local tooltip = {
+        tooltip = ZO_MAP_TOOLTIP_MODE.INFORMATION,
+        creator = function( pin )
+
+        local tooltip = ZO_MapLocationTooltip_Gamepad.tooltip
+        local lineSection = tooltip:AcquireSection(tooltip:GetStyle("mapLocationTooltipContentSection"))
+        lineSection:AddLine(
+            "\nVOLENDRUNG",
+            {
+                fontFace = "$(GAMEPAD_BOLD_FONT)",
+                fontSize = "$(GP_36)",
+                fontStyle = "soft-shadow-thick",
+            },
+            tooltip:GetStyle("mapLocationTooltipContentLabel")
+        )
+        lineSection:AddLine(
+            "     Possible spawn location\n     for Volendrung.",
+            {
+                fontFace = "$(GAMEPAD_MEDIUM_FONT)",
+                fontSize = "$(GP_27)",
+                fontStyle = "soft-shadow-thick",
+            },
+            tooltip:GetStyle("mapLocationTooltipContentLabel")
+        )
+
+        tooltip:AddSection(lineSection)
+
+        end,
+    }
+
+    local pinData = {
+    ["cyrodiil/ava_whole"] = {                   -- +
+        -- South (Aldmeri Dominion)
+        { x = 0.5312, y = 0.8761 },              -- 01 (Behind Scroll Gates)
+        { x = 0.4840, y = 0.7919 },              -- 07 (Southwest Border)
+        { x = 0.6415, y = 0.7695 },              -- 08 (Southeast Border)
+
+        -- Northwest (Daggerfall Covenant)
+        { x = 0.1086, y = 0.2312 },              -- 17 (Behind Scroll Gates)
+        { x = 0.2091, y = 0.2246 },              -- 18 (Northwest Border)
+        { x = 0.3498, y = 0.1642 },              -- 19 (North Border)
+
+        -- Northeast (Ebonheart Pact)
+        { x = 0.8449, y = 0.1667 },              -- 09 (Behind Scroll Gates)
+        { x = 0.7117, y = 0.1436 },              -- 10 (North Border)
+        { x = 0.7766, y = 0.2782 },              -- 11 (Northeast Border)
+    }
+}
+
+--[[ --all possible locations
+    local pinData = {
+    ["cyrodiil/ava_whole"] = {                   -- +
+        { x = 0.5312, y = 0.8761 },              -- 01
+        { x = 0.3043, y = 0.5361 },              -- 02
+        { x = 0.3408, y = 0.7092 },              -- 03
+        { x = 0.4088, y = 0.6367 },              -- 04
+        { x = 0.4847, y = 0.5467 },              -- 05
+        { x = 0.5263, y = 0.6195 },              -- 06
+        { x = 0.4840, y = 0.7919 },              -- 07
+        { x = 0.6415, y = 0.7695 },              -- 08
+        { x = 0.8449, y = 0.1667 },              -- 09
+        { x = 0.7117, y = 0.1436 },              -- 10
+        { x = 0.7766, y = 0.2782 },              -- 11
+        { x = 0.6317, y = 0.3021 },              -- 12
+        { x = 0.5956, y = 0.3822 },              -- 13
+        { x = 0.7112, y = 0.3940 },              -- 14
+        { x = 0.7530, y = 0.4869 },              -- 15
+        { x = 0.6859, y = 0.5330 },              -- 16
+        { x = 0.1086, y = 0.2312 },              -- 17
+        { x = 0.2091, y = 0.2246 },              -- 18
+        { x = 0.3498, y = 0.1642 },              -- 19
+        { x = 0.3476, y = 0.2405 },              -- 20
+        { x = 0.3021, y = 0.3517 },              -- 21
+        { x = 0.3924, y = 0.3613 },              -- 22
+        { x = 0.4831, y = 0.2206 },              -- 23
+        { x = 0.1999, y = 0.3726 },              -- 24
+    }
+}
+]]
+    appStart.LMP:AddPinType(appStart.hammerPinsName, function( pinManager )
+        local mapName = appStart.LMP:GetZoneAndSubzone( true )
+        local pins    = pinData[mapName]
+
+        if pins then
+            for _, pinInfo in ipairs( pins ) do
+                appStart.LMP:CreatePin(appStart.hammerPinsName, pinInfo, pinInfo.x, pinInfo.y )
+            end
+        end
+    end, nil, layout, tooltip )
+end
+
 --hide or show map pins
 function functions.showPins()
     appStart.LMP:Enable(appStart.wellPinsName)
@@ -462,6 +592,16 @@ end
 function functions.hidePins()
     appStart.LMP:Disable(appStart.wellPinsName)
     appStart.LMP:SetEnabled(appStart.wellPinsName, false)
+end
+
+--hide or show volendrung map pins
+function functions.showPinsHammer()
+    appStart.LMP:Enable(appStart.hammerPinsName)
+    appStart.LMP:SetEnabled(appStart.hammerPinsName, true)
+end
+function functions.hidePinsHammer()
+    appStart.LMP:Disable(appStart.hammerPinsName)
+    appStart.LMP:SetEnabled(appStart.hammerPinsName, false)
 end
 
 --handle UI opened
@@ -667,10 +807,27 @@ function functions.createOptions()
             default = appStart.defaults.showWellMapPins,
         },
         {
+            type = "checkbox",
+            name = "Show Volendrung Spawns",
+            tooltip = "Shows possible Volendrung spawn locations on the Cyrodiil map. All locations will have a (H) symbol.",
+            getFunc = function()
+                return appStart.savedVariables.showHammerMapPins
+            end,
+            setFunc = function(value)
+                appStart.savedVariables.showHammerMapPins = value
+                if not value then
+                    functions.hidePinsHammer()
+                else
+                    functions.showPinsHammer()
+                end
+            end,
+            default = appStart.defaults.showHammerMapPins,
+        },
+        {
             type = "slider",
             name = "Text x Position",
             tooltip = "Adjust the left and right position of the on screen text.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return appStart.savedVariables.xAxisText
             end,
@@ -685,7 +842,7 @@ function functions.createOptions()
             type = "slider",
             name = "Text y Position",
             tooltip = "Adjust the up and down position of the on screen text.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return appStart.savedVariables.yAxisText
             end,
@@ -699,7 +856,7 @@ function functions.createOptions()
             type = "slider",
             name = "Corrosive Alert x Position",
             tooltip = "Adjust the left and right position of the corrosive armour alert text.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return appStart.savedVariables.xAxisTextCorro
             end,
@@ -714,7 +871,7 @@ function functions.createOptions()
             type = "slider",
             name = "Corrosive Alert y Position",
             tooltip = "Adjust the up and down position of the corrosive armour alert text.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return appStart.savedVariables.yAxisTextCorro
             end,
@@ -729,7 +886,7 @@ function functions.createOptions()
             type = "slider",
             name = "Onslaught Alert x Position",
             tooltip = "Adjust the left and right position of the onslaught user alert text.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return appStart.savedVariables.xAxisTextOnslaught
             end,
@@ -744,7 +901,7 @@ function functions.createOptions()
             type = "slider",
             name = "Onslaught Alert y Position",
             tooltip = "Adjust the up and down position of the onslaught user alert text.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return appStart.savedVariables.yAxisTextOnslaught
             end,

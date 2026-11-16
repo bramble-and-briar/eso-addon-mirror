@@ -1,8 +1,8 @@
 ## Title: LibAsync
 ## Author: votan, Sharlikran and Dack
 ## APIVersion: 101051 101052
-## AddOnVersion: 30105
-## Version: 3.1.5
+## AddOnVersion: 30106
+## Version: 3.1.6
 ## IsLibrary: true
 ## SavedVariables: AsyncSavedVars
 ## Description: A share scheduler for deferred actions
@@ -11,6 +11,9 @@
 ## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
 ## The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries.
 ## All rights reserved.
+
+; Test mocks (only active when Taneth runs outside the game)
+tests/mocks.lua
 
 LibAsync.lua
 

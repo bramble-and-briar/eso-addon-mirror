@@ -1,9 +1,16 @@
 ## Title: |cFF0000Find|r |cffff00My|r |c00ffffStuff!|r
 ## Author: |cff00ffVixen Hunny|r
-## Description: Keeping track of all your stuff from other characters!
+## Description: Keeping track of all your stuff from other characters! Search your characters' items, filter guild trader listings and look up every antiquity lead. Main Menu > Find My Stuff, L3 in a guild store, or /fms.
 ## APIVersion: 101049 101050
-## Version: 1.0.0
+## Version: 1.1.0
+## AddOnVersion: 110
 ## SavedVariables: FindMyStuffSV
-## DependsOn: LibAddonMenu-2.0
+## OptionalDependsOn: LibAddonMenu-2.0>=40 LibHarvensAddonSettings
 
 FindMyStuff.lua
+FindMyStuff_UI.lua
+FindMyStuff_Gamepad.lua
+FindMyStuff_Settings.lua
+FindMyStuff.xml
+
+Bindings.xml

@@ -1,0 +1,80 @@
+-- FurnishingCatalogTypes.lua: central type definitions (annotations only; no runtime code).
+
+---The catalog as it is kept in saved variables. Only item ids are stored; names, icons, quality
+---and style are read from the game when a subcategory is opened, so the cache is the same for
+---every client language.
+---@class FurnishingCatalogCache
+---@field stamp string        API version and client version it was built on; a new patch rebuilds
+---@field source string       "seed" (the built-in list) or "full" (a full scan)
+---@field seedVersion string  version of the built-in list at build time
+---@field maxId integer       highest furnishing id in it
+---@field total integer       number of furnishings
+---@field tree table<integer, table<integer, integer[]>> categoryId -> subcategoryId -> item ids (0 = none)
+---@field plans integer[]|nil a full scan's (furnishing id, plan id) pairs, sorted by furnishing id
+---@field scanMs integer      time the pass was being stepped
+---@field scanFrames integer  frames the pass was spread over
+
+---A pass in progress. A full scan's table is the one in saved variables, so it survives the UI.
+---@class FurnishingCatalogScanProgress
+---@field kind string             "seed" or "full"
+---@field stamp string
+---@field nextIndex integer|nil   seed pass: next position in the built-in list
+---@field nextId integer|nil      full scan: next item id
+---@field lastValidId integer|nil full scan: highest id that held any item
+---@field valid integer|nil       full scan: ids that held any item
+---@field total integer
+---@field unnamed integer         furnishings without a name (placeholders), left out
+---@field missing integer         built-in ids that are no furnishing in this client
+---@field frames integer
+---@field elapsedMs integer
+---@field maxFurnishingId integer
+---@field resumes integer|nil
+---@field tree table
+---@field plans integer[]|nil     full scan: (furnishing id, plan id) pairs in the order met
+---@field startMemoryKb number|nil
+---@field peakMemoryKb number|nil
+---@field fullCollects integer|nil
+
+---One furnishing as the item list shows it. Built per opened subcategory, dropped on the next one.
+---@class FurnishingCatalogItem
+---@field id integer
+---@field link string
+---@field name string             display name
+---@field sortName string         lower-case name for ordering
+---@field icon string
+---@field quality integer         ItemDisplayQuality
+---@field theme integer           FurnitureThemeType
+---@field canPreview boolean
+---@field planId integer|false|nil set by Plans.Fill: item id of the plan that teaches it (false = it has none)
+---@field planLink string|nil     set by Plans.Fill
+---@field planState integer|nil   set by Plans.Fill: PlanUtils.STATE_*
+---@field groupName string|nil    set by BrowseUtils.SortAndGroup: the section the item falls in
+---@field groupOrder number|nil   set by BrowseUtils.SortAndGroup
+---@field startsGroup boolean|nil set by BrowseUtils.SortAndGroup: first item of its section
+
+---One shopping list.
+---@class FurnishingCatalogShoppingList
+---@field id integer      1 is the default list, which cannot be deleted
+---@field name string
+---@field items integer[] item ids, unique, in the order added
+
+---The shopping lists as kept in saved variables.
+---@class FurnishingCatalogShoppingStore
+---@field nextId integer
+---@field lastUsedId integer|nil the list an item was last put on: offered first
+---@field lists FurnishingCatalogShoppingList[]
+
+---@class FurnishingCatalogSubcategory
+---@field id integer
+---@field name string
+---@field unnamed boolean|nil the game gave it no name: listed after the named ones
+---@field count integer
+---@field ids integer[] the catalog's own list (not a copy)
+
+---One top-level furniture category.
+---@class FurnishingCatalogCategory
+---@field id integer
+---@field name string
+---@field icon string|nil
+---@field count integer
+---@field subcategories FurnishingCatalogSubcategory[]

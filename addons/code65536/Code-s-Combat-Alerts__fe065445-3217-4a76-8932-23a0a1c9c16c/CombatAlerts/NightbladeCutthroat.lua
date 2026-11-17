@@ -17,10 +17,12 @@ local function SkillBlockerCallback( actionId, slotIndex, hotbarCategory )
 	else
 		local currentTime = GetGameTimeMilliseconds()
 		if (currentTime >= start and currentTime <= stop) then
-			return IsNightbladeClassAbility(actionId)
+			return IsBlockActive() and IsNightbladeClassAbility(actionId)
 		end
 	end
 end
+
+local BASE_WINDOW = GetAbilityDuration(263685) + 150
 
 -- By default, the first parameter is timeOfExpectedHit, but if stopTime is specified, then it's startTime
 function CA2.SetNightbladeCutthroatExclusion( timeOfExpectedHit_or_startTime, stopTime )
@@ -29,7 +31,7 @@ function CA2.SetNightbladeCutthroatExclusion( timeOfExpectedHit_or_startTime, st
 			start = timeOfExpectedHit_or_startTime
 			stop = stopTime
 		else
-			start = timeOfExpectedHit_or_startTime - zo_min(500 + GetLatency(), 750)
+			start = timeOfExpectedHit_or_startTime - (BASE_WINDOW + zo_min(GetLatency(), 250))
 			stop = timeOfExpectedHit_or_startTime + 100
 		end
 		LCA.RegisterInCombatSkillBlock(NAME, SkillBlockerCallback)

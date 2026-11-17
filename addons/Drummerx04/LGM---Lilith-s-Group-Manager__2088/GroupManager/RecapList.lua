@@ -1,5 +1,5 @@
 local LGM = LGM or {}
-local GetAbilityNameEx = LibCombatAlerts and LibCombatAlerts.GetAbilityName or GetAbilityName
+local LCA = LibCombatAlerts
 
 local RecapList = {}
 local SummaryList = {}
@@ -8,8 +8,8 @@ local ActionResults = LGM.ActionResults
 
 function RecapList:GetRowAttackDescription(abilityId)
    return LGM.SV.displayAbilityIds
-      and string.format("%d - %s", abilityId,GetAbilityNameEx(abilityId))
-      or  GetAbilityNameEx(abilityId)
+      and string.format("%d - %s", abilityId,LCA.GetAbilityName(abilityId))
+      or  LCA.GetAbilityName(abilityId)
 end
 
 function RecapList:ToggleAbilityIdDisplay()
@@ -75,25 +75,29 @@ do
       end
    end
 end
+
 local function SortHealElements(a,b)
    return a[2] > b[2]
 end
 
 -- Process the healing data stored within a healing row
+local healsTable, namesTable -- scratch tables
 local function ProcessHealing(data)
-   if not data.healsTable then
-      local healsTable = {}
+   if not data.healsProcessed then
+      healsTable = healsTable or {}
+      namesTable = namesTable or {}
       for k,v in pairs(data.aId) do
          table.insert(healsTable, {k,v})
       end
       table.sort(healsTable, SortHealElements)
       data.aId = healsTable[1][1]
-      local namesTable = {}
       for i,v in ipairs(healsTable) do
-         table.insert(namesTable, GetAbilityNameEx(v[1]))
+         table.insert(namesTable, LCA.GetAbilityName(v[1]))
       end
       data.label = table.concat(namesTable, ", ")
-      data.healsTable = healsTable
+      data.healsProcessed = true
+      ZO_ClearTable(healsTable)
+      ZO_ClearTable(namesTable)
    end
 end
 

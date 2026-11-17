@@ -1,0 +1,18 @@
+<GuiXml>
+    <Controls>
+        <Control name="OneCraftRecipeRow" inherits="ZO_ListEntry_BackdropAndHighlight_Template" mouseEnabled="true" virtual="true" tier="MEDIUM">
+            <Dimensions x="500" y="96"/>
+            <Controls>
+                <Control name="$(parent)Selected" inherits="ZO_ListEntryHighlight" tier="MEDIUM" layer="BACKGROUND" alpha="0.2" hidden="true"/>
+                <Control name="$(parent)Highlight" override="true" tier="MEDIUM" layer="BACKGROUND"/>
+                <Texture name="$(parent)Icon1" tier="MEDIUM" layer="ARTWORK"><Dimensions x="40" y="40"/><Anchor point="TOP" relativePoint="LEFT" offsetX="85" offsetY="-36"/></Texture>
+                <Texture name="$(parent)Icon2" tier="MEDIUM" layer="ARTWORK"><Dimensions x="40" y="40"/><Anchor point="TOP" relativePoint="LEFT" offsetX="250" offsetY="-36"/></Texture>
+                <Texture name="$(parent)Icon3" tier="MEDIUM" layer="ARTWORK"><Dimensions x="40" y="40"/><Anchor point="TOP" relativePoint="LEFT" offsetX="415" offsetY="-36"/></Texture>
+                <Label name="$(parent)Name1" tier="MEDIUM" layer="TEXT" font="ZoFontGameSmall" horizontalAlignment="CENTER" maxLineCount="2" wrapMode="ELLIPSIS"><Dimensions x="158" y="32"/><Anchor point="TOP" relativeTo="$(parent)Icon1" relativePoint="BOTTOM"/></Label>
+                <Label name="$(parent)Name2" tier="MEDIUM" layer="TEXT" font="ZoFontGameSmall" horizontalAlignment="CENTER" maxLineCount="2" wrapMode="ELLIPSIS"><Dimensions x="158" y="32"/><Anchor point="TOP" relativeTo="$(parent)Icon2" relativePoint="BOTTOM"/></Label>
+                <Label name="$(parent)Name3" tier="MEDIUM" layer="TEXT" font="ZoFontGameSmall" horizontalAlignment="CENTER" maxLineCount="2" wrapMode="ELLIPSIS"><Dimensions x="158" y="32"/><Anchor point="TOP" relativeTo="$(parent)Icon3" relativePoint="BOTTOM"/></Label>
+                <Label name="$(parent)Count" tier="MEDIUM" layer="TEXT" font="ZoFontGameSmall" horizontalAlignment="RIGHT"><Anchor point="BOTTOMRIGHT" offsetX="-12" offsetY="-4"/></Label>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

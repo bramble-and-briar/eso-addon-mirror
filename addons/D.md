@@ -90,6 +90,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [dev sandbox](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/dev-sandbox__436f6695-4798-423f-b276-d8c46cbd938e) | clubwratt | Console | — |
 | [dev sandbox 2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/dev-sandbox-2__bc6b3b76-f701-4533-9492-c50acb1783bc) | clubwratt | Console | — |
 | [dev sandbox 3](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/dev-sandbox-3__3a4024fc-1465-4e5e-a96f-6d6b6a781497) | clubwratt | Console | — |
+| [dev sandbox 4](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/dev-sandbox-4__f16394fb-891b-4101-b0ac-d3611ec1b527) | clubwratt | Console | — |
+| [dev sandbox 5](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/dev-sandbox-5__a981c79d-3b39-400d-94d1-e164bdd88393) | clubwratt | Console | — |
 | [Diablo Frames Action Bar Console](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RagePhoenix96/Diablo-Frames-Action-Bar-Console__da37ddee-0a3a-403e-aee9-d45c9af8a488) | RagePhoenix96 | Console | — |
 | [DiabloFrames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/DiabloFrames__3051) | buldezir | PC / Mac | 1.0.9 |
 | [DiabloOrbs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/s1by0z/DiabloOrbs__4474) | s1by0z | PC / Mac | 2.1.1 |

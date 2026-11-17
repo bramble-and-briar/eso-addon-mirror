@@ -26,6 +26,7 @@ http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
  
 -- Global Vars
 BMR = {}
+local BMR = BMR -- Baertram: use a local reference to the single addon namespace
 BMR.Console = { registeredScenes = {}, registeredSceneNames = {} }
 db = {}
 local ADDON_NAME					= "BankManagerRevived"
@@ -741,11 +742,11 @@ local function GetBrandOilDiagnosticInfo(bagId, slotId, itemLink)
 		table.insert(details, "linkPayload=NOT_PARSED")
 	end
 	local apiNames = {
-		"GetItemLinkRequiredLevel", "GetItemLinkRequiredChampionPoints", "GetItemLinkQuality",
+		"GetItemLinkRequiredLevel", "GetItemLinkRequiredChampionPoints",
+		"GetItemLinkFunctionalQuality", "GetItemLinkDisplayQuality", "GetItemLinkQuality",
 		"GetItemLinkValue", "GetItemLinkWeaponPower", "GetItemLinkArmor", "GetItemLinkTraitInfo",
 		"GetItemLinkEnchantInfo", "GetItemLinkItemType", "GetItemLinkSpecializedType",
 		"GetItemLinkSetInfo", "GetItemLinkOnUseAbilityInfo", "GetItemLinkFlavorText",
-		"GetItemLinkFunctionalQuality",
 	}
 	for _, apiName in ipairs(apiNames) do
 		local api = _G and _G[apiName]
@@ -4081,7 +4082,6 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 	BMR.Console.inventoryRuleActiveLists = BMR.Console.inventoryRuleActiveLists or {}
 	BMR.Console.inventoryRuleActivationCounter = BMR.Console.inventoryRuleActivationCounter or 0
 
-	local updateName = ADDON_NAME .. "_InventoryRuleKeybindRefresh"
 	local function listHasBackpack(list)
 		if type(list) ~= "table" or type(list.inventoryTypes) ~= "table" or type(BAG_BACKPACK) ~= "number" then return false end
 		for _, bagId in ipairs(list.inventoryTypes) do
@@ -4185,9 +4185,28 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 		end
 	end
 
+	local function attachSelectionRefreshCallback(list)
+		if list.bmrInventoryRuleSelectionCallback then return end
+		local callback = function()
+			refreshListKeybind(list, false)
+		end
+		list.bmrInventoryRuleSelectionCallback = callback
+		list:SetOnSelectedDataChangedCallback(callback)
+	end
+
+	local function removeSelectionRefreshCallback(list)
+		local callback = list.bmrInventoryRuleSelectionCallback
+		if not callback then return end
+		list:RemoveOnSelectedDataChangedCallback(callback)
+		list.bmrInventoryRuleSelectionCallback = nil
+	end
+
 	local function attachDescriptor(list)
 		if not listHasBackpack(list) then return false end
-		if list.bmrInventoryRuleDescriptor then return true end
+		if list.bmrInventoryRuleDescriptor then
+			attachSelectionRefreshCallback(list)
+			return true
+		end
 		local descriptor = {
 			name = GetString(BMR_CUSTOM_RULE_SET),
 			keybind = "UI_SHORTCUT_RIGHT_STICK",
@@ -4232,13 +4251,13 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 			alignment = KEYBIND_STRIP_ALIGN_CENTER or KEYBIND_STRIP_ALIGN_LEFT,
 			descriptor,
 		}
+		attachSelectionRefreshCallback(list)
 		BMR.ProfileDiagnostic("CONSOLE_INVENTORY_RULE_DESCRIPTOR_CREATED", "key=UI_SHORTCUT_RIGHT_STICK; mode=independent-keybind-group")
 		return true
 	end
 
 	local function updateActiveLists()
 		local newestList = getNewestActiveList()
-		local anyActive = false
 		for list in pairs(BMR.Console.inventoryRuleActiveLists) do
 			local active = true
 			if type(list.IsActive) == "function" then
@@ -4246,7 +4265,6 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 				active = ok and result == true
 			end
 			if active then
-				anyActive = true
 				attachDescriptor(list)
 				if list == newestList then
 					refreshListKeybind(list, false)
@@ -4255,17 +4273,9 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 				end
 			else
 				removeListKeybind(list)
+				removeSelectionRefreshCallback(list)
 				BMR.Console.inventoryRuleActiveLists[list] = nil
 			end
-		end
-		if anyActive then
-			if not BMR.Console.inventoryRuleUpdateActive then
-				BMR.Console.inventoryRuleUpdateActive = true
-				EVENT_MANAGER:RegisterForUpdate(updateName, 250, updateActiveLists)
-			end
-		elseif BMR.Console.inventoryRuleUpdateActive then
-			BMR.Console.inventoryRuleUpdateActive = false
-			EVENT_MANAGER:UnregisterForUpdate(updateName)
 		end
 	end
 
@@ -4294,6 +4304,7 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 	end)
 	local deactivateOk = installPostHook("Deactivate", function(list)
 		removeListKeybind(list)
+		removeSelectionRefreshCallback(list)
 		BMR.Console.inventoryRuleActiveLists[list] = nil
 		updateActiveLists()
 	end)
@@ -4645,6 +4656,7 @@ local function onOpenBank(eventCode, bagId)
 	-- Trace all items moved by another addon while BMR waits
 	if db.profiles[actualProfile].moved then
 		EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onSingleSlotUpdate)
+		EVENT_MANAGER:AddFilterForEvent(ADDON_NAME, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
 	end
 	
 	-- CallLater to let the bagCache be refreshed by core UI
@@ -4657,6 +4669,7 @@ local function onOpenBank(eventCode, bagId)
 			if not pvpMovementTraceActive then
 				pvpMovementTraceActive = true
 				EVENT_MANAGER:RegisterForEvent(pvpMovementTraceEventName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onPvpMovementTraceSlotUpdate)
+				EVENT_MANAGER:AddFilterForEvent(pvpMovementTraceEventName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
 				CustomRuleDebug("MOVE TRACE ACTIVE; unmatched PvP slot changes are external/unattributed, not proof of a manual action")
 			end
 		end
@@ -6940,7 +6953,6 @@ local function buildLAMPanel()
 	end
 
 	local LAM2 = LibAddonMenu2
-	if not LAM2 and LibStub then LAM2 = LibStub:GetLibrary("LibAddonMenu-2.0", true) end
 	BMR._lamInstance = LAM2
 	-- LibHarvensAddonSettings is still the in-game runtime name of the library;
 	-- LibVotans is the console-store package name used for delivery.

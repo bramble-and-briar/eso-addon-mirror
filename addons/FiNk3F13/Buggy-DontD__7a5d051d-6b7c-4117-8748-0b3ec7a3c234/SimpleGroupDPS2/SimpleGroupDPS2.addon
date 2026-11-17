@@ -1,17 +1,18 @@
 ## Title: SimpleGroupDPS2
 ## APIVersion: 101051
-## Version: 1.9.23
+## Version: 1.9.37
 ## Author: FiNk3--F13--
-## Description: Eigene und Gruppen-DPS mit BattleScrolls-Austausch und eigenem Move-UI-Menue.
+## Description: Eigene Messung mit eingebettetem LibCombat 89 und getrenntem Gruppen-DPS/HPS-Austausch.
 ## DependsOn: LibHarvensAddonSettings LibGroupBroadcast
 ## OptionalDependsOn: BattleScrolls
 ## SavedVariables: SimpleGroupDPS2_SavedVariables
 
+libs/Combat/lang/en.lua
+libs/Combat/LibCombat.lua
 Localization.lua
-BattleScrollsBridge.lua
-HealthRecovery.lua
+GroupReceiver.lua
+CombatAnalysis.lua
 DamageMeter.lua
-MeasurementComparison.lua
 DPSPanel.lua
 PersonalDPSPanel.lua
 SimpleGroupDPS.lua

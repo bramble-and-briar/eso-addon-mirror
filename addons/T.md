@@ -35,7 +35,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tamriel Progress Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Racconplayz/Tamriel-Progress-Map__4799) | Racconplayz | PC / Mac | 2.9.0 |
 | [Tamriel Races](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Tamriel-Races__167ff6ab-0d5c-4582-83cc-0ec8ced35cc1) | SugaComa | Console | — |
 | [Tamriel Sky Dial](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MemphisKane991/Tamriel-Sky-Dial__4860) | MemphisKane991 | PC / Mac | 1.1 |
-| [Tamriel Text Studio](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lucky38Tech/Tamriel-Text-Studio__a847021b-2ae6-4d43-81a4-9a8f3985f8b8) | Lucky38Tech | Console | — |
+| [Tamriel Text Studio](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Animosiityy/Tamriel-Text-Studio__a847021b-2ae6-4d43-81a4-9a8f3985f8b8) | Animosiityy | Console | — |
 | [Tamriel Tomes Map Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/runcarsnowpen/Tamriel-Tomes-Map-Pins__4591) | runcarsnowpen | PC / Mac | 1.2.3 |
 | [Tamriel Tourist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aausten/Tamriel-Tourist__5007) | aausten | PC / Mac | 1.0.1 |
 | [Tamriel Trade Center, HarvestMap & ESO-Hub Auto-Updater (Linux, macOS, SteamDeck, & Windows)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Tamriel-Trade-Center-HarvestMap-ESO-Hub-Auto-Updater-Linux-macOS-SteamDeck-Windo__3249) | APH0N1C | PC / Mac | 2026.10.04.19.22 |
@@ -160,7 +160,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Title Loop](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Title-Loop__5e051775-8c73-4e96-bb6b-dcaa188dc064) | Copper0 | Console | — |
 | [TitleFlex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Skvysh/TitleFlex__2509) | Skvysh | PC / Mac | 1.8 |
 | [TitleFlex - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/TitleFlex---Updated__4027) | wicked_prophet | PC / Mac | 1.9.1 |
-| [TodoList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/blazeofmoon/TodoList__5051) | blazeofmoon | PC / Mac | 1.2.1 |
+| [TodoList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/blazeofmoon/TodoList__5051) | blazeofmoon | PC / Mac | 1.3.0 |
 | [Toggle FPS and Ping](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tnrsn/Toggle-FPS-and-Ping__3812) | Tnrsn | PC / Mac | 1.001 |
 | [ToggleGroupFrame (and Companion Unit Frame)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/ToggleGroupFrame-and-Companion-Unit-Frame__3698) | Saint-Ange | PC / Mac | 1.5.1 |
 | [ToggleQuestTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/ToggleQuestTracker__3809) | Saint-Ange | PC / Mac | 1.2.2 |
@@ -223,6 +223,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [True Combat Text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toudidef/True-Combat-Text__9c4d5a13-410a-4a89-9024-319578ddd3a4) | Toudidef | Console | — |
 | [True Corpse Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toudidef/True-Corpse-Alert__adbd69da-20f5-4260-8760-56cbb7eff9b2) | Toudidef | Console | — |
 | [True DarkConvergence timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toudidef/True-DarkConvergence-timer__b73a092a-bcf8-4b42-9833-97402a32ed87) | Toudidef | Console | — |
+| [True Death Stalker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toudidef/True-Death-Stalker__f37f4ff0-234f-4447-9240-7e21298e6a89) | Toudidef | Console | — |
 | [True Exploration](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni42/True-Exploration__a095f0da-9f45-4dde-a150-2c9b09ba7317) | Shinni42 | Console | — |
 | [True Flag Capture Mover](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toudidef/True-Flag-Capture-Mover__4c1cca0d-7e48-40ed-bd8f-1c87ac158341) | Toudidef | Console | — |
 | [True Options Pannel Mover](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toudidef/True-Options-Pannel-Mover__e432e963-6c1d-4e4c-b9b9-491f51ff8d07) | Toudidef | Console | — |

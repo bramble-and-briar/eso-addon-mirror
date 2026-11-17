@@ -93,6 +93,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [GridList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/GridList__2341) | KLISK | PC / Mac | 1.3.2 |
 | [GridList Clean Skin](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tonyleila/GridList-Clean-Skin__2299) | Tonyleila | PC / Mac | 02 |
 | [GridList Skins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/GridList-Skins__2304) | KLISK | PC / Mac | 0.2 |
+| [GRILLO CRAFT](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ElTioGrillo/GRILLO-CRAFT__363e551a-25d0-463d-8c1e-2c96e7fcd77b) | ElTioGrillo | Console | — |
 | [Grim Focus Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g4rr3t/Grim-Focus-Counter__1918) | g4rr3t | PC / Mac | 1.6.0 |
 | [Grim Focus Counter but it counts to 10](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/montewtf/Grim-Focus-Counter-but-it-counts-to-10__4426) | montewtf | PC / Mac | 2.0 |
 | [Grim Focus Counter U47 Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Asquart/Grim-Focus-Counter-U47-Update__4223) | Asquart | PC / Mac | 1.8.1 |
@@ -189,7 +190,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Guild Tickets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/attriel/Guild-Tickets__3205) | attriel | PC / Mac | 1.0.12 |
 | [Guild Tools \[En/Fr\] Classic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pills/Guild-Tools-En-Fr-Classic__884) | pills | PC / Mac | 0.4.0 |
 | [Guild Tools By Fen](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fenweldryn/Guild-Tools-By-Fen__2939) | Fenweldryn | PC / Mac | 0.9.1 |
-| [Guild Trader Activity (GTA)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/Guild-Trader-Activity-GTA__4590) | sinnereso | PC / Mac | 2026.11.16 |
+| [Guild Trader Activity (GTA)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/Guild-Trader-Activity-GTA__4590) | sinnereso | PC / Mac | 2026.11.17 |
 | [Guild Trader Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ReliktKoala/Guild-Trader-Tracker__f2495833-84b0-4142-8a25-f2063d0f0a23) | ReliktKoala | Console | — |
 | [GuildActivity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/GuildActivity__2190) | Coorbin | PC / Mac | 1.1.1 |
 | [GuildBankLedger - 3.x - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/myristican/GuildBankLedger---3.x---Updated__2858) | myristican | PC / Mac | 3.55 |

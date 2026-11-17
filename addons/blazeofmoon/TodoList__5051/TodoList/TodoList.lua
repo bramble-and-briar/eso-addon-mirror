@@ -2,6 +2,8 @@
 -- ВАЖНО: добавьте в TodoList.txt строку:
 -- ## SavedVariables: TodoListSavedVariables
 --
+-- v8: кнопка «Вернуть» (отмена удаления), скрытие/сортировка выполненных,
+--     сохранения раздельно для каждого сервера (GetWorldName) с переносом старых данных.
 -- v7: исправлена ошибка ползунка прозрачности; состояние окна сохраняется между /reloadui;
 --     окна прячутся в меню через фрагменты сцен HUD/HUD UI; редактирование задач (двойной клик);
 --     опция «список для каждого персонажа».
@@ -69,6 +71,11 @@ local LOCALIZATION = {
         SAVE_BTN = "Сохранить",
         TOOLTIP_EDIT = "Двойной клик — редактировать",
         OPT_PER_CHARACTER = "Список для каждого персонажа",
+        UNDO_BTN = "Вернуть",
+        HIDE_DONE = "Скрыть выполн.",
+        SHOW_DONE = "Показать выполн.",
+        OPT_DONE_LAST = "Выполненные внизу",
+        EMPTY_HIDDEN = "Выполненные задачи скрыты.",
     },
     en = {
         TITLE = "My Tasks",
@@ -118,6 +125,11 @@ local LOCALIZATION = {
         SAVE_BTN = "Save",
         TOOLTIP_EDIT = "Double-click — edit",
         OPT_PER_CHARACTER = "Separate list per character",
+        UNDO_BTN = "Undo",
+        HIDE_DONE = "Hide done",
+        SHOW_DONE = "Show done",
+        OPT_DONE_LAST = "Completed at bottom",
+        EMPTY_HIDDEN = "Completed tasks are hidden.",
     },
     fr = {
         TITLE = "Mes tâches",
@@ -167,6 +179,11 @@ local LOCALIZATION = {
         SAVE_BTN = "Enregistrer",
         TOOLTIP_EDIT = "Double-clic — modifier",
         OPT_PER_CHARACTER = "Liste par personnage",
+        UNDO_BTN = "Annuler",
+        HIDE_DONE = "Masquer faites",
+        SHOW_DONE = "Afficher faites",
+        OPT_DONE_LAST = "Terminées en bas",
+        EMPTY_HIDDEN = "Les tâches terminées sont masquées.",
     },
     de = {
         TITLE = "Meine Aufgaben",
@@ -216,6 +233,11 @@ local LOCALIZATION = {
         SAVE_BTN = "Speichern",
         TOOLTIP_EDIT = "Doppelklick — bearbeiten",
         OPT_PER_CHARACTER = "Liste pro Charakter",
+        UNDO_BTN = "Rückgängig",
+        HIDE_DONE = "Erledigte aus",
+        SHOW_DONE = "Erledigte an",
+        OPT_DONE_LAST = "Erledigte unten",
+        EMPTY_HIDDEN = "Erledigte Aufgaben sind ausgeblendet.",
     },
     es = {
         TITLE = "Mis tareas",
@@ -265,6 +287,11 @@ local LOCALIZATION = {
         SAVE_BTN = "Guardar",
         TOOLTIP_EDIT = "Doble clic — editar",
         OPT_PER_CHARACTER = "Lista por personaje",
+        UNDO_BTN = "Deshacer",
+        HIDE_DONE = "Ocultar hechas",
+        SHOW_DONE = "Mostrar hechas",
+        OPT_DONE_LAST = "Completadas abajo",
+        EMPTY_HIDDEN = "Las tareas completadas están ocultas.",
     },
     it = {
         TITLE = "Le mie attività",
@@ -314,10 +341,15 @@ local LOCALIZATION = {
         SAVE_BTN = "Salva",
         TOOLTIP_EDIT = "Doppio clic — modifica",
         OPT_PER_CHARACTER = "Elenco per personaggio",
+        UNDO_BTN = "Annulla",
+        HIDE_DONE = "Nascondi fatte",
+        SHOW_DONE = "Mostra fatte",
+        OPT_DONE_LAST = "Completate in fondo",
+        EMPTY_HIDDEN = "Le attività completate sono nascoste.",
     },
 }
 
-local function GetClientLanguage()
+local function DetectClientLanguage()
     local lang = GetCVar("language.2") or "en"
     lang = string.lower(lang)
     if LOCALIZATION[lang] then
@@ -326,7 +358,7 @@ local function GetClientLanguage()
     return "en" -- язык по умолчанию, если клиент на неподдерживаемом языке
 end
 
-local CURRENT_LANG = GetClientLanguage()
+local CURRENT_LANG = DetectClientLanguage()
 local L = LOCALIZATION[CURRENT_LANG]
 
 -- Категории задач. Порядок важен: по нему работает Shift+ЛКМ (смена категории).
@@ -370,6 +402,10 @@ local TodoList = {
     buttonFragment = nil,
     settingsFragment = nil,
     focusTask = nil,
+    pendingKeep = nil,       -- {index, wasDone}: задача, которая на миг остаётся на месте после клика
+    lastDeleted = nil,       -- последние удалённые задачи (для кнопки «Вернуть»)
+    undoButton = nil,
+    hideDoneChip = nil,
 }
 
 -- Хранилище задач: общее на аккаунт или отдельное на персонажа.
@@ -606,11 +642,29 @@ local function RebuildPages()
     local m = GetMetrics()
     local filter = GetFilter()
 
-    local filtered = {}
+    local hideDone = saved.hideDone == true
+    local doneLast = saved.sortDoneLast == true
+
+    local filtered, doneList = {}, {}
     for idx, task in ipairs(GetData().tasks) do
         if filter == "all" or task.category == filter then
-            filtered[#filtered + 1] = idx
+            -- Только что отмеченная задача на долю секунды остаётся на прежнем месте,
+            -- чтобы двойной клик (редактирование) попадал в неё, а не в соседнюю.
+            local isDone = task.done
+            local keep = TodoList.pendingKeep
+            if keep and keep.index == idx then isDone = keep.wasDone end
+
+            if isDone and hideDone then
+                -- выполненные скрыты
+            elseif isDone and doneLast then
+                doneList[#doneList + 1] = idx
+            else
+                filtered[#filtered + 1] = idx
+            end
         end
+    end
+    for _, idx in ipairs(doneList) do
+        filtered[#filtered + 1] = idx
     end
     TodoList.filtered = filtered
 
@@ -769,7 +823,18 @@ local function UpdateLayout()
         TodoList.emptyLabel:SetHidden(not show)
         if show then
             local filter = GetFilter()
-            if filter == "all" then
+            local doneHidden = false
+            if TodoList.saved.hideDone then
+                for _, t in ipairs(GetData().tasks) do
+                    if t.done and (filter == "all" or t.category == filter) then
+                        doneHidden = true
+                        break
+                    end
+                end
+            end
+            if doneHidden then
+                TodoList.emptyLabel:SetText(L.EMPTY_HIDDEN)
+            elseif filter == "all" then
                 TodoList.emptyLabel:SetText(L.EMPTY_ALL)
             else
                 TodoList.emptyLabel:SetText(string.format(L.EMPTY_CAT, CATEGORIES[filter].name))
@@ -778,6 +843,21 @@ local function UpdateLayout()
             TodoList.emptyLabel:SetAnchor(TOP, TodoList.window, TOP, 0, LIST_TOP + 30)
             TodoList.emptyLabel:SetDimensions(normalW - 60, 30)
         end
+    end
+
+    -- Кнопка «Вернуть» видна только после удаления задач.
+    if TodoList.undoButton then
+        local d = TodoList.lastDeleted
+        TodoList.undoButton:SetHidden(isHudMode or isCollapsed or d == nil)
+        if d then
+            local n = #d.items
+            TodoList.undoButton:SetText(n > 1 and string.format("%s (%d)", L.UNDO_BTN, n) or L.UNDO_BTN)
+        end
+    end
+    if TodoList.hideDoneChip then
+        local hiding = TodoList.saved.hideDone == true
+        TodoList.hideDoneChip.btn:SetText(hiding and L.SHOW_DONE or L.HIDE_DONE)
+        StyleChip(TodoList.hideDoneChip, hiding)
     end
 
     if isCollapsed then
@@ -917,7 +997,8 @@ local function CancelEdit()
     end
 end
 
--- Редактирование: текст задачи попадает в поле ввода, Enter — сохранить, Esc — отмена.
+-- Редактирование: текст задачи попадает в поле ввода, Enter или «Сохранить» — применить,
+-- пустой текст — отмена.
 local function StartEdit(taskIndex)
     local task = GetData().tasks[taskIndex]
     if not task or not TodoList.editBox then return end
@@ -961,22 +1042,72 @@ local function AddTask()
     TodoList.editBox:TakeFocus()
 end
 
+-- После отметки задачи держит её на месте ~0,45 с (если включено скрытие/сортировка выполненных).
+local function KeepInPlaceBriefly(taskIndex, wasDone)
+    local keep = { index = taskIndex, wasDone = wasDone }
+    TodoList.pendingKeep = keep
+    zo_callLater(function()
+        if TodoList.pendingKeep == keep then
+            TodoList.pendingKeep = nil
+            RefreshList()
+        end
+    end, 450)
+end
+
 -- Убирает выполненные задачи. При активном фильтре — только из видимой категории.
+-- Удалённые задачи запоминаются, их можно вернуть кнопкой «Вернуть».
 local function ClearCompleted()
     if not TodoList.saved then return end
 
     CancelEdit()
+    TodoList.pendingKeep = nil
+    local data = GetData()
     local filter = GetFilter()
-    local remaining = {}
-    for _, task in ipairs(GetData().tasks) do
+    local remaining, removed = {}, {}
+    for index, task in ipairs(data.tasks) do
         local inScope = (filter == "all") or (task.category == filter)
-        if not (task.done and inScope) then
+        if task.done and inScope then
+            removed[#removed + 1] = { index = index, task = task }
+        else
             table.insert(remaining, task)
         end
     end
 
-    GetData().tasks = remaining
+    if #removed > 0 then
+        TodoList.lastDeleted = { store = data, items = removed }
+    end
+    data.tasks = remaining
     TodoList.page = 1
+    RefreshList()
+end
+
+-- Удаляет одну задачу и запоминает её для отмены.
+local function DeleteTask(taskIndex)
+    local data = GetData()
+    local task = data.tasks[taskIndex]
+    if not task then return end
+    CancelEdit()
+    TodoList.pendingKeep = nil
+    table.remove(data.tasks, taskIndex)
+    TodoList.lastDeleted = { store = data, items = { { index = taskIndex, task = task } } }
+    RefreshList()
+end
+
+-- Возвращает последние удалённые задачи на прежние места.
+local function UndoDelete()
+    local d = TodoList.lastDeleted
+    if not d then return end
+    TodoList.lastDeleted = nil
+    CancelEdit()
+    TodoList.pendingKeep = nil
+    local tasks = d.store.tasks
+    local firstIndex
+    for _, item in ipairs(d.items) do
+        local at = math.min(item.index, #tasks + 1)
+        table.insert(tasks, at, item.task)
+        firstIndex = firstIndex or at
+    end
+    TodoList.focusTask = firstIndex
     RefreshList()
 end
 
@@ -998,7 +1129,7 @@ end
 -- Окно настроек
 ---------------------------------------------------------------------------
 
-local SETTINGS_W, SETTINGS_H = 400, 640
+local SETTINGS_W, SETTINGS_H = 400, 674
 
 local function CreateSettingsWindow()
     if TodoList.settingsWindow then return end
@@ -1124,9 +1255,11 @@ local function CreateSettingsWindow()
     end
 
     -- В ESO нет IsMouseButtonDown(), поэтому конец перетаскивания ловим событием.
+    -- OnUpdate подключается только на время перетаскивания.
     local DRAG_EVENT_NAME = ADDON_NAME .. "_AlphaDrag"
     local function StopAlphaDrag()
         dragging = false
+        track:SetHandler("OnUpdate", nil)
         EVENT_MANAGER:UnregisterForEvent(DRAG_EVENT_NAME, EVENT_GLOBAL_MOUSE_UP)
     end
 
@@ -1136,14 +1269,14 @@ local function CreateSettingsWindow()
             EVENT_MANAGER:RegisterForEvent(DRAG_EVENT_NAME, EVENT_GLOBAL_MOUSE_UP, function(_, btn)
                 if btn == MOUSE_BUTTON_INDEX_LEFT then StopAlphaDrag() end
             end)
+            track:SetHandler("OnUpdate", function()
+                if dragging then SetAlphaFromMouse() end
+            end)
             SetAlphaFromMouse()
         end
     end)
     track:SetHandler("OnMouseUp", function()
         StopAlphaDrag()
-    end)
-    track:SetHandler("OnUpdate", function()
-        if dragging then SetAlphaFromMouse() end
     end)
 
     local hintL = CreateLabel(nil, window, FONT_HINT, L.ALPHA_HINT_L)
@@ -1346,13 +1479,22 @@ local function CreateSettingsWindow()
         function() return TodoList.saved.perCharacter or false end,
         function(v)
             CancelEdit()
+            TodoList.lastDeleted = nil
             TodoList.saved.perCharacter = v
             TodoList.page = 1
             CheckDailyReset()
             RefreshList()
         end)
 
-    CreateDivider(window, 590, contentW)
+    ToggleRow(586, L.OPT_DONE_LAST,
+        function() return TodoList.saved.sortDoneLast or false end,
+        function(v)
+            TodoList.saved.sortDoneLast = v
+            TodoList.page = 1
+            RefreshList()
+        end)
+
+    CreateDivider(window, 624, contentW)
 
     -- Сброс всех настроек (с подтверждением вторым нажатием) ---------------
     local RESET_TEXT = L.RESET_ALL
@@ -1382,12 +1524,14 @@ local function CreateSettingsWindow()
         s.locked = false
         s.autoResetDaily = false
         s.collapsed = false
+        s.hideDone = false
+        s.sortDoneLast = false
 
         ApplyFonts()
         RefreshList()
         RefreshSettingsUI()
     end)
-    resetAll.btn:SetAnchor(TOPLEFT, window, TOPLEFT, 20, 600)
+    resetAll.btn:SetAnchor(TOPLEFT, window, TOPLEFT, 20, 634)
     StyleChip(resetAll, false)
     resetAll.bd:SetEdgeColor(0.75, 0.35, 0.30, 0.9)
 
@@ -1481,13 +1625,6 @@ local function CreateMainWindow()
     TodoList.editBox:SetMaxInputChars(MAX_TASK_CHARS)
     TodoList.editBox:SetHandler("OnEnter", function()
         AddTask()
-    end)
-    TodoList.editBox:SetHandler("OnEscape", function()
-        if TodoList.editingIndex then
-            CancelEdit()
-            RefreshList()
-        end
-        TodoList.editBox:LoseFocus()
     end)
     table.insert(TodoList.chromeControls, TodoList.editBox)
 
@@ -1591,11 +1728,16 @@ local function CreateMainWindow()
                         and (now - TodoList.lastClickTime) < 350 then
                         TodoList.lastClickIndex = nil
                         task.done = not task.done
+                        TodoList.pendingKeep = nil
                         if not isHudMode then StartEdit(taskIndex) end
                     else
                         TodoList.lastClickIndex = taskIndex
                         TodoList.lastClickTime = now
+                        local wasDone = task.done
                         task.done = not task.done
+                        if TodoList.saved.hideDone or TodoList.saved.sortDoneLast then
+                            KeepInPlaceBriefly(taskIndex, wasDone)
+                        end
                     end
                 end
                 RefreshList()
@@ -1603,9 +1745,7 @@ local function CreateMainWindow()
                 ChangeCategory(task, taskIndex, IsShiftKeyDown())
                 RefreshList()
             elseif mouseButton == MOUSE_BUTTON_INDEX_RIGHT then
-                CancelEdit()
-                table.remove(GetData().tasks, taskIndex)
-                RefreshList()
+                DeleteTask(taskIndex)
             end
         end)
 
@@ -1650,7 +1790,7 @@ local function CreateMainWindow()
     -- Нижняя панель --------------------------------------------------------
     TodoList.countLabel = CreateLabel("TodoListCountLabel", window, "$(MEDIUM_FONT)|15|soft-shadow-thick", "")
     TodoList.countLabel:SetAnchor(BOTTOMLEFT, window, BOTTOMLEFT, 20, -48)
-    TodoList.countLabel:SetDimensions(270, 24)
+    TodoList.countLabel:SetDimensions(200, 24)
     TodoList.countLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     table.insert(TodoList.chromeControls, TodoList.countLabel)
 
@@ -1688,6 +1828,28 @@ local function CreateMainWindow()
     clearButton:SetText(L.CLEAR_COMPLETED)
     clearButton:SetHandler("OnClicked", ClearCompleted)
     table.insert(TodoList.chromeControls, clearButton)
+
+    -- Кнопка отмены удаления (видна только после удаления)
+    local undoButton = wm:CreateControl("TodoListUndoButton", window, CT_BUTTON)
+    undoButton:SetDimensions(96, 28)
+    undoButton:SetAnchor(BOTTOMLEFT, window, BOTTOMLEFT, 16, -14)
+    undoButton:SetFont("ZoFontGameSmall")
+    undoButton:SetText(L.UNDO_BTN)
+    undoButton:SetHandler("OnClicked", UndoDelete)
+    undoButton:SetHidden(true)
+    TodoList.undoButton = undoButton
+
+    -- Переключатель «скрыть/показать выполненные»
+    local hideDoneChip = CreateChip("TodoListHideDoneChip", window, L.HIDE_DONE,
+        "$(MEDIUM_FONT)|14|soft-shadow-thick", 140, 24, function()
+            TodoList.saved.hideDone = not TodoList.saved.hideDone
+            TodoList.page = 1
+            RefreshList()
+        end)
+    hideDoneChip.btn:SetAnchor(BOTTOMRIGHT, window, BOTTOMRIGHT, -16, -46)
+    StyleChip(hideDoneChip, false)
+    TodoList.hideDoneChip = hideDoneChip
+    table.insert(TodoList.chromeControls, hideDoneChip.btn)
 
     ApplyFonts()
     UpdateLayout()
@@ -1802,17 +1964,71 @@ end
 -- Загрузка аддона
 ---------------------------------------------------------------------------
 
+-- Ключи сохранённых данных (нужны для одноразового переноса из старого профиля).
+local LEGACY_KEYS = {
+    "tasks", "buttonX", "buttonY", "windowX", "windowY", "windowWidth", "windowHeight",
+    "bgAlpha", "savedAlpha", "fontName", "locked", "collapsed", "autoResetDaily",
+    "lastResetDay", "rowSpacing", "filter", "windowOpen", "perCharacter",
+}
+
+local function DeepCopy(value)
+    if type(value) ~= "table" then return value end
+    local copy = {}
+    for k, v in pairs(value) do copy[k] = DeepCopy(v) end
+    return copy
+end
+
+-- Есть ли старые данные (до версии 1.3 они лежали в профиле "Default" без учёта сервера)?
+local function HasLegacyProfile()
+    local raw = _G["TodoListSavedVariables"]
+    return type(raw) == "table"
+        and type(raw.Default) == "table"
+        and type(raw.Default[GetDisplayName()]) == "table"
+end
+
+-- Один раз копирует старые общие данные в профиль текущего сервера.
+local function MigrateLegacyAccountData()
+    local sv = TodoList.saved
+    if sv.migrated then return end
+    sv.migrated = true
+    if not HasLegacyProfile() then return end
+
+    local legacy = ZO_SavedVars:NewAccountWide("TodoListSavedVariables", 1, nil, {})
+    for _, key in ipairs(LEGACY_KEYS) do
+        local value = legacy[key]
+        if value ~= nil then sv[key] = DeepCopy(value) end
+    end
+end
+
+-- Один раз копирует старый список текущего персонажа.
+local function MigrateLegacyCharacterData()
+    local cs = TodoList.charSaved
+    if not cs or cs.migrated then return end
+    cs.migrated = true
+    if not HasLegacyProfile() then return end
+
+    local legacy = ZO_SavedVars:NewCharacterIdSettings("TodoListSavedVariables", 1, "Characters", {})
+    local tasks = legacy.tasks
+    if type(tasks) == "table" and #tasks > 0 then
+        cs.tasks = DeepCopy(tasks)
+    end
+    if legacy.lastResetDay ~= nil then cs.lastResetDay = legacy.lastResetDay end
+end
+
 local function OnAddonLoaded(eventCode, addonName)
     if addonName ~= ADDON_NAME then return end
 
     -- Обновляем язык на момент загрузки, если клиент успел переключить настройки
-    CURRENT_LANG = GetClientLanguage()
+    CURRENT_LANG = DetectClientLanguage()
     L = LOCALIZATION[CURRENT_LANG]
 
     CATEGORIES.home.name = L.CAT_HOME
     CATEGORIES.craft.name = L.CAT_CRAFT
     CATEGORIES.adventure.name = L.CAT_ADVENTURE
     CATEGORIES.shopping.name = L.CAT_SHOPPING
+
+    -- Данные хранятся отдельно для каждого сервера (NA / EU / PTS): профиль = GetWorldName().
+    local worldName = GetWorldName()
 
     TodoList.saved = ZO_SavedVars:NewAccountWide(
         "TodoListSavedVariables",
@@ -1837,25 +2053,26 @@ local function OnAddonLoaded(eventCode, addonName)
             filter = "all",
             windowOpen = false,
             perCharacter = false,
-        }
+            hideDone = false,
+            sortDoneLast = false,
+            migrated = false,
+        },
+        worldName
     )
+    MigrateLegacyAccountData()
 
     if type(TodoList.saved.tasks) ~= "table" then
         TodoList.saved.tasks = {}
     end
 
     -- Отдельные данные персонажа (задачи + день последнего сброса)
-    local charDefaults = { tasks = {}, lastResetDay = 0 }
-    if ZO_SavedVars.NewCharacterIdSettings then
-        TodoList.charSaved = ZO_SavedVars:NewCharacterIdSettings(
-            "TodoListSavedVariables", 1, "Characters", charDefaults)
-    else
-        TodoList.charSaved = ZO_SavedVars:New(
-            "TodoListSavedVariables", 1, "Characters", charDefaults)
-    end
-    if TodoList.charSaved and type(TodoList.charSaved.tasks) ~= "table" then
+    TodoList.charSaved = ZO_SavedVars:NewCharacterIdSettings(
+        "TodoListSavedVariables", 1, "Characters",
+        { tasks = {}, lastResetDay = 0, migrated = false }, worldName)
+    if type(TodoList.charSaved.tasks) ~= "table" then
         TodoList.charSaved.tasks = {}
     end
+    MigrateLegacyCharacterData()
 
     CheckDailyReset()
     CreateMainWindow()
@@ -1890,4 +2107,3 @@ local function OnAddonLoaded(eventCode, addonName)
 end
 
 EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, OnAddonLoaded)
-EVENT_MANAGER:AddFilterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, REGISTER_FILTER_ADDON_NAME, ADDON_NAME)

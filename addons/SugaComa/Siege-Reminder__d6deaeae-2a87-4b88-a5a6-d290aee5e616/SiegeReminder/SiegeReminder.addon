@@ -1,10 +1,10 @@
-## Title: SiegeReminder
-## Version: 1.1.0
-## APIVersion: 101049 101050
+## Title: SiegeMaster
+## Version: 2.1.4
+## APIVersion: 101050 101051
 ## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
-## Description: Alerts you when siege is lost or low, but only when you're near a merchant. Tracks deployed siege and reminds you to restock at the right time.
-## AddOnVersion: 110
-## SavedVariables: SiegeReminder_SV
+## Description: Tracks exact siege items and tops up selected supplies at vendors with Alliance Points.
+## AddOnVersion: 214
+## SavedVariables: SiegeReminder_SV SiegeReminder_FrameworkScopeSV SiegeReminder_VendorSV
 ## OptionalDependsOn: LibHarvensAddonSettings
 
 ; DISCLAIMER:
@@ -16,4 +16,5 @@
 ; https://account.elderscrollsonline.com/add-on-terms
 
 
+FrameworkSettings.lua
 SiegeReminder.lua

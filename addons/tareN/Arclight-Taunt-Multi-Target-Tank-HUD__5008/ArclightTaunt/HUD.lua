@@ -1,4 +1,4 @@
--- Arclight Taunt 1.2.0 | HUD module
+-- Arclight Taunt 1.3.0 | HUD module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -346,14 +346,16 @@ local function MakeBossAlert(kind)
     local compact = kind == "early"
     local alert = A.bossAlerts[kind]
     alert.width, alert.height = 458, compact and 56 or 88
-    alert.offsetY, alert.introSlide = compact and 96 or 0, compact and 0 or 12
-    alert.revealDistance = compact and 64 or nil
+    alert.offsetY = compact and 96 or 0
+    alert.revealDistance = compact and alert.height or nil
+    alert.progressWidth = alert.width - 5
     alert.textWidth = compact and 390 or 370
     alert.titleSize, alert.subtitleSize = compact and 16 or 20, compact and 14 or 17
     alert.titleMinimum, alert.subtitleMinimum = 10, compact and 10 or 11
     local root = WM:CreateTopLevelWindow(compact and "ArclightTauntBossEarlyAlert" or "ArclightTauntBossAlert")
     alert.root = root
     root:SetDimensions(alert.width, alert.height)
+    if root.SetPixelRoundingEnabled then root:SetPixelRoundingEnabled(true) end
     root:SetDrawTier(DT_HIGH)
     root:SetMouseEnabled(false)
     A.SetHidden(root, true)
@@ -366,20 +368,29 @@ local function MakeBossAlert(kind)
         root:SetAutoRectClipChildren(true)
         body = WM:CreateControl(nil, root, CT_CONTROL)
         body:SetDimensions(alert.width, alert.height)
+        if body.SetPixelRoundingEnabled then body:SetPixelRoundingEnabled(false) end
         body:SetAnchor(TOPLEFT, root, TOPLEFT, 0, 0)
         alert.content, alert.contentOffset = body, 0
     end
     local background = WM:CreateControl(nil, body, CT_TEXTURE)
     background:SetTexture(compact and BOSS_EARLY_TEXTURE or BOSS_WARNING_TEXTURE)
     background:SetAnchorFill(body)
+    DrawOrder(background, DL_BACKGROUND, 0)
     SetColor(background, C.alertBackground, A.saved.bossAlertOpacity / 100)
     alert.backgroundControl = background
+    -- The neutral DDS carries a soft edge accent without a solid colour wash.
+    -- It follows the same clipped body during the early reveal.
+    alert.accent = WM:CreateControl(nil, body, CT_TEXTURE)
+    alert.accent:SetTexture(A.BOSS_BANNER_ACCENT_TEXTURE)
+    alert.accent:SetAnchorFill(body)
+    DrawOrder(alert.accent, DL_BACKGROUND, 1)
 
     local edgeColor = compact and C.safe or C.alertEdge
     local hairColor = compact and C.alertEarlyHairline or C.alertHairline
     alert.edge = Solid(body, edgeColor)
     alert.edge:SetAnchor(TOPLEFT, body, TOPLEFT, 0, 0)
-    alert.edge:SetDimensions(7, alert.height)
+    alert.edge:SetDimensions(5, alert.height)
+    DrawOrder(alert.edge, DL_CONTROLS, 1)
     alert.icon = WM:CreateControl(nil, body, CT_TEXTURE)
     alert.icon:SetResizeToFitFile(false)
     alert.icon:SetTexture(BOSS_ICON_TEXTURE)
@@ -389,34 +400,41 @@ local function MakeBossAlert(kind)
     alert.icon:SetAnchor(TOPLEFT, body, TOPLEFT, 12, (alert.height - iconHeight) / 2)
     alert.icon:SetDimensions(iconWidth, iconHeight)
     SetColor(alert.icon, C.bossIcon)
+    DrawOrder(alert.icon, DL_TEXT, 1)
 
     alert.title = Label(body, FONT_HEADER, compact and C.alertEarlyTitle or C.alertTitle)
     alert.title:SetAnchor(TOPLEFT, body, TOPLEFT, compact and 56 or 73, compact and 6 or 13)
     alert.title:SetDimensions(alert.textWidth, compact and 22 or 32)
     alert.title:SetText("")
+    DrawOrder(alert.title, DL_TEXT, 2)
     alert.subtitle = Label(body, FONT_NAME, C.bossName)
     alert.subtitle:SetAnchor(TOPLEFT, body, TOPLEFT, compact and 56 or 73, compact and 29 or 47)
     alert.subtitle:SetDimensions(alert.textWidth, compact and 20 or 27)
     alert.subtitle:SetText("")
+    DrawOrder(alert.subtitle, DL_TEXT, 2)
     alert.measure = WM:CreateControl(nil, root, CT_LABEL)
     alert.measure:SetDimensions(10000, 1000)
     A.SetHidden(alert.measure, true)
     local divider = Solid(body, compact and C.alertEarlyHairline or {0.57, 0.37, 0.43, 0.55})
+    alert.divider = divider
     divider:SetAnchor(TOPLEFT, body, TOPLEFT, compact and 49 or 67, compact and 8 or 13)
     divider:SetDimensions(1, compact and 40 or 63)
+    DrawOrder(divider, DL_CONTROLS, 1)
     alert.topLine = Solid(body, hairColor)
     alert.topLine:SetAnchor(TOPLEFT, body, TOPLEFT, 0, 0)
-    alert.topLine:SetDimensions(alert.width, 2)
-    alert.bottomLine = Solid(body, hairColor)
-    alert.bottomLine:SetAnchor(BOTTOMLEFT, body, BOTTOMLEFT, 0, 0)
-    alert.bottomLine:SetDimensions(alert.width, 1)
+    alert.topLine:SetDimensions(alert.width, 1)
+    if alert.topLine.SetPixelRoundingEnabled then alert.topLine:SetPixelRoundingEnabled(true) end
+    DrawOrder(alert.topLine, DL_CONTROLS, 1)
     local track = Solid(body, compact and {0.10, 0.30, 0.27, 0.65} or {0.33, 0.16, 0.22, 0.65})
-    track:SetAnchor(BOTTOMLEFT, body, BOTTOMLEFT, 0, -3)
-    track:SetDimensions(alert.width, 3)
+    alert.track = track
+    track:SetAnchor(BOTTOMLEFT, body, BOTTOMLEFT, 5, 0)
+    track:SetDimensions(alert.progressWidth, 3)
+    DrawOrder(track, DL_CONTROLS, 1)
     alert.timerFill = Solid(body, edgeColor)
-    alert.timerFill:SetAnchor(BOTTOMLEFT, body, BOTTOMLEFT, 0, -3)
-    alert.timerFill:SetDimensions(alert.width, 3)
+    alert.timerFill:SetAnchor(BOTTOMLEFT, body, BOTTOMLEFT, 5, 0)
+    alert.timerFill:SetDimensions(alert.progressWidth, 3)
     alert.timerFill:SetPixelRoundingEnabled(false)
+    DrawOrder(alert.timerFill, DL_CONTROLS, 2)
 end
 local function MakeUI()
     local root = WM:CreateTopLevelWindow("ArclightTauntHUD")
@@ -571,7 +589,7 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
         r.lastFocusPadding = focusPad
         r.lastFocusClearance = focusClearance
         r.lastFocusVerticalPadding = focusVerticalPad
-        r.lastBossIcon = nil
+        r.lastBossIcon, r.lastMarkerIcon = nil, nil
     end
     local expired = A.IsLost(t, now)
     local remaining = math.max(0, t.endTime - now)
@@ -609,6 +627,9 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
     -- Standard 15-second danger fills end before the clock. If a short effect
     -- fills behind it, white text keeps the stronger crimson surface readable.
     local timeColor = color
+    if A.paletteProfile and A.paletteProfile ~= "arclight" then
+        timeColor = danger and C.timeDanger or (warning and C.timeWarning or C.timeSafe)
+    end
     if fullMode and highContrast and danger then
         local duration = math.max(0.1, t.endTime - t.startTime)
         local fraction = Clamp(remaining / duration, 0, 1)
@@ -631,6 +652,21 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
     A.AnimateRowEntry(r, t, now, selected)
     local showBoss = saved.showBossIcon and boss
     A.SetHidden(r.bossIcon, not showBoss)
+    local markerTexture = saved.showTargetMarkers and t.targetMarkerTexture
+    local showMarker = type(markerTexture) == "string" and markerTexture ~= ""
+    if showMarker and not r.targetMarkerIcon then
+        r.targetMarkerIcon = WM:CreateControl(nil, r.box, CT_TEXTURE)
+        r.targetMarkerIcon:SetResizeToFitFile(false)
+        r.targetMarkerIcon:SetColor(1, 1, 1, 1)
+        DrawOrder(r.targetMarkerIcon, DL_TEXT, 1)
+    end
+    if r.targetMarkerIcon then
+        A.SetHidden(r.targetMarkerIcon, not showMarker)
+        if showMarker and r.lastTargetMarkerTexture ~= markerTexture then
+            r.targetMarkerIcon:SetTexture(markerTexture)
+            r.lastTargetMarkerTexture = markerTexture
+        end
+    end
     -- The skull texture and its constant bone-ivory tint do not
     -- change when a taunt's remaining time changes.
     local displayName = t.name or T("Unknown enemy")
@@ -640,14 +676,14 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
     end
     -- Mirror the group around its fixed urgency-side icon; short names never
     -- move the skull away from the stripe.
-    if r.lastBossIcon ~= showBoss then
+    if r.lastBossIcon ~= showBoss or r.lastMarkerIcon ~= showMarker then
         r.name:ClearAnchors()
         local side = mirrored and TOPRIGHT or TOPLEFT
-        local inset = showBoss and 30 or 12
+        local inset = 12 + (showBoss and 18 or 0) + (showMarker and 18 or 0)
         r.name:SetAnchor(side, r.box, side, mirrored and -inset or inset, 0)
-        r.lastBossIcon = showBoss
+        r.lastBossIcon, r.lastMarkerIcon = showBoss, showMarker
     end
-    local nameWidth = columnWidth - 79 - (showBoss and 18 or 0)
+    local nameWidth = columnWidth - 79 - (showBoss and 18 or 0) - (showMarker and 18 or 0)
     if r.lastNameWidth ~= nameWidth then
         r.name:SetWidth(nameWidth)
         r.lastNameWidth = nameWidth
@@ -664,6 +700,16 @@ local function RenderRow(r, t, i, rowsPerCol, topInset, columnWidth, now, saved,
             r.bossIcon:SetAnchor(TOPLEFT, r.box, TOPLEFT, 10, y)
         end
         r.lastIconContentHeight, r.lastIconMirrored = contentHeight, mirrored
+    end
+    if showMarker and (r.lastMarkerHeight ~= contentHeight or r.lastMarkerMirrored ~= mirrored
+        or r.lastMarkerBoss ~= showBoss) then
+        local side = mirrored and TOPRIGHT or TOPLEFT
+        local inset = 10 + (showBoss and 18 or 0)
+        local size = math.min(16, contentHeight - 2)
+        r.targetMarkerIcon:ClearAnchors()
+        r.targetMarkerIcon:SetDimensions(size, size)
+        r.targetMarkerIcon:SetAnchor(side, r.box, side, mirrored and -inset or inset, (contentHeight - size) / 2)
+        r.lastMarkerHeight, r.lastMarkerMirrored, r.lastMarkerBoss = contentHeight, mirrored, showBoss
     end
     if r.lastColumnWidth ~= columnWidth then
         r.box:SetWidth(columnWidth)

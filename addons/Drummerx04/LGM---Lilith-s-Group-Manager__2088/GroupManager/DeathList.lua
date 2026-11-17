@@ -2,7 +2,7 @@
 --Group List Keyboard
 ----------------------------------
 local LGM = LGM or {}
-local GetAbilityNameEx = LibCombatAlerts and LibCombatAlerts.GetAbilityName or GetAbilityName
+local LCA = LibCombatAlerts
 
 
 -- Creates a Filtered List object
@@ -90,15 +90,10 @@ local function CurrentBoss()
    return nil
 end
 
-local function GetNameFromUnitTag(unitTag)
-   local name = GetUnitDisplayName(unitTag)
-   return (name and name ~= "") and name or GetUnitName(unitTag)
-end
-
 function DeathList:RegisterEvents(enable)
    if enable then
       d("LGM Death Tracking Enabled")
-      EVENT_MANAGER:RegisterForEvent(LGM.name, EVENT_EFFECT_CHANGED, function(...) self:ScrapeUserId(...) end)
+      LCA.ToggleUnitIdTracking("LGM", true)
       EVENT_MANAGER:RegisterForEvent(LGM.name, EVENT_UNIT_DEATH_STATE_CHANGED, function(eventCode, unitTag, isDead) zo_callLater(function() self:DeathStateChanged(eventCode, unitTag, isDead) end, 100) end)
 
       EVENT_MANAGER:RegisterForEvent(LGM.name, EVENT_COMBAT_EVENT, function(...) self:OnCombatDamage(...) end)
@@ -111,7 +106,7 @@ function DeathList:RegisterEvents(enable)
       end)
    else
       d("LGM Death Tracking Disabled")
-      EVENT_MANAGER:UnregisterForEvent(LGM.name, EVENT_EFFECT_CHANGED)
+      LCA.ToggleUnitIdTracking("LGM", false)
       EVENT_MANAGER:UnregisterForEvent(LGM.name, EVENT_UNIT_DEATH_STATE_CHANGED)
 
       EVENT_MANAGER:UnregisterForEvent(LGM.name, EVENT_COMBAT_EVENT)
@@ -175,8 +170,6 @@ end
 
 local damageQueues = {}
 do
-   local idToName = {}
-   local nameToId = {}
    local ActionResults = LGM.ActionResults
 
    local unknownQueue = LGM.NewDamageQueue(1)
@@ -184,8 +177,8 @@ do
 
 
    function DeathList:OnCombatDamage( _, result, _, _, _, _, _, _, _, _, hitValue, powerType, _, _, sourceUnitId, targetUnitId, abilityId, overflow)
-      local targetName = idToName[targetUnitId]
-      --      df("[%s:%s] %s with %s %d %s %s", tostring(result), tostring(targetName), tostring(hitValue), tostring(GetAbilityNameEx(abilityId)), abilityId, tostring(idToName[sourceUnitId]), tostring(idToName[targetUnitId]))
+      local _, targetName = LCA.IdentifyAllyUnitId(targetUnitId)
+      --      df("[%s:%s] %s with %s %d %s %s", tostring(result), tostring(targetName), tostring(hitValue), tostring(LCA.GetAbilityName(abilityId)), abilityId, tostring(idToName[sourceUnitId]), tostring(idToName[targetUnitId]))
       if targetName and ActionResults[result] then
          local queue = damageQueues[targetName]
          if not queue then
@@ -269,8 +262,6 @@ do
    end
 
    function DeathList:ClearLists(all)
-      idToName = {}
-      nameToId = {}
       if all then
          self.cumulativeCauseList = {}
          self.cumulativeDeathList = {}
@@ -279,23 +270,6 @@ do
          self:RefreshData()
       end
 
-   end
-
-   --Filtered so that unitTag will always be "groupX"
-   function DeathList:ScrapeUserId(_,_,_,_, unitTag,_,_,_,_,_,_,_,_, _, unitId, abilityId)
-      --if unitTag == "" then return end
-      if IsUnitGrouped('player') and unitTag:sub(1,1) == 'g' or not IsUnitGrouped('player') and unitTag == 'player' then
-         local name = GetNameFromUnitTag(unitTag)
-
-         if idToName[unitId] ~= name then
-            if nameToId[name] then
-               idToName[nameToId[name]] = nil --Correct?
-            end
-            idToName[unitId] = name
-            nameToId[name] = unitId
-            --df("(%s)%s -> %d", tostring(unitTag), name, unitId)
-         end -- else
-      end
    end
 
    local results = {
@@ -310,8 +284,8 @@ do
 
       if data.queue then
          for e in data.queue:iter() do
-            output = string.format(format, output, (data.queue.time - e.time) / 1000, GetAbilityNameEx(e.aId), e.hit,
-                                   (e.shield and GetAbilityNameEx(e.shield) or tostring(ActionResults[e.res])))
+            output = string.format(format, output, (data.queue.time - e.time) / 1000, LCA.GetAbilityName(e.aId), e.hit,
+                                   (e.shield and LCA.GetAbilityName(e.shield) or tostring(ActionResults[e.res])))
             format = "%s => (%.1fs) %s -- %d (%s)"
          end
       else
@@ -334,9 +308,10 @@ do
    end
    -- Death Handler
    function DeathList:DeathStateChanged(_, unitTag, isDead, override)
-      if isDead and (IsUnitGrouped('player') and unitTag:sub(1,1) == 'g' or not IsUnitGrouped('player') and unitTag == 'player') then
+      local isGrouped = IsUnitGrouped("player")
+      if isDead and ((isGrouped and unitTag:byte(1) == 0x67) or (not isGrouped and (unitTag == "player" or unitTag == "companion"))) then
 
-         local name = GetNameFromUnitTag(unitTag)
+         local name = LCA.GetNameFromUnitTag(unitTag)
          local q = damageQueues[name]
          damageQueues[name] = nil
 
@@ -346,7 +321,7 @@ do
          if q and q:trim() and ((GetGameTimeMilliseconds() - q.time) < 1500 or override and q:peek()) then
             -- trim off extraneous heal elements
             TimelineList:NewDeathEntry(name, q)
-            abilityName = GetAbilityNameEx(q:peek().aId)
+            abilityName = LCA.GetAbilityName(q:peek().aId)
             if LGM.SV.livePopupLength > 0 then
                LGM.recapPopup:Attach(name, q, true)
             end
@@ -544,7 +519,7 @@ function TimelineList:FilterScrollList()
    -- if filtering on player names
    for i, data in ipairs(self.masterList) do
       if filterCount == 0 or data.show or timelineFilter[data.name] or
-         (data.queue and timelineFilter[GetAbilityNameEx(data.queue:peek().aId)]) or
+         (data.queue and timelineFilter[LCA.GetAbilityName(data.queue:peek().aId)]) or
          (not data.queue and timelineFilter["Unknown Cause"])
       then
          table.insert(scrollData, ZO_ScrollList_CreateDataEntry(data.dataEntry.typeId, data))

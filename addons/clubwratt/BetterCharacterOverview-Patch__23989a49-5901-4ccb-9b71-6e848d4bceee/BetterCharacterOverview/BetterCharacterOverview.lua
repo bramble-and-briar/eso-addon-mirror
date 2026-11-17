@@ -1,6 +1,6 @@
 --[[
 Better Character Overview
-Version 1.10.0
+Version 1.12.0
 PS5 / Update 50 native-list architecture test.
 
 This version registers two dedicated lists through GAMEPAD_INVENTORY:AddList:
@@ -19,7 +19,7 @@ BetterCharacterOverview = {}
 local BCO = BetterCharacterOverview
 
 BCO.name = "BetterCharacterOverview"
-BCO.version = "1.11.0"
+BCO.version = "1.12.0"
 BCO.savedVarVersion = 2
 
 BCO.CATEGORY_DESCRIPTOR = "bcoCategoryList"
@@ -969,6 +969,7 @@ function BCO:ScheduleIndexRebuild(delayMs, ...)
 
             if key then
                 self:MarkSourceDirty(key)
+                self:NoteElsewhereSourceChanged(key)
             end
         end
     end
@@ -2334,6 +2335,442 @@ function BCO:EnsureIndex()
     end)
 
     return self.indexReady
+end
+
+-- ---------------------------------------------------------------------
+-- Owned elsewhere: counts on every item tooltip
+-- ---------------------------------------------------------------------
+-- ESO's item tooltips already count the item in this character's bag, the
+-- bank, the Craft Bag, housing storage and the Furnishing Vault (see
+-- ZO_Tooltip:AddTopLinesToTopSection). BCO adds a row for the places the
+-- game does not count: other characters (backpack and equipped), furnishings
+-- placed in owned houses, and the account's guild store listings.
+--
+-- The counts come from a small resident index, separate from the All
+-- Inventories aggregate (which is released whenever Inventory closes): one
+-- { item key -> count } map per snapshot source. It is built once per
+-- session in chunks and refreshed per source when a house or a guild's
+-- listings are rescanned. Other characters cannot change during a session
+-- and the current character is left to the game's own live counts, so
+-- looting, banking and crafting never touch it. A tooltip costs one string
+-- match plus one hash lookup per source and no API calls.
+local ELSEWHERE_CHARACTERS = 1
+local ELSEWHERE_HOUSES = 2
+local ELSEWHERE_LISTED = 3
+
+local ELSEWHERE_LINES = {
+    [ELSEWHERE_CHARACTERS] = {
+        icon = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_character.dds",
+        label = "Other characters",
+    },
+    [ELSEWHERE_HOUSES] = {
+        icon = "EsoUI/Art/Icons/mapKey/mapKey_housing.dds",
+        label = "Houses",
+    },
+    [ELSEWHERE_LISTED] = {
+        icon = "EsoUI/Art/Guild/Gamepad/gp_ownership_icon_guildTrader.dds",
+        label = "Guild store listings",
+    },
+}
+
+-- Snapshot entries counted per frame while the index builds. Each entry is
+-- one string match and one table write.
+local ELSEWHERE_BUILD_CHUNK = 500
+
+-- Identifies "the same item" the way its name, quality and level show it:
+-- item id, subtype (quality) and level, plus the trailing field that tells
+-- crafted potions and poisons apart. The fields that only describe one
+-- copy's state (enchant, style, crafted, bound, stolen, condition, charges)
+-- are left out, so a worn or bound copy on another character still matches
+-- a fresh one in a store. A link in any other shape is its own key.
+local function ElsewhereKey(itemLink)
+    local head, tail = string.match(
+        itemLink,
+        "^|H%d:item:(%d+:%d+:%d+)[%d:]*:(%d+)|h"
+    )
+
+    if not head then
+        return itemLink
+    end
+
+    if tail == "0" then
+        return head
+    end
+
+    return head .. ":" .. tail
+end
+
+-- Adds one snapshot list into a { key -> count } map. Returns the number
+-- of entries walked so the chunked build can budget itself.
+local function AddElsewhereCounts(counts, items)
+    for index = 1, #items do
+        local snapshot = items[index]
+        local itemLink = snapshot and snapshot.itemLink
+
+        if type(itemLink) == "string" and itemLink ~= "" then
+            local key = ElsewhereKey(itemLink)
+            counts[key] =
+                (counts[key] or 0) + (snapshot.count or 1)
+        end
+    end
+
+    return #items
+end
+
+local function CountElsewhereSource(source)
+    local counts = {}
+    local walked = 0
+
+    for index = 1, #source.lists do
+        walked = walked
+            + AddElsewhereCounts(counts, source.lists[index])
+    end
+
+    source.counts = counts
+    source.lists = nil
+    return walked
+end
+
+-- Lists the snapshot sources the index covers, uncounted: every character
+-- except the current one, every house, every guild's listings. The keys
+-- match the source keys used by the All Inventories aggregate.
+function BCO:CollectElsewhereSources()
+    local sources = {}
+    local currentId = CharacterId()
+    local shared = self.savedVars.shared or {}
+
+    for characterId, character in pairs(
+        self.savedVars.characters or {}
+    ) do
+        if type(character) == "table"
+            and tostring(characterId) ~= currentId
+        then
+            sources[#sources + 1] = {
+                key = "char:" .. tostring(characterId),
+                kind = ELSEWHERE_CHARACTERS,
+                lists = {
+                    character.backpack or {},
+                    character.worn or {},
+                },
+            }
+        end
+    end
+
+    for houseKey, house in pairs(shared.houses or {}) do
+        if type(house) == "table" then
+            local houseId = house.houseId
+                or tonumber(houseKey)
+                or 0
+
+            sources[#sources + 1] = {
+                key = "house:" .. tostring(houseId),
+                kind = ELSEWHERE_HOUSES,
+                lists = { house.items or {} },
+            }
+        end
+    end
+
+    for listingKey, listing in pairs(
+        shared.guildListings or {}
+    ) do
+        if type(listing) == "table" then
+            local guildId = listing.guildId
+                or tonumber(listingKey)
+                or 0
+
+            sources[#sources + 1] = {
+                key = "guild:" .. tostring(guildId),
+                kind = ELSEWHERE_LISTED,
+                lists = { listing.items or {} },
+            }
+        end
+    end
+
+    return sources
+end
+
+-- Builds the whole index from SavedVariables, a chunk per frame. Tooltips
+-- keep reading the previous index (none on the first build) until the new
+-- one is complete.
+function BCO:StartElsewhereBuild()
+    self.elsewhereToken = (self.elsewhereToken or 0) + 1
+    local token = self.elsewhereToken
+
+    local sources = self:CollectElsewhereSources()
+    local sourceIndex = 1
+
+    self.elsewhereBuilding = true
+
+    local function ProcessChunk()
+        if token ~= BCO.elsewhereToken then
+            return
+        end
+
+        local walked = 0
+
+        while sourceIndex <= #sources
+            and walked < ELSEWHERE_BUILD_CHUNK
+        do
+            walked = walked
+                + CountElsewhereSource(sources[sourceIndex])
+            sourceIndex = sourceIndex + 1
+        end
+
+        if sourceIndex <= #sources then
+            zo_callLater(ProcessChunk, 0)
+            return
+        end
+
+        BCO.elsewhereSources = sources
+        BCO.elsewhereBuilding = false
+    end
+
+    ProcessChunk()
+end
+
+-- Once per session, shortly after the first load screen settles.
+function BCO:ScheduleElsewhereBuild()
+    if self.elsewhereBuildScheduled then
+        return
+    end
+
+    self.elsewhereBuildScheduled = true
+
+    zo_callLater(function()
+        BCO:StartElsewhereBuild()
+    end, 1500)
+end
+
+-- Recounts the sources of one kind from SavedVariables. With onlyKey, the
+-- other sources of that kind keep the counts they have and just that one
+-- is recounted; sources that no longer exist drop out either way.
+function BCO:RefreshElsewhereKind(kind, onlyKey)
+    local current = self.elsewhereSources
+    local refreshed = {}
+    local previousCounts = {}
+
+    for index = 1, #current do
+        local source = current[index]
+
+        if source.kind == kind then
+            previousCounts[source.key] = source.counts
+        else
+            refreshed[#refreshed + 1] = source
+        end
+    end
+
+    local sources = self:CollectElsewhereSources()
+
+    for index = 1, #sources do
+        local source = sources[index]
+
+        if source.kind == kind then
+            local kept = onlyKey
+                and source.key ~= onlyKey
+                and previousCounts[source.key]
+
+            if kept then
+                source.counts = kept
+                source.lists = nil
+            else
+                CountElsewhereSource(source)
+            end
+
+            refreshed[#refreshed + 1] = source
+        end
+    end
+
+    self.elsewhereSources = refreshed
+end
+
+-- Called for every snapshot source that was rescanned. Only a house or a
+-- guild's listings can change what the index holds; the current
+-- character's bags and the bank (the frequent callers) return at once.
+function BCO:NoteElsewhereSourceChanged(sourceKey)
+    local kind, onlyKey
+
+    if string.find(sourceKey, "house:", 1, true) == 1 then
+        -- One house was rescanned; the others are as they were.
+        kind, onlyKey = ELSEWHERE_HOUSES, sourceKey
+    elseif string.find(sourceKey, "guild:", 1, true) == 1 then
+        -- A listing scan also drops guilds the account has left, so every
+        -- guild is recounted (a guild holds at most 30 listings).
+        kind = ELSEWHERE_LISTED
+    else
+        return
+    end
+
+    if self.elsewhereBuilding then
+        -- The running build captured the snapshot lists as they were;
+        -- start over from the current ones.
+        self:StartElsewhereBuild()
+    elseif self.elsewhereSources then
+        self:RefreshElsewhereKind(kind, onlyKey)
+    end
+end
+
+-- Returns how many of the item are held by other characters, placed in
+-- owned houses, and listed in guild stores.
+function BCO:GetElsewhereCounts(itemLink)
+    local sources = self.elsewhereSources
+    local characters, houses, listed = 0, 0, 0
+
+    if not sources or #sources == 0 then
+        return characters, houses, listed
+    end
+
+    local key = ElsewhereKey(itemLink)
+
+    for index = 1, #sources do
+        local source = sources[index]
+        local count = source.counts[key]
+
+        if count then
+            local kind = source.kind
+
+            if kind == ELSEWHERE_CHARACTERS then
+                characters = characters + count
+            elseif kind == ELSEWHERE_HOUSES then
+                houses = houses + count
+            else
+                listed = listed + count
+            end
+        end
+    end
+
+    return characters, houses, listed
+end
+
+local function AddElsewhereLine(section, quantity, line)
+    if quantity <= 0 then
+        return
+    end
+
+    local narration = SI_GAMEPAD_INVENTORY_STACK_COUNT_NARRATION_FORMATTER
+        and zo_strformat(
+            SI_GAMEPAD_INVENTORY_STACK_COUNT_NARRATION_FORMATTER,
+            line.label,
+            quantity
+        )
+        or string.format("%s: %d", line.label, quantity)
+
+    -- Same markup and size as the game's own bag and bank counts.
+    section:AddLineWithCustomNarration(
+        zo_iconTextFormat(line.icon, 24, 24, quantity),
+        narration
+    )
+end
+
+-- Runs after the game has added its own count row to an item tooltip's top
+-- section. BCO's counts go in a row of their own, the way the game adds
+-- its extra-data row, and only when the item is held elsewhere.
+local function AddElsewhereLinesToTopSection(
+    tooltip,
+    topSection,
+    itemLink
+)
+    if type(itemLink) ~= "string" or itemLink == "" then
+        return
+    end
+
+    local characters, houses, listed =
+        BCO:GetElsewhereCounts(itemLink)
+
+    if characters + houses + listed == 0 then
+        return
+    end
+
+    local section = topSection:AcquireSection(
+        tooltip:GetStyle("topSubsectionItemDetails")
+    )
+
+    AddElsewhereLine(
+        section,
+        characters,
+        ELSEWHERE_LINES[ELSEWHERE_CHARACTERS]
+    )
+    AddElsewhereLine(
+        section,
+        houses,
+        ELSEWHERE_LINES[ELSEWHERE_HOUSES]
+    )
+    AddElsewhereLine(
+        section,
+        listed,
+        ELSEWHERE_LINES[ELSEWHERE_LISTED]
+    )
+
+    topSection:AddSection(section)
+end
+
+-- Crafting stations lay their result out in tooltips of their own rather
+-- than in GAMEPAD_TOOLTIPS; these are the ones created by name when the UI
+-- loads.
+local ELSEWHERE_STATION_TOOLTIP_NAMES = {
+    "ZO_GamepadProvisionerTopLevelTooltip",
+    "ZO_GamepadAlchemyTopLevelTooltip",
+    "ZO_GamepadEnchantingTopLevelTooltip",
+    "ZO_RetraitStation_Reconstruct_GamepadTopLevelResultTooltip",
+}
+
+-- A tooltip copies ZO_Tooltip's methods into itself when it initializes
+-- (zo_mixin in ZO_Tooltip:Initialize), so the hook goes on ZO_Tooltip for
+-- every tooltip that initializes from here on, and on each tooltip that
+-- already holds its own copy. Tooltip layout runs no protected functions,
+-- and a tooltip control is not a table, so this wraps the method the way
+-- ZO_PostHook does rather than through SecurePostHook.
+function BCO:InstallElsewhereTooltipHook()
+    local METHOD = "AddTopLinesToTopSection"
+
+    if self.elsewhereHookInstalled
+        or type(ZO_Tooltip) ~= "table"
+        or type(ZO_Tooltip[METHOD]) ~= "function"
+    then
+        return false
+    end
+
+    self.elsewhereHookInstalled = true
+
+    local function Hook(object)
+        local existing = object[METHOD]
+
+        object[METHOD] = function(tooltip, topSection, itemLink, ...)
+            existing(tooltip, topSection, itemLink, ...)
+            AddElsewhereLinesToTopSection(
+                tooltip,
+                topSection,
+                itemLink
+            )
+        end
+    end
+
+    -- A tooltip that has not initialized yet has no method of its own; it
+    -- will copy the hooked one from ZO_Tooltip.
+    local function HookInitializedTooltip(tooltip)
+        if tooltip and type(tooltip[METHOD]) == "function" then
+            Hook(tooltip)
+        end
+    end
+
+    Hook(ZO_Tooltip)
+
+    for _, info in pairs(
+        GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.tooltips or {}
+    ) do
+        local tip = info.control
+            and info.control.container
+            and info.control.container.tip
+
+        HookInitializedTooltip(tip and tip.tooltip)
+    end
+
+    for index = 1, #ELSEWHERE_STATION_TOOLTIP_NAMES do
+        local control = _G[ELSEWHERE_STATION_TOOLTIP_NAMES[index]]
+
+        HookInitializedTooltip(control and control.tip)
+    end
+
+    return true
 end
 
 
@@ -7483,6 +7920,7 @@ local function RegisterCommands()
             },
         }
         BCO:ReleaseIndex()
+        BCO:StartElsewhereBuild()
         Msg("Saved inventory snapshots cleared.")
     end
 
@@ -7874,6 +8312,9 @@ local function OnPlayerActivated()
     -- No-op outside an owned house. Delayed so placed furniture has loaded
     -- and the character scans above have already run.
     BCO:ScheduleHouseScan(2500)
+
+    -- The tooltip counts for items held elsewhere; once per session.
+    BCO:ScheduleElsewhereBuild()
 end
 
 local function OnHouseFurnitureChanged()
@@ -8000,6 +8441,8 @@ local function OnAddOnLoaded(_, addonName)
     end
 
     RegisterCommands()
+
+    BCO:InstallElsewhereTooltipHook()
 
     EVENT_MANAGER:RegisterForEvent(
         BCO.name,

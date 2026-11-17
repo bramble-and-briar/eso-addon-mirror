@@ -1,4 +1,4 @@
--- Arclight Taunt 1.2.0 | Settings module
+-- Arclight Taunt 1.3.0 | Settings module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -108,7 +108,7 @@ local function MakeSettings()
         name = "Arclight Taunt",
         displayName = "|c2FE6C4Arclight Taunt|r",
         author = "|cF7B95BtareN|r",
-        version = "1.2.0",
+        version = "1.3.0",
         website = "https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html",
         feedback = "https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html#comments",
         registerForRefresh = true,
@@ -160,6 +160,17 @@ local function MakeSettings()
         data.setFunc = function(value) UpdateSaved(key, value) end
         data.default = defaults[key]
         return data
+    end
+    local function UrgencyPicker(key, name)
+        local hex=defaults[key]
+        return {
+            type="colorpicker", name=T(name), width="half",
+            tooltip=T("Custom fill and stripe colors. Numeric text may be lightened for readability."),
+            disabled=function() return A.saved.colorProfile~="custom" end,
+            getFunc=function() return A.GetCustomUrgencyColor(key) end,
+            setFunc=function(r,g,b) A.SetCustomUrgencyColor(key,r,g,b) end,
+            default={r=tonumber(hex:sub(1,2),16)/255,g=tonumber(hex:sub(3,4),16)/255,b=tonumber(hex:sub(5,6),16)/255,a=1},
+        }
     end
     local function ValueDropdown(key, data)
         data.type = "dropdown"
@@ -430,9 +441,16 @@ local function MakeSettings()
             Checkbox("subtleWarningBg", {
                     disabled = function() return A.saved.highContrast or A.saved.barDisplay == "full" end,
                     name = T("Tint warning rows subtly"), width = "full",
-                    tooltip = T("Subtle yellow/red row backgrounds near expiry. Timer and stripe keep their urgency colors."),
+                    tooltip = T("Subtle urgency-colored row backgrounds near expiry. Timer and stripe keep their urgency colors."),
                 }),
             { type = "header", name = Colored(T("Target focus & motion"), "AEBCCA"), width = "full" },
+            {
+                type = "checkbox", name = T("ESO target markers"), width = "full",
+                tooltip = T("Shows observed ESO target markers beside enemy names. Boss skulls remain separate. Uncertain assignments stay hidden; Arclight never places markers."),
+                getFunc = function() return A.saved.showTargetMarkers end,
+                setFunc = A.SetTargetMarkersEnabled,
+                default = defaults.showTargetMarkers,
+            },
             {
                 type = "dropdown", name = Colored(T("Target highlight"), "D4F0FF"), width = "full",
                 tooltip = T("Subtle: pale outline and light sweep. Strong: wider outline and a brief reflection on target changes."),
@@ -456,6 +474,19 @@ local function MakeSettings()
                     end,
                     default = defaults.reduceAnimations,
                 },
+            { type="header", name=Colored(T("Custom colors"),"AEBCCA"), width="full" },
+            {
+                type="checkbox", name=T("Use custom colors"), width="full",
+                tooltip=T("Apply your colors to the list, crosshair and boss warnings. Boss names, target highlights and ESO markers keep their colors."),
+                getFunc=function() return A.saved.colorProfile=="custom" end,
+                setFunc=function(value) A.SetColorProfile(value and "custom" or "arclight") end,
+                default=false,
+            },
+            UrgencyPicker("customSafeColor","Safe color"),
+            UrgencyPicker("customWarningColor","Warning color"),
+            UrgencyPicker("customDangerColor","Urgent color"),
+            {type="button",name=T("Reset custom colors"),width="half",
+                disabled=function() return A.saved.colorProfile~="custom" end,func=A.ResetCustomUrgencyColors},
             },
         },
         {
@@ -487,8 +518,8 @@ local function MakeSettings()
                     tooltip = T("On: whole seconds above 5 s, tenths at 5 s or less. Off: always tenths. Warning thresholds stay independent."),
                 }),
             {
-                    type = "slider", name = Colored(T("Yellow warning at (seconds)"), C.warning), width = "full",
-                    tooltip = T("Countdown and status indicator turn yellow at this remaining time. Default: 7 seconds."),
+                    type = "slider", name = Colored(T("Warning threshold (seconds)"), C.warning), width = "full",
+                    tooltip = T("Countdown and status indicator enter the warning stage at this remaining time. Default: 7 seconds."),
                     min = 5, max = 12, step = 1,
                     getFunc = function() return A.saved.warningAt end,
                     setFunc = function(value)
@@ -499,8 +530,8 @@ local function MakeSettings()
                     default = defaults.warningAt,
                 },
             {
-                    type = "slider", name = Colored(T("Red warning at (seconds)"), C.danger), width = "full",
-                    tooltip = T("The taunt turns red at this remaining time. Default: 4 seconds."),
+                    type = "slider", name = Colored(T("Urgent threshold (seconds)"), C.danger), width = "full",
+                    tooltip = T("The taunt enters the urgent stage at this remaining time. Default: 4 seconds."),
                     min = 1, max = 8, step = 1,
                     getFunc = function() return A.saved.dangerAt end,
                     setFunc = function(value)
@@ -536,7 +567,7 @@ local function MakeSettings()
             { type = "header", name = Colored(T("Visibility"), "AEBCCA"), width = "full" },
             {
                 type = "checkbox", name = T("Crosshair indicator"), width = "full",
-                tooltip = T("Own taunt on the aimed enemy as a draining circle or bar, without numbers. Empty gray means no own taunt is confirmed; it does not prove lost aggro."),
+                tooltip = T("Your confirmed taunt on the aimed enemy as a draining circle or bar, without numbers."),
                 getFunc = function() return A.saved.reticleStyle ~= "off" end,
                 setFunc = A.SetReticleEnabled,
                 default = false,
@@ -553,6 +584,11 @@ local function MakeSettings()
                 name = T("Filter by boss detection"), width = "full",
                 tooltip = T("Uses the selection under Boss detection. Independent of the list filter; the indicator preview ignores this filter."),
                 disabled = function() return A.saved.reticleStyle == "off" end,
+            }),
+            Checkbox("showUnconfirmedReticle", {
+                name=T("Show unconfirmed symbol"), width="full",
+                tooltip=T("When no own taunt is confirmed, show [!]. This does not prove the enemy is untaunted or aggro has changed."),
+                disabled=function() return A.saved.reticleStyle=="off" end,
             }),
             { type = "header", name = Colored(T("Size & appearance"), "AEBCCA"), width = "full" },
             {
@@ -585,7 +621,7 @@ local function MakeSettings()
             { type = "header", name = Colored(T("Preview & position"), "AEBCCA"), width = "full" },
             {
                 type = "checkbox", name = T("Show indicator preview"), width = "full",
-                tooltip = T("Repeats a taunt countdown through turquoise, yellow and red, independently of the list. Ends when settings close or combat begins."),
+                tooltip = T("Repeats a taunt countdown through all urgency stages, independently of the list. Ends when settings close or combat begins."),
                 disabled = function() return A.saved.reticleStyle == "off" end,
                 getFunc = function() return A.reticlePreview == true end,
                 setFunc = A.SetReticlePreviewEnabled,
@@ -650,18 +686,18 @@ local function MakeSettings()
             type = "submenu", name = T("Bosses"), width = "full", reference = A.ADDON .. "MenuBosses",
             controls = {
         {
-            type = "submenu", name = T("Boss warnings"), width = "full",
-            controls = {
+            type = "header", name = Colored(T("Boss warnings"), "AEBCCA"), width = "full",
+        },
             {
                 type="checkbox",name=Colored(T("Boss warning banner"),C.alertEdge),width="full",
-                tooltip=T("Red banner on boss taunt expiry. Default: on. No alert after a re-taunt or combat end."),
+                tooltip=T("Banner on boss taunt expiry. Default: on. No alert after a re-taunt or combat end."),
                 getFunc=function() return A.saved.bossAlertText end,
                 setFunc=function(value) UpdateSaved("bossAlertText",value);if not value then A.HideBossWarning("expired") end end,
                 default=defaults.bossAlertText,
             },
             {
                 type="checkbox",name=Colored(T("Boss taunt early warning"),C.safe),width="full",
-                tooltip=T("Turquoise warning before boss taunt expiry, below red when needed. Clears on expiry, re-taunt or recognized death. Default: on; audio optional."),
+                tooltip=T("Early warning before boss taunt expiry, below the expiration banner when needed. Clears on expiry, re-taunt or recognized death. Default: on; audio optional."),
                 getFunc=function() return A.saved.bossEarlyWarning end,
                 setFunc=function(value) UpdateSaved("bossEarlyWarning",value);if not value then A.HideBossWarning("early") end end,
                 default=defaults.bossEarlyWarning,
@@ -673,7 +709,7 @@ local function MakeSettings()
                 }),
             {
                 type="dropdown",name=T("Play warning sound"),width="full",
-                tooltip=T("Sound on expiry, early warning, both or off. Early audio requires early warnings. Red has priority; cooldowns are separate."),
+                tooltip=T("Sound on expiry, early warning, both or off. Early audio requires early warnings. Expiration has priority; cooldowns are separate."),
                 choices={T("Off"),T("Only on expiry"),T("Only for early warning"),T("Both warnings")},
                 choicesValues={"off","expired","early","both"},
                 getFunc=function()
@@ -703,7 +739,7 @@ local function MakeSettings()
                 type="dropdown",name=Colored(T("Early warning sound"),C.safe),width="half",
                 reference=A.ADDON.."EarlySoundChoice",
                 scrollable=true,
-                tooltip=T("Default: Duel boundary warning. The test plays it if early audio is enabled and no real red warning has priority."),
+                tooltip=T("Default: Duel boundary warning. The test plays it if early audio is enabled and no real expiration warning has priority."),
                 disabled=function() return not A.saved.bossEarlyWarning or not A.saved.bossEarlySound end,
                 choices=soundChoices,choicesValues=ALERT_SOUND_CHOICES,
                 getFunc=function() return A.saved.bossEarlySoundKey end,
@@ -713,7 +749,7 @@ local function MakeSettings()
             ActionRow({
                 {
                     name = T("Test warning"),
-                    tooltip = T("Tests early warning, expiration, then both banners with your enabled sounds. Without early warning: red only. Real warnings take priority."),
+                    tooltip = T("Tests early warning, expiration, then both banners with your enabled sounds. Without early warning: expiration only. Real warnings take priority."),
                     func = function() A.PreviewBossWarnings() end,
                 },
             }, 280),
@@ -725,9 +761,9 @@ local function MakeSettings()
                     getFunc = function() return A.saved.bossAlertOpacity end,
                     setFunc = function(value)
                         A.saved.bossAlertOpacity = value
-                        for _, alert in pairs(A.bossAlerts) do
+                        for kind, alert in pairs(A.bossAlerts) do
                             if alert.backgroundControl then
-                                SetColor(alert.backgroundControl, C.alertBackground, value / 100)
+                                A.ApplyAlertPalette(kind, alert)
                             end
                         end
                     end,
@@ -753,17 +789,15 @@ local function MakeSettings()
             },
             {
                 type="slider",name=T("Expiry warning duration (s)"),width="full",min=1,max=4,step=0.5,decimals=1,
-                tooltip=T("Red warning duration. The test uses the early lead time and keeps red for at least 2 s."),
+                tooltip=T("Expiration warning duration. The test uses the early lead time and keeps the expiration banner for at least 2 s."),
                 disabled=function() return not A.saved.bossAlertText end,
                 getFunc=function() return A.saved.bossAlertDuration end,
                 setFunc=function(value) UpdateSaved("bossAlertDuration",math.floor(FiniteBoundedNumber(value,defaults.bossAlertDuration,1,4)*2+0.5)/2) end,
                 default=defaults.bossAlertDuration,
             },
-            },
-        },
         {
-            type = "submenu", name = T("Boss detection"), width = "full",
-            controls = {
+            type = "header", name = Colored(T("Boss detection"), "AEBCCA"), width = "full",
+        },
             ValueDropdown("bossMode", {
                     name = Colored(T("Enemies to highlight"), C.bossName), width = "full",
                     tooltip = T("Boss bars identify bosses. The broader option also highlights enemies ESO rates as hard or deadly; they are not necessarily bosses. Requires a valid unit observation."),
@@ -779,8 +813,6 @@ local function MakeSettings()
                     tooltip = T("Champagne names for enemies selected by boss detection. Skull icons are configured separately."),
                 }),
 
-            },
-        },
             },
         },
         {
@@ -827,6 +859,7 @@ local function MakeSettings()
     if CALLBACK_MANAGER and type(CALLBACK_MANAGER.RegisterCallback) == "function" then
         CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", function(closed)
             if closed ~= panel then return end
+            A.settingsOpen = false
             local moving = A.reticleMoving
             if moving then A.SetReticleMoveMode(false, true) end
             if A.reticlePreview then A.SetReticlePreviewEnabled(false)
@@ -857,6 +890,7 @@ local function MakeSettings()
         CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", AlignSoundControls)
         CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(opened)
             if panel and opened == panel then
+                A.settingsOpen = true
                 AlignSoundControls(opened)
                 A.RefreshMediaChoices()
                 A.ApplyMedia()

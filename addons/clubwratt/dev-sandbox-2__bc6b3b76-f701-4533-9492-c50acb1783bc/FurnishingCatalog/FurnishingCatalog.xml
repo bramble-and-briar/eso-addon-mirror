@@ -1,0 +1,7 @@
+<GuiXml>
+    <Controls>
+        <!-- The catalog screen: the stock gamepad list screen (header + parametric lists in quadrant 1).
+             Wired up in FurnishingCatalogBrowseActions.lua on first open. -->
+        <TopLevelControl name="FurnishingCatalog_GamepadTopLevel" inherits="ZO_Gamepad_ParametricList_Screen" />
+    </Controls>
+</GuiXml>

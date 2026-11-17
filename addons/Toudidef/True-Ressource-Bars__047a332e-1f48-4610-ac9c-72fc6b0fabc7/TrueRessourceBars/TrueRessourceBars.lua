@@ -4,6 +4,7 @@ local TrueRessourceBars = {
     version = "3.2",
     updateInterval = 50,
     previewMode = false,
+    previewMount = false,
     controls = {
         targetBuffs = {},
         targetDebuffs = {}
@@ -15,9 +16,10 @@ local TrueRessourceBars = {
 }
 
 -- Constantes des attributs de combat ESO
-local MECHANIC_HEALTH  = COMBAT_MECHANIC_FLAGS_HEALTH or 1
-local MECHANIC_MAGICKA = COMBAT_MECHANIC_FLAGS_MAGICKA or 2
-local MECHANIC_STAMINA = COMBAT_MECHANIC_FLAGS_STAMINA or 4
+local MECHANIC_HEALTH        = COMBAT_MECHANIC_FLAGS_HEALTH or 1
+local MECHANIC_MAGICKA       = COMBAT_MECHANIC_FLAGS_MAGICKA or 2
+local MECHANIC_STAMINA       = COMBAT_MECHANIC_FLAGS_STAMINA or 4
+local MECHANIC_MOUNT_STAMINA = COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA or 64
 
 -- Épaisseur de la bordure noire : 3 pixels
 local BORDER_SIZE = 3
@@ -187,6 +189,18 @@ local defaults = {
             warningThreshold = 25,
             warningPulseSpeed = 120,
         },
+        mount = {
+            enabled = "Yes",
+            x = 220, y = 415, width = 260, height = 24,
+            color = { r = 0.15, g = 0.85, b = 0.55, a = 1 },
+            font = "Gamepad Bold", fontSize = 16, fontStyle = "Outline",
+            textColor = { r = 1, g = 1, b = 1, a = 1 },
+            textFormat = "Current / Max (Percent)",
+            drainDirection = "Left to Right",
+            warningEnabled = false,
+            warningThreshold = 25,
+            warningPulseSpeed = 120,
+        },
         target = {
             enabled = "Yes",
             x = 0, y = -340, width = 460, height = 32,
@@ -295,6 +309,8 @@ local function GetPower(unitTag, mechanicType)
             cur, max, eff = GetUnitPower(unitTag, 2)
         elseif mechanicType == MECHANIC_STAMINA then
             cur, max, eff = GetUnitPower(unitTag, 4)
+        elseif mechanicType == MECHANIC_MOUNT_STAMINA then
+            cur, max, eff = GetUnitPower(unitTag, 64)
         end
     end
     return cur or 0, max or 0, (eff and eff > 0) and eff or (max or 1)
@@ -322,30 +338,39 @@ local function FormatTime(seconds)
     end
 end
 
--- Récupération du bouclier (Damage Shield)
+-- Récupération du bouclier (Damage Shield) avec vérification en temps réel et purge du cache
 local function GetShieldValue(unitTag)
-    if TrueRessourceBars.shieldCache[unitTag] and TrueRessourceBars.shieldCache[unitTag] > 0 then
-        return TrueRessourceBars.shieldCache[unitTag]
+    if not DoesUnitExist(unitTag) or IsUnitDead(unitTag) then
+        TrueRessourceBars.shieldCache[unitTag] = 0
+        return 0
     end
 
     local value = GetUnitAttributeVisualizerEffectInfo(
         unitTag,
         ATTRIBUTE_VISUAL_POWER_SHIELDING,
-        STAT_MITIGATION or 2,
+        STAT_MITIGATION,
         ATTRIBUTE_HEALTH,
         MECHANIC_HEALTH
     )
-    if value and value > 0 then return value end
+    if value and value > 0 then
+        TrueRessourceBars.shieldCache[unitTag] = value
+        return value
+    end
 
     local valueDef = GetUnitAttributeVisualizerEffectInfo(
         unitTag,
         ATTRIBUTE_VISUAL_POWER_SHIELDING,
-        STAT_DEFENSE or 1,
+        STAT_DEFENSE,
         ATTRIBUTE_HEALTH,
         MECHANIC_HEALTH
     )
-    if valueDef and valueDef > 0 then return valueDef end
+    if valueDef and valueDef > 0 then
+        TrueRessourceBars.shieldCache[unitTag] = valueDef
+        return valueDef
+    end
 
+    -- Si l'effet visuel n'existe plus sur l'unité, on réinitialise le cache pour éviter tout affichage fantôme
+    TrueRessourceBars.shieldCache[unitTag] = 0
     return 0
 end
 
@@ -760,6 +785,16 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
         return
     end
 
+    -- Gestion spécifique de la barre de vigueur de monture (uniquement en monture ou en mode aperçu)
+    local isMountBar = (barKey == "mount")
+    local isMountPreview = (isMountBar and (TrueRessourceBars.previewMode or TrueRessourceBars.previewMount) and not IsMounted())
+
+    if isMountBar and not IsMounted() and not isMountPreview then
+        ui.container:SetHidden(true)
+        ui.animValue = nil
+        return
+    end
+
     local current, max, effectiveMax
     local targetName = ""
     local isDummyTarget = (barKey == "target" and TrueRessourceBars.previewMode and not DoesUnitExist(unitTag))
@@ -769,6 +804,13 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
         current = 75000
         effectiveMax = 100000
         targetName = "Target Dummy"
+    elseif isMountPreview then
+        ui.container:SetHidden(false)
+        current, max, effectiveMax = GetPower(unitTag, mechanicType)
+        if effectiveMax <= 1 or current <= 0 then
+            current = 1600
+            effectiveMax = 2000
+        end
     else
         if not DoesUnitExist(unitTag) then
             ui.container:SetHidden(true)
@@ -1027,13 +1069,19 @@ local function CleanGamepadUI()
         end
     end
 
-    -- 3. Neutralisation du conteneur des barres de ressources joueur (Gamepad & Clavier)
+    -- 3. Neutralisation du conteneur des barres de ressources joueur et monture (Gamepad & Standard)
     local playerGamepadContainer = ZO_PlayerAttributeContainerGamepad or (PLAYER_ATTRIBUTE_BARS and PLAYER_ATTRIBUTE_BARS.control)
     if playerGamepadContainer then
         SuppressControl(playerGamepadContainer)
     end
     if ZO_PlayerAttribute then
         SuppressControl(ZO_PlayerAttribute)
+    end
+    if ZO_PlayerAttributeMountStamina then
+        SuppressControl(ZO_PlayerAttributeMountStamina)
+    end
+    if ZO_PlayerAttributeMountStaminaGamepad then
+        SuppressControl(ZO_PlayerAttributeMountStaminaGamepad)
     end
 
     -- 4. Neutralisation de la barre de cible Gamepad (Contrôle et Frame interne)
@@ -1063,7 +1111,7 @@ end
 
 -- Détection des menus, discussions et tableau des scores (BG Scoreboard)
 local function ShouldHideAllUI()
-    if TrueRessourceBars.previewMode then
+    if TrueRessourceBars.previewMode or TrueRessourceBars.previewMount then
         return false
     end
 
@@ -1083,11 +1131,19 @@ local function ShouldHideAllUI()
     return false
 end
 
--- Événements des effets visuels (Détection instantanée des boucliers)
-local function OnVisualAddedOrUpdated(eventCode, unitTag, unitAttributeVisual, statType, attributeType, powerType, value)
+-- Événements des effets visuels (Détection instantanée des boucliers avec signatures distinctes)
+local function OnVisualAdded(eventCode, unitTag, unitAttributeVisual, statType, attributeType, powerType, value)
     if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
         if unitTag == "player" or unitTag == "reticleover" then
-            TrueRessourceBars.shieldCache[unitTag] = value or 0
+            TrueRessourceBars.shieldCache[unitTag] = (value and value > 0) and value or 0
+        end
+    end
+end
+
+local function OnVisualUpdated(eventCode, unitTag, unitAttributeVisual, statType, attributeType, powerType, oldValue, newValue)
+    if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
+        if unitTag == "player" or unitTag == "reticleover" then
+            TrueRessourceBars.shieldCache[unitTag] = (newValue and newValue > 0) and newValue or 0
         end
     end
 end
@@ -1117,6 +1173,7 @@ local function MasterUpdateLoop()
     UpdateSingleBar("health", "player", MECHANIC_HEALTH)
     UpdateSingleBar("magicka", "player", MECHANIC_MAGICKA)
     UpdateSingleBar("stamina", "player", MECHANIC_STAMINA)
+    UpdateSingleBar("mount", "player", MECHANIC_MOUNT_STAMINA)
 
     if DoesUnitExist("reticleover") or TrueRessourceBars.previewMode then
         UpdateSingleBar("target", "reticleover", MECHANIC_HEALTH)
@@ -1156,7 +1213,19 @@ local function BuildSettingsMenu()
     local formatChoices = { "Current / Max (Percent)", "Current / Max", "Current (Percent)", "Current", "Percent" }
 
     local function CreateBarSubmenu(title, barKey, isHealth)
-        local controls = {
+        local controls = {}
+
+        if barKey == "mount" then
+            table.insert(controls, {
+                type = "checkbox",
+                name = "|c00FF00Force Show Mount Bar (Preview)|r",
+                tooltip = "Temporarily displays the mount stamina bar even when dismounted so you can position and configure it.",
+                getFunc = function() return TrueRessourceBars.previewMount end,
+                setFunc = function(v) TrueRessourceBars.previewMount = v end,
+            })
+        end
+
+        local baseControls = {
             {
                 type = "dropdown",
                 name = "Active",
@@ -1281,6 +1350,10 @@ local function BuildSettingsMenu()
             }
         }
 
+        for _, ctrl in ipairs(baseControls) do
+            table.insert(controls, ctrl)
+        end
+
         if barKey == "target" then
             table.insert(controls, {
                 type = "header",
@@ -1354,13 +1427,14 @@ local function BuildSettingsMenu()
         {
             type = "checkbox",
             name = "|c00FF00Preview Mode (Test Target & Bars)|r",
-            tooltip = "Shows dummy target bars and dummy auras to adjust positions easily.",
+            tooltip = "Shows dummy target bars, mount stamina bar, and dummy auras to adjust positions easily.",
             getFunc = function() return TrueRessourceBars.previewMode end,
             setFunc = function(v) TrueRessourceBars.previewMode = v end,
         },
         CreateBarSubmenu("Player Health Bar", "health", true),
         CreateBarSubmenu("Player Magicka Bar", "magicka", false),
         CreateBarSubmenu("Player Stamina Bar", "stamina", false),
+        CreateBarSubmenu("Player Mount Stamina Bar", "mount", false),
         CreateBarSubmenu("Target Health Bar", "target", true),
 
         -- Sous-menu : Filtres des Auras
@@ -1657,6 +1731,8 @@ end
 
 -- Réactivation et masquage lors du changement de zone
 local function OnPlayerActivated()
+    TrueRessourceBars.shieldCache["player"] = 0
+    TrueRessourceBars.shieldCache["reticleover"] = 0
     CleanGamepadUI()
 end
 
@@ -1668,15 +1744,21 @@ local function OnAddOnLoaded(eventCode, addonName)
     -- Maintien strict de la version 9 des SavedVariables
     TrueRessourceBars.savedVars = ZO_SavedVars:NewAccountWide("TrueRessourceBarsSV", 9, nil, defaults)
 
+    -- Sécurité de rétrocompatibilité pour les SavedVariables existantes en version 9
+    if not TrueRessourceBars.savedVars.bars.mount then
+        TrueRessourceBars.savedVars.bars.mount = ZO_DeepTableCopy(defaults.bars.mount)
+    end
+
     local wm = WINDOW_MANAGER
     TrueRessourceBars.root = wm:CreateTopLevelWindow("TrueRessourceBarsRoot")
     TrueRessourceBars.root:SetAnchorFill()
 
-    -- Construction des 4 barres de ressource
+    -- Construction des 5 barres de ressource (incluant la monture)
     TrueRessourceBars.bars = {
         health = CreateBarControl("health", TrueRessourceBars.savedVars.bars.health),
         magicka = CreateBarControl("magicka", TrueRessourceBars.savedVars.bars.magicka),
         stamina = CreateBarControl("stamina", TrueRessourceBars.savedVars.bars.stamina),
+        mount = CreateBarControl("mount", TrueRessourceBars.savedVars.bars.mount),
         target = CreateBarControl("target", TrueRessourceBars.savedVars.bars.target)
     }
 
@@ -1694,8 +1776,8 @@ local function OnAddOnLoaded(eventCode, addonName)
     BuildSettingsMenu()
 
     -- Enregistrement des événements de détection des boucliers et cible
-    EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, OnVisualAddedOrUpdated)
-    EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, OnVisualAddedOrUpdated)
+    EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, OnVisualAdded)
+    EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, OnVisualUpdated)
     EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, OnVisualRemoved)
     EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_RETICLE_TARGET_CHANGED, OnReticleTargetChanged)
 

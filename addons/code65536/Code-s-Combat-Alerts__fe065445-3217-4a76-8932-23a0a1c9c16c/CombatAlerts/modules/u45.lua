@@ -327,7 +327,7 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 		if (targetType == COMBAT_UNIT_TYPE_PLAYER) then
 			CA1.AlertCast(abilityId + 1, sourceName, hitValue, { 0, 0, false, { 1, 0, 0.6, 0.8 } })
 		else
-			local unitTag, name = LCA.IdentifyGroupUnitId(targetUnitId)
+			local unitTag, name = LCA.IdentifyAllyUnitId(targetUnitId)
 			if (unitTag and LCA.GetDistance("player", unitTag) <= 4) then
 				CA1.Alert(LCA.GetAbilityName(abilityId), name, 0x00CC00FF, nil, 1500)
 				LCA.PlaySounds("FRIEND_INVITE_RECEIVED", 2, 150, "FRIEND_INVITE_RECEIVED", 4)

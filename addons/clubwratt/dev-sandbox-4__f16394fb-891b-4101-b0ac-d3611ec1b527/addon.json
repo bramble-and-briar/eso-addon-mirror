@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/clubwratt/dev-sandbox-4__f16394fb-891b-4101-b0ac-d3611ec1b527",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "clubwratt",
+  "canonical_id": "bethesda:f16394fb-891b-4101-b0ac-d3611ec1b527",
+  "content_id": "f16394fb-891b-4101-b0ac-d3611ec1b527",
+  "deleted": false,
+  "fingerprint": "5b21f84fc12fa333b44e25af084850601a02533e96ac7f832b6c00ae60c1282f",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "f16394fb-891b-4101-b0ac-d3611ec1b527",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/f16394fb-891b-4101-b0ac-d3611ec1b527",
+  "title": "dev sandbox 4"
+}

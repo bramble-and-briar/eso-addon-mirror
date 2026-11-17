@@ -13,6 +13,11 @@ Public.TIME_FORMAT_SHORT     = 2 -- 16s (default)
 Public.TIME_FORMAT_COUNTDOWN = 3 -- 1.6s
 Public.TIME_FORMAT_COMPACT   = 4 -- 2h or 2m or 16s
 
+-- Output options for IdentifyAllyUnitId
+Public.IDENTIFY_UNIT_ALL_VALID_TAGS = nil -- returned unitTag can be "group*", "player", "companion" (default)
+Public.IDENTIFY_UNIT_ALLOW_EMPTY_TAG = 1 -- returned unitTag can be "group*", "player", "companion", ""
+Public.IDENTIFY_UNIT_ONLY_GROUP_TAGS = 2 -- returned unitTag can only be "group*"
+
 -- Degree of certainty of interrupt; e.g., there are cases where a stun will not interrupt
 Public.INTERRUPT_EVENTS = {
 	[ACTION_RESULT_CHARMED] = 1,
@@ -266,7 +271,7 @@ function Public.GetDistance( unitTag1, unitTag2, useHeight, validate, useMapPosi
 end
 
 function Public.IsUnitIdWithinDistance( unitId, distance )
-	local unitTag = Public.IdentifyGroupUnitId(unitId or -1)
+	local unitTag = Public.IdentifyAllyUnitId(unitId or -1)
 	if (unitTag and IsUnitInGroupSupportRange(unitTag)) then
 		return Public.GetDistance("player", unitTag) <= (distance or 0)
 	end
@@ -460,11 +465,13 @@ do
 	local groupIds = { }
 	local bossIds = { }
 	local playerId = nil
+	local companionId = nil
 
-	local unitPrefixes = {
-		group = { "LCA_UnitId_G", 1 },
-		boss = { "LCA_UnitId_B", 2 },
-		player = { "LCA_UnitId_P", 3 },
+	local UNIT_PREFIX_TO_TYPE = {
+		group = 1,
+		boss = 2,
+		player = 3,
+		companion = 4,
 	}
 
 	local function identify( unitType, unitTag, unitName, unitId )
@@ -475,10 +482,10 @@ do
 				if (oldUnitId) then
 					groupIds[oldUnitId] = nil
 				end
-				local name = GetUnitDisplayName(unitTag)
+				local name = Public.GetNameFromUnitTag(unitTag)
 				local unitInfo = oldUnitInfo or { }
 				unitInfo.tag = unitTag
-				unitInfo.name = name ~= "" and name or unitName
+				unitInfo.name = name ~= "" and name or LocalizeString("<<1>>", unitName)
 				groupTags[unitTag] = unitId
 				groupIds[unitId] = unitInfo
 			end
@@ -489,17 +496,20 @@ do
 			}
 		elseif (unitType == 3) then
 			playerId = unitId
+		elseif (unitType == 4) then
+			companionId = unitId
 		end
 	end
 
 	local function toggle( unitPrefix, enable, fullTag )
-		local data = unitPrefixes[unitPrefix]
+		local unitType = UNIT_PREFIX_TO_TYPE[unitPrefix]
+		local name = "LCA_UnitId_" .. unitType
 		if (enable) then
-			Public.RegisterForFilteredEvent(data[1], EVENT_EFFECT_CHANGED, function( _, _, _, _, unitTag, _, _, _, _, _, _, _, _, unitName, unitId )
-				identify(data[2], unitTag, unitName, unitId)
+			Public.RegisterForFilteredEvent(name, EVENT_EFFECT_CHANGED, function( _, _, _, _, unitTag, _, _, _, _, _, _, _, _, unitName, unitId )
+				identify(unitType, unitTag, unitName, unitId)
 			end, fullTag and REGISTER_FILTER_UNIT_TAG or REGISTER_FILTER_UNIT_TAG_PREFIX, unitPrefix)
 		else
-			EVENT_MANAGER:UnregisterForEvent(data[1], EVENT_EFFECT_CHANGED)
+			EVENT_MANAGER:UnregisterForEvent(name, EVENT_EFFECT_CHANGED)
 		end
 	end
 
@@ -516,11 +526,13 @@ do
 			toggle("group", true)
 			toggle("boss", true)
 			toggle("player", true, true)
+			toggle("companion", true, true)
 		elseif (registered and not next(registrants)) then
 			registered = false
 			toggle("group", false)
 			toggle("boss", false)
 			toggle("player", false)
+			toggle("companion", false)
 		end
 	end
 
@@ -529,6 +541,7 @@ do
 		ZO_ClearTable(groupIds)
 		ZO_ClearTable(bossIds)
 		playerId = nil
+		companionId = nil
 	end
 
 	function Public.GetPlayerUnitId( )
@@ -543,18 +556,23 @@ do
 		return groupTags[unitTag]
 	end
 
-	function Public.IdentifyGroupUnitId( unitId, useFallback )
+	function Public.IdentifyAllyUnitId( unitId, outputOption )
 		if (groupIds[unitId]) then
 			return groupIds[unitId].tag, groupIds[unitId].name
-		elseif (useFallback) then
-			if (playerId == unitId) then
+		elseif (outputOption ~= Public.IDENTIFY_UNIT_ONLY_GROUP_TAGS) then
+			if (unitId == playerId) then
 				return "player", GetDisplayName()
-			else
+			elseif (unitId == companionId) then
+				return "companion", GetUnitName("companion")
+			elseif (outputOption == Public.IDENTIFY_UNIT_ALLOW_EMPTY_TAG) then
 				return "", string.format("unit%d", unitId)
 			end
-		else
-			return nil
 		end
+		return nil
+	end
+
+	function Public.IdentifyGroupUnitId( unitId, useFallback )
+		return Public.IdentifyAllyUnitId(unitId, useFallback and Public.IDENTIFY_UNIT_ALLOW_EMPTY_TAG or Public.IDENTIFY_UNIT_ONLY_GROUP_TAGS)
 	end
 
 	function Public.IdentifyBossUnitId( unitId, useFallback )
@@ -580,6 +598,11 @@ do
 			name = zo_iconTextFormat(icon, "85%", "85%", name, true, true)
 		end
 		return unitTag, name
+	end
+
+	function Public.GetNameFromUnitTag( unitTag )
+		local name = GetUnitDisplayName(unitTag)
+		return name ~= "" and name or GetUnitName(unitTag)
 	end
 end
 

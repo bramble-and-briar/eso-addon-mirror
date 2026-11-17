@@ -282,7 +282,7 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 			end
 		elseif (result == ACTION_RESULT_EFFECT_GAINED) then
 			if (Vars.spearTarget and self:GetSetting("telegraphSpear")) then
-				local unitTag = LCA.IdentifyGroupUnitId(Vars.spearTarget)
+				local unitTag = LCA.IdentifyAllyUnitId(Vars.spearTarget)
 				if (unitTag) then
 					local _, x, y, z = GetUnitRawWorldPosition(unitTag)
 					CA2.WorldGrowingCircularTelegraph({ x, y, z }, 400, 2000, false)
@@ -360,7 +360,7 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 				Vars.meteor.bannerId = CA1.AlertBannerEx(nil, nil, nil, params.id, false, SOUNDS.CHAMPION_POINTS_COMMITTED, self.MeteorPoll)
 			end
 			if (self:GetSetting(params.telegraphSetting)) then
-				local unitTag = LCA.IdentifyGroupUnitId(targetUnitId)
+				local unitTag = LCA.IdentifyAllyUnitId(targetUnitId)
 				if (unitTag) then
 					CA2.WorldGrowingCircularTelegraph(unitTag, 500, hitValue, false, params.telegraphClipping)
 				end

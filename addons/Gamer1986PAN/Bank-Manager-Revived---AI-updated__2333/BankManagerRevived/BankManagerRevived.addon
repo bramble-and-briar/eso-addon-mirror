@@ -6,14 +6,14 @@
 
 ## Title: BankManagerRevived |cFF9900(AI Updated)|r
 ## APIVersion: 101051 101052
-## Version: 16.00
-## AddOnVersion: 1600
+## Version: 16.02
+## AddOnVersion: 1602
 ## Author: Ayantir & |cFF0000Gamer1986PAN & @DeadSoon|r
 ## Description: Manage your Banks with automated push/pull. New feature own custom rules!
 ## SavedVariables: BMVars
-## DependsOn: LibAddonMenu-2.0
-## PCDependsOn: LibResearch
-## OptionalDependsOn: LibResearch ScriptTracker ItemFinder LibCustomMenu>=730 LibConsoleDialogs LibHarvensAddonSettings LibGamepad LibGamepadContextMenuBridge
+## DependsOn: LibAddonMenu-2.0>=43
+## PCDependsOn: LibResearch>=042
+## OptionalDependsOn: ScriptTracker LibCustomMenu LibConsoleDialogs LibHarvensAddonSettings LibGamepad LibGamepadContextMenuBridge
 
 languages\en.lua
 languages\$(language).lua

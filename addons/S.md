@@ -111,6 +111,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ShowBlastbones](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Floliroy/ShowBlastbones__2414) | Floliroy | PC / Mac | 1.2 |
 | [ShowMount](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/ShowMount__2315) | Phuein | PC / Mac | 1.28 |
 | [ShowRepairCosts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PAGOOK/ShowRepairCosts__4034) | PAGOOK | PC / Mac | 1.0 |
+| [ShowTooltip - by Emundus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/emundus/ShowTooltip---by-Emundus__5061) | emundus | PC / Mac | 1.0.0 |
 | [ShowTraitOnList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jellyalex978/ShowTraitOnList__2327) | jellyalex978 | PC / Mac | 1.2.5 |
 | [Shoyru's Classic CP - Show Champion Points Instead of Veterancy Rank](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shoyru/Shoyru-s-Classic-CP---Show-Champion-Points-Instead-of-Veterancy-Rank__4629) | Shoyru | PC / Mac | 1.0.0 |
 | [Shoyru's Crosshair - Custom FPS-Style Reticle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shoyru/Shoyru-s-Crosshair---Custom-FPS-Style-Reticle__4630) | Shoyru | PC / Mac | 1.0 |

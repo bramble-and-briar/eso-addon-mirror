@@ -1,7 +1,7 @@
 ## Title: Jump to Search
 ## Author: clubwratt
-## Version: 0.2.1
-## AddOnVersion: 201
+## Version: 0.3.0
+## AddOnVersion: 300
 ## APIVersion: 101050
 ## Description: Press D-pad Right in the inventory, bank, guild bank, guild store, vendor, mail or trade screen to focus the search box without scrolling to the top. Up or down returns to the item you were on.
 ## SavedVariables: JumpToSearchSavedVars

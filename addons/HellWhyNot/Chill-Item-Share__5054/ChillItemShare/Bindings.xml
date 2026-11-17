@@ -1,0 +1,1 @@
+<Bindings><Layer name="SI_KEYBINDINGS_LAYER_GENERAL"><Category name="Chill Item Share"><Action name="CHILL_ITEM_SHARE_OPEN"><Down>ChillItemShare.Toggle()</Down></Action><Action name="CHILL_ITEM_SHARE_POST"><Down>ChillItemShare.Post()</Down></Action></Category></Layer></Bindings>

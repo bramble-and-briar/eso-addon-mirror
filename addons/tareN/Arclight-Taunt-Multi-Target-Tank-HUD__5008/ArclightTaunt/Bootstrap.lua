@@ -1,4 +1,4 @@
--- Arclight Taunt 1.2.0 | Bootstrap module
+-- Arclight Taunt 1.3.0 | Bootstrap module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -114,6 +114,9 @@ local function OnLoaded(_, name)
     A.saved.settingsVersion = math.max(tonumber(A.saved.settingsVersion) or 0, 1000)
     -- The old pulse option was removed: no dangling UI state is needed.
     A.saved.pulseDanger = nil
+    A.saved.showStunWarning = nil -- retired, unreleased experiments
+    A.saved.urgencyCues = nil
+    A.saved.showUnconfirmedReticle = A.saved.showUnconfirmedReticle == true
     A.saved.x = FiniteBoundedNumber(A.saved.x, defaults.x, -10000, 10000)
     A.saved.y = FiniteBoundedNumber(A.saved.y, defaults.y, -10000, 10000)
     A.saved.columns = (A.saved.columns == 2) and 2 or 1
@@ -220,6 +223,7 @@ local function OnLoaded(_, name)
         if type(A.saved[key]) ~= "string" or A.saved[key] == "" then A.saved[key] = defaults[key] end
     end
     A.inCombat = type(IsUnitInCombat) == "function" and IsUnitInCombat("player") == true or false
+    A.ApplyPalette(false)
     A.MakeUI()
     A.ApplyMedia()
     A.MakeSettings()
@@ -242,6 +246,7 @@ local function OnLoaded(_, name)
     end
     EM:RegisterForEvent(ADDON .. "_Combat", EVENT_PLAYER_COMBAT_STATE, A.CombatChanged)
     EM:RegisterForEvent(ADDON .. "_Reticle", EVENT_RETICLE_TARGET_CHANGED, A.ReticleChanged)
+    A.ConfigureTargetMarkerEvents()
     if EVENT_RETICLE_HIDDEN_UPDATE then
         EM:RegisterForEvent(ADDON .. "_ReticleVisibility", EVENT_RETICLE_HIDDEN_UPDATE, A.ReticleVisibilityChanged)
     end
@@ -254,6 +259,8 @@ local function OnLoaded(_, name)
     EM:RegisterForEvent(ADDON .. "_ReticleDeath", EVENT_UNIT_DEATH_STATE_CHANGED, A.ReticleDeath)
     if EVENT_BOSSES_CHANGED then
         EM:RegisterForEvent(ADDON .. "_Bosses", EVENT_BOSSES_CHANGED, function()
+            A.reticleUnitId = nil -- boss tags may now refer to different units
+            A.TargetMarkersChanged()
             A.TargetChanged()
             A.Tick()
         end)

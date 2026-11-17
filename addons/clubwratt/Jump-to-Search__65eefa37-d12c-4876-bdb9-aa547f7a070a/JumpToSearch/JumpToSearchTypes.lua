@@ -9,6 +9,7 @@
 ---@class JumpToSearchScreenTarget
 ---@field name string Short label used in logs
 ---@field sceneName string Scene whose SHOWING/HIDDEN states gate the action layer
+---@field hooked boolean|nil Set once the scene's state changes are subscribed to
 ---@field getScreen fun(): table|nil Resolves the live screen object (global may not exist at load)
 ---@field getList fun(screen: table): table|nil Resolves the list the header hands focus back to
 

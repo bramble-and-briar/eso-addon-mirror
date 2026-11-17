@@ -8,6 +8,10 @@
   "category_id": "114",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -22,7 +26,7 @@
     "PersonalityDesigner"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5014/",
-  "fingerprint": "b6b0fd16bfff35e694ff8387c84e85fe8e5d25834dd1d715abb4de8bc16e8e39",
+  "fingerprint": "27f4e144119d763d2bf7de5c8cfa4813651fd4f9441beb306a3a8bbc88e4d8c1",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18273.png"
   ],
@@ -32,11 +36,11 @@
   "source_id": "5014",
   "source_url": "https://www.esoui.com/downloads/info5014-PersonalityDesigner-Updated.html",
   "stats": {
-    "downloads": 35,
-    "favorites": 0,
-    "monthly_downloads": 28
+    "downloads": 127,
+    "favorites": 2,
+    "monthly_downloads": 124
   },
   "title": "Personality Designer - Updated",
-  "updated_at": 1793571720000,
-  "version": "3.0.1"
+  "updated_at": 1794837751000,
+  "version": "3.0.2"
 }

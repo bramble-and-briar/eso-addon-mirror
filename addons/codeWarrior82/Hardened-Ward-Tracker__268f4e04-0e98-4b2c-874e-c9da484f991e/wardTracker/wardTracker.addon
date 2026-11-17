@@ -1,7 +1,7 @@
 ## Title: Hardened Ward Tracker
 ## Author: CodeWarrior82
 ## Description: Tracks the shield buff from Hardened Ward
-## APIVersion: 101050
+## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=42 LibChatMessage
 ## SavedVariables: wardTrackAddonVars
 

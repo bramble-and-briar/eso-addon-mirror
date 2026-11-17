@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/emundus/ShowTooltip---by-Emundus__5061",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "emundus",
+  "canonical_id": "esoui:5061",
+  "category_id": "98",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5061",
+  "deleted": false,
+  "directories": [
+    "ShowTooltip"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5061/",
+  "fingerprint": "3a19da8f31007a27358fd79ec6f2fac96f945dff1ac28f84bb80a9020db68c12",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18528.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18527.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5061",
+  "source_url": "https://www.esoui.com/downloads/info5061-ShowTooltip-byEmundus.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 1,
+    "monthly_downloads": 0
+  },
+  "title": "ShowTooltip - by Emundus",
+  "updated_at": 1794902412000,
+  "version": "1.0.0"
+}

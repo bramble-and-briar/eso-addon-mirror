@@ -1,0 +1,20 @@
+## Title: Furniture Finder Lite
+## Author: clubwratt
+## Version: 1.0.1
+## AddOnVersion: 10001
+## APIVersion: 101050 101051
+## Description: Adds where a furnishing comes from to its tooltip: merchant, location, price, required achievement, event, plan. A light take on Furniture Finder by @Aldimar77, on the Furniture Catalogue database by wookiefriseur, manavortex and contributors, packed to use a fraction of the memory. Gamepad UI.
+## SavedVariables: FurnitureFinderLiteSavedVars
+## OptionalDependsOn: LibConsoleLogger FurnitureFinder
+## ProdId: db56a562-b091-41ec-b9e7-80b4523c8a69
+
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+
+FurnitureFinderLite.lua
+FurnitureFinderLiteData.lua
+FurnitureFinderLiteTypes.lua
+FurnitureFinderLiteDataUtils.lua
+FurnitureFinderLiteLinesUtils.lua
+FurnitureFinderLiteLinesActions.lua
+FurnitureFinderLiteTooltipActions.lua
+FurnitureFinderLiteMain.lua

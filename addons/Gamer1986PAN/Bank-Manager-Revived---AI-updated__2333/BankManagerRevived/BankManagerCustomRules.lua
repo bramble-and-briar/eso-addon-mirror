@@ -1,7 +1,7 @@
 -- BankManagerCustomRules.lua
 -- Centralized custom-item and filter-based rule management for BankManagerRevived.
 -- Loaded after BankManager.lua and BankManagerRules.lua; runtime state is supplied via BMR.CustomRulesContext.
-BMR = BMR or {}
+local BMR = BMR -- Baertram: use the namespace initialized by BankManager.lua
 BMR.CustomRules = BMR.CustomRules or {}
 local C = BMR.CustomRules
 local function Context() return BMR.CustomRulesContext or {} end
@@ -232,7 +232,13 @@ local function ItemHasTagText(itemLink, query)
 end
 
 local function GetCustomFilterProperty(itemLink, field)
-	if field == "quality" then return SafeGetItemLinkValue("GetItemLinkQuality", itemLink) end
+	if field == "quality" then
+		local api = BMR and BMR.GetItemLinkQuality
+		if type(api) ~= "function" then return nil end
+		local ok, quality = pcall(api, itemLink)
+		if ok then return quality end
+		return nil
+	end
 	if field == "equipType" then return SafeGetItemLinkValue("GetItemLinkEquipType", itemLink) end
 	if field == "armorType" then return SafeGetItemLinkValue("GetItemLinkArmorType", itemLink) end
 	if field == "weaponType" then return SafeGetItemLinkValue("GetItemLinkWeaponType", itemLink) end

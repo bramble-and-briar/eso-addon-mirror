@@ -31,7 +31,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BanditsUserInterfaceZHPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/BanditsUserInterfaceZHPatch__3909) | FusRoDah | PC / Mac | 4.413 |
 | [Bank balancer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/Bank-balancer__2066) | Ek1 | PC / Mac | 4.0-180709 |
 | [Bank Data Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jreid01/Bank-Data-Exporter__3825) | jreid01 | PC / Mac | 1.0.3.1 |
-| [Bank Manager Revived - AI updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer1986PAN/Bank-Manager-Revived---AI-updated__2333) | Gamer1986PAN | PC / Mac | 16.00 |
+| [Bank Manager Revived - AI updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer1986PAN/Bank-Manager-Revived---AI-updated__2333) | Gamer1986PAN | PC / Mac | 16.02 |
 | [Bank Stacker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Bank-Stacker__1837) | Dolgubon | PC / Mac | 1.1.1 |
 | [Banker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/Banker__362) | Nols1000 | PC / Mac | 1.6 |
 | [Banker Shutup](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mctaylor/Banker-Shutup__869) | mctaylor | PC / Mac | 3.5c |
@@ -49,6 +49,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [batmaans Reconstructed Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/batmaan/batmaans-Reconstructed-Filter__3541) | batmaan | PC / Mac | 1.0 |
 | [Batman's Home and Out](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irniben/Batman-s-Home-and-Out__3503) | Irniben | PC / Mac | 1.0.0 |
 | [Battery Charger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Estrela/Battery-Charger__2902) | Estrela | PC / Mac | 1.1 |
+| [Battle Ground Rating (BGR)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m1lkst3ak/Battle-Ground-Rating-BGR__b6cb7ba1-4505-427c-811d-0a008aeb4e79) | m1lkst3ak | Console | — |
 | [Battle Scrolls - Combat Stats & DPS Tracking](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Semigroup1329/Battle-Scrolls---Combat-Stats-DPS-Tracking__ec9ce729-a472-4150-8f3c-1df05a369ad0) | Semigroup1329 | Console | — |
 | [Battle Scrolls Name Colors](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BLKx777/Battle-Scrolls-Name-Colors__92b1ef68-e576-4bf5-9ffe-f636c9d1c36f) | BLKx777 | Console | — |
 | [Battle Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Battle-Stats__fda40288-dadf-45a1-a4c5-005fa0319b93) | SugaComa | Console | — |

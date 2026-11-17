@@ -1,0 +1,14 @@
+## Title: |cFF66F3Chill Item Share|r
+## Description: Share clickable item links from inventory, storage and placed house furnishings.
+## Author: HellWhyNot
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101051
+## DependsOn: LibCustomMenu>=730 LibAddonMenu-2.0>=43
+## SavedVariables: InventoryLinkerSaved
+ChillItemShare.lua
+Housing.lua
+Chat.lua
+Review.xml
+Review.lua
+Bindings.xml

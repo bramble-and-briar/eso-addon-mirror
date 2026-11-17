@@ -1,4 +1,4 @@
--- Arclight Taunt 1.2.0 | Tracking module
+-- Arclight Taunt 1.3.0 | Tracking module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
@@ -7,7 +7,77 @@ local MAX_TRACKED_TARGETS = A.MAX_TRACKED_TARGETS
 local Now = A.Now
 local TAUNT_IDS = A.TAUNT_IDS
 local TAUNT_TIME_EPSILON = 0.01
+-- Conservative signed-32-bit millisecond envelope for native cooldown/size
+-- durations (over 24 days), not an assumed gameplay taunt duration.
+local MAX_NATIVE_SECONDS = 2147483
+local function FiniteNumber(value)
+    return type(value) == "number" and value == value and value > -math.huge and value < math.huge
+end
+local function ValidTauntRange(beginTime, endTime, now)
+    if not FiniteNumber(beginTime) or not FiniteNumber(endTime) then return false end
+    local duration, remaining = endTime - beginTime, endTime - now
+    return duration > 0 and duration <= MAX_NATIVE_SECONDS
+        and remaining > 0 and remaining <= MAX_NATIVE_SECONDS
+end
 local playerTargetIds, playerTargetCount = {}, 0
+-- Marker metadata is display-only. A unitTag in the SAME effect event as the
+-- unitId, or a still-proven reticle identity, can attach it to an exact row.
+-- Names and timer-based focus matches are deliberately insufficient.
+local function ObserveTargetMarker(target, unitTag)
+    if not A.saved.showTargetMarkers then return false end
+    if type(unitTag) ~= "string" or unitTag == "" or not DoesUnitExist(unitTag) then
+        -- Follow-up effect events may omit their usable unitTag. The current
+        -- reticle is still safe only when its prior direct event identity
+        -- belongs to this exact live record; timer-based focus is not proof.
+        if A.reticleUnitId ~= target.unitId or A.targets[target.unitId] ~= target
+            or not DoesUnitExist("reticleover") then return false end
+        unitTag = "reticleover"
+    end
+    local marker, texture
+    if EVENT_TARGET_MARKER_UPDATE and type(GetUnitTargetMarkerType) == "function"
+        and type(ZO_GetPlatformTargetMarkerIcon) == "function" then
+        marker = GetUnitTargetMarkerType(unitTag)
+        if type(marker) == "number" and marker ~= TARGET_MARKER_TYPE_NONE then
+            texture = ZO_GetPlatformTargetMarkerIcon(marker)
+        end
+    end
+    if type(texture) ~= "string" or texture == "" then marker, texture = nil, nil end
+    local changed = target.targetMarker ~= marker or target.targetMarkerTexture ~= texture
+    target.targetMarker, target.targetMarkerTexture = marker, texture
+    return changed
+end
+
+function A.TargetMarkersChanged()
+    if not A.saved.showTargetMarkers or not next(A.targets) then return end
+    -- This event has NO unit payload. Invalidate unseen rows too: another
+    -- player may have reassigned any mark. Hide uncertainty instead of
+    -- retaining a plausible but incorrect symbol on an offscreen enemy.
+    for _, target in pairs(A.targets) do target.targetMarker, target.targetMarkerTexture = nil, nil end
+    local identified = A.reticleUnitId and A.targets[A.reticleUnitId]
+    if identified and not identified.dead then ObserveTargetMarker(identified, "reticleover") end
+    A.RequestEffectTick(true)
+end
+
+function A.ConfigureTargetMarkerEvents()
+    local event = EVENT_TARGET_MARKER_UPDATE
+    if not event then return end
+    local enabled = A.saved.showTargetMarkers and type(GetUnitTargetMarkerType) == "function"
+        and type(ZO_GetPlatformTargetMarkerIcon) == "function"
+    if A.targetMarkerEventEnabled == not not enabled then return end
+    A.targetMarkerEventEnabled = not not enabled
+    if enabled then A.EM:RegisterForEvent(A.ADDON .. "_TargetMarkers", event, A.TargetMarkersChanged)
+    else A.EM:UnregisterForEvent(A.ADDON .. "_TargetMarkers", event) end
+end
+
+function A.SetTargetMarkersEnabled(enabled)
+    if type(enabled) ~= "boolean" then return end
+    A.saved.showTargetMarkers = enabled
+    A.ConfigureTargetMarkerEvents()
+    for _, target in pairs(A.targets) do target.targetMarker, target.targetMarkerTexture = nil, nil end
+    local identified = A.reticleUnitId and A.targets[A.reticleUnitId]
+    if enabled and identified and not identified.dead then ObserveTargetMarker(identified, "reticleover") end
+    A.Tick()
+end
 -- Event sourceType describes the caster, never the affected target. Only a
 -- currently valid unit tag can establish player/NPC type for this exact ID.
 local function ObservePlayerTarget(key, unitTag)
@@ -125,6 +195,10 @@ local function CreateDemo(count, keepRoster, startedAt)
             name = sample.name, unitId = "demo" .. i,
             startTime = startTime, endTime = startTime + DEMO_TAUNT_SECONDS,
             order = i, isBoss = sample.isBoss,
+            -- Synthetic examples only; no game marker is placed or read.
+            targetMarkerTexture = type(ZO_GetPlatformTargetMarkerIcon) == "function"
+                and ((i == 2 and TARGET_MARKER_TYPE_TWO and ZO_GetPlatformTargetMarkerIcon(TARGET_MARKER_TYPE_TWO))
+                    or (i == 4 and TARGET_MARKER_TYPE_ONE and ZO_GetPlatformTargetMarkerIcon(TARGET_MARKER_TYPE_ONE))) or nil,
             demoStarts = starts, demoApplication = 1,
         }
         lastEnd = math.max(lastEnd, starts[#starts] + DEMO_TAUNT_SECONDS)
@@ -383,6 +457,7 @@ local function TargetChanged()
     local bossFilter = A.saved.reticleStyle ~= "off" and A.saved.reticleBossOnly
         and A.inCombat
     if identified then
+        ObserveTargetMarker(identified, "reticleover")
         -- Direct identity already resolves focus; timing guesses need no buff
         -- scan here. Boss observation still follows the current valid unit tag.
         if A.activeTarget or bossFilter then A.ObserveBoss(identified, "reticleover") end
@@ -418,8 +493,7 @@ local function TargetChanged()
             -- A supported own effect on this unit is sufficient for the small
             -- indicator, even when identical timers cannot identify a list row.
             -- Keep this observation out of combat records and boss warnings.
-            if observeReticle and beginTime <= now and endTime > now and beginTime > -math.huge
-                and endTime < math.huge and endTime > beginTime
+            if observeReticle and beginTime <= now and ValidTauntRange(beginTime, endTime, now)
                 and (not A.reticleTaunt or endTime < A.reticleTaunt.endTime) then
                 local observation = A.reticleObservation or {}
                 A.reticleObservation = observation
@@ -499,6 +573,35 @@ local function MakeSpaceForTrackedTarget(now)
     return false -- do not evict an active taunt in order to accept another
 end
 
+local function ReticleContextContradicts(key, unitTag, beginTime, endTime, abilityId, sourceType, now, previous)
+    if unitTag ~= "reticleover" or A.reticleUnitId == key or sourceType ~= COMBAT_UNIT_TYPE_PLAYER
+        or not ValidTauntRange(beginTime, endTime, now) or beginTime <= 0
+        or not DoesUnitExist("reticleover") or type(GetNumBuffs) ~= "function"
+        or type(GetUnitBuffInfo) ~= "function" then return false end
+    -- A queued effect can carry a dynamic tag after the aim point changed.
+    -- Different currently visible own-taunt timing is a contradiction, not
+    -- permission to identify any other record from that timing. No visible
+    -- own effect is inconclusive (new effects may not be visible yet).
+    local hasOwnTaunt = false
+    for i = 1, GetNumBuffs("reticleover") or 0 do
+        local _, currentBegin, currentEnd, _, _, _, _, _, _, _, currentAbility, _, own =
+            GetUnitBuffInfo("reticleover", i)
+        if own == true and TAUNT_IDS[currentAbility] and ValidTauntRange(currentBegin, currentEnd, now)
+            and currentBegin <= now then
+            hasOwnTaunt = true
+            if currentAbility == abilityId and math.abs(currentBegin - beginTime) < 0.12
+                and math.abs(currentEnd - endTime) < 0.12 then return false end
+            -- A legitimate renewal event can precede its buff-list refresh.
+            -- The same record's previous application is not a contradiction.
+            if previous and previous.sourceType == COMBAT_UNIT_TYPE_PLAYER and previous.abilityId == currentAbility
+                and ValidTauntRange(previous.startTime, previous.endTime, now)
+                and math.abs(currentBegin - previous.startTime) < 0.12
+                and math.abs(currentEnd - previous.endTime) < 0.12 then return false end
+        end
+    end
+    return hasOwnTaunt
+end
+
 local function EffectChanged(_, changeType, _, _, unitTag, beginTime, endTime,
                              _, _, _, effectType, _, _, unitName, unitId, abilityId, sourceType)
     -- Only the player and their own pet can create or alter tracked taunts.
@@ -507,7 +610,13 @@ local function EffectChanged(_, changeType, _, _, unitTag, beginTime, endTime,
     local key = tostring(unitId)
     local t = A.targets[key]
     local now = Now()
-    local isPlayer,playerTypeKnown = ObservePlayerTarget(key,unitTag)
+    local observationTag = unitTag
+    if effectType == BUFF_EFFECT_TYPE_DEBUFF
+        and (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED or changeType == EFFECT_RESULT_FULL_REFRESH)
+        and ReticleContextContradicts(key, unitTag, beginTime, endTime, abilityId, sourceType, now, t) then
+        observationTag = nil
+    end
+    local isPlayer,playerTypeKnown = ObservePlayerTarget(key,observationTag)
     if (isPlayer or (t and t.isPlayer and not playerTypeKnown)) and not A.saved.trackPlayerTargets then
         if DropPlayerTarget(key) then A.RequestEffectTick() end
         return
@@ -534,9 +643,11 @@ local function EffectChanged(_, changeType, _, _, unitTag, beginTime, endTime,
     if effectType ~= BUFF_EFFECT_TYPE_DEBUFF then return end
     if changeType ~= EFFECT_RESULT_GAINED and changeType ~= EFFECT_RESULT_UPDATED
         and changeType ~= EFFECT_RESULT_FULL_REFRESH then return end
-    if not endTime or endTime <= now then return end
+    if not FiniteNumber(endTime) or endTime <= now
+        or (beginTime ~= nil and not FiniteNumber(beginTime)) then return end
     local startKnown = type(beginTime) == "number" and beginTime > 0 and beginTime < endTime
     local startTime = startKnown and beginTime or (endTime - 15)
+    if not ValidTauntRange(startTime, endTime, now) then return end
     if t and t.startKnown ~= false and startKnown then
         if startTime < t.startTime - TAUNT_TIME_EPSILON then return end
     end
@@ -568,8 +679,9 @@ local function EffectChanged(_, changeType, _, _, unitTag, beginTime, endTime,
     -- Accurate on events where ESO identifies the affected unit as bossN,
     -- or where a reticle unit is confirmed to equal an exposed boss tag.
     if playerTypeKnown or isPlayer then t.isPlayer=isPlayer end
-    A.ObserveBoss(t, unitTag)
-    ObserveReticleIdentity(key, unitTag)
+    A.ObserveBoss(t, observationTag)
+    observationChanged = ObserveTargetMarker(t, observationTag) or observationChanged
+    ObserveReticleIdentity(key, observationTag)
     observationChanged = observationChanged or oldReticleId ~= A.reticleUnitId
         or oldBoss ~= t.isBoss or oldDifficulty ~= t.bossDifficulty or oldPlayer ~= t.isPlayer
     t.expiredAt = nil -- re-taunt immediately removes the red lost marker

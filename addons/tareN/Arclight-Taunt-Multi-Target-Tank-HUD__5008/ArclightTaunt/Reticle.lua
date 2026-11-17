@@ -1,9 +1,12 @@
--- Arclight Taunt 1.2.0 | Optional screen-space taunt indicator
+-- Arclight Taunt 1.3.0 | Optional screen-space taunt indicator
 local A = ArclightTaunt
-local RING = "ArclightTaunt/Textures/ArclightReticleRing.dds"
-local OUTLINE = "ArclightTaunt/Textures/ArclightReticleOutline.dds"
+local MASK = "ArclightTaunt/Textures/ArclightReticleMask.dds"
+local DISC = "ArclightTaunt/Textures/ArclightReticleDisc.dds"
+local UNCONFIRMED = "ArclightTaunt/Textures/ArclightReticleUnconfirmed.dds"
 local C, SetHidden = A.C, A.SetHidden
 local LinearEase = ZO_LinearEase or function(progress) return progress end
+local APPEARANCE_MS, APPEARANCE_ALPHA = 120, 0.72
+local MASK_HOLE, DISC_RADIUS, RING_RADIUS, RIM_WIDTH = 16, 26, 26, 2
 
 local profileFields = {size = "reticleSize", x = "reticleOffsetX", y = "reticleOffsetY", opacity = "reticleTrackOpacity"}
 local profileDefaults = {
@@ -112,7 +115,32 @@ function A.ReticleVisibilityChanged()
     A.RefreshUpdateState()
 end
 
+local function StopAppearance(r)
+    if r.appearanceAnimating then
+        r.appearanceAnimating = false
+        r.appearanceTimeline:Stop()
+        r.root:SetAlpha(1)
+    end
+end
+
+local function StartAppearance(r)
+    if not r.appearanceTimeline then
+        r.appearanceTimeline = ANIMATION_MANAGER:CreateTimeline()
+        r.appearanceAnimation = r.appearanceTimeline:InsertAnimation(ANIMATION_ALPHA, r.root, 0)
+        r.appearanceAnimation:SetEasingFunction(LinearEase)
+        r.appearanceAnimation:SetDuration(APPEARANCE_MS)
+        r.appearanceAnimation:SetAlphaValues(APPEARANCE_ALPHA, 1)
+        r.appearanceTimeline:SetHandler("OnStop", function()
+            -- Appearance never owns visibility, target identity or a deadline.
+            r.appearanceAnimating = false
+        end)
+    end
+    r.appearanceAnimating = true
+    r.appearanceTimeline:PlayFromStart()
+end
+
 local function Stop(r)
+    StopAppearance(r)
     if r.running then
         r.running = false
         r.circle:ResetCooldown()
@@ -121,6 +149,38 @@ local function Stop(r)
     r.startTime, r.endTime, r.target, r.paused = nil, nil, nil, nil
     SetHidden(r.circle, true)
     SetHidden(r.fill, true)
+end
+
+local function ShowUnconfirmed(r, show)
+    local symbol = show and A.saved.showUnconfirmedReticle == true
+    if r.unconfirmedShown == show and r.shownStyle == r.style and r.unconfirmedVisible == symbol then return end
+    r.unconfirmedShown, r.shownStyle, r.unconfirmedVisible = show, r.style, symbol
+    SetHidden(r.unconfirmed, not symbol)
+    SetHidden(r.ringOutline, show or r.style ~= "circle")
+    SetHidden(r.ringTrack, show or r.style ~= "circle")
+    SetHidden(r.barOutline, show or r.style ~= "bar")
+    SetHidden(r.barTrack, show or r.style ~= "bar")
+end
+
+local function RingGeometry(r, weight)
+    if r.style ~= "circle" or (r.ringWeight == weight and r.ringSize == r.size) then return end
+    weight = A.FiniteBoundedNumber(weight, A.defaults.reticleRingWeight, 2, 8)
+    if r.ringWeight == weight and r.ringSize == r.size then return end
+    local inner, outer = RING_RADIUS - weight / 2, RING_RADIUS + weight / 2
+    local function Band(mask, control, innerRadius, outerRadius)
+        -- The AA mask supplies the transparent hole, the AA disc its outer
+        -- edge. Relative native anchors follow dragging/inherited UI scale.
+        -- BASIC masking needs no screen-space clip, shader threshold or tick.
+        local maskSize, discSize = r.size * innerRadius / MASK_HOLE, r.size * outerRadius / DISC_RADIUS
+        mask:SetDimensions(maskSize, maskSize)
+        control:SetDimensions(discSize, discSize)
+    end
+    Band(r.circleMask, r.circle, inner, outer)
+    Band(r.trackMask, r.ringTrack, inner, outer)
+    Band(r.rimInnerMask, r.rimInner, inner - RIM_WIDTH, inner)
+    Band(r.rimOuterMask, r.rimOuter, outer, outer + RIM_WIDTH)
+    r.ringInner, r.ringOuter = inner, outer
+    r.ringWeight, r.ringSize = weight, r.size
 end
 
 function A.SaveReticlePosition()
@@ -273,12 +333,33 @@ local function Create()
     root:SetDrawTier(DT_HIGH)
     root:SetMouseEnabled(false)
     root:SetClampedToScreen(true)
-    local r = {root = root}
-    r.ringWeight = 5
-    r.ringOutline = A.Solid(root, {0.015, 0.02, 0.025, 0.95})
-    r.ringOutline:SetTexture(OUTLINE)
-    r.ringTrack = A.Solid(root, {0.53, 0.58, 0.61, 1})
-    r.ringTrack:SetTexture(RING)
+    local r = {root = root, ringMasksReady = true}
+    local function Mask(parent)
+        local mask = A.WM:CreateControl(nil, parent, CT_CONTROL)
+        mask:SetMouseEnabled(false)
+        mask:SetAnchor(CENTER, parent, CENTER, 0, 0)
+        if mask.SetPixelRoundingEnabled then mask:SetPixelRoundingEnabled(false) end
+        if CONTROL_MASK_MODE_BASIC ~= nil and type(mask.SetMaskMode) == "function"
+            and type(mask.SetMaskTexture) == "function" then
+            mask:SetMaskMode(CONTROL_MASK_MODE_BASIC)
+            mask:SetMaskTexture(MASK)
+        else
+            r.ringMasksReady = false
+        end
+        return mask
+    end
+    local function Disc(control, parent)
+        control:SetTexture(DISC)
+        control:SetAnchor(CENTER, parent, CENTER, 0, 0)
+        if control.SetPixelRoundingEnabled then control:SetPixelRoundingEnabled(false) end
+        return control
+    end
+    r.ringOutline = A.WM:CreateControl(nil, root, CT_CONTROL)
+    r.rimInnerMask, r.rimOuterMask = Mask(r.ringOutline), Mask(r.ringOutline)
+    r.rimInner = Disc(A.Solid(r.rimInnerMask, {0.015, 0.02, 0.025, 0.95}), r.rimInnerMask)
+    r.rimOuter = Disc(A.Solid(r.rimOuterMask, {0.015, 0.02, 0.025, 0.95}), r.rimOuterMask)
+    r.trackMask = Mask(root)
+    r.ringTrack = Disc(A.Solid(r.trackMask, {0.53, 0.58, 0.61, 1}), r.trackMask)
     -- A frame must have a transparent interior. A larger solid rectangle
     -- underneath the track defeats its opacity control even at zero alpha.
     r.barOutline = A.WM:CreateControl(nil, root, CT_CONTROL)
@@ -293,8 +374,8 @@ local function Create()
     r.barTrack = A.Solid(root, {1, 1, 1, 1})
     -- Half-unit thickness must reach the track/outline as well as the fill.
     if r.barTrack.SetPixelRoundingEnabled then r.barTrack:SetPixelRoundingEnabled(false) end
-    r.circle = A.WM:CreateControl(nil, root, CT_COOLDOWN)
-    r.circle:SetTexture(RING)
+    r.circleMask = Mask(root)
+    r.circle = Disc(A.WM:CreateControl(nil, r.circleMask, CT_COOLDOWN), r.circleMask)
     r.circle:SetRadialCooldownClockwise(true)
     r.circle:SetRadialCooldownOriginAngle(0)
     r.fill = A.Solid(root, {1, 1, 1, 1})
@@ -312,12 +393,24 @@ local function Create()
     r.barOutline:SetDrawLayer(DL_BACKGROUND)
     r.ringOutline:SetDrawLevel(1)
     r.barOutline:SetDrawLevel(1)
+    r.rimInner:SetDrawLayer(DL_BACKGROUND)
+    r.rimOuter:SetDrawLayer(DL_BACKGROUND)
+    r.rimInner:SetDrawLevel(1)
+    r.rimOuter:SetDrawLevel(1)
     r.ringTrack:SetDrawLayer(DL_CONTROLS)
     r.barTrack:SetDrawLayer(DL_CONTROLS)
     r.circle:SetDrawLayer(DL_OVERLAY)
     r.fill:SetDrawLayer(DL_OVERLAY)
     r.lightEdge:SetDrawLayer(DL_OVERLAY)
     r.lightEdge:SetDrawLevel(1)
+    -- One static alpha glyph replaces the empty countdown, never its evidence.
+    -- Neutral ivory avoids claiming a red alert or another tank's taunt state.
+    r.unconfirmed = A.Solid(root, {1, 1, 1, 1})
+    r.unconfirmed:SetTexture(UNCONFIRMED)
+    r.unconfirmed:SetDrawLayer(DL_OVERLAY)
+    r.unconfirmed:SetDrawLevel(2)
+    r.unconfirmed:SetAnchor(CENTER, root, CENTER, 0, 0)
+    SetHidden(r.unconfirmed, true)
     -- A generous edit-only hit area makes a thin marker easy to grab. Native
     -- moving handles motion; the normal tick never reanchors an active drag.
     r.moveTint = A.Solid(root, {0.02, 0.03, 0.04, 0.8})
@@ -359,7 +452,6 @@ local function Layout(r)
     r.root:SetAnchor(CENTER, GuiRoot, CENTER, saved.reticleOffsetX, saved.reticleOffsetY)
     r.root:SetDimensions(width, height)
     r.ringOutline:SetAnchorFill(r.root)
-    r.ringTrack:SetAnchorFill(r.root)
     r.barOutline:ClearAnchors()
     r.barOutline:SetAnchor(TOPLEFT, r.root, TOPLEFT, -1, -1)
     r.barOutline:SetDimensions(width + 2, height + 2)
@@ -370,11 +462,8 @@ local function Layout(r)
         edge:SetDimensions(i <= 2 and width + 2 or 1, i <= 2 and 1 or height)
     end
     r.barTrack:SetAnchorFill(r.root)
-    SetHidden(r.ringOutline, not circle)
-    SetHidden(r.ringTrack, not circle)
-    SetHidden(r.barOutline, circle)
-    SetHidden(r.barTrack, circle)
-    r.circle:SetAnchorFill(r.root)
+    local markSize = A.Clamp(size * 0.75, 20, 28)
+    r.unconfirmed:SetDimensions(markSize, markSize)
     r.fill:ClearAnchors()
     r.fill:SetAnchor(TOPLEFT, r.root, TOPLEFT, 0, 0)
     r.fill:SetHeight(height)
@@ -388,6 +477,7 @@ local function Layout(r)
     r.style, r.size, r.offset = saved.reticleStyle, size, saved.reticleOffsetY
     r.offsetX, r.barHeight = saved.reticleOffsetX, saved.reticleBarHeight
     r.width, r.height = width, height
+    RingGeometry(r, saved.reticleRingWeight)
     return true
 end
 
@@ -461,16 +551,28 @@ function A.UpdateReticleIndicator(now)
         end
         return
     end
+    local target = A.reticleTaunt
+    local moving = A.IsReticleMoving()
+    local preview = A.reticlePreview == true
+    local confirmed = target and not target.dead and target.expiredAt == nil and target.endTime > now
+    if not preview and not moving and A.saved.showUnconfirmedReticle ~= true and not confirmed then
+        -- With the optional hint off, aiming at an unconfirmed target needs
+        -- no visual controls. Existing observation still finds a later taunt.
+        if r then
+            A.SetReticleMoving(false); ShowUnconfirmed(r, true); Stop(r); SetHidden(r.root, true)
+            UpdatePreviewCrosshair(r, false)
+        end
+        return
+    end
     r = r or Create()
     UpdatePreviewCrosshair(r, A.reticlePreview == true or A.IsReticleMoving())
     Layout(r)
-    if r.style == "circle" and r.ringWeight ~= A.saved.reticleRingWeight then
-        local weight = A.saved.reticleRingWeight
-        local suffix = weight == 5 and "" or string.format("%02d", weight * 2)
-        r.ringTrack:SetTexture("ArclightTaunt/Textures/ArclightReticleRing" .. suffix .. ".dds")
-        r.ringOutline:SetTexture("ArclightTaunt/Textures/ArclightReticleOutline" .. suffix .. ".dds")
-        r.circle:SetTexture("ArclightTaunt/Textures/ArclightReticleRing" .. suffix .. ".dds")
-        r.ringWeight = weight
+    RingGeometry(r, A.saved.reticleRingWeight)
+    if r.style == "circle" and not r.ringMasksReady then
+        -- Unsupported masking must never expose a filled disc over the aim.
+        Stop(r)
+        SetHidden(r.root, true)
+        return
     end
     if r.trackOpacity ~= A.saved.reticleTrackOpacity then
         local alpha = A.saved.reticleTrackOpacity / 100
@@ -480,9 +582,6 @@ function A.UpdateReticleIndicator(now)
         r.trackOpacity = A.saved.reticleTrackOpacity
     end
     A.SetReticleMoving(A.IsReticleMoving())
-    local target = A.reticleTaunt
-    local moving = A.IsReticleMoving()
-    local preview = A.reticlePreview == true
     if preview or moving then
         -- One reusable sample, never inserted into real/demo lists. Explicit
         -- preview runs on its own clock, even while list preview is paused.
@@ -504,10 +603,30 @@ function A.UpdateReticleIndicator(now)
         target = r.previewTarget
         target.startTime, target.endTime = startTime, endTime
     end
+    local unconfirmed = not target or target.dead or target.expiredAt ~= nil or target.endTime <= now
+    ShowUnconfirmed(r, unconfirmed)
+    if unconfirmed then
+        Stop(r)
+        -- The guide is independent of root visibility. Placement may retain
+        -- its label/hit surface while the actual indicator is empty/hidden.
+        SetHidden(r.root, A.saved.showUnconfirmedReticle ~= true and not moving)
+        return
+    end
     SetHidden(r.root, false)
-    if not target or target.dead or target.expiredAt or target.endTime <= now then Stop(r); return end
     local remaining = target.endTime - now
     local duration = math.max(0.001, target.endTime - target.startTime)
+    if r.style == "circle" and r.circle.SetRadialCooldownGradient then
+        -- ESO's native angular fade needs no second mask or frame callback.
+        -- Warning/urgent arcs retain the flat, fully legible native fill;
+        -- a short remaining arc must not disappear inside a decorative taper.
+        local tapered = remaining > A.saved.warningAt
+        if r.radialTaper ~= tapered then
+            -- Fade into the opaque body, rather than Tel Var's 1->0 edge-only
+            -- highlight. A positive subpixel span keeps short urgent arcs clear.
+            r.circle:SetRadialCooldownGradient(0, tapered and math.pi / 6 or 0.001)
+            r.radialTaper = tapered
+        end
+    end
     local color = remaining <= A.saved.dangerAt and C.danger or (remaining <= A.saved.warningAt and C.warning or C.safe)
     if r.color ~= color then
         r.circle:SetFillColor(color[1], color[2], color[3], 1)
@@ -518,8 +637,12 @@ function A.UpdateReticleIndicator(now)
         r.color = color
     end
     local paused = moving and not preview
+    -- Urgent states, placement and reduced motion are immediately opaque.
+    if paused or A.saved.reduceAnimations or remaining <= A.saved.warningAt then StopAppearance(r) end
     if r.running and r.target == target and r.startTime == target.startTime and r.endTime == target.endTime
         and r.paused == paused then return end
+    local showEntrance = not paused and not A.saved.reduceAnimations and remaining > A.saved.warningAt
+        and (not r.running or r.target ~= target)
     Stop(r)
     r.target, r.startTime, r.endTime, r.paused = target, target.startTime, target.endTime, paused
     r.running = true
@@ -558,4 +681,5 @@ function A.UpdateReticleIndicator(now)
             r.timeline:PlayFromStart()
         end
     end
+    if showEntrance then StartAppearance(r) end
 end

@@ -1,4 +1,4 @@
--- Arclight Taunt 1.2.0 | BossAlerts module
+-- Arclight Taunt 1.3.0 | BossAlerts module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local ALERT_BATCH_SECONDS = A.ALERT_BATCH_SECONDS
@@ -7,10 +7,14 @@ local ALERT_SOUND_COOLDOWN = A.ALERT_SOUND_COOLDOWN
 local Clamp = A.Clamp
 local Now = A.Now
 local PREVIEW_EARLY_DELAY = 1.0
-local REVEAL_SECONDS = 0.32
-local function SmoothStep(value)
+local REVEAL_SECONDS = 0.28
+local function SettleEase(value)
     local t = Clamp(value, 0, 1)
-    return t * t * (3 - 2 * t)
+    return t * t * t * (t * (t * 6 - 15) + 10)
+end
+local function ReadableEase(value)
+    local t = 1 - Clamp(value, 0, 1)
+    return 1 - t * t * t
 end
 
 local function BossVisible(t)
@@ -79,7 +83,7 @@ local function SetAlertAlpha(alert, alpha)
 end
 local function PositionBossAlert(alert)
     if not alert.root then return end
-    local y = A.saved.bossAlertOffsetY + (alert.offsetY or 0) - (alert.slidePixels or 0)
+    local y = A.saved.bossAlertOffsetY + (alert.offsetY or 0)
     if alert.anchorY ~= y then
         alert.root:ClearAnchors()
         alert.root:SetAnchor(TOP, GuiRoot, TOP, 0, y)
@@ -98,14 +102,14 @@ local function SetContentOffset(alert, offset)
 end
 
 local function SetStaticBossVisual(alert, now)
-    alert.startSlide, alert.slidePixels, alert.revealFrom = 0, 0, nil
+    alert.revealFrom = nil
     alert.fadeFrom, alert.fadeStartedAt = 1, now - (alert.fadeInSeconds or .18)
     SetContentOffset(alert, 0)
     PositionBossAlert(alert)
     SetAlertAlpha(alert, 1)
 end
 
--- Animation frames are useful only while a visible banner is moving. Keep
+-- Animation frames are useful only while a visible banner animates. Keep
 -- hidden slots detached even when decorative animations are enabled.
 local function SetBossAlertFrameUpdates(alert, enabled)
     enabled = enabled and alert.root and alert.frameHandler and true or false
@@ -270,8 +274,10 @@ local function ShowBossWarning(count, bossName, preview, kind, subjects, preview
         alert.progressUntil = alert.visibleUntil
     end
     local life = math.max(0.01, alert.visibleUntil - now)
-    alert.fadeInSeconds = kind == "early" and math.min(0.18, math.max(0.01, life * 0.25)) or 0.18
-    alert.fadeOutSeconds = kind == "early" and math.min(0.45, math.max(0.01, life * 0.35)) or 0.45
+    -- Reach readable opacity promptly, then retain it until close to the real
+    -- deadline. Short observations must not spend most of their life fading.
+    alert.fadeInSeconds = math.min(kind == "early" and 0.18 or 0.14, life * 0.25)
+    alert.fadeOutSeconds = math.min(kind == "early" and 0.12 or 0.28, life * 0.15)
     alert.revealSeconds = math.min(REVEAL_SECONDS, math.max(0.01, (alert.progressUntil - now) * 0.4))
     if merge then
         alert.fadeFrom, alert.fadeStartedAt = alert.alpha or 0, now
@@ -283,13 +289,11 @@ local function ShowBossWarning(count, bossName, preview, kind, subjects, preview
     end
     if A.saved.reduceAnimations then
         SetStaticBossVisual(alert, now)
-    elseif not merge or kind == "expired" then
-        alert.startSlide = merge and (alert.slidePixels or 0) or (alert.introSlide or 0)
-        alert.slidePixels = alert.startSlide
+    elseif not merge then
         local red = A.bossAlerts.expired
         alert.revealFrom = kind == "early" and red.visibleUntil and now < red.visibleUntil
             and -(alert.revealDistance or 64) or nil
-        alert.fadeFrom = merge and (alert.alpha or 0) or (alert.revealFrom and 1 or 0)
+        alert.fadeFrom = alert.revealFrom and 1 or 0
         alert.fadeStartedAt = now
         SetContentOffset(alert, alert.revealFrom or 0)
         SetAlertAlpha(alert, alert.fadeFrom)
@@ -451,26 +455,21 @@ local function AnimateBossAlert(alert, now)
         return
     end
     local left = alert.visibleUntil - now
-    local since = math.max(0, now - (alert.visibleFrom or now))
-    if alert.slidePixels ~= 0 then
-        local ease = 1 - (1 - Clamp(since / 0.22, 0, 1)) ^ 3
-        local slide = math.floor((alert.startSlide or 0) * (1 - ease) + 0.5)
-        if alert.slidePixels ~= slide then
-            alert.slidePixels = slide
-            PositionBossAlert(alert)
-        end
-    end
+    -- Roots stay fixed so thin borders do not resample while fading. Only the
+    -- compact content reveals beneath red; early merges keep visibleFrom.
     if alert.revealFrom then
-        local reveal = 1 - (1 - Clamp(since / alert.revealSeconds, 0, 1)) ^ 3
-        local offset = math.floor(alert.revealFrom * (1 - reveal) + 0.5)
+        local since = math.max(0, now - (alert.visibleFrom or now))
+        local reveal = SettleEase(since / alert.revealSeconds)
+        local offset = alert.revealFrom * (1 - reveal)
         SetContentOffset(alert, offset)
         if offset == 0 then alert.revealFrom = nil end
     end
     local from = alert.fadeFrom or 0
     local fadeSince = math.max(0, now - (alert.fadeStartedAt or alert.visibleFrom or now))
     local alpha = fadeSince >= alert.fadeInSeconds and 1
-        or from + (1 - from) * SmoothStep(fadeSince / alert.fadeInSeconds)
-    if left < alert.fadeOutSeconds then alpha = math.min(alpha, SmoothStep(left / alert.fadeOutSeconds)) end
+        or from + (1 - from) * ReadableEase(fadeSince / alert.fadeInSeconds)
+    -- Fade in place; moving a deadline warning away would weaken its meaning.
+    if left < alert.fadeOutSeconds then alpha = math.min(alpha, SettleEase(left / alert.fadeOutSeconds)) end
     SetAlertAlpha(alert, alpha)
     A.AnimateAlertProgress(alert, now)
 end

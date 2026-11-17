@@ -1,4 +1,4 @@
--- Arclight Taunt 1.2.0 | Media module
+-- Arclight Taunt 1.3.0 | Media module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local MEDIA_BAR_FLAT = A.MEDIA_BAR_FLAT
@@ -115,6 +115,7 @@ local function ApplyMedia()
     SetColor(A.footer, highContrast and A.C.highRow or A.C.header)
     SetColor(A.more, highContrast and A.C.white or A.C.muted)
     for kind, alert in pairs(A.bossAlerts) do
+        if A.ApplyAlertPalette then A.ApplyAlertPalette(kind, alert) end
         if alert.title then
             alert.title:SetFont(FontFor(alert.titleSize, false))
             alert.subtitle:SetFont(FontFor(alert.subtitleSize, false))

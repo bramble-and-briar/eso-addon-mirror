@@ -55,3 +55,7 @@ Insbesondere Drag-and-drop, Mausauswahlbereiche im Diagramm und Spezialdialoge s
 Die Installation im PTS aktualisiert keine PlayStation oder Xbox. Es wurde nichts hochgeladen oder veröffentlicht.
 
 Ursprüngliche Autorenangaben und Lizenzen sind im Paket erhalten.
+
+
+Version 1.7.18: Lokale Zeitdiagnose
+Den gewuenschten abgeschlossenen Kampf im Bericht oeffnen. /cmx2zeit schreibt die genauen Boss-Zielzeiten und Schadenssummen in den Chat. Bei ausgewaehlten Schadenszielen werden diese ausgegeben, sonst alle Bosse. Alternativ im Kontextmenue einer Zielzeile "Boss-Zeitdiagnose im Chat" waehlen. Ausgabe mit /sgd2status desselben Kampfes vergleichen. Keine Verbindung zwischen Add-ons, keine Aenderung an der Berechnung.

@@ -1,0 +1,34 @@
+## Title: OneCraft
+## Description: Smithing-style alchemy and enchanting selectors with an equipment planner. Developed with AI assistance.
+## Author: oneDOK
+## Version: 26.11.2
+## AddOnVersion: 261102
+## APIVersion: 101051
+## DependsOn: LibAddonMenu-2.0>=43
+## SavedVariables: OneCraftSavedVariables
+
+Core.lua
+Localization.lua
+Alchemy/Strings.lua
+Alchemy/Reagents.lua
+Alchemy/RecipeEngine.lua
+Alchemy/SolventSelector.lua
+Enchanting/Strings.lua
+Enchanting/Runes.lua
+Enchanting/RecipeEngine.lua
+Enchanting/Inventory.lua
+UI.xml
+UI.lua
+Alchemy/CraftingIntegration.lua
+Alchemy/Station.lua
+Alchemy/RecipesUI.lua
+Enchanting/CraftingIntegration.lua
+Enchanting/Station.lua
+Settings.lua
+Equipment/Model.lua
+Equipment/ItemData.lua
+Equipment/Preview.lua
+Equipment/Engine.lua
+Equipment/Crafting.lua
+Equipment/UI.lua
+Main.lua

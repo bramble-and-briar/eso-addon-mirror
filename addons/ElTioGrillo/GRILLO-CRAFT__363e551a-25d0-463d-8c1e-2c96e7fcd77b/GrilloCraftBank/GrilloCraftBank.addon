@@ -1,0 +1,9 @@
+## Title: Grillo Craft Bank
+## Author: Grillo
+## APIVersion: 101051 101052
+## Version: 0.3.0
+## AddOnVersion: 300
+## DependsOn: LibHarvensAddonSettings
+## SavedVariables: GrilloCraftBankSavedVars
+
+GrilloCraftBank.lua

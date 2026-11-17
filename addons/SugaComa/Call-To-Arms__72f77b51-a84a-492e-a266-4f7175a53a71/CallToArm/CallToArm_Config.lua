@@ -19,6 +19,7 @@ CallToArm.Config.Defaults = {
     cta = {
         representedGuildId = 0,
         representLockedUntil = 0,
+        autoAcceptCampaignEntry = false,
     },
 
     byGuild = {},

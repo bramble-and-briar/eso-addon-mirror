@@ -1,0 +1,7 @@
+<GuiXml>
+    <Controls>
+        <Control name="ChillItemShareReviewRow" virtual="true" mouseEnabled="true">
+            <Dimensions y="60" />
+        </Control>
+    </Controls>
+</GuiXml>

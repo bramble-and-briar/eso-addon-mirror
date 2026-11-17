@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/HellWhyNot/Chill-Giveaway__5054",
+  "archive_path": "addons/HellWhyNot/Chill-Item-Share__5054",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "HellWhyNot",
@@ -15,10 +15,10 @@
   "content_id": "esoui:5054",
   "deleted": false,
   "directories": [
-    "ChillGiveaway"
+    "ChillItemShare"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5054/",
-  "fingerprint": "f881f0b027631667814aa3f6fbd3f5b3d41d91181361b2f56c05c57295a9848b",
+  "fingerprint": "02bab7c292500fb3b49ce0b467928958c13dcc37982fdd2918611b2d4345da08",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18478.png"
   ],
@@ -26,13 +26,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "5054",
-  "source_url": "https://www.esoui.com/downloads/info5054-ChillGiveaway.html",
+  "source_url": "https://www.esoui.com/downloads/info5054-ChillItemShare.html",
   "stats": {
-    "downloads": 5,
+    "downloads": 12,
     "favorites": 0,
-    "monthly_downloads": 3
+    "monthly_downloads": 7
   },
-  "title": "Chill Giveaway",
-  "updated_at": 1794765197000,
-  "version": "1.0"
+  "title": "Chill Item Share",
+  "updated_at": 1794873470000,
+  "version": "2.0"
 }

@@ -1,0 +1,29 @@
+## Title: Furnishing Catalog
+## Author: clubwratt
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101050 101051
+## Description: Browse the game's furnishings by category and see each one in 3D as you scroll, the way a trader previews it. /furn opens the catalog; search by name from the box above the list; keep shopping lists and search a guild trader from them; see which furnishings have a plan and read the plan's tooltip; look a furnishing up online. Gamepad UI.
+## SavedVariables: FurnishingCatalogSavedVars
+## ConsoleDependsOn: LibHarvensAddonSettings
+## OptionalDependsOn: LibConsoleLogger JumpToSearch
+## DevId: bc6b3b76-f701-4533-9492-c50acb1783bc
+
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+
+FurnishingCatalog.xml
+FurnishingCatalog.lua
+FurnishingCatalogSeed.lua
+FurnishingCatalogTypes.lua
+FurnishingCatalogScanUtils.lua
+FurnishingCatalogScanActions.lua
+FurnishingCatalogBrowseUtils.lua
+FurnishingCatalogShoppingUtils.lua
+FurnishingCatalogPlanUtils.lua
+FurnishingCatalogSearchActions.lua
+FurnishingCatalogShoppingActions.lua
+FurnishingCatalogPlanActions.lua
+FurnishingCatalogTraderActions.lua
+FurnishingCatalogBrowseActions.lua
+FurnishingCatalogSettingsActions.lua
+FurnishingCatalogMain.lua

@@ -1,4 +1,4 @@
-ARCLIGHT TAUNT 1.2.0
+ARCLIGHT TAUNT 1.3.0
 Modernes Multi-Target-Taunt-HUD für The Elder Scrolls Online
 Autor: tareN
 Kontakt im Spiel: @uhtareN (PC/EU)
@@ -10,9 +10,10 @@ Flüssige Countdowns, Zielhervorhebung und Bosswarnungen zeigen, was als
 Nächstes Aufmerksamkeit braucht.
 
 Eine kleine Leiste oder ein Kreis am Fadenkreuz zeigt den bestätigten eigenen
-Taunt ohne Zahlen. Grau bedeutet nur: kein eigener Taunt bestätigt, nicht
-zwingend Aggroverlust. Die Anzeige ist standardmäßig aus; aktivierbar unter
-„Tauntstatus am Fadenkreuz“. Neue Konfigurationen starten beim Einschalten mit
+Taunt ohne Zahlen. Die Anzeige ist standardmäßig aus und unter „Tauntstatus am
+Fadenkreuz“ aktivierbar. Optional zeigt ein helles Symbol fehlende Bestätigung
+eines eigenen Taunts an, keinen Nachweis für fehlenden Spott oder Aggroverlust.
+Auch das Symbol ist standardmäßig aus. Neue Konfigurationen starten beim Einschalten mit
 einem mittigen Kreis; die Leiste bleibt wählbar. Die gewählte Form bleibt beim
 Ausschalten erhalten. Gespeicherte Größen und Positionen werden beibehalten.
 Beide Formen lassen sich unabhängig von der Liste platzieren.
@@ -38,8 +39,12 @@ Documents/Elder Scrolls Online/live/AddOns/
 Die Manifestdatei muss unter AddOns/ArclightTaunt/ArclightTaunt.txt liegen.
 
 UPDATE
-Addonordner ersetzen und SavedVariables behalten, damit deine Einstellungen
-erhalten bleiben.
+ESO beenden, Addondateien ersetzen und ESO wieder starten.
+SavedVariables behalten, damit deine Einstellungen erhalten bleiben.
+Optionales Aufräumen für 1.3.0: Nur AddOns/ArclightTaunt vor dem Entpacken des
+neuen Ordners löschen. Alte ungenutzte Texturen können ohne Auswirkung auf das
+Addon liegen bleiben; dieser Schritt entfernt lediglich Reste früherer Versionen.
+/reloadui lädt neue Texturdateien einer laufenden Sitzung nicht zuverlässig nach.
 Einstellungen gelten accountweit und gemeinsam für alle Megaserver. Kampfverläufe,
 Charakterfortschritt und andere serverspezifische Daten werden nicht gespeichert.
 
@@ -50,7 +55,7 @@ ESC > Einstellungen > Erweiterungen > Arclight Taunt
 - Design & Lesbarkeit: Balken, Hintergründe, Kontrast und Zielfokus.
 - Schrift & Countdown: Schriftarten, Textgröße, Sekundenanzeige und Warnschwellen.
 - Tauntstatus am Fadenkreuz: Anzeigeart, Sichtbarkeit, Darstellung und Position.
-- Bosse: Unterreiter für Bosswarnungen und Boss-Erkennung.
+- Bosse: Bosswarnungen, Töne und Boss-Erkennung.
 - Erfassung: Spielerziele, Tote entfernen und abgelaufene Einträge.
 
 Die Vorschau zeigt unterschiedliche Gegner und versetzte Taunts. Zum Einstellen
@@ -58,8 +63,10 @@ pausieren; danach läuft sie an derselben Stelle weiter. Die Listenvorschau
 erzeugt selbst keine Bossbanner.
 
 Unter „Tauntstatus am Fadenkreuz“ lässt „Vorschau anzeigen“ einen Countdown
-wiederholt durch Türkis, Gelb und Rot laufen, unabhängig von der Liste und auch
-beim Verschieben. „Vorschau-Fadenkreuz“ hilft mit der kleinen oder großen
+wiederholt durch die gewählten Warnstufen laufen, unabhängig von der Liste und auch
+beim Verschieben. Das optionale helle Symbol erscheint nach Ablauf nur, wenn es
+aktiviert ist.
+„Vorschau-Fadenkreuz“ hilft mit der kleinen oder großen
 ESO-Grafik beim Ausrichten, auch im Menü. Schließen der Einstellungen oder
 Kampfbeginn beendet Vorschau und Verschieben. Die echte Anzeige erscheint nur
 im Kampf.
@@ -72,8 +79,19 @@ setzt nur Darstellung und Position der gewählten Form zurück. Aktivierung,
 Vorschau, Bossfilter und andere Form bleiben erhalten. Die allgemeinen
 Standardwerte setzen beide Formen zurück und schalten die Anzeige aus.
 
+FARBEN & LESBARKEIT
+Eigene Warnfarben lassen sich unten unter „Design & Lesbarkeit“ aktivieren.
+Sie gelten für Liste, Fadenkreuz und Bossbanner. Die Arclight-Farben bleiben
+Standard; Timertext wird bei Bedarf für dunkle Flächen aufgehellt.
+
+Beobachtete ESO-Zielmarkierungen stehen getrennt vom Boss-Schädel neben dem
+Namen. Die Zuordnung erfordert eine sichere Zielkennung. Markeränderungen
+löschen unklare Zuordnungen; ausgeblendete Zeichen benötigen eine erneute
+sichere Beobachtung. Arclight setzt selbst keine Marker. Abschaltbar unter
+„Design & Lesbarkeit“.
+
 BOSSWARNUNGEN
-Türkis warnt vor dem Ablauf eines erkannten Bosstaunts, standardmäßig
+In der Standardpalette warnt Türkis vor dem Ablauf eines erkannten Bosstaunts, standardmäßig
 2,5 Sekunden vorher. Rot warnt nach Ablauf. Beide Banner können gleichzeitig
 eigene betroffene Bosse zusammenfassen. Re-Taunt oder erkannter Tod entfernt
 den jeweiligen Boss aus seiner Warnung. Angeheftete abgelaufene Bosse stehen
@@ -81,11 +99,11 @@ vor angehefteten aktiven Bossen.
 
 Warntöne lassen sich für Ablauf, Frühwarnung, beides oder keines aktivieren.
 Der Frühwarnton ist standardmäßig aus; Duell-Grenzwarnung ist vorausgewählt.
-Bei Ablauf ist Duellbeginn vorausgewählt. Rote und unmittelbar anstehende
+Bei Ablauf ist Duellbeginn vorausgewählt. Sichtbare und unmittelbar anstehende
 Ablaufwarnungen haben Tonvorrang; unterdrückte Frühtöne werden nicht nachgeholt.
 
-„Warnablauf testen“ zeigt Frühwarnung, Ablauf und danach Türkis unter Rot.
-Aktivierte Warnungen und Töne werden berücksichtigt; ohne Frühwarnung nur Rot.
+„Warnablauf testen“ zeigt Frühwarnung, Ablauf und danach beide Banner.
+Aktivierte Warnungen und Töne werden berücksichtigt; ohne Frühwarnung nur Ablauf.
 Echte Warnungen haben Vorrang. Die Tauntliste lässt sich ausblenden, während
 konfigurierte Bossbanner und Sounds weiterarbeiten. Vorschau/Verschiebemodus
 können die ausgeblendete Liste zur Einrichtung weiterhin anzeigen.
@@ -107,8 +125,10 @@ GUT ZU WISSEN
 
 FEEDBACK
 https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html#comments
-Bitte Fähigkeit/Morph oder Scribing-Kombination, Sprache, Begegnung,
-Beobachtung und gegebenenfalls Lua-Fehler nennen. Bei Bildfehlern hilft ein Screenshot.
+Nutzt du Arclight? Wir freuen uns zu hören, was dir gefällt und was besser
+funktionieren könnte. Ein kurzer Kommentar hilft, auch ohne gefundenen Fehler.
+Bei Problemen bitte Fähigkeit/Morph oder Scribing-Kombination, Sprache,
+Begegnung und Beobachtung nennen. Lua-Fehler oder Screenshots helfen, falls vorhanden.
 
 CREDITS / TRANSPARENZ
 - Frühe Alpha-Idee: Untaunted von Solinur:

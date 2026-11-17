@@ -66,7 +66,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Personal Dps Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Personal-Dps-Tracker__c9b85989-bab6-4000-a3fc-80ed49e25e87) | Shienar | Console | — |
 | [PersonalAssistant (Banking, Consume, Junk, Loot, Repair, Worker) \[Masteroshi430's branch\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/PersonalAssistant-Banking-Consume-Junk-Loot-Repair-Worker-Masteroshi430-s-branch__3512) | Masteroshi430 | PC / Mac | 2026.09.27 |
 | [Personality Designer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Atronyx/Personality-Designer__2695) | Atronyx | PC / Mac | 2.1.1 |
-| [Personality Designer - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Beacze/Personality-Designer---Updated__5014) | Beacze | PC / Mac | 3.0.1 |
+| [Personality Designer - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Beacze/Personality-Designer---Updated__5014) | Beacze | PC / Mac | 3.0.2 |
 | [pet](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/satuve/pet__25a0aeff-e8df-4458-bc72-f5a8319dbade) | satuve | Console | — |
 | [Pet Dead Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rockingdice/Pet-Dead-Alert__1825) | rockingdice | PC / Mac | 1.01 |
 | [Pet Dismiss](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/adriant1978/Pet-Dismiss__1314) | adriant1978 | PC / Mac | 1.3.1 |

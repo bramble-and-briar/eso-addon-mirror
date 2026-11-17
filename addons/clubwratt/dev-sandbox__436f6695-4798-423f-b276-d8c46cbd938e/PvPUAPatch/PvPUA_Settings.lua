@@ -143,7 +143,7 @@ function PvPUA:SettingsMenu()
         -- Patch: requeue when the campaign turns out full ("Campaign Queue: Auto Requeue" in PvPUA.lua).
         { type = "toggle", name = "Auto Requeue", preset = "YES_NO",
           default = PvPUA.defaults.autoRequeue,
-          tooltip = "When a campaign you queued for turns you away because it is full (\"Jump failed. Instance is full.\" and the like), queues you for it again, up to 5 times. A queue that is still moving is left alone. Each step is posted in chat.",
+          tooltip = "When a campaign you queued for turns you away because it is full (\"Jump failed. Instance is full.\" and the like), queues you for it again and keeps trying until a try holds, as fast as the game accepts (about every 10 seconds). An alert names each try: leave the queue to the add-on while it works, since a press of your own beside it can queue you twice. After 30 tries in a row (about 5 minutes) it slows to one every 30 seconds, the row reads STUCK and the alarm sounds. Turn this off to stop it. A queue that is still moving is left alone. Each step is posted in chat.",
           getFunc = function() return self.savedVariables.autoRequeue ~= false end,
           setFunc = function(v) self.savedVariables.autoRequeue = v == true end },
         -- Patch: queue again on demand ("Requeue Now" in PvPUA.lua); the probe for a queue the game broke.

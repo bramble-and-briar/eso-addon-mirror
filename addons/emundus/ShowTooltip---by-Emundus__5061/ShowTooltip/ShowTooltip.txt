@@ -1,0 +1,8 @@
+## Title: Show Tooltip
+## APIVersion: 101051
+## Version: 1.0.0
+## Author: Emundus
+## DependsOn: LibCustomMenu
+## Description: Simply adds a "show tooltip" option for any item that can use the "link in chat" option.
+
+ShowTooltip.lua

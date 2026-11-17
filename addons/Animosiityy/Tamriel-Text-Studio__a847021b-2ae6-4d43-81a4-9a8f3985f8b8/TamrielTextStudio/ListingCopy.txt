@@ -1,0 +1,5 @@
+Tamriel Text Studio
+Developer: CRY
+Version: 2.4.2
+
+Compose formatted ESO messages on console with searchable artwork, color wheel & presets, image placement, separators, live formatted preview, a visible raw markup box for manual reference, and direct PS5 on-screen keyboard output selection. Includes expanded inline image-size presets and custom 8–256 px sizing (default 32 px).

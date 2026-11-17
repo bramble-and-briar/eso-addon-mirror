@@ -1,4 +1,4 @@
--- CombatMascot v0.5.0-diag (v0.4.2 + heal / guard reactions; DIAG counters stay on for the PS5 check)
+-- CombatMascot v0.5.1-diag (v0.5.0 + "double mascot" guard: only ONE picture may be visible; leak counter LEAK on screen)
 -- heal  = only YOUR OWN direct heal (ACTION_RESULT_HEAL, source = player); crit heal, HoT and heals from others are not connected.
 -- guard = block (BLOCKED_DAMAGE) / dodge (DODGED) / shield absorb (DAMAGE_SHIELDED) on the player: ONE shared reaction.
 -- heal is lowest priority: it only plays while nothing else is playing (never interrupts, never replaces).
@@ -12,7 +12,7 @@
 
 local ADDON    = "CombatMascot"
 local PATH     = "CombatMascot/"
-local VERSION  = "0.5.0-diag"
+local VERSION  = "0.5.1-diag"
 local SV_NAME, SV_VERSION = "CombatMascot_SV", 1
 
 ------------------------------------------------------------------
@@ -108,7 +108,7 @@ local D = {
     play = { attack = 0, skill = 0, ult = 0, hit = 0, kill = 0, heal = 0, guard = 0 },
     evHeal = "-", lastHeal = "-", healZero = 0, lastGuard = "-",
     drop = 0, oldlock = 0, staleT = 0, stopAll = 0, stopIgn = 0, hold = 0,
-    err = 0, lastErr = "-", cp = "-", dtLast = 0, dtMax = 0,
+    err = 0, lastErr = "-", leak = 0, leakKey = "-", cp = "-", dtLast = 0, dtMax = 0,
     built = 0, evSlot = "-", evHit = "-", font = 0, idleB = 0, idleN = 0, idleVis = "-", rVis = "-",
 }
 
@@ -146,7 +146,7 @@ local function DiagUpdate()                                  -- called only when
     if not DIAG or not diagLabel then return end
     local r, p = D.recv, D.play
     Try(diagLabel.SetText, diagLabel, string.format(
-        "CM 0.5.0-diag  UI %d/7  EV %s/%s/%s\n" ..
+        "CM 0.5.1-diag  UI %d/7  EV %s/%s/%s\n" ..
         "RECV a%d s%d u%d h%d k%d H%d G%d\n" ..
         "PLAY a%d s%d u%d h%d k%d H%d G%d\n" ..
         "DROP %d  OLD %d  HOLD %d\n" ..
@@ -155,6 +155,7 @@ local function DiagUpdate()                                  -- called only when
         "dT %d/%d ms  F%d\n" ..
         "IDLE built %d  runs %d  vis %s  react vis %s\n" ..
         "HEAL %s  zero %d\n" ..
+        "LEAK %d %s\n" ..
         "GUARD %s\n" ..
         "SHOW %s  LOAD %s",
         D.built, D.evSlot, D.evHit, D.evHeal,
@@ -165,7 +166,7 @@ local function DiagUpdate()                                  -- called only when
         D.err, D.lastErr,
         D.dtLast, D.dtMax, D.font,
         D.idleB, D.idleN, D.idleVis, D.rVis,
-        D.lastHeal, D.healZero, D.lastGuard,
+        D.lastHeal, D.healZero, D.leak, D.leakKey, D.lastGuard,
         ShownStates(), LoadedStates()))
 end
 
@@ -193,16 +194,39 @@ local function HoldLastFrame(e)
     Try(e.ctrl.SetTextureCoords, e.ctrl, (e.cols - 1) / e.cols, 1, (e.rows - 1) / e.rows, 1)
 end
 
+-- v0.5.1: only ONE picture may be visible at a time. Hides everything except `keep` ("idle" or a reaction key; nil = hide all)
+-- and counts a "leak" when something that must be hidden was still shown (shown on the LEAK line of the diagnostic screen).
+local function Sweep(keep)
+    local function Chk(name, c)
+        if not c then return end
+        local ok, hid = pcall(c.IsHidden, c)
+        if ok and hid == false then
+            D.leak = D.leak + 1
+            D.leakKey = name
+        end
+        Try(c.SetHidden, c, true)
+        Try(c.SetAlpha, c, 0)
+    end
+    if idle and keep ~= "idle" then Chk("idle", idle.ctrl) end
+    for _, k in ipairs(ORDER) do
+        local e = E[k]
+        if e and k ~= keep then Chk(k, e.ctrl) end
+    end
+end
+
 -- waiting picture: one-shot timeline restarted by a timer while no reaction is playing
 local function StopIdle()
     idleTok = idleTok + 1                                 -- any pending restart timer becomes stale
     if not idle then return end
     Try(idle.tl.Stop, idle.tl)
     Try(idle.ctrl.SetHidden, idle.ctrl, true)
+    Try(idle.ctrl.SetAlpha, idle.ctrl, 0)
 end
 
 local function StartIdleAnim()                            -- no closure: started through Try()
+    Sweep("idle")                                         -- no reaction picture may stay under / over the waiting picture
     idle.ctrl:SetTextureCoords(0, 1 / IDLE.cols, 0, 1 / IDLE.rows)
+    idle.ctrl:SetAlpha(1)
     idle.ctrl:SetHidden(false)
     idle.tl:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
     idle.tl:PlayFromStart()
@@ -292,6 +316,7 @@ end
 -- no closure: started through Try()
 local function StartAnim(e)
     e.ctrl:SetTextureCoords(0, 1 / e.cols, 0, 1 / e.rows)
+    e.ctrl:SetAlpha(1)
     e.ctrl:SetHidden(false)
     e.tl:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
     e.tl:PlayFromStart()
@@ -337,6 +362,8 @@ local function Play(key, force)
     animUntil = t0 + ANIM_MS
     e.at = t0
     if not Try(StartAnim, e) then EndReaction() DiagUpdate() return end
+    Sweep(key)                                            -- the waiting picture / any other picture must not show under it
+    zo_callLater(function() if my == token and cur == key then Sweep(key) end end, 60)   -- one re-check (diagnostic): does anything re-appear?
     zo_callLater(function()
         if my == token then EndReaction() else D.staleT = D.staleT + 1 end   -- stale timer: does nothing
     end, TOTAL_MS)
@@ -370,7 +397,7 @@ local function BuildDiag()
         lb:SetColor(1, 1, 1, 1)
         lb:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
         lb:SetVerticalAlignment(TEXT_ALIGN_TOP)
-        lb:SetText("CM 0.5.0-diag\n(waiting for events)")
+        lb:SetText("CM 0.5.1-diag\n(waiting for events)")
         bg:SetAnchorFill(lb)
         bg:SetCenterColor(0, 0, 0, 0.65)
         bg:SetEdgeColor(0, 0, 0, 0)
@@ -488,6 +515,7 @@ local function StaticShow(which)
     end
     if c then
         Try(c.SetTextureCoords, c, 0, 1 / cols, 0, 1 / rows)
+        Try(c.SetAlpha, c, 1)
         Try(c.SetHidden, c, false)
     end
     DiagUpdate()

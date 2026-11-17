@@ -74,6 +74,9 @@ function PD.CyclePersonality()
 	CR:AddSystemMessage(chatLibPrefix .. msgText)
 end
 
+SLASH_COMMANDS["/pd-toggle"] = function() PD.TogglePD() end
+SLASH_COMMANDS["/pd-cycle"] = function() PD.CyclePersonality() end
+
 local CEREMONIAL = GetString(P_DESIGNER_CEREMONIAL)
 local CHEERS_JEERS = GetString(P_DESIGNER_CHEERS_JEERS)
 local EMOTION = GetString(P_DESIGNER_EMOTION)

@@ -16,7 +16,7 @@ local messageStore2 = ""
 local messageStore3 = ""
 local messageStore4 = ""
 local provider
-local updateMessage
+local nextNotificationId = 0
 local notifications = {}
 
 LibNotify = {}
@@ -478,17 +478,15 @@ function MyProvider:Decline(data)
     if data.declineCallback then data.declineCallback(data) end
 end
 
---dismiss notification
-local function dismissUpdateMessage()
-    if not updateMessage then return end
+--dismiss one notification by its id
+local function dismissNotification(id)
     for i, msg in ipairs(notifications) do
-        if msg == updateMessage then
+        if msg.id == id then
             table.remove(notifications, i)
             break
         end
     end
-    updateMessage = nil
-    provider:pushUpdateCallback()
+    if provider then provider:pushUpdateCallback() end
 end
 
 --post notification
@@ -497,7 +495,15 @@ function LibNotify.postUpdateNotification(name, noteTmp, shortDisplayTextTmp)
     --if not listed add-on tries to access notify service, quit
     if not isAddonValid(name) then printMessage("Restricted Access") return end
 
-    updateMessage = {
+    --system notifications are not available
+    if not provider then return end
+
+    --every notification gets its own id so each one can be removed on its own
+    nextNotificationId = nextNotificationId + 1
+    local id = nextNotificationId
+
+    local message = {
+        id = id,
         isMyAddonNotification = true,
         dataType = NOTIFICATIONS_ALERT_DATA,
         secsSinceRequest = ZO_NormalizeSecondsSince(0),
@@ -507,11 +513,11 @@ function LibNotify.postUpdateNotification(name, noteTmp, shortDisplayTextTmp)
         shortDisplayText = shortDisplayTextTmp,--addon name on left panel, shown as caps
         texture = "/esoui/art/icons/achievements_indexicon_quests_down.dds",-- icon next to addon name on left panel
         controlsOwnSounds = true,
-        acceptCallback = dismissUpdateMessage,
-        declineCallback = dismissUpdateMessage,
+        acceptCallback = function() dismissNotification(id) end,
+        declineCallback = function() dismissNotification(id) end,
     }
 
-    table.insert(notifications, updateMessage)
+    table.insert(notifications, message)
     provider:pushUpdateCallback()
 end
 

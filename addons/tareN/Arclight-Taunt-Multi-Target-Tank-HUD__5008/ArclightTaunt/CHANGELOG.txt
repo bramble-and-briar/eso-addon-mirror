@@ -1,8 +1,23 @@
 ARCLIGHT TAUNT - PUBLIC CHANGELOG
 
+VERSION 1.3.0 | Custom Colors & Combat Clarity | 17 November 2026
+
+- Added optional custom urgency colors for the list, crosshair indicator and boss banners. Numeric text is lightened where needed for dark surfaces. The default Arclight colors and saved layout stay unchanged.
+- Added observed ESO target markers beside enemy names, helping distinguish marked enemies even when names match. Group markers and Arclight's boss skull remain separate. Arclight displays existing marks; it never places or changes them. Enabled by default under Appearance & readability. Uncertain assignments stay hidden until directly observed again.
+- Refined the crosshair circle with a native tapered edge, kept nearly solid when the warning stage begins so short remaining arcs stay visible. Circle and bar gain a brief appearance fade for newly confirmed safe taunts. Re-taunts, color changes and urgent states do not replay it; Reduce animations keeps it static.
+- Redesigned boss warnings with a dark textured body, ivory skull and clearer color accents. Expiration alerts fade in at a fixed position; early warnings slide beneath an active expiration alert and stay fully visible until shortly before expiry. Existing sizes, warning timing, sounds and the two-banner layout stay familiar. Standard and custom colors share the same backgrounds.
+- Reduced bundled graphics while retaining every circle thickness setting. Two shared, smooth-edged textures replace the separate thickness variants; countdowns continue through native ESO animation.
+- Simplified settings: Boss warnings and detection now open together under Bosses, with headings instead of nested menus. Custom colors sit at the bottom of Appearance & readability. Help describes urgency stages instead of fixed colors; ESO markers, boss names and target highlights keep their own colors.
+- The crosshair's unconfirmed-state symbol is now optional and off by default. When enabled, it indicates no own taunt is confirmed, without claiming the enemy is untaunted or aggro has changed.
+- Invalid or excessively large taunt times are ignored before they can reach native countdowns and animations. Rejected updates preserve an already confirmed timer.
+
+Using Arclight in your runs? We'd love to hear what you like and what could work better. Even a short comment on ESOUI helps.
+
+Optional cleanup: Old, unused textures can remain installed without affecting the addon. To remove them, close ESO, delete only AddOns/ArclightTaunt and extract the new folder. Keep SavedVariables to preserve your settings.
+
 VERSION 1.2.0 | Crosshair Taunt Status | 12 November 2026
 
-- Added an optional circle or bar at the crosshair to show your confirmed taunt on the enemy you are aiming at. It drains through the familiar turquoise, yellow and red warning stages without adding another number. Empty gray means no own taunt is confirmed; it does not prove lost aggro. Off by default, with a centered circle selected for first use and a bar available below the crosshair.
+- Added an optional circle or bar at the crosshair to show your confirmed taunt on the enemy you are aiming at. It drains through the familiar turquoise, yellow and red warning stages without adding another number. A pale symbol means no own taunt is confirmed; it does not prove the enemy is untaunted or aggro has changed. Off by default, with a centered circle selected for first use and a bar available below the crosshair.
 - Added independent boss filters for the taunt list and crosshair indicator. Each can show only enemies covered by your boss-detection setting, including strong enemies in broader mode. Other taunts remain tracked; configured boss warnings continue.
 - Circle and bar keep separate size, thickness, background opacity and position settings. Use mouse dragging or exact X/Y values to place either shape. A separate running preview and small/large crosshair references help you align it, including in menus. Resetting one shape keeps the indicator enabled and preserves the other shape.
 - The live crosshair indicator appears only during combat and hides for unsuitable targets, including recognizable ambient critters. Loot prompts do not interrupt its display for a living enemy. Its preview is independent of the list, keeps running while moving the display, and ends when settings close or combat begins.

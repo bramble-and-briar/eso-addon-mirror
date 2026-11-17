@@ -1,8 +1,8 @@
 ## Title: |c2FE6C4Arclight Taunt|r
 ## Description: Lightweight multi-target taunt HUD with boss warnings and customizable display.
 ## Author: |cF7B95BtareN|r
-## Version: 1.2.0
-## AddOnVersion: 10200
+## Version: 1.3.0
+## AddOnVersion: 10300
 ## APIVersion: 101051
 ## SavedVariables: ArclightTauntSaved
 ## DependsOn: LibAddonMenu-2.0>=43 LibMediaProvider>=39
@@ -11,6 +11,7 @@ Core.lua
 Localization/en.lua
 Localization/$(language).lua
 Localization/Localization.lua
+Palette.lua
 Media.lua
 BossAlerts.lua
 Tracking.lua

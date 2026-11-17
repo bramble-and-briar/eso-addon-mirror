@@ -22,7 +22,7 @@
     "BankManagerRevived"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2333/",
-  "fingerprint": "f2094292321d79773b1f6eff8f159030417020071b67e45f38ee4e5c8248aa7f",
+  "fingerprint": "49a378baf1792c89e3b8d323b6c880b02db9004e749943929ef4e6714e80249f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw7960.png",
     "https://cdn-eso.mmoui.com/preview/pvw8318.png",
@@ -34,11 +34,11 @@
   "source_id": "2333",
   "source_url": "https://www.esoui.com/downloads/info2333-BankManagerRevived-AIupdated.html",
   "stats": {
-    "downloads": 46198,
+    "downloads": 46580,
     "favorites": 53,
-    "monthly_downloads": 354
+    "monthly_downloads": 648
   },
   "title": "Bank Manager Revived - AI updated",
-  "updated_at": 1794526159000,
-  "version": "16.00"
+  "updated_at": 1794862910000,
+  "version": "16.02"
 }

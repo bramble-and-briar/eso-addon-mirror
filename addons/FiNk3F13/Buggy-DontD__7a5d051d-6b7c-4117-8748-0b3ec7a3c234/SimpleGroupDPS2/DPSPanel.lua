@@ -5,7 +5,6 @@ SimpleGroupDPS2_DPSPanel = panel
 local function formatDuration(durationMS)
     local seconds = math.max(0, durationMS or 0) / 1000
     if ZO_FormatTime then
-        -- Same ESO formatter and precision as BattleScrolls' FormatDuration.
         return (ZO_FormatTime(seconds, TIME_FORMAT_STYLE_COLONS, TIME_FORMAT_PRECISION_SECONDS))
     end
     local wholeSeconds = math.floor(seconds)
@@ -277,12 +276,8 @@ function panel:Render(parent, members, bossFight, durationMS, options, localTota
         row:SetHidden(false)
     end
 
-    -- Prefer the local encounter; received member DPS can use unrelated fight clocks.
-    if localTotals and localTotals.groupDPS ~= nil then
-        sum = localTotals.groupDPS
-        bossSum = localTotals.groupBossDPS
-        unknownBoss = bossSum == nil
-    end
+    -- Sum the visible damage rows using the same rates shown for each member.
+    -- Do not substitute the separately estimated group encounter rate.
     local summary = rows.summary or createRow(parent, false)
     rows.summary = summary
     layoutRow(summary, false, width, font, rowHeight, valueFont)

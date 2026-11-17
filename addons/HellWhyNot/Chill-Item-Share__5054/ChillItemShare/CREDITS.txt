@@ -1,0 +1,9 @@
+Chill Item Share
+Author: HellWhyNot
+
+Interface colors follow Chill Guild Tools by HellWhyNot.
+Uses the public ESO UI API by ZeniMax Online Studios.
+
+Required libraries (installed separately; not bundled):
+LibCustomMenu by votan.
+LibAddonMenu-2.0 by Seerah, sirinsidiator and contributors.

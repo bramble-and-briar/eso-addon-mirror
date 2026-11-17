@@ -1,0 +1,10 @@
+## Title: |cEECA2AFavorite Guild Cycler|r
+## Description: Automatically rotates the displayed guild beneath your character nameplate across selected favorite guilds. Features smooth zero-scroll-reset PS5 Character Sheet controls, 5 rotation modes (Sequential, Reverse, Shuffle Bag, Priority Bias, Ping-Pong), Quick Guild Pin, PvP & Dungeon/Trial instance locks, Group Leader sync, and a 1-second API rate-limit safeguard. Created by Animosity with special credit to the guild CRY.
+## Author: Animosity (Guild: CRY)
+## Version: 1.4.0
+## AddOnVersion: 140
+## APIVersion: 101051 101050 101049 101048
+## IsConsoleOnly: false
+## SavedVariables: FavoriteGuildCycler_SavedVars
+## OptionalDependsOn: LibHarvensAddonSettings>=20000
+FavoriteGuildCycler.lua

@@ -51,6 +51,16 @@ local BMR_BAG_AND_SLOT = 2
 local ruleName
 local LR = LibResearch
 
+-- The current ESO API exposes functional item quality through
+-- GetItemLinkFunctionalQuality. Keep the legacy API as a fallback for older
+-- platform wrappers, but never let a missing wrapper break rule evaluation.
+local GetBMRItemLinkQuality = type(GetItemLinkFunctionalQuality) == "function" and GetItemLinkFunctionalQuality
+	or (type(GetItemLinkQuality) == "function" and GetItemLinkQuality)
+if type(GetBMRItemLinkQuality) ~= "function" then
+	GetBMRItemLinkQuality = function() return nil end
+end
+BMR.GetItemLinkQuality = GetBMRItemLinkQuality
+
 -- ForcedConsoleFlow may omit the public ITEM_QUALITY_* globals even though the
 -- underlying ESO item-quality enum remains unchanged. Keep all rule predicates
 -- and labels valid in both keyboard and gamepad UI flows.
@@ -291,6 +301,8 @@ AddRawStyle(ITEMSTYLE_ORG_ORDINATOR, "|H1:item:81997:0:0:0:0:0:0:0:0:0:0:0:0:0:0
 AddRawStyle(ITEMSTYLE_ENEMY_MINOTAUR, "|H1:item:81995:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
 AddRawStyle(ITEMSTYLE_ORG_BUOYANT_ARMIGER, "|H1:item:121521:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
 
+AddRawStyle(ITEMSTYLE_JEWELRY_ALL, "|H1:item:135147:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h") -- Kupferstaub (Schmuck-Stilmaterial)
+
 -- To display names nicely (even if level 1 got 2 solvents, only 1 is displayed here, but filter works, because not based on this array) itemLink here is not used by filter so it can be a little bit false
 BankManagerRules.static.alchemySolventArray = {
 	[1] = "|H1:item:883:30:2:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
@@ -303,15 +315,28 @@ BankManagerRules.static.alchemySolventArray = {
 	[8] = "|H1:item:64501:308:50:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 }
 
+-- BankManagerRules.static.jewelrycraftingRawTraits = {
+	-- [1] = "|H1:item:135159:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
+	-- [2] = "|H1:item:135158:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
+	-- [3] = "|H1:item:135160:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
+	-- [4] = "|H1:item:139417:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
+	-- [5] = "|H1:item:139415:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
+	-- [6] = "|H1:item:139419:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
+	-- [7] = "|H1:item:139418:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
+	-- [8] = "|H1:item:139416:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
+-- }
+
+-- Replaced Function (Sirb42)
 BankManagerRules.static.jewelrycraftingRawTraits = {
-	[1] = "|H1:item:135159:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
-	[2] = "|H1:item:135158:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
-	[3] = "|H1:item:135160:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
-	[4] = "|H1:item:139417:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
-	[5] = "|H1:item:139415:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
-	[6] = "|H1:item:139419:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
-	[7] = "|H1:item:139418:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
-	[8] = "|H1:item:139416:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
+[1] = "|H1:item:135159:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", -- Pulverisiertes Antimon
+[2] = "|H1:item:135158:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", -- Pulverisiertes Kobalt
+[3] = "|H1:item:135160:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", -- Pulverisiertes Zink
+[4] = "|H1:item:139417:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", -- Pulverisierter Schlachterstein
+[5] = "|H1:item:139415:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", -- Pulverisierter aurbischer Bernstein
+[6] = "|H1:item:139419:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", -- Pulverisiertes Dämmerprisma
+[7] = "|H1:item:139418:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", -- Pulverisiertes Dibellium
+[8] = "|H1:item:139416:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", -- Pulverisiertes Titanium
+[9] = "|H1:item:139420:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", -- Pulverisiertes Goldwachs
 }
 
 -- List is built at each bank interaction
@@ -334,15 +359,15 @@ BankManagerRules.keywordConditionTable = {
 
 	QUALITY = { -- keyword
 		[BMR_RULEWRITER_VALUE_WITH_OPERATOR] = {
-			GREY = {func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_TRASH}},
-			WHITE = {func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_NORMAL}},
-			GREEN = {func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_MAGIC}},
-			BLUE = {func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARCANE}},
-			PURPLE = {func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARTIFACT}},
-			YELLOW = {func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_LEGENDARY}},
+			GREY = {func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_TRASH}},
+			WHITE = {func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_NORMAL}},
+			GREEN = {func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_MAGIC}},
+			BLUE = {func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARCANE}},
+			PURPLE = {func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARTIFACT}},
+			YELLOW = {func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_LEGENDARY}},
 		},
 		data = {
-			func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK
+			func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK
 		},
 	},
 
@@ -430,7 +455,7 @@ end
 
 local function GetAntiquityLeadItemQuality(itemLink)
 	if not IsAntiquityLeadItem(itemLink) then return nil end
-	return GetItemLinkQuality(itemLink)
+	return GetBMRItemLinkQuality(itemLink)
 end
 
 -- A couple of items use the Soul Gem item type but must not inherit the
@@ -443,7 +468,7 @@ local function IsStandardSoulGem(itemLink, wantedQuality)
 	local itemId = GetItemLinkItemId(itemLink)
 	if itemId == CROWN_SOUL_GEM_ITEM_ID or itemId == MIGHTY_BLACKSTONE_ITEM_ID then return false end
 	if GetItemLinkItemType(itemLink) ~= ITEMTYPE_SOUL_GEM then return false end
-	local quality = GetItemLinkQuality(itemLink)
+	local quality = GetBMRItemLinkQuality(itemLink)
 	if wantedQuality == "empty" then
 		return quality == BMR_ITEM_QUALITY_NORMAL
 	end
@@ -487,8 +512,18 @@ local function IsItemNeededForResearch(itemLink)
 end
 
 -- Local function for BankManagerRules.static.rawIngredients
+
+-- local function GetItemLinkIngredientType(itemLink)
+--	local itemId = GetItemLinkItemId(itemLink)
+--	if BankManagerRules.static.rawIngredients[itemId] then
+--		return BankManagerRules.static.rawIngredients[itemId]
+--	end
+--	return false
+--  end
+
+-- Replaced Function (Sirb42)
 local function GetItemLinkIngredientType(itemLink)
-	local itemId = GetItemLinkItemId(itemLink)
+	local itemId = tostring(GetItemLinkItemId(itemLink))
 	if BankManagerRules.static.rawIngredients[itemId] then
 		return BankManagerRules.static.rawIngredients[itemId]
 	end
@@ -1091,7 +1126,7 @@ function BankManagerRules.addFiltersTaggedAll()
 	BankManagerRules.data[ruleName] = {
 		params = {
 			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_GLYPH_ARMOR}},
-			{func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_NORMAL}},
+			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_NORMAL}},
 			{func = IsItemLinkCrafted, funcArgs = BMR_ITEMLINK, values = {true}},
 			{func = GetItemCreatorName, funcArgs = BMR_BAG_AND_SLOT, values = {GetUnitName("player")}},
 			{func = IsWritItem, funcArgs = BMR_ITEMLINK, values = {true}},
@@ -1257,20 +1292,35 @@ function BankManagerRules.addFilters()
 	end
 	-- Raw Traits
 	
-	for rawItemIndex, data in pairs(BankManagerRules.static.jewelrycraftingRawTraits) do
+--	for rawItemIndex, data in pairs(BankManagerRules.static.jewelrycraftingRawTraits) do
+
+--		ruleName = "jewelTraitRaw" .. rawItemIndex
+--		BankManagerRules.data[ruleName] = {
+--			params = {
+--				{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_JEWELRY_RAW_TRAIT}},
+--				{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {GetItemLinkItemId(data)}},
+--			},
+--			name = zo_strformat("<<1>>", GetItemLinkName(data)),
+--			tooltip = zo_strformat("<<1>>", GetItemLinkName(data)),
+--		}
 	
-		ruleName = "jewelTraitRaw" .. rawItemIndex
-		BankManagerRules.data[ruleName] = {
-			params = {
-				{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_JEWELRY_RAW_TRAIT}},
-				{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {GetItemLinkItemId(data)}},
-			},
-			name = zo_strformat("<<1>>", GetItemLinkName(data)),
-			tooltip = zo_strformat("<<1>>", GetItemLinkName(data)),
-		}
+--	end
 	
-	end
-	
+--	Replaced Function (Sirb42)
+-- Raw Traits
+for rawItemIndex, data in pairs(BankManagerRules.static.jewelrycraftingRawTraits) do
+    local cleanLink = string.format("|H1:item:%d:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", GetItemLinkItemId(data))
+    ruleName = "jewelTraitRaw" .. rawItemIndex
+    BankManagerRules.data[ruleName] = {
+        params = {
+            {func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {GetItemLinkItemId(data)}},
+        },
+        name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(cleanLink)),
+        tooltip = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(cleanLink)),
+    }
+end
+
+
 	-- Refined Styles
    for styleItemIndex = 1, GetHighestItemStyleId() do
 	
@@ -1304,7 +1354,7 @@ function BankManagerRules.addFilters()
 				if info[1] then
 					infoOk = true
 					itemName = info[2]
-					quality = tonumber(info[9]) -- pcall result + eight ESO API return values
+					quality = tonumber(info[9]) -- pcall status + 8th ESO result (functionalQuality)
 				else
 					infoOk = false
 				end
@@ -1314,10 +1364,10 @@ function BankManagerRules.addFilters()
 				local linkOk, link = pcall(GetSmithingImprovementItemLink, craftId, improvementItemIndex, LINK_STYLE_DEFAULT or 0)
 				if linkOk and type(link) == "string" and link ~= "" then itemLink = link end
 			end
-			-- Some ForcedConsoleFlow API wrappers omit the final quality return value.
-			-- The item link exposes the same item quality and is a safe fallback.
-			if (not quality or quality < 0 or quality > 5) and itemLink and type(GetItemLinkQuality) == "function" then
-				local qualityOk, linkQuality = pcall(GetItemLinkQuality, itemLink)
+			-- Some platform wrappers omit the functional-quality result. The generated
+			-- item link provides a fallback through the same compatibility adapter.
+			if (not quality or quality < 0 or quality > 5) and itemLink then
+				local qualityOk, linkQuality = pcall(GetBMRItemLinkQuality, itemLink)
 				if qualityOk then quality = tonumber(linkQuality) end
 			end
 			sub = sub or 1
@@ -1335,7 +1385,7 @@ function BankManagerRules.addFilters()
 				BankManagerRules.data[ruleName] = {
 					params = {
 						{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {craftBooster}},
-						{func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {quality}},
+						{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {quality}},
 					},
 					name = zo_strformat("<<1>>", displayName),
 					tooltip = zo_strformat("<<2>> (<<1>>)", GetString("SI_ITEMTYPE", craftBooster), plainName),
@@ -1357,35 +1407,52 @@ function BankManagerRules.addFilters()
 	-- Raw material - Impossible without interacting with a crafting station.
 	-- Refined material - Impossible without interacting with a crafting station.
 	local function addMaterial(craftId, refinedMaterialType, rawMaterialType, refinedMaterialArray, rawMaterialArray)
-		
-		for materialIndex = 1, #refinedMaterialArray do
-			
-			if refinedMaterialArray[materialIndex] ~= "" then
-				
+		refinedMaterialArray = refinedMaterialArray or {}
+		rawMaterialArray = rawMaterialArray or {}
+		local materialIndexSet = {}
+		for materialIndex in pairs(refinedMaterialArray) do
+			if type(materialIndex) == "number" and materialIndex > 0 and materialIndex == math.floor(materialIndex) then
+				materialIndexSet[materialIndex] = true
+			end
+		end
+		for materialIndex in pairs(rawMaterialArray) do
+			if type(materialIndex) == "number" and materialIndex > 0 and materialIndex == math.floor(materialIndex) then
+				materialIndexSet[materialIndex] = true
+			end
+		end
+		local materialIndices = {}
+		for materialIndex in pairs(materialIndexSet) do
+			materialIndices[#materialIndices + 1] = materialIndex
+		end
+		table.sort(materialIndices)
+
+		for _, materialIndex in ipairs(materialIndices) do
+			local refinedItemLink = refinedMaterialArray[materialIndex]
+			if type(refinedItemLink) == "string" and refinedItemLink ~= "" then
 				ruleName = "refinedMaterial" .. craftId .. materialIndex
+				local itemName = GetItemLinkName(refinedItemLink)
 				BankManagerRules.data[ruleName] = {
 					params = {
 						{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {refinedMaterialType}},
-						{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {GetItemLinkItemId(refinedMaterialArray[materialIndex])}},
+						{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {GetItemLinkItemId(refinedItemLink)}},
 					},
-					name = zo_strformat("<<1>>", zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(refinedMaterialArray[materialIndex]))),
-					tooltip = zo_strformat("<<1>>", zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(refinedMaterialArray[materialIndex]))),
+					name = zo_strformat("<<1>>", zo_strformat(SI_TOOLTIP_ITEM_NAME, itemName)),
+					tooltip = zo_strformat("<<1>>", zo_strformat(SI_TOOLTIP_ITEM_NAME, itemName)),
 				}
-				
 			end
-			
-			if rawMaterialArray[materialIndex] ~= "" then
-			
+
+			local rawItemLink = rawMaterialArray[materialIndex]
+			if type(rawItemLink) == "string" and rawItemLink ~= "" then
 				ruleName = "rawMaterial" .. craftId .. materialIndex
+				local itemName = GetItemLinkName(rawItemLink)
 				BankManagerRules.data[ruleName] = {
 					params = {
 						{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {rawMaterialType}},
-						{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {GetItemLinkItemId(rawMaterialArray[materialIndex])}},
+						{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {GetItemLinkItemId(rawItemLink)}},
 					},
-					name = zo_strformat("<<1>>", zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(rawMaterialArray[materialIndex]))),
-					tooltip = zo_strformat("<<1>>", zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(rawMaterialArray[materialIndex]))),
+					name = zo_strformat("<<1>>", zo_strformat(SI_TOOLTIP_ITEM_NAME, itemName)),
+					tooltip = zo_strformat("<<1>>", zo_strformat(SI_TOOLTIP_ITEM_NAME, itemName)),
 				}
-					
 			end
 		end
 	end
@@ -1817,7 +1884,7 @@ function BankManagerRules.addFilters()
 	BankManagerRules.data[ruleName] = {
 		params = {
 			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_INGREDIENT}},
-			{func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARTIFACT, BMR_ITEM_QUALITY_LEGENDARY}},
+			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARTIFACT, BMR_ITEM_QUALITY_LEGENDARY}},
 		},
 		name = zo_strformat(GetString(BMR_RARE_INGREDIENTS), "|H0:item:26802:28:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", "|H0:item:27059:28:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", "|H0:item:64222:29:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h"),
 		tooltip = zo_strformat(GetString(BMR_RARE_INGREDIENTS), "|H0:item:26802:28:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", "|H0:item:27059:28:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", "|H0:item:64222:29:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h"),
@@ -1828,7 +1895,7 @@ function BankManagerRules.addFilters()
 	BankManagerRules.data[ruleName] = {
 		params = {
 			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_DRINK}},
-			{func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_LEGENDARY}},
+			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_LEGENDARY}},
 		},
 		name = "|H0:item:64221:124:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h & |H0:item:115027:124:1:0:0:0:0:0:0:0:0:0:0:0:0:0:1:0:0:0:0|h|h",
 		tooltip = "|H0:item:64221:124:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h & |H0:item:115027:124:1:0:0:0:0:0:0:0:0:0:0:0:0:0:1:0:0:0:0|h|h",
@@ -1886,7 +1953,7 @@ function BankManagerRules.addFilters()
 	BankManagerRules.data[ruleName] = {
 		params = {
 			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ENCHANTING_RUNE_ASPECT}},
-			{func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_NORMAL}},
+			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_NORMAL}},
 		},
 		name = "|H0:item:45850:20:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", -- "Ta" item
 		tooltip = "|H0:item:45850:20:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
@@ -1896,7 +1963,7 @@ function BankManagerRules.addFilters()
 	BankManagerRules.data[ruleName] = {
 		params = {
 			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ENCHANTING_RUNE_ASPECT}},
-			{func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_MAGIC, BMR_ITEM_QUALITY_ARCANE, BMR_ITEM_QUALITY_ARTIFACT, BMR_ITEM_QUALITY_LEGENDARY}},
+			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_MAGIC, BMR_ITEM_QUALITY_ARCANE, BMR_ITEM_QUALITY_ARTIFACT, BMR_ITEM_QUALITY_LEGENDARY}},
 		},
 		name = GetString("SI_ITEMTYPE", ITEMTYPE_ENCHANTING_RUNE_ASPECT),
 		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_ENCHANTING_RUNE_ASPECT),
@@ -2227,7 +2294,7 @@ function BankManagerRules.addFilters()
 	BankManagerRules.data[ruleName] = {
 		params = {
 			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_TOOL}},
-			{func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARCANE, BMR_ITEM_QUALITY_MAGIC}},
+			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARCANE, BMR_ITEM_QUALITY_MAGIC}},
 		},
 		name = GetString(SI_REPAIR_KIT_CONFIRM),
 		tooltip = GetString(SI_REPAIR_KIT_CONFIRM),
@@ -2237,7 +2304,7 @@ function BankManagerRules.addFilters()
 	BankManagerRules.data[ruleName] = {
 		params = {
 			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_CROWN_REPAIR}},
-			{func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARCANE, BMR_ITEM_QUALITY_MAGIC}},
+			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARCANE, BMR_ITEM_QUALITY_MAGIC}},
 		},
 		name = GetString("SI_ITEMTYPE", ITEMTYPE_CROWN_REPAIR),
 		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_CROWN_REPAIR),
@@ -2299,7 +2366,7 @@ function BankManagerRules.addFilters()
 	BankManagerRules.data[ruleName] = {
 		params = {
 			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_TROPHY}},
-			{func = GetItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARCANE}},
+			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARCANE}},
 			{func = GetItemLinkBindType, funcArgs = BMR_ITEMLINK, values = {BIND_TYPE_NONE}},
 			{func = IsItemLinkConsumable, funcArgs = BMR_ITEMLINK, values = {false}},
 		},

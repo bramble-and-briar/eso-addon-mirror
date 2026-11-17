@@ -642,7 +642,14 @@ local function HasKeepData(campaignId)
     return false
 end
 
-local function GetPopulationForCampaign(campaignId)
+local function FindCampaignSelectionIndex(campaignId)
+    if not GetNumSelectionCampaigns or not GetSelectionCampaignId then return nil end
+    for index = 1, GetNumSelectionCampaigns() do
+        if GetSelectionCampaignId(index) == campaignId then return index end
+    end
+end
+
+local function GetFreshCampaignSelectionIndex(campaignId)
     if not campaignId or campaignId == 0 then return nil end
     local now = GetTimeStamp and GetTimeStamp() or 0
     if not CALLTOARM.Status or not CALLTOARM.Status.IsSelectionDataFresh(
@@ -652,22 +659,18 @@ local function GetPopulationForCampaign(campaignId)
         CTA._selectionReadySerial
     ) then return nil end
 
-    if GetNumSelectionCampaigns and GetSelectionCampaignId and GetSelectionCampaignPopulationData then
-        for selectionIndex = 1, GetNumSelectionCampaigns() do
-            local id = GetSelectionCampaignId(selectionIndex)
-            if id == campaignId then
-                local population = {
-                    [ALLIANCE_ALDMERI_DOMINION] = GetSelectionCampaignPopulationData(selectionIndex, ALLIANCE_ALDMERI_DOMINION),
-                    [ALLIANCE_EBONHEART_PACT] = GetSelectionCampaignPopulationData(selectionIndex, ALLIANCE_EBONHEART_PACT),
-                    [ALLIANCE_DAGGERFALL_COVENANT] = GetSelectionCampaignPopulationData(selectionIndex, ALLIANCE_DAGGERFALL_COVENANT),
-                }
-                if CALLTOARM.Status.ValidatePopulation(population) then return population end
-                return nil
-            end
-        end
-    end
+    return FindCampaignSelectionIndex(campaignId)
+end
 
-    return nil
+local function GetPopulationForCampaign(campaignId)
+    local index = GetFreshCampaignSelectionIndex(campaignId)
+    if not index or not GetSelectionCampaignPopulationData then return nil end
+    local population = {
+        [ALLIANCE_ALDMERI_DOMINION] = GetSelectionCampaignPopulationData(index, ALLIANCE_ALDMERI_DOMINION),
+        [ALLIANCE_EBONHEART_PACT] = GetSelectionCampaignPopulationData(index, ALLIANCE_EBONHEART_PACT),
+        [ALLIANCE_DAGGERFALL_COVENANT] = GetSelectionCampaignPopulationData(index, ALLIANCE_DAGGERFALL_COVENANT),
+    }
+    if CALLTOARM.Status.ValidatePopulation(population) then return population end
 end
 
 local function GetImperialKeepSnapshot(campaignId, referenceAlliance)
@@ -1340,6 +1343,82 @@ local function BriefingLine(text)
     if CHAT_SYSTEM and CHAT_SYSTEM.AddMessage then CHAT_SYSTEM:AddMessage(line) else d(line) end
 end
 
+local function ShowCampaignScoring(campaignId)
+    local index = GetFreshCampaignSelectionIndex(campaignId)
+    local hasDetails = HasKeepData(campaignId)
+    local scores, bonuses = {}, {}
+    for alliance = 1, NUM_ALLIANCES do
+        local name = GetAllianceNameShort(alliance)
+        local score = index and GetSelectionCampaignAllianceScore(index, alliance)
+        if hasDetails then
+            score = score or GetCampaignAllianceScore(campaignId, alliance)
+            local potential = GetCampaignAlliancePotentialScore(campaignId, alliance)
+            if type(score) == "number" and type(potential) == "number" and potential >= 0 then
+                score = string.format("%d (+%d potential)", score, potential)
+            end
+            if IsUnderpopBonusEnabled(campaignId, alliance) then
+                bonuses[#bonuses + 1] = name
+            end
+        end
+        scores[#scores + 1] = name .. ": " .. tostring(score or "unavailable")
+    end
+    BriefingLine("Campaign scores: " .. table.concat(scores, "; "))
+    if hasDetails then
+        BriefingLine("Low Population Bonus: " .. (#bonuses > 0 and table.concat(bonuses, ", ") or "none active") .. ".")
+    else
+        BriefingLine("Potential points and Low Population Bonus unavailable for this campaign.")
+    end
+end
+
+function CTA.ShowQueueStatus()
+    local count = GetNumCampaignQueueEntries()
+    if count == 0 then
+        BriefingLine("You are not queued for a campaign.")
+        return
+    end
+    for entry = 1, count do
+        local campaignId, isGroup = GetCampaignQueueEntry(entry)
+        local name = GetCampaignName(campaignId) or tostring(campaignId)
+        local state = GetCampaignQueueState(campaignId, isGroup)
+        local detail = "Queue position unavailable"
+        if state == CAMPAIGN_QUEUE_REQUEST_STATE_WAITING then
+            local position = GetCampaignQueuePosition(campaignId, isGroup)
+            if position and position > 0 then detail = "position " .. tostring(position) end
+        elseif state == CAMPAIGN_QUEUE_REQUEST_STATE_CONFIRMING then
+            detail = "ready to enter"
+        elseif state == CAMPAIGN_QUEUE_REQUEST_STATE_PENDING_ACCEPT then
+            detail = "entry confirmation pending"
+        end
+        local line = name .. (isGroup and " (group): " or " (solo): ") .. detail
+        if state == CAMPAIGN_QUEUE_REQUEST_STATE_WAITING then
+            local index = FindCampaignSelectionIndex(campaignId)
+            local seconds = index and GetSelectionCampaignQueueWaitTime(index)
+            local wait = seconds and seconds > 0 and CALLTOARM.Status.FormatCampaignRemaining(math.max(60, seconds))
+            line = line .. "; estimated campaign wait: " .. (wait or "unavailable")
+        end
+        BriefingLine(line .. ".")
+    end
+end
+
+local acceptedEntries = { [true] = {}, [false] = {} }
+
+local function OnCampaignQueueStateChanged(_, campaignId, isGroup, state)
+    local accepted = acceptedEntries[isGroup == true]
+    if state ~= CAMPAIGN_QUEUE_REQUEST_STATE_CONFIRMING then
+        accepted[campaignId] = nil
+        return
+    end
+    if CALLTOARM.SV.cta.autoAcceptCampaignEntry ~= true or accepted[campaignId] then return end
+    if GetCampaignQueueState(campaignId, isGroup) ~= CAMPAIGN_QUEUE_REQUEST_STATE_CONFIRMING
+        or GetCampaignQueueRemainingConfirmationSeconds(campaignId, isGroup) <= 0 then return end
+
+    accepted[campaignId] = true
+    local ok = pcall(ConfirmCampaignEntry, campaignId, isGroup, true)
+    if not ok then
+        BriefingLine("Auto-accept could not confirm campaign entry. Use ESO's campaign prompt to enter.")
+    end
+end
+
 local function ShowBriefing(job)
     BriefingLine(GetGuildNameSafe(job.guildId) .. ": " .. (GetCampaignName(job.campaignId) or tostring(job.campaignId)))
     local secondsUntilEnd = GetSecondsUntilCampaignEnd and GetSecondsUntilCampaignEnd(job.campaignId) or nil
@@ -1349,6 +1428,7 @@ local function ShowBriefing(job)
     else
         BriefingLine("Campaign end time unavailable.")
     end
+    ShowCampaignScoring(job.campaignId)
     local keepSnapshot = GetImperialKeepSnapshot(job.campaignId, job.alliance)
     if keepSnapshot then
         if DoesCampaignHaveEmperor(job.campaignId) then
@@ -1475,6 +1555,10 @@ function CTA.Init()
     if CTA._initDone then return end
     CTA._initDone = true
     CTA._leaderboardReady = {}
+    EM:RegisterForEvent("CALLTOARM_QUEUE_STATE", EVENT_CAMPAIGN_QUEUE_STATE_CHANGED, OnCampaignQueueStateChanged)
+    EM:RegisterForEvent("CALLTOARM_QUEUE_LEFT", EVENT_CAMPAIGN_QUEUE_LEFT, function(_, campaignId, isGroup)
+        acceptedEntries[isGroup == true][campaignId] = nil
+    end)
     EM:RegisterForUpdate(CTA._updateHandle, 1000, OnUpdate)
     EM:RegisterForEvent("CALLTOARM_CTA_SELECTION", EVENT_CAMPAIGN_SELECTION_DATA_CHANGED, function()
         CTA._selectionDataReceivedAt = GetTimeStamp()

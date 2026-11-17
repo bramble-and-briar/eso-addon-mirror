@@ -1,0 +1,13 @@
+26.11.2
+
+- Open the equipment planner from your inventory without visiting a crafting station.
+- Switch between equipped items and the planner with native tabs and updated ESO-style panels.
+- Select crafting sets outside crafting stations.
+- Added German, French, Spanish, Japanese, and Simplified Chinese translations.
+
+26.11.1 — Initial release
+
+- Choose alchemy effects and browse matching recipes with automatic material selection.
+- Create glyphs by equipment type, level, effect, and quality.
+- Plan equipment builds with item previews, set bonuses, and material totals.
+- Queue equipment crafting, guaranteed improvements, and glyph application, with saved progress between sessions.

@@ -871,7 +871,7 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 		if (targetType == COMBAT_UNIT_TYPE_PLAYER) then
 			CA1.AlertCast(DATA.burst, sourceName, hitValue, { -2, 2, false, { 0.3, 0.9, 1, 0.6 }, { 0, 0.5, 1, 1 } })
 		elseif (self:GetSetting("burstNear")) then
-			local unitTag, name = LCA.IdentifyGroupUnitId(targetUnitId)
+			local unitTag, name = LCA.IdentifyAllyUnitId(targetUnitId)
 			if (unitTag and LCA.GetDistance("player", unitTag) < 7) then
 				CA1.AlertCast(DATA.burst, name, hitValue, { -2, 0, false, { 0.6, 0.8, 1, 0.4 }, { 0.6, 0.8, 1, 0.8 } })
 			end

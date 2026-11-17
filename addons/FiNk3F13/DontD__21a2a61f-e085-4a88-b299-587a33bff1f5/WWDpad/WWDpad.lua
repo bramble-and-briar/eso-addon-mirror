@@ -1,7 +1,7 @@
 -- Uses ESO's quest-cycle action, normally D-pad quest-cycle button in gamepad mode.
 -- Does not change the player's saved key bindings.
 local NAME = "WWDpad"
-local VERSION = "0.7.0"
+local VERSION = "0.7.1"
 local RADIAL_ID = "wwdpad"
 local settings
 local hooked = false

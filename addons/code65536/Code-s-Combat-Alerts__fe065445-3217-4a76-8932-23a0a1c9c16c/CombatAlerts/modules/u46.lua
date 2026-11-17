@@ -199,7 +199,7 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 		local currentTime = GetGameTimeMilliseconds()
 		if (currentTime - Vars.lastBarrage > hitValue) then
 			Vars.lastBarrage = currentTime
-			CA1.AlertCast(abilityId, nil, hitValue, { -3, 0, false, { 0.7, 0.3, 1, 0.3 }, { 0.7, 0.3, 1, 0.7 } })
+			CA1.AlertCast(abilityId, nil, hitValue, { -3, 2, false, { 0.7, 0.3, 1, 0.3 }, { 0.7, 0.3, 1, 0.7 } })
 		end
 
 	-- Boss 1

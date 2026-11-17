@@ -63,7 +63,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Let's Talk Later](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Let-s-Talk-Later__4304) | Saleand | PC / Mac | 0.1.4 |
 | [Lethal PvP Insights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lethal2k/Lethal-PvP-Insights__5037) | Lethal2k | PC / Mac | 1.11.0 |
 | [LFG Auto Accept](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/gitright/LFG-Auto-Accept__1754) | gitright | PC / Mac | 1.2.019 |
-| [LGM - Lilith's Group Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drummerx04/LGM---Lilith-s-Group-Manager__2088) | Drummerx04 | PC / Mac | 4.5.3 |
+| [LGM - Lilith's Group Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drummerx04/LGM---Lilith-s-Group-Manager__2088) | Drummerx04 | PC / Mac | 4.6.0 |
 | [Lib3DArrow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/Lib3DArrow__2663) | kadeer | PC / Mac | v0.1 alpha |
 | [LibAbilityLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/LibAbilityLogger__e4b71317-9236-4462-a9a2-889700f950bb) | Vixen_Hunny | Console | — |
 | [LibAchievementsArchive](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibAchievementsArchive__3321) | code65536 | PC / Mac | 1.2.4.1 |
@@ -104,7 +104,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibCombat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/LibCombat__2528) | Solinur | PC / Mac | 89 |
 | [LibCombat2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SolinurAddons/LibCombat2__96103ec3-3c4e-4865-be32-cc3b57df04d0) | SolinurAddons | Console | — |
 | [LibCombatAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibCombatAlerts__756d3118-70ee-4ed7-a49e-5217da36e5fe) | code65536 | Console | — |
-| [LibCombatAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibCombatAlerts__4225) | code65536 | PC / Mac | 0.9.0 |
+| [LibCombatAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibCombatAlerts__4225) | code65536 | PC / Mac | 0.9.1 |
 | [LibCombatSkills](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/LibCombatSkills__4500daea-ed3f-4071-822c-24329a5831e3) | SugaComa | Console | — |
 | [LibConsoleDialogs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/LibConsoleDialogs__4106) | votan | PC / Mac | 1.0.4.2 |
 | [LibConsoleDialogs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/LibConsoleDialogs__73752f6e-3ac5-4ecd-9bfe-b71c1b926c3b) | votan73 | Console | — |

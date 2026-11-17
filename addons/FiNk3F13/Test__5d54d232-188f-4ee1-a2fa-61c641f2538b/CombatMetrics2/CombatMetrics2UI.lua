@@ -1198,6 +1198,9 @@ do -- Handling Unit Context Menu
 
 			local unitName = fightData.units[dataId].name
 
+			AddCustomMenuItem("Boss-Zeitdiagnose im Chat", function()
+				CMX2.PrintBossTimeDiagnostic(fightData, { [dataId] = true })
+			end)
 			AddCustomMenuItem(GetString(SI_COMBAT_METRICS2_POSTUNITDPS), postUnitDPS)
 			AddCustomMenuItem(zo_strformat(GetString(SI_COMBAT_METRICS2_POSTUNITNAMEDPS), unitName, 2), postUnitNameDPS)
 
@@ -7453,4 +7456,10 @@ function CMX2.InitializeUI()
 	end
 
 	initLiveReport()
+end
+
+-- Inspect the report's selected encounter; never fall back to a different live fight.
+SLASH_COMMANDS["/cmx2zeit"] = function()
+    local selected = selections and selections.unit and selections.unit.damageOut
+    CMX2.PrintBossTimeDiagnostic(fightData, selected)
 end

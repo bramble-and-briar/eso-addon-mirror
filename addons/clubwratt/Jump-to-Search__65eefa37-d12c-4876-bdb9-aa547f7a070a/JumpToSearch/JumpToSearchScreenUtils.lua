@@ -53,6 +53,28 @@ ScreenUtils.TARGETS = {
     { name = "furniture",  sceneName = "gamepad_housing_furniture_scene",  getScreen = Global("GAMEPAD_HOUSING_FURNITURE_BROWSER"), getList = CurrentList },
 }
 
+---Add a screen of another add-on to the targets. The screen has to be built on the stock search
+---header (ZO_Gamepad_ParametricList_Screen:AddSearch), like the built-in ones.
+---@param name string short label for logs
+---@param sceneName string scene whose SHOWN / HIDDEN states gate the jump
+---@param getScreen fun(): table|nil the screen object, nil while it does not exist
+---@param getList (fun(screen: table): table|nil)|nil the list the selection is in (default: screen:GetCurrentList())
+---@return JumpToSearchScreenTarget|nil target nil when the arguments are unusable or the scene is a target already
+function ScreenUtils.AddTarget(name, sceneName, getScreen, getList)
+    if type(name) ~= "string" or type(sceneName) ~= "string" or type(getScreen) ~= "function" then
+        return nil
+    end
+    if getList ~= nil and type(getList) ~= "function" then
+        return nil
+    end
+    if ScreenUtils.FindTargetBySceneName(sceneName) then
+        return nil
+    end
+    local target = { name = name, sceneName = sceneName, getScreen = getScreen, getList = getList or CurrentList }
+    table.insert(ScreenUtils.TARGETS, target)
+    return target
+end
+
 ---@param sceneName string
 ---@return JumpToSearchScreenTarget|nil
 function ScreenUtils.FindTargetBySceneName(sceneName)

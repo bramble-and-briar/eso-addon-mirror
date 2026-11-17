@@ -1,0 +1,29 @@
+OneCraft by oneDOK. Developed with AI assistance.
+
+References, not bundled dependencies:
+- ESO UI source and API 101051 documentation, ZeniMax Online Studios:
+  https://github.com/esoui/esoui
+  Used to verify native smithing templates, station lifecycles and crafting APIs.
+  Game source code and assets are not distributed with this addon.
+- LibAlchemy 2.7, Hyperioxes and Sharlikran; Update 51 data update credited
+  to DakJaniels in its changelog:
+  https://www.esoui.com/downloads/info2618-LibAlchemy.html
+  Reference for reagent facts, opposites, solvents and effect IDs.
+- Potion Maker 5.11.0, facit, Khrill and votan:
+  https://www.esoui.com/downloads/info405-PotionMaker.html
+  Reference for built-in effect texture identifiers.
+- LibLazyCrafting, Dolgubon and contributors:
+  https://github.com/Dolgubon/LibLazyCrafting/blob/master/Enchanting.lua
+  Reference for rune IDs, glyph IDs and equipment categories.
+  Smithing.lua was also consulted to cross-check ESO material item IDs,
+  quantities and pattern ordering.
+  ItemData.lua records ESO crafted item ID ranges cross-checked against
+  SmithingData.lua; link level/quality encodings were checked against Smithing.lua
+  and Enchanting.lua.
+  Equipment crafting is implemented inside OneCraft using the native ESO API.
+  No library source is bundled or loaded.
+- ESOUI discussion of crafted-potion descriptions and encoded effects:
+  https://www.esoui.com/forums/showthread.php?t=11572
+
+No third-party library source or assets are bundled. Required libraries are
+listed in the addon manifest and README.

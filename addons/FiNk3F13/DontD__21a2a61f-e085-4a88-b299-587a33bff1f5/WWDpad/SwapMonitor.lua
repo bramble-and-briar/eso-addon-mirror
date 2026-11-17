@@ -19,7 +19,10 @@ function M.Initialize(ww)
     initialized = true
     if LibAsync and LibAsync.task and type(LibAsync.task.Resume) == "function" then
         ZO_PreHook(LibAsync.task, "Resume", function(task)
-            if type(task.name) == "string" and task.name:sub(1, #ww.name) == ww.name then
+            -- WW.LoadCP owns/replaces its own pending CP request. A CP
+            -- cooldown must not hold the equipment/skills completion lock.
+            if type(task.name) == "string" and task.name:sub(1, #ww.name) == ww.name
+                and task.name ~= ww.name .. "CPTask" then
                 tasks[task] = true
                 if active then
                     if task.name == ww.name .. "SetupTask" then active.sawSetupTask = true end

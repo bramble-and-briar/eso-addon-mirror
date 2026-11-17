@@ -1,7 +1,6 @@
-2026.11.16
-- Another tweak for previous week "completeness"  logic which should account for every scenario giving proper useful indication.
-- Theres still an untested scenario, data in previous week but none in current week. The cache is binary I think and I cannot easily falsify this scenario.
-- Need someone to vacation to test this! =p
+2026.11.17
+- Minor cache trim tweaks again.
+- Adjusted bottom right options a touch to the right and closer together.
 
 ** POSSIBLE FUTURE OPTIONS **
 - fix name length issue

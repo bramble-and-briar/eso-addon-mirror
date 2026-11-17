@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/oneDOK/OneCraft__5060",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "oneDOK",
+  "canonical_id": "esoui:5060",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5060",
+  "deleted": false,
+  "directories": [
+    "OneCraft"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5060/",
+  "fingerprint": "50fa327a0d6163ec920ffd28689b97944ffcafac5532524c62dd6de9b892dbd5",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18518.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18519.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18520.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5060",
+  "source_url": "https://www.esoui.com/downloads/info5060-OneCraft.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "OneCraft",
+  "updated_at": 1794871287000,
+  "version": "26.11.2"
+}

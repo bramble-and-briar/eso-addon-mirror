@@ -1,4 +1,4 @@
-ARCLIGHT TAUNT 1.2.0
+ARCLIGHT TAUNT 1.3.0
 Modern Multi-Target Taunt HUD for The Elder Scrolls Online
 Author: tareN
 In-game contact: @uhtareN (PC/EU)
@@ -9,8 +9,9 @@ your pets' taunts. Enemies with the same name remain separate. Smooth
 countdowns, target highlighting and boss warnings show what needs attention.
 
 A small bar or circle at the crosshair shows your confirmed own taunt without
-numbers. Empty gray means no own taunt is confirmed; it does not prove lost
-aggro. The indicator is off by default; enable it under Crosshair taunt status.
+numbers. The indicator is off by default; enable it under Crosshair taunt status.
+An optional pale symbol can show when no own taunt is confirmed. It does not
+prove the enemy is untaunted or aggro has changed; the symbol is off by default.
 New setups start with a centered circle when enabled; the bar remains available.
 The selected shape is remembered while off. Existing sizes and positions are
 preserved. Both shapes can be positioned independently of the list.
@@ -35,7 +36,12 @@ Documents/Elder Scrolls Online/live/AddOns/
 The manifest must be at AddOns/ArclightTaunt/ArclightTaunt.txt.
 
 UPDATING
-Replace the addon folder and keep your SavedVariables to preserve your settings.
+Close ESO, replace the addon files, then start ESO again.
+Keep SavedVariables to preserve your settings.
+Optional cleanup for 1.3.0: delete only AddOns/ArclightTaunt before extracting
+the new folder. Old unused textures can remain without affecting the addon;
+this step only removes files left behind by copying over earlier versions.
+/reloadui may not load new texture files added while the client was running.
 Settings are account-wide and shared across megaservers. No combat history,
 character progress or other server-specific data is stored.
 
@@ -46,7 +52,7 @@ ESC > Settings > Add-ons > Arclight Taunt
 - Appearance & readability: bars, backgrounds, contrast and target highlighting.
 - Text & countdown: fonts, text size, countdown display and warning thresholds.
 - Crosshair taunt status: style, visibility, appearance and placement.
-- Bosses: submenus for warnings/sounds and enemy detection/markings.
+- Bosses: warnings, sounds and enemy detection/markings.
 - Tracking: player targets, death removal and expired entries.
 
 Preview shows varied enemies and staggered taunts. Pause it while adjusting the
@@ -54,8 +60,9 @@ HUD; resume continues from the same point. The list preview itself does not
 create boss warnings.
 
 Under Crosshair taunt status, Show indicator preview runs a repeating countdown
-through turquoise, yellow and red, independently of the list. It keeps running
-while you move the indicator.
+through the selected urgency stages, independently of the list. It keeps running
+while you move the indicator. The optional unconfirmed symbol appears after expiry
+only when enabled.
 Preview crosshair adds ESO's small or large crosshair as an alignment reference,
 also in menus. Preview and placement end when settings close or combat begins;
 the live indicator appears only during combat.
@@ -68,16 +75,26 @@ settings restores only the selected shape's appearance and position, keeping
 activation, preview, boss filters and the other shape unchanged.
 The general Defaults action resets both shapes and turns the indicator off.
 
-WARNINGS
-Turquoise early warnings appear before a recognized boss taunt expires
+COLORS & READABILITY
+Optionally enable your own urgency colors in Custom colors at the bottom of
+Appearance & readability. They apply to the list, crosshair and boss banners.
+Arclight colors remain the default; numeric text may be lightened for readability.
+
+ESO target markers can appear beside names, separately from the boss skull.
+Only directly identified observations are shown. Marker changes clear uncertain
+assignments; unseen marks return only after another safe observation. Arclight
+never places markers. Disable the display under Appearance & readability.
+
+BOSS WARNINGS
+In the default palette, turquoise early warnings appear before a recognized boss taunt expires
 (2.5 seconds by default). Red warns after expiration. Both can appear together;
 each groups its own affected bosses. Re-taunting or a recognized death clears
 the corresponding boss. Boss pinning puts expired bosses ahead of active ones.
 
 Choose sound for expiration, early warning, both or neither. Early audio is off
 by default, with Duel boundary warning selected; expiration uses Duel start.
-Red/live-pending expiration warnings take priority. Suppressed early sounds
-are not queued or replayed after red ends.
+Visible or pending expiration warnings take priority. Suppressed early sounds
+are not queued or replayed after the expiration alert ends.
 
 Test warning demonstrates early, expiration, then turquoise below red. It
 follows your warning/audio settings; without early warnings it tests red only.
@@ -100,8 +117,11 @@ GOOD TO KNOW
 
 FEEDBACK
 https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html#comments
+Using Arclight in your runs? We'd love to hear what you like and what could work
+better. Even a short comment helps; you do not need to have found a bug.
 Include your ability/morph or Scribing combination, client language, encounter,
-observed behavior and any Lua error. Screenshots help with visual issues.
+observed behavior and any Lua error when reporting a problem. Screenshots help
+with visual issues.
 
 CREDITS / TRANSPARENCY
 - Early alpha idea: Untaunted by Solinur:

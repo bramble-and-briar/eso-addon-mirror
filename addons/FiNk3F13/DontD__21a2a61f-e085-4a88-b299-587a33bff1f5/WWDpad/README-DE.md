@@ -1,6 +1,13 @@
-# WW D-Pad — Version 0.7.0
+# WW D-Pad — Version 0.7.1
 
 Autor: FiNk3--F13--
+
+Version 0.7.1: Ein ausstehender Championpunkte-Wechsel bzw. CP-Cooldown
+blockiert die manuellen oder automatischen Setupwechsel nicht mehr.
+WWs CPTask wird aus der Abschlusssperre ausgenommen. Ausrüstung, Fähigkeiten
+und die übrigen relevanten WW-Aufgaben bleiben geschützt; danach gelten
+weiterhin 800 ms Pause. Der CP-Wechsel selbst wird weiterhin von WW verwaltet.
+Die Änderung umgeht keine spielseitige CP-Wartezeit.
 
 Version 0.7.0 behebt die dauerhafte Abschaltung nach fehlender WW-Erfolgsmeldung.
 Leere oder abgelehnte Setups werden direkt erkannt. WWs asynchrone Aufgaben
@@ -93,7 +100,7 @@ Auf PC/PTS kann /wwdpad den Hauptschalter umschalten.
 
 Alle Wechsel teilen sich eine Sperre: WW-Abschluss abwarten und danach 800 ms
 Pause. Auch nach einer nativen Erfolgsmeldung werden noch beobachtete laufende
-WW-Aufgaben berücksichtigt. Ohne Bestätigung nach 45 Sekunden erscheint nur
+WW-Aufgaben außer der CP-Aufgabe berücksichtigt. Ohne Bestätigung nach 45 Sekunden erscheint nur
 noch eine einmalige Warnung. Das Add-on bleibt eingeschaltet und wartet weiter;
 die Zeit allein gibt keinen weiteren Wechsel frei. Kampf- und Todeszeit zählen
 nicht in diese Frist. Ein später nachweisbarer Abschluss gibt die Sperre ohne
@@ -128,10 +135,15 @@ Boss-Einheiten, Namens-/Bedingungszuordnung, fester Automatik-Zielmodus und
 Vorrang manueller Eingaben. Test im laufenden ESO und auf Konsole steht aus.
 
 Zusätzliche Regressionstests für 0.7.0: fehlende WW-Abschlussmeldung bei fehlender
-Ausrüstung und deaktiviertem Ausrüstungswechsel, aktive/delayed CP-Aufgaben,
+Ausrüstung und deaktiviertem Ausrüstungswechsel, laufende/verzögerte Ausrüstungsaufgaben,
 Ablehnung leerer Setups, verspätete Erfolgsmeldung, pausierte Kampfzeit und
 ausdrücklicher WW-Validierungsfehlschlag. Dabei wird ohne UI-Neuladen fortgesetzt,
 sobald der jeweilige Abschluss nachweisbar ist.
+
+Für 0.7.1 zusätzlich geprüft: Bei noch laufender CP-Aufgabe, CP-Verzögerung
+und CP-spezifischem Fehler kann nach abgeschlossenem Ausrüstungswechsel und
+800 ms zum nächsten Setup gewechselt werden. Laufende Ausrüstungsaufgaben
+halten die Sperre weiter aufrecht. Der echte Konsolentest steht noch aus.
 
 Mit KI-Unterstützung erstellt. Nicht von ZeniMax Media Inc. oder verbundenen
 Unternehmen erstellt, unterstützt oder gesponsert.

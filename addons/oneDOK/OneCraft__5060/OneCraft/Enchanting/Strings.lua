@@ -1,0 +1,51 @@
+local A = OneCraft.Enchanting
+local en = {
+    level = "Level", equipment = "Equipment type", effect = "Effect", quality = "Quality",
+    armor = "Armor", weapon = "Weapon", jewelry = "Jewelry",
+    levelFormat = "Level %d", cpFormat = "CP %d", available = "%d available",
+    ready = "Ready. Use the standard Create button.", missing = "Missing rune: %s.",
+    skill = "Your enchanting skills do not allow this rune: %s.",
+    unknown = "Predicted glyph. Some selected runes are untranslated; create one glyph to learn them.",
+    unavailable = "These runes are unavailable or locked.", rejected = "The game's result does not match the selected glyph.",
+    conflict = "OneCraft: selected runes changed. Select the glyph again.",
+    unsupported = "OneCraft: this enchanting API version is not supported.",
+    data = "OneCraft: unrecognized rune or glyph data was excluded.",
+    clear = "Select a glyph parameter to fill the rune slots again.",
+    predicted = "Predicted result", material = "Required runes", noDescription = "Choose the required runes to see the game's glyph details.",
+}
+local ru = {
+    level = "Уровень", equipment = "Тип снаряжения", effect = "Эффект", quality = "Качество",
+    armor = "Броня", weapon = "Оружие", jewelry = "Украшения",
+    levelFormat = "Уровень %d", cpFormat = "ОГ %d", available = "В наличии: %d",
+    ready = "Готово. Используйте стандартную кнопку создания.", missing = "Не хватает руны: %s.",
+    skill = "Навыки зачарования не позволяют использовать руну: %s.",
+    unknown = "Предполагаемый глиф. Некоторые руны не переведены; создайте один глиф, чтобы изучить их.",
+    unavailable = "Эти руны недоступны или заблокированы.", rejected = "Результат игры не совпадает с выбранным глифом.",
+    conflict = "OneCraft: выбранные руны изменились. Выберите глиф заново.",
+    unsupported = "OneCraft: эта версия API зачарования не поддерживается.",
+    data = "OneCraft: неизвестные данные рун или глифов исключены из подбора.",
+    clear = "Выберите параметр глифа, чтобы снова заполнить слоты рун.",
+    predicted = "Предполагаемый результат", material = "Необходимые руны", noDescription = "Выберите необходимые руны, чтобы увидеть игровое описание глифа.",
+}
+A.isRussian = GetCVar("language.2") == "ru"
+A.text = OneCraft.Localize(A.isRussian and ru or en)
+A.effectNames = {
+    health = {"Health", "Здоровье"}, magicka = {"Magicka", "Магия"}, stamina = {"Stamina", "Запас сил"},
+    absorbHealth = {"Absorb Health", "Поглощение здоровья"}, absorbMagicka = {"Absorb Magicka", "Поглощение магии"},
+    absorbStamina = {"Absorb Stamina", "Поглощение запаса сил"}, decreaseHealth = {"Decrease Health", "Уменьшение здоровья"},
+    healthRecovery = {"Health Recovery", "Восстановление здоровья"}, magickaRecovery = {"Magicka Recovery", "Восстановление магии"},
+    staminaRecovery = {"Stamina Recovery", "Восстановление запаса сил"}, reduceMagicka = {"Reduce Spell Cost", "Снижение затрат магии"},
+    reduceStamina = {"Reduce Feat Cost", "Снижение затрат запаса сил"}, poisonResist = {"Poison Resist", "Сопротивление яду"},
+    poison = {"Poison", "Ядовитый урон"}, flameResist = {"Flame Resist", "Сопротивление огню"}, flame = {"Flame", "Огненный урон"},
+    frostResist = {"Frost Resist", "Сопротивление холоду"}, frost = {"Frost", "Морозный урон"},
+    shockResist = {"Shock Resist", "Сопротивление электричеству"}, shock = {"Shock", "Электрический урон"},
+    diseaseResist = {"Disease Resist", "Сопротивление болезням"}, disease = {"Foulness", "Болезнетворный урон"},
+    crushing = {"Crushing", "Сокрушение"}, hardening = {"Hardening", "Укрепление"},
+    weakening = {"Weakening", "Ослабление"}, weaponDamage = {"Weapon Damage", "Урон оружия"},
+    potionSpeed = {"Potion Speed", "Ускорение зелий"}, potionBoost = {"Potion Boost", "Усиление зелий"},
+    physicalResist = {"Decrease Physical Harm", "Физическая сопротивляемость"}, physicalHarm = {"Increase Physical Harm", "Физический урон"},
+    spellResist = {"Decrease Spell Harm", "Магическая сопротивляемость"}, magicalHarm = {"Increase Magical Harm", "Магический урон"},
+    shielding = {"Shielding", "Защита"}, bashing = {"Bashing", "Сокрушительный удар"},
+    prismaticOnslaught = {"Prismatic Onslaught", "Призматический натиск"}, prismaticDefense = {"Prismatic Defense", "Призматическая защита"},
+    reduceSkillCost = {"Reduce Skill Cost", "Снижение затрат способностей"}, prismaticRecovery = {"Prismatic Recovery", "Призматическое восстановление"},
+}

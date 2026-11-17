@@ -1,7 +1,7 @@
 PvPUAPatch = PvPUAPatch or {} -- build.sh: private global, coexists with the unpatched PvPUA
 local PvPUA = PvPUAPatch
 PvPUA.name = "PvPUAPatch" -- build.sh: must match the addon folder (EVENT_ADD_ON_LOADED)
-PvPUA.version = "5.12.0" -- Patch: build.sh writes VERSION here; only used in the debug log
+PvPUA.version = "5.14.0" -- Patch: build.sh writes VERSION here; only used in the debug log
 
 --------------------------------------------------
 -- Config
@@ -2954,11 +2954,16 @@ end
 -- campaign queue was seen does that for them, same campaign, same solo/group choice:
 --   dropped from the queue          -> QueueForCampaign again, RQ_HOLD_MS after the game's LEFT at the
 --                                      earliest (the server keeps the entry that long and answers "already
---                                      queued"); that answer with nothing listed is tried again
+--                                      queued"); that answer with nothing listed is tried again. An alert
+--                                      names the wait and the try, so the player leaves the queue to us
 --   still WAITING with a position   -> left alone (it is still moving)
 --   offered, accept timer running   -> left alone (the player can still accept)
 --   queued in any other state 10 s  -> stuck: LeaveCampaignQueue, then QueueForCampaign on its LEFT
--- At most RQ_MAX_ATTEMPTS requeues per queue the player joined himself; entering the campaign resets.
+-- The requeues go on until one holds, the first RQ_FAST_ATTEMPTS at the fastest pace the server takes (a
+-- place in the new queue is a matter of seconds; logged 2026-11-15 and 11-16: after a relog out of a broken
+-- queue every join bounced for 45-90 s, 4 and 6 in a row). Past that many in a row they come one per
+-- RQ_SLOW_MS, the row reads STUCK and the alarm sounds. The count starts again with a queue the player
+-- joined himself and on entering the campaign.
 -- Whatever the setting, the failure also marks the queue window's row "STUCK #<last position>" (Stuck mark).
 -- A failure belongs to a queue the game still lists, however long that queue has been quiet, or to one
 -- dropped within RQ_WINDOW_MS (RQRecentQueue).
@@ -2970,11 +2975,11 @@ end
 local RQ_WINDOW_MS     = 60000 -- a failure this soon after an unlisted queue was last seen belongs to it
 local RQ_CHECK_MS      = 3000  -- let the game's own LEFT / STATE events land before deciding
 local RQ_STUCK_MS      = 10000 -- still queued, not WAITING, this long after a failure = stuck
-local RQ_OURS_MS       = 15000 -- a JOINED this soon after our QueueForCampaign is our requeue
+local RQ_OURS_MS       = 15000 -- the first JOINED this soon after our QueueForCampaign is our requeue
 local RQ_LEAVE_MS      = 15000 -- our LeaveCampaignQueue's LEFT must land within this
 local RQ_DROP_MS       = 10000 -- a LEFT this soon after a failure is the game dropping the entry, not the player
-local RQ_MAX_ATTEMPTS  = 5
-local RQ_MAX_DELAY_MS  = 30000
+local RQ_FAST_ATTEMPTS = 30    -- tries in a row at the fastest pace (about 10 s a bounce, so 5 min)
+local RQ_SLOW_MS       = 30000 -- the wait before a try past those, with STUCK and the alarm on
 local RQ_MANUAL_MS     = 5000  -- a Requeue Now step the game has not answered this long moves on
 -- After a "full" bounce the server keeps the entry past the game's LEFT: a QueueForCampaign 0.4-2.4 s after
 -- LEFT was answered "already queued" (4 of 4), one 4.5-9.9 s after it was accepted (6 of 6; logged 2026-11-14
@@ -3005,7 +3010,7 @@ local RQ_LEAVE_NOT_QUEUED = RQConstNames("LEAVE_CAMPAIGN_QUEUE_ERROR_", { "NOT_Q
 
 local RQ_POP_NAMES = RQConstNames("CAMPAIGN_POP_", { "LOW", "MEDIUM", "HIGH", "FULL" })
 
-PvPUA.requeue = { last = nil, attempts = 0, requeuedAtMs = nil, pendingLeave = nil, failure = nil, checkSeq = 0,
+PvPUA.requeue = { last = nil, attempts = 0, pendingLeave = nil, failure = nil, checkSeq = 0,
     stuck = nil, manual = nil, manualSeq = 0, call = nil, pollText = nil, popQuery = nil, logout = nil }
 
 function PvPUA:AutoRequeueEnabled()
@@ -3026,6 +3031,16 @@ end
 local function RQChat(msg)
     if not (CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage) then return end
     pcall(CHAT_ROUTER.AddSystemMessage, CHAT_ROUTER, "|cFFFFFF[|r|cFF8800PvP UA|r|cFFFFFF]|r " .. msg)
+end
+
+local function RQAlert(msg) -- console chat is easy to miss; the alert line is not
+    local alert = rawget(_G, "ZO_Alert")
+    if type(alert) == "function" then pcall(alert, rawget(_G, "UI_ALERT_CATEGORY_ALERT"), nil, "PvP UA - " .. msg) end
+end
+
+-- The wait before try number tries + 1: fastMs for the first RQ_FAST_ATTEMPTS, RQ_SLOW_MS past them.
+local function RQPace(fastMs, tries)
+    return tries < RQ_FAST_ATTEMPTS and fastMs or RQ_SLOW_MS
 end
 
 local function RQCampaignLabel(campaignId, asGroup)
@@ -3185,11 +3200,11 @@ end
 -- Stuck alarm (Settings > "Stuck Alarm", on by default). The mark is easy to miss while doing something else,
 -- so an error sound repeats every RQ_ALARM_MS for as long as it stands. It is held back only while a step of
 -- ours is pending (the check after a failure, a requeue or a leave waiting on the game's answer): each such
--- step calls RQStuckQuiet with its own wait. Everything else, a hold, a give-up, Auto Requeue off, a step the
--- game never answered, sounds.
+-- step calls RQStuckQuiet with its own wait. Everything else, a hold, Auto Requeue off, a step the game never
+-- answered, RQ_FAST_ATTEMPTS tries in a row with none holding, sounds.
 function PvPUA:RQStuckQuiet(ms)
     local stuck = self.requeue.stuck
-    if stuck == nil then return end
+    if stuck == nil or self.requeue.attempts >= RQ_FAST_ATTEMPTS then return end
     stuck.quietUntilMs = GetGameTimeMilliseconds() + ms + RQ_ALARM_GRACE_MS
     self:RefreshQueueWindow() -- the row reads REQUEUING while the step is pending
 end
@@ -3270,8 +3285,13 @@ end
 function PvPUA:RQOnJoined(campaignId, isGroup, willLockToAlliance)
     local rq = self.requeue
     local now = GetGameTimeMilliseconds()
-    local ours = rq.requeuedAtMs ~= nil and now - rq.requeuedAtMs <= RQ_OURS_MS
-    if not ours then rq.attempts = 0 end -- a queue the player joined himself starts a fresh budget
+    -- Ours: the first JOINED after a QueueForCampaign of ours the game has not refused. A second one beside it
+    -- is the player's own press landing with ours (logged 2026-11-15 and 11-16: two entries).
+    local call = rq.call
+    local ours = call ~= nil and not call.joined and now - call.atMs <= RQ_OURS_MS
+        and (call.answer == nil or call.answer == rawget(_G, "QUEUE_FOR_CAMPAIGN_RESULT_SUCCESS"))
+    if ours then call.joined = true end
+    if not ours then rq.attempts = 0 end -- a queue the player joined himself starts the count again
     local last = self:RQRemember(campaignId, isGroup)
     if not ours then last.position = nil end -- and has no position yet
     if self:RQStuckIs(campaignId, isGroup) then self:RQClearStuck("queued again") end
@@ -3369,7 +3389,7 @@ function PvPUA:RQOnQueueResponse(response, parameter)
 end
 
 -- Our requeue answered "already queued": the server still holds the entry the game has dropped. The check
--- runs again RQ_HOLD_MS on and queues once more (each try counts toward RQ_MAX_ATTEMPTS).
+-- runs again RQ_HOLD_MS on and queues once more (RQ_SLOW_MS on, past the fast tries).
 function PvPUA:RQRefused(text, response)
     local rq = self.requeue
     local last = rq.last
@@ -3377,10 +3397,11 @@ function PvPUA:RQRefused(text, response)
     rq.checkSeq = rq.checkSeq + 1
     local seq = rq.checkSeq
     local failedAtMs = rq.failure and rq.failure.atMs or GetGameTimeMilliseconds()
+    local delay = RQPace(RQ_HOLD_MS, rq.attempts)
     DLog("RQ refused %s: %s [queue %s]; checking again in %d ms", RQCampaignLabel(last.campaignId, last.asGroup),
-        text ~= "" and text or "?", tostring(response), RQ_HOLD_MS)
-    self:RQStuckQuiet(RQ_HOLD_MS)
-    zo_callLater(function() PvPUA:RQCheck(seq, failedAtMs) end, RQ_HOLD_MS)
+        text ~= "" and text or "?", tostring(response), delay)
+    self:RQStuckQuiet(delay)
+    zo_callLater(function() PvPUA:RQCheck(seq, failedAtMs) end, delay)
 end
 
 function PvPUA:RQOnJumpFailed(result)
@@ -3430,7 +3451,7 @@ function PvPUA:RQOnPlayerActivated()
     local last = rq.last
     if last ~= nil and RQInCampaign(last.campaignId) then
         DLog("Q entered %s after %d requeue(s)", RQCampaignLabel(last.campaignId, last.asGroup), rq.attempts)
-        rq.last, rq.attempts, rq.requeuedAtMs, rq.pendingLeave, rq.failure = nil, 0, nil, nil, nil
+        rq.last, rq.attempts, rq.pendingLeave, rq.failure = nil, 0, nil, nil
         self:RQClearStuck("entered the campaign")
     end
 end
@@ -3458,10 +3479,9 @@ function PvPUA:RQFailure(kind, code, text)
     rq.failure = { kind = kind, code = code, reason = reason, atMs = now }
     rq.checkSeq = rq.checkSeq + 1
     local seq = rq.checkSeq
-    local delay = math.min(RQ_CHECK_MS * (2 ^ rq.attempts), RQ_MAX_DELAY_MS)
-    DLog("RQ %s: %s; checking in %d ms", label, reason, delay)
-    self:RQStuckQuiet(delay)
-    zo_callLater(function() PvPUA:RQCheck(seq, now) end, delay)
+    DLog("RQ %s: %s; checking in %d ms", label, reason, RQ_CHECK_MS)
+    self:RQStuckQuiet(RQ_CHECK_MS)
+    zo_callLater(function() PvPUA:RQCheck(seq, now) end, RQ_CHECK_MS)
 end
 
 function PvPUA:RQCheck(seq, failedAtMs)
@@ -3482,9 +3502,19 @@ function PvPUA:RQCheck(seq, failedAtMs)
     end
     local queued, state, position, confirmLeft = RQSnapshot(c, g)
     if not queued then
-        local wait = (last.leftMs or failedAtMs) + RQ_HOLD_MS - GetGameTimeMilliseconds()
-        if wait > 0 then
-            DLog("RQ wait %s: dropped, the server holds the entry %d ms more", label, wait)
+        -- Dropped. The try goes out once the server has let go of the entry (RQ_HOLD_MS past LEFT) and this
+        -- try's own wait since the failure is over, whichever is later. Sooner than the hold buys nothing: the
+        -- server judges a join on a 5 s grid, and a join inside the hold is refused.
+        local dueMs = math.max((last.leftMs or failedAtMs) + RQ_HOLD_MS, failedAtMs + RQPace(RQ_CHECK_MS, rq.attempts))
+        local wait = dueMs - GetGameTimeMilliseconds()
+        if wait > 0 and (not g or (IsUnitGroupLeader and IsUnitGroupLeader("player"))) then
+            DLog("RQ wait %s: dropped, queueing again in %d ms", label, wait)
+            local failure = rq.failure
+            if failure ~= nil and not failure.announced then
+                failure.announced = true
+                RQAlert(string.format("%s full: queueing again in %d s (try %d). Leave it to the add-on.", label,
+                    math.ceil(wait / 1000), rq.attempts + 1))
+            end
             self:RQStuckQuiet(wait)
             zo_callLater(function() PvPUA:RQCheck(seq, failedAtMs) end, wait)
             return
@@ -3517,7 +3547,6 @@ function PvPUA:RQCheck(seq, failedAtMs)
             RQStateName(state)))
         return
     end
-    if rq.attempts >= RQ_MAX_ATTEMPTS then return self:RQQueue(c, g, reason) end -- reports the give-up
     DLog("RQ leave %s: stuck in %s #%d", label, RQStateName(state), position)
     RQChat(string.format("%s: %s. Queue stuck (%s); leaving it to queue again.", label, reason, RQStateName(state)))
     rq.pendingLeave = { campaignId = c, asGroup = g, atMs = now }
@@ -3528,22 +3557,21 @@ end
 function PvPUA:RQQueue(campaignId, asGroup, reason)
     local rq = self.requeue
     local label = RQCampaignLabel(campaignId, asGroup)
-    if rq.attempts >= RQ_MAX_ATTEMPTS then
-        DLog("RQ give up %s after %d requeues", label, rq.attempts)
-        RQChat(string.format("%s: %s. Gave up after %d requeues; queue by hand.", label, reason, rq.attempts))
-        return
-    end
     if asGroup and not (IsUnitGroupLeader and IsUnitGroupLeader("player")) then
         DLog("RQ hold %s: dropped, not group leader", label)
         RQChat(string.format("%s: %s. Dropped from the group queue; the group leader has to requeue.", label, reason))
         return
     end
     rq.attempts = rq.attempts + 1
-    rq.requeuedAtMs = GetGameTimeMilliseconds()
     self:RQRemember(campaignId, asGroup)
-    DLog("RQ queue %s (%d/%d): %s", label, rq.attempts, RQ_MAX_ATTEMPTS, reason)
+    DLog("RQ queue %s (try %d): %s", label, rq.attempts, reason)
     self:RQNoteCall("auto")
-    RQChat(string.format("%s: %s. Queued again (%d/%d).", label, reason, rq.attempts, RQ_MAX_ATTEMPTS))
+    RQChat(string.format("%s: %s. Queued again (try %d).", label, reason, rq.attempts))
+    if rq.attempts == RQ_FAST_ATTEMPTS then
+        DLog("RQ slow %s: %d tries in a row, none held; one per %d ms from here", label, rq.attempts, RQ_SLOW_MS)
+        RQChat(string.format("%s: %d tries in a row and none held. Still trying, every %d s; the alarm is on.", label,
+            rq.attempts, RQ_SLOW_MS / 1000))
+    end
     self:RQStuckQuiet(RQ_MANUAL_MS)
     QueueForCampaign(campaignId, asGroup)
 end
@@ -3563,8 +3591,7 @@ end
 -- A step the game does not answer within RQ_MANUAL_MS moves on; a refused or unanswered requeue ends it.
 function PvPUA:RQManualNotify(msg)
     RQChat(msg)
-    local alert = rawget(_G, "ZO_Alert") -- console chat is easy to miss; the alert line is not
-    if type(alert) == "function" then pcall(alert, rawget(_G, "UI_ALERT_CATEGORY_ALERT"), nil, "PvP UA - " .. msg) end
+    RQAlert(msg)
 end
 
 function PvPUA:RQManualTarget()
@@ -3662,7 +3689,6 @@ function PvPUA:RQManualQueue(step)
     local manual = rq.manual
     if manual == nil then return end
     self:RQManualStep(step)
-    rq.requeuedAtMs = GetGameTimeMilliseconds()
     self:RQRemember(manual.campaignId, manual.asGroup)
     DLog("RQ manual %s %s", step, manual.label)
     self:RQNoteCall("manual")
@@ -4860,7 +4886,7 @@ function PvPUA:CreateSettings()
         menuIcon        = PVPUA_ADDON_ICON,
         title           = PVPUA_MENU_TITLE_COLORED,
         author          = PVPUA_TOOLTIP_AUTHOR_COLORED,
-        version         = "5.12.0",
+        version         = "5.14.0",
         previewControls = function() return PvPUA:SettingsPreviewControls() end,
         textSize        = function() return PvPUA.savedVariables.settingsFontSize end,
         windowOpacity   = function() return PvPUA.savedVariables.settingsOpacity end,

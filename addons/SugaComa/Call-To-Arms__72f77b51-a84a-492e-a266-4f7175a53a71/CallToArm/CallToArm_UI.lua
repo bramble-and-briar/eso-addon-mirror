@@ -408,6 +408,21 @@ local function CreateMainMenu()
         clickHandler = function() CallToArm.CTA.RunNow() end,
     })
     settings:AddSetting({
+        type = LHAS.ST_BUTTON,
+        label = "Campaign Queue Status",
+        tooltip = "Prints your solo and group campaign queue positions and ESO's campaign wait estimates in chat when available.",
+        buttonText = "Show Status",
+        clickHandler = function() CallToArm.CTA.ShowQueueStatus() end,
+    })
+    settings:AddSetting({
+        type = LHAS.ST_CHECKBOX,
+        label = "Auto-Accept Campaign Entry",
+        tooltip = "Automatically accepts new solo and group campaign entry prompts for this account. Entering a campaign can take you out of your current activity.",
+        default = false,
+        getFunction = function() return CallToArm.SV.cta.autoAcceptCampaignEntry == true end,
+        setFunction = function(state) CallToArm.SV.cta.autoAcceptCampaignEntry = (state == true) end,
+    })
+    settings:AddSetting({
         type = LHAS.ST_DROPDOWN,
         label = "Automatic Campaign Check Interval",
         tooltip = "Time between automatic checks. Population reminder interval is separate.",

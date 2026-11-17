@@ -1,4 +1,4 @@
--- Arclight Taunt 1.2.0 | Core module
+-- Arclight Taunt 1.3.0 | Core module
 -- Lua implementation is original; uses only the public ESO UI API.
 local ADDON = "ArclightTaunt"
 local EM, WM = EVENT_MANAGER, WINDOW_MANAGER
@@ -88,8 +88,8 @@ local C = {
     -- by remaining time; countdown and severity stripe keep that role.
     bossName   = {0.985, 0.898, 0.722, 1},
     bossIcon   = {0.98, 0.94, 0.84, 1}, -- pale bone-ivory, distinct from countdown urgency
-    -- Alert visuals are fixed across all profiles. Native textures and labels
-    -- retain a high contrast independently of the taunt timer colours.
+    -- Neutral banner material; palette accents are independent of the ivory
+    -- skull and readable labels. The original default alert hues stay intact.
     alertBackground = {1, 1, 1, 1},
     alertEdge = {1.00, 0.20, 0.33, 1},
     alertHairline = {1.00, 0.32, 0.44, 0.90},
@@ -103,6 +103,8 @@ local defaults = {
     subtleWarningBg = true, warningAt = 7, dangerAt = 4, removeDead = true,
     showExpired = false, showBossIcon = true,
     highlightBossNames = true, pinBosses = false, bossMode = "comprehensive",
+    showTargetMarkers = true,
+    colorProfile = "arclight", customSafeColor = "2BF0BF", customWarningColor = "FFB51F", customDangerColor = "FF4254",
     highlightTarget = true, targetHighlightStyle = "subtle", reduceAnimations = false,
     fontKey = "Arclight (Standard)", timerFontKey = "Wie Gegnername",
     barKey = "Arclight (Signatur)", fontSize = 100,
@@ -115,6 +117,7 @@ local defaults = {
     showTauntList = true, mirrorTauntList = false, highContrast = false, trackPlayerTargets = false,
     bossListOnly = false,
     reticleStyle = "off", reticleLastStyle = "circle", reticleSize = 40,
+    showUnconfirmedReticle = false,
     reticleBarHeight = 4.5, reticleOffsetX = 0, reticleOffsetY = 0,
     reticleRingWeight = 5,
     reticleBossOnly = false,
@@ -139,8 +142,9 @@ local MEDIA_BAR_SIGNAL = "Arclight (Signal)"
 local MEDIA_TEXTURE_SIGNATURE = "ArclightTaunt/Textures/ArclightSignatur.dds"
 local MEDIA_TEXTURE_SIGNAL = "ArclightTaunt/Textures/ArclightSignal.dds"
 local BOSS_ICON_TEXTURE = "ArclightTaunt/Textures/ArclightBossWorn.dds"
-local BOSS_WARNING_TEXTURE = "ArclightTaunt/Textures/ArclightBossWarning.dds"
-local BOSS_EARLY_TEXTURE = "ArclightTaunt/Textures/ArclightBossEarly.dds"
+local BOSS_WARNING_TEXTURE = "ArclightTaunt/Textures/ArclightBannerBody.dds"
+local BOSS_EARLY_TEXTURE = BOSS_WARNING_TEXTURE
+local BOSS_BANNER_ACCENT_TEXTURE = "ArclightTaunt/Textures/ArclightBannerAccent.dds"
 local MEDIA_BG_NONE = "Ohne Textur"
 local MEDIA_BG_OBSIDIAN = "Arclight (Obsidian)"
 local MEDIA_BG_CARBON = "Arclight (Carbon)"
@@ -272,6 +276,7 @@ A.MEDIA_TEXTURE_SIGNAL = MEDIA_TEXTURE_SIGNAL
 A.BOSS_ICON_TEXTURE = BOSS_ICON_TEXTURE
 A.BOSS_WARNING_TEXTURE = BOSS_WARNING_TEXTURE
 A.BOSS_EARLY_TEXTURE = BOSS_EARLY_TEXTURE
+A.BOSS_BANNER_ACCENT_TEXTURE = BOSS_BANNER_ACCENT_TEXTURE
 A.MEDIA_BG_NONE = MEDIA_BG_NONE
 A.MEDIA_BG_OBSIDIAN = MEDIA_BG_OBSIDIAN
 A.MEDIA_BG_CARBON = MEDIA_BG_CARBON

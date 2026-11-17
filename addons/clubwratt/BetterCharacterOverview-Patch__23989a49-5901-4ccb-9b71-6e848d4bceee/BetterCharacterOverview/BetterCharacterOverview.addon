@@ -1,12 +1,12 @@
 ## Title: Better Character Overview
 ## Author: Copper
-## Version: 1.11.0
+## Version: 1.12.0
 ## APIVersion: 101050 101051
-## AddOnVersion: 11100
-## Description: Adds a native All Inventories page to the PS5 gamepad Inventory with compact item-location details, cross-character currencies, furnishing preview, furnishings grouped by furniture category and subcategory (/bcosub) and cataloged from bank, housing storage, and owned houses, guild store listings per guild, and All/Banked/Characters/Storage/Listed source filters, excluding the Craft Bag.
+## AddOnVersion: 11200
+## Description: Adds a native All Inventories page to the PS5 gamepad Inventory with compact item-location details, cross-character currencies, furnishing preview, furnishings grouped by furniture category and subcategory (/bcosub) and cataloged from bank, housing storage, and owned houses, guild store listings per guild, and All/Banked/Characters/Storage/Listed source filters, excluding the Craft Bag. Every item tooltip also counts copies held by other characters, placed in owned houses, or listed in guild stores.
 ## SavedVariables: BetterCharacterOverviewSavedVariables
 ## ProdId: 23989a49-5901-4ccb-9b71-6e848d4bceee
-## DevId: 436f6695-4798-423f-b276-d8c46cbd938e
+## DevId: a981c79d-3b39-400d-94d1-e164bdd88393
 
 ## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
 

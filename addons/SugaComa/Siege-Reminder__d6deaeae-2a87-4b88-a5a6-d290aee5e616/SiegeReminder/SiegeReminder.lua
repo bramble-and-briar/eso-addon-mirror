@@ -1,11 +1,13 @@
 --------------------------------------------------------------
--- SiegeReminder.lua — Stand-alone v1.0.0 (Siege Marshal Update)
+-- SiegeReminder.lua — SiegeMaster v2.1.4
 -- Author: SugaComa
 --------------------------------------------------------------
 local ADDON_NAME = "SiegeReminder"
 local EM = EVENT_MANAGER
+local Framework = SiegeReminder_Framework
+local catalog
+local RefreshItemSettings
 local CHECK_INTERVAL_MS = 120000 -- 2 min recheck while low
-local lastCheck = 0
 
 local isAtSiegeMerchant = false
 local isLowOnSiege = false
@@ -17,9 +19,9 @@ local bankSessionRunning = false
 --------------------------------------------------------------
 local function chat(msg)
 	if CHAT_SYSTEM and CHAT_SYSTEM.AddMessage then
-		CHAT_SYSTEM:AddMessage("|cFFD700[Siege Marshal]|r " .. msg)
+		CHAT_SYSTEM:AddMessage("|cFFD700[SiegeMaster]|r " .. msg)
 	else
-		d("|cFFD700[Siege Marshal]|r " .. msg)
+		d("|cFFD700[SiegeMaster]|r " .. msg)
 	end
 end
 
@@ -35,7 +37,7 @@ end
 local function Notify(msg)
 	local mode = (SiegeReminder.SV and SiegeReminder.SV.reminderType) or "Chat"
 	local sound = SOUNDS.GENERAL_ALERT_ERROR
-	local prefix = "|cFFD700[Siege Marshal]|r "
+	local prefix = "|cFFD700[SiegeMaster]|r "
 
 	if mode == "Chat" then
 		chat(msg)
@@ -93,29 +95,6 @@ end
 
 
 --------------------------------------------------------------
--- Siege Merchant Detection (safe)
---------------------------------------------------------------
-local function OnStoreOpen()
-	local name = (GetStoreName and GetStoreName()) or ""
-	name = name:lower()
-	if name ~= "" and (name:find("siege") or name:find("quartermaster")) then
-		isAtSiegeMerchant = true
-		if SiegeReminder.SV.debugMode then
-			chat(string.format("Merchant opened: %s (siege vendor)", name))
-		end
-	else
-		isAtSiegeMerchant = false
-	end
-end
-
-local function OnStoreClose()
-	if isAtSiegeMerchant and SiegeReminder.SV.debugMode then
-		chat("Merchant closed — resuming checks.")
-	end
-	isAtSiegeMerchant = false
-end
-
---------------------------------------------------------------
 -- Siege Inventory
 --------------------------------------------------------------
 local function IsSiegeItem(bagId, slotIndex)
@@ -136,49 +115,151 @@ local function GetFreeSlotInBag(bagId)
 	return nil
 end
 
-local function GetSiegeTypeKey(itemName)
-	if not SiegeReminder.SV or not SiegeReminder.SV.siegeTypes then return nil end
-	local name = tostring(itemName or "")
-	if name == "" then return nil end
-	name = name:lower()
-	for typeKey in pairs(SiegeReminder.SV.siegeTypes) do
-		if name:find(typeKey:lower(), 1, true) then
-			return typeKey
-		end
-	end
-	return nil
-end
-
-local function CountSiegeByType(bagId)
+local function CountCarried()
 	local counts = {}
-	for slot = 0, GetBagSize(bagId) - 1 do
-		if IsSiegeItem(bagId, slot) then
-			local itemName = GetItemName(bagId, slot)
-			local key = GetSiegeTypeKey(itemName)
-			if key then
-				counts[key] = (counts[key] or 0) + GetSlotStackSize(bagId, slot)
+	for _, bagId in ipairs({ BAG_BACKPACK, BAG_WORN }) do
+		for slot = 0, GetBagSize(bagId) - 1 do
+			if IsSiegeItem(bagId, slot) then
+				local id = tostring(GetItemId(bagId, slot))
+				counts[id] = (counts[id] or 0) + GetSlotStackSize(bagId, slot)
 			end
 		end
 	end
 	return counts
 end
 
-local function BuildSiegeSlotsByType(bagId)
-	local map = {}
+local function BuildSiegeSlotsByItem(bagId)
+	local slotsByItem = {}
 	for slot = 0, GetBagSize(bagId) - 1 do
 		if IsSiegeItem(bagId, slot) then
-			local itemName = GetItemName(bagId, slot)
-			local key = GetSiegeTypeKey(itemName)
-			if key then
-				map[key] = map[key] or {}
-				map[key][#map[key] + 1] = { slot = slot, stack = GetSlotStackSize(bagId, slot) }
+			local id = tostring(GetItemId(bagId, slot))
+			if catalog[id] then
+				local slots = slotsByItem[id] or {}
+				slotsByItem[id] = slots
+				slots[#slots + 1] = { slot = slot, stack = GetSlotStackSize(bagId, slot) }
 			end
 		end
 	end
-	for _, list in pairs(map) do
-		table.sort(list, function(a, b) return (a.stack or 0) > (b.stack or 0) end)
+	for _, slots in pairs(slotsByItem) do
+		table.sort(slots, function(a, b) return a.stack > b.stack end)
 	end
-	return map
+	return slotsByItem
+end
+
+local function GetItemSettings(id)
+	local items = SiegeReminder.SV.items
+	if not items[id] then
+		items[id] = { enabled = false, buyWithAP = false, minCarry = 0, maxCarry = 3 }
+	end
+	return items[id]
+end
+
+-- Inspect the live offer because the same item may have separate AP and gold entries.
+local function GetAPOffer(index)
+	local _, name, stack, gold, _, canBuy, _, _, _, currency1, cost1,
+		currency2, cost2, entryType = GetStoreEntryInfo(index)
+	if entryType ~= STORE_ENTRY_TYPE_ITEM or gold ~= 0 or not stack or stack < 1
+		or not name or name == "" then return end
+	if not cost1 or not cost2 or cost1 < 0 or cost2 < 0 then return end
+	if (cost1 > 0 and currency1 ~= CURT_ALLIANCE_POINTS)
+		or (cost2 > 0 and currency2 ~= CURT_ALLIANCE_POINTS) or cost1 + cost2 == 0 then return end
+
+	local link = GetStoreItemLink(index, LINK_STYLE_DEFAULT)
+	if not link or link == "" then return end
+	local itemType = GetItemLinkItemType(link)
+	if itemType ~= ITEMTYPE_SIEGE and itemType ~= ITEMTYPE_AVA_REPAIR then return end
+	local id = GetItemLinkItemId(link)
+	if not id or id == 0 then return end
+	return tostring(id), name, stack, cost1 + cost2, canBuy
+end
+
+local storeSession
+-- Keep an in-flight purchase across a quick vendor close and reopen.
+local pendingPurchase
+local purchaseUpdate = ADDON_NAME .. "_APRestock"
+
+local function StopPurchases()
+	EM:UnregisterForUpdate(purchaseUpdate)
+end
+
+local function RunRestock()
+	if not storeSession or not SiegeReminder.SV.automaticAPRestock
+		or GetInteractionType() ~= INTERACTION_VENDOR or not IsInAvA() then
+		StopPurchases()
+		return
+	end
+
+	local counts = CountCarried()
+	local ap = GetCurrencyAmount(CURT_ALLIANCE_POINTS, CURRENCY_LOCATION_CHARACTER)
+	local pending = pendingPurchase
+	if pending then
+		if (counts[pending.id] or 0) >= pending.expectedCount and ap <= pending.expectedAP then
+			pendingPurchase = nil
+		elseif GetFrameTimeMilliseconds() >= pending.deadline then
+			pendingPurchase = nil
+			StopPurchases()
+			chat("AP restock stopped while waiting for a purchase. Check your stock before reopening the vendor.")
+			return
+		else
+			return
+		end
+	end
+
+	for index = 1, GetNumStoreItems() do
+		local id, _, stack, cost, canBuy = GetAPOffer(index)
+		local cfg = id and SiegeReminder.SV.items[id]
+		if canBuy and cfg and cfg.buyWithAP and not storeSession.attempted[id] then
+			local have = counts[id] or 0
+			-- The store quantity counts bundles. Carry Max counts individual items.
+			local quantity = math.min(math.floor((cfg.maxCarry - have) / stack),
+				math.floor(ap / (cost * stack)), GetStoreEntryMaxBuyable(index), MAX_STORE_WINDOW_STACK_QUANTITY)
+			if quantity > 0 then
+				storeSession.attempted[id] = true
+				pendingPurchase = {
+					id = id, expectedCount = have + quantity * stack, expectedAP = ap - quantity * cost * stack,
+					deadline = GetFrameTimeMilliseconds() + 5000,
+				}
+				BuyStoreItem(index, quantity)
+				return
+			end
+		end
+	end
+	StopPurchases()
+end
+
+local function OnStoreClose()
+	StopPurchases()
+	storeSession = nil
+	isAtSiegeMerchant = false
+end
+
+local function OnStoreOpen()
+	OnStoreClose()
+	if not IsInAvA() then return end
+	local session = { attempted = {} }
+	storeSession = session
+	zo_callLater(function()
+		if storeSession ~= session or GetInteractionType() ~= INTERACTION_VENDOR then return end
+		local changed = false
+		for index = 1, GetNumStoreItems() do
+			local id, name = GetAPOffer(index)
+			if id then
+				isAtSiegeMerchant = true
+				if catalog[id] ~= name then
+					catalog[id] = name
+					changed = true
+				end
+			end
+		end
+		if changed then RefreshItemSettings() end
+		if isAtSiegeMerchant and SiegeReminder.SV.automaticAPRestock then
+			if IsProtectedFunction and IsProtectedFunction("BuyStoreItem") then
+				chat("Automatic AP restock is unavailable on this client.")
+				return
+			end
+			EM:RegisterForUpdate(purchaseUpdate, 350, RunRestock)
+		end
+	end, 250)
 end
 
 local function GetSiegeInventory()
@@ -274,24 +355,18 @@ end
 -- Bank Automation
 --------------------------------------------------------------
 local function WithdrawToCarryMax()
-	if not SiegeReminder.SV or not SiegeReminder.SV.siegeTypes then return end
-
-	local carried = CountSiegeByType(BAG_BACKPACK)
-	for key, count in pairs(CountSiegeByType(BAG_WORN)) do
-		carried[key] = (carried[key] or 0) + count
-	end
-
-	local bankSlots = BuildSiegeSlotsByType(BAG_BANK)
+	local carried = CountCarried()
+	local bankSlots = BuildSiegeSlotsByItem(BAG_BANK)
 	local queue = {}
 
-	for typeKey, cfg in pairs(SiegeReminder.SV.siegeTypes) do
+	for id, cfg in pairs(SiegeReminder.SV.items) do
 		if cfg and cfg.enabled then
 			local maxCarry = tonumber(cfg.maxCarry) or 0
 			if maxCarry > 0 then
-				local have = carried[typeKey] or 0
+				local have = carried[id] or 0
 				local need = maxCarry - have
 				if need > 0 then
-					local slots = bankSlots[typeKey] or {}
+					local slots = bankSlots[id] or {}
 					for i = 1, #slots do
 						if need <= 0 then break end
 						local entry = slots[i]
@@ -317,8 +392,8 @@ end
 local function DepositAllSiege()
 	if not SiegeReminder.SV or SiegeReminder.SV.depositAllOutsideAvA ~= true then return end
 	local queue = {}
-	local slotsByType = BuildSiegeSlotsByType(BAG_BACKPACK)
-	for _, slots in pairs(slotsByType) do
+	local slotsByItem = BuildSiegeSlotsByItem(BAG_BACKPACK)
+	for _, slots in pairs(slotsByItem) do
 		for i = 1, #slots do
 			local entry = slots[i]
 			QueueMove(queue, BAG_BACKPACK, entry.slot, BAG_BANK, nil, entry.stack)
@@ -327,7 +402,7 @@ local function DepositAllSiege()
 
 	RunQueue("SIEGE_BANK_DEPOSIT", queue, SiegeReminder.SV.bankMoveDelayMs, function(moved, reason)
 		if moved > 0 then
-			Notify("Deposited all siege to bank (outside Cyrodiil).")
+			Notify("Deposited vendor siege supplies to bank (outside Cyrodiil).")
 		end
 		if reason == "full" then
 			Notify("Bank full. Siege deposit stopped.")
@@ -364,28 +439,22 @@ end
 --------------------------------------------------------------
 -- Core Check Logic
 --------------------------------------------------------------
-local function CheckSiegeStock()
-	if not IsInAvA() then return end
-
-	local _, list = GetSiegeInventory()
-	local lowDetected = false
-
-	for siegeName, data in pairs(SiegeReminder.SV.siegeTypes) do
-		if data.enabled then
-			local have = 0
-			for name, qty in pairs(list) do
-				if name:lower():find(siegeName:lower()) then
-					have = have + qty
-				end
-			end
-			if have < (tonumber(data.minCarry) or 0) then
-				lowDetected = true
-				if SiegeReminder.SV.debugMode then
-					chat(string.format("[DEBUG] Low: %s (%d/%d)", siegeName, have, tonumber(data.minCarry) or 0))
-				end
-			end
+local function GetLowSiegeList()
+	local counts = CountCarried()
+	local lowList = {}
+	for id, cfg in pairs(SiegeReminder.SV.items) do
+		local have = counts[id] or 0
+		if catalog[id] and cfg.enabled and have < cfg.minCarry then
+			lowList[#lowList + 1] = string.format("%s (%d/%d)", catalog[id], have, cfg.minCarry)
 		end
 	end
+	table.sort(lowList)
+	return lowList
+end
+
+local function CheckSiegeStock()
+	if not IsInAvA() then return end
+	local lowDetected = #GetLowSiegeList() > 0
 
 	if lowDetected then
 		if not isLowOnSiege then
@@ -434,29 +503,6 @@ local function StartReminderLoop()
 end
 
 --------------------------------------------------------------
--- Helper: GetLowSiegeList()
---------------------------------------------------------------
-local function GetLowSiegeList()
-	local _, list = GetSiegeInventory()
-	local lowList = {}
-
-	for siegeName, data in pairs(SiegeReminder.SV.siegeTypes) do
-		if data.enabled then
-			local have = 0
-			for name, qty in pairs(list) do
-				if name:lower():find(siegeName:lower()) then
-					have = have + qty
-				end
-			end
-			if have < (tonumber(data.minCarry) or 0) then
-				table.insert(lowList, string.format("%s (%d/%d)", siegeName, have, tonumber(data.minCarry) or 0))
-			end
-		end
-	end
-	return lowList
-end
-
---------------------------------------------------------------
 -- OnPlayerActivated (quiet but informative)
 --------------------------------------------------------------
 local function OnPlayerActivated()
@@ -488,9 +534,8 @@ local function OnZoneChanged()
 	end
 end
 
-local function OnInventoryUpdate(_, bagId, slotId)
+local function OnInventoryUpdate(_, bagId)
 	if bagId ~= BAG_BACKPACK and bagId ~= BAG_WORN then return end
-	if not IsSiegeItem(bagId, slotId) then return end
 	CheckSiegeStock()
 	if isLowOnSiege then StartReminderLoop() end
 end
@@ -522,8 +567,9 @@ local function CreateSettingsMenu()
 	if not LibHarvensAddonSettings then return end
 	local LHAS = LibHarvensAddonSettings
 	local options = { allowDefaults = true, allowRefresh = true }
-	local settings = LHAS:AddAddon("Siege Reminder", options)
+	local settings = LHAS:AddAddon(Framework.displayName, options)
 	if not settings then return end
+	Framework:AddProfileControls(settings)
 
 	settings:AddSetting({
 		type = LHAS.ST_CHECKBOX,
@@ -538,7 +584,7 @@ local function CreateSettingsMenu()
 	settings:AddSetting({
 		type = LHAS.ST_DROPDOWN,
 		label = "Display Alerts As",
-		tooltip = "Select how SiegeReminder displays alerts.",
+		tooltip = "Select how SiegeMaster displays alerts.",
 		default = "Chat",
 		getFunction = function() return SiegeReminder.SV.reminderType end,
 		setFunction = function(_, name) SiegeReminder.SV.reminderType = name end,
@@ -561,7 +607,7 @@ local function CreateSettingsMenu()
 	settings:AddSetting({
 		type = LHAS.ST_CHECKBOX,
 		label = "Deposit Siege Outside AvA",
-		tooltip = "When not in Cyrodiil, deposit all siege to bank on open.",
+		tooltip = "When not in Cyrodiil, deposit discovered siege supplies to bank on open.",
 		default = true,
 		getFunction = function() return SiegeReminder.SV.depositAllOutsideAvA end,
 		setFunction = function(val) SiegeReminder.SV.depositAllOutsideAvA = val end,
@@ -587,62 +633,79 @@ local function CreateSettingsMenu()
 		setFunction = function(val) SiegeReminder.SV.debug = val end,
 	})
 
-	-- ------------------------------------------------------------
-	-- Siege type slider ranges (per type)
-	-- ------------------------------------------------------------
-	local SIEGE_RANGES = {
-		["Battering Ram"] = { minMin = 0,  minMax = 10,  minDef = 3,  maxMin = 1,  maxMax = 10,  maxDef = 10 },
-		["Ballista"]      = { minMin = 0,  minMax = 20,  minDef = 3,  maxMin = 1,  maxMax = 20,  maxDef = 20 },
-		["Catapult"]      = { minMin = 0,  minMax = 20,  minDef = 3,  maxMin = 1,  maxMax = 20,  maxDef = 20 },
-		["Trebuchet"]     = { minMin = 0,  minMax = 20,  minDef = 3,  maxMin = 1,  maxMax = 20,  maxDef = 20 },
-		["Flaming Oil"]   = { minMin = 0,  minMax = 20,  minDef = 3,  maxMin = 1,  maxMax = 20,  maxDef = 20 },
-		["Forward Camp"]  = { minMin = 0,  minMax = 10,  minDef = 1,  maxMin = 1,  maxMax = 10,  maxDef = 5 },
-		["Repair Kit"]    = { minMin = 20, minMax = 100, minDef = 50, maxMin = 50, maxMax = 200, maxDef = 200 },
-	}
-
-	local function GetRangeForType(typeName)
-		return SIEGE_RANGES[typeName] or { minMin = 0, minMax = 20, minDef = 3, maxMin = 1, maxMax = 20, maxDef = 20 }
-	end
-
-	settings:AddSetting({ type = LHAS.ST_SECTION, label = "Carry Levels (per siege type)" })
-
-	for siegeName, data in pairs(SiegeReminder.SV.siegeTypes) do
-		local r = GetRangeForType(siegeName)
-
-		settings:AddSetting({
-			type = LHAS.ST_SLIDER,
-			label = siegeName .. " Carry Min",
-			tooltip = "Reminder threshold: warn when carried amount falls below this.",
-			min = r.minMin, max = r.minMax, step = 1, format = "%d",
-			getFunction = function() return tonumber(SiegeReminder.SV.siegeTypes[siegeName].minCarry) or r.minDef end,
-			setFunction = function(val) SiegeReminder.SV.siegeTypes[siegeName].minCarry = tonumber(val) or r.minDef end,
-			default = data.minCarry or r.minDef,
-		})
-
-		settings:AddSetting({
-			type = LHAS.ST_SLIDER,
-			label = siegeName .. " Carry Max",
-			tooltip = "Cyrodiil bank top-up: withdraw from your bank up to this carried amount.",
-			min = r.maxMin, max = r.maxMax, step = 1, format = "%d",
-			getFunction = function() return tonumber(SiegeReminder.SV.siegeTypes[siegeName].maxCarry) or r.maxDef end,
-			setFunction = function(val) SiegeReminder.SV.siegeTypes[siegeName].maxCarry = tonumber(val) or r.maxDef end,
-			default = data.maxCarry or r.maxDef,
-		})
-
-		settings:AddSetting({
-			type = LHAS.ST_CHECKBOX,
-			label = "Enable " .. siegeName .. " Alerts",
-			tooltip = "Enable or disable reminders for " .. siegeName .. ".",
-			default = (data.enabled ~= false),
-			getFunction = function() return SiegeReminder.SV.siegeTypes[siegeName].enabled ~= false end,
-			setFunction = function(state) SiegeReminder.SV.siegeTypes[siegeName].enabled = (state == true) end,
-		})
-	end
-
+	settings:AddSetting({ type = LHAS.ST_SECTION, label = "Vendor Restock" })
 	settings:AddSetting({
-		type = LHAS.ST_LABEL,
-		label = "|cFFD700SiegeReminder|r\nBuilt on tea, toast and ADHD – tested live on PS5.",
+		type = LHAS.ST_CHECKBOX, label = "Automatic AP Restock",
+		tooltip = "Opening a siege vendor buys selected items up to their Carry Max using Alliance Points.",
+		default = false,
+		getFunction = function() return SiegeReminder.SV.automaticAPRestock end,
+		setFunction = function(value)
+			SiegeReminder.SV.automaticAPRestock = value == true
+			if not value then StopPurchases() end
+		end,
 	})
+	settings:AddSetting({ type = LHAS.ST_SECTION, label = "Carry Levels by Item" })
+	local firstItemControl = #settings.settings + 1
+	local itemControlCount = 0
+
+	RefreshItemSettings = function()
+		Framework:RemoveFooter(settings)
+		if itemControlCount > 0 then
+			settings:RemoveSettings(firstItemControl, itemControlCount)
+		end
+		local ids = {}
+		for id in pairs(catalog) do ids[#ids + 1] = id end
+		table.sort(ids, function(a, b)
+			if catalog[a] == catalog[b] then return a < b end
+			return catalog[a] < catalog[b]
+		end)
+		local controls = {}
+		if #ids == 0 then
+			controls[1] = { type = LHAS.ST_LABEL, label = "Open a siege vendor to discover items sold for AP." }
+		end
+		for _, id in ipairs(ids) do
+			local name = catalog[id]
+			local cfg = GetItemSettings(id)
+			-- A section would end the enclosing carry submenu on console.
+			controls[#controls + 1] = { type = LHAS.ST_LABEL, label = "|cFFD700" .. name .. "|r" }
+			controls[#controls + 1] = {
+				type = LHAS.ST_CHECKBOX, label = "Buy " .. name .. " with AP",
+				default = false,
+				getFunction = function() return cfg.buyWithAP end,
+				setFunction = function(value) cfg.buyWithAP = value == true end,
+			}
+			controls[#controls + 1] = {
+				type = LHAS.ST_CHECKBOX, label = name .. " Reminders and Bank Withdrawals",
+				default = false,
+				getFunction = function() return cfg.enabled end,
+				setFunction = function(value) cfg.enabled = value == true end,
+			}
+			controls[#controls + 1] = {
+				type = LHAS.ST_SLIDER, label = name .. " Carry Min",
+				tooltip = "Warn when stock falls below this amount. Raising Carry Min above Carry Max raises both to match.",
+				min = 0, max = 200, step = 1, format = "%d", default = 0,
+				getFunction = function() return cfg.minCarry end,
+				setFunction = function(value)
+					cfg.minCarry = value
+					cfg.maxCarry = math.max(cfg.maxCarry, value)
+				end,
+			}
+			controls[#controls + 1] = {
+				type = LHAS.ST_SLIDER, label = name .. " Carry Max",
+				tooltip = "Target for AP purchases and bank withdrawals. Zero disables top-ups.",
+				min = 0, max = 200, step = 1, format = "%d", default = 3,
+				getFunction = function() return cfg.maxCarry end,
+				setFunction = function(value)
+					cfg.maxCarry = value
+					cfg.minCarry = math.min(cfg.minCarry, value)
+				end,
+			}
+		end
+		settings:AddSettings(controls)
+		itemControlCount = #controls
+		Framework:AddFooter(settings)
+	end
+	RefreshItemSettings()
 end
 
 --------------------------------------------------------------
@@ -652,15 +715,8 @@ local function OnAddOnLoaded(_, addonName)
 	if addonName ~= ADDON_NAME then return end
 
 	local defaults = {
-		siegeTypes = {
-			["Battering Ram"] = { minCarry = 3, maxCarry = 10, enabled = true },
-			["Ballista"] = { minCarry = 3, maxCarry = 20, enabled = true },
-			["Catapult"] = { minCarry = 3, maxCarry = 20, enabled = true },
-			["Trebuchet"] = { minCarry = 3, maxCarry = 20, enabled = true },
-			["Flaming Oil"] = { minCarry = 3, maxCarry = 20, enabled = true },
-			["Forward Camp"] = { minCarry = 1, maxCarry = 5, enabled = true },
-			["Repair Kit"] = { minCarry = 20, maxCarry = 200, enabled = true },
-		},
+		items = {},
+		automaticAPRestock = false,
 		reminderType = "Chat",
 		debugMode = false,
 		enabledBankAutomation = true,
@@ -670,44 +726,13 @@ local function OnAddOnLoaded(_, addonName)
 	}
 
 	SiegeReminder = SiegeReminder or {}
-	SiegeReminder.SV = ZO_SavedVars:NewAccountWide("SiegeReminder_SV", 1, nil, defaults)
-SiegeReminder.SV.siegeTypes = SiegeReminder.SV.siegeTypes or SiegeReminder.SV.siege or {}
-local SIEGE_RANGES = {
-	["Battering Ram"] = { minMin = 0,  minMax = 10,  minDef = 3,  maxMin = 1,  maxMax = 10,  maxDef = 10 },
-	["Ballista"]      = { minMin = 0,  minMax = 20,  minDef = 3,  maxMin = 1,  maxMax = 20,  maxDef = 20 },
-	["Catapult"]      = { minMin = 0,  minMax = 20,  minDef = 3,  maxMin = 1,  maxMax = 20,  maxDef = 20 },
-	["Trebuchet"]     = { minMin = 0,  minMax = 20,  minDef = 3,  maxMin = 1,  maxMax = 20,  maxDef = 20 },
-	["Flaming Oil"]   = { minMin = 0,  minMax = 20,  minDef = 3,  maxMin = 1,  maxMax = 20,  maxDef = 20 },
-	["Forward Camp"]  = { minMin = 0,  minMax = 10,  minDef = 1,  maxMin = 1,  maxMax = 10,  maxDef = 5 },
-	["Repair Kit"]    = { minMin = 20, minMax = 100, minDef = 50, maxMin = 50, maxMax = 200, maxDef = 200 },
-}
-
-local function GetRangeForType(typeName)
-	return SIEGE_RANGES[typeName] or { minMin = 0, minMax = 20, minDef = 3, maxMin = 1, maxMax = 20, maxDef = 20 }
-end
-
-local function Clamp(v, lo, hi)
-	v = tonumber(v)
-	if not v then return lo end
-	if v < lo then return lo end
-	if v > hi then return hi end
-	return v
-end
-
-for key, data in pairs(SiegeReminder.SV.siegeTypes) do
-	local r = GetRangeForType(key)
-	data.minCarry = data.minCarry or data.min or r.minDef
-	data.maxCarry = data.maxCarry or data.max or r.maxDef
-	if data.enabled == nil then data.enabled = true end
-
-	data.minCarry = Clamp(data.minCarry, r.minMin, r.minMax)
-	data.maxCarry = Clamp(data.maxCarry, r.maxMin, r.maxMax)
-
-	if data.maxCarry < data.minCarry then
-		data.maxCarry = data.minCarry
+	SiegeReminder.SV = Framework:NewAccountWide("SiegeReminder_SV", 1, nil, defaults)
+	for _, cfg in pairs(SiegeReminder.SV.items) do
+		cfg.maxCarry = math.max(cfg.maxCarry, cfg.minCarry)
 	end
-end
-	SiegeReminder.SV.siege = SiegeReminder.SV.siegeTypes
+	local vendorData = ZO_SavedVars:NewAccountWide("SiegeReminder_VendorSV", 1, nil, { items = {} })
+	catalog = vendorData.items
+	RefreshItemSettings = function() end
 
 	EM:RegisterForEvent(ADDON_NAME.."_PlayerActivated", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
 	EM:RegisterForEvent(ADDON_NAME.."_Zone", EVENT_ZONE_CHANGED, OnZoneChanged)
@@ -717,9 +742,17 @@ end
 	EM:RegisterForEvent(ADDON_NAME.."_BankOpen", EVENT_OPEN_BANK, OnBankOpened)
 	EM:RegisterForEvent(ADDON_NAME.."_BankClose", EVENT_CLOSE_BANK, OnBankClosed)
 
+	EM:RegisterForEvent(ADDON_NAME .. "_StoreFailure", EVENT_STORE_FAILURE, function()
+		if pendingPurchase then
+			pendingPurchase = nil
+			StopPurchases()
+			chat("AP restock stopped after the vendor rejected a purchase.")
+		end
+	end)
+
 	CreateSettingsMenu()
 	
-	chat("SiegeReminder v1.7.0 active — Siege Marshal online.")
+	chat(Framework.displayName .. " v" .. Framework.version .. " active.")
 end
 
 

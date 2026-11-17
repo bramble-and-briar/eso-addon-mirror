@@ -1,0 +1,12 @@
+## Title: EsoCollectionQR
+## Author: DarkPepeKnight
+## Version: 1.3.0
+## AddOnVersion: 10300
+## APIVersion: 101051 101052
+## IsLibrary: false
+## SavedVariables: EsoCollectionQR_SV
+## Description: Shows your set collection, known motifs, furnishing recipes and antiquity leads as QR codes for the ESO Guide Android app. Command: /collqr
+
+Qr.lua
+Payload.lua
+EsoCollectionQR.lua

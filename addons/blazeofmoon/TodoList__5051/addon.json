@@ -18,7 +18,7 @@
     "TodoList"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5051/",
-  "fingerprint": "1aaf83ce5a6c4dcbc777c9e48c29f70e84425ba33f3a3fca8a827a4dc5f7db68",
+  "fingerprint": "e2418d67f5a1e008966de9a999810ef47135b542a97972045104a4de3831d2a9",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18454.png",
     "https://cdn-eso.mmoui.com/preview/pvw18455.png",
@@ -31,11 +31,11 @@
   "source_id": "5051",
   "source_url": "https://www.esoui.com/downloads/info5051-TodoList.html",
   "stats": {
-    "downloads": 9,
+    "downloads": 17,
     "favorites": 0,
-    "monthly_downloads": 6
+    "monthly_downloads": 15
   },
   "title": "TodoList",
-  "updated_at": 1794664947000,
-  "version": "1.2.1"
+  "updated_at": 1794922467000,
+  "version": "1.3.0"
 }

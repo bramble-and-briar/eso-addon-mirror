@@ -1,6 +1,47 @@
 Better Character Overview
-Version 1.9.0
+Version 1.12.0
 PS5 Update 50 native-list architecture test
+
+
+OWNED ELSEWHERE ON ITEM TOOLTIPS IN 1.12.0
+- Every gamepad item tooltip (inventory, bank, loot, stores, guild stores,
+  mail, trade, the provisioning, alchemy, enchanting and reconstruction
+  station results) gains a row of counts beside the game's own bag and bank
+  counts, for the places the game does not count:
+    character icon     held by other characters (backpack and equipped)
+    house icon         furnishings placed in owned houses
+    guild trader icon  the account's own guild store listings
+  The row only appears when the item is held in one of those places. Which
+  character or house holds it is in All Inventories.
+- The current character's bag, the bank, the Craft Bag, housing storage and
+  the Furnishing Vault are left to the game's own live counts.
+- "The same item" means the same item id, quality and level (and, for
+  crafted potions and poisons, the same effects). Enchant, style, bound,
+  stolen, condition and charges are ignored, so a worn copy on another
+  character matches a fresh one in a store.
+- The counts are as fresh as BCO's snapshots: a character as of its last
+  logout, a house as of the last visit, a guild's listings as of the last
+  visit to that guild's trader.
+- Cost: a small index (about 0.5 MB for 18 characters, 8 furnished houses
+  and 5 guilds) built once per session over a few frames after login. A
+  tooltip adds one string match and a hash lookup per character, house and
+  guild, with no API calls. Looting, banking and crafting do not touch it;
+  a house or listing rescan recounts only that house or the guild listings.
+
+REGRESSION TEST FOR 1.12.0
+1. Log in on a character after another character has logged out with BCO
+   enabled. Select an item both characters hold: the tooltip shows the
+   character icon with the other character's count, next to the game's bag
+   count. An item only this character holds shows no extra row.
+2. In a guild store or at a furnishing vendor, select a furnishing that is
+   placed in one of your houses: the house icon and count appear.
+3. List an item at a guild trader, leave the trader, select the same item
+   in the bag: the guild trader icon and count appear.
+4. Place or pick up a furnishing in your house, then select that furnishing
+   in the bag: the house count follows within a few seconds.
+5. Confirm the three icons read clearly at tooltip size, and that tooltips
+   in Inventory, Bank and All Inventories still scroll and lay out as
+   before.
 
 
 PERFORMANCE AND MEMORY IN 1.9.0

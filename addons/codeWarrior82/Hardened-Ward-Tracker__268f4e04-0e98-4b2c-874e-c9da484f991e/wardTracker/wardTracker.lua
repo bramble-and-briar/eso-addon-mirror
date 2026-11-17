@@ -1,110 +1,131 @@
 local appName = "wardTracker"
 
-local isLoaded = false
-local isInCombat = IsUnitInCombat("player")
+local debug = false
+local isInCombat = false
 local wardWarningPercentage = 0.50
 local wardThreshold = 0
 local shieldStr = 0
-local isMenuOpen = false
+local totalOriginalShield = 0
+local shieldActive = false
+local changeGained = 1
+local changeGone = 2
+local changeUpdated = 3
+local abilityTypeDamageShield = 15
+local ward1 = false
+local ward2 = false
+
 
 wardTracker = {}
 
-wardTracker.defaults = {
-    trackWard = true,
-    yAxisText = 680,
-    xAxisText = 740,
-}
-
-
 --print message to chat box
-local function printMessageTest(msg)
+local function printMessage(msg)
 	local chat = LibChatMessage(appName, "MA")
 	chat:Print(msg)
 end
 
---FUNC - triggers whenever shield is added, updated, removed. Saves player's shield value whenever a shield is added or updated.
+--check if LibNotify is available
+local function isLibAvailable()
+    if LibNotify and type(LibNotify.notifyForAddonPlease) == "function" then
+        return true
+    else 
+		return false
+    end
+end
+
+--whenever shield is added, updated, removed, this is for notification that a specific shield has ended
+local function WardCheck(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitID, abilityID)
+
+	if unitTag ~= "player" then return end
+	if abilityType ~= abilityTypeDamageShield then return end
+
+	local name = tostring(effectName)
+
+	--if shield was added
+	if changeType == changeGained then
+		if name == "Hardened Ward" then
+			ward1 = true
+		elseif name == "Warding Contingency" then
+			ward2 = true
+		end
+		if debug then printMessage("WardCheck, changeGained: " .. name) end
+
+	--if shield was removed
+	elseif changeType == changeGone then
+		if name == "Hardened Ward" then
+			ward1 = false
+			zo_callLater(function()
+				if not ward1 then if isLibAvailable() --[[and wardTracker.savedVariables.notify]] then LibNotify.notifyForAddonPlease(appName, abilityID, "Hardened Ward ended!!") end end
+			end, 50)
+		elseif name == "Warding Contingency" then
+			ward2 = false
+			zo_callLater(function()
+				if not ward2 then if isLibAvailable() --[[and wardTracker.savedVariables.notify]] then LibNotify.notifyForAddonPlease(appName, abilityID, "Warding Contingency ended!!") end end
+			end, 50)
+		end
+		if debug then printMessage("WardCheck, changeGone: " .. name) end
+
+	--shield was updated
+	elseif changeType == changeUpdated then
+		if debug then printMessage("WardCheck, changeUpdated: " .. name) end
+	end
+end
+
+
+--triggers whenever shield is added, updated, removed. Saves player's shield value whenever a shield is added or updated
 local function OnAnyWardChange(eventCode, unitTag, unitAttributeVisual, statType, attributeType, powerType, oldValue, newValue, oldMaxValue, newMaxValue, sequenceId)
+
 	if unitTag ~= "player" then return end
 	if unitAttributeVisual ~= 5 then return end
 
+	--player receives first shield
 	if eventCode == EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED then
-		shieldStr = oldValue
+		shieldStr = newValue or oldValue or 0
+		totalOriginalShield = newMaxValue or shieldStr
+		wardThreshold = totalOriginalShield * wardWarningPercentage
+		wardTrackAddonTextIcon:SetText("")
+		wardTrackAddonText:SetHidden(true)
+	--player shield has been updated (damaged, refreshed, or 2nd shield added/removed)
 	elseif eventCode == EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED then
+		shieldActive = true
 		shieldStr = newValue
-	--elseif eventCode == EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED then
-
-	else return end
-end
-
---FUNC - triggers whenever shield is added, updated, removed. updates shield threshold, displays alerts to the user based on shield value.
-function WardCheck(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitID, abilityID)
-	if unitTag ~= "player" then return end
-	
-	--PROC - If ability type is Damage Shield related, then continue.
-	if abilityType == 15 then
-		--PROC - if shield was added, then do this.
-		if changeType == 1 then
-			--PROC - calculates ward threshold when a shield is added
-			wardThreshold = shieldStr * wardWarningPercentage
-            wardTrackAddonTextIcon:SetText("")
-			wardTrackAddonText:SetHidden(true) --WRWindow:SetHidden(true)
-			
-		--PROC - else if shield was removed, then do this.
-		elseif changeType == 2 then
-			--PROC - if there is no shield left, then displays WARD LOW alert. Else, recalculate for ward threshold. This accounts for situations
-			--		 where more than one shield is added to player
-			local existingShieldStr = (GetUnitAttributeVisualizerEffectInfo("player",ATTRIBUTE_VISUAL_POWER_SHIELDING,STAT_MITIGATION,ATTRIBUTE_HEALTH,POWERTYPE_HEALTH))
-			if existingShieldStr == nil and isInCombat then
-				PlaySound(SOUNDS.DUEL_START)
-				wardTrackAddonTextIcon:SetText("Shield DOWN Re-Cast!")
-				wardTrackAddonTextIcon:SetColor(255, 0, 0, 255)
-				wardTrackAddonText:SetHidden(false)
-				wardThreshold = 0
-			elseif existingShieldStr ~= nil then
-				wardThreshold = shieldStr * wardWarningPercentage
-				--d("threshold2: " .. wardThreshold)
-			else
-				wardThreshold = 0
-				--d("threshold2: " .. wardThreshold)
-			end
-			
-		--PROC - else if shield was updated, then do this
-		elseif changeType == 3 then
-			--PROC - if shield threshold or base threshold is greater than the current shield str and in combat, then display WARD LOW alert.
-			if wardThreshold == nil then return end
-			if wardThreshold >= shieldStr and isInCombat then
-				wardTrackAddonTextIcon:SetColor(255, 0, 0, 255)
-				PlaySound(SOUNDS.DUEL_START)
-				wardTrackAddonTextIcon:SetText("Shield LOW Re-Cast!")
-				wardTrackAddonText:SetHidden(false)
-			end
-		else end
+		--a second shield was added (max increased)
+		if newMaxValue > oldMaxValue then
+			totalOriginalShield = totalOriginalShield + (newMaxValue - oldMaxValue)
+			wardThreshold = totalOriginalShield * wardWarningPercentage
+			wardTrackAddonTextIcon:SetText("")
+			wardTrackAddonText:SetHidden(true)
+		--one of multiple shields expired (max decreased, but shield still active)
+		elseif newMaxValue < oldMaxValue then
+			totalOriginalShield = math.max(newMaxValue, totalOriginalShield - (oldMaxValue - newMaxValue))
+			wardThreshold = totalOriginalShield * wardWarningPercentage
+		end
+		--check if combined shield dropped below 50% of combined original values
+		if shieldStr > 0 and wardThreshold >= shieldStr and isInCombat then
+			PlaySound(SOUNDS.DUEL_START)
+			wardTrackAddonTextIcon:SetText("Shield LOW Re-Cast!")
+			wardTrackAddonText:SetHidden(false)
+		end
+	--player has lost all shields completely
+	elseif eventCode == EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED then
+		shieldActive = false
+		shieldStr = 0
+		totalOriginalShield = 0
+		wardThreshold = 0
+		if isInCombat then
+			PlaySound(SOUNDS.DUEL_START)
+			wardTrackAddonTextIcon:SetText("Shield DOWN Re-Cast!")
+			wardTrackAddonText:SetHidden(false)
+		end
+	else
+		return
 	end
-
-	--for future reference...
-	--if effectName == "Hardened Ward" or "Annulment" then
-		--d(changeType)	 -- 1 is gained, 2 is gone, 3 is update
-		--d(effectType)	 -- 1 is debuff, 0 is buff
-		--d(abilityType)   -- 15 is damage shield
-		--d(statusEffectType)	-- 0 is statue type none
-	--end
 end
 
---FUNC - triggers when player is in and out of combat
-function OnPlayerCombatState(event, inCombat)
+--when player is in and out of combat
+local function OnPlayerCombatState(event, inCombat)
 	if inCombat ~= isInCombat then
 		isInCombat = inCombat
-		--PROC - if in combat and no shield, then display WARD DOWN alert
-	--	if inCombat then
-	--		local existingShieldStr = (GetUnitAttributeVisualizerEffectInfo("player",ATTRIBUTE_VISUAL_POWER_SHIELDING,STAT_MITIGATION,ATTRIBUTE_HEALTH,POWERTYPE_HEALTH))
-	--		if existingShieldStr == nil then
-	--			wardTrackAddonTextIcon:SetText("Shield DOWN Re-Cast!")
-	--			wardTrackAddonTextIcon:SetColor(255, 0, 0, 255)
-	--			wardTrackAddonText:SetHidden(false)
-	--		end
-	--	else
-	--		wardTrackAddonText:SetHidden(true)
-	--	end
+		--if player is not in combat hide text area
         if not inCombat then
             wardTrackAddonTextIcon:SetText("")
             wardTrackAddonText:SetHidden(true)
@@ -112,47 +133,48 @@ function OnPlayerCombatState(event, inCombat)
 	end
 end
 
---register for notifications about mask buff and debuff
+--register for notifications about shields
 local function registerAlerts()
     EVENT_MANAGER:RegisterForEvent("hwtEvent", EVENT_PLAYER_COMBAT_STATE, OnPlayerCombatState)
 	EVENT_MANAGER:RegisterForEvent("hwtEvent", EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, OnAnyWardChange)
 	EVENT_MANAGER:RegisterForEvent("hwtEvent", EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, OnAnyWardChange)
+	EVENT_MANAGER:RegisterForEvent("hwtEvent", EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, OnAnyWardChange)
 	EVENT_MANAGER:RegisterForEvent("hwtEvent", EVENT_EFFECT_CHANGED, WardCheck)
 end
 
---unregister for notifications about mask buff and debuff
+--unregister for notifications about shields
 local function unRegisterAlerts()
-    EVENT_MANAGER:RegisterForEvent("hwtEvent", EVENT_PLAYER_COMBAT_STATE)
+    EVENT_MANAGER:UnregisterForEvent("hwtEvent", EVENT_PLAYER_COMBAT_STATE)
     EVENT_MANAGER:UnregisterForEvent("hwtEvent", EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED)
 	EVENT_MANAGER:UnregisterForEvent("hwtEvent", EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED)
-    EVENT_MANAGER:UnregisterForEvent("hwtEvent", EVENT_EFFECT_CHANGED)
+	EVENT_MANAGER:UnregisterForEvent("hwtEvent", EVENT_EFFECT_CHANGED)
 end
 
 --when UI opens
 local function onMenuOpened()
-	isMenuOpen = true
+	--hide text area
     wardTrackAddonText:SetHidden(true)
 end
 
 --when UI closes
 local function onMenuClosed()
-	isMenuOpen = false
-    wardTrackAddonText:SetHidden(false)--if player has shield show when exiting menu
+	--if player has active shield and is in combat show text area when exiting menu otherwise leave hidden
+	if shieldActive and isInCombat then
+    	wardTrackAddonText:SetHidden(false)
+	end
 end
 
---menu has been opened
+--UI has been opened or closed
 local function onSceneStateChange(scene, oldState, newState)
-    if isLoaded then
-        local sceneName = SCENE_MANAGER:GetCurrentScene():GetName()
-
-        if sceneName == "hud" then
-            if  newState == SCENE_HIDING then onMenuOpened()
-            elseif  newState == SCENE_HIDDEN then onMenuClosed()
-            end
-        end
-    end
+	local sceneName = SCENE_MANAGER:GetCurrentScene():GetName()
+	if sceneName == "hud" then
+		if  newState == SCENE_HIDING then onMenuOpened()
+		elseif  newState == SCENE_HIDDEN then onMenuClosed()
+		end
+	end
 end
 
+--handle addon loaded callback
 local function onAddOnLoadedWard(event, name)
     --if add-on loaded was not this add-on quit
     if name ~= appName then
@@ -162,19 +184,21 @@ local function onAddOnLoadedWard(event, name)
     --unregister for notifications of add-on loaded
     EVENT_MANAGER:UnregisterForEvent(appName, EVENT_ADD_ON_LOADED)
 
-	--notify that add-on has been loaded
-	zo_callLater(function() printMessageTest("add-on loaded") end, 500)
+	--notify about new library
+	if not isLibAvailable() then
+		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 500)
+		return
+    elseif isLibAvailable() --[[ todo: and wardTracker.savedVariables.trackWard]] then
+		--notify that add-on has been loaded
+		zo_callLater(function() printMessage("add-on loaded") end, 500)
+	end
 
-    --load saved variables
-    --wardTracker.savedVariables = ZO_SavedVars:NewCharacterIdSettings("wardTrackAddonVars", 1, "Settings", wardTracker.defaults, GetUnitName("player"))
-
-    --setup text field areas
+    --setup text field area
     wardTrackAddonText:SetMovable(true)
     wardTrackAddonTextIcon:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_61)|soft-shadow-thick")
     wardTrackAddonTextIcon:SetText("")
     wardTrackAddonTextIcon:SetColor(255, 0, 0, 255)
     wardTrackAddonText:SetHidden(true)
-    --setAnchorStartupIcon(wardTracker.savedVariables.xAxisText, wardTracker.savedVariables.yAxisText)
 
     --register for combat alerts
     registerAlerts()
@@ -182,38 +206,7 @@ local function onAddOnLoadedWard(event, name)
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
 
-    --setup add on menu options
-    --createOptions()
-
-    --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
-    zo_callLater(function () isLoaded = true end, 2000)
-
 end
 
 --register for notification that an addon has been loaded
 EVENT_MANAGER:RegisterForEvent(appName, EVENT_ADD_ON_LOADED, onAddOnLoadedWard)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

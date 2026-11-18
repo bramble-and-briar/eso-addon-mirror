@@ -1,16 +1,16 @@
 {
-  "archive_path": "addons/FiNk3F13/Buggy-DontD__7a5d051d-6b7c-4117-8748-0b3ec7a3c234",
+  "archive_path": "addons/FiNk3F13/SimpleGroupDPS2__7a5d051d-6b7c-4117-8748-0b3ec7a3c234",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "FiNk3F13",
   "canonical_id": "bethesda:7a5d051d-6b7c-4117-8748-0b3ec7a3c234",
   "content_id": "7a5d051d-6b7c-4117-8748-0b3ec7a3c234",
   "deleted": false,
-  "fingerprint": "80988b27eeb6fb6a7e69dbc860faeabc4092d3254a9c4cd812b6a7993b536346",
+  "fingerprint": "549a767879fbb4b61a03916fc65bb7e4467cd8a24a1e91024ef98424d12c7c3b",
   "platform": "console",
   "published": true,
   "source": "bethesda",
   "source_id": "7a5d051d-6b7c-4117-8748-0b3ec7a3c234",
   "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/7a5d051d-6b7c-4117-8748-0b3ec7a3c234",
-  "title": "Buggy DontD"
+  "title": "SimpleGroupDPS2"
 }

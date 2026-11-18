@@ -473,7 +473,7 @@ local function CreateMainMenu()
     settings:AddSetting({
         type = LHAS.ST_CHECKBOX,
         label = "CTA Alerts: Emperor Push",
-        tooltip = "Alert when your alliance owns 4 emperor keeps and leaderboard rank 1 is a guild member.",
+        tooltip = "Alert when your alliance is within the configured number of keeps of Emperorship and leaderboard rank 1 is a guild member.",
         default = true,
         getFunction = function()
             local cta = GetScopeCtaSettings()
@@ -489,7 +489,7 @@ local function CreateMainMenu()
     settings:AddSetting({
         type = LHAS.ST_CHECKBOX,
         label = "CTA Alerts: Throne Defense",
-        tooltip = "Alert when emperor keep threshold is reached.",
+        tooltip = "Alert when your Emperor’s alliance holds the configured number of keeps or fewer.",
         default = true,
         getFunction = function()
             local cta = GetScopeCtaSettings()
@@ -567,30 +567,46 @@ local function CreateMainMenu()
         end,
     })
 
-    settings:AddSetting({
-        type = LHAS.ST_DROPDOWN,
-        label = "Throne Defense Threshold",
-        tooltip = "Trigger when emperor keeps owned drop to this value.",
-        items = {
+    local function AddKeepThreshold(label, rule, default, tooltip)
+        local items = {
             { name = "3 keeps", data = 3 },
             { name = "2 keeps", data = 2 },
             { name = "1 keep", data = 1 },
-        },
-        getFunction = function()
-            local cta = GetScopeCtaSettings()
-            local v = cta and cta.rules and tonumber(cta.rules.dethroneKeepThreshold) or 3
-            if v == 1 then return "1 keep" end
-            if v == 2 then return "2 keeps" end
-            return "3 keeps"
-        end,
-        setFunction = function(combobox, name, item)
-            local cta = GetScopeCtaSettings()
-            if cta and cta.rules and item then
-                cta.rules.dethroneKeepThreshold = tonumber(item.data) or 3
-            end
-        end,
-        disable = function() return not IsConfiguredForSettings() end,
-    })
+        }
+        local defaultItem = items[4 - default]
+        settings:AddSetting({
+            type = LHAS.ST_DROPDOWN,
+            label = label,
+            tooltip = tooltip,
+            items = items,
+            default = defaultItem.name,
+            getFunction = function()
+                local cta = GetScopeCtaSettings()
+                local value = cta and cta.rules and tonumber(cta.rules[rule])
+                local selected = defaultItem
+                for _, item in ipairs(items) do
+                    if item.data == value then
+                        selected = item
+                        break
+                    end
+                end
+                if ZO_IsConsoleOrGameCoreUI and ZO_IsConsoleOrGameCoreUI() then return selected end
+                return selected.name
+            end,
+            setFunction = function(_, _, item)
+                local cta = GetScopeCtaSettings()
+                if cta and cta.rules and item then
+                    cta.rules[rule] = tonumber(item.data) or default
+                end
+            end,
+            disable = function() return not IsConfiguredForSettings() end,
+        })
+    end
+
+    AddKeepThreshold("Emperor Push Threshold", "empPushKeepThreshold", 2,
+        "Alert when this many imperial keeps or fewer are still needed.")
+    AddKeepThreshold("Throne Defense Threshold", "dethroneKeepThreshold", 3,
+        "Alert when the Emperor’s alliance holds this many imperial keeps or fewer.")
 
     settings:AddSetting({
         type = LHAS.ST_CHECKBOX,

@@ -18,7 +18,8 @@ local debuffCritMod = 0
 local advCritDamage = 0
 
 local function UpdateCritDamage()
-    _, _, advCritDamage = GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_CRITICAL_DAMAGE)
+    local _, _, percentValue = GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_CRITICAL_DAMAGE)
+    advCritDamage = percentValue or 0
 end
 
 local function UpdateTargetDebuffs()

@@ -13,6 +13,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LarvalTear - Change Skill lines, Skills, Attributes, and more](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thory/LarvalTear---Change-Skill-lines-Skills-Attributes-and-more__4485) | Thory | PC / Mac | 1.5.0.3 |
 | [Latency Statistics](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tactitocalon/Latency-Statistics__1869) | Tactitocalon | PC / Mac | 1.0 |
 | [Lawful Necromancy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/muh/Lawful-Necromancy__2388) | muh | PC / Mac | 1.1 |
+| [Lawful Necromancy Reborn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Lawful-Necromancy-Reborn__5064) | O-Range | PC / Mac | 1.1 |
 | [Lazarus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g0dpain/Lazarus__3123) | g0dpain | PC / Mac | 0.1.0 |
 | [Lazy Alik'r Dolmen Runner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Lazy-Alik-r-Dolmen-Runner__3001) | kawamonkey | PC / Mac | 1.0 |
 | [Lazy Confirm (and delete)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Lazy-Confirm-and-delete__8fbbe7ae-8178-4e35-9755-3cafefd42095) | Dolgubon | Console | — |
@@ -61,7 +62,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Less Bling Golden Pursuits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Less-Bling-Golden-Pursuits__3993) | kawamonkey | PC / Mac | 1.0 |
 | [Let There Be Light](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Let-There-Be-Light__1906) | Cardinal05 | PC / Mac | 1.0.4 |
 | [Let's Talk Later](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Let-s-Talk-Later__4304) | Saleand | PC / Mac | 0.1.4 |
-| [Lethal PvP Insights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lethal2k/Lethal-PvP-Insights__5037) | Lethal2k | PC / Mac | 1.11.0 |
+| [Lethal PvP Insights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lethal2k/Lethal-PvP-Insights__5037) | Lethal2k | PC / Mac | 1.11.3 |
 | [LFG Auto Accept](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/gitright/LFG-Auto-Accept__1754) | gitright | PC / Mac | 1.2.019 |
 | [LGM - Lilith's Group Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drummerx04/LGM---Lilith-s-Group-Manager__2088) | Drummerx04 | PC / Mac | 4.6.0 |
 | [Lib3DArrow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/Lib3DArrow__2663) | kadeer | PC / Mac | v0.1 alpha |
@@ -237,7 +238,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibPotionBuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/LibPotionBuff__2078) | Baertram | PC / Mac | 3.00 |
 | [LibPreferences](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/algwyn/LibPreferences__3291) | algwyn | PC / Mac | 0.1.0 |
 | [LibPrice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/LibPrice__0a54c8f7-e3e1-46e5-ab7f-3c7ee2bb5e7d) | Sharlikran | Console | — |
-| [LibPrice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/LibPrice__2204) | ziggr | PC / Mac | 7.53 |
+| [LibPrice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/LibPrice__2204) | ziggr | PC / Mac | 7.55 |
 | [LibPriceCache](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyborem/LibPriceCache__4494) | Hyborem | PC / Mac | v.1.1.7 |
 | [LibPromises](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibPromises__eb221fca-fa24-44ac-9fab-6ee0f8cba1e0) | sirinsidiator | Console | — |
 | [LibPromises](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibPromises__2274) | sirinsidiator | PC / Mac | 2.0.0 |

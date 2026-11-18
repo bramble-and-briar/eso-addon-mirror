@@ -92,7 +92,7 @@ function LibPrice_Example.GoldString(n)
   if not n then
     return tostring(n)
   end
-  return ZO_LocalizeDecimalNumber(n) .. " |t16:16:EsoUI/Art/currency/currency_gold.dds|t"
+  return ZO_CommaDelimitDecimalNumber(n) .. " |t16:16:EsoUI/Art/currency/currency_gold.dds|t"
 end
 
 -- A recursive table dumper that does a marginally better

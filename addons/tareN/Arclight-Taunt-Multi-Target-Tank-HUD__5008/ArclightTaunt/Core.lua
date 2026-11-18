@@ -1,4 +1,4 @@
--- Arclight Taunt 1.3.0 | Core module
+-- Arclight Taunt 1.3.1 | Core module
 -- Lua implementation is original; uses only the public ESO UI API.
 local ADDON = "ArclightTaunt"
 local EM, WM = EVENT_MANAGER, WINDOW_MANAGER
@@ -98,7 +98,7 @@ local C = {
     alertEarlyHairline = {0.20, 0.95, 0.78, 0.95},
 }
 local defaults = {
-    x = 1507, y = 370, scale = 1.0,
+    x = 1507, y = 370, scale = 1.0, lockPosition = true,
     columns = 1, limit = 10, opacity = 0.72, width = 280, rowGap = 2,
     subtleWarningBg = true, warningAt = 7, dangerAt = 4, removeDead = true,
     showExpired = false, showBossIcon = true,

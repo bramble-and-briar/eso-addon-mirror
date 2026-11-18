@@ -14,8 +14,6 @@ local EVENT_NAME = 'BattleScrollsTaintTests'
 local INSTANT = { '1', '2a', '2b', '4', '7', '8', '9', '10' }
 local CHAT_LINES, CHAT_WIDTH = 6, 99
 local WINDOW_WIDTH, WINDOW_PADDING, WINDOW_MS = 1200, 24, 45000
----@type table<string, boolean>
-local selected = {}
 local window, text
 
 local function hideWindow()
@@ -66,11 +64,22 @@ local function join(...)
     return table.concat(parts, ' ')
 end
 
----The engine calls this directly, making it the outermost untrusted frame as
----the /script chunk is in the documented snippets. Checks 2a and 2b stay
----inline for that reason: a helper call would add a frame to their counts.
-local function run()
-    EVENT_MANAGER:UnregisterForUpdate(EVENT_NAME)
+---This is the slash-command handler itself. ESO's chat code calls it from a
+---trusted stack, so it is the outermost untrusted frame exactly as a /script
+---chunk is, and the frame counts match the documented snippets. Checks 2a
+---and 2b stay inline for that reason: a helper call would add a frame.
+---An update callback registered by the addon is not equivalent: it runs with
+---base trust 0, where the count is the whole stack depth (Xbox, 2026-11-16:
+---T2a printed 3 that way, and T2b and T4 read the private global as nil).
+---@param arguments string|nil
+local function run(arguments)
+    ---@type table<string, boolean>
+    local selected = {}
+    for name in string.gmatch(string.lower(arguments or ''), '[%w]+') do selected[name] = true end
+    if selected.hide then hideWindow(); return end
+    if not next(selected) or selected.all then
+        for _, name in ipairs(INSTANT) do selected[name] = true end
+    end
     local lines = {}
     if selected['1'] then
         local forwarded = ZO_GetCallbackForwardingFunction({}, d)
@@ -104,12 +113,12 @@ local function run()
     if selected['8'] then
         local descriptor = GAMEPAD_BANKING and GAMEPAD_BANKING.selectorKeybindStripDescriptor
         lines[#lines + 1] = join('T8', descriptor and descriptor[1] and IsTrustedFunction(descriptor[1].name),
-            '| want nil before the first bank visit, then true')
+            '| want true; nil until ESO\'s own bank screen has shown')
     end
     if selected['9'] then
         local descriptor = LOOT_WINDOW_GAMEPAD and LOOT_WINDOW_GAMEPAD.keybindStripDescriptor
         lines[#lines + 1] = join('T9', descriptor and descriptor[1] and IsTrustedFunction(descriptor[1].callback),
-            '| want true after ordinary loot')
+            '| want true; nil until a loot window has shown')
     end
     if selected['10'] then
         lines[#lines + 1] = join('T10', type(rawget(_G, 'LoadString')), type(rawget(_G, 'LoadUntrustedString')),
@@ -165,12 +174,4 @@ local function run()
     if #lines > 0 then report(lines) end
 end
 
-SLASH_COMMANDS['/bst'] = function(arguments)
-    selected = {}
-    for name in string.gmatch(string.lower(arguments or ''), '[%w]+') do selected[name] = true end
-    if selected.hide then hideWindow(); return end
-    if not next(selected) or selected.all then
-        for _, name in ipairs(INSTANT) do selected[name] = true end
-    end
-    EVENT_MANAGER:RegisterForUpdate(EVENT_NAME, 0, run)
-end
+SLASH_COMMANDS['/bst'] = run

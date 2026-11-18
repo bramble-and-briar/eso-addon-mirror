@@ -2,26 +2,11 @@
 
 local KPUI_TRADINGHOUSE = KPUI_TRADINGHOUSE
 local colors = KPUI_TRADINGHOUSE.colors
-local KelaGetATTSalesSecondsPerDay = KPUI_TRADINGHOUSE.KelaGetATTSalesSecondsPerDay
 local KelaCreateColorizedResumePrice = KPUI_TRADINGHOUSE.KelaCreateColorizedResumePrice
-local GetItemLinks = KPUI_TRADINGHOUSE.GetItemLinks
-local GetBuyInfo = KPUI_TRADINGHOUSE.GetBuyInfo
-local HideTradingTooltipControls = KPUI_TRADINGHOUSE.HideTradingTooltipControls
-local HideImprovementTooltipControls = KPUI_TRADINGHOUSE.HideImprovementTooltipControls
-local HideProvisionerTooltipControls = KPUI_TRADINGHOUSE.HideProvisionerTooltipControls
-local HideCreationTooltipControls = KPUI_TRADINGHOUSE.HideCreationTooltipControls
 local HideAlchemyTooltipControls = KPUI_TRADINGHOUSE.HideAlchemyTooltipControls
 local HideEnchantingTooltipControls = KPUI_TRADINGHOUSE.HideEnchantingTooltipControls
 local ResetProvisionerTradingTooltip = KPUI_TRADINGHOUSE.ResetProvisionerTradingTooltip
 local ResetCreationTradingTooltip = KPUI_TRADINGHOUSE.ResetCreationTradingTooltip
-local AddClearLine = KPUI_TRADINGHOUSE.AddClearLine
-local SetSmithTradingInfo = KPUI_TRADINGHOUSE.SetSmithTradingInfo
-local SetSmithGraph = KPUI_TRADINGHOUSE.SetSmithGraph
-local SetSmithNotes = KPUI_TRADINGHOUSE.SetSmithNotes
-local SetSmithListings = KPUI_TRADINGHOUSE.SetSmithListings
-local SetSmithQualityPrices = KPUI_TRADINGHOUSE.SetSmithQualityPrices
-local SetProductionPrices = KPUI_TRADINGHOUSE.SetProductionPrices
-local SetCraftingComponents = KPUI_TRADINGHOUSE.SetCraftingComponents
 local IsKPUITradingHouseSettingEnabled = KPUI_TRADINGHOUSE.IsKPUITradingHouseSettingEnabled
 
 local hookCraftingStationAlready = false
@@ -37,7 +22,6 @@ local hookEnchantingTooltipAlready = false
 local hookTradingHouseAlready = false
 local hookBankingAlready = false
 local hookStoregAlready = false
-local hookATTAlready = false
 
 function KelaSetupCraftingStation()
 
@@ -83,7 +67,7 @@ function KelaSetupCraftingStation()
 							control.tooltip:ClearAnchors()
 							control.tooltip:SetAnchor(BOTTOM, ingredientsBar, TOP, -254, -25)
 							local maxIterations = GetMaxIterationsPossibleForAlchemyItem(control:GetAllCraftingBagAndSlots())
-							ZO_Tooltip:LayoutAlchemyTradingTooltip(ctlAlchemyTooltip, itemLink, maxIterations)
+							KelaLayoutAlchemyTradingTooltip(ctlAlchemyTooltip, itemLink, maxIterations)
 							ctlAlchemyTooltip:SetHidden(false) 
 						else
 							control.tooltip:ClearAnchors()
@@ -184,7 +168,7 @@ function KelaSetupCraftingStation()
 				if ctlEnchantingTooltip and IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_CRAFTING) then 
 					local itemLink = GetEnchantingResultingItemLink(control:GetAllCraftingBagAndSlots())				
 					local maxIterations = GetMaxIterationsPossibleForEnchantingItem(control:GetAllCraftingBagAndSlots())				
-					ZO_Tooltip:LayoutEnchantingTradingTooltip(ctlEnchantingTooltip, itemLink, maxIterations)
+					KelaLayoutEnchantingTradingTooltip(ctlEnchantingTooltip, itemLink, maxIterations)
 					ctlEnchantingTooltip:SetHidden(false) 
 				end
 			elseif control:IsExtractable() and control.extractionSlot:HasOneItem() then
@@ -246,7 +230,7 @@ function KelaSetupCraftingStation()
 			local recipeListIndex, recipeIndex = selectedData.recipeListIndex, selectedData.recipeIndex
 			-- trading tooltip
 			if ctlProvisionerTooltip then
-				ZO_Tooltip:LayoutProvisionerTradingTooltip(ctlProvisionerTooltip, recipeListIndex, recipeIndex, selectedData)
+				KelaLayoutProvisionerTradingTooltip(ctlProvisionerTooltip, recipeListIndex, recipeIndex, selectedData)
 				ctlProvisionerTooltip:SetHidden(false)
 			end
 		end)
@@ -432,10 +416,10 @@ function KelaSetupCraftingStation()
 		ZO_PreHook(ZO_GamepadSmithingImprovement, "SetupResultTooltip", function(control, itemToImproveBagId, itemToImproveSlotIndex, craftingSkillType, ...)
 			-- source item
 			local bagId, slotIndex
+			local selectedData = control.selectedItem
 			if control.improvementSlot:HasItem() then
 				bagId, slotIndex = control.improvementSlot:GetBagAndSlot()
 			else
-				local selectedData = control.selectedItem
 				if selectedData and selectedData.bagId and selectedData.slotIndex then
 					bagId = selectedData.bagId
 					slotIndex = selectedData.slotIndex
@@ -507,7 +491,15 @@ function KelaSetupTradingHouse()
 			end)
 			-- SEARCH WINDOW
 			-- add deal-value filter buttons
+			-- AppendKeybind adds to the focus areas' descriptors, so add the binds
+			-- once; doing it per show grows the descriptors without limit.
+			local browseKeybindsAdded = false
 			SecurePostHook(GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS, "OnShowing", function(control, ...)
+				-- A new visit starts with fresh prices (ATT may have new sales).
+				KelaClearSearchPriceCache()
+				if browseKeybindsAdded then return end
+				browseKeybindsAdded = true
+
 				local keybind  = 
 				{
 					alignment = KEYBIND_STRIP_ALIGN_LEFT,	
@@ -550,6 +542,12 @@ function KelaSetupTradingHouse()
 				}
 				control:AddUniversalKeybind(keybind)
 
+				-- The core panel already has LT/RT; extend them to the other areas.
+				local function AddTriggerKeybind(triggerKeybind)
+					if control.filtersFocalArea then control.filtersFocalArea:AppendKeybind(triggerKeybind) end
+					if control.headersFocalArea then control.headersFocalArea:AppendKeybind(triggerKeybind) end
+				end
+
 				local keybind  =
 				{
 					name = "Gamepad Interactive Sort Filter List Left Trigger",
@@ -559,7 +557,7 @@ function KelaSetupTradingHouse()
 						control:OnLeftTrigger()
 					end,
 				}
-				control:AddUniversalKeybind(keybind)
+				AddTriggerKeybind(keybind)
 
 				local keybind  =
 				{
@@ -570,7 +568,7 @@ function KelaSetupTradingHouse()
 						control:OnRightTrigger()
 					end,
 				}
-				control:AddUniversalKeybind(keybind)
+				AddTriggerKeybind(keybind)
 			end)
 			-- add the trade message
 			SecurePostHook(GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS, "UpdateItemSelectedTooltip", function(control, selectedData, ...)
@@ -663,6 +661,29 @@ function KelaSetupTradingHouse()
 					return true
 				end
 			end)
+			-- KNOWN / UNKNOWN for collectable items (motifs, books, recipes, set pieces,
+			-- collectible containers); ALL for everything else.
+			local function KelaGetItemKnownState(itemLink)
+				local itemType = GetItemLinkItemType(itemLink)
+				if IsItemLinkBook(itemLink) or IsItemLinkBookPartOfCollection(itemLink) then
+					return IsItemLinkBookKnown(itemLink) and "KNOWN" or "UNKNOWN"
+				elseif itemType == ITEMTYPE_RECIPE then
+					return IsItemLinkRecipeKnown(itemLink) and "KNOWN" or "UNKNOWN"
+				elseif IsItemLinkSetCollectionPiece(itemLink) then
+					return IsItemSetCollectionPieceUnlocked(GetItemLinkItemId(itemLink)) and "KNOWN" or "UNKNOWN"
+				end
+				local grantedCollectibleId = GetItemLinkContainerCollectibleId(itemLink)
+				if grantedCollectibleId > 0 then
+					if IsCollectibleOwnedByDefId(grantedCollectibleId) then
+						return "KNOWN"
+					elseif GetCollectibleCategoryType(grantedCollectibleId) == COLLECTIBLE_CATEGORY_TYPE_COMBINATION_FRAGMENT and not CanCombinationFragmentBeUnlocked(grantedCollectibleId) then
+						return "KNOWN"
+					end
+					return "UNKNOWN"
+				end
+				return "ALL"
+			end
+
 			ZO_PreHook(GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS, "FilterScrollList", function(control, ...)		
 				if IsKPUITradingHouseSettingEnabled() then
 					local scrollData = ZO_ScrollList_GetDataList(control.list)
@@ -683,57 +704,23 @@ function KelaSetupTradingHouse()
 						for tradingHouseItemIndex = 1, TRADING_HOUSE_SEARCH:GetNumItemsOnPage() do
 							local itemData = ZO_TradingHouse_CreateSearchResultItemData(tradingHouseItemIndex)
 							if itemData then
-								local _, _, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemData.itemLink)
-								local valueEffectDeal = KelaGetEffectOfDeal (priceInfoTTC, priceInfoATT, itemData, "GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS")
-
-								local itemType, specializedItemType = GetItemLinkItemType(itemData.itemLink)
-								local grantedCollectibleId = GetItemLinkContainerCollectibleId(itemData.itemLink)
-								local isItemKnown = "ALL"
-								if IsItemLinkBook(itemData.itemLink) or IsItemLinkBookPartOfCollection(itemData.itemLink) then
-									-- Motifs and books
-									if IsItemLinkBookKnown(itemData.itemLink) then
-										isItemKnown = "KNOWN"
+								-- Deal and known-state checks only run for an active filter; the row
+								-- colour reads the same cached rating later.
+								local passesDeal = KELA_CURRENT_EFFECTDEAL_SELECTION_INDEX == 1
+								if not passesDeal then
+									local valueEffectDeal = KelaGetSearchItemDeal(itemData)
+									if KELA_CURRENT_EFFECTDEAL_SELECTION_INDEX == 2 then
+										passesDeal = valueEffectDeal == 0
 									else
-										isItemKnown = "UNKNOWN"
-									end
-								elseif itemType == ITEMTYPE_RECIPE then
-									-- Recipe's
-									if IsItemLinkRecipeKnown(itemData.itemLink) then
-										isItemKnown = "KNOWN"
-									else
-										isItemKnown = "UNKNOWN"
-									end
-								elseif IsItemLinkSetCollectionPiece(itemData.itemLink) then
-									-- Sets: Armor, weapon, and jewelry
-									local itemId = GetItemLinkItemId(itemData.itemLink)
-									if IsItemSetCollectionPieceUnlocked(itemId) then
-										isItemKnown = "KNOWN"
-									else
-										isItemKnown = "UNKNOWN"
-									end
-								elseif grantedCollectibleId > 0 then
-									-- Other Collectibles: runeboxes, style pages, etc
-									local collectibleCategory = GetCollectibleCategoryType(grantedCollectibleId)
-									if IsCollectibleOwnedByDefId(grantedCollectibleId) then
-										isItemKnown = "KNOWN"
-									elseif collectibleCategory == COLLECTIBLE_CATEGORY_TYPE_COMBINATION_FRAGMENT and not CanCombinationFragmentBeUnlocked(grantedCollectibleId) then
-										isItemKnown = "KNOWN"
-									else
-										isItemKnown = "UNKNOWN"
+										passesDeal = valueEffectDeal >= KELA_CURRENT_EFFECTDEAL_SELECTION_INDEX
 									end
 								end
-
-								if valueEffectDeal == "-" then 
-									valueEffectDeal = KelaGetEffectIfUndefined(itemData)
-								end
-								if KELA_CURRENT_EFFECTDEAL_SELECTION_INDEX == 1 or (KELA_CURRENT_EFFECTDEAL_SELECTION_INDEX == 2 and valueEffectDeal == 0) or (KELA_CURRENT_EFFECTDEAL_SELECTION_INDEX > 2 and valueEffectDeal >= KELA_CURRENT_EFFECTDEAL_SELECTION_INDEX) then	
-									if KELA_KNOWN_ITEM_FILTER=="ALL" or (KELA_KNOWN_ITEM_FILTER==isItemKnown) then
-										local dataEntry = ZO_ScrollList_CreateDataEntry(ZO_GAMEPAD_INTERACTIVE_FILTER_LIST_PRIMARY_DATA_TYPE, itemData)
-										control.searchResultItemDataList[tradingHouseItemIndex] = itemData
-										table.insert(scrollData, dataEntry)
-										if control:CanPreviewTradingHouseItem(itemData) then
-											table.insert(control.previewListEntries, tradingHouseItemIndex)
-										end
+								if passesDeal and (KELA_KNOWN_ITEM_FILTER == "ALL" or KELA_KNOWN_ITEM_FILTER == KelaGetItemKnownState(itemData.itemLink)) then
+									local dataEntry = ZO_ScrollList_CreateDataEntry(ZO_GAMEPAD_INTERACTIVE_FILTER_LIST_PRIMARY_DATA_TYPE, itemData)
+									control.searchResultItemDataList[tradingHouseItemIndex] = itemData
+									table.insert(scrollData, dataEntry)
+									if control:CanPreviewTradingHouseItem(itemData) then
+										table.insert(control.previewListEntries, tradingHouseItemIndex)
 									end
 								end
 							end
@@ -754,34 +741,9 @@ function KelaSetupTradingHouse()
 					ZO_GamepadGenericHeader_RefreshData(control.contentHeader, control.contentHeaderData)
 				end
 			end)
-			local PRICE_THRESHOLD_DIGITS = 6
-			local PRICE_THRESHOLD = zo_pow(10, PRICE_THRESHOLD_DIGITS)
-			ZO_PostHook(GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS, "SetupResultItemRow", function(selfControl, control, itemData, ...)		
+			SecurePostHook(GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS, "SetupResultItemRow", function(selfControl, control, itemData, ...)
 				if IsKPUITradingHouseSettingEnabled() then
-					local colorPrice = colors.COLOR_WHITE
-					local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemData.itemLink)
-					local priceInfo = (trueTTC and priceInfoTTC) or (trueATT and priceInfoATT)
-					if priceInfo then
-						local valueEffectDeal, _, colorEffectDeal = KelaGetEffectOfDeal (priceInfoTTC, priceInfoATT, itemData, "GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS")
-						local avgPrice = priceInfo.Avg
-						local minPrice = priceInfo.Min
-						local maxPrice = priceInfo.Max
-						if valueEffectDeal ~= "-" then
-							colorPrice = colorEffectDeal
-						elseif avgPrice ~= 0 and itemData.purchasePricePerUnit ~= avgPrice then
-							if itemData.purchasePricePerUnit <= minPrice + (avgPrice-minPrice)*0.1 then
-								colorPrice = colors.COLOR_DEALGREAT
-							elseif itemData.purchasePricePerUnit <= minPrice + (avgPrice-minPrice)*0.7 then
-								colorPrice = colors.COLOR_DEALGOOD
-							elseif itemData.purchasePricePerUnit <= avgPrice + (maxPrice-avgPrice)*0.3 then
-								colorPrice = colors.COLOR_DEALNORMAL
-							elseif itemData.purchasePricePerUnit <= avgPrice + (maxPrice-avgPrice)*0.7 then
-								colorPrice = colors.COLOR_DEALBAD
-							elseif itemData.purchasePricePerUnit >= avgPrice + (maxPrice-avgPrice)*0.7 then
-								colorPrice = colors.COLOR_DEALTERRIBLE
-							end
-						end
-					end
+					local _, colorPrice = KelaGetSearchItemDeal(itemData)
 					control.unitPriceLabel:SetColor(colorPrice:UnpackRGB())
 				end
 			end)
@@ -790,8 +752,8 @@ function KelaSetupTradingHouse()
 			SecurePostHook(TRADING_HOUSE_CREATE_LISTING_GAMEPAD, "Showing", function(control, ...)
 				if IsKPUITradingHouseSettingEnabled() then
 					local itemLink = GetItemLink(control.itemBag, control.itemIndex)
+					local selectedData = control.selectedData
 					if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_TRADINGHOUSE) then
-						selectedData = control.selectedData
 						local itemUniqueId = GetItemUniqueId(control.itemBag, control.itemIndex)
 						if itemLink then
 							local parentControl = GAMEPAD_TOOLTIPS:GetTooltipInfo(GAMEPAD_LEFT_TOOLTIP).bgControl	
@@ -800,7 +762,7 @@ function KelaSetupTradingHouse()
 						end
 					end
 					local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemLink)
-					_, _, _, _, _, _, _, _, _, _, _, _, compareValuePrice = KelaGetEffectOfDeal (priceInfoTTC, priceInfoATT, selectedData)				
+					local compareValuePrice = select(13, KelaGetEffectOfDeal(priceInfoTTC, priceInfoATT, selectedData))				
 					-- set a custom price
 					if compareValuePrice and compareValuePrice ~= 0 then 
 						control:SetListingPrice(math.ceil(compareValuePrice))
@@ -821,7 +783,7 @@ function KelaSetupTradingHouse()
 					if HAS_ERROR then 
 						colorValue = colors.COLOR_DEALTERRIBLE
 					end
-					selectedData = selfControl.selectedData
+					local selectedData = selfControl.selectedData
 					local itemLink = GetItemLink(selfControl.itemBag, selfControl.itemIndex)
 					if itemLink then
 						local controlContainer = selfControl.control:GetNamedChild("Mask"):GetNamedChild("Container")
@@ -837,8 +799,8 @@ function KelaSetupTradingHouse()
 							stackCount = 1
 						end
 						if itemUniqueId then
-							tblBuyingItems = kpuiSVBuyingData["buyingTable"]			
-							itemUID = Id64ToString(itemUniqueId)
+							local tblBuyingItems = kpuiSVBuyingData["buyingTable"]			
+							local itemUID = Id64ToString(itemUniqueId)
 							if tblBuyingItems[itemUID] ~= nil then
 								buyPricePerUnit = tonumber(tblBuyingItems[itemUID]["buyPricePerUnit"])
 								buyPrice = buyPricePerUnit*stackCount
@@ -1037,65 +999,47 @@ function KelaSetupTradingHouse()
 		end
 	end)
 	
-	-- set up banking when the regular bank opens
-	SecurePostHook(ZO_GamepadBanking, "OnOpenBank", function(control, bankBag, ...)
-		if not hookBankingAlready then
-			SecurePostHook(ZO_BankingCommon_Gamepad, "LayoutBankingEntryTooltip", function(control, inventoryData, ...)
-				if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_BANK) then
-					if inventoryData and inventoryData.bagId then
-						local itemLink = GetItemLink(inventoryData.bagId, inventoryData.slotIndex)
-						local itemUniqueId = GetItemUniqueId(inventoryData.bagId, inventoryData.slotIndex)
-						if itemLink then
-							local parentControl = GAMEPAD_TOOLTIPS:GetTooltipInfo(GAMEPAD_LEFT_TOOLTIP).bgControl	
-							KPUI_GAMEPAD_TOOLTIPS:ClearLines(KPUI_GAMEPAD_TRADING_TOOLTIP)
-							KPUI_GAMEPAD_TOOLTIPS:LayoutTradingTooltip(KPUI_GAMEPAD_TRADING_TOOLTIP, "ZO_BankingCommon_Gamepad", itemLink, inventoryData, KPUI_GAMEPAD_TRADING_TOOLTIP, parentControl, false, 5, nil, itemUniqueId)			
-						end
-					else
-						KPUI_GAMEPAD_TOOLTIPS:HideTooltip(KPUI_GAMEPAD_TRADING_TOOLTIP)
-					end
-				end
-			end)		
-			SecurePostHook(ZO_BankingCommon_Gamepad, "OnCategoryChanged", function(control, selectedData, ...)
-				if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_BANK) then
-					control:LayoutBankingEntryTooltip(selectedData)
-				end
-			end)
-			hookBankingAlready = true
+	-- Bank and guild bank share ZO_BankingCommon_Gamepad, so one set of hooks
+	-- serves both; whichever opens first installs them.
+	local function LayoutBankTradingTooltip(inventoryData)
+		if not IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_BANK) then
+			return
 		end
-	end)
-	
-	-- set up banking when the guild bank opens
-	SecurePostHook(ZO_BankingCommon_Gamepad, "OnStateChanged", function(control, oldState, newState, ...)
-		if not hookBankingAlready then
-			if newState == SCENE_SHOWING then
-				SecurePostHook(ZO_BankingCommon_Gamepad, "LayoutBankingEntryTooltip", function(control, inventoryData, ...)
-					if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_BANK) then
-						if inventoryData and inventoryData.bagId then
-							local itemLink = GetItemLink(inventoryData.bagId, inventoryData.slotIndex)
-							local itemUniqueId = GetItemUniqueId(inventoryData.bagId, inventoryData.slotIndex)
-							if itemLink then
-								local parentControl = GAMEPAD_TOOLTIPS:GetTooltipInfo(GAMEPAD_LEFT_TOOLTIP).bgControl	
-								KPUI_GAMEPAD_TOOLTIPS:ClearLines(KPUI_GAMEPAD_TRADING_TOOLTIP)
-								KPUI_GAMEPAD_TOOLTIPS:LayoutTradingTooltip(KPUI_GAMEPAD_TRADING_TOOLTIP, "ZO_BankingCommon_Gamepad", itemLink, inventoryData, KPUI_GAMEPAD_TRADING_TOOLTIP, parentControl, false, 5, nil, itemUniqueId)		
-							end
-						else
-							KPUI_GAMEPAD_TOOLTIPS:HideTooltip(KPUI_GAMEPAD_TRADING_TOOLTIP)
-						end
-					end
-				end)		
-				SecurePostHook(ZO_BankingCommon_Gamepad, "OnCategoryChanged", function(control, selectedData, ...)
-					if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_BANK) then
-						KPUI_GAMEPAD_TOOLTIPS:HideTooltip(KPUI_GAMEPAD_TRADING_TOOLTIP)
-					end	
-				end)
-				SecurePostHook(ZO_GuildBank_Gamepad, "ChangeGuildBank", function(control, guildBankId, ...)
-					if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_BANK) then
-						KPUI_GAMEPAD_TOOLTIPS:HideTooltip(KPUI_GAMEPAD_TRADING_TOOLTIP)
-					end
-				end)
-				hookBankingAlready = true
+		if inventoryData and inventoryData.bagId then
+			local itemLink = GetItemLink(inventoryData.bagId, inventoryData.slotIndex)
+			local itemUniqueId = GetItemUniqueId(inventoryData.bagId, inventoryData.slotIndex)
+			if itemLink then
+				local parentControl = GAMEPAD_TOOLTIPS:GetTooltipInfo(GAMEPAD_LEFT_TOOLTIP).bgControl
+				KPUI_GAMEPAD_TOOLTIPS:ClearLines(KPUI_GAMEPAD_TRADING_TOOLTIP)
+				KPUI_GAMEPAD_TOOLTIPS:LayoutTradingTooltip(KPUI_GAMEPAD_TRADING_TOOLTIP, "ZO_BankingCommon_Gamepad", itemLink, inventoryData, KPUI_GAMEPAD_TRADING_TOOLTIP, parentControl, false, 5, nil, itemUniqueId)
 			end
-		end		
+		else
+			KPUI_GAMEPAD_TOOLTIPS:HideTooltip(KPUI_GAMEPAD_TRADING_TOOLTIP)
+		end
+	end
+
+	local function InstallBankHooks()
+		if hookBankingAlready then return end
+		hookBankingAlready = true
+		SecurePostHook(ZO_BankingCommon_Gamepad, "LayoutBankingEntryTooltip", function(control, inventoryData)
+			LayoutBankTradingTooltip(inventoryData)
+		end)
+		-- After a category or guild change, show prices for whatever is now
+		-- selected (or hide them when nothing is).
+		local function RefreshBankTradingTooltip(control)
+			LayoutBankTradingTooltip(control.GetTargetData and control:GetTargetData() or nil)
+		end
+		SecurePostHook(ZO_BankingCommon_Gamepad, "OnCategoryChanged", RefreshBankTradingTooltip)
+		if ZO_GuildBank_Gamepad then
+			SecurePostHook(ZO_GuildBank_Gamepad, "ChangeGuildBank", RefreshBankTradingTooltip)
+		end
+	end
+
+	SecurePostHook(ZO_GamepadBanking, "OnOpenBank", InstallBankHooks)
+	SecurePostHook(ZO_BankingCommon_Gamepad, "OnStateChanged", function(control, oldState, newState)
+		if newState == SCENE_SHOWING then
+			InstallBankHooks()
+		end
 	end)
 
 	-- set up stores
@@ -1152,58 +1096,6 @@ function KelaSetupTradingHouse()
 			end
 		end		
 	end)
-
-	-- set up the ATT graph
-	if ArkadiusTradeTools ~= nil and ArkadiusTradeToolsSalesGraph and not hookATTAlready then
-		ZO_PreHook(ArkadiusTradeToolsSalesGraph, "AddDot", function(control, x, y, color)
-
-				local drawAreaWidth, drawAreaHeight = control.drawArea:GetDimensions()
-				local rangeX = control.maxX - control.minX
-
-				local posX = x - control.minX
-				local rangeY = control.maxY - control.minY
-				local posY = control.maxY - y
-
-				local left = drawAreaWidth / rangeX * posX
-				local right = -(drawAreaWidth - left - 2)
-				local top = drawAreaHeight / rangeY * posY
-				local bottom = -(drawAreaHeight - top - 2)
-
-				-- Serves as the index for our current surface
-				control.numDots = control.numDots + 1
-
-				if (control.numDots > control.numSurfaces) then
-					control.drawArea:AddSurface(0.25, 0.75, 0.25, 0.75)
-					control.numSurfaces = control.numSurfaces + 1
-				else
-					control.drawArea:SetSurfaceHidden(control.numDots, false)
-				end
-
-				control.drawArea:SetColor(control.numDots, color:UnpackRGBA())
-				
-				control.drawArea:SetPixelRoundingEnabled(false)
-				if x == GetTimeStamp() then
-					if color == colors.COLOR_TTC then -- then
-						left = left - 8
-						right = right + 2
-						top = top - 1
-						bottom = bottom	+ 2
-						control.drawArea:SetPixelRoundingEnabled(true)
-					elseif color == colors.COLOR_ATT then -- tradeSuggested == "ATT" then
-						left = left - 2
-						right = right + 8
-						top = top - 1
-						bottom = bottom	+ 2
-						control.drawArea:SetPixelRoundingEnabled(true)
-					end
-				end
-				control.drawArea:SetInsets(control.numDots, left - 2, right + 2, top - 2, bottom + 2)
-				
-				return true
-		
-		end)
-		
-	end
 
 	if ArkadiusTradeTools then
 		-- The ATT analysis-period selector extends the core guild dialog.
@@ -1262,11 +1154,17 @@ function KelaSetupTradingHouse()
 				KelaPadUI.selectorContainer:SetAnchor(TOPLEFT, control, TOPRIGHT, 0, 0)
 				KelaPadUI.selectorContainer:SetAnchor(BOTTOMLEFT, control, BOTTOMRIGHT, 0, 0)			
 				KelaPadUI.selectorContainer:SetHidden(false)			
-				KelaPadUI.selector = ZO_CurrencySelector_Gamepad:New(KPUI_SelectorContainer:GetNamedChild("Selector"))
-				KelaPadUI.selector:SetClampValues(true)
-				KelaPadUI.selector:SetMaxValue(30)
+				-- One selector for the session: a new one per row setup left an active
+				-- selector registered with directional input when the row was rebuilt.
+				if not KelaPadUI.selector then
+					KelaPadUI.selector = ZO_CurrencySelector_Gamepad:New(KPUI_SelectorContainer:GetNamedChild("Selector"))
+					KelaPadUI.selector:SetClampValues(true)
+					KelaPadUI.selector:SetMaxValue(30)
+				end
 				KelaPadUI.selector.control:SetHidden(false)
-				KelaPadUI.selector:SetValue(KelaGetATTAnalysisPeriod())
+				if not KelaPadUI.selectorActive then
+					KelaPadUI.selector:SetValue(KelaGetATTAnalysisPeriod())
+				end
 			end
 			local function callbackRow(dialog)
 				KelaPadUI.selector:SetValue(KelaGetATTAnalysisPeriod())
@@ -1299,6 +1197,7 @@ function KelaSetupTradingHouse()
 		end
 	end
 	function KelaDeactivateSelector()
+		if not KelaPadUI.selector then return end
 		KelaPadUI.selector:SetValue(KelaGetATTAnalysisPeriod())
 		KelaPadUI.selector:Deactivate()
 		KelaPadUI.selectorActive = false
@@ -1312,7 +1211,7 @@ function KelaSetupTradingHouse()
 	end
     local noChoiceCallback = function(dialog)
 		KelaDeactivateSelector()
-		KelaPadUI.selector.control:SetHidden(true)
+		if KelaPadUI.selector then KelaPadUI.selector.control:SetHidden(true) end
 	end	
 	ESO_Dialogs["TRADING_HOUSE_CHANGE_ACTIVE_GUILD"] =
 	{

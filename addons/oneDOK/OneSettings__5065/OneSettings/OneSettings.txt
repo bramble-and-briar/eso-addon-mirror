@@ -1,0 +1,21 @@
+## Title: OneSettings
+## Description: Shared character settings, automatic addon dependencies and addon presets.
+## Author: oneDOK
+## Version: 26.11.2
+## AddOnVersion: 261102
+## APIVersion: 101051
+## DependsOn: LibAddonMenu-2.0>=43
+## SavedVariables: OneSettingsSavedVariables
+
+Core.lua
+Strings.lua
+Dependencies.lua
+Sync/Settings.lua
+Sync/Bindings.lua
+Sync/Windows.lua
+Sync/Chat.lua
+Sync/OneChat.lua
+Sync/Addons.lua
+Presets.lua
+UI.lua
+Main.lua

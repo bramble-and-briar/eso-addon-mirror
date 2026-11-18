@@ -1,7 +1,7 @@
 -- Per-addon framework support. Loaded before this addon's runtime files.
 -- Existing SavedVariables paths and schema versions are preserved.
 local F = {
-    id = "CallToArm", savedPrefix = "CallToArm", displayName = "CallToArm", version = "1.3.1",
+    id = "CallToArm", savedPrefix = "CallToArm", displayName = "CallToArm", version = "1.3.2",
     accountOnly = true, defaultAccountWide = true,
     nativeProfile = false, standalone = false,
     toggleEnabled = false,

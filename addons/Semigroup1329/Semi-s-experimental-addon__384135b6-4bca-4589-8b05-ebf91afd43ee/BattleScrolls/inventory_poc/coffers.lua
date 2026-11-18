@@ -9,6 +9,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field untilReset table<string, number>
 ---@field observed table<number, table<number, boolean>> Coffer IDs and the motif item IDs found inside
 ---@field currencies table<number, table<number, number>>|nil Container IDs and the largest amount of each currency seen inside
+---@field mixed table<number, boolean>|nil Container IDs seen holding anything besides a single currency
 ---@class InventoryPocCoffers
 local coffers = {}
 BattleScrolls.inventoryPocCoffers = coffers
@@ -125,8 +126,13 @@ function coffers.openAfter(itemId)
     if openingId and openingUntil and openingUntil > now and byItem[openingId] == group then return openingUntil end
 end
 
+---@type table<string, boolean> Containers already emptied down to a currency without room, this session
+local emptied = {}
+
 ---@param itemId number
-function coffers.beginUse(itemId)
+---@param uniqueId string
+function coffers.beginUse(itemId, uniqueId)
+    emptied[uniqueId] = nil
     openingId, openingUntil = itemId, GetTimeStamp() + 15
     openingLoot = {}
     EVENT_MANAGER:RegisterForUpdate(EVENT_NAME .. 'Drain', 15000, function()
@@ -155,15 +161,20 @@ end
 ---@param itemId number
 ---@param contents InventoryPocLootEntry[]
 local function learnCurrencies(itemId, contents)
-    local currencies = saved and saved.currencies
-    if not currencies then return end
+    local currencies, mixed = saved and saved.currencies, saved and saved.mixed
+    if not currencies or not mixed then return end
+    local other = false
     for _, entry in ipairs(contents) do
         if entry.currencyType and entry.quantity > 0 then
             local amounts = currencies[itemId] or {}
             currencies[itemId] = amounts
             amounts[entry.currencyType] = math.max(amounts[entry.currencyType] or 0, entry.quantity)
+        else
+            other = true
         end
     end
+    local amounts = currencies[itemId]
+    if amounts and (other or next(amounts, (next(amounts))) ~= nil) then mixed[itemId] = true end
 end
 
 ---@param contents InventoryPocLootEntry[] Loot shown by the container being opened
@@ -174,11 +185,21 @@ end
 ---@type table<number, boolean> Currencies whose cap is holding a container back
 local held = {}
 
+---The opened container kept a currency without room: it waits from here on.
+---@param uniqueId string
+function coffers.hold(uniqueId)
+    emptied[uniqueId] = true
+end
+
+---A container holding only that currency waits unopened. One with other
+---contents is opened once to take those, and only then waits.
 ---@param itemId number
+---@param uniqueId string
 ---@return number|nil currency A currency without room for what this container is known to hold
-function coffers.cappedCurrency(itemId)
+function coffers.cappedCurrency(itemId, uniqueId)
     local amounts = saved and saved.currencies and saved.currencies[itemId]
     if not amounts then return nil end
+    if saved.mixed and saved.mixed[itemId] and not emptied[uniqueId] then return nil end
     for currency, amount in pairs(amounts) do
         local location = GetCurrencyPlayerStoredLocation(currency)
         if GetCurrencyAmount(currency, location) + amount > GetMaxPossibleCurrency(currency, location) then
@@ -242,8 +263,8 @@ end
 ---@param recoverLimits boolean First installation: recover today's cooldowns
 function coffers.initialize(state, log, recoverLimits)
     saved = state
-    if not state.currencies then
-        state.currencies = {}
+    if not state.currencies or not state.mixed then
+        state.currencies, state.mixed = state.currencies or {}, {}
         for _, entry in ipairs(log) do
             if entry.action == 'open' and entry.result == 'done' then learnCurrencies(entry.itemId, entry.contents or {}) end
         end

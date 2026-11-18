@@ -508,6 +508,9 @@ local function BuildCharacterData(server, charId, name, isCurrent, now, availabi
 							groupTitle = group.craft == CRAFTING_TYPE_CLOTHIER and group.title or nil,
 							traitType = group.traits[traitIndex].type,
 							completionAt = completionAt,
+							craftingSkillType = group.craft,
+							researchLineIndex = researchLineIndex,
+							traitIndex = traitIndex,
 						}
 						if not earlierCompletion or completionAt < earlierCompletion then
 							earlierCompletion = completionAt
@@ -1115,6 +1118,397 @@ local function RenderPage(now)
 end
 
 -- ---------------------------------------------------------------------------
+-- Summary page
+-- ---------------------------------------------------------------------------
+--
+-- One table for every character: a column per crafting station plus a total,
+-- each cell showing researched/total, a progress bar, and what the station is
+-- doing right now (traits in progress and the next finish, Complete, or Idle).
+-- Below it, the research queue lists every running research across all
+-- characters, soonest first. Controls are created on demand and reused.
+
+local SUMMARY_TITLE_HEIGHT = 30
+local SUMMARY_DETAIL_HEIGHT = 24
+local SUMMARY_TABLE_GAP = 18
+local SUMMARY_HEADER_HEIGHT = 30
+local SUMMARY_ROW_HEIGHT = 80
+local SUMMARY_NAME_WIDTH = 250
+local SUMMARY_TOTAL_WIDTH = 190
+local SUMMARY_COLUMN_GAP = 12
+local SUMMARY_CELL_PADDING = 14
+local SUMMARY_BAR_HEIGHT = 6
+local SUMMARY_QUEUE_ROW_HEIGHT = 30
+local SUMMARY_QUEUE_TIME_WIDTH = 170
+local SUMMARY_QUEUE_CHARACTER_WIDTH = 250
+local SUMMARY_QUEUE_CRAFT_WIDTH = 200
+
+local SUMMARY_STRIPE_COLOR = ZO_ColorDef:New(1, 1, 1, 0.05)
+local SUMMARY_DIVIDER_COLOR = ZO_ColorDef:New(1, 1, 1, 0.25)
+local SUMMARY_BAR_BACK_COLOR = ZO_ColorDef:New(1, 1, 1, 0.12)
+local SUMMARY_BAR_FILL_COLOR = kpuiConst.Colors.COLOR_LIGHT_BLUE
+local DIM = STYLES.Dim.color
+
+-- Solid rectangle (stripe, divider, progress bar).
+local function CreateRect(parent, name, color)
+	local rect = WINDOW_MANAGER:CreateControl(name, parent, CT_BACKDROP)
+	rect:SetEdgeColor(0, 0, 0, 0)
+	rect:SetCenterColor(color:UnpackRGBA())
+	return rect
+end
+
+local function CreateSummaryLabel(parent, name, style, alignment)
+	local label = CreateLabel(parent, name, style)
+	label:SetHorizontalAlignment(alignment or TEXT_ALIGN_LEFT)
+	return label
+end
+
+local function GetSummaryColumns()
+	local columns = research.summaryColumns
+	if columns then
+		return columns
+	end
+	columns = {}
+	local craftCount = #ACTIVE_RESEARCH_CRAFTS
+	local craftWidth = math.floor((research.paneWidth - SUMMARY_NAME_WIDTH - SUMMARY_TOTAL_WIDTH
+		- (craftCount + 1) * SUMMARY_COLUMN_GAP) / craftCount)
+	local x = SUMMARY_NAME_WIDTH + SUMMARY_COLUMN_GAP
+	for index, definition in ipairs(ACTIVE_RESEARCH_CRAFTS) do
+		columns[index] = { x = x, width = craftWidth, craft = definition.craft, title = definition.title }
+		x = x + craftWidth + SUMMARY_COLUMN_GAP
+	end
+	columns.total = { x = x, width = SUMMARY_TOTAL_WIDTH }
+	research.summaryColumns = columns
+	return columns
+end
+
+-- Researched and total trait counts of one station for one character.
+local function CountCraft(character, craft)
+	local researched, total = 0, 0
+	for _, lineCells in pairs(character.cells[craft] or {}) do
+		for _, cell in pairs(lineCells) do
+			total = total + 1
+			if cell == CELL_KNOWN then
+				researched = researched + 1
+			end
+		end
+	end
+	return researched, total
+end
+
+local function BuildSummaryPage(parent)
+	local page = { parent = parent, rows = {}, queueRows = {} }
+	local columns = GetSummaryColumns()
+
+	page.title = CreateSummaryLabel(parent, "KelaTraitSummaryTitle", STYLES.SectionTitle)
+	page.title:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, 0)
+	page.title:SetDimensions(research.paneWidth, SUMMARY_TITLE_HEIGHT)
+	page.title:SetText(GetString(KELA_TRAIT_RESEARCH_SUMMARY_TITLE))
+
+	page.detail = CreateSummaryLabel(parent, "KelaTraitSummaryDetail", STYLES.Body)
+	page.detail:SetAnchor(TOPLEFT, page.title, BOTTOMLEFT, 0, 0)
+	page.detail:SetDimensions(research.paneWidth, SUMMARY_DETAIL_HEIGHT)
+
+	local headerY = SUMMARY_TITLE_HEIGHT + SUMMARY_DETAIL_HEIGHT + SUMMARY_TABLE_GAP
+	local nameHeader = CreateSummaryLabel(parent, "KelaTraitSummaryHeadName", STYLES.ListHeader)
+	nameHeader:SetAnchor(TOPLEFT, parent, TOPLEFT, 8, headerY)
+	nameHeader:SetDimensions(SUMMARY_NAME_WIDTH, SUMMARY_HEADER_HEIGHT)
+	nameHeader:SetText(GetString(KELA_TRAIT_RESEARCH_HEADER_CHARACTERS))
+	for index, column in ipairs(columns) do
+		local header = CreateSummaryLabel(parent, "KelaTraitSummaryHead" .. index, STYLES.ListHeader, TEXT_ALIGN_CENTER)
+		header:SetAnchor(TOPLEFT, parent, TOPLEFT, column.x, headerY)
+		header:SetDimensions(column.width, SUMMARY_HEADER_HEIGHT)
+		header:SetText(GetString(column.title))
+	end
+	local totalHeader = CreateSummaryLabel(parent, "KelaTraitSummaryHeadTotal", STYLES.ListHeader, TEXT_ALIGN_CENTER)
+	totalHeader:SetAnchor(TOPLEFT, parent, TOPLEFT, columns.total.x, headerY)
+	totalHeader:SetDimensions(columns.total.width, SUMMARY_HEADER_HEIGHT)
+	totalHeader:SetText(GetString(KELA_TRAIT_RESEARCH_SUMMARY_TOTAL))
+
+	local divider = CreateRect(parent, "KelaTraitSummaryHeadDivider", SUMMARY_DIVIDER_COLOR)
+	divider:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, headerY + SUMMARY_HEADER_HEIGHT)
+	divider:SetDimensions(research.paneWidth, 2)
+
+	page.rowsY = headerY + SUMMARY_HEADER_HEIGHT + 6
+
+	page.queueTitle = CreateSummaryLabel(parent, "KelaTraitSummaryQueueTitle", STYLES.SectionTitle)
+	page.queueTitle:SetDimensions(research.paneWidth, SUMMARY_TITLE_HEIGHT)
+	page.queueTitle:SetText(GetString(KELA_TRAIT_RESEARCH_SUMMARY_QUEUE))
+	page.queueEmpty = CreateSummaryLabel(parent, "KelaTraitSummaryQueueEmpty", STYLES.Dim)
+	page.queueEmpty:SetDimensions(research.paneWidth, SUMMARY_QUEUE_ROW_HEIGHT)
+	page.queueEmpty:SetText(GetString(KELA_TRAIT_RESEARCH_SUMMARY_QUEUE_EMPTY))
+	return page
+end
+
+-- One cell: count line, progress bar, status line.
+local function CreateSummaryCell(parent, prefix, column)
+	local cell = {}
+	cell.count = CreateSummaryLabel(parent, prefix .. "Count", STYLES.BodyLarge, TEXT_ALIGN_CENTER)
+	cell.count:SetDimensions(column.width, 30)
+	cell.barBack = CreateRect(parent, prefix .. "BarBack", SUMMARY_BAR_BACK_COLOR)
+	cell.barBack:SetDimensions(column.width - 2 * SUMMARY_CELL_PADDING, SUMMARY_BAR_HEIGHT)
+	cell.barFill = CreateRect(parent, prefix .. "BarFill", SUMMARY_BAR_FILL_COLOR)
+	cell.barFill:SetHeight(SUMMARY_BAR_HEIGHT)
+	cell.status = CreateSummaryLabel(parent, prefix .. "Status", STYLES.Body, TEXT_ALIGN_CENTER)
+	cell.status:SetDimensions(column.width, 24)
+	return cell
+end
+
+local function PlaceSummaryCell(cell, parent, column, y)
+	cell.count:ClearAnchors()
+	cell.count:SetAnchor(TOPLEFT, parent, TOPLEFT, column.x, y + 6)
+	cell.barBack:ClearAnchors()
+	cell.barBack:SetAnchor(TOPLEFT, parent, TOPLEFT, column.x + SUMMARY_CELL_PADDING, y + 40)
+	cell.barFill:ClearAnchors()
+	cell.barFill:SetAnchor(TOPLEFT, cell.barBack, TOPLEFT, 0, 0)
+	cell.status:ClearAnchors()
+	cell.status:SetAnchor(TOPLEFT, parent, TOPLEFT, column.x, y + 50)
+end
+
+local function SetSummaryCellHidden(cell, hidden)
+	cell.count:SetHidden(hidden)
+	cell.barBack:SetHidden(hidden)
+	cell.barFill:SetHidden(hidden)
+	cell.status:SetHidden(hidden)
+end
+
+local function FillSummaryCell(cell, researched, total, statusText, statusColor)
+	local complete = total > 0 and researched >= total
+	local countText = string.format("%d/%d", researched, total)
+	cell.count:SetText(complete and LIGHT_GREEN:Colorize(countText) or countText)
+	local barWidth = cell.barBack:GetWidth()
+	local fillWidth = total > 0 and math.floor(barWidth * researched / total) or 0
+	cell.barFill:SetWidth(fillWidth)
+	cell.barFill:SetHidden(fillWidth <= 0)
+	cell.barFill:SetCenterColor((complete and LIGHT_GREEN or SUMMARY_BAR_FILL_COLOR):UnpackRGBA())
+	cell.status:SetColor((statusColor or STYLES.Body.color):UnpackRGBA())
+	cell.status:SetText(statusText or "")
+end
+
+local function GetSummaryRow(page, index)
+	local row = page.rows[index]
+	if row then
+		return row
+	end
+	local parent = page.parent
+	local columns = GetSummaryColumns()
+	local prefix = "KelaTraitSummaryRow" .. index
+	row = { cells = {} }
+	row.stripe = CreateRect(parent, prefix .. "Stripe", SUMMARY_STRIPE_COLOR)
+	row.stripe:SetDimensions(research.paneWidth, SUMMARY_ROW_HEIGHT)
+	row.name = CreateSummaryLabel(parent, prefix .. "Name", STYLES.BodyLarge)
+	row.name:SetDimensions(SUMMARY_NAME_WIDTH - 12, 32)
+	row.note = CreateSummaryLabel(parent, prefix .. "Note", STYLES.Dim)
+	row.note:SetDimensions(SUMMARY_NAME_WIDTH - 12, 24)
+	for columnIndex, column in ipairs(columns) do
+		row.cells[columnIndex] = CreateSummaryCell(parent, prefix .. "C" .. columnIndex, column)
+	end
+	row.total = CreateSummaryCell(parent, prefix .. "Total", columns.total)
+	page.rows[index] = row
+	return row
+end
+
+-- Station status: traits in progress and the next finish, Complete, or Idle
+-- when the station has traits left but nothing running.
+local function GetCraftStatus(character, craft, researched, total, now)
+	local active = character.activeResearch[craft]
+	if active and #active > 0 then
+		return zo_strformat(GetString(KELA_TRAIT_RESEARCH_SUMMARY_ACTIVE), #active, FormatTimeLeft(active[1].completionAt - now)), GOLD
+	elseif total > 0 and researched >= total then
+		return GetString(KELA_TRAIT_RESEARCH_SUMMARY_COMPLETE), LIGHT_GREEN
+	end
+	return GetString(KELA_TRAIT_RESEARCH_SUMMARY_IDLE), LIGHT_ORANGE
+end
+
+local function HideSummaryRow(row)
+	row.stripe:SetHidden(true)
+	row.name:SetHidden(true)
+	row.note:SetHidden(true)
+	for _, cell in ipairs(row.cells) do
+		SetSummaryCellHidden(cell, true)
+	end
+	SetSummaryCellHidden(row.total, true)
+end
+
+local function RenderSummaryRows(page, now)
+	local columns = GetSummaryColumns()
+	local characters = research.characters or {}
+	local y = page.rowsY
+	for index, character in ipairs(characters) do
+		local row = GetSummaryRow(page, index)
+		row.stripe:ClearAnchors()
+		row.stripe:SetAnchor(TOPLEFT, page.parent, TOPLEFT, 0, y)
+		row.stripe:SetHidden(index % 2 == 0)
+
+		local complete = character.total > 0 and character.researched >= character.total
+		row.name:ClearAnchors()
+		row.name:SetAnchor(TOPLEFT, page.parent, TOPLEFT, 8, y + 10)
+		row.name:SetText(complete and LIGHT_GREEN:Colorize(character.name) or character.name)
+		row.name:SetHidden(false)
+		row.note:ClearAnchors()
+		row.note:SetAnchor(TOPLEFT, row.name, BOTTOMLEFT, 0, 4)
+		row.note:SetHidden(false)
+
+		local hasData = character.isCurrent or character.hasData
+		if not hasData then
+			row.note:SetColor(LIGHT_RED:UnpackRGBA())
+			row.note:SetText(GetString(KELA_TRAIT_RESEARCH_SUMMARY_NO_DATA))
+		else
+			row.note:SetColor(DIM:UnpackRGBA())
+			row.note:SetText(character.isCurrent and GetString(KELA_TRAIT_RESEARCH_SUMMARY_CURRENT) or "")
+		end
+
+		for columnIndex, column in ipairs(columns) do
+			local cell = row.cells[columnIndex]
+			PlaceSummaryCell(cell, page.parent, column, y)
+			SetSummaryCellHidden(cell, not hasData)
+			if hasData then
+				local researched, total = CountCraft(character, column.craft)
+				FillSummaryCell(cell, researched, total, GetCraftStatus(character, column.craft, researched, total, now))
+			end
+		end
+
+		PlaceSummaryCell(row.total, page.parent, columns.total, y)
+		SetSummaryCellHidden(row.total, not hasData)
+		if hasData then
+			local percent = character.total > 0 and math.floor(100 * character.researched / character.total) or 0
+			FillSummaryCell(row.total, character.researched, character.total, string.format("%d%%", percent), DIM)
+		end
+		y = y + SUMMARY_ROW_HEIGHT
+	end
+
+	for index = #characters + 1, #page.rows do
+		HideSummaryRow(page.rows[index])
+	end
+	return y
+end
+
+local function GetQueueRow(page, index)
+	local row = page.queueRows[index]
+	if row then
+		return row
+	end
+	local parent = page.parent
+	local prefix = "KelaTraitSummaryQueue" .. index
+	row = {}
+	row.time = CreateSummaryLabel(parent, prefix .. "Time", STYLES.Body)
+	row.time:SetDimensions(SUMMARY_QUEUE_TIME_WIDTH, SUMMARY_QUEUE_ROW_HEIGHT)
+	row.character = CreateSummaryLabel(parent, prefix .. "Character", STYLES.Body)
+	row.character:SetDimensions(SUMMARY_QUEUE_CHARACTER_WIDTH, SUMMARY_QUEUE_ROW_HEIGHT)
+	row.craft = CreateSummaryLabel(parent, prefix .. "Craft", STYLES.Dim)
+	row.craft:SetDimensions(SUMMARY_QUEUE_CRAFT_WIDTH, SUMMARY_QUEUE_ROW_HEIGHT)
+	row.item = CreateSummaryLabel(parent, prefix .. "Item", STYLES.Body)
+	row.item:SetDimensions(research.paneWidth - SUMMARY_QUEUE_TIME_WIDTH - SUMMARY_QUEUE_CHARACTER_WIDTH - SUMMARY_QUEUE_CRAFT_WIDTH, SUMMARY_QUEUE_ROW_HEIGHT)
+	page.queueRows[index] = row
+	return row
+end
+
+local function RenderSummaryQueue(page, now, y)
+	local craftTitle = {}
+	for _, definition in ipairs(ACTIVE_RESEARCH_CRAFTS) do
+		craftTitle[definition.craft] = GetString(definition.title)
+	end
+
+	local queue = {}
+	for _, character in ipairs(research.characters or {}) do
+		for _, definition in ipairs(ACTIVE_RESEARCH_CRAFTS) do
+			for _, item in ipairs(character.activeResearch[definition.craft] or {}) do
+				queue[#queue + 1] = { character = character, craft = definition.craft, item = item }
+			end
+		end
+	end
+	table.sort(queue, function(a, b)
+		if a.item.completionAt == b.item.completionAt then
+			return a.character.name < b.character.name
+		end
+		return a.item.completionAt < b.item.completionAt
+	end)
+
+	page.queueTitle:ClearAnchors()
+	page.queueTitle:SetAnchor(TOPLEFT, page.parent, TOPLEFT, 0, y)
+	y = y + SUMMARY_TITLE_HEIGHT + 4
+
+	page.queueEmpty:ClearAnchors()
+	page.queueEmpty:SetAnchor(TOPLEFT, page.parent, TOPLEFT, 0, y)
+	page.queueEmpty:SetHidden(#queue > 0)
+	if #queue == 0 then
+		y = y + SUMMARY_QUEUE_ROW_HEIGHT
+	end
+
+	for index, entry in ipairs(queue) do
+		local row = GetQueueRow(page, index)
+		local item = entry.item
+		local name = item.name
+		if item.groupTitle then
+			name = item.groupTitle .. ": " .. name
+		end
+		row.time:ClearAnchors()
+		row.time:SetAnchor(TOPLEFT, page.parent, TOPLEFT, 0, y)
+		row.time:SetText(GOLD:Colorize(FormatTimeLeft(item.completionAt - now)))
+		row.character:ClearAnchors()
+		row.character:SetAnchor(TOPLEFT, row.time, TOPRIGHT, 0, 0)
+		row.character:SetText(entry.character.name)
+		row.craft:ClearAnchors()
+		row.craft:SetAnchor(TOPLEFT, row.character, TOPRIGHT, 0, 0)
+		row.craft:SetText(craftTitle[entry.craft] or "")
+		row.item:ClearAnchors()
+		row.item:SetAnchor(TOPLEFT, row.craft, TOPRIGHT, 0, 0)
+		row.item:SetText(GetString("SI_ITEMTRAITTYPE", item.traitType) .. " " .. name)
+		for _, label in pairs(row) do
+			label:SetHidden(false)
+		end
+		y = y + SUMMARY_QUEUE_ROW_HEIGHT
+	end
+	for index = #queue + 1, #page.queueRows do
+		for _, label in pairs(page.queueRows[index]) do
+			label:SetHidden(true)
+		end
+	end
+	return y
+end
+
+local function RenderSummary(now)
+	local page = research.summaryPage
+	if not page then
+		return
+	end
+	local researched, total, inProgress = 0, 0, 0
+	local characters = research.characters or {}
+	for _, character in ipairs(characters) do
+		researched = researched + character.researched
+		total = total + character.total
+		inProgress = inProgress + character.inProgress
+	end
+	page.detail:SetText(zo_strformat(GetString(KELA_TRAIT_RESEARCH_SUMMARY_DETAIL), #characters)
+		.. "   " .. zo_strformat(GetString(KELA_TRAIT_RESEARCH_RESEARCHED), string.format("%d/%d", researched, total))
+		.. "   " .. zo_strformat(GetString(KELA_TRAIT_RESEARCH_IN_PROGRESS), inProgress))
+
+	local y = RenderSummaryRows(page, now)
+	y = RenderSummaryQueue(page, now, y + SUMMARY_TABLE_GAP)
+	if page.contentHeight ~= y then
+		page.contentHeight = y
+		page.parent:SetHeight(y)
+	end
+end
+
+-- Shows either the summary or the selected character's page in the right pane.
+local function ShowSummary(show)
+	research.showSummary = show
+	if research.summaryScroll then
+		research.summaryScroll:SetHidden(not show)
+		research.scroll:SetHidden(show)
+	end
+end
+
+-- Renders whichever page the left list has selected.
+local function RenderCurrent(now)
+	if research.showSummary then
+		RenderSummary(now)
+	else
+		RenderPage(now)
+	end
+end
+
+-- ---------------------------------------------------------------------------
 -- Left pane rows
 -- ---------------------------------------------------------------------------
 
@@ -1164,6 +1558,15 @@ local function BuildList()
 
 	list:Clear()
 
+	-- Summary first: every character's progress on one page.
+	local summaryEntry = ZO_GamepadEntryData:New(GetString(KELA_TRAIT_RESEARCH_SUMMARY), nil)
+	summaryEntry.isSummary = true
+	summaryEntry:AddSubLabel(function()
+		return zo_strformat(GetString(KELA_TRAIT_RESEARCH_SUMMARY_DETAIL), #(research.characters or {}))
+	end)
+	list:AddEntry("ZO_GamepadMenuEntryTemplate", summaryEntry)
+	research.summaryRowIndex = list:GetNumEntries()
+
 	AddHeaderRow(list, GetString(KELA_TRAIT_RESEARCH_HEADER_CHARACTERS))
 
 	research.rowIndexByCharacter = {}
@@ -1174,7 +1577,12 @@ local function BuildList()
 
 	list:Commit()
 
-	local rowIndex = research.rowIndexByCharacter[research.selectedCharacterIndex] or 1
+	local rowIndex
+	if research.showSummary then
+		rowIndex = research.summaryRowIndex
+	else
+		rowIndex = research.rowIndexByCharacter[research.selectedCharacterIndex] or 1
+	end
 	list:SetSelectedIndexWithoutAnimation(rowIndex, true)
 end
 
@@ -1189,6 +1597,14 @@ local function OnListSelectionChanged()
 	end
 
 	local data = list:GetTargetData() or list:GetSelectedData()
+	if data and data.isSummary then
+		if not research.showSummary then
+			ShowSummary(true)
+			research.summaryScroll:ResetToTop()
+		end
+		RenderSummary(GetTimeStamp())
+		return
+	end
 	local character = data and data.characterData
 
 	if not character then
@@ -1206,6 +1622,7 @@ local function OnListSelectionChanged()
 	if not character then
 		return
 	end
+	ShowSummary(false)
 
 	local changedCharacter = research.selectedServer ~= character.server or research.selectedCharId ~= character.charId
 	research.selectedServer = character.server
@@ -1311,15 +1728,22 @@ local function Rebuild()
 		end
 	end
 
+	-- One pending entry per running research, keyed like the completion event,
+	-- so alts finishing offline are recorded once their time has passed.
 	research.pendingCompletions = {}
 	for _, character in ipairs(research.characters) do
-		if character.nextCompletionAt then
-			research.pendingCompletions[#research.pendingCompletions + 1] =
-			{
-				server = character.server,
-				charId = character.charId,
-				completionAt = character.nextCompletionAt,
-			}
+		for _, active in pairs(character.activeResearch or {}) do
+			for _, entry in ipairs(active) do
+				research.pendingCompletions[#research.pendingCompletions + 1] =
+				{
+					server = character.server,
+					charId = character.charId,
+					craftingSkillType = entry.craftingSkillType,
+					researchLineIndex = entry.researchLineIndex,
+					traitIndex = entry.traitIndex,
+					completionAt = entry.completionAt,
+				}
+			end
 		end
 	end
 
@@ -1334,7 +1758,7 @@ local function Rebuild()
 	end
 
 	BuildList()
-	RenderPage(now)
+	RenderCurrent(now)
 end
 
 local function RequestRefresh(delay)
@@ -1366,7 +1790,7 @@ local function OnTimer()
 	if research.list and research.list:HasEntries() then
 		research.list:RefreshVisible()
 	end
-	RenderPage(now)
+	RenderCurrent(now)
 end
 
 -- ---------------------------------------------------------------------------
@@ -1497,6 +1921,15 @@ local function CreateScene()
 	research.scroll = scroll
 	research.page = BuildPage(scrollChild)
 	research.page.parent = scrollChild
+
+	local summaryScroll = CreateControlFromVirtual("KelaTraitResearchSummaryScroll", rightPane, "ZO_ScrollContainer_Gamepad")
+	summaryScroll:SetAnchorFill(rightPane)
+	local summaryChild = summaryScroll:GetNamedChild("ScrollChild")
+	summaryChild:SetResizeToFitDescendents(false)
+	summaryChild:SetWidth(research.paneWidth)
+	research.summaryScroll = summaryScroll
+	research.summaryPage = BuildSummaryPage(summaryChild)
+	ShowSummary(false)
 
 	scene:RegisterCallback("StateChange", OnSceneStateChanged)
 	scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)

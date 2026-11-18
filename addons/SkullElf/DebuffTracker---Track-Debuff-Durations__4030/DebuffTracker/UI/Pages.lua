@@ -712,6 +712,20 @@ function UI.BuildSettingsPage(page, control, width)
     local tbl, tblH = ImportTable(panel.content, w)
     panel:Add(tbl, tblH)
 
+    panel:Add(W.Section(panel.content, w, L("Performance")))
+    panel:Add(W.Note(panel.content, w, L("How often every tracker is checked again (what shows, load conditions, rules). Game events still show at once. Slower = less work for your computer each second; faster = changes that don't come from an event (a rule on time left, a resource %) show sooner."), 50), 50)
+    panel:Add(W.Slider(panel.content, w, L("Update trackers every"), DT.Engine.MIN_MS, DT.Engine.MAX_MS, 10,
+        function() return DT.Engine.UpdateMs() end,
+        function(v) ST().updateMs = v; DT.Engine.SetUpdateRate() end, function(v) return string.format("%d ms", v) end))
+    panel:Add(W.Checkbox(panel.content, w, L("Move bars and timers every frame (smooth)"), function() return ST().smoothTimers ~= false end,
+        function(v) ST().smoothTimers = v end,
+        L("Off: bars and timer numbers move only at each update (saves a little more; global cooldown bars look choppy).")))
+    panel:Add(W.Note(panel.content, w, function()
+        local st = DT.Engine.stats
+        return L("Now: <<1>> ms per update, about <<2>> ms of every second.", string.format("%.2f", st.avgMs),
+            string.format("%.0f", st.avgMs * 1000 / DT.Engine.UpdateMs()))
+    end, 20), 20)
+
     panel:Add(W.Section(panel.content, w, L("Maintenance")))
     panel:Add(W.Checkbox(panel.content, w, L("Show ability IDs in skill tooltips (Skills window)"), function() return ST().skillTooltipIds end,
         function(v) ST().skillTooltipIds = v end))

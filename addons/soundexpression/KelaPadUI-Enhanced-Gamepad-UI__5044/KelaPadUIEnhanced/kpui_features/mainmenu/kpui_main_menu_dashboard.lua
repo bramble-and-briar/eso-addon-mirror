@@ -37,6 +37,9 @@ local titleControl = nil
 -- the times keep ticking while the panel stays open.
 local countdownRows = {}
 local skillPointsRow = nil
+-- Set once USPF and the game report real numbers; the visible-dashboard poll
+-- stops refreshing the skill-point row after that.
+local skillPointsReady = false
 -- Values the rows compute but do not display yet, kept so a later change can
 -- render them without re-deriving anything.  Live data only, never persisted.
 --   tomes:     { tier, totalTiers, pointsToNextTier }
@@ -151,9 +154,12 @@ local dailyResetSeconds = nil
 local dailyResetValueControl = nil
 local dashboardPollCount = 0
 
-local function GetPledgeDungeon(questName)
+-- Dungeon name from an Undaunted pledge quest name. The "Pledge: " prefix is
+-- English only (tracked in the open-work list); shared with the dungeon finder.
+function KelaGetPledgeDungeon(questName)
     return string.match(questName or "", "^Pledge: (.+)$")
 end
+local GetPledgeDungeon = KelaGetPledgeDungeon
 
 -- The daily reset boundary.  GetTimedActivityTypeResetTimeS returns 0 on some
 -- realms, so the daily-login-reward timer is the primary source: a remaining
@@ -234,6 +240,12 @@ local function ComputeResetBoundary(now)
     end
 
     return boundary, now, timedReset, loginRemaining, learned
+end
+
+-- Next daily reset (absolute seconds). Shared with the dungeon finder's pledge
+-- rotation so both agree on which day it is.
+function KelaGetDailyResetBoundary(now)
+    return (ComputeResetBoundary(now))
 end
 
 -- The stored boundary is authoritative: today's set is cleared only once that
@@ -888,6 +900,7 @@ local function GetSkillPointText()
         return GetString(KELA_DASHBOARD_VALUE_NA)
     end
 
+    skillPointsReady = true
     local color = earned >= maxPoints and colors.COLOR_LIGHT_GREEN or nil
     return string.format("%d / %d", earned, maxPoints), color
 end
@@ -1340,7 +1353,7 @@ local function OnDashboardUpdate()
     if visible then
         -- USPF and the game can become ready after the first menu refresh.  Only
         -- update this row, rather than rebuilding the entire dashboard.
-        if skillPointsRow then
+        if skillPointsRow and not skillPointsReady then
             SetRowValueControl(skillPointsRow)
         end
         dashboardPollCount = dashboardPollCount + 1

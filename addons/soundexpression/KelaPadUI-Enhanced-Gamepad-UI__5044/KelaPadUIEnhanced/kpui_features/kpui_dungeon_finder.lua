@@ -1,17 +1,21 @@
 -- KelaPadUI dungeon-finder and pledge enhancements.
 -- Extracted from KelaPadUI.lua; this is the retained working Undaunted/pledge functionality.
 
-function GetGoalPledges()
+local function KelaGetGoalPledges()
 	local pledgeQuests = {}
 
 	for i = 1, MAX_JOURNAL_QUESTS do
 		local name,_,activeStepText,stepType,activeStepTrackerOverrideText,completed,_,_,_,questType,instanceType=GetJournalQuestInfo(i)
 
 		if name and questType == QUEST_TYPE_UNDAUNTED_PLEDGE then
-			local trimmedName = string.match(name, "^Pledge: (.+)$")
-			pledgeQuests[trimmedName] = " [|c4DB8FF ACTIVE |r]"
-			if activeStepTrackerOverrideText ~= "" then
-				pledgeQuests[trimmedName] = " [|c66FF66 " .. activeStepTrackerOverrideText .. " |r]" -- " [|c66FF66 READY TO TURN IN |r]"
+			-- The "Pledge: " prefix is English only; other clients skip the
+			-- status rather than indexing the table with nil.
+			local trimmedName = KelaGetPledgeDungeon and KelaGetPledgeDungeon(name) or string.match(name, "^Pledge: (.+)$")
+			if trimmedName then
+				pledgeQuests[trimmedName] = " [|c4DB8FF ACTIVE |r]"
+				if activeStepTrackerOverrideText ~= "" then
+					pledgeQuests[trimmedName] = " [|c66FF66 " .. activeStepTrackerOverrideText .. " |r]" -- " [|c66FF66 READY TO TURN IN |r]"
+				end
 			end
 		end
 	end
@@ -99,9 +103,12 @@ function KelaGetPledgeReport(skipJournalScan)
 	-- Set the pledge cycle start day - 204 day rotation with 34 Urgarlag quests
 	-- Account for different reset times in EU (3am UTC) and NA (10am UTC)
 	local pledgecyclestartday = 1509962399 -- 2017-11-06
-	local currentdaystart = GetTimeStamp() + GetTimeUntilNextDailyLoginRewardClaimS() - 86400
+	-- The dashboard's reset boundary handles a login timer that reads 0, which
+	-- would otherwise put the start of today a day early.
+	local nextReset = KelaGetDailyResetBoundary and KelaGetDailyResetBoundary() or (GetTimeStamp() + GetTimeUntilNextDailyLoginRewardClaimS())
+	local currentdaystart = nextReset - 86400
 	local day = math.floor(GetDiffBetweenTimeStamps(currentdaystart, pledgecyclestartday) / 86400)
-	local pledgeQuests = skipJournalScan and {} or GetGoalPledges() -- Get active pledges
+	local pledgeQuests = skipJournalScan and {} or KelaGetGoalPledges() -- Get active pledges
 	local report = {}
 
 	for npc=1,3 do
@@ -200,7 +207,7 @@ local function Add_Enhanced_DungeonFinder_Info()
 							newText = newText .. "Skillpoint Quest: " .. spquest .. qText .. "\n"
 							
 							-- Note if this is an active undaunted quest
-							local pledgeQuests = GetGoalPledges()
+							local pledgeQuests = KelaGetGoalPledges()
 							for k, v in pairs(pledgeQuests) do
 								if k == entryData.rawName or "The "..k == entryData.rawName then -- entryData.nameGamepad, entryData.nameKeyboard
 									newText = newText .. "\nPledge Status: " .. v

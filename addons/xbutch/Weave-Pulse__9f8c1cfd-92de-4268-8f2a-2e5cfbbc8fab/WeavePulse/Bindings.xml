@@ -1,0 +1,19 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="WeavePulse">
+            <Action name="WEAVEPULSE_FORCE">
+                <Down>WeavePulse:SetForceDisplay(true)</Down>
+                <Up>WeavePulse:SetForceDisplay(false)</Up>
+            </Action>
+            <Action name="WEAVEPULSE_TOGGLE_SOUND_CUES">
+                <Down>WeavePulse:ToggleSounds("both")</Down>
+            </Action>
+            <Action name="WEAVEPULSE_TOGGLE_TICK">
+                <Down>WeavePulse:ToggleSounds("tick")</Down>
+            </Action>
+            <Action name="WEAVEPULSE_TOGGLE_TOCK">
+                <Down>WeavePulse:ToggleSounds("tock")</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

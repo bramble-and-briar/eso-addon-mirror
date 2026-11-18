@@ -13,17 +13,19 @@ KelaPadUI.log = LibDebugLogger and LibDebugLogger:Create(KelaPadUI.name)
 -- together corrupts settings, so this build stays inert while it is present.
 local KELA_LEGACY_ADDON_NAME = "KelaPadUI"
 
-local _initialized = false
-
 local function KelaLegacyAddonLoaded()
-	local isLoaded = C_AddOns and C_AddOns.IsAddOnLoaded
-	if not isLoaded then return false end
-	local ok, loaded = pcall(isLoaded, KELA_LEGACY_ADDON_NAME)
-	return ok and loaded == true
+	local manager = GetAddOnManager()
+	for i = 1, manager:GetNumAddOns() do
+		local name, _, _, _, enabled, state = manager:GetAddOnInfo(i)
+		if name == KELA_LEGACY_ADDON_NAME then
+			return enabled and state == ADDON_STATE_ENABLED
+		end
+	end
+	return false
 end
 
 local function KelaShowLegacyConflictDialog()
-	ZO_Dialogs_RegisterCustomDialog("KELA_LEGACY_ADDON_CONFLICT",
+	KelaRegisterGamepadDialog("KELA_LEGACY_ADDON_CONFLICT",
 	{
 		gamepadInfo =
 		{
@@ -66,10 +68,10 @@ end
 
 --KelaPadUI scenes
 local kelaSetsScene = SCENE_MANAGER:GetScene("kelaSets")
-GAMEPAD_SETS_LIST_FRAGMENT = ZO_FadeSceneFragment:New(Kela_Sets_List_Gamepad)
+local kelaSetsListFragment = ZO_FadeSceneFragment:New(Kela_Sets_List_Gamepad)
 kelaSetsScene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
 kelaSetsScene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD_RIGHT)
-kelaSetsScene:AddFragment(GAMEPAD_SETS_LIST_FRAGMENT)
+kelaSetsScene:AddFragment(kelaSetsListFragment)
 kelaSetsScene:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
 kelaSetsScene:AddFragment(GAMEPAD_NAV_QUADRANT_2_3_4_BACKGROUND_FRAGMENT)
 kelaSetsScene:AddFragment(MINIMIZE_CHAT_FRAGMENT)
@@ -91,7 +93,6 @@ KELA_OPTIONS_ROOT_SCENE:AddFragment(KELA_OPTIONS:GetHeaderFragment())
 function KelaSetupTooltips()
 	local tooltipLeft = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
 	local tooltipRight = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_RIGHT_TOOLTIP)	
-	local tooltipQuad1 = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_QUAD1_TOOLTIP)	
 
 	kelaTotalRedefineStyles()
 
@@ -119,7 +120,6 @@ function KelaSetupTooltips()
 
 	kelaReplaceTooltips (tooltipLeft)
 	kelaReplaceTooltips (tooltipRight)
-	kelaReplaceTooltipQuad1 (tooltipQuad1)
 
 
 	-- Core builds this table before add-ons change ZO_TOOLTIP_STYLES, so rebuild it
@@ -138,15 +138,11 @@ end
 
 
 local function KelaPadUI_OnLoaded(eventType, addonName)
-	if _initialized then return end
 	if addonName ~= KelaPadUI.name then return end
 	EVENT_MANAGER:UnregisterForEvent(KelaPadUI.name, EVENT_ADD_ON_LOADED)
 
-	-- "KelaPadUI" sorts before "KelaPadUIEnhanced", so the original add-on has
-	-- already registered its own load handler by the time this one runs.
 	if KelaLegacyAddonLoaded() then
 		KelaWarnLegacyAddon()
-		_initialized = true
 		return
 	end
 
@@ -184,8 +180,6 @@ local function KelaPadUI_OnLoaded(eventType, addonName)
 		KelaInitializeTradingHistory()
 		KelaSetupTradingHouse()
 		KelaSetupCraftingStation()
-	elseif not hasTradingProvider then
-		KelaSetSetting(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_ENABLED, false)
 	end
 
 	-- Extra functions added
@@ -213,9 +207,6 @@ local function KelaPadUI_OnLoaded(eventType, addonName)
 	if IsFeatureEnabled(KELA_SETTING_PANEL_FEATURES_PA_JUNK) then
 		KelaSetupPAJunk()
 	end
-
-	_initialized = true
-
 end
 
 EVENT_MANAGER:RegisterForEvent(KelaPadUI.name, EVENT_ADD_ON_LOADED, KelaPadUI_OnLoaded)

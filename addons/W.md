@@ -27,6 +27,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Weapon Charge Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/katkat42/Weapon-Charge-Alert__90) | katkat42 | PC / Mac | 1.1.24 |
 | [WeaponCharger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zeroIndex/WeaponCharger__2063) | zeroIndex | PC / Mac | 0.2.6 |
 | [WeaponSprintSensitivityFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bluebuiy/WeaponSprintSensitivityFix__2870) | bluebuiy | PC / Mac | 2 |
+| [Weave Pulse](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/Weave-Pulse__9f8c1cfd-92de-4268-8f2a-2e5cfbbc8fab) | xbutch | Console | — |
 | [WeaveDelays](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Psiioniic/WeaveDelays__2657) | Psiioniic | PC / Mac | 1.1.1 |
 | [WeaveDelays](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ThePsiioniic/WeaveDelays__1428d8ab-7f1f-4741-833a-93180287dd09) | ThePsiioniic | Console | — |
 | [Weaving Metronome](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Weaving-Metronome__c1b4f7e7-7899-4d68-ab6a-6ce46c563cc5) | FiNk3F13 | Console | — |

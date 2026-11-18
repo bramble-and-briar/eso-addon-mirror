@@ -173,6 +173,7 @@ BattleScrolls = BattleScrolls or {}
 ---@field playerDeathCount number Number of times player died this fight
 ---@field deathRecaps DeathRecapSnapshot[] All captured death recaps (appended on each death)
 ---@field playerSetup PlayerSetup|nil
+---@field infiniteArchive InfiniteArchiveRecord|nil Infinite Archive run state the fight began with (managed by combat/infinite_archive.lua; nil outside a run)
 ---@field weaving WeavingState Weaving/rotation tracking state (managed by combat/weaving.lua)
 ---@field cruxStacks number Current Crux stack count (0-3, for Exhausting Fatecarver duration)
 ---@field cruxRecentMax number Max Crux stacks seen within current event burst window
@@ -370,6 +371,7 @@ function state:Reset()
     self.failedToAssignBossUnitIds = {}
     self.pendingSharedData = nil
     self.playerSetup = nil
+    self.infiniteArchive = nil
     self.lastDamageDoneMs = 0
     self.lastPlayerAliveMs = 0
     self.lastPlayerDeathMs = 0
@@ -428,6 +430,7 @@ function state:Snapshot()
     snapshot.lastPlayerDeathMs = self.lastPlayerDeathMs
     snapshot.deathRecaps = self.deathRecaps
     snapshot.playerSetup = self.playerSetup
+    snapshot.infiniteArchive = self.infiniteArchive
 
     snapshot.weaving = self.weaving
     snapshot.ultimate = self.ultimate

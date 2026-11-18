@@ -1,14 +1,20 @@
 -- KelaPadUI group menu fix.
 --
--- The gamepad group menu keeps reacting to group events while it is closed.
--- See zo_groupmenu_gamepad.lua:
+-- The gamepad group menu keeps reacting to group and unit events while it is
+-- closed. See zo_groupmenu_gamepad.lua:
 --   * InitializeEvents guards its handlers with
 --     "if not self.control:IsControlHidden()".
 --   * The group scene's fragment is GAMEPAD_GROUP_MENU_FRAGMENT, a
---     ZO_FadeSceneFragment on that control (ingamefragments_gamepad.lua).
---     ZO_AnimatedSceneFragment:Hide() only animates alpha and never calls
---     SetHidden(true), so IsControlHidden() is false for the whole session and
---     every guard passes.
+--     ZO_FadeSceneFragment on that control (ingamefragments_gamepad.lua:220).
+--     Its fade-out does hide the control, but only once the animation finishes:
+--     ZO_AnimatedSceneFragment.animationReverseOnStop calls SetHidden(true)
+--     (zo_scenefragmenttemplates.lua:68). During the fade the control is still
+--     visible, so the guard passes and a group event in that window rebuilds
+--     the closed menu.
+--   * UpdateMenuList() has no open-state guard at all, and other add-ons call
+--     it directly. LibGroupBroadcast's LibGroupSocket does so from its unit
+--     events (LibGroupSocket.lua:128), so dismissing a pet rebuilds the closed
+--     menu long after the fade finished.
 --   * UpdateMenuList() then clears and refills the main list and reselects the
 --     default row, index 2, which is MENU_ENTRY_TYPE_CURRENT_GROUP.
 --   * OnSelectedMenuEntry acts on the current scene instead of the group
@@ -24,27 +30,30 @@
 --     screen's help or item panel disappears until the player moves the
 --     selection. Summoning or dismissing a pet is enough to trigger it.
 --
--- Hiding the control is not enough on its own, because UpdateMenuList has no
--- guard of its own and other add-ons call it directly. LibGroupBroadcast's
--- LibGroupSocket, for example, calls GAMEPAD_GROUP_MENU:UpdateMenuList() from
--- its unit events (LibGroupSocket.lua:128), so dismissing a pet rebuilds the
--- closed menu and clears the open screen's left tooltip again.
---
--- The fix therefore does two things:
---   * It keeps the menu control hidden whenever the group scene is not
---     showing, so the game's own IsControlHidden guard works as intended.
---     The StateChange callback is registered with a priority so it runs before
---     the screen's own handler, because ZO_Scene:SetState fires callbacks
---     before it refreshes fragments.
+-- The fix therefore does three things:
 --   * It pre-hooks UpdateMenuList, a pure UI rebuild, and skips it while the
---     group scene is hidden. Nothing is lost: OnStateChanged rebuilds the list
---     when the scene shows.
+--     group scene is not showing. This is what stops both the leaked panel and
+--     the cleared tooltip, for game-driven events and for add-ons that call the
+--     method directly. Nothing is lost: OnStateChanged rebuilds the list when
+--     the scene shows.
+--   * It resets the menu's selection side effects (fragment group, group list,
+--     roles bar, roles fragment) when a selection changes while the scene is
+--     not showing, as a safety net for a rebuild that started before the scene
+--     hid.
+--   * It keeps the menu control hidden whenever the group scene is not showing.
+--     The engine already hides it at the end of the fade, so this is belt and
+--     braces for the transition window and for anything that shows the control
+--     out of band. The StateChange callback is registered with a priority so it
+--     runs before the screen's own handler, because ZO_Scene:SetState fires
+--     callbacks before it refreshes fragments.
 --
--- No secure or dialog function is hooked. The selection callback and the reset
--- are kept as a safety net for fragments that were already attached when the
--- scene hid.
+-- No secure or dialog function is hooked. Do not hide the control earlier than
+-- the fade-out, and never hide it while the scene is showing: the fade is an
+-- alpha animation on that control, and a control hidden out of band while the
+-- fragment still reports shown leaves an invisible but open menu whose
+-- IsControlHidden guards block every update.
 
-local KELA_ADDON_NAME = "KelaPadUIEnhanced"
+local KELA_ADDON_NAME = "KelaPadUIEnhanced_GroupMenuFix"
 
 -- ZO_CallbackObject sorts prioritized callbacks ahead of unprioritized ones.
 local KELA_GROUP_MENU_FIX_CALLBACK_PRIORITY = 1
@@ -55,9 +64,10 @@ local function KelaGroupMenuFixIsGroupSceneShowing()
 	return GAMEPAD_GROUP_SCENE ~= nil and GAMEPAD_GROUP_SCENE:IsShowing()
 end
 
--- The menu is only visible while its scene is. Hiding the control makes the
--- game's own IsControlHidden guard work; ZO_AnimatedSceneFragment:Show()
--- unhides it again when the scene shows.
+-- The menu is only visible while its scene is. The engine hides the control when
+-- the fade-out finishes, so this only covers the transition window and any
+-- out-of-band show; ZO_AnimatedSceneFragment:Show() unhides it again on the way
+-- in.
 local function KelaGroupMenuFixSetMenuHidden(hidden)
 	local menu = GAMEPAD_GROUP_MENU
 	if menu and menu.control then
@@ -74,7 +84,7 @@ end
 -- Returns the group menu to an inert state. Everything is guarded: the menu
 -- finishes its deferred initialization on the first show, and the group list
 -- and roles bar are separate gamepad panels.
-function KelaGroupMenuFixReset()
+local function KelaGroupMenuFixReset()
 	if KelaGroupMenuFixIsGroupSceneShowing() then
 		return
 	end
@@ -114,9 +124,10 @@ local function KelaGroupMenuFixOnSelectionChanged()
 end
 
 -- UpdateMenuList is a pure UI rebuild: it clears and refills the menu list,
--- which reselects a row and fires the selection callback that clears the left
--- tooltip. Skipping it while the menu is closed is safe because the scene
--- rebuilds the list on its way in.
+-- which reselects a row and fires the selection callback that attaches the
+-- group panel and clears the left tooltip. Skipping it while the menu is closed
+-- is what fixes the bug, and it is safe because the scene rebuilds the list on
+-- its way in.
 local function KelaGroupMenuFixBlockBackgroundRebuild()
 	return not KelaGroupMenuFixIsGroupSceneShowing()
 end

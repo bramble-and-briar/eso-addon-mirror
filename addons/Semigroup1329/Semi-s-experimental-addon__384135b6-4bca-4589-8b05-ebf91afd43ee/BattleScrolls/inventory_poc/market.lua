@@ -40,7 +40,8 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field touched boolean
 ---@field guildIds number[]|nil
 ---@field activityGuildId number|nil
----@field listings table<number, InventoryPocGuildListings>
+---@field listings table<number, InventoryPocGuildListings> Saved: the last reading stands in between visits
+---@field checked table<string, boolean> Variants searched this session
 ---@field refreshUI boolean
 ---@field revision number Inventory/reservation changes during an awaited request
 ---@field phase string|nil
@@ -48,7 +49,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field trace string[]
 ---@field failureRecorded boolean
 local market = { tried = {}, prepared = {}, registered = false, ownRequest = false, stopped = false, touched = false,
-    listings = {}, refreshUI = false, revision = 0, trace = {}, failureRecorded = false }
+    listings = {}, checked = {}, refreshUI = false, revision = 0, trace = {}, failureRecorded = false }
 BattleScrolls.inventoryPocMarket = market
 local poc = BattleScrolls.inventoryPoc
 local facts = BattleScrolls.inventoryPocFacts
@@ -135,6 +136,25 @@ function market.availableListingSlots(guildIds)
         available = available + (counts and math.max(0, counts.capacity - counts.used) or 30)
     end
     return available
+end
+
+---Free listing slots across the trading guilds, as last read at a guild
+---store. A guild that has never been read counts as full.
+---@return number
+function market.freeListingSlots()
+    local free = 0
+    for _, guildId in ipairs(facts.guildIds()) do
+        local counts = market.listings[guildId]
+        if counts then free = free + math.max(0, counts.capacity - counts.used) end
+    end
+    return free
+end
+
+---Listings the pack carries: those the free slots can take and a reserve
+---behind them. The bank holds the rest.
+---@return number
+function market.listingAllowance()
+    return market.freeListingSlots() + policy.LISTING_RESERVE
 end
 
 ---Searches, purchases, posts and native listing refreshes share a request channel.
@@ -587,7 +607,7 @@ end
 ---can increase the number of pieces needed to reach the listing minimum.
 ---@param item InventoryPocItem
 ---@return number
-local function maximumListingValue(item)
+function market.listingValue(item)
     local reference = facts.referencePrice(item.link)
     if not policy.validPrice(reference) then return 0 end
     local quantity = item.kind == 'fragment' and item.stack or 1
@@ -600,19 +620,24 @@ end
 ---Inventory changes start a fresh pass through the queue.
 ---@param items InventoryPocItem[]
 ---@param reserved table<string, boolean>
+---@param unpricedOnly boolean No listing slot is free: only stock that has never had a price check
 ---@return InventoryPocItem|nil
 ---@return number
-local function nextSearch(items, reserved)
+local function nextSearch(items, reserved, unpricedOnly)
     while true do
         local best, highest = nil, 0
         for index, before in ipairs(items) do
             local decision = searchDecision(before)
-            if decision.action == 'list' or (decision.action == 'defer' and decision.reason == 'price') then
+            local variant = unpricedOnly and facts.variantKey(before)
+            if variant and (facts.quotes[variant] or market.checked[variant]) then
+                -- One price check settles what an item waits for; a recheck
+                -- only matters right before a listing.
+            elseif decision.action == 'list' or (decision.action == 'defer' and decision.reason == 'price') then
                 local key = searchKey(before)
                 if not market.prepared[key] and not market.tried[key .. ':' .. tostring(before.stack)] then
                     if before.priceLoading then recordSkip(before, 'candidate', 'price-loading')
                     else
-                        local maximum = maximumListingValue(before)
+                        local maximum = market.listingValue(before)
                         if not best or maximum > highest then best, highest = before, maximum end
                     end
                 end
@@ -738,11 +763,18 @@ function market.step(items, reserved)
     local revision = market.revision
     local operation = Effect.Async(function()
         local guildId = listingGuild(market.guildIds)
-        if not guildId then market.search = nil; return false end
+        if not guildId then
+            -- Searches finished before the last slot filled still price their items.
+            for key, search in pairs(market.prepared) do
+                quoteSearch(search, reserved)
+                market.prepared[key] = nil
+            end
+        end
         while true do
             if revision ~= market.revision then return true end
-            local best, quote = bestPrepared(reserved)
-            local candidate, maximum = nextSearch(items, reserved)
+            local best, quote
+            if guildId then best, quote = bestPrepared(reserved) end
+            local candidate, maximum = nextSearch(items, reserved, guildId == nil)
             if best and (best.listingStack or not candidate or quote.totalPrice >= maximum) then
                 market.search = best
                 selectGuild(guildId):Await()
@@ -767,9 +799,15 @@ function market.step(items, reserved)
             if not candidate then market.search = nil; return false end
             local key = searchKey(candidate)
             market.tried[key .. ':' .. tostring(candidate.stack)], market.touched = true, true
+            market.checked[facts.variantKey(candidate)] = true
             local search = { item = candidate, stage = 'name', page = 0, guildIds = market.guildIds, guildIndex = 1 }
             market.search = search
-            if searchGuilds(search) then market.prepared[key] = search end
+            if searchGuilds(search) then
+                if guildId then market.prepared[key] = search
+                -- Nothing can be posted. The remembered price alone decides
+                -- whether the item still waits for the guild store.
+                else quoteSearch(search, reserved) end
+            end
             market.search = nil
             Effect.Yield():Await()
         end

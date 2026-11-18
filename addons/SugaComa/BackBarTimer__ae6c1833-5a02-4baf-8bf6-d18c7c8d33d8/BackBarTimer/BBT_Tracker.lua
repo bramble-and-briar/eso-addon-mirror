@@ -5,6 +5,8 @@ Addon.Tracker = Addon.Tracker or {}
 local Tracker = Addon.Tracker
 
 local UPDATE_NAME = "BackBarTimer_Update"
+-- Locale-independent player buff ID verified against the Blood Hunger Tracker reference.
+local BLOOD_HUNGER_ID = 267744
 local lastCenterAlertMs = 0
 local alertGeneration = 0
 
@@ -54,14 +56,9 @@ local function AlertCenter(message)
     end, delay)
 end
 
-local function GetBarSettings(hotbar)
-    if hotbar == HOTBAR_CATEGORY_PRIMARY then return Addon.sv.frontSlots end
-    return Addon.sv.backSlots
-end
-
-local function IsSlotEnabled(hotbar, slot)
-    local settings = GetBarSettings(hotbar)
-    return type(settings) == "table" and settings[slot] ~= false
+local function IsTrackedBar(hotbar)
+    if Addon.State.werewolf then return hotbar == HOTBAR_CATEGORY_WEREWOLF end
+    return hotbar == HOTBAR_CATEGORY_PRIMARY or hotbar == HOTBAR_CATEGORY_BACKUP
 end
 
 local function ResolveAbilityId(slot, hotbar)
@@ -86,8 +83,8 @@ end
 
 local function IsRelevantRecord(record, hotbar)
     if not record or not record.active then return false end
-    if Addon.sv.mode == "hud" then
-        return IsSlotEnabled(hotbar, record.slot)
+    if Addon.sv.mode == "hud" or Addon.State.werewolf then
+        return Addon.State:IsSlotEnabled(hotbar, record.slot)
             and (tonumber(record.durationMs) or 0) >= Addon.Config.minimumDurationMs
     end
     return hotbar == HOTBAR_CATEGORY_BACKUP
@@ -98,26 +95,66 @@ local function IsGameplayScene(sceneName)
 end
 
 function Tracker:BuildCache(reason)
-    for _, hotbar in ipairs({ HOTBAR_CATEGORY_PRIMARY, HOTBAR_CATEGORY_BACKUP }) do
-        for slot = Addon.Config.firstSlot, Addon.Config.lastSlot do
-            local record = Addon.State:GetRecord(hotbar, slot)
-            local id = ResolveAbilityId(slot, hotbar)
-            if record.id ~= id then
-                record.durationMs = 0
-                record.endTimeMs = 0
-                record.active = false
-                record.alerted = false
-                record.source = ""
+    for hotbar, bar in pairs(Addon.State.bars) do
+        if IsTrackedBar(hotbar) then
+            for slot, record in pairs(bar) do
+                local id = ResolveAbilityId(slot, hotbar)
+                if record.id ~= id then
+                    record.durationMs = 0
+                    record.endTimeMs = 0
+                    record.active = false
+                    record.alerted = false
+                    record.source = ""
+                    record.cooldownEndMs = nil
+                    record.cast = nil
+                end
+                record.id = id
+                record.name = type(GetSlotName) == "function"
+                    and tostring(GetSlotName(slot, hotbar) or "") or ""
+                record.icon = type(GetSlotTexture) == "function"
+                    and tostring(GetSlotTexture(slot, hotbar) or "") or ""
+                record.staticDurationMs = GetStaticDurationMs(id)
             end
-            record.id = id
-            record.name = type(GetSlotName) == "function"
-                and tostring(GetSlotName(slot, hotbar) or "") or ""
-            record.icon = type(GetSlotTexture) == "function"
-                and tostring(GetSlotTexture(slot, hotbar) or "") or ""
-            record.staticDurationMs = GetStaticDurationMs(id)
         end
     end
     Addon:Log("Slot cache rebuilt: " .. tostring(reason or "manual"))
+end
+
+function Tracker:SyncBloodHunger()
+    local state = Addon.State
+    state.bloodHungerStacks = 0
+    state.bloodHungerEndSeconds = 0
+    if not state.werewolf or state.menuOpen or not GetNumBuffs or not GetUnitBuffInfo then return end
+    for index = 1, GetNumBuffs("player") do
+        local _, _, ending, _, stacks, _, _, _, _, _, id = GetUnitBuffInfo("player", index)
+        if id == BLOOD_HUNGER_ID then
+            state.bloodHungerStacks = tonumber(stacks) or 0
+            state.bloodHungerEndSeconds = tonumber(ending) or 0
+            return
+        end
+    end
+end
+
+function Tracker:SyncWerewolfCooldowns()
+    if not Addon.State.werewolf or Addon.State.menuOpen or not GetSlotCooldownInfo then return end
+    local now = NowMs()
+    for slot, record in pairs(Addon.State.bars[HOTBAR_CATEGORY_WEREWOLF]) do
+        local remaining, _, global = GetSlotCooldownInfo(slot, HOTBAR_CATEGORY_WEREWOLF)
+        if record.id > 0 and not global and remaining and remaining > 0 then
+            record.cooldownEndMs = now + remaining
+        else
+            record.cooldownEndMs = nil
+        end
+    end
+end
+
+function Tracker:UpdateHotbar()
+    local active = GetActiveHotbarCategory and GetActiveHotbarCategory()
+    local werewolf = HOTBAR_CATEGORY_WEREWOLF ~= nil and active == HOTBAR_CATEGORY_WEREWOLF
+    if Addon.State:SetWerewolf(werewolf) then
+        alertGeneration = alertGeneration + 1
+        self:SyncBloodHunger()
+    end
 end
 
 function Tracker:SetTimer(hotbar, slot, durationMs, remainingMs, source)
@@ -166,17 +203,26 @@ function Tracker:StartFallbackTimer(hotbar, slot)
     return self:SetTimer(hotbar, slot, duration, duration, "ability")
 end
 
-function Tracker:QueueNativeRetry(hotbar, slot)
+function Tracker:QueueNativeRetry(hotbar, slot, cast)
+    local function IsCurrentCast()
+        local record = Addon.State:GetRecord(hotbar, slot)
+        return record and record.cast == cast and not Addon.State.menuOpen
+            and not Addon.State.suppressNativeRestore
+            and (hotbar ~= HOTBAR_CATEGORY_WEREWOLF or Addon.State.werewolf)
+    end
     if type(zo_callLater) ~= "function" then return end
     zo_callLater(function()
-        if Addon.State.menuOpen or Addon.State.suppressNativeRestore then return end
+        if not IsCurrentCast() then return end
         if not Tracker:SyncNativeTimer(hotbar, slot) then
             Tracker:StartFallbackTimer(hotbar, slot)
         end
     end, 60)
     zo_callLater(function()
-        if not Addon.State.menuOpen and not Addon.State.suppressNativeRestore then
-            Tracker:SyncNativeTimer(hotbar, slot)
+        if not IsCurrentCast() then return end
+        Tracker:SyncNativeTimer(hotbar, slot)
+        if hotbar == HOTBAR_CATEGORY_WEREWOLF then
+            Tracker:SyncWerewolfCooldowns()
+            Tracker:RefreshScheduler()
         end
     end, 220)
 end
@@ -187,27 +233,34 @@ function Tracker:OnAbilityUsed(_, slot)
     if slot < Addon.Config.firstSlot or slot > Addon.Config.lastSlot then return end
     local hotbar = type(GetActiveHotbarCategory) == "function"
         and GetActiveHotbarCategory() or HOTBAR_CATEGORY_PRIMARY
-    if hotbar ~= HOTBAR_CATEGORY_PRIMARY and hotbar ~= HOTBAR_CATEGORY_BACKUP then return end
+    self:UpdateHotbar()
+    if not IsTrackedBar(hotbar) then return end
     Addon.State.suppressNativeRestore = false
 
     self:BuildCache("ability used")
     local record = Addon.State:GetRecord(hotbar, slot)
     if not record or record.id <= 0 then return end
 
-    Addon.State.pending[hotbar .. ":" .. slot] = {
+    local cast = {
         hotbar = hotbar,
         slot = slot,
         abilityId = record.id,
         startedMs = NowMs(),
     }
 
+    record.cast = cast
+    Addon.State.pending[hotbar .. ":" .. slot] = cast
     if not self:SyncNativeTimer(hotbar, slot) then self:StartFallbackTimer(hotbar, slot) end
-    self:QueueNativeRetry(hotbar, slot)
+    if hotbar == HOTBAR_CATEGORY_WEREWOLF then
+        self:SyncWerewolfCooldowns()
+        self:RefreshScheduler()
+    end
+    self:QueueNativeRetry(hotbar, slot, cast)
 end
 
 function Tracker:OnSlotEffectUpdated(_, hotbar, slot)
     if Addon.State.menuOpen or Addon.State.suppressNativeRestore then return end
-    if hotbar ~= HOTBAR_CATEGORY_PRIMARY and hotbar ~= HOTBAR_CATEGORY_BACKUP then return end
+    if not IsTrackedBar(hotbar) then return end
     slot = tonumber(slot) or 0
     if slot < Addon.Config.firstSlot or slot > Addon.Config.lastSlot then return end
     self:BuildCache("slot effect")
@@ -216,8 +269,16 @@ function Tracker:OnSlotEffectUpdated(_, hotbar, slot)
 end
 
 function Tracker:OnEffectChanged(_, changeType, _, _, unitTag, beginTime, endTime,
-        _, _, _, _, _, _, _, _, abilityId)
+        stacks, _, _, _, _, _, _, _, abilityId)
     if Addon.State.menuOpen or unitTag ~= "player" then return end
+    if abilityId == BLOOD_HUNGER_ID then
+        if not Addon.State.werewolf then return end
+        Addon.State.bloodHungerStacks = changeType ~= EFFECT_RESULT_FADED and (tonumber(stacks) or 0) or 0
+        Addon.State.bloodHungerEndSeconds = tonumber(endTime) or 0
+        self:RefreshScheduler()
+        Addon.HUD:Refresh(NowMs())
+        return
+    end
     if changeType ~= EFFECT_RESULT_GAINED
         and changeType ~= EFFECT_RESULT_FULL_REFRESH
         and changeType ~= EFFECT_RESULT_UPDATED then return end
@@ -228,7 +289,8 @@ function Tracker:OnEffectChanged(_, changeType, _, _, unitTag, beginTime, endTim
     for key, pending in pairs(Addon.State.pending) do
         if now - pending.startedMs > Addon.Config.pendingEffectWindowMs then
             Addon.State.pending[key] = nil
-        elseif pending.abilityId == tonumber(abilityId) then
+        elseif pending.abilityId == tonumber(abilityId)
+            and Addon.State:GetRecord(pending.hotbar, pending.slot).cast == pending then
             self:SetTimer(pending.hotbar, pending.slot,
                 durationSeconds * 1000, durationSeconds * 1000, "effect")
             Addon.State.pending[key] = nil
@@ -237,12 +299,12 @@ function Tracker:OnEffectChanged(_, changeType, _, _, unitTag, beginTime, endTim
 end
 
 function Tracker:HasRelevantTimers(now)
-    for _, hotbar in ipairs({ HOTBAR_CATEGORY_PRIMARY, HOTBAR_CATEGORY_BACKUP }) do
-        for slot = Addon.Config.firstSlot, Addon.Config.lastSlot do
-            local record = Addon.State:GetRecord(hotbar, slot)
-            if record and record.active and record.endTimeMs > now
-                and IsRelevantRecord(record, hotbar) then
-                return true
+    for hotbar, bar in pairs(Addon.State.bars) do
+        if IsTrackedBar(hotbar) then
+            for slot, record in pairs(bar) do
+                if record.endTimeMs > now and IsRelevantRecord(record, hotbar) then return true end
+                if record.cooldownEndMs and record.cooldownEndMs > now
+                    and Addon.State:IsSlotEnabled(hotbar, slot) then return true end
             end
         end
     end
@@ -253,6 +315,8 @@ function Tracker:NeedsScheduler()
     if Addon.State.menuOpen then return false end
     local now = NowMs()
     if self:HasRelevantTimers(now) then return true end
+    if Addon.State.werewolf and Addon.State.bloodHungerEndSeconds > 0
+        and Addon.State:GetBloodHungerStacks() > 0 then return true end
     if Addon.State.inCombat and Addon.sv.mode == "hud" then
         if Addon.State.cadenceRunning then return true end
         if Addon.sv.blockCadence and Addon.State.cadenceArmed then return true end
@@ -288,9 +352,8 @@ function Tracker:RefreshScheduler()
 end
 
 function Tracker:ExpireTimers(now)
-    for _, hotbar in ipairs({ HOTBAR_CATEGORY_PRIMARY, HOTBAR_CATEGORY_BACKUP }) do
-        for slot = Addon.Config.firstSlot, Addon.Config.lastSlot do
-            local record = Addon.State:GetRecord(hotbar, slot)
+    for _, bar in pairs(Addon.State.bars) do
+        for _, record in pairs(bar) do
             if record.active and record.endTimeMs <= now then
                 record.active = false
                 record.endTimeMs = 0
@@ -349,7 +412,7 @@ function Tracker:UpdateCadence(now)
 end
 
 function Tracker:UpdateLegacyAlerts(now)
-    if Addon.sv.mode == "hud" or Addon.State.menuOpen then return end
+    if Addon.sv.mode == "hud" or Addon.State.menuOpen or Addon.State.werewolf then return end
     local active = {}
     for slot = Addon.Config.firstSlot, Addon.Config.lastSlot do
         local record = Addon.State:GetRecord(HOTBAR_CATEGORY_BACKUP, slot)
@@ -441,7 +504,10 @@ function Tracker:SetMenuOpen(isOpen)
     else
         Addon.State:ClearCadence(Addon.State.inCombat)
         Addon.HUD:Hide()
+        self:OnLayoutChanged()
+        self:SyncBloodHunger()
         self:RefreshScheduler()
+        Addon.HUD:Refresh(NowMs())
     end
 end
 
@@ -483,18 +549,22 @@ function Tracker:OnCadenceSettingsChanged()
 end
 
 function Tracker:OnLayoutChanged()
+    self:UpdateHotbar()
     self:BuildCache("layout changed")
-    if Addon.State.menuOpen or Addon.State.suppressNativeRestore then return end
-    for _, hotbar in ipairs({ HOTBAR_CATEGORY_PRIMARY, HOTBAR_CATEGORY_BACKUP }) do
-        for slot = Addon.Config.firstSlot, Addon.Config.lastSlot do
-            self:SyncNativeTimer(hotbar, slot)
+    if Addon.State.menuOpen then return end
+    if not Addon.State.suppressNativeRestore then
+        for hotbar, bar in pairs(Addon.State.bars) do
+            if IsTrackedBar(hotbar) then
+                for slot in pairs(bar) do self:SyncNativeTimer(hotbar, slot) end
+            end
         end
     end
+    self:SyncWerewolfCooldowns()
     self:RefreshScheduler()
+    Addon.HUD:Refresh(NowMs())
 end
 
 function Tracker:Initialize()
-    self:BuildCache("initialization")
     local prefix = "BackBarTimer_"
 
     EVENT_MANAGER:RegisterForEvent(prefix .. "Used", EVENT_ACTION_SLOT_ABILITY_USED,
@@ -515,6 +585,22 @@ function Tracker:Initialize()
         function(...) self:OnCombatState(...) end)
     EVENT_MANAGER:RegisterForEvent(prefix .. "Full", EVENT_ACTION_SLOTS_FULL_UPDATE,
         function() self:OnLayoutChanged() end)
+    if EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED then
+        EVENT_MANAGER:RegisterForEvent(prefix .. "ActiveBar", EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED,
+            function(_, _, _, activeHotbar)
+                if Addon.State.werewolf or activeHotbar == HOTBAR_CATEGORY_WEREWOLF then
+                    self:OnLayoutChanged()
+                end
+            end)
+    end
+    if EVENT_ACTION_UPDATE_COOLDOWNS then
+        EVENT_MANAGER:RegisterForEvent(prefix .. "Cooldowns", EVENT_ACTION_UPDATE_COOLDOWNS,
+            function()
+                if not Addon.State.werewolf or Addon.State.menuOpen then return end
+                self:SyncWerewolfCooldowns()
+                self:RefreshScheduler()
+            end)
+    end
     if EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED then
         EVENT_MANAGER:RegisterForEvent(prefix .. "AllBars", EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED,
             function() self:OnLayoutChanged() end)
@@ -559,7 +645,7 @@ function Tracker:Initialize()
     Addon.State.menuOpen = not IsGameplayScene(currentScene)
     Addon.State:ClearCadence(Addon.State.inCombat and not Addon.State.menuOpen)
     if Addon.State.menuOpen then Addon.HUD:Hide() end
-    self:RefreshScheduler()
+    self:OnLayoutChanged()
     Chat("Version " .. Addon.Config.version .. " initialized in " .. tostring(Addon.sv.mode) .. " mode.")
 end
 

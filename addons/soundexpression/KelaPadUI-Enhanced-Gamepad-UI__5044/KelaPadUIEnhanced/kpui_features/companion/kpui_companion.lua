@@ -48,21 +48,21 @@ local function Add_Enhanced_Companion_Information()
 		-- Add New Section containing the companion rapport numbers
 		local rapportStatusSection = self:AcquireSection(self:GetStyle("companionOverviewStatValueSection"))
 		local rapportStatusPair = rapportStatusSection:AcquireStatValuePair(self:GetStyle("statValuePair"))
-		rapportStatusPair:SetStat("Rapport Level", self:GetStyle("statValuePairStat")) --GetString(SI_COMPANION_RAPPORT_STATUS)
+		rapportStatusPair:SetStat(GetString(KELA_COMPANION_OVERVIEW_RAPPORT_LEVEL), self:GetStyle("statValuePairStat"))
 		rapportStatusPair:SetValue(rapportDescription2, self:GetStyle("statValuePairValue"))
 		rapportStatusSection:AddStatValuePair(rapportStatusPair)
 		self:AddSection(rapportStatusSection)
 		
 		-- Add Additional Rapport Information
 		local rapportBodySection2 = self:AcquireSection(self:GetStyle("companionOverviewBodySection"))
-		rapportBodySection2:AddLine("Notable Rapport Stages", self:GetStyle("statValuePairStat"))
-		rapportBodySection2:AddLine("1000: Friendly (1st Personal Quest)", self:GetStyle("statValuePairValue"))
-		rapportBodySection2:AddLine("2000: Close (2nd Personal Quest, Final quest for Mirri and Bastion)", self:GetStyle("statValuePairValue"))
-		rapportBodySection2:AddLine("3000: Allied (3rd Personal Quest)", self:GetStyle("statValuePairValue"))
-		rapportBodySection2:AddLine("4000: Companion", self:GetStyle("statValuePairValue"))
+		rapportBodySection2:AddLine(GetString(KELA_COMPANION_OVERVIEW_RAPPORT_STAGES), self:GetStyle("statValuePairStat"))
+		rapportBodySection2:AddLine(GetString(KELA_COMPANION_OVERVIEW_STAGE_FRIENDLY), self:GetStyle("statValuePairValue"))
+		rapportBodySection2:AddLine(GetString(KELA_COMPANION_OVERVIEW_STAGE_CLOSE), self:GetStyle("statValuePairValue"))
+		rapportBodySection2:AddLine(GetString(KELA_COMPANION_OVERVIEW_STAGE_ALLIED), self:GetStyle("statValuePairValue"))
+		rapportBodySection2:AddLine(GetString(KELA_COMPANION_OVERVIEW_STAGE_COMPANION), self:GetStyle("statValuePairValue"))
 
 		-- Add Companion Specific Sources of Rapport
-		rapportBodySection2:AddLine(zo_strformat("Sources of Rapport for "..activeCompanionName.." ["..activeCompanionID.."]"), self:GetStyle("statValuePairStat"))
+		rapportBodySection2:AddLine(zo_strformat(KELA_COMPANION_OVERVIEW_RAPPORT_SOURCES, activeCompanionName, activeCompanionID), self:GetStyle("statValuePairStat"))
 		if KELA_COMPANION_DATA[activeCompanionID] then
 			for idx, val in ipairs(KELA_COMPANION_DATA[activeCompanionID]) do
 				if string.sub(val, 1, 1) == "-" then
@@ -71,8 +71,8 @@ local function Add_Enhanced_Companion_Information()
 					rapportBodySection2:AddLine(zo_strformat(val), self:GetStyle("statValuePairValue"))
 				end
 			end
-		else
-			CHAT_ROUTER:AddSystemMessage("KPUI WARNING: Could not get companion info for " .. activeCompanionName .. " with ID " .. activeCompanionID)
+		elseif KelaPadUI.log then
+			KelaPadUI.log:Warn("No rapport data for companion %s (%d)", activeCompanionName, activeCompanionID)
 		end
 		self:AddSection(rapportBodySection2)
 
@@ -81,9 +81,6 @@ local function Add_Enhanced_Companion_Information()
 	Set_Companion_Notifications()
 
 end
-
-
--- UNDAUNTED PLEDGES
 
 
 function KelaSetupCompanionInfo()

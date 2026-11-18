@@ -96,7 +96,8 @@ local function refresh()
             local items = facts.bag(BAG_BACKPACK, reserved)
             local slots = BattleScrolls.inventoryPocMarket.availableListingSlots(facts.guildIds())
             local deposits = BattleScrolls.inventoryPocBuilds.depositIds(reserved, items)
-            local summary = BattleScrolls.inventoryPocSpace.summarize(items, slots, deposits)
+            local summary = BattleScrolls.inventoryPocSpace.summarize(items, slots, deposits,
+                BattleScrolls.inventoryPocMarket.listingAllowance())
             if version == revision then lastSummary = summary; render() end
             if version ~= revision then LibEffect.Sleep(350):Await() end
         until version == revision

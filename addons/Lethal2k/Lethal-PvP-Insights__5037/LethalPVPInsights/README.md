@@ -43,7 +43,7 @@ Off by default: tick **Real Death Recap** in Settings. It only runs in PvP areas
 - the **top 5 damage sources** of that fight: skill and player, damage, hits and share. An attack's part absorbed by your damage shield counts with it (*Molten Whip 10,000 (3,000 absorbed)*); a skill that only ever hit your shield is left out of the top 5;
 - the **last 20 hits** before death, with time before death, crit, blocked, *absorbed by shield* and the killing blow.
 
-Bind a key under **Controls > Addon Keybinds > Lethal PVP Insights > Show / hide Real Death Recap** to open and close it like the game's own death recap. `/lpi recap` also shows the last recap. Esc, Alt or the Close button closes it.
+Bind a key under **Controls > Addon Keybinds > Lethal PVP Insights > Show / hide Real Death Recap** to open and close it like the game's own death recap. The death screen also gets a **Real Death Recap** button next to the game's *Toggle Recap*. `/lpi recap` also shows the last recap. Esc, Alt or the Close button closes it.
 
 ## Build links in chat
 Select a player and press **Link** (or `/lpi link`): a *[LPI build: @Name]* link goes into the chat input. Anyone with Lethal PVP Insights can click it to see that build (class, race, CP, role, mundus, skill bars or skills seen, gear).

@@ -1,5 +1,5 @@
 --------------------------------------------------------------
--- SiegeReminder.lua — SiegeMaster v2.1.4
+-- SiegeReminder.lua — SiegeMaster v2.1.5
 -- Author: SugaComa
 --------------------------------------------------------------
 local ADDON_NAME = "SiegeReminder"
@@ -34,7 +34,7 @@ end
 --------------------------------------------------------------
 -- Notifications (Chat / Alert / Full Screen)
 --------------------------------------------------------------
-local function Notify(msg)
+local function Notify(msg, fullScreenText)
 	local mode = (SiegeReminder.SV and SiegeReminder.SV.reminderType) or "Chat"
 	local sound = SOUNDS.GENERAL_ALERT_ERROR
 	local prefix = "|cFFD700[SiegeMaster]|r "
@@ -57,7 +57,7 @@ local function Notify(msg)
 		local CSA = CENTER_SCREEN_ANNOUNCE
 		if CSA and CSA.CreateMessageParams then
 			local p = CSA:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT, sound)
-			p:SetText(prefix .. tostring(msg))
+			p:SetText(fullScreenText)
 			p:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_CHAMPION_POINT_GAINED)
 			CSA:DisplayMessage(p)
 		else
@@ -381,10 +381,10 @@ local function WithdrawToCarryMax()
 
 	RunQueue("SIEGE_BANK_WITHDRAW", queue, SiegeReminder.SV.bankMoveDelayMs, function(moved, reason)
 		if moved > 0 then
-			Notify("Topped up siege from bank (Cyrodiil).")
+			Notify("Topped up siege from bank (Cyrodiil).", "Siege restocked")
 		end
 		if reason == "full" then
-			Notify("Backpack full. Siege withdraw stopped.")
+			Notify("Backpack full. Siege withdraw stopped.", "Backpack full")
 		end
 	end)
 end
@@ -402,10 +402,10 @@ local function DepositAllSiege()
 
 	RunQueue("SIEGE_BANK_DEPOSIT", queue, SiegeReminder.SV.bankMoveDelayMs, function(moved, reason)
 		if moved > 0 then
-			Notify("Deposited vendor siege supplies to bank (outside Cyrodiil).")
+			Notify("Deposited vendor siege supplies to bank (outside Cyrodiil).", "Siege banked")
 		end
 		if reason == "full" then
-			Notify("Bank full. Siege deposit stopped.")
+			Notify("Bank full. Siege deposit stopped.", "Bank full")
 		end
 	end)
 end
@@ -458,7 +458,7 @@ local function CheckSiegeStock()
 
 	if lowDetected then
 		if not isLowOnSiege then
-			Notify(" You are running low on siege supplies — restock before heading out!")
+			Notify(" You are running low on siege supplies — restock before heading out!", "Low siege supplies")
 			isLowOnSiege = true
 		end
 	else
@@ -485,7 +485,7 @@ local function StartReminderLoop()
 		CheckSiegeStock()
 
 		if isLowOnSiege and not isAtSiegeMerchant then
-			Notify(" You are still running low on siege — visit a merchant to restock!")
+			Notify(" You are still running low on siege — visit a merchant to restock!", "Restock siege supplies")
 		end
 
 		if not isLowOnSiege then

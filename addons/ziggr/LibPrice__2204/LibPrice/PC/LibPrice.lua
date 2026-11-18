@@ -76,17 +76,19 @@ end
 --  avgPrice            https://www.esoui.com/downloads/info1752-ArkadiusTradeTools.html
 --  numDays             3-day or 90-day range used for this average?
 --
--- furc                 Furniture Catalogue, by Manavortex
---  origin              https://www.esoui.com/downloads/info1617-FurnitureCatalogue.html
---  desc
---  currency_type
---  currency_ct
---  ingredient_list
+-- furc                 LibFurnitureCatalogue (Furniture Catalogue database)
+--  origin              source type id from LibFurnitureCatalogue.API.GetSourceTypes()
+--                      https://www.esoui.com/downloads/info1617-FurnitureCatalogue.html
+--  desc                same text as notes (vendor/place, or the crafting note)
+--  currency_type       "gold", "vouchers", "ap", "crowns", or "telvar"
+--  currency_ct         amount from GetSourceDetails().cost, or crafting gold
+--  notes
+--  ingredient_list     crafting only
 --      ingr_ct
 --      ingr_gold_ea
 --      ingr_name
 --      ingr_link
---      ingr_gold_sorce_key
+--      ingr_gold_source_key
 --      ingr_gold_field_name
 --
 -- ttc                  Tamriel Trade Centre, by cyxui
@@ -97,8 +99,8 @@ end
 --  AmountCount
 --  SuggestedPrice
 --
--- crown                Crown store: just a few items that Furniture Catalogue
---  crowns              lacked when Zig wrote this library's precursor in 2017.
+-- crown                Account services the catalogue does not list: storage
+--  crowns              upgrades and assistants. Furnishings come from furc.
 --
 -- rolis                Rolis Hlaalu, MasterCraft Mediator, and Faustina Curio,
 --  vouchers            Achievement Mediator.

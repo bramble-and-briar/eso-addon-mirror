@@ -65,6 +65,34 @@ KELA_SETTING_PANEL_TRADE_TOOLTIP_COMPONENTS		= 7513
 -- rejects any live setting ID listed here.
 KELA_RETIRED_SETTING_IDS = {}
 
+-- A row's `enabled` is either a value or a function that returns one; only an
+-- explicit false disables it.
+local function KelaIsSettingEnabled(data)
+	local enabled = data.enabled
+	if type(enabled) == "function" then
+		enabled = enabled()
+	end
+	return enabled ~= false
+end
+
+-- Trading rows show only while a price provider is installed and the trading
+-- feature is on; the provider check keeps a saved "on" from exposing rows when
+-- neither TTC nor ATT is loaded.
+local function KelaHasTradeProvider()
+	return TamrielTradeCentre ~= nil or ArkadiusTradeTools ~= nil
+end
+
+local function KelaTradeShown()
+	return KelaHasTradeProvider() and KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_ENABLED)
+end
+
+local function KelaAnyTradeTooltipShown()
+	return KelaTradeShown() and (KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_TRADINGHOUSE)
+		or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_BANK)
+		or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_CRAFTING)
+		or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_STORE))
+end
+
 -- settings table for the auto-list
 KELA_SETTINGS_DATA =
 {
@@ -402,9 +430,8 @@ kela_SettingsData =
 			[KELA_SETTING_PANEL_TRADE_ENABLED] =
 			{
 				controlType = OPTIONS_CHECKBOX,
-				enabled = function()
-					return TamrielTradeCentre ~= nil or ArkadiusTradeTools ~= nil
-                end,
+				enabled = KelaHasTradeProvider,
+				requiresReload = true,
 				system = SETTING_TYPE_KELA,
 				panel = KELA_SETTING_PANEL_TRADE,
 				settingId = KELA_SETTING_PANEL_TRADE_ENABLED,
@@ -426,7 +453,7 @@ kela_SettingsData =
 				gamepadValueStep = 1,
 				showValue = true,
 				visible  = function()
-                    return KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_ENABLED) and ArkadiusTradeTools ~= nil
+                    return KelaTradeShown() and ArkadiusTradeTools ~= nil
                 end,
 			},
 			[KELA_SETTING_PANEL_TRADE_TOOLTIP_TRADINGHOUSE] =
@@ -438,7 +465,7 @@ kela_SettingsData =
 				text = KELA_SETTING_TRADE_TOOLTIP_TRADINGHOUSE,
 				tooltipText = KELA_SETTING_TRADE_TOOLTIP_TRADINGHOUSE_TOOLTIP,
 				visible  = function()
-                    return KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_ENABLED)
+                    return KelaTradeShown()
                 end,
 				gamepadHasEnabledDependencies = true,
 			},
@@ -451,7 +478,7 @@ kela_SettingsData =
 				text = KELA_SETTING_TRADE_TOOLTIP_BANK,
 				tooltipText = KELA_SETTING_TRADE_TOOLTIP_BANK_TOOLTIP,
 				visible  = function()
-                    return KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_ENABLED)
+                    return KelaTradeShown()
                 end,
 				gamepadHasEnabledDependencies = true,
 			},
@@ -464,7 +491,7 @@ kela_SettingsData =
 				text = KELA_SETTING_TRADE_TOOLTIP_STORE,
 				tooltipText = KELA_SETTING_TRADE_TOOLTIP_STORE_TOOLTIP,
 				visible  = function()
-                    return KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_ENABLED)
+                    return KelaTradeShown()
                 end,
 				gamepadHasEnabledDependencies = true,
 			},
@@ -477,7 +504,7 @@ kela_SettingsData =
 				text = KELA_SETTING_TRADE_TOOLTIP_CRAFTING,
 				tooltipText = KELA_SETTING_TRADE_TOOLTIP_CRAFTING_TOOLTIP,
 				visible  = function()
-                    return KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_ENABLED)
+                    return KelaTradeShown()
                 end,
 				gamepadHasEnabledDependencies = true,
 			},
@@ -490,7 +517,7 @@ kela_SettingsData =
 				text = KELA_SETTING_TRADE_TOOLTIP_GUILDSTAT,
 				tooltipText = KELA_SETTING_TRADE_TOOLTIP_GUILDSTAT_TOOLTIP,
 				visible  = function()
-                    return ArkadiusTradeTools ~= nil and (KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_TRADINGHOUSE) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_BANK) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_CRAFTING) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_STORE)) and KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_ENABLED)
+                    return ArkadiusTradeTools ~= nil and KelaAnyTradeTooltipShown()
                 end,
 			},
 			[KELA_SETTING_PANEL_TRADE_TOOLTIP_ATTINFO] =
@@ -502,7 +529,7 @@ kela_SettingsData =
 				text = KELA_SETTING_TRADE_TOOLTIP_ATTINFO,
 				tooltipText = KELA_SETTING_TRADE_TOOLTIP_ATTINFO_TOOLTIP,
 				visible  = function()
-                    return ArkadiusTradeTools ~= nil and (KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_TRADINGHOUSE) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_BANK) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_CRAFTING) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_STORE)) and KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_ENABLED)
+                    return ArkadiusTradeTools ~= nil and KelaAnyTradeTooltipShown()
                 end,
 			},
 			[KELA_SETTING_PANEL_TRADE_TOOLTIP_LISTINGS] =
@@ -514,7 +541,7 @@ kela_SettingsData =
 				text = KELA_SETTING_TRADE_TOOLTIP_LISTINGS,
 				tooltipText = KELA_SETTING_TRADE_TOOLTIP_LISTINGS_TOOLTIP,
 				visible  = function()
-                    return (KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_TRADINGHOUSE) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_BANK) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_CRAFTING) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_STORE)) and KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_ENABLED)
+                    return KelaAnyTradeTooltipShown()
                 end,
 			},
 			[KELA_SETTING_PANEL_TRADE_TOOLTIP_QUALITY] =
@@ -526,7 +553,7 @@ kela_SettingsData =
 				text = KELA_SETTING_TRADE_TOOLTIP_QUALITY,
 				tooltipText = KELA_SETTING_TRADE_TOOLTIP_QUALITY_TOOLTIP,
 				visible  = function()
-                    return (KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_TRADINGHOUSE) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_BANK) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_CRAFTING) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_STORE)) and KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_ENABLED)
+                    return KelaAnyTradeTooltipShown()
                 end,
 			},
 			[KELA_SETTING_PANEL_TRADE_TOOLTIP_PRODUCTION] =
@@ -538,7 +565,7 @@ kela_SettingsData =
 				text = KELA_SETTING_TRADE_TOOLTIP_PRODUCTION,
 				tooltipText = KELA_SETTING_TRADE_TOOLTIP_PRODUCTION_TOOLTIP,
 				visible  = function()
-                    return (KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_TRADINGHOUSE) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_BANK) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_CRAFTING) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_STORE)) and KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_ENABLED)
+                    return KelaAnyTradeTooltipShown()
                 end,
 			},
 			[KELA_SETTING_PANEL_TRADE_TOOLTIP_COMPONENTS] =
@@ -550,7 +577,7 @@ kela_SettingsData =
 				text = KELA_SETTING_TRADE_TOOLTIP_COMPONENTS,
 				tooltipText = KELA_SETTING_TRADE_TOOLTIP_COMPONENTS_TOOLTIP,
 				visible  = function()
-                    return ArkadiusTradeTools ~= nil and (KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_TRADINGHOUSE) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_BANK) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_CRAFTING) or KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_TOOLTIP_STORE)) and KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRADE_ENABLED)
+                    return ArkadiusTradeTools ~= nil and KelaAnyTradeTooltipShown()
                 end,
 			},
 
@@ -670,15 +697,21 @@ local function IsSettingsDirty (need)
 	end
 end
 local function SaveSettings (whatDo)
+	-- Reset loads the shipped defaults into the working copy only; leaving the
+	-- options saves it, so reload-gated toggles changed by the reset still
+	-- prompt. The stored ZO_SavedVars defaults can predate a changed default.
+	if whatDo == KELA_LOAD_DEFAULT then
+		for system, defaults in pairs(KELA_SETTINGS_DEFAULTS) do
+			kpuiSVSettingsCurrent[system] = KelaGetTableCopy(defaults)
+		end
+		return
+	end
 	if IsSettingsDirty(KELA_SETTINGS_DIRTY) or IsSettingsDirty(KELA_SETTINGS_DIRTY_DEFAULT) then 
 		if whatDo == KELA_SAVE_CURRENT then
 			kpuiSavedVariables["settingsAccountWide"] = kpuiSVSettingsCurrent
 		end
 		if whatDo == KELA_RESTORE_SAVED then
 			kpuiSavedVariables["settingsAccountWide"] = kpuiSVSettingsSaved
-		end
-		if whatDo == KELA_LOAD_DEFAULT then
-			kpuiSavedVariables["settingsAccountWide"] = kpuiSVSettingsDefault
 		end
 		kpuiSVSettingsSaved = kpuiSavedVariables["settingsAccountWide"]
 		kpuiSVSettingsCurrent = KelaGetTableCopy(kpuiSavedVariables["settingsAccountWide"])
@@ -760,7 +793,7 @@ function KelaSetSetting(system, settingId, strValue, andSave)
 	systemSettings[settingId] = strValue
 	if andSave then SaveSettings (KELA_SAVE_CURRENT) end
 	if settingId == KELA_SETTING_PANEL_TRADE_ATT_PERIOD then
-		KelaUpdateGuildATTStat()
+		KelaRequestGuildATTStatUpdate()
 	end
 end
 local function KelaGetSettingFromControl(control)
@@ -824,51 +857,12 @@ end
 local DEFAULT_SLIDER_VALUE_STEP_PERCENT = 6.66
 local updateControlFromSettings =
 {
-    [OPTIONS_DROPDOWN] = function(control)
-                                local data = control.data
-                                local currentSetting = KelaGetSettingFromControl(control)
-                                local currentChoice = tonumber(currentSetting) or currentSetting
-                                local isValidNumber = type(currentChoice) == "number"
-
-                                local dropdownControl = GetControl(control, "Dropdown")
-                                local dropdown = ZO_ComboBox_ObjectFromContainer(dropdownControl)
-                                if data.itemText then
-                                    dropdown:SetSelectedItemText(data.itemText[GetValidIndexFromCurrentChoice(data.valid, currentChoice)])
-                                elseif data.valueStringPrefix and isValidNumber then
-                                    dropdown:SetSelectedItemText(GetString(data.valueStringPrefix, currentChoice))
-                                elseif data.valueStrings then
-                                    dropdown:SetSelectedItemText(GetValueString(data.valueStrings[GetValidIndexFromCurrentChoice(data.valid, currentChoice)]))
-                                else
-                                    dropdown:SetSelectedItemText(tostring(currentChoice))
-                                end
-                                return currentChoice
-                            end,
-    [OPTIONS_HORIZONTAL_SCROLL_LIST] = function(control)
-                            local data = control.data
-                            local currentSetting = KelaGetSettingFromControl(control)
-                            local currentChoice = tonumber(currentSetting) or currentSetting
-                            local index = 0
-                            for i = 1, #data.valid do 
-                                if currentChoice == data.valid[i] then
-                                    index = i
-                                    break
-                                end
-                            end
-                            local ALLOW_EVEN_IF_DISABLED = true
-                            local NO_ANIMATION = true
-                            control.horizontalListObject:SetSelectedDataIndex(index, ALLOW_EVEN_IF_DISABLED, NO_ANIMATION)
-                            control.horizontalListObject:SetOnSelectedDataChangedCallback(OptionsScrollListSelectionChanged)
-                            return currentChoice
-                        end,
     [OPTIONS_CHECKBOX] = function(control)
                                 local currentChoice = KelaGetSettingFromControl(control)
                                 local checkBoxControl = GetControl(control, "Checkbox")
                                 ZO_CheckButton_SetCheckState(checkBoxControl, currentChoice)
-                                local enabled = control.data.enabled
-                                if type(enabled) == "function" then
-                                    enabled = control.data.enabled()
-                                end
-								if enabled == false then
+                                local enabled = KelaIsSettingEnabled(control.data)
+								if not enabled then
 									checkBoxControl:SetText(GetString(SI_CHECK_BUTTON_DISABLED))
 									ZO_CheckButton_Disable(checkBoxControl)
 								else
@@ -922,19 +916,6 @@ local updateControlFromSettings =
 								
                                 return currentChoice
                             end,
-    [OPTIONS_COLOR] =       function(control)
-                                local data = control.data
-                                local currentChoice = KelaGetSettingFromControl(control)
-                                local color = ZO_ColorDef.FromARGBHexadecimal(currentChoice)
-                                if color then
-                                    control:GetNamedChild("Color"):SetColor(color:UnpackRGB())
-                                end
-                            end,
-    [OPTIONS_CHAT_COLOR] =  function(control)
-                                local data = control.data
-                                local currentRed, currentGreen, currentBlue = GetChatCategoryColor(data.chatChannelCategory)
-                                control:GetNamedChild("Color"):SetColor(currentRed, currentGreen, currentBlue)
-                            end,
 }
 
 
@@ -961,7 +942,6 @@ function Kela_GamepadOptions:InitializeScenes()
     self:SetScene(KELA_OPTIONS_ROOT_SCENE)
     KELA_OPTIONS_ROOT_SCENE:RegisterCallback("StateChange", function(oldState, newState)
         if newState == SCENE_SHOWING then
-            RefreshSettings()
             self:RefreshOptionsList()
             self:RefreshHeader()
             self:SetCurrentList(self.optionsList)
@@ -971,8 +951,6 @@ function Kela_GamepadOptions:InitializeScenes()
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.optionsKeybindDescriptor)
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.primaryActionDescriptor)
             self:SaveCachedSettings()
-            ZO_SavePlayerConsoleProfile()
-            SetCameraOptionsPreviewModeEnabled(false, CAMERA_OPTIONS_PREVIEW_NONE)
             local reloadRequired = KelaSettingsNeedReload()
             SaveSettings(KELA_SAVE_CURRENT)
             if reloadRequired then
@@ -1090,11 +1068,6 @@ local function ReleaseSlider(control)
     ReleaseControl(control)
 end
 
-local function ReleaseHorizontalList(control)
-    control.horizontalListObject:Deactivate()
-    ReleaseControl(control)
-end
-
 local KELA_OPTIONS_HEADER_SELECTED_PADDING = -20
 
 function Kela_GamepadOptions:SetupList(list)
@@ -1120,20 +1093,6 @@ function Kela_GamepadOptions:SetupOptionsList(list)
     list:SetDataTemplateReleaseFunction("ZO_GamepadOptionsCheckboxRow", ReleaseControl)
     list:SetDataTemplateWithHeaderReleaseFunction("ZO_GamepadOptionsCheckboxRow", ReleaseControl)
 
-    list:AddDataTemplate("ZO_GamepadOptionsHorizontalListRow", OptionsSetup, ZO_GamepadMenuEntryTemplateParametricListFunction)    
-    list:AddDataTemplateWithHeader("ZO_GamepadOptionsHorizontalListRow", OptionsSetup, ZO_GamepadMenuEntryTemplateParametricListFunction, nil, "ZO_GamepadOptionsHeaderTemplate")
-    list:SetDataTemplateReleaseFunction("ZO_GamepadOptionsHorizontalListRow", ReleaseHorizontalList)
-    list:SetDataTemplateWithHeaderReleaseFunction("ZO_GamepadOptionsHorizontalListRow", ReleaseHorizontalList)
-
-    list:AddDataTemplate("ZO_GamepadOptionsLabelRow", OptionsSetup, ZO_GamepadMenuEntryTemplateParametricListFunction)    
-    list:AddDataTemplateWithHeader("ZO_GamepadOptionsLabelRow", OptionsSetup, ZO_GamepadMenuEntryTemplateParametricListFunction, nil, "ZO_GamepadOptionsHeaderTemplate")
-    list:SetDataTemplateReleaseFunction("ZO_GamepadOptionsLabelRow", ReleaseControl)
-    list:SetDataTemplateWithHeaderReleaseFunction("ZO_GamepadOptionsLabelRow", ReleaseControl)
-
-    list:AddDataTemplate("ZO_GamepadOptionsColorRow", OptionsSetup, ZO_GamepadMenuEntryTemplateParametricListFunction)
-    list:AddDataTemplateWithHeader("ZO_GamepadOptionsColorRow", OptionsSetup, ZO_GamepadMenuEntryTemplateParametricListFunction, nil, "ZO_GamepadOptionsHeaderTemplate")
-    list:SetDataTemplateReleaseFunction("ZO_GamepadOptionsColorRow", ReleaseControl)
-    list:SetDataTemplateWithHeaderReleaseFunction("ZO_GamepadOptionsColorRow", ReleaseControl)
 end
 
 function Kela_GamepadOptions:InitializeOptionsLists()
@@ -1145,9 +1104,6 @@ do
     local CONTROL_TYPES_WITH_PRIMARY_ACTION =
     {
         [OPTIONS_CHECKBOX] = true,
-        [OPTIONS_INVOKE_CALLBACK] = true,
-        [OPTIONS_COLOR] = true,
-        [OPTIONS_CHAT_COLOR] = true,
     }
 
     local function FormatSettingDefault(data)
@@ -1204,8 +1160,7 @@ do
         
 		else
 			local controlType = self:GetControlTypeFromControl(control)
-			local enabled = control.data.enabled
-			if CONTROL_TYPES_WITH_PRIMARY_ACTION[controlType] and enabled ~= false then
+			if CONTROL_TYPES_WITH_PRIMARY_ACTION[controlType] and KelaIsSettingEnabled(control.data) then
 				if not self.isPrimaryActionActive then 
 					KEYBIND_STRIP:AddKeybindButtonGroup(self.primaryActionDescriptor)
 					self.isPrimaryActionActive = true
@@ -1252,7 +1207,7 @@ end
 
 local function SetSelectedStateOnControl(control, selected)
     control:SetAlpha(ZO_GamepadMenuEntryTemplate_GetAlpha(selected))
-    local enabled = control.data.enabled ~= false
+    local enabled = KelaIsSettingEnabled(control.data)
 
     local color = ZO_GamepadMenuEntryTemplate_GetLabelColor(selected, not enabled)
     local r, g, b, a = color:UnpackRGBA()
@@ -1273,9 +1228,6 @@ local function SetSelectedStateOnControl(control, selected)
         checkBox.selected = selected and enabled
     end
 
-    if control.horizontalListControl then
-        control.horizontalListObject:SetSelectedFromParent(selected)
-    end
 end
 
 local function GetTextEntry(text)
@@ -1321,35 +1273,13 @@ function Kela_GamepadOptions:Select()
         if control.data.gamepadHasEnabledDependencies then
 			KELA_OPTIONS:KelaOnOptionWithDependenciesChanged()
         end
-    elseif controlType == OPTIONS_INVOKE_CALLBACK then
-        ZO_Options_InvokeCallback(control)
-    elseif controlType == OPTIONS_COLOR then
-        ZO_Options_ColorOnClicked(control)
-    elseif controlType == OPTIONS_CHAT_COLOR then
-        ZO_Options_Social_ChatColorOnClicked(control)
     end
 end
 
 local function KelaOptionsCheckBox_SelectChoice(control, boxIsChecked)
     local data = control.data
-    local oldValue = KelaGetSettingFromControl(control)
-    local value = boxIsChecked
-    KelaSetSettingFromControl(control, value)
-    if data.mustPushApply then
-        local checkBoxControl = GetControl(control, "Checkbox")
-        ZO_CheckButton_SetCheckState(checkBoxControl, boxIsChecked)
-        local mouseOverControl = WINDOW_MANAGER:GetMouseOverControl()
-        local nameControl = GetControl(control, "Name")
-        if data.events and data.events[boxIsChecked] then
-            CALLBACK_MANAGER:FireCallbacks(data.events[boxIsChecked])
-        end
-        CheckEnableApplyButton(oldValue, value)
-    else
-        Kela_Options_UpdateOption(control)
-    end
-    if data.mustReloadSettings then
-        KEYBOARD_OPTIONS:UpdateCurrentPanelOptions(DONT_SAVE_CURRENT_VALUES)
-    end
+    KelaSetSettingFromControl(control, boxIsChecked)
+    Kela_Options_UpdateOption(control)
 end
 local function CheckBoxToggleFunction(checkBoxControl, boxIsChecked)
     local control = checkBoxControl:GetParent()
@@ -1371,22 +1301,10 @@ function Kela_Options_SetupSlider(control, selected)
     local slider = GetControl(control, "Slider")
 
     if selected ~= nil then
-        slider:SetActive(selected and control.data.enabled ~= false)
+        slider:SetActive(selected and KelaIsSettingEnabled(control.data))
     end
 
     data.events = nil -- Sliders don't support events
-
-    if data.defaultMarker and not IsGamepadOption(control) then
-        local defaultMarkerControl = CreateControlFromVirtual("$(parent)DefaultMarker", slider, "ZO_Options_DefaultMarker")
-        local offsetX = zo_clampedPercentBetween(data.minValue, data.maxValue, data.defaultMarker) * slider:GetWidth()
-        defaultMarkerControl:SetAnchor(TOP, slider, LEFT, offsetX + .25, 6)
-
-        defaultMarkerControl:SetHandler("OnClicked", function(self, button)
-            PlaySound(SOUNDS.SINGLE_SETTING_RESET_TO_DEFAULT)
-            slider:SetValue(data.defaultMarker)
-            ZO_Options_SliderOnValueChanged(slider, slider:GetValue())
-        end)
-    end
 end
 function Kela_GamepadOptions:InitializeControl(control, selected)
     local label = control:GetNamedChild("Name")
@@ -1397,59 +1315,24 @@ function Kela_GamepadOptions:InitializeControl(control, selected)
     end
     SetSelectedStateOnControl(control, selected)
 	
-	local function KelaInitializeControl(control, selected, isKeyboardControl)
-		local data = control.data
-		local text = nil
-
-		if type(data.text) == "string" then
-			text = data.text
-		elseif type(data.text) == "function" then
-			text = data.text(control)
-		else
-			text = GetString(data.text)
-		end
-
-		local controlType = ZO_SharedOptions:GetControlTypeFromControl(control)
-		control.optionsManager = ZO_SharedOptions
-
-		if controlType == OPTIONS_SECTION_TITLE then
-			GetControl(control, "Label"):SetText(text)
-		elseif controlType == OPTIONS_DROPDOWN then
-			GetControl(control, "Name"):SetText(text)
-			ZO_Options_SetupDropdown(control)
-		elseif controlType == OPTIONS_HORIZONTAL_SCROLL_LIST then
-			GetControl(control, "Name"):SetText(text)
-			ZO_Options_SetupScrollList(control, selected)
-		elseif controlType == OPTIONS_CHECKBOX then
-			GetControl(control, "Name"):SetText(text)
-			Kela_Options_SetupCheckBox(control)
-		elseif controlType == OPTIONS_SLIDER then
-			GetControl(control, "Name"):SetText(text)
-			Kela_Options_SetupSlider(control, selected)
-		elseif controlType == OPTIONS_INVOKE_CALLBACK  then
-			ZO_Options_SetupInvokeCallback(control, selected, text)
-		elseif controlType == OPTIONS_COLOR then
-			GetControl(control, "Name"):SetText(text)
-		elseif controlType == OPTIONS_CHAT_COLOR then
-			GetControl(control, "Name"):SetText(text)
-			data.customResetToDefaultsFunction = ZO_OptionsPanel_Social_ResetChatColorToDefault
-		elseif controlType == OPTIONS_CUSTOM then
-			if data.customSetupFunction then
-				data.customSetupFunction(control, selected)
-			end
-		end
-
-		if data.onInitializeFunction then
-			data.onInitializeFunction(control, isKeyboardControl)
-		end
-
-		
+	-- Kela settings only use checkboxes and sliders.
+	local data = control.data
+	local text
+	if type(data.text) == "function" then
+		text = data.text(control)
+	else
+		text = GetTextEntry(data.text)
+	end
+	control.optionsManager = ZO_SharedOptions
+	local controlType = ZO_SharedOptions:GetControlTypeFromControl(control)
+	if controlType == OPTIONS_CHECKBOX then
+		label:SetText(text)
+		Kela_Options_SetupCheckBox(control)
+	elseif controlType == OPTIONS_SLIDER then
+		label:SetText(text)
+		Kela_Options_SetupSlider(control, selected)
 	end
 
-    local IS_GAMEPAD_CONTROL = true
-	KelaInitializeControl(control, selected, IS_GAMEPAD_CONTROL)
-		
-		
     if not control.data.enabled and control.data.disabledText then
         label:SetText(GetTextEntry(control.data.disabledText))
     else
@@ -1471,12 +1354,8 @@ end
 
 local TEMPLATE_NAMES = 
 {
-    [OPTIONS_HORIZONTAL_SCROLL_LIST] = "ZO_GamepadOptionsHorizontalListRow",
     [OPTIONS_SLIDER] = "ZO_GamepadOptionsSliderRow",
     [OPTIONS_CHECKBOX] = "ZO_GamepadOptionsCheckboxRow",
-    [OPTIONS_INVOKE_CALLBACK] = "ZO_GamepadOptionsLabelRow",
-    [OPTIONS_COLOR] = "ZO_GamepadOptionsColorRow",
-    [OPTIONS_CHAT_COLOR] = "ZO_GamepadOptionsColorRow",
 }
 
 local KELA_SETTINGS_CATEGORY_ORDER =
@@ -1571,7 +1450,7 @@ function Kela_GamepadOptions:InitializeSaveReloadDialog()
 	-- close lists when leaving the dialog unexpectedly
     local noChoiceCallback = function(dialog)
 	end	
-    ZO_Dialogs_RegisterCustomDialog("KELA_OPTIONS_RESET_TO_SAVED",
+    KelaRegisterGamepadDialog("KELA_OPTIONS_RESET_TO_SAVED",
     {
         gamepadInfo =
         {
@@ -1605,7 +1484,7 @@ function Kela_GamepadOptions:InitializeSaveReloadDialog()
         noChoiceCallback = noChoiceCallback,
     })
 
-    ZO_Dialogs_RegisterCustomDialog("KELA_OPTIONS_RESET_TO_DEFAULTS",
+    KelaRegisterGamepadDialog("KELA_OPTIONS_RESET_TO_DEFAULTS",
     {
 		mustChoose = true,
 		gamepadInfo =
@@ -1637,7 +1516,7 @@ function Kela_GamepadOptions:InitializeSaveReloadDialog()
 		},
     })
 
-    ZO_Dialogs_RegisterCustomDialog("KELA_OPTIONS_RELOAD_REQUIRED",
+    KelaRegisterGamepadDialog("KELA_OPTIONS_RELOAD_REQUIRED",
     {
         gamepadInfo =
         {

@@ -170,7 +170,7 @@ local function RegisterDialog(screen)
         end, 0)
     end
 
-    ZO_Dialogs_RegisterCustomDialog(DIALOG_NAME,
+    KelaRegisterGamepadDialog(DIALOG_NAME,
     {
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title = { text = KELA_RECIPE_FILTER_TITLE },
@@ -249,26 +249,7 @@ local function RegisterDialog(screen)
         end,
         parametricList = {},
         blockDialogReleaseOnPress = true,
-        buttons =
-        {
-            {
-                keybind = "DIALOG_PRIMARY",
-                text = SI_GAMEPAD_SELECT_OPTION,
-                callback = function(dialog)
-                    local data = dialog.entryList:GetTargetData()
-                    if data and data.callback then
-                        data.callback(dialog)
-                    end
-                end,
-            },
-            {
-                keybind = "DIALOG_NEGATIVE",
-                text = SI_GAMEPAD_BACK_OPTION,
-                callback = function()
-                    ZO_Dialogs_ReleaseDialogOnButtonPress(DIALOG_NAME)
-                end,
-            },
-        },
+        buttons = KelaParametricSelectBackButtons(DIALOG_NAME),
     })
 end
 

@@ -3,12 +3,19 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@class InventoryPocReturnsSaved
 ---@field stock table<string, table<string, number>>
 ---@field discounted table<string, boolean>
+---@field relisted table<string, number> When a variant was last listed at half price
+---@field unsold table<string, boolean> Variants that came back from a half-price listing too
 ---@class InventoryPocReturnMail
 ---@field items table<string, number>
 ---@class InventoryPocReturnClaim: InventoryPocReturnMail
 ---@field before table<string, number>
 ---@field started number
 ---@field success boolean
+---@class InventoryPocMailInbox
+---@field GetActiveMailId fun(self: InventoryPocMailInbox): id64|nil
+---@field IsActiveMailFromGuild fun(self: InventoryPocMailInbox): boolean
+---@class InventoryPocMailScreen
+---@field GetInbox fun(self: InventoryPocMailScreen): InventoryPocMailInbox|nil
 ---@class InventoryPocReturns
 ---@field registered boolean
 ---@field claims table<string, InventoryPocReturnClaim>
@@ -18,6 +25,9 @@ BattleScrolls.inventoryPocReturns = returns
 local poc = BattleScrolls.inventoryPoc
 local facts = BattleScrolls.inventoryPocFacts
 local EVENT_NAME = 'BattleScrollsInventoryPocReturns'
+-- A half-price listing sells or expires within the listing period, and its
+-- mail is claimed some time after. Older records describe a listing that sold.
+local RELISTED_MEMORY_SECONDS = 60 * 86400
 local revision = 0
 
 ---@return boolean
@@ -55,6 +65,21 @@ end
 ---@return boolean
 function returns.isDiscounted(item)
     return poc.enabled and poc.saved ~= nil and poc.saved.returns.discounted[facts.variantKey(item)] == true
+end
+
+---@param item InventoryPocItem
+---@return boolean
+function returns.isUnsold(item)
+    return poc.enabled and poc.saved ~= nil and poc.saved.returns.unsold[facts.variantKey(item)] == true
+end
+
+---A half-price listing was posted. An expiry mail carries only the item, so
+---like the discount this is kept per variant: the next expiry of identical
+---stock counts as this listing coming back.
+---@param item InventoryPocItem
+function returns.relisted(item)
+    if not poc.enabled or not poc.saved then return end
+    poc.saved.returns.relisted[facts.variantKey(item)] = GetTimeStamp()
 end
 
 ---@return boolean completed
@@ -105,6 +130,16 @@ local function syncPass()
         if not owned[key] then state.discounted[key] = nil end
         if not advance() then return false end
     end
+    for key in pairs(state.unsold) do
+        if not owned[key] then state.unsold[key] = nil end
+        if not advance() then return false end
+    end
+    -- A listed item is in no bag, so this record outlives its stock.
+    local now = GetTimeStamp()
+    for key, listedAt in pairs(state.relisted) do
+        if now - listedAt > RELISTED_MEMORY_SECONDS then state.relisted[key] = nil end
+        if not advance() then return false end
+    end
     for key in pairs(facts.quotes) do
         if not owned[key] then facts.quotes[key] = nil end
         if not advance() then return false end
@@ -116,7 +151,10 @@ local function syncPass()
             if (pack[key] or 0) < (claim.before[key] or 0) + quantity then received = false; break end
         end
         if received then
-            for key in pairs(claim.items) do state.discounted[key] = true end
+            for key in pairs(claim.items) do
+                if state.relisted[key] then state.unsold[key], state.relisted[key] = true, nil end
+                state.discounted[key] = true
+            end
             returns.claims[id] = nil
             poc.dirty = true
         elseif GetFrameTimeMilliseconds() - claim.started > 10000 then returns.claims[id] = nil end
@@ -153,16 +191,72 @@ function returns.requestSync()
     if not returns.syncFiber then startSync(100) end
 end
 
+---Protocol text observed on this player's English Xbox client. These are
+---server mail signatures, not UI copy. A returned flag alone is insufficient.
+---@param mailId id64
+---@return boolean expired
+---@return number attachments
+local function expiredListing(mailId)
+    local _, _, subject, _, _, fromSystem, fromCS, _, count, money, cod = GetMailItemInfo(mailId)
+    return fromSystem and not fromCS and subject == 'Item Expired' and count >= 1 and money == 0 and cod == 0, count
+end
+
+---@type table<string, boolean> Expired-listing mails already requested this session
+local readAhead = {}
+---@type string|nil The read this module is waiting for
+local awaitedRead
+
+---The player mail selected in the gamepad inbox, read without changing it.
+---The inbox builds its list on first use, so both reads may fail before that.
+---@return id64|nil
+local function selectedMail()
+    local screen = rawget(_G, 'MAIL_GAMEPAD') ---@type InventoryPocMailScreen|nil
+    local inbox = screen and screen:GetInbox()
+    if not inbox then return nil end
+    local ok, mailId = pcall(inbox.GetActiveMailId, inbox)
+    local known, fromGuild = pcall(inbox.IsActiveMailFromGuild, inbox)
+    return ok and known and not fromGuild and mailId or nil
+end
+
+---A mail's attachments are unknown until it has been read, so a bulk claim
+---could not tell which items an expired listing returned. Read those mails
+---ahead, once each. The inbox ignores a readable mail that is not selected
+---(mailinbox_gamepad.lua, ShowMailItem), so nothing on screen changes. The
+---client allows one read request at a time: after one of ours the player's
+---selection is served first, in case it was refused while ours was pending.
+---@param ownReadFinished boolean
+local function readExpiredMail(ownReadFinished)
+    if not poc.enabled or not poc.saved then return end
+    if ownReadFinished then
+        local selected = selectedMail()
+        if selected and not IsReadMailInfoReady(selected)
+            and RequestReadMail(selected) == REQUEST_READ_MAIL_RESULT_SUCCESS_SERVER_REQUESTED then return end
+    end
+    local mailId = GetNextMailId()
+    while mailId do
+        local id = Id64ToString(mailId)
+        if not readAhead[id] and not IsReadMailInfoReady(mailId) and expiredListing(mailId) then
+            local result = RequestReadMail(mailId)
+            if result == REQUEST_READ_MAIL_RESULT_SUCCESS_SERVER_REQUESTED then
+                readAhead[id], awaitedRead = true, id
+                return
+            end
+            -- Another read is pending or the mailbox has closed: a later event retries.
+            if result ~= REQUEST_READ_MAIL_RESULT_SUCCESS_CACHED and result ~= REQUEST_READ_MAIL_RESULT_NO_SUCH_MAIL then return end
+            readAhead[id] = true
+        end
+        mailId = GetNextMailId(mailId)
+    end
+end
+
 ---@param mailId id64
 ---@param baseline (fun(): table<string, number>)|nil Shared backpack counts for a bulk claim
 local function prepareClaim(mailId, baseline)
     if not poc.enabled or not poc.saved or not IsReadMailInfoReady(mailId) then return end
     local id = Id64ToString(mailId)
     if returns.claims[id] then return end
-    local _, _, subject, _, _, fromSystem, fromCS, _, count, money, cod = GetMailItemInfo(mailId)
-    -- Protocol text observed on this player's English Xbox client. These are
-    -- server mail signatures, not UI copy. A returned flag alone is insufficient.
-    if not fromSystem or fromCS or subject ~= 'Item Expired' or count < 1 or money ~= 0 or cod ~= 0 then return end
+    local expired, count = expiredListing(mailId)
+    if not expired then return end
     local body = ReadMail(mailId)
     if not body:find('An item you listed has expired.', 1, true) or not body:find('Attached is the item.', 1, true) then return end
     local items = {}
@@ -182,11 +276,18 @@ end
 
 function returns.initialize()
     if not poc.saved then return end
-    poc.saved.returns = poc.saved.returns or { stock = {}, discounted = {} }
+    poc.saved.returns = poc.saved.returns or { stock = {}, discounted = {}, relisted = {}, unsold = {} }
+    poc.saved.returns.relisted = poc.saved.returns.relisted or {}
+    poc.saved.returns.unsold = poc.saved.returns.unsold or {}
     if returns.registered then return end
     returns.registered = true
-    -- Observe the existing claim flow. Do not read other mails in the background:
-    -- the native gamepad mail UI displays whichever mail becomes readable.
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_MAIL_INBOX_UPDATE, function() readExpiredMail(false) end)
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_MAIL_READABLE, function(_, mailId)
+        local own = awaitedRead ~= nil and Id64ToString(mailId) == awaitedRead
+        if own then awaitedRead = nil end
+        readExpiredMail(own)
+    end)
+    -- Observe the existing claim flow.
     ZO_PreHook('TakeMailAttachments', prepareClaim)
     ZO_PreHook('TakeMailAttachedItems', prepareClaim)
     ZO_PreHook('TakeAllMailAttachmentsInCategory', function(category)

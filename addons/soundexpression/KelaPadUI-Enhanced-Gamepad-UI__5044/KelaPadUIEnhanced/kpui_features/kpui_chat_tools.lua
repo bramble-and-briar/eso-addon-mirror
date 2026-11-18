@@ -1,10 +1,14 @@
 -- KelaPadUI chat context-menu and slash-command additions.
 -- Extracted from KelaPadUI.lua; uses KELA_TRIALS_DATA from kpui_data/kpui_data.lua.
 
-local function AddContextMenuItems()
-	EVENT_MANAGER:UnregisterForEvent("KelaPadUIEnhanced", EVENT_PLAYER_ACTIVATED)
+-- Own namespace: other modules also wait for EVENT_PLAYER_ACTIVATED, and a
+-- shared name would let one module's unregister remove another's handler.
+local EVENT_NAMESPACE = "KelaPadUIEnhanced_ChatTools"
 
-	local LCM = LibCustomMenu or LibStub("LibCustomMenu", true)
+local function AddContextMenuItems()
+	EVENT_MANAGER:UnregisterForEvent(EVENT_NAMESPACE, EVENT_PLAYER_ACTIVATED)
+
+	local LCM = LibCustomMenu
 	if not LCM then
 		return
 	end
@@ -75,5 +79,5 @@ function KelaSetupChatTools()
 	KelaPadUI.KelaChatToolsInitialized = true
 
 	AddChatCommands()
-	EVENT_MANAGER:RegisterForEvent("KelaPadUIEnhanced", EVENT_PLAYER_ACTIVATED, AddContextMenuItems)
+	EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_PLAYER_ACTIVATED, AddContextMenuItems)
 end

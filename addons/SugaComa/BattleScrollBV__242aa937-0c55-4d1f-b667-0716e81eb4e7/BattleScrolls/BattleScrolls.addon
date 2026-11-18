@@ -1,42 +1,21 @@
 ## Title: Battle Scrolls - Build Viewer
 ## Author: Semigroup1329; lightweight fork by Tea & Toast Software (|cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r)
-## Description: Character build viewer from Battle Scrolls. NOT compatible with BattleScrolls, Combat recording, DPS tracking, encounter history, effects processing and group sharing are not loaded.
-## APIVersion: 101049 101050
-## AddOnVersion: 10000
-## Version: 1.0.0
+## Description: Live Character-screen build viewer. Install in place of the full Battle Scrolls addon.
+## APIVersion: 101050 101051
+## AddOnVersion: 10003
+## Version: 1.0.3
 ## IsLibrary: False
-## DependsOn: LibAsync>=30100
 
 ; Original project: https://github.com/vladislavsheludchenkov/BattleScrolls
 ; Original author and interface credit: Semigroup1329
 ; Licensed under the MIT License; see LICENSE.
+;
+; DISCLAIMER:
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; https://account.elderscrollsonline.com/add-on-terms
 
-lang/default.lua
-lang/$(language).lua
-
-accesscheck.lua
-constants.lua
-
-core/utils.lua
-core/effect.lua
-core/gc.lua
-
-combat/setup.lua
-combat/setup_analysis.lua
-
-ui/journal/types.lua
-ui/journal/utils.lua
-ui/journal/control_pool.lua
-ui/journal/component_factory.lua
-ui/journal/entry_builder.lua
-ui/journal/renderers/setup.lua
-ui/journal/overview_panel.lua
-
-ui/character/character_stats.lua
-ui/character/build_viewer.lua
-ui/character/build_viewer.xml
-
-main.lua
-
-# This Add-on is not created by, affiliated with or sponsored by ZeniMax
-# Media Inc. or its affiliates.
+BattleScrolls.lua
+BattleScrolls.xml

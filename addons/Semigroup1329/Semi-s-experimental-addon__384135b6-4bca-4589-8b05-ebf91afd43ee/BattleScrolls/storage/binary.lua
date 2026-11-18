@@ -92,6 +92,10 @@ local BITS = {
     FOOD_COUNT = 2,
     WEAPON_TYPE = 5,
     VENGEANCE_PERK_DEF_ID = 20,
+
+    -- Infinite Archive: an arc has 5 cycles, a cycle 3 stages
+    ARCHIVE_CYCLE = 3,
+    ARCHIVE_STAGE = 2,
 }
 
 local EQUIP_SLOT_COUNT = 14
@@ -121,6 +125,8 @@ local SECTION = {
     RESURRECTIONS = 17,
     CRUX = 18,
     ZEN = 19,
+    -- Storage layout only: the wire layout never carries it
+    INFINITE_ARCHIVE = 20,
 }
 
 ---@param mask number
@@ -1381,6 +1387,87 @@ local function readZen(decoder, registry)
         zen[unitTag] = buckets
     end
     return zen
+end
+
+---Writes the Infinite Archive record: the arc, then one byte packing cycle,
+---stage and whether a boon changed while still in combat, then the Verses
+---and the Visions as ascending ability ids, each stored as the gap from the
+---one before it; a Vision's stack count follows its id.
+---@param encoder BitEncoder
+---@param record InfiniteArchiveRecord
+local function writeInfiniteArchive(encoder, record)
+    encoder:writeVarUInt(record.arc)
+    writeCount(encoder, record.cycle, BITS.ARCHIVE_CYCLE)
+    writeCount(encoder, record.stage, BITS.ARCHIVE_STAGE)
+    encoder:writeBit(record.changedInCombat)
+    encoder:alignToByte()
+
+    -- Verses never stack: a repeated id is one Verse
+    local sorted = {}
+    for i, abilityId in ipairs(record.verses) do
+        sorted[i] = abilityId
+    end
+    table.sort(sorted)
+    ---@type number[]
+    local verses = {}
+    for i, abilityId in ipairs(sorted) do
+        if abilityId ~= sorted[i - 1] then
+            verses[#verses + 1] = abilityId
+        end
+    end
+    local verseCount = writeVarCount(encoder, #verses)
+    local previousId = 0
+    for i = 1, verseCount do
+        encoder:writeVarUInt(verses[i] - previousId)
+        previousId = verses[i]
+    end
+
+    ---@type InfiniteArchiveVision[]
+    local visions = {}
+    for i, vision in ipairs(record.visions) do
+        visions[i] = vision
+    end
+    table.sort(visions, function(a, b) return a.abilityId < b.abilityId end)
+    local visionCount = writeVarCount(encoder, #visions)
+    previousId = 0
+    for i = 1, visionCount do
+        encoder:writeVarUInt(visions[i].abilityId - previousId)
+        encoder:writeVarUInt(visions[i].stackCount)
+        previousId = visions[i].abilityId
+    end
+end
+
+---Reads the Infinite Archive record
+---@param decoder BitDecoder
+---@return InfiniteArchiveRecord
+local function readInfiniteArchive(decoder)
+    local arc = decoder:readVarUInt()
+    local cycle = decoder:readUInt(BITS.ARCHIVE_CYCLE)
+    local stage = decoder:readUInt(BITS.ARCHIVE_STAGE)
+    local changedInCombat = decoder:readBit()
+    decoder:alignToByte()
+
+    ---@type number[]
+    local verses = {}
+    local abilityId = 0
+    for i = 1, math.min(decoder:readVarUInt(), MAX_MAP_COUNT) do
+        abilityId = abilityId + decoder:readVarUInt()
+        verses[i] = abilityId
+    end
+
+    ---@type InfiniteArchiveVision[]
+    local visions = {}
+    abilityId = 0
+    for i = 1, math.min(decoder:readVarUInt(), MAX_MAP_COUNT) do
+        abilityId = abilityId + decoder:readVarUInt()
+        visions[i] = { abilityId = abilityId, stackCount = decoder:readVarUInt() }
+    end
+
+    return {
+        arc = arc, cycle = cycle, stage = stage,
+        verses = verses, visions = visions,
+        changedInCombat = changedInCombat,
+    }
 end
 
 -- =============================================================================
@@ -3106,6 +3193,8 @@ local function encodeEncounterImpl(encounter, setupPooled, registry, wireDuratio
             [SECTION.RESURRECTIONS] = (encounter.resurrections or 0) > 0,
             [SECTION.CRUX] = encounter.crux ~= nil,
             [SECTION.ZEN] = encounter.zen ~= nil,
+            -- Local only: the web export encodes the wire layout
+            [SECTION.INFINITE_ARCHIVE] = encounter.infiniteArchive ~= nil and wireDurationMs == nil,
         }
 
         local mask = 0
@@ -3235,6 +3324,10 @@ local function encodeEncounterImpl(encounter, setupPooled, registry, wireDuratio
         end
         if present[SECTION.ZEN] then
             writeZen(encoder, encounter.zen, registry)
+            encoder:alignToByte()
+        end
+        if present[SECTION.INFINITE_ARCHIVE] then
+            writeInfiniteArchive(encoder, encounter.infiniteArchive)
             encoder:alignToByte()
         end
         flushProgress(progress)
@@ -3491,6 +3584,11 @@ function binaryStorage.decodeEncounterAsync(binaryEncounter, registry)
             end
             if hasSection(mask, SECTION.ZEN) then
                 result.zen = readZen(decoder, registry)
+                alignSection()
+            end
+            -- Appended within v20: fights recorded before it lack the bit
+            if hasSection(mask, SECTION.INFINITE_ARCHIVE) then
+                result.infiniteArchive = readInfiniteArchive(decoder)
                 alignSection()
             end
         end

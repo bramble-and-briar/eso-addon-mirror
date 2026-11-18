@@ -1,8 +1,8 @@
 ## Title: OneCraft
 ## Description: Smithing-style alchemy and enchanting selectors with an equipment planner. Developed with AI assistance.
 ## Author: oneDOK
-## Version: 26.11.2
-## AddOnVersion: 261102
+## Version: 26.11.3
+## AddOnVersion: 261103
 ## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=43
 ## SavedVariables: OneCraftSavedVariables

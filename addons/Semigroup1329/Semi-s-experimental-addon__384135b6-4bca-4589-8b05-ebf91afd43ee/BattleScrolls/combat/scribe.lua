@@ -684,6 +684,7 @@ function scribe:ImportEncounterFromStateAsync()
             playerAliveTimeMs = playerAliveTimeMs ~= durationMs and playerAliveTimeMs or nil,
             unitAliveTimeMs = next(unitAliveTimeMs) and unitAliveTimeMs or nil,
             gameVersion = GetESOVersionString():match("%d+%.%d+%.%d+"),
+            infiniteArchive = capturedState.infiniteArchive,
             -- Same resolution as state:GetPersonalUnitId: the real id when
             -- combat events revealed it, else the inferred placeholder the
             -- damage maps used for sourceUnitId-0 player events

@@ -190,6 +190,17 @@ function ShoppingUtils.Remove(list, itemId)
     return true
 end
 
+---Put an item on a list that lacks it, take it off a list that has it.
+---@param list FurnishingCatalogShoppingList
+---@param itemId integer
+---@return boolean listed the item is on the list now
+function ShoppingUtils.Toggle(list, itemId)
+    if ShoppingUtils.Remove(list, itemId) then
+        return false
+    end
+    return ShoppingUtils.Add(list, itemId)
+end
+
 ---The lists in the order the "add to" prompt offers them: the one used last first, then the
 ---rest as created.
 ---@param store FurnishingCatalogShoppingStore

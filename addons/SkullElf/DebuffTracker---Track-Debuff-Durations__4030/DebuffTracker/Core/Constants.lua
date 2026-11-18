@@ -131,6 +131,9 @@ C.COMBAT_RESULTS = {
     { "hit", L("Hit (damage or dodged)") },
     { "duration", L("Effect gained with its duration") },
     { "proc", L("Effect gained or a direct hit (like ExoY's)") },
+    { "plainDamage", L("Damage, not critical (like Cooldowns)") },
+    { "plainHeal", L("Heal, not critical (like Cooldowns)") },
+    { "strike", L("Hit, blocked or dodged (like Cooldowns)") },
 }
 
 C.START_ON = {

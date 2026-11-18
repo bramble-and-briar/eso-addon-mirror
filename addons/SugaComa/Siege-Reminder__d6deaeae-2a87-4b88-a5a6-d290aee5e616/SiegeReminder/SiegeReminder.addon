@@ -1,9 +1,9 @@
 ## Title: SiegeMaster
-## Version: 2.1.4
+## Version: 2.1.5
 ## APIVersion: 101050 101051
 ## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
 ## Description: Tracks exact siege items and tops up selected supplies at vendors with Alliance Points.
-## AddOnVersion: 214
+## AddOnVersion: 215
 ## SavedVariables: SiegeReminder_SV SiegeReminder_FrameworkScopeSV SiegeReminder_VendorSV
 ## OptionalDependsOn: LibHarvensAddonSettings
 

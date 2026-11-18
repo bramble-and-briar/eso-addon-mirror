@@ -3,6 +3,7 @@ WWDpadRouting = {}
 local R = WWDpadRouting
 local config, say
 local cursors, diverted = {}, {}
+local inFlight = {}
 
 local function Trim(name)
     return type(name) == "string" and name:match("^%s*(.-)%s*$") or ""
@@ -25,7 +26,7 @@ end
 local function Context()
     local ww = WizardsWardrobe
     local key, zone, pageId = SelectedContext()
-    if not diverted[key] then cursors[key] = ww.currentIndex end
+    if not diverted[key] and not inFlight[key] then cursors[key] = ww.currentIndex end
     if cursors[key] == nil then cursors[key] = ww.currentIndex end
     local page = ww.setups and ww.setups[zone.tag] and ww.setups[zone.tag][pageId]
     return key, zone, pageId, page, cursors[key]
@@ -114,8 +115,22 @@ function R.PlanForBoss(name)
     end
 end
 
+function R.Begin(plan)
+    -- Freeze the normal cursor before WW changes its index. Detection may
+    -- inspect this context while the direct jump is still being processed.
+    if not diverted[plan.context] and not inFlight[plan.context] then
+        cursors[plan.context] = WizardsWardrobe.currentIndex
+    end
+    inFlight[plan.context] = true
+end
+
+function R.Abort(plan)
+    if plan then inFlight[plan.context] = nil end
+end
+
 function R.Commit(plan)
     if not plan then return end
+    R.Abort(plan)
     if plan.direct then
         diverted[plan.context] = true
     else

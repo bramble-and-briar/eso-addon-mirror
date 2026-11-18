@@ -1,11 +1,13 @@
 local L = SimpleGroupDPS_Translate or function(text) return text end
 local ADDON_NAME = "SimpleGroupDPS"
-local ADDON_VERSION = "2.0.0"
+local ADDON_VERSION = "2.0.2"
 local UPDATE_INTERVAL_MS = 300
 local wm = WINDOW_MANAGER
-local meter, bridge, panel = SimpleGroupDPS_DamageMeter, SimpleGroupDPS_BattleScrolls, SimpleGroupDPS_DPSPanel
+local meter, panel = SimpleGroupDPS_DamageMeter, SimpleGroupDPS_DPSPanel
+local receiver = SimpleGroupDPS_GroupReceiver
+local analysis = SimpleGroupDPS_CombatAnalysis
 local defaults = {
-    showGroup = true, showTanks = true, showHealers = true, showPersonal = true,
+    shareDPS = true, showGroup = true, showTanks = true, showHealers = true, showPersonal = true,
     posX = 720, posY = 300, scale = 1,
     dpsWidth = 400, dpsFontSize = 22, dpsRowSpacing = 8, lastSummary = {},
     lingerSeconds = 60,
@@ -144,8 +146,8 @@ updateUI = function(sceneVisible, snapshot)
             settings.lastSummary = {}
             lastResultAt, snapshot = nil, nil
         end
-        bridge:Expire(retentionMS)
     end
+    if not meter:IsActive() then receiver:Expire(retentionMS) end
     local stats = snapshot or meter:GetStats()
     local groupPreview, personalPreview = settingsPreview()
     local personalMoving = moveMode and moveWindow == personalWindow
@@ -153,19 +155,17 @@ updateUI = function(sceneVisible, snapshot)
     personalPanel:Render(personalWindow, stats, personalMoving or (personalPreview and settings.showPersonal ~= false)
         or (settings.showPersonal ~= false and sceneVisible and (meter:IsActive() or stats.total > 0)))
     if not groupMoving and not groupPreview and not sceneVisible then window:SetHidden(true); return end
-    local rows = settings.showGroup and bridge:GetRows() or {}
+    local rows = settings.showGroup and receiver:GetRows() or {}
     if groupMoving or groupPreview or meter:IsActive() or stats.total > 0 or (stats.rawHealingTotal or 0) > 0 or #rows > 0 then
         rows[#rows + 1] = {
             name = GetUnitDisplayName("player"), dps = stats.dps,
             bossDPS = stats.bossDPS, addsDPS = stats.addsDPS, isPlayer = true,
             rawHPS = stats.rawHPS, effectiveHPS = stats.effectiveHPS,
             role = GetSelectedLFGRole and GetSelectedLFGRole(),
-            -- Same automatic classification as BattleScrolls' classifyData.
             messageType = (stats.rawHPS or 0) > (stats.dps or 0) and "healing" or "damage",
             classId = GetUnitClassId and GetUnitClassId("player"),
         }
     end
-    -- Role filters affect only the rendered rows, never the meter or sender.
     -- Move UI keeps a preview available even if every current role is hidden.
     if not groupMoving then
         local visibleRows = {}
@@ -180,7 +180,6 @@ updateUI = function(sceneVisible, snapshot)
         end
         rows = visibleRows
     end
-    -- Shared DPS packets do not identify the sender's encounter.
     local bossFight = stats.bossDPS ~= nil
     local height = panel:Render(window, rows, bossFight, stats.durationMS, settings, stats)
     window:SetDimensions(panel:GetWidth(settings), math.max(40, height))
@@ -190,11 +189,10 @@ end
 tick = function()
     lastTickAt = GetGameTimeMilliseconds()
     tickCount = tickCount + 1
-    -- Receiving must also connect while idle, without waiting for our first attack.
-    bridge:Connect()
-    -- Display and share the same independently measured snapshot.
+    receiver:Connect()
+    -- Display only the independently measured snapshot; this test build never sends it.
     local stats = meter:GetStats()
-    if meter:IsActive() then bridge:SendMetrics(stats, false) end
+    if settings.shareDPS and meter:IsActive() then receiver:SendMetrics(stats, false) end
     updateUI(nil, stats)
 end
 
@@ -322,11 +320,11 @@ local function initSettings()
           getFunction = function() return settings.dpsRowSpacing end,
           setFunction = function(value) settings.dpsRowSpacing = value; updateUI() end },
         { type = LHAS.ST_CHECKBOX, label = L("Tanks anzeigen"),
-          tooltip = L("Zeigt Spieler mit Tankrolle an, einschließlich dir selbst. Messung und Empfang laufen auch ausgeblendet weiter. Die lokal gemessene Gruppensumme bleibt vollständig."),
+          tooltip = L("Zeigt Spieler mit Tankrolle an, einschließlich dir selbst. Messung läuft auch ausgeblendet weiter. Die Summe addiert die sichtbaren DPS-Zeilen."),
           getFunction = function() return settings.showTanks ~= false end,
           setFunction = function(value) settings.showTanks = value and true or false; updateUI() end },
         { type = LHAS.ST_CHECKBOX, label = L("Heiler anzeigen"),
-          tooltip = L("Zeigt Spieler mit Heilerrolle und den Heilungsbereich an, einschließlich dir selbst. Messung und Empfang laufen auch ausgeblendet weiter."),
+          tooltip = L("Zeigt Spieler mit Heilerrolle und den Heilungsbereich an, einschließlich dir selbst. Messung läuft auch ausgeblendet weiter."),
           getFunction = function() return settings.showHealers ~= false end,
           setFunction = function(value) settings.showHealers = value and true or false; updateUI() end },
         { type = LHAS.ST_BUTTON, label = L("Layout zurücksetzen"), buttonText = L("Standardlayout"),
@@ -338,7 +336,7 @@ local function initSettings()
           end },
         { type = LHAS.ST_SECTION, label = L("Gruppenanteil-HUD") },
         { type = LHAS.ST_CHECKBOX, label = L("Anteil-HUD anzeigen"),
-          tooltip = L("Blendet das persönliche DPS-/Anteil-HUD ein oder aus. Gruppenanzeige, Messung und Empfang laufen weiter."),
+          tooltip = L("Blendet das persönliche DPS-/Anteil-HUD ein oder aus. Gruppenanzeige, Messung läuft weiter."),
           getFunction = function() return settings.showPersonal ~= false end,
           setFunction = function(value) settings.showPersonal = value and true or false; updateUI() end },
         { type = LHAS.ST_BUTTON, label = L("Anteil-HUD verschieben"), buttonText = L("Eigenen Gruppenanteil verschieben"),
@@ -357,6 +355,10 @@ local function initSettings()
               updateUI()
           end },
         { type = LHAS.ST_SECTION, label = L("Allgemein") },
+        { type = LHAS.ST_CHECKBOX, label = "Eigene DPS/HPS teilen",
+          tooltip = "Sendet kompatible Gruppenwerte erst nach Empfang eines passenden Gruppenpakets. Ein lokales BattleScrolls behaelt seinen eigenen Sender.",
+          getFunction = function() return settings.shareDPS end,
+          setFunction = function(value) settings.shareDPS = value end },
         { type = LHAS.ST_DROPDOWN, label = L("Nach Kampfende anzeigen"), items = retentionItems, default = 1,
           tooltip = L("Setzt alte Ergebnisse nach 1 bis 5 Minuten zurück. Standard: 1 Minute. Laufende Kämpfe bleiben erhalten."),
           getFunction = function() return retentionItems[retentionSeconds(settings.lingerSeconds) / 60].name end,
@@ -364,13 +366,23 @@ local function initSettings()
               settings.lingerSeconds = retentionSeconds(item.data)
               updateUI()
           end },
+        { type = LHAS.ST_SECTION, label = "LibCombat-Analyse" },
+        { type = LHAS.ST_CHECKBOX, label = "Analyse fuer diese Sitzung einschalten",
+          tooltip = "Fordert alle LibCombat-Datenarten an. Zaehlt Meldungen und erfasst Buff-/Debuff-Wirkzeiten im Speicher. Vor dem Testkampf einschalten. Standardmaessig aus.",
+          getFunction = function() return analysis.enabled end,
+          setFunction = function(value) analysis:SetEnabled(value) end },
+        { type = LHAS.ST_BUTTON, label = "Erfasste Daten pruefen", buttonText = "Diagnose im Chat anzeigen",
+          clickHandler = function() analysis:PrintOverview() end },
+        { type = LHAS.ST_BUTTON, label = "Buffs und Debuffs auswerten", buttonText = "Naechste Berichtseite im Chat",
+          clickHandler = function() analysis:NextEffectsPage() end },
     }, nil, false)
 end
 
 local function onAddonLoaded(_, name)
     if name ~= ADDON_NAME then return end
-    settings = ZO_SavedVars:NewAccountWide("SimpleGroupDPS_SavedVariables", 1, nil, defaults)
-    settings.shareDPS = nil -- Remove the obsolete sending preference.
+    -- Keep the namespace compatible with existing settings if the game loads them after the addon rename.
+    settings = ZO_SavedVars:NewAccountWide("SimpleGroupDPS2_SavedVariables", 1, nil, defaults)
+    if settings.shareDPS == nil then settings.shareDPS = true end
     settings.chatSummary = nil
     settings.dpsWidth = panel:GetWidth(settings)
     settings.lingerSeconds = retentionSeconds(settings.lingerSeconds)
@@ -383,30 +395,35 @@ local function onAddonLoaded(_, name)
     settings.personalScale = math.max(0.5, math.min(2, tonumber(settings.personalScale) or settings.scale))
     if settings.dpsValueFontSize == nil then settings.dpsValueFontSize = panel:GetValueFontSize(settings) end
     meter.onStarted = function()
-        bridge:BeginEncounter()
+        receiver:BeginEncounter()
+        receiver:ResetSendClock()
         refreshUpdateLoop()
     end
     meter.onFinished = function(stats)
         lastResultAt = GetGameTimeMilliseconds()
         settings.lastSummary = {
             damageTotal = stats.total, dps = stats.dps, bossDamageTotal = stats.bossTotal,
+            measurementModel = stats.measurementModel,
+            dpsDurationMS = stats.dpsDurationMS,
+            dpsStartOffsetMS = stats.dpsStartOffsetMS, dpsEndOffsetMS = stats.dpsEndOffsetMS,
             bossDPS = stats.bossDPS, addsDPS = stats.addsDPS, damageDurationMS = stats.durationMS,
+            bossDurationMS = stats.bossDurationMS, bossClockFallback = stats.bossClockFallback,
+            bossClockModel = stats.bossClockModel,
+            bossStartOffsetMS = stats.bossStartOffsetMS, bossEndOffsetMS = stats.bossEndOffsetMS,
             groupDamageTotal = stats.groupTotal, groupDPS = stats.groupDPS,
             groupBossDamageTotal = stats.groupBossTotal, groupBossDPS = stats.groupBossDPS,
             rawHealingTotal = stats.rawHealingTotal, effectiveHealingTotal = stats.effectiveHealingTotal,
             rawHPS = stats.rawHPS, effectiveHPS = stats.effectiveHPS,
             healingDurationMS = stats.healingDurationMS,
         }
-        bridge:MarkResult()
-        bridge:SendMetrics(stats, true)
+        if settings.shareDPS then receiver:SendMetrics(stats, true) end
+        receiver:MarkResult()
         updateUI()
     end
     meter:Initialize(settings.lastSummary)
     createUI()
-    bridge.onChanged = function()
-        updateUI()
-    end
-    bridge:Connect()
+    receiver.onChanged = function() updateUI() end
+    receiver:Connect()
     if SCENE_MANAGER and SCENE_MANAGER.RegisterCallback then
         SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(scene, state)
             if not scene or not scene.GetName then return end
@@ -419,20 +436,21 @@ local function onAddonLoaded(_, name)
     initSettings()
     refreshUpdateLoop()
     updateUI()
-    EVENT_MANAGER:RegisterForEvent(ADDON_NAME.."Connect", EVENT_PLAYER_ACTIVATED, function() bridge:Connect() end)
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME.."Receive", EVENT_PLAYER_ACTIVATED, function() receiver:Connect() end)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME.."Group", EVENT_GROUP_UPDATE, function()
-        bridge:Connect()
-        bridge:GetRows()
+        receiver:Connect()
+        receiver:GetRows()
         updateUI()
     end)
     if SLASH_COMMANDS then
+        SLASH_COMMANDS["/sgdanalyse"] = function(text) analysis:Command(text) end
+        SLASH_COMMANDS["/sgdbuffs"] = function(page) analysis:PrintEffects(page) end
         SLASH_COMMANDS["/sgdmove"] = function() setMoveMode(not moveMode) end
         SLASH_COMMANDS["/sgdsharemove"] = function() setMoveMode(not moveMode, personalWindow) end
         SLASH_COMMANDS["/sgdstatus"] = function()
-            bridge:Connect()
-            local status = bridge:GetStatus()
             local function yes(value) return value and L("Ja") or L("Nein") end
             local measurement = meter:GetDiagnostics()
+            d("[SimpleGroupDPS] Messgrundlage: eingebettetes LibCombat 89 (eigene Instanz).")
             local tickAge = lastTickAt and string.format("%.1f s", math.max(0, GetGameTimeMilliseconds() - lastTickAt) / 1000) or L("noch keiner")
             local damageAge = measurement.damageAgeMS and string.format(L("vor %.1f s"), measurement.damageAgeMS / 1000) or L("kein Ereignis seit Kampfstart")
             d(string.format(L("[SimpleGroupDPS %s] Messung aktiv: %s | Spieler im Kampf: %s"),
@@ -441,6 +459,20 @@ local function onAddonLoaded(_, name)
                 tickCount, tickAge, UPDATE_INTERVAL_MS))
             d(string.format(L("[SimpleGroupDPS] Messzeit: %.3f s | DPS: %.1f | Letzter Schaden: %s"),
                 measurement.durationMS / 1000, measurement.dps, damageAge))
+            if measurement.dpsDurationMS ~= nil then
+                local function seconds(value) return value and string.format("%.3f s", value / 1000) or "--" end
+                d("[SimpleGroupDPS] Gesamt-DPS-Zeit: " .. seconds(measurement.dpsDurationMS)
+                    .. " | Start ab Kampfstart: " .. seconds(measurement.dpsStartOffsetMS)
+                    .. " | Ende: " .. seconds(measurement.dpsEndOffsetMS))
+            end
+            d("[SimpleGroupDPS] Boss-Messzeit: " .. (measurement.bossDurationMS ~= nil
+                and string.format("%.3f s", measurement.bossDurationMS / 1000) or "-- (noch kein Bossschaden erfasst)"))
+            if measurement.bossDurationMS ~= nil then
+                local function seconds(value) return value and string.format("%.3f s",value / 1000) or "--" end
+                d("[SimpleGroupDPS] Boss-Zeitbasis: LibCombat-Zielzeit | Start ab Kampfstart: " .. seconds(measurement.bossStartOffsetMS)
+                    .. " | Ende: " .. seconds(measurement.bossEndOffsetMS)
+                    .. (measurement.bossClockFallback and " | Einzelzeitpunkt: persoenliche Schadenszeit als Ersatz" or ""))
+            end
             d(string.format(L("[SimpleGroupDPS] Eigener Schaden: %.0f | Boss-Schaden: %s | Boss-DPS: %s"),
                 measurement.total or 0,
                 measurement.bossTotal and string.format("%.0f", measurement.bossTotal) or "--",
@@ -450,21 +482,21 @@ local function onAddonLoaded(_, name)
             if measurement.finishedAgeMS then
                 d(string.format(L("[SimpleGroupDPS] Messung vor %.1f s abgeschlossen."), measurement.finishedAgeMS / 1000))
             end
-            d(L("[SimpleGroupDPS] Gruppe: ") .. yes(status.grouped)
-                .. L(" | Empfang bereit: ") .. yes(status.connected)
-                .. L(" | HPS-Empfang bereit: ") .. yes(status.healingConnected))
-            d(L("[SimpleGroupDPS] Gruppenversand: automatisch."))
-            if status.localBattleScrolls then
-                d(L("[SimpleGroupDPS] Empfang über lokales BattleScrolls."))
-            else
-                d(L("[SimpleGroupDPS] Empfang über LibGroupBroadcast."))
-            end
-            if status.error then d("[SimpleGroupDPS] " .. L(status.error)) end
-            if status.receivedCount then
-                d(string.format(L("[SimpleGroupDPS] DPS-/HPS-Pakete empfangen: %d | An Sendewarteschlange uebergeben: %d"),
-                    status.receivedCount, status.queuedCount))
-            end
+            receiver:Connect()
+            local status = receiver:GetStatus()
+            d("[SimpleGroupDPS] Gruppenempfang: DPS " .. yes(status.connected) .. " | HPS " .. yes(status.healingConnected)
+                .. " | Pakete: " .. tostring(status.receivedCount or 0))
+            d("[SimpleGroupDPS] Teilen: " .. yes(settings.shareDPS) .. " | Kompatibler Partner aktiv: " .. yes(status.compatiblePeer)
+                .. " | Gesendete Pakete: " .. tostring(status.queuedCount or 0))
+            d("[SimpleGroupDPS] Kein Messvergleich und kein Zugriff auf externe Kampf-/Timerdaten.")
+            if status.error then d("[SimpleGroupDPS] " .. status.error) end
         end
+    end
+    -- Compatibility aliases for commands used before the rename.
+    if SLASH_COMMANDS then
+        SLASH_COMMANDS["/sgd2status"] = SLASH_COMMANDS["/sgdstatus"]
+        SLASH_COMMANDS["/sgd2analyse"] = SLASH_COMMANDS["/sgdanalyse"]
+        SLASH_COMMANDS["/sgd2buffs"] = SLASH_COMMANDS["/sgdbuffs"]
     end
     EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
 end

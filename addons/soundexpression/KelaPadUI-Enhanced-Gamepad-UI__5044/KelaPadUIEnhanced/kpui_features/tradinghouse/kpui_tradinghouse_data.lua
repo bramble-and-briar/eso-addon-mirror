@@ -2,35 +2,16 @@
 
 local KPUI_TRADINGHOUSE = KPUI_TRADINGHOUSE
 local colors = KPUI_TRADINGHOUSE.colors
-local KelaGetATTSalesSecondsPerDay = KPUI_TRADINGHOUSE.KelaGetATTSalesSecondsPerDay
-local KelaCreateColorizedResumePrice = KPUI_TRADINGHOUSE.KelaCreateColorizedResumePrice
-local GetItemLinks = KPUI_TRADINGHOUSE.GetItemLinks
-local GetBuyInfo = KPUI_TRADINGHOUSE.GetBuyInfo
-local HideTradingTooltipControls = KPUI_TRADINGHOUSE.HideTradingTooltipControls
-local HideImprovementTooltipControls = KPUI_TRADINGHOUSE.HideImprovementTooltipControls
-local HideProvisionerTooltipControls = KPUI_TRADINGHOUSE.HideProvisionerTooltipControls
-local HideCreationTooltipControls = KPUI_TRADINGHOUSE.HideCreationTooltipControls
-local HideAlchemyTooltipControls = KPUI_TRADINGHOUSE.HideAlchemyTooltipControls
-local HideEnchantingTooltipControls = KPUI_TRADINGHOUSE.HideEnchantingTooltipControls
-local ResetProvisionerTradingTooltip = KPUI_TRADINGHOUSE.ResetProvisionerTradingTooltip
-local ResetCreationTradingTooltip = KPUI_TRADINGHOUSE.ResetCreationTradingTooltip
-local AddClearLine = KPUI_TRADINGHOUSE.AddClearLine
-local SetSmithTradingInfo = KPUI_TRADINGHOUSE.SetSmithTradingInfo
-local SetSmithGraph = KPUI_TRADINGHOUSE.SetSmithGraph
-local SetSmithNotes = KPUI_TRADINGHOUSE.SetSmithNotes
-local SetSmithListings = KPUI_TRADINGHOUSE.SetSmithListings
-local SetSmithQualityPrices = KPUI_TRADINGHOUSE.SetSmithQualityPrices
-local SetProductionPrices = KPUI_TRADINGHOUSE.SetProductionPrices
-local SetCraftingComponents = KPUI_TRADINGHOUSE.SetCraftingComponents
-local IsKPUITradingHouseSettingEnabled = KPUI_TRADINGHOUSE.IsKPUITradingHouseSettingEnabled
 
-function GetATTPriceStats(itemLink)
+-- ATT sale statistics for one item over the analysis period; used by the item
+-- tooltip's price line.
+function KelaGetATTPriceStats(itemLink)
 	if not ArkadiusTradeTools or not ArkadiusTradeTools.Modules or not ArkadiusTradeTools.Modules.Sales then
 		return nil
 	end
 	
 	local ArkadiusTradeToolsSales = ArkadiusTradeTools.Modules.Sales
-    local seconds_in_day = KelaGetATTSalesSecondsPerDay(ArkadiusTradeToolsSales)
+    local seconds_in_day = ZO_ONE_DAY_IN_SECONDS
     local days = KelaGetATTAnalysisPeriod()
 	local itemSales = ArkadiusTradeToolsSales:GetItemSalesInformation(itemLink, GetTimeStamp() - days * seconds_in_day) --	30 * 86400)
 
@@ -86,7 +67,7 @@ function KelaGetATTPriceInfo(itemLink)
 	end
 	local ArkadiusTradeToolsSales = ArkadiusTradeTools.Modules.Sales
 
-    local seconds_in_day = KelaGetATTSalesSecondsPerDay(ArkadiusTradeToolsSales)
+    local seconds_in_day = ZO_ONE_DAY_IN_SECONDS
     local days = KelaGetATTAnalysisPeriod()
 
     itemLink = ArkadiusTradeToolsSales:NormalizeItemLink(itemLink)
@@ -132,9 +113,10 @@ function KelaGetATTPriceInfo(itemLink)
 			local val1 = minPrice*1.05
 			local val2 = maxPrice*0.95
 			local range = maxPrice - minPrice
-			local borderGroup1 = range*0.25
-			local borderGroup2 = range*0.50
-			local borderGroup3 = range*0.75
+			-- Quartile borders are offsets from the lowest price, not from zero.
+			local borderGroup1 = minPrice + range*0.25
+			local borderGroup2 = minPrice + range*0.50
+			local borderGroup3 = minPrice + range*0.75
 			for _, sale in pairs(sales) do
 				local salePrice = sale.price/sale.quantity
 				if salePrice >= val1 and salePrice < borderGroup1 then
@@ -208,7 +190,7 @@ function KelaGetCurrentATTCraftingInfo(itemLink)
 	end
 
 	local ArkadiusTradeToolsSales = ArkadiusTradeTools.Modules.Sales
-    local seconds_in_day = KelaGetATTSalesSecondsPerDay(ArkadiusTradeToolsSales)
+    local seconds_in_day = ZO_ONE_DAY_IN_SECONDS
     local days = KelaGetATTAnalysisPeriod()
     local itemType = GetItemLinkItemType(itemLink)
 
@@ -261,7 +243,7 @@ function KelaUpdateATTGraph(itemLink, graphControl, priceInfoATTSuggestedPrice, 
 	local ArkadiusTradeToolsSales = ArkadiusTradeTools.Modules.Sales
 	local L = ArkadiusTradeToolsSales.Localization
 	local attRound = math.attRound
-    local seconds_in_day = KelaGetATTSalesSecondsPerDay(ArkadiusTradeToolsSales)
+    local seconds_in_day = ZO_ONE_DAY_IN_SECONDS
     local days = KelaGetATTAnalysisPeriod()
     itemLink = ArkadiusTradeToolsSales:NormalizeItemLink(itemLink)
     if itemLink == nil then return end
@@ -295,9 +277,11 @@ function KelaUpdateATTGraph(itemLink, graphControl, priceInfoATTSuggestedPrice, 
             end
 
 
-			if priceInfoTTCSuggestedPrice then
-				if priceInfoTTCSuggestedPrice < minPrice then minPrice = priceInfoTTCSuggestedPrice - minPrice end
-				if priceInfoTTCSuggestedPrice > maxPrice then maxPrice = priceInfoTTCSuggestedPrice + maxPrice end
+			-- Widen the range to include the TTC suggested price; 0 means TTC has no
+			-- data for the item (or is not installed) and must not stretch the axis.
+			if priceInfoTTCSuggestedPrice and priceInfoTTCSuggestedPrice > 0 then
+				minPrice = math.min(minPrice, priceInfoTTCSuggestedPrice)
+				maxPrice = math.max(maxPrice, priceInfoTTCSuggestedPrice)
 			end
 
 
@@ -485,39 +469,73 @@ function KelaGetEffectOfDeal (priceInfoTTC, priceInfoATT, data, action, stackCou
 	end
 
 
-	return valueEffectDeal, effectOfDeal, colorEffectDeal, suggestedTCC, suggestedATT, suggestedAVG, suggestedTCCStack, suggestedATTStack, suggestedAVGStack, suggestedTCCWrit, suggestedATTWrit, suggestedAVGWrit, compareValuePrice
+	return valueEffectDeal, effectOfDeal, colorEffectDeal, suggestedTCC, suggestedATT, suggestedAVG, suggestedTCCStack, suggestedATTStack, suggestedAVGStack, suggestedTCCWrit, suggestedATTWrit, suggestedAVGWrit, compareValuePrice, compareValueSuffix
 
 end
 
-function KelaGetEffectIfUndefined(itemData)
-	local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemData.itemLink)
-	local priceInfo = (trueTTC and priceInfoTTC) or (trueATT and priceInfoATT)
+-- Rating from where the unit price sits in the provider's min/avg/max range;
+-- used when there is no suggested price to compare against.
+local function KelaRateAgainstRange(itemData, priceInfo)
 	local result = 0
 	local colorPrice = colors.COLOR_WHITE
 	if priceInfo then
 		local avgPrice = priceInfo.Avg
 		local minPrice = priceInfo.Min
 		local maxPrice = priceInfo.Max
-		if avgPrice ~= 0 and itemData.purchasePricePerUnit ~= avgPrice then
-			if itemData.purchasePricePerUnit <= minPrice + (avgPrice-minPrice)*0.1 then
-				result = 5
-				colorPrice = colors.COLOR_DEALGREAT
-			elseif itemData.purchasePricePerUnit <= minPrice + (avgPrice-minPrice)*0.7 then
-				result = 4
-				colorPrice = colors.COLOR_DEALGOOD
-			elseif itemData.purchasePricePerUnit <= avgPrice + (maxPrice-avgPrice)*0.3 then
-				result = 3
-				colorPrice = colors.COLOR_DEALNORMAL
-			elseif itemData.purchasePricePerUnit <= avgPrice + (maxPrice-avgPrice)*0.7 then
-				result = 2
-				colorPrice = colors.COLOR_DEALBAD
-			elseif itemData.purchasePricePerUnit >= avgPrice + (maxPrice-avgPrice)*0.7 then
-				result = 1
-				colorPrice = colors.COLOR_DEALTERRIBLE
+		local unitPrice = itemData.purchasePricePerUnit
+		if avgPrice ~= 0 and unitPrice ~= avgPrice then
+			if unitPrice <= minPrice + (avgPrice-minPrice)*0.1 then
+				result, colorPrice = 5, colors.COLOR_DEALGREAT
+			elseif unitPrice <= minPrice + (avgPrice-minPrice)*0.7 then
+				result, colorPrice = 4, colors.COLOR_DEALGOOD
+			elseif unitPrice <= avgPrice + (maxPrice-avgPrice)*0.3 then
+				result, colorPrice = 3, colors.COLOR_DEALNORMAL
+			elseif unitPrice <= avgPrice + (maxPrice-avgPrice)*0.7 then
+				result, colorPrice = 2, colors.COLOR_DEALBAD
+			else
+				result, colorPrice = 1, colors.COLOR_DEALTERRIBLE
 			end
 		end
 	end
 	return result, colorPrice
+end
+
+-- Price lookups for guild-store search results. One page can list the same
+-- item many times, and the filter, row setup and row recycling all need the
+-- price, so lookups are cached by link until the results screen shows again.
+local searchPriceCache = {}
+local searchPriceCacheSize = 0
+local SEARCH_PRICE_CACHE_LIMIT = 1000
+
+function KelaClearSearchPriceCache()
+	searchPriceCache = {}
+	searchPriceCacheSize = 0
+end
+
+-- Deal rating (0-5) and price colour for a search result, computed once per
+-- item data. Falls back to the provider's price range when no suggested price
+-- exists, as the filter and the row colour always did.
+function KelaGetSearchItemDeal(itemData)
+	if itemData.kelaDealValue == nil then
+		local link = itemData.itemLink
+		local prices = searchPriceCache[link]
+		if not prices then
+			if searchPriceCacheSize >= SEARCH_PRICE_CACHE_LIMIT then
+				KelaClearSearchPriceCache()
+			end
+			prices = { KelaGetPriceInfoTTCATT(link) }
+			searchPriceCache[link] = prices
+			searchPriceCacheSize = searchPriceCacheSize + 1
+		end
+		local trueTTC, trueATT, priceInfoTTC, priceInfoATT = prices[1], prices[2], prices[3], prices[4]
+		local value, _, color = KelaGetEffectOfDeal(priceInfoTTC, priceInfoATT, itemData, "GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS")
+		if value == "-" then
+			value, color = KelaRateAgainstRange(itemData, (trueTTC and priceInfoTTC) or (trueATT and priceInfoATT))
+		end
+		itemData.kelaDealValue = value
+		itemData.kelaDealColor = color or colors.COLOR_WHITE
+	end
+	return itemData.kelaDealValue, itemData.kelaDealColor
 end
 
 function KelaGetPriceInfoTTCATT (itemLink)
@@ -576,4 +594,20 @@ function KelaGetPriceInfoTTCATT (itemLink)
 		end
 	end
 	return trueTTC, trueATT, priceInfoTTC, priceInfoATT
+end
+
+-- Deal rating for the trading-house browse and listings scenes as a colored
+-- value plus its price source (for example "Good (AVG)"), or nil where no
+-- rating applies.
+function KelaGetDealRatingText(priceInfoTTC, priceInfoATT, selectedData, currentScene, stackCount)
+	if not selectedData or (currentScene ~= "GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS" and currentScene ~= "GAMEPAD_TRADING_HOUSE_LISTINGS") then
+		return nil
+	end
+	local results = { KelaGetEffectOfDeal(priceInfoTTC, priceInfoATT, selectedData, currentScene, stackCount or 1) }
+	local valueEffectDeal, colorEffectDeal, compareValueSuffix = results[1], results[3], results[14]
+	if type(valueEffectDeal) == "number" and valueEffectDeal > 0 then
+		return colorEffectDeal:Colorize(GetString("KELA_TRADING_DEALRATING", valueEffectDeal)) .. (compareValueSuffix or "")
+	elseif valueEffectDeal then
+		return kpuiConst.Colors.COLOR_GREY:Colorize(GetString("KELA_TRADING_DEALRATING", 0))
+	end
 end

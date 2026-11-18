@@ -5,7 +5,7 @@ A library for gathering an item's cost from various add-ons:
 - [Master Merchant 3.0](https://www.esoui.com/downloads/info2753-MasterMerchant3.0.html), by Sharlikran
 - [Arkadius' Trade Tools](https://www.esoui.com/downloads/info1752-ArkadiusTradeTools.html), by Arkadius, Verbalinkontinenz
 - [Tamriel Trade Centre](https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html), by cyxui
-- [Furniture Catalogue](https://www.esoui.com/downloads/info1617-FurnitureCatalogue.html), by manavortex
+- [LibFurnitureCatalogue](https://www.esoui.com/downloads/info1617-FurnitureCatalogue.html), the Furniture Catalogue database (Manavortex and contributors). Prices are read with `LibFurnitureCatalogue.API.GetEntry` and `GetSourceDetails`.
 
 As well as some hard-coded data from
 

@@ -3,7 +3,7 @@
 FurnishingCatalog = {
     name = "FurnishingCatalog",
     displayName = "Furnishing Catalog",
-    version = "1.0.0",
+    version = "1.6.0",
     savedVarsName = "FurnishingCatalogSavedVars",
     savedVarsVersion = 2,
     state = {

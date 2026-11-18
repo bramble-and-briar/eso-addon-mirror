@@ -1,0 +1,9 @@
+<GuiXml>
+    <Animations>
+        <AnimationTimeline name="WeavePulseStackReadyLoop" playbackType="LOOP" loopCount="LOOP_INDEFINITELY">
+            <Animations>
+                <TextureAnimation cellsWide="64" cellsHigh="1" framerate="32" />
+            </Animations>
+        </AnimationTimeline>
+    </Animations>
+</GuiXml>

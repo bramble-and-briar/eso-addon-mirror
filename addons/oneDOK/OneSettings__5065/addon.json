@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/oneDOK/OneSettings__5065",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "oneDOK",
+  "canonical_id": "esoui:5065",
+  "category_id": "26",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5065",
+  "deleted": false,
+  "directories": [
+    "OneSettings"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5065/",
+  "fingerprint": "b98c70c1bfb1d36993d8697fc0d477c64f66b1146c36861d5ebf320c290dcba3",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18541.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5065",
+  "source_url": "https://www.esoui.com/downloads/info5065-OneSettings.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "OneSettings",
+  "updated_at": 1795007085000,
+  "version": "26.11.2"
+}

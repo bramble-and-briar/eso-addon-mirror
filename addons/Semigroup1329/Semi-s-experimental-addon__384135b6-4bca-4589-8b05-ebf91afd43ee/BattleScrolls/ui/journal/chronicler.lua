@@ -409,6 +409,13 @@ local tooltipDispatch = {
     vengeancePerk = function(data)
         showVengeancePerkTooltip(data)
     end,
+    -- The base game's own Verse/Vision tooltip, with the stored stack count
+    -- rather than the live one
+    endlessDungeonBuff = function(data)
+        local NO_LIFETIME_STACKS = false
+        GAMEPAD_TOOLTIPS:LayoutEndlessDungeonBuffAbility(GAMEPAD_LEFT_TOOLTIP, data.abilityId,
+            NO_LIFETIME_STACKS, data.stackCount)
+    end,
 }
 
 ---Refreshes the tooltip for the selected entry
@@ -544,7 +551,9 @@ function chronicler.computeTabVisibility(decodedEncounter)
         hasEffectsGroup = hasEffectsGroup or false,
         hasAnyEffects = (hasEffectsPlayer or hasEffectsBoss or hasEffectsGroup) or false,
         hasGroupData = decodedEncounter.sharedData ~= nil and #decodedEncounter.sharedData >= 2,
-        hasSetup = decodedEncounter.setup ~= nil,
+        -- The Build tab also carries the Infinite Archive boons, which stay
+        -- reachable for a fight whose build is missing
+        hasBuild = decodedEncounter.setup ~= nil or decodedEncounter.infiniteArchive ~= nil,
         hasActivity = (decodedEncounter.procs and #decodedEncounter.procs > 0)
             or decodedEncounter.weaving ~= nil
             or decodedEncounter.ultimate ~= nil
@@ -711,8 +720,8 @@ function chronicler.getEncounterTabBarEntries(journalUI)
         })
     end
 
-    -- 7. Setup (standalone)
-    if tabVis.hasSetup then
+    -- 7. Build (standalone)
+    if tabVis.hasBuild then
         table.insert(entries, {
             text = GetString(BATTLESCROLLS_TAB_BUILD),
             callback = function()

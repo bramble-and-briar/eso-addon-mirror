@@ -8,6 +8,10 @@
   "category_id": "22",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "DarkConvergenceTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4770/",
-  "fingerprint": "0c45b9bb870e973ded0990b192a4c5a569d75e41b5d2f4a2305cdcd4f2043202",
+  "fingerprint": "6a0b0e44dc3c00ad610fdb7dda2725da9d6f3b25c093ad9a1015905705e80d46",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16980.png",
     "https://cdn-eso.mmoui.com/preview/pvw16978.png",
@@ -30,11 +34,11 @@
   "source_id": "4770",
   "source_url": "https://www.esoui.com/downloads/info4770-DarkConvergenceTracker.html",
   "stats": {
-    "downloads": 124,
+    "downloads": 232,
     "favorites": 1,
     "monthly_downloads": 53
   },
   "title": "Dark Convergence Tracker",
-  "updated_at": 1790566243000,
-  "version": "1.0.2"
+  "updated_at": 1794966134000,
+  "version": "1.0.3"
 }

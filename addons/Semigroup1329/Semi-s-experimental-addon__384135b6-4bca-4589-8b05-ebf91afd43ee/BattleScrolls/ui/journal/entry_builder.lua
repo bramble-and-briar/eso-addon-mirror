@@ -54,6 +54,11 @@ local journal = BattleScrolls.journal
 ---@field isUltimate boolean|nil
 ---@field vengeanceSlotFlag number|nil Use a Vengeance slot frame for the row icon
 
+---@class EndlessDungeonBuffTooltip
+---@field type "endlessDungeonBuff"
+---@field abilityId number Verse or Vision ability ID
+---@field stackCount number Stack count to show (stored, not live)
+
 ---@alias TooltipDescriptor
 ---| { type: "text", title: string, text: string }
 ---| { type: "item", itemLink: string }
@@ -63,6 +68,7 @@ local journal = BattleScrolls.journal
 ---| { type: "abilityList", title: string, abilities: TooltipAbility[] }
 ---| { type: "iconList", title: string, groups: IconGroup[]|nil, rows: IconRow[]|nil }
 ---| { type: "vengeancePerk", perkDefId: number, slotFlag: number }
+---| EndlessDungeonBuffTooltip
 
 ---@class PanelSpec
 ---@field layout string|nil Layout mode: "three-column" (default), "three-equal", "two-column", "wide-right", "wide-left", "reading"

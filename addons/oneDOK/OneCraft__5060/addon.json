@@ -18,11 +18,11 @@
     "OneCraft"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5060/",
-  "fingerprint": "50fa327a0d6163ec920ffd28689b97944ffcafac5532524c62dd6de9b892dbd5",
+  "fingerprint": "db0ab545f5c1fab7c98791ae9cdc849d8f8174c7895a420124fb9a51650e0c6c",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18518.png",
     "https://cdn-eso.mmoui.com/preview/pvw18519.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18520.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18540.png"
   ],
   "platform": "pc",
   "published": true,
@@ -30,11 +30,11 @@
   "source_id": "5060",
   "source_url": "https://www.esoui.com/downloads/info5060-OneCraft.html",
   "stats": {
-    "downloads": 6,
+    "downloads": 24,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 19
   },
   "title": "OneCraft",
-  "updated_at": 1794871287000,
-  "version": "26.11.2"
+  "updated_at": 1795001007000,
+  "version": "26.11.3"
 }

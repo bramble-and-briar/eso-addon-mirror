@@ -41,8 +41,9 @@ end
 ---@param items InventoryPocItem[]
 ---@param listingSlots number
 ---@param buildDeposits table<string, boolean>
+---@param listingAllowance number Listings the pack keeps; the bank takes the rest
 ---@return InventoryPocSpaceSummary
-function space.summarize(items, listingSlots, buildDeposits)
+function space.summarize(items, listingSlots, buildDeposits, listingAllowance)
     local counts = { sell = 0, deconstruct = 0, bank = 0, list = 0 }
     local postings = {}
     for index, item in ipairs(items) do
@@ -58,6 +59,7 @@ function space.summarize(items, listingSlots, buildDeposits)
         end
         if index % 5 == 0 then LibEffect.Yield():Await() end
     end
+    counts.bank = counts.bank + math.max(0, #postings - listingAllowance)
     counts.list = listingSpace(postings, listingSlots)
     local summary = {} ---@type InventoryPocSpaceSummary
     for _, action in ipairs(ORDER) do

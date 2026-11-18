@@ -174,7 +174,7 @@ end
 
 local function RegisterDialog()
     local dialogControl = ZO_GenericGamepadDialog_GetControl(GAMEPAD_DIALOGS.PARAMETRIC)
-    ZO_Dialogs_RegisterCustomDialog(DIALOG_NAME,
+    KelaRegisterGamepadDialog(DIALOG_NAME,
     {
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title = { text = KELA_ANTIQUITY_FILTER_TITLE },
@@ -268,16 +268,7 @@ local function RegisterDialog()
             dialog:setupFunc()
         end,
         parametricList = {}, blockDialogReleaseOnPress = true,
-        buttons =
-        {
-            { keybind = "DIALOG_PRIMARY", text = SI_GAMEPAD_SELECT_OPTION, callback = function(dialog)
-                local data = dialog.entryList:GetTargetData()
-                if data and data.callback then data.callback(dialog) end
-            end },
-            { keybind = "DIALOG_NEGATIVE", text = SI_GAMEPAD_BACK_OPTION, callback = function()
-                ZO_Dialogs_ReleaseDialogOnButtonPress(DIALOG_NAME)
-            end },
-        },
+        buttons = KelaParametricSelectBackButtons(DIALOG_NAME),
     })
 end
 
@@ -314,8 +305,6 @@ function KelaSetupAntiquityFilters()
     if initialized or not ANTIQUITY_DATA_MANAGER or not ZO_AntiquityJournalGamepad or not ZO_AntiquityJournalListGamepad then return end
     initialized = true
     ZO_PreHook(ZO_AntiquityJournalListGamepad, "CommitScrollList", KelaFilterAntiquityScrollData)
-    ZO_PostHook(ZO_AntiquityJournalGamepad, "InitializeLists", AddCategoryKeybinds)
-    ZO_PostHook(ZO_AntiquityJournalListGamepad, "InitializeLists", function(listObject) AddKeybind(listObject.keybindStripDescriptor) end)
     AddCategoryKeybinds(ANTIQUITY_JOURNAL_GAMEPAD)
     if ANTIQUITY_JOURNAL_LIST_GAMEPAD then AddKeybind(ANTIQUITY_JOURNAL_LIST_GAMEPAD.keybindStripDescriptor) end
     RegisterDialog()

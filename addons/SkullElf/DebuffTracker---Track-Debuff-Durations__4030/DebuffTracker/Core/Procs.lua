@@ -273,14 +273,18 @@ function P.TimerTrigger(e, gameDur)
         if g > 0 then d = g end
     end
     if d <= 0 and cd <= 0 and e.on ~= "effect" and not e.count then d = 1 end
+    -- Cooldowns shows a buff's cooldown only from its cooldown event (cooldownTrigger), never cooldownDurationMs
+    local cdShown = e.on == "effect" and 0 or cd
     return {
         type = "combat", abilityIds = e.ids, names = {},
         combatSource = e.src or "me", combatResult = e.r or (e.gd and "proc") or "gained",   -- (ExoY: effect or direct hit)
-        duration = d, cooldown = cd, startOn = e.on == "effect" and "effect" or "combat",
+        duration = d, cooldown = cdShown, startOn = e.on == "effect" and "effect" or "combat",
         cooldownIds = e.cdIds or {}, endIds = e.endIds or {},
         perTarget = false, restartOnRefresh = true, minInterval = 0.5, showReady = true,
-        -- a proc can't fire again during its own cooldown (Combat.lua: events in that time are the same proc)
-        cdLock = cd > 0 or nil,
+        -- Cooldowns restarts a proc on every new event, also during its cooldown; only `lock` entries ignore events
+        -- while their cooldown runs (Combat.lua: Pillager's late group events are the same proc)
+        cdLock = (e.lock and cd > 0) or nil,
+        endResult = e.endResult,
         count = e.count or nil,
         durationFromHit = e.hitDuration or nil,
         burst = e.burst or nil,
@@ -311,15 +315,79 @@ end
 -- The listeners only exist while a "My procs" tracker does (5.14.4: nothing registered for a feature
 -- nobody uses). InitTargets only prepares them.
 local targetIds, starters, targetsOn = {}, {}, false
+local allyIds = {}      -- [abilityId] = ttl (s): catalogue `allies` (Spaulder of Ruin's aura)
 function P.InitTargets()
-    targetIds, starters = {}, {}
+    targetIds, starters, allyIds = {}, {}, {}
     for _, e in ipairs(P.All()) do
         for _, id in ipairs(e.targets or {}) do
             targetIds[id] = true
             if e.startFromTargets then starters[id] = starters[id] or {}; table.insert(starters[id], e) end
         end
+        if e.allies then allyIds[e.allies.id] = e.allies.ttl or 2.1 end
     end
     if targetsOn then targetsOn = false; P.SetTargetWatching(true) end
+end
+
+-- Allies you're giving a pulsing aura to (Cooldowns' Spaulder of Ruin, Tracking.lua OnSpaulder): every combat event
+-- of the aura from you on someone else counts them for ttl s after it (Cooldowns: 2.1 s, swept every 2 s). Events
+-- on you don't count. Only listened to while a "My procs" tracker exists, like the targets above.
+P.allies = {}           -- [abilityId] = { [unitId] = until (s) }
+local function SetAllyWatching(on)
+    for id in pairs(allyIds) do
+        local ns = "DebuffTracker5_Allies_" .. id
+        EVENT_MANAGER:UnregisterForEvent(ns, EVENT_COMBAT_EVENT)
+        if on then
+            local ttl = allyIds[id]
+            EVENT_MANAGER:RegisterForEvent(ns, EVENT_COMBAT_EVENT,
+                function(_, result, isError, _, _, _, _, _, _, targetType, _, _, _, _, _, targetUnitId)
+                    if isError or not targetUnitId or targetUnitId == 0 then return end
+                    if targetType == COMBAT_UNIT_TYPE_PLAYER then return end
+                    if result ~= ACTION_RESULT_EFFECT_GAINED and result ~= ACTION_RESULT_EFFECT_GAINED_DURATION then return end
+                    local list = P.allies[id]
+                    if not list then list = {}; P.allies[id] = list end
+                    list[targetUnitId] = U.Now() + ttl
+                    if DT.Engine and DT.Engine.RequestUpdate then DT.Engine.RequestUpdate() end
+                end)
+            EVENT_MANAGER:AddFilterForEvent(ns, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, id,
+                REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+        end
+    end
+    if not on then P.allies = {} end
+end
+
+function P.AllyCount(a, now)
+    local list = P.allies[a.id]
+    local n = 0
+    if not list then return 0 end
+    for unitId, untilT in pairs(list) do
+        if untilT > now then n = n + 1 else list[unitId] = nil end
+    end
+    return math.min(n, a.max or n)
+end
+
+-- A loading screen to another map turns a toggled aura off in game (Cooldowns: Spaulder's EVENT_PLAYER_ACTIVATED --
+-- off unless the map and the character are the same; ExoY: off on any zone change). Entries with offOnTravel end.
+local lastMap, lastChar
+function P.OnActivated()
+    local map = type(GetMapName) == "function" and GetMapName() or ""
+    local char = type(GetUnitName) == "function" and GetUnitName("player") or ""
+    local same = lastMap ~= nil and map == lastMap and char == lastChar
+    lastMap, lastChar = map, char
+    if same then return end
+    P.allies = {}
+    local Engine = DT.Engine
+    for _, t in ipairs((Engine and Engine.trackers) or {}) do
+        local list = proxies[t]
+        if list then
+            for _, p in pairs(list) do
+                if p.entry and p.entry.offOnTravel then
+                    local timers = DT.Combat.timers[p.id]
+                    if timers then timers[0] = nil end
+                end
+            end
+        end
+    end
+    if Engine and Engine.RequestUpdate then Engine.RequestUpdate() end
 end
 
 function P.SetTargetWatching(on)
@@ -350,6 +418,7 @@ function P.SetTargetWatching(on)
         end
     end
     if not on then P.targets = {} end
+    SetAllyWatching(on)
 end
 
 function P.TargetCount(ids, now)

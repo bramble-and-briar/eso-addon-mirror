@@ -2373,7 +2373,19 @@ end
 		name = GetString(BMR_TROPHY_TREASURE_MAP),
 		tooltip = GetString(BMR_TROPHY_TREASURE_MAP),
 	}
-	
+
+-- Luminous Ink added by Sirb42
+
+	-- Luminous Ink
+	ruleName = "trophyLuminousInk"
+	BankManagerRules.data[ruleName] = {
+		params = {
+			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {204881}},
+		},
+		name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName("|H0:item:204881:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")),
+		tooltip = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName("|H0:item:204881:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")),
+	}
+
 	-- Craft Surveys
 	ruleName = "trophySurveys"
 	BankManagerRules.data[ruleName] = {

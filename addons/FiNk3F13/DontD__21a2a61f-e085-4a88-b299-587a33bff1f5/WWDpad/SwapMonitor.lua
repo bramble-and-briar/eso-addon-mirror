@@ -82,10 +82,10 @@ local function Inspect()
         if ww.queue.queueRunning then idle = false end
         if type(ww.queue.Size) == "function" and ww.queue.Size() > 0 then idle = false end
     end
-    local plan = state.plan
     local finishedWithoutSignal = (state.noValidationExpected and not state.validationSeen) or state.validationFailed
-    if idle and (state.nativeSuccess or finishedWithoutSignal)
-        and ww.currentIndex == plan.index and WWDpadRouting.IsCurrent(plan) then
+    -- Selection is UI state, not evidence of asynchronous work. Once WW has
+    -- completed and its tasks/queue are idle, a changed page must not lock us.
+    if idle and (state.nativeSuccess or finishedWithoutSignal) then
         if state.nativeSuccess then
             M.Stop()
             state.finish()
@@ -125,6 +125,28 @@ end
 
 function M.ResetClock()
     if active then active.lastCheck = GetFrameTimeMilliseconds() end
+end
+
+function M.Describe()
+    if not active then return "Kein laufender WW-Auftrag in der Beobachtung." end
+    local busy = {}
+    for task in pairs(tasks) do
+        if type(task.callstack) ~= "table" or next(task.callstack) or task.currentCallLaterId
+            or (task.Error and task.Error ~= active.previousErrors[task]) then
+            busy[#busy + 1] = tostring(task.name)
+        end
+    end
+    table.sort(busy)
+    local signal = active.nativeSuccess and "WW bestaetigt" or "WW-Abschlussmeldung fehlt"
+    local observed = canObserveTasks and active.sawSetupTask and "Auftrag beobachtet" or "Auftrag nicht beobachtbar"
+    return signal .. "; " .. observed .. "; aktive WW-Aufgaben: "
+        .. (#busy > 0 and table.concat(busy, ", ") or "keine erkennbar")
+        .. "; Zielindex=" .. tostring(active.plan.index)
+        .. "; WW-Index=" .. tostring(WizardsWardrobe.currentIndex)
+        .. "; gleiche Auswahl=" .. tostring(not not WWDpadRouting.IsCurrent(active.plan))
+        .. "; WW-Warteschlange=" .. tostring(WizardsWardrobe.queue and
+            (WizardsWardrobe.queue.queueRunning or
+             (type(WizardsWardrobe.queue.Size) == "function" and WizardsWardrobe.queue.Size())) or false)
 end
 
 function M.Begin(plan, finish, warn)

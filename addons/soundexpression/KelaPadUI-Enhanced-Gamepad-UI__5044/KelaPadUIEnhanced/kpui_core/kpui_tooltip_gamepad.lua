@@ -85,11 +85,9 @@ function KPUI_GamepadTooltip:InitializeTooltip(tooltipType, baseControl, prefix,
     control.container = container
 
     local bgFragment = ZO_FadeSceneFragment:New(bgControl, true)
-    _G[tooltipType.."_BACKGROUND_FRAGMENT"] = bgFragment
     bgControl:SetAnchorFill(control)
 
     local darkBgFragment = ZO_FadeSceneFragment:New(darkBgControl, true)
-    _G[tooltipType.."_DARK_BACKGROUND_FRAGMENT"] = darkBgFragment
     darkBgControl:SetAnchorFill(control)
 
     local needBG = KPUI_GAMEPAD_TOOLTIP_NORMAL_BG
@@ -195,12 +193,12 @@ function KPUI_GamepadTooltip_OnInitialized(control, dialogControl)
 end
 
 
-KELA_FIRST_CALL_RECOLOR_BONUSES = true
+local KELA_FIRST_CALL_RECOLOR_BONUSES = true
 
-KELA_RECOLOR_BONUS = ""
-KELA_RECOLOR_BONUS_PERCENT = ""
-KELA_RECOLOR_BONUS_INACTIVE = ""
-KELA_RECOLOR_BONUS_INACTIVE_PERCENT = ""
+local KELA_RECOLOR_BONUS = ""
+local KELA_RECOLOR_BONUS_PERCENT = ""
+local KELA_RECOLOR_BONUS_INACTIVE = ""
+local KELA_RECOLOR_BONUS_INACTIVE_PERCENT = ""
 
 -- highlight numbers in bonus descriptions
 function kelaReColorDescription(activateBonus)

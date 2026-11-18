@@ -1,8 +1,14 @@
 -- ESO Fantasy v0.1.0 — manual scoring proof of concept.
 -- Does not yet read Battleground stats automatically.
+-- Healing milestone bonus: +1 ESOFP for every full 250,000 healing.
+-- Applied to newly scored matches only; existing recorded scores remain intact.
+local function healingMilestoneBonus(healing)
+    return math.floor(math.max(0,tonumber(healing) or 0)/250000)
+end
+
 local function score(kills, assists, deaths, damage, healing, objectives, won, bonus90, bonus60)
     return kills + assists * 0.5 - deaths
-        + damage / 200000 + healing / 100000
+        + damage / 200000 + healing / 100000 + healingMilestoneBonus(healing)
         + objectives * 0.1 + (won and 3 or 0)
         + (bonus90 and 1.5 or 0) + (bonus60 and 1 or 0)
 end
@@ -359,7 +365,7 @@ local function medalScore(index, cumulative, round)
     end
     return nil
 end
-local MEDAL_SCORE_DIVISOR = 1000 -- 1000 medal-score units = 1 FP (tunable)
+local MEDAL_SCORE_DIVISOR = 400 -- 100 medal-score units = 0.25 FP (tunable)
 local function readLocalStats()
     local okCount, count = guardedCall("GetNumScoreboardEntries")
     if not okCount or type(count) ~= "number" or count < 1 then return nil end
@@ -413,7 +419,7 @@ local function readLocalStats()
     end
     stats.chaos = chaos
     local carry = chaos and stats.carrySeconds or nil
-    stats.partial = stats.kills - stats.deaths + stats.damage/200000 + stats.healing/100000
+    stats.partial = stats.kills - stats.deaths + stats.damage/200000 + stats.healing/100000 + healingMilestoneBonus(stats.healing)
         + (stats.assists or 0)*0.5 + (stats.medalScore or 0)/MEDAL_SCORE_DIVISOR
         + (stats.win and 3 or 0)
         + (carry and carry >= 90 and 1.5 or 0)
@@ -721,7 +727,7 @@ local function updateTeamRows()
                 local carry = chaos and scoreValue(i, "SCORE_TRACKER_TYPE_FLAG_CARRIED_TIME", cumulative, round) or nil
                 local bonus90 = carry ~= nil and carry >= 90
                 local bonus60 = carry ~= nil and carry >= 60
-                local fp = k-d+dmg/200000+heal/100000+(assists or 0)*0.5
+                local fp = k-d+dmg/200000+heal/100000+healingMilestoneBonus(heal)+(assists or 0)*0.5
                     +(medals or 0)/MEDAL_SCORE_DIVISOR+(won and 3 or 0)
                     +(bonus90 and 1.5 or 0)+(bonus60 and 1 or 0)
                 local complete = assists ~= nil and medals ~= nil and won ~= nil
@@ -2513,6 +2519,7 @@ local function registerSettingsMenu()
                     updateShoulderBindings(false)
                 end,width="full"},
             {type="header",name="PARTY CHAT REPORTS"},
+            {type="description",text="To Use Stud Alert / Opps Report, first prepare the report, then press the Playstation button + Start, and then hit send - You can also bind the 'prepare report' to RadialMenu if you'd like!"},
             {type="button",name="PREPARE STUD ALERT",tooltip="Prepare the report. Use the matching LibRadialMenu action to open an editable Party chat draft.",func=function() sendStudAlertDraft() end,width="full"},
             {type="button",name="PREPARE OPPS REPORT",tooltip="Prepare the report. Use the matching LibRadialMenu action to open an editable Party chat draft.",func=function() prepareOppsReport() end,width="full"},
             {type="button",name="NEXT REPORT LINE",tooltip="Prepare the next player report. Use the NEXT REPORT DRAFT radial action to open chat.",func=function() nextBroadcastLine() end,width="full"},

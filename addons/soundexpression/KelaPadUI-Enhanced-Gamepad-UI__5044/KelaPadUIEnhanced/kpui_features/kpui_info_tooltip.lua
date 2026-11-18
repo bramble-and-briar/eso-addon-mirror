@@ -1,123 +1,5 @@
 local colors = kpuiConst.Colors	
-local OPTIONS_LIST = "optionsList"
 
-	-- replace tooltip Quad1 (left collection)
-function kelaReplaceTooltipQuad1 (tooltip)	
-	
-	tooltip.LayoutCollectible = function(control, collectibleId, collectionName, collectibleName, collectibleNickname, isPurchasable, description, hint, isPlaceholder, showVisualLayerInfo, cooldownSecondsRemaining, showBlockReason, ...)	
-
-		
-		if not isPlaceholder then 
-            --things added to the collection top section stacks to the right (side by side) 
-            local topSection = control:AcquireSection(control:GetStyle("collectionsTopSection")) 
-
-            if collectionName then 
-                local formattedName = ZO_CachedStrFormat(SI_COLLECTIBLE_NAME_FORMATTER, collectionName) 
-                topSection:AddLine(formattedName) 
-            end 
-
-            local unlockState = GetCollectibleUnlockStateById(collectibleId) 
-            topSection:AddLine(GetString("SI_COLLECTIBLEUNLOCKSTATE", unlockState)) 
-
-            if showVisualLayerInfo then 
-                local visualLayerHidden, highestPriorityVisualLayerThatIsShowing = WouldCollectibleBeHidden(collectibleId) 
-                if visualLayerHidden then 
-                    topSection:AddLine(ZO_SELECTED_TEXT:Colorize(GetHiddenByStringForVisualLayer(highestPriorityVisualLayerThatIsShowing))) 
-                end 
-            end 
-
-            control:AddSection(topSection) 
-        end 
-
-        local formattedName = colors.COLOR_WHITE:Colorize(ZO_CachedStrFormat(SI_COLLECTIBLE_NAME_FORMATTER, collectibleName))
-        control:AddLine(formattedName, QUALITY_NORMAL, control:GetStyle("QUAD1title")) 
-     
-        local headerSection = control:AcquireSection(control:GetStyle("bodyHeader")) 
-
-        if collectibleNickname and collectibleNickname ~= "" then 
-            formattedName = ZO_CachedStrFormat(SI_TOOLTIP_COLLECTIBLE_NICKNAME, collectibleNickname) 
-            headerSection:AddLine(formattedName, QUALITY_NORMAL, control:GetStyle("bodyHeader")) 
-        end 
-
-        control:AddSection(headerSection) 
-		
-        if cooldownSecondsRemaining and type(tonumber(cooldownSecondsRemaining)) == "number" then
-			if cooldownSecondsRemaining > 0 then 
-				local cooldownSection = control:AcquireSection(control:GetStyle("QUAD1collectionsStatsSection")) 
-				local cooldownPair = cooldownSection:AcquireStatValuePair(control:GetStyle("statValuePair")) 
-				cooldownPair:SetStat(COOLDOWN_TEXT, control:GetStyle("collectionsTopSection")) 
-			 
-				local secondsRemainingString = ZO_FormatTimeLargestTwo(cooldownSecondsRemaining, TIME_FORMAT_STYLE_DESCRIPTIVE_MINIMAL) 
-				cooldownPair:SetValue(secondsRemainingString, control:GetStyle("collectionsStatsValue")) 
-				cooldownSection:AddStatValuePair(cooldownPair) 
-				control:AddSection(cooldownSection) 
-			end
-        end 
-
-        local bodySection = control:AcquireSection(control:GetStyle("QUAD1collectionsInfoSection")) 
-        local descriptionStyle = control:GetStyle("bodyDescription") 
-
-        if description then 
-            local formattedDescription = ZO_CachedStrFormat(ZO_CACHED_STR_FORMAT_NO_FORMATTER, description) 
-            bodySection:AddLine(formattedDescription, descriptionStyle) 
-        end 
-
-        if isPurchasable then  
-            bodySection:AddLine(PURCHASED_TEXT, descriptionStyle) 
-        end 
-
-        if hint and hint ~= "" then 
-            local formattedHint = ZO_CachedStrFormat(ZO_CACHED_STR_FORMAT_NO_FORMATTER, hint) 
-            bodySection:AddLine(formattedHint, descriptionStyle) 
-        end 
-
-        local emoteOverrideNames = {GetCollectiblePersonalityOverridenEmoteDisplayNames(collectibleId)} 
-        if #emoteOverrideNames > 0 then 
-            local numEmoteNames = #emoteOverrideNames 
-            local emoteString = ZO_GenerateCommaSeparatedList(emoteOverrideNames) 
-            local formattedEmoteString = zo_strformat(SI_COLLECTIBLE_TOOLTIP_PERSONALITY_OVERRIDES_DISPLAY_NAMES_FORMATTER, emoteString, numEmoteNames) 
-            bodySection:AddLine(formattedEmoteString, descriptionStyle, control:GetStyle("collectionsPersonality")) 
-        end 
-
-        control:AddSection(bodySection) 
-
-        -- Layout the use restrictions 
-        local failsRestriction = false 
-        local restrictionsSection = control:AcquireSection(control:GetStyle("QUAD1collectionsRestrictionsSection")) 
-
-        for restrictionType = COLLECTIBLE_RESTRICTION_TYPE_MIN_VALUE, COLLECTIBLE_RESTRICTION_TYPE_MAX_VALUE do 
-            local hasRestrictions, passesRestrictions, allowedNamesString = GetCollectibleRestrictionsByType(collectibleId, restrictionType) 
-            if hasRestrictions then 
-                local statValuePair = restrictionsSection:AcquireStatValuePair(control:GetStyle("statValuePair"), control:GetStyle("fullWidth")) 
-                statValuePair:SetStat(GetString("SI_COLLECTIBLERESTRICTIONTYPE", restrictionType), control:GetStyle("statValuePairStat")) 
-                if passesRestrictions then 
-                    statValuePair:SetValue(allowedNamesString, control:GetStyle("statValuePairValue")) 
-                else 
-                    statValuePair:SetValue(allowedNamesString, control:GetStyle("failed"), control:GetStyle("statValuePairValue")) 
-                    failsRestriction = true 
-                end 
-                restrictionsSection:AddStatValuePair(statValuePair) 
-            end 
-        end 
-
-        control:AddSection(restrictionsSection) 
-
-        bodySection = control:AcquireSection(control:GetStyle("QUAD1collectionsInfoSection")) 
-
-        if failsRestriction then 
-            bodySection:AddLine(GetString(SI_COLLECTIBLE_TOOLTIP_NOT_USABLE_BY_CHARACTER), descriptionStyle, control:GetStyle("failed")) 
-        elseif showBlockReason then 
-            local usageBlockReason = GetCollectibleBlockReason(collectibleId) 
-            if usageBlockReason ~= COLLECTIBLE_USAGE_BLOCK_REASON_NOT_BLOCKED then 
-                local formattedBlockReason = ZO_CachedStrFormat(ZO_CACHED_STR_FORMAT_NO_FORMATTER, GetString("SI_COLLECTIBLEUSAGEBLOCKREASON", usageBlockReason)) 
-                bodySection:AddLine(formattedBlockReason, descriptionStyle, control:GetStyle("failed")) 
-            end 
-        end 
-
-        control:AddSection(bodySection) 
-	end
-
-end
 ------------------------------------------------------------------------------
 	-- replace tooltips
 function kelaReplaceTooltips (tooltip)	
@@ -185,19 +67,10 @@ function kelaReplaceTooltips (tooltip)
 	local oldAddItemTitle = tooltip.AddItemTitle
 	tooltip.AddItemTitle = function(control, itemLink, name, ...)
 		local kelaLine = control:AcquireSection(control:GetStyle("kelaTrade")) 
-		local kelaRecipeLine = control:AcquireSection(control:GetStyle("kelaTrade"))
-		local valueColor = colors.COLOR_WHITE
-		local itemStyle = GetItemLinkItemStyle(itemLink)
-		local itemType, specializedItemType = GetItemLinkItemType(itemLink) 
-		local specializedItemTypeText = ZO_GetSpecializedItemTypeText(itemType, specializedItemType) 
-		local equipType = GetItemLinkEquipType(itemLink) 
-		local armorType = GetItemLinkArmorType(itemLink)
-		local weaponType = GetItemLinkWeaponType(itemLink) 	
 
 		-- build the price line for the item
 		local iconGold = zo_iconFormat("EsoUI/Art/currency/gamepad/gp_gold.dds", "32", "32") 
 
-		local hideItemLevel = ignoreLevel or ShouldHideTooltipRequiredLevel(itemLink)
 		local CONSIDER_CONDITION = true 
 		local value = GetItemLinkValue(itemLink, not CONSIDER_CONDITION)
 		local finalValue
@@ -263,7 +136,7 @@ function kelaReplaceTooltips (tooltip)
 		end
 		if ArkadiusTradeTools ~= nil then 
 			valueString = valueString..colors.COLOR_WHITE:Colorize(", ")
-			local statsATT = GetATTPriceStats(itemLink)
+			local statsATT = KelaGetATTPriceStats(itemLink)
 			if statsATT then -- and averagePrice ~= nil
 				averageGuildPrice = averageGuildPrice + statsATT.Avg
 				local resultValueATT = KelaLocalizedFormatNumber(tonumber(statsATT.Avg), 0)
@@ -309,11 +182,20 @@ function kelaReplaceTooltips (tooltip)
 	end
 ------------------------------------------------------------------------------
 	-- replace enchant section	ESOUI/art/enchanting/enchanting_highlight.dds
-	tooltip.AddEnchant = function(control, itemLink, enchantDiffMode, equipSlot, ...) 
+	-- Signature and return values follow core ZO_Tooltip:AddEnchant: the caller
+	-- uses the returned suppression info to add the "disabled by" line.
+	tooltip.AddEnchant = function(control, itemLink, enchantDiffMode, equipSlot, extraData)
+		local hasEnchant, enchantHeader, enchantDescription = GetItemLinkEnchantInfo(itemLink)
+		if not hasEnchant then
+			return ITEM_BONUS_SUPPRESSION_TYPE_NONE, 0
+		end
 		local stringEnchant = ""
-		enchantDiffMode = enchantDiffMode or ZO_ENCHANT_DIFF_NONE 
-		local enchantSection = control:AcquireSection(control:GetStyle("bodySection"))  
-		local hasEnchant, enchantHeader, enchantDescription = GetItemLinkEnchantInfo(itemLink) 
+		enchantDiffMode = enchantDiffMode or (extraData and extraData.enchantDiffMode) or ZO_ENCHANT_DIFF_NONE
+		local itemBonusSuppressionType, itemBonusSuppressionRefId = ITEM_BONUS_SUPPRESSION_TYPE_NONE, 0
+		if enchantDiffMode == ZO_ENCHANT_DIFF_NONE and extraData and extraData.showSuppression then
+			itemBonusSuppressionType, itemBonusSuppressionRefId = GetItemEnchantSuppressionInfo()
+		end
+		local enchantSection = control:AcquireSection(control:GetStyle("bodySection"))
 		local itemType = GetItemLinkItemType(itemLink)
 		local equipType = GetItemLinkEquipType(itemLink) 	
 		local strIcon = "ESOUI/art/enchanting/enchanting_highlight.dds"
@@ -353,8 +235,9 @@ function kelaReplaceTooltips (tooltip)
 			local diffSection = control:AcquireSection(control:GetStyle("enchantDiffTextureContainer")) 
 			diffSection:AddTexture(icon, control:GetStyle("enchantDiffTexture")) 
 			enchantmentDescriptionSection:AddSection(diffSection) 
-			enchantmentDescriptionSection:AddLine(enchantDescription, control:GetStyle("bodyDescription")) 
-			control:AddSection(enchantmentDescriptionSection) 
-		end 
-	end	
+			enchantmentDescriptionSection:AddLine(enchantDescription, control:GetStyle("bodyDescription"))
+			control:AddSection(enchantmentDescriptionSection)
+		end
+		return itemBonusSuppressionType, itemBonusSuppressionRefId
+	end
 end

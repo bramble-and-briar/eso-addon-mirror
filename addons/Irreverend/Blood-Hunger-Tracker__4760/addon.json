@@ -8,6 +8,10 @@
   "category_id": "22",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "BloodHungerTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4760/",
-  "fingerprint": "337b1ba75a42fec9c6b340561fc7cdba84be6cd50397579e32ab8ac3516a408f",
+  "fingerprint": "f2b3df61ec8e5556670314aea0d3297e7ededd22c66368b37cc4e7c64080b1b6",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16940.png",
     "https://cdn-eso.mmoui.com/preview/pvw16982.png"
@@ -29,11 +33,11 @@
   "source_id": "4760",
   "source_url": "https://www.esoui.com/downloads/info4760-BloodHungerTracker.html",
   "stats": {
-    "downloads": 143,
+    "downloads": 229,
     "favorites": 1,
-    "monthly_downloads": 38
+    "monthly_downloads": 53
   },
   "title": "Blood Hunger Tracker",
-  "updated_at": 1790566362000,
-  "version": "1.0.5"
+  "updated_at": 1794966250000,
+  "version": "1.0.6"
 }

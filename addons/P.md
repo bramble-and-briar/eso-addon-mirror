@@ -139,6 +139,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's NamePlateFontChanger(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-NamePlateFontChanger-Beta__dda2c060-41fd-485e-b1f1-39c1b6f7ca6f) | PinkBanther | Console | — |
 | [PinkB's Omikuji](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Omikuji__e9774308-4827-4806-b3bd-924016769cd3) | PinkBanther | Console | — |
 | [PinkB's Omikuji(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Omikuji-Beta__20cda1ba-c4a4-4f82-9dcb-81e274222d9e) | PinkBanther | Console | — |
+| [PinkB's OnlineStatusAlert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-OnlineStatusAlert__acc220d2-3d92-4f47-8eae-979714894059) | PinkBanther | Console | — |
 | [PinkB's ProcSetTimer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ProcSetTimer__92429895-8851-446b-83ef-a1333a7ac486) | PinkBanther | Console | — |
 | [PinkB's ProcSetTimer(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ProcSetTimer-Beta__81a06296-da7a-447d-8784-8b2116d37dbf) | PinkBanther | Console | — |
 | [PinkB's QuestTrackerFontChanger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-QuestTrackerFontChanger__cc94a283-12a5-4e75-8e54-727d2ab6977c) | PinkBanther | Console | — |

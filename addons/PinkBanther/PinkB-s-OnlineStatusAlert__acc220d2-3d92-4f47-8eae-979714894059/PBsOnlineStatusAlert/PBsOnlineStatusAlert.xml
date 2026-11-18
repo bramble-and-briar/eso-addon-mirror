@@ -1,0 +1,36 @@
+<GuiXml>
+	<!-- The banner. Everything in it is console-safe on purpose, the way the windows of PB's KillLog and
+	     PB's TargetPlayer are:
+	     - The fonts are named gamepad faces the console UI already has loaded (Lua picks the size). A face
+	       nothing else is drawing with has to be built on use, out of the memory every add-on shares, and
+	       that has crashed a PS5.
+	     - The background and the stripe are plain colour textures, not a backdrop template.
+	     - Nothing takes input: a control that wants input takes every gamepad button away from the game
+	       while it is up.
+	     The window is shown and hidden by a scene fragment (Alert.lua), so it is there on the game screen
+	     only. Its four children are shown only while a banner is up. Lua lays everything out again (size,
+	     anchors, fonts) from the saved settings, so the numbers here are only a starting point. -->
+	<Controls>
+		<TopLevelControl name="PBsOnlineStatusAlertWindow" hidden="true" mouseEnabled="false" tier="HIGH">
+			<Dimensions x="580" y="88"/>
+			<Anchor point="TOPRIGHT" relativeTo="GuiRoot" relativePoint="TOPRIGHT" offsetX="-40" offsetY="40"/>
+			<Controls>
+				<Texture name="$(parent)Background" color="000000" alpha="0.72" hidden="true">
+					<AnchorFill/>
+				</Texture>
+				<Texture name="$(parent)Accent" color="66DD88" hidden="true">
+					<Dimensions x="8" y="88"/>
+					<Anchor point="TOPLEFT"/>
+				</Texture>
+				<Label name="$(parent)Title" font="ZoFontGamepadBold27" color="FFFFFF" horizontalAlignment="LEFT" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="1" hidden="true">
+					<Dimensions x="540" y="36"/>
+					<Anchor point="TOPLEFT" offsetX="24" offsetY="8"/>
+				</Label>
+				<Label name="$(parent)Detail" font="ZoFontGamepad22" color="66DD88" horizontalAlignment="LEFT" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="1" hidden="true">
+					<Dimensions x="540" y="30"/>
+					<Anchor point="TOPLEFT" offsetX="24" offsetY="46"/>
+				</Label>
+			</Controls>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

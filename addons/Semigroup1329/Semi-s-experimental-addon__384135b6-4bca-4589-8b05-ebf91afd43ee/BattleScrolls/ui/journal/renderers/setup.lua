@@ -1,7 +1,8 @@
 ---@diagnostic disable: undefined-field, inject-field -- the ESO Control/ZO_* API stubs are too incomplete for field checking in UI code
 -----------------------------------------------------------
 -- Setup Renderer
--- Renders the Setup tab: abilities, gear items, champion, poisons
+-- Renders the Setup tab: abilities, gear items, champion, poisons, and
+-- the Infinite Archive progression and boons the fight began with
 -----------------------------------------------------------
 
 if not SemisPlaygroundCheckAccess() then
@@ -1048,15 +1049,173 @@ local function resolveBarAbilities(bar)
     return resolved
 end
 
----Renders the Setup tab into the parametric scroll list
+---The werewolf bar has no weapon to show: its ultimate stands for it, or the
+---first slotted skill when the ultimate slot is empty.
+---@param bar PlayerSetupAbility[]
+---@return string|nil
+local function getWerewolfBarIcon(bar)
+    for index = #bar, 1, -1 do
+        if bar[index].abilityId > 0 then return journal.utils.getAbilityIcon(bar[index].abilityId) end
+    end
+end
+
+-------------------------
+-- Infinite Archive
+-------------------------
+
+---@class ArchiveBoonDisplay
+---@field abilityId number
+---@field stackCount number
+---@field name string Display name, with the stack count when above 1
+---@field icon string
+---@field kind string Bucket type (Offensive/Defensive/Utility), or Avatar Vision
+
+---@class ArchiveBoonGroup
+---@field header string
+---@field boons ArchiveBoonDisplay[]
+
+---Resolves stored boons for display, sorted by name like the base game's
+---buff tracker.
+---@param boons InfiniteArchiveVision[]
+---@return ArchiveBoonDisplay[]
+local function resolveArchiveBoons(boons)
+    local resolved = {}
+    for _, boon in ipairs(boons) do
+        local name = journal.utils.getAbilityDisplayName(boon.abilityId)
+        if boon.stackCount > 1 then
+            name = zo_strformat(SI_ABILITY_NAME_WITH_QUANTITY, name, boon.stackCount)
+        end
+        local buffType, isAvatarVision = GetAbilityEndlessDungeonBuffType(boon.abilityId)
+        local kind = isAvatarVision and GetString("SI_ENDLESSDUNGEONBUFFTYPE_AVATAR", buffType)
+            or GetString("SI_ENDLESSDUNGEONBUFFBUCKETTYPE", GetAbilityEndlessDungeonBuffBucketType(boon.abilityId))
+        resolved[#resolved + 1] = {
+            abilityId = boon.abilityId,
+            stackCount = boon.stackCount,
+            name = name,
+            icon = journal.utils.getAbilityIcon(boon.abilityId),
+            kind = zo_strformat(SI_ENDLESS_DUNGEON_BUFF_TYPE_FORMATTER, kind),
+        }
+    end
+    table.sort(resolved, function(a, b) return a.name < b.name end)
+    return resolved
+end
+
+---Verses, then Visions, each under the base game's header; empty groups are left out.
+---@param record InfiniteArchiveRecord
+---@return ArchiveBoonGroup[]
+local function getArchiveBoonGroups(record)
+    ---@type InfiniteArchiveVision[]
+    local verses = {}
+    for i, abilityId in ipairs(record.verses) do
+        verses[i] = { abilityId = abilityId, stackCount = 1 }
+    end
+    local groups = {}
+    for _, group in ipairs({
+        { header = GetString(SI_ENDLESS_DUNGEON_SUMMARY_VERSES_HEADER), boons = verses },
+        { header = GetString(SI_ENDLESS_DUNGEON_SUMMARY_VISIONS_HEADER), boons = record.visions },
+    }) do
+        if #group.boons > 0 then
+            groups[#groups + 1] = { header = group.header, boons = resolveArchiveBoons(group.boons) }
+        end
+    end
+    return groups
+end
+
+---Arc/cycle/stage in words and the boon counts, worded like the base game's
+---run summary, for the progression entry's tooltip.
+---@param record InfiniteArchiveRecord
+---@return string
+local function buildArchiveSummaryText(record)
+    local stageLine, cycleLine, arcLine = ZO_EndlessDungeonManager.GetProgressionNarrationDescriptions(
+        record.stage, record.cycle, record.arc)
+    local visionStacks, avatarVisionStacks = 0, 0
+    for _, vision in ipairs(record.visions) do
+        local _, isAvatarVision = GetAbilityEndlessDungeonBuffType(vision.abilityId)
+        if isAvatarVision then
+            avatarVisionStacks = avatarVisionStacks + vision.stackCount
+        else
+            visionStacks = visionStacks + vision.stackCount
+        end
+    end
+    local function countLine(headerStringId, count)
+        return zo_strformat(SI_ENDLESS_DUNGEON_SUMMARY_STAT_VALUE_NARRATION, GetString(headerStringId), count)
+    end
+    local lines = {
+        arcLine, cycleLine, stageLine, "",
+        countLine(SI_ENDLESS_DUNGEON_SUMMARY_VERSES_HEADER, #record.verses),
+        countLine(SI_ENDLESS_DUNGEON_SUMMARY_VISIONS_HEADER, visionStacks),
+        countLine(SI_ENDLESS_DUNGEON_SUMMARY_AVATAR_VISIONS_HEADER, avatarVisionStacks),
+    }
+    if record.changedInCombat then
+        lines[#lines + 1] = ""
+        lines[#lines + 1] = GetString(BATTLESCROLLS_SETUP_ARCHIVE_BOONS_CHANGED)
+    end
+    return table.concat(lines, "\n")
+end
+
+---Adds the Infinite Archive section: the run's progression (the base game's
+---icon notation), then one entry per Verse and Vision with the base game's
+---own tooltip.
+---@param list ZO_ParametricScrollList
+---@param record InfiniteArchiveRecord
+local function addArchiveEntries(list, record)
+    local title = GetString(SI_ENDLESS_DUNGEON_HUD_TRACKER_TITLE)
+    EntryBuilder.addEntry(list, {
+        label = ZO_EndlessDungeonManager.GetProgressionText(record.stage, record.cycle, record.arc),
+        header = title,
+        tooltip = { type = "text", title = title, text = buildArchiveSummaryText(record) },
+    })
+    for _, group in ipairs(getArchiveBoonGroups(record)) do
+        for index, boon in ipairs(group.boons) do
+            EntryBuilder.addEntry(list, {
+                label = boon.name,
+                icon = boon.icon,
+                sublabel = boon.kind,
+                header = index == 1 and group.header or nil,
+                tooltip = { type = "endlessDungeonBuff", abilityId = boon.abilityId, stackCount = boon.stackCount },
+            })
+        end
+    end
+end
+
+---Builds the Infinite Archive side panel section.
+---@param col ColumnBuilder
+---@param record InfiniteArchiveRecord
+---@return Control|nil section
+local function buildArchiveSection(col, record)
+    local rows = {
+        col:PlainTextRow(ZO_EndlessDungeonManager.GetProgressionText(record.stage, record.cycle, record.arc),
+            ZO_SELECTED_TEXT),
+    }
+    if record.changedInCombat then
+        rows[#rows + 1] = col:PlainTextRow(GetString(BATTLESCROLLS_SETUP_ARCHIVE_BOONS_CHANGED), ZO_NORMAL_TEXT)
+    end
+    for _, group in ipairs(getArchiveBoonGroups(record)) do
+        rows[#rows + 1] = col:SubHeader(group.header)
+        for _, boon in ipairs(group.boons) do
+            rows[#rows + 1] = col:IconTextRow(boon.icon, boon.name, ZO_HIGHLIGHT_TEXT)
+        end
+    end
+    return col:Section(GetString(SI_ENDLESS_DUNGEON_HUD_TRACKER_TITLE), rows)
+end
+
+---Renders the Build tab into the parametric scroll list. Infinite Archive
+---boons come first: within a run they change from fight to fight while the
+---build rarely does.
 ---@param ctx JournalRenderContext
 ---@return Effect
 function setup.renderSetup(ctx)
     return LibEffect.Async(function()
+        local list = ctx.list
+
+        local archive = ctx.encounter.infiniteArchive
+        if archive then
+            addArchiveEntries(list, archive)
+            LibEffect.Yield():Await()
+        end
+
         local setupData = ctx.encounter.setup
         if not setupData then return end
-
-        local list = ctx.list
 
         -------------------------
         -- Section 0: Character (race/class, mundus, food)
@@ -1155,26 +1314,35 @@ function setup.renderSetup(ctx)
             and getVengeanceWeaponBarIcon(setupData.weaponTypes, false)
             or getBarIcon(setupData.equipSlots, BACK_MAIN_HAND_INDEX)
 
-        EntryBuilder.addEntry(list, {
-            label = GetString(BATTLESCROLLS_SETUP_FRONT_BAR),
-            icon = frontIcon,
-            header = GetString(BATTLESCROLLS_SETUP_ABILITIES),
-            tooltip = {
-                type = "abilityList",
-                title = GetString(BATTLESCROLLS_SETUP_FRONT_BAR),
-                abilities = resolveBarAbilities(setupData.abilities.front),
-            },
-        })
-
-        EntryBuilder.addEntry(list, {
-            label = GetString(BATTLESCROLLS_SETUP_BACK_BAR),
-            icon = backIcon,
-            tooltip = {
-                type = "abilityList",
-                title = GetString(BATTLESCROLLS_SETUP_BACK_BAR),
-                abilities = resolveBarAbilities(setupData.abilities.back),
-            },
-        })
+        -- The bars the fight was played on, as the side panel shows them. A
+        -- fight spent entirely in werewolf form has no front or back bar:
+        -- capture wipes both.
+        ---@type { label: string, icon: string|nil, frame: boolean|nil, abilities: PlayerSetupAbility[] }[]
+        local bars = {}
+        if not setupData.werewolfEntireFight then
+            bars[#bars + 1] = { label = GetString(BATTLESCROLLS_SETUP_FRONT_BAR), icon = frontIcon,
+                abilities = setupData.abilities.front }
+            bars[#bars + 1] = { label = GetString(BATTLESCROLLS_SETUP_BACK_BAR), icon = backIcon,
+                abilities = setupData.abilities.back }
+        end
+        if setupData.werewolfAbilities then
+            bars[#bars + 1] = { label = zo_strformat("<<C:1>>", GetString(SI_HOTBARCATEGORY8)),
+                icon = getWerewolfBarIcon(setupData.werewolfAbilities), frame = true,
+                abilities = setupData.werewolfAbilities }
+        end
+        for index, bar in ipairs(bars) do
+            EntryBuilder.addEntry(list, {
+                label = bar.label,
+                icon = bar.icon,
+                frame = bar.frame,
+                header = index == 1 and GetString(BATTLESCROLLS_SETUP_ABILITIES) or nil,
+                tooltip = {
+                    type = "abilityList",
+                    title = bar.label,
+                    abilities = resolveBarAbilities(bar.abilities),
+                },
+            })
+        end
 
         LibEffect.Yield():Await()
 
@@ -1398,7 +1566,8 @@ end
 
 ---Builds a PanelSpec for the Setup tab (2-column layout).
 ---Q2 (left, 700px): Character info + Abilities + Champion
----Q3 (right, expanded): Gear sets, Equipment summary, Poisons
+---Q3 (right, expanded): Infinite Archive, Gear sets, Equipment summary, Poisons
+---Without a build, the Infinite Archive section alone, in Q2.
 ---@param ctx { arithmancer: ArithmancerInstance, encounter: DecodedEncounter, durationS: number, unitNames: table<number, string>, abilityInfo: table<number, AbilityInfo> }
 ---@return PanelSpec
 function setup.buildSetupPanelSpec(ctx)
@@ -1406,8 +1575,15 @@ function setup.buildSetupPanelSpec(ctx)
         layout = "wide-left",
         ---@diagnostic disable-next-line: unused-local -- wide-left layout doesn't use Q4
         build = function(q2, q3, q4)
+            local archive = ctx.encounter.infiniteArchive
             local setupData = ctx.encounter.setup
-            if not setupData then return end
+            if not setupData then
+                -- A fight whose build is missing still shows its boons
+                if archive then
+                    q2:mount(SECTION_GAP, 0, buildArchiveSection(q2, archive))
+                end
+                return
+            end
 
             -- Row color scheme: types (bright) -> traits (standard)
             -- Enchant color (ZO_NORMAL_TEXT) is handled by renderEquipmentCategories
@@ -1462,12 +1638,15 @@ function setup.buildSetupPanelSpec(ctx)
             LibEffect.YieldWithGC():Await()
 
             -------------------------
-            -- Q3: Gear Sets + Equipment by Category + Poisons
+            -- Q3: Infinite Archive + Gear Sets + Equipment by Category + Poisons
             -------------------------
-            if setupData.equipSlots then
-                local col3 = q3
-                local q3Sections = {}
+            local col3 = q3
+            local q3Sections = {}
+            if archive then
+                q3Sections[#q3Sections + 1] = buildArchiveSection(col3, archive)
+            end
 
+            if setupData.equipSlots then
                 local setLines = setupData.isVengeance and {} or formatActiveSets(setupData.equipSlots)
 
                 if #setLines > 0 then
@@ -1545,9 +1724,9 @@ function setup.buildSetupPanelSpec(ctx)
                         q3Sections[#q3Sections + 1] = row
                     end
                 end
-
-                col3:mount(SECTION_GAP, Q3_INSET, q3Sections)
             end
+
+            col3:mount(SECTION_GAP, Q3_INSET, q3Sections)
         end,
     }
 end

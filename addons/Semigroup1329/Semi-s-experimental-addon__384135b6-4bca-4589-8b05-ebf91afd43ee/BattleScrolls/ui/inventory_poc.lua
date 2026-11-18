@@ -32,23 +32,11 @@ local utils = BattleScrolls.utils
 ---@field contentsFocused boolean|nil
 ---@field selectedLogEntry InventoryPocLogEntry|nil
 ---@field updatingLog boolean|nil
+---@field tab 'activity'|'pack'
+---@field pack InventoryPocPackView
+---@field resetSelection boolean|nil The tab changed: its list starts at the top
 local LogScreen = ZO_Gamepad_ParametricList_Screen:Subclass()
-
-local REASONS = {
-    reserved = BATTLESCROLLS_IPOC_REASON_RESERVED, stolen = BATTLESCROLLS_IPOC_REASON_STOLEN,
-    crown = BATTLESCROLLS_IPOC_REASON_CROWN, junk = BATTLESCROLLS_IPOC_REASON_JUNK,
-    glyph = BATTLESCROLLS_IPOC_REASON_GLYPH, material = BATTLESCROLLS_IPOC_REASON_MATERIAL,
-    gear = BATTLESCROLLS_IPOC_REASON_GEAR, knowledge = BATTLESCROLLS_IPOC_REASON_KNOWLEDGE,
-    price = BATTLESCROLLS_IPOC_REASON_PRICE, companion = BATTLESCROLLS_IPOC_REASON_COMPANION,
-    priceCheck = BATTLESCROLLS_IPOC_REASON_PRICE_CHECK,
-    container = BATTLESCROLLS_IPOC_REASON_CONTAINER, supplies = BATTLESCROLLS_IPOC_REASON_SUPPLIES,
-    unassigned = BATTLESCROLLS_IPOC_REASON_UNASSIGNED, learn = BATTLESCROLLS_IPOC_REASON_LEARN,
-    valuablePlan = BATTLESCROLLS_IPOC_REASON_VALUABLE_PLAN, duplicate = BATTLESCROLLS_IPOC_REASON_DUPLICATE,
-    sale = BATTLESCROLLS_IPOC_REASON_SALE,
-    collection = BATTLESCROLLS_IPOC_REASON_COLLECTION, crafted = BATTLESCROLLS_IPOC_REASON_CRAFTED,
-    -- ESO's own "Cannot Sell" label, localized by the game.
-    unsellable = _G['SI_ITEMSELLINFORMATION' .. ITEM_SELL_INFORMATION_CANNOT_SELL],
-}
+local details = BattleScrolls.inventoryPocDetails
 
 local function resetTooltips()
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
@@ -80,6 +68,8 @@ local function buildIssueText(issue)
         return zo_strformat(GetString(BATTLESCROLLS_IPOC_BUILD_CHAMPION), issue.slot)
     elseif issue.kind == 'food' then return GetString(BATTLESCROLLS_IPOC_BUILD_FOOD)
     elseif issue.kind == 'selector' then return GetString(BATTLESCROLLS_IPOC_BUILD_SELECTOR)
+    -- ESO's own wording, the text its failure notice shows.
+    elseif issue.kind == 'armory' then return GetString('SI_ARMORYBUILDRESTORERESULT', issue.result)
     else return GetString(BATTLESCROLLS_IPOC_BUILD_STOPPED) end
 end
 
@@ -101,10 +91,10 @@ end
 local function showLogTooltip(entry)
     local lines = { utils.formatDate(entry.timestamp) .. ' ' .. utils.formatTime(entry.timestamp), entry.character }
     local function add(id, ...)
-        lines[#lines + 1] = zo_strformat(GetString(id), ...)
+        details.add(lines, id, ...)
     end
-    if entry.reason and REASONS[entry.reason] then
-        add(BATTLESCROLLS_IPOC_DETAIL_REASON, GetString(REASONS[entry.reason]))
+    if entry.reason and details.REASONS[entry.reason] then
+        add(BATTLESCROLLS_IPOC_DETAIL_REASON, GetString(details.REASONS[entry.reason]))
     end
     if entry.setupName then lines[#lines + 1] = entry.setupName end
     if entry.buildIssue then lines[#lines + 1] = buildIssueDetails(entry.buildIssue) end
@@ -116,50 +106,15 @@ local function showLogTooltip(entry)
     end
     if entry.itemLink ~= '' then
         local link = entry.itemLink
-        local itemType, specializedType = GetItemLinkItemType(link)
         add(BATTLESCROLLS_IPOC_DETAIL_QUANTITY, entry.quantity)
         add(BATTLESCROLLS_IPOC_DETAIL_FROM, bagName(entry.fromBag))
         if entry.toBag then add(BATTLESCROLLS_IPOC_DETAIL_TO, bagName(entry.toBag)) end
-        add(BATTLESCROLLS_IPOC_DETAIL_ITEM_ID, entry.itemId)
-        add(BATTLESCROLLS_IPOC_DETAIL_TYPE, GetString('SI_ITEMTYPE', itemType), itemType,
-            GetString('SI_SPECIALIZEDITEMTYPE', specializedType), specializedType)
-        local quality = GetItemLinkFunctionalQuality(link)
-        add(BATTLESCROLLS_IPOC_DETAIL_QUALITY, GetString('SI_ITEMQUALITY', quality), quality)
-        local trait = GetItemLinkTraitInfo(link)
-        if trait ~= ITEM_TRAIT_TYPE_NONE then
-            add(BATTLESCROLLS_IPOC_DETAIL_TRAIT, GetString('SI_ITEMTRAITTYPE', trait), trait)
-        end
-        local style = GetItemLinkItemStyle(link)
-        if style > 0 then add(BATTLESCROLLS_IPOC_DETAIL_STYLE, GetItemStyleName(style), style) end
-        local hasSet, setName, _, _, _, setId = GetItemLinkSetInfo(link, false)
-        if hasSet then add(BATTLESCROLLS_IPOC_DETAIL_SET, setName, setId) end
-        local details = entry.details
-        if details then
-            add(BATTLESCROLLS_IPOC_DETAIL_STACK, details.stack)
-            add(BATTLESCROLLS_IPOC_DETAIL_SLOT, details.slot, details.uniqueId)
-            lines[#lines + 1] = ''
-            add(BATTLESCROLLS_IPOC_DETAIL_PRICES)
-            add(BATTLESCROLLS_IPOC_DETAIL_VENDOR, details.vendorUnit)
-            if details.marketUnit then add(BATTLESCROLLS_IPOC_DETAIL_MARKET, details.marketUnit) end
-            -- Older entries also saved style-material quotes for glyphs and
-            -- other items that cannot return smithing materials.
-            local playerGear = (itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON)
-                and GetItemLinkActorCategory(link) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION
-            if playerGear then
-                for _, material in ipairs({
-                    { link = details.styleMaterialLink, price = details.styleMaterialUnit },
-                    { link = details.traitMaterialLink, price = details.traitMaterialUnit },
-                    { link = details.improvementMaterialLink, price = details.improvementMaterialUnit },
-                }) do
-                    if material.link and material.link ~= '' then
-                        if material.price then add(BATTLESCROLLS_IPOC_DETAIL_MATERIAL, material.link, material.price)
-                        else add(BATTLESCROLLS_IPOC_DETAIL_UNPRICED, material.link) end
-                    end
-                end
-                if details.gearSaleMinimum then
-                    add(BATTLESCROLLS_IPOC_DETAIL_SALE_MINIMUM, math.ceil(details.gearSaleMinimum))
-                end
-            end
+        details.identity(lines, link, entry.itemId)
+        local prices = entry.details
+        if prices then
+            add(BATTLESCROLLS_IPOC_DETAIL_STACK, prices.stack)
+            add(BATTLESCROLLS_IPOC_DETAIL_SLOT, prices.slot, prices.uniqueId)
+            details.prices(lines, link, prices)
         end
         if entry.discount and entry.discount < 1 then
             add(BATTLESCROLLS_IPOC_DETAIL_DISCOUNT, zo_round((1 - entry.discount) * 100))
@@ -181,10 +136,30 @@ end
 ---@return InventoryPocLogScreen
 function LogScreen.new(control, scene)
     local object = ZO_Object.New(LogScreen)
-    ZO_Gamepad_ParametricList_Screen.Initialize(object, control, ZO_GAMEPAD_HEADER_TABBAR_DONT_CREATE, true, scene)
+    ZO_Gamepad_ParametricList_Screen.Initialize(object, control, ZO_GAMEPAD_HEADER_TABBAR_CREATE, true, scene)
     object:SetListsUseTriggerKeybinds(true)
     object.contentsPanel = BattleScrolls.inventoryPocContents.new(control:GetNamedChild('Contents'))
+    object.tab = 'activity'
+    object.pack = BattleScrolls.inventoryPocPack.new(object.headerContainer, object.header, function()
+        object:refreshHeader()
+        object:Update()
+    end)
     return object
+end
+
+function LogScreen:refreshHeader()
+    self.pack:headerData(self.headerData)
+    ZO_GamepadGenericHeader_RefreshData(self.header, self.headerData)
+end
+
+---@param tab 'activity'|'pack'
+function LogScreen:setTab(tab)
+    if self.tab == tab then return end
+    self.tab, self.resetSelection = tab, true
+    self:setContentsFocused(false)
+    if tab == 'pack' then self.pack:start() else self.pack:stop() end
+    self:refreshHeader()
+    self:Update()
 end
 
 ---Log rows are sentences with item links: the Journal's mixed-case item
@@ -195,7 +170,6 @@ function LogScreen:SetupList(list)
     list:AddDataTemplate(LOG_TEMPLATE, ZO_SharedGamepadEntry_OnSetup, ZO_GamepadMenuEntryTemplateParametricListFunction)
     list:AddDataTemplateWithHeader(LOG_TEMPLATE, ZO_SharedGamepadEntry_OnSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction, nil, 'ZO_GamepadMenuEntryHeaderTemplate')
-    list:SetNoItemText(GetString(BATTLESCROLLS_IPOC_EMPTY))
 end
 
 ---@param focused boolean
@@ -262,7 +236,8 @@ function LogScreen:OnTargetChanged(_list, selectedData)
     end
     self.contentsPanel:hide()
     if not selectedData then return end
-    if selectedData.logEntry then showLogTooltip(selectedData.logEntry)
+    if self.tab == 'pack' then self.pack:showTooltip(selectedData)
+    elseif selectedData.logEntry then showLogTooltip(selectedData.logEntry)
     elseif selectedData.buildChoice then
         local state = BattleScrolls.inventoryPocBuilds.state()
         if state and state.choice == selectedData.buildChoice and state.issue then
@@ -273,12 +248,12 @@ function LogScreen:OnTargetChanged(_list, selectedData)
     end
 end
 
-function LogScreen:PerformUpdate()
-    self.updatingLog = true
-    local list = self:GetMainList()
-    local selected, selectedIndex = list:GetTargetData(), nil
+---@param list ZO_ParametricScrollList
+---@param selected table|nil The entry selected before the refresh
+---@return number|nil selectedIndex
+function LogScreen:populateActivity(list, selected)
+    local selectedIndex
     local row = 0
-    list:Clear()
     local builds = BattleScrolls.inventoryPocBuilds
     local state = builds.state()
     local statusLabels = { bank = BATTLESCROLLS_IPOC_VISIT_BANK, armory = BATTLESCROLLS_IPOC_VISIT_ARMORY,
@@ -322,12 +297,30 @@ function LogScreen:PerformUpdate()
         row = row + 1
         if selected and selected.logEntry == entry then selectedIndex = row end
     end
-    list:Commit()
     if selected and selected.buildChoice and state then
         for index, profile in ipairs(builds.profiles) do
             if profile.id == selected.buildChoice then selectedIndex = index; break end
         end
     end
+    return selectedIndex
+end
+
+function LogScreen:PerformUpdate()
+    self.updatingLog = true
+    local list = self:GetMainList()
+    local selected = not self.resetSelection and list:GetTargetData() or nil
+    list:Clear()
+    local selectedIndex
+    if self.tab == 'pack' then
+        list:SetNoItemText(GetString(BATTLESCROLLS_IPOC_PACK_READING))
+        selectedIndex = self.pack:populate(list, selected)
+    else
+        list:SetNoItemText(GetString(BATTLESCROLLS_IPOC_EMPTY))
+        selectedIndex = self:populateActivity(list, selected)
+    end
+    list:Commit()
+    if self.resetSelection then selectedIndex = selectedIndex or 1 end
+    self.resetSelection = nil
     if selectedIndex then list:SetSelectedIndexWithoutAnimation(selectedIndex) end
     self.updatingLog = false
     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
@@ -340,9 +333,13 @@ function LogScreen:OnShowing()
     if poc.saved then poc.saved.unread = false end
     ui.refreshNewness()
     self.dirty = true
+    if self.tab == 'pack' then self.pack:start() end
+    self:refreshHeader()
     ZO_Gamepad_ParametricList_Screen.OnShowing(self)
+    ZO_GamepadGenericHeader_Activate(self.header)
     EVENT_MANAGER:RegisterForUpdate(SCENE_NAME, 250, function()
-        if self.logRevision ~= poc.revision or self.buildKey ~= buildKey() then self:Update() end
+        if self.tab == 'pack' then self.pack:update()
+        elseif self.logRevision ~= poc.revision or self.buildKey ~= buildKey() then self:Update() end
     end)
 end
 
@@ -352,6 +349,8 @@ function LogScreen:OnHiding()
     for _, entry in ipairs(poc.saved and poc.saved.log or {}) do entry.unread = nil end
     self.contentsFocused, self.selectedLogEntry = false, nil
     self.contentsPanel:hide()
+    self.pack:stop()
+    ZO_GamepadGenericHeader_Deactivate(self.header)
     resetTooltips()
     ZO_Gamepad_ParametricList_Screen.OnHiding(self)
 end
@@ -366,8 +365,13 @@ local function createScreen()
     scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
     scene:AddFragment(ZO_FadeSceneFragment:New(control))
     screen = LogScreen.new(control, scene)
-    screen.headerData = { titleText = GetString(BATTLESCROLLS_IPOC_TITLE) }
-    ZO_GamepadGenericHeader_Refresh(screen.header, screen.headerData)
+    screen.headerData = { tabBarEntries = {
+        { text = GetString(BATTLESCROLLS_IPOC_TAB_ACTIVITY), callback = function() screen:setTab('activity') end },
+        { text = GetString(BATTLESCROLLS_IPOC_TAB_PACK), callback = function() screen:setTab('pack') end },
+    } }
+    -- Building the tab bar selects its first tab; that is already the screen's state.
+    local BLOCK_TAB_CALLBACKS = true
+    ZO_GamepadGenericHeader_Refresh(screen.header, screen.headerData, BLOCK_TAB_CALLBACKS)
     -- The base screen activates the list during SCENE_SHOWING. Activating it
     -- here attaches its temporary fragment and input to the currently open UI.
 end
@@ -379,7 +383,6 @@ end
 ---@param enabled boolean
 function ui.setEnabled(enabled)
     BattleScrolls.inventoryPocWorkUI.setEnabled(enabled)
-    BattleScrolls.inventoryPocInspect.setEnabled(enabled)
     if enabled then BattleScrolls.inventoryPocUseUI.initialize() end
     BattleScrolls.inventoryPocHUD.setEnabled(enabled)
     if enabled and not menuEntry then

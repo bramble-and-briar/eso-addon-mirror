@@ -2,18 +2,11 @@
 
 local KPUI_TRADINGHOUSE = KPUI_TRADINGHOUSE
 local colors = KPUI_TRADINGHOUSE.colors
-local KelaGetATTSalesSecondsPerDay = KPUI_TRADINGHOUSE.KelaGetATTSalesSecondsPerDay
-local KelaCreateColorizedResumePrice = KPUI_TRADINGHOUSE.KelaCreateColorizedResumePrice
 local GetItemLinks = KPUI_TRADINGHOUSE.GetItemLinks
 local GetBuyInfo = KPUI_TRADINGHOUSE.GetBuyInfo
 local HideTradingTooltipControls = KPUI_TRADINGHOUSE.HideTradingTooltipControls
 local HideImprovementTooltipControls = KPUI_TRADINGHOUSE.HideImprovementTooltipControls
-local HideProvisionerTooltipControls = KPUI_TRADINGHOUSE.HideProvisionerTooltipControls
 local HideCreationTooltipControls = KPUI_TRADINGHOUSE.HideCreationTooltipControls
-local HideAlchemyTooltipControls = KPUI_TRADINGHOUSE.HideAlchemyTooltipControls
-local HideEnchantingTooltipControls = KPUI_TRADINGHOUSE.HideEnchantingTooltipControls
-local ResetProvisionerTradingTooltip = KPUI_TRADINGHOUSE.ResetProvisionerTradingTooltip
-local ResetCreationTradingTooltip = KPUI_TRADINGHOUSE.ResetCreationTradingTooltip
 local AddClearLine = KPUI_TRADINGHOUSE.AddClearLine
 local SetSmithTradingInfo = KPUI_TRADINGHOUSE.SetSmithTradingInfo
 local SetSmithGraph = KPUI_TRADINGHOUSE.SetSmithGraph
@@ -24,218 +17,116 @@ local SetProductionPrices = KPUI_TRADINGHOUSE.SetProductionPrices
 local SetCraftingComponents = KPUI_TRADINGHOUSE.SetCraftingComponents
 local IsKPUITradingHouseSettingEnabled = KPUI_TRADINGHOUSE.IsKPUITradingHouseSettingEnabled
 
-function ZO_Tooltip:LayoutEnchantingTradingTooltip(tooltip, itemLink, maxIterations, itemUniqueId)
-    local icon = GetItemLinkIcon(itemLink)
+-- The buy confirmation shows the hovered item's deal rating by overriding the
+-- core dialog strings. Keep the core text so an item without price data does
+-- not inherit the previous item's rating.
+local CORE_CONFIRM_BUY_TEXT = GetString(SI_GAMEPAD_TRADING_HOUSE_CONFIRM_BUY_DIALOG_TEXT)
+local CORE_CONFIRM_BUY_MULTIPLE_TEXT = GetString(SI_GAMEPAD_TRADING_HOUSE_CONFIRM_BUY_MULTIPLE_DIALOG_TEXT)
 
-	tooltip.scrollTooltip:ResetToTop()
-	tooltip.tip:ClearLines()
-	tooltip = tooltip.tip
-	local lastControl
-
-	local stackCount = maxIterations
-	if not stackCount then stackCount = 1 end
-	
-    if itemLink and itemLink ~= "" then
-        if tooltip.icon then
-            tooltip.icon:SetTexture(icon)
-            tooltip.icon:SetHidden(false)
-        end
-
-		local bodySection = tooltip:AcquireSection(tooltip:GetStyle("bodySection1"))
-		bodySection:AddLine(GetString(KELA_TRADING_TRADING_INFO))
-		bodySection:AddLine(" ")
-		tooltip:AddSection(bodySection)
-		lastControl = bodySection
-		
-		local listingItemsTable = KelaGetItemLinkListingTable(itemLink)
-		local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemLink)
-		-- Purchased item information
-		local isByingItem = false
-		local tblBuyingItems = {}
-		local itemUID
-		if itemUniqueId then
-			tblBuyingItems = kpuiSVBuyingData["buyingTable"]			
-			itemUID = Id64ToString(itemUniqueId)
-			if tblBuyingItems[itemUID] ~= nil then
-				isByingItem = true
-			end
-		end	
-		-- basic information
-		if trueTTC or trueATT then
-			if not ctlEnchantingInfo then ctlEnchantingInfo = CreateControlFromVirtual("$(parent)Info", tooltip, "KPUI_MainInfo") end	
-			local _, isTwoRowFooter
-			lastControl, _, isTwoRowFooter = SetSmithTradingInfo(ctlEnchantingInfo, lastControl, priceInfoTTC, priceInfoATT, nil, nil, stackCount)
-			local offsetY = 15
-			if isTwoRowFooter and IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_ATTINFO) then offsetY = 35 end
-			lastControl = AddClearLine(tooltip, lastControl, 0, offsetY)
-			if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_ATTINFO) then
-				if not ctlEnchantingGraph then ctlEnchantingGraph = CreateControlFromVirtual("$(parent)Graph", tooltip, "KPUI_Graph") end							
-				lastControl = SetSmithGraph (ctlEnchantingGraph, lastControl, itemLink, priceInfoTTC, priceInfoATT, stackCount)		
-			else
-				if ctlEnchantingGraph then ctlEnchantingGraph:SetHidden(true) end	
-			end
-		else
-			local bodySection = tooltip:AcquireSection(tooltip:GetStyle("bodySection1"))
-			bodySection:AddLine(GetString(KELA_TRADING_TRADING_NOTINFO))
-			tooltip:AddSection(bodySection)
-			bodySection:ClearAnchors()
-			bodySection:SetAnchor(TOPLEFT, lastControl, BOTTOMLEFT, 0, 0)
-			bodySection:SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT, 0, 0)					
-			lastControl = bodySection
-			lastControl = AddClearLine(tooltip, lastControl, 0, 0)
-			if ctlEnchantingInfo then ctlEnchantingInfo:SetHidden(true) end	
-			if ctlEnchantingGraph then ctlEnchantingGraph:SetHidden(true) end	
-		end
-		-- Purchased item information
-		if isByingItem then
-			local strBuyInfo = GetBuyInfo(tblBuyingItems, itemUID, itemLink)
-			lastControl = SetSmithNotes(tooltip, lastControl, strBuyInfo)			
-		end	
-		-- Previous sales
-		if next(listingItemsTable) ~= nil and IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_LISTINGS) then
-			if not ctlEnchantingListings then ctlEnchantingListings = CreateControlFromVirtual("$(parent)Listings", tooltip, "KPUI_PreviousListings") end	
-			lastControl = SetSmithListings(ctlEnchantingListings, lastControl, listingItemsTable)
-			lastControl = AddClearLine(tooltip, lastControl, 0, -15)	
-		else
-			if ctlEnchantingListings then ctlEnchantingListings:SetHidden(true) end	
-		end	
+local function SetBuyDialogDealText(effectOfDeal)
+	if effectOfDeal and effectOfDeal ~= "" then
+		SafeAddString(SI_GAMEPAD_TRADING_HOUSE_CONFIRM_BUY_DIALOG_TEXT, GetString(KELA_TRADING_TRADING_CONFIRM_BUY).."\n\n"..effectOfDeal, 1)
+		SafeAddString(SI_GAMEPAD_TRADING_HOUSE_CONFIRM_BUY_MULTIPLE_DIALOG_TEXT, GetString(KELA_TRADING_TRADING_CONFIRM_BUY_MULT).."\n\n"..effectOfDeal, 0)
 	else
-		HideEnchantingTooltipControls()				
-    end
-
+		SafeAddString(SI_GAMEPAD_TRADING_HOUSE_CONFIRM_BUY_DIALOG_TEXT, CORE_CONFIRM_BUY_TEXT, 1)
+		SafeAddString(SI_GAMEPAD_TRADING_HOUSE_CONFIRM_BUY_MULTIPLE_DIALOG_TEXT, CORE_CONFIRM_BUY_MULTIPLE_TEXT, 0)
+	end
 end
 
-function ZO_Tooltip:LayoutAlchemyTradingTooltip(tooltip, itemLink, maxIterations)
-    local icon = GetItemLinkIcon(itemLink)
+-- Control names per station, kept from the original per-station layouts.
+local STATION_CONTROL_NAMES =
+{
+	enchanting = { info = "$(parent)Info", graph = "$(parent)Graph", listings = "$(parent)Listings" },
+	alchemy = { info = "$(parent)Info", graph = "$(parent)Graph", listings = "$(parent)Listings" },
+	provisioner = { info = "$(parent)ProvInfo", graph = "$(parent)ProvGraph", listings = "$(parent)SListings" },
+}
 
+-- Price tooltip beside the enchanting, alchemy and provisioning result: price
+-- table, ATT graph, purchase note (when itemUniqueId is known) and previous
+-- listings. `station` names the control set in STATION_CONTROLS.
+local function LayoutStationTradingTooltip(station, tooltip, itemLink, icon, stackCount, selectedData, itemUniqueId)
+	local controls = KPUI_TRADINGHOUSE.STATION_CONTROLS[station]
+	local names = STATION_CONTROL_NAMES[station]
 	tooltip.scrollTooltip:ResetToTop()
 	tooltip.tip:ClearLines()
 	tooltip = tooltip.tip
-	local lastControl
+	stackCount = stackCount or 1
 
-	local stackCount = maxIterations
-	if not stackCount then stackCount = 1 end
-	
-    if itemLink and itemLink ~= "" then
-        if tooltip.icon then
-            tooltip.icon:SetTexture(icon)
-            tooltip.icon:SetHidden(false)
-        end
-
-		local bodySection = tooltip:AcquireSection(tooltip:GetStyle("bodySection1"))
-		bodySection:AddLine(GetString(KELA_TRADING_TRADING_INFO))
-		bodySection:AddLine(" ")
-		tooltip:AddSection(bodySection)
-		lastControl = bodySection
-		
-		local listingItemsTable = KelaGetItemLinkListingTable(itemLink)
-		local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemLink)
-
-		-- basic information
-		if trueTTC or trueATT then
-			if not ctlAlchemyInfo then ctlAlchemyInfo = CreateControlFromVirtual("$(parent)Info", tooltip, "KPUI_MainInfo") end	
-			local _, isTwoRowFooter
-			lastControl, _, isTwoRowFooter = SetSmithTradingInfo(ctlAlchemyInfo, lastControl, priceInfoTTC, priceInfoATT, nil, nil, stackCount)
-			local offsetY = 15
-			if isTwoRowFooter and IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_ATTINFO) then offsetY = 35 end
-			lastControl = AddClearLine(tooltip, lastControl, 0, offsetY)
-			if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_ATTINFO) then
-				if not ctlAlchemyGraph then ctlAlchemyGraph = CreateControlFromVirtual("$(parent)Graph", tooltip, "KPUI_Graph") end							
-				lastControl = SetSmithGraph (ctlAlchemyGraph, lastControl, itemLink, priceInfoTTC, priceInfoATT, stackCount)			
-			else
-				if ctlAlchemyGraph then ctlAlchemyGraph:SetHidden(true) end	
-			end
-		else
-			local bodySection = tooltip:AcquireSection(tooltip:GetStyle("bodySection1"))
-			bodySection:AddLine(GetString(KELA_TRADING_TRADING_NOTINFO))
-			tooltip:AddSection(bodySection)
-			bodySection:ClearAnchors()
-			bodySection:SetAnchor(TOPLEFT, lastControl, BOTTOMLEFT, 0, 0)
-			bodySection:SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT, 0, 0)					
-			lastControl = bodySection
-			lastControl = AddClearLine(tooltip, lastControl, 0, 0)
-			if ctlAlchemyInfo then ctlAlchemyInfo:SetHidden(true) end	
-			if ctlAlchemyGraph then ctlAlchemyGraph:SetHidden(true) end	
+	if not itemLink or itemLink == "" then
+		for _, control in pairs(controls) do
+			control:SetHidden(true)
 		end
-		-- Previous sales
-		if next(listingItemsTable) ~= nil and IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_LISTINGS) then
-			if not ctlAlchemyListings then ctlAlchemyListings = CreateControlFromVirtual("$(parent)Listings", tooltip, "KPUI_PreviousListings") end	
-			lastControl = SetSmithListings(ctlAlchemyListings, lastControl, listingItemsTable)
-			lastControl = AddClearLine(tooltip, lastControl, 0, -15)	
-		else
-			if ctlAlchemyListings then ctlAlchemyListings:SetHidden(true) end	
-		end	
-	else
-		HideAlchemyTooltipControls()				
-    end
+		return
+	end
 
+	if tooltip.icon then
+		tooltip.icon:SetTexture(icon)
+		tooltip.icon:SetHidden(false)
+	end
+
+	local bodySection = tooltip:AcquireSection(tooltip:GetStyle("bodySection1"))
+	bodySection:AddLine(GetString(KELA_TRADING_TRADING_INFO))
+	bodySection:AddLine(" ")
+	tooltip:AddSection(bodySection)
+	local lastControl = bodySection
+
+	local listingItemsTable = KelaGetItemLinkListingTable(itemLink)
+	local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemLink)
+
+	-- basic information
+	if trueTTC or trueATT then
+		controls.info = controls.info or CreateControlFromVirtual(names.info, tooltip, "KPUI_MainInfo")
+		lastControl = SetSmithTradingInfo(controls.info, lastControl, priceInfoTTC, priceInfoATT, nil, selectedData, stackCount)
+		lastControl = AddClearLine(tooltip, lastControl, 0, 0)
+		if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_ATTINFO) then
+			controls.graph = controls.graph or CreateControlFromVirtual(names.graph, tooltip, "KPUI_Graph")
+			lastControl = SetSmithGraph(controls.graph, lastControl, itemLink, priceInfoTTC, priceInfoATT, stackCount)
+		elseif controls.graph then
+			controls.graph:SetHidden(true)
+		end
+	else
+		local noInfoSection = tooltip:AcquireSection(tooltip:GetStyle("bodySection1"))
+		noInfoSection:AddLine(GetString(KELA_TRADING_TRADING_NOTINFO))
+		tooltip:AddSection(noInfoSection)
+		noInfoSection:ClearAnchors()
+		noInfoSection:SetAnchor(TOPLEFT, lastControl, BOTTOMLEFT, 0, 0)
+		noInfoSection:SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT, 0, 0)
+		lastControl = AddClearLine(tooltip, noInfoSection, 0, 0)
+		if controls.info then controls.info:SetHidden(true) end
+		if controls.graph then controls.graph:SetHidden(true) end
+	end
+
+	-- Purchased item information
+	if itemUniqueId then
+		local tblBuyingItems = kpuiSVBuyingData["buyingTable"]
+		local itemUID = Id64ToString(itemUniqueId)
+		if tblBuyingItems[itemUID] ~= nil then
+			lastControl = SetSmithNotes(tooltip, lastControl, GetBuyInfo(tblBuyingItems, itemUID, itemLink))
+		end
+	end
+
+	-- Previous sales
+	if next(listingItemsTable) ~= nil and IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_LISTINGS) then
+		controls.listings = controls.listings or CreateControlFromVirtual(names.listings, tooltip, "KPUI_PreviousListings")
+		lastControl = SetSmithListings(controls.listings, lastControl, listingItemsTable)
+		AddClearLine(tooltip, lastControl, 0, -15)
+	elseif controls.listings then
+		controls.listings:SetHidden(true)
+	end
 end
 
-function ZO_Tooltip:LayoutProvisionerTradingTooltip(tooltip, recipeListIndex, recipeIndex, selectedData)
-    local _, icon = GetRecipeResultItemInfo(recipeListIndex, recipeIndex)
-    local itemLink = GetRecipeResultItemLink(recipeListIndex, recipeIndex)
+function KelaLayoutEnchantingTradingTooltip(tooltip, itemLink, maxIterations, itemUniqueId)
+	LayoutStationTradingTooltip("enchanting", tooltip, itemLink, GetItemLinkIcon(itemLink), maxIterations, nil, itemUniqueId)
+end
 
-	tooltip.scrollTooltip:ResetToTop()
-	tooltip.tip:ClearLines()
-	tooltip = tooltip.tip
-	local lastControl
+function KelaLayoutAlchemyTradingTooltip(tooltip, itemLink, maxIterations)
+	LayoutStationTradingTooltip("alchemy", tooltip, itemLink, GetItemLinkIcon(itemLink), maxIterations)
+end
 
-	local stackCount = selectedData and selectedData.stackCount
-	if not stackCount then stackCount = 1 end
-	
-    if itemLink and itemLink ~= "" then
-        if tooltip.icon then
-            tooltip.icon:SetTexture(icon)
-            tooltip.icon:SetHidden(false)
-        end
-
-		local bodySection = tooltip:AcquireSection(tooltip:GetStyle("bodySection1"))
-		bodySection:AddLine(GetString(KELA_TRADING_TRADING_INFO))
-		bodySection:AddLine(" ")
-		tooltip:AddSection(bodySection)
-		lastControl = bodySection
-	
-		local listingItemsTable = KelaGetItemLinkListingTable(itemLink)
-		local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemLink)
-
-		-- basic information
-		if trueTTC or trueATT then
-			if not ctlProvisionerInfo then ctlProvisionerInfo = CreateControlFromVirtual("$(parent)ProvInfo", tooltip, "KPUI_MainInfo") end	
-			local _, isTwoRowFooter
-			lastControl, _, isTwoRowFooter = SetSmithTradingInfo(ctlProvisionerInfo, lastControl, priceInfoTTC, priceInfoATT, nil, selectedData, stackCount)
-			local offsetY = 15
-			if isTwoRowFooter and IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_ATTINFO) then offsetY = 35 end
-			lastControl = AddClearLine(tooltip, lastControl, 0, offsetY)
-			if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_ATTINFO) then
-				if not ctlProvisionerGraph then ctlProvisionerGraph = CreateControlFromVirtual("$(parent)ProvGraph", tooltip, "KPUI_Graph") end							
-				lastControl = SetSmithGraph (ctlProvisionerGraph, lastControl, itemLink, priceInfoTTC, priceInfoATT, stackCount)
-			else
-				if ctlProvisionerGraph then ctlProvisionerGraph:SetHidden(true) end	
-			end
-		else
-			local bodySection = tooltip:AcquireSection(tooltip:GetStyle("bodySection1"))
-			bodySection:AddLine(GetString(KELA_TRADING_TRADING_NOTINFO))
-			tooltip:AddSection(bodySection)
-			bodySection:ClearAnchors()
-			bodySection:SetAnchor(TOPLEFT, lastControl, BOTTOMLEFT, 0, 0)
-			bodySection:SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT, 0, 0)					
-			lastControl = bodySection
-			lastControl = AddClearLine(tooltip, lastControl, 0, 0)
-			if ctlProvisionerInfo then ctlProvisionerInfo:SetHidden(true) end	
-			if ctlProvisionerGraph then ctlProvisionerGraph:SetHidden(true) end	
-		end
-		-- Previous sales
-		if next(listingItemsTable) ~= nil and IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_LISTINGS) then
-			if not ctlProvisionerListings then ctlProvisionerListings = CreateControlFromVirtual("$(parent)SListings", tooltip, "KPUI_PreviousListings") end	
-			lastControl = SetSmithListings(ctlProvisionerListings, lastControl, listingItemsTable)
-			lastControl = AddClearLine(tooltip, lastControl, 0, -15)	
-		else
-			if ctlProvisionerListings then ctlProvisionerListings:SetHidden(true) end	
-		end	
-	else
-		HideProvisionerTooltipControls()				
-    end
-
+function KelaLayoutProvisionerTradingTooltip(tooltip, recipeListIndex, recipeIndex, selectedData)
+	local _, icon = GetRecipeResultItemInfo(recipeListIndex, recipeIndex)
+	local itemLink = GetRecipeResultItemLink(recipeListIndex, recipeIndex)
+	LayoutStationTradingTooltip("provisioner", tooltip, itemLink, icon, selectedData and selectedData.stackCount, selectedData)
 end
 
 function ZO_Tooltip:LayoutSmithingCreationTooltip(tooltip, itemLink)
@@ -269,7 +160,7 @@ function ZO_Tooltip:LayoutSmithingCreationTooltip(tooltip, itemLink)
 		if trueTTC or trueATT then
 			if not ctlCreationInfo then ctlCreationInfo = CreateControlFromVirtual("$(parent)Info", tooltip, "KPUI_MainInfo") end	
 			lastControl = SetSmithTradingInfo(ctlCreationInfo, lastControl, priceInfoTTC, priceInfoATT)
-			lastControl = AddClearLine(tooltip, lastControl, 0, 15)
+			lastControl = AddClearLine(tooltip, lastControl, 0, 0)
 			if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_ATTINFO) then
 				if not ctlCreationGraph then ctlCreationGraph = CreateControlFromVirtual("$(parent)Graph", tooltip, "KPUI_Graph") end							
 				lastControl = SetSmithGraph (ctlCreationGraph, lastControl, itemLink, priceInfoTTC, priceInfoATT, 1)
@@ -327,7 +218,7 @@ function ZO_Tooltip:LayoutSmithingTradingTooltip(tooltip, itemBagId, itemSlotInd
 	if craftingSkillType then 
 		hide = "result"
 		itemLink = GetSmithingImprovedItemLink(itemBagId, itemSlotIndex, craftingSkillType) 
-		_, icon = GetSmithingImprovedItemInfo(itemBagId, itemSlotIndex, craftingSkillType)
+		icon = select(2, GetSmithingImprovedItemInfo(itemBagId, itemSlotIndex, craftingSkillType))
 	else
 		hide = "source"
 		itemLink = GetItemLink(itemBagId, itemSlotIndex)
@@ -386,7 +277,7 @@ function ZO_Tooltip:LayoutSmithingTradingTooltip(tooltip, itemBagId, itemSlotInd
 				if craftingSkillType then -- result tooltip
 					if not ctlResultInfo then ctlResultInfo = CreateControlFromVirtual("$(parent)RInfo", tooltip, "KPUI_MainInfo") end	
 					lastControl = SetSmithTradingInfo(ctlResultInfo, lastControl, priceInfoTTC, priceInfoATT, nil, selectedData)
-					lastControl = AddClearLine(tooltip, lastControl, 0, 15)
+					lastControl = AddClearLine(tooltip, lastControl, 0, 0)
 					if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_ATTINFO) then
 						if not ctlResultGraph then ctlResultGraph = CreateControlFromVirtual("$(parent)RGraph", tooltip, "KPUI_Graph") end							
 						lastControl = SetSmithGraph (ctlResultGraph, lastControl, itemLink, priceInfoTTC, priceInfoATT, 1)
@@ -396,7 +287,7 @@ function ZO_Tooltip:LayoutSmithingTradingTooltip(tooltip, itemBagId, itemSlotInd
 				else
 					if not ctlSourceInfo then ctlSourceInfo = CreateControlFromVirtual("$(parent)SInfo", tooltip, "KPUI_MainInfo") end	
 					lastControl = SetSmithTradingInfo(ctlSourceInfo, lastControl, priceInfoTTC, priceInfoATT, nil, selectedData)
-					lastControl = AddClearLine(tooltip, lastControl, 0, 15)
+					lastControl = AddClearLine(tooltip, lastControl, 0, 0)
 					if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_ATTINFO) then
 						if not ctlSourceGraph then ctlSourceGraph = CreateControlFromVirtual("$(parent)SGraph", tooltip, "KPUI_Graph") end							
 						lastControl = SetSmithGraph (ctlSourceGraph, lastControl, itemLink, priceInfoTTC, priceInfoATT, 1)
@@ -531,7 +422,7 @@ function ZO_Tooltip:LayoutTradingTooltip(currentScene, itemLink, selectedData, t
 			-- Shown in the Guild Trader
 			local bodySection = self:AcquireSection(self:GetStyle("bodySection1"))
 			local currentGuildId = GetSelectedTradingHouseGuildId()
-			guildName = GetGuildName(currentGuildId)
+			local guildName = GetGuildName(currentGuildId)
 			if currentGuildId and guildName ~= "" then
 				local allianceId = GetGuildAlliance(currentGuildId)
 				local icon = ZO_GetLargeAllianceSymbolIcon(allianceId)
@@ -574,7 +465,22 @@ function ZO_Tooltip:LayoutTradingTooltip(currentScene, itemLink, selectedData, t
 					isByingItem = true
 				end
 			end			
+			local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemLink)
+			local dealRatingText = (trueTTC or trueATT) and KelaGetDealRatingText(priceInfoTTC, priceInfoATT, selectedData, currentScene, stackCount)
 			local function AddTitle(lastControl)
+				-- Deal evaluation sits above the item name, styled like the
+				-- "Good type:" line. Trading house only.
+				if dealRatingText then
+					local dealSection = self:AcquireSection(self:GetStyle("bodySection1"))
+					dealSection:AddLine(colors.GENERAL_COLOR_NORMAL:Colorize(GetString(KELA_TRADING_DEAL_EVALUATION)).." "..dealRatingText, self:GetStyle("bodyHeader"))
+					self:AddSection(dealSection)
+					if lastControl then
+						dealSection:ClearAnchors()
+						dealSection:SetAnchor(TOPLEFT, lastControl, BOTTOMLEFT, 0, 0)
+						dealSection:SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT, 0, 0)
+					end
+					lastControl = dealSection
+				end
 				-- Adds the Item name
 				local bodySection = self:AcquireSection(self:GetStyle("bodySection1"))
 				bodySection:AddLine(colorizedItemName, self:GetStyle("title"))
@@ -582,9 +488,9 @@ function ZO_Tooltip:LayoutTradingTooltip(currentScene, itemLink, selectedData, t
 				if lastControl then
 					bodySection:ClearAnchors()
 					bodySection:SetAnchor(TOPLEFT, lastControl, BOTTOMLEFT, 0, 10)
-					bodySection:SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT, 0, 10)								
+					bodySection:SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT, 0, 10)
 				end
-				return bodySection			
+				return bodySection
 			end
 
 			-- information about the level of benefits in guilds by type of product	
@@ -608,18 +514,11 @@ function ZO_Tooltip:LayoutTradingTooltip(currentScene, itemLink, selectedData, t
 			end
 			
 			-- basic information
-			local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemLink)
+			local effectOfDeal
 			if trueTTC or trueATT then
-				if not ctlTradingInfo then ctlTradingInfo = CreateControlFromVirtual("$(parent)Info", self, "KPUI_MainInfo") end	
-				local isTwoRowFooter
-				lastControl, effectOfDeal, isTwoRowFooter = SetSmithTradingInfo(ctlTradingInfo, lastControl, priceInfoTTC, priceInfoATT, currentScene, selectedData, stackCount)
-				local offsetY = 15
-				if isTwoRowFooter and IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_ATTINFO) then offsetY = 35 end
-				lastControl = AddClearLine(self, lastControl, 0, offsetY)
-				if effectOfDeal and effectOfDeal ~= "" then
-					SafeAddString(SI_GAMEPAD_TRADING_HOUSE_CONFIRM_BUY_DIALOG_TEXT, GetString(KELA_TRADING_TRADING_CONFIRM_BUY).."\n\n"..effectOfDeal, 1)
-					SafeAddString(SI_GAMEPAD_TRADING_HOUSE_CONFIRM_BUY_MULTIPLE_DIALOG_TEXT, GetString(KELA_TRADING_TRADING_CONFIRM_BUY_MULT).."\n\n"..effectOfDeal, 0)
-				end
+				if not ctlTradingInfo then ctlTradingInfo = CreateControlFromVirtual("$(parent)Info", self, "KPUI_MainInfo") end
+				lastControl, effectOfDeal = SetSmithTradingInfo(ctlTradingInfo, lastControl, priceInfoTTC, priceInfoATT, currentScene, selectedData, stackCount)
+				lastControl = AddClearLine(self, lastControl, 0, 0)
 				if ArkadiusTradeTools and IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_ATTINFO) then
 					if not KPUI_ATTGraph then KPUI_ATTGraph = CreateControlFromVirtual("$(parent)ProvGraph", self, "KPUI_Graph") end							
 					lastControl = SetSmithGraph (KPUI_ATTGraph, lastControl, itemLink, priceInfoTTC, priceInfoATT, stackCount)
@@ -635,9 +534,10 @@ function ZO_Tooltip:LayoutTradingTooltip(currentScene, itemLink, selectedData, t
 				bodySection:SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT, 0, 0)					
 				lastControl = bodySection
 				lastControl = AddClearLine(self, lastControl, 0, 0)
-				if ctlTradingInfo then ctlTradingInfo:SetHidden(true) end	
-				if KPUI_ATTGraph then KPUI_ATTGraph:SetHidden(true) end	
+				if ctlTradingInfo then ctlTradingInfo:SetHidden(true) end
+				if KPUI_ATTGraph then KPUI_ATTGraph:SetHidden(true) end
 			end
+			SetBuyDialogDealText(effectOfDeal)
 
 			-- Information about the purchased item
 			if isByingItem then
@@ -682,10 +582,14 @@ function ZO_Tooltip:LayoutTradingTooltip(currentScene, itemLink, selectedData, t
 			end
 
 			-- crafting components table
-			local isATTCraftingInfo, craftingComponentPrices = KelaGetCurrentATTCraftingInfo(itemLink)
-			if isATTCraftingInfo and IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_COMPONENTS) then 
-				if not ctlCraftingComponentsInfo then ctlCraftingComponentsInfo = CreateControlFromVirtual("$(parent)ctlCraftingInfo", self, "KPUI_CraftingInfo") end	
-				SetCraftingComponents(ctlCraftingComponentsInfo, lastControl, craftingComponentPrices)
+			-- Check the setting first: the component lookup queries ATT for every part.
+			local isATTCraftingInfo, craftingComponentPrices
+			if IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_COMPONENTS) then
+				isATTCraftingInfo, craftingComponentPrices = KelaGetCurrentATTCraftingInfo(itemLink)
+			end
+			if isATTCraftingInfo then
+				if not ctlCraftingComponentsInfo then ctlCraftingComponentsInfo = CreateControlFromVirtual("$(parent)ctlCraftingInfo", self, "KPUI_CraftingInfo") end
+				lastControl = SetCraftingComponents(ctlCraftingComponentsInfo, lastControl, craftingComponentPrices) or lastControl
 			else
 				if ctlCraftingComponentsInfo then ctlCraftingComponentsInfo:SetHidden(true) end					
 			end

@@ -1,3 +1,8 @@
+26.11.3
+
+- Fixed Mundus Stone icons not updating in the inventory's Equipment tab.
+- Made the equipment planner more compact and aligned its panel background.
+
 26.11.2
 
 - Open the equipment planner from your inventory without visiting a crafting station.

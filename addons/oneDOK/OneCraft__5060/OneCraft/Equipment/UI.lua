@@ -180,7 +180,7 @@ function P.RefreshUI()
     for i, data in ipairs(materials) do
         local row = P.materialRows[i]
         if not row then
-            row = label(P.materialChild, "", 0, (i - 1) * 38, 320, "ZoFontGameSmall")
+            row = label(P.materialChild, "", 0, (i - 1) * 38, 201, "ZoFontGameSmall")
             hint(row, function() return row.link end)
             P.materialRows[i] = row
         end
@@ -332,26 +332,41 @@ function P.CreateInventoryTabs()
             alwaysShowTooltip = true}
     end
     -- The inventory scene normally owns these fragments directly. Move its
-    -- equipment content into a tab group; the bar replaces the old header.
+    -- equipment content into a tab group; the bar replaces the old header artwork.
+    -- Keep the header fragment active: native Mundus updates require it to be shown.
     scene:RemoveFragment(CHARACTER_WINDOW_FRAGMENT)
     scene:RemoveFragment(CHARACTER_WINDOW_HEADER_FRAGMENT)
     scene:RemoveFragment(CHARACTER_WINDOW_STATS_FRAGMENT)
-    tabs:Add(SI_CHARACTER_EQUIP_TITLE, {CHARACTER_WINDOW_FRAGMENT, CHARACTER_WINDOW_STATS_FRAGMENT},
+    tabs:Add(SI_CHARACTER_EQUIP_TITLE, {CHARACTER_WINDOW_FRAGMENT, CHARACTER_WINDOW_HEADER_FRAGMENT, CHARACTER_WINDOW_STATS_FRAGMENT},
         tabData("EsoUI/Art/WritAdvisor/advisor_tabIcon_equip_"))
     tabs:Add(P.tabId, {P.fragment}, tabData("EsoUI/Art/Crafting/smithing_tabIcon_creation_"))
     P.inventoryEquipmentButton = ZO_MenuBar_GetButtonControl(menu, SI_CHARACTER_EQUIP_TITLE)
     P.inventoryPlannerButton = ZO_MenuBar_GetButtonControl(menu, P.tabId)
     scene:AddFragment(ZO_SimpleSceneFragment:New(bar))
+    local header = ZO_Character:GetNamedChild("HeaderSection")
+    local headerAlpha
+    local function hideHeaderArtwork()
+        if headerAlpha == nil then headerAlpha = header:GetAlpha() end
+        header:SetAlpha(0)
+    end
     scene:RegisterCallback("StateChange", function(_, state)
         if state == SCENE_SHOWING then
+            hideHeaderArtwork()
             bar:BringWindowToTop()
             tabs:SelectFragment(SI_CHARACTER_EQUIP_TITLE)
         elseif state == SCENE_HIDING then
             tabs:Clear()
             hidePlanner()
+            if headerAlpha ~= nil then
+                header:SetAlpha(headerAlpha)
+                headerAlpha = nil
+            end
         end
     end)
-    if scene:IsShowing() then tabs:SelectFragment(SI_CHARACTER_EQUIP_TITLE) end
+    if scene:IsShowing() then
+        hideHeaderArtwork()
+        tabs:SelectFragment(SI_CHARACTER_EQUIP_TITLE)
+    end
 end
 
 function P.CreateUI()
@@ -410,16 +425,16 @@ function P.CreateUI()
     extras:SetDimensions(228, 94)
     for i = 1, P.extraCount do createSlot("extra" .. i, extras, nil, ((i - 1) % 5) * 46, math.floor((i - 1) / 5) * 50) end
     local panel = W:CreateControl("OneCraftEquipmentEditorPanel", origin, CT_CONTROL)
-    panel:SetAnchor(TOPLEFT, origin, TOPLEFT, 242, 78)
-    panel:SetDimensions(810, 658)
+    panel:SetAnchor(TOPLEFT, origin, TOPLEFT, 226, 78)
+    panel:SetDimensions(636, 658)
     -- Use ESO's side-panel background with soft falloff, not a tooltip frame.
     local background = W:CreateControlFromVirtual("OneCraftEquipmentEditorBackground", panel, "ZO_PanelBackground")
-    -- Match the doll's actual background texture, including the panel's
-    -- 64px top/bottom falloff and its 16px left inset.
+    -- Join the doll's right edge without a horizontal gap, retaining the
+    -- panel texture's 64px top/bottom falloff.
     local dollBackground = ZO_SharedThinLeftPanelBackground:GetNamedChild("Left")
     background:ClearAnchors()
-    background:SetAnchor(TOPLEFT, dollBackground, TOPRIGHT, 16, 64)
-    background:SetAnchor(BOTTOMRIGHT, dollBackground, BOTTOMRIGHT, 810, -64)
+    background:SetAnchor(TOPLEFT, dollBackground, TOPRIGHT, 0, 64)
+    background:SetAnchor(BOTTOMRIGHT, dollBackground, BOTTOMRIGHT, 620, -64)
     background:SetDrawLayer(DL_BACKGROUND)
     background:SetAlpha(0.8)
     local function panelDivider(name, x, y, width)
@@ -430,14 +445,14 @@ function P.CreateUI()
     P.fields, P.combos = {"set", "type", "level", "style", "trait", "enchant", "quality"}, {}
     local editor = W:CreateControl(nil, panel, CT_CONTROL)
     editor:SetAnchor(TOPLEFT, panel, TOPLEFT, 8, 14)
-    editor:SetDimensions(410, 466)
+    editor:SetDimensions(355, 466)
     for i, field in ipairs(P.fields) do
         local fieldLabel = label(editor, P.words[field], 0, (i - 1) * 52 + 4, 130, "ZoFontHeader")
         fieldLabel:SetModifyTextType(MODIFY_TEXT_TYPE_UPPERCASE)
-        panelDivider("OneCraftEquipmentDivider" .. field, 8, 58 + (i - 1) * 52, 405)
+        panelDivider("OneCraftEquipmentDivider" .. field, 8, 58 + (i - 1) * 52, 350)
         local control = W:CreateControlFromVirtual("OneCraftEquipmentField" .. field, editor, "ZO_ComboBox")
         control:SetAnchor(TOPLEFT, editor, TOPLEFT, 130, (i - 1) * 52)
-        control:SetDimensions(275, 32)
+        control:SetDimensions(220, 32)
         local combo = ZO_ComboBox_ObjectFromContainer(control)
         combo:SetSortsItems(false)
         P.combos[field] = combo
@@ -447,25 +462,26 @@ function P.CreateUI()
             control:SetHandler("OnMouseExit", function() clearItemTooltip(); ClearTooltip(InformationTooltip) end)
         end
     end
-    button(editor, P.words.apply, 0, 434, 195, function() report(P.Apply(P.selected, P.draft)) end)
-    button(editor, P.words.remove, 210, 434, 195, function()
+    button(editor, P.words.apply, 0, 434, 168, function() report(P.Apply(P.selected, P.draft)) end)
+    button(editor, P.words.remove, 183, 434, 167, function()
         P.saved.items[P.selected] = nil
         P.Select(P.selected)
     end)
-    local materialHeader = label(panel, P.words.materials, 458, 16, 340, "ZoFontWinH3")
+    local materialHeader = label(panel, P.words.materials, 403, 16, 221, "ZoFontWinH3")
+    materialHeader:SetHeight(56)
     materialHeader:SetModifyTextType(MODIFY_TEXT_TYPE_UPPERCASE)
-    panelDivider("OneCraftEquipmentMaterialsDivider", 458, 50, 340)
-    panelDivider("OneCraftEquipmentActionsDivider", 8, 432, 790)
+    panelDivider("OneCraftEquipmentMaterialsDivider", 403, 78, 221)
+    panelDivider("OneCraftEquipmentActionsDivider", 8, 432, 616)
     local scroll = W:CreateControlFromVirtual("OneCraftEquipmentMaterials", panel, "ZO_ScrollContainer")
-    scroll:SetAnchor(TOPLEFT, panel, TOPLEFT, 458, 64)
-    scroll:SetDimensions(340, 335)
+    scroll:SetAnchor(TOPLEFT, panel, TOPLEFT, 403, 92)
+    scroll:SetDimensions(221, 307)
     P.materialChild = scroll:GetNamedChild("ScrollChild")
-    P.materialChild:SetWidth(320)
-    P.queueLabel = label(panel, "", 458, 404, 340, "ZoFontWinH3")
-    P.submitButton = button(panel, P.words.submit, 458, 448, 340, function() report(P.Submit()) end)
-    P.cancelButton = button(panel, P.words.cancel, 458, 491, 340, function() report(P.Cancel()) end)
-    P.clearButton = button(panel, P.words.clear, 458, 534, 340, function() report(P.ClearAll()) end)
-    P.statusLabel = label(panel, "", 458, 574, 340, "ZoFontGame")
+    P.materialChild:SetWidth(201)
+    P.queueLabel = label(panel, "", 403, 404, 221, "ZoFontWinH3")
+    P.submitButton = button(panel, P.words.submit, 403, 448, 221, function() report(P.Submit()) end)
+    P.cancelButton = button(panel, P.words.cancel, 403, 491, 221, function() report(P.Cancel()) end)
+    P.clearButton = button(panel, P.words.clear, 403, 534, 221, function() report(P.ClearAll()) end)
+    P.statusLabel = label(panel, "", 403, 574, 221, "ZoFontGame")
     P.statusLabel:SetHeight(85)
 
     -- The native fragment bar removes the equipped/writ fragment group when

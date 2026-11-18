@@ -10,7 +10,7 @@ function PDI.OpenCompanionPage()
     else PDI.Msg("Get the LPI Companion at |cFFFFFF" .. PDI.COMPANION_URL .. "|r") end
 end
 PDI.displayName = "Lethal PVP Insights"
-PDI.version     = "1.11.0"
+PDI.version     = "1.11.3"
 
 -- Retention
 PDI.OPPONENT_RETENTION_DAYS = 7    -- combat/opponent data (feature 3)

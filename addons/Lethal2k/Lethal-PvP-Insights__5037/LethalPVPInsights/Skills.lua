@@ -446,11 +446,22 @@ local BUFF_UNCERTAIN = {
     ["erudite's rigor"] = true, ["ink-scribe's verve"] = true,
     -- cast by another player too (a group member's buff, or the synergy of another player's ultimate)
     ["chakram of destiny"] = true, ["summon charged atronach"] = true, ["gibbering shelter"] = true,
+    ["living trellis"] = true,
 }
 -- cast on you by other players too: only listed for a player when it's on their captured skill bars
 local NEEDS_BARS = { ["gibbering shelter"] = true }
 function Skills:NeedsBars(name)
     return NEEDS_BARS[string.lower(zo_strtrim(zo_strformat("<<1>>", name or "")))] == true
+end
+-- proc sets that buff or heal other players too (Grand Rejuvenation, Combat Physician): only listed for a player when the set
+-- is in their captured gear (group build), never guessed from a buff or effect seen on them
+local NEEDS_GEAR = { ["grand rejuvenation"] = true, ["combat physician"] = true }
+Skills.NEEDS_GEAR = NEEDS_GEAR
+-- morphs of one skill: a player has only one, so when the self-only morph is seen the group one came from
+-- someone else (Resolving Vigor heals only you; Echoing Vigor also heals group members)
+Skills.EXCLUDED_BY = { ["echoing vigor"] = "resolving vigor" }
+function Skills:NeedsGear(name)
+    return NEEDS_GEAR[string.lower(zo_strtrim(zo_strformat("<<1>>", name or "")))] == true
 end
 function Skills:BuffUncertain(name)
     return BUFF_UNCERTAIN[string.lower(zo_strtrim(zo_strformat("<<1>>", name or "")))] == true

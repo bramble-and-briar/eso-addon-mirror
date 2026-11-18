@@ -1,0 +1,15 @@
+<GuiXml>
+    <Controls>
+        <!-- Console / gamepad screens: ESO's standard parametric list screen (UI/Console.lua) -->
+        <TopLevelControl name="ScoreboardRemastered_ScoreboardConsole" inherits="ZO_Gamepad_ParametricList_Screen" hidden="true">
+            <OnInitialized>
+                ScoreboardRemastered_ScoreboardConsole_OnInitialized(self)
+            </OnInitialized>
+        </TopLevelControl>
+        <TopLevelControl name="ScoreboardRemastered_RecordsConsole" inherits="ZO_Gamepad_ParametricList_Screen" hidden="true">
+            <OnInitialized>
+                ScoreboardRemastered_RecordsConsole_OnInitialized(self)
+            </OnInitialized>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

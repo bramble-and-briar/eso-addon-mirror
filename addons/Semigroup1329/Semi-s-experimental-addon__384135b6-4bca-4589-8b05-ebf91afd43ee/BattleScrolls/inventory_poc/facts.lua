@@ -659,13 +659,14 @@ function facts.item(bag, slot, reserved)
     BattleScrolls.inventoryPocSealedLeads.apply(item)
     if itemKind == 'container' then
         local coffers = BattleScrolls.inventoryPocCoffers
-        item.openAfter, item.cappedCurrency = coffers.openAfter(itemId), coffers.cappedCurrency(itemId)
+        item.openAfter, item.cappedCurrency = coffers.openAfter(itemId), coffers.cappedCurrency(itemId, item.uniqueId)
         item.currencyContainer = itemType == ITEMTYPE_CONTAINER_CURRENCY or specializedType == SPECIALIZED_ITEMTYPE_CONTAINER_CURRENCY
     end
     local returns = BattleScrolls.inventoryPocReturns
     if returns and returns.isDiscounted(item) then
         item.marketUnit, marketLoading = facts.marketPrice(link, true)
         item.priceLoading = item.priceLoading or marketLoading
+        item.unsold = returns.isUnsold(item) or nil
     end
     return item
 end

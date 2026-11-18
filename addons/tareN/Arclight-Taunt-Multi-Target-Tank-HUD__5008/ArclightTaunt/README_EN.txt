@@ -1,4 +1,4 @@
-ARCLIGHT TAUNT 1.3.0
+ARCLIGHT TAUNT 1.3.1
 Modern Multi-Target Taunt HUD for The Elder Scrolls Online
 Author: tareN
 In-game contact: @uhtareN (PC/EU)
@@ -18,8 +18,8 @@ preserved. Both shapes can be positioned independently of the list.
 
 Independent boss filters can limit the list or crosshair indicator to ESO bosses
 and, in broader mode, strong enemies. Other taunts remain tracked and configured
-boss warnings continue. Move displays freezes the preview so you can drag
-both displays separately; Move this indicator edits just the crosshair display.
+boss warnings continue. Unlock position in Quick settings to drag either
+visible display. Preview timers and combat tracking keep running.
 
 Reduce animations stops decorative motion while countdowns, warnings and
 sounds stay active.
@@ -38,8 +38,8 @@ The manifest must be at AddOns/ArclightTaunt/ArclightTaunt.txt.
 UPDATING
 Close ESO, replace the addon files, then start ESO again.
 Keep SavedVariables to preserve your settings.
-Optional cleanup for 1.3.0: delete only AddOns/ArclightTaunt before extracting
-the new folder. Old unused textures can remain without affecting the addon;
+Optional cleanup: delete only AddOns/ArclightTaunt before extracting
+the new folder. Old unused files can remain without affecting the addon;
 this step only removes files left behind by copying over earlier versions.
 /reloadui may not load new texture files added while the client was running.
 Settings are account-wide and shared across megaservers. No combat history,
@@ -47,29 +47,47 @@ character progress or other server-specific data is stored.
 
 SETTINGS
 ESC > Settings > Add-ons > Arclight Taunt
-- Quick settings: show/pause preview, move displays and choose preview enemies.
+- Quick settings: two compact button rows for preview, pause, position lock, bar style, contrast and target highlight.
 - List & layout: visibility, size, spacing, columns and position.
-- Appearance & readability: bars, backgrounds, contrast and target highlighting.
-- Text & countdown: fonts, text size, countdown display and warning thresholds.
-- Crosshair taunt status: style, visibility, appearance and placement.
+- Appearance & readability: bar details, backgrounds, animation and custom colors.
 - Bosses: warnings, sounds and enemy detection/markings.
-- Tracking: player targets, death removal and expired entries.
+- Crosshair taunt status: style, visibility, appearance and placement.
+- Text & countdown: fonts, text size, countdown display and warning thresholds.
+- Tracking: player targets, ESO markers, expired entries and confirmed-death removal.
 
-Preview shows varied enemies and staggered taunts. Pause it while adjusting the
-HUD; resume continues from the same point. The list preview itself does not
-create boss warnings.
+Position is locked by default. Unlock it to drag a visible list or crosshair
+indicator, then lock it again to avoid accidental moves. Use a preview to place
+a display outside combat; unlocking does not start or pause any preview.
+Quick buttons show the current style or state; contrast and highlight are muted
+when off. One click changes the setting, without opening a selection menu.
+
+Show preview starts the list sample; Pause preview freezes its timers and
+arrivals. Resume from the same point without restarting. The enemy pool adapts
+to list capacity and shows staggered taunts. The list preview does not create
+boss warnings. A confirmed new own taunt ends active list, crosshair and warning
+previews so the live information takes over.
+
+Bright bar track changes the empty narrow-bar track; Tint near expiry colors
+the row near its warning thresholds. These independent details apply only to
+normal narrow bars. Full-row and high contrast preserve the saved preferences.
+
+Keep expired taunts retains entries after their timers run out. Remove dead
+enemies removes confirmed deaths regardless of that choice, including entries
+already known dead when enabled. With death removal off, those rows remain
+subject to the expiry preference. Combat end always clears the tracked list.
 
 Under Crosshair taunt status, Show indicator preview runs a repeating countdown
 through the selected urgency stages, independently of the list. It keeps running
 while you move the indicator. The optional unconfirmed symbol appears after expiry
 only when enabled.
 Preview crosshair adds ESO's small or large crosshair as an alignment reference,
-also in menus. Preview and placement end when settings close or combat begins;
-the live indicator appears only during combat.
+also in menus. The crosshair preview ends when settings close or combat begins;
+the live indicator appears only during combat. Closing settings saves an active
+drag without changing your position-lock preference.
 
 Circle and bar remember size, thickness, track opacity and position separately.
-The circle starts centered; the bar starts below the crosshair. Use Move this
-indicator or the exact horizontal/vertical values to place either shape.
+The circle starts centered; the bar starts below the crosshair. Unlock position
+to drag either shape, or use its exact horizontal/vertical values.
 Thickness changes bar height or relative ring line weight. Reset crosshair
 settings restores only the selected shape's appearance and position, keeping
 activation, preview, boss filters and the other shape unchanged.
@@ -81,9 +99,15 @@ Appearance & readability. They apply to the list, crosshair and boss banners.
 Arclight colors remain the default; numeric text may be lightened for readability.
 
 ESO target markers can appear beside names, separately from the boss skull.
-Only directly identified observations are shown. Marker changes clear uncertain
-assignments; unseen marks return only after another safe observation. Arclight
-never places markers. Disable the display under Appearance & readability.
+Changes use direct identification or a uniquely matching active own taunt with
+known start and end times. Uncertain matches leave the last observation intact;
+reassigning a symbol clears its previous tracked owner. Changes on unseen enemies
+need another observation. Arclight never places markers. Disable this display
+under Tracking; examples beside the option identify the symbols it controls.
+
+Replacement icons from other addons are followed when supplied through ESO's
+shared icon function. Changes confined to overhead visuals do not change the
+list icon. Failed icon queries hide the symbol; the taunt timer continues.
 
 BOSS WARNINGS
 In the default palette, turquoise early warnings appear before a recognized boss taunt expires
@@ -96,11 +120,12 @@ by default, with Duel boundary warning selected; expiration uses Duel start.
 Visible or pending expiration warnings take priority. Suppressed early sounds
 are not queued or replayed after the expiration alert ends.
 
-Test warning demonstrates early, expiration, then turquoise below red. It
+Test warning demonstrates early, expiration, then turquoise below red. Click
+the same button again to stop the test sequence; it does not dismiss real alerts. It
 follows your warning/audio settings; without early warnings it tests red only.
 Real warnings take priority over the demo. Hide the list to keep configured
-boss banners and sounds without enemy rows. Preview and drag mode can still
-show a hidden list for configuration.
+boss banners and sounds without enemy rows. Preview can still show a hidden
+list for configuration.
 
 LANGUAGES
 English, German, French, Spanish and Russian follow your ESO client language.

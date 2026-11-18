@@ -1,5 +1,5 @@
 --------------------------------------------------------------
--- RagsToRiches.lua — Stand-alone v1.6.3 (PS5 + Safe Inventory Automation)
+-- RagsToRiches.lua — Stand-alone v1.6.4 (PS5 + Safe Inventory Automation)
 -- Author: SugaComa
 --------------------------------------------------------------
 
@@ -782,13 +782,15 @@ local function GetEquipmentCategoryAction(categoryKey)
     return NormalizeCategoryAction(cfg[actionKeys[categoryKey]], "Keep")
 end
 
-local function IsLegendaryOrMythic(bagId, slotIndex)
+local function IsProtectedLegendary(bagId, slotIndex)
+    local cfg = RagsToRiches.SV.protection or {}
+    if cfg.legendary == false then return false end
     local displayQuality = GetItemDisplayQuality(bagId, slotIndex)
     local functionalQuality = tonumber(GetItemFunctionalQuality(bagId, slotIndex)) or 0
     local legendaryQuality = tonumber(ITEM_FUNCTIONAL_QUALITY_LEGENDARY)
         or tonumber(ITEM_QUALITY_LEGENDARY) or 5
     if ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE and displayQuality == ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE then
-        return true
+        return false
     end
     return functionalQuality >= legendaryQuality
 end
@@ -1003,7 +1005,6 @@ local function IsProtectedItem(bagId, slotIndex, allowStolen)
     if not allowStolen and IsItemStolen(bagId, slotIndex) then return true, "stolen: fence only" end
     local mythic = ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE and GetItemDisplayQuality(bagId, slotIndex) == ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE
     if mythic and cfg.mythic ~= false then return true, "protected mythic" end
-    if not mythic and IsLegendaryOrMythic(bagId, slotIndex) and cfg.legendary ~= false then return true, "protected legendary" end
     if cfg.reconstructed ~= false and IsItemReconstructed and IsItemReconstructed(bagId, slotIndex) then return true, "protected reconstructed" end
     if cfg.crafted ~= false and IsItemLinkCrafted(itemLink) then return true, "protected crafted" end
     if IsTripot(bagId, slotIndex) then return true, "tripot" end
@@ -1152,17 +1153,21 @@ end
 local function GetPriorityDecision(bagId, slotIndex, allowBind, allowStolen)
     local protected, reason = IsProtectedItem(bagId, slotIndex, allowStolen)
     if protected then return "Keep", reason end
+    local itemType = GetItemType(bagId, slotIndex)
+    local isGear = itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON
+    local legendary = IsProtectedLegendary(bagId, slotIndex)
+    -- Keep legendary gear out of collection binding and equipment disposal.
+    if legendary and isGear then return "Keep", "protected legendary" end
     local action, collectionReason = ApplyCollectionPolicy(bagId, slotIndex, allowBind)
     if action then return action, collectionReason end
     local researchable, researchReason = IsResearchableEquipment(bagId, slotIndex)
-    local itemType = GetItemType(bagId, slotIndex)
-    if researchable == nil and (itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON) then return "Keep", researchReason or "character research knowledge unavailable" end
+    if researchable == nil and isGear then return "Keep", researchReason or "character research knowledge unavailable" end
     local rules = RagsToRiches.SV.itemRules or {}
     if researchable then
         action = NormalizePolicyAction(rules.researchAction, "Keep")
         if action ~= "Follow" then return action, "trait unknown to this character: " .. action end
     end
-    if itemType ~= ITEMTYPE_ARMOR and itemType ~= ITEMTYPE_WEAPON and CanItemBeUsedToLearn(bagId, slotIndex) then
+    if not isGear and CanItemBeUsedToLearn(bagId, slotIndex) then
         local key = "unknownOtherAction"
         local link = GetItemLink(bagId, slotIndex, LINK_STYLE_DEFAULT)
         if IsMotifOrStyle(bagId, slotIndex, itemType) then key = "unknownMotifAction"
@@ -1170,9 +1175,16 @@ local function GetPriorityDecision(bagId, slotIndex, allowBind, allowStolen)
         action = NormalizePolicyAction(rules[key], "Keep")
         if action ~= "Follow" then return action, "not learned: " .. action end
     end
-    local trait = GetItemTrait(bagId, slotIndex)
-    if INTRICATE_TRAITS[trait] then return GetIntricateAction(), "intricate policy" end
-    if ORNATE_TRAITS[trait] then return NormalizePolicyAction(rules.ornateAction, "Sell"), "ornate policy" end
+    if not legendary then
+        local trait = GetItemTrait(bagId, slotIndex)
+        if INTRICATE_TRAITS[trait] then return GetIntricateAction(), "intricate policy" end
+        if ORNATE_TRAITS[trait] then return NormalizePolicyAction(rules.ornateAction, "Sell"), "ornate policy" end
+    end
+    if IsScribingScriptItem(bagId, slotIndex, nil, itemType) then
+        local merchant = RagsToRiches.SV.merchant or {}
+        return merchant.sellScripts == true and "Sell" or "Keep", "scribing scripts policy (unknown policy runs first)"
+    end
+    if legendary then return "Keep", "protected legendary" end
     return nil, researchReason
 end
 
@@ -1185,7 +1197,6 @@ local function GetItemDecision(bagId, slotIndex, allowBind, allowStolen)
     local link = GetItemLink(bagId, slotIndex, LINK_STYLE_DEFAULT)
     local quality = tonumber(GetItemFunctionalQuality(bagId, slotIndex)) or 0
     local lowQuality = quality >= 1 and quality <= 3
-    if IsScribingScriptItem(bagId, slotIndex, link, itemType) then return cfg.sellScripts == true and "Sell" or "Keep", "scribing scripts policy (unknown policy runs first)" end
     if itemType == ITEMTYPE_RECIPE or IsMotifOrStyle(bagId, slotIndex, itemType) then
         if not IsKnownLearnableItem(bagId, slotIndex, link, itemType) then return "Keep", "unknown document with no sale decision" end
         local sell = cfg.knownMotifs == true
@@ -1623,7 +1634,7 @@ local function GetFenceRecommendedAction(bagId, slotIndex)
     end
     if not decision and IsPurpleOrGoldFurnishing(bagId, slotIndex) then return "launder", "purple/gold furnishing" end
     local itemType = GetItemType(bagId, slotIndex)
-    if not decision and (GetEquipmentCategory(bagId, slotIndex, itemType) or itemType == ITEMTYPE_RECIPE or IsMotifOrStyle(bagId, slotIndex, itemType) or IsScribingScriptItem(bagId, slotIndex)) then
+    if not decision and (GetEquipmentCategory(bagId, slotIndex, itemType) or itemType == ITEMTYPE_RECIPE or IsMotifOrStyle(bagId, slotIndex, itemType)) then
         decision, decisionReason = GetItemDecision(bagId, slotIndex, false, true)
     end
     if decision == "Keep" then return nil, decisionReason end
@@ -2349,8 +2360,8 @@ local function CreateSettings()
             end,
         })
     end
-    local function AddProtection(label, key)
-        AddSetting({ type = LHAS.ST_CHECKBOX, label = label, default = true,
+    local function AddProtection(label, key, tooltip)
+        AddSetting({ type = LHAS.ST_CHECKBOX, label = label, tooltip = tooltip, default = true,
             getFunction = function() return RagsToRiches.SV.protection[key] ~= false end,
             setFunction = function(value) RagsToRiches.SV.protection[key] = value RefreshItemPolicies() end,
         })
@@ -2361,9 +2372,9 @@ local function CreateSettings()
 
     AddCategoryHeader("ITEM DECISIONS - RUNS FIRST")
     AddSetting({ type = LHAS.ST_SECTION, label = "1. Safety Protections" })
-    AddSetting({ type = LHAS.ST_LABEL, label = "Order: Safety > Collection > Research > Intricate/Ornate > Equipment/other rules > Keep.", tooltip = "Keep stops all automatic disposal. Sell and Deconstruct reserve the item for that destination; a disabled destination leaves it waiting. Locked items and saved item Keeps always stop processing." })
+    AddSetting({ type = LHAS.ST_LABEL, label = "Safety > Collection > Research/Learning > Item rules > Keep.", tooltip = "Keep stops all automatic disposal. Sell and Deconstruct reserve the item for that destination; a disabled destination leaves it waiting. Locked items and saved item Keeps always stop processing. Script and explicit unknown-item rules can take priority over Legendary protection for their items." })
     AddProtection("Protect Mythic Items", "mythic")
-    AddProtection("Protect Legendary Items", "legendary")
+    AddProtection("Protect Legendary Items", "legendary", "Keeps legendary gear before collection and equipment rules. For other legendary items, explicit unknown-item and scribing script rules take priority.")
     AddProtection("Protect Crafted Items", "crafted")
     AddProtection("Protect Reconstructed Items", "reconstructed")
     AddSetting({ type = LHAS.ST_LABEL, label = "Gameplay supplies and documents are protected", tooltip = "Always keeps tri-stat potions, maps, surveys, master writs, keys/fragments and other protected gameplay documents/supplies. Clean lockpicks and soul gems use Stock Control. Fence utilities use laundering rules. Locked items are never auto-bound." })
@@ -2395,7 +2406,7 @@ local function CreateSettings()
     AddSetting({ type = LHAS.ST_SECTION, label = "Merchant" })
     AddSetting({ type = LHAS.ST_CHECKBOX, label = "Enable Merchant Automation", getFunction = function() return RagsToRiches.SV.merchant.enabled end, setFunction = function(v) RagsToRiches.SV.merchant.enabled = v RefreshItemPolicies() end, default = true })
     AddSetting({ type = LHAS.ST_CHECKBOX, label = "Mark Vendor-Only Items as Junk", getFunction = function() return RagsToRiches.SV.merchant.vendorTrash end, setFunction = function(v) RagsToRiches.SV.merchant.vendorTrash = v RefreshItemPolicies() end, default = true })
-    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Scribing Scripts", tooltip = "Sells scripts after Runs First rules. Unknown scripts are kept unless Unknown Other Learnable Items explicitly allows sale or follows normal rules.", getFunction = function() return RagsToRiches.SV.merchant.sellScripts == true end, setFunction = function(v) RagsToRiches.SV.merchant.sellScripts = v == true RefreshItemPolicies() end, default = false })
+    AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Scribing Scripts", tooltip = "Applies to scripts at any quality, after safety and unknown-item rules. Unknown scripts are kept unless Unknown Other Learnable Items allows sale or follows normal rules.", getFunction = function() return RagsToRiches.SV.merchant.sellScripts == true end, setFunction = function(v) RagsToRiches.SV.merchant.sellScripts = v == true RefreshItemPolicies() end, default = false })
     AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Green/Blue Companion Equipment", getFunction = function() return RagsToRiches.SV.merchant.companionGear end, setFunction = function(v) RagsToRiches.SV.merchant.companionGear = v RefreshItemPolicies() end, default = false })
     AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell ESO Priority-Sell Items", tooltip = "Automatically sells items ESO explicitly marks with the merchant-purpose flag used for 'Sell to a merchant for gold.' Existing RagsToRiches protection rules still run first.", getFunction = function() return RagsToRiches.SV.merchant.prioritySell end, setFunction = function(v) RagsToRiches.SV.merchant.prioritySell = v RefreshItemPolicies() end, default = false })
     AddSetting({ type = LHAS.ST_CHECKBOX, label = "Sell Known White/Green/Blue Recipes", getFunction = function() return RagsToRiches.SV.merchant.knownRecipes end, setFunction = function(v) RagsToRiches.SV.merchant.knownRecipes = v RefreshItemPolicies() end, default = false })
@@ -2563,7 +2574,7 @@ local function CreateSettings()
     AddSetting({ type = LHAS.ST_CHECKBOX, label = "Play Warning Sound", getFunction = function() return RagsToRiches.SV.backpack.sound end, setFunction = function(v) RagsToRiches.SV.backpack.sound = v end, default = true })
 
     AddCategoryHeader("DIAGNOSTICS")
-    AddSetting({ type = LHAS.ST_SECTION, label = "RagsToRiches 1.6.3" })
+    AddSetting({ type = LHAS.ST_SECTION, label = "RagsToRiches 1.6.4" })
     AddSetting({ type = LHAS.ST_CHECKBOX, label = "Debug Messages", tooltip = "Shows item decisions, their winning rule, binding requests and rejected actions.", getFunction = function() return RagsToRiches.SV.debug end, setFunction = function(v) RagsToRiches.SV.debug = v end, default = false })
     ----------------------------------------------------------
     -- SugaComa signature and contact
@@ -2786,7 +2797,7 @@ local function OnLoaded(_, name)
     InstallAccidentalTheftProtection()
     zo_callLater(function() CheckBackpackSpace(false) end, 1000)
 
-    debugChat("RagsToRiches v1.6.3 loaded.")
+    debugChat("RagsToRiches v1.6.4 loaded.")
 end
 
 EM:RegisterForEvent("RTR_Loaded", EVENT_ADD_ON_LOADED, OnLoaded)

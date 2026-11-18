@@ -16,6 +16,8 @@ P.SV_DEFAULTS = {
     autoSwitch = { enabled = false, rules = {} },
     settings = {
         gridSize = 16,
+        updateMs = 100,             -- how often trackers update (Engine.UpdateMs; 50-500)
+        smoothTimers = true,        -- bars and timer numbers move every frame; off = only at each update
         snapToGrid = true,
         showGrid = true,
         alertY = 160,

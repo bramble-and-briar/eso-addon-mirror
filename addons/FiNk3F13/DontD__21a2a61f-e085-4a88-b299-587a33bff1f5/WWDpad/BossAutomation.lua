@@ -3,6 +3,7 @@ WWDpadAuto = {}
 local A = WWDpadAuto
 local config, submit
 local generation = 0
+local scheduled = false
 local lastAccepted
 local manualOverride = false
 
@@ -68,11 +69,20 @@ function A.ManualOverride()
 end
 
 function A.Schedule()
-    generation = generation + 1
+    if not Enabled() then
+        generation = generation + 1
+        scheduled = false
+        lastAccepted = nil
+        manualOverride = false
+        return
+    end
+    if scheduled then return end
+    scheduled = true
     local token = generation
-    if not Enabled() then lastAccepted = nil; manualOverride = false; return end
     zo_callLater(function()
-        if token ~= generation or not Enabled() then return end
+        if token ~= generation then return end
+        scheduled = false
+        if not Enabled() then return end
         local ok = pcall(A.Check)
         if not ok then
             -- Detection failure must not break the manual shortcuts.

@@ -1,10 +1,11 @@
--- Arclight Taunt 1.3.0 | Tracking module
+-- Arclight Taunt 1.3.1 | Tracking module
 -- Loaded in manifest order; requires Core.lua and uses its shared namespace.
 local A = ArclightTaunt
 local T = A.T
 local EXPIRED_LINGER = A.EXPIRED_LINGER
 local MAX_TRACKED_TARGETS = A.MAX_TRACKED_TARGETS
 local Now = A.Now
+local DemoNow = A.DemoNow
 local TAUNT_IDS = A.TAUNT_IDS
 local TAUNT_TIME_EPSILON = 0.01
 -- Conservative signed-32-bit millisecond envelope for native cooldown/size
@@ -20,64 +21,10 @@ local function ValidTauntRange(beginTime, endTime, now)
         and remaining > 0 and remaining <= MAX_NATIVE_SECONDS
 end
 local playerTargetIds, playerTargetCount = {}, 0
--- Marker metadata is display-only. A unitTag in the SAME effect event as the
--- unitId, or a still-proven reticle identity, can attach it to an exact row.
--- Names and timer-based focus matches are deliberately insufficient.
-local function ObserveTargetMarker(target, unitTag)
-    if not A.saved.showTargetMarkers then return false end
-    if type(unitTag) ~= "string" or unitTag == "" or not DoesUnitExist(unitTag) then
-        -- Follow-up effect events may omit their usable unitTag. The current
-        -- reticle is still safe only when its prior direct event identity
-        -- belongs to this exact live record; timer-based focus is not proof.
-        if A.reticleUnitId ~= target.unitId or A.targets[target.unitId] ~= target
-            or not DoesUnitExist("reticleover") then return false end
-        unitTag = "reticleover"
-    end
-    local marker, texture
-    if EVENT_TARGET_MARKER_UPDATE and type(GetUnitTargetMarkerType) == "function"
-        and type(ZO_GetPlatformTargetMarkerIcon) == "function" then
-        marker = GetUnitTargetMarkerType(unitTag)
-        if type(marker) == "number" and marker ~= TARGET_MARKER_TYPE_NONE then
-            texture = ZO_GetPlatformTargetMarkerIcon(marker)
-        end
-    end
-    if type(texture) ~= "string" or texture == "" then marker, texture = nil, nil end
-    local changed = target.targetMarker ~= marker or target.targetMarkerTexture ~= texture
-    target.targetMarker, target.targetMarkerTexture = marker, texture
-    return changed
-end
-
-function A.TargetMarkersChanged()
-    if not A.saved.showTargetMarkers or not next(A.targets) then return end
-    -- This event has NO unit payload. Invalidate unseen rows too: another
-    -- player may have reassigned any mark. Hide uncertainty instead of
-    -- retaining a plausible but incorrect symbol on an offscreen enemy.
-    for _, target in pairs(A.targets) do target.targetMarker, target.targetMarkerTexture = nil, nil end
-    local identified = A.reticleUnitId and A.targets[A.reticleUnitId]
-    if identified and not identified.dead then ObserveTargetMarker(identified, "reticleover") end
-    A.RequestEffectTick(true)
-end
-
-function A.ConfigureTargetMarkerEvents()
-    local event = EVENT_TARGET_MARKER_UPDATE
-    if not event then return end
-    local enabled = A.saved.showTargetMarkers and type(GetUnitTargetMarkerType) == "function"
-        and type(ZO_GetPlatformTargetMarkerIcon) == "function"
-    if A.targetMarkerEventEnabled == not not enabled then return end
-    A.targetMarkerEventEnabled = not not enabled
-    if enabled then A.EM:RegisterForEvent(A.ADDON .. "_TargetMarkers", event, A.TargetMarkersChanged)
-    else A.EM:UnregisterForEvent(A.ADDON .. "_TargetMarkers", event) end
-end
-
-function A.SetTargetMarkersEnabled(enabled)
-    if type(enabled) ~= "boolean" then return end
-    A.saved.showTargetMarkers = enabled
-    A.ConfigureTargetMarkerEvents()
-    for _, target in pairs(A.targets) do target.targetMarker, target.targetMarkerTexture = nil, nil end
-    local identified = A.reticleUnitId and A.targets[A.reticleUnitId]
-    if enabled and identified and not identified.dead then ObserveTargetMarker(identified, "reticleover") end
-    A.Tick()
-end
+local ObserveTargetMarker = A.ObserveTargetMarker
+local QueueTargetMarkerRefresh = A.QueueTargetMarkerRefresh
+local RefreshTargetMarker = A.RefreshTargetMarker
+local CancelTargetMarkerRefresh = A.CancelTargetMarkerRefresh
 -- Event sourceType describes the caster, never the affected target. Only a
 -- currently valid unit tag can establish player/NPC type for this exact ID.
 local function ObservePlayerTarget(key, unitTag)
@@ -99,17 +46,20 @@ local function ObservePlayerTarget(key, unitTag)
     end
     return playerTargetIds[key] == true, false
 end
+local function CancelPendingBossWarning(key)
+    local pending = A.pendingBossWarnings
+    if not pending then return end
+    pending[key] = nil
+    -- The next unrelated loss needs its own complete batching window.
+    if not next(pending) then A.pendingBossWarnings, A.pendingFirstAt = nil, nil end
+end
 local function DropPlayerTarget(key)
     local existed = A.targets[key] ~= nil
+    if existed then CancelTargetMarkerRefresh(A.targets[key]) end
     A.targets[key] = nil
     if A.activeTarget == key then A.activeTarget = nil end
     if A.reticleUnitId == key then A.reticleUnitId = nil end
-    if A.pendingBossWarnings then
-        A.pendingBossWarnings[key] = nil
-        if not next(A.pendingBossWarnings) then
-            A.pendingBossWarnings, A.pendingFirstAt = nil, nil
-        end
-    end
+    CancelPendingBossWarning(key)
     A.DismissBossAlertForTarget(key)
     return existed
 end
@@ -118,132 +68,6 @@ local function PrunePlayerTargets()
     for key, target in pairs(A.targets) do
         if target.isPlayer or playerTargetIds[key] then DropPlayerTarget(key) end
     end
-end
-
--- Display samples only, never a boss-detection list. Sources: docs/VORSCHAU_2026-11-02.md.
-local DEMO_BOSSES = {"Rakkhat", "Nahviintaas", "Yolnahkriin", "Grundwulf", "Maarselok", "Balorgh"}
-local DEMO_ENEMIES = {
-    "Dro-m'Athra Hulk", "Dro-m'Athra Shadowguard", "Void Caller", "Alkosh's Roar",
-    "Iron Servant", "Sea Behemoth", "Hulking Werewolf", "Flame Atronach",
-    "Frost Atronach", "Storm Atronach", "Daedroth", "Ogrim", "Gargoyle", "Bone Colossus",
-}
-local MAX_DEMO_ENEMIES, DEMO_TAUNT_SECONDS = 24, 15
-local DEMO_COMBAT_SECONDS = 60
-local demoRoster
-local function DemoNow(now)
-    return A.demo and A.demoPausedAt or now
-end
-local function ShuffledSamples(source)
-    local result = {}
-    for i, name in ipairs(source) do result[i] = name end
-    -- Use the client's random generator without reseeding shared addon state.
-    for i = #result, 2, -1 do
-        local j = math.random(i)
-        result[i], result[j] = result[j], result[i]
-    end
-    return result
-end
-local function DemoRoster(count)
-    local bosses, enemies = ShuffledSamples(DEMO_BOSSES), ShuffledSamples(DEMO_ENEMIES)
-    local bossCount = count >= 17 and 3 or (count >= 9 and 2 or 1)
-    -- Once per new roster, not once per tick or countdown loop.
-    if math.random(10) == 1 then bosses[math.random(bossCount)] = "Lord Okyl" end
-    local roster, bossIndex, enemyIndex = {}, 1, 1
-    for i = 1, count do
-        local boss = i == (count < 3 and 1 or 3) or i == 9 or i == 17
-        local name
-        if boss then
-            name, bossIndex = bosses[bossIndex], bossIndex + 1
-        else
-            name = enemies[(enemyIndex - 1) % #enemies + 1]
-            enemyIndex = enemyIndex + 1
-        end
-        roster[i] = {name = T(name), isBoss = boss}
-    end
-    return roster
-end
-
-local function CreateDemo(count, keepRoster, startedAt)
-    local now = startedAt or DemoNow(Now())
-    count = math.floor(A.Clamp(count or 14, 1, MAX_DEMO_ENEMIES))
-    if not keepRoster or not demoRoster or #demoRoster ~= count then demoRoster = DemoRoster(count) end
-    -- Join an encounter already in progress. Stagger old applications and later
-    -- single arrivals; random values are drawn only when a cycle is created.
-    local initialCount = math.min(count, 4 + math.random(3))
-    local nextArrival, lastEnd = 0, now
-    local entries = {}
-    for i = 1, count do
-        local sample = demoRoster[i]
-        local startTime
-        if i <= initialCount then
-            local age = 0.5 + (i - 1) * 11.5 / math.max(1,initialCount - 1) + math.random(1000) / 1250
-            startTime = now - age
-        else
-            nextArrival = nextArrival + 0.55 + math.random(1550) / 1000
-            startTime = now + nextArrival
-        end
-        local starts = {startTime}
-        -- Prepare a bounded minute of irregular re-taunts once, not per tick.
-        -- Some refresh before expiry; others leave a brief lapse in coverage.
-        local nextStart = math.max(now + 0.8 + math.random(2000) / 1000,
-            startTime + 11 + math.random(10000) / 1000)
-        while nextStart < now + DEMO_COMBAT_SECONDS do
-            starts[#starts + 1] = nextStart
-            nextStart = nextStart + 11 + math.random(10000) / 1000
-        end
-        entries[#entries + 1] = {
-            name = sample.name, unitId = "demo" .. i,
-            startTime = startTime, endTime = startTime + DEMO_TAUNT_SECONDS,
-            order = i, isBoss = sample.isBoss,
-            -- Synthetic examples only; no game marker is placed or read.
-            targetMarkerTexture = type(ZO_GetPlatformTargetMarkerIcon) == "function"
-                and ((i == 2 and TARGET_MARKER_TYPE_TWO and ZO_GetPlatformTargetMarkerIcon(TARGET_MARKER_TYPE_TWO))
-                    or (i == 4 and TARGET_MARKER_TYPE_ONE and ZO_GetPlatformTargetMarkerIcon(TARGET_MARKER_TYPE_ONE))) or nil,
-            demoStarts = starts, demoApplication = 1,
-        }
-        lastEnd = math.max(lastEnd, starts[#starts] + DEMO_TAUNT_SECONDS)
-    end
-    A.demoAt = now
-    A.demoFocusId, A.demoFocusUntil = nil, nil
-    A.demoCycleLength = lastEnd - now + EXPIRED_LINGER + 1 + math.random(1000) / 1000
-    return entries
-end
-
-local function SetDemoPaused(paused)
-    if A.moving and not paused then return end
-    if not A.demo then A.demoPausedAt = nil; return end
-    local now = Now()
-    if paused then
-        A.demoPausedAt = A.demoPausedAt or now
-    elseif A.demoPausedAt then
-        local delta = now - A.demoPausedAt
-        for _, t in ipairs(A.demoEntries or {}) do
-            t.startTime, t.endTime = t.startTime + delta, t.endTime + delta
-            for i, start in ipairs(t.demoStarts or {}) do t.demoStarts[i] = start + delta end
-            if t.expiredAt then t.expiredAt = t.expiredAt + delta end
-        end
-        if A.demoAt then A.demoAt = A.demoAt + delta end
-        if A.demoFocusUntil then A.demoFocusUntil = A.demoFocusUntil + delta end
-        if A.focusAcquiredAt then A.focusAcquiredAt = A.focusAcquiredAt + delta end
-        if A.gloss and A.gloss.owner then A.gloss.at = A.gloss.at + delta end
-        for target, at in pairs(A.rowEntryStarts or {}) do A.rowEntryStarts[target] = at + delta end
-        for _, row in ipairs(A.rows or {}) do
-            if row.stripeAt then row.stripeAt = row.stripeAt + delta end
-            if row.placementAt then row.placementAt = row.placementAt + delta end
-            if row.revealAt then row.revealAt = row.revealAt + delta end
-        end
-        A.demoPausedAt = nil
-    end
-end
-local function SetDemoEnabled(enabled)
-    if A.moving then return end
-    if A.StopGloss then A.StopGloss() end
-    A.lastVisibleItems = nil
-    A.listPeakRows, A.listPeakFooter = nil, nil
-    A.demoPausedAt = nil
-    A.demoFocusId, A.demoFocusUntil = nil, nil
-    A.demo = enabled == true
-    if A.demo then A.demoEntries = CreateDemo(A.demoCount or 14) end
 end
 
 -- A faded or elapsed taunt no longer means an active taunt. Keep a brief
@@ -270,37 +94,12 @@ local function LostLess(a, b)
 end
 
 local function Gather(now, skipSort, bossOnly)
-    now = DemoNow(now)
-    local active, lost = {}, {}
+    if not A.demo then RefreshTargetMarker(now) end
+    local active, lost
     if A.demo then
-        if not A.demoEntries then
-            A.demoEntries = CreateDemo(A.demoCount or 14)
-        elseif now - A.demoAt >= A.demoCycleLength then
-            A.demoEntries = CreateDemo(A.demoCount or 14, false, now)
-        end
-        for _, t in ipairs(A.demoEntries) do
-            local starts, application = t.demoStarts, t.demoApplication or 1
-            if starts then
-                while starts[application + 1] and starts[application + 1] <= now do
-                    application = application + 1
-                end
-                if application ~= t.demoApplication then
-                    t.demoApplication = application
-                    t.startTime = starts[application]
-                    t.endTime = t.startTime + DEMO_TAUNT_SECONDS
-                    t.expiredAt = nil
-                end
-            end
-            if t.startTime <= now then
-                if t.endTime <= now and not t.expiredAt then t.expiredAt = t.endTime end
-                if not IsLost(t, now) then
-                    if not bossOnly or A.BossVisible(t) then active[#active + 1] = t end
-                elseif A.saved.showExpired or now - t.expiredAt < EXPIRED_LINGER then
-                    if not bossOnly or A.BossVisible(t) then lost[#lost + 1] = t end
-                end
-            end
-        end
+        active, lost = A.GatherDemo(now, bossOnly)
     else
+        active, lost = {}, {}
         for key, t in pairs(A.targets) do
             if t.endTime <= now and not t.expiredAt then t.expiredAt = now end
             if not IsLost(t, now) then
@@ -309,7 +108,9 @@ local function Gather(now, skipSort, bossOnly)
                 or now - t.expiredAt < EXPIRED_LINGER then
                 if not bossOnly or A.BossVisible(t) then lost[#lost + 1] = t end
             else
+                CancelTargetMarkerRefresh(t)
                 A.targets[key] = nil
+                CancelPendingBossWarning(key)
                 if A.reticleUnitId == key then A.reticleUnitId = nil end
             end
         end
@@ -424,7 +225,81 @@ local function StabilizeVisible(items, now)
     end
     return result
 end
--- Resolve focus from direct identity or a unique own-taunt timing match.
+-- One native buff scan serves the existing focus/indicator observation and
+-- the optional, stricter marker correlation. A marker-only call never changes
+-- focus, indicator observations or boss state.
+local function FindReticleTaunts(now, observeReticle)
+    local candidates = {}
+    for _, t in pairs(A.targets) do
+        if not t.dead and not IsLost(t, now) then candidates[#candidates + 1] = t end
+    end
+    if #candidates == 0 and not observeReticle then return end
+    local focusId, markerTarget, focusAmbiguous
+    local markerBlocked = not A.saved.showTargetMarkers
+    local buffCount = GetNumBuffs("reticleover") or 0
+    for i = 1, buffCount do
+        local _, beginTime, endTime, _, _, _, _, _, _, _, abilityId, _, castByPlayer =
+            GetUnitBuffInfo("reticleover", i)
+        if castByPlayer == true and TAUNT_IDS[abilityId] and not markerBlocked
+            and (not ValidTauntRange(beginTime, endTime, now)
+                or beginTime <= 0 or beginTime > now) then markerBlocked = true end
+        -- Foreign/pet effects still need direct identity. The broader focus
+        -- match does not authorize marker changes without the stricter check.
+        if castByPlayer == true and TAUNT_IDS[abilityId]
+            and type(beginTime) == "number" and type(endTime) == "number" then
+            -- A supported own effect on this unit is sufficient for the small
+            -- indicator, even when identical timers cannot identify a list row.
+            -- Keep this observation out of combat records and boss warnings.
+            if observeReticle and not focusAmbiguous and beginTime <= now and ValidTauntRange(beginTime, endTime, now)
+                and (not A.reticleTaunt or endTime < A.reticleTaunt.endTime) then
+                local observation = A.reticleObservation or {}
+                A.reticleObservation = observation
+                observation.startTime, observation.endTime = beginTime, endTime
+                A.reticleTaunt = observation
+            end
+            local match, matchCount, strictMatch, strictCount = nil, 0, nil, 0
+            for _, t in ipairs(candidates) do
+                if t.sourceType == COMBAT_UNIT_TYPE_PLAYER and t.abilityId == abilityId
+                    and math.abs(t.startTime - beginTime) < 0.12
+                    and math.abs(t.endTime - endTime) < 0.12 then
+                    match, matchCount = t, matchCount + 1
+                    if not markerBlocked
+                        and math.abs(t.startTime - beginTime) < TAUNT_TIME_EPSILON
+                        and math.abs(t.endTime - endTime) < TAUNT_TIME_EPSILON then
+                        strictMatch, strictCount = t, strictCount + 1
+                    end
+                end
+            end
+            -- Preserve the broader focus's ambiguity and its early-stop
+            -- indicator behavior, while finishing independent marker checks.
+            if not focusAmbiguous then
+                if matchCount > 1 or (matchCount == 1 and focusId and focusId ~= match.unitId) then
+                    focusId, focusAmbiguous = nil, true
+                elseif matchCount == 1 then
+                    focusId = match.unitId
+                end
+            end
+            if not markerBlocked then
+                if strictCount ~= 1 or strictMatch.startKnown ~= true
+                    or (markerTarget and markerTarget ~= strictMatch) then
+                    markerBlocked = true
+                else markerTarget = strictMatch end
+            end
+            if focusAmbiguous and markerBlocked then return end
+        end
+    end
+    return focusId, not markerBlocked and markerTarget or nil
+end
+
+local function CorrelatedMarkerTarget(now)
+    if not A.saved.showTargetMarkers or not DoesUnitExist("reticleover")
+        or (type(IsUnitDead) == "function" and IsUnitDead("reticleover"))
+        or (not A.saved.trackPlayerTargets and type(IsUnitPlayer) == "function" and IsUnitPlayer("reticleover")) then return end
+    local _, target = FindReticleTaunts(now, false)
+    if target and A.targets[target.unitId] == target then return target end
+end
+
+-- Resolve focus from direct identity or the existing own-taunt timing match.
 local function TargetChanged()
     A.activeTarget = nil
     A.reticleTaunt = nil
@@ -476,51 +351,12 @@ local function TargetChanged()
         A.ObserveBoss(observation, "reticleover")
         A.reticleBossTarget = observation
     end
-    local candidates = {}
-    for _, t in pairs(A.targets) do
-        if not t.dead and not IsLost(t, now) then candidates[#candidates + 1] = t end
-    end
     local observeReticle = A.ReticleNeedsUpdate and A.ReticleNeedsUpdate()
-    if #candidates == 0 and not observeReticle then return end
-    local buffCount = GetNumBuffs("reticleover") or 0
-    for i = 1, buffCount do
-        local _, beginTime, endTime, _, _, _, _, _, _, _, abilityId, _, castByPlayer =
-            GetUnitBuffInfo("reticleover", i)
-        -- Foreign/pet effects cannot prove which of our entries is under the
-        -- reticle. They need a direct event identity instead of a timer guess.
-        if castByPlayer == true and TAUNT_IDS[abilityId]
-            and type(beginTime) == "number" and type(endTime) == "number" then
-            -- A supported own effect on this unit is sufficient for the small
-            -- indicator, even when identical timers cannot identify a list row.
-            -- Keep this observation out of combat records and boss warnings.
-            if observeReticle and beginTime <= now and ValidTauntRange(beginTime, endTime, now)
-                and (not A.reticleTaunt or endTime < A.reticleTaunt.endTime) then
-                local observation = A.reticleObservation or {}
-                A.reticleObservation = observation
-                observation.startTime, observation.endTime = beginTime, endTime
-                A.reticleTaunt = observation
-            end
-            local match, matchCount = nil, 0
-            for _, t in ipairs(candidates) do
-                if t.sourceType == COMBAT_UNIT_TYPE_PLAYER and t.abilityId == abilityId
-                    and math.abs(t.startTime - beginTime) < 0.12
-                    and math.abs(t.endTime - endTime) < 0.12 then
-                    match, matchCount = t, matchCount + 1
-                end
-            end
-            -- Two simultaneous identical timers are ambiguous; never mark
-            -- a specific enemy on a guessed match.
-            if matchCount > 1 then
-                A.activeTarget = nil
-                return
-            elseif matchCount == 1 then
-                if A.activeTarget and A.activeTarget ~= match.unitId then
-                    A.activeTarget = nil
-                    return -- conflicting matches: refuse to highlight any target
-                end
-                A.activeTarget = match.unitId
-            end
-        end
+    local markerTarget
+    A.activeTarget, markerTarget = FindReticleTaunts(now, observeReticle)
+    if markerTarget and A.targets[markerTarget.unitId] == markerTarget
+        and not (type(IsUnitDead) == "function" and IsUnitDead("reticleover")) then
+        ObserveTargetMarker(markerTarget, "reticleover")
     end
     local matched = A.activeTarget and A.targets[A.activeTarget]
     if not matched then return end
@@ -537,6 +373,7 @@ local function TargetChanged()
 end
 
 local function ReticleChanged()
+    CancelTargetMarkerRefresh()
     A.reticleUnitId = nil -- unit tags are dynamic; a target switch invalidates proof
     TargetChanged()
     A.Tick()
@@ -565,7 +402,9 @@ local function MakeSpaceForTrackedTarget(now)
     end
     if count < MAX_TRACKED_TARGETS then return true end
     if oldestId then
+        CancelTargetMarkerRefresh(A.targets[oldestId])
         A.targets[oldestId] = nil
+        CancelPendingBossWarning(oldestId)
         if A.activeTarget == oldestId then A.activeTarget = nil end
         if A.reticleUnitId == oldestId then A.reticleUnitId = nil end
         return true
@@ -655,6 +494,9 @@ local function EffectChanged(_, changeType, _, _, unitTag, beginTime, endTime,
     -- from duplicate EFFECT_RESULT_UPDATED notifications with the same timer.
     local renewed = not t or t.expiredAt ~= nil or t.abilityId ~= abilityId
         or endTime > (t.endTime or 0) + 0.1
+    -- A confirmed new application takes over from configuration samples.
+    -- Exact duplicate updates and fades are not another taunt action.
+    if renewed and A.EndDisplayPreviews then A.EndDisplayPreviews(true) end
     local observationChanged = renewed or t.startTime ~= startTime or t.endTime ~= endTime
         or t.sourceType ~= sourceType or t.dead
     local oldReticleId = A.reticleUnitId
@@ -689,11 +531,12 @@ local function EffectChanged(_, changeType, _, _, unitTag, beginTime, endTime,
         t.tauntGeneration = (t.tauntGeneration or 0) + 1
         t.bossWarnQueued = nil
         t.dead = nil
-        if A.pendingBossWarnings then A.pendingBossWarnings[key] = nil end
+        CancelPendingBossWarning(key)
         -- Also handle re-taunts after the expired entry left the HUD, but
         -- while its 2.5-second notification is still visible.
         A.DismissBossAlertForTarget(key)
     end
+    if renewed or oldReticleId ~= A.reticleUnitId then QueueTargetMarkerRefresh(t) end
     if observationChanged or displayChanged then
         A.RequestEffectTick(observationChanged)
     else
@@ -714,6 +557,7 @@ local function CombatChanged(_, inCombat)
     -- even if the crosshair itself did not move.
     if A.saved.reticleStyle ~= "off" then A.reticleDirty = true end
     if not A.inCombat then
+        CancelTargetMarkerRefresh()
         A.lastVisibleItems = nil
         A.listPeakRows, A.listPeakFooter = nil, nil
         playerTargetIds,playerTargetCount={},0
@@ -731,11 +575,12 @@ local function RemoveDeadUnit(unitId, deferTick)
     local key = tostring(unitId)
     local target = A.targets[key]
     if target then
+        CancelTargetMarkerRefresh(target)
         -- Mark death regardless of the display removal preference.
         target.dead = true
         if A.activeTarget == key then A.activeTarget = nil end
         if A.reticleUnitId == key then A.reticleUnitId = nil end
-        if A.pendingBossWarnings then A.pendingBossWarnings[key] = nil end
+        CancelPendingBossWarning(key)
         A.DismissBossAlertForTarget(key)
         if A.saved.removeDead then
             A.targets[key] = nil
@@ -744,6 +589,19 @@ local function RemoveDeadUnit(unitId, deferTick)
         -- Avoid recursively rendering the HUD from the reticle polling fallback.
         if not deferTick then A.RequestEffectTick() end
     end
+end
+
+local function SetRemoveDead(enabled)
+    if type(enabled) ~= "boolean" then return end
+    A.saved.removeDead = enabled
+    if enabled then
+        -- Apply the preference to deaths already confirmed while rows were
+        -- retained. Reuse exact-ID cleanup without rendering inside the loop.
+        for key, target in pairs(A.targets) do
+            if target.dead then RemoveDeadUnit(key, true) end
+        end
+    end
+    A.Tick()
 end
 
 -- EVENT_COMBAT_EVENT:
@@ -766,19 +624,17 @@ local function ReticleDeath(_, unitTag, isDead)
 end
 
 -- Public entry points used across modules.
-A.CreateDemo = CreateDemo
 A.PrunePlayerTargets = PrunePlayerTargets
-A.DemoNow = DemoNow
-A.SetDemoPaused = SetDemoPaused
-A.SetDemoEnabled = SetDemoEnabled
 A.IsLost = IsLost
 A.Gather = Gather
 A.SelectVisible = SelectVisible
 A.StabilizeVisible = StabilizeVisible
+A.ResolveReticleMarkerTarget = CorrelatedMarkerTarget
 A.TargetChanged = TargetChanged
 A.ReticleChanged = ReticleChanged
 A.EffectChanged = EffectChanged
 A.CombatChanged = CombatChanged
 A.RemoveDeadUnit = RemoveDeadUnit
+A.SetRemoveDead = SetRemoveDead
 A.CombatDeath = CombatDeath
 A.ReticleDeath = ReticleDeath

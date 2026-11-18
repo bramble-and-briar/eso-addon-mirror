@@ -31,7 +31,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BanditsUserInterfaceZHPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/BanditsUserInterfaceZHPatch__3909) | FusRoDah | PC / Mac | 4.413 |
 | [Bank balancer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/Bank-balancer__2066) | Ek1 | PC / Mac | 4.0-180709 |
 | [Bank Data Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jreid01/Bank-Data-Exporter__3825) | jreid01 | PC / Mac | 1.0.3.1 |
-| [Bank Manager Revived - AI updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer1986PAN/Bank-Manager-Revived---AI-updated__2333) | Gamer1986PAN | PC / Mac | 16.02 |
+| [Bank Manager Revived - AI updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer1986PAN/Bank-Manager-Revived---AI-updated__2333) | Gamer1986PAN | PC / Mac | 16.04 |
 | [Bank Stacker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Bank-Stacker__1837) | Dolgubon | PC / Mac | 1.1.1 |
 | [Banker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/Banker__362) | Nols1000 | PC / Mac | 1.6 |
 | [Banker Shutup](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mctaylor/Banker-Shutup__869) | mctaylor | PC / Mac | 3.5c |
@@ -112,7 +112,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Blocking Time - Time Spend Blocking During Combat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Blocking-Time---Time-Spend-Blocking-During-Combat__4191) | Duesentrieb | PC / Mac | 20260220-0002 |
 | [Blood & Treasure](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XLS/Blood-Treasure__2479) | XLS | PC / Mac | 2.0 |
 | [Blood & Treasure (RU)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DeadMoroz/Blood-Treasure-RU__2988) | DeadMoroz | PC / Mac | 1.0 |
-| [Blood Hunger Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irreverend/Blood-Hunger-Tracker__4760) | Irreverend | PC / Mac | 1.0.5 |
+| [Blood Hunger Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irreverend/Blood-Hunger-Tracker__4760) | Irreverend | PC / Mac | 1.0.6 |
 | [BloodSight](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/iamR1K3R/BloodSight__4546) | iamR1K3R | PC / Mac | 1.2.3 |
 | [Bloody Screen](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Garkin/Bloody-Screen__717) | Garkin | PC / Mac | 0.3 |
 | [Bloom HPS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Bloom-HPS__adeb7cae-c7d2-4f05-9f6b-398235624c33) | Vixen_Hunny | Console | — |
@@ -187,7 +187,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BugCatcher Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/BugCatcher-Updated__2566) | Shadowfen | PC / Mac | 043 |
 | [bugfixxxxx](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/bugfixxxxx__b057d22b-1ffd-455c-834a-af582e3e270a) | Vixen_Hunny | Console | — |
 | [BUGGED](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/BUGGED__8c264217-f547-488b-ad19-55ac23a45e88) | j.hhh | Console | — |
-| [Buggy DontD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Buggy-DontD__7a5d051d-6b7c-4117-8748-0b3ec7a3c234) | FiNk3F13 | Console | — |
 | [BuildAdvisor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/yodased-mods/BuildAdvisor__c0db4e1c-b7ae-4821-b7e8-4a8cfed56e96) | yodased-mods | Console | — |
 | [Bulk buy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Bulk-buy__0ad00225-1c8b-4f4a-8e95-ca8986209a7f) | Copper0 | Console | — |
 | [Bunny's Dice Roller](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBunnynator1001/Bunny-s-Dice-Roller__2931) | TheBunnynator1001 | PC / Mac | 1.0.1.1a |

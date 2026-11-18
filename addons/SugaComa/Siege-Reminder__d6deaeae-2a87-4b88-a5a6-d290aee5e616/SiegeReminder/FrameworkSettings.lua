@@ -1,7 +1,7 @@
 -- Per-addon framework support. Loaded before this addon's runtime files.
 -- Existing SavedVariables paths and schema versions are preserved.
 local F = {
-    id = "SiegeReminder", savedPrefix = "SiegeReminder", displayName = "SiegeMaster", version = "2.1.4",
+    id = "SiegeReminder", savedPrefix = "SiegeReminder", displayName = "SiegeMaster", version = "2.1.5",
     accountOnly = false, defaultAccountWide = true,
     nativeProfile = false, standalone = false,
     toggleEnabled = false,

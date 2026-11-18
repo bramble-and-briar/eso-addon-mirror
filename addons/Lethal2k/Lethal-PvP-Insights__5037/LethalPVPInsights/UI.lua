@@ -2037,12 +2037,34 @@ function UI:RefreshPane()
                 if n and n ~= "" then onBars[string.lower(zo_strformat("<<1>>", n))] = true; haveBars = true end
             end
         end
-        -- skills other players cast on you (Gibbering Shelter...): only listed when on this player's captured bars
+        -- sets in this player's captured gear
+        local wornSets = {}
+        for _, g in ipairs(snap and snap.v and snap.v.gear or {}) do
+            local sid = tonumber(g.set)
+            if sid and sid > 0 then
+                local n = (PDI.sv.setNames or {})[sid] or (GetItemSetName and GetItemSetName(sid))
+                if n and n ~= "" then
+                    local k = string.lower(zo_strformat("<<1>>", n))
+                    wornSets[k] = true
+                    wornSets[(k:gsub("^perfected ", ""))] = true     -- "Perfected Grand Rejuvenation" counts too
+                end
+            end
+        end
+        -- skills other players cast on you (Gibbering Shelter...): only listed when on this player's captured bars;
+        -- proc sets that affect other players too (Grand Rejuvenation): only when in this player's captured gear
         local kept = {}
-        for _, r in ipairs(skills) do
-            local plain = type(r.n) == "string"
+        local function plainOf(r)
+            return type(r.n) == "string"
                 and string.lower(zo_strtrim((r.n:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", ""):gsub(" %*$", "")))) or nil
-            if not (plain and PDI.Skills:NeedsBars(plain) and not onBars[plain]) then kept[#kept + 1] = r end
+        end
+        local present = {}
+        for _, r in ipairs(skills) do local p = plainOf(r); if p then present[p] = true end end
+        for _, r in ipairs(skills) do
+            local plain = plainOf(r)
+            local drop = plain and ((PDI.Skills:NeedsBars(plain) and not onBars[plain])
+                or (PDI.Skills:NeedsGear(plain) and not wornSets[plain])
+                or (PDI.Skills.EXCLUDED_BY[plain] and present[PDI.Skills.EXCLUDED_BY[plain]]))
+            if not drop then kept[#kept + 1] = r end
         end
         skills = kept
         for _, r in ipairs(skills) do

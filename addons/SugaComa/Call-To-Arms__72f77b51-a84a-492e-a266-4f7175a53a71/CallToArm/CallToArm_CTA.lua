@@ -410,7 +410,7 @@ local function EnsureByGuild(gid)
         if cta.alerts.population == nil then
             cta.alerts.population = false
         end
-        cta.rules = cta.rules or { dethroneKeepThreshold = 3 }
+        cta.rules = cta.rules or { empPushKeepThreshold = 2, dethroneKeepThreshold = 3 }
         cta.display = cta.display or { popupSeconds = 6, useFancyPopup = true }
         if cta.display.useFancyPopup == nil then
             cta.display.useFancyPopup = true
@@ -958,7 +958,8 @@ local function CheckEmperorPush(gid, settings, campaignId, guildAlliance)
     end
 
     local owned, total = GetEmperorKeepsOwned(campaignId, guildAlliance)
-    if not total or not owned or total == 0 or owned < 4 then
+    local threshold = tonumber(settings.rules.empPushKeepThreshold) or 2
+    if not total or not owned or total == 0 or total - owned > threshold then
         return false
     end
 
@@ -1008,7 +1009,7 @@ local function CheckEmperorPush(gid, settings, campaignId, guildAlliance)
     return true
 end
 
-local function CheckDethrone(gid, settings, campaignId, guildAlliance)
+local function CheckDethrone(gid, settings, campaignId, guildAlliance, checkOnEntry)
     if settings.alerts.dethrone ~= true then return false end
     if not CanFire(settings, "dethrone") then return false end
     if not HasKeepData(campaignId) then return false end
@@ -1030,7 +1031,8 @@ local function CheckDethrone(gid, settings, campaignId, guildAlliance)
         owned,
         total,
         threshold,
-        settings.state.lastSeen.lastEmpKeepsOwned
+        settings.state.lastSeen.lastEmpKeepsOwned,
+        checkOnEntry
     ) then
         return false
     end
@@ -1305,7 +1307,7 @@ function CTA.RunPoll(options)
     local fired = false
     if checkCampaignAlerts then
         fired = CheckEmperorPush(gid, settings, campaignId, guildAlliance) or fired
-        fired = CheckDethrone(gid, settings, campaignId, guildAlliance) or fired
+        fired = CheckDethrone(gid, settings, campaignId, guildAlliance, options and options.checkOnEntry) or fired
         fired = CheckWarBegins(gid, settings, campaignId, guildAlliance) or fired
         fired = CheckWarRages(gid, settings, campaignId, guildAlliance) or fired
     end
@@ -1489,6 +1491,7 @@ local function NormalizeAutomaticOptions(options)
     return {
         campaign = options.campaign == true,
         population = options.population == true,
+        checkOnEntry = options.campaign == true and options.checkOnEntry == true,
     }
 end
 
@@ -1514,6 +1517,7 @@ local function StartRequest(manual, automaticOptions)
             local pending = CTA._pendingRequest.automaticOptions or { campaign = false, population = false }
             pending.campaign = pending.campaign or incoming.campaign
             pending.population = pending.population or incoming.population
+            pending.checkOnEntry = pending.checkOnEntry or incoming.checkOnEntry
             CTA._pendingRequest.automaticOptions = pending
         end
         return
@@ -1596,6 +1600,7 @@ function CTA.Init()
             local zoneOptions = {
                 campaign = settings.polling and settings.polling.onZoneChange == true,
                 population = settings.population and settings.population.onZoneChange == true,
+                checkOnEntry = true,
             }
             -- Zone entry is optional and does not reset either periodic schedule.
             -- RunPoll rechecks Alert Filters 1-5 and normal alert cooldowns.

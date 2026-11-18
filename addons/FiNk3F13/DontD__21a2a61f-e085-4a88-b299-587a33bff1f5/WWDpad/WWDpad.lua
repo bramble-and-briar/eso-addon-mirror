@@ -1,7 +1,7 @@
 -- Uses ESO's quest-cycle action, normally D-pad quest-cycle button in gamepad mode.
 -- Does not change the player's saved key bindings.
 local NAME = "WWDpad"
-local VERSION = "0.7.1"
+local VERSION = "0.7.5"
 local RADIAL_ID = "wwdpad"
 local settings
 local hooked = false
@@ -20,7 +20,6 @@ local DrainDeferred
 local FinishPending
 local actionFragments = {}
 local activeFragments = {}
-local customPress = {}
 local RefreshSettings
 local HOTKEYS = {
     { id = "quest", name = "Aufgabenwechsel (Steuerkreuz rechts)" },
@@ -43,6 +42,19 @@ local function ShouldHandle()
     return settings and settings.enabled
         and IsInGamepadPreferredMode()
         and HUD_SCENE and HUD_SCENE.state == "shown"
+end
+
+local function ShowStatus()
+    local state = not settings.enabled and "AUS" or swapUncertain and "nach Fehler gesperrt"
+        or swapPending and "WW-Wechsel laeuft" or queuedPlan and "Wechsel vorgemerkt" or "bereit"
+    Say("Status: " .. state .. "; Gamepad=" .. tostring(IsInGamepadPreferredMode())
+        .. "; Hotkey 1=" .. tostring(settings.hotkey) .. "; Hotkey 2=" .. tostring(settings.secondHotkey))
+    if swapPending then Say(WWDpadMonitor.Describe()) end
+end
+
+local function ClearQueued()
+    queuedPlan = nil
+    WWDpadPendingHUD.Clear()
 end
 
 local function NextSetup(directMode, suppliedPlan, automatic)
@@ -80,12 +92,13 @@ local function NextSetup(directMode, suppliedPlan, automatic)
             if not queuedPlan then
                 plan.adjacent = false -- freeze the exact next index at button press
                 queuedPlan = plan
+                WWDpadPendingHUD.Show(plan)
                 WWDpadAuto.ManualOverride()
-                Say("Ein Setupwechsel ist fuer nach dem Kampf vorgemerkt.")
             end
             return
         end
         pendingPlan = plan
+        WWDpadRouting.Begin(plan)
         if not automatic then WWDpadAuto.ManualOverride() end
         swapPending = true
         swapGeneration = swapGeneration + 1
@@ -102,8 +115,10 @@ local function NextSetup(directMode, suppliedPlan, automatic)
         -- Adjacent loading discards WW.LoadSetup's false result (empty setup).
         -- Submit the already resolved index directly so rejection is visible.
         local accepted = ww.LoadSetup(plan.zone, plan.pageId, plan.index, false)
+        if accepted == false then submitted = false end
         if accepted == false and swapPending then
             WWDpadMonitor.Stop()
+            WWDpadRouting.Abort(plan)
             swapPending = false
             pendingPlan = nil
             swapGeneration = swapGeneration + 1
@@ -130,19 +145,23 @@ end
 FinishPending = function(notice)
     if not swapPending or swapUncertain then return end
     WWDpadMonitor.Stop()
-    WWDpadRouting.Commit(pendingPlan)
+    if WWDpadRouting.IsCurrent(pendingPlan) and WizardsWardrobe.currentIndex == pendingPlan.index then
+        WWDpadRouting.Commit(pendingPlan)
+    else
+        WWDpadRouting.Abort(pendingPlan)
+    end
     pendingPlan = nil
     swapPending = false
     swapGeneration = swapGeneration + 1
     lastSwap = GetFrameTimeMilliseconds()
-    if notice then Say(notice) end
+    -- Routine completion is shown by WW's HUD, not repeated in the chat.
     DrainDeferred()
 end
 
 DrainDeferred = function()
-    if not settings.enabled or swapUncertain then queuedPlan = nil; return end
+    if not settings.enabled or swapUncertain then ClearQueued(); return end
     if IsUnitInCombat("player") or swapPending then return end
-    if IsUnitDeadOrReincarnating("player") then queuedPlan = nil; return end
+    if IsUnitDeadOrReincarnating("player") then ClearQueued(); return end
     -- Do not switch over menus; resume when the HUD is shown again.
     if not ShouldHandle() then return end
     local remaining = SWAP_COOLDOWN_MS - (GetFrameTimeMilliseconds() - lastSwap)
@@ -155,7 +174,7 @@ DrainDeferred = function()
     end
     if queuedPlan then
         local plan = queuedPlan
-        queuedPlan = nil
+        ClearQueued()
         if not WWDpadRouting.IsCurrent(plan) then
             Say("Vorgemerkter Wechsel verworfen: WW-Seite oder Setup wurde geaendert.")
             return
@@ -179,7 +198,7 @@ local function UpdateInputLayer()
         end
     end
     for id, fragment in pairs(activeFragments) do
-        if not desired[id] then HUD_SCENE:RemoveFragment(fragment); customPress[id] = nil end
+        if not desired[id] then HUD_SCENE:RemoveFragment(fragment) end
     end
     for id, fragment in pairs(desired) do
         if not activeFragments[id] then HUD_SCENE:AddFragment(fragment) end
@@ -191,18 +210,19 @@ end
 -- ESO activates/removes that layer together with the HUD scene.
 WWDpadInput = {}
 function WWDpadInput.Down(hotkey)
-    if customPress[hotkey] or not ShouldHandle()
+    if not ShouldHandle()
         or (settings.hotkey ~= hotkey and settings.secondHotkey ~= hotkey) then return end
-    customPress[hotkey] = true
+    -- ESO dispatches the action Down for a press. Do not keep a latch that
+    -- relies on receiving Up: console UI transitions can swallow release.
     NextSetup(settings.secondHotkey == hotkey)
 end
 function WWDpadInput.Up(hotkey)
-    if hotkey then customPress[hotkey] = nil else customPress = {} end
+    -- Kept as the XML release endpoint; no persistent press state to clear.
 end
 
 local function SetEnabled(value)
     settings.enabled = value == true
-    if not settings.enabled then queuedPlan = nil end
+    if not settings.enabled then ClearQueued() end
     RefreshSettings()
 end
 
@@ -260,10 +280,13 @@ local function RegisterRadialEntries()
             SetAutoBoss(not settings.autoBossEnabled)
             Say(settings.autoBossEnabled and "Bossautomatik AN." or "Bossautomatik AUS.")
         end, "Schaltet nur die automatische Boss-/Raumerkennung ein oder aus. Die manuellen Hotkeys bleiben verfuegbar.")
+    LibRadialMenu:RegisterEntry(RADIAL_ID, "Status anzeigen", "status",
+        "/esoui/art/addons/gamepad/gp_addons_manage.dds", ShowStatus,
+        "Zeigt Hotkeys und den Grund einer moeglichen Wechsel-Sperre im Chat an.")
 end
 
 RefreshSettings = function()
-    if not settings.enabled then queuedPlan = nil end
+    if not settings.enabled then ClearQueued() end
     UpdateInputLayer()
     RegisterRadialEntries()
     WWDpadAuto.Schedule()
@@ -341,10 +364,30 @@ local function RegisterSettings()
     end
 end
 
+local function InstallQuietLogging(ww)
+    if not ww or type(ww.Log) ~= "function" or type(GetString) ~= "function" then return end
+    local routine = {}
+    for _, name in ipairs({"WW_MSG_LOADSETUP", "WW_MSG_LOADINFIGHT", "WW_MSG_SWAPSUCCESS",
+        "WW_MSG_CPCOOLDOWN", "WW_MSG_CPCOOLDOWNOVER"}) do
+        local id = _G[name]
+        if id then
+            local ok, message = pcall(GetString, id)
+            if ok and type(message) == "string" and message ~= "" then routine[message] = true end
+        end
+    end
+    ZO_PreHook(ww, "Log", function(message, logType)
+        local chat = ww.settings and ww.settings.printMessages
+        if chat ~= "chat" and chat ~= true then return end
+        if ww.LOGTYPES and (logType == ww.LOGTYPES.ERROR or logType == ww.LOGTYPES.CRITICAL) then return end
+        if routine[message] then return true end
+    end)
+end
+
 local function InstallHooks()
     if hooked then return end
     local ww = WizardsWardrobe
     if ww then WWDpadMonitor.Initialize(ww) end
+    InstallQuietLogging(ww)
     if not completionSignalReady and ww and ww.callbackManager
         and type(ww.callbackManager.RegisterCallback) == "function" then
         ww.callbackManager:RegisterCallback("WW_OnSetupSwapSuccess", function()
@@ -368,7 +411,6 @@ local function InstallHooks()
     if tracker and type(tracker.BeginAssistInteract) == "function"
         and type(tracker.EndAssistInteract) == "function" then
         ZO_PreHook(tracker, "BeginAssistInteract", function()
-            if capturedPress then return true end
             if not ShouldHandle() or (settings.hotkey ~= "quest" and settings.secondHotkey ~= "quest") then return end
             capturedPress = true
             NextSetup(settings.secondHotkey == "quest")
@@ -410,16 +452,17 @@ EVENT_MANAGER:RegisterForEvent(NAME, EVENT_ADD_ON_LOADED, function(_, addonName)
     RegisterSettings()
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, UpdateInputLayer)
     HUD_SCENE:RegisterCallback("StateChange", function(_, newState)
-        if newState ~= "shown" then customPress = {} end
+        if newState ~= "shown" then capturedPress = false end
         if newState == "shown" then DrainDeferred() end
     end)
     -- Optional PC/PTS testing shortcut; the console uses the radial toggle.
-    SLASH_COMMANDS["/wwdpad"] = function()
+    SLASH_COMMANDS["/wwdpad"] = function(argument)
+        if argument == "status" then ShowStatus(); return end
         SetEnabled(not settings.enabled)
         Say(settings.enabled and ("AN: " .. HotkeyName()) or "AUS: normale Tastenfunktion wieder aktiv.")
     end
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_ACTIVATED, function()
-        queuedPlan = nil -- never replay a combat request after a loading screen
+        ClearQueued() -- never replay a combat request after a loading screen
         InstallHooks()
         UpdateInputLayer()
         WWDpadAuto.Schedule()
@@ -428,5 +471,5 @@ EVENT_MANAGER:RegisterForEvent(NAME, EVENT_ADD_ON_LOADED, function(_, addonName)
         WWDpadMonitor.ResetClock()
         if not inCombat then DrainDeferred() end
     end)
-    if EVENT_PLAYER_DEAD then EVENT_MANAGER:RegisterForEvent(NAME .. "Death", EVENT_PLAYER_DEAD, function() queuedPlan = nil end) end
+    if EVENT_PLAYER_DEAD then EVENT_MANAGER:RegisterForEvent(NAME .. "Death", EVENT_PLAYER_DEAD, ClearQueued) end
 end)

@@ -1,8 +1,16 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+;
+;Created with Claude AI and human-tested
+
 ## Title: |cAA3333Blood Hunger Tracker|r
 ## Author: Irreverend
-## Version: 1.0.5
-## AddOnVersion: 105
-## APIVersion: 101050 101051
+## Version: 1.0.6
+## AddOnVersion: 106
+## APIVersion: 101051 101052
 ## SavedVariables: BloodHungerTrackerSavedVariables BloodHungerTrackerPosition
 ## DependsOn: LibAddonMenu-2.0>=43
 ## Description: Displays your Werewolf Blood Hunger stacks as an on-screen pip counter while you are transformed.

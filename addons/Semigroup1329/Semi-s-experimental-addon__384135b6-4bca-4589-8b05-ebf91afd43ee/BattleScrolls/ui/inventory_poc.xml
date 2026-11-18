@@ -20,6 +20,22 @@
                 </Texture>
             </Controls>
         </Control>
+        <!-- The Pack tab's breakdown of pack slots. Lua places the segments. -->
+        <Control name="BattleScrollsInventoryPocPackBar" virtual="true" hidden="true">
+            <Dimensions y="0"/>
+            <Controls>
+                <Texture name="$(parent)Track" color="FFFFFF" alpha="0.12">
+                    <Anchor point="BOTTOMLEFT"/>
+                    <Anchor point="BOTTOMRIGHT"/>
+                    <Dimensions y="10"/>
+                </Texture>
+                <Texture name="$(parent)Stuck" level="1" hidden="true"/>
+                <Texture name="$(parent)Trade" level="1" hidden="true"/>
+                <Texture name="$(parent)Leaves" level="1" hidden="true"/>
+                <Texture name="$(parent)Unassigned" level="1" hidden="true"/>
+                <Texture name="$(parent)Kept" level="1" hidden="true"/>
+            </Controls>
+        </Control>
         <TopLevelControl name="BattleScrollsInventoryPocLog" inherits="ZO_Gamepad_ParametricList_Screen" hidden="true">
             <Controls>
                 <Control name="$(parent)Contents" inherits="ZO_GamepadGrid_NavQuadrant_2_Anchors" hidden="true">

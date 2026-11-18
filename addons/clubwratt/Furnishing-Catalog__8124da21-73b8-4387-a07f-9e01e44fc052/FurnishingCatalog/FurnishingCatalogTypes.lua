@@ -35,7 +35,7 @@
 ---@field peakMemoryKb number|nil
 ---@field fullCollects integer|nil
 
----One furnishing as the item list shows it. Built per opened subcategory, dropped on the next one.
+---One furnishing as the item list shows it. Built per opened long list, dropped with it.
 ---@class FurnishingCatalogItem
 ---@field id integer
 ---@field link string
@@ -48,9 +48,12 @@
 ---@field planId integer|false|nil set by Plans.Fill: item id of the plan that teaches it (false = it has none)
 ---@field planLink string|nil     set by Plans.Fill
 ---@field planState integer|nil   set by Plans.Fill: PlanUtils.STATE_*
----@field groupName string|nil    set by BrowseUtils.SortAndGroup: the section the item falls in
----@field groupOrder number|nil   set by BrowseUtils.SortAndGroup
----@field startsGroup boolean|nil set by BrowseUtils.SortAndGroup: first item of its section
+---@field sectionIndex integer     place of the section it was read from (its subcategory) in its long list
+---@field sectionName string      that section's name
+---@field sectionKey string       that section's key
+---@field groupName string|nil    set by BrowseUtils.Arrange: the Sort mode's group the item falls in
+---@field groupOrder number|nil   set by BrowseUtils.Arrange
+---@field header string|nil       set by BrowseUtils.Arrange: the header above the item, on the first item of a section
 
 ---One shopping list.
 ---@class FurnishingCatalogShoppingList
@@ -63,6 +66,28 @@
 ---@field nextId integer
 ---@field lastUsedId integer|nil the list an item was last put on: offered first
 ---@field lists FurnishingCatalogShoppingList[]
+
+---A section of a long list: a subcategory's name and item ids.
+---@class FurnishingCatalogSection
+---@field key string            the subcategory's key: the row the cursor goes to when the list collapses
+---@field name string
+---@field ids integer[]
+
+---What the item list shows: the long list of a category or of a shopping list (its furnishings
+---under subcategory headers or, expanded, finer ones or none), or a category's subcategories
+---as folders.
+---@class FurnishingCatalogView
+---@field id string             key its cursor is remembered under (a category's is its row key in the root list)
+---@field name string           title
+---@field parentName string     label of the count in the header
+---@field count integer
+---@field category FurnishingCatalogCategory|nil
+---@field shoppingList FurnishingCatalogShoppingList|nil
+---@field sections FurnishingCatalogSection[]
+---@field detail integer        how far it is expanded: a BrowseUtils.DETAIL_* (plain headers, finer ones, flat)
+---@field hasFolders boolean|nil a category: its long list collapses back to its subcategories as folders
+---@field folders boolean|nil   those folders are what is showing, not the long list
+---@field items FurnishingCatalogItem[]|nil read when first shown, in the order shown
 
 ---@class FurnishingCatalogSubcategory
 ---@field id integer

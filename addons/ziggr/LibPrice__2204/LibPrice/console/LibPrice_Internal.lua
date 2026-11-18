@@ -23,8 +23,6 @@ LibPrice.day_ct_short = 3
 LibPrice.day_ct_long = 90
 
 -- source keys
-LibPrice.MM = "mm"
-LibPrice.MT = "mt"
 LibPrice.TSC = "tsc"
 LibPrice.CROWN = "crown"
 LibPrice.ROLIS = "rolis"
@@ -43,10 +41,6 @@ LibPrice.PRICE_ASK = "ask" -- listed for
 LibPrice.PRICE_SALE = "sale" -- sold for
 LibPrice.PRICE_AVG = "avg"
 
-local function Info(msg, ...)
-  d("|c999999LibPrice: " .. string.format(msg, ...))
-end
-
 local function Error(msg, ...)
   d("|cFF6666LibPrice: " .. string.format(msg, ...))
 end
@@ -56,8 +50,6 @@ end
 function LibPrice.SourceList()
   if not LibPrice.SOURCE_LIST then
     LibPrice.SOURCE_LIST = {
-      LibPrice.MM,
-      LibPrice.MT,
       LibPrice.TSC,
       LibPrice.CROWN,
       LibPrice.ROLIS,
@@ -102,8 +94,6 @@ function LibPrice.Price(source_key, item_link)
   local self = LibPrice
   if not self.DISPATCH then
     self.DISPATCH = {
-      [self.MM] = { self.MMPrice, self.CanMMPrice },
-      [self.MT] = { self.MTPrice, self.CanMTPrice },
       [self.TSC] = { self.TSCPrice, self.CanTSCPrice },
       [self.CROWN] = { self.CrownPrice },
       [self.ROLIS] = { self.RolisPrice },
@@ -120,12 +110,10 @@ function LibPrice.Price(source_key, item_link)
   end
   local cached = self.GetCachedPrice(source_key, item_link)
   if cached then
-    -- Info("cached %s %s", item_link, source_key)
     return cached
   end
   local got = self.DISPATCH[source_key][1](item_link)
   if not got then
-    -- Info("%s %s returned nil", item_link, source_key)
     return nil
   end
   self.SetCachedPrice(source_key, item_link, got)
@@ -140,8 +128,6 @@ function LibPrice.PriceNormalized(source_key, item_link)
   end
   if not self.NORMALIZE then
     self.NORMALIZE = {
-      [self.MM] = self.MMPriceNormalize,
-      [self.MT] = self.MTPriceNormalize,
       [self.TSC] = self.TSCPriceNormalize,
       [self.CROWN] = self.CrownPriceNormalize,
       [self.ROLIS] = self.RolisPriceNormalize,
@@ -171,100 +157,36 @@ function LibPrice.Enabled(key, source_list)
   return false
 end
 
--- Master Merchant ------------------------------------- Philgo, Sharlikran --
-
-function LibPrice.CanMMPrice()
-  return MasterMerchant and true
-end
-
-function LibPrice.MMPrice(item_link)
-  if not (MasterMerchant and MasterMerchant.isInitialized) then
-    return nil
-  end
-  if not item_link then
-    return nil
-  end
-  local mm = MasterMerchant:GetTooltipStats(item_link, true, false)
-  if not (mm and mm.avgPrice and 0 < mm.avgPrice) then
-    return nil
-  end
-  return mm
-end
-
-function LibPrice.MMPriceNormalize(mm)
-  if not mm then
-    return nil
-  end
-  local prices = {}
-  if mm.avgPrice ~= nil then
-    table.insert(
-      prices,
-      {
-        type = LibPrice.PRICE_SALE,
-        [LibPrice.CURRENCY_TYPE_GOLD] = mm.avgPrice,
-        count = mm.numSales,
-        days = mm.numDays
-      }
-    )
-  end
-  if mm.bonanzaCount then
-    table.insert(
-      prices,
-      { type = LibPrice.PRICE_ASK, [LibPrice.CURRENCY_TYPE_GOLD] = mm.bonanzaPrice, count = mm.bonanzaCount }
-    )
-  end
-  return prices
-end
-
----- MarketTrackerAddon -----------------------
-
-function LibPrice.CanMTPrice()
-  return type(MarketTrackerAddon) == "table" and type(MarketTrackerAddon.getPrice) == "function"
-end
-
-function LibPrice.MTPrice(item_link)
-  if not LibPrice.CanMTPrice() then return nil end
-
-  local name = GetItemLinkName(item_link)
-  local quality = GetItemLinkDisplayQuality(item_link)
-  local mtp = MarketTrackerAddon:getPrice(name, quality)
-  if mtp then
-    return { mtPrice = mtp }
-  end
-  return nil
-end
-
-function LibPrice.MTPriceNormalize(mtp)
-  if not mtp then
-    return nil
-  end
-  return {
-    { type = LibPrice.PRICE_SALE, [LibPrice.CURRENCY_TYPE_GOLD] = mtp.mtPrice, count = nil, days = nil }
-  }
-end
-
----- TSCPriceDataLite ---------------------------------------------
+-- Tamriel Savings Co. ------------------------------------ TSCPriceFetcher2 --
+--
+-- TSCPriceDataAPI:GetItemData(itemLink) returns a fresh table, or nil, or
+-- TSCPriceDataAPI.LOADING while the server file is still chunking in.
+-- avgPrice is the quality-specific sale average, or the legacy average when
+-- that quality has no row (fromLegacy). commonMin/commonMax are that same row.
 
 function LibPrice.CanTSCPrice()
-  return type(TSCPriceDataLite) == "table" and type(TSCPriceDataLite.GetPrice) == "function"
+  return TSCPriceDataAPI and true
 end
 
 function LibPrice.TSCPrice(item_link)
-  if not LibPrice.CanTSCPrice() then return nil end
-  local itemId = GetItemLinkItemId(item_link)
-  local tsc = TSCPriceDataLite:GetPrice(itemId)
-  if tsc then
-    return { tscPrice = tsc }
+  if not (TSCPriceDataAPI and TSCPriceDataAPI.GetItemData) then
+    return nil
   end
-  return nil
+  local item_data = TSCPriceDataAPI:GetItemData(item_link)
+  if not item_data or item_data == TSCPriceDataAPI.LOADING or not item_data.avgPrice then
+    return nil
+  end
+  -- ItemLinkToPriceGold still looks for this field name.
+  item_data.tscPrice = item_data.avgPrice
+  return item_data
 end
 
 function LibPrice.TSCPriceNormalize(tsc)
-  if not tsc then
+  if not (tsc and tsc.avgPrice) then
     return nil
   end
   return {
-    { type = LibPrice.PRICE_SALE, [LibPrice.CURRENCY_TYPE_GOLD] = tsc.tscPrice, count = nil, days = nil }
+    { type = LibPrice.PRICE_SALE, [LibPrice.CURRENCY_TYPE_GOLD] = tsc.avgPrice, count = nil, days = nil }
   }
 end
 
@@ -369,9 +291,7 @@ end
 function LibPrice.Unattune(item_link)
   local self = LibPrice
   -- Remove the "attuning" that makes these
-  -- crafting stations unique, preventing FurC
-  -- and MM from coming up with prices, AND
-  -- preventing us from combining them into a single
+  -- crafting stations unique, preventing a single
   -- stack of count 44 instead of 44 unique items.
   --
   -- Note trailing space after each station name!
@@ -417,21 +337,11 @@ end
 
 function LibPrice.NPCPrice(item_link)
   local _, value = GetItemLinkInfo(item_link)
-  local npcPurchase
-  if MasterMerchant and MasterMerchant["vendor_price_table"] then
-    local itemId = GetItemLinkItemId(item_link)
-    local itemType = GetItemLinkItemType(item_link)
-    if MasterMerchant["vendor_price_table"][itemType] then
-      npcPurchase = MasterMerchant["vendor_price_table"][itemType][itemId]
-    end
-  end
-
-  if not value and not npcPurchase then
+  if not value or value <= 0 then
     return nil
   end
   return {
-    npcVendor = value and value > 0 and value or nil,
-    npcPurchase = npcPurchase and npcPurchase > 0 and npcPurchase or nil
+    npcVendor = value
   }
 end
 
@@ -451,9 +361,8 @@ end
 
 -- Cache ---------------------------------------------------------------------
 --
--- Calculating an "average price" from MM and ATT is an O(n) scan through
--- sales records. Expensive. Cache results for a few minutes to avoid crushing
--- the CPU with wasteful re-calculation.
+-- TSC parses a packed price string per lookup. Hold the result for a few
+-- minutes so repeated tooltip and listing calls do not parse it again.
 
 LibPrice.cache = nil
 LibPrice.cache_reset_ts = nil
@@ -464,36 +373,22 @@ function LibPrice.ResetCacheIfNecessary()
   local self = LibPrice
   local now_ts = GetTimeStamp()
   self.cache_reset_ts = self.cache_reset_ts or now_ts
-  local prev_reset_ts = self.cache_reset_ts
-  local ago_secs = GetDiffBetweenTimeStamps(now_ts, prev_reset_ts)
+  local ago_secs = GetDiffBetweenTimeStamps(now_ts, self.cache_reset_ts)
   if self.CACHE_DUR_SECONDS < ago_secs then
-    -- d("|cDD6666cache reset, ago_secs:"..tostring(ago_secs))
     self.cache = {}
     self.cache_reset_ts = now_ts
-  else
-    -- d("|c666666cache retained, ago_secs:"..tostring(ago_secs))
   end
 end
 
 function LibPrice.GetCachedPrice(source_key, item_link)
   LibPrice.ResetCacheIfNecessary()
   if not (LibPrice.cache and LibPrice.cache[source_key]) then
-    -- d("|cDDD666cache miss:"..item_link)
     return nil
   end
-  -- allow the MM cache to do its job
-  if source_key == LibPrice.MM then
-    return nil
-  end
-  -- d("|c66DD66cache hit:"..item_link)
   return LibPrice.cache[source_key][item_link]
 end
 
 function LibPrice.SetCachedPrice(source_key, item_link, value)
-  -- allow the MM cache to do its job
-  if source_key == LibPrice.MM then
-    return
-  end
   LibPrice.cache = LibPrice.cache or {}
   LibPrice.cache[source_key] = LibPrice.cache[source_key] or {}
   LibPrice.cache[source_key][item_link] = value

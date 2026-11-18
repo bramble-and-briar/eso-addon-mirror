@@ -110,6 +110,37 @@ function Recap:Build()
              killer = killer, top = top, last = last }
 end
 
+-- "Real Death Recap" button on the game's death screen, next to its own "Toggle Recap"
+-- (one per death screen layout; shown only when this death has a Real Death Recap)
+function Recap:DeathButtons()
+    if self.deathButtons then return self.deathButtons end
+    if not (DEATH and DEATH.types and ZO_KeybindButtonTemplate_Setup) then return nil end
+    self.deathButtons = {}
+    for key, t in pairs(DEATH.types) do
+        local anchor = type(t) == "table" and t.deathRecapToggleButton
+        if anchor then
+            local ok, b = pcall(function()
+                local b = WINDOW_MANAGER:CreateControlFromVirtual("LPIDeathRecapButton" .. tostring(key), anchor:GetParent(), "ZO_KeybindButtonChroma")
+                b:SetAnchor(TOPLEFT, anchor, TOPRIGHT, 40, 0)
+                ZO_KeybindButtonTemplate_Setup(b, "LPI_RECAP_TOGGLE", function() PDI.UI:ToggleRecap() end, "Real Death Recap")
+                b:SetKeybind("LPI_RECAP_TOGGLE", true)              -- shows the key, or that none is set yet
+                if t.ApplyStyleToKeybindButton then t:ApplyStyleToKeybindButton(b, false) end
+                b:SetHidden(true)
+                return b
+            end)
+            if ok and b then self.deathButtons[#self.deathButtons + 1] = b end
+        end
+    end
+    return self.deathButtons
+end
+
+function Recap:ShowDeathButtons(show)
+    local list = (show and self:DeathButtons()) or self.deathButtons
+    if not list then return end
+    local gamepad = IsInGamepadPreferredMode and IsInGamepadPreferredMode()
+    for _, b in ipairs(list) do b:SetHidden(not show or gamepad) end
+end
+
 local function OnDead()
     if not Recap:IsOn() then return end
     if not PDI.InPvPArea() then hits, fightStart = {}, nil; return end
@@ -118,7 +149,12 @@ local function OnDead()
     if not r then return end
     Recap.last = r
     PDI.sv.lastRecap = r
+    pcall(Recap.ShowDeathButtons, Recap, true)
     zo_callLater(function() if PDI.UI and PDI.UI.ShowRecap then PDI.UI:ShowRecap(r) end end, 600)
+end
+
+local function OnAlive()
+    pcall(Recap.ShowDeathButtons, Recap, false)
 end
 
 local function OnCombatState(_, inCombat)
@@ -132,11 +168,14 @@ function Recap:Register(on)
         EM:RegisterForEvent(NS, EVENT_COMBAT_EVENT, OnDamage)
         EM:AddFilterForEvent(NS, EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
         EM:RegisterForEvent(NS .. "Dead", EVENT_PLAYER_DEAD, OnDead)
+        EM:RegisterForEvent(NS .. "Alive", EVENT_PLAYER_ALIVE, OnAlive)
         EM:RegisterForEvent(NS .. "Combat", EVENT_PLAYER_COMBAT_STATE, OnCombatState)
         fightStart = IsUnitInCombat and IsUnitInCombat("player") and nowMs() or nil
     else
         EM:UnregisterForEvent(NS, EVENT_COMBAT_EVENT)
         EM:UnregisterForEvent(NS .. "Dead", EVENT_PLAYER_DEAD)
+        EM:UnregisterForEvent(NS .. "Alive", EVENT_PLAYER_ALIVE)
+        pcall(Recap.ShowDeathButtons, Recap, false)
         EM:UnregisterForEvent(NS .. "Combat", EVENT_PLAYER_COMBAT_STATE)
         hits, fightStart = {}, nil
     end

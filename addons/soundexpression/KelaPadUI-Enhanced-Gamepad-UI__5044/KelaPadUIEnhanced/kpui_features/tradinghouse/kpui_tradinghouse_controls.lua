@@ -2,27 +2,6 @@
 
 local KPUI_TRADINGHOUSE = KPUI_TRADINGHOUSE
 local colors = KPUI_TRADINGHOUSE.colors
-local KelaGetATTSalesSecondsPerDay = KPUI_TRADINGHOUSE.KelaGetATTSalesSecondsPerDay
-local KelaCreateColorizedResumePrice = KPUI_TRADINGHOUSE.KelaCreateColorizedResumePrice
-local GetItemLinks = KPUI_TRADINGHOUSE.GetItemLinks
-local GetBuyInfo = KPUI_TRADINGHOUSE.GetBuyInfo
-local HideTradingTooltipControls = KPUI_TRADINGHOUSE.HideTradingTooltipControls
-local HideImprovementTooltipControls = KPUI_TRADINGHOUSE.HideImprovementTooltipControls
-local HideProvisionerTooltipControls = KPUI_TRADINGHOUSE.HideProvisionerTooltipControls
-local HideCreationTooltipControls = KPUI_TRADINGHOUSE.HideCreationTooltipControls
-local HideAlchemyTooltipControls = KPUI_TRADINGHOUSE.HideAlchemyTooltipControls
-local HideEnchantingTooltipControls = KPUI_TRADINGHOUSE.HideEnchantingTooltipControls
-local ResetProvisionerTradingTooltip = KPUI_TRADINGHOUSE.ResetProvisionerTradingTooltip
-local ResetCreationTradingTooltip = KPUI_TRADINGHOUSE.ResetCreationTradingTooltip
-local AddClearLine = KPUI_TRADINGHOUSE.AddClearLine
-local SetSmithTradingInfo = KPUI_TRADINGHOUSE.SetSmithTradingInfo
-local SetSmithGraph = KPUI_TRADINGHOUSE.SetSmithGraph
-local SetSmithNotes = KPUI_TRADINGHOUSE.SetSmithNotes
-local SetSmithListings = KPUI_TRADINGHOUSE.SetSmithListings
-local SetSmithQualityPrices = KPUI_TRADINGHOUSE.SetSmithQualityPrices
-local SetProductionPrices = KPUI_TRADINGHOUSE.SetProductionPrices
-local SetCraftingComponents = KPUI_TRADINGHOUSE.SetCraftingComponents
-local IsKPUITradingHouseSettingEnabled = KPUI_TRADINGHOUSE.IsKPUITradingHouseSettingEnabled
 
 function KPUI_ItemTypeGuildStat_OnInitialize(control)
 	local rows = {}
@@ -38,15 +17,24 @@ function KPUI_ItemTypeGuildStat_OnInitialize(control)
 		control:GetNamedChild("Header"):GetNamedChild("ValueGuild"):SetText(GetString(KELA_TRADING_TRADING_PROFIT_COEF))
 		lastControl = control:GetNamedChild("Header")
 		lastControl = lastControl:GetNamedChild("Divider")
+		-- One entry per guild, sorted by the profit ratio. (Keying by the ratio
+		-- itself merged guilds that happened to share a ratio.)
 		local tblItemCategorySales = {}
-		
 		for guildName, value in pairs (KELA_ATT_GUILD_STAT[itemTradeCategory]) do
-			local K = 1 - (100/(value["price"]/value["quantity"]))
-			KelaSetValueIfNil(tblItemCategorySales, K, {})
-			KelaSetValueIfNil(tblItemCategorySales[K], "guildName", guildName)
-			KelaSetValueIfNil(tblItemCategorySales[K], "price", value["price"])
-			KelaSetValueIfNil(tblItemCategorySales[K], "quantity", value["quantity"])
+			tblItemCategorySales[#tblItemCategorySales + 1] =
+			{
+				ratio = 1 - (100/(value["price"]/value["quantity"])),
+				guildName = guildName,
+				price = value["price"],
+				quantity = value["quantity"],
+			}
 		end
+		table.sort(tblItemCategorySales, function(a, b)
+			if a.ratio == b.ratio then
+				return a.guildName < b.guildName
+			end
+			return a.ratio > b.ratio
+		end)
 
 		for _, row in pairs(rows) do
 			row:SetHidden(true)
@@ -54,8 +42,8 @@ function KPUI_ItemTypeGuildStat_OnInitialize(control)
 		rows = {}
 
 		local count = 0
-		for key, value in spairs (tblItemCategorySales, function (t, a, b) return (a > b) end) do
-			local K = KelaLocalizedFormatNumber(key, 3)
+		for _, value in ipairs(tblItemCategorySales) do
+			local K = KelaLocalizedFormatNumber(value.ratio, 3)
 			count = count + 1
 			local color = ArkadiusTradeTools:GetGuildColor(value["guildName"])
 			local row = GetControl(control:GetName().."row"..count)
@@ -76,6 +64,27 @@ function KPUI_ItemTypeGuildStat_OnInitialize(control)
 		control:GetNamedChild("Footer"):SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT)
 		return control:GetNamedChild("Footer")
 	end
+end
+
+-- The footer holds the recommended-price row and an optional per-lot or
+-- per-writ row. Its XML height is a placeholder, so the real height is set
+-- from the rows shown and following sections never overlap. The XML's big
+-- 1-5 rating number is hidden; the named rating sits under the item title.
+local function SetupFooterLayout(footer)
+	if footer.kelaLayoutReady then return end
+	footer.kelaLayoutReady = true
+	local divider = footer:GetNamedChild("Divider")
+	divider:ClearAnchors()
+	divider:SetAnchor(TOPLEFT, footer, TOPLEFT)
+	divider:SetAnchor(TOPRIGHT, footer, TOPRIGHT)
+	local number = footer:GetNamedChild("EffectOfDeal")
+	number:SetDimensions(0, 0)
+	number:SetHidden(true)
+end
+
+local function LayoutFooterRows(footer, hasSecondRow)
+	local rows = hasSecondRow and 2 or 1
+	footer:SetHeight(footer:GetNamedChild("Divider"):GetHeight() + rows * footer:GetNamedChild("Recomend"):GetFontHeight())
 end
 
 function KPUI_MainInfo_OnInitialize(control)
@@ -186,19 +195,15 @@ function KPUI_MainInfo_OnInitialize(control)
 			valueEffectDeal, effectOfDeal, colorEffectDeal, suggestedTTC, suggestedATT, suggestedAVG, suggestedTTCStack, suggestedATTStack, suggestedAVGStack, suggestedTTCWrit, suggestedATTWrit, suggestedAVGWrit = KelaGetEffectOfDeal (priceInfoTTC, priceInfoATT, selectedData, currentScene, stackCount)
 			if not effectOfDeal then effectOfDeal = "" end
 		else
+			local _
 			_, _, _, suggestedTTC, suggestedATT, suggestedAVG, suggestedTTCStack, suggestedATTStack, suggestedAVGStack, suggestedTTCWrit, suggestedATTWrit, suggestedAVGWrit = KelaGetEffectOfDeal (priceInfoTTC, priceInfoATT, selectedData, nil, stackCount)
 		end
 		
-		control:GetNamedChild("Footer"):ClearAnchors()
-		control:GetNamedChild("Footer"):SetAnchor(TOPLEFT, lastControl, BOTTOMLEFT)
-		control:GetNamedChild("Footer"):SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT)
-		if valueEffectDeal then
-			control:GetNamedChild("Footer"):GetNamedChild("EffectOfDeal"):SetText(colorEffectDeal:Colorize(tostring(valueEffectDeal)))
-			control:GetNamedChild("Footer"):GetNamedChild("EffectOfDeal"):SetHidden(false)
-		else
-			control:GetNamedChild("Footer"):GetNamedChild("EffectOfDeal"):SetText("")
-			control:GetNamedChild("Footer"):GetNamedChild("EffectOfDeal"):SetHidden(true)
-		end
+		local footer = control:GetNamedChild("Footer")
+		footer:ClearAnchors()
+		footer:SetAnchor(TOPLEFT, lastControl, BOTTOMLEFT)
+		footer:SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT)
+		SetupFooterLayout(footer)
 		local bothProviders = priceInfoTTC.Available and priceInfoATT.Available
 		local hasAverage = bothProviders and suggestedATT ~= 0 and suggestedTTC ~= 0
 		local hasAverageStack = bothProviders and suggestedATTStack ~= 0 and suggestedTTCStack ~= 0
@@ -238,8 +243,43 @@ function KPUI_MainInfo_OnInitialize(control)
 			control:GetNamedChild("Footer"):GetNamedChild("TTCStack"):SetText("")
 			control:GetNamedChild("Footer"):GetNamedChild("AVGStack"):SetText("")
 		end	
-		return control:GetNamedChild("Footer"), effectOfDeal, (stackCount > 1 or IsMasterWrit or valueEffectDeal)
+		LayoutFooterRows(footer, IsMasterWrit or stackCount > 1)
+		return footer, effectOfDeal
 	end
+end
+
+-- Dot drawing for Kela's own ATT graphs: same placement as ATT's AddDot, but
+-- the current TTC and ATT suggested prices are drawn as wider markers on
+-- either side of "now". Set on each Kela graph instance only, so ATT's own
+-- sales graph keeps its drawing.
+local function KelaAddGraphDot(graph, x, y, color)
+	local drawAreaWidth, drawAreaHeight = graph.drawArea:GetDimensions()
+	local left = drawAreaWidth / (graph.maxX - graph.minX) * (x - graph.minX)
+	local right = -(drawAreaWidth - left - 2)
+	local top = drawAreaHeight / (graph.maxY - graph.minY) * (graph.maxY - y)
+	local bottom = -(drawAreaHeight - top - 2)
+
+	-- Serves as the index for the current surface
+	graph.numDots = graph.numDots + 1
+	if graph.numDots > graph.numSurfaces then
+		graph.drawArea:AddSurface(0.25, 0.75, 0.25, 0.75)
+		graph.numSurfaces = graph.numSurfaces + 1
+	else
+		graph.drawArea:SetSurfaceHidden(graph.numDots, false)
+	end
+	graph.drawArea:SetColor(graph.numDots, color:UnpackRGBA())
+
+	graph.drawArea:SetPixelRoundingEnabled(false)
+	if x == GetTimeStamp() then
+		if color == colors.COLOR_TTC then
+			left, right, top, bottom = left - 8, right + 2, top - 1, bottom + 2
+			graph.drawArea:SetPixelRoundingEnabled(true)
+		elseif color == colors.COLOR_ATT then
+			left, right, top, bottom = left - 2, right + 8, top - 1, bottom + 2
+			graph.drawArea:SetPixelRoundingEnabled(true)
+		end
+	end
+	graph.drawArea:SetInsets(graph.numDots, left - 2, right + 2, top - 2, bottom + 2)
 end
 
 function KPUI_Graph_OnInitialize(control)
@@ -252,6 +292,7 @@ function KPUI_Graph_OnInitialize(control)
 		graph:SetAnchor(BOTTOMRIGHT, control, BOTTOMRIGHT, 0, 0)
 		graph:SetDrawTier(DT_LOW)
 		control.object = graph.object
+		if control.object then control.object.AddDot = KelaAddGraphDot end
 	end
 	control.SetGuildSalesInfo = function(GuildsInfo, GuildsPrice, stackCount, lastControl)
 		if not ArkadiusTradeTools or not control.object then
@@ -283,10 +324,12 @@ function KPUI_Graph_OnInitialize(control)
 				row:SetHidden(true)
 			end
 			rows = {}
+			-- Rows are named by position; naming them after a shortened guild name
+			-- made two guilds with the same prefix share one row.
+			local guildRow = 0
 			for guildName, countSales in spairs(GuildsInfo, function(t, a, b) return t[a] > t[b]  end) do
 				local color = ArkadiusTradeTools:GetGuildColor(guildName)
-				local guildRow = string.gsub(guildName, "%s+", "")
-				if string.len(guildRow) > 15 then guildRow = string.sub(guildRow, 1, 15) end
+				guildRow = guildRow + 1
 				local row = GetControl(control:GetName().."row"..guildRow)
 				if not row then row = CreateControlFromVirtual("$(parent)row", control, "KPUI_GraphRow", guildRow) end
 				rows[#rows + 1] = row
@@ -387,7 +430,7 @@ function KPUI_PreviousListings_OnInitialize(control)
 			if not row then row = CreateControlFromVirtual("$(parent)row", control, "KPUI_PreviousListingsRow", count) end	
 			
 			row:GetNamedChild("Guild"):SetText(color:Colorize(listingItem["guildName"]))
-			row:GetNamedChild("Result"):SetText(listingItem["result"])
+			row:GetNamedChild("Result"):SetText(KPUI_LISTING_RESULT_ICONS[listingItem["result"]] or "")
 			row:GetNamedChild("Period"):SetText(periodValue)
 			row:GetNamedChild("PriceForOne"):SetText(KelaLocalizedFormatNumber(listingItem["desiredPrice"]/listingItem["stackCount"]))
 			
@@ -707,10 +750,8 @@ function KPUI_CraftingInfo_OnInitialize(control)
 			local totalPriceATT = 0
 			local totalPriceTTC = 0
 			for i = 1, 7 do
-				local rowOld = GetControl(control:GetName().."row"..i)
-				if rowOld then
-					row = rowOld
-				else
+				local row = GetControl(control:GetName().."row"..i)
+				if not row then
 					row = CreateControlFromVirtual("$(parent)row", control, "KPUI_CraftingInfoRow", i)
 				end					
 				row:ClearAnchors()

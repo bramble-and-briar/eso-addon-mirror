@@ -1,0 +1,33 @@
+## Title: WeavePulse
+## Description: Independent, unofficial Xbox adaptation inspired by CombatMetronome by Darianopolis and barny. Combat timing, GCD, cast/channel, resources, stacks and light attack statistics. No external libraries required.
+## Author: @xbutch
+## Version: 1.51.01
+## AddOnVersion: 15101
+## APIVersion: 101051
+## SavedVariables: WeavePulseSavedVars
+
+; First publication version authorized by the user: 1.51.01 (15101).
+; Not created by, affiliated with, or sponsored by ZeniMax Media Inc.
+
+WeavePulseBootstrap.lua
+private/Text.lua
+private/Targeting.lua
+private/Controls.lua
+private/Bar.lua
+private/Ability.lua
+private/Stacks.lua
+WeavePulseCore.lua
+WeavePulseFunctions.lua
+WeavePulseLightAttacks.lua
+WeavePulseDefaults.lua
+WeavePulseProgressbar.lua
+WeavePulseResources.lua
+WeavePulseStacks.lua
+WeavePulseHUD.lua
+WeavePulseNativeSettings.lua
+WeavePulseSettingsModel.lua
+WeavePulseRuntime.lua
+WeavePulseAnnouncements.lua
+WeavePulseGamepad.xml
+WeavePulseAnimations.xml
+Bindings.xml

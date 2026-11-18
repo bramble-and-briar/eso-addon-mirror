@@ -61,11 +61,13 @@ local function KelaGetPanelHeight(teamSize, useSmallPlayerEntries)
 	end
 
 	local rowHeight = ZO_BATTLEGROUND_SCOREBOARD_PLAYER_ROW_HEIGHT_KEYBOARD
+	local rowOffsetY = ZO_BATTLEGROUND_SCOREBOARD_PLAYER_ROW_OFFSET_Y
 	if IsInGamepadPreferredMode() then
-		rowHeight = useSmallPlayerEntries and KELA_SMALL_ROW_HEIGHT_GAMEPAD or ZO_BATTLEGROUND_SCOREBOARD_PLAYER_ROW_HEIGHT_GAMEPAD
+		rowHeight = useSmallPlayerEntries and KELA_SMALL_ROW_HEIGHT_GAMEPAD or KELA_ROW_HEIGHT_GAMEPAD
+		rowOffsetY = KELA_ROW_OFFSET_Y
 	end
 
-	return (teamSize * (rowHeight + ZO_BATTLEGROUND_SCOREBOARD_PLAYER_ROW_OFFSET_Y)) + ZO_BATTLEGROUND_SCOREBOARD_PLAYER_ROW_INITIAL_OFFSET_Y
+	return (teamSize * (rowHeight + rowOffsetY)) + ZO_BATTLEGROUND_SCOREBOARD_PLAYER_ROW_INITIAL_OFFSET_Y
 end
 
 -- Re-applies the container sizes from UpdateAll with the corrected panel
@@ -150,7 +152,7 @@ end
 
 -- Called from the scoreboard keybind group below. Returns true when the
 -- scoreboard consumed the press.
-function KelaBattlegroundMoveViewedRound(delta)
+local function KelaBattlegroundMoveViewedRound(delta)
 	if not kelaBaseGameFixesEnabled or not IsInGamepadPreferredMode() then
 		return false
 	end
@@ -289,8 +291,21 @@ function KelaSetupBaseGameFixes()
 	-- The official fix defines this constant. Skip the layout patch when it is
 	-- already present so both fixes never stack.
 	if ZO_BATTLEGROUND_SCOREBOARD_PLAYER_SMALL_ROW_HEIGHT_GAMEPAD == nil then
-		ZO_BATTLEGROUND_SCOREBOARD_PLAYER_ROW_HEIGHT_GAMEPAD = KELA_ROW_HEIGHT_GAMEPAD
-		ZO_BATTLEGROUND_SCOREBOARD_PLAYER_ROW_OFFSET_Y = KELA_ROW_OFFSET_Y
+		-- The row sizes stay local instead of overwriting the core constants, so
+		-- the keyboard scoreboard keeps its own spacing. Gamepad rows are
+		-- re-anchored with the tighter offset after core anchors them.
+		SecurePostHook(ZO_Battleground_Scoreboard_Team_Panel_Object, "UpdateAnchors", function(panel)
+			if not IsInGamepadPreferredMode() then return end
+			local previousControl
+			for _, playerRow in ipairs(panel.sortedPlayerRows) do
+				local control = playerRow.control
+				if previousControl then
+					control:ClearAnchors()
+					control:SetAnchor(TOPLEFT, previousControl, BOTTOMLEFT, 0, KELA_ROW_OFFSET_Y)
+				end
+				previousControl = control
+			end
+		end)
 
 		SecurePostHook(ZO_Battleground_Scoreboard_Team_Panel_Object, "UpdatePanelHeight", function(panel)
 			panel.control:SetHeight(KelaGetPanelHeight(panel.teamSize, panel:ShouldUseSmallPlayerEntries()))

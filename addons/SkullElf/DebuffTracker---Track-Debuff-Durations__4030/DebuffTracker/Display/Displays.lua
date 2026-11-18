@@ -1193,6 +1193,11 @@ end
 
 Items.text = {}
 
+-- A text line's height: the row height, or the font's line height when that's taller (thin rows, 5.21.24)
+function D.TextRowHeight(ds)
+    return math.max(ds.height, math.ceil(Style.FontSize(ds, ds.height, 0.7, 11, 40) * 1.35))
+end
+
 function Items.text.Create(display)
     local l = Label(display.content, 4, TEXT_ALIGN_LEFT)
     return { control = l, type = "text", label = l }
@@ -1201,7 +1206,8 @@ end
 function Items.text.Configure(it, display)
     local ds = display.ds
     it.label:SetFont(Style.Font(ds, ds.height, 0.7, 11, 40))
-    it.label:SetDimensions(display.rowWidth, ds.height)
+    -- a row lower than the text (row height down to 1 px, 5.21.24): the label keeps the font's line height
+    it.label:SetDimensions(display.rowWidth, D.TextRowHeight(ds))
     it.label:SetHorizontalAlignment(ds.textCenter and TEXT_ALIGN_CENTER or (ds.grow == "left" and TEXT_ALIGN_RIGHT or TEXT_ALIGN_LEFT))
     it.configured = display.configVersion
 end
@@ -1608,7 +1614,7 @@ function Display:Layout()
             end
         end
     else
-        local h = ds.height
+        local h = ds.type == "text" and D.TextRowHeight(ds) or ds.height
         -- a label above each bar takes a line of its own
         local above = (ds.type == "bars" and not ds.vertical and ds.showName and (ds.labelPos == "above" or ds.labelPos == "aboveCenter"))
             and math.ceil(Style.FontSize(ds, h) * 1.35) or 0
@@ -1693,7 +1699,7 @@ function Display:Render(tracker, states, now, ctx, rt, test)
         self.window:SetMovable(false)
         if #states > 0 then self:Show() else self:Hide() end
         DT.World.SetActive(self, #states > 0)
-        self:Animate()
+        self:Animate(true)
         return
     end
     DT.World.SetActive(self, false)
@@ -1712,13 +1718,22 @@ function Display:Render(tracker, states, now, ctx, rt, test)
     self.window:SetMouseEnabled(unlocked or clickable)
     self.window:SetMovable(unlocked)
     if visible then self:Show() else self:Hide() end
-    self:Animate()
+    self:Animate(true)
 end
 
-function Display:Animate()
+function Display:Animate(force)
     if not self.kind then return end
     local now = U.Now()
     local nowMs = GetFrameTimeMilliseconds()
+    -- Settings > Performance, "Move bars and timers every frame" off: only as often as the trackers update
+    local st = DT.Profiles.Settings()
+    -- (each update still redraws: Render forces it)
+    if st.smoothTimers == false then
+        if not force and self.lastAnimMs and nowMs >= self.lastAnimMs and nowMs - self.lastAnimMs < DT.Engine.UpdateMs() then
+            return
+        end
+        self.lastAnimMs = nowMs
+    end
     local f = Items[self.kind].Animate
     for _, it in ipairs(self.order) do f(it, self, now, nowMs) end
 end

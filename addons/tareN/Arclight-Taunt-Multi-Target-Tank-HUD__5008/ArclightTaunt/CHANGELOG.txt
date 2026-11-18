@@ -1,5 +1,21 @@
 ARCLIGHT TAUNT - PUBLIC CHANGELOG
 
+VERSION 1.3.1 | Target Marker Fixes & Settings Cleanup | 18 November 2026
+
+- Target markers set, changed or removed after taunting now update when you return to that enemy, without another taunt. Updates require direct identification or one unambiguous active own taunt; uncertain matches keep the last observed symbol.
+- Changing one target's marker no longer clears unrelated markers from the list. Once a symbol is observed on a different enemy, only its previous tracked owner loses it.
+- Boss expiration warnings now use a fresh grouping window after all pending warnings were canceled by re-taunting or a recognized death, preventing later alerts from appearing too early.
+- Enabling Remove dead enemies now also clears entries already confirmed dead. Help clarifies that death removal and expired-taunt retention are independent options.
+- Marker icon lookup failures no longer interrupt taunt tracking. Invalid or failing replacement-icon queries hide only the affected symbol.
+- Restoring defaults now calculates row height from the restored font and bar settings. A previous High contrast setting no longer leaves the default rows slightly shorter.
+- Quick settings now uses two compact rows of direct buttons for preview, pause, position lock, bar style, contrast and target highlighting. Current states are visible on the buttons; contrast and highlight are muted when off. Highlight strength remains adjustable under Appearance & readability. Paused previews resume from the same point.
+- Replaced the movement mode with Lock position, enabled by default. Unlock to drag visible displays while preview timers and tracking keep running; locking saves the position without restarting previews.
+- A confirmed new own taunt now ends active list, crosshair and warning previews so live combat information takes over. Invalid, foreign and duplicate updates do not stop previews; real warnings remain active.
+- Removed the preview enemy-count slider. Preview samples now adapt to the configured list capacity.
+- Reordered settings around layout, appearance, bosses, crosshair, countdowns and tracking, without repeating the quick controls. ESO target markers can be switched off under Tracking, with example symbols beside the option. The two narrow-bar detail options remain independent and sit together.
+- The warning test can now be started and stopped with the same button. It retains the staged warning sequence, enabled sounds and priority of real combat warnings.
+- Reorganized marker handling, preview simulation and settings loading into dedicated modules, and simplified internal row rendering for easier maintenance. Existing settings and countdown behavior are preserved.
+
 VERSION 1.3.0 | Custom Colors & Combat Clarity | 17 November 2026
 
 - Added optional custom urgency colors for the list, crosshair indicator and boss banners. Numeric text is lightened where needed for dark surfaces. The default Arclight colors and saved layout stay unchanged.

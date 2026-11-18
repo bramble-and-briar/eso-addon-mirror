@@ -261,9 +261,12 @@ function kpuiPS5ButtonMap:Initialize()
     end
 end
 
+-- There is no API to drop a redirect, so point each Xbox texture back at
+-- itself. Redirecting PS5 to Xbox instead would leave the Xbox->PS5 redirect
+-- in place and turn real PS5 glyphs into Xbox ones.
 function kpuiPS5ButtonMap:Reverse()
     for _, redirect in ipairs(xboxToPs5Redirects) do
-        RedirectTexture(redirect[2], redirect[1])
+        RedirectTexture(redirect[1], redirect[1])
     end
 end
 
@@ -279,6 +282,25 @@ function kpuiPS5ButtonMap:SetEnabled(enabled)
     end
 
     ps5ButtonMapApplied = enabled
+    self:RefreshVisibleKeybinds()
+end
+
+-- A redirect only applies when a texture is next set, so glyphs already on
+-- screen keep the old art. Re-render the keybind strip's key labels: each label
+-- keeps the core refresh callback it was registered with, and clearing the text
+-- first forces the inline texture to be loaded again through the redirect.
+function kpuiPS5ButtonMap:RefreshVisibleKeybinds()
+    if not KEYBIND_STRIP or not KEYBIND_STRIP.keybinds then
+        return
+    end
+    for _, button in pairs(KEYBIND_STRIP.keybinds) do
+        local keyLabel = type(button) == "userdata" and button.keyLabel
+        if keyLabel and keyLabel.updateRegisteredKeybindCallback then
+            keyLabel:SetText("")
+            keyLabel.updateRegisteredKeybindCallback()
+        end
+    end
+    KEYBIND_STRIP:UpdateAnchors()
 end
 
 local KELA_PS5_BUTTON_MAP_CHANGED = "KELA_PS5_BUTTON_MAP_CHANGED"

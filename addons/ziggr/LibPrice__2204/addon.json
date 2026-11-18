@@ -1,14 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/ziggr/LibPrice__2204",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "ziggr",
   "canonical_id": "esoui:2204",
   "category_id": "53",
   "compatibility": [
     {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:2204",
@@ -17,7 +22,7 @@
     "LibPrice"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2204/",
-  "fingerprint": "f9fcfeea131602510c68af6a07e4f5c7149a2c8d59d5e2032433524551aec160",
+  "fingerprint": "60fdfdae1c2b3b6fecf738f26a41dd779c70faa0191dc1e7847924dc9392b905",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw7566.jpg"
   ],
@@ -27,11 +32,11 @@
   "source_id": "2204",
   "source_url": "https://www.esoui.com/downloads/info2204-LibPrice.html",
   "stats": {
-    "downloads": 1602990,
-    "favorites": 662,
-    "monthly_downloads": 8091
+    "downloads": 1631923,
+    "favorites": 667,
+    "monthly_downloads": 6148
   },
   "title": "LibPrice",
-  "updated_at": 1766197942000,
-  "version": "7.53"
+  "updated_at": 1794969699000,
+  "version": "7.55"
 }

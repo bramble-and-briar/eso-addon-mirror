@@ -1336,19 +1336,34 @@ end
 
 -- Build the push/pull array
 local function queueAction(ruleName, bagId, slotId)
-	
-	local whichAction = db.profiles[actualProfile].rules[ruleName].action
-	if (whichAction == ACTION_PUSH or whichAction == ACTION_PUSH_GBANK or whichAction == ACTION_PUSH_BOTH or whichAction == ACTION_PUSH_ALL_STACKS) and bagId == BAG_BACKPACK then
-		-- Push item to the active destination: personal bank, or the currently opened house storage.
-		table.insert(pushQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = GetItemLink(bagId, slotId), itemIcon = GetItemLinkInfo(GetItemLink(bagId, slotId))})
-	elseif whichAction == ACTION_PUSH_FURNITURE and bagId == BAG_BACKPACK and activeHouseStorageBagId then
-		table.insert(pushQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = GetItemLink(bagId, slotId), itemIcon = GetItemLinkInfo(GetItemLink(bagId, slotId))})
-	elseif (whichAction == ACTION_PULL or whichAction == ACTION_PULL_ALL_STACKS) and IsCurrentStorageSourceBag(bagId) then
-		-- Pull item to bank
-		--d("ACTION_PULL " .. ruleName .. " " .. bagId .. " " .. slotId)
-		table.insert(pullQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = GetItemLink(bagId, slotId), itemIcon = GetItemLinkInfo(GetItemLink(bagId, slotId))})
+
+	local ruleSettings = db.profiles[actualProfile].rules[ruleName]
+	local whichAction = ruleSettings.action
+	local itemLink = GetItemLink(bagId, slotId)
+	local itemIcon = GetItemLinkInfo(itemLink)
+
+	if bagId == BAG_BACKPACK then
+		if checkingGBank then
+			-- Guild-bank actions may only target the guild selected for this rule.
+			-- ACTION_PUSH_BOTH is eligible here as well as ACTION_PUSH_GBANK.
+			if (whichAction == ACTION_PUSH_GBANK or whichAction == ACTION_PUSH_BOTH)
+				and ruleSettings.associatedGuild and ruleSettings.associatedGuild == currentGBankName then
+				table.insert(pushQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = itemLink, itemIcon = itemIcon})
+			end
+		else
+			-- Personal-bank (or currently active personal storage) actions. A rule
+			-- assigned exclusively to a guild bank must never enter this queue.
+			if whichAction == ACTION_PUSH or whichAction == ACTION_PUSH_BOTH or whichAction == ACTION_PUSH_ALL_STACKS then
+				table.insert(pushQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = itemLink, itemIcon = itemIcon})
+			elseif whichAction == ACTION_PUSH_FURNITURE and activeHouseStorageBagId then
+				table.insert(pushQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = itemLink, itemIcon = itemIcon})
+			end
+		end
+	elseif not checkingGBank and (whichAction == ACTION_PULL or whichAction == ACTION_PULL_ALL_STACKS) and IsCurrentStorageSourceBag(bagId) then
+		-- Pull item to backpack. Guild-bank transfers are push-only.
+		table.insert(pullQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = itemLink, itemIcon = itemIcon})
 	end
-	
+
 end
 
 -- return true if item is protected
@@ -1552,7 +1567,7 @@ local function prepareItem(bagId, slotId, checkingGBank)
 	if customRuleActive then
 		itemMatch = true
 		ruleMatch = customRuleName
-		if checkingGBank and (customRuleSettings.action == ACTION_PUSH or customRuleSettings.action == ACTION_PUSH_ALL_STACKS) then
+		if checkingGBank and customRuleSettings.action ~= ACTION_PUSH_GBANK and customRuleSettings.action ~= ACTION_PUSH_BOTH then
 			forBankOnly = true
 		end
 	end
@@ -1580,15 +1595,32 @@ local function prepareItem(bagId, slotId, checkingGBank)
 			masterRuleName = "MiscContainerAntiquityLead"
 		end
 	end
+
+-- Old Code
+--	if not itemMatch and masterRuleName then
+--		local masterSettings = db.profiles[actualProfile].rules[masterRuleName]
+--		if masterSettings and masterSettings.action and masterSettings.action ~= --		 ACTION_NOTSET then
+--			itemMatch = true
+--			ruleMatch = masterRuleName
+--			if checkingGBank and (masterSettings.action == ACTION_PUSH or --     	  masterSettings.action == ACTION_PUSH_ALL_STACKS) then
+--				forBankOnly = true
+--			end
+--		elseif masterRuleName == "MiscContainerAntiquityLead" then
+
+-- Replaced Function (Sirb42)
 	if not itemMatch and masterRuleName then
 		local masterSettings = db.profiles[actualProfile].rules[masterRuleName]
 		if masterSettings and masterSettings.action and masterSettings.action ~= ACTION_NOTSET then
+			-- A configured master action owns the item in every storage context.
+			-- queueAction() decides whether that action is valid for the currently
+			-- open destination, preventing a child rule from routing it elsewhere.
 			itemMatch = true
 			ruleMatch = masterRuleName
-			if checkingGBank and (masterSettings.action == ACTION_PUSH or masterSettings.action == ACTION_PUSH_ALL_STACKS) then
+			if checkingGBank and masterSettings.action ~= ACTION_PUSH_GBANK and masterSettings.action ~= ACTION_PUSH_BOTH then
 				forBankOnly = true
 			end
 		elseif masterRuleName == "MiscContainerAntiquityLead" then
+
 			-- When the master action is '-', an explicitly configured quality rule
 			-- must take precedence over the broad generic Containers category.
 			for _, qualityRuleName in ipairs({
@@ -1603,7 +1635,7 @@ local function prepareItem(bagId, slotId, checkingGBank)
 					and DoesRuleMatchItem(BankManagerRules.data[qualityRuleName], itemLink, bagId, slotId) then
 					itemMatch = true
 					ruleMatch = qualityRuleName
-					if checkingGBank and (qualitySettings.action == ACTION_PUSH or qualitySettings.action == ACTION_PUSH_ALL_STACKS) then
+					if checkingGBank and qualitySettings.action ~= ACTION_PUSH_GBANK and qualitySettings.action ~= ACTION_PUSH_BOTH then
 						forBankOnly = true
 					end
 					break
@@ -1624,26 +1656,23 @@ local function prepareItem(bagId, slotId, checkingGBank)
 			db.profiles[actualProfile].rules = profileRules
 		end
 		local action = ruleSettings.action
-		local associatedGuild = ruleSettings.associatedGuild
 		
 		-- Check first if item didn't matched a previous rule
 		if not itemMatch then
 		
 			local shouldMove
-			
-			if checkingGBank then -- the 3rd is here to allow easy rules, see under
-				shouldMove = (currentGBankName == associatedGuild) and ((bagId == BAG_BACKPACK and action == ACTION_PUSH_GBANK) or (bagId == BAG_BACKPACK and action == ACTION_PUSH_BOTH) or (bagId == BAG_BACKPACK and action == ACTION_PUSH))
-			else
-				if action == ACTION_PULL or action == ACTION_PULL_ALL_STACKS then
-					if ruleSettings.specialEnabled then
-						hasAnySpecialPullToDo = true
-					else
-						hasAnyPullToDo = true
-					end
+
+			if not checkingGBank and (action == ACTION_PULL or action == ACTION_PULL_ALL_STACKS) then
+				if ruleSettings.specialEnabled then
+					hasAnySpecialPullToDo = true
+				else
+					hasAnyPullToDo = true
 				end
-				shouldMove = (bagId == BAG_BACKPACK and (action == ACTION_PUSH or action == ACTION_PUSH_FURNITURE or action == ACTION_PUSH_ALL_STACKS)) or (IsCurrentStorageSourceBag(bagId) and (action == ACTION_PULL or action == ACTION_PULL_ALL_STACKS)) or (bagId == BAG_BACKPACK and action == ACTION_PUSH_BOTH)
 			end
-			
+			-- Rule matching is independent of the currently open destination. This
+			-- preserves the most-specific rule even when its action belongs to the
+			-- other bank (or another guild); queueAction() performs the actual routing.
+			shouldMove = action ~= nil and action ~= ACTION_NOTSET
 			-- If rule is well writen and set to do something
 			if ruleData.params and shouldMove then
 
@@ -1686,11 +1715,11 @@ local function prepareItem(bagId, slotId, checkingGBank)
 					
 				end
 
-				-- Our item matched a rule - was it an ACTION_PUSH + checkingGBank ?
-				if itemMatch and checkingGBank and action == ACTION_PUSH then
-					-- this item must not be queued, it has been flagged to go to bank only
+				-- A matched specific action owns this item, even when it is not
+				-- eligible for the currently open guild bank. Do not fall through to
+				-- a broader rule that could send it to a different destination.
+				if itemMatch and checkingGBank and action ~= ACTION_PUSH_GBANK and action ~= ACTION_PUSH_BOTH then
 					forBankOnly = true
-					--d(itemLink .. " (" .. bagId .. " " .. slotId.. ") ruleMatch:" .. ruleMatch .. " set flag 'For Bank Only' ")
 				end
 			
 			end
@@ -2387,7 +2416,8 @@ local function moveItems(atGBank, errorReasonAtGBank)
 				db.profiles[actualProfile].rules[moveData.ruleName].onlyStacks = 1
 			end
 			
-			if db.profiles[actualProfile].rules[moveData.ruleName].action == ACTION_PUSH_GBANK then
+			if db.profiles[actualProfile].rules[moveData.ruleName].action == ACTION_PUSH_GBANK
+				or db.profiles[actualProfile].rules[moveData.ruleName].action == ACTION_PUSH_BOTH then
 				
 				--d(moveData.ruleName .. " is set to push everything to GBank (ACTION_PUSH_GBANK)")
 				
@@ -6183,6 +6213,7 @@ local function LAMSubmenu(subMenu)
 		table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
 		
 		table.insert(submenuControls, panelRule("trophyTreasureMaps"))
+		table.insert(submenuControls, panelRule("trophyLuminousInk"))
 		table.insert(submenuControls, panelRule("trophySurveys"))
 		table.insert(submenuControls, panelRule("trophyFragMotifs"))
 		table.insert(submenuControls, panelRule("trophyFragRecipe"))

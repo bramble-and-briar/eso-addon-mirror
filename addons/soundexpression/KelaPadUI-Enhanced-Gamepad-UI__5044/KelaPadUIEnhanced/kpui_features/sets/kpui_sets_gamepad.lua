@@ -1,6 +1,5 @@
 local colors = kpuiConst.Colors
 
-KELA_SETS_LIST_PIN_NAME = ""
 KELA_LAST_SELECTED_DATA = {}
 KELA_SETS_FIRST_SHOW = true
 
@@ -16,6 +15,9 @@ local KELA_SETS_ROW_DROPBONUS = 3
 local KELA_SETS_ROW_DROPBOUND = 4
 local KELA_SETS_ROW_DROPZONE = 5
 local KELA_SETS_ROW_DROPDLC = 6
+-- Free-text search row at the top of the filter menu. Rows are identified by
+-- data.row, not by list position.
+local KELA_SETS_ROW_SEARCH = 7
 
 KELA_SETS_DIALOG_ITEM_WEAPON = 1
 KELA_SETS_DIALOG_ITEM_LIGHTARMOR = 2
@@ -26,10 +28,11 @@ KELA_SETS_DIALOG_ITEM_UNIQUE = 6
 
 --KELA_SETS_LIST
 --maximum width - 1150
-KELA_GAMEPAD_SETS_LIST_NAME_WIDTH = 340
-KELA_GAMEPAD_SETS_LIST_OBTAINABLEITEMS_WIDTH = 220
+-- Name has room to spare; Composition and Search Area need the most.
+KELA_GAMEPAD_SETS_LIST_NAME_WIDTH = 270
+KELA_GAMEPAD_SETS_LIST_OBTAINABLEITEMS_WIDTH = 280
 KELA_GAMEPAD_SETS_LIST_SETTYPE_WIDTH = 130
-KELA_GAMEPAD_SETS_LIST_SOURCE_WIDTH = 320
+KELA_GAMEPAD_SETS_LIST_SOURCE_WIDTH = 330
 KELA_GAMEPAD_SETS_LIST_DLC_WIDTH = 180
 KELA_LIST_DATA = 1
 local KELA_LIST_TEMPLATE = "Kela_Sets_List_Row_Gamepad"
@@ -105,65 +108,68 @@ local KelaSetObtainable = {
 	JEWELRY_INCOMPLECT = 7,
 	JEWELRY = 8,
 }
+-- Possible-bonus filter groups. 1-6 keep their original numbers; 7-10 were
+-- added later. KELA_SETSBONUSGROUP<n> is each group's label.
 local KelaSetBonusGroup = {
 	MAGICKA = 1,
 	HEALTH = 2,
 	STAMINA = 3,
 	SPELL = 4,
 	WEAPON = 5,
-    RESIST = 6,
+	RESIST = 6,
+	CRITICAL = 7,
+	PENETRATION = 8,
+	HEALING = 9,
+	RECOVERY = 10,
 }
+local KELA_SET_BONUS_GROUP_COUNT = 10
+
+-- SI_DERIVEDSTATS<n> stat names found in a set's bonus text, and the groups
+-- each one counts toward. A stat can count toward several groups (Magicka
+-- Recovery is both Magicka and Recovery). Mount stats are not mapped.
 local DerivedStatsForBonusGroup = {
-	["SI_DERIVEDSTATS1"] = KelaSetBonusGroup.WEAPON,
-	["SI_DERIVEDSTATS2"] = KelaSetBonusGroup.WEAPON,
-	["SI_DERIVEDSTATS3"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS4"] = KelaSetBonusGroup.MAGICKA,
-	["SI_DERIVEDSTATS5"] = KelaSetBonusGroup.MAGICKA,
-	["SI_DERIVEDSTATS6"] = KelaSetBonusGroup.MAGICKA,
-	["SI_DERIVEDSTATS7"] = KelaSetBonusGroup.HEALTH,
-	["SI_DERIVEDSTATS8"] = KelaSetBonusGroup.HEALTH,
-	["SI_DERIVEDSTATS9"] = KelaSetBonusGroup.HEALTH,
-	["SI_DERIVEDSTATS10"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS11"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS12"] = KelaSetBonusGroup.MAGICKA,
-	["SI_DERIVEDSTATS13"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS14"] = KelaSetBonusGroup.RESIST,
-	-- ["SI_DERIVEDSTATS15"] = KelaSetBonusGroup.,
-	["SI_DERIVEDSTATS16"] = KelaSetBonusGroup.WEAPON,
-	-- ["SI_DERIVEDSTATS17"] = KelaSetBonusGroup.,
-	-- ["SI_DERIVEDSTATS18"] = KelaSetBonusGroup.,
-	-- ["SI_DERIVEDSTATS19"] = KelaSetBonusGroup.,
-	["SI_DERIVEDSTATS20"] = KelaSetBonusGroup.RESIST,
-	-- ["SI_DERIVEDSTATS21"] = KelaSetBonusGroup.,
-	["SI_DERIVEDSTATS22"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS23"] = KelaSetBonusGroup.SPELL,
-	["SI_DERIVEDSTATS24"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS25"] = KelaSetBonusGroup.SPELL,
-	["SI_DERIVEDSTATS26"] = KelaSetBonusGroup.RESIST,
-	-- ["SI_DERIVEDSTATS27"] = KelaSetBonusGroup.,
-	-- ["SI_DERIVEDSTATS28"] = KelaSetBonusGroup.,
-	["SI_DERIVEDSTATS29"] = KelaSetBonusGroup.STAMINA,
-	["SI_DERIVEDSTATS30"] = KelaSetBonusGroup.STAMINA,
-	["SI_DERIVEDSTATS31"] = KelaSetBonusGroup.STAMINA,
-	["SI_DERIVEDSTATS32"] = KelaSetBonusGroup.WEAPON,
-	["SI_DERIVEDSTATS33"] = KelaSetBonusGroup.WEAPON,
-	["SI_DERIVEDSTATS34"] = KelaSetBonusGroup.SPELL,
-	["SI_DERIVEDSTATS35"] = KelaSetBonusGroup.WEAPON,
-	-- ["SI_DERIVEDSTATS36"] = KelaSetBonusGroup.,
-	["SI_DERIVEDSTATS37"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS38"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS39"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS40"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS41"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS42"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS43"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS44"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS45"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS46"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS47"] = KelaSetBonusGroup.RESIST,
-	["SI_DERIVEDSTATS48"] = KelaSetBonusGroup.STAMINA,
-	["SI_DERIVEDSTATS49"] = KelaSetBonusGroup.STAMINA,
-	["SI_DERIVEDSTATS50"] = KelaSetBonusGroup.STAMINA,
+	["SI_DERIVEDSTATS1"]  = { KelaSetBonusGroup.WEAPON },                                -- Attack Power
+	["SI_DERIVEDSTATS2"]  = { KelaSetBonusGroup.WEAPON, KelaSetBonusGroup.SPELL },     -- Weapon and Spell Damage
+	["SI_DERIVEDSTATS3"]  = { KelaSetBonusGroup.RESIST },                                -- Armor
+	["SI_DERIVEDSTATS4"]  = { KelaSetBonusGroup.MAGICKA },                               -- Maximum Magicka
+	["SI_DERIVEDSTATS5"]  = { KelaSetBonusGroup.MAGICKA, KelaSetBonusGroup.RECOVERY },  -- Magicka Recovery
+	["SI_DERIVEDSTATS6"]  = { KelaSetBonusGroup.MAGICKA, KelaSetBonusGroup.RECOVERY },  -- Magicka Recovery Idle
+	["SI_DERIVEDSTATS7"]  = { KelaSetBonusGroup.HEALTH },                                -- Maximum Health
+	["SI_DERIVEDSTATS8"]  = { KelaSetBonusGroup.HEALTH, KelaSetBonusGroup.RECOVERY },   -- Health Recovery
+	["SI_DERIVEDSTATS9"]  = { KelaSetBonusGroup.HEALTH, KelaSetBonusGroup.RECOVERY },   -- Health Recovery Idle
+	["SI_DERIVEDSTATS10"] = { KelaSetBonusGroup.HEALING },                               -- Healing Taken
+	["SI_DERIVEDSTATS11"] = { KelaSetBonusGroup.RESIST },                                -- Dodge
+	["SI_DERIVEDSTATS12"] = { KelaSetBonusGroup.HEALING },                               -- Healing Done
+	["SI_DERIVEDSTATS13"] = { KelaSetBonusGroup.RESIST },                                -- Spell Resistance
+	["SI_DERIVEDSTATS14"] = { KelaSetBonusGroup.RESIST },                                -- Block
+	["SI_DERIVEDSTATS15"] = { KelaSetBonusGroup.RESIST },                                -- Bleed Resistance
+	["SI_DERIVEDSTATS16"] = { KelaSetBonusGroup.WEAPON, KelaSetBonusGroup.CRITICAL },  -- Weapon Critical
+	["SI_DERIVEDSTATS20"] = { KelaSetBonusGroup.RESIST },                                -- Resistance
+	["SI_DERIVEDSTATS22"] = { KelaSetBonusGroup.RESIST },                                -- Physical Resistance
+	["SI_DERIVEDSTATS23"] = { KelaSetBonusGroup.SPELL, KelaSetBonusGroup.CRITICAL },   -- Spell Critical
+	["SI_DERIVEDSTATS24"] = { KelaSetBonusGroup.RESIST },                                -- Critical Resistance
+	["SI_DERIVEDSTATS25"] = { KelaSetBonusGroup.SPELL },                                 -- Spell Damage
+	["SI_DERIVEDSTATS26"] = { KelaSetBonusGroup.RESIST },                                -- Spell Resistance
+	["SI_DERIVEDSTATS27"] = { KelaSetBonusGroup.PENETRATION },                           -- Offensive Penetration
+	["SI_DERIVEDSTATS28"] = { KelaSetBonusGroup.CRITICAL },                              -- Critical Chance
+	["SI_DERIVEDSTATS29"] = { KelaSetBonusGroup.STAMINA },                               -- Maximum Stamina
+	["SI_DERIVEDSTATS30"] = { KelaSetBonusGroup.STAMINA, KelaSetBonusGroup.RECOVERY },  -- Stamina Recovery
+	["SI_DERIVEDSTATS31"] = { KelaSetBonusGroup.STAMINA, KelaSetBonusGroup.RECOVERY },  -- Stamina Recovery Idle
+	["SI_DERIVEDSTATS32"] = { KelaSetBonusGroup.WEAPON },                                -- Miss
+	["SI_DERIVEDSTATS33"] = { KelaSetBonusGroup.WEAPON, KelaSetBonusGroup.PENETRATION }, -- Physical Penetration
+	["SI_DERIVEDSTATS34"] = { KelaSetBonusGroup.SPELL, KelaSetBonusGroup.PENETRATION },  -- Spell Penetration
+	["SI_DERIVEDSTATS35"] = { KelaSetBonusGroup.WEAPON },                                -- Weapon Damage
+	["SI_DERIVEDSTATS37"] = { KelaSetBonusGroup.RESIST },                                -- Generic Resistance
+	["SI_DERIVEDSTATS38"] = { KelaSetBonusGroup.RESIST },                                -- Physical Resistance
+	["SI_DERIVEDSTATS39"] = { KelaSetBonusGroup.RESIST },                                -- Flame Resistance
+	["SI_DERIVEDSTATS40"] = { KelaSetBonusGroup.RESIST },                                -- Shock Resistance
+	["SI_DERIVEDSTATS41"] = { KelaSetBonusGroup.RESIST },                                -- Oblivion Resistance
+	["SI_DERIVEDSTATS42"] = { KelaSetBonusGroup.RESIST },                                -- Frost Resistance
+	["SI_DERIVEDSTATS43"] = { KelaSetBonusGroup.RESIST },                                -- Earth Resistance
+	["SI_DERIVEDSTATS44"] = { KelaSetBonusGroup.RESIST },                                -- Magic Resistance
+	["SI_DERIVEDSTATS45"] = { KelaSetBonusGroup.RESIST },                                -- Drowning Resistance
+	["SI_DERIVEDSTATS46"] = { KelaSetBonusGroup.RESIST },                                -- Disease Resistance
+	["SI_DERIVEDSTATS47"] = { KelaSetBonusGroup.RESIST },                                -- Poison Resistance
 }
 
 -- KELA_SETS_LIST
@@ -177,11 +183,9 @@ function Kela_Sets_List:Initialize(control)
     ZO_GamepadInteractiveSortFilterList.Initialize(self, control)
     self:SetEmptyText(GetString(KELA_SETS_LIST_EMPTYTEXT))
 	ZO_ScrollList_AddDataType(self.list, KELA_LIST_DATA, KELA_LIST_TEMPLATE, 38, function(control, data) self:SetupKelaListEntry(control, data) end)
-	self:SetMasterSetsList() 
 	self.comparedSetData = false
 	self.showInfoTooltip = true
     self:SetupSort(KELA_LIST_ENTRY_SORT_KEYS, "setName", ZO_SORT_ORDER_UP)
-	ZO_ScrollList_SetAutoSelect(self, true)
 	self:InitializeSetDialog()
 
 	KPUI_GAMEPAD_TOOLTIPS.tooltips.KPUI_GAMEPAD_COMPARE_TOOLTIP.control:ClearAnchors()
@@ -191,22 +195,6 @@ function Kela_Sets_List:Initialize(control)
 	KPUI_GAMEPAD_TOOLTIPS.tooltips.KPUI_GAMEPAD_COMPARE_TOOLTIP2.control:SetAnchor(TOPLEFT, KPUI_GAMEPAD_TOOLTIPS.tooltips.KPUI_GAMEPAD_COMPARE_TOOLTIP.control, TOPRIGHT, 0, 0) 
 	KPUI_GAMEPAD_TOOLTIPS.tooltips.KPUI_GAMEPAD_COMPARE_TOOLTIP2.control:SetAnchor(BOTTOMLEFT, KPUI_GAMEPAD_TOOLTIPS.tooltips.KPUI_GAMEPAD_COMPARE_TOOLTIP.control, BOTTOMRIGHT, 0, 0) 
 
-	self.KelaKeyBindSetsList = {
-		alignment = KEYBIND_STRIP_ALIGN_LEFT,
-		keybind = "DIALOG_TERTIARY",		-- set comparison
-		name = GetString(KELA_SETSLIST_HEADER_NAME),
-		callback =  function()
-			KELA_SETS_LIST.compareView = not KELA_SETS_LIST.compareView
-			control.refreshTooltipFunction (control.itemData)
-		end,
-		visible = function()
-			return ZO_Dialogs_IsShowingDialog("KELA_SETS_LIST_DIALOG") and control.isKelaDialogSetItemsDropdown
-		end,
-	}
-
-	if (not KEYBIND_STRIP:HasKeybindButton(self.KelaKeyBindSetsList)) then
-		KEYBIND_STRIP:AddKeybindButton(self.KelaKeyBindSetsList)
-	end
 
 	
 end
@@ -348,6 +336,37 @@ function Kela_Sets_List:GetBackKeybindCallback()
     end
 end
 
+-- Pans the world map to a set's location without touching the core pin
+-- manager. Wayshrine rows pass a fast-travel node index; zone rows pass the
+-- zone name, matched as plain text against the map's wayshrine names, with a
+-- known wayshrine on the map as the fallback.
+local function KelaPanToSetPin(pinName, nodeIndex)
+	local pinManager = ZO_WorldMap_GetPinManager()
+	if not pinManager then return end
+	local search = pinName and pinName ~= "" and zo_strlower(pinName)
+	local match, fallback
+	for _, pin in pairs(pinManager:GetActiveObjects()) do
+		local pinNodeIndex = pin:GetFastTravelNodeIndex()
+		if pinNodeIndex then
+			if not search and pinNodeIndex == nodeIndex then
+				match = pin
+				break
+			end
+			local _, name, _, _, _, _, poiType = GetFastTravelNodeInfo(pinNodeIndex)
+			if search and name and zo_plainstrfind(zo_strlower(name), search) then
+				match = pin
+				break
+			elseif not fallback and poiType == POI_TYPE_WAYSHRINE and HasCompletedFastTravelNodePOI(pinNodeIndex) then
+				fallback = pin
+			end
+		end
+	end
+	local pin = match or fallback
+	if pin then
+		ZO_WorldMap_PanToNormalizedPosition(pin:GetNormalizedPosition())
+	end
+end
+
 function Kela_Sets_List:CreateMapPinRows(dialog)
 	local firstRow = true
 
@@ -365,23 +384,18 @@ function Kela_Sets_List:CreateMapPinRows(dialog)
 			dialog.info.blockDialogReleaseOnPress = false
 			
 			SCENE_MANAGER:Push("gamepad_worldMap")
-			ZO_WorldMapManager:HandleAutoNavigationMapChange(100)
 			zo_callLater(function()
 				ZO_WorldMap_SetMapByIndex(data.mapIndex)
 			end, 250)
-			KELA_SETS_LIST_PIN_NAME = data.pinName
-			if data.zoneIndex then
-				zo_callLater(function()
-					ZO_WorldMap_PanToWayshrine(data.zoneIndex)
-				end, 350)
-			end
+			zo_callLater(function()
+				KelaPanToSetPin(data.pinName, data.zoneIndex)
+			end, 350)
 
 		end
 	end
 
     local data = ZO_ScrollList_GetSelectedData(self.list)
 	if data.canTeleport then
-		KELA_SETS_LIST_PIN_NAME = ""
 		local currentID
 		if data.setWayshrinesTrue then
 			for i = 1, #data.setWayshrines do
@@ -460,10 +474,10 @@ function Kela_Sets_List:CreateMapPinRows(dialog)
 						if zName == parentName then 
 							zName = parentName
 						else
-							local twoLevels = string.find(zName,"I")
-							if twoLevels then
-								local ind = twoLevels - 1
-								zName = parentName..": "..string.sub(zName, 1, ind)
+							-- Multi-part zones end in a roman numeral ("... I", "... II").
+							local baseName = zName:match("^(.-)%s+I+$")
+							if baseName then
+								zName = parentName..": "..baseName
 							else
 								zName = parentName..": "..zName
 							end								
@@ -522,32 +536,6 @@ function Kela_Sets_List:CreateMapPinRows(dialog)
 				end	
 			end
 		end
-	end
-end
-
-local OldZO_WorldMapPinsGetWayshrinePin = ZO_WorldMapPins.GetWayshrinePin
-ZO_WorldMapPins.GetWayshrinePin = function(control, nodeIndex, ...) 
-	local pins = control:GetActiveObjects()
-	local xLoc, yLoc, reservePin
-	for pinKey, pin in pairs(pins) do
-		local curIndex = pin:GetFastTravelNodeIndex()
-		local known, name, _, _, _, _, poiType, isLocatedInCurrentMap = GetFastTravelNodeInfo(curIndex)
-		if curIndex and curIndex == nodeIndex then
-			return pin
-		elseif KELA_SETS_LIST_PIN_NAME and string.match (string.lower(name), string.lower(KELA_SETS_LIST_PIN_NAME)) then
-			return pin	
-		elseif curIndex then
-			if (poiType == POI_TYPE_WAYSHRINE and poiType ~= POI_TYPE_HOUSE and poiType ~= POI_TYPE_GROUP_DUNGEON) and HasCompletedFastTravelNodePOI(curIndex) then 
-				reservePin = pin 
-			end
-		end
-    end
-	if reservePin then
-		return reservePin
-	else
-		xLoc, yLoc = ZO_WorldMapContainer:GetCenter() 
-		ZO_WorldMap_PanToNormalizedPosition(xLoc, yLoc)	
-		return false
 	end
 end
 
@@ -875,7 +863,7 @@ function Kela_Sets_List:CreateMultiSelectionSetsDropdown(basicType, multiSelecti
 						end
 						self.dialogSetItemsDoOne = true
 					end
-					ZO_GenericGamepadDialog_RefreshKeybinds(self.setDialog)
+					KelaRefreshGamepadDialogKeybinds("KELA_SETS_LIST_DIALOG")
 					hideAllTooltip ()
 				end)		
                 dropdown:LoadData(dropdownData)
@@ -997,7 +985,7 @@ function Kela_Sets_List:InitializeSetDialog()
         end,
     }
 
-    ZO_Dialogs_RegisterCustomDialog("KELA_SETS_LIST_DIALOG",
+    KelaRegisterGamepadDialog("KELA_SETS_LIST_DIALOG",
     {
         gamepadInfo =
         {
@@ -1273,9 +1261,10 @@ function Kela_Sets_List:MainFilterScrollList()
 	local header2Text = ""
 	if searchTerm ~= "" then 
 		local count = 0
+		local loweredSearchTerm = zo_strlower(searchTerm)
 		for _, tables in ipairs(tableFilteredFinal) do
 			for i, data in pairs(tables) do
-				if type(data) == "string" and (string.match(string.lower(data), string.lower(searchTerm))) then
+				if type(data) == "string" and zo_plainstrfind(zo_strlower(data), loweredSearchTerm) then
 					table.insert(tableFiltered, tables)
 					count = count + 1
 					break
@@ -1291,6 +1280,10 @@ function Kela_Sets_List:MainFilterScrollList()
     end	
 	
 	ZO_SortFilterList.CommitScrollList(self)
+	-- The filter menu's search row shows the current search text.
+	if KELA_SETS then
+		KELA_SETS:GetMainList():RefreshVisible()
+	end
 	
 	self.contentHeaderData.data1HeaderText = header1Text
 	self.contentHeaderData.data2HeaderText = header3Text
@@ -1342,6 +1335,14 @@ end
 
 
 function Kela_Sets_List:SetupKelaListEntry(control, data)
+	-- The row XML asks for ZoFontGamepadCondensed22, which the game does not
+	-- define, so these two columns fell back to a tiny default font. Use the
+	-- font of the neighbouring columns, once per pooled row.
+	if not control.kelaFontsFixed then
+		control.labelObtainableItems:SetFont("ZoFontGamepadCondensed25")
+		control.labelSource:SetFont("ZoFontGamepadCondensed25")
+		control.kelaFontsFixed = true
+	end
     control.labelName:SetText(data.setName)
 	control.labelObtainableItems:SetText(data.setObtainableItems)
 	control.labelSetType:SetText(data.setTypeName)
@@ -1374,21 +1375,41 @@ function Kela_Sets_List:SetMasterSetsList()
 	if KelaSetsMasterListInitialized == true then return end
 	
 	local MasterList = {}
+	-- Lower-cased derived-stat names, looked up once instead of per set bonus.
+	local derivedStatNames = {}
+	for k = 1, 50 do
+		derivedStatNames[k] = zo_strlower(GetString("SI_DERIVEDSTATS", k))
+	end
     ZO_ClearNumericallyIndexedTable(MasterList)
 	local tableSetIDs = LibSets.GetAllSetIds()
 
+	-- Bind type of the first listed item that has one. Missing slots are nil.
+	local function GetFirstBindType(...)
+		local bindType
+		for i = 1, select("#", ...) do
+			local itemId = select(i, ...)
+			if itemId then
+				bindType = GetItemLinkBindType(LibSets.buildItemLink(itemId, 370))
+				if bindType ~= BIND_TYPE_NONE and bindType ~= BIND_TYPE_UNSET then
+					return bindType
+				end
+			end
+		end
+		return bindType
+	end
+
 	local function GetSetTypeByKela(setID)
-		local mayBeRing = LibSets.GetSetItemId(setID, EQUIP_TYPE_RING)		
-		local mayBeNeck = LibSets.GetSetItemId(setID, EQUIP_TYPE_NECK)
-		local mayBeChest = LibSets.GetSetItemId(setID, EQUIP_TYPE_CHEST)
-		local mayBeFeet = LibSets.GetSetItemId(setID, EQUIP_TYPE_FEET)
-		local mayBeHand = LibSets.GetSetItemId(setID, EQUIP_TYPE_HAND)
-		local mayBeHead = LibSets.GetSetItemId(setID, EQUIP_TYPE_HEAD)
-		local mayBeLegs = LibSets.GetSetItemId(setID, EQUIP_TYPE_LEGS)
-		local mayBeShoulders = LibSets.GetSetItemId(setID, EQUIP_TYPE_SHOULDERS)
-		local mayBeWaist = LibSets.GetSetItemId(setID, EQUIP_TYPE_WAIST)	
-		local mayBeOneHand = LibSets.GetSetItemId(setID, EQUIP_TYPE_ONE_HAND)
-		local mayBeTwoHand = LibSets.GetSetItemId(setID, EQUIP_TYPE_TWO_HAND)
+		local mayBeRing = LibSets.GetSetItemId(setID, nil, EQUIP_TYPE_RING)		
+		local mayBeNeck = LibSets.GetSetItemId(setID, nil, EQUIP_TYPE_NECK)
+		local mayBeChest = LibSets.GetSetItemId(setID, nil, EQUIP_TYPE_CHEST)
+		local mayBeFeet = LibSets.GetSetItemId(setID, nil, EQUIP_TYPE_FEET)
+		local mayBeHand = LibSets.GetSetItemId(setID, nil, EQUIP_TYPE_HAND)
+		local mayBeHead = LibSets.GetSetItemId(setID, nil, EQUIP_TYPE_HEAD)
+		local mayBeLegs = LibSets.GetSetItemId(setID, nil, EQUIP_TYPE_LEGS)
+		local mayBeShoulders = LibSets.GetSetItemId(setID, nil, EQUIP_TYPE_SHOULDERS)
+		local mayBeWaist = LibSets.GetSetItemId(setID, nil, EQUIP_TYPE_WAIST)	
+		local mayBeOneHand = LibSets.GetSetItemId(setID, nil, EQUIP_TYPE_ONE_HAND)
+		local mayBeTwoHand = LibSets.GetSetItemId(setID, nil, EQUIP_TYPE_TWO_HAND)
 		local setTypeByKela = ""
 		local setTypeByKelaFull = ""
 		local setTypeByKelaSort = ""
@@ -1449,25 +1470,7 @@ function Kela_Sets_List:SetMasterSetsList()
 				setObtainableItemsTable[#setObtainableItemsTable + 1] = KelaSetObtainable.ARMOR_COMPLECT
 			end
 			
-			bindType = GetItemLinkBindType(LibSets.buildItemLink(mayBeChest, 370))
-			if bindType == BIND_TYPE_NONE or bindType == BIND_TYPE_UNSET then 
-				bindType = GetItemLinkBindType(LibSets.buildItemLink(mayBeFeet, 370))
-			end
-			if bindType == BIND_TYPE_NONE or bindType == BIND_TYPE_UNSET then 
-				bindType = GetItemLinkBindType(LibSets.buildItemLink(mayBeHand, 370))
-			end
-			if bindType == BIND_TYPE_NONE or bindType == BIND_TYPE_UNSET then 
-				bindType = GetItemLinkBindType(LibSets.buildItemLink(mayBeHead, 370))
-			end
-			if bindType == BIND_TYPE_NONE or bindType == BIND_TYPE_UNSET then 
-				bindType = GetItemLinkBindType(LibSets.buildItemLink(mayBeLegs, 370))
-			end
-			if bindType == BIND_TYPE_NONE or bindType == BIND_TYPE_UNSET then 
-				bindType = GetItemLinkBindType(LibSets.buildItemLink(mayBeShoulders, 370))
-			end
-			if bindType == BIND_TYPE_NONE or bindType == BIND_TYPE_UNSET then 
-				bindType = GetItemLinkBindType(LibSets.buildItemLink(mayBeWaist, 370))
-			end
+			bindType = GetFirstBindType(mayBeChest, mayBeFeet, mayBeHand, mayBeHead, mayBeLegs, mayBeShoulders, mayBeWaist)
 		end
 		if mayBeOneHand or mayBeTwoHand then 
 			setColor = colors.COLOR_GOLD
@@ -1485,10 +1488,7 @@ function Kela_Sets_List:SetMasterSetsList()
 			else
 				setObtainableItemsTable[#setObtainableItemsTable + 1] = KelaSetObtainable.WEAPON	
 			end
-			bindType = GetItemLinkBindType(LibSets.buildItemLink(mayBeOneHand, 370))
-			if bindType == BIND_TYPE_NONE or bindType == BIND_TYPE_UNSET then 
-				bindType = GetItemLinkBindType(LibSets.buildItemLink(mayBeTwoHand, 370))
-			end
+			bindType = GetFirstBindType(mayBeOneHand, mayBeTwoHand)
 			
 		end
 		if mayBeNeck or mayBeRing then 
@@ -1507,10 +1507,7 @@ function Kela_Sets_List:SetMasterSetsList()
 			else
 				setObtainableItemsTable[#setObtainableItemsTable + 1] = KelaSetObtainable.JEWELRY	
 			end
-			bindType = GetItemLinkBindType(LibSets.buildItemLink(mayBeNeck, 370))
-			if bindType == BIND_TYPE_NONE or bindType == BIND_TYPE_UNSET then 
-				bindType = GetItemLinkBindType(LibSets.buildItemLink(mayBeRing, 370))
-			end
+			bindType = GetFirstBindType(mayBeNeck, mayBeRing)
 			
 		end
 		return setTypeByKelaSort, setTypeByKela, setTypeByKelaFull, setObtainableItemsTable, bindType
@@ -1521,11 +1518,10 @@ function Kela_Sets_List:SetMasterSetsList()
 	else
 		for setID, isActive in pairs(tableSetIDs) do
 			if isActive == true then
-				local setData = LibSets.GetSetInfo(setID)
+				local setData = LibSets.GetSetInfo(setID, true) -- item ids are not used here
 				local setDLCID = setData.dlcId
 				local setDLCName = LibSets.GetDLCName(setDLCID)
 				local setSource = setData.setType
-				local setItemsID = setData[LIBSETS_TABLEKEY_SETITEMIDS]
 				local setName = setData[LIBSETS_TABLEKEY_SETNAMES][LibSets.clientLang]
 				local setTraits = setData.traitsNeeded
 				local setVeteran = setData.veteran
@@ -1594,9 +1590,13 @@ function Kela_Sets_List:SetMasterSetsList()
 							setBonusesString = setBonusesString.."/"..bonusDescription
 						end
 						-- for filter
-						for k=1, 50 do
-							if string.match (string.lower(bonusDescription), string.lower(GetString("SI_DERIVEDSTATS", k))) then
-								setBonusesTable[#setBonusesTable + 1] = DerivedStatsForBonusGroup["SI_DERIVEDSTATS"..k]
+						local loweredBonus = bonusDescription and zo_strlower(bonusDescription) or ""
+						for k, statName in ipairs(derivedStatNames) do
+							local groups = DerivedStatsForBonusGroup["SI_DERIVEDSTATS"..k]
+							if groups and statName ~= "" and zo_plainstrfind(loweredBonus, statName) then
+								for _, group in ipairs(groups) do
+									setBonusesTable[#setBonusesTable + 1] = group
+								end
 							end
 						end
 					end		
@@ -1616,10 +1616,10 @@ function Kela_Sets_List:SetMasterSetsList()
 								local pAlliance = kelaGetAlliance(parentZoneID)
 								local pIcon = GetAllianceSymbolIcon(pAlliance)
 								if pIcon then parentName = parentName..zo_iconFormat(pIcon, 24, 24) end
-								local twoLevels = string.find(zName,"I")
-								if twoLevels then
-									local ind = twoLevels - 1
-									zName = string.sub(zName, 1, ind).."("..parentName..")"
+								-- Multi-part zones end in a roman numeral ("... I", "... II").
+								local baseName = zName:match("^(.-)%s+I+$")
+								if baseName then
+									zName = baseName.." ("..parentName..")"
 								else
 									zName = zName.." ("..parentName..")"
 								end								
@@ -1629,7 +1629,7 @@ function Kela_Sets_List:SetMasterSetsList()
 							if i == 1 then 
 								setZoneNames = zName
 							elseif not hasParent then
-								if not string.match (setZoneNames, zName) then setZoneNames = setZoneNames..", "..zName end
+								if not zo_plainstrfind(setZoneNames, zName) then setZoneNames = setZoneNames..", "..zName end
 							end
 						end
 						
@@ -1679,7 +1679,6 @@ function Kela_Sets_List:SetMasterSetsList()
 				setObtainableItems = setObtainableItems,
 				setObtainableItemsFull = setObtainableItemsFull,
 				setObtainableItemsSort = setObtainableItemsSort,
-				setItemsID = setItemsID,
 				setTypeName = setTypeName,
 				setTypeNameSort = setTypeNameSort,
 				setTraits = setTraits,
@@ -1734,6 +1733,13 @@ function Kela_Sets:Initialize(control)
     ZO_Gamepad_ParametricList_Screen.Initialize(self, control, ZO_GAMEPAD_HEADER_TABBAR_DONT_CREATE, nil, KELA_SETS_SCENE)
     local kelaSetsFragment = ZO_FadeSceneFragment:New(control)
     KELA_SETS_SCENE:AddFragment(kelaSetsFragment)
+    -- The set list recolors the game-wide inactive-bonus strings; restore them
+    -- however the scene is left, not only through the list's back keybind.
+    KELA_SETS_SCENE:RegisterCallback("StateChange", function(_, newState)
+        if newState == SCENE_HIDDEN then
+            kelaReColorDescription(false)
+        end
+    end)
     self.headerData = {
         titleText = GetString(KELA_MAINMENU_SETS),
     }
@@ -1752,8 +1758,18 @@ function Kela_Sets:InitializeKeybindStripDescriptors()
             name = "KPUI Sets 2 " .. GetString(SI_GAMEPAD_SELECT_OPTION),
             keybind = "UI_SHORTCUT_PRIMARY",
             callback = function()
-					local row = self:GetMainList():GetSelectedIndex()
-					if row == KELA_SETS_ROW_DROPSOURCE or row == KELA_SETS_ROW_DROPOBTAINABLE or row == KELA_SETS_ROW_DROPBONUS or row == KELA_SETS_ROW_DROPBOUND or row == KELA_SETS_ROW_DROPZONE or row == KELA_SETS_ROW_DROPDLC then
+					local targetData = self:GetMainList():GetTargetData()
+					local row = targetData and targetData.row
+					if row == KELA_SETS_ROW_SEARCH then
+						local editBox = targetData.editBoxControl
+						if editBox then
+							if editBox:HasFocus() then
+								editBox:LoseFocus()
+							else
+								editBox:TakeFocus()
+							end
+						end
+					elseif row == KELA_SETS_ROW_DROPSOURCE or row == KELA_SETS_ROW_DROPOBTAINABLE or row == KELA_SETS_ROW_DROPBONUS or row == KELA_SETS_ROW_DROPBOUND or row == KELA_SETS_ROW_DROPZONE or row == KELA_SETS_ROW_DROPDLC then
 						self:ActivateSetsDropdown(row)
 					end	
 					KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
@@ -1811,7 +1827,7 @@ local function CanSelectData(self, index)
     local dataTypeInfo = GetDataTypeInfo(self, dataEntry.typeId)
     return dataTypeInfo.selectable
 end
-function Kela_TrySelectLastData(self, onScrollCompleteCallback, shouldAnimateInstantly)
+local function Kela_TrySelectLastData(self, onScrollCompleteCallback, shouldAnimateInstantly)
 	for i = #self.data, 1, -1 do
         if CanSelectData(self, i) and (KELA_LAST_SELECTED_DATA == self.data[i].data)then
             ZO_ScrollList_SelectDataAndScrollIntoView(self, self.data[i].data, onScrollCompleteCallback, false)
@@ -1834,38 +1850,38 @@ function Kela_Sets:ActivateCategories()
     self:ActivateCurrentList()
 end
 
-function SelectSetsSource(comboBox, name, entry, selectionChange)
+local function SelectSetsSource(comboBox, name, entry, selectionChange)
 	if selectionChange then
 		KELA_SETS.CurrentSetsSource = KELA_SETS.currentDropdownSource:GetHighlightedIndex()
 		KELA_SETS_LIST:MainFilterScrollList()
 	end
 end
-function SelectSetsObtainable(comboBox, name, entry, selectionChange)	
+local function SelectSetsObtainable(comboBox, name, entry, selectionChange)	
 	if selectionChange then
 		KELA_SETS.CurrentSetsObtainable = KELA_SETS.currentDropdownObtainable:GetHighlightedIndex()
 		KELA_SETS_LIST:MainFilterScrollList()
 	end
 end
-function SelectSetsBonus(comboBox, name, entry, selectionChange)	
+local function SelectSetsBonus(comboBox, name, entry, selectionChange)	
 	if selectionChange then
 		KELA_SETS.CurrentSetsBonus = KELA_SETS.currentDropdownBonus:GetHighlightedIndex()
 		KELA_SETS_LIST:MainFilterScrollList()
 	end
 end
-function SelectSetsBound(comboBox, name, entry, selectionChange)
+local function SelectSetsBound(comboBox, name, entry, selectionChange)
 	if selectionChange then
 		KELA_SETS.CurrentSetsBound = KELA_SETS.currentDropdownBound:GetHighlightedIndex()
 		KELA_SETS_LIST:MainFilterScrollList()
 	end
 end
-function SelectSetsZone(comboBox, name, entry, selectionChange)
+local function SelectSetsZone(comboBox, name, entry, selectionChange)
 	if selectionChange then
 		KELA_SETS.CurrentSetsZoneID = entry.index
 		KELA_SETS.CurrentSetsZone = KELA_SETS.currentDropdownZone:GetHighlightedIndex()
 		KELA_SETS_LIST:MainFilterScrollList()
 	end
 end
-function SelectSetsDLC(comboBox, name, entry, selectionChange)
+local function SelectSetsDLC(comboBox, name, entry, selectionChange)
 	if selectionChange then
 		KELA_SETS.CurrentSetsDLC = KELA_SETS.currentDropdownDLC:GetHighlightedIndex()
 		KELA_SETS_LIST:MainFilterScrollList()
@@ -1969,68 +1985,66 @@ function Kela_Sets:UpdateDropdownSelection(dropdown, row)
 		end		
 	end
 end
-function Kela_Sets:SetCurrentDropdown(dropdown, row)
-	dropdown:ClearItems()
+-- Dropdown entries never change during a session (string tables, the zone
+-- list, the DLC list), so each row's entries are built once and re-added on
+-- every row setup instead of walking the zone and DLC lists each refresh.
+local dropdownEntryCache = {}
+
+local function BuildDropdownEntries(row)
+	local entries = {}
+	local function Add(name, callback, index)
+		local entry = ZO_ComboBox:CreateItemEntry(tostring(name), callback, ZO_COMBOBOX_SUPRESS_UPDATE)
+		entry.index = index
+		entries[#entries + 1] = entry
+	end
 	if row == KELA_SETS_ROW_DROPSOURCE then
-		self.currentDropdownSource = dropdown
-		for k=0, 7 do		
-			local sourceName = GetString("KELA_SETSSOURCE", k)
-			local entry = ZO_ComboBox:CreateItemEntry(tostring(sourceName), SelectSetsSource, ZO_COMBOBOX_SUPRESS_UPDATE)
-			entry.index = k
-			dropdown:AddItem(entry)
-		end
+		for k = 0, 7 do Add(GetString("KELA_SETSSOURCE", k), SelectSetsSource, k) end
 	elseif row == KELA_SETS_ROW_DROPOBTAINABLE then
-		self.currentDropdownObtainable = dropdown
-		for k=0, 8 do		
-			local obtainableName = GetString("KELA_SETSOBTAINABLE", k)
-			local entry = ZO_ComboBox:CreateItemEntry(tostring(obtainableName), SelectSetsObtainable, ZO_COMBOBOX_SUPRESS_UPDATE)
-			entry.index = k
-			dropdown:AddItem(entry)
-		end
+		for k = 0, 8 do Add(GetString("KELA_SETSOBTAINABLE", k), SelectSetsObtainable, k) end
 	elseif row == KELA_SETS_ROW_DROPBONUS then
-		self.currentDropdownBonus = dropdown
-		for k=0, 6 do		
-			local bonusName = GetString("KELA_SETSBONUSGROUP", k)
-			local entry = ZO_ComboBox:CreateItemEntry(tostring(bonusName), SelectSetsBonus, ZO_COMBOBOX_SUPRESS_UPDATE)
-			entry.index = k
-			dropdown:AddItem(entry)
-		end
+		for k = 0, KELA_SET_BONUS_GROUP_COUNT do Add(GetString("KELA_SETSBONUSGROUP", k), SelectSetsBonus, k) end
 	elseif row == KELA_SETS_ROW_DROPBOUND then
-		self.currentDropdownBound = dropdown
-		for k=0, 2 do		
-			local boundName = GetString("KELA_SETSBOUND", k)
-			local entry = ZO_ComboBox:CreateItemEntry(tostring(boundName), SelectSetsBound, ZO_COMBOBOX_SUPRESS_UPDATE)
-			entry.index = k
-			dropdown:AddItem(entry)
-		end
+		for k = 0, 2 do Add(GetString("KELA_SETSBOUND", k), SelectSetsBound, k) end
 	elseif row == KELA_SETS_ROW_DROPZONE then
-		self.currentDropdownZone = dropdown
-		local zoneName = GetString(KELA_SETSZONE0)
-		local entry = ZO_ComboBox:CreateItemEntry(tostring(zoneName), SelectSetsZone, ZO_COMBOBOX_SUPRESS_UPDATE)
-		entry.index = 0
-		dropdown:AddItem(entry)
-		for i, zoneData in ZONE_STORIES_MANAGER:ZoneListIterator() do
-			local zoneName = zoneData.name
-			entry = ZO_ComboBox:CreateItemEntry(tostring(zoneName), SelectSetsZone, ZO_COMBOBOX_SUPRESS_UPDATE)
-			entry.index = zoneData.id
-			dropdown:AddItem(entry)
+		Add(GetString(KELA_SETSZONE0), SelectSetsZone, 0)
+		for _, zoneData in ZONE_STORIES_MANAGER:ZoneListIterator() do
+			Add(zoneData.name, SelectSetsZone, zoneData.id)
 		end
 	elseif row == KELA_SETS_ROW_DROPDLC then
-		self.currentDropdownDLC = dropdown
-		local tableDLC = LibSets.GetAllDLCIds()
-		local dlcName = GetString(KELA_SETSDLC0)
-		local entry = ZO_ComboBox:CreateItemEntry(tostring(dlcName), SelectSetsDLC, ZO_COMBOBOX_SUPRESS_UPDATE)
-		entry.index = 0
-		dropdown:AddItem(entry)
-		for i = 1, #tableDLC + 1 do 
-			local dlcName = LibSets.GetDLCName(i-1)
-			entry = ZO_ComboBox:CreateItemEntry(tostring(dlcName), SelectSetsDLC, ZO_COMBOBOX_SUPRESS_UPDATE)
-			entry.index = i
+		Add(GetString(KELA_SETSDLC0), SelectSetsDLC, 0)
+		for i = 1, #LibSets.GetAllDLCIds() + 1 do
+			Add(LibSets.GetDLCName(i - 1), SelectSetsDLC, i)
+		end
+	end
+	return entries
+end
+
+local CURRENT_DROPDOWN_FIELD =
+{
+	[KELA_SETS_ROW_DROPSOURCE] = "currentDropdownSource",
+	[KELA_SETS_ROW_DROPOBTAINABLE] = "currentDropdownObtainable",
+	[KELA_SETS_ROW_DROPBONUS] = "currentDropdownBonus",
+	[KELA_SETS_ROW_DROPBOUND] = "currentDropdownBound",
+	[KELA_SETS_ROW_DROPZONE] = "currentDropdownZone",
+	[KELA_SETS_ROW_DROPDLC] = "currentDropdownDLC",
+}
+
+function Kela_Sets:SetCurrentDropdown(dropdown, row)
+	dropdown:ClearItems()
+	local field = CURRENT_DROPDOWN_FIELD[row]
+	if field then
+		self[field] = dropdown
+		local entries = dropdownEntryCache[row]
+		if not entries then
+			entries = BuildDropdownEntries(row)
+			dropdownEntryCache[row] = entries
+		end
+		for _, entry in ipairs(entries) do
 			dropdown:AddItem(entry)
 		end
 	end
 	dropdown:UpdateItems()
-	self:UpdateDropdownSelection(dropdown, row)	
+	self:UpdateDropdownSelection(dropdown, row)
 end
 function KelaSourceDropdown_Setup(control, data, selected, selectedDuringRebuild, enabled, activated)
     ZO_SharedGamepadEntry_OnSetup(control, data, selected, selectedDuringRebuild, enabled, activated)
@@ -2075,9 +2089,37 @@ function KelaDLCDropdown_Setup(control, data, selected, selectedDuringRebuild, e
     control.dropdown:SetSelectedItemTextColor(selected)
 end
 
+-- The search row edits the same text as the set list's own search box, so
+-- both stay in step and the existing search filter (set names, bonus text,
+-- zones, DLC) applies. The list refilters when editing finishes.
+local function KelaSetsSearchField_Setup(control, data, selected, reselectingDuringRebuild, enabled, active)
+	control.highlight:SetHidden(not selected)
+	local editBox = control.editBoxControl
+	data.editBoxControl = editBox
+	editBox:SetDefaultText(GetString(KELA_SETS_SEARCHFIELD_DEFAULTTEXT))
+	editBox.focusLostCallback = function(edit)
+		local text = edit:GetText()
+		if text ~= KELA_SETS_LIST:GetCurrentSearch() then
+			KELA_SETS_LIST.searchEdit:SetText(text)
+			KELA_SETS_LIST:MainFilterScrollList()
+		end
+		KEYBIND_STRIP:UpdateKeybindButtonGroup(KELA_SETS.keybindStripDescriptor)
+	end
+	local current = KELA_SETS_LIST:GetCurrentSearch()
+	if editBox:GetText() ~= current then
+		editBox:SetText(current)
+	end
+end
+
 do
     local function AddEntry(row, list, name, header, icon)
-		if row == KELA_SETS_ROW_DROPSOURCE then
+		if row == KELA_SETS_ROW_SEARCH then
+			local data = ZO_GamepadEntryData:New("")
+			data.row = row
+			data.narrationText = ZO_GetDefaultParametricListEditBoxNarrationText
+			data:SetHeader(GetString(header))
+			list:AddEntryWithHeader("ZO_GamepadTextFieldItem", data)
+		elseif row == KELA_SETS_ROW_DROPSOURCE then
 			local data = ZO_GamepadEntryData:New("")
 			data.row = row
 			data:SetHeader(GetString(header))
@@ -2114,6 +2156,7 @@ do
         local list = self:GetMainList()
         list:Clear()
 		-- add templates to the list
+		list:AddDataTemplateWithHeader("ZO_GamepadTextFieldItem", KelaSetsSearchField_Setup, ZO_GamepadMenuEntryTemplateParametricListFunction, nil, "ZO_GamepadMenuEntryHeaderTemplate")
 		list:AddDataTemplate("KelaSourceDropdownTemplate", KelaSourceDropdown_Setup, ZO_GamepadMenuEntryTemplateParametricListFunction)
         list:AddDataTemplateWithHeader("KelaSourceDropdownTemplate", KelaSourceDropdown_Setup, ZO_GamepadMenuEntryTemplateParametricListFunction, nil, "ZO_GamepadMenuEntryHeaderTemplate")		
 		list:AddDataTemplate("KelaObtainableDropdownTemplate", KelaObtainableDropdown_Setup, ZO_GamepadMenuEntryTemplateParametricListFunction)
@@ -2127,6 +2170,7 @@ do
 		list:AddDataTemplate("KelaDLCDropdownTemplate", KelaDLCDropdown_Setup, ZO_GamepadMenuEntryTemplateParametricListFunction)
         list:AddDataTemplateWithHeader("KelaDLCDropdownTemplate", KelaDLCDropdown_Setup, ZO_GamepadMenuEntryTemplateParametricListFunction, nil, "ZO_GamepadMenuEntryHeaderTemplate")
 		-- add rows
+		AddEntry(KELA_SETS_ROW_SEARCH, list, nil, KELA_SETS_SEARCHFIELD_DEFAULTTEXT)
 		AddEntry(KELA_SETS_ROW_DROPSOURCE, list, nil, KELA_SETS_SOURCEDROPDOWN_HEADER)
 		AddEntry(KELA_SETS_ROW_DROPOBTAINABLE, list, nil, KELA_SETS_OBTAINABLEDROPDOWN_HEADER)
 		AddEntry(KELA_SETS_ROW_DROPBONUS, list, nil, KELA_SETS_BONUSDROPDOWN_HEADER)

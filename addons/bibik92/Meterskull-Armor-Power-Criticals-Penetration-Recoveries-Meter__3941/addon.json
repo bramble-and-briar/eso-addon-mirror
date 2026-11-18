@@ -74,7 +74,7 @@
     "Meterskull"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3941/",
-  "fingerprint": "932594d446f9a4aaca51550eeae4c7aec3faf290651968fa7e8f1dbc862b29e1",
+  "fingerprint": "2c0e6b7d4492de81cfed9a8ec0f3e0278eb9a5ef40dc9ec2f00c69efc37a76ef",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14369.png",
     "https://cdn-eso.mmoui.com/preview/pvw14370.png"
@@ -85,11 +85,11 @@
   "source_id": "3941",
   "source_url": "https://www.esoui.com/downloads/info3941-MeterskullArmorPowerCriticalsPenetrationRecoveriesMeter.html",
   "stats": {
-    "downloads": 23750,
+    "downloads": 25648,
     "favorites": 23,
-    "monthly_downloads": 2034
+    "monthly_downloads": 749
   },
   "title": "Meterskull: Armor, Power, Criticals, Penetration, Recoveries Meter",
-  "updated_at": 1791498998000,
-  "version": "1.6.1"
+  "updated_at": 1794956911000,
+  "version": "1.6.2"
 }

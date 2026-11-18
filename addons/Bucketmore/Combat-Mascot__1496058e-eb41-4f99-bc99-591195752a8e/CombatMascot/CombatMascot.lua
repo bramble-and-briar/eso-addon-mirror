@@ -1,4 +1,7 @@
--- CombatMascot v0.5.1-diag (v0.5.0 + "double mascot" guard: only ONE picture may be visible; leak counter LEAK on screen)
+-- CombatMascot v0.6.1 (release: 7 reactions + heal by registered skill series; DIAG off; double-mascot guard Sweep stays)
+-- v0.5.2: skills are registered in the settings ("register last used skill as heal"). A registered skill is matched by its
+-- skill SERIES (skill type / line / index: morphs and ranks of one skill share it) when GetSpecificSkillAbilityKeysByAbilityId
+-- exists on the PS5, otherwise by its ability id only. A registered skill plays the heal reaction INSTEAD of the skill reaction.
 -- heal  = only YOUR OWN direct heal (ACTION_RESULT_HEAL, source = player); crit heal, HoT and heals from others are not connected.
 -- guard = block (BLOCKED_DAMAGE) / dodge (DODGED) / shield absorb (DAMAGE_SHIELDED) on the player: ONE shared reaction.
 -- heal is lowest priority: it only plays while nothing else is playing (never interrupts, never replaces).
@@ -12,7 +15,7 @@
 
 local ADDON    = "CombatMascot"
 local PATH     = "CombatMascot/"
-local VERSION  = "0.5.1-diag"
+local VERSION  = "0.6.1"
 local SV_NAME, SV_VERSION = "CombatMascot_SV", 1
 
 ------------------------------------------------------------------
@@ -23,11 +26,11 @@ local ANIM_MS   = 500                     -- frames / FPS
 local HOLD_MS   = 800                     -- last frame is held this long, then the reaction ends
 local TOTAL_MS  = ANIM_MS + HOLD_MS       -- 1.3 s per reaction
 
-local DIAG      = true                    -- diagnostic counters on screen (temporary; false in the release build)
+local DIAG      = false                   -- diagnostic counters on screen (temporary; false in the release build)
 local STOP_TOL  = 150                     -- OnStop "finished" is trusted only if >= ANIM_MS - STOP_TOL ms passed since this play started
 
 -- reaction priority: a LOWER one never interrupts a HIGHER one during the motion phase
-local PRI = { heal = 0, attack = 1, skill = 2, hit = 2, guard = 2, kill = 3, ult = 4 }
+local PRI = { heal = 2, attack = 1, skill = 2, hit = 2, guard = 2, kill = 3, ult = 4 }
 
 local SIZE_MIN, SIZE_MAX, SIZE_STEP = 128, 768, 8   -- displayed height in UI px (cell is square)
 
@@ -86,6 +89,8 @@ local function Sanitize()
     sv.x    = Num(sv.x, 0, 8000, DEFAULTS.x)
     sv.y    = Num(sv.y, 0, 8000, DEFAULTS.y)
     sv.size = Num(sv.size, SIZE_MIN, SIZE_MAX, DEFAULTS.size)
+    if type(sv.heal) ~= "table" then sv.heal = {} end       -- registered heal skill series ("type:line:index" = true)
+    if type(sv.healId) ~= "table" then sv.healId = {} end   -- registered heal ability ids (fallback / exact match)
 end
 
 ------------------------------------------------------------------
@@ -108,7 +113,7 @@ local D = {
     play = { attack = 0, skill = 0, ult = 0, hit = 0, kill = 0, heal = 0, guard = 0 },
     evHeal = "-", lastHeal = "-", healZero = 0, lastGuard = "-",
     drop = 0, oldlock = 0, staleT = 0, stopAll = 0, stopIgn = 0, hold = 0,
-    err = 0, lastErr = "-", leak = 0, leakKey = "-", cp = "-", dtLast = 0, dtMax = 0,
+    err = 0, lastErr = "-", hsId = "-", hsKey = "-", hsMatch = 0, cp = "-", dtLast = 0, dtMax = 0,
     built = 0, evSlot = "-", evHit = "-", font = 0, idleB = 0, idleN = 0, idleVis = "-", rVis = "-",
 }
 
@@ -142,11 +147,34 @@ end
 local function ShownStates() return Flags("IsHidden") end
 local function LoadedStates() return Flags("IsTextureLoaded") end
 
+local function RegCount()
+    local n = 0
+    if type(sv.heal) == "table" then for _ in pairs(sv.heal) do n = n + 1 end end
+    if type(sv.healId) == "table" then for _ in pairs(sv.healId) do n = n + 1 end end
+    return n
+end
+
+-- skill series of an ability id: "type:line:index" (morphs / ranks of one skill share it); nil when the API is missing
+local lastSkill = { id = nil, key = nil }
+local function SkillKey(abilityId)
+    if GetSpecificSkillAbilityKeysByAbilityId == nil or type(abilityId) ~= "number" or abilityId <= 0 then return nil end
+    local ok, t, l, i = pcall(GetSpecificSkillAbilityKeysByAbilityId, abilityId)
+    if ok and type(t) == "number" and t > 0 and type(l) == "number" and type(i) == "number" then
+        return string.format("%d:%d:%d", t, l, i)
+    end
+    return nil
+end
+local function IsHealSkill(id, key)
+    if key and type(sv.heal) == "table" and sv.heal[key] then return true end
+    if id and type(sv.healId) == "table" and sv.healId[tostring(id)] then return true end
+    return false
+end
+
 local function DiagUpdate()                                  -- called only when an event happens
     if not DIAG or not diagLabel then return end
     local r, p = D.recv, D.play
     Try(diagLabel.SetText, diagLabel, string.format(
-        "CM 0.5.1-diag  UI %d/7  EV %s/%s/%s\n" ..
+        "CM 0.6.1  UI %d/7  EV %s/%s/%s\n" ..
         "RECV a%d s%d u%d h%d k%d H%d G%d\n" ..
         "PLAY a%d s%d u%d h%d k%d H%d G%d\n" ..
         "DROP %d  OLD %d  HOLD %d\n" ..
@@ -155,8 +183,8 @@ local function DiagUpdate()                                  -- called only when
         "dT %d/%d ms  F%d\n" ..
         "IDLE built %d  runs %d  vis %s  react vis %s\n" ..
         "HEAL %s  zero %d\n" ..
-        "LEAK %d %s\n" ..
         "GUARD %s\n" ..
+        "HSKILL id %s  key %s  match %d  reg %d\n" ..
         "SHOW %s  LOAD %s",
         D.built, D.evSlot, D.evHit, D.evHeal,
         r.attack, r.skill, r.ult, r.hit, r.kill, r.heal, r.guard,
@@ -166,7 +194,8 @@ local function DiagUpdate()                                  -- called only when
         D.err, D.lastErr,
         D.dtLast, D.dtMax, D.font,
         D.idleB, D.idleN, D.idleVis, D.rVis,
-        D.lastHeal, D.healZero, D.leak, D.leakKey, D.lastGuard,
+        D.lastHeal, D.healZero, D.lastGuard,
+        D.hsId, D.hsKey, D.hsMatch, RegCount(),
         ShownStates(), LoadedStates()))
 end
 
@@ -194,39 +223,16 @@ local function HoldLastFrame(e)
     Try(e.ctrl.SetTextureCoords, e.ctrl, (e.cols - 1) / e.cols, 1, (e.rows - 1) / e.rows, 1)
 end
 
--- v0.5.1: only ONE picture may be visible at a time. Hides everything except `keep` ("idle" or a reaction key; nil = hide all)
--- and counts a "leak" when something that must be hidden was still shown (shown on the LEAK line of the diagnostic screen).
-local function Sweep(keep)
-    local function Chk(name, c)
-        if not c then return end
-        local ok, hid = pcall(c.IsHidden, c)
-        if ok and hid == false then
-            D.leak = D.leak + 1
-            D.leakKey = name
-        end
-        Try(c.SetHidden, c, true)
-        Try(c.SetAlpha, c, 0)
-    end
-    if idle and keep ~= "idle" then Chk("idle", idle.ctrl) end
-    for _, k in ipairs(ORDER) do
-        local e = E[k]
-        if e and k ~= keep then Chk(k, e.ctrl) end
-    end
-end
-
 -- waiting picture: one-shot timeline restarted by a timer while no reaction is playing
 local function StopIdle()
     idleTok = idleTok + 1                                 -- any pending restart timer becomes stale
     if not idle then return end
     Try(idle.tl.Stop, idle.tl)
     Try(idle.ctrl.SetHidden, idle.ctrl, true)
-    Try(idle.ctrl.SetAlpha, idle.ctrl, 0)
 end
 
 local function StartIdleAnim()                            -- no closure: started through Try()
-    Sweep("idle")                                         -- no reaction picture may stay under / over the waiting picture
     idle.ctrl:SetTextureCoords(0, 1 / IDLE.cols, 0, 1 / IDLE.rows)
-    idle.ctrl:SetAlpha(1)
     idle.ctrl:SetHidden(false)
     idle.tl:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
     idle.tl:PlayFromStart()
@@ -316,14 +322,13 @@ end
 -- no closure: started through Try()
 local function StartAnim(e)
     e.ctrl:SetTextureCoords(0, 1 / e.cols, 0, 1 / e.rows)
-    e.ctrl:SetAlpha(1)
     e.ctrl:SetHidden(false)
     e.tl:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
     e.tl:PlayFromStart()
 end
 
 -- force = true: used by the settings test play (ignores priority)
-local function Play(key, force)
+local function Play(key, force, fromCast)
     local e = E[key]
     if not e or not sv.enabled then return end
     local t0 = GetGameTimeMilliseconds()
@@ -332,7 +337,7 @@ local function Play(key, force)
         if lastStart > 0 and t0 < lastStart + TOTAL_MS then D.oldlock = D.oldlock + 1 end   -- v0.2.0 would have ignored it
     end
     -- heal is the lowest priority: it plays only when nothing else is playing (waiting picture only)
-    if not force and key == "heal" and cur then
+    if not force and key == "heal" and cur and not fromCast then
         D.drop = D.drop + 1
         DiagUpdate()
         return
@@ -362,8 +367,6 @@ local function Play(key, force)
     animUntil = t0 + ANIM_MS
     e.at = t0
     if not Try(StartAnim, e) then EndReaction() DiagUpdate() return end
-    Sweep(key)                                            -- the waiting picture / any other picture must not show under it
-    zo_callLater(function() if my == token and cur == key then Sweep(key) end end, 60)   -- one re-check (diagnostic): does anything re-appear?
     zo_callLater(function()
         if my == token then EndReaction() else D.staleT = D.staleT + 1 end   -- stale timer: does nothing
     end, TOTAL_MS)
@@ -397,7 +400,7 @@ local function BuildDiag()
         lb:SetColor(1, 1, 1, 1)
         lb:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
         lb:SetVerticalAlignment(TEXT_ALIGN_TOP)
-        lb:SetText("CM 0.5.1-diag\n(waiting for events)")
+        lb:SetText("CM 0.6.1\n(waiting for events)")
         bg:SetAnchorFill(lb)
         bg:SetCenterColor(0, 0, 0, 0.65)
         bg:SetEdgeColor(0, 0, 0, 0)
@@ -418,7 +421,18 @@ end
 local function OnSlotUsed(_, slotNum)
     if slotNum == 1 or slotNum == 2 then Play("attack") return end
     if slotNum == ULT_SLOT then Play("ult") return end
-    if slotNum ~= nil and slotNum >= 3 and slotNum < ULT_SLOT then Play("skill") end
+    if slotNum ~= nil and slotNum >= 3 and slotNum < ULT_SLOT then
+        local id, key
+        pcall(function() id = GetSlotBoundId(slotNum); key = SkillKey(id) end)
+        lastSkill.id, lastSkill.key = id, key
+        D.hsId, D.hsKey = tostring(id), key or "-"
+        if IsHealSkill(id, key) then
+            D.hsMatch = D.hsMatch + 1
+            Play("heal", false, true)                         -- registered heal skill: heal reaction instead of the skill one
+        else
+            Play("skill")
+        end
+    end
 end
 
 -- Damage taken: direct damage whose source is not the player (unchanged). v0.5.0: block / dodge / shield absorb on the
@@ -515,7 +529,6 @@ local function StaticShow(which)
     end
     if c then
         Try(c.SetTextureCoords, c, 0, 1 / cols, 0, 1 / rows)
-        Try(c.SetAlpha, c, 1)
         Try(c.SetHidden, c, false)
     end
     DiagUpdate()
@@ -604,6 +617,29 @@ local function BuildSettings()
             type = "button", name = "Reset to defaults (初期値に戻す)",
             tooltip = "Resets show / position / size to the default values.",
             func = function() ResetToDefaults(); Refresh() end,
+        },
+        {
+            type = "description",
+            text = function()
+                return string.format("直前に使ったスキル: id=%s 系列=%s / 登録数 %d (系列API: %s)",
+                    tostring(lastSkill.id), lastSkill.key or "-", RegCount(),
+                    GetSpecificSkillAbilityKeysByAbilityId ~= nil and "有" or "無")
+            end,
+        },
+        {
+            type = "button", name = "直前に使ったスキルを回復として登録",
+            tooltip = "回復スキルを1回使ってからこのボタンを押すと、そのスキルの系列(モーフ違い含む)が回復演出の対象になります。",
+            func = function()
+                if lastSkill.id then
+                    if lastSkill.key then sv.heal[lastSkill.key] = true end
+                    sv.healId[tostring(lastSkill.id)] = true
+                end
+                DiagUpdate(); Refresh()
+            end,
+        },
+        {
+            type = "button", name = "回復スキルの登録をすべて消す",
+            func = function() sv.heal = {}; sv.healId = {}; DiagUpdate(); Refresh() end,
         },
         {
             type = "dropdown", name = "Test play (演出テスト再生)",

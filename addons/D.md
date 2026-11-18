@@ -24,7 +24,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Dark Brotherhood Spree ZH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NeiL978/Dark-Brotherhood-Spree-ZH__3601) | NeiL978 | PC / Mac | 1.0 |
 | [Dark Convergence Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SaintAres97/Dark-Convergence-Timer__2709a81d-caea-4f77-a89d-0d83661bf7ee) | SaintAres97 | Console | — |
 | [Dark Convergence Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Dark-Convergence-Tracker__8dff29ed-8886-46e4-ad37-c73add153c3f) | codeWarrior82 | Console | — |
-| [Dark Convergence Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irreverend/Dark-Convergence-Tracker__4770) | Irreverend | PC / Mac | 1.0.2 |
+| [Dark Convergence Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irreverend/Dark-Convergence-Tracker__4770) | Irreverend | PC / Mac | 1.0.3 |
 | [Dark Mode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rogue0rbit/Dark-Mode__148076b2-9d29-46c7-aff5-da6dad6bc20d) | Rogue0rbit | Console | — |
 | [Dark Mode ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rogue0rbit/Dark-Mode-ESO__34dd2c26-eade-48fc-a1d0-4838faaeae0e) | Rogue0rbit | Console | — |
 | [Darker Tamriel Tomes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Darker-Tamriel-Tomes__4523) | Masteroshi430 | PC / Mac | 2026.07.17 |
@@ -48,7 +48,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [DeBluedIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/DeBluedIcons__5006) | DakJaniels | PC / Mac | 1 |
 | [DebuffMe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Floliroy/DebuffMe__2260) | Floliroy | PC / Mac | 1.7 |
 | [DebuffMe - Stonethorn Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bitrock/DebuffMe---Stonethorn-Update__2777) | bitrock | PC / Mac | 1.7.1 |
-| [DebuffTracker - Track Debuff Durations!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/DebuffTracker---Track-Debuff-Durations__4030) | SkullElf | PC / Mac | 5.21.21 |
+| [DebuffTracker - Track Debuff Durations!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/DebuffTracker---Track-Debuff-Durations__4030) | SkullElf | PC / Mac | 5.21.24 |
 | [DebugLogViewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/DebugLogViewer__2389) | sirinsidiator | PC / Mac | 1.2.0 |
 | [Decluttered Scrying Leads](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Decluttered-Scrying-Leads__3009) | kawamonkey | PC / Mac | 1.0.1 |
 | [DeconIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cmw69krinkle/DeconIcon__3347) | cmw69krinkle | PC / Mac | 1.0.0 |

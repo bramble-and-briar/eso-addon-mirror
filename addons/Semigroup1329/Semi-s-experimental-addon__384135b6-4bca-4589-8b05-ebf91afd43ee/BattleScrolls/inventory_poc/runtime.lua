@@ -73,6 +73,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field fee number|nil
 ---@field reason InventoryPocReason|nil
 ---@field discount number|nil
+---@field returned boolean|nil A listing of stock that already came back unsold
 ---@field finished boolean|nil Batch entries remain until the whole batch is reconciled
 ---@field useAttempts number|nil
 ---@field retryAt number|nil
@@ -95,6 +96,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field builds table<string, InventoryPocBuildState>
 ---@field returns InventoryPocReturnsSaved
 ---@field quotes table<string, InventoryPocCachedQuote>
+---@field listings table<number, InventoryPocGuildListings> Listing counts as last read at a guild store
 ---@field coffers InventoryPocCofferSaved
 ---@field unread boolean|nil
 ---@field pending InventoryPocPending|nil
@@ -255,9 +257,11 @@ local function cancelProbe()
     if probeFiber then probeFiber:Cancel(); probeFiber = nil end
 end
 
+---The prices a decision was made at: saved with each log entry and shown
+---for a pack item.
 ---@param item InventoryPocItem
 ---@return InventoryPocLogDetails
-local function logDetails(item)
+function poc.logDetails(item)
     return { slot = item.slot, uniqueId = item.uniqueId, stack = item.stack,
         vendorUnit = item.vendorUnit, marketUnit = item.marketUnit,
         styleMaterialLink = item.styleMaterialLink, styleMaterialUnit = item.styleMaterialUnit,
@@ -305,8 +309,11 @@ local function finish(pending, result)
         result = result, itemLink = pending.item.link, itemId = pending.item.itemId, quantity = pending.quantity, gold = pending.gold,
         fromBag = pending.item.bag, toBag = pending.toBag, companionId = pending.companionId, guildId = pending.guildId,
         askingPrice = pending.askingPrice, fee = pending.fee, reason = pending.reason,
-        details = logDetails(pending.item), discount = pending.discount, contents = pending.contents })
+        details = poc.logDetails(pending.item), discount = pending.discount, contents = pending.contents })
     if result == 'uncertain' then poc.blocked[itemKey(pending.item)] = true end
+    if result == 'done' and pending.action == 'list' and pending.returned then
+        BattleScrolls.inventoryPocReturns.relisted(pending.item)
+    end
     if poc.saved.pending == pending then
         poc.saved.pending = nil
         -- Opened loot, learned recipes and binding change other slots: rescan.
@@ -325,7 +332,7 @@ local function defer(item, decision)
     if decision.reason == 'price' and item.priceLoading then return end
     poc.appendLog({ timestamp = GetTimeStamp(), character = GetUnitName('player'), action = decision.action,
         result = 'deferred', itemLink = item.link, itemId = item.itemId, quantity = item.stack,
-        reason = decision.reason, fromBag = item.bag, details = logDetails(item),
+        reason = decision.reason, fromBag = item.bag, details = poc.logDetails(item),
         noticeKey = item.uniqueId .. ':' .. decision.reason })
 end
 
@@ -596,7 +603,8 @@ function poc.reportHeldContainers()
     local reported = {}
     for slot = 0, GetBagSize(BAG_BACKPACK) - 1 do
         local itemId = GetItemId(BAG_BACKPACK, slot)
-        local currency = itemId ~= 0 and not reported[itemId] and coffers.cappedCurrency(itemId)
+        local currency = itemId ~= 0 and not reported[itemId]
+            and coffers.cappedCurrency(itemId, facts.uniqueId(BAG_BACKPACK, slot))
         if currency then
             reported[itemId] = true
             local location = GetCurrencyPlayerStoredLocation(currency)
@@ -610,6 +618,7 @@ end
 ---The container stays shut because its currency has no room: a wait, not a failure.
 ---@param pending InventoryPocPending
 local function holdContainer(pending)
+    BattleScrolls.inventoryPocCoffers.hold(pending.item.uniqueId)
     openRetries[itemKey(pending.item)] = nil
     pending.finished = true
     if poc.saved.pending == pending then poc.saved.pending = nil end
@@ -618,10 +627,19 @@ local function holdContainer(pending)
     poc.reportHeldContainers()
 end
 
----The loot handler found the open container's currency over its cap.
-function poc.holdContainer()
+---The loot handler left a currency without room inside the open container.
+---@param taken boolean The rest of its contents came out and belongs in the log
+function poc.holdContainer(taken)
     local pending = poc.enabled and poc.saved and poc.saved.pending
-    if pending and pending.action == 'open' then holdContainer(pending) end
+    if pending and pending.action == 'open' then
+        if taken then
+            BattleScrolls.inventoryPocCoffers.hold(pending.item.uniqueId)
+            finish(pending, 'done')
+            poc.reportHeldContainers()
+        else
+            holdContainer(pending)
+        end
+    end
     poc.resume()
 end
 
@@ -665,6 +683,8 @@ local function reconcile(pending)
                 end
             elseif pending.item.kind == 'motif' then
                 proven = IsItemLinkBookKnown(pending.item.link)
+            elseif pending.item.kind == 'script' then
+                proven = IsCraftedAbilityScriptUnlocked(GetItemLinkItemUseReferenceId(pending.item.link))
             else
                 proven = IsItemLinkRecipeKnown(pending.item.link)
             end
@@ -723,7 +743,8 @@ function poc.post(item, quote, guildId, reserved)
     if fee > GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) then return false, 'fee-unaffordable' end
     poc.saved.pending = { item = current, action = 'list', quantity = quantity, started = GetFrameTimeMilliseconds(),
         character = GetUnitName('player'), sourceTotal = countBag(item.bag, item.link), guildId = guildId,
-        askingPrice = quote.totalPrice, fee = fee, reason = decision.reason, discount = quote.discount }
+        askingPrice = quote.totalPrice, fee = fee, reason = decision.reason, discount = quote.discount,
+        returned = BattleScrolls.inventoryPocReturns.isDiscounted(current) or nil }
     BattleScrolls.inventoryPocMarket.listings[guildId] = { used = used, capacity = capacity, fresh = true }
     RequestPostItemOnTradingHouse(item.bag, item.slot, quantity, quote.totalPrice)
     return true
@@ -753,8 +774,9 @@ end
 ---@param reserved table<string, boolean>
 ---@param quantity number|nil
 ---@param toBackpack boolean|nil
+---@param overflow boolean|nil A listing the pack has no room to wait with goes to the bank
 ---@return boolean
-local function start(item, action, reserved, quantity, toBackpack)
+local function start(item, action, reserved, quantity, toBackpack, overflow)
     if poc.cancelled or poc.visitFinished or not poc.saved or poc.saved.pending or poc.saved.batch
         or poc.blocked[itemKey(item)] then return false end
     if (action == 'bank' or action == 'bind') and manualBankItems[item.link] then return false end
@@ -777,7 +799,7 @@ local function start(item, action, reserved, quantity, toBackpack)
             quantity = math.min(quantity or current.stack, policy.disposalQuantity(current))
         elseif current.keepQuantity and current.keepQuantity > 0 then
             quantity = current.keepQuantity
-        elseif decision.action ~= 'bank' then return false end
+        elseif decision.action ~= 'bank' and not (overflow and decision.action == 'list') then return false end
     end
     if quantity and quantity <= 0 then return false end
     local pending = { item = current, action = action, quantity = quantity or item.stack, reason = decision.reason,
@@ -887,6 +909,42 @@ local function collectWork(pass)
     return best ~= nil and start(best, 'bind', pass.reserved)
 end
 
+---Listings wait in the pack only as far as they can be posted soon: the free
+---listing slots plus a reserve, in the order the guild store takes them. The
+---rest wait in the bank. Items still waiting for a price are no listings yet.
+---@param pass InventoryPocPass
+---@return table<InventoryPocItem, boolean> overflow Stacks that belong in the bank
+local function listingOverflow(pass)
+    local market = BattleScrolls.inventoryPocMarket
+    ---@type InventoryPocItem[]
+    local queue = {}
+    ---@type table<InventoryPocItem, number>
+    local values = {}
+    local checked = 0
+    for _, items in ipairs({ pass.backpack, pass.bank }) do
+        for _, item in ipairs(items) do
+            if policy.decide(item).action == 'list' then
+                queue[#queue + 1] = item
+                values[item] = market.listingValue(item)
+            end
+            checked = checked + 1
+            if checked % 20 == 0 then LibEffect.Yield():Await() end
+        end
+    end
+    table.sort(queue, function(a, b)
+        if values[a] ~= values[b] then return values[a] > values[b] end
+        -- Equal listings stay where they are.
+        local aCarried, bCarried = a.bag == BAG_BACKPACK, b.bag == BAG_BACKPACK
+        if aCarried ~= bCarried then return aCarried end
+        if a.bag ~= b.bag then return a.bag < b.bag end
+        return a.slot < b.slot
+    end)
+    ---@type table<InventoryPocItem, boolean>
+    local overflow = {}
+    for rank = market.listingAllowance() + 1, #queue do overflow[queue[rank]] = true end
+    return overflow
+end
+
 ---@param pass InventoryPocPass
 ---@return boolean
 local function bankWork(pass)
@@ -913,6 +971,10 @@ local function bankWork(pass)
             end
         end
     end
+    local overflow = listingOverflow(pass)
+    for _, item in ipairs(backpack) do
+        if overflow[item] and start(item, 'bank', reserved, nil, false, true) then return true end
+    end
     -- Rules are evaluated for this character, including crafter-only learning.
     -- Carry one use of unknown items; withdraw full stacks for disposal/trading.
     local carried, banked = {}, {}
@@ -927,7 +989,7 @@ local function bankWork(pass)
         end
     end
     for _, item in ipairs(bank) do
-        local quantity = policy.withdrawQuantity(item, carried[item.link] or 0, banked[item.link] or 0)
+        local quantity = overflow[item] and 0 or policy.withdrawQuantity(item, carried[item.link] or 0, banked[item.link] or 0)
         if quantity > 0 then
             if start(item, 'bank', reserved, quantity, true) then return true end
         end
@@ -1323,54 +1385,43 @@ function poc.probe(section)
     end):Ensure(function() probeFiber = nil; BattleScrolls.gc:RequestGC(2) end):Run()
 end
 
----Read exactly the selected item; no full scan, native dialog or item action.
----@param bag number
----@param slot number
-function poc.inspectItem(bag, slot)
-    if not poc.enabled or not poc.saved then return end
-    cancelProbe()
-    -- Capture the selected instance before yielding; the slot may change while
-    -- Wardrobe reservations are being read.
-    local item = facts.item(bag, slot)
-    if not item then return end
-    probeFiber = LibEffect.Async(function()
-        local _, reserved = facts.wardrobe(true)
-        item.reserved = item.reserved or reserved[item.uniqueId] == true
-        local itemType, specializedType = GetItemLinkItemType(item.link)
-        local _, _, _, _, _, setId = GetItemLinkSetInfo(item.link, false)
-        local decision = policy.decide(item)
-        local styleMaterial = item.styleMaterialLink ~= '' and GetItemLinkItemId(item.styleMaterialLink) or 0
-        local traitMaterial = item.traitMaterialLink ~= '' and GetItemLinkItemId(item.traitMaterialLink) or 0
-        local lines = {
-            'IPOC ' .. item.link,
-            string.format('IPOC item=%d bag=%d slot=%d count=%d type=%d sub=%d',
-                item.itemId, bag, slot, item.stack, itemType, specializedType),
-            string.format('IPOC kind=%s q=%d trait=%d style=%d set=%d', item.kind, item.quality, item.trait, item.style, setId),
-            string.format('IPOC actor=%d equip=%d armor=%d weapon=%d level=%d cp=%d',
-                item.actorCategory, item.equipType, item.armorType, item.weaponType, item.level, item.championPoints),
-            string.format('IPOC action=%s reason=%s vendor=%s market=%s',
-                decision.action, decision.reason, tostring(item.vendorUnit), tostring(item.marketUnit)),
-            string.format('IPOC reserved=%s stolen=%s crown=%s known=%s crafterKnown=%s',
-                tostring(item.reserved), tostring(item.stolen), tostring(item.crown), tostring(item.known), tostring(item.crafterKnown)),
-            string.format('IPOC styleMat=%d price=%s traitMat=%d price=%s resolved=%s', styleMaterial,
-                tostring(item.styleMaterialUnit), traitMaterial, tostring(item.traitMaterialUnit), tostring(item.traitMaterialResolved)),
-            string.format('IPOC crafted=%s cannotSell=%s', tostring(item.crafted), tostring(item.cannotSell)),
-        }
-        local flavor = GetItemLinkFlavorText(item.link)
-        if item.kind == 'gear' then
-            lines[#lines + 1] = string.format('IPOC tradeable=%s collected=%s upgradeMat=%s price=%s saleMin=%s',
-                tostring(item.tradeable), tostring(item.setCollected),
-                tostring(item.improvementMaterialLink), tostring(item.improvementMaterialUnit), tostring(policy.gearSaleMinimum(item)))
-            lines[#lines + 1] = string.format('IPOC baseMat=%d price=%s',
-                item.baseMaterialLink ~= '' and GetItemLinkItemId(item.baseMaterialLink) or 0, tostring(item.baseMaterialUnit))
-        end
-        if item.kind == 'container' then
-            lines[#lines + 1] = string.format('IPOC currencyContainer=%s cappedCurrency=%s openAfter=%s',
-                tostring(item.currencyContainer), tostring(item.cappedCurrency), tostring(item.openAfter))
-        end
-        if flavor ~= '' then lines[#lines + 1] = 'IPOC flavor=' .. flavor end
-        printProbe(lines)
-    end):Ensure(function() probeFiber = nil; BattleScrolls.gc:RequestGC(2) end):Run()
+---Everything the rules read for one item, as raw facts for the pack screen.
+---@param item InventoryPocItem A scanned item with its reservation applied
+---@return string[]
+function poc.itemFacts(item)
+    local itemType, specializedType = GetItemLinkItemType(item.link)
+    local _, _, _, _, _, setId = GetItemLinkSetInfo(item.link, false)
+    local decision = policy.decide(item)
+    local styleMaterial = item.styleMaterialLink ~= '' and GetItemLinkItemId(item.styleMaterialLink) or 0
+    local traitMaterial = item.traitMaterialLink ~= '' and GetItemLinkItemId(item.traitMaterialLink) or 0
+    local lines = {
+        string.format('item=%d bag=%d slot=%d count=%d type=%d sub=%d',
+            item.itemId, item.bag, item.slot, item.stack, itemType, specializedType),
+        string.format('kind=%s q=%d trait=%d style=%d set=%d', item.kind, item.quality, item.trait, item.style, setId),
+        string.format('actor=%d equip=%d armor=%d weapon=%d level=%d cp=%d',
+            item.actorCategory, item.equipType, item.armorType, item.weaponType, item.level, item.championPoints),
+        string.format('action=%s reason=%s vendor=%s market=%s',
+            decision.action, decision.reason, tostring(item.vendorUnit), tostring(item.marketUnit)),
+        string.format('reserved=%s stolen=%s crown=%s known=%s crafterKnown=%s',
+            tostring(item.reserved), tostring(item.stolen), tostring(item.crown), tostring(item.known), tostring(item.crafterKnown)),
+        string.format('styleMat=%d price=%s traitMat=%d price=%s resolved=%s', styleMaterial,
+            tostring(item.styleMaterialUnit), traitMaterial, tostring(item.traitMaterialUnit), tostring(item.traitMaterialResolved)),
+        string.format('crafted=%s cannotSell=%s', tostring(item.crafted), tostring(item.cannotSell)),
+    }
+    if item.kind == 'gear' then
+        lines[#lines + 1] = string.format('tradeable=%s collected=%s upgradeMat=%s price=%s saleMin=%s',
+            tostring(item.tradeable), tostring(item.setCollected),
+            tostring(item.improvementMaterialLink), tostring(item.improvementMaterialUnit), tostring(policy.gearSaleMinimum(item)))
+        lines[#lines + 1] = string.format('baseMat=%d price=%s',
+            item.baseMaterialLink ~= '' and GetItemLinkItemId(item.baseMaterialLink) or 0, tostring(item.baseMaterialUnit))
+    end
+    if item.kind == 'container' then
+        lines[#lines + 1] = string.format('currencyContainer=%s cappedCurrency=%s openAfter=%s',
+            tostring(item.currencyContainer), tostring(item.cappedCurrency), tostring(item.openAfter))
+    end
+    local flavor = GetItemLinkFlavorText(item.link)
+    if flavor ~= '' then lines[#lines + 1] = 'flavor=' .. flavor end
+    return lines
 end
 
 function poc.disable()
@@ -1630,11 +1681,18 @@ local function initialize()
     local worlds = root.accounts[account]
     local world = GetWorldName()
     worlds[world] = worlds[world] or { enabled = false, log = {}, reports = {}, companions = {}, builds = {},
-        returns = { stock = {}, discounted = {} }, quotes = {} }
+        returns = { stock = {}, discounted = {}, relisted = {}, unsold = {} }, quotes = {}, listings = {} }
     poc.saved = worlds[world]
     poc.saved.builds = poc.saved.builds or {}
-    poc.saved.returns = poc.saved.returns or { stock = {}, discounted = {} }
+    poc.saved.returns = poc.saved.returns or { stock = {}, discounted = {}, relisted = {}, unsold = {} }
+    poc.saved.returns.relisted = poc.saved.returns.relisted or {}
+    poc.saved.returns.unsold = poc.saved.returns.unsold or {}
     poc.saved.quotes = poc.saved.quotes or {}
+    -- Free listing slots decide how many listings the pack carries, and the
+    -- guild store is the only place to count them: remember the last reading.
+    poc.saved.listings = poc.saved.listings or {}
+    for _, counts in pairs(poc.saved.listings) do counts.fresh = false end
+    BattleScrolls.inventoryPocMarket.listings = poc.saved.listings
     local firstCofferTracking = poc.saved.coffers == nil
     poc.saved.coffers = poc.saved.coffers or { untilReset = {}, observed = {} }
     BattleScrolls.inventoryPocCoffers.initialize(poc.saved.coffers, poc.saved.log, firstCofferTracking)

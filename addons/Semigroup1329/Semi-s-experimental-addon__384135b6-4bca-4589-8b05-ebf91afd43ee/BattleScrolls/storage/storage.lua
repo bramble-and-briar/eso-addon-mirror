@@ -116,6 +116,7 @@ BattleScrolls = BattleScrolls or {}
 ---@field gameVersion string|nil Game patch version at time of encounter (e.g. "11.3.5")
 ---@field playerUnitId number|nil The player's own source unit id in this encounter's damage maps (nil on encounters recorded before it was captured)
 ---@field customName string|nil User-set name override (plain field on the compact encounter)
+---@field infiniteArchive InfiniteArchiveRecord|nil Infinite Archive run state and boons the fight began with (storage section 20; never in the wire layout)
 ---@field ultimate UltimateData|nil Ultimate generation/usage data (v19+)
 ---@field crux CruxData|nil Arcanist Crux economy data (v19+)
 ---@field resurrections number|nil Successful resurrection casts by the player (v19+)

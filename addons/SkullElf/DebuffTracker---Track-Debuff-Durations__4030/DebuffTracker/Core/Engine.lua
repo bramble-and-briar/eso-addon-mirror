@@ -10,7 +10,8 @@ local Cond = DT.Conditions
 local Load = DT.Load
 
 local NS = "DebuffTracker5_Engine"
-local TICK_MS = 100
+local TICK_MS = 100            -- default; Settings > Performance "Update trackers every" (settings.updateMs)
+Engine.MIN_MS, Engine.MAX_MS = 50, 500
 local COMBAT_RESET_GAP = 3   -- out of combat this long before uptime counters restart
 
 Engine.trackers = {}
@@ -289,14 +290,23 @@ end
 -- Tick
 ------------------------------------------------------------------------------
 
+local countsPending = false
 local function UpdateCombat(ctx, now, dt)
     if ctx.inCombat and not wasInCombat then
         if now - outOfCombatSince >= COMBAT_RESET_GAP then
             for _, rt in pairs(Engine.runtime) do rt.combatTime, rt.activeTime = 0, 0 end
-            DT.Combat.ResetCounts()     -- proc counters count per fight
         end
     elseif not ctx.inCombat and wasInCombat then
         outOfCombatSince = now
+    end
+    -- proc counters (Pearls, Esoteric Greaves) count per fight and clear 3 s after it ends -- the game's combat state,
+    -- like Cooldowns' OnCombatEnd -> ResetProcs (before 5.21.24 they stayed up until the next fight began)
+    if IsUnitInCombat("player") then
+        countsPending = true
+    elseif countsPending and DT.Load.SinceCombat() >= COMBAT_RESET_GAP then
+        countsPending = false
+        DT.Combat.ResetCounts()
+        Engine.RequestUpdate()
     end
     wasInCombat = ctx.inCombat
 end
@@ -435,10 +445,20 @@ function Engine.RequestRebuildLoad()
     Engine.RequestUpdate()
 end
 
+-- How often the engine re-evaluates every tracker (load conditions, rules, which entries show). Bars and timer
+-- numbers move every frame on their own (Display:Animate) unless "smooth" is off; game events still update at once
+-- (RequestUpdate). Matthis (5.21.23) asked about the "ms per update": slower updates = less CPU per second.
+function Engine.UpdateMs()
+    local ms = tonumber(DT.Profiles.Settings().updateMs) or TICK_MS
+    return math.max(Engine.MIN_MS, math.min(Engine.MAX_MS, math.floor(ms + 0.5)))
+end
+
 function Engine.Start()
     -- Always registered (an unloaded tracker returns early); never toggled with combat state.
-    EVENT_MANAGER:RegisterForUpdate(NS, TICK_MS, Engine.Tick)
+    EVENT_MANAGER:UnregisterForUpdate(NS)
+    EVENT_MANAGER:RegisterForUpdate(NS, Engine.UpdateMs(), Engine.Tick)
 end
+Engine.SetUpdateRate = Engine.Start
 
 function Engine.ResetStats()
     Engine.stats.maxMs = 0

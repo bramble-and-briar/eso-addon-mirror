@@ -799,13 +799,19 @@ local function ProcStates(tracker, c, now, out)
                     s.alliesLow = s.allies and s.allies < possible or nil
                     s.alliesFull = s.allies and s.allies >= possible or nil
                 end
+                -- Spaulder of Ruin: while it's on, the allies who get the aura from you (Cooldowns' number on the icon)
+                if e.allies and s.phase == 1 then
+                    local n = Procs.AllyCount(e.allies, now)
+                    s.allies = n > 0 and n or nil
+                end
                 if e.gate then GateState(s, e, GatePower(e)) end
-                if e.dots and s.phase == 1 then
+                -- (Cooldowns counts them all the time, not only while Z'en is up: TrackZenDOTs every 500 ms)
+                if e.dots then
                     -- Touch of Z'en: its strength is your DoTs on the enemy (the game reports 0 stacks). "Count on
                     -- the boss" (ExoY's focusOnBoss): with exactly one boss, on that boss, else on your target
                     local tag = "reticleover"
                     if tr.procZenBoss and DoesUnitExist("boss1") and not DoesUnitExist("boss2") then tag = "boss1" end
-                    s.stacks = DoesUnitExist(tag) and math.min(e.dots, E.MyDots(nil, tag, now)) or 0
+                    s.stacks = DoesUnitExist(tag) and E.MyDots(nil, tag, now) or 0   -- all of them, like Cooldowns
                     s.allStacks = true
                     -- ExoY's colours: under 30 % of the most low, over 70 % high
                     local pct = s.stacks / e.dots * 100

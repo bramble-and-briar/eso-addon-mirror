@@ -11,10 +11,6 @@ local KPUI_TRADINGHOUSE = KPUI_TRADINGHOUSE
 -- see the repository backlog file for the future hook/XML replacement work.
 
 local colors = kpuiConst.Colors	
-local function KelaGetATTSalesSecondsPerDay(salesModule)
-	local tooltipExtension = salesModule and salesModule.TooltipExtension
-	return (tooltipExtension and tooltipExtension.SECONDS_IN_DAY) or 60 * 60 * 24
-end
 
 KELA_KNOWN_ITEM_FILTER = "ALL"
 KELA_CURRENT_EFFECTDEAL_SELECTION_INDEX = 1
@@ -130,7 +126,7 @@ local function HideTradingTooltipControls()
 	if ctlPreviousListings then ctlPreviousListings:SetHidden(true) end		
 	if ctlOtherQualityInfo then ctlOtherQualityInfo:SetHidden(true) end				
 	if ctlProductMaterialInfoRow then ctlProductMaterialInfoRow:SetHidden(true) end	
-	if ctlCraftingInfo then ctlCraftingInfo:SetHidden(true) end			
+	if ctlCraftingComponentsInfo then ctlCraftingComponentsInfo:SetHidden(true) end			
 end
 local function HideImprovementTooltipControls(hide)
 	local function hideSource()
@@ -156,10 +152,17 @@ local function HideImprovementTooltipControls(hide)
 		hideResult()
 	end
 end
+-- Price controls of the enchanting, alchemy and provisioning tooltips, created
+-- on first use by KelaLayoutStationTradingTooltip (kpui_tradinghouse_tooltips.lua).
+local STATION_CONTROLS = { enchanting = {}, alchemy = {}, provisioner = {} }
+
+local function HideStationControls(station)
+	for _, control in pairs(STATION_CONTROLS[station]) do
+		control:SetHidden(true)
+	end
+end
 local function HideProvisionerTooltipControls()
-	if ctlProvisionerInfo then ctlProvisionerInfo:SetHidden(true) end	
-	if ctlProvisionerGraph then ctlProvisionerGraph:SetHidden(true) end						
-	if ctlProvisionerListings then ctlProvisionerListings:SetHidden(true) end				
+	HideStationControls("provisioner")
 end
 local function HideCreationTooltipControls()
 	if ctlCreationInfo then ctlCreationInfo:SetHidden(true) end	
@@ -168,15 +171,10 @@ local function HideCreationTooltipControls()
 	if ctlCreationOther then ctlCreationOther:SetHidden(true) end				
 end
 local function HideAlchemyTooltipControls()
-	if ctlAlchemyInfo then ctlAlchemyInfo:SetHidden(true) end	
-	if ctlAlchemyGraph then ctlAlchemyGraph:SetHidden(true) end						
-	if ctlAlchemyListings then ctlAlchemyListings:SetHidden(true) end					
+	HideStationControls("alchemy")
 end
 local function HideEnchantingTooltipControls()
-	if ctlEnchantingInfo then ctlEnchantingInfo:SetHidden(true) end	
-	if ctlEnchantingGraph then ctlEnchantingGraph:SetHidden(true) end						
-	if ctlEnchantingListings then ctlEnchantingListings:SetHidden(true) end	
-	if ctlEnchantingOther then ctlEnchantingOther:SetHidden(true) end		
+	HideStationControls("enchanting")
 end
 local function ResetProvisionerTradingTooltip()
 	if ctlProvisionerTooltip then
@@ -194,10 +192,16 @@ local function ResetCreationTradingTooltip()
 end
 
 -- functions that add modules to the information window
+-- Vertical breathing room added to every section break in the trading
+-- tooltips, and above and below each ATT price graph.
+local KPUI_SECTION_GAP = 12
+local KPUI_GRAPH_GAP = 16
+local KPUI_GRAPH_BOTTOM_GAP = 32
+
 local function AddClearLine(tooltip, lastControl, x, y)
 	-- empty line
 	if not x then x = 0 end
-	if not y then y = 0 end
+	y = (y or 0) + KPUI_SECTION_GAP
 	local bodySection = tooltip:AcquireSection(tooltip:GetStyle("bodySection1"))
 	bodySection:AddLine(" ")
 	tooltip:AddSection(bodySection)
@@ -219,8 +223,8 @@ local function SetSmithGraph (ctlSmithGraph, lastControl, itemLink, priceInfoTTC
 		return lastControl
 	end
 	ctlSmithGraph:ClearAnchors()
-	ctlSmithGraph:SetAnchor(TOPLEFT, lastControl, BOTTOMLEFT, 10, 0)
-	ctlSmithGraph:SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT, -10, 0)
+	ctlSmithGraph:SetAnchor(TOPLEFT, lastControl, BOTTOMLEFT, 10, KPUI_GRAPH_GAP)
+	ctlSmithGraph:SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT, -10, KPUI_GRAPH_GAP)
 	KelaUpdateATTGraph(itemLink, ctlSmithGraph, priceInfoATT.SuggestedPrice, priceInfoTTC.SuggestedPrice)
 	ctlSmithGraph:SetHidden(false)
 	local stackCountGuild
@@ -229,7 +233,18 @@ local function SetSmithGraph (ctlSmithGraph, lastControl, itemLink, priceInfoTTC
 	else
 		stackCountGuild = stackCount
 	end
-	return ctlSmithGraph.SetGuildSalesInfo(priceInfoATT.GuildsInfo, priceInfoATT.GuildsPrice, stackCountGuild, ctlSmithGraph)	
+	local graphBottom = ctlSmithGraph.SetGuildSalesInfo(priceInfoATT.GuildsInfo, priceInfoATT.GuildsPrice, stackCountGuild, ctlSmithGraph)
+	-- Spacer below the graph so the next section does not sit on its last row.
+	local bottomGap = ctlSmithGraph.kelaBottomGap
+	if not bottomGap then
+		bottomGap = WINDOW_MANAGER:CreateControl("$(parent)BottomGap", ctlSmithGraph, CT_CONTROL)
+		bottomGap:SetHeight(KPUI_GRAPH_BOTTOM_GAP)
+		ctlSmithGraph.kelaBottomGap = bottomGap
+	end
+	bottomGap:ClearAnchors()
+	bottomGap:SetAnchor(TOPLEFT, graphBottom, BOTTOMLEFT)
+	bottomGap:SetAnchor(TOPRIGHT, graphBottom, BOTTOMRIGHT)
+	return bottomGap
 end
 local function SetSmithNotes (tooltip, lastControl, strBuyInfo, ModFontSize)
 	if not ModFontSize then ModFontSize = 20 end
@@ -269,7 +284,7 @@ local function IsKPUITradingHouseSettingEnabled(setting)
 end
 
 KPUI_TRADINGHOUSE.colors = colors
-KPUI_TRADINGHOUSE.KelaGetATTSalesSecondsPerDay = KelaGetATTSalesSecondsPerDay
+KPUI_TRADINGHOUSE.STATION_CONTROLS = STATION_CONTROLS
 KPUI_TRADINGHOUSE.KelaCreateColorizedResumePrice = KelaCreateColorizedResumePrice
 KPUI_TRADINGHOUSE.GetItemLinks = GetItemLinks
 KPUI_TRADINGHOUSE.GetBuyInfo = GetBuyInfo

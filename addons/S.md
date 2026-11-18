@@ -33,6 +33,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Schlosswerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Schlosswerk__4863) | Torfason | PC / Mac | 2.0.0 |
 | [Scholar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/WidgetInteractive/Scholar__1670) | WidgetInteractive | PC / Mac | 1.7.0 |
 | [Scoreboard Fix Xbox BETA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RUSKlI/Scoreboard-Fix-Xbox-BETA__0e9f8669-fa46-49bb-a578-54569ddb865b) | RUSKlI | Console | — |
+| [Scoreboard Remastered \[BETA\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Scoreboard-Remastered-BETA__0798cfcd-e028-41a6-a40d-fb1654087be8) | Vixen_Hunny | Console | — |
 | [SCQ - Share contributable quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/SCQ---Share-contributable-quests__2453) | Ek1 | PC / Mac | 1.3.200324 |
 | [Screen anti dimmer (energy safe disabler)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marvellous-Chester/Screen-anti-dimmer-energy-safe-disabler__3894) | Marvellous Chester | PC / Mac | 1.0 |
 | [Screen Shake](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/napalmskull/Screen-Shake__3764) | napalmskull | PC / Mac | 1.0.0 |
@@ -160,6 +161,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SimpleDailyCraft 0.97 — U51 FIX](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VotMyID/SimpleDailyCraft-0.97-U51-FIX__4898) | VotMyID | PC / Mac | 0.97 |
 | [SimpleDPS Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AndrewRossProjects/SimpleDPS-Meter__2849) | AndrewRossProjects | PC / Mac | 4.1.101042 |
 | [SimpleGroupDPS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/SimpleGroupDPS__31353ae2-3899-477e-935e-69f9756c9d60) | FiNk3F13 | Console | — |
+| [SimpleGroupDPS2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/SimpleGroupDPS2__7a5d051d-6b7c-4117-8748-0b3ec7a3c234) | FiNk3F13 | Console | — |
 | [SimpleHelmetToggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DeanGrey/SimpleHelmetToggle__374) | DeanGrey | PC / Mac | 0.4d |
 | [SimplePlayTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrumpyEthilin/SimplePlayTime__4452) | GrumpyEthilin | PC / Mac | 1.1.3 |
 | [SimpleUltShare](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/SimpleUltShare__6a159f04-1342-485c-be46-ea92c4b7c730) | M0R | Console | — |

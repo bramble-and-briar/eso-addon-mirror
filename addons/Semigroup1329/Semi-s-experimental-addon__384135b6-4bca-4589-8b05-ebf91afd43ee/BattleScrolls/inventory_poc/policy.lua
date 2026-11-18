@@ -63,6 +63,7 @@ BattleScrolls = BattleScrolls or {}
 ---@field learnRequired number|nil Total pieces to finish that progress
 ---@field filledSoulGem boolean
 ---@field crafted boolean|nil Made by a player
+---@field unsold boolean|nil Came back from a half-price listing as well
 
 ---@class InventoryPocDecision
 ---@field action InventoryPocAction
@@ -77,9 +78,11 @@ BattleScrolls = BattleScrolls or {}
 ---@class InventoryPocPolicy
 ---@field MIN_LISTING number
 ---@field EXPENSIVE_PLAN number
+---@field LISTING_RESERVE number Listings the pack keeps ready beyond the free listing slots
 local policy = {
     MIN_LISTING = 2000,
     EXPENSIVE_PLAN = 10000,
+    LISTING_RESERVE = 10,
 }
 BattleScrolls.inventoryPocPolicy = policy
 
@@ -90,6 +93,12 @@ local STYLE_MATERIAL_CHANCE, TRAIT_MATERIAL_CHANCE = 0.40, 0.75
 local BASE_MATERIAL_YIELD = 1
 local MATERIAL_VENDOR_MULTIPLIER = 2
 local JEWELRY_TRAIT_PIECES = 10
+-- Ordinary dropped and merchant potions (Health, Magicka, Stamina) and the
+-- "Potent" ones Bastian's perk adds to loot (Magicka, Health, Stamina): one
+-- item per resource across every level. Alliance draughts are white and
+-- non-crafted as well, and no native flag separates them, so the sale rule
+-- names its items.
+local TRASH_POTIONS = { [27036] = true, [27037] = true, [27038] = true, [176040] = true, [176041] = true, [176042] = true }
 
 ---@param action InventoryPocAction
 ---@param reason InventoryPocReason
@@ -127,13 +136,11 @@ local function expectedMaterialValue(item)
     return value, complete
 end
 
----A material the price source does not cover counts as zero: no visit can
----price it, so waiting for it would hold a saleable item indefinitely.
 ---@param item InventoryPocItem
----@return number|nil floor Nil while the trait material lookup is unresolved
+---@return number|nil floor Nil when a material the item has cannot be priced
 function policy.gearSaleMinimum(item)
-    local materialValue = expectedMaterialValue(item)
-    if materialValue == nil then return nil end
+    local materialValue, complete = expectedMaterialValue(item)
+    if not complete then return nil end
     if item.quality >= 5 and policy.validPrice(item.improvementMaterialUnit) then
         -- Reserve one full upgrade material's value for gold gear. This sale
         -- floor covers its possible return without assuming an extraction rate.
@@ -235,10 +242,18 @@ local function classify(item)
     if item.kind == 'treasure' or item.kind == 'junk' then return decision('sell', 'junk') end
     if item.kind == 'glyph' then return decision('deconstruct', 'glyph') end
     if item.kind == 'food' and item.quality == 1 then return decision('sell', 'junk') end
-    if (item.kind == 'potion' or item.kind == 'poison') and item.quality == 1 then return decision('sell', 'junk') end
+    if item.kind == 'poison' and item.quality == 1 then return decision('sell', 'junk') end
+    if item.kind == 'potion' and TRASH_POTIONS[item.itemId] then return decision('sell', 'junk') end
     if item.kind == 'script' then
         if item.known == true then return sellDuplicate(item, 'sell') end
-        return decision('keep', 'knowledge')
+        -- This character learns a bound script. An unbound one is offered
+        -- for sale first and learned when its price is not worth a listing.
+        -- Unbound scripts are rare and usually expensive: one without a
+        -- price waits for a quote instead of being learned.
+        if item.tradeable == false then return decision('learn', 'learn') end
+        if not policy.validPrice(item.marketUnit) then return decision('defer', 'price') end
+        if policy.listingQuantity(item) > 0 then return decision('list', 'sale') end
+        return decision('learn', 'learn')
     end
     if item.kind == 'collectible' or item.kind == 'fragment' then
         if item.known == false then
@@ -276,12 +291,17 @@ local function classify(item)
         return sellDuplicate(item, 'sell')
     end
     if item.kind == 'gear' then
-        if item.tradeable then
+        -- Gear nobody bought at half price either is no longer listed.
+        if item.tradeable and not item.unsold then
             if item.priceLoading then return decision('defer', 'price') end
             if policy.validPrice(item.marketUnit) then
                 local minimum = policy.gearSaleMinimum(item)
                 if minimum and math.floor(item.marketUnit) >= minimum then return decision('list', 'sale') end
-                if not minimum and item.marketUnit >= policy.MIN_LISTING then return decision('defer', 'price') end
+                -- The native trait list has not loaded yet: wait. A material that
+                -- exists without any price falls through to deconstruction.
+                if not item.traitMaterialResolved and item.marketUnit >= policy.MIN_LISTING then
+                    return decision('defer', 'price')
+                end
             end
         end
         if item.quality >= 5 then return decision('deconstruct', 'gear') end

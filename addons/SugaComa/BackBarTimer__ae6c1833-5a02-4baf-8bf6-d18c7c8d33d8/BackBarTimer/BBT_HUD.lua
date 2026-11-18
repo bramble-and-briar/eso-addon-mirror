@@ -20,13 +20,6 @@ local function RemainingMs(record, now)
     return math.max(0, (tonumber(record.endTimeMs) or 0) - now)
 end
 
-local function SlotEnabled(hotbar, slot)
-    if not Addon.sv then return false end
-    local tableName = hotbar == HOTBAR_CATEGORY_PRIMARY and "frontSlots" or "backSlots"
-    local settings = Addon.sv[tableName]
-    return type(settings) == "table" and settings[slot] ~= false
-end
-
 local function IsInsideDisplayWindow(remainMs)
     if Addon.sv and Addon.sv.hudFullCountdown == true then return true end
     local seconds = tonumber(Addon.sv and Addon.sv.hudCountdownSeconds) or 10
@@ -159,6 +152,11 @@ function HUD:Initialize()
         -(tonumber(Addon.sv.rightInset) or 700),
         tonumber(Addon.sv.rightY) or -50
     )
+    self.bloodHunger = WINDOW_MANAGER:CreateControl("BackBarTimerBloodHunger", self.right.root, CT_LABEL)
+    self.bloodHunger:SetFont("ZoFontGamepadBold18")
+    self.bloodHunger:SetAnchor(BOTTOM, self.right.root, TOP, 0, -6)
+    self.bloodHunger:SetColor(1, 0.65, 0.35, 1)
+    self.bloodHunger:SetHidden(true)
     self.initialized = true
     self:ApplySettings()
 end
@@ -181,6 +179,7 @@ function HUD:Hide()
     if not self.initialized then return end
     HideSide(self.left)
     HideSide(self.right)
+    self.bloodHunger:SetHidden(true)
 end
 
 function HUD:GetAllianceTexture()
@@ -200,7 +199,7 @@ function HUD:GetFrontWeaponTexture()
     return "EsoUI/Art/CharacterWindow/gearSlot_mainHand.dds"
 end
 
-function HUD:ShowSkillPrompt(entry, record, remainMs)
+function HUD:ShowSkillPrompt(entry, record, remainMs, isCooldown)
     local finalWarning = remainMs <= Addon.Config.hudWarningMs
     local showSkillIcon = finalWarning
     if Addon.sv.skillIconFirst == true then
@@ -217,11 +216,9 @@ function HUD:ShowSkillPrompt(entry, record, remainMs)
         entry.icon:SetHidden(true)
     end
 
-    if finalWarning then
-        entry.timer:SetText(string.format("%.1f", math.max(0, remainMs) / 1000))
-    else
-        entry.timer:SetText(tostring(math.ceil(remainMs / 1000)))
-    end
+    local time = finalWarning and string.format("%.1f", remainMs / 1000)
+        or tostring(math.ceil(remainMs / 1000))
+    entry.timer:SetText(isCooldown and ("CD " .. time) or time)
     entry.timerBox:SetHidden(false)
     entry.prompt:SetHidden(false)
 end
@@ -250,19 +247,20 @@ function HUD:RefreshSide(side, hotbar, now, cadenceKind, cadenceEnabled,
     for _, number in ipairs(Addon:GetDisplayOrder(sideName)) do
         local slot = number + Addon.Config.firstSlot - 1
         local entry = side.prompts[slot]
-        if SlotEnabled(hotbar, slot) then
+        local enabled = hotbar ~= nil and Addon.State:IsSlotEnabled(hotbar, slot)
+        if enabled then
             entry.prompt:ClearAnchors()
             entry.prompt:SetAnchor(TOP, side.root, TOP, 0, row * SLOT_STEP)
             row = row + 1
         end
-        local record = Addon.State:GetRecord(hotbar, slot)
-        local qualifying = record
-            and (tonumber(record.durationMs) or 0) >= Addon.Config.minimumDurationMs
-        local remain = SlotEnabled(hotbar, slot) and qualifying and RemainingMs(record, now) or 0
+        local record = enabled and Addon.State:GetRecord(hotbar, slot)
+        local cooldown = record and (record.cooldownEndMs or 0) - now or 0
+        local qualifying = record and record.durationMs >= Addon.Config.minimumDurationMs
+        local remain = qualifying and RemainingMs(record, now) or 0
 
-        if remain > 0 and IsInsideDisplayWindow(remain) then
+        if cooldown > 0 or (remain > 0 and IsInsideDisplayWindow(remain)) then
             hasContent = true
-            self:ShowSkillPrompt(entry, record, remain)
+            self:ShowSkillPrompt(entry, record, cooldown > 0 and cooldown or remain, cooldown > 0)
         else
             entry.prompt:SetHidden(true)
         end
@@ -286,17 +284,28 @@ end
 function HUD:Refresh(now)
     if not self.initialized then self:Initialize() end
     if not self.initialized then return end
-    if not Addon.sv or Addon.sv.mode ~= "hud" or Addon.State.menuOpen then
+    local state = Addon.State
+    if not Addon.sv or state.menuOpen or (Addon.sv.mode ~= "hud" and not state.werewolf) then
         self:Hide()
         return
     end
 
     now = tonumber(now) or GetFrameTimeMilliseconds()
-    self:RefreshSide(self.left, HOTBAR_CATEGORY_BACKUP, now,
-        "block", Addon.sv.blockCadence, Addon.State.blockPulseUntilMs,
-        Addon.State.cadenceNextCueTimeMs)
-    self:RefreshSide(self.right, HOTBAR_CATEGORY_PRIMARY, now,
-        "light", Addon.sv.lightCadence, Addon.State.lightPulseUntilMs,
-        Addon.State.cadenceNextCueTimeMs)
+    local cadence = Addon.sv.mode == "hud"
+    local leftBar = HOTBAR_CATEGORY_BACKUP
+    if state.werewolf then leftBar = nil end
+    self:RefreshSide(self.left, leftBar, now,
+        "block", cadence and Addon.sv.blockCadence, state.blockPulseUntilMs,
+        state.cadenceNextCueTimeMs)
+    self:RefreshSide(self.right, state.werewolf and HOTBAR_CATEGORY_WEREWOLF or HOTBAR_CATEGORY_PRIMARY, now,
+        "light", cadence and Addon.sv.lightCadence, state.lightPulseUntilMs,
+        state.cadenceNextCueTimeMs)
+
+    local stacks = state.werewolf and state:GetBloodHungerStacks() or 0
+    self.bloodHunger:SetHidden(stacks <= 0)
+    if stacks > 0 then
+        self.bloodHunger:SetText("Blood Hunger ×" .. stacks)
+        self.right.root:SetHidden(false)
+    end
 end
 

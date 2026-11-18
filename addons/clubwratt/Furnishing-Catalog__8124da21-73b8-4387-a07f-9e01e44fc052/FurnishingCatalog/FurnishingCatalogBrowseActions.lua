@@ -3,9 +3,15 @@
 -- A stock gamepad list screen (ZO_Gamepad_ParametricList_Screen) in the housing editor's furniture
 -- browser layout (GAMEPAD_HOUSING_FURNITURE_BROWSER_SCENE in gamepadingamescenes.lua): lists in
 -- quadrant 1, the 3D preview centred in quadrants 2-3, the item tooltip on the right.
---   subcategory list (under category headers) -> item list of that subcategory, cut into sections
---   (A-Z / style / quality)
--- Only one subcategory's rows exist at a time. The preview follows the selected item through
+-- One tree, category > subcategory > furnishing, shown a step at a time:
+--   1. the categories, as folders                                              (root list)
+--   2. one category's subcategories, as folders, titled with the category
+--   3. that category's long list: all of its furnishings under subcategory headers ("Doorways")
+--   4. the same list cut finer by the Sort mode ("Doorways - Orc", "Doorways - Epic" ...)
+--   5. the same furnishings as one list without headers, in the Sort mode's order
+-- Right shoulder expands a step (on a folder, Select does the same), left shoulder collapses
+-- one; the cursor stays on what it was on. A shopping list shows as a long list (steps 3, 4).
+-- Only one view's rows exist at a time. The preview follows the selected item through
 -- ITEM_PREVIEW_GAMEPAD and the public PreviewItemLink. Everything here is created on the first
 -- /furn, so a player who never opens the catalog pays nothing.
 local FC = FurnishingCatalog
@@ -24,8 +30,8 @@ Browse.SCENE_NAME = "FurnishingCatalogGamepad"
 Browse.PREVIEW_TYPE = "FurnishingCatalog_ItemLink" -- string key: cannot collide with ZO_ITEM_PREVIEW_* numbers
 Browse.CONTROL_NAME = "FurnishingCatalog_GamepadTopLevel"
 
-local SUBCATEGORY_TEMPLATE = "ZO_GamepadMenuEntryTemplate"
-local SUBCATEGORY_TEMPLATE_WITH_HEADER = SUBCATEGORY_TEMPLATE .. "WithHeader"
+local FOLDER_TEMPLATE = "ZO_GamepadMenuEntryTemplate"
+local NO_ICON = nil
 local ITEM_TEMPLATE = "ZO_GamepadItemSubEntryTemplate"
 local ITEM_TEMPLATE_WITH_HEADER = ITEM_TEMPLATE .. "WithHeader"
 local PREVIEW_LOG_LIMIT = 8
@@ -257,31 +263,36 @@ local function LogGameTree()
     end
 end
 
----Everything the item list shows for one subcategory, read from the game now.
----@param subcategory FurnishingCatalogSubcategory
+---Everything the item list shows for the furnishings of a view, read from the game now.
+---@param sections FurnishingCatalogSection[]
 ---@return FurnishingCatalogItem[]
-local function ReadItems(subcategory)
+local function ReadItems(sections)
     local items = {}
-    for _, itemId in ipairs(subcategory.ids) do
-        local bareLink = ScanUtils.BareLink(itemId)
-        local quality = GetItemLinkDisplayQuality(bareLink) or 0
-        local name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(bareLink))
-        local theme = 0
-        local furnitureDataId = GetItemLinkFurnitureDataId(bareLink)
-        if furnitureDataId and furnitureDataId ~= 0 then
-            local _, _, furnitureTheme = GetFurnitureDataInfo(furnitureDataId)
-            theme = furnitureTheme or 0
+    for sectionIndex, section in ipairs(sections) do
+        for _, itemId in ipairs(section.ids) do
+            local bareLink = ScanUtils.BareLink(itemId)
+            local quality = GetItemLinkDisplayQuality(bareLink) or 0
+            local name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(bareLink))
+            local theme = 0
+            local furnitureDataId = GetItemLinkFurnitureDataId(bareLink)
+            if furnitureDataId and furnitureDataId ~= 0 then
+                local _, _, furnitureTheme = GetFurnitureDataInfo(furnitureDataId)
+                theme = furnitureTheme or 0
+            end
+            items[#items + 1] = {
+                id = itemId,
+                link = ScanUtils.Link(itemId, quality),
+                name = name,
+                sortName = zo_strlower(name),
+                icon = GetItemLinkIcon(bareLink),
+                quality = quality,
+                theme = theme,
+                canPreview = CanItemLinkBePreviewed(bareLink) == true,
+                sectionIndex = sectionIndex,
+                sectionName = section.name,
+                sectionKey = section.key,
+            }
         end
-        items[#items + 1] = {
-            id = itemId,
-            link = ScanUtils.Link(itemId, quality),
-            name = name,
-            sortName = zo_strlower(name),
-            icon = GetItemLinkIcon(bareLink),
-            quality = quality,
-            theme = theme,
-            canPreview = CanItemLinkBePreviewed(bareLink) == true,
-        }
     end
     return items
 end
@@ -308,6 +319,84 @@ local function FormatNumber(n)
     return tostring(n)
 end
 
+-- ---------------------------------------------------------------- views
+
+local ROOT = "root" -- key of the root list's cursor memory
+
+local function CategoryKey(categoryId)
+    return "cat:" .. tostring(categoryId)
+end
+
+local function SubcategoryKey(categoryId, subcategoryId)
+    return "sub:" .. tostring(categoryId) .. ":" .. tostring(subcategoryId)
+end
+
+---A category: its subcategories as folders, and behind each its long list (the category's
+---furnishings, a section per subcategory).
+---@param category FurnishingCatalogCategory
+---@return FurnishingCatalogView
+local function CategoryView(category)
+    local sections = {}
+    for _, subcategory in ipairs(category.subcategories) do
+        sections[#sections + 1] = { key = SubcategoryKey(category.id, subcategory.id), name = subcategory.name, ids = subcategory.ids }
+    end
+    return {
+        id = CategoryKey(category.id),
+        name = category.name,
+        parentName = "Furnishings",
+        count = category.count,
+        category = category,
+        sections = sections,
+        detail = BrowseUtils.DETAIL_PLAIN,
+        hasFolders = true,
+        folders = true,
+    }
+end
+
+---The sections of a shopping list: its furnishings by their subcategory, the subcategories in
+---alphabetical order (the ones the game gave no name last).
+---@param itemIds integer[]
+---@return FurnishingCatalogSection[]
+local function ReadSectionsBySubcategory(itemIds)
+    local sections = {}
+    local byKey = {}
+    for _, itemId in ipairs(itemIds) do
+        local categoryId, subcategoryId = 0, 0
+        local furnitureDataId = GetItemLinkFurnitureDataId(ScanUtils.BareLink(itemId))
+        if furnitureDataId and furnitureDataId ~= 0 then
+            local dataCategoryId, dataSubcategoryId = GetFurnitureDataInfo(furnitureDataId)
+            categoryId, subcategoryId = dataCategoryId or 0, dataSubcategoryId or 0
+        end
+        local key = SubcategoryKey(categoryId, subcategoryId)
+        local section = byKey[key]
+        if not section then
+            local name = subcategoryId ~= 0 and GetFurnitureCategoryInfo(subcategoryId) or nil
+            local named = name ~= nil and name ~= ""
+            section = { key = key, id = key, name = named and name or "Other", unnamed = not named, ids = {} }
+            byKey[key] = section
+            sections[#sections + 1] = section
+        end
+        section.ids[#section.ids + 1] = itemId
+    end
+    table.sort(sections, BrowseUtils.CompareByName)
+    return sections
+end
+
+---A shopping list's long list: its furnishings, a section per subcategory they belong to.
+---@param shoppingList FurnishingCatalogShoppingList
+---@return FurnishingCatalogView
+local function ShoppingListView(shoppingList)
+    return {
+        id = "list:" .. tostring(shoppingList.id),
+        name = shoppingList.name,
+        parentName = "Shopping List",
+        count = #shoppingList.items,
+        shoppingList = shoppingList,
+        sections = ReadSectionsBySubcategory(shoppingList.items),
+        detail = BrowseUtils.DETAIL_PLAIN,
+    }
+end
+
 -- ---------------------------------------------------------------- the screen
 
 local Screen = ZO_Gamepad_ParametricList_Screen:Subclass()
@@ -317,14 +406,17 @@ function Screen:Initialize(control, scene)
     ZO_Gamepad_ParametricList_Screen.Initialize(self, control, ZO_GAMEPAD_HEADER_TABBAR_DONT_CREATE, ACTIVATE_ON_SHOW, scene)
 
     -- The main list uses the base class's templates (ZO_GamepadMenuEntryTemplate, with and without header).
-    self.subcategoryList = self:GetMainList()
+    self.rootList = self:GetMainList()
+    -- A long list (a category's furnishings, or a shopping list's), or one category's
+    -- subcategories as folders.
     self.itemList = self:AddList("Items", function(list)
         list:AddDataTemplate(ITEM_TEMPLATE, ZO_SharedGamepadEntry_OnSetup, ZO_GamepadMenuEntryTemplateParametricListFunction)
         list:AddDataTemplateWithHeader(ITEM_TEMPLATE, ZO_SharedGamepadEntry_OnSetup, ZO_GamepadMenuEntryTemplateParametricListFunction, nil, "ZO_GamepadMenuEntryHeaderTemplate")
+        list:AddDataTemplate(FOLDER_TEMPLATE, ZO_SharedGamepadEntry_OnSetup, ZO_GamepadMenuEntryTemplateParametricListFunction)
     end)
     -- The shopping lists by name; opening one shows its furnishings in the item list.
     self.listsList = self:AddList("ShoppingLists", function(list)
-        list:AddDataTemplate(SUBCATEGORY_TEMPLATE, ZO_SharedGamepadEntry_OnSetup, ZO_GamepadMenuEntryTemplateParametricListFunction)
+        list:AddDataTemplate(FOLDER_TEMPLATE, ZO_SharedGamepadEntry_OnSetup, ZO_GamepadMenuEntryTemplateParametricListFunction)
     end)
     -- Left / right trigger jump to the previous / next section header.
     self:SetListsUseTriggerKeybinds(true)
@@ -336,15 +428,16 @@ function Screen:Initialize(control, scene)
     self.headerData = { titleText = FC.displayName }
     self.catalog = nil          -- FurnishingCatalogCache once loaded or built
     self.categories = {}        -- FurnishingCatalogCategory[]
-    self.viewing = nil          -- { category, subcategory, shoppingList? } whose items are listed, nil on the other lists
+    self.viewing = nil          -- FurnishingCatalogView whose long list the item list shows; nil on the other lists
     self.inLists = false        -- the shopping lists are the current list (or where the item list came from)
     self.showPlan = FC.state.savedVars.showPlan ~= false -- the tooltip shows the furnishing's plan, where it has one
     self.planText = nil         -- what the header says about the plan of the furnishing the list is on
-    self.items = nil            -- FurnishingCatalogItem[] of that subcategory
     self.scanning = nil         -- "seed" or "full" while a pass runs on this screen
     self.scanProgressText = ""
     self.previewNote = nil      -- why the selected item shows no preview (header line), or nil
-    self.savedIndexes = {}      -- BrowseUtils.PositionKey -> list index
+    self.anchors = {}           -- what the cursor was last on: ROOT or a view's id -> { rowKey, folderKey }
+    self.lastItemIn = {}        -- the furnishing the cursor was last on in a subcategory: its key -> item id
+    self.rebuilding = false     -- a list is being filled: its target changes are not the player's
     self.filter = nil           -- the search in effect: { text, tree (matches only), total }
     self.filteredCategories = nil -- FurnishingCatalogCategory[] of that tree
     self.searching = nil        -- the search text while its pass runs
@@ -370,35 +463,35 @@ function Screen:InitializeKeybindStripDescriptors()
     {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
-            -- Item list: put the furnishing on a shopping list. The other lists: open the row.
+            -- On a furnishing: put it on a shopping list, or take it off one. On any other row: open it.
             name = function()
-                return self.viewing and "Add to List" or GetString(SI_GAMEPAD_SELECT_OPTION)
+                return self:TargetItem() and "Add to List" or GetString(SI_GAMEPAD_SELECT_OPTION)
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
             order = -500,
             sound = SOUNDS.GAMEPAD_MENU_FORWARD,
             visible = Visible(function()
                 if self.viewing then
-                    return self:TargetItem() ~= nil
+                    return self.itemList:GetTargetData() ~= nil
                 elseif self.inLists then
                     return self.listsList:GetTargetData() ~= nil
                 end
-                return self.probe == nil and self.searching == nil and self.subcategoryList:GetTargetData() ~= nil
+                return self.probe == nil and self.searching == nil and self.rootList:GetTargetData() ~= nil
             end),
             callback = FC.Guard("Primary", function() self:OnPrimary() end),
         },
         {
-            -- Item list: how it is cut into sections. Shopping lists: rename the list.
+            -- A long list: the Sort mode. Shopping lists: rename the list.
             name = function()
                 if self.viewing then
-                    return FC.Fmt("Sections: %s", BrowseUtils.GroupModeLabel(self:CurrentGroupMode()))
+                    return FC.Fmt("Sort: %s", BrowseUtils.GroupModeLabel(self:CurrentGroupMode()))
                 end
                 return "Rename"
             end,
             keybind = "UI_SHORTCUT_SECONDARY",
             visible = Visible(function()
                 if self.viewing then
-                    return true
+                    return not self.viewing.folders
                 end
                 return self.inLists and self:TargetShoppingList() ~= nil
             end),
@@ -411,7 +504,7 @@ function Screen:InitializeKeybindStripDescriptors()
             end),
         },
         {
-            -- Subcategories: go to the shopping lists. Shopping lists: delete the list.
+            -- Root list: go to the shopping lists. Shopping lists: delete the list.
             -- A shopping list's items: take the furnishing off it.
             name = function()
                 if self.viewing then
@@ -442,13 +535,36 @@ function Screen:InitializeKeybindStripDescriptors()
             end),
         },
         {
-            -- Item list: which tooltip is up, the furnishing's or its plan's.
+            -- Collapse a step: a flat long list into finer sections, those into its
+            -- subcategories, a long list back to the list it was opened from, the root list
+            -- into its categories.
+            -- The strip lays right-aligned buttons out from its right edge leftwards, lowest
+            -- order first: Expand takes the edge, so Collapse (the left shoulder) reads left of it.
+            alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+            gamepadOrder = 2,
+            name = "Collapse",
+            keybind = "UI_SHORTCUT_LEFT_SHOULDER",
+            visible = Visible(function() return self:CanCollapse() end),
+            callback = FC.Guard("Collapse", function() self:Collapse() end),
+        },
+        {
+            -- Expand a step: a category into its subcategories, a subcategory (or shopping
+            -- list) into its long list, a long list into finer sections, those into one flat list.
+            alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+            gamepadOrder = 1,
+            name = "Expand",
+            keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
+            visible = Visible(function() return self:CanExpand() end),
+            callback = FC.Guard("Expand", function() self:Expand() end),
+        },
+        {
+            -- On a furnishing: which tooltip is up, the furnishing's or its plan's.
             name = function()
                 return self.showPlan and "Tooltip: Plan" or "Tooltip: Item"
             end,
             keybind = "UI_SHORTCUT_RIGHT_STICK",
             visible = Visible(function()
-                return self.viewing ~= nil
+                return self:TargetItem() ~= nil
             end),
             callback = FC.Guard("ToggleShowPlan", function() self:ToggleShowPlan() end),
         },
@@ -505,19 +621,123 @@ function Screen:CurrentGroupMode()
     return BrowseUtils.ValidGroupMode(FC.state.savedVars.groupMode)
 end
 
+---Whether the root list is in a state to be acted on.
+---@return boolean
+function Screen:IsRootReady()
+    return not self.viewing and not self.inLists and self.catalog ~= nil and self.scanning == nil and self.probe == nil and self.searching == nil
+end
+
+---@return boolean
+function Screen:CanCollapse()
+    -- The root list is the top: nothing above the categories.
+    return self.viewing ~= nil or self.inLists
+end
+
+---@return boolean
+function Screen:CanExpand()
+    if self.viewing and self.viewing.folders then
+        return self.itemList:GetTargetData() ~= nil
+    elseif self.viewing then
+        return self.viewing.detail < BrowseUtils.DETAIL_FLAT and self:TargetItem() ~= nil
+    elseif self.inLists then
+        return self:TargetShoppingList() ~= nil
+    end
+    return self:IsRootReady() and self.rootList:GetTargetData() ~= nil
+end
+
+---Collapse what is showing by a step, the cursor staying on what it was on: a flat long list
+---back to finer headers and those to subcategory headers (same furnishing), a category's long
+---list back to its subcategories (on that furnishing's subcategory), those back to the
+---categories (on that category), a shopping list back to the shopping lists.
+function Screen:Collapse()
+    if not self:CanCollapse() then
+        return
+    end
+    self:TrackCurrentAnchor()
+    local view = self.viewing
+    if view and not view.folders and view.detail > BrowseUtils.DETAIL_PLAIN then
+        view.detail = view.detail - 1
+        self:BuildView()
+        self:RefreshTarget()
+        self:RefreshKeybinds()
+    else
+        self:Back()
+    end
+end
+
+---Expand what the cursor is on by a step, as Select does on a folder: a category into its
+---subcategories, a subcategory or shopping list into its long list, a long list into finer
+---sections and then into one flat list (same furnishing).
+function Screen:Expand()
+    if not self:CanExpand() then
+        return
+    end
+    self:TrackCurrentAnchor()
+    local view = self.viewing
+    if view and view.folders then
+        self:OpenFolderTarget()
+    elseif view then
+        view.detail = view.detail + 1
+        self:BuildView()
+        self:RefreshTarget()
+        self:RefreshKeybinds()
+    elseif self.inLists then
+        self:ViewShoppingList(self:TargetShoppingList())
+    else
+        self:OpenRootTarget()
+    end
+end
+
+---Fill a list with target tracking off: the cursor moves a rebuild makes are not the player's.
+---@param fill fun()
+function Screen:Rebuild(fill)
+    self.rebuilding = true
+    local ok, err = pcall(fill)
+    self.rebuilding = false
+    if not ok then
+        error(err, 0)
+    end
+end
+
+---Remember what a list's cursor is on, under the root's key or a view's id.
+---@param key string
+---@param targetData table|nil the list's target row
+function Screen:TrackAnchor(key, targetData)
+    local row = targetData and targetData.anchorRow
+    if not row then
+        return
+    end
+    self.anchors[key] = BrowseUtils.NextAnchor(self.anchors[key], row)
+    if targetData.item and row.folderKey then
+        -- Per subcategory too: opening another subcategory of the same long list and coming
+        -- back returns to this furnishing.
+        self.lastItemIn[row.folderKey] = row.rowKey
+    end
+end
+
+---Remember what the cursor is on right now, before something acts on it. (A rebuild that could
+---not find the remembered row leaves the memory alone, so that a search that hides the row
+---returns to it once cleared; acting on the row the cursor fell back to makes that row the one.)
+function Screen:TrackCurrentAnchor()
+    if self.viewing then
+        self:TrackAnchor(self.viewing.id, self.itemList:GetTargetData())
+    elseif not self.inLists then
+        self:TrackAnchor(ROOT, self.rootList:GetTargetData())
+    end
+end
+
 -- Called by the base class while the scene is SHOWING, when the screen is marked dirty.
 function Screen:PerformUpdate()
     self.dirty = false
-    FC.SafeCall("BuildSubcategoryList", self.BuildSubcategoryList, self)
+    FC.SafeCall("BuildRootList", self.BuildRootList, self)
 end
 
 function Screen:OnShowing()
     ZO_Gamepad_ParametricList_Screen.OnShowing(self)
     FC.SafeCall("OnShowing", function()
-        -- The base class has just made the subcategory list current.
+        -- The base class has just made the root list current.
         self.inLists = false
         self.viewing = nil
-        self.items = nil
         self.previewNote = nil
         local wantFullScan = fullScanRequested
         fullScanRequested = false
@@ -542,10 +762,8 @@ end
 
 function Screen:OnHiding()
     FC.SafeCall("OnHiding", function()
-        self:SaveItemPosition()
         self.viewing = nil
         self.inLists = false
-        self.items = nil
         -- Passes run only while this screen is open.
         if self.scanning then
             Scan.Pause()
@@ -568,10 +786,15 @@ end
 
 function Screen:OnTargetChanged(list, targetData, oldTargetData)
     if list == self.itemList and self.viewing then
+        if not self.rebuilding then
+            self:TrackAnchor(self.viewing.id, targetData)
+        end
         FC.SafeCall("RefreshTarget", self.RefreshTarget, self)
     elseif list == self.listsList and self.inLists then
         -- Rename and Delete depend on the row: not on New List, no Delete on the default list.
         FC.SafeCall("RefreshKeybinds", self.RefreshKeybinds, self)
+    elseif list == self.rootList and not self.viewing and not self.inLists and not self.rebuilding then
+        self:TrackAnchor(ROOT, targetData)
     end
 end
 
@@ -585,7 +808,7 @@ function Screen:LoadOrBuild()
     end
     self.scanning = "seed"
     self.scanProgressText = ""
-    self:BuildSubcategoryList()
+    self:BuildRootList()
     Scan.StartSeed(
         FC.Guard("OnScanProgress", function(progress) self:OnScanProgress(progress) end),
         FC.Guard("OnScanDone", function(builtCatalog) self:SetCatalog(builtCatalog) end))
@@ -612,11 +835,11 @@ function Screen:BeginFullScan()
         return
     end
     if self.viewing or self.inLists then
-        self:ShowSubcategories()
+        self:ShowRoot()
     end
     self.scanning = "full"
     self.scanProgressText = ""
-    self:BuildSubcategoryList()
+    self:BuildRootList()
     Scan.StartFull(
         FC.Guard("OnScanProgress", function(progress) self:OnScanProgress(progress) end),
         FC.Guard("OnScanDone", function(scannedCatalog) self:SetCatalog(scannedCatalog) end),
@@ -634,7 +857,7 @@ function Screen:OnScanPaused(text)
     if not self.catalog then
         self:LoadOrBuild()
     elseif SCENE_MANAGER:IsShowing(Browse.SCENE_NAME) then
-        self:BuildSubcategoryList()
+        self:BuildRootList()
         self:OnSearchTextChanged()
     else
         self.dirty = true
@@ -658,7 +881,6 @@ function Screen:SetCatalog(catalog)
     self.catalog = catalog
     self.categories = ReadCategories(catalog.tree)
     self.scanning = nil
-    self.savedIndexes = {}
     -- A search belongs to the catalog it ran on: run it again on this one.
     self.filter = nil
     self.filteredCategories = nil
@@ -676,7 +898,7 @@ function Screen:SetCatalog(catalog)
         FC.Log("  category %d '%s': %d in %d subcategories (largest %d)", category.id, category.name, category.count, #category.subcategories, largest)
     end
     if SCENE_MANAGER:IsShowing(Browse.SCENE_NAME) then
-        self:BuildSubcategoryList()
+        self:BuildRootList()
         self:OnSearchTextChanged()
         self:RefreshHeader()
         self:RefreshKeybinds()
@@ -700,12 +922,11 @@ function Screen:OnSearchTextChanged()
     end
     Search.Cancel()
     self.searching = nil
-    self.savedIndexes = {}
     if not wanted then
         self.filter = nil
         self.filteredCategories = nil
         FC.Log("search cleared")
-        self:BuildSubcategoryList()
+        self:BuildRootList()
         self:RefreshHeader()
         self:RefreshKeybinds()
         return
@@ -724,7 +945,7 @@ function Screen:OnSearchTextChanged()
             self.filter = result
             self.filteredCategories = ReadCategories(result.tree)
             if SCENE_MANAGER:IsShowing(Browse.SCENE_NAME) then
-                self:BuildSubcategoryList()
+                self:BuildRootList()
                 self:RefreshHeader()
                 self:RefreshKeybinds()
             else
@@ -735,98 +956,165 @@ function Screen:OnSearchTextChanged()
     self:RefreshKeybinds()
 end
 
----The main list: every subcategory that holds furnishings (or search matches), under its category's header.
-function Screen:BuildSubcategoryList()
-    local list = self.subcategoryList
-    list:Clear()
-    if not self.scanning then
-        for _, category in ipairs(self.filter and self.filteredCategories or self.categories) do
-            for index, subcategory in ipairs(category.subcategories) do
-                local entry = ZO_GamepadEntryData:New(BrowseUtils.CountLabel(subcategory.name, subcategory.count), category.icon)
+---The root list: every category that holds furnishings (or search matches), one folder each.
+---The cursor goes to the category it was last on or in, else to the top.
+function Screen:BuildRootList()
+    local list = self.rootList
+    local rows = {}
+    self:Rebuild(function()
+        list:Clear()
+        if not self.scanning then
+            for _, category in ipairs(self.filter and self.filteredCategories or self.categories) do
+                local categoryKey = CategoryKey(category.id)
+                local entry = ZO_GamepadEntryData:New(BrowseUtils.CountLabel(category.name, category.count), category.icon)
                 entry.category = category
-                entry.subcategory = subcategory
+                entry.anchorRow = { rowKey = categoryKey, folderKey = categoryKey }
                 entry:SetIconTintOnSelection(true)
-                if index == 1 then
-                    entry:SetHeader(BrowseUtils.CountLabel(category.name, category.count))
-                    list:AddEntry(SUBCATEGORY_TEMPLATE_WITH_HEADER, entry)
-                else
-                    list:AddEntry(SUBCATEGORY_TEMPLATE, entry)
-                end
+                list:AddEntry(FOLDER_TEMPLATE, entry)
+                rows[#rows + 1] = entry.anchorRow
             end
         end
-    end
-    local emptyText = EMPTY_TEXT
-    if self.scanning then
-        emptyText = self.scanning == "full" and SCANNING_TEXT or PREPARING_TEXT
-    elseif self.filter then
-        emptyText = FC.Fmt("No furnishing name holds \"%s\".", self.filter.text)
-    end
-    list:SetNoItemText(emptyText)
-    list:Commit()
+        local emptyText = EMPTY_TEXT
+        if self.scanning then
+            emptyText = self.scanning == "full" and SCANNING_TEXT or PREPARING_TEXT
+        elseif self.filter then
+            emptyText = FC.Fmt("No furnishing name holds \"%s\".", self.filter.text)
+        end
+        list:SetNoItemText(emptyText)
+        if #rows > 0 then
+            local ALLOW_EVEN_IF_DISABLED = true
+            list:SetSelectedIndexWithoutAnimation(BrowseUtils.AnchorIndex(rows, self.anchors[ROOT]) or 1, ALLOW_EVEN_IF_DISABLED)
+        end
+        list:Commit()
+    end)
 end
 
----Fill the item list from self.items in the saved group mode.
----@param keepItemId integer|nil item to stay on (a regroup); otherwise the remembered position
-function Screen:BuildItemList(keepItemId)
-    local viewing = self.viewing
-    local mode = self:CurrentGroupMode()
-    -- Read once per item, and only when a mode shows it.
-    if mode == "plan" then
-        for _, item in ipairs(self.items) do
-            Plans.Fill(item)
-        end
-    end
-    local items, numGroups = BrowseUtils.SortAndGroup(self.items, mode, GroupNameOf)
-
+---Fill the item list with the current category's subcategories, one folder each (no icon:
+---they would all be the category's), the cursor on the one it was last in. Reads no furnishing.
+function Screen:BuildFolders()
+    local view = self.viewing
     local list = self.itemList
-    list:Clear()
-    for _, item in ipairs(items) do
-        local entry = ZO_GamepadEntryData:New(item.name, item.icon)
-        entry.item = item
-        entry:SetFontScaleOnSelection(false)
-        entry:SetNameColors(entry:GetColorsBasedOnQuality(item.quality))
-        if not item.canPreview then
-            entry.iconDesaturation = 1
+    local rows = {}
+    local index = 1
+    self:Rebuild(function()
+        list:Clear()
+        for _, section in ipairs(view.sections) do
+            local entry = ZO_GamepadEntryData:New(BrowseUtils.CountLabel(section.name, #section.ids), NO_ICON)
+            entry.folderSection = section
+            entry.anchorRow = { rowKey = section.key, folderKey = section.key }
+            list:AddEntry(FOLDER_TEMPLATE, entry)
+            rows[#rows + 1] = entry.anchorRow
         end
-        if item.startsGroup then
-            entry:SetHeader(item.groupName)
-            list:AddEntry(ITEM_TEMPLATE_WITH_HEADER, entry)
-        else
-            list:AddEntry(ITEM_TEMPLATE, entry)
+        list:SetNoItemText(EMPTY_TEXT)
+        index = BrowseUtils.AnchorIndex(rows, self.anchors[view.id]) or 1
+        if #rows > 0 then
+            local ALLOW_EVEN_IF_DISABLED = true
+            list:SetSelectedIndexWithoutAnimation(index, ALLOW_EVEN_IF_DISABLED)
         end
-    end
-    list:SetNoItemText(viewing.shoppingList and EMPTY_SHOPPING_LIST_TEXT or EMPTY_TEXT)
-
-    local index = BrowseUtils.IndexOfId(items, keepItemId) or self.savedIndexes[BrowseUtils.PositionKey(viewing.category.id, viewing.subcategory.id, mode)] or 1
-    if index > #items then
-        index = 1
-    end
-    if #items > 0 then
-        local ALLOW_EVEN_IF_DISABLED = true
-        list:SetSelectedIndexWithoutAnimation(index, ALLOW_EVEN_IF_DISABLED)
-    end
-    list:Commit()
-    FC.Log("item list: %s/%s '%s' mode=%s items=%d sections=%d index=%d", tostring(viewing.category.id), tostring(viewing.subcategory.id), viewing.subcategory.name, mode, #items, numGroups, index)
+        list:Commit()
+    end)
+    FC.Log("folders %s '%s': subcategories=%d index=%d", view.id, view.name, #rows, index)
 end
 
-function Screen:ViewSubcategory()
-    if self.viewing or self.scanning or self.probe or self.searching or not self.catalog then
-        return
-    end
-    local targetData = self.subcategoryList:GetTargetData()
-    if not (targetData and targetData.subcategory) then
+---Open the subcategory folder the cursor is on: the category's long list, the cursor in that
+---subcategory (on the furnishing last left there, else on its first), under plain headers.
+function Screen:OpenFolderTarget()
+    local view = self.viewing
+    local targetData = self.itemList:GetTargetData()
+    local section = targetData and targetData.folderSection
+    if not (view and view.folders and section) then
         return
     end
     local startedMs = GetGameTimeMilliseconds()
-    self.viewing = { category = targetData.category, subcategory = targetData.subcategory }
-    self.items = ReadItems(targetData.subcategory)
-    self:BuildItemList(nil)
-    -- The search box belongs to the subcategory list.
+    view.folders = false
+    view.detail = BrowseUtils.DETAIL_PLAIN
+    self.anchors[view.id] = { rowKey = self.lastItemIn[section.key], folderKey = section.key }
+    self:BuildView()
+    self:RefreshTarget()
+    self:RefreshKeybinds()
+    FC.Log("long list %s opened from its folders in %d ms; %s", view.id, GetGameTimeMilliseconds() - startedMs, FC.MemText())
+end
+
+---Fill the item list with the current view's long list in the saved Sort mode, under
+---subcategory headers or, expanded, finer ones or none, the cursor on what it was last on in
+---this view.
+function Screen:BuildView()
+    local view = self.viewing
+    if view.folders then
+        self:BuildFolders()
+        return
+    end
+    local mode = self:CurrentGroupMode()
+    if not view.items then
+        view.items = ReadItems(view.sections)
+    end
+    -- Read once per item, and only when a mode shows it.
+    if mode == "plan" then
+        for _, item in ipairs(view.items) do
+            Plans.Fill(item)
+        end
+    end
+    local items, numHeaders = BrowseUtils.Arrange(view.items, mode, GroupNameOf, view.detail)
+
+    local list = self.itemList
+    local rows = {}
+    local index = 1
+    self:Rebuild(function()
+        list:Clear()
+        for _, item in ipairs(items) do
+            local entry = ZO_GamepadEntryData:New(item.name, item.icon)
+            entry.item = item
+            -- The row, and the subcategory it is in: where the cursor goes when this list collapses.
+            entry.anchorRow = { rowKey = item.id, folderKey = item.sectionKey }
+            entry:SetFontScaleOnSelection(false)
+            entry:SetNameColors(entry:GetColorsBasedOnQuality(item.quality))
+            if not item.canPreview then
+                entry.iconDesaturation = 1
+            end
+            if item.header then
+                entry:SetHeader(item.header)
+                list:AddEntry(ITEM_TEMPLATE_WITH_HEADER, entry)
+            else
+                list:AddEntry(ITEM_TEMPLATE, entry)
+            end
+            rows[#rows + 1] = entry.anchorRow
+        end
+        list:SetNoItemText(view.shoppingList and EMPTY_SHOPPING_LIST_TEXT or EMPTY_TEXT)
+        index = BrowseUtils.AnchorIndex(rows, self.anchors[view.id]) or 1
+        if #rows > 0 then
+            local ALLOW_EVEN_IF_DISABLED = true
+            list:SetSelectedIndexWithoutAnimation(index, ALLOW_EVEN_IF_DISABLED)
+        end
+        list:Commit()
+    end)
+    FC.Log("long list %s '%s': mode=%s detail=%d items=%d headers=%d index=%d", view.id, view.name, mode, view.detail, #items, numHeaders, index)
+end
+
+---Show a view's long list in the item list.
+---@param view FurnishingCatalogView
+function Screen:OpenView(view)
+    local startedMs = GetGameTimeMilliseconds()
+    self.viewing = view
+    self:BuildView()
+    -- The search box belongs to the root list.
     self:SetTextSearchEntryHidden(true)
     self:SetCurrentList(self.itemList)
     self:RefreshHeader()
     self:RefreshTarget()
-    FC.Log("subcategory %d opened in %d ms; %s", targetData.subcategory.id, GetGameTimeMilliseconds() - startedMs, FC.MemText())
+    self:RefreshKeybinds()
+    FC.Log("long list %s opened in %d ms; %s", view.id, GetGameTimeMilliseconds() - startedMs, FC.MemText())
+end
+
+---Open the category the root list is on: that category alone, its subcategories as folders,
+---the cursor on the one last used there.
+function Screen:OpenRootTarget()
+    if not self:IsRootReady() then
+        return
+    end
+    local targetData = self.rootList:GetTargetData()
+    if targetData and targetData.category then
+        self:OpenView(CategoryView(targetData.category))
+    end
 end
 
 ---The furnishing the item list is on, while the item list is showing.
@@ -847,10 +1135,14 @@ function Screen:TargetShoppingList()
 end
 
 function Screen:OnPrimary()
+    -- The row acted on is the one to come back to.
+    self:TrackCurrentAnchor()
     if self.viewing then
         local item = self:TargetItem()
         if item then
-            Shopping.ShowAddDialog(item, FC.Guard("OnItemListed", function() self:RefreshKeybinds() end))
+            Shopping.ShowAddDialog(item, FC.Guard("OnItemListed", function() self:OnItemListed(item) end))
+        else
+            self:OpenFolderTarget()
         end
     elseif self.inLists then
         local targetData = self.listsList:GetTargetData()
@@ -860,7 +1152,7 @@ function Screen:OnPrimary()
             self:ViewShoppingList(targetData.shoppingList)
         end
     else
-        self:ViewSubcategory()
+        self:OpenRootTarget()
     end
 end
 
@@ -873,14 +1165,14 @@ function Screen:BuildListsList(keepListId)
     for index, shoppingList in ipairs(Shopping.Store().lists) do
         local entry = ZO_GamepadEntryData:New(BrowseUtils.CountLabel(shoppingList.name, #shoppingList.items))
         entry.shoppingList = shoppingList
-        list:AddEntry(SUBCATEGORY_TEMPLATE, entry)
+        list:AddEntry(FOLDER_TEMPLATE, entry)
         if shoppingList.id == keepListId then
             selectIndex = index
         end
     end
     local newEntry = ZO_GamepadEntryData:New("New List")
     newEntry.newShoppingList = true
-    list:AddEntry(SUBCATEGORY_TEMPLATE, newEntry)
+    list:AddEntry(FOLDER_TEMPLATE, newEntry)
     local ALLOW_EVEN_IF_DISABLED = true
     list:SetSelectedIndexWithoutAnimation(selectIndex, ALLOW_EVEN_IF_DISABLED)
     list:Commit()
@@ -897,36 +1189,25 @@ function Screen:RefreshLists(keepListId)
     self:RefreshKeybinds()
 end
 
----Go to the list of shopping lists (from the subcategories, or back from a list's items).
+---Go to the list of shopping lists (from the root list, or back from a list's items).
 ---@param keepListId integer|nil the list to land on
 function Screen:ShowLists(keepListId)
     self:LeaveItems()
     self.inLists = true
     self:BuildListsList(keepListId)
-    -- The search box belongs to the subcategory list.
+    -- The search box belongs to the root list.
     self:SetTextSearchEntryHidden(true)
     self:SetCurrentList(self.listsList)
     self:RefreshHeader()
 end
 
----Show a shopping list's furnishings in the item list.
+---Show a shopping list's furnishings in the item list, the way a category's show.
 ---@param shoppingList FurnishingCatalogShoppingList
 function Screen:ViewShoppingList(shoppingList)
     if self.viewing then
         return
     end
-    -- The item list reads a subcategory; a shopping list stands in as one.
-    self.viewing = {
-        category = { id = "lists", name = "Shopping List" },
-        subcategory = { id = "list" .. tostring(shoppingList.id), name = shoppingList.name, count = #shoppingList.items, ids = shoppingList.items },
-        shoppingList = shoppingList,
-    }
-    self.items = ReadItems(self.viewing.subcategory)
-    self:BuildItemList(nil)
-    self:SetCurrentList(self.itemList)
-    self:RefreshHeader()
-    self:RefreshTarget()
-    FC.Log("shopping list %d '%s' opened: %d furnishings; %s", shoppingList.id, shoppingList.name, #shoppingList.items, FC.MemText())
+    self:OpenView(ShoppingListView(shoppingList))
 end
 
 function Screen:RenameTargetList()
@@ -943,6 +1224,27 @@ function Screen:DeleteTargetList()
     end
 end
 
+---Drop a furnishing's row from the shopping list being shown, after it was taken off that list,
+---and stay on the row that moves up into the gap.
+---@param item FurnishingCatalogItem
+function Screen:DropItemRow(item)
+    local view = self.viewing
+    view.count = #view.shoppingList.items
+    -- view.items is in the order shown.
+    local index = BrowseUtils.IndexOfId(view.items, item.id)
+    if index then
+        table.remove(view.items, index)
+    end
+    local nextItem = index and (view.items[index] or view.items[index - 1]) or nil
+    if nextItem then
+        self.anchors[view.id] = { rowKey = nextItem.id, folderKey = nextItem.sectionKey }
+    end
+    self:BuildView()
+    self:RefreshHeader()
+    self:RefreshTarget()
+    self:RefreshKeybinds()
+end
+
 ---Take the furnishing the item list is on off the shopping list being shown.
 function Screen:RemoveTargetFromList()
     local viewing = self.viewing
@@ -950,20 +1252,20 @@ function Screen:RemoveTargetFromList()
     if not (viewing and viewing.shoppingList and item) then
         return
     end
-    ShoppingUtils.Remove(viewing.shoppingList, item.id)
-    viewing.subcategory.count = #viewing.shoppingList.items
-    -- self.items is in the order shown: stay on the row that moves up into the gap.
-    local index = BrowseUtils.IndexOfId(self.items, item.id)
-    if index then
-        table.remove(self.items, index)
+    Shopping.RemoveItem(viewing.shoppingList, item)
+    self:DropItemRow(item)
+end
+
+---The Add to List prompt put a furnishing on a list or took it off one. Taken off the list
+---being shown, its row goes.
+---@param item FurnishingCatalogItem
+function Screen:OnItemListed(item)
+    local viewing = self.viewing
+    if viewing and viewing.shoppingList and not ShoppingUtils.IndexOf(viewing.shoppingList, item.id) then
+        self:DropItemRow(item)
+    else
+        self:RefreshKeybinds()
     end
-    local nextItem = index and (self.items[index] or self.items[index - 1]) or nil
-    Shopping.Notify(FC.Fmt("%s removed from %s", item.name, viewing.shoppingList.name))
-    FC.Log("shopping: removed %d '%s' from list %d '%s' (%d left)", item.id, item.name, viewing.shoppingList.id, viewing.shoppingList.name, #viewing.shoppingList.items)
-    self:BuildItemList(nextItem and nextItem.id or nil)
-    self:RefreshHeader()
-    self:RefreshTarget()
-    self:RefreshKeybinds()
 end
 
 ---Switch the tooltip between the furnishing and its plan. The choice is saved; a furnishing
@@ -990,59 +1292,58 @@ function Screen:LookUpOnline()
     end
 end
 
+---Switch to the next Sort mode: another order (within each subcategory, or of a flat list), and other finer
+---sections where the list is expanded. The cursor stays on the furnishing it is on.
 function Screen:CycleGroupMode()
     if not self.viewing then
         return
     end
-    local targetData = self.itemList:GetTargetData()
-    local keepItemId = targetData and targetData.item and targetData.item.id or nil
+    self:TrackCurrentAnchor()
     FC.state.savedVars.groupMode = BrowseUtils.NextGroupMode(self:CurrentGroupMode())
-    self:BuildItemList(keepItemId)
+    self:BuildView()
     self:RefreshKeybinds()
     self:RefreshTarget()
 end
 
 function Screen:Back()
-    if self.viewing then
-        if self.viewing.shoppingList then
-            self:ShowLists(self.viewing.shoppingList.id)
-        else
-            self:ShowSubcategories()
-        end
+    local view = self.viewing
+    if view and view.shoppingList then
+        self:ShowLists(view.shoppingList.id)
+    elseif view and view.hasFolders and not view.folders then
+        -- Out of a category's long list, back to its subcategories, onto the one the cursor
+        -- was in (its row's folder: the remembered cursor finds it).
+        view.folders = true
+        self:BuildView()
+        self:RefreshTarget()
+        self:RefreshKeybinds()
+    elseif view then
+        -- Out of a category, onto its row.
+        self.anchors[ROOT] = { rowKey = view.id, folderKey = view.id }
+        self:ShowRoot()
     elseif self.inLists then
-        self:ShowSubcategories()
+        self:ShowRoot()
     else
         SCENE_MANAGER:HideCurrentScene()
     end
 end
 
----Leave the item list behind (a no-op when it is not showing): position, preview, tooltip.
+---Leave the item list behind (a no-op when it is not showing): preview, tooltip.
 function Screen:LeaveItems()
-    self:SaveItemPosition()
     self.viewing = nil
-    self.items = nil
     self.previewNote = nil
     self.planText = nil
     EndPreview()
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
 end
 
-function Screen:ShowSubcategories()
+---Back to the root list, the cursor on what it was last on.
+function Screen:ShowRoot()
     self:LeaveItems()
     self.inLists = false
+    self:BuildRootList()
     self:SetTextSearchEntryHidden(false)
-    self:SetCurrentList(self.subcategoryList)
+    self:SetCurrentList(self.rootList)
     self:RefreshHeader()
-end
-
----Remember where the player is in the current subcategory for the current group mode.
-function Screen:SaveItemPosition()
-    local viewing = self.viewing
-    if not viewing then
-        return
-    end
-    local mode = self:CurrentGroupMode()
-    self.savedIndexes[BrowseUtils.PositionKey(viewing.category.id, viewing.subcategory.id, mode)] = self.itemList:GetSelectedIndex()
 end
 
 ---Tooltip and 3D preview for the item the list is on.
@@ -1076,9 +1377,9 @@ function Screen:RefreshHeader()
     headerData.data3HeaderText = nil
     headerData.data3Text = nil
     if self.viewing then
-        headerData.titleText = self.viewing.subcategory.name
-        headerData.data1HeaderText = self.viewing.category.name
-        headerData.data1Text = FormatNumber(self.viewing.subcategory.count)
+        headerData.titleText = self.viewing.name
+        headerData.data1HeaderText = self.viewing.parentName
+        headerData.data1Text = FormatNumber(self.viewing.count)
         -- About the furnishing the list is on: its plan, why it shows no preview.
         local slot = 2
         local function Field(title, text)
@@ -1181,7 +1482,7 @@ function Screen:StartProbe()
         return
     end
     if self.viewing or self.inLists then
-        self:ShowSubcategories()
+        self:ShowRoot()
     end
     self.probe = { steps = ProbeSteps(), index = 0 }
     self.probeSummary = nil
@@ -1280,7 +1581,7 @@ local function KeepOpenOnMountChange()
 end
 
 ---Let Jump to Search (optional; 0.3.0 takes other add-ons' screens) send D-pad Right to the
----search box above the subcategory list. Asked as the catalog opens, until it holds.
+---search box above the root list. Asked as the catalog opens, until it holds.
 local function RegisterWithJumpToSearch()
     if jumpToSearchRegistered then
         return
@@ -1419,7 +1720,7 @@ function Browse.Reset()
         screen.scanning = nil
         if SCENE_MANAGER:IsShowing(Browse.SCENE_NAME) then
             if screen.viewing or screen.inLists then
-                screen:ShowSubcategories()
+                screen:ShowRoot()
             end
             screen:LoadOrBuild()
             screen:RefreshHeader()

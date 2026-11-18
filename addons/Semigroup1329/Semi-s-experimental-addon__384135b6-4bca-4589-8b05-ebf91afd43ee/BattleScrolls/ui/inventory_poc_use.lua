@@ -92,7 +92,7 @@ local gateBook
 ---@param pending InventoryPocPending
 function ui.beginUse(pending)
     if pending.action == 'open' then
-        BattleScrolls.inventoryPocCoffers.beginUse(pending.item.itemId)
+        BattleScrolls.inventoryPocCoffers.beginUse(pending.item.itemId, pending.item.uniqueId)
         -- Inventory reconciliation can finish before the final loot updates arrive.
         pending.contents = {}
         containerUse = { name = pending.item.name, expiresAt = pending.started + USE_TIMEOUT_MS, taken = false, closed = false,
@@ -162,6 +162,29 @@ local function captureContents(use)
     poc.revision = poc.revision + 1
 end
 
+---Take everything except the currencies without room. Looting a currency
+---past its cap discards the excess, so it stays inside the container.
+---@param use InventoryPocContainerUse
+---@param capped table<number, boolean>
+---@return boolean taken Something came out
+local function takeAllExcept(use, capped)
+    local lootIds = {}
+    for index = 1, GetNumLootItems() do lootIds[index] = (GetLootItemInfo(index)) end
+    for _, lootId in ipairs(lootIds) do LootItemById(lootId) end
+    for currency = CURT_ITERATION_BEGIN, CURT_ITERATION_END do
+        if IsCurrencyValid(currency) and not capped[currency] then
+            local amount, stolenAmount = GetLootCurrency(currency)
+            if amount > 0 or stolenAmount > 0 then LootCurrency(currency) end
+        end
+    end
+    -- The log entry lists what came out, not what is still inside.
+    for index = #use.contents, 1, -1 do
+        local entry = use.contents[index]
+        if entry.currencyType and capped[entry.currencyType] and not entry.stolen then table.remove(use.contents, index) end
+    end
+    return #use.contents > 0
+end
+
 local function takeOwnContainer()
     local use = currentContainer()
     if not use then return end
@@ -170,13 +193,18 @@ local function takeOwnContainer()
         containerUse = nil
         return
     end
-    local hasCurrency, capped = false, false
+    local hasCurrency = false
+    ---@type table<number, boolean>|nil
+    local capped
     for currency = CURT_ITERATION_BEGIN, CURT_ITERATION_END do
         if IsCurrencyValid(currency) then
             local amount, stolenAmount = GetLootCurrency(currency)
             hasCurrency = hasCurrency or amount > 0 or stolenAmount > 0
             local location = GetCurrencyPlayerStoredLocation(currency)
-            capped = capped or (amount > 0 and GetCurrencyAmount(currency, location) + amount > GetMaxPossibleCurrency(currency, location))
+            if amount > 0 and GetCurrencyAmount(currency, location) + amount > GetMaxPossibleCurrency(currency, location) then
+                capped = capped or {}
+                capped[currency] = true
+            end
         end
     end
     if name == '' or use.closed then
@@ -194,14 +222,15 @@ local function takeOwnContainer()
         return
     end
     use.taken = true
+    BattleScrolls.inventoryPocCoffers.capture(use.contents)
     if capped then
-        -- Close without taking: the container stays in the pack until its
-        -- currency has room, and the chat reminder says why.
+        -- The container stays in the pack with that currency until there is
+        -- room for it, and the chat reminder says why.
+        local taken = takeAllExcept(use, capped)
         EndLooting()
-        poc.holdContainer()
+        poc.holdContainer(taken)
         return true
     end
-    BattleScrolls.inventoryPocCoffers.capture(use.contents)
     LootAll(false)
     EndLooting()
     poc.resume()

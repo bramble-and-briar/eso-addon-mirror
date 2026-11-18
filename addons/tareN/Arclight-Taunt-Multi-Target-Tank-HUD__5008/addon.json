@@ -18,7 +18,7 @@
     "ArclightTaunt"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5008/",
-  "fingerprint": "e6bd718b4885b1e3810cd0ea96f53a7806192f4cbd844f86d5496de984ac48bd",
+  "fingerprint": "b46976aa17fbe38430c6f62c8782ffb026051499535e7dda4a669f1a7f73830d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18277.png",
     "https://cdn-eso.mmoui.com/preview/pvw18283.png",
@@ -31,11 +31,11 @@
   "source_id": "5008",
   "source_url": "https://www.esoui.com/downloads/info5008-ArclightTauntMulti-TargetTankHUD.html",
   "stats": {
-    "downloads": 193,
+    "downloads": 227,
     "favorites": 6,
-    "monthly_downloads": 185
+    "monthly_downloads": 213
   },
   "title": "Arclight Taunt \u2013 Multi-Target Tank HUD",
-  "updated_at": 1794872432000,
-  "version": "1.3.0"
+  "updated_at": 1794973099000,
+  "version": "1.3.1"
 }

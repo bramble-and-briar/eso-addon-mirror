@@ -1,6 +1,44 @@
-# WW D-Pad — Version 0.7.1
+# WW D-Pad — Version 0.7.5
 
 Autor: FiNk3--F13--
+
+Version 0.7.5 gibt einen bestätigten, vollständig abgearbeiteten WW-Wechsel
+auch dann frei, wenn inzwischen die WW-Seite oder Auswahl geändert wurde.
+Veraltete Ziele verändern dabei nicht die gemerkte Reihenfolge. Laufende
+Aufgaben und Warteschlangen bleiben geschützt; CP bleibt ausgenommen.
+Zusätzlich bleibt die normale Position bei laufenden direkten Sprüngen
+erhalten, abgelehnte automatische Wechsel können erneut versucht werden,
+und viele Zielereignisse verzögern die Bosserkennung nicht mehr dauerhaft.
+800 ms Pause und die stille Chat-Ausgabe bleiben erhalten.
+
+Version 0.7.4 entfernt normale Chatmeldungen beim Wechsel, bei Vormerkung und
+beim beobachteten Abschluss. Der ausstehende Wechsel bleibt gelb im kleinen
+WW-HUD sichtbar. Auch WWs normale Lade-, Erfolgs- und CP-Wartemeldungen werden
+gefiltert, wenn WW diese in den Chat schreiben würde. Andere WW-Meldungen,
+Fehler und ausdrücklich aufgerufene Statusausgaben bleiben verfügbar.
+Es werden keine globalen Chatfunktionen oder WW-Optionen verändert.
+
+Version 0.7.3 zeigt einen im Kampf vorgemerkten Wechsel direkt in WWs kleinem
+HUD an: Zielsetup - ausstehend, in WWs gelber Informationsfarbe. Die Anzeige
+bleibt während der Vormerkung bestehen und wird beim Start des Wechsels oder
+bei dessen Verwerfen entfernt. WWs nachfolgende Statusanzeige bleibt erhalten.
+Dies gilt für Hotkey 1 und Hotkey 2. WWs kleines HUD muss sichtbar sein.
+
+Die Anzeige schreibt ausschließlich den HUD-Text. Sie startet weder einen
+zusätzlichen Setupwechsel noch WWs eigene Warteschlange. Ein Test im laufenden
+ESO bzw. auf Konsole steht noch aus; Text/Farbe und Statuswechsel sind mit
+UI-Stubs für Ausführung, Abbruch und schnelle Mehrfacheingaben geprüft.
+
+Version 0.7.2 behebt einen reproduzierten Eingabefehler: Fehlte ESOs Meldung
+zum Loslassen einer Taste, konnte der manuelle Hotkey dauerhaft als gedrückt
+gelten. Die Eingabe hält diesen Zustand nicht mehr fest. Der Schutz durch
+laufende WW-Aufgaben und die 800-ms-Pause bleibt bestehen.
+
+Bei einem erneuten Aussetzer im LibRadialMenu-Eintrag WW D-Pad → Status anzeigen
+den aktuellen Zustand ausgeben lassen. Alternativ /wwdpad status in den Chat
+eingeben. Die Meldung zeigt Aktivierung, Tastenbelegung und gegebenenfalls
+ausstehende WW-Bestätigung und beobachtete Aufgaben. Die Statusabfrage ändert
+keine Einstellung und hebt keine Sicherheitssperre auf.
 
 Version 0.7.1: Ein ausstehender Championpunkte-Wechsel bzw. CP-Cooldown
 blockiert die manuellen oder automatischen Setupwechsel nicht mehr.

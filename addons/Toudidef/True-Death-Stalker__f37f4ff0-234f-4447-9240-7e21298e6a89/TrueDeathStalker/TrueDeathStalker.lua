@@ -6,15 +6,16 @@
 local ADDON_NAME = "TrueDeathStalker"
 local ADDON_DISPLAY_NAME = "True Death Stalker"
 local SAVED_VARS_NAME = "TrueDeathStalkerSavedVariables"
-local SAVED_VARS_VERSION = 2
+local SAVED_VARS_VERSION = 3
 
 -- Paramètres des fenêtres glissantes et tampons pré-alloués
-local LONG_WINDOW_MS = 3000     -- Fenêtre longue de référence (3s)
-local SHORT_WINDOW_MS = 1000    -- Fenêtre courte pour capter les bursts instantanés (1s)
-local UPDATE_INTERVAL_MS = 50   -- Fréquence de mise à jour (20 Hz) uniquement quand actif
-local MAX_DAMAGE_SAMPLES = 256  -- Taille fixe du tampon circulaire de dégâts
-local MAX_HEAL_SAMPLES = 128    -- Taille fixe du tampon circulaire de soins
-local MAX_ATTACKERS = 128       -- Nombre maximal d'attaquants suivis simultanément
+local LONG_WINDOW_MS = 3000      -- Fenêtre longue de référence (3s)
+local SHORT_WINDOW_MS = 1000     -- Fenêtre courte pour capter les bursts instantanés (1s)
+local MIN_BURST_DIVISOR_SEC = 0.25 -- Réactivité fixe sur les bursts soudains
+local UPDATE_INTERVAL_MS = 50    -- Fréquence de mise à jour (20 Hz) uniquement quand actif
+local MAX_DAMAGE_SAMPLES = 256   -- Taille fixe du tampon circulaire de dégâts
+local MAX_HEAL_SAMPLES = 128     -- Taille fixe du tampon circulaire de soins
+local MAX_ATTACKERS = 128        -- Nombre maximal d'attaquants suivis simultanément
 
 -- Signe de rotation pour SetTransformRotationZ (-1 ou 1 selon l'orientation en jeu)
 local ROTATION_SIGN = -1
@@ -28,7 +29,6 @@ local COLOR_PENTAGON_EDGE = { 0.88, 0.88, 0.94, 1.0 }
 local COLOR_TTD_GREEN = { 0.15, 0.92, 0.28, 1.0 }
 local COLOR_TTD_YELLOW = { 1.00, 0.84, 0.12, 1.0 }
 local COLOR_TTD_RED = { 0.98, 0.16, 0.16, 1.0 }
-local COLOR_CORE_WHITE = { 1.00, 0.98, 0.95, 0.90 }
 
 -- Valeurs par défaut des SavedVariables (coordonnées toujours >= 0)
 local DEFAULTS = {
@@ -38,28 +38,33 @@ local DEFAULTS = {
         scale = 1.0,
     },
     negate = {
-        posX = 890,
-        posY = 516,
+        posX = 990,
+        posY = 750,
         scale = 1.0,
-    },
-    ttd = {
-        minDivisorSec = 0.45, -- Plus bas = réagit plus vite sur les bursts soudains
     },
     effects = {
         glowHalo = true,
         brightCore = true,
-        pulse = true,
         redFlash = true,
     },
 }
 
 -- ============================================================================
--- Table des IDs de Negate ennemie (à compléter ultérieurement)
+-- IDs de Negate ennemie (base + morphs + effets associés)
 -- ============================================================================
 local NEGATE_ABILITY_IDS = {
-    -- [ID_NEGATE_BASE] = true,
-    -- [ID_SUPPRESSION_FIELD] = true,
-    -- [ID_ABSORPTION_FIELD] = true,
+    [51894] = true,
+    [29824] = true,
+    [47160] = true,
+    [47168] = true,
+}
+
+-- Suivi pré-alloué par ID pour éviter qu'une fin d'effet coupe l'alerte trop tôt
+local activeNegateEffects = {
+    [51894] = false,
+    [29824] = false,
+    [47160] = false,
+    [47168] = false,
 }
 
 -- ============================================================================
@@ -145,6 +150,25 @@ local function IsGamepadOnlyActive()
     return IsInGamepadPreferredMode()
 end
 
+-- Utilitaires pour manipuler uniformément les barres arrondies à 3 bandes
+local function SetRoundedBarColor(barSet, r, g, b, a)
+    barSet[1]:SetColor(r, g, b, a)
+    barSet[2]:SetColor(r, g, b, a)
+    barSet[3]:SetColor(r, g, b, a)
+end
+
+local function SetRoundedBarAlpha(barSet, alpha)
+    barSet[1]:SetAlpha(alpha)
+    barSet[2]:SetAlpha(alpha)
+    barSet[3]:SetAlpha(alpha)
+end
+
+local function SetRoundedBarHidden(barSet, hidden)
+    barSet[1]:SetHidden(hidden)
+    barSet[2]:SetHidden(hidden)
+    barSet[3]:SetHidden(hidden)
+end
+
 -- Récupère le bouclier actif sur le joueur
 local function GetPlayerShield()
     local value = GetUnitAttributeVisualizerEffectInfo(
@@ -215,65 +239,60 @@ local function ApplyTTDVisual(level, forceColorRefresh)
             local core = pentagonCores[i]
 
             if isActive then
-                seg:SetColor(r, g, b, 1.0)
-                seg:SetHidden(false)
+                SetRoundedBarColor(seg, r, g, b, 1.0)
+                SetRoundedBarAlpha(seg, 1.0)
+                SetRoundedBarHidden(seg, false)
 
                 if fx.glowHalo then
-                    glowIn:SetColor(r, g, b, 0.30)
-                    glowOut:SetColor(r, g, b, 0.13)
-                    glowIn:SetHidden(false)
-                    glowOut:SetHidden(false)
+                    SetRoundedBarColor(glowIn, r, g, b, 0.07)
+                    SetRoundedBarColor(glowOut, r, g, b, 0.03)
+                    SetRoundedBarAlpha(glowIn, 1.0)
+                    SetRoundedBarAlpha(glowOut, 1.0)
+                    SetRoundedBarHidden(glowIn, false)
+                    SetRoundedBarHidden(glowOut, false)
                 else
-                    glowIn:SetHidden(true)
-                    glowOut:SetHidden(true)
+                    SetRoundedBarHidden(glowIn, true)
+                    SetRoundedBarHidden(glowOut, true)
                 end
 
                 if fx.brightCore then
-                    core:SetHidden(false)
+                    SetRoundedBarAlpha(core, 1.0)
+                    SetRoundedBarHidden(core, false)
                 else
-                    core:SetHidden(true)
+                    SetRoundedBarHidden(core, true)
                 end
             else
-                seg:SetHidden(true)
-                glowIn:SetHidden(true)
-                glowOut:SetHidden(true)
-                core:SetHidden(true)
+                SetRoundedBarHidden(seg, true)
+                SetRoundedBarHidden(glowIn, true)
+                SetRoundedBarHidden(glowOut, true)
+                SetRoundedBarHidden(core, true)
             end
         end
     end
 end
 
--- Animation légère sans allocation (pulse / flash rouge) sur les segments actifs
+-- Gestion du flash critique au palier rouge uniquement (zéro allocation)
 local function UpdateSegmentEffects(nowMs)
     if uiCache.activeCount <= 0 then
         return
     end
 
     local fx = savedVars and savedVars.effects or DEFAULTS.effects
-    local segAlpha = 1.0
-    local glowMultiplier = 1.0
+    local alpha = 1.0
 
     if uiCache.ttdLevel == 3 and fx.redFlash then
-        -- Flash rapide d'urgence au palier rouge (<= 1s)
         local wave = 0.5 + 0.5 * math.sin(nowMs * 0.018)
-        segAlpha = 0.45 + 0.55 * wave
-        glowMultiplier = 0.40 + 0.90 * wave
-    elseif fx.pulse then
-        -- Pulsation douce accélérée selon le danger
-        local speed = (uiCache.ttdLevel == 2) and 0.009 or 0.0055
-        local wave = 0.5 + 0.5 * math.sin(nowMs * speed)
-        segAlpha = 0.65 + 0.35 * wave
-        glowMultiplier = 0.55 + 0.65 * wave
+        alpha = 0.35 + 0.65 * wave
     end
 
     for i = 1, uiCache.activeCount do
-        pentagonSegments[i]:SetAlpha(segAlpha)
+        SetRoundedBarAlpha(pentagonSegments[i], alpha)
         if fx.glowHalo then
-            pentagonGlowInner[i]:SetAlpha(0.30 * glowMultiplier)
-            pentagonGlowOuter[i]:SetAlpha(0.13 * glowMultiplier)
+            SetRoundedBarAlpha(pentagonGlowInner[i], alpha)
+            SetRoundedBarAlpha(pentagonGlowOuter[i], alpha)
         end
         if fx.brightCore then
-            pentagonCores[i]:SetAlpha(0.90 * segAlpha)
+            SetRoundedBarAlpha(pentagonCores[i], alpha)
         end
     end
 end
@@ -425,15 +444,14 @@ local function RefreshDisplay()
         uiCache.countText = displayText
     end
 
-    -- Calcul du TTD avec diviseur adaptatif pour éviter le retard sur les bursts soudains
-    local minDiv = (savedVars and savedVars.ttd and savedVars.ttd.minDivisorSec) or DEFAULTS.ttd.minDivisorSec
+    -- Calcul du TTD avec diviseur adaptatif (plancher fixe à 0.25s)
     local elapsedShortSec = ((nowMs - oldestShortDmgTime) / 1000) + 0.15
     local elapsedLongSec = ((nowMs - oldestLongDmgTime) / 1000) + 0.15
 
-    if elapsedShortSec < minDiv then elapsedShortSec = minDiv end
+    if elapsedShortSec < MIN_BURST_DIVISOR_SEC then elapsedShortSec = MIN_BURST_DIVISOR_SEC end
     if elapsedShortSec > 1.0 then elapsedShortSec = 1.0 end
 
-    if elapsedLongSec < minDiv then elapsedLongSec = minDiv end
+    if elapsedLongSec < MIN_BURST_DIVISOR_SEC then elapsedLongSec = MIN_BURST_DIVISOR_SEC end
     if elapsedLongSec > 3.0 then elapsedLongSec = 3.0 end
 
     local netDpsShort = (shortDamage - shortHeal) / elapsedShortSec
@@ -468,7 +486,7 @@ local function EnsureUpdateRunning()
 end
 
 -- ============================================================================
--- Gestionnaires d'événements de combat
+-- Gestionnaires d'événements de combat et d'effets
 -- ============================================================================
 
 local function OnCombatEvent(
@@ -503,7 +521,6 @@ local function OnCombatEvent(
 
         RecordAttacker(sourceUnitId, nowMs)
 
-        -- Rafraîchissement immédiat sur le premier coup puis boucle à 50ms
         local wasRunning = isUpdateRunning
         EnsureUpdateRunning()
         if not wasRunning then
@@ -527,37 +544,62 @@ local function OnPlayerCombatState(_, inCombat)
     end
 end
 
--- ============================================================================
--- Alerte Negate (commentée tant que les abilityId ne sont pas renseignés)
--- ============================================================================
---[[
+-- Suivi des Negates ennemies sur le joueur
 local function OnEffectChanged(_, changeType, _, _, unitTag, _, _, _, _, _, _, _, _, _, _, abilityId)
     if unitTag ~= "player" or not NEGATE_ABILITY_IDS[abilityId] then
         return
     end
 
     if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then
-        isNegateActive = true
+        activeNegateEffects[abilityId] = true
     elseif changeType == EFFECT_RESULT_FADED then
-        isNegateActive = false
+        activeNegateEffects[abilityId] = false
     end
+
+    isNegateActive = activeNegateEffects[51894]
+        or activeNegateEffects[29824]
+        or activeNegateEffects[47160]
+        or activeNegateEffects[47168]
 
     RefreshDisplay()
 end
---]]
+
+-- Réinitialisation de l'alerte Negate si le joueur meurt
+local function OnPlayerDead()
+    activeNegateEffects[51894] = false
+    activeNegateEffects[29824] = false
+    activeNegateEffects[47160] = false
+    activeNegateEffects[47168] = false
+    isNegateActive = false
+    RefreshDisplay()
+end
 
 -- ============================================================================
 -- Création unique des visuels au chargement
 -- ============================================================================
 
-local function CreateRotatedBar(parent, name, centerOffsetX, centerOffsetY, length, thickness, angleRad, color)
+local function CreateRotatedBar(parent, name, centerOffsetX, centerOffsetY, length, thickness, angleRad, color, drawLayer, drawLevel)
     local bar = WINDOW_MANAGER:CreateControl(name, parent, CT_TEXTURE)
     bar:SetDimensions(length, thickness)
     bar:SetColor(color[1], color[2], color[3], color[4])
     bar:SetAnchor(CENTER, parent, TOPLEFT, CENTER_XY + centerOffsetX, CENTER_XY + centerOffsetY)
     bar:SetTransformNormalizedOriginPoint(0.5, 0.5)
     bar:SetTransformRotationZ(angleRad * ROTATION_SIGN)
+    bar:SetDrawLayer(drawLayer)
+    bar:SetDrawLevel(drawLevel)
     return bar
+end
+
+-- Construit une barre aux extrémités adoucies (3 bandes concentriques uniformes)
+local function CreateRoundedBar(parent, baseName, centerOffsetX, centerOffsetY, length, thickness, angleRad, color, drawLayer, drawLevel)
+    local bodyLen = math.max(2, length - (thickness * 0.75))
+    local shoulderLen = math.max(2, length - (thickness * 0.30))
+
+    local s1 = CreateRotatedBar(parent, baseName .. "_S1", centerOffsetX, centerOffsetY, bodyLen, thickness, angleRad, color, drawLayer, drawLevel)
+    local s2 = CreateRotatedBar(parent, baseName .. "_S2", centerOffsetX, centerOffsetY, shoulderLen, thickness * 0.78, angleRad, color, drawLayer, drawLevel)
+    local s3 = CreateRotatedBar(parent, baseName .. "_S3", centerOffsetX, centerOffsetY, length, thickness * 0.45, angleRad, color, drawLayer, drawLevel)
+
+    return { s1, s2, s3 }
 end
 
 local function CreateUI()
@@ -570,8 +612,6 @@ local function CreateUI()
     pentagonWindow:SetHidden(true)
 
     -- Géométrie d'un pentagone régulier à base inférieure horizontale
-    -- Longueur exacte d'onglet = 2 * R * sin(36°) + épaisseur * tan(36°)
-    -- pour que les bords extérieurs se rejoignent proprement sans cornes aux angles
     local edgeRadius = 42
     local edgeThickness = 3.5
     local tan36 = math.tan(math.rad(36))
@@ -582,7 +622,6 @@ local function CreateUI()
     local edgeLength = (2 * edgeRadius * sin36) + (edgeThickness * tan36)
 
     local edgeSpecs = {
-        -- { angleMilieuDeg, angleBarreDeg }
         {  90,   0 }, -- Bord inférieur (horizontal)
         {  18, -72 }, -- Côté inférieur droit
         { 162,  72 }, -- Côté inférieur gauche
@@ -596,20 +635,18 @@ local function CreateUI()
         local mx = edgeApothem * math.cos(midRad)
         local my = edgeApothem * math.sin(midRad)
 
-        local edge = CreateRotatedBar(
+        pentagonEdges[i] = CreateRotatedBar(
             pentagonWindow,
             "TrueDeathStalkerEdge" .. i,
             mx, my,
             edgeLength, edgeThickness,
             barRad,
-            COLOR_PENTAGON_EDGE
+            COLOR_PENTAGON_EDGE,
+            DL_CONTROLS, 2
         )
-        edge:SetDrawLayer(DL_CONTROLS)
-        edge:SetDrawLevel(2)
-        pentagonEdges[i] = edge
     end
 
-    -- Segments TTD extérieurs + couches d'effets pré-créées
+    -- Segments TTD extérieurs + halo serré et subtil
     local segApothem = edgeApothem + 14
     local segLength = (2 * edgeRadius * sin36) - 2
 
@@ -619,60 +656,56 @@ local function CreateUI()
         local mx = segApothem * math.cos(midRad)
         local my = segApothem * math.sin(midRad)
 
-        -- Halo externe doux
-        local glowOut = CreateRotatedBar(
+        -- Halo externe fin et doux (+3 px de chaque côté)
+        local glowOut = CreateRoundedBar(
             pentagonWindow,
             "TrueDeathStalkerSegGlowOut" .. i,
             mx, my,
-            segLength + 12, 16,
+            segLength + 6, 12,
             barRad,
-            COLOR_TTD_GREEN
+            { COLOR_TTD_GREEN[1], COLOR_TTD_GREEN[2], COLOR_TTD_GREEN[3], 0.03 },
+            DL_BACKGROUND, 0
         )
-        glowOut:SetDrawLayer(DL_BACKGROUND)
-        glowOut:SetDrawLevel(0)
-        glowOut:SetHidden(true)
+        SetRoundedBarHidden(glowOut, true)
         pentagonGlowOuter[i] = glowOut
 
-        -- Halo interne lumineux
-        local glowIn = CreateRotatedBar(
+        -- Halo interne serré (+1.25 px de chaque côté)
+        local glowIn = CreateRoundedBar(
             pentagonWindow,
             "TrueDeathStalkerSegGlowIn" .. i,
             mx, my,
-            segLength + 6, 10,
+            segLength + 3, 8.5,
             barRad,
-            COLOR_TTD_GREEN
+            { COLOR_TTD_GREEN[1], COLOR_TTD_GREEN[2], COLOR_TTD_GREEN[3], 0.07 },
+            DL_BACKGROUND, 1
         )
-        glowIn:SetDrawLayer(DL_BACKGROUND)
-        glowIn:SetDrawLevel(1)
-        glowIn:SetHidden(true)
+        SetRoundedBarHidden(glowIn, true)
         pentagonGlowInner[i] = glowIn
 
-        -- Segment principal
-        local seg = CreateRotatedBar(
+        -- Segment principal arrondi
+        local seg = CreateRoundedBar(
             pentagonWindow,
             "TrueDeathStalkerSegment" .. i,
             mx, my,
-            segLength, 5,
+            segLength, 6,
             barRad,
-            COLOR_TTD_GREEN
+            COLOR_TTD_GREEN,
+            DL_CONTROLS, 3
         )
-        seg:SetDrawLayer(DL_CONTROLS)
-        seg:SetDrawLevel(3)
-        seg:SetHidden(true)
+        SetRoundedBarHidden(seg, true)
         pentagonSegments[i] = seg
 
-        -- Cœur fin lumineux
-        local core = CreateRotatedBar(
+        -- Cœur lumineux arrondi
+        local core = CreateRoundedBar(
             pentagonWindow,
             "TrueDeathStalkerSegCore" .. i,
             mx, my,
-            segLength - 4, 1.5,
+            segLength - 4, 2.2,
             barRad,
-            COLOR_CORE_WHITE
+            { 1.0, 0.98, 0.95, 0.90 },
+            DL_CONTROLS, 4
         )
-        core:SetDrawLayer(DL_CONTROLS)
-        core:SetDrawLevel(4)
-        core:SetHidden(true)
+        SetRoundedBarHidden(core, true)
         pentagonCores[i] = core
     end
 
@@ -710,7 +743,7 @@ local function CreateUI()
     ApplyLayoutSettings()
 end
 
--- Attache les fragments uniquement à la scène gamepad_hud_scene
+-- Attache les fragments à la scène du HUD
 local function AttachToGamepadHudScene()
     if hudSceneHooked then
         return
@@ -727,18 +760,26 @@ local function AttachToGamepadHudScene()
     negateFragment = ZO_HUDFadeSceneFragment:New(negateWindow)
 
     -- Utilisation de ZO_PreHookHandler sur OnShow conformément aux règles console
-    ZO_PreHookHandler(pentagonWindow, "OnShow", function()
+    ZO_PreHookHandler(pentagonWindow, "OnShow", function(ctrl)
         if not IsGamepadOnlyActive() or (not isPreviewPentagon and not uiCache.pentagonVisible) then
+            ctrl:SetHidden(true)
             return true
         end
         return false
     end)
 
-    ZO_PreHookHandler(negateWindow, "OnShow", function()
+    ZO_PreHookHandler(negateWindow, "OnShow", function(ctrl)
         if not IsGamepadOnlyActive() or (not isPreviewNegate and not isNegateActive) then
+            ctrl:SetHidden(true)
             return true
         end
         return false
+    end)
+
+    scene:RegisterCallback("StateChange", function(_, newState)
+        if newState == SCENE_SHOWN then
+            RefreshDisplay()
+        end
     end)
 
     scene:AddFragment(pentagonFragment)
@@ -770,7 +811,7 @@ local function BuildSettingsMenu()
     local optionsData = {
         {
             type = "description",
-            text = "Real-time PvP incoming damage, Time-To-Death (TTD), attacker counter and enemy Negate alert (Gamepad HUD only).",
+            text = "Real-time PvP incoming damage, Time-To-Death (TTD), attacker counter and enemy Negate alert.",
         },
         {
             type = "submenu",
@@ -829,20 +870,6 @@ local function BuildSettingsMenu()
                         ApplyLayoutSettings()
                     end,
                 },
-                {
-                    type = "slider",
-                    name = "Burst Reactivity (Min Window Sec)",
-                    tooltip = "Lower values make TTD bars react faster to sudden heavy bursts.",
-                    min = 0.25,
-                    max = 1.00,
-                    step = 0.05,
-                    decimals = 2,
-                    default = DEFAULTS.ttd.minDivisorSec,
-                    getFunc = function() return savedVars.ttd.minDivisorSec end,
-                    setFunc = function(value)
-                        savedVars.ttd.minDivisorSec = value
-                    end,
-                },
             },
         },
         {
@@ -873,17 +900,6 @@ local function BuildSettingsMenu()
                 },
                 {
                     type = "checkbox",
-                    name = "Pulse Animation",
-                    tooltip = "Smoothly pulse TTD bars based on danger level.",
-                    default = DEFAULTS.effects.pulse,
-                    getFunc = function() return savedVars.effects.pulse end,
-                    setFunc = function(value)
-                        savedVars.effects.pulse = value
-                        ApplyTTDVisual(uiCache.ttdLevel, true)
-                    end,
-                },
-                {
-                    type = "checkbox",
                     name = "Critical Red Flash",
                     tooltip = "Fast urgency flash when TTD drops to 1 second or less.",
                     default = DEFAULTS.effects.redFlash,
@@ -899,10 +915,6 @@ local function BuildSettingsMenu()
             type = "submenu",
             name = "Negate / Silence Alert",
             controls = {
-                {
-                    type = "description",
-                    text = "Negate detection is currently disabled until enemy Negate ability IDs are added.",
-                },
                 {
                     type = "checkbox",
                     name = "Preview Negate Alert",
@@ -986,12 +998,12 @@ local function OnAddOnLoaded(_, addonName)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_COMBAT_EVENT, OnCombatEvent)
     EVENT_MANAGER:AddFilterForEvent(ADDON_NAME, EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
 
-    EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_COMBAT_STATE, OnPlayerCombatState)
-    EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_EFFECT_CHANGED, OnEffectChanged)
+    EVENT_MANAGER:AddFilterForEvent(ADDON_NAME, EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "player")
 
-    -- À décommenter une fois NEGATE_ABILITY_IDS rempli :
-    -- EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_EFFECT_CHANGED, OnEffectChanged)
-    -- EVENT_MANAGER:AddFilterForEvent(ADDON_NAME, EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "player")
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_COMBAT_STATE, OnPlayerCombatState)
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_DEAD, OnPlayerDead)
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
 end
 
 EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, OnAddOnLoaded)

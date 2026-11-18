@@ -52,6 +52,12 @@ local function Results()
         proc = Set({ "ACTION_RESULT_EFFECT_GAINED", "ACTION_RESULT_EFFECT_GAINED_DURATION", "ACTION_RESULT_DAMAGE",
                      "ACTION_RESULT_CRITICAL_DAMAGE" }),
         energize = Set({ "ACTION_RESULT_POWER_ENERGIZE" }),
+        -- Cooldowns' exact results (Data.lua): DAMAGE (1) only, HEAL (16) only, and Way of Fire / Tarnished
+        -- Nightmare's { DAMAGE, CRITICAL_DAMAGE, BLOCKED_DAMAGE, DODGED }
+        plainDamage = Set({ "ACTION_RESULT_DAMAGE" }),
+        plainHeal = Set({ "ACTION_RESULT_HEAL" }),
+        strike = Set({ "ACTION_RESULT_DAMAGE", "ACTION_RESULT_CRITICAL_DAMAGE", "ACTION_RESULT_BLOCKED_DAMAGE",
+                       "ACTION_RESULT_DODGED" }),
         drain = Set({ "ACTION_RESULT_POWER_DRAIN" }),
     }
     return RESULT_SETS
@@ -147,7 +153,8 @@ local function Start(trackerId, result, abilityName, sourceName, targetName, tar
         -- in DebuffTracker while HodorReflexes' 45 s was right -- group members who get its Ultimate a bit later each
         -- send their own "gained", and every one after the first 0.5 s restarted the 45 s). The last second is left
         -- open so a real next proc that beats our timer by a little still starts it.
-        if cfg.cdLock and EndOf(t) - now > Cb.PROC_SLACK then return end
+        -- (the cooldown's end, not the active part's: a proc whose effect outlasts its cooldown can proc again sooner)
+        if cfg.cdLock and (t.cdEnd or 0) - now > Cb.PROC_SLACK then return end
         -- "restart when it fires again" off: ignored until the whole timer (incl. cooldown) is over
         if not cfg.restartOnRefresh and EndOf(t) > now then return end
     end
@@ -310,6 +317,11 @@ local function EndHandler(trackerId)
         if cfg and cfg.untilFaded then
             if result ~= ACTION_RESULT_EFFECT_FADED then return end
             if t and t.target and targetUnitId and t.target ~= targetUnitId then return end
+        end
+        -- only these results end it (Turning Tide: its 167062 damage -- Cooldowns' ReleaseTriggers)
+        if cfg and cfg.endResult and result ~= nil then
+            local set = Results()[cfg.endResult]
+            if set and not set[result] then return end
         end
         if t and (t.untimed or (t.expire or 0) > now) then
             t.untimed = nil

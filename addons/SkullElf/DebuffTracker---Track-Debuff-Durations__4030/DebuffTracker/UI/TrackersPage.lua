@@ -1500,7 +1500,7 @@ local function BuildDisplayTab(panel, w)
 
     panel:Add(W.Section(panel.content, w, L("Size")))
     panel:Add(W.Slider(panel.content, w, L("Width"), 80, 700, 5, function() return DS().width end, function(v) DS().width = v end), 44, barsOrText)
-    panel:Add(W.Slider(panel.content, w, L("Row height"), 10, 60, 1, function() return DS().height end, function(v) DS().height = v end), 44, barsOrText)
+    panel:Add(W.Slider(panel.content, w, L("Row height"), 1, 60, 1, function() return DS().height end, function(v) DS().height = v end), 44, barsOrText)
     panel:Add(W.Slider(panel.content, w, L("Icon size"), 16, 128, 1, function() return DS().iconSize end, function(v) DS().iconSize = v end), 44,
         function() return DS().type == "icons" or DS().type == "alert" or DS().type == "heads" end)
     -- icons (Casual player Geldis: "i cant change stacks size and positions", "empty space between icon and border")

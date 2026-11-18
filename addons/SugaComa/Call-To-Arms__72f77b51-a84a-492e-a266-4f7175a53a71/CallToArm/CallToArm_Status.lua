@@ -103,14 +103,14 @@ function Status.GetCampaignContextKey(selectedCampaignId, assignedCampaignId, cu
     return nil
 end
 
-function Status.ShouldRaiseThroneDefense(owned, total, threshold, lastOwned)
+function Status.ShouldRaiseThroneDefense(owned, total, threshold, lastOwned, checkOnEntry)
     owned = tonumber(owned)
     total = tonumber(total)
     threshold = tonumber(threshold)
     lastOwned = tonumber(lastOwned)
     if owned == nil or total == nil or total <= 0 or threshold == nil then return false end
     if owned > threshold then return false end
-    if lastOwned ~= nil and lastOwned == owned then return false end
+    if not checkOnEntry and lastOwned ~= nil and lastOwned == owned then return false end
     return true
 end
 

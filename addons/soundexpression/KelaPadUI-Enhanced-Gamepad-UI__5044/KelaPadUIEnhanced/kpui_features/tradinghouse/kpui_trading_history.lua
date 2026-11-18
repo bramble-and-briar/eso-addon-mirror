@@ -6,9 +6,17 @@ KELA_BUYING_DATA_RETENTION_PERIOD = 30
 KELA_LISTING_DATA_RETENTION_PERIOD = 30
 KELA_ITEMDATA_WITH_COUNTCHANGE = {}
 
-KPUI_ICON_TRADED = "|t14:14:KelaPadUI/kpui_textures/traded.dds|t"
-KPUI_ICON_SOLD = "|t14:14:KelaPadUI/kpui_textures/sold.dds|t"
-KPUI_ICON_RECALLED = "|t14:14:KelaPadUI/kpui_textures/recalled.dds|t"
+-- Listing results are stored as codes and drawn through KPUI_LISTING_RESULT_ICONS,
+-- so a texture path change never invalidates saved history.
+KPUI_LISTING_TRADED = "traded"
+KPUI_LISTING_SOLD = "sold"
+KPUI_LISTING_RECALLED = "recalled"
+KPUI_LISTING_RESULT_ICONS =
+{
+	[KPUI_LISTING_TRADED] = "|t14:14:KelaPadUIEnhanced/kpui_textures/traded.dds|t",
+	[KPUI_LISTING_SOLD] = "|t14:14:KelaPadUIEnhanced/kpui_textures/sold.dds|t",
+	[KPUI_LISTING_RECALLED] = "|t14:14:KelaPadUIEnhanced/kpui_textures/recalled.dds|t",
+}
 
 KELA_ATT_GUILD_STAT = {}
 
@@ -147,7 +155,7 @@ function KelaAddToBuyingUniqueTable(uniqueId, itemName, buyPrice, buyPricePerUni
 	local guildName = ""
 	local currentGuildId = GetSelectedTradingHouseGuildId()
 	if currentGuildId then
-		_, guildName = GetCurrentTradingHouseGuildDetails()
+		guildName = select(2, GetCurrentTradingHouseGuildDetails())
 	end
 
 	buyingTable[itemUID] = {
@@ -242,7 +250,7 @@ function KelaAddToListingTable(bagId, listingIndex, stackCount, desiredPrice)
 		["guildId"] = currentGuildId,
 		["guildName"] = guildName,
 		["desiredPrice"] = desiredPrice,
-		["result"] = KPUI_ICON_TRADED,
+		["result"] = KPUI_LISTING_TRADED,
 		["seller"] = GetUnitDisplayName("player"),
 	}
 end
@@ -255,7 +263,7 @@ function KelaRemoveFromListingTable(listingIndex, stackCount, desiredPrice, time
 
 	local removingTime = timeSinceEvent and (GetTimeStamp() - timeSinceEvent) or GetTimeStamp()
 	local itemLink
-	local resultIcon
+	local result
 	local unknownMustAdd
 
 	if not itemSoldLink then
@@ -263,11 +271,11 @@ function KelaRemoveFromListingTable(listingIndex, stackCount, desiredPrice, time
 			return
 		end
 		itemLink = GetTradingHouseListingItemLink(listingIndex)
-		resultIcon = KPUI_ICON_RECALLED
+		result = KPUI_LISTING_RECALLED
 		unknownMustAdd = true
 	else
 		itemLink = itemSoldLink
-		resultIcon = KPUI_ICON_SOLD
+		result = KPUI_LISTING_SOLD
 		unknownMustAdd = (GetUnitDisplayName("player") == seller)
 	end
 
@@ -297,8 +305,13 @@ function KelaRemoveFromListingTable(listingIndex, stackCount, desiredPrice, time
 		return
 	end
 
-	local listingTime = removingTime - (ZO_ONE_MONTH_IN_SECONDS - (timeRemaining or 0))
+	-- A recall knows the listing's remaining time; a sale replayed from ATT does
+	-- not, so an unmatched sale is recorded at its sale time. A start time 30
+	-- days back would be pruned at the next load and re-added on every login.
+	local listingTime = timeRemaining and (removingTime - (ZO_ONE_MONTH_IN_SECONDS - timeRemaining)) or removingTime
+	local saleTime = itemSoldLink and removingTime or nil
 	local removed = false
+	local match, matchStartTime
 	local stackCountValue = tonumber(stackCount) or stackCount
 	local desiredPriceValue = tonumber(desiredPrice) or desiredPrice
 
@@ -311,13 +324,29 @@ function KelaRemoveFromListingTable(listingIndex, stackCount, desiredPrice, time
 			and listingStackCount == stackCountValue
 			and listingDesiredPrice == desiredPriceValue
 			and listingItem["guildName"] == guildName then
-			if listingItem["result"] == KPUI_ICON_TRADED then
-				KelaSetValueIfNil(listingItem, "period", removingTime - startTime)
-				listingItem["result"] = resultIcon
+			-- ATT replays the last 30 days of sales on every login; a sale that
+			-- was already applied must not close a second identical listing.
+			-- Entries sold before saleTime was stored are recognised by their
+			-- start time plus the recorded period.
+			local sameSale = saleTime and (listingItem["saleTime"] == saleTime
+				or (listingItem["saleTime"] == nil and listingItem["result"] == KPUI_LISTING_SOLD
+					and listingItem["period"] and math.abs(startTime + listingItem["period"] - saleTime) < 1))
+			if sameSale then
+				removed = true
+				break
 			end
-			removed = true
-			break
+			if not match and listingItem["result"] == KPUI_LISTING_TRADED and startTime <= removingTime then
+				match = listingItem
+				matchStartTime = startTime
+			end
 		end
+	end
+
+	if not removed and match then
+		KelaSetValueIfNil(match, "period", removingTime - matchStartTime)
+		match["result"] = result
+		match["saleTime"] = saleTime
+		removed = true
 	end
 
 	if not removed and unknownMustAdd then
@@ -331,7 +360,8 @@ function KelaRemoveFromListingTable(listingIndex, stackCount, desiredPrice, time
 			["guildName"] = guildName,
 			["desiredPrice"] = desiredPrice,
 			["period"] = removingTime - listingTime,
-			["result"] = resultIcon,
+			["result"] = result,
+			["saleTime"] = saleTime,
 			["seller"] = GetUnitDisplayName("player"),
 		}
 	end
@@ -351,6 +381,25 @@ function KelaGetItemLinkListingTable(itemLink)
 	end
 
 	return listingItemsTable
+end
+
+-- Listing results used to be stored as icon markup with the old folder path.
+local function KelaMigrateListingResults()
+	local listingTable = GetListingTable()
+	if not listingTable then
+		return
+	end
+	for _, listingItem in pairs(listingTable) do
+		local result = type(listingItem) == "table" and listingItem["result"]
+		if type(result) == "string" and not KPUI_LISTING_RESULT_ICONS[result] then
+			for code in pairs(KPUI_LISTING_RESULT_ICONS) do
+				if zo_plainstrfind(result, "/" .. code .. ".dds") then
+					listingItem["result"] = code
+					break
+				end
+			end
+		end
+	end
 end
 
 local function KelaCleanupListingHistory()
@@ -415,46 +464,72 @@ local function ForEachATTSale(callback)
 	return true
 end
 
+-- Adds one ATT sale to the per-category guild statistics when it falls inside
+-- the analysis period.
+local function AddSaleToGuildStat(sale, statCutoff)
+	local eventTimeStamp = tonumber(sale["timeStamp"])
+	local guildName = sale["guildName"]
+	local itemLink = sale["itemLink"]
+	if eventTimeStamp and eventTimeStamp > statCutoff and guildName and guildName ~= "" and itemLink then
+		local category = KelaGetItemTradeCategory(itemLink)
+		KelaSetValueIfNil(KELA_ATT_GUILD_STAT, category, {})
+		KelaSetValueIfNil(KELA_ATT_GUILD_STAT[category], guildName, { ["price"] = 0, ["quantity"] = 0 })
+		local guildStat = KELA_ATT_GUILD_STAT[category][guildName]
+		guildStat["price"] = (tonumber(guildStat["price"]) or 0) + (tonumber(sale["price"]) or 0)
+		guildStat["quantity"] = (tonumber(guildStat["quantity"]) or 0) + (tonumber(sale["quantity"]) or 0)
+	end
+end
+
+local function GetGuildStatCutoff()
+	return GetTimeStamp() - KelaGetATTAnalysisPeriod() * ZO_ONE_DAY_IN_SECONDS
+end
+
 function KelaUpdateGuildATTStat()
 	if not GetATTSalesTables() then
 		return false
 	end
 
 	KELA_ATT_GUILD_STAT = {}
-
-	local periodDays = KelaGetATTAnalysisPeriod()
-	local period = periodDays * ZO_ONE_DAY_IN_SECONDS
-	local cutoff = GetTimeStamp() - period
-
+	local statCutoff = GetGuildStatCutoff()
 	ForEachATTSale(function(sale)
-		local eventTimeStamp = tonumber(sale["timeStamp"])
-		local guildName = sale["guildName"]
-		local itemLink = sale["itemLink"]
-		if eventTimeStamp and eventTimeStamp > cutoff and guildName and guildName ~= "" and itemLink then
-			local category = KelaGetItemTradeCategory(itemLink)
-			local price = tonumber(sale["price"]) or 0
-			local quantity = tonumber(sale["quantity"]) or 0
-
-			KelaSetValueIfNil(KELA_ATT_GUILD_STAT, category, {})
-			KelaSetValueIfNil(KELA_ATT_GUILD_STAT[category], guildName, { ["price"] = 0, ["quantity"] = 0 })
-			local guildStat = KELA_ATT_GUILD_STAT[category][guildName]
-			guildStat["price"] = (tonumber(guildStat["price"]) or 0) + price
-			guildStat["quantity"] = (tonumber(guildStat["quantity"]) or 0) + quantity
-		end
+		AddSaleToGuildStat(sale, statCutoff)
 	end)
-
 	return true
 end
 
+-- The analysis-period slider changes the value one step at a time, and every
+-- recompute walks all ATT sales, so recompute once the value settles. Nothing
+-- to do until trading history has been set up.
+local GUILD_STAT_UPDATE_NAME = "KelaPadUIEnhanced_ATTGuildStat"
+function KelaRequestGuildATTStatUpdate()
+	if not kpuiSVListingData then
+		return
+	end
+	EVENT_MANAGER:UnregisterForUpdate(GUILD_STAT_UPDATE_NAME)
+	EVENT_MANAGER:RegisterForUpdate(GUILD_STAT_UPDATE_NAME, 500, function()
+		EVENT_MANAGER:UnregisterForUpdate(GUILD_STAT_UPDATE_NAME)
+		KelaUpdateGuildATTStat()
+	end)
+end
+
+-- One pass over the ATT sales at load: closes sold listings in the trading
+-- history and builds the guild statistics.
 function KelaSetupATTFunctions()
+	if not GetATTSalesTables() then
+		return false
+	end
+
 	local playerName = GetUnitDisplayName("player")
 	local now = GetTimeStamp()
-	local cutoff = now - KELA_LISTING_DATA_RETENTION_PERIOD * ZO_ONE_DAY_IN_SECONDS
-	local hasSalesTables = ForEachATTSale(function(sale)
+	local listingCutoff = now - KELA_LISTING_DATA_RETENTION_PERIOD * ZO_ONE_DAY_IN_SECONDS
+	local statCutoff = GetGuildStatCutoff()
+	KELA_ATT_GUILD_STAT = {}
+	ForEachATTSale(function(sale)
+		AddSaleToGuildStat(sale, statCutoff)
 		local sellerName = sale["sellerName"]
 		if sellerName == playerName then
 			local eventTimeStamp = tonumber(sale["timeStamp"])
-			if eventTimeStamp and eventTimeStamp > cutoff then
+			if eventTimeStamp and eventTimeStamp > listingCutoff then
 				KelaRemoveFromListingTable(
 					nil,
 					sale["quantity"],
@@ -468,12 +543,6 @@ function KelaSetupATTFunctions()
 			end
 		end
 	end)
-
-	if not hasSalesTables then
-		return false
-	end
-
-	KelaUpdateGuildATTStat()
 	return true
 end
 
@@ -511,6 +580,7 @@ function KelaInitializeTradingHistory()
 	KelaSetValueIfNil(kpuiSVListingData, "listingTable", {})
 	KelaSetValueIfNil(kpuiSVListingData, "guildsTable", {})
 
+	KelaMigrateListingResults()
 	KelaCleanupBuyingHistory()
 	KelaCleanupListingHistory()
 	KelaUpdateGuildList()

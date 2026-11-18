@@ -188,6 +188,12 @@ show the same researched / total figure.
 Shows every crafting research trait against every research line, on one page,
 for any character on the server you are playing.
 
+- Summary (top of the left pane): one table for every character, with a column
+  per crafting station and a total. Each cell shows researched / total, a
+  progress bar, and what the station is doing: traits in progress with the next
+  finish, Complete, or Idle when traits remain but nothing is running. Below it,
+  the research queue lists every running research across all characters,
+  soonest first.
 - Left pane: the characters on the server you are playing, logged-in character
   first, with the research summary on two lines under each name. Any other
   character's knowledge comes from LibCharacterKnowledge when it is installed;
@@ -268,6 +274,9 @@ and IDs.
 - TTC-only, ATT-only, both, and neither are supported; trading features stay off
   without a provider.
 - Optional libraries are guarded, so missing add-ons do not break loading.
+- Languages: English, German, French, Russian, Japanese, Spanish, and
+  Simplified Chinese, picked automatically from the game client's language. Other clients fall back to
+  English.
 - No automation, botting, or gameplay automation is included. All features are
   read-only information or UI shortcuts.
 

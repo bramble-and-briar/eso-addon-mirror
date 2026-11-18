@@ -2,7 +2,8 @@
 --
 -- Dialogs are stock gamepad dialogs, shaped after the game's own:
 --   add to a list  - a parametric list of the lists, like the inventory's Actions dialog
---                    (GAMEPAD_INVENTORY_ACTIONS_DIALOG in ingamedialogs.lua);
+--                    (GAMEPAD_INVENTORY_ACTIONS_DIALOG in ingamedialogs.lua); choosing a list
+--                    that has the furnishing takes it off that list;
 --   name a list    - one text field, like the outfit rename dialog (GAMEPAD_RENAME_OUFIT in
 --                    outfit_selector_gamepad.lua);
 --   delete a list  - a basic confirmation.
@@ -36,21 +37,26 @@ function Shopping.Notify(text)
     end
 end
 
----Put an item on a list and say so.
+---Put an item on a list that lacks it, take it off a list that has it, and say which.
 ---@param list FurnishingCatalogShoppingList
 ---@param item FurnishingCatalogItem
----@return boolean added
-function Shopping.AddItem(list, item)
+---@return boolean listed the item is on the list now
+function Shopping.ToggleItem(list, item)
     local store = Shopping.Store()
-    local added = ShoppingUtils.Add(list, item.id)
+    local listed = ShoppingUtils.Toggle(list, item.id)
     store.lastUsedId = list.id
-    if added then
-        Shopping.Notify(FC.Fmt("%s added to %s", item.name, list.name))
-    else
-        Shopping.Notify(FC.Fmt("%s is already on %s", item.name, list.name))
-    end
-    FC.Log("shopping: %s %d '%s' -> list %d '%s' (%d on it)", added and "added" or "already has", item.id, item.name, list.id, list.name, #list.items)
-    return added
+    Shopping.Notify(FC.Fmt(listed and "%s added to %s" or "%s removed from %s", item.name, list.name))
+    FC.Log("shopping: %s %d '%s' %s list %d '%s' (%d on it)", listed and "added" or "removed", item.id, item.name, listed and "to" or "from", list.id, list.name, #list.items)
+    return listed
+end
+
+---Take an item off a list and say so.
+---@param list FurnishingCatalogShoppingList
+---@param item FurnishingCatalogItem
+function Shopping.RemoveItem(list, item)
+    ShoppingUtils.Remove(list, item.id)
+    Shopping.Notify(FC.Fmt("%s removed from %s", item.name, list.name))
+    FC.Log("shopping: removed %d '%s' from list %d '%s' (%d on it)", item.id, item.name, list.id, list.name, #list.items)
 end
 
 -- ---------------------------------------------------------------- dialogs
@@ -93,7 +99,15 @@ local function RegisterAddDialog()
             },
             {
                 keybind = "DIALOG_PRIMARY",
-                text = GetString(SI_GAMEPAD_SELECT_OPTION),
+                -- On a list that has the furnishing, choosing it takes the furnishing off.
+                text = function(dialog)
+                    local data = dialog.data
+                    local target = dialog.entryList:GetTargetData()
+                    if data and target and target.shoppingList and ShoppingUtils.IndexOf(target.shoppingList, data.item.id) then
+                        return "Remove"
+                    end
+                    return GetString(SI_GAMEPAD_SELECT_OPTION)
+                end,
                 callback = FC.Guard("AddDialogSelect", function(dialog)
                     local data = dialog.data
                     local target = dialog.entryList:GetTargetData()
@@ -104,7 +118,7 @@ local function RegisterAddDialog()
                         -- Name the new list first; the item goes onto it once it exists.
                         Shopping.ShowNameDialog({ item = data.item, onDone = data.onDone })
                     elseif target.shoppingList then
-                        Shopping.AddItem(target.shoppingList, data.item)
+                        Shopping.ToggleItem(target.shoppingList, data.item)
                         if data.onDone then
                             data.onDone()
                         end
@@ -135,7 +149,7 @@ local function RegisterNameDialog()
         FC.Log("shopping: list %d %s '%s'", list.id, data.list and "renamed to" or "created as", list.name)
         ZO_Dialogs_ReleaseDialogOnButtonPress(Shopping.NAME_DIALOG)
         if data.item then
-            Shopping.AddItem(list, data.item)
+            Shopping.ToggleItem(list, data.item)
         end
         if data.onDone then
             data.onDone(list)
@@ -262,9 +276,9 @@ function Shopping.RegisterDialogs()
     return true
 end
 
----Ask which list an item goes onto.
+---Ask which list an item goes onto; choosing a list that has it takes it off that list.
 ---@param item FurnishingCatalogItem
----@param onDone fun()|nil called after the item was put on a list (or found on it already)
+---@param onDone fun()|nil called after the item was put on a list or taken off one
 function Shopping.ShowAddDialog(item, onDone)
     if Shopping.RegisterDialogs() then
         ZO_Dialogs_ShowGamepadDialog(Shopping.ADD_DIALOG, { item = item, onDone = onDone })

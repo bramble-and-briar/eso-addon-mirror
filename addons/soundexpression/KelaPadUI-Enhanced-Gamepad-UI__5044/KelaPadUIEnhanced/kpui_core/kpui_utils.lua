@@ -1,34 +1,5 @@
 KELA_CLOCK_FORMAT = (GetCVar("Language.2") == "en") and TIME_FORMAT_PRECISION_TWELVE_HOUR or TIME_FORMAT_PRECISION_TWENTY_FOUR_HOUR
 
-local WEAPON_TYPE_TO_CATEGORY_MAP = {
-    [WEAPONTYPE_AXE] = GAMEPAD_ITEM_CATEGORY_AXE,
-    [WEAPONTYPE_TWO_HANDED_AXE] = GAMEPAD_ITEM_CATEGORY_AXE,
-    [WEAPONTYPE_BOW] = GAMEPAD_ITEM_CATEGORY_BOW,
-    [WEAPONTYPE_DAGGER] = GAMEPAD_ITEM_CATEGORY_DAGGER,
-    [WEAPONTYPE_HAMMER] = GAMEPAD_ITEM_CATEGORY_HAMMER,
-    [WEAPONTYPE_TWO_HANDED_HAMMER] = GAMEPAD_ITEM_CATEGORY_HAMMER,
-    [WEAPONTYPE_SHIELD] = GAMEPAD_ITEM_CATEGORY_SHIELD,
-    [WEAPONTYPE_HEALING_STAFF] = GAMEPAD_ITEM_CATEGORY_STAFF,
-    [WEAPONTYPE_FIRE_STAFF] = GAMEPAD_ITEM_CATEGORY_STAFF,
-    [WEAPONTYPE_FROST_STAFF] = GAMEPAD_ITEM_CATEGORY_STAFF,
-    [WEAPONTYPE_LIGHTNING_STAFF] = GAMEPAD_ITEM_CATEGORY_STAFF,
-    [WEAPONTYPE_SWORD] = GAMEPAD_ITEM_CATEGORY_SWORD,
-    [WEAPONTYPE_TWO_HANDED_SWORD] = GAMEPAD_ITEM_CATEGORY_SWORD,
-}
-local ARMOR_EQUIP_TYPE_TO_CATEGORY_MAP = {
-    [EQUIP_TYPE_CHEST] = GAMEPAD_ITEM_CATEGORY_CHEST,
-    [EQUIP_TYPE_FEET] = GAMEPAD_ITEM_CATEGORY_FEET,
-    [EQUIP_TYPE_HAND] = GAMEPAD_ITEM_CATEGORY_HANDS,
-    [EQUIP_TYPE_HEAD] = GAMEPAD_ITEM_CATEGORY_HEAD,
-    [EQUIP_TYPE_LEGS] = GAMEPAD_ITEM_CATEGORY_LEGS,
-    [EQUIP_TYPE_NECK] = GAMEPAD_ITEM_CATEGORY_AMULET,
-    [EQUIP_TYPE_RING] = GAMEPAD_ITEM_CATEGORY_RING,
-    [EQUIP_TYPE_SHOULDERS] = GAMEPAD_ITEM_CATEGORY_SHOULDERS,
-    [EQUIP_TYPE_WAIST] = GAMEPAD_ITEM_CATEGORY_WAIST,
-}
-
-local colors = kpuiConst.Colors	
-
 -- Text styling helpers.  kpuiConst.TextStyles is the single source of truth for
 -- how KelaPadUI text looks, so modules pick a style rather than hardcoding a
 -- font or a colour.
@@ -58,8 +29,7 @@ end
 --local functions
 function getStyleHeaderLine(styleIndex)
 	local style = zo_strformat("<<1>>", GetItemStyleName(styleIndex))
-	local color = ZO_TOOLTIP_DEFAULT_COLOR
-	
+	local color
 		if styleIndex >= ITEMSTYLE_RACIAL_BRETON and styleIndex <= ITEMSTYLE_RACIAL_KHAJIIT then
 			color = GetItemQualityColor(ITEM_QUALITY_ARCANE)
 		elseif styleIndex == ITEMSTYLE_RACIAL_IMPERIAL
@@ -149,30 +119,37 @@ function spairs(t, order)
     end
 end
 
-function KelaCompareLink(l1,l2)
+-- Comparison key for an item link: the link type, item id, subtype and level
+-- (the full field list for master writs, whose fields name the writ). The
+-- link text and style (|H0: vs |H1:) are ignored, so the same item linked in
+-- chat and in a store compares equal. Keys are cached because the trading
+-- code compares one link against every saved sale and listing.
+local linkKeyCache = {}
+local linkKeyCacheSize = 0
+local LINK_KEY_CACHE_LIMIT = 4000
+
+local function KelaGetLinkKey(link)
+	local key = linkKeyCache[link]
+	if key then
+		return key
+	end
+	local maxIndex = GetItemLinkItemType(link) == ITEMTYPE_MASTER_WRIT and 24 or 6
+	local params = { ZO_LinkHandler_ParseLink(link) }
+	key = table.concat(params, ":", 3, math.min(maxIndex, #params))
+	if linkKeyCacheSize >= LINK_KEY_CACHE_LIMIT then
+		linkKeyCache = {}
+		linkKeyCacheSize = 0
+	end
+	linkKeyCache[link] = key
+	linkKeyCacheSize = linkKeyCacheSize + 1
+	return key
+end
+
+function KelaCompareLink(l1, l2)
 	if not l1 or not l2 then
 		return false
 	end
-
-	local isSimilar = true
-
-	local isWrit = GetItemLinkItemType(l1) == ITEMTYPE_MASTER_WRIT or GetItemLinkItemType(l2) == ITEMTYPE_MASTER_WRIT
-
-
-	local maxIndex = isWrit and 24 or 6
-
-
-	local itemLinkParams1 = {ZO_LinkHandler_ParseLink(l1)}	
-	local itemLinkParams2 = {ZO_LinkHandler_ParseLink(l2)}
-	
-	for i = 1, maxIndex do
-		if itemLinkParams1[i] ~= itemLinkParams2[i] then
-			isSimilar = false
-			break
-		end
-	end
-	
-	return isSimilar
+	return l1 == l2 or KelaGetLinkKey(l1) == KelaGetLinkKey(l2)
 end
 
 
@@ -220,22 +197,25 @@ function KelaLocalizedFormatNumber(number, decimal)
 		if not decimal or decimal < 1 then
 		    fraction = ""
 		end
-		-- add separator
-		int = int:reverse():gsub("(%d%d%d)", "%1"..sep)
-		return minus .. int:reverse():gsub("^,", "") .. fraction
+		-- Insert the separator before each group of three digits from the right,
+		-- never before the first digit. "%" is escaped for the replacement string.
+		local head = #int % 3
+		if head == 0 then head = 3 end
+		int = int:sub(1, head) .. int:sub(head + 1):gsub("(%d%d%d)", sep:gsub("%%", "%%%%") .. "%1")
+		return minus .. int .. fraction
 	end
 	return "0"
 end
 
 
+-- Base-game alliance zones (zone IDs match LibSets_Data_Zones.lua).
+local KELA_ZONE_ALLIANCE =
+{
+	[41] = ALLIANCE_EBONHEART_PACT, [57] = ALLIANCE_EBONHEART_PACT, [101] = ALLIANCE_EBONHEART_PACT, [103] = ALLIANCE_EBONHEART_PACT, [117] = ALLIANCE_EBONHEART_PACT,
+	[3] = ALLIANCE_DAGGERFALL_COVENANT, [19] = ALLIANCE_DAGGERFALL_COVENANT, [20] = ALLIANCE_DAGGERFALL_COVENANT, [92] = ALLIANCE_DAGGERFALL_COVENANT, [104] = ALLIANCE_DAGGERFALL_COVENANT,
+	[58] = ALLIANCE_ALDMERI_DOMINION, [108] = ALLIANCE_ALDMERI_DOMINION, [381] = ALLIANCE_ALDMERI_DOMINION, [382] = ALLIANCE_ALDMERI_DOMINION, [383] = ALLIANCE_ALDMERI_DOMINION,
+}
+
 function kelaGetAlliance(zoneId)
-	if zoneId==ID_STONEFALLS or zoneId==ID_DESHAAN or zoneId==ID_EASTMARCH or zoneId==ID_THERIFT or zoneId==ID_SHADOWFEN then
-		return ALLIANCE_EBONHEART_PACT
-	elseif zoneId==ID_GLENUMBRA or zoneId==ID_STORMHAVEN or zoneId==ID_RIVENSPIRE or zoneId==ID_BANGKORAI or zoneId==ID_ALIKRDESERT then
-		return ALLIANCE_DAGGERFALL_COVENANT
-	elseif zoneId==ID_MALABALTOR or zoneId==ID_GREENSHADE or zoneId==ID_AURIDON or zoneId==ID_REAPERSMARCH or zoneId==ID_GRAHTWOOD then
-		return ALLIANCE_ALDMERI_DOMINION
-	else
-		return ALLIANCE_NONE
-	end
+	return KELA_ZONE_ALLIANCE[zoneId] or ALLIANCE_NONE
 end

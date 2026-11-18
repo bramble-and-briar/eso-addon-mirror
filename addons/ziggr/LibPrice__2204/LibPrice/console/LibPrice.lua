@@ -28,12 +28,12 @@ LibPrice = LibPrice or {}
 --
 -- Returns
 --      gold price  (number, often a float)
---      source_key  (string "mm", "mt", "tsc", others... )
+--      source_key  (string "tsc", others... )
 --      field_name  (string "avgPrice", "tscPrice", others... )
 --
 function LibPrice.ItemLinkToPriceGold(item_link, ...)
   local self = LibPrice
-  local field_names = { "avgPrice", "tscPrice", "mtPrice", "npcVendor" }
+  local field_names = { "avgPrice", "tscPrice", "npcVendor" }
 
   -- If source list requested, then search only
   -- the requested sources. If no source list requested,
@@ -59,23 +59,18 @@ end
 -- input:
 --  item_link
 --  optional: list of sources to return. Any of the items in LibPrice.SourceList(), such as:
---      "mm"
---      "mt"
 --      "tsc"
 --
 -- Returns:
--- mm                   Master Merchant, by Khaibit, Philgo, Sharlikran
---  avgPrice            https://www.esoui.com/downloads/info928-MasterMerchant.html
---  numSales            see MasterMerchant:tooltipStats() for what these
---  numDays             fields mean.
---  numItems
---  craftCost
---
--- mt
---  price
---
--- tsc
---  price
+-- tsc                  TSCPriceFetcher2, TSCPriceDataAPI:GetItemData(itemLink)
+--  avgPrice            quality sale average, or the legacy average when fromLegacy
+--  tscPrice            same number as avgPrice
+--  commonMin
+--  commonMax
+--  legacyAvg
+--  legacyMin
+--  legacyMax
+--  fromLegacy
 --
 -- crown                Crown store: just a few items that Furniture Catalogue
 --  crowns              lacked when Zig wrote this library's precursor in 2017.
@@ -112,8 +107,6 @@ end
 -- input:
 --  item_link
 --  optional: list of sources to return. Any of the items in LibPrice.SourceList(), such as:
---      "mm"
---      "mt"
 --      "tsc"
 --
 -- Returns:
@@ -160,8 +153,6 @@ end
 -- input:
 --  item_link
 --  optional: list of sources to use. Any of the items in LibPrice.SourceList(), such as:
---      "mm"
---      "mt"
 --      "tsc"
 --
 -- Returns:
@@ -169,8 +160,8 @@ end
 --    {
 --      [CURRENCY] = {
 --        bid = { value = 2.04, count = 1, sources = { } },
---        sale = { value = 6.23, count = 160, sources = { [1] = "mm", [2] = "tsc" } },
---        ask = { value = 12.26, count = 535, sources = { [1] = "mm", [2] = "tsc" } },
+--        sale = { value = 6.23, count = 160, sources = { [1] = "tsc" } },
+--        ask = { value = 12.26, count = 535, sources = { [1] = "tsc" } },
 --      }
 --    }
 --

@@ -4,7 +4,7 @@ local Addon = BackBarTimer
 Addon.Config = {
     addonName = "BackBarTimer",
     displayName = "BackBarTimer",
-    version = "2.1.1",
+    version = "2.1.4",
     savedVariablesName = "BackBarTimer_Saved",
     savedVariablesVersion = 2,
 

@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Scoreboard Remastered">
+            <Action name="SBR_TOGGLE">
+                <Down>ScoreboardRemastered_Toggle()</Down>
+            </Action>
+            <Action name="SBR_EXPORT">
+                <Down>ScoreboardRemastered_Export()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

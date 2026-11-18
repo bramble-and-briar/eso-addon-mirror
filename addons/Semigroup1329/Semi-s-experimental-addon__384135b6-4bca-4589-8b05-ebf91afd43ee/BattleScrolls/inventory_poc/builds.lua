@@ -11,13 +11,14 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@class InventoryPocBuildMemory
 ---@field name string
 ---@field gear table<number, string>
----@alias InventoryPocBuildIssueKind 'gear'|'skill'|'champion'|'food'|'selector'|'interrupted'
+---@alias InventoryPocBuildIssueKind 'gear'|'skill'|'champion'|'food'|'selector'|'interrupted'|'armory'
 ---@class InventoryPocBuildIssue
 ---@field kind InventoryPocBuildIssueKind
 ---@field slot number|nil
 ---@field bar HotBarCategory|nil
 ---@field expected string|number|nil
 ---@field actual string|number|nil
+---@field result ArmoryBuildRestoreResult|nil Why ESO did not restore the Armory build
 ---@class InventoryPocBuildState
 ---@field choice InventoryPocBuildChoice|nil
 ---@field status InventoryPocBuildStatus
@@ -136,12 +137,13 @@ end
 ---@param bar HotBarCategory|nil
 ---@param expected string|number|nil
 ---@param actual string|number|nil
-local function setIssue(state, kind, slot, bar, expected, actual)
+---@param result ArmoryBuildRestoreResult|nil
+local function setIssue(state, kind, slot, bar, expected, actual, result)
     local old = state.issue
     if not old and not kind then return end
     if old and old.kind == kind and old.slot == slot and old.bar == bar
-        and old.expected == expected and old.actual == actual then return end
-    state.issue = kind and { kind = kind, slot = slot, bar = bar, expected = expected, actual = actual } or nil
+        and old.expected == expected and old.actual == actual and old.result == result then return end
+    state.issue = kind and { kind = kind, slot = slot, bar = bar, expected = expected, actual = actual, result = result } or nil
     poc.revision = poc.revision + 1
 end
 
@@ -181,6 +183,19 @@ function builds.choose(choice)
             return
         end
     end
+end
+
+---The Armory visit is automated only while the chosen build still needs its
+---restore. Every attempt ends that need: success records it, and a refusal,
+---a missing reply or an interruption pauses the switch until the player
+---chooses the build again.
+---@return boolean
+function builds.wantsArmory()
+    local state = builds.state()
+    if not state or not profile() then return false end
+    if builds.request then return builds.request.kind == 'armory' end
+    if state.status == 'done' or state.status == 'paused' or state.status == 'missing' then return false end
+    return not state.armoryDone or state.status == 'armory'
 end
 
 ---@param state InventoryPocBuildState
@@ -373,8 +388,15 @@ local function restoreArmory(request)
             log('done')
         else
             state.status = 'paused'
+            -- The log says why: ESO's refusal, no reply in time, or an interruption.
+            local timedOut = completed:IsFailed() and LibEffect.IsTimeoutError(completed._error)
+            if completed:IsSucceeded() then
+                local refusal = completed._value ---@type ArmoryBuildRestoreResult
+                setIssue(state, 'armory', nil, nil, nil, nil, refusal)
+            elseif timedOut then setIssue(state, 'armory', nil, nil, nil, nil, ARMORY_BUILD_RESTORE_RESULT_TIMEOUT)
+            else setIssue(state, 'interrupted') end
             log('uncertain')
-            if completed:IsFailed() and not LibEffect.IsTimeoutError(completed._error) then LibEffect.RaiseError(completed._error) end
+            if completed:IsFailed() and not timedOut then LibEffect.RaiseError(completed._error) end
         end
         poc.wake()
     end)

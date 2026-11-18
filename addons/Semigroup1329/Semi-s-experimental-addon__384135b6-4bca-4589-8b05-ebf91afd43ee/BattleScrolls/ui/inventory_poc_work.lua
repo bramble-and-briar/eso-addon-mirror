@@ -18,7 +18,7 @@ local LABELS = {
     equip = BATTLESCROLLS_IPOC_WORK_EQUIP, bind = BATTLESCROLLS_IPOC_WORK_BIND,
 }
 local SERVICE_INTERACTIONS = { INTERACTION_BANK, INTERACTION_VENDOR, INTERACTION_CRAFT, INTERACTION_TRADINGHOUSE }
-local control, taskLabel, itemLabel, maskedScene
+local control, taskLabel, itemLabel, hintLabel, maskedScene
 local enabled, registered, showing, updating = false, false, false, false
 local action, itemLink, guildId, itemCount, showAt
 local ARMORY_NOTICES = { 'ARMORY_BUILD_RESTORE_DIALOG', 'ARMORY_BUILD_RESTORE_SUCCESS_DIALOG' }
@@ -79,7 +79,6 @@ end
 ---@param nextAction InventoryPocActivity
 ---@return boolean
 local function canCoverScene(nextAction)
-    if not services.isShowing() then return false end
     local scene = SCENE_MANAGER:GetCurrentScene()
     if not scene or not scene:IsShowing() then return false end
     local interaction = GetInteractionType()
@@ -98,6 +97,10 @@ local function canCoverScene(nextAction)
         end
     end
     if not expected or interaction ~= expected then return false end
+    -- ESO's guild-store screen is never covered: it reacts to the helper's own
+    -- requests. Guild-store work runs on the helper's scene.
+    if expected == INTERACTION_TRADINGHOUSE then return services.isShowing() end
+    -- Any other service is covered on the screen ESO itself opened for it.
     local info = scene.GetInteractionInfo and scene:GetInteractionInfo()
     if info then
         for _, kind in ipairs(info.interactTypes) do
@@ -149,7 +152,7 @@ local function create()
     ZO_GamepadGenericHeader_Refresh(header, { titleText = GetString(BATTLESCROLLS_IPOC_TITLE) })
     taskLabel = control:GetNamedChild('PanelTask')
     itemLabel = control:GetNamedChild('PanelItem')
-    control:GetNamedChild('PanelHint'):SetText(GetString(BATTLESCROLLS_IPOC_WORK_REOPEN))
+    hintLabel = control:GetNamedChild('PanelHint')
     local cancel = control:GetNamedChild('Cancel')
     cancel:SetKeybind('BATTLESCROLLS_IPOC_CANCEL_WORK', true)
     cancel:SetText(GetString(SI_DIALOG_CANCEL))
@@ -159,6 +162,8 @@ end
 local function show()
     showing = true
     maskedScene = SCENE_MANAGER:GetCurrentScene()
+    -- Only a guild-store visit closes when its work ends.
+    hintLabel:SetText(services.isShowing() and GetString(BATTLESCROLLS_IPOC_WORK_REOPEN) or '')
     control:SetHidden(false)
     PushActionLayerByName(ACTION_LAYER)
     DIRECTIONAL_INPUT:Activate(ui, control)

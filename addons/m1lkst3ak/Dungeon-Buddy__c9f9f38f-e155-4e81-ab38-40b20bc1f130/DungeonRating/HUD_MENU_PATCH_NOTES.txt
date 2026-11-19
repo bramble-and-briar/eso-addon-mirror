@@ -1,0 +1,1 @@
+Dungeon Buddy: Consolidated HUD settings. Six separate window sections replaced by a single Select HUD window dropdown and three shared position/size sliders, preview toggle, and reset-selected-window button. Individual layouts persist. No scoring or tracking logic changed. ESO in-game verification pending.

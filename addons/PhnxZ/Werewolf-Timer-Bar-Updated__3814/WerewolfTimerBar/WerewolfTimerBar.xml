@@ -41,6 +41,11 @@
 					<Dimensions x="300" y="20"/>
 					<Anchor point="CENTER" relativeTo="$(parent)_FuryBar" relativePoint="CENTER" offsetX="0" offsetY="0"/>
 				</Label>
+				<StatusBar name="$(parent)_HoldBar" color="FFD700" alpha="1" hidden="true">
+					<Dimensions x="300" y="10"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_StatusBar" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
+					<Limits min="0" max="1"/>
+				</StatusBar>
 			</Controls>
 		</TopLevelControl>
 	</Controls>

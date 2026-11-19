@@ -154,7 +154,7 @@ function EX:BuildKillFeed(match)
             SBR.FormatDuration(k.t), k.killer ~= "" and k.killer or "?", teamColor(k.killerTeam),
             k.victim ~= "" and k.victim or "?", teamColor(k.victimTeam),
             k.ability and k.ability ~= "" and (" with " .. k.ability) or "")
-        for _, h in ipairs(k.recap or {}) do
+        for _, h in ipairs(SBR.MatchLog.DecodeRecap(k)) do
             lines[#lines + 1] = string.format("      %s%s %s from %s", SBR.FormatNumber(h.hit), h.crit and "*" or "",
                 h.ability ~= "" and h.ability or "?", h.source ~= "" and h.source or "?")
         end
@@ -213,3 +213,4 @@ function EX:ShowKillFeed(match)
         self:Open(title, text)
     end
 end
+ScoreboardRemastered.Mark("UI/Export.lua")

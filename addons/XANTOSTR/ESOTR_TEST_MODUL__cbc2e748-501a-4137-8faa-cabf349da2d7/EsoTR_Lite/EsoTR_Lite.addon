@@ -1,0 +1,40 @@
+## =========================================
+## TÜRKÇE HARF DÖNÜŞÜMÜ ##
+modules/UppercaseFix.lua## Title: Eso|cE30A17TR|r_Lite
+## APIVersion: 101049 101050 101051
+## Version: 1.0.5
+## Author: |c18A7EA@XANTOS-TR|r
+## Description: |cFFFFFFESO|r|cFF0000TR|r için hazırlanmış resmi olmayan Türkçe çeviri eklentisi. Ayar menüsünün çalışması için |c18A7EALibAddonMenu-2.0|r ve |c18A7EALibHarvensAddonSettings|r gereklidir.
+## SavedVariables: EsoTR_Lite_SavedVars
+## OptionalDependsOn: LibAddonMenu-2.0
+## OptionalDependsOn: LibHarvensAddonSettings
+##
+## Bu eklenti, ZeniMax Media Inc. veya bağlı şirketleri tarafından oluşturulmamış, bunlarla bağlantılı veya bunlar tarafından desteklenmemiştir.
+## The Elder Scrolls® ve ilgili logolar, Amerika Birleşik Devletleri ve/veya diğer ülkelerde ZeniMax Media Inc.'in tescilli ticari markaları veya ticari markalarıdır. 
+## Tüm hakları saklıdır
+##
+## Şartların tamamını https://account.elderscrollsonline.com/add-on-terms adresinden okuyabilirsiniz.
+
+EsoTR_Lite.lua
+
+## =========================================
+## TÜRKÇE HARF DÖNÜŞÜMÜ ##
+modules/UppercaseFix.lua
+## =========================================
+## KİTAP VB. YAZI SORUNLARI İÇİN MODÜLLER ##
+## =========================================
+modules/BookFontHook.lua
+modules/MapFontFix.lua
+modules/EsoTR_Lite_FontBackup.xml
+## =========================================
+##     TEKNİK ÇÖZÜMLER İÇİN MODÜLLER      ##
+## =========================================
+modules/EsoTR_Lite_LanguageToggle.lua
+## =======================================
+## YAZI TİPİ ÇEŞİTLERİ (.slug uzantılı) ##
+## =======================================
+fonts/Handwritten_bold_tr.slug
+fonts/ProseAntique_Regular_tr.slug
+fonts/univers55.slug
+fonts/univers57.slug
+fonts/univers67.slug

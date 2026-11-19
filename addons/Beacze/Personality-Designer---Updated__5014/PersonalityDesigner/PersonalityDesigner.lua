@@ -671,25 +671,131 @@ function PD:InitializeLAM()
 		},
 	}
 	
+	local actionNames = {
+		GetString(P_DESIGNER_ACTION_01), GetString(P_DESIGNER_ACTION_02),
+		GetString(P_DESIGNER_ACTION_03), GetString(P_DESIGNER_ACTION_04),
+		GetString(P_DESIGNER_ACTION_05), GetString(P_DESIGNER_ACTION_06),
+		GetString(P_DESIGNER_ACTION_07), GetString(P_DESIGNER_ACTION_08),
+		GetString(P_DESIGNER_ACTION_09), GetString(P_DESIGNER_ACTION_10),
+	}
+	PD.actionDropdowns = {}
+
+	local function CreateActionRow(index)
+		local actionKey = string.format("action%02d", index)
+		local actionReference = string.format("Action%02dDropdown", index)
+		local actionDropdown
+
+		return {
+			type = "custom",
+			reference = string.format("Action%02dRow", index),
+			width = "full",
+			minHeight = 54,
+			maxHeight = 54,
+			createFunc = function(row)
+				local rowWidth = row:GetWidth()
+				local enabledWidth = 112
+				local categoryWidth = 175
+				local actionWidth = rowWidth - enabledWidth - categoryWidth
+
+				local enabledControl = LAMCreateControl.checkbox(row, {
+					type = "checkbox",
+					name = actionNames[index],
+					getFunc = function() return PD.personalityDesign[actionKey].enabled end,
+					setFunc = function(value)
+						PD.personalityDesign[actionKey].enabled = value
+						if PD.personalityDesign.name == PD.personalityActive.name then
+							PD.personalityActive[actionKey].enabled = value
+							PD:SaveData()
+							PD:GeneratePlaylist()
+						end
+					end,
+				}, string.format("Action%02dEnabled", index))
+
+				enabledControl:ClearAnchors()
+				enabledControl:SetAnchor(TOPLEFT, row, TOPLEFT, 0, 0)
+				enabledControl:SetDimensions(enabledWidth, 52)
+				enabledControl.label:ClearAnchors()
+				enabledControl.label:SetAnchor(TOPLEFT, enabledControl, TOPLEFT, 0, 0)
+				enabledControl.label:SetDimensions(75, 26)
+				enabledControl.container:ClearAnchors()
+				enabledControl.container:SetAnchor(TOPLEFT, enabledControl, TOPLEFT, 75, 26)
+				enabledControl.container:SetDimensions(35, 26)
+				enabledControl.checkbox:ClearAnchors()
+				enabledControl.checkbox:SetAnchor(LEFT, enabledControl.container, LEFT, 0, 0)
+
+				local function ConfigureDropdown(control, left, width)
+					control:ClearAnchors()
+					control:SetAnchor(TOPLEFT, row, TOPLEFT, left, 0)
+					control:SetDimensions(width, 52)
+					control.label:ClearAnchors()
+					control.label:SetAnchor(TOPLEFT, control, TOPLEFT, 0, 0)
+					control.label:SetDimensions(width, 26)
+					control.container:ClearAnchors()
+					control.container:SetAnchor(TOPLEFT, control, TOPLEFT, 0, 26)
+					control.container:SetDimensions(width, 26)
+					control.combobox:ClearAnchors()
+					control.combobox:SetAnchor(TOPLEFT, control.container, TOPLEFT, 0, 0)
+					control.combobox:SetDimensions(width, 26)
+					control.dropdown.m_containerWidth = width
+				end
+
+				local categoryControl = LAMCreateControl.dropdown(row, {
+					type = "dropdown",
+					name = GetString(P_DESIGNER_CATEGORY),
+					scrollable = true,
+					choices = PD.categories,
+					getFunc = function() return PD.personalityDesign[actionKey].category end,
+					setFunc = function(value)
+						PD.personalityDesign[actionKey].category = value
+						actionDropdown:UpdateChoices(PD:FilterActions(value))
+						if PD.personalityDesign.name == PD.personalityActive.name then
+							PD.personalityActive[actionKey].category = value
+							PD:SaveData()
+						end
+					end,
+					disabled = function() return not PD.personalityDesign[actionKey].enabled end,
+				}, string.format("Action%02dCategory", index))
+				ConfigureDropdown(categoryControl, enabledWidth, categoryWidth)
+
+				actionDropdown = LAMCreateControl.dropdown(row, {
+					type = "dropdown",
+					name = GetString(P_DESIGNER_ACTION),
+					scrollable = true,
+					choices = PD:FilterActions(PD.personalityDesign[actionKey].category),
+					getFunc = function()
+						local dropdown = PD.actionDropdowns[index]
+						if dropdown then
+							dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign[actionKey].category))
+						end
+						return PD.personalityDesign[actionKey].action
+					end,
+					setFunc = function(value)
+						local action = PD:GetActionFromName(value, PD.personalityDesign[actionKey].category)
+						action.enabled = true
+						action.frequency = 2
+						PD.personalityDesign[actionKey] = action
+						if PD.personalityDesign.name == PD.personalityActive.name then
+							PD.personalityActive[actionKey] = action
+							PD:SaveData()
+							PD:GeneratePlaylist()
+						end
+					end,
+					disabled = function() return not PD.personalityDesign[actionKey].enabled end,
+					reference = actionReference,
+				}, actionReference)
+				ConfigureDropdown(actionDropdown, enabledWidth + categoryWidth, actionWidth)
+				PD.actionDropdowns[index] = actionDropdown
+			end,
+		}
+	end
+
 	local designSubmenu = {
--- ****************************************************
---
--- Build the Design Submenu
---
--- This is the type of code that cries out for a loop to instantiate everything.
--- But I can't figure out how to do it.
---
--- So, each control is explicitly linked to the corresponding value.
---
--- It's a lotta copypasta and will be a real bitch to maintain.
---
--- ****************************************************
 		{
 			type = "dropdown",
 			name = GetString(P_DESIGNER_PERSONALITY),
 			choices = PD:GetPersonalityNames(),
 			getFunc = function() return PD.personalityDesign.name end,
-			setFunc = function(x) PD:SetDesignPersonality(x) end,
+			setFunc = function(value) PD:SetDesignPersonality(value) end,
 			reference = "DesignDropdown",
 		},
 		{
@@ -697,867 +803,23 @@ function PD:InitializeLAM()
 			name = "Search emotes",
 			tooltip = "Type to filter the current emote list by name or slash command.",
 			getFunc = function() return PD.searchTerm end,
-			setFunc = function(x)
-				PD.searchTerm = x or ""
-				Action01Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action01.category))
-				Action02Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action02.category))
-				Action03Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action03.category))
-				Action04Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action04.category))
-				Action05Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action05.category))
-				Action06Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action06.category))
-				Action07Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action07.category))
-				Action08Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action08.category))
-				Action09Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action09.category))
-				Action10Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action10.category))
+			setFunc = function(value)
+				PD.searchTerm = value or ""
+				for index = 1, 10 do
+					local dropdown = PD.actionDropdowns[index]
+					if dropdown then
+						local actionKey = string.format("action%02d", index)
+						dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign[actionKey].category))
+					end
+				end
 			end,
 			isMultiline = false,
 		},
-		{
-			type = "submenu",
-			name = GetString(P_DESIGNER_ACTION_01),
-			controls = {
-				{
-					type = "checkbox",
-					name = "",
-					getFunc = function() return PD.personalityDesign.action01.enabled end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action01.enabled = x
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action01.enabled = x
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					width = "half",
-				},
-				--[[TODO: Put the button back in when we can close the menu, play
-						  the emote/memento, and reopen the menu
-				{
-					type = "button",
-					name = "Play",
-					func = function() PD:PlayAction(PD.personalityDesign.action01) end,
-					width = "half",
-				},
-				]]--
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_CATEGORY),
-					scrollable = true,
-					choices = PD.categories,
-					getFunc = function() return PD.personalityDesign.action01.category end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action01.category = x
-							Action01Dropdown:UpdateChoices(PD:FilterActions(x))
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action01.category = x
-								PD:SaveData()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action01.enabled end,
-				},
-				--good thing: when category changes, so does this action drop down
-				--            i.e., actions are filtered to the category
-				--bad thing: the displayed value is blank
-				--TODO: set the display value to the first element of the filtered actions
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_ACTION),
-					scrollable = true,
-					choices = PD:FilterActions(PD.personalityDesign.action01.category),
-					getFunc =
-						function()
-							-- need the choices updated before getting the action
-							Action01Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action01.category))
-							return PD.personalityDesign.action01.action
-						end,
-					setFunc =
-						function(x)
-							local temp = PD:GetActionFromName(x, PD.personalityDesign.action01.category)
-							temp.enabled = true
-							temp.frequency = 2
-							PD.personalityDesign.action01 = temp
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action01 = temp
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action01.enabled end,
-					reference = "Action01Dropdown",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_FREQ),
-					choices = PD.frequencies,
-					getFunc = function() return PD.frequencies[PD.personalityDesign.action01.frequency] end,
-					setFunc =
-						function(x)
-							local index
-							for k, v in pairs(PD.frequencies) do
-								if v == x then index = k end
-							end
-							PD.personalityDesign.action01.frequency = index
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action01.frequency = index
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action01.enabled end,
-				},
-			},
-		},
-		{
-			type = "submenu",
-			name = GetString(P_DESIGNER_ACTION_02),
-			controls = {
-				{
-					type = "checkbox",
-					name = "",
-					getFunc = function() return PD.personalityDesign.action02.enabled end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action02.enabled = x
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action02.enabled = x
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					width = "half",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_CATEGORY),
-					scrollable = true,
-					choices = PD.categories,
-					getFunc = function() return PD.personalityDesign.action02.category end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action02.category = x
-							Action02Dropdown:UpdateChoices(PD:FilterActions(x))
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action02.category = x
-								PD:SaveData()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action02.enabled end,
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_ACTION),
-					scrollable = true,
-					choices = PD:FilterActions(PD.personalityDesign.action02.category),
-					getFunc =
-						function()
-							Action02Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action02.category))
-							return PD.personalityDesign.action02.action
-						end,
-					setFunc =
-						function(x)
-							local temp = PD:GetActionFromName(x, PD.personalityDesign.action02.category)
-							temp.enabled = true
-							temp.frequency = 2
-							PD.personalityDesign.action02 = temp
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action02 = temp
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action02.enabled end,
-					reference = "Action02Dropdown",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_FREQ),
-					choices = PD.frequencies,
-					getFunc = function() return PD.frequencies[PD.personalityDesign.action02.frequency] end,
-					setFunc =
-						function(x)
-							local index
-							for k, v in pairs(PD.frequencies) do
-								if v == x then index = k end
-							end
-							PD.personalityDesign.action02.frequency = index
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action02.frequency = index
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action02.enabled end,
-				},
-			},
-		},
-		{
-			type = "submenu",
-			name = GetString(P_DESIGNER_ACTION_03),
-			controls = {
-				{
-					type = "checkbox",
-					name = "",
-					getFunc = function() return PD.personalityDesign.action03.enabled end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action03.enabled = x
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action03.enabled = x
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					width = "half",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_CATEGORY),
-					scrollable = true,
-					choices = PD.categories,
-					getFunc = function() return PD.personalityDesign.action03.category end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action03.category = x
-							Action03Dropdown:UpdateChoices(PD:FilterActions(x))
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action03.category = x
-								PD:SaveData()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action03.enabled end,
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_ACTION),
-					scrollable = true,
-					choices = PD:FilterActions(PD.personalityDesign.action03.category),
-					getFunc =
-						function()
-							Action03Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action03.category))
-							return PD.personalityDesign.action03.action
-						end,
-					setFunc =
-						function(x)
-							local temp = PD:GetActionFromName(x, PD.personalityDesign.action03.category)
-							temp.enabled = true
-							temp.frequency = 2
-							PD.personalityDesign.action03 = temp
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action03 = temp
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action03.enabled end,
-					reference = "Action03Dropdown",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_FREQ),
-					choices = PD.frequencies,
-					getFunc = function() return PD.frequencies[PD.personalityDesign.action03.frequency] end,
-					setFunc =
-						function(x)
-							local index
-							for k, v in pairs(PD.frequencies) do
-								if v == x then index = k end
-							end
-							PD.personalityDesign.action03.frequency = index
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action03.frequency = index
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action03.enabled end,
-				},
-			},
-		},
-		{
-			type = "submenu",
-			name = GetString(P_DESIGNER_ACTION_04),
-			controls = {
-				{
-					type = "checkbox",
-					name = "",
-					getFunc = function() return PD.personalityDesign.action04.enabled end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action04.enabled = x
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action04.enabled = x
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					width = "half",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_CATEGORY),
-					scrollable = true,
-					choices = PD.categories,
-					getFunc = function() return PD.personalityDesign.action04.category end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action04.category = x
-							Action04Dropdown:UpdateChoices(PD:FilterActions(x))
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action04.category = x
-								PD:SaveData()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action04.enabled end,
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_ACTION),
-					scrollable = true,
-					choices = PD:FilterActions(PD.personalityDesign.action04.category),
-					getFunc =
-						function()
-							Action04Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action04.category))
-							return PD.personalityDesign.action04.action
-						end,
-					setFunc =
-						function(x)
-							local temp = PD:GetActionFromName(x, PD.personalityDesign.action04.category)
-							temp.enabled = true
-							temp.frequency = 2
-							PD.personalityDesign.action04 = temp
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action04 = temp
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action04.enabled end,
-					reference = "Action04Dropdown",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_FREQ),
-					choices = PD.frequencies,
-					getFunc = function() return PD.frequencies[PD.personalityDesign.action04.frequency] end,
-					setFunc =
-						function(x)
-							local index
-							for k, v in pairs(PD.frequencies) do
-								if v == x then index = k end
-							end
-							PD.personalityDesign.action04.frequency = index
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action04.frequency = index
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action04.enabled end,
-				},
-			},
-		},
-		{
-			type = "submenu",
-			name = GetString(P_DESIGNER_ACTION_05),
-			controls = {
-				{
-					type = "checkbox",
-					name = "",
-					getFunc = function() return PD.personalityDesign.action05.enabled end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action05.enabled = x
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action05.enabled = x
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					width = "half",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_CATEGORY),
-					scrollable = true,
-					choices = PD.categories,
-					getFunc = function() return PD.personalityDesign.action05.category end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action05.category = x
-							Action05Dropdown:UpdateChoices(PD:FilterActions(x))
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action05.category = x
-								PD:SaveData()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action05.enabled end,
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_ACTION),
-					scrollable = true,
-					choices = PD:FilterActions(PD.personalityDesign.action05.category),
-					getFunc =
-						function()
-							Action05Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action05.category))
-							return PD.personalityDesign.action05.action
-						end,
-					setFunc =
-						function(x)
-							local temp = PD:GetActionFromName(x, PD.personalityDesign.action05.category)
-							temp.enabled = true
-							temp.frequency = 2
-							PD.personalityDesign.action05 = temp
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action05 = temp
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action05.enabled end,
-					reference = "Action05Dropdown",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_FREQ),
-					choices = PD.frequencies,
-					getFunc = function() return PD.frequencies[PD.personalityDesign.action05.frequency] end,
-					setFunc =
-						function(x)
-							local index
-							for k, v in pairs(PD.frequencies) do
-								if v == x then index = k end
-							end
-							PD.personalityDesign.action05.frequency = index
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action05.frequency = index
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action05.enabled end,
-				},
-			},
-		},
-		{
-			type = "submenu",
-			name = GetString(P_DESIGNER_ACTION_06),
-			controls = {
-				{
-					type = "checkbox",
-					name = "",
-					getFunc = function() return PD.personalityDesign.action06.enabled end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action06.enabled = x
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action06.enabled = x
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					width = "half",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_CATEGORY),
-					scrollable = true,
-					choices = PD.categories,
-					getFunc = function() return PD.personalityDesign.action06.category end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action06.category = x
-							Action06Dropdown:UpdateChoices(PD:FilterActions(x))
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action06.category = x
-								PD:SaveData()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action06.enabled end,
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_ACTION),
-					scrollable = true,
-					choices = PD:FilterActions(PD.personalityDesign.action06.category),
-					getFunc =
-						function()
-							Action06Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action06.category))
-							return PD.personalityDesign.action06.action
-						end,
-					setFunc =
-						function(x)
-							local temp = PD:GetActionFromName(x, PD.personalityDesign.action06.category)
-							temp.enabled = true
-							temp.frequency = 2
-							PD.personalityDesign.action06 = temp
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action06 = temp
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action06.enabled end,
-					reference = "Action06Dropdown",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_FREQ),
-					choices = PD.frequencies,
-					getFunc = function() return PD.frequencies[PD.personalityDesign.action06.frequency] end,
-					setFunc =
-						function(x)
-							local index
-							for k, v in pairs(PD.frequencies) do
-								if v == x then index = k end
-							end
-							PD.personalityDesign.action06.frequency = index
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action06.frequency = index
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action06.enabled end,
-				},
-			},
-		},
-		{
-			type = "submenu",
-			name = GetString(P_DESIGNER_ACTION_07),
-			controls = {
-				{
-					type = "checkbox",
-					name = "",
-					getFunc = function() return PD.personalityDesign.action07.enabled end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action07.enabled = x
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action07.enabled = x
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					width = "half",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_CATEGORY),
-					scrollable = true,
-					choices = PD.categories,
-					getFunc = function() return PD.personalityDesign.action07.category end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action07.category = x
-							Action07Dropdown:UpdateChoices(PD:FilterActions(x))
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action07.category = x
-								PD:SaveData()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action07.enabled end,
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_ACTION),
-					scrollable = true,
-					choices = PD:FilterActions(PD.personalityDesign.action07.category),
-					getFunc =
-						function()
-							Action07Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action07.category))
-							return PD.personalityDesign.action07.action
-						end,
-					setFunc =
-						function(x)
-							local temp = PD:GetActionFromName(x, PD.personalityDesign.action07.category)
-							temp.enabled = true
-							temp.frequency = 2
-							PD.personalityDesign.action07 = temp
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action07 = temp
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action07.enabled end,
-					reference = "Action07Dropdown",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_FREQ),
-					choices = PD.frequencies,
-					getFunc = function() return PD.frequencies[PD.personalityDesign.action07.frequency] end,
-					setFunc =
-						function(x)
-							local index
-							for k, v in pairs(PD.frequencies) do
-								if v == x then index = k end
-							end
-							PD.personalityDesign.action07.frequency = index
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action07.frequency = index
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action07.enabled end,
-				},
-			},
-		},
-		{
-			type = "submenu",
-			name = GetString(P_DESIGNER_ACTION_08),
-			controls = {
-				{
-					type = "checkbox",
-					name = "",
-					getFunc = function() return PD.personalityDesign.action08.enabled end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action08.enabled = x
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action08.enabled = x
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					width = "half",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_CATEGORY),
-					scrollable = true,
-					choices = PD.categories,
-					getFunc = function() return PD.personalityDesign.action08.category end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action08.category = x
-							Action08Dropdown:UpdateChoices(PD:FilterActions(x))
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action08.category = x
-								PD:SaveData()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action08.enabled end,
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_ACTION),
-					scrollable = true,
-					choices = PD:FilterActions(PD.personalityDesign.action08.category),
-					getFunc =
-						function()
-							Action08Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action08.category))
-							return PD.personalityDesign.action08.action
-						end,
-					setFunc =
-						function(x)
-							local temp = PD:GetActionFromName(x, PD.personalityDesign.action08.category)
-							temp.enabled = true
-							temp.frequency = 2
-							PD.personalityDesign.action08 = temp
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action08 = temp
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action08.enabled end,
-					reference = "Action08Dropdown",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_FREQ),
-					choices = PD.frequencies,
-					getFunc = function() return PD.frequencies[PD.personalityDesign.action08.frequency] end,
-					setFunc =
-						function(x)
-							local index
-							for k, v in pairs(PD.frequencies) do
-								if v == x then index = k end
-							end
-							PD.personalityDesign.action08.frequency = index
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action08.frequency = index
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action08.enabled end,
-				},
-			},
-		},
-		{
-			type = "submenu",
-			name = GetString(P_DESIGNER_ACTION_09),
-			controls = {
-				{
-					type = "checkbox",
-					name = "",
-					getFunc = function() return PD.personalityDesign.action09.enabled end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action09.enabled = x
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action09.enabled = x
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					width = "half",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_CATEGORY),
-					scrollable = true,
-					choices = PD.categories,
-					getFunc = function() return PD.personalityDesign.action09.category end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action09.category = x
-							Action09Dropdown:UpdateChoices(PD:FilterActions(x))
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action09.category = x
-								PD:SaveData()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action09.enabled end,
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_ACTION),
-					scrollable = true,
-					choices = PD:FilterActions(PD.personalityDesign.action09.category),
-					getFunc =
-						function()
-							Action09Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action09.category))
-							return PD.personalityDesign.action09.action
-						end,
-					setFunc =
-						function(x)
-							local temp = PD:GetActionFromName(x, PD.personalityDesign.action09.category)
-							temp.enabled = true
-							temp.frequency = 2
-							PD.personalityDesign.action09 = temp
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action09 = temp
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action09.enabled end,
-					reference = "Action09Dropdown",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_FREQ),
-					choices = PD.frequencies,
-					getFunc = function() return PD.frequencies[PD.personalityDesign.action09.frequency] end,
-					setFunc =
-						function(x)
-							local index
-							for k, v in pairs(PD.frequencies) do
-								if v == x then index = k end
-							end
-							PD.personalityDesign.action09.frequency = index
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action09.frequency = index
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action09.enabled end,
-				},
-			},
-		},
-		{
-			type = "submenu",
-			name = GetString(P_DESIGNER_ACTION_10),
-			controls = {
-				{
-					type = "checkbox",
-					name = "",
-					getFunc = function() return PD.personalityDesign.action10.enabled end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action10.enabled = x
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action10.enabled = x
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					width = "half",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_CATEGORY),
-					scrollable = true,
-					choices = PD.categories,
-					getFunc = function() return PD.personalityDesign.action10.category end,
-					setFunc =
-						function(x)
-							PD.personalityDesign.action10.category = x
-							Action10Dropdown:UpdateChoices(PD:FilterActions(x))
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action10.category = x
-								PD:SaveData()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action10.enabled end,
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_ACTION),
-					scrollable = true,
-					choices = PD:FilterActions(PD.personalityDesign.action10.category),
-					getFunc =
-						function()
-							Action10Dropdown:UpdateChoices(PD:FilterActions(PD.personalityDesign.action10.category))
-							return PD.personalityDesign.action10.action
-						end,
-					setFunc =
-						function(x)
-							local temp = PD:GetActionFromName(x, PD.personalityDesign.action10.category)
-							temp.enabled = true
-							temp.frequency = 2
-							PD.personalityDesign.action10 = temp
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action10 = temp
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action10.enabled end,
-					reference = "Action10Dropdown",
-				},
-				{
-					type = "dropdown",
-					name = GetString(P_DESIGNER_FREQ),
-					choices = PD.frequencies,
-					getFunc = function() return PD.frequencies[PD.personalityDesign.action10.frequency] end,
-					setFunc =
-						function(x)
-							local index
-							for k, v in pairs(PD.frequencies) do
-								if v == x then index = k end
-							end
-							PD.personalityDesign.action10.frequency = index
-							if PD.personalityDesign.name == PD.personalityActive.name then
-								PD.personalityActive.action10.frequency = index
-								PD:SaveData()
-								PD:GeneratePlaylist()
-							end
-						end,
-					disabled = function() return not PD.personalityDesign.action10.enabled end,
-				},
-			},
-		},
 	}
-	
+	for index = 1, 10 do
+		table.insert(designSubmenu, CreateActionRow(index))
+	end
+
 	local deleteSubmenu = {
 		{
 			type = "dropdown",

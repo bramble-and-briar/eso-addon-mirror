@@ -7,10 +7,13 @@
 --
 -- THE 3D PART follows the client's own housing editor (esoui/ingame/housingeditor/housingeditorhud.lua): a
 -- top-level window with Create3DRenderSpace, child textures that each have a render space, a position
--- given by WorldPositionToGuiRender3DPosition, and the camera's orientation read by
--- Set3DRenderSpaceToCurrentCamera on a control of ours. The beads are billboards: each is given the camera's
--- own orientation, so it faces the screen whatever the camera does and no convention of the 3D space has to
--- be guessed. The beam is turned about the vertical axis only (the camera's yaw), so it stays upright.
+-- given by WorldPositionToGuiRender3DPosition. The beads and the beam face the screen: each is turned about the
+-- vertical axis to the camera's heading and kept upright, Set3DRenderSpaceOrientation(0, GetPlayerCameraHeading(), 0) --
+-- the client's own way of squaring a 3D control to the screen (housingeditorhud.lua MoveAxisIndicators).
+-- Until 0.6.1 they were given the orientation of a control of ours set by Set3DRenderSpaceToCurrentCamera. On a PS5 that
+-- copy turned pictures like objects standing in the world (PB's PlayerMarkerExtension, measured 2026-11-19; the heading
+-- recipe fixed it there): a flat bead or beam seen from the side is a line, so the trail "vanished" depending on where the
+-- player walked and looked, and stayed gone for the next destination in the same direction.
 -- Nothing in the 3D part reads a map.
 --
 -- WHAT KEEPS THE GUIDE ON THE SCREEN. The update is restarted by itself after errors, the trail pauses and tries
@@ -186,6 +189,12 @@ function A:Observe(now)
 		vector = vector, sample = sample, heading = heading,
 		number = number, total = total, destination = destination, demo = demo ~= nil,
 	}
+	if not vector.inside then
+		-- for the trace: which maps were compared (the arrow goes in this case, so the report must say why)
+		local frame = sample.frame
+		view.why = string.format("player in zone %d on map %s, the stop on map %s", sample.zone, tostring(frame and frame.mapId),
+			tostring(stop.mapId))
+	end
 	if view.mode == "guide" then
 		local last = self.lastGuide
 		if not (last and last.stop == stop) then
@@ -350,17 +359,41 @@ function A:TrailPause(reason)
 	self:Print(S.trailPaused, reason)
 end
 
+-- Why the beads and the beam are not drawn while the arrow guides, one trace line when that changes (the guide's own lines
+-- already say when there is nothing to guide to).
+local function TrailState(self, state)
+	if state ~= self.trailState then
+		self.trailState = state
+		self:Trace("trail", state)
+	end
+end
+
+local function NotDrawn(self, view, why)
+	self:HideWorld()
+	if view.mode == "guide" and not view.preview then
+		TrailState(self, "not drawn: " .. why)
+	end
+end
+
 -- The 3D calls are the game's, so they are asked about like the position calls (see Nav.lua).
 function A:UpdateWorld(view)
 	local sv = self.sv
-	if not sv.trail or self.trailOff or view.mode ~= "guide" or view.preview or not view.sample then
+	if view.mode ~= "guide" or view.preview then
 		self:HideWorld()
 		return
 	end
+	if not sv.trail then
+		return NotDrawn(self, view, "switched off in the settings")
+	end
+	if self.trailOff then
+		return NotDrawn(self, view, "off for this session: " .. tostring(self.trailOff))
+	end
+	if not view.sample then
+		return NotDrawn(self, view, "the position is missing for a moment (" .. tostring(view.why) .. ")")
+	end
 	if self.trailPausedUntil then
 		if Stamp() < self.trailPausedUntil then
-			self:HideWorld()
-			return
+			return NotDrawn(self, view, "paused after errors")
 		end
 		self.trailPausedUntil = nil
 		self:Trace("trail", "trying again after the pause")
@@ -369,22 +402,13 @@ function A:UpdateWorld(view)
 	local sample, vector = view.sample, view.vector
 	local distance = vector.distance
 	if distance < 1 then
-		self:HideWorld()
-		return
+		return NotDrawn(self, view, "standing on the stop")
 	end
 
-	-- The camera's orientation, from a control of ours that the game turns to the camera. Without the call
-	-- the probe would hold whatever it was given at the start, and the beads would face the wrong way.
-	self:Call("Set3DRenderSpaceToCurrentCamera", world.probe:GetName())
-	local camera = self.fnState.Set3DRenderSpaceToCurrentCamera
-	if not (camera and camera.usable) then
-		self:TrailOff("the camera call is not allowed (" .. tostring(camera and camera.why or "not asked") .. ")")
-		return
-	end
-	local pitch, yaw, roll = world.probe:Get3DRenderSpaceOrientation()
-	if type(pitch) ~= "number" or type(yaw) ~= "number" or type(roll) ~= "number" then
-		self:HideWorld()
-		return
+	-- Square to the screen: upright, turned to the camera's heading (see the top of this file).
+	local yaw = view.heading
+	if type(yaw) ~= "number" or yaw ~= yaw then
+		return NotDrawn(self, view, "the camera heading could not be read")
 	end
 
 	if world.windowHidden then
@@ -413,7 +437,7 @@ function A:UpdateWorld(view)
 			if type(rx) == "number" then
 				local control = item.control
 				control:Set3DRenderSpaceOrigin(rx, ry, rz)
-				control:Set3DRenderSpaceOrientation(pitch, yaw, roll)
+				control:Set3DRenderSpaceOrientation(0, yaw, 0)
 				local size = BEAD_SIZE_M + 0.02 * metres
 				if item.size ~= size then
 					control:Set3DLocalDimensions(size, size)
@@ -459,6 +483,7 @@ function A:UpdateWorld(view)
 		world.beamHidden = true
 	end
 	self.diag.worldFrames = (self.diag.worldFrames or 0) + 1
+	TrailState(self, "drawn")
 end
 
 -- ---------------------------------------------------------------------------------------
@@ -480,7 +505,7 @@ function A.GuideText(kind, why)
 	elseif kind == "stale" then
 		return "the position is missing (" .. tostring(why) .. "): the arrow keeps its last direction"
 	elseif kind == "elsewhere" then
-		return "the next stop is not on this zone's map: no arrow"
+		return "the next stop is not on this zone's map (" .. tostring(why) .. "): no arrow"
 	elseif kind == "nopos" then
 		return "no position (" .. tostring(why) .. "): no arrow"
 	end

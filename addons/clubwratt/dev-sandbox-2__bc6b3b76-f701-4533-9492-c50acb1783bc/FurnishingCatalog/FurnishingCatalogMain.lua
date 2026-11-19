@@ -15,12 +15,14 @@ local function Status()
         FC.Chat(FC.Fmt("shopping lists: %d, holding %d furnishing(s)", #lists, numItems))
     end
     FC.Chat(FC.Fmt("guild trader: %s", FC.Trader and FC.Trader.StateText() or "module missing"))
+    FC.Chat(FC.Fmt("housing editor: %s", FC.Editor and FC.Editor.StateText() or "module missing"))
     FC.Chat(FC.Fmt("settings: %s", FC.Settings and FC.Settings.StateText() or "module missing"))
     if FC.Plans then
         local numPlans, plansSource = FC.Plans.Count()
         FC.Chat(FC.Fmt("plans: the %s names a plan for %d furnishing(s)", plansSource, numPlans))
     end
     FC.Chat(FC.Fmt("jump to search: %s", FC.Browse and FC.Browse.JumpToSearchState() or "module missing"))
+    FC.Chat(FC.Fmt("link in chat: %s", FC.ItemActions and FC.ItemActions.StateText() or "module missing"))
     FC.Chat(FC.Fmt("built-in list: %s ids, version %s", tostring(FC.Seed and FC.Seed.count), tostring(FC.Seed and FC.Seed.version)))
     if type(catalog) == "table" then
         FC.Chat(FC.Fmt("catalog: %s furnishings from %s, built in %s ms over %s frames, stamp %s%s", tostring(catalog.total),
@@ -121,7 +123,7 @@ local function Initialize()
     else
         table.insert(d.initErrors, "savedVars: " .. tostring(savedVars))
     end
-    for _, moduleName in ipairs({ "Seed", "ScanUtils", "Scan", "BrowseUtils", "ShoppingUtils", "PlanUtils", "Search", "Shopping", "Plans", "Trader", "Browse", "Settings" }) do
+    for _, moduleName in ipairs({ "Seed", "ScanUtils", "Scan", "BrowseUtils", "ShoppingUtils", "PlanUtils", "EditorUtils", "Search", "Shopping", "Plans", "ItemActions", "Trader", "Editor", "Browse", "Settings" }) do
         if not FC[moduleName] then
             table.insert(d.initErrors, "module missing: " .. moduleName)
         end
@@ -133,6 +135,9 @@ local function Initialize()
         d.poolAtFileStart and string.format("%.2f", d.poolAtFileStart) or "?", d.poolAtFileEnd and string.format("%.2f", d.poolAtFileEnd) or "?", FC.MemText())
     if FC.Trader then
         FC.SafeCall("TraderInitialize", FC.Trader.Initialize)
+    end
+    if FC.Editor then
+        FC.SafeCall("EditorInitialize", FC.Editor.Initialize)
     end
     if FC.Settings then
         FC.SafeCall("SettingsInitialize", FC.Settings.Initialize)

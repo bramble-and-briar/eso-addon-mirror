@@ -55,6 +55,7 @@ function Data.GetStats()
 
     return {
         hps = fight:GetHPS(),
+        rawHps = fight:GetRawHPS(),
         hpm = fight:GetHPM(),
         healPersonal = healPersonal,
         healGroup = max(0, healTotal - healPersonal),

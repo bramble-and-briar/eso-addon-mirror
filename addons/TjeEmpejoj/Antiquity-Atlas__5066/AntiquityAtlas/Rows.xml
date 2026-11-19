@@ -1,0 +1,8 @@
+<GuiXml>
+    <Controls>
+        <Button name="AntiquityAtlasRewardRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="1048" y="124" />
+        </Button>
+        <Control name="AntiquityAtlasListPadding" virtual="true"><Dimensions x="1048" y="52" /></Control>
+    </Controls>
+</GuiXml>

@@ -138,7 +138,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Molag Kena Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aldericon/Molag-Kena-Tracker__1888) | aldericon | PC / Mac | 12.0 |
 | [Momo's Sticky Notes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Momorodah/Momo-s-Sticky-Notes__3383) | Momorodah | PC / Mac | 1.0.1 |
 | [Money Where](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dawnsight/Money-Where__2365) | Dawnsight | PC / Mac | 1.91 |
-| [Monster Coffer Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mawneer/Monster-Coffer-Helper__4752) | mawneer | PC / Mac | 1.0 |
+| [Monster Coffer Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mawneer/Monster-Coffer-Helper__4752) | mawneer | PC / Mac | 1.0.1 |
 | [Monster Set Shoulder Collector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thepinja/Monster-Set-Shoulder-Collector__2860) | Thepinja | PC / Mac | 1.4.5 |
 | [More Camera Sensitivity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/More-Camera-Sensitivity__c12b4c6f-c657-4d0b-ac4e-77374335877c) | M0R | Console | — |
 | [More Colourful Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/More-Colourful-Group-Frames__4607) | M0R | PC / Mac | 1 |

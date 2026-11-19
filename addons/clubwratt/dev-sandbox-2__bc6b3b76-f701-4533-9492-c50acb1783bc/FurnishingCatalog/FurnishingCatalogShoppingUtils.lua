@@ -155,6 +155,16 @@ function ShoppingUtils.Delete(store, listId)
     return true, nil
 end
 
+---@param store FurnishingCatalogShoppingStore
+---@return integer numItems furnishings on all the lists together
+function ShoppingUtils.NumListed(store)
+    local numItems = 0
+    for _, list in ipairs(store.lists) do
+        numItems = numItems + #list.items
+    end
+    return numItems
+end
+
 ---@param list FurnishingCatalogShoppingList
 ---@param itemId integer
 ---@return integer|nil index
@@ -188,6 +198,17 @@ function ShoppingUtils.Remove(list, itemId)
     end
     table.remove(list.items, index)
     return true
+end
+
+---Put an item on a list that lacks it, take it off a list that has it.
+---@param list FurnishingCatalogShoppingList
+---@param itemId integer
+---@return boolean listed the item is on the list now
+function ShoppingUtils.Toggle(list, itemId)
+    if ShoppingUtils.Remove(list, itemId) then
+        return false
+    end
+    return ShoppingUtils.Add(list, itemId)
 end
 
 ---The lists in the order the "add to" prompt offers them: the one used last first, then the

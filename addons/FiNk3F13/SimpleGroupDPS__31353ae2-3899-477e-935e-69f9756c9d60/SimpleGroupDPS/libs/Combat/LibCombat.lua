@@ -5769,9 +5769,42 @@ function lib:RefreshMeterFight()
     currentfight:UpdateStats()
     return currentfight
 end
+-- Critter hits can prepare a fight without ever entering ESO's combat state.
+-- Finish only that pending fight through the native lifecycle, after its normal
+-- event timeout. Active player/group combat and native boss/portal guards win.
+local meterUnenteredEndFight
+function lib:FinishUnenteredMeterFight(lastActivityMS)
+    if meterUnenteredEndFight ~= currentfight then meterUnenteredEndFight = nil end
+    if not currentfight.prepared or type(lastActivityMS) ~= "number" then return false end
+    local ongoing = data.inCombat ~= false or IsUnitInCombat("player") or IsOngoingBossfight()
+    if IsUnitGrouped("player") then
+        local size = GetGroupSize and GetGroupSize()
+        if type(size) ~= "number" or size < 1 or not GetGroupUnitTag then
+            ongoing = true
+        else
+            for index = 1, size do
+                local tag = GetGroupUnitTag(index)
+                if not tag or IsUnitInCombat(tag) then ongoing = true; break end
+            end
+        end
+    end
+    -- Native summary delivery has a grace period. Resume this pending close if
+    -- actual combat or another accepted damage event arrives during that period.
+    if meterUnenteredEndFight == currentfight
+        and (ongoing or lastActivityMS > currentfight.combatend) then
+        currentfight.combatend = -150
+        meterUnenteredEndFight = nil
+    end
+    if ongoing or currentfight.combatend >= 0
+        or GetGameTimeMilliseconds() - lastActivityMS <= timeout then return false end
+    currentfight:FinishFight()
+    meterUnenteredEndFight = currentfight
+    return true
+end
 -- Clear only this private collector when the solo player dies or revives.
 -- No external library, addon or saved-variable table is touched.
 function lib:DiscardMeterFight()
+    meterUnenteredEndFight = nil
     em:UnregisterForUpdate("SimpleGroupDPSCombat_update")
     ResetBuffers()
     DamageShieldBuffer = {}

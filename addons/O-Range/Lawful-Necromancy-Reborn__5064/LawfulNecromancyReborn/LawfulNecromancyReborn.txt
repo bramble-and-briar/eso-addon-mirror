@@ -1,9 +1,9 @@
 ## Title: Lawful Necromancy Reborn
 ## Author: O-Range
-## Version: 1.1
-## AddOnVersion: 110
+## Version: 1.1.1
+## AddOnVersion: 111
 ## APIVersion: 101051 101052
-## DependsOn: LibSkillBlocker LibAddonMenu-2.0
+## DependsOn: LibSkillBlocker>=110 LibAddonMenu-2.0>=43
 ## SavedVariables: LawfulNecromancyRebornVars
 ## Description: Prevents accidental criminal Necromancer spellcasting in justice zones. Automatically allows casting during combat.
 

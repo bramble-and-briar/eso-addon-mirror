@@ -1,9 +1,9 @@
 ## Title: Skill Point Alerts
-## Version: 1.29
-## APIVersion: 101050
-## AddOnVersion: 129
+## Version: 1.30
+## APIVersion: 101051
+## AddOnVersion: 130
 ## Author: |c00FF00Tagarn|r
-## DependsOn: LibAsync>=30104 LibAddonMenu-2.0>=43
+## DependsOn: LibAsync>=30106 LibAddonMenu-2.0>=43
 ## SavedVariables: SkillPointAlertsVars
 
 

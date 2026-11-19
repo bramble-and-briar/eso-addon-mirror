@@ -217,6 +217,9 @@ function UnitFrames.Initialize(enabled)
     UnitFrames.CreateDefaultFrames()
     UnitFrames.CreateCustomFrames()
     UnitFrames.ApplyHideDefaultPlayerAttributeBarsIfNeeded()
+    UnitFrames.ApplyHideDefaultTargetFrameUpdatesIfNeeded()
+    UnitFrames.UnregisterVanillaCompanionFrameCreation()
+    UnitFrames.UnregisterUnusedVanillaUnitFrameRuntime()
     if not UnitFrames.dodgePrediction then
         UnitFrames.dodgePrediction = LUIE_PlayerDodgePrediction:New()
     end
@@ -763,6 +766,24 @@ function UnitFrames.ClearTargetFrame()
     end
 end
 
+--- Quick Hide Dead applies to NPC corpses only. Players stay on the target frame.
+--- Strict monster corpses limits that to dead hostile monsters (IsUnitMonster).
+--- @param reactionType integer|nil
+--- @return boolean
+function UnitFrames.ShouldQuickHideDeadReticleover(reactionType)
+    if not UnitFrames.SV.QuickHideDead or not DoesUnitExist("reticleover") or IsUnitPlayer("reticleover") or not IsUnitDead("reticleover") then
+        return false
+    end
+    if UnitFrames.SV.QuickHideDeadUseUnitMonster then
+        return reactionType == UNIT_REACTION_HOSTILE and IsUnitMonster("reticleover")
+    end
+    local isMonster = IsGameCameraInteractableUnitMonster()
+    return reactionType == UNIT_REACTION_NEUTRAL
+        or reactionType == UNIT_REACTION_FRIENDLY
+        or reactionType == UNIT_REACTION_NPC_ALLY
+        or (reactionType == UNIT_REACTION_HOSTILE and isMonster)
+end
+
 -- Runs on the EVENT_RETICLE_TARGET_CHANGED listener.
 -- This handler fires every time the player's reticle target changes.
 -- Used to read initial values of target's health and shield.
@@ -857,26 +878,7 @@ function UnitFrames.OnReticleTargetChanged(eventCode)
                 end)
             end
 
-            local showAvaPlayerTarget = UnitFrames.ShouldShowAvaPlayerTargetForReticleover(reactionType)
-            if not showAvaPlayerTarget then
-                UnitFrames.CustomFrames["reticleover"].control:SetHidden(false)
-                if UnitFrames.SV.QuickHideDead then
-                    local isMonster
-                    if UnitFrames.SV.QuickHideDeadUseUnitMonster and IsUnitMonster then
-                        isMonster = IsUnitMonster("reticleover")
-                    else
-                        isMonster = IsGameCameraInteractableUnitMonster()
-                    end
-                    local isNPC = reactionType == UNIT_REACTION_NEUTRAL
-                        or reactionType == UNIT_REACTION_FRIENDLY
-                        or reactionType == UNIT_REACTION_NPC_ALLY
-                        or (reactionType == UNIT_REACTION_HOSTILE and isMonster)
-                    local shouldHide = IsUnitDead("reticleover") and isNPC
-                    UnitFrames.CustomFrames["reticleover"].control:SetHidden(shouldHide)
-                end
-            else
-                UnitFrames.CustomFrames["reticleover"].control:SetHidden(true)
-            end
+            UnitFrames.CustomFrames["reticleover"].control:SetHidden(UnitFrames.ShouldQuickHideDeadReticleover(reactionType))
             UnitFrames.targetFrameLingered = true
         end
 
@@ -940,6 +942,8 @@ function UnitFrames.OnReticleTargetChanged(eventCode)
     if not UnitFrames.DefaultFrames.reticleover[COMBAT_MECHANIC_FLAGS_HEALTH] and UnitFrames.ShouldHideVanillaTargetFrameForCustomTarget() then
         ZO_TargetUnitFramereticleover:SetHidden(true)
     end
+
+    UnitFrames.LogReticleTargetShowHide()
 end
 
 function UnitFrames.OnReticleTargetPlayerChanged(eventCode)
@@ -2316,8 +2320,7 @@ function UnitFrames.CustomFramesApplyLayoutReticleoverFrame(unhide)
 
     UnitFrames.CustomFramesTryUnhideTlw("reticleover", unhide)
     if unhide then
-        local reactionType = DoesUnitExist("reticleover") and GetUnitReaction("reticleover") or nil
-        target.control:SetHidden(UnitFrames.ShouldShowAvaPlayerTargetForReticleover(reactionType))
+        target.control:SetHidden(false)
     end
 end
 
@@ -2597,9 +2600,10 @@ local RAID_LAYOUT_DIMENSIONS =
 local RAID_LAYOUT_DEFAULT = "1 x 12"
 -- Battleground layouts (Big Team Battles: 6v6v6 and 9v9) are shapes (UnitFrames.RAID_LAYOUT_BATTLEGROUND_* in
 -- _Namespace.lua), not fixed grids: the slot count follows the match's team size (GetBattlegroundTeamSize) so the same
--- setting yields 1x9 / 3x3 / 9x1 or 1x6 / 3x2 / 6x1.
+-- setting yields 1x9 / 3x3 / 9x1 or 1x6 / 3x2 / 6x1. Two columns is the 2 x 6 raid footprint: 6 frames per column.
 local RAID_LAYOUT_BATTLEGROUND_DEFAULT = UnitFrames.RAID_LAYOUT_BATTLEGROUND_GRID
 local RAID_LAYOUT_BATTLEGROUND_GRID_COLUMNS = 3
+local RAID_LAYOUT_BATTLEGROUND_TWO_COLUMN_ROWS = 6
 -- Pre-U51 saved values (fixed 9 slot grids) -> shape.
 local RAID_LAYOUT_BATTLEGROUND_LEGACY =
 {
@@ -2610,6 +2614,7 @@ local RAID_LAYOUT_BATTLEGROUND_LEGACY =
 local RAID_LAYOUT_BATTLEGROUND_SHAPES =
 {
     [UnitFrames.RAID_LAYOUT_BATTLEGROUND_COLUMN] = true,
+    [UnitFrames.RAID_LAYOUT_BATTLEGROUND_TWO_COLUMN] = true,
     [UnitFrames.RAID_LAYOUT_BATTLEGROUND_GRID] = true,
     [UnitFrames.RAID_LAYOUT_BATTLEGROUND_ROW] = true,
 }
@@ -2655,7 +2660,7 @@ function UnitFrames.IsBattlegroundRaidLayoutActive()
 end
 
 --- RaidLayoutBattleground shape from SavedVariables, migrating the pre-U51 fixed grid values in place.
---- @return string shape one of UnitFrames.RAID_LAYOUT_BATTLEGROUND_COLUMN / _GRID / _ROW
+--- @return string shape one of UnitFrames.RAID_LAYOUT_BATTLEGROUND_COLUMN / _TWO_COLUMN / _GRID / _ROW
 function UnitFrames.GetBattlegroundRaidLayoutShape()
     local shape = UnitFrames.SV.RaidLayoutBattleground
     local migratedShape = RAID_LAYOUT_BATTLEGROUND_LEGACY[shape]
@@ -2669,7 +2674,9 @@ function UnitFrames.GetBattlegroundRaidLayoutShape()
     return shape
 end
 
---- Grid for a battleground shape and team size (column: 1 x N, row: N x 1, grid: 3 x ceil(N / 3)).
+--- Grid for a battleground shape and team size.
+--- column: 1 x N. row: N x 1. grid: 3 x ceil(N / 3).
+--- two columns: 6 per column (a team of 9 is 6 then 3; a team of 6 fills one column).
 --- @param shape string
 --- @param teamSize number
 --- @return number columns
@@ -2679,6 +2686,11 @@ local function GetBattlegroundRaidLayoutDimensions(shape, teamSize)
         return 1, teamSize
     elseif shape == UnitFrames.RAID_LAYOUT_BATTLEGROUND_ROW then
         return teamSize, 1
+    elseif shape == UnitFrames.RAID_LAYOUT_BATTLEGROUND_TWO_COLUMN then
+        local rowsPerColumn = RAID_LAYOUT_BATTLEGROUND_TWO_COLUMN_ROWS
+        local columns = zo_ceil(teamSize / rowsPerColumn)
+        local rows = (columns == 1) and teamSize or rowsPerColumn
+        return columns, rows
     end
     return RAID_LAYOUT_BATTLEGROUND_GRID_COLUMNS, zo_ceil(teamSize / RAID_LAYOUT_BATTLEGROUND_GRID_COLUMNS)
 end
@@ -2937,6 +2949,9 @@ end
 -- Anchor-based geometry: padding 2 | top row 20 | gap 2 | health band (grows, min 16) | gap 2 | bottom row 16.
 -- Static anchors (rows, health band, health text) live in the XML; settings-dependent chains are built here.
 -- ---------------------------------------------------------------------------
+-- LUIE_UF_BlackFill40_Edge60 (SharedTemplates.xml): center "66000000", edge "99000000".
+local RAID_EXPANDED_FRAME_CENTER = ZO_ColorDef:New("66000000")
+local RAID_EXPANDED_FRAME_EDGE = ZO_ColorDef:New("99000000")
 local RAID_EXPANDED_PADDING = 2
 local RAID_EXPANDED_TOP_ROW_HEIGHT = 20
 local RAID_EXPANDED_ROW_GAP = 2
@@ -3220,6 +3235,19 @@ function UnitFrames.ApplyRaidExpandedMemberLayout(unitFrame, showPlaceholders)
         return
     end
     local sv = UnitFrames.SV
+
+    -- Outer _Frame fill (SharedTemplates.xml LUIE_UF_BlackFill40_Edge60). Alpha 0 keeps the control
+    -- shown so its combat-glow child still draws. The health band keeps its own backdrop.
+    local frameBackdrop = unitFrame.frameBackdrop
+    if frameBackdrop then
+        if sv.RaidExpandedHideBackground then
+            frameBackdrop:SetCenterColor(0, 0, 0, 0)
+            frameBackdrop:SetEdgeColor(0, 0, 0, 0)
+        else
+            frameBackdrop:SetCenterColor(RAID_EXPANDED_FRAME_CENTER:UnpackRGBA())
+            frameBackdrop:SetEdgeColor(RAID_EXPANDED_FRAME_EDGE:UnpackRGBA())
+        end
+    end
 
     -- Top row ---------------------------------------------------------------
     local customIconPosition = UnitFrames.SV.CustomIconPosition

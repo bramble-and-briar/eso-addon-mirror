@@ -9,4 +9,35 @@
             </Action>
         </Category>
     </Layer>
+
+    <!-- "Open Remastered" on the native battleground scoreboard (gamepad mode).
+         The scoreboard pushes this layer itself, so the add-on never pushes a key
+         layer (which would route the scoreboard's D-pad and A presses through add-on
+         code). Each action takes its key from a standard UI shortcut, like ESO's
+         own actions in this layer, and only fires our strip button. -->
+    <Layer name="BattlegroundScoreboard">
+        <Category>
+            <Action name="SBR_SCOREBOARD_OPEN_RIGHT_STICK" inheritsBindFrom="UI_SHORTCUT_RIGHT_STICK" hideAction="true">
+                <Down>return ZO_KeybindStrip_HandleKeybindDown(keybind)</Down>
+                <Up>return ZO_KeybindStrip_HandleKeybindUp(keybind)</Up>
+            </Action>
+            <Action name="SBR_SCOREBOARD_OPEN_LEFT_STICK" inheritsBindFrom="UI_SHORTCUT_LEFT_STICK" hideAction="true">
+                <Down>return ZO_KeybindStrip_HandleKeybindDown(keybind)</Down>
+                <Up>return ZO_KeybindStrip_HandleKeybindUp(keybind)</Up>
+            </Action>
+            <!-- D-pad left / right on the replacement scoreboard (UI/Replace.lua) -->
+            <Action name="SBR_SCOREBOARD_SORT_PREVIOUS" inheritsBindFrom="UI_SHORTCUT_INPUT_LEFT" hideAction="true">
+                <Down>return ZO_KeybindStrip_HandleKeybindDown(keybind)</Down>
+                <Up>return ZO_KeybindStrip_HandleKeybindUp(keybind)</Up>
+            </Action>
+            <Action name="SBR_SCOREBOARD_SORT_NEXT" inheritsBindFrom="UI_SHORTCUT_INPUT_RIGHT" hideAction="true">
+                <Down>return ZO_KeybindStrip_HandleKeybindDown(keybind)</Down>
+                <Up>return ZO_KeybindStrip_HandleKeybindUp(keybind)</Up>
+            </Action>
+            <Action name="SBR_SCOREBOARD_OPEN_QUATERNARY" inheritsBindFrom="UI_SHORTCUT_QUATERNARY" hideAction="true">
+                <Down>return ZO_KeybindStrip_HandleKeybindDown(keybind)</Down>
+                <Up>return ZO_KeybindStrip_HandleKeybindUp(keybind)</Up>
+            </Action>
+        </Category>
+    </Layer>
 </Bindings>

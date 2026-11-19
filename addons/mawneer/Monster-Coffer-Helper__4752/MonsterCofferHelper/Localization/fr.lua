@@ -34,8 +34,8 @@ ZO_CreateStringId("SI_MCH_TT_CHANCE", "Nouvelle epauliere : <<1>>")
 ZO_CreateStringId("SI_MCH_TT_COST", "Cout reel : <<1>> cles par nouvelle epauliere")
 ZO_CreateStringId("SI_MCH_TT_BEST", "Meilleur achat ici")
 ZO_CreateStringId("SI_MCH_TT_WORSE", "L'autre coffre revient moins cher par nouvelle epauliere")
-ZO_CreateStringId("SI_MCH_TT_SET_MISSING", "<<1>> epaulieres sur <<2>> manquent encore dans cet ensemble")
-ZO_CreateStringId("SI_MCH_TT_SET_DONE", "Vous avez deja toutes les epaulieres de cet ensemble - cles gaspillees")
+ZO_CreateStringId("SI_MCH_TT_SET_MISSING", "<<1>> epaulieres sur <<2>> manquent encore dans ce coffre")
+ZO_CreateStringId("SI_MCH_TT_SET_DONE", "Vous avez deja toutes les epaulieres de ce coffre - cles gaspillees")
 
 -- Settings
 ZO_CreateStringId("SI_MCH_SET_DISPLAY", "Affichage")
@@ -59,7 +59,7 @@ ZO_CreateStringId("SI_MCH_SET_COST_TT", "Valeur de repli tant que la boutique n'
 
 ZO_CreateStringId("SI_MCH_SET_POOL", "Stock du marchand")
 ZO_CreateStringId("SI_MCH_SET_LEARNPOOL", "Utiliser le stock releve chez le marchand")
-ZO_CreateStringId("SI_MCH_SET_LEARNPOOL_TT", "Privilegie la liste d'ensembles lue dans la boutique plutot que celle fournie par LibSets. Suit les rotations tout seul.")
+ZO_CreateStringId("SI_MCH_SET_LEARNPOOL_TT", "Ajoute les ensembles vus dans la boutique a la liste fournie par LibSets, pour compter un ensemble plus recent que ses donnees.")
 ZO_CreateStringId("SI_MCH_SET_FORGET", "Oublier tout ce qui a ete releve chez les marchands")
 
 ZO_CreateStringId("SI_BINDING_NAME_MCH_TOGGLE", "Afficher/masquer Coffer Helper")

@@ -42,7 +42,7 @@
     "SkillPointAlerts"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3989/",
-  "fingerprint": "ce22e986b16d904dfabc4ad0a07dcf3409efdfb8546581ac507eadc724212e25",
+  "fingerprint": "43cebb9a28dd19d5b3ac8641352ce02504ca8372d168dc0fe166b9c46453ceb5",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13521.png",
     "https://cdn-eso.mmoui.com/preview/pvw13517.png",
@@ -55,11 +55,11 @@
   "source_id": "3989",
   "source_url": "https://www.esoui.com/downloads/info3989-TagarnsSkillPointAlerts.html",
   "stats": {
-    "downloads": 6408,
-    "favorites": 12,
-    "monthly_downloads": 119
+    "downloads": 6937,
+    "favorites": 13,
+    "monthly_downloads": 128
   },
   "title": "Tagarn's Skill Point Alerts",
-  "updated_at": 1786220320000,
-  "version": "1.29"
+  "updated_at": 1795021091000,
+  "version": "1.30"
 }

@@ -32,6 +32,9 @@ local function Options()
           choices = openKeyChoices, values = openKeyValues,
           get = function() return sv.gamepadOpenKey end,
           set = function(v) sv.gamepadOpenKey = v; SBR.Gamepad:RemoveOpenKeybind() end },
+        { type = "checkbox", name = "Replace the native scoreboard",
+          tooltip = "The scoreboard key opens Scoreboard Remastered instead of ESO's in-game scoreboard. The end-of-match scoreboard stays ESO's.",
+          get = function() return SBR.Replace:IsEnabled() end, set = function(v) SBR.Replace:SetEnabled(v) end },
         { type = "dropdown", name = "Gamepad: scoreboard layout",
           tooltip = "Table: the same table as on PC, with the selected player's details beside it. List: ESO's gamepad list screen with tabs.",
           choices = { "Table (like PC)", "List" }, values = { "table", "list" },
@@ -78,6 +81,15 @@ local function Options()
         { type = "button", name = "Clear history", dangerous = true, func = function() SBR.MatchLog:ClearHistory() end },
         { type = "button", name = "Clear match database", dangerous = true,
           func = function() ZO_ClearNumericallyIndexedTable(SBR.MatchDB:GetRecords()) end },
+        { type = "checkbox", name = "Battle report after each match",
+          tooltip = "Open the battle report (overview, timeline, your haul) when you leave a finished battleground.",
+          get = function() return sv.autoReport ~= false end, set = function(v) sv.autoReport = v end },
+        { type = "checkbox", name = "Records button on screen", pcOnly = true,
+          tooltip = "A small draggable button on the HUD that opens Battleground records.",
+          get = function() return sv.showLauncher ~= false end, set = function(v) sv.showLauncher = v; SBR.Launcher:Refresh() end },
+        { type = "checkbox", name = "Show load timing",
+          tooltip = "Print how long loading took after every login and /reloadui (it prints by itself when loading is slow). Helps find what goes over the CPU budget.",
+          get = function() return sv.showLoadTiming end, set = function(v) sv.showLoadTiming = v end },
         { type = "checkbox", name = "Debug output",
           get = function() return sv.debug end, set = function(v) sv.debug = v end },
     }
@@ -155,3 +167,4 @@ function Settings:Create()
     end
     if LAM then SBR.SafeCall(CreateLAM, LAM) end
 end
+ScoreboardRemastered.Mark("UI/Settings.lua")

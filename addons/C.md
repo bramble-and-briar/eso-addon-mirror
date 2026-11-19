@@ -13,6 +13,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Call Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ObserverTim/Call-Assistant__3106) | ObserverTim | PC / Mac | 2.0.0 |
 | [Call To Arms](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Call-To-Arms__72f77b51-a84a-492e-a266-4f7175a53a71) | SugaComa | Console | — |
 | [Call-I-Do](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lebiez/Call-I-Do__4263) | lebiez | PC / Mac | 1.09 |
+| [Camera Angles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Camera-Angles__1adfc207-cad7-41d9-b92b-11ec9ee16c24) | clubwratt | Console | — |
 | [Camera Control](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ArctixFox/Camera-Control__1669) | ArctixFox | PC / Mac | 1.1.42 |
 | [Camera Motion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sirzecs/Camera-Motion__4763) | Sirzecs | PC / Mac | 2.00 |
 | [Camera Shoulder Swap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MissingSemicolon/Camera-Shoulder-Swap__1555) | MissingSemicolon | PC / Mac | 1.0.6 |
@@ -196,6 +197,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Companion Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/Companion-Helper__ac31de38-34d3-4d5d-b0a4-282e26e25fa1) | Scribe_Rob | Console | — |
 | [Companion Rapport](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ParanoidGaming/Companion-Rapport__1d8faf08-ce78-4d71-8e33-81d704e62fc5) | ParanoidGaming | Console | — |
 | [Companion Rapport Numbers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smaxx/Companion-Rapport-Numbers__3128) | Smaxx | PC / Mac | 1.2 |
+| [Companion Sidekick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FoulMouthxAmazon/Companion-Sidekick__5072) | FoulMouthxAmazon | PC / Mac | 0.1.1-beta |
 | [Companion Stuff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VisioTempus/Companion-Stuff-Tracker__3986) | VisioTempus | PC / Mac | 1.2.3 |
 | [Companion's Containers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Companion-s-Containers__4143) | atharti | PC / Mac | 1.9 |
 | [CompanionFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/CompanionFix__3677) | sinnereso | PC / Mac | 2026.03.10 |
@@ -345,7 +347,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Cyrodiil Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Cyrodiil-Alerts__37bd7159-8611-4d29-8767-08434d4fe209) | codeWarrior82 | Console | — |
 | [Cyrodiil Ayleid Wells](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Odylon/Cyrodiil-Ayleid-Wells__3117) | Odylon | PC / Mac | 1.0.0 |
 | [Cyrodiil Map Labels (10.3.5)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Neurowise/Cyrodiil-Map-Labels-10.3.5__4065) | Neurowise | PC / Mac | 1.01 |
-| [Cyrodiil Map Labels (Fix: Season Zero)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Cyrodiil-Map-Labels-Fix-Season-Zero__4361) | sshogrin | PC / Mac | 1.9.1 |
+| [Cyrodiil Map Labels (Fix: Season Zero)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Cyrodiil-Map-Labels-Fix-Season-Zero__4361) | sshogrin | PC / Mac | 1.9.2 |
 | [Cyrodiil Mission Share](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aldericon/Cyrodiil-Mission-Share__1836) | aldericon | PC / Mac | 12.0 |
 | [Cyrodiil Score Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tdenc/Cyrodiil-Score-Viewer__3166) | tdenc | PC / Mac | 0.5.0 |
 | [CyroQuickslots](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gerrit/CyroQuickslots__3134) | Gerrit | PC / Mac | 1.31.1 |

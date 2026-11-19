@@ -11,9 +11,9 @@ local ICON       = "/esoui/art/mappins/ui_worldmap_pin_customdestination.dds"
 local TEMPLATE   = "ZO_GamepadMenuEntryTemplate"
 
 local ACTIONS = {
-    { key = "choke",  text = "|cFF8C1AMap Choke Here|r" },
-    { key = "safe",   text = "|c4DB8FFMap Safe Here|r" },
-    { key = "kite",   text = "|c33FF4DKite Here|r" },
+    { key = "choke",  text = "Map Choke Here" },
+    { key = "safe",   text = "Map Safe Here" },
+    { key = "kite",   text = "Kite Here" },
     { key = "remove", text = "Remove Nearest Pin" },
 }
 
@@ -84,7 +84,8 @@ function Screen:PerformUpdate()
     local list = self:GetMainList()
     list:Clear()
     for _, action in ipairs(ACTIONS) do
-        local entry = ZO_GamepadEntryData:New(action.text, ICON)
+        local text = addon.Pins.TYPES[action.key] and addon.Pins.ColorText(action.key, action.text) or action.text
+        local entry = ZO_GamepadEntryData:New(text, ICON)
         entry:SetIconTintOnSelection(true)
         entry.oneVXAction = action.key
         list:AddEntry(TEMPLATE, entry)

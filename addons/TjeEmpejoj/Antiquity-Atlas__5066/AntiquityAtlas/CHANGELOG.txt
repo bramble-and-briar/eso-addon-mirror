@@ -1,0 +1,17 @@
+0.13.3 - 2026-11-19
+- Reviewed ESOUI moderator findings: direct calls for map setup, preview, known HarvestMap cache nodes, and model/provider methods; programming errors remain visible.
+- Removed unnecessary guards on documented ESO scene fragments and antiquity manager.
+- Retained one narrowly scoped pcall when probing sparse map IDs; missing IDs can raise errors.
+- No LeadList dependency; bundled source coverage, controls and credits preserved.
+
+0.13.2 - 2026-11-19
+- Assembly progress now puts multi-part rewards before single-part rewards, keeping
+  descending held-or-excavated readiness percentage within each section.
+- Plain left click prioritizes known suitable boss positions, with entrance/map fallback.
+- Shift + left click opens the entrance/source map; right click retains excavation routing.
+- Added High Isle world-boss POI candidates for Gilded Disk and leads 475/520.
+  These POI identities still need live ESO verification.
+- Asp-Leather Strap offers High Isle/Summerset coastal regions and does not suggest
+  an unrelated dungeon boss or invented fixed spawn coordinates.
+- Retained full bundled acquisition data and English fallback; no Lead List dependency.
+- Retained LibZone public API integration, optional resource providers and credits.

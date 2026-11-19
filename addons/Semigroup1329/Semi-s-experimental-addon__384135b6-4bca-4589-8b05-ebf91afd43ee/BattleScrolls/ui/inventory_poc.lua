@@ -321,7 +321,8 @@ function LogScreen:PerformUpdate()
     list:Commit()
     if self.resetSelection then selectedIndex = selectedIndex or 1 end
     self.resetSelection = nil
-    if selectedIndex then list:SetSelectedIndexWithoutAnimation(selectedIndex) end
+    -- An empty list has no row to select: ESO's list raises there, before it switches its animation back on.
+    if selectedIndex and not list:IsEmpty() then list:SetSelectedIndexWithoutAnimation(selectedIndex) end
     self.updatingLog = false
     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
     self:OnTargetChanged(list, list:GetTargetData())

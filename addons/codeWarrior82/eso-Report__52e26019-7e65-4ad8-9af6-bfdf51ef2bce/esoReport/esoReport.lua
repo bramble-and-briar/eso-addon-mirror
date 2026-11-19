@@ -1,10 +1,4 @@
 local appName = "esoReport"
-local buffRunning = false
-
-local appVersion = 1  -- bump this on each update
-local savedVars
-local provider
-local notifications = {}   -- messages currently shown in the menu
 
 esoReport = {}
 
@@ -50,7 +44,6 @@ local function combatReport(eventCode, result, isError, abilityName, abilityGrap
     printMessage(" ")
 end
 
-
 local function effectReport(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, 
     effectType, abilityType, statusEffectType, unitName, unitID, abilityID)
 
@@ -71,7 +64,7 @@ local function effectReport(eventCode, changeType, effectSlot, effectName, unitT
     printMessage(zo_strformat("unitName- <<1>>", unitName))
     printMessage(zo_strformat("unitID- <<1>>", unitID))
     printMessage(zo_strformat("abilityID- <<1>>", abilityID))
-    printMessage(zo_strformat("buffType- <<1>>", buffType))
+    printMessage(zo_strformat("stackCount- <<1>>", stackCount))
     printMessage(" ")
 
 
@@ -81,139 +74,12 @@ end
 --register for notifications 
 local function registerAlerts()
     EVENT_MANAGER:RegisterForEvent("effectReport", EVENT_EFFECT_CHANGED, effectReport)
-    EVENT_MANAGER:AddFilterForEvent("effectReport", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 263462)
+    EVENT_MANAGER:AddFilterForEvent("effectReport", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 203447)
     --EVENT_MANAGER:RegisterForEvent("effectReport2", EVENT_EFFECT_CHANGED, effectReport)
     --EVENT_MANAGER:AddFilterForEvent("effectReport2", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 163108)
-    EVENT_MANAGER:RegisterForEvent("combatReport", EVENT_COMBAT_EVENT, combatReport)
-    EVENT_MANAGER:AddFilterForEvent("combatReport", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 117691)
+    --EVENT_MANAGER:RegisterForEvent("combatReport", EVENT_COMBAT_EVENT, combatReport)
+    --EVENT_MANAGER:AddFilterForEvent("combatReport", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 117691)
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
---------------------------------------------------------------------
--- 1. Render our entries (custom icon + heading)
---------------------------------------------------------------------
-local function HookEntryRendering()
-    local originalAddDataEntry = GAMEPAD_NOTIFICATIONS.AddDataEntry
-
-    function GAMEPAD_NOTIFICATIONS:AddDataEntry(dataType, data, isHeader)
-        if not data.isMyAddonNotification then
-            return originalAddDataEntry(self, dataType, data, isHeader)
-        end
-
-        local entryData = ZO_GamepadEntryData:New(data.shortDisplayText, data.texture)
-        entryData.data = data
-        entryData:SetIconTintOnSelection(true)
-        entryData:SetIconDisabledTintOnSelection(true)
-
-        local template = ZO_NOTIFICATION_TYPE_TO_GAMEPAD_TEMPLATE[dataType]
-        if isHeader then
-            entryData:SetHeader(data.heading)
-            self.list:AddEntryWithHeader(template, entryData)
-        else
-            self.list:AddEntry(template, entryData)
-        end
-    end
-end
-
---------------------------------------------------------------------
--- 2. Provider: feeds our messages into the notification list
---------------------------------------------------------------------
-local MyProvider = ZO_NotificationProvider:Subclass()
-
-function MyProvider:New(notificationManager)
-    local newProvider = ZO_NotificationProvider.New(self, notificationManager)
-    table.insert(notificationManager.providers, newProvider)
-    return newProvider
-end
-
-function MyProvider:BuildNotificationList()
-    ZO_ClearNumericallyIndexedTable(self.list)
-    self.list = ZO_DeepTableCopy(notifications)
-end
-
-function MyProvider:Accept(data)
-    if data.acceptCallback then data.acceptCallback(data) end
-end
-
-function MyProvider:Decline(data)
-    if data.declineCallback then data.declineCallback(data) end
-end
-
---------------------------------------------------------------------
--- 3. Post / dismiss
---------------------------------------------------------------------
-local updateMessage
-
-local function DismissUpdateMessage()
-    if not updateMessage then return end
-    for i, msg in ipairs(notifications) do
-        if msg == updateMessage then
-            table.remove(notifications, i)
-            break
-        end
-    end
-    updateMessage = nil
-    provider:pushUpdateCallback()
-end
-
-local function PostUpdateNotification()
-    updateMessage = {
-        isMyAddonNotification = true,
-        dataType = NOTIFICATIONS_ALERT_DATA,
-        secsSinceRequest = ZO_NormalizeSecondsSince(0),
-        heading = "MyAddon",
-        message = "MyAddon has been updated to version " .. appVersion .. ".",
-        note = "New features and bug fixes are available.",
-        shortDisplayText = "MyAddon Updated",
-        texture = "/esoui/art/miscellaneous/eso_icon_warning.dds",
-        controlsOwnSounds = true,
-        acceptCallback = DismissUpdateMessage,
-        declineCallback = DismissUpdateMessage,
-    }
-    table.insert(notifications, updateMessage)
-    provider:pushUpdateCallback()
-end
-
-
-
-local function OnPlayerActivated()
-    EVENT_MANAGER:UnregisterForEvent(appName, EVENT_PLAYER_ACTIVATED)
-
-    --if savedVars.lastSeenVersion ~= appVersion then
-        PostUpdateNotification()
-    --    savedVars.lastSeenVersion = appVersion
-    --end
-end
-
 
 --an addon has loaded
 local function onAddOnLoaded(event, name)
@@ -229,23 +95,8 @@ local function onAddOnLoaded(event, name)
 	--notify that add-on has been loaded
 	zo_callLater(function() printMessage("add-on loaded") end, 500)
 
-    --registerAlerts()
+    registerAlerts()
 
-
-    savedVars = ZO_SavedVars:NewAccountWide("esoRepAddonVars", 1, nil, { lastSeenVersion = 0 })
-
-    if GAMEPAD_NOTIFICATIONS then
-        HookEntryRendering()
-        provider = MyProvider:New(GAMEPAD_NOTIFICATIONS)
-        EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
-    else
-        printMessage("no notifications")
-    end
-
-
-
-    --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
-    --zo_callLater(function () isLoaded = true end, 2000)
 end
 
 --register for notification that an addon has been loaded

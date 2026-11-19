@@ -1,0 +1,9 @@
+## Title: GraveSight
+## Author: O-Range
+## Version: 0.4.2
+## AddOnVersion: 6
+## APIVersion: 101051 101052
+## DependsOn: LibAddonMenu-2.0>=43
+## SavedVariables: GraveSightVars
+
+GraveSight.lua

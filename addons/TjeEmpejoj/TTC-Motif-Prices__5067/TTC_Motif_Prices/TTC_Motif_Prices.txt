@@ -1,0 +1,11 @@
+## Title: TTC Motif Prices
+## Author: TjeEmpejoj
+## Description: TTC motif and style page prices in Outfit Style tooltips.
+## Version: 0.4.2
+## AddOnVersion: 402
+## APIVersion: 101051
+## DependsOn: TamrielTradeCentre LibCharacterKnowledge>=301030
+## SavedVariables: TTCMotifPricesSaved
+
+AcquisitionSources.lua
+TTCMotifPrices.lua

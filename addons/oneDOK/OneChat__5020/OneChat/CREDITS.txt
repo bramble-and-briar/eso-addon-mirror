@@ -1,0 +1,12 @@
+OneChat author: oneDOK. Code and translations were generated with OpenAI Codex.
+LibAddonMenu-2.0 settings library: sirinsidiator and Seerah.
+https://www.esoui.com/downloads/info7-LibAddonMenu.html
+
+ESO UI/API and built-in art: ZeniMax Online Studios and respective rights holders.
+Only built-in texture paths are referenced; no game art or upstream UI source is redistributed.
+Native UI source consulted during development:
+https://github.com/esoui/esoui/tree/86832f7b492a5bd3e2774fe187caf1cc527735df
+ESOUI developer documentation and release guidance:
+https://www.esoui.com/forums/showthread.php?t=10790
+
+See LICENSE.txt for the OneChat code license.

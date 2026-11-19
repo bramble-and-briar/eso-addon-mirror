@@ -137,7 +137,7 @@ function Settings.Initialize()
             name = GetString(SI_MCH_SET_FORGET),
             warning = GetString(SI_MCH_SET_LEARNPOOL_TT),
             func = function()
-                db.learned = {}
+                MCH.ForgetLearned()
                 Recalculate()
             end,
         },

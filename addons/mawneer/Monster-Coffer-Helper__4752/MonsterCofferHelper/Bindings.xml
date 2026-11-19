@@ -2,7 +2,7 @@
     <Layer name="General">
         <Category name="Monster Coffer Helper">
             <Action name="MCH_TOGGLE">
-                <Down>MonsterCofferHelper_Toggle()</Down>
+                <Down>MonsterCofferHelper.Toggle()</Down>
             </Action>
         </Category>
     </Layer>

@@ -22,7 +22,7 @@
     "WerewolfTimerBar"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3814/",
-  "fingerprint": "ceb739200554c31875ad042f2dc7412a78be9d9c8446ffd79e80f1e1676eee45",
+  "fingerprint": "3f3d43b83d4910441f7f3a5b601365e7e1f96a65754a71fe411be6352b838ded",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16588.png",
     "https://cdn-eso.mmoui.com/preview/pvw16589.png",
@@ -35,11 +35,11 @@
   "source_id": "3814",
   "source_url": "https://www.esoui.com/downloads/info3814-WerewolfTimerBarUpdated.html",
   "stats": {
-    "downloads": 9905,
+    "downloads": 10426,
     "favorites": 13,
-    "monthly_downloads": 375
+    "monthly_downloads": 882
   },
   "title": "Werewolf Timer Bar Updated",
-  "updated_at": 1794456835000,
-  "version": "3.10"
+  "updated_at": 1795041188000,
+  "version": "3.11"
 }

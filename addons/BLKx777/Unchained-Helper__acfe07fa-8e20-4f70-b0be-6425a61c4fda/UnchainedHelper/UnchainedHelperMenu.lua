@@ -5,7 +5,9 @@ local function RefreshLegendPosition()
     if UnchainedHelper.UpdateLegendPosition then
         UnchainedHelper.UpdateLegendPosition()
     end
-    if UnchainedHelper.RefreshLegend then
+    if UnchainedHelper.uiPreviewMode and UnchainedHelper.RefreshUIPreview then
+        UnchainedHelper.RefreshUIPreview()
+    elseif UnchainedHelper.RefreshLegend then
         UnchainedHelper.RefreshLegend()
     end
 end
@@ -50,6 +52,24 @@ function UnchainedHelper.setupMenu()
     LAM:RegisterAddonPanel(UnchainedHelper.name.."Options", panelData)
 
     local options = {
+        {
+            type = "header",
+            name = "UI layout",
+        },
+        {
+            type = "checkbox",
+            name = "Preview UI layout",
+            tooltip = "Shows every 2D Unchained Helper HUD element with sample text so you can position and scale it anywhere, including outside Blackrose. This preview is session-only and always starts off after reload.",
+            getFunc = function() return UnchainedHelper.uiPreviewMode == true end,
+            setFunc = function(value)
+                if UnchainedHelper.SetUIPreviewMode then UnchainedHelper.SetUIPreviewMode(value) end
+            end,
+            default = false,
+        },
+        {
+            type = "description",
+            text = "Preview covers the marker legend, spawn callout, Totem alert/timer, BRP split tracker and boss mechanic tracker. World-space arena markers are not HUD elements and are previewed separately inside Blackrose.",
+        },
         {
             type = "checkbox",
             name = "Enable addon",
@@ -117,8 +137,8 @@ function UnchainedHelper.setupMenu()
         {
             type = "slider",
             name = "Split tracker scale",
-            min = 70,
-            max = 140,
+            min = 75,
+            max = 150,
             step = 5,
             getFunc = function() return UnchainedHelper.savedVars.brpSplitScale or 100 end,
             setFunc = function(value)
@@ -152,6 +172,73 @@ function UnchainedHelper.setupMenu()
                 if UnchainedHelper.UpdateBRPSplitPosition then UnchainedHelper.UpdateBRPSplitPosition() end
             end,
             default = UnchainedHelper.defaults.brpSplitOffsetY,
+        },
+
+        {
+            type = "header",
+            name = "BRP boss mechanic predictor",
+        },
+        {
+            type = "checkbox",
+            name = "Show boss mechanic predictor",
+            tooltip = "Blackrose Prison only. Learns repeat cadence from real boss casts, remembers timing profiles across future runs, predicts when the mechanic is due, and resynchronizes whenever the real mechanic fires. Stage 4 learns separately. Off by default.",
+            getFunc = function() return UnchainedHelper.savedVars.showBRPMechanicTracker == true end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.showBRPMechanicTracker = value
+                if value then
+                    if UnchainedHelper.RegisterBRPMechanicTracker then UnchainedHelper.RegisterBRPMechanicTracker() end
+                else
+                    if UnchainedHelper.UnregisterBRPMechanicTracker then UnchainedHelper.UnregisterBRPMechanicTracker() end
+                end
+            end,
+            default = UnchainedHelper.defaults.showBRPMechanicTracker,
+        },
+        {
+            type = "slider",
+            name = "Mechanic tracker scale",
+            min = 75,
+            max = 150,
+            step = 5,
+            getFunc = function() return UnchainedHelper.savedVars.brpMechanicScale or 100 end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.brpMechanicScale = value
+                if UnchainedHelper.UpdateBRPMechanicPosition then UnchainedHelper.UpdateBRPMechanicPosition() end
+            end,
+            default = UnchainedHelper.defaults.brpMechanicScale,
+        },
+        {
+            type = "slider",
+            name = "Mechanic tracker X position",
+            min = 0,
+            max = 1800,
+            step = 20,
+            getFunc = function() return UnchainedHelper.savedVars.brpMechanicOffsetX or 1510 end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.brpMechanicOffsetX = value
+                if UnchainedHelper.UpdateBRPMechanicPosition then UnchainedHelper.UpdateBRPMechanicPosition() end
+            end,
+            default = UnchainedHelper.defaults.brpMechanicOffsetX,
+        },
+        {
+            type = "slider",
+            name = "Mechanic tracker Y position",
+            min = 0,
+            max = 900,
+            step = 20,
+            getFunc = function() return UnchainedHelper.savedVars.brpMechanicOffsetY or 300 end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.brpMechanicOffsetY = value
+                if UnchainedHelper.UpdateBRPMechanicPosition then UnchainedHelper.UpdateBRPMechanicPosition() end
+            end,
+            default = UnchainedHelper.defaults.brpMechanicOffsetY,
+        },
+        {
+            type = "button",
+            name = "Reset learned mechanic timings",
+            tooltip = "Clears all saved BRP mechanic timing profiles, including separate Stage 4 learning. The tracker will learn them again from real casts.",
+            func = function()
+                if UnchainedHelper.ResetBRPMechanicLearnedTimings then UnchainedHelper.ResetBRPMechanicLearnedTimings() end
+            end,
         },
 
         {
@@ -219,6 +306,10 @@ function UnchainedHelper.setupMenu()
             default = UnchainedHelper.defaults.spawnCalloutOffsetY,
         },
         {
+            type = "header",
+            name = "Totem alerts",
+        },
+        {
             type = "checkbox",
             name = "Show Totem Active alert",
             tooltip = "Flashes TOTEM ACTIVE when Barrage of Stone is detected in Blackrose Prison.",
@@ -247,9 +338,44 @@ function UnchainedHelper.setupMenu()
             default = UnchainedHelper.defaults.totemAlertDuration,
         },
         {
+            type = "slider",
+            name = "Totem alert scale",
+            min = 70,
+            max = 150,
+            step = 5,
+            getFunc = function() return UnchainedHelper.savedVars.totemAlertScale or 100 end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.totemAlertScale = value
+                if UnchainedHelper.UpdateTotemAlertPosition then UnchainedHelper.UpdateTotemAlertPosition() end
+            end,
+            default = UnchainedHelper.defaults.totemAlertScale,
+        },
+        {
+            type = "slider",
+            name = "Totem alert X position",
+            min = -1200, max = 1200, step = 20,
+            getFunc = function() return UnchainedHelper.savedVars.totemAlertOffsetX or 0 end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.totemAlertOffsetX = value
+                if UnchainedHelper.UpdateTotemAlertPosition then UnchainedHelper.UpdateTotemAlertPosition() end
+            end,
+            default = UnchainedHelper.defaults.totemAlertOffsetX,
+        },
+        {
+            type = "slider",
+            name = "Totem alert Y position",
+            min = -700, max = 700, step = 20,
+            getFunc = function() return UnchainedHelper.savedVars.totemAlertOffsetY or -260 end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.totemAlertOffsetY = value
+                if UnchainedHelper.UpdateTotemAlertPosition then UnchainedHelper.UpdateTotemAlertPosition() end
+            end,
+            default = UnchainedHelper.defaults.totemAlertOffsetY,
+        },
+        {
             type = "checkbox",
             name = "Smart Totem timer",
-            tooltip = "Learns the Totem spawn interval from the first two detected Totems, then predicts the repeating sequence and resynchronizes on each real spawn.",
+            tooltip = "Learns Totem cadence from real Barrage of Stone events, remembers the learned cadence between runs, then predicts and resynchronizes on every real Totem.",
             getFunc = function() return UnchainedHelper.savedVars.showTotemSmartTimer ~= false end,
             setFunc = function(value)
                 UnchainedHelper.savedVars.showTotemSmartTimer = value
@@ -263,6 +389,39 @@ function UnchainedHelper.setupMenu()
                 end
             end,
             default = UnchainedHelper.defaults.showTotemSmartTimer,
+        },
+        {
+            type = "slider",
+            name = "Totem timer scale",
+            min = 70, max = 150, step = 5,
+            getFunc = function() return UnchainedHelper.savedVars.totemTimerScale or 100 end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.totemTimerScale = value
+                if UnchainedHelper.UpdateTotemTimerPosition then UnchainedHelper.UpdateTotemTimerPosition() end
+            end,
+            default = UnchainedHelper.defaults.totemTimerScale,
+        },
+        {
+            type = "slider",
+            name = "Totem timer X position",
+            min = -1200, max = 1200, step = 20,
+            getFunc = function() return UnchainedHelper.savedVars.totemTimerOffsetX or 0 end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.totemTimerOffsetX = value
+                if UnchainedHelper.UpdateTotemTimerPosition then UnchainedHelper.UpdateTotemTimerPosition() end
+            end,
+            default = UnchainedHelper.defaults.totemTimerOffsetX,
+        },
+        {
+            type = "slider",
+            name = "Totem timer Y position",
+            min = -700, max = 700, step = 20,
+            getFunc = function() return UnchainedHelper.savedVars.totemTimerOffsetY or -215 end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.totemTimerOffsetY = value
+                if UnchainedHelper.UpdateTotemTimerPosition then UnchainedHelper.UpdateTotemTimerPosition() end
+            end,
+            default = UnchainedHelper.defaults.totemTimerOffsetY,
         },
 
         {

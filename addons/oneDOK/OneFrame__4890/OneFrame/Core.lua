@@ -16,17 +16,36 @@ function A:ApplySettings()
     self.CombatStats:Configure()
     self:QueueRefresh(true)
 end
+function A:InitializeSavedVariables()
+    self.defaults = self:MakeDefaults()
+    local world, account = GetWorldName(), GetDisplayName()
+    local saved = OneFrameSavedVariables or {}
+    local profile = saved[world]
+    local existing = profile and profile[account] and profile[account]["$AccountWide"]
+    local legacy = saved.Default and saved.Default[account] and saved.Default[account]["$AccountWide"]
+    local initial = ZO_DeepTableCopy(self.defaults)
+    -- Copy only on the first visit to each server. Keep the legacy profile intact
+    -- so another server can import it too; nested settings must never be shared.
+    if not existing and legacy and legacy.version == 1 then
+        for key, default in pairs(self.defaults) do
+            local value = legacy[key]
+            if type(value) == type(default) then
+                initial[key] = type(value) == "table" and ZO_DeepTableCopy(value) or value
+            end
+        end
+    end
+    self.sv = ZO_SavedVars:NewAccountWide("OneFrameSavedVariables", 1, nil, initial, world)
+end
 function A:Initialize()
     SLASH_COMMANDS["/oneframedebug"] = function() self.SharedStats:Debug() end
-    self.defaults = self:MakeDefaults()
-    self.sv = ZO_SavedVars:NewAccountWide("OneFrameSavedVariables", 1, nil, self.defaults)
+    self:InitializeSavedVariables()
     -- Ultimate is always shown when data exists; its old setting is no longer exposed.
     self.sv.ultimate = true
     self:PrepareRoleStatistics()
     self.Settings:Initialize()
     local apiVersion = GetAPIVersion()
     if apiVersion ~= 101050 and apiVersion ~= 101051 then
-        d(GetString(ONEFRAME_UNSUPPORTED))
+        d(GetString(SI_ONEFRAME_UNSUPPORTED))
         return
     end
     EVENT_MANAGER:RegisterForEvent(self.name .. "Startup", EVENT_PLAYER_ACTIVATED, function()
@@ -34,7 +53,7 @@ function A:Initialize()
             EVENT_MANAGER:UnregisterForEvent(self.name .. "Startup", EVENT_PLAYER_ACTIVATED)
         elseif not self.warned then
             self.warned = true
-            d(GetString(ONEFRAME_MISSING))
+            d(GetString(SI_ONEFRAME_MISSING))
         end
     end)
     if self:InitializeFrames() then
@@ -61,6 +80,8 @@ function A:InitializeFrames()
             self.Frames:UpdateStats()
         end
     end)
+    EVENT_MANAGER:AddFilterForEvent(self.name .. "Health", EVENT_POWER_UPDATE,
+        REGISTER_FILTER_POWER_TYPE, COMBAT_MECHANIC_FLAGS_HEALTH)
     for _, event in ipairs({ EVENT_GROUP_MEMBER_JOINED, EVENT_GROUP_MEMBER_LEFT,
         EVENT_GROUP_UPDATE, EVENT_UNIT_CREATED, EVENT_UNIT_DESTROYED, EVENT_GROUP_MEMBER_CONNECTED_STATUS }) do
         EVENT_MANAGER:RegisterForEvent(self.name .. "SharedLifecycle", event, function(_, tag)

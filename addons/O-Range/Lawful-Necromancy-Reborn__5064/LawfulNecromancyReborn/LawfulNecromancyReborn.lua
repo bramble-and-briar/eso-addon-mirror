@@ -1,17 +1,21 @@
 --[[
     Lawful Necromancy Reborn
-
     Prevents accidental criminal Necromancer spellcasting
     in justice-enabled zones while out of combat.
 
     Author: O-Range
-    Version: 1.1
+    Version: 1.1.1
 
     Dependencies:
       - LibSkillBlocker
       - LibAddonMenu-2.0
 
     Changelog
+
+    Version 1.1.1
+    - Added minimum required versions for LibSkillBlocker and LibAddonMenu-2.0
+    - Compliance update only
+    - No gameplay functionality changed
 
     Version 1.1
     - Added Bone Goliath and morph protection
@@ -39,7 +43,6 @@
 local ADDON_NAME = "LawfulNecromancyReborn"
 
 local LAM2 = LibAddonMenu2
-
 local LawfulNecromancyReborn = {}
 
 LawfulNecromancyReborn.defaults = {
@@ -170,7 +173,7 @@ local function CreateSettingsMenu()
         name = "Lawful Necromancy Reborn",
         displayName = "Lawful Necromancy Reborn",
         author = "O-Range",
-        version = "1.1",
+        version = "1.1.1",
         registerForRefresh = true,
         registerForDefaults = true,
     }
@@ -186,9 +189,11 @@ local function CreateSettingsMenu()
             type = "checkbox",
             name = "Enable Protection",
             tooltip = "Enable or disable criminal skill blocking.",
+
             getFunc = function()
                 return LawfulNecromancyReborn.db.enabled
             end,
+
             setFunc = function(value)
                 LawfulNecromancyReborn.db.enabled = value
             end,
@@ -198,9 +203,11 @@ local function CreateSettingsMenu()
             type = "checkbox",
             name = "Show Alerts",
             tooltip = "Show a notification when a criminal skill is blocked.",
+
             getFunc = function()
                 return LawfulNecromancyReborn.db.showAlerts
             end,
+
             setFunc = function(value)
                 LawfulNecromancyReborn.db.showAlerts = value
             end,
@@ -239,7 +246,7 @@ local function OnAddonLoaded(event, addonName)
         ZO_Alert(
             UI_ALERT_CATEGORY_ALERT,
             SOUNDS.NONE,
-            "Lawful Necromancy Reborn v1.1 Loaded"
+            "Lawful Necromancy Reborn v1.1.1 Loaded"
         )
     end
 end

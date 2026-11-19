@@ -15,10 +15,19 @@ local function Now()
 	return GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
 end
 
--- All the slots at a glance, one line each.
+-- The slots at a glance, one line each: the group of PAGE_SIZE that holds the slot the panel works on (24 lines
+-- would not fit a panel row).
 function A:OverviewText()
 	local lines = {}
-	for i = 1, self.NUM_SLOTS do
+	local count = self:SlotCount()
+	local size = self.PAGE_SIZE
+	local page = math.ceil(math.max(1, self.sv.slot) / size)
+	local first = (page - 1) * size + 1
+	local last = math.min(count, first + size - 1)
+	if count > size then
+		lines[1] = string.format(S.overviewRange, first, last, count)
+	end
+	for i = first, last do
 		local slot = self:GetSlot(i)
 		if slot and self:HasText(i) then
 			lines[#lines + 1] = string.format(S.overviewLine, i, self:ChannelName(slot.channel), A.ShortText(slot.text, 28))
@@ -55,13 +64,33 @@ function A:InitSettings()
 
 	panel:AddSetting({ type = L.ST_LABEL, label = S.note })
 
+	-- How many messages there are: the drop-down below lists that many, and so does the wheel page.
+	panel:AddSetting({
+		type = L.ST_SLIDER,
+		label = S.count,
+		min = self.MIN_SLOTS,
+		max = self.MAX_SLOTS,
+		step = 1,
+		default = self.defaults.slotCount,
+		format = "%d",
+		getFunction = function()
+			return self:SlotCount()
+		end,
+		setFunction = function(value)
+			self:Set("slotCount", value)
+			-- the wheel reads the count each time it opens; the drop-down's items and the overview are redrawn
+			-- after the slider's own callback has returned
+			zo_callLater(refresh, 50)
+		end,
+	})
+
 	-- Which slot the rows below work on.
 	panel:AddSetting({
 		type = L.ST_DROPDOWN,
 		label = S.slotChoice,
 		items = function()
 			local items = {}
-			for i = 1, self.NUM_SLOTS do
+			for i = 1, self:SlotCount() do
 				items[i] = { name = slotItemName(i), data = i }
 			end
 			return items

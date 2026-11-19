@@ -2,17 +2,19 @@
 --
 -- In gamepad mode (always on console, or "Gamepad mode" on PC) Scoreboard Remastered
 -- is the same table as on PC, in its own scene, driven by the controller:
---   D-pad / left stick up-down      move the selected row (hold to repeat)
---   D-pad / left stick left-right   sort by the previous / next column
+--   D-pad up / down                 move the selected row (hold to repeat)
+--   D-pad left / right              sort by the previous / next column
 --   A (Xbox) / Cross (PlayStation)  show / hide details for the selected row
 --   B / Circle                      close details, then close the table
 --   X / Square                      flip the sort order
 --   Y / Triangle                    kill feed (console list screen, UI/Console.lua)
 --   LB / RB (L1 / R1)               previous / next saved match
---   LT / RT (L2 / R2)               page up / down
+--   LT / RT (L2 / R2)               scroll the details when open, else page up / down
 --   Left stick click (L3)           group by team on / off
---   Right stick click (R3)          battleground records (console list screen)
--- The kill feed, match summary and records use ESO's native gamepad list screens.
+--   Right stick click (R3)          battleground records (same PC-style window)
+-- The D-pad is read through ESO's D-pad keybinds (UI_SHORTCUT_INPUT_*), not
+-- DIRECTIONAL_INPUT, so no add-on code runs inside ESO's per-frame input loop.
+-- The kill feed and match summary use ESO's native gamepad list screens.
 -- Setting "consoleLayout" = "list" uses the list screen for the scoreboard too.
 -- While the native battleground scoreboard is open, "Open Remastered" (right stick
 -- click by default) is added to its keybind strip.
@@ -29,14 +31,59 @@ function SBR.IsConsole()
     return type(IsConsoleUI) == "function" and IsConsoleUI() == true
 end
 
+-- keybind: the UI shortcut (our own screens, the inventory); scoreboardKeybind: the
+-- matching action in the native scoreboard's "BattlegroundScoreboard" layer (Bindings.xml)
 local OPEN_KEYS = {
-    right_stick = { keybind = "UI_SHORTCUT_RIGHT_STICK", label = "Right stick click" },
-    left_stick = { keybind = "UI_SHORTCUT_LEFT_STICK", label = "Left stick click" },
-    quaternary = { keybind = "UI_SHORTCUT_QUATERNARY", label = "Quaternary button" },
+    right_stick = { keybind = "UI_SHORTCUT_RIGHT_STICK", scoreboardKeybind = "SBR_SCOREBOARD_OPEN_RIGHT_STICK", label = "Right stick click" },
+    left_stick = { keybind = "UI_SHORTCUT_LEFT_STICK", scoreboardKeybind = "SBR_SCOREBOARD_OPEN_LEFT_STICK", label = "Left stick click" },
+    quaternary = { keybind = "UI_SHORTCUT_QUATERNARY", scoreboardKeybind = "SBR_SCOREBOARD_OPEN_QUATERNARY", label = "Quaternary button" },
 }
 GP.OPEN_KEYS = OPEN_KEYS
 
+-- D-pad keybinds with hold-to-repeat, for a keybind group: handlers.up / down / left /
+-- right are called once on press, then repeated while held (like ESO's lists).
+local REPEAT_DELAY_MS, REPEAT_RATE_MS = 350, 75
+local DPAD = { up = "UI_SHORTCUT_INPUT_UP", down = "UI_SHORTCUT_INPUT_DOWN",
+               left = "UI_SHORTCUT_INPUT_LEFT", right = "UI_SHORTCUT_INPUT_RIGHT" }
+
+local function StopRepeat()
+    EVENT_MANAGER:UnregisterForUpdate(SBR.name .. "_DPadRepeat")
+end
+
+-- After a press: wait, then call fn repeatedly until StopRepeat (key up).
+local function StartRepeat(fn)
+    local ns = SBR.name .. "_DPadRepeat"
+    EVENT_MANAGER:RegisterForUpdate(ns, REPEAT_DELAY_MS, function()
+        EVENT_MANAGER:UnregisterForUpdate(ns)
+        EVENT_MANAGER:RegisterForUpdate(ns, REPEAT_RATE_MS, fn)
+    end)
+end
+
+function GP.AddDPadKeybinds(group, handlers)
+    for dir, keybind in pairs(DPAD) do
+        local fn = handlers[dir]
+        if fn then
+            group[#group + 1] = {
+                keybind = keybind,
+                ethereal = true,
+                handlesKeyUp = true,
+                callback = function(up)
+                    StopRepeat()
+                    if up then return end
+                    fn()
+                    StartRepeat(fn)
+                end,
+            }
+        end
+    end
+    return group
+end
+GP.StopDPadRepeat = StopRepeat
+GP.StartDPadRepeat = StartRepeat
+
+-- ListScreen(): the list screen, created if needed; ShownListScreen(): only if it exists
 local function ListScreen() return SBR.Console and SBR.Console.scoreboard end
+local function ShownListScreen() return SBR.Console and SBR.Console:Peek("scoreboard") end
 
 function GP:Init()
     if self.initialized then return end
@@ -72,15 +119,6 @@ function GP:CreateTableScene()
         end
     end)
     self.scene = scene
-    if ZO_MovementController and MOVEMENT_CONTROLLER_DIRECTION_VERTICAL then
-        self.vertical = ZO_MovementController:New(MOVEMENT_CONTROLLER_DIRECTION_VERTICAL)
-        self.horizontal = ZO_MovementController:New(MOVEMENT_CONTROLLER_DIRECTION_HORIZONTAL)
-        -- right stick scrolls the details pane, with the same hold-to-repeat timing
-        if ZO_DI_RIGHT_STICK then
-            self.detailsScroll = ZO_MovementController:New(MOVEMENT_CONTROLLER_DIRECTION_VERTICAL, nil,
-                function() return DIRECTIONAL_INPUT:GetY(ZO_DI_RIGHT_STICK) end)
-        end
-    end
     self:BuildKeybinds()
     return scene
 end
@@ -89,7 +127,7 @@ local function UseList() return SBR.sv.consoleLayout == "list" end
 
 function GP:IsShowing()
     if self.scene and self.scene:IsShowing() then return true end
-    local s = ListScreen()
+    local s = ShownListScreen()
     return s ~= nil and s:IsShowingScene()
 end
 
@@ -120,7 +158,7 @@ function GP:Close()
         SCENE_MANAGER:HideCurrentScene() -- pops back to whatever opened it
         return
     end
-    local s = ListScreen()
+    local s = ShownListScreen()
     if s then s:Close() end
 end
 
@@ -128,31 +166,12 @@ function GP:OnShowing()
     self.coveredByChild = false
     SBR.Window:OnGamepadShown()
     KEYBIND_STRIP:AddKeybindButtonGroup(self.keybinds)
-    if DIRECTIONAL_INPUT then DIRECTIONAL_INPUT:Activate(self, SBR.Window.control) end
 end
 
 function GP:OnHiding()
-    if DIRECTIONAL_INPUT then DIRECTIONAL_INPUT:Deactivate(self) end
+    StopRepeat()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybinds)
     SBR.Window:OnGamepadHidden(self.coveredByChild)
-end
-
--- Called every frame by DIRECTIONAL_INPUT while the table is shown. The movement
--- controllers give ESO's own hold-to-repeat timing, as in every gamepad list.
-function GP:UpdateDirectionalInput()
-    if not self.vertical then return end
-    local W = SBR.Window
-    local v = self.vertical:CheckMovement()
-    if v == MOVEMENT_CONTROLLER_MOVE_NEXT then W:MoveSelection(1)
-    elseif v == MOVEMENT_CONTROLLER_MOVE_PREVIOUS then W:MoveSelection(-1) end
-    if self.detailsScroll then
-        local r = self.detailsScroll:CheckMovement()
-        if r == MOVEMENT_CONTROLLER_MOVE_NEXT then W:ScrollDetails(1)
-        elseif r == MOVEMENT_CONTROLLER_MOVE_PREVIOUS then W:ScrollDetails(-1) end
-    end
-    local h = self.horizontal:CheckMovement()
-    if h == MOVEMENT_CONTROLLER_MOVE_NEXT then W:CycleSort(1)
-    elseif h == MOVEMENT_CONTROLLER_MOVE_PREVIOUS then W:CycleSort(-1) end
 end
 
 function GP:BuildKeybinds()
@@ -196,17 +215,30 @@ function GP:BuildKeybinds()
         {
             keybind = "UI_SHORTCUT_LEFT_TRIGGER",
             ethereal = true,
-            callback = function() W:MoveSelection(-(W.maxVisibleRows or 10)) end,
+            callback = function()
+                if W.detailsOpen and W:CanScrollDetails() then W:ScrollDetails(-5) else W:MoveSelection(-(W.maxVisibleRows or 10)) end
+            end,
         },
         {
             keybind = "UI_SHORTCUT_RIGHT_TRIGGER",
             ethereal = true,
-            callback = function() W:MoveSelection(W.maxVisibleRows or 10) end,
+            callback = function()
+                if W.detailsOpen and W:CanScrollDetails() then W:ScrollDetails(5) else W:MoveSelection(W.maxVisibleRows or 10) end
+            end,
         },
         {
             name = function() return SBR.sv.groupByTeam and "Ungroup" or "Group by team" end,
             keybind = "UI_SHORTCUT_LEFT_STICK",
             callback = function() W:ToggleGroupByTeam(); GP:UpdateKeybinds() end,
+        },
+        {
+            name = "Report",
+            keybind = "UI_SHORTCUT_QUATERNARY",
+            visible = function() return W:CanOpenReport() end,
+            callback = function()
+                GP.coveredByChild = true
+                W:OpenReport()
+            end,
         },
         {
             name = "Records",
@@ -217,14 +249,24 @@ function GP:BuildKeybinds()
             end,
         },
     }
+    GP.AddDPadKeybinds(self.keybinds, {
+        up = function() W:MoveSelection(-1) end,
+        down = function() W:MoveSelection(1) end,
+        left = function() W:CycleSort(-1) end,
+        right = function() W:CycleSort(1) end,
+    })
 end
 
 function GP:UpdateKeybinds()
+    if SBR.Replace and SBR.Replace:IsShowing() and not (self.scene and self.scene:IsShowing()) then
+        SBR.Replace:UpdateKeybinds()
+        return
+    end
     if self.keybinds and self.scene and self.scene:IsShowing() then
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybinds)
         return
     end
-    local s = ListScreen()
+    local s = ShownListScreen()
     if s and s:IsShowingScene() then s:RefreshKeybinds() end
 end
 
@@ -236,7 +278,7 @@ function GP:AddOpenKeybind()
         alignment = KEYBIND_STRIP_ALIGN_RIGHT,
         {
             name = "Open Remastered",
-            keybind = key.keybind,
+            keybind = key.scoreboardKeybind,
             callback = function() GP:Open() end,
         },
     }
@@ -250,3 +292,4 @@ function GP:RemoveOpenKeybind()
     end
     self.openKeybindAdded = false
 end
+ScoreboardRemastered.Mark("UI/Gamepad.lua")

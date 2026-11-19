@@ -16,7 +16,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TABEPHA BOPOH CEBEPA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BOPOH-CEBEPA/TABEPHA-BOPOH-CEBEPA__4076) | BOPOH CEBEPA | PC / Mac | 1.0 |
 | [Tactical Display (WIP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/moo_2021/Tactical-Display-WIP__5048) | moo_2021 | PC / Mac | 0.3.1 |
 | [Tagarn's Hard Mode Reminders (In Development)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagarn/Tagarn-s-Hard-Mode-Reminders-In-Development__4310) | Tagarn | PC / Mac | 0.51 |
-| [Tagarn's Skill Point Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagarn/Tagarn-s-Skill-Point-Alerts__3989) | Tagarn | PC / Mac | 1.29 |
+| [Tagarn's Skill Point Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagarn/Tagarn-s-Skill-Point-Alerts__3989) | Tagarn | PC / Mac | 1.30 |
 | [Taichou's Icon Highlight](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VitorTaichou/Taichou-s-Icon-Highlight__4599) | VitorTaichou | PC / Mac | 1.1.0 |
 | [Take One](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mightyjo/Take-One__3076) | mightyjo | PC / Mac | 1.3.0 |
 | [Talk Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dicen9/Talk-Toggle__cda29292-5e10-4045-9219-10ff1a9444fe) | dicen9 | Console | — |
@@ -239,6 +239,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TSC Price Fetcher 2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SavageTSC/TSC-Price-Fetcher-2__2a88cc14-8e8c-4b73-9605-2e1d7c764e23) | SavageTSC | Console | — |
 | [tt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/tt__693a122d-7654-47b6-b686-abe24dddd74c) | user562x | Console | — |
 | [TTC Loot Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Leahcim70/TTC-Loot-Alert__4369) | Leahcim70 | PC / Mac | 1.0.14 |
+| [TTC Motif Prices](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TjeEmpejoj/TTC-Motif-Prices__5067) | TjeEmpejoj | PC / Mac | 0.4.2 |
 | [TTCmac](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tdenc/TTCmac__3067) | tdenc | PC / Mac | 0.4.0 |
 | [TTCPrice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/TTCPrice__4539) | NPViral | PC / Mac | 1.4 |
 | [TTCTooltip](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GlandePas/TTCTooltip__4508) | GlandePas | PC / Mac | 1 |

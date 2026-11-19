@@ -137,6 +137,7 @@ function BG:ReadMatchInfo()
         info.teamSize = SBR.API("GetBattlegroundTeamSize", info.battlegroundId)
         info.numTeams = SBR.API("GetBattlegroundNumTeams", info.battlegroundId)
         info.numRounds = SBR.API("GetBattlegroundNumRounds", info.battlegroundId)
+        info.limitedLives = SBR.API("DoesBattlegroundHaveLimitedPlayerLives", info.battlegroundId) == true
     end
     info.zoneName = SBR.API("GetUnitZone", "player")
     info.state = SBR.API("GetCurrentBattlegroundState")
@@ -222,23 +223,28 @@ local function ReadMedals(entryIndex, roundIndex)
         guard = guard + 1
         local medalCount = countOf(medalId)
         local info = MedalInfo(medalId)
-        medals[#medals + 1] = {
-            id = medalId,
-            count = medalCount or 1,
-            name = info.name,
-            icon = info.icon,
-            condition = info.condition,
-            scoreReward = info.scoreReward,
-        }
+        medals[#medals + 1] = { id = medalId, count = medalCount or 1, name = info.name, icon = info.icon }
         medalId = nextId(medalId)
     end
     table.sort(medals, function(a, b) return (a.count or 0) > (b.count or 0) end)
     return medals
 end
 
+-- Like ESO's own scoreboard (RebuildPlayerData in battlegroundscoreboard.lua): the
+-- entries of the current round, with whole-match totals in multi-round modes
+-- (Elimination and other round-based modes) and the lives each player has left
+-- where lives are limited. Without the round index, round-based modes report the
+-- wrong round and the board never moves.
 local function ReadEntriesUnprotected(self, roundIndex)
     local types = self.scoreTypes or self:DiscoverScoreTypes()
-    local GetInfo, GetClassId, GetScore = GetScoreboardEntryInfo, GetScoreboardEntryClassId, GetScoreboardEntryScoreByType
+    roundIndex = roundIndex or (GetCurrentBattlegroundRoundIndex and GetCurrentBattlegroundRoundIndex()) or nil
+    local bgId = GetCurrentBattlegroundId and GetCurrentBattlegroundId()
+    local rounds = bgId and GetBattlegroundNumRounds and GetBattlegroundNumRounds(bgId) or 1
+    local cumulative = (rounds or 1) > 1 and type(GetBattlegroundCumulativeScoreForScoreboardEntryByType) == "function"
+    local limitedLives = bgId and type(DoesBattlegroundHaveLimitedPlayerLives) == "function" and DoesBattlegroundHaveLimitedPlayerLives(bgId)
+    local GetLives = limitedLives and GetScoreboardEntryNumLivesRemaining or nil
+    local GetInfo, GetClassId = GetScoreboardEntryInfo, GetScoreboardEntryClassId
+    local GetScore = cumulative and GetBattlegroundCumulativeScoreForScoreboardEntryByType or GetScoreboardEntryScoreByType
     local entries = {}
     local n = GetNumScoreboardEntries(roundIndex) or 0
     for i = 1, n do
@@ -261,7 +267,9 @@ local function ReadEntriesUnprotected(self, roundIndex)
                 local v = GetScore(i, st.id, roundIndex)
                 if type(v) == "number" then scores[st.key] = v end
             end
-            e.medals = ReadMedals(i, roundIndex)
+            if GetLives then e.lives = GetLives(i, roundIndex) end
+            -- medals: whole match (the cumulative medal API, like the native medal panel)
+            e.medals = ReadMedals(i, nil)
             local medalTotal = 0
             for _, m in ipairs(e.medals) do medalTotal = medalTotal + (m.count or 1) end
             e.medalCount = medalTotal
@@ -285,3 +293,4 @@ function BG:EntryKey(e)
     if e.displayName and e.displayName ~= "" then return e.displayName end
     return e.characterName
 end
+ScoreboardRemastered.Mark("Data/Battleground.lua")

@@ -1,7 +1,7 @@
-## Title: |cFF69B4PB's Quick Chat|r 0.2.0
+## Title: |cFF69B4PB's Quick Chat|r 0.3.0
 ## Author: |cFF69B4PinkBanther|r
 ## Description: Keeps eight chat messages you wrote in the settings, shows them as an extra page of the D-pad up wheel (right after Emotes) and puts the chosen one into the chat box, on the channel you picked, ready to send.
-## Version: 0.2.0
+## Version: 0.3.0
 ## AddOnVersion: 1
 ## APIVersion: 101050 101051
 ## OptionalDependsOn: LibHarvensAddonSettings>=20106

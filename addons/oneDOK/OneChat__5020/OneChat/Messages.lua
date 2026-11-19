@@ -88,7 +88,7 @@ function A:FormatMessage(base, messageType, fromName, text, customerService, dis
     end
     local t = self.byChannel[messageType]
     if t and t.guildId then
-        local label = not self.sv.customMessage and self.sv.abbreviations[tostring(t.guildId)]
+        local label = self.sv.abbreviations[tostring(t.guildId)]
         if not label or label == "" then label = GetGuildName(t.guildId) end
         -- User-supplied abbreviations are plain labels, never link markup.
         label = label:gsub("|", ""):gsub("[\r\n]", " ")
@@ -125,6 +125,20 @@ function A:ReleaseMessages(window)
 end
 
 function A:WrapMessage(window, text)
+    -- Keep native content links clear of copy wrappers. Copy these messages
+    -- through the native link's context menu instead.
+    local hasContentLink, scan = false, 1
+    while true do
+        local first, last = findMarkup(text, "|H[^|]*|h.-|h", scan)
+        if not first then break end
+        local _, _, linkType = ZO_LinkHandler_ParseLink(text:sub(first, last))
+        if linkType ~= CHARACTER_LINK_TYPE and linkType ~= DISPLAY_NAME_LINK_TYPE
+            and linkType ~= PLAYER_LINK and linkType ~= GUILD_LINK and linkType ~= COPY_LINK then
+            hasContentLink = true
+            break
+        end
+        scan = last + 1
+    end
     local history = self.messageWindows[window]
     if not history then
         history = { ids = {}, cursor = 0 }
@@ -156,9 +170,13 @@ function A:WrapMessage(window, text)
         end
     end
     local function appendPlain(value)
+        if hasContentLink then
+            result[#result + 1] = value
+            return
+        end
         if value ~= "" then
-            -- Color tags stay outside copy links; textures keep their markup
-            -- inside the copy label. Never nest existing native links.
+            -- Keep color and texture markup outside copy links. TextBuffer
+            -- must receive texture tags intact, without hyperlink nesting.
             local cursor = 1
             while cursor <= #value do
                 local first, last = findMarkup(value, "|[crt]", cursor)
@@ -177,8 +195,7 @@ function A:WrapMessage(window, text)
                     last = textureEnd or last
                 end
                 local markup = value:sub(first, last)
-                if tag == "|t" then appendCopy(markup)
-                else result[#result + 1] = markup end
+                result[#result + 1] = markup
                 cursor = last + 1
             end
         end
@@ -237,8 +254,38 @@ function A:CopyEmbeddedLink(window, link)
     ShowMenu()
 end
 
+function A:CanTravelToPlayer(playerName)
+    if playerName == GetDisplayName() or not CanLeaveCurrentLocationViaTeleport()
+        or IsUnitDead("player") then return false end
+    for index = 1, GetGroupSize() do
+        local unitTag = GetGroupUnitTagByIndex(index)
+        if GetUnitDisplayName(unitTag) == playerName or GetUnitName(unitTag) == playerName then
+            return CanJumpToGroupMember(unitTag)
+        end
+    end
+    for index = 1, GetNumFriends() do
+        local name, _, status = GetFriendInfo(index)
+        if name == playerName then
+            local hasCharacter, _, _, _, _, _, _, zoneId = GetFriendCharacterInfo(index)
+            return status ~= PLAYER_STATUS_OFFLINE and hasCharacter and CanJumpToPlayerInZone(zoneId)
+        end
+    end
+    for index = 1, GetNumGuilds() do
+        local guildId = GetGuildId(index)
+        local memberIndex = GetGuildMemberIndexFromDisplayName(guildId, playerName)
+        if memberIndex then
+            local _, _, _, status = GetGuildMemberInfo(guildId, memberIndex)
+            local hasCharacter, _, _, _, _, _, _, zoneId = GetGuildMemberCharacterInfo(guildId, memberIndex)
+            if status ~= PLAYER_STATUS_OFFLINE and hasCharacter and CanJumpToPlayerInZone(zoneId) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 function A:TravelToPlayer(playerName)
-    if not CanLeaveCurrentLocationViaTeleport() or IsUnitDead("player") then
+    if not self:CanTravelToPlayer(playerName) then
         self:Notify(SI_ONECHAT_TRAVEL_UNAVAILABLE)
         return
     end
@@ -287,7 +334,9 @@ function A:PlayerMenu(playerName, rawName, id)
         if IsUnitDead("player") then A:Notify(SI_ONECHAT_ACTION_UNAVAILABLE)
         else MAIL_SEND:ComposeMailTo(playerName) end
     end)
-    AddMenuItem(GetString(SI_SOCIAL_MENU_JUMP_TO_PLAYER), function() A:TravelToPlayer(playerName) end)
+    if self:CanTravelToPlayer(playerName) then
+        AddMenuItem(GetString(SI_SOCIAL_MENU_JUMP_TO_PLAYER), function() A:TravelToPlayer(playerName) end)
+    end
     AddMenuItem(GetString(SI_SOCIAL_MENU_VISIT_HOUSE), function()
         if CanJumpToHouseFromCurrentLocation() and not IsUnitDead("player") then JumpToHouse(playerName)
         else A:Notify(SI_ONECHAT_TRAVEL_UNAVAILABLE) end
@@ -298,7 +347,6 @@ function A:PlayerMenu(playerName, rawName, id)
     AddMenuItem(zo_strformat(SI_CHAT_PLAYER_CONTEXT_REPORT, rawName), function()
         ZO_HELP_GENERIC_TICKET_SUBMISSION_MANAGER:OpenReportPlayerTicketScene(playerName)
     end)
-    AddMenuItem(GetString(SI_ONECHAT_COPY), function() A:CopyMessage(id) end)
     ShowMenu()
 end
 
@@ -357,13 +405,18 @@ function A:InstallMessages()
         return original(container, window, message, ...)
     end
     -- Native channel links from preexisting history still obey tab permissions.
-    ZO_PreHook(self.chat, "OnLinkClicked", function(_, _, button, _, _, linkType, name)
+    -- ZO_PreHook consumes true without returning it to LINK_HANDLER. Preserve
+    -- the handled result or channel links fall through to the item tooltip.
+    local onLinkClicked = self.chat.OnLinkClicked
+    self.chat.OnLinkClicked = function(chat, link, button, text, color, linkType, ...)
         if linkType == CHANNEL_LINK_TYPE and button == MOUSE_BUTTON_INDEX_LEFT then
+            local name = ...
             local t = A.byChannel[GetChatChannelId(name)]
             if t then A:ChooseChannel(t) end
             return true
         end
-    end)
+        return onLinkClicked(chat, link, button, text, color, linkType, ...)
+    end
     local callback = function(...) return A:OnMessageLink(...) end
     LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_MOUSE_UP_EVENT, callback)
     LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_CLICKED_EVENT, callback)

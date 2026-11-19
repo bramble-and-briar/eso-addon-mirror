@@ -1,6 +1,6 @@
 local s = PBS_QUICK_CHAT_STRINGS
 local jp = {
-	note = "あらかじめ書いておいたチャットの文章を8つまで保存し、選んだものをチャット欄に入れます。下でスロットを選び、文章・ホイールに表示する短い名前（省略可）・送り先のチャンネルを設定してください。同じ8スロットが、十字キー上長押しで開くホイールの「感情表現」のすぐ次のページに並びます（L1/R1 でページ切り替え）。文章を選んでボタンを離すと、チャンネルを合わせた状態で文章がチャット欄に入ります。ゲームの仕様でアドオンは自分でチャットを送信できないため、最後に出てくるキーボードの決定（送信）だけはご自身で押してください。",
+	note = "あらかじめ書いておいたチャットの文章を（8〜24個、下で個数を決めます）保存し、選んだものをチャット欄に入れます。下でスロットを選び、文章・ホイールに表示する短い名前（省略可）・送り先のチャンネルを設定してください。スロットは、十字キー上長押しで開くホイールの「感情表現」のすぐ次のページの項目として並びます（L1/R1 でページ切り替え）。文章を選んでボタンを離すと、チャンネルを合わせた状態で文章がチャット欄に入ります。ゲームの仕様でアドオンは自分でチャットを送信できないため、最後に出てくるキーボードの決定（送信）だけはご自身で押してください。",
 	slotChoice = "スロット",
 	slotItem = "スロット %d",
 	slotLabel = "%d: %s",
@@ -27,6 +27,10 @@ local jp = {
 	slotInfo = "ホイールのスロット %d：「%s」→ %s",
 	slotInfoEmpty = "スロット %d は空です。",
 	overviewLine = "%d [%s] %s",
+	overviewRange = "メッセージ %d〜%d（全%d個）",
+	count = "メッセージの数（8〜24。すべてホイールの1ページに並び、すぐ反映されます）",
+	countSet = "メッセージはホイールのページに%d個並びます。",
+	countLimited = "アクセシビリティの「切り替え式ホイール」がオンの間は、ホイールのページに最大%d個までしか出ません（ゲームのホットキーが10個分しかないため）。",
 	clearLabel = "このスロットを空にする",
 	clearButton = "空にする",
 	clearAgain = "数秒以内にもう一度押すとスロット %d を空にします。",
@@ -53,7 +57,7 @@ local jp = {
 	whyDeclined = "ゲームが開くのを断りました（メニュー・ダイアログ・ロード画面などが出ています）",
 	whyError = "開く処理に失敗しました：%s",
 	whyEarlier = "2回続けて前回のログインで失敗の印が残りました（設定画面の「やり直し」ボタンか /pbqc retry でやり直せます）",
-	noSuchSlot = "そのスロットはありません。スロット番号（1〜8）を指定してください。",
+	noSuchSlot = "そのスロットはありません。スロット番号（1〜%d）を指定してください。",
 	noSuchChannel = "そのチャンネルはありません。使えるもの：%s",
 	wheelOn = "ホイールのページをオンにしました。",
 	wheelOff = "ホイールのページをオフにしました。次回ログインか /reloadui で消えます。",
@@ -69,7 +73,7 @@ local jp = {
 	nameDone = "スロット %d の名前を「%s」にしました。",
 	channelDone = "スロット %d の送り先：%s",
 	bannerLine = "%s の準備ができました。/pbqc でコマンドを表示します。",
-	help = "/pbqc list | set <スロット> <文章> | name <スロット> <名前> | channel <スロット> <say|yell|zone|party|guild1-5|officer1-5|current> | clear <スロット>\n/pbqc send <スロット> | wheel on | off | head | tail | delay <ms> | status | retry",
+	help = "/pbqc list | set <スロット> <文章> | name <スロット> <名前> | channel <スロット> <say|yell|zone|party|guild1-5|officer1-5|current> | clear <スロット>\n/pbqc send <スロット> | wheel on | off | head | tail | count <8-24> | delay <ms> | status | retry",
 }
 for key, value in pairs(jp) do
 	s[key] = value

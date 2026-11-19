@@ -34,8 +34,8 @@ ZO_CreateStringId("SI_MCH_TT_CHANCE", "New shoulder: <<1>>")
 ZO_CreateStringId("SI_MCH_TT_COST", "Effective cost: <<1>> keys per new shoulder")
 ZO_CreateStringId("SI_MCH_TT_BEST", "Best buy here")
 ZO_CreateStringId("SI_MCH_TT_WORSE", "The other coffer is cheaper per new shoulder")
-ZO_CreateStringId("SI_MCH_TT_SET_MISSING", "<<1>> of <<2>> shoulders still missing from this set")
-ZO_CreateStringId("SI_MCH_TT_SET_DONE", "You already own every shoulder from this set - wasted keys")
+ZO_CreateStringId("SI_MCH_TT_SET_MISSING", "<<1>> of <<2>> shoulders still missing from this coffer")
+ZO_CreateStringId("SI_MCH_TT_SET_DONE", "You already own every shoulder in this coffer - wasted keys")
 
 -- Settings
 ZO_CreateStringId("SI_MCH_SET_DISPLAY", "Display")
@@ -59,7 +59,7 @@ ZO_CreateStringId("SI_MCH_SET_COST_TT", "Fallback used until the addon has seen 
 
 ZO_CreateStringId("SI_MCH_SET_POOL", "Vendor stock")
 ZO_CreateStringId("SI_MCH_SET_LEARNPOOL", "Use stock read from the vendor")
-ZO_CreateStringId("SI_MCH_SET_LEARNPOOL_TT", "Prefers the set list scanned from the store window over the list bundled with LibSets. Keeps up with rotations on its own.")
+ZO_CreateStringId("SI_MCH_SET_LEARNPOOL_TT", "Adds sets seen in the store window to the list bundled with LibSets, so a set newer than LibSets' data still counts.")
 ZO_CreateStringId("SI_MCH_SET_FORGET", "Forget everything read from vendors")
 
 ZO_CreateStringId("SI_BINDING_NAME_MCH_TOGGLE", "Toggle Coffer Helper")

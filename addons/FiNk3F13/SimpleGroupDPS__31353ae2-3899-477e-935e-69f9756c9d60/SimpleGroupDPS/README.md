@@ -1,4 +1,4 @@
-SimpleGroupDPS 2.0.2
+SimpleGroupDPS 2.0.6
 
 Eigene Schadens-, Heilungs-, Gesamt-DPS- und Boss-DPS-Erfassung durch eingebettetes LibCombat 89 direkt aus Solinurs Original-Repository, Stand 80817e6, mit beibehaltenem Fix fuer eigene eroeffnende DoTs. Eigenstaendige Kennung; keine gemeinsame Bibliotheksinstanz und keine Abhaengigkeit von CMX2. Lizenz und Aenderungsbeschreibung liegen unter libs/Combat.
 
@@ -22,3 +22,9 @@ Optionale LibCombat-Analyse (standardmaessig aus, nur fuer diese Sitzung):
 - Eine Meldungszahl von 0 beweist keinen Fehler: Manche Ereignisse treten im Test nicht auf. Erweiterte Charakterwerte sind schon im Original LibCombat 89 intern deaktiviert. Die Analyse bestaetigt gelieferte Ereignisse, nicht die Vollstaendigkeit aller vom Spiel moeglicherweise vorhandenen Daten. Sie ersetzt keine vollstaendige CMX-Oberflaeche und zeigt keine garantierte globale Gruppen-Buffabdeckung.
 
 Umbenennung aus SimpleGroupDPS2 1.9.37: identische Funktionen. Der bisherige private SavedVariables-Name bleibt kompatibel. Durch den geaenderten Add-on-Namen kann ESO jedoch eine neue Einstellungsdatei bzw. Zuordnung anlegen; eine automatische Uebernahme alter Einstellungen ist nicht garantiert. HUD-Positionen gegebenenfalls einmal neu setzen. Primaere Befehle: /sgdstatus, /sgdanalyse, /sgdbuffs. Die alten /sgd2-Befehle bleiben als Aliase erhalten. Nur eine Version installieren; ein vorhandenes altes SimpleGroupDPS wird durch diese Version ersetzt.
+
+2.0.3: Nach Solo-Tod wird die Wiederbelebung sowohl ueber Ereignisse als auch bei jeder normalen HUD-Aktualisierung anhand des tatsaechlichen Spielerzustands erkannt. Ein fehlendes oder vorzeitig gesendetes PLAYER_ALIVE blockiert die Messung nicht mehr. Doppelte Lebendmeldungen setzen einen neuen Kampf nicht zurueck. /sgdstatus zeigt den Pausenzustand.
+
+2.0.5: Gruppenversand wartet nicht mehr auf zuvor empfangene DPS/HPS-Pakete. Dadurch koennen zwei SimpleGroupDPS-Nutzer ohne BattleScrolls selbststaendig den Austausch starten. Versand erfolgt weiterhin nur in einer Gruppe bei aktiviertem Teilen und freigegebenem LibGroupBroadcast-Protokoll. Ein lokal aktives BattleScrolls behaelt seinen eigenen Sender. Messung, HUD und Timer bleiben unveraendert. Alle teilnehmenden SimpleGroupDPS-Nutzer sollten aktualisieren.
+
+2.0.6: Ein Treffer auf Wildtiere ohne anschliessenden Kampfzustand kann die Messung nicht mehr endlos aktiv halten. Nach LibCombats Ereigniswartezeit wird der native Kampfabschluss angestossen, wenn weder Spieler noch Gruppenmitglieder noch ein erkannter Boss-/Portalkampf aktiv sind. Neue Aktivitaet in der nativen Nachlaufphase hebt diesen vorgemerkten Abschluss wieder auf. DPS-/HPS-Berechnungen bleiben unveraendert.

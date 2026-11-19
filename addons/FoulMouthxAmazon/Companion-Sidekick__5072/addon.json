@@ -1,0 +1,47 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/FoulMouthxAmazon/Companion-Sidekick__5072",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "FoulMouthxAmazon",
+  "canonical_id": "esoui:5072",
+  "category_id": "18",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5072",
+  "deleted": false,
+  "directories": [
+    "CompanionSidekick"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5072/",
+  "fingerprint": "c46636402b108639798b0b8ae0104634e7e3549b9f976dfb51b3ce043f1eb8d9",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18578.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18579.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18580.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18581.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18582.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18583.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18584.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18588.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18586.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18587.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5072",
+  "source_url": "https://www.esoui.com/downloads/info5072-CompanionSidekick.html",
+  "stats": {
+    "downloads": 1,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Companion Sidekick",
+  "updated_at": 1795077443000,
+  "version": "0.1.1-beta"
+}

@@ -12,10 +12,23 @@ local HEALTH = {0.95, 0.08, 0.08}
 local STAM   = {0.05, 0.88, 0.28}
 local MAG    = {0.12, 0.32, 1.00}
 
-local defaults = { enabled=true, locked=true, scale=100, theme="Default", x=0, y=0, winterGap=0, themeGap=0 }
+local defaults = { enabled=true, locked=true, scale=100, theme="Default", x=0, y=0, winterGap=0, themeGap=0, ghostfireColor={0.10,1.0,0.20} }
 local Bars, saved = {}, nil
-local THEMES = {"Default", "Dragon", "Halloween", "Spooky Cute", "Hibiscus", "Sunflower", "Swords", "Winter"}
+local THEMES = {"Default", "Dragon", "Halloween", "Spooky Cute", "Hibiscus", "Sunflower", "Swords", "Winter", "Stardust Dragon", "Ghostfire"}
 local hudFragment, playerDead = nil, false
+local ghostfireTick = 0
+local function applyGhostfireColor()
+    if not Bars.ghostfire then return end
+    local c = saved and saved.ghostfireColor or defaults.ghostfireColor
+    for _,fire in ipairs(Bars.ghostfire) do
+        fire:SetColor(c[1] or 0.10,c[2] or 1,c[3] or 0.20,1)
+    end
+    if Bars.ghostfireGlow then
+        for _,glow in ipairs(Bars.ghostfireGlow) do
+            glow:SetColor(c[1] or 0.10,c[2] or 1,c[3] or 0.20,1)
+        end
+    end
+end
 
 local function clamp(v) if v < 0 then return 0 elseif v > 1 then return 1 end return v end
 local function makeTexture(parent,path) local t=WM:CreateControl(nil,parent,CT_TEXTURE); t:SetTexture(path); return t end
@@ -205,7 +218,14 @@ local function applyTheme()
             for _, part in ipairs(pieces) do part.control:SetHidden(saved.theme ~= name) end
         end
     end
+    if Bars.ghostfire then
+        for _,fire in ipairs(Bars.ghostfire) do fire:SetHidden(saved.theme ~= "Ghostfire") end
+        if Bars.ghostfireGlow then
+            for _,glow in ipairs(Bars.ghostfireGlow) do glow:SetHidden(saved.theme ~= "Ghostfire") end
+        end
+    end
     applyThemeGap()
+    applyGhostfireColor()
     -- Winter changes only the health-bar rendering. Other themes retain the normal red bar/glow.
     if Bars.health then Bars.health:SetHidden(winter) end
     if Bars.healthGlow then Bars.healthGlow:SetHidden(winter) end
@@ -217,7 +237,7 @@ local function createSettings()
     local LAM = LibAddonMenu2
     if not LAM then return end
     local panel = LAM:RegisterAddonPanel("RSSThemeBarsOptions", {
-        type="panel", name=DISPLAY, displayName=DISPLAY, author="WifeyRytic", version="1.2.0",
+        type="panel", name=DISPLAY, displayName=DISPLAY, author="WifeyRytic", version="1.3.0",
         registerForRefresh=true, registerForDefaults=true,
     })
     local options = {
@@ -244,6 +264,11 @@ local function createSettings()
           getFunc=function() return saved.theme end,
           setFunc=function(v) saved.theme=v; applyTheme() end,
           default=defaults.theme, width="full" },
+        { type="colorpicker", name="Ghostfire Flame & Glow Color", tooltip="Tint Ghostfire flames and soft glow together. Resource bar colors stay unchanged.",
+          getFunc=function() local c=saved.ghostfireColor or defaults.ghostfireColor; return c[1],c[2],c[3],1 end,
+          setFunc=function(r,g,b,a) saved.ghostfireColor={r,g,b}; applyGhostfireColor() end,
+          default={defaults.ghostfireColor[1],defaults.ghostfireColor[2],defaults.ghostfireColor[3],1}, width="full",
+          disabled=function() return saved.theme ~= "Ghostfire" end },
     }
     LAM:RegisterOptionControls("RSSThemeBarsOptions", options)
 end
@@ -298,6 +323,54 @@ local function create()
     local mb=makeTexture(hud,TEX.."rss_v1_magicka_arc.dds"); mb:SetDimensions(ARC_W,RIGHT_H); mb:SetAnchor(TOP,hud,CENTER,190,-OVERLAP/2); mb:SetColor(0.03,0.03,0.035,0.72); Bars.magickaBack=mb
     local glow=makeTexture(hud,TEX.."rss_v1_magicka_glow.dds"); glow:SetAnchor(TOP,Bars.magickaBack,TOP,0,0); tint(glow,MAG,0.82); glow:SetBlendMode(TEX_BLEND_MODE_ADD); Bars.magickaGlow=glow
     local m=makeTexture(hud,TEX.."rss_v1_magicka_arc.dds"); m:SetAnchor(TOP,mb,TOP,0,0); tint(m,MAG); Bars.magicka=m
+
+    -- Original resource bars remain in front of the separate flame artwork.
+    -- Only draw-order metadata is set; no bar texture, geometry, color or fill changes.
+    for _,bar in ipairs({Bars.healthBack, Bars.healthGlow, Bars.health,
+                          Bars.staminaBack, Bars.staminaGlow, Bars.stamina,
+                          Bars.magickaBack, Bars.magickaGlow, Bars.magicka,
+                          Bars.winterHealthGlow, Bars.winterHealth}) do
+        bar:SetDrawLayer(DL_CONTROLS)
+        bar:SetDrawTier(DT_HIGH)
+    end
+
+    -- Preserve the approved Ghostfire flame positions.
+    -- Soft halo effects are separate left/right bar-attached overlays, tintable
+    -- with the same color picker. Original resource bars always draw above them.
+    Bars.ghostfire = {}
+    Bars.ghostfireGlow = {}
+    local function addFuzz(back, name, w, h)
+        local fuzz=makeTexture(hud,TEX.."rss_v1_ghostfire_fuzz_"..name..".dds")
+        fuzz:SetDimensions(w+84,h+84)
+        fuzz:SetAnchor(CENTER,back,CENTER,0,0)
+        fuzz:SetBlendMode(TEX_BLEND_MODE_ADD)
+        fuzz:SetDrawLayer(DL_BACKGROUND)
+        fuzz:SetDrawTier(DT_LOW)
+        fuzz:SetMouseEnabled(false)
+        fuzz:SetHidden(true)
+        fuzz:SetAlpha(0.55)
+        table.insert(Bars.ghostfireGlow,fuzz)
+    end
+    addFuzz(hb,"health",ARC_W,ARC_H)
+    addFuzz(sb,"stamina",ARC_W,RIGHT_H)
+    addFuzz(mb,"magicka",ARC_W,RIGHT_H)
+
+    local function addGhostfire(back, name, yOffset)
+        local outward = (name == "health") and -17 or 30
+        local x, y = outward, (yOffset or 0) + 20
+        local fire=makeTexture(hud,TEX.."rss_v1_ghostfire_"..name..".dds")
+        fire:SetDimensions(212,596)
+        fire:SetAnchor(CENTER,back,CENTER,x,y)
+        fire:SetDrawLayer(DL_BACKGROUND)
+        fire:SetDrawTier(DT_MEDIUM)
+        fire:SetMouseEnabled(false)
+        fire:SetHidden(true)
+        fire:SetAlpha(0.78)
+        table.insert(Bars.ghostfire,fire)
+    end
+    addGhostfire(hb,"health",0)
+    addGhostfire(sb,"right",120)
+    applyGhostfireColor()
 
     -- Resource labels centered on the 560-unit HUD.
     -- Green is exact center x=0; red/blue are equal offsets -110/+110. Glow intensity reduced only.
@@ -362,6 +435,9 @@ local function create()
     splitTheme("Halloween","rss_v1_halloween.dds",512,512,0)
     splitTheme("Hibiscus","rss_v1_hibiscus.dds",560,560,0)
     splitTheme("Dragon","rss_v1_dragon.dds",560,560,0)
+    -- Stardust Dragon: independent left/right artwork follows bar spacing.
+    addSlice("Stardust Dragon","rss_v1_stardust_dragon.dds",560,560,0,0.5,-125,-1)
+    addSlice("Stardust Dragon","rss_v1_stardust_dragon.dds",560,560,0.5,1,125,1)
     splitTheme("Swords","rss_v1_swords.dds",560,560,0)
     -- Sunflower DDS is 1024x1024, but the original theme renders its upper-left
     -- 512x512 quadrant at 512x512. Preserve that exact display scale.
@@ -414,6 +490,21 @@ local function create()
     hint:SetDrawLayer(DL_OVERLAY); hint:SetDrawTier(DT_HIGH); hint:SetMouseEnabled(false); hint:SetHidden(true)
 
     setupHudFragment(); applyScale(); applyLock(); applyTheme(); createSettings()
+    -- Gentle layered brightness variation; no changes to resource updates.
+    EM:RegisterForUpdate(ADDON.."GhostfireFlicker",110,function()
+        if not saved or saved.theme ~= "Ghostfire" or not Bars.ghostfire then return end
+        ghostfireTick=ghostfireTick+1
+        for i,fire in ipairs(Bars.ghostfire) do
+            local pulse=0.72+0.12*math.sin(ghostfireTick*0.51+i*1.8)+0.06*math.sin(ghostfireTick*1.17+i)
+            fire:SetAlpha(pulse)
+        end
+        if Bars.ghostfireGlow then
+            for i,fuzz in ipairs(Bars.ghostfireGlow) do
+                local pulse=0.72+0.12*math.sin(ghostfireTick*0.51+i*1.8)+0.06*math.sin(ghostfireTick*1.17+i)
+                fuzz:SetAlpha(pulse*0.72)
+            end
+        end
+    end)
 
     EM:RegisterForEvent(ADDON.."Power",EVENT_POWER_UPDATE,onPower); EM:AddFilterForEvent(ADDON.."Power",EVENT_POWER_UPDATE,REGISTER_FILTER_UNIT_TAG,"player")
     EM:RegisterForEvent(ADDON.."Activated",EVENT_PLAYER_ACTIVATED,onPlayerActivated)

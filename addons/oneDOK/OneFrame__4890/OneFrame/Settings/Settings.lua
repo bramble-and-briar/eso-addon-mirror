@@ -7,8 +7,8 @@ function A.Settings:Initialize()
         type = "panel", name = "OneFrame", displayName = "OneFrame", author = "oneDOK",
         version = A.version, registerForRefresh = true, registerForDefaults = true,
     })
-    local labels = { general=ONEFRAME_GENERAL, display=ONEFRAME_DISPLAY, sort=ONEFRAME_SORT,
-        groupDps=ONEFRAME_GROUP_DPS, contextMenu=ONEFRAME_CONTEXT_MENU, class=ONEFRAME_CLASS, levelCP=ONEFRAME_LEVEL_CP }
+    local labels = { general=SI_ONEFRAME_GENERAL, display=SI_ONEFRAME_DISPLAY, sort=SI_ONEFRAME_SORT,
+        groupDps=SI_ONEFRAME_GROUP_DPS, contextMenu=SI_ONEFRAME_CONTEXT_MENU, class=SI_ONEFRAME_CLASS, levelCP=SI_ONEFRAME_LEVEL_CP }
     local options = {}
     local function header(key) options[#options + 1] = { type = "header", name = GetString(labels[key]) } end
     local function checkbox(key, get, set, default)
@@ -25,9 +25,17 @@ function A.Settings:Initialize()
     checkbox("contextMenu", function() return A.sv.interaction and A.sv.contextMenu end,
         function(value) A.sv.interaction = value; A.sv.contextMenu = value end, true)
     checkbox("groupDps")
+    if A.debugToolsEnabled then
+        options[#options + 1] = { type = "dropdown", name = GetString(SI_ONEFRAME_DEBUG),
+        choices = {GetString(SI_ONEFRAME_DEBUG_OFF), GetString(SI_ONEFRAME_DEBUG_SMALL), GetString(SI_ONEFRAME_DEBUG_LARGE)},
+        choicesValues = {"off", "small", "large"},
+        getFunc = function() return A.sv.debugMode end,
+        setFunc = function(value) A.sv.debugMode = value; A:ApplySettings() end,
+        default = A.defaults.debugMode }
+    end
     header("display")
 
-    for _, entry in ipairs({ { ONEFRAME_TANK_ROLE, LFG_ROLE_TANK }, { ONEFRAME_HEALER_ROLE, LFG_ROLE_HEAL }, { ONEFRAME_DAMAGE_ROLE, LFG_ROLE_DPS } }) do
+    for _, entry in ipairs({ { SI_ONEFRAME_TANK_ROLE, LFG_ROLE_TANK }, { SI_ONEFRAME_HEALER_ROLE, LFG_ROLE_HEAL }, { SI_ONEFRAME_DAMAGE_ROLE, LFG_ROLE_DPS } }) do
         local role = entry[2]
         local default = A.defaults.colors[role]
         options[#options + 1] = { type = "colorpicker", name = GetString(entry[1]), width = "half",
@@ -39,14 +47,14 @@ function A.Settings:Initialize()
                     A:ApplySettings()
                 end,
                 default = {r=default[1], g=default[2], b=default[3]} }
-        options[#options + 1] = { type = "dropdown", name = GetString(ONEFRAME_SHOW_STATISTIC), width = "half",
-                choices = {GetString(ONEFRAME_DPS_LABEL), GetString(ONEFRAME_HPS_LABEL), GetString(ONEFRAME_NOTHING)},
+        options[#options + 1] = { type = "dropdown", name = GetString(SI_ONEFRAME_SHOW_STATISTIC), width = "half",
+                choices = {GetString(SI_ONEFRAME_DPS_LABEL), GetString(SI_ONEFRAME_HPS_LABEL), GetString(SI_ONEFRAME_NOTHING)},
                 choicesValues = {"dps", "hps", "none"},
                 getFunc = function() return A:RoleStatistic(role) end,
                 setFunc = function(value) A.sv.roleStats[role] = value; A:ApplySettings() end,
                 default = "none" }
     end
-    options[#options + 1] = { type = "colorpicker", name = GetString(ONEFRAME_SHIELD_COLOR),
+    options[#options + 1] = { type = "colorpicker", name = GetString(SI_ONEFRAME_SHIELD_COLOR),
         getFunc = function() local c = A.sv.shieldColor; return c[1], c[2], c[3], A.sv.shieldOpacity end,
         setFunc = function(r, g, b, alpha)
             A.sv.shieldColor = {r, g, b}

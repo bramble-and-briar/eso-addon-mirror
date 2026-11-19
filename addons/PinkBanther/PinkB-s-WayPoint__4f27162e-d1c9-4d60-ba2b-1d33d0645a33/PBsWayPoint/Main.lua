@@ -264,7 +264,9 @@ function A:StatusLines()
 		or mode == "current" and ("the open map (" .. tostring(self.nwModeHow or "learned earlier") .. ")") or "not known yet (the open map is assumed)",
 		tostring(self:CurrentMap()))
 	if sample then
-		add("player: zone %d, east %s, south %s, height %s", sample.zone, Metres(sample.x), Metres(sample.z), Metres(sample.y))
+		add("player: zone %d (outermost zone %d), east %s, south %s, height %s", sample.zone, self:RootZone(sample.zone),
+			Metres(sample.x), Metres(sample.z), Metres(sample.y))
+		add("last change of the zone: %s", self.lastZoneChange or "none seen this session")
 		local frame = sample.frame
 		if frame then
 			local nx, ny = A.PlayerOnFrame(frame, sample.x, sample.z)
@@ -352,10 +354,8 @@ function A:StatusLines()
 		add("3D trail: paused after errors for %d more seconds (it tries again by itself): %s", math.ceil((self.trailPausedUntil - GetGameTimeMilliseconds()) / 1000),
 			tostring(diag.lastTrailError))
 	elseif world then
-		local pitch, yaw, roll = world.probe:Get3DRenderSpaceOrientation()
-		add("3D trail: %d frames; the camera's 3D orientation is pitch %s, yaw %s, roll %s (compare yaw with the heading above)",
-			diag.worldFrames or 0, tostring(pitch and string.format("%.2f", pitch)), tostring(yaw and string.format("%.2f", yaw)),
-			tostring(roll and string.format("%.2f", roll)))
+		add("3D trail: %d frames; %s; the beads and the beam face the camera heading (upright)", diag.worldFrames or 0,
+			tostring(self.trailState or "not drawn yet"))
 	else
 		add("3D trail: not started (it starts with the first stop in view)")
 	end
@@ -635,6 +635,7 @@ function A:CommandBody(input)
 		self.frames = {}
 		self.rects = {}
 		self.sv.nwMode = nil
+		self.zoneRoots = nil
 		self.trailOff = nil
 		self.trailPausedUntil = nil
 		self.activatedAt = nil
@@ -727,6 +728,8 @@ local function OnLoaded(_, name)
 	em:RegisterForEvent(A.name, EVENT_PLAYER_ACTIVATED, function()
 		A.active = true
 		A.activatedAt = GetGameTimeMilliseconds()
+		-- a loading screen: a change of zone after it says nothing about two zones sharing one world (see Nav.lua "The area")
+		A.loads = (A.loads or 0) + 1
 		Step("map pins", function()
 			A:RegisterPins()
 			A:RefreshPins()

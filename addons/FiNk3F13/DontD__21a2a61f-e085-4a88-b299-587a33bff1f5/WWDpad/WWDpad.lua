@@ -1,7 +1,7 @@
 -- Uses ESO's quest-cycle action, normally D-pad quest-cycle button in gamepad mode.
 -- Does not change the player's saved key bindings.
 local NAME = "WWDpad"
-local VERSION = "0.7.5"
+local VERSION = "0.7.6"
 local RADIAL_ID = "wwdpad"
 local settings
 local hooked = false
@@ -57,15 +57,20 @@ local function ClearQueued()
     WWDpadPendingHUD.Clear()
 end
 
+local function IsSwapBlocked()
+    return type(IsBlockActive) == "function" and IsBlockActive()
+end
+
 local function NextSetup(directMode, suppliedPlan, automatic)
     local now = GetFrameTimeMilliseconds()
     -- Ignore extra presses. Never queue them, and never unlock only because
     -- enough time passed while WW is still changing gear/skills/CP.
     if not settings.enabled or swapUncertain or swapPending then return false end
     local inCombat = IsUnitInCombat("player")
+    local deferRequest = inCombat or IsSwapBlocked()
     if not inCombat and now - lastSwap < SWAP_COOLDOWN_MS then return false end
-    if automatic and (inCombat or queuedPlan) then return false end
-    if inCombat and queuedPlan then return false end
+    if automatic and (deferRequest or queuedPlan) then return false end
+    if deferRequest and queuedPlan then return false end
     if not inCombat and queuedPlan and not suppliedPlan then DrainDeferred(); return false end
     if IsUnitDeadOrReincarnating("player") then return end
 
@@ -88,12 +93,13 @@ local function NextSetup(directMode, suppliedPlan, automatic)
     local ok, message = pcall(function()
         local plan = suppliedPlan or WWDpadRouting.Plan(directMode)
         if not plan then return end
-        if inCombat then
+        if deferRequest then
             if not queuedPlan then
                 plan.adjacent = false -- freeze the exact next index at button press
                 queuedPlan = plan
                 WWDpadPendingHUD.Show(plan)
                 WWDpadAuto.ManualOverride()
+                if not inCombat then DrainDeferred() end
             end
             return
         end
@@ -164,6 +170,15 @@ DrainDeferred = function()
     if IsUnitDeadOrReincarnating("player") then ClearQueued(); return end
     -- Do not switch over menus; resume when the HUD is shown again.
     if not ShouldHandle() then return end
+    -- WW also waits for IsBlockActive(), which can still be true at the
+    -- combat-end event. Keep ownership and the yellow pending HUD until free.
+    if queuedPlan and IsSwapBlocked() then
+        if not drainScheduled then
+            drainScheduled = true
+            zo_callLater(function() drainScheduled = false; DrainDeferred() end, 100)
+        end
+        return
+    end
     local remaining = SWAP_COOLDOWN_MS - (GetFrameTimeMilliseconds() - lastSwap)
     if remaining > 0 then
         if not drainScheduled then

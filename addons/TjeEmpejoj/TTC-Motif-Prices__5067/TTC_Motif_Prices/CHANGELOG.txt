@@ -1,0 +1,11 @@
+0.4.2 - 2026-11-19
+- Unified acquisition data and public functions under the TTCMotifPrices namespace.
+- Replaced the archive's JSON provenance file with readable SOURCE_REFERENCES.txt.
+- Call TTC's price API directly; unavailable price data still leaves source information visible.
+- Require LibCharacterKnowledge 3.1.3 (AddOnVersion 301030), verified against its official release archive.
+
+0.4.1 - 2026-11-18
+- Separate publication edition by TjeEmpejoj; pricing and source catalog retained from 0.4.0.
+- Consolidated required dependencies into one manifest field; LCK minimum 3.1.3.
+- Added author/version metadata, English instructions, research credits, AI disclosure
+  and the required ZeniMax notice. No TTC/LCK runtime or price data is bundled.

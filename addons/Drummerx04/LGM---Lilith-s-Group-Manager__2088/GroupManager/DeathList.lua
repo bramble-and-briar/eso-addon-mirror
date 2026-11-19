@@ -177,13 +177,12 @@ do
 
 
    function DeathList:OnCombatDamage( _, result, _, _, _, _, _, _, _, _, hitValue, powerType, _, _, sourceUnitId, targetUnitId, abilityId, overflow)
-      local _, targetName = LCA.IdentifyAllyUnitId(targetUnitId)
-      --      df("[%s:%s] %s with %s %d %s %s", tostring(result), tostring(targetName), tostring(hitValue), tostring(LCA.GetAbilityName(abilityId)), abilityId, tostring(idToName[sourceUnitId]), tostring(idToName[targetUnitId]))
-      if targetName and ActionResults[result] then
-         local queue = damageQueues[targetName]
+      local unitTag = LCA.IdentifyAllyUnitId(targetUnitId)
+      if unitTag and ActionResults[result] then
+         local queue = damageQueues[unitTag]
          if not queue then
             queue = LGM.NewDamageQueue(LGM.SV.recapLength)
-            damageQueues[targetName] = queue
+            damageQueues[unitTag] = queue
          end
          if overflow then
             hitValue = hitValue + overflow
@@ -312,8 +311,8 @@ do
       if isDead and ((isGrouped and unitTag:byte(1) == 0x67) or (not isGrouped and (unitTag == "player" or unitTag == "companion"))) then
 
          local name = LCA.GetNameFromUnitTag(unitTag)
-         local q = damageQueues[name]
-         damageQueues[name] = nil
+         local q = damageQueues[unitTag]
+         damageQueues[unitTag] = nil
 
 
          local abilityName = "Unknown Cause"

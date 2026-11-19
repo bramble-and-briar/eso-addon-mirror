@@ -1,0 +1,18 @@
+<Bindings>
+  <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+    <Category name="SI_KEYBINDINGS_CATEGORY_USER_INTERFACE">
+      <Action name="DUNGEON_BUDDY_TOGGLE_MENU">
+        <Down>DungeonBuddy_ToggleMenu()</Down>
+      </Action>
+      <Action name="DUNGEON_BUDDY_PREPARE_BOSS_REPORT">
+        <Down>DungeonBuddy_PrepareBossReport()</Down>
+      </Action>
+      <Action name="DUNGEON_BUDDY_OPEN_BOSS_DRAFT">
+        <Down>DungeonBuddy_OpenBossDraft()</Down>
+      </Action>
+      <Action name="DUNGEON_BUDDY_OPEN_SETTINGS">
+        <Down>DungeonBuddy_OpenSettings()</Down>
+      </Action>
+    </Category>
+  </Layer>
+</Bindings>

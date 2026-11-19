@@ -1,0 +1,17 @@
+## Title: Camera Angles
+## Author: clubwratt
+## Version: 1.0.1
+## AddOnVersion: 10001
+## APIVersion: 101050 101051
+## Description: /cam prints the camera's yaw, pitch and roll to chat, in degrees and radians, for lining furnishings up with the left-right directions of the housing editor (return to entrance).
+## DevId: bc6b3b76-f701-4533-9492-c50acb1783bc
+## ProdId: 1adfc207-cad7-41d9-b92b-11ec9ee16c24
+
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls(R) and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+
+CameraAngles.lua
+CameraAnglesTypes.lua
+CameraAnglesState.lua
+CameraAnglesCameraUtils.lua
+CameraAnglesCameraActions.lua
+CameraAnglesMain.lua

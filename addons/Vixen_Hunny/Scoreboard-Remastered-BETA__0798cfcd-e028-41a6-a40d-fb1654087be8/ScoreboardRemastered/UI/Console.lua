@@ -158,7 +158,7 @@ function ZO_Tooltip:LayoutScoreboardRemasteredKill(k, match)
         { "Killing blow", k.ability ~= "" and k.ability or nil },
     }, true)
     local recap = {}
-    for _, h in ipairs(k.recap or {}) do
+    for _, h in ipairs(SBR.MatchLog.DecodeRecap(k)) do
         recap[#recap + 1] = { Fit((h.ability ~= "" and h.ability or "?") .. " · " .. (h.source ~= "" and h.source or "?")),
             N(h.hit) .. (h.crit and "*" or "") }
     end
@@ -379,7 +379,7 @@ function Scoreboard:InitializeKeybindStripDescriptors()
         {
             name = "Battleground records",
             keybind = "UI_SHORTCUT_TERTIARY",
-            callback = function() Console.records:Open() end,
+            callback = function() SBR.MatchBrowser:Open() end,
         },
         KEYBIND_STRIP:GetDefaultGamepadBackButtonDescriptor(),
     }
@@ -715,10 +715,26 @@ end
 ---------------------------------------------------------------------------
 -- XML entry points (UI/Console.xml)
 ---------------------------------------------------------------------------
+-- The two screens are set up the first time they're used, not when ESO creates
+-- their controls at load (load time counts against the CPU budget).
+-- Console:Peek(name) reads one without creating it.
+local pending = {}
+setmetatable(Console, { __index = function(t, k)
+    local make = pending[k]
+    if not make then return nil end
+    pending[k] = nil
+    local obj = make()
+    rawset(t, k, obj)
+    return obj
+end })
+
+function Console:Peek(name) return rawget(self, name) end
+
 function ScoreboardRemastered_ScoreboardConsole_OnInitialized(control)
-    Console.scoreboard = Scoreboard:New(control)
+    pending.scoreboard = function() return Scoreboard:New(control) end
 end
 
 function ScoreboardRemastered_RecordsConsole_OnInitialized(control)
-    Console.records = Records:New(control)
+    pending.records = function() return Records:New(control) end
 end
+ScoreboardRemastered.Mark("UI/Console.lua")

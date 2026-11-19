@@ -3,10 +3,10 @@
 
 Rebar = {
   name = "Rebar",
-  version = "7.0",
+  version = "7.1",
   svName = "RebarVars",
   svVersion = 2,       -- unchanged so existing profiles carry over
-  configVersion = 3,   -- bump to run a migration in Rebar.MigrateSavedVars
+  configVersion = 4,   -- bump to run a migration in Rebar.MigrateSavedVars
 
   sv = nil,
   ui = nil,
@@ -50,8 +50,20 @@ R.default = {
 
   -- Appearance
   backgroundAlpha = 0.85,
+  gradientShade = 0.38,  -- how much darker the start of the fill is (0 = flat)
+
+  -- Text colors
+  textColorR = 1.00,        textColorG = 1.00,        textColorB = 1.00,        -- value text
+  titleColorR = 1.00,       titleColorG = 1.00,       titleColorB = 1.00,       -- HEALTH / MAGICKA / STAMINA
+  warningColorR = 1.00,     warningColorG = 0.32,     warningColorB = 0.26,     -- LOW
+  shieldTextColorR = 0.86,  shieldTextColorG = 0.92,  shieldTextColorB = 1.00,  -- [shield] value
+  regenColorR = 0.85,       regenColorG = 0.85,       regenColorB = 0.85,       -- restore rate
+  regenGainUseBarColor = true,
+  regenGainColorR = 0.55,   regenGainColorG = 1.00,   regenGainColorB = 0.55,   -- restore rate flash on gain
+  regenLossColorR = 1.00,   regenLossColorG = 0.42,   regenLossColorB = 0.36,   -- restore rate flash on loss
+  moverTextColorR = 0.55,   moverTextColorG = 0.82,   moverTextColorB = 1.00,   -- unlock hint
   showGloss = true,
-  mirrorMagicka = false,
+  healthMirror = false,  magickaMirror = false,  staminaMirror = false,
   showThresholdMarker = true,
 
   -- Text
@@ -152,6 +164,12 @@ function U.Font(size, faceOverride)
   return string.format("%s|%d|%s", face, U.Clamp(U.Round(size), 8, 48), sv.fontStyle or "soft-shadow-thin")
 end
 
+-- Every color setting, by prefix (saved as <prefix>ColorR/G/B).
+R.COLOR_PREFIXES = {
+  "health", "magicka", "stamina", "shield",
+  "text", "title", "warning", "shieldText", "regen", "regenGain", "regenLoss", "moverText",
+}
+
 function R.GetColor(key)
   local sv = R.sv
   return sv[key .. "ColorR"], sv[key .. "ColorG"], sv[key .. "ColorB"]
@@ -178,6 +196,15 @@ function R.MigrateSavedVars()
     sv.glowStrength = nil
     sv.animationSpeed = nil
     sv.configVersion = 3
+  end
+
+  -- v7.0 -> v7.1: single magicka mirror became a per-resource setting
+  if (sv.configVersion or 0) < 4 then
+    if sv.mirrorMagicka ~= nil then
+      sv.magickaMirror = sv.mirrorMagicka
+      sv.mirrorMagicka = nil
+    end
+    sv.configVersion = 4
   end
 end
 

@@ -348,3 +348,4 @@ function FT:Stop()
     self.ledger = nil
     cleanNames, abilityNames = {}, {}
 end
+ScoreboardRemastered.Mark("Data/FightTracker.lua")

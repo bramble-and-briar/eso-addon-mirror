@@ -1,7 +1,7 @@
 GuildTraderActivity = {
 	name = "GTA",
 	author = "@sinnereso",
-	version = "2026.11.17",
+	version = "2026.11.19",
 	svName = "GTAVars",
 	svVersion = 1,
 }
@@ -10,6 +10,7 @@ local SELECTED_GUILD_LIST
 local SELECTED_GUILD_ID
 local SELECTED_GUILD_DATA
 local SELECTED_GUILD_IS_CURRENT
+local SELECTED_PLAYER_LIST
 local SELECTED_USER_DISPLAY_NAME
 local LINKED_INDICATOR
 --local LINKED_IMAGE = "|t18:18:/esoui/art/buttons/checkbox_checked.dds|t "--radiobuttondown --checkbox_checked_disabled --featuredot_active --art/tooltips/greenarrow
@@ -28,7 +29,7 @@ local function GetLastKioskResetOLD()
 	local offset = os.difftime(local_sec, utc_sec) / 3600
 	local t = os.date("!*t", now)
 	local currentWday = tonumber(os.date("!%w", now))
-    local daysToSubtract = (currentWday - 2 + 7) % 7
+	local daysToSubtract = (currentWday - 2 + 7) % 7
 	t.hour = (utcReset[GetWorldName()] + offset)
 	if daysToSubtract == 0 and (utc_table.hour + offset) < t.hour then daysToSubtract = 7 end
 	t.day = t.day - daysToSubtract
@@ -124,8 +125,7 @@ local function LayoutNameRow(ctrl, data, scrollList)
 		if button == 1 and upInside then
 			PlaySound("Click")
 			zo_callLater(function()
-				local isCurrent = true
-				GuildTraderActivity.CreateGuildList(data, isCurrent)
+				GuildTraderActivity.CreateGuildList(data, true)
 				EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_ADDED, GuildTraderActivity.UpdateForGuildDataChange)
 				EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_REMOVED, GuildTraderActivity.UpdateForGuildDataChange)
 				EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_RANK_CHANGED, GuildTraderActivity.UpdateForGuildDataChange)
@@ -200,8 +200,7 @@ local function LayoutPreviousNameRow(ctrl, data, scrollList)
 		if button == 1 and upInside then
 			PlaySound("Click")
 			zo_callLater(function()
-				local isCurrent = false
-				GuildTraderActivity.CreateGuildList(data, isCurrent)
+				GuildTraderActivity.CreateGuildList(data, false)
 				EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_ADDED, GuildTraderActivity.UpdateForGuildDataChange)
 				EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_REMOVED, GuildTraderActivity.UpdateForGuildDataChange)
 				EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_RANK_CHANGED, GuildTraderActivity.UpdateForGuildDataChange)
@@ -259,11 +258,15 @@ end
 ---------------------------------------------
 -- Trader Activity Scroll Window --
 local GTAMain = WINDOW_MANAGER:CreateTopLevelWindow("Guild Trader Activity")
-GTAMain:SetAnchor(CENTER, GuiRoot, CENTER, 0, -80)
+GTAMain:SetAnchor(CENTER, GuiRoot, CENTER, 0, -120)
 GTAMain:SetDimensions(900, 600)
 local GTABackground = WINDOW_MANAGER:CreateControl("GTABg", GTAMain, CT_TEXTURE)
 GTABackground:SetAnchorFill(GTAMain)
 GTABackground:SetTexture("GTA/scroll.dds")
+local GTA_SCENE = ZO_Scene:New("GTA", SCENE_MANAGER)
+local GTAFragment = ZO_FadeSceneFragment:New(GTAMain)
+GTA_SCENE:AddFragment(GTAFragment)
+GTA_SCENE:AddFragment(MOUSE_UI_MODE_FRAGMENT)
 local GTALogo = WINDOW_MANAGER:CreateControl("GTALogo", GTAMain, CT_LABEL)
 GTALogo:SetAnchor(TOP, GTAMain, TOP, 0, 20)
 GTALogo:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
@@ -316,7 +319,7 @@ GTAShowAllBoxLabel:SetHandler("OnMouseExit", function(self)
 	--ClearTooltip(InformationTooltip)
 end)
 local function OnShowAllBoxToggled(GTAShowAllBox, checkedState)
-    GuildTraderActivity.savedVariables.showAll = checkedState
+	GuildTraderActivity.savedVariables.showAll = checkedState
 	GTAShowAllBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
 	GuildTraderActivity.Refresh()
 end
@@ -351,7 +354,7 @@ GTACacheTrimBoxLabel:SetHandler("OnMouseExit", function(self)
 	--ClearTooltip(InformationTooltip)
 end)
 local function OnCacheTrimBoxToggled(GTACacheTrimBox, checkedState)
-    GuildTraderActivity.savedVariables.cacheTrim = checkedState
+	GuildTraderActivity.savedVariables.cacheTrim = checkedState
 	GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
 end
 ZO_CheckButton_SetToggleFunction(GTACacheTrimBox, OnCacheTrimBoxToggled)
@@ -667,13 +670,13 @@ local alignCenter= {
 }
 
 local function showRankTooltip(control)
-    local rankIndex = control:GetParent().dataEntry.data[1]
+	local rankIndex = control:GetParent().dataEntry.data[1]
 	local rankName = GetFinalGuildRankName(SELECTED_GUILD_ID, rankIndex)
 	ZO_Tooltips_ShowTextTooltip(control, LEFT, rankName)
 end
 
 local function hideRankTooltip()
-    ZO_Tooltips_HideTextTooltip()
+	ZO_Tooltips_HideTextTooltip()
 end
 
 local function SaveNote(displayName, note)
@@ -684,26 +687,19 @@ local function SaveNote(displayName, note)
 			if editControl then
 				local newNoteText = editControl:GetText()
 				SetGuildMemberNote(SELECTED_GUILD_ID, memberIndex, string.format(newNoteText))
-				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "", (memberName .. " guild note updated"))
-				zo_callLater(function() SCENE_MANAGER:Show("hudui") end, 50)
+				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "", (memberName .. " guild note updated."))
 			end
 			
 		end
 	end
 end
 
-local function EditNoteCancelMouseReturn()
-	if not GTASelectedGuildView:IsHidden() then
-		zo_callLater(function() SCENE_MANAGER:Show("hudui") end, 50)
-	end
-end
-
 local function ShowEditNoteDialog(name, curNote)
-    local dialogParams = {
-        displayName = name,
-        note = curNote,
-        changedCallback = function(...) SaveNote(...) end
-    }
+	local dialogParams = {
+		displayName = name,
+		note = curNote,
+		changedCallback = function(...) SaveNote(...) end
+	}
 	ZO_Dialogs_ShowDialog('EDIT_NOTE', dialogParams)
 end
 
@@ -730,60 +726,56 @@ local headerStyle = combine(defaultStyle, {
 	end},
 })
 local noteCellStyle = {
-    SetDimensions = {20, 20},
-    SetTextureCoords = {0.10, 0.90, 0.10, 0.90},
-    SetDrawTier = {DT_MEDIUM},
-    SetMouseOverBlendMode = {TEX_BLEND_MODE_ADD},
-    SetNormalTexture = {'/esoui/art/contacts/social_note_up.dds'},
-    SetPressedTexture = {'/esoui/art/contacts/social_note_down.dds'},
-    SetMouseOverTexture = {'/esoui/art/contacts/social_note_over.dds'},
+	SetDimensions = {20, 20},
+	SetTextureCoords = {0.10, 0.90, 0.10, 0.90},
+	SetDrawTier = {DT_MEDIUM},
+	SetMouseOverBlendMode = {TEX_BLEND_MODE_ADD},
+	SetNormalTexture = {'/esoui/art/contacts/social_note_up.dds'},
+	SetPressedTexture = {'/esoui/art/contacts/social_note_down.dds'},
+	SetMouseOverTexture = {'/esoui/art/contacts/social_note_over.dds'},
 }
 local showRankTooltipStyle = {
-    SetMouseEnabled = {true},
-    SetDrawLevel = {100},
-    {'SetHandler', 'OnMouseEnter', showRankTooltip},
-    {'SetHandler', 'OnMouseExit', hideRankTooltip},
+	SetMouseEnabled = {true},
+	SetDrawLevel = {100},
+	{'SetHandler', 'OnMouseEnter', showRankTooltip},
+	{'SetHandler', 'OnMouseExit', hideRankTooltip},
 }
 local salesStyle = combine(defaultStyle, alignRight)
 local guildStyle = combine(defaultStyle, alignLeft)
 
 ZO_Dialogs_RegisterCustomDialog("GTAPromoteToLeader", {
-    title = {text = "Promote to Guild Leader",},
-    mainText = {text = "Do you wish to continue?",},
-    buttons = {
-        {
-            text = SI_DIALOG_ACCEPT,
-            callback = function(displayName)
-                GuildPromote(SELECTED_GUILD_ID, displayName)
-				zo_callLater(function() SCENE_MANAGER:Show("hudui") end, 50)
-            end,
-        },
-        {
-            text = SI_DIALOG_DECLINE,
-            callback = function()
-                zo_callLater(function() SCENE_MANAGER:Show("hudui") end, 50)
-            end,
-        }
-    }
+	title = {text = "Promote to Guild Leader",},
+	mainText = {text = "Do you wish to continue?",},
+	buttons = {
+		{
+			text = SI_DIALOG_ACCEPT,
+			callback = function(displayName)
+				GuildPromote(SELECTED_GUILD_ID, displayName)
+			end,
+		},
+		{
+			text = SI_DIALOG_DECLINE,
+			callback = function()
+			end,
+		}
+	}
 })
 ZO_Dialogs_RegisterCustomDialog("GTARemoveFromGuild", {
-    title = {text = "Remove user from Guild",},
-    mainText = {text = "Do you wish to continue?",},
-    buttons = {
-        {
-            text = SI_DIALOG_ACCEPT,
-            callback = function(displayName)
+	title = {text = "Remove user from Guild",},
+	mainText = {text = "Do you wish to continue?",},
+	buttons = {
+		{
+			text = SI_DIALOG_ACCEPT,
+			callback = function(displayName)
 				GuildRemove(SELECTED_GUILD_ID, displayName)
-				zo_callLater(function() SCENE_MANAGER:Show("hudui") end, 50)
-            end,
-        },
-        {
-            text = SI_DIALOG_DECLINE,
-            callback = function()
-				zo_callLater(function() SCENE_MANAGER:Show("hudui") end, 50)
 			end,
-        }
-    }
+		},
+		{
+			text = SI_DIALOG_DECLINE,
+			callback = function()
+			end,
+		}
+	}
 })
 ZO_Dialogs_RegisterCustomDialog("GTA_GUILD_INVITE", {
 	title = {text = "Invite to Current Guild",},
@@ -794,29 +786,27 @@ ZO_Dialogs_RegisterCustomDialog("GTA_GUILD_INVITE", {
 	},
 	buttons = {
 		[1] = {
-            text = SI_DIALOG_CONFIRM,
-            callback = function(dialog)
+			text = SI_DIALOG_CONFIRM,
+			callback = function(dialog)
 				local targetName = ZO_Dialogs_GetEditBoxText(dialog)
 				if targetName and targetName ~= "" and targetName ~= GetUnitDisplayName("player") then--GUILD_SELECTOR.guildId
 					if DoesPlayerHaveGuildPermission(SELECTED_GUILD_ID, GUILD_PERMISSION_INVITE) then
 						local invited = GuildInvite(SELECTED_GUILD_ID, targetName)
-						--if invited then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "", (targetName .. " invited to " .. GetGuildName(SELECTED_GUILD_ID) .. ".")) end
+						--if invited then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "", (targetName .. " invited to " .. GetGuildName(SELECTED_GUILD_ID) .. ".")) end-->> TESTING
 					end
-                end
-				zo_callLater(function() SCENE_MANAGER:Show("hudui") end, 50)
+				end
 			end,
 		},
 		[2] = {
 			text = SI_DIALOG_CANCEL,
 			callback = function()
-				zo_callLater(function() SCENE_MANAGER:Show("hudui") end, 50)
 			end,
 		},
 	},
 })
 
 local function showIconForRankIndex(ctrl, value)
-    if SELECTED_GUILD_ID then
+	if SELECTED_GUILD_ID then
 		local iconIndex = GetGuildRankIconIndex(SELECTED_GUILD_ID, value)
 		ctrl:SetText("|t20:20:" .. GetGuildRankSmallIcon(iconIndex) .. "|t")
 	end
@@ -828,13 +818,13 @@ local GuildCell = Label(guildStyle)
 local GuildHeader = Label(combine(guildStyle, headerStyle))
 local RankCell = Label(combine(combine(defaultStyle, alignCenter), showRankTooltipStyle), showIconForRankIndex)
 local NoteCell = Button(noteCellStyle, function(ctrl, value)
-    ctrl:SetHidden(value == '')
+	ctrl:SetHidden(value == '')
 	if ctrl:GetHandler('OnMouseEnter') then return end
 	ctrl:SetHandler('OnMouseEnter', function(bttn)
-        local note = bttn:GetParent():GetParent().dataEntry.data[6]
-        ZO_Tooltips_ShowTextTooltip(ctrl, RIGHT, note)
+		local note = bttn:GetParent():GetParent().dataEntry.data[6]
+		ZO_Tooltips_ShowTextTooltip(ctrl, RIGHT, note)
 	end)
-    ctrl:SetHandler('OnMouseExit', ZO_Tooltips_HideTextTooltip)
+	ctrl:SetHandler('OnMouseExit', ZO_Tooltips_HideTextTooltip)
 	ctrl:SetHandler("OnMouseUp", function(control, button, upInside)
 		if button == 1 and upInside then
 			PlaySound("Click")
@@ -862,21 +852,35 @@ local columnsForGuildList = {
 }
 
 local function sendMailCallback(scene, oldState, newState)
-	if newState == SCENE_HIDDEN and (scene:GetName() == "mailSend" or scene:GetName() == "mailInbox") and SCENE_MANAGER:IsShowing("hud") then
-		GuildTraderActivity.Toggle(true)
+	if newState == SCENE_HIDDEN and (scene:GetName() == "mailSend" or scene:GetName() == "mailInbox") then
 		SCENE_MANAGER:UnregisterCallback("SceneStateChanged", sendMailCallback)
+		MAIL_SEND:ClearFields()
+		GuildTraderActivity.Toggle(true)
 	end
 end
 
-local function postCreateCallback(ctrl)
-	--ctrl:SetHandler('OnMouseEnter', function(ctrl)
-        --local rankIndex = ctrl.dataEntry.data[1]
-       -- local rankName = GetFinalGuildRankName(SELECTED_GUILD_ID, rankIndex)
-       -- ZO_Tooltips_ShowTextTooltip(ctrl, LEFT, rankName)
-    --end)
-    --ctrl:SetHandler('OnMouseExit', ZO_Tooltips_HideTextTooltip)
+local function postGuildListCallback(ctrl)
+	ctrl:SetHandler('OnMouseEnter', function(ctrl)
+		SELECTED_USER_DISPLAY_NAME = ctrl.dataEntry.data[2]
+		local userMemberIndex = GetGuildMemberIndexFromDisplayName(SELECTED_GUILD_ID, SELECTED_USER_DISPLAY_NAME)
+		local name, _, _, playerStatus = GetGuildMemberInfo(SELECTED_GUILD_ID, userMemberIndex)
+		if playerStatus ~= PLAYER_STATUS_OFFLINE then
+			ZO_Tooltips_ShowTextTooltip(ctrl, LEFT, "ONLINE")
+		end
+    end)
+	ctrl:SetHandler('OnMouseExit', ZO_Tooltips_HideTextTooltip)
 	ctrl:SetHandler("OnMouseUp", function(ctrl, button, upInside)
-		if button == 2 and upInside then
+		if button == 1 and upInside then
+			PlaySound("Click")
+			SELECTED_USER_DISPLAY_NAME = ctrl.dataEntry.data[2]
+			zo_callLater(function()
+				GuildTraderActivity.CreatePlayerList(SELECTED_GUILD_DATA, SELECTED_GUILD_IS_CURRENT)
+				EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_ADDED)
+				EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_REMOVED)
+				EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_RANK_CHANGED)
+				EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_NOTE_CHANGED)
+			end, 50)
+		elseif button == 2 and upInside then
 			SELECTED_USER_DISPLAY_NAME = ctrl.dataEntry.data[2]
 			local memberIndex = GetPlayerGuildMemberIndex(SELECTED_GUILD_ID)
 			local _, _, myRankIndex = GetGuildMemberInfo(SELECTED_GUILD_ID, memberIndex)
@@ -917,10 +921,8 @@ local function postCreateCallback(ctrl)
 			if SELECTED_USER_DISPLAY_NAME ~= GetUnitDisplayName("player") then
 				AddMenuItem("Send Mail", function()
 					PlaySound("Click")
-					GTAMain:SetHidden(true)
-					MAIL_SEND:ComposeMailTo(SELECTED_USER_DISPLAY_NAME)
-					ZO_MailSend:BringWindowToTop()
 					SCENE_MANAGER:RegisterCallback("SceneStateChanged", sendMailCallback)
+					MAIL_SEND:ComposeMailTo(SELECTED_USER_DISPLAY_NAME)
 				end)
 			end
 			if DoesPlayerHaveGuildPermission(SELECTED_GUILD_ID, GUILD_PERMISSION_NOTE_EDIT) then
@@ -935,17 +937,90 @@ local function postCreateCallback(ctrl)
 end
 --ZO_Dialogs_ShowDialog("GUILD_INVITE", { guildId = SELECTED_GUILD_ID })--target = playerName
 local GTAGuildList = ScrollList(WITH_HEADERS)
-GTAGuildList:AddDataType(1, columnsForGuildList, 20, postCreateCallback)
+GTAGuildList:AddDataType(1, columnsForGuildList, 20, postGuildListCallback)
 GTAGuildList:SetDefaultSortingCriteria(5, ZO_SORT_ORDER_DOWN)
 SELECTED_GUILD_LIST = GTAGuildList
 local GTAGuildListControl = GTAGuildList:Create('GTAGuildList', GTASelectedGuildView)
 GTAGuildListControl:SetDimensions(140*3+350, 350)
 GTAGuildListControl:SetAnchor(TOP, GTASelectedGuildLabel, BOTTOM, 0, -14)
 --GTAGuildListControl:SetAnchorFill(GTASelectedGuildView)
+---------------------------------------------
+------- PLAYER DETAILS LIST VIEW CONTROLS --
+---------------------------------------------
+--local GTASelectedPlayerView = WINDOW_MANAGER:CreateTopLevelWindow("GTASelectedPlayerView")
+local GTASelectedPlayerView = WINDOW_MANAGER:CreateControl("GTASelectedPlayerView", GTAMain, CT_CONTROL)
+GTASelectedPlayerView:SetAnchor(CENTER, GTAMain, CENTER, -2, -10)
+--GTASelectedPlayerView:SetParent(GTAMain)
+GTASelectedPlayerView:SetDimensions(766, 374)
+--GTASelectedPlayerLabel
+local GTASelectedPlayerLabel = WINDOW_MANAGER:CreateControl("GTASelectedPlayerLabel", GTASelectedPlayerView, CT_LABEL)
+GTASelectedPlayerLabel:SetAnchor(TOP, GTASelectedPlayerView, TOP, 0, -4)
+GTASelectedPlayerLabel:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 26), FONT_STYLE_SOFT_SHADOW_THIN)
+GTASelectedPlayerLabel:SetColor(0.1, 0.1, 0.1, 0.8)
+GTASelectedPlayerLabel:SetText ("- Guild View Current Week -")
+--SelectedGuildBackArrow
+local GTASelectedPlayerBackArrow = WINDOW_MANAGER:CreateControl("GTASelectedPlayerBackArrow", GTASelectedPlayerLabel, CT_BUTTON)
+GTASelectedPlayerBackArrow:SetAnchor(RIGHT, nil, LEFT, -16)
+GTASelectedPlayerBackArrow:SetDimensions(32, 32)
+GTASelectedPlayerBackArrow:SetNormalTexture("/esoui/art/buttons/large_leftarrow_up.dds")
+GTASelectedPlayerBackArrow:SetPressedTexture("/esoui/art/buttons/large_leftarrow_down.dds")
+GTASelectedPlayerBackArrow:SetMouseOverTexture("/esoui/art/buttons/large_leftarrow_over.dds")
+GTASelectedPlayerBackArrow:SetMouseEnabled(true)
+GTASelectedPlayerBackArrow:SetHandler("OnMouseEnter", function(self)
+	InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
+	SetTooltipText(InformationTooltip, "BACK")
+end)
+GTASelectedPlayerBackArrow:SetHandler("OnMouseExit", function(self)
+	ClearTooltip(InformationTooltip)
+end)
+GTASelectedPlayerBackArrow:SetHandler("OnMouseUp", function(self, button, upInside)
+	if button == 1 and upInside then
+		PlaySound("Click")
+		EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_ADDED, GuildTraderActivity.UpdateForGuildDataChange)
+		EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_REMOVED, GuildTraderActivity.UpdateForGuildDataChange)
+		EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_RANK_CHANGED, GuildTraderActivity.UpdateForGuildDataChange)
+		EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_NOTE_CHANGED, GuildTraderActivity.UpdateForGuildDataChange)
+		GTASelectedPlayerView:SetHidden(true)
+		GTASelectedGuildView:SetHidden(false)
+	end
+end)
+local ItemCell = Label(salesStyle)
+local ItemHeader = Label(combine(salesStyle, headerStyle))
+-- total 750
+local columnsForPlayerList = {
+	Column('Item',      280,  0,	 LeftAlignedCell, 'ITEM |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',	 	 LeftAlignedHeader,  	SORTABLE),
+	Column('Buyer',     170,  10,	 LeftAlignedCell, 'BUYER |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',		 LeftAlignedHeader, 	SORTABLE),
+	Column('Quant',      40,  0,  	   ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t #', 			 	ItemHeader,  	SORTABLE),
+	Column('Price',  	110,  0, 	   ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t PRICE',      	   		ItemHeader,  	SORTABLE),
+	Column('Time',     140,  0,        ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t SALE TIME',              ItemHeader,    	SORTABLE),
+}
+local function postPlayerListCallback(ctrl)
+	ctrl:SetHandler('OnMouseEnter', function(ctrl)
+		local itemName = zo_strformat("<<t:1>>", GetItemLinkName(ctrl.dataEntry.data[1]))
+		ZO_Tooltips_ShowTextTooltip(ctrl, LEFT, itemName)
+	end)
+	ctrl:SetHandler('OnMouseExit', ZO_Tooltips_HideTextTooltip)
+	ctrl:SetHandler("OnMouseUp", function(ctrl, button, upInside)
+		if button == 1 and upInside then
+			PlaySound("Click")
+			ZO_PopupTooltip_SetLink(ctrl.dataEntry.data[1])
+		end
+	end)
+end
+local GTAPlayerList = ScrollList(WITH_HEADERS)
+GTAPlayerList:AddDataType(1, columnsForPlayerList, 20, postPlayerListCallback)
+GTAPlayerList:SetDefaultSortingCriteria(5, ZO_SORT_ORDER_DOWN)
+SELECTED_PLAYER_LIST = GTAPlayerList
+local GTAPlayerListControl = GTAPlayerList:Create('GTAPlayerList', GTASelectedPlayerView)
+GTAPlayerListControl:SetDimensions(140*3+350, 350)
+GTAPlayerListControl:SetAnchor(TOP, GTASelectedPlayerLabel, BOTTOM, 0, -14)
+--GTAPlayerListControl:SetAnchorFill(GTASelectedPlayerView)
 
 --GTAMain:SetTopmost()
 GTAMain:SetHidden(true)
+GTAPersonalView:SetHidden(false)
 GTASelectedGuildView:SetHidden(true)
+GTASelectedPlayerView:SetHidden(true)
 ---------------------------------------------
 --------- POPULATE VIEW FUNCTIONS --
 ---------------------------------------------
@@ -1042,7 +1117,7 @@ function GuildTraderActivity.CreateGuildList(data, isCurrent)
 	GUILD_ROSTER_MANAGER:SetGuildId(SELECTED_GUILD_ID)
 	local buyers = {}
 	local sellers = {}
-    local salesData = {}
+	local salesData = {}
 	if isCurrent then
 		for eventIndex = 1, GetNumGuildHistoryEvents(guildId, CATEGORY) do
 			local param1, eventStamp, param3, param4, sellerName, buyerName, itemLink, itemQuantity, itemPrice, itemTax = GetGuildHistoryTraderEventInfo(guildId, eventIndex)
@@ -1065,19 +1140,19 @@ function GuildTraderActivity.CreateGuildList(data, isCurrent)
 		end
 	end
 	for memberIndex = 1, GetNumGuildMembers(guildId) do
-        local memberName, memberNote, rankIndex, rankName, memberStatus, lastLogoff = GetGuildMemberInfo(guildId, memberIndex)
+		local memberName, memberNote, rankIndex, rankName, memberStatus, lastLogoff = GetGuildMemberInfo(guildId, memberIndex)
 		memberName = UndecorateDisplayName(memberName)
-        local memberSales = sellers[memberName] or 0
-        local memberPurchases = buyers[memberName] or 0
+		local memberSales = sellers[memberName] or 0
+		local memberPurchases = buyers[memberName] or 0
 		salesData[#salesData+1] = {
-            rankIndex,
-            DecorateDisplayName(memberName),
-            memberSales,
-            memberPurchases,
-            memberSales + memberPurchases,
+			rankIndex,
+			DecorateDisplayName(memberName),
+			memberSales,
+			memberPurchases,
+			memberSales + memberPurchases,
 			memberNote,
 		}
-    end
+	end
 	if isCurrent then
 		SELECTED_GUILD_LIST:Update(1, salesData)
 		GTASelectedGuildLabel:SetText ("~ " .. string.gsub(guildName, "|t.-|t", "") .. " (Current Week) ~")
@@ -1098,6 +1173,46 @@ function GuildTraderActivity.CreateGuildList(data, isCurrent)
 		else
 			GTASelectedGuildInvite:SetHidden(true)
 		end
+	end
+end
+
+function GuildTraderActivity.CreatePlayerList(data, isCurrent)
+	local resetStamp, prevStamp = GetLastKioskReset()
+	local salesData = {}
+	if SELECTED_GUILD_IS_CURRENT then
+		for eventIndex = 1, GetNumGuildHistoryEvents(SELECTED_GUILD_ID, CATEGORY) do
+			local param1, eventStamp, param3, param4, sellerName, buyerName, itemLink, itemQuantity, itemPrice, itemTax = GetGuildHistoryTraderEventInfo(SELECTED_GUILD_ID, eventIndex)
+			if eventStamp > resetStamp and DecorateDisplayName(sellerName) == SELECTED_USER_DISPLAY_NAME then
+				salesData[#salesData+1] = {
+					itemLink,
+					DecorateDisplayName(buyerName),
+					itemQuantity,
+					ZO_LocalizeDecimalNumber(itemPrice),
+					tostring(os.date("%d %b %H:%M", eventStamp)),
+				} 
+			end
+		end
+		SELECTED_PLAYER_LIST:Update(1, salesData)
+		GTASelectedPlayerLabel:SetText ("~ " .. SELECTED_USER_DISPLAY_NAME .. " (Current Week) ~")
+		GTASelectedGuildView:SetHidden(true)
+		GTASelectedPlayerView:SetHidden(false)
+	else
+		for eventIndex = 1, GetNumGuildHistoryEvents(SELECTED_GUILD_ID, CATEGORY) do
+			local param1, eventStamp, param3, param4, sellerName, buyerName, itemLink, itemQuantity, itemPrice, itemTax = GetGuildHistoryTraderEventInfo(SELECTED_GUILD_ID, eventIndex)
+			if eventStamp > prevStamp and eventStamp < resetStamp and DecorateDisplayName(sellerName) == SELECTED_USER_DISPLAY_NAME then
+				salesData[#salesData+1] = {
+					itemLink,
+					DecorateDisplayName(buyerName),
+					itemQuantity,
+					ZO_LocalizeDecimalNumber(itemPrice),
+					tostring(os.date("%d %b %H:%M", eventStamp)),
+				}
+			end
+		end
+		SELECTED_PLAYER_LIST:Update(1, salesData)
+		GTASelectedPlayerLabel:SetText ("~ " .. SELECTED_USER_DISPLAY_NAME .. " (Previous Week) ~")
+		GTASelectedGuildView:SetHidden(true)
+		GTASelectedPlayerView:SetHidden(false)
 	end
 end
 
@@ -1127,44 +1242,45 @@ function GuildTraderActivity.Refresh()
 	UpdateTraderActivityList(GTAPreviousSalesList, previousList, 2)
 	UpdateTraderActivityList(GTAPreviousPurchaseList, previousList, 2)
 	UpdateTraderActivityList(GTAPreviousActivityList, previousList, 2)
-	GTAMain:SetTopmost()
 end
 
 function GuildTraderActivity.UpdateForGuildDataChange()
-	if not GTASelectedGuildView:IsHidden() then
-		GuildTraderActivity.CreateGuildList(SELECTED_GUILD_DATA, SELECTED_GUILD_IS_CURRENT)
-	else
-		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_ADDED)
+	GuildTraderActivity.CreateGuildList(SELECTED_GUILD_DATA, SELECTED_GUILD_IS_CURRENT)
+end
+
+local function OnSceneStateChanged(oldState, newState)
+	if newState == SCENE_SHOWN and not GTASelectedGuildView:IsHidden() then
+        EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_ADDED, GuildTraderActivity.UpdateForGuildDataChange)
+		EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_REMOVED, GuildTraderActivity.UpdateForGuildDataChange)
+		EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_RANK_CHANGED, GuildTraderActivity.UpdateForGuildDataChange)
+		EVENT_MANAGER:RegisterForEvent("GTA", EVENT_GUILD_MEMBER_NOTE_CHANGED, GuildTraderActivity.UpdateForGuildDataChange)
+	elseif newState == SCENE_HIDDEN then
+        EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_ADDED)
 		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_REMOVED)
 		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_RANK_CHANGED)
 		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_NOTE_CHANGED)
 	end
 end
 
-function GuildTraderActivity.Toggle(mailCallback)
-	if mailCallback then
-		GTAMain:SetHidden(false)
-		SetGameCameraUIMode(true)
-		MAIL_SEND:ClearFields()
-	elseif GTAMain:IsHidden() then
+function GuildTraderActivity.Toggle(justReturn)
+	if justReturn then
+		SCENE_MANAGER:Show("GTA")
+	elseif SCENE_MANAGER:IsShowing("GTA") then
+		GuildTraderHistoryTrim()
+		SCENE_MANAGER:Hide("GTA")
+	else
+		ZO_CheckButton_SetCheckState(GTAShowAllBox, GuildTraderActivity.savedVariables.showAll)
 		ZO_CheckButton_SetCheckState(GTAShowAllBox, GuildTraderActivity.savedVariables.showAll)
 		ZO_CheckButton_SetCheckState(GTACacheTrimBox, GuildTraderActivity.savedVariables.cacheTrim)
+		GTASelectedPlayerView:SetHidden(true)
 		GTASelectedGuildView:SetHidden(true)
 		GTAPersonalView:SetHidden(false)
 		GuildTraderActivity.Refresh()
-		GTAMain:SetHidden(false)
-		SetGameCameraUIMode(true)
-	else
-		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_ADDED)
-		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_REMOVED)
-		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_RANK_CHANGED)
-		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_NOTE_CHANGED)
-		GuildTraderHistoryTrim()
-		GTAMain:SetHidden(true)
-		if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE then SetGameCameraUIMode(false) end
-	end	
+		SCENE_MANAGER:Show("GTA")
+	end
 end
---SCENE_MANAGER:Show("hud")--SCENE_MANAGER:Show("hudui")--ZO_SceneManager_ToggleUIModeBinding()
+--SetFullscreenEffect(FULLSCREEN_EFFECT_CHARACTER_FRAMING_BLUR, 0.5, -0.5)
+--SetFullscreenEffect(FULLSCREEN_EFFECT_NONE)
 SLASH_COMMANDS["/gta"] = function (option)
 	GuildTraderActivity.Toggle()
 end
@@ -1204,7 +1320,7 @@ local function AddOnLoaded(eventCode, addOnName)
 	}
 	GuildTraderActivity.savedVariables = ZO_SavedVars:NewAccountWide( GuildTraderActivity.svName, GuildTraderActivity.svVersion, nil, defaultAccountVars )
 	--GuildTraderActivity.savedVariables.pvpLastReset = nil--<< SAVE
-	ZO_PostHook(ZO_EditNoteDialogCancel, "callback", EditNoteCancelMouseReturn)
+	GTA_SCENE:RegisterCallback("StateChange", OnSceneStateChanged)
 	EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_ADD_ON_LOADED)
 end
 EVENT_MANAGER:RegisterForEvent("GTA", EVENT_ADD_ON_LOADED, AddOnLoaded)

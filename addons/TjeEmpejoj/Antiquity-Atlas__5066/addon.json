@@ -1,0 +1,48 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/TjeEmpejoj/Antiquity-Atlas__5066",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "TjeEmpejoj",
+  "canonical_id": "esoui:5066",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5066",
+  "deleted": false,
+  "directories": [
+    "AntiquityAtlas"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5066/",
+  "fingerprint": "ae85c40c4e2a7695962bb65f882f65d5938e966ba35b8d717ad62aa669e400fb",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18546.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18547.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18550.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18551.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18545.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18549.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18552.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5066",
+  "source_url": "https://www.esoui.com/downloads/info5066-AntiquityAtlas.html",
+  "stats": {
+    "downloads": 54,
+    "favorites": 1,
+    "monthly_downloads": 23
+  },
+  "title": "Antiquity Atlas",
+  "updated_at": 1795060435000,
+  "version": "0.13.3"
+}

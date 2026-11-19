@@ -88,7 +88,6 @@ local function CreateBar(key, root)
   bar.warningLabel:SetAnchor(RIGHT, bar.frame, RIGHT, -7, 0)
   bar.titleLabel:SetText(R.RESOURCE_INFO[key].title)
   bar.warningLabel:SetText("LOW")
-  bar.warningLabel:SetColor(1.00, 0.32, 0.26, 1)
 
   return bar
 end
@@ -104,8 +103,8 @@ local function CreateMoverOverlay(root)
   local hint = WM:CreateControl("RebarMoverHint", overlay, CT_LABEL)
   hint:SetAnchor(BOTTOM, overlay, TOP, 0, -4)
   hint:SetFont("$(BOLD_FONT)|14|soft-shadow-thick")
-  hint:SetColor(0.55, 0.82, 1.00, 1)
   hint:SetText("REBAR  -  drag to move  -  /rebar lock")
+  overlay.hint = hint
 
   return overlay
 end
@@ -224,7 +223,8 @@ function R.ApplyTheme(key)
   bar.bg:SetColor(r * 0.16, g * 0.16, b * 0.16, U.Clamp(sv.backgroundAlpha, 0, 0.9))
 
   bar.fill:SetColor(r, g, b, 1)
-  bar.fill:SetGradientColors(r * 0.62, g * 0.62, b * 0.62, 1, r, g, b, 1)
+  local shade = 1 - U.Clamp(sv.gradientShade or 0, 0, 1)
+  bar.fill:SetGradientColors(r * shade, g * shade, b * shade, 1, r, g, b, 1)
 
   -- Damage trail: a lighter tint of the bar color that lags behind losses.
   local tr, tg, tb = Mix(r, 1, 0.45), Mix(g, 1, 0.45), Mix(b, 1, 0.45)
@@ -240,8 +240,8 @@ function R.ApplyTheme(key)
 
   bar.gloss:SetHidden(not sv.showGloss)
 
-  -- Mirroring (magicka drains toward the center in a pyramid layout).
-  local reverse = key == "magicka" and sv.mirrorMagicka
+  -- Mirroring: fill right-to-left (e.g. magicka draining toward the center).
+  local reverse = sv[key .. "Mirror"] and true or false
   local align = reverse and BAR_ALIGNMENT_REVERSE or BAR_ALIGNMENT_NORMAL
   for _, s in ipairs({ bar.bg, bar.trail, bar.fill, bar.shield }) do
     if s and s.SetBarAlignment then s:SetBarAlignment(align) end
@@ -264,8 +264,12 @@ function R.ApplyTheme(key)
   bar.warningLabel:SetFont(U.Font(small))
   bar.regenLabel:SetFont(U.Font(small))
 
-  bar.valueLabel:SetColor(1, 1, 1, 1)
-  bar.titleLabel:SetColor(1, 1, 1, 0.70)
+  local tr2, tg2, tb2 = R.GetColor("text")
+  bar.valueLabel:SetColor(tr2, tg2, tb2, 1)
+  tr2, tg2, tb2 = R.GetColor("title")
+  bar.titleLabel:SetColor(tr2, tg2, tb2, 0.80)
+  tr2, tg2, tb2 = R.GetColor("warning")
+  bar.warningLabel:SetColor(tr2, tg2, tb2, 1)
   bar.titleLabel:SetHidden(not sv.showBarLabels)
   bar.regenLabel:SetHidden(not sv.showRegen)
 
@@ -281,6 +285,8 @@ function R.UpdateMoverState()
   R.ui.root:SetMovable(unlocked)
   R.ui.root:SetMouseEnabled(unlocked)
   R.ui.overlay:SetHidden(not unlocked)
+  local r, g, b = R.GetColor("moverText")
+  R.ui.overlay.hint:SetColor(r, g, b, 1)
 end
 
 -- Re-apply everything after a settings change.
@@ -436,7 +442,7 @@ local function FormatValue(key, res)
   end
 
   if key == "health" and sv.showShield and R.shield > 0 then
-    local hex = U.ColorHex(sv.shieldColorR, sv.shieldColorG, sv.shieldColorB)
+    local hex = U.ColorHex(R.GetColor("shieldText"))
     text = string.format("%s  |c%s[%s]|r", text, hex, U.FormatNumber(R.shield, abbr))
   end
   return text
@@ -465,7 +471,8 @@ local function UpdateRegenLabel(key, bar, now)
   bar.regenLabel:SetHidden(hidden)
   if hidden then return end
 
-  local r, g, b, a, scale, yOffset = 0.85, 0.85, 0.85, 0.80, 1, 0
+  local r, g, b = R.GetColor("regen")
+  local a, scale, yOffset = 0.80, 1, 0
   local dir = bar.regenAnimDir or 0
   local duration = U.Clamp(sv.restoreAnimDuration, 0.10, 2.00)
   local elapsed = now - (bar.regenAnimStart or 0)
@@ -475,11 +482,13 @@ local function UpdateRegenLabel(key, bar, now)
     scale = 1 + pulse * U.Clamp(sv.restoreAnimScale, 0, 0.8)
     yOffset = -U.Round(4 * pulse)
     a = U.Clamp(a + 0.2 * pulse, 0, 1)
-    if dir > 0 then
+    if dir > 0 and sv.regenGainUseBarColor then
       local cr, cg, cb = R.GetColor(key)
       r, g, b = U.Clamp(Mix(cr, 1, 0.35), 0, 1), U.Clamp(Mix(cg, 1, 0.35), 0, 1), U.Clamp(Mix(cb, 1, 0.35), 0, 1)
+    elseif dir > 0 then
+      r, g, b = R.GetColor("regenGain")
     else
-      r, g, b = 1.00, 0.42, 0.36
+      r, g, b = R.GetColor("regenLoss")
     end
   end
 

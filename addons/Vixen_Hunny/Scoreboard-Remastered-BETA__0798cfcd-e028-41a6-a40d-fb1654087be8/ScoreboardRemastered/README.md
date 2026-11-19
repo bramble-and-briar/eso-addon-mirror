@@ -14,10 +14,10 @@ database opens from the inventory, anywhere in the game.
 > real font sizes and colours. See [How the screenshots are made](#how-the-screenshots-are-made)
 > for what is exact and what is approximated.
 
-**PC: the panel over the battleground scoreboard, with the selected player's details**
+**PC: Scoreboard Remastered in place of the battleground scoreboard, with the selected player's details**
 ![PC scoreboard](docs/screenshots/pc-scoreboard.jpg)
 
-**Gamepad / console: "Open Remastered" on the battleground scoreboard's button bar**
+**Gamepad / console: the scoreboard key opens Scoreboard Remastered (details open)**
 ![Open Remastered on the native scoreboard](docs/screenshots/gamepad-native.jpg)
 
 **Console: Scoreboard Remastered, the PC table driven by the controller (details open with A / Cross)**
@@ -32,13 +32,13 @@ database opens from the inventory, anywhere in the game.
 **Console: Match tab, your LibFights fights**
 ![Console match](docs/screenshots/console-match.jpg)
 
-**Console: Battleground records, Matches tab**
+**Console: Battleground records, the same window as on PC, Matches tab**
 ![Records, matches](docs/screenshots/console-records-matches.jpg)
 
-**Console: Battleground records, Players tab (opponents sorted by who killed you most)**
+**Console: Battleground records, Players tab**
 ![Records, players](docs/screenshots/console-records-players.jpg)
 
-**Console: Battleground records, Lifetime tab**
+**Console: Battleground records, lifetime stats (Y / Triangle)**
 ![Records, lifetime](docs/screenshots/console-records-lifetime.jpg)
 
 **Gamepad inventory: Battleground records on the button bar**
@@ -105,15 +105,15 @@ In 2-team modes, an enemy's damage done is all their damage. The native scoreboa
 Damage/Healing columns stay authoritative for everyone.
 
 Matches are saved in `SavedVariables/ScoreboardRemastered.lua`
-(`history`, 50 by default). A match still in progress (`current`) survives `/reloadui`.
+(`history`, 20 by default, 10 on console). A match still in progress (`current`) survives `/reloadui`.
 
 ## Using it
 
 ### PC with mouse and keyboard
 
-- The panel opens and closes with the native battleground scoreboard. By default it sits
-  **over** the board on a dimmed backdrop, because ESO's board is about 1300 px wide and
-  there's no room beside it. `/sbr attach right|left|below` places it next to the board
+- The scoreboard key opens the panel in place of ESO's board (see above). On the
+  end-of-match board, or with the replacement turned off, it opens **over** ESO's board
+  on a dimmed backdrop. `/sbr attach right|left|below` places it next to the board
   instead (kept on screen). Drag it to give it a fixed position (`/sbr reset` undoes this).
 - **Click a row** to open its details beside the panel: medals, every fight stat, top
   abilities and the you-vs-them breakdown. Click the row again, or the X, to close.
@@ -128,22 +128,66 @@ Matches are saved in `SavedVariables/ScoreboardRemastered.lua`
   the kill log, both in a pre-selected box ready for Ctrl+C.
 - Keybinds: *Controls → Scoreboard Remastered*.
 
+### Round-based modes (Elimination)
+
+Like ESO's own board, the add-on reads the **current round**. In multi-round modes it
+shows **whole-match totals** (the game's cumulative scores). In limited-lives modes it
+adds a **Lives** column and greys out eliminated players ("out"), and the team blocks
+show rounds won. `SIM_ELIMINATION=1 SIM_AFTER=tools/test-elimination.lua` runs the
+simulator in a 3-round, limited-lives mode. It checks that the totals keep growing
+past round 1, which is what broke before 1.9.1.
+
+### The look
+
+The scoreboard uses the game's own battleground art, like the battle report:
+
+- **Header:** your team's emblem on a glow, and your team's banner across the top (win
+  or loss once the match ends, the team scoreboard background while it runs).
+- **Teams:** each team is shown as its emblem and score, in team colour.
+- **Column headers:** icons for score, kills, deaths, assists, damage, healing and medals.
+- **Rows:** every row sits on its team's scoreboard background with a team-coloured
+  edge. Your row gets the team's highlight strip, and the top scorer gets a medal.
+- **Details:** the pane leads with the player's team emblem and class icon.
+
+### It replaces the native scoreboard
+
+The scoreboard key now opens Scoreboard Remastered instead of ESO's in-game battleground
+scoreboard, on PC and console. It's the same toggle as before: you can still move and
+fight while it's up, and the same key closes it. Buttons on the bar while it's up:
+
+| Button | Action |
+|---|---|
+| Scoreboard key | close |
+| Leave key | leave the battleground (ESO's own confirmation) |
+| Previous / next player keys (D-pad up / down) | move the selection (hold to repeat) |
+| D-pad left / right | sort by the previous / next column (gamepad) |
+| Player options key | show / hide the selected player's details (gamepad) |
+| R3 | full screen: everything below, including kill feed, history and records (gamepad) |
+
+Only keys the native board already uses are taken, plus D-pad left / right and R3, so
+attacks, block and abilities keep working with the board up. On PC, in UI mode (cursor),
+the mouse works as below. The **end-of-match** scoreboard stays ESO's, because it has the
+round summary and the queue options. There the panel opens over it (PC), or **Open
+Remastered** (R3) is on its button bar (gamepad). Turn **Settings → Replace the native
+scoreboard** off to get ESO's board back.
+
+How it's done: ESO's two in-game scoreboard scenes stay ESO's. The add-on only takes
+the native board fragment and its match-info panel out of them, shows the table in
+their place, and swaps the native buttons for its own. Nothing of ESO's is wrapped and
+no key layer is pushed (see [The "insecure code" error](#the-insecure-code-error)).
+
 ### Console, or gamepad mode on PC
 
-While the native battleground scoreboard is open, its button bar gets
-**Open Remastered** (right stick click by default; you can change it in settings).
-
-**Scoreboard Remastered** is the same table as on PC, sized for the TV and driven by the
-controller. Your row starts selected. A / Cross opens that player's details beside the
+**Full screen** (R3 on the board, or from the settings) is the same table as on PC, sized
+for the TV and driven by the controller. Your row starts selected. A / Cross opens that player's details beside the
 table, and they follow the selection as you move.
 
 | Xbox | PlayStation | Action |
 |---|---|---|
-| Up / Down (D-pad or left stick) | same | move the selection (hold to repeat) |
-| Left / Right | same | sort by the previous / next column |
-| LT / RT | L2 / R2 | page up / down |
+| D-pad up / down | same | move the selection (hold to repeat) |
+| D-pad left / right | same | sort by the previous / next column |
+| LT / RT | L2 / R2 | scroll the details when they're open, else page up / down |
 | A | Cross | show / hide details |
-| Right stick | same | scroll the details |
 | X | Square | flip the sort order |
 | Y | Triangle | kill feed |
 | LB / RB | L1 / R1 | older / newer saved match |
@@ -151,11 +195,11 @@ table, and they follow the selection as you move.
 | R3 | R3 | Battleground records |
 | B | Circle | close details, then close the table |
 
-The kill feed, the match summary and the records use ESO's own gamepad list screens
-(`ZO_Gamepad_ParametricList_Screen`, the generic header with a tab bar, the right-side
-tooltip). B from them goes back to the table with your selection and details as you
-left them. **Settings → Gamepad: scoreboard layout → List** uses the list screen for
-the scoreboard too:
+Battleground records (R3) is the same window as on PC too. The kill feed and the match
+summary use ESO's own gamepad list screens (`ZO_Gamepad_ParametricList_Screen`, the
+generic header with a tab bar, the right-side tooltip). B from any of them goes back to
+the table with your selection and details as you left them. **Settings → Gamepad:
+scoreboard layout → List** uses the list screens for the scoreboard and records too:
 
 - **Players:** grouped under team headers with team scores. X changes the sort.
 - **Kill feed:** newest first, with killer, victim, killing blow and the last hits.
@@ -171,6 +215,55 @@ Settings has an **Open Scoreboard Remastered** button so you can browse the last
 outside a battleground, since consoles have no slash commands. On console, 10 full
 matches are kept by default because console SavedVariables are smaller.
 
+### Battle report
+
+When you leave a finished battleground, the battle report opens (setting **Battle report
+after each match**). It also opens with A / double-click on a match in the records, the
+**Report** button (PC) or the menu button (console) on the scoreboard table, and
+`/sbr report`. It has three tabs (LB / RB, or click):
+
+- **Overview:** the result, a **match balance** from 0 to 100 (red for a stomp, green for an
+  even fight: how close the final scores were, plus how often the lead changed hands),
+  team totals, the MVP, and every player's **title** for the match. A title is the stat
+  where that player came closest to the best in the match: Slayer, Vanguard (damage),
+  Lifeline (healing), Wingman (assists), Objective runner, Medalist, or Unbreakable (no
+  deaths).
+- **Timeline:** score over time, the damage race (team damage done) and momentum (kills
+  per minute, one team above the line, the others below), in team colours.
+- **Your match:** what it earned you (Alliance Points, experience including champion
+  XP, Champion Points, medals, Alliance rank, and a rank-up), your title, your medals,
+  and your profile against the best player in each category.
+
+**Sharp at any size.** Bars, backgrounds, banners and chart bars are drawn as plain
+shapes with smooth colour gradients (`SetVertexColors`) instead of stretched textures,
+so they stay sharp at any resolution and UI scale. Icons are never drawn larger than
+their file. Large icons use the game's gamepad files, which are the high-resolution
+ones: team emblems, class icons, stat and title icons, and the AP currency icon.
+Keyboard-size icons are kept at 40 px or less. The percentage bars have a dark track,
+a gradient fill, a highlight and quarter tick marks, with the value beside them, and
+they all fit inside the panel.
+
+It's drawn with the game's own battleground art rather than text where it can be: your
+team's emblem and win / loss banner across the header, the round-recap header art,
+each team's scoreboard background and emblem on its card, the capture-bar fills (in
+team colours) for every chart and progress bar, highlight strips for your row, title
+and stat icons, the Alliance Points / experience / Champion / rank / medal icons, and
+a soft glow behind the MVP, your title and the active tab. Every texture path is
+checked against the ESO UI source. The screenshots draw stand-ins for that art,
+because ZeniMax's art files can't be redistributed.
+
+A (Cross) or the Scoreboard button opens the full scoreboard while the match is stored.
+Recording costs almost nothing: one small sample of team totals every 15 seconds, taken
+with the normal scoreboard snapshots, saved packed with the match.
+
+**Records button (PC):** a small draggable battleground icon on the HUD that opens the
+records. Turn it off with **Records button on screen**.
+
+![Battle report, overview](docs/screenshots/pc-report-overview.jpg)
+![Battle report, timeline](docs/screenshots/pc-report-timeline.jpg)
+![Battle report, your match](docs/screenshots/pc-report-you.jpg)
+![Battle report on console](docs/screenshots/console-report.jpg)
+
 ### Battleground records: matches and players (open from the inventory)
 
 A records screen usable anywhere, not just in battlegrounds:
@@ -180,16 +273,19 @@ A records screen usable anywhere, not just in battlegrounds:
   click by default; you can change it in settings). B / Esc returns to the inventory.
 - **Also opens from:** R3 on Scoreboard Remastered, the settings panel,
   `/sbr db` and `/sbr players`.
-- **PC:** a mouse-driven window. Click a tab, row or the filter line, use the mouse wheel
-  to scroll, and double-click a match to open it.
+- **The same window on PC and console.** On PC it's mouse-driven: click a tab, row or
+  the filter line, use the mouse wheel to scroll, and double-click a match to open it.
+  On console it's driven by the controller (table below). **Settings → Gamepad:
+  scoreboard layout → List** uses ESO's gamepad list screen instead.
 
 **Matches tab:** every match you've played. Each finished match writes a compact record
-(500 kept on PC, 150 on console), so this outlasts full scoreboards. On console the list
-is grouped by date; the tooltip shows the result, team scores, K/D/A, damage, healing,
-your rank, the match MVP, medals and top abilities.
+(500 kept on PC, 150 on console), so this outlasts full scoreboards (20 on PC, 10 on console). The card shows the
+result banner, team scores, six stat tiles, your rank and the match MVP, medals and top
+abilities. Y / Triangle switches to lifetime stats: win rate, K/D, bests, by class and
+by map.
 
 **Players tab:** everyone you've shared a battleground with, including your own profile
-across all your characters (2000 players kept on PC, 400 on console). Each player shows:
+across all your characters (1000 players kept on PC, 400 on console). Each player shows:
 - whether they've been your **teammate**, **opponent** or both, and your win-loss record
   with them and against them
 - their totals and per-match averages for kills, deaths, assists, damage, healing and
@@ -206,12 +302,13 @@ Sorts: most seen, last seen, kills, damage, healing, times they killed you, name
 
 | Xbox | PlayStation | Action |
 |---|---|---|
-| LB / RB | L1 / R1 | Matches / Players / Lifetime tab |
-| Up / Down | same | select |
+| LB / RB | L1 / R1 | Matches / Players tab |
+| D-pad up / down | same | select (hold to repeat) |
+| D-pad left / right | same | change the filter |
 | LT / RT | L2 / R2 | page up / down |
-| A | Cross | open the match's full scoreboard (Matches tab, while stored) |
-| X | Square | change the filter |
-| Y | Triangle | change the sort |
+| A | Cross | battle report of the match (Matches tab, while stored) |
+| X | Square | change the sort |
+| Y | Triangle | match card / lifetime stats (Matches tab) |
 | B | Circle | back (to the inventory or the scoreboard) |
 
 ### Slash commands (PC)
@@ -329,7 +426,80 @@ node tools/render.js out/screens.json docs/screenshots   # needs Playwright + Ch
 `SIM_GUIROOT=1366x768` (or any size) runs the simulation on a smaller UI canvas, as
 with a low resolution or a large UI scale, and the renderer draws at that size.
 
+## The "insecure code" error
+
+Earlier versions could trigger ESO's *insecure code* error on console, typically when
+using the D-pad on the battleground scoreboard. Three things put add-on code into ESO's
+own (protected) input handling, and all three are gone:
+
+- **Hooks on the native scoreboard.** `ZO_PostHook` replaced methods of ESO's scoreboard
+  objects with add-on code, so the scoreboard's D-pad player selection and player
+  options ran through it. The add-on now only listens to scene and fragment state, and
+  reads data from `EVENT_BATTLEGROUND_SCOREBOARD_UPDATED`.
+- **A pushed key layer.** To make "Open Remastered" work, the add-on pushed ESO's UI
+  shortcut layer over the scoreboard, and that layer also handles the D-pad and A. The
+  button is now an action in the scoreboard's own `BattlegroundScoreboard` layer
+  (`Bindings.xml`), which takes its key from the R3 / L3 / menu shortcut. No layer is
+  pushed.
+- **`DIRECTIONAL_INPUT`.** The table and the records read the stick every frame from inside
+  ESO's input loop. They now use ESO's D-pad keybinds (`UI_SHORTCUT_INPUT_*`) with
+  their own hold-to-repeat, like any keybind button.
+
+None of the functions the add-on calls are private or protected (`tools/check-api.py`).
+
 ## Performance
+
+### Loading (`/reloadui`, login)
+
+A saved-variables file is Lua code that ESO runs on every load, before any add-on
+code, inside the add-on's load-time CPU budget ("CPU budget reached"). Every saved table
+and field costs time there, while a long string costs almost nothing. So:
+
+- **Packed storage:** every finished match, record and player is saved as a few
+  strings (`SBR.Pack` in `Util.lua`, at most 1900 bytes each, because ESO keeps saved
+  strings only up to about 2000 characters). Only an id and a timestamp stay readable
+  so lists can be sorted and searched. Each one is unpacked the first time something
+  reads it (a typical match takes about 2 ms), never all at load.
+- **Less saved:** recaps as one string per hit, kills and medals with only the shown
+  fields, and players with abilities and classes as numbers.
+- **Fewer full scoreboards:** 20 by default on PC (was 50) and 10 on console. Every
+  older match is still in Battleground records as a summary. A setting you changed
+  yourself is kept. The player index keeps 1000 players on PC (was 2000) and 400 on
+  console.
+- **No load-time work:** the windows are built the first time they open, and nothing
+  scans the global table.
+- **Older saves** convert in the background after login, one small step every 200 ms
+  (about a minute for 30 old matches): history trimmed, matches, records and players
+  packed, forgotten match ids and extra players dropped. Then the next save is small.
+
+In the simulation (8 matches), the saved data went from about 22,000 tables to about
+400. A 1.3-format test save with 30 matches and 1200 players went from 13,151 tables to
+1,081. `lua5.1 tools/test-savedvars.lua` tests packing, recaps and converting an old
+save. `SIM_AFTER=tools/test-reload.lua` (with the simulator) saves, reloads and
+compares every match, record and player.
+
+### Load report
+
+After every login and `/reloadui`, the add-on times its own load: each of its files,
+each setup step and the first steps after login. It also records when every add-on
+finishes loading. If its own part took 100 ms or more, it prints a line to chat, for
+example:
+
+```
+Scoreboard Remastered: load: our files 40 ms, setup 12 ms, after login 9 ms
+(slowest: UI/Window.lua 11 ms). Slowest loads overall: LibFights 310 ms, ...
+```
+
+"Not ours" is the time between our steps that the game and the other add-ons spend:
+loading their files, the world and the loading screen. It isn't counted as ours.
+"Slowest loads overall" is the time between one add-on's loaded event and the next.
+That's mostly that add-on's saved variables and setup, so it shows when another add-on
+is the one using the budget. The last 5 reports are kept in `sv.loadReports`. **Show
+load timing** in settings prints the report on every load, and `/sbr load` (PC) prints
+the saved ones. The settings panel is built 1.5 s after login, and the console list
+screens are set up the first time they open, so neither is part of the load.
+
+### In battle
 
 The add-on keeps its work small enough for ESO's per-frame add-on budget (which consoles
 enforce strictly):

@@ -78,7 +78,7 @@
     "GroupManager"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2088/",
-  "fingerprint": "9a98cc240a3117529cd511ca9462bd6b175f2366ab62407d579ecbc833051a70",
+  "fingerprint": "6d3f7aee1c098af1efbfeb8bcb376b50006e437374c9ab3dc600c5e6cfdc3792",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw7047.png",
     "https://cdn-eso.mmoui.com/preview/pvw7046.png",
@@ -92,11 +92,11 @@
   "source_id": "2088",
   "source_url": "https://www.esoui.com/downloads/info2088-LGM-LilithsGroupManager.html",
   "stats": {
-    "downloads": 92183,
+    "downloads": 92769,
     "favorites": 81,
-    "monthly_downloads": 500
+    "monthly_downloads": 1100
   },
   "title": "LGM - Lilith's Group Manager",
-  "updated_at": 1794880560000,
-  "version": "4.6.0"
+  "updated_at": 1795034996000,
+  "version": "4.6.1"
 }

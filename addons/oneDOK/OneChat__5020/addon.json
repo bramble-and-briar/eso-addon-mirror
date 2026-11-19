@@ -18,7 +18,7 @@
     "OneChat"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5020/",
-  "fingerprint": "9d77de84e4283fe28eabfc9bfa891e3120a3b3b8f70a184e0ba81413f33fab40",
+  "fingerprint": "00ebd10ba26a72edccd1edfefcf45287c7bdc9ba49296851b0d888680121090f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18294.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "5020",
   "source_url": "https://www.esoui.com/downloads/info5020-OneChat.html",
   "stats": {
-    "downloads": 25,
+    "downloads": 64,
     "favorites": 0,
-    "monthly_downloads": 20
+    "monthly_downloads": 61
   },
   "title": "OneChat",
-  "updated_at": 1793912450000,
-  "version": "26.11.2"
+  "updated_at": 1795015271000,
+  "version": "26.11.3"
 }

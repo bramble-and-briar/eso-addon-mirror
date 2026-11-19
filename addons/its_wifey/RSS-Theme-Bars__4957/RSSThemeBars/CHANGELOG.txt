@@ -1,3 +1,12 @@
+Ghostfire development notes
+- User-rotated flame artwork for left/right arcs.
+- Separate soft halo on each side, tinted with the same color picker as the flames.
+- Slight right-side inward alignment and lower positioning.
+- Original resource bars and working flicker preserved.
+
+Version 1.3.0
+- Added Stardust Dragon theme.
+
 Version 1.2.0
 - Added adjustable middle gap between Health and Stamina/Magicka bars.
 - Theme decorations follow their respective bar groups without stretching.
@@ -5,3 +14,5 @@ Version 1.2.0
 - Preserved v1.1.0 LibAddonMenu-2.0 r43+ requirement, server-specific NA/EU/PTS SavedVariables, and migration logic.
 - No private Stitch theme or assets included.
 - Existing resource bar geometry and dimensions unchanged.
+
+Ghostfire: Soft halo effect restored as separate tintable left/right overlays; approved flame placement preserved.

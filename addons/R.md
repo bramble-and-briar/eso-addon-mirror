@@ -77,6 +77,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Recount (Wolfhunter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadow-Fighter/Recount-Wolfhunter__875) | Shadow-Fighter | PC / Mac | 0.6.3 |
 | [Recovery Tick Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Recovery-Tick-Tracker__eff02a68-b788-4269-be3d-78283a26f306) | j.hhh | Console | — |
 | [RecoveryTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/RecoveryTracker__c8397663-7bee-4e0b-89de-16dcf5c029d7) | Vixen_Hunny | Console | — |
+| [Red Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Red-Ledger__5070) | O-Range | PC / Mac | 0.5 |
 | [Red's Countess Travel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/redeven/Red-s-Countess-Travel__2623) | redeven | PC / Mac | 1.1.0 |
 | [Refinement Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Refinement-Tracker__2130) | Kyzeragon | PC / Mac | 0.9.6 |
 | [Regrouper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Regrouper__888) | Baertram | PC / Mac | 2.2 |
@@ -174,7 +175,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RP Profile Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBobbyLlama/RP-Profile-Viewer__2959) | TheBobbyLlama | PC / Mac | 1.7 |
 | [RP Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/RP-Target-Frame__1371) | Phinix | PC / Mac | 1.05 |
 | [RPFlagger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/iwontsay/RPFlagger__1644) | iwontsay | PC / Mac | 1.1.0 |
-| [RSS Theme Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/RSS-Theme-Bars__4957) | its_wifey | PC / Mac | 1.2.0 |
+| [RSS Theme Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/RSS-Theme-Bars__4957) | its_wifey | PC / Mac | 1.3.0 |
 | [RU Client Fix Font](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marvellous-Chester/RU-Client-Fix-Font__3829) | Marvellous Chester | PC / Mac | 1.2.0 |
 | [RU Patch for Asylum Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/qulilalti/RU-Patch-for-Asylum-Tracker__2636) | qulilalti | PC / Mac | 1.0 |
 | [RU Patch for Dolgubon's Lazy Writ Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/StrangerFull/RU-Patch-for-Dolgubon-s-Lazy-Writ-Crafter__1587) | StrangerFull | PC / Mac | 2.9.1ru31 |

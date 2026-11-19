@@ -93,7 +93,7 @@ function bridge:Connect()
         local handler = lgb:RegisterHandler("SimpleGroupDPS_GroupReceiver")
         if not handler then connectionError = "Gruppenempfang konnte nicht registriert werden."; return false end
         handler:SetDisplayName("SimpleGroupDPS: Battle Scrolls DPS")
-        handler:SetDescription("Empfaengt Gruppenwerte; Versand nur mit aktivem kompatiblem Gruppenempfaenger.")
+        handler:SetDescription("Empfaengt kompatible Gruppenwerte und sendet eigene DPS/HPS bei aktiviertem Teilen.")
         -- DeclareProtocol rejects occupied IDs. Leave any existing owner intact.
         local ok, damage = pcall(handler.DeclareProtocol, handler, 430, "SimpleGroupDPS_GroupReceiverDamage")
         if not ok or not damage then
@@ -187,7 +187,8 @@ function bridge:SendDPS(dps, force, bossDPS)
     -- Locally installed BattleScrolls owns its sender: never send duplicates.
     if BattleScrolls and BattleScrolls.dpsShare then return false end
     if not damageProtocol then self:Connect() end
-    if not damageProtocol or not self:HasCompatiblePeer() or not damageProtocol:IsEnabled() then return false end
+    -- Do not wait for received data: two users would otherwise wait forever.
+    if not damageProtocol or not IsUnitGrouped("player") or not damageProtocol:IsEnabled() then return false end
     dps = tonumber(dps)
     if not dps or dps ~= dps or dps < 0 or dps == math.huge then return false end
     local now = GetGameTimeMilliseconds()
@@ -206,7 +207,7 @@ end
 function bridge:SendHPS(rawHPS, effectiveHPS, force)
     if BattleScrolls and BattleScrolls.dpsShare then return false end
     if not healingProtocol then self:Connect() end
-    if not healingProtocol or not self:HasCompatiblePeer() or not healingProtocol:IsEnabled() then return false end
+    if not healingProtocol or not IsUnitGrouped("player") or not healingProtocol:IsEnabled() then return false end
     rawHPS, effectiveHPS = tonumber(rawHPS), tonumber(effectiveHPS)
     if not rawHPS or rawHPS ~= rawHPS or rawHPS < 0 or rawHPS == math.huge
         or not effectiveHPS or effectiveHPS ~= effectiveHPS or effectiveHPS < 0

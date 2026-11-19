@@ -24,21 +24,37 @@ local function StaticVendorSets(vendorId)
     return result
 end
 
--- The store scan (Store.lua) records what the vendor actually had on offer.
--- That beats the bundled table whenever it is available: it survives stock
--- rotations and any set added after LibSets' last data refresh.
+-- The store scan (Store.lua) records which sets it could tie a curated coffer to.
 local function LearnedVendorSets(vendorId)
     local db = MCH.db
     if not db or not db.useLearnedPools then return nil end
 
-    local learned = db.learned and db.learned[vendorId]
-    if not learned or not learned.setIds or #learned.setIds == 0 then return nil end
+    local learned = MCH.learned and MCH.learned[vendorId]
+    return learned and learned.setIds or nil
+end
 
-    return learned.setIds
+-- The scan can only add to the bundled list, never shrink it. It recognises a
+-- coffer by finding a set name inside the coffer's name, so any coffer worded
+-- differently goes unseen, and a scan that matched 3 of a vendor's 33 sets
+-- once replaced the whole list and cut the pool to 9 shoulders. What the scan
+-- is good for is a set newer than LibSets' data, so that is all it contributes.
+-- Pure, so it can be tested outside the game.
+function Model.MergeVendorSets(staticSetIds, learnedSetIds)
+    local merged, seen = {}, {}
+    for _, list in ipairs({ staticSetIds or {}, learnedSetIds or {} }) do
+        for _, setId in ipairs(list) do
+            if not seen[setId] then
+                seen[setId] = true
+                merged[#merged + 1] = setId
+            end
+        end
+    end
+    table.sort(merged)
+    return merged
 end
 
 function Model.GetVendorSets(vendorId)
-    return LearnedVendorSets(vendorId) or StaticVendorSets(vendorId)
+    return Model.MergeVendorSets(StaticVendorSets(vendorId), LearnedVendorSets(vendorId))
 end
 
 --------------------------------------------------------------------------------
@@ -166,7 +182,7 @@ end
 function Model.GetPrices(vendorId)
     local db = MCH.db
     local mystery, curated = db.mysteryCost, db.curatedCost
-    local learned = db.useLearnedPrices and db.learned and db.learned[vendorId] or nil
+    local learned = db.useLearnedPrices and MCH.learned and MCH.learned[vendorId] or nil
 
     if learned then
         mystery = learned.mysteryCost or mystery

@@ -1,54 +1,34 @@
-SafeAddString(ONEFRAME_DISPLAY, "Отображение", 1)
-SafeAddString(ONEFRAME_ROLES, "Роли", 1)
-SafeAddString(ONEFRAME_TANK_ROLE, "Танк", 1)
-SafeAddString(ONEFRAME_HEALER_ROLE, "Хил", 1)
-SafeAddString(ONEFRAME_DAMAGE_ROLE, "ДД", 1)
-SafeAddString(ONEFRAME_COLOR, "Цвет", 1)
-SafeAddString(ONEFRAME_SHOW_STATISTIC, "Что показывать", 1)
-SafeAddString(ONEFRAME_NOTHING, "Ничего", 1)
-SafeAddString(ONEFRAME_LEVEL_CP, "Уровень / ЧП", 1)
-SafeAddString(ONEFRAME_GROUP_DPS, "ДПС группы", 1)
-SafeAddString(ONEFRAME_HEALTH_THOUSANDS, "%.1fк", 1)
-SafeAddString(ONEFRAME_GENERAL, "Основные", 1)
-SafeAddString(ONEFRAME_ENABLED, "Включить аддон", 1)
-SafeAddString(ONEFRAME_SORT, "Сортировать группу по роли", 1)
-SafeAddString(ONEFRAME_SORT_TIP, "Танки, целители, бойцы, затем неизвестные роли. В рейде спутники сохраняют штатные места. В малой группе со спутниками используется стандартный порядок.", 1)
-SafeAddString(ONEFRAME_INFO, "Информация об игроках", 1)
-SafeAddString(ONEFRAME_ACCOUNT, "Показывать имя учётной записи", 1)
-SafeAddString(ONEFRAME_CLASS, "Показывать значок класса", 1)
-SafeAddString(ONEFRAME_LEVEL, "Показывать уровень", 1)
-SafeAddString(ONEFRAME_CP, "Показывать очки героя", 1)
-SafeAddString(ONEFRAME_CP_VALUE, "ОГ %d", 1)
-SafeAddString(ONEFRAME_LEVEL_VALUE, "%d", 1)
-SafeAddString(ONEFRAME_COLORS, "Цвета ролей", 1)
-SafeAddString(ONEFRAME_TANK, "Цвет танка", 1)
-SafeAddString(ONEFRAME_HEALER, "Цвет целителя", 1)
-SafeAddString(ONEFRAME_DAMAGE, "Цвет бойца", 1)
-SafeAddString(ONEFRAME_RESTORE, "Восстановить стандартные цвета ресурсов", 1)
-SafeAddString(ONEFRAME_STATS, "БОЕВАЯ СТАТИСТИКА", 1)
-SafeAddString(ONEFRAME_DPS, "Показывать ДПС", 1)
-SafeAddString(ONEFRAME_HPS, "Показывать ХПС", 1)
-SafeAddString(ONEFRAME_DPS_LABEL, "ДПС", 1)
-SafeAddString(ONEFRAME_HPS_LABEL, "ХПС", 1)
-SafeAddString(ONEFRAME_UNAVAILABLE, "—", 1)
-SafeAddString(ONEFRAME_KILO, "%.1fk", 1)
-SafeAddString(ONEFRAME_MILLION, "%.2fm", 1)
-SafeAddString(ONEFRAME_HODOR, "Обмен статистикой (LibGroupCombatStats)", 1)
-SafeAddString(ONEFRAME_ULTIMATE, "Показывать переданные Ultimate", 1)
-SafeAddString(ONEFRAME_ULTIMATE_TIP, "Для всех ролей, независимо от ДПС/ХПС. Hodor передаёт обе панели, но не активную: показываются обе разные способности. Число — полученные очки Ultimate. Тусклая иконка — не готово, яркая — готово, нейтральная — неизвестно/граница округления. Без данных элемент скрыт. Удалённые очки/стоимость имеют шаг 2. После сброса нужны свежие пакеты способности и очков.", 1)
-SafeAddString(ONEFRAME_HODOR_TIP, "Обмен ДПС, эффективным ХПС и Ultimate через LibGroupCombatStats. Hodor необязателен. Союзники тоже должны передавать данные. После регистрации передача библиотеки продолжается до перезагрузки UI. Нет свежих данных — у союзника отображается «—».", 1)
-SafeAddString(ONEFRAME_STATS_TIP, "Бойцам — ДПС, целителям — ХПС, танкам — без счётчиков. Ultimate независимо доступен всем ролям. Общие значения приоритетны; локальный резерв — прямой исходящий урон и исходное лечение (не эффективный ХПС), без питомцев, спутников и щитов. Общие значения устаревают за 10 секунд и сбрасываются при смене боя/группы/зоны. Нет данных — «—», полученный ноль — 0.", 1)
-SafeAddString(ONEFRAME_SHIELDS, "Щиты поглощения", 1)
-SafeAddString(ONEFRAME_SHIELD, "Показывать щиты поглощения", 1)
-SafeAddString(ONEFRAME_SHIELD_COLOR, "Цвет щита", 1)
-SafeAddString(ONEFRAME_SHIELD_OPACITY, "Прозрачность щита", 1)
-SafeAddString(ONEFRAME_SHIELD_TIP, "Настройка цвета встроенного щита поверх здоровья. При отключении возвращается стандартный вид ESO; щиты, травма и запрет лечения продолжают работать.", 1)
-SafeAddString(ONEFRAME_INFO_TIP, "Сведения располагаются компактно внутри фрейма, статистика — внизу. Размеры фрейма не меняются. Сообщения о состоянии имеют приоритет перед добавленным текстом.", 1)
-SafeAddString(ONEFRAME_INTERACTION_SECTION, "ВЗАИМОДЕЙСТВИЕ", 1)
-SafeAddString(ONEFRAME_INTERACTION, "Включить взаимодействие с фреймами", 1)
-SafeAddString(ONEFRAME_CONTEXT_MENU, "Контекстное меню по ПКМ", 1)
-SafeAddString(ONEFRAME_WHISPER, "Шёпот", 1)
-SafeAddString(ONEFRAME_TRAVEL, "Телепортироваться к игроку", 1)
-SafeAddString(ONEFRAME_REMOVE, "Исключить из группы", 1)
-SafeAddString(ONEFRAME_UNSUPPORTED, "OneFrame: эта версия интерфейса ESO не проверена; расширения фреймов отключены.", 1)
-SafeAddString(ONEFRAME_MISSING, "OneFrame: стандартные фреймы недоступны; расширения не подключены.", 1)
+local strings = {
+    [SI_ONEFRAME_DEBUG] = "Debug",
+    [SI_ONEFRAME_DEBUG_OFF] = "Отключено",
+    [SI_ONEFRAME_DEBUG_SMALL] = "Малая группа",
+    [SI_ONEFRAME_DEBUG_LARGE] = "Большая группа",
+    [SI_ONEFRAME_DISPLAY] = "Отображение",
+    [SI_ONEFRAME_TANK_ROLE] = "Танк",
+    [SI_ONEFRAME_HEALER_ROLE] = "Хил",
+    [SI_ONEFRAME_DAMAGE_ROLE] = "ДД",
+    [SI_ONEFRAME_SHOW_STATISTIC] = "Что показывать",
+    [SI_ONEFRAME_NOTHING] = "Ничего",
+    [SI_ONEFRAME_LEVEL_CP] = "Уровень / ЧП",
+    [SI_ONEFRAME_GROUP_DPS] = "ДПС группы",
+    [SI_ONEFRAME_HEALTH_THOUSANDS] = "%.1fк",
+    [SI_ONEFRAME_GENERAL] = "Основные",
+    [SI_ONEFRAME_SORT] = "Сортировать группу по роли",
+    [SI_ONEFRAME_CLASS] = "Показывать значок класса",
+    [SI_ONEFRAME_DPS_LABEL] = "ДПС",
+    [SI_ONEFRAME_HPS_LABEL] = "ХПС",
+    [SI_ONEFRAME_UNAVAILABLE] = "—",
+    [SI_ONEFRAME_KILO] = "%.1fk",
+    [SI_ONEFRAME_MILLION] = "%.2fm",
+    [SI_ONEFRAME_SHIELD_COLOR] = "Цвет щита",
+    [SI_ONEFRAME_CONTEXT_MENU] = "Контекстное меню по ПКМ",
+    [SI_ONEFRAME_WHISPER] = "Шёпот",
+    [SI_ONEFRAME_TRAVEL] = "Телепортироваться к игроку",
+    [SI_ONEFRAME_REMOVE] = "Исключить из группы",
+    [SI_ONEFRAME_UNSUPPORTED] = "OneFrame: эта версия интерфейса ESO не проверена; расширения фреймов отключены.",
+    [SI_ONEFRAME_MISSING] = "OneFrame: стандартные фреймы недоступны; расширения не подключены.",
+}
+
+for id, text in pairs(strings) do
+    SafeAddString(id, text, 1)
+end

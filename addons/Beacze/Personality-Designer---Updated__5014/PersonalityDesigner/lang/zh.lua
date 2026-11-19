@@ -1,8 +1,8 @@
 PersonalityDesigner = {
 	name = "PersonalityDesigner",
 	title = "Personality Designer",
-	author = "Atronyx, Alianym, Tes96",
-	version = "2.0.0",
+	author = "Atronyx, Alianym, Beacze, Tes96",
+	version = "3.1.0",
 	savedVariablesVersion = 999,
 }
 
@@ -20,7 +20,7 @@ local stringsZH = {
 	P_DESIGNER_DISABLED = GetString(SI_ADDONLOADSTATE3),
 	P_DESIGNER_ENABLED = GetString(SI_ADDONLOADSTATE2),	
 	P_DESIGNER_CREATE = GetString(SI_DIALOG_CREATE),
-	P_DESIGNER_DELETE = GetString(SI_MAIL_DELETE),
+	P_DESIGNER_DELETE = GetString(SI_MAIL_READ_DELETE),
 
 	P_DESIGNER_CEREMONIAL = GetString(SI_EMOTECATEGORY1),
 	P_DESIGNER_CHEERS_JEERS = GetString(SI_EMOTECATEGORY2),

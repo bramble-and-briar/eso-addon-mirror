@@ -23,6 +23,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [VCAP2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/VCAP2__8c18ca98-8921-4bf3-b455-1d63b2f761e3) | SugaComa | Console | — |
 | [VCAP2 (built for console- please review files before adding to pc)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/VCAP2-built-for-console--please-review-files-before-adding-to-pc__4732) | SugaComa | PC / Mac | 2.2.5 |
 | [VDSABow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/VDSABow__d36d2963-900c-4bb1-9f66-05f4d480a763) | Vixen_Hunny | Console | — |
+| [Venom Skull Guard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Venom-Skull-Guard__5068) | O-Range | PC / Mac | 1.5.1 |
 | [Verdant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/Verdant__4557) | Federico | PC / Mac | 2.6.0 |
 | [Verditer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/Verditer__4651) | Federico | PC / Mac | 0.9.0 |
 | [Vermilion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/Vermilion__4616) | Federico | PC / Mac | 2.0.0 |

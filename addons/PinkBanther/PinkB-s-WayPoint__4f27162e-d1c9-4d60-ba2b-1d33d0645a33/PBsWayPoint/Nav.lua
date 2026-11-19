@@ -556,12 +556,62 @@ function A.MapDirection(frame, dx, dz)
 	return (frame.a * dx + frame.b * dz) * frame.cmPerUnitX, (frame.c * dx + frame.d * dz) * frame.cmPerUnitY
 end
 
+-- ---------------------------------------------------------------------------------------
+-- Changes of the zone id (noted only, 0.6.2)
+--
+-- Some places inside a zone are zones of their own (a city, a district): walking in, GetUnitRawWorldPosition may give the inner
+-- zone's id with no loading screen. 0.6.1 guessed that this took the guide away and measured such zones on the outer zone's
+-- map. On a PS5 the trail still vanished and the ARROW went too (report 2026-11-19), so that guess is undone: the way is
+-- measured on the player's own zone as in 0.6.0, and the pairs 0.6.1 saved are dropped (Core.lua). What is kept is the
+-- record: every change of the zone id goes into the trace (`/pbwp why`), with or without a loading screen and with the
+-- parent zone the game names, so the next report says whether such borders exist and whether the guide goes at them.
+-- ---------------------------------------------------------------------------------------
+
+local MAX_PARENTS = 8
+
+-- The outermost zone a zone belongs to (GetParentZoneId followed up); the zone itself when there is none or it cannot be asked.
+function A:RootZone(zone)
+	local roots = self.zoneRoots
+	if not roots then
+		roots = {}
+		self.zoneRoots = roots
+	end
+	if roots[zone] then
+		return roots[zone]
+	end
+	local root = zone
+	for _ = 1, MAX_PARENTS do
+		local parent = self:Call("GetParentZoneId", root)
+		if not Number(parent) or parent == 0 or parent == root then
+			break
+		end
+		root = parent
+	end
+	roots[zone] = root
+	return root
+end
+
+-- A line in the trace when the zone id differs from the last one read (nothing else changes).
+function A:NoteZone(zone)
+	local loads = self.loads or 0
+	local last, lastLoads = self.lastRawZone, self.lastRawLoads
+	self.lastRawZone, self.lastRawLoads = zone, loads
+	if not last or last == zone then
+		return
+	end
+	local how = lastLoads == loads and "without a loading screen" or "after a loading screen"
+	local text = string.format("zone %d -> %d %s (outermost zones: %d -> %d)", last, zone, how, self:RootZone(last), self:RootZone(zone))
+	self.lastZoneChange = text
+	self:Trace("position", text)
+end
+
 -- Everything a tick needs about where the player is: { zone, x, y, z, frame, why }, or nil and a reason.
 function A:ReadSample(now)
 	local zone, x, y, z = self:PlayerWorld()
 	if not zone then
 		return nil, "no world position"
 	end
+	self:NoteZone(zone)
 	local sample = { zone = zone, x = x, y = y, z = z, now = now }
 	local frame, why = self:Frame(zone, x, y, z, now)
 	if frame and not self:VerifyFrame(frame, x, y, z, now) then

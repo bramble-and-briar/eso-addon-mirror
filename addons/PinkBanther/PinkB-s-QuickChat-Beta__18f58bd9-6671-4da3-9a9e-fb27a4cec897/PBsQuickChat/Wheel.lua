@@ -1,4 +1,4 @@
--- An extra page on the utility wheel (hold D-pad up on a console), listing the eight messages. It is the page
+-- An extra page on the utility wheel (hold D-pad up on a console), listing the messages (8 to 24: "slotCount"). It is the page
 -- that comes right after Emotes, the last page of the game's own wheel -- or, with the "wheelHead" option, the
 -- first page (the client always opens the wheel on page 1, so the wheel then opens on this page, and the game's
 -- own pages are one step further on).
@@ -30,7 +30,15 @@
 --      SetupEntryControl (to blank the stack count and cooldown the stand-in slot would have drawn) and
 --      after RefreshCategories (the names of the neighbouring pages).
 --
---   3. Choosing a message is the client's own selection: releasing D-pad up calls the entry's callback, which is
+--   3. More than eight messages: the client builds the page with eight entries, and ZO_RadialMenu lays out as many
+--      as the menu's entry list holds when it is shown, after PopulateMenu (ZO_RadialMenuController:ShowMenu is
+--      Clear, PopulateMenu, Show), spreading them evenly round the circle. So the hook that rewrites the eight also
+--      appends plain entry tables to that list (no client function is called, as with the rewrite itself). The
+--      count is read every time the wheel opens, so changing it needs no reload. The client's setup of an entry
+--      reads data.slotNum against the stand-in category (GetSlotItemCount, GetSlotCooldownInfo...), so slotNum of
+--      the added entries stays a place on the real page, 1 to 8; the message number is data.index.
+--
+--   4. Choosing a message is the client's own selection: releasing D-pad up calls the entry's callback, which is
 --      ours, and which only puts the text into the chat box (Chat.lua).
 --
 -- If SecurePostHook does not exist, the page is not installed at all. There is deliberately no fallback to
@@ -310,22 +318,50 @@ function A:FillWheelPage(wheel)
 	self.sv.pending = "wheelUse"
 	local emptyName = ZO_UTILITY_SLOT_EMPTY_STRING or S.wheelEmpty
 	local emptyIcon = ZO_UTILITY_SLOT_EMPTY_TEXTURE or DEFAULT_ICON
-	for index, entry in ipairs(entries) do
-		if self:HasText(index) then
+	-- The client built PAGE_SIZE entries; the messages in use may be more (up to MAX_SLOTS): the rest are added
+	-- as plain tables, in the shape ZO_RadialMenu:AddEntry makes, before the menu is shown and laid out.
+	local total, limited = self:WheelEntryCount()
+	local crowded = total > self.PAGE_SIZE
+	local built = #entries
+	-- Everything that can fail (reading the saved messages) is done first into a plan of our own; only when it is
+	-- complete is the client's list written, with plain assignments. An error half way must not leave the client's
+	-- layout a half-made entry with no data to lay out.
+	local plan = {}
+	for index = 1, math.max(total, #entries) do
+		-- data.slotNum stays a place on the page the client built (1 .. PAGE_SIZE): its setup of the entry reads
+		-- slot information with it and nothing is known about a number outside the bar
+		local slotNum = (index - 1) % self.PAGE_SIZE + 1
+		if index <= total and self:HasText(index) then
 			local name = self:WheelName(index)
-			entry.name = name
-			entry.inactiveIcon, entry.activeIcon = self.ICON, self.ICON
-			entry.callback = function()
-				A:Stage(index, "wheel")
-			end
-			entry.data = { slotNum = index, name = name, pbqc = true }
+			plan[index] = {
+				name = name,
+				icon = self.ICON,
+				callback = function()
+					A:Stage(index, "wheel")
+				end,
+				data = { slotNum = slotNum, index = index, name = name, pbqc = true, crowded = crowded },
+			}
 		else
-			entry.name = emptyName
-			entry.inactiveIcon, entry.activeIcon = emptyIcon, emptyIcon
-			entry.callback = nil
-			entry.data = { slotNum = index, name = "", pbqc = true, empty = true }
+			plan[index] = {
+				name = emptyName,
+				icon = emptyIcon,
+				data = { slotNum = slotNum, index = index, name = "", pbqc = true, empty = true, crowded = crowded },
+			}
 		end
 	end
+	for index, item in ipairs(plan) do
+		local entry = entries[index]
+		if entry == nil then
+			entry = {}
+			entries[index] = entry
+		end
+		entry.name = item.name
+		entry.inactiveIcon, entry.activeIcon = item.icon, item.icon
+		entry.callback = item.callback
+		entry.data = item.data
+	end
+	local w = self.wheel
+	w.entries, w.limited, w.built = total, limited, built
 end
 
 -- The three names the wheel shows for pages: the current one in the middle, the neighbours at the bottom.
@@ -345,7 +381,16 @@ end
 -- The client set the entry up for a slot of the stand-in category: take back what that would have drawn.
 function A:TouchWheelEntry(entryControl, data)
 	if entryControl.count then
-		entryControl.count:SetHidden(true)
+		-- With many entries the names beside the icons would run into each other (they are in a very large font,
+		-- and entries near the top and bottom of the circle are side by side): the number of the message goes in the
+		-- stack count's place instead, and the name of the entry under the stick is the client's own text in the
+		-- middle of the wheel.
+		if data.crowded and not data.empty and data.index then
+			entryControl.count:SetText(tostring(data.index))
+			entryControl.count:SetHidden(false)
+		else
+			entryControl.count:SetHidden(true)
+		end
 	end
 	if entryControl.icon then
 		entryControl.icon:SetDesaturation(0)
@@ -362,7 +407,7 @@ function A:TouchWheelEntry(entryControl, data)
 			keysShown = ok and value == true
 		end
 		label:SetText(data.name or "")
-		label:SetHidden(data.empty == true or keysShown)
+		label:SetHidden(data.empty == true or keysShown or data.crowded == true)
 	end
 end
 
@@ -376,6 +421,9 @@ function A:WheelStatusLines()
 		if (self.sv.wheelHead == true) ~= (w.head == true) then
 			lines[#lines + 1] = "wheel position: the setting says " .. (self.sv.wheelHead and "head" or "after Emotes") .. "; " .. (w.positionNote or S.wheelHeadLater)
 		end
+	end
+	if w.entries then
+		lines[#lines + 1] = string.format("wheel entries at the last opening: %d (the client built %d); messages in use: %d%s", w.entries, w.built or 0, self:SlotCount(), w.limited and "; cut to " .. self.TOGGLABLE_LIMIT .. " because toggleable wheels are on" or "")
 	end
 	if w.errors > 0 then
 		lines[#lines + 1] = string.format("wheel errors: %d, last: %s", w.errors, tostring(w.lastError))

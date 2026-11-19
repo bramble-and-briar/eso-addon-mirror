@@ -1,6 +1,14 @@
-# WW D-Pad — Version 0.7.5
+# WW D-Pad — Version 0.7.6
 
 Autor: FiNk3--F13--
+
+Version 0.7.6 übergibt vorgemerkte Wechsel erst an WW, wenn ESO keinen
+aktiven Blockzustand mehr meldet. Bis dahin bleibt das Ziel gelb ausstehend;
+Mehrfachdrücken erzeugt keine zusätzlichen Wechsel. Auch außerhalb des
+Kampfes wird ein manueller Wechsel bei aktivem Blocken vorgemerkt.
+Die Automatik wartet ebenfalls auf einen freien Blockzustand. WWs eigene
+Blockprüfung bleibt unverändert. Meldet ESO dauerhaft Blocken, wartet das
+Add-on weiter; die Änderung behebt keinen spielinternen Blockzustand.
 
 Version 0.7.5 gibt einen bestätigten, vollständig abgearbeiteten WW-Wechsel
 auch dann frei, wenn inzwischen die WW-Seite oder Auswahl geändert wurde.

@@ -77,7 +77,10 @@ end
 local function sync()
     if syncing or finishing or suspended then return end
     syncing = true
-    local ok, fight = pcall(LC.RefreshMeterFight, LC)
+    local ok, fight = pcall(function()
+        if active and not stopping then LC:FinishUnenteredMeterFight(lastDamageMS) end
+        return LC:RefreshMeterFight()
+    end)
     syncing = false
     if not ok then error(fight) end
     readOffsets(fight)
@@ -111,7 +114,18 @@ function meter:CheckSoloDeath()
     LC:DiscardMeterFight()
     return true
 end
+function meter:CheckRevival()
+    -- PLAYER_ALIVE can arrive before the dead/reincarnating query updates, or be
+    -- absent on a particular respawn path. The regular HUD tick also checks state.
+    if not suspended or finishing or stopping or syncing or soloDead() then return false end
+    LC:DiscardMeterFight()
+    suspended, currentFight, finishedFight = false, nil, nil
+    enableSubscriptions(true)
+    if SimpleGroupDPS_CombatAnalysis then SimpleGroupDPS_CombatAnalysis:SetPaused(false) end
+    return true
+end
 function meter:GetStats()
+    self:CheckRevival()
     self:CheckSoloDeath()
     sync()
     return last
@@ -126,7 +140,7 @@ end
 function meter:GetDiagnostics()
     local stats = self:GetStats()
     return {
-        active = active, inCombat = IsUnitInCombat("player"),
+        active = active, suspended = suspended, inCombat = IsUnitInCombat("player"),
         durationMS = stats.durationMS or 0, dps = stats.dps or 0, total = stats.total or 0,
         dpsDurationMS = stats.dpsDurationMS, dpsStartOffsetMS = stats.dpsStartOffsetMS, dpsEndOffsetMS = stats.dpsEndOffsetMS,
         bossTotal = stats.bossTotal, bossDPS = stats.bossDPS, bossDurationMS = stats.bossDurationMS,
@@ -179,6 +193,7 @@ function meter:Initialize(saved)
     subscriptions[SGD_LIBCOMBAT_EVENT_DAMAGE_SELF] = damage
     enableSubscriptions(true)
     local function onDeath(_, tag, dead)
+        if (tag == nil or tag == "player") and dead == false then self:CheckRevival(); return end
         if suspended or finishing then return end
         if (tag == nil or tag == "player") and dead ~= false and not IsUnitGrouped("player") then
             -- UNIT_DEATH_STATE_CHANGED can precede the separate dead-state query.
@@ -192,11 +207,11 @@ function meter:Initialize(saved)
     if EVENT_PLAYER_DEAD then EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSLibCombatDeath", EVENT_PLAYER_DEAD, function() onDeath() end) end
     if EVENT_UNIT_DEATH_STATE_CHANGED then EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSLibCombatDeathState", EVENT_UNIT_DEATH_STATE_CHANGED, onDeath) end
     EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSLibCombatAlive", EVENT_PLAYER_ALIVE, function()
-        if not suspended then return end
-        LC:DiscardMeterFight()
-        suspended, currentFight, finishedFight = false, nil, nil
-        enableSubscriptions(true)
-        if SimpleGroupDPS_CombatAnalysis then SimpleGroupDPS_CombatAnalysis:SetPaused(false) end
+        self:CheckRevival()
     end)
+    if EVENT_PLAYER_REINCARNATED then
+        EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSLibCombatReincarnated", EVENT_PLAYER_REINCARNATED, function() self:CheckRevival() end)
+    end
+    EVENT_MANAGER:RegisterForEvent("SimpleGroupDPSLibCombatActivated", EVENT_PLAYER_ACTIVATED, function() self:CheckRevival() end)
     self:CheckSoloDeath()
 end

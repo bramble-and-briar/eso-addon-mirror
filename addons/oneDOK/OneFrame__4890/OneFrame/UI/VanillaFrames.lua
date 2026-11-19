@@ -3,8 +3,13 @@ local F = { cache = {}, coloring = false }
 A.Frames = F
 function F:Leader(frame, data)
     if self.leaderUpdating then return end
-    local leader = A.active and IsUnitOnline(frame.unitTag) and IsUnitGroupLeader(frame.unitTag)
-        and DoesUnitExist(frame.unitTag) and UNIT_FRAMES:GetFrame(frame.unitTag) == frame
+    local leader
+    if frame.preview then
+        leader = A.active and frame.preview.leader
+    else
+        leader = A.active and IsUnitOnline(frame.unitTag) and IsUnitGroupLeader(frame.unitTag)
+            and DoesUnitExist(frame.unitTag) and UNIT_FRAMES:GetFrame(frame.unitTag) == frame
+    end
     local showBorder = leader and frame.style == "ZO_RaidUnitFrame"
     if showBorder and not data.leaderBorder then
         data.leaderBorder = {}
@@ -105,11 +110,12 @@ function F:UpdateTotal()
     if bottomControl and sum ~= nil then
         self.total:ClearAnchors()
         self.total:SetAnchor(TOPLEFT, bottomControl, BOTTOMLEFT, left - bottomControl:GetLeft(), 4)
-        self.total:SetText(GetString(ONEFRAME_GROUP_DPS) .. ": " .. A.PlayerInfo:Format(sum))
+        self.total:SetText(GetString(SI_ONEFRAME_GROUP_DPS) .. ": " .. A.PlayerInfo:Format(sum))
     end
 end
 function F:Refresh()
     if not A.supported then return end
+    A.DebugPreview:Refresh()
     self:Crown()
     local members = A.GroupData:Members()
     for _, member in ipairs(members) do self:Attach(UNIT_FRAMES:GetFrame(member.tag)) end

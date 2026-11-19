@@ -19,8 +19,8 @@ local ESO = {
     dimR = 0.55, dimG = 0.57, dimB = 0.60,                    -- muted/secondary
 }
 
-GPI.version = "1.45.2"
-GPI.addOnVersion = 166 -- keep in step with ## AddOnVersion in GridPadInventory.txt
+GPI.version = "1.45.3"
+GPI.addOnVersion = 167 -- keep in step with ## AddOnVersion in GridPadInventory.txt
 GPI.zoning = false -- true between PLAYER_DEACTIVATED and PLAYER_ACTIVATED (load screen)
 GPI.cols = 10
 GPI.rows = 6
@@ -4383,81 +4383,189 @@ end
 -- keybind strip, ZO_GamepadTooltipTopLevel) desyncs the fragment/scene state
 -- machine, and the corruption detonates as a client AppHang at a later load
 -- screen. Alpha 0 is visually identical while the engine keeps believing its own
--- visibility state. nativeControlStates now stores the ORIGINAL ALPHA (number),
--- not a hidden flag. Do not reintroduce SetHidden here.
+-- visibility state. Do not reintroduce SetHidden here.
 --
--- v1.45.1: ONE answer to "what alpha did this control have before GridPad touched
--- it". ZO_GamepadTooltipTopLevel is suppressed by BOTH bookkeepers -- the inventory
--- chrome (nativeControlStates) and the bank chrome (bankChromeSuppressed). Each used
--- to snapshot the LIVE alpha on first touch, so whichever went second recorded the
--- 0 that the first had just written, and "restoring" that 0 could leave the shared
--- gamepad tooltip host invisible for every other addon until /reloadui (reported by
--- the GamePadHelper developers). A control already held by the other bookkeeper now
--- inherits that bookkeeper's recorded original instead of reading our own 0 back.
-function GPI:GetChromeOriginalAlpha(control)
-    local inv = self.nativeControlStates and self.nativeControlStates[control]
-    if inv ~= nil then return tonumber(inv) or 1 end
-    local bank = self.bankChromeSuppressed and self.bankChromeSuppressed[control]
-    if bank and bank.alpha ~= nil then return tonumber(bank.alpha) or 1 end
-    return SafeCall(function() return control:GetAlpha() end) or 1
+-- v1.45.3: ONE shared, reference-counted record per native control GridPad touches.
+-- The inventory chrome ("inv") and the bank chrome ("bank") are two HOLDERS of the
+-- same record. The original alpha is read exactly once -- on the first hold -- and
+-- written back exactly once -- when the last holder lets go. This replaces the
+-- v1.45.1 "inherit the other bookkeeper's original" patch, which fixed the shared
+-- root (ZO_GamepadTooltipTopLevel) but not its child tooltip containers
+-- (Left/Right/Quadrant3 TooltipContainer, reported by the GamePadHelper developers:
+-- root back at 1 after banking, the three containers left at 0).
+--
+-- Why the children broke: Control:GetAlpha() returns the EFFECTIVE alpha -- the
+-- control's own alpha multiplied by every parent's. A tooltip container sits under
+-- ZO_GamepadTooltipTopLevel (which GridPad has already set to 0) AND under its own
+-- <Side>Tooltip control, which the game fades in and out with a
+-- ZO_FadeSceneFragment. Read through GetAlpha(), a container therefore reported 0
+-- (or a mid-fade fraction) that was never its own value, and that number was later
+-- "restored" onto it. Nothing in the game ever writes a container's alpha, so it
+-- stayed invisible until /reloadui.
+--
+-- The original is now read with Control:GetControlAlpha() (API 100010+), which
+-- returns the alpha set on the control itself and ignores every parent -- GridPad's
+-- own holds and the game's fades alike. SetAlpha/GetControlAlpha are the matching
+-- pair; GetAlpha is only used for the diagnostic printout.
+--
+-- /gpi chromelog toggles a chat trace of every hold (original read) and every
+-- restore (value written + read-back); /gpi chromestate prints the shared tooltip
+-- root, its three containers, and anything GridPad still holds.
+GPI.chromeHolds = {}   -- [control] = { orig = number, inv = true|nil, bank = true|nil }
+GPI.chromeLogOn = false
+
+local function ChromeName(c)
+    local n = c and c.GetName and SafeCall(function() return c:GetName() end)
+    return (n and n ~= "") and n or tostring(c)
+end
+
+-- The alpha set on the control itself (what SetAlpha writes).
+local function ChromeOwnAlpha(c)
+    return tonumber(c and c.GetControlAlpha and SafeCall(function() return c:GetControlAlpha() end))
+end
+
+-- The alpha actually drawn: own alpha x every parent's. Diagnostics only.
+local function ChromeEffectiveAlpha(c)
+    return tonumber(c and c.GetAlpha and SafeCall(function() return c:GetAlpha() end))
+end
+
+function GPI:ChromeLog(fmt, ...)
+    if not self.chromeLogOn then return end
+    AddChatMessage("[chrome] " .. string.format(fmt, ...), true)
+end
+
+function GPI:AcquireChrome(c, who)
+    if not c or not c.SetAlpha then return end
+    local h = self.chromeHolds[c]
+    if not h then
+        -- First hold: GridPad has not written to this control yet, so its own alpha
+        -- is still the game's value. A control whose own alpha cannot be read is
+        -- left completely alone -- never suppress what cannot be put back exactly.
+        local orig = ChromeOwnAlpha(c)
+        if orig == nil then
+            self:ChromeLog("skip %s: own alpha unreadable, not suppressed", ChromeName(c))
+            return
+        end
+        local eff = ChromeEffectiveAlpha(c)
+        h = { orig = orig }
+        self.chromeHolds[c] = h
+        self:ChromeLog("hold %s by %s: saved original=%.2f (drawn alpha at that moment=%.2f)",
+            ChromeName(c), who, h.orig, eff or -1)
+    elseif not h[who] then
+        self:ChromeLog("hold %s by %s: shared, original stays %.2f", ChromeName(c), who, h.orig)
+    end
+    h[who] = true
+    SafeCall(function() c:SetAlpha(0) end)
+end
+
+function GPI:ReleaseChrome(c, who)
+    local h = c and self.chromeHolds[c]
+    if not h or not h[who] then return end
+    h[who] = nil
+    if h.inv or h.bank then
+        self:ChromeLog("release %s by %s: still held by %s, stays 0",
+            ChromeName(c), who, h.inv and "inv" or "bank")
+        return
+    end
+    self.chromeHolds[c] = nil
+    if c.SetAlpha then SafeCall(function() c:SetAlpha(h.orig) end) end
+    self:ChromeLog("restore %s (last holder %s): wrote %.2f, read back own=%.2f drawn=%.2f",
+        ChromeName(c), who, h.orig, ChromeOwnAlpha(c) or -1, ChromeEffectiveAlpha(c) or -1)
 end
 
 function GPI:SetNativeControlHidden(control, hidden)
     if not control or not control.SetAlpha or not control.GetAlpha then return end
-    if self.nativeControlStates[control] == nil then
-        self.nativeControlStates[control] = self:GetChromeOriginalAlpha(control)
-    end
     if hidden then
-        SafeCall(function() control:SetAlpha(0) end)
-    else
-        SafeCall(function() control:SetAlpha(self.nativeControlStates[control]) end)
+        self.nativeControlStates[control] = true
+        self:AcquireChrome(control, "inv")
+    elseif self.nativeControlStates[control] then
+        self.nativeControlStates[control] = nil
+        self:ReleaseChrome(control, "inv")
     end
 end
 
--- Bank-chrome suppression keeps its OWN bookkeeping (separate from the inventory
--- chrome states) so groups can be released independently -- e.g. while a native
--- dialog (Buy Bank Space) is up, its tooltip card and quadrant background must show.
+-- Bank-chrome suppression is its own HOLDER so it can be released independently --
+-- e.g. while a native dialog (Buy Bank Space) is up, its tooltip card and quadrant
+-- background must show.
 function GPI:SuppressBankControl(c)
-    if not c then return end
+    if not c or not c.SetAlpha or not c.GetAlpha then return end
     self.bankChromeSuppressed = self.bankChromeSuppressed or {}
-    if not self.bankChromeSuppressed[c] then
-        self.bankChromeSuppressed[c] = {
-            -- v1.45.1: the true pre-GridPad alpha, never our own 0 (see
-            -- GetChromeOriginalAlpha).
-            alpha = (c.GetAlpha and self:GetChromeOriginalAlpha(c)) or 1,
-        }
-    end
+    self.bankChromeSuppressed[c] = true
     -- v1.39: ALPHA-ONLY suppression. SetHidden on live banking-scene roots and the
     -- gamepad tooltip toplevels desyncs the fragment/scene state machine; the
-    -- corruption then detonates as a client AppHang (hard freeze, no Lua error) at
-    -- the NEXT load screen -- field-confirmed Jul 2026, the same mechanism as the
-    -- v1.38 forced-scene-hide fix. Alpha 0 gives the identical visual result while
-    -- the engine keeps believing its own visibility state. Do not reintroduce
-    -- SetHidden here. (This is the same technique SetFadedForDialog already uses,
-    -- and for the same reason.)
-    if c.SetAlpha then SafeCall(function() c:SetAlpha(0) end) end
+    -- corruption then detonates as a client AppHang at the NEXT load screen.
+    -- Do not reintroduce SetHidden here.
+    self:AcquireChrome(c, "bank")
 end
 
 function GPI:ReleaseBankControl(c)
-    local st = self.bankChromeSuppressed and self.bankChromeSuppressed[c]
-    if not st then return end
+    if not (c and self.bankChromeSuppressed and self.bankChromeSuppressed[c]) then return end
     self.bankChromeSuppressed[c] = nil
-    -- v1.45.1: a control the inventory chrome is ALSO holding (the shared tooltip
-    -- host) stays at alpha 0 -- exactly what it showed before this change -- and
-    -- RestoreNativeInventoryChrome gives it back its original alpha when GridPad
-    -- closes. Only controls the bank chrome holds alone are restored here.
-    if self.nativeControlsHidden and self.nativeControlStates
-        and self.nativeControlStates[c] ~= nil then
-        return
-    end
-    if c.SetAlpha then SafeCall(function() c:SetAlpha(st.alpha) end) end
+    self:ReleaseChrome(c, "bank")
 end
 
 function GPI:RestoreBankChrome()
     local list = {}
-    for c in pairs(self.bankChromeSuppressed or {}) do table.insert(list, c) end
+    for c in pairs(self.bankChromeSuppressed or {}) do list[#list + 1] = c end
     for i = 1, #list do self:ReleaseBankControl(list[i]) end
     self.bankChromeSuppressed = {}
+end
+
+-- Releases every inventory-chrome hold. Safe to call any time.
+function GPI:ReleaseInventoryChrome()
+    local list = {}
+    for c in pairs(self.nativeControlStates or {}) do list[#list + 1] = c end
+    for i = 1, #list do
+        self.nativeControlStates[list[i]] = nil
+        self:ReleaseChrome(list[i], "inv")
+    end
+    self.nativeControlStates = {}
+end
+
+-- After GridPad has fully closed nothing may still be held. Anything left is
+-- reported (with the log on) and given back its original alpha.
+function GPI:VerifyChromeReleased(where)
+    local leftover = {}
+    for c in pairs(self.chromeHolds) do leftover[#leftover + 1] = c end
+    for i = 1, #leftover do
+        local c = leftover[i]
+        local h = self.chromeHolds[c]
+        self:ChromeLog("LEFTOVER at %s: %s held by %s%s -- restoring %.2f", tostring(where),
+            ChromeName(c), h.inv and "inv " or "", h.bank and "bank" or "", h.orig)
+        self.chromeHolds[c] = nil
+        if c.SetAlpha then SafeCall(function() c:SetAlpha(h.orig) end) end
+    end
+    self.nativeControlStates = {}
+    self.bankChromeSuppressed = {}
+end
+
+function GPI:PrintChromeState()
+    -- "own" is the alpha set on the control (GetControlAlpha); "drawn" is what
+    -- GetAlpha reports, i.e. own x every parent. The <Side>Tooltip rows are the
+    -- game's own fade controls: GridPad never touches them, and while one is faded
+    -- out its container reads drawn=0 with own=1 -- that is the native idle state.
+    local names = {
+        "ZO_GamepadTooltipTopLevel",
+        "ZO_GamepadTooltipTopLevelLeftTooltip",
+        "ZO_GamepadTooltipTopLevelLeftTooltipContainer",
+        "ZO_GamepadTooltipTopLevelRightTooltip",
+        "ZO_GamepadTooltipTopLevelRightTooltipContainer",
+        "ZO_GamepadTooltipTopLevelQuadrant3Tooltip",
+        "ZO_GamepadTooltipTopLevelQuadrant3TooltipContainer",
+    }
+    AddChatMessage(string.format("chrome: open=%s bank=%s nativeControlsHidden=%s log=%s",
+        tostring(self:IsShowing() == true), tostring(self.bankMode),
+        tostring(self.nativeControlsHidden), self.chromeLogOn and "on" or "off"), true)
+    for i = 1, #names do
+        local c = GetNamedControl(names[i])
+        local h = c and self.chromeHolds[c]
+        AddChatMessage(string.format("  %s %s%s", names[i],
+            c and string.format("own=%.2f drawn=%.2f", ChromeOwnAlpha(c) or -1, ChromeEffectiveAlpha(c) or -1) or "missing",
+            h and string.format(" HELD(orig=%.2f%s%s)", h.orig, h.inv and " inv" or "", h.bank and " bank" or "") or ""), true)
+    end
+    local n = 0
+    for _ in pairs(self.chromeHolds) do n = n + 1 end
+    AddChatMessage("  controls held right now: " .. n, true)
 end
 
 -- Modal tutorial popups (e.g. the POISONS explainer on first poison equip) are
@@ -4520,6 +4628,10 @@ end
 function GPI:EnforceBankChromeHidden()
     if self.zoning then return end -- native chrome is hands-off mid-load-screen
     if self.safeBankChrome then return end
+    -- v1.45.3: the single choke point for every bank suppression, including the
+    -- 125ms heartbeat and the deferred 80ms pass. Once banking has ended or the
+    -- window is closed nothing may re-suppress, whoever calls in late.
+    if not self.bankMode or not self:IsShowing() then return end
     -- Near dialogs, only the FRAGILE group (backgrounds/tooltips -- the controls
     -- dialogs actually animate) goes hands-off. The banking scene ROOTS are ours
     -- to suppress unconditionally: no dialog animates them, and skipping them let
@@ -4607,9 +4719,7 @@ function GPI:HideNativeInventoryChrome(forceAdditionalPass)
     if self.zoning then return end -- never suppress native chrome during a load screen
     if not self.hideNativeControls then return end
     if self.nativeControlsHidden and not forceAdditionalPass then return end
-    if not self.nativeControlsHidden then
-        self.nativeControlStates = {}
-    end
+    self.nativeControlStates = self.nativeControlStates or {}
 
     for i = 1, #NATIVE_INVENTORY_CONTROL_NAMES do
         self:SetNativeControlHidden(GetNamedControl(NATIVE_INVENTORY_CONTROL_NAMES[i]), true)
@@ -4629,20 +4739,12 @@ function GPI:HideNativeInventoryChrome(forceAdditionalPass)
 end
 
 function GPI:RestoreNativeInventoryChrome()
-    if not self.nativeControlsHidden then return end
-
-    -- v1.45.1 (per the GamePadHelper developers): nested bank state first, then the
-    -- original inventory state, so the inventory restore always has the last word
-    -- on controls both groups touched (ZO_GamepadTooltipTopLevel).
+    -- v1.45.3: bank-only suppression is cleaned up independently of the inventory
+    -- chrome flag (it used to be skipped when nativeControlsHidden was false).
+    -- Order no longer matters: a shared control is restored when its LAST holder
+    -- lets go, to the alpha recorded on its FIRST hold.
     self:RestoreBankChrome()
-
-    for control, origAlpha in pairs(self.nativeControlStates or {}) do
-        if control and control.SetAlpha then
-            SafeCall(function() control:SetAlpha(tonumber(origAlpha) or 1) end)
-        end
-    end
-
-    self.nativeControlStates = {}
+    self:ReleaseInventoryChrome()
     self.nativeControlsHidden = false
 end
 
@@ -4710,6 +4812,7 @@ function GPI:Hide(fromScene)
     self:RestoreDetailsAfterMenu() -- clear any menu/dialog suppression snapshot
     self.window:SetHidden(true)
     self:RestoreNativeInventoryChrome()
+    self:VerifyChromeReleased("hide")
     if self.modal then
         self.modal:SetHidden(true)
     end
@@ -8445,6 +8548,13 @@ function GPI:Initialize()
                 AddChatMessage("usage: /gpi tipscale <0.8 - 1.6>   (current: " .. tostring(self.tipScale or 1.1) .. ")")
             end
             return
+        elseif command == "chromelog" then
+            self.chromeLogOn = not self.chromeLogOn
+            AddChatMessage("native chrome hold/restore log is now " .. (self.chromeLogOn and "ON" or "OFF") .. ".")
+            return
+        elseif command == "chromestate" then
+            self:PrintChromeState()
+            return
         elseif command == "debug" then
             self.debugMode = not self.debugMode
             AddChatMessage("live debug trace is now " .. (self.debugMode and "ON" or "OFF") .. ".")
@@ -8667,7 +8777,7 @@ function GPI:Initialize()
                 if GPI.selZone == "bankgrid" or GPI.selZone == "bankcurrency" then GPI.selZone = "grid" end
                 if GPI.bankFrame then GPI.bankFrame:SetHidden(true) end
                 GPI:RestoreBankChrome()
-                if GPI:IsShowing() then GPI:Hide(true) end
+                if GPI:IsShowing() then GPI:Hide(true) else GPI:VerifyChromeReleased("closebank") end
             end)
         end
         -- (A previously registered overland-difficulty event was removed: it does
@@ -8694,7 +8804,7 @@ function GPI:Initialize()
     AddChatMessage("v" .. self.version .. " loaded.")
 end
 
-function GridPadInventory.Toggle()
+function GPI.Toggle()
     if GPI.Initialize and not GPI.initialized then GPI:Initialize() end
     GPI:ToggleWindow()
 end

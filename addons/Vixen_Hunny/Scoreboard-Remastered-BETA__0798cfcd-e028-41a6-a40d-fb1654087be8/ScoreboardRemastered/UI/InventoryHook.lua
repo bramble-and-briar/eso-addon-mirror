@@ -98,3 +98,4 @@ function Inv:Report()
     SBR.Print("inventory scenes hooked: %s; PC button: %s", #names > 0 and table.concat(names, ", ") or "none",
         self.button and "yes" or "no")
 end
+ScoreboardRemastered.Mark("UI/InventoryHook.lua")

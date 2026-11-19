@@ -2,7 +2,7 @@ UnchainedHelper = UnchainedHelper or { }
 local UnchainedHelper = UnchainedHelper
 
 UnchainedHelper.name		= "UnchainedHelper"
-UnchainedHelper.version = "1.0.13"
+UnchainedHelper.version = "1.0.19"
 UnchainedHelper.varVersion 	= "9"
 
 UnchainedHelper.defaults	= {
@@ -16,6 +16,12 @@ UnchainedHelper.defaults	= {
     ["brpSplitOffsetX"] = 1540,
     ["brpSplitOffsetY"] = 610,
     ["brpBestSplits"] = {},
+    ["showBRPMechanicTracker"] = false,
+    ["brpMechanicScale"] = 100,
+    ["brpMechanicOffsetX"] = 1510,
+    ["brpMechanicOffsetY"] = 300,
+    ["brpMechanicIntervals"] = {}, -- legacy cadence store; retained for migration
+    ["brpMechanicProfiles"] = {}, -- persistent self-learning profiles
     ["showSpawnCallout"] = true,
     ["spawnCalloutDuration"] = 4,
     ["spawnCalloutScale"] = 100,
@@ -23,8 +29,15 @@ UnchainedHelper.defaults	= {
     ["spawnCalloutOffsetY"] = -150,
     ["showTotemAlert"] = true,
     ["totemAlertDuration"] = 3,
+    ["totemAlertScale"] = 100,
+    ["totemAlertOffsetX"] = 0,
+    ["totemAlertOffsetY"] = -260,
     ["totemAbilityId"] = 0,
     ["showTotemSmartTimer"] = true,
+    ["totemTimerScale"] = 100,
+    ["totemTimerOffsetX"] = 0,
+    ["totemTimerOffsetY"] = -215,
+    ["totemPersistentInterval"] = 0,
 	["showRaisedMarkers"] = true,
     ["showCardinalMarkers"] = false,
 	["markerSize"] = 175,
@@ -106,6 +119,11 @@ UnchainedHelper.brpNextSplitStep = 1
 UnchainedHelper.brpLastSplitText = ""
 UnchainedHelper.brpTrialState = 0
 
+UnchainedHelper.brpMechanicState = {}
+UnchainedHelper.brpMechanicStage = 0
+UnchainedHelper.totemIntervalSamples = {}
+UnchainedHelper.uiPreviewMode = false
+
 
 UnchainedHelper.drawNextFightIconTime = 0
 UnchainedHelper.nextStage = 0
@@ -154,6 +172,7 @@ function UnchainedHelper.UpdateLegendPosition()
 end
 
 function UnchainedHelper.HideLegend()
+    if UnchainedHelper.uiPreviewMode then return end
     if not UnchainedHelperLegend then return end
     for i = 1, 5 do
         local row = _G["UnchainedHelperLegendRow" .. tostring(i)]
@@ -163,6 +182,10 @@ function UnchainedHelper.HideLegend()
 end
 
 function UnchainedHelper.RefreshLegend()
+    if UnchainedHelper.uiPreviewMode then
+        if UnchainedHelper.ShowUIPreviewLegend then UnchainedHelper.ShowUIPreviewLegend() end
+        return
+    end
     if not UnchainedHelperLegend or not UnchainedHelper.savedVars then return end
 
     if not UnchainedHelper.savedVars.showMarkerLegend then
@@ -981,11 +1004,13 @@ function UnchainedHelper.UpdateSpawnCalloutPosition()
 end
 
 function UnchainedHelper.HideSpawnCallout()
+    if UnchainedHelper.uiPreviewMode then return end
     EVENT_MANAGER:UnregisterForUpdate(UnchainedHelper.name .. "SpawnCalloutHide")
     if UnchainedHelperSpawnCallout then UnchainedHelperSpawnCallout:SetHidden(true) end
 end
 
 function UnchainedHelper.ShowSpawnCallout(stage, round, wave)
+    if UnchainedHelper.uiPreviewMode then return end
     if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showSpawnCallout == false then return end
     if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then
         UnchainedHelper.HideSpawnCallout()
@@ -2594,7 +2619,22 @@ function UnchainedHelper.ClearIcons(keepRequests, skipCardinals)
     end
 end
 
+function UnchainedHelper.UpdateTotemAlertPosition()
+    if not UnchainedHelperTotemAlert or not UnchainedHelper.savedVars then return end
+    UnchainedHelperTotemAlert:ClearAnchors()
+    UnchainedHelperTotemAlert:SetAnchor(CENTER, GuiRoot, CENTER, UnchainedHelper.savedVars.totemAlertOffsetX or 0, UnchainedHelper.savedVars.totemAlertOffsetY or -260)
+    UnchainedHelperTotemAlert:SetScale((UnchainedHelper.savedVars.totemAlertScale or 100) / 100)
+end
+
+function UnchainedHelper.UpdateTotemTimerPosition()
+    if not UnchainedHelperTotemTimer or not UnchainedHelper.savedVars then return end
+    UnchainedHelperTotemTimer:ClearAnchors()
+    UnchainedHelperTotemTimer:SetAnchor(CENTER, GuiRoot, CENTER, UnchainedHelper.savedVars.totemTimerOffsetX or 0, UnchainedHelper.savedVars.totemTimerOffsetY or -215)
+    UnchainedHelperTotemTimer:SetScale((UnchainedHelper.savedVars.totemTimerScale or 100) / 100)
+end
+
 function UnchainedHelper.HideTotemAlert()
+    if UnchainedHelper.uiPreviewMode then return end
     UnchainedHelper.totemAlertHideAt = 0
     if UnchainedHelperTotemAlert then
         UnchainedHelperTotemAlert:SetHidden(true)
@@ -2602,6 +2642,7 @@ function UnchainedHelper.HideTotemAlert()
 end
 
 function UnchainedHelper.HideTotemTimer()
+    if UnchainedHelper.uiPreviewMode then return end
     UnchainedHelper.totemLastTimerText = nil
     if UnchainedHelperTotemTimer then
         UnchainedHelperTotemTimer:SetHidden(true)
@@ -2614,15 +2655,18 @@ function UnchainedHelper.ResetTotemSmartTimer()
     UnchainedHelper.totemLearnedInterval = 0
     UnchainedHelper.totemNextPredictedAt = 0
     UnchainedHelper.totemSpawnCount = 0
+    UnchainedHelper.totemIntervalSamples = {}
     UnchainedHelper.HideTotemTimer()
 end
 
 function UnchainedHelper.SetTotemTimerText(text, urgent)
+    if UnchainedHelper.uiPreviewMode then return end
     if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showTotemSmartTimer == false then
         UnchainedHelper.HideTotemTimer()
         return
     end
     if not UnchainedHelperTotemTimerText or not UnchainedHelperTotemTimer then return end
+    UnchainedHelper.UpdateTotemTimerPosition()
     if UnchainedHelper.totemLastTimerText ~= text then
         UnchainedHelper.totemLastTimerText = text
         UnchainedHelperTotemTimerText:SetText(text)
@@ -2638,6 +2682,7 @@ function UnchainedHelper.SetTotemTimerText(text, urgent)
 end
 
 function UnchainedHelper.ShowTotemAlert(abilityId)
+    if UnchainedHelper.uiPreviewMode then return end
     if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showTotemAlert == false then return end
     if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return end
 
@@ -2645,6 +2690,7 @@ function UnchainedHelper.ShowTotemAlert(abilityId)
         UnchainedHelper.savedVars.totemAbilityId = abilityId
     end
 
+    UnchainedHelper.UpdateTotemAlertPosition()
     if UnchainedHelperTotemAlertText then
         UnchainedHelperTotemAlertText:SetText("TOTEM ACTIVE")
     end
@@ -2679,7 +2725,14 @@ function UnchainedHelper.RecordTotemSpawn(abilityId)
     if not UnchainedHelper.totemFirstSpawnAt or UnchainedHelper.totemFirstSpawnAt == 0 then
         UnchainedHelper.totemFirstSpawnAt = now
         UnchainedHelper.totemLastSpawnAt = now
-        UnchainedHelper.SetTotemTimerText("TOTEM TIMER: LEARNING 1/2", false)
+        local prior = tonumber(UnchainedHelper.savedVars.totemPersistentInterval) or 0
+        if prior >= 5000 and prior <= 120000 then
+            UnchainedHelper.totemLearnedInterval = prior
+            UnchainedHelper.totemNextPredictedAt = now + prior
+            UnchainedHelper.SetTotemTimerText(string.format("NEXT TOTEM: ~%ds", math.max(1, math.floor(prior / 1000 + 0.5))), false)
+        else
+            UnchainedHelper.SetTotemTimerText("TOTEM TIMER: LEARNING 1/2", false)
+        end
         return
     end
 
@@ -2695,25 +2748,43 @@ function UnchainedHelper.RecordTotemSpawn(abilityId)
         end
 
         UnchainedHelper.totemLearnedInterval = sample
+        UnchainedHelper.totemIntervalSamples = { sample }
+        UnchainedHelper.savedVars.totemPersistentInterval = sample
         UnchainedHelper.totemLastSpawnAt = now
         UnchainedHelper.totemNextPredictedAt = now + sample
         UnchainedHelper.SetTotemTimerText(string.format("NEXT TOTEM: ~%ds", math.max(1, math.floor(sample / 1000 + 0.5))), false)
         return
     end
 
-    -- Every real Totem resynchronizes the forecast. If its spacing is close to the
-    -- learned cadence, gently refine the interval instead of replacing it outright.
+    -- Every real Totem resynchronizes the forecast. Keep a tiny rolling sample and
+    -- prefer the shortest stable cadence: delayed Totem casts can make an interval
+    -- longer, but they should not make us predict a mechanic later than it is due.
     local measured = now - (UnchainedHelper.totemLastSpawnAt or now)
     local learned = UnchainedHelper.totemLearnedInterval
-    if measured >= learned * 0.70 and measured <= learned * 1.30 then
-        learned = math.floor((learned * 0.75) + (measured * 0.25) + 0.5)
+    if measured >= learned * 0.65 and measured <= learned * 1.55 then
+        UnchainedHelper.totemIntervalSamples = UnchainedHelper.totemIntervalSamples or {}
+        table.insert(UnchainedHelper.totemIntervalSamples, measured)
+        while #UnchainedHelper.totemIntervalSamples > 5 do table.remove(UnchainedHelper.totemIntervalSamples, 1) end
+        local ordered = {}
+        for i = 1, #UnchainedHelper.totemIntervalSamples do ordered[i] = UnchainedHelper.totemIntervalSamples[i] end
+        table.sort(ordered)
+        if #ordered == 1 then
+            learned = ordered[1]
+        elseif #ordered == 2 then
+            learned = ordered[1]
+        else
+            learned = ordered[2]
+        end
+        learned = math.floor(learned + 0.5)
         UnchainedHelper.totemLearnedInterval = learned
+        UnchainedHelper.savedVars.totemPersistentInterval = learned
     end
     UnchainedHelper.totemLastSpawnAt = now
     UnchainedHelper.totemNextPredictedAt = now + learned
 end
 
 function UnchainedHelper.UpdateTotemSmartTimer(now)
+    if UnchainedHelper.uiPreviewMode then return end
     if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showTotemSmartTimer == false then
         UnchainedHelper.HideTotemTimer()
         return
@@ -2817,6 +2888,374 @@ end
 
 
 
+-- Blackrose Prison boss mechanic predictor. BRP-only and disabled by default.
+-- Learned cadence profiles persist through SavedVariables so future runs improve rather
+-- than relearning from scratch. Stage 4 keeps independent profiles, with the normal
+-- boss cadence used only as a temporary fallback until a Stage 4 sample is learned.
+local UH_BRP_MECHANICS = {
+    meteor = { label = "METEOR", ids = { 110891 }, stages = { [1] = true, [4] = true } },
+    bugbomb = { label = "BUG BOMB", ids = { 110183 }, stages = { [2] = true, [4] = true } },
+    curse = { label = "CURSE", ids = { 110272 }, stages = { [3] = true, [4] = true } },
+    batswarm = { label = "BAT SWARM", ids = { 111660 }, stages = { [3] = true, [4] = true } },
+    ignition = { label = "SPIRIT IGNITION", ids = { 110613 }, stages = { [5] = true } },
+}
+
+local UH_BRP_MECHANIC_ID_MAP = {
+    [110891] = "meteor",
+    [110183] = "bugbomb",
+    [110272] = "curse",
+    [111660] = "batswarm",
+    [110613] = "ignition",
+}
+
+local UH_BRP_STAGE_TITLES = {
+    [1] = "ENNODIUS",
+    [2] = "TAMES-THE-BEAST",
+    [3] = "LADY MINARA",
+    [4] = "BOSS GAUNTLET",
+    [5] = "DRAKEEH",
+}
+
+local UH_BRP_STAGE_ROWS = {
+    [1] = { "meteor" },
+    [2] = { "bugbomb" },
+    [3] = { "curse", "batswarm" },
+    [4] = { "meteor", "bugbomb", "curse", "batswarm" },
+    [5] = { "ignition" },
+}
+
+local function UH_MechanicProfileKey(key, stage)
+    if stage == 4 then
+        return key .. "_s4"
+    end
+    return key
+end
+
+local function UH_CopyNumericSamples(samples)
+    local copy = {}
+    if type(samples) ~= "table" then return copy end
+    for _, value in ipairs(samples) do
+        local n = tonumber(value)
+        if n and n >= 8000 and n <= 120000 then
+            copy[#copy + 1] = math.floor(n + 0.5)
+        end
+    end
+    while #copy > 8 do table.remove(copy, 1) end
+    return copy
+end
+
+local function UH_GetSavedMechanicProfile(key, stage, create)
+    if not UnchainedHelper.savedVars then return nil, UH_MechanicProfileKey(key, stage) end
+    UnchainedHelper.savedVars.brpMechanicProfiles = UnchainedHelper.savedVars.brpMechanicProfiles or {}
+    local profileKey = UH_MechanicProfileKey(key, stage)
+    local profile = UnchainedHelper.savedVars.brpMechanicProfiles[profileKey]
+
+    -- Migrate the previous single-interval format into the persistent profile store.
+    if not profile and stage ~= 4 and UnchainedHelper.savedVars.brpMechanicIntervals then
+        local legacy = tonumber(UnchainedHelper.savedVars.brpMechanicIntervals[key]) or 0
+        if legacy > 0 then
+            profile = { interval = math.floor(legacy + 0.5), sampleCount = 0, samples = {} }
+            UnchainedHelper.savedVars.brpMechanicProfiles[profileKey] = profile
+        end
+    end
+
+    if not profile and create then
+        profile = { interval = 0, sampleCount = 0, samples = {} }
+        UnchainedHelper.savedVars.brpMechanicProfiles[profileKey] = profile
+    end
+    return profile, profileKey
+end
+
+local function UH_GetFallbackMechanicInterval(key, stage)
+    if stage ~= 4 then return 0 end
+    local baseProfile = UH_GetSavedMechanicProfile(key, 0, false)
+    if baseProfile and (tonumber(baseProfile.interval) or 0) > 0 then
+        return tonumber(baseProfile.interval) or 0
+    end
+    if UnchainedHelper.savedVars and UnchainedHelper.savedVars.brpMechanicIntervals then
+        return tonumber(UnchainedHelper.savedVars.brpMechanicIntervals[key]) or 0
+    end
+    return 0
+end
+
+local function UH_MechanicState(key, stage)
+    stage = stage or 0
+    local profile, profileKey = UH_GetSavedMechanicProfile(key, stage, false)
+    local stateKey = profileKey
+    local state = UnchainedHelper.brpMechanicState[stateKey]
+    if not state then
+        local savedInterval = profile and (tonumber(profile.interval) or 0) or 0
+        local fallback = 0
+        local usingFallback = false
+        if savedInterval <= 0 then
+            fallback = UH_GetFallbackMechanicInterval(key, stage)
+            if fallback > 0 then
+                savedInterval = fallback
+                usingFallback = true
+            end
+        end
+        state = {
+            key = key,
+            stage = stage,
+            profileKey = profileKey,
+            interval = savedInterval,
+            lastAt = 0,
+            nextAt = 0,
+            lastTrigger = 0,
+            samples = profile and UH_CopyNumericSamples(profile.samples) or {},
+            sampleCount = profile and (tonumber(profile.sampleCount) or 0) or 0,
+            usingFallback = usingFallback,
+        }
+        UnchainedHelper.brpMechanicState[stateKey] = state
+    end
+    return state
+end
+
+local function UH_PersistMechanicState(state)
+    if not state or not UnchainedHelper.savedVars then return end
+    local profile = UH_GetSavedMechanicProfile(state.key, state.stage, true)
+    if not profile then return end
+    profile.interval = math.floor((tonumber(state.interval) or 0) + 0.5)
+    profile.sampleCount = math.max(0, tonumber(state.sampleCount) or 0)
+    profile.samples = UH_CopyNumericSamples(state.samples)
+
+    -- Keep the previous store populated for backward compatibility with older builds.
+    if state.stage ~= 4 and profile.interval > 0 then
+        UnchainedHelper.savedVars.brpMechanicIntervals = UnchainedHelper.savedVars.brpMechanicIntervals or {}
+        UnchainedHelper.savedVars.brpMechanicIntervals[state.key] = profile.interval
+    end
+end
+
+local function UH_AddMechanicSample(state, measured)
+    measured = tonumber(measured) or 0
+    if measured < 8000 or measured > 120000 then return false end
+
+    local learned = tonumber(state.interval) or 0
+    if learned > 0 then
+        -- Reject obvious phase/downtime gaps and duplicate/secondary events. Real casts
+        -- may drift slightly, so keep a deliberately forgiving acceptance band.
+        if measured < learned * 0.60 or measured > learned * 1.65 then return false end
+    end
+
+    state.samples[#state.samples + 1] = math.floor(measured + 0.5)
+    while #state.samples > 8 do table.remove(state.samples, 1) end
+
+    local ordered = UH_CopyNumericSamples(state.samples)
+    table.sort(ordered)
+    if #ordered == 0 then return false end
+
+    -- Median is resistant to occasional delayed casts. For an even sample count use
+    -- the lower middle value so a delayed upper-tail cast does not move prediction late.
+    local medianIndex = math.max(1, math.floor((#ordered + 1) / 2))
+    local robustEstimate = ordered[medianIndex]
+
+    -- Once a profile exists, make small corrections rather than allowing a single run
+    -- to move a well-established cadence dramatically.
+    if learned > 0 and not state.usingFallback and (state.sampleCount or 0) >= 3 then
+        state.interval = math.floor((learned * 0.70) + (robustEstimate * 0.30) + 0.5)
+    else
+        state.interval = math.floor(robustEstimate + 0.5)
+    end
+
+    state.sampleCount = (state.sampleCount or 0) + 1
+    state.usingFallback = false
+    UH_PersistMechanicState(state)
+    return true
+end
+
+function UnchainedHelper.UpdateBRPMechanicPosition()
+    if not UnchainedHelperBRPMechanicTracker or not UnchainedHelper.savedVars then return end
+    local x = UnchainedHelper.savedVars.brpMechanicOffsetX or 1510
+    local y = UnchainedHelper.savedVars.brpMechanicOffsetY or 300
+    UnchainedHelperBRPMechanicTracker:ClearAnchors()
+    UnchainedHelperBRPMechanicTracker:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
+    UnchainedHelperBRPMechanicTracker:SetScale((UnchainedHelper.savedVars.brpMechanicScale or 100) / 100)
+end
+
+function UnchainedHelper.HideBRPMechanicTracker()
+    if UnchainedHelper.uiPreviewMode then return end
+    if UnchainedHelperBRPMechanicTracker then
+        UnchainedHelperBRPMechanicTracker:SetHidden(true)
+    end
+end
+
+function UnchainedHelper.ResetBRPMechanicAnchors()
+    for _, state in pairs(UnchainedHelper.brpMechanicState) do
+        state.lastAt = 0
+        state.nextAt = 0
+        state.lastTrigger = 0
+    end
+end
+
+function UnchainedHelper.ResetBRPMechanicLearnedTimings()
+    if UnchainedHelper.savedVars then
+        UnchainedHelper.savedVars.brpMechanicIntervals = {}
+        UnchainedHelper.savedVars.brpMechanicProfiles = {}
+    end
+    UnchainedHelper.brpMechanicState = {}
+    UnchainedHelper.brpMechanicStage = 0
+    UnchainedHelper.UpdateBRPMechanicTracker()
+end
+
+function UnchainedHelper.BRPMechanicCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, combatEventLog, sourceUnitId, targetUnitId, abilityId)
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showBRPMechanicTracker ~= true then return end
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return end
+
+    local key = UH_BRP_MECHANIC_ID_MAP[abilityId]
+    if not key then return end
+    local data = UH_BRP_MECHANICS[key]
+    local stage = UnchainedHelper.GetCurrentStage and (UnchainedHelper.GetCurrentStage() or 0) or 0
+    if not data or not data.stages[stage] then return end
+
+    local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
+    local state = UH_MechanicState(key, stage)
+
+    -- A logged ability can generate several combat-event results. Debounce secondary
+    -- events, expanding the window slightly once the cooldown is known.
+    local duplicateWindow = 8000
+    if (state.interval or 0) > 0 then
+        duplicateWindow = math.max(8000, math.min(15000, math.floor(state.interval * 0.50)))
+    end
+    if state.lastTrigger > 0 and now - state.lastTrigger < duplicateWindow then return end
+    state.lastTrigger = now
+
+    if state.lastAt > 0 then
+        UH_AddMechanicSample(state, now - state.lastAt)
+    end
+
+    state.lastAt = now
+    if (state.interval or 0) > 0 then
+        state.nextAt = now + state.interval
+    else
+        state.nextAt = 0
+    end
+
+    UnchainedHelper.UpdateBRPMechanicTracker()
+end
+
+local function UH_SetMechanicRow(index, key, stage, now)
+    local row = _G["UnchainedHelperBRPMechanicTrackerRow" .. tostring(index)]
+    local name = _G["UnchainedHelperBRPMechanicTrackerRow" .. tostring(index) .. "Name"]
+    local value = _G["UnchainedHelperBRPMechanicTrackerRow" .. tostring(index) .. "Value"]
+    if not row or not name or not value then return end
+
+    if not key then
+        row:SetHidden(true)
+        return
+    end
+
+    local data = UH_BRP_MECHANICS[key]
+    local state = UH_MechanicState(key, stage)
+    name:SetText(data.label)
+
+    local text = "SYNCING"
+    local r, g, b = 0.72, 0.72, 0.72
+    if state.lastAt > 0 and (state.interval or 0) <= 0 then
+        text = "LEARNING"
+    elseif state.lastAt <= 0 and (state.interval or 0) > 0 then
+        text = "READY"
+        r, g, b = 0.62, 0.86, 1.0
+    elseif state.nextAt and state.nextAt > 0 then
+        local remaining = state.nextAt - now
+        if remaining <= 0 then
+            text = "DUE"
+            r, g, b = 1.00, 0.22, 0.18
+        else
+            local sec = remaining / 1000
+            text = string.format("%.1fs", sec)
+            if sec < 5 then
+                r, g, b = 1.00, 0.48, 0.10
+            elseif sec < 10 then
+                r, g, b = 1.00, 0.88, 0.18
+            elseif sec <= 15 then
+                r, g, b = 0.93, 0.93, 0.93
+            else
+                r, g, b = 0.38, 0.92, 0.42
+            end
+        end
+    end
+
+    value:SetText(text)
+    value:SetColor(r, g, b, 1)
+    row:SetHidden(false)
+end
+
+function UnchainedHelper.UpdateBRPMechanicTracker()
+    if UnchainedHelper.uiPreviewMode then return end
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showBRPMechanicTracker ~= true then
+        UnchainedHelper.HideBRPMechanicTracker()
+        return
+    end
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then
+        UnchainedHelper.HideBRPMechanicTracker()
+        return
+    end
+
+    local stage = UnchainedHelper.GetCurrentStage and (UnchainedHelper.GetCurrentStage() or 0) or 0
+    local round = UnchainedHelper.currentRound or 0
+    if stage <= 0 or round ~= 5 then
+        UnchainedHelper.HideBRPMechanicTracker()
+        return
+    end
+
+    if UnchainedHelper.brpMechanicStage ~= stage then
+        UnchainedHelper.brpMechanicStage = stage
+        UnchainedHelper.ResetBRPMechanicAnchors()
+    end
+
+    local rows = UH_BRP_STAGE_ROWS[stage]
+    if not rows then
+        UnchainedHelper.HideBRPMechanicTracker()
+        return
+    end
+
+    UnchainedHelper.UpdateBRPMechanicPosition()
+    if UnchainedHelperBRPMechanicTrackerTitle then
+        UnchainedHelperBRPMechanicTrackerTitle:SetText(UH_BRP_STAGE_TITLES[stage] or "BOSS MECHANICS")
+    end
+
+    local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
+    for i = 1, 5 do
+        UH_SetMechanicRow(i, rows[i], stage, now)
+    end
+    UnchainedHelperBRPMechanicTracker:SetHidden(false)
+end
+
+function UnchainedHelper.BRPMechanicCombatState(eventCode, inCombat)
+    if not inCombat then
+        UnchainedHelper.ResetBRPMechanicAnchors()
+        UnchainedHelper.UpdateBRPMechanicTracker()
+    end
+end
+
+function UnchainedHelper.RegisterBRPMechanicTracker()
+    UnchainedHelper.UnregisterBRPMechanicTracker()
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showBRPMechanicTracker ~= true then return end
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return end
+
+    local ids = { 110891, 110183, 110272, 111660, 110613 }
+    for _, id in ipairs(ids) do
+        local eventName = UnchainedHelper.name .. "BRPMechanic" .. tostring(id)
+        EVENT_MANAGER:RegisterForEvent(eventName, EVENT_COMBAT_EVENT, UnchainedHelper.BRPMechanicCombatEvent)
+        EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_COMBAT_EVENT, REGISTER_FILTER_IS_ERROR, false)
+        EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, id)
+    end
+    EVENT_MANAGER:RegisterForEvent(UnchainedHelper.name .. "BRPMechanicCombatState", EVENT_PLAYER_COMBAT_STATE, UnchainedHelper.BRPMechanicCombatState)
+    EVENT_MANAGER:RegisterForUpdate(UnchainedHelper.name .. "BRPMechanicUpdate", 200, UnchainedHelper.UpdateBRPMechanicTracker)
+    UnchainedHelper.UpdateBRPMechanicTracker()
+end
+
+function UnchainedHelper.UnregisterBRPMechanicTracker()
+    local ids = { 110891, 110183, 110272, 111660, 110613 }
+    for _, id in ipairs(ids) do
+        EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "BRPMechanic" .. tostring(id), EVENT_COMBAT_EVENT)
+    end
+    EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "BRPMechanicCombatState", EVENT_PLAYER_COMBAT_STATE)
+    EVENT_MANAGER:UnregisterForUpdate(UnchainedHelper.name .. "BRPMechanicUpdate")
+    UnchainedHelper.HideBRPMechanicTracker()
+end
+
+
 -- Blackrose Prison split tracker. Uses the arena's native raid timer and only runs in zone 1082.
 function UnchainedHelper.FormatBRPTime(milliseconds)
     local ms = math.max(0, tonumber(milliseconds) or 0)
@@ -2841,6 +3280,7 @@ function UnchainedHelper.UpdateBRPSplitPosition()
 end
 
 function UnchainedHelper.HideBRPSplitTracker()
+    if UnchainedHelper.uiPreviewMode then return end
     if UnchainedHelperBRPSplitTracker then
         UnchainedHelperBRPSplitTracker:SetHidden(true)
     end
@@ -2868,6 +3308,7 @@ function UnchainedHelper.GetBRPVitalityText()
 end
 
 function UnchainedHelper.UpdateBRPSplitTracker()
+    if UnchainedHelper.uiPreviewMode then return end
     if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showBRPSplitTracker ~= true then
         UnchainedHelper.HideBRPSplitTracker()
         return
@@ -3046,6 +3487,116 @@ function UnchainedHelper.UnregisterBRPSplitTracker()
     UnchainedHelper.HideBRPSplitTracker()
 end
 
+-- UI layout preview. This is intentionally session-only and can be used anywhere.
+-- It previews 2D HUD elements only; Blackrose world markers remain arena-coordinate based.
+function UnchainedHelper.ShowUIPreviewLegend()
+    if not UnchainedHelperLegend or not UnchainedHelper.savedVars then return end
+    UnchainedHelper.UpdateLegendPosition()
+    if UnchainedHelperLegendTitle then UnchainedHelperLegendTitle:SetText("Marker Key") end
+    for i = 1, 5 do
+        local category = UH_LEGEND_ORDER[i]
+        local info = UH_LEGEND_INFO[category]
+        local row = _G["UnchainedHelperLegendRow" .. tostring(i)]
+        local icon = _G["UnchainedHelperLegendRow" .. tostring(i) .. "Icon"]
+        local label = _G["UnchainedHelperLegendRow" .. tostring(i) .. "Label"]
+        if row and info then
+            if icon then icon:SetTexture(info.texture) icon:SetHidden(false) end
+            if label then label:SetText(info.label) end
+            row:SetHidden(false)
+        end
+    end
+    UnchainedHelperLegend:SetHeight(36 + (5 * 26) + 12)
+    UnchainedHelperLegend:SetHidden(false)
+end
+
+local function UH_PreviewMechanicRow(index, labelText, valueText, r, g, b)
+    local row = _G["UnchainedHelperBRPMechanicTrackerRow" .. tostring(index)]
+    local label = _G["UnchainedHelperBRPMechanicTrackerRow" .. tostring(index) .. "Name"]
+    local value = _G["UnchainedHelperBRPMechanicTrackerRow" .. tostring(index) .. "Value"]
+    if not row then return end
+    if not labelText then
+        row:SetHidden(true)
+        return
+    end
+    if label then label:SetText(labelText) end
+    if value then
+        value:SetText(valueText or "SYNCING")
+        value:SetColor(r or 0.93, g or 0.93, b or 0.93, 1)
+    end
+    row:SetHidden(false)
+end
+
+function UnchainedHelper.RefreshUIPreview()
+    if not UnchainedHelper.uiPreviewMode or not UnchainedHelper.savedVars then return end
+
+    UnchainedHelper.UpdateSpawnCalloutPosition()
+    if UnchainedHelperSpawnCalloutProgress then UnchainedHelperSpawnCalloutProgress:SetText("Round: 5/5 - Stage: 3/5") end
+    if UnchainedHelperSpawnCalloutText then UnchainedHelperSpawnCalloutText:SetText("Spawning: UI PREVIEW") end
+    if UnchainedHelperSpawnCallout then UnchainedHelperSpawnCallout:SetHidden(false) end
+
+    UnchainedHelper.UpdateTotemAlertPosition()
+    if UnchainedHelperTotemAlertText then UnchainedHelperTotemAlertText:SetText("TOTEM ACTIVE") end
+    if UnchainedHelperTotemAlert then UnchainedHelperTotemAlert:SetHidden(false) end
+
+    UnchainedHelper.UpdateTotemTimerPosition()
+    if UnchainedHelperTotemTimerText then
+        UnchainedHelperTotemTimerText:SetText("NEXT TOTEM: ~08s")
+        UnchainedHelperTotemTimerText:SetColor(0.96, 0.81, 0.45, 1)
+    end
+    if UnchainedHelperTotemTimer then UnchainedHelperTotemTimer:SetHidden(false) end
+
+    UnchainedHelper.UpdateBRPSplitPosition()
+    if UnchainedHelperBRPSplitTrackerTitle then UnchainedHelperBRPSplitTrackerTitle:SetText("BRP SPLITS") end
+    if UnchainedHelperBRPSplitTrackerTime then UnchainedHelperBRPSplitTrackerTime:SetText("TIME  24:18.6") end
+    if UnchainedHelperBRPSplitTrackerProgress then UnchainedHelperBRPSplitTrackerProgress:SetText("STAGE 3/5  •  ROUND 5/5") end
+    if UnchainedHelperBRPSplitTrackerVitality then UnchainedHelperBRPSplitTrackerVitality:SetText("VITALITY  15/15") end
+    if UnchainedHelperBRPSplitTrackerCurrent then UnchainedHelperBRPSplitTrackerCurrent:SetText("CURRENT  01:06.4") end
+    if UnchainedHelperBRPSplitTrackerBest then UnchainedHelperBRPSplitTrackerBest:SetText("PB SPLIT  01:03.8") end
+    if UnchainedHelperBRPSplitTrackerLast then
+        UnchainedHelperBRPSplitTrackerLast:SetText("LAST  01:04.9   +01.1")
+        UnchainedHelperBRPSplitTrackerLast:SetColor(1.0, 0.72, 0.25, 1)
+    end
+    if UnchainedHelperBRPSplitTracker then UnchainedHelperBRPSplitTracker:SetHidden(false) end
+
+    UnchainedHelper.UpdateBRPMechanicPosition()
+    if UnchainedHelperBRPMechanicTrackerTitle then UnchainedHelperBRPMechanicTrackerTitle:SetText("LADY MINARA") end
+    UH_PreviewMechanicRow(1, "CURSE", "17.8s", 0.38, 0.92, 0.42)
+    UH_PreviewMechanicRow(2, "BAT SWARM", "4.2s", 1.00, 0.48, 0.10)
+    UH_PreviewMechanicRow(3, nil)
+    UH_PreviewMechanicRow(4, nil)
+    UH_PreviewMechanicRow(5, nil)
+    if UnchainedHelperBRPMechanicTracker then UnchainedHelperBRPMechanicTracker:SetHidden(false) end
+
+    UnchainedHelper.ShowUIPreviewLegend()
+end
+
+function UnchainedHelper.SetUIPreviewMode(enabled)
+    UnchainedHelper.uiPreviewMode = enabled == true
+    EVENT_MANAGER:UnregisterForUpdate(UnchainedHelper.name .. "UIPreview")
+    EVENT_MANAGER:UnregisterForUpdate(UnchainedHelper.name .. "SpawnCalloutHide")
+    if UnchainedHelper.uiPreviewMode then
+        UnchainedHelper.totemAlertHideAt = 0
+        UnchainedHelper.RefreshUIPreview()
+        EVENT_MANAGER:RegisterForUpdate(UnchainedHelper.name .. "UIPreview", 500, UnchainedHelper.RefreshUIPreview)
+        return
+    end
+
+    -- Restore normal HUD visibility after preview.
+    if UnchainedHelperSpawnCallout then UnchainedHelperSpawnCallout:SetHidden(true) end
+    if UnchainedHelperTotemAlert then UnchainedHelperTotemAlert:SetHidden(true) end
+    if UnchainedHelperTotemTimer then UnchainedHelperTotemTimer:SetHidden(true) end
+    if UnchainedHelperBRPSplitTracker then UnchainedHelperBRPSplitTracker:SetHidden(true) end
+    if UnchainedHelperBRPMechanicTracker then UnchainedHelperBRPMechanicTracker:SetHidden(true) end
+    if UnchainedHelperLegend then UnchainedHelperLegend:SetHidden(true) end
+
+    if UnchainedHelper.IsInBlackrose and UnchainedHelper.IsInBlackrose() then
+        UnchainedHelper.RefreshLegend()
+        UnchainedHelper.UpdateBRPSplitTracker()
+        UnchainedHelper.UpdateBRPMechanicTracker()
+        UnchainedHelper.UpdateTotemSmartTimer(GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0)
+    end
+end
+
 function UnchainedHelper.UpdateTimer()
     local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
     if UnchainedHelper.totemAlertHideAt and UnchainedHelper.totemAlertHideAt > 0 and now >= UnchainedHelper.totemAlertHideAt then
@@ -3079,6 +3630,8 @@ function UnchainedHelper.UnregisterZoneEvents()
     UnchainedHelper.ResetTotemSmartTimer()
     UnchainedHelper.ClearIcons(false, true)
     if UnchainedHelper.UnregisterBRPSplitTracker then UnchainedHelper.UnregisterBRPSplitTracker() end
+    if UnchainedHelper.UnregisterBRPMechanicTracker then UnchainedHelper.UnregisterBRPMechanicTracker() end
+    UnchainedHelper.brpMechanicStage = 0
 end
 
 function UnchainedHelper.PlayerActivated()
@@ -3101,6 +3654,7 @@ function UnchainedHelper.PlayerActivated()
 
         UnchainedHelper.RegisterTotemDetector()
         if UnchainedHelper.RegisterBRPSplitTracker then UnchainedHelper.RegisterBRPSplitTracker() end
+        if UnchainedHelper.RegisterBRPMechanicTracker then UnchainedHelper.RegisterBRPMechanicTracker() end
 
 
 
@@ -3121,7 +3675,7 @@ function UnchainedHelper.PlayerActivated()
 
         UnchainedHelper.UnregisterZoneEvents()
 
-        if UnchainedHelperLegend then UnchainedHelperLegend:SetHidden(true) end
+        if UnchainedHelperLegend and not UnchainedHelper.uiPreviewMode then UnchainedHelperLegend:SetHidden(true) end
 
 
     end
@@ -3134,8 +3688,12 @@ function UnchainedHelper.Init(event, addon)
 
 
     UnchainedHelper.savedVars = ZO_SavedVars:New(UnchainedHelper.name.."SavedVars", UnchainedHelper.varVersion, nil, UnchainedHelper.defaults)
+    UnchainedHelper.uiPreviewMode = false
     UnchainedHelper.UpdateSpawnCalloutPosition()
+    if UnchainedHelper.UpdateTotemAlertPosition then UnchainedHelper.UpdateTotemAlertPosition() end
+    if UnchainedHelper.UpdateTotemTimerPosition then UnchainedHelper.UpdateTotemTimerPosition() end
     if UnchainedHelper.UpdateBRPSplitPosition then UnchainedHelper.UpdateBRPSplitPosition() end
+    if UnchainedHelper.UpdateBRPMechanicPosition then UnchainedHelper.UpdateBRPMechanicPosition() end
     UnchainedHelper.InstallSigilBlocker()
     UnchainedHelper.UpdateLegendPosition()
     UnchainedHelper.RefreshLegend()

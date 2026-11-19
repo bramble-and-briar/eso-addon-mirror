@@ -24,9 +24,114 @@ local function Sanitize(v, depth)
     return out
 end
 
+-- Saved variables are rebuilt in full on every /reloadui and login, before any add-on
+-- code runs, and that counts against ESO's load-time CPU budget. So the kill feed's
+-- death recaps, most of a saved match, are stored as one string per hit
+-- ("hit|crit|ability|source") instead of a table per hit.
+local RECAP_SEP = "\31"
+
+function ML.EncodeRecap(hits)
+    if not hits then return nil end
+    local out = {}
+    for i, h in ipairs(hits) do
+        if type(h) == "string" then
+            out[i] = h
+        else
+            out[i] = table.concat({ tostring(math.floor((h.hit or 0) + 0.5)), h.crit and "1" or "",
+                ((h.ability or ""):gsub(RECAP_SEP, " ")), ((h.source or ""):gsub(RECAP_SEP, " ")) }, RECAP_SEP)
+        end
+    end
+    return #out > 0 and out or nil
+end
+
+-- A kill's recap as tables, whichever way it was saved.
+function ML.DecodeRecap(kill)
+    local out = {}
+    for i, h in ipairs(kill and kill.recap or {}) do
+        if type(h) == "table" then
+            out[i] = h
+        else
+            local hit, crit, ability, source = h:match("^(.-)" .. RECAP_SEP .. "(.-)" .. RECAP_SEP .. "(.-)" .. RECAP_SEP .. "(.*)$")
+            out[i] = { hit = tonumber(hit) or 0, crit = crit == "1" or nil, ability = ability or "", source = source or "" }
+        end
+    end
+    return out
+end
+
+local OLD_DEFAULT_HISTORY = 50
+local NEW_DEFAULT_HISTORY = 20
+
+-- History storage. Finished matches are saved packed (SBR.Pack, see Util.lua) in
+-- sv.packedHistory as { id, at = startedAt, p = packed }, and unpacked the first time
+-- something reads them. sv.history holds matches saved by older versions as plain
+-- tables until the background job packs them. self.history is the working list
+-- (oldest first) that everything else reads.
+local function ByStart(a, b) return (a.startedAt or 0) < (b.startedAt or 0) end
+
 function ML:Init(sv)
     self.sv = sv
     sv.history = sv.history or {}
+    sv.packedHistory = sv.packedHistory or {}
+    local list = {}
+    for _, m in ipairs(sv.history) do list[#list + 1] = m end
+    for _, e in ipairs(sv.packedHistory) do list[#list + 1] = SBR.LazyUnpack(e.p, { id = e.id, startedAt = e.at }) end
+    table.sort(list, ByStart)
+    self.history = list
+    -- 1.4: fewer full scoreboards by default (every older match is still a summary in
+    -- the records); a value someone picked themselves is kept
+    if not sv.historyDefault14 then
+        sv.historyDefault14 = true
+        if sv.maxHistory == OLD_DEFAULT_HISTORY then sv.maxHistory = NEW_DEFAULT_HISTORY end
+        if sv.maxPlayers == 2000 then sv.maxPlayers = 1000 end
+    end
+end
+
+-- After login: convert what older versions saved, a small step at a time (one match,
+-- or a few dozen entries, every 200 ms), never at load time:
+--   1. trim history to maxHistory (every match is still a record in the database)
+--   2. pack matches saved as plain tables (sv.history -> sv.packedHistory)
+--   3. forget "already counted" match ids that are no longer in history
+--   4. the database: pack records and players, trim the player index
+local CHUNK = 200
+
+function ML:StartBackgroundCompaction()
+    if self.compacting then return end
+    self.compacting = true
+    local ns = SBR.name .. "_Compact"
+    local phase = 1
+    local appliedKey, inHistory
+    EVENT_MANAGER:RegisterForUpdate(ns, 200, function()
+        local sv, DB = self.sv, SBR.MatchDB
+        if phase == 1 then
+            self:TrimHistory()
+            phase = 2
+        elseif phase == 2 then
+            local m = table.remove(sv.history, 1)
+            if not m then phase = 3 return end
+            for _, k in ipairs(m.killFeed or {}) do
+                if k.recap and type(k.recap[1]) == "table" then k.recap = ML.EncodeRecap(k.recap) end
+            end
+            self:StoreMatch(m)
+        elseif phase == 3 then
+            if not (DB and DB.applied) then phase = 4 return end
+            if not inHistory then
+                inHistory = {}
+                for _, m in ipairs(self.history) do if m.id then inHistory[m.id] = true end end
+                if sv.current and sv.current.id then inHistory[sv.current.id] = true end
+            end
+            for _ = 1, CHUNK do
+                local nextKey = next(DB.applied, appliedKey)
+                if nextKey == nil then phase = 4 return end
+                if not inHistory[nextKey] then
+                    DB.applied[nextKey] = nil -- clearing a field during next() is allowed
+                else
+                    appliedKey = nextKey
+                end
+            end
+        else
+            if not DB or DB:MigrateStep() then EVENT_MANAGER:UnregisterForUpdate(ns) end
+        end
+    end)
 end
 
 function ML:GetCurrent()
@@ -34,12 +139,32 @@ function ML:GetCurrent()
 end
 
 function ML:GetHistory()
-    return self.sv.history
+    return self.history
 end
 
 -- The match the live view should show: in-progress first, else the last finished one.
 function ML:GetLive()
-    return self.sv.current or self.sv.history[#self.sv.history]
+    return self.sv.current or self.history[#self.history]
+end
+
+function ML:StoreMatch(match)
+    table.insert(self.sv.packedHistory, { id = match.id, at = match.startedAt, p = SBR.Pack(SBR.Realize(match)) })
+end
+
+function ML:DropStoredMatch(id)
+    for _, store in ipairs({ self.sv.packedHistory, self.sv.history }) do
+        for i = #store, 1, -1 do
+            if store[i].id == id then table.remove(store, i) return end
+        end
+    end
+end
+
+function ML:TrimHistory()
+    local max = self.sv.maxHistory or NEW_DEFAULT_HISTORY
+    while #self.history > max do
+        local old = table.remove(self.history, 1)
+        self:DropStoredMatch(old.id)
+    end
 end
 
 function ML:Begin(info)
@@ -59,6 +184,7 @@ function ML:Begin(info)
         columnsSeen = {},
     }
     self.sv.current = match
+    SBR.Report:OnBegin(match)
     self:StartTracking(match)
     SBR.Debug("match begin %s", match.id)
     return match
@@ -110,6 +236,7 @@ function ML:ApplyInfo(match, info)
     match.teamSize = info.teamSize or match.teamSize
     match.numTeams = info.numTeams or match.numTeams
     match.numRounds = info.numRounds or match.numRounds
+    match.limitedLives = info.limitedLives or match.limitedLives
     match.state = info.state
     match.stateName = info.stateName
     match.localTeam = info.localTeam or match.localTeam
@@ -149,6 +276,7 @@ function ML:Snapshot()
         p.scores = e.scores
         p.medals = e.medals
         p.medalCount = e.medalCount
+        p.lives = e.lives
         p.left = nil
         for k in pairs(e.scores) do match.columnsSeen[k] = true end
 
@@ -178,6 +306,7 @@ function ML:Snapshot()
 
     match.lastSnapshot = SBR.Now()
     match.elapsed = (GetGameTimeMilliseconds() - (match.startedMs or GetGameTimeMilliseconds())) / 1000
+    SBR.Report:Sample(match)
 
     -- Per-round snapshot of team scores so multi-round modes keep their history.
     if match.roundIndex then
@@ -208,6 +337,7 @@ function ML:IsAnythingShowing()
     if W and W.control and not W.control:IsHidden() then return true end
     if GP and GP:IsShowing() then return true end
     if Hook and Hook.IsNativeVisible and Hook:IsNativeVisible() then return true end
+    if SBR.Replace and SBR.Replace:IsShowing() then return true end
     return false
 end
 
@@ -262,11 +392,13 @@ function ML:Finalize(reason)
     match.endReason = reason
     match.result = reason == "finished" and DetermineResult(match) or (reason == "left" and "left" or "unknown")
     match.startedMs = nil
+    SBR.Report:OnFinalize(match)
+    if reason == "finished" then self.reportPending = match end
 
-    table.insert(self.sv.history, match)
+    table.insert(self.history, match)
+    self:StoreMatch(match)
     if reason ~= "reload" or next(match.players or {}) then SBR.MatchDB:Add(match) end
-    local max = self.sv.maxHistory or 50
-    while #self.sv.history > max do table.remove(self.sv.history, 1) end
+    self:TrimHistory()
     self.sv.current = nil
 
     if SBR.sv.chatSummary and reason ~= "reload" then self:PrintSummary(match) end
@@ -337,18 +469,16 @@ function ML:OnKill(...)
     local match = self.sv.current
     if not match then return end
     local victimChar, victimDisplay, victimTeam, killerChar, killerDisplay, killerTeam, killType, abilityId = ...
+    -- only what is shown: every saved field is rebuilt on each load
     local entry = {
-        at = SBR.Now(),
-        t = match.startedMs and (GetGameTimeMilliseconds() - match.startedMs) / 1000 or nil,
-        victim = SBR.CleanName(victimChar), victimAccount = victimDisplay, victimTeam = victimTeam,
-        killer = SBR.CleanName(killerChar), killerAccount = killerDisplay, killerTeam = killerTeam,
-        killType = killType,
-        abilityId = type(abilityId) == "number" and abilityId or nil,
+        t = match.startedMs and math.floor((GetGameTimeMilliseconds() - match.startedMs) / 100) / 10 or nil,
+        victim = SBR.CleanName(victimChar), victimTeam = victimTeam,
+        killer = SBR.CleanName(killerChar), killerTeam = killerTeam,
     }
-    if entry.abilityId then entry.ability = SBR.CleanName(SBR.API("GetAbilityName", entry.abilityId) or "") end
+    if type(abilityId) == "number" then entry.ability = SBR.CleanName(SBR.API("GetAbilityName", abilityId) or "") end
     -- Death recap for any player whose last hits the client saw (you and your group's fights).
     if SBR.FightTracker.ledger and entry.victim ~= "" then
-        entry.recap = SBR.FightTracker:GetRecentHits(entry.victim, 15000)
+        entry.recap = ML.EncodeRecap(SBR.FightTracker:GetRecentHits(entry.victim, 15000))
     end
     table.insert(match.killFeed, entry)
     self:RequestSnapshot()
@@ -361,6 +491,9 @@ function ML:OnMedal(medalId, name, icon, value)
 end
 
 function ML:ClearHistory()
+    ZO_ClearNumericallyIndexedTable(self.history)
     ZO_ClearNumericallyIndexedTable(self.sv.history)
+    ZO_ClearNumericallyIndexedTable(self.sv.packedHistory)
     SBR.Window:OnDataChanged()
 end
+ScoreboardRemastered.Mark("Data/MatchLog.lua")

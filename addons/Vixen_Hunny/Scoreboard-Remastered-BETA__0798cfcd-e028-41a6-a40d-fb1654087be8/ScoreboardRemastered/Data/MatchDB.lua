@@ -23,14 +23,113 @@ function DB:Init(sv)
     sv.db = sv.db or { version = 1, records = {} }
     sv.db.players = sv.db.players or {}
     sv.db.applied = sv.db.applied or {}
+    -- shared icon lookups: a player entry stores ability / class -> number only
+    -- (saved variables are rebuilt on every load, so fewer tables load faster)
+    sv.db.icons = sv.db.icons or {}
+    sv.db.classIcons = sv.db.classIcons or {}
+    self.icons, self.classIcons = sv.db.icons, sv.db.classIcons
     self.sv = sv
-    self.records = sv.db.records
-    self.players = sv.db.players
     self.applied = sv.db.applied
+    -- Storage: records and players are saved packed (SBR.Pack, Util.lua), one or a
+    -- few strings each, and unpacked the first time they're read:
+    --   sv.db.recordsPacked  list of { id, at, p }
+    --   sv.db.playersPacked  key -> { p, t = lastSeen, y = isYou }
+    -- sv.db.records / sv.db.players hold what older versions saved as plain tables
+    -- until the background job (MigrateStep) packs them.
+    local db = sv.db
+    db.records = db.records or {}
+    db.recordsPacked = db.recordsPacked or {}
+    db.playersPacked = db.playersPacked or {}
+    self.records = {}
+    for _, r in ipairs(db.records) do self.records[#self.records + 1] = r end
+    for _, e in ipairs(db.recordsPacked) do self.records[#self.records + 1] = SBR.LazyUnpack(e.p, { id = e.id, at = e.at }) end
+    table.sort(self.records, function(a, b) return Num(a.at) < Num(b.at) end)
+    self.players = {}
+    for k, e in pairs(db.players) do self.players[k] = e end
+    for k, st in pairs(db.playersPacked) do self.players[k] = SBR.LazyUnpack(st.p, { key = k }) end
     -- matches saved before the database (or the player index) existed
-    for _, m in ipairs(sv.history or {}) do
-        if m.endedAt and not self.applied[m.id] then self:Add(m) end
+    for _, m in ipairs(SBR.MatchLog:GetHistory()) do
+        if not self.applied[m.id] and m.endedAt then self:Add(m) end
     end
+end
+
+function DB:StoreRecord(rec)
+    local db = self.sv.db
+    local entry = { id = rec.id, at = rec.at, p = SBR.Pack(SBR.Realize(rec)) }
+    for i = #db.records, 1, -1 do if db.records[i].id == rec.id then table.remove(db.records, i) end end
+    for i, e in ipairs(db.recordsPacked) do
+        if e.id == rec.id then db.recordsPacked[i] = entry return end
+    end
+    db.recordsPacked[#db.recordsPacked + 1] = entry
+end
+
+function DB:DropRecord(id)
+    local db = self.sv.db
+    for _, store in ipairs({ db.recordsPacked, db.records }) do
+        for i = #store, 1, -1 do if store[i].id == id then table.remove(store, i) end end
+    end
+end
+
+function DB:StorePlayer(key, e)
+    SBR.Realize(e)
+    self.sv.db.playersPacked[key] = { p = SBR.Pack(e), t = e.lastSeen, y = e.isYou or nil }
+    self.sv.db.players[key] = nil
+end
+
+-- lastSeen / isYou without unpacking the player
+function DB:PlayerMeta(key)
+    local st = self.sv.db.playersPacked[key]
+    if st then return Num(st.t), st.y == true end
+    local e = self.sv.db.players[key] or self.players[key]
+    if e then return Num(e.lastSeen), e.isYou == true end
+    return 0, false
+end
+
+function DB:DropPlayer(key)
+    self.players[key] = nil
+    self.sv.db.playersPacked[key] = nil
+    self.sv.db.players[key] = nil
+end
+
+-- Drop the players seen longest ago until the index fits maxPlayers. Returns true
+-- when nothing was dropped.
+function DB:TrimPlayers()
+    local max = SBR.sv.maxPlayers or 1000
+    local count, oldestKey, oldest = 0, nil, nil
+    for k in pairs(self.players) do
+        count = count + 1
+        local seen, isYou = self:PlayerMeta(k)
+        if not isYou and (not oldest or seen < oldest) then oldestKey, oldest = k, seen end
+    end
+    if count > max and oldestKey then
+        self:DropPlayer(oldestKey)
+        return false
+    end
+    return true
+end
+
+-- One background step (UI/MatchLog.lua): pack a few records / players that older
+-- versions saved as tables, then trim the player index. Returns true when done.
+local MIGRATE_CHUNK = 25
+function DB:MigrateStep()
+    local db = self.sv.db
+    if #db.records > 0 then
+        for _ = 1, MIGRATE_CHUNK do
+            local r = db.records[1]
+            if not r then break end
+            self:StoreRecord(r)
+        end
+        return false
+    end
+    if next(db.players) ~= nil then
+        for _ = 1, MIGRATE_CHUNK do
+            local k, e = next(db.players)
+            if not k then break end
+            self:StorePlayer(k, e)
+        end
+        return false
+    end
+    return self:TrimPlayers()
 end
 
 -- Where your row ranks in a match, by score.
@@ -102,6 +201,7 @@ end
 function DB:Add(match)
     local rec = self:Summarize(match)
     self:AddPlayers(match, rec)
+    self:StoreRecord(rec)
     for i, r in ipairs(self.records) do
         if r.id == rec.id then
             self.records[i] = rec
@@ -110,14 +210,17 @@ function DB:Add(match)
     end
     table.insert(self.records, rec)
     local max = SBR.sv.maxRecords or 500
-    while #self.records > max do table.remove(self.records, 1) end
+    while #self.records > max do
+        local old = table.remove(self.records, 1)
+        self:DropRecord(old.id)
+    end
     return rec
 end
 
 function DB:GetRecords() return self.records end
 
 function DB:FindMatch(id)
-    for i, m in ipairs(self.sv.history or {}) do
+    for i, m in ipairs(SBR.MatchLog:GetHistory()) do
         if m.id == id then return m, i end
     end
     return nil
@@ -220,13 +323,14 @@ local function PlayerKey(p)
     return p.characterName or "?"
 end
 
-local function TopInto(map, list)
+-- ability name -> total damage (a number; older saves hold { name, icon, damage })
+local function AbilityDamage(v) return type(v) == "table" and Num(v.damage) or Num(v) end
+
+local function TopInto(map, list, icons)
     for _, a in ipairs(list or {}) do
         if a.name and a.name ~= "" then
-            local x = map[a.name] or { name = a.name, icon = a.icon, damage = 0 }
-            x.damage = x.damage + Num(a.damage)
-            if not x.icon or x.icon == "" then x.icon = a.icon end
-            map[a.name] = x
+            map[a.name] = AbilityDamage(map[a.name]) + Num(a.damage)
+            if a.icon and a.icon ~= "" and not icons[a.name] then icons[a.name] = a.icon end
         end
     end
 end
@@ -274,10 +378,10 @@ function DB:AddPlayers(match, rec)
         e.medals = e.medals + Num(p.medalCount)
         if Num(sc.SCORE) > e.bestScore then e.bestScore, e.bestScoreMap = Num(sc.SCORE), match.name end
         if p.className then
-            local c = e.classes[p.className] or { className = p.className, icon = p.classIcon, matches = 0 }
-            c.matches = c.matches + 1
-            c.icon = c.icon or p.classIcon
-            e.classes[p.className] = c
+            -- class name -> matches (a number; older saves hold a table)
+            local c = e.classes[p.className]
+            e.classes[p.className] = (type(c) == "table" and Num(c.matches) or Num(c)) + 1
+            if p.classIcon then self.classIcons[p.className] = p.classIcon end
             e.lastClass, e.lastClassIcon = p.className, p.classIcon
         end
         e.maps[match.name or "?"] = (e.maps[match.name or "?"] or 0) + 1
@@ -288,24 +392,19 @@ function DB:AddPlayers(match, rec)
         e.damageFromYou = e.damageFromYou + Num(v.damageFromYou)
         e.healedYou = e.healedYou + Num(v.healedYou)
         e.healedByYou = e.healedByYou + Num(v.healedByYou)
-        TopInto(e.abilities, p.fight and p.fight.topAbilities)
+        TopInto(e.abilities, p.fight and p.fight.topAbilities, self.icons)
         -- keep the ability map small: top 8
         local list = {}
-        for _, a in pairs(e.abilities) do list[#list + 1] = a end
+        for name, v in pairs(e.abilities) do list[#list + 1] = { name = name, damage = AbilityDamage(v) } end
         if #list > 8 then
             table.sort(list, function(a, b) return a.damage > b.damage end)
             e.abilities = {}
-            for i = 1, 8 do e.abilities[list[i].name] = list[i] end
+            for i = 1, 8 do e.abilities[list[i].name] = list[i].damage end
         end
+        self:StorePlayer(key, e)
     end
     -- cap the index, dropping the players seen longest ago
-    local max = SBR.sv.maxPlayers or 2000
-    local count, oldestKey, oldest = 0, nil, nil
-    for k, e in pairs(self.players) do
-        count = count + 1
-        if not e.isYou and (not oldest or Num(e.lastSeen) < oldest) then oldestKey, oldest = k, Num(e.lastSeen) end
-    end
-    if count > max and oldestKey then self.players[oldestKey] = nil end
+    self:TrimPlayers()
 end
 
 function DB:GetPlayer(key) return self.players[key] end
@@ -346,10 +445,19 @@ end
 function DB:PlayerSummary(e)
     local n = math.max(1, e.matches)
     local abilities = {}
-    for _, a in pairs(e.abilities) do abilities[#abilities + 1] = a end
+    for name, v in pairs(e.abilities) do
+        local icon = type(v) == "table" and v.icon or nil
+        abilities[#abilities + 1] = { name = name, damage = AbilityDamage(v), icon = icon or self.icons[name] }
+    end
     table.sort(abilities, function(a, b) return a.damage > b.damage end)
     local classes = {}
-    for _, c in pairs(e.classes) do classes[#classes + 1] = c end
+    for name, c in pairs(e.classes) do
+        if type(c) == "table" then
+            classes[#classes + 1] = { className = c.className or name, icon = c.icon or self.classIcons[name], matches = Num(c.matches) }
+        else
+            classes[#classes + 1] = { className = name, icon = self.classIcons[name], matches = Num(c) }
+        end
+    end
     table.sort(classes, function(a, b) return a.matches > b.matches end)
     local maps = {}
     for m, c in pairs(e.maps) do maps[#maps + 1] = { map = m, count = c } end
@@ -367,3 +475,4 @@ function DB:PlayerSummary(e)
             or (e.withMatches > 0 and "ally") or "foe",
     }
 end
+ScoreboardRemastered.Mark("Data/MatchDB.lua")

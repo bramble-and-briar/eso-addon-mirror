@@ -107,6 +107,48 @@
             </Controls>
         </TopLevelControl>
 
+        <Control name="UnchainedHelperBRPMechanicRowTemplate" virtual="true" mouseEnabled="false" hidden="true" width="366" height="34">
+            <Controls>
+                <Label name="$(parent)Name" text="MECHANIC" color="E8E8E8" font="$(GAMEPAD_MEDIUM_FONT)|$(KB_22)|soft-shadow-thick" verticalAlignment="CENTER">
+                    <Dimensions x="238" y="34" />
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
+                </Label>
+                <Label name="$(parent)Value" text="SYNCING" color="B8B8B8" font="$(GAMEPAD_BOLD_FONT)|$(KB_24)|soft-shadow-thick" verticalAlignment="CENTER" horizontalAlignment="RIGHT">
+                    <Dimensions x="122" y="34" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="0" offsetY="0" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <TopLevelControl name="UnchainedHelperBRPMechanicTracker" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true">
+            <Dimensions x="394" y="220" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="1510" offsetY="300" />
+            <Controls>
+                <Backdrop name="$(parent)Bg" centerColor="00000072" edgeColor="00000000" edgeSize="0">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Title" text="BOSS MECHANICS" color="F0D58A" font="$(GAMEPAD_BOLD_FONT)|$(KB_24)|soft-shadow-thick">
+                    <Dimensions x="366" y="36" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="14" offsetY="10" />
+                </Label>
+                <Control name="$(parent)Row1" inherits="UnchainedHelperBRPMechanicRowTemplate">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="8" />
+                </Control>
+                <Control name="$(parent)Row2" inherits="UnchainedHelperBRPMechanicRowTemplate">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row1" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="1" />
+                </Control>
+                <Control name="$(parent)Row3" inherits="UnchainedHelperBRPMechanicRowTemplate">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row2" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="1" />
+                </Control>
+                <Control name="$(parent)Row4" inherits="UnchainedHelperBRPMechanicRowTemplate">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row3" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="1" />
+                </Control>
+                <Control name="$(parent)Row5" inherits="UnchainedHelperBRPMechanicRowTemplate">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row4" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="1" />
+                </Control>
+            </Controls>
+        </TopLevelControl>
+
         <TopLevelControl name="UnchainedHelperTotemTimer" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true">
             <Dimensions x="640" y="46" />
             <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="-215" />

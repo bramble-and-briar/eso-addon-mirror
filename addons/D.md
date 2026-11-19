@@ -179,6 +179,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [DuelRPG](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Neferys/DuelRPG__1100) | Neferys | PC / Mac | 0.6d |
 | [DuesPaid](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TuckerScorpions/DuesPaid__2579) | TuckerScorpions | PC / Mac | 3.7 |
 | [Dungeon Boss Pull Cards](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/yodased/Dungeon-Boss-Pull-Cards__4793) | yodased | PC / Mac | 0.20.0 |
+| [Dungeon Buddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m1lkst3ak/Dungeon-Buddy__c9f9f38f-e155-4e81-ab38-40b20bc1f130) | m1lkst3ak | Console | — |
 | [Dungeon Champions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scott123/Dungeon-Champions__2023) | Scott123 | PC / Mac | 1.0.16 |
 | [Dungeon Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomkolp/Dungeon-Helper__1956) | tomkolp | PC / Mac | 1.0.3 |
 | [Dungeon Quest Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Dungeon-Quest-Reminder__4346) | atharti | PC / Mac | 1.7 |

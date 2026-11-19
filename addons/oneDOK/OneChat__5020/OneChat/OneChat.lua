@@ -5,6 +5,7 @@ local function initialize()
     A.chat = KEYBOARD_CHAT_SYSTEM
     if not A.chat or not A.chat.primaryContainer or not A.sv then return end
     A:BuildChannels()
+    A:InstallChatSizing()
     A:InstallInput()
     A:InstallTabs()
     A:InstallMessages()

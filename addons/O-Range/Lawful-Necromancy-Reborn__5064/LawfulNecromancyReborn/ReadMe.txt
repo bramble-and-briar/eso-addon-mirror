@@ -1,10 +1,11 @@
 Lawful Necromancy Reborn
-Version 1.1
+Version 1.1.1
 
 Author: O-Range
 
 Description
 -----------
+
 Lawful Necromancy Reborn helps prevent accidental criminal
 Necromancer spellcasting in justice-enabled zones.
 
@@ -19,6 +20,7 @@ restored.
 
 Features
 --------
+
 - Blocks verified criminal Necromancer abilities
 - Automatically disables protection during combat
 - Automatically re-enables protection when combat ends
@@ -29,6 +31,7 @@ Features
 
 Protected Abilities
 -------------------
+
 Blastbones
 - Blastbones
 - Stalking Blastbones
@@ -61,11 +64,13 @@ Reanimate
 
 Requirements
 ------------
+
 - LibSkillBlocker
 - LibAddonMenu-2.0
 
 Installation
 ------------
+
 1. Install the required libraries.
 2. Extract the addon folder into:
    Documents\Elder Scrolls Online\live\AddOns
@@ -75,6 +80,12 @@ Installation
 
 Version History
 ---------------
+
+Version 1.1.1
+- Added minimum required versions for LibSkillBlocker and LibAddonMenu-2.0
+- Compliance update only
+- No gameplay functionality changed
+
 Version 1.1
 - Added Bone Goliath and morph protection
 - Added Reanimate and morph protection
@@ -93,6 +104,7 @@ Version 1.0
 
 Thank You
 ---------
+
 This addon was created to solve a simple problem:
 prevent accidental criminal Necromancer casting while
 allowing normal combat gameplay.

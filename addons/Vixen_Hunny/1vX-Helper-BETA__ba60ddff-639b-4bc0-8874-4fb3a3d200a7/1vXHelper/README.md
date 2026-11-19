@@ -21,6 +21,8 @@ Burst monitor + 1vX map tools for Elder Scrolls Online. Every feature can be tog
 ## Map Pins (kite spots, safe places, choke points)
 - Drop a pin at your position from a **keybind**, the **gamepad screen**, or `/1vx kite|safe|choke <note>`.
 - Pins show on the world map (green = kite, blue = safe, orange = choke) with your note as a tooltip.
+- Pick a color for each pin type (Settings > Map Pins); it's used on the map, world blips, compass,
+  tracker and gamepad screen.
 - Remove the nearest pin (within 60m), list pins on the current map, clear the map or clear everything.
 
 ## Gamepad
@@ -29,6 +31,13 @@ Burst monitor + 1vX map tools for Elder Scrolls Online. Every feature can be tog
   current map and how many 1vX pins it has; each action pops an on-screen alert.
 - Pins and their tooltips show on the gamepad world map.
 - Can be hidden in settings (Gamepad > menu entry). Also opens via `/1vx pad` or the keybind.
+
+## On-screen Blips & Compass
+- **World blips**: a colored marker floats over each pin's real location (through walls by default),
+  growing with distance so it stays readable. Range, size and wall visibility are adjustable.
+- **Compass pins**: pins show on the compass bar, brighter when closer. If they don't line up with
+  the compass edges, adjust **Compass field of view** (and **Flip direction** if they're mirrored).
+- Pick which pin types show (kite / safe / choke). Works in keyboard and gamepad mode.
 
 ## Spot Tracker
 - Distance and clock direction (relative to your camera) to the nearest pin of each type.

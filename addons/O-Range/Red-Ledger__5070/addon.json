@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/O-Range/Red-Ledger__5070",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "O-Range",
+  "canonical_id": "esoui:5070",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5070",
+  "deleted": false,
+  "directories": [
+    "RedLedger"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5070/",
+  "fingerprint": "5890486471091098004ca04b448523481ad9410dac20d66718b627be2d838447",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18566.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18567.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18565.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5070",
+  "source_url": "https://www.esoui.com/downloads/info5070-RedLedger.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Red Ledger",
+  "updated_at": 1795084094000,
+  "version": "0.5"
+}

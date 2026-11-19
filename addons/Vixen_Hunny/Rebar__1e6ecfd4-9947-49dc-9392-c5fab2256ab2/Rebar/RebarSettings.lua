@@ -50,10 +50,10 @@ local function Dropdown(key, name, choices, values, tooltip)
   }
 end
 
-local function Color(prefix, name, tooltip)
+local function Color(prefix, name, tooltip, disabled)
   local rk, gk, bk = prefix .. "ColorR", prefix .. "ColorG", prefix .. "ColorB"
   return {
-    type = "colorpicker", name = name, tooltip = tooltip,
+    type = "colorpicker", name = name, tooltip = tooltip, disabled = disabled,
     getFunc = function() return R.sv[rk], R.sv[gk], R.sv[bk] end,
     setFunc = function(r, g, b) R.sv[rk], R.sv[gk], R.sv[bk] = r, g, b; Refresh() end,
     default = { r = R.default[rk], g = R.default[gk], b = R.default[bk] },
@@ -70,7 +70,8 @@ local function ResourceSubmenu(key)
     type = "submenu",
     name = label .. " Bar",
     controls = {
-      Color(key, "Color"),
+      Checkbox(key .. "Mirror", "Mirror (fill right-to-left)",
+        "Fills from the right, so the bar drains toward its right edge. Mirror magicka in a pyramid layout to make both side bars drain toward the center."),
       Slider(key .. "OffsetX", "Offset X", -600, 600, 1, "Horizontal position relative to the group center."),
       Slider(key .. "OffsetY", "Offset Y", -400, 400, 1, "Vertical position relative to the group center."),
       Slider(key .. "Scale", "Scale", 0.50, 1.80, 0.01),
@@ -118,11 +119,47 @@ function R.CreateSettingsPanel()
       Refresh()
     end),
 
+    -- Colors ---------------------------------------------------------------
+    { type = "header", name = "Colors" },
+    Color("health", "Health", "Fill color of the health bar."),
+    Color("magicka", "Magicka", "Fill color of the magicka bar."),
+    Color("stamina", "Stamina", "Fill color of the stamina bar."),
+    Color("shield", "Damage Shield", "Color of the shield strip and shield value."),
+    Percent("gradientShade", "Gradient Shading", 0, 80, "How much darker the start of each bar is. 0 = flat color."),
+    {
+      type = "submenu",
+      name = "Text Colors",
+      controls = {
+        Color("text", "Value Text", "The current / max numbers inside each bar."),
+        Color("title", "Bar Titles", "HEALTH / MAGICKA / STAMINA (when Show Bar Titles is on)."),
+        Color("warning", "LOW Warning", "The LOW label shown under the threshold."),
+        Color("shieldText", "Shield Value", "The [shield] amount after the health value."),
+        Color("regen", "Restore Rate", "The +x/s text above each bar."),
+        Checkbox("regenGainUseBarColor", "Gain Flash Uses Bar Color",
+          "When the rate pops on a gain, tint it with the bar's own color."),
+        Color("regenGain", "Restore Rate Gain Flash", "Flash color when a resource goes up.",
+          function() return R.sv.regenGainUseBarColor end),
+        Color("regenLoss", "Restore Rate Loss Flash", "Flash color when a resource goes down."),
+        Color("moverText", "Unlock Hint", "The 'drag to move' text shown while unlocked."),
+      },
+    },
+    Button("Reset Colors", "Restore every bar and text color to its default.", function()
+      for _, prefix in ipairs(R.COLOR_PREFIXES) do
+        for _, ch in ipairs({ "R", "G", "B" }) do
+          local k = prefix .. "Color" .. ch
+          R.sv[k] = R.default[k]
+        end
+      end
+      R.sv.gradientShade = R.default.gradientShade
+      R.sv.regenGainUseBarColor = R.default.regenGainUseBarColor
+      Refresh()
+      CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", R.lamPanel)
+    end),
+
     -- Appearance ---------------------------------------------------------
     { type = "header", name = "Appearance" },
     Percent("backgroundAlpha", "Background Opacity", 0, 100),
     Checkbox("showGloss", "Gloss Highlight", "Soft highlight across the top half of each bar."),
-    Checkbox("mirrorMagicka", "Mirror Magicka Bar", "Magicka fills right-to-left, so it drains toward the center in a pyramid layout."),
     Checkbox("showThresholdMarker", "Low-Resource Marker", "Thin tick showing where the low-resource warning kicks in."),
 
     -- Text ----------------------------------------------------------------
@@ -144,7 +181,6 @@ function R.CreateSettingsPanel()
     -- Shield & alerts ---------------------------------------------------
     { type = "header", name = "Shield & Alerts" },
     Checkbox("showShield", "Show Damage Shield", "Shield strip on the health bar plus its value in the text."),
-    Color("shield", "Shield Color"),
     Percent("lowResourceThreshold", "Low-Resource Threshold (%)", 5, 60),
     Checkbox("lowResourcePulse", "Pulse When Low", "Bar border pulses instead of glowing steadily."),
 

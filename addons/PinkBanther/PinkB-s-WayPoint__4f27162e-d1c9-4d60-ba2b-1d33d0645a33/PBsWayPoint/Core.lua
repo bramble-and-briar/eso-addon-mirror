@@ -43,7 +43,7 @@ PBS_WAYPOINT = {
 	baseTitle = "PB’s WayPoint",
 	chatName = "PB’s WayPoint",
 	author = "PinkBanther",
-	version = "0.6.0",
+	version = "0.6.2",
 	slash = "/pbwp",
 	shortSlash = "/pbwaypoint",
 	-- a file marks itself here on its last line (see Main.lua: it tells "the files did not run" from "start-up failed")
@@ -144,6 +144,9 @@ function A:Sanitize()
 		self.lastCrash = "the L3 + R3 layer on the map screen"
 		sv.pendingChord = nil
 	end
+	-- 0.6.1 kept zone pairs here and measured an inner zone on the outer one's map; 0.6.2 undid that (Nav.lua "Changes of the
+	-- zone id"), so what it saved goes
+	sv.areas = nil
 	-- what earlier versions kept: the triangle long press (0.3.x) is gone
 	sv.pendingHold, sv.longPress, sv.holdMs = nil, nil, nil
 	sv.probe.holdLayer = nil

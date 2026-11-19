@@ -15,13 +15,23 @@ local function AddLine(tooltip, text, rgb)
     tooltip:AddLine(text, "ZoFontGame", rgb[1], rgb[2], rgb[3])
 end
 
--- Find the set entry inside the pool the advisor already built, so the tooltip
--- reuses the same numbers the panel is showing rather than rescanning.
-local function FindSetEntry(pool, setId)
+-- Add up a coffer's sets from the pool the advisor already built, so the
+-- tooltip reuses the numbers the panel is showing rather than rescanning.
+-- Returns nil when none of the coffer's sets is in the pool.
+local function CofferCounts(pool, setIds)
+    local wanted = {}
+    for _, setId in ipairs(setIds) do wanted[setId] = true end
+
+    local found, missing, total = false, 0, 0
     for _, entry in ipairs(pool.sets) do
-        if entry.setId == setId then return entry end
+        if wanted[entry.setId] then
+            found = true
+            missing = missing + entry.missing
+            total   = total + entry.total
+        end
     end
-    return nil
+    if not found then return nil end
+    return missing, total
 end
 
 local function AppendMystery(tooltip, result)
@@ -35,17 +45,17 @@ local function AppendMystery(tooltip, result)
     end
 end
 
-local function AppendCurated(tooltip, result, setId)
-    local entry = FindSetEntry(result.pool, setId)
+local function AppendCurated(tooltip, result, setIds)
+    local missing, total = CofferCounts(result.pool, setIds)
 
-    if entry and entry.missing == 0 then
-        -- Buying this one hands over a duplicate no matter what the odds say.
+    if missing == 0 then
+        -- Every set in it is complete: a duplicate no matter what the odds say.
         AddLine(tooltip, GetString(SI_MCH_TT_SET_DONE), RGB.bad)
         return
     end
 
-    if entry then
-        AddLine(tooltip, zo_strformat(SI_MCH_TT_SET_MISSING, entry.missing, entry.total), RGB.plain)
+    if missing then
+        AddLine(tooltip, zo_strformat(SI_MCH_TT_SET_MISSING, missing, total), RGB.plain)
     end
     AddLine(tooltip, zo_strformat(SI_MCH_TT_COST, MCH.Format.Num(result.curatedPerNew)), RGB.plain)
 
@@ -63,8 +73,8 @@ local function OnStoreItemTooltip(tooltip, storeIndex)
     if not scan then return end
 
     local isMystery = (scan.mysteryIndex == storeIndex)
-    local setId = scan.curatedIndexToSetId[storeIndex]
-    if not isMystery and not setId then return end
+    local setIds = scan.curatedIndexToSetIds[storeIndex]
+    if not isMystery and not setIds then return end
 
     local result = MCH.Advisor.ForVendor(scan.vendorId)
     if not result or result.verdict == MCH.VERDICT_DONE then return end
@@ -73,7 +83,7 @@ local function OnStoreItemTooltip(tooltip, storeIndex)
     if isMystery then
         AppendMystery(tooltip, result)
     else
-        AppendCurated(tooltip, result, setId)
+        AppendCurated(tooltip, result, setIds)
     end
 end
 

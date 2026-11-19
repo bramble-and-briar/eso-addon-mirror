@@ -1,0 +1,24 @@
+## Title: Antiquity Atlas
+## Description: Antiquity reward catalog, assembly progress, source maps and recorded resource locations.
+## Author: TjeEmpejoj
+## Version: 0.13.3
+## AddOnVersion: 1303
+## APIVersion: 101051
+## DependsOn: LibZone>=901
+## OptionalDependsOn: MapPins HarvestMap
+## SavedVariables: AntiquityAtlasSavedVariables
+
+Localization.lua
+LeadSources_en.lua
+EmbeddedData.lua
+DataProvider.lua
+Model.lua
+SourceTargets.lua
+SourcePresentation.lua
+SourceActions.lua
+BossLocations.lua
+ResourceData.lua
+ResourceLocations.lua
+Rows.xml
+Atlas.lua
+Bindings.xml

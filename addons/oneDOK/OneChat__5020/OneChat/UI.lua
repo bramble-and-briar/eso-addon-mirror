@@ -2,6 +2,19 @@ local A = OneChat
 local WM = WINDOW_MANAGER
 local controlSequence = 0
 
+function A:InstallChatSizing()
+    -- Native tab layout recalculates constraints for new and reused containers.
+    ZO_PreHook(SharedChatContainer, "CalculateConstraints", function(container)
+        if container.system == A.chat then
+            container.control:SetDimensionConstraints(0, 0, 0, 0)
+            return true
+        end
+    end)
+    for _, container in ipairs(self.chat.containers) do
+        container:CalculateConstraints()
+    end
+end
+
 local function label(parent, text, x, y, width, font)
     local control = WM:CreateControl(nil, parent, CT_LABEL)
     control:SetFont(font or "ZoFontWinH4")
@@ -258,7 +271,7 @@ function A:InstallSettings()
                 local id = GetGuildId(slot)
                 return id and id ~= 0 and GetGuildName(id) or ""
             end,
-            disabled = function() return A.sv.customMessage or slot > GetNumGuilds() end,
+            disabled = function() return slot > GetNumGuilds() end,
             getFunc = function()
                 return A.sv.abbreviations[tostring(GetGuildId(slot))] or ""
             end,

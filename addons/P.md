@@ -66,7 +66,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Personal Dps Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Personal-Dps-Tracker__c9b85989-bab6-4000-a3fc-80ed49e25e87) | Shienar | Console | — |
 | [PersonalAssistant (Banking, Consume, Junk, Loot, Repair, Worker) \[Masteroshi430's branch\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/PersonalAssistant-Banking-Consume-Junk-Loot-Repair-Worker-Masteroshi430-s-branch__3512) | Masteroshi430 | PC / Mac | 2026.09.27 |
 | [Personality Designer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Atronyx/Personality-Designer__2695) | Atronyx | PC / Mac | 2.1.1 |
-| [Personality Designer - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Beacze/Personality-Designer---Updated__5014) | Beacze | PC / Mac | 3.0.2 |
+| [Personality Designer - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Beacze/Personality-Designer---Updated__5014) | Beacze | PC / Mac | 3.1.0 |
 | [pet](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/satuve/pet__25a0aeff-e8df-4458-bc72-f5a8319dbade) | satuve | Console | — |
 | [Pet Dead Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rockingdice/Pet-Dead-Alert__1825) | rockingdice | PC / Mac | 1.01 |
 | [Pet Dismiss](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/adriant1978/Pet-Dismiss__1314) | adriant1978 | PC / Mac | 1.3.1 |
@@ -140,6 +140,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's Omikuji](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Omikuji__e9774308-4827-4806-b3bd-924016769cd3) | PinkBanther | Console | — |
 | [PinkB's Omikuji(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Omikuji-Beta__20cda1ba-c4a4-4f82-9dcb-81e274222d9e) | PinkBanther | Console | — |
 | [PinkB's OnlineStatusAlert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-OnlineStatusAlert__acc220d2-3d92-4f47-8eae-979714894059) | PinkBanther | Console | — |
+| [PinkB's PlayerMarkerExtension](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-PlayerMarkerExtension__a5a47140-37bb-4fb8-a0be-2d8b424ad400) | PinkBanther | Console | — |
+| [PinkB's PlayerMarkerExtension(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-PlayerMarkerExtension-Beta__a65f7431-18ba-4958-a2e4-c2b14621d1b3) | PinkBanther | Console | — |
 | [PinkB's ProcSetTimer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ProcSetTimer__92429895-8851-446b-83ef-a1333a7ac486) | PinkBanther | Console | — |
 | [PinkB's ProcSetTimer(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ProcSetTimer-Beta__81a06296-da7a-447d-8784-8b2116d37dbf) | PinkBanther | Console | — |
 | [PinkB's QuestTrackerFontChanger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-QuestTrackerFontChanger__cc94a283-12a5-4e75-8e54-727d2ab6977c) | PinkBanther | Console | — |

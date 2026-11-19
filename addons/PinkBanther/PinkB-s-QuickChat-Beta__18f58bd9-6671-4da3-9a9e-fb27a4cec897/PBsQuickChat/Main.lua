@@ -93,7 +93,7 @@ function A:StatusLines()
 	end
 	add("%s", self.title)
 	local any = false
-	for i = 1, self.NUM_SLOTS do
+	for i = 1, self:SlotCount() do
 		local slot = self:GetSlot(i)
 		if slot and self:HasText(i) then
 			any = true
@@ -123,7 +123,7 @@ function A:StatusLines()
 		add("locale: 81 is control=%s, 85 is space=%s, A0 is space=%s, E3 is letter=%s, lower() changes C3=%s (all false is what the add-on assumes)",
 			tostring(locale.control81), tostring(locale.space85), tostring(locale.spaceA0), tostring(locale.letterE3), tostring(locale.lowerChangesC3))
 	end
-	add("options: wheel=%s head=%s first=%s coop=%s delay=%d ms", tostring(self.sv.wheel), tostring(self.sv.wheelHead), tostring(self.sv.wheelFirst), tostring(self.sv.coop), self.sv.delayMs)
+	add("options: messages=%d wheel=%s head=%s first=%s coop=%s delay=%d ms", self:SlotCount(), tostring(self.sv.wheel), tostring(self.sv.wheelHead), tostring(self.sv.wheelFirst), tostring(self.sv.coop), self.sv.delayMs)
 	return lines
 end
 
@@ -151,7 +151,7 @@ end
 
 local function SlotArg(words, position)
 	local number = tonumber(words[position])
-	if number and number == math.floor(number) and number >= 1 and number <= A.NUM_SLOTS then
+	if number and number == math.floor(number) and number >= 1 and number <= A:SlotCount() then
 		return number
 	end
 	return nil
@@ -179,7 +179,7 @@ function A:Command(input)
 		self:PrintHelp()
 	elseif verb == "list" then
 		local any = false
-		for i = 1, self.NUM_SLOTS do
+		for i = 1, self:SlotCount() do
 			local slot = self:GetSlot(i)
 			if slot and self:HasText(i) then
 				any = true
@@ -192,7 +192,7 @@ function A:Command(input)
 	elseif verb == "set" then
 		local slot = SlotArg(words, 2)
 		if not slot then
-			self:Print(S.noSuchSlot)
+			self:Print(S.noSuchSlot, self:SlotCount())
 			return
 		end
 		self:SetSlotText(slot, Rest(words, 3))
@@ -200,7 +200,7 @@ function A:Command(input)
 	elseif verb == "name" then
 		local slot = SlotArg(words, 2)
 		if not slot then
-			self:Print(S.noSuchSlot)
+			self:Print(S.noSuchSlot, self:SlotCount())
 			return
 		end
 		self:SetSlotName(slot, Rest(words, 3))
@@ -208,7 +208,7 @@ function A:Command(input)
 	elseif verb == "channel" then
 		local slot = SlotArg(words, 2)
 		if not slot then
-			self:Print(S.noSuchSlot)
+			self:Print(S.noSuchSlot, self:SlotCount())
 			return
 		end
 		local key = A.LowerAscii(words[3])
@@ -222,7 +222,7 @@ function A:Command(input)
 	elseif verb == "clear" then
 		local slot = SlotArg(words, 2)
 		if not slot then
-			self:Print(S.noSuchSlot)
+			self:Print(S.noSuchSlot, self:SlotCount())
 			return
 		end
 		self:ClearSlot(slot)
@@ -230,7 +230,7 @@ function A:Command(input)
 	elseif verb == "send" then
 		local slot = SlotArg(words, 2)
 		if not slot then
-			self:Print(S.noSuchSlot)
+			self:Print(S.noSuchSlot, self:SlotCount())
 			return
 		end
 		self:Stage(slot, "command")
@@ -245,6 +245,18 @@ function A:Command(input)
 		elseif value == "head" or value == "tail" then
 			self:Set("wheelHead", value == "head")
 			self:Print(value == "head" and S.wheelHeadOn or S.wheelHeadOff)
+		else
+			self:PrintHelp()
+		end
+	elseif verb == "count" then
+		local number = tonumber(words[2])
+		if number and number == math.floor(number) then
+			self:Set("slotCount", number)
+			self:Print(S.countSet, self:SlotCount())
+			local _, limited = self:WheelEntryCount()
+			if limited then
+				self:Print(S.countLimited, self.TOGGLABLE_LIMIT)
+			end
 		else
 			self:PrintHelp()
 		end

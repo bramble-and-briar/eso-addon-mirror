@@ -59,7 +59,7 @@ local function HandleSlash(argumentString)
     end
 
     if argument == "forget" or argument == "reset" then
-        MCH.db.learned = {}
+        MCH.ForgetLearned()
         MCH.Model.Invalidate()
         MCH.UI.Refresh()
         d("|c9FD3FF[Coffer]|r Forgot all prices and stock read from vendors.")
@@ -91,11 +91,39 @@ local function OnCollectionChanged()
     MCH.UI.Refresh()
 end
 
+-- Points MCH.learned at this server's share of what store scans read.
+--
+-- 1.0.0 kept a single table for every server. It was filled on whichever
+-- server the player last visited a quartermaster, most likely the one they are
+-- on now, so it moves to this server once and the old key goes away.
+local function InitLearned(db)
+    local server = GetWorldName()
+    db.learnedByServer = db.learnedByServer or {}
+
+    if db.learned then
+        if not db.learnedByServer[server] then
+            db.learnedByServer[server] = db.learned
+        end
+        db.learned = nil
+    end
+
+    db.learnedByServer[server] = db.learnedByServer[server] or {}
+    MCH.learned = db.learnedByServer[server]
+end
+
+-- Cleared in place, so every holder of MCH.learned sees the same empty table.
+function MCH.ForgetLearned()
+    for vendorId in pairs(MCH.learned) do
+        MCH.learned[vendorId] = nil
+    end
+end
+
 local function OnAddOnLoaded(_, addOnName)
     if addOnName ~= MCH.name then return end
     EVENT_MANAGER:UnregisterForEvent(MCH.name, EVENT_ADD_ON_LOADED)
 
     MCH.db = ZO_SavedVars:NewAccountWide("MonsterCofferHelper_Data", 1, nil, MCH.defaults)
+    InitLearned(MCH.db)
 
     MCH.UI.Initialize()
     MCH.Settings.Initialize()
@@ -111,7 +139,8 @@ end
 
 EVENT_MANAGER:RegisterForEvent(MCH.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)
 
--- Keybind target, declared in Bindings.xml.
-function MonsterCofferHelper_Toggle()
+-- Keybind target, declared in Bindings.xml. Kept on the addon's one global
+-- table rather than as a global function of its own.
+function MCH.Toggle()
     MCH.UI.Toggle()
 end

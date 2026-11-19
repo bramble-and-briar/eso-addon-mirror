@@ -3,8 +3,8 @@
 ## SavedVariables: GroupManager_Data
 ## Description: Provides functionality to automatically save, form and manage group composition automatically. Also includes a built in tracker for deaths experienced by your group and provides a detailed breakdown of what caused your death.
 ## Author: @Drummerx04 (Lilith Arujo)
-## Version: 4.6.0
-## AddOnVersion: 406000
+## Version: 4.6.1
+## AddOnVersion: 406010
 ## DependsOn: LibCombatAlerts>=9010 LibAddonMenu-2.0>=40
 ## OptionalDependsOn: LibCustomMenu
 

@@ -3258,6 +3258,25 @@ function UnitFrames.CreateConsoleSettings()
             end,
         }
 
+        -- Expanded template: hide the outer black frame fill. Health bar and bottom row stay.
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = GetString(LUIE_STRING_LAM_UF_CFRAMESR_HIDE_BACKGROUND),
+            tooltip = GetString(LUIE_STRING_LAM_UF_CFRAMESR_HIDE_BACKGROUND_TP),
+            getFunction = function ()
+                return Settings.RaidExpandedHideBackground
+            end,
+            setFunction = function (value)
+                Settings.RaidExpandedHideBackground = value
+                UnitFrames.CustomFramesApplyLayoutRaid(false)
+            end,
+            default = Defaults.RaidExpandedHideBackground,
+            disable = function ()
+                return not (LUIE.SV.UnitFrames_Enabled and Settings.CustomFramesRaid and Settings.RaidFrameTemplate == UnitFrames.RAID_FRAME_TEMPLATE_EXPANDED)
+            end,
+        }
+
         settings[#settings + 1] =
         {
             type = LHAS.ST_DROPDOWN,
@@ -3394,9 +3413,10 @@ function UnitFrames.CreateConsoleSettings()
             tooltip = GetString(LUIE_STRING_LAM_UF_CFRAMESR_LAYOUT_BG_TP),
             items =
             {
-                { name = GetString(LUIE_STRING_LAM_UF_RAID_LAYOUT_BG_COLUMN), data = UnitFrames.RAID_LAYOUT_BATTLEGROUND_COLUMN },
-                { name = GetString(LUIE_STRING_LAM_UF_RAID_LAYOUT_BG_GRID),   data = UnitFrames.RAID_LAYOUT_BATTLEGROUND_GRID   },
-                { name = GetString(LUIE_STRING_LAM_UF_RAID_LAYOUT_BG_ROW),    data = UnitFrames.RAID_LAYOUT_BATTLEGROUND_ROW    }
+                { name = GetString(LUIE_STRING_LAM_UF_RAID_LAYOUT_BG_COLUMN),      data = UnitFrames.RAID_LAYOUT_BATTLEGROUND_COLUMN      },
+                { name = GetString(LUIE_STRING_LAM_UF_RAID_LAYOUT_BG_TWO_COLUMN),  data = UnitFrames.RAID_LAYOUT_BATTLEGROUND_TWO_COLUMN },
+                { name = GetString(LUIE_STRING_LAM_UF_RAID_LAYOUT_BG_GRID),        data = UnitFrames.RAID_LAYOUT_BATTLEGROUND_GRID        },
+                { name = GetString(LUIE_STRING_LAM_UF_RAID_LAYOUT_BG_ROW),         data = UnitFrames.RAID_LAYOUT_BATTLEGROUND_ROW         }
             },
             getFunction = function ()
                 -- Migrates pre-U51 "1 x 9" / "3 x 3" / "9 x 1" values to a shape

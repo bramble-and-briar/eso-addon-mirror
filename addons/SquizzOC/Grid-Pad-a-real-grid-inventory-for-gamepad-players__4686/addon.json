@@ -8,6 +8,10 @@
   "category_id": "20",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -22,7 +26,7 @@
     "GridPadInventory"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4686/",
-  "fingerprint": "2ae1471771bc863cdd417342f551d585c82a46d26e4ae7c4e5f9dd56928d2022",
+  "fingerprint": "4e27d775bf7a319e86734f9e6223b4806a3ab73f82dce02f3bfdab8ec54c890f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16574.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw16575.jpg",
@@ -38,11 +42,11 @@
   "source_id": "4686",
   "source_url": "https://www.esoui.com/downloads/info4686-GridPadarealgridinventoryforgamepadplayers.html",
   "stats": {
-    "downloads": 984,
+    "downloads": 1048,
     "favorites": 4,
-    "monthly_downloads": 259
+    "monthly_downloads": 287
   },
   "title": "Grid Pad \u2014 a real grid inventory for gamepad players",
-  "updated_at": 1794454086000,
-  "version": "1.45.2"
+  "updated_at": 1795062411000,
+  "version": "1.45.3"
 }

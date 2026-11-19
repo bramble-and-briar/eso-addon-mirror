@@ -16,6 +16,21 @@ P.TYPES = {
 
 local layouts = {}
 
+-- Pull the user's colors into the shared ZO_ColorDef objects. The map pin layouts
+-- hold references to these same objects, so a refresh is enough to recolor them.
+function P.ApplyColors()
+    local colors = addon.sv.pins.colors
+    for key, def in pairs(P.TYPES) do
+        local c = colors[key] or addon.defaults.pins.colors[key]
+        def.color:SetRGBA(c.r, c.g, c.b, c.a or 1)
+        def.hex = def.color:ToHex()
+    end
+end
+
+function P.ColorText(key, text)
+    return string.format("|c%s%s|r", P.TYPES[key].hex, text)
+end
+
 local function S() return addon.sv.pins end
 
 function P.IsTypeShown(key)
@@ -111,6 +126,7 @@ P.revision = 0
 
 function P.Refresh()
     P.revision = P.revision + 1
+    if addon.Blips and addon.Blips.Apply and addon.sv then pcall(addon.Blips.Apply) end
     if not registered then return end
     for _, key in ipairs(P.ORDER) do
         local name = P.TYPES[key].pinName
@@ -300,6 +316,7 @@ local function RegisterPinTypes()
 end
 
 function P.Init()
+    P.ApplyColors()
     if RegisterPinTypes() then return end
     -- world map not ready yet: try again once the player is in the world
     EVENT_MANAGER:RegisterForEvent("OneVXHelper_PinsRetry", EVENT_PLAYER_ACTIVATED, function()

@@ -12,7 +12,7 @@ function A:MakeDefaults()
     local colors = {}
     for role in pairs(self.roleResources) do colors[role] = self:ResourceColor(role) end
     return {
-        enabled = true, sort = false, account = false, class = true, level = true, cp = true,
+        enabled = true, debugMode = "off", sort = false, account = false, class = true, level = true, cp = true,
         roleStats = {}, colors = colors, customColors = {}, dps = false, hps = false, hodor = true, ultimate = true,
         shield = true, shieldColor = { 0.5, 0.5, 1 }, shieldOpacity = 0.45,
         interaction = true, contextMenu = true, groupDps = true,

@@ -1,0 +1,15 @@
+## Title: GroupReset
+## Author: FiNk3--F13--
+## Version: 0.1.1
+## AddOnVersion: 2
+## APIVersion: 101052
+## Description: Let the group leader request that participating players leave a trial together.
+## DependsOn: LibGroupBroadcast>=95 LibRadialMenu
+## OptionalDependsOn: HodorReflexes
+## PCDependsOn: LibAddonMenu-2.0>=43
+## ConsoleDependsOn: LibHarvensAddonSettings>=20103
+## SavedVariables: GroupResetSV
+
+ResetController.lua
+GroupReset.lua
+Bindings.xml

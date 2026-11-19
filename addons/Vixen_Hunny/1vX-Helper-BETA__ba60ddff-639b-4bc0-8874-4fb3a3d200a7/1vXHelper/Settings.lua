@@ -29,6 +29,23 @@ local function Slider(group, key, name, min, max, step, tooltip, apply, disabled
     }
 end
 
+local function ColorPicker(key, name)
+    return {
+        type = "colorpicker", name = name,
+        getFunc = function()
+            local c = addon.sv.pins.colors[key]
+            return c.r, c.g, c.b, c.a or 1
+        end,
+        setFunc = function(r, g, b, a)
+            addon.sv.pins.colors[key] = { r = r, g = g, b = b, a = a or 1 }
+            addon.Pins.ApplyColors()
+            addon.Pins.Apply()      -- recolors map pins (and bumps the blips/compass)
+            addon.Tracker.Apply()   -- tracker text uses the colors too
+        end,
+        default = ZO_ShallowTableCopy(addon.defaults.pins.colors[key]),
+    }
+end
+
 local function BuildSoundList()
     local candidates = {
         "DUEL_START", "GENERAL_ALERT_ERROR", "NEW_NOTIFICATION", "ABILITY_ULTIMATE_READY",
@@ -52,11 +69,14 @@ function S.Init()
     local burstApply   = function() addon.Burst.Apply() end
     local pinsApply    = function() addon.Pins.Apply() end
     local trackApply   = function() addon.Tracker.Apply() end
+    local blipsApply   = function() addon.Blips.Apply() end
     local extrasApply  = function() addon.Extras.Apply() end
 
     local burstOff = function() return not addon.sv.burst.enabled end
     local pinsOff  = function() return not addon.sv.pins.enabled end
     local trackOff = function() return not addon.sv.tracker.enabled end
+    local blipsOff = function() return not addon.sv.blips.enabled end
+    local compassOff = function() return not addon.sv.compass.enabled end
 
     local sounds = BuildSoundList()
     local soundOk = false
@@ -138,6 +158,11 @@ function S.Init()
 
         -----------------------------------------------------------------------
         { type = "submenu", name = "|c33FF4DMap Pins|r", controls = {
+            { type = "header", name = "Pin colors (map, blips, compass, tracker, gamepad)" },
+            ColorPicker("kite",  "Kite Spot color"),
+            ColorPicker("safe",  "Safe Place color"),
+            ColorPicker("choke", "Choke Point color"),
+            { type = "header", name = "Map" },
             { type = "description", text = "Drop pins at your current position with keybinds, the gamepad screen or /1vx kite|safe|choke <note>. Pins are saved per map, account-wide." },
             Checkbox("pins", "enabled", "Show 1vX pins on map", "Master toggle for all 1vX map pins.", pinsApply),
             Checkbox("pins", "kite",  "|c33FF4DKite Spots|r",   "Pillars, rocks, LoS spots, tower loops.", pinsApply, pinsOff),
@@ -161,7 +186,7 @@ function S.Init()
             Checkbox("tracker", "chokeWarn", "Choke point proximity warning", "Shows an orange warning when you're close to a choke point.", trackApply, trackOff),
             Slider("tracker", "chokeWarnRange", "Choke warning range (m)", 5, 100, 1, nil, trackApply,
                 function() return trackOff() or not addon.sv.tracker.chokeWarn end),
-            Checkbox("tracker", "flipDirection", "Flip direction", "Turn on if the o'clock directions look mirrored left/right.", trackApply, trackOff),
+            Checkbox("tracker", "flipDirection", "Flip direction", "Turn on if the o'clock directions (and compass pins) look mirrored left/right.", trackApply, trackOff),
         }},
 
         -----------------------------------------------------------------------
@@ -174,6 +199,28 @@ function S.Init()
         }},
 
         -----------------------------------------------------------------------
+        { type = "submenu", name = "|c66FFCCOn-screen Blips & Compass|r", controls = {
+            { type = "description", text = "Shows your map pins on screen: a marker floating over the real spot in the world, and a mark on the compass bar." },
+            { type = "header", name = "Pin types shown" },
+            Checkbox("blips", "kite",  "|c33FF4DKite Spots|r",   nil, blipsApply),
+            Checkbox("blips", "safe",  "|c4DB8FFSafe Places|r",  nil, blipsApply),
+            Checkbox("blips", "choke", "|cFF8C1AChoke Points|r", nil, blipsApply),
+            { type = "header", name = "World blips" },
+            Checkbox("blips", "enabled", "Show world blips", "Colored marker floating over each pin's location.", blipsApply),
+            Slider("blips", "maxRange", "Blip range (m)", 25, 1000, 25, nil, blipsApply, blipsOff),
+            Slider("blips", "size", "Blip size", 0.3, 3, 0.1, nil, blipsApply, blipsOff, 1),
+            Checkbox("blips", "keepReadable", "Keep far blips readable", "Blips grow with distance so they don't shrink to a dot.", blipsApply, blipsOff),
+            Checkbox("blips", "throughWalls", "Show through walls / terrain", nil, blipsApply, blipsOff),
+            { type = "header", name = "Compass" },
+            Checkbox("compass", "enabled", "Show pins on compass", nil, blipsApply),
+            Slider("compass", "maxRange", "Compass range (m)", 50, 2000, 50, nil, blipsApply, compassOff),
+            Slider("compass", "fov", "Compass field of view (degrees)", 60, 180, 1,
+                "Calibrate: face a pin, turn slowly and adjust until it leaves the compass edge exactly when it should. Default 108.",
+                blipsApply, compassOff),
+            Slider("compass", "size", "Compass icon size", 12, 40, 1, nil, blipsApply, compassOff),
+        }},
+
+        -----------------------------------------------------------------------
         { type = "submenu", name = "|c999999Performance (CPU)|r", controls = {
             { type = "description", text = "Lower = smoother timers, higher = less CPU. The burst monitor only runs its fast timer while you're taking damage or an alert is up; outside fights it drops to a 1s idle refresh." },
             Slider("burst", "updateRate", "Burst timer rate (ms)", 50, 500, 25,
@@ -181,16 +228,20 @@ function S.Init()
                 burstApply, burstOff),
             Slider("tracker", "updateRate", "Tracker update rate (ms)", 100, 2000, 50,
                 "How often distances / directions refresh. Default 250.", trackApply, trackOff),
+            Slider("blips", "updateRate", "Blips & compass refresh (ms, 0 = every frame)", 0, 200, 10,
+                "Only runs while you're on the HUD and the zone has pins. Higher = less CPU but choppier when turning.",
+                blipsApply),
             Checkbox("tracker", "skipWhenStill", "Tracker: skip while standing still",
                 "Don't recalculate when you haven't moved or turned your camera.", trackApply, trackOff),
             {
                 type = "button", name = "Low CPU preset",
-                tooltip = "Burst 200ms, tracker 750ms, skip while still on.",
+                tooltip = "Burst 200ms, tracker 750ms, blips/compass 33ms (~30fps), skip while still on.",
                 func = function()
                     addon.sv.burst.updateRate = 200
                     addon.sv.tracker.updateRate = 750
                     addon.sv.tracker.skipWhenStill = true
-                    burstApply(); trackApply()
+                    addon.sv.blips.updateRate = 33
+                    burstApply(); trackApply(); blipsApply()
                 end, width = "half",
             },
             {
@@ -199,7 +250,8 @@ function S.Init()
                     addon.sv.burst.updateRate = addon.defaults.burst.updateRate
                     addon.sv.tracker.updateRate = addon.defaults.tracker.updateRate
                     addon.sv.tracker.skipWhenStill = addon.defaults.tracker.skipWhenStill
-                    burstApply(); trackApply()
+                    addon.sv.blips.updateRate = addon.defaults.blips.updateRate
+                    burstApply(); trackApply(); blipsApply()
                 end, width = "half",
             },
         }},

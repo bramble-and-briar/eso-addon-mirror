@@ -16,7 +16,7 @@
 --   B / Circle           back
 local SBR = ScoreboardRemastered
 local MB = {
-    sceneName = "scoreboardRemasteredHistory", keyboardSceneName = "scoreboardRemasteredHistoryKeyboard",
+    gamepadSceneName = "scoreboardRemasteredHistory", keyboardSceneName = "scoreboardRemasteredHistoryKeyboard",
     tab = "matches", filter = 1, sort = 1, selected = 1, offset = 0, card = "match",
     tabState = { matches = { filter = 1, sort = 1, selected = 1, offset = 0 }, players = { filter = 1, sort = 1, selected = 1, offset = 0 } },
 }
@@ -479,6 +479,11 @@ end
 
 function MB:Render()
     local DB = SBR.MatchDB
+    -- the selection never points past the list (the card would be empty)
+    if self.items then
+        self.selected = zo_clamp(self.selected, 1, math.max(1, #self.items))
+        self:ClampScroll()
+    end
     self:RenderTabs()
     if self.tab == "players" then
         self:RenderPlayers()
@@ -653,8 +658,8 @@ function MB:RenderMatch(r)
     self.highlights:SetText(table.concat(hl, "   |c777777•|r   "))
 
     local stored = SBR.MatchDB:FindMatch(r.id) ~= nil
-    self.footer:SetText(stored and "Full scoreboard, kill feed and recaps stored. Press A to open."
-        or string.format("Summary only: full scoreboards are kept for the last %d matches.", SBR.sv.maxHistory or 50))
+    self.footer:SetText(stored and "Full scoreboard, kill feed and recaps stored. Press A for the battle report."
+        or string.format("Summary only: full scoreboards are kept for the last %d matches.", SBR.sv.maxHistory or 20))
 end
 
 function MB:RenderLifetime(a)
@@ -880,8 +885,7 @@ function MB:OpenSelected()
     if not r then return end
     local _, index = SBR.MatchDB:FindMatch(r.id)
     if not index then return end
-    SBR.Window.viewIndex = index
-    SBR.Window:Show(true)
+    SBR.ReportUI:Open(SBR.MatchLog:GetHistory()[index])
 end
 
 function MB:BuildKeybinds()
@@ -894,7 +898,7 @@ function MB:BuildKeybinds()
     local function sortLabels() return MB.tab == "players" and DB.PLAYER_SORT_LABELS or DB.SORT_LABELS end
     self.keybinds = {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
-        { name = "View scoreboard", keybind = "UI_SHORTCUT_PRIMARY",
+        { name = "Battle report", keybind = "UI_SHORTCUT_PRIMARY",
           callback = function() MB:OpenSelected() end, visible = selectedStored },
         { name = "Back", keybind = "UI_SHORTCUT_NEGATIVE", callback = function() MB:Close() end },
         { name = function() return "Sort: " .. sortLabels()[MB:SortKey()] end, keybind = "UI_SHORTCUT_SECONDARY",
@@ -913,17 +917,40 @@ function MB:BuildKeybinds()
         { name = "Page down", keybind = "UI_SHORTCUT_RIGHT_TRIGGER", callback = function() MB:Move(VISIBLE_ROWS) end,
           visible = function() return MB.items and MB.selected < #MB.items end },
     }
+    -- controller: D-pad through ESO's D-pad keybinds (hold to repeat); on PC the
+    -- arrow keys are bound to the same actions
+    SBR.Gamepad.AddDPadKeybinds(self.keybinds, {
+        up = function() MB:Move(-1) end,
+        down = function() MB:Move(1) end,
+        left = function() MB:CycleFilter(-1) end,
+        right = function() MB:CycleFilter(1) end,
+    })
 end
 
 ---------------------------------------------------------------------------
 -- scene
 ---------------------------------------------------------------------------
--- This dialog is the PC (mouse) version. In gamepad mode, Open() hands over to the
--- native console screen in UI/Console.lua.
+-- The same window on PC and console, in two scenes: a mouse-driven one (cursor) and a
+-- gamepad-driven one (controller, no cursor). Setting "consoleLayout" = "list" uses
+-- the native list screen in UI/Console.lua on console instead.
 function MB:Init()
     if self.keyboardScene or not (ZO_Scene and SCENE_MANAGER and KEYBIND_STRIP) then return end
     self:Create()
     self.fragment = ZO_SimpleSceneFragment:New(self.control)
+
+    local gp = ZO_Scene:New(self.gamepadSceneName, SCENE_MANAGER)
+    gp:AddFragment(self.fragment)
+    if FRAGMENT_GROUP and FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW then
+        gp:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
+    end
+    for _, f in ipairs({ MINIMIZE_CHAT_FRAGMENT, GAMEPAD_MENU_SOUND_FRAGMENT }) do
+        if f then gp:AddFragment(f) end
+    end
+    gp:RegisterCallback("StateChange", function(_, newState)
+        if newState == SCENE_SHOWN then MB:OnShown()
+        elseif newState == SCENE_HIDING then MB:OnHiding() end
+    end)
+    self.gamepadScene = gp
 
     local kb = ZO_Scene:New(self.keyboardSceneName, SCENE_MANAGER)
     kb:AddFragment(self.fragment)
@@ -942,12 +969,14 @@ function MB:Init()
 end
 
 function MB:IsShowing()
-    return self.keyboardScene ~= nil and self.keyboardScene:IsShowing()
+    return (self.keyboardScene ~= nil and self.keyboardScene:IsShowing())
+        or (self.gamepadScene ~= nil and self.gamepadScene:IsShowing())
 end
 
 -- tab: optional "matches" or "players"
 function MB:Open(tab)
-    if SBR.IsGamepad() then
+    local gamepad = SBR.IsGamepad()
+    if gamepad and SBR.sv.consoleLayout == "list" then
         if SBR.Console and SBR.Console.records then SBR.Console.records:Open(tab) end
         return
     end
@@ -955,7 +984,7 @@ function MB:Open(tab)
     if not self.keyboardScene then return end
     if tab then self:SetTabSilently(tab) end
     if self:IsShowing() then return end
-    SCENE_MANAGER:Push(self.keyboardSceneName)
+    SCENE_MANAGER:Push(gamepad and self.gamepadSceneName or self.keyboardSceneName)
 end
 
 function MB:SetTabSilently(tab)
@@ -978,5 +1007,7 @@ function MB:OnShown()
 end
 
 function MB:OnHiding()
+    SBR.Gamepad.StopDPadRepeat()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybinds)
 end
+ScoreboardRemastered.Mark("UI/MatchBrowser.lua")

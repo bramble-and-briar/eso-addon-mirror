@@ -1,0 +1,41 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/O-Range/Grave-Sight__5069",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "O-Range",
+  "canonical_id": "esoui:5069",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5069",
+  "deleted": false,
+  "directories": [
+    "GraveSight"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5069/",
+  "fingerprint": "91fb79d662003ce04e5cf5ee82326a94a4108e618535b4a83832bca88b0b6a06",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18560.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18561.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18562.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18559.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5069",
+  "source_url": "https://www.esoui.com/downloads/info5069-GraveSight.html",
+  "stats": {
+    "downloads": 23,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Grave Sight",
+  "updated_at": 1795058169000,
+  "version": "0.4.2"
+}

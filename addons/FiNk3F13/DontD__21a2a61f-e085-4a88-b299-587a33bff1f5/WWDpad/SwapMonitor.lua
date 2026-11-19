@@ -143,6 +143,7 @@ function M.Describe()
         .. (#busy > 0 and table.concat(busy, ", ") or "keine erkennbar")
         .. "; Zielindex=" .. tostring(active.plan.index)
         .. "; WW-Index=" .. tostring(WizardsWardrobe.currentIndex)
+        .. "; ESO-Blockzustand=" .. tostring(type(IsBlockActive) == "function" and IsBlockActive() or false)
         .. "; gleiche Auswahl=" .. tostring(not not WWDpadRouting.IsCurrent(active.plan))
         .. "; WW-Warteschlange=" .. tostring(WizardsWardrobe.queue and
             (WizardsWardrobe.queue.queueRunning or

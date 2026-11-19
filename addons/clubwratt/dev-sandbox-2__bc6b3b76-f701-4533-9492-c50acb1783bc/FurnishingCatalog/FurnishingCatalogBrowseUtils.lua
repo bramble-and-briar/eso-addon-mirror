@@ -3,7 +3,8 @@ local FC = FurnishingCatalog
 
 local BrowseUtils = {}
 
--- How the item list of a subcategory is cut into sections. The triggers jump a section at a time.
+-- The group mode (the Sort button): the order of the furnishings within each subcategory of a
+-- long list, and what an expanded long list cuts each subcategory by ("Doorways - Orc").
 -- "plan" reads the built-in list of plans; the rest read the game.
 BrowseUtils.GROUP_MODES = { "name", "style", "quality", "plan" }
 BrowseUtils.DEFAULT_GROUP_MODE = "name"
@@ -113,6 +114,7 @@ local function GroupOrder(item, mode)
     return 0
 end
 
+---By the mode's group (its order, then its title), then by name.
 local function CompareItems(a, b)
     if a.groupOrder ~= b.groupOrder then
         return a.groupOrder < b.groupOrder
@@ -126,13 +128,39 @@ local function CompareItems(a, b)
     return a.id < b.id
 end
 
----Sort the items into sections (in place) and mark the first item of each section.
----@param items FurnishingCatalogItem[]
+---By the section an item came with (its subcategory), then as CompareItems.
+local function CompareItemsBySection(a, b)
+    if a.sectionIndex ~= b.sectionIndex then
+        return a.sectionIndex < b.sectionIndex
+    end
+    return CompareItems(a, b)
+end
+
+---The key of the mode's group an item falls in (after BrowseUtils.Arrange).
+---@param item FurnishingCatalogItem
+---@return string
+function BrowseUtils.GroupKey(item)
+    return tostring(item.groupOrder) .. ":" .. tostring(item.groupName)
+end
+
+-- How far a long list is expanded:
+--   PLAIN - a header per section (subcategory): "Doorways";
+--   FINE  - each section cut by the mode's groups: "Doorways - Orc";
+--   FLAT  - no headers and no sections: one list in the mode's order.
+BrowseUtils.DETAIL_PLAIN = 0
+BrowseUtils.DETAIL_FINE = 1
+BrowseUtils.DETAIL_FLAT = 2
+
+---Order the items of a long list (in place) and give the first item under each header its
+---header. PLAIN and FINE go by the section each item came with, then by the mode's group, then
+---by name; FLAT by the mode's group, then by name, across the whole list.
+---@param items FurnishingCatalogItem[] each with its sectionIndex and sectionName
 ---@param mode string a group mode (the caller has checked it is on offer)
----@param groupNameOf fun(item: FurnishingCatalogItem, mode: string): string|nil section title for every mode but A-Z
+---@param groupNameOf fun(item: FurnishingCatalogItem, mode: string): string|nil group title for every mode but A-Z
+---@param detail integer a BrowseUtils.DETAIL_*
 ---@return FurnishingCatalogItem[] items the same table, sorted
----@return integer numGroups
-function BrowseUtils.SortAndGroup(items, mode, groupNameOf)
+---@return integer numHeaders
+function BrowseUtils.Arrange(items, mode, groupNameOf, detail)
     mode = BrowseUtils.ValidGroupMode(mode)
     for _, item in ipairs(items) do
         local groupName
@@ -147,18 +175,59 @@ function BrowseUtils.SortAndGroup(items, mode, groupNameOf)
         item.groupName = groupName
         item.groupOrder = GroupOrder(item, mode)
     end
-    table.sort(items, CompareItems)
-    local numGroups = 0
-    local previousName, previousOrder
-    for index, item in ipairs(items) do
-        local startsGroup = index == 1 or item.groupName ~= previousName or item.groupOrder ~= previousOrder
-        item.startsGroup = startsGroup
-        if startsGroup then
-            numGroups = numGroups + 1
+    local flat = detail == BrowseUtils.DETAIL_FLAT
+    local fine = detail == BrowseUtils.DETAIL_FINE
+    table.sort(items, flat and CompareItems or CompareItemsBySection)
+    local numHeaders = 0
+    local previousIndex, previousGroup = nil, nil
+    for _, item in ipairs(items) do
+        local group = fine and BrowseUtils.GroupKey(item) or nil
+        if not flat and (item.sectionIndex ~= previousIndex or group ~= previousGroup) then
+            item.header = fine and (item.sectionName .. " - " .. item.groupName) or item.sectionName
+            numHeaders = numHeaders + 1
+        else
+            item.header = nil
         end
-        previousName, previousOrder = item.groupName, item.groupOrder
+        previousIndex, previousGroup = item.sectionIndex, group
     end
-    return items, numGroups
+    return items, numHeaders
+end
+
+---What to remember of the row the cursor is on. On a row inside a folder: the row and its
+---folder. On a folder's own row: the folder, and the row remembered inside it, if any, so that
+---folding and unfolding again returns to that row.
+---@param anchor { rowKey: any, folderKey: any }|nil what was remembered so far
+---@param row { rowKey: any, folderKey: any } the row the cursor is on
+---@return { rowKey: any, folderKey: any }
+function BrowseUtils.NextAnchor(anchor, row)
+    if row.rowKey ~= row.folderKey then
+        return { rowKey = row.rowKey, folderKey = row.folderKey }
+    end
+    if anchor and anchor.folderKey == row.folderKey then
+        return anchor
+    end
+    return { rowKey = nil, folderKey = row.folderKey }
+end
+
+---Where the cursor goes in a rebuilt list: on the row it was on, else on the first row of the
+---folder it was in, else nil (the caller's default).
+---@param rows { rowKey: any, folderKey: any }[] one per row: what the row is, and the folder it is or is in
+---@param anchor { rowKey: any, folderKey: any }|nil what the cursor was on
+---@return integer|nil index
+function BrowseUtils.AnchorIndex(rows, anchor)
+    if not anchor then
+        return nil
+    end
+    local folderIndex = nil
+    for index, row in ipairs(rows) do
+        if anchor.rowKey ~= nil and row.rowKey == anchor.rowKey then
+            return index
+        end
+        if not folderIndex and anchor.folderKey ~= nil and row.folderKey == anchor.folderKey then
+            folderIndex = index
+        end
+    end
+    return folderIndex
 end
 
 ---@param items FurnishingCatalogItem[]
@@ -202,8 +271,32 @@ function BrowseUtils.WebUrl(name)
     return "https://eso-hub.com/en/furniture/" .. slug
 end
 
+---A chat message with a link added: after what is already written, a space between. A link the
+---message already holds is not added twice.
+---@param existing string|nil what the message box holds
+---@param link string
+---@param maxLength integer the most the message box takes
+---@return string|nil text the message to put in the box; nil when the link does not fit
+function BrowseUtils.ChatText(existing, link, maxLength)
+    existing = existing or ""
+    if existing:find(link, 1, true) then
+        return existing
+    end
+    local text = link
+    if existing ~= "" then
+        text = existing .. (existing:find("%s$") and "" or " ") .. link
+    end
+    if #text > maxLength then
+        return nil
+    end
+    return text
+end
+
 ---By name, any case; the ones the game gave no name (unnamed) after the named; ties by id.
-local function CompareByName(a, b)
+---@param a { id: any, name: string, unnamed: boolean|nil }
+---@param b { id: any, name: string, unnamed: boolean|nil }
+---@return boolean
+function BrowseUtils.CompareByName(a, b)
     if (a.unnamed == true) ~= (b.unnamed == true) then
         return b.unnamed == true
     end
@@ -219,9 +312,9 @@ end
 ---@return FurnishingCatalogCategory[] categories the same table
 function BrowseUtils.SortCategories(categories)
     for _, category in ipairs(categories) do
-        table.sort(category.subcategories, CompareByName)
+        table.sort(category.subcategories, BrowseUtils.CompareByName)
     end
-    table.sort(categories, CompareByName)
+    table.sort(categories, BrowseUtils.CompareByName)
     return categories
 end
 
@@ -230,15 +323,6 @@ end
 ---@return string
 function BrowseUtils.CountLabel(name, count)
     return string.format("%s (%d)", tostring(name), count)
-end
-
----Key under which a subcategory's list position is remembered for a group mode.
----@param categoryId integer
----@param subcategoryId integer
----@param mode string
----@return string
-function BrowseUtils.PositionKey(categoryId, subcategoryId, mode)
-    return tostring(categoryId) .. ":" .. tostring(subcategoryId) .. ":" .. tostring(mode)
 end
 
 FC.BrowseUtils = BrowseUtils

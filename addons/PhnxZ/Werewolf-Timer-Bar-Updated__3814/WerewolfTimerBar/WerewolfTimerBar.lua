@@ -4,7 +4,7 @@
 WerewolfTimerBar = {}
 local WWTB = WerewolfTimerBar
 WWTB.Name = "WerewolfTimerBar"
-WWTB.Version = 3.10
+WWTB.Version = 3.11
 WWTB.Default = 
 	{
 		BarOffsetX = 0,
@@ -27,12 +27,23 @@ WWTB.Default =
 		HideCSA = true,
 		UltimateEnable = true,
 		BlockInCombatOnly = true,
+		HoldBypassEnabled = false,
+		HoldBypassTime = 1000,
+		HoldBarColor = {1, 0.84, 0, 0.9},
 		ShowHeader = true,
 		ShowHeaderLabel = true,
 		ShowBarLabels = false,
 	}
 local LAM2 = LibAddonMenu2
 local flag = true -- Flip-flop for prehook control --
+-- Hold-to-bypass state --
+local ULTIMATE_SLOT = 8 -- Action bar slot of the ultimate --
+local holdToken = 0 -- Incremented to invalidate any pending hold timer --
+local holdStartMs = 0 -- Game time (ms) when the current hold started --
+local passUntil = 0 -- Game time (ms) until which checks are let through after a completed hold --
+local pressTime = nil -- Game time (ms) the current ultimate press started, nil when not held --
+local releaseUntil = 0 -- Short window after a release, so the release's own check is not treated as a press --
+local messageShown = false -- True once the blocked message has been shown for the current press --
 local text1, text2 -- Ultimate display message --
 local BarMax, FuryBarMax = 0, 0 -- Max values for ult & Fury --
 local HeaderText = "Werewolf Form"
@@ -48,7 +59,7 @@ local POWERTYPE_WEREWOLF = POWERTYPE_WEREWOLF
 local COMBAT_MECHANIC_FLAGS_ULTIMATE = COMBAT_MECHANIC_FLAGS_ULTIMATE
 -- Cached references to the XML controls, filled once by UpdateXMLReferences --
 local window, backdrop, headerLabel, ultimateButton
-local statusBar, statusLabel, furyBar, furyLabel
+local statusBar, statusLabel, furyBar, furyLabel, holdBar
 -- Create string for the key bind --
 ZO_CreateStringId("SI_BINDING_NAME_BAR_ULTIMATELOCK_TOGGLE", "Toggle Lock/Unlock Ultimate")
 
@@ -73,6 +84,7 @@ local function UpdateXMLReferences()
 	statusLabel = statusLabel or WerewolfTimerBarWindow_StatusBarLabel
 	furyBar = furyBar or WerewolfTimerBarWindow_FuryBar
 	furyLabel = furyLabel or WerewolfTimerBarWindow_FuryBarLabel
+	holdBar = holdBar or WerewolfTimerBarWindow_HoldBar
 end
 
 -------------------------------------------------------------------------------------------------
@@ -145,6 +157,28 @@ function WWTB.SetBarSize(Width, Height)
 	-- Set backdrop dimensions --
 	backdrop:SetDimensions(WWTB.SV.BarWidth+10, Height+10)
 	window:SetDimensions(WWTB.SV.BarWidth+10, Height+10)
+	-- Keep the hold progress bar sitting on the upper active bar --
+	WWTB.UpdateHoldBarLayout()
+end
+
+-- Hold progress bar: half the bar height, drawn over the top of the upper active bar --
+function WWTB.UpdateHoldBarLayout()
+	local target
+	if WWTB.SV.ShowTimer then
+		target = statusBar
+	elseif WWTB.SV.ShowFury then
+		target = furyBar
+	end
+	holdBar:ClearAnchors()
+	if target then
+		holdBar:SetAnchor(TOPLEFT, target, TOPLEFT, 0, 0)
+	elseif WWTB.SV.ShowHeader then
+		-- No bars shown, sit where the first bar would be --
+		holdBar:SetAnchor(TOPLEFT, ultimateButton, BOTTOMLEFT, 0, 2)
+	else
+		holdBar:SetAnchor(TOPLEFT, backdrop, TOPLEFT, 5, 5)
+	end
+	holdBar:SetDimensions(WWTB.SV.BarWidth, zo_max(2, zo_floor(WWTB.SV.BarHeight / 2)))
 end
 
 -------------------------------------------------------------------------------------------------
@@ -272,6 +306,9 @@ function WWTB.SetupUltimateBlockText()
 		else
 			text2 = "Click the lock in the top left of the addon to change or set a keybind to toggle this."
 		end
+		if WWTB.SV.HoldBypassEnabled then
+			text2 = text2 .. string.format(" Or hold the ultimate button for %.1fs to bypass the lock.", WWTB.SV.HoldBypassTime / 1000)
+		end
 	else
 		text1 = "Werewolf Timer Bar: Ultimate UNBLOCKED!"
 		if keyBind then
@@ -280,6 +317,40 @@ function WWTB.SetupUltimateBlockText()
 			text2 = "Click the unlock in the top left of the addon to change or set a keybind to toggle this."
 		end
 	end
+end
+
+-- Hold-to-bypass --
+-- The ultimate is timed from its first blocked check. Once the key has been held for the hold time, --
+-- the check made when the key is released is let through, which casts the ultimate on release. --
+local function StopHoldBar()
+	EVENT_MANAGER:UnregisterForUpdate(WWTB.Name .. "_HoldBar")
+	holdBar:SetHidden(true)
+end
+
+local function UpdateHoldBar()
+	holdBar:SetValue(zo_min(GetGameTimeMilliseconds() - holdStartMs, WWTB.SV.HoldBypassTime))
+end
+
+local function StartHold()
+	holdToken = holdToken + 1
+	local token = holdToken
+	holdBar:SetColor(unpack(WWTB.SV.HoldBarColor))
+	holdBar:SetMinMax(0, WWTB.SV.HoldBypassTime)
+	holdBar:SetValue(0)
+	holdBar:SetHidden(false)
+	holdStartMs = GetGameTimeMilliseconds()
+	EVENT_MANAGER:RegisterForUpdate(WWTB.Name .. "_HoldBar", 0, UpdateHoldBar)
+	-- Sound when the hold time is reached and the key is still held, so you know it is ready to release --
+	zo_callLater(function()
+		if token == holdToken and SOUNDS and SOUNDS.ABILITY_ULTIMATE_READY then
+			PlaySound(SOUNDS.ABILITY_ULTIMATE_READY)
+		end
+	end, WWTB.SV.HoldBypassTime)
+end
+
+local function CancelHold()
+	holdToken = holdToken + 1
+	StopHoldBar()
 end
 
 function WWTB.SetupUltimateBlock()
@@ -294,13 +365,36 @@ function WWTB.SetupUltimateBlock()
 				local tb = debug.traceback()
 				local slotNum = tonumber(tb:match('keybind = "ACTION_BUTTON_(%d)')) or tonumber(tb:match('keybind = "GAMEPAD_ACTION_BUTTON_(%d)'))
 				-- Ultimate button pressed --
-				if slotNum == 8 then
+				if slotNum == ULTIMATE_SLOT then
 					-- Get ability ID --
-					local ultAbilityId = GetSlotBoundId(8)
+					local ultAbilityId = GetSlotBoundId(ULTIMATE_SLOT)
 					-- Is ability werewolf ultimate or morph? --
 					if ultAbilityId == 32455 or ultAbilityId == 39075 or ultAbilityId == 39076 then
-						-- Just one message broadcast since ZO_ActionBar_CanUseActionSlots is called twice for each ability cast --
-						if flag and not WWTB.SV.HideCSA then
+						if WWTB.SV.HoldBypassEnabled then
+							local now = GetGameTimeMilliseconds()
+							-- Checks already let through --
+							if now < passUntil then return end
+							-- Keep checks made just after a release blocked, and do not count them as a new press --
+							if now < releaseUntil then return true end
+							-- Held for the full hold time: let this check through so the ultimate casts --
+							if pressTime and now - pressTime >= WWTB.SV.HoldBypassTime then
+								passUntil = now + 300
+								return
+							end
+							-- First blocked check of a press: start timing the hold --
+							if not pressTime then
+								pressTime = now
+								messageShown = false
+								StartHold()
+							end
+						end
+						-- With hold bypass on, one message per press. Otherwise once per two calls as before --
+						local showMessage = flag
+						if WWTB.SV.HoldBypassEnabled then
+							showMessage = not messageShown
+							messageShown = true
+						end
+						if showMessage and not WWTB.SV.HideCSA then
 							WWTB.SetupUltimateBlockText()
 							local msg = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT, nil)
 							msg:SetText(text1, text2)
@@ -315,6 +409,14 @@ function WWTB.SetupUltimateBlock()
 				end
 			end
 		end
+	end)
+
+	-- Releasing the ultimate key ends the hold and hides the bar --
+	ZO_PreHook("ZO_ActionBar_OnActionButtonUp", function(slotNum)
+		if slotNum ~= ULTIMATE_SLOT then return end
+		releaseUntil = GetGameTimeMilliseconds() + 80
+		pressTime = nil
+		CancelHold()
 	end)
 end
 
@@ -575,6 +677,32 @@ function WWTB.SetupSettingsWindow()
 						WWTB.SetupUIElements()
 					end
 				},
+				{
+					type = "checkbox",
+					name = "Hold To Bypass Ultimate Lock",
+					tooltip = "While the ultimate is locked, hold the ultimate button for the set time to cast it anyway",
+					width = "half",
+					default = WWTB.Default.HoldBypassEnabled,
+					getFunc = function() return WWTB.SV.HoldBypassEnabled end,
+					setFunc = function(value)
+						WWTB.SV.HoldBypassEnabled = value
+					end
+				},
+				{
+					type = "slider",
+					name = "Hold Time (ms)",
+					tooltip = "How long the ultimate button must be held to bypass the lock",
+					width = "half",
+					min = 250,
+					max = 3000,
+					step = 50,
+					default = WWTB.Default.HoldBypassTime,
+					disabled = function() return not WWTB.SV.HoldBypassEnabled end,
+					getFunc = function() return WWTB.SV.HoldBypassTime end,
+					setFunc = function(value)
+						WWTB.SV.HoldBypassTime = value
+					end
+				},
 			},
 		},
 		-- Bar settings --
@@ -701,6 +829,18 @@ function WWTB.SetupSettingsWindow()
 					setFunc = function(r,g,b,a) 
 						WWTB.SV.FuryBarMaxColor = {r, g, b, a}
 						WWTB.SetupUIElements()
+					end,
+				},
+				{
+					type = "colorpicker",
+					name = "Hold Bypass Bar Color",
+					width = "half",
+					tooltip = "Changes the color of the progress bar shown while holding the ultimate button to bypass the lock",
+					default = ZO_ColorDef:New(unpack(WWTB.Default.HoldBarColor)),
+					disabled = function() return not WWTB.SV.HoldBypassEnabled end,
+					getFunc = function() return unpack(WWTB.SV.HoldBarColor) end,
+					setFunc = function(r,g,b,a)
+						WWTB.SV.HoldBarColor = {r, g, b, a}
 					end,
 				},
 				{

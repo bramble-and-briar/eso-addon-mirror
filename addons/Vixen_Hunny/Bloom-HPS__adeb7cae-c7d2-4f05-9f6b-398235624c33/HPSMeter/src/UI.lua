@@ -335,7 +335,7 @@ function UI.BuildText(stats)
         lines[#lines + 1] = flower .. Colorize(TITLE_COLOR, " Bloom HPS ") .. flower
     end
 
-    Add("heart_cute", saved.labelColor, "HPS", Fmt(stats.hps), "HPM", Fmt(stats.hpm))
+    Add("heart_cute", saved.labelColor, "HPS", Fmt(stats.hps), "HPM", Fmt(stats.hpm), "HPS /w Overheal", Fmt(stats.rawHps))
     if saved.showSplits then
         Add("sparkle", saved.labelColor,
             "Personal", Fmt(stats.healPersonal), "Group", Fmt(stats.healGroup))
@@ -353,7 +353,7 @@ function UI.BuildText(stats)
 
     if saved.showMitigation then
         Add("flower_mint", saved.mitigationColor,
-            "Mitigated", Fmt(stats.mitigated), "MPS", Fmt(stats.mps),
+            "Mitigated", Fmt(stats.mitigated), "MPM", Fmt(stats.mpm),
             "", format("%.1f%%", stats.mitigatedPct))
     end
 

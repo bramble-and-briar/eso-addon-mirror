@@ -1,4 +1,8 @@
-SimpleGroupDPS 2.0.3
+SimpleGroupDPS 2.0.8
+
+Einzeltreffer zur Zeitdiagnose: /sgdtreffer 1 (8 Zeilen pro Seite), /sgdtreffer 2 usw.; /sgdtreffer ende zeigt die letzte Seite. /sgdtreffer vorher 1 oder vorher ende zeigt den vorigen aufgenommenen Kampf. Je Kampf maximal 2000 Treffer mit Empfangszeit, Abstand zum Vorgaenger, Faehigkeitsname/ID, Schaden, Schildschaden, Krit/DoT/Pet und Ziel; Anzahl und Schadenssumme laufen ueber das Limit hinaus weiter. Die zwei letzten Aufnahmen bleiben nur im Sitzungsspeicher. Keine gesonderte Erkennung des Mechanikblick-Bonus und keine Aenderung der Berechnung.
+
+Optionale Zeitdiagnose: vor einem Test /sgdzeit an, nach dem Kampf /sgdzeit, abschalten mit /sgdzeit aus. Erfasst eigene ausgehende Schadenstermine, bis zu 8 getroffene Ziele mit Todesmeldung und toedlichem Treffer getrennt, native DPS-Grenzen, Kampfende und Messabschluss. Nur lokale Empfangszeiten, keine Serverzeiten; fehlende Todesmeldungen werden nicht geschaetzt. Nur Sitzungsspeicher, kein Versand/Speichern. DPS und HUD bleiben unveraendert.
 
 Eigene Schadens-, Heilungs-, Gesamt-DPS- und Boss-DPS-Erfassung durch eingebettetes LibCombat 89 direkt aus Solinurs Original-Repository, Stand 80817e6, mit beibehaltenem Fix fuer eigene eroeffnende DoTs. Eigenstaendige Kennung; keine gemeinsame Bibliotheksinstanz und keine Abhaengigkeit von CMX2. Lizenz und Aenderungsbeschreibung liegen unter libs/Combat.
 
@@ -24,3 +28,7 @@ Optionale LibCombat-Analyse (standardmaessig aus, nur fuer diese Sitzung):
 Umbenennung aus SimpleGroupDPS2 1.9.37: identische Funktionen. Der bisherige private SavedVariables-Name bleibt kompatibel. Durch den geaenderten Add-on-Namen kann ESO jedoch eine neue Einstellungsdatei bzw. Zuordnung anlegen; eine automatische Uebernahme alter Einstellungen ist nicht garantiert. HUD-Positionen gegebenenfalls einmal neu setzen. Primaere Befehle: /sgdstatus, /sgdanalyse, /sgdbuffs. Die alten /sgd2-Befehle bleiben als Aliase erhalten. Nur eine Version installieren; ein vorhandenes altes SimpleGroupDPS wird durch diese Version ersetzt.
 
 2.0.3: Nach Solo-Tod wird die Wiederbelebung sowohl ueber Ereignisse als auch bei jeder normalen HUD-Aktualisierung anhand des tatsaechlichen Spielerzustands erkannt. Ein fehlendes oder vorzeitig gesendetes PLAYER_ALIVE blockiert die Messung nicht mehr. Doppelte Lebendmeldungen setzen einen neuen Kampf nicht zurueck. /sgdstatus zeigt den Pausenzustand.
+
+2.0.5: Gruppenversand wartet nicht mehr auf zuvor empfangene DPS/HPS-Pakete. Dadurch koennen zwei SimpleGroupDPS-Nutzer ohne BattleScrolls selbststaendig den Austausch starten. Versand erfolgt weiterhin nur in einer Gruppe bei aktiviertem Teilen und freigegebenem LibGroupBroadcast-Protokoll. Ein lokal aktives BattleScrolls behaelt seinen eigenen Sender. Messung, HUD und Timer bleiben unveraendert. Alle teilnehmenden SimpleGroupDPS-Nutzer sollten aktualisieren.
+
+2.0.6: Ein Treffer auf Wildtiere ohne anschliessenden Kampfzustand kann die Messung nicht mehr endlos aktiv halten. Nach LibCombats Ereigniswartezeit wird der native Kampfabschluss angestossen, wenn weder Spieler noch Gruppenmitglieder noch ein erkannter Boss-/Portalkampf aktiv sind. Neue Aktivitaet in der nativen Nachlaufphase hebt diesen vorgemerkten Abschluss wieder auf. DPS-/HPS-Berechnungen bleiben unveraendert.

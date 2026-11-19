@@ -229,6 +229,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Antiquarian's Codex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/Antiquarian-s-Codex__09fedb91-c1d9-4f3b-8882-b8c9e36bda36) | xbutch | Console | — |
 | [Antiquities Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Antiquities-Tracker__c26064b6-d685-492c-b750-3bc59f315109) | Eldibabalo | Console | — |
 | [AntiquitiesTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aronsini/AntiquitiesTracker__4172) | aronsini | PC / Mac | 1.0 |
+| [Antiquity Atlas](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TjeEmpejoj/Antiquity-Atlas__5066) | TjeEmpejoj | PC / Mac | 0.13.3 |
 | [Antiquity Compare Keybind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mandemikc/Antiquity-Compare-Keybind__4667) | Mandemikc | PC / Mac | 1.2.2 |
 | [Antiquity Deal Intel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thevoidcousine/Antiquity-Deal-Intel__4401) | thevoidcousine | PC / Mac | 2.0.0 |
 | [Antiquity Digging Turn Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Antiquity-Digging-Turn-Counter__3006) | kawamonkey | PC / Mac | 1.0 |

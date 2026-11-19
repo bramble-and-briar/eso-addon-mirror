@@ -30,10 +30,13 @@ PBS_QUICK_CHAT = {
 	baseTitle = "PB’s Quick Chat",
 	chatName = "PB’s Quick Chat",
 	author = "PinkBanther",
-	version = "0.2.0",
+	version = "0.3.0",
 	slash = "/pbquickchat",
 	shortSlash = "/pbqc",
-	NUM_SLOTS = 8, -- the size of one wheel page (ACTION_BAR_UTILITY_BAR_SIZE)
+	PAGE_SIZE = 8, -- what the client builds for one wheel page (ACTION_BAR_UTILITY_BAR_SIZE); the other messages are added to it
+	MIN_SLOTS = 8, -- how few messages the player can ask for: what the client's page holds
+	MAX_SLOTS = 24, -- and how many (all of them are kept in the saved file, the count says how many are used)
+	TOGGLABLE_LIMIT = 10, -- the client has hotkeys for ten wheel entries only; with "toggleable wheels" on the page stops there
 	MAX_NAME_CHARS = 12, -- what the wheel's centre label has room for
 	MAX_TEXT_CHARS = 120, -- the settings text box's limit ...
 	MAX_TEXT_BYTES = 350, -- ... and the chat box's (351), counted in bytes so either reading of "characters" holds
@@ -44,6 +47,7 @@ PBS_QUICK_CHAT = {
 	ICON = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_textChat.dds",
 	defaults = {
 		wheel = true, -- the extra page on the utility wheel
+		slotCount = 8, -- how many messages are in use (MIN_SLOTS .. MAX_SLOTS): that many entries on the wheel page
 		wheelHead = false, -- the page is the first one of the wheel, not the one after Emotes (read at install time)
 		wheelFirst = false, -- open the wheel on that page
 		coop = true, -- ask PB's ChatAssistant (when it is there) to let go of the Enter key while the box opens
@@ -373,7 +377,8 @@ function A:Sanitize()
 			sv[key] = default
 		end
 	end
-	sv.slot = Clamp(sv.slot, 1, self.NUM_SLOTS)
+	sv.slotCount = Clamp(sv.slotCount, self.MIN_SLOTS, self.MAX_SLOTS)
+	sv.slot = Clamp(sv.slot, 1, sv.slotCount)
 	sv.delayMs = Clamp(sv.delayMs, self.MIN_DELAY_MS, self.MAX_DELAY_MS)
 	if type(sv.probe) ~= "table" then
 		sv.probe = {}
@@ -409,7 +414,7 @@ function A:Sanitize()
 	if type(sv.slots) ~= "table" then
 		sv.slots = {}
 	end
-	for i = 1, self.NUM_SLOTS do
+	for i = 1, self.MAX_SLOTS do
 		local slot = sv.slots[i]
 		if type(slot) ~= "table" then
 			slot = {}
@@ -444,10 +449,35 @@ function A:Set(key, value)
 	end
 	if key == "delayMs" then
 		value = Clamp(value, self.MIN_DELAY_MS, self.MAX_DELAY_MS)
+	elseif key == "slotCount" then
+		value = Clamp(value, self.MIN_SLOTS, self.MAX_SLOTS)
 	elseif key == "slot" then
-		value = Clamp(value, 1, self.NUM_SLOTS)
+		value = Clamp(value, 1, self:SlotCount())
 	end
 	self.sv[key] = value
+	if key == "slotCount" then
+		-- the slot the settings panel works on must still be one of them
+		self.sv.slot = Clamp(self.sv.slot, 1, value)
+	end
+end
+
+-- How many messages are in use.
+function A:SlotCount()
+	return Clamp(self.sv and self.sv.slotCount, self.MIN_SLOTS, self.MAX_SLOTS)
+end
+
+-- How many entries the wheel page gets: the messages in use, but no more than the client has hotkeys for while it
+-- shows hotkeys on the wheel (the accessibility setting "toggleable wheels"; ZO_RadialMenu asserts the ordinal is
+-- at most 10 when it lays the keybinds out). Second result: true when the page was cut for that reason.
+function A:WheelEntryCount()
+	local count = self:SlotCount()
+	if count > self.TOGGLABLE_LIMIT and type(ZO_AreTogglableWheelsEnabled) == "function" then
+		local ok, on = pcall(ZO_AreTogglableWheelsEnabled)
+		if ok and on == true then
+			return self.TOGGLABLE_LIMIT, true
+		end
+	end
+	return count, false
 end
 
 -- ---------------------------------------------------------------------------------------

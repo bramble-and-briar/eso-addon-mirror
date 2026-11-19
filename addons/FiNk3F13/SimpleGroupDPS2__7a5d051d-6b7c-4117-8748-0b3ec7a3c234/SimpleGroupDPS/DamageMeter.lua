@@ -23,6 +23,7 @@ local function startFight(fight, timeMS)
     lastDamageMS = nil
     damageEvents, personalEvents, otherEvents = 0, 0, 0
     last = {total = 0, dps = 0, durationMS = 0, measurementModel = MODEL}
+    if SimpleGroupDPS_TimingDiagnostics then SimpleGroupDPS_TimingDiagnostics:BeginFight(fight) end
     if meter.onStarted then meter.onStarted() end
     return true
 end
@@ -77,7 +78,10 @@ end
 local function sync()
     if syncing or finishing or suspended then return end
     syncing = true
-    local ok, fight = pcall(LC.RefreshMeterFight, LC)
+    local ok, fight = pcall(function()
+        if active and not stopping then LC:FinishUnenteredMeterFight(lastDamageMS) end
+        return LC:RefreshMeterFight()
+    end)
     syncing = false
     if not ok then error(fight) end
     readOffsets(fight)
@@ -85,6 +89,7 @@ end
 local function finish()
     if not active or finishing then return end
     finishing = true
+    if SimpleGroupDPS_TimingDiagnostics then SimpleGroupDPS_TimingDiagnostics:FinishFight(currentFight) end
     if SimpleGroupDPS_CombatAnalysis then
         SimpleGroupDPS_CombatAnalysis:FinishFight(currentFight, now(), soloDead() and "Solo-Tod" or "Kampfende")
     end
@@ -176,12 +181,15 @@ function meter:Initialize(saved)
             startFight(LC:GetMeterFight(), timeMS)
         end
     end
-    local function damage(event, timeMS)
+    local function damage(event, timeMS, result, sourceId, targetId, abilityId, value, _, overflow)
         if suspended or finishing then return end
         if soloDead() then self:CheckSoloDeath(); return end
         if not startFight(LC:GetMeterFight(), timeMS) then return end
         lastDamageMS = timeMS
         damageEvents = damageEvents + 1
+        if event == SGD_LIBCOMBAT_EVENT_DAMAGE_OUT and SimpleGroupDPS_TimingDiagnostics then
+            SimpleGroupDPS_TimingDiagnostics:ObserveDamage(currentFight, timeMS, targetId, result, sourceId, abilityId, value, overflow)
+        end
         if event == SGD_LIBCOMBAT_EVENT_DAMAGE_OUT or event == SGD_LIBCOMBAT_EVENT_DAMAGE_SELF then personalEvents = personalEvents + 1
         else otherEvents = otherEvents + 1 end
     end

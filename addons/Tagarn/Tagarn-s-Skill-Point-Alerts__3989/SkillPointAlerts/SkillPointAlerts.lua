@@ -28,8 +28,8 @@ SPA.name = "SkillPointAlerts"
 SPA.simpleName = GetString(SPA_APP_NAME)
 SPA.displayName = GetString(SPA_APP_NAME_LONG)
 SPA.author = GetString(SPA_TAGARN_GREEN)
-SPA.version = "1.29"
-SPA.versionNumeric = 129 -- for checking whether to show the "new feature" dialog or not
+SPA.version = "1.30"
+SPA.versionNumeric = 130 -- for checking whether to show the "new feature" dialog or not
 SPA.buildNumber = 1 -- for when the testing version box is showing
 
 SPA.debugOptions = false -- DEBUG switch to false before release

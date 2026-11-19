@@ -1,5 +1,10 @@
 local A = OneFrame
 local P = {}
+-- Preview values are scoped to their own frames; real unit APIs stay untouched.
+function P:Unit(frame, key, getter, ...)
+    if frame.preview then return frame.preview[key] end
+    return getter(frame.unitTag, ...)
+end
 A.PlayerInfo = P
 function P:Alpha(frame)
     local bar = frame.healthBar.barControls[1]
@@ -13,14 +18,14 @@ function P:Name(frame, data)
     if width ~= data.nameWidth then data.nativeNameWidth = width end
     if text ~= data.decoratedName then data.nativeName = text end
     if font ~= data.decoratedFont then data.nativeFont = font end
-    local name = data.nativeName or text
-    local decorate = A.active and DoesUnitExist(frame.unitTag) and IsUnitOnline(frame.unitTag)
+    local name = frame.preview and frame.preview.name or data.nativeName or text
+    local decorate = A.active and self:Unit(frame, "exists", DoesUnitExist) and self:Unit(frame, "online", IsUnitOnline)
     if decorate then
-        if A.sv.account then name = GetUnitDisplayName(frame.unitTag) end
+        if A.sv.account then name = self:Unit(frame, "account", GetUnitDisplayName) end
         if frame.style == "ZO_RaidUnitFrame" then
             local prefix = name:sub(1, 1) == "@" and "@" or ""
             local characters = {}
-            local limit = IsUnitGroupLeader(frame.unitTag) and 5 or 7
+            local limit = self:Unit(frame, "leader", IsUnitGroupLeader) and 5 or 7
             for character in name:sub(#prefix + 1):gmatch("[%z\1-\127\194-\244][\128-\191]*") do
                 characters[#characters + 1] = character
                 if #characters == limit then break end
@@ -28,7 +33,7 @@ function P:Name(frame, data)
             name = prefix .. table.concat(characters)
         end
         if A.sv.class then
-            local icon = ZO_GetClassIcon(GetUnitClassId(frame.unitTag))
+            local icon = ZO_GetClassIcon(self:Unit(frame, "class", GetUnitClassId))
             if icon then name = zo_iconFormat(icon, 16, 16) .. " " .. name end
         end
     end
@@ -95,10 +100,10 @@ function P:Layout(frame, data)
         caption:ClearAnchors()
         caption:SetFont(raid and "$(MEDIUM_FONT)|9|soft-shadow-thin" or "$(MEDIUM_FONT)|10|soft-shadow-thin")
         caption:SetDimensions(raid and 21 or 27, caption:GetFontHeight() + 2)
-        caption:SetAnchor(raid and BOTTOMLEFT or TOPLEFT, bar, BOTTOMLEFT, raid and 3 or 0, raid and -1 or 6)
+        caption:SetAnchor(raid and BOTTOMLEFT or TOPLEFT, bar, BOTTOMLEFT, raid and 3 or 0, raid and -1 or 8)
         caption:SetAlpha(self:Alpha(frame))
         data.stats:ClearAnchors()
-        data.stats:SetAnchor(raid and BOTTOMLEFT or TOPLEFT, bar, BOTTOMLEFT, raid and 26 or 30, raid and 1 or 2)
+        data.stats:SetAnchor(raid and BOTTOMLEFT or TOPLEFT, bar, BOTTOMLEFT, raid and 26 or 30, raid and 1 or 4)
     end
     if data.health then
         local health = data.health
@@ -106,20 +111,20 @@ function P:Layout(frame, data)
         health:SetFont("$(BOLD_FONT)|14|soft-shadow-thin")
         health:SetDimensions(48, health:GetFontHeight() + 2)
         health:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        health:SetAnchor(raid and BOTTOMRIGHT or TOPRIGHT, bar, BOTTOMRIGHT, -7, raid and 1 or 2)
+        health:SetAnchor(raid and BOTTOMRIGHT or TOPRIGHT, bar, BOTTOMRIGHT, -7, raid and 1 or 4)
     end
 end
 function P:CanShow(frame)
-    return A.active and DoesUnitExist(frame.unitTag) and IsUnitOnline(frame.unitTag)
+    return A.active and self:Unit(frame, "exists", DoesUnitExist) and self:Unit(frame, "online", IsUnitOnline)
 
 end
 function P:Update(frame, data)
     self:Layout(frame, data)
-    local tag, pieces = frame.unitTag, {}
-    if IsUnitChampion(tag) then
-        if A.sv.cp then pieces[#pieces + 1] = tostring(GetUnitChampionPoints(tag)) end
+    local pieces = {}
+    if self:Unit(frame, "champion", IsUnitChampion) then
+        if A.sv.cp then pieces[#pieces + 1] = tostring(self:Unit(frame, "cp", GetUnitChampionPoints)) end
     elseif A.sv.level then
-        pieces[#pieces + 1] = tostring(GetUnitLevel(tag))
+        pieces[#pieces + 1] = tostring(self:Unit(frame, "level", GetUnitLevel))
     end
     -- Class/account belong to the native name line; this row contains level only.
     data.info:SetText(table.concat(pieces, "  "))
@@ -130,19 +135,19 @@ function P:Update(frame, data)
     self:Stats(frame, data)
 end
 function P:Format(value)
-    if value == nil then return GetString(ONEFRAME_UNAVAILABLE) end
-    if value >= 1000000 then return string.format(GetString(ONEFRAME_MILLION), value / 1000000) end
-    if value >= 1000 then return string.format(GetString(ONEFRAME_KILO), value / 1000) end
+    if value == nil then return GetString(SI_ONEFRAME_UNAVAILABLE) end
+    if value >= 1000000 then return string.format(GetString(SI_ONEFRAME_MILLION), value / 1000000) end
+    if value >= 1000 then return string.format(GetString(SI_ONEFRAME_KILO), value / 1000) end
     return tostring(math.floor(value + 0.5))
 end
 function P:Stats(frame, data)
-    local identity = DoesUnitExist(frame.unitTag)
-        and (GetUnitDisplayName(frame.unitTag) .. ":" .. GetUnitName(frame.unitTag)) or nil
+    local identity = self:Unit(frame, "exists", DoesUnitExist)
+        and (self:Unit(frame, "account", GetUnitDisplayName) .. ":" .. self:Unit(frame, "name", GetUnitName)) or nil
     if data.statsIdentity ~= identity then
         data.statsIdentity, data.lastRates = identity, {}
     end
     data.lastRates = data.lastRates or {}
-    if not DoesUnitExist(frame.unitTag) or not IsUnitOnline(frame.unitTag) then
+    if not self:Unit(frame, "exists", DoesUnitExist) or not self:Unit(frame, "online", IsUnitOnline) then
         data.lastRates = {}
         if data.ultimate then data.ultimate.lastPoints = nil end
         self:Name(frame, data)
@@ -153,16 +158,18 @@ function P:Stats(frame, data)
         A.UltimateUI:Hide(data.ultimate)
         return
     end
-    local dps, hps = A.CombatStats:Values(frame.unitTag)
+    local dps, hps
+    if frame.preview then dps, hps = frame.preview.dps, frame.preview.hps
+    else dps, hps = A.CombatStats:Values(frame.unitTag) end
     -- Presentation retains only values previously validated for this occupant.
     if not A.active or not A.sv.hodor then data.lastRates = {} end
     if dps ~= nil then data.lastRates.dps = dps else dps = data.lastRates.dps end
     if hps ~= nil then data.lastRates.hps = hps else hps = data.lastRates.hps end
     local caption, value
-    local role = GetGroupMemberSelectedRole(frame.unitTag)
+    local role = self:Unit(frame, "role", GetGroupMemberSelectedRole)
     local selected = A:RoleStatistic(role)
-    if selected == "dps" then caption, value = GetString(ONEFRAME_DPS_LABEL), dps end
-    if selected == "hps" then caption, value = GetString(ONEFRAME_HPS_LABEL), hps end
+    if selected == "dps" then caption, value = GetString(SI_ONEFRAME_DPS_LABEL), dps end
+    if selected == "hps" then caption, value = GetString(SI_ONEFRAME_HPS_LABEL), hps end
     local hidden = not self:CanShow(frame) or not caption or value == nil
     data.stats:SetText(caption and self:Format(value) or "")
     data.stats:SetHidden(hidden)
@@ -176,9 +183,9 @@ function P:Stats(frame, data)
         if data[key] then data[key]:SetAlpha(alpha) end
     end
     if data.health then
-        local hp = GetUnitPower(frame.unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
-        data.health:SetText(type(hp) == "number" and string.format(GetString(ONEFRAME_HEALTH_THOUSANDS), hp / 1000) or "")
-        data.health:SetHidden(not self:CanShow(frame) or IsUnitDead(frame.unitTag) or type(hp) ~= "number")
+        local hp = self:Unit(frame, "health", GetUnitPower, COMBAT_MECHANIC_FLAGS_HEALTH)
+        data.health:SetText(type(hp) == "number" and string.format(GetString(SI_ONEFRAME_HEALTH_THOUSANDS), hp / 1000) or "")
+        data.health:SetHidden(not self:CanShow(frame) or self:Unit(frame, "dead", IsUnitDead) or type(hp) ~= "number")
         local raid = frame.style == "ZO_RaidUnitFrame"
         local width = frame.healthBar.barControls[1]:GetWidth()
         -- Reserve only the rendered health text, not a fixed 48px column.

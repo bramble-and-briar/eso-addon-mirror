@@ -18,7 +18,7 @@
     "LawfulNecromancyReborn"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5064/",
-  "fingerprint": "1a2f5236ec1fbcf78fd47f77eb9c44d6d54150026c6038d80f7275ea696b668e",
+  "fingerprint": "9205af126fa2dbf4613c3d99ca41e54936e702fa02a1e7de07fa23d0c48c0c26",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18538.png",
     "https://cdn-eso.mmoui.com/preview/pvw18539.png"
@@ -29,11 +29,11 @@
   "source_id": "5064",
   "source_url": "https://www.esoui.com/downloads/info5064-LawfulNecromancyReborn.html",
   "stats": {
-    "downloads": 2,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 9,
+    "favorites": 1,
+    "monthly_downloads": 5
   },
   "title": "Lawful Necromancy Reborn",
-  "updated_at": 1794992886000,
-  "version": "1.1"
+  "updated_at": 1795067832000,
+  "version": "1.1.1"
 }

@@ -1,6 +1,6 @@
 local L = SimpleGroupDPS_Translate or function(text) return text end
 local ADDON_NAME = "SimpleGroupDPS"
-local ADDON_VERSION = "2.0.2"
+local ADDON_VERSION = "2.0.6"
 local UPDATE_INTERVAL_MS = 300
 local wm = WINDOW_MANAGER
 local meter, panel = SimpleGroupDPS_DamageMeter, SimpleGroupDPS_DPSPanel
@@ -356,7 +356,7 @@ local function initSettings()
           end },
         { type = LHAS.ST_SECTION, label = L("Allgemein") },
         { type = LHAS.ST_CHECKBOX, label = "Eigene DPS/HPS teilen",
-          tooltip = "Sendet kompatible Gruppenwerte erst nach Empfang eines passenden Gruppenpakets. Ein lokales BattleScrolls behaelt seinen eigenen Sender.",
+          tooltip = "Sendet eigene DPS/HPS in der Gruppe auch ohne zuvor empfangenes Paket. Ein lokales BattleScrolls behaelt seinen eigenen Sender.",
           getFunction = function() return settings.shareDPS end,
           setFunction = function(value) settings.shareDPS = value end },
         { type = LHAS.ST_DROPDOWN, label = L("Nach Kampfende anzeigen"), items = retentionItems, default = 1,
@@ -451,6 +451,7 @@ local function onAddonLoaded(_, name)
             local function yes(value) return value and L("Ja") or L("Nein") end
             local measurement = meter:GetDiagnostics()
             d("[SimpleGroupDPS] Messgrundlage: eingebettetes LibCombat 89 (eigene Instanz).")
+            d("[SimpleGroupDPS] Messung nach Solo-Tod pausiert: " .. yes(measurement.suspended))
             local tickAge = lastTickAt and string.format("%.1f s", math.max(0, GetGameTimeMilliseconds() - lastTickAt) / 1000) or L("noch keiner")
             local damageAge = measurement.damageAgeMS and string.format(L("vor %.1f s"), measurement.damageAgeMS / 1000) or L("kein Ereignis seit Kampfstart")
             d(string.format(L("[SimpleGroupDPS %s] Messung aktiv: %s | Spieler im Kampf: %s"),
@@ -486,7 +487,7 @@ local function onAddonLoaded(_, name)
             local status = receiver:GetStatus()
             d("[SimpleGroupDPS] Gruppenempfang: DPS " .. yes(status.connected) .. " | HPS " .. yes(status.healingConnected)
                 .. " | Pakete: " .. tostring(status.receivedCount or 0))
-            d("[SimpleGroupDPS] Teilen: " .. yes(settings.shareDPS) .. " | Kompatibler Partner aktiv: " .. yes(status.compatiblePeer)
+            d("[SimpleGroupDPS] Teilen: " .. yes(settings.shareDPS) .. " | Gruppenwerte kuerzlich empfangen: " .. yes(status.compatiblePeer)
                 .. " | Gesendete Pakete: " .. tostring(status.queuedCount or 0))
             d("[SimpleGroupDPS] Kein Messvergleich und kein Zugriff auf externe Kampf-/Timerdaten.")
             if status.error then d("[SimpleGroupDPS] " .. status.error) end

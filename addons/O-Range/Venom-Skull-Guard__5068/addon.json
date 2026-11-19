@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/O-Range/Venom-Skull-Guard__5068",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "O-Range",
+  "canonical_id": "esoui:5068",
+  "category_id": "19",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5068",
+  "deleted": false,
+  "directories": [
+    "VenomSkullGuard"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5068/",
+  "fingerprint": "c2066306e1194c782575d782b17769393d62858c2d742b2d2e6877f0735ea08e",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18558.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5068",
+  "source_url": "https://www.esoui.com/downloads/info5068-VenomSkullGuard.html",
+  "stats": {
+    "downloads": 9,
+    "favorites": 0,
+    "monthly_downloads": 1
+  },
+  "title": "Venom Skull Guard",
+  "updated_at": 1795061629000,
+  "version": "1.5.1"
+}

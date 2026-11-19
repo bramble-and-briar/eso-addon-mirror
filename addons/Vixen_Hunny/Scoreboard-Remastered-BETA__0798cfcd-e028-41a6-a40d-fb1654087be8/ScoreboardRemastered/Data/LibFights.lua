@@ -330,3 +330,4 @@ function LFI:StatusText()
     if self.weStarted then parts[#parts + 1] = "started by us" end
     return "LibFights " .. (Lib().version or "") .. " (" .. table.concat(parts, ", ") .. ")"
 end
+ScoreboardRemastered.Mark("Data/LibFights.lua")

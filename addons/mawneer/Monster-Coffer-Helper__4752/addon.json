@@ -8,6 +8,10 @@
   "category_id": "20",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     }
@@ -18,7 +22,7 @@
     "MonsterCofferHelper"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4752/",
-  "fingerprint": "365cef6236b77357ed859e2e693e81cb535a0008007e87da4830690a77f63d51",
+  "fingerprint": "eb5635b4e989bfded17d935b45f88bf36b8ec2eed486619c1e99e61b688fe4de",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16919.png",
     "https://cdn-eso.mmoui.com/preview/pvw16920.png",
@@ -30,11 +34,11 @@
   "source_id": "4752",
   "source_url": "https://www.esoui.com/downloads/info4752-MonsterCofferHelper.html",
   "stats": {
-    "downloads": 0,
+    "downloads": 90,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 14
   },
   "title": "Monster Coffer Helper",
-  "updated_at": 1785825787000,
-  "version": "1.0"
+  "updated_at": 1795074604000,
+  "version": "1.0.1"
 }

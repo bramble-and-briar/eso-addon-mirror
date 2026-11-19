@@ -1,10 +1,10 @@
 ## Title: OneFrame
 ## Description: Optional enhancements for the vanilla group frames.
 ## Author: oneDOK
-## Version: 26.11.1
+## Version: 26.11.2
 ## APIVersion: 101050 101051
-## DependsOn: LibAddonMenu-2.0
-## OptionalDependsOn: LibGroupCombatStats
+## DependsOn: LibAddonMenu-2.0>=43
+## OptionalDependsOn: LibGroupCombatStats>=20261004
 ## SavedVariables: OneFrameSavedVariables
 
 Namespace.lua
@@ -21,5 +21,6 @@ UI/Ultimate.lua
 UI/ShieldOverlay.lua
 UI/Interaction.lua
 UI/VanillaFrames.lua
+UI/DebugPreview.lua
 Settings/Settings.lua
 Core.lua

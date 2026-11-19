@@ -2,7 +2,7 @@ local ADDON_NAME = "MonsterCofferHelper"
 
 local MCH = {}
 MCH.name = ADDON_NAME
-MCH.version = "1.0.0"
+MCH.version = "1.0.1"
 _G[ADDON_NAME] = MCH
 
 -- The three Undaunted quartermasters. The ids are LibSets' `undauntedChestId`,
@@ -39,8 +39,11 @@ MCH.defaults = {
     mysteryCost      = 1,
     curatedCost      = 8,
 
-    -- [vendorId] = { setIds = {...}, mysteryCost = n, curatedCost = n, seenAt = timestamp }
-    learned = {},
+    -- What store scans read, kept per server (GetWorldName()), because the PTS
+    -- can stock sets and prices that live does not have yet:
+    -- [server][vendorId] = { setIds = {...}, mysteryCost = n, curatedCost = n, seenAt = timestamp }
+    -- MCH.learned points at the current server's table once loaded.
+    learnedByServer = {},
 
     panel = { point = CENTER, relPoint = CENTER, x = 0, y = 0 },
 }

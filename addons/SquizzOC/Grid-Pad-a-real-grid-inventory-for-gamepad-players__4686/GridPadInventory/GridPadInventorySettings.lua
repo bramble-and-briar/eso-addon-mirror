@@ -71,7 +71,7 @@ function GPI:RegisterSettingsPanel()
         name = "Grid Pad",
         displayName = "Grid Pad",
         author = "SquizzOC",
-        version = tostring(self.version or "1.6.1"),
+        version = tostring(self.version),
         slashCommand = "/gpisettings",
         registerForRefresh = true,
         registerForDefaults = true,
@@ -206,7 +206,7 @@ do
     end
     EM:RegisterForEvent(handle, EVENT_ADD_ON_LOADED, function(_, name)
         -- Any addon load after ours means the manager has advanced past GridPad;
-        -- LAM (which loads as our bundled dependency) is initialized by now.
+        -- LAM (a declared DependsOn, loaded before us) is initialized by now.
         if name ~= ADDON_NAME then tryRegister() end
     end)
     -- Safety net: guaranteed to have everything loaded by the time we're in-world.

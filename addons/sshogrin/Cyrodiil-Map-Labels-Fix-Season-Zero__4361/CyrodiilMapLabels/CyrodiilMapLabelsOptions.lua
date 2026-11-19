@@ -9,7 +9,7 @@ CyrodiilMapLabelsAddon = {
 }
 
 CyrodiilMapLabelsDefaults = {
-    version = "1.9.1",
+    version = "1.9.2",
     variableVersion = 1,
     datasetChoice = "Long Names",
     useAllianceColors = true,
@@ -139,17 +139,18 @@ function CyrodiilMapLabelsAddon.UpdateLabels()
 
         local shouldShowFactionColor = true
         if keep.keepId and keep.keepId >= 124 and keep.keepId <= 129 then
-            if keep.keepId == 127 and GetKeepAlliance(11, 1) ~= 2 and GetKeepAlliance(10, 1) ~= 2 then
+            -- Gates open (and revert to fallback color) only when BOTH required keeps are lost
+            if keep.keepId == 126 and (GetKeepAlliance(11, 1) ~= 2 and GetKeepAlliance(10, 1) ~= 2) then
                 shouldShowFactionColor = false
-            elseif keep.keepId == 126 and GetKeepAlliance(12, 1) ~= 2 and GetKeepAlliance(10, 1) ~= 2 then
+            elseif keep.keepId == 127 and (GetKeepAlliance(12, 1) ~= 2 and GetKeepAlliance(10, 1) ~= 2) then
                 shouldShowFactionColor = false
-            elseif keep.keepId == 128 and GetKeepAlliance(3, 1) ~= 3 and GetKeepAlliance(5, 1) ~= 3 then
+            elseif keep.keepId == 128 and (GetKeepAlliance(3, 1) ~= 3 and GetKeepAlliance(5, 1) ~= 3) then
                 shouldShowFactionColor = false
-            elseif keep.keepId == 129 and GetKeepAlliance(4, 1) ~= 3 and GetKeepAlliance(5, 1) ~= 3 then
+            elseif keep.keepId == 129 and (GetKeepAlliance(4, 1) ~= 3 and GetKeepAlliance(5, 1) ~= 3) then
                 shouldShowFactionColor = false
-            elseif keep.keepId == 124 and GetKeepAlliance(19, 1) ~= 1 and GetKeepAlliance(16, 1) ~= 1 then
+            elseif keep.keepId == 124 and (GetKeepAlliance(19, 1) ~= 1 and GetKeepAlliance(16, 1) ~= 1) then
                 shouldShowFactionColor = false
-            elseif keep.keepId == 125 and GetKeepAlliance(20, 1) ~= 1 and GetKeepAlliance(16, 1) ~= 1 then
+            elseif keep.keepId == 125 and (GetKeepAlliance(20, 1) ~= 1 and GetKeepAlliance(16, 1) ~= 1) then
                 shouldShowFactionColor = false
             end
         end
@@ -206,15 +207,19 @@ end
 EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, function(event, addonName)
     if addonName == ADDON_NAME then
         EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
-        
         CyrodiilMapLabelsAddon.db = ZO_SavedVars:NewAccountWide("CyrodiilMapLabelsSavedVars", CyrodiilMapLabelsDefaults.variableVersion, nil, CyrodiilMapLabelsDefaults)
         
         if CyrodiilMapLabelsAddon.CreateSettingsMenu then
             CyrodiilMapLabelsAddon.CreateSettingsMenu()
         end
-        
+
         EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_WORLD_MAP_CHANGED, OnWorldMapChanged)
-        
+        EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_KEEP_ALLIANCE_OWNER_CHANGED, function()
+            if not ZO_WorldMap:IsHidden() then
+                CyrodiilMapLabelsAddon.UpdateLabels()
+            end
+        end)
+
         WORLD_MAP_SCENE:RegisterCallback("StateChange", function(oldState, newState)
             if newState == SCENE_HIDDEN then
                 for _, labelPair in pairs(labels) do

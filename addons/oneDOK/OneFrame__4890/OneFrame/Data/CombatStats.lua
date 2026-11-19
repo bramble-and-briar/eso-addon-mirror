@@ -10,6 +10,12 @@ local healResults = {
     [ACTION_RESULT_HEAL] = true, [ACTION_RESULT_CRITICAL_HEAL] = true,
     [ACTION_RESULT_HOT_TICK] = true, [ACTION_RESULT_HOT_TICK_CRITICAL] = true,
 }
+-- Separate registrations give OR semantics for results without dropping anonymous
+-- group damage or healing events needed to classify friendly targets.
+local combatResults = {}
+for result in pairs(damageResults) do combatResults[result] = true end
+for result in pairs(healResults) do combatResults[result] = true end
+combatResults[ACTION_RESULT_DAMAGE_SHIELDED] = true
 function C:Reset()
     self.retained = {}
     A.GroupCombat:Reset()
@@ -84,10 +90,15 @@ function C:Configure()
     self.listening = wanted
     self:Reset()
     local ns = A.name .. "Combat"
-    EVENT_MANAGER:UnregisterForEvent(ns, EVENT_COMBAT_EVENT)
+    for result in pairs(combatResults) do
+        EVENT_MANAGER:UnregisterForEvent(ns .. result, EVENT_COMBAT_EVENT)
+    end
     EVENT_MANAGER:UnregisterForEvent(ns, EVENT_PLAYER_COMBAT_STATE)
     if wanted then
-        EVENT_MANAGER:RegisterForEvent(ns, EVENT_COMBAT_EVENT, function(...) self:Event(...) end)
+        for result in pairs(combatResults) do
+            EVENT_MANAGER:RegisterForEvent(ns .. result, EVENT_COMBAT_EVENT, function(...) self:Event(...) end)
+            EVENT_MANAGER:AddFilterForEvent(ns .. result, EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, result)
+        end
         EVENT_MANAGER:RegisterForEvent(ns, EVENT_PLAYER_COMBAT_STATE, function(_, combat) self:State(combat) end)
         self:State(IsUnitInCombat("player"))
     else

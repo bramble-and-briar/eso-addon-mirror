@@ -1,0 +1,7 @@
+Dungeon Buddy v0.3 | Fantasy Scoring 51.88
+
+Healer score: 35% CEU, 30% healing, 10% damage, 25% group utility, calibrated against 51.88 historical QB fantasy benchmark. No score cap. Ultimates +1 per confirmed activation and death penalties -5 remain separate.
+
+CEU tracking unchanged. Healing/Damage use uncapped linear output, initial reference rates 6000 HPS and 5000 DPS. Group utility uses observed interrupts, CC, and shielding; these are provisional weights pending live-run calibration. Other role scoring unchanged. Old saved run scores are not recalculated.
+
+NOTE: Ultimate activation event detection remains unverified in ESO. Lua/ESO runtime testing not available; ZIP integrity checked only.

@@ -13,7 +13,8 @@ local changeUpdated = 3
 local abilityTypeDamageShield = 15
 local ward1 = false
 local ward2 = false
-
+local boundArmamentsID = 203447
+local hasStacks = false
 
 wardTracker = {}
 
@@ -36,7 +37,7 @@ end
 local function WardCheck(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitID, abilityID)
 
 	if unitTag ~= "player" then return end
-	if abilityType ~= abilityTypeDamageShield then return end
+    if abilityType ~= abilityTypeDamageShield then return end
 
 	local name = tostring(effectName)
 
@@ -69,7 +70,6 @@ local function WardCheck(eventCode, changeType, effectSlot, effectName, unitTag,
 		if debug then printMessage("WardCheck, changeUpdated: " .. name) end
 	end
 end
-
 
 --triggers whenever shield is added, updated, removed. Saves player's shield value whenever a shield is added or updated
 local function OnAnyWardChange(eventCode, unitTag, unitAttributeVisual, statType, attributeType, powerType, oldValue, newValue, oldMaxValue, newMaxValue, sequenceId)
@@ -121,6 +121,29 @@ local function OnAnyWardChange(eventCode, unitTag, unitAttributeVisual, statType
 	end
 end
 
+--whenever a stack of bound armaments is gained
+local function boundNotify(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, 
+    effectType, abilityType, statusEffectType, unitName, unitID, abilityID)
+
+	if unitTag ~= "player" then return end
+    if abilityID ~= boundArmamentsID then return end
+
+    if changeType == 2 then
+		--clear message
+		wardTrackAddonTextBound:SetHidden(true)
+		hasStacks = false
+    elseif changeType == 3 then
+		--if stack is above 4 display message else clear
+		if stackCount >= 4 then
+			wardTrackAddonTextBound:SetHidden(false)
+			hasStacks = true
+		else
+			wardTrackAddonTextBound:SetHidden(true)
+			hasStacks = false
+		end
+    end
+end
+
 --when player is in and out of combat
 local function OnPlayerCombatState(event, inCombat)
 	if inCombat ~= isInCombat then
@@ -129,6 +152,7 @@ local function OnPlayerCombatState(event, inCombat)
         if not inCombat then
             wardTrackAddonTextIcon:SetText("")
             wardTrackAddonText:SetHidden(true)
+			wardTrackAddonTextBound:SetHidden(true)
         end
 	end
 end
@@ -140,6 +164,8 @@ local function registerAlerts()
 	EVENT_MANAGER:RegisterForEvent("hwtEvent", EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, OnAnyWardChange)
 	EVENT_MANAGER:RegisterForEvent("hwtEvent", EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, OnAnyWardChange)
 	EVENT_MANAGER:RegisterForEvent("hwtEvent", EVENT_EFFECT_CHANGED, WardCheck)
+	EVENT_MANAGER:RegisterForEvent("baEvent", EVENT_EFFECT_CHANGED, boundNotify)
+    EVENT_MANAGER:AddFilterForEvent("baEvent", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, boundArmamentsID)
 end
 
 --unregister for notifications about shields
@@ -147,13 +173,15 @@ local function unRegisterAlerts()
     EVENT_MANAGER:UnregisterForEvent("hwtEvent", EVENT_PLAYER_COMBAT_STATE)
     EVENT_MANAGER:UnregisterForEvent("hwtEvent", EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED)
 	EVENT_MANAGER:UnregisterForEvent("hwtEvent", EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED)
-	EVENT_MANAGER:UnregisterForEvent("hwtEvent", EVENT_EFFECT_CHANGED)
+	EVENT_MANAGER:UnregisterForEvent("baEvent", EVENT_EFFECT_CHANGED)
+
 end
 
 --when UI opens
 local function onMenuOpened()
 	--hide text area
     wardTrackAddonText:SetHidden(true)
+	wardTrackAddonTextBound:SetHidden(true)
 end
 
 --when UI closes
@@ -161,6 +189,9 @@ local function onMenuClosed()
 	--if player has active shield and is in combat show text area when exiting menu otherwise leave hidden
 	if shieldActive and isInCombat then
     	wardTrackAddonText:SetHidden(false)
+	end
+	if hasStacks and isInCombat then
+		wardTrackAddonTextBound:SetHidden(false)
 	end
 end
 
@@ -193,12 +224,18 @@ local function onAddOnLoadedWard(event, name)
 		zo_callLater(function() printMessage("add-on loaded") end, 500)
 	end
 
-    --setup text field area
+    --setup text field area for bound armament and shield notifications
     wardTrackAddonText:SetMovable(true)
     wardTrackAddonTextIcon:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_61)|soft-shadow-thick")
     wardTrackAddonTextIcon:SetText("")
     wardTrackAddonTextIcon:SetColor(255, 0, 0, 255)
     wardTrackAddonText:SetHidden(true)
+
+	wardTrackAddonTextBound:SetMovable(true)
+    wardTrackAddonTextBoundIcon:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_61)|soft-shadow-thick")
+    wardTrackAddonTextBoundIcon:SetText("Fire Armaments!!")
+    wardTrackAddonTextBoundIcon:SetColor(255, 0, 0, 255)
+    wardTrackAddonTextBound:SetHidden(true)
 
     --register for combat alerts
     registerAlerts()

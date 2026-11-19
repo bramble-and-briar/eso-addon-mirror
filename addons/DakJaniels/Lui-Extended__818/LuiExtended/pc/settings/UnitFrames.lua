@@ -110,12 +110,14 @@ local raidLayoutValues = { "1 x 12", "2 x 6", "3 x 4", "6 x 2" }
 local raidLayoutBattlegroundChoices =
 {
     GetString(LUIE_STRING_LAM_UF_RAID_LAYOUT_BG_COLUMN),
+    GetString(LUIE_STRING_LAM_UF_RAID_LAYOUT_BG_TWO_COLUMN),
     GetString(LUIE_STRING_LAM_UF_RAID_LAYOUT_BG_GRID),
     GetString(LUIE_STRING_LAM_UF_RAID_LAYOUT_BG_ROW),
 }
 local raidLayoutBattlegroundValues =
 {
     UnitFrames.RAID_LAYOUT_BATTLEGROUND_COLUMN,
+    UnitFrames.RAID_LAYOUT_BATTLEGROUND_TWO_COLUMN,
     UnitFrames.RAID_LAYOUT_BATTLEGROUND_GRID,
     UnitFrames.RAID_LAYOUT_BATTLEGROUND_ROW,
 }
@@ -3387,6 +3389,24 @@ function UnitFrames.CreateSettings()
                 warning = GetString(LUIE_STRING_LAM_RELOADUI_WARNING),
                 disabled = function ()
                     return not (LUIE.SV.UnitFrames_Enabled and Settings.CustomFramesRaid)
+                end,
+            },
+            {
+                -- Expanded template: hide the outer black frame fill. Health bar and bottom row stay.
+                type = "checkbox",
+                name = GetString(LUIE_STRING_LAM_UF_CFRAMESR_HIDE_BACKGROUND),
+                tooltip = GetString(LUIE_STRING_LAM_UF_CFRAMESR_HIDE_BACKGROUND_TP),
+                getFunc = function ()
+                    return Settings.RaidExpandedHideBackground
+                end,
+                setFunc = function (value)
+                    Settings.RaidExpandedHideBackground = value
+                    UnitFrames.CustomFramesApplyLayoutRaid(false)
+                end,
+                width = "full",
+                default = Defaults.RaidExpandedHideBackground,
+                disabled = function ()
+                    return not (LUIE.SV.UnitFrames_Enabled and Settings.CustomFramesRaid and Settings.RaidFrameTemplate == UnitFrames.RAID_FRAME_TEMPLATE_EXPANDED)
                 end,
             },
             {

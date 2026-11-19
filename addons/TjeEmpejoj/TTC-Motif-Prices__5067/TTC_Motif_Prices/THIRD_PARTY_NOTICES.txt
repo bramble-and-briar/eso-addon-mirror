@@ -1,0 +1,27 @@
+TTC Motif Prices - third-party contributions
+
+Tamriel Trade Centre / TamrielTradeCentre.com:
+https://www.esoui.com/downloads/info1245
+Public price API used: TamrielTradeCentrePrice:GetPriceInfo(itemLink).
+No TTC implementation, market price database, client executable or logo is bundled.
+
+LibCharacterKnowledge by code65536:
+https://www.esoui.com/downloads/info3317
+Developer API supplies motif styles, chapter/book item IDs and item links at runtime.
+No LCK implementation or private character knowledge database is bundled.
+
+ESO / ZeniMax Online Studios:
+Native collectible acquisition wording and IDs came from ESO API 101051.
+Native text is credited as game content, not claimed as original authored descriptions.
+
+Research credits: ESO Hub (https://eso-hub.com), Tianlein (https://tianlein.de),
+official ZOS/Bethesda event FAQs, reward lists, forum posts and Crown Store announcements.
+Other historical factual references include ESO MMO Fashion, Xynode Gaming and BBC Guild.
+Per-collectible URLs and evidence status are preserved in SOURCE_REFERENCES.txt.
+Research additions are concise acquisition summaries composed for this addon, not
+redistributed guide articles, screenshots or third-party addon implementations.
+TraitBuddy / Weolo's ESOUI discussion was a reference for using native collectible
+descriptions: https://www.esoui.com/forums/showthread.php?t=10141
+
+Developed by TjeEmpejoj with ChatGPT/Codex assistance. Third-party authors retain all
+rights to their work. No third-party endorsement or affiliation is claimed.

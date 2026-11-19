@@ -29,8 +29,12 @@ local function Render(result, vendorId)
 
     -- The body is a single wrapping label, so the window is sized to whatever
     -- the text ends up needing rather than to a guessed line count.
+    --
+    -- The label's own height is never set: it sizes itself to its text. Fixing
+    -- it made GetTextHeight measure the text clipped to the previous height, so
+    -- after one short body (a finished vendor, "no data") every later one was
+    -- cut off with an ellipsis at that same height.
     local bodyHeight = bodyLabel:GetTextHeight()
-    bodyLabel:SetHeight(bodyHeight)
     window:SetHeight(HEADER_HEIGHT + bodyHeight + BOTTOM_PADDING)
 end
 

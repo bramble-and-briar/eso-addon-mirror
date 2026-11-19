@@ -84,6 +84,91 @@ local function loadPlayerDataPart(skillType, baseElem)
     end
 end
 
+local SKILL_TYPE_TO_KEY = {
+    [SKILL_TYPE_ARMOR]      = "armor",
+    [SKILL_TYPE_WORLD]      = "world",
+    [SKILL_TYPE_CLASS]      = "class",
+    [SKILL_TYPE_GUILD]      = "guild",
+    [SKILL_TYPE_RACIAL]     = "racial",
+    [SKILL_TYPE_WEAPON]     = "weapon",
+    [SKILL_TYPE_AVA]        = "ava",
+    [SKILL_TYPE_TRADESKILL] = "craft",
+}
+
+local function getActiveCharData()
+    return (LeoAltholic.GetMyself and LeoAltholic.GetMyself())
+        or (LeoAltholic.globalData and LeoAltholic.globalData.CharList and LeoAltholic.globalData.CharList[GetUnitName("player")])
+end
+
+local function refreshSkillUI()
+    if LeoAltholicUI then
+        if LeoAltholicUI.skillsList then
+            LeoAltholicUI.skillsList:RefreshData()
+        end
+        if LeoAltholicUI.skills2List then
+            LeoAltholicUI.skills2List:RefreshData()
+        end
+    end
+end
+
+local function refreshSkillCategory(skillType)
+    local skillKey = SKILL_TYPE_TO_KEY[skillType]
+    if not skillKey then
+        return
+    end
+
+    local char = getActiveCharData()
+    if char and char.skills then
+        char.skills.unspent = GetAvailableSkillPoints()
+        char.skills.skyShards = GetNumSkyShards()
+        char.skills[skillKey] = {}
+        loadPlayerDataPart(skillType, char.skills[skillKey])
+        refreshSkillUI()
+    end
+end
+
+-- 1. Standard skill line rank-ups
+EVENT_MANAGER:RegisterForEvent("LeosAltholic_LiveSkillRankRefresh", EVENT_SKILL_RANK_UPDATE, function(_, skillType)
+    refreshSkillCategory(skillType)
+end)
+
+-- 2. Scrying, Excavation, and XP-driven skill lines (throttled to 1.5s)
+local pendingXpSkillTypes = {}
+EVENT_MANAGER:RegisterForEvent("LeosAltholic_LiveSkillXpRefresh", EVENT_SKILL_XP_UPDATE, function(_, skillType)
+    if not SKILL_TYPE_TO_KEY[skillType] or pendingXpSkillTypes[skillType] then
+        return
+    end
+    pendingXpSkillTypes[skillType] = true
+
+    zo_callLater(function()
+        pendingXpSkillTypes[skillType] = nil
+        refreshSkillCategory(skillType)
+    end, 1500)
+end)
+
+-- 3. Skill points spent/refunded (passives & morphs)
+local fullSkillRefreshPending = false
+EVENT_MANAGER:RegisterForEvent("LeosAltholic_LiveSkillPointsRefresh", EVENT_SKILL_POINTS_CHANGED, function()
+    if fullSkillRefreshPending then
+        return
+    end
+    fullSkillRefreshPending = true
+
+    zo_callLater(function()
+        fullSkillRefreshPending = false
+        local char = getActiveCharData()
+        if char and char.skills then
+            char.skills.unspent = GetAvailableSkillPoints()
+            char.skills.skyShards = GetNumSkyShards()
+            for skillType, skillKey in pairs(SKILL_TYPE_TO_KEY) do
+                char.skills[skillKey] = {}
+                loadPlayerDataPart(skillType, char.skills[skillKey])
+            end
+            refreshSkillUI()
+        end
+    end, 250)
+end)
+
 function LeoAltholic.GetCraftFromQuest(questName)
     if not string.find(ZO_CachedStrFormat("<<z:1>>",questName), ZO_CachedStrFormat("<<z:1>>",GetString(LEOALT_WRIT))) then return nil end
 
@@ -512,18 +597,42 @@ local function initCharsData()
     char.inventory.telvar = GetCarriedCurrencyAmount(CURT_TELVAR_STONES)
     char.inventory.writVoucher = GetCarriedCurrencyAmount(CURT_WRIT_VOUCHERS)
 
+    local ARMOR_TYPE_NAMES = {
+        [ARMORTYPE_LIGHT]  = "Light",
+        [ARMORTYPE_MEDIUM] = "Medium",
+        [ARMORTYPE_HEAVY]  = "Heavy",
+    }
+
     char.inventory[BAG_WORN] = {}
     char.inventory[BAG_BACKPACK] = {}
     if LeoAltholic.globalData.settings.inventory.enabled then
-        local bag = SHARED_INVENTORY:GenerateFullSlotData(nil,BAG_WORN,BAG_BACKPACK)
+        local bag = SHARED_INVENTORY:GenerateFullSlotData(nil, BAG_WORN, BAG_BACKPACK)
         for _, data in pairs(bag) do
+            local itemLink = GetItemLink(data.bagId, data.slotIndex)
+            local traitType = GetItemLinkTraitInfo(itemLink)
+            local traitName = (traitType ~= ITEM_TRAIT_TYPE_NONE) and GetString("SI_ITEMTRAITTYPE", traitType) or "-"
+
+            local hasEnchant, enchantHeader = GetItemLinkEnchantInfo(itemLink)
+            local enchantName = "-"
+            if hasEnchant and enchantHeader and enchantHeader ~= "" then
+                enchantName = zo_strformat("<<1>>", enchantHeader):gsub("^Enchantment:%s*", ""):gsub("%s+Enchantment$", "")
+            end
+
+            local armorType = GetItemLinkArmorType(itemLink)
+            local weightName = ARMOR_TYPE_NAMES[armorType] or "-"
+
             char.inventory[data.bagId][data.slotIndex] = {
-                link = GetItemLink(data.bagId, data.slotIndex),
+                link = itemLink,
                 name = data.name,
-                count = data.stackCount
+                count = data.stackCount,
+                trait = traitName,
+                enchant = enchantName,
+                weight = weightName,
             }
         end
     end
+
+
 
     if char.stats == nil then char.stats = {} end
 

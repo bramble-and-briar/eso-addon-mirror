@@ -84,12 +84,13 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Goto](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kerb9729/Goto__1154) | kerb9729 | PC / Mac | 1.1041 |
 | [Gotta Open 'em all!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Gotta-Open-em-all__c8456e9d-2e93-40d9-a266-88d0ad1f9332) | Eldibabalo | Console | — |
 | [Grandparents holiday Guildhall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KesBruun/Grandparents-holiday-Guildhall__3272) | KesBruun | PC / Mac | 0.0.1.1 |
+| [Grave Sight](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Grave-Sight__5069) | O-Range | PC / Mac | 0.4.2 |
 | [Greasy Grabby Mitts (Lucent Orphic Mirrors)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Greasy-Grabby-Mitts-Lucent-Orphic-Mirrors__4366) | STUDLETON | PC / Mac | 0.2.0 |
 | [GREED](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Previsible/GREED__4691) | Previsible | PC / Mac | 1 |
 | [Greymind Quick Slot Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bsrealm/Greymind-Quick-Slot-Bar__258) | bsrealm | PC / Mac | v2.7.2.25 |
 | [GREYMOOR - Enhanced Lockpicking - A Lockpicking Interface Retexture](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luxape/GREYMOOR---Enhanced-Lockpicking---A-Lockpicking-Interface-Retexture__2420) | luxape | PC / Mac | 1.4 |
 | [Greyskull : Weapon / Spell Damage Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/Greyskull-Weapon-Spell-Damage-Meter__1924) | ghostbane | PC / Mac | 1.1.1 |
-| [Grid Pad — a real grid inventory for gamepad players](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SquizzOC/Grid-Pad-a-real-grid-inventory-for-gamepad-players__4686) | SquizzOC | PC / Mac | 1.45.2 |
+| [Grid Pad — a real grid inventory for gamepad players](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SquizzOC/Grid-Pad-a-real-grid-inventory-for-gamepad-players__4686) | SquizzOC | PC / Mac | 1.45.3 |
 | [GridList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/GridList__2341) | KLISK | PC / Mac | 1.3.2 |
 | [GridList Clean Skin](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tonyleila/GridList-Clean-Skin__2299) | Tonyleila | PC / Mac | 02 |
 | [GridList Skins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/GridList-Skins__2304) | KLISK | PC / Mac | 0.2 |
@@ -190,7 +191,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Guild Tickets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/attriel/Guild-Tickets__3205) | attriel | PC / Mac | 1.0.12 |
 | [Guild Tools \[En/Fr\] Classic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pills/Guild-Tools-En-Fr-Classic__884) | pills | PC / Mac | 0.4.0 |
 | [Guild Tools By Fen](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fenweldryn/Guild-Tools-By-Fen__2939) | Fenweldryn | PC / Mac | 0.9.1 |
-| [Guild Trader Activity (GTA)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/Guild-Trader-Activity-GTA__4590) | sinnereso | PC / Mac | 2026.11.17 |
+| [Guild Trader Activity (GTA)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/Guild-Trader-Activity-GTA__4590) | sinnereso | PC / Mac | 2026.11.19 |
 | [Guild Trader Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ReliktKoala/Guild-Trader-Tracker__f2495833-84b0-4142-8a25-f2063d0f0a23) | ReliktKoala | Console | — |
 | [GuildActivity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/GuildActivity__2190) | Coorbin | PC / Mac | 1.1.1 |
 | [GuildBankLedger - 3.x - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/myristican/GuildBankLedger---3.x---Updated__2858) | myristican | PC / Mac | 3.55 |

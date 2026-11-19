@@ -35,6 +35,11 @@ addon.defaults = {
         safe    = true,
         choke   = true,
         size    = 28,
+        colors  = {             -- per pin type, used on the map, blips, compass, tracker, gamepad
+            kite  = { r = 0.2, g = 1,    b = 0.3, a = 1 },
+            safe  = { r = 0.3, g = 0.72, b = 1,   a = 1 },
+            choke = { r = 1,   g = 0.55, b = 0.1, a = 1 },
+        },
         data    = {},  -- [mapId] = { {type, x, y, zoneId, wx, wy, wz, note, t}, ... }
     },
     tracker = {
@@ -48,6 +53,23 @@ addon.defaults = {
         flipDirection  = false,
         updateRate     = 250,   -- ms between tracker updates
         skipWhenStill  = true,  -- skip updates while you're not moving or turning
+    },
+    blips = {                 -- 3D markers floating over pins in the world
+        enabled      = true,
+        kite         = true,   -- these three also filter the compass pins
+        safe         = true,
+        choke        = true,
+        maxRange     = 300,    -- meters
+        size         = 1.0,    -- meters (at <= 25m)
+        keepReadable = true,   -- grow with distance so far blips stay visible
+        throughWalls = true,
+        updateRate   = 0,      -- ms, 0 = every frame
+    },
+    compass = {
+        enabled  = true,
+        maxRange = 500,        -- meters
+        fov      = 108,        -- degrees the compass bar covers (calibrate in settings)
+        size     = 22,
     },
     lowHealth = {
         enabled   = false,
@@ -161,6 +183,7 @@ local function OnLoaded(_, name)
     SafeCall("Burst",    "Init")
     SafeCall("Pins",     "Init")
     SafeCall("Tracker",  "Init")
+    SafeCall("Blips",    "Init")
     SafeCall("Extras",   "Init")
     SafeCall("Gamepad",  "Init")
 
@@ -175,6 +198,7 @@ end
 function addon.RefreshUI()
     SafeCall("Burst",   "Apply")
     SafeCall("Tracker", "Apply")
+    SafeCall("Blips",   "Apply")
     SafeCall("Extras",  "Apply")
     SafeCall("UI",      "Refresh")
 end

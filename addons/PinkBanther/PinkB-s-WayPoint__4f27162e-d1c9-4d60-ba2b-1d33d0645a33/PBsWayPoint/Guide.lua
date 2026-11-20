@@ -411,6 +411,12 @@ function A:UpdateWorld(view)
 		return NotDrawn(self, view, "the camera heading could not be read")
 	end
 
+	-- ESO moves top-level 3D windows when it shifts the GUI origin. The children below
+	-- receive positions in the current GUI space, so their parent must be at its origin.
+	local parentX, parentY, parentZ = world.window:Get3DRenderSpaceOrigin()
+	if parentX ~= 0 or parentY ~= 0 or parentZ ~= 0 then
+		world.window:Set3DRenderSpaceOrigin(0, 0, 0)
+	end
 	if world.windowHidden then
 		world.window:SetHidden(false)
 		world.windowHidden = false

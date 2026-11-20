@@ -15,25 +15,6 @@ local function AddLine(tooltip, text, rgb)
     tooltip:AddLine(text, "ZoFontGame", rgb[1], rgb[2], rgb[3])
 end
 
--- Add up a coffer's sets from the pool the advisor already built, so the
--- tooltip reuses the numbers the panel is showing rather than rescanning.
--- Returns nil when none of the coffer's sets is in the pool.
-local function CofferCounts(pool, setIds)
-    local wanted = {}
-    for _, setId in ipairs(setIds) do wanted[setId] = true end
-
-    local found, missing, total = false, 0, 0
-    for _, entry in ipairs(pool.sets) do
-        if wanted[entry.setId] then
-            found = true
-            missing = missing + entry.missing
-            total   = total + entry.total
-        end
-    end
-    if not found then return nil end
-    return missing, total
-end
-
 local function AppendMystery(tooltip, result)
     AddLine(tooltip, zo_strformat(SI_MCH_TT_CHANCE, MCH.Format.Percent(result.chanceNew)), RGB.plain)
     AddLine(tooltip, zo_strformat(SI_MCH_TT_COST, MCH.Format.Num(result.mysteryPerNew)), RGB.plain)
@@ -46,7 +27,7 @@ local function AppendMystery(tooltip, result)
 end
 
 local function AppendCurated(tooltip, result, setIds)
-    local missing, total = CofferCounts(result.pool, setIds)
+    local missing, total = MCH.Advisor.CofferCounts(result.pool, setIds)
 
     if missing == 0 then
         -- Every set in it is complete: a duplicate no matter what the odds say.

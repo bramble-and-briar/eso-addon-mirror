@@ -22,9 +22,13 @@ local KNOWN_BANK_NAMES = {
 local GUILD_BANK_WITHDRAW_TIMEOUT_MS = 10000
 local GUILD_BANK_PARTIAL_DEPOSIT_TIMEOUT_MS = 10000
 local GUILD_BANK_PARTIAL_DEPOSIT_POLL_MS = 100
+local CONTEXT_STORAGE_TRANSFER_BATCH_SIZE = 200
+local CONTEXT_STORAGE_TRANSFER_POLL_MS = 100
+local CONTEXT_STORAGE_TRANSFER_TIMEOUT_MS = 10000
 local guildBankPartialWithdrawal = nil
 local guildBankPartialWithdrawalSequence = 0
 local guildBankPartialDeposit = nil
+local contextStorageWithdrawal = nil
 
 local function ExecuteGuildBankAction(functionName, ...)
     if IsProtectedFunction(functionName) then
@@ -604,7 +608,7 @@ end
 ------------------------------------------------------------------
 -- 4. Local Target Slot Finder
 ------------------------------------------------------------------
-local function FindTargetSlotForItem(targetBag, sourceBag, sourceSlot)
+local function FindTargetSlotForItem(targetBag, sourceBag, sourceSlot, amount)
     local itemLink = GetItemLink(sourceBag, sourceSlot)
     if not itemLink or itemLink == "" then return nil end
 
@@ -617,7 +621,7 @@ local function FindTargetSlotForItem(targetBag, sourceBag, sourceSlot)
         if slotLink and slotLink ~= "" then
             if GetItemLinkName(slotLink) == itemName then
                 local currentCount, maxCount = GetSlotStackSize(targetBag, slotIndex)
-                if currentCount < maxCount then
+                if currentCount < maxCount and (not amount or maxCount - currentCount >= amount) then
                     return slotIndex
                 end
             end
@@ -626,6 +630,122 @@ local function FindTargetSlotForItem(targetBag, sourceBag, sourceSlot)
 
     -- Pass 2: Fallback to the first empty slot
     return FindFirstEmptySlotInBag(targetBag)
+end
+
+local function ReportContextStorageWithdrawalFailure(operation, reason)
+    if contextStorageWithdrawal ~= operation then return end
+    contextStorageWithdrawal = nil
+
+    local movedCount = operation.requestedAmount - operation.remainingAmount
+    local message
+    if movedCount > 0 then
+        message = string.format(
+            "Storage withdrawal stopped; %d of %d items were confirmed moved before the failure: %s. Check your backpack and source storage.",
+            movedCount, operation.requestedAmount, reason)
+    else
+        message = string.format("Storage withdrawal failed: %s. Check your backpack and source storage.", reason)
+    end
+    this.Utils.UserError(message, message)
+end
+
+local SendNextContextStorageWithdrawalBatch
+
+local function PollContextStorageWithdrawal(operation)
+    if contextStorageWithdrawal ~= operation then return end
+    if IsGuildBankOpen() then
+        ReportContextStorageWithdrawalFailure(operation, "the guild bank opened")
+        return
+    end
+
+    local itemId = GetItemId(operation.sourceBag, operation.sourceSlot)
+    local itemLink = GetItemLink(operation.sourceBag, operation.sourceSlot)
+    local currentCount = select(2, GetItemInfo(operation.sourceBag, operation.sourceSlot))
+    local sourceIsEmpty = itemId == nil and currentCount == 0
+    if (itemId ~= operation.itemId or itemLink ~= operation.expectedItemLink) and not sourceIsEmpty then
+        ReportContextStorageWithdrawalFailure(operation, "the source stack changed")
+        return
+    end
+    if sourceIsEmpty then currentCount = 0 end
+    if not currentCount then
+        ReportContextStorageWithdrawalFailure(operation, "the source stack changed")
+        return
+    end
+
+    local sourceMovedCount = operation.batchStartCount - currentCount
+    local backpackMovedCount =
+        GetTotalItemCountById(BAG_BACKPACK, operation.itemId) - operation.batchStartBackpackCount
+    if sourceMovedCount < 0 or sourceMovedCount > operation.batchAmount
+        or backpackMovedCount < 0 or backpackMovedCount > operation.batchAmount then
+        ReportContextStorageWithdrawalFailure(operation, "the source count changed unexpectedly")
+        return
+    end
+
+    if sourceMovedCount > 0 and sourceMovedCount == backpackMovedCount then
+        operation.remainingAmount = operation.remainingAmount - sourceMovedCount
+        operation.expectedCount = currentCount
+        if operation.remainingAmount == 0 then
+            contextStorageWithdrawal = nil
+            this.Utils.UserMessage(operation.moveText, operation.moveText)
+            return
+        end
+        if not SendNextContextStorageWithdrawalBatch(operation) then return end
+        return
+    end
+
+    operation.pollElapsedMs = operation.pollElapsedMs + CONTEXT_STORAGE_TRANSFER_POLL_MS
+    if operation.pollElapsedMs >= CONTEXT_STORAGE_TRANSFER_TIMEOUT_MS then
+        ReportContextStorageWithdrawalFailure(operation, "the transfer timed out")
+        return
+    end
+
+    zo_callLater(function()
+        PollContextStorageWithdrawal(operation)
+    end, CONTEXT_STORAGE_TRANSFER_POLL_MS)
+end
+
+SendNextContextStorageWithdrawalBatch = function(operation)
+    if contextStorageWithdrawal ~= operation then return false end
+    if IsGuildBankOpen() then
+        ReportContextStorageWithdrawalFailure(operation, "the guild bank opened")
+        return false
+    end
+
+    local itemId = GetItemId(operation.sourceBag, operation.sourceSlot)
+    local itemLink = GetItemLink(operation.sourceBag, operation.sourceSlot)
+    local currentCount = select(2, GetItemInfo(operation.sourceBag, operation.sourceSlot))
+    if itemId ~= operation.itemId or itemLink ~= operation.expectedItemLink
+        or currentCount ~= operation.expectedCount then
+        ReportContextStorageWithdrawalFailure(operation, "the source stack changed")
+        return false
+    end
+
+    operation.batchAmount = math.min(operation.remainingAmount, CONTEXT_STORAGE_TRANSFER_BATCH_SIZE)
+    local targetSlot = FindTargetSlotForItem(
+        BAG_BACKPACK, operation.sourceBag, operation.sourceSlot, operation.batchAmount)
+    if not targetSlot then
+        if operation.remainingAmount == operation.requestedAmount then
+            contextStorageWithdrawal = nil
+            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
+        else
+            ReportContextStorageWithdrawalFailure(operation, "there is no backpack space for the next stack")
+        end
+        return false
+    end
+
+    operation.batchStartCount = currentCount
+    operation.batchStartBackpackCount = GetTotalItemCountById(BAG_BACKPACK, operation.itemId)
+    operation.pollElapsedMs = 0
+    local started, failure = CallSecureProtected("RequestMoveItem",
+        operation.sourceBag, operation.sourceSlot, BAG_BACKPACK, targetSlot, operation.batchAmount)
+    if not started then
+        ReportContextStorageWithdrawalFailure(operation, "RequestMoveItem failed: " .. tostring(failure))
+        return false
+    end
+
+    zo_callLater(function()
+        PollContextStorageWithdrawal(operation)
+    end, CONTEXT_STORAGE_TRANSFER_POLL_MS)
+    return true
 end
 
 ------------------------------------------------------------------
@@ -753,16 +873,112 @@ function this.OnBankOpened(eventCode, bankType)
     end
 end
 
+function this.StowContextItem(sourceSlot, amount, sourceCount, expectedItemLink, gemmableConfirmed)
+    if contextStorageWithdrawal then
+        this.Utils.UserWarning("A storage withdrawal is already in progress.")
+        return
+    end
+    if IsGuildBankOpen() then return end
+
+    local currentCount = select(2, GetItemInfo(BAG_BACKPACK, sourceSlot))
+    local itemLink = GetItemLink(BAG_BACKPACK, sourceSlot)
+    if not itemLink or itemLink == "" or currentCount ~= sourceCount
+        or itemLink ~= expectedItemLink or amount < 1 or amount > sourceCount then
+        this.Utils.UserError("The backpack stack changed before the Craft Bag stow could start.")
+        return
+    end
+    if not HasCraftBagAccess() or not CanItemBeVirtual(BAG_BACKPACK, sourceSlot)
+        or IsItemStolen(BAG_BACKPACK, sourceSlot) then
+        this.Utils.UserError("This item can no longer be stowed in the Craft Bag.")
+        return
+    end
+
+    local slotData = SHARED_INVENTORY:GenerateSingleSlotData(BAG_BACKPACK, sourceSlot)
+    if not slotData or (slotData.isGemmable and not gemmableConfirmed) then
+        this.Utils.UserError("This item requires Craft Bag stow confirmation.")
+        return
+    end
+
+    local pickedUp, pickupFailure =
+        CallSecureProtected("PickupInventoryItem", BAG_BACKPACK, sourceSlot, amount)
+    if not pickedUp then
+        local message = "Partial Craft Bag stow failed: PickupInventoryItem failed: " .. tostring(pickupFailure)
+        this.Utils.UserError(message, message)
+        return
+    end
+
+    local stowed, stowFailure = CallSecureProtected("PlaceInInventory", BAG_VIRTUAL, 0)
+    if not stowed then
+        local message = "Partial Craft Bag stow failed: PlaceInInventory failed: " .. tostring(stowFailure)
+            .. ". The selected items may still be on your cursor."
+        this.Utils.UserError(message, message)
+        return
+    end
+
+    local message = string.format("Stowing x%d %s in Craft Bag", amount, itemLink)
+    this.Utils.UserMessage(message, message)
+    PlaySound(SOUNDS.DIALOG_ACCEPT)
+end
+
 --- Context Menu single-item or bulk transfer helper
-function this.TransferContextItem(sourceBag, sourceSlot, amount)
-    if not IsBankOpen() then return end
+function this.TransferContextItem(sourceBag, sourceSlot, amount, expectedSourceCount, expectedItemLink)
+    if contextStorageWithdrawal then
+        this.Utils.UserWarning("A storage withdrawal is already in progress.")
+        return
+    end
+
+    local isVirtualStorage = sourceBag == BAG_VIRTUAL or sourceBag == BAG_FURNITURE_VAULT
+    if isVirtualStorage then
+        if IsGuildBankOpen() then return end
+    elseif not IsBankOpen() then
+        return
+    end
 
     local currentCount = select(2, GetItemInfo(sourceBag, sourceSlot))
     if not currentCount or currentCount <= 0 then return end
+    local itemLink = GetItemLink(sourceBag, sourceSlot)
+    if currentCount ~= expectedSourceCount or not itemLink or itemLink == ""
+        or itemLink ~= expectedItemLink then
+        this.Utils.UserError("The source stack changed before the storage transfer could start.")
+        return
+    end
+    if amount < 1 or amount > currentCount then
+        this.Utils.UserError("The requested transfer amount is no longer valid for this stack.")
+        return
+    end
 
     local mode = (sourceBag == BAG_BACKPACK) and "Deposit" or "Withdraw"
     local targetBag = (mode == "Deposit") and GetBankingBag() or BAG_BACKPACK
-    local targetSlot = FindTargetSlotForItem(targetBag, sourceBag, sourceSlot)
+    local targetName = (mode == "Deposit")
+        and ((this.accountWide.houseBankNames and this.accountWide.houseBankNames[targetBag]) or "Bank")
+        or "Backpack"
+    local moveText = string.format("Moving x%d %s to %s", amount, itemLink, targetName)
+
+    if isVirtualStorage then
+        local itemId = GetItemId(sourceBag, sourceSlot)
+        if not itemLink or itemLink == "" or not itemId or itemId <= 0 then
+            this.Utils.UserError("The source stack changed before the storage withdrawal could start.")
+            return
+        end
+
+        local operation = {
+            sourceBag = sourceBag,
+            sourceSlot = sourceSlot,
+            itemId = itemId,
+            expectedItemLink = itemLink,
+            requestedAmount = amount,
+            remainingAmount = amount,
+            expectedCount = currentCount,
+            moveText = moveText,
+        }
+        contextStorageWithdrawal = operation
+        if not SendNextContextStorageWithdrawalBatch(operation) then return end
+        PlaySound(SOUNDS.DIALOG_ACCEPT)
+        return
+    end
+
+    local targetSlot = FindTargetSlotForItem(
+        targetBag, sourceBag, sourceSlot, isVirtualStorage and amount or nil)
 
     -- Fallback for ESO Plus Subscriber Bank when depositing to standard bank
     if not targetSlot then
@@ -781,15 +997,13 @@ function this.TransferContextItem(sourceBag, sourceSlot, amount)
         return
     end
 
-    -- UserMessage for Context Menu Transfers
-    local itemLink   = GetItemLink(sourceBag, sourceSlot)
-    local targetName = (mode == "Deposit") 
-        and ((this.accountWide.houseBankNames and this.accountWide.houseBankNames[targetBag]) or "Bank") 
-        or "Backpack"
-    local moveText   = string.format("Moving x%d %s to %s", amount, itemLink, targetName)
+    local moved, failure = CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, targetBag, targetSlot, amount)
+    if not moved then
+        local message = "Storage transfer failed: " .. tostring(failure)
+        this.Utils.UserError(message, message)
+        return
+    end
 
     this.Utils.UserMessage(moveText, moveText)
-
-    CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, targetBag, targetSlot, amount)
     PlaySound(SOUNDS.DIALOG_ACCEPT)
 end

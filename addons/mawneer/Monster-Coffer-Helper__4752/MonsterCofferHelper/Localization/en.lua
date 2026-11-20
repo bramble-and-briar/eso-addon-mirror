@@ -37,6 +37,13 @@ ZO_CreateStringId("SI_MCH_TT_WORSE", "The other coffer is cheaper per new should
 ZO_CreateStringId("SI_MCH_TT_SET_MISSING", "<<1>> of <<2>> shoulders still missing from this coffer")
 ZO_CreateStringId("SI_MCH_TT_SET_DONE", "You already own every shoulder in this coffer - wasted keys")
 
+-- Purchase confirmation
+ZO_CreateStringId("SI_MCH_GUARD_TITLE", "Not the best buy")
+ZO_CreateStringId("SI_MCH_GUARD_MYSTERY_WORSE", "Curated coffers are cheaper here right now: <<1>> keys per new shoulder, against <<2>> for a Mystery Coffer.")
+ZO_CreateStringId("SI_MCH_GUARD_CURATED_WORSE", "Mystery Coffers are cheaper here right now: <<1>> keys per new shoulder, against <<2>> for this curated coffer.")
+ZO_CreateStringId("SI_MCH_GUARD_DUPLICATE", "You already own every shoulder this coffer can give, so it can only be a duplicate.")
+ZO_CreateStringId("SI_MCH_GUARD_BUY", "Buy anyway")
+
 -- Settings
 ZO_CreateStringId("SI_MCH_SET_DISPLAY", "Display")
 ZO_CreateStringId("SI_MCH_SET_PANEL", "Show panel at the vendor")
@@ -45,6 +52,8 @@ ZO_CreateStringId("SI_MCH_SET_CHAT", "Print recommendation to chat")
 ZO_CreateStringId("SI_MCH_SET_CHAT_TT", "Writes a one-line verdict to chat when the vendor's store opens.")
 ZO_CreateStringId("SI_MCH_SET_TOOLTIPS", "Add lines to coffer tooltips")
 ZO_CreateStringId("SI_MCH_SET_TOOLTIPS_TT", "Shows your odds and the effective key cost on the coffers in the vendor's store.")
+ZO_CreateStringId("SI_MCH_SET_CONFIRM", "Confirm purchases that aren't the best buy")
+ZO_CreateStringId("SI_MCH_SET_CONFIRM_TT", "Asks before buying the costlier coffer, or a coffer that can only give a shoulder you already own.")
 ZO_CreateStringId("SI_MCH_SET_LOCK", "Lock panel position")
 ZO_CreateStringId("SI_MCH_SET_RESET_POS", "Reset panel position")
 ZO_CreateStringId("SI_MCH_SET_MAXSETS", "Sets listed in the panel")

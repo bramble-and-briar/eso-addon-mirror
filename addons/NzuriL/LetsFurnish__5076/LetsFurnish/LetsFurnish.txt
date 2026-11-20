@@ -1,0 +1,18 @@
+## Title: LetsFurnish!
+## Description: Builds housing layouts for you: what a layout needs, where you have it, and placing it in your house in one go. Type /lf to open.
+## Author: LetsFurnish
+## Version: 0.6.2
+## AddOnVersion: 602
+## APIVersion: 101051 101052
+## SavedVariables: LetsFurnishSV
+## OptionalDependsOn: LetsFurnish_Inbox TamrielTradeCentre
+
+lang/en.lua
+lang/$(language).lua
+LetsFurnish.lua
+LetsFurnish_Code.lua
+LetsFurnish_House.lua
+LetsFurnish_Stock.lua
+LetsFurnish_Needs.lua
+LetsFurnish_Window.lua
+Bindings.xml

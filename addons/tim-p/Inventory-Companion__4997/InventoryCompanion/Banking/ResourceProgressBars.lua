@@ -18,7 +18,6 @@ local BAR_COLORS = {
 }
 
 local progressBarControls = {}
-local isCutsceneHidden = false
 
 local function GetControlName(resourceKey)
     return "InventoryCompanion_ProgressBar_" .. resourceKey:gsub("[^%w]", "_")
@@ -65,9 +64,7 @@ local function CreateProgressBarControl(resource, resourceSettings)
     control.label:SetDrawLevel(4)
     progressBarControls[resource.key] = control
 
-    control:SetHandler("OnMoveStop", function(movedControl)
-        this.SetProgressBarPosition(resource.key, movedControl:GetLeft(), movedControl:GetTop())
-    end)
+    this.PanelLayout.RegisterPanel(resource.key, control)
 
     return control
 end
@@ -117,7 +114,6 @@ local function UpdateProgressBar(resource, control, settings)
     end
 
     control.label:SetText(string.format("%d / %d", values.amount, values.cap))
-    control:SetHidden(not settings.showBar or isCutsceneHidden)
 end
 
 function this.RefreshResourceProgressBars()
@@ -128,8 +124,6 @@ function this.RefreshResourceProgressBars()
         local control = progressBarControls[resource.key]
         if settings.showBar or control then
             control = control or CreateProgressBarControl(resource, this.GetProgressBarSettings(resource.key))
-            control:ClearAnchors()
-            control:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, settings.offsetX, settings.offsetY)
             UpdateProgressBar(resource, control, settings)
         end
     end
@@ -138,26 +132,16 @@ function this.RefreshResourceProgressBars()
             control:SetHidden(true)
         end
     end
+    this.PanelLayout.UpdateVisibility()
 end
 
 function this.InitResourceProgressBars()
     for _, resource in ipairs(this.GetProgressBarResources()) do
         local settings = GetEffectiveSettings(resource)
-        if settings.showBar then
-            local control = progressBarControls[resource.key]
-                or CreateProgressBarControl(resource, this.GetProgressBarSettings(resource.key))
-            UpdateProgressBar(resource, control, settings)
-        end
-    end
-end
-
-function this.SetProgressBarsHidden(hidden)
-    isCutsceneHidden = hidden == true
-    for _, resource in ipairs(this.GetProgressBarResources()) do
         local control = progressBarControls[resource.key]
-        if control then
-            control:SetHidden(isCutsceneHidden or not GetEffectiveSettings(resource).showBar)
-        end
+            or CreateProgressBarControl(resource, settings)
+        control:SetHidden(not settings.showBar)
+        UpdateProgressBar(resource, control, settings)
     end
 end
 

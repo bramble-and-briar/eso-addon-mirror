@@ -1,0 +1,53 @@
+[CENTER][SIZE="5"][b]LetsFurnish![/b][/SIZE]
+[SIZE="3"][i]Import layouts • Build them in your house • Craft what's missing • Share houses with friends[/i][/SIZE][/CENTER]
+
+LetsFurnish! builds ESO housing layouts for you, one furnishing or a whole list at a time.
+
+Take a friend's share code, a layout from the LetsFurnish! app or your own recorded house. See what it needs and where you have it, craft what you can, and build it in your house, with a backup made first. The app is optional.
+
+[SIZE="4"][b]Features[/b][/SIZE]
+[list]
+[*][b]Apply[/b]: compare a layout with your house: [i]To place[/i], [i]To move[/i], [i]To remove[/i], [i]Missing[/i] and [i]In place[/i]. [b]Place all[/b], [b]Move all[/b] and [b]Remove all[/b] each do a whole list in one run, with a progress bar and Stop, or click one row at a time.
+[*][b]Uses what you have[/b]: furnishings already in your house are moved into place before anything is taken from your bags.
+[*][b]Needs and Crafting[/b]: every furnishing a layout uses, where you have it (bags, bank, vault, storage chests, your houses), what's missing, which recipes make it and whether you know the pattern, and the materials, with Tamriel Trade Centre prices when that add-on is installed.
+[*][b]Layouts and share codes[/b]: record your houses, paste codes from friends, receive layouts from the app, and share your house as one line of text.
+[*][b]Pets and mounts on paths[/b]: path nodes, speeds and waits are placed for you.
+[*][b]Find any piece[/b]: open the editor on a furnishing where it stands, or set a waypoint to it.
+[*][b]Backups[/b]: one before the first change of every visit, more by hand. A roll back is all or nothing, and a backup can be kept as a layout.
+[*][b]Careful runs[/b]: every placement, move, switch and removal is checked in your house before the next one. A refused switch is tried again; something a storage place won't take goes to the next place in your order.
+[*][b]Settings and log[/b]: where furnishings are taken from and put away, prices, the speed of a run, and a log of recent runs that says what went wrong and what was fixed automatically.
+[/list]
+
+[SIZE="4"][b]Getting started[/b][/SIZE]
+[list=1]
+[*]Install with Minion, or unzip into [b]Documents\Elder Scrolls Online\live\AddOns[/b].
+[*]Type [b]/lf[/b] in the game, or bind a key under Controls.
+[*]Under [b]Layouts[/b], record your house or paste a code, then [b]Activate[/b] a layout.
+[*]Open [b]Needs[/b] to see what it takes and what to craft.
+[*]In the house, open [b]Apply[/b] and press [b]Place all[/b].
+[/list]
+
+[SIZE="4"][b]Coming soon: the LetsFurnish! app[/b][/SIZE]
+A free Windows app for planning houses outside the game:
+[list]
+[*]Your own houses in full 3D, built from your game files, at any hour and under any sky.
+[*]Every furnishing in the game, to browse and place.
+[*]Precise building tools: snapping, grids, arrays and alignment.
+[*]Undo anything: every step is kept, even after a crash.
+[*]Decorate together with friends, live, up to 250 people a session.
+[*]Send a finished layout straight to this add-on, which places it.
+[/list]
+Want it early? Ask for a preview on our [url=https://discord.gg/56BXakXgwT]Discord[/url]. Updates: [url=https://letsfurnish.app]letsfurnish.app[/url].
+
+[SIZE="4"][b]Good to know[/b][/SIZE]
+[list]
+[*]Free: no account, no ads.
+[*]It records and shares only houses you own, and changes your house only when you ask.
+[*]English, German, French, Spanish, Russian, Japanese and Chinese.
+[*]Questions, ideas or bugs: our [url=https://discord.gg/56BXakXgwT]Discord[/url], or the comments here.
+[/list]
+
+[SIZE="4"][b]Terms[/b][/SIZE]
+LetsFurnish! is a free fan project. Share a house only with its owner's permission. By using LetsFurnish! (the add-on or the app), you agree to its [url=https://letsfurnish.app/terms]terms[/url]; ZeniMax's [url=https://account.elderscrollsonline.com/terms-of-service]Terms of Service[/url] and [url=https://account.elderscrollsonline.com/add-on-terms]Add-on Terms[/url] apply as well.
+
+[SIZE="1"]This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.[/SIZE]

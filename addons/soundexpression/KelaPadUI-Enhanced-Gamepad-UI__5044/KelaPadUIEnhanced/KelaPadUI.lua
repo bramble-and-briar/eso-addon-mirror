@@ -204,6 +204,10 @@ local function KelaPadUI_OnLoaded(eventType, addonName)
 	if IsFeatureEnabled(KELA_SETTING_PANEL_FEATURES_MAIN_MENU_DASHBOARD) then
 		KelaSetupMainMenuDashboard()
 	end
+	-- Always set up: the entries check the setting whenever the menu is built.
+	KelaSetupExtendedJournal()
+	-- Always set up: the menu entry checks the setting whenever it is built.
+	KelaSetupCharacterKnowledge()
 	if IsFeatureEnabled(KELA_SETTING_PANEL_FEATURES_PA_JUNK) then
 		KelaSetupPAJunk()
 	end

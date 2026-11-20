@@ -1,0 +1,5 @@
+Dungeon Buddy v0.3 | Universal Ultimate Tracking v3
+
+Changed: ultimate counting is driven by observed player Ultimate resource expenditure, not by the action-slot callback. This works without an ability-specific whitelist and is designed to cover class, weapon, guild, alliance, and world ultimates and morphs. A qualifying resource decrease (15+) counts once; an 8-second spend-burst suppression protects against toggled/draining abilities and repeated events. The slot event alone cannot award points. Ultimate bonuses and death penalties unchanged. All other systems retained.
+
+Known limitations: this is a heuristic, not proof of a successful ability activation. Ultimate drains of less than 15 between observations, rapidly consecutive casts, and unusual resource-changing mechanics may be miscounted. Validate against in-game casts. ESO runtime validation has not been performed.

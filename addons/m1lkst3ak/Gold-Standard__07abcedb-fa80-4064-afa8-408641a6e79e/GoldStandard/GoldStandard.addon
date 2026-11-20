@@ -1,0 +1,12 @@
+## Title: |cE8BC63Gold Standard|r - Know What It's Worth.
+## Description: Tracker, Advisor, Flip Finder, Empire for visited guild traders; TSC price integration.
+## Author: Trash Man Enterprises
+## Version: 1.0.21-test
+## APIVersion: 101050
+## SavedVariables: GoldStandard_Saved
+## OptionalDependsOn: LibAddonMenu-2.0 TSCPriceDataAPI TSCPriceDataLite
+
+GoldStandard.lua
+GoldStandard_Empire.lua
+GoldStandard_UI.lua
+GoldStandard_Settings.lua

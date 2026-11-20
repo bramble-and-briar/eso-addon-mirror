@@ -1,7 +1,6 @@
 InventoryCompanion = InventoryCompanion or {}
 local this = InventoryCompanion
 
-local COLUMN_COUNT = 3
 local CELL_HEIGHT = 24
 local CELL_GAP_X = 8
 local CELL_GAP_Y = 4
@@ -30,21 +29,21 @@ local RESOURCE_SETTINGS_ROW_GAP = 6
 local settingsCheckboxControlId = 0
 local ReorderResourceSettingsRows
 local resourceSettingsListControl
+local currencyGridColumnLimit
 
 local function OnCurrencyMoveStop(control)
-    this.GetSettingsProfile().currencyOffsetX = control:GetLeft()
-    this.GetSettingsProfile().currencyOffsetY = control:GetTop()
+    this.PanelLayout.OnMoveStop("Currency")
 end
 
 local function OnCurrencyPanelMouseUp(_, button)
     if button ~= MOUSE_BUTTON_INDEX_RIGHT then return end
 
     ClearMenu()
-    local showEmptyCurrencies = this.GetSettingsProfile().showEmptyCurrencies ~= false
+    local showEmptyCurrencies = this.GetPanelSettings("Currency").showEmptyCurrencies ~= false
     AddCustomMenuItem(
         showEmptyCurrencies and "Hide Zero-Balance Currencies" or "Show Zero-Balance Currencies",
         function()
-            this.GetSettingsProfile().showEmptyCurrencies = not showEmptyCurrencies
+            this.GetPanelSettings("Currency").showEmptyCurrencies = not showEmptyCurrencies
             this.RefreshCurrencyPanel()
             this.UpdateEventRegistry()
         end,
@@ -62,22 +61,22 @@ end
 -- Saved variables persist across addon versions and can be edited externally, so validate this
 -- input boundary; warn and recover only the affected preference tables, preserving other settings.
 local function EnsurePreferences()
-    if type(this.GetSettingsProfile().currencyPreferences) ~= "table" then
-        if this.GetSettingsProfile().currencyPreferences ~= nil then
+    if type(this.GetPanelSettings("Currency").currencyPreferences) ~= "table" then
+        if this.GetPanelSettings("Currency").currencyPreferences ~= nil then
             WarnMalformedPreference("currencyPreferences must be a table")
         end
-        this.GetSettingsProfile().currencyPreferences = {}
+        this.GetPanelSettings("Currency").currencyPreferences = {}
     end
-    if type(this.GetSettingsProfile().capacityPreferences) ~= "table" then
-        if this.GetSettingsProfile().capacityPreferences ~= nil then
+    if type(this.GetPanelSettings("Currency").capacityPreferences) ~= "table" then
+        if this.GetPanelSettings("Currency").capacityPreferences ~= nil then
             WarnMalformedPreference("capacityPreferences must be a table")
         end
-        this.GetSettingsProfile().capacityPreferences = {}
+        this.GetPanelSettings("Currency").capacityPreferences = {}
     end
 end
 
 local function GetCurrencyLocationPreference(currencyType, location, create)
-    local currencyPreferences = this.GetSettingsProfile().currencyPreferences
+    local currencyPreferences = this.GetPanelSettings("Currency").currencyPreferences
     local currencyPreference = currencyPreferences[currencyType]
     if type(currencyPreference) ~= "table" then
         if currencyPreference ~= nil then
@@ -111,7 +110,7 @@ local function GetCurrencyLocationPreference(currencyType, location, create)
 end
 
 local function GetCapacityPreference(resourceKey, create)
-    local preferences = this.GetSettingsProfile().capacityPreferences
+    local preferences = this.GetPanelSettings("Currency").capacityPreferences
     local preference = preferences[resourceKey]
     if type(preference) ~= "table" then
         if preference ~= nil then
@@ -125,7 +124,7 @@ local function GetCapacityPreference(resourceKey, create)
 end
 
 local function GetCurrencyPreference(currencyType, create)
-    local currencyPreferences = this.GetSettingsProfile().currencyPreferences
+    local currencyPreferences = this.GetPanelSettings("Currency").currencyPreferences
     local preference = currencyPreferences[currencyType]
     if type(preference) ~= "table" then
         if preference ~= nil then
@@ -282,7 +281,7 @@ local function GetResourceEntries()
 end
 
 local function InitializeCurrencyPanelPreferences()
-    local isFirstInitialization = this.GetSettingsProfile().currencyPreferences == nil
+    local isFirstInitialization = this.GetPanelSettings("Currency").currencyPreferences == nil
     EnsurePreferences()
     if not isFirstInitialization then return end
 
@@ -376,7 +375,7 @@ local function GetVisibleGridEntries(resourceEntries)
     local gridEntries = {}
     local addedCurrencies = {}
     local function HasPositiveBalance(currencyLocations)
-        if this.GetSettingsProfile().showEmptyCurrencies ~= false then return true end
+        if this.GetPanelSettings("Currency").showEmptyCurrencies ~= false then return true end
         for _, locationEntry in ipairs(currencyLocations) do
             if locationEntry.amount > 0 then return true end
         end
@@ -435,6 +434,7 @@ local function GetOrCreateCell(index)
     cell:SetHandler("OnMouseExit", HideCellTooltip)
     cell:SetHandler("OnMouseDown", function(_, button)
         if button == MOUSE_BUTTON_INDEX_LEFT then
+            this.PanelLayout.OnMoveStart("Currency")
             InventoryCompanion_CurrencyFloat:StartMoving()
         end
     end)
@@ -646,8 +646,9 @@ local function SetSettingsRowVisibility(row, visible)
 end
 
 local function ResetCurrencyPanelPreferences()
-    this.GetSettingsProfile().currencyPreferences = {}
-    this.GetSettingsProfile().capacityPreferences = {}
+    this.GetPanelSettings("Currency").currencyPreferences = {}
+    this.GetPanelSettings("Currency").capacityPreferences = {}
+    this.GetPanelSettings("Currency").currencyGridColumns = 3
 
     for _, entry in ipairs(GetResourceEntries()) do
         if entry.kind == "currency" and entry.currencyType ~= CURT_MONEY then
@@ -698,7 +699,7 @@ function this.SetCurrencyNotificationEnabled(currencyType, enabled)
         this.SeedCurrencyNotificationBaselines()
     end
     if next(preference) == nil then
-        this.GetSettingsProfile().currencyPreferences[currencyType] = nil
+        this.GetPanelSettings("Currency").currencyPreferences[currencyType] = nil
     end
 end
 
@@ -720,7 +721,7 @@ function this.SetCapacityNotificationEnabled(resourceKey, enabled)
         this.SeedCapacityNotificationBaselines()
     end
     if next(preference) == nil then
-        this.GetSettingsProfile().capacityPreferences[resourceKey] = nil
+        this.GetPanelSettings("Currency").capacityPreferences[resourceKey] = nil
     end
 end
 
@@ -1632,13 +1633,30 @@ function this.GetCurrencyPanelSettingsControls()
             type = "checkbox",
             name = "Show Empty Currencies",
             tooltip = "If enabled, currencies with a zero balance remain in the panel. Disable this to show only currencies with a positive balance in at least one selected location.",
-            getFunc = function() return this.GetSettingsProfile().showEmptyCurrencies ~= false end,
+            getFunc = function() return this.GetPanelSettings("Currency").showEmptyCurrencies ~= false end,
             setFunc = function(value)
-                this.GetSettingsProfile().showEmptyCurrencies = value
+                this.GetPanelSettings("Currency").showEmptyCurrencies = value
                 this.RefreshCurrencyPanel()
                 this.UpdateEventRegistry()
             end,
-            default = this.defaultsAccount.showEmptyCurrencies,
+            default = this.defaultsAccount.PanelSettings.Currency.showEmptyCurrencies,
+        },
+        {
+            type = "slider",
+            name = "Grid Columns",
+            tooltip = "Choose the number of columns in the currency summary. Resources retain their order.",
+            min = 1,
+            max = this.GetCurrencyGridColumnLimit(),
+            step = 1,
+            default = 3,
+            getFunc = this.GetEffectiveCurrencyGridColumns,
+            setFunc = function(value)
+                assert(type(value) == "number" and value % 1 == 0
+                    and value >= 1 and value <= this.GetCurrencyGridColumnLimit(),
+                    "Grid columns must be an integer within the slider range")
+                this.GetPanelSettings("Currency").currencyGridColumns = value
+                this.RefreshCurrencyPanel()
+            end,
         },
         {
             type = "description",
@@ -1647,8 +1665,8 @@ function this.GetCurrencyPanelSettingsControls()
         {
             type = "button",
             name = "Reset Panel",
-            tooltip = "Show only gold, backpack space, and bank space. Reset resource ordering; keep the panel position and standalone bars.",
-            warning = "This resets compact-grid visibility and ordering to defaults.",
+            tooltip = "Show only gold, backpack space, and bank space. Reset ordering and columns to three; keep panel positions and standalone bars.",
+            warning = "This resets compact-grid visibility, ordering and columns to defaults.",
             isDangerous = true,
             func = ResetCurrencyPanelPreferences,
         },
@@ -1670,18 +1688,40 @@ end
 function this.InitCurrencyPanel()
     InitializeCurrencyPanelPreferences()
     this.SeedCurrencyNotificationBaselines()
-    InventoryCompanion_CurrencyFloat:ClearAnchors()
-    InventoryCompanion_CurrencyFloat:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, this.GetSettingsProfile().currencyOffsetX or 50, this.GetSettingsProfile().currencyOffsetY or 150)
+    this.PanelLayout.RegisterPanel("Currency", InventoryCompanion_CurrencyFloat)
     InventoryCompanion_CurrencyFloat:SetHandler("OnMoveStop", OnCurrencyMoveStop)
     InventoryCompanion_CurrencyFloat:SetHandler("OnMouseUp", OnCurrencyPanelMouseUp)
 
     this.RefreshCurrencyPanel()
     InventoryCompanion_CurrencyFloatContainer:SetHandler("OnMouseDown", function(_, button)
         if button == MOUSE_BUTTON_INDEX_LEFT then
+            this.PanelLayout.OnMoveStart("Currency")
             InventoryCompanion_CurrencyFloat:StartMoving()
         end
     end)
     InventoryCompanion_CurrencyFloatContainer:SetHandler("OnMouseUp", OnCurrencyPanelMouseUp)
+end
+
+function this.InitializeCurrencyGridColumns()
+    local currencies, count = {}, 0
+    for _, entry in ipairs(this.GetCurrencyPanelResourceEntries()) do
+        if entry.kind == "capacity" then
+            count = count + 1
+        elseif not currencies[entry.currencyType] then
+            currencies[entry.currencyType] = true
+            count = count + 1
+        end
+    end
+    currencyGridColumnLimit = math.max(3, count)
+end
+
+function this.GetCurrencyGridColumnLimit()
+    assert(currencyGridColumnLimit, "Currency grid discovery must precede settings/rendering")
+    return currencyGridColumnLimit
+end
+
+function this.GetEffectiveCurrencyGridColumns()
+    return math.min(this.GetPanelSettings("Currency").currencyGridColumns, this.GetCurrencyGridColumnLimit())
 end
 
 function this.RefreshCurrencyPanel()
@@ -1715,17 +1755,19 @@ function this.RefreshCurrencyPanel()
         end
     end
 
-    local columnWidths = { 0, 0, 0 }
+    local columns = math.max(1, math.min(this.GetEffectiveCurrencyGridColumns(), #entries))
+    local columnWidths = {}
+    for column = 1, columns do columnWidths[column] = 0 end
     for index, entry in ipairs(entries) do
         local cell = GetOrCreateCell(index)
         cell.label:SetWidth(0)
         cell.label:SetText(GetEntryText(entry))
-        local column = (index - 1) % COLUMN_COUNT + 1
+        local column = (index - 1) % columns + 1
         columnWidths[column] = math.max(columnWidths[column], math.ceil(cell.label:GetTextWidth()) + 26)
     end
 
-    local columnCount = math.min(COLUMN_COUNT, #entries)
-    local rowCount = math.ceil(#entries / COLUMN_COUNT)
+    local columnCount = math.min(columns, #entries)
+    local rowCount = math.ceil(#entries / columns)
     local gridHeight = rowCount > 0 and (rowCount * CELL_HEIGHT + (rowCount - 1) * CELL_GAP_Y) or 0
     local gridWidth = 0
     for column = 1, columnCount do
@@ -1738,8 +1780,8 @@ function this.RefreshCurrencyPanel()
     for index, entry in ipairs(entries) do
         local cell = GetOrCreateCell(index)
         local zeroBasedIndex = index - 1
-        local column = zeroBasedIndex % COLUMN_COUNT
-        local row = math.floor(zeroBasedIndex / COLUMN_COUNT)
+        local column = zeroBasedIndex % columns
+        local row = math.floor(zeroBasedIndex / columns)
         local columnOffset = 0
         for previousColumn = 1, column do
             columnOffset = columnOffset + columnWidths[previousColumn] + CELL_GAP_X
@@ -1758,4 +1800,5 @@ function this.RefreshCurrencyPanel()
     end
 
     panel:SetHidden(#entries == 0)
+    this.PanelLayout.UpdateVisibility()
 end

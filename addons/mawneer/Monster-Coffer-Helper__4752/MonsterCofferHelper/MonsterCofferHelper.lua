@@ -129,6 +129,7 @@ local function OnAddOnLoaded(_, addOnName)
     MCH.Settings.Initialize()
     MCH.Store.Initialize()
     MCH.Tooltips.Initialize()
+    MCH.Guard.Initialize()
 
     EVENT_MANAGER:RegisterForEvent(MCH.name, EVENT_ITEM_SET_COLLECTION_UPDATED, OnCollectionChanged)
     EVENT_MANAGER:RegisterForEvent(MCH.name, EVENT_ITEM_SET_COLLECTIONS_UPDATED, OnCollectionChanged)

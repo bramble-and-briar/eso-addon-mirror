@@ -40,12 +40,7 @@ local function WarnMalformedPreference(message)
 end
 
 local function EnsurePreferences()
-    if type(this.GetSettingsProfile().progressBarPreferences) ~= "table" then
-        if this.GetSettingsProfile().progressBarPreferences ~= nil then
-            WarnMalformedPreference("progressBarPreferences must be a table")
-        end
-        this.GetSettingsProfile().progressBarPreferences = {}
-    end
+    assert(type(this.GetSettingsProfile().PanelSettings) == "table", "Panel settings were not prepared")
 end
 
 local function GetResourceDefaults(resource)
@@ -85,7 +80,7 @@ end
 
 local function GetStoredPreference(resource, create)
     EnsurePreferences()
-    local preferences = this.GetSettingsProfile().progressBarPreferences
+    local preferences = this.GetSettingsProfile().PanelSettings
     local preference = preferences[resource.key]
     if type(preference) ~= "table" then
         if preference ~= nil then
@@ -211,8 +206,9 @@ function this.GetProgressBarSettings(resourceKey)
     local showBar = defaultShowBar
     local warningThreshold = defaultWarningThreshold
     local dangerThreshold = defaultDangerThreshold
-    local offsetX = resource.defaultOffsetX or 50
-    local offsetY = resource.defaultOffsetY or 170
+    local position = this.GetPanelLayout(resource.key, "Layout_NoScene")
+    local offsetX = position.offsetX
+    local offsetY = position.offsetY
     local normalColor
 
     if preference then
@@ -243,16 +239,6 @@ function this.GetProgressBarSettings(resourceKey)
             else
                 WarnMalformedPreference(resource.key .. ".normalColor must contain RGBA components between 0 and 1")
             end
-        end
-        if type(preference.offsetX) == "number" and preference.offsetX >= 0 and preference.offsetX < math.huge then
-            offsetX = preference.offsetX
-        elseif preference.offsetX ~= nil then
-            WarnMalformedPreference(resource.key .. ".offsetX must be a non-negative number")
-        end
-        if type(preference.offsetY) == "number" and preference.offsetY >= 0 and preference.offsetY < math.huge then
-            offsetY = preference.offsetY
-        elseif preference.offsetY ~= nil then
-            WarnMalformedPreference(resource.key .. ".offsetY must be a non-negative number")
         end
     end
 
@@ -375,9 +361,6 @@ function this.SetProgressBarSetting(resourceKey, setting, value)
         end
     end
 
-    if next(preference) == nil then
-        this.GetSettingsProfile().progressBarPreferences[resource.key] = nil
-    end
 end
 
 function this.SetProgressBarPosition(resourceKey, offsetX, offsetY)
@@ -389,14 +372,23 @@ function this.SetProgressBarPosition(resourceKey, offsetX, offsetY)
         "Progress bar position must contain non-negative numeric offsets"
     )
 
-    local preference = GetStoredPreference(resource, true)
-    preference.offsetX = offsetX
-    preference.offsetY = offsetY
+    this.SavePanelLayout(resourceKey, "Layout_NoScene", nil, offsetX, offsetY)
 end
 
 function this.InitializeProgressBarResources()
     EnsurePreferences()
     progressBarResources = BuildProgressBarResourceList()
+    local settings = this.GetSettingsProfile().PanelSettings
+    for _, resource in ipairs(progressBarResources) do
+        if settings[resource.key] == nil then settings[resource.key] = {} end
+        local panel = settings[resource.key]
+        if panel.Layout_NoScene == nil then
+            panel.Layout_NoScene = { offsetX = resource.defaultOffsetX, offsetY = resource.defaultOffsetY }
+        else
+            if panel.Layout_NoScene.offsetX == nil then panel.Layout_NoScene.offsetX = resource.defaultOffsetX end
+            if panel.Layout_NoScene.offsetY == nil then panel.Layout_NoScene.offsetY = resource.defaultOffsetY end
+        end
+    end
 end
 
 function this.HasVisibleCurrencyProgressBars()

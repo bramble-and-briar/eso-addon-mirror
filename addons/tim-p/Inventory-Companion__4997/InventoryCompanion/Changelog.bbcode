@@ -1,6 +1,55 @@
 [SIZE="4"][B]Inventory Companion Changelog[/B][/SIZE]
 
-[SIZE="2"][B]1.6.3 [current version][/B][/SIZE]
+[SIZE="2"][B]1.8.1[/B][/SIZE]
+
+[LIST]
+[*]The tracker, currency panel, and resource bars now show only on Inventory Companion's own settings page, not elsewhere in the keyboard settings menu. They leave a little more room beside the settings page without reserving space for a header or footer.
+[*]HUD panels make room for the equipment, stats, and header in keyboard inventory, and clear the visible edge of the right-hand backdrop in inventory, banks, the furniture vault, merchants, and fences. Automatic moves do not overwrite saved positions.
+[*]HUD panels keep clear of ESO's bottom keybind bar and its background in supported keyboard screens. When there's room directly above the footer, progress bars move up without shifting sideways.
+[/LIST]
+
+[SIZE="2"][B]1.8.0[/B][/SIZE]
+
+[LIST]
+[*]Withdraw one item or all but one from the Craft Bag or Furniture Vault. For stacks over 201, withdraw one 200-item stack or move all but one in batches of up to 200.
+[*]Stow one item, all but one, or the entire backpack stack in the Craft Bag without entering a quantity. Thanks Delena!
+[/LIST]
+
+[SIZE="2"][B]1.7.2[/B][/SIZE]
+
+[SIZE="2"][B]Your panels stay visible and make room for ESO windows[/B][/SIZE]
+[LIST]
+[*]Keep your tracker, currency panel, and resource bars in view while using keyboard inventory, banks (both deposit and withdrawal), the furniture vault, merchants, fences, Inventory Companion editors, and settings. Only panels that normally show stay visible.
+[*]Panels already clear of ESO windows stay put. If a window opens or grows into their space, affected panels stack to the right when possible, then try the left. In tight spaces, Inventory Companion panels may overlap.
+[*]The addon stops checking panel visibility when no panel or settings preview needs it.
+[/LIST]
+
+[SIZE="2"][B]Snap panels into place and save a layout for each screen[/B][/SIZE]
+[LIST]
+[*]Drop a panel near another to line up their edges or dock them together. Drop it on top of another panel and it can snap to the nearest clear side. Hold [B]Shift[/B] as you release to keep exactly where you dropped it.
+[*]Put your bars beside the bank and your tracker somewhere different in inventory. Each character keeps their own positions for each screen, even on a shared profile. Positions survive logout, closing the screen restores your normal layout, and automatic moves never overwrite your saved positions.
+[*]Resetting a panel's position also clears its saved screen positions. [B]Copy Full Profile[/B] includes them.
+[/LIST]
+
+[SIZE="2"][B]Choose how wide your currency panel is[/B][/SIZE]
+[LIST]
+[*]Open [B]Currency Summary Panel[/B] settings and try the new [B]Grid Columns[/B] slider. Use fewer columns for a narrow panel or more for a shorter, wider one. The preview updates immediately without changing your resource order or formatting.
+[*]Your active profile remembers the choice. The maximum depends on available resources, and [B]Reset Panel[/B] returns the grid to three columns without resetting positions.
+[/LIST]
+
+[SIZE="2"][B]Smaller tracking updates[/B][/SIZE]
+[LIST]
+[*]Treasure Maps now matches names without requiring a space after "Treasure Map".
+[*]Existing custom groups that exactly match a built-in group name can carry their patterns, display preferences, and AutoCategory placements over to the built-in group.
+[*]Added an optional Furniture Materials group for Mundane Rune, Heartwood, Regulus, Bast, Clean Pelt, Alchemical Resin, Decorative Wax, and Ochre. It starts hidden, with notifications off.
+[/LIST]
+
+[SIZE="2"][B]Saved settings upgrade[/B][/SIZE]
+[LIST]
+[*]Saved-variable schema 11 keeps panel preferences and layouts with their profiles. Keep a backup before updating if you may want to return to a previous version; older builds cannot use the upgraded settings.
+[/LIST]
+
+[SIZE="2"][B]1.6.3[/B][/SIZE]
 
 [LIST]
 [*]Guild-bank right-click actions now deposit or withdraw one item, or all but one. Partial deposits require guild-bank deposit access. Partial withdrawals temporarily withdraw the whole stack and return the remainder, require both deposit and withdrawal access, and can be disabled with the account-wide setting (on by default).

@@ -256,6 +256,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Sorcerer Mastery Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Sorcerer-Mastery-Tracker__4840) | its_wifey | PC / Mac | 1.3 |
 | [Sorry, Not Sorry!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/worb13/Sorry-Not-Sorry__2434) | worb13 | PC / Mac | 0.1.0 |
 | [Sort By Quantity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PacificOshie/Sort-By-Quantity__2305) | PacificOshie | PC / Mac | 21 |
+| [Sorted Dungeons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/Sorted-Dungeons__a045f9eb-2dd4-4d17-8be7-ce5f6da4d386) | Dack.Janiels | Console | — |
 | [Soul Bombardment Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/goron_spice/Soul-Bombardment-Patch__c786f4ab-0ae9-4067-bfd7-5d9ec9b2705b) | goron_spice | Console | — |
 | [Soulgem, Parchment, Clippers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Philgo68/Soulgem-Parchment-Clippers__1904) | Philgo68 | PC / Mac | 1.0.2 |
 | [Sous Chef - Provisioning Helper (Recipe helper/search)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wobin/Sous-Chef---Provisioning-Helper-Recipe-helper-search__163) | Wobin | PC / Mac | v2.31 |
@@ -331,6 +332,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [StoreHelper - maintain stocks of basic craft style mats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rexorn/StoreHelper---maintain-stocks-of-basic-craft-style-mats__3195) | Rexorn | PC / Mac | 0.26 |
 | [StoreHelperRune - manage potency runes for glyph writs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rexorn/StoreHelperRune---manage-potency-runes-for-glyph-writs__3220) | Rexorn | PC / Mac | 0.23 |
 | [Storm Atronach Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Storm-Atronach-Tracker__a70e4425-99f9-4fdb-85da-dc21b578e10f) | codeWarrior82 | Console | — |
+| [Storm Eye](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Storm-Eye__5074) | O-Range | PC / Mac | 3.0 |
 | [Story Saver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/f1rex/Story-Saver__2976) | f1rex | PC / Mac | 19 |
 | [Stow It Auto-Sheather](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RunningDuck/Stow-It-Auto-Sheather__862) | RunningDuck | PC / Mac | 3.2.7 |
 | [Stow Keybind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Stow-Keybind__1900) | manavortex | PC / Mac | 1.0 |

@@ -60,7 +60,7 @@ local defaults =
     criticalAoeGraceSeconds = 2,
     criticalAoeAbilityList = "Dragonknight Standard\nShifting Standard\nStandard of Might\nNova\nSolar Prison\nSolar Disturbance\nSleet Storm\nNorthern Storm\nPermafrost\nThe Unblinking Eye\nThe Tide King's Gaze\nThe Languid Eye\nMeteor\nIce Comet\nShooting Star\nElemental Storm\nElemental Rage\nEye of Flame\nEye of Lightning\nEye of Frost\nFire Storm\nIce Storm\nThunder Storm\nFiery Rage\nIcy Rage\nThunderous Rage\nRavenous Goliath\nRapid Fire\nBallista\nToxic Barrage\nLacerate\nRend\nThrive in Chaos\nFrozen Colossus\nGlacial Colossus\nPestilent Colossus\nOnslaught\n85451\n85462\n83687\n17879\n62310\n40161\n62314\n40160\n80435\n47160",
     criticalTextSize = 36,
-    showLeaderMarkerCyrodiil = true,
+    showLeaderMarkerCyrodiil = false,
     showLeaderMarkerImperialCity = false,
     showLeaderMarkerBattlegrounds = false,
     leaderMarkerColor = { r = 1, g = 1, b = 1 }, -- v7.22.0: white (was cyan) - "make it white", per direct user request
@@ -2058,6 +2058,12 @@ local function MigrateEnabledBooleanToMode(enabledKey, modeKey)
         sv[enabledKey] = nil
     end
 end
+local function MigrateLeaderMarkerOffByDefault()
+    local sv = PvPFPSLimiter.savedVars
+    if sv.leaderMarkerOffV1 then return end
+    sv.showLeaderMarkerCyrodiil, sv.showLeaderMarkerImperialCity, sv.showLeaderMarkerBattlegrounds = false, false, false
+    sv.leaderMarkerOffV1 = true
+end
 local function MigrateLeaderMarkerEnabledToPerZone()
     local sv = PvPFPSLimiter.savedVars
     if sv.showLeaderMarker ~= nil then
@@ -2184,6 +2190,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
     MigrateEnabledBooleanToMode("notifyStunnedEnabled", "notifyStunnedMode")
     MigrateEnabledBooleanToMode("notifyImmobilizedEnabled", "notifyImmobilizedMode")
     MigrateLeaderMarkerEnabledToPerZone()
+    MigrateLeaderMarkerOffByDefault()
     MigrateCriticalDelayedAbilityListDefault()
     MigrateCriticalDelayedAbilityListDefaultV2()
     MigrateCriticalAoeAbilityListDefault()

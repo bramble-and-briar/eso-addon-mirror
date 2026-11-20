@@ -22,7 +22,7 @@
     "MonsterCofferHelper"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4752/",
-  "fingerprint": "eb5635b4e989bfded17d935b45f88bf36b8ec2eed486619c1e99e61b688fe4de",
+  "fingerprint": "91c01b4015ed103660e6e1933cd61e4acd7affb1f3c5af1a924f91ba322ac8ca",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16919.png",
     "https://cdn-eso.mmoui.com/preview/pvw16920.png",
@@ -34,11 +34,11 @@
   "source_id": "4752",
   "source_url": "https://www.esoui.com/downloads/info4752-MonsterCofferHelper.html",
   "stats": {
-    "downloads": 90,
+    "downloads": 102,
     "favorites": 0,
-    "monthly_downloads": 14
+    "monthly_downloads": 26
   },
   "title": "Monster Coffer Helper",
-  "updated_at": 1795074604000,
-  "version": "1.0.1"
+  "updated_at": 1795108613000,
+  "version": "1.1.0"
 }

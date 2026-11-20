@@ -1,24 +1,26 @@
-[SIZE="4"][B]Current version: 1.6.3[/B][/SIZE]
+[SIZE="4"][B]Current version: 1.8.0[/B][/SIZE]
 
 [SIZE="2"][B]Required dependency[/B][/SIZE]
 LibAddonMenu-2.0 version 43 or newer is required.
 
 [SIZE="2"][B]AI Disclosure[/B][/SIZE]
-Parts of this add-on's codebase and structure were generated with AI assistance. The author (@Tim-P) has personally reviewed and tested the add-on, including the release test suite, and is responsible for its code and maintenance. Please see the included release review document for detailed results.
-[SIZE="4"][B]Inventory Companion Features[/B][/SIZE]
+Parts of this add-on's codebase and structure were generated with AI assistance. The author (@Tim-P) is responsible for its code and maintenance. Please see the included release review document for the current assessment and test results.
+
+[SIZE="5"]Inventory Companion Features[/SIZE]
 
 This overview describes features implemented in the current addon.
 
-[SIZE="5"][B]AutoCategory integration  [COLOR="#ff8800"]New[/COLOR][/B][/SIZE]
-Manage AutoCategory's native categories and Inventory Companion groups in one dedicated editor. For Backpack, Bank, Guild Bank, House Bank, Crafting Station, Craft Bag and Furniture Vault, set separate Display and Priority orders. Hide or show categories independently in each area without deleting their definitions, and move the special Other heading in Display order without changing its catch-all matching behavior. AutoCategory remains responsible for classifying and displaying inventory items; integration is optional and off by default.
+[SIZE="5"]Customizable panel layouts [COLOR="#ff8800"]New[/COLOR][/SIZE]
+In addon settings, open [B]Currency Summary Panel[/B] and try the [B]Grid Columns[/B] slider. Use fewer columns for a narrow panel or more for a shorter, wider one. The item tracker, currency panel, and resource bars that normally show stay visible while you use supported keyboard screens, including inventory, banks, the furniture vault, merchants, fences, Inventory Companion editors, and settings. If an ESO window gets in the way, your panels can move aside without losing their saved positions.
 
-Also [COLOR="#ff8800"]New[/COLOR] in this release, you can now withdraw 1/n-1 items from the guild bank as well as your own bag, chests and bank. This is not as seemless as the other containers though. Because zos loves consistent inconsistency, guild banks don't support 'pick 1' so it will withdraw ALL of them, split them in your bag and then deposit the ones you didn't ask for back in the bank. This can be turned off in Inventory Companion's account-wide settings.
+Try dragging a bar next to another one and letting go: it snaps into place. Want it exactly where you dropped it instead? [B]Hold Shift as you release.[/B] Your position is saved for that screen and character. Close the screen and your normal layout comes back.
 
-[SIZE="5"][B]Features at a glance[/B][/SIZE]
+[SIZE="5"]Features at a glance[/SIZE]
 [LIST]
 [*][B]AutoCategory integration:[/B] Reorder inventory categories and add your Inventory Companion groups to AutoCategory.
 [*][B]Capacity bars:[/B] Watch backpack space, bank space and Transmute Crystals on movable bars.
-[*][B]Currency panel:[/B] See selected balances at a glance and get alerts when they change.
+[*][B]Currency panel:[/B] See selected balances in a configurable grid and get alerts when they change.
+[*][B]Panel layouts:[/B] Keep panels visible on supported screens, save positions per character and screen, and snap panels together when you drop them.
 [*][B]Live Item Tracker:[/B] Keep important items on your HUD and get alerts when you find more.
 [*][B]Custom groups:[/B] Track matching items together with Include and Exclude name patterns and wildcards.
 [*][B]Built-in groups:[/B] Start with ready-made groups you can customize.
@@ -28,40 +30,43 @@ Also [COLOR="#ff8800"]New[/COLOR] in this release, you can now withdraw 1/n-1 it
 [*][B]Partial-stack transfers:[/B] Deposit or withdraw one item, or all but one, with a right-click where the storage supports it.
 [/LIST]
 
-[SIZE="5"][B]More Detail[/B][/SIZE]
-(for those who like a read....)
+[SIZE="5"]Space and currency panels[/SIZE]
+[SIZE="4"]Backpack and bank capacity bars[/SIZE]
+Ever wonder how much room is left in your backpack or how close you are to the Transmute Crystal cap? Put a movable bar on your screen and check at a glance. In settings, choose which resources get their own bar, such as backpack space, bank space, or Transmute Crystals. You can also choose the warning and danger colors and when they kick in.
 
-[SIZE="5"][B]Space and currency panels[/B][/SIZE]
-
-[SIZE="3"][B]Backpack and bank capacity bars.[/B][/SIZE]
-It's easy to lose track of how close your storage is to full. Inventory Companion provides movable progress bars showing used slots against capacity. In the settings, choose which resources get their own bar and set the colors and thresholds for warning (amber) and danger (red). Currently ZOS only has three capped resources - backpack space, bank space, and Transmute Crystals, each of which can have its own bar. It would be good to have the bar only pop up at a certain percentage value as well - but I haven't done that yet.
-
-[SIZE="3"][B]Currency Summary Panel.[/B][/SIZE]
+[SIZE="4"]Currency Summary Panel[/SIZE]
 There are a [I]lot[/I] of currencies in this game: Tel Var, Transmute Crystals, Crown Gems, Outfit Change Tokens, Trade Bars, and more. It can be annoying to open your inventory, click the currency tab, and squint at the screen to see how much of each you have. Inventory Companion helps by listing available currencies in the settings, where you can choose which ones to track and whether to show your character's balance, your bank balance, or both. You can also enable a notification for changes to a currency. The panel can hide currencies with a zero balance, too. For example, track Tel Var on your character and it stays out of sight until you collect some; deposit it in the bank and it disappears again if the bank location isn't selected.
 
-[SIZE="5"][B]Item tracking[/B][/SIZE]
-
-[SIZE="3"][B]Live Item Tracker.[/B][/SIZE]
+[SIZE="5"]Item tracking[/SIZE]
+[SIZE="4"]Live Item Tracker[/SIZE]
 It doesn't stop with currencies. We all care more about some items than others (sorry, Lorkhan's Tears). Want to see at a glance how many Nirncrux you have, or get a notification when you find one? Inventory Companion provides a movable HUD panel for the items that matter to you. Choose whether to show each item on the panel, notify when you gain it, or both. Add items in the tracking editor, or right-click an item in your backpack or bank and choose [B]Add to Tracked Items[/B].
 
-[SIZE="3"][B]Custom Groups.[/B][/SIZE]
+[SIZE="4"]Custom Groups[/SIZE]
 Too much work to track items one by one? You can create groups with Include and Exclude name patterns and wildcards. A group matches when at least one Include matches and no Exclude matches; exclusions narrow only their own group. Matching items can appear together in a group on the tracker, and you can enable notifications when you gain a match. Expand the group to see its items, or collapse it to see the group total. Groups with more than 200 eligible items show an overflow message instead of item rows; narrow their patterns to display the items. Summary counts still include all matching items.
 
-[SIZE="3"][B]Built-in item groups.[/B][/SIZE]
+[SIZE="4"]Built-in item groups[/SIZE]
 But even that seems like too much trouble? You don't have to set up groups from scratch: the addon comes with a collection of groups I personally use, plus some I thought other players might like. I may be a bit obsessive about some things and laissez-faire about others, so you can rename a built-in group, hide it, change its patterns, or just laugh at it.
 
-[SIZE="5"][B]Profiles[/B][/SIZE]
+[SIZE="5"]Integration with other addons[/SIZE]
+[SIZE="4"]AutoCategory integration[/SIZE]
+Already use AutoCategory? With Inventory Companion, changing the order is as easy as clicking an up or down arrow. You can even select several categories and move them together. Want crafting materials near the top in your backpack but not in the bank? Move them up in the backpack list and leave the bank list alone. Each area has its own Display and Priority orders, from your backpack and banks to crafting stations, the craft bag, and the furniture vault. You can also hide categories in one place without deleting them, or move the Other heading without changing what it catches.
 
-[SIZE="3"][B]Account-wide and character-specific tracking lists.[/B][/SIZE]
-A single setup may not fit every character's activities. By default, characters share the account-wide profile; turn on Use Character Settings to retain a separate full profile for a character. Profiles include tracked items and groups, panel preferences and positions, editor filters, and AutoCategory layouts. First use copies the account profile; later switches resume the retained character settings. In Main Settings, choose a source in Copy From and select Copy Full Profile to replace the active profile after confirmation. Integration enablement, transfer delay, chest-stack merging, and diagnostic controls remain account-wide.
+Yes, I know AutoCategory already lets you choose what goes in each category and what order the categories appear in your bag. But if you're like me, you'd rather spend that time playing than mucking around with priority numbers and complicated filters. With Inventory Companion, you can start with ready-made groups or use simple name patterns, then reorder your groups alongside AutoCategory's own categories in one editor.
 
-[SIZE="5"][B]Bank and chest helpers[/B][/SIZE]
+AutoCategory still decides where items go and displays them. The integration is off by default, so if you like things as they are, there's nothing you need to do.
 
-[SIZE="3"][B]Crafted-item deposit and withdrawal.[/B][/SIZE]
+[SIZE="5"]Profiles[/SIZE]
+[SIZE="4"]Account-wide and character-specific tracking lists[/SIZE]
+Want your crafter and your tank to track different things? They share a profile by default, but you can turn on [B]Use Character Settings[/B] to give either one a setup of their own. The first switch copies your account profile so you don't have to start from scratch. Come back to character settings later and that character's setup is still there, including tracked items and groups, panel preferences and positions, editor filters, and AutoCategory layouts.
+
+To reuse a setup, pick a source under [B]Copy From[/B] in Main Settings and select [B]Copy Full Profile[/B]. You'll be asked before it replaces your active profile. Whether AutoCategory integration is on, along with transfer delay, chest-stack merging, and diagnostic controls, still applies account-wide.
+
+[SIZE="5"]Bank and chest helpers[/SIZE]
+[SIZE="4"]Crafted-item deposit and withdrawal[/SIZE]
 If, like me, you craft several days' worth of gear ahead with LazyWritCrafter, you know how repetitive it can be to move it between your backpack and bank by hand. You just want to jump into a trial, but the bank is full of other characters' crafted items. Deposit your tank's gear on top of those, and sorting it all out later can be a pain. Inventory Companion moves supported items between your backpack and bank with a single keypress. It only transfers items crafted by the current character, so your other characters' gear stays safe. The bank must be open, and you need to assign keys to the Deposit and Withdraw actions in the game's keybindings. Transfers are limited to the addon's built-in item list, which currently focuses on max-level crafting writ gear. (I should probably add all the other levels - I'll get to it sometime this year, or you could do it - its all in one file. If you want to - let me know - the repo's on github)
 
-[SIZE="3"][B]House-chest stack merging.[/B][/SIZE]
+[SIZE="4"]House-chest stack merging[/SIZE]
 If you have a lot of surveys or treasure maps in your bank and house chests, you may find yourself hunting for the chest with the Blacksmith's Survey for Auridon so you can add the copies from your backpack. Now you just need to open each chest in turn. Inventory Companion looks for matching stacks with room and moves matching items from your backpack onto them. You can turn this feature off in the settings.
 
-[SIZE="3"][B]Move just one item without the 'split' window. Move all but one item.[/B][/SIZE]
-Ever want to take just one item from a stack in your bank, backpack, house chest or guild bank—or take all [I]except[/I] one? Instead of moving a stack to your backpack, splitting it, and moving the unwanted items back, use the right-click options to deposit or withdraw one item or all but one. Guild-bank partial deposits require deposit access, a free backpack slot and a free guild-bank slot. Partial withdrawals temporarily take the whole stack and return the remainder; they require both deposit and withdrawal access, at least two free backpack slots and a free guild-bank slot. The account-wide [B]Enable Partial Guild Bank Withdrawals[/B] setting controls withdrawals and is on by default.
+[SIZE="4"]Move one item or all but one[/SIZE]
+Ever want to take just one item from a stack in your bank, backpack, house chest, guild bank, Craft Bag, or Furniture Vault—or take all [I]except[/I] one? Use the right-click options to deposit or withdraw one item or all but one. Eligible backpack stacks also offer Stow 1, Stow N-1, or Stow the full stack into the Craft Bag, avoiding ESO's standard Stow quantity-entry prompt. For Craft Bag and Furniture Vault stacks over 201, choose Withdraw 200 for one stack or N-1 across multiple stacks; the selected amount moves to your backpack and the remainder stays in storage. Guild-bank partial deposits require deposit access, a free backpack slot and a free guild-bank slot. Partial withdrawals temporarily take the whole stack and return the remainder; they require both deposit and withdrawal access, at least two free backpack slots and a free guild-bank slot. The account-wide [B]Enable Partial Guild Bank Withdrawals[/B] setting controls withdrawals and is on by default.

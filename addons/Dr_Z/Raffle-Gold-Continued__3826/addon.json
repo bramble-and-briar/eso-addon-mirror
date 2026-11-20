@@ -8,12 +8,12 @@
   "category_id": "33",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     },
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3826",
@@ -22,7 +22,7 @@
     "RaffleGold"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3826/",
-  "fingerprint": "5d8305a92ee9707f059959cd3fe5b062d9c3132fa04753589dbc7ba0a2a88c19",
+  "fingerprint": "893119229c52ef32b2f472ef2a92407e9ed165ad1597dcdc03a8dca39f98c02f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13002.png",
     "https://cdn-eso.mmoui.com/preview/pvw13003.png",
@@ -34,11 +34,11 @@
   "source_id": "3826",
   "source_url": "https://www.esoui.com/downloads/info3826-RaffleGoldContinued.html",
   "stats": {
-    "downloads": 1799,
+    "downloads": 1930,
     "favorites": 2,
-    "monthly_downloads": 37
+    "monthly_downloads": 43
   },
   "title": "Raffle Gold (Continued)",
-  "updated_at": 1790464593000,
-  "version": "26.51.00"
+  "updated_at": 1795142969000,
+  "version": "26.51.04"
 }

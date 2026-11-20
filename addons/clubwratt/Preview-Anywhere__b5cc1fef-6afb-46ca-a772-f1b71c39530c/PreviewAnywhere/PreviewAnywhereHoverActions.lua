@@ -1,9 +1,10 @@
 -- PreviewAnywhereHoverActions.lua: "preview whatever item tooltip is on screen", for every gamepad
 -- screen that is not already covered by a host (bank / guild bank / vendor: R3) or by the game
--- itself (inventory: hold Square; chat / mail / guild hub links: hold Square via ZO_GamepadLinks).
+-- itself (inventory: hold Square; chat / mail / guild hub links: hold Square via ZO_GamepadLinks;
+-- guild trader: Preview on the search results).
 --
--- Every gamepad item tooltip (bag rows, trade offers, mail attachments, guild store listings,
--- crafting lists, quest rewards, ...) funnels through ZO_Tooltip:LayoutItem(itemLink, ...) on one
+-- Every gamepad item tooltip (bag rows, trade offers, mail attachments, crafting lists, quest
+-- rewards, ...) funnels through ZO_Tooltip:LayoutItem(itemLink, ...) on one
 -- of the GAMEPAD_TOOLTIPS tooltip objects. Those objects get ZO_Tooltip's functions copied in at
 -- creation, so the hook goes on each tooltip object, not on the class. We remember the last item
 -- link laid out per tooltip and offer a D-pad Left "Preview" keybind for it; pressing it pushes the
@@ -29,6 +30,10 @@ local TOOLTIP_TYPES = { "GAMEPAD_LEFT_TOOLTIP", "GAMEPAD_RIGHT_TOOLTIP", "GAMEPA
 local EXCLUDED_SCENES = {
     gamepad_inventory_root = true, -- stock hold-Square preview
     gamepadChatMenu = true,        -- ZO_GamepadLinks hold-Square button
+    -- Guild trader: the search results have the game's own Preview button.
+    gamepad_trading_house = true,                -- Browse, search results, Sell, Listings tabs
+    gamepad_trading_house_create_listing = true, -- price entry for the item being listed
+    tradingHousePreview_Gamepad = true,          -- the game's preview scene itself
 }
 
 local DEFAULT_KEYBIND = "UI_SHORTCUT_INPUT_LEFT"

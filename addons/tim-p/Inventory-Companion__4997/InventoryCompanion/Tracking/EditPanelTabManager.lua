@@ -110,16 +110,7 @@ function this.IsEditorWindowOpen()
 end
 
 function this.UpdateEditorLayout()
-    local isOpen, openWindow = this.IsEditorWindowOpen()
-    if isOpen and this.AdjustTrackerPositionForEditor then
-        this.Utils.DebugMessage(" -> Adjusting for editor window")
-        this.AdjustTrackerPositionForEditor(openWindow)
-    else
-        this.Utils.DebugMessage("<- Restoring Tracker Position")
-        if this.RestoreTrackerPosition then
-            this.RestoreTrackerPosition()
-        end
-    end
+    this.PanelLayout.UpdateContext()
 end
 
 local function OpenEditorTab(sceneName)

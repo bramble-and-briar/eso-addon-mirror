@@ -1,0 +1,18 @@
+## Title: LibESQL
+## Author: Vixen Hunny
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101049 101050
+## IsLibrary: true
+## Description: SQL engine over ESO game data for add-ons: abilities, skills, sets, effects, items, achievements, collectibles, zones, champion points and more. LibESQL.Query("SELECT ...").
+## SavedVariables: LibESQL_SV
+
+LibESQL_Core.lua
+LibESQL_SQL.lua
+LibESQL_Schema.lua
+LibESQL_Tables_Abilities.lua
+LibESQL_Tables_Items.lua
+LibESQL_Tables_Character.lua
+LibESQL_Tables_World.lua
+LibESQL_Tables_Meta.lua
+LibESQL_API.lua

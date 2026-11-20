@@ -57,6 +57,14 @@ function Settings.Initialize()
         },
         {
             type = "checkbox",
+            name = GetString(SI_MCH_SET_CONFIRM),
+            tooltip = GetString(SI_MCH_SET_CONFIRM_TT),
+            getFunc = function() return db.confirmPurchases end,
+            setFunc = function(value) db.confirmPurchases = value end,
+            default = defaults.confirmPurchases,
+        },
+        {
+            type = "checkbox",
             name = GetString(SI_MCH_SET_LOCK),
             getFunc = function() return db.lockPanel end,
             setFunc = function(value)

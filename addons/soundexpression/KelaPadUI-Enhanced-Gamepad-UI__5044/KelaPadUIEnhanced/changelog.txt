@@ -1,3 +1,7 @@
+2.9.0 - 11/18/2026
+- Extended Journal comes to the gamepad! Loot Log, Collectibles Tracker, and every other journal get filters on the left and a sortable table on the right. L1/R1 flips between journals. Find it in the KelaPadUI² menu or at the bottom of the Journal menu.
+- New Character Knowledge browser: see which recipes, furnishing plans, motifs, and scribing items each character knows, with search, quality, and type filters, and how many of your characters know each one. Needs LibCharacterKnowledge.
+
 2.8.3 - 11/17/2026
 - New: a Summary page in Trait Research shows every character's progress, station by station, plus a research queue sorted by what finishes next. Spot the idle stations at a glance!
 - Set browser glow-up: a search box at the top of the filters, four new bonus groups (Critical, Penetration, Healing, Recovery), readable Composition and Search Area columns, and correct armor, weapon, and jewelry detection.

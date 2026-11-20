@@ -1,0 +1,10 @@
+## Title: Red Ledger
+## Author: O-Range
+## Version: 0.6
+## AddOnVersion: 6
+## APIVersion: 101051 101052
+## SavedVariables: RedLedgerSaved
+## OptionalDependsOn: LibAddonMenu-2.0
+
+RedLedger.lua
+Bindings.xml

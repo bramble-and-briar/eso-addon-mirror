@@ -211,7 +211,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Always Logging](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eurymachos/Always-Logging__4081) | Eurymachos | PC / Mac | v3.1.12.1.0 |
 | [AlwaysCompass: Never Get Lost Again](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mouton/AlwaysCompass-Never-Get-Lost-Again__4107) | Mouton | PC / Mac | 0.0.2 |
 | [AlwaysExpandedAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/partdark/AlwaysExpandedAttributeBars__2979) | partdark | PC / Mac | 4.0 |
-| [Am I Blocking+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Am-I-Blocking__3929) | Lykeion | PC / Mac | 3.14 |
+| [Am I Blocking+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Am-I-Blocking__3929) | Lykeion | PC / Mac | 3.15 |
 | [Am I Blocking+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Am-I-Blocking__e1710013-83a1-4e50-941a-5464d85d587c) | Lykeion+ | Console | — |
 | [Am I Blocking?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Qcell/Am-I-Blocking__2920) | Qcell | PC / Mac | 2.7 |
 | [An_Daghdha1233 Inventory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ForiMonster/An_Daghdha1233-Inventory__be795295-0a8b-40e3-9fc6-f3086e0f202c) | ForiMonster | Console | — |

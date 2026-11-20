@@ -1,0 +1,51 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/NzuriL/LetsFurnish__5076",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "NzuriL",
+  "canonical_id": "esoui:5076",
+  "category_id": "160",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5076",
+  "deleted": false,
+  "directories": [
+    "LetsFurnish"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5076/",
+  "fingerprint": "b640315f8f6bdf197a2b811e2e15edbbd02f84b9e282bbe8a27ef9fa4c831185",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18607.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18608.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18610.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18611.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18612.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18613.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18615.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18614.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18616.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18617.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5076",
+  "source_url": "https://www.esoui.com/downloads/info5076-LetsFurnish.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "LetsFurnish!",
+  "updated_at": 1795148360000,
+  "version": "0.6.2"
+}

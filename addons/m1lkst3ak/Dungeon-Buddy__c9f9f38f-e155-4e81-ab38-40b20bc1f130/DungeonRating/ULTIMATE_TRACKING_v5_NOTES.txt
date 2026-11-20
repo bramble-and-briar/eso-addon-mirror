@@ -1,0 +1,1 @@
+v5: ACTION_RESULT_BEGIN-only detection removed. Count first self-attributed registered ultimate combat result or self effect gained, dedupe per ability for 8s. /dr ultdebug shows last recognized event. This is an unverified best-effort patch; ability sub-effects may have different IDs/names and some casts have no matching events. No resource or slot detection.

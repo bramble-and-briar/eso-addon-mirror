@@ -2,14 +2,73 @@ InventoryCompanion = InventoryCompanion or {}
 local this = InventoryCompanion
 
 local CONTEXT_MENU_DELAY_MS = 50
+local PARTIAL_STOW_GEMMIFIABLE_DIALOG = "INVENTORYCOMPANION_PARTIAL_STOW_GEMMIFIABLE"
+
+ZO_Dialogs_RegisterCustomDialog(PARTIAL_STOW_GEMMIFIABLE_DIALOG, {
+    canQueue = true,
+    gamepadInfo = {
+        dialogType = GAMEPAD_DIALOGS.BASIC,
+    },
+    title = {
+        text = SI_CONFIRM_STOW_GEMIFIABLE_TITLE,
+    },
+    mainText = {
+        text = SI_CONFIRM_STOW_GEMIFIABLE_TEXT,
+    },
+    buttons = {
+        [1] = {
+            text = SI_YES,
+            callback = function(dialog)
+                local data = dialog.data
+                this.StowContextItem(
+                    data.sourceSlotIndex, data.amount, data.sourceCount, data.sourceItemLink, true)
+            end,
+        },
+        [2] = {
+            text = SI_NO,
+        },
+    },
+})
+
+local function AddCraftBagStowOptions(slotIndex, currentCount, itemLink)
+    if IsGuildBankOpen() or not HasCraftBagAccess()
+        or not CanItemBeVirtual(BAG_BACKPACK, slotIndex)
+        or IsItemStolen(BAG_BACKPACK, slotIndex)
+        or not itemLink or itemLink == "" then
+        return
+    end
+
+    local slotData = SHARED_INVENTORY:GenerateSingleSlotData(BAG_BACKPACK, slotIndex)
+    if not slotData then return end
+
+    local function AddStowOption(label, amount)
+        AddCustomMenuItem(label, function()
+            if slotData.isGemmable then
+                ZO_Dialogs_ShowPlatformDialog(PARTIAL_STOW_GEMMIFIABLE_DIALOG, {
+                    sourceSlotIndex = slotIndex,
+                    amount = amount,
+                    sourceCount = currentCount,
+                    sourceItemLink = itemLink,
+                })
+            else
+                this.StowContextItem(slotIndex, amount, currentCount, itemLink)
+            end
+        end, MENU_ADD_OPTION_LABEL)
+    end
+
+    AddStowOption(string.format("Stow 1 (of %d)", currentCount), 1)
+    AddStowOption(string.format("Stow %d (of %d)", currentCount - 1, currentCount), currentCount - 1)
+    AddStowOption(string.format("Stow %d (of %d)", currentCount, currentCount), currentCount)
+end
 
 local function AddContextMenuItems(rowControl)
     local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(rowControl)
     if not bagId or not slotIndex then return end
 
     local itemId = GetItemId(bagId, slotIndex)
+    local itemLink
     if itemId and itemId > 0 then
-        local itemLink = GetItemLink(bagId, slotIndex)
+        itemLink = GetItemLink(bagId, slotIndex)
         local icon = GetItemLinkIcon(itemLink)
         
         local trackedList = this.GetActiveTrackedItems()
@@ -40,13 +99,16 @@ local function AddContextMenuItems(rowControl)
         end, MENU_ADD_OPTION_LABEL)
     end
 
-    if IsBankOpen() or IsGuildBankOpen() then
+    local isVirtualStorage = bagId == BAG_VIRTUAL or bagId == BAG_FURNITURE_VAULT
+    if IsBankOpen() or IsGuildBankOpen() or isVirtualStorage then
         local currentCount = select(2, GetItemInfo(bagId, slotIndex))
         if currentCount and currentCount > 1 then 
             local mode = nil
             local useGuildBankTransfer = false
 
-            if bagId == BAG_BACKPACK then
+            if isVirtualStorage then
+                if not IsGuildBankOpen() then mode = "Withdraw" end
+            elseif bagId == BAG_BACKPACK then
                 if IsGuildBankOpen() and this.CanUseGuildBankPartialDeposits() then
                     mode = "Deposit"
                     useGuildBankTransfer = true
@@ -61,33 +123,40 @@ local function AddContextMenuItems(rowControl)
             end
 
             if mode then
-                local sendOneLabel  = string.format("%s 1 (of %d)", mode, currentCount)
-                local sendMostLabel = string.format("%s %d (of %d)", mode, currentCount - 1, currentCount)
-
-                AddCustomMenuItem(sendOneLabel, function() 
-                    if useGuildBankTransfer then
-                        if bagId == BAG_GUILDBANK then
-                            this.WithdrawGuildBankPartial(slotIndex, 1, currentCount)
+                local function AddTransferOption(label, amount)
+                    AddCustomMenuItem(label, function()
+                        if useGuildBankTransfer then
+                            if bagId == BAG_GUILDBANK then
+                                this.WithdrawGuildBankPartial(slotIndex, amount, currentCount)
+                            else
+                                this.DepositGuildBankPartial(slotIndex, amount, currentCount)
+                            end
                         else
-                            this.DepositGuildBankPartial(slotIndex, 1, currentCount)
+                            this.TransferContextItem(bagId, slotIndex, amount, currentCount, itemLink)
                         end
-                    else
-                        this.TransferContextItem(bagId, slotIndex, 1)
-                    end
-                end, MENU_ADD_OPTION_LABEL)
+                    end, MENU_ADD_OPTION_LABEL)
+                end
 
-                AddCustomMenuItem(sendMostLabel, function() 
-                    if useGuildBankTransfer then
-                        if bagId == BAG_GUILDBANK then
-                            this.WithdrawGuildBankPartial(slotIndex, currentCount - 1, currentCount)
-                        else
-                            this.DepositGuildBankPartial(slotIndex, currentCount - 1, currentCount)
-                        end
-                    else
-                        this.TransferContextItem(bagId, slotIndex, currentCount - 1)
-                    end
-                end, MENU_ADD_OPTION_LABEL)
+                AddTransferOption(string.format("%s 1 (of %d)", mode, currentCount), 1)
+                if mode == "Withdraw" and isVirtualStorage and currentCount > 201 then
+                    AddTransferOption("Withdraw 200 (one stack)", 200)
+                    local remainingCount = currentCount - 1
+                    local stackCount = math.ceil(remainingCount / 200)
+                    AddTransferOption(
+                        string.format("Withdraw %d (of %d, %d stacks)", remainingCount, currentCount, stackCount),
+                        remainingCount)
+                else
+                    AddTransferOption(string.format("%s %d (of %d)", mode, currentCount - 1, currentCount),
+                        currentCount - 1)
+                end
             end
+        end
+    end
+
+    if bagId == BAG_BACKPACK then
+        local currentCount = select(2, GetItemInfo(bagId, slotIndex))
+        if currentCount and currentCount > 1 then
+            AddCraftBagStowOptions(slotIndex, currentCount, itemLink)
         end
     end
 

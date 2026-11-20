@@ -1,6 +1,5 @@
---[[ ## New API, (v101041), Global Variables and Functions needed for this addons Overhaul (3.18.2024) by @Dr_Z ## ]]--
---[[ ## DEBUGGED for 101050 101051 by @Dr_Z   ## ]]--
---[[ ## Last Updated:	9.26.2026  by @Dr_Z	## ]]--
+--[[ ##  Last Updated: 11.19.2026  by @Dr_Z  ## ]]--
+
 RaffleGold = {
 	db = nil,
 	name = "RaffleGold",
@@ -8,7 +7,7 @@ RaffleGold = {
 	ADDON_NAME = "Raffle Gold",
 	ADDON_DISPLAY_NAME = "|cFFFFFFRaffle |cb38600Gold|r",
 	ADDON_AUTHOR = "@Dr_Z, depeshmood",
-	ADDON_VERSION = "26.51.00",
+	ADDON_VERSION = "26.51.04",
 	ADDON_WEBSITE = "https://www.esoui.com/downloads/info3826-RaffleGold.html",
 	lastDeposit = nil,
 	defaults = {
@@ -31,6 +30,8 @@ RaffleGold = {
 		prizes = {}
 	}
 }
+local RaffleGold = RaffleGold
+
 
 ---------------------------
 -- Here's the MENU Section.  I know, I know, blah blah blah
@@ -409,7 +410,7 @@ end
 -- Lets Draw for the Raffle
 ----------------------------
 function RaffleGold:DrawRaffle(out, p)
-	m = nil
+	local m = nil
 	if out == true and p == nil then
 		self.db.prizes = {}
 		self.db.raffleType = "draw"
@@ -417,7 +418,7 @@ function RaffleGold:DrawRaffle(out, p)
 	if out == true and p ~= nil and self.db.raffleType == "guild" then
 		return self:GuildRaffle(p)
 	end
-	nums = {
+	local nums = {
 		entAmt = tonumber(self.db.entryPrice),
 		entries = tonumber(self.db.totalEntries),
 		pFrt = tonumber(self.db.placeFirst),
@@ -466,16 +467,17 @@ function RaffleGold:DrawRaffle(out, p)
 	if out == false then
 		return true
 	end
-	eAmt = nums.entries
+	local eAmt = nums.entries
 	if nums.tktAmt ~= nil then
 		eAmt = (zo_round(nums.entAmt / nums.tktAmt) * nums.entries)
 	end
+	local tAmt
 	if nums.totAmt ~= nil then
 		tAmt = nums.totAmt
 	else
 		tAmt = nums.entAmt * nums.entries
 	end
-	sysMes = ""
+	local sysMes = ""
 	if p ~= "d" then
 		sysMes = " -- \nTotal Raffle Tickets: " .. eAmt
 		if eAmt ~= nums.entries then
@@ -541,14 +543,14 @@ function RaffleGold:GuildRaffle(p)
 		}
 		self.db.raffleType = "guild"
 	end
-	m = nil
+	local m = nil
 	if self:DrawRaffle(false) == false then
 		return
 	end
 	if self.db.guild == nil or self.db.guild == "-" then
 		m = "Guild"
 	end
-	stAmt = tonumber(self.db.startAmt)
+	local stAmt = tonumber(self.db.startAmt)
 	if self.db.startAmt ~= "" and stAmt == nil then
 		m = "Valid Starting Amount"
 	end
@@ -562,12 +564,12 @@ function RaffleGold:GuildRaffle(p)
 		CHAT_SYSTEM:AddMessage(RaffleGold.ADDON_DISPLAY_NAME .. " -- \n|cFF0000Required: " .. m .. "\r")
 		return false
 	end
-	sT = self:StartDate(self.db.dateStart, self.db.timeStart)
+	local sT = self:StartDate(self.db.dateStart, self.db.timeStart)
 	if sT == nil then
 		CHAT_SYSTEM:AddMessage(RaffleGold.ADDON_DISPLAY_NAME .. " -- \n|cFF0000ERROR: |cf5e642Starting Date is out of range!\r|r")
 		return
 	end
-	eT = self:StartDate(self.db.dateEnd, self.db.timeEnd)
+	local eT = self:StartDate(self.db.dateEnd, self.db.timeEnd)
 	if eT == nil then
 		CHAT_SYSTEM:AddMessage(RaffleGold.ADDON_DISPLAY_NAME .. " -- \n|cFF0000ERROR: |cf5e642Ending Date is out of range!\r|r")
 		return
@@ -576,42 +578,22 @@ function RaffleGold:GuildRaffle(p)
 		CHAT_SYSTEM:AddMessage(RaffleGold.ADDON_DISPLAY_NAME .. " -- \n|cFF0000REQUIRED: Valid starting and ending date/time.\r\n(Ending Date/Time cannot be the same or less than Starting Date/Time)")
 		return
 	end
-	cT = GetTimeStamp()
-	guildId = self:GetGuilds(self.db.guild)
-	numEvents = self:BuildHistory(guildId, sT, cT, nil, eT)
-	
-	if numEvents == nil or numEvents == 0 then
-	--d(sT) d(self.lastDeposit)
-	--d(numEvents) d(guildId)
-   -- ** Added  6.11.2026 by @Dr_Z	
-	-- ** Check to see if We have Permissions to SCAN Guild Gold History					
-		local playersName, _, playersRankIndex, _, _ = GetGuildMemberInfo( guildId, GetPlayerGuildMemberIndex(guildId))
-		local playersRankHasPerm = DoesGuildRankHavePermission(guildId, playersRankIndex, GUILD_PERMISSION_BANK_VIEW_GOLD)
-	--	--d("#1") d(playersName) d(playersRankIndex)
-		if not playersRankHasPerm then
-			--d("#1 message")
-			CHAT_SYSTEM:AddMessage(RaffleGold.ADDON_DISPLAY_NAME .. ":")
-			CHAT_SYSTEM:AddMessage("|cFF0000ERROR: |cf5e642You do NOT have the proper permissions \nto scan |cFFFFFF"..self.db.guild.."'s|r Gold Deposits.|r")
-			return false
-		end
--- END
-		if self.lastDeposit ~= nil or self.lastDeposit ~= 0 then
-			--d(self.lastDeposit)
-			m = "Older transactions found for " .. self.db.guild .. ".\r\n"
-			CHAT_SYSTEM:AddMessage(RaffleGold.ADDON_DISPLAY_NAME .. " -- \n|cFF0000ERROR: " .. m .. "\n |cf5e642Must wait till Newer transactions get logged.|r")
-			return false
-		elseif numEvents == 0 then
-			m = "Collecting raffle entries for " .. self.db.guild .. ".\r\n"
-		else
-			m = "No raffle entries were found!\r\nIf you feel this is in error, "
-			CHAT_SYSTEM:AddMessage(RaffleGold.ADDON_DISPLAY_NAME .. " -- \n|cFF0000ERROR: " .. m .. " Then wait for the addon to build the database and try again.|r")
-			return false
-		end
-		CHAT_SYSTEM:AddMessage(RaffleGold.ADDON_DISPLAY_NAME .. " -- \n|cFF0000ERROR: " .. m .. "|cf5e642Please wait for the addon to build the database and try again.|r")
+	local cT = GetTimeStamp()
+	local guildId = self:GetGuilds(self.db.guild)
+	if type(guildId) ~= "number" then
+		CHAT_SYSTEM:AddMessage(self.ADDON_DISPLAY_NAME .. " -- Select a current guild in settings.")
 		return false
 	end
-	
-	nums = {
+	if not DoesPlayerHaveGuildPermission(guildId, GUILD_PERMISSION_BANK_VIEW_DEPOSIT_HISTORY) then
+		CHAT_SYSTEM:AddMessage(self.ADDON_DISPLAY_NAME .. " -- You do NOT have permission to scan this guild's gold deposits.")
+		return false
+	end
+	local numEvents = self:BuildHistory(guildId, sT, cT, nil, eT)
+	if numEvents == nil or numEvents == false then
+		return false
+	end
+
+	local nums = {
 		entries = 0,
 		entAmt = tonumber(self.db.entryPrice),
 		pFrt = tonumber(self.db.placeFirst),
@@ -631,20 +613,21 @@ function RaffleGold:GuildRaffle(p)
 	else 
 		nums.tktPerEnt = nums.entAmt / nums.tktAmt
 	end
-	n = 1
-	nn = 1
-	depositInfo = {}
-	entries = {}
-	usernames = {}
-	userRanks = {}
+	local tP
+	local n = 1
+	local nn = 1
+	local depositInfo = {}
+	local entries = {}
+	local usernames = {}
+	local userRanks = {}
 	self.db.prizes.entrants = {}
 
    -- ** For Loop Overhauled (3.18.2024) by @Dr_Z	
 	for tIndex=numEvents, 1, -1 do
-		_, secondsSinceDeposit, _, eventType, depositerName, _, amount, _ = GetGuildHistoryBankedCurrencyEventInfo(guildId,tIndex)
+		local _, secondsSinceDeposit, _, eventType, depositerName, _, amount, _ = GetGuildHistoryBankedCurrencyEventInfo(guildId,tIndex)
 		depositerName = "@" .. depositerName
 	--	tS = cT - secondsSinceDeposit
-		tS = secondsSinceDeposit
+		local tS = secondsSinceDeposit
 		if nums.entAmt ~= nil then
 			tP = amount / nums.entAmt
 		end
@@ -660,13 +643,13 @@ function RaffleGold:GuildRaffle(p)
 	end
 	table.sort(depositInfo, function(a, b) return a[1] < b[1] end)
 	n = 1
-	oC = 0
+	local oC = 0
 	for k,v in ipairs(depositInfo) do								-- TICKET Generator
 		if self.db.guildRank == nil or self.db.guildRank == "-" or userRanks[v[4]] == false then
 			nums.totAmt = nums.totAmt + v[5]
 			nums.entries = nums.entries + 1
 			tP = v[3] * nums.tktPerEnt
-			tckNums = n
+			local tckNums = n
 			if tP > 1 then
 				tckNums = tckNums .. "-" .. (n + tP - 1)
 			end
@@ -691,7 +674,7 @@ function RaffleGold:GuildRaffle(p)
 	if oC > 0 then
 		self.db.prizes.oContrib = oC
 	end
-	usercount = nil
+	local usercount = nil
 	if self.db.restriction == "One" then
 		usercount = 0
 		for _ in pairs(usernames) do usercount = usercount + 1 end
@@ -715,7 +698,7 @@ function RaffleGold:GuildRaffle(p)
 			return
 		end
 	end
-	eAmt = nums.entries
+	local eAmt = nums.entries
 	if eAmt == 0 then
      -- ** Added  6.11.2026 by @Dr_Z
 	-- ** Check to see if We have Permissions to SCAN Guild Gold History
@@ -735,6 +718,7 @@ function RaffleGold:GuildRaffle(p)
 	if n > nums.entries then
 		eAmt = n
 	end
+	local tAmt
 	if nums.totAmt ~= nil then
 		tAmt = nums.totAmt
 	else
@@ -749,7 +733,7 @@ function RaffleGold:GuildRaffle(p)
 		self.db.prizes.tAmt = tAmt
 		self.db.prizes.drawDate = GetDateStringFromTimestamp(eT)
 	end
-	sysMes = " -- \nTotal Raffle Tickets: " .. eAmt
+	local sysMes = " -- \nTotal Raffle Tickets: " .. eAmt
 	if eAmt ~= nums.entries then
 		sysMes = sysMes .. " (Total Entries: " .. nums.entries .. ")"
 	end
@@ -797,12 +781,12 @@ function RaffleGold:GuildResults()
 		return false
 	end
 
-	eAmt = self.db.prizes.eAmt
-	entries = self.db.prizes.entries
-	tAmt = self.db.prizes.tAmt
-	gAmt = tAmt
+	local eAmt = self.db.prizes.eAmt
+	local entries = self.db.prizes.entries
+	local tAmt = self.db.prizes.tAmt
+	local gAmt = tAmt
 
-	sysMes = " -- \nTotal Raffle Tickets: " .. eAmt
+	local sysMes = " -- \nTotal Raffle Tickets: " .. eAmt
 	if eAmt ~= entries then
 		sysMes = sysMes .. " (Total Entries: " .. entries .. ")"
 	end
@@ -832,13 +816,13 @@ function RaffleGold:CreateDates(d)
 END OLD CODE 
 ]]--
 	-- ** NEW Code to gather 30 Days of Gold Deposits Thanks to @MisterKarnos
-	sD = GetTimeStamp() - (86400 * 30)
-	rD = {}
+	local sD = GetTimeStamp() - (86400 * 30)
+	local rD = {}
 	rD[1] = "-"
-	n = 2
+	local n = 2
 	for i=1, 41, 1 do
 	--END New Code
-		t = sD + (86400 * i)
+		local t = sD + (86400 * i)
 		if d == GetDateStringFromTimestamp(t) then
 			return t
 		else
@@ -855,7 +839,7 @@ end
 ------------------------------
 -- This function Not being used.  Leave Here. Might have to use it for future updates.
 function RaffleGold:CreateTimes()
-	rT = {}
+	local rT = {}
 	rT[1] = "-"
 	for i=0, 23, 1 do
 		rT[i+2] = i .. ":00"
@@ -867,7 +851,7 @@ end
 function RaffleGold:StartDate(sD, sT)
 	sD = self:CreateDates(sD)
 	if sD == nil then return nil end
-	cT = {}
+	local cT = {}
 	cT.time = GetTimeString(sD)
 	cT.hour, cT.min, cT.sec = cT.time:match("([^%:]+):([^%:]+):([^%:]+)")
 	cT.sel, cT.sMin = sT:match("([^%:]+):([^%:]+)")
@@ -876,83 +860,16 @@ function RaffleGold:StartDate(sD, sT)
 end
 
 --------------------------------
-function RaffleGold:BuildHistory(gID, sT, cT, tot, eT)					-- Overhauled (3.18.2024) by @Dr_Z	
-	if self.defaults.building == true and tot == nil then return nil end
-	local nE = GetNumGuildHistoryEvents(gID, GUILD_HISTORY_EVENT_CATEGORY_BANKED_CURRENCY)
-	if tot == nil and (nE == 0 or eT > cT) then
-		self.defaults.building = true
-	--	RequestMoreGuildHistoryCategoryEvents(gID, GUILD_HISTORY_EVENT_CATEGORY_BANKED_CURRENCY)
-		if nE == 0 then
-			zo_callLater(function()
-				RaffleGold:BuildHistory(gID, sT, cT, 0)
-			end, 1500)
-			return nil
-		elseif GetNumGuildHistoryEvents(gID, GUILD_HISTORY_EVENT_CATEGORY_BANKED_CURRENCY) > nE then
-			zo_callLater(function()
-				RaffleGold:GetRecentHistory(gID, cT)
-			end, 1500)
-			return nil
-		end
-	end
-	local _, secondsSinceDeposit, _, eventType, depositerName, _, amount, _ = GetGuildHistoryBankedCurrencyEventInfo(gID, GUILD_HISTORY_EVENT_CATEGORY_BANKED_CURRENCY, nE)
-	if DoesGuildHistoryHaveOutstandingRequest(gID, GUILD_HISTORY_EVENT_CATEGORY_BANKED_CURRENCY) == true and (cT - secondsSinceDeposit) > sT then
-		self.defaults.building = true
-		time = 1500
-		if nE > 1 then
-			time = time + math.random(1, nE)
-		end
-	--	RequestMoreGuildHistoryCategoryEvents(gID, GUILD_HISTORY_EVENT_CATEGORY_BANKED_CURRENCY)
-		zo_callLater(function()
-			RaffleGold:BuildHistory(gID, sT, cT, nE)
-		end, time)
-		return nil
-	end
+-- Read the deposits already loaded by Guild History / LibHistoire.
+function RaffleGold:BuildHistory(gID, sT, cT, tot, eT)
+	local numEvents = GetNumGuildHistoryEvents(gID, GUILD_HISTORY_EVENT_CATEGORY_BANKED_CURRENCY)
 	self.defaults.building = false
-	self.lastDeposit = secondsSinceDeposit
-	if tot ~= nil then
-	--d(tot)
-
-	-- Added  6.11.2026 by @Dr_Z
-	-- Check to see if We have Permissions to SCAN Guild Gold History
-		local guildId = self:GetGuilds(self.db.guild)
-		local playersName, _, playersRankIndex, _, _ = GetGuildMemberInfo( guildId, GetPlayerGuildMemberIndex(guildId))
-		local playersRankHasPerm = DoesGuildRankHavePermission(guildId, playersRankIndex, GUILD_PERMISSION_BANK_VIEW_GOLD)
-		--d("#4") d(playersName) d(playersRankIndex)
-		if not playersRankHasPerm then
-		--	--d("#4 no message")
-			-- DO NOTHING. We do NOT have Permissions.
-			return
-		elseif self.LastDeposit == nil then
-			return false
-		else
-			CHAT_SYSTEM:AddMessage(RaffleGold.ADDON_DISPLAY_NAME .. " is now ready.")
-		end
+	self.lastDeposit = nil
+	if numEvents > 0 then
+		local _, depositTimestamp = GetGuildHistoryBankedCurrencyEventInfo(gID, numEvents)
+		self.lastDeposit = depositTimestamp
 	end
-	return nE
-end
-
----------------------------
--- Gather Event Histories
----------------------------
-function RaffleGold:GetRecentHistory(gID, cT)						-- Overhauled (3.18.2024) by @Dr_Z	
-	local nE = GetNumGuildHistoryEvents(gID, GUILD_HISTORY_EVENT_CATEGORY_BANKED_CURRENCY)
-	d("ct")
-	d(ct)
-	local _, secondsSinceDeposit, _, _, _, _, _, _ = GetGuildHistoryBankedCurrencyEventInfo(gID, GUILD_HISTORY_EVENT_CATEGORY_BANKED_CURRENCY, nE)
-	if DoesGuildHistoryCategoryHaveMoreEvents(gID, GUILD_HISTORY_EVENT_CATEGORY_BANKED_CURRENCY) == true and (cT - secondsSinceDeposit) >= self.lastDeposit then
-		self.defaults.building = true
-		local time = 1500
-		if nE > 1 then
-			time = time + math.random(1, nE)
-		end
-	--	RequestMoreGuildHistoryCategoryEvents(gID, GUILD_HISTORY_EVENT_CATEGORY_BANKED_CURRENCY)
-		zo_callLater(function()
-			RaffleGold:GetRecentHistory(gID, cT)
-		end, time)
-		return nil
-	end
-	self.defaults.building = false
-	CHAT_SYSTEM:AddMessage(RaffleGold.ADDON_DISPLAY_NAME .. " is now ready. code 2")
+	return numEvents
 end
 
 -----------------------------
@@ -962,7 +879,7 @@ function RaffleGold:CheckGuildRank(gID, rank, users)
 	local memberCount = GetNumGuildMembers(gID)
 	if memberCount ~= 0 then
 		for mIndex=1, memberCount, 1 do
-			cName, _, cRank, _, _ = GetGuildMemberInfo(gID, mIndex)
+			local cName, _, cRank, _, _ = GetGuildMemberInfo(gID, mIndex)
 			if cName ~= nil and users[cName] ~= nil then
 				if cRank <= rank then
 					users[cName] = true
@@ -1005,7 +922,7 @@ function RaffleGold:ConvertNumber(amt, c)
 		return amt
 	end
 	if tonumber(amt) ~= nil then
-		lamt = tonumber(amt)
+		amt = tonumber(amt)
 		if amt >= 1000000 then
 			amt = amt / 1000000
 			return amt .. "M"
@@ -1022,6 +939,9 @@ function RaffleGold:ConvertNumber(amt, c)
 			return amt * 1000000
 		elseif string.find(string.lower(amt), "k") then
 			amt = tonumber(string.sub(amt, 0, string.find(string.lower(amt), "k") - 1))
+			if amt == nil then
+				return false
+			end
 			return amt * 1000
 		end
 	end
@@ -1048,13 +968,22 @@ end
 -- Slash Commands, Oh'My....
 -----------------------
 function RaffleGold.Cmd(txt)
+	local self = RaffleGold
+	local m
+	local s
+	local n
+	local found
+	local k
+	local uN
+	local ii
+	local totAmt
 	if txt == "" then
 		CHAT_SYSTEM:AddMessage("|cFFFFFF____________________________________")
 		CHAT_SYSTEM:AddMessage(RaffleGold.ADDON_DISPLAY_NAME .. ': type "/rg help" for a list of commands.')
 		return
 	end
-	arr = {}
-	i = 1
+	local arr = {}
+	local i = 1
 	for val in string.gmatch(txt,"%w+") do
 		arr[i] = val
 	    i = i + 1
@@ -1618,6 +1547,7 @@ end
 function RaffleGold.OnAddOnLoaded(event, addon)
 	if addon == RaffleGold.THIS_ADDON then
 		RaffleGold:Initialize()
+		EVENT_MANAGER:UnregisterForEvent(RaffleGold.THIS_ADDON, EVENT_ADD_ON_LOADED)
 	end
 end
 

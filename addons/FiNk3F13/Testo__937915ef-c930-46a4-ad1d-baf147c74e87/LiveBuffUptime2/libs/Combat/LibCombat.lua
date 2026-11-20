@@ -13,7 +13,7 @@ Add more debug Functions
 
 local LibDebugLogger = nil -- Isolated console collector; no external logger dependency.
 local lib = {}
-lib.version = 87
+lib.version = 89
 lib.consoleDotFix = 1 -- Own DoT events are retained across combat-state boundaries.
 LiveBuffUptime2Combat = lib
 
@@ -243,7 +243,7 @@ local SpecialDebuffs =
 		148801, -- Status Effect Bleeding (Hemorrhaging)
 	}
 
-local SourceBuggedBuffs = { -- buffs where ZOS messed up the source, causing CMX2 to falsely not track them
+local SourceBuggedBuffs = { -- buffs where ZOS messed up the source, causing CMX to falsely not track them
 
 	88401, -- Minor Magickasteal
 }
@@ -1571,7 +1571,7 @@ local function GetEquip()
 	return equip
 end
 
-function GetPassiveSkills()
+local function GetPassiveSkills()
 	local passiveSkills = {}
 	if SKILLS_DATA_MANAGER == nil or SKILLS_DATA_MANAGER.passiveSkillObjectPool == nil then
 		return passiveSkills
@@ -1590,6 +1590,14 @@ function GetPassiveSkills()
 	return passiveSkills
 end
 
+local function HasCritBonusMasteryPassive()
+	if not SKILLS_DATA_MANAGER then
+		return false
+	end
+	local progData = SKILLS_DATA_MANAGER:GetProgressionDataByAbilityId(263605)
+	return (progData and progData.skillData and progData.skillData.isPurchased) == true
+end
+
 function FightHandler:FinishFight()
 	Log("fight", LOG_LEVEL_DEBUG, "Finish fight")
 
@@ -1603,6 +1611,8 @@ function FightHandler:FinishFight()
 	charData.scribedSkills = ZO_DeepTableCopy(data.scribedSkills)
 	charData.passiveSkills = GetPassiveSkills()
 	charData.equip = GetEquip()
+
+	self.special.CritBonusMastery = HasCritBonusMasteryPassive()
 
 	local timems = GetGameTimeMilliseconds()
 	self.combatend = timems
@@ -5318,6 +5328,9 @@ local statStrings = {
 	[LBU2COMBAT_STAT_PHYSICALRESISTANCE] = "|cffff88" .. GetString(SI_DERIVEDSTATS22) .. "|r ",
 	[LBU2COMBAT_STAT_SPELLRESISTANCE] = "|cffff88" .. GetString(SI_DERIVEDSTATS13) .. "|r ",
 	[LBU2COMBAT_STAT_CRITICALRESISTANCE] = "|cffff88" .. GetString(SI_DERIVEDSTATS24) .. "|r ",
+	[LBU2COMBAT_STAT_STATUS_EFFECT_CHANCE] = "|cdddddd"
+		.. GetString(SI_LBU2COMBAT_LOG_STAT_STATUS_EFFECT_CHANCE)
+		.. "|r ",
 }
 
 local logColors = {
@@ -5567,6 +5580,11 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 			change = stringformat("%.1f%%", statchange)
 		end
 
+		if statId == LBU2COMBAT_STAT_STATUS_EFFECT_CHANCE then
+			value = stringformat("%.1f%%", newvalue)
+			change = stringformat("%.1f%%", statchange)
+		end
+
 		local changeText, changeValueText
 
 		if statchange > 0 then
@@ -5743,3 +5761,56 @@ local function Initialize()
 end
 
 Initialize()
+
+-- Private adapter API for SimpleGroupDPS only. Calculation methods above are unchanged.
+-- Return a read-only-by-contract reference instead of copying the complete log each HUD tick.
+function lib:GetMeterFight() return currentfight end
+function lib:RefreshMeterFight()
+    currentfight:UpdateStats()
+    return currentfight
+end
+-- Critter hits can prepare a fight without ever entering ESO's combat state.
+-- Finish only that pending fight through the native lifecycle, after its normal
+-- event timeout. Active player/group combat and native boss/portal guards win.
+local meterUnenteredEndFight
+function lib:FinishUnenteredMeterFight(lastActivityMS)
+    if meterUnenteredEndFight ~= currentfight then meterUnenteredEndFight = nil end
+    if not currentfight.prepared or type(lastActivityMS) ~= "number" then return false end
+    local ongoing = data.inCombat ~= false or IsUnitInCombat("player") or IsOngoingBossfight()
+    if IsUnitGrouped("player") then
+        local size = GetGroupSize and GetGroupSize()
+        if type(size) ~= "number" or size < 1 or not GetGroupUnitTag then
+            ongoing = true
+        else
+            for index = 1, size do
+                local tag = GetGroupUnitTag(index)
+                if not tag or IsUnitInCombat(tag) then ongoing = true; break end
+            end
+        end
+    end
+    -- Native summary delivery has a grace period. Resume this pending close if
+    -- actual combat or another accepted damage event arrives during that period.
+    if meterUnenteredEndFight == currentfight
+        and (ongoing or lastActivityMS > currentfight.combatend) then
+        currentfight.combatend = -150
+        meterUnenteredEndFight = nil
+    end
+    if ongoing or currentfight.combatend >= 0
+        or GetGameTimeMilliseconds() - lastActivityMS <= timeout then return false end
+    currentfight:FinishFight()
+    meterUnenteredEndFight = currentfight
+    return true
+end
+-- Clear only this private collector when the solo player dies or revives.
+-- No external library, addon or saved-variable table is touched.
+function lib:DiscardMeterFight()
+    meterUnenteredEndFight = nil
+    em:UnregisterForUpdate("LiveBuffUptime2Combat_update")
+    ResetBuffers()
+    DamageShieldBuffer = {}
+    isInPortalWorld = false
+    data.inCombat = false
+    data.inGroup = IsUnitGrouped("player")
+    reset = false
+    currentfight = FightHandler:New()
+end

@@ -4,8 +4,8 @@ InventoryCompanion = {
     IsDevelopment = isDevelopment,
 	DisplayName = "Inventory Companion",
     Author = "@Tim-P",
-    Version = "1.6.3",
-    SettingsVersion = 10,
+    Version = "1.8.1",
+    SettingsVersion = 11,
     SettingsName = "InventoryCompanion_SavedVariables",
 }
 local this = InventoryCompanion
@@ -19,19 +19,19 @@ this.state = {
 -- Core Initialization
 ------------------------------------------------------------------
 function this.ValidateTrackerSettings()
-    local value = this.GetSettingsProfile().trackerMaxRows
+    local value = this.GetPanelSettings("Tracker").trackerMaxRows
     if value == nil then
-        value = this.defaultsAccount.trackerMaxRows
+        value = this.defaultsAccount.PanelSettings.Tracker.trackerMaxRows
     end
     assert(type(value) == "number" and value == value and value >= 5 and value <= 50
         and value == math.floor(value), "Saved trackerMaxRows must be an integer from 5 to 50")
-    this.GetSettingsProfile().trackerMaxRows = value
-    local titleSize = this.GetSettingsProfile().trackerTitleSize
-    if titleSize == nil then titleSize = this.defaultsAccount.trackerTitleSize end
+    this.GetPanelSettings("Tracker").trackerMaxRows = value
+    local titleSize = this.GetPanelSettings("Tracker").trackerTitleSize
+    if titleSize == nil then titleSize = this.defaultsAccount.PanelSettings.Tracker.trackerTitleSize end
     assert(type(titleSize) == "number" and titleSize == titleSize and titleSize >= 16
         and titleSize <= 28 and titleSize == math.floor(titleSize),
         "Saved trackerTitleSize must be an integer from 16 to 28")
-    this.GetSettingsProfile().trackerTitleSize = titleSize
+    this.GetPanelSettings("Tracker").trackerTitleSize = titleSize
 end
 
 function this.ValidateDebugSettings()
@@ -76,18 +76,20 @@ local function Initialize()
     this.ValidateDebugSettings()
     this.ValidateGuildBankPartialWithdrawSetting()
     this.ValidateSavedRuleProfiles()
+    this.PanelLayout.Initialize()
     this.AutoCategoryIntegration.Initialize()
     this.state.isCurrencySettingsOpen = false
 
     -- Initialize modules
-    this.InitCutsceneTicker()
     this.InitContextMenus()
     this.InitializeCurrencyHelper()
     this.InitializeProgressBarResources()
+    this.InitializeCurrencyGridColumns()
     this.InitResourceProgressBars()
     this.InitItemTrackerPanel()
     this.InitCurrencyPanel()
     this.CreateSettingsPanel()
+    this.PanelLayout.CompleteInitialization()
     this.UpdateEventRegistry()
 
     this.state.isLoaded = true
@@ -192,5 +194,5 @@ end
 -- Debug Key
 ------------------------------------------------------------------
 function this.Debug()
-    this.RunTests("verbose copy")
+    this.RunTests("verbose copy autocategory")
 end

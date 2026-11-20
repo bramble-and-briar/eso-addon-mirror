@@ -37,6 +37,13 @@ ZO_CreateStringId("SI_MCH_TT_WORSE", "L'autre coffre revient moins cher par nouv
 ZO_CreateStringId("SI_MCH_TT_SET_MISSING", "<<1>> epaulieres sur <<2>> manquent encore dans ce coffre")
 ZO_CreateStringId("SI_MCH_TT_SET_DONE", "Vous avez deja toutes les epaulieres de ce coffre - cles gaspillees")
 
+-- Purchase confirmation
+ZO_CreateStringId("SI_MCH_GUARD_TITLE", "Pas le meilleur achat")
+ZO_CreateStringId("SI_MCH_GUARD_MYSTERY_WORSE", "Les coffres cibles sont plus rentables ici en ce moment : <<1>> cles par epauliere nouvelle, contre <<2>> pour un coffre mystere.")
+ZO_CreateStringId("SI_MCH_GUARD_CURATED_WORSE", "Les coffres mystere sont plus rentables ici en ce moment : <<1>> cles par epauliere nouvelle, contre <<2>> pour ce coffre cible.")
+ZO_CreateStringId("SI_MCH_GUARD_DUPLICATE", "Vous avez deja toutes les epaulieres de ce coffre : il ne peut donner qu'un doublon.")
+ZO_CreateStringId("SI_MCH_GUARD_BUY", "Acheter quand meme")
+
 -- Settings
 ZO_CreateStringId("SI_MCH_SET_DISPLAY", "Affichage")
 ZO_CreateStringId("SI_MCH_SET_PANEL", "Afficher la fenetre chez le marchand")
@@ -45,6 +52,8 @@ ZO_CreateStringId("SI_MCH_SET_CHAT", "Ecrire la recommandation dans le chat")
 ZO_CreateStringId("SI_MCH_SET_CHAT_TT", "Affiche un verdict d'une ligne dans le chat a l'ouverture de la boutique.")
 ZO_CreateStringId("SI_MCH_SET_TOOLTIPS", "Completer les infobulles des coffres")
 ZO_CreateStringId("SI_MCH_SET_TOOLTIPS_TT", "Ajoute vos chances et le cout reel en cles sur les coffres de la boutique.")
+ZO_CreateStringId("SI_MCH_SET_CONFIRM", "Confirmer les achats qui ne sont pas le meilleur choix")
+ZO_CreateStringId("SI_MCH_SET_CONFIRM_TT", "Demande confirmation avant d'acheter le coffre le plus cher, ou un coffre qui ne peut donner qu'une epauliere deja possedee.")
 ZO_CreateStringId("SI_MCH_SET_LOCK", "Verrouiller la position de la fenetre")
 ZO_CreateStringId("SI_MCH_SET_RESET_POS", "Reinitialiser la position")
 ZO_CreateStringId("SI_MCH_SET_MAXSETS", "Ensembles listes dans la fenetre")

@@ -1,7 +1,7 @@
 GuildTraderActivity = {
 	name = "GTA",
 	author = "@sinnereso",
-	version = "2026.11.19",
+	version = "2026.11.20",
 	svName = "GTAVars",
 	svVersion = 1,
 }
@@ -110,11 +110,10 @@ local function LayoutNameRow(ctrl, data, scrollList)
 	ctrl:SetColor(0.1, 0.1, 0.1, 0.9)
 	ctrl:SetHandler("OnMouseEnter", function(self)
 		ctrl:SetColor(0.1, 0.1, 0.1, 0.9)
-		InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
 		if string.find(data.name, LINKED_IMAGE, 1, true) then
-			SetTooltipText(InformationTooltip, "(COMPLETE) ~ VIEW GUILD DETAILS")
+			ZO_Tooltips_ShowTextTooltip(ctrl, LEFT, "(|c339933COMPLETE|r) ~ VIEW GUILD DETAILS")
 		else
-			SetTooltipText(InformationTooltip, "(INCOMPLETE) ~ VIEW GUILD DETAILS")
+			ZO_Tooltips_ShowTextTooltip(ctrl, LEFT, "(|ce06666INCOMPLETE|r) ~ VIEW GUILD DETAILS")
 		end
 	end)
 	ctrl:SetHandler("OnMouseExit", function(self)
@@ -185,11 +184,10 @@ local function LayoutPreviousNameRow(ctrl, data, scrollList)
 	ctrl:SetColor(0.1, 0.1, 0.1, 0.9)
 	ctrl:SetHandler("OnMouseEnter", function(self)
 		ctrl:SetColor(0.1, 0.1, 0.1, 0.9)
-		InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
 		if string.find(data.name, LINKED_IMAGE, 1, true) then
-			SetTooltipText(InformationTooltip, "(COMPLETE) ~ VIEW GUILD DETAILS")
+			ZO_Tooltips_ShowTextTooltip(ctrl, LEFT, "(|c339933COMPLETE|r) ~ VIEW GUILD DETAILS")
 		else
-			SetTooltipText(InformationTooltip, "(INCOMPLETE) ~ VIEW GUILD DETAILS")
+			ZO_Tooltips_ShowTextTooltip(ctrl, LEFT, "(|ce06666INCOMPLETE|r) ~ VIEW GUILD DETAILS")
 		end
 	end)
 	ctrl:SetHandler("OnMouseExit", function(self)
@@ -273,21 +271,21 @@ GTALogo:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 GTALogo:SetVerticalAlignment(TEXT_ALIGN_CENTER)
 GTALogo:SetFont("ZoFontBookScrollTitle")
 GTALogo:SetColor(0.1, 0.1, 0.1, 0.9)
-GTALogo:SetText ("G T A")
+GTALogo:SetText("G T A")
 local GTASig = WINDOW_MANAGER:CreateControl("GTASig", GTAMain, CT_LABEL)
 GTASig:SetAnchor(BOTTOMLEFT, GTALogo, BOTTOMRIGHT, 6, -6)
 GTASig:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
 GTASig:SetVerticalAlignment(TEXT_ALIGN_BOTTOM)
 GTASig:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 14), FONT_STYLE_SOFT_SHADOW_THIN)
 GTASig:SetColor(0.1, 0.1, 0.1, 0.9)
-GTASig:SetText ("By: sinnereso")
+GTASig:SetText("By: sinnereso")
 local GTADisclaimer = WINDOW_MANAGER:CreateControl("GTADisclaimer", GTAMain, CT_LABEL)
 GTADisclaimer:SetAnchor(BOTTOM, GTAMain, BOTTOM, 0, -36)
 GTADisclaimer:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 GTADisclaimer:SetVerticalAlignment(TEXT_ALIGN_CENTER)
 GTADisclaimer:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 16), FONT_STYLE_SOFT_SHADOW_THIN)
 GTADisclaimer:SetColor(0.1, 0.1, 0.1, 0.9)
-GTADisclaimer:SetText ("")
+GTADisclaimer:SetText("")
 --ShowAllButton
 local GTAShowAllBox = WINDOW_MANAGER:CreateControlFromVirtual("GTAShowAllBox", GTAMain, "ZO_CheckButton")
 GTAShowAllBox:SetAnchor(LEFT, GTADisclaimer, RIGHT, 20, -14)
@@ -299,7 +297,7 @@ GTAShowAllLabel:SetAnchor(LEFT, GTAShowAllBox, RIGHT, 5, 2)
 GTAShowAllLabel:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 16), FONT_STYLE_SOFT_SHADOW_THIN)
 GTAShowAllLabel:SetColor(0.1, 0.1, 0.1, 0.9)
 GTAShowAllLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
---GTAShowAllLabel:SetText ("Show All")
+--GTAShowAllLabel:SetText("Show All")
 GTAShowAllBox:SetHandler("OnMouseEnter", function(self)
 	GTAShowAllBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
 	--InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
@@ -334,7 +332,7 @@ GTACacheTrimBoxLabel:SetAnchor(LEFT, GTACacheTrimBox, RIGHT, 5, 2)
 GTACacheTrimBoxLabel:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 16), FONT_STYLE_SOFT_SHADOW_THIN)
 GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
 GTACacheTrimBoxLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
---GTACacheTrimBoxLabel:SetText ("Cache Trim")
+--GTACacheTrimBoxLabel:SetText("Cache Trim")
 GTACacheTrimBox:SetHandler("OnMouseEnter", function(self)
 	GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
 	--InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
@@ -395,7 +393,7 @@ local GTACurrentLabel = WINDOW_MANAGER:CreateControl("GTACurrentLabel", GTAPerso
 GTACurrentLabel:SetAnchor(TOP, GTAPersonalView, TOP, 0, -4)
 GTACurrentLabel:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 26), FONT_STYLE_SOFT_SHADOW_THIN)
 GTACurrentLabel:SetColor(0.1, 0.1, 0.1, 0.8)
-GTACurrentLabel:SetText ("~ Current Week ~")
+GTACurrentLabel:SetText("~ Current Week ~")
 --CurrentNameList
 local GTANameList = WINDOW_MANAGER:CreateControlFromVirtual("GTANameList", GTAPersonalView, "ZO_ScrollList")
 local scrollListHeight = 104
@@ -407,7 +405,7 @@ GTANameLabel:SetAnchor(BOTTOMLEFT, GTANameList, TOPLEFT, 17, 0)-- 0, 0)-->> Adju
 GTANameLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
 GTANameLabel:SetFont("ZoFontGameMedium")
 GTANameLabel:SetColor(0.3, 0.3, 0.2, 0.9)
-GTANameLabel:SetText ("GUILD NAME  ~  GUILD TOTAL |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t")
+GTANameLabel:SetText("GUILD NAME  ~  GUILD TOTAL |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t")
 GTANameLabel:SetMouseEnabled(true)
 GTANameLabel:SetHandler("OnMouseUp", function(self, button, upInside)
 	if button == 1 and upInside then
@@ -435,7 +433,7 @@ GTASalesLabel:SetAnchor(BOTTOMRIGHT, GTASalesList, TOPRIGHT, -16, 0)
 GTASalesLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 GTASalesLabel:SetFont("ZoFontGameMedium")
 GTASalesLabel:SetColor(0.3, 0.3, 0.2, 0.9)
-GTASalesLabel:SetText ("|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t TRADED")
+GTASalesLabel:SetText("|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t TRADED")
 GTASalesLabel:SetMouseEnabled(true)
 GTASalesLabel:SetHandler("OnMouseUp", function(self, button, upInside)
 	if button == 1 and upInside then
@@ -463,7 +461,7 @@ GTAPurchaseLabel:SetAnchor(BOTTOMRIGHT, GTAPurchaseList, TOPRIGHT, -16, 0)
 GTAPurchaseLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 GTAPurchaseLabel:SetFont("ZoFontGameMedium")
 GTAPurchaseLabel:SetColor(0.3, 0.3, 0.2, 0.9)
-GTAPurchaseLabel:SetText ("|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t BOUGHT")
+GTAPurchaseLabel:SetText("|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t BOUGHT")
 GTAPurchaseLabel:SetMouseEnabled(true)
 GTAPurchaseLabel:SetHandler("OnMouseUp", function(self, button, upInside)
 	if button == 1 and upInside then
@@ -491,7 +489,7 @@ GTAActivityLabel:SetAnchor(BOTTOMRIGHT, GTAActivityList, TOPRIGHT, -16, 0)
 GTAActivityLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 GTAActivityLabel:SetFont("ZoFontGameMedium")
 GTAActivityLabel:SetColor(0.3, 0.3, 0.2, 0.9)
-GTAActivityLabel:SetText ("|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t ACTIVITY")
+GTAActivityLabel:SetText("|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t ACTIVITY")
 GTAActivityLabel:SetMouseEnabled(true)
 GTAActivityLabel:SetHandler("OnMouseUp", function(self, button, upInside)
 	if button == 1 and upInside then
@@ -515,21 +513,21 @@ GTATotalCurrentSalesLabel:SetAnchor(TOPRIGHT, GTASalesList, BOTTOMRIGHT, -16, 0)
 GTATotalCurrentSalesLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 GTATotalCurrentSalesLabel:SetFont("ZoFontBookPaper")
 GTATotalCurrentSalesLabel:SetColor(0.1, 0.1, 0.1, 0.9)
-GTATotalCurrentSalesLabel:SetText ("")
+GTATotalCurrentSalesLabel:SetText("")
 --CurrentTotalPurchases
 local GTATotalCurrentPurchasesLabel = WINDOW_MANAGER:CreateControl("GTATotalCurrentPurchasesLabel", GTAPersonalView, CT_LABEL)
 GTATotalCurrentPurchasesLabel:SetAnchor(TOPRIGHT, GTAPurchaseList, BOTTOMRIGHT, -16, 0)
 GTATotalCurrentPurchasesLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 GTATotalCurrentPurchasesLabel:SetFont("ZoFontBookPaper")
 GTATotalCurrentPurchasesLabel:SetColor(0.1, 0.1, 0.1, 0.9)
-GTATotalCurrentPurchasesLabel:SetText ("")
+GTATotalCurrentPurchasesLabel:SetText("")
 --CurrentTotalActivity
 local GTATotalCurrentActivityLabel = WINDOW_MANAGER:CreateControl("GTATotalCurrentActivityLabel", GTAPersonalView, CT_LABEL)
 GTATotalCurrentActivityLabel:SetAnchor(TOPRIGHT, GTAActivityList, BOTTOMRIGHT, -16, 0)
 GTATotalCurrentActivityLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 GTATotalCurrentActivityLabel:SetFont("ZoFontBookPaper")
 GTATotalCurrentActivityLabel:SetColor(0.1, 0.1, 0.1, 0.9)
-GTATotalCurrentActivityLabel:SetText ("")
+GTATotalCurrentActivityLabel:SetText("")
 --Divider
 local GTADivider = WINDOW_MANAGER:CreateControl("GTADivider", GTAPersonalView, CT_TEXTURE)
 GTADivider:SetAnchor(CENTER, GTAPersonalView, CENTER, 0, 14)
@@ -544,7 +542,7 @@ GTAPreviousLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 GTAPreviousLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
 GTAPreviousLabel:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 26), FONT_STYLE_SOFT_SHADOW_THIN)
 GTAPreviousLabel:SetColor(0.1, 0.1, 0.1, 0.8)
-GTAPreviousLabel:SetText ("~ Previous Week ~")
+GTAPreviousLabel:SetText("~ Previous Week ~")
 --PreviousNameList
 local GTAPreviousNameList = WINDOW_MANAGER:CreateControlFromVirtual("GTAPreviousNameList", GTAPersonalView, "ZO_ScrollList")
 GTAPreviousNameList:SetDimensions(380, scrollListHeight)--350
@@ -571,21 +569,21 @@ GTATotalPreviousSalesLabel:SetAnchor(TOPRIGHT, GTAPreviousSalesList, BOTTOMRIGHT
 GTATotalPreviousSalesLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 GTATotalPreviousSalesLabel:SetFont("ZoFontBookPaper")
 GTATotalPreviousSalesLabel:SetColor(0.1, 0.1, 0.1, 0.9)
-GTATotalPreviousSalesLabel:SetText ("")
+GTATotalPreviousSalesLabel:SetText("")
 --PreviousTotalPurchases
 local GTATotalPreviousPurchaseLabel = WINDOW_MANAGER:CreateControl("GTATotalPreviousPurchaseLabel", GTAPersonalView, CT_LABEL)
 GTATotalPreviousPurchaseLabel:SetAnchor(TOPRIGHT, GTAPreviousPurchaseList, BOTTOMRIGHT, -16, 0)
 GTATotalPreviousPurchaseLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 GTATotalPreviousPurchaseLabel:SetFont("ZoFontBookPaper")
 GTATotalPreviousPurchaseLabel:SetColor(0.1, 0.1, 0.1, 0.9)
-GTATotalPreviousPurchaseLabel:SetText ("")
+GTATotalPreviousPurchaseLabel:SetText("")
 --PreviousTotalActivity
 local GTATotalPreviousActivityLabel = WINDOW_MANAGER:CreateControl("GTATotalPreviousActivityLabel", GTAPersonalView, CT_LABEL)
 GTATotalPreviousActivityLabel:SetAnchor(TOPRIGHT, GTAPreviousActivityList, BOTTOMRIGHT, -16, 0)
 GTATotalPreviousActivityLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 GTATotalPreviousActivityLabel:SetFont("ZoFontBookPaper")
 GTATotalPreviousActivityLabel:SetColor(0.1, 0.1, 0.1, 0.9)
-GTATotalPreviousActivityLabel:SetText ("")
+GTATotalPreviousActivityLabel:SetText("")
 ---------------------------------------------
 --------- GUILD LIST VIEW CONTROLS --
 ---------------------------------------------
@@ -599,7 +597,7 @@ local GTASelectedGuildLabel = WINDOW_MANAGER:CreateControl("GTASelectedGuildLabe
 GTASelectedGuildLabel:SetAnchor(TOP, GTASelectedGuildView, TOP, 0, -4)
 GTASelectedGuildLabel:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 26), FONT_STYLE_SOFT_SHADOW_THIN)
 GTASelectedGuildLabel:SetColor(0.1, 0.1, 0.1, 0.8)
-GTASelectedGuildLabel:SetText ("- Guild View Current Week -")
+GTASelectedGuildLabel:SetText("")
 --SelectedGuildBackArrow
 local GTASelectedGuildBackArrow = WINDOW_MANAGER:CreateControl("GTASelectedGuildBackArrow", GTASelectedGuildLabel, CT_BUTTON)
 GTASelectedGuildBackArrow:SetAnchor(RIGHT, nil, LEFT, -16)
@@ -687,7 +685,7 @@ local function SaveNote(displayName, note)
 			if editControl then
 				local newNoteText = editControl:GetText()
 				SetGuildMemberNote(SELECTED_GUILD_ID, memberIndex, string.format(newNoteText))
-				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "", (memberName .. " guild note updated."))
+				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", (memberName .. " guild note updated."))
 			end
 			
 		end
@@ -750,7 +748,8 @@ ZO_Dialogs_RegisterCustomDialog("GTAPromoteToLeader", {
 		{
 			text = SI_DIALOG_ACCEPT,
 			callback = function(displayName)
-				GuildPromote(SELECTED_GUILD_ID, displayName)
+				GuildPromote(SELECTED_GUILD_ID, SELECTED_USER_DISPLAY_NAME)
+				--ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", (displayName .. " has been promoted to leader."))
 			end,
 		},
 		{
@@ -761,13 +760,14 @@ ZO_Dialogs_RegisterCustomDialog("GTAPromoteToLeader", {
 	}
 })
 ZO_Dialogs_RegisterCustomDialog("GTARemoveFromGuild", {
-	title = {text = "Remove user from Guild",},
+	title = {text = "Remove from Guild",},
 	mainText = {text = "Do you wish to continue?",},
 	buttons = {
 		{
 			text = SI_DIALOG_ACCEPT,
 			callback = function(displayName)
-				GuildRemove(SELECTED_GUILD_ID, displayName)
+				GuildRemove(SELECTED_GUILD_ID, SELECTED_USER_DISPLAY_NAME)
+				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", (SELECTED_USER_DISPLAY_NAME .. " removed from " .. GetGuildName(SELECTED_GUILD_ID) .. "."))
 			end,
 		},
 		{
@@ -777,8 +777,13 @@ ZO_Dialogs_RegisterCustomDialog("GTARemoveFromGuild", {
 		}
 	}
 })
+--title = {
+	--text = function(dialog)
+		--return "Invite to " .. GetGuildName(SELECTED_GUILD_ID)
+	--end,
+--},
 ZO_Dialogs_RegisterCustomDialog("GTA_GUILD_INVITE", {
-	title = {text = "Invite to Current Guild",},
+	title = {text = "Invite to Guild",},
 	mainText = {text = "Enter character name or @UserID.",},
 	editBox = {
 		defaultText = "ex. Michael Cullen or @sinnereso",
@@ -791,8 +796,8 @@ ZO_Dialogs_RegisterCustomDialog("GTA_GUILD_INVITE", {
 				local targetName = ZO_Dialogs_GetEditBoxText(dialog)
 				if targetName and targetName ~= "" and targetName ~= GetUnitDisplayName("player") then--GUILD_SELECTOR.guildId
 					if DoesPlayerHaveGuildPermission(SELECTED_GUILD_ID, GUILD_PERMISSION_INVITE) then
-						local invited = GuildInvite(SELECTED_GUILD_ID, targetName)
-						--if invited then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "", (targetName .. " invited to " .. GetGuildName(SELECTED_GUILD_ID) .. ".")) end-->> TESTING
+						GuildInvite(SELECTED_GUILD_ID, targetName)
+						--ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", (targetName .. " invited to " .. GetGuildName(SELECTED_GUILD_ID) .. "."))
 					end
 				end
 			end,
@@ -865,9 +870,11 @@ local function postGuildListCallback(ctrl)
 		local userMemberIndex = GetGuildMemberIndexFromDisplayName(SELECTED_GUILD_ID, SELECTED_USER_DISPLAY_NAME)
 		local name, _, _, playerStatus = GetGuildMemberInfo(SELECTED_GUILD_ID, userMemberIndex)
 		if playerStatus ~= PLAYER_STATUS_OFFLINE then
-			ZO_Tooltips_ShowTextTooltip(ctrl, LEFT, "ONLINE")
+			ZO_Tooltips_ShowTextTooltip(ctrl, LEFT, "(|c339933ONLINE|r) ~ VIEW PLAYER DETAILS")
+		else
+			ZO_Tooltips_ShowTextTooltip(ctrl, LEFT, "(|ce06666OFFLINE|r) ~ VIEW PLAYER DETAILS")
 		end
-    end)
+	end)
 	ctrl:SetHandler('OnMouseExit', ZO_Tooltips_HideTextTooltip)
 	ctrl:SetHandler("OnMouseUp", function(ctrl, button, upInside)
 		if button == 1 and upInside then
@@ -957,7 +964,7 @@ local GTASelectedPlayerLabel = WINDOW_MANAGER:CreateControl("GTASelectedPlayerLa
 GTASelectedPlayerLabel:SetAnchor(TOP, GTASelectedPlayerView, TOP, 0, -4)
 GTASelectedPlayerLabel:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 26), FONT_STYLE_SOFT_SHADOW_THIN)
 GTASelectedPlayerLabel:SetColor(0.1, 0.1, 0.1, 0.8)
-GTASelectedPlayerLabel:SetText ("- Guild View Current Week -")
+GTASelectedPlayerLabel:SetText("")
 --SelectedGuildBackArrow
 local GTASelectedPlayerBackArrow = WINDOW_MANAGER:CreateControl("GTASelectedPlayerBackArrow", GTASelectedPlayerLabel, CT_BUTTON)
 GTASelectedPlayerBackArrow:SetAnchor(RIGHT, nil, LEFT, -16)
@@ -988,7 +995,7 @@ local ItemCell = Label(salesStyle)
 local ItemHeader = Label(combine(salesStyle, headerStyle))
 -- total 750
 local columnsForPlayerList = {
-	Column('Item',      280,  0,	 LeftAlignedCell, 'ITEM |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',	 	 LeftAlignedHeader,  	SORTABLE),
+	Column('Item',      280,  0,	 LeftAlignedCell, 'ITEM LINK |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',	 	 LeftAlignedHeader,  	SORTABLE),
 	Column('Buyer',     170,  10,	 LeftAlignedCell, 'BUYER |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',		 LeftAlignedHeader, 	SORTABLE),
 	Column('Quant',      40,  0,  	   ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t #', 			 	ItemHeader,  	SORTABLE),
 	Column('Price',  	110,  0, 	   ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t PRICE',      	   		ItemHeader,  	SORTABLE),
@@ -1004,6 +1011,13 @@ local function postPlayerListCallback(ctrl)
 		if button == 1 and upInside then
 			PlaySound("Click")
 			ZO_PopupTooltip_SetLink(ctrl.dataEntry.data[1])
+		elseif button == 2 and upInside then
+			ClearMenu()
+			AddMenuItem("Link in Chat", function()
+				--PlaySound("Click")
+				ZO_LinkHandler_InsertLink(ctrl.dataEntry.data[1])
+			end)
+			ShowMenu(ctrl)
 		end
 	end)
 end
@@ -1015,7 +1029,9 @@ local GTAPlayerListControl = GTAPlayerList:Create('GTAPlayerList', GTASelectedPl
 GTAPlayerListControl:SetDimensions(140*3+350, 350)
 GTAPlayerListControl:SetAnchor(TOP, GTASelectedPlayerLabel, BOTTOM, 0, -14)
 --GTAPlayerListControl:SetAnchorFill(GTASelectedPlayerView)
-
+---------------------------------------------
+--------- ALL CONTROLS COMPLETE --
+---------------------------------------------
 --GTAMain:SetTopmost()
 GTAMain:SetHidden(true)
 GTAPersonalView:SetHidden(false)
@@ -1094,13 +1110,13 @@ local function PopulateTraderActivity()
 			prevSales = 0
 			prevPurchases = 0
 		end
-		GTATotalCurrentSalesLabel:SetText ("TOTAL   -->   " .. tostring(ZO_LocalizeDecimalNumber(allSales)))
-		GTATotalCurrentPurchasesLabel:SetText (tostring(ZO_LocalizeDecimalNumber(allPurchases)))
-		GTATotalCurrentActivityLabel:SetText (tostring(ZO_LocalizeDecimalNumber(allActivity)))
-		GTATotalPreviousSalesLabel:SetText ("TOTAL   -->   " .. tostring(ZO_LocalizeDecimalNumber(prevAllSales)))
-		GTATotalPreviousPurchaseLabel:SetText (tostring(ZO_LocalizeDecimalNumber(prevAllPurchases)))
-		GTATotalPreviousActivityLabel:SetText (tostring(ZO_LocalizeDecimalNumber(prevAllActivity)))
-		GTADisclaimer:SetText (("Based on cached data after " .. string.lower(tostring(os.date("%I %p %a %b %d", prevStamp)))))
+		GTATotalCurrentSalesLabel:SetText("TOTAL   -->   " .. tostring(ZO_LocalizeDecimalNumber(allSales)))
+		GTATotalCurrentPurchasesLabel:SetText(tostring(ZO_LocalizeDecimalNumber(allPurchases)))
+		GTATotalCurrentActivityLabel:SetText(tostring(ZO_LocalizeDecimalNumber(allActivity)))
+		GTATotalPreviousSalesLabel:SetText("TOTAL   -->   " .. tostring(ZO_LocalizeDecimalNumber(prevAllSales)))
+		GTATotalPreviousPurchaseLabel:SetText(tostring(ZO_LocalizeDecimalNumber(prevAllPurchases)))
+		GTATotalPreviousActivityLabel:SetText(tostring(ZO_LocalizeDecimalNumber(prevAllActivity)))
+		GTADisclaimer:SetText(("Based on cached data after " .. string.lower(tostring(os.date("%I %p %a %b %d", prevStamp)))))
 	else
 		return
 	end
@@ -1155,7 +1171,7 @@ function GuildTraderActivity.CreateGuildList(data, isCurrent)
 	end
 	if isCurrent then
 		SELECTED_GUILD_LIST:Update(1, salesData)
-		GTASelectedGuildLabel:SetText ("~ " .. string.gsub(guildName, "|t.-|t", "") .. " (Current Week) ~")
+		GTASelectedGuildLabel:SetText("~ " .. string.gsub(guildName, "|t.-|t", "") .. " (Current Week) ~")
 		GTAPersonalView:SetHidden(true)
 		GTASelectedGuildView:SetHidden(false)
 		if DoesPlayerHaveGuildPermission(SELECTED_GUILD_ID, GUILD_PERMISSION_INVITE) then
@@ -1165,7 +1181,7 @@ function GuildTraderActivity.CreateGuildList(data, isCurrent)
 		end
 	else
 		SELECTED_GUILD_LIST:Update(1, salesData)
-		GTASelectedGuildLabel:SetText ("~ " .. string.gsub(guildName, "|t.-|t", "") .. " (Previous Week) ~")
+		GTASelectedGuildLabel:SetText("~ " .. string.gsub(guildName, "|t.-|t", "") .. " (Previous Week) ~")
 		GTAPersonalView:SetHidden(true)
 		GTASelectedGuildView:SetHidden(false)
 		if DoesPlayerHaveGuildPermission(SELECTED_GUILD_ID, GUILD_PERMISSION_INVITE) then
@@ -1178,14 +1194,16 @@ end
 
 function GuildTraderActivity.CreatePlayerList(data, isCurrent)
 	local resetStamp, prevStamp = GetLastKioskReset()
+	local tweakedBuyer
 	local salesData = {}
 	if SELECTED_GUILD_IS_CURRENT then
 		for eventIndex = 1, GetNumGuildHistoryEvents(SELECTED_GUILD_ID, CATEGORY) do
 			local param1, eventStamp, param3, param4, sellerName, buyerName, itemLink, itemQuantity, itemPrice, itemTax = GetGuildHistoryTraderEventInfo(SELECTED_GUILD_ID, eventIndex)
-			if eventStamp > resetStamp and DecorateDisplayName(sellerName) == SELECTED_USER_DISPLAY_NAME then
+			if eventStamp > resetStamp and (SELECTED_USER_DISPLAY_NAME == DecorateDisplayName(sellerName) or SELECTED_USER_DISPLAY_NAME == DecorateDisplayName(buyerName)) then
+				if DecorateDisplayName(buyerName) == SELECTED_USER_DISPLAY_NAME then tweakedBuyer = "~ purchase ~" else tweakedBuyer = DecorateDisplayName(buyerName) end
 				salesData[#salesData+1] = {
 					itemLink,
-					DecorateDisplayName(buyerName),
+					tweakedBuyer,
 					itemQuantity,
 					ZO_LocalizeDecimalNumber(itemPrice),
 					tostring(os.date("%d %b %H:%M", eventStamp)),
@@ -1193,16 +1211,17 @@ function GuildTraderActivity.CreatePlayerList(data, isCurrent)
 			end
 		end
 		SELECTED_PLAYER_LIST:Update(1, salesData)
-		GTASelectedPlayerLabel:SetText ("~ " .. SELECTED_USER_DISPLAY_NAME .. " (Current Week) ~")
+		GTASelectedPlayerLabel:SetText("~ " .. SELECTED_USER_DISPLAY_NAME .. " (Current Week) ~")
 		GTASelectedGuildView:SetHidden(true)
 		GTASelectedPlayerView:SetHidden(false)
 	else
 		for eventIndex = 1, GetNumGuildHistoryEvents(SELECTED_GUILD_ID, CATEGORY) do
 			local param1, eventStamp, param3, param4, sellerName, buyerName, itemLink, itemQuantity, itemPrice, itemTax = GetGuildHistoryTraderEventInfo(SELECTED_GUILD_ID, eventIndex)
-			if eventStamp > prevStamp and eventStamp < resetStamp and DecorateDisplayName(sellerName) == SELECTED_USER_DISPLAY_NAME then
+			if eventStamp > prevStamp and eventStamp < resetStamp and (SELECTED_USER_DISPLAY_NAME == DecorateDisplayName(sellerName) or SELECTED_USER_DISPLAY_NAME == DecorateDisplayName(buyerName)) then
+				if DecorateDisplayName(buyerName) == SELECTED_USER_DISPLAY_NAME then tweakedBuyer = "~ purchase ~" else tweakedBuyer = DecorateDisplayName(buyerName) end
 				salesData[#salesData+1] = {
 					itemLink,
-					DecorateDisplayName(buyerName),
+					tweakedBuyer,
 					itemQuantity,
 					ZO_LocalizeDecimalNumber(itemPrice),
 					tostring(os.date("%d %b %H:%M", eventStamp)),
@@ -1210,7 +1229,7 @@ function GuildTraderActivity.CreatePlayerList(data, isCurrent)
 			end
 		end
 		SELECTED_PLAYER_LIST:Update(1, salesData)
-		GTASelectedPlayerLabel:SetText ("~ " .. SELECTED_USER_DISPLAY_NAME .. " (Previous Week) ~")
+		GTASelectedPlayerLabel:SetText("~ " .. SELECTED_USER_DISPLAY_NAME .. " (Previous Week) ~")
 		GTASelectedGuildView:SetHidden(true)
 		GTASelectedPlayerView:SetHidden(false)
 	end

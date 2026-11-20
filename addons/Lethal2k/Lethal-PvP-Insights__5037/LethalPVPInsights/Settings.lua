@@ -53,64 +53,91 @@ end
 
 -- Data Handling: everything about recording, importing and sharing the data
 local function BuildOptions()
+    local LA = PDI.LogAssist
     local opts = {
-        { type = "header", name = "Tracking" },
+        { type = "header", name = "What LPI records" },
         {
-            type = "button", name = "Reset session counters", width = "half",
-            tooltip = "Clears the 'Session' period of My Kills and Kill Feed.",
-            func = function() PDI.Data:ResetSession(); PDI.Msg("Session counters reset."); refreshUI() end,
+            type = "description",
+            text = "Your kills and assists, the kill feed, what enemy players hit you with, and the players you group with. " ..
+                "It all stays on your PC unless you choose to upload it with the LPI Companion (see Data sharing below).",
         },
         {
-            type = "checkbox", name = "Track only in PvP areas",
-            tooltip = "Record kills, opponents and group builds only in Cyrodiil, Imperial City and Battlegrounds.",
+            type = "checkbox", name = "Record only in PvP areas",
+            tooltip = "ON: kills, opponents and group builds are recorded only in Cyrodiil, Imperial City and Battlegrounds.\n" ..
+                "OFF: everywhere (duels and PvE included).",
             getFunc = function() return sv().onlyPvP end,
             setFunc = function(v) sv().onlyPvP = v end,
             default = PDI.defaults.settings.onlyPvP,
         },
         {
-            type = "checkbox", name = "Chat message on kills and assists",
-            tooltip = "Prints a line in chat for each of your killing blows and assists.",
-            getFunc = function() return sv().chatNotify end,
-            setFunc = function(v) sv().chatNotify = v end,
-            default = PDI.defaults.settings.chatNotify,
-        },
-
-        {
-            type = "dropdown", name = "Group history: record groups in",
-            tooltip = "Where the Group tab records the players you group with (and where the encounter log is switched on " ..
-                "to capture their gear):\nPvP - Cyrodiil, Imperial City and Battlegrounds\nPvE - everywhere else\nBoth - everywhere",
-            choices = { "PvP", "PvE", "Both" },
+            type = "dropdown", name = "Remember players I group with",
+            tooltip = "Where the Group tab records your group members (and where their gear may be captured).",
+            choices = { "In PvP areas", "Outside PvP areas", "Everywhere" },
             choicesValues = { "pvp", "pve", "both" },
             getFunc = function() return sv().groupScope or "pvp" end,
             setFunc = function(v) sv().groupScope = v; PDI.Group:Scan(); PDI.LogAssist:Evaluate(); refreshUI() end,
             default = PDI.defaults.settings.groupScope,
         },
         {
-            type = "slider", name = "Kill feed event log: keep (days)",
-            tooltip = "Every kill feed message is stored as its own record (time, campaign, location, killer and victim). " ..
-                "Older days are deleted automatically.",
-            min = 1, max = 60, step = 1,
-            getFunc = function() return tonumber(sv().killEventDays) or 7 end,
-            setFunc = function(v) sv().killEventDays = v; PDI.Data:Prune() end,
-            default = PDI.defaults.settings.killEventDays,
+            type = "checkbox", name = "Chat message on my kills and assists",
+            tooltip = "Prints a line in chat for each of your killing blows and assists.",
+            getFunc = function() return sv().chatNotify end,
+            setFunc = function(v) sv().chatNotify = v end,
+            default = PDI.defaults.settings.chatNotify,
         },
         {
-            type = "slider", name = "Friendly player buffs: collect for (hours)",
-            tooltip = "When you target a player, the buffs you see are added to what was already collected for them " ..
-                "(no duplicates). After this many hours the next look starts a fresh list.",
-            min = 1, max = 168, step = 1,
-            getFunc = function() return tonumber(sv().buffWindowHours) or 36 end,
-            setFunc = function(v) sv().buffWindowHours = v end,
-            default = PDI.defaults.settings.buffWindowHours,
+            type = "button", name = "Reset session counters", width = "half",
+            tooltip = "Starts the 'Session' period of My Kills, Kill Feed and Alliance Points from zero.",
+            func = function() PDI.Data:ResetSession(); PDI.Msg("Session counters reset."); refreshUI() end,
         },
 
-        { type = "header", name = "Gear & skill bars (encounter log)" },
+        { type = "header", name = "Group members' gear & skill bars" },
         {
             type = "description",
-            text = "While you're grouped in a PvP area, the addon can switch the game's encounter log on, " ..
-                "capture your group members' gear and skill bars at the next fight, then switch it off and " ..
-                "pop up the import window. Keep the LPI Companion running on your PC to import with one click. The Companion is " ..
-                "an optional Windows helper and a separate download (button below).",
+            text = "The game writes other players' gear and skill bars only into its encounter log (Encounter.log). " ..
+                "LPI can switch that log on for a short time while you're grouped, capture your group members at the " ..
+                "next fight, and switch it off again. The LPI Companion (optional, separate download) then imports it.",
+        },
+        {
+            type = "dropdown", name = "Switch the encounter log on",
+            tooltip = "Automatically: by itself when group members are missing gear; off again once they're captured.\n" ..
+                "Ask me first: LPI asks you each time.\nOnly with Capture now: never by itself.",
+            choices = { "Automatically", "Ask me first", "Only with Capture now" },
+            choicesValues = { "auto", "ask", "never" },
+            getFunc = function() return sv().autoLog end,
+            setFunc = function(v) sv().autoLog = v; PDI.LogAssist:Evaluate() end,
+            default = PDI.defaults.settings.autoLog,
+        },
+        {
+            type = "description",
+            text = function()
+                local mode = sv().autoLog
+                local what = mode == "ask" and "|cFFFFFFAsk me first:|r when group members are missing gear, LPI asks before switching the log on."
+                    or mode == "never" and "|cFFFFFFOnly with Capture now:|r LPI never switches the log on by itself. Click Capture now (or /lpi capture) before a fight."
+                    or "|cFFFFFFAutomatically:|r when group members are missing gear, LPI switches the log on, and off again once they are captured (at most 10 minutes)."
+                local now
+                if LA:IsOn() then
+                    now = LA.ownedByUs and "|c66DD66ON|r - switched on by LPI, which switches it off again."
+                        or "|c66DD66ON|r - switched on by you or another addon. LPI leaves it on."
+                else
+                    now = "|c999999off|r"
+                end
+                return what .. "\n\n|cFFFFFFAlready logging yourself?|r If the encounter log was on before LPI needed it " ..
+                    "(for example you upload your fights to esologs.com), LPI never switches it off, and the Companion " ..
+                    "never deletes it.\nEncounter log right now: " .. now
+            end,
+        },
+        {
+            type = "checkbox", name = "Show the import window after a capture",
+            tooltip = "After a capture, opens a small window with an Upload button (sends the log to the Companion) and Reload UI.",
+            getFunc = function() return sv().importPopup end,
+            setFunc = function(v) sv().importPopup = v end,
+            default = PDI.defaults.settings.importPopup,
+        },
+        {
+            type = "button", name = "Capture now", width = "half",
+            tooltip = "Switches the encounter log on until the end of your next fight (if it isn't on already).",
+            func = function() PDI.LogAssist:Capture(nil) end,
         },
         {
             type = "button", name = "Get the LPI Companion", width = "half",
@@ -120,43 +147,46 @@ local function BuildOptions()
             func = function() PDI.OpenCompanionPage() end,
         },
         {
-            type = "dropdown", name = "Encounter log while grouped",
-            tooltip = "Automatic: switch on/off by itself.\nAsk first: show a prompt before switching on.\nNever: only manually (/lpi capture).",
-            choices = { "Automatic", "Ask first", "Never" },
-            choicesValues = { "auto", "ask", "never" },
-            getFunc = function() return sv().autoLog end,
-            setFunc = function(v) sv().autoLog = v; PDI.LogAssist:Evaluate() end,
-            default = PDI.defaults.settings.autoLog,
-        },
-        {
-            type = "checkbox", name = "Show import window after a capture",
-            tooltip = "When the log is switched off after capturing gear, open a window with the Encounter.log path and a Reload UI button.",
-            getFunc = function() return sv().importPopup end,
-            setFunc = function(v) sv().importPopup = v end,
-            default = PDI.defaults.settings.importPopup,
-        },
-        {
-            type = "editbox", name = "Encounter.log path", isMultiline = false, width = "full",
-            tooltip = "Only needed if your Documents folder is somewhere else (e.g. OneDrive). Leave empty for the default:\n" ..
-                "%USERPROFILE%\\Documents\\Elder Scrolls Online\\live\\Logs\\Encounter.log",
-            getFunc = function() return sv().logPath or "" end,
-            setFunc = function(v) v = zo_strtrim(v or ""); sv().logPath = (v ~= "") and v or nil end,
-            default = "",
-        },
-        {
-            type = "button", name = "Capture now", width = "half",
-            tooltip = "Switch the encounter log on until the end of your next fight.",
-            func = function() PDI.LogAssist:Capture(nil) end,
-        },
-        {
-            type = "button", name = "Delete Encounter.log", width = "half",
-            tooltip = "Asks the LPI Companion to delete Encounter.log. Gear already imported is kept. " ..
-                "The Companion can also do this automatically after each import (tick 'Delete log after import' in its window).",
-            func = function() PDI.LogAssist:DeleteLog() end,
-        },
-        {
-            type = "button", name = "Open import window", width = "half",
-            func = function() PDI.LogAssist:ShowImportWindow() end,
+            type = "submenu", name = "Advanced",
+            tooltip = "Rarely needed.",
+            controls = {
+                {
+                    type = "editbox", name = "Encounter.log path", isMultiline = false, width = "full",
+                    tooltip = "Only needed if your Documents folder is somewhere else (e.g. OneDrive). Leave empty for the default:\n" ..
+                        "%USERPROFILE%\\Documents\\Elder Scrolls Online\\live\\Logs\\Encounter.log",
+                    getFunc = function() return sv().logPath or "" end,
+                    setFunc = function(v) v = zo_strtrim(v or ""); sv().logPath = (v ~= "") and v or nil end,
+                    default = "",
+                },
+                {
+                    type = "button", name = "Open import window", width = "half",
+                    func = function() PDI.LogAssist:ShowImportWindow() end,
+                },
+                {
+                    type = "button", name = "Delete Encounter.log", width = "half",
+                    tooltip = "Asks the LPI Companion to delete Encounter.log. Gear already imported is kept. If the log " ..
+                        "also has logging LPI didn't start, the Companion asks first.",
+                    func = function() PDI.LogAssist:DeleteLog() end,
+                },
+                {
+                    type = "slider", name = "Keep kill feed records (days)",
+                    tooltip = "Every kill feed message is stored as its own record (time, campaign, location, killer and victim). " ..
+                        "Older days are deleted automatically.",
+                    min = 1, max = 60, step = 1,
+                    getFunc = function() return tonumber(sv().killEventDays) or 7 end,
+                    setFunc = function(v) sv().killEventDays = v; PDI.Data:Prune() end,
+                    default = PDI.defaults.settings.killEventDays,
+                },
+                {
+                    type = "slider", name = "Collect a player's buffs for (hours)",
+                    tooltip = "When you target a player, the buffs you see are added to what was already collected for them " ..
+                        "(no duplicates). After this many hours the next look starts a fresh list.",
+                    min = 1, max = 168, step = 1,
+                    getFunc = function() return tonumber(sv().buffWindowHours) or 36 end,
+                    setFunc = function(v) sv().buffWindowHours = v end,
+                    default = PDI.defaults.settings.buffWindowHours,
+                },
+            },
         },
 
         { type = "header", name = "Data sharing (esopvp.com)" },

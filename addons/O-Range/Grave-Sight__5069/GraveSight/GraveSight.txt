@@ -1,9 +1,10 @@
 ## Title: GraveSight
 ## Author: O-Range
-## Version: 0.4.2
-## AddOnVersion: 6
+## Version: 0.5.0
+## AddOnVersion: 5
 ## APIVersion: 101051 101052
 ## DependsOn: LibAddonMenu-2.0>=43
 ## SavedVariables: GraveSightVars
+## Description: A stylish Necromancer-themed reticle with spectral soul flares, smooth animations, full RGB + opacity control, stealth scaling, and enemy pulse.
 
 GraveSight.lua

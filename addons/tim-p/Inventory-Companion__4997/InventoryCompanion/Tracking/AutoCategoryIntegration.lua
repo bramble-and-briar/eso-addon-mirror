@@ -434,13 +434,22 @@ local function CheckDefinitionCollision(ac, definitions)
             "IC AutoCategory category name collision: " .. definition.name)
         desiredNames[definition.name] = true
     end
-    local sources = {
-        ac.RulesW.ruleList,
-        ac.predefinedRules,
-        ac.default_rules and ac.default_rules.rules,
-        ac.acctRules and ac.acctRules.rules,
-    }
-    for _, profile in ipairs({ ac.acctSaved, ac.charSaved, ac.saved }) do
+    local sources = {}
+    local function AddSource(source)
+        if source ~= nil then sources[#sources + 1] = source end
+    end
+    AddSource(ac.RulesW.ruleList)
+    AddSource(ac.predefinedRules)
+    AddSource(ac.default_rules and ac.default_rules.rules)
+    AddSource(ac.acctRules and ac.acctRules.rules)
+    local profiles = {}
+    local function AddProfile(profile)
+        if profile ~= nil then profiles[#profiles + 1] = profile end
+    end
+    AddProfile(ac.acctSaved)
+    AddProfile(ac.charSaved)
+    AddProfile(ac.saved)
+    for _, profile in ipairs(profiles) do
         if profile.rules ~= nil then sources[#sources + 1] = profile.rules end
     end
     for pluginKey, plugin in pairs(ac.Plugins) do
@@ -458,7 +467,7 @@ local function CheckDefinitionCollision(ac, definitions)
                 end
             end
         end
-        for _, profile in ipairs({ ac.acctSaved, ac.charSaved, ac.saved }) do
+        for _, profile in ipairs(profiles) do
             for _, context in ipairs(contexts) do
                 local bag = profile.bags and profile.bags[context.bagType()]
                 if bag ~= nil then
@@ -474,6 +483,195 @@ local function CheckDefinitionCollision(ac, definitions)
         end
     end
     return true
+end
+
+local function CheckDebugCollisionReadiness(ac)
+    local shapeOk, shapeFailure = pcall(CheckExternalShape, ac)
+    if not shapeOk then
+        return false, "AutoCategory API/profile shape is incomplete: " .. tostring(shapeFailure)
+    end
+    if ac.Inited ~= true then return false, "AutoCategory has not finished initialization." end
+    for _, profileName in ipairs({ "acctSaved", "charSaved", "saved" }) do
+        local profile = ac[profileName]
+        if type(profile) ~= "table" or type(profile.rules) ~= "table" or type(profile.bags) ~= "table" then
+            return false, "AutoCategory " .. profileName .. " rules or bags are unavailable."
+        end
+        for _, context in ipairs(contexts) do
+            local bagTypeOk, bagType = pcall(context.bagType)
+            if not bagTypeOk then
+                return false, "AutoCategory bag type is unavailable for " .. context.title .. "."
+            end
+            local bag = profile.bags[bagType]
+            if type(bag) ~= "table" or type(bag.rules) ~= "table" then
+                return false, "AutoCategory " .. profileName .. " assignments are unavailable for "
+                    .. context.title .. "."
+            end
+        end
+    end
+    return true
+end
+
+local function AddSavedRuleDiagnostics(lines, profileName, profile)
+    if type(profile) ~= "table" then
+        lines[#lines + 1] = "Saved profile " .. profileName .. ": unavailable"
+        return
+    end
+    local savedRules = profile.trackedRules
+    if savedRules == nil then
+        lines[#lines + 1] = "Saved profile " .. profileName .. ": trackedRules unavailable"
+        return
+    end
+    assert(type(savedRules) == "table", profileName .. ".trackedRules must be a table")
+    local identitiesByName, profileKeys = {}, {}
+    for ruleKey, baseline in pairs(this.preLoadedRulesets) do
+        if ruleKey ~= "miscellaneous" then
+            profileKeys[ruleKey] = baseline.displayName
+        end
+    end
+    for ruleKey, saved in pairs(savedRules) do
+        assert(type(ruleKey) == "string" and type(saved) == "table",
+            profileName .. ".trackedRules contains malformed rule data")
+        local baseline = this.preLoadedRulesets[ruleKey]
+        local displayName = saved.displayName or (baseline and baseline.displayName) or ruleKey
+        profileKeys[ruleKey] = displayName
+    end
+    local keys = {}
+    for ruleKey in pairs(profileKeys) do keys[#keys + 1] = ruleKey end
+    table.sort(keys)
+    lines[#lines + 1] = "Saved profile " .. profileName .. ": " .. #keys .. " groups (built-in and saved)"
+    for _, ruleKey in ipairs(keys) do
+        local saved = savedRules[ruleKey]
+        local displayName = profileKeys[ruleKey]
+        identitiesByName[displayName] = identitiesByName[displayName] or {}
+        identitiesByName[displayName][#identitiesByName[displayName] + 1] = ruleKey
+        lines[#lines + 1] = string.format("  key=%s name=%s autoCategoryEnabled=%s",
+            ruleKey, displayName, tostring(saved and saved.autoCategoryEnabled == true))
+    end
+    local duplicateNames = {}
+    for displayName, ruleKeys in pairs(identitiesByName) do
+        if #ruleKeys > 1 then
+            table.sort(ruleKeys)
+            duplicateNames[#duplicateNames + 1] = { name = displayName, keys = ruleKeys }
+        end
+    end
+    table.sort(duplicateNames, function(left, right) return left.name < right.name end)
+    for _, duplicate in ipairs(duplicateNames) do
+        lines[#lines + 1] = "  Duplicate profile group name: " .. duplicate.name
+            .. " [" .. table.concat(duplicate.keys, ", ") .. "]"
+    end
+end
+
+function integration.BuildDebugReport()
+    local lines = { "[InventoryCompanion AutoCategory diagnostics]" }
+    local state, message = integration.GetStatus()
+    local snapshot = IntegrationSnapshot()
+    local activeProfileName = this.character.useCharacterItemList and "character" or "account-wide"
+    local activeProfile = this.GetAutoCategoryProfile()
+    lines[#lines + 1] = "Integration state: " .. tostring(state)
+    lines[#lines + 1] = "Integration message: " .. tostring(message)
+    lines[#lines + 1] = "Faulted: " .. tostring(snapshot.faulted)
+        .. "; reconciling: " .. tostring(snapshot.reconciling)
+        .. "; AutoCategory loaded: " .. tostring(AutoCategory ~= nil)
+        .. "; AutoCategory initialized: " .. tostring(snapshot.autoCategoryInited)
+    lines[#lines + 1] = "Active IC profile: " .. activeProfileName
+        .. "; integration enabled: " .. tostring(this.GetAutoCategoryState().enabled)
+        .. "; setup complete: " .. tostring(activeProfile.autoCategorySetupComplete)
+
+    AddSavedRuleDiagnostics(lines, "account-wide", this.accountWide)
+    AddSavedRuleDiagnostics(lines, "character", this.character)
+
+    local runtimeOk, rulesOrFailure = pcall(function()
+        assert(type(activeProfile.trackedRules) == "table",
+            "Active profile trackedRules are unavailable for read-only inspection")
+        return this.GetRuntimeRules(CopySavedValue(activeProfile.trackedRules))
+    end)
+    if not runtimeOk then
+        lines[#lines + 1] = "Runtime group inspection failed: " .. tostring(rulesOrFailure)
+    else
+        local rules = rulesOrFailure
+        local identitiesByName = {}
+        local ruleKeys = {}
+        for ruleKey, rule in pairs(rules) do
+            if IsOrdinaryRule(ruleKey, rule) then
+                ruleKeys[#ruleKeys + 1] = ruleKey
+                identitiesByName[rule.displayName] = identitiesByName[rule.displayName] or {}
+                identitiesByName[rule.displayName][#identitiesByName[rule.displayName] + 1] = ruleKey
+            end
+        end
+        table.sort(ruleKeys)
+        for _, ruleKey in ipairs(ruleKeys) do
+            local rule = rules[ruleKey]
+            lines[#lines + 1] = string.format("Runtime group: key=%s name=%s preloaded=%s autoCategoryEnabled=%s",
+                ruleKey, rule.displayName, tostring(rule.isPreloaded), tostring(rule.autoCategoryEnabled))
+        end
+        for displayName, identities in pairs(identitiesByName) do
+            if #identities > 1 then
+                table.sort(identities)
+                lines[#lines + 1] = "Duplicate runtime group name: " .. displayName
+                    .. " [" .. table.concat(identities, ", ") .. "]"
+            end
+        end
+
+        if AutoCategory == nil then
+            lines[#lines + 1] = "Category collision preflight: skipped; AutoCategory is not loaded."
+        else
+            local definitionsOk, definitionsOrFailure = pcall(BuildDefinitions, rules)
+            if not definitionsOk then
+                lines[#lines + 1] = "Category definition build failed: " .. tostring(definitionsOrFailure)
+            else
+                local definitions = definitionsOrFailure
+                for _, definition in ipairs(definitions) do
+                    lines[#lines + 1] = "Desired AutoCategory definition: key="
+                        .. tostring(definition.icRuleKey) .. " name=" .. tostring(definition.name)
+                end
+                local ready, readinessMessage = CheckDebugCollisionReadiness(AutoCategory)
+                if not ready then
+                    lines[#lines + 1] = "Category collision preflight: incomplete; " .. readinessMessage
+                else
+                    local collisionOk, collisionFree, collision =
+                        pcall(CheckDefinitionCollision, AutoCategory, definitions)
+                    if not collisionOk then
+                        lines[#lines + 1] = "Category collision preflight raised: " .. tostring(collisionFree)
+                    elseif collisionFree then
+                        lines[#lines + 1] = "Category collision preflight: clear."
+                    else
+                        lines[#lines + 1] = "Category collision preflight: " .. tostring(collision)
+                    end
+                end
+            end
+
+            local plugin = type(AutoCategory.Plugins) == "table" and AutoCategory.Plugins[pluginName]
+            if type(plugin) == "table" and type(plugin.predef) == "table" then
+                for _, definition in ipairs(plugin.predef) do
+                    if definition.icIntegrationOwned then
+                        lines[#lines + 1] = "Registered plugin definition: key="
+                            .. tostring(definition.icRuleKey) .. " name=" .. tostring(definition.name)
+                    end
+                end
+            else
+                lines[#lines + 1] = "Registered AutoCategory plugin: unavailable"
+            end
+
+            local unavailable = integration.unavailableAssignments
+            lines[#lines + 1] = "Unavailable assignments: " .. tostring(#unavailable)
+            for _, record in ipairs(unavailable) do
+                local context = contextByKey[record.context]
+                lines[#lines + 1] = "  " .. (context and context.title or tostring(record.context))
+                    .. ": " .. tostring(record.line.name) .. " [key=" .. tostring(record.ruleKey) .. "]"
+            end
+        end
+    end
+
+    if this.autoCategoryFailure ~= nil then
+        lines[#lines + 1] = "Stored AutoCategory failure: " .. tostring(this.autoCategoryFailure)
+    end
+    if this.autoCategoryFailureTraceback ~= nil then
+        lines[#lines + 1] = "Stored AutoCategory traceback:\n" .. tostring(this.autoCategoryFailureTraceback)
+    end
+    if integration.failureDiagnostics ~= nil then
+        lines[#lines + 1] = "AutoCategory failure diagnostics:\n" .. tostring(integration.failureDiagnostics)
+    end
+    return table.concat(lines, "\n")
 end
 
 local function SameDefinition(existing, desired)
@@ -922,6 +1120,19 @@ CopySavedValue = function(value, activeTables)
     return copy
 end
 
+local function ValidateAutoCategoryAssignment(assignment, context)
+    assert(type(assignment) == "table" and type(assignment.name) == "string" and assignment.name ~= "",
+        "AutoCategory assignment is malformed in " .. context)
+    assert(assignment.isHidden == nil or type(assignment.isHidden) == "boolean",
+        "AutoCategory hidden setting is invalid in " .. context .. ": " .. assignment.name)
+    assert(type(assignment.runpriority) == "number" and assignment.runpriority == assignment.runpriority
+        and math.abs(assignment.runpriority) < math.huge,
+        "AutoCategory run priority is invalid in " .. context .. ": " .. assignment.name)
+    assert(type(assignment.showpriority) == "number" and assignment.showpriority == assignment.showpriority
+        and math.abs(assignment.showpriority) < math.huge,
+        "AutoCategory display priority is invalid in " .. context .. ": " .. assignment.name)
+end
+
 local function RestoreArchivedAssignments(ac)
     local archive = this.accountWide.debug.autoCategoryRemovedLines
     local restoredContexts = {}
@@ -1167,16 +1378,7 @@ local function BuildContextModel(context, definitions, rules, repairAssignments)
         end
     end
     for _, assignment in ipairs(assignments) do
-        assert(type(assignment) == "table" and type(assignment.name) == "string" and assignment.name ~= "",
-            "AutoCategory assignment is malformed in " .. context.title)
-        assert(assignment.isHidden == nil or type(assignment.isHidden) == "boolean",
-            "AutoCategory hidden setting is invalid in " .. context.title .. ": " .. assignment.name)
-        assert(type(assignment.runpriority) == "number" and assignment.runpriority == assignment.runpriority
-            and math.abs(assignment.runpriority) < math.huge,
-            "AutoCategory run priority is invalid in " .. context.title .. ": " .. assignment.name)
-        assert(type(assignment.showpriority) == "number" and assignment.showpriority == assignment.showpriority
-            and math.abs(assignment.showpriority) < math.huge,
-            "AutoCategory display priority is invalid in " .. context.title .. ": " .. assignment.name)
+        ValidateAutoCategoryAssignment(assignment, context.title)
         local ruleKey = GetManagedRuleKey(assignment, definitionsByName)
         local reference
         if ruleKey then

@@ -1,0 +1,15 @@
+## Title: |c4FC3F7ESQL|r - SQL for ESO game data
+## Author: Vixen Hunny
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101049 101050
+## Description: Query ESO game data with SQL: abilities, skills, sets, effects, items, achievements, collectibles, zones, champion points and more. /esql on PC, Settings > Addons > ESQL on console.
+## SavedVariables: ESQL_SV
+## DependsOn: LibESQL>=10000
+## OptionalDependsOn: LibHarvensAddonSettings
+
+ESQL.lua
+ESQL_UI.lua
+ESQL_Console.lua
+ESQL_Init.lua
+Bindings.xml

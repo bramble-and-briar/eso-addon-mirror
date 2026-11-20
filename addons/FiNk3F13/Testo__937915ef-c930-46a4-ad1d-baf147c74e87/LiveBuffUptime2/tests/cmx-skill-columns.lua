@@ -11,6 +11,10 @@ LibCombat2=nil
 LibCombat={name="LibCombat",RegisterForCombatEvent=function(_,_,event,callback) callbacks[event]=callback end}
 local saved=env.saved();saved.trackers={}
 ZO_SavedVars.NewAccountWide=function() return saved end
+LiveBuffUptime2Combat=LibCombat
+LiveBuffUptime2Combat.backend="LibCombat"
+LiveBuffUptime2Combat.name="LiveBuffUptime2Combat"
+for _,key in ipairs(names) do LiveBuffUptime2Combat[key]=_G["LIBCOMBAT_"..key] end
 dofile("LiveBuffUptime2.lua");env.events[EVENT_ADD_ON_LOADED](nil,"LiveBuffUptime2")
 local function send(name,time,...)
     env.setClock(time);local code=_G["LIBCOMBAT_"..name];callbacks[code](code,GetGameTimeMilliseconds(),...)

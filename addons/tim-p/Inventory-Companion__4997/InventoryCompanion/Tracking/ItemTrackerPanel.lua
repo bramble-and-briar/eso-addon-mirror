@@ -2,7 +2,6 @@ InventoryCompanion = InventoryCompanion or {}
 local this = InventoryCompanion
 
 local trackerRows = {}
-local originalTrackerPos = nil
 local previousLayout = nil
 local ROW_HEIGHT = 22
 local ROW_WIDTH = 320
@@ -19,8 +18,7 @@ local function GetRowsChild()
 end
 
 local function OnTrackerMoveStop(control)
-    this.GetSettingsProfile().trackerOffsetX = control:GetLeft()
-    this.GetSettingsProfile().trackerOffsetY = control:GetTop()
+    this.PanelLayout.OnMoveStop("Tracker")
 end
 
 local function OnTrackerMouseUp(control, button)
@@ -28,22 +26,22 @@ local function OnTrackerMouseUp(control, button)
         ClearMenu()
 
         -- 1. Toggle: Show/Hide Empty Tracked Items
-        local showEmpty = (this.GetSettingsProfile().showEmptyTrackedItems ~= false)
+        local showEmpty = (this.GetPanelSettings("Tracker").showEmptyTrackedItems ~= false)
         AddCustomMenuItem(
             (showEmpty and "Hide Empty Tracked Items" or "Show Empty Tracked Items"),
             function()
-                this.GetSettingsProfile().showEmptyTrackedItems = not showEmpty
+                this.GetPanelSettings("Tracker").showEmptyTrackedItems = not showEmpty
                 this.RefreshItemTrackerPanel()
             end,
             MENU_ADD_OPTION_LABEL
         )
 
         -- 2. Toggle: Multiline / Single Line View
-        local isWrapped = (this.GetSettingsProfile().wrapTrackedItemNames == true)
+        local isWrapped = (this.GetPanelSettings("Tracker").wrapTrackedItemNames == true)
         AddCustomMenuItem(
             (isWrapped and "Single Line View" or "Multiline View"),
             function()
-                this.GetSettingsProfile().wrapTrackedItemNames = not isWrapped
+                this.GetPanelSettings("Tracker").wrapTrackedItemNames = not isWrapped
                 this.RefreshItemTrackerPanel()
             end,
             MENU_ADD_OPTION_LABEL
@@ -63,14 +61,14 @@ local function OnTrackerMouseUp(control, button)
 end
 
 function this.InitItemTrackerPanel()
-    InventoryCompanion_ItemTrackerFloat:ClearAnchors()
-    InventoryCompanion_ItemTrackerFloat:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, this.GetSettingsProfile().trackerOffsetX, this.GetSettingsProfile().trackerOffsetY)
+    this.PanelLayout.RegisterPanel("Tracker", InventoryCompanion_ItemTrackerFloat)
     InventoryCompanion_ItemTrackerFloat:SetHandler("OnMoveStop", OnTrackerMoveStop)
     InventoryCompanion_ItemTrackerFloat:SetHandler("OnMouseUp", OnTrackerMouseUp)
 
     if InventoryCompanion_ItemTrackerFloatContainer then
         InventoryCompanion_ItemTrackerFloatContainer:SetHandler("OnMouseDown", function(control, button)
             if button == MOUSE_BUTTON_INDEX_LEFT then
+                this.PanelLayout.OnMoveStart("Tracker")
                 InventoryCompanion_ItemTrackerFloat:StartMoving()
             end
         end)
@@ -638,7 +636,7 @@ local function BuildDisplayList(snapshot, activeRules, trackedItems, showEmpty)
     local seenVisibleIds = {}
     local allVisibleItems = CollectAllVisibleItems(snapshot, activeRules, trackedItems, showEmpty, seenVisibleIds)
 
-    local threshold = (this.accountWide and this.GetSettingsProfile().trackerGroupThreshold) or 8
+    local threshold = (this.accountWide and this.GetPanelSettings("Tracker").trackerGroupThreshold) or 8
     if #allVisibleItems < threshold then
         table.sort(allVisibleItems, function(a, b) return a.sortName < b.sortName end)
         return allVisibleItems
@@ -853,136 +851,19 @@ end
 -- Editor Collision & Repositioning Handling
 ------------------------------------------------------------------
 
-function this.AdjustTrackerPositionForEditor(editorWindow, alwaysMove, xOffset, yOffset)
-	xOffset = xOffset or 0
-    yOffset = yOffset or 0
-    if not InventoryCompanion_ItemTrackerFloat or InventoryCompanion_ItemTrackerFloat:IsHidden() then
-        return
-    end
-
-    if not editorWindow or editorWindow:IsHidden() then
-        return
-    end
-
-    -- Save original position once when entering edit mode if not already saved
-    if not originalTrackerPos then
-        originalTrackerPos = {
-            left = InventoryCompanion_ItemTrackerFloat:GetLeft(),
-            top = InventoryCompanion_ItemTrackerFloat:GetTop(),
-        }
-    end
-
-    local tracker = InventoryCompanion_ItemTrackerFloat
-    local tLeft, tTop, tWidth, tHeight = tracker:GetLeft(), tracker:GetTop(), tracker:GetWidth(), tracker:GetHeight()
-    local eLeft, eTop, eWidth, eHeight = editorWindow:GetLeft(), editorWindow:GetTop(), editorWindow:GetWidth(), editorWindow:GetHeight()
-
-    -- Check for collision/overlap
-    local overlaps = not (tLeft + tWidth < eLeft or tLeft > eLeft + eWidth or tTop + tHeight < eTop or tTop > eTop + eHeight)
-
-    if overlaps or alwaysMove then
-        local screenWidth, screenHeight = GuiRoot:GetWidth(), GuiRoot:GetHeight()
-        local newTop = eTop
-
-        -- Calculate potential left positions for both sides
-        local rightSideLeft = eLeft + eWidth
-        local leftSideLeft = eLeft - tWidth
-
-        -- Evaluate screen boundary constraints for both sides
-        local rightValid = (rightSideLeft + tWidth <= screenWidth) and (rightSideLeft >= 0)
-        local leftValid = (leftSideLeft >= 0) and (leftSideLeft + tWidth <= screenWidth)
-
-        local newLeft = rightSideLeft -- Default fallback
-
-        if rightValid and leftValid then
-            -- Both sides fit on screen: choose the one with the shortest distance to move
-            local distRight = math.abs(rightSideLeft - tLeft)
-            local distLeft = math.abs(leftSideLeft - tLeft)
-            if distLeft < distRight then
-                newLeft = leftSideLeft
-            else
-                newLeft = rightSideLeft
-            end
-        elseif leftValid then
-            -- Only the left side fits cleanly
-            newLeft = leftSideLeft
-        elseif rightValid then
-            -- Only the right side fits cleanly
-            newLeft = rightSideLeft
-        else
-            -- Fallback: clamp whichever side is closer if the screen is too narrow overall
-            if math.abs(leftSideLeft - tLeft) < math.abs(rightSideLeft - tLeft) then
-                newLeft = math.max(0, math.min(leftSideLeft, screenWidth - tWidth))
-            else
-                newLeft = math.max(0, math.min(rightSideLeft, screenWidth - tWidth))
-            end
-        end
-
-        -- If too tall / exceeds bottom screen bounds, move it up
-        if newTop + tHeight > screenHeight then
-            newTop = math.max(0, screenHeight - tHeight)
-        end
-
-        tracker:ClearAnchors()
-        tracker:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, newLeft + xOffset, newTop + yOffset)
-    end
-end
-
-local activeInteractionWindows = {
-    { scene = "inventory",      control = ZO_PlayerInventory },
-    { scene = "bank",           control = ZO_PlayerBank },
-    { scene = "houseBank",      control = ZO_HouseBank },
-    { scene = "guildBank",      control = ZO_GuildBank },
-    { scene = "store",          control = ZO_PlayerInventory }, -- Store/Merchant uses inventory frame for positioning bounds
-    { scene = "store_keyboard", control = ZO_PlayerInventory },
-    { scene = "fence_keyboard", control = ZO_PlayerInventory },
-}
-
-local function GetActiveInteractionWindow()
-    for _, entry in ipairs(activeInteractionWindows) do
-        if SCENE_MANAGER:IsShowing(entry.scene) then
-            if entry.control and not entry.control:IsHidden() then
-                return entry.control
-            end
-        end
-    end
-    return nil
-end
-
-function this.AdjustTrackerPositionForInteraction()
-    if not InventoryCompanion_ItemTrackerFloat or InventoryCompanion_ItemTrackerFloat:IsHidden() then
-        return
-    end
-
-    local interactionWindow = GetActiveInteractionWindow()
-    if interactionWindow then
-        this.AdjustTrackerPositionForEditor(interactionWindow, true,-38,0)
-    end
-end
-
-function this.RestoreTrackerPosition()
-    if originalTrackerPos and InventoryCompanion_ItemTrackerFloat then
-        InventoryCompanion_ItemTrackerFloat:ClearAnchors()
-        InventoryCompanion_ItemTrackerFloat:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, originalTrackerPos.left, originalTrackerPos.top)
-        originalTrackerPos = nil
-    end
-end
-
-
 ------------------------------------------------------------------
 -- Refresh Panel
 ------------------------------------------------------------------
 local function GetTrackerCoordinates()
     local oldLeft = InventoryCompanion_ItemTrackerFloat:GetLeft()
     local oldTop = InventoryCompanion_ItemTrackerFloat:GetTop()
-    if not oldLeft or oldLeft <= 0 then oldLeft = this.GetSettingsProfile().trackerOffsetX or 50 end
-    if not oldTop or oldTop <= 0 then oldTop = this.GetSettingsProfile().trackerOffsetY or 50 end
     return oldLeft, oldTop
 end
 
 local function GetTrackerDisplayList()
     local trackedItems = this.GetActiveTrackedItems()
     local activeRules = this.GetActiveTrackedRules()
-    local showEmpty = this.GetSettingsProfile().showEmptyTrackedItems ~= false
+    local showEmpty = this.GetPanelSettings("Tracker").showEmptyTrackedItems ~= false
 
     local bagIdList = { BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK }
     if IsESOPlusSubscriber() then
@@ -1002,33 +883,35 @@ local function ApplyBoundedPosition(oldLeft, oldTop)
     local bottomLimit = GuiRoot:GetHeight()
     local finalTop = oldTop
 
-    if (oldTop + newHeight) > bottomLimit then
+    if this.PanelLayout.IsNormalContext() and (oldTop + newHeight) > bottomLimit then
         finalTop = math.max(0, bottomLimit - newHeight)
     end
 
     InventoryCompanion_ItemTrackerFloat:ClearAnchors()
     InventoryCompanion_ItemTrackerFloat:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, oldLeft, finalTop)
+    this.PanelLayout.UpdateVisibility()
 end
 
 function this.SetItemTrackerPanelVisible(visible)
     assert(type(visible) == "boolean", "Tracker visibility must be a boolean")
-    this.GetSettingsProfile().showTrackedItemsPanel = visible
+    this.GetPanelSettings("Tracker").showTrackedItemsPanel = visible
     this.UpdateEventRegistry()
     this.RefreshItemTrackerPanel()
 end
 
 function this.ToggleItemTrackerPanel()
-    this.SetItemTrackerPanelVisible(this.GetSettingsProfile().showTrackedItemsPanel == false)
+    this.SetItemTrackerPanelVisible(this.GetPanelSettings("Tracker").showTrackedItemsPanel == false)
 end
 
 function this.RefreshItemTrackerPanel(reason, targetGroup)
-    local titleSize = this.GetSettingsProfile().trackerTitleSize
+    local titleSize = this.GetPanelSettings("Tracker").trackerTitleSize
     InventoryCompanion_ItemTrackerFloatTitle:SetFont(string.format("%s|%d|soft-shadow-thin",
         ZoFontGame:GetFontInfo(), titleSize))
     InventoryCompanion_ItemTrackerFloatEditIcon:SetDimensions(titleSize, titleSize)
     InventoryCompanion_ItemTrackerFloatSettingsIcon:SetDimensions(titleSize, titleSize)
-    if this.GetSettingsProfile().showTrackedItemsPanel == false then
+    if this.GetPanelSettings("Tracker").showTrackedItemsPanel == false then
         InventoryCompanion_ItemTrackerFloat:SetHidden(true)
+        this.PanelLayout.UpdateVisibility()
         return
     end
 
@@ -1046,14 +929,14 @@ function this.RefreshItemTrackerPanel(reason, targetGroup)
         items = { { link = "|c888888No tracked items in backpack|r", count = 0,
             icon = "EsoUI/Art/Buttons/edit_up.dds", isEmpty = true } }
     end
-    local budget = math.min(this.GetSettingsProfile().trackerMaxRows,
+    local budget = math.min(this.GetPanelSettings("Tracker").trackerMaxRows,
         math.max(1, math.floor((GuiRoot:GetHeight() - InventoryCompanion_ItemTrackerFloatTitle:GetHeight() - 12) / 24)))
     local model = BuildLayoutModel(items, rules)
     -- Single-line row totals are a lower bound: an overflowing selection cannot fit wrapped.
     local expanded, collapsed = ChooseLayout(model, previousLayout, reason, targetGroup, budget)
     local selected = SelectRows(model, expanded)
     local wrapped = false
-    if this.GetSettingsProfile().wrapTrackedItemNames == true and not collapsed and #selected <= budget then
+    if this.GetPanelSettings("Tracker").wrapTrackedItemNames == true and not collapsed and #selected <= budget then
         MeasureWrappedRows(selected)
         local units = 0
         for _, item in ipairs(selected) do units = units + item.rowUnits end

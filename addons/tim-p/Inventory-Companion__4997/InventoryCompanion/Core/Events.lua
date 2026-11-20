@@ -3,6 +3,7 @@ InventoryCompanion = InventoryCompanion or {}
 local this = InventoryCompanion
 
 local activeListeners = {}
+local visibilityTickerActive = false
 
 ------------------------------------------------------------------
 -- Debounce Queue System (Local)
@@ -44,7 +45,7 @@ end
 
 local function ShouldListenSlotUpdate()
     local showMeters   = this.HasVisibleProgressBars()
-    local showTracker  = this.GetSettingsProfile().showTrackedItemsPanel ~= false
+    local showTracker  = this.GetPanelSettings("Tracker").showTrackedItemsPanel ~= false
     local showCapacity = this.HasVisibleCapacityResources()
 
     return showMeters or showTracker or showCapacity or this.HasCapacityNotifications()
@@ -84,7 +85,7 @@ local function OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNewItem, ite
         this.NotifyLiveCapacityChanges(nil, eventKind, stackCountChange)
     end
 
-    if this.GetSettingsProfile().showTrackedItemsPanel ~= false then
+    if this.GetPanelSettings("Tracker").showTrackedItemsPanel ~= false then
         Enqueue("RefreshItemTracker", function()
             this.RefreshItemTrackerPanel("inventory")
         end, 500)
@@ -220,33 +221,13 @@ EVENT_MANAGER:RegisterForEvent(this.Name .. "_Event_PlayerActivated", EVENT_PLAY
     end
 end)
 
-function this.InitCutsceneTicker()
-    EVENT_MANAGER:RegisterForUpdate(this.Name .. "_HideCheck", 100, function()
-        if ZO_CompassFrame then
-            local inCutscene = ZO_CompassFrame:IsHidden()
-            local isEditorOpen = this.IsEditorWindowOpen()
-        
-            local isInteractionOpen = this.Utils.IsItemInteractionActive()
-
-            if InventoryCompanion_ItemTrackerFloat then
-                local showTracked = (this.GetSettingsProfile().showTrackedItemsPanel ~= false)
-                local shouldShowTracker = showTracked and (not inCutscene or isEditorOpen or isInteractionOpen)
-                InventoryCompanion_ItemTrackerFloat:SetHidden(not shouldShowTracker)
-
-                if shouldShowTracker and isInteractionOpen and this.AdjustTrackerPositionForInteraction then
-                    this.AdjustTrackerPositionForInteraction()
-                elseif not isEditorOpen and not isInteractionOpen and this.RestoreTrackerPosition then
-                    this.RestoreTrackerPosition()
-                end
-            end
-
-            local showCurrencies = this.HasVisibleCurrencyResources()
-            local showCapacities = this.HasVisibleCapacityResources()
-            local showInfo = showCurrencies or showCapacities
-            local shouldShowCurrencyPanel = this.state.isCurrencySettingsOpen or (showInfo and not inCutscene)
-            InventoryCompanion_CurrencyFloat:SetHidden(not shouldShowCurrencyPanel)
-
-            this.SetProgressBarsHidden(inCutscene)
-        end
-    end)
+function this.SetVisibilityTickerNeeded(needed)
+    if needed == visibilityTickerActive then return end
+    local updateName = this.Name .. "_HideCheck"
+    if needed then
+        EVENT_MANAGER:RegisterForUpdate(updateName, 100, this.PanelLayout.UpdateContext)
+    else
+        EVENT_MANAGER:UnregisterForUpdate(updateName)
+    end
+    visibilityTickerActive = needed
 end

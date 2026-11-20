@@ -74,6 +74,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Gold Nation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SvlphvryVoid/Gold-Nation__a168ff84-818b-4e00-9168-0c0c80a6d5af) | SvlphvryVoid | Console | — |
 | [Gold Per Hour](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/satchmo1991/Gold-Per-Hour__2604) | satchmo1991 | PC / Mac | 1.2 |
 | [Gold Rush — Sales & Pricing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Gold-Rush-Sales-Pricing__4685) | atharti | PC / Mac | 3.0 |
+| [Gold Standard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m1lkst3ak/Gold-Standard__07abcedb-fa80-4064-afa8-408641a6e79e) | m1lkst3ak | Console | — |
 | [Gold!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheSpyridon/Gold__1551) | TheSpyridon | PC / Mac | Alpha 0.6.3 |
 | [Golden Light Guild Hall Portal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lerozain/Golden-Light-Guild-Hall-Portal__3389) | Lerozain | PC / Mac | 1.1 |
 | [Golden Pursuits Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Golden-Pursuits-Tracker__4276) | atharti | PC / Mac | 1.8 |
@@ -84,7 +85,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Goto](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kerb9729/Goto__1154) | kerb9729 | PC / Mac | 1.1041 |
 | [Gotta Open 'em all!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Gotta-Open-em-all__c8456e9d-2e93-40d9-a266-88d0ad1f9332) | Eldibabalo | Console | — |
 | [Grandparents holiday Guildhall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KesBruun/Grandparents-holiday-Guildhall__3272) | KesBruun | PC / Mac | 0.0.1.1 |
-| [Grave Sight](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Grave-Sight__5069) | O-Range | PC / Mac | 0.4.2 |
+| [Grave Sight](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Grave-Sight__5069) | O-Range | PC / Mac | 5.0 |
 | [Greasy Grabby Mitts (Lucent Orphic Mirrors)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Greasy-Grabby-Mitts-Lucent-Orphic-Mirrors__4366) | STUDLETON | PC / Mac | 0.2.0 |
 | [GREED](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Previsible/GREED__4691) | Previsible | PC / Mac | 1 |
 | [Greymind Quick Slot Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bsrealm/Greymind-Quick-Slot-Bar__258) | bsrealm | PC / Mac | v2.7.2.25 |
@@ -191,7 +192,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Guild Tickets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/attriel/Guild-Tickets__3205) | attriel | PC / Mac | 1.0.12 |
 | [Guild Tools \[En/Fr\] Classic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pills/Guild-Tools-En-Fr-Classic__884) | pills | PC / Mac | 0.4.0 |
 | [Guild Tools By Fen](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fenweldryn/Guild-Tools-By-Fen__2939) | Fenweldryn | PC / Mac | 0.9.1 |
-| [Guild Trader Activity (GTA)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/Guild-Trader-Activity-GTA__4590) | sinnereso | PC / Mac | 2026.11.19 |
+| [Guild Trader Activity (GTA)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/Guild-Trader-Activity-GTA__4590) | sinnereso | PC / Mac | 2026.11.20 |
 | [Guild Trader Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ReliktKoala/Guild-Trader-Tracker__f2495833-84b0-4142-8a25-f2063d0f0a23) | ReliktKoala | Console | — |
 | [GuildActivity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/GuildActivity__2190) | Coorbin | PC / Mac | 1.1.1 |
 | [GuildBankLedger - 3.x - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/myristican/GuildBankLedger---3.x---Updated__2858) | myristican | PC / Mac | 3.55 |

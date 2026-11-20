@@ -24,7 +24,7 @@ local S = PBS_PME_STRINGS
 A.baseTitle = "PB’s PlayerMarkerExtension"
 A.chatName = "PB’s PlayerMarkerExtension"
 A.author = "PinkBanther"
-A.version = "0.4.1"
+A.version = "0.4.4"
 
 -- The version comes from the manifest, the same way PB's other add-ons read it.
 do
@@ -90,6 +90,7 @@ A.defaults = {
 	shareReceive = true, -- ... and the group's are shown
 	markSelf = true, -- picking an extra marker with nothing under the reticle puts it on yourself
 	showSelf = true, -- a marker over your own head (you do not see it in the first person)
+	frameMarks = true, -- the extra marker also in the group frames (the names at the top left), where the game shows its own markers (see Frames.lua)
 	throughWalls = true,
 	size = 100, -- percent
 	height = 300, -- centimetres above the feet to the marker's LOWER edge (0.3.0; it was 260 to the centre, which overlapped the nameplate)
@@ -248,7 +249,7 @@ end
 -- failing) leaves one line. Nothing is printed; `/pbpme why` lists the lines (and the ones the last session left).
 -- ---------------------------------------------------------------------------------------
 
-A.TRACE_MAX = 24
+A.TRACE_MAX = 40 -- (24 until 0.4.2, which traces more: the drawing verdicts, zone ids, the 3D window, who is online)
 
 function A.TraceText(item)
 	return string.format("%.1fs %s: %s%s", item.at / 1000, item.kind, item.text, item.count > 1 and string.format(" (x%d)", item.count) or "")

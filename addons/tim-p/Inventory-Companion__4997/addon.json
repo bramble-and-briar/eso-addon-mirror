@@ -18,7 +18,7 @@
     "InventoryCompanion"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4997/",
-  "fingerprint": "fdae125de0cb4000543a38ffca1945ed38c9090a90e178d4a4ea1e6783d00f05",
+  "fingerprint": "adb9afb63dc4826299ff8e400d64bb471611065733231d2db4338a86a7c3f44a",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18156.png",
     "https://cdn-eso.mmoui.com/preview/pvw18159.png",
@@ -32,11 +32,11 @@
   "source_id": "4997",
   "source_url": "https://www.esoui.com/downloads/info4997-InventoryCompanion.html",
   "stats": {
-    "downloads": 98,
+    "downloads": 153,
     "favorites": 1,
-    "monthly_downloads": 74
+    "monthly_downloads": 146
   },
   "title": "Inventory Companion",
-  "updated_at": 1793935665000,
-  "version": "1.6.3"
+  "updated_at": 1795138435000,
+  "version": "1.8.1"
 }

@@ -97,6 +97,8 @@ function LA:Enable(mode, secs)
     token = token + 1
     self.ownedByUs, self.mode, self.fought, self.covered = true, mode or "auto", false, {}
     self.enabledAt = PDI.Now()
+    -- remembered across /reloadui, so LPI still knows this log is its own (and switches it off)
+    PDI.sv.logOwned = { t = self.enabledAt, mode = self.mode }
     self:RememberCapture(self.enabledAt)
     if self.mode == "timed" then
         local t = token
@@ -115,13 +117,15 @@ end
 -- Switch our log off. Shows the import window (now, or when combat ends) if anything was captured.
 function LA:Finish(reason)
     if not self.ownedByUs then
-        if reason == "manual" and self:IsOn() and SetEncounterLogEnabled then
-            SetEncounterLogEnabled(false)
-            PDI.Msg("Encounter log |cFF4444OFF|r.")
+        -- a log someone else switched on (you, for esologs.com, or another addon) is never switched off by LPI
+        if reason == "manual" and self:IsOn() then
+            PDI.Msg("The encounter log was switched on outside LPI, so LPI leaves it on. " ..
+                "Type |cFFFFFF/encounterlog|r to switch it off yourself.")
         end
         return
     end
     token = token + 1
+    PDI.sv.logOwned = nil
     SetEncounterLogEnabled(false)
     local mode = self.mode
     local captured = (mode == "auto") and count(self.covered) or (self.fought and 1 or 0)
@@ -460,6 +464,21 @@ function LA:Init()
         if PDI.Import:Has(acct) or PDI.Now() - t > COVERAGE_RETRY_SEC then coverage()[acct] = nil end
     end
     if settings().autoLog == "always" then settings().autoLog = "auto" end
+    -- LPI's own capture still running after /reloadui: take it back, so it is switched off as planned.
+    -- A log that is on without that note was switched on by someone else and is left alone.
+    local owned = PDI.sv.logOwned
+    if owned and self:IsOn() and PDI.Now() - (owned.t or 0) <= MAX_ON_SEC + 300 then
+        self.ownedByUs, self.mode, self.fought, self.covered = true, owned.mode or "auto", false, {}
+        self.enabledAt = owned.t
+        local t = token
+        if self.mode ~= "auto" then       -- fight / timed: end with the next fight, or after the time limit
+            self.mode = "fight"
+            zo_callLater(function() if t == token and LA.ownedByUs then LA:Finish("timer") end end,
+                math.max(10, MAX_ON_SEC - (PDI.Now() - owned.t)) * 1000)
+        end
+    else
+        PDI.sv.logOwned = nil
+    end
 
     if ESO_Dialogs then
         ESO_Dialogs["PVPDI_ENCOUNTER_LOG"] = {

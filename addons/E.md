@@ -111,6 +111,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESOTR_TEST_MODUL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOSTR/ESOTR_TEST_MODUL__cbc2e748-501a-4137-8faa-cabf349da2d7) | XANTOSTR | Console | — |
 | [EsoUA — Ukrainian Localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/w2unemdhysend/EsoUA-Ukrainian-Localization__3437) | w2unemdhysend | PC / Mac | 1.07 |
 | [ESOXP](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Deathfather/ESOXP__4078) | Deathfather | PC / Mac | 4 |
+| [ESQL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awhlina/ESQL__5075) | awhlina | PC / Mac | 1.0.0 |
+| [ESQL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/ESQL__87e2599d-75fd-4fc9-94cd-630ad0c04a8b) | Vixen_Hunny | Console | — |
 | [Essence Thief Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Essence-Thief-Tracker__e6634e8a-1c51-45d7-ba7b-f062e50e5ee8) | codeWarrior82 | Console | — |
 | [Essential Housing Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Essential-Housing-Tools__1959) | Cardinal05 | PC / Mac | 1776 |
 | [EssentialHousingTools RU Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alezhu/EssentialHousingTools-RU-Patch__3226) | alezhu | PC / Mac | 1.0.0 |

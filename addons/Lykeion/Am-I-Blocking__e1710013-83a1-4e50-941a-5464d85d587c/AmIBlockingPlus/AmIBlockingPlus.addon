@@ -1,9 +1,9 @@
 ## Title: |c215895Am I Blocking |cCC922FPlus|r
-## Version: 3.14
+## Version: 3.15
 ## Author: |c215895Qcell|r |cCC922FLykeion|r
-## PCDependsOn: LibAddonMenu-2.0>=41
-## ConsoleDependsOn: LibAddonMenu-2.0>=41 LibHarvensAddonSettings>=20108 LibCombatAlerts
-## APIVersion: 101051
+## PCDependsOn: LibAddonMenu-2.0>=43
+## ConsoleDependsOn: LibAddonMenu-2.0>=43 LibHarvensAddonSettings>=20108 LibCombatAlerts
+## APIVersion: 101051 101052
 ## SavedVariables: AmIBlockingPlusSavedVariables
 
 

@@ -2,6 +2,14 @@
 Changelog Place Holder for Raffle Gold addon
 ********************************************
 
+11.19.2026     v26.51.04
+========================
+* Fixed an old Guild Bank History issue to comply with current API logic. 
+* Also, Corrected a potential timestamp handling issue.
+* "The fixes and corrections could have caused a nil error, missing deposits, or interrupt a scan prematurely."
+
+by @Dr_Z
+_________________________________________________________________________________________________________
 
 9.26.2026	v26.51.00
 ========================

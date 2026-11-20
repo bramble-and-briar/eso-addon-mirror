@@ -7,7 +7,7 @@ screens you use most. It is designed for the gamepad UI and keeps the core
 controller layout intact.
 
 U51 Note: This addon fixes some base-game bugs in battlegrounds that should be resolved
-in U52. I'll remove the fixes when ZOS gets their sh** together.
+in U52. I'll remove the fixes when ZOS implements the fix natively.
 
 It also works around a long-standing gamepad bug where the group menu's empty
 member list pops up over the HUD at random while playing.
@@ -30,6 +30,8 @@ the features that use them:
 | `USPF` | The Skill Points row on the dashboard. |
 | `LibDebugLogger` | Optional diagnostic logging. |
 | `PersonalAssistant` | Permanent-junk marking actions in the gamepad inventory. |
+| `LibExtendedJournal` | The gamepad Extended Journal (bundled with Loot Log, Collectibles Tracker, and others). |
+| `LibCharacterKnowledge` | The Character Knowledge browser and other characters in Trait Research. |
 
 The trading features need at least one of TTC or ATT. Either provider works
 alone, and both are used together when installed.
@@ -214,6 +216,38 @@ for any character on the server you are playing.
   research line, trait, and countdown. Use the right stick to scroll the right
   pane when its contents do not fit on screen.
 
+### Extended Journal
+
+- A gamepad screen for Extended Journal, the shared window used by Loot Log,
+  Item Set Browser, Character Knowledge, Collectibles Tracker, Raidificator, and
+  other add-ons. Open it from the KelaPadUI² menu or the end of the gamepad
+  Journal menu.
+- L1 and R1 switch between the journals. Each journal's filters (search
+  first, then dropdowns and checkboxes) are on the left and its table, with
+  the same columns as the keyboard window, fills the right.
+- Right on the D-pad moves into the table. Up from the first row selects the
+  column headers; A sorts by the selected column, and again reverses it. LT
+  and RT jump to the first and last row. B returns to the filters.
+- A runs the entry's action (or lists them when there are several), and R3
+  shows or hides the entry's tooltip.
+- Works with any add-on built on Extended Journal, read as it runs, so new
+  journals and changes to them appear without an update. The entries appear
+  only when one is installed.
+- Opening Extended Journal from the keyboard main menu or its keybind still
+  shows the keyboard window, with a Back button added for the controller.
+
+### Character Knowledge
+
+- A gamepad browser for LibCharacterKnowledge, the library that Character
+  Knowledge and other add-ons use to record what each character knows. Open it
+  from the KelaPadUI² menu; it appears when the library is installed.
+- Filters on the left: a search, Server, Character, Type (Recipe, Furnishing
+  Plan, Motif, Scribing), Quality, and Known. The filters in use show above the
+  table.
+- The table lists each item with its icon, type, quality, level, how many
+  characters know it, and whether the selected character does. Every column
+  sorts from its header, and the item's tooltip shows on the right.
+
 ### PersonalAssistant junk integration
 
 - Adds Mark as Permanent Junk and Unmark as Permanent Junk to the gamepad
@@ -245,7 +279,8 @@ stored account-wide in `kpuiSavedVariables`.
 
 - Feature toggles for companion info, dungeon finder, chat tools, map rally,
   additional gamepad filters, antiquity lead details, main-menu quick access, the
-  dashboard, PersonalAssistant junk marking, and the PS5 button map.
+  dashboard, Extended Journal, Character Knowledge, PersonalAssistant junk
+  marking, and the PS5 button map.
 - Fixes and Patches toggles for the group menu fix and the U51 battleground
   fixes.
 - Sets interface toggle.

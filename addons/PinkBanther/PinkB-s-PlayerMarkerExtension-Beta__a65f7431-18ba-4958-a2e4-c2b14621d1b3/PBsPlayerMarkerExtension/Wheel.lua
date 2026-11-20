@@ -41,7 +41,102 @@ A.wheel = {
 	limited = false, -- the list was cut to ten entries (the client's toggleable wheels are on)
 	originalList = nil,
 	originalAssign = nil,
+	raised = {}, -- window name -> { control, tier, layer, level (what the game had), done }: see RaiseWheel
+	raiseWrites = 0, -- times the draw order was written
+	raiseWhy = nil, -- what was refused or missing, for /pbpme status
 }
+
+-- WHERE THE WHEEL IS DRAWN. The client's wheel is a top-level window of its own (targetmarkerwheel_gamepad.xml /
+-- targetmarkerwheel_keyboard.xml) with no draw order set, so it sits where the HUD's other windows do and a window made
+-- after it (the buff icons) is drawn over it: with the long list of extra markers the wheel's lower edge was partly
+-- hidden behind them (the player's report). The window is raised to the high tier, overlay layer and a level above the
+-- keybind strips, and put back when the add-on is switched off. Only the window's draw order is written: no anchor, no
+-- parent, no handler (SetDrawTier / SetDrawLayer / SetDrawLevel are marked `protected-attributes` in the API dump; PB's
+-- ChatWindowCustomizer writes the draw order of the client's chat window the same way, under pcall; a refusal is kept
+-- in `raiseWhy` and /pbpme status prints it). NOT MEASURED ON A PS5 that the write is accepted for this window.
+local WHEEL_WINDOWS = { "ZO_TargetMarkerWheel_Gamepad_TopLevel", "ZO_TargetMarkerWheel_Keyboard_TopLevel" }
+local WHEEL_LEVEL = 120 -- the client's own high-tier windows: keybind strips 90-120, tooltips 140, alert text 145
+
+local function Reading(control, method)
+	local fn = control[method]
+	if type(fn) ~= "function" then
+		return nil
+	end
+	local ok, value = pcall(fn, control)
+	return ok and value or nil
+end
+
+-- Writes the wheel's draw order (only where it is not already so); `restore`: puts back what the game had.
+function A:RaiseWheel(restore)
+	local w = self.wheel
+	if not restore and not (self.sv and self.sv.enabled) then
+		return false -- switched off: the game's own wheel stays exactly as the game has it
+	end
+	local wantLayer, wantTier = DL_OVERLAY, DT_HIGH
+	if wantLayer == nil or wantTier == nil then
+		w.raiseWhy = "DL_OVERLAY / DT_HIGH do not exist"
+		return false
+	end
+	local touched = false
+	for _, name in ipairs(WHEEL_WINDOWS) do
+		local control = _G[name]
+		if control ~= nil and type(control.SetDrawTier) == "function" then
+			local entry = w.raised[name]
+			if entry and entry.control ~= control then
+				entry = nil -- the game made the window again
+			end
+			if not entry then
+				entry = {
+					control = control, done = false,
+					tier = Reading(control, "GetDrawTier"), layer = Reading(control, "GetDrawLayer"), level = Reading(control, "GetDrawLevel"),
+				}
+				w.raised[name] = entry
+			end
+			local layer, tier, level
+			if restore then
+				layer, tier, level = entry.layer, entry.tier, entry.level
+			else
+				layer, tier, level = wantLayer, wantTier, WHEEL_LEVEL
+			end
+			if restore and not entry.done then
+				layer, tier, level = nil, nil, nil
+			end
+			if layer ~= nil and (Reading(control, "GetDrawLayer") ~= layer or Reading(control, "GetDrawTier") ~= tier
+				or Reading(control, "GetDrawLevel") ~= level) then
+				local ok1, err1 = pcall(control.SetDrawLayer, control, layer)
+				local ok2, err2 = pcall(control.SetDrawTier, control, tier)
+				local ok3, err3 = pcall(control.SetDrawLevel, control, level)
+				w.raiseWrites = w.raiseWrites + 1
+				touched = true
+				if ok1 and ok2 and ok3 then
+					entry.done = not restore
+					w.raiseWhy = nil
+				else
+					w.raiseWhy = name .. ": " .. tostring(ok1 and (ok2 and err3 or err2) or err1)
+					self:Trace("wheel", "the draw order of the wheel was refused: " .. w.raiseWhy)
+				end
+			elseif not restore and layer ~= nil then
+				entry.done = true
+			end
+		end
+	end
+	return touched
+end
+
+-- A line for /pbpme status.
+function A:WheelRaiseText()
+	local w = self.wheel
+	local names, count = {}, 0
+	for name, entry in pairs(w.raised) do
+		count = count + 1
+		names[#names + 1] = name:gsub("^ZO_TargetMarkerWheel_", ""):gsub("_TopLevel$", "") .. (entry.done and " raised" or " NOT raised")
+	end
+	table.sort(names)
+	if count == 0 then
+		return "the game's wheel window was not found (the draw order is not touched)"
+	end
+	return table.concat(names, ", ") .. " (written " .. w.raiseWrites .. " times)" .. (w.raiseWhy and ("; refused: " .. w.raiseWhy) or "")
+end
 
 function A:BuildWheelList(base)
 	local std = A.STANDARD
@@ -89,6 +184,11 @@ function A:WheelList(original, ...)
 		w.layout = layout
 		w.lastSize = #list
 		w.opened = w.opened + 1
+		-- the wheel is about to be shown: its window goes in front of the HUD (a no-op once it is)
+		local okRaise, errRaise = pcall(self.RaiseWheel, self)
+		if not okRaise then
+			w.raiseWhy = tostring(errRaise)
+		end
 		return list
 	end
 	w.errors = w.errors + 1
@@ -120,6 +220,8 @@ function A:WheelAssign(marker, ...)
 		end
 		return
 	end
+	-- A native selection supersedes any delayed clear from the previous selection.
+	self.engineCheck = nil
 	if type(marker) == "number" and marker >= 1 and marker <= A.STANDARD and sv and sv.enabled then
 		w.passed = w.passed + 1
 		local ok, err = pcall(self.OnStandardAssign, self)

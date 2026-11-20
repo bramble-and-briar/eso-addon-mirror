@@ -234,11 +234,13 @@ function this.CreateSettingsPanel()
     CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
         if panel == settingsPanel then
             this.state.isCurrencySettingsOpen = true
+            this.PanelLayout.UpdateContext()
         end
     end)
     CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", function(panel)
         if panel == settingsPanel then
             this.state.isCurrencySettingsOpen = false
+            this.PanelLayout.UpdateContext()
         end
     end)
     this.RefreshAutoCategoryUI = function()
@@ -306,9 +308,9 @@ function this.CreateSettingsPanel()
                     type = "checkbox",
                     name = "Show Tracked Items Panel",
                     tooltip = "Master switch to show or hide the Item Tracker window.",
-                    getFunc = function() return this.GetSettingsProfile().showTrackedItemsPanel ~= false end,
+                    getFunc = function() return this.GetPanelSettings("Tracker").showTrackedItemsPanel ~= false end,
                     setFunc = this.SetItemTrackerPanelVisible,
-                    default = this.defaultsAccount.showTrackedItemsPanel,
+                    default = this.defaultsAccount.PanelSettings.Tracker.showTrackedItemsPanel,
                 },
                 {
                     type = "slider",
@@ -317,12 +319,12 @@ function this.CreateSettingsPanel()
                     min = 1,
                     max = 30,
                     step = 1,
-                    getFunc = function() return this.GetSettingsProfile().trackerGroupThreshold or 8 end,
+                    getFunc = function() return this.GetPanelSettings("Tracker").trackerGroupThreshold or 8 end,
                     setFunc = function(v) 
-                        this.GetSettingsProfile().trackerGroupThreshold = v
+                        this.GetPanelSettings("Tracker").trackerGroupThreshold = v
                         if this.RefreshItemTrackerPanel then this.RefreshItemTrackerPanel() end
                     end,
-                    default = this.defaultsAccount.trackerGroupThreshold,
+                    default = this.defaultsAccount.PanelSettings.Tracker.trackerGroupThreshold,
                 },
                 {
                     type = "slider",
@@ -331,12 +333,12 @@ function this.CreateSettingsPanel()
                     min = 16,
                     max = 28,
                     step = 1,
-                    getFunc = function() return this.GetSettingsProfile().trackerTitleSize end,
+                    getFunc = function() return this.GetPanelSettings("Tracker").trackerTitleSize end,
                     setFunc = function(value)
-                        this.GetSettingsProfile().trackerTitleSize = value
+                        this.GetPanelSettings("Tracker").trackerTitleSize = value
                         this.RefreshItemTrackerPanel()
                     end,
-                    default = this.defaultsAccount.trackerTitleSize,
+                    default = this.defaultsAccount.PanelSettings.Tracker.trackerTitleSize,
                 },
                 {
                     type = "slider",
@@ -345,34 +347,34 @@ function this.CreateSettingsPanel()
                     min = 5,
                     max = 50,
                     step = 1,
-                    getFunc = function() return this.GetSettingsProfile().trackerMaxRows end,
+                    getFunc = function() return this.GetPanelSettings("Tracker").trackerMaxRows end,
                     setFunc = function(value)
-                        this.GetSettingsProfile().trackerMaxRows = value
+                        this.GetPanelSettings("Tracker").trackerMaxRows = value
                         this.RefreshItemTrackerPanel("settings")
                     end,
-                    default = this.defaultsAccount.trackerMaxRows,
+                    default = this.defaultsAccount.PanelSettings.Tracker.trackerMaxRows,
                 },
 				{
                     type = "checkbox",
                     name = "Multiline Item Names",
                     tooltip = "If enabled, long item names will wrap onto multiple lines instead of truncating with ellipses.",
-                    getFunc = function() return this.GetSettingsProfile().wrapTrackedItemNames == true end,
+                    getFunc = function() return this.GetPanelSettings("Tracker").wrapTrackedItemNames == true end,
                     setFunc = function(v) 
-                        this.GetSettingsProfile().wrapTrackedItemNames = v
+                        this.GetPanelSettings("Tracker").wrapTrackedItemNames = v
                         if this.RefreshItemTrackerPanel then this.RefreshItemTrackerPanel() end
                     end,
-                    default = this.defaultsAccount.wrapTrackedItemNames,
+                    default = this.defaultsAccount.PanelSettings.Tracker.wrapTrackedItemNames,
                 },
 				{
                     type = "checkbox",
                     name = "Show Empty Tracked Items",
                     tooltip = "If enabled, tracked items with a count of 0 will still be shown.",
-                    getFunc = function() return this.GetSettingsProfile().showEmptyTrackedItems ~= false end,
+                    getFunc = function() return this.GetPanelSettings("Tracker").showEmptyTrackedItems ~= false end,
                     setFunc = function(v) 
-                        this.GetSettingsProfile().showEmptyTrackedItems = v
+                        this.GetPanelSettings("Tracker").showEmptyTrackedItems = v
                         if this.RefreshItemTrackerPanel then this.RefreshItemTrackerPanel() end
                     end,
-                    default = this.defaultsAccount.showEmptyTrackedItems,
+                    default = this.defaultsAccount.PanelSettings.Tracker.showEmptyTrackedItems,
                 },
             },
         },

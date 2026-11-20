@@ -1,176 +1,101 @@
 # GraveSight
 
-**Author:** O\-Range
+A polished Necromancer-themed custom reticle for **The Elder Scrolls Online**.
 
-**Version:** 0.4.1
+GraveSight replaces the default reticle with a smooth, atmospheric crosshair featuring spectral **Soul Flares**, stealth scaling, enemy pulse, and complete color + opacity control.
 
-## About
-
-GraveSight replaces the default Elder Scrolls Online reticle with a custom Necromancer\-themed emblem inspired by the forbidden arts of Tamriel.
-
-The addon is intentionally lightweight, focused, and unobtrusive. Rather than adding new gameplay systems, GraveSight enhances the visual presentation of combat, stealth, and targeting while preserving ESO's normal functionality.
+---
 
 ## Features
 
-### Custom Reticle
+- Necromancer-themed visual style
+- Soft, eerie **Soul Flare** effect (occasional necrotic/spectral flashes)
+- Optional Soul Flare while targeting enemies
+- Smooth size, rotation, and opacity transitions
+- Customizable stealth scale
+- Enemy pulse strength control
+- Independent opacity sliders for Idle / Stealth / Enemy
+- Full RGB color pickers for all three states
+- Lock rotation on enemies (tilts toward 10 o’clock)
+- Hide in First Person option
+- One-click Reset Colors & Opacities button
+- Automatically hides in most UI menus
+- Fully configurable via LibAddonMenu-2.0
 
-GraveSight replaces the standard ESO reticle with a custom DDS texture.
-
-### Automatic UI Handling
-
-The custom reticle automatically hides while menus and interface screens are open and restores the game's native reticle behavior when appropriate.
-
-Supported UI scenes include:
-
-- Inventory
-- Skills
-- Character Sheet
-- Mail
-- Bank
-- Store
-- Guild Roster
-- Other standard UI modes
-
-### Hostile Target Detection
-
-When aiming at an attackable enemy:
-
-- The reticle turns red.
-- Opacity increases to full visibility.
-- Optional lock rotation activates.
-
-This behavior is designed to provide immediate visual feedback during combat.
-
-### Rotation Effect
-
-GraveSight can rotate the reticle toward a fixed hostile\-target position, creating a distinct combat stance appearance.
-
-When the target is lost, the rotation smoothly returns to center.
-
-### Stealth Detection
-
-GraveSight detects ESO stealth states using the game's native stealth system.
-
-Supported states include:
-
-- Stealth
-- Hidden
-- Stealth (Almost Detected)
-- Hidden (Almost Detected)
-
-### Stealth Color Themes
-
-When stealthed, the reticle changes to a user\-selected purple style.
-
-Available themes:
-
-#### Arcane Purple
-
-A subtle magical purple suitable for everyday use.
-
-#### Necromancer Purple
-
-A darker violet inspired by classic Necromancer visuals.
-
-#### Glowing Purple
-
-A brighter, more vibrant purple for high visibility.
-
-### Vanilla Reticle Suppression
-
-GraveSight suppresses:
-
-- Default ESO reticle graphics
-- Non\-interact reticle elements
-- Stealth eye UI elements
-
-This ensures the custom reticle remains visually clean and uncluttered.
-
-## Settings
-
-GraveSight includes options through LibAddonMenu.
-
-### Enable GraveSight
-
-Turns the addon on or off.
-
-### Reticle Size
-
-Adjusts the overall size of the custom reticle.
-
-### Idle Opacity
-
-Sets transparency while no hostile target is selected.
-
-### Enemy Coloring
-
-Enables or disables hostile\-target red coloring.
-
-### Lock Rotation
-
-Enables or disables hostile\-target rotation.
-
-### Stealth Color Style
-
-Select between:
-
-- Arcane Purple
-- Necromancer Purple
-- Glowing Purple
-
-## Visual Priority System
-
-GraveSight uses the following priority order:
-
-### Hostile Target
-
-- Red
-- Full opacity
-- Rotation enabled
-
-### Stealthed
-
-- Purple
-- User\-selected opacity
-
-### Idle
-
-- White
-- User\-selected opacity
-
-Hostile targets always override stealth coloration.
-
-## Design Goals
-
-GraveSight follows the same philosophy used in other O\-Range addons:
-
-- Lightweight
-- Focused
-- Single\-purpose
-- Minimal configuration
-- No unnecessary systems
-- No feature bloat
-
-The goal is to provide a distinctive Necromancer\-themed reticle while remaining stable, responsive, and unobtrusive.
+---
 
 ## Requirements
 
-- Elder Scrolls Online
-- LibAddonMenu\-2.0
+- **LibAddonMenu-2.0** (version 43 or higher)
+
+---
+
+## Installation
+
+1. Download the addon
+2. Extract the `GraveSight` folder into:
+   - `Documents\Elder Scrolls Online\live\AddOns\`
+3. Enable **GraveSight** in the in-game Add-On menu
+4. Type `/reloadui` or restart the game
+
+---
+
+## Settings
+
+Go to **Settings → Addons → GraveSight**
+
+You can customize:
+
+**General**
+- Enable / Disable
+- Reticle Size
+- Enemy Coloring
+- Lock Rotation
+- Hide in First Person
+- Soul Flare on Enemies
+
+**Effects**
+- Soul Flare Intensity
+- Stealth Scale
+- Enemy Pulse Strength
+
+**Opacity**
+- Idle Opacity
+- Stealth Opacity
+- Enemy Opacity
+
+**Colors**
+- Idle Color
+- Stealth Color
+- Enemy Color
+
++ Reset Colors & Opacities button
+
+---
+
+## Version History
+
+### 0.5.0
+- Complete polish overhaul
+- Added Soul Flare system (Necromancer-themed effect)
+- Full RGB color pickers
+- Independent opacity sliders
+- Stealth Scale + Enemy Pulse Strength
+- Smooth opacity transitions
+- Hide in First Person
+- Reset button
+- Major code cleanup
+
+### 0.4.2
+- Previous version with basic stealth color presets
+
+---
 
 ## Credits
 
-Created by O\-Range.
+**Author:** O-Range  
+**Texture:** gravesight.dds
 
-Built for players who believe forbidden magic should come with better UI.
+---
 
-## Changelog
-
-### Version 0.4.2
-
-- Reworked UI scene detection using a scene lookup table.
-- Reduced repeated scene checks inside IsUiOpen().
-- Added explicit LibAddonMenu dependency version requirement.
-- Internal code cleanup and maintenance.
-- No gameplay or visual feature changes.
-
+From the grave, with precision.

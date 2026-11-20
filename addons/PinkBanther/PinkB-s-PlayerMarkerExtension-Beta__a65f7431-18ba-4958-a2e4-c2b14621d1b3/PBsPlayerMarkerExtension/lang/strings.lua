@@ -31,6 +31,7 @@ PBS_PME_STRINGS = {
 	shareReceive = "Show the group's markers",
 	markSelf = "Mark myself when nothing is under the reticle",
 	showSelf = "Show markers others put on me",
+	frameMarks = "Show the marker in the group frames too (the names at the top left)",
 	throughWalls = "Show markers through walls",
 	size = "Marker size (%)",
 	height = "Marker height: feet to its lower edge (cm)",

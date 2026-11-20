@@ -1,5 +1,19 @@
 # LiveBuffUptime2 - Konsolenfassung mit eingebauter LibCombat
 
+2.4.17: Eingebaute LibCombat auf Version 89 aktualisiert, gleicher Kern wie
+SimpleGroupDPS 2.0.8 (Upstream 80817e6), unter eigener Kennung. LibCombat liefert
+Schaden, Heilung, Effekte, Kampfstart und Abschluss. LiveBuffUptime2 verarbeitet
+diese Rueckmeldungen und zeigt eigene Skill-Statistiken, Buffs und Debuffs an.
+CMX-Zeitbasis und Krit/Avg/Max bleiben erhalten. Keine externe LibCombat noetig;
+SimpleGroupDPS, das originale LiveBuffUptime und deren Daten bleiben unveraendert.
+
+
+2.4.16: Skills-DPS wie CMX: alle Skill-Zeilen verwenden fight.dpstime aus
+der eingebauten LibCombat (erster bis letzter eigener Treffer, mindestens
+1 Sekunde). Die Einzelziel-Uebersicht verwendet unit.dpsstart/dpsend, auch bei
+Bossen. Die Gruppenzeit-Ueberschreibung fuer Bosse entfaellt. Schadenssummen,
+Krit/Avg/Max und Buff-/Debuff-Uptime bleiben erhalten.
+
 2.4.15: Startfehler durch Zugriff auf geschuetzte ESO-Globals behoben.
 Konstanten werden ausschliesslich explizit verbunden.
 
@@ -8,7 +22,7 @@ DoT-Fix aus CMX2. Eigener Bibliotheksname und eigene Konstanten verhindern
 Konflikte mit CMX2, LibCombat und LibCombat2. Externe Combat-Bibliotheken werden
 nicht verwendet. LibHarvensAddonSettings bleibt erforderlich.
 Einstellungen und gespeicherte Berichte bleiben erhalten.
-Pruefung im Spiel: /lbu2 status (LibCombat eingebaut, Version 87, DoT-Fix 1).
+Pruefung im Spiel: /lbu2 status (LibCombat eingebaut, Version 89, DoT-Fix 1).
 
 Aeltere Versionen:
 

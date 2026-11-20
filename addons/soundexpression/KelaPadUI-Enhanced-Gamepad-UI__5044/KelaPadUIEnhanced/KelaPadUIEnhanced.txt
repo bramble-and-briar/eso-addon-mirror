@@ -8,13 +8,13 @@
 
 ## APIVersion: 101051
 ## Title: KelaPadUI Enhanced - Gamepad UI
-## Version: 2.8.3
-## AddOnVersion: 20803
+## Version: 2.9.0
+## AddOnVersion: 20900
 ## Author: @slice_o'life
 ## Description: This addon improves the gamepad's UI by adding additional information and features. Maintained successor to KelaPadUI by @rkirgizov; delete the original KelaPadUI folder before installing.
 ## SavedVariables: kpuiSavedVariables
 ## DependsOn: LibSets
-## OptionalDependsOn: TamrielTradeCentre ArkadiusTradeTools LibCustomMenu LibItemLink USPF LibDebugLogger LibCharacterKnowledge PersonalAssistant
+## OptionalDependsOn: TamrielTradeCentre ArkadiusTradeTools LibCustomMenu LibItemLink USPF LibDebugLogger LibCharacterKnowledge PersonalAssistant LibExtendedJournal
 
 kpui_lang/en.lua
 kpui_lang/$(language).lua
@@ -22,6 +22,7 @@ kpui_lang/$(language).lua
 kpui_core/kpui_constants.lua
 kpui_core/kpui_utils.lua
 kpui_core/kpui_dialogs.lua
+kpui_core/kpui_gamepad_browser.lua
 kpui_core/kpui_tooltip_styles.lua
 
 kpui_core/kpui_templates.xml
@@ -56,6 +57,8 @@ kpui_features/mainmenu/kpui_main_menu.lua
 kpui_features/mainmenu/kpui_main_menu_dashboard.xml
 kpui_features/mainmenu/kpui_main_menu_dashboard.lua
 kpui_features/mainmenu/kpui_main_menu_shortcuts.lua
+kpui_features/journals/kpui_extended_journal.lua
+kpui_features/kpui_character_knowledge.lua
 kpui_features/filters/kpui_reconstruct_search.lua
 kpui_features/filters/kpui_recipe_filters.lua
 kpui_features/filters/kpui_achievement_filters.lua

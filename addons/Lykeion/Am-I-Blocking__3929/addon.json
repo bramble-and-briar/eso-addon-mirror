@@ -8,8 +8,12 @@
   "category_id": "33",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3929",
@@ -18,7 +22,7 @@
     "AmIBlockingPlus"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3929/",
-  "fingerprint": "af44d24fa1ca89b24807b4add981b8b53be8526275c8b5d2ae78c0000befc2aa",
+  "fingerprint": "4718e6a85dc5d2c2f2fe8055be25c5d39838a16cf9bc45df43c651d6cee6e009",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13684.png",
     "https://cdn-eso.mmoui.com/preview/pvw13685.png",
@@ -30,11 +34,11 @@
   "source_id": "3929",
   "source_url": "https://www.esoui.com/downloads/info3929-AmIBlocking.html",
   "stats": {
-    "downloads": 9351,
+    "downloads": 10360,
     "favorites": 17,
-    "monthly_downloads": 331
+    "monthly_downloads": 195
   },
   "title": "Am I Blocking+",
-  "updated_at": 1786038905000,
-  "version": "3.14"
+  "updated_at": 1795160860000,
+  "version": "3.15"
 }

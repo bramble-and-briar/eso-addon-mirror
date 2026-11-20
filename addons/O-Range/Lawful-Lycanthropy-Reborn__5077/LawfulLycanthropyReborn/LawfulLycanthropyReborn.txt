@@ -1,0 +1,10 @@
+## Title: Lawful Lycanthropy Reborn
+## Author: O-Range
+## Version: 1.0.0
+## AddOnVersion: 100
+## APIVersion: 101051 101052
+## DependsOn: LibSkillBlocker>=110 LibAddonMenu-2.0>=43
+## SavedVariables: LawfulLycanthropyRebornVars
+## Description: Prevents accidental criminal Werewolf/Lycanthropy spellcasting in justice zones. Automatically allows casting during combat.
+
+LawfulLycanthropyReborn.lua

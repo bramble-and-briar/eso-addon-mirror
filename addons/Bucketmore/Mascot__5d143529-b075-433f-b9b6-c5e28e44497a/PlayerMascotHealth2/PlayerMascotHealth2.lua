@@ -1,4 +1,4 @@
--- PlayerMascotHealth2 v2.0.1  (character library)
+-- PlayerMascotHealth2 v2.0.4  (character library)
 -- Base: PlayerMascotHealth v1.5.0 (HP state logic, HP events, animation, HUD fragment, preview, NORMAL load protection are carried over unchanged).
 -- New in v2: (1) the standard character is built in and always available; (2) more characters ("packs") come from OTHER addons that
 -- append a definition to the global table PMH2_PackQueue (no dependency, no load-order requirement); (3) position / size / opacity /
@@ -6,12 +6,24 @@
 -- Own addon name, own SavedVariables (PlayerMascotHealth2_SV) and own control names: the stable PlayerMascotHealth v1.5.0 is never touched.
 -- Turn PlayerMascotHealth v1.5.0 OFF while using this addon (two mascots would overlap).
 -- No OnUpdate / no polling. HP is read on EVENT_POWER_UPDATE (player + health only) and a few rare lifecycle events.
+-- v2.0.4: status text enlarged (it was unreadably small on the PS5) and the strip moved right of the description panel
+--   that covers x=540..1000 while an option is selected. Still no timers/events; saved data unchanged.
+-- v2.0.3: the "Character preview" strip moved to the free area right of the settings panel (it overlapped the bottom bar), and it now
+--   carries a small STATUS text (pack queue / registered packs / which stills loaded / state of the mascot) to find why nothing is shown.
+--   The status text only exists while the strip is ON (OFF after every login). Nothing else changed: no timers, no events, same saved data.
+-- v2.0.2 (saved data protection, all of it runs ONCE at load, no timers / events added):
+--   * own data version sv.schemaVersion + Migrate() (SV_VERSION stays 1 for ever);
+--   * damaged saved values are RECORDED (not backed up) in sv.quarantine before they are repaired; nothing is ever deleted silently;
+--   * saved data written by a NEWER version, or damage that cannot be recorded safely -> PROTECT MODE: the settings are worked on in a
+--     detached copy in memory, NOTHING is written to the saved data this session, the next login starts again from the saved data;
+--   * character ids are compared case-insensitively when packs are registered (stored ids are never rewritten).
 
 local ADDON      = "PlayerMascotHealth2"
-local VERSION    = "2.0.1"
+local VERSION    = "2.0.4"
 local DEBUG      = false      -- true prints "[PMH2]" debug lines (max DEBUG_MAX per session); off in the release
 local SV_NAME    = "PlayerMascotHealth2_SV"
-local SV_VERSION = 1
+local SV_VERSION = 1                 -- NEVER change this number: ZO_SavedVars discards the saved data when it changes. Data format
+                                     -- changes are handled by sv.schemaVersion + Migrate() below.
 
 local DEFAULT_ID  = "default"                -- built-in standard character (always present, cannot be removed)
 local TEX_DIR     = "PlayerMascotHealth2/tex/"
@@ -57,7 +69,10 @@ if type(COMBAT_MECHANIC_FLAGS_HEALTH) == "number" then HEALTH_TYPES[COMBAT_MECHA
 ---------------------------------------------------------------------------
 -- State
 ---------------------------------------------------------------------------
-local sv, cs                -- saved variables (global) / settings of the character in use
+local sv, cs                -- settings tables in use: sv = the saved variables (normal mode) or a detached copy (protect mode) / settings of the character in use
+local realSv                -- the real saved variables table; in protect mode nothing is ever written to it
+local protectMode           -- nil = normal, "newer" / "stop" = protect mode (see the saved data protection block)
+local protectMsg, protectMsgShown
 local tlw, tex, label       -- top level window / texture control / HP% label (label may stay nil)
 local currentState          -- last computed state
 local shownState            -- state whose texture is currently set on the control
@@ -84,6 +99,7 @@ local nameToId  = {}        -- display name -> id
 local badPacks  = {}        -- id -> true when the pack's files never loaded this session (runtime only, never saved)
 local curId, curPack = DEFAULT_ID, nil
 local packsReady = false
+local packRejects = {}      -- "id:reason" of packs that were not registered (shown in the preview strip status)
 local settingsBuilt = false
 
 local DEBUG_MAX, debugLines = 400, 0
@@ -160,6 +176,169 @@ local function ImportV1()
 end
 
 ---------------------------------------------------------------------------
+-- Saved data protection (v2.0.2). Everything here runs once at load.
+--  * sv.schemaVersion: version of the data layout (SV_VERSION is never changed). Migrate() converts old layouts step by step.
+--  * sv.quarantine: a RECORD of damaged values (key, type, short value, detail, version, time). It is NOT a backup: the insides of a
+--    damaged table are not stored. Records are only ever appended (max QUAR_MAX); old records are never replaced or removed.
+--  * PROTECT MODE ("newer": saved data of a newer schema; "stop": damage that could not be recorded safely): the settings are worked
+--    on in a detached in-memory copy, nothing is written to the saved variables, the next login starts again from the saved data.
+---------------------------------------------------------------------------
+local SCHEMA_VERSION = 1
+local QUAR_MAX, QUAR_STR_MAX = 8, 64
+local MIGRATIONS = {}          -- [n] = function that converts layout n to n+1; steps must be additive and safe to run twice (none yet)
+
+local function IsNum(v) return type(v) == "number" and v == v end        -- NaN is not a usable number
+
+local function IsSchema(v)                                               -- a usable schemaVersion: whole number >= 1
+    return IsNum(v) and v >= 1 and v < math.huge and v % 1 == 0
+end
+
+local function RecValue(v)                                               -- short, always serialisable copy of a damaged scalar
+    local t = type(v)
+    if t == "number" then
+        if v ~= v then return "NaN" elseif v == math.huge then return "inf" elseif v == -math.huge then return "-inf" end
+        return v
+    elseif t == "boolean" then
+        return v
+    elseif t == "string" then
+        if #v > QUAR_STR_MAX then return v:sub(1, QUAR_STR_MAX) .. "..." end
+        return v
+    end
+    return nil                                                           -- tables / functions: only the type is recorded
+end
+
+-- Read-only scan of the saved variables: lists what is damaged (wrong TYPE; a number that is merely out of range is clamped later and is
+-- not damage). Nothing is modified here. Unused characters are scanned too, but they are only recorded, never touched.
+local function ScanDamage(raw)
+    local found = {}
+    local function add(key, v, detail)
+        found[#found + 1] = { key = key, vtype = type(v), value = RecValue(v), detail = detail }
+    end
+    if raw.schemaVersion ~= nil and not IsSchema(raw.schemaVersion) then add("schemaVersion", raw.schemaVersion) end
+    if raw.selectedId ~= nil and type(raw.selectedId) ~= "string" then add("selectedId", raw.selectedId) end
+    for _, k in ipairs({ "normalStart", "cautionStart", "dangerStart" }) do
+        if raw[k] ~= nil and not IsNum(raw[k]) then add(k, raw[k]) end
+    end
+    local c = raw.chars
+    if c ~= nil and type(c) ~= "table" then
+        add("chars", c)
+    elseif type(c) == "table" then
+        for id, e in pairs(c) do
+            if type(id) == "string" then
+                local key = "chars." .. ((#id > 40) and (id:sub(1, 40) .. "...") or id)
+                if type(e) ~= "table" then
+                    add(key, e)
+                else
+                    local bad = {}
+                    for _, k in ipairs({ "enabled", "showPercent" }) do
+                        if e[k] ~= nil and type(e[k]) ~= "boolean" then bad[#bad + 1] = k end
+                    end
+                    for _, k in ipairs({ "x", "y", "size", "alpha" }) do
+                        if e[k] ~= nil and not IsNum(e[k]) then bad[#bad + 1] = k end
+                    end
+                    if #bad > 0 then add(key, e, table.concat(bad, ",")) end
+                end
+            end
+        end
+    end
+    table.sort(found, function(a, b)
+        if a.key ~= b.key then return a.key < b.key end
+        return tostring(a.detail) < tostring(b.detail)
+    end)
+    return found
+end
+
+local function QuarList(raw)           -- returns list, ok. ok = false when sv.quarantine exists but is not a clean list
+    local q = raw.quarantine
+    if q == nil then return nil, true end
+    if type(q) ~= "table" then return nil, false end
+    local n, cnt = #q, 0
+    for k in pairs(q) do
+        cnt = cnt + 1
+        if type(k) ~= "number" or k < 1 or k > n or k % 1 ~= 0 then return nil, false end
+    end
+    if cnt ~= n then return nil, false end
+    return q, true
+end
+
+local function SameRec(a, b)
+    return type(a) == "table" and a.key == b.key and a.vtype == b.vtype and a.value == b.value and a.detail == b.detail
+end
+
+-- Appends the records of `found` (records already present are skipped, so an untouched damaged entry is not recorded at every login).
+-- All or nothing: returns false (and leaves the saved variables exactly as they were) when it cannot be done safely.
+local function RecordDamage(raw, found)
+    local q, ok = QuarList(raw)
+    if not ok then return false end
+    local fresh = {}
+    for _, rec in ipairs(found) do
+        local dup = false
+        if q then
+            for i = 1, #q do
+                if SameRec(q[i], rec) then dup = true break end
+            end
+        end
+        if not dup then fresh[#fresh + 1] = rec end
+    end
+    if #fresh == 0 then return true end
+    local have = q and #q or 0
+    if have + #fresh > QUAR_MAX then return false end         -- full: old records are never replaced
+    local stamp = 0
+    pcall(function() if GetTimeStamp then stamp = tonumber(GetTimeStamp()) or 0 end end)
+    for _, rec in ipairs(fresh) do rec.ver = VERSION; rec.t = stamp end
+    local created = (q == nil)
+    local target = q or {}
+    local wrote = pcall(function()
+        for _, rec in ipairs(fresh) do target[#target + 1] = rec end
+        if created then raw.quarantine = target end
+    end)
+    if not wrote then                                          -- undo, then report failure
+        pcall(function()
+            if created then raw.quarantine = nil else for i = #target, have + 1, -1 do target[i] = nil end end
+        end)
+        return false
+    end
+    return true
+end
+
+-- Decides the mode BEFORE anything is repaired. Returns mode ("normal" / "newer" / "stop") and a reason.
+local function ProtectCheck(raw)
+    if IsNum(raw.schemaVersion) and raw.schemaVersion > SCHEMA_VERSION then
+        return "newer", "the saved settings come from a newer version"
+    end
+    local found = ScanDamage(raw)
+    if #found > 0 and not RecordDamage(raw, found) then
+        return "stop", "damaged saved data could not be recorded safely"
+    end
+    return "normal"
+end
+
+-- Detached in-memory copy of the saved variables (plain data only, bounded). Used in protect mode, so no setting change can reach the file.
+local function CopyData(v, depth, budget)
+    local t = type(v)
+    if t == "number" or t == "string" or t == "boolean" then return v end
+    if t ~= "table" or depth > 6 then return nil end
+    local out = {}
+    for k, x in pairs(v) do
+        local tk = type(k)
+        if (tk == "string" or tk == "number") and budget.n < 5000 then
+            budget.n = budget.n + 1
+            out[k] = CopyData(x, depth + 1, budget)
+        end
+    end
+    return out
+end
+
+local function Migrate()               -- normal mode only
+    if not IsSchema(sv.schemaVersion) then sv.schemaVersion = 1 end   -- no version yet (v2.0.0 / v2.0.1 data) or a damaged one (recorded): layout 1
+    while sv.schemaVersion < SCHEMA_VERSION do
+        local step = MIGRATIONS[sv.schemaVersion]
+        if not step or not pcall(step) then break end                -- never half-way: the version only advances after a step succeeded
+        sv.schemaVersion = sv.schemaVersion + 1
+    end
+end
+
+---------------------------------------------------------------------------
 -- Characters: built-in standard + packs registered by other addons
 ---------------------------------------------------------------------------
 -- cfg per state: type = "ANIMATION" sheet (file) played by ANIMATION_TEXTURE; fallback = still PNG used if the sheet cannot be used;
@@ -193,13 +372,15 @@ local function SafeRel(s)                         -- relative path inside an add
         and not s:find("..", 1, true) and not s:find("\\", 1, true) and not s:find(":", 1, true) and s:sub(1, 1) ~= "/"
 end
 
+local idLower = { [DEFAULT_ID] = true }        -- lower-case ids of the registered characters (ids are compared case-insensitively)
+
 local function ValidatePack(def)
     if type(def) ~= "table" then return nil, "not a table" end
     if def.format ~= PACK_FORMAT then return nil, "format" end
     local id = def.id
     if type(id) ~= "string" or #id < 1 or #id > 32 or not id:match("^[%w_]+$") then return nil, "bad id" end
-    if id == DEFAULT_ID then return nil, "reserved id" end
-    if packs[id] then return nil, "duplicate id" end
+    if id:lower() == DEFAULT_ID then return nil, "reserved id" end
+    if packs[id] or idLower[id:lower()] then return nil, "duplicate id (case-insensitive)" end
     if type(def.name) ~= "string" or def.name == "" or #def.name > 100 then return nil, "bad name" end
     if not SafeRel(def.dir) then return nil, "bad dir" end
     if type(def.states) ~= "table" then return nil, "no states" end
@@ -235,9 +416,11 @@ local function PackSetup()
             local ok, p, why = pcall(ValidatePack, q[i])
             if ok and p then
                 packs[p.id] = p
+                idLower[p.id:lower()] = true
                 order[#order + 1] = p.id
             else
                 local rid = (type(q[i]) == "table") and tostring(q[i].id) or "?"
+                packRejects[#packRejects + 1] = rid .. ":" .. tostring(ok and why or p)
                 d(("[PlayerMascotHealth2] character pack '%s' not registered: %s"):format(rid, tostring(ok and why or p)))
             end
         end
@@ -609,20 +792,48 @@ end
 -- The moving preview is the mascot itself with "Preview state" (one state at a time). The stills are only requested while the strip is ON.
 ---------------------------------------------------------------------------
 local PREV_CELL, PREV_GAP, PREV_LABEL_H = 128, 8, 28
+local PREV_STATUS_H = 250                     -- status text under the 5 labels (v2.0.3)
+local PREV_LEFT, PREV_TOP = 1020, 48          -- UI px: right of the settings panel (to x=520) AND of the description panel (x=540..1000)
 local prevTlw, prevCells = nil, {}
+local prevStatus                              -- status label (may stay nil)
+local stripLoaded = {}                        -- i -> true when the engine reported OnTextureLoaded for that still
 local previewStrip = false
+
+local function YN(b) return b and "Y" or "N" end
+
+local function UpdateStripStatus()
+    if not prevStatus or not previewStrip then return end
+    local q = _G[QUEUE_NAME]
+    local qn = (type(q) == "table") and #q or -1
+    local ids = {}
+    for i = 1, #packList do ids[#ids + 1] = packList[i] end
+    local st = {}
+    for i = 1, #STATES do st[#st + 1] = STATES[i]:sub(1, 1) .. YN(stripLoaded[i]) end
+    local cfg = shownState and CfgOf(shownState)
+    local ok = function(b) return b and "Y" or "N" end
+    local lines = {
+        ("v%s queue=%d reg=%d"):format(VERSION, qn, math.max(0, #packList - 1)),
+        ("cur=%s sel=%s"):format(tostring(curId), tostring(sv and sv.selectedId)),
+        "chars: " .. table.concat(ids, ","),
+        "stills " .. table.concat(st, " "),
+        ("show=%s ready=%s"):format(ok(cs and cs.enabled), ok(packsReady)),
+        ("%s loaded=%s broken=%s"):format(tostring(shownState), ok(cfg and loadedSet[shownFile]), ok(shownState and animBroken[BK(shownState)])),
+    }
+    if #packRejects > 0 then lines[#lines + 1] = ("rejected: " .. table.concat(packRejects, "; ")):sub(1, 70) end
+    for id in pairs(badPacks) do lines[#lines + 1] = "bad pack: " .. tostring(id) end
+    pcall(prevStatus.SetText, prevStatus, table.concat(lines, "\n"))
+end
 
 local function BuildPreviewStrip()
     pcall(function()
         local w = #STATES * PREV_CELL + (#STATES - 1) * PREV_GAP
-        local h = PREV_CELL + PREV_LABEL_H
-        local sw, sh = GuiRoot:GetWidth() or 1920, GuiRoot:GetHeight() or 1080
+        local h = PREV_CELL + PREV_LABEL_H + PREV_STATUS_H
         prevTlw = WINDOW_MANAGER:CreateTopLevelWindow(ADDON .. "_PrevTLW")
         prevTlw:SetMouseEnabled(false)
         prevTlw:SetMovable(false)
         prevTlw:SetDimensions(w, h)
         prevTlw:ClearAnchors()
-        prevTlw:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, math.max(0, math.floor((sw - w) / 2)), math.max(0, math.floor(sh - h - 40)))
+        prevTlw:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, PREV_LEFT, PREV_TOP)
         prevTlw:SetHidden(true)
         local font = "ZoFontGame"
         for _, name in ipairs(FONT_CANDIDATES) do
@@ -633,6 +844,7 @@ local function BuildPreviewStrip()
             local tx = WINDOW_MANAGER:CreateControl(ADDON .. "_PrevTex" .. i, prevTlw, CT_TEXTURE)
             tx:SetDimensions(PREV_CELL, PREV_CELL)
             tx:SetAnchor(TOPLEFT, prevTlw, TOPLEFT, x, 0)
+            pcall(tx.SetHandler, tx, "OnTextureLoaded", function() stripLoaded[i] = true; UpdateStripStatus() end)
             local lb = WINDOW_MANAGER:CreateControl(ADDON .. "_PrevLbl" .. i, prevTlw, CT_LABEL)
             lb:SetFont(font)
             lb:SetColor(1, 1, 1, 1)
@@ -642,17 +854,32 @@ local function BuildPreviewStrip()
             pcall(lb.SetHorizontalAlignment, lb, TEXT_ALIGN_CENTER)
             prevCells[i] = { tex = tx, label = lb }
         end
+        pcall(function()                                  -- status text: isolated, a failure here never affects the strip
+            local sl = WINDOW_MANAGER:CreateControl(ADDON .. "_PrevStatus", prevTlw, CT_LABEL)
+            local sf = "ZoFontGame"
+            for _, name in ipairs({ "ZoFontGamepad27", "ZoFontGamepad34", "ZoFontGameBold" }) do
+                if _G[name] ~= nil then sf = name break end
+            end
+            sl:SetFont(sf)
+            sl:SetColor(1, 1, 0.6, 1)
+            sl:SetDimensions(w, PREV_STATUS_H)
+            sl:SetAnchor(TOPLEFT, prevTlw, TOPLEFT, 0, PREV_CELL + PREV_LABEL_H + 4)
+            pcall(sl.SetHorizontalAlignment, sl, TEXT_ALIGN_LEFT)
+            prevStatus = sl
+        end)
     end)
 end
 
 local function RefreshPreviewStrip()                 -- called when the strip is switched or the character changes
     if not prevTlw or #prevCells ~= #STATES then return end
     if not previewStrip then prevTlw:SetHidden(true); return end
+    stripLoaded = {}                                 -- loaded flags belong to the character shown now
     for i, st in ipairs(STATES) do
         local cfg = CfgOf(st)
         if cfg then pcall(prevCells[i].tex.SetTexture, prevCells[i].tex, cfg.fallback) end
     end
     prevTlw:SetHidden(false)
+    UpdateStripStatus()
 end
 
 local function SetPreviewStrip(on)
@@ -911,6 +1138,7 @@ end
 local function OnLifecycle()
     if not packsReady then                        -- first EVENT_PLAYER_ACTIVATED of this session: all addons are loaded
         PackSetup()
+        if protectMsg and not protectMsgShown then protectMsgShown = true; d(protectMsg) end
         local want = ResolveId()
         if want ~= curId then SwitchPack(want) else ApplyLayout() end   -- the first image is shown by the HP read below
         if not settingsBuilt then
@@ -929,9 +1157,21 @@ local function OnAddOnLoaded(_, name)
 
     local ok, err = pcall(function()
         local namespace = GetWorldName and GetWorldName() or nil
-        sv = ZO_SavedVars:NewAccountWide(SV_NAME, SV_VERSION, namespace, DEFAULTS)
+        realSv = ZO_SavedVars:NewAccountWide(SV_NAME, SV_VERSION, namespace, DEFAULTS)
+        sv = realSv
+        local cok, mode, reason = pcall(ProtectCheck, realSv)
+        if not cok then mode, reason = "stop", "the saved data check failed" end
+        if mode ~= "normal" then
+            -- PROTECT MODE: from here on `sv` is a detached copy; nothing below can write to the saved variables.
+            protectMode = mode
+            protectMsg = "[PlayerMascotHealth2] " .. tostring(reason) .. ": display only, changes are NOT saved this session (the saved data is untouched; the next login starts from it)"
+            local ok2, copy = pcall(CopyData, realSv, 0, { n = 0 })
+            sv = (ok2 and type(copy) == "table") and copy or {}
+        else
+            pcall(Migrate)                        -- data layout version (normal mode only)
+        end
         Sanitize()
-        pcall(ImportV1)                           -- v1.5.0 settings -> standard character (once)
+        pcall(ImportV1)                           -- v1.5.0 settings -> standard character (once; in protect mode into the copy only)
         Sanitize()
         cs = CharSettings(DEFAULT_ID)             -- until the characters are known, the standard character's settings are in use
 

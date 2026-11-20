@@ -53,6 +53,9 @@ end
 
 function A:RosterDirty()
 	self.roster.dirty = true
+	if self.frames then
+		self.frames.dirty = true
+	end
 end
 
 function A:RefreshRoster(force)
@@ -62,8 +65,16 @@ function A:RefreshRoster(force)
 		return r
 	end
 	r.at, r.dirty = now, false
+	local before = r.byHash
 	local list, byHash = {}, {}
 	local size = GetGroupSize and GetGroupSize() or 0
+	if r.size ~= size then
+		-- (a group the game reads as "no group" for a moment is one way markers could go: this line shows it)
+		if r.size ~= nil then
+			self:Trace("roster", string.format("the game reports %d group members (was %d)", size, r.size))
+		end
+		r.size = size
+	end
 	if size > 1 and GetGroupUnitTagByIndex then
 		for i = 1, size do
 			local tag = GetGroupUnitTagByIndex(i)
@@ -76,6 +87,11 @@ function A:RefreshRoster(force)
 					local isSelf = AreUnitsEqual(tag, "player") and true or false
 					-- (a member who logged out stays in the group, offline; a call that is not allowed counts as "online")
 					local online = isSelf or self:Call("IsUnitOnline", tag) ~= false
+					local was = before[hash]
+					if was and was.online ~= online then
+						-- (a marker that disappears for this reason is explained by this line)
+						self:Trace("roster", name .. (online and " is online again" or " went offline"))
+					end
 					local entry = { tag = tag, name = name, hash = hash, self = isSelf, online = online }
 					list[#list + 1] = entry
 					byHash[hash] = entry
@@ -184,6 +200,9 @@ function A:SetMark(hash, name, icon, mine, owner)
 		self.marks[hash] = m
 	end
 	m.name, m.icon, m.mine, m.owner, m.at, m.orphanSince = name, icon, mine and true or false, owner, A.Stamp(), nil
+	if self.frames then
+		self.frames.dirty = true -- the group frames are looked at again at once
+	end
 	if fresh then
 		-- a new marker (a repeat of the same one is not new): whatever game marker stands on the person now is the OLDER one
 		local entry = self.roster.byHash[hash]
@@ -199,6 +218,9 @@ function A:RemoveMark(hash, why)
 		return false
 	end
 	self.marks[hash] = nil
+	if self.frames then
+		self.frames.dirty = true
+	end
 	self:Trace("mark", string.format("%s: marker %s off (%s)", tostring(m.name), tostring(m.icon), why or "removed"))
 	return true
 end
@@ -216,72 +238,69 @@ end
 -- Putting one on, taking one off (what the wheel asks for)
 -- ---------------------------------------------------------------------------------------
 
--- Is the unit under the reticle? (the game's marker call acts on the reticle target and on nothing else)
-local function UnderReticle(tag)
-	if tag == "reticleover" then
-		return DoesUnitExist and DoesUnitExist("reticleover") and true or false
+-- With an empty reticle the standard wheel acts on the player, including when solo.
+local function IsMarkerTarget(tag)
+	local aimed = DoesUnitExist("reticleover")
+	if tag == "player" then
+		return not aimed
 	end
-	return DoesUnitExist and DoesUnitExist("reticleover") and AreUnitsEqual and AreUnitsEqual("reticleover", tag) and true or false
+	return aimed and (tag == "reticleover" or AreUnitsEqual("reticleover", tag))
 end
 
--- How the game's own marker is taken off the unit under the reticle. There is no call for it; there are two ways to ask,
--- and which one the game answers is found out, not guessed (nothing here is measured on a console):
---   "none"    assign TARGET_MARKER_TYPE_NONE
---   "toggle"  assign the marker that is on the unit again (how the game's own wheel takes one off, as far as is known)
--- Each is read back a second after it was asked for (a call that returns proves nothing). The first that works is kept.
-function A:EngineClearMethod()
-	if self.engineClearWorked then
-		return self.engineClearWorked
-	end
-	if not self.engineNoneFailed then
-		return "none"
-	end
-	if not self.engineToggleFailed then
-		return "toggle"
-	end
-	return nil
-end
-
--- The game's own marker on a unit, taken off (the reticle target is the one the game acts on, so this is only done while
--- the unit is under the reticle).
+-- Use the same toggle as the standard wheel while the selection still identifies its target.
 function A:TakeEngineMarkerOff(tag, hash)
-	if self.engineClearBroken or not GetUnitTargetMarkerType then
-		return false
+	if not GetUnitTargetMarkerType or not IsMarkerTarget(tag) then
+		return
 	end
 	local current = GetUnitTargetMarkerType(tag)
-	if not current or current == NoneType() or not UnderReticle(tag) then
-		return false
+	if type(current) ~= "number" or current == NoneType() then
+		return
 	end
-	local method = self:EngineClearMethod()
-	if not method then
-		return false
+	local name = GetUnitDisplayName(tag)
+	local pending = self.engineCheck
+	if pending and pending.tag == tag and pending.name == name and pending.before == current then
+		-- The user changed icons before ESO acknowledged the toggle. Sending it twice can put the standard marker back.
+		pending.hash, pending.mark = hash, self.marks[hash]
+		return
 	end
-	self:Call("AssignTargetMarkerToReticleTarget", method == "none" and NoneType() or current)
-	self.engineCheck = { tag = tag, hash = hash, due = A.Stamp() + ENGINE_CHECK_MS, before = current, method = method }
-	self:Trace("engine", string.format("asked the game to take its marker (%s) off %s by way of '%s'", tostring(current), tostring(tag), method))
-	return true
+	local now = A.Stamp()
+	self.engineCheck = { tag = tag, name = name, before = current, due = now + ENGINE_CHECK_MS,
+		hash = hash, mark = self.marks[hash] }
+	self:Trace("engine", string.format("reselected standard marker %d on %s", current, tag))
+	self:Call("AssignTargetMarkerToReticleTarget", current)
+	self:CheckEngineClear(now)
 end
 
--- What the read-back found (a second after the game was asked).
-function A:EngineCheckResult(check)
-	local after = GetUnitTargetMarkerType and GetUnitTargetMarkerType(check.tag)
-	if not after or after == NoneType() then
-		self.engineClearWorked = check.method
-		self:Trace("engine", "the game's marker is gone (by way of '" .. check.method .. "')")
-	elseif after == check.before then
-		-- still there: that way does not work. The other way is tried at once, while the unit is still under the reticle.
-		if check.method == "none" then
-			self.engineNoneFailed = true
-		else
-			self.engineToggleFailed = true
-		end
-		self:Trace("engine", "the game's marker is still there a second after asking by way of '" .. check.method .. "'")
-		if not self:TakeEngineMarkerOff(check.tag, check.hash) and not self:EngineClearMethod() then
-			self.engineClearBroken = true
-			self:Trace("engine", "neither way takes the game's marker off: extra markers are not put on a person who has one")
-		end
+-- Some clients also accept NONE. Try it once if the old marker is still on the same
+-- target after a second. A failed attempt never disables future wheel selections.
+function A:CheckEngineClear(now)
+	local check = self.engineCheck
+	if not check then
+		return
 	end
-	-- (a different marker than the one asked about: somebody else changed it meanwhile; nothing is learned from that)
+	if not IsMarkerTarget(check.tag) or GetUnitDisplayName(check.tag) ~= check.name
+		or (check.mark and (self.marks[check.hash] ~= check.mark or not check.mark.mine)) then
+		self.engineCheck = nil
+		return
+	end
+	local after = GetUnitTargetMarkerType(check.tag)
+	if after == NoneType() then
+		self.engineClearResult = check.fallback and "removed by assigning NONE" or "removed by reselecting the same marker"
+	elseif after ~= check.before then
+		self.engineCheck = nil -- another standard marker superseded this request
+		return
+	elseif now < check.due then
+		return
+	elseif not check.fallback then
+		check.fallback = true
+		check.due = now + ENGINE_CHECK_MS
+		self:Call("AssignTargetMarkerToReticleTarget", NoneType())
+		return
+	else
+		self.engineClearResult = "standard marker still present after both attempts"
+	end
+	self.engineCheck = nil
+	self:Trace("engine", self.engineClearResult .. " on " .. check.tag)
 end
 
 -- ONE MARKER AT A TIME, the game's eight included, whoever puts which one on. The game's marker cannot be hidden by an
@@ -332,6 +351,7 @@ end
 
 -- The game says its markers changed (EVENT_TARGET_MARKER_UPDATE: it has no payload).
 function A:OnEngineMarkersChanged()
+	self:CheckEngineClear(A.Stamp())
 	if next(self.marks) ~= nil then
 		self:ReconcileEngine(A.Stamp())
 	end
@@ -344,6 +364,9 @@ end
 
 -- Registers for what the group and the game's markers do; called once at start-up.
 function A:StartMarks()
+	em:RegisterForEvent(self.name .. "Reticle", EVENT_RETICLE_TARGET_CHANGED, function()
+		self.engineCheck = nil
+	end)
 	em:RegisterForEvent(self.name .. "Online", EVENT_GROUP_MEMBER_CONNECTED_STATUS, function()
 		self:OnMemberOnline()
 	end)
@@ -372,22 +395,13 @@ function A:PlaceExtended(icon)
 	end
 	local current = self.marks[entry.hash]
 	if current and current.icon == icon then
+		self.engineCheck = nil
 		self:RemoveMark(entry.hash, "the same icon again")
 		self:ShareSend("CLEAR", entry.hash, 0)
 		self.stats.taken = self.stats.taken + 1
 		self:Print(S.taken, entry.name)
 		self:Sound("NEGATIVE_CLICK")
 		return true
-	end
-	-- One marker at a time, the game's own included. This one replaces the game's marker that is on the person (taken off
-	-- below), which only works for a member under the reticle and only if the game obeys: where the game's marker cannot be
-	-- taken off, an extra marker is not put on (it would stand beside it, or have to go again a moment later).
-	if self:EngineMarkerOf(entry) ~= NoneType() and (onSelf or self.engineClearBroken) then
-		self.stats.refused = self.stats.refused + 1
-		self:Trace("place", "refused: the game's own marker stands on " .. entry.name .. " and cannot be taken off")
-		self:Print(S.engineStays, entry.name)
-		self:Sound("GENERAL_ALERT_ERROR")
-		return false
 	end
 	self:SetMark(entry.hash, entry.name, icon, true, self:OwnName())
 	self.stats.placed = self.stats.placed + 1
@@ -396,10 +410,7 @@ function A:PlaceExtended(icon)
 	self:ShareArm()
 	self:Print(S.placed, entry.name, A.IconName(icon))
 	self:Sound("ABILITY_SLOTTED")
-	-- (the game's own marker is taken off the reticle target, and nothing is under the reticle when this is on yourself)
-	if not onSelf then
-		self:TakeEngineMarkerOff(entry.tag, entry.hash)
-	end
+	self:TakeEngineMarkerOff(onSelf and "player" or entry.tag, entry.hash)
 	return true
 end
 
@@ -415,9 +426,7 @@ function A:ClearReticle()
 			self:Print(S.taken, entry.name)
 			self:Sound("NEGATIVE_CLICK")
 		end
-		if not onSelf then
-			self:TakeEngineMarkerOff(entry.tag, entry.hash)
-		end
+		self:TakeEngineMarkerOff(onSelf and "player" or entry.tag, entry.hash)
 	elseif DoesUnitExist and DoesUnitExist("reticleover") then
 		self:TakeEngineMarkerOff("reticleover", nil)
 	end
@@ -430,7 +439,12 @@ function A:OnStandardAssign()
 	if next(self.marks) == nil then
 		return
 	end
-	local entry = self:ReticleMember()
+	local entry
+	if DoesUnitExist("reticleover") then
+		entry = self:ReticleMember()
+	else
+		entry = self:SelfMember()
+	end
 	if entry and self.marks[entry.hash] then
 		self:RemoveMark(entry.hash, "the game's own marker was put on")
 		self:ShareSend("CLEAR", entry.hash, 0)
@@ -501,8 +515,15 @@ function A:Housekeeping(now)
 			local grouped, ownHash = self:Grouped(), self:OwnHash()
 			for hash, m in pairs(self.marks) do
 				if not grouped and hash ~= ownHash then
-					-- alone: only a marker on the player themself can stay
-					self:RemoveMark(hash, "not in a group")
+					-- alone: only a marker on the player themself can stay. Not drawn at once (the roster is just the player), but the
+					-- markers go only after the same grace as a person who has left: a group the game reads as "no group" for a moment
+					-- (a loading screen, a zone change) must not wipe what the group put on, and nothing would bring it back until the
+					-- owners' next repeat. Leaving the group for real is an event of its own (KeepOnlyOwnMark).
+					m.orphanSince = m.orphanSince or now
+					if now - m.orphanSince > ORPHAN_MS then
+						self.stats.orphaned = self.stats.orphaned + 1
+						self:RemoveMark(hash, "not in a group")
+					end
 				elseif roster.byHash[hash] and roster.byHash[hash].online then
 					m.orphanSince = nil
 					if m.name == "?" then
@@ -527,11 +548,7 @@ function A:Housekeeping(now)
 	if next(self.marks) ~= nil then
 		self:ReconcileEngine(now)
 	end
-	local check = self.engineCheck
-	if check and now >= check.due then
-		self.engineCheck = nil
-		self:EngineCheckResult(check)
-	end
+	self:CheckEngineClear(now)
 end
 
 A.MARK("Marks")

@@ -39,18 +39,15 @@ assert(env.controls.LiveBuffUptime2ReportTotal.text=="Gesamtschaden  2300000" an
 local bossIndex
 for i,entry in ipairs(list.entries) do if entry.skillTargetKey==900 then bossIndex=i end end
 list:SetSelectedIndex(assert(bossIndex))
-assert(env.controls.LiveBuffUptime2ReportTotal.text=="Schaden  1200000" and env.controls.LiveBuffUptime2ReportTimes.text=="Boss-DPS  120000")
+assert(env.controls.LiveBuffUptime2ReportTotal.text=="Schaden  1200000" and env.controls.LiveBuffUptime2ReportTimes.text=="Boss-DPS  171429",
+    "CMX target overview divides the boss damage by its seven-second unit interval")
 local skillDPS=0
-for index=1,12 do
- skillDPS=skillDPS+(tonumber(env.controls["LiveBuffUptime2ReportDPS"..index].text) or 0)
-end
-assert(skillDPS==group.bossDPS,"boss skill DPS add up to the same 120k shown by GroupDPS; add/group damage stays out")
--- A PC CMX active-time clock may differ. Boss rows must still use the recorded
--- GroupDPS-compatible encounter clock, rather than silently using CMX's 8s.
+for index=1,12 do skillDPS=skillDPS+(tonumber(env.controls["LiveBuffUptime2ReportDPS"..index].text) or 0) end
+assert(skillDPS==120000,"skill rows use the ten-second fight divisor, independently of the unit overview")
 report.skillDamageDuration=8
 reports.Refresh()
-assert(env.controls.LiveBuffUptime2ReportTimes.text=="Boss-DPS  120000")
-assert(env.controls.LiveBuffUptime2ReportDPS1.text=="60000")
-assert(reports.SkillTargets(report)[3].duration==1,"ordinary add DPS retains its own target clock")
+assert(env.controls.LiveBuffUptime2ReportTimes.text=="Boss-DPS  171429","target overview keeps its own active time")
+assert(env.controls.LiveBuffUptime2ReportDPS1.text=="75000","skill DPS uses CMX's fight time, never the group clock override")
+assert(reports.SkillTargets(report)[3].duration==1)
 reports.Close()
-print("Boss/group DPS: 120k boss vs 230k all targets, matching actual GroupDPS and boss skill rows, pets, raid clock, add exclusion and PC active-time independence")
+print("CMX boss report: own/pet damage, separate target and skill windows, no group-time override and unchanged totals")

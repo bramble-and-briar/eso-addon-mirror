@@ -1,0 +1,13 @@
+[b]0.6.2[/b] (2026-11-20) - Initial release
+[list]
+[*][b]Layouts[/b]: record your houses, paste share codes (in parts for big houses), receive layouts from the LetsFurnish! app, and activate one for Apply, Needs and Crafting.
+[*][b]Apply[/b]: [i]To place[/i], [i]To move[/i], [i]To remove[/i], [i]Missing[/i] and [i]In place[/i], with [b]Place all[/b], [b]Move all[/b] and [b]Remove all[/b], a progress bar and Stop.
+[*]Furnishings already in your house are moved into place before anything is taken from your bags, bank or storage.
+[*]Every placement, move, switch and removal is checked in the house; a refused switch is tried again, and what a storage place won't take goes to the next place in your order.
+[*][b]Pets and mounts on paths[/b]: path nodes, speeds and waits.
+[*][b]Backups[/b]: automatic before the first change of each visit, and by hand; roll back all or nothing, with Save as layout.
+[*][b]Needs and Crafting[/b]: view what each layout requires, where it can be crafted, available recipes, patterns and materials. Includes Tamriel Trade Centre prices when that add-on is installed.
+[*][b]Find any piece[/b]: open the editor on a furnishing, or set a waypoint to it.
+[*][b]Settings and log[/b]: where furnishings are taken from and put away, prices, the speed of a run, and a log of recent runs with detailed logging to report a problem.
+[*]English, German, French, Spanish, Russian, Japanese and Chinese.
+[/list]

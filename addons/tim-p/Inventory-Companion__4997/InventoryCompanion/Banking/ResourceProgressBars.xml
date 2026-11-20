@@ -1,7 +1,7 @@
 <GuiXml>
     <Controls>
         <TopLevelControl name="InventoryCompanion_ProgressBar_Template" virtual="true" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="true">
-            <Dimensions x="228" y="22"/>
+            <Dimensions x="234" y="22"/>
             <Controls>
                 <Texture name="$(parent)Icon" parentKey="icon" mouseEnabled="false">
                     <Dimensions x="22" y="22"/>

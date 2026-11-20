@@ -1,8 +1,7 @@
-2026.11.19
-- Added a tooltip to guild list view to indicate if user is ONLINE only(any mode but offline) so its not too spammy.
-- Added player details view by clicking theyre name to display they're sales details for that week.
-- You can click an item link to popup the info tooltip including TTC etc data.
-- I'm aware gold items are hard to see and may be too long to display so I've added the itemlink name tooltip to compensate.
+2026.11.20
+- Minor polish mostly.
+- Added red/green highlight colors in tooltips for data complete and user online.
+- Added "link in chat" popup option for items in the player details view.
 
 ** POSSIBLE FUTURE OPTIONS **
 - fix name length issue

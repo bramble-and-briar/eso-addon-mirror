@@ -1,8 +1,8 @@
 ## Title: PlayerMascotHealth 2
 ## Description: Shows a character whose condition (NORMAL / CAUTION / DANGER / CRITICAL / ZERO) follows your own HP. v2: character library - extra characters are added by separate pack addons. Console (PS5/CS) first.
 ## Author: PlayerMascotHealth project
-## Version: 2.0.1
-## AddOnVersion: 201
+## Version: 2.0.4
+## AddOnVersion: 204
 ## APIVersion: 101048 101049 101050 101051
 ## SavedVariables: PlayerMascotHealth2_SV PlayerMascotHealth_SV
 ## OptionalDependsOn: LibAddonMenu-2.0

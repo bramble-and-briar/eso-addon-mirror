@@ -1369,14 +1369,14 @@ function UI:BuildRows()
         local sum, kills = PDI.AP:Summary(self.period)
         local earned, spent = 0, 0
         for _, x in ipairs(sum) do
-            if matchesSearch(q, x.e) then
+            if x.v > 0 and matchesSearch(q, x.e) then      -- AP earned only (spending isn't listed)
                 rows[#rows + 1] = { who = x.e, a = x.n, k = x.v, key = "ap:" .. x.e }
                 if x.v > 0 then earned = earned + x.v else spent = spent - x.v end
             end
         end
         local nKills = 0
         for _, kx in ipairs(kills) do
-            if matchesSearch(q, kx.e) then
+            if kx.v > 0 and matchesSearch(q, kx.e) then
                 rows[#rows + 1] = { who = kx.e, a = kx.n, k = kx.v, key = "ap:" .. kx.e }
                 earned = earned + kx.v
                 if kx.kill then nKills = nKills + kx.n end      -- (Repairs, resurrections, spending aren't kills)
@@ -1389,19 +1389,26 @@ function UI:BuildRows()
             rows[#rows + 1] = { who = "Total", k = earned - spent, a = times, isTotal = true, key = "ap:__total" }
         end
     elseif self.tab == "ap" then
-        -- chronological: every capture / defense / quest... on its own line; player kills summed in one last line
+        -- in order of time: every capture / defense / quest... on its own line; player kills, repairs and
+        -- resurrections each added up in one line, placed at the time of their latest AP. Only AP earned:
+        -- spending (vendors, buyback) isn't listed.
         local feed, kills = PDI.AP:Feed(self:InPeriod(self.period))
         local earned, spent = 0, 0
-        local function add(e, isKills)
-            if matchesSearch(q, e.e, e.z) then
-                rows[#rows + 1] = { tm = PDI.FormatTime(e.t), who = e.e, k = e.v or 0, z = e.z or "",
+        local all = {}
+        for _, e in ipairs(feed) do all[#all + 1] = e end
+        local nKills = 0
+        for _, kx in ipairs(kills) do all[#all + 1] = kx; if kx.kill and (kx.v or 0) > 0 then nKills = nKills + kx.n end end
+        table.sort(all, function(a, b)
+            if (a.t or 0) ~= (b.t or 0) then return (a.t or 0) < (b.t or 0) end
+            return tostring(a.e) < tostring(b.e)
+        end)
+        for _, e in ipairs(all) do
+            if (e.v or 0) > 0 and matchesSearch(q, e.e, e.z) then
+                rows[#rows + 1] = { tm = PDI.FormatTime(e.t), t = e.t, who = e.e, k = e.v, z = e.z or "",
                                     key = "ap:" .. tostring(e.t) .. "|" .. tostring(e.e) }
-                if (e.v or 0) > 0 then earned = earned + e.v else spent = spent - (e.v or 0) end
+                earned = earned + e.v
             end
         end
-        for _, e in ipairs(feed) do add(e) end
-        local nKills = 0
-        for _, kx in ipairs(kills) do add(kx, true); if kx.kill then nKills = nKills + kx.n end end
         self.apTotals = { earned = earned, spent = spent, kills = nKills }
         if #rows > 0 then
             rows[#rows + 1] = { who = "Total", k = earned - spent, z = "", isTotal = true, key = "ap:__total" }
@@ -1559,7 +1566,7 @@ function UI:EmptyText()
         return scope == "pvp" and "No group history yet. Group up in Cyrodiil, Imperial City or a Battleground."
             or "No group history yet - group up with someone."
     end
-    if self.tab == "ap" then return "No Alliance Points earned or spent in this period yet." end
+    if self.tab == "ap" then return "No Alliance Points earned in this period yet." end
     if self.tab == "saved" then return "Nobody followed yet. Select a player (Opponents, Group...) and press Follow." end
     return "No kills recorded for this period."
 end
@@ -2139,7 +2146,7 @@ function UI:RefreshApPane()
         if (e.k or 0) > 0 then total = total + e.k end
     end
     local srows = {}
-    for _, x in pairs(sources) do srows[#srows + 1] = x end
+    for _, x in pairs(sources) do if x.v > 0 then srows[#srows + 1] = x end end
     table.sort(srows, function(a, b) return a.v > b.v end)
     for _, x in ipairs(srows) do x.v = PDI.Num(x.v); x.c = tostring(x.c) end
     local zones, zrows = {}, {}
@@ -2147,16 +2154,18 @@ function UI:RefreshApPane()
     local lines = AP_LINES[self.period]
     for _, kx in ipairs(kills) do feed[#feed + 1] = kx end
     for _, e in ipairs(feed) do
-        local z = e.z or "-"
-        if not zones[z] then zones[z] = { z = z, v = 0, n = 0 }; zrows[#zrows + 1] = zones[z] end
-        zones[z].v = zones[z].v + (e.v or 0)
-        zones[z].n = zones[z].n + (e.n or 1)
+        if (e.v or 0) > 0 then                  -- AP earned only
+            local z = e.z or "-"
+            if not zones[z] then zones[z] = { z = z, v = 0, n = 0 }; zrows[#zrows + 1] = zones[z] end
+            zones[z].v = zones[z].v + e.v
+            zones[z].n = zones[z].n + (e.n or 1)
+        end
     end
     table.sort(zrows, function(a, b) return a.v > b.v end)
     for _, z in ipairs(zrows) do z.v = PDI.Num(z.v); z.n = tostring(z.n) end
     self.paneTitle:SetText("Alliance Points: " .. self:PeriodLabel(self.period))
     self.info:SetText(string.format("Earned |cFFFFFF%s AP|r\n|c999999%s|r", PDI.Num(total), lines
-        and "The list on the left is in order of time; player kills are added up in its last line."
+        and "The list on the left is in order of time (AP earned). Player kills, repairs and resurrections are each added up in one line, at the time of the latest one."
         or "Line by line is kept for today and yesterday; longer periods show totals per kind."))
     self.skillTitle:SetText("By source")
     self.gearTitle:SetText(lines and "By zone" or "By zone  |c999999(today and yesterday)|r")
@@ -2207,7 +2216,7 @@ function UI:Refresh()
             math.max(1, self.list.offset + 1 - shift), math.min(self.list.offset + NUM_ROWS - shift, total), total)
         if self.tab == "ap" then
             local t = self.apTotals or {}
-            footer = footer .. string.format("  |  earned: %s AP  spent: %s AP  (%d kills)", PDI.Num(t.earned or 0), PDI.Num(t.spent or 0), t.kills or 0)
+            footer = footer .. string.format("  |  earned: %s AP  (%d kills)", PDI.Num(t.earned or 0), t.kills or 0)
         end
         if self.tab == "my" or self.tab == "feed" then
             footer = footer .. string.format("  |  kills: %s", PDI.Num(k))

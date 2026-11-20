@@ -1,0 +1,5 @@
+Gold Standard v1.0.21
+- Fixed Craft Bag enumeration using GetNextVirtualBagSlotId (item ID slot semantics).
+- Wealth, Empire and Advisor share one bag iterator.
+- Removed empty HUD & Window Layout wrapper; kept each individual window submenu.
+- Kept Flip Finder scanner and trader popup lifecycle unchanged.

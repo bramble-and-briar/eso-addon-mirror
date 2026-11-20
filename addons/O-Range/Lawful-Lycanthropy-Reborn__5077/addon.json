@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/O-Range/Lawful-Lycanthropy-Reborn__5077",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "O-Range",
+  "canonical_id": "esoui:5077",
+  "category_id": "19",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5077",
+  "deleted": false,
+  "directories": [
+    "LawfulLycanthropyReborn"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5077/",
+  "fingerprint": "c264832a9648df54a31b9442c3c2cceef12b2b0570007695fca36f12743b893c",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18618.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5077",
+  "source_url": "https://www.esoui.com/downloads/info5077-LawfulLycanthropyReborn.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Lawful Lycanthropy Reborn",
+  "updated_at": 1795167369000,
+  "version": "1.0"
+}

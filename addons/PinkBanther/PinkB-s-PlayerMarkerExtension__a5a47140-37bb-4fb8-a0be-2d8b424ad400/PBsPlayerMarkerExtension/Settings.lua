@@ -84,6 +84,7 @@ function A:InitSettings()
 	toggle("shareReceive")
 	toggle("markSelf")
 	toggle("showSelf")
+	toggle("frameMarks")
 	toggle("throughWalls")
 	slider("size", 5)
 	slider("height", 10)
@@ -115,8 +116,15 @@ function A:OnSettingChanged(key)
 	self.wheel.layout = nil
 	if key == nil or key == "enabled" then
 		if not self.sv.enabled then
+			self.engineCheck = nil
 			self:HideWorld()
 		end
+		-- the wheel's window goes back to where the game put it while the add-on is off (and in front again when it is on)
+		pcall(self.RaiseWheel, self, not self.sv.enabled)
+	end
+	-- the group frames are looked at again at once (Frames.lua)
+	if self.frames then
+		self.frames.dirty = true
 	end
 end
 

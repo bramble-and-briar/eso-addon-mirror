@@ -1,0 +1,10 @@
+## Title: StormEye
+## Author: O-Range
+## Version: 0.3.0
+## AddOnVersion: 4
+## APIVersion: 101051 101052
+## DependsOn: LibAddonMenu-2.0>=43
+## SavedVariables: StormEyeVars
+## Description: A stylish custom reticle based on the in-game Sorcerer crosshair icon with full RGB control, independent opacities, lightning effects, stealth scaling, enemy pulse, and smooth animations.
+
+StormEye.lua

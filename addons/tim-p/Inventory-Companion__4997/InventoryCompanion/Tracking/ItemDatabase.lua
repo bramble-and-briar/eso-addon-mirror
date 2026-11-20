@@ -545,24 +545,282 @@ end
 
 this.CopySavedValue = CopySavedValue
 
-local preferenceFields = {
+local function FindBuiltInNameCollisions(rules, context)
+    if rules == nil then return {} end
+    local builtInsByName = {}
+    for ruleKey, base in pairs(this.preLoadedRulesets) do
+        if base.isVirtual ~= true then
+            local keys = builtInsByName[base.displayName]
+            if keys == nil then
+                keys = {}
+                builtInsByName[base.displayName] = keys
+            end
+            keys[#keys + 1] = ruleKey
+        end
+    end
+
+    local sourcesByTarget = {}
+    for ruleKey, saved in pairs(rules) do
+        if this.preLoadedRulesets[ruleKey] == nil then
+            local displayName = saved.displayName or ruleKey
+            local targets = builtInsByName[displayName]
+            if targets ~= nil then
+                assert(#targets == 1, context .. " matches multiple built-in groups named " .. displayName)
+                local targetKey = targets[1]
+                local sources = sourcesByTarget[targetKey]
+                if sources == nil then
+                    sources = {}
+                    sourcesByTarget[targetKey] = sources
+                end
+                sources[#sources + 1] = ruleKey
+            end
+        end
+    end
+
+    local collisions = {}
+    for targetKey, sources in pairs(sourcesByTarget) do
+        assert(#sources == 1,
+            context .. " has multiple custom groups named " .. this.preLoadedRulesets[targetKey].displayName)
+        collisions[#collisions + 1] = { sourceKey = sources[1], targetKey = targetKey }
+    end
+    table.sort(collisions, function(left, right) return left.targetKey < right.targetKey end)
+    return collisions
+end
+
+local function ValidateBuiltInVirtualNameCollisions()
+    assert(type(this.preLoadedRulesets) == "table", "Built-in rules are unavailable")
+    for builtInKey, builtIn in pairs(this.preLoadedRulesets) do
+        assert(type(builtIn.displayName) == "string" and builtIn.displayName ~= "",
+            "Built-in rule " .. tostring(builtInKey) .. " must have a display name")
+        assert(builtIn.isVirtual == nil or type(builtIn.isVirtual) == "boolean",
+            "Built-in rule " .. tostring(builtInKey) .. ".isVirtual must be boolean")
+        if builtIn.isVirtual ~= true then
+            for virtualKey, virtual in pairs(this.preLoadedRulesets) do
+                assert(type(virtual.displayName) == "string" and virtual.displayName ~= "",
+                    "Built-in rule " .. tostring(virtualKey) .. " must have a display name")
+                assert(virtual.isVirtual == nil or type(virtual.isVirtual) == "boolean",
+                    "Built-in rule " .. tostring(virtualKey) .. ".isVirtual must be boolean")
+                if virtual.isVirtual == true and builtIn.displayName == virtual.displayName then
+                    error(string.format(
+                        "Built-in group '%s' (%s) collides with virtual group '%s' (%s); "
+                            .. "initialization stopped before SavedVariables were changed.",
+                        builtIn.displayName, builtInKey, virtual.displayName, virtualKey), 2)
+                end
+            end
+        end
+    end
+end
+
+local function GetEffectiveRuleDisplay(saved, base)
+    local defaults = GetDisplayDefaults(base)
+    local display = CopyValues(defaults)
+    for key, value in pairs(saved.display or {}) do display[key] = value end
+    for flag in pairs(extendedDisplayFlags) do
+        if display[flag] == nil then
+            display[flag] = GetExtendedDefault(defaults, saved.display, flag)
+        end
+    end
+    return this.ResolveItemDisplay(display)
+end
+
+local function RemapAutoCategoryOrder(order, sourceKey, targetKey, context)
+    assert(type(order) == "table" and type(order.contexts) == "table",
+        context .. ".autoCategoryOrder must contain contexts")
+    local sourceReference, targetReference = "ic:" .. sourceKey, "ic:" .. targetKey
+    for contextKey, contextOrder in pairs(order.contexts) do
+        for _, mode in ipairs({ "display", "matching" }) do
+            local sequence = contextOrder[mode]
+            assert(type(sequence) == "table", context .. ".autoCategoryOrder." .. contextKey .. "." .. mode
+                .. " must be a table")
+            local hasSourceReference = false
+            for _, reference in ipairs(sequence) do
+                if reference == sourceReference then
+                    hasSourceReference = true
+                    break
+                end
+            end
+            local remapped, seen = {}, {}
+            for _, reference in ipairs(sequence) do
+                -- Keep the custom group's position when both slugs are present.
+                if reference ~= targetReference or not hasSourceReference then
+                    if reference == sourceReference then reference = targetReference end
+                    assert(not seen[reference], context .. ".autoCategoryOrder." .. contextKey .. "." .. mode
+                        .. " contains a duplicate after collision promotion")
+                    seen[reference] = true
+                    remapped[#remapped + 1] = reference
+                end
+            end
+            contextOrder[mode] = remapped
+        end
+        for _, field in ipairs({ "hidden", "displayPositions" }) do
+            local values = contextOrder[field]
+            assert(type(values) == "table", context .. ".autoCategoryOrder." .. contextKey .. "." .. field
+                .. " must be a table")
+            local sourceValue = values[sourceReference]
+            if sourceValue ~= nil then values[targetReference] = sourceValue end
+            values[sourceReference] = nil
+        end
+    end
+end
+
+local function PromoteBuiltInNameCollisions(profile, context)
+    local collisions = FindBuiltInNameCollisions(profile.trackedRules, context .. ".trackedRules")
+    if #collisions == 0 then return false end
+
+    CheckAutoCategoryOrder(profile.autoCategoryOrder, context .. ".autoCategoryOrder", profile.trackedRules)
+    profile.trackedRules = CopySavedValue(profile.trackedRules)
+    profile.autoCategoryOrder = CopySavedValue(profile.autoCategoryOrder)
+    for _, collision in ipairs(collisions) do
+        local source = CopySavedValue(profile.trackedRules[collision.sourceKey])
+        local sourceRules = { [collision.sourceKey] = source }
+        NormalizeRule(sourceRules, collision.sourceKey)
+        source = sourceRules[collision.sourceKey] or {}
+        local patterns = GetPatternList(nil, source)
+        local display = GetEffectiveRuleDisplay(source, nil)
+        local promoted = source
+        promoted.display = {}
+        for flag in pairs(customDisplayDefaults) do promoted.display[flag] = display[flag] end
+        for flag in pairs(extendedDisplayFlags) do promoted.display[flag] = display[flag] end
+
+        profile.trackedRules[collision.targetKey] = nil
+        profile.trackedRules[collision.sourceKey] = nil
+        ReconcilePatterns(GetBaseline(collision.targetKey), promoted, patterns)
+        profile.trackedRules[collision.targetKey] = promoted
+        NormalizeRule(profile.trackedRules, collision.targetKey)
+        RemapAutoCategoryOrder(profile.autoCategoryOrder, collision.sourceKey, collision.targetKey, context)
+    end
+    ValidateSavedRules(profile.trackedRules, context .. ".trackedRules")
+    CheckAutoCategoryOrder(profile.autoCategoryOrder, context .. ".autoCategoryOrder", profile.trackedRules)
+    return true
+end
+
+local trackerSettingFields = {
+    "showTrackedItemsPanel", "showEmptyTrackedItems", "wrapTrackedItemNames",
+    "trackerGroupThreshold", "trackerMaxRows", "trackerTitleSize",
+}
+local currencySettingFields = { "showEmptyCurrencies", "currencyGridColumns", "currencyPreferences", "capacityPreferences" }
+local legacyPanelFields = {
     "showTrackedItemsPanel", "showEmptyTrackedItems", "trackerOffsetX", "trackerOffsetY",
     "wrapTrackedItemNames", "trackerGroupThreshold", "trackerMaxRows", "trackerTitleSize",
-    "showEmptyCurrencies", "currencyOffsetX", "currencyOffsetY", "currencyPreferences",
-    "capacityPreferences", "progressBarPreferences", "progressBarAlertColors",
+    "showEmptyCurrencies", "currencyGridColumns", "currencyOffsetX", "currencyOffsetY", "currencyPreferences",
+    "capacityPreferences", "progressBarPreferences",
+}
+local preferenceFields = {
+    "PanelSettings", "progressBarAlertColors",
     "filterShow", "filterNotify", "filterCraftbag", "filterMute", "filterUntracked",
 }
 local preferenceDefaults = {
-    showTrackedItemsPanel = true, showEmptyTrackedItems = true, trackerOffsetX = 50, trackerOffsetY = 50,
-    wrapTrackedItemNames = false, trackerGroupThreshold = 8, trackerMaxRows = 20, trackerTitleSize = 20,
-    showEmptyCurrencies = true, currencyOffsetX = 50, currencyOffsetY = 150,
-    currencyPreferences = {}, capacityPreferences = {}, progressBarPreferences = {}, progressBarAlertColors = {},
+    PanelSettings = {},
+    progressBarAlertColors = {},
     filterShow = true, filterNotify = true, filterCraftbag = false, filterMute = true, filterUntracked = false,
 }
+local knownSceneLayouts = {
+    Layout_InventoryScene = true,
+    Layout_BankScene = true,
+    Layout_HouseBankScene = true,
+    Layout_GuildBankScene = true,
+    Layout_FurnitureVaultScene = true,
+    Layout_MerchantScene = true,
+    Layout_FenceScene = true,
+    Layout_EditorScene = true,
+    Layout_SettingsScene = true,
+}
+local knownPanelKeys = { Tracker = true, Currency = true, ["capacity:bag"] = true, ["capacity:bank"] = true }
+local function IsResourcePanelKey(panelKey)
+    return type(panelKey) == "string" and panelKey:match("^currency:%d+$") ~= nil
+end
+
+local function IsKnownPanelKey(panelKey)
+    return knownPanelKeys[panelKey] == true or IsResourcePanelKey(panelKey)
+end
+
+local function ValidateCoordinate(value, context, allowNegative)
+    assert(type(value) == "number" and value == value and math.abs(value) < math.huge,
+        context .. " must be finite")
+    if not allowNegative then assert(value >= 0, context .. " must be nonnegative") end
+end
 
 function this.GetSettingsProfile()
     if this.character.useCharacterItemList then return this.character end
     return this.accountWide
+end
+
+function this.GetPanelSettings(panelKey)
+    assert(IsKnownPanelKey(panelKey), "Unknown panel ID: " .. tostring(panelKey))
+    local settings = this.GetSettingsProfile().PanelSettings[panelKey]
+    assert(type(settings) == "table", "Panel settings were not prepared for " .. panelKey)
+    return settings
+end
+
+local function ValidateLayoutKey(layoutKey)
+    assert(layoutKey == "Layout_NoScene" or knownSceneLayouts[layoutKey] == true,
+        "Unknown panel layout ID: " .. tostring(layoutKey))
+end
+
+function this.GetPanelLayout(panelKey, layoutKey, characterId)
+    assert(IsKnownPanelKey(panelKey), "Unknown panel ID: " .. tostring(panelKey))
+    ValidateLayoutKey(layoutKey)
+    local panel = this.GetPanelSettings(panelKey)
+    if layoutKey == "Layout_NoScene" then
+        local position = panel.Layout_NoScene
+        assert(type(position) == "table", "Normal panel layout was not prepared for " .. panelKey)
+        return position
+    end
+    assert(type(characterId) == "string" and characterId ~= "",
+        "Scene panel layouts require a non-empty character ID")
+    local layout = panel[layoutKey]
+    if layout == nil then return nil end
+    assert(type(layout) == "table", "Panel layout must be a table: " .. layoutKey)
+    return layout[characterId]
+end
+
+function this.SavePanelLayout(panelKey, layoutKey, characterId, offsetX, offsetY)
+    assert(IsKnownPanelKey(panelKey), "Unknown panel ID: " .. tostring(panelKey))
+    ValidateLayoutKey(layoutKey)
+    local allowNegative = panelKey == "Tracker" or panelKey == "Currency"
+    ValidateCoordinate(offsetX, "Panel offsetX", allowNegative)
+    ValidateCoordinate(offsetY, "Panel offsetY", allowNegative)
+    local panel = this.GetPanelSettings(panelKey)
+    if layoutKey == "Layout_NoScene" then
+        local position = panel.Layout_NoScene
+        assert(type(position) == "table", "Normal panel layout was not prepared for " .. panelKey)
+        position.offsetX, position.offsetY = offsetX, offsetY
+        return
+    end
+    assert(type(characterId) == "string" and characterId ~= "",
+        "Scene panel layouts require a non-empty character ID")
+    local layout = panel[layoutKey]
+    if layout == nil then
+        layout = {}
+        panel[layoutKey] = layout
+    end
+    assert(type(layout) == "table", "Panel layout must be a table: " .. layoutKey)
+    local position = layout[characterId]
+    if position == nil then
+        position = {}
+        layout[characterId] = position
+    end
+    assert(type(position) == "table", "Panel scene position must be a table")
+    position.offsetX, position.offsetY = offsetX, offsetY
+end
+
+function this.ResetPanelLayouts(panelKey)
+    assert(IsKnownPanelKey(panelKey), "Unknown panel ID: " .. tostring(panelKey))
+    local panel = this.GetPanelSettings(panelKey)
+    local normalDefaults
+    if panelKey == "Tracker" or panelKey == "Currency" then
+        normalDefaults = this.defaultsAccount.PanelSettings[panelKey].Layout_NoScene
+    else
+        for _, resource in ipairs(this.GetProgressBarResources()) do
+            if resource.key == panelKey then
+                normalDefaults = { offsetX = resource.defaultOffsetX, offsetY = resource.defaultOffsetY }
+                break
+            end
+        end
+        assert(normalDefaults ~= nil, "No default position is registered for panel " .. panelKey)
+    end
+    panel.Layout_NoScene = CopySavedValue(normalDefaults)
+    for layoutKey in pairs(knownSceneLayouts) do panel[layoutKey] = nil end
 end
 
 local function ValidateResourcePreference(preference, context)
@@ -596,52 +854,182 @@ local function ValidatePreferenceColor(color, context)
     end
 end
 
+local function ValidatePanelLayout(panelKey, layoutKey, layout, context, prepareDefaults)
+    assert(type(layout) == "table", context .. " must be a table")
+    CopySavedValue(layout)
+    if layoutKey == "Layout_NoScene" then
+        local defaults
+        if panelKey == "Tracker" then
+            defaults = this.defaultsAccount.PanelSettings.Tracker.Layout_NoScene
+        elseif panelKey == "Currency" then
+            defaults = this.defaultsAccount.PanelSettings.Currency.Layout_NoScene
+        end
+        for _, axis in ipairs({ "offsetX", "offsetY" }) do
+            if prepareDefaults and layout[axis] == nil and defaults ~= nil then layout[axis] = defaults[axis] end
+            if layout[axis] ~= nil then
+                ValidateCoordinate(layout[axis], context .. "." .. axis, panelKey == "Tracker" or panelKey == "Currency")
+            end
+        end
+    elseif knownSceneLayouts[layoutKey] then
+        for characterId, position in pairs(layout) do
+            local positionContext = context .. "[" .. tostring(characterId) .. "]"
+            assert(type(characterId) == "string" and characterId ~= "",
+                context .. " character IDs must be non-empty strings")
+            assert(type(position) == "table", positionContext .. " must be a table")
+            CopySavedValue(position)
+            assert(position.offsetX ~= nil and position.offsetY ~= nil,
+                positionContext .. " must contain a complete coordinate pair")
+            local allowNegative = panelKey == "Tracker" or panelKey == "Currency"
+            ValidateCoordinate(position.offsetX, positionContext .. ".offsetX", allowNegative)
+            ValidateCoordinate(position.offsetY, positionContext .. ".offsetY", allowNegative)
+        end
+    end
+end
+
+local function ValidatePanelResourcePreference(settings, panelKey, context)
+    ValidateResourcePreference(settings, context)
+    if settings.normalColor ~= nil then
+        ValidatePreferenceColor(settings.normalColor, context .. ".normalColor")
+    end
+    local defaultWarningThreshold, defaultDangerThreshold
+    if panelKey == "capacity:bag" then
+        defaultWarningThreshold, defaultDangerThreshold = 0.75, 0.90
+    elseif panelKey == "capacity:bank" then
+        defaultWarningThreshold, defaultDangerThreshold = 0.80, 0.95
+    elseif IsResourcePanelKey(panelKey) then
+        defaultWarningThreshold, defaultDangerThreshold = 0.75, 0.90
+    end
+    if defaultWarningThreshold ~= nil then
+        local warningThreshold = settings.warningThreshold or defaultWarningThreshold
+        local dangerThreshold = settings.dangerThreshold or defaultDangerThreshold
+        if warningThreshold > dangerThreshold then
+            settings.warningThreshold = defaultWarningThreshold
+            settings.dangerThreshold = defaultDangerThreshold
+        end
+    end
+end
+
+local function ValidatePanelSettings(settings, context, prepareDefaults)
+    assert(type(settings) == "table", context .. " must be a table")
+    CopySavedValue(settings)
+
+    for _, panelKey in ipairs({ "Tracker", "Currency" }) do
+        local panel = settings[panelKey]
+        if panel == nil then
+            if prepareDefaults then
+                panel = CopySavedValue(this.defaultsAccount.PanelSettings[panelKey])
+                settings[panelKey] = panel
+            end
+        end
+        if panel ~= nil then
+            assert(type(panel) == "table", context .. "." .. panelKey .. " must be a table")
+            if prepareDefaults and panel.Layout_NoScene == nil then
+                local defaults = this.defaultsAccount.PanelSettings[panelKey].Layout_NoScene
+                panel.Layout_NoScene = CopySavedValue(defaults)
+            end
+            for _, field in ipairs(panelKey == "Tracker" and trackerSettingFields or currencySettingFields) do
+                local default = this.defaultsAccount.PanelSettings[panelKey][field]
+                if prepareDefaults and panel[field] == nil then panel[field] = CopySavedValue(default) end
+                if panel[field] ~= nil then
+                    if type(default) == "boolean" then
+                        assert(type(panel[field]) == "boolean",
+                            context .. "." .. panelKey .. "." .. field .. " must be boolean")
+                    elseif type(default) == "number" then
+                        local value = panel[field]
+                        assert(type(value) == "number" and value == value and math.abs(value) < math.huge,
+                            context .. "." .. panelKey .. "." .. field .. " must be finite")
+                        if field == "currencyGridColumns" then
+                            assert(value > 0 and value % 1 == 0,
+                                context .. ".Currency.currencyGridColumns must be a positive integer")
+                        else
+                            local range = { trackerGroupThreshold = { 1, 30 }, trackerMaxRows = { 5, 50 }, trackerTitleSize = { 16, 28 } }
+                            local limits = range[field]
+                            assert(limits ~= nil and value >= limits[1] and value <= limits[2] and value % 1 == 0,
+                                context .. "." .. panelKey .. "." .. field .. " is outside its supported integer range")
+                        end
+                    elseif type(default) == "table" then
+                        assert(type(panel[field]) == "table",
+                            context .. "." .. panelKey .. "." .. field .. " must be a table")
+                        CopySavedValue(panel[field])
+                    end
+                end
+            end
+            local panelContext = context .. "." .. panelKey
+            if panelKey == "Currency" then
+                for key, preference in pairs(panel.currencyPreferences or {}) do
+                    local preferenceContext = panelContext .. ".currencyPreferences[" .. tostring(key) .. "]"
+                    ValidateResourcePreference(preference, preferenceContext)
+                    if preference.locations ~= nil then
+                        assert(type(preference.locations) == "table", preferenceContext .. ".locations must be a table")
+                        CopySavedValue(preference.locations)
+                        for location, value in pairs(preference.locations) do
+                            ValidateResourcePreference(value, preferenceContext .. ".locations[" .. tostring(location) .. "]")
+                        end
+                    end
+                end
+                for key, preference in pairs(panel.capacityPreferences or {}) do
+                    ValidateResourcePreference(preference, panelContext .. ".capacityPreferences[" .. tostring(key) .. "]")
+                end
+            end
+        end
+    end
+
+    for panelKey, panel in pairs(settings) do
+        if IsKnownPanelKey(panelKey) then
+            local panelContext = context .. "[" .. tostring(panelKey) .. "]"
+            assert(type(panel) == "table", panelContext .. " must be a table")
+            for layoutKey, layout in pairs(panel) do
+                if type(layoutKey) == "string" and layoutKey:match("^Layout_") then
+                    ValidatePanelLayout(panelKey, layoutKey, layout, panelContext .. "." .. layoutKey, prepareDefaults)
+                end
+            end
+            if panelKey ~= "Tracker" and panelKey ~= "Currency" then
+                ValidatePanelResourcePreference(panel, panelKey, panelContext)
+            end
+        end
+    end
+end
+
 local function PrepareProfilePreferences(profile, source)
     for _, key in ipairs(preferenceFields) do
         local default = preferenceDefaults[key]
         local value = profile[key]
         if value == nil then
             value = source and source[key]
-            if value == nil then value = default end
+            if value == nil then
+                value = key == "PanelSettings" and this.defaultsAccount.PanelSettings or default
+            end
             profile[key] = CopySavedValue(value)
         end
         assert(type(profile[key]) == type(default), "Saved profile." .. key .. " has an invalid type")
-        if type(default) == "number" then
-            assert(profile[key] == profile[key] and math.abs(profile[key]) < math.huge,
-                "Saved profile." .. key .. " must be finite")
-        elseif type(default) == "table" then
-            CopySavedValue(profile[key])
-        end
+        if type(default) == "table" then CopySavedValue(profile[key]) end
     end
-    for key, range in pairs({
-        trackerGroupThreshold = { 1, 30 }, trackerMaxRows = { 5, 50 }, trackerTitleSize = { 16, 28 },
-    }) do
-        local value = profile[key]
-        assert(value >= range[1] and value <= range[2] and value % 1 == 0,
-            "Saved profile." .. key .. " is outside its supported integer range")
-    end
-    for key, preference in pairs(profile.currencyPreferences) do
-        local context = "Saved profile.currencyPreferences[" .. tostring(key) .. "]"
-        ValidateResourcePreference(preference, context)
-        if preference.locations ~= nil then
-            assert(type(preference.locations) == "table", context .. ".locations must be a table")
-            for location, value in pairs(preference.locations) do
-                ValidateResourcePreference(value, context .. ".locations[" .. tostring(location) .. "]")
-            end
-        end
-    end
-    for _, field in ipairs({ "capacityPreferences", "progressBarPreferences" }) do
-        for key, preference in pairs(profile[field]) do
-            local context = "Saved profile." .. field .. "[" .. tostring(key) .. "]"
-            ValidateResourcePreference(preference, context)
-            if field == "progressBarPreferences" and preference.normalColor ~= nil then
-                ValidatePreferenceColor(preference.normalColor, context .. ".normalColor")
-            end
-        end
-    end
+    assert(type(profile.PanelSettings) == "table", "Saved profile.PanelSettings must be a table")
+    ValidatePanelSettings(profile.PanelSettings, "Saved profile.PanelSettings", true)
     for _, key in ipairs({ "warning", "danger" }) do
         if profile.progressBarAlertColors[key] ~= nil then
             ValidatePreferenceColor(profile.progressBarAlertColors[key], "Saved profile.progressBarAlertColors." .. key)
+        end
+    end
+end
+
+local function ValidateOptionalProfilePreferences(profile, context)
+    if profile.PanelSettings ~= nil then
+        ValidatePanelSettings(profile.PanelSettings, context .. ".PanelSettings", false)
+    end
+    for _, key in ipairs({ "filterShow", "filterNotify", "filterCraftbag", "filterMute", "filterUntracked" }) do
+        assert(profile[key] == nil or type(profile[key]) == "boolean",
+            context .. "." .. key .. " must be boolean")
+    end
+    if profile.progressBarAlertColors ~= nil then
+        assert(type(profile.progressBarAlertColors) == "table",
+            context .. ".progressBarAlertColors must be a table")
+        CopySavedValue(profile.progressBarAlertColors)
+        for _, key in ipairs({ "warning", "danger" }) do
+            if profile.progressBarAlertColors[key] ~= nil then
+                ValidatePreferenceColor(profile.progressBarAlertColors[key],
+                    context .. ".progressBarAlertColors." .. key)
+            end
         end
     end
 end
@@ -651,15 +1039,9 @@ function this.RefreshProfileSettings()
     this.ValidateTrackerSettings()
     this.InitializeProgressBarResources()
     this.RefreshResourceProgressBars()
-    InventoryCompanion_CurrencyFloat:ClearAnchors()
-    InventoryCompanion_CurrencyFloat:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT,
-        this.GetSettingsProfile().currencyOffsetX, this.GetSettingsProfile().currencyOffsetY)
     this.RefreshCurrencyPanel()
-    this.RestoreTrackerPosition()
-    InventoryCompanion_ItemTrackerFloat:ClearAnchors()
-    InventoryCompanion_ItemTrackerFloat:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT,
-        this.GetSettingsProfile().trackerOffsetX, this.GetSettingsProfile().trackerOffsetY)
     this.RefreshItemTrackerPanel()
+    this.PanelLayout.OnProfileChanged()
     this.UpdateEventRegistry()
     this.RefreshAutoCategoryUI()
 end
@@ -748,6 +1130,97 @@ local function BuildAccountWideListBackup(profile)
     return backup
 end
 
+local function HasLegacyPanelSettings(profile)
+    for _, field in ipairs(legacyPanelFields) do
+        if profile[field] ~= nil then return true end
+    end
+    return false
+end
+
+local function IsBarPanelKey(panelKey)
+    return type(panelKey) == "string" and
+        (panelKey:match("^capacity:.+$") ~= nil or panelKey:match("^currency:.+$") ~= nil)
+end
+
+local function EnsurePanelRecord(settings, panelKey, context)
+    local panel = settings[panelKey]
+    if panel == nil then
+        panel = {}
+        settings[panelKey] = panel
+    end
+    assert(type(panel) == "table", context .. " must be a table")
+    return panel
+end
+
+local function EnsureNormalLayout(panel, context)
+    local layout = panel.Layout_NoScene
+    if layout == nil then
+        layout = {}
+        panel.Layout_NoScene = layout
+    end
+    assert(type(layout) == "table", context .. ".Layout_NoScene must be a table")
+    return layout
+end
+
+local function BuildMigratedPanelSettings(profile, sourceSettings, context, prepareDefaults)
+    local settings
+    if sourceSettings ~= nil then
+        settings = CopySavedValue(sourceSettings)
+    elseif prepareDefaults then
+        settings = CopySavedValue(this.defaultsAccount.PanelSettings)
+    else
+        settings = {}
+    end
+
+    local tracker = EnsurePanelRecord(settings, "Tracker", context .. ".PanelSettings.Tracker")
+    local currency = EnsurePanelRecord(settings, "Currency", context .. ".PanelSettings.Currency")
+    for _, field in ipairs(trackerSettingFields) do
+        if profile[field] ~= nil then tracker[field] = CopySavedValue(profile[field]) end
+    end
+    for _, field in ipairs({ "showEmptyCurrencies", "currencyGridColumns", "currencyPreferences", "capacityPreferences" }) do
+        if profile[field] ~= nil then currency[field] = CopySavedValue(profile[field]) end
+    end
+
+    local trackerLayout = EnsureNormalLayout(tracker, context .. ".PanelSettings.Tracker")
+    for _, axis in ipairs({ "offsetX", "offsetY" }) do
+        local legacy = axis == "offsetX" and "trackerOffsetX" or "trackerOffsetY"
+        if profile[legacy] ~= nil then trackerLayout[axis] = CopySavedValue(profile[legacy]) end
+    end
+    local currencyLayout = EnsureNormalLayout(currency, context .. ".PanelSettings.Currency")
+    for _, axis in ipairs({ "offsetX", "offsetY" }) do
+        local legacy = axis == "offsetX" and "currencyOffsetX" or "currencyOffsetY"
+        if profile[legacy] ~= nil then currencyLayout[axis] = CopySavedValue(profile[legacy]) end
+    end
+
+    local barPreferences = profile.progressBarPreferences
+    if barPreferences ~= nil then
+        assert(type(barPreferences) == "table", context .. ".progressBarPreferences must be a table")
+        for panelKey in pairs(settings) do
+            if IsBarPanelKey(panelKey) then settings[panelKey] = nil end
+        end
+        for resourceKey, preference in pairs(barPreferences) do
+            assert(type(resourceKey) == "string" and resourceKey ~= "",
+                context .. ".progressBarPreferences keys must be non-empty strings")
+            ValidatePanelResourcePreference(preference, resourceKey,
+                context .. ".progressBarPreferences[" .. resourceKey .. "]")
+            local bar = CopySavedValue(preference)
+            local offsetX, offsetY = bar.offsetX, bar.offsetY
+            bar.offsetX, bar.offsetY = nil, nil
+            local panel = EnsurePanelRecord(settings, resourceKey,
+                context .. ".PanelSettings[" .. resourceKey .. "]")
+            for key, value in pairs(bar) do panel[key] = value end
+            if offsetX ~= nil or offsetY ~= nil then
+                local layout = EnsureNormalLayout(panel, context .. ".PanelSettings[" .. resourceKey .. "]")
+                if offsetX ~= nil then layout.offsetX = offsetX end
+                if offsetY ~= nil then layout.offsetY = offsetY end
+            end
+        end
+    end
+
+    ValidatePanelSettings(settings, context .. ".PanelSettings", prepareDefaults)
+    return settings
+end
+
 function this.SaveAccountWideListBackup()
     assert(type(this.accountWide) == "table", "Account-wide saved profile is unavailable")
     local backup = BuildAccountWideListBackup(this.accountWide)
@@ -770,6 +1243,7 @@ function this.RestoreAccountWideListBackup()
 end
 
 function this.PrepareSavedVariables()
+    ValidateBuiltInVirtualNameCollisions()
     local saved = _G[this.SettingsName]
     if saved == nil then return end
     assert(type(saved) == "table", this.SettingsName .. " must be a table; initialization stopped")
@@ -795,7 +1269,8 @@ function this.PrepareSavedVariables()
                 string.format("[InventoryCompanion] %s uses saved-variable version %s, but this addon supports version %s. "
                     .. "Initialization stopped without changing saved data. Install a compatible newer addon or restore a compatible backup.",
                     context, tostring(version), tostring(this.SettingsVersion)))
-            assert(this.SettingsVersion <= 10 and (version == this.SettingsVersion
+            assert(this.SettingsVersion <= 11 and (version == this.SettingsVersion
+                    or (this.SettingsVersion == 11 and version <= 10)
                     or (this.SettingsVersion == 10 and version <= 9)
                     or (version == 1 and (this.SettingsVersion == 2 or this.SettingsVersion == 3 or this.SettingsVersion == 4
                         or this.SettingsVersion == 5 or this.SettingsVersion == 6 or this.SettingsVersion == 7))
@@ -822,6 +1297,15 @@ function this.PrepareSavedVariables()
                         if key ~= "$AccountWide" and type(character) == "table"
                             and character.useCharacterItemList ~= true then initialized = true end
                     end
+                end
+            end
+            if version < 11 then
+                assert(profile.PanelSettings == nil,
+                    context .. ".PanelSettings collides with this older saved-data version")
+            else
+                for _, field in ipairs(legacyPanelFields) do
+                    assert(profile[field] == nil,
+                        context .. "." .. field .. " is not supported in schema 11")
                 end
             end
             table.insert(profiles, { data = profile, context = context, initialized = initialized,
@@ -895,34 +1379,78 @@ function this.PrepareSavedVariables()
             if migration.setupComplete then candidate.autoCategorySetupComplete = true end
             candidates[entry.data] = candidate
             migration.candidate = candidate
-            if entry.name == "$AccountWide" then
-                PrepareProfilePreferences(candidate)
+        end
+        local function PrepareProfileCandidate(index, entry, sourceCandidate, initializedOverride)
+            local migration, candidate = migrations[index], migrations[index].candidate
+            local initialized = entry.name == "$AccountWide" or entry.initialized == true
+            if initializedOverride ~= nil then initialized = initializedOverride end
+            if entry.data.version < 11 then
+                local shouldPrepareDefaults = entry.name == "$AccountWide" or initialized
+                local inheritedPanelSettings = sourceCandidate and sourceCandidate.PanelSettings
+                local hasLegacySettings = HasLegacyPanelSettings(entry.data)
+                if shouldPrepareDefaults or inheritedPanelSettings ~= nil or hasLegacySettings then
+                    candidate.PanelSettings = BuildMigratedPanelSettings(entry.data, inheritedPanelSettings,
+                        entry.context, shouldPrepareDefaults)
+                else
+                    candidate.PanelSettings = nil
+                end
+                for _, field in ipairs(legacyPanelFields) do candidate[field] = nil end
+                migration.removeLegacyPanelFields = true
+            elseif candidate.PanelSettings ~= nil then
+                candidate.PanelSettings = CopySavedValue(candidate.PanelSettings)
+            end
+
+            if initialized then
+                PrepareProfilePreferences(candidate, sourceCandidate)
                 if candidate.trackedItems == nil then candidate.trackedItems = {} end
                 if candidate.trackedRules == nil then candidate.trackedRules = {} end
-                candidate.itemListInitialized = true
+            else
+                ValidateOptionalProfilePreferences(candidate, entry.context)
+                candidate.trackedItems, candidate.trackedRules = nil, nil
+                candidate.autoCategoryOrder, candidate.autoCategorySetupComplete = nil, nil
             end
-        end
-        for index, entry in ipairs(profiles) do
-            local migration, candidate = migrations[index], migrations[index].candidate
             if entry.name ~= "$AccountWide" then
-                local reset = entry.data.version < 10 and candidate.useCharacterItemList ~= true
-                local initialized = not reset and
-                    (candidate.useCharacterItemList == true or candidate.itemListInitialized == true)
-                if initialized then
-                    local account = entry.account["$AccountWide"]
-                    PrepareProfilePreferences(candidate, entry.data.version < 10 and account and candidates[account] or nil)
-                    if candidate.trackedItems == nil then candidate.trackedItems = {} end
-                    if candidate.trackedRules == nil then candidate.trackedRules = {} end
-                else
-                    for _, key in ipairs(preferenceFields) do candidate[key] = nil end
-                    candidate.trackedItems, candidate.trackedRules = nil, nil
-                    candidate.autoCategoryOrder, candidate.autoCategorySetupComplete = nil, nil
-                end
                 candidate.itemListInitialized = initialized
                 candidate.useCharacterItemList = candidate.useCharacterItemList == true
                 candidate.autoCategoryIntegrationEnabled = nil
+            else
+                candidate.itemListInitialized = true
             end
             migration.initialized = candidate.itemListInitialized
+        end
+        for index, entry in ipairs(profiles) do
+            if entry.name == "$AccountWide" then
+                PrepareProfileCandidate(index, entry, nil)
+            end
+        end
+        for index, entry in ipairs(profiles) do
+            if entry.name ~= "$AccountWide" then
+                local initialized = entry.initialized == true
+                    and not (entry.data.version < 10 and entry.data.useCharacterItemList ~= true)
+                local sourceCandidate
+                if entry.data.version < 10 and initialized then
+                    local account = entry.account["$AccountWide"]
+                    sourceCandidate = account and candidates[account]
+                end
+                PrepareProfileCandidate(index, entry, sourceCandidate, initialized)
+            end
+        end
+        if this.SettingsVersion >= 10 then
+            for index, entry in ipairs(profiles) do
+                local migration, candidate = migrations[index], migrations[index].candidate
+                if migration.initialized then
+                    PromoteBuiltInNameCollisions(candidate, entry.context)
+                end
+                local backup = migration.backup
+                if backup == nil and entry.data.accountWideListBackup ~= nil then
+                    backup = CopySavedValue(entry.data.accountWideListBackup)
+                end
+                if backup ~= nil and PromoteBuiltInNameCollisions(backup,
+                    entry.context .. ".accountWideListBackup") then
+                    ValidateAccountWideListBackup(backup, entry.context .. ".accountWideListBackup")
+                    migration.backup = backup
+                end
+            end
         end
     end
 
@@ -939,6 +1467,9 @@ function this.PrepareSavedVariables()
             for _, key in ipairs({ "trackedItems", "trackedRules", "autoCategoryOrder",
                 "autoCategorySetupComplete", "autoCategoryIntegrationEnabled", "useCharacterItemList" }) do
                 migration.profile[key] = migration.candidate[key]
+            end
+            if migration.removeLegacyPanelFields then
+                for _, key in ipairs(legacyPanelFields) do migration.profile[key] = nil end
             end
         end
         migration.profile.version = this.SettingsVersion
@@ -1262,7 +1793,8 @@ local function CopyItemListProfile(source, destination)
     for ruleKey in pairs(rules) do NormalizeRule(rules, ruleKey) end
     local order = NormalizeAutoCategoryOrder(source.autoCategoryOrder)
     CheckAutoCategoryOrder(order, "Copied profile.autoCategoryOrder", rules)
-    local preferences = CopyValues(source)
+    local preferences = {}
+    for _, key in ipairs(preferenceFields) do preferences[key] = CopySavedValue(source[key]) end
     PrepareProfilePreferences(preferences)
     destination.trackedRules = rules
     destination.trackedItems = items

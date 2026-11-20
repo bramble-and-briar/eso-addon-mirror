@@ -13,7 +13,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Radiating Regen Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/branddi/Radiating-Regen-Tracker__3678) | branddi | PC / Mac | 1.0.1 |
 | [RAETIA InfoHub](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kraeius/RAETIA-InfoHub__417) | Kraeius | PC / Mac | 1.2.4 |
 | [Raffle Gold](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calia1120/Raffle-Gold__1290) | calia1120 | PC / Mac | 18.23.5 |
-| [Raffle Gold (Continued)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dr_Z/Raffle-Gold-Continued__3826) | Dr_Z | PC / Mac | 26.51.00 |
+| [Raffle Gold (Continued)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dr_Z/Raffle-Gold-Continued__3826) | Dr_Z | PC / Mac | 26.51.04 |
 | [Raffle Gold (Patched and Updated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dlrgames/Raffle-Gold-Patched-and-Updated__2515) | dlrgames | PC / Mac | 18.23.51 |
 | [Raffle Gold (Regrouper Workaround)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GankisKhan/Raffle-Gold-Regrouper-Workaround__2413) | GankisKhan | PC / Mac | 18.23.1 |
 | [Raffle Gold Tally](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calia1120/Raffle-Gold-Tally__1423) | calia1120 | PC / Mac | 2.0 |
@@ -77,7 +77,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Recount (Wolfhunter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadow-Fighter/Recount-Wolfhunter__875) | Shadow-Fighter | PC / Mac | 0.6.3 |
 | [Recovery Tick Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Recovery-Tick-Tracker__eff02a68-b788-4269-be3d-78283a26f306) | j.hhh | Console | — |
 | [RecoveryTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/RecoveryTracker__c8397663-7bee-4e0b-89de-16dcf5c029d7) | Vixen_Hunny | Console | — |
-| [Red Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Red-Ledger__5070) | O-Range | PC / Mac | 0.5 |
+| [Red Ledger (Kill Counter + Visual Notifier)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Red-Ledger-Kill-Counter-Visual-Notifier__5070) | O-Range | PC / Mac | 0.6 |
 | [Red's Countess Travel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/redeven/Red-s-Countess-Travel__2623) | redeven | PC / Mac | 1.1.0 |
 | [Refinement Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Refinement-Tracker__2130) | Kyzeragon | PC / Mac | 0.9.6 |
 | [Regrouper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Regrouper__888) | Baertram | PC / Mac | 2.2 |

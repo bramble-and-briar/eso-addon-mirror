@@ -1,0 +1,1 @@
+Ultimate tracker v4: user-requested curated list, base ultimates and common morphs. Credits one +1 on ACTION_RESULT_BEGIN from player for a listed ultimate; 2s duplicate suppression per ability. No resource consumption or ultimate-slot detection. NOTE: Some ESO ultimates may not produce ACTION_RESULT_BEGIN and may require verified ID/event mappings. Untested in ESO.

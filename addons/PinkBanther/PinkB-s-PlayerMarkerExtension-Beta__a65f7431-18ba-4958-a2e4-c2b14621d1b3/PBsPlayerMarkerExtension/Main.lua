@@ -72,10 +72,9 @@ function A:StatusLines()
 	if w.lastError then
 		add("  last error: %s", w.lastError)
 	end
+	add("  the wheel's window in front of the HUD: %s", self:WheelRaiseText())
 	add("  the game's own marker taken off by an extra one: %s",
-		self.engineClearBroken and "does NOT work (still there after assigning NONE and after assigning it again): extra markers are not put on a person who has one"
-			or self.engineClearWorked and ("works (by assigning " .. (self.engineClearWorked == "none" and "NONE" or "the same marker again") .. ")")
-			or ("not settled yet" .. (self.engineNoneFailed and "; assigning NONE did nothing" or "")))
+		self.engineCheck and "waiting for the game" or self.engineClearResult or "not tried yet")
 
 	local okRoster, roster = pcall(self.RefreshRoster, self, true)
 	if okRoster then
@@ -85,6 +84,7 @@ function A:StatusLines()
 		end
 		add("group: %d members: %s", #roster.list, #names > 0 and table.concat(names, ", ") or "-")
 	end
+	add("group frames (the names at the top left): %s", self:FramesText())
 	local count = 0
 	for hash, m in pairs(self.marks) do
 		count = count + 1
@@ -112,6 +112,10 @@ function A:StatusLines()
 	add("  the player (as last read): zone %s at %s, %s, %s | window %s, %d pictures in use", tostring(diag.pzone), tostring(diag.px),
 		tostring(diag.py), tostring(diag.pz), self.world and (self.world.windowHidden and "hidden" or "shown") or "not made yet",
 		self.world and self.world.used or 0)
+	add("  3D window: render space made again %d times, hidden by something else and shown again %d times, an origin read back wrong %d times",
+		diag.rebuilt or 0, diag.reshown or 0, diag.originDrift or 0)
+	add("  zone id of your position: %s (changed %d times; %d loading screens seen) | members drawn although their zone id differed from yours (the game said one world): %d",
+		tostring(diag.lastZone), diag.zoneChanges or 0, A.loads or 0, diag.zoneApart or 0)
 	if diag.lastError then
 		add("  last error: %s", diag.lastError)
 	end
@@ -200,7 +204,7 @@ function A:Command(input)
 			self.lastCrash = nil
 			self.fnState = {}
 			self.worldOff = nil
-			self.engineClearBroken, self.engineClearWorked, self.engineNoneFailed, self.engineToggleFailed = nil, nil, nil, nil
+			self.engineCheck, self.engineClearResult = nil, nil
 			self.pausedUntil = nil
 			self:Print(S.retried)
 		else
@@ -242,6 +246,7 @@ local function Start(late)
 	end)
 	Step("marker wheel", function()
 		A:InstallWheel()
+		A:RaiseWheel()
 	end)
 	Step("group sharing", function()
 		A:StartShare()
@@ -270,9 +275,12 @@ local function OnActivated()
 		return
 	end
 	A.active = true
+	-- loading screens counted: a zone id that changes with none in between is one world (see World.lua)
+	A.loads = (A.loads or 0) + 1
 	Step("marker wheel", function()
 		-- the game's own wheel may not have been there when this add-on loaded
 		A:InstallWheel()
+		A:RaiseWheel()
 	end)
 	Step("group sharing", function()
 		A:ShareLogin()
@@ -297,6 +305,7 @@ em:RegisterForEvent(A.name, EVENT_ADD_ON_LOADED, OnLoaded)
 em:RegisterForEvent(A.name, EVENT_PLAYER_ACTIVATED, OnActivated)
 em:RegisterForEvent(A.name, EVENT_PLAYER_DEACTIVATED, function()
 	A.active = false
+	A.engineCheck = nil
 	A.hudShown = false
 	if A.world then
 		A:HideWorld()

@@ -116,6 +116,7 @@ function A:DrawSprite(index, icon, x, y, z, metres, pitch, yaw, roll, flat)
 	end
 	local control = item.control
 	control:Set3DRenderSpaceOrigin(rx, ry, rz)
+	item.rx, item.ry, item.rz = rx, ry, rz -- what was written, for CheckWorld
 	control:Set3DRenderSpaceOrientation(pitch, yaw, roll)
 	if item.icon ~= icon then
 		control:SetTexture(A.IconPath(icon))
@@ -134,8 +135,16 @@ function A:DrawSprite(index, icon, x, y, z, metres, pitch, yaw, roll, flat)
 	return true
 end
 
--- Where a group member is, in RAW world centimetres: x, y, z; or nil, nil, nil and the reason when they are not in the
--- player's zone and instance or the game has no position for them.
+-- Where a group member is, in RAW world centimetres: x, y, z; or nil, nil, nil, the reason and the zone id the game gave for
+-- them, when they are not in the player's world or the game has no position for them.
+--
+-- WHO COUNTS AS "HERE": the game's own answer comes first. IsGroupMemberInSameWorldAsPlayer says whether the person stands in
+-- the world the player is in, and a person in the player's world has coordinates in the player's space whatever zone id the
+-- position carries. Until 0.4.2 the zone id decided first, and a person whose id differed from the player's was "in another
+-- zone": a Cyrodiil player reported markers that vanished while the group moved about the land, and could not be put on
+-- again (the id of a position may follow the area walked into: an idea that is NOT proven, see the note "Zone id changes
+-- without a loading screen"; the trace line "zone" records every change of the player's id). Only when the game cannot be asked
+-- (the call is not allowed or does not exist) does the zone id decide, as before.
 function A:MemberPosition(entry, playerZone, px, py, pz)
 	if entry.self then
 		return px, py, pz
@@ -144,14 +153,140 @@ function A:MemberPosition(entry, playerZone, px, py, pz)
 	if not Valid(zone, x, z) then
 		return nil, nil, nil, "the game gives no position"
 	end
-	if zone ~= playerZone then
-		return nil, nil, nil, "another zone"
+	local sameWorld = self:Call("IsGroupMemberInSameWorldAsPlayer", entry.tag)
+	if sameWorld == false then
+		return nil, nil, nil, zone ~= playerZone and "another zone" or "another instance", zone
 	end
-	-- the same zone is not always the same instance; the game says (a call that is not allowed counts as "yes")
-	if self:Call("IsGroupMemberInSameWorldAsPlayer", entry.tag) == false then
-		return nil, nil, nil, "another instance"
+	if zone ~= playerZone then
+		if sameWorld ~= true then
+			return nil, nil, nil, "another zone", zone
+		end
+		-- the game says one world although the ids differ: drawn (counted, for /pbpme status)
+		self.diag.zoneApart = (self.diag.zoneApart or 0) + 1
 	end
 	return x, y, z
+end
+
+-- A marker's verdict (what /pbpme status prints as "drawing it:"). A CHANGE of it leaves a line in the trace (/pbpme why), at
+-- most one a second for a person, so that a marker at the edge of the range does not fill it: that is how a marker that
+-- vanished is explained afterwards. `a`, `b`: two numbers for the line (the zone ids), built into text only when it is written.
+local function SetVerdict(self, hash, m, text, a, b)
+	local verdict = self.diag.verdict
+	local was = verdict[hash]
+	if was == text then
+		return
+	end
+	verdict[hash] = text
+	if was == nil and text == "drawn" then
+		return
+	end
+	local at = self.diag.verdictAt
+	if not at then
+		at = {}
+		self.diag.verdictAt = at
+	end
+	local now = A.Stamp()
+	if now - (at[hash] or -1e9) < 1000 then
+		return
+	end
+	at[hash] = now
+	self:Trace("draw", string.format("%s: %s -> %s%s", tostring(m.name), tostring(was or "-"), text,
+		a ~= nil and string.format(" (their zone id %s, yours %s)", tostring(a), tostring(b)) or ""))
+end
+
+-- Why nothing can be drawn, for the reasons that are not the player's own doing (a missing position, no camera): the change
+-- leaves a trace line, and so does the way back ("drawing again").
+function A:NoteWhy(text)
+	local diag = self.diag
+	if diag.why ~= text then
+		diag.why = text
+		diag.noted = text
+		self:Trace("draw", "not drawing: " .. text)
+	end
+end
+
+-- ---------------------------------------------------------------------------------------
+-- The 3D window and what the game may do to it
+--
+-- A player's report: the markers vanished while moving about Cyrodiil and none could be put on afterwards. PB's WayPoint
+-- (the same 3D window recipe) had the same report on a PS5 ("the trail vanishes, and a new destination is not drawn either";
+-- the player's guess was an area border both times). What would make drawing stop for good with nothing in the add-on's own
+-- data wrong is the window, not the markers: the game hiding it, or dropping its 3D render space. The add-on remembers what it
+-- last asked for (a hidden flag per control, one size, one picture), so such a change would never be written again. This asks
+-- the controls themselves a few times a second while markers are drawn and puts right what it finds (and says so in the trace).
+-- None of it is known to happen: it is a net, and the lines it leaves are the measurement.
+-- ---------------------------------------------------------------------------------------
+
+-- The window and every sprite get their render space again; the next draw writes size, picture and colour.
+function A:RebuildRenderSpaces()
+	local w = self.world
+	local diag = self.diag
+	diag.rebuilt = (diag.rebuilt or 0) + 1
+	self:Trace("3d", "the game dropped the 3D render space of the marker window: made again")
+	pcall(w.window.Create3DRenderSpace, w.window)
+	for _, item in ipairs(w.sprites) do
+		local control = item.control
+		pcall(control.Create3DRenderSpace, control)
+		pcall(control.Set3DRenderSpaceUsesDepthBuffer, control, not self.sv.throughWalls)
+		item.size, item.alpha, item.icon = nil, nil, nil
+	end
+	w.depth = self.sv.throughWalls
+end
+
+function A:CheckWorld()
+	local w = self.world
+	if not w or w.windowHidden then
+		return
+	end
+	local diag = self.diag
+	local window = w.window
+	local okHas, has = pcall(window.Has3DRenderSpace, window)
+	local lost = okHas and has == false
+	if not lost then
+		for i = 1, w.used do
+			local item = w.sprites[i]
+			if not item.hidden then
+				local okSprite, hasSprite = pcall(item.control.Has3DRenderSpace, item.control)
+				if okSprite and hasSprite == false then
+					lost = true
+					break
+				end
+			end
+		end
+	end
+	if lost then
+		self:RebuildRenderSpaces()
+		return
+	end
+	local okHidden, hidden = pcall(window.IsHidden, window)
+	if okHidden and hidden == true then
+		window:SetHidden(false)
+		diag.reshown = (diag.reshown or 0) + 1
+		self:Trace("3d", "the marker window had been hidden by something else: shown again")
+	end
+	local checked = false
+	for i = 1, w.used do
+		local item = w.sprites[i]
+		if not item.hidden then
+			local okSprite, spriteHidden = pcall(item.control.IsHidden, item.control)
+			if okSprite and spriteHidden == true then
+				item.control:SetHidden(false)
+				diag.reshown = (diag.reshown or 0) + 1
+				self:Trace("3d", "a marker picture had been hidden by something else: shown again")
+			end
+			if not checked and item.rx then
+				-- the first picture's origin read back: it should be what was written a frame ago
+				checked = true
+				local okOrigin, ox, oy, oz = pcall(item.control.Get3DRenderSpaceOrigin, item.control)
+				if okOrigin and type(ox) == "number" and (math.abs(ox - item.rx) > 0.05 or math.abs(oy - item.ry) > 0.05
+					or math.abs(oz - item.rz) > 0.05) then
+					diag.originDrift = (diag.originDrift or 0) + 1
+					self:Trace("3d", string.format("a picture's origin reads back as %.2f %.2f %.2f, written %.2f %.2f %.2f", ox, oy, oz,
+						item.rx, item.ry, item.rz))
+				end
+			end
+		end
+	end
 end
 
 -- Once per frame while there is something to show.
@@ -176,20 +311,39 @@ function A:UpdateWorld(now)
 	local playerZone, px, py, pz = self:Call("GetUnitRawWorldPosition", "player")
 	diag.pzone, diag.px, diag.py, diag.pz = playerZone, px, py, pz
 	if not Valid(playerZone, px, pz) then
-		diag.why = "the game gives no position for the player"
+		self:NoteWhy("the game gives no position for the player")
 		self:HideWorld()
 		return
 	end
+	-- Does the zone id of the player's position change while walking, without a loading screen? (an unproven idea; this is
+	-- the measurement: `loads` counts the loading screens, so "no loading screen in between" is read straight off the line)
+	local loads = A.loads or 0
+	if diag.lastZone ~= playerZone then
+		if diag.lastZone ~= nil then
+			diag.zoneChanges = (diag.zoneChanges or 0) + 1
+			self:Trace("zone", string.format("your zone id changed %s -> %s (%s)", tostring(diag.lastZone), tostring(playerZone),
+				loads == diag.zoneLoads and "no loading screen in between" or "after a loading screen"))
+		end
+		diag.lastZone = playerZone
+	end
+	diag.zoneLoads = loads
 
 	-- squared to the screen: upright, turned to the camera's heading (plus the player's own correction, 0 by default)
 	local heading = self:Call("GetPlayerCameraHeading")
 	if type(heading) ~= "number" or heading ~= heading then
-		diag.why = "the game gives no camera heading"
+		self:NoteWhy("the game gives no camera heading")
 		self:HideWorld()
 		return
 	end
 	diag.heading = heading
 	local pitch, yaw, roll = 0, heading + sv.facingOffset * DEGREES, 0
+
+	-- ESO moves top-level 3D windows when the GUI origin shifts. The child markers
+	-- receive positions in the current GUI space, so their parent must be at its origin.
+	local parentX, parentY, parentZ = w.window:Get3DRenderSpaceOrigin()
+	if parentX ~= 0 or parentY ~= 0 or parentZ ~= 0 then
+		w.window:Set3DRenderSpaceOrigin(0, 0, 0)
+	end
 
 	if w.depth ~= sv.throughWalls then
 		w.depth = sv.throughWalls
@@ -214,37 +368,42 @@ function A:UpdateWorld(now)
 		-- a marker on the player themself: the one the player put on themself is always shown (they asked for it); the
 		-- ones others put on them follow the setting
 		if not entry then
-			verdict[hash] = "that person is not in the roster"
+			SetVerdict(self, hash, m, "that person is not in the roster")
 		elseif not entry.online then
 			-- a member who logged out stays in the group; the game keeps no position for them worth showing
-			verdict[hash] = "that person is offline"
+			SetVerdict(self, hash, m, "that person is offline")
 		elseif entry.self and not (sv.showSelf or m.mine) then
-			verdict[hash] = "on yourself, put there by another member, and 'show markers others put on me' is off"
+			SetVerdict(self, hash, m, "on yourself, put there by another member, and 'show markers others put on me' is off")
 		elseif count >= MAX_SPRITES - 1 then
-			verdict[hash] = "no sprite left"
+			SetVerdict(self, hash, m, "no sprite left")
 		else
-			local x, y, z, why = self:MemberPosition(entry, playerZone, px, py, pz)
+			local x, y, z, why, theirZone = self:MemberPosition(entry, playerZone, px, py, pz)
 			if not x then
-				verdict[hash] = why
+				SetVerdict(self, hash, m, why, theirZone, playerZone)
 			else
 				local dx, dz = x - px, z - pz
 				local metres = sqrt(dx * dx + dz * dz) / 100
-				verdict[hash] = "too far"
-				if metres <= MAX_DISTANCE_M then
+				if metres > MAX_DISTANCE_M then
+					SetVerdict(self, hash, m, "too far")
+				else
 					local result = self:DrawSprite(count + 1, m.icon, x, y, z, metres, pitch, yaw, roll)
 					if result == "off" then
 						return
 					elseif result then
 						count = count + 1
-						verdict[hash] = "drawn"
+						SetVerdict(self, hash, m, "drawn")
 					else
-						verdict[hash] = "the game gives no 3D position"
+						SetVerdict(self, hash, m, "the game gives no 3D position")
 					end
 				end
 			end
 		end
 	end
 	diag.why = count > 0 and "drawing" or "no marker could be drawn (see each marker)"
+	if diag.noted then
+		diag.noted = nil
+		self:Trace("draw", "drawing again")
+	end
 
 	-- the test marker: a few metres ahead of the camera, at eye height
 	if test then
@@ -321,9 +480,12 @@ function A:Tick()
 			self.lastHouse = now
 			self:Housekeeping(now)
 			self:ShareTick(now)
+			self:CheckWorld()
 		end
 		self:UpdateWorld(now)
 	end)
+	-- the group frames have their own guard: a failure there never stops the 3D markers, nor the other way round
+	self:FramesTick(now)
 	if ok then
 		diag.tickErrors = 0
 	else

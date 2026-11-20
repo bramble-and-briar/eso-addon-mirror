@@ -804,7 +804,8 @@ function Reports.SkillTargets(report)
         if target.damage>0 and #(target.skills or {})>0 then
             local isBoss=target.isBoss==true
             for _,name in ipairs(report.bossNames or {}) do if name==target.name then isBoss=true end end
-            local targetDuration=isBoss and (report.groupDamageDuration or duration) or (target.duration or duration)
+            -- CMX target overview uses this unit's damage interval, including bosses.
+            local targetDuration=target.duration or duration
             targets[#targets+1]={key=target.key or target.id,name=target.name..((names[target.name] or 0)>1 and (" ["..tostring(target.id or target.key).."]") or ""),
                 damage=target.damage,duration=targetDuration,fightDuration=duration,isBoss=isBoss}
         end
@@ -1088,7 +1089,7 @@ local function renderOverview(report)
     local damageDuration = report and report.skillDamageDuration or duration
     local target=skills and selectedSkillTarget(report)
     local targetDamage=target and target.damage or totalDamage
-    if target and target.isBoss then damageDuration=target.duration end
+    -- CMX skill rows always divide by fight.dpstime, even for a selected boss.
     local legacy = skills and report and not report.skillDamageRecorded
     controls.heading:SetText(categoryName(category))
     controls.subject:SetText(skills and L("Skill") or categoryName(category))
@@ -1771,7 +1772,7 @@ local function createWindow()
     controls.receiptHeading:SetMaxLineCount(2)
     controls.receiptHeading:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     controls.skillStatHeadings={}
-    for _,column in ipairs({{L("Krits/Treffer"),564,100},{L("Krit-%"),670,70},{L("Ã˜"),746,90},{L("Max"),842,90}}) do
+    for _,column in ipairs({{L("Krits/Treffer"),564,100},{L("Krit-%"),670,70},{"Avg",746,90},{L("Max"),842,90}}) do
         local heading=label(window,nil,column[2],158,column[3],38,"ZoFontGamepad18")
         heading:SetText(column[1]);heading:SetHorizontalAlignment(TEXT_ALIGN_RIGHT);heading:SetHidden(true)
         controls.skillStatHeadings[#controls.skillStatHeadings+1]=heading

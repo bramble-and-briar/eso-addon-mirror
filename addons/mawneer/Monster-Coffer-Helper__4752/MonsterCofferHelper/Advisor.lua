@@ -103,6 +103,26 @@ function Advisor.Evaluate(pool, mysteryCost, curatedCost)
     return r
 end
 
+-- A curated coffer covers several sets. Adds them up from the pool the advisor
+-- already built, so the tooltip and the purchase check reuse the numbers the
+-- panel is showing rather than rescanning. Returns nil when none of the
+-- coffer's sets is in the pool.
+function Advisor.CofferCounts(pool, setIds)
+    local wanted = {}
+    for _, setId in ipairs(setIds) do wanted[setId] = true end
+
+    local found, missing, total = false, 0, 0
+    for _, entry in ipairs(pool.sets) do
+        if wanted[entry.setId] then
+            found = true
+            missing = missing + entry.missing
+            total   = total + entry.total
+        end
+    end
+    if not found then return nil end
+    return missing, total
+end
+
 -- Convenience wrapper used by everything that just wants "what about vendor N".
 --
 -- Results are cached because the tooltip hook calls this on every mouse-over.

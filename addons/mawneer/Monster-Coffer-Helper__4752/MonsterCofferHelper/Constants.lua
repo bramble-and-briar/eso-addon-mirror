@@ -2,7 +2,7 @@ local ADDON_NAME = "MonsterCofferHelper"
 
 local MCH = {}
 MCH.name = ADDON_NAME
-MCH.version = "1.0.1"
+MCH.version = "1.1.0"
 _G[ADDON_NAME] = MCH
 
 -- The three Undaunted quartermasters. The ids are LibSets' `undauntedChestId`,
@@ -31,6 +31,7 @@ MCH.defaults = {
     showPanel       = true,
     chatMessage     = true,
     tooltips        = true,
+    confirmPurchases = true,
     lockPanel       = false,
     maxSetsListed   = 6,
 

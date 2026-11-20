@@ -93,27 +93,80 @@ local supportRegistry={
   ["Master Architect"]="buff",["War Machine"]="buff",
   ["Aegis of Galenwe"]="buff",["Kinras's Wrath"]="buff",
 }
-local ultimateNames={
-  ["The Unblinking Eye"]=true,["Gibbering Shield"]=true,["Vitalizing Glyphic"]=true,
-  ["Dragonknight Standard"]=true,["Dragon Leap"]=true,["Magma Armor"]=true,
-  ["Frozen Colossus"]=true,["Bone Goliath Transformation"]=true,["Reanimate"]=true,
-  ["Death Stroke"]=true,["Consuming Darkness"]=true,["Soul Shred"]=true,
-  ["Summon Storm Atronach"]=true,["Negate Magic"]=true,["Overload"]=true,
-  ["Radial Sweep"]=true,["Nova"]=true,["Rite of Passage"]=true,
-  ["Feral Guardian"]=true,["Secluded Grove"]=true,["Sleet Storm"]=true,
-  ["Rapid Fire"]=true,["Elemental Storm"]=true,["Lacerate"]=true,
-  ["Shield Wall"]=true,["Panacea"]=true,["Berserker Strike"]=true,
-  ["Dawnbreaker"]=true,["Meteor"]=true,["Undo"]=true,
-  ["War Horn"]=true,["Barrier"]=true,["Soul Strike"]=true,
-  ["Blood Scion"]=true,["Werewolf Transformation"]=true,
+-- Curated ultimate ability names, including commonly used morphs.
+-- Match the ability that generated the combat event, not resource or bar state.
+local ultimateNames={}
+local ultimateGroups={
+  {"The Unblinking Eye","The Tide King's Gaze","The Languid Eye"},
+  {"Gibbering Shield","Sanctum of the Abyssal Sea","Gibbering Shelter"},
+  {"Vitalizing Glyphic","Glyphic of the Tides","Resonating Glyphic"},
+  {"Dragonknight Standard","Standard of Might","Shifting Standard"},
+  {"Dragon Leap","Take Flight","Ferocious Leap"},
+  {"Magma Armor","Magma Shell","Corrosive Armor"},
+  {"Frozen Colossus","Glacial Colossus","Pestilent Colossus"},
+  {"Bone Goliath Transformation","Pummeling Goliath","Ravenous Goliath"},
+  {"Reanimate","Renewing Animation","Animate Blastbones"},
+  {"Death Stroke","Incapacitating Strike","Soul Harvest"},
+  {"Consuming Darkness","Bolstering Darkness","Veil of Blades"},
+  {"Soul Shred","Soul Tether","Soul Siphon"},
+  {"Summon Storm Atronach","Greater Storm Atronach","Charged Atronach"},
+  {"Negate Magic","Suppression Field","Absorption Field"},
+  {"Overload","Power Overload","Energy Overload"},
+  {"Radial Sweep","Empowering Sweep","Crescent Sweep"},
+  {"Nova","Solar Prison","Solar Disturbance"},
+  {"Rite of Passage","Practiced Incantation","Remembrance"},
+  {"Feral Guardian","Eternal Guardian","Wild Guardian"},
+  {"Secluded Grove","Enchanted Forest","Healing Thicket"},
+  {"Sleet Storm","Northern Storm","Permafrost"},
+  {"Rapid Fire","Ballista","Toxic Barrage"},
+  {"Elemental Storm","Elemental Rage","Eye of the Storm"},
+  {"Lacerate","Thrive in Chaos","Rend"},
+  {"Shield Wall","Shield Discipline","Spell Wall"},
+  {"Panacea","Life Giver","Light's Champion"},
+  {"Berserker Strike","Onslaught","Berserker Rage"},
+  {"Dawnbreaker","Dawnbreaker of Smiting","Flawless Dawnbreaker"},
+  {"Meteor","Ice Comet","Shooting Star"},
+  {"Undo","Precognition","Temporal Guard"},
+  {"War Horn","Aggressive Horn","Sturdy Horn"},
+  {"Barrier","Reviving Barrier","Replenishing Barrier"},
+  {"Soul Strike","Soul Assault","Shatter Soul"},
+  {"Blood Scion","Swarming Scion","Perfect Scion"},
+  {"Werewolf Transformation","Pack Leader","Werewolf Berserker"},
 }
+for _,group in ipairs(ultimateGroups) do
+  for _,name in ipairs(group) do ultimateNames[name:lower()]=true end
+end
+local function ultimateNameMatch(name)
+  if type(name)~="string" then return false end
+  name=name:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", ""):lower()
+  return ultimateNames[name]==true
+end
 local function isUltimateAbility(abilityId)
   if not abilityId then return false end
-  local name=safe(GetAbilityName,tonumber(abilityId))
-  if not name then return false end
-  if ultimateNames[name] then return true end
-  -- Morphs and localized names: ultimate action-slot detection is authoritative.
-  return false
+  return ultimateNameMatch(safe(GetAbilityName,tonumber(abilityId)))
+end
+-- One counted cast per observed registered ultimate. Combat results and
+-- effect applications are both accepted because many ESO ultimates do not
+-- emit ACTION_RESULT_BEGIN. Repeated ticks are suppressed by a cast window.
+local function recordListedUltimate(abilityId,abilityName,sourceConfirmed,origin)
+  if not run or not sourceConfirmed then return false end
+  if not (ultimateNameMatch(abilityName) or isUltimateAbility(abilityId)) then return false end
+  local t=now()
+  local key=tostring(abilityId or abilityName or "unknown")
+  run.ultimateObserved=run.ultimateObserved or {}
+  local prior=run.ultimateObserved[key]
+  -- A long window is necessary for persistent damage/healing ultimates.
+  -- This may undercount legitimately rapid repeat casts; diagnostics expose it.
+  if prior and t-prior<8 then return false end
+  run.ultimateObserved[key]=t
+  run.ultimateUses=(run.ultimateUses or 0)+1
+  if run.role=="HEAL" then
+    run.ultimatePoints=(run.ultimatePoints or 0)+0.5
+    run.ultimateSupportPending=t
+  end
+  run.lastUltimateAt=t
+  run.lastUltimateDetection=tostring(abilityName or safe(GetAbilityName,abilityId) or key).." ("..origin..")"
+  return true
 end
 local function combatDuration()
   if not run then return 0 end
@@ -438,14 +491,18 @@ local function updateEffectHUD()
   end)
   effectHUD.header:SetText("DUNGEON BUDDY  |  COMBAT EFFECT MONITOR")
   effectHUD.total:SetText("COMBAT EFFECT UPTIME  "..(ceu and string.format("%.1f%%",ceu) or "N/A"))
-  effectHUD.note:SetText(string.format("%d recognized effects  |  Active / expired  |  Buff, Debuff, DoT, HoT, Utility",#entries))
+  effectHUD.note:SetText(string.format("%d recognized effects  |  Uptime %%  |  Time left  |  Effect type",#entries))
   for i,label in ipairs(effectHUD.lines) do
     local e=entries[i]
     if e then
-      label:SetText(string.format("%s  %-24s  %5s  %s",e.active and "+" or "-",e.name:sub(1,24),e.percent and string.format("%.1f%%",e.percent) or "N/A",e.kind:upper()))
+      local remaining=math.max(0,e.remaining or 0)
+      local timer=remaining>0 and string.format("%ds",math.ceil(remaining)) or "EXPIRED"
+      local color=remaining<=0 and "F07878" or remaining<=3 and "FFC85A" or "78D9A2"
+      label:SetText(string.format("%-24s  %6s  |c%s%7s|r  %s",e.name:sub(1,24),e.percent and string.format("%.1f%%",e.percent) or "N/A",color,timer,e.kind:upper()))
     elseif preview and #entries==0 and i<=3 then
       local names={"Powerful Assault","Major Courage","Minor Berserk"}
-      label:SetText("-  "..names[i].."  |  N/A (preview)")
+      local timers={"|c78D9A212s|r","|cFFC85A53s|r","|cF07878EXPIRED|r"}
+      label:SetText(names[i].."  |  N/A  "..timers[i].." (preview)")
     else label:SetText("") end
   end
 end
@@ -523,7 +580,7 @@ local function begin()
   if not (safe(IsUnitInDungeon,"player") or safe(IsUnitInGroupDungeon,"player") or safe(IsInDungeon)) then return end
   lastBossReportContext=nil; pendingBossReport=nil
   local tier,mode,z=difficulty()
-  run={started=now(),activeSeconds=1,combatSeconds=0,combatStart=nil,fightDamage=0,fightHeal=0,lastFightDamage=0,lastFightHeal=0,lastFightSeconds=0,damage=0,heal=0,shield=0,damageTaken=0,blocked=0,shieldEvents=0,interrupts=0,taunts=0,ccEvents=0,groupDeaths=0,healAbsorbed=0,healEffective=0,uptime={buff={},debuff={},dot={}},durationCoverage={buff={},debuff={},dot={},hot={},utility={}},recentCasts={},durationObserved={},targetSeconds=0,lastTargetHit=nil,buffSeconds=0,buffActive={},buffKeys={},buffCoverageSeconds=0,buffCoverageActive=false,buffCoverageObserved=false,buffCoverageLast=nil,lastUltimatePower=safe(GetUnitPower,"player",POWERTYPE_ULTIMATE),pendingUltimate=nil,lastConfirmedUltimate=-100,ultimateUses=0,ultimateSupportUses=0,ultimatePoints=0,ultimateSupportPending=false,deaths=0,events=0,ownEvents=0,damageEvents=0,healEvents=0,role=S.settings.manualRole~="AUTO" and S.settings.manualRole or role(),zone=zone(),zoneId=z,mode=mode,abilities={},key=tostring(z or zone())..":"..mode,group=groupSnapshot(),lastScore=0,checkpoint=0,checkpoints={},bossKills=0,bosses={},activeBoss=nil,encounters={}}
+  run={started=now(),activeSeconds=1,combatSeconds=0,combatStart=nil,fightDamage=0,fightHeal=0,lastFightDamage=0,lastFightHeal=0,lastFightSeconds=0,damage=0,heal=0,shield=0,damageTaken=0,blocked=0,shieldEvents=0,interrupts=0,taunts=0,ccEvents=0,groupDeaths=0,healAbsorbed=0,healEffective=0,uptime={buff={},debuff={},dot={}},durationCoverage={buff={},debuff={},dot={},hot={},utility={}},recentCasts={},durationObserved={},targetSeconds=0,lastTargetHit=nil,buffSeconds=0,buffActive={},buffKeys={},buffCoverageSeconds=0,buffCoverageActive=false,buffCoverageObserved=false,buffCoverageLast=nil,lastUltimatePower=safe(GetUnitPower,"player",POWERTYPE_ULTIMATE),pendingUltimate=nil,lastConfirmedUltimate=-100,ultimateSpendBurstAt=nil,ultimateUses=0,ultimateSupportUses=0,ultimatePoints=0,ultimateSupportPending=false,deaths=0,events=0,ownEvents=0,damageEvents=0,healEvents=0,role=S.settings.manualRole~="AUTO" and S.settings.manualRole or role(),zone=zone(),zoneId=z,mode=mode,abilities={},key=tostring(z or zone())..":"..mode,group=groupSnapshot(),lastScore=0,checkpoint=0,checkpoints={},bossKills=0,bosses={},activeBoss=nil,encounters={}}
   ensureHUD()
   if safe(IsUnitInCombat,"player") then state(nil,true) end
   say("Run started: "..run.zone.." ("..run.role..")")
@@ -617,6 +674,11 @@ local function combat(_,result,isError,abilityName,abilityGraphic,abilityAction,
   -- Keep name matching as a fallback for clients with incomplete source types.
   local sourceIsMe=(sourceType==COMBAT_UNIT_TYPE_PLAYER or sourceType==COMBAT_UNIT_TYPE_PLAYER_PET) or isOwnName(sourceName)
   local targetIsMe=(targetType==COMBAT_UNIT_TYPE_PLAYER) or isOwnName(targetName)
+  -- Use the first registered-ultimate combat result, not just BEGIN.
+  -- Source attribution is mandatory; no slot or Ultimate-power checks.
+  if sourceIsMe then
+    recordListedUltimate(abilityId,abilityName,true,"combat")
+  end
   run.events=(run.events or 0)+1
   if sourceIsMe then run.ownEvents=(run.ownEvents or 0)+1 end
   local amount=math.max(0,tonumber(hitValue) or 0)
@@ -663,6 +725,10 @@ end
 local function effect(_,changeType,effectSlot,effectName,unitTag,beginTime,endTime,stackCount,iconName,buffType,effectType,abilityType,statusEffectType,unitName,unitId,abilityId,sourceType)
   if not run or not run.combatStart or not abilityId then return end
   if changeType~=EFFECT_RESULT_GAINED and changeType~=EFFECT_RESULT_UPDATED then return end
+  -- Effect events can expose an ultimate that has no BEGIN combat event.
+  -- Count only self-owned effects, never another player's application.
+  local ownEffect=(unitTag=="player") and (sourceType==COMBAT_UNIT_TYPE_PLAYER or sourceType==BUFF_EFFECT_SOURCE_PLAYER)
+  if ownEffect then recordListedUltimate(abilityId,effectName,true,"effect") end
   local isGroup=unitTag and (unitTag=="player" or unitTag:match("^group%d+$"))
   local isEnemy=unitTag and (unitTag:match("^boss%d+$") or unitTag=="reticleover")
   local kind
@@ -751,64 +817,12 @@ local function abilityUsed(_,slotId)
     trackDuration(abilityId,learned.kind or "buff",learned.duration,learned.name)
   end
 end
--- Ultimate tracking v2: reconcile action-slot events with resource changes in
--- either order. ESO can deliver a resource update before the slot callback.
--- Never count passive ticks or slot notifications alone.
-local function ultimatePower()
-  if type(GetUnitPower)~="function" or not POWERTYPE_ULTIMATE then return nil end
-  local value=safe(GetUnitPower,"player",POWERTYPE_ULTIMATE)
-  return type(value)=="number" and value or nil
-end
-local function creditUltimate(t)
-  if not run or t-(run.lastConfirmedUltimate or -100)<2 then return end
-  run.lastConfirmedUltimate=t
-  run.pendingUltimate=nil
-  run.recentUltimateSpend=nil
-  run.ultimateUses=(run.ultimateUses or 0)+1
-  if run.role=="HEAL" then
-    run.ultimatePoints=(run.ultimatePoints or 0)+1
-    run.ultimateSupportPending=t
-  end
-  run.lastUltimateAt=t
-end
-local function confirmUltimateSpend()
-  if not run or not run.combatStart then return end
-  local t=now()
-  local current=ultimatePower()
-  if current==nil then return end
-  local previous=run.lastUltimatePower
-  run.lastUltimatePower=current
-  if previous~=nil and previous-current>=20 then
-    run.recentUltimateSpend={at=t,from=previous,to=current}
-  end
-  local pending=run.pendingUltimate
-  if pending and t-pending.at>3 then run.pendingUltimate=nil;pending=nil end
-  local spend=run.recentUltimateSpend
-  if spend and t-spend.at>3 then run.recentUltimateSpend=nil;spend=nil end
-  if pending and spend and math.abs(pending.at-spend.at)<=3 then
-    creditUltimate(t)
-  end
-end
-local function ultimateUsed(_,slotId)
-  if not run or not run.combatStart then return end
-  local slot=tonumber(slotId)
-  if slot~=(tonumber(ACTION_BAR_ULTIMATE_SLOT_INDEX) or 8) then return end
-  local abilityId=safe(GetSlotBoundId,slot)
-  if not abilityId or abilityId==0 then return end
-  local t=now()
-  if t-(run.lastConfirmedUltimate or -100)<2 then return end
-  run.pendingUltimate={at=t,abilityId=abilityId}
-  confirmUltimateSpend()
-end
-local function ultimatePowerChanged(_,unitTag,_,powerType)
-  if unitTag~="player" or powerType~=POWERTYPE_ULTIMATE then return end
-  confirmUltimateSpend()
-end
+-- Ultimates are counted solely by curated ability cast BEGIN events
+-- in combat(); no resource polling or action-bar events are used.
 local function dead(_,unitTag,isDead)
   if run and isDead then bossDeath(unitTag); if unitTag=="player" then run.deaths=run.deaths+1 elseif unitTag and unitTag:match("^group%d+$") then run.groupDeaths=run.groupDeaths+1 end end
 end
 local function tick()
-  confirmUltimateSpend()
   if safe(IsUnitInDungeon,"player") or safe(IsUnitInGroupDungeon,"player") or safe(IsInDungeon) then
     begin()
   else
@@ -1094,6 +1108,11 @@ local function command(s)
   elseif s=="menu" then openMenu()
   elseif s=="close" then closeMenu()
   elseif s=="settings" then if not menu or menu:IsHidden() then openMenu() end;if menu then menu.index=1;menu.refresh() end
+  elseif s=="ultdebug" then
+    if not run then say("No active dungeon run") else
+      say("Ultimates: "..tostring(run.ultimateUses or 0).." | Last: "..tostring(run.lastUltimateDetection or "none"))
+      say("This tracker recognizes listed ability names/IDs seen in combat or self-effect events. If zero, the event names differ from the registry.")
+    end
   elseif s=="diagnose" or s=="diag" then
     if not run then say("No active run; enter a dungeon and attack an enemy first") else
       say("Combat events: "..fmt(run.events).." | attributed to you: "..fmt(run.ownEvents).." | damage events: "..fmt(run.damageEvents).." | heal events: "..fmt(run.healEvents))
@@ -1362,13 +1381,7 @@ local function initialized(_,addon)
     EM:RegisterForEvent(DR.name.."Activated",EVENT_PLAYER_ACTIVATED,function() tick() end)
   end
   EM:RegisterForEvent(DR.name.."State",EVENT_PLAYER_COMBAT_STATE,state)
-  if EVENT_POWER_UPDATE and POWERTYPE_ULTIMATE then
-    EM:RegisterForEvent(DR.name.."UltimatePower",EVENT_POWER_UPDATE,ultimatePowerChanged)
-    if EM.AddFilterForEvent and REGISTER_FILTER_POWER_TYPE then
-      EM:AddFilterForEvent(DR.name.."UltimatePower",EVENT_POWER_UPDATE,REGISTER_FILTER_POWER_TYPE,POWERTYPE_ULTIMATE)
-    end
-  end
-  if EVENT_ACTION_SLOT_ABILITY_USED then EM:RegisterForEvent(DR.name.."Ultimates",EVENT_ACTION_SLOT_ABILITY_USED,function(...) abilityUsed(...);ultimateUsed(...) end) end
+  if EVENT_ACTION_SLOT_ABILITY_USED then EM:RegisterForEvent(DR.name.."AbilityUptime",EVENT_ACTION_SLOT_ABILITY_USED,abilityUsed) end
   if EVENT_BOSSES_CHANGED then EM:RegisterForEvent(DR.name.."Bosses",EVENT_BOSSES_CHANGED,bossChanged) end
   if EVENT_EFFECT_CHANGED then EM:RegisterForEvent(DR.name.."Effects",EVENT_EFFECT_CHANGED,effect) end
   if EVENT_UNIT_DEATH_STATE_CHANGED then EM:RegisterForEvent(DR.name.."Dead",EVENT_UNIT_DEATH_STATE_CHANGED,dead) end

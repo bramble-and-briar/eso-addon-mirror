@@ -2,7 +2,7 @@ AmIBlockingPlus = {}
 
 AmIBlockingPlus.name = "AmIBlockingPlus"
 AmIBlockingPlus.author = "|c215895Qcell Lykeion|r"
-AmIBlockingPlus.version = "|ccc922f3.14|r"
+AmIBlockingPlus.version = "|ccc922f3.15|r"
 
 local lastUpdated = 0
 -- local old_is_block_active = false
@@ -286,7 +286,10 @@ function AmIBlockingPlus.StopUpdate(event)
     AmIBlockingPlusControl:GetNamedChild("DodgeIcon"):SetHidden(true)
     AmIBlockingPlusControl:GetNamedChild("BashNum"):SetHidden(true)
     AmIBlockingPlusControl:GetNamedChild("BashIcon"):SetHidden(true)
-    SetFullscreenEffect(FULLSCREEN_EFFECT_NONE)
+    if blurring then
+        SetFullscreenEffect(FULLSCREEN_EFFECT_NONE)
+        blurring = false
+    end
 end
 
 function AmIBlockingPlus.OnDodgeStart(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType,
@@ -326,8 +329,10 @@ function AmIBlockingPlus.UpdateBlock()
         AmIBlockingPlusControl:GetNamedChild("DodgeIcon"):SetHidden(true)
         AmIBlockingPlusControl:GetNamedChild("BashNum"):SetHidden(true)
         AmIBlockingPlusControl:GetNamedChild("BashIcon"):SetHidden(true)
-        SetFullscreenEffect(FULLSCREEN_EFFECT_NONE)
-        blurring = false
+        if blurring then
+            SetFullscreenEffect(FULLSCREEN_EFFECT_NONE)
+            blurring = false
+        end
         return
     end
 
@@ -480,7 +485,7 @@ function AmIBlockingPlus.UpdateBlock()
             AmIBlockingPlusControl:GetNamedChild("Label"):SetText(GetString(AIBP_BLOCKING))
             AmIBlockingPlusControl:GetNamedChild("Label"):SetColor(unpack(db.blockColor))
             AmIBlockingPlusControl:GetNamedChild("Label"):SetHidden(false)
-            if db.blur then
+            if blurring then
                 SetFullscreenEffect(FULLSCREEN_EFFECT_NONE)
                 blurring = false
             end
@@ -504,8 +509,10 @@ function AmIBlockingPlus.UpdateBlock()
             AmIBlockingPlusControl:GetNamedChild("Label"):SetHidden(false)
         else
             AmIBlockingPlusControl:GetNamedChild("Label"):SetHidden(true)
-            blurring = false
+        end
+        if blurring then
             SetFullscreenEffect(FULLSCREEN_EFFECT_NONE)
+            blurring = false
         end
     end
 
@@ -716,6 +723,10 @@ function AmIBlockingPlus.AddonMenu()
             end,
             setFunc = function(newValue)
                 db.blur = newValue;
+                if not newValue and blurring then
+                    SetFullscreenEffect(FULLSCREEN_EFFECT_NONE)
+                    blurring = false
+                end
             end
         },
         {

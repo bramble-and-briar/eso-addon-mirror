@@ -1,7 +1,9 @@
 local KELAPADUI_ENTRIES = {
     SETS           = 1,
     TRAIT_RESEARCH = 2,
-    SETTINGS       = 3,
+    EXTENDED_JOURNAL = 3,
+    CHARACTER_KNOWLEDGE = 4,
+    SETTINGS       = 5,
 }
 
 local KELAPADUI_TEXT_COLOR = "|cC64CFF"
@@ -31,6 +33,33 @@ local KELAPADUI_MENU_ENTRY_DATA =
             icon = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuIcon_create.dds",
             isVisibleCallback = function()
                 return KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRAIT_RESEARCH_ENABLED)
+            end,
+        },
+        -- Opens Extended Journal (kpui_extended_journal.lua, loaded later, so the
+        -- functions are looked up when the menu is built and used).
+        [KELAPADUI_ENTRIES.EXTENDED_JOURNAL] =
+        {
+            name = function()
+                return KelaGetExtendedJournalName and KelaGetExtendedJournalName() or GetString(KELA_MAINMENU_EXTENDED_JOURNAL)
+            end,
+            icon = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_journal.dds",
+            isVisibleCallback = function()
+                return KelaIsExtendedJournalAvailable ~= nil and KelaIsExtendedJournalAvailable()
+            end,
+            activatedCallback = function()
+                if KelaShowExtendedJournal then KelaShowExtendedJournal() end
+            end,
+        },
+        -- kpui_character_knowledge.lua loads later; looked up when used.
+        [KELAPADUI_ENTRIES.CHARACTER_KNOWLEDGE] =
+        {
+            name = GetString(KELA_MAINMENU_CHARACTER_KNOWLEDGE),
+            icon = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_character.dds",
+            isVisibleCallback = function()
+                return KelaIsCharacterKnowledgeAvailable ~= nil and KelaIsCharacterKnowledgeAvailable()
+            end,
+            activatedCallback = function()
+                if KelaShowCharacterKnowledge then KelaShowCharacterKnowledge() end
             end,
         },
         [KELAPADUI_ENTRIES.SETTINGS] =

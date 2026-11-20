@@ -1,7 +1,7 @@
 ## Title: Monster Coffer Helper
 ## Author: mounir
-## Version: 1.0.1
-## AddOnVersion: 010001
+## Version: 1.1.0
+## AddOnVersion: 010100
 ## APIVersion: 101051
 ## Description: At the Undaunted quartermasters, works out whether a Mystery Coffer or a curated shoulder coffer is the cheaper way to finish your monster set collection.
 ## SavedVariables: MonsterCofferHelper_Data
@@ -21,6 +21,7 @@ Format.lua
 UI.xml
 UI.lua
 Tooltips.lua
+Guard.lua
 Settings.lua
 MonsterCofferHelper.lua
 Bindings.xml

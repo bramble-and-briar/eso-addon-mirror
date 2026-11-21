@@ -1,0 +1,9 @@
+## Title: WorldBossTimer
+## Author: FiNk3--F13--
+## Version: 0.3.0
+## AddOnVersion: 5
+## APIVersion: 101050 101051
+## Description: Grosse geschaetzte Weltboss-Timer ueber den vorhandenen Kartensymbolen. PS5-Testversion.
+
+Core.lua
+WorldBossTimer.lua

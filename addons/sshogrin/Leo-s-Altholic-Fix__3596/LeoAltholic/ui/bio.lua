@@ -6,6 +6,7 @@ function LeoAltholicBioList:New(control)
 
     local sorterKeys =
     {
+        ["queueIndex"] = { tiebreaker = "name" },
         ["name"] = {},
         ["level"] = { tiebreaker = "name"},
         ["race"] = { tiebreaker = "level"},
@@ -15,7 +16,7 @@ function LeoAltholicBioList:New(control)
     }
 
     self.masterList = {}
-    self.currentSortKey = "name"
+    self.currentSortKey = "queueIndex"
     self.currentSortOrder = ZO_SORT_ORDER_UP
     ZO_ScrollList_AddDataType(self.list, 1, "LeoAltholicBioListTemplate", 32, function(control, data) self:SetupEntry(control, data) end)
 
@@ -117,7 +118,11 @@ end
 
 function LeoAltholicBioList:SortScrollList()
     local scrollData = ZO_ScrollList_GetDataList(self.list)
-    if self.currentSortKey == "alliance" then
+    if self.currentSortKey == "queueIndex" then
+        table.sort(scrollData, function(listEntry1, listEntry2)
+            return (listEntry1.data.queueIndex or 999) < (listEntry2.data.queueIndex or 999)
+        end)
+    elseif self.currentSortKey == "alliance" then
         table.sort(scrollData, function(listEntry1, listEntry2)
             if self.currentSortOrder == ZO_SORT_ORDER_UP then
                 return listEntry1.data.alliance.name < listEntry2.data.alliance.name

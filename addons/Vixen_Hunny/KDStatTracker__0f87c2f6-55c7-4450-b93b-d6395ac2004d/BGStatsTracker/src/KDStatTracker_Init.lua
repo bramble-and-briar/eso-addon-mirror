@@ -8,11 +8,14 @@ local function OnAddOnLoaded(_, addonName)
     EVENT_MANAGER:UnregisterForEvent(KDST.name, EVENT_ADD_ON_LOADED)
 
     -- Same saved-variable names / versions as v2.0, so existing stats carry over.
-    KDST.data     = ZO_SavedVars:NewAccountWide("KDStatTrackerVars", 1, nil, KDST.dataDefaults)
+    KDST.sv       = ZO_SavedVars:NewAccountWide("KDStatTrackerVars", 1, nil, KDST.dataDefaults)
+    KDST.data     = KDST.sv
     KDST.settings = ZO_SavedVars:NewAccountWide("KDStatTrackerSettings", 1, nil, KDST.settingDefaults)
     KDST.charName = GetUnitName("player") or "Unknown"
 
-    KDST.MigrateData()
+    KDST.MigrateData()          -- v2.0 layout -> current, on KDStatTrackerVars
+    KDST.Store.Load()           -- with LibESQL: move to / load from kdst_* tables
+    KDST.Store.Initialize()
     KDST.MigrateSettings()
     KDST.NewSession()
 
@@ -21,6 +24,7 @@ local function OnAddOnLoaded(_, addonName)
     KDST.RegisterEvents()
     KDST.RegisterSettings()
     KDST.RegisterSlashCommands()
+    KDST.ESQL.Register()        -- no-op without LibESQL
 end
 
 EVENT_MANAGER:RegisterForEvent(KDST.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)

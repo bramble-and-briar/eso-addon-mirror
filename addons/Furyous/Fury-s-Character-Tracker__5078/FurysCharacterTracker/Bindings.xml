@@ -1,0 +1,15 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Fury's Character Tracker">
+            <Action name="FURYCT_WINDOW">
+                <Down>FuryCT.Window:Toggle()</Down>
+            </Action>
+            <Action name="FURYCT_BRAG">
+                <Down>FuryCT.Brag:Toggle()</Down>
+            </Action>
+            <Action name="FURYCT_TIMERS">
+                <Down>FuryCT.Timers:Toggle()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

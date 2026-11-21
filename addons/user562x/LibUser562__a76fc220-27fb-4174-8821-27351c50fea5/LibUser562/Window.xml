@@ -5,6 +5,11 @@
             <Controls>
                 <Backdrop name="$(parent)Bg" inherits="ZO_GamepadWhiteOutlineThin">
                     <AnchorFill />
+                    <Controls>
+                        <Control name="$(parent)Round">
+                            <AnchorFill />
+                        </Control>
+                    </Controls>
                 </Backdrop>
                 <Texture name="$(parent)RowIcon">
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="12" offsetY="0" />
@@ -22,6 +27,11 @@
             <Controls>
                 <Backdrop name="$(parent)Bg" inherits="ZO_GamepadWhiteOutlineThin">
                     <AnchorFill />
+                    <Controls>
+                        <Control name="$(parent)Round">
+                            <AnchorFill />
+                        </Control>
+                    </Controls>
                 </Backdrop>
                 <Texture name="$(parent)RowIcon" hidden="true">
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="14" offsetY="0" />
@@ -90,6 +100,9 @@
                             <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
                             <Dimensions x="1792" y="98" />
                             <Controls>
+                                <Control name="$(parent)Round">
+                                    <AnchorFill />
+                                </Control>
                                 <Label name="$(parent)Title" font="ZoFontGamepad42" color="FFFFFF" horizontalAlignment="CENTER">
                                     <Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="12" />
                                 </Label>
@@ -108,20 +121,33 @@
                         <Backdrop name="$(parent)StripDC">
                             <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="10" />
                             <Dimensions x="597" y="4" />
+                            <Controls>
+                                <Control name="$(parent)Round">
+                                    <AnchorFill />
+                                </Control>
+                            </Controls>
                         </Backdrop>
                         <Backdrop name="$(parent)StripAD">
-                            <Anchor point="TOPLEFT" relativeTo="$(parent)StripDC" relativePoint="TOPRIGHT" offsetX="0" offsetY="0" />
-                            <Dimensions x="597" y="4" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)StripDC" relativePoint="TOPRIGHT" offsetX="-2" offsetY="0" />
+                            <Dimensions x="601" y="4" />
                         </Backdrop>
                         <Backdrop name="$(parent)StripEP">
-                            <Anchor point="TOPLEFT" relativeTo="$(parent)StripAD" relativePoint="TOPRIGHT" offsetX="0" offsetY="0" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)StripAD" relativePoint="TOPRIGHT" offsetX="-2" offsetY="0" />
                             <Dimensions x="598" y="4" />
+                            <Controls>
+                                <Control name="$(parent)Round">
+                                    <AnchorFill />
+                                </Control>
+                            </Controls>
                         </Backdrop>
 
                         <Backdrop name="$(parent)Categories" inherits="ZO_GamepadWhiteOutlineThick">
                             <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="124" />
                             <Dimensions x="385" y="760" />
                             <Controls>
+                                <Control name="$(parent)Round">
+                                    <AnchorFill />
+                                </Control>
                                 <Label name="$(parent)Title" font="ZoFontGamepad27" color="FFFFFF" text="Categories" horizontalAlignment="CENTER">
                                     <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="24" offsetY="16" />
                                     <Dimensions x="337" />
@@ -145,6 +171,9 @@
                             <Anchor point="TOPLEFT" relativeTo="$(parent)Categories" relativePoint="TOPRIGHT" offsetX="26" offsetY="0" />
                             <Dimensions x="970" y="760" />
                             <Controls>
+                                <Control name="$(parent)Round">
+                                    <AnchorFill />
+                                </Control>
                                 <Label name="$(parent)Title" font="ZoFontGamepad27" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1" horizontalAlignment="CENTER">
                                     <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="64" offsetY="16" />
                                     <Dimensions x="842" />
@@ -168,6 +197,9 @@
                             <Anchor point="TOPLEFT" relativeTo="$(parent)Settings" relativePoint="TOPRIGHT" offsetX="26" offsetY="0" />
                             <Dimensions x="385" y="760" />
                             <Controls>
+                                <Control name="$(parent)Round">
+                                    <AnchorFill />
+                                </Control>
                                 <Label name="$(parent)Title" font="ZoFontGamepad27" color="FFFFFF" text="Details" horizontalAlignment="CENTER">
                                     <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="24" offsetY="16" />
                                     <Dimensions x="337" />
@@ -223,6 +255,79 @@
                                 <Label name="$(parent)Body" font="ZoFontGamepad25" color="D9E0EB" wrapMode="WORD" verticalAlignment="TOP" horizontalAlignment="CENTER">
                                     <Anchor point="TOP" relativeTo="$(parent)Name" relativePoint="BOTTOM" offsetX="0" offsetY="18" />
                                     <Dimensions x="337" />
+                                </Label>
+                            </Controls>
+                        </Backdrop>
+                    </Controls>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+        <TopLevelControl name="LibUser562_Notice" hidden="true" mouseEnabled="false" clampedToScreen="true" tier="LOW" layer="BACKGROUND">
+            <AnchorFill />
+            <Controls>
+                <Control name="$(parent)Frame">
+                    <Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="34" />
+                    <Dimensions x="1792" y="876" />
+                    <Controls>
+                        <Backdrop name="$(parent)Header" inherits="ZO_GamepadWhiteOutlineThick">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+                            <Dimensions x="1792" y="98" />
+                            <Controls>
+                                <Control name="$(parent)Round">
+                                    <AnchorFill />
+                                </Control>
+                                <Label name="$(parent)Title" font="ZoFontGamepad42" color="FFFFFF" horizontalAlignment="CENTER">
+                                    <Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="12" />
+                                </Label>
+                                <Label name="$(parent)Version" font="ZoFontGamepad22" color="BFC7D6" horizontalAlignment="CENTER">
+                                    <Anchor point="TOP" relativeTo="$(parent)Title" relativePoint="BOTTOM" offsetX="0" offsetY="2" />
+                                </Label>
+                                <Label name="$(parent)AuthorTitle" font="ZoFontGamepad22" color="BFC7D6" text="By" horizontalAlignment="RIGHT">
+                                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-24" offsetY="18" />
+                                </Label>
+                                <Label name="$(parent)Author" font="ZoFontGamepad27" color="FFFFFF" horizontalAlignment="RIGHT">
+                                    <Anchor point="TOPRIGHT" relativeTo="$(parent)AuthorTitle" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="4" />
+                                </Label>
+                            </Controls>
+                        </Backdrop>
+
+                        <Backdrop name="$(parent)StripDC">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="10" />
+                            <Dimensions x="597" y="4" />
+                            <Controls>
+                                <Control name="$(parent)Round">
+                                    <AnchorFill />
+                                </Control>
+                            </Controls>
+                        </Backdrop>
+                        <Backdrop name="$(parent)StripAD">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)StripDC" relativePoint="TOPRIGHT" offsetX="-2" offsetY="0" />
+                            <Dimensions x="601" y="4" />
+                        </Backdrop>
+                        <Backdrop name="$(parent)StripEP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)StripAD" relativePoint="TOPRIGHT" offsetX="-2" offsetY="0" />
+                            <Dimensions x="598" y="4" />
+                            <Controls>
+                                <Control name="$(parent)Round">
+                                    <AnchorFill />
+                                </Control>
+                            </Controls>
+                        </Backdrop>
+
+                        <Backdrop name="$(parent)Body" inherits="ZO_GamepadWhiteOutlineThick">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="124" />
+                            <Dimensions x="1792" y="760" />
+                            <Controls>
+                                <Control name="$(parent)Round">
+                                    <AnchorFill />
+                                </Control>
+                                <Label name="$(parent)Heading" font="ZoFontGamepad42" color="FFFFFF" wrapMode="WORD" horizontalAlignment="CENTER">
+                                    <Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="60" />
+                                    <Dimensions x="1700" />
+                                </Label>
+                                <Label name="$(parent)Text" font="ZoFontGamepad34" color="FFFFFF" wrapMode="WORD" horizontalAlignment="CENTER">
+                                    <Anchor point="TOP" relativeTo="$(parent)Heading" relativePoint="BOTTOM" offsetX="0" offsetY="36" />
+                                    <Dimensions x="1600" />
                                 </Label>
                             </Controls>
                         </Backdrop>

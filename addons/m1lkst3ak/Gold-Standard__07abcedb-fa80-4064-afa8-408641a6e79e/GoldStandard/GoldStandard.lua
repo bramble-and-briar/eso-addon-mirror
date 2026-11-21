@@ -2,7 +2,7 @@
 -- ESO gamepad / keyboard: tracker, inventory advisor, visited-trader flip finder.
 GoldStandard = GoldStandard or {}
 local GS = GoldStandard
-GS.name, GS.version = "GoldStandard", "1.0.21-test"
+GS.name, GS.version = "GoldStandard", "1.0.22-test"
 GS.defaults = {
     tracking=true, showHUD=true, showLootToast=true, minToast=500,
     hudShowGold=true, hudShowAP=true, hudShowTelVar=true, showWealthHUD=true,
@@ -815,6 +815,7 @@ function GS:Initialize()
     self.wealthSnapshot=nil
     self.wallet=self:ReadWallet()
     self:InitializeUI()
+    self:RegisterStartMenuVisibility()
     self:InitializeSettings()
     EVENT_MANAGER:RegisterForEvent(self.name.."_items",EVENT_INVENTORY_SINGLE_SLOT_UPDATE,function(...) self:OnInventory(...); self:InvalidateWealth(select(2,...)) end)
     if EVENT_MONEY_UPDATE then EVENT_MANAGER:RegisterForEvent(self.name.."_cash",EVENT_MONEY_UPDATE,function() self:OnMoneyUpdate() end) end

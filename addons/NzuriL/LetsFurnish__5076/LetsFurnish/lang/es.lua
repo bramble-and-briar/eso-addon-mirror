@@ -38,6 +38,7 @@ L.core.to_move = { one = "<<1>> por mover", other = "<<1>> por mover" }
 L.core.to_place = { one = "<<1>> por colocar", other = "<<1>> por colocar" }
 L.core.states_to_switch = { one = "<<1>> estado por cambiar", other = "<<1>> estados por cambiar" }
 L.core.paths_to_set = { one = "<<1>> ruta por fijar", other = "<<1>> rutas por fijar" }
+L.core.links_to_set = { one = "<<1>> vínculo por fijar", other = "<<1>> vínculos por fijar" }
 L.core.already_right = { one = "<<1>> ya correcto", other = "<<1>> ya correctos" }
 L.core.placed_earlier = { one = "<<1>> colocado en una ejecución anterior", other = "<<1>> colocados en una ejecución anterior" }
 L.core.collectibles_unavailable = { one = "<<1>> coleccionable no disponible", other = "<<1>> coleccionables no disponibles" }
@@ -51,6 +52,11 @@ L.core.done = "Hecho: <<1>>."
 L.core.done_moved = { one = "<<1>> movido", other = "<<1>> movidos" }
 L.core.done_switched = { one = "<<1>> cambiado", other = "<<1>> cambiados" }
 L.core.done_paths = { one = "<<1>> cambio de ruta", other = "<<1>> cambios de ruta" }
+L.core.done_linked = { one = "<<1>> vínculo fijado", other = "<<1>> vínculos fijados" }
+L.core.done_unlinked = { one = "<<1>> desvinculado", other = "<<1>> desvinculados" }
+L.core.done_not_linked = { one = "<<1>> vínculo sin fijar", other = "<<1>> vínculos sin fijar" }
+L.core.path_unread_skipped = "<<1>>: el juego no da su ruta (se leyó de nuevo tras 1,5 s), así que se omite y se deja como está. Abrir el editor de vivienda puede ayudar."
+L.core.path_unread_recorded = "«<<1>>» se grabó sin la ruta de <<2>>: el juego no la dio (se leyó de nuevo tras 1,5 s). Esa ruta en el juego se deja como está."
 L.core.done_placed = { one = "<<1>> colocado", other = "<<1>> colocados" }
 L.core.done_removed = { one = "<<1>> quitado", other = "<<1>> quitados" }
 L.core.done_failed = { one = "<<1>> fallido", other = "<<1>> fallidos" }
@@ -70,6 +76,10 @@ L.core.get_app = "Consigue la app LetsFurnish! para planear tus casas en 3D en W
 L.core.site_asked = "El juego pregunta antes de abrir <<1>> en tu navegador."
 L.core.site_by_hand = "Abre <<1>> en tu navegador para conseguir la app."
 L.core.cleared = "Se han borrado los diseños guardados por una versión de prueba anterior de LetsFurnish!: esta versión ya no los lee."
+L.window.extra_links_ask = "¿Quitar los vínculos adicionales de <<1>> (<<2>>)? Se conservarán los que utiliza este diseño."
+L.window.extra_links = "Vínculos adicionales: <<1>>"
+L.window.link_capacity = "<<1>> tendría <<2>> objetos vinculados directamente. El límite es <<3>>."
+L.window.empty_path_failed = "La casa sigue intacta. No se pudieron guardar estas rutas: <<1>>. Vuelve a intentarlo cuando sean visibles."
 L.window.debug_mode = "Registro detallado"
 L.window.tip_debug_mode = "Registra las solicitudes del editor de viviendas, los eventos del juego y las comprobaciones de estado en SavedVariables/LetsFurnish.lua. Tras reproducir el problema, usa /reloadui para guardar el registro en disco."
 L.window.layouts = "Diseños"
@@ -90,7 +100,7 @@ L.window.this_house = "Esta casa"
 L.window.every_house = "Todas las casas"
 L.window.expand = "Desplegar"
 L.window.collapse = "Plegar"
-L.window.to_place = "Por colocar"
+L.window.to_place = "Colocar"
 L.window.to_move = "Por mover"
 L.window.to_remove = "Por quitar"
 L.window.missing = "Faltan"
@@ -158,6 +168,34 @@ L.window.stands_elsewhere = "está en otro sitio"
 L.window.other_state = "en otro estado"
 L.window.set_path = "Fijar ruta"
 L.window.other_path = "sigue otra ruta"
+L.window.path_unread = "ruta ilegible: omitida"
+L.window.link = "Vincular"
+L.window.unlink = "Desvincular"
+L.window.link_to = "no vinculado a <<1>>"
+L.window.linked_extra = "vinculado, no como se grabó"
+L.window.linking = "Vincular"
+L.window.empty_link = "No hay grupos listos para vincular."
+L.window.destructive = "Destructivo"
+L.window.empty_house = "Vaciar la casa"
+L.window.empty_house_ask = "¿Retirar todo el mobiliario colocado en <<1>>? Total: <<2>>. Se retirarán también los muebles de tu diseño. Primero se creará una copia de seguridad."
+L.window.tip_remove_all = "Quita todo lo que este diseño no tiene, de una vez, tras preguntar. Antes se hace una copia."
+L.window.link_all = "Vincular todo"
+L.window.tip_link_all = "Vincula los grupos que estén listos. Primero deshace los vínculos de cada grupo y los restablece desde el mueble principal. Los vínculos adicionales se quitan por separado."
+L.window.link_group = { one = "<<1>> mueble debajo", other = "<<1>> muebles debajo" }
+L.window.link_missing = { one = "<<1>> no está en la casa: colócalo primero", other = "<<1>> no están en la casa: colócalos primero" }
+L.window.link_undoes = { one = "deshace <<1>> vínculo actual", other = "deshace <<1>> vínculos actuales" }
+L.window.under = "debajo de <<1>>"
+L.window.link_lost = { one = "Esto deshace <<1>> vínculo actual: <<2>>.", other = "Esto deshace <<1>> vínculos actuales: <<2>>." }
+L.window.link_lost_item = "<<1>> (vinculado a <<2>>)"
+L.window.link_tree_ask = "¿Vincular <<1>> y lo que hay debajo como en el diseño? Cada uno se desvincula primero y luego se vincula de arriba abajo."
+L.window.link_all_ask = { one = "¿Vincular <<1>> grupo como en el diseño? Cada mueble se desvincula primero y luego se vincula de arriba abajo.", other = "¿Vincular <<1>> grupos como en el diseño? Cada mueble se desvincula primero y luego se vincula de arriba abajo." }
+L.window.unlink_all = "Desvincular todo"
+L.window.unlink_all_note = { one = "<<1>> vínculo en esta casa", other = "<<1>> vínculos en esta casa" }
+L.window.unlink_all_ask = { one = "¿Deshacer <<1>> vínculo de esta casa, diga lo que diga el diseño? Cada mueble se queda donde está. Antes se hace una copia de la casa.", other = "¿Deshacer los <<1>> vínculos de esta casa, diga lo que diga el diseño? Cada mueble se queda donde está. Antes se hace una copia de la casa." }
+L.window.place_from = "Colocar todo de <<1>>"
+L.window.place_from_note = { one = "<<1>> mueble, colocado a tu alrededor", other = "<<1>> muebles, colocados a tu alrededor" }
+L.window.place_from_ask = { one = "¿Colocar <<1>> mueble de <<2>> a tu alrededor, diga lo que diga el diseño? Antes se hace una copia de la casa.", other = "¿Colocar <<1>> muebles de <<2>> a tu alrededor, diga lo que diga el diseño? Antes se hace una copia de la casa." }
+L.window.place_from_over = { one = "<<1>> no cabe en los límites de la casa y se queda.", other = "<<1>> no caben en los límites de la casa y se quedan." }
 L.window.not_in_layout = "no está en este diseño"
 L.window.share_context = "Un diseño como una línea de texto"
 L.window.every_house_count = "Todas las casas: <<1>>"
@@ -230,7 +268,6 @@ L.window.tip_tick_all = "Marca cada mueble que falta cuyo patrón conoces."
 L.window.tip_untick_all = "Desmarca todos los muebles."
 L.window.tip_place_all = "Coloca todo lo de Por colocar, de una vez, tras preguntar. Un camino se fija cuando su mueble ya está puesto. Antes se hace una copia."
 L.window.tip_move_all = "Mueve, cambia y fija los caminos de todo lo de Por mover, de una vez, tras preguntar. Antes se hace una copia."
-L.window.tip_remove_all = "Quita todo lo que este diseño no tiene, de una vez, tras preguntar. Antes se hace una copia."
 L.window.tip_back_up = "Guarda esta casa tal como está ahora, para volver a ella."
 L.window.tip_house_code = "Crea el código de esta casa, para enviarlo a un amigo o pegarlo en la aplicación."
 L.window.tip_read_code = "Lee el código pegado en el cuadro: su diseño se une a Diseños."
@@ -308,6 +345,7 @@ L.window.log_what_not_taken = "respondido, pero se quedó en la casa"
 L.window.log_what_late = "hecho después de la espera"
 L.window.log_what_not_put_away = "sin guardar"
 L.window.log_what_conform = "Ajustar al suelo no como se pidió"
+L.window.log_what_link = "Vínculo sin fijar"
 L.window.log_what_stopped = "la ejecución se detuvo"
 L.window.log_why_too_fast = "demasiadas peticiones seguidas sin hacer"
 L.window.log_why_no_place = "un mueble en ningún lugar elegido para tomarlo"
@@ -328,6 +366,9 @@ L.window.keep_backup_save = "Guardar"
 L.window.keep_backup_menu = "Guardar como diseño..."
 L.window.log_what_skipped = "omitido"
 L.window.log_why_path_unconfirmed = "un cambio de su camino no se hizo"
+L.window.log_why_path_unread = "el juego aún no da los puntos de su ruta: abre el editor de vivienda y vuelve a intentarlo"
+L.window.log_why_link_no_parent = "el mueble al que se vincula no está en la casa"
+L.window.log_why_link_no_child = "no está en la casa"
 L.window.log_solved_count = { one = "<<1>> resuelto por el addon", other = "<<1>> resueltos por el addon" }
 L.window.log_solved_retried = "resuelto: hecho al segundo intento, tras <<1>> s"
 L.window.log_solved_other_place = "resuelto: <<1>> lo aceptó"
@@ -410,6 +451,8 @@ L.house.part_last_next = "Pega ahora la parte <<1>>, la última."
 L.house.part_other = "esta parte es de otro código que las <<1>> de <<2>> partes ya pegadas: pulsa antes Olvidar las partes para empezar con él"
 L.house.vault_needs_plus = "Requiere ESO Plus."
 L.house.vault_locked = "La cámara de mobiliario no está desbloqueada."
+L.house.no_position = "No se sabe dónde estás en la casa: ponte en la casa y vuelve a intentarlo."
+L.house.nothing_to_place_from = "Nada de <<1>> se puede colocar en esta casa."
 L.house.chest_locked = "<<1>> no está desbloqueado."
 L.house.chest_numbered = "<<1>> (<<2>>)"
 L.house.into = "<<1>> en <<2>>"
@@ -451,6 +494,7 @@ L.code.part_unreadable = "una parte de un código dañada o incompleta: vuelve a
 L.code.parts_missing = "no están las <<1>> partes del código: pega también las que faltan"
 L.code.parts_mismatch = "las partes no forman un código: vuelve a copiarlas todas del mismo código"
 L.code.parts_mixed = "partes de códigos distintos: pega las partes de un solo código cada vez"
+L.stock.inventory = "Inventario"
 L.stock.storage = "Almacenes"
 L.stock.vault = "Cámara"
 L.stock.placed_here = "Colocados aquí"

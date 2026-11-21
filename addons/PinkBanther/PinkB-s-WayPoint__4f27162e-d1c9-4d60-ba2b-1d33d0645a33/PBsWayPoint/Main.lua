@@ -221,13 +221,14 @@ local function Toward(vector)
 	return string.format("world +X %s, world +Z %s", Metres(vector.dx), Metres(vector.dz))
 end
 
--- "N", "SW": where the camera looks on the map, from the game's heading (the bearing of where it looks, see Core.lua)
+-- "N", "SW": where the camera looks on the map, from the game's heading (see Core.lua: it looks along heading + pi)
 -- and a zone frame; nil without a frame.
 local function LookingWord(frame, heading)
 	if not frame or not heading then
 		return nil
 	end
-	local east, south = A.MapDirection(frame, math.sin(heading), math.cos(heading))
+	local look = A.LookBearing(heading)
+	local east, south = A.MapDirection(frame, math.sin(look), math.cos(look))
 	return A.HeadingWord(A.CompassBearing(east, south))
 end
 
@@ -254,7 +255,7 @@ function A:StatusLines()
 	local sample, why = self:ReadSample(GetGameTimeMilliseconds())
 	if heading then
 		local word = LookingWord(sample and sample.frame, heading)
-		add("camera heading: %d° (the game's number: 0 = looking along world +Z, 90 = along +X)%s", math.floor(math.deg(heading) + 0.5) % 360,
+		add("camera heading: %d° (the game's number: 0 = looking along world -Z, 90 = along -X)%s", math.floor(math.deg(heading) + 0.5) % 360,
 			word and (", which is looking " .. word .. " on the map") or "")
 	else
 		add("camera heading: unavailable")
@@ -499,7 +500,7 @@ function A:CheckLines()
 		end
 		local fx, fy, fz = world.probe:Get3DRenderSpaceForward()
 		if type(fx) == "number" and type(fz) == "number" then
-			add("3D camera looks (x %.2f, up %.2f, z %.2f), which is a bearing of %d° (the same number as the camera heading above if forward is where the camera looks)",
+			add("3D camera looks (x %.2f, up %.2f, z %.2f), which is a bearing of %d° (the camera heading above plus 180 if forward is where the camera looks)",
 				fx, fy or 0, fz, math.floor(math.deg(A.Bearing(fx, fz)) + 0.5) % 360)
 		end
 	else

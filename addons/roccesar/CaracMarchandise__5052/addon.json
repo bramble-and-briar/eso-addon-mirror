@@ -18,9 +18,9 @@
     "CaracMarchandise"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5052/",
-  "fingerprint": "ceb10421c0e8306bbf0317bd4ad0e86400c67a2f90308487280e82864597616a",
+  "fingerprint": "72d5c9ce6130716d1ed60e9241645635c6fe2c918faa1c6ebddcf3c5874df5e4",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw18485.jpg"
+    "https://cdn-eso.mmoui.com/preview/pvw18675.jpg"
   ],
   "platform": "pc",
   "published": true,
@@ -28,11 +28,11 @@
   "source_id": "5052",
   "source_url": "https://www.esoui.com/downloads/info5052-CaracMarchandise.html",
   "stats": {
-    "downloads": 5,
-    "favorites": 0,
-    "monthly_downloads": 5
+    "downloads": 28,
+    "favorites": 1,
+    "monthly_downloads": 23
   },
   "title": "CaracMarchandise",
-  "updated_at": 1794768655000,
-  "version": "1.1"
+  "updated_at": 1795256551000,
+  "version": "1.2"
 }

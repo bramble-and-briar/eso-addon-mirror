@@ -145,7 +145,7 @@ end
 -- again (the id of a position may follow the area walked into: an idea that is NOT proven, see the note "Zone id changes
 -- without a loading screen"; the trace line "zone" records every change of the player's id). Only when the game cannot be asked
 -- (the call is not allowed or does not exist) does the zone id decide, as before.
-function A:MemberPosition(entry, playerZone, px, py, pz)
+function A:MemberPosition(entry, playerZone, px, py, pz, quiet)
 	if entry.self then
 		return px, py, pz
 	end
@@ -161,8 +161,11 @@ function A:MemberPosition(entry, playerZone, px, py, pz)
 		if sameWorld ~= true then
 			return nil, nil, nil, "another zone", zone
 		end
-		-- the game says one world although the ids differ: drawn (counted, for /pbpme status)
-		self.diag.zoneApart = (self.diag.zoneApart or 0) + 1
+		-- the game says one world although the ids differ: drawn (counted, for /pbpme status; the compass asks again every
+		-- frame and says `quiet`, so that each frame counts once)
+		if not quiet then
+			self.diag.zoneApart = (self.diag.zoneApart or 0) + 1
+		end
 	end
 	return x, y, z
 end
@@ -170,26 +173,20 @@ end
 -- A marker's verdict (what /pbpme status prints as "drawing it:"). A CHANGE of it leaves a line in the trace (/pbpme why), at
 -- most one a second for a person, so that a marker at the edge of the range does not fill it: that is how a marker that
 -- vanished is explained afterwards. `a`, `b`: two numbers for the line (the zone ids), built into text only when it is written.
-local function SetVerdict(self, hash, m, text, a, b)
-	local verdict = self.diag.verdict
-	local was = verdict[hash]
+local function SetVerdict(self, m, text, a, b)
+	local was = m.verdict
 	if was == text then
 		return
 	end
-	verdict[hash] = text
+	m.verdict = text
 	if was == nil and text == "drawn" then
 		return
 	end
-	local at = self.diag.verdictAt
-	if not at then
-		at = {}
-		self.diag.verdictAt = at
-	end
 	local now = A.Stamp()
-	if now - (at[hash] or -1e9) < 1000 then
+	if now - (m.verdictAt or -1e9) < 1000 then
 		return
 	end
-	at[hash] = now
+	m.verdictAt = now
 	self:Trace("draw", string.format("%s: %s -> %s%s", tostring(m.name), tostring(was or "-"), text,
 		a ~= nil and string.format(" (their zone id %s, yours %s)", tostring(a), tostring(b)) or ""))
 end
@@ -336,6 +333,7 @@ function A:UpdateWorld(now)
 		return
 	end
 	diag.heading = heading
+	diag.frameAt = now -- the player's position and heading above are this frame's: the compass bar uses them instead of asking again
 	local pitch, yaw, roll = 0, heading + sv.facingOffset * DEGREES, 0
 
 	-- ESO moves top-level 3D windows when the GUI origin shifts. The child markers
@@ -358,42 +356,44 @@ function A:UpdateWorld(now)
 
 	local roster = self.roster
 	local count = 0
-	local verdict = diag.verdict
-	if not verdict then
-		verdict = {}
-		diag.verdict = verdict
-	end
 	for hash, m in pairs(self.marks) do
 		local entry = roster.byHash[hash]
 		-- a marker on the player themself: the one the player put on themself is always shown (they asked for it); the
 		-- ones others put on them follow the setting
 		if not entry then
-			SetVerdict(self, hash, m, "that person is not in the roster")
+			SetVerdict(self, m, "that person is not in the roster")
 		elseif not entry.online then
 			-- a member who logged out stays in the group; the game keeps no position for them worth showing
-			SetVerdict(self, hash, m, "that person is offline")
+			SetVerdict(self, m, "that person is offline")
 		elseif entry.self and not (sv.showSelf or m.mine) then
-			SetVerdict(self, hash, m, "on yourself, put there by another member, and 'show markers others put on me' is off")
+			SetVerdict(self, m, "on yourself, put there by another member, and 'show markers others put on me' is off")
 		elseif count >= MAX_SPRITES - 1 then
-			SetVerdict(self, hash, m, "no sprite left")
+			SetVerdict(self, m, "no sprite left")
 		else
 			local x, y, z, why, theirZone = self:MemberPosition(entry, playerZone, px, py, pz)
+			local rel = m.rel
+			if not rel then
+				rel = {}
+				m.rel = rel
+			end
+			rel.at, rel.ok = now, x ~= nil
 			if not x then
-				SetVerdict(self, hash, m, why, theirZone, playerZone)
+				SetVerdict(self, m, why, theirZone, playerZone)
 			else
 				local dx, dz = x - px, z - pz
 				local metres = sqrt(dx * dx + dz * dz) / 100
+				rel.dx, rel.dz, rel.metres = dx, dz, metres
 				if metres > MAX_DISTANCE_M then
-					SetVerdict(self, hash, m, "too far")
+					SetVerdict(self, m, "too far")
 				else
 					local result = self:DrawSprite(count + 1, m.icon, x, y, z, metres, pitch, yaw, roll)
 					if result == "off" then
 						return
 					elseif result then
 						count = count + 1
-						SetVerdict(self, hash, m, "drawn")
+						SetVerdict(self, m, "drawn")
 					else
-						SetVerdict(self, hash, m, "the game gives no 3D position")
+						SetVerdict(self, m, "the game gives no 3D position")
 					end
 				end
 			end
@@ -484,8 +484,9 @@ function A:Tick()
 		end
 		self:UpdateWorld(now)
 	end)
-	-- the group frames have their own guard: a failure there never stops the 3D markers, nor the other way round
+	-- the group frames and the compass bar have their own guards: a failure there never stops the 3D markers, nor the other way round
 	self:FramesTick(now)
+	self:CompassTick(now)
 	if ok then
 		diag.tickErrors = 0
 	else

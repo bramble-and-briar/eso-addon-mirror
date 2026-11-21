@@ -1,0 +1,28 @@
+## Title: Fury's Guild Management Toolset
+## Description: Officer toolkit: guild bank theft and bank-space alerts, bank-hopper report, watchlist, a log of every automatic action with the reason, member status and inactivity alerts, weekly trader sales, tax, bids and donations, history log with export, and the Guild Crier message menu.
+## Author: Furyous
+## Version: 1.2.5
+## AddOnVersion: 59
+## APIVersion: 101051 101052
+## SavedVariables: FuryGMT_SV
+## DependsOn: LibAddonMenu-2.0>=43 LibHistoire>=1112
+
+FurysGuildToolset.lua
+Core/Util.lua
+Core/History.lua
+Core/Actions.lua
+UI/ReportWindow.xml
+UI/ReportWindow.lua
+UI/AutoAlert.xml
+Modules/BankWatch.lua
+Modules/AutoLog.lua
+Modules/HopperWatch.lua
+Modules/EventLog.lua
+Modules/BankCapacity.lua
+Modules/Members.lua
+Modules/TraderWeek.lua
+Crier/Messages.lua
+Crier/Crier.lua
+Crier/CrierSettings.lua
+Settings.lua
+Bindings.xml

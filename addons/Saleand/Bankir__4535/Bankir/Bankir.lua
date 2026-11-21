@@ -1,11 +1,11 @@
 Bankir = Bankir or {}
 
-local name = "Bankir"
-local version = "2.9.7"
-local author = "vexaiv"
+Bankir.name = "Bankir"
+Bankir.author = "vexaiv"
+Bankir.version = "2.9.8"
 
 local function debugPrint(message)
-	d(name .. ": " .. message)
+	d(Bankir.name .. ": " .. message)
 end
 
 local d = debugPrint --override built-in d(...)
@@ -189,7 +189,7 @@ local function countSameItemsInBag(bagId, totalsId)
 end
 
 local function getTotalItemsInBag(bagId, totalsId)
-	uBagId = unifiedBagId(bagId)
+	local uBagId = unifiedBagId(bagId)
 	
 	if not totals[uBagId][totalsId] then
 		local count = countSameItemsInBag(bagId, totalsId)
@@ -208,7 +208,7 @@ local function getTotalItemsInBag(bagId, totalsId)
 end
 
 local function updateTotals(totalsId, bagId, movedCount)
-	bagId = unifiedBagId(bagId)
+	local bagId = unifiedBagId(bagId)
 	totals[bagId][totalsId] = totals[bagId][totalsId] + movedCount
 	--d("totals of " .. itemLink .. " in " .. Bankir.Functions.getBagName(bagId) .. ": " .. totals[bagId][totalsId])
 end
@@ -227,12 +227,20 @@ local function processCurrency(bagId)
 		for currencyType, rules in pairs(Bankir.SVProfile[bagId].currency) do
 			local amount = GetCarriedCurrencyAmount(currencyType) - rules.amount
 			if amount > 0 and rules.push then
-				printToChat(ZO_Currency_GetPlatformFormattedCurrencyIcon(currencyType), amount, BAG_BANK)
-				DepositCurrencyIntoBank(currencyType, amount)
+				printToChat(ZO_Currency_GetPlatformFormattedCurrencyIcon(currencyType), amount, bagId)
+				if bagId == BAG_BANK then
+					DepositCurrencyIntoBank(currencyType, amount)
+				else
+					DepositCurrencyIntoGuildBank(currencyType, amount)
+				end
 			elseif amount < 0 and rules.pull then
 				amount = amount * -1
 				printToChat(ZO_Currency_GetPlatformFormattedCurrencyIcon(currencyType), amount, BAG_BACKPACK)
-				WithdrawCurrencyFromBank(currencyType, amount)
+				if bagId == BAG_BANK then
+					WithdrawCurrencyFromBank(currencyType, amount)
+				else
+					WithdrawCurrencyFromGuildBank(currencyType, amount)
+				end
 			end
 		end
 	end
@@ -728,10 +736,11 @@ local function onBankClose()
 end
 
 local function onAddOnLoaded(event, addonName)
-	if addonName ~= name then return end
-	EVENT_MANAGER:UnregisterForEvent(name, EVENT_ADD_ON_LOADED)
+	if addonName ~= Bankir.name then return end
+	EVENT_MANAGER:UnregisterForEvent(Bankir.name, EVENT_ADD_ON_LOADED)
 	
-	Bankir.Data.getBankBags()
+	Bankir.Data.getBankBagIds()
+	Bankir.Data.getBankNames()
 	Bankir.Data.getCharactersList()
 	
 	local defaultProfileName = "Default"
@@ -758,23 +767,41 @@ local function onAddOnLoaded(event, addonName)
 		BankirSavedVariables.Common.version = version
 	end
 	
-	Bankir.Data.cleanUpResearchCharactersList()
-	Bankir.createSettingsMenu(name, author, version)
-	Bankir.Button = Bankir.createProcessButton()
+	Bankir.Data.updateResearchCharacters()
+	Bankir.Profiles.updateBankProfiles()
+	Bankir.Menu.create()
+	Bankir.Button = Bankir.Functions.createProcessButton()
 	
-	EVENT_MANAGER:RegisterForEvent(name, EVENT_OPEN_BANK, function(eventCode, bankBag)
+	EVENT_MANAGER:RegisterForEvent(Bankir.name, EVENT_OPEN_BANK, function(eventCode, bankBag)
 		onBankOpen(bankBag)
 	end)
-	EVENT_MANAGER:RegisterForEvent(name, EVENT_GUILD_BANK_ITEMS_READY, function()
+	EVENT_MANAGER:RegisterForEvent(Bankir.name, EVENT_GUILD_BANK_ITEMS_READY, function()
 		onBankOpen(BAG_GUILDBANK)
 	end)
-	EVENT_MANAGER:RegisterForEvent(name, EVENT_CLOSE_BANK, onBankClose)
-	EVENT_MANAGER:RegisterForEvent(name, EVENT_CLOSE_GUILD_BANK, onBankClose)
-	EVENT_MANAGER:RegisterForEvent(name, EVENT_GUILD_BANK_SELECTED, function()
+	EVENT_MANAGER:RegisterForEvent(Bankir.name, EVENT_CLOSE_BANK, onBankClose)
+	EVENT_MANAGER:RegisterForEvent(Bankir.name, EVENT_CLOSE_GUILD_BANK, onBankClose)
+	EVENT_MANAGER:RegisterForEvent(Bankir.name, EVENT_GUILD_BANK_SELECTED, function()
 		if Bankir.currentBankBagId then
 			onBankClose()
 		end
 	end)
+	EVENT_MANAGER:RegisterForEvent(Bankir.name, EVENT_GUILD_SELF_JOINED_GUILD, function(eventCode, guildServerId, characterName, guildId)
+		Bankir.Data.onBanksUpdated()
+	end)
+	EVENT_MANAGER:RegisterForEvent(Bankir.name, EVENT_COLLECTIBLES_UNLOCK_STATE_CHANGED, function(eventCode)
+		for id in GetNextDirtyUnlockStateCollectibleIdIter do
+			local collectibleData = ZO_COLLECTIBLE_DATA_MANAGER:GetCollectibleDataById(id)
+			if collectibleData and (collectibleData:IsHouseBank() and not collectibleData:IsFurnitureVault()) then
+				Bankir.Data.onBanksUpdated()
+			end
+		end
+	end)
+	EVENT_MANAGER:RegisterForEvent(Bankir.name, EVENT_COLLECTIBLE_UPDATED, function(eventCode, id)
+		local collectibleData = ZO_COLLECTIBLE_DATA_MANAGER:GetCollectibleDataById(id)
+		if collectibleData and (collectibleData:IsHouseBank() and not collectibleData:IsFurnitureVault()) then
+			Bankir.Data.onBanksUpdated()
+		end
+	end)
 end
 
-EVENT_MANAGER:RegisterForEvent(name, EVENT_ADD_ON_LOADED, onAddOnLoaded)
+EVENT_MANAGER:RegisterForEvent(Bankir.name, EVENT_ADD_ON_LOADED, onAddOnLoaded)

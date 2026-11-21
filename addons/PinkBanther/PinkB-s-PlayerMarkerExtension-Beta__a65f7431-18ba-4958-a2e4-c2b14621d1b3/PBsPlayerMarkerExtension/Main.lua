@@ -9,9 +9,21 @@ A.startErrors = {}
 local function Step(name, fn)
 	local ok, err = pcall(fn)
 	if not ok then
-		A.startErrors[#A.startErrors + 1] = name .. ": " .. tostring(err)
+		local failure = A.startErrors[name] or { count = 0 }
+		failure.count = failure.count + 1
+		failure.message = tostring(err)
+		A.startErrors[name] = failure
 	end
 	return ok
+end
+
+local function StartErrorsText()
+	local lines = {}
+	for name, failure in pairs(A.startErrors) do
+		lines[#lines + 1] = string.format("%s: %s (x%d)", name, failure.message, failure.count)
+	end
+	table.sort(lines)
+	return table.concat(lines, "; ")
 end
 
 -- ---------------------------------------------------------------------------------------
@@ -48,8 +60,8 @@ function A:StatusLines()
 	local now = A.Stamp()
 	add("%s", self.title)
 	add("files that ran: %s", table.concat(self.fileOrder, ", "))
-	if #self.startErrors > 0 then
-		add("start-up problems: %s", table.concat(self.startErrors, "; "))
+	if next(self.startErrors) then
+		add("start-up problems: %s", StartErrorsText())
 	end
 	if not sv then
 		add("the saved variables are not loaded")
@@ -85,6 +97,7 @@ function A:StatusLines()
 		add("group: %d members: %s", #roster.list, #names > 0 and table.concat(names, ", ") or "-")
 	end
 	add("group frames (the names at the top left): %s", self:FramesText())
+	add("compass bar (top of the screen): %s", self:CompassText())
 	local count = 0
 	for hash, m in pairs(self.marks) do
 		count = count + 1
@@ -92,7 +105,7 @@ function A:StatusLines()
 		add("  marker: %s <- %s (%s)%s, owner %s, %s ago%s", tostring(m.name), tostring(m.icon), A.IconName(m.icon),
 			m.mine and " mine" or "", tostring(m.owner), Age(now, m.at),
 			(okRoster and not here) and " [not in the group]" or (here and not here.online) and " [offline]" or "")
-		add("    drawing it: %s", tostring(self.diag.verdict and self.diag.verdict[hash] or "not looked at yet"))
+		add("    drawing it: %s", m.verdict or "not looked at yet")
 	end
 	add("markers: %d | placed %d, taken off %d, refused %d, heard %d, cleared by others %d, ran out %d, person left or offline %d, gave way to the game's own %d",
 		count, self.stats.placed, self.stats.taken, self.stats.refused, self.stats.remoteSet, self.stats.remoteClear,
@@ -199,6 +212,8 @@ function A:Command(input)
 			self:ClearReticle()
 		elseif command == "clear" then
 			self:ActClearAll()
+		elseif command == "compass" then
+			A.Say(self:CompassCommand(words[2] and AsciiLower(words[2])))
 		elseif command == "retry" then
 			self.sv.probe = {}
 			self.lastCrash = nil
@@ -206,6 +221,7 @@ function A:Command(input)
 			self.worldOff = nil
 			self.engineCheck, self.engineClearResult = nil, nil
 			self.pausedUntil = nil
+			self:CompassForget()
 			self:Print(S.retried)
 		else
 			A.Say(S.help)
@@ -294,8 +310,8 @@ local function OnActivated()
 		if A.late then
 			A:Print("(started late, at the first load screen)")
 		end
-		if #A.startErrors > 0 then
-			A:Print(S.notReady, table.concat(A.startErrors, "; "))
+		if next(A.startErrors) then
+			A:Print(S.notReady, StartErrorsText())
 		end
 	end
 end

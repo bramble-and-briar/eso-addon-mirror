@@ -445,11 +445,36 @@ mCooldown.createPart = function(self)
     part:SetDrawTier(1)
     part:SetDrawLevel(1)
   else
-    -- [0/1/2]：高原生图标([0/1/1])一级。铁律：段永不与图标完全平齐
-    -- (平局多段同现会错序，实测)；仍在 Background 层内不跳出树序桶
-    part:SetDrawLayer(DL_BACKGROUND)
-    part:SetDrawTier(1)
-    part:SetDrawLevel(2)
+    -- 主栏段：高原生图标([0/1/1])一级，基准 [0/1/2]。铁律：段永不与图标
+    -- 完全平齐(平局多段同现会错序，实测)。第三方槽位换肤可占更高层桶——
+    -- BUI 换肤的 Edge 边框图 SetDrawLayer(2)=[2/0/0]，layer 是第一比较器，
+    -- 整桶压过 layer0 的段→线被边框图整张盖住(BUI 4.440 实测)。故不硬
+    -- 编码：取本槽子控件三元组的字典序最大值+1 level；无第三方时最大值
+    -- 就是图标 [0/1/1]，算出的仍是 [0/1/2]，与历史行为逐位一致。首个段
+    -- 创建时扫描一次并缓存(后续段也是子控件，重扫会自我通胀)，槽子树
+    -- 异常清空时基准仍保 [0/1/1]→[0/1/2]
+    if not self.placedTripleV then
+      local bl, bt, blv = 0, 1, 1 -- 基准=原生图标(0/1/1)
+      local bg = self.background
+      if bg then
+        -- GetChild 索引约定不可靠：实测第 19 个(=GetNumChildren)返回 nil，
+        -- 猜测为 0 基或带洞。全范围 0..N + nil 守卫，无论哪种基都全覆盖，
+        -- 缺号跳过(实测崩溃：BUI 挂了 Edge/SwapPanel 等子控件后树更大)
+        for i = 0, bg:GetNumChildren() do
+          local c = bg:GetChild(i)
+          if c then
+            local cl, ct, clv = c:GetDrawLayer() or 0, c:GetDrawTier() or 0, c:GetDrawLevel() or 0
+            if cl > bl or (cl == bl and (ct > bt or (ct == bt and clv > blv))) then
+              bl, bt, blv = cl, ct, clv
+            end
+          end
+        end
+      end
+      self.placedTripleL, self.placedTripleT, self.placedTripleV = bl, bt, blv
+    end
+    part:SetDrawLayer(self.placedTripleL)
+    part:SetDrawTier(self.placedTripleT)
+    part:SetDrawLevel(self.placedTripleV + 1)
   end
   part:SetColor(unpack(l.getSavedVars().barCooldownColor))
   local opacity = l.getSavedVars().barCooldownOpacity

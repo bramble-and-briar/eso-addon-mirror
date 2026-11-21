@@ -41,7 +41,13 @@ end
 local function HookLibFights()
     local LF = LibFights
     LF.RegisterCallback(LF.EVENTS.FIGHT_STARTED, StartTicking)
-    LF.RegisterCallback(LF.EVENTS.FIGHT_ENDED, StopTicking)
+    LF.RegisterCallback(LF.EVENTS.FIGHT_ENDED, function(fight)
+        -- add to the battleground totals / history first, so the final
+        -- redraw already includes this fight
+        local ok, err = pcall(M.History.OnFightEnded, fight)
+        if not ok then M.Print("History error: " .. tostring(err)) end
+        StopTicking()
+    end)
     LF.RegisterCallback(LF.EVENTS.LOGGING_STOPPED, StopTicking)
 
     local ok, reason = M.Data.StartLogging(M.saved.groupMode)
@@ -72,6 +78,9 @@ local function OnAddOnLoaded(_, addonName)
     if not ok then M.Print("Settings menu error: " .. tostring(err)) end
 
     M.Commands.Register()
+
+    ok, err = pcall(M.History.Init)
+    if not ok then M.Print("History error: " .. tostring(err)) end
 
     -- Check the textures once the loading screen is gone: the game only loads
     -- textures it draws, and consoles take much longer to get there than PC.

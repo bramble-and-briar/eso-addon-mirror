@@ -28,7 +28,7 @@ local Print = addon.Print
 -- ASCII form in its manifest for the add-on list and the store, as this one does).
 local DISPLAY_NAME = "PB’s FurnitureEditor"
 
--- The name with the version after it, as the other add-ons of the series list themselves: "PB’s FurnitureEditor 1.0.7".
+-- The name with the version after it, as the other add-ons of the series list themselves: "PB’s FurnitureEditor <version>".
 -- The version is read from the manifest in Main.lua; without one the name is listed bare.
 local function PanelTitle()
 	local version = addon.version

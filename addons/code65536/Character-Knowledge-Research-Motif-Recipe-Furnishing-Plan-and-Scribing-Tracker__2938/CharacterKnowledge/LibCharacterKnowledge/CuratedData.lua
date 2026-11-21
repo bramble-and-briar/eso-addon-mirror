@@ -14,6 +14,7 @@ Internal.InvalidIds = {
 	[121098] = true, -- Blueprint: Common Campfire, Outdoor
 	[132173] = true, -- Blueprint: Witches Brazier, Primitive Log
 	[190096] = true, -- Blueprint: High Isle Trapdoor, Common
+	[225133] = true, -- Blueprint: Breton Footbridge, Wooden
 	[226963] = true, -- Round of Canine Cordial Recipe
 	[226964] = true, -- Feast of Indrik Velvet Stew Recipe
 }

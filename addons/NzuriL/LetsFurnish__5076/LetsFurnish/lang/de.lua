@@ -38,6 +38,7 @@ L.core.to_move = { one = "<<1>> zu bewegen", other = "<<1>> zu bewegen" }
 L.core.to_place = { one = "<<1>> zu platzieren", other = "<<1>> zu platzieren" }
 L.core.states_to_switch = { one = "<<1>> Zustand zu wechseln", other = "<<1>> Zustände zu wechseln" }
 L.core.paths_to_set = { one = "<<1>> Pfad festzulegen", other = "<<1>> Pfade festzulegen" }
+L.core.links_to_set = { one = "<<1>> Verbindung festzulegen", other = "<<1>> Verbindungen festzulegen" }
 L.core.already_right = { one = "<<1>> schon richtig", other = "<<1>> schon richtig" }
 L.core.placed_earlier = { one = "<<1>> von einem früheren Durchlauf platziert", other = "<<1>> von einem früheren Durchlauf platziert" }
 L.core.collectibles_unavailable = { one = "<<1>> Sammlungsstück nicht verfügbar", other = "<<1>> Sammlungsstücke nicht verfügbar" }
@@ -51,6 +52,11 @@ L.core.done = "Fertig: <<1>>."
 L.core.done_moved = { one = "<<1>> bewegt", other = "<<1>> bewegt" }
 L.core.done_switched = { one = "<<1>> gewechselt", other = "<<1>> gewechselt" }
 L.core.done_paths = { one = "<<1>> Pfadänderung", other = "<<1>> Pfadänderungen" }
+L.core.done_linked = { one = "<<1>> Verbindung gesetzt", other = "<<1>> Verbindungen gesetzt" }
+L.core.done_unlinked = { one = "<<1>> getrennt", other = "<<1>> getrennt" }
+L.core.done_not_linked = { one = "<<1>> Verbindung nicht gesetzt", other = "<<1>> Verbindungen nicht gesetzt" }
+L.core.path_unread_skipped = "<<1>>: Das Spiel liefert seinen Pfad nicht (nach 1,5 s erneut gelesen), daher wird der Pfad übersprungen und bleibt, wie er ist. Den Einrichtungsmodus zu öffnen, kann helfen."
+L.core.path_unread_recorded = "„<<1>>“ wurde ohne den Pfad von <<2>> aufgezeichnet: Das Spiel lieferte ihn nicht (nach 1,5 s erneut gelesen). Der Pfad im Spiel bleibt, wie er ist."
 L.core.done_placed = { one = "<<1>> platziert", other = "<<1>> platziert" }
 L.core.done_removed = { one = "<<1>> entfernt", other = "<<1>> entfernt" }
 L.core.done_failed = { one = "<<1>> fehlgeschlagen", other = "<<1>> fehlgeschlagen" }
@@ -70,6 +76,10 @@ L.core.get_app = "Hol dir die App LetsFurnish!, um deine Häuser unter Windows i
 L.core.site_asked = "Das Spiel fragt nach, bevor es <<1>> in deinem Browser öffnet."
 L.core.site_by_hand = "Öffne <<1>> in deinem Browser, um die App zu holen."
 L.core.cleared = "Von einer früheren Testversion von LetsFurnish! gespeicherte Layouts wurden geleert: Diese Version liest sie nicht mehr."
+L.window.extra_links_ask = "Zusätzliche Verknüpfungen von <<1>> lösen (<<2>>)? Die im Layout vorgesehenen Verknüpfungen bleiben erhalten."
+L.window.extra_links = "Zusätzliche Verknüpfungen: <<1>>"
+L.window.link_capacity = "<<1>> hätte <<2>> direkt verknüpfte Objekte. Erlaubt sind <<3>>."
+L.window.empty_path_failed = "Das Haus bleibt unverändert. Diese Pfade konnten nicht gesichert werden: <<1>>. Versuche es erneut, sobald die Pfade sichtbar sind."
 L.window.debug_mode = "Detailliertes Protokoll"
 L.window.tip_debug_mode = "Zeichnet Anfragen des Wohneditors, Spielereignisse und Zustandsprüfungen in SavedVariables/LetsFurnish.lua auf. Gib nach dem Auftreten eines Problems /reloadui ein, um das Protokoll zu speichern."
 L.window.layouts = "Layouts"
@@ -90,9 +100,9 @@ L.window.this_house = "Dieses Haus"
 L.window.every_house = "Jedes Haus"
 L.window.expand = "Ausklappen"
 L.window.collapse = "Einklappen"
-L.window.to_place = "Zu platzieren"
-L.window.to_move = "Zu bewegen"
-L.window.to_remove = "Zu entfernen"
+L.window.to_place = "Platzieren"
+L.window.to_move = "Bewegen"
+L.window.to_remove = "Entfernen"
 L.window.missing = "Fehlend"
 L.window.not_craftable = "Nicht herstellbar"
 L.window.in_place = "Am Platz"
@@ -158,6 +168,34 @@ L.window.stands_elsewhere = "steht woanders"
 L.window.other_state = "in einem anderen Zustand"
 L.window.set_path = "Pfad festlegen"
 L.window.other_path = "folgt einem anderen Pfad"
+L.window.path_unread = "Pfad nicht lesbar: übersprungen"
+L.window.link = "Verbinden"
+L.window.unlink = "Trennen"
+L.window.link_to = "nicht mit <<1>> verbunden"
+L.window.linked_extra = "verbunden, anders als aufgezeichnet"
+L.window.linking = "Verbinden"
+L.window.empty_link = "Keine Gruppe ist zum Verknüpfen bereit."
+L.window.destructive = "Destruktiv"
+L.window.empty_house = "Haus leeren"
+L.window.empty_house_ask = "Alle in <<1>> platzierten Einrichtungsgegenstände einlagern? Anzahl: <<2>>. Das betrifft auch Gegenstände aus deinem Layout. Zuerst wird eine Sicherung erstellt."
+L.window.tip_remove_all = "Entfernt alles, was dieses Layout nicht hat, in einem Durchgang, nach einer Rückfrage. Vorher wird eine Sicherung gemacht."
+L.window.link_all = "Alle verbinden"
+L.window.tip_link_all = "Verknüpft alle bereiten Gruppen. Ihre Verknüpfungen werden zuerst gelöst und vom übergeordneten Objekt aus neu erstellt. Zusätzliche Verknüpfungen lassen sich separat lösen."
+L.window.link_group = { one = "<<1>> Einrichtung darunter", other = "<<1>> Einrichtungen darunter" }
+L.window.link_missing = { one = "<<1>> nicht im Haus: zuerst platzieren", other = "<<1>> nicht im Haus: zuerst platzieren" }
+L.window.link_undoes = { one = "hebt <<1>> bestehende Verbindung auf", other = "hebt <<1>> bestehende Verbindungen auf" }
+L.window.under = "unter <<1>>"
+L.window.link_lost = { one = "Das hebt <<1>> bestehende Verbindung auf: <<2>>.", other = "Das hebt <<1>> bestehende Verbindungen auf: <<2>>." }
+L.window.link_lost_item = "<<1>> (verbunden mit <<2>>)"
+L.window.link_tree_ask = "<<1>> und alles darunter wie im Layout verbinden? Jede wird zuerst getrennt, dann von oben nach unten verbunden."
+L.window.link_all_ask = { one = "<<1>> Gruppe wie im Layout verbinden? Jede Einrichtung wird zuerst getrennt, dann von oben nach unten verbunden.", other = "<<1>> Gruppen wie im Layout verbinden? Jede Einrichtung wird zuerst getrennt, dann von oben nach unten verbunden." }
+L.window.unlink_all = "Alle trennen"
+L.window.unlink_all_note = { one = "<<1>> Verbindung in diesem Haus", other = "<<1>> Verbindungen in diesem Haus" }
+L.window.unlink_all_ask = { one = "<<1>> Verbindung in diesem Haus aufheben, egal was das Layout sagt? Jede Einrichtung bleibt, wo sie steht. Zuerst wird das Haus gesichert.", other = "Alle <<1>> Verbindungen in diesem Haus aufheben, egal was das Layout sagt? Jede Einrichtung bleibt, wo sie steht. Zuerst wird das Haus gesichert." }
+L.window.place_from = "Alles aus <<1>> platzieren"
+L.window.place_from_note = { one = "<<1>> Einrichtung, um dich herum platziert", other = "<<1>> Einrichtungen, um dich herum platziert" }
+L.window.place_from_ask = { one = "<<1>> Einrichtung aus <<2>> um dich herum platzieren, egal was das Layout sagt? Zuerst wird das Haus gesichert.", other = "<<1>> Einrichtungen aus <<2>> um dich herum platzieren, egal was das Layout sagt? Zuerst wird das Haus gesichert." }
+L.window.place_from_over = { one = "<<1>> passt nicht in die Grenzen des Hauses und bleibt.", other = "<<1>> passen nicht in die Grenzen des Hauses und bleiben." }
 L.window.not_in_layout = "nicht in diesem Layout"
 L.window.share_context = "Ein Layout als eine Zeile Text"
 L.window.every_house_count = "Jedes Haus: <<1>>"
@@ -230,7 +268,6 @@ L.window.tip_tick_all = "Hakt jeden fehlenden Einrichtungsgegenstand ab, dessen 
 L.window.tip_untick_all = "Entfernt alle Haken."
 L.window.tip_place_all = "Platziert alles unter „Zu platzieren“ in einem Durchgang, nach einer Rückfrage. Ein Pfad wird gesetzt, sobald sein Gegenstand steht. Vorher wird eine Sicherung gemacht."
 L.window.tip_move_all = "Bewegt, wechselt und setzt die Pfade von allem unter „Zu bewegen“ in einem Durchgang, nach einer Rückfrage. Vorher wird eine Sicherung gemacht."
-L.window.tip_remove_all = "Entfernt alles, was dieses Layout nicht hat, in einem Durchgang, nach einer Rückfrage. Vorher wird eine Sicherung gemacht."
 L.window.tip_back_up = "Hält dieses Haus so fest, wie es jetzt ist, um dorthin zurückzusetzen."
 L.window.tip_house_code = "Erstellt den Layout-Code dieses Hauses, für einen Freund oder die App."
 L.window.tip_read_code = "Liest den eingefügten Code: Sein Layout kommt zu den Layouts."
@@ -308,6 +345,7 @@ L.window.log_what_not_taken = "beantwortet, aber er blieb im Haus"
 L.window.log_what_late = "nach der Wartezeit ausgeführt"
 L.window.log_what_not_put_away = "nicht verstaut"
 L.window.log_what_conform = "„Am Boden ausrichten“ nicht wie gewünscht"
+L.window.log_what_link = "Verbindung nicht gesetzt"
 L.window.log_what_stopped = "der Durchgang wurde angehalten"
 L.window.log_why_too_fast = "zu viele Anfragen in Folge nicht ausgeführt"
 L.window.log_why_no_place = "ein Gegenstand an keinem eingestellten Ort zum Nehmen"
@@ -328,6 +366,9 @@ L.window.keep_backup_save = "Speichern"
 L.window.keep_backup_menu = "Als Layout speichern …"
 L.window.log_what_skipped = "übersprungen"
 L.window.log_why_path_unconfirmed = "eine Änderung seines Pfads wurde nicht ausgeführt"
+L.window.log_why_path_unread = "das Spiel liefert die Punkte seines Pfads noch nicht: Einrichtungsmodus öffnen und erneut versuchen"
+L.window.log_why_link_no_parent = "die Einrichtung, mit der es verbunden wird, ist nicht im Haus"
+L.window.log_why_link_no_child = "es ist nicht im Haus"
 L.window.log_solved_count = { one = "<<1>> vom Addon gelöst", other = "<<1>> vom Addon gelöst" }
 L.window.log_solved_retried = "gelöst: beim zweiten Versuch ausgeführt, nach <<1>> s"
 L.window.log_solved_other_place = "gelöst: <<1>> hat ihn genommen"
@@ -410,6 +451,8 @@ L.house.part_last_next = "Füge als Nächstes Teil <<1>> ein, den letzten."
 L.house.part_other = "dieser Teil gehört zu einem anderen Code als die <<1>> von <<2>> Teilen, die schon da sind: Erst „Teile verwerfen“, um mit ihm zu beginnen"
 L.house.vault_needs_plus = "Braucht ESO Plus."
 L.house.vault_locked = "Der Einrichtungstresor ist nicht freigeschaltet."
+L.house.no_position = "Dein Standort im Haus ist unbekannt: Stell dich ins Haus und versuche es erneut."
+L.house.nothing_to_place_from = "Nichts in <<1>> kann in diesem Haus platziert werden."
 L.house.chest_locked = "<<1>> ist nicht freigeschaltet."
 L.house.chest_numbered = "<<1>> (<<2>>)"
 L.house.into = "<<1>> in <<2>>"
@@ -451,6 +494,7 @@ L.code.part_unreadable = "ein Teil eines Codes, der beschädigt oder abgeschnitt
 L.code.parts_missing = "nicht alle <<1>> Teile des Codes sind da: Füge auch die fehlenden ein"
 L.code.parts_mismatch = "die Teile ergeben keinen Code: Kopiere sie alle erneut aus demselben Code"
 L.code.parts_mixed = "Teile verschiedener Codes: Füge die Teile jeweils nur eines Codes ein"
+L.stock.inventory = "Inventar"
 L.stock.storage = "Lagertruhen"
 L.stock.vault = "Speicher"
 L.stock.placed_here = "Hier platziert"

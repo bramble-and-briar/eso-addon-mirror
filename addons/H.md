@@ -100,7 +100,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [HideGroupNecro](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/B7TxSpeed/HideGroupNecro__3472) | B7TxSpeed | PC / Mac | 1.5.1 |
 | [HideHousePreviews (Updated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Zandar/HideHousePreviews-Updated__3175) | Zandar | PC / Mac | 3.0.5 |
 | [HideHousePreviews on World Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baumkuchen3/HideHousePreviews-on-World-Map__2245) | Baumkuchen3 | PC / Mac | 3.0.25 |
-| [HideInventoryClutter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/HideInventoryClutter__3247) | Schrodi | PC / Mac | 2.0 |
+| [HideInventoryClutter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/HideInventoryClutter__3247) | Schrodi | PC / Mac | 2.2.0 |
 | [HideLoginAnnouncement](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/anathemort/HideLoginAnnouncement__2009) | anathemort | PC / Mac | 1.2.1 |
 | [HideLoginNotice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HideLoginNotice__4248) | VollständigerName | PC / Mac | 1.0.3 |
 | [HidePlayerMapMarker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HidePlayerMapMarker__4249) | VollständigerName | PC / Mac | 1.0.2 |

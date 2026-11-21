@@ -6,7 +6,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 
 | Add-on | Author | Platform | Version |
 | --- | --- | --- | --- |
-| [M-E](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/M-E__7b985ca5-bafc-42c9-be94-041c712725d9) | user562x | Console | — |
 | [m00ny's SupportIconsExtension  - icon pack for OdySupportIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/m00ny-s-SupportIconsExtension---icon-pack-for-OdySupportIcons__3558) | m00nyONE | PC / Mac | 1.1.0 |
 | [Maarselok Helmet Proc cooldown tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dowinterfor6/Maarselok-Helmet-Proc-cooldown-tracker__2424) | dowinterfor6 | PC / Mac | 2.0.0 |
 | [Maarselok HM Pad Markers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/psi-pisi/Maarselok-HM-Pad-Markers__4104) | psi-pisi | PC / Mac | 1.0.1 |
@@ -203,6 +202,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [MyDebuffLog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Unfounded_Puppy3/MyDebuffLog__eae4a86c-cd3b-44d0-81f9-5ca0caf0eb10) | Unfounded_Puppy3 | Console | — |
 | [MyDung](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awfuldead/MyDung__2888) | awfuldead | PC / Mac | 1.1.1 |
 | [MyDynamicCamera](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/vatechier/MyDynamicCamera__4115) | vatechier | PC / Mac | 1 |
+| [MyExtras](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/MyExtras__7b985ca5-bafc-42c9-be94-041c712725d9) | user562x | Console | — |
 | [MyGridHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Unfounded_Puppy3/MyGridHelper__36ae3d1e-dbb6-45d2-b0a4-30934a0634f8) | Unfounded_Puppy3 | Console | — |
 | [MyMapPos](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Unfounded_Puppy3/MyMapPos__2c07f374-57bc-4f20-814f-d40e4d93285b) | Unfounded_Puppy3 | Console | — |
 | [MyOmBuffHUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Unfounded_Puppy3/MyOmBuffHUD__c8d15550-8307-43a1-9803-acf475da93bd) | Unfounded_Puppy3 | Console | — |

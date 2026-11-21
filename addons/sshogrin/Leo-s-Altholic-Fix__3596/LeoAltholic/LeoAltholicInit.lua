@@ -6,7 +6,7 @@ LeoAltholicToolbarUI = LeoAltholicToolbarUI or {}
 
 LeoAltholic.name = "LeoAltholic"
 LeoAltholic.displayName = "Leo's Altholic"
-LeoAltholic.version = "1.9.5"
+LeoAltholic.version = "1.9.7"
 LeoAltholic.chatPrefix = "|c39B027" .. LeoAltholic.name .. "|r: "
 
 LeoAltholic.TAB_BIO = "Bio"

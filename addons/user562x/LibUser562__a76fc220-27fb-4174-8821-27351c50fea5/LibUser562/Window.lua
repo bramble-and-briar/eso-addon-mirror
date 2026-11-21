@@ -262,20 +262,136 @@ local function SetLabelColor(label, focused)
     label:SetColor(c[1], c[2], c[3], c[4])
 end
 
+--------------------------------------------------
+-- Round Boxes
+--------------------------------------------------
+local ROUND_FILL = "LibUser562/Textures/boxfill.dds"
+local ROUND_EDGE = "LibUser562/Textures/boxedge.dds"
+local ROUND_COORDS = {
+    { 0,    0.25, 0,    0.25 }, { 0.25, 0.75, 0,    0.25 }, { 0.75, 1,    0,    0.25 },
+    { 0,    0.25, 0.25, 0.75 }, { 0.25, 0.75, 0.25, 0.75 }, { 0.75, 1,    0.25, 0.75 },
+    { 0,    0.25, 0.75, 1    }, { 0.25, 0.75, 0.75, 1    }, { 0.75, 1,    0.75, 1    },
+}
+local PANE_CORNER  = 20
+local ROW_CORNER   = 12
+local STRIP_CORNER = 2
+local PANE_LEVEL   = 0
+local ROW_LEVEL    = 1
+local CONTENT_LIFT = 2
+
+local rounds = setmetatable({}, { __mode = "k" })
+local roundPieces = setmetatable({}, { __mode = "k" })
+local lifted = setmetatable({}, { __mode = "k" })
+
+local function RoundPieces(holder, file, level)
+    local pieces = {}
+    for i = 1, #ROUND_COORDS do
+        local piece = WINDOW_MANAGER:CreateControl(nil, holder, CT_TEXTURE)
+        local c = ROUND_COORDS[i]
+        piece:SetTexture(file)
+        piece:SetTextureCoords(c[1], c[2], c[3], c[4])
+        piece:SetDrawLevel(level)
+        roundPieces[piece] = true
+        pieces[i] = piece
+    end
+    return pieces
+end
+
+local function LiftContent(control)
+    if not control or roundPieces[control] then return end
+    if not lifted[control] then
+        lifted[control] = true
+        if control.GetDrawLevel and control.SetDrawLevel then
+            control:SetDrawLevel(control:GetDrawLevel() + CONTENT_LIFT)
+        end
+    end
+    local count = control.GetNumChildren and control:GetNumChildren() or 0
+    for i = 1, count do
+        LiftContent(control:GetChild(i))
+    end
+end
+
+local function LiftWindow()
+    local root = LibUser562_WindowRoot
+    if not root then return end
+    local count = root:GetNumChildren()
+    for i = 1, count do
+        LiftContent(root:GetChild(i))
+    end
+end
+
+local function PlaceRound(pieces, box, r)
+    for i = 1, #pieces do pieces[i]:ClearAnchors() end
+    pieces[1]:SetAnchor(TOPLEFT, box, TOPLEFT, 0, 0)
+    pieces[1]:SetDimensions(r, r)
+    pieces[3]:SetAnchor(TOPRIGHT, box, TOPRIGHT, 0, 0)
+    pieces[3]:SetDimensions(r, r)
+    pieces[7]:SetAnchor(BOTTOMLEFT, box, BOTTOMLEFT, 0, 0)
+    pieces[7]:SetDimensions(r, r)
+    pieces[9]:SetAnchor(BOTTOMRIGHT, box, BOTTOMRIGHT, 0, 0)
+    pieces[9]:SetDimensions(r, r)
+    pieces[2]:SetAnchor(TOPLEFT, box, TOPLEFT, r, 0)
+    pieces[2]:SetAnchor(BOTTOMRIGHT, box, TOPRIGHT, -r, r)
+    pieces[8]:SetAnchor(TOPLEFT, box, BOTTOMLEFT, r, -r)
+    pieces[8]:SetAnchor(BOTTOMRIGHT, box, BOTTOMRIGHT, -r, 0)
+    pieces[4]:SetAnchor(TOPLEFT, box, TOPLEFT, 0, r)
+    pieces[4]:SetAnchor(BOTTOMRIGHT, box, BOTTOMLEFT, r, -r)
+    pieces[6]:SetAnchor(TOPLEFT, box, TOPRIGHT, -r, r)
+    pieces[6]:SetAnchor(BOTTOMRIGHT, box, BOTTOMRIGHT, 0, -r)
+    pieces[5]:SetAnchor(TOPLEFT, box, TOPLEFT, r, r)
+    pieces[5]:SetAnchor(BOTTOMRIGHT, box, BOTTOMRIGHT, -r, -r)
+end
+
+local function TintRound(pieces, r, g, b, a)
+    for i = 1, #pieces do pieces[i]:SetColor(r, g, b, a) end
+end
+
+local function RoundFor(bg, corner)
+    local box = rounds[bg]
+    if box ~= nil then return box or nil end
+    local holder = bg.GetNamedChild and bg:GetNamedChild("Round")
+    if not holder then
+        rounds[bg] = false
+        return nil
+    end
+    local level = corner == ROW_CORNER and ROW_LEVEL or PANE_LEVEL
+    box = { fill = RoundPieces(holder, ROUND_FILL, level), edge = RoundPieces(holder, ROUND_EDGE, level) }
+    PlaceRound(box.fill, holder, corner)
+    PlaceRound(box.edge, holder, corner)
+    rounds[bg] = box
+    return box
+end
+
+local function SetBoxColors(bg, corner, cr, cg, cb, ca, er, eg, eb, ea)
+    local box = RoundFor(bg, corner)
+    if box then
+        bg:SetCenterColor(0, 0, 0, 0)
+        bg:SetEdgeColor(0, 0, 0, 0)
+        TintRound(box.fill, cr, cg, cb, ca)
+        TintRound(box.edge, er, eg, eb, ea)
+    else
+        bg:SetCenterColor(cr, cg, cb, ca)
+        bg:SetEdgeColor(er, eg, eb, ea)
+    end
+end
+
 local function ApplyRowBackdrop(bg, selected, active, color)
     if selected then
-        bg:SetCenterColor(color[1] * 0.3, color[2] * 0.3, color[3] * 0.3, active and 0.85 or 0.6)
-        bg:SetEdgeColor(color[1], color[2], color[3], active and 1 or 0.55)
+        SetBoxColors(bg, ROW_CORNER,
+            color[1] * 0.3, color[2] * 0.3, color[3] * 0.3, active and 0.85 or 0.6,
+            color[1], color[2], color[3], active and 1 or 0.55)
     else
-        bg:SetCenterColor(ROW_CENTER[1], ROW_CENTER[2], ROW_CENTER[3], S.rowAlpha)
-        bg:SetEdgeColor(ROW_EDGE[1], ROW_EDGE[2], ROW_EDGE[3], ROW_EDGE[4])
+        SetBoxColors(bg, ROW_CORNER,
+            ROW_CENTER[1], ROW_CENTER[2], ROW_CENTER[3], S.rowAlpha,
+            ROW_EDGE[1], ROW_EDGE[2], ROW_EDGE[3], ROW_EDGE[4])
     end
 end
 
 local function ApplyPane(control, color, edgeAlpha)
     if not control then return end
-    control:SetCenterColor(PANE_CENTER[1], PANE_CENTER[2], PANE_CENTER[3], S.paneAlpha)
-    control:SetEdgeColor(color[1], color[2], color[3], edgeAlpha)
+    SetBoxColors(control, PANE_CORNER,
+        PANE_CENTER[1], PANE_CENTER[2], PANE_CENTER[3], S.paneAlpha,
+        color[1], color[2], color[3], edgeAlpha)
 end
 
 local function ColorHex(color)
@@ -393,6 +509,7 @@ function FixedList:EnsureRow(index)
     row:SetAnchor(TOPLEFT, self.control, TOPLEFT, 0, (index - 1) * (self.rowHeight + self.rowGap))
     row:SetHidden(true)
     if self.onRowCreated then self.onRowCreated(row) end
+    LiftContent(row)
     self.rows[index] = row
     return row
 end
@@ -940,8 +1057,7 @@ local function SettingRowSetup(control, data, selected, reselectingDuringRebuild
     HideValueParts(parts)
 
     if kind == "header" then
-        parts.bg:SetCenterColor(0, 0, 0, 0)
-        parts.bg:SetEdgeColor(0, 0, 0, 0)
+        SetBoxColors(parts.bg, ROW_CORNER, 0, 0, 0, 0, 0, 0, 0, 0)
         parts.name:SetColor(ACCENT[1], ACCENT[2], ACCENT[3], 1)
         return
     end
@@ -1199,9 +1315,9 @@ function S.RefreshPaneVisuals()
     local colors = { left, middle, right }
     for i = 1, #STRIPS do
         local control, color = STRIPS[i], colors[i]
-        control:SetCenterColor(color[1], color[2], color[3], 1)
-        control:SetEdgeColor(0, 0, 0, 0)
+        SetBoxColors(control, STRIP_CORNER, color[1], color[2], color[3], 1, 0, 0, 0, 0)
     end
+    LiftWindow()
 end
 
 function S.RefreshPageTitle()
@@ -1617,7 +1733,7 @@ function S.RefreshKeybinds()
     local defaultsVisible = S.PageHasDefaults()
     local sliderVisible = S.IsSliderSelected()
     local hasItems = S.settingsList ~= nil and S.settingsList:GetNumItems() > 0
-    local canPage = S.CanPage()
+    local canPage = S.PageMode() or false
     local always = S.panel ~= nil and S.panel.hasExtraKeybinds == true
     if not always
         and state.pane == S.pane
@@ -1662,6 +1778,7 @@ function S.RefreshAll()
     S.detailsOption = nil
     S.RefreshDetails()
     S.RefreshKeybinds()
+    LiftWindow()
 end
 
 --------------------------------------------------
@@ -1795,23 +1912,115 @@ function S.IsSliderSelected()
     return opt ~= nil and opt.type == "slider" and not IsDisabled(opt)
 end
 
+local function ActiveList()
+    if S.pane == PANE_SETTINGS then return S.settingsList end
+    if S.pane == PANE_CATEGORIES then return S.categoryList end
+    return nil
+end
+
+local function SectionStarts(list)
+    local entries = list.entries
+    local starts, tops = {}, {}
+    local first = list:FindSelectable(1, 1)
+    if first then
+        starts[1] = first
+        tops[1] = 1
+    end
+    for i = 1, #entries do
+        local data = entries[i]
+        if data and data.libOption and data.libOption.type == "header" then
+            local row = list:FindSelectable(i + 1, 1)
+            if row and row ~= starts[#starts] then
+                local nextHeader = false
+                for j = i + 1, row - 1 do
+                    local between = entries[j]
+                    if between and between.libOption and between.libOption.type == "header" then nextHeader = true break end
+                end
+                if not nextHeader then
+                    starts[#starts + 1] = row
+                    tops[#tops + 1] = i
+                end
+            elseif row and row == starts[#starts] then
+                tops[#tops] = i
+            end
+        end
+    end
+    return starts, tops
+end
+
+local function NextSection(list)
+    local starts, tops = SectionStarts(list)
+    local current = list:GetSelectedIndex()
+    for k = 1, #starts do
+        if starts[k] > current then return starts[k], tops[k] end
+    end
+    return nil
+end
+
+local function PreviousSection(list)
+    local starts, tops = SectionStarts(list)
+    local current = list:GetSelectedIndex()
+    for k = #starts, 1, -1 do
+        if starts[k] < current then return starts[k], tops[k] end
+    end
+    return nil
+end
+
+function S.PageMode()
+    local list = ActiveList()
+    if not list then return nil end
+    if S.pane == PANE_SETTINGS and #SectionStarts(list) >= 2 then return "sections" end
+    local count = list:GetNumItems()
+    if count < 2 then return nil end
+    local first = list:FindSelectable(1, 1)
+    local last = list:FindSelectable(count, -1)
+    if not first or not last or first == last then return nil end
+    if count <= list.visibleRows * 2 then return "ends" end
+    return "page"
+end
+
 function S.CanPage()
-    if S.pane ~= PANE_SETTINGS then return false end
-    local list = S.settingsList
-    return list ~= nil and list:GetNumItems() > list.visibleRows
+    return S.PageMode() ~= nil
 end
 
 function S.PageMove(direction)
-    local list = S.settingsList
-    if not list then return end
-    local step = list.visibleRows - 1
-    if step < 1 then step = 1 end
+    local list = ActiveList()
+    local mode = S.PageMode()
+    if not (list and mode) then return end
     local before = list:GetSelectedIndex()
-    local target = before + direction * step
     local count = list:GetNumItems()
-    if target < 1 then target = 1 end
-    if target > count then target = count end
-    target = list:FindSelectable(target, direction) or list:FindSelectable(target, -direction)
+    local target
+    if mode == "sections" then
+        local top
+        if direction > 0 then
+            target, top = NextSection(list)
+            if not target then target = list:FindSelectable(count, -1) end
+        else
+            target, top = PreviousSection(list)
+        end
+        if not target or target == before then return end
+        list:SetSelectedIndexWithoutAnimation(target)
+        if top then
+            list.firstIndex = top
+            list:KeepSelectionVisible()
+            list:RefreshVisible()
+        end
+        PlaySound(direction > 0 and SOUNDS.GAMEPAD_MENU_DOWN or SOUNDS.GAMEPAD_MENU_UP)
+        return
+    elseif mode == "ends" then
+        if direction > 0 then
+            target = list:FindSelectable(count, -1)
+        else
+            target = list:FindSelectable(1, 1)
+        end
+    else
+        local step = list.visibleRows - 1
+        if step < 1 then step = 1 end
+        target = before + direction * step
+        if target < 1 then target = 1 end
+        if target > count then target = count end
+        target = list:FindSelectable(target, direction) or list:FindSelectable(target, -direction)
+    end
     if not target or target == before then return end
     list:SetSelectedIndexWithoutAnimation(target)
     PlaySound(direction > 0 and SOUNDS.GAMEPAD_MENU_DOWN or SOUNDS.GAMEPAD_MENU_UP)
@@ -1849,7 +2058,10 @@ S.keybinds = {
     {
         name = function()
             if S.IsSliderSelected() then return "Decrease" end
-            return "Scroll Up"
+            local mode = S.PageMode()
+            if mode == "sections" then return "Previous Section" end
+            if mode == "page" then return "Page Up" end
+            return "Top"
         end,
         keybind = "UI_SHORTCUT_LEFT_TRIGGER",
         visible = function() return S.IsSliderSelected() or S.CanPage() end,
@@ -1860,7 +2072,13 @@ S.keybinds = {
     {
         name = function()
             if S.IsSliderSelected() then return "Increase" end
-            return "Scroll Down"
+            local mode = S.PageMode()
+            if mode == "sections" then
+                if S.settingsList and NextSection(S.settingsList) then return "Next Section" end
+                return "Bottom"
+            end
+            if mode == "page" then return "Page Down" end
+            return "Bottom"
         end,
         keybind = "UI_SHORTCUT_RIGHT_TRIGGER",
         visible = function() return S.IsSliderSelected() or S.CanPage() end,
@@ -2717,6 +2935,212 @@ function Panel:ApplyAccent()
     if S.panel ~= self then return end
     S:ApplyAccent()
 end
+
+--------------------------------------------------
+-- Notice
+--------------------------------------------------
+local function SetupNotice()
+    local NOTICE_SCENE   = SCENE_PREFIX .. "Notice"
+    local NOTICE_UPDATE  = SCENE_PREFIX .. "NoticeWait"
+    local NOTICE_WAIT_MS = 1500
+    local NOTICE_GAP     = 36
+    local NOTICE_MARGIN  = 40
+    local NOTICE_SIZES   = { 48, 45, 42, 40, 38, 36, 34, 32, 30, 28, 26 }
+    local HEADING_RATIO  = 1.5
+
+    local queue = {}
+    local current
+    local scene
+    local keybinds
+    local keybindsAdded = false
+    local frameColor = { 1, 1, 1 }
+
+    local function NoticeColors(menu)
+        local custom = menu and Resolve(menu.frameColor)
+        if type(custom) == "table" then
+            frameColor[1] = custom.r or custom[1] or 1
+            frameColor[2] = custom.g or custom[2] or 1
+            frameColor[3] = custom.b or custom[3] or 1
+            return frameColor, frameColor, frameColor, frameColor
+        end
+        return COLOR_DC, COLOR_AD, COLOR_EP, HEADER_EDGE
+    end
+
+    local function NoticeAlpha(menu)
+        local pct = tonumber(menu and Resolve(menu.windowOpacity)) or DEFAULT_OPACITY
+        if pct < 0 then pct = 0 elseif pct > 100 then pct = 100 end
+        return pct / 100
+    end
+
+    local function NoticePane(control, color, alpha)
+        SetBoxColors(control, PANE_CORNER,
+            PANE_CENTER[1], PANE_CENTER[2], PANE_CENTER[3], alpha,
+            color[1], color[2], color[3], 1)
+    end
+
+    local function LayoutNotice()
+        local frame = LibUser562_NoticeFrame
+        local body = LibUser562_NoticeFrameBody
+        local rootW, rootH = GuiRoot:GetDimensions()
+        if type(rootW) ~= "number" or rootW <= 0 then rootW = 1920 end
+        if type(rootH) ~= "number" or rootH <= 0 then rootH = 1080 end
+        local availW = rootW - FRAME_SIDE_MARGIN * 2
+        local footer = (tonumber(ZO_KEYBIND_STRIP_GAMEPAD_VISUAL_HEIGHT) or 125) + FRAME_FOOTER_GAP
+        local availH = rootH - FRAME_TOP - footer
+        local scale = 1
+        if availW < FRAME_WIDTH then scale = availW / FRAME_WIDTH end
+        if availH < (PANE_TOP + PANE_MIN_HEIGHT) * scale then
+            scale = availH / (PANE_TOP + PANE_MIN_HEIGHT)
+        end
+        local frameH = availH / scale
+        local paneH = frameH - PANE_TOP
+        frame:SetScale(scale)
+        frame:SetDimensions(FRAME_WIDTH, frameH)
+        body:SetHeight(paneH)
+
+        local heading = LibUser562_NoticeFrameBodyHeading
+        local text = LibUser562_NoticeFrameBodyText
+        local hasHeading = heading:GetText() ~= ""
+        local room = paneH - NOTICE_MARGIN * 2
+        local gap = hasHeading and NOTICE_GAP or 0
+        local total
+        for i = 1, #NOTICE_SIZES do
+            local size = NOTICE_SIZES[i]
+            heading:SetFont(GamepadFont(math.floor(size * HEADING_RATIO + 0.5)))
+            text:SetFont(GamepadFont(size))
+            local headingH = hasHeading and heading:GetTextHeight() or 0
+            total = headingH + gap + text:GetTextHeight()
+            if total <= room then break end
+        end
+        local top = (paneH - total) / 2
+        if top < NOTICE_MARGIN then top = NOTICE_MARGIN end
+        heading:ClearAnchors()
+        heading:SetAnchor(TOP, body, TOP, 0, top)
+        text:ClearAnchors()
+        text:SetAnchor(TOP, heading, BOTTOM, 0, gap)
+    end
+
+    local function FillNotice(info)
+        local menu = info.menu or {}
+        local title = info.title ~= nil and ResolveText(info.title) or ResolveText(menu.title)
+        local version = info.version ~= nil and ResolveText(info.version) or ResolveText(menu.version)
+        local author = info.author ~= nil and ResolveText(info.author) or ResolveText(menu.author)
+        LibUser562_NoticeFrameHeaderTitle:SetText(title)
+        LibUser562_NoticeFrameHeaderVersion:SetText(version ~= "" and ("Version " .. version) or "")
+        LibUser562_NoticeFrameHeaderAuthor:SetText(author)
+        LibUser562_NoticeFrameHeaderAuthorTitle:SetHidden(author == "")
+        LibUser562_NoticeFrameBodyHeading:SetText(ResolveText(info.heading))
+        LibUser562_NoticeFrameBodyText:SetText(ResolveText(info.text))
+
+        local left, middle, right, header = NoticeColors(menu)
+        local alpha = NoticeAlpha(menu)
+        NoticePane(LibUser562_NoticeFrameHeader, header, alpha)
+        NoticePane(LibUser562_NoticeFrameBody, header, alpha)
+        local strips = { LibUser562_NoticeFrameStripDC, LibUser562_NoticeFrameStripAD, LibUser562_NoticeFrameStripEP }
+        local colors = { left, middle, right }
+        for i = 1, #strips do
+            local color = colors[i]
+            SetBoxColors(strips[i], STRIP_CORNER, color[1], color[2], color[3], 1, 0, 0, 0, 0)
+        end
+        local root = LibUser562_Notice
+        for i = 1, root:GetNumChildren() do
+            LiftContent(root:GetChild(i))
+        end
+        LayoutNotice()
+    end
+
+    local function CloseNotice()
+        if scene and scene:IsShowing() then
+            SCENE_MANAGER:Hide(NOTICE_SCENE)
+        end
+    end
+
+    local function CanShowNotice()
+        if not SCENE_MANAGER then return false end
+        if IsUnitInCombat("player") or IsUnitDead("player") then return false end
+        return SCENE_MANAGER:IsShowing("hud") or SCENE_MANAGER:IsShowing("hudui")
+    end
+
+    local function StopWaiting()
+        EVENT_MANAGER:UnregisterForUpdate(NOTICE_UPDATE)
+    end
+
+    local function TryShowNotice()
+        if current or #queue == 0 then
+            if #queue == 0 then StopWaiting() end
+            return
+        end
+        if not CanShowNotice() then return end
+        current = table.remove(queue, 1)
+        if #queue == 0 then StopWaiting() end
+        SCENE_MANAGER:Push(NOTICE_SCENE)
+    end
+
+    local function StartWaiting()
+        EVENT_MANAGER:UnregisterForUpdate(NOTICE_UPDATE)
+        EVENT_MANAGER:RegisterForUpdate(NOTICE_UPDATE, NOTICE_WAIT_MS, TryShowNotice)
+    end
+
+    local function EnsureNoticeScene()
+        if scene then return true end
+        if not (LibUser562_Notice and SCENE_MANAGER and ZO_Scene) then return false end
+        keybinds = {
+            alignment = KEYBIND_STRIP_ALIGN_CENTER,
+            {
+                name     = GetString(SI_OK),
+                keybind  = "UI_SHORTCUT_PRIMARY",
+                callback = CloseNotice,
+            },
+            {
+                name     = GetString(SI_GAMEPAD_BACK_OPTION),
+                keybind  = "UI_SHORTCUT_NEGATIVE",
+                ethereal = true,
+                callback = CloseNotice,
+            },
+        }
+        scene = SCENE_MANAGER:GetScene(NOTICE_SCENE) or ZO_Scene:New(NOTICE_SCENE, SCENE_MANAGER)
+        scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
+        scene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD_OPTIONS)
+        scene:AddFragment(MINIMIZE_CHAT_FRAGMENT)
+        scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
+        scene:AddFragment(ZO_FadeSceneFragment:New(LibUser562_Notice))
+        scene:RegisterCallback("StateChange", function(_, newState)
+            if newState == SCENE_SHOWING then
+                if current then pcall(FillNotice, current) end
+                if not keybindsAdded then
+                    KEYBIND_STRIP:AddKeybindButtonGroup(keybinds)
+                    keybindsAdded = true
+                end
+            elseif newState == SCENE_HIDING then
+                if keybindsAdded then
+                    KEYBIND_STRIP:RemoveKeybindButtonGroup(keybinds)
+                    keybindsAdded = false
+                end
+            elseif newState == SCENE_HIDDEN then
+                local done = current
+                current = nil
+                if done and type(done.onClose) == "function" then pcall(done.onClose) end
+                if #queue > 0 then StartWaiting() end
+            end
+        end)
+        return true
+    end
+
+    function L:ShowNotice(info)
+        if type(info) ~= "table" then return false end
+        if not EnsureNoticeScene() then return false end
+        queue[#queue + 1] = info
+        StartWaiting()
+        return true
+    end
+
+    function Panel:ShowNotice(info)
+        if type(info) ~= "table" then return false end
+        info.menu = info.menu or self.menu
+        return L:ShowNotice(info)
+    end
+end
+SetupNotice()
 
 --------------------------------------------------
 -- API

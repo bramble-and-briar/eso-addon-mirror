@@ -1,11 +1,11 @@
 ## To release a new version, edit the version in the two lines below and nothing else.
 ## |cRRGGBB...|r in Title and Author colours them in the in-game add-on list; the version
 ## is read back through that markup, so it can sit inside or outside the colour.
-## Title: |cFF69B4PB's PlayerMarkerExtension|r 0.4.4
+## Title: |cFF69B4PB's PlayerMarkerExtension|r 0.4.7
 ## Author: |cFF69B4PinkBanther|r
 ## Description: More target markers for your group. The game's own marker wheel (hold D-pad right) has eight markers; this adds a "clear" entry and up to thirty-five more (shield, drop, sword, arrow, heart, crown, flag, bomb, eleven colour rangers and others) after them, and puts them over the heads of the people in your group. With LibGroupBroadcast the markers you put on are shown to every group member who has this add-on. The extra markers go on group members only: the game cannot be asked where anybody else is.
-## Version: 0.4.4
-## AddOnVersion: 8
+## Version: 0.4.7
+## AddOnVersion: 11
 ## APIVersion: 101050 101051
 ## OptionalDependsOn: LibHarvensAddonSettings>=20106 LibGroupBroadcast
 ## SavedVariables: PBsPlayerMarkerExtension_Data
@@ -21,6 +21,7 @@ Share.lua
 Wheel.lua
 World.lua
 Frames.lua
+Compass.lua
 Settings.lua
 Main.lua
 

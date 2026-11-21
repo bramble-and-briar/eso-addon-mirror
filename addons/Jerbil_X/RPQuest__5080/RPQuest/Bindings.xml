@@ -1,0 +1,27 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="SI_KEYBINDINGS_CATEGORY_RPQUEST">
+            <Action name="RPQUEST_CAPTURE_TARGET">
+                <Down>
+                    if RPQuest and RPQuest.OnCaptureTargetKeybind then
+                        RPQuest:OnCaptureTargetKeybind()
+                    end
+                </Down>
+            </Action>
+            <Action name="RPQUEST_CAPTURE_DISCOVERY">
+                <Down>
+                    if RPQuest and RPQuest.OnCaptureDiscoveryKeybind then
+                        RPQuest:OnCaptureDiscoveryKeybind()
+                    end
+                </Down>
+            </Action>
+            <Action name="RPQUEST_TOGGLE_JOURNAL">
+                <Down>
+                    if RPQuest and RPQuest.OnToggleJournalKeybind then
+                        RPQuest:OnToggleJournalKeybind()
+                    end
+                </Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

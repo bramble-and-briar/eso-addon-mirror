@@ -1,0 +1,71 @@
+<GuiXml>
+    <Controls>
+        <!-- One character per row. The cells are made in Window.lua, as many as the widest view needs. -->
+        <Control name="FuryCT_Row" virtual="true" mouseEnabled="true">
+            <Dimensions x="1368" y="28" />
+            <Controls>
+                <Texture name="$(parent)Stripe" color="FFFFFF" alpha="0.035" hidden="true">
+                    <AnchorFill />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <TopLevelControl name="FuryCTWindow" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true">
+            <Dimensions x="1420" y="760" />
+            <Anchor point="CENTER" />
+            <OnMouseDown>FuryCT.Raise(self)</OnMouseDown>
+            <OnMoveStop>FuryCT.Window.SavePosition()</OnMoveStop>
+            <Controls>
+                <Backdrop name="$(parent)BG" centerColor="100C08" edgeColor="96733A" alpha="0.96">
+                    <AnchorFill />
+                    <Edge edgeSize="2" />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontWinH2" color="D4AF37" text="Fury's Character Tracker">
+                    <Anchor point="TOPLEFT" offsetX="18" offsetY="12" />
+                </Label>
+                <Label name="$(parent)Subtitle" font="ZoFontGameSmall" color="968770">
+                    <Anchor point="LEFT" relativeTo="$(parent)Title" relativePoint="RIGHT" offsetX="14" offsetY="4" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-12" offsetY="12" />
+                    <OnClicked>FuryCT.Window:Hide()</OnClicked>
+                </Button>
+                <Control name="$(parent)Views">
+                    <Dimensions x="1384" y="30" />
+                    <Anchor point="TOPLEFT" offsetX="18" offsetY="50" />
+                </Control>
+                <Label name="$(parent)Summary" font="ZoFontGameSmall" color="968770">
+                    <Dimensions x="1384" y="20" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Views" relativePoint="BOTTOMLEFT" offsetY="8" />
+                </Label>
+                <Control name="$(parent)Header">
+                    <Dimensions x="1384" y="26" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Summary" relativePoint="BOTTOMLEFT" offsetY="4" />
+                </Control>
+                <Texture name="$(parent)HeaderLine" color="96733A">
+                    <Dimensions x="1384" y="1" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetY="2" />
+                </Texture>
+                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)HeaderLine" relativePoint="BOTTOMLEFT" offsetY="4" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-18" offsetY="-92" />
+                </Control>
+                <Texture name="$(parent)TotalsLine" color="96733A">
+                    <Dimensions x="1384" y="1" />
+                    <Anchor point="BOTTOMLEFT" offsetX="18" offsetY="-88" />
+                </Texture>
+                <Control name="$(parent)Totals" inherits="FuryCT_Row">
+                    <Dimensions x="1384" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)TotalsLine" relativePoint="BOTTOMLEFT" offsetY="4" />
+                </Control>
+                <Control name="$(parent)Footer">
+                    <Dimensions x="1384" y="30" />
+                    <Anchor point="BOTTOMLEFT" offsetX="18" offsetY="-14" />
+                </Control>
+                <Label name="$(parent)Legend" font="ZoFontGameSmall" color="968770">
+                    <Anchor point="BOTTOMRIGHT" offsetX="-20" offsetY="-20" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

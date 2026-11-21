@@ -38,6 +38,7 @@ L.core.to_move = { one = "<<1>> à déplacer", other = "<<1>> à déplacer" }
 L.core.to_place = { one = "<<1>> à placer", other = "<<1>> à placer" }
 L.core.states_to_switch = { one = "<<1>> état à changer", other = "<<1>> états à changer" }
 L.core.paths_to_set = { one = "<<1>> trajet à définir", other = "<<1>> trajets à définir" }
+L.core.links_to_set = { one = "<<1>> lien à définir", other = "<<1>> liens à définir" }
 L.core.already_right = { one = "<<1>> déjà correct", other = "<<1>> déjà corrects" }
 L.core.placed_earlier = { one = "<<1>> placé par un passage précédent", other = "<<1>> placés par un passage précédent" }
 L.core.collectibles_unavailable = { one = "<<1>> objet de collection indisponible", other = "<<1>> objets de collection indisponibles" }
@@ -51,6 +52,11 @@ L.core.done = "Terminé : <<1>>."
 L.core.done_moved = { one = "<<1>> déplacé", other = "<<1>> déplacés" }
 L.core.done_switched = { one = "<<1>> changé", other = "<<1>> changés" }
 L.core.done_paths = { one = "<<1>> modification de trajet", other = "<<1>> modifications de trajet" }
+L.core.done_linked = { one = "<<1>> lien défini", other = "<<1>> liens définis" }
+L.core.done_unlinked = { one = "<<1>> délié", other = "<<1>> déliés" }
+L.core.done_not_linked = { one = "<<1>> lien non défini", other = "<<1>> liens non définis" }
+L.core.path_unread_skipped = "<<1>> : le jeu ne donne pas son trajet (relu après 1,5 s), il est donc ignoré et laissé tel quel. Ouvrir l'éditeur de maison peut aider."
+L.core.path_unread_recorded = "« <<1>> » a été enregistré sans le trajet de <<2>> : le jeu ne l'a pas donné (relu après 1,5 s). Ce trajet dans le jeu est laissé tel quel."
 L.core.done_placed = { one = "<<1>> placé", other = "<<1>> placés" }
 L.core.done_removed = { one = "<<1>> retiré", other = "<<1>> retirés" }
 L.core.done_failed = { one = "<<1>> en échec", other = "<<1>> en échec" }
@@ -70,6 +76,10 @@ L.core.get_app = "Obtenez l'application LetsFurnish! pour concevoir vos maisons 
 L.core.site_asked = "Le jeu demande avant d'ouvrir <<1>> dans votre navigateur."
 L.core.site_by_hand = "Ouvrez <<1>> dans votre navigateur pour obtenir l'application."
 L.core.cleared = "Les plans enregistrés par une ancienne version de test de LetsFurnish! ont été effacés : cette version ne les lit plus."
+L.window.extra_links_ask = "Supprimer les liens supplémentaires de <<1>> (<<2>>) ? Les liens prévus par cet agencement seront conservés."
+L.window.extra_links = "Liens supplémentaires : <<1>>"
+L.window.link_capacity = "<<1>> aurait <<2>> objets directement rattachés. La limite est de <<3>>."
+L.window.empty_path_failed = "La maison reste intacte. Impossible de sauvegarder ces trajets : <<1>>. Réessayez une fois les trajets visibles."
 L.window.debug_mode = "Journal détaillé"
 L.window.tip_debug_mode = "Enregistre les requêtes de l’éditeur de logement, les événements du jeu et les vérifications d’état dans SavedVariables/LetsFurnish.lua. Après avoir reproduit le problème, tapez /reloadui pour écrire le journal sur le disque."
 L.window.layouts = "Plans"
@@ -91,7 +101,7 @@ L.window.every_house = "Toutes les maisons"
 L.window.expand = "Déplier"
 L.window.collapse = "Replier"
 L.window.to_place = "À placer"
-L.window.to_move = "À déplacer"
+L.window.to_move = "Déplacer"
 L.window.to_remove = "À retirer"
 L.window.missing = "Manquants"
 L.window.not_craftable = "Non fabricable"
@@ -158,6 +168,34 @@ L.window.stands_elsewhere = "est ailleurs"
 L.window.other_state = "dans un autre état"
 L.window.set_path = "Définir le trajet"
 L.window.other_path = "suit un autre trajet"
+L.window.path_unread = "trajet illisible : ignoré"
+L.window.link = "Lier"
+L.window.unlink = "Délier"
+L.window.link_to = "non lié à <<1>>"
+L.window.linked_extra = "lié, pas comme enregistré"
+L.window.linking = "Liens"
+L.window.empty_link = "Aucun groupe prêt à être lié."
+L.window.destructive = "Destructif"
+L.window.empty_house = "Vider la maison"
+L.window.empty_house_ask = "Retirer tout le mobilier placé dans <<1>> (<<2>> au total), y compris les meubles de votre agencement ? Une sauvegarde sera créée au préalable."
+L.window.tip_remove_all = "Retire tout ce que ce plan n'a pas, en une fois, après avoir demandé. Une sauvegarde est faite d'abord."
+L.window.link_all = "Tout lier"
+L.window.tip_link_all = "Lie les groupes prêts. Les liens de chaque groupe sont d’abord défaits, puis recréés à partir du meuble parent. Les liens supplémentaires se retirent séparément."
+L.window.link_group = { one = "<<1>> meuble dessous", other = "<<1>> meubles dessous" }
+L.window.link_missing = { one = "<<1>> absent de la maison : placez-le d'abord", other = "<<1>> absents de la maison : placez-les d'abord" }
+L.window.link_undoes = { one = "défait <<1>> lien actuel", other = "défait <<1>> liens actuels" }
+L.window.under = "sous <<1>>"
+L.window.link_lost = { one = "Cela défait <<1>> lien actuel : <<2>>.", other = "Cela défait <<1>> liens actuels : <<2>>." }
+L.window.link_lost_item = "<<1>> (lié à <<2>>)"
+L.window.link_tree_ask = "Lier <<1>> et ce qui est dessous comme dans le plan ? Chacun est d'abord délié, puis lié de haut en bas."
+L.window.link_all_ask = { one = "Lier <<1>> groupe comme dans le plan ? Chaque meuble est d'abord délié, puis lié de haut en bas.", other = "Lier <<1>> groupes comme dans le plan ? Chaque meuble est d'abord délié, puis lié de haut en bas." }
+L.window.unlink_all = "Tout délier"
+L.window.unlink_all_note = { one = "<<1>> lien dans cette maison", other = "<<1>> liens dans cette maison" }
+L.window.unlink_all_ask = { one = "Défaire <<1>> lien dans cette maison, quoi que dise le plan ? Chaque meuble reste où il est. Une sauvegarde de la maison est faite d'abord.", other = "Défaire les <<1>> liens de cette maison, quoi que dise le plan ? Chaque meuble reste où il est. Une sauvegarde de la maison est faite d'abord." }
+L.window.place_from = "Tout placer depuis <<1>>"
+L.window.place_from_note = { one = "<<1>> meuble, placé autour de vous", other = "<<1>> meubles, placés autour de vous" }
+L.window.place_from_ask = { one = "Placer <<1>> meuble depuis <<2>> autour de vous, quoi que dise le plan ? Une sauvegarde de la maison est faite d'abord.", other = "Placer <<1>> meubles depuis <<2>> autour de vous, quoi que dise le plan ? Une sauvegarde de la maison est faite d'abord." }
+L.window.place_from_over = { one = "<<1>> ne tient pas dans les limites de la maison et reste.", other = "<<1>> ne tiennent pas dans les limites de la maison et restent." }
 L.window.not_in_layout = "pas dans ce plan"
 L.window.share_context = "Un plan en une ligne de texte"
 L.window.every_house_count = "Toutes les maisons : <<1>>"
@@ -230,7 +268,6 @@ L.window.tip_tick_all = "Coche chaque meuble manquant dont vous connaissez le pl
 L.window.tip_untick_all = "Décoche chaque meuble."
 L.window.tip_place_all = "Place tout ce qui est sous À placer, en une fois, après avoir demandé. Un chemin est réglé une fois son meuble posé. Une sauvegarde est faite d'abord."
 L.window.tip_move_all = "Déplace, change et règle les chemins de tout ce qui est sous À déplacer, en une fois, après avoir demandé. Une sauvegarde est faite d'abord."
-L.window.tip_remove_all = "Retire tout ce que ce plan n'a pas, en une fois, après avoir demandé. Une sauvegarde est faite d'abord."
 L.window.tip_back_up = "Enregistre cette maison telle qu'elle est, pour y revenir."
 L.window.tip_house_code = "Crée le code de partage de cette maison, à envoyer à un ami ou à coller dans l'application."
 L.window.tip_read_code = "Lit le code collé dans la zone : son plan rejoint Plans."
@@ -308,6 +345,7 @@ L.window.log_what_not_taken = "répondu, mais il est resté dans la maison"
 L.window.log_what_late = "fait après l'attente"
 L.window.log_what_not_put_away = "non rangé"
 L.window.log_what_conform = "Suivre le sol pas comme demandé"
+L.window.log_what_link = "Lien non défini"
 L.window.log_what_stopped = "l'exécution s'est arrêtée"
 L.window.log_why_too_fast = "trop de requêtes d'affilée non faites"
 L.window.log_why_no_place = "un meuble dans aucun endroit choisi pour prendre"
@@ -328,6 +366,9 @@ L.window.keep_backup_save = "Enregistrer"
 L.window.keep_backup_menu = "Enregistrer comme plan..."
 L.window.log_what_skipped = "ignoré"
 L.window.log_why_path_unconfirmed = "un changement de son chemin n'a pas été fait"
+L.window.log_why_path_unread = "le jeu ne donne pas encore les points de son trajet : ouvrez l'éditeur de maison et réessayez"
+L.window.log_why_link_no_parent = "le meuble auquel il est lié n'est pas dans la maison"
+L.window.log_why_link_no_child = "il n'est pas dans la maison"
 L.window.log_solved_count = { one = "<<1>> résolu par l'addon", other = "<<1>> résolus par l'addon" }
 L.window.log_solved_retried = "résolu : fait au deuxième essai, après <<1>> s"
 L.window.log_solved_other_place = "résolu : <<1>> l'a pris"
@@ -410,6 +451,8 @@ L.house.part_last_next = "Collez ensuite la partie <<1>>, la dernière."
 L.house.part_other = "cette partie est d'un autre code que les <<1>> parties sur <<2>> déjà là : « Oublier les parties » d'abord pour commencer celui-ci"
 L.house.vault_needs_plus = "Nécessite ESO Plus."
 L.house.vault_locked = "Le coffre d'ameublement n'est pas débloqué."
+L.house.no_position = "Votre position dans la maison est inconnue : placez-vous dans la maison et réessayez."
+L.house.nothing_to_place_from = "Rien dans <<1>> ne peut être placé dans cette maison."
 L.house.chest_locked = "<<1>> n'est pas débloqué."
 L.house.chest_numbered = "<<1>> (<<2>>)"
 L.house.into = "<<1>> dans <<2>>"
@@ -451,6 +494,7 @@ L.code.part_unreadable = "une partie de code endommagée ou tronquée : copiez-l
 L.code.parts_missing = "les <<1>> parties du code ne sont pas toutes là : collez aussi celles qui manquent"
 L.code.parts_mismatch = "les parties ne forment pas un seul code : copiez-les toutes à nouveau depuis le même code"
 L.code.parts_mixed = "des parties de codes différents : collez les parties d'un seul code à la fois"
+L.stock.inventory = "Inventaire"
 L.stock.storage = "Coffres"
 L.stock.vault = "Garde-meubles"
 L.stock.placed_here = "Placés ici"

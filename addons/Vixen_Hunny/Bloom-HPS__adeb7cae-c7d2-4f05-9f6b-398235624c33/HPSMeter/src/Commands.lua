@@ -17,9 +17,13 @@ local function PrintStats()
         M.Print("No fight recorded yet.")
         return
     end
-    M.Print(format("%s fight | HPS %s | HPM %s | Heal Personal %s / Group %s",
-        stats.active and "Current" or "Last",
+    local scope = stats.scope == "bg" and ("Battleground (" .. tostring(stats.bgName) .. ", " .. stats.fights .. " fights)")
+        or (stats.active and "Current fight" or "Last fight")
+    M.Print(format("%s | HPS %s | HPM %s | Heal Personal %s / Group %s",
+        scope,
         Fmt(stats.hps), Fmt(stats.hpm), Fmt(stats.healPersonal), Fmt(stats.healGroup)))
+    M.Print(format("Crit Heal %s | Crit HPS %s | %.1f%% of healing | %.0f%% crit rate",
+        Fmt(stats.critHeal), Fmt(stats.critHps), stats.critHealPct, stats.critHealRate))
     M.Print(format("SPS %s | SPM %s | Shield %s | Personal %s / Group %s",
         Fmt(stats.sps), Fmt(stats.spm), Fmt(stats.shieldTotal), Fmt(stats.shieldPersonal),
         stats.groupMode and Fmt(stats.shieldGroup) or "- (group mode off)"))
@@ -38,17 +42,25 @@ end
 
 local function PrintHelp()
     M.Print("/bloomhps - show healing, shielding and mitigation for the current or last fight")
+    M.Print("/bloomhps fights [text] - saved fights whose zone, battleground, date or character contains text")
+    M.Print("/bloomhps bg [text] - saved battlegrounds whose name, mode, result, date or character contains text")
+    M.Print("/bloomhps bg #12 - battleground 12 and each of its fights")
     M.Print("/bloomhps textures - show where the flower textures are loaded from")
     M.Print("/bloomhps help - show this list")
 end
 
 function Commands.Register()
     SLASH_COMMANDS["/bloomhps"] = function(args)
-        args = args and args:lower() or ""
-        if args:match("^%s*help") then
+        local cmd, rest = (args or ""):match("^%s*(%S*)%s*(.-)%s*$")
+        cmd = cmd:lower()
+        if cmd == "help" then
             PrintHelp()
-        elseif args:match("^%s*tex") then
+        elseif cmd:match("^tex") then
             PrintTextureInfo()
+        elseif cmd == "fights" or cmd == "fight" then
+            M.History.PrintFightSearch(rest)
+        elseif cmd == "bg" or cmd == "bgs" then
+            M.History.PrintBattlegroundSearch(rest)
         else
             PrintStats()
         end

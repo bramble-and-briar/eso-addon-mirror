@@ -100,16 +100,65 @@ local function getActiveCharData()
         or (LeoAltholic.globalData and LeoAltholic.globalData.CharList and LeoAltholic.globalData.CharList[GetUnitName("player")])
 end
 
-local function refreshSkillUI()
-    if LeoAltholicUI then
-        if LeoAltholicUI.skillsList then
-            LeoAltholicUI.skillsList:RefreshData()
-        end
-        if LeoAltholicUI.skills2List then
-            LeoAltholicUI.skills2List:RefreshData()
+local function stampCharacterOrder()
+    if not (LeoAltholic.globalData and LeoAltholic.globalData.CharList) then return end
+    for i = 1, GetNumCharacters() do
+        local rawName = GetCharacterInfo(i)
+        local charName = zo_strformat("<<1>>", rawName)
+        local charEntry = LeoAltholic.globalData.CharList[charName]
+        if charEntry then
+            charEntry.bio = charEntry.bio or {}
+            charEntry.bio.charIndex = i
         end
     end
 end
+
+function LeoAltholic.GetSortedCharList()
+    local list = {}
+    if not (LeoAltholic.globalData and LeoAltholic.globalData.CharList) then
+        return list
+    end
+
+    for _, charData in pairs(LeoAltholic.globalData.CharList) do
+        table.insert(list, charData)
+    end
+
+    local mode = (LeoAltholic.globalData.settings and LeoAltholic.globalData.settings.charSortOrder) or "creation"
+
+    table.sort(list, function(a, b)
+        local nameA = tostring(a.bio and a.bio.name or ""):lower()
+        local nameB = tostring(b.bio and b.bio.name or ""):lower()
+
+        if mode == "alpha_asc" then
+            return nameA < nameB
+        elseif mode == "alpha_desc" then
+            return nameA > nameB
+        else -- "creation"
+            local idxA = (a.bio and a.bio.charIndex) or 999
+            local idxB = (b.bio and b.bio.charIndex) or 999
+            if idxA ~= idxB then
+                return idxA < idxB
+            end
+            return nameA < nameB
+        end
+    end)
+
+    return list
+end
+
+local function refreshSkillUI()
+    if LeoAltholicUI and LeoAltholicWindow and not LeoAltholicWindow:IsHidden() then
+        if LeoAltholicUI.skillsList then
+            LeoAltholicUI.skillsList:RefreshData()
+            LeoAltholicUI.skillsList:RefreshFilters()
+        end
+        if LeoAltholicUI.skills2List then
+            LeoAltholicUI.skills2List:RefreshData()
+            LeoAltholicUI.skills2List:RefreshFilters()
+        end
+    end
+end
+
 
 local function refreshSkillCategory(skillType)
     local skillKey = SKILL_TYPE_TO_KEY[skillType]
@@ -772,18 +821,35 @@ local function copy(obj, seen)
 end
 
 function LeoAltholic.GetCharacters(forceUpdate)
-    if #LeoAltholic.charList == 0 or forceUpdate == true or GetTimeStamp() - LeoAltholic.lastUpdatedCharList > 10 then
+    if #LeoAltholic.charList == 0 or forceUpdate == true or GetTimeStamp() - LeoAltholic.lastUpdatedCharList > 60 then
 
-        LeoAltholic.charList =  {}
+        LeoAltholic.charList = {}
         local i = 1
         for k, v in pairs(LeoAltholic.globalData.CharList) do
-            if k == nil then return end
-            LeoAltholic.charList[i] = copy(v)
-            i = i + 1
+            if k ~= nil and type(v) == "table" then
+                LeoAltholic.charList[i] = v
+                i = i + 1
+            end
         end
+
+        local sortMode = (LeoAltholic.globalData.settings and LeoAltholic.globalData.settings.charSortOrder) or "creation"
         table.sort(LeoAltholic.charList, function(a, b)
-            return a.bio.name < b.bio.name
+            local nameA = a.bio and a.bio.name or ""
+            local nameB = b.bio and b.bio.name or ""
+            if sortMode == "alpha_asc" then
+                return nameA < nameB
+            elseif sortMode == "alpha_desc" then
+                return nameA > nameB
+            else -- "creation"
+                local idxA = (a.bio and a.bio.charIndex) or 999
+                local idxB = (b.bio and b.bio.charIndex) or 999
+                if idxA ~= idxB then
+                    return idxA < idxB
+                end
+                return nameA < nameB
+            end
         end)
+
         LeoAltholic.lastUpdatedCharList = GetTimeStamp()
     end
     return LeoAltholic.charList
@@ -1510,7 +1576,8 @@ local function onAddOnLoaded(event, addonName)
     end
 
     initializeVars()
-
+    stampCharacterOrder()
+    
     EVENT_MANAGER:RegisterForEvent(LeoAltholic.name, EVENT_SMITHING_TRAIT_RESEARCH_COMPLETED, onResearchCompleted)
     EVENT_MANAGER:RegisterForEvent(LeoAltholic.name, EVENT_SMITHING_TRAIT_RESEARCH_STARTED, onResearchStarted)
     EVENT_MANAGER:RegisterForEvent(LeoAltholic.name, EVENT_SMITHING_TRAIT_RESEARCH_CANCELED, onResearchCanceled)

@@ -26,8 +26,8 @@ end
 local function clamp(x,a,b) return math.max(a,math.min(b,x)) end
 local function fmt(n) return string.format("%.0f",n or 0) end
 local function clock(t) t=math.max(0,math.floor(t)); return string.format("%02d:%02d",math.floor(t/60),t%60) end
-local defaults={learnedBuffs={},ultimateEffectIds={},observedAbilities={},settings={showHUD=true,showPace=true,showTrend=true,manualRole="AUTO",difficultyLabels=true,showBossHUD=true,autoReport=true,showPlayerCard=true,showEffectMonitor=true,previewWindows=false,windowLayout={live={x=200,y=180,scale=100},boss={x=720,y=180,scale=100},report={x=350,y=190,scale=100},career={x=330,y=150,scale=100},playerCard={x=220,y=90,scale=100},effects={x=740,y=460,scale=100}}},history={},players={},records={},ratings={HEAL=0,DPS=0,TANK=0},runs=0}
-local S,run,hud,bossHUD,reportHUD,menu,playerCard,effectHUD
+local defaults={learnedBuffs={},ultimateEffectIds={},observedAbilities={},settings={showHUD=true,showPace=true,showTrend=true,manualRole="AUTO",difficultyLabels=true,showBossHUD=true,autoReport=true,showPlayerCard=true,previewWindows=false,windowLayout={live={x=200,y=180,scale=100},boss={x=720,y=180,scale=100},report={x=350,y=190,scale=100},career={x=330,y=150,scale=100},playerCard={x=220,y=90,scale=100}}},history={},players={},records={},ratings={HEAL=0,DPS=0,TANK=0},runs=0}
+local S,run,hud,bossHUD,reportHUD,menu,playerCard
 local completedInstance=false
 local lastBossReportContext=nil
 local pendingBossReport=nil
@@ -66,7 +66,7 @@ DR.registry={} -- keyed by verified zone IDs; no speculative boss IDs or tiers
 DR.mechanics={} -- keyed by verified ability IDs, e.g. {alert="INTERRUPT", roles={...}}
 local function grade(x)
   if x<5 then return "BAD" elseif x<10 then return "SUBPAR" elseif x<15 then return "AVERAGE"
-  elseif x<20 then return "GOOD" elseif x<30 then return "GREAT" elseif x<40 then return "ELITE" elseif x<51.88 then return "LEGENDARY" else return "HISTORIC" end
+  elseif x<20 then return "GOOD" elseif x<30 then return "GREAT" elseif x<40 then return "ELITE" else return "LEGENDARY" end
 end
 -- Identification registry. These are not required effects for any role.
 -- Never manufacture an effect duration from this table.
@@ -93,80 +93,27 @@ local supportRegistry={
   ["Master Architect"]="buff",["War Machine"]="buff",
   ["Aegis of Galenwe"]="buff",["Kinras's Wrath"]="buff",
 }
--- Curated ultimate ability names, including commonly used morphs.
--- Match the ability that generated the combat event, not resource or bar state.
-local ultimateNames={}
-local ultimateGroups={
-  {"The Unblinking Eye","The Tide King's Gaze","The Languid Eye"},
-  {"Gibbering Shield","Sanctum of the Abyssal Sea","Gibbering Shelter"},
-  {"Vitalizing Glyphic","Glyphic of the Tides","Resonating Glyphic"},
-  {"Dragonknight Standard","Standard of Might","Shifting Standard"},
-  {"Dragon Leap","Take Flight","Ferocious Leap"},
-  {"Magma Armor","Magma Shell","Corrosive Armor"},
-  {"Frozen Colossus","Glacial Colossus","Pestilent Colossus"},
-  {"Bone Goliath Transformation","Pummeling Goliath","Ravenous Goliath"},
-  {"Reanimate","Renewing Animation","Animate Blastbones"},
-  {"Death Stroke","Incapacitating Strike","Soul Harvest"},
-  {"Consuming Darkness","Bolstering Darkness","Veil of Blades"},
-  {"Soul Shred","Soul Tether","Soul Siphon"},
-  {"Summon Storm Atronach","Greater Storm Atronach","Charged Atronach"},
-  {"Negate Magic","Suppression Field","Absorption Field"},
-  {"Overload","Power Overload","Energy Overload"},
-  {"Radial Sweep","Empowering Sweep","Crescent Sweep"},
-  {"Nova","Solar Prison","Solar Disturbance"},
-  {"Rite of Passage","Practiced Incantation","Remembrance"},
-  {"Feral Guardian","Eternal Guardian","Wild Guardian"},
-  {"Secluded Grove","Enchanted Forest","Healing Thicket"},
-  {"Sleet Storm","Northern Storm","Permafrost"},
-  {"Rapid Fire","Ballista","Toxic Barrage"},
-  {"Elemental Storm","Elemental Rage","Eye of the Storm"},
-  {"Lacerate","Thrive in Chaos","Rend"},
-  {"Shield Wall","Shield Discipline","Spell Wall"},
-  {"Panacea","Life Giver","Light's Champion"},
-  {"Berserker Strike","Onslaught","Berserker Rage"},
-  {"Dawnbreaker","Dawnbreaker of Smiting","Flawless Dawnbreaker"},
-  {"Meteor","Ice Comet","Shooting Star"},
-  {"Undo","Precognition","Temporal Guard"},
-  {"War Horn","Aggressive Horn","Sturdy Horn"},
-  {"Barrier","Reviving Barrier","Replenishing Barrier"},
-  {"Soul Strike","Soul Assault","Shatter Soul"},
-  {"Blood Scion","Swarming Scion","Perfect Scion"},
-  {"Werewolf Transformation","Pack Leader","Werewolf Berserker"},
+local ultimateNames={
+  ["The Unblinking Eye"]=true,["Gibbering Shield"]=true,["Vitalizing Glyphic"]=true,
+  ["Dragonknight Standard"]=true,["Dragon Leap"]=true,["Magma Armor"]=true,
+  ["Frozen Colossus"]=true,["Bone Goliath Transformation"]=true,["Reanimate"]=true,
+  ["Death Stroke"]=true,["Consuming Darkness"]=true,["Soul Shred"]=true,
+  ["Summon Storm Atronach"]=true,["Negate Magic"]=true,["Overload"]=true,
+  ["Radial Sweep"]=true,["Nova"]=true,["Rite of Passage"]=true,
+  ["Feral Guardian"]=true,["Secluded Grove"]=true,["Sleet Storm"]=true,
+  ["Rapid Fire"]=true,["Elemental Storm"]=true,["Lacerate"]=true,
+  ["Shield Wall"]=true,["Panacea"]=true,["Berserker Strike"]=true,
+  ["Dawnbreaker"]=true,["Meteor"]=true,["Undo"]=true,
+  ["War Horn"]=true,["Barrier"]=true,["Soul Strike"]=true,
+  ["Blood Scion"]=true,["Werewolf Transformation"]=true,
 }
-for _,group in ipairs(ultimateGroups) do
-  for _,name in ipairs(group) do ultimateNames[name:lower()]=true end
-end
-local function ultimateNameMatch(name)
-  if type(name)~="string" then return false end
-  name=name:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", ""):lower()
-  return ultimateNames[name]==true
-end
 local function isUltimateAbility(abilityId)
   if not abilityId then return false end
-  return ultimateNameMatch(safe(GetAbilityName,tonumber(abilityId)))
-end
--- One counted cast per observed registered ultimate. Combat results and
--- effect applications are both accepted because many ESO ultimates do not
--- emit ACTION_RESULT_BEGIN. Repeated ticks are suppressed by a cast window.
-local function recordListedUltimate(abilityId,abilityName,sourceConfirmed,origin)
-  if not run or not sourceConfirmed then return false end
-  if not (ultimateNameMatch(abilityName) or isUltimateAbility(abilityId)) then return false end
-  local t=now()
-  local key=tostring(abilityId or abilityName or "unknown")
-  run.ultimateObserved=run.ultimateObserved or {}
-  local prior=run.ultimateObserved[key]
-  -- A long window is necessary for persistent damage/healing ultimates.
-  -- This may undercount legitimately rapid repeat casts; diagnostics expose it.
-  if prior and t-prior<8 then return false end
-  run.ultimateObserved[key]=t
-  run.ultimateUses=(run.ultimateUses or 0)+1
-  if run.role=="HEAL" then
-    run.ultimatePoints=(run.ultimatePoints or 0)+0.5
-    run.ultimateSupportPending=t
-  end
-  run.lastUltimateAt=t
-  run.lastUltimateDetection=tostring(abilityName or safe(GetAbilityName,abilityId) or key).." ("..origin..")"
-  return true
+  local name=safe(GetAbilityName,tonumber(abilityId))
+  if not name then return false end
+  if ultimateNames[name] then return true end
+  -- Morphs and localized names: ultimate action-slot detection is authoritative.
+  return false
 end
 local function combatDuration()
   if not run then return 0 end
@@ -191,13 +138,13 @@ local function trackDuration(abilityId,kind,duration,name,sourceUltimate)
   if not run or not run.combatStart or not abilityId or not kind then return end
   duration=tonumber(duration)
   if not duration or duration<=0 or duration>600 then return end
-  if kind~="buff" and kind~="debuff" and kind~="dot" and kind~="hot" and kind~="utility" then return end
+  if kind~="buff" and kind~="debuff" and kind~="dot" then return end
   if sourceUltimate or isUltimateAbility(abilityId) then return end
   local bucket=run.durationCoverage[kind]
   local key=tostring(abilityId)
   local t=now()
   durationCoverageFlush(t)
-  local e=bucket[key] or {covered=0,observed=true,name=name or key,firstCombatSecond=combatDuration()}
+  local e=bucket[key] or {covered=0,observed=true,name=name or key}
   e.expires=t+duration
   e.lastAccounted=t
   bucket[key]=e
@@ -217,37 +164,12 @@ local function roleUptime(kind)
       if run.combatStart and e.lastAccounted then
         covered=covered+math.max(0,math.min(now(),e.expires or 0)-e.lastAccounted)
       end
-      local eligible=math.max(0,total-(e.firstCombatSecond or 0))
-      if eligible>0 then sum=sum+math.min(eligible,covered)/eligible;n=n+1 end
+      sum=sum+math.min(total,covered)
+      n=n+1
     end
   end
   if n==0 then return nil end
-  return clamp(100*sum/n,0,100)
-end
-local function effectSnapshot()
-  local result={}
-  if not run then return result,nil end
-  local total=combatDuration()
-  local sum,n=0,0
-  for kind,bucket in pairs(run.durationCoverage or {}) do
-    for id,e in pairs(bucket) do
-      if e.observed then
-        local covered=e.covered or 0
-        if run.combatStart and e.lastAccounted then
-          covered=covered+math.max(0,math.min(now(),e.expires or 0)-e.lastAccounted)
-        end
-        -- Each effect is scored only from its first observed application.
-        -- A newly discovered effect cannot be penalized for earlier combat.
-        local eligible=math.max(0,total-(e.firstCombatSecond or 0))
-        local pct=eligible>0 and clamp(100*covered/eligible,0,100) or nil
-        result[#result+1]={id=id,name=e.name or id,kind=kind,percent=pct,
-          active=run.combatStart~=nil and (e.expires or 0)>now(),
-          remaining=math.max(0,(e.expires or 0)-now()),covered=covered,eligible=eligible}
-        if pct then sum=sum+pct;n=n+1 end
-      end
-    end
-  end
-  return result,n>0 and sum/n or nil
+  return clamp(100*sum/(total*n),0,100)
 end
 local function buffUptime() return roleUptime("buff") end
 local function debuffUptime() return roleUptime("debuff") end
@@ -287,25 +209,10 @@ local function scoreParts()
   local t=math.max(1,combatDuration());local dps=run.damage/t;local hps=run.heal/t
   local buff=0;local healing=0;local damage=0;local utility=0
   if run.role=="HEAL" then
-    -- Fantasy QB benchmark: 51.88 is a reference performance, NEVER a cap.
-    -- CEU measurement is unchanged. Its percentage naturally spans 0..100.
-    local _,ceu=effectSnapshot()
-    buff=(ceu or 0)*0.18158  -- 35% of 51.88 at 100% CEU
-    -- Uncapped, linear production: 6000 HPS and 5000 DPS are
-    -- initial calibration reference points, not hard limits.
-    healing=(hps/6000)*15.564   -- 30% of benchmark
-    damage=(dps/5000)*5.188     -- 10% of benchmark
-    -- Independently observed group utility only. No buffs or uptime
-    -- are credited here, so CEU is never rewarded twice.
-    local minutes=t/60
-    local utilityEvents=(run.interrupts or 0)*2+(run.ccEvents or 0)
-    local shieldingPerSecond=(run.shield or 0)/t
-    utility=(utilityEvents/math.max(1,minutes))*3.0
-            +(shieldingPerSecond/2000)*4.0
-    -- Ultimates are an independent bonus, not part of the 25% category.
-    -- Group-utility benchmark of 12.97 is a target for future tuning,
-    -- not a guaranteed award for actions ESO cannot observe.
-    -- Ultimate points are added separately below.
+    buff=(buffUptime() or 0)*0.25
+    healing=clamp(hps/500,0,12)
+    damage=clamp(dps/850,0,6)
+    utility=clamp(run.interrupts*1.5+(run.shield or 0)/t/700,0,5)+(run.ultimatePoints or 0)
   elseif run.role=="TANK" then
     buff=(debuffUptime() or 0)*0.18
     utility=clamp(run.blocked/t/100+run.taunts*1.5+run.interrupts*2+run.ccEvents,0,16)
@@ -318,7 +225,7 @@ local function scoreParts()
     utility=clamp(run.interrupts*2+run.ccEvents,0,6)
   end
   local penalty=run.deaths*5
-  return {buff=buff,healing=healing,damage=damage,utility=utility,penalty=penalty,total=buff+healing+damage+utility+(run.ultimatePoints or 0)-penalty}
+  return {buff=buff,healing=healing,damage=damage,utility=utility,penalty=penalty,total=math.max(0,buff+healing+damage+utility-penalty)}
 end
 local function score() return scoreParts().total end
 local function makeLabel(parent,y,size,color,width)
@@ -357,36 +264,30 @@ local function refreshWindowLayouts()
   applyWindowLayout(reportHUD,"report")
   if menu then applyWindowLayout(menu,"career") end
   applyWindowLayout(playerCard,"playerCard")
-  applyWindowLayout(effectHUD,"effects")
 end
+
+-- TME shared blue frame; anchored strips follow resizing and scaling.
+local function TMEBlueFrame(parent)
+    local function edge(a,b,c,d,vertical)
+        local t=WINDOW_MANAGER:CreateControl(nil,parent,CT_TEXTURE)
+        t:SetAnchor(a,parent,b,0,0); t:SetAnchor(c,parent,d,0,0)
+        if vertical then t:SetWidth(2) else t:SetHeight(2) end
+        t:SetColor(0.20,0.65,0.90,0.95); t:SetMouseEnabled(false)
+        t:SetDrawLayer(DL_BACKGROUND); t:SetDrawLevel(3)
+    end
+    edge(TOPLEFT,TOPLEFT,TOPRIGHT,TOPRIGHT,false)
+    edge(BOTTOMLEFT,BOTTOMLEFT,BOTTOMRIGHT,BOTTOMRIGHT,false)
+    edge(TOPLEFT,TOPLEFT,BOTTOMLEFT,BOTTOMLEFT,true)
+    edge(TOPRIGHT,TOPRIGHT,BOTTOMRIGHT,BOTTOMRIGHT,true)
+end
+
 local function makePanel(name,width,height,x,y)
   local w=WINDOW_MANAGER:CreateTopLevelWindow(name)
   w:SetDimensions(width,height);w:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,x,y)
   w:SetClampedToScreen(true);w:SetMouseEnabled(false);w:SetHidden(true)
-  -- BG Rating's console-safe dark panel and gold trim.
-  -- Native texture strips avoid SetEdgeTexture issues on PS5.
   local bg=WINDOW_MANAGER:CreateControl(nil,w,CT_BACKDROP)
-  bg:SetAnchorFill(w)
-  bg:SetCenterColor(0.025,0.035,0.055,0.88)
-  bg:SetEdgeColor(0.70,0.58,0.34,0.92)
-  bg:SetMouseEnabled(false)
-  local function trim(anchor,offsetX,offsetY,stripW,stripH)
-    local t=WINDOW_MANAGER:CreateControl(nil,w,CT_TEXTURE)
-    t:SetAnchor(anchor,w,anchor,offsetX,offsetY)
-    t:SetDimensions(stripW,stripH)
-    t:SetColor(0.85,0.67,0.31,0.98)
-    t:SetMouseEnabled(false)
-    return t
-  end
-  trim(TOPLEFT,0,0,width,3)
-  trim(BOTTOMLEFT,0,0,width,3)
-  trim(TOPLEFT,0,0,3,height)
-  trim(TOPRIGHT,0,0,3,height)
-  local accent=WINDOW_MANAGER:CreateControl(nil,w,CT_TEXTURE)
-  accent:SetAnchor(TOPLEFT,w,TOPLEFT,12,34)
-  accent:SetDimensions(width-24,2)
-  accent:SetColor(0.62,0.49,0.26,0.85)
-  accent:SetMouseEnabled(false)
+  bg:SetAnchorFill();bg:SetCenterColor(0.015,0.028,0.048,0.92);bg:SetEdgeColor(0.20,0.65,0.90,0.95)
+  TMEBlueFrame(w)
   return w
 end
 local function ensureHUD()
@@ -426,7 +327,7 @@ local function updatePlayerCard()
   ensurePlayerCard()
   if not playerCard then return end
   local inDungeon=safe(IsUnitInDungeon,"player") or safe(IsUnitInGroupDungeon,"player") or safe(IsInDungeon)
-  local visible=S.settings.previewWindows or (S.settings.showPlayerCard~=false and not inDungeon)
+  local visible=S.settings.previewWindows or (S.settings.showPlayerCard~=false and inDungeon and not run)
   playerCard:SetHidden(not visible)
   if not visible then return end
   local name=characterKey()
@@ -458,52 +359,6 @@ local function updatePlayerCard()
     playerCard.last:SetText(string.format("LAST RUN  %s  |  %.1f %s  |  DPS %s  HPS %s  |  Uptime %.1f%%",tostring(latest.zone or "Dungeon"),latest.score or 0,tostring(latest.grade or grade(latest.score or 0)),fmt(latest.overallDPS),fmt(latest.overallHPS),lastUptime or 0))
   else
     playerCard.last:SetText("LAST RUN  No saved dungeon runs for this character")
-  end
-end
-local function ensureEffectHUD()
-  if effectHUD or not WINDOW_MANAGER then return end
-  effectHUD=makePanel("DungeonBuddyEffectMonitor",570,470,740,460)
-  effectHUD.header=makeLabel(effectHUD,12,18,{0.95,0.78,0.43},540)
-  effectHUD.total=makeLabel(effectHUD,45,21,{0.85,0.95,0.86},540)
-  effectHUD.note=makeLabel(effectHUD,77,13,{0.75,0.85,0.95},540)
-  effectHUD.lines={}
-  for i=1,12 do
-    effectHUD.lines[i]=makeLabel(effectHUD,104+(i-1)*29,14,{0.92,0.92,0.92},540)
-  end
-  enableWindowDrag(effectHUD,"effects")
-  applyWindowLayout(effectHUD,"effects")
-end
-local function updateEffectHUD()
-  if not S then return end
-  ensureEffectHUD()
-  if not effectHUD then return end
-  local preview=S.settings.previewWindows==true
-  local visible=preview or (run~=nil and S.settings.showEffectMonitor~=false)
-  effectHUD:SetHidden(not visible)
-  if not visible then return end
-  local entries,ceu=effectSnapshot()
-  local priority={ ["Powerful Assault"]=1,["Major Courage"]=2,["Minor Berserk"]=3 }
-  table.sort(entries,function(a,b)
-    local pa=priority[a.name] or 100;local pb=priority[b.name] or 100
-    if pa~=pb then return pa<pb end
-    if (a.covered or 0)~=(b.covered or 0) then return (a.covered or 0)>(b.covered or 0) end
-    return tostring(a.name)<tostring(b.name)
-  end)
-  effectHUD.header:SetText("DUNGEON BUDDY  |  COMBAT EFFECT MONITOR")
-  effectHUD.total:SetText("COMBAT EFFECT UPTIME  "..(ceu and string.format("%.1f%%",ceu) or "N/A"))
-  effectHUD.note:SetText(string.format("%d recognized effects  |  Uptime %%  |  Time left  |  Effect type",#entries))
-  for i,label in ipairs(effectHUD.lines) do
-    local e=entries[i]
-    if e then
-      local remaining=math.max(0,e.remaining or 0)
-      local timer=remaining>0 and string.format("%ds",math.ceil(remaining)) or "EXPIRED"
-      local color=remaining<=0 and "F07878" or remaining<=3 and "FFC85A" or "78D9A2"
-      label:SetText(string.format("%-24s  %6s  |c%s%7s|r  %s",e.name:sub(1,24),e.percent and string.format("%.1f%%",e.percent) or "N/A",color,timer,e.kind:upper()))
-    elseif preview and #entries==0 and i<=3 then
-      local names={"Powerful Assault","Major Courage","Minor Berserk"}
-      local timers={"|c78D9A212s|r","|cFFC85A53s|r","|cF07878EXPIRED|r"}
-      label:SetText(names[i].."  |  N/A  "..timers[i].." (preview)")
-    else label:SetText("") end
   end
 end
 local function updateHUD()
@@ -580,7 +435,7 @@ local function begin()
   if not (safe(IsUnitInDungeon,"player") or safe(IsUnitInGroupDungeon,"player") or safe(IsInDungeon)) then return end
   lastBossReportContext=nil; pendingBossReport=nil
   local tier,mode,z=difficulty()
-  run={started=now(),activeSeconds=1,combatSeconds=0,combatStart=nil,fightDamage=0,fightHeal=0,lastFightDamage=0,lastFightHeal=0,lastFightSeconds=0,damage=0,heal=0,shield=0,damageTaken=0,blocked=0,shieldEvents=0,interrupts=0,taunts=0,ccEvents=0,groupDeaths=0,healAbsorbed=0,healEffective=0,uptime={buff={},debuff={},dot={}},durationCoverage={buff={},debuff={},dot={},hot={},utility={}},recentCasts={},durationObserved={},targetSeconds=0,lastTargetHit=nil,buffSeconds=0,buffActive={},buffKeys={},buffCoverageSeconds=0,buffCoverageActive=false,buffCoverageObserved=false,buffCoverageLast=nil,lastUltimatePower=safe(GetUnitPower,"player",POWERTYPE_ULTIMATE),pendingUltimate=nil,lastConfirmedUltimate=-100,ultimateSpendBurstAt=nil,ultimateUses=0,ultimateSupportUses=0,ultimatePoints=0,ultimateSupportPending=false,deaths=0,events=0,ownEvents=0,damageEvents=0,healEvents=0,role=S.settings.manualRole~="AUTO" and S.settings.manualRole or role(),zone=zone(),zoneId=z,mode=mode,abilities={},key=tostring(z or zone())..":"..mode,group=groupSnapshot(),lastScore=0,checkpoint=0,checkpoints={},bossKills=0,bosses={},activeBoss=nil,encounters={}}
+  run={started=now(),activeSeconds=1,combatSeconds=0,combatStart=nil,fightDamage=0,fightHeal=0,lastFightDamage=0,lastFightHeal=0,lastFightSeconds=0,damage=0,heal=0,shield=0,damageTaken=0,blocked=0,shieldEvents=0,interrupts=0,taunts=0,ccEvents=0,groupDeaths=0,healAbsorbed=0,healEffective=0,uptime={buff={},debuff={},dot={}},durationCoverage={buff={},debuff={},dot={}},recentCasts={},durationObserved={},targetSeconds=0,lastTargetHit=nil,buffSeconds=0,buffActive={},buffKeys={},buffCoverageSeconds=0,buffCoverageActive=false,buffCoverageObserved=false,buffCoverageLast=nil,ultimateUses=0,ultimateSupportUses=0,ultimatePoints=0,ultimateSupportPending=false,deaths=0,events=0,ownEvents=0,damageEvents=0,healEvents=0,role=S.settings.manualRole~="AUTO" and S.settings.manualRole or role(),zone=zone(),zoneId=z,mode=mode,abilities={},key=tostring(z or zone())..":"..mode,group=groupSnapshot(),lastScore=0,checkpoint=0,checkpoints={},bossKills=0,bosses={},activeBoss=nil,encounters={}}
   ensureHUD()
   if safe(IsUnitInCombat,"player") then state(nil,true) end
   say("Run started: "..run.zone.." ("..run.role..")")
@@ -590,7 +445,7 @@ local function finish()
   if not run then return end
   run.activeSeconds=math.max(1,now()-run.started)
   if run.combatStart then state(nil,false) end
-  local effects,ceu=effectSnapshot();local parts=scoreParts();local ct=combatDuration();local result={id=tostring(safe(GetTimeStamp) or 0)..":"..tostring(S.runs+1),scoringVersion="healer-fantasy-51.88-v1",combatEffectUptime=ceu,combatEffects=effects,character=safe(GetUnitName,"player"),combatSeconds=ct,overallDPS=run.damage/math.max(1,ct),overallHPS=run.heal/math.max(1,ct),rawHealing=run.heal,ultimateUses=run.ultimateUses,ultimateSupportUses=run.ultimateSupportUses,ultimatePoints=run.ultimatePoints,effectiveHealingAvailable=(run.healEffective or 0)>0,buffUptime=buffUptime(),debuffUptime=debuffUptime(),dotUptime=dotUptime(),timeOnTarget=targetUptime(),scoreParts=parts,zone=run.zone,mode=run.mode or "Unknown",role=run.role,seconds=run.activeSeconds,score=score(),damage=run.damage,heal=run.heal,damageTaken=run.damageTaken,blocked=run.blocked,taunts=run.taunts,healEffective=run.healEffective,healAbsorbed=run.healAbsorbed,groupDeaths=run.groupDeaths,interrupts=run.interrupts,ccEvents=run.ccEvents,buffSeconds=run.buffSeconds,deaths=run.deaths,date=safe(GetTimeStamp) or 0,group=run.group,abilities=run.abilities,completionVerified=run.completionVerified==true,events=run.events,ownEvents=run.ownEvents,damageEvents=run.damageEvents,healEvents=run.healEvents,bossKills=run.bossKills,bosses=run.bosses,encounters=run.encounters,grade=grade(score())}
+  local parts=scoreParts();local ct=combatDuration();local result={id=tostring(safe(GetTimeStamp) or 0)..":"..tostring(S.runs+1),scoringVersion="0.3",character=safe(GetUnitName,"player"),combatSeconds=ct,overallDPS=run.damage/math.max(1,ct),overallHPS=run.heal/math.max(1,ct),rawHealing=run.heal,ultimateUses=run.ultimateUses,ultimateSupportUses=run.ultimateSupportUses,ultimatePoints=run.ultimatePoints,effectiveHealingAvailable=(run.healEffective or 0)>0,buffUptime=buffUptime(),debuffUptime=debuffUptime(),dotUptime=dotUptime(),timeOnTarget=targetUptime(),scoreParts=parts,zone=run.zone,mode=run.mode or "Unknown",role=run.role,seconds=run.activeSeconds,score=score(),damage=run.damage,heal=run.heal,damageTaken=run.damageTaken,blocked=run.blocked,taunts=run.taunts,healEffective=run.healEffective,healAbsorbed=run.healAbsorbed,groupDeaths=run.groupDeaths,interrupts=run.interrupts,ccEvents=run.ccEvents,buffSeconds=run.buffSeconds,deaths=run.deaths,date=safe(GetTimeStamp) or 0,group=run.group,abilities=run.abilities,completionVerified=run.completionVerified==true,events=run.events,ownEvents=run.ownEvents,damageEvents=run.damageEvents,healEvents=run.healEvents,bossKills=run.bossKills,bosses=run.bosses,encounters=run.encounters,grade=grade(score())}
   -- Personal records are scoped to character, dungeon, difficulty and role.
   local recordKey=table.concat({result.character or "Unknown",result.zone or "Unknown",result.mode or "Unknown",result.role or "UNKNOWN"},"|")
   S.personalBests=S.personalBests or {}
@@ -674,11 +529,6 @@ local function combat(_,result,isError,abilityName,abilityGraphic,abilityAction,
   -- Keep name matching as a fallback for clients with incomplete source types.
   local sourceIsMe=(sourceType==COMBAT_UNIT_TYPE_PLAYER or sourceType==COMBAT_UNIT_TYPE_PLAYER_PET) or isOwnName(sourceName)
   local targetIsMe=(targetType==COMBAT_UNIT_TYPE_PLAYER) or isOwnName(targetName)
-  -- Use the first registered-ultimate combat result, not just BEGIN.
-  -- Source attribution is mandatory; no slot or Ultimate-power checks.
-  if sourceIsMe then
-    recordListedUltimate(abilityId,abilityName,true,"combat")
-  end
   run.events=(run.events or 0)+1
   if sourceIsMe then run.ownEvents=(run.ownEvents or 0)+1 end
   local amount=math.max(0,tonumber(hitValue) or 0)
@@ -725,10 +575,6 @@ end
 local function effect(_,changeType,effectSlot,effectName,unitTag,beginTime,endTime,stackCount,iconName,buffType,effectType,abilityType,statusEffectType,unitName,unitId,abilityId,sourceType)
   if not run or not run.combatStart or not abilityId then return end
   if changeType~=EFFECT_RESULT_GAINED and changeType~=EFFECT_RESULT_UPDATED then return end
-  -- Effect events can expose an ultimate that has no BEGIN combat event.
-  -- Count only self-owned effects, never another player's application.
-  local ownEffect=(unitTag=="player") and (sourceType==COMBAT_UNIT_TYPE_PLAYER or sourceType==BUFF_EFFECT_SOURCE_PLAYER)
-  if ownEffect then recordListedUltimate(abilityId,effectName,true,"effect") end
   local isGroup=unitTag and (unitTag=="player" or unitTag:match("^group%d+$"))
   local isEnemy=unitTag and (unitTag:match("^boss%d+$") or unitTag=="reticleover")
   local kind
@@ -736,7 +582,6 @@ local function effect(_,changeType,effectSlot,effectName,unitTag,beginTime,endTi
   elseif isEnemy and buffType==BUFF_EFFECT_TYPE_DEBUFF then kind="debuff" end
   local registered=supportRegistry[effectName or ""]
   if registered=="buff" or registered=="debuff" then kind=registered end
-  if effectName=="Extended Ritual" or effectName=="Radiating Regeneration" then kind="hot" end
   if registered=="instant" or registered=="passive" then return end
   if not kind then return end
   -- Ultimates may apply ordinary named effects; associate observed effects
@@ -768,7 +613,7 @@ local function effect(_,changeType,effectSlot,effectName,unitTag,beginTime,endTi
   if not duration or duration<=0 then return end
   -- Do not permanently blacklist effects merely because an ultimate was cast.
   trackDuration(abilityId,kind,duration,effectName)
-  if kind=="buff" or kind=="debuff" or kind=="hot" then
+  if kind=="buff" or kind=="debuff" then
     S.learnedBuffs=S.learnedBuffs or {}
     S.learnedBuffs[characterKey()]=S.learnedBuffs[characterKey()] or {}
     S.learnedBuffs[characterKey()][key]={name=effectName or "Effect",kind=kind,duration=duration,lastSeen=safe(GetTimeStamp) or 0}
@@ -778,7 +623,6 @@ end
 state=function(_,inCombat)
   if not run then return end
   if inCombat and not run.combatStart then
-    run.lastUltimatePower=safe(GetUnitPower,"player",POWERTYPE_ULTIMATE);run.pendingUltimate=nil
     run.combatStart=now();run.lastTargetHit=nil;run.fightDamage=0;run.fightHeal=0;run.fightStartDeaths=run.deaths
     for _,bucket in pairs(run.durationCoverage) do
       for _,e in pairs(bucket) do e.lastAccounted=now() end
@@ -817,8 +661,17 @@ local function abilityUsed(_,slotId)
     trackDuration(abilityId,learned.kind or "buff",learned.duration,learned.name)
   end
 end
--- Ultimates are counted solely by curated ability cast BEGIN events
--- in combat(); no resource polling or action-bar events are used.
+local function ultimateUsed(_,slotId)
+  if not run or not run.combatStart or run.role~="HEAL" then return end
+  if tonumber(slotId)~=(tonumber(ACTION_BAR_ULTIMATE_SLOT_INDEX) or 8) then return end
+  local t=now()
+  if t-ultimateLastAt<1.5 then return end
+  ultimateLastAt=t
+  run.ultimateUses=(run.ultimateUses or 0)+1
+  run.ultimatePoints=(run.ultimatePoints or 0)+1
+  run.ultimateSupportPending=t
+  run.lastUltimateAt=t
+end
 local function dead(_,unitTag,isDead)
   if run and isDead then bossDeath(unitTag); if unitTag=="player" then run.deaths=run.deaths+1 elseif unitTag and unitTag:match("^group%d+$") then run.groupDeaths=run.groupDeaths+1 end end
 end
@@ -832,7 +685,6 @@ local function tick()
   end
   if run then bossChanged() end
   updateHUD()
-  updateEffectHUD()
   updatePlayerCard()
 end
 local function activityCompleted()
@@ -861,7 +713,8 @@ local function openMenu()
     menu:SetHidden(true);menu:SetMouseEnabled(false)
     local bg=WINDOW_MANAGER:CreateControl(nil,menu,CT_BACKDROP)
     bg:SetAnchorFill();bg:SetCenterColor(0.03,0.05,0.09,0.98)
-    bg:SetEdgeColor(0.45,0.53,0.65,1);-- no edge texture required
+    bg:SetEdgeColor(0.20,0.65,0.90,0.95);-- no edge texture required
+    TMEBlueFrame(menu)
     menu.title=WINDOW_MANAGER:CreateControl(nil,menu,CT_LABEL)
     menu.title:SetAnchor(TOPLEFT,menu,TOPLEFT,24,20)
     menu.title:SetDimensions(570,35);menu.title:SetFont("$(BOLD_FONT)|23|soft-shadow-thin")
@@ -1050,17 +903,8 @@ openReport=function(h)
   end
   reportHUD.title:SetText("DUNGEON BUDDY  |  PERFORMANCE REPORT")
   local p=h.scoreParts or {}
-  reportHUD.body:SetText(string.format("%s  |  %s  |  %s\nFINAL SCORE  %.1f  |  %s\nRun %s  |  Combat %s\n\nDamage %s  |  Overall DPS %s\nTotal healing %s  |  Overall HPS %s\n%s\nDeaths: %d  |  Boss kills: %d\n\nRole uptime %.1f  Healing %.1f  Damage %.1f  Utility %.1f  Death penalty -%.1f\n\nCircle: close",tostring(h.zone),tostring(h.mode),tostring(h.role),h.score or 0,tostring(h.grade),clock(h.seconds or 0),clock(h.combatSeconds or 0),fmt(h.damage),fmt(h.overallDPS),fmt(h.rawHealing or h.heal),fmt(h.overallHPS),roleMetricLines(h)..string.format("\nCOMBAT EFFECT UPTIME  %s  |  %d tracked",h.combatEffectUptime and string.format("%.1f%%",h.combatEffectUptime) or "N/A",#(h.combatEffects or {}))..(h.role=="HEAL" and string.format("\nUltimates %d | Ultimate score +%.1f",h.ultimateUses or 0,h.ultimatePoints or 0) or ""),h.deaths or 0,h.bossKills or 0,p.buff or 0,p.healing or 0,p.damage or 0,p.utility or 0,p.penalty or 0))
+  reportHUD.body:SetText(string.format("%s  |  %s  |  %s\nFINAL SCORE  %.1f  |  %s\nRun %s  |  Combat %s\n\nDamage %s  |  Overall DPS %s\nTotal healing %s  |  Overall HPS %s\n%s\nDeaths: %d  |  Boss kills: %d\n\nRole uptime %.1f  Healing %.1f  Damage %.1f  Utility %.1f  Death penalty -%.1f\n\nCircle: close",tostring(h.zone),tostring(h.mode),tostring(h.role),h.score or 0,tostring(h.grade),clock(h.seconds or 0),clock(h.combatSeconds or 0),fmt(h.damage),fmt(h.overallDPS),fmt(h.rawHealing or h.heal),fmt(h.overallHPS),roleMetricLines(h)..(h.role=="HEAL" and string.format("\nUltimates %d | Ultimate score +%.1f",h.ultimateUses or 0,h.ultimatePoints or 0) or ""),h.deaths or 0,h.bossKills or 0,p.buff or 0,p.healing or 0,p.damage or 0,p.utility or 0,p.penalty or 0))
 
-  if h.combatEffects and #h.combatEffects>0 then
-    local top={}
-    for _,e in ipairs(h.combatEffects) do
-      if e.name=="Powerful Assault" or e.name=="Major Courage" or e.name=="Minor Berserk" then
-        top[#top+1]=e.name.." "..(e.percent and string.format("%.1f%%",e.percent) or "N/A")
-      end
-    end
-    if #top>0 then reportHUD.body:SetText(reportHUD.body:GetText().."\nKEY BUFFS  "..table.concat(top," | ")) end
-  end
   reportHUD:SetHidden(false)
   if KEYBIND_STRIP then KEYBIND_STRIP:AddKeybindButtonGroup(reportHUD.bindings) end
 end
@@ -1108,11 +952,6 @@ local function command(s)
   elseif s=="menu" then openMenu()
   elseif s=="close" then closeMenu()
   elseif s=="settings" then if not menu or menu:IsHidden() then openMenu() end;if menu then menu.index=1;menu.refresh() end
-  elseif s=="ultdebug" then
-    if not run then say("No active dungeon run") else
-      say("Ultimates: "..tostring(run.ultimateUses or 0).." | Last: "..tostring(run.lastUltimateDetection or "none"))
-      say("This tracker recognizes listed ability names/IDs seen in combat or self-effect events. If zero, the event names differ from the registry.")
-    end
   elseif s=="diagnose" or s=="diag" then
     if not run then say("No active run; enter a dungeon and attack an enemy first") else
       say("Combat events: "..fmt(run.events).." | attributed to you: "..fmt(run.ownEvents).." | damage events: "..fmt(run.damageEvents).." | heal events: "..fmt(run.healEvents))
@@ -1251,7 +1090,6 @@ local function setWindowPreview(enabled)
   end
   if menu and not menu:IsHidden() then applyWindowLayout(menu,"career") end
   updatePlayerCard()
-  updateEffectHUD()
 end
 local function registerAddonSettings()
   if settingsRegistered or not S then return end
@@ -1282,7 +1120,6 @@ local function registerAddonSettings()
     local toggles={
       {"showHUD","Show Live HUD"},
       {"showPlayerCard","Show out-of-dungeon Player Card"},
-      {"showEffectMonitor","Show Combat Effect Monitor"},
       {"showBossHUD","Show Boss Intelligence HUD"},
       {"showPace","Show performance pace"},
       {"showTrend","Show score trend"},
@@ -1295,56 +1132,19 @@ local function registerAddonSettings()
         setFunc=function(v) S.settings[key]=(v==true); if menu and menu.refresh and not menu:IsHidden() then menu.refresh() end end,
         default=defaults.settings[key],width="full"}
     end
-    -- One controller-friendly HUD editor replaces eighteen always-visible sliders.
-    -- Selection is session-local; the individual saved layouts are untouched.
-    local windowNames={live="Live HUD",boss="Boss Intelligence",report="End-of-Run HUD",career="Career Profile",playerCard="Out-of-Dungeon Player Card",effects="Combat Effect Monitor"}
-    local windowOrder={"live","boss","report","career","playerCard","effects"}
-    local selectedWindow="live"
-    local choices={}
-    local values={}
+    options[#options+1]={type="header",name="Window positioning and size"}
+    options[#options+1]={type="checkbox",name="Preview HUD windows",tooltip="Show Live HUD, Boss Intelligence and End-of-Run report while arranging windows. Drag windows with a mouse or use the position sliders.",getFunc=function() return S.settings.previewWindows==true end,setFunc=setWindowPreview,default=false,width="full"}
+    local windowNames={live="Live HUD",boss="Boss Intelligence",report="End-of-Run HUD",career="Career Profile",playerCard="Out-of-Dungeon Player Card"}
+    local windowOrder={"live","boss","report","career","playerCard"}
     for _,key in ipairs(windowOrder) do
-      choices[#choices+1]=windowNames[key]
-      values[#values+1]=key
-    end
-    local function currentLayout()
-      S.settings.windowLayout=S.settings.windowLayout or {}
-      local layout=S.settings.windowLayout[selectedWindow]
-      if not layout then
-        local d=defaults.settings.windowLayout[selectedWindow]
-        layout={x=d.x,y=d.y,scale=d.scale}
-        S.settings.windowLayout[selectedWindow]=layout
+      local title=windowNames[key]
+      options[#options+1]={type="header",name=title}
+      for _,axis in ipairs({"x","y"}) do
+        local coord=axis
+        options[#options+1]={type="slider",name=title.." "..(coord=="x" and "horizontal position" or "vertical position"),min=0,max=1800,step=5,getFunc=function() return S.settings.windowLayout[key][coord] end,setFunc=function(v) S.settings.windowLayout[key][coord]=v;refreshWindowLayouts() end,default=defaults.settings.windowLayout[key][coord],width="full"}
       end
-      return layout
+      options[#options+1]={type="slider",name=title.." size (%)",min=50,max=200,step=5,getFunc=function() return S.settings.windowLayout[key].scale end,setFunc=function(v) S.settings.windowLayout[key].scale=v;refreshWindowLayouts() end,default=100,width="full"}
     end
-    local function updateLayout(field,value)
-      currentLayout()[field]=value
-      refreshWindowLayouts()
-    end
-    options[#options+1]={type="header",name="HUD Layout"}
-    options[#options+1]={type="checkbox",name="Preview HUD windows",tooltip="Display HUDs while arranging them. Each window retains its own position and scale.",getFunc=function() return S.settings.previewWindows==true end,setFunc=setWindowPreview,default=false,width="full"}
-    options[#options+1]={type="dropdown",name="Select HUD window",tooltip="Choose which HUD to position. The sliders below edit only the selected window.",choices=choices,choicesValues=values,sort="name-up",getFunc=function() return selectedWindow end,setFunc=function(value)
-      selectedWindow=value
-      -- LibAddonMenu's refresh updates the sliders' values after selection.
-      local panel=_G[panelId]
-      if panel and _G.LibAddonMenu2 and _G.LibAddonMenu2.util and _G.LibAddonMenu2.util.RequestRefreshIfNeeded then
-        _G.LibAddonMenu2.util.RequestRefreshIfNeeded(panel)
-      end
-    end,width="full"}
-    for _,axis in ipairs({"x","y"}) do
-      local field=axis
-      options[#options+1]={type="slider",name=(field=="x" and "Horizontal position" or "Vertical position"),min=0,max=1800,step=5,getFunc=function() return currentLayout()[field] end,setFunc=function(value) updateLayout(field,value) end,default=defaults.settings.windowLayout.live[field],width="full"}
-    end
-    options[#options+1]={type="slider",name="Window size (%)",min=50,max=200,step=5,getFunc=function() return currentLayout().scale end,setFunc=function(value) updateLayout("scale",value) end,default=100,width="full"}
-    options[#options+1]={type="button",name="Reset selected window",tooltip="Reset only the selected HUD's position and size.",func=function()
-      local d=defaults.settings.windowLayout[selectedWindow]
-      local layout=currentLayout()
-      layout.x=d.x;layout.y=d.y;layout.scale=d.scale
-      refreshWindowLayouts()
-      local panel=_G[panelId]
-      if panel and _G.LibAddonMenu2 and _G.LibAddonMenu2.util and _G.LibAddonMenu2.util.RequestRefreshIfNeeded then
-        _G.LibAddonMenu2.util.RequestRefreshIfNeeded(panel)
-      end
-    end,width="full"}
     lam:RegisterOptionControls(panelId,options)
   end)
   if ok then settingsRegistered=true else say("Dungeon Buddy settings registration error: "..tostring(err)) end
@@ -1381,12 +1181,12 @@ local function initialized(_,addon)
     EM:RegisterForEvent(DR.name.."Activated",EVENT_PLAYER_ACTIVATED,function() tick() end)
   end
   EM:RegisterForEvent(DR.name.."State",EVENT_PLAYER_COMBAT_STATE,state)
-  if EVENT_ACTION_SLOT_ABILITY_USED then EM:RegisterForEvent(DR.name.."AbilityUptime",EVENT_ACTION_SLOT_ABILITY_USED,abilityUsed) end
+  if EVENT_ACTION_SLOT_ABILITY_USED then EM:RegisterForEvent(DR.name.."Ultimates",EVENT_ACTION_SLOT_ABILITY_USED,function(...) abilityUsed(...);ultimateUsed(...) end) end
   if EVENT_BOSSES_CHANGED then EM:RegisterForEvent(DR.name.."Bosses",EVENT_BOSSES_CHANGED,bossChanged) end
   if EVENT_EFFECT_CHANGED then EM:RegisterForEvent(DR.name.."Effects",EVENT_EFFECT_CHANGED,effect) end
   if EVENT_UNIT_DEATH_STATE_CHANGED then EM:RegisterForEvent(DR.name.."Dead",EVENT_UNIT_DEATH_STATE_CHANGED,dead) end
   EM:RegisterForUpdate(DR.name.."Tick",1000,tick)
   registerRadialMenu(); EM:RegisterForUpdate(DR.name.."RadialRetry",2500,function() if registerRadialMenu() then EM:UnregisterForUpdate(DR.name.."RadialRetry") end end)
-  ensureHUD(); ensurePlayerCard(); ensureEffectHUD(); updatePlayerCard(); registerAddonSettings(); EM:RegisterForUpdate(DR.name.."SettingsRetry",2000,function() if settingsRegistered then EM:UnregisterForUpdate(DR.name.."SettingsRetry") else registerAddonSettings() end end); say("v0.3 loaded. Career Profile is available in Add-Ons > Dungeon Buddy when LibAddonMenu-2.0 is installed.")
+  ensureHUD(); ensurePlayerCard(); updatePlayerCard(); registerAddonSettings(); EM:RegisterForUpdate(DR.name.."SettingsRetry",2000,function() if settingsRegistered then EM:UnregisterForUpdate(DR.name.."SettingsRetry") else registerAddonSettings() end end); say("v0.3 loaded. Career Profile is available in Add-Ons > Dungeon Buddy when LibAddonMenu-2.0 is installed.")
 end
 EM:RegisterForEvent(DR.name.."Init",EVENT_ADD_ON_LOADED,initialized)

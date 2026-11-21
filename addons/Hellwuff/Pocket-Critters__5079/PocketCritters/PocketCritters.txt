@@ -1,0 +1,12 @@
+## Title: |cFF8FC8Pocket Critters|r
+## Author: Hellwuff
+## Version: 3.0.4
+## AddOnVersion: 304
+## APIVersion: 101051 101052
+## Description: A tiny animated companion (hellhound, lion, cats or a pup!) who lives on your screen, reacts to your adventures, plays fetch and peeks over your inventory. Type /critter for settings.
+## SavedVariables: PocketCritters_SV
+
+PocketCritters.lua
+PocketCrittersSettings.lua
+PocketCrittersPeek.lua
+Bindings.xml

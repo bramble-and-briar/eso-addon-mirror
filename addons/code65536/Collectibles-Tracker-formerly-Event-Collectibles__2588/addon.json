@@ -78,7 +78,7 @@
     "CollectiblesTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2588/",
-  "fingerprint": "40cc3f802f1cea4848971f9839079da33e85dd7b407e69f2991803e0b1c12eb3",
+  "fingerprint": "251f041c81c3998fdd619c4741a42decd48650ee5c9f343af3ad710d959928bd",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13243.png",
     "https://cdn-eso.mmoui.com/preview/pvw13244.png",
@@ -93,11 +93,11 @@
   "source_id": "2588",
   "source_url": "https://www.esoui.com/downloads/info2588-CollectiblesTrackerformerlyEventCollectibles.html",
   "stats": {
-    "downloads": 319684,
-    "favorites": 243,
-    "monthly_downloads": 4778
+    "downloads": 322528,
+    "favorites": 244,
+    "monthly_downloads": 5930
   },
   "title": "Collectibles Tracker (formerly Event Collectibles)",
-  "updated_at": 1794535162000,
-  "version": "3.6.5"
+  "updated_at": 1795188479000,
+  "version": "3.6.6"
 }

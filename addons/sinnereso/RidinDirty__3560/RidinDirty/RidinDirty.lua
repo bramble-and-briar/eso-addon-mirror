@@ -1,7 +1,7 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.11.07",
+	version = "2026.11.21",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
 	tradeTable = {},
@@ -807,10 +807,10 @@ local function RDInitializeControls()
 			{
 				type = "checkbox",
 				name = "Loot Manager",
-				tooltip = "Outputs group loot to chat and filters out most trash and anything below selected quality with a minimal whitelist",
+				tooltip = "Outputs group loot to chat and filters out most trash and anything below selected quality with a minimal whitelist & TTC values everywhere",
 				getFunc = function() return RidinDirty.savedVariables.lootManager end,
 				setFunc = function(value) RidinDirty.lootManagerToggle(value) end,
-				warning = "NOT compatible with Loot Log. Requires LibCharacterKnowledge to detect what is knownst on other characters",
+				warning = "NOT compatible with Loot Log. Requires LibCharacterKnowledge to detect what is knownst on other characters & TTC for pricing data",
 			},
 			{
 				type = "dropdown",
@@ -823,15 +823,20 @@ local function RDInitializeControls()
 				disabled = function() return not RidinDirty.savedVariables.lootManager end,
 			},
 			{
+				type = "divider",
+				alpha = 0.5,
+				width = "full",
+			},
+			{
 				type = "dropdown",
-				name = "TTC Inventory Pricing",
-				tooltip = "Show inventory values using selected TTC data with a fallback to listing average if no select data available",
-				choices = {"|ccc0000*DISABLED*|r", "SuggestedPrice", "Sales Average", "List Average", "List Minumum", "List Maximum"},
-				choicesValues = {false, "SuggestedPrice", "SaleAvg", "Avg", "Min", "Max"},
+				name = "TTC Preferred Pricing",
+				tooltip = "With loot manager enabled shows TTC values everywhere. Also used for auto pricing with trader enhancements. Fallback to listing average if no preferred data",
+				choices = {"Suggested Price", "Sales Average", "List Average", "List Minimum", "List Maximum"},
+				choicesValues = {"SuggestedPrice", "SaleAvg", "Avg", "Min", "Max"},
 				getFunc = function() return RidinDirty.savedVariables.ttcPricing end,
 				setFunc = function(var) RidinDirty.savedVariables.ttcPricing = (var) end,
-				disabled = function() return not RidinDirty.savedVariables.lootManager end,
-				warning = "Requires Loot Manager because they share the same function for efficiency and TTC for pricing data",
+				--disabled = function() return not RidinDirty.savedVariables.lootManager end,
+				--warning = "Requires Loot Manager because they share the same function for efficiency and TTC for pricing data",
 			},
 			{
 				type = "divider",
@@ -841,7 +846,7 @@ local function RDInitializeControls()
 			{
 				type = "checkbox",
 				name = "Trader Enhancements",
-				tooltip = "Adds some QoL features to the trader window including active trader cycling by clicking guild name(skips non trading guilds with no listings), auto last search, listing counts & totals",
+				tooltip = "Adds some QoL features to the trader window including active trader cycling by clicking guild name(skips non trading guilds with no listings), auto pricing, auto last search, listing counts & totals",
 				getFunc = function() return RidinDirty.savedVariables.traderEnhance end,
 				setFunc = function(value) RidinDirty.TraderEnhanceToggle(value) end,
 				warning = "NOT compatible with AwesomeGuildStore. Requires LibCharacterKnowledge to detect what is knownst on other characters & TTC for pricing data",
@@ -1327,6 +1332,7 @@ function RidinDirty.TravelToHome()
 			df(RD_LOGO .. "Traveling to " .. tostring(GetCollectibleNickname(GetCollectibleIdForHouse(GetHousingPrimaryHouse()))))
 		end
 		RequestJumpToHouse(GetHousingPrimaryHouse(), travelOutside)
+		SCENE_MANAGER:Show("hud")
 		return
 	end
 end
@@ -1403,6 +1409,7 @@ function RidinDirty.TravelToPlayer()
 				if spInGroup then targetLocation = zoneName end
 				df(RD_LOGO .. "Traveling to " .. displayNamePref .. " in " .. targetLocation)
 				JumpToGroupMember(playerDisplayName)
+				SCENE_MANAGER:Show("hud")
 				return
 			end
 		end
@@ -1425,6 +1432,7 @@ function RidinDirty.TravelToPlayer()
 				if IsMounted() then CallSecureProtected("ToggleMount") end
 				df(RD_LOGO .. "Traveling to " .. displayNamePref .. " in zone")
 				JumpToFriend(friendName)
+				SCENE_MANAGER:Show("hud")
 				return
 			end
 		end
@@ -1451,12 +1459,14 @@ function RidinDirty.TravelToPlayer()
 					if IsMounted() then CallSecureProtected("ToggleMount") end
 					df(RD_LOGO .. "Traveling to " .. displayNamePref .. " in zone")
 					JumpToGuildMember(memberName)
+					SCENE_MANAGER:Show("hud")
 					return
 				end
 			end
 		end
 	end
 	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "No player found in zone.")
+	SCENE_MANAGER:Show("hud")
 end
 
 function RidinDirty.TeleportPlayerQueueOn(playerName)
@@ -1519,11 +1529,13 @@ function RidinDirty.Teleport(value1, value2)
 					if IsMounted() then CallSecureProtected("ToggleMount") end
 					df(RD_LOGO .. "Traveling to your " .. GetHousingLink(GetHouseID(value2), ""))
 					RequestJumpToHouse(GetHouseID(value2), travelOutside)
+					SCENE_MANAGER:Show("hud")
 					return
 				else
 					if IsMounted() then CallSecureProtected("ToggleMount") end
 					df(RD_LOGO .. "Traveling to preview " .. GetHousingLink(GetHouseID(value2), ""))
 					RequestJumpToHouse(GetHouseID(value2), travelOutside)
+					SCENE_MANAGER:Show("hud")
 					return
 				end
 			end
@@ -1542,9 +1554,11 @@ function RidinDirty.Teleport(value1, value2)
 				if IsMounted() then CallSecureProtected("ToggleMount") end
 				df(RD_LOGO .. "Traveling to " .. GetHousingLink(GetHouseID(value2), value1))
 				JumpToSpecificHouse(value1, GetHouseID(value2))
+				SCENE_MANAGER:Show("hud")
 				return
 			end
 		end
+		return
 	end
 	for iD = 1, GetGroupSize() do
 		local playerID = GetGroupUnitTagByIndex(iD)
@@ -1569,6 +1583,7 @@ function RidinDirty.Teleport(value1, value2)
 				if IsMounted() then CallSecureProtected("ToggleMount") end
 				df(RD_LOGO .. "Traveling to " .. displayNamePref .. " in " .. memberZone)
 				JumpToGroupMember(memberName)
+				SCENE_MANAGER:Show("hud")
 				return
 			end
 		end
@@ -1592,6 +1607,7 @@ function RidinDirty.Teleport(value1, value2)
 				if IsMounted() then CallSecureProtected("ToggleMount") end
 				df(RD_LOGO .. "Traveling to " .. displayNamePref .. " in " .. friendZone)
 				JumpToFriend(friendName)
+				SCENE_MANAGER:Show("hud")
 				return
 			end
 		end
@@ -1619,15 +1635,14 @@ function RidinDirty.Teleport(value1, value2)
 					if IsMounted() then CallSecureProtected("ToggleMount") end
 					df(RD_LOGO .. "Traveling to " .. displayNamePref .. " in " .. memberZone)
 					JumpToGuildMember(memberName)
+					SCENE_MANAGER:Show("hud")
 					return
 				end
 			end
 		end
 	end
-	if value2 == nil or value2 == "" then
-		ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("No player found anywhere matching: " .. value1 .. "."))
-	end
-	return
+	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("No player found anywhere matching: " .. value1 .. "."))
+	SCENE_MANAGER:Show("hud")
 end
 
 function RidinDirty.TeleportZoneQueueOn(value1, value2)
@@ -2313,7 +2328,7 @@ local function NeedsAndPrice(control, slot)
 	end
 	if slot.lootId or STORE_FRAGMENT:IsShowing() then return end
 	if bagId and (IsItemBound(bagId, slotIndex) or IsItemBoPAndTradeable(bagId, slotIndex)) then return end
-	if not TamrielTradeCentre or not (RidinDirty.savedVariables.lootManager and RidinDirty.savedVariables.ttcPricing) then return end
+	if not TamrielTradeCentre then return end
 	local SellPriceControl = control:GetNamedChild("SellPriceText") or control:GetNamedChild("SellPrice")
 	if not SellPriceControl then return end
 	--local originalPrice = SellPriceControl:GetText()--purchasePrice
@@ -2392,9 +2407,6 @@ function RidinDirty.lootManagerToggle(toggle)
 			NeedsAndPrice(control, slot)
 		end)
 		SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
-			if RidinDirty.savedVariables.traderEnhance then
-				zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)-- + GetTradingHouseCooldownRemaining())
-			end
 			if not traderMods then
 				traderMods = true
 				local oldSearch = ZO_ScrollList_GetDataTypeTable(ZO_TradingHouseBrowseItemsRightPaneSearchResults, 1).setupCallback
@@ -2506,11 +2518,21 @@ function RidinDirty.TraderEnhanceToggle(toggle)
 				end
 			end
 		end)
-		if not RidinDirty.savedVariables.lootManager then
-			SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
-				zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)-- + GetTradingHouseCooldownRemaining())
-			end)
-		end
+		SecurePostHook(TRADING_HOUSE, "OnPendingPostItemUpdated", function(tradingHouse, slotId, isPending)
+			if not isPending or not slotId or not TamrielTradeCentrePrice then return end
+			local itemLink = GetItemLink(BAG_BACKPACK, slotId)
+			if not itemLink or itemLink == "" then return end
+			local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
+			if not priceInfo then return end
+			local unitPrice = priceInfo[RidinDirty.savedVariables.ttcPricing] or priceInfo.Avg
+			if not unitPrice or unitPrice <= 0 then return end
+			local stackCount = GetSlotStackSize(BAG_BACKPACK, slotId)
+			local totalPrice = math.floor(unitPrice * stackCount + 0.5)
+			TRADING_HOUSE:SetPendingPostPrice(totalPrice)
+		end)
+		SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
+			zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)
+		end)
 	else
 		RidinDirty.savedVariables.traderEnhance = toggle
 		ReloadUI()
@@ -2897,34 +2919,42 @@ local function GetUnlockedAssistant()
 	end
 	return false
 end
---and IsUnitInCombat("player") and not IsUnitDeadOrReincarnating("player") then
-local function CompanionReSummon()
-	local collectibleID = GetUnlockedAssistant()
-	if collectibleID and not HasPendingCompanion() and not IsUnitDeadOrReincarnating("player") then
-		UseCollectible(collectibleID)
-	else
-		EVENT_MANAGER:UnregisterForUpdate("RDCompanion")
+--HasActiveCompanion()
+--HasPendingCompanion()
+--HasSuppressedCompanion()
+--HasBlockedCompanion()
+local ASSISTANT_ID
+local function CompanionReSummon()-->> TESTING
+	--if HasSuppressedCompanion() then df("SURPRESSED") end
+	--if HasBlockedCompanion() then df("BLOCKED") end
+	if not IsUnitDeadOrReincarnating("player") and not HasPendingCompanion() then
+		--df("TRY")
+		UseCollectible(ASSISTANT_ID)
+		return
 	end
+	--df("NO TRY")
 end
-
+--and IsUnitInCombat("player") then
 local function CompanionDeathState(eventCode, unitTag, isDead)
 	if IsUnitDead("companion") then
 		local companionName = zo_strformat("<<1>>", GetUnitName(unitTag))--<< Strip Genders
 		CENTER_SCREEN_ANNOUNCE:AddMessage( 0, CSA_CATEGORY_LARGE_TEXT, "Console_Game_Enter", ("|ccc0000WARNING! " .. companionName .. " DIED...|r"), nil, nil, nil, nil, nil, 5000, nil)
-		--if InAlphaList(GetUnitDisplayName("player")) and not IsUnitDeadOrReincarnating("player") then--and IsUnitInCombat("player")
-			--local collectibleID = GetUnlockedAssistant()
-			--if collectibleID then UseCollectible(collectibleID) end
-			--EVENT_MANAGER:RegisterForUpdate("RDCompanion", 2200, CompanionReSummon)
-		--end
-	--else
-		--EVENT_MANAGER:UnregisterForUpdate("RDCompanion")
+		if InAlphaList(GetUnitDisplayName("player")) and not IsUnitDeadOrReincarnating("player") then-->> TESTING
+			ASSISTANT_ID = GetUnlockedAssistant()
+			if ASSISTANT_ID then
+				--UseCollectible(ASSISTANT_ID)
+				--zo_callLater(function() UseCollectible(ASSISTANT_ID) end, 1100)
+				EVENT_MANAGER:RegisterForUpdate("RDCompanion", 1100, CompanionReSummon)--2200
+			end
+		end
 	end
 end
-
-local function CompanionSummonResult(eventID, summonResult, companionId)
+--/script df(tostring(COMPANION_SUMMON_RESULT_SUMMON_REQUESTED))
+local function CompanionSummonResult(eventID, summonResult, companionId)-->> TESTING
 	--df("SUMMONING COMPANION - " .. tostring(summonResult) .. " - " .. tostring(companionId))
 	if summonResult == 4 or summonResult == 11 or IsUnitDeadOrReincarnating("player") then
 		EVENT_MANAGER:UnregisterForUpdate("RDCompanion")
+		--df("UNREGISTERED")
 	end
 end
 
@@ -2934,14 +2964,14 @@ function RidinDirty.CompanionRapportToggle(toggle)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_RAPPORT_UPDATE, CompanionRapport)
 		EVENT_MANAGER:RegisterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED, CompanionDeathState)
 		EVENT_MANAGER:AddFilterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "companion")
-		--if InAlphaList(GetUnitDisplayName("player")) then--<< TESTING
-			--EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT, CompanionSummonResult)
-		--end
+		if InAlphaList(GetUnitDisplayName("player")) then--<< TESTING
+			EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT, CompanionSummonResult)
+		end
 	else
 		RidinDirty.savedVariables.companionRapport = toggle
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_COMPANION_RAPPORT_UPDATE)
 		EVENT_MANAGER:UnregisterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED)
-		--EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT)
+		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT)
 	end
 end
 ---------------------------------------------
@@ -3403,9 +3433,9 @@ local function RDInitializeSettings()
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_RAPPORT_UPDATE, CompanionRapport)
 		EVENT_MANAGER:RegisterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED, CompanionDeathState)
 		EVENT_MANAGER:AddFilterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "companion")
-		--if InAlphaList(GetUnitDisplayName("player")) then--<< TESTING
-			--EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT, CompanionSummonResult)
-		--end
+		if InAlphaList(GetUnitDisplayName("player")) then--<< TESTING
+			EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT, CompanionSummonResult)
+		end
 	end
 	if RidinDirty.savedVariables.skipDialogs then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CHATTER_BEGIN, ChatterMonitor)
@@ -3512,9 +3542,6 @@ local function RDInitializeSettings()
 			NeedsAndPrice(control, slot)
 		end)
 		SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
-			if RidinDirty.savedVariables.traderEnhance then
-				zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)-- + GetTradingHouseCooldownRemaining())
-			end
 			if not traderMods then
 				traderMods = true
 				local oldSearch = ZO_ScrollList_GetDataTypeTable(ZO_TradingHouseBrowseItemsRightPaneSearchResults, 1).setupCallback
@@ -3583,11 +3610,21 @@ local function RDInitializeSettings()
 				end
 			end
 		end)
-		if not RidinDirty.savedVariables.lootManager then
-			SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
-				zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)-- + GetTradingHouseCooldownRemaining())
-			end)
-		end
+		SecurePostHook(TRADING_HOUSE, "OnPendingPostItemUpdated", function(tradingHouse, slotId, isPending)
+			if not isPending or not slotId or not TamrielTradeCentrePrice then return end
+			local itemLink = GetItemLink(BAG_BACKPACK, slotId)
+			if not itemLink or itemLink == "" then return end
+			local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
+			if not priceInfo then return end
+			local unitPrice = priceInfo[RidinDirty.savedVariables.ttcPricing] or priceInfo.Avg
+			if not unitPrice or unitPrice <= 0 then return end
+			local stackCount = GetSlotStackSize(BAG_BACKPACK, slotId)
+			local totalPrice = math.floor(unitPrice * stackCount + 0.5)
+			TRADING_HOUSE:SetPendingPostPrice(totalPrice)
+		end)
+		SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
+			zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)
+		end)
 	end
 	if RidinDirty.savedVariables.pvpKillFeed then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_PVP_KILL_FEED_DEATH, PvpKillFeed)
@@ -3633,7 +3670,7 @@ local function AddOnLoaded(eventCode, addOnName)
 		autoRecharge = false,
 		lootManager = false,
 		lootQuality = 2,
-		ttcPricing = false,
+		ttcPricing = "SuggestedPrice",
 		traderEnhance = false,
 		avtLog = false,
 		minimumAVT = 100,

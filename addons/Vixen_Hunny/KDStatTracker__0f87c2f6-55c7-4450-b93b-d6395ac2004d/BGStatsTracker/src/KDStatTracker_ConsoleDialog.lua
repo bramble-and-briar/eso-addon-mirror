@@ -160,7 +160,8 @@ function Ctx:Button(label, tooltip, action, keepOpen)
         tooltip = tooltip,
         clickHandler = function()
             action()
-            if keepOpen ~= false and console:IsShowing() then console:Refresh() end
+            local owner = self.owner or console
+            if keepOpen ~= false and owner:IsShowing() then owner:Refresh() end
         end,
     })
 end
@@ -212,6 +213,12 @@ function console:Populate()
     ctx:Button(KDST.settings.showHUD and "Hide HUD Tracker" or "Show HUD Tracker", "Toggle the on-screen tracker", function()
         KDST.ToggleHUD()
     end)
+    ctx:Button("Duel Lookup", "Search your duel record against other players", function()
+        KDST.OpenDuelLookup()
+    end, false)
+    ctx:Button("Victim Lookup", "Search the players you've killed", function()
+        KDST.OpenVictimLookup()
+    end, false)
     ctx:Button("Reset Session", "Clear this play session's numbers", function()
         KDST.ShowResetDialog("session")
     end, false)
@@ -285,6 +292,188 @@ local function RegisterJournalKeybinds()
 end
 
 -------------------------------------------------------------------------------
+-- Search dialogs (console). A search box plus every matching row. Duels and
+-- victims each get their own dialog; both search with LibESQL LIKE when it is
+-- installed (text matches anywhere in the name; % and _ are literal) and
+-- fall back to a Lua substring search otherwise.
+-------------------------------------------------------------------------------
+local SEARCH_LIST_MAX = 40   -- keep the list short enough to scroll on a pad
+local QUICK_LIST_MAX  = 10
+
+local searchDialogs = {}
+
+function KDST.DuelOpponentText(e)
+    return string.format("%s  -  %s W / %s L  (W/L %s, %s)", e.name,
+        KDST.Color(C.kill, e.wins), KDST.Color(C.death, e.losses),
+        KDST.Color(C.ratio, KDST.Ratio(e.wins, e.losses)), KDST.Percent(e.wins, e.wins + e.losses))
+end
+
+local SearchDialog = {}
+SearchDialog.__index = SearchDialog
+
+-- Same show / refresh / close behaviour as the main console dialog.
+function SearchDialog:IsShowing() return console.IsShowing(self) end
+function SearchDialog:Refresh() return console.Refresh(self) end
+function SearchDialog:Close() return console.Close(self) end
+
+function SearchDialog:Populate()
+    local spec, dialog = self.spec, self.dialog
+    dialog:Clear()
+    local ctx = setmetatable({ dialog = dialog, owner = self }, Ctx)
+
+    ctx:Section(spec.title, zo_strformat("<<1>>", KDST.charName))
+    for _, line in ipairs(spec.header()) do ctx:Stat(line) end
+
+    dialog:AddSetting({
+        type = LibHarvensAddonSettings.ST_EDIT,
+        label = spec.searchLabel,
+        tooltip = spec.searchTooltip,
+        textType = TEXT_TYPE_ALL,
+        maxChars = 32,
+        getFunction = function() return self.term end,
+        setFunction = function(text)
+            self.term = KDST.EscapeSearch(text)
+            -- Rebuild after the edit box has finished closing.
+            zo_callLater(function() if self.dialog then self:Refresh() end end, 0)
+        end,
+    })
+
+    local list = spec.lookup(self.term)
+    local searching = self.term ~= ""
+    ctx:Section(searching and string.format("Matches for \"%s\"  (%d)", self.term, #list)
+        or string.format("%s  (%d)", spec.allTitle, #list))
+    if #list == 0 then
+        ctx:Stat(KDST.Color(C.muted, searching and spec.noMatchText or spec.emptyText))
+    end
+    for i = 1, math.min(#list, SEARCH_LIST_MAX) do
+        local e = list[i]
+        ctx:Stat(spec.rowText(e), spec.rowTooltip(e))
+    end
+    if #list > SEARCH_LIST_MAX then
+        ctx:Stat(KDST.Color(C.muted, string.format("...and %d more. Narrow the search.", #list - SEARCH_LIST_MAX)))
+    end
+
+    ctx:Section("Actions")
+    if searching then
+        ctx:Button("Clear Search", "Show everyone", function() self.term = "" end)
+    end
+    ctx:Button("Open Stats", "Open the main stats dialog", function()
+        self:Close()
+        zo_callLater(function() KDST.OpenStatsDialog() end, 100)
+    end, false)
+    ctx:Button("Close", "Close this lookup", function() self:Close() end, false)
+end
+
+function SearchDialog:Open(term)
+    if term then self.term = KDST.EscapeSearch(term) end
+    local function Show()
+        if not self.dialog then
+            self.dialog = LibConsoleDialogs:Create(KDST.displayName .. " - " .. self.spec.shortTitle)
+        end
+        self:Populate()
+        self.dialog:Show()
+    end
+    -- Coming from another of our dialogs: let its scene close before opening this one.
+    local closedOther = false
+    if console.dialog then console:Close(); closedOther = true end
+    for _, other in pairs(searchDialogs) do
+        if other ~= self and other.dialog then other:Close(); closedOther = true end
+    end
+    if closedOther then zo_callLater(Show, 100) else Show() end
+end
+
+-- Text version for gamepad mode without the console libraries.
+function SearchDialog:ShowQuick(term)
+    local spec = self.spec
+    local list = spec.lookup(term)
+    local lines = {}
+    for _, line in ipairs(spec.header()) do lines[#lines + 1] = line end
+    lines[#lines + 1] = ""
+    for i = 1, math.min(#list, QUICK_LIST_MAX) do lines[#lines + 1] = spec.rowText(list[i]) end
+    if #list == 0 then lines[#lines + 1] = term ~= "" and spec.noMatchText or spec.emptyText end
+    if #list > QUICK_LIST_MAX then lines[#lines + 1] = KDST.Color(C.muted, string.format("...and %d more", #list - QUICK_LIST_MAX)) end
+    ShowPlatformDialog(DIALOG_QUICK, nil, term ~= "" and (spec.shortTitle .. ": " .. term) or spec.shortTitle, table.concat(lines, "\n"))
+end
+
+-- Opens the best version for the current UI. Returns true if a dialog was
+-- shown (false on keyboard UI, where the caller prints to chat).
+function SearchDialog:OpenBest(term)
+    term = KDST.EscapeSearch(term)
+    if UseConsoleDialog() then
+        self:Open(term)
+        return true
+    elseif KDST.IsGamepadUI() then
+        self:ShowQuick(term)
+        return true
+    end
+    return false
+end
+
+local function NewSearchDialog(key, spec)
+    local obj = setmetatable({ term = "", spec = spec }, SearchDialog)
+    searchDialogs[key] = obj
+    return obj
+end
+
+
+-- Duels ---------------------------------------------------------------------
+local duelSearch = NewSearchDialog("duels", {
+    title       = "Duel Lookup",
+    shortTitle  = "Duels",
+    searchLabel = "Search opponent",
+    searchTooltip = "Type part of an @account name. Leave empty to list everyone you've dueled.",
+    allTitle    = "All opponents",
+    emptyText   = "No duels recorded yet.",
+    noMatchText = "No duels against anyone matching that.",
+    header = function()
+        local mine, all = KDST.GetDuelData(), KDST.data.duels or {}
+        local function Line(label, w, l)
+            return StatText(label, string.format("%s W / %s L  (W/L %s, %s)", KDST.Color(C.kill, w), KDST.Color(C.death, l),
+                KDST.Color(C.ratio, KDST.Ratio(w, l)), KDST.Percent(w, w + l)))
+        end
+        return {
+            Line("This character", mine.wins or 0, mine.losses or 0),
+            Line("All characters", all.wins or 0, all.losses or 0),
+        }
+    end,
+    -- Empty search lists every opponent: "@" is in every account name.
+    lookup = function(term)
+        term = term ~= "" and term or "@"
+        return KDST.LookupDuelOpponents(term) or KDST.Lookup(term).opponents
+    end,
+    rowText = KDST.DuelOpponentText,
+    rowTooltip = function(e) return string.format("%s\n%d duels, W/L %s", e.name, e.wins + e.losses, KDST.Ratio(e.wins, e.losses)) end,
+})
+KDST.duelConsole = duelSearch
+
+-- Victims -------------------------------------------------------------------
+local victimSearch = NewSearchDialog("victims", {
+    title       = "Victim Lookup",
+    shortTitle  = "Victims",
+    searchLabel = "Search player",
+    searchTooltip = "Type part of a character name. Leave empty to list everyone you've killed.",
+    allTitle    = "All victims",
+    emptyText   = "No player kills recorded yet.",
+    noMatchText = "You haven't killed anyone matching that.",
+    header = function()
+        local mine, data = KDST.GetCharData(), KDST.data
+        return {
+            StatText("This character", string.format("%s kills / %s deaths  (K/D %s)", KDST.Color(C.kill, mine.kills),
+                KDST.Color(C.death, mine.deaths), KDST.Color(C.ratio, KDST.Ratio(mine.kills, mine.deaths)))),
+            StatText("All characters", string.format("%s kills / %s deaths  (K/D %s)", KDST.Color(C.kill, data.totalKills or 0),
+                KDST.Color(C.death, data.totalDeaths or 0), KDST.Color(C.ratio, KDST.Ratio(data.totalKills, data.totalDeaths)))),
+        }
+    end,
+    lookup = function(term) return KDST.LookupVictims(term) end,
+    rowText = function(e) return KDST.VictimText(e) end,
+    rowTooltip = function(e) return string.format("%s\nYou killed them %d times, they killed you %d times", e.name, e.kills, e.deaths) end,
+})
+KDST.victimConsole = victimSearch
+
+function KDST.OpenDuelLookup(term) return duelSearch:OpenBest(term) end
+function KDST.OpenVictimLookup(term) return victimSearch:OpenBest(term) end
+
+-------------------------------------------------------------------------------
 -- Platform-neutral entry points
 -------------------------------------------------------------------------------
 function KDST.OpenStatsDialog(pageIndex)
@@ -300,6 +489,9 @@ end
 function KDST.CloseStatsDialog()
     if KDST.pcDialog:IsShowing() then KDST.pcDialog:Close() end
     if console.dialog then console:Close() end
+    for _, search in pairs(searchDialogs) do
+        if search.dialog then search:Close() end
+    end
 end
 
 function KDST.IsStatsDialogShowing()

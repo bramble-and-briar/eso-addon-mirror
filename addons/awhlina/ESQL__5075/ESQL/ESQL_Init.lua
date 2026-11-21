@@ -2,6 +2,7 @@
 
 local E = ESQL
 local L = LibESQL
+local format = string.format
 
 if ZO_CreateStringId then
     ZO_CreateStringId("SI_BINDING_NAME_ESQL_TOGGLE", "Toggle ESQL window")
@@ -10,12 +11,17 @@ end
 local DEFAULTS = {
     history = {},
     uiScale = 1.2,
+    highlight = true,
 }
 
 -- Save the last result into SavedVariables for use outside the game.
-function E.ExportLast()
+-- name: letters, digits and _ (default "export"). Saved as ESQL_SV.exports[name];
+-- ESQL/tools/esql_to_mysql.py turns them into a phpMyAdmin .sql file.
+function E.ExportLast(name)
     local res = E.lastResult
     if not res then L.Print("Run a query first."); return end
+    name = tostring(name or ""):lower():gsub("[^%w_]", "_")
+    if name == "" or name == "_" then name = "export" end
     local cap = L.isConsole and 2000 or 20000
     local rows = {}
     for r = 1, math.min(#res.rows, cap) do
@@ -27,8 +33,18 @@ function E.ExportLast()
         end
         rows[r] = copy
     end
-    E.sv.export = { query = E.sv.lastQuery, columns = res.columns, rows = rows, time = GetTimeStamp and GetTimeStamp() }
-    L.Print("Saved %d row(s) to SavedVariables (ESQL_SV export). They are written on /reloadui or logout.", #rows)
+    local saved = { query = res.query or E.sv.lastQuery, columns = res.columns, rows = rows, time = GetTimeStamp and GetTimeStamp() }
+    E.sv.exports = E.sv.exports or {}
+    E.sv.exports[name] = saved
+    E.sv.export = saved   -- the most recent export, as before
+    L.Print("Saved %d row(s) as export '%s'. It is written to SavedVariables/ESQL.lua on /reloadui or logout; run ESQL/tools/esql_to_mysql.py to make a .sql file for phpMyAdmin.", #rows, name)
+end
+
+function E.ListExports()
+    local names = {}
+    for n, x in pairs(E.sv.exports or {}) do names[#names + 1] = format("%s (%d rows)", n, #(x.rows or {})) end
+    table.sort(names)
+    return names
 end
 
 ---------------------------------------------------------------------------
@@ -55,8 +71,23 @@ local function slash(arg)
     elseif cmd == "size" or cmd == "scale" then
         if tonumber(rest) then E.UI.SetScale(tonumber(rest))
         else L.Print("Text size is %.1f. /esql size 0.6-2.5 (e.g. /esql size 1.4)", E.sv.uiScale or 1) end
+    elseif cmd == "highlight" then
+        if rest == "on" or rest == "off" then
+            E.UI.SetHighlight(rest == "on")
+            L.Print("Syntax highlighting %s.", rest)
+        else
+            L.Print("Syntax highlighting is %s. /esql highlight on|off", E.UI.HighlightEnabled() and "on" or "off")
+        end
     elseif cmd == "export" then
-        E.ExportLast()
+        E.ExportLast(rest)
+    elseif cmd == "exports" then
+        if rest == "clear" then
+            E.sv.exports, E.sv.export = {}, nil
+            L.Print("Removed all saved exports.")
+        else
+            local names = E.ListExports()
+            L.Print(#names > 0 and ("Saved exports: " .. table.concat(names, ", ")) or "No saved exports. Run a query, then /esql export <name>.")
+        end
     elseif cmd == "reset" then
         E.sv.window = nil
         E.UI.SetScale(E.sv.uiScale or 1)

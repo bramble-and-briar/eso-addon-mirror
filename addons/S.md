@@ -51,7 +51,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ScrySpy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/ScrySpy__2647) | Sharlikran | PC / Mac | 1.44 |
 | [ScuttleBuddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/ScuttleBuddy__2719) | Sharlikran | PC / Mac | 1.14 |
 | [Seamstress](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Seamstress__8bc4c7c2-ee0d-488d-a3b5-ecab07912f95) | SugaComa | Console | — |
-| [SearchByNote](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/SearchByNote__3371) | Schrodi | PC / Mac | 1.0 |
 | [SearchMemberNotesToo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/SearchMemberNotesToo__2326) | Coorbin | PC / Mac | 1.2 |
 | [Seas of Oblivion Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Oceanbluee/Seas-of-Oblivion-Guild-Hall__3355) | Oceanbluee | PC / Mac | 1 |
 | [SecondChatWindow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ericstoesser/SecondChatWindow__4412) | ericstoesser | PC / Mac | 1.4.0 |
@@ -67,6 +66,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Set Collection Marker (Sticker Book)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Set-Collection-Marker-Sticker-Book__2804) | Kyzeragon | PC / Mac | 3.0.0 |
 | [Set Container Collector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FirewoodDoge/Set-Container-Collector__4652) | FirewoodDoge | PC / Mac | 1.0.1 |
 | [Set Cooldown Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bucketmore/Set-Cooldown-Tracker__630b3a3d-a865-43cb-ab6c-2a1c9923dbe6) | Bucketmore | Console | — |
+| [Set Hunter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Khazaril/Set-Hunter__eb2c190d-fe48-498a-baac-3db1a6ba979e) | Khazaril | Console | — |
 | [Set Hunter - Gear Finder & XP Guide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Set-Hunter---Gear-Finder-XP-Guide__4882) | brianmit | PC / Mac | 1.1.0 |
 | [Set Junker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HerrPulaRau/Set-Junker__2572) | HerrPulaRau | PC / Mac | 1.3.1 |
 | [Set Master](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BoltActionBalrog/Set-Master__3192) | BoltActionBalrog | PC / Mac | 1.3.1 |
@@ -332,7 +332,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [StoreHelper - maintain stocks of basic craft style mats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rexorn/StoreHelper---maintain-stocks-of-basic-craft-style-mats__3195) | Rexorn | PC / Mac | 0.26 |
 | [StoreHelperRune - manage potency runes for glyph writs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rexorn/StoreHelperRune---manage-potency-runes-for-glyph-writs__3220) | Rexorn | PC / Mac | 0.23 |
 | [Storm Atronach Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Storm-Atronach-Tracker__a70e4425-99f9-4fdb-85da-dc21b578e10f) | codeWarrior82 | Console | — |
-| [Storm Eye](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Storm-Eye__5074) | O-Range | PC / Mac | 3.0 |
 | [Story Saver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/f1rex/Story-Saver__2976) | f1rex | PC / Mac | 19 |
 | [Stow It Auto-Sheather](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RunningDuck/Stow-It-Auto-Sheather__862) | RunningDuck | PC / Mac | 3.2.7 |
 | [Stow Keybind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Stow-Keybind__1900) | manavortex | PC / Mac | 1.0 |

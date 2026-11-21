@@ -540,56 +540,50 @@ local function isTweenOf(id1, id1TypeStr, id2, id2TypeStr)
 	return false
 end
 
-local bankBagNames
-local bankBagIds
-
-local function getBankBags()
-	bankBagNames = {}
-	bankBagIds = {}
-	table.insert(bankBagNames, Bankir.Functions.getBagName(BAG_BANK))
+local function getBankBagIds()
+	local bankBagIds = {}
+	
 	table.insert(bankBagIds, BAG_BANK)
 	-- house coffers:
 	if IsCollectibleUnlocked(GetCollectibleForBag(BAG_HOUSE_BANK_ONE)) then
-		table.insert(bankBagNames, Bankir.Functions.getBagName(BAG_HOUSE_BANK_ONE))
 		table.insert(bankBagIds, BAG_HOUSE_BANK_ONE)
 	end
 	if IsCollectibleUnlocked(GetCollectibleForBag(BAG_HOUSE_BANK_TWO)) then
-		table.insert(bankBagNames, Bankir.Functions.getBagName(BAG_HOUSE_BANK_TWO))
 		table.insert(bankBagIds, BAG_HOUSE_BANK_TWO)
 	end
 	if IsCollectibleUnlocked(GetCollectibleForBag(BAG_HOUSE_BANK_THREE)) then
-		table.insert(bankBagNames, Bankir.Functions.getBagName(BAG_HOUSE_BANK_THREE))
 		table.insert(bankBagIds, BAG_HOUSE_BANK_THREE)
 	end
 	if IsCollectibleUnlocked(GetCollectibleForBag(BAG_HOUSE_BANK_FOUR)) then
-		table.insert(bankBagNames, Bankir.Functions.getBagName(BAG_HOUSE_BANK_FOUR))
 		table.insert(bankBagIds, BAG_HOUSE_BANK_FOUR)
 	end
 	if IsCollectibleUnlocked(GetCollectibleForBag(BAG_HOUSE_BANK_FIVE)) then
-		table.insert(bankBagNames, Bankir.Functions.getBagName(BAG_HOUSE_BANK_FIVE))
 		table.insert(bankBagIds, BAG_HOUSE_BANK_FIVE)
 	end
 	if IsCollectibleUnlocked(GetCollectibleForBag(BAG_HOUSE_BANK_SIX)) then
-		table.insert(bankBagNames, Bankir.Functions.getBagName(BAG_HOUSE_BANK_SIX))
 		table.insert(bankBagIds, BAG_HOUSE_BANK_SIX)
 	end
 	if IsCollectibleUnlocked(GetCollectibleForBag(BAG_HOUSE_BANK_SEVEN)) then
-		table.insert(bankBagNames, Bankir.Functions.getBagName(BAG_HOUSE_BANK_SEVEN))
 		table.insert(bankBagIds, BAG_HOUSE_BANK_SEVEN)
 	end
 	if IsCollectibleUnlocked(GetCollectibleForBag(BAG_HOUSE_BANK_EIGHT)) then
-		table.insert(bankBagNames, Bankir.Functions.getBagName(BAG_HOUSE_BANK_EIGHT))
 		table.insert(bankBagIds, BAG_HOUSE_BANK_EIGHT)
 	end
 	-- guild banks
 	for i = 1, GetNumGuilds() do
 		local id = GetGuildId(i)
-		table.insert(bankBagNames, Bankir.Functions.getBagName("Guild" .. id))
 		table.insert(bankBagIds, "Guild" .. id)
 	end
 	
-	Bankir.Data.bankBagNames = bankBagNames
 	Bankir.Data.bankBagIds = bankBagIds
+end
+
+local function getBankNames()
+	local names = {}
+	for _, id in ipairs(Bankir.Data.bankBagIds) do
+		table.insert(names, Bankir.Functions.getBagName(id))
+	end
+	Bankir.Data.bankBagNames = names
 end
 
 local function getCharactersList()
@@ -603,41 +597,45 @@ local function getCharactersList()
 	Bankir.Data.charactersList = charsList
 end
 
+local function getDefaultBankProfile(bankId)
+	local profile = {
+		itemType = {},
+		specializedItemType = {},
+		itemId = {}
+	}
+	if bankId == BAG_BANK or string.find(bankId, "Guild") then
+		profile.currency = {
+			[CURT_MONEY] = {
+				push = false,
+				pull = false,
+				amount = 0,
+			},
+			[CURT_ALLIANCE_POINTS] = {
+				push = false,
+				pull = false,
+				amount = 0,
+			},
+			[CURT_TELVAR_STONES] = {
+				push = false,
+				pull = false,
+				amount = 0,
+			},
+			[CURT_WRIT_VOUCHERS] = {
+				push = false,
+				pull = false,
+				amount = 0,
+			},
+		}
+	end
+	return profile
+end
+
 local function getDefaultProfileSettings()
 	local defaults = {}
 	
-	for i = 1, #bankBagIds do
-		defaults[bankBagIds[i]] = {
-			itemType = {},
-			specializedItemType = {},
-			itemId = {}
-		}
-		if bankBagIds[i] == BAG_BANK or string.find(bankBagIds[i], "Guild") then
-			defaults[bankBagIds[i]].currency = {
-				[CURT_MONEY] = {
-					push = false,
-					pull = false,
-					amount = 0,
-				},
-				[CURT_ALLIANCE_POINTS] = {
-					push = false,
-					pull = false,
-					amount = 0,
-				},
-				[CURT_TELVAR_STONES] = {
-					push = false,
-					pull = false,
-					amount = 0,
-				},
-				[CURT_WRIT_VOUCHERS] = {
-					push = false,
-					pull = false,
-					amount = 0,
-				},
-			}
-		end
+	for _, id in ipairs(Bankir.Data.bankBagIds) do
+		defaults[id] = getDefaultBankProfile(id)
 	end
-
 	return defaults
 end
 
@@ -662,7 +660,7 @@ local function getDefaultServerSettings()
 end
 
 -- update saved vars list of characters to remove non-existing (deleted) ones
-local function cleanUpResearchCharactersList()
+local function updateResearchCharacters()
 	local list = Bankir.SVServer.ResearchCharactersList
 	for id in pairs(list) do
 		local isCharExists = false
@@ -676,6 +674,13 @@ local function cleanUpResearchCharactersList()
 			Bankir.SVServer.ResearchCharactersList[id] = nil
 		end
 	end
+end
+
+local function onBanksUpdated()
+	getBankBagIds()
+	Bankir.Profiles.updateBankProfiles()
+	getBankNames()
+	Bankir.Menu.updateBankSelector()
 end
 
 Bankir.Data = {
@@ -692,10 +697,13 @@ Bankir.Data = {
 	qualityRuledItemTypes = qualityRuledItemTypes,
 	isChildOf = isChildOf,
 	isTweenOf = isTweenOf,
-	getBankBags = getBankBags,
+	getBankBagIds = getBankBagIds,
+	getBankNames = getBankNames,
 	getCharactersList = getCharactersList,
+	getDefaultBankProfile = getDefaultBankProfile,
 	getDefaultProfileSettings = getDefaultProfileSettings,
 	getDefaultCommonSettings = getDefaultCommonSettings,
 	getDefaultServerSettings = getDefaultServerSettings,
-	cleanUpResearchCharactersList = cleanUpResearchCharactersList,
+	updateResearchCharacters = updateResearchCharacters,
+	onBanksUpdated = onBanksUpdated,
 }

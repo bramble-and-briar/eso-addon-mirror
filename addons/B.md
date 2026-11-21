@@ -36,7 +36,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Banker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/Banker__362) | Nols1000 | PC / Mac | 1.6 |
 | [Banker Shutup](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mctaylor/Banker-Shutup__869) | mctaylor | PC / Mac | 3.5c |
 | [Banker Shutup Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rkuhnjr/Banker-Shutup-Patch__839) | rkuhnjr | PC / Mac | 3.5b |
-| [Bankir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Bankir__4535) | Saleand | PC / Mac | 2.9.7 |
+| [Bankir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Bankir__4535) | Saleand | PC / Mac | 2.9.8 |
 | [BankManagerTESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IgorSab/BankManagerTESO__4072) | IgorSab | PC / Mac | 1 |
 | [Banner Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phamo1000/Banner-Status__608b7ab5-db64-423a-af5c-2438027f0eed) | Phamo1000 | Console | — |
 | [Bar Steward - Multi Toolbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Bar-Steward---Multi-Toolbar__3375) | FlatBadger | PC / Mac | 3.5.14 |
@@ -65,6 +65,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Beltalowda - testing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kickimanjaro/Beltalowda---testing__4395) | Kickimanjaro | PC / Mac | 0.5.4 |
 | [Berserk Tracker (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Berserk-Tracker-PC-Console__4801) | Duesentrieb | PC / Mac | 20260829-0001 |
 | [BestFriends 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/BestFriends-2018__1975) | Phuein | PC / Mac | 2.16 |
+| [Beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Beta__8fc4dbcc-bce3-471f-a036-2fb01acd6e4a) | FiNk3F13 | Console | — |
 | [Beta Dolg Alch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Beta-Dolg-Alch__2711aec8-a92b-4dae-97c9-096e8d72bf16) | Dolgubon | Console | — |
 | [beta jh](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/beta-jh__bd7f229c-f922-457b-a9c6-16e3f0427654) | j.hhh | Console | — |
 | [BetaBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tetsurion/BetaBars__1f95515e-9df4-487e-9e56-ab184190fd95) | Tetsurion | Console | — |
@@ -79,6 +80,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Better Rally](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Better-Rally__1255) | CaptainBlagbird | PC / Mac | 1.0.12 |
 | [Better Scoreboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Better-Scoreboard__bb565e61-5481-49e2-9550-7c8aa18aa17a) | M0R | Console | — |
 | [Better Scoreboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Better-Scoreboard__3182) | M0R | PC / Mac | 4.2 |
+| [Better Social Search](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Better-Social-Search__3371) | Schrodi | PC / Mac | 1.1 |
 | [BetterCharacterOverview](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/BetterCharacterOverview__35d616b7-f96d-4181-8d13-c75bf9c5617d) | Copper0 | Console | — |
 | [BetterCharacterOverview (Patch)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/BetterCharacterOverview-Patch__23989a49-5901-4ccb-9b71-6e848d4bceee) | clubwratt | Console | — |
 | [BetterDungeonFinder - Abandon the Original Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MelanAster/BetterDungeonFinder---Abandon-the-Original-Finder__3824) | MelanAster | PC / Mac | 1.91 |

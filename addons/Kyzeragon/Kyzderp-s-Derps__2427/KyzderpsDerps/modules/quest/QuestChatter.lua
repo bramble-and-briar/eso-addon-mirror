@@ -270,13 +270,13 @@ function Quests.GetSettings()
         {
             type = "description",
             title = "|c08BD1DAlchemy Writs|r",
-            text = "Stop accidentally wasting Columbine on daily alchemy writs.",
+            text = "Stop accidentally wasting Columbine and Dragon Rheum on daily alchemy writs.",
             width = "full",
         },
         {
             type = "checkbox",
-            name = "Warn multi-effect Essences of Health",
-            tooltip = "When you pick up the daily writ quest that requires Essence of Health (quest ID 6101), displays a message in chat if you have Essences of Health in your inventory that have a certain number of effects, specified below. This is to help avoid wasting tri-stat pots on writ turn-ins",
+            name = "Warn multi-effect Essences of Magicka/Health",
+            tooltip = "When you pick up the daily writ quest that requires Essence of Magicka (quest ID 6100) or Essence of Health (quest ID 6101), displays a message in chat if you have Essences in your inventory that have a certain number of effects, specified below. This is to help avoid wasting heroism or tri-stat pots on writ turn-ins",
             default = false,
             getFunc = function() return KD.savedOptions.writs.warnEssenceOfHealth end,
             setFunc = function(value)
@@ -287,8 +287,8 @@ function Quests.GetSettings()
         },
         {
             type = "checkbox",
-            name = "Deposit multi-effect Essences of Health",
-            tooltip = "When you have a daily writ quest that requires Essence of Health (quest ID 6101) and you interact with a bank, deposits the Essences of Health in your inventory that have a certain number of effects, specified below. This is to help avoid wasting tri-stat pots on writ turn-ins",
+            name = "Deposit multi-effect Essences of Magicka/Health",
+            tooltip = "When you have a daily writ quest that requires Essence of Magicka (quest ID 6100) or Essence of Health (quest ID 6101) and you interact with a bank, deposits the Essences in your inventory that have a certain number of effects, specified below. This is to help avoid wasting heroism or tri-stat pots on writ turn-ins",
             default = false,
             getFunc = function() return KD.savedOptions.writs.depositEssenceOfHealth end,
             setFunc = function(value)
@@ -300,7 +300,7 @@ function Quests.GetSettings()
         {
             type = "slider",
             name = "Number of effects",
-            tooltip = "The minimum number of effects an Essence of Health should have to be considered expensive. For example, if this setting is set to 2, then Essences of Health that have 2 or 3 effects will show warnings or be deposited in your bank",
+            tooltip = "The minimum number of effects an Essence of Magicka/Health should have to be considered expensive. For example, if this setting is set to 2, then Essences of Magicka/Health that have 2 or 3 effects will show warnings or be deposited in your bank",
             min = 1,
             max = 3,
             step = 1,

@@ -1,0 +1,31 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Schrodi/TamrielGuard---disable-accidental-stealing-discontinued__2780",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Schrodi",
+  "canonical_id": "esoui:2780",
+  "category_id": "27",
+  "compatibility": [],
+  "content_id": "esoui:2780",
+  "deleted": false,
+  "directories": [
+    "TamrielGuard"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl2780/",
+  "fingerprint": "3ed0b4422320bc2541faa8b481f81d691cf6202b5259ee4889f8ed8aec26ac07",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "2780",
+  "source_url": "https://www.esoui.com/downloads/info2780-TamrielGuard-disableaccidentalstealingdiscontinued.html",
+  "stats": {
+    "downloads": 3568,
+    "favorites": 4,
+    "monthly_downloads": 12
+  },
+  "title": "TamrielGuard - disable accidental stealing (discontinued)",
+  "updated_at": 1600218581000,
+  "version": "1.0"
+}

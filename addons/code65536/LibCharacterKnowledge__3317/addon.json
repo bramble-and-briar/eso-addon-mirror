@@ -78,7 +78,7 @@
     "LibCharacterKnowledge"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3317/",
-  "fingerprint": "98630dc0795de3dfce7f6a77931a37d7fb75253e8ce7e8097203c5196cbc13f4",
+  "fingerprint": "40771dab6e0621324e8a3c75cd9c69fc4df3da8669e62771411e5718844c154d",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -86,11 +86,11 @@
   "source_id": "3317",
   "source_url": "https://www.esoui.com/downloads/info3317-LibCharacterKnowledge.html",
   "stats": {
-    "downloads": 1938497,
+    "downloads": 1959952,
     "favorites": 379,
-    "monthly_downloads": 9326
+    "monthly_downloads": 29360
   },
   "title": "LibCharacterKnowledge",
-  "updated_at": 1794535077000,
-  "version": "3.1.3"
+  "updated_at": 1795188407000,
+  "version": "3.1.4"
 }

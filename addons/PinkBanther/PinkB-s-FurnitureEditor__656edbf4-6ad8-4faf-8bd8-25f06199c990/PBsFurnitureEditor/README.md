@@ -4,7 +4,7 @@ Copies a group of **linked furnishings** from one of your houses into another, i
 Scrolls Online on console.
 
 - **Author:** PinkBanther
-- **Version:** 1.0.7 (reading a house and the editor's Copy button are confirmed on a console; placing, linking, removing, travelling, the wheel and the cursor point are still being checked, see `FINDINGS.md`)
+- **Version:** 1.0.8 (reading a house and the editor's Copy button are confirmed on a console; placing, linking, removing, travelling, the wheel and the cursor point are still being checked, see `FINDINGS.md`)
 - **Needs:** nothing. No libraries.
 
 ## What it does
@@ -29,7 +29,7 @@ nothing in your house. Whatever they print is what the next version is built fro
 /pbfe list                   the linked groups here, nearest first
 /pbfe where                  your position and the nearest furnishings: is it one space
 /pbfe calib                  work out how the client turns things (read-only)
-/pbfe aim                    where the cursor meets the floor (look down at it first)
+/pbfe aim                    where the cursor meets the floor (look down at it first), and how the camera directions relate
 /pbfe kind 3                 item or collectible? what the client says about the nearest 3 pieces
 /pbfe items                  placeable items in your backpack, with slot numbers
 /pbfe probe place 12         place ONE item at your feet, read it back, take it away

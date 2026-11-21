@@ -28,7 +28,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CapsLOCK](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkOODaT/CapsLOCK__653) | SkOODaT | PC / Mac | 101032.1 |
 | [Capybara Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Capybara-Icons__4176) | wicked_prophet | PC / Mac | 1.9.4 |
 | [CaracBuffDebuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracBuffDebuff__5002) | roccesar | PC / Mac | 1.9.5 |
-| [CaracMarchandise](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracMarchandise__5052) | roccesar | PC / Mac | 1.1 |
+| [CaracMarchandise](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracMarchandise__5052) | roccesar | PC / Mac | 1.2 |
 | [CaracTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracTracker__5038) | roccesar | PC / Mac | 1.1 |
 | [CaracVentes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/roccesar/CaracVentes__4995) | roccesar | PC / Mac | 1.3 |
 | [Card Combo - Mini Game](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Traybair/Card-Combo---Mini-Game__4512) | Traybair | PC / Mac | 1.0.2 |
@@ -75,7 +75,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Character Bound Item Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Character-Bound-Item-Hider__4922) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
 | [Character Bound Item Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/Character-Bound-Item-Hider__49e5c9da-dc0d-4bf5-b60c-6e6e53784107) | APH0NlC | Console | — |
 | [Character Homes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g0thicicecream/Character-Homes__4654) | g0thicicecream | PC / Mac | 1.4.0 |
-| [Character Knowledge (Research, Motif, Recipe, Furnishing Plan and Scribing Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Character-Knowledge-Research-Motif-Recipe-Furnishing-Plan-and-Scribing-Tracker__2938) | code65536 | PC / Mac | 3.1.5 |
+| [Character Knowledge (Research, Motif, Recipe, Furnishing Plan and Scribing Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Character-Knowledge-Research-Motif-Recipe-Furnishing-Plan-and-Scribing-Tracker__2938) | code65536 | PC / Mac | 3.1.6 |
 | [Character Zone Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Character-Zone-Tracker__3323) | silvereyes | PC / Mac | 1.3.0 |
 | [CharacterGearUI (for alone or PerfectPixel)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Trobo/CharacterGearUI-for-alone-or-PerfectPixel__4743) | Trobo | PC / Mac | 0.4.7 |
 | [CharacterMarkdown](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/solaegis/CharacterMarkdown__4279) | solaegis | PC / Mac | 2.3.0 |
@@ -127,6 +127,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CKS Custom Kill Sound - Killblow PvP Sound Effect](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/fonillius/CKS-Custom-Kill-Sound---Killblow-PvP-Sound-Effect__4547) | fonillius | PC / Mac | 5.0 |
 | [Clan Cercone Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Josh-cr/Clan-Cercone-Addon__3735) | Josh-cr | PC / Mac | 4.4.0 |
 | [Clarity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/muenchhausen/Clarity__2874) | muenchhausen | PC / Mac | 1.1.2 |
+| [Class Eye](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Class-Eye__5074) | O-Range | PC / Mac | 1.0.3 |
 | [Classic TES Combat Skills](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thurderan/Classic-TES-Combat-Skills__4233) | Thurderan | PC / Mac | 3.0 |
 | [Clayladon's Friend Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Clayladon/Clayladon-s-Friend-Status__4855) | Clayladon | PC / Mac | 1.1.0 |
 | [Clean My Chat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tyx/Clean-My-Chat__2544) | Tyx | PC / Mac | 1.2.0 |
@@ -155,7 +156,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Collect Them All](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Springpeace2575/Collect-Them-All__75167780-fb8c-479c-86be-c0a208443b97) | Springpeace2575 | Console | — |
 | [CollectablesTesting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brossin13/CollectablesTesting__9cb042d4-e427-4f0c-9c9c-48e1a355c970) | brossin13 | Console | — |
 | [Collectible Toggler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Collectible-Toggler__2699) | MrPikPik | PC / Mac | 1.2 |
-| [Collectibles Tracker (formerly Event Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Collectibles-Tracker-formerly-Event-Collectibles__2588) | code65536 | PC / Mac | 3.6.5 |
+| [Collectibles Tracker (formerly Event Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Collectibles-Tracker-formerly-Event-Collectibles__2588) | code65536 | PC / Mac | 3.6.6 |
 | [Collection bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jarth/Collection-bars__2339) | Jarth | PC / Mac | 1.1.14 |
 | [Color Blind Mode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/attriel/Color-Blind-Mode__2981) | attriel | PC / Mac | 1.0.12 |
 | [Colorblind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Colorblind__5032) | lousytourist | PC / Mac | 2026.11.07 |
@@ -348,6 +349,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Cyrodiil Ayleid Wells](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Odylon/Cyrodiil-Ayleid-Wells__3117) | Odylon | PC / Mac | 1.0.0 |
 | [Cyrodiil Map Labels (10.3.5)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Neurowise/Cyrodiil-Map-Labels-10.3.5__4065) | Neurowise | PC / Mac | 1.01 |
 | [Cyrodiil Map Labels (Fix: Season Zero)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Cyrodiil-Map-Labels-Fix-Season-Zero__4361) | sshogrin | PC / Mac | 1.9.2 |
+| [Cyrodiil Mercenary](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m1lkst3ak/Cyrodiil-Mercenary__6ae238fd-705e-4e6d-8338-f8a7bb26d34a) | m1lkst3ak | Console | — |
 | [Cyrodiil Mission Share](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aldericon/Cyrodiil-Mission-Share__1836) | aldericon | PC / Mac | 12.0 |
 | [Cyrodiil Score Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tdenc/Cyrodiil-Score-Viewer__3166) | tdenc | PC / Mac | 0.5.0 |
 | [CyroQuickslots](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gerrit/CyroQuickslots__3134) | Gerrit | PC / Mac | 1.31.1 |

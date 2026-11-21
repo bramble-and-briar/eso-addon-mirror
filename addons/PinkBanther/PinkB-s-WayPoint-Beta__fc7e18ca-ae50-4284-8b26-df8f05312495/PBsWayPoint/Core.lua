@@ -25,25 +25,26 @@
 -- THE GEOMETRY
 -- ---------------------------------------------------------------------------------------
 --
--- The game's own convention, as the client uses it itself to show "which way is that furniture" in the housing
--- editor (esoui/ingame/housingeditor/furnitureclasses_shared.lua RefreshPositionalData, and
--- keyboard/housingfurnitureretrieval_keyboard.lua, which turns an up-pointing arrow by the result):
+-- Measured on a PS5 (PB's PlayerMarkerExtension 0.4.6, 2026-11-21: its compass bar learns the relation from
+-- group members under the reticle and settled on this one, and its markers then sat right):
 --
---   bearing of an offset (dx, dz) in world centimetres = atan2(dx, dz)     (0 = along +Z, pi/2 = along +X)
---   GetPlayerCameraHeading()                           = the bearing of where the camera looks
---   the angle to give SetTextureRotation to an arrow that points up = bearing - heading
+--   bearing of an offset (dx, dz) in raw world centimetres = atan2(dx, dz)   (0 = along +Z, pi/2 = along +X)
+--   raw +X is EAST and +Z is SOUTH on the ground; GetPlayerCameraHeading() is 0 looking north and grows
+--   as the camera turns LEFT, so the bearing of where the camera looks is   heading + pi
+--   the angle to give SetTextureRotation to an arrow that points up        = bearing - (heading + pi)
+--                                                                            (positive = to the left)
 --
--- Nothing here says which compass direction +X or +Z is: the map decides that (Nav.lua turns a map offset into
--- world centimetres with a matrix measured from the game), and compass words are only ever worked out from
--- the MAP's own axes (east = +x, south = +y). PB's first versions assumed "0 = north, west is positive" and
--- drew the arrow turned half a circle from where the client draws it.
+-- Up to 0.6.3 this add-on used "bearing - heading", from the client's housing editor (furnitureclasses_shared.lua
+-- RefreshPositionalData); with raw coordinates that points half a circle off (the housing editor's own
+-- coordinates must differ from the raw ones). Compass words are still only ever worked out from the MAP's
+-- own axes (east = +x, south = +y), never from the world axes.
 
 PBS_WAYPOINT = {
 	name = "PBsWayPoint",
 	baseTitle = "PB’s WayPoint",
 	chatName = "PB’s WayPoint",
 	author = "PinkBanther",
-	version = "0.6.3",
+	version = "0.6.4",
 	slash = "/pbwp",
 	shortSlash = "/pbwaypoint",
 	-- a file marks itself here on its last line (see Main.lua: it tells "the files did not run" from "start-up failed")
@@ -250,10 +251,14 @@ local atan2 = math.atan2 or function(y, x)
 	return math.atan(y, x)
 end
 
--- The game's bearing of an offset of dx, dz world centimetres (the same number GetPlayerCameraHeading() has
--- when the camera looks that way).
+-- The bearing of an offset of dx, dz world centimetres (0 = along +Z, pi/2 = along +X).
 function A.Bearing(dx, dz)
 	return atan2(dx, dz)
+end
+
+-- The bearing of where the camera looks, for a GetPlayerCameraHeading() value (measured, see the top).
+function A.LookBearing(heading)
+	return heading + PI
 end
 
 -- The world offset (dx, dz) of a point `distance` away in the direction of a bearing.
@@ -261,10 +266,10 @@ function A.Offset(bearing, distance)
 	return sin(bearing) * distance, cos(bearing) * distance
 end
 
--- The angle to turn an up-pointing arrow so that it points at `bearing` for a camera looking along `heading`,
--- kept between -pi and pi. Positive is the way the client's own SetTextureRotation calls turn it.
+-- The angle to turn an up-pointing arrow so that it points at `bearing` for a camera with GetPlayerCameraHeading()
+-- `heading`, kept between -pi and pi. Positive is to the left (counter-clockwise on the screen).
 function A.ScreenAngle(bearing, heading)
-	local angle = (bearing - heading) % (PI * 2)
+	local angle = (bearing - A.LookBearing(heading)) % (PI * 2)
 	if angle > PI then
 		angle = angle - PI * 2
 	end

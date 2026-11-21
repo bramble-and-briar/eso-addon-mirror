@@ -44,7 +44,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tamriel Trade Centre Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Tamriel-Trade-Centre-Companion__3509) | Sharlikran | PC / Mac | 1.11 |
 | [Tamriel Trade Centre jpPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marify/Tamriel-Trade-Centre-jpPatch__2193) | Marify | PC / Mac | 0.11.0 |
 | [Tamriel Trade Centre Simple Price](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kriax/Tamriel-Trade-Centre-Simple-Price__3078) | _Kriax | PC / Mac | 1.1.3 |
-| [TamrielGuard - disable accidental stealing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/TamrielGuard---disable-accidental-stealing__2780) | Schrodi | PC / Mac | 1.0 |
+| [TamrielGuard - disable accidental stealing (discontinued)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/TamrielGuard---disable-accidental-stealing-discontinued__2780) | Schrodi | PC / Mac | 1.0 |
 | [Tamrielic Languages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aausten/Tamrielic-Languages__4814) | aausten | PC / Mac | 2.0.1 |
 | [TamrielTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NWDD/TamrielTime__232) | NWDD | PC / Mac | 0.9.9.3 |
 | [TamrielTradeCentre-KR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ricci-Curvature/TamrielTradeCentre-KR__4505) | Ricci Curvature | PC / Mac | 1.0.0 |
@@ -78,7 +78,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TeilzeitLegende's Restock Style Materials and Auto Repair (Fixed)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jakki/TeilzeitLegende-s-Restock-Style-Materials-and-Auto-Repair-Fixed__3125) | Jakki | PC / Mac | 0.8.6.1 |
 | [Tel Var Counter (TelVar Logger)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mladen90/Tel-Var-Counter-TelVar-Logger__2737) | Mladen90 | PC / Mac | 1.1.0 |
 | [Tel Var Saver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/EHansonn/Tel-Var-Saver__3664) | EHansonn | PC / Mac | 1.9 |
-| [Teleport - general purpose teleporting tool](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Teleport---general-purpose-teleporting-tool__2781) | Schrodi | PC / Mac | 1.1.3 |
+| [Teleport - general purpose teleporting tool](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Teleport---general-purpose-teleporting-tool__2781) | Schrodi | PC / Mac | 1.5.0 |
 | [Teleport Tool](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/deagl0r/Teleport-Tool__1333) | deagl0r | PC / Mac | 1.24.0.0 |
 | [TemplarMastery](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/TemplarMastery__4827) | its_wifey | PC / Mac | 1.7 |
 | [TESO Ingame Messenger - TIM (for Update 6)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Migoda/TESO-Ingame-Messenger---TIM-for-Update-6__944) | Migoda | PC / Mac | 5.52 |

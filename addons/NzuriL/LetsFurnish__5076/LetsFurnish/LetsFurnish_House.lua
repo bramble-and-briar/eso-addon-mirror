@@ -82,8 +82,8 @@ function LF.slots(tasks)
     end
     return slots
 end
-function LF.diff(layout)
-    local steps, counts, bound, found, claimed, lacking, inPlace = LF.plan(layout)
+function LF.diff(layout, withLinks)
+    local steps, counts, bound, found, claimed, lacking, inPlace, keyOf = LF.plan(layout, withLinks)
     local ids = LF.placedIds()
     local stock = LF.stock()
     local keys = {}
@@ -134,6 +134,22 @@ function LF.diff(layout)
         step.icon = step.id and iconOf(step.row, step.id) or (step.row and about(step.row).icon) or nil
         tasks[#tasks + 1] = step
     end
+    if withLinks then
+        local rowByUid, placing = {}, {}
+        for _, row in ipairs(type(layout.items) == "table" and layout.items or {}) do
+            if type(row) == "table" and row.uid ~= nil then rowByUid[row.uid] = row end
+        end
+        for _, task in ipairs(tasks) do
+            if (task.action == "item" or task.action == "collectible") and not task.missing and task.uid ~= nil then placing[task.uid] = true end
+        end
+        for _, task in ipairs(tasks) do
+            if task.action == "link" then
+                local up = rowByUid[task.parentUid]
+                task.parentName = up and about(up).name or nil
+                task.blocked = (task.childKey == nil and not placing[task.uid]) or (task.parentKey == nil and not placing[task.parentUid]) or nil
+            end
+        end
+    end
     for _, row in ipairs(lacking) do
         tasks[#tasks + 1] = { action = "missing", row = row, uid = row.uid, name = about(row).name, icon = about(row).icon, missing = true }
     end
@@ -146,7 +162,7 @@ function LF.diff(layout)
     for _, standing in ipairs(inPlace) do
         standing.uid, standing.name, standing.icon = standing.row.uid, rowName(standing.row), iconOf(standing.row, standing.id)
     end
-    return { layout = layout, tasks = tasks, counts = counts, bound = bound, found = found, inPlace = inPlace, slots = LF.slots(tasks) }
+    return { layout = layout, tasks = tasks, counts = counts, bound = bound, found = found, inPlace = inPlace, slots = LF.slots(tasks), keyOf = keyOf or {} }
 end
 local function refused(layout)
     if GetCurrentZoneHouseId() == 0 then return L.core.no_house end
@@ -179,7 +195,7 @@ function LF.job(layout, found)
 end
 function LF.settle(job, diff)
     for _, task in ipairs(diff.tasks) do
-        if task.action ~= "remove" and task.action ~= "conform" and not task.missing then return end
+        if task.action ~= "remove" and task.action ~= "conform" and not task.missing and not task.blocked then return end
     end
     job.tally.done.finished, job.tally.done.stopped = job.tally.done.finished or GetTimeStamp(), nil
 end
@@ -219,7 +235,13 @@ function LF.act(job, task, n, after)
 end
 local MOVES = { move = true, state = true, path = true }
 local function inList(task, which)
-    if task.action == "remove" or task.missing then return false end
+    if task.action == "remove" or task.missing or task.blocked then return false end
+    if task.action == "link" or task.action == "unlink" then
+        local standing = task.childKey ~= nil and (task.action == "unlink" or task.parentKey ~= nil)
+        if which == "move" then return standing end
+        if which == "place" then return not standing end
+        return true
+    end
     if task.action == "conform" then return which ~= "place" end
     if which == "move" then return MOVES[task.action] == true end
     if which == "place" then return not MOVES[task.action] end
@@ -244,22 +266,287 @@ function LF.run(job, diff, which)
     say(sentences(count(L.core.applying, #steps), L.core.stop_stops))
     return true
 end
+local MAX_CHILDREN = 50
+local function houseLinks(ids)
+    local parents, counts = {}, {}
+    for key, id in pairs(ids) do
+        local up = LF.parentKey(id)
+        if up then
+            parents[key] = up
+            counts[up] = (counts[up] or 0) + 1
+        end
+    end
+    return parents, counts
+end
+local function capacityIssue(tree, parents, counts)
+    local delta = {}
+    for _, m in ipairs(tree.members) do
+        local old = m.key and parents[m.key]
+        if old then delta[old] = (delta[old] or 0) - 1 end
+        local new = m.parent and m.parent.key
+        if new then delta[new] = (delta[new] or 0) + 1 end
+    end
+    for _, m in ipairs(tree.members) do
+        local total = (counts[m.key] or 0) + (delta[m.key] or 0)
+        if total > MAX_CHILDREN then
+            return zo_strformat(L.window.link_capacity, m.name, total, MAX_CHILDREN)
+        end
+    end
+end
+function LF.linkTrees(diff)
+    local layout, keyOf = diff.layout, diff.keyOf or {}
+    local items = type(layout.items) == "table" and layout.items or {}
+    local ids = LF.placedIds()
+    local parents, counts = houseLinks(ids)
+    local hasLinks = false
+    for _, row in ipairs(items) do
+        if type(row) == "table" and row.parent ~= nil then hasLinks = true break end
+    end
+    if not hasLinks and not next(parents) then return {}, {} end
+    local rows, byUid, kids = {}, {}, {}
+    for _, row in ipairs(items) do
+        if LF.usable(row) and row.uid ~= nil and not byUid[row.uid] then
+            byUid[row.uid] = row
+            rows[#rows + 1] = row
+        end
+    end
+    local function up(row)
+        return row.parent ~= nil and row.parent ~= row.uid and byUid[row.parent] or nil
+    end
+    for _, row in ipairs(rows) do
+        local parent = up(row)
+        if parent then
+            kids[parent.uid] = kids[parent.uid] or {}
+            table.insert(kids[parent.uid], row)
+        end
+    end
+    local function nameOf(key)
+        local id = key and ids[key]
+        return id and clean(ask(GetPlacedHousingFurnitureInfo, id)) or tostring(key)
+    end
+    local trees = {}
+    for _, top in ipairs(rows) do
+        if not up(top) and kids[top.uid] then
+            local tree = { root = top, uid = top.uid, members = {}, missing = 0, lost = {}, done = true }
+            local stack = { { row = top, depth = 0 } }
+            while #stack > 0 do
+                local member = table.remove(stack)
+                local row = member.row
+                member.key = keyOf[row.uid]
+                member.id = member.key and ids[member.key] or nil
+                member.name, member.icon = rowName(row), iconOf(row, member.id)
+                tree.members[#tree.members + 1] = member
+                local children = kids[row.uid] or {}
+                for i = #children, 1, -1 do
+                    stack[#stack + 1] = { row = children[i], parent = member, depth = member.depth + 1 }
+                end
+            end
+            for _, m in ipairs(tree.members) do
+                if not m.id then
+                    tree.missing, tree.done = tree.missing + 1, false
+                else
+                    local now, want = parents[m.key], m.parent and m.parent.key or nil
+                    m.previousKey = now
+                    if now ~= want or (m.parent and not m.parent.id) then tree.done = false end
+                    if now and now ~= want then tree.lost[#tree.lost + 1] = { name = m.name, parent = nameOf(now) } end
+                end
+            end
+            tree.capacityIssue = capacityIssue(tree, parents, counts)
+            tree.name, tree.icon = tree.members[1].name, tree.members[1].icon
+            trees[#trees + 1] = tree
+        end
+    end
+    local wanted, extras, groups = {}, {}, {}
+    for _, row in ipairs(rows) do
+        local child = keyOf[row.uid]
+        if child and up(row) then wanted[child] = keyOf[row.parent] end
+    end
+    for child, parent in pairs(parents) do
+        if wanted[child] ~= parent then
+            local group = groups[parent]
+            if not group then
+                group = { key = parent, name = nameOf(parent), icon = iconOf(nil, ids[parent]), links = {} }
+                groups[parent] = group
+                extras[#extras + 1] = group
+            end
+            group.links[#group.links + 1] = { key = child, id = ids[child], parent = parent, name = nameOf(child) }
+        end
+    end
+    table.sort(extras, function(a, b) return a.key < b.key end)
+    for _, group in ipairs(extras) do table.sort(group.links, function(a, b) return a.key < b.key end) end
+    return trees, extras
+end
+function LF.linkable(trees)
+    local out = {}
+    for _, tree in ipairs(trees or {}) do
+        if not tree.done and tree.missing == 0 and not tree.capacityIssue then out[#out + 1] = tree end
+    end
+    return out
+end
+function LF.linkTreesRun(layout, trees)
+    local why = refused(layout)
+    if why then
+        say(why)
+        return false
+    end
+    local ids = LF.placedIds()
+    local parents, counts = houseLinks(ids)
+    local unlinks, links = {}, {}
+    for _, tree in ipairs(LF.linkable(trees)) do
+        local issue = capacityIssue(tree, parents, counts)
+        if issue then say(issue) return false end
+        for _, m in ipairs(tree.members) do
+            if not ids[m.key] or LF.parentKey(m.id) ~= m.previousKey then return false end
+            if m.previousKey then unlinks[#unlinks + 1] = { action = "unlink", id = m.id, name = m.name } end
+        end
+        for _, m in ipairs(tree.members) do
+            if m.parent then
+                links[#links + 1] = { action = "link", fixed = true, id = m.id, parentId = m.parent.id, parentKey = m.parent.key, previousKey = m.previousKey, name = m.name }
+            end
+        end
+    end
+    if #links == 0 then return false end
+    local steps = unlinks
+    for _, step in ipairs(links) do steps[#steps + 1] = step end
+    LF.guard("change", layout.name)
+    LF.start(layout.name, steps, { items = {} })
+    say(sentences(count(L.core.applying, #steps), L.core.stop_stops))
+    return true
+end
+function LF.linksInHouse()
+    local out = {}
+    for key, id in pairs(LF.placedIds()) do
+        local parent = LF.parentKey(id)
+        if parent then out[#out + 1] = { key = key, id = id, parent = parent, name = clean(ask(GetPlacedHousingFurnitureInfo, id)) or key } end
+    end
+    table.sort(out, function(a, b) return a.key < b.key end)
+    return out
+end
+function LF.unlinkAll(links, title)
+    local why = refused()
+    if why then
+        say(why)
+        return false
+    end
+    local steps = {}
+    for _, f in ipairs(links) do
+        if LF.parentKey(f.id) == f.parent then
+            steps[#steps + 1] = { action = "unlink", id = f.id, name = f.name, clearsLink = true }
+        end
+    end
+    if #steps == 0 then return false end
+    LF.guard("change")
+    LF.start(title or L.window.unlink_all, steps, { items = {} })
+    say(sentences(count(L.core.applying, #steps), L.core.stop_stops))
+    return true
+end
+local PLACE_STEP = 100
+local function around(n)
+    local x, z, dx, dz, len, walked, turns = 0, 0, 1, 0, 1, 0, 0
+    for _ = 1, n do
+        x, z, walked = x + dx, z + dz, walked + 1
+        if walked == len then
+            walked, dx, dz, turns = 0, -dz, dx, turns + 1
+            if turns % 2 == 0 then len = len + 1 end
+        end
+    end
+    return x, z
+end
+function LF.placeFromPlan(place)
+    local free = {}
+    for _, slot in ipairs(LF.slots({})) do
+        if slot.most > 0 then free[slot.limit] = math.max(0, slot.most - slot.placed) end
+    end
+    local units, over = {}, 0
+    for _, bag in ipairs(place.bag == BAG_BANK and { BAG_BANK, BAG_SUBSCRIBER_BANK } or { place.bag }) do
+        for slot = 0, (bag and ask(GetBagSize, bag) or 0) - 1 do
+            local id = ask(GetItemId, bag, slot)
+            if id and id ~= 0 and ask(IsItemPlaceableFurniture, bag, slot) ~= false then
+                local limit = rowLimit({ kind = "item", item_id = id })
+                for _ = 1, ask(GetSlotStackSize, bag, slot) or 1 do
+                    if limit and free[limit] then
+                        if free[limit] > 0 then
+                            free[limit] = free[limit] - 1
+                            units[#units + 1] = id
+                        else
+                            over = over + 1
+                        end
+                    else
+                        units[#units + 1] = id
+                    end
+                end
+            end
+        end
+    end
+    return { name = place.name, bag = place.bag, units = units, over = over }
+end
+function LF.placeFrom(place, confirmed)
+    local why = refused()
+    if why then
+        say(why)
+        return false
+    end
+    local px, py, pz = ask(GetPlayerWorldPositionInHouse)
+    if type(px) ~= "number" or type(py) ~= "number" or type(pz) ~= "number" then
+        say(L.house.no_position)
+        return false
+    end
+    local plan = LF.placeFromPlan(place)
+    if confirmed then
+        local changed = #confirmed.units ~= #plan.units or confirmed.over ~= plan.over
+        for i, id in ipairs(plan.units) do
+            if confirmed.units[i] ~= id then changed = true break end
+        end
+        if changed then return false, "changed" end
+    end
+    if #plan.units == 0 then
+        say(zo_strformat(L.house.nothing_to_place_from, plan.name))
+        return false
+    end
+    local bags = place.bag == BAG_BANK and { BAG_BANK, BAG_SUBSCRIBER_BANK } or { place.bag }
+    local steps = {}
+    for i, id in ipairs(plan.units) do
+        local x, z = around(i - 1)
+        steps[i] = { action = "item", bags = bags, row = { kind = "item", item_id = id, position = { px + x * PLACE_STEP, py, pz + z * PLACE_STEP },
+                                                           rotation = { 0, 0, 0 } } }
+    end
+    LF.guard("change")
+    LF.start(zo_strformat(L.window.place_from, plan.name), steps, { items = {} }, true)
+    say(sentences(count(L.core.applying, #steps), L.core.stop_stops))
+    return true
+end
+local function startRemovals(name, steps, wholeHouse)
+    LF.start(name, steps, { items = {} })
+    LF.queue.removing, LF.queue.wholeHouse = true, wholeHouse
+    say(sentences(count(L.core.removing, #steps), L.core.stop_stops))
+    return true
+end
 function LF.removeAll(layout, diff)
     local why = refused(layout)
     if why then
         say(why)
         return false
     end
-    local steps = {}
+    local confirmed, steps = {}, {}
     for _, task in ipairs(diff.tasks) do
-        if task.action == "remove" then steps[#steps + 1] = { action = "remove", id = task.id, key = task.key, name = task.name } end
+        if task.action == "remove" then confirmed[task.key] = true end
+    end
+    for _, task in ipairs(LF.diff(layout).tasks) do
+        if task.action == "remove" and confirmed[task.key] then
+            steps[#steps + 1] = { action = "remove", id = task.id, key = task.key, name = task.name }
+        end
     end
     if #steps == 0 then return false end
     LF.guard("change", layout.name)
-    LF.start(layout.name, steps, { items = {} })
-    LF.queue.removing = true
-    say(sentences(count(L.core.removing, #steps), L.core.stop_stops))
-    return true
+    return startRemovals(layout.name, steps)
+end
+function LF.houseRemovalSteps()
+    local steps = {}
+    for key, id in pairs(LF.placedIds()) do
+        steps[#steps + 1] = { action = "remove", key = key, id = id, name = clean(ask(GetPlacedHousingFurnitureInfo, id)) or key }
+    end
+    table.sort(steps, function(a, b) return a.key < b.key end)
+    return steps
 end
 local RETRIEVE_BAGS = ZO_HOUSING_FURNITURE_RETRIEVE_TO_BAGS or {}
 local RESTORE_WAIT = 2000
@@ -267,7 +554,7 @@ local R = {}
 function LF.gameWords(id, ours)
     return LF.nonempty(id and ask(GetString, id) or "") or ours
 end
-local function retrieveBag(bag)
+local function retrieveBag(bag, kind)
     local chest = ask(GetCollectibleForBag, bag) or 0
     local name
     if chest ~= 0 then
@@ -282,7 +569,8 @@ local function retrieveBag(bag)
     end
     local enabled, why = true, nil
     if bag == BAG_FURNITURE_VAULT then
-        if not ask(IsESOPlusSubscriber) then
+        if kind == "take" then
+        elseif not ask(IsESOPlusSubscriber) then
             enabled, why = false, LF.gameWords(SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS, L.house.vault_needs_plus)
         elseif chest == 0 or not ask(IsCollectibleUnlocked, chest) then
             enabled, why = false, LF.gameWords(SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE, L.house.vault_locked)
@@ -346,7 +634,7 @@ end
 function LF.places(kind, counted)
     local kept, out, named = settingsOf(kind), {}, {}
     for _, bag in ipairs(kept.order) do
-        local place = retrieveBag(bag)
+        local place = retrieveBag(bag, kind)
         if not ask(IsHouseBankBag, bag) or place.unlocked then
             place.on = not kept.off[tostring(bag)]
             if counted and kind == "take" then place.count = furnishingsIn(bag) end
@@ -673,16 +961,7 @@ function LF.requestManualBackup(done)
     end
     make()
 end
-function LF.backup(reason, layoutName)
-    local byHand = reason == "hand"
-    local layout, why = record(zo_strformat(L.house.backup_name, stamp(GetTimeStamp())))
-    if not layout then
-        if byHand then
-            say(why)
-            LF.alert(why)
-        end
-        return nil
-    end
+local function keepBackup(layout, reason, layoutName)
     layout.private.source = { kind = "backup", addon_version = LF.version, reason = reason, layout = layoutName }
     layout.catalog = nil
     local list = LF.backups(true)
@@ -699,11 +978,40 @@ function LF.backup(reason, layoutName)
     end
     table.insert(list, 1, layout)
     LF.guarded = houseKey()
-    if byHand then
+    if reason == "hand" then
         local pushed = #lost > 0 and count(L.house.pushed_out, limit, LF.backupName(lost[#lost])) or nil
         say(sentences(count(L.house.backed_up, #layout.items, layout.meta.name), pushed))
     end
     return layout
+end
+function LF.backup(reason, layoutName)
+    local layout, why = record(zo_strformat(L.house.backup_name, stamp(GetTimeStamp())))
+    if not layout then
+        if reason == "hand" then
+            say(why)
+            LF.alert(why)
+        end
+        return nil
+    end
+    return keepBackup(layout, reason, layoutName)
+end
+function LF.emptyHouse(house, steps)
+    if LF.houseKey() ~= house or #steps == 0 then return end
+    local why = refused()
+    if why then say(why) return end
+    local layout, problem = record(zo_strformat(L.house.backup_name, stamp(GetTimeStamp())))
+    if not layout then say(problem) return end
+    LF.afterPaths(layout, function(skipped)
+        if LF.houseKey() ~= house or refused() then return end
+        if #skipped > 0 then
+            local message = zo_strformat(L.window.empty_path_failed, table.concat(skipped, ", "))
+            say(message)
+            LF.alert(message)
+            return
+        end
+        keepBackup(layout, "change", L.window.empty_house)
+        startRemovals(L.window.empty_house, steps, true)
+    end)
 end
 function LF.guard(reason, layoutName)
     if LF.guarded ~= houseKey() then LF.backup(reason, layoutName) end
@@ -748,7 +1056,7 @@ function LF.rollbackPlan(n)
     if why or not backup then
         return nil, why or L.house.no_backup
     end
-    local ok, diff = pcall(LF.diff, asLayout(backup))
+    local ok, diff = pcall(LF.diff, asLayout(backup), true)
     if not ok then return nil, zo_strformat(L.house.backup_unreadable, tostring(diff)) end
     local removing, steps, lost = {}, {}, {}
     for _, task in ipairs(diff.tasks) do
@@ -756,7 +1064,7 @@ function LF.rollbackPlan(n)
             removing[#removing + 1] = task
         elseif task.missing then
             lost[#lost + 1] = task
-        elseif task.action ~= "conform" then
+        elseif task.action ~= "conform" and not task.blocked then
             steps[#steps + 1] = stepOf(task)
         end
     end
@@ -829,7 +1137,7 @@ function LF.rollback(n, confirmed)
     end
     LF.queue.rollback = at
     LF.queue.onEnded = function(q)
-        if q.failed + q.absent + (q.skipped and #q.skipped or 0) > 0 then
+        if q.failed + q.absent + (q.unlinked or 0) + (q.skipped and #q.skipped or 0) > 0 then
             local text = zo_strformat(L.house.rollback_incomplete, backup.meta.name)
             offerKeep(backup, text, text, true)
         end
@@ -839,7 +1147,6 @@ function LF.rollback(n, confirmed)
 end
 local CODE_UPDATE = "LetsFurnishCode"
 local MAKE_SLICE, READ_SLICE = 1024, 32768
-local PASTED_KEPT = 10
 LF.CODE_MOST = 32000
 local function houseName(houseId)
     return LF.nonempty(clean(ask(GetCollectibleName, ask(GetCollectibleIdForHouse, houseId)))) or zo_strformat(L.house.house, tostring(houseId))
@@ -852,7 +1159,7 @@ end
 function LF.progress()
     local q = LF.queue
     if q then
-        local words = (q.rollback and zo_strformat(L.house.rolling_back_to, q.name)) or (q.removing and zo_strformat(L.house.removing_from, q.name))
+        local words = (q.wholeHouse and L.window.empty_house) or (q.rollback and zo_strformat(L.house.rolling_back_to, q.name)) or (q.removing and zo_strformat(L.house.removing_from, q.name))
                       or zo_strformat(L.house.applying_layout, q.name)
         return { words = words, done = math.min(q.index, #q.steps), total = #q.steps, stop = function() SLASH_COMMANDS["/lf"]("stop") end }
     end
@@ -914,7 +1221,7 @@ function LF.share(name, tell, shown)
             shown(parts)
         end, function(why) told(zo_strformat(L.house.no_code, why)) end)
     end
-    LF.readConforms(layout, encode)
+    LF.afterPaths(layout, function() LF.readConforms(layout, encode) end)
     return true
 end
 local function asReceived(layout)
@@ -1028,7 +1335,6 @@ function LF.paste(text, tell, done)
             if list[i].id == row.id then table.remove(list, i) end
         end
         table.insert(list, 1, row)
-        while #list > PASTED_KEPT do table.remove(list) end
         told(sentences(zo_strformat(L.house.received, view.name, houseName(view.house_id), count(L.window.furnishings, LF.furnishings(view.items))),
             view.house_id == GetCurrentZoneHouseId() and L.house.chosen_here or L.house.go_there))
         zo_callLater(function() done(row) end, 0)

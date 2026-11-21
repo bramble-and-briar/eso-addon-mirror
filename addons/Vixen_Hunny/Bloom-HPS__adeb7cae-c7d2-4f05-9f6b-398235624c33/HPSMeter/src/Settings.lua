@@ -22,8 +22,15 @@ local function Checkbox(name, key)
     return { type = "checkbox", name = name, getFunc = getFunc, setFunc = setFunc, default = M.defaults[key] }
 end
 
-local function Slider(name, key, minValue, maxValue, step)
-    local getFunc, setFunc = Bind(key, Relayout)
+-- Changing the position or scale shows the meter while it moves, even if it
+-- is switched off or hidden by the menu.
+local function MoveRelayout()
+    M.UI.ShowWhileMoving()
+    M.UI.ApplyLayout()
+end
+
+local function Slider(name, key, minValue, maxValue, step, moves)
+    local getFunc, setFunc = Bind(key, moves and MoveRelayout or Relayout)
     return {
         type = "slider", name = name, min = minValue, max = maxValue, step = step,
         decimals = step < 1 and 2 or 0,
@@ -71,9 +78,9 @@ function Settings.Create()
     LAM:RegisterOptionControls(panelName, {
         { type = "header", name = "Display" },
         Checkbox("Show Meter", "showLabel"),
-        Slider("Position X", "labelX", 0, 2000, 1),
-        Slider("Position Y", "labelY", 0, 2000, 1),
-        Slider("Scale", "scale", 0.1, 10, 0.05),
+        Slider("Position X", "labelX", 0, 2000, 1, true),
+        Slider("Position Y", "labelY", 0, 2000, 1, true),
+        Slider("Scale", "scale", 0.1, 10, 0.05, true),
         Checkbox("Show Title", "showTitle"),
         {
             type = "checkbox", name = "Hide in Menus",
@@ -93,6 +100,16 @@ function Settings.Create()
 
         { type = "header", name = "Healing" },
         Color("Healing Color", "labelColor", M.DEFAULT_HEAL_COLOR),
+        {
+            type = "checkbox", name = "Show Critical Healing Line",
+            tooltip = "Adds a line with healing from critical heals, critical HPS and your heal crit rate.",
+            getFunc = function() return M.saved.showCritHeals end,
+            setFunc = function(value)
+                M.saved.showCritHeals = value
+                Relayout()
+            end,
+            default = M.defaults.showCritHeals,
+        },
 
         { type = "header", name = "Shielding" },
         Checkbox("Show Shield Lines (SPS / SPM / total)", "showShields"),
@@ -109,6 +126,29 @@ function Settings.Create()
             setFunc = function(value) M.saved.groupMode = value end,
             default = M.defaults.groupMode,
             requiresReload = true,
+        },
+
+        { type = "header", name = "Battlegrounds & History" },
+        {
+            type = "checkbox", name = "Show Battleground Totals",
+            tooltip = "In a battleground, the meter adds up every fight of the match. "
+                .. "It resets when the battleground finishes or you leave it.",
+            getFunc = function() return M.saved.bgTotals end,
+            setFunc = function(value)
+                M.saved.bgTotals = value
+                M.UI.Refresh()
+            end,
+            default = M.defaults.bgTotals,
+        },
+        {
+            type = "checkbox", name = "Save Fight & Battleground History",
+            tooltip = "Saves every fight and every finished battleground with LibESQL "
+                .. "(tables bloomhps_fights and bloomhps_bgs). Search them with "
+                .. "/bloomhps fights <text> and /bloomhps bg <text>. Needs LibESQL.",
+            getFunc = function() return M.saved.saveHistory end,
+            setFunc = function(value) M.saved.saveHistory = value end,
+            default = M.defaults.saveHistory,
+            disabled = function() return not LibESQL end,
         },
 
         { type = "header", name = "Damage Mitigated" },

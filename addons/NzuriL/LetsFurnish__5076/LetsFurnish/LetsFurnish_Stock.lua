@@ -1,7 +1,7 @@
 local LF = LetsFurnish
 local ask, L = LF.ask, LF.L
 LF.SOURCES = { "backpack", "bank", "vault", "storage", "placed_here", "placed_elsewhere" }
-local LABELS = { backpack = L.core.backpack, bank = L.core.bank, vault = L.stock.vault, storage = L.stock.storage,
+local LABELS = { backpack = L.stock.inventory, bank = L.core.bank, vault = L.stock.vault, storage = L.stock.storage,
                  placed_here = L.stock.placed_here, placed_elsewhere = L.stock.placed_elsewhere }
 LF.sourceLabels = LABELS
 local open
@@ -84,6 +84,8 @@ local function refresh()
         for _, bag in ipairs(houseBags()) do
             if bag ~= open and holdsAny(bag) then keepBag(bag) end
         end
+        local vault = BAG_FURNITURE_VAULT
+        if vault and vault ~= open and vaultBag(vault) and holdsAny(vault) then keepBag(vault) end
         kept().placed[LF.houseKey()] = { at = now(), items = placedHere(), name = LF.houseName(house) }
         fresh["placed_here:" .. LF.houseKey()] = true
     end
@@ -184,7 +186,7 @@ local function onSlot(_, bag)
     if bankBag(bag) then
         if bankBag(open) then keepBag(bag) elseif seen.bank then seen.bank.changed = seen.bank.changed or now() end
     elseif vaultBag(bag) then
-        if vaultBag(open) then keepBag(bag) elseif seen.vault then seen.vault.changed = seen.vault.changed or now() end
+        if vaultBag(open) or ownHouse() then keepBag(bag) elseif seen.vault then seen.vault.changed = seen.vault.changed or now() end
     elseif houseBag(bag) then
         local place = seen.storage[tostring(bag)]
         if open == bag or ownHouse() then keepBag(bag) elseif place then place.changed = place.changed or now() end

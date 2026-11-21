@@ -28,9 +28,7 @@ SafeAddString(BANKIR_MENU_CURRENT_PROFILE_NAME_DESC, "Чтобы сменить 
 SafeAddString(BANKIR_MENU_BANK_SELECT, "Банковская сумка для настройки", 1)
 SafeAddString(BANKIR_MENU_BANK_SELECT_DESC, "Выберите какую банковскую сумку хотите настроить.\nСписок содержит банк, все разблокированные домашние сундуки и банки ваших гильдий\nНастройки ниже будут применяться к выбранной здесь сумке", 1)
 
-SafeAddString(BANKIR_MENU_CURRENCY_DEPOSIT, "Вносить <<1>> <<2>>", 1)
 SafeAddString(BANKIR_MENU_CURRENCY_DEPOSIT_DESC, "Вносить валюту в банк, если у персонажа больше, чем задано значением ползунка", 1)
-SafeAddString(BANKIR_MENU_CURRENCY_WITHDRAW, "Выводить <<1>> <<2>>", 1)
 SafeAddString(BANKIR_MENU_CURRENCY_WITHDRAW_DESC, "Выводить валюту из банка, если у персонажа с собой меньше, чем задано значением ползунка", 1)
 SafeAddString(BANKIR_MENU_CURRENCY_AMOUNT, "Держать на персонаже", 1)
 SafeAddString(BANKIR_MENU_CURRENCY_AMOUNT_DESC, "Сумма, которая должна оставаться у персонажа", 1)

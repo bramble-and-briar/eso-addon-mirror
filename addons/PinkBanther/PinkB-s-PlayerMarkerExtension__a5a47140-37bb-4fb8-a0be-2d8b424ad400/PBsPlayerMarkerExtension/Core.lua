@@ -24,7 +24,7 @@ local S = PBS_PME_STRINGS
 A.baseTitle = "PB’s PlayerMarkerExtension"
 A.chatName = "PB’s PlayerMarkerExtension"
 A.author = "PinkBanther"
-A.version = "0.4.4"
+A.version = "0.4.7"
 
 -- The version comes from the manifest, the same way PB's other add-ons read it.
 do
@@ -91,6 +91,9 @@ A.defaults = {
 	markSelf = true, -- picking an extra marker with nothing under the reticle puts it on yourself
 	showSelf = true, -- a marker over your own head (you do not see it in the first person)
 	frameMarks = true, -- the extra marker also in the group frames (the names at the top left), where the game shows its own markers (see Frames.lua)
+	compassMarks = true, -- the extra marker also on the compass bar at the top of the screen, as the game shows its own (see Compass.lua)
+	compassFov = 108, -- degrees the compass bar covers (CustomCompassPins' value, 0.6 pi; change it only if a marker sits off from the game's own)
+	compassSize = 100, -- percent
 	throughWalls = true,
 	size = 100, -- percent
 	height = 300, -- centimetres above the feet to the marker's LOWER edge (0.3.0; it was 260 to the centre, which overlapped the nameplate)
@@ -108,6 +111,8 @@ local RANGES = {
 	heightPerMetre = { 0, 20 },
 	facingOffset = { -180, 180 },
 	opacity = { 20, 100 },
+	compassFov = { 60, 180 },
+	compassSize = { 50, 200 },
 }
 for n = 1, A.MAX_SLOTS do
 	RANGES["slot" .. n] = { 1, A.ICON_COUNT }

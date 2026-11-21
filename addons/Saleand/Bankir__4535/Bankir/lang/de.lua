@@ -28,9 +28,7 @@ SafeAddString(BANKIR_MENU_CURRENT_PROFILE_NAME_DESC, "Um das aktuelle Profil zu 
 SafeAddString(BANKIR_MENU_BANK_SELECT, "Bankfach zum Einrichten", 1)
 SafeAddString(BANKIR_MENU_BANK_SELECT_DESC, "Wähle aus, welches Bankfach eingerichtet werden soll.\nDie Liste enthält die Bank, alle freigeschalteten Heimtruhen und alle deine Gildenbanken.\nDie untenstehenden Einstellungen gelten für das hier ausgewählte Bankfach", 1)
 
-SafeAddString(BANKIR_MENU_CURRENCY_DEPOSIT, "<<1>> <<2>> einlagern", 1)
 SafeAddString(BANKIR_MENU_CURRENCY_DEPOSIT_DESC, "Lagert die Währung in die Bank ein, die den eingestellten Wert übersteigt", 1)
-SafeAddString(BANKIR_MENU_CURRENCY_WITHDRAW, "<<1>> <<2>> entnehmen", 1)
 SafeAddString(BANKIR_MENU_CURRENCY_WITHDRAW_DESC, "Entnimmt Währung aus der Bank, wenn der Charakter weniger als den eingestellten Wert bei sich trägt", 1)
 SafeAddString(BANKIR_MENU_CURRENCY_AMOUNT, "Betrag beim Charakter behalten", 1)
 SafeAddString(BANKIR_MENU_CURRENCY_AMOUNT_DESC, "Legt fest, wie viel Währung beim Charakter verbleiben soll", 1)

@@ -129,8 +129,8 @@ end
 -- ---------------------------------------------------------------------------------------
 
 -- The preview while the settings panel is open: a stop ahead and to the right, 133 m away, the second of four.
--- (The camera is taken to look along +Z, heading 0; with +Z ahead, +X is on the LEFT.)
-local PREVIEW = { dx = -7500, dz = 11000 }
+-- (The camera is taken to have heading 0, which looks along -Z (north); with -Z ahead, +X (east) is on the RIGHT.)
+local PREVIEW = { dx = 7500, dz = -11000 }
 
 local function Stamp()
 	return GetGameTimeMilliseconds()
@@ -239,7 +239,7 @@ function A:UpdateArrow(view)
 				bearing = self.lastBearing
 			end
 			self.lastBearing = bearing
-			-- The client's own formula (see Core.lua): the arrow is turned by bearing - heading.
+			-- See Core.lua: the arrow is turned by bearing - (heading + pi), as measured on a PS5.
 			local angle = ScreenAngle(bearing, view.heading or 0)
 			if not self.lastRotation or abs(angle - self.lastRotation) > ROTATION_EPS then
 				self.arrow:SetTextureRotation(angle, 0.5, 0.5)
@@ -637,7 +637,7 @@ function A:StartDemo()
 		return false, why
 	end
 	local heading = self:ReadHeading() or 0
-	local ox, oz = A.Offset(heading, 8000)
+	local ox, oz = A.Offset(A.LookBearing(heading), 8000)
 	self.demo = { stop = { world = { x = sample.x + ox, z = sample.z + oz } }, untilMs = now + DEMO_MS }
 	self.lastRotation = nil
 	self:RefreshVisibility()

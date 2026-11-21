@@ -31,9 +31,7 @@ local strings = {
 	BANKIR_MENU_BANK_SELECT = "Bank bag to set up",
 	BANKIR_MENU_BANK_SELECT_DESC = "Select which bank bag to set up.\nThe list contains bank, all unlocked house coffers, and all your guild banks.\nThe settings below will apply to the bank bag selected here",
 
-	BANKIR_MENU_CURRENCY_DEPOSIT = "Deposit <<1>> <<2>>",
 	BANKIR_MENU_CURRENCY_DEPOSIT_DESC = "Deposit the currency exceeding the slider value into the bank",
-	BANKIR_MENU_CURRENCY_WITHDRAW = "Withdraw <<1>> <<2>>",
 	BANKIR_MENU_CURRENCY_WITHDRAW_DESC = "Withdraw currency from the bank if character has less than the slider value",
 	BANKIR_MENU_CURRENCY_AMOUNT = "Amount to keep on character",
 	BANKIR_MENU_CURRENCY_AMOUNT_DESC = "Select how much currency to keep on character",

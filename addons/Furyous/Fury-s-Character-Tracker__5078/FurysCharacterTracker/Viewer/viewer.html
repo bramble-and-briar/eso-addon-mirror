@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fury's Character Tracker</title>
+<style>
+  /* Same windows, sizes, colors and layout as the in-game board (UI/Window.xml and friends). */
+  :root { --bg: #100c08; --edge: #96733a; --gold: #d4af37; --tile: #d4b038; --ink: #1a1207; --parch: #e3d4b5;
+          --muted: #968770; --dim: #736654; --pick: #9ec7f2; --btn: #e8dcc0; --btnoff: #7d7465; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: #050403; color: var(--parch); font-family: "Univers LT Std", "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
+         font-stretch: condensed; font-size: 17px; overflow: auto; }
+  .win { position: absolute; background: #100c08; border: 2px solid var(--edge); }
+  /* Text can be selected and copied; buttons, titles and column headers can't, so clicking and dragging work like in game. */
+  button, .title, .close, .head, .dragzone, .tile .p { user-select: none; }
+  .title { position: absolute; left: 18px; top: 10px; color: var(--gold); font-size: 30px; font-weight: 600; white-space: nowrap; }
+  .title small { color: var(--muted); font-size: 14px; font-weight: 400; margin-left: 14px; }
+  .close { position: absolute; z-index: 5; right: 12px; top: 10px; width: 26px; height: 26px; color: #bdb19a; font-size: 24px; line-height: 24px;
+           text-align: center; cursor: pointer; }
+  .close:hover { color: #fff; }
+  button { position: absolute; height: 28px; border: 0; background: linear-gradient(to right, transparent, rgba(0,0,0,.6) 14%, rgba(0,0,0,.6) 86%, transparent);
+           color: var(--btn); font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; padding: 0 6px; white-space: nowrap; overflow: hidden; }
+  button::after { content: ""; position: absolute; left: 6%; right: 6%; bottom: 0; height: 2px;
+                  background: linear-gradient(to right, transparent, #8a7a5a 20%, #8a7a5a 80%, transparent); }
+  button:hover:not(:disabled) { color: #fff; }
+  button:disabled { color: var(--btnoff); cursor: default; }
+  .small { color: var(--muted); font-size: 14px; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+  .line { position: absolute; height: 1px; background: var(--edge); }
+  .row { position: absolute; left: 0; height: 28px; }
+  .row.stripe::before { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,.035); }
+  .cell { position: absolute; top: 2px; height: 24px; line-height: 24px; padding: 0 4px; text-align: center;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cell.left { text-align: left; }
+  .cell.max { background: var(--tile); color: var(--ink); font-weight: 700; }
+  .cell.dim { color: var(--dim); } .cell.pick { color: var(--pick); }
+  .head .cell { color: var(--gold); font-weight: 700; cursor: pointer; }
+  .totals .cell { color: var(--gold); font-weight: 700; }
+  .list { position: absolute; overflow-y: auto; overflow-x: hidden; }
+  .list .row { cursor: default; }
+  .list .row:hover::before { content: ""; position: absolute; inset: 0; background: rgba(212,175,55,.08); }
+  #tip { position: fixed; z-index: 10000; display: none; background: rgba(10,8,5,.96); border: 1px solid #6b5a3a; padding: 8px 12px;
+         color: var(--parch); font-size: 16px; white-space: pre-line; max-width: 560px; pointer-events: none; box-shadow: 0 4px 16px #000; }
+  #menu { position: fixed; z-index: 10001; display: none; background: rgba(10,8,5,.98); border: 1px solid #6b5a3a; padding: 4px 0; min-width: 300px; }
+  #menu div { padding: 4px 14px; cursor: pointer; white-space: nowrap; } #menu div:hover { background: rgba(212,175,55,.15); }
+  #menu .on { color: var(--gold); }
+  /* brag card */
+  .tile { position: absolute; width: 219px; height: 104px; background: #21190f; border-top: 2px solid rgba(212,175,55,.85); text-align: center; }
+  .tile .v { color: var(--gold); font-size: 34px; font-weight: 700; line-height: 44px; margin-top: 4px; }
+  .tile .l { font-weight: 700; line-height: 22px; }
+  .tile .n { color: var(--dim); font-size: 14px; line-height: 18px; text-align: left; padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile .p { position: absolute; right: 8px; bottom: 10px; color: var(--gold); font-weight: 700; font-size: 15px; }
+  .tile .track { position: absolute; left: 8px; right: 8px; bottom: 6px; height: 4px; background: #382e1c; }
+  .tile .bar { height: 4px; background: var(--gold); }
+  .center { text-align: center; position: absolute; left: 0; right: 0; }
+  .dt-head { color: var(--gold); font-weight: 700; line-height: 22px; margin-bottom: 4px; }
+  .dt-grid { display: grid; grid-template-columns: repeat(3, 300px); column-gap: 20px; }
+  .dt-item { display: flex; justify-content: space-between; line-height: 22px; white-space: nowrap; }
+  .dt-item .k { color: var(--muted); overflow: hidden; text-overflow: ellipsis; max-width: 196px; }
+  .dt-item .v { text-align: right; min-width: 100px; }
+  .dt-line { line-height: 22px; white-space: pre-wrap; width: 940px; }
+</style>
+</head>
+<body>
+<div id="tip"></div>
+<div id="menu"></div>
+
+<script>
+// Filled in by OfflineViewer.ps1 each time you open it.
+const RAW = "__FCT_DATA__";
+const FILE_TIME = Number("__FCT_FILETIME__") || 0;
+const VERSION = "__FCT_VERSION__";
+
+// Same lines, groups and limits as the addon (Data/Lines.lua).
+const GROUPS = [{"id":"weapons","title":"Weapons","lines":[{"name":"Two Handed","short":"2H","max":50},{"name":"One Hand and Shield","short":"1H+S","max":50},{"name":"Dual Wield","short":"DW","max":50},{"name":"Bow","short":"Bow","max":50},{"name":"Destruction Staff","short":"Destro","max":50},{"name":"Restoration Staff","short":"Resto","max":50}]},{"id":"armor","title":"Armor","lines":[{"name":"Light Armor","short":"Light","max":50},{"name":"Medium Armor","short":"Medium","max":50},{"name":"Heavy Armor","short":"Heavy","max":50}]},{"id":"guilds","title":"Guilds & AvA","lines":[{"name":"Dark Brotherhood","short":"Dark Bro","max":12},{"name":"Fighters Guild","short":"Fighters","max":10},{"name":"Mages Guild","short":"Mages","max":10},{"name":"Psijic Order","short":"Psijic","max":10},{"name":"Thieves Guild","short":"Thieves","max":12},{"name":"Undaunted","short":"Undaunted","max":10},{"name":"Assault","short":"Alliance War","max":10}]},{"id":"world","title":"World","lines":[{"name":"Excavation","short":"Antiquities","max":10},{"name":"Soul Magic","short":"Soul Magic","max":6},{"name":"Legerdemain","short":"Legerdemain","max":20},{"name":"Vampire","short":"Vampire","max":10},{"name":"Werewolf","short":"Werewolf","max":10}]},{"id":"crafting","title":"Crafting","lines":[{"name":"Blacksmithing","short":"Smith","max":50},{"name":"Clothing","short":"Cloth","max":50},{"name":"Woodworking","short":"Wood","max":50},{"name":"Jewelry Crafting","short":"Jewelry","max":50},{"name":"Alchemy","short":"Alchemy","max":50},{"name":"Enchanting","short":"Enchant","max":50},{"name":"Provisioning","short":"Provis","max":50}]}];
+const RESEARCH_TOTAL = 324, CP_MAX = 3600, RIDING_MAX = 180, SKILL_POINTS_MAX = 586, COMPANION_TOTAL = 8, SCRIPTS_TOTAL = 79;
+const CRAFTS = [ { craft: 1, short: "Smith", name: "Blacksmithing" }, { craft: 2, short: "Cloth", name: "Clothing" },
+                 { craft: 6, short: "Wood", name: "Woodworking" }, { craft: 7, short: "Jewelry", name: "Jewelry Crafting" } ];
+const CLASS_COUNT = 7, ROLE_KEYS = ["Tank", "Healer", "DPS"];
+
+// ---- Lua saved-variables reader ----------------------------------------------------------
+function parseLua(text) {
+  let i = 0; const n = text.length;
+  const ws = () => { while (i < n) { const ch = text[i];
+    if (ch === " " || ch === "\n" || ch === "\r" || ch === "\t") i++;
+    else if (ch === "-" && text[i + 1] === "-") { while (i < n && text[i] !== "\n") i++; } else break; } };
+  const fail = (what) => { throw new Error(what + " at character " + i); };
+  function str() {
+    const q = text[i++]; let out = "";
+    while (i < n && text[i] !== q) {
+      let ch = text[i++];
+      if (ch === "\\") { ch = text[i++];
+        if (ch === "n") out += "\n"; else if (ch === "t") out += "\t"; else if (ch === "r") out += "\r";
+        else if (/[0-9]/.test(ch)) { let d = ch; while (d.length < 3 && /[0-9]/.test(text[i])) d += text[i++]; out += String.fromCharCode(Number(d)); }
+        else out += ch;
+      } else out += ch;
+    }
+    i++; return out;
+  }
+  function value() {
+    ws(); const ch = text[i];
+    if (ch === "{") return table();
+    if (ch === '"' || ch === "'") return str();
+    const m = /^-?(?:0x[0-9a-fA-F]+|\d+\.?\d*(?:[eE][-+]?\d+)?|\.\d+)|^(?:true|false|nil)/.exec(text.slice(i, i + 40));
+    if (!m) fail("Unexpected '" + ch + "'");
+    i += m[0].length;
+    if (m[0] === "true") return true; if (m[0] === "false") return false; if (m[0] === "nil") return null;
+    return Number(m[0]);
+  }
+  function table() {
+    i++; const obj = {}; let next = 1, numeric = true;
+    for (;;) {
+      ws(); if (text[i] === "}") { i++; break; }
+      let key;
+      if (text[i] === "[") { i++; key = value(); ws(); if (text[i] !== "]") fail("Expected ]"); i++; ws(); if (text[i] !== "=") fail("Expected ="); i++; }
+      else { const m = /^[A-Za-z_][A-Za-z0-9_]*\s*=/.exec(text.slice(i, i + 80));
+             if (m) { key = m[0].replace(/\s*=$/, ""); i += m[0].length; } else key = next; }
+      const v = value();
+      if (typeof key === "number" && key === next) next++; else numeric = false;
+      obj[key] = v; ws(); if (text[i] === "," || text[i] === ";") i++;
+    }
+    if (numeric && next > 1) { const arr = []; for (let k = 1; k < next; k++) arr.push(obj[k]); return arr; }
+    return obj;
+  }
+  const out = {};
+  for (;;) { ws(); if (i >= n) break;
+    const m = /^[A-Za-z_][A-Za-z0-9_]*\s*=/.exec(text.slice(i, i + 120)); if (!m) fail("Expected a variable");
+    i += m[0].length; out[m[0].replace(/\s*=$/, "")] = value(); }
+  return out;
+}
+
+// ---- Helpers (same wording and formats as the addon) -----------------------------------
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const comma = (v) => Math.round(Number(v || 0)).toLocaleString("en-US");
+const pad = (x) => String(x).padStart(2, "0");
+const fmtDate = (t) => { if (!t) return ""; const d = new Date(t * 1000); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const now = () => Math.floor(Date.now() / 1000);
+function duration(s) {
+  s = Math.max(0, s);
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  if (d > 0) return `${d}d ${h}h`; if (h > 0) return `${h}h ${m}m`; return `${Math.max(m, 1)}m`;
+}
+// "Sat Nov 21, 03:15 PM", like os.date("%a %b %d, %I:%M %p") in game
+function when(t) {
+  const d = new Date(t * 1000), days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const h = d.getHours() % 12 || 12;
+  return `${days[d.getDay()]} ${months[d.getMonth()]} ${pad(d.getDate())}, ${pad(h)}:${pad(d.getMinutes())} ${d.getHours() < 12 ? "AM" : "PM"}`;
+}
+const asList = (x) => Array.isArray(x) ? x : (x && typeof x === "object" ? Object.values(x) : []);
+const viewLabel = (a) => `${a.account}  ·  ${a.world.replace(" Megaserver", "")}`;
+
+// ---- Data --------------------------------------------------------------------------------
+let ACCOUNTS = [], loadError = null;
+try {
+  const sv = parseLua(RAW).FuryCT_SV || {};
+  for (const [world, accounts] of Object.entries(sv)) {
+    if (!accounts || typeof accounts !== "object") continue;
+    for (const [account, profile] of Object.entries(accounts)) {
+      const data = profile && profile["$AccountWide"];
+      if (!data || !data.characters || !Object.keys(data.characters).length) continue;
+      data.order = asList(data.order); data.hidden = data.hidden || {}; data.manual = data.manual || {};
+      ACCOUNTS.push({ world, account, data });
+    }
+  }
+  ACCOUNTS.sort((a, b) => a.account.localeCompare(b.account) || a.world.localeCompare(b.world));
+} catch (e) { loadError = e; }
+
+const state = { acct: 0, view: "overview", sort: {}, showRemoved: false, pos: {} };
+try { Object.assign(state, JSON.parse(localStorage.getItem("fct-viewer2") || "{}")); } catch (e) {}
+const save = () => { try { localStorage.setItem("fct-viewer2", JSON.stringify(state)); } catch (e) {} };
+const ACC = () => ACCOUNTS[state.acct] || ACCOUNTS[0];
+
+// Characters on the board, in your order (the game's order list, then anything else A to Z).
+function boardNames(acct = ACC()) {
+  const d = acct.data, seen = new Set(), out = [];
+  const add = (name) => { if (seen.has(name) || !d.characters[name]) return; if (d.hidden[name] && !state.showRemoved) return; seen.add(name); out.push(name); };
+  d.order.forEach(add); Object.keys(d.characters).sort().forEach(add);
+  return out;
+}
+const get = (name) => [ACC().data.characters[name], ACC().data.manual[name] || {}];
+const maxedIn = (c, g) => g.lines.filter((l) => ((c.lines || {})[l.name] || 0) >= l.max).length;
+const groupById = (id) => GROUPS.find((g) => g.id === id);
+
+// ---- Research (same rules as Core/Research.lua) -----------------------------------------
+const craftEntry = (c, craft) => asList(c.researchCrafts).find((e) => e.craft === craft);
+const allKnown = (c) => (c.research || 0) >= (c.researchTotal || RESEARCH_TOTAL);
+function summary(c, t = now()) {
+  let busy = 0, slots = 0, next = null, finished = 0;
+  for (const e of asList(c.researchCrafts)) {
+    if (e.known >= e.total) continue;
+    slots += e.slots || 0;
+    for (const tm of asList(e.timers)) { if (tm.endsAt > t) { busy++; next = Math.min(next ?? Infinity, tm.endsAt - t); } else finished++; }
+  }
+  return { busy, slots, next, finished };
+}
+function craftTip(c, def) {
+  const e = craftEntry(c, def.craft);
+  if (!e) return allKnown(c) ? `${def.name}\nEvery trait researched.` : `${def.name}\nNot read yet: log in on this character.`;
+  const lines = [`${def.name}: ${e.known} of ${e.total} traits`];
+  if (e.known >= e.total) return lines.concat("Every trait researched.").join("\n");
+  const t = now(), timers = asList(e.timers);
+  lines.push("", `Researching ${timers.filter((x) => x.endsAt > t).length} of ${e.slots} slots`);
+  for (const tm of timers) lines.push(`  ${tm.item}: ${tm.trait}  ${tm.endsAt > t ? duration(tm.endsAt - t) + " left" : "done (log in to update)"}`);
+  lines.push("", "Missing");
+  for (const it of asList(e.missing)) { const tr = asList(it.traits); lines.push(`  ${it.item}: ${tr.length > 4 ? `${tr.length} of ${it.of} traits` : tr.join(", ")}`); }
+  return lines.join("\n");
+}
+function timerRows(names, t = now()) {
+  const needs = [], running = [];
+  for (const name of names) {
+    const [c] = get(name);
+    for (const def of CRAFTS) {
+      const e = craftEntry(c, def.craft); if (!e || e.known >= e.total) continue;
+      let working = 0, done = 0;
+      for (const tm of asList(e.timers)) {
+        const row = { name, craft: def.name, item: tm.item, trait: tm.trait, endsAt: tm.endsAt };
+        if (tm.endsAt > t) { working++; running.push({ ...row, kind: "timer" }); } else { done++; needs.push({ ...row, kind: "done" }); }
+      }
+      const idle = (e.slots || 0) - working - done;
+      if (idle > 0) needs.push({ name, craft: def.name, kind: "idle", count: idle });
+    }
+  }
+  running.sort((a, b) => a.endsAt - b.endsAt);
+  return needs.concat(running);
+}
+
+// ---- Daily (Core/Daily.lua): writs since the daily reset, riding lesson ----------------------
+const WRIT_CRAFTS = [ { craft: 1, short: "Smith", name: "Blacksmithing" }, { craft: 2, short: "Cloth", name: "Clothing" },
+  { craft: 6, short: "Wood", name: "Woodworking" }, { craft: 7, short: "Jewelry", name: "Jewelry Crafting" },
+  { craft: 4, short: "Alchemy", name: "Alchemy" }, { craft: 3, short: "Enchant", name: "Enchanting" }, { craft: 5, short: "Provis", name: "Provisioning" } ];
+const WRIT_LABEL = ["-", "Started", "Deliver", "Done"];
+function lastReset(world, t = now()) { const hour = /EU/.test(world || "") ? 3 : 10; let r = t - t % 86400 + hour * 3600; if (r > t) r -= 86400; return r; }
+function writState(c, craft, world = ACC().world) {
+  const e = (c.writs || {})[craft]; if (!e) return 0;
+  if (e.state === 3) return e.at >= lastReset(world) ? 3 : 0;
+  return e.state;
+}
+const clock = (t) => { const d = new Date(t * 1000), h = d.getHours() % 12 || 12; return `${pad(h)}:${pad(d.getMinutes())} ${d.getHours() < 12 ? "AM" : "PM"}`; };
+const dayClock = (t) => when(t).replace(/^(\w+) \w+ \d+, /, "$1 ");
+
+// ---- Columns (UI/Window.lua) ------------------------------------------------------------
+const L = { left: true };
+const NAME = { title: "Character", width: 184, ...L, value: (n) => n,
+  tip: (n, c) => `${n}\nLevel ${c.level ?? "?"} ${c.race || ""} ${c.class || ""}\nRead from the game ${fmtDate(c.lastScan)}\nClick for details` };
+const CLASS = { title: "Class", width: 96, ...L, value: (n, c) => c.class || "" };
+const ROLE = { title: "Role", width: 96, value: (n, c, m) => m.role || "", tip: (n, c, m) => m.role };
+const groupCount = (g) => ({ title: g.title, width: 80, max: () => g.lines.length, value: (n, c) => maxedIn(c, g), display: (v) => `${v}/${g.lines.length}`,
+  tip: (n, c) => g.lines.map((l) => `${l.name}  ${Math.min((c.lines || {})[l.name] || 0, l.max)} / ${l.max}`).join("\n") });
+function lineColumns(id) {
+  const cols = [NAME, CLASS, ROLE];
+  for (const l of groupById(id).lines) {
+    let tip = l.name;
+    if (l.name === "Assault") tip = "Alliance War: Assault (Support ranks with it)";
+    if (l.name === "Excavation") tip = "Antiquities: Excavation (Scrying ranks with it)";
+    if (l.name === "Vampire" || l.name === "Werewolf") tip = l.name + "\nThe game hides this line when you are cured; this shows the best rank ever seen.";
+    cols.push({ title: l.short, width: 84, max: () => l.max, value: (n, c) => (c.lines || {})[l.name] || 0, tip: () => tip });
+  }
+  return cols;
+}
+const SKILL_POINTS = { title: "Skill pts", width: 76, max: () => SKILL_POINTS_MAX, value: (n, c) => c.skillPoints || 0,
+  tip: (n, c) => `Skill points earned: ${c.skillPoints || 0} of ${SKILL_POINTS_MAX}\nNot assigned yet: ${c.unspent ?? "?"}` };
+const RESEARCH = { title: "Research", width: 84, max: (c) => c.researchTotal || RESEARCH_TOTAL, value: (n, c) => c.research || 0,
+  tip: () => "Traits researched (smithing, clothing, woodworking, jewelry)" };
+const RECIPES = { title: "Recipes", width: 84, max: (c) => c.recipesTotal, value: (n, c) => c.recipes || 0,
+  tip: (n, c) => `Provisioning recipes known: ${c.recipes || 0}${c.recipesTotal ? " of " + c.recipesTotal : ""}` };
+const PLANS = { title: "Furnishing", width: 92, max: (c) => c.furnishingsTotal, value: (n, c) => c.furnishings || 0,
+  tip: (n, c) => `Furnishing plans known: ${c.furnishings || 0}${c.furnishingsTotal ? " of " + c.furnishingsTotal : ""}` };
+const SCRIPTS = { title: "Scribing", width: 80, max: (c) => c.scriptsTotal || SCRIPTS_TOTAL, value: (n, c) => c.scripts || 0,
+  tip: (n, c) => `Scribing learned: ${c.scripts || 0} of ${c.scriptsTotal || SCRIPTS_TOTAL} (grimoires + scripts)` +
+                 (c.grimoires != null ? `\nGrimoires ${c.grimoires} / ${c.grimoiresTotal}\nScripts ${c.scriptsOnly} / ${c.scriptsOnlyTotal}` : "") };
+const ACHIEVEMENTS = { title: "Ach. points", width: 84, value: (n, c) => c.achievementPoints || 0, display: (v) => comma(v),
+  tip: (n, c) => `Achievement points: ${comma(c.achievementPoints)}` };
+const MOTIFS = { title: "Motifs", width: 72, max: (c) => c.motifsTotal, value: (n, c) => c.motifs || 0,
+  tip: (n, c) => `Motif styles known in full: ${c.motifs || 0}${c.motifsTotal ? " of " + c.motifsTotal : ""}\nThe game's own count; it can be off by one or two from crafting addons.` };
+const RIDING = { title: "Riding", width: 72, max: (c) => c.ridingMax || RIDING_MAX, value: (n, c) => c.riding || 0, tip: () => "Speed + stamina + carry capacity" };
+const COMPANIONS = { title: "Companions", width: 100, max: (c) => c.companionsTotal || COMPANION_TOTAL, value: (n, c) => asList(c.companions).length,
+  display: (v, c) => `${v}/${c.companionsTotal || COMPANION_TOTAL}`,
+  tip: (n, c) => asList(c.companions).length ? "Unlocked: " + asList(c.companions).join(", ") : "No companions unlocked" };
+const HOURS = { title: "Hours", width: 76, value: (n, c) => c.playedHours || 0, display: (v) => comma(v), tip: () => "Hours played (/played)" };
+const CRAFT_MAXED = { title: "Crafting", width: 84, max: () => 7, value: (n, c) => c.craftMaxed || 0, display: (v) => `${v}/7`,
+  tip: (n, c) => "Crafting lines at 50" + ((c.craftMaxed || 0) >= 7 && allKnown(c) ? "\nGrandmaster Crafter: all 7 lines maxed and every trait researched" : "") };
+const UPDATED = { title: "Updated", width: 104, value: (n, c) => fmtDate(c.lastScan), tip: () => "When this character was last read from the game. /fct todo lists the ones that are out of date." };
+const craftColumn = (def) => ({ title: def.short, width: 96,
+  max: (c) => { const e = craftEntry(c, def.craft); return e ? e.total : 1; },
+  value: (n, c) => { const e = craftEntry(c, def.craft); return e ? e.known : (allKnown(c) ? 1 : 0); },
+  display: (v, c) => { const e = craftEntry(c, def.craft); return e ? `${v}/${e.total}` : (allKnown(c) ? "all" : "-"); },
+  tip: (n, c) => craftTip(c, def) });
+const SLOTS = { title: "Slots", width: 84, max: (c) => summary(c).slots || null, value: (n, c) => summary(c).busy,
+  display: (v, c) => summary(c).slots ? `${v}/${summary(c).slots}` : "-", dim: (v, c) => !summary(c).slots,
+  tip: () => "Research slots busy right now, across the crafts that still have traits to learn.\nGold = every slot working. Counts down live, even for characters you are not on." };
+const NEXT_DONE = { title: "Next done", width: 104, value: (n, c) => summary(c).next ?? Infinity,
+  display: (v) => v === Infinity ? "-" : duration(v), dim: (v) => v === Infinity,
+  tip: (n, c) => { const s = summary(c); return (s.next != null ? "Next research finishes in " + duration(s.next) : "Nothing researching") +
+                   (s.finished ? `\n${s.finished} finished since this character was last read` : ""); } };
+const manual = (width, field, title, tip) => ({ title, width, pick: true, value: (n, c, m) => m[field] || "", tip: () => tip + "\n(Change it in game.)" });
+
+const writColumn = (def) => ({ title: def.short, width: 84, max: () => 3, value: (n, c) => writState(c, def.craft), display: (v) => WRIT_LABEL[v],
+  tip: (n, c) => { const st = writState(c, def.craft), e = (c.writs || {})[def.craft];
+    return (st === 0 ? `${def.name} writ: not taken today` : `${def.name} writ: ${["", "started", "ready to deliver", "done today"][st]} (${dayClock(e.at)})`) +
+           `\nWrits reset daily at ${clock(lastReset(ACC().world) + 86400)} your time.`; } });
+const WRITS_DONE = { title: "Done", width: 72, max: () => WRIT_CRAFTS.length, display: (v) => `${v}/${WRIT_CRAFTS.length}`,
+  value: (n, c) => WRIT_CRAFTS.filter((d) => writState(c, d.craft) === 3).length, tip: () => "Crafting writs turned in since today's reset" };
+const RIDING_LESSON = { title: "Riding lesson", width: 120, value: (n, c) => c.ridingReadyAt == null ? -1 : Math.max(0, c.ridingReadyAt - now()),
+  display: (v) => v < 0 ? "Maxed" : v === 0 ? "Ready" : duration(v), gold: (v) => v < 0,
+  tip: (n, c) => c.ridingReadyAt == null ? `Riding maxed (${c.riding || 0} / ${c.ridingMax || RIDING_MAX})`
+               : c.ridingReadyAt <= now() ? "A riding lesson is ready: visit a stablemaster." : `Next riding lesson at ${dayClock(c.ridingReadyAt)}` };
+const money = (title, width, field, tip) => ({ title, width, sum: true, value: (n, c) => c[field] || 0, display: (v) => comma(v), dim: (v) => v === 0, tip: () => tip });
+const BAG = { title: "Bag", width: 84, value: (n, c) => c.bagUsed || 0, display: (v, c) => c.bagSize ? `${v}/${c.bagSize}` : "-", dim: (v, c) => !c.bagSize,
+  tip: (n, c) => c.bagSize ? `Backpack: ${c.bagUsed} used, ${c.bagSize - c.bagUsed} free` : "Not read yet" };
+const tree = (i, title) => ({ title, width: 96,
+  max: (c) => { const t = asList(c.cp)[i]; return t && t.spent + t.unspent > 0 ? t.spent + t.unspent : null; },
+  value: (n, c) => { const t = asList(c.cp)[i]; return t ? t.spent : 0; },
+  display: (v, c) => { const t = asList(c.cp)[i]; return t ? `${v}/${t.spent + t.unspent}` : "-"; },
+  tip: (n, c) => { const t = asList(c.cp)[i]; return t ? `${t.name}: ${t.spent} spent, ${t.unspent} not spent\nGold = every point in this tree spent` : "Not read yet"; } });
+function treeTitles() { const titles = []; for (const c of Object.values(ACC().data.characters)) asList(c.cp).forEach((t, i) => { titles[i] = titles[i] || t.name; }); return titles; }
+
+const VIEWS = [
+  { id: "overview", title: "Overview", tip: "Everything at a glance: how many lines of each group are maxed",
+    columns: () => [NAME, CLASS, ROLE, SKILL_POINTS, ...["weapons", "armor", "guilds", "world"].map((id) => groupCount(groupById(id))), CRAFT_MAXED, RESEARCH, COMPANIONS, RIDING, ACHIEVEMENTS, HOURS] },
+  { id: "weapons", title: "Weapons", columns: () => lineColumns("weapons") },
+  { id: "armor", title: "Armor", columns: () => lineColumns("armor") },
+  { id: "guilds", title: "Guilds & AvA", columns: () => lineColumns("guilds") },
+  { id: "world", title: "World", columns: () => [...lineColumns("world"), SCRIPTS] },
+  { id: "crafting", title: "Crafting", columns: () => [...lineColumns("crafting"), RESEARCH] },
+  { id: "traits", title: "Research", tip: "Traits known and missing per craft, research slots and timers. Hover a craft for details.\nResearch timers (button below, or /fct timers) lists every research with its time left.",
+    columns: () => [NAME, CLASS, ROLE, ...CRAFTS.map(craftColumn), SLOTS, NEXT_DONE, RESEARCH] },
+  { id: "daily", title: "Daily", tip: "Crafting writs since today's reset and the next riding lesson, per character.",
+    columns: () => [NAME, CLASS, ROLE, ...WRIT_CRAFTS.map(writColumn), WRITS_DONE, RIDING_LESSON] },
+  { id: "collections", title: "Collections", tip: "Recipes, furnishing plans, motifs, riding, companions, time played",
+    columns: () => [NAME, CLASS, ROLE, RECIPES, PLANS, MOTIFS, SCRIPTS, RIDING, COMPANIONS, ACHIEVEMENTS, HOURS, SKILL_POINTS] },
+  { id: "wallet", title: "Wallet & CP", totalsLabel: "Total",
+    tip: "Gold, Tel Var, Alliance Points, writ vouchers and bag space per character, and Champion Points spent per tree.\nThe line above the columns shows the bank.",
+    columns: () => { const t = treeTitles(); return [NAME, CLASS, ROLE, money("Gold", 112, "gold", "Gold carried"), money("Tel Var", 88, "telvar", "Tel Var stones carried"),
+      money("AP", 100, "ap", "Alliance Points"), money("Vouchers", 96, "vouchers", "Writ vouchers"), BAG, tree(0, t[0] || "CP 1"), tree(1, t[1] || "CP 2"), tree(2, t[2] || "CP 3")]; } },
+  { id: "sets", title: "Roles & gear", tip: "Your own picks per character. Click a blue cell for a dropdown (in game).",
+    columns: () => [NAME, CLASS,
+      manual(136, "role", "Role", "The role(s) you play this character in."),
+      manual(124, "dpsGear", "DPS gear", "The DPS gear you have farmed for this character (not what it is wearing)."),
+      manual(150, "roleGear", "Tank/healer gear", "The tank or healer gear you have farmed for this character.\nFor a DPS/Healer: DPS gear = DPS role, this = healer role."),
+      { title: "Race", width: 96, ...L, value: (n, c) => c.race || "" },
+      manual(120, "plannedRace", "Planned race", "A race change you plan (blank = none)."),
+      { title: "Alliance", width: 150, ...L, value: (n, c) => c.alliance || "" }, UPDATED] },
+];
+
+// ---- Tooltip and dropdown (InformationTooltip / ShowMenu) ----------------------------------
+const tipEl = document.getElementById("tip"), menuEl = document.getElementById("menu");
+function setTip(el, fn) {
+  el.addEventListener("mouseenter", (e) => { const t = fn(); if (!t) return; tipEl.textContent = t; tipEl.style.display = "block"; moveTip(e); });
+  el.addEventListener("mousemove", moveTip);
+  el.addEventListener("mouseleave", () => tipEl.style.display = "none");
+}
+function moveTip(e) {
+  let x = e.clientX + 18, y = e.clientY + 18;
+  const r = tipEl.getBoundingClientRect();
+  if (x + r.width > innerWidth - 6) x = innerWidth - r.width - 6;
+  if (y + r.height > innerHeight - 6) y = Math.max(6, e.clientY - r.height - 10);
+  tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
+}
+function showMenu(anchor, items) {
+  menuEl.innerHTML = ""; for (const it of items) { const d = document.createElement("div"); d.innerHTML = it.html; d.className = it.on ? "on" : ""; d.onclick = () => { hideMenu(); it.fn(); }; menuEl.appendChild(d); }
+  const r = anchor.getBoundingClientRect(); menuEl.style.left = r.left + "px"; menuEl.style.top = (r.bottom + 2) + "px"; menuEl.style.display = "block";
+}
+const hideMenu = () => menuEl.style.display = "none";
+document.addEventListener("mousedown", (e) => { if (!menuEl.contains(e.target)) hideMenu(); });
+
+// ---- Windows (movable, the one you open or click comes to the front) ------------------------
+let topZ = 10;
+function makeWindow(id, w, h, closable) {
+  const el = document.createElement("div"); el.className = "win"; el.id = id;
+  el.style.width = w + "px"; el.style.height = h + "px";
+  const p = state.pos[id];
+  el.style.left = (p ? p.x : Math.max(10, (innerWidth - w) / 2)) + "px";
+  el.style.top = (p ? p.y : Math.max(10, (innerHeight - h) / 2)) + "px";
+  document.body.appendChild(el);
+  el.addEventListener("mousedown", (e) => {
+    raise(el);
+    if (e.target !== el && !e.target.classList.contains("title") && !e.target.classList.contains("dragzone")) return;
+    const sx = e.clientX - el.offsetLeft, sy = e.clientY - el.offsetTop;
+    const move = (ev) => { el.style.left = Math.max(0, ev.clientX - sx) + "px"; el.style.top = Math.max(0, ev.clientY - sy) + "px"; };
+    const up = () => { removeEventListener("mousemove", move); removeEventListener("mouseup", up); state.pos[id] = { x: el.offsetLeft, y: el.offsetTop }; save(); };
+    addEventListener("mousemove", move); addEventListener("mouseup", up);
+  });
+  if (closable) { const x = document.createElement("div"); x.className = "close"; x.textContent = "✕"; x.onclick = () => el.remove(); el.appendChild(x); }
+  raise(el);
+  tipEl.style.display = "none";
+  return el;
+}
+const raise = (el) => { el.style.zIndex = ++topZ; };
+function add(parent, tag, cls, css, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (css) e.style.cssText = css; if (html != null) e.innerHTML = html; parent.appendChild(e); return e; }
+
+// ---- The board (FuryCTWindow 1420 x 760) ---------------------------------------------------
+let board, listEl, headEl, totalsEl, summaryEl, accountBtn;
+const GAP = 6;
+function buildBoard() {
+  board = makeWindow("board", 1420, 760, false);
+  add(board, "div", "title", "", `Fury's Character Tracker<small>v${esc(VERSION)}  ·  /fct  ·  offline viewer, saved ${FILE_TIME ? esc(when(FILE_TIME)) : ""}</small>`);
+  accountBtn = add(board, "button", "", "right:52px;top:12px;width:300px");
+  accountBtn.onclick = () => showMenu(accountBtn, ACCOUNTS.map((a, i) => ({ html: esc(viewLabel(a)) + (i === state.acct ? "  &lt;" : ""), on: i === state.acct,
+                                                                           fn: () => { state.acct = i; save(); refreshAll(); } })));
+  const gear = add(board, "button", "", "right:362px;top:10px;width:32px;height:32px;font-size:24px;padding:0;background:none", "⚙");
+  gear.disabled = true;
+  setTip(gear, () => "Settings are in game: the gear on the board, Settings > Addons > Fury's Character Tracker, or /fct settings.");
+  setTip(accountBtn, () => "The account and megaserver on the board. Every account that plays on this PC shows up here after it logs in once with the addon on.\nOther accounts show what they saved at their last logout.");
+  VIEWS.forEach((v, i) => {
+    const b = add(board, "button", "", `left:${18 + i * 126}px;top:50px;width:120px`, esc(v.title));
+    b.dataset.view = v.id; b.onclick = () => { state.view = v.id; save(); refreshBoard(); };
+    if (v.tip) setTip(b, () => v.tip);
+  });
+  summaryEl = add(board, "div", "small", "position:absolute;left:18px;top:88px;width:1384px;height:20px;line-height:20px");
+  headEl = add(board, "div", "row head", "left:18px;top:112px;width:1384px;height:26px");
+  add(board, "div", "line", "left:18px;top:140px;width:1384px");
+  listEl = add(board, "div", "list", "left:18px;top:145px;width:1384px;height:523px");
+  add(board, "div", "line", "left:18px;top:672px;width:1384px");
+  totalsEl = add(board, "div", "row totals", "left:18px;top:676px;width:1384px");
+  const footer = [
+    { label: "Read this character", off: true, tip: "In game only: reads the character you are on right now (it also happens by itself at login and after progress)." },
+    { label: "Brag card", tip: "Your roster's best numbers on one card, sized for a screenshot to share on Discord.", fn: showBrag },
+    { label: "Show removed", tip: "Shows the characters you removed with right-click > Remove from board (here only; in game it puts them back).",
+      fn: () => { state.showRemoved = !state.showRemoved; save(); refreshBoard(); } },
+    { label: "Research timers", tip: "Every research slot on this account: what is researching, time left, and slots that are free.", fn: showTimers },
+    { label: "Export to Excel", off: true, tip: "In game only: saves the board and reloads the UI.\nWith Auto Export turned on, ESO Characters.csv appears in Documents\\Elder Scrolls Online a few seconds later." },
+  ];
+  footer.forEach((f, i) => {
+    const b = add(board, "button", "", `left:${18 + i * 158}px;bottom:16px;width:150px`, esc(f.label));
+    if (f.off) b.disabled = true; else b.onclick = f.fn;
+    setTip(b, () => f.tip);
+  });
+  add(board, "div", "small", "position:absolute;right:20px;bottom:20px",
+      `<span style="color:var(--gold)">Gold</span> maxed  ·  light in progress  ·  <span style="color:var(--dim)">-</span> none  ·  <span style="color:var(--pick)">blue</span> pick  ·  click details  ·  right-click remove`);
+}
+
+function paint(cell, col, name, c, m) {
+  const v = col.value(name, c, m), max = col.max ? col.max(c) : null;
+  let text = col.display ? col.display(v, c) : String(v), cls = "cell" + (col.left ? " left" : "");
+  if (typeof v === "number" && max) {
+    if (v >= max) { cls += " max"; if (!col.display) text = String(Math.min(v, max)); }
+    else if (v === 0) { cls += " dim"; if (!col.display) text = "-"; }
+  }
+  if (col.dim && col.dim(v, c)) cls += " dim";
+  if (col.gold && col.gold(v, c)) cls = cls.replace(" dim", "") + " max";
+  if (col.pick) { cls += " pick"; if (text === "") text = "-"; }
+  cell.className = cls; cell.textContent = text;
+}
+
+function refreshBoard() {
+  tipEl.style.display = "none";
+  const view = VIEWS.find((v) => v.id === state.view) || VIEWS[0];
+  const cols = view.columns();
+  board.querySelectorAll("button[data-view]").forEach((b) => b.disabled = b.dataset.view === view.id);
+  accountBtn.textContent = viewLabel(ACC()) + "  v";
+
+  let names = boardNames();
+  const sort = state.sort[view.id];
+  if (sort && cols[sort.col]) {
+    const col = cols[sort.col], key = (n) => { const [c, m] = get(n); const v = col.value(n, c, m); return typeof v === "number" ? v : String(v || "").toLowerCase(); };
+    const index = new Map(names.map((n, i) => [n, i]));
+    names = [...names].sort((a, b) => { const va = key(a), vb = key(b); if (va === vb) return index.get(a) - index.get(b); return (sort.desc ? va > vb : va < vb) ? -1 : 1; });
+  }
+
+  // Headers
+  headEl.innerHTML = ""; let x = 6;
+  cols.forEach((col, i) => {
+    const arrow = sort && sort.col === i ? (sort.desc ? " v" : " ^") : "";
+    const h = add(headEl, "div", "cell" + (col.left ? " left" : ""), `left:${x}px;width:${col.width}px`, esc(col.title + arrow));
+    h.onclick = () => {
+      const s = state.sort[view.id];
+      if (s && s.col === i) { if (s.desc) delete state.sort[view.id]; else s.desc = true; }
+      else { const first = names[0]; const [c, m] = first ? get(first) : [{}, {}]; state.sort[view.id] = { col: i, desc: typeof col.value(first, c, m) === "number" }; }
+      save(); refreshBoard();
+    };
+    setTip(h, () => `Click to sort by ${col.title}. Click again to reverse, a third time for your own order.`);
+    x += col.width + GAP;
+  });
+
+  // Rows
+  listEl.innerHTML = "";
+  names.forEach((name, r) => {
+    const [c, m] = get(name);
+    const row = add(listEl, "div", "row" + (r % 2 ? " stripe" : ""), `top:${r * 28}px;width:1368px`);
+    let cx = 6;
+    for (const col of cols) {
+      const cell = add(row, "div", "", `left:${cx}px;width:${col.width}px`);
+      paint(cell, col, name, c, m);
+      if (col.tip) setTip(cell, () => col.tip(name, c, m));
+      cell.addEventListener("click", () => { if (!col.pick) showDetails(name); });
+      cell.addEventListener("contextmenu", (e) => { e.preventDefault(); showMenu(cell, [{ html: `Remove ${esc(name)} from the board (in game)`, fn: () => {} }]); });
+      cx += col.width + GAP;
+    }
+  });
+  listEl.style.height = "523px";
+  const filler = add(listEl, "div", "", `position:absolute;top:${names.length * 28}px;height:1px;width:1px`);
+
+  // Totals: how many characters have each column maxed (or the sum, for Hours)
+  totalsEl.innerHTML = ""; x = 6;
+  cols.forEach((col, i) => {
+    let text = "";
+    if (i === 0) text = view.totalsLabel || "Maxed on";
+    else if (col.max) text = `${names.filter((n) => { const [c, m] = get(n); const v = col.value(n, c, m), mx = col.max(c); return typeof v === "number" && mx && v >= mx; }).length}/${names.length}`;
+    else if (col.sum) text = comma(names.reduce((t, n) => { const [c, m] = get(n); return t + (col.value(n, c, m) || 0); }, 0));
+    else if (col === HOURS) text = comma(names.reduce((t, n) => t + (get(n)[0].playedHours || 0), 0));
+    add(totalsEl, "div", "cell" + (i === 0 ? " left" : ""), `left:${x}px;width:${col.width}px`, esc(text));
+    x += col.width + GAP;
+  });
+
+  // Summary line
+  const onAccount = asList((ACC().data.account || {}).characterNames);
+  const never = onAccount.filter((n) => !ACC().data.characters[n]).length;
+  let s = `${names.length} characters`;
+  if (never > 0) s += `  ·  ${never} more on this account not read yet: log in on each once (/fct todo lists them)`;
+  else s += "  ·  every character on this account is here  ·  /fct todo lists the out-of-date ones";
+  if (view.id === "wallet") {
+    const a = ACC().data.account || {};
+    s = a.bankGold != null ? `Bank: ${comma(a.bankGold)} gold  ·  ${comma(a.bankTelvar)} Tel Var  ·  ${comma(a.bankAP)} AP  ·  ${comma(a.bankVouchers)} vouchers  ·  ${comma(a.transmutes)} transmute crystals  ·  bank space ${a.bankUsed || 0}/${a.bankSize || 0}`
+                           : "Bank: log in once with version 1.2.0 or later to read it";
+  } else if (view.id === "daily") s += `  ·  writs reset at ${clock(lastReset(ACC().world) + 86400)} your time`;
+  summaryEl.textContent = s;
+}
+
+// ---- Brag card (FuryCTBrag 960 x 726) ----------------------------------------------------
+function showBrag() {
+  document.getElementById("brag")?.remove();
+  const w = makeWindow("brag", 960, 726, true), names = boardNames(), n = names.length;
+  const s = { hours: 0, sp: 0, linesMaxed: 0, linesTotal: 0, research: 0, researchTotal: 0, researchAll: 0, gm: 0, vw: 0, scribing: 0, comps: 0, riding: 0,
+              best: { ach: { v: 0, name: "" }, recipes: { v: 0, name: "" }, plans: { v: 0, name: "" }, motifs: { v: 0, name: "" } },
+              totals: { recipes: 0, plans: 0, motifs: 0 }, classes: {} };
+  for (const name of names) {
+    const [c, m] = get(name), lines = c.lines || {};
+    s.hours += c.playedHours || 0; s.sp += c.skillPoints || 0; s.research += c.research || 0; s.researchTotal += c.researchTotal || RESEARCH_TOTAL;
+    s.totals.recipes = Math.max(s.totals.recipes, c.recipesTotal || 0); s.totals.plans = Math.max(s.totals.plans, c.furnishingsTotal || 0); s.totals.motifs = Math.max(s.totals.motifs, c.motifsTotal || 0);
+    for (const g of GROUPS) for (const l of g.lines) { s.linesTotal++; if ((lines[l.name] || 0) >= l.max) s.linesMaxed++; }
+    if (allKnown(c)) { s.researchAll++; if ((c.craftMaxed || 0) >= 7) s.gm++; }
+    if ((lines.Vampire || 0) >= 10 && (lines.Werewolf || 0) >= 10) s.vw++;
+    if (c.scriptsTotal && (c.scripts || 0) >= c.scriptsTotal) s.scribing++;
+    if (asList(c.companions).length >= (c.companionsTotal || COMPANION_TOTAL)) s.comps++;
+    if ((c.riding || 0) >= (c.ridingMax || RIDING_MAX)) s.riding++;
+    for (const [k, v] of [["ach", c.achievementPoints], ["recipes", c.recipes], ["plans", c.furnishings], ["motifs", c.motifs]]) if ((v || 0) > s.best[k].v) s.best[k] = { v, name };
+    const cl = c.class || "?"; s.classes[cl] = s.classes[cl] || {};
+    for (const k of ROLE_KEYS) if ((m.role || "").includes(k)) s.classes[cl][k] = true;
+  }
+  const a = ACC().data.account || {}, pct = (v, t) => (t && t > 0) ? Math.min(1, (v || 0) / t) : null, ofAll = (v) => `${v} / ${n}`;
+  const years = s.hours / 24 / 365.25;
+  const tiles = [
+    { v: comma(s.hours), l: "Hours played", note: years >= 1 ? `${years.toFixed(1)} years, nonstop` : `${comma(s.hours / 24)} days, nonstop` },
+    { v: a.championPoints != null ? comma(a.championPoints) : "?", l: "Champion Points", note: a.championPoints != null ? `of ${comma(CP_MAX)}, account-wide` : "log in to read",
+      p: a.championPoints != null ? pct(a.championPoints, CP_MAX) : null },
+    { v: comma(s.best.ach.v), l: "Most achievement points", note: s.best.ach.name, p: pct(s.best.ach.v, a.achievementTotal) },
+    { v: comma(s.sp), l: "Skill points earned", note: `across ${n} characters`, p: pct(s.sp, n * SKILL_POINTS_MAX) },
+    { v: comma(s.linesMaxed), l: "Skill lines maxed", note: `of ${comma(s.linesTotal)} tracked`, p: pct(s.linesMaxed, s.linesTotal) },
+    { v: comma(s.research), l: "Traits researched", note: `${s.researchAll} know every trait`, p: pct(s.research, s.researchTotal) },
+    { v: ofAll(s.gm), l: "Grandmaster crafters", note: "7 crafts at 50 + every trait", p: pct(s.gm, n) },
+    { v: ofAll(s.vw), l: "Vampire + Werewolf", note: "both lines maxed", p: pct(s.vw, n) },
+    { v: ofAll(s.scribing), l: "Scribing complete", note: "every grimoire and script", p: pct(s.scribing, n) },
+    { v: ofAll(s.comps), l: "All companions", note: "every one unlocked", p: pct(s.comps, n) },
+    { v: ofAll(s.riding), l: "Riding maxed", note: "speed, stamina, carry", p: pct(s.riding, n) },
+    { v: comma(s.best.recipes.v), l: "Most recipes known", note: s.best.recipes.name, p: pct(s.best.recipes.v, s.totals.recipes) },
+    { v: comma(s.best.plans.v), l: "Most furnishing plans", note: s.best.plans.name, p: pct(s.best.plans.v, s.totals.plans) },
+    { v: comma(s.best.motifs.v), l: "Most motif styles", note: s.best.motifs.name, p: pct(s.best.motifs.v, s.totals.motifs) },
+    { v: comma(a.setPieces), l: "Set items collected", note: a.setPiecesTotal ? `of ${comma(a.setPiecesTotal)} (sticker book)` : "log in to read", p: pct(a.setPieces, a.setPiecesTotal) },
+    { v: comma(a.outfitStyles), l: "Outfit styles", note: a.outfitStylesTotal ? `of ${comma(a.outfitStylesTotal)}` : "log in to read", p: pct(a.outfitStyles, a.outfitStylesTotal) },
+  ];
+  add(w, "div", "dragzone", "position:absolute;left:10px;right:10px;top:10px;height:1px;background:#4a3a1c");
+  add(w, "div", "center dragzone", "top:22px;color:var(--gold);font-size:38px;font-weight:700", esc(ACC().account));
+  const classes = Object.keys(s.classes).sort(), onAccount = asList(a.characterNames).length;
+  const count = n < onAccount ? `${n} of ${onAccount} characters read (/fct todo)` : `${n} characters`;
+  add(w, "div", "center dragzone", "top:70px", esc(`${count}  ·  ${classes.length} of ${CLASS_COUNT} classes  ·  ${ACC().world}`));
+  const grid = add(w, "div", "", "position:absolute;left:24px;top:104px;width:912px;height:452px");
+  tiles.forEach((t, i) => {
+    const col = i % 4, row = Math.floor(i / 4);
+    const el = add(grid, "div", "tile", `left:${col * 231}px;top:${row * 116}px`);
+    add(el, "div", "v", "", esc(t.v)); add(el, "div", "l", "", esc(t.l));
+    add(el, "div", "n", t.p != null ? "padding-right:64px" : "text-align:center", esc(t.note || ""));
+    if (t.p != null) { add(el, "div", "p", "", `${Math.floor(t.p * 100)}%`); add(add(el, "div", "track"), "div", "bar", `width:${(t.p * 100).toFixed(1)}%`); }
+  });
+  const complete = classes.length >= CLASS_COUNT && classes.every((c) => ROLE_KEYS.every((k) => s.classes[c][k]));
+  add(w, "div", "center", "top:568px;color:var(--gold);font-size:20px;font-weight:700", complete ? "Every class. Every role." : "Classes and roles played");
+  const cov = add(w, "div", "", "position:absolute;left:24px;top:600px;width:912px;height:56px;display:flex");
+  for (const c of classes) add(cov, "div", "", "flex:1;text-align:center",
+    `<div style="font-weight:700">${esc(c)}</div><div style="font-size:14px">${ROLE_KEYS.map((k) => `<span style="color:${s.classes[c][k] ? "var(--gold)" : "var(--dim)"}">${k}</span>`).join(" ")}</div>`);
+  const d = new Date();
+  add(w, "div", "small", "position:absolute;left:22px;bottom:12px", d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }));
+  add(w, "div", "small", "position:absolute;right:22px;bottom:12px", `Fury's Character Tracker v${esc(VERSION)}`);
+}
+
+// ---- Research timers (FuryCTTimers 1000 x 620) ----------------------------------------------
+const TCOLS = [ { k: "name", x: 6, w: 200 }, { k: "craft", x: 212, w: 130 }, { k: "item", x: 348, w: 150 },
+                { k: "trait", x: 504, w: 130 }, { k: "left", x: 640, w: 100, right: true, bold: true }, { k: "ends", x: 756, w: 190 } ];
+function timerRow(parent, top, vals, colors, stripe, bold) {
+  const row = add(parent, "div", "row" + (stripe ? " stripe" : ""), `top:${top}px;width:948px;height:26px`);
+  TCOLS.forEach((c) => add(row, "div", "cell" + (c.right ? "" : " left"),
+    `left:${c.x}px;width:${c.w}px;top:1px;text-align:${c.right ? "right" : "left"};color:${colors[c.k] || "var(--parch)"};font-weight:${bold || c.bold ? 700 : 400}`, esc(vals[c.k] || "")));
+  return row;
+}
+function showTimers() {
+  document.getElementById("timers")?.remove();
+  const w = makeWindow("timers", 1000, 620, true);
+  add(w, "div", "title", "", `Research timers<small>${esc(viewLabel(ACC()))}</small>`);
+  const sum = add(w, "div", "small", "position:absolute;left:20px;top:50px;width:960px;height:20px");
+  const G = "var(--gold)";
+  timerRow(w, 76, { name: "Character", craft: "Craft", item: "Item", trait: "Trait", left: "Time left", ends: "Finishes" },
+           { name: G, craft: G, item: G, trait: G, left: G, ends: G }, false, true).style.left = "18px";
+  add(w, "div", "line", "left:20px;top:104px;width:960px");
+  const list = add(w, "div", "list", "left:20px;top:109px;width:962px;height:467px");
+  add(w, "div", "small", "position:absolute;left:20px;bottom:16px",
+      `<span style="color:var(--gold)">Gold</span> needs you (done or idle)  ·  light researching  ·  updates every 30 seconds  ·  /fct timers`);
+  const fill = () => {
+    if (!document.body.contains(w)) return clearInterval(timer);
+    const rows = timerRows(boardNames()), t = now();
+    list.innerHTML = "";
+    let running = 0, waiting = 0;
+    rows.forEach((r, i) => {
+      if (r.kind === "timer") { running++;
+        timerRow(list, i * 26, { name: r.name, craft: r.craft, item: r.item, trait: r.trait, left: duration(r.endsAt - t), ends: when(r.endsAt) }, { ends: "var(--dim)" }, i % 2);
+      } else { waiting += r.count || 1;
+        const all = { name: "var(--parch)", craft: "var(--parch)", item: G, trait: G, left: G, ends: G };
+        timerRow(list, i * 26, r.kind === "done" ? { name: r.name, craft: r.craft, item: r.item, trait: r.trait, left: "Done", ends: "slot free: start more" }
+                                                 : { name: r.name, craft: r.craft, item: r.count === 1 ? "1 slot free" : `${r.count} slots free`, left: "Idle", ends: "nothing researching" }, all, i % 2);
+      }
+    });
+    sum.textContent = rows.length ? `${running} researching  ·  ${waiting} slot${waiting === 1 ? "" : "s"} free`
+                                  : "Nothing to show: every character has every trait, or none has been read with version 1.1.0 or later yet.";
+  };
+  fill();
+  const timer = setInterval(fill, 30000);
+}
+
+// ---- Character details (FuryCTDetails 1000 x 720, same sections as UI/Details.lua) ---------
+function sections(name, c, m) {
+  const out = [];
+  const prog = (key, v, max) => { v = v || 0; return { key, value: max ? `${comma(v)} / ${comma(max)}` : comma(v), done: !!max && v >= max, dim: v === 0 }; };
+  out.push({ title: "Your picks", items: [{ key: "Role", value: m.role || "-" }, { key: "DPS gear", value: m.dpsGear || "-" },
+                                          { key: "Tank/healer gear", value: m.roleGear || "-" }, { key: "Planned race", value: m.plannedRace || "-" }] });
+  const comps = asList(c.companions);
+  out.push({ title: "Progress", items: [
+    prog("Skill points", c.skillPoints, SKILL_POINTS_MAX), { key: "Not assigned", value: String(c.unspent ?? "-") },
+    prog("Crafting lines at 50", c.craftMaxed, 7), prog("Traits researched", c.research, c.researchTotal || RESEARCH_TOTAL),
+    prog("Scribing", c.scripts, c.scriptsTotal || SCRIPTS_TOTAL), prog("Grimoires", c.grimoires, c.grimoiresTotal),
+    prog("Scripts", c.scriptsOnly, c.scriptsOnlyTotal), prog("Recipes", c.recipes, c.recipesTotal),
+    prog("Furnishing plans", c.furnishings, c.furnishingsTotal), prog("Motif styles", c.motifs, c.motifsTotal),
+    prog("Riding", c.riding, c.ridingMax || RIDING_MAX), prog("Companions", comps.length, c.companionsTotal || COMPANION_TOTAL),
+    { key: "Achievement points", value: comma(c.achievementPoints) }, { key: "Hours played", value: comma(c.playedHours) } ],
+    lines: comps.length ? ["Companions: " + comps.join(", ")] : [] });
+  for (const g of GROUPS) out.push({ title: `${g.title} (${maxedIn(c, g)} of ${g.lines.length} maxed)`,
+    items: g.lines.map((l) => prog(l.name, Math.min((c.lines || {})[l.name] || 0, l.max), l.max)) });
+  out.push({ title: "Daily", items: [...WRIT_CRAFTS.map((d) => { const st = writState(c, d.craft); return { key: `${d.name} writ`, value: WRIT_LABEL[st], done: st === 3, dim: st === 0 }; }),
+    { key: "Riding lesson", value: c.ridingReadyAt == null ? "Maxed" : c.ridingReadyAt <= now() ? "Ready" : duration(c.ridingReadyAt - now()), done: c.ridingReadyAt == null }] });
+  out.push({ title: "Wallet & CP", items: [{ key: "Gold", value: comma(c.gold) }, { key: "Tel Var", value: comma(c.telvar) }, { key: "Alliance Points", value: comma(c.ap) },
+    { key: "Writ vouchers", value: comma(c.vouchers) }, { key: "Bag", value: c.bagSize ? `${c.bagUsed} / ${c.bagSize}` : "-" },
+    ...asList(c.cp).map((tr) => ({ key: tr.name, value: `${tr.spent} / ${tr.spent + tr.unspent}`, done: tr.unspent === 0 && tr.spent > 0 }))] });
+  const research = { title: "Research", lines: [] }, t = now();
+  if (!asList(c.researchCrafts).length) research.lines.push(allKnown(c) ? "Every trait researched." : "Log in on this character with version 1.1.0 or later to see research details.");
+  for (const def of CRAFTS) {
+    const e = craftEntry(c, def.craft); if (!e) continue;
+    research.lines.push({ text: `${def.name}: ${e.known} of ${e.total} traits${e.known >= e.total ? "  ·  complete" : `  ·  ${e.slots} research slots`}`, bold: true });
+    for (const tm of asList(e.timers)) research.lines.push({ text: `    Researching ${tm.item}: ${tm.trait}  ·  ${tm.endsAt > t ? duration(tm.endsAt - t) + " left" : "done"}`, gold: true });
+    for (const it of asList(e.missing)) research.lines.push(`    ${it.item}: ${asList(it.traits).join(", ")}`);
+  }
+  out.push(research);
+  return out;
+}
+function showDetails(name) {
+  document.getElementById("details")?.remove();
+  const [c, m] = get(name);
+  const w = makeWindow("details", 1000, 720, true);
+  add(w, "div", "title", "top:14px;left:22px", esc(name));
+  add(w, "div", "small", "position:absolute;left:22px;top:52px;width:930px",
+      esc(`${viewLabel(ACC())}  ·  Level ${c.level ?? "?"} ${c.race || ""} ${c.class || ""}  ·  ${c.alliance || ""}  ·  read from the game ${fmtDate(c.lastScan)}`));
+  const box = add(w, "div", "", "position:absolute;left:22px;top:76px;right:14px;bottom:16px;overflow-y:auto");
+  // Laid out in normal flow (a 3-column grid per section) so selected text copies one line at a time.
+  for (const sec of sections(name, c, m)) {
+    add(box, "div", "dt-head", "", esc(sec.title));
+    if ((sec.items || []).length) {
+      const grid = add(box, "div", "dt-grid");
+      for (const it of sec.items) {
+        add(grid, "div", "dt-item", "", `<span class="k">${esc(it.key)}</span><span class="v" style="color:${it.done ? "var(--gold)" : it.dim ? "var(--dim)" : "var(--parch)"};font-weight:${it.done ? 700 : 400}">${esc(it.value)}</span>`);
+      }
+    }
+    for (const line of sec.lines || []) {
+      const o = typeof line === "string" ? { text: line } : line;
+      add(box, "div", "dt-line", `color:${o.gold ? "var(--gold)" : o.bold ? "var(--parch)" : "var(--muted)"};font-weight:${o.bold || o.gold ? 700 : 400}`, esc(o.text));
+    }
+    add(box, "div", "", "height:12px");
+  }
+}
+
+// ---- Start --------------------------------------------------------------------------------
+function refreshAll() {
+  refreshBoard();
+  if (document.getElementById("brag")) showBrag();
+  if (document.getElementById("timers")) showTimers();
+  document.getElementById("details")?.remove();
+}
+(function start() {
+  if (loadError || !ACCOUNTS.length) {
+    const w = makeWindow("board", 1420, 200, false);
+    add(w, "div", "title", "", "Fury's Character Tracker");
+    add(w, "div", "", "position:absolute;left:20px;top:70px;right:20px",
+        esc(loadError ? "Couldn't read the saved data: " + loadError.message
+                      : "No characters saved yet. Log in with the addon on, then log out or /reloadui, and open the viewer again."));
+    return;
+  }
+  if (!ACCOUNTS[state.acct]) state.acct = 0;
+  buildBoard();
+  refreshBoard();
+  setInterval(() => { if (state.view === "traits") refreshBoard(); }, 30000);
+})();
+</script>
+</body>
+</html>

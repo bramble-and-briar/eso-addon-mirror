@@ -1,0 +1,39 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/Schrodi/LibDeconValue__5083",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5083",
+  "category_id": "53",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5083",
+  "deleted": false,
+  "directories": [
+    "LibDeconValue"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5083/",
+  "fingerprint": "f9b39cf2615108a291ba15e93bf7ed1837fbc11ef344287f3ed40f4be6492608",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18676.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5083",
+  "source_url": "https://www.esoui.com/downloads/info5083-LibDeconValue.html",
+  "stats": {
+    "downloads": 4,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "LibDeconValue",
+  "updated_at": 1795260485000,
+  "version": "1.2"
+}

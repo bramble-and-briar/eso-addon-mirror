@@ -75,6 +75,17 @@ local function updateCurrentProfileName(oldName, newName)
 	end
 end
 
+-- update saved vars list of bank bags
+local function updateBankProfiles()
+	for _, id in ipairs(Bankir.Data.bankBagIds) do
+		for profile, data in pairs(BankirSavedVariables.Profiles) do
+			if not data[id] then
+				data[id] = Bankir.Data.getDefaultBankProfile(id)
+			end
+		end
+	end
+end
+
 Bankir.Profiles = {
 	updateProfilesNames = updateProfilesNames,
 	getProfilesNames = getProfilesNames,
@@ -83,4 +94,5 @@ Bankir.Profiles = {
 	deleteCurrentProfile = deleteCurrentProfile,
 	setCurrentProfile = setCurrentProfile,
 	updateCurrentProfileName = updateCurrentProfileName,
+	updateBankProfiles = updateBankProfiles,
 }

@@ -111,7 +111,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESOTR_TEST_MODUL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOSTR/ESOTR_TEST_MODUL__cbc2e748-501a-4137-8faa-cabf349da2d7) | XANTOSTR | Console | — |
 | [EsoUA — Ukrainian Localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/w2unemdhysend/EsoUA-Ukrainian-Localization__3437) | w2unemdhysend | PC / Mac | 1.07 |
 | [ESOXP](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Deathfather/ESOXP__4078) | Deathfather | PC / Mac | 4 |
-| [ESQL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awhlina/ESQL__5075) | awhlina | PC / Mac | 1.0.0 |
+| [ESQL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awhlina/ESQL__5075) | awhlina | PC / Mac | 2.0.0 |
 | [ESQL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/ESQL__87e2599d-75fd-4fc9-94cd-630ad0c04a8b) | Vixen_Hunny | Console | — |
 | [Essence Thief Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Essence-Thief-Tracker__e6634e8a-1c51-45d7-ba7b-f062e50e5ee8) | codeWarrior82 | Console | — |
 | [Essential Housing Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Essential-Housing-Tools__1959) | Cardinal05 | PC / Mac | 1776 |
@@ -129,6 +129,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ExcalibursMovableInventory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Excalibur_1969/ExcalibursMovableInventory__4794) | Excalibur_1969 | PC / Mac | 1.1 |
 | [Excessive Withdrawals](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calia1120/Excessive-Withdrawals__1522) | calia1120 | PC / Mac | 18.23.0 |
 | [Excessive Withdrawals - Kith's Build](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kitherel/Excessive-Withdrawals---Kith-s-Build__1715) | kitherel | PC / Mac | 1 |
+| [Execute Blocker + (U51)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Execute-Blocker-U51__5082) | O-Range | PC / Mac | 2.3.0 |
 | [ExecuteAssist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/10becja/ExecuteAssist__3101) | 10becja | PC / Mac | 1.0.0 |
 | [ExecuteNow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mooNylo/ExecuteNow__2058) | mooNylo | PC / Mac | 0.2 |
 | [ExecuteNow - Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PlaceHolder/ExecuteNow---Update__2710) | PlaceHolder | PC / Mac | 0.3.7 |

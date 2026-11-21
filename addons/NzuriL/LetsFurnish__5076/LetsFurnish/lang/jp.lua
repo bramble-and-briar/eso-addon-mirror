@@ -38,6 +38,7 @@ L.core.to_move = { other = "移動<<1>>個" }
 L.core.to_place = { other = "配置<<1>>個" }
 L.core.states_to_switch = { other = "状態の切り替え<<1>>件" }
 L.core.paths_to_set = { other = "設定する経路<<1>>件" }
+L.core.links_to_set = { other = "設定するリンク<<1>>件" }
 L.core.already_right = { other = "正しい位置<<1>>個" }
 L.core.placed_earlier = { other = "以前の実行で配置済み<<1>>個" }
 L.core.collectibles_unavailable = { other = "利用できないコレクション<<1>>個" }
@@ -51,6 +52,11 @@ L.core.done = "完了：<<1>>。"
 L.core.done_moved = { other = "移動<<1>>個" }
 L.core.done_switched = { other = "切り替え<<1>>個" }
 L.core.done_paths = { other = "経路の変更<<1>>件" }
+L.core.done_linked = { other = "設定したリンク<<1>>件" }
+L.core.done_unlinked = { other = "リンク解除<<1>>件" }
+L.core.done_not_linked = { other = "未設定のリンク<<1>>件" }
+L.core.path_unread_skipped = "<<1>>：ゲームが経路を返しません（1.5秒後に再読み込み）。経路はスキップされ、そのままになります。ハウジングエディターを開くと解決することがあります。"
+L.core.path_unread_recorded = "「<<1>>」は<<2>>の経路なしで記録されました：ゲームが返しませんでした（1.5秒後に再読み込み）。ゲーム内の経路はそのままです。"
 L.core.done_placed = { other = "配置<<1>>個" }
 L.core.done_removed = { other = "収納<<1>>個" }
 L.core.done_failed = { other = "失敗<<1>>個" }
@@ -70,6 +76,10 @@ L.core.get_app = "LetsFurnish!アプリ（Windowsで家を3Dで計画）：<<1>>
 L.core.site_asked = "ブラウザで<<1>>を開く前に、ゲームが確認します。"
 L.core.site_by_hand = "アプリはブラウザで<<1>>を開いて入手してください。"
 L.core.cleared = "以前のテスト版LetsFurnish!が保存したレイアウトを消去しました。このバージョンでは読み込めません。"
+L.window.extra_links_ask = "<<1>>からレイアウトにないリンク（<<2>>件）を解除しますか？ レイアウトで使用するリンクは維持されます。"
+L.window.extra_links = "レイアウトにないリンク：<<1>>件"
+L.window.link_capacity = "<<1>>に直接リンクされる家具は<<2>>点です。上限は<<3>>点です。"
+L.window.empty_path_failed = "家具は回収していません。次の経路を保存できませんでした：<<1>>。経路が表示されてからもう一度お試しください。"
 L.window.debug_mode = "詳細ログ"
 L.window.tip_debug_mode = "ハウジングの操作要求、ゲームイベント、状態の確認結果を SavedVariables/LetsFurnish.lua に記録します。問題を再現した後、/reloadui を入力してログをディスクに保存してください。"
 L.window.layouts = "レイアウト"
@@ -93,7 +103,7 @@ L.window.collapse = "折りたたむ"
 L.window.to_place = "配置予定"
 L.window.to_move = "移動予定"
 L.window.to_remove = "収納予定"
-L.window.missing = "見つからない"
+L.window.missing = "不足"
 L.window.not_craftable = "作れないもの"
 L.window.in_place = "配置済み"
 L.window.empty_here = "この家のものはまだありません。"
@@ -158,6 +168,34 @@ L.window.stands_elsewhere = "別の場所にあります"
 L.window.other_state = "別の状態です"
 L.window.set_path = "経路を設定"
 L.window.other_path = "別の経路をたどっています"
+L.window.path_unread = "経路を読めません：スキップ"
+L.window.link = "リンク"
+L.window.unlink = "リンク解除"
+L.window.link_to = "<<1>>にリンクされていません"
+L.window.linked_extra = "記録と違うリンクがあります"
+L.window.linking = "リンク"
+L.window.empty_link = "リンクできるグループはありません。"
+L.window.destructive = "破壊的操作"
+L.window.empty_house = "家を空にする"
+L.window.empty_house_ask = "<<1>>に設置した家具（全<<2>>点）をすべて回収しますか？ レイアウトで使用している家具も対象です。回収前にバックアップを作成します。"
+L.window.tip_remove_all = "確認の後、このレイアウトにないものをまとめてしまいます。先にバックアップを作成します。"
+L.window.link_all = "すべてリンク"
+L.window.tip_link_all = "準備できたグループのリンクをいったん解除し、親の家具から順にリンクし直します。余分なリンクは個別に解除できます。"
+L.window.link_group = { other = "下に<<1>>個の家具" }
+L.window.link_missing = { other = "<<1>>個が家にありません：先に配置してください" }
+L.window.link_undoes = { other = "既存のリンク<<1>>件を解除します" }
+L.window.under = "<<1>>の下"
+L.window.link_lost = { other = "既存のリンク<<1>>件が解除されます：<<2>>。" }
+L.window.link_lost_item = "<<1>>（<<2>>にリンク）"
+L.window.link_tree_ask = "<<1>>とその下をレイアウトどおりにリンクしますか？ それぞれいったんリンク解除してから、上から順にリンクします。"
+L.window.link_all_ask = { other = "<<1>>個のグループをレイアウトどおりにリンクしますか？ 各家具をいったんリンク解除してから、上から順にリンクします。" }
+L.window.unlink_all = "すべてリンク解除"
+L.window.unlink_all_note = { other = "この家のリンク<<1>>件" }
+L.window.unlink_all_ask = { other = "レイアウトに関係なく、この家のリンク<<1>>件をすべて解除しますか？ 家具はその場に残ります。先に家のバックアップを作成します。" }
+L.window.place_from = "<<1>>からすべて配置"
+L.window.place_from_note = { other = "家具<<1>>個、あなたの周りに配置" }
+L.window.place_from_ask = { other = "レイアウトに関係なく、<<2>>の家具<<1>>個をあなたの周りに配置しますか？ 先に家のバックアップを作成します。" }
+L.window.place_from_over = { other = "<<1>>個は家の上限に収まらず、残ります。" }
 L.window.not_in_layout = "このレイアウトにはありません"
 L.window.share_context = "1行のテキストにしたレイアウト"
 L.window.every_house_count = "すべての家：<<1>>"
@@ -230,7 +268,6 @@ L.window.tip_tick_all = "レシピを習得済みの不足家具をすべてチ�
 L.window.tip_untick_all = "すべてのチェックを外します。"
 L.window.tip_place_all = "確認の後、配置予定のものをまとめて配置します。経路は家具が置かれてから設定します。先にバックアップを作成します。"
 L.window.tip_move_all = "確認の後、移動予定のものをまとめて移動・切り替えし、経路を設定します。先にバックアップを作成します。"
-L.window.tip_remove_all = "確認の後、このレイアウトにないものをまとめてしまいます。先にバックアップを作成します。"
 L.window.tip_back_up = "今のこの家を記録し、後で巻き戻せるようにします。"
 L.window.tip_house_code = "この家の共有コードを作成します。フレンドに送ったり、アプリに貼り付けたりできます。"
 L.window.tip_read_code = "欄に貼り付けたコードを読みます。そのレイアウトが「レイアウト」に加わります。"
@@ -308,6 +345,7 @@ L.window.log_what_not_taken = "応答したが家具は家に残った"
 L.window.log_what_late = "待機後に実行された"
 L.window.log_what_not_put_away = "しまえなかった"
 L.window.log_what_conform = "地形に合わせるが指定どおりでない"
+L.window.log_what_link = "リンクが設定されていない"
 L.window.log_what_stopped = "実行が止まった"
 L.window.log_why_too_fast = "続けて実行されなかった要求が多すぎる"
 L.window.log_why_no_place = "取り出す場所に設定したどこにもない家具"
@@ -328,6 +366,9 @@ L.window.keep_backup_save = "保存"
 L.window.keep_backup_menu = "レイアウトとして保存..."
 L.window.log_what_skipped = "スキップ"
 L.window.log_why_path_unconfirmed = "経路の変更が実行されなかった"
+L.window.log_why_path_unread = "ゲームがまだ経路のポイントを返していません：ハウジングエディターを開いてもう一度試してください"
+L.window.log_why_link_no_parent = "リンク先の家具が家にない"
+L.window.log_why_link_no_child = "家にない"
 L.window.log_solved_count = { other = "<<1>>件をアドオンが解決" }
 L.window.log_solved_retried = "解決：<<1>>秒後の再試行で実行"
 L.window.log_solved_other_place = "解決：<<1>>が受け取った"
@@ -410,6 +451,8 @@ L.house.part_last_next = "次に最後のパート<<1>>を貼り付けてくだ�
 L.house.part_other = "このパートは、すでにある<<2>>パート中<<1>>パートとは別のコードのものです：始めるには先に「パートを破棄」を押してください"
 L.house.vault_needs_plus = "ESO Plusが必要です。"
 L.house.vault_locked = "家具保管庫が解放されていません。"
+L.house.no_position = "家の中での位置がわかりません：家の中に立ってもう一度試してください。"
+L.house.nothing_to_place_from = "<<1>>にはこの家に配置できるものがありません。"
 L.house.chest_locked = "<<1>>は解放されていません。"
 L.house.chest_numbered = "<<1>>（<<2>>）"
 L.house.into = "<<2>>に<<1>>個"
@@ -451,6 +494,7 @@ L.code.part_unreadable = "コードのパートが壊れているか途中で切
 L.code.parts_missing = "コードの<<1>>パートがすべて揃っていません：足りないパートも貼り付けてください"
 L.code.parts_mismatch = "パートが1つのコードになりません：同じコードから全パートをもう一度コピーしてください"
 L.code.parts_mixed = "別々のコードのパートです：一度に1つのコードのパートだけを貼り付けてください"
+L.stock.inventory = "所持品"
 L.stock.storage = "収納家具"
 L.stock.vault = "宝物庫"
 L.stock.placed_here = "この家に配置済み"

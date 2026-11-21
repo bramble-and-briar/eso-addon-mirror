@@ -19,7 +19,10 @@ PBS_PME_STRINGS = {
 	retried = "Forgotten what was learned about the game's calls; they are asked again.",
 	texturesChecking = "Looking at whether the marker pictures load; /pbpme status shows the answer in a few seconds.",
 	texturesBusy = "The pictures are being looked at already.",
-	help = "/pbpme status | why | test [icon] | mark <icon> | unmark | clear | textures | retry",
+	help = "/pbpme status | why | test [icon] | mark <icon> | unmark | clear | compass [1-4|auto] | textures | retry",
+	compassSet = "Compass bar: direction convention %d, set by hand (/pbpme compass auto to learn it again).",
+	compassAuto = "Compass bar: the direction convention is learned from the group members you aim at (now %d).",
+	compassUsage = "Usage: /pbpme compass 1|2|3|4|auto (the test markers on the bar must sit under the game's N, E, S, W letters)",
 	markUsage = "Usage: /pbpme mark <icon number 1-%d>",
 
 	-- the settings panel
@@ -32,6 +35,9 @@ PBS_PME_STRINGS = {
 	markSelf = "Mark myself when nothing is under the reticle",
 	showSelf = "Show markers others put on me",
 	frameMarks = "Show the marker in the group frames too (the names at the top left)",
+	compassMarks = "Show the marker on the compass bar too (top of the screen)",
+	compassFov = "Compass bar: degrees it covers (change only if a marker sits off from the game's own)",
+	compassSize = "Compass marker size (%)",
 	throughWalls = "Show markers through walls",
 	size = "Marker size (%)",
 	height = "Marker height: feet to its lower edge (cm)",

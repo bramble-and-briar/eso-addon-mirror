@@ -30,7 +30,8 @@ function LeoAltholic_Settings:CreatePanel()
         {
             type = "header",
             name = "|c3f7fff"..GetString(SI_GAME_MENU_SETTINGS).."|r"
-        },{
+        },
+        {
             type = "checkbox",
             name = "Track inventory items",
             default = true,
@@ -39,21 +40,61 @@ function LeoAltholic_Settings:CreatePanel()
                 return LeoAltholic.globalData.settings.inventory.enabled
             end,
             setFunc = function(value) LeoAltholic.globalData.settings.inventory.enabled = value end,
-        },{
+        },
+        {
+            type = "dropdown",
+            name = "Character Sort Order",
+            tooltip = "Choose how characters are ordered in the LeoAltholic window.",
+            choices = { "Creation Order", "Alphabetical (A-Z)", "Alphabetical (Z-A)" },
+            choicesValues = { "creation", "alpha_asc", "alpha_desc" },
+            getFunc = function()
+                LeoAltholic.globalData.settings = LeoAltholic.globalData.settings or {}
+                return LeoAltholic.globalData.settings.charSortOrder or "creation"
+            end,
+            setFunc = function(value)
+                LeoAltholic.globalData.settings = LeoAltholic.globalData.settings or {}
+                LeoAltholic.globalData.settings.charSortOrder = value
+                LeoAltholic.GetCharacters(true)
+                if LeoAltholicUI then
+                    local lists = {
+                        LeoAltholicUI.bioList,
+                        LeoAltholicUI.statsList,
+                        LeoAltholicUI.championList,
+                        LeoAltholicUI.skillsList,
+                        LeoAltholicUI.skills2List,
+                        LeoAltholicUI.writsList,
+                        LeoAltholicUI.invList,
+                        LeoAltholicUI.researchList,
+                    }
+                    for _, listObj in ipairs(lists) do
+                        if listObj then
+                            listObj.currentSortKey = "queueIndex"
+                            listObj.currentSortOrder = ZO_SORT_ORDER_UP
+                            listObj:RefreshData()
+                        end
+                    end
+                end
+            end,
+            default = "creation",
+        },
+        {
             type = "header",
             name = "|c3f7fff"..GetString(LEOALT_CHECKLIST).."|r"
-        },{
+        },
+        {
             type = "checkbox",
             name = GetString(SI_ADDON_MANAGER_ENABLED),
             default = true,
             getFunc = LeoAltholicChecklistUI.IsEnabled,
             setFunc = LeoAltholicChecklistUI.SetEnabled,
-        },{
+        },
+        {
             type = "button",
             name = GetString(SI_OUTFIT_STYLES_BOOK_PREVIEW_KEYBIND),
             func = function() LeoAltholicChecklistUI.ShowUI() end,
             width = "full",
-        },{
+        },
+        {
             type = "slider",
             name = GetString(SI_VIDEO_OPTIONS_UI_USE_CUSTOM_SCALE),
             getFunc = LeoAltholicChecklistUI.GetFontScale,
@@ -61,25 +102,29 @@ function LeoAltholic_Settings:CreatePanel()
             min = 80,
             max = 120,
             default = 100,
-        },{
+        },
+        {
             type = "checkbox",
             name = GetString(LEOALT_CHECKLIST_UPWARDS),
             default = false,
             getFunc = LeoAltholicChecklistUI.IsUpwards,
             setFunc = LeoAltholicChecklistUI.SetUpwards,
-        },{
+        },
+        {
             type = "checkbox",
             name = GetString(SI_GAMEPAD_INTERFACE_OPTIONS_PRIMARY_PLAYER_NAME),
             default = false,
             getFunc = LeoAltholicChecklistUI.DisplayName,
             setFunc = LeoAltholicChecklistUI.SetDisplayName
-        },{
+        },
+        {
             type = "checkbox",
             name = GetString(LEOALT_CHECKLIST_HIDE_WHEN_TOOLBAR),
             default = false,
             getFunc = LeoAltholicChecklistUI.IsHideWhenToolbar,
             setFunc = LeoAltholicChecklistUI.SetHideWhenToolbar
-        },{
+        },
+        {
             type = "submenu",
             name = GetString(LEOALT_ENTRIES),
             controls = {
@@ -166,33 +211,39 @@ function LeoAltholic_Settings:CreatePanel()
                     setFunc = LeoAltholicChecklistUI.SetRiding,
                 }
             }
-        },{
+        },
+        {
             type = "header",
             name = "|c3f7fff"..GetString(LEOALT_TOOLBAR).."|r"
-        },{
+        },
+        {
             type = "description",
             text = GetString(LEOALT_ACCOUNT_CONFIGURATION)
-        },{
+        },
+        {
             type = "checkbox",
             name = GetString(SI_ADDON_MANAGER_ENABLED),
             default = true,
             getFunc = LeoAltholicToolbarUI.IsEnabled,
             setFunc = LeoAltholicToolbarUI.SetEnabled,
-        },{
+        },
+        {
             type = "checkbox",
             name = GetString(LEOALT_BUMP_COMPASS),
             default = false,
             disabled = function() return not LeoAltholicToolbarUI.IsEnabled() end,
             getFunc = LeoAltholicToolbarUI.GetBumpCompass,
             setFunc = LeoAltholicToolbarUI.SetBumpCompass,
-        },{
+        },
+        {
             type = "checkbox",
             name = GetString(LEOALT_HIDE_DONE_WRIT),
             default = false,
             disabled = function() return not LeoAltholicToolbarUI.IsEnabled() end,
             getFunc = LeoAltholicToolbarUI.GetHideDoneWrit,
             setFunc = LeoAltholicToolbarUI.SetHideDoneWrit,
-        },{
+        },
+        {
             type = "submenu",
             name = GetString(LEOALT_ENTRIES),
             controls = {
@@ -258,13 +309,16 @@ function LeoAltholic_Settings:CreatePanel()
                     end,
                 }
             }
-        },{
+        },
+        {
             type = "header",
             name = "|c3f7fff"..GetString(LEOALT_TRACKED_QUESTS).."|r"
-        },{
+        },
+        {
             type = "description",
             text = GetString(LEOALT_ACCOUNT_CONFIGURATION)
-        },{
+        },
+        {
             type = "checkbox",
             name = GetString(LEOALT_AUTO_TRACK_WRIT),
             default = true,
@@ -272,7 +326,8 @@ function LeoAltholic_Settings:CreatePanel()
             setFunc = function(value)
                 LeoAltholic.globalData.settings.tracked.dailyWrits = value
             end,
-        },{
+        },
+        {
             type = "checkbox",
             name = GetString(LEOALT_AUTO_TRACK_DAILY),
             default = true,
@@ -280,13 +335,16 @@ function LeoAltholic_Settings:CreatePanel()
             setFunc = function(value)
                 LeoAltholic.globalData.settings.tracked.allDaily = value
             end,
-        },{
+        },
+        {
             type = "header",
             name = "|c3f7fff"..GetString(LEOALT_COMPLETED_RESEARCH).."|r"
-        },{
+        },
+        {
             type = "description",
             text = GetString(LEOALT_ACCOUNT_CONFIGURATION)
-        },{
+        },
+        {
             type = "checkbox",
             name = GetString(LEOALT_CHAT_ALL),
             tooltip = GetString(LEOALT_CHAT_ALL_TOOLTIP),
@@ -295,7 +353,8 @@ function LeoAltholic_Settings:CreatePanel()
             setFunc = function(value)
                 LeoAltholic.globalData.settings.completedResearch.chat = value
             end,
-        },{
+        },
+        {
             type = "checkbox",
             name = GetString(LEOALT_CENTERSCREEN_CURRENT),
             tooltip = GetString(LEOALT_CENTERSCREEN_CURRENT_TOOLTIP),

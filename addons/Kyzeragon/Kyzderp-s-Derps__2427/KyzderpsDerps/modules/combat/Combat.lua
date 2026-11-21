@@ -11,6 +11,7 @@ end
 
 function KDC.Initialize()
     EVENT_MANAGER:RegisterForEvent(KD.name .. "CombatActivated", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+    KDC.PlayerStats.Initialize()
 end
 
 function KDC.GetSettings()
@@ -41,6 +42,18 @@ function KDC.GetSettings()
                         ClearSynergyPriorityOverride(33208)
                     end
                 end,
+            width = "full",
+        },
+        {
+            type = "checkbox",
+            name = "Print Onslaught penetration",
+            tooltip = "For 10 seconds after you hit something with Onslaught, prints changes in your Physical Penetration player stat. Works only for Onslaught IV",
+            default = false,
+            getFunc = function() return KyzderpsDerps.savedOptions.combat.printOnslaught end,
+            setFunc = function(value)
+                KyzderpsDerps.savedOptions.combat.printOnslaught = value
+                KDC.PlayerStats.Initialize()
+            end,
             width = "full",
         },
     }

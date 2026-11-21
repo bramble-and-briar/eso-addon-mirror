@@ -35,6 +35,7 @@ M.defaults = {
     showShields = true,
     shieldColor = M.DEFAULT_SHIELD_COLOR,
     showSplits  = true,  -- personal / group lines
+    showCritHeals = false, -- critical healing line (optional)
     showMitigation = true,
     mitigationColor = M.DEFAULT_MITIGATION_COLOR,
     groupMode   = true,  -- LibFights group mode (needed for group shields)
@@ -42,6 +43,11 @@ M.defaults = {
     showFlowers = true,
     hideInMenus = true,  -- only show on the HUD, not in inventory / map / menus
     flowerAlpha = 0.6,
+    bgTotals    = true,  -- in a battleground, show the whole match, reset when it finishes
+    saveHistory = true,  -- save fights and battlegrounds in LibESQL
+    historyMaxFights = 3000, -- oldest fights are dropped past this
+    -- not settings: kept by History
+    -- currentBg, lastFightId, lastBgId
 }
 
 local floor, format = math.floor, string.format

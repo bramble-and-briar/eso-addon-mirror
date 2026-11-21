@@ -338,7 +338,7 @@ function CharacterKnowledgeList:BuildMasterList( )
 			local resultLink = GetItemLinkRecipeResultItemLink(itemLink)
 			local resultId = GetItemLinkItemId(resultLink)
 
-			if (not unique[resultId]) then
+			if (resultId > 0 and not unique[resultId]) then
 				unique[resultId] = true
 
 				local extended, level, planType

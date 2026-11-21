@@ -191,14 +191,27 @@ function returns.requestSync()
     if not returns.syncFiber then startSync(100) end
 end
 
----Protocol text observed on this player's English Xbox client. These are
----server mail signatures, not UI copy. A returned flag alone is insufficient.
+---Subject of the server's expired-listing mail, which the client shows in its
+---text language: game text row (191189508, 0, 1428) of each official .lang
+---file, plus the Swedish overlay built from lang-overlay/sv.json (update it
+---here if that translation changes). Community languages are not covered.
+local EXPIRED_SUBJECTS = {
+    ['Item Expired'] = true, -- en
+    ['Angebot ausgelaufen'] = true, -- de
+    ['Objet arrivé à expiration'] = true, -- fr
+    ['Artículo expirado'] = true, -- es
+    ['Срок продажи предмета истек'] = true, -- ru
+    ['アイテム掲載終了'] = true, -- jp
+    ['物品已过期'] = true, -- zh
+    ['Försäljning utgången'] = true, -- sv
+}
+
 ---@param mailId id64
 ---@return boolean expired
 ---@return number attachments
 local function expiredListing(mailId)
     local _, _, subject, _, _, fromSystem, fromCS, _, count, money, cod = GetMailItemInfo(mailId)
-    return fromSystem and not fromCS and subject == 'Item Expired' and count >= 1 and money == 0 and cod == 0, count
+    return fromSystem and not fromCS and EXPIRED_SUBJECTS[subject] == true and count >= 1 and money == 0 and cod == 0, count
 end
 
 ---@type table<string, boolean> Expired-listing mails already requested this session

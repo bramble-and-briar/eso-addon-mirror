@@ -11,6 +11,12 @@ local looted = 0
 local usedSurvey = false
 local hasMoreSurveys = true
 
+local function ExitInstanceAfterActivated()
+    EVENT_MANAGER:RegisterForEvent(KyzderpsDerps.name .. "RefreshSurvey", EVENT_PLAYER_ACTIVATED, function()
+        zo_callLater(ExitInstanceImmediately, 500) -- Small delay so it doesn't seem like a freeze? Have experienced a bit of weirdness
+    end, true) -- do once
+end
+
 local function RefreshSurvey()
     looted = 0
     usedSurvey = false
@@ -24,22 +30,26 @@ local function RefreshSurvey()
                     name, GetZoneNameById(zoneId), zoneId))
                 JumpToGroupMember(name)
 
-                EVENT_MANAGER:RegisterForEvent(KyzderpsDerps.name .. "RefreshSurvey", EVENT_PLAYER_ACTIVATED, function()
-                    EVENT_MANAGER:UnregisterForEvent(KyzderpsDerps.name .. "RefreshSurvey", EVENT_PLAYER_ACTIVATED)
-                    zo_callLater(ExitInstanceImmediately, 500) -- Small delay so it doesn't seem like a freeze? Have experienced a bit of weirdness
-                end)
+                ExitInstanceAfterActivated()
                 return
             end
         end
     end
 
-    KyzderpsDerps:msg("Couldn't find a group member in a dungeon or trial; porting to unowned house instead")
 
     for i = 1, 200 do
         local collectibleId = GetCollectibleIdForHouse(i)
-        if (collectibleId ~= 0 and not IsCollectibleUnlocked(collectibleId)) then
-            RequestJumpToHouse(i)
-            return
+        if (collectibleId ~= 0) then
+            if (GetAPIVersion() >= 101052) then -- U52 exit instance works for both owned and unowned
+                RequestJumpToHouse(i)
+                ExitInstanceAfterActivated()
+                KyzderpsDerps:msg("Porting to house " .. GetCollectibleLink(collectibleId, LINK_STYLE_BRACKETS) .. " and then exiting instance immediately...")
+                return
+            elseif (not IsCollectibleUnlocked(collectibleId)) then -- prior to U52 manual exit needs unowned house
+                RequestJumpToHouse(i)
+                KyzderpsDerps:msg("Couldn't find a group member in a dungeon or trial; porting to unowned house " .. GetCollectibleLink(collectibleId, LINK_STYLE_BRACKETS))
+                return
+            end
         end
     end
 

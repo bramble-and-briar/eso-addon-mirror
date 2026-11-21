@@ -1,0 +1,42 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/xenoxanatos/GridBags-Beta__5081",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "xenoxanatos",
+  "canonical_id": "esoui:5081",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5081",
+  "deleted": false,
+  "directories": [
+    "GridBags"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5081/",
+  "fingerprint": "a9f62965f6bfbf93eb561141a403894558008680a5ef6105a381d8e4e112daf6",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18669.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18670.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18671.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18672.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18673.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5081",
+  "source_url": "https://www.esoui.com/downloads/info5081-GridBagsBeta.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "GridBags (Beta)",
+  "updated_at": 1795239596000,
+  "version": "0.15.3-beta.1"
+}

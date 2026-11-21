@@ -40,9 +40,13 @@ function E.Debug(fmt, ...)
     if E.sv and E.sv.debug then E.Print("|c888888" .. format(fmt, ...) .. "|r") end
 end
 
+-- Stands for SQL NULL where Lua can't store nil (table values in Update/Insert).
+E.NULL = setmetatable({}, { __tostring = function() return "NULL" end })
+
 ---------------------------------------------------------------------------
 -- Callbacks: ScanProgress(tableName, fraction, idsFound), ScanDone(tableName, count),
--- Loaded(), UserTableCreated(name), UserTableDropped(name)
+-- Loaded(), UserTableCreated(name), UserTableDropped(name),
+-- RowsInserted(tableName, count), RowsUpdated(tableName, count), RowsDeleted(tableName, count)
 ---------------------------------------------------------------------------
 local callbacks = {}
 

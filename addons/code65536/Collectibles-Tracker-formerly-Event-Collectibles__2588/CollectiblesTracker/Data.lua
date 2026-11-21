@@ -158,6 +158,8 @@ function DataGen.ct() return {
 		--	12876, 12877, -- Orpheon the Tactician
 		--	13425, 13426, -- Black Gem Monstrosity
 		--	13427, 13428, -- Bar-Sakka
+			14812, 14813, -- Tarcyr
+			14982, 14983, -- Mylenne Moon-Caller
 		},
 	},
 

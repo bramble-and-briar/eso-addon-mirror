@@ -1,0 +1,7 @@
+## Title: Cyrodiil Mercenary
+## Author: Trash Man Enterprises
+## Version: 0.2.3
+## APIVersion: 101049 101050
+## SavedVariables: CyrodiilCommandSaved
+## OptionalDependsOn: LibAddonMenu-2.0 LibRadialMenu
+CyrodiilMercenary.lua

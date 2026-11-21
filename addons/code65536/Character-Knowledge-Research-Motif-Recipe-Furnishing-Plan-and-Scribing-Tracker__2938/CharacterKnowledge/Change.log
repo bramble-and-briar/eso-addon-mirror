@@ -1,3 +1,10 @@
+Version 3.1.6 (2026/11/20)
+* Added support for some Update 52 furnishing plans that were unexpectedly added
+  mid-cycle to Update 51 in an incremental update
+  - Note that although the "Praxis: Breton Footbridge, Stone" plan was among
+    those added, it will not appear in the browser in Update 51 because the
+    actual furnishing associated with the plan was not added
+
 Version 3.1.5 (2026/11/12)
 * Added support for Update 52
 

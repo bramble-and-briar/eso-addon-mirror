@@ -1,3 +1,22 @@
+[b]0.6.3[/b] (2026-11-21) - Furnishing links
+[list]
+[*][b]Linking[/b]: a new list under Apply links furnishings the way a layout links them, one group at a time. Each group shows under its top-level parent with a [b]Link[/b] button; open it to see what is linked under it. [b]Link all[/b] links every group that is ready. Links the layout doesn't have show under their parent with an [b]Unlink[/b] button; [b]Link all[/b] leaves them alone.
+[*]Linking a group first unlinks its parent and everything under it from whatever they are linked to, then links them from the top down, each one checked. If that would undo links they have now, the addon warns you and names them before it starts.
+[*][b]Place all[/b] and [b]Move all[/b] never change links; only the Linking list does.
+[*]Moving a parent takes its children along, so linked furnishings are moved parents first. Children already in place are put back, whether you use [b]Move all[/b] or [b]Move[/b] on the parent's row.
+[*][b]Roll back[/b] restores the links the house had at that backup and undoes links made since. If the game refuses a link, the furnishing goes back to the parent it had. A link that can't be set counts as a roll back that didn't go through whole, with the offer to save the backup as a layout.
+[*][b]Destructive[/b]: a new tab for actions that change the house beyond the layout, each asked first, with a backup made: [b]Empty house[/b] (every placed furnishing, the layout's too; [b]Remove all[/b] under Apply still takes away only what the layout doesn't have), [b]Unlink all[/b] (every link in the house), and [b]Place all from[/b] a bag, which places everything that bag holds around where you stand, up to the house's limits.
+[*]Linking checks the game's limit of 50 furnishings linked to one before it changes anything in a group. [b]Empty house[/b] removes nothing until the backup holds every walker's path, and [b]Place all from[/b] asks again when what the bag holds changed after it asked.
+[*][b]Furnishing Vault without ESO Plus[/b]: you can place furnishings from the vault again; the game only blocks putting new ones in. Removals still skip it.
+[*][b]Needs[/b] counts what's in your Furnishing Vault while you're in your own house, the same way Apply already uses it, and says [i]Inventory[/i] where it said [i]Backpack[/i].
+[*]Layouts from share codes are kept until you delete them. Before, only the last 10 were kept.
+[*]If the game hasn't given a walker's path yet, the addon reads it again after 1.5 s. If it's still missing, the addon warns you and leaves that path as it is. This applies to Apply, runs, recordings, backups and share codes.
+[*][b]Fixed[/b]: a furnishing moved by hand after the window had matched it to the layout showed in no list. It now shows under [i]To move[/i], along with any children a moved parent dragged along.
+[*][b]Fixed[/b]: after a layout's row was changed to a different furnishing, applying again moved the old furnishing to the new spot. Now the new one is placed and the old one shows under [i]To remove[/i].
+[*][b]Fixed[/b]: after you came back into a house, a pet or mount on its path showed [i]walks another path[/i].
+[*][b]Fixed[/b]: a backup or recording made right after you came back into a house saved a walker's path at the world's origin. A path saved that way by 0.6.2 is now ignored instead of restored.
+[/list]
+
 [b]0.6.2[/b] (2026-11-20) - Initial release
 [list]
 [*][b]Layouts[/b]: record your houses, paste share codes (in parts for big houses), receive layouts from the LetsFurnish! app, and activate one for Apply, Needs and Crafting.

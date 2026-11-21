@@ -16,6 +16,8 @@ E.RegisterTable({
         { "num_columns", "int", "Column count" },
         { "key", "text", "Primary key column" },
         { "rows_cached", "int", "Rows in memory or ids indexed (NULL until first use)" },
+        { "builtin", "bool", "Comes with LibESQL; always read-only" },
+        { "writable", "bool", "INSERT / UPDATE / DELETE allowed (tables you created)" },
     },
     build = function(rows)
         for _, name in ipairs(E.tableOrder) do
@@ -25,9 +27,13 @@ E.RegisterTable({
                 if def.kind == "scan" then cached = def.count
                 elseif def.rows then cached = #def.rows
                 elseif def.cache then cached = #def.cache end
+                local builtin = E.IsBuiltinTable(name)
                 rows[#rows + 1] = {
                     name = name, kind = def.kind, description = def.desc,
                     num_columns = #def.columns, key = def.key, rows_cached = cached,
+                    builtin = builtin,
+                    writable = not builtin and (def.kind == "user" or type(def.insert) == "function"
+                        or type(def.update) == "function" or type(def.delete) == "function"),
                 }
             end
         end

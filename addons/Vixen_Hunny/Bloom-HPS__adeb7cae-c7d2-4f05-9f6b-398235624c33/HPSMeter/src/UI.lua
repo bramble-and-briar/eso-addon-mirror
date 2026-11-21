@@ -265,17 +265,55 @@ function UI.ApplySceneVisibility()
     end
 end
 
+-- Forced visibility: while the settings page is open (preview) and for a
+-- moment after the position / scale changes (moving), the meter shows even
+-- if "Show Meter" is off or a menu would normally hide it.
+local previewing, moving = false, false
+local MOVE_NAME = M.name .. "_Moving"
+local MOVE_SHOW_MS = 2500
+
+local function ForceShown() return previewing or moving end
+
+local function RestoreSceneHidden()
+    local root = controls.root
+    if not root or not fragmentAdded or ForceShown() then return end
+    root:SetHidden(not hudFragment:IsShowing())
+end
+
+local function ShowRoot()
+    local root = controls.root
+    if not root then return end
+    root:SetHidden(false)
+    root:SetAlpha(1)
+end
+
 -- Shows the meter over the settings menu while its settings page is open.
 function UI.SetPreview(on)
-    local root = controls.root
-    if not root or not fragmentAdded then return end
-    if on then
-        root:SetHidden(false)
-        root:SetAlpha(1)
-    else
-        root:SetHidden(not hudFragment:IsShowing())
-    end
+    previewing = on and true or false
+    if not controls.root or not fragmentAdded then return end
+    if on then ShowRoot() else RestoreSceneHidden() end
 end
+
+local function EndMoving()
+    EVENT_MANAGER:UnregisterForUpdate(MOVE_NAME)
+    moving = false
+    UI.ApplyLayout()
+    RestoreSceneHidden()
+end
+
+-- Called whenever the position or scale changes. Keeps the meter on screen
+-- until MOVE_SHOW_MS after the last change.
+function UI.ShowWhileMoving()
+    if not controls.root then return end
+    local wasMoving = moving
+    moving = true
+    ShowRoot()
+    if not wasMoving then UI.ApplyLayout() end
+    EVENT_MANAGER:UnregisterForUpdate(MOVE_NAME)
+    EVENT_MANAGER:RegisterForUpdate(MOVE_NAME, MOVE_SHOW_MS, EndMoving)
+end
+
+function UI.IsMoving() return moving end
 
 -- Re-applies position, scale and visibility from the saved settings.
 function UI.ApplyLayout()
@@ -304,7 +342,7 @@ function UI.ApplyLayout()
         tex:SetAlpha(min(1, saved.flowerAlpha * def[6]))
     end
 
-    local hidden = not saved.showLabel
+    local hidden = not saved.showLabel and not moving
     label:SetHidden(hidden)
     local fallback = controls.fallback
     controls.plain:SetHidden(hidden or not fallback)
@@ -332,13 +370,19 @@ function UI.BuildText(stats)
 
     if saved.showTitle then
         local flower = Icon("flower_sakura", iconSize)
-        lines[#lines + 1] = flower .. Colorize(TITLE_COLOR, " Bloom HPS ") .. flower
+        local title = stats.scope == "bg" and " Bloom HPS · Battleground " or " Bloom HPS "
+        lines[#lines + 1] = flower .. Colorize(TITLE_COLOR, title) .. flower
     end
 
     Add("heart_cute", saved.labelColor, "HPS", Fmt(stats.hps), "HPM", Fmt(stats.hpm), "HPS /w Overheal", Fmt(stats.rawHps))
     if saved.showSplits then
         Add("sparkle", saved.labelColor,
             "Personal", Fmt(stats.healPersonal), "Group", Fmt(stats.healGroup))
+    end
+    if saved.showCritHeals then
+        Add("sparkle", saved.labelColor,
+            "Crit Heal", Fmt(stats.critHeal), "Crit HPS", Fmt(stats.critHps),
+            "Crit Rate", format("%.0f%%", stats.critHealRate))
     end
 
     if saved.showShields then
@@ -361,6 +405,6 @@ function UI.BuildText(stats)
 end
 
 function UI.Refresh()
-    if not controls.label or not M.saved.showLabel then return end
+    if not controls.label or not (M.saved.showLabel or moving) then return end
     controls.label:SetText(UI.BuildText(M.Data.GetStats()))
 end

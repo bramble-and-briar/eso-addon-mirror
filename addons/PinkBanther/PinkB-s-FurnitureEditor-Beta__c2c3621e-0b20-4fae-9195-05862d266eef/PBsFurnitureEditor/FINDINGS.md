@@ -982,3 +982,53 @@ already did; the settings panel (the list that LibHarvensAddonSettings draws) wa
 
 **Tests.** Section 38: the harness's add-on manager answers from the real manifest; the version read, the panel name, the help
 line, a client with no manager, a manager that throws.
+
+## 28. The camera's direction is measured in the house's axes, not assumed (after PlayerMarkerExtension 0.4.6) (1.0.8)
+
+Asked: use what the revision of PB's PlayerMarkerExtension found to correct this add-on's coordinate calculation.
+
+**What was found there** (PS5, 2026-11-21; PB's WayPoint 0.6.4 took it over): in RAW world coordinates
+(`GetUnitRawWorldPosition`) +X is east and +Z is south; `GetPlayerCameraHeading()` is 0 looking north and grows as the
+camera turns LEFT; so the bearing `atan2(dx, dz)` of where the camera looks is `heading + pi`. The client's own housing code
+(`furnitureclasses_shared.lua`, `RefreshPositionalData`: `atan2(dx, dz) - heading` turns an up-pointing arrow) works as if the
+bearing were the heading itself: half a circle apart. Both add-ons had used that formula and drew everything on the opposite
+side until it was measured.
+
+**The audit.** This add-on has no heading or bearing arithmetic: a paste is the clip's own offsets (`node - anchor`) added to a
+destination point; a rotation (`rot`) is applied from what `/pbfe calib` measures about the client's yaw, not from any
+assumed axis. The one place where a direction in space meets the house's coordinates is `Aim.lua`: the test that the floor
+point under the cursor is IN FRONT of the camera used `GetCameraForward(SPACE_WORLD)` as a vector in the house's axes
+(`dx * forward.x + dz * forward.z`). That holds only if SPACE_WORLD and the coordinates of `GetPlayerWorldPositionInHouse`
+share their axes (open question 27 of section 14, never settled). If they differ by the half circle above, a point straight
+ahead has a NEGATIVE dot product: from about 2.5 m out it was refused as "the point is behind you" (every wheel pick then fell
+back to the player's feet), and a point behind the camera was let through.
+
+**The fix (`Aim.lua`).**
+* The direction across the floor is read from the cursor's own call: the middle column of the screen is looked at twice, the
+  second a little lower (`SECOND_LOOK`), and the vector from the lower floor point to the higher one is the camera's direction in
+  exactly the axes the answers are in. A ray that goes down meets the floor nearer for the lower point and a ray that goes up
+  meets it farther behind; in both the vector points along the camera's direction.
+* `GetCameraForward` keeps only what no horizontal axis can spoil: whether the camera looks down (its Y part).
+* With no usable direction (the camera nearly straight down, or the second look refused) nothing is thrown out for being "behind":
+  the point is then within a camera's distance of the player, and the 30 m cap still holds. Without `GetCameraForward` the
+  old second-look test (`lowerDistance > distance`) decides, unchanged.
+* `/pbfe aim` now prints how the directions relate, so one console run settles what this house's axes are: the bearing the
+  cursor measured against the camera heading ("= heading +0 deg" is the housing editor's formula, "+180 deg" the series'
+  PS5 measurement), and how `GetCameraForward(SPACE_WORLD)` compares ("in the house's axes" / "the OPPOSITE way").
+
+**Looked at and left alone (a design choice, not an error of arithmetic).** The anchor of a clip is where the PLAYER stood when
+copying, and `here` / `aim` put the group at the same offsets from the player's feet / the cursor point, in absolute axes
+(README: "where you stand is the anchor"). Copy from 5 m away facing north, paste while facing east, and the group lands 5 m
+north of the cursor, not on it. Anchoring on the group itself, or turning the offset with the heading (which would need the
+relation above), would change what `here` means; not done without being asked.
+
+**Unverified on a console:** which of the two relations holds for this house's coordinates (`/pbfe aim`, looking down at the
+floor, prints it), and that `HousingEditorGetScreenPointWorldPlaneIntersection` answers the second look as it does the first.
+
+**Tests.** Section 39. The mock can turn `GetCameraForward`'s horizontal axes half a circle from the house's
+(`World.worldAxesFlipped`) and refuse the second look (`World.refuseSecondLook`). With the flip a point six metres ahead is a
+point and one behind a far third-person camera is refused, for several headings (a quarter turn, 200 degrees); the same with
+the axes alike; looking up still refused; the report names the housing editor's formula, the series' measurement and
+"neither" from the heading, and the flipped SPACE_WORLD as the opposite way; a camera nearly straight down; a refused second
+look; and a paste at the cursor end to end with the flipped axes. Against the previous `Aim.lua` the flipped cases fail (a point
+six metres ahead is refused, one behind the camera is accepted).

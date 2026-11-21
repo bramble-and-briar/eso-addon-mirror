@@ -1,0 +1,39 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/Schrodi/Better-Social-Search__3371",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "Schrodi",
+  "canonical_id": "esoui:3371",
+  "category_id": "95",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:3371",
+  "deleted": false,
+  "directories": [
+    "BetterSocialSearch"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl3371/",
+  "fingerprint": "7f595a1ead790bce6e39642fd50949ef5849739e2d7db5c01b3ca918e4b54565",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18678.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "3371",
+  "source_url": "https://www.esoui.com/downloads/info3371-BetterSocialSearch.html",
+  "stats": {
+    "downloads": 2006,
+    "favorites": 0,
+    "monthly_downloads": 5
+  },
+  "title": "Better Social Search",
+  "updated_at": 1795261362000,
+  "version": "1.1"
+}

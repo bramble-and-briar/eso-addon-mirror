@@ -11,6 +11,7 @@
 --            its owner left, lost the connection, or the group was not told that it was taken off)
 --     engine the game's own marker that was on this person when this one was put on (NONE if none), and
 --     engineSince  since when that same one has stood next to this one: see ReconcileEngine
+-- World.lua also keeps the frame's relative position (rel), the drawing verdict and its trace time on this marker.
 --
 -- One marker at a time on a person: putting the same icon on again takes it off (the way the game's own marker toggles),
 -- another icon replaces it, and so does one of the game's eight -- whoever put that one on (see ReconcileEngine).

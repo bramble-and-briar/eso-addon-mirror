@@ -1,0 +1,10 @@
+## Title: Execute Blocker
+## Description: Prevents casting of execute abilities when the target's health is above a configurable threshold. Supports Nightblade, Templar, Sorcerer, weapon skills (2H / Dual Wield / Bow), and Warden Guardians. Includes optional soft fade flash feedback when a cast is blocked.
+## Author: O-Range
+## Version: 2.3.0
+## AddOnVersion: 230
+## APIVersion: 101051 101052
+## SavedVariables: ExecuteBlockerVars
+## DependsOn: LibAddonMenu-2.0>=40
+
+ExecuteBlocker.lua

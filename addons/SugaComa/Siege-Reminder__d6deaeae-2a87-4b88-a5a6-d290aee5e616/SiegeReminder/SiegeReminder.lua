@@ -1,11 +1,12 @@
 --------------------------------------------------------------
--- SiegeReminder.lua — SiegeMaster v2.1.5
+-- SiegeReminder.lua — SiegeMaster v2.1.7
 -- Author: SugaComa
 --------------------------------------------------------------
 local ADDON_NAME = "SiegeReminder"
 local EM = EVENT_MANAGER
 local Framework = SiegeReminder_Framework
 local catalog
+local apCatalog
 local RefreshItemSettings
 local CHECK_INTERVAL_MS = 120000 -- 2 min recheck while low
 
@@ -97,9 +98,61 @@ end
 --------------------------------------------------------------
 -- Siege Inventory
 --------------------------------------------------------------
+local function IsSupplyType(itemType, specializedType)
+    return itemType == ITEMTYPE_SIEGE or itemType == ITEMTYPE_AVA_REPAIR
+        or (itemType == ITEMTYPE_RECALL_STONE and specializedType == SPECIALIZED_ITEMTYPE_RECALL_STONE_KEEP)
+end
+
+local SIEGE_SPECIALIZATIONS = {
+    [SPECIALIZED_ITEMTYPE_SIEGE_BALLISTA] = true,
+    [SPECIALIZED_ITEMTYPE_SIEGE_CATAPULT] = true,
+    [SPECIALIZED_ITEMTYPE_SIEGE_GRAVEYARD] = true,
+    [SPECIALIZED_ITEMTYPE_SIEGE_LANCER] = true,
+    [SPECIALIZED_ITEMTYPE_SIEGE_MONSTER] = true,
+    [SPECIALIZED_ITEMTYPE_SIEGE_OIL] = true,
+    [SPECIALIZED_ITEMTYPE_SIEGE_RAM] = true,
+    [SPECIALIZED_ITEMTYPE_SIEGE_TREBUCHET] = true,
+    [SPECIALIZED_ITEMTYPE_SIEGE_UNIVERSAL] = true,
+}
+
+local function IsSupplyLink(link)
+    if not link or link == "" then return false end
+    local itemType, specializedType = GetItemLinkItemType(link)
+    if IsSupplyType(itemType, specializedType)
+        or specializedType == SPECIALIZED_ITEMTYPE_RECALL_STONE_KEEP
+        or SIEGE_SPECIALIZATIONS[specializedType] then return true end
+    local siegeType = GetItemLinkSiegeType(link)
+    return siegeType ~= nil and siegeType ~= SIEGE_TYPE_NONE
+end
+
 local function IsSiegeItem(bagId, slotIndex)
-	local itemType = GetItemType(bagId, slotIndex)
-	return itemType == ITEMTYPE_SIEGE or itemType == ITEMTYPE_AVA_REPAIR
+    local itemType, specializedType = GetItemType(bagId, slotIndex)
+    if IsSupplyType(itemType, specializedType)
+        or specializedType == SPECIALIZED_ITEMTYPE_RECALL_STONE_KEEP
+        or SIEGE_SPECIALIZATIONS[specializedType] then return true end
+    -- Use the same link metadata ESO's tooltips use for siege classification.
+    return IsSupplyLink(GetItemLink(bagId, slotIndex, LINK_STYLE_DEFAULT))
+end
+
+-- Ownership, not vendor availability, determines which supplies can be managed.
+-- The existing account-wide catalog stays compatible with saved vendor data.
+local function DiscoverSupplies(bags)
+    local changed, found = false, 0
+    for _, bagId in ipairs(bags) do
+        for slot = 0, GetBagSize(bagId) - 1 do
+            if IsSiegeItem(bagId, slot) then
+                found = found + 1
+                local id = tostring(GetItemId(bagId, slot))
+                local name = GetItemName(bagId, slot)
+                if id ~= "0" and name and name ~= "" and catalog[id] ~= name then
+                    catalog[id] = name
+                    changed = true
+                end
+            end
+        end
+    end
+    if changed and RefreshItemSettings then RefreshItemSettings() end
+    return found
 end
 
 local function GetFreeSlotInBag(bagId)
@@ -131,7 +184,9 @@ end
 local function BuildSiegeSlotsByItem(bagId)
 	local slotsByItem = {}
 	for slot = 0, GetBagSize(bagId) - 1 do
-		if IsSiegeItem(bagId, slot) then
+		if IsSiegeItem(bagId, slot) and not IsItemPlayerLocked(bagId, slot)
+            and not IsItemStolen(bagId, slot)
+            and not (bagId == BAG_BACKPACK and GetItemBindType(bagId, slot) == BIND_TYPE_ON_PICKUP_BACKPACK) then
 			local id = tostring(GetItemId(bagId, slot))
 			if catalog[id] then
 				local slots = slotsByItem[id] or {}
@@ -166,8 +221,7 @@ local function GetAPOffer(index)
 
 	local link = GetStoreItemLink(index, LINK_STYLE_DEFAULT)
 	if not link or link == "" then return end
-	local itemType = GetItemLinkItemType(link)
-	if itemType ~= ITEMTYPE_SIEGE and itemType ~= ITEMTYPE_AVA_REPAIR then return end
+	if not IsSupplyLink(link) then return end
 	local id = GetItemLinkItemId(link)
 	if not id or id == 0 then return end
 	return tostring(id), name, stack, cost1 + cost2, canBuy
@@ -245,6 +299,7 @@ local function OnStoreOpen()
 			local id, name = GetAPOffer(index)
 			if id then
 				isAtSiegeMerchant = true
+                if not apCatalog[id] then apCatalog[id] = true; changed = true end
 				if catalog[id] ~= name then
 					catalog[id] = name
 					changed = true
@@ -296,6 +351,8 @@ local function QueueMove(queue, bagFrom, slotFrom, bagTo, slotTo, qty)
 		bagTo = bagTo,
 		slotTo = slotTo,
 		qty = qty,
+        itemId = GetItemId(bagFrom, slotFrom),
+        uniqueId = tostring(GetItemUniqueId(bagFrom, slotFrom)),
 	}
 end
 
@@ -308,47 +365,61 @@ local function SafeRequestMoveItem(bagFrom, slotFrom, bagTo, slotTo, qty)
 end
 
 local function RunQueue(handleName, queue, delayMs, onDone)
-	if not queue or #queue == 0 then
-		if onDone then onDone(0, nil) end
-		return
-	end
-
-	local moved = 0
-	local index = 1
-	local delay = tonumber(delayMs) or 700
-
-	EM:UnregisterForUpdate(handleName)
-	EM:RegisterForUpdate(handleName, delay, function()
-		if not bankSessionRunning then
-			EM:UnregisterForUpdate(handleName)
-			if onDone then onDone(moved, "closed") end
-			return
-		end
-
-		local move = queue[index]
-		if not move then
-			EM:UnregisterForUpdate(handleName)
-			if onDone then onDone(moved, nil) end
-			return
-		end
-
-		local slotTo = move.slotTo
-		if not slotTo then
-			slotTo = GetFreeSlotInBag(move.bagTo)
-		end
-		if not slotTo then
-			EM:UnregisterForUpdate(handleName)
-			if onDone then onDone(moved, "full") end
-			return
-		end
-
-		if SafeRequestMoveItem then
-			SafeRequestMoveItem(move.bagFrom, move.slotFrom, move.bagTo, slotTo, move.qty)
-			moved = moved + (move.qty or 0)
-		end
-
-		index = index + 1
-	end)
+    if not queue or #queue == 0 then
+        if onDone then onDone(0, nil) end
+        return
+    end
+    local moved, index, pending = 0, 1, nil
+    local function Done(reason)
+        EM:UnregisterForUpdate(handleName)
+        if onDone then onDone(moved, reason) end
+    end
+    EM:UnregisterForUpdate(handleName)
+    EM:RegisterForUpdate(handleName, tonumber(delayMs) or 700, function()
+        if not bankSessionRunning then Done("closed"); return end
+        if pending then
+            local same = tostring(GetItemUniqueId(pending.bagFrom, pending.slotFrom)) == pending.uniqueId
+            local remaining = same and GetSlotStackSize(pending.bagFrom, pending.slotFrom) or 0
+            local arrived = GetItemId(pending.bagTo, pending.targetSlot) == pending.itemId
+                and GetSlotStackSize(pending.bagTo, pending.targetSlot) >= pending.qty
+            if remaining <= pending.before - pending.qty and arrived then
+                moved = moved + pending.qty
+                pending = nil
+                index = index + 1
+            elseif GetFrameTimeMilliseconds() >= pending.deadline then
+                chat("Bank transfer was not confirmed. Check your supplies and reopen the bank to retry.")
+                Done("unconfirmed")
+                return
+            else return end
+        end
+        local move = queue[index]
+        if not move then Done(); return end
+        -- Do not move an unrelated item if inventory slots changed since planning.
+        if GetItemId(move.bagFrom, move.slotFrom) ~= move.itemId
+            or tostring(GetItemUniqueId(move.bagFrom, move.slotFrom)) ~= move.uniqueId
+            or GetSlotStackSize(move.bagFrom, move.slotFrom) < move.qty then
+            debugBank("Source changed; skipped queued item.")
+            index = index + 1
+            return
+        end
+        if IsItemPlayerLocked(move.bagFrom, move.slotFrom) or IsItemStolen(move.bagFrom, move.slotFrom)
+            or (move.bagTo == BAG_BANK and GetItemBindType(move.bagFrom, move.slotFrom) == BIND_TYPE_ON_PICKUP_BACKPACK) then
+            debugBank("Skipped locked, stolen or character-bound supply.")
+            index = index + 1
+            return
+        end
+        local slotTo = GetFreeSlotInBag(move.bagTo)
+        if slotTo == nil and move.bagTo == BAG_BANK and IsESOPlusSubscriber() then
+            move.bagTo = BAG_SUBSCRIBER_BANK
+            slotTo = GetFreeSlotInBag(move.bagTo)
+        end
+        if slotTo == nil then Done("full"); return end
+        move.targetSlot = slotTo
+        move.before = GetSlotStackSize(move.bagFrom, move.slotFrom)
+        move.deadline = GetFrameTimeMilliseconds() + 5000
+        pending = move
+        SafeRequestMoveItem(move.bagFrom, move.slotFrom, move.bagTo, slotTo, move.qty)
+    end)
 end
 
 --------------------------------------------------------------
@@ -357,6 +428,16 @@ end
 local function WithdrawToCarryMax()
 	local carried = CountCarried()
 	local bankSlots = BuildSiegeSlotsByItem(BAG_BANK)
+    for _, slots in pairs(bankSlots) do
+        for _, entry in ipairs(slots) do entry.bag = BAG_BANK end
+    end
+    for id, slots in pairs(BuildSiegeSlotsByItem(BAG_SUBSCRIBER_BANK)) do
+        bankSlots[id] = bankSlots[id] or {}
+        for _, entry in ipairs(slots) do
+            entry.bag = BAG_SUBSCRIBER_BANK
+            bankSlots[id][#bankSlots[id] + 1] = entry
+        end
+    end
 	local queue = {}
 
 	for id, cfg in pairs(SiegeReminder.SV.items) do
@@ -371,7 +452,7 @@ local function WithdrawToCarryMax()
 						if need <= 0 then break end
 						local entry = slots[i]
 						local qty = math.min(entry.stack, need)
-						QueueMove(queue, BAG_BANK, entry.slot, BAG_BACKPACK, nil, qty)
+						QueueMove(queue, entry.bag, entry.slot, BAG_BACKPACK, nil, qty)
 						need = need - qty
 					end
 				end
@@ -402,7 +483,7 @@ local function DepositAllSiege()
 
 	RunQueue("SIEGE_BANK_DEPOSIT", queue, SiegeReminder.SV.bankMoveDelayMs, function(moved, reason)
 		if moved > 0 then
-			Notify("Deposited vendor siege supplies to bank (outside Cyrodiil).", "Siege banked")
+			Notify("Deposited siege supplies to bank (outside Cyrodiil).", "Siege banked")
 		end
 		if reason == "full" then
 			Notify("Bank full. Siege deposit stopped.", "Bank full")
@@ -411,21 +492,16 @@ local function DepositAllSiege()
 end
 
 local function OnBankOpened(_, bag)
-	if not SiegeReminder.SV or SiegeReminder.SV.enabledBankAutomation ~= true then return end
-	if bag ~= BAG_BANK and bag ~= BAG_SUBSCRIBER_BANK then return end
-	if bankSessionRunning then return end
-
-	bankSessionRunning = true
-	debugBank("Bank opened. Running automation.")
-
-	zo_callLater(function()
-		if not bankSessionRunning then return end
-	if IsInCyrodiil() then
-		WithdrawToCarryMax()
-	else
-		DepositAllSiege()
-	end
-end, 250)
+    if bag ~= BAG_BANK and bag ~= BAG_SUBSCRIBER_BANK then return end
+    if bankSessionRunning then return end
+    bankSessionRunning = true
+    debugBank("Bank opened. Discovering supplies.")
+    zo_callLater(function()
+        if not bankSessionRunning then return end
+        DiscoverSupplies({ BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK })
+        if not SiegeReminder.SV or SiegeReminder.SV.enabledBankAutomation ~= true then return end
+        if IsInCyrodiil() then WithdrawToCarryMax() else DepositAllSiege() end
+    end, 250)
 end
 
 local function OnBankClosed()
@@ -506,6 +582,8 @@ end
 -- OnPlayerActivated (quiet but informative)
 --------------------------------------------------------------
 local function OnPlayerActivated()
+    DiscoverSupplies({ BAG_BACKPACK, BAG_WORN })
+    zo_callLater(function() DiscoverSupplies({ BAG_BACKPACK, BAG_WORN }) end, 2000)
 	if not IsInAvA() then return end
 	zo_callLater(function()
 		CheckSiegeStock()
@@ -535,6 +613,10 @@ local function OnZoneChanged()
 end
 
 local function OnInventoryUpdate(_, bagId)
+    if bagId == BAG_BACKPACK or bagId == BAG_WORN
+        or (bankSessionRunning and (bagId == BAG_BANK or bagId == BAG_SUBSCRIBER_BANK)) then
+        DiscoverSupplies({ bagId })
+    end
 	if bagId ~= BAG_BACKPACK and bagId ~= BAG_WORN then return end
 	CheckSiegeStock()
 	if isLowOnSiege then StartReminderLoop() end
@@ -552,12 +634,54 @@ local function ToggleDebug()
 	end
 end
 
+local function RescanSupplies()
+    local bags = { BAG_BACKPACK, BAG_WORN }
+    if bankSessionRunning then
+        bags[#bags + 1] = BAG_BANK
+        bags[#bags + 1] = BAG_SUBSCRIBER_BANK
+    end
+    local found = DiscoverSupplies(bags)
+    -- Rebuild even if catalog names haven't changed: this repairs a stale menu.
+    if RefreshItemSettings then RefreshItemSettings() end
+    chat(string.format("v%s: rescan recognised %d supply stacks. Bank scan: %s. Reopen Carry Levels by Item.",
+        Framework.version, found, bankSessionRunning and "included" or "open your bank to include it"))
+end
+
+local function DiagnoseSupplies()
+    RescanSupplies()
+    local bags = { BAG_BACKPACK, BAG_WORN }
+    if bankSessionRunning then bags[#bags + 1] = BAG_BANK; bags[#bags + 1] = BAG_SUBSCRIBER_BANK end
+    local printed = 0
+    for _, bag in ipairs(bags) do
+        for slot = 0, GetBagSize(bag) - 1 do
+            local name = GetItemName(bag, slot) or ""
+            local lower = string.lower(name)
+            -- Names only select diagnostic output; they never authorise transfers.
+            if IsSiegeItem(bag, slot) or lower:find("ballista", 1, true) or lower:find("lancer", 1, true)
+                or lower:find("recall", 1, true) or lower:find("trebuchet", 1, true)
+                or lower:find("catapult", 1, true) or lower:find("forward camp", 1, true) then
+                local t, st = GetItemType(bag, slot)
+                local link = GetItemLink(bag, slot, LINK_STYLE_DEFAULT)
+                local lt, lst = GetItemLinkItemType(link)
+                chat(string.format("%s id=%s bag=%s slot=%d count=%d type=%s/%s link=%s/%s siege=%s tracked=%s locked=%s bind=%s",
+                    name, tostring(GetItemId(bag, slot)), tostring(bag), slot, GetSlotStackSize(bag, slot),
+                    tostring(t), tostring(st), tostring(lt), tostring(lst), tostring(GetItemLinkSiegeType(link)),
+                    tostring(IsSiegeItem(bag, slot)), tostring(IsItemPlayerLocked(bag, slot)), tostring(GetItemBindType(bag, slot))))
+                printed = printed + 1
+                if printed >= 60 then chat("Diagnostic output limited to 60 stacks."); return end
+            end
+        end
+    end
+end
+
 local function ManualCheck()
 	CheckSiegeStock()
 end
 
 SLASH_COMMANDS["/sgrdebug"] = ToggleDebug
 SLASH_COMMANDS["/sgrcheck"] = ManualCheck
+SLASH_COMMANDS["/sgrscan"] = RescanSupplies
+SLASH_COMMANDS["/sgrdiagnose"] = DiagnoseSupplies
 
 
 --------------------------------------------------------------
@@ -570,6 +694,17 @@ local function CreateSettingsMenu()
 	local settings = LHAS:AddAddon(Framework.displayName, options)
 	if not settings then return end
 	Framework:AddProfileControls(settings)
+
+    settings:AddSetting({
+        type = LHAS.ST_BUTTON, label = "Rescan Supplies",
+        tooltip = "Discover owned siege and Keep Recall Stones again. Open your personal bank first to include banked supplies. Does not transfer items.",
+        clickHandler = RescanSupplies,
+    })
+    settings:AddSetting({
+        type = LHAS.ST_BUTTON, label = "Print Supply Diagnostics",
+        tooltip = "Print recognised supplies and their item classifications to chat, including known siege names that were not recognised. Does not transfer items.",
+        clickHandler = DiagnoseSupplies,
+    })
 
 	settings:AddSetting({
 		type = LHAS.ST_CHECKBOX,
@@ -607,7 +742,7 @@ local function CreateSettingsMenu()
 	settings:AddSetting({
 		type = LHAS.ST_CHECKBOX,
 		label = "Deposit Siege Outside AvA",
-		tooltip = "When not in Cyrodiil, deposit discovered siege supplies to bank on open.",
+		tooltip = "When not in Cyrodiil, deposit discovered siege and Keep Recall Stones to bank on open.",
 		default = true,
 		getFunction = function() return SiegeReminder.SV.depositAllOutsideAvA end,
 		setFunction = function(val) SiegeReminder.SV.depositAllOutsideAvA = val end,
@@ -661,19 +796,21 @@ local function CreateSettingsMenu()
 		end)
 		local controls = {}
 		if #ids == 0 then
-			controls[1] = { type = LHAS.ST_LABEL, label = "Open a siege vendor to discover items sold for AP." }
+			controls[1] = { type = LHAS.ST_LABEL, label = "Carry supplies or open your bank to discover reward siege and Keep Recall Stones. AP vendors also add supplies." }
 		end
 		for _, id in ipairs(ids) do
 			local name = catalog[id]
 			local cfg = GetItemSettings(id)
 			-- A section would end the enclosing carry submenu on console.
 			controls[#controls + 1] = { type = LHAS.ST_LABEL, label = "|cFFD700" .. name .. "|r" }
+            if apCatalog[id] then
 			controls[#controls + 1] = {
 				type = LHAS.ST_CHECKBOX, label = "Buy " .. name .. " with AP",
 				default = false,
 				getFunction = function() return cfg.buyWithAP end,
 				setFunction = function(value) cfg.buyWithAP = value == true end,
 			}
+            end
 			controls[#controls + 1] = {
 				type = LHAS.ST_CHECKBOX, label = name .. " Reminders and Bank Withdrawals",
 				default = false,
@@ -732,6 +869,13 @@ local function OnAddOnLoaded(_, addonName)
 	end
 	local vendorData = ZO_SavedVars:NewAccountWide("SiegeReminder_VendorSV", 1, nil, { items = {} })
 	catalog = vendorData.items
+    -- Before 2.1.6 every saved catalog entry came from an AP vendor.
+    if not vendorData.apItems then
+        vendorData.apItems = {}
+        for id in pairs(catalog) do vendorData.apItems[id] = true end
+    end
+    apCatalog = vendorData.apItems
+    DiscoverSupplies({ BAG_BACKPACK, BAG_WORN })
 	RefreshItemSettings = function() end
 
 	EM:RegisterForEvent(ADDON_NAME.."_PlayerActivated", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)

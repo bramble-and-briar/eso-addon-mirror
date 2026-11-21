@@ -1,0 +1,50 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Furyous/Fury-s-Guild-Management-Toolset__5063",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Furyous",
+  "canonical_id": "esoui:5063",
+  "category_id": "95",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5063",
+  "deleted": false,
+  "directories": [
+    "FurysGuildToolset"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5063/",
+  "fingerprint": "c107e5100200c71210b475f76be793ed290c9c30c709cb417d5df1142ef99ecd",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18529.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18530.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18531.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18532.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18533.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18534.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18535.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18536.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18537.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5063",
+  "source_url": "https://www.esoui.com/downloads/info5063-FurysGuildManagementToolset.html",
+  "stats": {
+    "downloads": 23,
+    "favorites": 2,
+    "monthly_downloads": 17
+  },
+  "title": "Fury's Guild Management Toolset",
+  "updated_at": 1795244965000,
+  "version": "1.2.5"
+}

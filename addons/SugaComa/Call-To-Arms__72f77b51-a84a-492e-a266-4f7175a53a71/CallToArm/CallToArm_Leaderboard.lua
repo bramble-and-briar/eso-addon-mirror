@@ -139,67 +139,119 @@ function LB.ApplyHighlightToRow(control, data)
     end
 end
 
-local function BuildGuildJournalEntries(gid, campaignId, alliance)
-    local entries = {}
-    if not campaignId or campaignId == 0 then return entries end
-    LB.RefreshGuildMemberCache(gid, true)
+-- The guild board owns a separate query object: native Overall/alliance
+-- categories keep their normal query path. Snapshot each faction on receipt.
+local ALLIANCES = { ALLIANCE_ALDMERI_DOMINION, ALLIANCE_DAGGERFALL_COVENANT, ALLIANCE_EBONHEART_PACT }
 
-    if alliance and alliance ~= ALLIANCE_NONE then
-        if not GetNumCampaignAllianceLeaderboardEntries or not GetCampaignAllianceLeaderboardEntryInfo then
-            return entries
-        end
-        local num = GetNumCampaignAllianceLeaderboardEntries(campaignId, alliance) or 0
-        for i = 1, num do
-            local isPlayer, rank, name, points, class, displayName = GetCampaignAllianceLeaderboardEntryInfo(campaignId, alliance, i)
-            local display = displayName or name
-            if LB.IsGuildMemberName(display, gid) or LB.IsGuildMemberName(name, gid) then
-                entries[#entries + 1] = {
-                    rank = rank,
-                    name = name,
-                    points = points,
-                    class = class,
-                    alliance = alliance,
-                    displayName = displayName,
-                    isPlayer = isPlayer,
-                }
-            end
-        end
-        return entries
-    end
-
-    if not GetNumCampaignLeaderboardEntries or not GetCampaignLeaderboardEntryInfo then
-        return entries
-    end
-    local num = GetNumCampaignLeaderboardEntries(campaignId) or 0
-    for i = 1, num do
-        local isPlayer, rank, name, points, class, allianceId, displayName = GetCampaignLeaderboardEntryInfo(campaignId, i)
-        local display = displayName or name
-        if LB.IsGuildMemberName(display, gid) or LB.IsGuildMemberName(name, gid) then
-            entries[#entries + 1] = {
-                rank = rank,
-                name = name,
-                points = points,
-                class = class,
-                alliance = allianceId,
-                displayName = displayName,
-                isPlayer = isPlayer,
-            }
-        end
-    end
-    return entries
+local function GetGuildJournalCache(gid, campaignId)
+    local cache = LB._journalGuildCache[gid]
+    return cache and cache[campaignId] or {}
 end
 
-local function GetGuildJournalCache(gid, campaignId, alliance)
-    LB._journalGuildCache[gid] = LB._journalGuildCache[gid] or {}
-    local key = tostring(campaignId) .. ":" .. tostring(alliance or 0)
-    local cache = LB._journalGuildCache[gid][key]
-    local now = GetTimeStamp and GetTimeStamp() or 0
-    if not cache or (now - (cache.at or 0)) > 5 then
-        local entries = BuildGuildJournalEntries(gid, campaignId, alliance)
-        cache = { at = now, entries = entries }
-        LB._journalGuildCache[gid][key] = cache
+local function CreateGuildQuery(owner, gid)
+    local query = { callToArmOwner = owner }
+    local job
+    local handle = "CALLTOARM_GUILD_BOARD_" .. tostring(gid)
+    local function IsSelected()
+        return owner.leaderboardSystem.leaderboardObject == query
     end
-    return cache.entries
+    local function Cancel()
+        job = nil
+        EM:UnregisterForEvent(handle, EVENT_CAMPAIGN_LEADERBOARD_DATA_RECEIVED)
+        EM:UnregisterForUpdate(handle)
+    end
+    local function Finish(failed)
+        local completed = job
+        Cancel()
+        if not completed or not IsSelected() then return end
+        local entries = completed.entries
+        if failed then
+            entries = {}
+            if d then d("CallToArm: faction leaderboard request timed out. Reopen the Guild Leaderboard to retry.") end
+        else
+            table.sort(entries, function(a, b)
+                if a.points ~= b.points then return a.points > b.points end
+                local ak = NormalizeName(a.displayName) .. ":" .. NormalizeName(a.name)
+                local bk = NormalizeName(b.displayName) .. ":" .. NormalizeName(b.name)
+                if ak ~= bk then return ak < bk end
+                return a.alliance < b.alliance
+            end)
+            -- Unique sequential guild positions, independent of faction ranks.
+            for i, entry in ipairs(entries) do entry.rank = i end
+        end
+        LB._journalGuildCache[gid] = LB._journalGuildCache[gid] or {}
+        LB._journalGuildCache[gid][completed.campaignId] = entries
+        owner.leaderboardSystem:SetLoadingSpinnerVisibility(false)
+        owner.leaderboardSystem:RefreshData()
+    end
+    local Advance
+    local function Capture()
+        local alliance = ALLIANCES[job.nextAlliance]
+        local num = GetNumCampaignAllianceLeaderboardEntries(job.campaignId, alliance) or 0
+        for index = 1, num do
+            local isPlayer, _, name, points, class, displayName = GetCampaignAllianceLeaderboardEntryInfo(job.campaignId, alliance, index)
+            if LB.IsGuildMemberName(displayName, gid) or LB.IsGuildMemberName(name, gid) then
+                -- Keep separate characters belonging to the same account.
+                local key = tostring(alliance) .. ":" .. NormalizeName(displayName) .. ":" .. NormalizeName(name)
+                if not job.seen[key] then
+                    job.seen[key] = true
+                    job.entries[#job.entries + 1] = {
+                        name = name, points = tonumber(points) or 0, class = class,
+                        alliance = alliance, displayName = displayName, isPlayer = isPlayer,
+                        sourceIndex = index,
+                    }
+                end
+            end
+        end
+        job.nextAlliance = job.nextAlliance + 1
+    end
+    Advance = function()
+        if not job then return end
+        if not IsSelected() or owner.campaignId ~= job.campaignId
+            or CallToArm.Guild.GetSelectedGuildId() ~= gid then
+            Cancel()
+            return
+        end
+        while job and job.nextAlliance <= #ALLIANCES do
+            local ready = QueryCampaignLeaderboardData(ALLIANCES[job.nextAlliance])
+            if ready ~= LEADERBOARD_DATA_READY then return end
+            if GetLeaderboardCampaignSequenceId(job.campaignId) ~= GetCampaignSequenceId(job.campaignId) then return end
+            Capture()
+        end
+        if job then Finish(false) end
+    end
+    function query:SendLeaderboardQuery()
+        Cancel()
+        LB._journalGuildCache[gid] = {} -- never display an old or partial merge
+        if not owner.campaignId or owner.campaignId == 0 then
+            owner.leaderboardSystem:SetLoadingSpinnerVisibility(false)
+            owner.leaderboardSystem:RefreshData()
+            return
+        end
+        LB.RefreshGuildMemberCache(gid, true)
+        job = { campaignId = owner.campaignId, nextAlliance = 1, entries = {}, seen = {}, startedAt = GetTimeStamp() }
+        owner.leaderboardSystem:SetLoadingSpinnerVisibility(true)
+        EM:RegisterForEvent(handle, EVENT_CAMPAIGN_LEADERBOARD_DATA_RECEIVED, function(_, campaignId, alliance)
+            if job and campaignId == job.campaignId and alliance == ALLIANCES[job.nextAlliance] then
+                -- Recheck readiness/sequence before accepting the response.
+                Advance()
+            end
+        end)
+        EM:RegisterForUpdate(handle, 1000, function()
+            if job and GetTimeStamp() - job.startedAt >= 30 then Finish(true)
+            else Advance() end
+        end)
+        Advance()
+    end
+    function query:OnSelected() owner:OnSelected() end
+    function query:OnUnselected()
+        Cancel()
+        owner.leaderboardSystem:SetLoadingSpinnerVisibility(false)
+        owner:OnUnselected()
+    end
+    function query:OnSubtypeSelected() owner:OnSubtypeSelected(ALLIANCE_NONE) end
+    function query:GetKeybind() return owner:GetKeybind() end
+    return query
 end
 
 local function TryHookCampaignLeaderboardList()
@@ -237,7 +289,7 @@ local function AddGuildCategory(self)
     )
 
     local function GetMaxRank()
-        return GetCampaignLeaderboardMaxRank(self.campaignId)
+        return #GetGuildJournalCache(gid, self.campaignId)
     end
 
     local function GetGuildCount()
@@ -249,9 +301,6 @@ local function AddGuildCategory(self)
         local entries = GetGuildJournalCache(gid, self.campaignId, ALLIANCE_NONE)
         local e = entries[entryIndex]
         if not e then return end
-        if e.isPlayer then
-            self:UpdatePlayerInfo(e.points, entryIndex)
-        end
         return e.rank, e.name, e.points, e.class, e.alliance, e.displayName
     end
 
@@ -302,10 +351,18 @@ local function AddGuildCategory(self)
         end
     end
 
+    local function GetGuildConsoleIdRequestParams(entryIndex)
+        local entry = GetGuildJournalCache(gid, self.campaignId)[entryIndex]
+        if entry then
+            return ZO_ID_REQUEST_TYPE_CAMPAIGN_ALLIANCE_LEADERBOARD, self.campaignId, entry.sourceIndex, entry.alliance
+        end
+    end
+
+    local query = CreateGuildQuery(self, gid)
     local NO_POINTS_FORMAT_FUNCTION = nil
     local NO_POINTS_HEADER_STRING = nil
     self.leaderboardSystem:AddEntry(
-        self,
+        query,
         "Guild Leaderboard",
         GetGuildTitle,
         header,
@@ -315,7 +372,7 @@ local function AddGuildCategory(self)
         GetGuildInfo,
         NO_POINTS_FORMAT_FUNCTION,
         NO_POINTS_HEADER_STRING,
-        nil,
+        GetGuildConsoleIdRequestParams,
         GetGuildLeaderboardIcon(),
         LEADERBOARD_TYPE_OVERALL,
         UpdateGuildPlayerInfo
@@ -327,6 +384,12 @@ function LB.Init()
     LB._initDone = true
 
     if ZO_PostHook and ZO_CampaignLeaderboardsManager_Shared then
+        ZO_PostHook(ZO_CampaignLeaderboardsManager_Shared, "SetCampaignAndQueryType", function(self)
+            local selected = self.leaderboardSystem.leaderboardObject
+            if selected and selected.callToArmOwner == self then
+                self.leaderboardSystem:OnLeaderboardDataChanged(selected)
+            end
+        end)
         ZO_PostHook(ZO_CampaignLeaderboardsManager_Shared, "AddCategoriesToParentSystem", function(self)
             AddGuildCategory(self)
         end)

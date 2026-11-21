@@ -130,28 +130,34 @@ end
 
 function LeoAltholicUI.InitPanels()
     LeoAltholicUI.bioList = LeoAltholicBioList:New(LeoAltholicWindowBioPanelListScroll)
-    LeoAltholicUI.bioList:RefreshData()
-
     LeoAltholicUI.statsList = LeoAltholicStatsList:New(LeoAltholicWindowStatsPanelListScroll)
-    LeoAltholicUI.statsList:RefreshData()
-
     LeoAltholicUI.championList = LeoAltholicChampionList:New(LeoAltholicWindowChampionPanelListScroll)
-    LeoAltholicUI.championList:RefreshData()
-
     LeoAltholicUI.skillsList = LeoAltholicSkillsList:New(LeoAltholicWindowSkillsPanelListScroll)
-    LeoAltholicUI.skillsList:RefreshData()
-
     LeoAltholicUI.skills2List = LeoAltholicSkills2List:New(LeoAltholicWindowSkills2PanelListScroll)
-    LeoAltholicUI.skills2List:RefreshData()
-
     LeoAltholicUI.writsList = LeoAltholicWritsList:New(LeoAltholicWindowWritsPanelListScroll)
-    LeoAltholicUI.writsList:RefreshData()
-
     LeoAltholicUI.invList = LeoAltholicInventoryList:New(LeoAltholicWindowInventoryPanelListScroll)
-    LeoAltholicUI.invList:RefreshData()
-
     LeoAltholicUI.researchList = LeoAltholicResearchList:New(LeoAltholicWindowResearchPanelListScroll)
-    LeoAltholicUI.researchList:RefreshData()
+
+    LeoAltholic.GetCharacters(true)
+
+    local lists = {
+        LeoAltholicUI.bioList,
+        LeoAltholicUI.statsList,
+        LeoAltholicUI.championList,
+        LeoAltholicUI.skillsList,
+        LeoAltholicUI.skills2List,
+        LeoAltholicUI.writsList,
+        LeoAltholicUI.invList,
+        LeoAltholicUI.researchList,
+    }
+    for _, listObj in ipairs(lists) do
+        if listObj then
+            listObj.currentSortKey = "queueIndex"
+            listObj.currentSortOrder = ZO_SORT_ORDER_UP
+            listObj:RefreshData()
+        end
+    end
 
     LeoAltholicUI.InitTrackedPanel()
 end
+

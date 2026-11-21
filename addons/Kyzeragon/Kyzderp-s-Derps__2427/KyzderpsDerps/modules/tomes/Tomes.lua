@@ -64,9 +64,9 @@ local function RefreshLabels()
                 end
                 local totalCurrency = timesClaimable * quantity
                 local color = "00FF00"
-                if (totalCurrency < 350) then
+                if (totalCurrency <= 400) then
                     color = "FF0000"
-                elseif (totalCurrency < 400) then
+                elseif (totalCurrency < 450) then
                     color = "FF9900"
                 elseif (totalCurrency < 500) then
                     color = "FFFF00"

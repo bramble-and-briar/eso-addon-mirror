@@ -1,10 +1,12 @@
 --------------------------------------------------------------------------
 -- CaracMarchandise
--- - choix de la quantité à vendre 
--- - calcul automatique du total (quantite x prix unitaire)
--- - mémorisation du dernier prix unitaire par objet
--- - si prix mémorisé, celui s'affiche dans la fenêtre de vente
--- - si Addon Tamriel Trade Center installé, affiche la moyenne des ventes
+-- Codé par Claude AI, Anthropic selon mes spécifications et testé par moi.
+-- - choix de la quantité à vendre.
+-- - calcul automatique du total (quantite x prix unitaire).
+-- - mémorisation du dernier prix unitaire par objet.
+-- - si le prix est mémorisé, celui s'affiche dans la fenêtre de vente.
+-- - case "Report automatique" : envoie le prix mémorisé dans la fenêtre de vente (décochée par défaut).
+-- - case "Sélection par 1 clic" : sélection de l'objet par un simple clic gauche (décochée par défaut, activation /reloadui requis).
 -- Aucune librairie requise.
 --------------------------------------------------------------------------
 
@@ -12,15 +14,15 @@
 local TITLE_COLOR  = { 1.0, 0.85, 0.1 }     -- titre "CaracMarchandise" (jaune)
 local TOTAL_COLOR  = { 0.0, 1.0, 1.0 }      -- total (cyan)
 local BORDER_COLOR = { 0.77, 0.76, 0.62 }   -- cadre (couleur des menus ESO)
+local LABEL_COLOR  = { 0.77, 0.76, 0.62 }   -- intitulés des cases à cocher (couleur des menus ESO)
 -- =======================================================
 
 local FONT       = "ZoFontGameBold"
 local FONT_TITLE = "ZoFontWinH2"
-local FONT_LIGHT = "ZoFontGame"   -- police non grasse (moyenne des ventes et total)
+local FONT_LIGHT = "ZoFontGame"   -- police non grasse
 local GOLD_ICON  = zo_iconFormat("EsoUI/Art/currency/currency_gold.dds", 18, 18)
 local MAX_STACK  = 200
 local MAX_TOTAL  = 2147483647   -- limite du jeu pour le prix (entier 32 bits)
-local AVG_COLOR    = { 1.0, 1.0, 1.0 }      -- moyenne des ventes TTC (blanc)
 
 local CM = {}
 CM.name = "CaracMarchandise"
@@ -30,6 +32,7 @@ local current = nil      -- { bag, slot, key, max }
 local ignoreUntil = 0    -- ignore les événements "objet en attente" générés par l'addon
 local split = nil        -- { slot, qty, total } : division de stack en cours
 
+-- Retourne le temps de jeu en millisecondes (sert à ignorer brièvement les événements générés par l'addon)
 local function Now() return GetGameTimeMilliseconds() end
 
 ---------------------------------------------------------------
@@ -55,38 +58,13 @@ local function MakeKey(bag, slot)
     return id .. ":" .. quality .. ":" .. level
 end
 
+-- Quantité maximale autorisée
 local function MaxQty()
     if current and current.max then return current.max end
     return MAX_STACK
 end
 
--- Formate un nombre avec ses decimales (ex : 1 234,56)
-local DECIMALS = 2     -- nombre de decimales affichees
-local DEC_SEP  = ","   -- separateur decimal ("," ou ".")
-
-local function FormatDecimal(n)
-    local s = string.format("%." .. DECIMALS .. "f", n)
-    local int, frac = s:match("^(%d+)%.?(%d*)$")
-    if not int then return s end
-    local text = FormatNumber(tonumber(int))
-    if frac ~= "" then text = text .. DEC_SEP .. frac end
-    return text
-end
-
--- Moyenne des ventes par unité fournie par Tamriel Trade Centre (si disponible)
-local function UpdateAverage()
-    if not ui.avg then return end
-    local value = GetString(CARACMARCHANDISE_AVG_UNKNOWN)
-    if current and TamrielTradeCentrePrice and TamrielTradeCentrePrice.GetPriceInfo then
-        local link = GetItemLink(current.bag, current.slot)
-        local ok, info = pcall(TamrielTradeCentrePrice.GetPriceInfo, TamrielTradeCentrePrice, link)
-        if ok and info and info.SaleAvg and info.SaleAvg > 0 then
-            value = FormatDecimal(info.SaleAvg) .. " " .. GOLD_ICON
-        end
-    end
-    ui.avg:SetText(GetString(CARACMARCHANDISE_AVG_LABEL) .. value .. "\n" .. GetString(CARACMARCHANDISE_AVG_SOURCE))
-end
-
+-- Quantité saisie, corrigée si besoin
 local function ReadQty()
     local q = math.floor(tonumber(ui.qty:GetText()) or 1)
     if q > MaxQty() then q = MaxQty() end
@@ -94,11 +72,12 @@ local function ReadQty()
     return q
 end
 
+-- Prix unitaire saisi
 local function ReadUnit()
     return math.floor(tonumber(ui.unit:GetText()) or 0)
 end
 
--- Le bouton n'est cliquable que si la quantité saisie correspond au stack
+-- Bouton cliquable seulement si quantité, prix et total sont valides
 local function UpdateButton()
     if not ui.btn then return end
     local ok = false
@@ -111,6 +90,7 @@ local function UpdateButton()
     ui.btn:SetEnabled(ok)
 end
 
+-- Mise à jour de la ligne total en fonction des données saisies
 local function UpdateTotal()
     UpdateButton()
     if not current then
@@ -164,61 +144,32 @@ local function ShowItem(bag, slot)
     CenterItem(true)
 end
 
+-- Vide l'affichage quand aucun objet n'est sélectionné
 local function ClearItem()
     current = nil
-    UpdateAverage()
     ui.icon:SetHidden(true)
     ui.iconCount:SetText("")
     ui.name:SetText(GetString(CARACMARCHANDISE_NO_ITEM))
-    CenterItem(false) 
+    CenterItem(false)
     ui.qty:SetText("")
     ui.unit:SetText("")
     ui.total:SetText(GetString(CARACMARCHANDISE_TOTAL) .. "-")
-    UpdateButton()    
+    UpdateButton()
 end
 
 ---------------------------------------------------------------
--- Definir le prix de la mise en vente (plusieurs méthodes testées)
+-- Appliquer quantité + prix (division du stack si besoin)
 ---------------------------------------------------------------
-
-local function SetPrice(total)
-    local th = TRADING_HOUSE
-    if th and th.SetPendingPostPrice then
-        if pcall(th.SetPendingPostPrice, th, total) then return true end
-    end
-    if SetPendingPostPrice then
-        if pcall(SetPendingPostPrice, total) then return true end
-    end
-    -- dernier recours : ecrire dans le champ de prix natif
-    local c = ZO_TradingHousePostItemPaneFormInvoiceSellPriceAmount
-    if c and c.SetText then
-        c:SetText(tostring(total))
-        local h = c.GetHandler and c:GetHandler("OnTextChanged")
-        if h then pcall(h, c) end
-        return true
-    end
-    return false
-end
-
----------------------------------------------------------------
--- Appliquer quantité + prix (séparation du stack impossible)
----------------------------------------------------------------
-
--- Appelle une fonction protégée du jeu si nécessaire
-local function Secure(name, ...)
-    if IsProtectedFunction(name) then
-        return CallSecureProtected(name, ...)
-    end
-    return _G[name](...)
-end
 
 local OnInventorySlotUpdate   -- définie plus bas
 local SPLIT_EVENT = CM.name .. "_Split"
 
+-- Arrête la surveillance des mises à jour d'inventaire
 local function StopSplitWatch()
     EVENT_MANAGER:UnregisterForEvent(SPLIT_EVENT, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
 end
 
+-- Surveille l'apparition du nouveau stack dans le sac
 local function StartSplitWatch()
     EVENT_MANAGER:RegisterForEvent(SPLIT_EVENT, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventorySlotUpdate)
     EVENT_MANAGER:AddFilterForEvent(SPLIT_EVENT, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
@@ -231,11 +182,12 @@ local function PostStack(bag, slot, qty, total)
     SetPendingItemPost(bag, slot, qty)
     zo_callLater(function()
         if not current or current.bag ~= bag or current.slot ~= slot then return end
-        SetPrice(total)
+        TRADING_HOUSE:SetPendingPostPrice(total)
         UpdateTotal()
     end, 250)
 end
 
+-- Applique quantité et prix (divise le stack si la quantité est partielle)
 local function Apply()
     if not current or split then return end
     local bag, slot = current.bag, current.slot
@@ -261,7 +213,7 @@ local function Apply()
     split = mine
     StartSplitWatch()
     UpdateButton()
-    Secure("RequestMoveItem", bag, slot, BAG_BACKPACK, free, qty)
+    CallSecureProtected("RequestMoveItem", bag, slot, BAG_BACKPACK, free, qty)
 
     -- sécurité : si le jeu ne confirme pas, on débloque
     zo_callLater(function()
@@ -291,6 +243,7 @@ end
 -- Un objet est (de)sélectionné dans l'onglet "Vendre"
 ---------------------------------------------------------------
 
+-- Met à jour la fenêtre selon l'objet sélectionné dans l'onglet "Vendre"
 local function Refresh()
     local bag, slot, count = GetPendingItemPost()
     if not count or count <= 0 or not bag or not slot then
@@ -301,19 +254,23 @@ local function Refresh()
     local key = MakeKey(bag, slot)
     current = { bag = bag, slot = slot, key = key, max = GetSlotStackSize(bag, slot) }
     ShowItem(bag, slot)
-    UpdateAverage()
     ui.qty:SetText(tostring(count))
 
     local saved = key and CM.sv.prix[key]
     if saved then
         ui.unit:SetText(tostring(saved))
-        Apply()
+        if CM.sv.autoReport then
+            Apply()
+        else
+            UpdateTotal()
+        end
     else
         ui.unit:SetText("")
         UpdateTotal()
     end
 end
 
+-- Réagit à un changement d'objet en attente de vente
 local function OnPendingItemUpdate()
     if split then return end
     if Now() < ignoreUntil then
@@ -327,14 +284,17 @@ end
 -- Enregistrement du prix unitaire au moment de la mise en vente
 ---------------------------------------------------------------
 
+-- Mémorise le prix unitaire au moment de la mise en vente
 local function OnRequestPost(bag, slot, qty, price)
     if not ui.win or ui.win:IsHidden() then return end
     if qty and qty > 0 and price and price > 0 then
         local key = MakeKey(bag, slot)
         if key then CM.sv.prix[key] = math.floor(price / qty) end
     end
+    ClearItem()
 end
 
+-- Cache la fenêtre et arrête les écoutes quand on quitte le comptoir
 local function OnCloseTradingHouse()
     ui.win:SetHidden(true)
     split = nil
@@ -343,6 +303,7 @@ local function OnCloseTradingHouse()
     EVENT_MANAGER:UnregisterForEvent(CM.name .. "_Pending", EVENT_TRADING_HOUSE_PENDING_ITEM_UPDATE)
 end
 
+-- Affiche la fenêtre et démarre les écoutes à l'ouverture du comptoir
 local function OnOpenTradingHouse()
     ui.win:SetHidden(false)
     EVENT_MANAGER:RegisterForEvent(CM.name .. "_Close", EVENT_CLOSE_TRADING_HOUSE, OnCloseTradingHouse)
@@ -354,6 +315,7 @@ end
 -- Interface
 ---------------------------------------------------------------
 
+-- Crée un texte (label) avec la police par défaut
 local function Label(name, parent, text)
     local l = CreateControl(name, parent, CT_LABEL)
     l:SetFont(FONT)
@@ -381,6 +343,7 @@ local function Border(parent, target)
     Edge("R", TOPRIGHT, BOTTOMRIGHT, PX, nil)
 end
 
+-- Crée un champ de saisie numérique avec fond et cadre
 local function EditBox(name, parent, x, y, w)
     local bg = CreateControl(name .. "Bg", parent, CT_BACKDROP)
     bg:SetDimensions(w, 30)
@@ -388,7 +351,6 @@ local function EditBox(name, parent, x, y, w)
     bg:SetCenterColor(0, 0, 0, 0.7)
     bg:SetEdgeColor(0, 0, 0, 0)
     Border(parent, bg)
-
     local e = CreateControl(name, bg, CT_EDITBOX)
     e:SetFont(FONT)
     e:SetColor(1, 1, 1, 1)  -- mets en blanc la zone de saisie
@@ -403,6 +365,7 @@ local function EditBox(name, parent, x, y, w)
     return e
 end
 
+-- Crée la fenêtre : cadre, fond, titre, icône, cases, champs et bouton
 local function BuildUI()
     local win = CreateTopLevelWindow("CaracMarchandiseWindow")
     win:SetDimensions(320, 268)
@@ -420,7 +383,7 @@ local function BuildUI()
     bg:SetColor(0, 0, 0, 0.88)
     Border(win, bg)
 
-    -- titre centre, en jaune
+    -- titre centré, en jaune
     local title = Label("CaracMarchandiseTitle", win, "CaracMarchandise")
     title:SetFont(FONT_TITLE)
     title:SetColor(unpack(TITLE_COLOR))
@@ -433,35 +396,74 @@ local function BuildUI()
     ui.icon:SetDimensions(44, 44)
     ui.icon:SetAnchor(TOPLEFT, win, TOPLEFT, 14, 46)
     ui.icon:SetHidden(true)
-
     ui.iconCount = Label("CaracMarchandiseIconCount", win, "")
     ui.iconCount:SetDrawLayer(DL_OVERLAY)
     ui.iconCount:SetAnchor(BOTTOMRIGHT, ui.icon, BOTTOMRIGHT, -2, -1)
-
     ui.name = Label("CaracMarchandiseItem", win, GetString(CARACMARCHANDISE_NO_ITEM))
     ui.name:SetAnchor(LEFT, ui.icon, RIGHT, 10, 0)
     ui.name:SetDimensionConstraints(0, 0, 240, 0)
 
-    ui.avg = Label("CaracMarchandiseAvg", win, GetString(CARACMARCHANDISE_AVG_LABEL) .. GetString(CARACMARCHANDISE_AVG_UNKNOWN) .. "\n" .. GetString(CARACMARCHANDISE_AVG_SOURCE))
-    ui.avg:SetFont(FONT_LIGHT)
-    ui.avg:SetColor(unpack(AVG_COLOR))
-    ui.avg:SetAnchor(TOPLEFT, win, TOPLEFT, 0, 96)
-    ui.avg:SetAnchor(TOPRIGHT, win, TOPRIGHT, 0, 96)
-    ui.avg:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    -- case à cocher : report automatique du prix mémorisé (désactivée de base)
+    local auto = CreateControlFromVirtual("CaracMarchandiseAuto", win, "ZO_CheckButton")
+    auto:SetDimensions(20, 20)
+    ZO_CheckButton_SetCheckState(auto, CM.sv.autoReport)
+    ZO_CheckButton_SetToggleFunction(auto, function(_, checked)
+        CM.sv.autoReport = checked
+    end)
+    local autoLbl = Label("CaracMarchandiseAutoLbl", win, GetString(CARACMARCHANDISE_AUTO))
+    autoLbl:SetColor(unpack(LABEL_COLOR))
+    autoLbl:SetAnchor(LEFT, auto, RIGHT, 8, 0)
 
+    -- infobulle de la case "Report automatique"
+    auto:SetMouseEnabled(true)
+    auto:SetHandler("OnMouseEnter", function(self)
+        InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -4)
+        SetTooltipText(InformationTooltip, GetString(CARACMARCHANDISE_AUTO_TIP))
+    end)
+    auto:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
+
+    -- case à cocher : sélection de l'objet par un clic (prise en compte après /reloadui)
+    local one = CreateControlFromVirtual("CaracMarchandiseOneClick", win, "ZO_CheckButton")
+    one:SetDimensions(20, 20)
+    ZO_CheckButton_SetCheckState(one, CM.sv.oneClick)
+    ZO_CheckButton_SetToggleFunction(one, function(_, checked)
+        CM.sv.oneClick = checked
+    end)
+    local oneLbl = Label("CaracMarchandiseOneClickLbl", win, GetString(CARACMARCHANDISE_ONECLICK))
+    oneLbl:SetColor(unpack(LABEL_COLOR))
+    oneLbl:SetAnchor(LEFT, one, RIGHT, 8, 0)
+
+    -- infobulle d'avertissement pour la sélection du 1 clic
+    one:SetMouseEnabled(true)
+    one:SetHandler("OnMouseEnter", function(self)
+        InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -4)
+        SetTooltipText(InformationTooltip, GetString(CARACMARCHANDISE_ONECLICK_TIP))
+    end)
+    one:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
+
+    -- Centre les 2 cases à cocher (alignées entre elles) selon le libellé le plus long
+    local largeur = 28 + math.max(autoLbl:GetTextWidth(), oneLbl:GetTextWidth())
+    local x = math.floor((320 - largeur) / 2)
+    auto:SetAnchor(TOPLEFT, win, TOPLEFT, x, 98)
+    one:SetAnchor(TOPLEFT, win, TOPLEFT, x, 124)
+
+    -- Affichage de la case quantité
     local qtyLbl = Label("CaracMarchandiseQtyLbl", win, GetString(CARACMARCHANDISE_QTY))
     qtyLbl:SetAnchor(TOPLEFT, win, TOPLEFT, 14, 162)
     ui.qty = EditBox("CaracMarchandiseQty", win, 170, 158, 130)
 
+    -- Affichage de la case prix unitaire
     local unitLbl = Label("CaracMarchandiseUnitLbl", win, string.format(GetString(CARACMARCHANDISE_UNIT_PRICE), GOLD_ICON))
     unitLbl:SetAnchor(TOPLEFT, win, TOPLEFT, 14, 198)
     ui.unit = EditBox("CaracMarchandiseUnit", win, 170, 194, 130)
 
+    -- Affichage du prix total calculé
     ui.total = Label("CaracMarchandiseTotal", win, GetString(CARACMARCHANDISE_TOTAL) .. "-")
     ui.total:SetFont(FONT_LIGHT)
     ui.total:SetColor(unpack(TOTAL_COLOR))
     ui.total:SetAnchor(BOTTOMLEFT, win, BOTTOMLEFT, 14, -16)
 
+    -- Affichage du bouton Appliquer
     local btn = CreateControlFromVirtual("CaracMarchandiseApply", win, "ZO_DefaultButton")
     btn:SetDimensions(120, 28)
     btn:SetAnchor(BOTTOMRIGHT, win, BOTTOMRIGHT, -12, -12)
@@ -469,28 +471,50 @@ local function BuildUI()
     btn:SetText(GetString(CARACMARCHANDISE_APPLY))
     btn:SetHandler("OnClicked", Apply)
     ui.btn = btn
-
     ui.qty:SetHandler("OnTextChanged", ClampQtyField)
     ui.unit:SetHandler("OnTextChanged", UpdateTotal)
     UpdateButton()   -- (bouton grisé au démarrage)
+
+    -- Rangement de la fenêtre dans la table ui
     ui.win = win
+end
+
+---------------------------------------------------------------
+-- Sélection de l'objet par un simple clic gauche (option, décochée par défaut)
+---------------------------------------------------------------
+
+local function OnSlotClicked(inventorySlot, button)
+    if not CM.sv.oneClick then return end
+    if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
+    if not ui.win or ui.win:IsHidden() then return end
+    if GetCursorContentType() ~= MOUSE_CONTENT_EMPTY then return end
+    ZO_InventorySlot_DoPrimaryAction(inventorySlot)
 end
 
 ---------------------------------------------------------------
 -- Démarrage
 ---------------------------------------------------------------
 
+-- Initialise l'addon : sauvegardes, interface, événements et hooks
 local function OnAddOnLoaded(_, addonName)
     if addonName ~= CM.name then return end
     EVENT_MANAGER:UnregisterForEvent(CM.name, EVENT_ADD_ON_LOADED)
 
-    CM.sv  = ZO_SavedVars:NewAccountWide("CaracMarchandiseSV", 1, nil, { prix = {} }, GetWorldName())
+    CM.sv  = ZO_SavedVars:NewAccountWide("CaracMarchandiseSV", 1, nil, { prix = {}, autoReport = false, oneClick = false }, GetWorldName())
     CM.pos = ZO_SavedVars:NewCharacterIdSettings("CaracMarchandiseSV", 1, nil, { x = 40, y = 200 })
 
     BuildUI()
 
     EVENT_MANAGER:RegisterForEvent(CM.name, EVENT_OPEN_TRADING_HOUSE, OnOpenTradingHouse)
+
+    -- simple clic gauche actif si la case est cochée par le joueur
+    -- si décoché arrête déjà l’action tout de suite, même avant le reloadui
+    if CM.sv.oneClick then
+        ZO_PreHook("ZO_InventorySlot_OnSlotClicked", OnSlotClicked)
+    end
+    -- Intercepte la mise en vente pour mémoriser le prix
     ZO_PreHook("RequestPostItemOnTradingHouse", OnRequestPost)
 end
 
+-- Lance OnAddOnLoaded au chargement de l'addon
 EVENT_MANAGER:RegisterForEvent(CM.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)

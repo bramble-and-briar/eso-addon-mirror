@@ -4,7 +4,7 @@
 -----------------------------------------------------------
 KyzderpsDerps = {
     name = "KyzderpsDerps",
-    version = "1.56.0",
+    version = "1.57.0",
 }
 local KD = KyzderpsDerps
 
@@ -220,6 +220,7 @@ local defaultOptions = {
     },
     combat = {
         satiateHunger = false,
+        printOnslaught = false,
     },
     overland = {
         dynamicEventChat = false,

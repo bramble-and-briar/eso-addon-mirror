@@ -71,6 +71,7 @@ function Spud.InitializeSpaulder()
     EVENT_MANAGER:AddFilterForEvent(KyzderpsDerps.name .. "SpaulderActivation", EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
 
     EVENT_MANAGER:RegisterForEvent(KyzderpsDerps.name .. "SpaulderRezone", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+    OnPlayerActivated()
 
     -- Disable spaulder upon LFG joined, because sometimes we can queue from the same dungeon into a new instance
     EVENT_MANAGER:RegisterForEvent(KyzderpsDerps.name .. "SpaulderLFGJoined", EVENT_GROUPING_TOOLS_LFG_JOINED, function()

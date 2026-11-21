@@ -58,7 +58,8 @@ anothernother 6101 Essence of Health + Nirnroot
 ]]
 local function GetEssenceOfHealthWritJournalIndex()
     for i = 1, GetNumJournalQuests() do
-        if (GetJournalQuestId(i) == 6101) then
+        local questId = GetJournalQuestId(i)
+        if (questId == 6100 or questId == 6101) then
             return i
         end
     end
@@ -172,7 +173,8 @@ function Writs.Initialize()
                 KD:msg(zo_strformat("<<1>> ID: <<2>> index: <<3>>", questName, questId, questJournalIndex))
             end
 
-            if (questId == 6101) then -- Essence of Health + Nirnroot
+            if (questId == 6100 -- Essence of Magicka + Imp Stool
+                or questId == 6101) then -- Essence of Health + Nirnroot
                 ScanForEssenceOfHealth(ShowPotionWarning)
             end
         end)

@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/O-Range/Storm-Eye__5074",
+  "archive_path": "addons/O-Range/Class-Eye__5074",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "O-Range",
@@ -15,26 +15,25 @@
   "content_id": "esoui:5074",
   "deleted": false,
   "directories": [
-    "StormEye"
+    "ClassEye"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5074/",
-  "fingerprint": "4ddba168ea5087e66035caab0b2d011ff5f4eb8132fda912b079a56427446f81",
+  "fingerprint": "e7f532584634d0fc7d09500a0475bae99a9df31e79e1ee57547e92b922559806",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw18592.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18593.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18637.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18591.png"
   ],
   "platform": "pc",
   "published": true,
   "source": "esoui",
   "source_id": "5074",
-  "source_url": "https://www.esoui.com/downloads/info5074-StormEye.html",
+  "source_url": "https://www.esoui.com/downloads/info5074-ClassEye.html",
   "stats": {
-    "downloads": 3,
+    "downloads": 21,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 12
   },
-  "title": "Storm Eye",
-  "updated_at": 1795132674000,
-  "version": "3.0"
+  "title": "Class Eye",
+  "updated_at": 1795211806000,
+  "version": "1.0.3"
 }

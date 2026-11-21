@@ -2353,10 +2353,12 @@ end
 --========================================
 --        register
 --========================================
----供 Bar 模块调用：浮动条位置设置变化后重排克隆行(动态预设吃 X/Y 偏移；
----经典走贴图路径不经过这里；迷你行由 MiniBar 模块自管；静态无操作)
+---供 Bar 模块调用：浮动条位置设置变化后重排克隆行(动态/经典两预设都吃 X/Y 偏移，
+---见 layoutDynamic 的锚应用；迷你行由 MiniBar 模块自管；静态无操作。
+---注：classic 自 v3.172 起也用克隆行(layoutDynamic)，旧注释“经典走贴图路径”已过时)
 m.refreshShiftRow = function()
-  if l.active and l.effectivePreset() == "dynamic" then
+  local preset = l.active and l.effectivePreset() or nil
+  if preset == "dynamic" or preset == "classic" then
     l.layoutDynamic()
   end
 end
@@ -2470,7 +2472,11 @@ SLASH_COMMANDS["/adrbackbar"] = function()
                 if (p:GetAlpha() or 1) < 0.99 then
                   issues[#issues + 1] = string.format("a=%.2f", p:GetAlpha())
                 end
-                if (p:GetDrawLayer() or 0) ~= 0 or (p:GetDrawTier() or 0) ~= 1 or (p:GetDrawLevel() or 0) ~= 1 then
+                -- 三元组：与 createPart 缓存的动态放置值比对(第三方高层装饰如
+                -- BUI Edge 会把主栏段抬到 [2/0/1]，旧断言硬编码 [0/1/1] 已过时)
+                local cd = w.cooldown
+                local expL, expT, expV = cd.placedTripleL or 0, cd.placedTripleT or 1, (cd.placedTripleV or 1) + 1
+                if (p:GetDrawLayer() or -1) ~= expL or (p:GetDrawTier() or -1) ~= expT or (p:GetDrawLevel() or -1) ~= expV then
                   issues[#issues + 1] = string.format("tri=%d/%d/%d",
                     p:GetDrawLayer() or -1, p:GetDrawTier() or -1, p:GetDrawLevel() or -1)
                 end

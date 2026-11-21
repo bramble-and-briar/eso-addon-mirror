@@ -20,11 +20,28 @@ local function button(parent,name,x,y,w,text,callback)
     c:SetHandler("OnClicked",callback)
     return c
 end
+
+-- TME shared blue frame; anchored strips follow resizing and scaling.
+local function TMEBlueFrame(parent)
+    local function edge(a,b,c,d,vertical)
+        local t=WINDOW_MANAGER:CreateControl(nil,parent,CT_TEXTURE)
+        t:SetAnchor(a,parent,b,0,0); t:SetAnchor(c,parent,d,0,0)
+        if vertical then t:SetWidth(2) else t:SetHeight(2) end
+        t:SetColor(0.20,0.65,0.90,0.95); t:SetMouseEnabled(false)
+        t:SetDrawLayer(DL_BACKGROUND); t:SetDrawLevel(3)
+    end
+    edge(TOPLEFT,TOPLEFT,TOPRIGHT,TOPRIGHT,false)
+    edge(BOTTOMLEFT,BOTTOMLEFT,BOTTOMRIGHT,BOTTOMRIGHT,false)
+    edge(TOPLEFT,TOPLEFT,BOTTOMLEFT,BOTTOMLEFT,true)
+    edge(TOPRIGHT,TOPRIGHT,BOTTOMRIGHT,BOTTOMRIGHT,true)
+end
+
 local function background(parent,name,r,g,b,a)
     local bg=WINDOW_MANAGER:CreateControl(name,parent,CT_BACKDROP)
     bg:SetAnchorFill(parent)
-    bg:SetCenterColor(r,g,b,a)
-    bg:SetEdgeColor(.75,.55,.20,.9)
+    bg:SetCenterColor(0.015,0.028,0.048,a)
+    bg:SetEdgeColor(0.20,0.65,0.90,0.95)
+    TMEBlueFrame(parent)
     return bg
 end
 -- Slider-driven, resolution-independent positions (0..100% of the available
@@ -353,10 +370,45 @@ function GS:ShowToast(s)
         if self.toastControl and self.toastToken==token then self.toastControl:SetHidden(true) end
     end,(self.saved.toastSeconds or 3)*1000) end
 end
+-- Gamepad START opens the native main menu. Hide only the real-time
+-- Tracker HUD while it is open; do not hide the trader popup or change
+-- the current scene, focus, or saved HUD visibility preference.
+function GS:IsStartMenuOpen()
+    if self.startMenuOpen then return true end
+    if not SCENE_MANAGER or not SCENE_MANAGER.GetScene then return false end
+    local scene=SCENE_MANAGER:GetScene("mainMenuGamepad")
+    if not scene or not scene.GetState then return false end
+    local state=scene:GetState()
+    return state==SCENE_SHOWING or state==SCENE_SHOWN
+end
+function GS:UpdateTrackerHUDVisibility()
+    if not self.hud or not self.saved then return end
+    -- Position preview is explicitly requested by the user and should
+    -- remain visible while adjusting HUD sliders within Add-Ons settings.
+    local preview=self.sliderPreviewId=="hud"
+    self.hud:SetHidden(not (self.saved.showHUD and not self:IsStartMenuOpen()) and not preview)
+end
+function GS:RegisterStartMenuVisibility()
+    if not SCENE_MANAGER or not SCENE_MANAGER.GetScene then return end
+    local scene=SCENE_MANAGER:GetScene("mainMenuGamepad")
+    if not scene or not scene.RegisterCallback then return end
+    self.startMenuOpen = scene.GetState and
+        (scene:GetState()==SCENE_SHOWING or scene:GetState()==SCENE_SHOWN) or false
+    scene:RegisterCallback("StateChange", function(_, newState)
+        if newState==SCENE_SHOWING or newState==SCENE_SHOWN then
+            self.startMenuOpen=true
+        elseif newState==SCENE_HIDING or newState==SCENE_HIDDEN then
+            -- Keep the HUD hidden through the closing transition.
+            self.startMenuOpen=newState~=SCENE_HIDDEN
+        end
+        self:UpdateTrackerHUDVisibility()
+    end)
+    self:UpdateTrackerHUDVisibility()
+end
 function GS:RefreshUI()
     if self.layoutMode then return end
     if not self.hud or not self.saved then return end
-    self.hud:SetHidden(not self.saved.showHUD)
+    self:UpdateTrackerHUDVisibility()
     self.hudTitle:SetText(GOLD.."GOLD STANDARD"..END.."   "..MUTED.."Know What It's Worth."..END)
     local s=self.session
     if self.saved.hudMode==1 then

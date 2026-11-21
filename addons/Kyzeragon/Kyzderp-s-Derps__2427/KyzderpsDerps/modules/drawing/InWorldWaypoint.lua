@@ -92,7 +92,7 @@ end
 ---------------------------------------------------------------------
 function KyzderpsDerps.PrintCurrentPosition()
     local zoneId, worldX, worldY, worldZ = GetUnitRawWorldPosition( "player" )
-    KyzderpsDerps:msg(zo_strformat("zoneId=<<1>> {x = <<2>>, y = <<3>>, z = <<4>>}", zoneId, worldX, worldY, worldZ))
+    KyzderpsDerps:msg(zo_strformat("zoneId=<<1>> heading=<<5>> {x = <<2>>, y = <<3>>, z = <<4>>}", zoneId, worldX, worldY, worldZ, GetPlayerCameraHeading()))
 
     if (CrutchAlerts and CrutchAlerts.Drawing) then
         local key = CrutchAlerts.Drawing.CreatePlacedIcon("CrutchAlerts/assets/poop.dds", worldX, worldY, worldZ, 40)

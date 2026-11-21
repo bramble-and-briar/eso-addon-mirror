@@ -452,7 +452,7 @@ l.openShiftBarFrame = function()
         l.getSavedVars().barShiftOffsetX = left - slotLeft
         l.getSavedVars().barShiftOffsetY = bottom - slotTop
         l.updateWidgets(views.updateWidgetShiftOffset)
-        -- 动态预设下同步克隆行锚(经典走贴图路径不需要)
+        -- 动态/经典预设下同步克隆行锚(两者都吃 X/Y 偏移)
         if backBar.refreshShiftRow then
           backBar.refreshShiftRow()
         end

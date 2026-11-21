@@ -4,11 +4,12 @@
 ## Author: Vixen Hunny
 ## SavedVariables: HPSMeterSavedVars
 ## DependsOn: LibFights>=10000
-## OptionalDependsOn: LibAddonMenu-2.0
-## Description: HPS / HPM and shield per second / minute meter, powered by LibFights
+## OptionalDependsOn: LibAddonMenu-2.0 LibESQL>=10000
+## Description: HPS / HPM and shield per second / minute meter, powered by LibFights. Battleground totals and fight / battleground history (LibESQL).
 
 src/Core.lua
 src/Data.lua
+src/History.lua
 src/UI.lua
 src/Settings.lua
 src/Commands.lua

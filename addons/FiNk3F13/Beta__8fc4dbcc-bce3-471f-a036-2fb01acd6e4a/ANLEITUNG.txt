@@ -1,0 +1,81 @@
+WorldBossTimer 0.3.0 - PS5-Testversion
+Autor: FiNk3--F13--
+
+AENDERUNGEN IN 0.3.0
+Nur der Timer wird angezeigt: keine Ortsnamen und keine zusaetzlichen Icons.
+Der Timer steht ueber dem vorhandenen Weltboss-Symbol, in grosser
+Gamepad-Schrift (34) mit vollstaendig transparentem Hintergrund. Die Beschriftung uebernimmt
+keine eigenen Kartenkoordinaten. Sie ist direkt mit dem ESO-Kartenpin
+verbunden und wird bei Kartenwechseln und wiederverwendeten Pins neu zugeordnet.
+Die Schrift uebernimmt die Zoom-Skalierung des Pins nicht.
+
+ANZEIGE
+5:06 = geschaetzte Restzeit nach beobachtetem Tod.
+--:-- = Todeszeit unbekannt; kein Timer verfuegbar.
+0:00 = geschaetzte Wartezeit abgelaufen, kein bestaetigter Spawn.
+Es werden ausschliesslich vorhandene Weltboss-POI-Symbole beschriftet.
+Ein ausgeblendetes oder nicht entdecktes Symbol bekommt keinen eigenen Ersatz.
+
+ERKENNUNG
+Weltbosse, keine Dungeon-, Gewoelbe- oder oeffentlichen Verliesbosse.
+Kein eigener Schaden erforderlich. ESO muss dem Client den Boss lebend und
+seinen Tod melden. Ob das auch fuer unbeteiligte Zuschauer auf PS5 geschieht,
+ist weiterhin im Spiel zu testen. Bereits vorhandene Leichen liefern keinen
+Todeszeitpunkt. Entfernte unbeobachtete Tode bleiben unbekannt.
+Bei mehreren beobachteten Bossen beginnt der Timer nach dem letzten Tod.
+Nicht gemeldete Bossmitglieder und verpasste Meldungen sind nicht rekonstruierbar.
+Der aktuelle Untergebiets-POI muss als Weltboss-Ort gemeldet werden.
+Standard-Schaetzung: 306 Sekunden; keine garantierte Spawn-Dauer.
+Beim Porten und bei Ladebildschirmen bleiben die Timer erhalten und laufen weiter.
+Beim Aufrufen der urspruenglichen Gebietskarte erscheint dort die verbleibende Zeit.
+Waehrend des Ladens werden alte Boss-Einheiten nicht weiter ausgewertet.
+Nach Instanzwechseln kann die Zeit vom Boss in der neuen Instanz abweichen.
+Nach UI-Neustart, Ausloggen oder Spielneustart sind die Timer weiterhin geloescht.
+Die Anzeige hat kein Tilde-Zeichen; die Zeiten bleiben trotzdem Schaetzungen.
+
+ZUSAETZLICHE ERKENNUNG IN 0.3.0
+Neben Boss-Todeszustaenden werden lokale Kampfmeldungen fuer Tod und Todesstoss
+verarbeitet. Der Toeter muss nicht der eigene Charakter sein.
+Nur eindeutige Namen zuvor kuerzlich erkannter Boss-Einheiten am aktuellen
+Weltboss-Ort werden akzeptiert. Gleiche Bossnamen sind fuer diese Zusatzmethode
+mehrdeutig und werden nicht geraten. Alte Meldungen und Meldungen waehrend
+des Portens werden ignoriert. Bosslisten-Aenderungen loesen neue Beobachtungen aus.
+Kurz verspaetete Lebend-Zustaende koennen einen gerade bestaetigten Tod nicht
+sofort ueberschreiben. Wiederholte Todesmeldungen verlaengern den Timer nicht.
+Die Kartendarstellung schreibt Text und Verankerung nur bei Aenderungen neu.
+
+KEIN GEBIETS-SCAN
+Die normale Weltboss-Kartenmarkierung liefert keinen Live-Todeszeitpunkt.
+Das Add-on kann deshalb keine entfernten unbeobachteten Bosse im Gebiet scannen.
+Eine Kampfmeldung muss zuerst vom Server an deinen Client geliefert werden;
+der Zusatzweg garantiert weder eine groessere Reichweite noch Zustellung
+an unbeteiligte Zuschauer. Dies ist weiterhin auf PS5 zu testen.
+Nicht beobachtete Bossmitglieder, Boss-Slot-Wechsel und fehlende Todesmeldungen
+koennen dazu fuehren, dass keine oder eine unvollstaendige Schaetzung entsteht.
+BEFEHLE
+/finkwb            Hilfe
+/finkwb 306        Schaetzdauer fuer die UI-Sitzung in Sekunden
+/finkwb reset      Beobachtungen loeschen
+
+INSTALLATION / UPDATE
+Den alten Add-on-Upload durch das vollstaendige neue Paket ersetzen.
+Der Ordner heisst jetzt WorldBossTimer; das Manifest WorldBossTimer.addon.
+Die vorherige FiNk3WorldBossTimer-Version nicht parallel aktivieren.
+Der Autor bleibt FiNk3--F13--. Die Lua-Dateien muessen mit hochgeladen werden.
+Auf PS5 erfolgt die Installation ueber den offiziellen ESO-Add-on-Browser;
+eine ZIP auf dem Desktop installiert noch nichts auf der Konsole.
+Das Upload-Verfahren muss fuer diese Version erneut durchlaufen werden.
+
+PRUEFSTATUS
+45 automatisierte Pruefungen bestanden: Timer-Logik sowie simulierte
+Konsolenanbindung, grosse Schrift, kein doppeltes Icon, native Pin-Verankerung,
+Pin-Wiederverwendung, Kartenwechsel und sofortige Anzeige beim Wiedereroeffnen.
+Dies ist kein echter visueller Test in ESO oder auf einer PS5.
+Vor Freigabe im Spiel: Karte oeffnen, mehrfach zoomen und verschieben,
+Karte wechseln, Boss-Tod beobachten und Zuschauer-Erkennung pruefen.
+
+QUELLEN
+https://github.com/esoui/esoui
+https://help.elderscrollsonline.com/app/answers/detail/a_id/69621/
+https://www.esoui.com/forums/showpost.php?p=54825&postcount=3
+https://www.esoui.com/downloads/info2427-1.41.0.html

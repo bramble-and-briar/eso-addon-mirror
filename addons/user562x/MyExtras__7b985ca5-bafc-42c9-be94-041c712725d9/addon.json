@@ -1,16 +1,16 @@
 {
-  "archive_path": "addons/user562x/M-E__7b985ca5-bafc-42c9-be94-041c712725d9",
+  "archive_path": "addons/user562x/MyExtras__7b985ca5-bafc-42c9-be94-041c712725d9",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "user562x",
   "canonical_id": "bethesda:7b985ca5-bafc-42c9-be94-041c712725d9",
   "content_id": "7b985ca5-bafc-42c9-be94-041c712725d9",
   "deleted": false,
-  "fingerprint": "930d67bf2bb66bb2dbc9a374e2e601e01e0f96403038d3b36840c1a77c460d0e",
+  "fingerprint": "01352c73312ac87bf91607546976da6b2143b3027716a50d41e9114d94932180",
   "platform": "console",
   "published": true,
   "source": "bethesda",
   "source_id": "7b985ca5-bafc-42c9-be94-041c712725d9",
   "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/7b985ca5-bafc-42c9-be94-041c712725d9",
-  "title": "M-E"
+  "title": "MyExtras"
 }

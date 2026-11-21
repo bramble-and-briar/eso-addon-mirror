@@ -1,0 +1,48 @@
+<GuiXml>
+    <Controls>
+        <!-- Big alert for automatic demotions. Stays until you close it (button, X or Esc).
+             Several demotions in a row are listed in the same window. -->
+        <TopLevelControl name="FuryGMTAutoAlert" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH">
+            <Dimensions x="760" y="260" />
+            <Anchor point="CENTER" offsetY="-140" />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+                <Texture name="$(parent)Bar" color="CC3333">
+                    <Dimensions y="5" />
+                    <Anchor point="TOPLEFT" offsetX="6" offsetY="6" />
+                    <Anchor point="TOPRIGHT" offsetX="-6" offsetY="6" />
+                </Texture>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-12" offsetY="18" />
+                    <OnClicked>FuryGMT.AutoLog:HideAlert()</OnClicked>
+                    <OnMouseEnter>FuryGMT.Report.ShowTip(self, "Close (Esc)")</OnMouseEnter>
+                    <OnMouseExit>FuryGMT.Report.HideTip()</OnMouseExit>
+                </Button>
+                <Label name="$(parent)Title" font="ZoFontCallout2" color="FF9933" horizontalAlignment="CENTER">
+                    <Dimensions x="680" />
+                    <Anchor point="TOP" offsetY="20" />
+                </Label>
+                <Label name="$(parent)Body" font="ZoFontWinH4" color="FFFFFF">
+                    <Dimensions x="700" />
+                    <Anchor point="TOP" relativeTo="$(parent)Title" relativePoint="BOTTOM" offsetY="14" />
+                </Label>
+                <Button name="$(parent)Open" inherits="ZO_DefaultButton" text="Open log">
+                    <Dimensions x="160" y="30" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Body" relativePoint="BOTTOM" offsetX="-6" offsetY="18" />
+                    <OnClicked>FuryGMT.AutoLog:OpenLogFromAlert()</OnClicked>
+                    <OnMouseEnter>FuryGMT.Report.ShowTip(self, "Closes this alert and opens the Auto tab with the full reason and every withdrawal (/gt auto).")</OnMouseEnter>
+                    <OnMouseExit>FuryGMT.Report.HideTip()</OnMouseExit>
+                </Button>
+                <Button name="$(parent)Dismiss" inherits="ZO_DefaultButton" text="Close">
+                    <Dimensions x="160" y="30" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Body" relativePoint="BOTTOM" offsetX="6" offsetY="18" />
+                    <OnClicked>FuryGMT.AutoLog:HideAlert()</OnClicked>
+                    <OnMouseEnter>FuryGMT.Report.ShowTip(self, "Closes this alert (Esc does the same). Everything stays in the Auto tab.")</OnMouseEnter>
+                    <OnMouseExit>FuryGMT.Report.HideTip()</OnMouseExit>
+                </Button>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

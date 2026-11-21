@@ -3,7 +3,7 @@
 ## Version: 1.0.0
 ## AddOnVersion: 10000
 ## APIVersion: 101049 101050
-## Description: Query ESO game data with SQL: abilities, skills, sets, effects, items, achievements, collectibles, zones, champion points and more. /esql on PC, Settings > Addons > ESQL on console.
+## Description: Query ESO game data with SQL: abilities, skills, sets, effects, items, achievements, collectibles, zones, champion points and more. Keep notes and lists in your own saved tables with INSERT, UPDATE and DELETE. /esql on PC, Settings > Addons > ESQL on console.
 ## SavedVariables: ESQL_SV
 ## DependsOn: LibESQL>=10000
 ## OptionalDependsOn: LibHarvensAddonSettings

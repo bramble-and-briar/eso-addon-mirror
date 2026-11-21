@@ -1,6 +1,13 @@
 -- ESQL SQL engine: tokenizer, parser, compiler and executor (pure Lua 5.1).
 --
 -- Supported:
+--   INSERT INTO t [(cols)] VALUES (...), (...) | INSERT INTO t [(cols)] SELECT ...   (your own tables)
+--   UPDATE t [alias] SET col = expr [, ...] [WHERE ...]                              (your own tables)
+--   DELETE FROM t [alias] [WHERE ...]                                                 (your own tables)
+--   UPSERT INTO / INSERT OR REPLACE / INSERT OR IGNORE / REPLACE INTO ...
+--   INSERT ... ON CONFLICT [(cols)] DO NOTHING | DO UPDATE SET c = excluded.c [WHERE ...]
+--   INSERT ... ON DUPLICATE KEY UPDATE c = VALUES(c)                                   (MySQL style)
+--   CREATE TABLE [IF NOT EXISTS] t (col [INT|REAL|TEXT|BOOL], ...)
 --   SELECT [DISTINCT] expr [AS a], *, t.* [INTO new_table]
 --   FROM t [AS a] | (SELECT ...) a  [ [INNER|LEFT [OUTER]|CROSS] JOIN t2 ON ... | , t2 ]
 --   WHERE / GROUP BY / HAVING / ORDER BY expr [ASC|DESC] / LIMIT n [OFFSET m] / LIMIT m, n
@@ -185,8 +192,16 @@ function P:statement()
     elseif self:isWord("HELP") then
         self:next()
         node = { k = "help" }
+    elseif self:isWord("INSERT") or self:isWord("UPSERT") or self:isWord("REPLACE") then
+        node = self:insert()
+    elseif self:isWord("UPDATE") then
+        node = self:update()
+    elseif self:isWord("DELETE") then
+        node = self:delete()
+    elseif self:isWord("CREATE") then
+        node = self:createTable()
     else
-        fail("queries start with SELECT, SHOW TABLES, DESCRIBE, DROP TABLE, REFRESH, SCAN or HELP")
+        fail("queries start with SELECT, INSERT, UPSERT, UPDATE, DELETE, CREATE TABLE, SHOW TABLES, DESCRIBE, DROP TABLE, REFRESH, SCAN or HELP")
     end
     self:acceptOp(";")
     if self:peek().t ~= "eof" then fail("unexpected text near %s", self:near()) end
@@ -272,6 +287,184 @@ function P:select()
     return q
 end
 
+-- INSERT INTO t [(col, ...)] VALUES (...), (...)  |  INSERT INTO t [(col, ...)] SELECT ...
+-- col = expr [, col = expr ...]  (UPDATE ... SET, ON CONFLICT DO UPDATE SET)
+function P:setList(what)
+    local sets = {}
+    repeat
+        local colTok = self:peek()
+        local col = self:ident("a column name")
+        if self:acceptOp(".") then col = self:ident("a column name") end   -- t.col
+        local eq = self:peek()
+        if not (eq.t == "op" and eq.v == "=") then fail("expected '=' after %s %s near %s", what, col, self:near()) end
+        self:next()
+        sets[#sets + 1] = { col = lower(col), expr = self:expr(), tok = colTok }
+    until not self:acceptOp(",")
+    return sets
+end
+
+function P:insert()
+    local first = upper(self:next().v)
+    local conflict
+    if first == "UPSERT" then
+        conflict = { mode = "merge" }
+    elseif first == "REPLACE" then
+        conflict = { mode = "replace" }
+    elseif self:acceptKw("OR") then
+        if self:isWord("REPLACE") then conflict = { mode = "replace" }
+        elseif self:isWord("IGNORE") then conflict = { mode = "nothing" }
+        else fail("expected INSERT OR REPLACE or INSERT OR IGNORE near %s", self:near()) end
+        self:next()
+    end
+    self:expectKw("INTO")
+    local node = { k = "insert", name = lower((self:ident("a table name"))), conflict = conflict }
+    if self:isOp("(") and not self:isKw("SELECT", 1) then
+        self:next()
+        node.cols = {}
+        repeat node.cols[#node.cols + 1] = lower((self:ident("a column name"))) until not self:acceptOp(",")
+        self:expectOp(")")
+    end
+    if self:isWord("VALUES") then
+        self:next()
+        node.values = {}
+        repeat
+            self:expectOp("(")
+            local tuple = {}
+            repeat tuple[#tuple + 1] = self:expr() until not self:acceptOp(",")
+            self:expectOp(")")
+            node.values[#node.values + 1] = tuple
+        until not self:acceptOp(",")
+    elseif self:isKw("SELECT") then
+        node.query = self:select()
+    elseif self:isOp("(") and self:isKw("SELECT", 1) then
+        self:next()
+        node.query = self:select()
+        self:expectOp(")")
+    else
+        fail("expected VALUES (...) or SELECT after INSERT INTO %s near %s", node.name, self:near())
+    end
+    -- ON CONFLICT [(cols)] DO NOTHING | DO UPDATE SET ... [WHERE ...]
+    -- ON DUPLICATE KEY UPDATE ...                          (MySQL)
+    if self:isKw("ON") and (self:isWord("CONFLICT", 1) or self:isWord("DUPLICATE", 1)) then
+        if node.conflict then fail("%s INTO already says what to do on a conflict; leave out ON ...", first) end
+        self:next()
+        local c = {}
+        if self:isWord("CONFLICT") then
+            self:next()
+            if self:acceptOp("(") then
+                c.cols = {}
+                repeat c.cols[#c.cols + 1] = lower((self:ident("a column name"))) until not self:acceptOp(",")
+                self:expectOp(")")
+            end
+            if not self:isWord("DO") then fail("expected DO NOTHING or DO UPDATE SET near %s", self:near()) end
+            self:next()
+            if self:isWord("NOTHING") then
+                self:next()
+                c.mode = "nothing"
+            elseif self:isWord("UPDATE") then
+                self:next()
+                if not self:isWord("SET") then fail("expected SET after DO UPDATE near %s", self:near()) end
+                self:next()
+                c.mode, c.sets = "custom", self:setList("SET")
+                if self:acceptKw("WHERE") then c.where = self:expr() end
+            else
+                fail("expected DO NOTHING or DO UPDATE SET near %s", self:near())
+            end
+        else
+            self:next()   -- DUPLICATE
+            if not self:isWord("KEY") then fail("expected ON DUPLICATE KEY UPDATE near %s", self:near()) end
+            self:next()
+            if not self:isWord("UPDATE") then fail("expected ON DUPLICATE KEY UPDATE near %s", self:near()) end
+            self:next()
+            c.mode, c.sets, c.mysql = "custom", self:setList("UPDATE"), true
+        end
+        node.conflict = c
+    end
+    return node
+end
+
+-- UPDATE t [AS alias] SET col = expr [, col = expr] [WHERE cond]
+function P:update()
+    self:next()
+    local name = lower((self:ident("a table name")))
+    local node = { k = "update", name = name, alias = name, sets = {} }
+    if self:acceptKw("AS") then
+        node.alias = lower((self:ident("an alias")))
+    elseif self:peek().t == "id" and not self:isWord("SET") then
+        node.alias = lower(self:next().v)
+    end
+    if not self:isWord("SET") then fail("expected SET after UPDATE %s near %s", name, self:near()) end
+    self:next()
+    node.sets = self:setList("SET")
+    if self:acceptKw("WHERE") then node.where = self:expr() end
+    return node
+end
+
+-- DELETE FROM t [[AS] alias] [WHERE cond]
+function P:delete()
+    self:next()
+    self:expectKw("FROM")
+    local name = lower((self:ident("a table name")))
+    local node = { k = "delete", name = name, alias = name }
+    if self:acceptKw("AS") then
+        node.alias = lower((self:ident("an alias")))
+    elseif self:peek().t == "id" then
+        node.alias = lower(self:next().v)
+    end
+    if self:acceptKw("WHERE") then node.where = self:expr() end
+    return node
+end
+
+-- CREATE TABLE [IF NOT EXISTS] t (col [type], ...)
+function P:createTable()
+    self:next()
+    if not self:isWord("TABLE") then fail("expected CREATE TABLE name (columns)") end
+    self:next()
+    local node = { k = "create", cols = {} }
+    if self:isWord("IF") then
+        self:next(); self:expectKw("NOT"); self:expectKw("EXISTS")
+        node.ifNotExists = true
+    end
+    node.name = lower((self:ident("a table name")))
+    self:expectOp("(")
+    repeat
+        if self:isWord("PRIMARY") and self:isWord("KEY", 1) then
+            -- table constraint: PRIMARY KEY (a, b)
+            self:next(); self:next()
+            if node.primaryKey then fail("PRIMARY KEY is given twice") end
+            self:expectOp("(")
+            node.primaryKey = {}
+            repeat node.primaryKey[#node.primaryKey + 1] = lower((self:ident("a column name"))) until not self:acceptOp(",")
+            self:expectOp(")")
+        else
+            local col = { name = lower((self:ident("a column name"))) }
+            if self:peek().t == "id" and not (self:isWord("PRIMARY") and self:isWord("KEY", 1)) then
+                col.type = lower(self:next().v)
+                if self:acceptOp("(") then
+                    -- VARCHAR(40), DECIMAL(10, 2): sizes are accepted and ignored
+                    repeat self:intLiteral("a type size") until not self:acceptOp(",")
+                    self:expectOp(")")
+                end
+            end
+            -- column constraints
+            while true do
+                if self:isWord("PRIMARY") and self:isWord("KEY", 1) then
+                    self:next(); self:next()
+                    col.primary = true
+                elseif self:isKw("NOT") and self:isKw("NULL", 1) then
+                    self:next(); self:next()   -- accepted; key columns are never NULL anyway
+                else
+                    break
+                end
+            end
+            node.cols[#node.cols + 1] = col
+        end
+    until not self:acceptOp(",")
+    self:expectOp(")")
+    if #node.cols == 0 then fail("CREATE TABLE needs at least one column") end
+    return node
+end
+
 function P:intLiteral(what)
     local t = self:peek()
     if t.t ~= "num" then fail("%s needs a number near %s", what, self:near()) end
@@ -344,7 +537,13 @@ function P:cmpExpr()
                 self:next(); neg = true
             end
             if self:acceptKw("LIKE") then
-                a = self:span({ k = "like", a = a, b = self:concatExpr(), neg = neg }, st)
+                local pattern = self:concatExpr()
+                local esc
+                if self:isWord("ESCAPE") and not self:isOp("(", 1) then
+                    self:next()
+                    esc = self:concatExpr()
+                end
+                a = self:span({ k = "like", a = a, b = pattern, esc = esc, neg = neg }, st)
             elseif self:acceptKw("IN") then
                 self:expectOp("(")
                 local node = { k = "in", a = a, neg = neg }
@@ -474,6 +673,12 @@ function P:primary()
         self:next()
         if self:isOp("(") and not t.q then
             return self:funcCall(upper(t.v), st)
+        end
+        -- standard SQL: these are written without brackets
+        local up = upper(t.v)
+        if not t.q and (up == "CURRENT_TIMESTAMP" or up == "CURRENT_DATE" or up == "CURRENT_TIME" or up == "LOCALTIMESTAMP")
+            and not self:isOp(".") then
+            return self:span({ k = "fn", name = up, args = {} }, st)
         end
         if self:isOp(".") and self:peek(1).t == "id" then
             self:next()
@@ -615,7 +820,8 @@ end
 local function toText(v)
     if v == nil then return nil end
     if type(v) == "number" then
-        if v == floor(v) and v > -1e15 and v < 1e15 then return format("%d", v) end
+        -- %.0f, not %d: %d is 32-bit in some Lua builds (2^40 would print as -2147483648)
+        if v == floor(v) and v > -1e15 and v < 1e15 then return v == 0 and "0" or format("%.0f", v) end
         return tostring(v)
     end
     return tostring(v)
@@ -627,11 +833,41 @@ SQL.ToText = toText
 ---------------------------------------------------------------------------
 local likeCache, likeCacheSize = {}, 0
 
-local function likeMatcher(pat)
-    local m = likeCache[pat]
+local LUA_MAGIC = "[%^%$%(%)%%%.%[%]%*%+%-%?]"
+
+-- the one-character escape of LIKE ... ESCAPE 'c'
+local function checkEscape(v)
+    local e = toText(v)
+    if #e ~= 1 then fail("ESCAPE needs exactly one character (got '%s')", e) end
+    return e
+end
+
+local function likeMatcher(pat, esc)
+    local cacheKey = esc and (pat .. "\0" .. esc) or pat
+    local m = likeCache[cacheKey]
     if m then return m end
     local lp = lower(pat)
-    if not find(lp, "_", 1, true) then
+    local le = esc and lower(esc)
+    if le and find(lp, le, 1, true) then
+        -- the pattern uses the escape character: the character after it is literal
+        local buf, i, n = { "^" }, 1, #lp
+        while i <= n do
+            local c = sub(lp, i, i)
+            if c == le then
+                i = i + 1
+                if i > n then fail("the LIKE pattern ends with the escape character '%s'", esc) end
+                local lit = sub(lp, i, i)
+                buf[#buf + 1] = find(lit, LUA_MAGIC) and ("%" .. lit) or lit
+            elseif c == "%" then buf[#buf + 1] = ".-"
+            elseif c == "_" then buf[#buf + 1] = "."
+            elseif find(c, LUA_MAGIC) then buf[#buf + 1] = "%" .. c
+            else buf[#buf + 1] = c end
+            i = i + 1
+        end
+        buf[#buf + 1] = "$"
+        local lua = table.concat(buf)
+        m = function(s) return find(s, lua) ~= nil end
+    elseif not find(lp, "_", 1, true) then
         local inner = lp:match("^%%([^%%]*)%%$")
         if inner then
             m = function(s) return find(s, inner, 1, true) ~= nil end
@@ -663,14 +899,14 @@ local function likeMatcher(pat)
         m = function(s) return find(s, lua) ~= nil end
     end
     if likeCacheSize > 500 then likeCache, likeCacheSize = {}, 0 end
-    likeCache[pat] = m
+    likeCache[cacheKey] = m
     likeCacheSize = likeCacheSize + 1
     return m
 end
 
-local function like(s, pat)
+local function like(s, pat, esc)
     if s == nil or pat == nil then return nil end
-    return likeMatcher(toText(pat))(lower(toText(s)))
+    return likeMatcher(toText(pat), esc)(lower(toText(s)))
 end
 
 ---------------------------------------------------------------------------
@@ -802,6 +1038,18 @@ FUNCS.CONCAT_WS = function(sep, ...)
     return table.concat(buf, toText(sep) or "")
 end
 FUNCS.CLEAN = function(s) return E.StripMarkup(E.CleanName(str(s))) end
+-- ESCAPE(text [, char]): makes text match itself in LIKE ... ESCAPE char
+-- (default \): % _ and the escape character get the escape character in front
+FUNCS.ESCAPE = function(s, esc)
+    s = str(s)
+    if s == nil then return nil end
+    esc = esc == nil and "\\" or checkEscape(esc)
+    return (s:gsub(".", function(c)
+        if c == esc or c == "%" or c == "_" then return esc .. c end
+    end))
+end
+-- QUOTE(x): x as an SQL literal ('it''s', 42, NULL, TRUE)
+FUNCS.QUOTE = function(v) return E.Quote(v) end
 FUNCS.STRIP = FUNCS.CLEAN
 FUNCS.ICON = function(path, size)
     path = str(path)
@@ -817,14 +1065,133 @@ FUNCS.STR = function(id)
     if type(id) ~= "number" or not GetString then return nil end
     return GetString(id)
 end
-FUNCS.NOW = function() return GetTimeStamp and GetTimeStamp() or os.time() end
-FUNCS.DATE = function(ts, fmt)
+---------------------------------------------------------------------------
+-- Date and time. os.date is used when the game has it; otherwise dates are
+-- worked out from GetTimeStamp() (UTC) and the local clock (GetDate,
+-- GetSecondsSinceMidnight), so these work on console too.
+---------------------------------------------------------------------------
+local hasOsDate = type(os) == "table" and type(os.date) == "function"
+local hasOsTime = type(os) == "table" and type(os.time) == "function"
+
+-- days since 1970-01-01 <-> calendar date (proleptic Gregorian)
+local function civilFromDays(z)
+    z = z + 719468
+    local era = floor(z / 146097)
+    local doe = z - era * 146097
+    local yoe = floor((doe - floor(doe / 1460) + floor(doe / 36524) - floor(doe / 146096)) / 365)
+    local doy = doe - (365 * yoe + floor(yoe / 4) - floor(yoe / 100))
+    local mp = floor((5 * doy + 2) / 153)
+    local d = doy - floor((153 * mp + 2) / 5) + 1
+    local m = mp < 10 and mp + 3 or mp - 9
+    local y = yoe + era * 400 + (m <= 2 and 1 or 0)
+    return y, m, d
+end
+
+local function daysFromCivil(y, m, d)
+    if m <= 2 then y = y - 1 end
+    local era = floor(y / 400)
+    local yoe = y - era * 400
+    local mp = m > 2 and m - 3 or m + 9
+    local doy = floor((153 * mp + 2) / 5) + d - 1
+    local doe = yoe * 365 + floor(yoe / 4) - floor(yoe / 100) + doy
+    return era * 146097 + doe - 719468
+end
+SQL.CivilFromDays, SQL.DaysFromCivil = civilFromDays, daysFromCivil
+
+local function utcNow()
+    if GetTimeStamp then return GetTimeStamp() end
+    if hasOsTime then return os.time() end
+    return 0
+end
+SQL.UtcNow = utcNow
+
+-- seconds to add to UTC for the local time right now (only used without os.date)
+local function localOffset()
+    if GetDate and GetSecondsSinceMidnight then
+        local ymd = GetDate()
+        local y, m, d = floor(ymd / 10000), floor(ymd / 100) % 100, ymd % 100
+        local localSecs = daysFromCivil(y, m, d) * 86400 + GetSecondsSinceMidnight()
+        return floor((localSecs - utcNow()) / 900 + 0.5) * 900   -- time zones are whole quarter hours
+    end
+    return 0
+end
+
+local function pad2(n) return (n < 10 and "0" or "") .. n end
+
+-- Format a Unix timestamp in local time. fmt uses os.date / strftime codes:
+-- %Y %m %d %H %M %S %y %%  (others need os.date). Default: 2026-11-20 14:05:33
+function SQL.FormatTime(ts, fmt)
+    fmt = fmt or "%Y-%m-%d %H:%M:%S"
+    if hasOsDate then
+        local ok, text = pcall(os.date, fmt, ts)
+        if ok and type(text) == "string" then return text end
+    end
+    local t = floor(ts) + localOffset()
+    local days = floor(t / 86400)
+    local secs = t - days * 86400
+    local y, m, d = civilFromDays(days)
+    local parts = {
+        Y = tostring(y), y = pad2(y % 100), m = pad2(m), d = pad2(d),
+        H = pad2(floor(secs / 3600)), M = pad2(floor(secs / 60) % 60), S = pad2(secs % 60), ["%"] = "%",
+    }
+    return (fmt:gsub("%%(.)", function(c) return parts[c] or ("%" .. c) end))
+end
+
+-- "2026-11-20", "2026-11-20 14:05", "2026-11-20T14:05:33" (local time) -> Unix timestamp
+function SQL.ParseTime(text)
+    text = tostring(text)
+    local y, mo, d, rest = text:match("^%s*(%d%d%d%d)%-(%d%d?)%-(%d%d?)(.*)$")
+    if not y then return nil end
+    local h, mi, se = rest:match("^[%sT]+(%d%d?):(%d%d)(.*)$")
+    local sec = 0
+    if h then sec = tonumber((se or ""):match("^:(%d%d)")) or 0 end
+    y, mo, d = tonumber(y), tonumber(mo), tonumber(d)
+    h, mi = tonumber(h) or 0, tonumber(mi) or 0
+    if mo < 1 or mo > 12 or d < 1 or d > 31 or h > 23 or mi > 59 or sec > 59 then return nil end
+    if hasOsTime then
+        local ok, ts = pcall(os.time, { year = y, month = mo, day = d, hour = h, min = mi, sec = sec })
+        if ok and ts then return ts end
+    end
+    return daysFromCivil(y, mo, d) * 86400 + h * 3600 + mi * 60 + sec - localOffset()
+end
+
+-- NOW(), CURRENT_TIMESTAMP: '2026-11-20 14:05:33' in local time (like MySQL)
+FUNCS.NOW = function() return SQL.FormatTime(utcNow()) end
+FUNCS.CURRENT_TIMESTAMP = FUNCS.NOW
+FUNCS.LOCALTIMESTAMP = FUNCS.NOW
+FUNCS.CURRENT_DATE = function() return SQL.FormatTime(utcNow(), "%Y-%m-%d") end
+FUNCS.CURDATE = FUNCS.CURRENT_DATE
+FUNCS.CURRENT_TIME = function() return SQL.FormatTime(utcNow(), "%H:%M:%S") end
+FUNCS.CURTIME = FUNCS.CURRENT_TIME
+-- UNIX_TIMESTAMP(): seconds since 1970 (GetTimeStamp); UNIX_TIMESTAMP('2026-11-20 14:05') parses
+FUNCS.UNIX_TIMESTAMP = function(v)
+    if v == nil then return utcNow() end
+    if type(v) == "number" then return v end
+    return SQL.ParseTime(v)
+end
+-- FROM_UNIXTIME(ts [, fmt]): a stored timestamp as local date-time text
+FUNCS.FROM_UNIXTIME = function(ts, fmt)
     ts = num(ts)
     if not ts then return nil end
-    if os and os.date then return os.date(str(fmt) or "%Y-%m-%d %H:%M:%S", ts) end
-    if FormatAchievementLinkTimestamp then return FormatAchievementLinkTimestamp(ts) end
-    return tostring(ts)
+    return SQL.FormatTime(ts, str(fmt))
 end
+-- DATE(ts [, fmt]) formats a timestamp (default with the time); DATE('2026-11-20 14:05') gives the date part
+FUNCS.DATE = function(v, fmt)
+    if type(v) == "string" and not tonumber(v) then
+        local datePart = v:match("^%s*(%d%d%d%d%-%d%d?%-%d%d?)")
+        return datePart
+    end
+    local ts = num(v)
+    if not ts then return nil end
+    return SQL.FormatTime(ts, str(fmt) or "%Y-%m-%d %H:%M:%S")
+end
+
+-- zero-argument time functions are worked out once per statement, so every
+-- row of one query sees the same time (like MySQL)
+SQL.STATEMENT_CONSTANT = {
+    NOW = true, CURRENT_TIMESTAMP = true, LOCALTIMESTAMP = true, CURRENT_DATE = true, CURDATE = true,
+    CURRENT_TIME = true, CURTIME = true, UNIX_TIMESTAMP = true,
+}
 FUNCS.MS_TO_S = function(ms) ms = num(ms); return ms and ms / 1000 end
 FUNCS.RANDOM = function(a, b)
     if a and b then return math.random(num(a), num(b)) end
@@ -885,7 +1252,7 @@ local function resolveColumn(node, cc)
     end
     local found, foundTi
     for ti, src in ipairs(cc.sources) do
-        local col = src.colIndex[name]
+        local col = not src.qualifiedOnly and src.colIndex[name]
         if col then
             if found then fail("column '%s' is ambiguous; prefix it with a table alias", node.name) end
             found, foundTi = col, ti
@@ -1035,9 +1402,21 @@ compile = function(node, cc)
     elseif k == "like" then
         local a = compile(node.a, cc)
         local neg = node.neg
+        -- ESCAPE 'c': a constant is checked once; an expression on every row
+        local escFn, escConst, escIsConst
+        if node.esc then
+            local ok, ev = constValue(node.esc)
+            if ok then
+                escIsConst = true
+                if ev ~= nil then escConst = checkEscape(ev) end
+            else
+                escFn = compile(node.esc, cc)
+            end
+        end
         local okc, pv = constValue(node.b)
-        if okc and pv ~= nil then
-            local m = likeMatcher(toText(pv))
+        if okc and pv ~= nil and (not node.esc or escIsConst) then
+            if node.esc and escConst == nil then return function() return nil end end   -- ESCAPE NULL
+            local m = likeMatcher(toText(pv), escConst)
             return function(ctx)
                 local s = a(ctx)
                 if s == nil then return nil end
@@ -1048,7 +1427,17 @@ compile = function(node, cc)
         end
         local b = compile(node.b, cc)
         return function(ctx)
-            local r = like(a(ctx), b(ctx))
+            local e
+            if node.esc then
+                if escIsConst then
+                    e = escConst
+                else
+                    local ev = escFn(ctx)
+                    e = ev ~= nil and checkEscape(ev) or nil
+                end
+                if e == nil then return nil end
+            end
+            local r = like(a(ctx), b(ctx), e)
             if r == nil then return nil end
             if neg then return not r end
             return r
@@ -1181,13 +1570,30 @@ compile = function(node, cc)
                 return best
             end
         end
+        if name == "VALUES" then
+            -- MySQL: VALUES(col) is the value the INSERT tried to write
+            local arg = node.args[1]
+            if not cc.excludedTi or #node.args ~= 1 or arg.k ~= "col" then
+                fail("VALUES(column) only works in ON DUPLICATE KEY UPDATE")
+            end
+            local src = cc.sources[cc.excludedTi]
+            local col = src.colIndex[lower(arg.name)]
+            if not col then fail("table %s has no column '%s'", src.def.name, arg.name) end
+            return colClosure(cc.excludedTi, col.key, nil)
+        end
         local fn = FUNCS[name]
         if not fn then fail("unknown function %s()", name) end
         if node.star then fail("%s(*) is not valid", name) end
         local args = {}
         for i, a in ipairs(node.args) do args[i] = compile(a, cc) end
         local n = #args
-        if n == 0 then return function() return fn() end end
+        if n == 0 then
+            if SQL.STATEMENT_CONSTANT[name] then
+                local v = fn()
+                return function() return v end
+            end
+            return function() return fn() end
+        end
         if n == 1 then local a1 = args[1]; return function(ctx) return fn(a1(ctx)) end end
         if n == 2 then local a1, a2 = args[1], args[2]; return function(ctx) return fn(a1(ctx), a2(ctx)) end end
         if n == 3 then
@@ -1746,10 +2152,18 @@ end
 ---------------------------------------------------------------------------
 local HELP = {
     "SELECT cols FROM table [JOIN t2 ON ...] [WHERE ...] [GROUP BY ...] [HAVING ...] [ORDER BY ... DESC] [LIMIT n]",
-    "SHOW TABLES  |  DESCRIBE table  |  SCAN abilities|items  |  REFRESH table|ALL  |  DROP TABLE name",
+    "SHOW TABLES  |  DESCRIBE table  |  SCAN abilities|items|savedvariables  |  REFRESH table|ALL  |  DROP TABLE name",
+    "Other add-ons' saved data: SELECT * FROM saved_variables / sv_tables / sv_values, and SELECT * FROM sv_<name>_<list>",
     "SELECT ... INTO name FROM ...  saves the result as a table you can query later",
+    "CREATE TABLE notes (id INT, text TEXT)  |  INSERT INTO notes VALUES (1, 'hi'), (2, 'yo')  |  INSERT INTO notes (id) SELECT ...",
+    "UPDATE notes SET text = 'done', id = id + 100 WHERE id = 1   (no WHERE = every row)",
+    "CREATE TABLE kills (boss TEXT PRIMARY KEY, best REAL)  |  UPSERT INTO kills VALUES ('Zaan', 58)",
+    "INSERT ... ON CONFLICT (boss) DO UPDATE SET best = MIN(best, excluded.best)  |  INSERT OR REPLACE / OR IGNORE",
+    "DELETE FROM notes WHERE id > 100   (no WHERE = every row; DROP TABLE removes the table itself)",
     "Text matching is case-insensitive.  LIKE '%fire%'   MATCH(name, 'Lua pattern')",
+    "LIKE '%100!%%' ESCAPE '!' matches a real %  |  name LIKE '%' || ESCAPE(?) || '%' ESCAPE '\\'  |  QUOTE(x)",
     "Functions: LOWER UPPER LENGTH SUBSTR REPLACE INSTR CONTAINS TRIM ROUND ABS COALESCE IIF CASE CAST PRINTF CLEAN ICON ENUM",
+    "Time: NOW() = '2026-11-20 14:05:33'  CURRENT_DATE  CURRENT_TIME  UNIX_TIMESTAMP()  FROM_UNIXTIME(ts)  DATE(...)",
     "Game lookups: ABILITY_NAME(id) ABILITY_DESC(id) ABILITY_ICON(id) SET_NAME(id) ZONE_NAME(id) ITEM_NAME(id) ITEM_LINK(id) COLLECTIBLE_NAME(id)",
     "Aggregates: COUNT(*) COUNT(DISTINCT x) SUM AVG MIN MAX TOTAL GROUP_CONCAT(x, ', ')",
     "Examples: SELECT * FROM abilities WHERE name LIKE '%rune%' LIMIT 50",
@@ -1761,7 +2175,184 @@ SQL.HELP = HELP
 local function messageResult(lines)
     local rows = {}
     for i, l in ipairs(lines) do rows[i] = { l } end
-    return { columns = { "info" }, rows = rows, elapsedMs = 0 }
+    return { columns = { "info" }, rows = rows, elapsedMs = 0, message = lines[1] }
+end
+
+-- UPDATE: SET expressions and WHERE see the row as it was before the change.
+function SQL.ExecuteUpdate(stmt)
+    local t0 = E.NowMs()
+    local def = E.GetTable(stmt.name)
+    if not def then fail("no table '%s'", stmt.name) end
+    E.CheckWritable(def, "UPDATE")
+    local src = makeSource({ name = stmt.name, alias = stmt.alias })
+    local cc = { sources = { src } }
+
+    local sets, seen = {}, {}
+    for i, s in ipairs(stmt.sets) do
+        local col = def.colIndex[s.col]
+        if not col then
+            local names = {}
+            for j, c in ipairs(def.columns) do names[j] = c.name end
+            fail("table %s has no column '%s'. Columns: %s", def.name, s.col, table.concat(names, ", "))
+        end
+        if seen[col.key] then fail("column '%s' is set twice", col.key) end
+        seen[col.key] = true
+        sets[i] = { key = col.key, fn = compile(s.expr, cc) }
+    end
+    local where = stmt.where and compile(stmt.where, cc)
+
+    local rows = def.kind == "user" and def.rows or E.GetRows(def)
+    local updates = {}
+    local ctx = {}
+    for _, row in ipairs(rows) do
+        Tick()
+        ctx[1] = row
+        if not where or truth(where(ctx)) == true then
+            local changes = {}
+            for _, s in ipairs(sets) do
+                local v = s.fn(ctx)
+                if v == nil then v = E.NULL end
+                changes[s.key] = v
+            end
+            updates[#updates + 1] = { row = row, changes = changes }
+        end
+    end
+
+    local n = E.UpdateRows(def, updates)
+    local res = messageResult({ format("Updated %d row%s in %s", n, n == 1 and "" or "s", def.name) })
+    res.elapsedMs = E.NowMs() - t0
+    res.rowsAffected = n
+    return res
+end
+
+-- DELETE: WHERE is evaluated for every row first, then the matches are removed.
+function SQL.ExecuteDelete(stmt)
+    local t0 = E.NowMs()
+    local def = E.GetTable(stmt.name)
+    if not def then fail("no table '%s'", stmt.name) end
+    E.CheckWritable(def, "DELETE")
+    local src = makeSource({ name = stmt.name, alias = stmt.alias })
+    local where = stmt.where and compile(stmt.where, { sources = { src } })
+
+    local rows = def.kind == "user" and def.rows or E.GetRows(def)
+    local doomed, ctx = {}, {}
+    for _, row in ipairs(rows) do
+        Tick()
+        ctx[1] = row
+        if not where or truth(where(ctx)) == true then doomed[#doomed + 1] = row end
+    end
+
+    local n = E.DeleteRows(def, doomed)
+    local res = messageResult({ format("Deleted %d row%s from %s", n, n == 1 and "" or "s", def.name) })
+    res.elapsedMs = E.NowMs() - t0
+    res.rowsAffected = n
+    return res
+end
+
+local function executeInsert(stmt)
+    local t0 = E.NowMs()
+    local def = E.GetTable(stmt.name)
+    if not def then
+        fail("no table '%s'. Create it first: CREATE TABLE %s (col1 TEXT, col2 INT, ...)", stmt.name, stmt.name)
+    end
+    E.CheckWritable(def, "INSERT")
+
+    -- target columns
+    local targets = {}
+    if stmt.cols then
+        local seen = {}
+        for i, name in ipairs(stmt.cols) do
+            local col = def.colIndex[name]
+            if not col then
+                local names = {}
+                for j, c in ipairs(def.columns) do names[j] = c.name end
+                fail("table %s has no column '%s'. Columns: %s", def.name, name, table.concat(names, ", "))
+            end
+            if seen[name] then fail("column '%s' is listed twice", name) end
+            seen[name] = true
+            targets[i] = col.key
+        end
+    else
+        for i, c in ipairs(def.columns) do targets[i] = c.key end
+    end
+    local width = #targets
+
+    local objs = {}
+    local function addRow(values, n)
+        if n ~= width then
+            fail("%s expects %d value%s per row but got %d", stmt.cols and "the column list" or ("table " .. def.name),
+                width, width == 1 and "" or "s", n)
+        end
+        local obj = {}
+        for i = 1, width do obj[targets[i]] = values[i] end
+        objs[#objs + 1] = obj
+    end
+
+    if stmt.values then
+        local cc = { sources = {} }
+        for _, tuple in ipairs(stmt.values) do
+            Tick()
+            local vals = {}
+            for i, node in ipairs(tuple) do vals[i] = compile(node, cc)({}) end
+            addRow(vals, #tuple)
+        end
+    else
+        local res = SQL.ExecuteSelect(stmt.query, { inner = true })
+        for _, row in ipairs(res.rows) do
+            Tick()
+            addRow(row, #res.columns)
+        end
+    end
+
+    if stmt.conflict then
+        local c = stmt.conflict
+        local opts = { mode = c.mode }
+        if c.cols then
+            opts.keyCols = {}
+            for i, name in ipairs(c.cols) do
+                if not def.colIndex[name] then fail("table %s has no column '%s'", def.name, name) end
+                opts.keyCols[i] = def.colIndex[name].key
+            end
+        end
+        if c.mode == "custom" then
+            -- the existing row is the table itself; the new row is excluded.col
+            local src = makeSource({ name = def.name, alias = def.name })
+            local exSrc = { alias = "excluded", def = def, cols = def.columns, colIndex = def.colIndex, qualifiedOnly = true }
+            local cc = { sources = { src, exSrc }, excludedTi = 2 }
+            local sets, seen = {}, {}
+            for i, sset in ipairs(c.sets) do
+                local col = def.colIndex[sset.col]
+                if not col then fail("table %s has no column '%s'", def.name, sset.col) end
+                if seen[col.key] then fail("column '%s' is set twice", col.key) end
+                seen[col.key] = true
+                sets[i] = { key = col.key, fn = compile(sset.expr, cc) }
+            end
+            local where = c.where and compile(c.where, cc)
+            opts.merge = function(current, excluded)
+                local ctx = { current, excluded }
+                if where and truth(where(ctx)) ~= true then return nil end
+                local changes = {}
+                for _, sset in ipairs(sets) do
+                    local v = sset.fn(ctx)
+                    changes[sset.key] = (v == nil) and E.NULL or v
+                end
+                return changes
+            end
+        end
+        local st = E.UpsertRows(def, objs, opts)
+        local res = messageResult({ format("Upserted %s: %d inserted, %d updated, %d unchanged",
+            def.name, st.inserted, st.updated, st.unchanged) })
+        res.elapsedMs = E.NowMs() - t0
+        res.rowsAffected = st.inserted + st.updated
+        res.inserted, res.updated, res.unchanged = st.inserted, st.updated, st.unchanged
+        return res
+    end
+
+    local n = E.InsertRows(def, objs)
+    local res = messageResult({ format("Inserted %d row%s into %s", n, n == 1 and "" or "s", def.name) })
+    res.elapsedMs = E.NowMs() - t0
+    res.rowsAffected = n
+    return res
 end
 
 function SQL.ExecuteStatement(stmt, opts)
@@ -1782,13 +2373,28 @@ function SQL.ExecuteStatement(stmt, opts)
         return messageResult({ format("Cleared cached rows for %d table(s)", n) })
     elseif k == "scan" then
         local name = lower(stmt.name)
+        if name == "savedvariables" or name == "saved_variables" then
+            local n = E.ScanSavedVariables()
+            local tables = 0
+            for _, sv in ipairs(E.GetSavedVariables()) do tables = tables + #sv.tables end
+            return messageResult({ format("Found %d saved variable(s) from other add-ons and made %d table(s). See SELECT * FROM sv_tables", n, tables) })
+        end
         local def = E.GetTable(name)
-        if not def or not def.scan then fail("SCAN works on: abilities, items") end
+        if not def or not def.scan then fail("SCAN works on: abilities, items, savedvariables") end
         E.ResetScan(def)
         local count = E.EnsureScanned(def)
         return messageResult({ format("%s: indexed %d ids", name, count) })
     elseif k == "help" then
         return messageResult(HELP)
+    elseif k == "insert" then
+        return executeInsert(stmt)
+    elseif k == "update" then
+        return SQL.ExecuteUpdate(stmt)
+    elseif k == "delete" then
+        return SQL.ExecuteDelete(stmt)
+    elseif k == "create" then
+        local _, created = E.CreateEmptyUserTable(stmt.name, stmt.cols, stmt.ifNotExists, stmt.primaryKey)
+        return messageResult({ created and format("Created table %s", stmt.name) or format("Table %s already exists", stmt.name) })
     end
     fail("unknown statement")
 end
@@ -1797,6 +2403,101 @@ end
 function SQL.Run(text, opts)
     local stmt = SQL.Parse(text, opts and opts.params)
     return SQL.ExecuteStatement(stmt, opts)
+end
+
+---------------------------------------------------------------------------
+-- Syntax highlighting
+---------------------------------------------------------------------------
+-- Colours as RRGGBB; set a kind to nil (or false) to leave it uncoloured.
+SQL.HIGHLIGHT_COLORS = {
+    keyword = "4FC3F7",     -- SELECT, FROM, WHERE, INSERT, ...
+    ["function"] = "FFD54F", -- COUNT(, LOWER(, ABILITY_NAME(, ...
+    table = "80CBC4",       -- names of existing tables
+    string = "A5D6A7",      -- 'text'
+    number = "FFAB91",      -- 42, 3.5, 0x1F
+    param = "CE93D8",       -- ?
+    comment = "7F8C8D",     -- -- ... and /* ... */
+    operator = "B0BEC5",    -- = < + ( , ...
+    identifier = false,     -- column names and aliases
+}
+
+-- words that start statements (not reserved in expressions)
+local STATEMENT_WORDS = {}
+for w in ("INSERT UPDATE DELETE CREATE TABLE VALUES SET SHOW DESCRIBE DROP REFRESH SCAN HELP IF UPSERT REPLACE IGNORE CONFLICT DO NOTHING DUPLICATE PRIMARY EXCLUDED ESCAPE"):gmatch("%S+") do
+    STATEMENT_WORDS[w] = true
+end
+
+-- Returns `text` with |cRRGGBB colour markup for an ESO label. Never fails:
+-- half-typed SQL (an unclosed string or comment) is coloured as far as it goes.
+function SQL.Highlight(text, colors)
+    text = tostring(text or "")
+    colors = colors or SQL.HIGHLIGHT_COLORS
+    local out, i, n = {}, 1, #text
+    local function emit(kind, piece)
+        piece = piece:gsub("|", "||")   -- a literal | must be doubled in ESO markup
+        local c = kind and colors[kind]
+        if c and piece ~= "" then
+            out[#out + 1] = "|c" .. c .. piece .. "|r"
+        else
+            out[#out + 1] = piece
+        end
+    end
+    while i <= n do
+        local c = sub(text, i, i)
+        local two = sub(text, i, i + 1)
+        if find(c, "%s") then
+            local _, e = find(text, "^%s+", i)
+            emit(nil, sub(text, i, e)); i = e + 1
+        elseif two == "--" then
+            local e = find(text, "\n", i, true) or n
+            emit("comment", sub(text, i, e)); i = e + 1
+        elseif two == "/*" then
+            local _, e = find(text, "*/", i + 2, true)
+            e = e or n
+            emit("comment", sub(text, i, e)); i = e + 1
+        elseif c == "'" then
+            local j = i + 1
+            while j <= n do
+                if sub(text, j, j) == "'" then
+                    if sub(text, j + 1, j + 1) == "'" then j = j + 2 else break end
+                else
+                    j = j + 1
+                end
+            end
+            local e = math.min(j, n)
+            emit("string", sub(text, i, e)); i = e + 1
+        elseif c == '"' or c == "`" or c == "[" then
+            local e = find(text, c == "[" and "]" or c, i + 1, true) or n
+            emit("identifier", sub(text, i, e)); i = e + 1
+        elseif find(c, "%d") or (c == "." and find(sub(text, i + 1, i + 1), "%d")) then
+            local s, e = find(text, "^0[xX]%x+", i)
+            if not s then s, e = find(text, "^%d*%.?%d*[eE][%+%-]?%d+", i) end
+            if not s then s, e = find(text, "^%d*%.?%d*", i) end
+            emit("number", sub(text, s, e)); i = e + 1
+        elseif find(c, "[%a_]") then
+            local _, e = find(text, "^[%w_]+", i)
+            local word = sub(text, i, e)
+            local up = upper(word)
+            local nextChar = text:match("^%s*(.)", e + 1)
+            local kind
+            if (nextChar == "(" and (FUNCS[up] or AGG[up]))
+                or up == "CURRENT_TIMESTAMP" or up == "CURRENT_DATE" or up == "CURRENT_TIME" or up == "LOCALTIMESTAMP" then
+                kind = "function"
+            elseif KEYWORDS[up] or STATEMENT_WORDS[up] then
+                kind = "keyword"
+            elseif E.GetTable and E.GetTable(word) then
+                kind = "table"
+            else
+                kind = "identifier"
+            end
+            emit(kind, word); i = e + 1
+        elseif c == "?" then
+            emit("param", c); i = i + 1
+        else
+            emit("operator", c); i = i + 1
+        end
+    end
+    return table.concat(out)
 end
 
 -- Error objects -> readable text

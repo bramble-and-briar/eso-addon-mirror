@@ -1,0 +1,28 @@
+## Title: |cD65AD6MyExtras|r
+## Author: user|cD65AD6562|r
+## Version: 7.6
+## APIVersion: 101048 101049 101050 101051
+## SavedVariables: MyExtras_SavedVars MyExtras_CharVars
+## DependsOn: LibUser562
+
+MyExtras.xml
+MyExtras.lua
+MyExtras_Trackers.lua
+MyExtras_GuildLoop.lua
+MyExtras_TitleLoop.lua
+MyExtras_ChatTravel.lua
+MyExtras_Antiquity.lua
+MyExtras_ActionBar.lua
+MyExtras_Gear.lua
+MyExtras_Streamer.lua
+MyExtras_Performance.lua
+MyExtras_FriendsStatus.lua
+MyExtras_DungeonsTrials.lua
+MyExtras_TrialTimer.lua
+MyExtras_GroupFinder.lua
+MyExtras_QualityOfLife.lua
+MyExtras_QuestTracker.lua
+MyExtras_AutoReadyCheck.lua
+MyExtras_DoNotLearn.lua
+MyExtras_InstantConfirm.lua
+MyExtras_WhatsNew.lua

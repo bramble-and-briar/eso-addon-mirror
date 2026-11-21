@@ -1,0 +1,15 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Fury's Guild Management">
+            <Action name="FURYGMT_REPORT">
+                <Down>FuryGMT.Report:Toggle()</Down>
+            </Action>
+            <Action name="FURYGMT_CRIER_MENU">
+                <Down>FuryGMT.Crier.KeyToggleMenu()</Down>
+            </Action>
+            <Action name="FURYGMT_CRIER_POST">
+                <Down>FuryGMT.Crier.KeyPost()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

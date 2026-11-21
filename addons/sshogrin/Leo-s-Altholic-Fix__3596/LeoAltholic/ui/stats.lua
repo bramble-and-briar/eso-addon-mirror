@@ -6,11 +6,12 @@ function LeoAltholicStatsList:New(control)
 
     local sorterKeys =
     {
+        ["queueIndex"] = { tiebreaker = "name" },
         ["name"] = {}
     }
 
     self.masterList = {}
-    self.currentSortKey = "name"
+    self.currentSortKey = "queueIndex"
     self.currentSortOrder = ZO_SORT_ORDER_UP
     ZO_ScrollList_AddDataType(self.list, 1, "LeoAltholicStatsListTemplate", 32, function(control, data) self:SetupEntry(control, data) end)
 
@@ -78,7 +79,13 @@ end
 
 function LeoAltholicStatsList:SortScrollList()
     local scrollData = ZO_ScrollList_GetDataList(self.list)
-    table.sort(scrollData, self.sortFunction)
+    if self.currentSortKey == "queueIndex" then
+        table.sort(scrollData, function(listEntry1, listEntry2)
+            return (listEntry1.data.queueIndex or 999) < (listEntry2.data.queueIndex or 999)
+        end)
+    else
+        table.sort(scrollData, self.sortFunction)
+    end
 end
 
 function LeoAltholicStatsList:FilterScrollList()

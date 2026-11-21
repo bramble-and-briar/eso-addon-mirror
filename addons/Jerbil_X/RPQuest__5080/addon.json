@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Jerbil_X/RPQuest__5080",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Jerbil_X",
+  "canonical_id": "esoui:5080",
+  "category_id": "114",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    }
+  ],
+  "content_id": "esoui:5080",
+  "deleted": false,
+  "directories": [
+    "RPQuest"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5080/",
+  "fingerprint": "32b0f160d56004b4899367240be89edf659e7dcb5f40c4e9394675972c6369db",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18649.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5080",
+  "source_url": "https://www.esoui.com/downloads/info5080-RPQuest.html",
+  "stats": {
+    "downloads": 22,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "RPQuest",
+  "updated_at": 1795223857000,
+  "version": "1.1.3"
+}

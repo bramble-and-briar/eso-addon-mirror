@@ -1,0 +1,45 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Hellwuff/Pocket-Critters__5079",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Hellwuff",
+  "canonical_id": "esoui:5079",
+  "category_id": "27",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5079",
+  "deleted": false,
+  "directories": [
+    "PocketCritters"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5079/",
+  "fingerprint": "e7ee0e682205c96184187c0afa7c3a4f5fb038ed688a6f21af24efe47c7c7f66",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18638.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18621.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18622.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18623.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18624.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18625.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18626.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18639.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5079",
+  "source_url": "https://www.esoui.com/downloads/info5079-PocketCritters.html",
+  "stats": {
+    "downloads": 9,
+    "favorites": 1,
+    "monthly_downloads": 7
+  },
+  "title": "Pocket Critters",
+  "updated_at": 1795212889000,
+  "version": "3.0.4"
+}

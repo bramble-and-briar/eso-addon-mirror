@@ -86,7 +86,7 @@ local function makeHeader(title)
 end
 
 local function makeBankSelector()
-	if #Bankir.Data.bankBagNames == 1 then
+	if #Bankir.Data.bankBagIds == 1 then
 		return nil end
 	
 	return {
@@ -95,14 +95,15 @@ local function makeBankSelector()
 		tooltip = GetString(BANKIR_MENU_BANK_SELECT_DESC),
 		width = "full",
 		choices = Bankir.Data.bankBagNames,
+		reference = "BankirMenuBankSelectorDropdown",
 		getFunc = function()
 			return Bankir.Data.bankBagNames[Bankir.Menu.selectedBankIndex]
 		end,
 		setFunc = function(selectedChoice)
-			for index, name in ipairs(Bankir.Data.bankBagNames) do
+			for i, name in ipairs(Bankir.Data.bankBagNames) do
 				if name == selectedChoice then
-					Bankir.Menu.selectedBankIndex = index
-					Bankir.Menu.selectedBankId = Bankir.Data.bankBagIds[index]
+					Bankir.Menu.selectedBankIndex = i
+					Bankir.Menu.selectedBankId = Bankir.Data.bankBagIds[i]
 					break
 				end
 			end
@@ -117,8 +118,8 @@ local function makeCurrencyTab(currencyTypes)
 		local checkbox1, checkbox2, slider
 		checkbox1 = {
 			type = "checkbox",
-			name = zo_strformat(GetString(BANKIR_MENU_CURRENCY_DEPOSIT), GetCurrencyName(currencyType),
-				ZO_Currency_GetPlatformFormattedCurrencyIcon(currencyType)),
+			name = string.format("%s %s%s", GetString(SI_ITEM_ACTION_BANK_DEPOSIT),
+				GetCurrencyName(currencyType), ZO_Currency_GetPlatformFormattedCurrencyIcon(currencyType)),
 			tooltip = GetString(BANKIR_MENU_CURRENCY_DEPOSIT_DESC),
 			width = "full",
 			getFunc = function()
@@ -141,8 +142,8 @@ local function makeCurrencyTab(currencyTypes)
 		}
 		checkbox2 = {
 			type = "checkbox",
-			name = zo_strformat(GetString(BANKIR_MENU_CURRENCY_WITHDRAW), GetCurrencyName(currencyType),
-				ZO_Currency_GetPlatformFormattedCurrencyIcon(currencyType)),
+			name = string.format("%s %s%s", GetString(SI_ITEM_ACTION_BANK_WITHDRAW),
+				GetCurrencyName(currencyType), ZO_Currency_GetPlatformFormattedCurrencyIcon(currencyType)),
 			tooltip = GetString(BANKIR_MENU_CURRENCY_WITHDRAW_DESC),
 			width = "full",
 			getFunc = function()
@@ -537,87 +538,6 @@ local function makeLCKSettings()
 		end
 	end
 	return controls
-end
-
-function Bankir.createProcessButton()
-	local name = "BankirProcessButtonWindow"
-	
-	wnd = WINDOW_MANAGER:CreateControl(name, GuiRoot, CT_TOPLEVELCONTROL)
-	--setWindowSize()
-	wnd:SetClampedToScreenInsets(10)
-	if Bankir.SVCommon.processButtonPosition then
-		wnd:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT,
-			Bankir.SVCommon.processButtonPosition.x, Bankir.SVCommon.processButtonPosition.y)
-	else
-		wnd:SetAnchor(TOPLEFT, ZO_SharedRightPanelTitle, TOPLEFT, 0, 0)
-	end
-	wnd:SetDimensionConstraints(60, 80)
-	wnd:SetMovable(true)
-	wnd:SetMouseEnabled(true)
-	wnd:SetClampedToScreen(true)
-	--wnd:SetTopmost(true)
-	wnd:SetHidden(true)
-	wnd:SetHandler("OnMoveStop", function(control)
-		control:ClearAnchors()
-		Bankir.SVCommon.processButtonPosition = {
-			x = control:GetLeft(),
-			y = control:GetTop(),
-		}
-		control:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT,
-			Bankir.SVCommon.processButtonPosition.x, Bankir.SVCommon.processButtonPosition.y)
-	end)
-	
-	local lbl = WINDOW_MANAGER:CreateControl(name .. "Label", wnd, CT_LABEL)
-	lbl:SetAnchor(TOPLEFT, wnd, TOPLEFT, 0, 0)
-	lbl:SetDimensionConstraints(60, 20)
-	lbl:SetText("BANKIR")
-	lbl:SetColor(0.9, 0.9, 0.9, 1)
-	lbl:SetFont("ZoFontGameBold")
-	lbl:SetDrawLayer(1)
-	lbl:SetHorizontalAlignment(1)
-	
-	local bg = WINDOW_MANAGER:CreateControl(name .. "Bg", wnd, CT_BACKDROP)
-	bg:SetAnchorFill(wnd)
-	bg:SetCenterColor(0, 0, 0, 1)
-	bg:SetEdgeColor(0, 0, 0, 0)
-	
-	local btn = WINDOW_MANAGER:CreateControlFromVirtual(name .. "Button", wnd, "ZO_DefaultButton")
-	btn.title = GetString(BANKIR_START_QUEUE_MANUALLY)
-	btn:SetNormalTexture("/esoui/art/guild/gamepad/gp_guild_options_changeicon.dds")
-	--btn:SetPressedTexture("/esoui/art/guild/gamepad/gp_guild_options_changeicon.dds")
-	btn:SetState(B_STATE_DISABLED, false) -- B_STATE_NORMAL, B_STATE_HIGHLIGHTED, B_STATE_PRESSED, B_STATE_DISABLED
-	btn:SetMouseEnabled(false)
-	btn:SetAlpha(0.5)
-	btn:SetWidth(48)
-	btn:SetHeight(48)
-	btn:SetAnchor(CENTER, wnd, CENTER, 0, 10)
-	
-	wnd.button = btn
-	
-	local function onProcessButtonClick()
-		Bankir.initQueueProcess()
-	end
-	
-	local function onProcessButtonMouseEnter(button)
-		if button.title then
-			ZO_Tooltips_ShowTextTooltip(button, TOP, button.title)
-		end
-	end
-	
-	local function onProcessButtonMouseExit()
-		ZO_Tooltips_HideTextTooltip()
-	end
-	
-	btn:SetHandler("OnClicked", onProcessButtonClick)
-	btn:SetHandler("OnMouseEnter", onProcessButtonMouseEnter)
-	btn:SetHandler("OnMouseExit", onProcessButtonMouseExit)
-	
-	local fragment = ZO_FadeSceneFragment:New(wnd)
-	SCENE_MANAGER:GetScene("bank"):AddFragment(fragment)
-	SCENE_MANAGER:GetScene("guildBank"):AddFragment(fragment)
-	SCENE_MANAGER:GetScene("houseBank"):AddFragment(fragment)
-	
-	return wnd
 end
 
 Bankir.MenuBuildFunctions = {

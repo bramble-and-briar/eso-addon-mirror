@@ -48,7 +48,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ledger - Unofficial Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BSKCorp/Ledger---Unofficial-Patch__2380) | BSKCorp | PC / Mac | 1.3.2 |
 | [Left Right Simple Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sergi4ek/Left-Right-Simple-Addon__3767) | sergi4ek | PC / Mac | 1.2.2 |
 | [Lens Flare Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Lens-Flare-Toggle__1215) | CaptainBlagbird | PC / Mac | 1.0.14 |
-| [Leo's Altholic (Fix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Fix__3596) | sshogrin | PC / Mac | 1.9.5 |
+| [Leo's Altholic (Fix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Fix__3596) | sshogrin | PC / Mac | 1.9.7 |
 | [Leo's Dolmen Runner - LDR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Dolmen-Runner---LDR__2534) | LeandroSilva | PC / Mac | 1.3.1 |
 | [Leo's Dolmen Runner - REDUX (with inviter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kiasmalyn/Leo-s-Dolmen-Runner---REDUX-with-inviter__3629) | Kiasmalyn | PC / Mac | 2.1.5 |
 | [Leo's Guild Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Guild-Manager__2151) | LeandroSilva | PC / Mac | 1.3.0 |
@@ -64,7 +64,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Let There Be Light](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Let-There-Be-Light__1906) | Cardinal05 | PC / Mac | 1.0.4 |
 | [Let's Talk Later](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Let-s-Talk-Later__4304) | Saleand | PC / Mac | 0.1.4 |
 | [Lethal PvP Insights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lethal2k/Lethal-PvP-Insights__5037) | Lethal2k | PC / Mac | 1.11.4 |
-| [LetsFurnish!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NzuriL/LetsFurnish__5076) | NzuriL | PC / Mac | 0.6.2 |
+| [LetsFurnish!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NzuriL/LetsFurnish__5076) | NzuriL | PC / Mac | 0.6.3 |
 | [LFG Auto Accept](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/gitright/LFG-Auto-Accept__1754) | gitright | PC / Mac | 1.2.019 |
 | [LGM - Lilith's Group Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drummerx04/LGM---Lilith-s-Group-Manager__2088) | Drummerx04 | PC / Mac | 4.6.1 |
 | [Lib3DArrow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/Lib3DArrow__2663) | kadeer | PC / Mac | v0.1 alpha |
@@ -97,7 +97,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibBSCWizardBridge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/LibBSCWizardBridge__4644) | BloodStainCHild | PC / Mac | 1.0.1 |
 | [LibCharacter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/LibCharacter__2806) | zelenin | PC / Mac | 0.0.8 |
 | [LibCharacterKnowledge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibCharacterKnowledge__ec23fab6-f620-4366-90ab-82e8702a62bb) | code65536 | Console | — |
-| [LibCharacterKnowledge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibCharacterKnowledge__3317) | code65536 | PC / Mac | 3.1.3 |
+| [LibCharacterKnowledge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibCharacterKnowledge__3317) | code65536 | PC / Mac | 3.1.4 |
 | [LibChatMenuButton](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/LibChatMenuButton__3805) | akamatsu02 | PC / Mac | 1.6 |
 | [LibChatMessage](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibChatMessage__37466506-930a-44cb-864d-2bd760f24da7) | sirinsidiator | Console | — |
 | [LibChatMessage](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibChatMessage__2382) | sirinsidiator | PC / Mac | 1.2.3 |
@@ -132,6 +132,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibDateTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDateTime__2277) | sirinsidiator | PC / Mac | 1.2.0 |
 | [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__031ddfc1-c44d-4452-ab48-42b7c429bc81) | sirinsidiator | Console | — |
 | [LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibDebugLogger__2275) | sirinsidiator | PC / Mac | 2.7.2 |
+| [LibDeconValue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/LibDeconValue__5083) | Schrodi | PC / Mac | 1.2 |
 | [LibDelayedHandler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/LibDelayedHandler__2807) | zelenin | PC / Mac | 0.0.2 |
 | [LibDialog - Custom confirmation dialog with 2 buttons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/LibDialog---Custom-confirmation-dialog-with-2-buttons__1931) | Baertram | PC / Mac | 1.27 |
 | [LibDungeonFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jindra/LibDungeonFinder__4600) | Jindra | PC / Mac | 1.2.0 |

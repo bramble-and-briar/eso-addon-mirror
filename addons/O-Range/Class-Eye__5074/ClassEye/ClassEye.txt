@@ -1,0 +1,10 @@
+## Title: ClassEye
+## Author: O-Range
+## Version: 1.0.3
+## AddOnVersion: 8
+## APIVersion: 101051 101052
+## DependsOn: LibAddonMenu-2.0>=43
+## SavedVariables: ClassEyeVars
+## Description: Custom class reticle framework for ESO. Choose from Base + all 8 class styles with full RGB control, lightning effects, stealth scaling, enemy pulse, and smooth animations.
+
+ClassEye.lua

@@ -38,6 +38,7 @@ L.core.to_move = { other = "待移动<<1>>个" }
 L.core.to_place = { other = "待放置<<1>>个" }
 L.core.states_to_switch = { other = "待切换状态<<1>>个" }
 L.core.paths_to_set = { other = "需设置的路径<<1>>条" }
+L.core.links_to_set = { other = "需设置的链接<<1>>个" }
 L.core.already_right = { other = "已正确<<1>>个" }
 L.core.placed_earlier = { other = "此前运行已放置<<1>>个" }
 L.core.collectibles_unavailable = { other = "不可用的收藏品<<1>>个" }
@@ -51,6 +52,11 @@ L.core.done = "完成：<<1>>。"
 L.core.done_moved = { other = "已移动<<1>>个" }
 L.core.done_switched = { other = "已切换<<1>>个" }
 L.core.done_paths = { other = "路径更改<<1>>处" }
+L.core.done_linked = { other = "已设置链接<<1>>个" }
+L.core.done_unlinked = { other = "已取消链接<<1>>个" }
+L.core.done_not_linked = { other = "<<1>>个链接未设置" }
+L.core.path_unread_skipped = "<<1>>：游戏未提供其路径（1.5 秒后重新读取），因此跳过其路径并保持原样。打开房屋编辑器可能有帮助。"
+L.core.path_unread_recorded = "“<<1>>”记录时未包含<<2>>的路径：游戏未提供（1.5 秒后重新读取）。游戏中的该路径保持原样。"
 L.core.done_placed = { other = "已放置<<1>>个" }
 L.core.done_removed = { other = "已收起<<1>>个" }
 L.core.done_failed = { other = "失败<<1>>个" }
@@ -70,6 +76,10 @@ L.core.get_app = "获取 LetsFurnish! 应用，在 Windows 上以 3D 规划你�
 L.core.site_asked = "游戏会先询问，再在浏览器中打开 <<1>>。"
 L.core.site_by_hand = "在浏览器中打开 <<1>> 获取应用。"
 L.core.cleared = "已清除早期测试版LetsFurnish!保存的布局：此版本不再读取它们。"
+L.window.extra_links_ask = "要移除<<1>>上布局以外的关联（共<<2>>个）吗？布局中使用的关联会保留。"
+L.window.extra_links = "布局以外的关联：<<1>>"
+L.window.link_capacity = "将有<<2>>件家具直接关联到<<1>>，上限为<<3>>件。"
+L.window.empty_path_failed = "尚未收起家具。备份无法读取以下路径：<<1>>。请等路径可见后重试。"
 L.window.debug_mode = "详细日志"
 L.window.tip_debug_mode = "将住房操作请求、游戏事件和状态检查结果记录到 SavedVariables/LetsFurnish.lua。重现问题后，输入 /reloadui 将日志写入磁盘。"
 L.window.layouts = "布局"
@@ -158,6 +168,34 @@ L.window.stands_elsewhere = "位于别处"
 L.window.other_state = "处于其他状态"
 L.window.set_path = "设置路径"
 L.window.other_path = "沿另一条路径行走"
+L.window.path_unread = "路径无法读取：已跳过"
+L.window.link = "链接"
+L.window.unlink = "取消链接"
+L.window.link_to = "未链接到<<1>>"
+L.window.linked_extra = "链接与记录不同"
+L.window.linking = "链接"
+L.window.empty_link = "没有可关联的家具组。"
+L.window.destructive = "破坏性操作"
+L.window.empty_house = "清空住宅"
+L.window.empty_house_ask = "要收起<<1>>中摆放的全部家具吗？共<<2>>件，包括布局中使用的家具。收起前会先创建备份。"
+L.window.tip_remove_all = "询问后一次性收起此布局中没有的一切。会先进行备份。"
+L.window.link_all = "全部链接"
+L.window.tip_link_all = "关联已就绪的家具组。先解除组内原有关联，再从父家具开始逐级重建。布局以外的关联可单独解除。"
+L.window.link_group = { other = "其下有<<1>>件家具" }
+L.window.link_missing = { other = "<<1>>件不在房屋中：请先放置" }
+L.window.link_undoes = { other = "将取消现有链接<<1>>个" }
+L.window.under = "在<<1>>之下"
+L.window.link_lost = { other = "这将取消现有链接<<1>>个：<<2>>。" }
+L.window.link_lost_item = "<<1>>（链接到<<2>>）"
+L.window.link_tree_ask = "按布局链接<<1>>及其下的家具？每件先取消链接，再从上到下链接。"
+L.window.link_all_ask = { other = "按布局链接<<1>>组？每件家具先取消链接，再从上到下链接。" }
+L.window.unlink_all = "全部取消链接"
+L.window.unlink_all_note = { other = "此房屋中有<<1>>个链接" }
+L.window.unlink_all_ask = { other = "无论布局如何，取消此房屋中的全部<<1>>个链接？每件家具留在原处。会先备份房屋。" }
+L.window.place_from = "从<<1>>全部放置"
+L.window.place_from_note = { other = "<<1>>件家具，放在你周围" }
+L.window.place_from_ask = { other = "无论布局如何，将<<2>>中的<<1>>件家具放在你周围？会先备份房屋。" }
+L.window.place_from_over = { other = "<<1>>件超出房屋上限，保留不放。" }
 L.window.not_in_layout = "不在此布局中"
 L.window.share_context = "以一行文本表示的布局"
 L.window.every_house_count = "所有住宅：<<1>>"
@@ -230,7 +268,6 @@ L.window.tip_tick_all = "勾选所有已学会配方的缺少家具。"
 L.window.tip_untick_all = "取消所有勾选。"
 L.window.tip_place_all = "询问后一次性放置待放置中的一切。家具放好后才设置路径。会先进行备份。"
 L.window.tip_move_all = "询问后一次性移动、切换待移动中的一切并设置其路径。会先进行备份。"
-L.window.tip_remove_all = "询问后一次性收起此布局中没有的一切。会先进行备份。"
 L.window.tip_back_up = "记录房屋当前的样子，以便还原。"
 L.window.tip_house_code = "生成这座房屋的分享码，可发给好友或粘贴到软件中。"
 L.window.tip_read_code = "读取粘贴在框中的分享码：其布局加入“布局”。"
@@ -308,6 +345,7 @@ L.window.log_what_not_taken = "已回应但家具仍留在房屋中"
 L.window.log_what_late = "等待后才执行"
 L.window.log_what_not_put_away = "未收起"
 L.window.log_what_conform = "贴合地面与要求不符"
+L.window.log_what_link = "链接未设置"
 L.window.log_what_stopped = "运行已停止"
 L.window.log_why_too_fast = "连续太多请求未执行"
 L.window.log_why_no_place = "家具不在任何设定的取用地方"
@@ -328,6 +366,9 @@ L.window.keep_backup_save = "保存"
 L.window.keep_backup_menu = "保存为布局..."
 L.window.log_what_skipped = "已跳过"
 L.window.log_why_path_unconfirmed = "其路径的更改未执行"
+L.window.log_why_path_unread = "游戏尚未提供其路径的节点：请打开房屋编辑器后重试"
+L.window.log_why_link_no_parent = "它所链接的家具不在房屋中"
+L.window.log_why_link_no_child = "它不在房屋中"
 L.window.log_solved_count = { other = "插件解决了<<1>>个" }
 L.window.log_solved_retried = "已解决：<<1>>秒后第二次尝试完成"
 L.window.log_solved_other_place = "已解决：<<1>>收下了"
@@ -410,6 +451,8 @@ L.house.part_last_next = "接下来请粘贴最后的第<<1>>部分。"
 L.house.part_other = "此部分属于另一个分享码，与已粘贴的部分（<<1>>/<<2>>）不同：请先点击“丢弃已粘贴部分”再开始"
 L.house.vault_needs_plus = "需要 ESO Plus。"
 L.house.vault_locked = "家具保险库尚未解锁。"
+L.house.no_position = "不知道你在房屋中的位置：请站在房屋内再试一次。"
+L.house.nothing_to_place_from = "<<1>>中没有可放置在此房屋的物品。"
 L.house.chest_locked = "<<1>>尚未解锁。"
 L.house.chest_numbered = "<<1>>（<<2>>）"
 L.house.into = "<<1>>件放入<<2>>"
@@ -451,6 +494,7 @@ L.code.part_unreadable = "分享码的某一部分已损坏或不完整：请重
 L.code.parts_missing = "分享码的<<1>>个部分不全：请把缺少的部分也粘贴进来"
 L.code.parts_mismatch = "这些部分无法组成一个分享码：请从同一分享码重新复制所有部分"
 L.code.parts_mixed = "这些部分来自不同的分享码：每次只粘贴同一分享码的部分"
+L.stock.inventory = "物品栏"
 L.stock.storage = "仓库"
 L.stock.vault = "宝库"
 L.stock.placed_here = "摆放在此处"

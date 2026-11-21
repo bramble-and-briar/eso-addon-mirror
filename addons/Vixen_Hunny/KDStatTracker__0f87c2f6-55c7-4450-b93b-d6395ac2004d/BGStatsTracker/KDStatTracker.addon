@@ -3,8 +3,8 @@
 ## Version: 3.0.0
 ## AddOnVersion: 300
 ## APIVersion: 101048 101049 101050
-## Description: Tracks battleground, Cyrodiil and duel kills / deaths with a HUD tracker, kill announcer and stats window (PC window + console dialog).
-## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings LibConsoleDialogs
+## Description: Tracks battleground, Cyrodiil and duel kills / deaths with a HUD tracker, kill announcer and stats window (PC window + console dialog). With LibESQL, stats are stored in LibESQL tables.
+## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings LibConsoleDialogs LibESQL>=10000
 ## SavedVariables: KDStatTrackerVars KDStatTrackerSettings
 
 src/KDStatTracker_Core.lua
@@ -15,6 +15,8 @@ src/KDStatTracker_PCDialog.lua
 src/KDStatTracker_ConsoleDialog.lua
 src/KDStatTracker_Settings.lua
 src/KDStatTracker_Commands.lua
+src/KDStatTracker_ESQL.lua
+src/KDStatTracker_Storage.lua
 src/KDStatTracker_Init.lua
 
 Bindings.xml

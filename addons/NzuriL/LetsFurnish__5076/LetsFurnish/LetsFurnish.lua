@@ -1,4 +1,4 @@
-LetsFurnish = { name = "LetsFurnish", version = "0.6.2", build = 602, release = true, delay = 250 }
+LetsFurnish = { name = "LetsFurnish", version = "0.6.3", build = 603, release = true, delay = 250 }
 local LF = LetsFurnish
 local IsOwnerOfCurrentHouse, GetHousingVisitorRole, GetCurrentZoneHouseId = IsOwnerOfCurrentHouse, GetHousingVisitorRole, GetCurrentZoneHouseId
 local GetCurrentHouseOwner, GetDisplayName = GetCurrentHouseOwner, GetDisplayName
@@ -11,13 +11,15 @@ local FORMAT_MAJOR = 2
 local SCHEMA_MAJOR = 2
 local SAVED_VARS_VERSION = 1
 local UPDATE_NAME = "LetsFurnishApply"
-local PLACED, REQUESTED, MOVED, SWITCHED, REMOVED, FAILED, ABSENT, UNAVAILABLE, ERROR, UNCONFIRMED, FULL, PATHED, SKIPPED =
-    "placed", "requested", "moved", "switched", "removed", "failed", "absent", "unavailable", "error", "unconfirmed", "full", "pathed", "skipped"
+local PLACED, REQUESTED, MOVED, SWITCHED, REMOVED, FAILED, ABSENT, UNAVAILABLE, ERROR, UNCONFIRMED, FULL, PATHED, SKIPPED, LINKED =
+    "placed", "requested", "moved", "switched", "removed", "failed", "absent", "unavailable", "error", "unconfirmed", "full", "pathed", "skipped",
+    "linked"
 local WAIT_TICKS = 8
 local ANSWER_MS = 2000
 local SPEEDS = { 100, 250, 500, 1000 }
 local STREAK_STOP = 5
 local RETRY_MS = 1500
+local PATH_REREAD_MS = 1500
 local PATH_ON = HOUSING_FURNITURE_PATH_STATE_ON or 1
 local PATH_OFF = HOUSING_FURNITURE_PATH_STATE_OFF or 0
 local pathEvents = {
@@ -126,6 +128,7 @@ local function recordPath(id)
     local nodes = {}
     for i = 1, count do
         local x, y, z = ask(HousingEditorGetPathNodeWorldPosition, id, i)
+        if not (x and y and z) or (x == 0 and y == 0 and z == 0) then return nil, true end
         local pitch, yaw, roll = ask(HousingEditorGetPathNodeOrientation, id, i)
         nodes[i] = {
             position = { x or 0, y or 0, z or 0 },
@@ -167,6 +170,7 @@ local function recordItem(id, n, things)
     local key = kind .. ":" .. tostring(itemId)
     local parent = ask(GetPlacedFurnitureParent, id)
     local stateIndex, stateNames = recordState(id)
+    local path, unread = recordPath(id)
     local item = {
         uid = "r-" .. n,
         item_id = itemId,
@@ -174,9 +178,9 @@ local function recordItem(id, n, things)
         position = { x, y, z },
         rotation = { pitch, yaw, roll },
         state = stateIndex,
-        path = recordPath(id),
+        path = path,
     }
-    if things[key] then return item, Id64ToString(id), parent and Id64ToString(parent) or nil, key, nil end
+    if things[key] then return item, Id64ToString(id), parent and Id64ToString(parent) or nil, key, nil, unread end
     local name, icon, dataId = ask(GetPlacedHousingFurnitureInfo, id)
     local thing = {
         name = nonempty(name),
@@ -190,7 +194,7 @@ local function recordItem(id, n, things)
         local category, _, _, limitType = ask(GetFurnitureDataInfo, dataId)
         thing.category, thing.limit_type = category, limitType
     end
-    return item, Id64ToString(id), parent and Id64ToString(parent) or nil, key, thing
+    return item, Id64ToString(id), parent and Id64ToString(parent) or nil, key, thing, unread
 end
 local function recordHouse(houseId)
     local collectibleId = ask(GetCollectibleIdForHouse, houseId)
@@ -221,11 +225,12 @@ local function record(name)
     if not mine then return nil, L.core.not_yours end
     local houseId = GetCurrentZoneHouseId()
     local items, ids, parents, things = {}, {}, {}, {}
-    local uidOf = {}
+    local uidOf, unread = {}, {}
     local id = GetNextPlacedHousingFurnitureId()
     while id do
-        local item, gameId, parent, key, thing = recordItem(id, #items + 1, things)
+        local item, gameId, parent, key, thing, notGiven = recordItem(id, #items + 1, things)
         items[#items + 1] = item
+        if notGiven then unread[#unread + 1] = { item = item, id = id } end
         ids[item.uid], uidOf[gameId], parents[item] = gameId, item.uid, parent
         things[key] = things[key] or thing
         id = GetNextPlacedHousingFurnitureId(id)
@@ -233,7 +238,7 @@ local function record(name)
     for item, parent in pairs(parents) do item.parent = uidOf[parent] end
     local house, nickname = recordHouse(houseId)
     local now = GetTimeStamp()
-    return {
+    local layout = {
         format = HOUSE_FORMAT,
         version = FORMAT_VERSION,
         writer = writerBlock(),
@@ -252,6 +257,33 @@ local function record(name)
             player = { account = ask(GetDisplayName), character = ask(GetUnitName, "player"), visitor_role = ask(GetHousingVisitorRole) },
         },
     }
+    if #unread > 0 then LF.rereadPaths(layout, unread) end
+    return layout
+end
+LF.pendingPaths = setmetatable({}, { __mode = "k" })
+local function placedName(id)
+    local ok, name = pcall(GetPlacedHousingFurnitureInfo, id)
+    return ok and type(name) == "string" and name ~= "" and (string.gsub(name, "%^.*$", "")) or Id64ToString(id)
+end
+function LF.rereadPaths(layout, unread)
+    LF.pendingPaths[layout] = {}
+    zo_callLater(function()
+        local skipped = {}
+        for _, u in ipairs(unread) do
+            local path, still = recordPath(u.id)
+            if path and not still then u.item.path = path else skipped[#skipped + 1] = placedName(u.id) end
+        end
+        if #skipped > 0 then
+            say(zo_strformat(L.core.path_unread_recorded, tostring(LF.tab(layout.meta).name or ""), list(unpack(skipped))))
+        end
+        local waiting = LF.pendingPaths[layout] or {}
+        LF.pendingPaths[layout] = nil
+        for _, go in ipairs(waiting) do go(skipped) end
+    end, PATH_REREAD_MS)
+end
+function LF.afterPaths(layout, go)
+    local waiting = LF.pendingPaths[layout]
+    if waiting then waiting[#waiting + 1] = go else go({}) end
 end
 local function nameRefused(name, except)
     name = string.match(tostring(name or ""), "^%s*(.-)%s*$")
@@ -520,6 +552,13 @@ local function distance(id, row)
     local p = row.position
     return math.sqrt((x - p[1]) ^ 2 + (y - p[2]) ^ 2 + (z - p[3]) ^ 2)
 end
+local function parentKey(id)
+    local parent = ask(GetPlacedFurnitureParent, id)
+    if parent == nil then return nil end
+    local key = Id64ToString(parent)
+    return key ~= "0" and key ~= "" and key or nil
+end
+LF.parentKey = parentKey
 local function appliedKey(layout)
     return tostring(layout.id)
 end
@@ -533,7 +572,7 @@ local function appliedOf(layout)
     done.owner, done.world = ask(GetCurrentHouseOwner), nil
     return done
 end
-local function plan(layout)
+local function plan(layout, withLinks)
     local ids = placedIds()
     local bound = bindable(layout)
     local done = LF.saved.applied and LF.saved.applied[appliedKey(layout)]
@@ -579,7 +618,10 @@ local function plan(layout)
     end
     local function placedBefore(row)
         local earlier = row.uid ~= nil and earlierItems[row.uid]
-        if type(earlier) == "table" and earlier.result == PLACED and earlier.game_id and ids[earlier.game_id] then return earlier.game_id end
+        if type(earlier) == "table" and earlier.result == PLACED and earlier.game_id and ids[earlier.game_id]
+           and whatIs(ids[earlier.game_id]) == rowWhat(row) then
+            return earlier.game_id
+        end
         return nil
     end
     local claimed = {}
@@ -601,7 +643,14 @@ local function plan(layout)
         end
     end
     local standing = {}
+    local parentOf, childrenOf = {}, {}
     for key, id in pairs(ids) do
+        local up = parentKey(id)
+        if up then
+            parentOf[key] = up
+            childrenOf[up] = childrenOf[up] or {}
+            table.insert(childrenOf[up], key)
+        end
         local what = whatIs(id)
         local collectible = string.match(what, "^collectible:(%d+)$")
         if collectible then taken[tonumber(collectible)] = true end
@@ -643,7 +692,40 @@ local function plan(layout)
     end
     for _, key in pairs(at) do claimed[key] = true end
     for _, key in pairs(reused) do claimed[key] = true end
+    local keyOf, byUid = {}, {}
     for i, row in ipairs(rows) do
+        if ok[i] and row.uid ~= nil then
+            byUid[row.uid] = row
+            keyOf[row.uid] = (boundOf[i] and row.game_id) or beforeOf[i] or at[row] or reused[row]
+        end
+    end
+    local depths = {}
+    local function depth(key)
+        if not key then return 0 end
+        if depths[key] then return depths[key] end
+        local path, seen, at = {}, {}, key
+        while at and depths[at] == nil and not seen[at] do
+            seen[at], path[#path + 1] = true, at
+            at = parentOf[at]
+        end
+        local n = at and depths[at] or -1
+        for i = #path, 1, -1 do
+            n = n + 1
+            depths[path[i]] = n
+        end
+        return depths[key]
+    end
+    local order
+    if next(parentOf) then
+        order = {}
+        for i, row in ipairs(rows) do
+            order[i] = { i = i, depth = ok[i] and row.uid ~= nil and depth(keyOf[row.uid]) or 0 }
+        end
+        table.sort(order, function(a, b) if a.depth ~= b.depth then return a.depth < b.depth end return a.i < b.i end)
+    end
+    for index in ipairs(rows) do
+        local i = order and order[index].i or index
+        local row = rows[i]
         local id = boundOf[i]
         if not ok[i] then
             counts.skipped = counts.skipped + 1
@@ -653,8 +735,9 @@ local function plan(layout)
             if row.kind == "collectible" and type(earlier) == "table" and earlier.position_pending and earlier.game_id == Id64ToString(standingId) then
                 steps[#steps + 1] = { action = "move", id = standingId, row = row, uid = row.uid, settlePlacement = true }
             elseif beforeOf[i] then
-                counts.already = counts.already + 1
-                standsRight(standingId, row)
+                local here = inItsPlace(standingId, row)
+                standsRight(standingId, row, not here)
+                if here then counts.already = counts.already + 1 end
             else
                 local here = inItsPlace(id, row)
                 standsRight(id, row, not here)
@@ -682,8 +765,44 @@ local function plan(layout)
             end
         end
     end
+    local moving, rowOfKey = {}, {}
+    for _, s in ipairs(steps) do
+        if s.action == "move" then moving[Id64ToString(s.id)] = true end
+    end
+    for uid, key in pairs(keyOf) do rowOfKey[key] = byUid[uid] end
+    for _, s in ipairs(steps) do
+        if s.action == "move" then
+            for _, key in ipairs(childrenOf[Id64ToString(s.id)] or {}) do
+                if rowOfKey[key] and not moving[key] then
+                    s.children = s.children or {}
+                    s.children[#s.children + 1] = { id = ids[key], row = rowOfKey[key] }
+                end
+            end
+        end
+    end
+    local linking = {}
+    for i, row in ipairs(withLinks and rows or {}) do
+        local up = ok[i] and row.uid ~= nil and row.parent ~= nil and row.parent ~= row.uid and byUid[row.parent] or nil
+        local child = ok[i] and row.uid ~= nil and keyOf[row.uid] or nil
+        if up then
+            local parent = keyOf[up.uid]
+            if not (child and parent and parentOf[child] == parent) then
+                steps[#steps + 1] = { action = "link", row = row, uid = row.uid, parentUid = up.uid, childKey = child, parentKey = parent,
+                                      id = child and ids[child] or nil }
+                linking[row.uid] = true
+            end
+        elseif layout.recorded and child and row.parent == nil and parentOf[child] then
+            steps[#steps + 1] = { action = "unlink", row = row, uid = row.uid, id = ids[child], childKey = child }
+            linking[row.uid] = true
+        end
+    end
+    if next(linking) then
+        for i = #inPlace, 1, -1 do
+            if linking[inPlace[i].row.uid] then table.remove(inPlace, i) end
+        end
+    end
     for _, c in ipairs(conforms) do steps[#steps + 1] = c end
-    return steps, counts, bound, found, claimed, lacking, inPlace
+    return steps, counts, bound, found, claimed, lacking, inPlace, keyOf
 end
 local function runStep(step, q)
     if step.action == "state" then
@@ -692,6 +811,10 @@ local function runStep(step, q)
         return HousingEditorRequestRemoveFurniture(step.id)
     elseif step.action == "pathnode" or step.action == "pathdata" or step.action == "pathstart" then
         return LF.runPathStep(step)
+    elseif step.action == "link" then
+        return HousingEditorRequestSetFurnitureParent(step.id, step.parentId)
+    elseif step.action == "unlink" then
+        return HousingEditorRequestClearFurnitureParent(step.id)
     end
     local row = step.row
     local rot = row.rotation
@@ -701,7 +824,16 @@ local function runStep(step, q)
     elseif step.action == "collectible" then
         return HousingEditorRequestCollectiblePlacement(row.item_id, x, y, z, rot[1], rot[2], rot[3])
     end
-    local bag, slot = findInBags(row.item_id, step.place)
+    local bag, slot
+    if step.bags then
+        for _, b in ipairs(step.bags) do
+            for s = 0, (ask(GetBagSize, b) or 0) - 1 do
+                if not bag and GetItemId(b, s) == row.item_id then bag, slot = b, s end
+            end
+        end
+    else
+        bag, slot = findInBags(row.item_id, step.place)
+    end
     if LF.debugEntry then LF.debugEntry("item_source", q, step, { bag = bag, slot = slot, found = bag ~= nil }) end
     if not bag then return nil end
     return HousingEditorRequestItemPlacement(bag, slot, x, y, z, rot[1], rot[2], rot[3])
@@ -726,7 +858,7 @@ local function stopApplying(message, stopped)
         log.kind = (q.rollback and "rollback") or (q.single and "remove one") or (q.removing and "remove") or log.kind
         log.ended, log.how, log.said, log.steps = GetTimeStamp(), stopped and "stopped" or "finished", message, #q.steps
         log.counts = { moved = q.moved, switched = q.switched, placed = q.placed, removed = q.removed, failed = q.failed, absent = q.absent,
-                       pathed = q.pathed, not_put_away = q.skipped and #q.skipped or 0 }
+                       pathed = q.pathed, linked = q.linked, not_linked = q.unlinked, unlinked = q.cleared, not_put_away = q.skipped and #q.skipped or 0 }
         if LF.debugEntry then LF.debugEntry("run_end", q, nil, { how = log.how, summary = message, counts = log.counts }) end
     end
     if LF.restoreRetrieve then LF.restoreRetrieve() end
@@ -906,11 +1038,34 @@ function LF.solved(step, how, place)
     end
 end
 local function tally(done)
-    return { moved = 0, switched = 0, placed = 0, removed = 0, failed = 0, absent = 0, pathed = 0, streak = 0, done = done, pending = nil,
+    return { moved = 0, switched = 0, placed = 0, removed = 0, failed = 0, absent = 0, pathed = 0, linked = 0, unlinked = 0, cleared = 0, streak = 0,
+             done = done, pending = nil,
              house = GetCurrentZoneHouseId(), owner = ask(GetCurrentHouseOwner) }
 end
+local function linkEnds(q, step)
+    local ids = placedIds()
+    local function endOf(uid, key)
+        if key == nil and uid ~= nil then
+            local d = q.done and type(q.done.items) == "table" and q.done.items[uid]
+            key = type(d) == "table" and d.game_id or nil
+        end
+        return key and ids[key] or nil, key
+    end
+    local child, childKey = endOf(step.uid, step.childKey)
+    if step.action == "unlink" then return child, childKey end
+    local parent, parentKey_ = endOf(step.parentUid, step.parentKey)
+    return child, childKey, parent, parentKey_
+end
+local function restoreParent(q, step)
+    if step.restore or not step.previousKey or not step.id or parentKey(step.id) ~= nil then return end
+    local previous = placedIds()[step.previousKey]
+    if not previous then return end
+    LF.queueOps(q, { { action = "link", fixed = true, restore = true, id = step.id, parentId = previous, parentKey = step.previousKey,
+                       name = step.name } })
+end
 local function perform(q, step)
-    if (step.action == "collectible" or step.action == "state") and LF.queue ~= q then
+    if (step.action == "collectible" or step.action == "state" or step.action == "link" or step.action == "unlink"
+        or (step.action == "move" and step.children)) and LF.queue ~= q then
         return LF.queueOps(q, { step })
     end
     if q.unconfirmedPaths and step.id and q.unconfirmedPaths[Id64ToString(step.id)]
@@ -945,6 +1100,32 @@ local function perform(q, step)
     end
     if step.action == "path" then
         return LF.expandPath(q, step)
+    end
+    if (step.action == "link" and not step.fixed) or (step.action == "unlink" and step.uid ~= nil) then
+        local child, childKey, parent, parentKey_ = linkEnds(q, step)
+        if not child or (step.action == "link" and not parent) then
+            q.unlinked = q.unlinked + 1
+            LF.trace(q, "link", step, { why = child and "link_no_parent" or "link_no_child" })
+            return { result = SKIPPED }
+        end
+        step.id, step.childKey = child, childKey
+        local now = parentKey(child)
+        if step.action == "unlink" then
+            if now == nil then
+                completeTask(q, step)
+                return { result = LINKED }
+            end
+        else
+            step.parentId, step.parentKey = parent, parentKey_
+            if now == parentKey_ then
+                completeTask(q, step)
+                return { result = LINKED }
+            end
+            if now ~= nil and not step.cleared then
+                step.cleared, step.previousKey = true, now
+                return LF.queueOps(q, { { action = "unlink", id = child, name = step.name }, step }, step)
+            end
+        end
     end
     if step.action == "conform" then
         if LF.queue ~= q then return LF.queueOps(q, { step }) end
@@ -1028,6 +1209,16 @@ local function perform(q, step)
         elseif pathRequest then
             outcome = { result = REQUESTED, game_id = Id64ToString(step.id), action = "path" }
             q.check.outcome = outcome
+        elseif step.action == "link" then
+            if not step.restore then q.linked = q.linked + 1 end
+            outcome = { result = LINKED, game_id = Id64ToString(step.id) }
+            q.check = { step = step, ticks = 0, counted = not step.restore and "linked" or nil,
+                        done = function() return parentKey(step.id) == step.parentKey end }
+        elseif step.action == "unlink" then
+            outcome = { result = REQUESTED }
+            local counted = (step.uid ~= nil and "linked") or (step.clearsLink and "cleared") or nil
+            if counted then q[counted] = q[counted] + 1 end
+            q.check = { step = step, ticks = 0, counted = counted, done = function() return parentKey(step.id) == nil end }
         elseif step.action == "remove" then
             if step.into then LF.removalAccepted(step.into) end
             q.check = { step = step, ticks = 0, done = function() return not LF.stands(step.id) end }
@@ -1048,6 +1239,15 @@ local function perform(q, step)
             return { result = REQUESTED }
         end
         return LF.queueOps(q, { step })
+    elseif (step.action == "link" and parentKey(step.id) == step.parentKey) or (step.action == "unlink" and parentKey(step.id) == nil) then
+        completeTask(q, step)
+        outcome = { result = LINKED }
+    elseif step.action == "link" or step.action == "unlink" then
+        q.failed = q.failed + 1
+        q.streak = (q.streak or 0) + 1
+        outcome = { result = FAILED, code = result }
+        LF.trace(q, "link", step, { code = result, restored = step.previousKey and not step.restore or nil })
+        if step.action == "link" then restoreParent(q, step) end
     elseif step.action == "state" and not step.retried and LF.queue == q then
         LF.trace(q, "failed", step, { code = result, retry_ms = RETRY_MS })
         step.retried = true
@@ -1059,7 +1259,7 @@ local function perform(q, step)
         outcome = { result = FAILED, code = result }
         LF.trace(q, "failed", step, { code = result })
     end
-    if step.uid and not step.correctPlacement then
+    if step.uid and not step.correctPlacement and step.action ~= "link" and step.action ~= "unlink" then
         local previous = q.done.items[step.uid]
         if not previous or (step.action ~= "state" and not pathRequest)
            or (pathRequest and (previous.result == PATHED or previous.action == "path")) then
@@ -1071,7 +1271,8 @@ local function perform(q, step)
 end
 local function didText(q)
     local parts = counted(some(L.core.done_moved, q.moved), some(L.core.done_switched, q.switched), some(L.core.done_paths, q.pathed),
-        some(L.core.done_placed, q.placed), some(L.core.done_removed, q.removed), some(L.core.done_failed, q.failed), some(L.core.done_absent, q.absent),
+        some(L.core.done_placed, q.placed), some(L.core.done_linked, q.linked or 0), some(L.core.done_unlinked, q.cleared or 0), some(L.core.done_removed, q.removed),
+        some(L.core.done_failed, q.failed), some(L.core.done_absent, q.absent), some(L.core.done_not_linked, q.unlinked or 0),
         some(L.core.done_not_put_away, q.skipped and #q.skipped or 0))
     return parts ~= "" and zo_strformat(L.core.done, parts) or nil
 end
@@ -1089,6 +1290,15 @@ local function confirmed(q, finalCheck, stopping)
     if c.step.problems then
         LF.solved(c.step, (c.step.action == "remove" and "other_place") or (c.step.correctPlacement and "corrected") or "retried",
                   c.step.action == "remove" and c.step.into or nil)
+    end
+    if c.step.action == "move" and c.step.children and not stopping then
+        local back = {}
+        for _, child in ipairs(c.step.children) do
+            if LF.stands(child.id) and not (samePlace(child.id, child.row) or LF.walksRight(child.id, child.row)) then
+                back[#back + 1] = { action = "move", id = child.id, row = child.row, uid = child.row.uid }
+            end
+        end
+        if #back > 0 then LF.queueOps(q, back) end
     end
     if c.step.settlePlacement or c.step.correctPlacement then
         if not stopping then
@@ -1150,7 +1360,9 @@ local function checking(q)
         return false
     end
     q.failed = q.failed + 1
-    if not (step.settlePlacement or step.correctPlacement) and step.uid ~= nil and q.done.items[step.uid] and q.done.items[step.uid].game_id == Id64ToString(step.id) then
+    if step.action == "link" then restoreParent(q, step) end
+    if not (step.settlePlacement or step.correctPlacement or step.action == "link" or step.action == "unlink") and step.uid ~= nil
+       and q.done.items[step.uid] and q.done.items[step.uid].game_id == Id64ToString(step.id) then
         q.done.items[step.uid] = { result = UNCONFIRMED, game_id = Id64ToString(step.id) }
     end
     return false
@@ -1221,7 +1433,27 @@ local function onTick()
     end
     if LF.onProgress then LF.onProgress() end
 end
+local function detachFirst(steps)
+    local ids, first, detach = nil, nil, {}
+    for i, s in ipairs(steps) do
+        if s.action == "link" and not s.fixed then first = first or i end
+        if s.action == "link" and not s.fixed and s.childKey then
+            ids = ids or placedIds()
+            local child = ids[s.childKey]
+            local now = child and parentKey(child)
+            if now and now ~= s.parentKey then
+                local own = {}
+                for k, v in pairs(s) do own[k] = v end
+                own.cleared, own.previousKey = true, now
+                steps[i] = own
+                detach[#detach + 1] = { action = "unlink", id = child, name = s.name }
+            end
+        end
+    end
+    for k = #detach, 1, -1 do table.insert(steps, first, detach[k]) end
+end
 function start(name, steps, done, placing)
+    detachFirst(steps)
     for _, w in ipairs(LF.waiting) do w.skipState = true end
     LF.queue = tally(done)
     LF.queue.name, LF.queue.steps, LF.queue.index = name, steps, 0
@@ -1267,7 +1499,7 @@ local function apply(name, confirmed)
         say(zo_strformat(L.core.unreadable, name, tostring(steps)))
         return
     end
-    local moves, places, states, paths = 0, 0, 0, 0
+    local moves, places, states, paths, links = 0, 0, 0, 0, 0
     for _, s in ipairs(steps) do
         if s.action == "move" then
             moves = moves + 1
@@ -1275,6 +1507,8 @@ local function apply(name, confirmed)
             states = states + 1
         elseif s.action == "path" then
             paths = paths + 1
+        elseif s.action == "link" or s.action == "unlink" then
+            links = links + 1
         elseif s.action ~= "conform" then
             places = places + 1
         end
@@ -1284,6 +1518,7 @@ local function apply(name, confirmed)
     if not confirmed then
         local waiting = counts.waiting > 0 and count(L.core.waiting, counts.waiting) or nil
         local parts = counted(some(L.core.to_move, moves), some(L.core.to_place, places), some(L.core.states_to_switch, states), some(L.core.paths_to_set, paths),
+            some(L.core.links_to_set, links),
             some(L.core.already_right, counts.unchanged), some(L.core.placed_earlier, counts.already),
             some(L.core.collectibles_unavailable, counts.missing), some(L.core.not_for_the_game, counts.skipped))
         say(sentences(zo_strformat(L.core.preview, name, parts), waiting, where, zo_strformat(L.core.go_ahead, name)))
@@ -1310,7 +1545,7 @@ local function stopRun()
     if not q then return false end
     LF.trace(q, "stopped", nil, { why = "stop" })
     local message = q.rollback and zo_strformat(L.core.stopped_rollback, tostring(q.rollback)) or
-                    (q.removing and L.core.stopped_remove) or zo_strformat(L.core.stopped_apply, q.name)
+                    (q.wholeHouse and (L.window.empty_house .. " — " .. L.window.log_stopped)) or (q.removing and L.core.stopped_remove) or zo_strformat(L.core.stopped_apply, q.name)
     stopApplying(message, true)
     return true
 end
@@ -1455,9 +1690,18 @@ local function usableNodes(path)
     end
     return out
 end
+local function unreadPath(path)
+    for _, node in ipairs(type(path) == "table" and type(path.nodes) == "table" and path.nodes or {}) do
+        local p = type(node) == "table" and node.position
+        if type(p) == "table" and p[1] == 0 and p[2] == 0 and p[3] == 0 then return true end
+    end
+    return false
+end
 local function pathOps(id, path, uid)
-    if type(path) ~= "table" then return {} end
-    local now = recordPath(id) or { nodes = {} }
+    if type(path) ~= "table" or unreadPath(path) then return {} end
+    local now, unread = recordPath(id)
+    if unread then return nil end
+    now = now or { nodes = {} }
     local want = usableNodes(path)
     local have = #now.nodes
     local ops = {}
@@ -1481,14 +1725,44 @@ local function pathOps(id, path, uid)
     end
     return ops
 end
+LF.pathReads = {}
+local function noteUnread(id)
+    local key = Id64ToString(id)
+    local r = LF.pathReads[key]
+    if r then return r.state end
+    r = { state = "waiting" }
+    LF.pathReads[key] = r
+    zo_callLater(function()
+        if LF.pathReads[key] ~= r then return end
+        local _, still = recordPath(id)
+        if still then
+            r.state = "failed"
+            say(zo_strformat(L.core.path_unread_skipped, placedName(id)))
+        else
+            LF.pathReads[key] = nil
+        end
+        if LF.onPathsRead then LF.onPathsRead() end
+    end, PATH_REREAD_MS)
+    return r.state
+end
+function LF.pathReadFailed(id)
+    local r = id and LF.pathReads[Id64ToString(id)]
+    return r ~= nil and r.state == "failed"
+end
+EVENT_MANAGER:RegisterForEvent(LF.name .. "PathReads", EVENT_PLAYER_ACTIVATED, function() LF.pathReads = {} end)
 function LF.pathDiffers(id, path)
     if type(path) ~= "table" then return false end
     local ok, ops = pcall(pathOps, id, path)
+    if ok and ops == nil then
+        noteUnread(id)
+        return false
+    end
+    if ok then LF.pathReads[Id64ToString(id)] = nil end
     return ok and #ops > 0
 end
 function LF.conformOf(row)
     local path = row.path
-    if type(path) ~= "table" or type(path.conform_to_ground) ~= "boolean" or #usableNodes(path) == 0 then return nil end
+    if type(path) ~= "table" or type(path.conform_to_ground) ~= "boolean" or #usableNodes(path) == 0 or unreadPath(path) then return nil end
     return path.conform_to_ground
 end
 function LF.walking(id)
@@ -1530,6 +1804,19 @@ function LF.expandPath(q, step)
         q.failed = q.failed + 1
         return { result = ERROR, error = tostring(ops) }
     end
+    if ops == nil then
+        if not step.pathRetried and LF.queue == q then
+            step.pathRetried = true
+            LF.trace(q, "skipped", step, { why = "path_unread", retry_ms = PATH_REREAD_MS })
+            q.retry, q.retryTicks = step, math.ceil(PATH_REREAD_MS / stepDelay())
+            return { result = REQUESTED }
+        end
+        q.failed = q.failed + 1
+        if not step.pathRetried then LF.trace(q, "skipped", step, { why = "path_unread" }) end
+        say(zo_strformat(L.core.path_unread_skipped, placedName(step.id)))
+        return { result = SKIPPED }
+    end
+    if step.pathRetried then LF.solved(step, "retried") end
     if #ops == 0 then
         completeTask(q, step)
         return { result = PATHED, game_id = Id64ToString(step.id) }
@@ -1562,7 +1849,7 @@ local function pathWaits()
 end
 LF.pathWaits = pathWaits
 LF.plan, LF.appliedOf, LF.forget = plan, appliedOf, forget
-LF.placedIds, LF.whatIs, LF.rowWhat, LF.bagName = placedIds, whatIs, rowWhat, bagName
+LF.placedIds, LF.whatIs, LF.rowWhat, LF.bagName, LF.usable = placedIds, whatIs, rowWhat, bagName, usable
 LF.tally, LF.perform, LF.start = tally, perform, start
 LF.sameHouse = sameHouse
 LF.FULL, LF.SKIPPED, LF.SPEEDS, LF.stepDelay = FULL, SKIPPED, SPEEDS, stepDelay

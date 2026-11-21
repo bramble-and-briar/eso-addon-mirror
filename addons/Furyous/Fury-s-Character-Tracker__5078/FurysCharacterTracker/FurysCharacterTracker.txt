@@ -1,0 +1,27 @@
+## Title: |cC9A227Fury's Character Tracker|r |c9A9A9Av1.2.0|r
+## Description: Your whole roster on one board: skill lines, guild ranks, crafting, research, scribing, motifs, recipes, companions, riding and time played for every character, read from the game each time you log in on one. Pick each character's role and gear, share a brag card, and export it all to Excel.
+## Author: Furyous
+## Version: 1.2.0
+## AddOnVersion: 120
+## APIVersion: 101052 101053
+## SavedVariables: FuryCT_SV
+## DependsOn: LibAddonMenu-2.0>=35
+
+FurysCharacterTracker.lua
+Data/Lines.lua
+Core/Util.lua
+Core/Scan.lua
+Core/Roster.lua
+Core/Research.lua
+Core/Daily.lua
+Core/Alerts.lua
+UI/Window.xml
+UI/Window.lua
+UI/Brag.xml
+UI/Brag.lua
+UI/Timers.xml
+UI/Timers.lua
+UI/Details.xml
+UI/Details.lua
+UI/Settings.lua
+Bindings.xml

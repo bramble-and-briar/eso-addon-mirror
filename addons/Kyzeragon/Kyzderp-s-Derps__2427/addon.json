@@ -8,6 +8,10 @@
   "category_id": "27",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "KyzderpsDerps"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2427/",
-  "fingerprint": "a2c1fd61b0e0c829581c10d4bce306dd486a8298934b20f4c1785509b2864226",
+  "fingerprint": "0767813ecb3db7bfdd5f1a1ecf311ac99bedc208c8ed51054f64b8e4542b3d21",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8255.png",
     "https://cdn-eso.mmoui.com/preview/pvw8256.png",
@@ -37,11 +41,11 @@
   "source_id": "2427",
   "source_url": "https://www.esoui.com/downloads/info2427-KyzderpsDerps.html",
   "stats": {
-    "downloads": 69124,
+    "downloads": 69785,
     "favorites": 51,
-    "monthly_downloads": 994
+    "monthly_downloads": 831
   },
   "title": "Kyzderp's Derps",
-  "updated_at": 1793487463000,
-  "version": "1.56.0"
+  "updated_at": 1795230909000,
+  "version": "1.57.0"
 }

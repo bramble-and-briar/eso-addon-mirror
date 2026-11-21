@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Pocket Critters">
+            <Action name="POCKETCRITTERS_TOGGLE_SETTINGS">
+                <Down>PocketCritters.KeybindToggleSettings()</Down>
+            </Action>
+            <Action name="POCKETCRITTERS_PAT">
+                <Down>PocketCritters.KeybindPat()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

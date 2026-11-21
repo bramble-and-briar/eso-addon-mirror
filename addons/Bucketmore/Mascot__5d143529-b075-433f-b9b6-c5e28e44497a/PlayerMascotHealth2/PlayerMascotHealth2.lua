@@ -1,4 +1,4 @@
--- PlayerMascotHealth2 v2.0.4  (character library)
+-- PlayerMascotHealth2 v2.0.7  (character library)
 -- Base: PlayerMascotHealth v1.5.0 (HP state logic, HP events, animation, HUD fragment, preview, NORMAL load protection are carried over unchanged).
 -- New in v2: (1) the standard character is built in and always available; (2) more characters ("packs") come from OTHER addons that
 -- append a definition to the global table PMH2_PackQueue (no dependency, no load-order requirement); (3) position / size / opacity /
@@ -6,6 +6,10 @@
 -- Own addon name, own SavedVariables (PlayerMascotHealth2_SV) and own control names: the stable PlayerMascotHealth v1.5.0 is never touched.
 -- Turn PlayerMascotHealth v1.5.0 OFF while using this addon (two mascots would overlap).
 -- No OnUpdate / no polling. HP is read on EVENT_POWER_UPDATE (player + health only) and a few rare lifecycle events.
+-- v2.0.7: GUEST characters (PMH2_GuestPacks.lua + guests/<id>/): own "Guest" dropdown in the settings, guest display name can be renamed
+--   (sv.guestNames). HP logic / animation / saved data of the other characters unchanged. No timers / events added.
+-- v2.0.6: per-character animation speed slider (FPS 2..12, default 8 = unchanged). Nothing else changed.
+-- v2.0.5: the character "Christmas 2026" (xmas2026) is bundled (PMH2_BundledPacks.lua + packs/xmas2026/); nothing else changed.
 -- v2.0.4: status text enlarged (it was unreadably small on the PS5) and the strip moved right of the description panel
 --   that covers x=540..1000 while an option is selected. Still no timers/events; saved data unchanged.
 -- v2.0.3: the "Character preview" strip moved to the free area right of the settings panel (it overlapped the bottom bar), and it now
@@ -19,7 +23,7 @@
 --   * character ids are compared case-insensitively when packs are registered (stored ids are never rewritten).
 
 local ADDON      = "PlayerMascotHealth2"
-local VERSION    = "2.0.4"
+local VERSION    = "2.0.7"
 local DEBUG      = false      -- true prints "[PMH2]" debug lines (max DEBUG_MAX per session); off in the release
 local SV_NAME    = "PlayerMascotHealth2_SV"
 local SV_VERSION = 1                 -- NEVER change this number: ZO_SavedVars discards the saved data when it changes. Data format
@@ -40,6 +44,7 @@ local SHEET_COLS, SHEET_ROWS, SHEET_FPS = 4, 2, 8
 local ASPECT    = 1                      -- every frame is 256x256 -> width = height
 local SIZE_MIN, SIZE_MAX, SIZE_STEP = 128, 768, 8   -- size = displayed HEIGHT in UI px
 local ALPHA_MIN, ALPHA_MAX = 20, 100
+local FPS_MIN, FPS_MAX = 2, 12                      -- animation speed slider (frames per second; a sheet has 8 frames)
 local NORMAL_MIN, NORMAL_MAX = 20, 95
 local CAUTION_MIN, CAUTION_MAX = 10, 90
 local DANGER_MIN, DANGER_MAX = 5, 80
@@ -58,7 +63,7 @@ local DEFAULTS = {
     dangerStart  = 20,   -- HP% >= this (< caution)  -> DANGER, below (but HP > 0) -> CRITICAL, HP = 0 -> ZERO
 }
 -- per character (= per pack id) settings, stored in sv.chars[id]
-local CHAR_DEFAULTS = { enabled = true, showPercent = true, x = 20, y = 240, size = 256, alpha = 100 }
+local CHAR_DEFAULTS = { enabled = true, showPercent = true, x = 20, y = 240, size = 256, alpha = 100, fps = SHEET_FPS }
 
 -- Power type of the HP resource (v1.3.2+: resolved defensively, 32 is the engine value of health).
 local HEALTH_TYPE = POWERTYPE_HEALTH or COMBAT_MECHANIC_FLAGS_HEALTH or 32
@@ -80,6 +85,7 @@ local currentPercent        -- last computed HP% (integer 0..100)
 local shownPercent          -- HP% currently written into the label
 local lastEventMax          -- max HP seen in the previous HP event (detects max-HP changes)
 local resyncGen = 0         -- cancels a pending delayed re-read as soon as a newer valid value arrives
+local tlAnim, tlFps = {}, {}  -- state -> its texture animation / the FPS that animation was last set to
 local timelines = {}        -- state -> animation timeline (created once, reused by every character: same sheet spec)
 local animBroken = {}       -- "<packId>:<state>" -> true when that sheet was given up this session (still image is used)
 local onceDone   = {}       -- state -> true once a one-shot sheet (ZERO) reached its last frame; cleared when the state is left
@@ -96,9 +102,15 @@ local packs     = {}        -- id -> pack
 local packList  = {}        -- ids in display order (default first)
 local charNames = {}        -- dropdown choices (display names, same order as packList)
 local nameToId  = {}        -- display name -> id
+local ownerIds, guestIds = {}, {}   -- ids in display order: owner characters (default first) / guest characters
+local guestChoices = {}         -- guest dropdown choices ("no guest" + guest display names); filled in place
+local lastOwnerId = DEFAULT_ID  -- owner character to return to when "no guest" is chosen (runtime only)
+local GUEST_IN_USE = "- (ゲスト使用中 / guest in use)"   -- placeholder shown in the Character dropdown while a guest is in use
+local NO_GUEST     = "- (ゲストなし / no guest)"         -- placeholder of the Guest dropdown
 local badPacks  = {}        -- id -> true when the pack's files never loaded this session (runtime only, never saved)
 local curId, curPack = DEFAULT_ID, nil
 local packsReady = false
+local RebuildNames                      -- defined below (before PackSetup); declared here so it is a local, not a global
 local packRejects = {}      -- "id:reason" of packs that were not registered (shown in the preview strip status)
 local settingsBuilt = false
 
@@ -124,6 +136,10 @@ end
 
 local function Sanitize()                         -- global settings
     if type(sv.selectedId) ~= "string" then sv.selectedId = DEFAULT_ID end
+    if type(sv.guestNames) ~= "table" then sv.guestNames = {} end                 -- guest display names typed by the user (id -> text)
+    for k, v in pairs(sv.guestNames) do
+        if type(k) ~= "string" or type(v) ~= "string" or v == "" then sv.guestNames[k] = nil end
+    end
     sv.normalStart = Num(sv.normalStart, NORMAL_MIN, NORMAL_MAX, DEFAULTS.normalStart)
     local cautionMax = math.min(CAUTION_MAX, sv.normalStart - GAP)
     sv.cautionStart = Num(sv.cautionStart, CAUTION_MIN, cautionMax, math.min(DEFAULTS.cautionStart, cautionMax))
@@ -142,6 +158,7 @@ local function CharSettings(id)
     c.y     = Num(c.y, 0, 8000, CHAR_DEFAULTS.y)
     c.size  = Num(c.size, SIZE_MIN, SIZE_MAX, CHAR_DEFAULTS.size)
     c.alpha = Num(c.alpha, ALPHA_MIN, ALPHA_MAX, CHAR_DEFAULTS.alpha)
+    c.fps   = math.floor(Num(c.fps, FPS_MIN, FPS_MAX, CHAR_DEFAULTS.fps) + 0.5)
     return c
 end
 
@@ -216,6 +233,16 @@ local function ScanDamage(raw)
     end
     if raw.schemaVersion ~= nil and not IsSchema(raw.schemaVersion) then add("schemaVersion", raw.schemaVersion) end
     if raw.selectedId ~= nil and type(raw.selectedId) ~= "string" then add("selectedId", raw.selectedId) end
+    local gn = raw.guestNames
+    if gn ~= nil and type(gn) ~= "table" then
+        add("guestNames", gn)
+    elseif type(gn) == "table" then
+        for id, v in pairs(gn) do
+            if type(id) == "string" and type(v) ~= "string" then
+                add("guestNames." .. ((#id > 40) and (id:sub(1, 40) .. "...") or id), v)
+            end
+        end
+    end
     for _, k in ipairs({ "normalStart", "cautionStart", "dangerStart" }) do
         if raw[k] ~= nil and not IsNum(raw[k]) then add(k, raw[k]) end
     end
@@ -233,7 +260,7 @@ local function ScanDamage(raw)
                     for _, k in ipairs({ "enabled", "showPercent" }) do
                         if e[k] ~= nil and type(e[k]) ~= "boolean" then bad[#bad + 1] = k end
                     end
-                    for _, k in ipairs({ "x", "y", "size", "alpha" }) do
+                    for _, k in ipairs({ "x", "y", "size", "alpha", "fps" }) do
                         if e[k] ~= nil and not IsNum(e[k]) then bad[#bad + 1] = k end
                     end
                     if #bad > 0 then add(key, e, table.concat(bad, ",")) end
@@ -380,6 +407,8 @@ local function ValidatePack(def)
     local id = def.id
     if type(id) ~= "string" or #id < 1 or #id > 32 or not id:match("^[%w_]+$") then return nil, "bad id" end
     if id:lower() == DEFAULT_ID then return nil, "reserved id" end
+    local isGuest = (def.guest == true)
+    if isGuest and not id:lower():match("^guest_[%w_]+$") then return nil, "guest id must start with guest_" end
     if packs[id] or idLower[id:lower()] then return nil, "duplicate id (case-insensitive)" end
     if type(def.name) ~= "string" or def.name == "" or #def.name > 100 then return nil, "bad name" end
     if not SafeRel(def.dir) then return nil, "bad dir" end
@@ -398,7 +427,28 @@ local function ValidatePack(def)
                     fallbackAfter = 3 }      -- unproven files: the sheet is given up after 3 unanswered checks (same rule as v1.3.6 NORMAL)
     end
     local sortKey = (type(def.sortKey) == "string" and def.sortKey ~= "") and def.sortKey or def.name
-    return { id = id, name = def.name, display = def.name, sortKey = sortKey, cfg = cfg }
+    return { id = id, name = def.name, display = def.name, sortKey = sortKey, cfg = cfg, guest = isGuest }
+end
+
+-- Display names of all characters (a guest shows the name the user typed, if any) and the two dropdown choice lists.
+-- The tables are filled IN PLACE so the settings dropdowns that already hold them stay valid.
+local function ClearTable(t) for k in pairs(t) do t[k] = nil end end
+RebuildNames = function()
+    ClearTable(charNames); ClearTable(guestChoices); ClearTable(nameToId)
+    guestChoices[1] = NO_GUEST
+    local seen = { [GUEST_IN_USE] = true, [NO_GUEST] = true }
+    for _, id in ipairs(packList) do
+        local p = packs[id]
+        if not p.base then p.base = p.display end                                  -- the pack's own display text (default: "Default (標準)")
+        local shown = p.base
+        if p.guest and type(sv.guestNames) == "table" and type(sv.guestNames[id]) == "string" and sv.guestNames[id] ~= "" then shown = sv.guestNames[id] end
+        if seen[shown] then shown = shown .. " [" .. id .. "]" end                 -- dropdown entries must be unique
+        seen[shown] = true
+        p.display = shown
+        nameToId[shown] = id
+        if p.guest then guestChoices[#guestChoices + 1] = shown else charNames[#charNames + 1] = shown end
+    end
+    if #guestIds > 0 then charNames[#charNames + 1] = GUEST_IN_USE end           -- lets the Character dropdown show something while a guest is in use
 end
 
 -- Runs once, at the first EVENT_PLAYER_ACTIVATED (every addon has finished loading by then, so the queue is complete).
@@ -425,7 +475,7 @@ local function PackSetup()
             end
         end
     end
-    table.sort(order, function(a, b)       -- default first, then the pack's sortKey (Japanese names do not sort by reading), then name, then id
+    local function before(a, b)            -- default first, then the pack's sortKey (Japanese names do not sort by reading), then name, then id
         if a == b then return false end
         if a == DEFAULT_ID then return true end
         if b == DEFAULT_ID then return false end
@@ -433,15 +483,16 @@ local function PackSetup()
         if pa.sortKey ~= pb.sortKey then return pa.sortKey < pb.sortKey end
         if pa.name ~= pb.name then return pa.name < pb.name end
         return a < b
-    end)
-    packList = order
-    charNames, nameToId = {}, {}
-    for _, id in ipairs(order) do
-        local p = packs[id]
-        if nameToId[p.display] then p.display = p.display .. " [" .. id .. "]" end   -- dropdown entries must be unique
-        nameToId[p.display] = id
-        charNames[#charNames + 1] = p.display
     end
+    table.sort(order, before)
+    ownerIds, guestIds = {}, {}
+    for _, id in ipairs(order) do
+        if packs[id].guest then guestIds[#guestIds + 1] = id else ownerIds[#ownerIds + 1] = id end
+    end
+    packList = {}
+    for _, id in ipairs(ownerIds) do packList[#packList + 1] = id end
+    for _, id in ipairs(guestIds) do packList[#packList + 1] = id end
+    RebuildNames()
 end
 
 -- The id that is shown now. Unknown / removed / failed pack -> standard character; the stored selection stays untouched (KEEP).
@@ -509,6 +560,7 @@ local function StartAnim(state, cfg)
             local a = tl:InsertAnimation(ANIMATION_TEXTURE, tex)
             a:SetImageData(cfg.cols, cfg.rows)
             a:SetFramerate(cfg.fps)
+            tlAnim[state], tlFps[state] = a, cfg.fps
             if cfg.once then
                 -- play the sheet once; when it completes (and only then) hold the last frame
                 if ANIMATION_PLAYBACK_ONE_SHOT then
@@ -525,6 +577,11 @@ local function StartAnim(state, cfg)
                 tl:SetPlaybackType(ANIMATION_PLAYBACK_LOOP, LOOP_INDEFINITELY)
             end
             timelines[state] = tl
+        end
+        -- per-character speed: the timelines are shared by every character, so the FPS is set while the timeline is stopped
+        local want = (cs and cs.fps) or cfg.fps
+        if tlAnim[state] and tlFps[state] ~= want then
+            if pcall(tlAnim[state].SetFramerate, tlAnim[state], want) then tlFps[state] = want end
         end
         tl:PlayFromStart()
         activeTL = tl
@@ -558,6 +615,13 @@ local function EnsurePlayback()
             ShowImage(shownState, cfg)
         end
     end
+end
+
+-- Speed slider: restart the playing sheet with the new FPS (no texture reload, no timer).
+local function ApplySpeed()
+    if not shownState then return end
+    StopAnim()
+    EnsurePlayback()
 end
 
 local function ReapplyImage()
@@ -891,6 +955,7 @@ end
 local function ResetCurrentChar()
     for k, v in pairs(CHAR_DEFAULTS) do cs[k] = v end
     ApplyLayout()
+    ApplySpeed()
 end
 
 ---------------------------------------------------------------------------
@@ -904,6 +969,7 @@ function SwitchPack(newId)
     StopAnim()
     curId = newId
     curPack = packs[newId]
+    if not curPack.guest then lastOwnerId = newId end
     cs = CharSettings(newId)                      -- settings of THIS character (restored if it was used before)
     onceDone = {}
     shownState = nil                              -- forces a fresh ShowImage with the new character's files
@@ -1011,22 +1077,50 @@ local function BuildSettings()
     local sw = math.max(200, math.floor(GuiRoot:GetWidth() or 1920))
     local sh = math.max(200, math.floor(GuiRoot:GetHeight() or 1080))
 
-    LAM:RegisterOptionControls(panelName, {
+    local function ChooseChar(id)          -- common to the Character dropdown and the Guest dropdown
+        if not (id and packs[id]) then return end
+        sv.selectedId = id
+        if badPacks[id] then                      -- chosen again on purpose: give a pack that failed earlier one more try
+            badPacks[id] = nil
+            for _, st in ipairs(STATES) do animBroken[id .. ":" .. st] = nil end
+        end
+        SwitchPack(ResolveId())
+        Refresh()
+    end
+
+    local function UpdateChoiceControls()   -- after a guest was renamed: push the new names into the dropdowns (if the controls exist)
+        pcall(function()
+            local c1 = WINDOW_MANAGER:GetControlByName("PMH2_CharacterDD")
+            if c1 and c1.UpdateChoices then c1:UpdateChoices(charNames) end
+            local c2 = WINDOW_MANAGER:GetControlByName("PMH2_GuestDD")
+            if c2 and c2.UpdateChoices then c2:UpdateChoices(guestChoices) end
+        end)
+        Refresh()
+    end
+
+    local function SetGuestName(id, text)   -- empty text or the pack's own name = back to the original name. In protect mode sv is a copy: nothing is saved.
+        if type(sv.guestNames) ~= "table" or not packs[id] then return end
+        local t = tostring(text or "")
+        t = t:gsub("%c", ""):gsub("^%s+", ""):gsub("%s+$", "")
+        if #t > 100 then return end                                   -- too long: ignored
+        if t == "" or t == packs[id].name then sv.guestNames[id] = nil else sv.guestNames[id] = t end
+        RebuildNames()
+        UpdateChoiceControls()
+    end
+
+    local opts = {
         {
             type = "dropdown", name = "Character (使用キャラ)",
-            tooltip = "Applies immediately. The settings below belong to the character that is in use.",
+            tooltip = "Applies immediately. The settings below belong to the character that is in use. Guest characters are chosen in the Guest dropdown.",
+            reference = "PMH2_CharacterDD",
             choices = charNames,
-            getFunc = function() return packs[curId].display end,
+            getFunc = function()
+                if packs[curId].guest then return GUEST_IN_USE end
+                return packs[curId].display
+            end,
             setFunc = function(choice)
                 local id = nameToId[choice]
-                if not id then return end
-                sv.selectedId = id
-                if badPacks[id] then                      -- chosen again on purpose: give a pack that failed earlier one more try
-                    badPacks[id] = nil
-                    for _, st in ipairs(STATES) do animBroken[id .. ":" .. st] = nil end
-                end
-                SwitchPack(ResolveId())
-                Refresh()
+                if id and packs[id] and not packs[id].guest then ChooseChar(id) end
             end,
             default = packs[DEFAULT_ID].display,
         },
@@ -1081,6 +1175,16 @@ local function BuildSettings()
             default = CHAR_DEFAULTS.alpha,
         },
         {
+            type = "slider", name = "Animation speed (コマ送り FPS)", min = FPS_MIN, max = FPS_MAX, step = 1,
+            tooltip = "Frames per second of the animation (a sheet has 8 frames: 8 = one turn per second, 4 = two seconds). Saved per character. Default 8.",
+            getFunc = function() return cs.fps end,
+            setFunc = function(v)
+                cs.fps = math.floor(Num(v, FPS_MIN, FPS_MAX, CHAR_DEFAULTS.fps) + 0.5)
+                ApplySpeed()
+            end,
+            default = CHAR_DEFAULTS.fps,
+        },
+        {
             type = "slider", name = "NORMAL from HP % (通常)", min = NORMAL_MIN, max = NORMAL_MAX, step = 5,
             getFunc = function() return sv.normalStart end,
             setFunc = function(v)
@@ -1129,7 +1233,49 @@ local function BuildSettings()
             end,
             default = "-",
         },
-    })
+    }
+
+    if #guestIds > 0 then                     -- guest section: only when at least one guest character is registered
+        local pos = 2
+        table.insert(opts, pos, {
+            type = "dropdown", name = "Guest (ゲスト)",
+            tooltip = "Choose a guest character. Applies immediately. Choose the first entry to go back to your own character.",
+            reference = "PMH2_GuestDD",
+            choices = guestChoices,
+            getFunc = function()
+                if packs[curId].guest then return packs[curId].display end
+                return NO_GUEST
+            end,
+            setFunc = function(choice)
+                if choice == NO_GUEST then
+                    if packs[curId].guest then
+                        local back = packs[lastOwnerId]
+                        ChooseChar((back and not back.guest) and lastOwnerId or DEFAULT_ID)
+                    end
+                    return
+                end
+                local id = nameToId[choice]
+                if id and packs[id] and packs[id].guest then ChooseChar(id) end
+            end,
+            default = NO_GUEST,
+        })
+        pos = pos + 1
+        for _, gid in ipairs(guestIds) do
+            local id = gid
+            table.insert(opts, pos, {
+                type = "editbox", name = "Guest name (ゲスト名の変更) " .. id,
+                tooltip = "Type a display name for this guest. Empty = the original name. Only the name changes: the guest's settings stay.",
+                isMultiline = false,
+                maxChars = 24,
+                getFunc = function() return (type(sv.guestNames) == "table" and sv.guestNames[id]) or packs[id].name end,
+                setFunc = function(text) SetGuestName(id, text) end,
+                default = packs[id].name,
+            })
+            pos = pos + 1
+        end
+    end
+
+    LAM:RegisterOptionControls(panelName, opts)
 end
 
 ---------------------------------------------------------------------------

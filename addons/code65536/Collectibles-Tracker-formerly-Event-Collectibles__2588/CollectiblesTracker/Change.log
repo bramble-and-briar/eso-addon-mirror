@@ -1,3 +1,6 @@
+Version 3.6.6 (2026/11/20)
+* Added Tarcyr and Mylenne Moon-Caller to Undaunted Styles
+
 Version 3.6.5 (2026/11/12)
 * Added Return to Western Skyrim collectibles to Golden Pursuits
 
@@ -96,7 +99,7 @@ Version 3.3.2 (2025/03/29)
 Version 3.3.1 (2025/03/26)
 * Added collectibles for the 2025 Jester's Festival and Anniversary Jubilee
 * Added Robes of Truth and Law to Event Morphs
-* Added Roksa the Warped to Undaunted Sets
+* Added Roksa the Warped to Undaunted Styles
 
 Version 3.3.0 (2025/02/05)
 * Added Dibella's Exaltation and Mini Siege Mining to Golden Pursuits
@@ -141,7 +144,7 @@ Version 3.1.0 (2024/07/24)
 * Renamed this addon's folder and files to match the addon's name change
 
 Version 3.0.1 (2024/07/08)
-* Added The Blind to Undaunted Sets
+* Added The Blind to Undaunted Styles
 * Right-clicking on an entry in the browser will now display its collectibleId
 
 Version 3.0.0 (2024/06/19)

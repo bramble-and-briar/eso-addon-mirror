@@ -1,23 +1,12 @@
 Bankir = Bankir or {}
-Bankir.Menu = Bankir.Menu or {}
 
-function Bankir.createSettingsMenu(name, author, version)
-	local BMBF = Bankir.MenuBuildFunctions
-	local LAM = LibAddonMenu2
-	
-	Bankir.Menu.selectedBankIndex = 1
-	Bankir.Menu.selectedBankId = Bankir.Data.bankBagIds[1]
-	
-	-- Register the Options panel with LAM
-	local panelData =
-	{
-		type = "panel",
-		name = name,
-		author = author,
-		version = version,
-		registerForRefresh = true,
-	}
-	local addonPanel = LAM:RegisterAddonPanel("Bankir_Settings", panelData)
+local BMBF = Bankir.MenuBuildFunctions
+local selectedBankIndex = 1
+local selectedBankId = BAG_BANK
+local addonPanel
+
+local function onPanelCreated(panel)
+	if (panel ~= addonPanel) then return end -- only proceed if this is our settings panel
 	
 	local blacksmithingTabsData = {
 		buttonType = "icon",
@@ -593,7 +582,7 @@ function Bankir.createSettingsMenu(name, author, version)
 	
 	local settingsTabsData = {
 		{
-			title = GetString(SI_GAME_MENU_SETTINGS) .. " " .. name, -- "Settings Bankir"
+			title = GetString(SI_GAME_MENU_SETTINGS) .. " " .. Bankir.name, -- "Settings Bankir"
 			widgets = BMBF.makeSettingsMenu(),
 		},
 		{
@@ -618,14 +607,25 @@ function Bankir.createSettingsMenu(name, author, version)
 		},
 	}
 	
-	local function onPanelCreated(panel)
-		if (panel ~= addonPanel) then return end -- only proceed if this is our settings panel
+	local mainPanel = _G["BankirMenuCustomPanel"]
+	local panelWidth = addonPanel:GetWidth()
+	mainPanel:SetWidth(panelWidth)
+	Bankir.createTabs(mainPanel, mainTabsData)
+end
 
-		local mainPanel = _G["BankirMenuCustomPanel"]
-		local panelWidth = addonPanel:GetWidth()
-		mainPanel:SetWidth(panelWidth)
-		Bankir.createTabs(mainPanel, mainTabsData)
-	end
+local function create()
+	local LAM = LibAddonMenu2
+	
+	-- Register the Options panel with LAM
+	local panelData =
+	{
+		type = "panel",
+		name = Bankir.name,
+		author = Bankir.author,
+		version = Bankir.version,
+		registerForRefresh = true,
+	}
+	addonPanel = LAM:RegisterAddonPanel("Bankir_Settings", panelData)
 	
 	local optionsData = {
 		{
@@ -638,3 +638,16 @@ function Bankir.createSettingsMenu(name, author, version)
 	
 	CALLBACK_MANAGER:RegisterCallback('LAM-PanelControlsCreated', onPanelCreated)
 end
+
+local function updateBankSelector()
+	if _G["BankirMenuBankSelectorDropdown"] then
+		_G["BankirMenuBankSelectorDropdown"]:UpdateChoices(Bankir.Data.bankBagNames)
+	end
+end
+
+Bankir.Menu = {
+	selectedBankIndex = selectedBankIndex,
+	selectedBankId = selectedBankId,
+	create = create,
+	updateBankSelector = updateBankSelector,
+}

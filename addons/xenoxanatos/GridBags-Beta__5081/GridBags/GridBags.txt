@@ -1,0 +1,34 @@
+## Title: GridBags
+## Description: Keyboard and mouse backpack and personal bank grids. Early prototype.
+## Author: XenoXanatos
+## Version: 0.15.3
+## AddOnVersion: 25
+## APIVersion: 101051
+## SavedVariables: GridBagsSavedVariables
+## OptionalDependsOn: AdvancedFilters LibFilters-3.0 LibAddonMenu-2.0 LibCustomMenu ResearchAssistant CharacterKnowledge CraftStoreFixedAndImproved BankManagerRevived
+
+Compatibility.lua
+Activity.lua
+SnapshotFilters.lua
+Snapshots.lua
+Equipment.lua
+Routing.lua
+Help.lua
+RoutingUI.lua
+SmartRouting.lua
+Crafting.lua
+GearRouting.lua
+CraftingUI.lua
+Layout.lua
+GoldRouting.lua
+GoldUI.lua
+TransferTools.lua
+RecipeGather.lua
+ConfigCodec.lua
+ToolsUI.lua
+RoutingInsights.lua
+DeliveryUI.lua
+ProtectionUI.lua
+RecipeGatherUI.lua
+AdvancedFilters.lua
+GridBags.lua

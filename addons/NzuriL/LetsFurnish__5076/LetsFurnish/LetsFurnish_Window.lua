@@ -1,7 +1,7 @@
 local LF = LetsFurnish
 local L, count, sentences, list, ask = LF.L, LF.count, LF.sentences, LF.list, LF.ask
 local unrecordable = LF.unrecordable
-local WIDTH, PAD = 820, 16
+local WIDTH, PAD = 900, 16
 local MOST_ROWS, LEAST_ROWS, MARGIN = 8, 4, 20
 local ROW, ICON, ICON_GAP = 52, 40, 27
 local BAR, ARROW = 16, 16
@@ -34,13 +34,15 @@ local TABS = {
     { "layouts", L.window.layouts, "Journal/journal_tabIcon_loreLibrary", L.window.layouts_lead, "" },
     { "apply", L.window.apply, "Housing/Keyboard/furniture_tabIcon_place", nil, L.window.apply_status },
     { "needs", L.window.needs, "Crafting/blueprints_tabIcon", nil, "" },
+    { "destructive", L.window.destructive, "Inventory/inventory_tabIcon_trash", nil, "" },
     { "backups", L.window.backups, "Guild/tabIcon_history", L.window.backups_lead, L.window.backups_status },
     { "share", L.window.share, "Mail/mail_tabIcon_compose", nil, "" },
     { "settings", L.window.settings, "Housing/Keyboard/furniture_tabIcon_settings", nil, "" },
 }
 local LISTS = { { "layouts", "here", L.window.this_house, L.window.empty_here }, { "layouts", "every", L.window.every_house, L.window.empty_every },
                 { "apply", "place", L.window.to_place, L.window.empty_place }, { "apply", "move", L.window.to_move, L.window.empty_move },
-                { "apply", "remove", L.window.to_remove, L.window.empty_remove }, { "apply", "missing", L.window.missing, L.window.empty_missing },
+                { "apply", "remove", L.window.to_remove, L.window.empty_remove },
+                { "apply", "link", L.window.linking, L.window.empty_link }, { "apply", "missing", L.window.missing, L.window.empty_missing },
                 { "apply", "inplace", L.window.in_place, L.window.empty_in_place },
                 { "needs", "all", L.window.all_needed, L.window.empty_needed }, { "needs", "missing", L.window.missing, L.window.empty_needs_missing },
                 { "needs", "uncraftable", L.window.not_craftable, L.window.empty_not_craftable },
@@ -50,7 +52,7 @@ local LISTS = { { "layouts", "here", L.window.this_house, L.window.empty_here },
                 { "settings", "take", L.window.take_from, "" }, { "settings", "put", L.window.put_into, "" },
                 { "settings", "prices", L.window.prices, "" }, { "settings", "speed", L.window.speed, "" },
                 { "settings", "log", L.window.log, L.window.empty_log } }
-local WORK = { "place", "move", "remove", "missing" }
+local WORK = { "place", "move", "remove", "link", "missing" }
 local SOURCES = { app = { ART .. "Housing/Keyboard/furniture_tabIcon_place_up.dds", L.window.from_app },
                   code = { ART .. "Mail/mail_tabIcon_compose_up.dds", L.window.from_code },
                   recorded = { ART .. "Miscellaneous/clipboard_up.dds", L.window.recorded_here } }
@@ -316,9 +318,12 @@ local LOG_KINDS = { run = L.window.log_kind_run, remove = L.window.log_kind_remo
 local LOG_WHAT = { failed = L.window.log_what_failed, error = L.window.log_what_error, absent = L.window.log_what_absent,
                    unconfirmed = L.window.log_what_unconfirmed, unanswered = L.window.log_what_unanswered, refused = L.window.log_what_refused,
                    not_taken = L.window.log_what_not_taken, late = L.window.log_what_late, not_put_away = L.window.log_what_not_put_away,
-                   conform = L.window.log_what_conform, stopped = L.window.log_what_stopped, skipped = L.window.log_what_skipped }
+                   conform = L.window.log_what_conform, stopped = L.window.log_what_stopped, skipped = L.window.log_what_skipped,
+                   link = L.window.log_what_link }
 local LOG_WHY = { too_fast = L.window.log_why_too_fast, no_place = L.window.log_why_no_place, left_house = L.window.log_why_left_house,
-                  not_owner = L.window.log_why_not_owner, stop = L.window.log_why_stop, path_unconfirmed = L.window.log_why_path_unconfirmed }
+                  not_owner = L.window.log_why_not_owner, stop = L.window.log_why_stop, path_unconfirmed = L.window.log_why_path_unconfirmed,
+                  link_no_parent = L.window.log_why_link_no_parent, link_no_child = L.window.log_why_link_no_child,
+                  path_unread = L.window.log_why_path_unread }
 local function conformWord(v)
     if v == true then return L.window.log_conform_on elseif v == false then return L.window.log_conform_off end
     return v == "timeout" and L.window.log_got_timeout or L.window.log_got_unread
@@ -456,13 +461,67 @@ local function listRows(tab, which)
     elseif tab == "settings" then
         out.count = (which == "take" or which == "put") and #LF.places(which) or nil
         return out
+    elseif tab == "destructive" then
+        if here == 0 then return out end
+        local n = 0
+        for _ in pairs(LF.placedIds()) do n = n + 1 end
+        out[#out + 1] = { name = L.window.empty_house, icon = ART .. "Inventory/inventory_tabIcon_trash_up.dds", note = count(L.window.furnishings, n),
+                          button = n > 0 and { L.window.remove, W.emptyHouseAsk, changes = true } or nil }
+        local links = LF.linksInHouse()
+        out[#out + 1] = { name = L.window.unlink_all, icon = ART .. "Housing/Keyboard/furniture_tabIcon_furnitureList_up.dds", note = count(L.window.unlink_all_note, #links),
+                          button = #links > 0 and { L.window.unlink, function() W.unlinkAllAsk(links) end, changes = true } or nil }
+        for _, place in ipairs(LF.places("take", true)) do
+            if place.enabled and (place.count or 0) > 0 then
+                out[#out + 1] = { name = zo_strformat(L.window.place_from, place.name), icon = ART .. "Housing/Keyboard/furniture_tabIcon_place_up.dds",
+                                  note = count(L.window.place_from_note, place.count),
+                                  button = { L.window.place, function() W.placeFromAsk(place) end, changes = true } }
+            end
+        end
+        return out
     elseif tab ~= "apply" then
+        return out
+    end
+    if which == "link" then
+        local groups = 0
+        W.expandedTrees = W.expandedTrees or {}
+        for _, tree in ipairs(W.links or {}) do
+            if not tree.done then
+                groups = groups + 1
+                local open = W.expandedTrees[tree.uid] == true
+                local function toggle() W.expandedTrees[tree.uid] = not open end
+                local note
+                if tree.capacityIssue then
+                    note = red(tree.capacityIssue)
+                elseif tree.missing > 0 then
+                    note = red(count(L.window.link_missing, tree.missing))
+                else
+                    note = count(L.window.link_group, #tree.members - 1)
+                    if #tree.lost > 0 then note = note .. "\n" .. red(count(L.window.link_undoes, #tree.lost)) end
+                end
+                local act = tree.missing == 0 and not tree.capacityIssue and { L.window.link, function() W.linkTree(tree) end, changes = true } or nil
+                out[#out + 1] = furnishing({ name = tree.name, icon = tree.icon, note = note, placed = tree.members[1].id, pick = toggle,
+                                             button = act, menu = { { open and L.window.collapse or L.window.expand, toggle } } }, tree.root)
+                for i = 2, open and #tree.members or 1 do
+                    local m = tree.members[i]
+                    out[#out + 1] = furnishing({ name = string.rep("  ", m.depth) .. tostring(m.name), icon = m.icon, placed = m.id,
+                                                 note = m.id and zo_strformat(L.window.under, m.parent.name) or red(L.window.not_anywhere) }, m.row)
+                end
+            end
+        end
+        for _, group in ipairs(W.extraParents or {}) do
+            groups = groups + 1
+            local act = { L.window.unlink, function() W.unlinkExtraAsk(group) end, changes = true }
+            out[#out + 1] = { name = group.name, icon = group.icon, note = zo_strformat(L.window.extra_links, #group.links),
+                              button = act, menu = { act } }
+        end
+        out.count = groups
         return out
     end
     if which == "inplace" then
         for _, standing_ in ipairs(W.diff and W.diff.inPlace or {}) do
             local id = standing_.id
-            out[#out + 1] = furnishing({ name = standing_.name, icon = standing_.icon, note = ZO_SUCCEEDED_TEXT:Colorize(L.window.stands_in_place),
+            local note = LF.pathReadFailed(id) and red(L.window.path_unread) or ZO_SUCCEEDED_TEXT:Colorize(L.window.stands_in_place)
+            out[#out + 1] = furnishing({ name = standing_.name, icon = standing_.icon, note = note,
                                          placed = id, pick = function() editAt(id) end, button = { L.window.edit, function() editAt(id) end },
                                          menu = standing(nil, id) }, standing_.row)
         end
@@ -488,6 +547,11 @@ local function listRows(tab, which)
             local word = (task.action == "move" and L.window.move) or (task.action == "path" and L.window.set_path) or L.window.switch
             local act = { word, function() W.act(task) end, changes = true }
             local note = (task.action == "move" and L.window.stands_elsewhere) or (task.action == "path" and L.window.other_path) or L.window.other_state
+            out[#out + 1] = furnishing({ name = task.name, icon = task.icon, note = note,
+                                         placed = task.id, pick = function() editAt(task.id) end, button = act, menu = standing(act, task.id) }, task.row)
+        elseif which == "move" and (task.action == "link" or task.action == "unlink") and LF.inList(task, "move") then
+            local act = { task.action == "link" and L.window.link or L.window.unlink, function() W.act(task) end, changes = true }
+            local note = task.action == "link" and zo_strformat(L.window.link_to, task.parentName or "?") or L.window.linked_extra
             out[#out + 1] = furnishing({ name = task.name, icon = task.icon, note = note,
                                          placed = task.id, pick = function() editAt(task.id) end, button = act, menu = standing(act, task.id) }, task.row)
         elseif which == "remove" and task.action == "remove" then
@@ -519,6 +583,7 @@ local function context()
     if here == 0 then return L.core.no_house end
     local house = LF.houseName(here)
     if W.tab == "layouts" then return zo_strformat(L.window.house_count, house, count(L.window.layouts_count, #W.shown)) end
+    if W.tab == "destructive" then return house end
     if W.tab == "backups" then
         return zo_strformat(L.window.house_count, house, count(L.window.backups_count, #LF.backups()))
     end
@@ -1131,11 +1196,16 @@ local function paint()
         W.needsFailed = (wanted and not ok) and tostring(needs) or nil
         if W.need then needRows("crafting") end
     end
-    if not (LF.queue and W.diff and W.diff.layout == layout) then
+    if W.tab ~= "apply" then
+        W.diff, W.links, W.extraParents = nil, nil, nil
+    elseif not (LF.queue and W.diff and W.diff.layout == layout) then
         local ok, diff = false, nil
         if layout then ok, diff = pcall(LF.diff, layout) end
         W.diff = ok and diff or nil
         if W.diff and W.job then LF.settle(W.job, W.diff) end
+        local read, trees, extras = false, nil, nil
+        if W.diff then read, trees, extras = pcall(LF.linkTrees, W.diff) end
+        W.links, W.extraParents = read and trees or nil, read and extras or nil
     end
     W.made = {}
     if W.ended and not LF.queue and W.diff then
@@ -1161,7 +1231,7 @@ local function paint()
                        or (W.list.settings == "speed" and L.window.speed_lead) or (W.list.settings == "log" and L.window.log_lead) or L.window.take_lead
             end
             W.lead:SetText(slots or counted or (W.tab == "layouts" and broken and red(why)) or lead or "")
-            local ran = (W.tab == "apply" or W.tab == "backups") and LF.lastRun or nil
+            local ran = (W.tab == "apply" or W.tab == "backups" or W.tab == "destructive") and LF.lastRun or nil
             local recording = W.tab == "apply" and W.layout and W.layout.recorded and L.window.recorded_status
             W.status:SetText(ran and ZO_SUCCEEDED_TEXT:Colorize(ran) or recording or tab[5])
         end
@@ -1189,7 +1259,7 @@ local function paint()
     W.code.frame:SetHidden(W.tab ~= "share")
     W.code.note:SetHidden(W.tab ~= "share")
     W.code.sync()
-    local cantRecord, unchangeable = unrecordable(), LF.unchangeable(W.layout)
+    local cantRecord, unchangeable = unrecordable(), LF.unchangeable(W.tab ~= "destructive" and W.layout or nil)
     for _, recording in ipairs(W.recording) do allow(recording, cantRecord) end
     if W.tab == "backups" then
         local limit = LF.backupLimit(W.list.backups)
@@ -1202,6 +1272,7 @@ local function paint()
     allow(W.placeAll, unchangeable or (not W.diff and none) or ((left.place or 0) == 0 and L.window.empty_place) or nil)
     allow(W.moveAll, unchangeable or (not W.diff and none) or ((left.move or 0) == 0 and L.window.empty_move) or nil)
     allow(W.removeAll, unchangeable or (not W.diff and none) or ((left.remove or 0) == 0 and L.window.empty_remove) or nil)
+    allow(W.linkAll, unchangeable or (not W.diff and none) or (#LF.linkable(W.links) == 0 and L.window.empty_link) or nil)
     local reasons = {}
     if here == 0 and W.tab ~= "share" and W.tab ~= "needs" then
         reasons[#reasons + 1] = L.core.no_house
@@ -1254,6 +1325,7 @@ local function soon()
     end, REFRESH_WAIT)
 end
 W.soon = soon
+LF.onPathsRead = soon
 local function job()
     if not W.job or not LF.sameHouse(W.job.tally) then W.job = LF.job(W.layout, W.diff and W.diff.found) end
     return W.job
@@ -1263,7 +1335,7 @@ function W.act(task, n)
 end
 local function runAll(which)
     if not (W.diff and W.layout) then return end
-    local place, move, switch, paths = 0, 0, 0, 0
+    local place, move, switch, paths, links = 0, 0, 0, 0, 0
     for _, task in ipairs(W.diff.tasks) do
         if LF.inList(task, which) then
             if task.action == "move" then
@@ -1272,12 +1344,15 @@ local function runAll(which)
                 switch = switch + 1
             elseif task.action == "path" then
                 paths = paths + 1
+            elseif task.action == "link" or task.action == "unlink" then
+                links = links + 1
             elseif task.action ~= "conform" then
                 place = place + 1
             end
         end
     end
-    local parts = list(LF.some(L.core.to_place, place), LF.some(L.core.to_move, move), LF.some(L.window.to_switch, switch), LF.some(L.core.paths_to_set, paths))
+    local parts = list(LF.some(L.core.to_place, place), LF.some(L.core.to_move, move), LF.some(L.window.to_switch, switch), LF.some(L.core.paths_to_set, paths),
+                       LF.some(L.core.links_to_set, links))
     local name_ = tostring(W.layout.name)
     local title = which == "place" and L.window.place_all or L.window.move_all
     local text
@@ -1297,9 +1372,70 @@ local function removeAll()
         if task.action == "remove" then n = n + 1 end
     end
     if n == 0 then return end
+    local layout, diff, house = W.layout, W.diff, LF.houseKey()
     confirm(L.window.remove_all, count(L.window.remove_all_ask, n, tostring(W.layout.name), firstPlace().name), L.window.remove_all, function()
-        if W.diff and W.layout then LF.removeAll(W.layout, W.diff) end
+        if W.layout == layout and LF.houseKey() == house then LF.removeAll(layout, diff) end
     end)
+end
+function W.emptyHouseAsk()
+    local house, steps = LF.houseKey(), LF.houseRemovalSteps()
+    if #steps == 0 then return end
+    confirm(L.window.empty_house, zo_strformat(L.window.empty_house_ask, LF.houseName(GetCurrentZoneHouseId()), #steps),
+            L.window.empty_house, function() LF.emptyHouse(house, steps) end)
+end
+local function lostText(trees)
+    local lost, names = 0, {}
+    for _, tree in ipairs(trees) do
+        for _, l in ipairs(tree.lost) do
+            lost = lost + 1
+            if #names < 5 then names[#names + 1] = zo_strformat(L.window.link_lost_item, l.name, l.parent) end
+        end
+    end
+    if lost > #names then names[#names + 1] = count(L.house.more_furnishings, lost - #names) end
+    return lost > 0 and count(L.window.link_lost, lost, list(unpack(names))) or nil, lost
+end
+function W.linkTree(tree)
+    local lost = lostText({ tree })
+    local layout, house = W.layout, LF.houseKey()
+    local go = function() if layout and W.layout == layout and LF.houseKey() == house then LF.linkTreesRun(layout, { tree }) end end
+    if not lost then return go() end
+    confirm(L.window.link, sentences(zo_strformat(L.window.link_tree_ask, tree.name), lost), L.window.link, go)
+end
+function W.linkAllAsk()
+    local trees = LF.linkable(W.links)
+    local layout, house = W.layout, LF.houseKey()
+    if not layout or #trees == 0 then return end
+    confirm(L.window.link_all, sentences(count(L.window.link_all_ask, #trees), (lostText(trees))), L.window.link_all, function()
+        if W.layout == layout and LF.houseKey() == house then LF.linkTreesRun(layout, trees) end
+    end)
+end
+function W.unlinkExtraAsk(group)
+    local house, layout = LF.houseKey(), W.layout
+    confirm(L.window.unlink, zo_strformat(L.window.extra_links_ask, group.name, #group.links), L.window.unlink, function()
+        if W.layout == layout and LF.houseKey() == house then LF.unlinkAll(group.links, group.name) end
+    end)
+end
+function W.unlinkAllAsk(links)
+    local house = LF.houseKey()
+    confirm(L.window.unlink_all, count(L.window.unlink_all_ask, #links), L.window.unlink_all, function()
+        if LF.houseKey() == house then LF.unlinkAll(links) end
+    end)
+end
+function W.placeFromAsk(place)
+    local plan, house = LF.placeFromPlan(place), LF.houseKey()
+    if #plan.units == 0 and plan.over == 0 then
+        LF.alert(zo_strformat(L.house.nothing_to_place_from, plan.name))
+        return
+    end
+    local over = plan.over > 0 and count(L.window.place_from_over, plan.over) or nil
+    confirm(zo_strformat(L.window.place_from, plan.name), sentences(count(L.window.place_from_ask, #plan.units, plan.name), over), L.window.place,
+            function()
+                if LF.houseKey() ~= house then return end
+                local _, why = LF.placeFrom(place, plan)
+                if why == "changed" then
+                    zo_callLater(function() if LF.houseKey() == house then W.placeFromAsk(place) end end, 0)
+                end
+            end)
 end
 function W.select(key)
     if not ZO_MenuBar_SelectDescriptor(W.tabs, key, true) then paint() end
@@ -1897,9 +2033,11 @@ local function build()
     end
     W.placeAll = button(win, L.window.place_all, PAD, buttons, 150, function() runAll("place") end, L.window.tip_place_all)
     W.moveAll = button(win, L.window.move_all, PAD + 154, buttons, 150, function() runAll("move") end, L.window.tip_move_all)
+    W.linkAll = button(win, L.window.link_all, PAD + 462, buttons, 150, function() W.linkAllAsk() end, L.window.tip_link_all)
+    W.footers.destructive = {}
     W.removeAll = button(win, L.window.remove_all, PAD + 308, buttons, 150, removeAll, L.window.tip_remove_all)
     W.into = button(win, L.window.open_settings, WIDTH - PAD - 180, buttons, 180, function() openSettings("put") end, L.window.tip_removed_to)
-    W.footers.apply = { W.placeAll, W.moveAll, W.removeAll, W.into }
+    W.footers.apply = { W.placeAll, W.moveAll, W.removeAll, W.linkAll, W.into }
     W.buildBackupFooter(win, buttons)
     W.recording[3] = button(win, L.window.house_code, PAD, buttons, 200, function() shareNamed("") end, L.window.tip_house_code)
     C.read = button(win, L.window.read_code, PAD + 204, buttons, 200, readCode, L.window.tip_read_code)

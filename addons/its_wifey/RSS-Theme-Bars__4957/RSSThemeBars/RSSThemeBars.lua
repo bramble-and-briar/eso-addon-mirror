@@ -12,9 +12,22 @@ local HEALTH = {0.95, 0.08, 0.08}
 local STAM   = {0.05, 0.88, 0.28}
 local MAG    = {0.12, 0.32, 1.00}
 
-local defaults = { enabled=true, locked=true, scale=100, theme="Default", x=0, y=0, winterGap=0, themeGap=0, ghostfireColor={0.10,1.0,0.20} }
+local defaults = { enabled=true, locked=true, scale=100, theme="Default", x=0, y=0, winterGap=0, themeGap=0, ghostfireColor={0.10,1.0,0.20}, straightPositions={} }
 local Bars, saved = {}, nil
-local THEMES = {"Default", "Dragon", "Halloween", "Spooky Cute", "Hibiscus", "Sunflower", "Swords", "Winter", "Stardust Dragon", "Ghostfire"}
+local STRAIGHT_DEFAULTS = { health={x=-350,y=0}, magicka={x=0,y=0}, stamina={x=350,y=0} }
+local STRAIGHT_WIDTH, STRAIGHT_HEIGHT = 320, 76
+-- Grouped themes share the same screen-relative TOP of their resource bars.
+local GROUP_BAR_DEFAULT_Y = 220
+local GROUP_BAR_W = {magicka=260, health=299, stamina=266}
+local function groupedDefaultY(height, barTop)
+    return GROUP_BAR_DEFAULT_Y + height/2 - barTop
+end
+local function resetGroupedPosition(group, key, height, barTop)
+    local y = groupedDefaultY(height, barTop)
+    saved[key]={x=0,y=y}
+    if group then group:ClearAnchors(); group:SetAnchor(CENTER,GuiRoot,CENTER,0,y) end
+end
+local THEMES = {"Default", "Dragon", "Halloween", "Spooky Cute", "Hibiscus", "Sunflower", "Swords", "Winter", "Stardust Dragon", "Ghostfire", "Simple Glow", "Enchanted Butterfly", "Fairy Garden", "Frozen Elegance", "Moonlit Magic", "Midnight Wings", "Golden Dragon"}
 local hudFragment, playerDead = nil, false
 local ghostfireTick = 0
 local function applyGhostfireColor()
@@ -66,8 +79,28 @@ local function setResourceLabelText(mainLabel, glowLabels, text)
         for _,label in ipairs(glowLabels) do label:SetText(text) end
     end
 end
+-- Straight-bar fill uses the same power events and numeric values as curved bars.
+local function updateStraight(key,pct)
+    local items = {Bars.straight and Bars.straight[key], Bars.moonBars and Bars.moonBars[key], Bars.midnightBars and Bars.midnightBars[key], Bars.goldenBars and Bars.goldenBars[key], Bars.simpleGroupBars and Bars.simpleGroupBars[key], Bars.fairyBars and Bars.fairyBars[key], Bars.frozenBars and Bars.frozenBars[key], Bars.lunarBars and Bars.lunarBars[key]}
+    for _,item in pairs(items) do
+    if item then
+    local p = clamp((pct or 0)/100)
+    local width = item.width or STRAIGHT_WIDTH
+    local visible = math.max(0.01, width*p)
+    for _,texture in ipairs({item.fill,item.glow}) do
+        texture:SetWidth(visible)
+        texture:SetTextureCoords(0,p,0,1)
+        texture:SetHidden(p<=0)
+    end
+    item.number:SetText(resourceText(item.power))
+    for _,label in ipairs(item.numberGlows) do label:SetText(resourceText(item.power)) end
+    end
+    end
+end
+
 local function updateHealth(pct)
     setResourceLabelText(Bars.healthText,Bars.healthGlowText,resourceText(POWERTYPE_HEALTH))
+    updateStraight("health",pct)
     Bars.healthGlow:ClearAnchors(); Bars.healthGlow:SetAnchor(BOTTOM,Bars.healthBack,BOTTOM,0,0); cropBottomUp(Bars.healthGlow,pct,ARC_W,ARC_H)
     Bars.health:ClearAnchors(); Bars.health:SetAnchor(BOTTOM,Bars.healthBack,BOTTOM,0,0); cropBottomUp(Bars.health,pct,ARC_W,ARC_H)
     if Bars.winterHealthGlow then
@@ -79,11 +112,13 @@ local function updateHealth(pct)
 end
 local function updateStamina(pct)
     setResourceLabelText(Bars.staminaText,Bars.staminaGlowText,resourceText(POWERTYPE_STAMINA))
+    updateStraight("stamina",pct)
     Bars.staminaGlow:ClearAnchors(); Bars.staminaGlow:SetAnchor(BOTTOM,Bars.staminaBack,BOTTOM,0,0); cropBottomUp(Bars.staminaGlow,pct,ARC_W,RIGHT_H)
     Bars.stamina:ClearAnchors(); Bars.stamina:SetAnchor(BOTTOM,Bars.staminaBack,BOTTOM,0,0); cropBottomUp(Bars.stamina,pct,ARC_W,RIGHT_H)
 end
 local function updateMagicka(pct)
     setResourceLabelText(Bars.magickaText,Bars.magickaGlowText,resourceText(POWERTYPE_MAGICKA))
+    updateStraight("magicka",pct)
     Bars.magickaGlow:ClearAnchors(); Bars.magickaGlow:SetAnchor(TOP,Bars.magickaBack,TOP,0,0); cropTopDown(Bars.magickaGlow,pct,ARC_W,RIGHT_H)
     Bars.magicka:ClearAnchors(); Bars.magicka:SetAnchor(TOP,Bars.magickaBack,TOP,0,0); cropTopDown(Bars.magicka,pct,ARC_W,RIGHT_H)
 end
@@ -91,7 +126,6 @@ local function refresh()
     updateHealth(percent(POWERTYPE_HEALTH)); updateStamina(percent(POWERTYPE_STAMINA)); updateMagicka(percent(POWERTYPE_MAGICKA))
 end
 local function onPower(_,unitTag,_,powerType,value,maxValue,effectiveMax)
-    if unitTag~="player" then return end
     local m=effectiveMax or maxValue; if not m or m<=0 then return end
     local pct=(value/m)*100
     if powerType==POWERTYPE_HEALTH then updateHealth(pct)
@@ -107,10 +141,34 @@ local function applyVisibility()
     if not Bars.hud then return end
     local shouldHide = (not saved.enabled) or playerDead or IsUnitDead("player") or (hudFragment and not fragmentShown())
     Bars.hud:SetHidden(shouldHide)
+    if Bars.straight then
+        for _,bar in pairs(Bars.straight) do
+            bar.control:SetHidden(true) -- Legacy independent bars retained, replaced by matching group
+        end
+    end
+    if Bars.moonGroup then Bars.moonGroup:SetHidden(shouldHide or saved.theme ~= "Enchanted Butterfly") end
+    if Bars.midnightGroup then Bars.midnightGroup:SetHidden(shouldHide or saved.theme ~= "Midnight Wings") end
+    if Bars.goldenGroup then Bars.goldenGroup:SetHidden(shouldHide or saved.theme ~= "Golden Dragon") end
+    if Bars.simpleGroup then Bars.simpleGroup:SetHidden(shouldHide or saved.theme ~= "Simple Glow") end
+    if Bars.fairyGroup then Bars.fairyGroup:SetHidden(shouldHide or saved.theme ~= "Fairy Garden") end
+    if Bars.frozenGroup then Bars.frozenGroup:SetHidden(shouldHide or saved.theme ~= "Frozen Elegance") end
+    if Bars.lunarGroup then Bars.lunarGroup:SetHidden(shouldHide or saved.theme ~= "Moonlit Magic") end
 end
 
 local function applyScale()
     if Bars.hud then Bars.hud:SetScale((saved.scale or 100)/100) end
+    if Bars.straight then
+        for key,bar in pairs(Bars.straight) do
+            bar.control:SetScale((saved.scale or 100)/100)
+        end
+    end
+    if Bars.moonGroup then Bars.moonGroup:SetScale((saved.scale or 100)/100) end
+    if Bars.midnightGroup then Bars.midnightGroup:SetScale((saved.scale or 100)/100) end
+    if Bars.goldenGroup then Bars.goldenGroup:SetScale((saved.scale or 100)/100) end
+    if Bars.simpleGroup then Bars.simpleGroup:SetScale((saved.scale or 100)/100) end
+    if Bars.fairyGroup then Bars.fairyGroup:SetScale((saved.scale or 100)/100) end
+    if Bars.frozenGroup then Bars.frozenGroup:SetScale((saved.scale or 100)/100) end
+    if Bars.lunarGroup then Bars.lunarGroup:SetScale((saved.scale or 100)/100) end
 end
 
 -- Move both bar groups and their corresponding theme decorations symmetrically.
@@ -172,13 +230,39 @@ end
 local function applyLock()
     if not Bars.hud then return end
     local unlocked = not saved.locked
-    Bars.hud:SetMovable(unlocked)
-    Bars.hud:SetMouseEnabled(unlocked)
+    Bars.hud:SetMovable(unlocked and saved.theme ~= "Simple Glow" and saved.theme ~= "Enchanted Butterfly" and saved.theme ~= "Fairy Garden" and saved.theme ~= "Frozen Elegance")
+    Bars.hud:SetMouseEnabled(unlocked and saved.theme ~= "Simple Glow" and saved.theme ~= "Enchanted Butterfly" and saved.theme ~= "Fairy Garden" and saved.theme ~= "Frozen Elegance")
     if Bars.moveOverlay then
-        Bars.moveOverlay:SetMouseEnabled(unlocked)
-        Bars.moveOverlay:SetHidden(not unlocked)
+        Bars.moveOverlay:SetMouseEnabled(unlocked and saved.theme ~= "Simple Glow" and saved.theme ~= "Enchanted Butterfly" and saved.theme ~= "Fairy Garden" and saved.theme ~= "Frozen Elegance")
+        Bars.moveOverlay:SetHidden(saved.theme == "Simple Glow" or saved.theme == "Enchanted Butterfly" or saved.theme == "Fairy Garden" or saved.theme == "Frozen Elegance" or saved.theme == "Moonlit Magic" or saved.theme == "Midnight Wings" or saved.theme == "Golden Dragon" or not unlocked)
     end
-    if Bars.moveHint then Bars.moveHint:SetHidden(not unlocked) end
+    if Bars.moveHint then Bars.moveHint:SetHidden(saved.theme == "Simple Glow" or saved.theme == "Enchanted Butterfly" or saved.theme == "Fairy Garden" or saved.theme == "Frozen Elegance" or saved.theme == "Moonlit Magic" or saved.theme == "Midnight Wings" or saved.theme == "Golden Dragon" or not unlocked) end
+    if Bars.straight then
+        for _,bar in pairs(Bars.straight) do
+            bar.control:SetMovable(unlocked)
+            bar.control:SetMouseEnabled(false)
+            if bar.drag then
+                bar.drag:SetMouseEnabled(false)
+                bar.drag:SetHidden(true)
+            end
+        end
+    end
+    if Bars.moonDrag then
+        Bars.moonDrag:SetMouseEnabled(unlocked and saved.theme == "Enchanted Butterfly")
+        Bars.moonDrag:SetHidden(not (unlocked and saved.theme == "Enchanted Butterfly"))
+    end
+    if Bars.moonGroup then Bars.moonGroup:SetMovable(unlocked and saved.theme == "Enchanted Butterfly") end
+    if Bars.midnightGroup then Bars.midnightGroup:SetMovable(unlocked and saved.theme == "Midnight Wings") end
+    if Bars.goldenGroup then Bars.goldenGroup:SetMovable(unlocked and saved.theme == "Golden Dragon") end
+    if Bars.simpleGroup then Bars.simpleGroup:SetMovable(unlocked and saved.theme == "Simple Glow") end
+    if Bars.simpleDrag then Bars.simpleDrag:SetMouseEnabled(unlocked and saved.theme == "Simple Glow"); Bars.simpleDrag:SetHidden(not (unlocked and saved.theme == "Simple Glow")) end
+    if Bars.goldenDrag then Bars.goldenDrag:SetMouseEnabled(unlocked and saved.theme == "Golden Dragon"); Bars.goldenDrag:SetHidden(not (unlocked and saved.theme == "Golden Dragon")) end
+    if Bars.fairyDrag then Bars.fairyDrag:SetMouseEnabled(unlocked and saved.theme == "Fairy Garden"); Bars.fairyDrag:SetHidden(not (unlocked and saved.theme == "Fairy Garden")) end
+    if Bars.fairyGroup then Bars.fairyGroup:SetMovable(unlocked and saved.theme == "Fairy Garden") end
+    if Bars.frozenDrag then Bars.frozenDrag:SetMouseEnabled(unlocked and saved.theme == "Frozen Elegance"); Bars.frozenDrag:SetHidden(not (unlocked and saved.theme == "Frozen Elegance")) end
+    if Bars.frozenGroup then Bars.frozenGroup:SetMovable(unlocked and saved.theme == "Frozen Elegance") end
+    if Bars.lunarDrag then Bars.lunarDrag:SetMouseEnabled(unlocked and saved.theme == "Moonlit Magic"); Bars.lunarDrag:SetHidden(not (unlocked and saved.theme == "Moonlit Magic")) end
+    if Bars.lunarGroup then Bars.lunarGroup:SetMovable(unlocked and saved.theme == "Moonlit Magic") end
 end
 
 local function savePosition()
@@ -210,6 +294,7 @@ local function applyTheme()
     local sunflower = saved.theme == "Sunflower"
     local swords = saved.theme == "Swords"
     local winter = saved.theme == "Winter"
+    local straight = saved.theme == "Simple Glow" or saved.theme == "Enchanted Butterfly" or saved.theme == "Fairy Garden" or saved.theme == "Frozen Elegance" or saved.theme == "Moonlit Magic" or saved.theme == "Midnight Wings" or saved.theme == "Golden Dragon"
     Bars.themeLayer:SetHidden(true)
     if Bars.winterLeft then Bars.winterLeft:SetHidden(not winter) end
     if Bars.winterRight then Bars.winterRight:SetHidden(not winter) end
@@ -226,19 +311,75 @@ local function applyTheme()
     end
     applyThemeGap()
     applyGhostfireColor()
+    -- All original curved controls remain untouched; only their visibility changes.
+    for _,control in ipairs({Bars.healthBack,Bars.health,Bars.healthGlow,
+        Bars.staminaBack,Bars.stamina,Bars.staminaGlow,
+        Bars.magickaBack,Bars.magicka,Bars.magickaGlow}) do
+        if control then control:SetHidden(straight) end
+    end
+    for _,control in ipairs({Bars.healthText,Bars.staminaText,Bars.magickaText}) do
+        if control then control:SetHidden(straight) end
+    end
+    for _,glows in ipairs({Bars.healthGlowText or {},Bars.staminaGlowText or {},Bars.magickaGlowText or {}}) do
+        for _,label in ipairs(glows) do label:SetHidden(straight) end
+    end
+    if Bars.straight then
+        for _,bar in pairs(Bars.straight) do bar.control:SetHidden(true) end -- Legacy bars retained; grouped Simple Glow is shown
+    end
+    if Bars.moonGroup then Bars.moonGroup:SetHidden(saved.theme ~= "Enchanted Butterfly" or not saved.enabled or playerDead) end
+    if Bars.midnightGroup then Bars.midnightGroup:SetHidden(saved.theme ~= "Midnight Wings" or not saved.enabled or playerDead) end
+    if Bars.goldenGroup then Bars.goldenGroup:SetHidden(saved.theme ~= "Golden Dragon" or not saved.enabled or playerDead) end
+    if Bars.simpleGroup then Bars.simpleGroup:SetHidden(saved.theme ~= "Simple Glow" or not saved.enabled or playerDead) end
+    if Bars.fairyGroup then Bars.fairyGroup:SetHidden(saved.theme ~= "Fairy Garden" or not saved.enabled or playerDead) end
+    if Bars.frozenGroup then Bars.frozenGroup:SetHidden(saved.theme ~= "Frozen Elegance" or not saved.enabled or playerDead) end
+    if Bars.lunarGroup then Bars.lunarGroup:SetHidden(saved.theme ~= "Moonlit Magic" or not saved.enabled or playerDead) end
+    applyLock()
     -- Winter changes only the health-bar rendering. Other themes retain the normal red bar/glow.
-    if Bars.health then Bars.health:SetHidden(winter) end
-    if Bars.healthGlow then Bars.healthGlow:SetHidden(winter) end
-    if Bars.winterHealth then Bars.winterHealth:SetHidden(not winter) end
-    if Bars.winterHealthGlow then Bars.winterHealthGlow:SetHidden(not winter) end
+    if Bars.health then Bars.health:SetHidden(winter or straight) end
+    if Bars.healthGlow then Bars.healthGlow:SetHidden(winter or straight) end
+    if Bars.winterHealth then Bars.winterHealth:SetHidden(not winter or straight) end
+    if Bars.winterHealthGlow then Bars.winterHealthGlow:SetHidden(not winter or straight) end
+end
+
+-- Straight bars are independent top-level controls anchored to GuiRoot.
+-- This avoids converting between the curved HUD's scaled coordinates and screen coordinates.
+local function positionStraightBar(key, x, y)
+    local bar = Bars.straight and Bars.straight[key]
+    if not bar then return end
+    local control = bar.control
+    local rootW, rootH = GuiRoot:GetDimensions()
+    local scale = (saved.scale or 100) / 100
+    if scale <= 0 then scale = 1 end
+    local halfW, halfH = STRAIGHT_WIDTH * scale / 2, STRAIGHT_HEIGHT * scale / 2
+    x = math.max(-rootW/2 + halfW, math.min(rootW/2 - halfW, tonumber(x) or 0))
+    y = math.max(-rootH/2 + halfH, math.min(rootH/2 - halfH, tonumber(y) or 0))
+    control:ClearAnchors()
+    control:SetAnchor(CENTER, GuiRoot, CENTER, x, y)
+    saved.straightPositionsV7[key] = {x=x, y=y}
+end
+local function resetStraightPositions()
+    saved.straightPositionsV7 = {}
+    for key,pos in pairs(STRAIGHT_DEFAULTS) do
+        positionStraightBar(key,pos.x,pos.y)
+    end
 end
 
 local function createSettings()
     local LAM = LibAddonMenu2
     if not LAM then return end
     local panel = LAM:RegisterAddonPanel("RSSThemeBarsOptions", {
-        type="panel", name=DISPLAY, displayName=DISPLAY, author="WifeyRytic", version="1.3.0",
+        type="panel", name=DISPLAY, displayName=DISPLAY, author="WifeyRytic", version="1.4.1",
         registerForRefresh=true, registerForDefaults=true,
+        resetFunc=function()
+            resetStraightPositions()
+            resetGroupedPosition(Bars.moonGroup, "moonPosition", 168, 65)
+            resetGroupedPosition(Bars.midnightGroup, "midnightPosition", 168, 65)
+            resetGroupedPosition(Bars.goldenGroup, "goldenPosition", 168, 65)
+            resetGroupedPosition(Bars.simpleGroup, "simplePosition", 168, 65)
+            resetGroupedPosition(Bars.fairyGroup, "fairyPosition", 168, 80)
+            resetGroupedPosition(Bars.frozenGroup, "frozenPosition", 280, 111)
+            resetGroupedPosition(Bars.lunarGroup, "lunarPosition", 356, 142)
+        end,
     })
     local options = {
         { type="checkbox", name="Enable Resource Bars", tooltip="Master on/off switch for the entire resource-bar HUD.",
@@ -262,8 +403,11 @@ local function createSettings()
         { type="dropdown", name="Theme", tooltip="Choose the visual theme.",
           choices=THEMES, choicesValues=THEMES,
           getFunc=function() return saved.theme end,
-          setFunc=function(v) saved.theme=v; applyTheme() end,
+          setFunc=function(v) saved.theme=v; applyTheme(); refresh() end,
           default=defaults.theme, width="full" },
+        { type="description", text="Simple Glow: one movable group matching the decorated bars. Enchanted Butterfly, Fairy Garden, and Frozen Elegance: draggable groups with live bars and RSS numbers below." },
+        { type="button", name="Reset Straight Bar Positions", tooltip="Reset the Simple Glow grouped bars to the decorated theme default.",
+          func=function() resetStraightPositions() end, width="full" },
         { type="colorpicker", name="Ghostfire Flame & Glow Color", tooltip="Tint Ghostfire flames and soft glow together. Resource bar colors stay unchanged.",
           getFunc=function() local c=saved.ghostfireColor or defaults.ghostfireColor; return c[1],c[2],c[3],1 end,
           setFunc=function(r,g,b,a) saved.ghostfireColor={r,g,b}; applyGhostfireColor() end,
@@ -286,6 +430,9 @@ local function create()
         y = legacy.y,
         winterGap = legacy.winterGap or 0,
         themeGap = legacy.themeGap or 0,
+        straightPositions = {},
+        straightPositionsV6 = {},
+        straightPositionsV7 = {},
     }
     -- Namespace separates NA, EU, and PTS profiles; existing server data wins.
     saved=ZO_SavedVars:NewAccountWide("RSSThemeBarsSaved",1,GetWorldName(),serverDefaults)
@@ -406,6 +553,703 @@ local function create()
     Bars.staminaText,Bars.staminaGlowText=makeRSSLabel(0,-165,STAM)
     Bars.magickaText,Bars.magickaGlowText=makeRSSLabel(110,-165,MAG)
 
+
+
+    -- Independent straight bars, anchored to GuiRoot. They reuse
+    -- resource events and are hidden unless Simple Glow is selected.
+    Bars.straight = {}
+    saved.straightPositionsV7 = saved.straightPositionsV7 or {}
+    local straightDefs = {
+        {"health",POWERTYPE_HEALTH,"rss_simple_health.dds",HEALTH,-245,0},
+        {"magicka",POWERTYPE_MAGICKA,"rss_simple_magicka.dds",{0.08,0.85,1},0,0},
+        {"stamina",POWERTYPE_STAMINA,"rss_simple_stamina.dds",STAM,245,0},
+    }
+    for _,def in ipairs(straightDefs) do
+        local key,power,path,color,defaultX,defaultY=unpack(def)
+        local position=saved.straightPositionsV7[key] or STRAIGHT_DEFAULTS[key] or {x=defaultX,y=defaultY}
+        local control=WM:CreateTopLevelWindow("RSSSimpleGlow"..key)
+        control:SetDimensions(STRAIGHT_WIDTH,STRAIGHT_HEIGHT)
+        control:SetAnchor(CENTER,GuiRoot,CENTER,position.x or defaultX,position.y or defaultY)
+        control:SetClampedToScreen(true)
+        control:SetScale((saved.scale or 100)/100)
+        control:SetHidden(true)
+        control:SetDrawLayer(DL_OVERLAY); control:SetDrawTier(DT_HIGH)
+        -- TEST 10: use the SAME rounded DDS silhouette as the full bar.
+        -- Tint it dark and keep it at full width behind the draining fill.
+        -- No rectangular backdrop or border: those caused a joined black line.
+        local track=makeTexture(control,TEX..path)
+        track:SetDimensions(STRAIGHT_WIDTH,22)
+        track:SetAnchor(TOPLEFT,control,TOPLEFT,0,30)
+        track:SetColor(0.03,0.03,0.035,0.90)
+        track:SetMouseEnabled(false)
+        local fill=makeTexture(control,TEX..path)
+        fill:SetDimensions(STRAIGHT_WIDTH,22); fill:SetAnchor(TOPLEFT,control,TOPLEFT,0,30); fill:SetMouseEnabled(false)
+        fill:SetDrawLevel(7)
+        local glow=makeTexture(control,TEX..path)
+        glow:SetDimensions(STRAIGHT_WIDTH,22); glow:SetAnchor(TOPLEFT,control,TOPLEFT,0,30); glow:SetMouseEnabled(false)
+        glow:SetBlendMode(TEX_BLEND_MODE_ADD); glow:SetAlpha(0.48)
+        local numberGlows={}
+        for _,delta in ipairs({{-1,0},{1,0},{0,-1},{0,1}}) do
+            local label=WM:CreateControl(nil,control,CT_LABEL)
+            label:SetDimensions(STRAIGHT_WIDTH,23)
+            label:SetAnchor(TOP,control,TOP,delta[1],56+delta[2]); label:SetMouseEnabled(false)
+            label:SetFont("ZoFontGameBold")
+            label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+            label:SetColor(color[1],color[2],color[3],0.3)
+            numberGlows[#numberGlows+1]=label
+        end
+        local number=WM:CreateControl(nil,control,CT_LABEL)
+        number:SetDimensions(STRAIGHT_WIDTH,23); number:SetAnchor(TOP,control,TOP,0,56); number:SetMouseEnabled(false)
+        number:SetFont("ZoFontGameBold")
+        number:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        number:SetColor(color[1],color[2],color[3],1)
+        -- Purple grab handle, like the curved HUD's unlocked border.
+        local drag=WM:CreateControl(nil,control,CT_BACKDROP)
+        drag:SetDimensions(38,26)
+        drag:SetAnchor(TOPLEFT,control,TOPLEFT,0,30)
+        drag:SetCenterColor(0.45,0.08,0.65,0.65)
+        drag:SetEdgeColor(0.85,0.28,1,1)
+        drag:SetEdgeTexture("",1,1,2,0)
+        drag:SetDrawLayer(DL_OVERLAY); drag:SetDrawTier(DT_HIGH)
+        drag:SetMouseEnabled(false); drag:SetHidden(true)
+        drag:SetHandler("OnMouseDown",function(self,button)
+            if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Simple Glow" then
+                control:StartMoving()
+            end
+        end)
+        drag:SetHandler("OnMouseUp",function(self,button)
+            if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Simple Glow" then
+                control:StopMovingOrResizing()
+                -- ESO has finished moving this top-level window. Save its
+                -- actual center relative to GuiRoot, with no HUD conversion.
+                local cx,cy=control:GetCenter()
+                local rx,ry=GuiRoot:GetCenter()
+                positionStraightBar(key,cx-rx,cy-ry)
+            end
+        end)
+        Bars.straight[key]={control=control,drag=drag,track=track,fill=fill,glow=glow,number=number,numberGlows=numberGlows,power=power}
+    end
+
+    -- Reapply saved positions and clamp them on-screen at login.
+    for key,pos in pairs(STRAIGHT_DEFAULTS) do
+        local savedPos=saved.straightPositionsV7[key] or pos
+        positionStraightBar(key,savedPos.x,savedPos.y)
+    end
+
+    -- Moonlit Magic is a NEW grouped straight-bar style. TEST 12 independent
+    -- controls above are deliberately not modified or reparented.
+    Bars.moonBars = {}
+    local moonPos = saved.moonPosition or {x=0,y=groupedDefaultY(168,65)}
+    local group = WM:CreateTopLevelWindow("RSSMoonlitMagicGroup")
+    Bars.moonGroup=group
+    group:SetDimensions(1060,168)
+    group:SetAnchor(CENTER,GuiRoot,CENTER,moonPos.x or 0,moonPos.y or groupedDefaultY(168,65))
+    group:SetClampedToScreen(true)
+    group:SetScale((saved.scale or 100)/100)
+    group:SetDrawLayer(DL_OVERLAY); group:SetDrawTier(DT_HIGH)
+    group:SetHidden(true); group:SetMouseEnabled(false)
+    local ornament=makeTexture(group,TEX.."rss_moonlit_magic.dds")
+    ornament:SetDimensions(1060,356)
+    ornament:SetAnchor(TOPLEFT,group,TOPLEFT,0,-96) -- TEST5 FIX: original intact butterfly texture restored
+    ornament:SetMouseEnabled(false)
+    -- TEST 15: draw the ornament IN FRONT of the bars, without changing
+    -- its vertical anchor. Keep the group positioning/drag code intact.
+    ornament:SetDrawLayer(DL_OVERLAY)
+    ornament:SetDrawTier(DT_HIGH)
+    ornament:SetDrawLevel(5)
+    local moonDefs={
+        {"magicka",POWERTYPE_MAGICKA,"rss_simple_magicka.dds",{0.08,0.85,1},106,260},
+        {"health",POWERTYPE_HEALTH,"rss_simple_health.dds",HEALTH,377,299},
+        {"stamina",POWERTYPE_STAMINA,"rss_simple_stamina.dds",STAM,687,266},
+    }
+    for _,def in ipairs(moonDefs) do
+        local key,power,path,color,x,mw=unpack(def)
+        local track=makeTexture(group,TEX..path)
+        track:SetDimensions(mw,19); track:SetAnchor(TOPLEFT,group,TOPLEFT,x,65)
+        track:SetColor(0.03,0.03,0.035,0.90); track:SetMouseEnabled(false)
+        track:SetDrawLevel(6)
+        local fill=makeTexture(group,TEX..path)
+        fill:SetDimensions(mw,19); fill:SetAnchor(TOPLEFT,group,TOPLEFT,x,65)
+        fill:SetMouseEnabled(false)
+        fill:SetDrawLevel(7)
+        local glow=makeTexture(group,TEX..path)
+        glow:SetDimensions(mw,19); glow:SetAnchor(TOPLEFT,group,TOPLEFT,x,65)
+        glow:SetBlendMode(TEX_BLEND_MODE_ADD); glow:SetAlpha(0.48); glow:SetMouseEnabled(false)
+        glow:SetDrawLevel(8)
+        local numberGlows={}
+        for _,delta in ipairs({{-1,0},{1,0},{0,-1},{0,1}}) do
+            local label=WM:CreateControl(nil,group,CT_LABEL)
+            label:SetDimensions(mw,23); label:SetAnchor(TOPLEFT,group,TOPLEFT,x+delta[1],87+delta[2])
+            label:SetFont("ZoFontGameBold"); label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+            label:SetColor(color[1],color[2],color[3],0.3); label:SetMouseEnabled(false)
+            label:SetDrawLevel(10)
+            numberGlows[#numberGlows+1]=label
+        end
+        local number=WM:CreateControl(nil,group,CT_LABEL)
+        number:SetDimensions(mw,23); number:SetAnchor(TOPLEFT,group,TOPLEFT,x,87)
+        number:SetFont("ZoFontGameBold"); number:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        number:SetColor(color[1],color[2],color[3],1); number:SetMouseEnabled(false)
+        number:SetDrawLevel(10)
+        Bars.moonBars[key]={track=track,fill=fill,glow=glow,number=number,numberGlows=numberGlows,power=power,width=mw}
+    end
+    -- One handle moves the entire Moonlit Magic top-level window.
+    local moonDrag=WM:CreateControl(nil,group,CT_BACKDROP)
+    Bars.moonDrag=moonDrag
+    moonDrag:SetDimensions(1060,168); moonDrag:SetAnchorFill(group)
+    moonDrag:SetCenterColor(0.45,0.08,0.65,0.04)
+    moonDrag:SetEdgeColor(0.85,0.28,1,1)
+    moonDrag:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",2,2,2,0)
+    moonDrag:SetDrawLayer(DL_OVERLAY); moonDrag:SetDrawTier(DT_HIGH)
+    moonDrag:SetHidden(true); moonDrag:SetMouseEnabled(false)
+    -- Full-group purple positioning perimeter, shown only while unlocked.
+    for _,edge in ipairs({
+        {0,0,1060,2}, {0,166,1060,2}, {0,0,2,168}, {1058,0,2,168}
+    }) do
+        local line=WM:CreateControl(nil,moonDrag,CT_TEXTURE)
+        line:SetTexture("EsoUI/Art/Miscellaneous/white.dds")
+        line:SetColor(0.82,0.25,1,0.95)
+        line:SetDimensions(edge[3],edge[4])
+        line:SetAnchor(TOPLEFT,moonDrag,TOPLEFT,edge[1],edge[2])
+        line:SetMouseEnabled(false)
+    end
+
+    moonDrag:SetHandler("OnMouseDown",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Enchanted Butterfly" then group:StartMoving() end
+    end)
+    moonDrag:SetHandler("OnMouseUp",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Enchanted Butterfly" then
+            group:StopMovingOrResizing()
+            local cx,cy=group:GetCenter(); local rx,ry=GuiRoot:GetCenter()
+            saved.moonPosition={x=cx-rx,y=cy-ry}
+            group:ClearAnchors(); group:SetAnchor(CENTER,GuiRoot,CENTER,saved.moonPosition.x,saved.moonPosition.y)
+        end
+    end)
+
+    -- Midnight Wings TEST1: butterfly-matched independent grouped bars.
+    -- controls above are deliberately not modified or reparented.
+    Bars.midnightBars = {}
+    local midnightPos = saved.midnightPosition or {x=0,y=groupedDefaultY(168,65)}
+    local group = WM:CreateTopLevelWindow("RSSMidnightWingsGroup")
+    Bars.midnightGroup=group
+    group:SetDimensions(1060,168)
+    group:SetAnchor(CENTER,GuiRoot,CENTER,midnightPos.x or 0,midnightPos.y or groupedDefaultY(168,65))
+    group:SetClampedToScreen(true)
+    group:SetScale((saved.scale or 100)/100)
+    group:SetDrawLayer(DL_OVERLAY); group:SetDrawTier(DT_HIGH)
+    group:SetHidden(true); group:SetMouseEnabled(false)
+    local ornament=makeTexture(group,TEX.."rss_midnight_wings.dds")
+    ornament:SetDimensions(1060,356)
+    ornament:SetAnchor(TOPLEFT,group,TOPLEFT,0,-82) -- TEST5 FIX: original intact butterfly texture restored
+    ornament:SetMouseEnabled(false)
+    -- TEST 15: draw the ornament IN FRONT of the bars, without changing
+    -- its vertical anchor. Keep the group positioning/drag code intact.
+    ornament:SetDrawLayer(DL_OVERLAY)
+    ornament:SetDrawTier(DT_HIGH)
+    ornament:SetDrawLevel(5)
+    local midnightDefs={
+        {"magicka",POWERTYPE_MAGICKA,"rss_simple_magicka.dds",{0.08,0.85,1},106,260},
+        {"health",POWERTYPE_HEALTH,"rss_simple_health.dds",HEALTH,377,299},
+        {"stamina",POWERTYPE_STAMINA,"rss_simple_stamina.dds",STAM,687,266},
+    }
+    for _,def in ipairs(midnightDefs) do
+        local key,power,path,color,x,mw=unpack(def)
+        local track=makeTexture(group,TEX..path)
+        track:SetDimensions(mw,19); track:SetAnchor(TOPLEFT,group,TOPLEFT,x,65)
+        track:SetColor(0.03,0.03,0.035,0.90); track:SetMouseEnabled(false)
+        track:SetDrawLevel(6)
+        local fill=makeTexture(group,TEX..path)
+        fill:SetDimensions(mw,19); fill:SetAnchor(TOPLEFT,group,TOPLEFT,x,65)
+        fill:SetMouseEnabled(false)
+        fill:SetDrawLevel(7)
+        local glow=makeTexture(group,TEX..path)
+        glow:SetDimensions(mw,19); glow:SetAnchor(TOPLEFT,group,TOPLEFT,x,65)
+        glow:SetBlendMode(TEX_BLEND_MODE_ADD); glow:SetAlpha(0.48); glow:SetMouseEnabled(false)
+        glow:SetDrawLevel(8)
+        local numberGlows={}
+        for _,delta in ipairs({{-1,0},{1,0},{0,-1},{0,1}}) do
+            local label=WM:CreateControl(nil,group,CT_LABEL)
+            label:SetDimensions(mw,23); label:SetAnchor(TOPLEFT,group,TOPLEFT,x+delta[1],87+delta[2])
+            label:SetFont("ZoFontGameBold"); label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+            label:SetColor(color[1],color[2],color[3],0.3); label:SetMouseEnabled(false)
+            label:SetDrawLevel(10)
+            numberGlows[#numberGlows+1]=label
+        end
+        local number=WM:CreateControl(nil,group,CT_LABEL)
+        number:SetDimensions(mw,23); number:SetAnchor(TOPLEFT,group,TOPLEFT,x,87)
+        number:SetFont("ZoFontGameBold"); number:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        number:SetColor(color[1],color[2],color[3],1); number:SetMouseEnabled(false)
+        number:SetDrawLevel(10)
+        Bars.midnightBars[key]={track=track,fill=fill,glow=glow,number=number,numberGlows=numberGlows,power=power,width=mw}
+    end
+    -- One handle moves the entire Moonlit Magic top-level window.
+    local midnightDrag=WM:CreateControl(nil,group,CT_BACKDROP)
+    Bars.midnightDrag=midnightDrag
+    midnightDrag:SetDimensions(1060,168); midnightDrag:SetAnchorFill(group)
+    midnightDrag:SetCenterColor(0.45,0.08,0.65,0.04)
+    midnightDrag:SetEdgeColor(0.85,0.28,1,1)
+    midnightDrag:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",2,2,2,0)
+    midnightDrag:SetDrawLayer(DL_OVERLAY); midnightDrag:SetDrawTier(DT_HIGH)
+    midnightDrag:SetHidden(true); midnightDrag:SetMouseEnabled(false)
+    -- Full-group purple positioning perimeter, shown only while unlocked.
+    for _,edge in ipairs({
+        {0,0,1060,2}, {0,166,1060,2}, {0,0,2,168}, {1058,0,2,168}
+    }) do
+        local line=WM:CreateControl(nil,midnightDrag,CT_TEXTURE)
+        line:SetTexture("EsoUI/Art/Miscellaneous/white.dds")
+        line:SetColor(0.82,0.25,1,0.95)
+        line:SetDimensions(edge[3],edge[4])
+        line:SetAnchor(TOPLEFT,midnightDrag,TOPLEFT,edge[1],edge[2])
+        line:SetMouseEnabled(false)
+    end
+
+    midnightDrag:SetHandler("OnMouseDown",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Midnight Wings" then group:StartMoving() end
+    end)
+    midnightDrag:SetHandler("OnMouseUp",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Midnight Wings" then
+            group:StopMovingOrResizing()
+            local cx,cy=group:GetCenter(); local rx,ry=GuiRoot:GetCenter()
+            saved.midnightPosition={x=cx-rx,y=cy-ry}
+            group:ClearAnchors(); group:SetAnchor(CENTER,GuiRoot,CENTER,saved.midnightPosition.x,saved.midnightPosition.y)
+        end
+    end)
+
+    -- Golden Dragon TEST1: Golden Dragon TEST3 matched independent grouped bars.
+    -- controls above are deliberately not modified or reparented.
+    Bars.goldenBars = {}
+    local midnightPos = saved.goldenPosition or {x=0,y=groupedDefaultY(168,65)}
+    local group = WM:CreateTopLevelWindow("RSSGoldenDragonGroup")
+    Bars.goldenGroup=group
+    group:SetDimensions(1060,168)
+    group:SetAnchor(CENTER,GuiRoot,CENTER,midnightPos.x or 0,midnightPos.y or groupedDefaultY(168,65))
+    group:SetClampedToScreen(true)
+    group:SetScale((saved.scale or 100)/100)
+    group:SetDrawLayer(DL_OVERLAY); group:SetDrawTier(DT_HIGH)
+    group:SetHidden(true); group:SetMouseEnabled(false)
+    local ornament=makeTexture(group,TEX.."rss_golden_dragon.dds")
+    ornament:SetDimensions(1060,356)
+    ornament:SetAnchor(TOPLEFT,group,TOPLEFT,0,-82) -- TEST5 FIX: original intact butterfly texture restored
+    ornament:SetMouseEnabled(false)
+    -- TEST 15: draw the ornament IN FRONT of the bars, without changing
+    -- its vertical anchor. Keep the group positioning/drag code intact.
+    ornament:SetDrawLayer(DL_OVERLAY)
+    ornament:SetDrawTier(DT_HIGH)
+    ornament:SetDrawLevel(5)
+    local goldenDefs={
+        {"magicka",POWERTYPE_MAGICKA,"rss_simple_magicka.dds",{0.08,0.85,1},106,260},
+        {"health",POWERTYPE_HEALTH,"rss_simple_health.dds",HEALTH,377,299},
+        {"stamina",POWERTYPE_STAMINA,"rss_simple_stamina.dds",STAM,687,266},
+    }
+    for _,def in ipairs(goldenDefs) do
+        local key,power,path,color,x,mw=unpack(def)
+        local track=makeTexture(group,TEX..path)
+        track:SetDimensions(mw,19); track:SetAnchor(TOPLEFT,group,TOPLEFT,x,65)
+        track:SetColor(0.03,0.03,0.035,0.90); track:SetMouseEnabled(false)
+        track:SetDrawLevel(6)
+        local fill=makeTexture(group,TEX..path)
+        fill:SetDimensions(mw,19); fill:SetAnchor(TOPLEFT,group,TOPLEFT,x,65)
+        fill:SetMouseEnabled(false)
+        fill:SetDrawLevel(7)
+        local glow=makeTexture(group,TEX..path)
+        glow:SetDimensions(mw,19); glow:SetAnchor(TOPLEFT,group,TOPLEFT,x,65)
+        glow:SetBlendMode(TEX_BLEND_MODE_ADD); glow:SetAlpha(0.48); glow:SetMouseEnabled(false)
+        glow:SetDrawLevel(8)
+        local numberGlows={}
+        for _,delta in ipairs({{-1,0},{1,0},{0,-1},{0,1}}) do
+            local label=WM:CreateControl(nil,group,CT_LABEL)
+            label:SetDimensions(mw,23); label:SetAnchor(TOPLEFT,group,TOPLEFT,x+delta[1],87+delta[2])
+            label:SetFont("ZoFontGameBold"); label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+            label:SetColor(color[1],color[2],color[3],0.3); label:SetMouseEnabled(false)
+            label:SetDrawLevel(10)
+            numberGlows[#numberGlows+1]=label
+        end
+        local number=WM:CreateControl(nil,group,CT_LABEL)
+        number:SetDimensions(mw,23); number:SetAnchor(TOPLEFT,group,TOPLEFT,x,87)
+        number:SetFont("ZoFontGameBold"); number:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        number:SetColor(color[1],color[2],color[3],1); number:SetMouseEnabled(false)
+        number:SetDrawLevel(10)
+        Bars.goldenBars[key]={track=track,fill=fill,glow=glow,number=number,numberGlows=numberGlows,power=power,width=mw}
+    end
+    -- One handle moves the entire Moonlit Magic top-level window.
+    local goldenDrag=WM:CreateControl(nil,group,CT_BACKDROP)
+    Bars.goldenDrag=goldenDrag
+    goldenDrag:SetDimensions(1060,168); goldenDrag:SetAnchorFill(group)
+    goldenDrag:SetCenterColor(0.45,0.08,0.65,0.04)
+    goldenDrag:SetEdgeColor(0.85,0.28,1,1)
+    goldenDrag:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",2,2,2,0)
+    goldenDrag:SetDrawLayer(DL_OVERLAY); goldenDrag:SetDrawTier(DT_HIGH)
+    goldenDrag:SetHidden(true); goldenDrag:SetMouseEnabled(false)
+    -- Full-group purple positioning perimeter, shown only while unlocked.
+    for _,edge in ipairs({
+        {0,0,1060,2}, {0,166,1060,2}, {0,0,2,168}, {1058,0,2,168}
+    }) do
+        local line=WM:CreateControl(nil,goldenDrag,CT_TEXTURE)
+        line:SetTexture("EsoUI/Art/Miscellaneous/white.dds")
+        line:SetColor(0.82,0.25,1,0.95)
+        line:SetDimensions(edge[3],edge[4])
+        line:SetAnchor(TOPLEFT,goldenDrag,TOPLEFT,edge[1],edge[2])
+        line:SetMouseEnabled(false)
+    end
+
+    goldenDrag:SetHandler("OnMouseDown",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Golden Dragon" then group:StartMoving() end
+    end)
+    goldenDrag:SetHandler("OnMouseUp",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Golden Dragon" then
+            group:StopMovingOrResizing()
+            local cx,cy=group:GetCenter(); local rx,ry=GuiRoot:GetCenter()
+            saved.goldenPosition={x=cx-rx,y=cy-ry}
+            group:ClearAnchors(); group:SetAnchor(CENTER,GuiRoot,CENTER,saved.goldenPosition.x,saved.goldenPosition.y)
+        end
+    end)
+
+    -- Simple Glow: undecorated reference, exact Golden Dragon geometry.
+    Bars.simpleGroupBars = {}
+    local midnightPos = saved.simplePosition or {x=0,y=groupedDefaultY(168,65)}
+    local group = WM:CreateTopLevelWindow("RSSSimpleGlowMatchedGroup")
+    Bars.simpleGroup=group
+    group:SetDimensions(1060,168)
+    group:SetAnchor(CENTER,GuiRoot,CENTER,midnightPos.x or 0,midnightPos.y or groupedDefaultY(168,65))
+    group:SetClampedToScreen(true)
+    group:SetScale((saved.scale or 100)/100)
+    group:SetDrawLayer(DL_OVERLAY); group:SetDrawTier(DT_HIGH)
+    group:SetHidden(true); group:SetMouseEnabled(false)
+    local simpleDefs={
+        {"magicka",POWERTYPE_MAGICKA,"rss_simple_magicka.dds",{0.08,0.85,1},106,260},
+        {"health",POWERTYPE_HEALTH,"rss_simple_health.dds",HEALTH,377,299},
+        {"stamina",POWERTYPE_STAMINA,"rss_simple_stamina.dds",STAM,687,266},
+    }
+    for _,def in ipairs(simpleDefs) do
+        local key,power,path,color,x,mw=unpack(def)
+        local track=makeTexture(group,TEX..path)
+        track:SetDimensions(mw,19); track:SetAnchor(TOPLEFT,group,TOPLEFT,x,65)
+        track:SetColor(0.03,0.03,0.035,0.90); track:SetMouseEnabled(false)
+        track:SetDrawLevel(6)
+        local fill=makeTexture(group,TEX..path)
+        fill:SetDimensions(mw,19); fill:SetAnchor(TOPLEFT,group,TOPLEFT,x,65)
+        fill:SetMouseEnabled(false)
+        fill:SetDrawLevel(7)
+        local glow=makeTexture(group,TEX..path)
+        glow:SetDimensions(mw,19); glow:SetAnchor(TOPLEFT,group,TOPLEFT,x,65)
+        glow:SetBlendMode(TEX_BLEND_MODE_ADD); glow:SetAlpha(0.48); glow:SetMouseEnabled(false)
+        glow:SetDrawLevel(8)
+        local numberGlows={}
+        for _,delta in ipairs({{-1,0},{1,0},{0,-1},{0,1}}) do
+            local label=WM:CreateControl(nil,group,CT_LABEL)
+            label:SetDimensions(mw,23); label:SetAnchor(TOPLEFT,group,TOPLEFT,x+delta[1],87+delta[2])
+            label:SetFont("ZoFontGameBold"); label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+            label:SetColor(color[1],color[2],color[3],0.3); label:SetMouseEnabled(false)
+            label:SetDrawLevel(10)
+            numberGlows[#numberGlows+1]=label
+        end
+        local number=WM:CreateControl(nil,group,CT_LABEL)
+        number:SetDimensions(mw,23); number:SetAnchor(TOPLEFT,group,TOPLEFT,x,87)
+        number:SetFont("ZoFontGameBold"); number:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        number:SetColor(color[1],color[2],color[3],1); number:SetMouseEnabled(false)
+        number:SetDrawLevel(10)
+        Bars.simpleGroupBars[key]={track=track,fill=fill,glow=glow,number=number,numberGlows=numberGlows,power=power,width=mw}
+    end
+    -- One handle moves the entire Moonlit Magic top-level window.
+    local simpleDrag=WM:CreateControl(nil,group,CT_BACKDROP)
+    Bars.simpleDrag=simpleDrag
+    simpleDrag:SetDimensions(1060,168); simpleDrag:SetAnchorFill(group)
+    simpleDrag:SetCenterColor(0.45,0.08,0.65,0.04)
+    simpleDrag:SetEdgeColor(0.85,0.28,1,1)
+    simpleDrag:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",2,2,2,0)
+    simpleDrag:SetDrawLayer(DL_OVERLAY); simpleDrag:SetDrawTier(DT_HIGH)
+    simpleDrag:SetHidden(true); simpleDrag:SetMouseEnabled(false)
+    -- Full-group purple positioning perimeter, shown only while unlocked.
+    for _,edge in ipairs({
+        {0,0,1060,2}, {0,166,1060,2}, {0,0,2,168}, {1058,0,2,168}
+    }) do
+        local line=WM:CreateControl(nil,simpleDrag,CT_TEXTURE)
+        line:SetTexture("EsoUI/Art/Miscellaneous/white.dds")
+        line:SetColor(0.82,0.25,1,0.95)
+        line:SetDimensions(edge[3],edge[4])
+        line:SetAnchor(TOPLEFT,simpleDrag,TOPLEFT,edge[1],edge[2])
+        line:SetMouseEnabled(false)
+    end
+
+    simpleDrag:SetHandler("OnMouseDown",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Simple Glow" then group:StartMoving() end
+    end)
+    simpleDrag:SetHandler("OnMouseUp",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Simple Glow" then
+            group:StopMovingOrResizing()
+            local cx,cy=group:GetCenter(); local rx,ry=GuiRoot:GetCenter()
+            saved.simplePosition={x=cx-rx,y=cy-ry}
+            group:ClearAnchors(); group:SetAnchor(CENTER,GuiRoot,CENTER,saved.simplePosition.x,saved.simplePosition.y)
+        end
+    end)
+
+    -- Moonlit Magic TEST 1: clean bar-free decoration with independently rendered resource bars. TEST 12 independent
+    -- controls above are deliberately not modified or reparented.
+    Bars.lunarBars = {}
+    local lunarPos = saved.lunarPosition or {x=0,y=groupedDefaultY(356,142)}
+    local group = WM:CreateTopLevelWindow("RSSMoonlitMagicNewGroup")
+    Bars.lunarGroup=group
+    group:SetDimensions(1060,356)
+    group:SetAnchor(CENTER,GuiRoot,CENTER,lunarPos.x or 0,lunarPos.y or groupedDefaultY(356,142))
+    group:SetClampedToScreen(true)
+    group:SetScale((saved.scale or 100)/100)
+    group:SetDrawLayer(DL_OVERLAY); group:SetDrawTier(DT_HIGH)
+    group:SetHidden(true); group:SetMouseEnabled(false)
+    local ornament=makeTexture(group,TEX.."rss_moonlit_magic_clean.dds")
+    ornament:SetDimensions(1060,356)
+    ornament:SetAnchor(TOPLEFT,group,TOPLEFT,0,0)
+    ornament:SetMouseEnabled(false)
+    -- TEST 15: draw the ornament IN FRONT of the bars, without changing
+    -- its vertical anchor. Keep the group positioning/drag code intact.
+    ornament:SetDrawLayer(DL_OVERLAY)
+    ornament:SetDrawTier(DT_HIGH)
+    ornament:SetDrawLevel(5)
+    local lunarDefs={
+        {"magicka",POWERTYPE_MAGICKA,"rss_simple_magicka.dds",{0.08,0.85,1},106,260},
+        {"health",POWERTYPE_HEALTH,"rss_simple_health.dds",HEALTH,377,299},
+        {"stamina",POWERTYPE_STAMINA,"rss_simple_stamina.dds",STAM,687,266},
+    }
+    for _,def in ipairs(lunarDefs) do
+        local key,power,path,color,x,mw=unpack(def)
+        local track=makeTexture(group,TEX..path)
+        track:SetDimensions(mw,19); track:SetAnchor(TOPLEFT,group,TOPLEFT,x,142)
+        track:SetColor(0.03,0.03,0.035,0.90); track:SetMouseEnabled(false)
+        track:SetDrawLevel(6)
+        local fill=makeTexture(group,TEX..path)
+        fill:SetDimensions(mw,19); fill:SetAnchor(TOPLEFT,group,TOPLEFT,x,142)
+        fill:SetMouseEnabled(false)
+        fill:SetDrawLevel(7)
+        local glow=makeTexture(group,TEX..path)
+        glow:SetDimensions(mw,19); glow:SetAnchor(TOPLEFT,group,TOPLEFT,x,142)
+        glow:SetBlendMode(TEX_BLEND_MODE_ADD); glow:SetAlpha(0.48); glow:SetMouseEnabled(false)
+        glow:SetDrawLevel(8)
+        local numberGlows={}
+        for _,delta in ipairs({{-1,0},{1,0},{0,-1},{0,1}}) do
+            local label=WM:CreateControl(nil,group,CT_LABEL)
+            label:SetDimensions(mw,23); label:SetAnchor(TOPLEFT,group,TOPLEFT,x+delta[1],164+delta[2])
+            label:SetFont("ZoFontGameBold"); label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+            label:SetColor(color[1],color[2],color[3],0.3); label:SetMouseEnabled(false)
+            label:SetDrawLevel(10)
+            numberGlows[#numberGlows+1]=label
+        end
+        local number=WM:CreateControl(nil,group,CT_LABEL)
+        number:SetDimensions(mw,23); number:SetAnchor(TOPLEFT,group,TOPLEFT,x,164)
+        number:SetFont("ZoFontGameBold"); number:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        number:SetColor(color[1],color[2],color[3],1); number:SetMouseEnabled(false)
+        number:SetDrawLevel(10)
+        Bars.lunarBars[key]={track=track,fill=fill,glow=glow,number=number,numberGlows=numberGlows,power=power,width=mw}
+    end
+    -- One handle moves the entire Moonlit Magic top-level window.
+    local lunarDrag=WM:CreateControl(nil,group,CT_BACKDROP)
+    Bars.lunarDrag=lunarDrag
+    lunarDrag:SetDimensions(1060,356); lunarDrag:SetAnchorFill(group)
+    lunarDrag:SetCenterColor(0.45,0.08,0.65,0.04)
+    lunarDrag:SetEdgeColor(0.85,0.28,1,1)
+    lunarDrag:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",2,2,2,0)
+    lunarDrag:SetDrawLayer(DL_OVERLAY); lunarDrag:SetDrawTier(DT_HIGH)
+    lunarDrag:SetHidden(true); lunarDrag:SetMouseEnabled(false)
+    -- Full-group purple positioning perimeter, shown only while unlocked.
+    for _,edge in ipairs({
+        {0,0,1060,2}, {0,354,1060,2}, {0,0,2,356}, {1058,0,2,356}
+    }) do
+        local line=WM:CreateControl(nil,lunarDrag,CT_TEXTURE)
+        line:SetTexture("EsoUI/Art/Miscellaneous/white.dds")
+        line:SetColor(0.82,0.25,1,0.95)
+        line:SetDimensions(edge[3],edge[4])
+        line:SetAnchor(TOPLEFT,lunarDrag,TOPLEFT,edge[1],edge[2])
+        line:SetMouseEnabled(false)
+    end
+
+    lunarDrag:SetHandler("OnMouseDown",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Moonlit Magic" then group:StartMoving() end
+    end)
+    lunarDrag:SetHandler("OnMouseUp",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Moonlit Magic" then
+            group:StopMovingOrResizing()
+            local cx,cy=group:GetCenter(); local rx,ry=GuiRoot:GetCenter()
+            saved.lunarPosition={x=cx-rx,y=cy-ry}
+            group:ClearAnchors(); group:SetAnchor(CENTER,GuiRoot,CENTER,saved.lunarPosition.x,saved.lunarPosition.y)
+        end
+    end)
+
+    -- Fairy Garden is a NEW grouped straight-bar style. TEST 12 independent
+    -- controls above are deliberately not modified or reparented.
+    Bars.fairyBars = {}
+    local moonPos = saved.fairyPosition or {x=0,y=groupedDefaultY(168,80)}
+    local group = WM:CreateTopLevelWindow("RSSFairyGardenGroup")
+    Bars.fairyGroup=group
+    group:SetDimensions(1060,168)
+    group:SetAnchor(CENTER,GuiRoot,CENTER,moonPos.x or 0,moonPos.y or groupedDefaultY(168,80))
+    group:SetClampedToScreen(true)
+    group:SetScale((saved.scale or 100)/100)
+    group:SetDrawLayer(DL_OVERLAY); group:SetDrawTier(DT_HIGH)
+    group:SetHidden(true); group:SetMouseEnabled(false)
+    local ornament=makeTexture(group,TEX.."rss_fairy_garden.dds")
+    ornament:SetDimensions(1060,168)
+    ornament:SetAnchor(TOPLEFT,group,TOPLEFT,0,0)
+    ornament:SetMouseEnabled(false)
+    -- TEST 15: draw the ornament IN FRONT of the bars, without changing
+    -- its vertical anchor. Keep the group positioning/drag code intact.
+    ornament:SetDrawLayer(DL_OVERLAY)
+    ornament:SetDrawTier(DT_HIGH)
+    ornament:SetDrawLevel(5)
+    local fairyDefs={
+        {"magicka",POWERTYPE_MAGICKA,"rss_simple_magicka.dds",{0.08,0.85,1},106,260},
+        {"health",POWERTYPE_HEALTH,"rss_simple_health.dds",HEALTH,377,299},
+        {"stamina",POWERTYPE_STAMINA,"rss_simple_stamina.dds",STAM,687,266},
+    }
+    for _,def in ipairs(fairyDefs) do
+        local key,power,path,color,x,mw=unpack(def)
+        -- A rounded, full-width depleted track, independent of the decorative art.
+        local track=makeTexture(group,TEX..path)
+        track:SetDimensions(mw,19); track:SetAnchor(TOPLEFT,group,TOPLEFT,x,80)
+        track:SetColor(0.03,0.03,0.035,0.90); track:SetMouseEnabled(false)
+        track:SetDrawLevel(6)
+        local fill=makeTexture(group,TEX..path)
+        fill:SetDimensions(mw,19); fill:SetAnchor(TOPLEFT,group,TOPLEFT,x,80)
+        fill:SetMouseEnabled(false)
+        fill:SetDrawLevel(7)
+        local glow=makeTexture(group,TEX..path)
+        glow:SetDimensions(mw,19); glow:SetAnchor(TOPLEFT,group,TOPLEFT,x,80)
+        glow:SetBlendMode(TEX_BLEND_MODE_ADD); glow:SetAlpha(0.10); glow:SetMouseEnabled(false)
+        glow:SetDrawLevel(8)
+        local numberGlows={}
+        for _,delta in ipairs({{-1,0},{1,0},{0,-1},{0,1}}) do
+            local label=WM:CreateControl(nil,group,CT_LABEL)
+            label:SetDimensions(mw,23); label:SetAnchor(TOPLEFT,group,TOPLEFT,x+delta[1],102+delta[2])
+            label:SetFont("ZoFontGameBold"); label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+            label:SetColor(color[1],color[2],color[3],0.3); label:SetMouseEnabled(false)
+            label:SetDrawLevel(10)
+            numberGlows[#numberGlows+1]=label
+        end
+        local number=WM:CreateControl(nil,group,CT_LABEL)
+        number:SetDimensions(mw,23); number:SetAnchor(TOPLEFT,group,TOPLEFT,x,102)
+        number:SetFont("ZoFontGameBold"); number:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        number:SetColor(color[1],color[2],color[3],1); number:SetMouseEnabled(false)
+        number:SetDrawLevel(10)
+        Bars.fairyBars[key]={fill=fill,glow=glow,number=number,numberGlows=numberGlows,power=power,width=mw}
+    end
+    -- One handle moves the entire Fairy Garden top-level window.
+    local fairyDrag=WM:CreateControl(nil,group,CT_BACKDROP)
+    Bars.fairyDrag=fairyDrag
+    fairyDrag:SetDimensions(1060,168); fairyDrag:SetAnchorFill(group)
+    fairyDrag:SetCenterColor(0.45,0.08,0.65,0.04)
+    fairyDrag:SetEdgeColor(0.85,0.28,1,1)
+    fairyDrag:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",2,2,2,0)
+    fairyDrag:SetDrawLayer(DL_OVERLAY); fairyDrag:SetDrawTier(DT_HIGH)
+    fairyDrag:SetHidden(true); fairyDrag:SetMouseEnabled(false)
+    -- Full-group purple positioning perimeter, shown only while unlocked.
+    for _,edge in ipairs({
+        {0,0,1060,2}, {0,166,1060,2}, {0,0,2,168}, {1058,0,2,168}
+    }) do
+        local line=WM:CreateControl(nil,fairyDrag,CT_TEXTURE)
+        line:SetTexture("EsoUI/Art/Miscellaneous/white.dds")
+        line:SetColor(0.82,0.25,1,0.95)
+        line:SetDimensions(edge[3],edge[4])
+        line:SetAnchor(TOPLEFT,fairyDrag,TOPLEFT,edge[1],edge[2])
+        line:SetMouseEnabled(false)
+    end
+
+    fairyDrag:SetHandler("OnMouseDown",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Fairy Garden" then group:StartMoving() end
+    end)
+    fairyDrag:SetHandler("OnMouseUp",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Fairy Garden" then
+            group:StopMovingOrResizing()
+            local cx,cy=group:GetCenter(); local rx,ry=GuiRoot:GetCenter()
+            saved.fairyPosition={x=cx-rx,y=cy-ry}
+            group:ClearAnchors(); group:SetAnchor(CENTER,GuiRoot,CENTER,saved.fairyPosition.x,saved.fairyPosition.y)
+        end
+    end)
+
+    -- Frozen Elegance is a NEW grouped straight-bar style. TEST 12 independent
+    -- controls above are deliberately not modified or reparented.
+    Bars.frozenBars = {}
+    local frozenPos = saved.frozenPosition or {x=0,y=groupedDefaultY(280,111)}
+    local group = WM:CreateTopLevelWindow("RSSFrozenEleganceGroup")
+    Bars.frozenGroup=group
+    group:SetDimensions(1060,280)
+    group:SetAnchor(CENTER,GuiRoot,CENTER,frozenPos.x or 0,frozenPos.y or groupedDefaultY(280,111))
+    group:SetClampedToScreen(true)
+    group:SetScale((saved.scale or 100)/100)
+    group:SetDrawLayer(DL_OVERLAY); group:SetDrawTier(DT_HIGH)
+    group:SetHidden(true); group:SetMouseEnabled(false)
+    local ornament=makeTexture(group,TEX.."rss_frozen_elegance.dds")
+    ornament:SetDimensions(1050,280)
+    ornament:SetAnchor(TOPLEFT,group,TOPLEFT,5,-9)
+    ornament:SetMouseEnabled(false)
+    -- TEST 15: draw the ornament IN FRONT of the bars, without changing
+    -- its vertical anchor. Keep the group positioning/drag code intact.
+    ornament:SetDrawLayer(DL_OVERLAY)
+    ornament:SetDrawTier(DT_HIGH)
+    ornament:SetDrawLevel(5)
+    local frozenDefs={
+        {"magicka",POWERTYPE_MAGICKA,"rss_simple_magicka.dds",{0.08,0.85,1},106,260},
+        {"health",POWERTYPE_HEALTH,"rss_simple_health.dds",HEALTH,377,299},
+        {"stamina",POWERTYPE_STAMINA,"rss_simple_stamina.dds",STAM,687,266},
+    }
+    for _,def in ipairs(frozenDefs) do
+        local key,power,path,color,x,mw=unpack(def)
+        -- A rounded, full-width depleted track, independent of the decorative art.
+        local track=makeTexture(group,TEX..path)
+        track:SetDimensions(mw,19); track:SetAnchor(TOPLEFT,group,TOPLEFT,x,111)
+        track:SetColor(0.03,0.03,0.035,0.90); track:SetMouseEnabled(false)
+        track:SetDrawLevel(6)
+        local fill=makeTexture(group,TEX..path)
+        fill:SetDimensions(mw,19); fill:SetAnchor(TOPLEFT,group,TOPLEFT,x,111)
+        fill:SetMouseEnabled(false)
+        fill:SetDrawLevel(7)
+        local glow=makeTexture(group,TEX..path)
+        glow:SetDimensions(mw,19); glow:SetAnchor(TOPLEFT,group,TOPLEFT,x,111)
+        glow:SetBlendMode(TEX_BLEND_MODE_ADD); glow:SetAlpha(0.10); glow:SetMouseEnabled(false)
+        glow:SetDrawLevel(8)
+        local numberGlows={}
+        for _,delta in ipairs({{-1,0},{1,0},{0,-1},{0,1}}) do
+            local label=WM:CreateControl(nil,group,CT_LABEL)
+            label:SetDimensions(mw,23); label:SetAnchor(TOPLEFT,group,TOPLEFT,x+delta[1],136+delta[2])
+            label:SetFont("ZoFontGameBold"); label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+            label:SetColor(color[1],color[2],color[3],0.3); label:SetMouseEnabled(false)
+            label:SetDrawLevel(10)
+            numberGlows[#numberGlows+1]=label
+        end
+        local number=WM:CreateControl(nil,group,CT_LABEL)
+        number:SetDimensions(mw,23); number:SetAnchor(TOPLEFT,group,TOPLEFT,x,136)
+        number:SetFont("ZoFontGameBold"); number:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        number:SetColor(color[1],color[2],color[3],1); number:SetMouseEnabled(false)
+        number:SetDrawLevel(10)
+        Bars.frozenBars[key]={fill=fill,glow=glow,number=number,numberGlows=numberGlows,power=power,width=mw}
+    end
+    -- One handle moves the entire Frozen Elegance top-level window.
+    local frozenDrag=WM:CreateControl(nil,group,CT_BACKDROP)
+    Bars.frozenDrag=frozenDrag
+    frozenDrag:SetDimensions(1060,280); frozenDrag:SetAnchorFill(group)
+    frozenDrag:SetCenterColor(0.45,0.08,0.65,0.04)
+    frozenDrag:SetEdgeColor(0.85,0.28,1,1)
+    frozenDrag:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds",2,2,2,0)
+    frozenDrag:SetDrawLayer(DL_OVERLAY); frozenDrag:SetDrawTier(DT_HIGH)
+    frozenDrag:SetHidden(true); frozenDrag:SetMouseEnabled(false)
+    -- Full-group purple positioning perimeter, shown only while unlocked.
+    for _,edge in ipairs({
+        {0,0,1060,2}, {0,278,1060,2}, {0,0,2,280}, {1058,0,2,280}
+    }) do
+        local line=WM:CreateControl(nil,frozenDrag,CT_TEXTURE)
+        line:SetTexture("EsoUI/Art/Miscellaneous/white.dds")
+        line:SetColor(0.82,0.25,1,0.95)
+        line:SetDimensions(edge[3],edge[4])
+        line:SetAnchor(TOPLEFT,frozenDrag,TOPLEFT,edge[1],edge[2])
+        line:SetMouseEnabled(false)
+    end
+
+    frozenDrag:SetHandler("OnMouseDown",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Frozen Elegance" then group:StartMoving() end
+    end)
+    frozenDrag:SetHandler("OnMouseUp",function(self,button)
+        if button==MOUSE_BUTTON_INDEX_LEFT and not saved.locked and saved.theme=="Frozen Elegance" then
+            group:StopMovingOrResizing()
+            local cx,cy=group:GetCenter(); local rx,ry=GuiRoot:GetCenter()
+            saved.frozenPosition={x=cx-rx,y=cy-ry}
+            group:ClearAnchors(); group:SetAnchor(CENTER,GuiRoot,CENTER,saved.frozenPosition.x,saved.frozenPosition.y)
+        end
+    end)
 
     -- Theme layer remains as the shared theme visibility controller.
     local themeLayer=WM:CreateControl(nil,hud,CT_CONTROL); Bars.themeLayer=themeLayer

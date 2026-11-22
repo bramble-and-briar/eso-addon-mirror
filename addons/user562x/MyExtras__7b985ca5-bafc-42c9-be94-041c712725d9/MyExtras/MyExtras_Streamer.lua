@@ -11,9 +11,6 @@ local DEFAULT_FONT  = "EsoUI/Common/Fonts/FTN57.otf"
 local PANEL_WIDTH   = 1200
 local CHECK_MS      = 250
 local MOVE_SPEED    = 500
-local SPREAD_MIN    = 0
-local SPREAD_MAX    = 400
-local SPREAD_SPEED  = 150
 local SCALE_SPEED   = 15
 local SIZE_MIN      = 25
 local SIZE_MAX      = 90
@@ -30,7 +27,7 @@ Streamer.defaults = {
     streamerText     = DEFAULT_TEXT,
     streamerDuration = 10,
     streamerSize     = 45,
-    streamerSpread   = 0,
+    streamerStretch  = 100,
     streamerFont     = DEFAULT_FONT,
     streamerColor    = { r = 1, g = 1, b = 1, a = 1 },
     streamerPosX     = 0,
@@ -170,7 +167,7 @@ function Streamer:ApplyBox()
     self.box:SetHidden(not show)
     if not show then return end
     local size = sv.streamerSize or self.defaults.streamerSize
-    local padX = math.max(4, zo_floor(size * BOX_PAD_X)) + zo_floor((tonumber(sv.streamerSpread) or 0) / 2)
+    local padX = math.max(4, zo_floor(size * BOX_PAD_X))
     local padY = math.max(2, zo_floor(size * BOX_PAD_Y))
     local opacity = tonumber(sv.streamerBackgroundOpacity) or self.defaults.streamerBackgroundOpacity
     self.box:SetFillColor(0, 0, 0, opacity / 100)
@@ -185,6 +182,7 @@ function Streamer:ApplyPosition()
     local sv = SV()
     self.panel:ClearAnchors()
     self.panel:SetAnchor(CENTER, GuiRoot, CENTER, sv.streamerPosX, sv.streamerPosY)
+    ME:ApplyStretch(self.panel, SV().streamerStretch)
 end
 
 function Streamer:ApplyStyle()
@@ -277,9 +275,9 @@ function Streamer.mover:UpdateDirectionalInput(deltaS)
     if x ~= 0 or y ~= 0 then
         Streamer:SetPosition(Streamer.moveX + x * MOVE_SPEED * deltaS, Streamer.moveY - y * MOVE_SPEED * deltaS)
     end
-    local spreadX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(spreadX) > math.abs(scaleY) then
-        Streamer:SetSpread(Streamer.moveSpread + spreadX * SPREAD_SPEED * deltaS)
+    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
+    if math.abs(stretchX) > math.abs(scaleY) then
+        Streamer:SetStretch(Streamer.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
     elseif scaleY ~= 0 then
         Streamer:SetScale(Streamer.moveSize + scaleY * SCALE_SPEED * deltaS)
     end
@@ -325,18 +323,16 @@ function Streamer:SetScale(size)
     end
 end
 
-function Streamer:SetSpread(value)
-    self.moveSpread = zo_clamp(value, SPREAD_MIN, SPREAD_MAX)
-    local rounded = zo_floor(self.moveSpread + 0.5)
+function Streamer:SetStretch(value)
+    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
+    local rounded = zo_floor(self.moveStretch + 0.5)
     local sv = SV()
-    if sv.streamerSpread ~= rounded then
-        sv.streamerSpread = rounded
-        self:ApplyBox()
-    end
+    if sv.streamerStretch ~= rounded then sv.streamerStretch = rounded end
+    ME:ApplyStretch(self.panel, rounded)
 end
 
 function Streamer:MoveToDefault()
-    self:SetSpread(Streamer.defaults.streamerSpread)
+    self:SetStretch(100)
     self:SetScale(self.defaults.streamerSize)
     self:SetPosition(self.defaults.streamerPosX, self.defaults.streamerPosY)
 end
@@ -374,8 +370,8 @@ function Streamer:OnMoveShowing()
     self.moveStartSize = sv.streamerSize
     self.moveX, self.moveY = sv.streamerPosX, sv.streamerPosY
     self.moveSize = sv.streamerSize
-    self.moveStartSpread = sv.streamerSpread or Streamer.defaults.streamerSpread
-    self.moveSpread = sv.streamerSpread or Streamer.defaults.streamerSpread
+    self.moveStartStretch = sv.streamerStretch or 100
+    self.moveStretch = sv.streamerStretch or 100
     KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
     DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
     ME:SetPlacing(true)
@@ -388,7 +384,7 @@ function Streamer:OnMoveHidden()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
     if not self.moveSaved then
         self:SetScale(self.moveStartSize)
-        self:SetSpread(self.moveStartSpread)
+        self:SetStretch(self.moveStartStretch)
         self:SetPosition(self.moveStartX, self.moveStartY)
     end
     self.moving = false
@@ -472,7 +468,7 @@ function Streamer:GetOptions()
                     type       = "button",
                     name       = "Move / Scale",
                     buttonText = "Move / Scale",
-                    tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right makes it longer or shorter.",
+                    tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right stretches it wider or narrower.",
                     func       = function() Streamer:StartMove() end,
                 },
                 {

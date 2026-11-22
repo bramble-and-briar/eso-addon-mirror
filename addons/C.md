@@ -74,7 +74,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Character Achievements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Character-Achievements__3322) | silvereyes | PC / Mac | 1.0.2 |
 | [Character Bound Item Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Character-Bound-Item-Hider__4922) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
 | [Character Bound Item Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/Character-Bound-Item-Hider__49e5c9da-dc0d-4bf5-b60c-6e6e53784107) | APH0NlC | Console | — |
-| [Character Homes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g0thicicecream/Character-Homes__4654) | g0thicicecream | PC / Mac | 1.4.0 |
+| [Character Homes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g0thicicecream/Character-Homes__4654) | g0thicicecream | PC / Mac | 1.4.1 |
 | [Character Knowledge (Research, Motif, Recipe, Furnishing Plan and Scribing Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Character-Knowledge-Research-Motif-Recipe-Furnishing-Plan-and-Scribing-Tracker__2938) | code65536 | PC / Mac | 3.1.6 |
 | [Character Zone Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Character-Zone-Tracker__3323) | silvereyes | PC / Mac | 1.3.0 |
 | [CharacterGearUI (for alone or PerfectPixel)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Trobo/CharacterGearUI-for-alone-or-PerfectPixel__4743) | Trobo | PC / Mac | 0.4.7 |
@@ -198,7 +198,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Companion Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/Companion-Helper__ac31de38-34d3-4d5d-b0a4-282e26e25fa1) | Scribe_Rob | Console | — |
 | [Companion Rapport](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ParanoidGaming/Companion-Rapport__1d8faf08-ce78-4d71-8e33-81d704e62fc5) | ParanoidGaming | Console | — |
 | [Companion Rapport Numbers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smaxx/Companion-Rapport-Numbers__3128) | Smaxx | PC / Mac | 1.2 |
-| [Companion Sidekick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FoulMouthxAmazon/Companion-Sidekick__5072) | FoulMouthxAmazon | PC / Mac | 0.1.1-beta |
+| [Companion Sidekick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FoulMouthxAmazon/Companion-Sidekick__5072) | FoulMouthxAmazon | PC / Mac | 0.1.2-beta |
 | [Companion Stuff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VisioTempus/Companion-Stuff-Tracker__3986) | VisioTempus | PC / Mac | 1.2.3 |
 | [Companion's Containers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Companion-s-Containers__4143) | atharti | PC / Mac | 1.9 |
 | [CompanionFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/CompanionFix__3677) | sinnereso | PC / Mac | 2026.03.10 |

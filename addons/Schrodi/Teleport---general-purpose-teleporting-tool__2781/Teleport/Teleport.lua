@@ -16,6 +16,7 @@ Teleport.COLORS = {
     LEADER = "AAFFAA",
 
     SURVEY = "3A93FF",
+    QUEST = "3A93FF",
 }
 
 Teleport.info  =           function(msg) CHAT_SYSTEM:AddMessage("[Teleport]: "        .. msg) end
@@ -31,56 +32,50 @@ local C     = Teleport.COLORS
 --------------------------------------------------------------------------------
 
 local function printHelp()
-    info([[ Teleport tl;dr manual:
-The full manual is available in the addon folder (README.md) or at:
+    info([[/tp <destination>: type the start of a name, any case.
+Full manual: README.md in the addon folder, or
 https://github.com/wjtk4444/eso-addons/tree/master/Teleport
 
-1. There is only one command - /tp
-2. All arguments to it are case-insensitive
-3. You pretty much type:
-/tp <prefix of the english name of the place where you want to end up>
-4. That's it.
-5. Not really, so here's some examples to loook at:
-
-Zones:
-    /tp Deshaan
-    /tp crag
-
-Dungeons, Trials and Arenas
-(you can find the full list of short names in the full manual):
-    /tp vmol (will set difficulty to veteran)
-    /tp nfg1 (will set difficulty to normal)
-    /tp rbrp (will reset the instance before tping)
-    /tp ka
-    /tp crypt of hea
-
-Homes:
-    /tp Snugpod
-    /tp outside snugpod
-    /tp antiq
-    /tp @frindorguildienameprefix housenameprefix
-    /tp @fren snug
-    /tp @@fullaccountname housenameprefix
-    /tp @@schrodingerscatgirl Snugpod <- try this one
-
-Players:
-    /tp leader
-    /tp @fren
-
-Crafting Surveys and Treasure Maps:
-    /tp bothsurveymaps
-
-Adding and removing Aliases:
-    /tp --add s bothsurveymaps
-    /tp --add l leader
-    /tp --add snuggy @@schrodingerscatgirl snugpod
-    /tp --list
-    /tp snuggy
-    /tp --remove snuggy (i cri everytiem)
-    ]])
+Zones (free, through a group member, friend or guildmate there):
+    /tp deshaan    /tp crag    /tp reach
+Dungeons, trials, arenas (free if a group member is inside):
+    /tp fg1    /tp vmol (veteran)    /tp nka (normal)    /tp rbrp (reset)
+    /tp crypt of hearts
+    /tp --aliases    (all short names)
+Wayshrines (paid, free at a wayshrine):
+    /tp vivec city    /tp solitude wayshrine
+Your houses:
+    /tp snugpod    /tp outside snugpod
+Players and their houses:
+    /tp @fren    /tp leader
+    /tp @fren snug    /tp @fren primary
+    /tp @@exactaccountname snugpod    (anyone, not just friends)
+Survey and treasure maps, tracked quest (free if possible, paid otherwise):
+    /tp maps    /tp maps free    /tp maps paid
+    /tp quest   /tp quest free   /tp quest paid
+Your own aliases:
+    /tp --add s maps    /tp --add home @@myaccount primary
+    /tp --list    /tp --remove s]])
 end
 
 --------------------------------------------------------------------------------
+
+-- exact matches only, so prefixes like `/tp ma` / `/tp que` still search zones etc.
+local COMMANDS = {
+    ['maps']           = function() return Teleport.SurveyMaps:teleportToSurveyMap(true) end,
+    ['maps free']      = function() return Teleport.SurveyMaps:teleportToSurveyMap()     end,
+    ['maps paid']      = function() return Teleport.SurveyMaps:paidTeleportToSurveyMap() end,
+    ['quest']          = function() return Teleport.Quests:teleportToQuest(true, false)  end,
+    ['quest free']     = function() return Teleport.Quests:teleportToQuest(false, false) end,
+    ['quest paid']     = function() return Teleport.Quests:teleportToQuest(false, true)  end,
+}
+-- pre-1.3 names, kept so existing aliases keep working
+COMMANDS['bothsurveymaps'] = COMMANDS['maps']
+COMMANDS['freesurveymaps'] = COMMANDS['maps free']
+COMMANDS['paidsurveymaps'] = COMMANDS['maps paid']
+COMMANDS['bothquest']      = COMMANDS['quest']
+COMMANDS['freequest']      = COMMANDS['quest free']
+COMMANDS['paidquest']      = COMMANDS['quest paid']
 
 local function removeExtraWhitespace(args)
     if not args then return nil end
@@ -92,13 +87,14 @@ end
 local function tp(args)
     args = removeExtraWhitespace(args)
     if not args or args =='' then
-        info("No input specified, see " .. color("`/tp help`", C.NOT_FOUND) .. " for help")
+        info("Where to? See " .. color("/tp --help", C.NOT_FOUND) .. " for examples.")
         return
     end
 
     args = Teleport.Aliases:expandUserDefined(args)
    
-    if args == '--help'          then return printHelp() end
+    if args == '--help' or args == 'help' then return printHelp() end
+    if args == '--aliases'       then return Teleport.Aliases:listDungeonAliases() end
 
     if Teleport.Helpers:startsWith(args, '--list') then
         return Teleport.Aliases:listAliases()
@@ -110,10 +106,9 @@ local function tp(args)
         return Teleport.Aliases:removeAlias(string.sub(args, 10))
     end
 
-    if args == 'leader'          then return Teleport.Players:teleportToLeader()             end
-    if args == 'freesurveymaps'  then return Teleport.SurveyMaps:teleportToSurveyMap()     end
-    if args == 'paidsurveymaps'  then return Teleport.SurveyMaps:paidTeleportToSurveyMap() end
-    if args == 'bothsurveymaps'  then return Teleport.SurveyMaps:teleportToSurveyMap(true) end
+    if args == 'leader'          then return Teleport.Players:teleportToLeader()           end
+    local command = COMMANDS[args]
+    if command then return command() end
 
     if Teleport.Helpers:startsWith(args, '@') then 
         local playerNamePrefix, houseNamePrefix = Teleport.Helpers:splitOnSpace(args)
@@ -155,4 +150,7 @@ EVENT_MANAGER:RegisterForEvent('Teleport', EVENT_ADD_ON_LOADED, function(_, addo
         SLASH_COMMANDS['/tp'] = tp
         local SAVED_VARS = ZO_SavedVars:NewAccountWide('TeleportAliases', 1, nil, { ALIASES = { } })
         Teleport.Aliases:setSavedVars(SAVED_VARS.ALIASES)
+		
+		Teleport.Zones:initialize()
+		Teleport.Nodes:initialize()
     end)

@@ -7,10 +7,8 @@ ME.Performance = PF
 --------------------------------------------------
 local EVENT_NAME  = ME.name .. "_Performance"
 local TICK_MS     = 1000
+local PART_GAP    = 5
 local MOVE_SPEED  = 500
-local SPREAD_MIN   = 1
-local SPREAD_MAX   = 30
-local SPREAD_SPEED = 12
 local SCALE_SPEED = 10
 local SIZE_MIN    = 14
 local SIZE_MAX    = 48
@@ -39,7 +37,7 @@ PF.defaults = {
     perfColorByValue      = true,
     perfFont              = "EsoUI/Common/Fonts/FTN57.otf",
     perfSize              = 24,
-    perfGap               = 5,
+    perfStretch           = 100,
     perfColor             = { r = 1, g = 1, b = 1, a = 1 },
     perfPosX              = 120,
     perfPosY              = 40,
@@ -47,6 +45,8 @@ PF.defaults = {
     perfBackgroundOpacity = 100,
 }
 local DEFAULTS = PF.defaults
+local scope = ME:NewScope("perfCharSettings")
+scope:AddDefaults(DEFAULTS, "perf")
 
 PF.partChoices = {
     { name = "FPS",  value = "fps"  },
@@ -69,7 +69,7 @@ local lastText   = nil
 -- Helpers
 --------------------------------------------------
 local function SV()
-    return ME.savedVariables
+    return scope:Settings()
 end
 
 local function TextFont()
@@ -123,7 +123,7 @@ local function BuildText(info, size)
         local iconSize = zo_floor(size * ICON_SCALE)
         parts[#parts + 1] = zo_iconFormat(PingIcon(ping), iconSize, iconSize) .. " " .. Paint(ping .. " ms", PingColor(ping))
     end
-    return table.concat(parts, string.rep(" ", tonumber(sv.perfGap) or DEFAULTS.perfGap))
+    return table.concat(parts, string.rep(" ", PART_GAP))
 end
 
 local function CurrentInfo()
@@ -181,6 +181,7 @@ function PF:ApplyPosition()
     local sv = SV()
     self.panel:ClearAnchors()
     self.panel:SetAnchor(CENTER, GuiRoot, TOPLEFT, sv.perfPosX, sv.perfPosY)
+    ME:ApplyStretch(self.panel, SV().perfStretch)
 end
 
 function PF:Render(force)
@@ -269,9 +270,9 @@ function PF.mover:UpdateDirectionalInput(deltaS)
     if x ~= 0 or y ~= 0 then
         PF:SetPosition(PF.moveX + x * MOVE_SPEED * deltaS, PF.moveY - y * MOVE_SPEED * deltaS)
     end
-    local spreadX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(spreadX) > math.abs(scaleY) then
-        PF:SetSpread(PF.moveSpread + spreadX * SPREAD_SPEED * deltaS)
+    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
+    if math.abs(stretchX) > math.abs(scaleY) then
+        PF:SetStretch(PF.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
     elseif scaleY ~= 0 then
         PF:SetScale(PF.moveSize + scaleY * SCALE_SPEED * deltaS)
     end
@@ -316,18 +317,16 @@ function PF:SetScale(size)
     end
 end
 
-function PF:SetSpread(value)
-    self.moveSpread = zo_clamp(value, SPREAD_MIN, SPREAD_MAX)
-    local rounded = zo_floor(self.moveSpread + 0.5)
+function PF:SetStretch(value)
+    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
+    local rounded = zo_floor(self.moveStretch + 0.5)
     local sv = SV()
-    if sv.perfGap ~= rounded then
-        sv.perfGap = rounded
-        self:Render(true)
-    end
+    if sv.perfStretch ~= rounded then sv.perfStretch = rounded end
+    ME:ApplyStretch(self.panel, rounded)
 end
 
 function PF:MoveToDefault()
-    self:SetSpread(DEFAULTS.perfGap)
+    self:SetStretch(100)
     self:SetScale(DEFAULTS.perfSize)
     self:SetPosition(DEFAULTS.perfPosX, DEFAULTS.perfPosY)
 end
@@ -365,8 +364,8 @@ function PF:OnMoveShowing()
     self.moveStartSize = sv.perfSize
     self.moveX, self.moveY = sv.perfPosX, sv.perfPosY
     self.moveSize = sv.perfSize
-    self.moveStartSpread = sv.perfGap or DEFAULTS.perfGap
-    self.moveSpread = sv.perfGap or DEFAULTS.perfGap
+    self.moveStartStretch = sv.perfStretch or 100
+    self.moveStretch = sv.perfStretch or 100
     KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
     DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
     ME:SetPlacing(true)
@@ -379,7 +378,7 @@ function PF:OnMoveHidden()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
     if not self.moveSaved then
         self:SetScale(self.moveStartSize)
-        self:SetSpread(self.moveStartSpread)
+        self:SetStretch(self.moveStartStretch)
         self:SetPosition(self.moveStartX, self.moveStartY)
     end
     self.moving = false
@@ -425,7 +424,9 @@ function PF:GetOptions()
         {
             type    = "submenu",
             name    = "FPS / Ping",
-            tooltip = "Shows your frame rate and ping on screen.\n\n" .. ME.SAVED_ACCOUNT_TIP,
+            tooltip = function()
+                return "Shows your frame rate and ping on screen.\n\n" .. ME:SavedTip(scope, "perf")
+            end,
             options = {
                 {
                     type    = "toggle",
@@ -439,6 +440,7 @@ function PF:GetOptions()
                         PF:Refresh()
                     end,
                 },
+                ME:CharacterOption(scope, "perf", function() PF:Refresh() end),
                 {
                     type    = "toggle",
                     name    = "Preview",
@@ -451,7 +453,7 @@ function PF:GetOptions()
                     type       = "button",
                     name       = "Move / Scale",
                     buttonText = "Move / Scale",
-                    tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right makes it longer or shorter.",
+                    tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right stretches it wider or narrower.",
                     func       = function() PF:StartMove() end,
                 },
                 {
@@ -587,7 +589,12 @@ function PF:OnPlayerActivated()
     self:Refresh()
 end
 
+function PF:ResetSkipKeys()
+    return scope:ResetSkipKeys()
+end
+
 function PF:OnReset()
+    scope:ResetCharacter()
     self.preview = false
     self:Refresh()
 end

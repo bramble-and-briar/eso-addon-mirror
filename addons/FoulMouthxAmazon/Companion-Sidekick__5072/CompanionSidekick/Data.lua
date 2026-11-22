@@ -1,4 +1,4 @@
-CompanionSidekick={name="CompanionSidekick",version="0.1.1-test"}
+CompanionSidekick={name="CompanionSidekick",version="0.1.2"}
 local C=CompanionSidekick
 -- Collectible identifiers identify companions, not per-character unlocks.
 -- Recruitment IDs are read from ESO. Story IDs are resolved from game quest

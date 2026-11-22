@@ -16,6 +16,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ultibomb](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/Ultibomb__2163) | ghostbane | PC / Mac | 0.7.5 |
 | [Ultimate Buff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Agade/Ultimate-Buff-Tracker__971) | Agade | PC / Mac | 1.0 |
 | [Ultimate Charge Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Razor1980/Ultimate-Charge-Tracker__3631) | Razor1980 | PC / Mac | 1.0 |
+| [Ultimate Regen Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Ultimate-Regen-Timer__5096) | Schrodi | PC / Mac | 3.0.0 |
 | [Ultimate UI Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SilentShanx/Ultimate-UI-Hider__820) | SilentShanx | PC / Mac | v1.75 |
 | [Ultimate UI Hider (Patch)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/h.metaverse/Ultimate-UI-Hider-Patch__1960) | h.metaverse | PC / Mac | v1.0 |
 | [Ultivite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aLi3nZ/Ultivite__4777) | aLi3nZ | PC / Mac | 1.0.200 |

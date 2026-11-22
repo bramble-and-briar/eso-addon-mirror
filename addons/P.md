@@ -111,6 +111,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's CyrodiilAlert(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CyrodiilAlert-Beta__233a612c-6650-451b-80d8-b1862f95c90a) | PinkBanther | Console | — |
 | [PinkB's DiceExtension](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-DiceExtension__c8c74e10-f091-4e38-b894-20bb194c9b87) | PinkBanther | Console | — |
 | [PinkB's DiceExtension(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-DiceExtension-Beta__4e8c5fa9-767a-4036-87fe-ba872cd76529) | PinkBanther | Console | — |
+| [PinkB's Ember(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Ember-Beta__8d7c9b63-ddca-49fd-9d5c-ef22b9970f14) | PinkBanther | Console | — |
 | [PinkB's EmoteSynchronizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-EmoteSynchronizer__6b42fd29-e6c4-4aec-8f92-e5c54de4c28c) | PinkBanther | Console | — |
 | [PinkB's EmoteSynchronizer(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-EmoteSynchronizer-Beta__5cc8ec52-378a-4e09-aa6a-02f2409b2f2a) | PinkBanther | Console | — |
 | [PinkB's EquipmentChanger with Yonechi](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-EquipmentChanger-with-Yonechi__18130d34-73cc-4a58-be8c-a9f9ba92d4ed) | PinkBanther | Console | — |
@@ -193,7 +194,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Plunder Skull Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SandmanNinja/Plunder-Skull-Tracker__4978) | SandmanNinja | PC / Mac | 1.1.2 |
 | [Pocket Adeptus (Red Trial CP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/Pocket-Adeptus-Red-Trial-CP__2057) | init3 | PC / Mac | 2.4 |
 | [Pocket Adeptus Red Trial CP - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/EternalSessions6/Pocket-Adeptus-Red-Trial-CP---Updated__2782) | EternalSessions6 | PC / Mac | 1.0 |
-| [Pocket Critters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hellwuff/Pocket-Critters__5079) | Hellwuff | PC / Mac | 3.0.4 |
+| [Pocket Critters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hellwuff/Pocket-Critters__5079) | Hellwuff | PC / Mac | 3.0.5 |
 | [Pocket Money](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/msetten/Pocket-Money__b2d38492-3b20-43e0-9262-af382d04fb04) | msetten | Console | — |
 | [PocketChange](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/PocketChange__1849) | Shadowfen | PC / Mac | 1.39 |
 | [PointsofColor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/PointsofColor__ffe303a8-aa0e-4c0c-a21f-62dcc0da1107) | Sharlikran | Console | — |
@@ -227,7 +228,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Prevent Attacking Guards](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Prevent-Attacking-Guards__3762) | kawamonkey | PC / Mac | 1.0.1 |
 | [PreventActionCrimes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FloIstImGame/PreventActionCrimes__4663) | FloIstImGame | PC / Mac | 1.1 |
 | [Preview Anywhere](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Preview-Anywhere__b5cc1fef-6afb-46ca-a772-f1b71c39530c) | clubwratt | Console | — |
-| [Preview Anywhere: see your furnishings from bank, house storage, etc.](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GlandePas/Preview-Anywhere-see-your-furnishings-from-bank-house-storage-etc__4987) | GlandePas | PC / Mac | 1 |
+| [Preview Anywhere: see your furnishings from bank, house storage, etc.](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GlandePas/Preview-Anywhere-see-your-furnishings-from-bank-house-storage-etc__4987) | GlandePas | PC / Mac | 0.2.0 |
 | [PreviousQuest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/PreviousQuest__3801) | Masteroshi430 | PC / Mac | 2026.07.09 |
 | [Price Tooltip (+Gamepad)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mladen90/Price-Tooltip-Gamepad__2221) | Mladen90 | PC / Mac | 1.7.2 |
 | [Price Tooltip Gamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Price-Tooltip-Gamepad__4439) | Muffins714 | PC / Mac | 1.4 |

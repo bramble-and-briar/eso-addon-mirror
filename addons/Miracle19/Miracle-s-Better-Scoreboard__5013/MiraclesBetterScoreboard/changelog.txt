@@ -1,6 +1,13 @@
 Miracle's BetterScoreboard — Changelog
 ===================================
 
+Version 3
+------------------------------------
+- Added controller (Gamepad UI) support for the scoreboard.
+- Fixed UI Errors associated with Gamepad UI
+- Improved spacing between Medal Score, damage received and damage/healing on keyboard and mouse
+- Improved spacing between Kills, Deaths, Assists and K/D on keyboard and mouse
+
 Version 2
 ---------
 - Renamed the addon manifest and internal identifiers to prevent identity collisions with the original BetterScoreboard addon.

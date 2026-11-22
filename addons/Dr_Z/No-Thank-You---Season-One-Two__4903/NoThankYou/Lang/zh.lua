@@ -18,9 +18,9 @@ SafeAddString(NOTY_LEAVING_GROUP_AREA,			"您即将离开组队区域.", 1)
 SafeAddString(NOTY_RAID_COMPLETE,			" 完全的", 1)
 SafeAddString(NOTY_RAID_OTHERS,				"和 <<1>> 其他", 1)
 
-SafeAddString(NOTY_GUILD_INV_OPTION_0,			"不要阻止", 1)
-SafeAddString(NOTY_GUILD_INV_OPTION_1,			"总是", 1)
-SafeAddString(NOTY_GUILD_INV_OPTION_2,			"充满公会的时候", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_0,			"显示所有邀请", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_1,			"仅在通知中显示", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_2,			"自动拒绝", 1)
 
 SafeAddString(NOTY_AVA_MODE_OPTION_0,			"不要禁用", 1)
 SafeAddString(NOTY_AVA_MODE_OPTION_1,			"聊天消息", 1)
@@ -102,6 +102,11 @@ SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE, "使用传送神龛时跳过确认",
 SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE_TOOLTIP, "在传送神龛处选择目的地后立即旅行。", 1)
 SafeAddString(NOTYOU_FAST_TRAVEL_RECALL, "未使用传送神龛时跳过确认", 1)
 SafeAddString(NOTYOU_FAST_TRAVEL_RECALL_TOOLTIP, "在传送神龛之外选择目的地后立即旅行。仍需支付正常的金币费用。", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE, "传送至拥有的住宅", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_TOOLTIP, "保留通常的室内或室外选项，或直接传送至所拥有住宅的室内或室外。", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_NORMAL, "正常", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_INSIDE, "仅室内", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_OUTSIDE, "仅室外", 1)
 
 SafeAddString(NOTYOU_FENCE_HEADER,			"赃物买主", 1)
 SafeAddString(NOTYOU_FENCE,				"删除对话框“无法从围栏回购”", 1)
@@ -110,8 +115,8 @@ SafeAddString(NOTYOU_FENCE_TOOLTIP,			"向赃物买家出售稀有物品时禁�
 SafeAddString(NOTYOU_GROUPS_HEADER,			"小组对话", 1)
 SafeAddString(NOTYOU_GROUPS_DISBAND,			"禁用对话框 \"离开群组\"", 1)
 SafeAddString(NOTYOU_GROUPS_DISBAND_TOOLTIP,		"离开群组时禁用确认.", 1)
-SafeAddString(NOTYOU_GROUPS_LARGE,			"禁用大型组对话框和消息", 1)
-SafeAddString(NOTYOU_GROUPS_LARGE_TOOLTIP,		"禁用大型组确认对话框，以及队伍变为或不再是大型组时显示的消息。", 1)
+SafeAddString(NOTYOU_GROUPS_LARGE,			"移除大型队伍“对话框和聊天消息”", 1)
+SafeAddString(NOTYOU_GROUPS_LARGE_TOOLTIP,		"开启时跳过大型队伍确认对话框，并隐藏队伍变为大型或小型队伍时的聊天消息。对队长和队员均生效。关闭时保留游戏正常行为。", 1)
 
 SafeAddString(NOTYOU_CRAFT_HEADER,			"工艺对话", 1)
 SafeAddString(NOTYOU_CRAFT,				"禁用对话框“尝试改进项目\"", 1)
@@ -152,8 +157,8 @@ SafeAddString(NOTY_NOPORTONLEADER_2,			"总是", 1)
 
 
 SafeAddString(NOTYOU_GUILDS_HEADER,			"公会邀请函", 1)
-SafeAddString(NOTYOU_GUILDS,				"阻止公会邀请", 1)
-SafeAddString(NOTYOU_GUILDS_TOOLTIP,			"阻止公会邀请消息和通知.", 1)
+SafeAddString(NOTYOU_GUILDS,				"将“公会邀请”设为...", 1)
+SafeAddString(NOTYOU_GUILDS_TOOLTIP,			"正常显示公会邀请、仅在通知中显示，或自动拒绝新收到和待处理的邀请。", 1)
 SafeAddString(NOTYOU_GUILDSAPP,				"隐藏公会申请通知", 1)
 SafeAddString(NOTYOU_GUILDSAPP_TOOLTIP,			"隐藏公会申请通知。", 1)
 
@@ -177,6 +182,11 @@ SafeAddString(NOTYOU_GUILDLEAVE_HEADER,			"公会退出键", 1)
 SafeAddString(NOTYOU_GUILDLEAVE_HEADER_TOOLTIP,		"选择您希望如何自定义退出公会热键的显示方式", 1)
 SafeAddString(NOTYOU_GUILDLEAVE_BLOCK,			"禁用", 1)
 SafeAddString(NOTYOU_GUILDLEAVE_BLOCK_TOOLTIP,		"选择您希望如何自定义退出公会热键的显示方式:\n|cFFFFFF没有人|r - 没有变化\n|cFFFFFF所有公会|r - 禁用所有公会\n|cFFFFFF指定公会|r - 选择要禁用密钥的公会", 1)
+
+SafeAddString(NOTYOU_OWNED_HOUSES, "隐藏“已拥有住宅”", 2)
+SafeAddString(NOTYOU_OWNED_HOUSES_TOOLTIP, "在泰姆瑞尔和区域地图上隐藏已拥有住宅，包括主要住宅和已拥有的收藏住宅。", 2)
+SafeAddString(NOTYOU_UNOWNED_HOUSES, "隐藏“未拥有住宅”", 2)
+SafeAddString(NOTYOU_UNOWNED_HOUSES_TOOLTIP, "在泰姆瑞尔和区域地图上隐藏未拥有住宅，包括未拥有的收藏住宅。", 2)
 
 SafeAddString(NOTYOU_CAMERA_HEADER,			"相机和互动", 1)
 SafeAddString(NOTYOU_CAMERA_INTERRUPT,			"不要打断互动", 1)

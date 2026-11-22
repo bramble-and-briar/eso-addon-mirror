@@ -1,0 +1,43 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/Schrodi/Improved-Death-Recap-Vanilla-UI__5097",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5097",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5097",
+  "deleted": false,
+  "directories": [
+    "ImprovedDeathRecapVanillaUI"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5097/",
+  "fingerprint": "f65c64bc19241cc6ef14f04b0cf408eaa3c128327278a29af03778b935c1b73d",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18695.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5097",
+  "source_url": "https://www.esoui.com/downloads/info5097-ImprovedDeathRecapVanillaUI.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 2
+  },
+  "title": "Improved Death Recap: Vanilla UI",
+  "updated_at": 1795346221000,
+  "version": "3.1.0"
+}

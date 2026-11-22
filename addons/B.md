@@ -14,6 +14,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Bag Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Onigar/Bag-Manager__2091) | Onigar | PC / Mac | 0.1.0 |
 | [Bag Space Indicator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lordrichter/Bag-Space-Indicator__5af6522d-980d-4335-9328-4e5077cee058) | lordrichter | Console | — |
 | [Bag Space Indicator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lordrichter/Bag-Space-Indicator__1181) | lordrichter | PC / Mac | 3.49 |
+| [Bag Watcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Bag-Watcher__5087) | Schrodi | PC / Mac | 1.1 |
 | [Bahsei's Damage Bonus Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KermitTheFrog88/Bahsei-s-Damage-Bonus-Tracker__3225) | KermitTheFrog88 | PC / Mac | 0.23 |
 | [Bait Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/katkat42/Bait-Counter__538) | katkat42 | PC / Mac | 1.6.3 |
 | [Bait Pings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DaedricDoge/Bait-Pings__3741) | DaedricDoge | PC / Mac | 1.0 |
@@ -36,7 +37,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Banker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/Banker__362) | Nols1000 | PC / Mac | 1.6 |
 | [Banker Shutup](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mctaylor/Banker-Shutup__869) | mctaylor | PC / Mac | 3.5c |
 | [Banker Shutup Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rkuhnjr/Banker-Shutup-Patch__839) | rkuhnjr | PC / Mac | 3.5b |
-| [Bankir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Bankir__4535) | Saleand | PC / Mac | 2.9.8 |
+| [Bankir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Bankir__4535) | Saleand | PC / Mac | 2.9.9 |
 | [BankManagerTESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IgorSab/BankManagerTESO__4072) | IgorSab | PC / Mac | 1 |
 | [Banner Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phamo1000/Banner-Status__608b7ab5-db64-423a-af5c-2438027f0eed) | Phamo1000 | Console | — |
 | [Bar Steward - Multi Toolbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Bar-Steward---Multi-Toolbar__3375) | FlatBadger | PC / Mac | 3.5.14 |

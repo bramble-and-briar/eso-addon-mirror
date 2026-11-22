@@ -4,20 +4,16 @@
 ; other countries. All rights reserved.
 ; https://account.elderscrollsonline.com/add-on-terms
 
-## Title: HideInventoryClutter
-## Description: toggle visibility of various items in inventory
+## Title: Hide Inventory Clutter
+## Description: One-click toggles that hide locked gear and everyday consumables from your inventory, bank, mail, vendor and transmutation lists, and show only items worth deconstructing (or selling) at crafting stations and vendors.
 ## Author: Schrodi
-## Version: 2.0
-## APIVersion: 100034
-## DependsOn: LibFilters-3.0 LibAddonMenu-2.0
+## Version: 2.2.0
+## APIVersion: 101051
+## DependsOn: LibFilters-3.0>=350 LibAddonMenu-2.0>=43 LibDeconValue>=120
 ## SavedVariables: HideInventoryClutterPosition
 
 HideInventoryClutter.xml
-
 HideInventoryClutter.lua
 Settings.lua
-UI.lua
 Filters.lua
-
-
-
+UI.lua

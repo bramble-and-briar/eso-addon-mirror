@@ -133,7 +133,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [House Click](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/iiJonno/House-Click__2962) | iiJonno | PC / Mac | 1.2 |
 | [House Directory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/House-Directory__c42c61b1-af71-4aaf-9667-240aabc831e8) | TheGreyWolf98 | Console | — |
 | [House Hotkey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/saranicole1980/House-Hotkey__256dc81e-d505-4eb6-9a51-1d7ffc360c69) | saranicole1980 | Console | — |
-| [House Hotkey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thisbeaurielle/House-Hotkey__4185) | thisbeaurielle | PC / Mac | 1.8.2 |
+| [House Hotkey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thisbeaurielle/House-Hotkey__4185) | thisbeaurielle | PC / Mac | 1.8.3 |
 | [House ID](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Trunxrdm/House-ID__1a4c7280-2bf3-4373-b9b5-6f872886f724) | Trunxrdm | Console | — |
 | [House Preview Hotkey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TwinLamps/House-Preview-Hotkey__4391) | TwinLamps | PC / Mac | 1.0 |
 | [HouseTravel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/HouseTravel__2960) | ShadowMau | PC / Mac | 1.0.1 |

@@ -1,0 +1,45 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/Schrodi/Schrodi-s-Battleground-Tools__5101",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5101",
+  "category_id": "96",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5101",
+  "deleted": false,
+  "directories": [
+    "SchrodisBattlegroundTools"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5101/",
+  "fingerprint": "1bf3d93b5fbe1a7a5183cbe165db627c3a779b3a881044c8733942021c7f16a6",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18722.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18723.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18724.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5101",
+  "source_url": "https://www.esoui.com/downloads/info5101-SchrodisBattlegroundTools.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Schrodi's Battleground Tools",
+  "updated_at": 1795346321000,
+  "version": "2.0.0"
+}

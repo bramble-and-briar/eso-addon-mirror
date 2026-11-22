@@ -2,7 +2,7 @@ PocketCritters = PocketCritters or {}
 local PP = PocketCritters
 
 PP.name = "PocketCritters"
-PP.version = "3.0.4"
+PP.version = "3.0.5"
 
 local TEXTURE_PATH = "PocketCritters/textures/critter_%s%s.dds"
 local HD_ABOVE = 128
@@ -16,8 +16,6 @@ local MIN_SCALE, MAX_SCALE = 50, 300
 local DEFAULTS = {
     skin = "hellwuff",
     scale = 100,
-    x = nil,
-    y = nil,
     locked = false,
     hidden = false,
     quiet = false,
@@ -52,16 +50,10 @@ local state = {
     isDead = false,
     bossNearby = false,
     lastActive = 0,
-    lastPos = nil,
-    reaction = nil,
     reactionEnd = 0,
     reactionStart = 0,
-    anim = nil,
     animStart = 0,
-    mouseDownX = nil,
-    mouseDownY = nil,
     nextSlowCheck = 0,
-    forceMood = nil,
     forceUntil = 0,
 }
 
@@ -96,12 +88,7 @@ local function IsValidSkin(name)
 end
 
 local function GetPlayerPos()
-    if GetUnitRawWorldPosition then
-        local zoneId, x, y, z = GetUnitRawWorldPosition("player")
-        if x then return zoneId, x, y, z end
-    end
-    local x, y = GetMapPlayerPosition("player")
-    return 0, (x or 0) * 100000, 0, (y or 0) * 100000
+    return GetUnitRawWorldPosition("player")
 end
 
 local function MarkActive()
@@ -122,13 +109,12 @@ local function CurrentMood()
     end
     state.reaction = nil
     if state.inCombat then return "alert" end
-    if sv and (t - state.lastActive) >= sv.sleepAfter then return "sleep" end
+    if (t - state.lastActive) >= sv.sleepAfter then return "sleep" end
     return "idle"
 end
 
 function PP.React(name)
     local r = REACTIONS[name]
-    if not r then return end
     local t = Now()
     state.reaction = name
     state.reactionStart = t
@@ -137,7 +123,7 @@ end
 
 local function CheckBosses()
     local found = false
-    for i = 1, (MAX_BOSSES or 6) do
+    for i = BOSS_RANK_ITERATION_BEGIN, BOSS_RANK_ITERATION_END do
         local tag = "boss" .. i
         if DoesUnitExist(tag) and not IsUnitDead(tag) then
             found = true
@@ -189,7 +175,7 @@ end
 local GROUND_BALL = 0.027 + BALL_SIZE / 2
 
 local function Launch(ballU, ballV, side)
-    local mouth = MOUTH[sv.skin] or { 0, 0.42 }
+    local mouth = MOUTH[sv.skin]
     local stopU = ballU - side * mouth[1]
     local stopV = ballV + GROUND_BALL
     local runTime = math.max(0.4, math.sqrt(stopU * stopU + stopV * stopV) / FETCH_SPEED)
@@ -204,12 +190,11 @@ local function Launch(ballU, ballV, side)
     state.reaction = nil
     state.forceMood = nil
     MarkActive()
-    if SOUNDS and SOUNDS.DEFAULT_CLICK then PlaySound(SOUNDS.DEFAULT_CLICK) end
+    PlaySound(SOUNDS.DEFAULT_CLICK)
     return true
 end
 
 local function CanThrow()
-    if not sv or not window then return false end
     if state.fetch then return false end
     if sv.hidden then
         Say("Your critter is hidden. Tick \"Show my critter\" to play!")
@@ -223,13 +208,13 @@ local function CanThrow()
 end
 
 local function ScreenSize()
-    return (GuiRoot.GetWidth and GuiRoot:GetWidth()) or 1920, (GuiRoot.GetHeight and GuiRoot:GetHeight()) or 1080
+    return GuiRoot:GetWidth(), GuiRoot:GetHeight()
 end
 
 function PP.ThrowBall()
     if not CanThrow() then return false end
     local size = PP.GetPixelSize()
-    local centre = (window:GetLeft() or 0) + size / 2
+    local centre = window:GetLeft() + size / 2
     local screenW = ScreenSize()
     local dir = (centre < screenW / 2) and 1 or -1
     local target = centre + dir * size * (2 + math.random() * 1.6)
@@ -243,11 +228,11 @@ end
 function PP.ThrowBallAt(x, y)
     if not CanThrow() then return false end
     local size = PP.GetPixelSize()
-    local homeX = (window:GetLeft() or 0) + size / 2
-    local homeY = (window:GetTop() or 0) + size
+    local homeX = window:GetLeft() + size / 2
+    local homeY = window:GetTop() + size
     local screenW, screenH = ScreenSize()
     local side = (x >= homeX) and 1 or -1
-    local mouth = MOUTH[sv.skin] or { 0, 0.42 }
+    local mouth = MOUTH[sv.skin]
 
     local feetX = math.max(size / 2, math.min(screenW - size / 2, x - side * mouth[1] * size))
     local feetY = math.max(size, math.min(screenH, y + GROUND_BALL * size))
@@ -305,8 +290,8 @@ local function UpdateFetch(t)
         heart = (t - f.tHome) / FETCH_PROUD
         if not f.counted then
             f.counted = true
-            sv.fetches = (sv.fetches or 0) + 1
-            if PP.RefreshSettings then PP.RefreshSettings() end
+            sv.fetches = sv.fetches + 1
+            PP.RefreshSettings()
         end
     else
         EndFetch()
@@ -329,7 +314,7 @@ end
 
 local function OnGlobalMouseUp(_, button)
     if not state.fetchMode then return end
-    if SCENE_MANAGER.IsInUIMode and not SCENE_MANAGER:IsInUIMode() then return end
+    if not SCENE_MANAGER:IsInUIMode() then return end
     if not ClickedEmptySpace() then return end
     if button == MOUSE_BUTTON_INDEX_RIGHT then
         PP.StopFetchMode()
@@ -392,17 +377,12 @@ function PP.IsFetchMode() return state.fetchMode == true end
 
 function PP.StartFetchMode()
     if state.fetchMode then return true end
-    if not sv or not window then return false end
     if sv.hidden then
         Say("Your critter is hidden. Tick \"Show my critter\" to play!")
         return false
     end
     if FetchUnsafe() then
         Say("Not now, it's not safe!")
-        return false
-    end
-    if not EVENT_GLOBAL_MOUSE_UP then
-        Say("Sorry, fetch mode doesn't work in this game version. Right-click your critter for a quick throw!")
         return false
     end
     if not banner then CreateFetchMode() end
@@ -416,7 +396,7 @@ function PP.StartFetchMode()
         banner:SetHidden(false)
     end
     Say("Fetch mode on! Click anywhere to throw. Right-click to stop.")
-    if PP.RefreshSettings then PP.RefreshSettings() end
+    PP.RefreshSettings()
     return true
 end
 
@@ -428,21 +408,39 @@ function PP.StopFetchMode(reason)
     HUD_UI_SCENE:RemoveFragment(bannerFragment)
     banner:SetHidden(true)
     Say(reason or "Fetch mode off. Good game!")
-    if PP.RefreshSettings then PP.RefreshSettings() end
+    PP.RefreshSettings()
 end
 
 function PP.ToggleFetchMode()
     if state.fetchMode then PP.StopFetchMode() else PP.StartFetchMode() end
 end
 
+local drawn = {}
+
+local function DrawCritter(x, y, row, col, flip, hidden)
+    if x ~= drawn.x or y ~= drawn.y then
+        drawn.x, drawn.y = x, y
+        pupTex:ClearAnchors()
+        pupTex:SetAnchor(BOTTOM, window, BOTTOM, x, y)
+    end
+    if row ~= drawn.row or col ~= drawn.col or flip ~= drawn.flip then
+        drawn.row, drawn.col, drawn.flip = row, col, flip
+        SetFrame(pupTex, row, col, flip)
+    end
+    if hidden ~= drawn.hidden then
+        drawn.hidden = hidden
+        pupTex:SetHidden(hidden)
+    end
+end
+
 local function OnUpdate()
-    if not sv then return end
     local t = Now()
 
     if t >= state.nextSlowCheck then
         state.nextSlowCheck = t + 1
         CheckMovement()
-        CheckBosses()
+
+        if state.bossNearby then CheckBosses() end
         if state.inCombat then MarkActive() end
     end
 
@@ -478,10 +476,7 @@ local function OnUpdate()
         flip = math.cos(rt * 3.2) < 0
     end
 
-    pupTex:ClearAnchors()
-    pupTex:SetAnchor(BOTTOM, window, BOTTOM, offsetX, offsetY)
-    SetFrame(pupTex, anim.row, col, flip)
-    pupTex:SetHidden(PP.peekHidesHome == true)
+    DrawCritter(offsetX, offsetY, anim.row, col, flip, PP.peekHidesHome == true)
 
     local heartP = fetchHeart
     if not heartP and reaction and reaction.heart then
@@ -493,16 +488,20 @@ local function OnUpdate()
         heartTex:ClearAnchors()
         heartTex:SetAnchor(BOTTOM, window, TOP, size * 0.25, size * 0.35 - p * size * 0.5)
         heartTex:SetAlpha(1 - p * p)
-    else
+        state.heartShown = true
+    elseif state.heartShown then
         heartTex:SetHidden(true)
+        state.heartShown = false
     end
 
     if reaction and reaction.sparkle then
         local rt = t - state.reactionStart
         sparkleTex:SetHidden(false)
         sparkleTex:SetAlpha(0.55 + 0.45 * math.sin(rt * 10))
-    else
+        state.sparkleShown = true
+    elseif state.sparkleShown then
         sparkleTex:SetHidden(true)
+        state.sparkleShown = false
     end
 end
 
@@ -525,6 +524,7 @@ local function ApplySkin()
     local hd = PP.GetPixelSize() > HD_ABOVE
     local path = string.format(TEXTURE_PATH, sv.skin, hd and "_hd" or "")
     pupTex:SetTexture(path)
+    drawn.row = nil
     sparkleTex:SetTexture(path)
 
     heartTex:SetTexture(string.format(TEXTURE_PATH, sv.skin, ""))
@@ -559,19 +559,20 @@ local function ApplyVisibility()
 end
 
 function PP.Pat()
-    sv.pats = (sv.pats or 0) + 1
+    sv.pats = sv.pats + 1
     MarkActive()
     PP.React("pat")
-    if SOUNDS and SOUNDS.DEFAULT_CLICK then PlaySound(SOUNDS.DEFAULT_CLICK) end
-    if PP.RefreshSettings then PP.RefreshSettings() end
+    PlaySound(SOUNDS.DEFAULT_CLICK)
+    PP.RefreshSettings()
     if sv.pats % 100 == 0 then
-        Say(string.format("%d pats! Your critter loves you so much %s", sv.pats, "<3"))
+        Say(string.format("%d pats! Your critter loves you so much <3", sv.pats))
     end
 end
 
 local function CreateWindow()
     local wm = WINDOW_MANAGER
     window = wm:CreateTopLevelWindow("PocketCrittersWindow")
+    PP.window = window
     window:SetClampedToScreen(true)
     window:SetMouseEnabled(true)
     window:SetMovable(not sv.locked)
@@ -589,7 +590,6 @@ local function CreateWindow()
     heartTex:SetHidden(true)
 
     ApplySize()
-    ApplySkin()
     ApplyPosition()
 
     window:SetHandler("OnMoveStop", SavePosition)
@@ -643,10 +643,6 @@ local function OnBigMoment()
     PP.React("zoomies")
 end
 
-local function OnLevelUp(_, unitTag)
-    if unitTag == "player" then OnBigMoment() end
-end
-
 local function OnPlayerActivated()
     state.inCombat = IsUnitInCombat("player")
     state.isDead = IsUnitDead("player")
@@ -657,15 +653,14 @@ end
 
 local function RegisterEvents()
     local function Reg(event, fn)
-
-        if event then EVENT_MANAGER:RegisterForEvent(PP.name, event, fn) end
+        EVENT_MANAGER:RegisterForEvent(PP.name, event, fn)
     end
     Reg(EVENT_LOOT_RECEIVED, OnLoot)
     Reg(EVENT_PLAYER_COMBAT_STATE, OnCombatState)
     Reg(EVENT_PLAYER_DEAD, OnDead)
     Reg(EVENT_PLAYER_ALIVE, OnAlive)
-    Reg(EVENT_PLAYER_REINCARNATED, OnAlive)
-    Reg(EVENT_LEVEL_UPDATE, OnLevelUp)
+    Reg(EVENT_LEVEL_UPDATE, OnBigMoment)
+    EVENT_MANAGER:AddFilterForEvent(PP.name, EVENT_LEVEL_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
     Reg(EVENT_CHAMPION_POINT_GAINED, OnBigMoment)
     Reg(EVENT_ACHIEVEMENT_AWARDED, OnBigMoment)
     Reg(EVENT_BOSSES_CHANGED, CheckBosses)
@@ -683,7 +678,7 @@ local function ShowHelp()
     d("  /critter hide  or  /critter show")
     d("  /critter reset          - move me back to the default spot")
     d("  /critter quiet          - toggle wagging at loot (now " .. (sv.quiet and "quiet" or "wagging") .. ")")
-    d("  /critter nap <seconds>  - idle time before I nap (now " .. sv.sleepAfter .. ")")
+    d("  /critter nap <seconds>  - idle time before I nap, 10 to 600 (now " .. sv.sleepAfter .. ")")
     d("  Fetch mode: press Start fetch in the /critter settings, then click anywhere to throw")
     d("  Right-click your critter for a quick throw")
     d("  /critter pats           - how many pats I've had")
@@ -707,13 +702,13 @@ end
 
 local function OnSlash(text)
     local args = {}
-    for word in string.gmatch(string.lower(text or ""), "%S+") do
+    for word in string.gmatch(string.lower(text), "%S+") do
         table.insert(args, word)
     end
     local cmd, val = args[1], args[2]
 
     if not cmd or cmd == "settings" then
-        if PP.ToggleSettings then PP.ToggleSettings() else ShowHelp() end
+        PP.ToggleSettings()
         return
     elseif cmd == "help" then
         ShowHelp()
@@ -727,7 +722,7 @@ local function OnSlash(text)
             Say("Critters: hellwuff, tsardarashi, hisani, azsu, tsaji or cocoa")
         end
     elseif cmd == "scale" or cmd == "size" then
-        local n = tonumber((val or ""):gsub("%%", ""), 10)
+        local n = val and tonumber((val:gsub("%%", "")))
         if n then
             PP.SetScale(n)
             Say("Scale set to " .. sv.scale .. "%")
@@ -741,6 +736,7 @@ local function OnSlash(text)
     elseif cmd == "hide" or cmd == "show" then
         sv.hidden = (cmd == "hide")
         ApplyVisibility()
+        PP.PeekRefresh()
         if not sv.hidden then Say("I'm back! *wag wag*") end
     elseif cmd == "reset" then
         sv.x, sv.y = nil, nil
@@ -752,16 +748,15 @@ local function OnSlash(text)
     elseif cmd == "nap" then
         local n = tonumber(val)
         if n then
-            sv.sleepAfter = math.max(10, math.floor(n))
+            PP.SetNap(n)
             Say("I'll nap after " .. sv.sleepAfter .. " seconds of stillness.")
         else
             Say("Try /critter nap 120")
         end
     elseif cmd == "peek" then
-        if PP.PeekSlash then PP.PeekSlash(val, args[3])
-        else Say("The peeking part didn't load. Please quit ESO completely and start it again - a /reloadui doesn't pick up new addon files.") end
+        PP.PeekSlash(val, args[3])
     elseif cmd == "pats" then
-        Say(string.format("I've been patted %d times. More please! <3", sv.pats or 0))
+        Say(string.format("I've been patted %d times. More please! <3", sv.pats))
     elseif cmd == "test" then
         if val and TEST_MOODS[val] then
             PP.TestMood(val)
@@ -771,10 +766,16 @@ local function OnSlash(text)
     else
         ShowHelp()
     end
-    if PP.RefreshSettings then PP.RefreshSettings() end
+    PP.RefreshSettings()
 end
 
 PP.SKINS = SKINS
+PP.SKIN_LABELS = SKIN_LABELS
+PP.TEXTURE_PATH = TEXTURE_PATH
+PP.HD_ABOVE = HD_ABOVE
+PP.Say = Say
+PP.Now = Now
+PP.Ease = Ease
 
 function PP.GetSettings() return sv end
 
@@ -795,7 +796,7 @@ function PP.SetScale(percent)
 end
 
 function PP.SetNap(seconds)
-    sv.sleepAfter = math.max(10, math.floor(seconds + 0.5))
+    sv.sleepAfter = math.max(10, math.min(600, math.floor(seconds + 0.5)))
     MarkActive()
 end
 
@@ -807,6 +808,7 @@ end
 function PP.SetShown(shown)
     sv.hidden = not shown
     ApplyVisibility()
+    PP.PeekRefresh()
 end
 
 function PP.SetQuiet(quiet)
@@ -831,18 +833,10 @@ local function OnAddOnLoaded(_, addonName)
     RegisterEvents()
 
     SLASH_COMMANDS["/critter"] = OnSlash
-    if PP.InitPeek then PP.InitPeek() end
+    PP.InitPeek()
 end
 
 ZO_CreateStringId("SI_BINDING_NAME_POCKETCRITTERS_TOGGLE_SETTINGS", "Open Pocket Critters settings")
 ZO_CreateStringId("SI_BINDING_NAME_POCKETCRITTERS_PAT", "Pat my critter")
-
-function PP.KeybindToggleSettings()
-    if sv and PP.ToggleSettings then PP.ToggleSettings() end
-end
-
-function PP.KeybindPat()
-    if sv then PP.Pat() end
-end
 
 EVENT_MANAGER:RegisterForEvent(PP.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)

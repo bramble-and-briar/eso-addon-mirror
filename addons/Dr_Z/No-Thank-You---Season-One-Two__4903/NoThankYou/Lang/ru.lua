@@ -18,9 +18,9 @@ SafeAddString(NOTY_LEAVING_GROUP_AREA, "Вы покидаете группову
 SafeAddString(NOTY_RAID_COMPLETE, " завершили", 1)
 SafeAddString(NOTY_RAID_OTHERS, "и <<1>> других", 1)
 
-SafeAddString(NOTY_GUILD_INV_OPTION_0, "не блокировать", 1)
-SafeAddString(NOTY_GUILD_INV_OPTION_1, "всегда", 1)
-SafeAddString(NOTY_GUILD_INV_OPTION_2, "when full of guilds", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_0, "Показывать все приглашения", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_1, "Показывать только в уведомлениях", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_2, "Автоматически отклонять", 1)
 
 SafeAddString(NOTY_AVA_MODE_OPTION_0, "не отключать", 1)
 SafeAddString(NOTY_AVA_MODE_OPTION_1, "сообщение в чат", 1)
@@ -100,6 +100,11 @@ SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE, "Пропускать подтвер
 SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE_TOOLTIP, "Немедленно перемещаться при выборе места назначения у дорожного святилища.", 1)
 SafeAddString(NOTYOU_FAST_TRAVEL_RECALL, "Пропускать подтверждение вне дорожного святилища", 1)
 SafeAddString(NOTYOU_FAST_TRAVEL_RECALL_TOOLTIP, "Немедленно перемещаться при выборе места назначения вне дорожного святилища. Обычная стоимость в золоте сохраняется.", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE, "Перемещение в собственный дом", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_TOOLTIP, "Оставить обычный выбор входа или сразу перемещаться внутрь либо снаружи собственного дома.", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_NORMAL, "Обычно", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_INSIDE, "Только внутрь", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_OUTSIDE, "Только снаружи", 1)
 
 SafeAddString(NOTYOU_FENCE_HEADER, "Скупщик краденого", 1)
 SafeAddString(NOTYOU_FENCE, "Удалить диалог \"Can't buyback from fence\"", 1)
@@ -108,8 +113,8 @@ SafeAddString(NOTYOU_FENCE_TOOLTIP, "Отключить подтверждени
 SafeAddString(NOTYOU_GROUPS_HEADER, "Групповые диалоги", 1)
 SafeAddString(NOTYOU_GROUPS_DISBAND, "Отключить диалог \"Покинуть группу\"", 1)
 SafeAddString(NOTYOU_GROUPS_DISBAND_TOOLTIP, "Отключить подтверждение, когда вы покидаете группу.", 1)
-SafeAddString(NOTYOU_GROUPS_LARGE, "Отключить диалог и сообщения большой группы", 1)
-SafeAddString(NOTYOU_GROUPS_LARGE_TOOLTIP, "Отключить окно подтверждения и сообщения о том, что группа стала " .. "или перестала быть большой.", 1)
+SafeAddString(NOTYOU_GROUPS_LARGE, "Убрать «диалог и сообщения в чате» большой группы", 1)
+SafeAddString(NOTYOU_GROUPS_LARGE_TOOLTIP, "При включении пропускается подтверждение создания большой группы и скрываются сообщения в чате о переходе между большой и малой группой. Действует для лидера и участников. При выключении игра работает как обычно.", 1)
 
 SafeAddString(NOTYOU_CRAFT_HEADER, "Ремесленные диалоги", 1)
 SafeAddString(NOTYOU_CRAFT, "Отключить диалог \"Попытка улучшения предмета\"", 1)
@@ -144,8 +149,8 @@ SafeAddString(NOTYOU_NOWRITQUESTS, "Don't show Writ quests automatically", 1)
 SafeAddString(NOTYOU_NOWRITQUESTS_TOOLTIP, "Don't show Writ quests automatically when looting a Master Writ", 1)
 
 SafeAddString(NOTYOU_GUILDS_HEADER, "Приглашения в гильдии", 1)
-SafeAddString(NOTYOU_GUILDS, "Блокировать приглашения в гильдии", 1)
-SafeAddString(NOTYOU_GUILDS_TOOLTIP, "Блокировать сообщения и уведомления о приглашении в гильдии.", 1)
+SafeAddString(NOTYOU_GUILDS, "Настроить «Приглашения в гильдии»...", 1)
+SafeAddString(NOTYOU_GUILDS_TOOLTIP, "Показывать приглашения как обычно, только в уведомлениях или автоматически отклонять входящие и ожидающие приглашения.", 1)
 
 SafeAddString(NOTYOU_GROSTER_HEADER, "Гильдейские уведомления", 1)
 SafeAddString(NOTYOU_GROSTER_HEADER_TOOLTIP, "Выберите, как обрабатывать гильдейские уведомления.", 1)
@@ -167,6 +172,11 @@ SafeAddString(NOTYOU_GUILDLEAVE_HEADER, "Клавиша выхода из гил
 SafeAddString(NOTYOU_GUILDLEAVE_HEADER_TOOLTIP, "Выберите, как вы хотите настроить отображение горячей клавиши выхода из гильдий", 1)
 SafeAddString(NOTYOU_GUILDLEAVE_BLOCK, "Отключить для", 1)
 SafeAddString(NOTYOU_GUILDLEAVE_BLOCK_TOOLTIP, "Выберите, как вы хотите настроить отображение горячей клавиши выхода из гильдий:\n|cFFFFFFникого|r - без изменений\n|cFFFFFFвсех гильдии|r - отключить для всех гильдий\n|cFFFFFFуказанных гильдий|r - выбрать гильдии, для которых нужно отключить клавишу", 1)
+
+SafeAddString(NOTYOU_OWNED_HOUSES, "Скрыть принадлежащие вам дома", 2)
+SafeAddString(NOTYOU_OWNED_HOUSES_TOOLTIP, "Скрывает принадлежащие вам дома на картах Тамриэля и зон, включая основное жилище и избранные дома.", 2)
+SafeAddString(NOTYOU_UNOWNED_HOUSES, "Скрыть не принадлежащие вам дома", 2)
+SafeAddString(NOTYOU_UNOWNED_HOUSES_TOOLTIP, "Скрывает не принадлежащие вам дома на картах Тамриэля и зон, включая избранные.", 2)
 
 SafeAddString(NOTYOU_CAMERA_HEADER, "Камера и взаимодействие", 1)
 SafeAddString(NOTYOU_CAMERA_INTERRUPT, "Не прерывать взаимодействие", 1)

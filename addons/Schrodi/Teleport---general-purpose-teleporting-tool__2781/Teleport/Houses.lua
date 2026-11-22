@@ -70,7 +70,7 @@ function Teleport.Houses:teleportToPlayersHouse(playerNamePrefix, houseNamePrefi
 
     local nodeName, nodeIndex = Teleport.Nodes:findHouseNode(houseNamePrefix)
     if not nodeName then
-        info("Failed to teleport to " .. color(ZO_LinkHandler_CreateDisplayNameLink(player.displayName), C.PLAYER) .. "'s " .. color(house, C.NOT_FOUND) .. ": No such house.")
+        info("Failed to teleport to " .. color(ZO_LinkHandler_CreateDisplayNameLink(player.displayName), C.PLAYER) .. "'s " .. color(houseNamePrefix, C.NOT_FOUND) .. ": No such house.")
         return false
     end
 

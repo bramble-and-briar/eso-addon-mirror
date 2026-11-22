@@ -65,6 +65,7 @@ AR.defaults = {
     antiquityHours        = 0,
     antiquityPopupSeconds = 10,
     antiquityPopupSize    = 120,
+    antiquityStretch      = 100,
     antiquityPosX         = 0,
     antiquityPosY         = POPUP_Y,
     antiquityAutoEye      = false,
@@ -344,6 +345,7 @@ function AR:ApplyPosition()
     self.popupRoot:SetAnchor(CENTER, GuiRoot, CENTER,
         tonumber(sv.antiquityPosX) or self.defaults.antiquityPosX,
         tonumber(sv.antiquityPosY) or self.defaults.antiquityPosY)
+    ME:ApplyStretch(self.popupRoot, sv.antiquityStretch)
 end
 
 function AR:ApplyPopupSize()
@@ -553,8 +555,10 @@ function AR.mover:UpdateDirectionalInput(deltaS)
     if x ~= 0 or y ~= 0 then
         AR:SetPosition(AR.moveX + x * MOVE_SPEED * deltaS, AR.moveY - y * MOVE_SPEED * deltaS)
     end
-    local _, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if scaleY ~= 0 then
+    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
+    if math.abs(stretchX) > math.abs(scaleY) then
+        AR:SetStretch(AR.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
+    elseif scaleY ~= 0 then
         AR:SetScale(AR.moveSize + scaleY * SCALE_SPEED * deltaS)
     end
 end
@@ -599,7 +603,16 @@ function AR:SetScale(size)
     end
 end
 
+function AR:SetStretch(value)
+    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
+    local rounded = zo_floor(self.moveStretch + 0.5)
+    local sv = SV()
+    if sv.antiquityStretch ~= rounded then sv.antiquityStretch = rounded end
+    ME:ApplyStretch(self.popupRoot, rounded)
+end
+
 function AR:MoveToDefault()
+    self:SetStretch(100)
     self:SetScale(self.defaults.antiquityPopupSize)
     self:SetPosition(self.defaults.antiquityPosX, self.defaults.antiquityPosY)
 end
@@ -637,6 +650,8 @@ function AR:OnMoveShowing()
     self.moveStartSize = tonumber(sv.antiquityPopupSize) or self.defaults.antiquityPopupSize
     self.moveX, self.moveY = self.moveStartX, self.moveStartY
     self.moveSize = self.moveStartSize
+    self.moveStartStretch = tonumber(sv.antiquityStretch) or 100
+    self.moveStretch = self.moveStartStretch
     KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
     DIRECTIONAL_INPUT:Activate(self.mover, self.popupRoot)
     ME:SetPlacing(true)
@@ -648,6 +663,7 @@ function AR:OnMoveHidden()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
     if not self.moveSaved then
         self:SetScale(self.moveStartSize)
+        self:SetStretch(self.moveStartStretch)
         self:SetPosition(self.moveStartX, self.moveStartY)
     end
     self.moving = false
@@ -926,7 +942,7 @@ function AR:SettingOptions()
             type       = "button",
             name       = "Move / Scale",
             buttonText = "Move / Scale",
-            tooltip    = "Move it with the left stick and scale it with the right stick.",
+            tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right stretches it wider or narrower.",
             disabled   = IsOff,
             func       = function() AR:StartMove() end,
         },

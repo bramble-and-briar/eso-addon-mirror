@@ -1,8 +1,8 @@
 ## Title: RSS Theme Bars
 ## Author: WifeyRytic
-## Version: 1.3.0
+## Version: 1.4.1
 ## APIVersion: 101050 101051
-## Description: Curved Health, Stamina, and Magicka bars with selectable decorative themes.
+## Description: Curved resource bars and optional independent Simple Glow straight bars.
 ## DependsOn: LibAddonMenu-2.0>=43
 ## SavedVariables: RSSThemeBarsSaved
 
@@ -10,3 +10,5 @@ RSSThemeBars.lua
 
 textures/rss_v1_ghostfire_health.dds
 textures/rss_v1_ghostfire_right.dds
+
+textures/rss_moonlit_magic.dds

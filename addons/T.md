@@ -55,6 +55,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Taos Group Tools - Necromancer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aldericon/Taos-Group-Tools---Necromancer__2384) | aldericon | PC / Mac | 1.1.3 |
 | [Target Dummy Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/Target-Dummy-Tools__2492) | Phuein | PC / Mac | 1.09 |
 | [Target Focus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Target-Focus__1268) | CaptainBlagbird | PC / Mac | 1.0.12 |
+| [Target Frame Line](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Target-Frame-Line__5095) | Schrodi | PC / Mac | 1.2.0 |
 | [Target Lookup (High Isle updated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eshja/Target-Lookup-High-Isle-updated__1695) | Eshja | PC / Mac | 0.6.1 |
 | [Target Taunt - Visual Taunt Confirmation And Tracking](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Target-Taunt---Visual-Taunt-Confirmation-And-Tracking__4462) | Duesentrieb | PC / Mac | 20260604-0001 |
 | [Target Whisper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Target-Whisper__1123) | CaptainBlagbird | PC / Mac | 1.0.15 |
@@ -128,7 +129,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TheElderSporesOnline](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/reishi_spores/TheElderSporesOnline__4386) | reishi_spores | PC / Mac | 2.2.1 |
 | [ThemeUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KA3ZUS/ThemeUI__3734) | KA3ZUS | PC / Mac | 0.1.1 |
 | [TheShining - AoE & Target Glow Brightness](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Odylon/TheShining---AoE-Target-Glow-Brightness__3081) | Odylon | PC / Mac | 1.0.1 |
-| [Thief Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools__1721) | Shadowfen | PC / Mac | 3.5.5 |
+| [Thief Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools__1721) | Shadowfen | PC / Mac | 3.5.6 |
 | [Thief Tools - Filtered AutoSteal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools---Filtered-AutoSteal__3752) | Shadowfen | PC / Mac | 1.3.10 |
 | [Thief Tools Stolen Item Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/linuxhell/Thief-Tools-Stolen-Item-Counter__4813) | linuxhell | PC / Mac | 4.0.0 |
 | [ThiefHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Upyachka/ThiefHelper__1473) | Upyachka | PC / Mac | 1.1_1 |

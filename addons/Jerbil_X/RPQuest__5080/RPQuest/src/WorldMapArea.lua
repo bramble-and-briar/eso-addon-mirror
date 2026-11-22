@@ -31,9 +31,6 @@ local function GetWorldMapPinManager()
 end
 
 local function IsMapSceneShowing()
-    if not SCENE_MANAGER or not SCENE_MANAGER.IsShowing then
-        return true
-    end
     return SCENE_MANAGER:IsShowing("worldMap") or SCENE_MANAGER:IsShowing("gamepad_worldMap")
 end
 
@@ -56,30 +53,17 @@ local function SetWorldMapToId(mapId)
     if not mapId or mapId <= 0 then
         return
     end
-    if WORLD_MAP_MANAGER and WORLD_MAP_MANAGER.SetMapById then
-        WORLD_MAP_MANAGER:SetMapById(mapId)
-        return
-    end
-    if SetMapToMapId then
-        local res = SetMapToMapId(mapId)
-        if res == SET_MAP_RESULT_MAP_CHANGED and CALLBACK_MANAGER and CALLBACK_MANAGER.FireCallbacks then
-            CALLBACK_MANAGER:FireCallbacks("OnWorldMapChanged")
-        end
-    end
+    WORLD_MAP_MANAGER:SetMapById(mapId)
 end
 
 local function OpenWorldMapScene()
-    local isShowing = SCENE_MANAGER and SCENE_MANAGER.IsShowing
-        and (SCENE_MANAGER:IsShowing("worldMap") or SCENE_MANAGER:IsShowing("gamepad_worldMap"))
-    if isShowing then
+    if IsMapSceneShowing() then
         return
     end
-    if IsInGamepadPreferredMode and IsInGamepadPreferredMode() and SCENE_MANAGER and SCENE_MANAGER.Push then
+    if IsInGamepadPreferredMode() then
         SCENE_MANAGER:Push("gamepad_worldMap")
-    elseif MAIN_MENU_KEYBOARD and MAIN_MENU_KEYBOARD.ShowCategory and MENU_CATEGORY_MAP then
+    else
         MAIN_MENU_KEYBOARD:ShowCategory(MENU_CATEGORY_MAP)
-    elseif SCENE_MANAGER and SCENE_MANAGER.Show then
-        SCENE_MANAGER:Show("worldMap")
     end
 end
 
@@ -142,35 +126,25 @@ function WorldMapArea:Initialize()
 
     if self.pinTypeId then
         pinManager:SetCustomPinEnabled(self.pinTypeId, true)
-        if ZO_MapPin and ZO_MapPin.ASSISTED_PIN_TYPES then
-            ZO_MapPin.ASSISTED_PIN_TYPES[self.pinTypeId] = true
-        end
+        ZO_MapPin.ASSISTED_PIN_TYPES[self.pinTypeId] = true
     end
 
-    if CALLBACK_MANAGER and CALLBACK_MANAGER.RegisterCallback then
-        CALLBACK_MANAGER:RegisterCallback("OnWorldMapChanged", function()
-            self:RequestRefreshPins()
-        end)
-        CALLBACK_MANAGER:RegisterCallback("OnWorldMapModeChanged", function()
-            self:RequestRefreshPins()
-        end)
-    end
+    CALLBACK_MANAGER:RegisterCallback("OnWorldMapChanged", function()
+        self:RequestRefreshPins()
+    end)
+    CALLBACK_MANAGER:RegisterCallback("OnWorldMapModeChanged", function()
+        self:RequestRefreshPins()
+    end)
 
     RegisterMapSceneCallbacks(self, WORLD_MAP_SCENE)
     RegisterMapSceneCallbacks(self, GAMEPAD_WORLD_MAP_SCENE)
 
-    if EVENT_MANAGER then
-        if EVENT_PLAYER_ACTIVATED then
-            EVENT_MANAGER:RegisterForEvent(MAP_LISTENER_NAME, EVENT_PLAYER_ACTIVATED, function()
-                self:RequestRefreshPins()
-            end)
-        end
-        if EVENT_ZONE_CHANGED then
-            EVENT_MANAGER:RegisterForEvent(MAP_LISTENER_NAME .. "_Zone", EVENT_ZONE_CHANGED, function()
-                self:RequestRefreshPins()
-            end)
-        end
-    end
+    EVENT_MANAGER:RegisterForEvent(MAP_LISTENER_NAME, EVENT_PLAYER_ACTIVATED, function()
+        self:RequestRefreshPins()
+    end)
+    EVENT_MANAGER:RegisterForEvent(MAP_LISTENER_NAME .. "_Zone", EVENT_ZONE_CHANGED, function()
+        self:RequestRefreshPins()
+    end)
 
     Addon.QuestRepository:RegisterListener(function(eventType)
         if eventType == "QUEST_PROGRESS" or eventType == "DISCOVERY_TRIGGERED" then
@@ -200,18 +174,16 @@ function WorldMapArea:ShouldRenderOnCurrentMap(quest)
         return false
     end
 
-    if ZO_WorldMapPins_Manager and ZO_WorldMapPins_Manager.IsCurrentMapGlobal and ZO_WorldMapPins_Manager.IsCurrentMapGlobal() then
+    if ZO_WorldMapPins_Manager.IsCurrentMapGlobal() then
         return false
     end
 
-    if GetMapType then
-        local mapType = GetMapType()
-        if (MAPTYPE_WORLD and mapType == MAPTYPE_WORLD) or (MAPTYPE_COSMIC and mapType == MAPTYPE_COSMIC) then
-            return false
-        end
+    local mapType = GetMapType()
+    if mapType == MAPTYPE_WORLD or mapType == MAPTYPE_COSMIC then
+        return false
     end
 
-    local currentMapId = GetCurrentMapId and GetCurrentMapId()
+    local currentMapId = GetCurrentMapId()
     if not currentMapId or currentMapId ~= quest.mapId then
         return false
     end

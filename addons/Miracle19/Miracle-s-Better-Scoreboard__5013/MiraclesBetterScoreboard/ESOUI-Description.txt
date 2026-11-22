@@ -1,5 +1,5 @@
 AI DEVELOPMENT DISCLOSURE
-This fork was developed with AI-assisted code generation and review (ChatGPT). The generated changes have been reviewed with static checks, but complete in-game compatibility, performance and safety have not been independently verified.
+This fork was developed with the help of AI coding assistants (ChatGPT and Claude). All changes were directed, reviewed and tested in-game by @MlRACLE on keyboard/mouse and controller.
 
 Miracle's BetterScoreboard
 Enhanced PvP scoreboard featuring 18-player support, damage dealt, healing, damage received, and K/D statistics. Includes player names, class icons, battleground queue features, and Deathmatch lives positioning adjustments.

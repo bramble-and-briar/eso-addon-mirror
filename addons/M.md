@@ -89,7 +89,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Mer Crafting Writ Filters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/merlight/Mer-Crafting-Writ-Filters__1170) | merlight | PC / Mac | 1.3 |
 | [Mer Quickslot Filters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/merlight/Mer-Quickslot-Filters__707) | merlight | PC / Mac | 1.8 |
 | [Mer Quickslot Filters - Fixed Update43](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Mer-Quickslot-Filters---Fixed-Update43__953) | Baertram | PC / Mac | 3.0 |
-| [Mer Torchbug - Fixed and Improved (Variable inspector/Scripts/Events/and more)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Mer-Torchbug---Fixed-and-Improved-Variable-inspector-Scripts-Events-and-more__2601) | Baertram | PC / Mac | 1.77 |
+| [Mer Torchbug - Fixed and Improved (Variable inspector/Scripts/Events/and more)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Mer-Torchbug---Fixed-and-Improved-Variable-inspector-Scripts-Events-and-more__2601) | Baertram | PC / Mac | 1.78 |
 | [Meridias Block Pooky](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Claudi/Meridias-Block-Pooky__4353) | Claudi | PC / Mac | 2.23 |
 | [Merlin the Enchanter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Khrill/Merlin-the-Enchanter__659) | Khrill | PC / Mac | 1.8.2 |
 | [Merlin's Heal Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Just_Merlin/Merlin-s-Heal-Helper__1599) | Just_Merlin | PC / Mac | 1.2.0 |
@@ -124,7 +124,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [MiniMap_jpFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/MiniMap_jpFix__1397) | 2ch | PC / Mac | 3.00.1 |
 | [MiniStats – Post-Combat Summary](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PossEU/MiniStats-Post-Combat-Summary__4222) | PossEU | PC / Mac | 0.1.0 |
 | [Ministry of Normal Walks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Ministry-of-Normal-Walks__4022) | Kyzeragon | PC / Mac | 1.0.0 |
-| [Miracle's Better Scoreboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Miracle19/Miracle-s-Better-Scoreboard__5013) | Miracle19 | PC / Mac | Version 2 |
+| [Miracle's Better Scoreboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Miracle19/Miracle-s-Better-Scoreboard__5013) | Miracle19 | PC / Mac | Version 3 |
 | [Mirelda's CraftAutoLoot Upgrade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mirelda/Mirelda-s-CraftAutoLoot-Upgrade__4299) | Mirelda | PC / Mac | 1.0 |
 | [Mirelda's QuickWheelAssist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mirelda/Mirelda-s-QuickWheelAssist__3963) | Mirelda | PC / Mac | 1.0 |
 | [Mirelda's RogAllyPerformanceOptimization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mirelda/Mirelda-s-RogAllyPerformanceOptimization__3964) | Mirelda | PC / Mac | 1.22 |

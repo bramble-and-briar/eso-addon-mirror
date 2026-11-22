@@ -91,11 +91,16 @@ local function CreateWheelPreview(wardrobe)
     end
 
     local overlay = WINDOW_MANAGER:CreateTopLevelWindow(addonName .. "WheelPreview")
-    overlay:SetDimensions(480, 40)
+    overlay:SetDimensions(480, 110)
     overlay:SetAnchor(CENTER, actionLabel, CENTER, 0, 0)
     overlay:SetMouseEnabled(false)
     overlay:SetDrawTier(DT_HIGH)
     overlay:SetHidden(true)
+
+    local background = WINDOW_MANAGER:CreateControl(addonName .. "WheelPreviewBackground", overlay, CT_BACKDROP)
+    background:SetAnchorFill(overlay)
+    background:SetDrawLayer(DL_BACKGROUND)
+    background:SetCenterColor(0.035, 0.035, 0.045, 1)
 
     local label = WINDOW_MANAGER:CreateControl(addonName .. "WheelPreviewText", overlay, CT_LABEL)
     label:SetAnchorFill(overlay)
@@ -105,16 +110,8 @@ local function CreateWheelPreview(wardrobe)
     label:SetColor(1, 0.92, 0.74, 1)
 
     local previousText
-    local originalAlpha
     EVENT_MANAGER:RegisterForUpdate(addonName .. "WheelPreview", 100, function()
         local text = GetWheelText(wardrobe, wheel)
-        if text and originalAlpha == nil then
-            originalAlpha = actionLabel:GetAlpha()
-            actionLabel:SetAlpha(0)
-        elseif not text and originalAlpha ~= nil then
-            actionLabel:SetAlpha(originalAlpha)
-            originalAlpha = nil
-        end
         if text ~= previousText then
             label:SetText(text or "")
             overlay:SetHidden(text == nil)
@@ -123,12 +120,98 @@ local function CreateWheelPreview(wardrobe)
     end)
 end
 
+local function CreateEditorWheel(wardrobe)
+    local library = LibHarvensAddonSettings
+    local menuName = wardrobe.consoleControl and wardrobe.consoleControl.menuName
+    if not library or not menuName then
+        return
+    end
+
+    local panel = WINDOW_MANAGER:CreateTopLevelWindow(addonName .. "EditorWheel")
+    panel:SetDimensions(440, 400)
+    panel:SetAnchor(CENTER, GuiRoot, CENTER, 330, 0)
+    panel:SetDrawTier(DT_HIGH)
+    panel:SetHidden(true)
+
+    local background = WINDOW_MANAGER:CreateControl(nil, panel, CT_BACKDROP)
+    background:SetAnchorFill(panel)
+    background:SetCenterColor(0.04, 0.06, 0.08, 0.97)
+
+    local function CreateLabel(parent, width, height)
+        local label = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
+        label:SetDimensions(width, height)
+        label:SetFont("ZoFontGamepad22")
+        label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        return label
+    end
+
+    local heading = CreateLabel(panel, 280, 56)
+    heading:SetAnchor(CENTER, panel, CENTER)
+    local tiles = {}
+    for slot, direction in ipairs(directions) do
+        local angle = (2 - slot) * math.pi / 4
+        local tile = WINDOW_MANAGER:CreateControl(nil, panel, CT_BACKDROP)
+        tile:SetDimensions(96, 52)
+        tile:SetAnchor(CENTER, panel, CENTER, math.cos(angle) * 150, math.sin(angle) * 138)
+        local label = CreateLabel(tile, 96, 52)
+        label:SetAnchor(CENTER, tile, CENTER)
+        tiles[slot] = { background = tile, label = label, direction = direction }
+    end
+
+    local slotPicker, actionPicker
+    EVENT_MANAGER:RegisterForUpdate(addonName .. "EditorWheel", 100, function()
+        local scene = library.scene
+        local list = library.list
+        local row = scene and scene:IsShowing() and list and list:GetSelectedData()
+        if not row or (row.labelText ~= "Select Quickslot" and row.labelText ~= "Select Action") then
+            panel:SetHidden(true)
+            return
+        end
+
+        if not slotPicker or not actionPicker then
+            slotPicker = nil
+            for _, menu in ipairs(library.addons) do
+                if menu.name == menuName then
+                    for _, setting in ipairs(menu.settings) do
+                        if setting.labelText == "Select Quickslot" then
+                            slotPicker = setting
+                        elseif setting.labelText == "Select Action" then
+                            actionPicker = setting
+                        end
+                    end
+                    break
+                end
+            end
+        end
+        if not slotPicker or (row ~= slotPicker and row ~= actionPicker) then
+            panel:SetHidden(true)
+            return
+        end
+
+        local item = slotPicker.getFunction()
+        local selected = item and item.data
+        local bindings = wardrobe.settings.quickslots
+        heading:SetText(selected and ("Quickslot " .. selected .. "  " .. directions[selected]) or "Quickslot bindings")
+        for slot, tile in ipairs(tiles) do
+            local action = actionNames[bindings[slot]]
+            tile.label:SetText(tile.direction .. "\n" .. (action or "Unbound"))
+            if selected == slot then
+                tile.background:SetCenterColor(0.24, 0.42, 0.42, 1)
+            else
+                tile.background:SetCenterColor(0.10, 0.14, 0.18, 1)
+            end
+        end
+        panel:SetHidden(false)
+    end)
+end
 local function Initialize()
     local wardrobe = WizardsWardrobe
     if not wardrobe or not wardrobe.callbackManager then
         return
     end
 
+    CreateEditorWheel(wardrobe)
     CreateWheelPreview(wardrobe)
 
     local panel = WINDOW_MANAGER:CreateTopLevelWindow(addonName .. "Panel")

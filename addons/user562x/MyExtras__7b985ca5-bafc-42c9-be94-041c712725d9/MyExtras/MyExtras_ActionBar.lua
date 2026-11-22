@@ -20,9 +20,6 @@ local GLOW_OUTER    = 1.36
 local GLOW_INNER_A  = 0.65
 local GLOW_OUTER_A  = 0.3
 local MOVE_SPEED    = 500
-local SPREAD_MIN    = 0
-local SPREAD_MAX    = 60
-local SPREAD_SPEED  = 40
 local SCALE_SPEED   = 15
 local SIZE_MIN      = 30
 local SIZE_MAX      = 80
@@ -142,7 +139,7 @@ AB.defaults = {
     actionBarNumStyle   = "Alliance",
     actionBarNumColor   = { r = 1, g = 1, b = 1, a = 1 },
     actionBarSize       = 50,
-    actionBarSpread     = 0,
+    actionBarStretch    = 100,
     actionBarButtons    = true,
     actionBarUltNumber  = "Points",
     actionBarPosX       = 960,
@@ -535,6 +532,7 @@ function AB:CreatePanel()
     arrowTop:SetDrawTier(DT_LOW)
     arrowTop:SetDrawLevel(2)
     arrowTop:SetHidden(true)
+    arrowTop:SetAnchorFill(panel)
     self.arrowPanel = arrowTop
     self.arrowEdge = NewTexture("MyExtras_ActionBarArrowEdge", arrowTop, TEX_ARROW_EDGE, 1)
     self.arrowEdge:SetColor(0, 0, 0, 1)
@@ -548,6 +546,7 @@ function AB:CreatePanel()
     miniTop:SetDrawTier(DT_LOW)
     miniTop:SetDrawLevel(1)
     miniTop:SetHidden(true)
+    miniTop:SetAnchorFill(panel)
     self.miniPanel = miniTop
 
     self.ultimate.mini = CreateRound("MyExtras_ActionBarUltimateBack", miniTop, 1)
@@ -647,7 +646,7 @@ function AB:Layout()
 
     local size     = sv.actionBarSize
     local gap      = math.max(2, zo_floor(size * 0.08))
-    local gapX     = gap + (tonumber(sv.actionBarSpread) or 0)
+    local gapX     = gap
     local edge     = math.max(2, zo_floor(size * 0.08))
     local border   = math.max(1, edge - 1)
     local ringSize = zo_floor(size * 1.7)
@@ -726,7 +725,7 @@ function AB:Layout()
         round.value:SetFont(Font(zo_floor(extraSize * 0.4)))
     end
     self:ApplyStack()
-    self:ApplyResourceLayout(GetControl("ZO_PlayerAttribute"))
+    self:ApplyStretch()
 end
 
 function AB:ApplyPosition()
@@ -739,6 +738,21 @@ function AB:ApplyPosition()
     self.panel:ClearAnchors()
     self.panel:SetAnchor(BOTTOM, GuiRoot, TOPLEFT, sv.actionBarPosX, sv.actionBarPosY - lift)
     self:ApplyStack()
+    self:ApplyStretch()
+end
+
+local function StretchFactor()
+    return zo_clamp(tonumber(SV().actionBarStretch) or 100, ME.STRETCH_MIN, ME.STRETCH_MAX) / 100
+end
+
+function AB:ApplyStretch()
+    if not self.panel then return end
+    local percent = StretchFactor() * 100
+    local controls = { self.panel, self.miniPanel, self.arrowPanel }
+    for i = 1, #controls do
+        ME:ApplyStretch(controls[i], percent)
+    end
+    self:ApplyResourceLayout(GetControl("ZO_PlayerAttribute"))
 end
 
 --------------------------------------------------
@@ -1457,8 +1471,10 @@ function AB:ApplyResourceLayout(bars)
         local size = SV().actionBarSize
         local gap = zo_floor(size * 0.25)
         local miniPad = zo_floor(zo_floor(size * 1.7) * 0.14)
-        SetBarAnchor("ZO_PlayerAttributeMagicka", RIGHT, self.potion, LEFT, -(miniPad + gap), 0)
-        SetBarAnchor("ZO_PlayerAttributeStamina", LEFT, self.ultimate, RIGHT, miniPad + gap, 0)
+        local half = (self.panel and self.panel:GetWidth() or 0) / 2
+        local extra = zo_floor((StretchFactor() - 1) * (half - miniPad) + 0.5)
+        SetBarAnchor("ZO_PlayerAttributeMagicka", RIGHT, self.potion, LEFT, -(miniPad + gap) - extra, 0)
+        SetBarAnchor("ZO_PlayerAttributeStamina", LEFT, self.ultimate, RIGHT, miniPad + gap + extra, 0)
         self.resourceSplit = true
     elseif self.resourceSplit then
         SetBarAnchor("ZO_PlayerAttributeMagicka", RIGHT, bars, LEFT, RESOURCE_SIDE_OFFSET, 0)
@@ -1725,9 +1741,9 @@ function AB.mover:UpdateDirectionalInput(deltaS)
     if x ~= 0 or y ~= 0 then
         AB:Nudge(x * MOVE_SPEED * deltaS, -y * MOVE_SPEED * deltaS)
     end
-    local spreadX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(spreadX) > math.abs(scaleY) then
-        AB:SetSpread(AB.moveSpread + spreadX * SPREAD_SPEED * deltaS)
+    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
+    if math.abs(stretchX) > math.abs(scaleY) then
+        AB:SetStretch(AB.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
     elseif scaleY ~= 0 then
         AB:SetScale(AB.moveSize + scaleY * SCALE_SPEED * deltaS)
     end
@@ -1776,18 +1792,18 @@ function AB:SetScale(size)
     end
 end
 
-function AB:SetSpread(value)
-    self.moveSpread = zo_clamp(value, SPREAD_MIN, SPREAD_MAX)
-    local rounded = zo_floor(self.moveSpread + 0.5)
+function AB:SetStretch(value)
+    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
+    local rounded = zo_floor(self.moveStretch + 0.5)
     local sv = SV()
-    if sv.actionBarSpread ~= rounded then
-        sv.actionBarSpread = rounded
-        self:Layout()
+    if sv.actionBarStretch ~= rounded then
+        sv.actionBarStretch = rounded
+        self:ApplyStretch()
     end
 end
 
 function AB:MoveToDefault()
-    self:SetSpread(AB.defaults.actionBarSpread)
+    self:SetStretch(100)
     self:SetScale(self.defaults.actionBarSize)
     self:SetPosition(self.defaults.actionBarPosX, self.defaults.actionBarPosY)
 end
@@ -1827,8 +1843,8 @@ function AB:OnMoveShowing()
     self.moveY = sv.actionBarPosY
     self.moveStartSize = sv.actionBarSize
     self.moveSize = sv.actionBarSize
-    self.moveStartSpread = sv.actionBarSpread or AB.defaults.actionBarSpread
-    self.moveSpread = sv.actionBarSpread or AB.defaults.actionBarSpread
+    self.moveStartStretch = sv.actionBarStretch or 100
+    self.moveStretch = self.moveStartStretch
     KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
     DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
     self:RefreshIcons()
@@ -1840,7 +1856,7 @@ function AB:OnMoveHidden()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
     if not self.moveSaved then
         self:SetScale(self.moveStartSize)
-        self:SetSpread(self.moveStartSpread)
+        self:SetStretch(self.moveStartStretch)
         self:SetPosition(self.moveStartX, self.moveStartY)
     end
     self.moving = false
@@ -1975,7 +1991,7 @@ function AB:GetOptions()
                     type       = "button",
                     name       = "Move / Scale",
                     buttonText = "Move / Scale",
-                    tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right makes it longer or shorter.",
+                    tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right stretches it wider or narrower.",
                     disabled   = IsOff,
                     func       = function() AB:StartMove() end,
                 },

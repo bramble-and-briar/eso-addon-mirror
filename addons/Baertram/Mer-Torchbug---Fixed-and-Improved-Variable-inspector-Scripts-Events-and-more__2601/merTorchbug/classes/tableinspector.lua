@@ -145,6 +145,43 @@ local function invoke(object, method, ...)
     return object[method](object, ...)
 end
 
+-- Same right-column conversion as keyToSpecialRightKeyFunc["uniqueId"].
+local function isId64EventParamType(eventParamTypeName)
+    return eventParamTypeName == "id64" or eventParamTypeName == "ItemSetCollectionSlot_id64"
+end
+
+-- Documented event payload field for an opened event record, or nil for metadata and paramN fallbacks.
+-- Returns the { fieldName, typeName } entry and its 1-based signature index.
+local function getEventParamField(eventRecord, key)
+    if type(key) ~= stringType or type(eventRecord) ~= tableType then return nil end
+
+    local eventParamFields = tbEvents.GetEventParamFields(eventRecord._eventId, eventRecord._eventName)
+    if eventParamFields == nil then return nil end
+
+    for paramIndex, eventParamField in ipairs(eventParamFields) do
+        if eventParamField[1] == key then
+            return eventParamField, paramIndex
+        end
+    end
+    return nil
+end
+
+-- Signature order for payload keys. Documented names use their field index.
+-- Undocumented extras and older saved captures stay paramN and sort by that number.
+local function getEventParamSortIndex(eventRecord, key)
+    if type(key) ~= stringType then return nil end
+    if key == "eventId" then return 0 end
+
+    local _, paramIndex = getEventParamField(eventRecord, key)
+    if paramIndex ~= nil then return paramIndex end
+
+    local _, _, paramNumberText = strfind(key, "^param(%d+)$")
+    if paramNumberText ~= nil then
+        return ton(paramNumberText)
+    end
+    return nil
+end
+
 
 -------------------------------
 -- class TableInspectorPanel --
@@ -172,6 +209,16 @@ function TableInspectorPanel:__init__(control, ...)
         elseif not bb.meta then
             return true
         end
+
+        local eventRecord = self.subject
+        if type(eventRecord) == tableType and eventRecord._eventId ~= nil and not aa.meta and not bb.meta then
+            local leftParamIndex = getEventParamSortIndex(eventRecord, aa.key)
+            local rightParamIndex = getEventParamSortIndex(eventRecord, bb.key)
+            if leftParamIndex ~= nil and rightParamIndex ~= nil then
+                return leftParamIndex < rightParamIndex
+            end
+        end
+
         return typeSafeLess(aa.key, bb.key)
     end
 end
@@ -528,6 +575,24 @@ function TableInspectorPanel:initScrollList(control)
             if keyRightText ~= nil and keyRightText ~= "" then
                 setupValue(row.cKeyRight, type(keyRightText), prefixForLeftKey .. keyRightText, true) -- <- to show the rightKey belongs to the left key and not the value!
                 isKeyRightUsed = true
+            end
+        end
+
+        -- Documented event payload field: show the API type. Skip when the right column already
+        -- shows a timestamp or a resolved event name (_eventId and similar keys).
+        if not isKeyRightUsed and row.cKeyRight and tk == stringType then
+            local eventRecord = self.subject
+            if type(eventRecord) == tableType and eventRecord._eventId ~= nil then
+                local rightKeyText = row.cKeyRight:GetText()
+                if rightKeyText == nil or rightKeyText == "" then
+                    local eventParamField = getEventParamField(eventRecord, k)
+                    local eventParamTypeName = eventParamField and eventParamField[2]
+                    if isId64EventParamType(eventParamTypeName) then
+                        setupValue(row.cKeyRight, stringType, zo_getSafeId64Key(v), true)
+                    elseif eventParamTypeName ~= nil and eventParamTypeName ~= "" then
+                        setupValue(row.cKeyRight, stringType, eventParamTypeName, true)
+                    end
+                end
             end
         end
     end

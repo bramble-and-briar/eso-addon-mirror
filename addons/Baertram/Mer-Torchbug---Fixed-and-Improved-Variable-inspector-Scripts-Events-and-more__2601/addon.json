@@ -8,6 +8,10 @@
   "category_id": "33",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -74,7 +78,7 @@
     "merTorchbug"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2601/",
-  "fingerprint": "232fc2bcc30003c3525ec06ec888870cd5bcdf332f0cf2c6f6ab54f8831adcd9",
+  "fingerprint": "27e937c011b07334e626c0ef2088a8f0dfbec30066e944882fa0c88635729bc5",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15190.png",
     "https://cdn-eso.mmoui.com/preview/pvw15191.png",
@@ -93,11 +97,11 @@
   "source_id": "2601",
   "source_url": "https://www.esoui.com/downloads/info2601-MerTorchbug-FixedandImprovedVariableinspectorScriptsEventsandmore.html",
   "stats": {
-    "downloads": 19377,
+    "downloads": 19609,
     "favorites": 15,
-    "monthly_downloads": 63
+    "monthly_downloads": 72
   },
   "title": "Mer Torchbug - Fixed and Improved (Variable inspector/Scripts/Events/and more)",
-  "updated_at": 1790628355000,
-  "version": "1.77"
+  "updated_at": 1795313870000,
+  "version": "1.78"
 }

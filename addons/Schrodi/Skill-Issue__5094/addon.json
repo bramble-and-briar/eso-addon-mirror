@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Schrodi/Skill-Issue__5094",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5094",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5094",
+  "deleted": false,
+  "directories": [
+    "SkillIssue"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5094/",
+  "fingerprint": "f62f091b8ab34e64770ba748ca6f06e9a39c66f3bd047a4806ad699fc8be1026",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18687.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5094",
+  "source_url": "https://www.esoui.com/downloads/info5094-SkillIssue.html",
+  "stats": {
+    "downloads": 1,
+    "favorites": 0,
+    "monthly_downloads": 1
+  },
+  "title": "Skill Issue",
+  "updated_at": 1795289759000,
+  "version": "1.0"
+}

@@ -1,0 +1,43 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Schrodi/Target-Frame-Line__5095",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5095",
+  "category_id": "21",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5095",
+  "deleted": false,
+  "directories": [
+    "TargetFrameLine"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5095/",
+  "fingerprint": "1c75402446791b5c4c2f18f420219202599967d7d3113653feb611305cc060f1",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18688.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18689.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5095",
+  "source_url": "https://www.esoui.com/downloads/info5095-TargetFrameLine.html",
+  "stats": {
+    "downloads": 3,
+    "favorites": 0,
+    "monthly_downloads": 1
+  },
+  "title": "Target Frame Line",
+  "updated_at": 1795289935000,
+  "version": "1.2.0"
+}

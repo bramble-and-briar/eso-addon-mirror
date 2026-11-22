@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Schrodi/Ride-Along__5092",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5092",
+  "category_id": "95",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5092",
+  "deleted": false,
+  "directories": [
+    "RideAlong"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5092/",
+  "fingerprint": "686f7c7345c15ebeb39654d7031a356fa979b215e6b099629ecdac19fbe61f0e",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5092",
+  "source_url": "https://www.esoui.com/downloads/info5092-RideAlong.html",
+  "stats": {
+    "downloads": 3,
+    "favorites": 0,
+    "monthly_downloads": 2
+  },
+  "title": "Ride Along",
+  "updated_at": 1795278128000,
+  "version": "2.0.0"
+}

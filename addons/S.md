@@ -32,6 +32,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ScapegoatIconPack - icon pack for OdySupport Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/JimBoSS/ScapegoatIconPack---icon-pack-for-OdySupport-Icons__3800) | JimBoSS | PC / Mac | 0.25 |
 | [Schlosswerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Schlosswerk__4863) | Torfason | PC / Mac | 2.0.0 |
 | [Scholar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/WidgetInteractive/Scholar__1670) | WidgetInteractive | PC / Mac | 1.7.0 |
+| [Schrodi's Battleground Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Schrodi-s-Battleground-Tools__5101) | Schrodi | PC / Mac | 2.0.0 |
+| [Schrodi's Housing Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Schrodi-s-Housing-Tools__5093) | Schrodi | PC / Mac | 2.1.0 |
 | [Scoreboard Fix Xbox BETA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RUSKlI/Scoreboard-Fix-Xbox-BETA__0e9f8669-fa46-49bb-a578-54569ddb865b) | RUSKlI | Console | — |
 | [Scoreboard Remastered \[BETA\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Scoreboard-Remastered-BETA__0798cfcd-e028-41a6-a40d-fb1654087be8) | Vixen_Hunny | Console | — |
 | [SCQ - Share contributable quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/SCQ---Share-contributable-quests__2453) | Ek1 | PC / Mac | 1.3.200324 |
@@ -176,6 +178,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Skill Blocker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Skill-Blocker__3483) | notnear | PC / Mac | 3.10.0 |
 | [Skill Blocker by Ness_Jess](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ness_Jess/Skill-Blocker-by-Ness_Jess__4318) | Ness_Jess | PC / Mac | 1.5 |
 | [Skill Blocker Extension - Banner Bearer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Skill-Blocker-Extension---Banner-Bearer__4066) | notnear | PC / Mac | 1.0.2 |
+| [Skill Issue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Skill-Issue__5094) | Schrodi | PC / Mac | 1.0 |
 | [Skill Issue Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drako-Ei/Skill-Issue-Tracker__4744) | Drako-Ei | PC / Mac | 1.0.3 |
 | [Skill Lines](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ranckor90/Skill-Lines__4041) | Ranckor90 | PC / Mac | v2.1.2 |
 | [Skill Point Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Skill-Point-Finder__427000e9-72c4-4fc9-b9b6-3cca4f863607) | TheGreyWolf98 | Console | — |

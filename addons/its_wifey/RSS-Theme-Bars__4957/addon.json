@@ -8,6 +8,10 @@
   "category_id": "17",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,14 +22,16 @@
     "RSSThemeBars"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4957/",
-  "fingerprint": "4542d8ef90ac3ffe7d1f20b8762203a85764989dd01a85933412eaced89f802b",
+  "fingerprint": "0a255b8c34cdbc9f686ec25279c579918f2f416c433a85d4714f5096b9756671",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18544.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18018.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18692.png",
     "https://cdn-eso.mmoui.com/preview/pvw18019.png",
     "https://cdn-eso.mmoui.com/preview/pvw18525.png",
     "https://cdn-eso.mmoui.com/preview/pvw18542.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18543.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18543.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18691.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18693.png"
   ],
   "platform": "pc",
   "published": true,
@@ -33,11 +39,11 @@
   "source_id": "4957",
   "source_url": "https://www.esoui.com/downloads/info4957-RSSThemeBars.html",
   "stats": {
-    "downloads": 104,
+    "downloads": 124,
     "favorites": 0,
-    "monthly_downloads": 73
+    "monthly_downloads": 88
   },
   "title": "RSS Theme Bars",
-  "updated_at": 1795019356000,
-  "version": "1.3.0"
+  "updated_at": 1795312306000,
+  "version": "1.4.1"
 }

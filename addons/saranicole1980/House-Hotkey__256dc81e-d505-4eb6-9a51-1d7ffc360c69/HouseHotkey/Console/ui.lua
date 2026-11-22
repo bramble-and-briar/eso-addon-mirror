@@ -1,13 +1,21 @@
 local HH = HouseHotkey
 
-local LAM = LibHarvensAddonSettings
+local LHAS = LibHarvensAddonSettings
 
 local LRM = LibRadialMenu
 
 local LIBRADIAL_WHEEL = HOTBAR_CATEGORY_MAX_VALUE + 100
 
+local currentSettings
+
+local EntryIndexName
+
+local EntryIndex
+
+local Status
+
 --Credit to LibConsoleDialogs for the technique
-local dialogSettings = LAM.AddonSettings:Subclass()
+local dialogSettings = LHAS.AddonSettings:Subclass()
 
 function HH:CreateDialog(title)
 	local options = {
@@ -23,12 +31,12 @@ HH.dialogCallStack = {}
 
 local orgSelect = dialogSettings.Select
 function dialogSettings:Show()
-	LAM:Initialize()
+	LHAS:Initialize()
 	if self.container == nil then
-		self.container = LAM.container
+		self.container = LHAS.container
 		self:InitHandlers()
 	end
-	if LAM.scene:IsShowing() and currentSettings then
+	if LHAS.scene:IsShowing() and currentSettings then
 		HH.dialogCallStack[#HH.dialogCallStack + 1] = currentSettings
 	end
 	orgSelect(self)
@@ -36,12 +44,12 @@ function dialogSettings:Show()
 		currentSettings = self
 	end
 
-	ZO_GamepadGenericHeader_RefreshData(LAM.scrollList.header, self.headerData)
+	ZO_GamepadGenericHeader_RefreshData(LHAS.scrollList.header, self.headerData)
 
-	if LAM.scene:IsShowing() then
+	if LHAS.scene:IsShowing() then
 		self:RefreshSelection()
 	else
-		SCENE_MANAGER:Push(LAM.scene:GetName())
+		SCENE_MANAGER:Push(LHAS.scene:GetName())
 	end
 end
 
@@ -99,14 +107,14 @@ function HH.createPopup(targetHouse, owner)
   local panel = HH:CreateDialog(HH.Lang.HOTBAR_OPTIONS)
 
   panel:AddSetting {
-    type = LAM.ST_LABEL,
+    type = LHAS.ST_LABEL,
     label = function()
       return HH_Lang.CREATE_QUICKSLOT
     end,
   }
 
   panel:AddSetting {
-    type = LAM.ST_LABEL,
+    type = LHAS.ST_LABEL,
     label = function()
       if house and house:GetFormattedName() then
         return "|cebc034"..house:GetFormattedName().."|r"
@@ -115,7 +123,7 @@ function HH.createPopup(targetHouse, owner)
     end,
   }
   panel:AddSetting {
-    type = LAM.ST_LABEL,
+    type = LHAS.ST_LABEL,
     label = function()
       if owner then
         return "|c695d5c"..owner.."|r\r\n"
@@ -125,7 +133,7 @@ function HH.createPopup(targetHouse, owner)
   }
   
   panel:AddSetting({
-    type = LAM.ST_DROPDOWN,
+    type = LHAS.ST_DROPDOWN,
     label = HH_Lang.WHEEL_CATEGORY,
     items = wheelOptions,
     getFunction = function() return CategoryName or GetString(SI_HOTBARCATEGORY10) end,
@@ -138,7 +146,7 @@ function HH.createPopup(targetHouse, owner)
   })
   
   panel:AddSetting {
-      type = LAM.ST_DROPDOWN,
+      type = LHAS.ST_DROPDOWN,
       label = HH_Lang.WHEEL_SLOT,
       items = function()
         if Category == LIBRADIAL_WHEEL and LRM ~= nil then
@@ -159,7 +167,7 @@ function HH.createPopup(targetHouse, owner)
     }
   
   panel:AddSetting({
-    type = LAM.ST_ICONPICKER,
+    type = LHAS.ST_ICONPICKER,
     label = HH_Lang.WHEEL_ICON,
     items = HH.IconList,
     getFunction = function() return Icon  end,
@@ -170,7 +178,7 @@ function HH.createPopup(targetHouse, owner)
   })
   
   panel:AddSetting {
-    type = LAM.ST_EDIT,
+    type = LHAS.ST_EDIT,
     label = HH_Lang.WHEEL_NAME,
     getFunction = function() return Name or house:GetFormattedName() or "" end,
     setFunction = function(text) Name = text end,
@@ -178,7 +186,7 @@ function HH.createPopup(targetHouse, owner)
   }
   
   panel:AddSetting({
-    type = LAM.ST_CHECKBOX,
+    type = LHAS.ST_CHECKBOX,
     label = HH.Lang.HOUSE_EXTERIOR,
     default = false,
     setFunction = function(state)
@@ -193,7 +201,7 @@ function HH.createPopup(targetHouse, owner)
   })
   
   panel:AddSetting {
-    type = LAM.ST_BUTTON,
+    type = LHAS.ST_BUTTON,
     label = HH_Lang.WHEEL_APPLY,
     buttonText = HH_Lang.WHEEL_APPLY,
     clickHandler  = function()
@@ -212,7 +220,7 @@ function HH.createPopup(targetHouse, owner)
     end
   }
   panel:AddSetting {
-    type = LAM.ST_LABEL,
+    type = LHAS.ST_LABEL,
     label = function()
       return Status or " "
     end

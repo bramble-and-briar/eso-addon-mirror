@@ -48,7 +48,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ledger - Unofficial Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BSKCorp/Ledger---Unofficial-Patch__2380) | BSKCorp | PC / Mac | 1.3.2 |
 | [Left Right Simple Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sergi4ek/Left-Right-Simple-Addon__3767) | sergi4ek | PC / Mac | 1.2.2 |
 | [Lens Flare Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Lens-Flare-Toggle__1215) | CaptainBlagbird | PC / Mac | 1.0.14 |
-| [Leo's Altholic (Fix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Fix__3596) | sshogrin | PC / Mac | 1.9.7 |
+| [Leo's Altholic (Fix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Fix__3596) | sshogrin | PC / Mac | 1.9.8 |
 | [Leo's Dolmen Runner - LDR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Dolmen-Runner---LDR__2534) | LeandroSilva | PC / Mac | 1.3.1 |
 | [Leo's Dolmen Runner - REDUX (with inviter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kiasmalyn/Leo-s-Dolmen-Runner---REDUX-with-inviter__3629) | Kiasmalyn | PC / Mac | 2.1.5 |
 | [Leo's Guild Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Guild-Manager__2151) | LeandroSilva | PC / Mac | 1.3.0 |
@@ -142,6 +142,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibEnchantingStation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/LibEnchantingStation__2437) | votan | PC / Mac | 2.3.5 |
 | [LibESQL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/LibESQL__358e5bc1-5cc6-461f-ac0f-fde2dfe327a3) | Vixen_Hunny | Console | — |
 | [LibEventHandler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Justinon/LibEventHandler__1452) | Justinon | PC / Mac | 1.3.14 |
+| [LibExecuteSkills](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/LibExecuteSkills__5098) | O-Range | PC / Mac | 1.1.0 |
 | [LibExoYsUtilities](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/LibExoYsUtilities__3363) | ExoY | PC / Mac | 9 |
 | [LibExtendedInventory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Xhrysanth/LibExtendedInventory__28dff940-503c-4c6c-8921-044ad6e35a86) | Xhrysanth | Console | — |
 | [LibExtendedJournal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibExtendedJournal__4031) | code65536 | PC / Mac | 2.5.4 |

@@ -47,6 +47,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Improved Attribute Bars and Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Attribute-Bars-and-Target-Frame__4884) | code65536 | PC / Mac | 1.3.0 |
 | [Improved Companion Rapport Information](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Companion-Rapport-Information__3103) | code65536 | PC / Mac | 1.0.0 |
 | [Improved Death Recap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/Improved-Death-Recap__1319) | Solinur | PC / Mac | 1.0.2 |
+| [Improved Death Recap: Vanilla UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Improved-Death-Recap-Vanilla-UI__5097) | Schrodi | PC / Mac | 3.1.0 |
 | [Improved Golden Pursuit Filters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Improved-Golden-Pursuit-Filters__4005) | MrPikPik | PC / Mac | 1.6.0 |
 | [Improved Item Set Collection Filters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Improved-Item-Set-Collection-Filters__3402) | MrPikPik | PC / Mac | 1.1.1 |
 | [Improved Night Market HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Night-Market-HUD__b344faa0-0b93-431e-ae22-befcaaa36333) | code65536 | Console | — |

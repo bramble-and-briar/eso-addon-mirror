@@ -21,9 +21,9 @@ local strings = {
 	NOTY_RAID_COMPLETE =			" completed",
 	NOTY_RAID_OTHERS =			"and <<1>> others",
 	
-	NOTY_GUILD_INV_OPTION_0 =		"never",
-	NOTY_GUILD_INV_OPTION_1 =		"always",
-	NOTY_GUILD_INV_OPTION_2 =		"when full of guilds",
+	NOTY_GUILD_INV_OPTION_0 =		"Show All Invites",
+	NOTY_GUILD_INV_OPTION_1 =		"Show Only in Notifications",
+	NOTY_GUILD_INV_OPTION_2 =		"Auto-Decline",
 	
 	NOTY_AVA_MODE_OPTION_0 =		"none",
 	NOTY_AVA_MODE_OPTION_1 =		"chat message",
@@ -103,6 +103,11 @@ local strings = {
 	NOTYOU_FAST_TRAVEL_WAYSHRINE_TOOLTIP = "Travel immediately when selecting a destination from a wayshrine.",
 	NOTYOU_FAST_TRAVEL_RECALL = "Skip Confirmation When Not Using a Wayshrine",
 	NOTYOU_FAST_TRAVEL_RECALL_TOOLTIP = "Travel immediately when selecting a destination away from a wayshrine. The normal gold cost still applies.",
+	NOTYOU_FAST_TRAVEL_HOUSE = "Travel to Owned House",
+	NOTYOU_FAST_TRAVEL_HOUSE_TOOLTIP = "Choose the normal Inside/Outside options, or travel directly inside or outside an owned house.",
+	NOTYOU_FAST_TRAVEL_HOUSE_NORMAL = "Normally",
+	NOTYOU_FAST_TRAVEL_HOUSE_INSIDE = "Inside only",
+	NOTYOU_FAST_TRAVEL_HOUSE_OUTSIDE = "Outside only",
 
 	NOTYOU_FENCE_HEADER =			"Fence dialog",
 	NOTYOU_FENCE =				"Remove \"Can't buyback from fence\" dialog",
@@ -111,8 +116,8 @@ local strings = {
 	NOTYOU_GROUPS_HEADER =			"Group dialogs",
 	NOTYOU_GROUPS_DISBAND =			"Remove \"Disband Group\" dialog",
 	NOTYOU_GROUPS_DISBAND_TOOLTIP =		"Remove confirmation dialog when trying to disband a group.",
-	NOTYOU_GROUPS_LARGE =			"Remove large group dialog and messages",
-	NOTYOU_GROUPS_LARGE_TOOLTIP =		"Remove the large group confirmation dialog and the messages shown " .."when your group becomes or stops being a large group.",
+	NOTYOU_GROUPS_LARGE =			"Remove Large Group \"Dialog and Chat Messages\"",
+	NOTYOU_GROUPS_LARGE_TOOLTIP =		"When ON, skip the large group confirmation dialog and hide chat messages when your group becomes or stops being a large group. Applies whether you are the leader or a member. OFF leaves normal game behavior.",
 	
 	NOTYOU_CRAFT_HEADER =			"Crafting dialogs",
 	NOTYOU_CRAFT =				"Remove \"Attempt Item Improvement\" dialog",
@@ -151,8 +156,8 @@ local strings = {
 	NOTYOU_NOWRITQUESTS_TOOLTIP =		"Don't show Writ quests automatically when looting a Master Writ",	
 	
 	NOTYOU_GUILDS_HEADER =			"Guild invites",
-	NOTYOU_GUILDS =				"Ignore guild invites",
-	NOTYOU_GUILDS_TOOLTIP =			"Ignore guild invites messages and notifications.",
+	NOTYOU_GUILDS =				"Set \"Guild Invites\" to...",
+	NOTYOU_GUILDS_TOOLTIP =			"Show normal guild invitations, show them only in Notifications, or automatically decline incoming and pending invitations.",
 	NOTYOU_GUILDSAPP =			"Hide guild application notifications",
 	NOTYOU_GUILDSAPP_TOOLTIP =		"Hide the guild application notifications.",
 
@@ -180,6 +185,19 @@ local strings = {
 	NOTYOU_GUILDLEAVE_BLOCK =		"Deactivation for:",
 	NOTYOU_GUILDLEAVE_BLOCK_TOOLTIP =	"Select how you want to handle the Guild Leave keybind:\n|cFFFFFFNo deactivation|r - no changes\n|cFFFFFFAll Guilds|r - Disabled for all guilds\n|cFFFFFFPer Guild|r - Select which guild should have this keybind disabled",
 	
+	
+	
+	NOTYOU_OWNED_HOUSES = "Hide \"Owned Houses\"",
+	NOTYOU_OWNED_HOUSES_TOOLTIP = "Hide owned house pins on Tamriel and zone maps, including your Primary House and owned Favorites.",
+	
+	
+	NOTYOU_UNOWNED_HOUSES = "Hide \"Unowned Houses\"",
+	NOTYOU_UNOWNED_HOUSES_TOOLTIP = "Hide unowned house pins on Tamriel and zone maps, including unowned Favorites.",
+	
+	
+	
+	
+
 	NOTYOU_CAMERA_HEADER =			"Camera & Interaction",
 	NOTYOU_CAMERA_INTERRUPT =		"Don't interrupt interactions",
 	NOTYOU_CAMERA_INTERRUPT_TOOLTIP =	"Don't interrupt interactions (harvesting, fishing, ...) when you open map, inventory or other scenes.",

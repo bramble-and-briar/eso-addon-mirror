@@ -8,26 +8,22 @@ Addon.TargetCapture = {}
 local TargetCapture = Addon.TargetCapture
 
 function TargetCapture:GetPlayerMapContext(forceSync, includeMapName)
-    if SetMapToPlayerLocation then
-        local mapSceneShowing = SCENE_MANAGER and SCENE_MANAGER.IsShowing and SCENE_MANAGER:IsShowing("worldMap")
-        if forceSync or not mapSceneShowing then
-            if not DoesCurrentMapMatchMapForPlayerLocation or not DoesCurrentMapMatchMapForPlayerLocation() then
-                SetMapToPlayerLocation()
-            end
+    local mapSceneShowing = SCENE_MANAGER:IsShowing("worldMap")
+    if forceSync or not mapSceneShowing then
+        if not DoesCurrentMapMatchMapForPlayerLocation() then
+            SetMapToPlayerLocation()
         end
     end
 
-    local mapId = (GetCurrentMapId and GetCurrentMapId()) or 0
-    local zoneIndex = (GetUnitZoneIndex and GetUnitZoneIndex("player")) or (GetCurrentMapZoneIndex and GetCurrentMapZoneIndex()) or 0
-    local zoneId = (zoneIndex and zoneIndex > 0 and GetZoneId and GetZoneId(zoneIndex)) or 0
-    local mapName = (includeMapName ~= false and GetMapName and GetMapName()) or ""
+    local mapId = GetCurrentMapId() or 0
+    local zoneIndex = GetUnitZoneIndex("player") or GetCurrentMapZoneIndex() or 0
+    local zoneId = (zoneIndex and zoneIndex > 0 and GetZoneId(zoneIndex)) or 0
+    local mapName = (includeMapName ~= false and GetMapName()) or ""
     local normX, normY = 0.5, 0.5
-    if GetMapPlayerPosition then
-        local x, y = GetMapPlayerPosition("player")
-        if x and y then
-            normX = x
-            normY = y
-        end
+    local x, y = GetMapPlayerPosition("player")
+    if x and y then
+        normX = x
+        normY = y
     end
 
     return {
@@ -40,31 +36,29 @@ function TargetCapture:GetPlayerMapContext(forceSync, includeMapName)
 end
 
 function TargetCapture:ValidateReticleTarget()
-    if not DoesUnitExist or not DoesUnitExist("reticleover") then
+    if not DoesUnitExist("reticleover") then
         return false, Addon.Locale:Get("ALERT_NO_RETICLE_TARGET")
     end
 
-    if IsUnitPlayer and IsUnitPlayer("reticleover") then
+    if IsUnitPlayer("reticleover") then
         return false, Addon.Locale:Get("ALERT_INVALID_TARGET_PLAYER")
     end
 
-    if IsUnitDead and IsUnitDead("reticleover") then
+    if IsUnitDead("reticleover") then
         return false, Addon.Locale:Get("ALERT_INVALID_TARGET_DEAD")
     end
 
-    if GetUnitReaction then
-        local reaction = GetUnitReaction("reticleover")
-        if reaction == UNIT_REACTION_PLAYER_ALLY
-            or reaction == UNIT_REACTION_COMPANION
-            or reaction == UNIT_REACTION_NPC_ALLY then
-            return false, Addon.Locale:Get("ALERT_INVALID_TARGET_FRIENDLY")
-        end
-        if IsUnitAttackable and not IsUnitAttackable("reticleover") and reaction ~= UNIT_REACTION_HOSTILE then
-            return false, Addon.Locale:Get("ALERT_INVALID_TARGET_FRIENDLY")
-        end
+    local reaction = GetUnitReaction("reticleover")
+    if reaction == UNIT_REACTION_PLAYER_ALLY
+        or reaction == UNIT_REACTION_COMPANION
+        or reaction == UNIT_REACTION_NPC_ALLY then
+        return false, Addon.Locale:Get("ALERT_INVALID_TARGET_FRIENDLY")
+    end
+    if not IsUnitAttackable("reticleover") and reaction ~= UNIT_REACTION_HOSTILE then
+        return false, Addon.Locale:Get("ALERT_INVALID_TARGET_FRIENDLY")
     end
 
-    local rawName = GetUnitName and GetUnitName("reticleover") or ""
+    local rawName = GetUnitName("reticleover") or ""
     local cleanName = Addon.QuestRepository:NormalizeName(rawName)
     if cleanName == "" then
         return false, Addon.Locale:Get("ALERT_NO_RETICLE_TARGET")

@@ -1,5 +1,4 @@
 local PP = PocketCritters
-local unpack = unpack or table.unpack
 
 local CARDS_PER_ROW = 3
 local CARD_ROW_STEP = 92
@@ -9,19 +8,17 @@ local W, H = 400, 590 + SHIFT + GROW
 local PANEL_V = 873 / 1024
 local UI_TEX = "PocketCritters/textures/ui.dds"
 local PANEL_TEX = "PocketCritters/textures/panel.dds"
-local SKIN_TEX = "PocketCritters/textures/critter_%s.dds"
 
 local CREAM = { 1, 0.94, 0.9, 1 }
 local PINK = { 1, 0.66, 0.82, 1 }
 local SOFT = { 0.86, 0.76, 0.86, 1 }
 
-local SKIN_NAMES = { hellwuff = "Hellwuff", tsardarashi = "Tsardarashi", hisani = "Hisani", azsu = "Azsu", tsaji = "Tsaji", brown = "Cocoa" }
 local MOODS = {
     { "idle", "Idle" }, { "wag", "Wag" }, { "zoomies", "Zoomies" }, { "pat", "Pat" },
     { "sleep", "Nap" }, { "hide", "Hide" }, { "sad", "Sad" }, { "alert", "Alert" },
 }
 
-local ui = nil
+local ui
 local refreshing = false
 local nameCounter = 0
 
@@ -37,10 +34,10 @@ end
 
 local function Label(parent, text, font, color, align)
     local l = WINDOW_MANAGER:CreateControl(Name("Label"), parent, CT_LABEL)
-    l:SetFont(font or "ZoFontGame")
+    l:SetFont(font)
     l:SetDrawLayer(DL_TEXT)
-    l:SetColor(unpack(color or CREAM))
-    l:SetText(text or "")
+    l:SetColor(unpack(color))
+    l:SetText(text)
     if align then l:SetHorizontalAlignment(align) end
     return l
 end
@@ -86,7 +83,6 @@ local function Slider(parent, title, y, minV, maxV, step, onChange)
     s:SetAnchor(TOPLEFT, parent, TOPLEFT, 140, y + 5)
     s:SetMinMax(minV, maxV)
     s:SetValueStep(step)
-    s:SetMouseEnabled(true)
     local v = Label(parent, "", "ZoFontGame", PINK)
     v:SetAnchor(TOPLEFT, parent, TOPLEFT, 322, y)
     s:SetHandler("OnValueChanged", function(_, value)
@@ -158,7 +154,7 @@ local function Build()
         card:SetDrawLevel(1)
 
         local face = wm:CreateControl(Name("Face"), win, CT_TEXTURE)
-        face:SetTexture(string.format(SKIN_TEX, skin))
+        face:SetTexture(string.format(PP.TEXTURE_PATH, skin, ""))
         face:SetTextureCoords(0.25, 0.5, 0, 0.125)
         face:SetDimensions(cardSize - 6, cardSize - 6)
         face:SetAnchor(CENTER, card, CENTER, 0, 1)
@@ -176,13 +172,13 @@ local function Build()
             PP.TestMood("wag")
             PP.RefreshSettings()
             PlaySound(SOUNDS.DEFAULT_CLICK)
-            d("|cFF8FC8[Pocket Critters]|r New look: " .. (SKIN_NAMES[skin] or skin) .. "!")
+            PP.Say("New look: " .. PP.SKIN_LABELS[skin] .. "!")
         end)
 
         pick:SetHandler("OnMouseEnter", function() face:SetScale(1.08) end)
         pick:SetHandler("OnMouseExit", function() face:SetScale(1) end)
 
-        local name = Label(win, SKIN_NAMES[skin] or skin, "ZoFontGameSmall", SOFT, TEXT_ALIGN_CENTER)
+        local name = Label(win, PP.SKIN_LABELS[skin], "ZoFontGameSmall", SOFT, TEXT_ALIGN_CENTER)
         name:SetAnchor(TOP, card, BOTTOM, 0, 2)
 
         ui.cards[skin] = { card = card, name = name, pick = pick }
@@ -200,13 +196,13 @@ local function Build()
     ui.shown = Checkbox(win, "Show my critter", 372 + SHIFT, function(on) PP.SetShown(on) end)
     ui.locked = Checkbox(win, "Stay put (no dragging)", 398 + SHIFT, function(on) PP.SetLocked(on) end)
     ui.wag = Checkbox(win, "Wag at every bit of loot", 424 + SHIFT, function(on) PP.SetQuiet(not on) end)
-    ui.peek = Checkbox(win, "Peek over the inventory", 450 + SHIFT, function(on) if PP.SetPeek then PP.SetPeek(on) end end)
+    ui.peek = Checkbox(win, "Peek over the inventory", 450 + SHIFT, function(on) PP.SetPeek(on) end)
 
     local nudges = { { "higher", "Higher" }, { "lower", "Lower" }, { "left", "Left" }, { "right", "Right" }, { "reset", "Reset" } }
     local nw, ngap = 60, 6
     local nx = (W - (#nudges * nw + (#nudges - 1) * ngap)) / 2
     for i, n in ipairs(nudges) do
-        local b = Button(win, n[2], nw, function() if PP.PeekNudge then PP.PeekNudge(n[1]) end end)
+        local b = Button(win, n[2], nw, function() PP.PeekNudge(n[1]) end)
         b:SetAnchor(TOPLEFT, win, TOPLEFT, nx + (i - 1) * (nw + ngap), 478 + SHIFT)
     end
     ui.peekSpot = Label(win, "", "ZoFontGameSmall", SOFT, TEXT_ALIGN_CENTER)
@@ -259,10 +255,10 @@ function PP.RefreshSettings()
     ZO_CheckButton_SetCheckState(ui.shown, not sv.hidden)
     ZO_CheckButton_SetCheckState(ui.locked, sv.locked)
     ZO_CheckButton_SetCheckState(ui.wag, not sv.quiet)
-    ZO_CheckButton_SetCheckState(ui.peek, sv.peek ~= false)
-    if ui.peekSpot and PP.PeekSpotText then ui.peekSpot:SetText("Peek spot: " .. PP.PeekSpotText()) end
-    local pats = sv.pats or 0
-    local fetches = sv.fetches or 0
+    ZO_CheckButton_SetCheckState(ui.peek, sv.peek)
+    ui.peekSpot:SetText("Peek spot: " .. PP.PeekSpotText())
+    local pats = sv.pats
+    local fetches = sv.fetches
     local patText = pats == 1 and "Patted once" or string.format("Patted %d times", pats)
     if fetches > 0 then
         ui.pats:SetText(patText .. (fetches == 1 and ", 1 fetch <3" or string.format(", %d fetches <3", fetches)))

@@ -1,5 +1,3 @@
-AI-assisted development disclosure: This fork used ChatGPT for code generation and review; full in-game behavior has not been independently validated.
-
 Miracle's BetterScoreboard - separate ESO addon identity
 
 Install folder: Documents/Elder Scrolls Online/live/AddOns/MiraclesBetterScoreboard

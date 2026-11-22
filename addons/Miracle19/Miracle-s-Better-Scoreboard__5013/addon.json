@@ -18,7 +18,7 @@
     "MiraclesBetterScoreboard"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5013/",
-  "fingerprint": "bc971b89c4ab9de397e9027089e8310f90675f193f4a5bafa7c0de80956dca41",
+  "fingerprint": "70acfb3ed5624c325320639affcb1b2fdf5a5580c35acba3d251074beaf5392c",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18254.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "5013",
   "source_url": "https://www.esoui.com/downloads/info5013-MiraclesBetterScoreboard.html",
   "stats": {
-    "downloads": 19,
+    "downloads": 129,
     "favorites": 1,
-    "monthly_downloads": 14
+    "monthly_downloads": 124
   },
   "title": "Miracle's Better Scoreboard",
-  "updated_at": 1793561534000,
-  "version": "Version 2"
+  "updated_at": 1795288068000,
+  "version": "Version 3"
 }

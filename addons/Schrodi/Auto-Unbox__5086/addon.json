@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Schrodi/Auto-Unbox__5086",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5086",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5086",
+  "deleted": false,
+  "directories": [
+    "AutoUnbox"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5086/",
+  "fingerprint": "6e248e89721f7b99e41272a106aeee1139740bc2bc37d86eff400376ed8468e6",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5086",
+  "source_url": "https://www.esoui.com/downloads/info5086-AutoUnbox.html",
+  "stats": {
+    "downloads": 9,
+    "favorites": 0,
+    "monthly_downloads": 8
+  },
+  "title": "Auto Unbox",
+  "updated_at": 1795268756000,
+  "version": "1.0"
+}

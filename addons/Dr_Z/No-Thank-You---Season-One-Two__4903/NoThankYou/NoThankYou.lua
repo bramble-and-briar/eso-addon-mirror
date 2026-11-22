@@ -25,11 +25,16 @@ http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
 ]]
 
 local ADDON_NAME = "NoThankYou"
-local ADDON_VERSION = "12.1.4"
+local ADDON_VERSION = "12.2.0"
 local ADDON_AUTHOR = "|cEFEBBEGarkin|r, Ayantir, Vostorn, |c8794C5SlippyCheeze|r, Uta, ZaiZah,FusRoDah, Dr_Z"
 local ADDON_WEBSITE = "http://www.esoui.com/downloads/info865-Nothankyou.html"
 local SV
 local defaults = {
+	hideTamrielWayhsrines = 0,
+	hideTamrielDungeons = 0,
+	unownedHouses = 0,
+	ownedHouses = 0,
+	hideTamriel = false,
 	homeToursNotifications = false,
 	ava = 1,
 	friends = false,
@@ -54,6 +59,7 @@ local defaults = {
 	noCameraSpinInv = false,
 	fastTravelDialog = false,
 	recallDialog = false,
+	ownedHouseTravel = 0,
 	fenceDialog = false,
 	ultimateSound = 0,
 	disbandDialog = false,
@@ -295,13 +301,11 @@ local function CraftingResultAlertsHook()
 end
 
 local function RepairAlertsHook()
-	if ZO_GamepadStoreManager and ZO_GamepadStoreManager.RepairMessageBox then
-		local function RepairMessageBox_Hook(...)
-			return SV.repair
-		end
-
-		ZO_PreHook(ZO_GamepadStoreManager, "RepairMessageBox", RepairMessageBox_Hook)
+	local function RepairMessageBox_Hook(...)
+		return SV.repair
 	end
+
+	ZO_PreHook(ZO_GamepadStoreManager, "RepairMessageBox", RepairMessageBox_Hook)
 end
 
 local function AlertTextThrottling()
@@ -394,17 +398,11 @@ local function NoGuildLeave()
 end
 
 local function NoGuildLeavePreHook()
-    if GUILD_HOME then
-        ZO_PreHook(GUILD_HOME, "RefreshAll", NoGuildLeave)
-    end
+    ZO_PreHook(GUILD_HOME, "RefreshAll", NoGuildLeave)
 end
 
 local function GuildRosterAlertsHook()
-        local guildRosterManager = ZO_GuildRosterManager or GUILD_ROSTER
-
-	if not guildRosterManager then
-		return
-	end
+	local guildRosterManager = ZO_GuildRosterManager
 
 	local function OnGuildMemberAdded_Hook(self, guildId, displayName)
 		if SV.guildAlerts == 1 then
@@ -428,9 +426,7 @@ local function GuildRosterAlertsHook()
 			end
 		end
 	end
-	if guildRosterManager.OnGuildMemberAdded then
-		ZO_PreHook( guildRosterManager, "OnGuildMemberAdded", OnGuildMemberAdded_Hook )
-	end
+	ZO_PreHook(guildRosterManager, "OnGuildMemberAdded", OnGuildMemberAdded_Hook)
 	local function OnGuildMemberRemoved_Hook(self, guildId, rawCharacterName)
 		if SV.guildAlerts == 1 then
 			local index = GetGuildIndexFromId(guildId)
@@ -449,9 +445,7 @@ local function GuildRosterAlertsHook()
 			end
 		end
 	end
-	if guildRosterManager.OnGuildMemberRemoved then
-		ZO_PreHook(guildRosterManager, "OnGuildMemberRemoved", OnGuildMemberRemoved_Hook)
-	end
+	ZO_PreHook(guildRosterManager, "OnGuildMemberRemoved", OnGuildMemberRemoved_Hook)
 end
 
 --raid notifications
@@ -533,9 +527,7 @@ local function HookRaidNotifications()
 			end
 		end
 	end
-	if ZO_LeaderboardScoreProvider and ZO_LeaderboardScoreProvider.BuildNotificationList then
-	    ZO_PreHook(ZO_LeaderboardScoreProvider, "BuildNotificationList", BuildNotificationList_Hook)
-	end
+	ZO_PreHook(ZO_LeaderboardScoreProvider, "BuildNotificationList", BuildNotificationList_Hook)
 end
 
 -- Home Tours recommended-house notifications
@@ -583,9 +575,7 @@ local function HookCraftBagNotifications()
 			return true
 		end
 	end
-	if ZO_CraftBagAutoTransferProvider and ZO_CraftBagAutoTransferProvider.BuildNotificationList then
-	    ZO_PreHook(ZO_CraftBagAutoTransferProvider, "BuildNotificationList", BuildNotificationList_Hook)
-	end
+	ZO_PreHook(ZO_CraftBagAutoTransferProvider, "BuildNotificationList", BuildNotificationList_Hook)
 end
 
 --Reticle Hook
@@ -624,65 +614,75 @@ local function HookReticleTake()
 	ZO_PreHook(RETICLE, "TryHandlingInteraction", DisableReticleTake_Hook)
 end
 
---Guild invite notifications
-local function HookGuildInvitesNotifications()
-	local function BuildNotificationList_Hook(self)
-		ZO_ClearNumericallyIndexedTable(self.list)
-		if SV.guildInvites == 0 or (SV.guildInvites == 2 and GetNumGuilds() < MAX_GUILDS) then
-			for i = 1, GetNumGuildInvites() do
-				local guildId, guildName, guildAlliance, inviterDisplayName, note = GetGuildInviteInfo(i)
-				local secsSinceRequest = 0
-				local formattedInviterName = ZO_FormatUserFacingDisplayName(inviterDisplayName)
-				local message = self:CreateMessage(guildAlliance, guildName, formattedInviterName)
-				self.list[i] =  {
-					dataType = NOTIFICATIONS_REQUEST_DATA,
-					guildId = guildId,
-					guildAlliance = guildAlliance,
-					guildName = guildName,
-					displayName = inviterDisplayName,
-					notificationType = NOTIFICATION_TYPE_GUILD,
-					secsSinceRequest = ZO_NormalizeSecondsSince(secsSinceRequest),
-					note = note,
-					message = message,
-					shortDisplayText = formattedInviterName,
-					controlsOwnSounds = true,
-				}
-			end
+--[[ NEW Guild Invite function handlers ]]--
+local function RemoveGuildInvitePrompts()
+	for index = #PLAYER_TO_PLAYER.incomingQueue, 1, -1 do
+		local entry = PLAYER_TO_PLAYER.incomingQueue[index]
+		if entry.incomingType == ZO_INTERACT_TYPE.GUILD_INVITE then
+			PLAYER_TO_PLAYER:RemoveEntryFromIncomingQueueTable(index)
 		end
-		return true
-	end
-	if ZO_GuildInviteProvider and ZO_GuildInviteProvider.BuildNotificationList then
-	    ZO_PreHook(ZO_GuildInviteProvider, "BuildNotificationList", BuildNotificationList_Hook)
 	end
 end
 
-local function HookPlayerToPlayerGuildInvite()
-	local INTERACT_TYPE_GUILD_INVITE = 7
-	PLAYER_TO_PLAYER.control:UnregisterForEvent(EVENT_GUILD_INVITE_ADDED)
-	PLAYER_TO_PLAYER.control:RegisterForEvent(EVENT_GUILD_INVITE_ADDED, function (eventCode, guildId, guildName, guildAlliance, inviterName, ...)
-		if SV.guildInvites == 0 or (SV.guildInvites == 2 and GetNumGuilds() < MAX_GUILDS) then
-			local allianceIconSize = 24
-			if IsInGamepadPreferredMode() then
-				allianceIconSize = 36
-			end
-			local formattedInviterName = ZO_FormatUserFacingDisplayName(inviterName)
-			local guildNameAlliance = zo_iconTextFormat(GetAllianceBannerIcon(guildAlliance), allianceIconSize, allianceIconSize, ZO_SELECTED_TEXT:Colorize(guildName))
-			local data = PLAYER_TO_PLAYER:AddPromptToIncomingQueue(INTERACT_TYPE_GUILD_INVITE, nil, formattedInviterName, zo_strformat(SI_PLAYER_TO_PLAYER_INCOMING_GUILD_REQUEST, ZO_SELECTED_TEXT:Colorize(formattedInviterName), guildNameAlliance),
-				function()
-					AcceptGuildInvite(guildId)
-				end,
-				function()
-					RejectGuildInvite(guildId)
-				end,
-				function()
-					PLAYER_TO_PLAYER:RemoveFromIncomingQueue(INTERACT_TYPE_GUILD_INVITE, formattedInviterName)
-				end)
-			if data then
-			    data.guildId = guildId
-			end
+local function DeclinePendingGuildInvites()
+	local guildIds = {}
+	for index = 1, GetNumGuildInvites() do
+		guildIds[index] = GetGuildInviteInfo(index)
+	end
+	-- Snapshot the list before rejecting: the game may update it asynchronously.
+	for _, guildId in ipairs(guildIds) do
+		RejectGuildInvite(guildId)
+	end
+end
+
+local function SetGuildInviteMode(mode)
+	SV.guildInviteMode = mode
+	if mode ~= 0 then
+		RemoveGuildInvitePrompts()
+	end
+	if mode == 2 then
+		DeclinePendingGuildInvites()
+	end
+	NOTIFICATIONS:RefreshNotificationList()
+	GAMEPAD_NOTIFICATIONS:RefreshNotificationList()
+end
+
+local function HookGuildInvitesNotifications()
+	if SV.guildInviteMode == nil then
+		SV.guildInviteMode = SV.guildInvites == 1 and 1 or 0
+	end
+	ZO_PreHook(ZO_GuildInviteProvider, "BuildNotificationList", function(self)
+		if SV.guildInviteMode == 2 then
+			ZO_ClearNumericallyIndexedTable(self.list)
+			return true
 		end
 	end)
 end
+
+local function HookPlayerToPlayerGuildInvite()
+	ZO_PostHook(PLAYER_TO_PLAYER, "AddPromptToIncomingQueue", function(self, interactType)
+		if SV.guildInviteMode ~= 0 and interactType == ZO_INTERACT_TYPE.GUILD_INVITE then
+			RemoveGuildInvitePrompts()
+		end
+	end)
+	local function OnGuildInviteAdded(eventCode, guildId)
+		if SV.guildInviteMode == 2 then
+			RejectGuildInvite(guildId)
+		end
+	end
+	local function OnGuildInvitesReady()
+		if SV.guildInviteMode ~= 0 then
+			RemoveGuildInvitePrompts()
+		end
+		if SV.guildInviteMode == 2 then
+			DeclinePendingGuildInvites()
+		end
+	end
+	EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "GuildInvites", EVENT_GUILD_INVITE_ADDED, OnGuildInviteAdded)
+	EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "GuildInvites", EVENT_GUILD_INVITES_INITIALIZED, OnGuildInvitesReady)
+	EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "GuildInvites", EVENT_PLAYER_ACTIVATED, OnGuildInvitesReady)
+end
+--[[ END of New Guild Invite and function handlers ]]--
 
 --New Guild Applications notifications
 local function HookGuildNewApplicationsNotifications()
@@ -692,9 +692,7 @@ local function HookGuildNewApplicationsNotifications()
             return true
         end
     end
-	if ZO_GuildNewApplicationsProvider and ZO_GuildNewApplicationsProvider.BuildNotificationList then
-	    ZO_PreHook(ZO_GuildNewApplicationsProvider, "BuildNotificationList", BuildNotificationList_Hook)
-	end
+	ZO_PreHook(ZO_GuildNewApplicationsProvider, "BuildNotificationList", BuildNotificationList_Hook)
 end
 
 -- Aya: Don't interrupt on mailScenes anymore due to RequestOpenMailbox() - sec issue I guess
@@ -882,7 +880,16 @@ end
 
 local function HookFastTravelDialogs()
 	local function ShowDialog_Hook(name, data)
-		if name == "FAST_TRAVEL_CONFIRM" then
+		if name == "TRAVEL_TO_HOUSE_CONFIRM" then
+			if SV.ownedHouseTravel == 0
+				or not IsCollectibleUnlocked(GetCollectibleIdForHouse(data.houseId)) then
+				return
+			end
+			PlaySound(SOUNDS.MAP_WAYSHRINE_TELEPORT)
+			RequestJumpToHouse(data.houseId, SV.ownedHouseTravel == 2)
+			SCENE_MANAGER:ShowBaseScene()
+			return true
+		elseif name == "FAST_TRAVEL_CONFIRM" then
 			if not SV.fastTravelDialog then
 				return
 			end
@@ -904,6 +911,22 @@ local function HookFastTravelDialogs()
 	end
 	ZO_PreHook("ZO_Dialogs_ShowPlatformDialog", ShowDialog_Hook)
 	ZO_PreHook("ZO_Dialogs_ShowDialog", ShowDialog_Hook)
+
+	-- Keep the game's house handlers and their normal travel eligibility checks.
+	local handlers = ZO_MapPin.PIN_CLICK_HANDLERS[MOUSE_BUTTON_INDEX_LEFT][MAP_PIN_TYPE_FAST_TRAVEL_WAYSHRINE]
+	for _, handler in ipairs(handlers) do
+		if handler.GetDynamicHandlers then
+			local getHandlers = handler.GetDynamicHandlers
+			handler.GetDynamicHandlers = function(pin)
+				local choices = getHandlers(pin)
+				local nodeIndex = pin:GetFastTravelNodeIndex()
+				if SV.ownedHouseTravel ~= 0 and HasCompletedFastTravelNodePOI(nodeIndex) then
+					return {choices[SV.ownedHouseTravel]}
+				end
+				return choices
+			end
+		end
+	end
 end
 
 local function HookFenceDialog()
@@ -971,19 +994,12 @@ local function HookLargeGroupDialog()
 			end
 		end
 	end
-	ZO_PreHook("ZO_Dialogs_ShowDialog", ShowDialog_Hook)
-	local handlers = ZO_AlertText_GetHandlers()
-	if not handlers or not handlers[EVENT_GROUP_TYPE_CHANGED] then
-		return
-	end
-	local function GroupTypeChanged_Hook()
-		return SV.largeGroupDialog
-	end
-	ZO_PreHook(
-		handlers,
-		EVENT_GROUP_TYPE_CHANGED,
-		GroupTypeChanged_Hook
-	)
+	ZO_PreHook("ZO_Dialogs_ShowPlatformDialog", ShowDialog_Hook)
+	ZO_PreHook(CHAT_ROUTER, "FormatAndAddChatMessage", function(_, eventType)
+		if eventType == EVENT_GROUP_TYPE_CHANGED and SV.largeGroupDialog then
+			return true
+		end
+	end)
 end
 
 local function HookImproveDialog()
@@ -1173,6 +1189,57 @@ local function OnLuaError(_, errorString, errorCode)
 	table.insert(errorState.provider.notifications, notification)
 	errorState.provider:UpdateNotifications()
 end
+
+local function RefreshMapPins()
+	ZO_WorldMap_RefreshWayshrines()
+	ZO_WorldMap_RefreshAllPOIs()
+end
+
+local function RemovePinsFromMaps()
+	local housePOIs = {}
+	local function HideMapPin(_, pinType, tag)
+		if GetMapType() == MAPTYPE_COSMIC then
+			return
+		end
+		local nodeIndex
+		local houseId
+		local poiType
+		if pinType == MAP_PIN_TYPE_FAST_TRAVEL_WAYSHRINE
+			or pinType == MAP_PIN_TYPE_FAST_TRAVEL_WAYSHRINE_CURRENT_LOC then
+			nodeIndex = tag[1]
+			houseId = GetFastTravelNodeHouseId(nodeIndex)
+		elseif ZO_MapPin.POI_PIN_TYPES[pinType] then
+			poiType = GetPOIType(tag[1], tag[2])
+			if poiType == POI_TYPE_HOUSE then
+				local houses = housePOIs[tag[1]]
+				houseId = houses and houses[tag[2]]
+			end
+		else
+			return
+		end
+		if houseId and houseId ~= 0 then
+			local setting = SV.unownedHouses
+			if IsCollectibleUnlocked(GetCollectibleIdForHouse(houseId)) then
+				setting = SV.ownedHouses
+			end
+			return setting == 2
+		end
+	end
+	local function InstallMapPinFilter()
+		EVENT_MANAGER:UnregisterForEvent(ADDON_NAME .. "MapPins", EVENT_PLAYER_ACTIVATED)
+		for nodeIndex = 1, GetNumFastTravelNodes() do
+			local houseId = GetFastTravelNodeHouseId(nodeIndex)
+			if houseId ~= 0 then
+				local zoneIndex, poiIndex = GetFastTravelNodePOIIndicies(nodeIndex)
+				housePOIs[zoneIndex] = housePOIs[zoneIndex] or {}
+				housePOIs[zoneIndex][poiIndex] = houseId
+			end
+		end
+		ZO_PreHook(ZO_WorldMap_GetPinManager(), "CreatePin", HideMapPin)
+	end
+	EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "MapPins", EVENT_PLAYER_ACTIVATED, InstallMapPinFilter)
+end
+
 
 local function HandleLuaErrorEvent()
 	EVENT_MANAGER:UnregisterForEvent(ADDON_NAME .. "LuaError", EVENT_LUA_ERROR)
@@ -1401,6 +1468,20 @@ local function BuildSettingsMenu()
 			setFunc = function(value) SV.recallDialog = value end,
 			default = defaults.recallDialog,
 		},
+		{
+			type = "dropdown",
+			name = GetString(NOTYOU_FAST_TRAVEL_HOUSE),
+			tooltip = GetString(NOTYOU_FAST_TRAVEL_HOUSE_TOOLTIP),
+			choices = {
+				GetString(NOTYOU_FAST_TRAVEL_HOUSE_NORMAL),
+				GetString(NOTYOU_FAST_TRAVEL_HOUSE_INSIDE),
+				GetString(NOTYOU_FAST_TRAVEL_HOUSE_OUTSIDE),
+			},
+			choicesValues = {0, 1, 2},
+			getFunc = function() return SV.ownedHouseTravel end,
+			setFunc = function(value) SV.ownedHouseTravel = value end,
+			default = defaults.ownedHouseTravel,
+		},
 		---[[ Confirmation dialog when selling rare items to fence ]]---
 		{
 			type = "header",
@@ -1520,9 +1601,9 @@ local function BuildSettingsMenu()
 			name = GetString(NOTYOU_GUILDS),
 			tooltip = GetString(NOTYOU_GUILDS_TOOLTIP),
 			choices = guildInvites,
-			getFunc = function() return guildInvites[SV.guildInvites + 1] end,
-			setFunc = function(value) SV.guildInvites = guildInvitesLookup[value] end,
-			default = guildInvites[defaults.guildInvites + 1],
+			getFunc = function() return guildInvites[SV.guildInviteMode + 1] end,
+			setFunc = function(value) SetGuildInviteMode(guildInvitesLookup[value]) end,
+			default = guildInvites[1],
 		},
 		{
 			type = "checkbox",
@@ -1675,6 +1756,33 @@ local function BuildSettingsMenu()
 			getFunc = function() return SV.noBindAlert end,
 			setFunc = function(value) SV.noBindAlert = value end,
 			default = defaults.noBindAlert,
+		},
+		---[[ Map ]]---
+		{
+			type = "header",
+			name = ZO_HIGHLIGHT_TEXT:Colorize(GetString(SI_MAIN_MENU_MAP)),
+		},
+		{
+			type = "checkbox",
+			name = GetString(NOTYOU_OWNED_HOUSES),
+			tooltip = GetString(NOTYOU_OWNED_HOUSES_TOOLTIP),
+			getFunc = function() return SV.ownedHouses == 2 end,
+			setFunc = function(value)
+				SV.ownedHouses = value and 2 or 0
+				RefreshMapPins()
+			end,
+			default = false,
+		},
+		{
+			type = "checkbox",
+			name = GetString(NOTYOU_UNOWNED_HOUSES),
+			tooltip = GetString(NOTYOU_UNOWNED_HOUSES_TOOLTIP),
+			getFunc = function() return SV.unownedHouses == 2 end,
+			setFunc = function(value)
+				SV.unownedHouses = value and 2 or 0
+				RefreshMapPins()
+			end,
+			default = false,
 		},
 		---[[ Quests ]]---
 		{
@@ -1930,6 +2038,16 @@ local function OnAddonLoaded(event, name)
 	if name == ADDON_NAME then
 		EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, event)
 		SV = ZO_SavedVars:NewAccountWide("NO_THANK_YOU_VARS", 2, nil, defaults)
+		SV.hideTamriel = false
+		SV.hideTamrielWayhsrines = 0
+		SV.hideTamrielDungeons = 0
+		if SV.ownedHouses == 1 then
+			SV.ownedHouses = 0
+		end
+		if SV.unownedHouses == 1 then
+			SV.unownedHouses = 0
+		end
+		RemovePinsFromMaps()
 		--set hooks
 		HookAvAMessages()
 		HookGroupZoneMessages()

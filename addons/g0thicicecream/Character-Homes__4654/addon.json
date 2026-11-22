@@ -8,6 +8,10 @@
   "category_id": "160",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -74,10 +78,10 @@
     "CharacterHomes"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4654/",
-  "fingerprint": "9ade1d14c75262aef8add585be76b2803f7d995546c36f5fe39c06f61fa5f120",
+  "fingerprint": "63e381e9511683a40ccab576fd7e79312bec76bc3c70dc91904731b47916f1ee",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw16426.png",
-    "https://cdn-eso.mmoui.com/preview/pvw16425.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18694.png",
+    "https://cdn-eso.mmoui.com/preview/pvw16426.png"
   ],
   "platform": "pc",
   "published": true,
@@ -85,11 +89,11 @@
   "source_id": "4654",
   "source_url": "https://www.esoui.com/downloads/info4654-CharacterHomes.html",
   "stats": {
-    "downloads": 307,
+    "downloads": 392,
     "favorites": 2,
-    "monthly_downloads": 121
+    "monthly_downloads": 110
   },
   "title": "Character Homes",
-  "updated_at": 1793574299000,
-  "version": "1.4.0"
+  "updated_at": 1795293024000,
+  "version": "1.4.1"
 }

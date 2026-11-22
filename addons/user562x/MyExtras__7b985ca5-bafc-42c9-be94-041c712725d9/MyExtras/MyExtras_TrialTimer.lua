@@ -8,10 +8,8 @@ ME.TrialTimer = TT
 --------------------------------------------------
 local EVENT_NAME    = ME.name .. "_TrialTimer"
 local TICK_MS       = 500
+local PART_GAP      = 5
 local MOVE_SPEED    = 500
-local SPREAD_MIN    = 1
-local SPREAD_MAX    = 30
-local SPREAD_SPEED  = 12
 local SCALE_SPEED   = 10
 local SIZE_MIN      = 18
 local SIZE_MAX      = 60
@@ -34,7 +32,7 @@ local DEFAULTS = {
     trialTimerBest              = true,
     trialTimerFont              = "EsoUI/Common/Fonts/FTN57.otf",
     trialTimerSize              = 30,
-    trialTimerGap               = 5,
+    trialTimerStretch           = 100,
     trialTimerColor             = { r = 1, g = 1, b = 1, a = 1 },
     trialTimerPosX              = 0,
     trialTimerPosY              = -440,
@@ -130,7 +128,7 @@ local function BuildText(info, size)
         scoreText = scoreText and (scoreText .. " (" .. bestText .. ")") or bestText
     end
     if scoreText then parts[#parts + 1] = Part(ICON_SCORE, scoreText, iconSize) end
-    return table.concat(parts, string.rep(" ", tonumber(sv.trialTimerGap) or DEFAULTS.trialTimerGap))
+    return table.concat(parts, string.rep(" ", PART_GAP))
 end
 
 local function SampleText()
@@ -230,6 +228,7 @@ function TT:ApplyPosition()
     local sv = SV()
     self.panel:ClearAnchors()
     self.panel:SetAnchor(CENTER, GuiRoot, CENTER, sv.trialTimerPosX, sv.trialTimerPosY)
+    ME:ApplyStretch(self.panel, SV().trialTimerStretch)
 end
 
 function TT:Render(force)
@@ -356,9 +355,9 @@ function TT.mover:UpdateDirectionalInput(deltaS)
     if x ~= 0 or y ~= 0 then
         TT:SetPosition(TT.moveX + x * MOVE_SPEED * deltaS, TT.moveY - y * MOVE_SPEED * deltaS)
     end
-    local spreadX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(spreadX) > math.abs(scaleY) then
-        TT:SetSpread(TT.moveSpread + spreadX * SPREAD_SPEED * deltaS)
+    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
+    if math.abs(stretchX) > math.abs(scaleY) then
+        TT:SetStretch(TT.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
     elseif scaleY ~= 0 then
         TT:SetScale(TT.moveSize + scaleY * SCALE_SPEED * deltaS)
     end
@@ -404,18 +403,16 @@ function TT:SetScale(size)
     end
 end
 
-function TT:SetSpread(value)
-    self.moveSpread = zo_clamp(value, SPREAD_MIN, SPREAD_MAX)
-    local rounded = zo_floor(self.moveSpread + 0.5)
+function TT:SetStretch(value)
+    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
+    local rounded = zo_floor(self.moveStretch + 0.5)
     local sv = SV()
-    if sv.trialTimerGap ~= rounded then
-        sv.trialTimerGap = rounded
-        self:Render(true)
-    end
+    if sv.trialTimerStretch ~= rounded then sv.trialTimerStretch = rounded end
+    ME:ApplyStretch(self.panel, rounded)
 end
 
 function TT:MoveToDefault()
-    self:SetSpread(DEFAULTS.trialTimerGap)
+    self:SetStretch(100)
     self:SetScale(DEFAULTS.trialTimerSize)
     self:SetPosition(DEFAULTS.trialTimerPosX, DEFAULTS.trialTimerPosY)
 end
@@ -453,8 +450,8 @@ function TT:OnMoveShowing()
     self.moveStartSize = sv.trialTimerSize
     self.moveX, self.moveY = sv.trialTimerPosX, sv.trialTimerPosY
     self.moveSize = sv.trialTimerSize
-    self.moveStartSpread = sv.trialTimerGap or DEFAULTS.trialTimerGap
-    self.moveSpread = sv.trialTimerGap or DEFAULTS.trialTimerGap
+    self.moveStartStretch = sv.trialTimerStretch or 100
+    self.moveStretch = sv.trialTimerStretch or 100
     KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
     DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
     ME:SetPlacing(true)
@@ -467,7 +464,7 @@ function TT:OnMoveHidden()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
     if not self.moveSaved then
         self:SetScale(self.moveStartSize)
-        self:SetSpread(self.moveStartSpread)
+        self:SetStretch(self.moveStartStretch)
         self:SetPosition(self.moveStartX, self.moveStartY)
     end
     self.moving = false
@@ -534,7 +531,7 @@ function TT:SubmenuOption()
                 type       = "button",
                 name       = "Move / Scale",
                 buttonText = "Move / Scale",
-                tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right makes it longer or shorter.",
+                tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right stretches it wider or narrower.",
                 func       = function() TT:StartMove() end,
             },
             {

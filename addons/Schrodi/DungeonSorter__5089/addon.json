@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Schrodi/DungeonSorter__5089",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5089",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5089",
+  "deleted": false,
+  "directories": [
+    "DungeonSorter"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5089/",
+  "fingerprint": "b9d0ba94d5f69f4851fd115b6425398a31bf30908b487d56a5d1bd1142eb5638",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5089",
+  "source_url": "https://www.esoui.com/downloads/info5089-DungeonSorter.html",
+  "stats": {
+    "downloads": 4,
+    "favorites": 0,
+    "monthly_downloads": 3
+  },
+  "title": "DungeonSorter",
+  "updated_at": 1795274781000,
+  "version": "1.0"
+}

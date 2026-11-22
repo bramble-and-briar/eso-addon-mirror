@@ -12,9 +12,6 @@ local EMPTY_COLOR   = "8C8C8C"
 local TITLE_TEXT    = "Equipped Sets"
 local REFRESH_MS    = 100
 local MOVE_SPEED    = 500
-local SPREAD_MIN    = 0
-local SPREAD_MAX    = 400
-local SPREAD_SPEED  = 150
 local SCALE_SPEED   = 10
 local SIZE_MIN      = 16
 local SIZE_MAX      = 48
@@ -36,7 +33,7 @@ Gear.defaults = {
     gearTitle         = true,
     gearFont          = "EsoUI/Common/Fonts/FTN57.otf",
     gearSize          = 24,
-    gearSpread        = 0,
+    gearStretch       = 100,
     gearCompleteStyle = "Alliance",
     gearCompleteColor = { r = 1, g = 1, b = 1, a = 1 },
     gearPartialStyle  = "Custom",
@@ -351,7 +348,7 @@ function Gear:ApplyBox(width, height)
     self.box:SetCorner(math.max(6, size * BOX_CORNER))
     self.box.control:ClearAnchors()
     self.box.control:SetAnchor(TOPLEFT, self.panel, TOPLEFT, -padX, -padY)
-    self.box.control:SetDimensions(zo_ceil(width) + (tonumber(sv.gearSpread) or 0) + padX * 2, zo_ceil(height) + padY * 2)
+    self.box.control:SetDimensions(zo_ceil(width) + padX * 2, zo_ceil(height) + padY * 2)
 end
 
 function Gear:ApplyPosition()
@@ -359,6 +356,7 @@ function Gear:ApplyPosition()
     local sv = SV()
     self.panel:ClearAnchors()
     self.panel:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, sv.gearPosX, sv.gearPosY)
+    ME:ApplyStretch(self.panel, SV().gearStretch)
 end
 
 function Gear:Render()
@@ -483,9 +481,9 @@ function Gear.mover:UpdateDirectionalInput(deltaS)
     if x ~= 0 or y ~= 0 then
         Gear:SetPosition(Gear.moveX + x * MOVE_SPEED * deltaS, Gear.moveY - y * MOVE_SPEED * deltaS)
     end
-    local spreadX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(spreadX) > math.abs(scaleY) then
-        Gear:SetSpread(Gear.moveSpread + spreadX * SPREAD_SPEED * deltaS)
+    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
+    if math.abs(stretchX) > math.abs(scaleY) then
+        Gear:SetStretch(Gear.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
     elseif scaleY ~= 0 then
         Gear:SetScale(Gear.moveSize + scaleY * SCALE_SPEED * deltaS)
     end
@@ -530,18 +528,16 @@ function Gear:SetScale(size)
     end
 end
 
-function Gear:SetSpread(value)
-    self.moveSpread = zo_clamp(value, SPREAD_MIN, SPREAD_MAX)
-    local rounded = zo_floor(self.moveSpread + 0.5)
+function Gear:SetStretch(value)
+    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
+    local rounded = zo_floor(self.moveStretch + 0.5)
     local sv = SV()
-    if sv.gearSpread ~= rounded then
-        sv.gearSpread = rounded
-        self:Render()
-    end
+    if sv.gearStretch ~= rounded then sv.gearStretch = rounded end
+    ME:ApplyStretch(self.panel, rounded)
 end
 
 function Gear:MoveToDefault()
-    self:SetSpread(Gear.defaults.gearSpread)
+    self:SetStretch(100)
     self:SetScale(self.defaults.gearSize)
     self:SetPosition(self.defaults.gearPosX, self.defaults.gearPosY)
 end
@@ -579,8 +575,8 @@ function Gear:OnMoveShowing()
     self.moveStartSize = sv.gearSize
     self.moveX, self.moveY = sv.gearPosX, sv.gearPosY
     self.moveSize = sv.gearSize
-    self.moveStartSpread = sv.gearSpread or Gear.defaults.gearSpread
-    self.moveSpread = sv.gearSpread or Gear.defaults.gearSpread
+    self.moveStartStretch = sv.gearStretch or 100
+    self.moveStretch = sv.gearStretch or 100
     KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
     DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
     ME:SetPlacing(true)
@@ -593,7 +589,7 @@ function Gear:OnMoveHidden()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
     if not self.moveSaved then
         self:SetScale(self.moveStartSize)
-        self:SetSpread(self.moveStartSpread)
+        self:SetStretch(self.moveStartStretch)
         self:SetPosition(self.moveStartX, self.moveStartY)
     end
     self.moving = false
@@ -953,7 +949,7 @@ function Gear:SettingOptions()
             type       = "button",
             name       = "Move / Scale",
             buttonText = "Move / Scale",
-            tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right makes it longer or shorter.",
+            tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right stretches it wider or narrower.",
             func       = function() Gear:StartMove() end,
         },
         {
@@ -1203,14 +1199,25 @@ function Gear:SettingOptions()
     return self.settingOptions
 end
 
-function Gear:BuildPageOptions()
+function Gear:EquippedOptions()
     local options = {}
-    local settings = self:SettingOptions()
-    for i = 1, #settings do options[#options + 1] = settings[i] end
     AddSection(options, "Armor", ARMOR)
     AddSection(options, "Jewelry", JEWELRY)
     AddSection(options, "Front Bar", FRONT)
     AddSection(options, "Back Bar", BACK)
+    return options
+end
+
+function Gear:BuildPageOptions()
+    local options = {}
+    local settings = self:SettingOptions()
+    for i = 1, #settings do options[#options + 1] = settings[i] end
+    options[#options + 1] = {
+        type    = "submenu",
+        name    = "Equipped",
+        tooltip = "Everything you have equipped right now. Highlight an item to see its details.",
+        options = function() return Gear:EquippedOptions() end,
+    }
     self.pageOptions = options
     self.dirty = false
     return options

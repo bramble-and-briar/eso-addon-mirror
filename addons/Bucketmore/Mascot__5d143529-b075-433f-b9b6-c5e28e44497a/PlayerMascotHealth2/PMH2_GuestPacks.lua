@@ -1,5 +1,5 @@
--- PlayerMascotHealth2 v2.0.7 - GUEST characters (one definition per guest, files in guests/<id>/)
--- The settings show guests in their own "Guest" dropdown (a guest can be renamed there). Rules (see GUEST_ID_LEDGER.md, not shipped):
+-- PlayerMascotHealth2 v2.0.9 - GUEST characters (one definition per guest, files in guests/<id>/)
+-- The settings show guests in their own "Guest" dropdown. The guest's name is the `name` below (it cannot be changed in the game). Rules (see GUEST_ID_LEDGER.md, not shipped):
 --   * id = guest_NNN (digits), lower case. It is the key of the guest's saved settings: NEVER change it and NEVER reuse it for another person.
 --   * "guest = true" is what puts a character into the Guest dropdown; the id must start with guest_ or the definition is refused.
 --   * sortKey "50-NNN"; the file names below are the same as in packs/ (sheet = 1024x512 DDS, 4x2 cells of 256x256, 8 FPS).
@@ -8,7 +8,7 @@
 
 PMH2_PackQueue = PMH2_PackQueue or {}
 
--- guest_001: "カフカ" (name = the original display name; the user can rename it in the settings)
+-- guest_001: "カフカ" (name = the display name shown in the Guest dropdown; set it when the pack is made)
 table.insert(PMH2_PackQueue, {
     format = 1,
     guest = true,

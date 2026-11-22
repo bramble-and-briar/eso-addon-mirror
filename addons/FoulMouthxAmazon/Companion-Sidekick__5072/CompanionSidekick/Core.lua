@@ -276,9 +276,8 @@ function C.Init(_,name)
         EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED,EVENT_QUEST_ADDED,EVENT_QUEST_ADVANCED,
         EVENT_QUEST_REMOVED,EVENT_QUEST_COMPLETE,EVENT_COLLECTIBLE_UPDATED,EVENT_ACHIEVEMENT_UPDATED}
     for _,event in ipairs(events)do EM:RegisterForEvent(C.name,event,C.Schedule)end
-    EM:RegisterForEvent(C.name,EVENT_INVENTORY_SINGLE_SLOT_UPDATE,function(_,bag)
-        if bag==BAG_COMPANION_WORN then C.Schedule()end
-    end)
+    EM:RegisterForEvent(C.name,EVENT_INVENTORY_SINGLE_SLOT_UPDATE,C.Schedule)
+    EM:AddFilterForEvent(C.name,EVENT_INVENTORY_SINGLE_SLOT_UPDATE,REGISTER_FILTER_BAG_ID,BAG_COMPANION_WORN)
     C.Refresh()
 end
 EM:RegisterForEvent(C.name,EVENT_ADD_ON_LOADED,C.Init)

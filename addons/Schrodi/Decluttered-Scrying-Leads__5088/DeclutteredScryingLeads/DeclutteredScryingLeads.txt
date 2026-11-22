@@ -1,0 +1,10 @@
+## Title: Decluttered Scrying Leads
+## Author: Schrodi
+## Version: 2.0.0
+## AddOnVersion: 200
+## APIVersion: 101051
+## Description: A filter dropdown for the Antiquities journal's All Leads list: hide antiquities you've already dug up unless their reward or codex is worth digging again.
+## SavedVariables: DeclutteredScryingLeads_SV
+## OptionalDependsOn: tim99sColoredLists
+
+DeclutteredScryingLeads.lua

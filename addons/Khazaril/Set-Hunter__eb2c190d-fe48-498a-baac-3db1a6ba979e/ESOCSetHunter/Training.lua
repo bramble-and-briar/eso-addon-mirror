@@ -9,7 +9,20 @@ local I, sv, W
 local DIALOG = "ESOC_SETHUNTER_KIT"
 local CRAFT_TIMEOUT = 30000
 local STEP_DELAY = 900
+local LOCK_CHECK_DELAY = 400
 local NO_TRAIT = 1 -- LibLazyCrafting's trait index is the game's trait type plus one
+
+-- Staves use Magicka. Every other weapon uses Stamina.
+local FOCUS = {
+    magicka = {
+        name = "Magicka", armor = 26582, armorName = "Max Magicka", weapon = 45868, weaponName = "Absorb Magicka",
+        jewelry = 45884, jewelryName = "Increase Magical Harm", trait = ITEM_TRAIT_TYPE_JEWELRY_ARCANE, traitName = "Arcane",
+    },
+    stamina = {
+        name = "Stamina", armor = 26588, armorName = "Max Stamina", weapon = 45867, weaponName = "Absorb Stamina",
+        jewelry = 45883, jewelryName = "Increase Physical Harm", trait = ITEM_TRAIT_TYPE_JEWELRY_ROBUST, traitName = "Robust",
+    },
+}
 
 -- Each set is found through one of its items, so names follow the game's language.
 local SETS = {
@@ -20,14 +33,17 @@ local SETS = {
     torug = { item = 50708, name = "Torug's Pact", where = "Grahtwood, Stormhaven or Deshaan" },
     ashen = { item = 49563, name = "Ashen Grip", where = "Auridon, Glenumbra or Stonefalls" },
     seducer = { item = 48031, name = "Armor of the Seducer", where = "Grahtwood, Stormhaven or Deshaan" },
+    innate = { item = 130370, name = "Innate Axiom", where = "Clockwork City" },
+    night = { item = 47265, name = "Night's Silence", where = "Auridon, Glenumbra or Stonefalls" },
+    twilight = { item = 46882, name = "Twilight's Embrace", where = "Grahtwood, Stormhaven or Deshaan" },
 }
 
 local RECIPES = {
-    { name = "All-rounder", body = "order", gear = "adept", note = "Critical hits for any class, plus 30% run speed." },
-    { name = "Maximum XP", body = "adept", gear = "heartland", note = "Run speed, and Heartland doubles the weapon's Training." },
-    { name = "Solo with a companion", body = "telvanni", gear = "adept", note = "Companion abilities recharge faster, plus run speed." },
-    { name = "No DLC, melee", body = "torug", gear = "ashen", note = "Extra armor and health, plus fire breath on melee hits." },
-    { name = "No DLC, magicka", body = "seducer", gear = "torug", note = "Magicka abilities cost 10% less." },
+    { name = "All-rounder", body = "order", gear = "adept", head = "innate", note = "Critical hits for any class, plus 30% run speed." },
+    { name = "Maximum XP", body = "adept", gear = "heartland", head = "innate", note = "Run speed, and Heartland doubles the weapon's Training." },
+    { name = "Solo with a companion", body = "telvanni", gear = "adept", head = "innate", note = "Companion abilities recharge faster, plus run speed." },
+    { name = "No DLC, melee", body = "torug", gear = "ashen", head = "night", note = "Extra armor and health, plus fire breath on melee hits." },
+    { name = "No DLC, magicka", body = "seducer", gear = "torug", head = "twilight", note = "Magicka abilities cost 10% less." },
 }
 
 local LEVELS = { 1, 16, 26, 36, 46 }
@@ -43,22 +59,26 @@ local MIXED = { Head = "Heavy", Shoulders = "Medium", Chest = "Light", Hands = "
 local BODY_SLOTS = { "Head", "Shoulders", "Chest", "Hands", "Waist", "Legs", "Feet" }
 
 local WEAPONS = {
-    { name = "Greatsword", station = CRAFTING_TYPE_BLACKSMITHING, pattern = 6 },
-    { name = "Battle Axe", station = CRAFTING_TYPE_BLACKSMITHING, pattern = 4 },
-    { name = "Maul", station = CRAFTING_TYPE_BLACKSMITHING, pattern = 5 },
-    { name = "Bow", station = CRAFTING_TYPE_WOODWORKING, pattern = 1 },
-    { name = "Inferno Staff", station = CRAFTING_TYPE_WOODWORKING, pattern = 3 },
-    { name = "Ice Staff", station = CRAFTING_TYPE_WOODWORKING, pattern = 4 },
-    { name = "Lightning Staff", station = CRAFTING_TYPE_WOODWORKING, pattern = 5 },
-    { name = "Restoration Staff", station = CRAFTING_TYPE_WOODWORKING, pattern = 6 },
+    { name = "Greatsword", station = CRAFTING_TYPE_BLACKSMITHING, pattern = 6, weaponType = WEAPONTYPE_TWO_HANDED_SWORD },
+    { name = "Battle Axe", station = CRAFTING_TYPE_BLACKSMITHING, pattern = 4, weaponType = WEAPONTYPE_TWO_HANDED_AXE },
+    { name = "Maul", station = CRAFTING_TYPE_BLACKSMITHING, pattern = 5, weaponType = WEAPONTYPE_TWO_HANDED_HAMMER },
+    { name = "Bow", station = CRAFTING_TYPE_WOODWORKING, pattern = 1, weaponType = WEAPONTYPE_BOW },
+    { name = "Inferno Staff", station = CRAFTING_TYPE_WOODWORKING, pattern = 3, weaponType = WEAPONTYPE_FIRE_STAFF, staff = true },
+    { name = "Ice Staff", station = CRAFTING_TYPE_WOODWORKING, pattern = 4, weaponType = WEAPONTYPE_FROST_STAFF, staff = true },
+    { name = "Lightning Staff", station = CRAFTING_TYPE_WOODWORKING, pattern = 5, weaponType = WEAPONTYPE_LIGHTNING_STAFF, staff = true },
+    { name = "Restoration Staff", station = CRAFTING_TYPE_WOODWORKING, pattern = 6, weaponType = WEAPONTYPE_HEALING_STAFF, staff = true },
 }
 
+local EQUIP = {
+    Head = EQUIP_TYPE_HEAD, Shoulders = EQUIP_TYPE_SHOULDERS, Chest = EQUIP_TYPE_CHEST, Hands = EQUIP_TYPE_HAND,
+    Waist = EQUIP_TYPE_WAIST, Legs = EQUIP_TYPE_LEGS, Feet = EQUIP_TYPE_FEET,
+}
+local ARMOR_TYPE = { Light = ARMORTYPE_LIGHT, Medium = ARMORTYPE_MEDIUM, Heavy = ARMORTYPE_HEAVY }
+
 local QUALITY_NAME = { [1] = "White", [2] = "Green", [3] = "Blue", [4] = "Purple", [5] = "Gold" }
-local ARMOR_QUALITIES = { 2, 3, 4, 5 }
-local WEAPON_QUALITIES = { 2, 3, 4 } -- a training weapon never goes above purple
-local JEWELRY_QUALITIES = { 1, 2, 3 } -- jewelry upgrades are expensive, so it stops at blue
-local ARMOR_XP = { [2] = 8, [3] = 9, [4] = 10, [5] = 11 }
-local WEAPON_XP = { [2] = 6, [3] = 7, [4] = 8 }
+local ALL_QUALITIES = { 1, 2, 3, 4, 5 }
+local ARMOR_XP = { [1] = 7, [2] = 8, [3] = 9, [4] = 10, [5] = 11 }
+local WEAPON_XP = { [1] = 5, [2] = 6, [3] = 7, [4] = 8, [5] = 9 } -- two-handed
 
 local STATION_NAME = {
     [CRAFTING_TYPE_BLACKSMITHING] = "Blacksmithing",
@@ -100,27 +120,45 @@ function T.XpBonus(choice)
     return (ARMOR_XP[choice.armorQuality] or 8) * 7 + weapon
 end
 
--- The 11 pieces of a kit: 7 body pieces in one set, a two-handed weapon and 3 jewelry in the other.
+function T.Focus(weaponName)
+    return weaponNamed(weaponName).staff and FOCUS.magicka or FOCUS.stamina
+end
+
+-- Glyphs must not be above the gear's level, so this rounds down (level 16 gets a level 15 glyph).
+function T.GlyphLevel(level)
+    if level < 5 then return 1 end
+    if level > 40 then return 40 end
+    return level - level % 5
+end
+
+-- The 11 pieces of a kit: 5 body pieces in one set, a two-handed weapon and 3 jewelry in a second,
+-- and head and shoulders in a third for its 2-piece bonus. Kits started before this keep all 7 in one set.
 function T.Pieces(kit)
     local recipe, weapon = recipeNamed(kit.recipe), weaponNamed(kit.weapon)
+    local focus = T.Focus(kit.weapon)
     local pieces = {}
     for _, slot in ipairs(BODY_SLOTS) do
         local weight = kit.weight == "Mixed" and MIXED[slot] or kit.weight
         local armor = ARMOR[weight] or ARMOR.Light
         pieces[#pieces + 1] = {
             key = slot, label = kit.weight == "Mixed" and (slot .. " (" .. weight .. ")") or slot,
-            setKey = recipe.body, station = armor.station, pattern = armor[slot],
+            setKey = (kit.layout == 2 and (slot == "Head" or slot == "Shoulders")) and recipe.head or recipe.body,
+            station = armor.station, pattern = armor[slot],
             trait = ITEM_TRAIT_TYPE_ARMOR_TRAINING + 1, quality = kit.armorQuality,
+            equip = EQUIP[slot], armorType = ARMOR_TYPE[weight] or ARMORTYPE_LIGHT,
+            glyph = focus.armor, glyphName = focus.armorName,
         }
     end
     pieces[#pieces + 1] = {
         key = "Weapon", label = weapon.name, setKey = recipe.gear, station = weapon.station, pattern = weapon.pattern,
         trait = ITEM_TRAIT_TYPE_WEAPON_TRAINING + 1, quality = kit.weaponQuality,
+        weaponType = weapon.weaponType, glyph = focus.weapon, glyphName = focus.weaponName,
     }
-    for _, jewel in ipairs({ { "Neck", 2 }, { "Ring 1", 1 }, { "Ring 2", 1 } }) do
+    for _, jewel in ipairs({ { "Neck", 2, EQUIP_TYPE_NECK }, { "Ring 1", 1, EQUIP_TYPE_RING }, { "Ring 2", 1, EQUIP_TYPE_RING } }) do
         pieces[#pieces + 1] = {
             key = jewel[1], label = jewel[1], setKey = recipe.gear, station = CRAFTING_TYPE_JEWELRYCRAFTING,
-            pattern = jewel[2], trait = NO_TRAIT, quality = kit.jewelryQuality or 1, -- jewelry can't have Training
+            pattern = jewel[2], trait = focus.trait + 1, quality = kit.jewelryQuality or 1, -- jewelry can't have Training
+            equip = jewel[3], isJewelry = true, glyph = focus.jewelry, glyphName = focus.jewelryName,
         }
     end
     return pieces
@@ -164,7 +202,7 @@ local function buildRequest(piece, level, setId, style)
     return request
 end
 
-local function knowledgeProblem(request, setId)
+local function knowledgeProblem(request, setId, piece)
     local interaction = LibLazyCrafting.craftInteractionTables[request.station]
     local ok, reasons = pcall(interaction.getNonCraftableReasons, request)
     if not ok or not reasons then return "couldn't be checked" end
@@ -175,7 +213,7 @@ local function knowledgeProblem(request, setId)
         local info = LibLazyCrafting.GetSetIndexes()[setId]
         return "needs " .. tostring(info and info[3] or "more") .. " traits researched"
     end
-    if knowledge.trait then return "Training isn't researched" end
+    if knowledge.trait then return I.TraitName(piece.trait - 1) .. " isn't researched" end
     if missing.craftSkill then return "needs a higher crafting skill for this level" end
     if knowledge.style then return "style isn't known" end
     return nil
@@ -196,7 +234,7 @@ function T.PlanHere(skill)
                 plan.blocked[#plan.blocked + 1] = piece.label .. ": no style stones for a known style"
             else
                 local request = buildRequest(piece, kit.level, setId, style)
-                local problem = knowledgeProblem(request, setId)
+                local problem = knowledgeProblem(request, setId, piece)
                 if not problem and space < 1 then problem = "no free bag slot" end
                 local costs
                 if not problem then
@@ -233,12 +271,168 @@ function T.PlanHere(skill)
     return plan
 end
 
+---------------------------------------------------------------------------
+-- Glyphs for pieces already made
+---------------------------------------------------------------------------
+local function hasEnchant(link)
+    local ok, _, header = pcall(GetItemLinkEnchantInfo, link)
+    return ok and header ~= nil and header ~= ""
+end
+
+local function isKitPiece(link, kit, piece, setId, glyphLevel)
+    if I.SetIdOf(link) ~= setId or not IsItemLinkCrafted(link) then return false end
+    local equip, armor, weapon = I.LinkShape(link)
+    if piece.weaponType then
+        if weapon ~= piece.weaponType then return false end
+    elseif equip ~= piece.equip or (piece.armorType and armor ~= piece.armorType) then
+        return false
+    end
+    local trait = GetItemLinkTraitType(link)
+    -- Jewelry from a kit made before it had traits can still take a glyph
+    if trait ~= piece.trait - 1 and not (piece.isJewelry and trait == ITEM_TRAIT_TYPE_NONE) then return false end
+    local level = GetItemLinkRequiredLevel(link)
+    return level >= glyphLevel and level <= kit.level
+end
+
+-- Returns the bag and slot of a copy needing a glyph, or true if the only copy already has one.
+local function findKitCopy(kit, piece, setId, taken, glyphLevel)
+    local enchantedKey
+    for _, bag in ipairs({ BAG_WORN, BAG_BACKPACK }) do
+        for slot = 0, GetBagSize(bag) - 1 do
+            if GetItemId(bag, slot) ~= 0 then
+                local key = Id64ToString(GetItemUniqueId(bag, slot))
+                local link = GetItemLink(bag, slot)
+                if not taken[key] and isKitPiece(link, kit, piece, setId, glyphLevel) then
+                    if sv.enchanted[key] or hasEnchant(link) then
+                        enchantedKey = enchantedKey or key
+                    else
+                        taken[key] = true
+                        return bag, slot
+                    end
+                end
+            end
+        end
+    end
+    if enchantedKey then
+        taken[enchantedKey] = true
+        return true
+    end
+    return nil
+end
+
+-- A finished kit piece is locked so it can't be sold or deconstructed by accident.
+function T.LockFinished(job)
+    if GetItemId(job.bag, job.slot) == 0 or GetItemUniqueId(job.bag, job.slot) ~= job.uniqueId then return false end
+    if IsItemPlayerLocked(job.bag, job.slot) then return true end
+    if not CanItemBePlayerLocked(job.bag, job.slot) then
+        alert("couldn't lock " .. job.label)
+        return false
+    end
+    I.LockItem(job.bag, job.slot)
+    zo_callLater(function()
+        if GetItemId(job.bag, job.slot) ~= 0 and GetItemUniqueId(job.bag, job.slot) == job.uniqueId
+            and not IsItemPlayerLocked(job.bag, job.slot) then
+            alert("couldn't lock " .. job.label)
+        end
+    end, LOCK_CHECK_DELAY)
+    return true
+end
+
+function T.PlanGlyphs()
+    local kit = sv.kit
+    if not kit or not W.llc then return nil end
+    kit.glyphed = kit.glyphed or {}
+    sv.enchanted = sv.enchanted or {}
+    local plan = { kind = "glyph", jobs = {}, blocked = {}, runes = {}, runeOrder = {} }
+    local taken, usedGlyphs, reserved = {}, {}, {}
+    local glyphLevel = T.GlyphLevel(kit.level)
+    local hasSpace = (GetNumBagFreeSlots(BAG_BACKPACK) or 0) >= 1
+    for _, piece in ipairs(T.Pieces(kit)) do
+        if kit.made[piece.key] and not kit.glyphed[piece.key] then
+            local bag, slot = findKitCopy(kit, piece, setIdFor(piece.setKey), taken, glyphLevel)
+            if bag == true then
+                kit.glyphed[piece.key] = true
+            elseif not bag then
+                plan.blocked[#plan.blocked + 1] = piece.label .. ": not in your bags or worn"
+            else
+                local key = piece.key
+                local spec = { level = glyphLevel, quality = piece.quality }
+                local job = {
+                    bag = bag, slot = slot, uniqueId = GetItemUniqueId(bag, slot), glyphId = piece.glyph,
+                    glyphName = piece.glyphName, label = piece.label, spec = spec,
+                }
+                job.onDone = function()
+                    if sv.kit == kit then kit.glyphed[key] = true end
+                    T.LockFinished(job)
+                end
+                local glyphSlot = W.FindGlyph(piece.glyph, job, usedGlyphs, spec)
+                if glyphSlot then
+                    usedGlyphs[glyphSlot] = true
+                    job.glyphSlot = glyphSlot
+                    plan.jobs[#plan.jobs + 1] = job
+                else
+                    local ok, reason = false, "no free bag slot"
+                    if hasSpace then ok, reason = W.ReserveRunes(piece.glyph, reserved, spec) end
+                    if ok then
+                        job.craft = true
+                        plan.jobs[#plan.jobs + 1] = job
+                        local ids = { LibLazyCrafting.EnchantAttributesToGlyphIds(false, spec.level, W.EnchantIdFor(piece.glyph), spec.quality) }
+                        for _, id in ipairs(ids) do
+                            if not plan.runes[id] then
+                                plan.runes[id] = 0
+                                plan.runeOrder[#plan.runeOrder + 1] = id
+                            end
+                            plan.runes[id] = plan.runes[id] + 1
+                        end
+                    else
+                        plan.blocked[#plan.blocked + 1] = piece.label .. " " .. piece.glyphName .. ": " .. tostring(reason)
+                    end
+                end
+            end
+        end
+    end
+    return plan
+end
+
+function T.GlyphsLeft(kit)
+    local left = 0
+    for _, piece in ipairs(T.Pieces(kit)) do
+        if not (kit.glyphed and kit.glyphed[piece.key]) then left = left + 1 end
+    end
+    return left
+end
+
+local function glyphReviewText(plan)
+    local kit = sv.kit
+    local lines = { kit.recipe .. ", level " .. T.GlyphLevel(kit.level) .. " glyphs:" }
+    for _, job in ipairs(plan.jobs) do
+        lines[#lines + 1] = job.label .. ": " .. (job.craft and "craft and apply " or "apply ") .. job.glyphName
+            .. ", " .. QUALITY_NAME[job.spec.quality]
+    end
+    if #plan.jobs > 0 then lines[#lines + 1] = "\nEach piece is locked once its glyph is on." end
+    if #plan.runeOrder > 0 then
+        lines[#lines + 1] = "\nRunes:"
+        table.sort(plan.runeOrder)
+        for _, id in ipairs(plan.runeOrder) do
+            local link = itemLink(id)
+            local have = GetItemLinkInventoryCount(link, INVENTORY_COUNT_BAG_OPTION_BACKPACK_AND_BANK_AND_CRAFT_BAG) or 0
+            lines[#lines + 1] = zo_strformat("<<t:1>>", GetItemLinkName(link) or "Rune") .. ": have " .. have .. ", use " .. plan.runes[id]
+        end
+    end
+    if #plan.blocked > 0 then
+        lines[#lines + 1] = "\nCan't do yet:"
+        for _, reason in ipairs(plan.blocked) do lines[#lines + 1] = reason end
+    end
+    return table.concat(lines, "\n")
+end
+
 function T.ReviewText(plan)
+    if plan.kind == "glyph" then return glyphReviewText(plan) end
     local kit = sv.kit
     local lines = { kit.recipe .. ", level " .. kit.level .. ":" }
     for _, job in ipairs(plan.jobs) do
         local piece = job.piece
-        local trait = piece.trait == NO_TRAIT and "no trait" or "Training"
+        local trait = piece.trait == NO_TRAIT and "no trait" or I.TraitName(piece.trait - 1)
         lines[#lines + 1] = piece.label .. ": " .. SETS[piece.setKey].name .. ", " .. trait .. ", " .. QUALITY_NAME[piece.quality]
     end
     if #plan.order > 0 then
@@ -260,7 +454,8 @@ end
 -- Called when a station opens. Returns true if the kit has something to show here.
 function T.OfferHere(skill)
     if not sv.kit or T.run or not I.opts.offerAtStations then return false end
-    local ok, plan = pcall(T.PlanHere, skill)
+    local planner = skill == CRAFTING_TYPE_ENCHANTING and T.PlanGlyphs or T.PlanHere
+    local ok, plan = pcall(planner, skill)
     if not ok or not plan then return false end
     if #plan.jobs == 0 and #plan.blocked == 0 then return false end
     if #plan.jobs == 0 then
@@ -321,6 +516,7 @@ function T.ConfirmReview()
     T.reviewPlan = nil
     if not plan or T.run or #plan.jobs == 0 then return end
     if W.IsBusy() then return alert("wait for the current job to finish") end
+    if plan.kind == "glyph" then return W.StartGlyphPlan(plan) end
     T.run = { plan = plan, index = 0 }
     T.Next()
 end
@@ -377,10 +573,10 @@ function T.StartKit()
     end
     local kit = SH.DeepCopy(T.Choice())
     kit.made = {}
+    kit.layout = 2
     sv.kit = kit
     SH.Refresh()
-    local recipe = recipeNamed(kit.recipe)
-    alert("kit ready. Go to " .. SETS[recipe.body].name .. " in " .. SETS[recipe.body].where)
+    alert("kit ready. Use the Grandmaster tables in a guild house, or each set's zone")
     return true
 end
 
@@ -420,9 +616,13 @@ function T.PanelLines()
     local groups, made, total = T.Remaining()
     local lines = { I.Colour("66DD66", "Training kit: " .. sv.kit.recipe .. ", level " .. sv.kit.level .. "  " .. made .. "/" .. total) }
     for _, group in ipairs(groups) do
-        lines[#lines + 1] = I.Colour("AAAAAA", group.set.name .. " (" .. group.set.where .. "): " .. group.station .. " " .. group.count)
+        lines[#lines + 1] = I.Colour("AAAAAA", group.set.name .. ": " .. group.station .. " " .. group.count)
     end
-    if #groups == 0 then lines[#lines + 1] = I.Colour("66DD66", "All made") end
+    local glyphs = T.GlyphsLeft(sv.kit)
+    if glyphs > 0 then
+        lines[#lines + 1] = I.Colour("AAAAAA", "Enchanting: " .. glyphs .. (glyphs == 1 and " glyph" or " glyphs"))
+    end
+    if #groups == 0 and glyphs == 0 then lines[#lines + 1] = I.Colour("66DD66", "All made") end
     return lines
 end
 
@@ -430,15 +630,20 @@ function T.ChoiceText()
     local choice = T.Choice()
     local recipe = recipeNamed(choice.recipe)
     local body, gear = SETS[recipe.body], SETS[recipe.gear]
+    local focus = T.Focus(choice.weapon)
     local function traits(key)
         local setId = setIdFor(key)
         local info = setId and LibLazyCrafting and LibLazyCrafting.GetSetIndexes and LibLazyCrafting.GetSetIndexes()[setId]
         return info and (" (" .. info[3] .. " traits)") or ""
     end
     return recipe.name .. ": " .. recipe.note
-        .. "\n\nBody: " .. body.name .. traits(recipe.body) .. ", " .. body.where
+        .. "\n\nChest, hands, waist, legs, feet: " .. body.name .. traits(recipe.body) .. ", " .. body.where
+        .. "\nHead and shoulders: " .. SETS[recipe.head].name .. traits(recipe.head) .. ", " .. SETS[recipe.head].where
         .. "\nWeapon and jewelry: " .. gear.name .. traits(recipe.gear) .. ", " .. gear.where
         .. (choice.weight == "Mixed" and "\n\nMixed armor: 3 Light, 2 Medium, 2 Heavy. Needs Clothing and Blacksmithing stations." or "")
+        .. "\n\nGuild house Grandmaster tables work too, if they have these sets."
+        .. "\n\n" .. focus.name .. " focus, from your weapon:\nArmor: " .. focus.armorName .. " glyphs\nWeapon: " .. focus.weaponName
+        .. " glyph\nJewelry: " .. focus.traitName .. ", " .. focus.jewelryName .. " glyphs"
         .. "\n\nAbout +" .. T.XpBonus(choice) .. "% XP at best. Lower-level gear may give less."
 end
 
@@ -486,13 +691,13 @@ local function createPage()
         dropdown("Recipe", "recipe", list(recipeNames, same), same),
         dropdown("Character level", "level", list(LEVELS, levelName), levelName),
         dropdown("Armor weight", "weight", list(ARMOR_NAMES, same), same),
-        dropdown("Armor quality", "armorQuality", list(ARMOR_QUALITIES, qualityName), qualityName),
+        dropdown("Armor quality", "armorQuality", list(ALL_QUALITIES, qualityName), qualityName),
         dropdown("Two-handed weapon", "weapon", list(weaponNames, same), same),
-        dropdown("Weapon quality", "weaponQuality", list(WEAPON_QUALITIES, qualityName), qualityName),
-        dropdown("Jewelry quality", "jewelryQuality", list(JEWELRY_QUALITIES, qualityName), qualityName),
+        dropdown("Weapon quality", "weaponQuality", list(ALL_QUALITIES, qualityName), qualityName),
+        dropdown("Jewelry quality", "jewelryQuality", list(ALL_QUALITIES, qualityName), qualityName),
         {
             type = LHAS.ST_BUTTON, label = "Start this kit", buttonText = "Start kit",
-            tooltip = "Then go to the recipe's set stations. Each one shows a review, and nothing is spent until you press Make all.",
+            tooltip = "Use Grandmaster tables in a guild house or each set's zone, then any Enchanting station for the glyphs. Each one shows a review, and nothing is spent until you press Make all.",
             disable = locked,
             clickHandler = function() if T.StartKit() then redraw() end end,
         },

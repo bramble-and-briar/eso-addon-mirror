@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Schrodi/Bag-Watcher__5087",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5087",
+  "category_id": "109",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5087",
+  "deleted": false,
+  "directories": [
+    "BagWatcher"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5087/",
+  "fingerprint": "906e757f4632688055ea272fe7f59ddb34e3fd0aaf0fd5cee03c9cc04365926f",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18680.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5087",
+  "source_url": "https://www.esoui.com/downloads/info5087-BagWatcher.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 0,
+    "monthly_downloads": 6
+  },
+  "title": "Bag Watcher",
+  "updated_at": 1795273285000,
+  "version": "1.1"
+}

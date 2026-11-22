@@ -33,6 +33,7 @@ local DEFAULTS = {
     questTrackerPosX    = -15,
     questTrackerPosY    = 90,
     questTrackerScale   = 100,
+    questTrackerStretch = 100,
 }
 QoL:AddDefaults(DEFAULTS)
 
@@ -102,15 +103,21 @@ local function InheritScale(control)
     end
 end
 
-local function ScaleTracker(control, scale)
+local function ScaleTracker(control, scale, stretch)
     if not control then return end
-    if scale ~= 1 then pcall(InheritScale, control) end
+    stretch = stretch or 1
+    if scale ~= 1 or stretch ~= 1 then pcall(InheritScale, control) end
     if control.SetTransformNormalizedOriginPoint then pcall(control.SetTransformNormalizedOriginPoint, control, 1, 0) end
     if control.SetTransformScale then pcall(control.SetTransformScale, control, scale) end
+    if control.SetTransformScaleX then pcall(control.SetTransformScaleX, control, scale * stretch) end
 end
 
 local function CurrentScale()
     return zo_clamp(tonumber(SV().questTrackerScale) or DEFAULTS.questTrackerScale, SCALE_MIN, SCALE_MAX) / 100
+end
+
+local function CurrentStretch()
+    return zo_clamp(tonumber(SV().questTrackerStretch) or 100, ME.STRETCH_MIN, ME.STRETCH_MAX) / 100
 end
 
 local function SplitKeys(manager)
@@ -203,7 +210,7 @@ function QT:TurnOn(manager)
         scroll:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, 0, ANCHOR_CONSTRAINS_Y)
     end
     StackAll(manager)
-    ScaleTracker(control, CurrentScale())
+    ScaleTracker(control, CurrentScale(), CurrentStretch())
 end
 
 function QT:TurnOff(manager)
@@ -298,7 +305,7 @@ function QT:ShowOutline(show)
     local width, height = manager.control:GetDimensions()
     outline:ClearAnchors()
     outline:SetAnchor(TOPRIGHT, manager.control, TOPRIGHT, OUTLINE_PAD, -OUTLINE_PAD)
-    outline:SetDimensions(width * scale + OUTLINE_PAD * 2, height * scale + OUTLINE_PAD * 2)
+    outline:SetDimensions(width * scale * CurrentStretch() + OUTLINE_PAD * 2, height * scale + OUTLINE_PAD * 2)
     outline:SetHidden(false)
 end
 
@@ -312,8 +319,10 @@ function QT.mover:UpdateDirectionalInput(deltaS)
     if x ~= 0 or y ~= 0 then
         QT:SetPosition(QT.moveX + x * MOVE_SPEED * deltaS, QT.moveY - y * MOVE_SPEED * deltaS)
     end
-    local _, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if scaleY ~= 0 then
+    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
+    if math.abs(stretchX) > math.abs(scaleY) then
+        QT:SetStretch(QT.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
+    elseif scaleY ~= 0 then
         QT:SetScale(QT.moveScale + scaleY * SCALE_SPEED * deltaS)
     end
 end
@@ -358,7 +367,19 @@ function QT:SetScale(value)
     end
 end
 
+function QT:SetStretch(value)
+    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
+    local rounded = zo_floor(self.moveStretch + 0.5)
+    local sv = SV()
+    if sv.questTrackerStretch ~= rounded then
+        sv.questTrackerStretch = rounded
+        self:Apply()
+        if self.moving then self:ShowOutline(true) end
+    end
+end
+
 function QT:MoveToDefault()
+    self:SetStretch(100)
     self:SetScale(DEFAULTS.questTrackerScale)
     self:SetPosition(DEFAULTS.questTrackerPosX, DEFAULTS.questTrackerPosY)
 end
@@ -398,6 +419,8 @@ function QT:OnMoveShowing()
     self.moveStartScale = sv.questTrackerScale
     self.moveX, self.moveY = sv.questTrackerPosX, sv.questTrackerPosY
     self.moveScale = sv.questTrackerScale
+    self.moveStartStretch = sv.questTrackerStretch or 100
+    self.moveStretch = self.moveStartStretch
     self:Apply()
     self:ShowOutline(true)
     KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
@@ -410,6 +433,7 @@ function QT:OnMoveHidden()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
     if not self.moveSaved then
         self:SetScale(self.moveStartScale)
+        self:SetStretch(self.moveStartStretch)
         self:SetPosition(self.moveStartX, self.moveStartY)
     end
     self.moving = false
@@ -455,7 +479,7 @@ function QT:SubmenuOption()
                 type       = "button",
                 name       = "Move / Scale",
                 buttonText = "Move / Scale",
-                tooltip    = "Move it with the left stick and scale it with the right stick.",
+                tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right stretches it wider or narrower.",
                 func       = function() QT:StartMove() end,
             },
         },

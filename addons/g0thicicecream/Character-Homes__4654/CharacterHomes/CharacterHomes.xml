@@ -2,6 +2,73 @@
 <GuiXml>
   <Controls>
 
+    <!-- ═══════════════════════════════════════════════════════════════════
+         List templates, reused through ZO_ObjectPool by populateDialog.
+         Row columns: teleport icon x=3, owner x=44 (w=172), label x=220 up to the
+         house column, house column w=320 ending 60 from the right, edit -32, delete -4.
+    ════════════════════════════════════════════════════════════════════ -->
+    <Control name="CharacterHomesRow" virtual="true" mouseEnabled="true">
+      <Dimensions y="44"/>
+      <Controls>
+        <Backdrop name="$(parent)Bg" centerColor="00000000" edgeColor="00000000">
+          <AnchorFill/>
+        </Backdrop>
+
+        <Button name="$(parent)Teleport">
+          <Anchor point="LEFT" offsetX="3"/>
+          <Dimensions x="34" y="34"/>
+        </Button>
+
+        <Label name="$(parent)Owner" font="ZoFontGame" color="7A9CBF" verticalAlignment="CENTER">
+          <Anchor point="LEFT" offsetX="44"/>
+          <Dimensions x="172" y="44"/>
+        </Label>
+
+        <Label name="$(parent)House" font="ZoFontGame" color="BFBFBF" verticalAlignment="CENTER" mouseEnabled="true">
+          <Anchor point="RIGHT" offsetX="-60"/>
+          <Dimensions x="320" y="44"/>
+        </Label>
+
+        <Label name="$(parent)Alias" font="ZoFontWinH4" color="FFFFFF" verticalAlignment="CENTER">
+          <Anchor point="TOPLEFT" offsetX="220"/>
+          <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)House" offsetX="-4"/>
+        </Label>
+
+        <!-- edit mode: label editbox replaces Alias, house dropdown replaces House -->
+        <Backdrop name="$(parent)NameBg" centerColor="00000000" edgeColor="00000000" hidden="true">
+          <Anchor point="LEFT" offsetX="220"/>
+          <Anchor point="RIGHT" relativePoint="LEFT" relativeTo="$(parent)House" offsetX="-8"/>
+          <Dimensions y="36"/>
+          <Controls>
+            <EditBox name="$(parent)Box" font="ZoFontGame" color="FFFFFF" maxInputCharacters="64">
+              <Anchor point="TOPLEFT" offsetX="4" offsetY="4"/>
+              <Anchor point="BOTTOMRIGHT" offsetX="-4" offsetY="-4"/>
+            </EditBox>
+          </Controls>
+        </Backdrop>
+
+        <Control name="$(parent)HouseCombo" inherits="ZO_ComboBox" hidden="true">
+          <Anchor point="RIGHT" offsetX="-60"/>
+          <Dimensions x="320" y="40"/>
+        </Control>
+
+        <Button name="$(parent)EditButton">
+          <Anchor point="RIGHT" offsetX="-32"/>
+          <Dimensions x="24" y="24"/>
+        </Button>
+
+        <Button name="$(parent)DeleteButton">
+          <Anchor point="RIGHT" offsetX="-4"/>
+          <Dimensions x="24" y="24"/>
+          <Textures normal="esoui/art/buttons/decline_up.dds" mouseOver="esoui/art/buttons/decline_over.dds"/>
+        </Button>
+      </Controls>
+    </Control>
+
+    <Label name="CharacterHomesHeader" virtual="true" font="ZoFontWinH3" color="C7AD61"/>
+
+    <Label name="CharacterHomesNote" virtual="true" font="ZoFontGame" color="666666"/>
+
     <TopLevelControl name="CharacterHomesDialog" hidden="true" movable="true" mouseEnabled="true" keyboardEnabled="true" clampedToScreen="true" allowBringToTop="true">
       <OnKeyDown>CharacterHomes.OnKeyDown(key, ctrl, alt, shift, command)</OnKeyDown>
       <Anchor point="CENTER" relativePoint="CENTER" relativeTo="GuiRoot"/>
@@ -196,6 +263,13 @@
                 self:SetParent(self:GetParent():GetNamedChild("Scroll"))
                 self:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 0)
               </OnInitialized>
+              <Controls>
+                <!-- Parent of the pooled list rows; Lua sets its width and height on each refresh -->
+                <Control name="$(parent)Content">
+                  <Anchor point="TOPLEFT"/>
+                  <Dimensions x="10" y="10"/>
+                </Control>
+              </Controls>
             </Control>
           </Controls>
         </Backdrop>

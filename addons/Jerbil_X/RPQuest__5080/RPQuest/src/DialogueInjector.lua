@@ -19,26 +19,18 @@ local function ApplySeenOptionColor(interaction, controlID)
     if not optionControl then return end
     optionControl.chosenBefore = true
     if optionControl.SetColor then
-        if GetInterfaceColor and INTERFACE_COLOR_TYPE_GENERAL and INTERFACE_GENERAL_COLOR_DISABLED then
-            optionControl:SetColor(GetInterfaceColor(INTERFACE_COLOR_TYPE_GENERAL, INTERFACE_GENERAL_COLOR_DISABLED))
-        else
-            optionControl:SetColor(0.5, 0.5, 0.5, 1)
-        end
+        optionControl:SetColor(GetInterfaceColor(INTERFACE_COLOR_TYPE_GENERAL, INTERFACE_GENERAL_COLOR_DISABLED))
     end
 end
 
 local function GetCurrentPlayerZoneId()
-    if GetUnitWorldPosition then
-        local zoneId = GetUnitWorldPosition("player")
-        if zoneId and zoneId > 0 then
-            return zoneId
-        end
+    local zoneId = GetUnitWorldPosition("player")
+    if zoneId and zoneId > 0 then
+        return zoneId
     end
-    if GetUnitZoneIndex and GetZoneId then
-        local zoneIndex = GetUnitZoneIndex("player")
-        if zoneIndex and zoneIndex > 0 then
-            return GetZoneId(zoneIndex) or 0
-        end
+    local zoneIndex = GetUnitZoneIndex("player")
+    if zoneIndex and zoneIndex > 0 then
+        return GetZoneId(zoneIndex) or 0
     end
     return 0
 end
@@ -192,9 +184,7 @@ function DialogueInjector:Initialize()
 
     self:InstallHooks()
 
-    if EVENT_MANAGER and EVENT_CHATTER_BEGIN then
-        EVENT_MANAGER:RegisterForEvent(LISTENER_NAME, EVENT_CHATTER_BEGIN, function()
-            self:OnChatterBegin()
-        end)
-    end
+    EVENT_MANAGER:RegisterForEvent(LISTENER_NAME, EVENT_CHATTER_BEGIN, function()
+        self:OnChatterBegin()
+    end)
 end

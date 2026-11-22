@@ -1,9 +1,9 @@
 # Red Ledger
 
-Version: 0.6  
-Author: O-Range  
-Game: The Elder Scrolls Online  
-API: 101051 / 101052
+**Version:** 0.6  
+**Author:** O-Range  
+**Game:** The Elder Scrolls Online  
+**API:** 101051 / 101052
 
 A lightweight PvP kill counter with dramatic blood splatter effects.
 
@@ -86,6 +86,7 @@ Lifetime kills are displayed at the bottom of the settings panel.
 - Custom font is located in `RedLedger/font/Friday13v12.slug`.
 - Session kills reset when you reload UI or relog.
 - Lifetime kills are saved account-wide.
+- The keybind function is attached to the addon table (`RedLedger.Keybind_Test`) to avoid global namespace pollution.
 
 ---
 
@@ -100,6 +101,7 @@ Lifetime kills are displayed at the bottom of the settings panel.
 - Improved multi-splat weighting (1–3 splatters per kill)
 - Richer blood-red counter color
 - Better animation cleanup
+- Localized addon table reference and moved keybind onto the addon table (fixes global pollution / best-practice warnings)
 
 ### v0.5
 - Added counter visibility toggle command

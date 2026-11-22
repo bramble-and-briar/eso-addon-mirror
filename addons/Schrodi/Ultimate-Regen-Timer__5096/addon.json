@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Schrodi/Ultimate-Regen-Timer__5096",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5096",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5096",
+  "deleted": false,
+  "directories": [
+    "UltimateRegenTimer"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5096/",
+  "fingerprint": "bac5d6afada2e2cff1dbef43b0763c0dda2c0a8cc927a28bb56ca507f37f7fef",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18690.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5096",
+  "source_url": "https://www.esoui.com/downloads/info5096-UltimateRegenTimer.html",
+  "stats": {
+    "downloads": 4,
+    "favorites": 0,
+    "monthly_downloads": 1
+  },
+  "title": "Ultimate Regen Timer",
+  "updated_at": 1795290538000,
+  "version": "3.0.0"
+}

@@ -1,6 +1,6 @@
 ## Title: |cD65AD6MyExtras|r
 ## Author: user|cD65AD6562|r
-## Version: 7.6
+## Version: 8.4
 ## APIVersion: 101048 101049 101050 101051
 ## SavedVariables: MyExtras_SavedVars MyExtras_CharVars
 ## DependsOn: LibUser562
@@ -24,5 +24,7 @@ MyExtras_QualityOfLife.lua
 MyExtras_QuestTracker.lua
 MyExtras_AutoReadyCheck.lua
 MyExtras_DoNotLearn.lua
+MyExtras_MissingItems.lua
+MyExtras_Knowledge.lua
 MyExtras_InstantConfirm.lua
 MyExtras_WhatsNew.lua

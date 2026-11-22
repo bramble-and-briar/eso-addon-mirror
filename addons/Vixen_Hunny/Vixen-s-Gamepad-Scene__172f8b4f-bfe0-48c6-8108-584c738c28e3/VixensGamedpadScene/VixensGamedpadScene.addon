@@ -1,0 +1,20 @@
+## Title: |cFF7EB9Vixen's|r Gamepad Scene
+## Description: Re-skins the gamepad menu backgrounds with a pink theme: rosy wash, drifting heart pattern, heart dividers and ribbons.
+## Author: Vixen
+## APIVersion: 101049 101048
+## Version: 1.0.0
+## AddOnVersion: 10000
+## SavedVariables: VixensGamepadScene_SV
+## OptionalDependsOn: LibHarvensAddonSettings
+
+Themes.lua
+VixensGamedpadScene.lua
+Settings.lua
+Debug.lua
+
+##
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+## The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries.
+## All rights reserved
+##
+## You can read the full terms at https://account.elderscrollsonline.com/add-on-terms

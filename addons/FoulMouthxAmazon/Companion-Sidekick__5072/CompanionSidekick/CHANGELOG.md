@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2 - 2026-11-21
+
+- Removed development tests from the public package and moved them outside the addon folder.
+- Restricted release packaging to the manifest, three runtime Lua files and documentation.
+- Added the native companion-inventory bag event filter.
+- Checked runtime files for unrelated globals and game-function replacements.
+- Clarified AI disclosure and attribution. Companion data and appearance settings are preserved.
+
+
 ## 0.1.1-test - 2026-11-19
 
 - Added Colors & Size with seven presets and independent background, title-bar and border choices.

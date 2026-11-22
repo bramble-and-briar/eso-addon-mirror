@@ -86,9 +86,6 @@ local function makeHeader(title)
 end
 
 local function makeBankSelector()
-	if #Bankir.Data.bankBagIds == 1 then
-		return nil end
-	
 	return {
 		type = "dropdown",
 		name = GetString(BANKIR_MENU_BANK_SELECT),

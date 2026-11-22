@@ -18,7 +18,7 @@
     "RedLedger"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5070/",
-  "fingerprint": "a4a7c7a6f4ba328a146ecf979cca314491283372cba05cc65b073e40e67c809f",
+  "fingerprint": "4ce4229a06533bcda2ef6a5b684b53ccb564d2795944bebabb5bfab33a9463de",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18620.png",
     "https://cdn-eso.mmoui.com/preview/pvw18565.png",
@@ -30,11 +30,11 @@
   "source_id": "5070",
   "source_url": "https://www.esoui.com/downloads/info5070-RedLedgerKillCounterVisualNotifier.html",
   "stats": {
-    "downloads": 17,
+    "downloads": 39,
     "favorites": 0,
-    "monthly_downloads": 10
+    "monthly_downloads": 32
   },
   "title": "Red Ledger (Kill Counter + Visual Notifier)",
-  "updated_at": 1795161662000,
+  "updated_at": 1795313842000,
   "version": "0.6"
 }

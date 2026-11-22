@@ -6,147 +6,148 @@ local C     = Teleport.COLORS
 
 --------------------------------------------------------------------------------
 
-local PREDEFINED_ZONE_SHORT_NAMES = {
+local ZONE_ALIASES = {
         -- Zones https://en.uesp.net/wiki/Online:Zones#Overworld_Zones
-        ["Reach"                    ] = "The Reach",
-        ["Rift"                     ] = "The Rift",
-        ["Arkthzand Cavern"         ] = "Blackreach: Arkthzand Cavern",
-        ["Greymoor Caverns"         ] = "Blackreach: Greymoor Caverns",
+        -- ("The X" and "Label: X" get a short name automatically, see generateZoneAliases)
         ["Elsweyr"                  ] = "Northern Elsweyr",
         ["Skyrim"                   ] = "Western Skyrim",
-        ["Deadlands"                ] = "The Deadlands",
         ["Weald"                    ] = "West Weald",
     }
 
-local PREDEFINED_DUNGEON_ALIASES = {
+local DUNGEON_ALIASES = {
         -- Trials https://en.uesp.net/wiki/Online:Trials
-        ["as"  ] = "Asylum Sanctorium",
-        ["aa"  ] = "Aetherian Archive",
-        ["hrc" ] = "Hel Ra Citadel",
-        ["so"  ] = "Sanctum Ophidia",
         ["ss"  ] = "Sunspire",
-        ["mol" ] = "Maw of Lorkhaj",
         ["cr"  ] = "Cloudrest",
-        ["hof" ] = "Halls of Fabrication",
-        ["ka"  ] = "Kyne's Aegis",
         ["rg"  ] = "Rockgrove",
         ["dsr" ] = "Dreadsail Reef",
-        ["se"  ] = "Sanity's Edge",
-        ["lc"  ] = "Lucent Citadel",
 
         -- Arenas https://en.uesp.net/wiki/Online:Arenas
-        ["ma"  ] = "Maelstrom Arena",
         ["dsa" ] = "Dragonstar Arena",
         ["brp" ] = "Blackrose Prison",
-        ["vh"  ] = "Vateshran Hollows",
 
         -- Base Game Dungeons https://en.uesp.net/wiki/Online:Group_Dungeons
-        ["ac"  ] = "Arx Corinium",
-        ["arx" ] = "Arx Corinium",
-        ["bc"  ] = "The Banished Cells I",
-        ["bc1" ] = "The Banished Cells I",
-        ["tbc1"] = "The Banished Cells I",
-        ["bc2" ] = "The Banished Cells II",
-        ["tbc2"] = "The Banished Cells II",
-        ["bh"  ] = "Blackheart Haven",
-        ["bc"  ] = "Blessed Crucible",
-        ["coa" ] = "City of Ash I",
-        ["coa1"] = "City of Ash I",
-        ["coa2"] = "City of Ash II",
-        ["coh" ] = "Crypt of Hearts I",
-        ["coh1"] = "Crypt of Hearts I",
-        ["coh2"] = "Crypt of Hearts II",
-        ["dc1" ] = "Darkshade Caverns I",
-        ["dc2" ] = "Darkshade Caverns II",
-        ["dk"  ] = "Direfrost Keep",
-        ["dfk" ] = "Direfrost Keep",
-        ["eh"  ] = "Elden Hollow I",
-        ["eh1" ] = "Elden Hollow I",
-        ["eh2" ] = "Elden Hollow II",
-        ["fg"  ] = "Fungal Grotto I",
-        ["fg1" ] = "Fungal Grotto I",
-        ["fg2" ] = "Fungal Grotto II",
-        ["sw"  ] = "Selene's Web",
         ["sc"  ] = "Spindleclutch I",
         ["sc1" ] = "Spindleclutch I",
         ["sc2" ] = "Spindleclutch II",
-        ["ti"  ] = "Tempest Island",
-        ["vom" ] = "Vaults of Madness",
         ["vf"  ] = "Volenfell",
-        ["vol" ] = "Volenfell",
-        ["ws"  ] = "Wayrest Sewers I",
-        ["ws1" ] = "Wayrest Sewers I",
-        ["ws2" ] = "Wayrest Sewers II",
 
         -- DLC Dungeons https://en.uesp.net/wiki/Online:Group_Dungeons
-        ["icp" ] = "Imperial City Prison",
-        ["ic"  ] = "Imperial City Prison",
-        ["wgt" ] = "White-Gold Tower",
-        ["cos" ] = "Cradle of Shadows",
-        ["cs"  ] = "Cradle of Shadows",
-        ["rom" ] = "Ruins of Mazzatun",
-        ["bf"  ] = "Bloodroot Forge",
         ["brf" ] = "Bloodroot Forge",
-        ["fh"  ] = "Falkreath Hold",
-        ["fl"  ] = "Fang Lair",
-        ["sp"  ] = "Scalecaller Peak",
         ["scp" ] = "Scalecaller Peak",
-        ["mos" ] = "March of Sacrifices",
         ["mk"  ] = "Moon Hunter Keep",
-        ["mhk" ] = "Moon Hunter Keep",
-        ["dom" ] = "Depths of Malatar",
         ["fv"  ] = "Frostvault",
-        ["lom" ] = "Lair of Maarselok",
-        ["mf"  ] = "Moongrave Fane",
         ["mgf" ] = "Moongrave Fane",
         ["ir"  ] = "Icereach",
-        ["ug"  ] = "Unhallowed Grave",
-        ["ct"  ] = "Castle Thorn",
-        ["sg"  ] = "Stone Garden",
-        ["bdv" ] = "Black Drake Villa",
-        ["tc"  ] = "The Cauldron",
         ["cd"  ] = "The Cauldron",
-        ["tdc" ] = "The Dread Cellar",
         ["dc"  ] = "The Dread Cellar",
-        ["rpb" ] = "Red Petal Bastion",
-        ["ca"  ] = "Coral Aerie",
-        ["sr"  ] = "Shipwright's Regret",
-        ["ere" ] = "Earthen Root Enclave",
-        ["gd"  ] = "Graven Deep",
-        ["sh"  ] = "Scrivener's Hall",
-        ["bs"  ] = "Bal Sunnar",
-        ["op"  ] = "Oathsworn Pit",
-        ["bv"  ] = "Bedlam Veil",
-
-        ["ia"  ] = "Infinite Archive",
     }
+	
+-------------------------------------------------------------------------------
+
+-- Generated aliases never replace a hardcoded one or an earlier generated one.
+-- Names come in alphabetical order, so on a clash the alphabetically first
+-- name keeps the alias; the hardcoded list above settles the clashes that matter.
+local function addGeneratedDungeonAlias(alias, name)
+	if #alias > 1 and not DUNGEON_ALIASES[alias] then
+		DUNGEON_ALIASES[alias] = name
+	end
+end
+
+-- Initials of the words (split on spaces and dashes), lowercase:
+--   Kyne's Aegis -> ka, White-Gold Tower -> wgt
+-- "The " can be left out:
+--   The Dread Cellar -> tdc, dc
+-- Numbered dungeons get the number as a digit; the bare alias is part I:
+--   Fungal Grotto I -> fg, fg1    Fungal Grotto II -> fg2
+--   The Banished Cells II -> tbc2, bc2
+function Teleport.Aliases:generateDungeonAliases(dungeons)
+	for _, name in ipairs(dungeons) do
+		local number
+		if Teleport.Helpers:endsWith(name, " II") then
+			number = "2"
+		elseif Teleport.Helpers:endsWith(name, " I") then
+			number = "1"
+		end
+
+		local alias = Teleport.Helpers:initialsFromSpaceAndDash(name)
+		if number then
+			alias = Teleport.Helpers:removeLastChar(alias) -- the "i" of I / II
+		end
+
+		local variants = { alias }
+		if Teleport.Helpers:startsWith(name, "The ") then
+			table.insert(variants, Teleport.Helpers:removeFirstChar(alias))
+		end
+
+		for _, variant in ipairs(variants) do
+			if number then
+				addGeneratedDungeonAlias(variant .. number, name)
+			end
+			if number ~= "2" then
+				addGeneratedDungeonAlias(variant, name)
+			end
+		end
+	end
+end
+
+-- "The Reach" -> "Reach", "Blackreach: Greymoor Caverns" -> "Greymoor Caverns"
+function Teleport.Aliases:generateZoneAliases(zones)
+	for _, name in ipairs(zones) do
+		if Teleport.Helpers:startsWith(name, "The ") or Teleport.Helpers:startsWithLabel(name) then
+			ZONE_ALIASES[Teleport.Helpers:removeFirstWord(name)] = name
+		end
+	end
+end
+
+function Teleport.Aliases:getZoneAliases()
+	return ZONE_ALIASES
+end
+
+-- { { alias = , name = }, ... } sorted by name, then alias
+function Teleport.Aliases:getDungeonAliases()
+	local list = {}
+	for alias, name in pairs(DUNGEON_ALIASES) do
+		table.insert(list, { alias = alias, name = name })
+	end
+	table.sort(list, function(a, b)
+		if a.name ~= b.name then return a.name < b.name end
+		if #a.alias ~= #b.alias then return #a.alias < #b.alias end
+		return a.alias < b.alias
+	end)
+	return list
+end
 
 -------------------------------------------------------------------------------    
 
 local SAVED_VARS
 function Teleport.Aliases:setSavedVars(savedVars)
     SAVED_VARS = savedVars
+    -- Input is lowercased before the lookup, so aliases saved with capital
+    -- letters by older versions could never be used. Store them lowercased.
+    local mixedCase = {}
+    for alias in pairs(savedVars) do
+        if string.lower(alias) ~= alias then
+            table.insert(mixedCase, alias)
+        end
+    end
+    for _, alias in ipairs(mixedCase) do
+        local lower = string.lower(alias)
+        if savedVars[lower] == nil then
+            savedVars[lower] = savedVars[alias]
+        end
+        savedVars[alias] = nil
+    end
 end
 
 -------------------------------------------------------------------------------    
 
-function Teleport.Aliases:getZoneByShortNamePrefix(shortNamePrefix)
-    for shortName, zoneName in pairs(PREDEFINED_ZONE_SHORT_NAMES) do
-        if Teleport.Helpers:startsWithCaseInsensitive(shortName, shortNamePrefix) then
-            return zoneName
-        end
-    end
-    
-    return nil
-end
-
 function Teleport.Aliases:getDungeonByAlias(alias)
     alias = string.lower(alias)
-    local expansion = PREDEFINED_DUNGEON_ALIASES[alias]
+    local expansion = DUNGEON_ALIASES[alias]
     if expansion then return expansion, nil end
     local difficulty = string.sub(alias, 1, 1)
     if difficulty == 'n' or difficulty == 'v' or difficulty == 'r' then
-        expansion = PREDEFINED_DUNGEON_ALIASES[string.sub(alias, 2)]
+        expansion = DUNGEON_ALIASES[string.sub(alias, 2)]
         if expansion then return expansion, difficulty end
     end
     
@@ -161,9 +162,34 @@ function Teleport.Aliases:expandUserDefined(alias)
 end
 
 function Teleport.Aliases:listAliases()
-    info("Registered aliases:")
-    for alias, expansion in pairs(SAVED_VARS) do
-        info(color(alias, C.ALIAS) .. ' => ' .. color(expansion, C.ALIAS))
+    local aliases = {}
+    for alias in pairs(SAVED_VARS) do
+        table.insert(aliases, alias)
+    end
+    if #aliases == 0 then
+        info("No aliases yet. Add one with " .. color("/tp --add <alias> <destination>", C.ALIAS))
+        return
+    end
+    table.sort(aliases)
+    info("Your aliases:")
+    for _, alias in ipairs(aliases) do
+        info(color(alias, C.ALIAS) .. ' => ' .. color(SAVED_VARS[alias], C.ALIAS))
+    end
+end
+
+-- Built-in dungeon/trial/arena aliases, one line per instance.
+function Teleport.Aliases:listDungeonAliases()
+    local lines, order = {}, {}
+    for _, entry in ipairs(self:getDungeonAliases()) do
+        if not lines[entry.name] then
+            lines[entry.name] = {}
+            table.insert(order, entry.name)
+        end
+        table.insert(lines[entry.name], entry.alias)
+    end
+    info("Dungeon, trial and arena aliases (prefix with n, v or r for normal, veteran or reset):")
+    for _, name in ipairs(order) do
+        info(color(name, C.DUNGEON) .. ': ' .. color(table.concat(lines[name], ', '), C.ALIAS))
     end
 end
 
@@ -173,14 +199,15 @@ function Teleport.Aliases:addAlias(alias)
         return
     end
     local expansion
-    alias, expansion = Teleport.Helpers:splitOnSpace(alias, ' ')
+    alias, expansion = Teleport.Helpers:splitOnSpace(alias)
+    alias = alias and string.lower(alias)
     if not alias or alias == '' or expansion == '' then
         info("USAGE: /tp --add " .. color("<alias-name> <alias-expansion>", C.ALIAS))
         return
     end
     if SAVED_VARS[alias] then
-        info("alias " .. alias .. " already exists")
-        info(alias .. ' => ' .. SAVED_VARS[alias])
+        info("Alias " .. color(alias, C.NOT_FOUND) .. " already exists, remove it first:")
+        info(color(alias, C.ALIAS) .. ' => ' .. color(SAVED_VARS[alias], C.ALIAS))
         return
     end
 
@@ -194,8 +221,9 @@ function Teleport.Aliases:removeAlias(alias)
         info("USAGE: /tp --remove " .. color("<alias-name>", C.ALIAS))
         return
     end
+    alias = string.lower(alias)
     if not SAVED_VARS[alias] then
-        info("alias " .. color(alias, C.NOT_FOUND) .. " doesn't exist")
+        info("Alias " .. color(alias, C.NOT_FOUND) .. " doesn't exist")
         return
     end
 

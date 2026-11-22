@@ -18,7 +18,7 @@
     "RPQuest"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5080/",
-  "fingerprint": "32b0f160d56004b4899367240be89edf659e7dcb5f40c4e9394675972c6369db",
+  "fingerprint": "5c08f9f44e99d6ae3d348c8198982d34e1d8700096d86fae0cfbe5927960f0fb",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18649.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "5080",
   "source_url": "https://www.esoui.com/downloads/info5080-RPQuest.html",
   "stats": {
-    "downloads": 22,
+    "downloads": 43,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 40
   },
   "title": "RPQuest",
-  "updated_at": 1795223857000,
-  "version": "1.1.3"
+  "updated_at": 1795289474000,
+  "version": "1.4.1"
 }

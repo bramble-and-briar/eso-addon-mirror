@@ -129,7 +129,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ExcalibursMovableInventory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Excalibur_1969/ExcalibursMovableInventory__4794) | Excalibur_1969 | PC / Mac | 1.1 |
 | [Excessive Withdrawals](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calia1120/Excessive-Withdrawals__1522) | calia1120 | PC / Mac | 18.23.0 |
 | [Excessive Withdrawals - Kith's Build](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kitherel/Excessive-Withdrawals---Kith-s-Build__1715) | kitherel | PC / Mac | 1 |
-| [Execute Blocker + (U51)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Execute-Blocker-U51__5082) | O-Range | PC / Mac | 2.3.0 |
+| [Execute Blocker (U51+)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Execute-Blocker-U51__5082) | O-Range | PC / Mac | 2.4.0 |
 | [ExecuteAssist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/10becja/ExecuteAssist__3101) | 10becja | PC / Mac | 1.0.0 |
 | [ExecuteNow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mooNylo/ExecuteNow__2058) | mooNylo | PC / Mac | 0.2 |
 | [ExecuteNow - Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PlaceHolder/ExecuteNow---Update__2710) | PlaceHolder | PC / Mac | 0.3.7 |
@@ -155,6 +155,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Exterminatus Group Leader - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/amuridee/Exterminatus-Group-Leader---Updated__2722) | amuridee | PC / Mac | 2.0.42 |
 | [Extra Chat Menu - Trade with HideGroup, Visit house, Send mail, Teleport and more](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/quickc/Extra-Chat-Menu---Trade-with-HideGroup-Visit-house-Send-mail-Teleport-and-more__3479) | quickc | PC / Mac | 0.3 |
 | [Extra Compass Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/trollusk/Extra-Compass-Pins__3430) | trollusk | PC / Mac | 1.1.0 |
+| [Extra TTC Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Extra-TTC-Tooltips__5090) | Schrodi | PC / Mac | 1.1 |
 | [Eye Safety: Lockpicking](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/grin3671/Eye-Safety-Lockpicking__4055) | grin3671 | PC / Mac | 1.2.1 |
 | [Eye Strain](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Splat/Eye-Strain__2467) | Splat | PC / Mac | 1.1.1 |
 | [EyeOnKeep](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/EyeOnKeep__4c644add-5991-49a0-ad77-6b91a5ffee42) | SugaComa | Console | — |

@@ -1,0 +1,14 @@
+<GuiXml>
+	<!-- Ember's window. It holds nothing itself: Puppet.lua and Ember.lua create the pictures and the text in it,
+	     the way PB's Compass and Clock do, and lay everything out from the saved settings. Console-safe on purpose:
+	     - the fonts are the named gamepad faces the console UI already has loaded (Lua picks the size);
+	     - nothing takes input: a control that wants input takes every gamepad button away from the game while it
+	       is up.
+	     The window is shown and hidden by a scene fragment (Ember.lua), so it is there on the game screen only. -->
+	<Controls>
+		<TopLevelControl name="PBsEmberWindow" hidden="true" mouseEnabled="false" tier="HIGH">
+			<Dimensions x="190" y="230"/>
+			<Anchor point="BOTTOMLEFT" relativeTo="GuiRoot" relativePoint="BOTTOMLEFT" offsetX="40" offsetY="-260"/>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

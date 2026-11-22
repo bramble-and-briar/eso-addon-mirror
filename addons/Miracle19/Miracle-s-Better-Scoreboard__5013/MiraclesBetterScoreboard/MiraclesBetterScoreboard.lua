@@ -140,7 +140,19 @@ local function separateDeathmatchLives(row)
     if not row or not row.livesLabel or not row.data or not row.data.showLives then return end
     -- Preserve ESO's layout anchors: the player name/class positions can
     -- depend on the lives label. Move the rendered label only.
-    row.livesLabel:SetTransformOffsetX(-44)
+    if IsInGamepadPreferredMode() then
+        -- Gamepad's large team-name font ("FIRE DRAKES") reaches ~44px left of
+        -- the row; the class icon starts 2px right of the row's left edge.
+        -- Right-align the lives in that gap so the digit ends 15px before the
+        -- icon (30px label - 43 = -13) and longer counts grow left, not into
+        -- the icon. -56 (left-aligned) collided with the team name.
+        row.livesLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+        row.livesLabel:SetTransformOffsetX(-43)
+    else
+        -- Keyboard: ESO's default left alignment and the tested offset.
+        row.livesLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+        row.livesLabel:SetTransformOffsetX(-44)
+    end
 end
 
 local function ensureClassIcon(row)
@@ -153,6 +165,57 @@ local function ensureClassIcon(row)
     classIcon:SetAnchor(RIGHT, nameLabel, LEFT, -8, 0)
     classIcon:SetDrawLevel(6)
     row.classIcon = classIcon
+end
+
+-- Layout values for the custom columns. Keyboard uses the same Medal Score /
+-- Damage Received / Damage+Healing spacing as Gamepad (user preferred the
+-- Gamepad spacing; the custom labels use the same font in both modes).
+-- K/D sits one full column after Assists in both modes.
+--
+-- ESO geometry (battlegroundscoreboard.lua/.xml, same for both modes):
+-- MedalScore is 80px wide; Kills begins 60px to its right; K, D, A and the
+-- hidden native Damage/Heals/GameTypeScore columns are 50px wide on a 60px
+-- pitch. Hiding the three native columns frees 180px on the right.
+--
+-- SetTransformOffsetX only moves what is drawn. It does NOT move controls
+-- anchored to the transformed control (the Deathmatch lives fix relies on
+-- this: Name stays put although it anchors to Lives). So anything anchored
+-- to Kills/Assists must include kdaShift itself.
+--
+-- ESO's 60px gap cannot hold red Damage Received plus the stacked
+-- Damage/Healing (~100px at four- to five-digit "k" values). K, D, A and K/D
+-- therefore move right together by kdaShift into the freed space; the
+-- spacing between them stays ESO-native (60px). Medal Score and names do
+-- not move. All stats anchor to Medal Score, which is never moved.
+local LAYOUT = {
+    keyboard = {
+        kdaShift = 48,        -- transform on K/D/A rows and headers
+        statsFromMedal = 104, -- stack RIGHT edge, from MedalScore RIGHT
+        takenGap = -4,        -- red RIGHT edge, from stack LEFT edge (4px gap)
+        takenWidth = 56,
+        -- K/D TOP-center from Assists' layout TOP-center: one ESO column (60px)
+        -- right of the drawn Assists, same as Gamepad.
+        kdFromAssists = 48 + 60,
+    },
+    gamepad = {
+        kdaShift = 48,
+        -- Kills is drawn from MedalScore RIGHT + 60 + kdaShift; keep the
+        -- stack 4px clear of that: 60 + 48 - 4 = 104.
+        statsFromMedal = 104,
+        takenGap = -4,        -- 4px gap (v4.8 used +6, i.e. 6px overlap)
+        takenWidth = 56,      -- room for "1234k" without clipping
+        -- One ESO column (60px) right of the drawn Assists: the same pitch
+        -- as K -> D -> A, so K/D reads as a proper fourth column.
+        kdFromAssists = 48 + 60,
+    },
+}
+
+-- K/D text is centered, so a wider label does not move it; 54px clipped
+-- "13.00" to "13.0" in the Gamepad font.
+local KD_LABEL_WIDTH = 80
+
+local function getLayout()
+    return IsInGamepadPreferredMode() and LAYOUT.gamepad or LAYOUT.keyboard
 end
 
 -- The original addon displayed damage above gold healing as two extra
@@ -183,10 +246,13 @@ local function ensureStackedStats(row)
 
     -- Re-anchor after the stock style is applied, since rows are pooled and
     -- may switch between standard and compact templates.
+    -- Both modes anchor to MedalScore (never transformed), so positions are
+    -- absolute and deterministic on pooled rows and repeated refreshes.
+    local layout = getLayout()
     row.bsDamageLabel:ClearAnchors()
-    row.bsDamageLabel:SetAnchor(RIGHT, medal, RIGHT, 75, -8)
+    row.bsDamageLabel:SetAnchor(RIGHT, medal, RIGHT, layout.statsFromMedal, -8)
     row.bsHealLabel:ClearAnchors()
-    row.bsHealLabel:SetAnchor(RIGHT, medal, RIGHT, 75, 8)
+    row.bsHealLabel:SetAnchor(RIGHT, medal, RIGHT, layout.statsFromMedal, 8)
 
     -- Damage received (red), restored to the left of the damage/healing pair.
     if not row.bsDamageTakenLabel then
@@ -198,8 +264,9 @@ local function ensureStackedStats(row)
         label:SetDrawLevel(7)
         row.bsDamageTakenLabel = label
     end
+    row.bsDamageTakenLabel:SetWidth(layout.takenWidth)
     row.bsDamageTakenLabel:ClearAnchors()
-    row.bsDamageTakenLabel:SetAnchor(RIGHT, row.bsDamageLabel, LEFT, 3, 0)
+    row.bsDamageTakenLabel:SetAnchor(RIGHT, row.bsDamageLabel, LEFT, layout.takenGap, 0)
 
     -- Reuse the now-hidden rightmost native statistic space for K/D.
     if row.gameTypeScoreLabel then
@@ -207,13 +274,110 @@ local function ensureStackedStats(row)
             local label = CreateControl(row.control:GetName() .. "MBSKDRatio", row.control, CT_LABEL)
             label:SetFont("ZoFontGame")
             label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-            label:SetDimensions(54, 24)
+            label:SetDimensions(KD_LABEL_WIDTH, 24)
             label:SetDrawLevel(7)
             row.bsKDRatioLabel = label
         end
+        row.bsKDRatioLabel:SetWidth(KD_LABEL_WIDTH)
+        row.bsKDRatioLabel:SetVerticalAlignment(TEXT_ALIGN_TOP)
         row.bsKDRatioLabel:ClearAnchors()
-        row.bsKDRatioLabel:SetAnchor(CENTER, row.assistsLabel, CENTER, 80, 0)
+        -- TOP-to-TOP with the same font as Assists: identical baseline even
+        -- when Assists' height changes with its font (CENTER-to-CENTER with a
+        -- copied height drew K/D ~2px low on Gamepad).
+        row.bsKDRatioLabel:SetAnchor(TOP, row.assistsLabel, TOP, layout.kdFromAssists, 0)
     end
+end
+
+-- Gamepad row heights.
+--
+-- ESO's Medal/K/D/A labels are "font adjusting": they re-pick the first font
+-- in their font list that fits (ZoFontGamepad34, else 27) on every SetText AND
+-- whenever their measured width changes (e.g. when the scoreboard's scale
+-- changes as it opens). That overrides the compact row template's
+-- ZoFontGamepad27, leaving a mix of short and tall rows in compact mode
+-- (>12 players). Setting the font once after UpdateRow was not enough.
+--
+-- Fix: in Gamepad compact mode, give those labels a one-entry font list, so
+-- every re-pick lands on the same font. ESO's own list is restored outside
+-- compact Gamepad mode.
+--   false (default): ZoFontGamepad27 - ESO's intended compact look, matches
+--                    the name text.
+--   true:            ZoFontGamepad34 - larger numbers, taller rows.
+local GAMEPAD_COMPACT_LARGE_NUMBERS = false
+
+local COMPACT_FONTS_SMALL = { { font = "ZoFontGamepad27", lineLimit = 1 } }
+local COMPACT_FONTS_LARGE = { { font = "ZoFontGamepad34", lineLimit = 1 } }
+
+-- Fixed row heights (measuring with GetHeight() read rows mid-rebuild and made
+-- the scoreboard move between updates). Measured from Gamepad screenshots:
+--   ZoFontGamepad34 rows: 50px pitch = 40 + ESO's 10px gap
+--   ZoFontGamepad27 rows: 42.8px pitch = ~33 + 10 (ESO assumes 32)
+local GAMEPAD_ROW_HEIGHT = 40
+local GAMEPAD_COMPACT_ROW_HEIGHT = 33
+
+local function useSmallEntries()
+    local fragment = BATTLEGROUND_SCOREBOARD_FRAGMENT
+    return fragment and fragment.ShouldScoreboardUseSmallPlayerEntries
+        and fragment.currentBattlegroundId and fragment.currentBattlegroundId ~= 0
+        and fragment:ShouldScoreboardUseSmallPlayerEntries() or false
+end
+
+local function getTeamPanelHeight(teamSize)
+    local esoHeight = ZO_Battleground_Scoreboard_Team_Panel_Object.GetPanelHeight(teamSize)
+    if not esoHeight or not IsInGamepadPreferredMode() then return esoHeight end
+    local rowHeight = GAMEPAD_ROW_HEIGHT
+    if useSmallEntries() and not GAMEPAD_COMPACT_LARGE_NUMBERS then
+        rowHeight = GAMEPAD_COMPACT_ROW_HEIGHT
+    end
+    -- ESO's fixed height for teams of 4 or fewer also holds the team name and
+    -- score block; keep it.
+    local DEFAULT_TEAM_SIZE = 4
+    if teamSize <= DEFAULT_TEAM_SIZE then return esoHeight end
+    local rowGap = ZO_BATTLEGROUND_SCOREBOARD_PLAYER_ROW_OFFSET_Y or 10
+    local firstRow = ZO_BATTLEGROUND_SCOREBOARD_PLAYER_ROW_INITIAL_OFFSET_Y or 20
+    -- Panel ends at the last row's bottom edge. The gap between teams
+    -- (ZO_BATTLEGROUND_SCOREBOARD_PANEL_OFFSET_Y, 10) then equals the gap
+    -- between rows (10), so the next team's divider line sits exactly one row
+    -- gap below the last player. ESO's formula also counted a gap after the
+    -- last row, which doubled the space under each team on Gamepad.
+    return firstRow + teamSize * rowHeight + (teamSize - 1) * rowGap
+end
+
+-- Must run after ESO's UpdateRow (which calls SetText) and before updateRow()
+-- copies the Assists font onto K/D. Runs in every mode so a pooled row
+-- leaving compact Gamepad mode gets ESO's font list back.
+local function normalizeGamepadScoreFonts(row)
+    if not row then return end
+    local panel = row.panel
+    local compact = IsInGamepadPreferredMode() and panel and panel.ShouldUseSmallPlayerEntries
+        and panel:ShouldUseSmallPlayerEntries()
+    local fonts = GAMEPAD_COMPACT_LARGE_NUMBERS and COMPACT_FONTS_LARGE or COMPACT_FONTS_SMALL
+    for _, label in ipairs({ row.medalScoreLabel, row.killsLabel, row.deathsLabel, row.assistsLabel }) do
+        if label then
+            if compact then
+                if label.fonts ~= COMPACT_FONTS_SMALL and label.fonts ~= COMPACT_FONTS_LARGE then
+                    label.bsEsoFonts = label.fonts
+                end
+                label.fonts = fonts
+                label:SetFont(fonts[1].font)
+            elseif label.bsEsoFonts and (label.fonts == COMPACT_FONTS_SMALL or label.fonts == COMPACT_FONTS_LARGE) then
+                label.fonts = label.bsEsoFonts
+                label.bsEsoFonts = nil
+                if label.MarkDirty then label:MarkDirty() end
+            end
+        end
+    end
+end
+
+-- ESO resets each panel's height in UpdatePanelHeight (on every UpdateAll and
+-- platform-style change). Correct it right there, so there is never a frame
+-- drawn with ESO's shorter Gamepad height.
+if ZO_Battleground_Scoreboard_Team_Panel_Object and ZO_Battleground_Scoreboard_Team_Panel_Object.UpdatePanelHeight then
+    SecurePostHook(ZO_Battleground_Scoreboard_Team_Panel_Object, "UpdatePanelHeight", function(self)
+        if IsInGamepadPreferredMode() and self.control and self.teamSize then
+            self.control:SetHeight(getTeamPanelHeight(self.teamSize))
+        end
+    end)
 end
 
 -- Fit the *complete* team list in the scoreboard viewport. ESO normally caps
@@ -228,10 +392,15 @@ local function fitAllScoreboardPlayers(fragment)
     if not teamCount or not teamSize or teamCount < 1 or teamSize < 1 then return end
     if not ZO_Battleground_Scoreboard_Team_Panel_Object then return end
 
-    local teamHeight = ZO_Battleground_Scoreboard_Team_Panel_Object.GetPanelHeight(teamSize)
+    -- Same deterministic height the panels themselves use (see above).
+    local teamHeight = getTeamPanelHeight(teamSize)
     if not teamHeight then return end
     local between = ZO_BATTLEGROUND_SCOREBOARD_PANEL_OFFSET_Y or 10
-    local desiredHeight = teamHeight * teamCount + between * (teamCount - 1) + 34
+    local gamepad = IsInGamepadPreferredMode()
+    -- Gamepad: ESO's own +5 only. Team panels are sized to their rows (see
+    -- getTeamPanelHeight), so no extra allowance is needed below the last
+    -- team. Keyboard keeps its tested +34.
+    local desiredHeight = teamHeight * teamCount + between * (teamCount - 1) + (gamepad and 5 or 34)
     local headerHeight = ZO_BATTLEGROUND_SCOREBOARD_HEADER_HEIGHT or 90
     local paddingHeight = ZO_BATTLEGROUND_SCOREBOARD_PADDING_HEIGHT or 30
     local backgroundsHeight = desiredHeight + headerHeight + paddingHeight * 2
@@ -242,15 +411,15 @@ local function fitAllScoreboardPlayers(fragment)
     -- The base game shifts rounds mode upward to accommodate its scroll cap.
     -- Recenter the fully expanded list rather than retaining that offset.
     fragment.backgroundsContainer:ClearAnchors()
-    local x = IsInGamepadPreferredMode() and -10 or 0
+    local x = gamepad and -10 or 0
     fragment.backgroundsContainer:SetAnchor(CENTER, fragment.control, CENTER, x, -20)
 
     -- Scale the complete stock scoreboard (including its match-breakdown panel)
     -- if the screen isn't tall enough for all 18 rows at native size.
     -- Leave space for round controls and the bottom keybind strip.
     local screenHeight = GuiRoot:GetHeight()
-    local availableHeight = screenHeight * 0.85
-    local requiredHeight = backgroundsHeight + 110
+    local availableHeight = screenHeight * (gamepad and 0.78 or 0.85)
+    local requiredHeight = backgroundsHeight + (gamepad and 145 or 110)
     local scale = math.min(1, availableHeight / requiredHeight)
     fragment.control:SetScale(scale)
 
@@ -267,9 +436,10 @@ end
 local function hideNativeRightColumns(row)
     if not row then return end
     -- Create breathing room for Medal Score / Damage Taken / Damage + Healing.
-    -- The K/D ratio remains anchored to Assists and follows its new position.
+    -- Display-only shift; K/D's anchor offset already includes it (see LAYOUT).
+    local offset = getLayout().kdaShift
     for _, label in ipairs({ row.killsLabel, row.deathsLabel, row.assistsLabel }) do
-        if label then label:SetTransformOffsetX(30) end
+        if label then label:SetTransformOffsetX(offset) end
     end
     if row.damageLabel then row.damageLabel:SetHidden(true) end
     if row.healsLabel then row.healsLabel:SetHidden(true) end
@@ -278,9 +448,10 @@ end
 
 local function hideNativeRightHeaders(fragment)
     if not fragment or not fragment.headers then return end
+    local layout = getLayout()
     for _, suffix in ipairs({ "Kills", "Deaths", "Assists" }) do
         local control = fragment.headers:GetNamedChild(suffix)
-        if control then control:SetTransformOffsetX(30) end
+        if control then control:SetTransformOffsetX(layout.kdaShift) end
     end
     for _, suffix in ipairs({ "Damage", "Heals", "GameTypeScore" }) do
         local control = fragment.headers:GetNamedChild(suffix)
@@ -292,7 +463,7 @@ local function hideNativeRightHeaders(fragment)
             local label = CreateControl(fragment.headers:GetName() .. "MMBSKDRatioHeader", fragment.headers, CT_LABEL)
             label:SetFont("ZoFontGameBold")
             label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-            label:SetDimensions(54, 28)
+            label:SetDimensions(KD_LABEL_WIDTH, 28)
             label:SetText("K/D")
             fragment.bsKDRatioHeader = label
         end
@@ -302,8 +473,10 @@ local function hideNativeRightHeaders(fragment)
             fragment.bsKDRatioHeader:SetColor(assistsHeader:GetColor())
             fragment.bsKDRatioHeader:SetHeight(assistsHeader:GetHeight())
         end
+        fragment.bsKDRatioHeader:SetWidth(KD_LABEL_WIDTH)
+        fragment.bsKDRatioHeader:SetVerticalAlignment(TEXT_ALIGN_TOP)
         fragment.bsKDRatioHeader:ClearAnchors()
-        fragment.bsKDRatioHeader:SetAnchor(CENTER, assistsHeader, CENTER, 80, 0)
+        fragment.bsKDRatioHeader:SetAnchor(TOP, assistsHeader, TOP, layout.kdFromAssists, 0)
         fragment.bsKDRatioHeader:SetHidden(false)
     end
 end
@@ -321,12 +494,14 @@ if ZO_Battleground_Scoreboard_Player_Row_Object then
             local size = small and 24 or 30
             self.classIcon:SetDimensions(size, size)
         end
+        normalizeGamepadScoreFonts(self)
         updateRow(self)
         separateDeathmatchLives(self)
         hideNativeRightColumns(self)
     end)
 
     SecurePostHook(ZO_Battleground_Scoreboard_Player_Row_Object, "UpdateRow", function(self)
+        normalizeGamepadScoreFonts(self)
         updateRow(self)
         separateDeathmatchLives(self)
         hideNativeRightColumns(self)
@@ -338,6 +513,7 @@ if ZO_Battleground_Scoreboard_Player_Row_Object then
         bs.scores = {}
         for _, data in pairs(self.playerEntryData or {}) do
             if data.entryIndex and data.rowObject then
+                ensureStackedStats(data.rowObject)
                 bs.scores[data.entryIndex] = data.rowObject
                 updateRow(data.rowObject)
                 updateScore(data.entryIndex, roundIndex, showAggregate)

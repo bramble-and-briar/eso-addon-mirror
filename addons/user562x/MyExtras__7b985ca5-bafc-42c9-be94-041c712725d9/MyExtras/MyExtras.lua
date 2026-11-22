@@ -1,6 +1,6 @@
 MyExtras = {}
 MyExtras.name = "MyExtras"
-MyExtras.version = "7.6"
+MyExtras.version = "8.4"
 MyExtras.savedVariables = nil
 MyExtras.charVariables = nil
 MyExtras.defaults = {
@@ -22,7 +22,7 @@ MyExtras.SAVED_CHARACTER_TIP = "Per character: set separately on each of your ch
 
 local MENU_ORDER = { "ActionBar", "Trackers", "Gear", "DungeonsTrials", "QualityOfLife", "Antiquity" }
 local MISC_FIRST = { "FriendsStatus" }
-local MISC_LAST  = { "Streamer", "Performance", "TitleLoop", "ChatTravel", "GuildLoop" }
+local MISC_LAST  = { "Performance", "ChatTravel", "TitleLoop", "GuildLoop", "Streamer" }
 
 local ICON_SETTINGS = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_settings.dds"
 local ICON_MENU     = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_misc.dds"
@@ -292,6 +292,174 @@ function RoundBox:SetHidden(hidden)
 end
 
 --------------------------------------------------
+-- Stretch
+--------------------------------------------------
+MyExtras.STRETCH_MIN   = 50
+MyExtras.STRETCH_MAX   = 200
+MyExtras.STRETCH_SPEED = 60
+
+function MyExtras:ApplyStretch(control, percent, originX, originY)
+    if not control or not control.SetTransformScaleX then return end
+    local value = zo_clamp(tonumber(percent) or 100, self.STRETCH_MIN, self.STRETCH_MAX) / 100
+    if control.SetTransformNormalizedOriginPoint then
+        pcall(control.SetTransformNormalizedOriginPoint, control, originX or 0.5, originY or 0.5)
+    end
+    pcall(control.SetTransformScaleX, control, value)
+end
+
+--------------------------------------------------
+-- Scopes
+--------------------------------------------------
+local function CopyValue(value)
+    if type(value) ~= "table" then return value end
+    local copy = {}
+    for k, v in pairs(value) do copy[k] = v end
+    return copy
+end
+
+local Scope = {}
+Scope.__index = Scope
+
+function MyExtras:NewScope(charKey, legacyKey)
+    local scope = setmetatable({
+        charKey  = charKey,
+        legacyKey = legacyKey,
+        defaults = {},
+        groups   = {},
+    }, Scope)
+    scope.proxy = setmetatable({}, {
+        __index    = function(_, key) return scope:Store(key)[key] end,
+        __newindex = function(_, key, value) scope:Store(key)[key] = value end,
+    })
+    return scope
+end
+
+function Scope:AddDefaults(list, group)
+    for key, value in pairs(list) do
+        self.defaults[key] = value
+        MyExtras.defaults[key] = value
+        local keyGroup = group
+        if type(group) == "function" then keyGroup = group(key) end
+        self.groups[key] = keyGroup
+    end
+end
+
+function Scope:Flags()
+    local cv = MyExtras.charVariables
+    if not cv then return nil end
+    local name = self.charKey .. "Scopes"
+    if type(cv[name]) ~= "table" then
+        cv[name] = {}
+        if self.legacyKey and cv[self.legacyKey] == true then cv[name].all = true end
+    end
+    return cv[name]
+end
+
+function Scope:UsesCharacter(group)
+    if not group then return false end
+    local flags = self:Flags()
+    if not flags then return false end
+    if flags[group] ~= nil then return flags[group] == true end
+    return flags.all == true
+end
+
+function Scope:CharTable()
+    local cv = MyExtras.charVariables
+    if type(cv[self.charKey]) ~= "table" then cv[self.charKey] = {} end
+    local settings = cv[self.charKey]
+    if type(settings.seededGroups) ~= "table" then settings.seededGroups = {} end
+    return settings
+end
+
+function Scope:Seed(group)
+    local settings = self:CharTable()
+    local account = MyExtras.savedVariables or {}
+    for key, keyGroup in pairs(self.groups) do
+        if keyGroup == group then
+            local value = account[key]
+            if value == nil then value = self.defaults[key] end
+            settings[key] = CopyValue(value)
+        end
+    end
+    settings.seededGroups[group] = true
+end
+
+function Scope:Store(key)
+    local group = self.groups[key]
+    if group and MyExtras.charVariables and self:UsesCharacter(group) then
+        local settings = self:CharTable()
+        if not (settings.seeded or settings.seededGroups[group]) then self:Seed(group) end
+        if settings[key] == nil and self.defaults[key] ~= nil then
+            local value = MyExtras.savedVariables and MyExtras.savedVariables[key]
+            if value == nil then value = self.defaults[key] end
+            settings[key] = CopyValue(value)
+        end
+        return settings
+    end
+    return MyExtras.savedVariables
+end
+
+function Scope:SetUsesCharacter(group, value)
+    local flags = self:Flags()
+    if not flags or not group then return end
+    value = value == true
+    flags[group] = value
+    if value then
+        local settings = self:CharTable()
+        if not (settings.seeded or settings.seededGroups[group]) then self:Seed(group) end
+    end
+end
+
+function Scope:Settings()
+    return self.proxy
+end
+
+function Scope:ResetSkipKeys()
+    local keys = {}
+    for key, group in pairs(self.groups) do
+        if group and self:UsesCharacter(group) then keys[#keys + 1] = key end
+    end
+    return keys
+end
+
+function Scope:ResetCharacter()
+    if not MyExtras.charVariables then return end
+    local settings = self:CharTable()
+    for key, group in pairs(self.groups) do
+        if group and self:UsesCharacter(group) then
+            settings[key] = CopyValue(self.defaults[key])
+        end
+    end
+end
+
+function MyExtras:CharacterOption(scope, group, onChange)
+    return {
+        type    = "toggle",
+        name    = "Character Settings",
+        tooltip = "Off uses the same settings for the whole account. On gives this character its own settings, "
+               .. "copied from the account settings the first time you turn it on.",
+        details = function()
+            if scope:UsesCharacter(group) then
+                return "This character has its own settings."
+            end
+            return "All your characters share the same settings."
+        end,
+        getFunc = function() return scope:UsesCharacter(group) end,
+        setFunc = function(val)
+            scope:SetUsesCharacter(group, val)
+            if onChange then onChange() end
+            local panel = MyExtras.settingsPanel
+            if panel and panel.Refresh then panel:Refresh() end
+        end,
+    }
+end
+
+function MyExtras:SavedTip(scope, group)
+    if scope:UsesCharacter(group) then return self.SAVED_CHARACTER_TIP end
+    return self.SAVED_ACCOUNT_TIP
+end
+
+--------------------------------------------------
 -- Reset
 --------------------------------------------------
 function MyExtras:ResetSettings()
@@ -505,7 +673,7 @@ function MyExtras:MiscellaneousMenu()
         type    = "submenu",
         name    = "Miscellaneous",
         icon    = ICON_MENU,
-        tooltip = "Friends' Status, Streamer, FPS / Ping, Title Loop, Chat Travel and Guild Loop.",
+        tooltip = "Friends' Status, FPS / Ping, Chat Travel, Title Loop, Guild Loop and Streamer.",
         options = options,
     }
 end

@@ -1,6 +1,6 @@
-2026.11.21
-- Seperated TTC prefered pricing out of loot manager so its on its own and can be used by both loot manager and trader enhancements.
-- Added auto TTC pricing when listing items to trader enhancements. Uses the preferred setting in the settings panel or fallback to listing average.
+2026.11.21b
+- Localized the global reference and reverted the manifest file back to .txt format as per Baertrams instructions.
+- Fixed a minor loot manager chat issue causing it to check if knownst via character knowledge etc when no itemlink found which is obviously less than ideal.
 ** POSSIBLE FUTURE OPTIONS **
 - Auto com res?
 - add needs hook to trader window

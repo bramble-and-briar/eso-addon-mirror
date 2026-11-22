@@ -1,4 +1,6 @@
-# Companion Sidekick 0.1.1-test
+# Companion Sidekick 0.1.2
+
+Developed with ChatGPT-assisted code generation. Created and maintained by FoulMouthxAmazon.
 
 Author: FoulMouthxAmazon
 
@@ -73,7 +75,7 @@ It does not mean every skill line is maxed; inspect the build tab for those.
 
 Automated Lua and mocked UI checks passed. Live ESO layout, collectible-to-perk
 matching, quest indexing and event timing still need in-game verification.
-This is a test build, not an ESOUI release candidate.
+This is an early public release; additional in-game verification is ongoing.
 
 Personal story titles are initially mapped in English and resolved to real quest
 IDs from ESO. Existing known Bastian/Mirri quest IDs also work independently of

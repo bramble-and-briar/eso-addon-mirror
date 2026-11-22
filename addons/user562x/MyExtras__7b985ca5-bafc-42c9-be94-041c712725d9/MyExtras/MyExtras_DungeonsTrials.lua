@@ -47,52 +47,33 @@ local finderHooked = false
 --------------------------------------------------
 -- Helpers
 --------------------------------------------------
-local charFilled = false
+local GROUP_PREFIXES = {
+    { "dungeonsHide",       "hidePlayers" },
+    { "dungeonsSortFinder", "dungeonFinder" },
+    { "trialTimer",         "trialTimer" },
+    { "groupFinder",        "groupFinder" },
+}
 
-local function CopyValue(value)
-    if type(value) ~= "table" then return value end
-    local copy = {}
-    for k, v in pairs(value) do copy[k] = v end
-    return copy
-end
-
-local function CharSettings()
-    local cv = ME.charVariables
-    if not cv then return nil end
-    if type(cv.dungeonsCharSettings) ~= "table" then cv.dungeonsCharSettings = {} end
-    local settings = cv.dungeonsCharSettings
-    if not settings.seeded then
-        local account = ME.savedVariables
-        for key, value in pairs(DT.defaults) do
-            local current = account and account[key]
-            if current == nil then current = value end
-            settings[key] = CopyValue(current)
-        end
-        settings.seeded = true
-        charFilled = true
-    elseif not charFilled then
-        for key, value in pairs(DT.defaults) do
-            if settings[key] == nil then settings[key] = CopyValue(value) end
-        end
-        charFilled = true
+local function GroupFor(key)
+    for i = 1, #GROUP_PREFIXES do
+        local prefix = GROUP_PREFIXES[i][1]
+        if string.sub(key, 1, #prefix) == prefix then return GROUP_PREFIXES[i][2] end
     end
-    return settings
+    return nil
 end
 
-function DT:UsesCharacterSettings()
-    return ME.charVariables ~= nil and ME.charVariables.dungeonsUseCharacter == true
+local baseDefaults = DT.defaults
+local scope = ME:NewScope("dungeonsCharSettings", "dungeonsUseCharacter")
+DT.scope = scope
+DT.defaults = scope.defaults
+scope:AddDefaults(baseDefaults, GroupFor)
+
+function DT:UsesCharacterSettings(group)
+    return scope:UsesCharacter(group)
 end
 
 local function SV()
-    if DT:UsesCharacterSettings() then
-        return CharSettings() or ME.savedVariables
-    end
-    return ME.savedVariables
-end
-
-local function SavedTip()
-    if DT:UsesCharacterSettings() then return ME.SAVED_CHARACTER_TIP end
-    return ME.SAVED_ACCOUNT_TIP
+    return scope:Settings()
 end
 
 function DT:Settings()
@@ -100,24 +81,22 @@ function DT:Settings()
 end
 
 function DT:AddDefaults(list)
-    for key, value in pairs(list) do
-        self.defaults[key] = value
-        ME.defaults[key] = value
-    end
-    charFilled = false
+    scope:AddDefaults(list, GroupFor)
 end
 
-function DT:SetUseCharacterSettings(value)
-    local cv = ME.charVariables
-    if not cv then return end
-    value = value == true
-    if (cv.dungeonsUseCharacter == true) == value then return end
-    cv.dungeonsUseCharacter = value
+function DT:RefreshAll()
     self:Apply()
+    self:HookFinder()
     if ME.TrialTimer then ME.TrialTimer:Refresh() end
     if ME.GroupFinder then ME.GroupFinder:Refresh(false) end
-    local panel = ME.settingsPanel
-    if panel and panel.Refresh then panel:Refresh() end
+end
+
+function DT:CharacterOption(group)
+    return ME:CharacterOption(scope, group, function() DT:RefreshAll() end)
+end
+
+function DT:SavedTip(group)
+    return ME:SavedTip(scope, group)
 end
 
 local function IsOn()
@@ -261,103 +240,111 @@ end
 --------------------------------------------------
 -- Settings
 --------------------------------------------------
+local function AddCharacterOption(submenu, group)
+    if not submenu or type(submenu.options) ~= "table" then return submenu end
+    local position = 1
+    if submenu.options[1] and submenu.options[1].name == "Enabled" then position = 2 end
+    table.insert(submenu.options, position, DT:CharacterOption(group))
+    local description = submenu.tooltip
+    submenu.tooltip = function()
+        local text = type(description) == "function" and description() or description or ""
+        return text .. "\n\n" .. DT:SavedTip(group)
+    end
+    return submenu
+end
+
+local function Page(name, group, description, options)
+    return AddCharacterOption({
+        type    = "submenu",
+        name    = name,
+        tooltip = description,
+        options = options,
+    }, group)
+end
+
 function DT:GetOptions()
     local defaults = self.defaults
 
     local function IsOff() return not IsOn() end
 
-    local pages = {}
-    if ME.TrialTimer then pages[#pages + 1] = ME.TrialTimer:SubmenuOption() end
-    if ME.GroupFinder then pages[#pages + 1] = ME.GroupFinder:SubmenuOption() end
+    local hidePlayers = {
+        {
+            type    = "toggle",
+            name    = "Enabled",
+            preset  = "YES_NO",
+            default = defaults.dungeonsHidePlayers,
+            tooltip = "Hides your group's characters so you only see yourself. "
+                   .. "They reappear after loading screens, respawns and menus, and disappear again "
+                   .. "when they bar swap or do something that updates their character.\n\n"
+                   .. "If you have a Necromancer Siphon or Tether skill slotted, they show again "
+                   .. "when you enter combat so you can use corpses.",
+            getFunc = function() return SV().dungeonsHidePlayers end,
+            setFunc = function(val)
+                SV().dungeonsHidePlayers = val
+                DT:Apply()
+            end,
+        },
+        {
+            type     = "checklist",
+            name     = "Hide In",
+            choices  = self.placeChoices,
+            default  = { "dungeons", "trials" },
+            tooltip  = "Where it hides players.",
+            disabled = IsOff,
+            getFunc  = function()
+                local sv = SV()
+                local values = {}
+                for i = 1, #DT.placeChoices do
+                    local value = DT.placeChoices[i].value
+                    if sv[PLACE_KEYS[value]] then values[#values + 1] = value end
+                end
+                return values
+            end,
+            setFunc  = function(values)
+                local sv = SV()
+                local set = {}
+                if type(values) == "table" then
+                    for i = 1, #values do set[values[i]] = true end
+                end
+                for value, key in pairs(PLACE_KEYS) do
+                    sv[key] = set[value] == true
+                end
+                DT:Apply()
+            end,
+        },
+    }
 
-    local page = {
+    local dungeonFinder = {
+        {
+            type    = "toggle",
+            name    = "Sort Alphabetically",
+            preset  = "YES_NO",
+            default = defaults.dungeonsSortFinder,
+            tooltip = "Lists the dungeons in the Dungeon Finder alphabetically.",
+            getFunc = function() return SV().dungeonsSortFinder end,
+            setFunc = function(val)
+                SV().dungeonsSortFinder = val
+                DT:HookFinder()
+            end,
+        },
+    }
+
+    local options = {}
+    if ME.GroupFinder then options[#options + 1] = AddCharacterOption(ME.GroupFinder:SubmenuOption(), "groupFinder") end
+    options[#options + 1] = Page("Hide Players", "hidePlayers", "Hides your group's characters in dungeons and trials.", hidePlayers)
+    options[#options + 1] = Page("Dungeon Finder", "dungeonFinder", "Sorts the Dungeon Finder.", dungeonFinder)
+    if ME.TrialTimer then options[#options + 1] = AddCharacterOption(ME.TrialTimer:SubmenuOption(), "trialTimer") end
+
+    return {
         {
             type    = "submenu",
             name    = "Dungeons & Trials",
             icon    = SUBMENU_ICON,
-            tooltip = function()
-                return "Hides other players in dungeons and trials, sorts the Dungeon Finder, times your trials "
-                    .. "and checks the Group Finder for you.\n\n" .. SavedTip()
-            end,
-            options = {
-                {
-                    type    = "toggle",
-                    name    = "Character Settings",
-                    tooltip = "Off uses the same settings for the whole account. On gives this character its own settings, "
-                           .. "copied from the account settings the first time you turn it on.",
-                    details = function()
-                        if DT:UsesCharacterSettings() then
-                            return "This character has its own settings."
-                        end
-                        return "All your characters share the same settings."
-                    end,
-                    getFunc = function() return DT:UsesCharacterSettings() end,
-                    setFunc = function(val) DT:SetUseCharacterSettings(val) end,
-                },
-                {
-                    type    = "toggle",
-                    name    = "Hide Players",
-                    preset  = "YES_NO",
-                    default = defaults.dungeonsHidePlayers,
-                    tooltip = "Hides your group's characters so you only see yourself. "
-                           .. "They reappear after loading screens, respawns and menus, and disappear again "
-                           .. "when they bar swap or do something that updates their character.\n\n"
-                           .. "If you have a Necromancer Siphon or Tether skill slotted, they show again "
-                           .. "when you enter combat so you can use corpses.",
-                    getFunc = function() return SV().dungeonsHidePlayers end,
-                    setFunc = function(val)
-                        SV().dungeonsHidePlayers = val
-                        DT:Apply()
-                    end,
-                },
-                {
-                    type     = "checklist",
-                    name     = "Hide In",
-                    choices  = self.placeChoices,
-                    default  = { "dungeons", "trials" },
-                    tooltip  = "Where it hides players.",
-                    disabled = IsOff,
-                    getFunc  = function()
-                        local sv = SV()
-                        local values = {}
-                        for i = 1, #DT.placeChoices do
-                            local value = DT.placeChoices[i].value
-                            if sv[PLACE_KEYS[value]] then values[#values + 1] = value end
-                        end
-                        return values
-                    end,
-                    setFunc  = function(values)
-                        local sv = SV()
-                        local set = {}
-                        if type(values) == "table" then
-                            for i = 1, #values do set[values[i]] = true end
-                        end
-                        for value, key in pairs(PLACE_KEYS) do
-                            sv[key] = set[value] == true
-                        end
-                        DT:Apply()
-                    end,
-                },
-                {
-                    type    = "toggle",
-                    name    = "Sort Dungeon Finder",
-                    preset  = "YES_NO",
-                    default = defaults.dungeonsSortFinder,
-                    tooltip = "Lists the dungeons in the Dungeon Finder alphabetically.",
-                    getFunc = function() return SV().dungeonsSortFinder end,
-                    setFunc = function(val)
-                        SV().dungeonsSortFinder = val
-                        DT:HookFinder()
-                    end,
-                },
-            },
+            tooltip = "Checks the Group Finder for you, hides other players in dungeons and trials, "
+                   .. "sorts the Dungeon Finder and times your trials.",
+            options = options,
         },
     }
-    local options = page[1].options
-    for i = 1, #pages do
-        options[#options + 1] = pages[i]
-    end
-    return page
 end
 
 --------------------------------------------------
@@ -378,24 +365,12 @@ function DT:OnPlayerActivated()
 end
 
 function DT:ResetSkipKeys()
-    local keys = {}
-    if self:UsesCharacterSettings() then
-        for key in pairs(self.defaults) do keys[#keys + 1] = key end
-    end
-    return keys
+    return scope:ResetSkipKeys()
 end
 
 function DT:OnReset()
-    if self:UsesCharacterSettings() then
-        local settings = CharSettings()
-        if settings then
-            for key, value in pairs(self.defaults) do
-                settings[key] = CopyValue(value)
-            end
-            settings.seeded = true
-        end
-    end
-    self:Apply()
+    scope:ResetCharacter()
+    self:RefreshAll()
 end
 
 ME:RegisterFeature(DT)

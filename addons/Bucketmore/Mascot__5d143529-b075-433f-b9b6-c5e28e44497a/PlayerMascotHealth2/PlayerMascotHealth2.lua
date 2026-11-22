@@ -1,4 +1,4 @@
--- PlayerMascotHealth2 v2.0.7  (character library)
+-- PlayerMascotHealth2 v2.0.9  (character library)
 -- Base: PlayerMascotHealth v1.5.0 (HP state logic, HP events, animation, HUD fragment, preview, NORMAL load protection are carried over unchanged).
 -- New in v2: (1) the standard character is built in and always available; (2) more characters ("packs") come from OTHER addons that
 -- append a definition to the global table PMH2_PackQueue (no dependency, no load-order requirement); (3) position / size / opacity /
@@ -6,8 +6,10 @@
 -- Own addon name, own SavedVariables (PlayerMascotHealth2_SV) and own control names: the stable PlayerMascotHealth v1.5.0 is never touched.
 -- Turn PlayerMascotHealth v1.5.0 OFF while using this addon (two mascots would overlap).
 -- No OnUpdate / no polling. HP is read on EVENT_POWER_UPDATE (player + health only) and a few rare lifecycle events.
--- v2.0.7: GUEST characters (PMH2_GuestPacks.lua + guests/<id>/): own "Guest" dropdown in the settings, guest display name can be renamed
---   (sv.guestNames). HP logic / animation / saved data of the other characters unchanged. No timers / events added.
+-- v2.0.9: GUEST characters (PMH2_GuestPacks.lua + guests/<id>/), built on v2.0.6. Settings: Character (owner characters only) / Use guest (checkbox) /
+--   Guest (guests only). The guest's name is the pack's own `name` (set when the pack is made); it cannot be renamed in the game, and no id is shown.
+--   Which character is shown is the single saved sv.selectedId; the two dropdowns only remember their own choice at runtime.
+--   Nothing else changed: HP logic, animation, saved data format. No timers / events added.
 -- v2.0.6: per-character animation speed slider (FPS 2..12, default 8 = unchanged). Nothing else changed.
 -- v2.0.5: the character "Christmas 2026" (xmas2026) is bundled (PMH2_BundledPacks.lua + packs/xmas2026/); nothing else changed.
 -- v2.0.4: status text enlarged (it was unreadably small on the PS5) and the strip moved right of the description panel
@@ -23,7 +25,7 @@
 --   * character ids are compared case-insensitively when packs are registered (stored ids are never rewritten).
 
 local ADDON      = "PlayerMascotHealth2"
-local VERSION    = "2.0.7"
+local VERSION    = "2.0.9"
 local DEBUG      = false      -- true prints "[PMH2]" debug lines (max DEBUG_MAX per session); off in the release
 local SV_NAME    = "PlayerMascotHealth2_SV"
 local SV_VERSION = 1                 -- NEVER change this number: ZO_SavedVars discards the saved data when it changes. Data format
@@ -103,14 +105,11 @@ local packList  = {}        -- ids in display order (default first)
 local charNames = {}        -- dropdown choices (display names, same order as packList)
 local nameToId  = {}        -- display name -> id
 local ownerIds, guestIds = {}, {}   -- ids in display order: owner characters (default first) / guest characters
-local guestChoices = {}         -- guest dropdown choices ("no guest" + guest display names); filled in place
-local lastOwnerId = DEFAULT_ID  -- owner character to return to when "no guest" is chosen (runtime only)
-local GUEST_IN_USE = "- (ゲスト使用中 / guest in use)"   -- placeholder shown in the Character dropdown while a guest is in use
-local NO_GUEST     = "- (ゲストなし / no guest)"         -- placeholder of the Guest dropdown
+local guestChoices = {}         -- Guest dropdown choices (guest display names only)
+local ownerSel, guestSel = DEFAULT_ID, nil   -- what the Character / Guest dropdown show (runtime only, never saved). Which one is IN USE is curPack.guest.
 local badPacks  = {}        -- id -> true when the pack's files never loaded this session (runtime only, never saved)
 local curId, curPack = DEFAULT_ID, nil
 local packsReady = false
-local RebuildNames                      -- defined below (before PackSetup); declared here so it is a local, not a global
 local packRejects = {}      -- "id:reason" of packs that were not registered (shown in the preview strip status)
 local settingsBuilt = false
 
@@ -136,10 +135,6 @@ end
 
 local function Sanitize()                         -- global settings
     if type(sv.selectedId) ~= "string" then sv.selectedId = DEFAULT_ID end
-    if type(sv.guestNames) ~= "table" then sv.guestNames = {} end                 -- guest display names typed by the user (id -> text)
-    for k, v in pairs(sv.guestNames) do
-        if type(k) ~= "string" or type(v) ~= "string" or v == "" then sv.guestNames[k] = nil end
-    end
     sv.normalStart = Num(sv.normalStart, NORMAL_MIN, NORMAL_MAX, DEFAULTS.normalStart)
     local cautionMax = math.min(CAUTION_MAX, sv.normalStart - GAP)
     sv.cautionStart = Num(sv.cautionStart, CAUTION_MIN, cautionMax, math.min(DEFAULTS.cautionStart, cautionMax))
@@ -233,16 +228,6 @@ local function ScanDamage(raw)
     end
     if raw.schemaVersion ~= nil and not IsSchema(raw.schemaVersion) then add("schemaVersion", raw.schemaVersion) end
     if raw.selectedId ~= nil and type(raw.selectedId) ~= "string" then add("selectedId", raw.selectedId) end
-    local gn = raw.guestNames
-    if gn ~= nil and type(gn) ~= "table" then
-        add("guestNames", gn)
-    elseif type(gn) == "table" then
-        for id, v in pairs(gn) do
-            if type(id) == "string" and type(v) ~= "string" then
-                add("guestNames." .. ((#id > 40) and (id:sub(1, 40) .. "...") or id), v)
-            end
-        end
-    end
     for _, k in ipairs({ "normalStart", "cautionStart", "dangerStart" }) do
         if raw[k] ~= nil and not IsNum(raw[k]) then add(k, raw[k]) end
     end
@@ -430,25 +415,22 @@ local function ValidatePack(def)
     return { id = id, name = def.name, display = def.name, sortKey = sortKey, cfg = cfg, guest = isGuest }
 end
 
--- Display names of all characters (a guest shows the name the user typed, if any) and the two dropdown choice lists.
--- The tables are filled IN PLACE so the settings dropdowns that already hold them stay valid.
-local function ClearTable(t) for k in pairs(t) do t[k] = nil end end
-RebuildNames = function()
-    ClearTable(charNames); ClearTable(guestChoices); ClearTable(nameToId)
-    guestChoices[1] = NO_GUEST
-    local seen = { [GUEST_IN_USE] = true, [NO_GUEST] = true }
+-- Display names (the pack's own `name`; default: "Default (標準)") and the two dropdown choice lists. Built once, after the packs are known.
+local function BuildNames()
+    local seen = {}
     for _, id in ipairs(packList) do
         local p = packs[id]
-        if not p.base then p.base = p.display end                                  -- the pack's own display text (default: "Default (標準)")
-        local shown = p.base
-        if p.guest and type(sv.guestNames) == "table" and type(sv.guestNames[id]) == "string" and sv.guestNames[id] ~= "" then shown = sv.guestNames[id] end
-        if seen[shown] then shown = shown .. " [" .. id .. "]" end                 -- dropdown entries must be unique
+        local shown = p.display
+        if seen[shown] then                                                         -- dropdown entries must be unique: "name (2)", "name (3)" ... (no ids on screen)
+            local k, cand = 2, nil
+            repeat cand = shown .. " (" .. k .. ")"; k = k + 1 until not seen[cand] or k > 99
+            shown = cand
+        end
         seen[shown] = true
         p.display = shown
         nameToId[shown] = id
         if p.guest then guestChoices[#guestChoices + 1] = shown else charNames[#charNames + 1] = shown end
     end
-    if #guestIds > 0 then charNames[#charNames + 1] = GUEST_IN_USE end           -- lets the Character dropdown show something while a guest is in use
 end
 
 -- Runs once, at the first EVENT_PLAYER_ACTIVATED (every addon has finished loading by then, so the queue is complete).
@@ -492,7 +474,7 @@ local function PackSetup()
     packList = {}
     for _, id in ipairs(ownerIds) do packList[#packList + 1] = id end
     for _, id in ipairs(guestIds) do packList[#packList + 1] = id end
-    RebuildNames()
+    BuildNames()
 end
 
 -- The id that is shown now. Unknown / removed / failed pack -> standard character; the stored selection stays untouched (KEEP).
@@ -969,7 +951,6 @@ function SwitchPack(newId)
     StopAnim()
     curId = newId
     curPack = packs[newId]
-    if not curPack.guest then lastOwnerId = newId end
     cs = CharSettings(newId)                      -- settings of THIS character (restored if it was used before)
     onceDone = {}
     shownState = nil                              -- forces a fresh ShowImage with the new character's files
@@ -1077,7 +1058,7 @@ local function BuildSettings()
     local sw = math.max(200, math.floor(GuiRoot:GetWidth() or 1920))
     local sh = math.max(200, math.floor(GuiRoot:GetHeight() or 1080))
 
-    local function ChooseChar(id)          -- common to the Character dropdown and the Guest dropdown
+    local function Apply(id)               -- show character `id` now (common to the Character dropdown, the Guest dropdown and the Use guest checkbox)
         if not (id and packs[id]) then return end
         sv.selectedId = id
         if badPacks[id] then                      -- chosen again on purpose: give a pack that failed earlier one more try
@@ -1088,39 +1069,18 @@ local function BuildSettings()
         Refresh()
     end
 
-    local function UpdateChoiceControls()   -- after a guest was renamed: push the new names into the dropdowns (if the controls exist)
-        pcall(function()
-            local c1 = WINDOW_MANAGER:GetControlByName("PMH2_CharacterDD")
-            if c1 and c1.UpdateChoices then c1:UpdateChoices(charNames) end
-            local c2 = WINDOW_MANAGER:GetControlByName("PMH2_GuestDD")
-            if c2 and c2.UpdateChoices then c2:UpdateChoices(guestChoices) end
-        end)
-        Refresh()
-    end
-
-    local function SetGuestName(id, text)   -- empty text or the pack's own name = back to the original name. In protect mode sv is a copy: nothing is saved.
-        if type(sv.guestNames) ~= "table" or not packs[id] then return end
-        local t = tostring(text or "")
-        t = t:gsub("%c", ""):gsub("^%s+", ""):gsub("%s+$", "")
-        if #t > 100 then return end                                   -- too long: ignored
-        if t == "" or t == packs[id].name then sv.guestNames[id] = nil else sv.guestNames[id] = t end
-        RebuildNames()
-        UpdateChoiceControls()
-    end
-
     local opts = {
         {
             type = "dropdown", name = "Character (使用キャラ)",
-            tooltip = "Applies immediately. The settings below belong to the character that is in use. Guest characters are chosen in the Guest dropdown.",
-            reference = "PMH2_CharacterDD",
+            tooltip = "Your own characters. Applies immediately. The settings below belong to the character that is in use.",
             choices = charNames,
             getFunc = function()
-                if packs[curId].guest then return GUEST_IN_USE end
-                return packs[curId].display
+                if not packs[curId].guest then ownerSel = curId end          -- an owner character that is in use is always what the dropdown shows (as in v2.0.6)
+                return packs[ownerSel].display
             end,
             setFunc = function(choice)
                 local id = nameToId[choice]
-                if id and packs[id] and not packs[id].guest then ChooseChar(id) end
+                if id and packs[id] and not packs[id].guest then ownerSel = id; Apply(id) end
             end,
             default = packs[DEFAULT_ID].display,
         },
@@ -1238,41 +1198,28 @@ local function BuildSettings()
     if #guestIds > 0 then                     -- guest section: only when at least one guest character is registered
         local pos = 2
         table.insert(opts, pos, {
-            type = "dropdown", name = "Guest (ゲスト)",
-            tooltip = "Choose a guest character. Applies immediately. Choose the first entry to go back to your own character.",
-            reference = "PMH2_GuestDD",
-            choices = guestChoices,
-            getFunc = function()
-                if packs[curId].guest then return packs[curId].display end
-                return NO_GUEST
-            end,
-            setFunc = function(choice)
-                if choice == NO_GUEST then
-                    if packs[curId].guest then
-                        local back = packs[lastOwnerId]
-                        ChooseChar((back and not back.guest) and lastOwnerId or DEFAULT_ID)
-                    end
-                    return
-                end
-                local id = nameToId[choice]
-                if id and packs[id] and packs[id].guest then ChooseChar(id) end
-            end,
-            default = NO_GUEST,
+            type = "checkbox", name = "Use guest (ゲストを使う)",
+            tooltip = "ON: the guest chosen below is shown. OFF: your own character chosen above is shown. Applies immediately.",
+            getFunc = function() return (curPack and curPack.guest) and true or false end,
+            setFunc = function(v) if v then Apply(guestSel) else Apply(ownerSel) end end,
+            default = false,
         })
         pos = pos + 1
-        for _, gid in ipairs(guestIds) do
-            local id = gid
-            table.insert(opts, pos, {
-                type = "editbox", name = "Guest name (ゲスト名の変更) " .. id,
-                tooltip = "Type a display name for this guest. Empty = the original name. Only the name changes: the guest's settings stay.",
-                isMultiline = false,
-                maxChars = 24,
-                getFunc = function() return (type(sv.guestNames) == "table" and sv.guestNames[id]) or packs[id].name end,
-                setFunc = function(text) SetGuestName(id, text) end,
-                default = packs[id].name,
-            })
-            pos = pos + 1
-        end
+        table.insert(opts, pos, {
+            type = "dropdown", name = "Guest (ゲスト)",
+            tooltip = "Guest characters only. Choosing one shows it right away (and switches 'Use guest' ON).",
+            choices = guestChoices,
+            getFunc = function()
+                if packs[curId].guest then guestSel = curId end              -- a guest that is in use is always what the dropdown shows
+                return packs[guestSel].display
+            end,
+            setFunc = function(choice)
+                local id = nameToId[choice]
+                if id and packs[id] and packs[id].guest then guestSel = id; Apply(id) end
+            end,
+            default = packs[guestIds[1]].display,
+        })
+        pos = pos + 1
     end
 
     LAM:RegisterOptionControls(panelName, opts)
@@ -1286,6 +1233,8 @@ local function OnLifecycle()
         PackSetup()
         if protectMsg and not protectMsgShown then protectMsgShown = true; d(protectMsg) end
         local want = ResolveId()
+        if packs[want].guest then guestSel = want else ownerSel = want end   -- the dropdowns start on what is shown; the other one on its first entry
+        if not guestSel then guestSel = guestIds[1] end                       -- (nil when there are no guests)
         if want ~= curId then SwitchPack(want) else ApplyLayout() end   -- the first image is shown by the HP read below
         if not settingsBuilt then
             settingsBuilt = true

@@ -142,6 +142,63 @@ function Teleport.Players:findPlayerByZoneId(targetZoneId, zoneIdMap)
     return nil
 end
 
+-- One pass over group / friends / guilds. Returns { [zoneId] = player } for
+-- every zone from zoneSet that has at least one online player in it
+-- (group members win over friends, friends over guildies).
+function Teleport.Players:findPlayersInZones(zoneSet)
+    local found = {}
+    local remaining = 0
+    for _ in pairs(zoneSet) do remaining = remaining + 1 end
+    if remaining == 0 then return found end
+
+    local myName = GetDisplayName()
+    local function consider(zoneId, type, playerName, zoneName)
+        if zoneId and zoneSet[zoneId] and not found[zoneId] and playerName ~= myName then
+            found[zoneId] = {
+                type = type,
+                displayName = playerName,
+                zoneId = zoneId,
+                zoneName = zoneName or GetZoneNameById(zoneId),
+            }
+            remaining = remaining - 1
+        end
+        return remaining == 0
+    end
+
+    if IsPlayerInGroup(myName) then
+        for i = 1, GetGroupSize() do
+            local groupUnitTag = GetGroupUnitTagByIndex(i)
+            if groupUnitTag and IsUnitOnline(groupUnitTag) then
+                local zoneIndex = GetUnitZoneIndex(groupUnitTag)
+                if zoneIndex and consider(GetZoneId(zoneIndex), GROUP, GetUnitDisplayName(groupUnitTag)) then
+                    return found
+                end
+            end
+        end
+    end
+
+    for i = 1, GetNumFriends() do
+        local playerName, _, status = GetFriendInfo(i)
+        if status ~= PLAYER_STATUS_OFFLINE then
+            local _, _, zoneName, _, _, _, _, zoneId = GetFriendCharacterInfo(i)
+            if consider(zoneId, FRIEND, playerName, zoneName) then return found end
+        end
+    end
+
+    for i = 1, GetNumGuilds() do
+        local guildId = GetGuildId(i)
+        for j = 1, GetNumGuildMembers(guildId) do
+            local playerName, _, _, status = GetGuildMemberInfo(guildId, j)
+            if status ~= PLAYER_STATUS_OFFLINE then
+                local _, _, zoneName, _, _, _, _, zoneId = GetGuildMemberCharacterInfo(guildId, j)
+                if consider(zoneId, GUILD, playerName, zoneName) then return found end
+            end
+        end
+    end
+
+    return found
+end
+
 function Teleport.Players:findPlayerByDungeonName(dungeonName)
     -- check group members only
     if IsPlayerInGroup(GetDisplayName()) then
@@ -170,7 +227,7 @@ end
 
 --------------------------------------------------------------------------------
 
-function Teleport.Players:teleportToPlayer(player, surveys)
+function Teleport.Players:teleportToPlayer(player, surveys, quest)
     if player.type == GROUP then
         JumpToGroupMember(player.displayName)
     elseif player.type == FRIEND then
@@ -181,7 +238,9 @@ function Teleport.Players:teleportToPlayer(player, surveys)
 
     if surveys then
         info("Teleporting to " .. color(ZO_LinkHandler_CreateDisplayNameLink(player.displayName), C.PLAYER) .. surveys[player.zoneId])
-    else
+    elseif quest then
+        info("Teleporting to " .. color(ZO_LinkHandler_CreateDisplayNameLink(player.displayName), C.PLAYER) .. quest)
+	else
         info("Teleporting to " .. color(ZO_LinkHandler_CreateDisplayNameLink(player.displayName), C.PLAYER) .. " in " .. color(player.zoneName, C.ZONE))
     end
 

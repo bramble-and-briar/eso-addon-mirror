@@ -1,0 +1,14 @@
+## Title: Schrodi's Housing Tools
+## Author: Schrodi
+## Version: 2.1.0
+## AddOnVersion: 210
+## APIVersion: 101051
+## SavedVariables: SchrodisHousingTools_SV
+## OptionalDependsOn: EssentialHousingTools
+## Description: Housing quality of life: assistants and the Aetherial Well from your quickslots, /storage to bring storage chests to you, sortable Retrieve list, "Retrieve To" in the list footer, right-click to store, bound furnishings to the vault, smarter category jumps, and bound state / limit type filters in the Furniture Vault.
+
+Core.lua
+HousingEditor.lua
+FurnitureVault.lua
+Assistants.lua
+Storage.lua

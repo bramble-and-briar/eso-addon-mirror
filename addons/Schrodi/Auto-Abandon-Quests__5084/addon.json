@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Schrodi/Auto-Abandon-Quests__5084",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5084",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5084",
+  "deleted": false,
+  "directories": [
+    "AutoAbandonQuests"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5084/",
+  "fingerprint": "78b472e13813a08fab469917745fc5e17da346f26ef5a37a8901ec580c545776",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18679.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5084",
+  "source_url": "https://www.esoui.com/downloads/info5084-AutoAbandonQuests.html",
+  "stats": {
+    "downloads": 7,
+    "favorites": 0,
+    "monthly_downloads": 7
+  },
+  "title": "Auto Abandon Quests",
+  "updated_at": 1795267197000,
+  "version": "1.5"
+}

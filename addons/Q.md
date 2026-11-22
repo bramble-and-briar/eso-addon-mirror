@@ -53,6 +53,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [QuickMarker - Survey Map Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Astaro/QuickMarker---Survey-Map-Helper__4502) | Astaro | PC / Mac | 1.7 |
 | [QuickMute](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tyx/QuickMute__2557) | Tyx | PC / Mac | 1.0.1 |
 | [QuickSlash - Add Slash Commands to Quickslots Wheels](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MelanAster/QuickSlash---Add-Slash-Commands-to-Quickslots-Wheels__3955) | MelanAster | PC / Mac | 0.10 |
+| [Quickslot Profiles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Quickslot-Profiles__5091) | Schrodi | PC / Mac | 1.4.0 |
 | [QuickslotAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xhoustonx/QuickslotAddon__4049) | xhoustonx | PC / Mac | 1.6 |
 | [Quiet Banner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Quiet-Banner__3983) | kawamonkey | PC / Mac | 1.0 |
 | [Quiet Death, No Screams](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kelinmiriel/Quiet-Death-No-Screams__2973) | Kelinmiriel | PC / Mac | 0.01 |

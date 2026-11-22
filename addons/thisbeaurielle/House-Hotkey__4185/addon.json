@@ -26,7 +26,7 @@
     "HouseHotkey"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4185/",
-  "fingerprint": "3edd2d6226a321d1a3ca7fd737f2b488d8df2082a5252d827c36820e054168dc",
+  "fingerprint": "66afe20d828e22e901a4e27ee7e264db759b4ee5985c4678cc59d0a68edfe050",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14309.png",
     "https://cdn-eso.mmoui.com/preview/pvw14485.jpg"
@@ -37,11 +37,11 @@
   "source_id": "4185",
   "source_url": "https://www.esoui.com/downloads/info4185-HouseHotkey.html",
   "stats": {
-    "downloads": 1173,
+    "downloads": 1425,
     "favorites": 3,
-    "monthly_downloads": 57
+    "monthly_downloads": 100
   },
   "title": "House Hotkey",
-  "updated_at": 1789856600000,
-  "version": "1.8.2"
+  "updated_at": 1795279018000,
+  "version": "1.8.3"
 }

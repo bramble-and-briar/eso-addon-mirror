@@ -15,7 +15,8 @@
 -- Containers: loot boxes and money pouches in your backpack are opened when you're out of combat
 -- with no menu open, and everything inside is taken (Crown, locked and stolen ones are left alone).
 -- Each kind is a switch: money pouches, event boxes and other loot boxes are opened; writ rewards
--- (left for writ add-ons) and boxes of set gear such as curated coffers are not, unless you say so.
+-- (left for writ add-ons), boxes of set gear such as curated coffers, and Rewards for the Worthy
+-- (saved for the daily transmute crystals) are not, unless you say so.
 --
 -- Weapon charge: when an equipped weapon (either bar) drops to the charge you set (default 10%), it
 -- is recharged with a filled soul gem from your backpack, ordinary gems before Crown ones.
@@ -53,6 +54,7 @@ QM.DEFAULTS = {
     openOther = true, -- ...any other loot box
     openWrit = false, -- ...crafting writ rewards (other add-ons handle these)
     openGear = false, -- ...boxes of set gear, e.g. dungeon and trial curated coffers
+    openWorthy = false, -- ...Rewards for the Worthy (saved: the first each day gives transmute crystals)
     autoCharge = true, -- recharge equipped weapons with soul gems
     chargePercent = 10, -- ...when their charge is at or below this
     keepTraits = {}, -- filled from DEFAULT_KEEP below
@@ -488,12 +490,34 @@ local function isWritReward(link)
     return text ~= nil and text ~= "" and writFlavours[text] == true
 end
 
--- What kind of container is this? "writ", "gear", "money", "event", "other", or nil if it isn't one.
-local KIND_OPTION = { writ = "openWrit", gear = "openGear", money = "openMoney", event = "openEvent", other = "openOther" }
+-- Rewards for the Worthy gets a new item id every so often, so besides the known ids we match the
+-- name, taken from the game so it works in any language.
+local WORTHY_IDS = { [210866] = true, [214239] = true, [219651] = true }
+local worthyNames = nil
+local function plainName(name)
+    if type(name) ~= "string" then return "" end
+    return (name:gsub("%^.*$", "")):lower()
+end
+local function isRewardsForTheWorthy(bag, slot, link)
+    if WORTHY_IDS[safe(GetItemId, bag, slot) or 0] then return true end
+    if not worthyNames then
+        worthyNames = { ["rewards for the worthy"] = true }
+        for id in pairs(WORTHY_IDS) do
+            local name = plainName(safe(GetItemLinkName, "|H1:item:" .. id .. ":1:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h"))
+            if name ~= "" then worthyNames[name] = true end
+        end
+    end
+    local name = plainName(safe(GetItemName, bag, slot))
+    return name ~= "" and worthyNames[name] == true
+end
+
+-- What kind of container is this? "worthy", "writ", "gear", "money", "event", "other", or nil.
+local KIND_OPTION = { worthy = "openWorthy", writ = "openWrit", gear = "openGear", money = "openMoney", event = "openEvent", other = "openOther" }
 function QM.ContainerKind(bag, slot)
     local itemType, specialized = safe(GetItemType, bag, slot)
     if not isContainerType(itemType) then return nil end
     local link = safe(GetItemLink, bag, slot) or ""
+    if isRewardsForTheWorthy(bag, slot, link) then return "worthy" end
     if isWritReward(link) then return "writ" end
     -- the tooltip lists the sets a box can give: curated coffers, dungeon and trial reward boxes
     if (safe(GetItemLinkNumContainerSetIds, link) or 0) > 0 then return "gear" end
@@ -700,6 +724,7 @@ function QM.CreateSettings(saved, extra)
         kind("Other loot boxes", "Any other box, bag or coffer: quest rewards, companion finds and so on.", "openOther"),
         kind("Writ rewards", "The boxes and shipments you get for crafting writs. Off by default so a writ add-on can open them.", "openWrit"),
         kind("Boxes of set gear", "Curated coffers and other dungeon or trial reward boxes that give set pieces. Off by default so you can open them yourself and fill your set collection.", "openGear"),
+        kind("Rewards for the Worthy", "The PvP coffers that arrive by mail. Off by default so you can save them: the first one you open each day gives 25 transmute crystals.", "openWorthy"),
         { type = LHAS.ST_SECTION, label = "Weapon charge" },
         check("Recharge weapons automatically", "Use a filled soul gem from your backpack when an equipped weapon (either bar) runs low. Ordinary soul gems are used before Crown ones.", "autoCharge"),
         {

@@ -21,9 +21,6 @@ local SCALE_MIN       = 60
 local SCALE_MAX       = 160
 local WIDTH_MIN       = 300
 local WIDTH_MAX       = 680
-local SPREAD_MIN      = WIDTH_MIN
-local SPREAD_MAX      = WIDTH_MAX
-local SPREAD_SPEED    = 200
 local ROWS_MIN        = 2
 local ROWS_MAX        = 15
 local PADDING         = 14
@@ -65,6 +62,7 @@ local DEFAULTS = {
     groupFinderFont              = "EsoUI/Common/Fonts/FTN57.otf",
     groupFinderScale             = 100,
     groupFinderWidth             = 420,
+    groupFinderStretch           = 100,
     groupFinderRows              = 8,
     groupFinderPosX              = 405,
     groupFinderPosY              = -400,
@@ -1340,6 +1338,7 @@ function GF:ApplyPosition()
     local sv = SV()
     self.panel:ClearAnchors()
     self.panel:SetAnchor(TOP, GuiRoot, CENTER, sv.groupFinderPosX, sv.groupFinderPosY)
+    ME:ApplyStretch(self.panel, SV().groupFinderStretch)
 end
 
 function GF:Render()
@@ -1479,9 +1478,9 @@ function GF.mover:UpdateDirectionalInput(deltaS)
     if x ~= 0 or y ~= 0 then
         GF:SetPosition(GF.moveX + x * MOVE_SPEED * deltaS, GF.moveY - y * MOVE_SPEED * deltaS)
     end
-    local spreadX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(spreadX) > math.abs(scaleY) then
-        GF:SetSpread(GF.moveSpread + spreadX * SPREAD_SPEED * deltaS)
+    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
+    if math.abs(stretchX) > math.abs(scaleY) then
+        GF:SetStretch(GF.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
     elseif scaleY ~= 0 then
         GF:SetScale(GF.moveScale + scaleY * SCALE_SPEED * deltaS)
     end
@@ -1527,18 +1526,16 @@ function GF:SetScale(value)
     end
 end
 
-function GF:SetSpread(value)
-    self.moveSpread = zo_clamp(value, SPREAD_MIN, SPREAD_MAX)
-    local rounded = zo_floor(self.moveSpread + 0.5)
+function GF:SetStretch(value)
+    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
+    local rounded = zo_floor(self.moveStretch + 0.5)
     local sv = SV()
-    if sv.groupFinderWidth ~= rounded then
-        sv.groupFinderWidth = rounded
-        self:Render()
-    end
+    if sv.groupFinderStretch ~= rounded then sv.groupFinderStretch = rounded end
+    ME:ApplyStretch(self.panel, rounded)
 end
 
 function GF:MoveToDefault()
-    self:SetSpread(DEFAULTS.groupFinderWidth)
+    self:SetStretch(100)
     self:SetScale(DEFAULTS.groupFinderScale)
     self:SetPosition(DEFAULTS.groupFinderPosX, DEFAULTS.groupFinderPosY)
 end
@@ -1576,8 +1573,8 @@ function GF:OnMoveShowing()
     self.moveStartScale = sv.groupFinderScale
     self.moveX, self.moveY = sv.groupFinderPosX, sv.groupFinderPosY
     self.moveScale = sv.groupFinderScale
-    self.moveStartSpread = sv.groupFinderWidth or DEFAULTS.groupFinderWidth
-    self.moveSpread = sv.groupFinderWidth or DEFAULTS.groupFinderWidth
+    self.moveStartStretch = sv.groupFinderStretch or 100
+    self.moveStretch = sv.groupFinderStretch or 100
     KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
     DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
     ME:SetPlacing(true)
@@ -1589,7 +1586,7 @@ function GF:OnMoveHidden()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
     if not self.moveSaved then
         self:SetScale(self.moveStartScale)
-        self:SetSpread(self.moveStartSpread)
+        self:SetStretch(self.moveStartStretch)
         self:SetPosition(self.moveStartX, self.moveStartY)
     end
     self.moving = false
@@ -1696,7 +1693,7 @@ function GF:SubmenuOption()
                 type       = "button",
                 name       = "Move / Scale",
                 buttonText = "Move / Scale",
-                tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right makes it longer or shorter.",
+                tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right stretches it wider or narrower.",
                 func       = function() GF:StartMove() end,
             },
             {

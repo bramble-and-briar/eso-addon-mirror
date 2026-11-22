@@ -18,9 +18,9 @@ SafeAddString(NOTY_RAID_OTHERS,				"und <<1>> andere ", 1) -- Don't change
 SafeAddString(NOTY_ENTERING_GROUP_AREA,			"Ihr habt einen Bereich für Gruppen betreten.", 1) -- Don't change
 SafeAddString(NOTY_LEAVING_GROUP_AREA,			"Ihr habt den Bereich für Gruppen verlassen.", 1) -- Don't change
 
-SafeAddString(NOTY_GUILD_INV_OPTION_0,			"niemals", 1)
-SafeAddString(NOTY_GUILD_INV_OPTION_1,			"immer", 1)
-SafeAddString(NOTY_GUILD_INV_OPTION_2,			"bei maximaler Gildenanzahl", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_0,			"Alle Einladungen anzeigen", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_1,			"Nur in Benachrichtigungen anzeigen", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_2,			"Automatisch ablehnen", 1)
 
 SafeAddString(NOTY_AVA_MODE_OPTION_0,			"keine", 1)
 SafeAddString(NOTY_AVA_MODE_OPTION_1,			"Chatnachricht", 1)
@@ -94,6 +94,11 @@ SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE, "Bestätigung bei Nutzung eines Wegs
 SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE_TOOLTIP, "Bei Auswahl eines Reiseziels an einem Wegschrein sofort reisen.", 1)
 SafeAddString(NOTYOU_FAST_TRAVEL_RECALL, "Bestätigung ohne Nutzung eines Wegschreins überspringen", 1)
 SafeAddString(NOTYOU_FAST_TRAVEL_RECALL_TOOLTIP, "Bei Auswahl eines Reiseziels außerhalb eines Wegschreins sofort reisen. Die normalen Goldkosten fallen weiterhin an.", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE, "Zum eigenen Haus reisen", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_TOOLTIP, "Die normale Auswahl für innen/außen anzeigen oder direkt ins eigene Haus beziehungsweise vor das Haus reisen.", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_NORMAL, "Normal", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_INSIDE, "Nur innen", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_OUTSIDE, "Nur außen", 1)
 
 SafeAddString(NOTYOU_FENCE_HEADER,			"Hehler-Dialog", 1)
 SafeAddString(NOTYOU_FENCE,				"Hehler-Dialog unterdrücken:", 1)
@@ -102,8 +107,8 @@ SafeAddString(NOTYOU_FENCE_TOOLTIP,			"Blockiert den Dialog zur Bestätigung, we
 SafeAddString(NOTYOU_GROUPS_HEADER,			"Gruppendialoge", 1)
 SafeAddString(NOTYOU_GROUPS_DISBAND,			"\"Gruppe verlassen\"-Dialog unterdrücken:", 1)
 SafeAddString(NOTYOU_GROUPS_DISBAND_TOOLTIP,		"Blockiert den Dialog zur Bestätigung, wenn eine Gruppe verlassen wird.", 1)
-SafeAddString(NOTYOU_GROUPS_LARGE,			"Großgruppen-Dialog und Meldungen unterdrücken", 1)
-SafeAddString(NOTYOU_GROUPS_LARGE_TOOLTIP,		"Unterdrückt den Bestätigungsdialog und die Meldungen, wenn die Gruppe " .."zu einer Großgruppe wird oder keine Großgruppe mehr ist.", 1)
+SafeAddString(NOTYOU_GROUPS_LARGE,			"Großgruppen-„Dialog und Chatnachrichten“ unterdrücken", 1)
+SafeAddString(NOTYOU_GROUPS_LARGE_TOOLTIP,		"Wenn aktiviert, wird der Großgruppen-Bestätigungsdialog übersprungen und Chatnachrichten beim Wechsel zwischen kleiner und großer Gruppe werden ausgeblendet. Gilt für Gruppenleiter und Mitglieder. Deaktiviert bleibt das normale Spielverhalten erhalten.", 1)
 
 SafeAddString(NOTYOU_CRAFT_HEADER,			"Dialoge an Handwerksstationen", 1)
 SafeAddString(NOTYOU_CRAFT,				"\"Gegenstand aufwerten\"-Dialog unterdrücken:", 1)
@@ -144,8 +149,8 @@ SafeAddString(NOTYOU_NOWRITQUESTS,			"Versiegelte Schriebe nicht automatisch öf
 SafeAddString(NOTYOU_NOWRITQUESTS_TOOLTIP,		"Zeige Handwerksschriebe nicht automatisch an, sobald ein Meisterschrieb gelootet wurde.", 1)
 
 SafeAddString(NOTYOU_GUILDS_HEADER,			"Gildeneinladungen", 1)
-SafeAddString(NOTYOU_GUILDS,				"Grad der Blockierung festlegen:", 1)
-SafeAddString(NOTYOU_GUILDS_TOOLTIP,			"Blockiert Gildeneinladungen.", 1)
+SafeAddString(NOTYOU_GUILDS,				"\"Gildeneinladungen\" einstellen auf...", 1)
+SafeAddString(NOTYOU_GUILDS_TOOLTIP,			"Gildeneinladungen normal oder nur in den Benachrichtigungen anzeigen oder eingehende und ausstehende Einladungen automatisch ablehnen.", 1)
 SafeAddString(NOTYOU_GUILDSAPP,				"Gildenbewerbungsbenachrichtigungen ausblenden", 1)
 SafeAddString(NOTYOU_GUILDSAPP_TOOLTIP,			"Blenden Sie die Gildenanwendungsbenachrichtigungen aus.", 1)
 
@@ -169,6 +174,11 @@ SafeAddString(NOTYOU_GUILDLEAVE_HEADER,			"Gilde verlassen deaktivieren", 1)
 SafeAddString(NOTYOU_GUILDLEAVE_HEADER_TOOLTIP,		"Wählt wie das Gilde verlassen Tastenkürzel im Gildenmenü behandelt werden soll", 1)
 SafeAddString(NOTYOU_GUILDLEAVE_BLOCK,			"Deaktivieren für:", 1)
 SafeAddString(NOTYOU_GUILDLEAVE_BLOCK_TOOLTIP,		"Wählt wie das Gilde verlassen Tastenkürzel behandelt werden soll:\n|cFFFFFFNicht deaktivieren|r - Standardspieleinstellung\n|cFFFFFFAlle Gilden|r - Deaktivieren für alle Gilden\n|cFFFFFFPer Gilde|r - Wählt für welche Gilden das Tastenkürzel deaktiviert ist", 1)
+
+SafeAddString(NOTYOU_OWNED_HOUSES, "Eigene Häuser ausblenden", 2)
+SafeAddString(NOTYOU_OWNED_HOUSES_TOOLTIP, "Blendet eigene Häuser auf Tamriel- und Gebietskarten aus, einschließlich Hauptwohnsitz und eigener Favoriten.", 2)
+SafeAddString(NOTYOU_UNOWNED_HOUSES, "Nicht eigene Häuser ausblenden", 2)
+SafeAddString(NOTYOU_UNOWNED_HOUSES_TOOLTIP, "Blendet nicht eigene Häuser auf Tamriel- und Gebietskarten aus, einschließlich nicht eigener Favoriten.", 2)
 
 SafeAddString(NOTYOU_CAMERA_HEADER,			"Kamera & Interaktion", 1)
 SafeAddString(NOTYOU_CAMERA_INTERRUPT,			"Interaktionen nicht unterbrechen:", 1)

@@ -1,5 +1,6 @@
 -- Ref: docs/adr/0002-modelo-de-dominio-captura-y-codec-de-comparticion.md
 -- Ref: docs/adr/0004-objetivos-multiples-inferidos-por-reticula.md
+-- Ref: docs/adr/0010-comparticion-grupo-y-objetivos-compartidos.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -21,7 +22,7 @@ local function IsAllowedKillSource(sourceType)
         return true
     end
     if sourceType == COMBAT_UNIT_TYPE_GROUP then
-        return IsUnitGrouped ~= nil and IsUnitGrouped("player")
+        return IsUnitGrouped("player")
     end
     return false
 end
@@ -30,15 +31,11 @@ local function RegisterDeathFilter(listenerName, expectedResult, callback)
     EVENT_MANAGER:UnregisterForEvent(listenerName, EVENT_COMBAT_EVENT)
     if not expectedResult then return end
     EVENT_MANAGER:RegisterForEvent(listenerName, EVENT_COMBAT_EVENT, callback)
-    if EVENT_MANAGER.AddFilterForEvent then
-        EVENT_MANAGER:AddFilterForEvent(listenerName, EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, expectedResult)
-        EVENT_MANAGER:AddFilterForEvent(listenerName, EVENT_COMBAT_EVENT, REGISTER_FILTER_IS_ERROR, false)
-    end
+    EVENT_MANAGER:AddFilterForEvent(listenerName, EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, expectedResult)
+    EVENT_MANAGER:AddFilterForEvent(listenerName, EVENT_COMBAT_EVENT, REGISTER_FILTER_IS_ERROR, false)
 end
 
 function CombatTracker:UpdateJusticeRegistration(activeQuest)
-    if not EVENT_MANAGER then return end
-
     local shouldTrack = (activeQuest ~= nil)
         and not activeQuest.completed
         and (activeQuest.requireUndetected == true)
@@ -46,15 +43,9 @@ function CombatTracker:UpdateJusticeRegistration(activeQuest)
 
     if not shouldTrack then
         if self._isJusticeRegistered then
-            if EVENT_JUSTICE_BOUNTY_PAYOFF_AMOUNT_UPDATED then
-                EVENT_MANAGER:UnregisterForEvent(LISTENER_JUSTICE_BOUNTY, EVENT_JUSTICE_BOUNTY_PAYOFF_AMOUNT_UPDATED)
-            end
-            if EVENT_JUSTICE_INFAMY_UPDATED then
-                EVENT_MANAGER:UnregisterForEvent(LISTENER_JUSTICE_INFAMY, EVENT_JUSTICE_INFAMY_UPDATED)
-            end
-            if EVENT_JUSTICE_PICKPOCKET_FAILED then
-                EVENT_MANAGER:UnregisterForEvent(LISTENER_JUSTICE_PICKPOCKET, EVENT_JUSTICE_PICKPOCKET_FAILED)
-            end
+            EVENT_MANAGER:UnregisterForEvent(LISTENER_JUSTICE_BOUNTY, EVENT_JUSTICE_BOUNTY_PAYOFF_AMOUNT_UPDATED)
+            EVENT_MANAGER:UnregisterForEvent(LISTENER_JUSTICE_INFAMY, EVENT_JUSTICE_INFAMY_UPDATED)
+            EVENT_MANAGER:UnregisterForEvent(LISTENER_JUSTICE_PICKPOCKET, EVENT_JUSTICE_PICKPOCKET_FAILED)
             self._isJusticeRegistered = false
         end
         return
@@ -72,21 +63,13 @@ function CombatTracker:UpdateJusticeRegistration(activeQuest)
         self:OnJusticePickpocketFailed(eventCode)
     end
 
-    if EVENT_JUSTICE_BOUNTY_PAYOFF_AMOUNT_UPDATED then
-        EVENT_MANAGER:RegisterForEvent(LISTENER_JUSTICE_BOUNTY, EVENT_JUSTICE_BOUNTY_PAYOFF_AMOUNT_UPDATED, self._bountyHandler)
-    end
-    if EVENT_JUSTICE_INFAMY_UPDATED then
-        EVENT_MANAGER:RegisterForEvent(LISTENER_JUSTICE_INFAMY, EVENT_JUSTICE_INFAMY_UPDATED, self._infamyHandler)
-    end
-    if EVENT_JUSTICE_PICKPOCKET_FAILED then
-        EVENT_MANAGER:RegisterForEvent(LISTENER_JUSTICE_PICKPOCKET, EVENT_JUSTICE_PICKPOCKET_FAILED, self._pickpocketHandler)
-    end
+    EVENT_MANAGER:RegisterForEvent(LISTENER_JUSTICE_BOUNTY, EVENT_JUSTICE_BOUNTY_PAYOFF_AMOUNT_UPDATED, self._bountyHandler)
+    EVENT_MANAGER:RegisterForEvent(LISTENER_JUSTICE_INFAMY, EVENT_JUSTICE_INFAMY_UPDATED, self._infamyHandler)
+    EVENT_MANAGER:RegisterForEvent(LISTENER_JUSTICE_PICKPOCKET, EVENT_JUSTICE_PICKPOCKET_FAILED, self._pickpocketHandler)
     self._isJusticeRegistered = true
 end
 
 function CombatTracker:UpdateRegistration()
-    if not EVENT_MANAGER or not EVENT_COMBAT_EVENT then return end
-
     local activeQuest = Addon.QuestRepository:GetActiveQuest()
     self:UpdateJusticeRegistration(activeQuest)
 
@@ -182,10 +165,53 @@ function CombatTracker:OnCombatEvent(eventCode, result, isError, abilityName, ab
     end
 
     local playerContext = GetAreaContextIfNeeded(activeQuest)
+    if sourceType == COMBAT_UNIT_TYPE_GROUP and playerContext
+        and not Addon.QuestRepository:IsPlayerInsideQuestArea(activeQuest, playerContext.mapId, playerContext.zoneId, playerContext.x, playerContext.y)
+        and IsUnitGrouped and IsUnitGrouped("player") and GetGroupSize and GetGroupUnitTagByIndex and GetMapPlayerPosition then
+        local groupSize = GetGroupSize() or 0
+        for i = 1, groupSize do
+            local unitTag = GetGroupUnitTagByIndex(i)
+            if unitTag and unitTag ~= "player" and not (AreUnitsEqual and AreUnitsEqual(unitTag, "player")) then
+                local gx, gy = GetMapPlayerPosition(unitTag)
+                if gx and gy and Addon.QuestRepository:IsPlayerInsideQuestArea(activeQuest, playerContext.mapId, playerContext.zoneId, gx, gy) then
+                    playerContext.x = gx
+                    playerContext.y = gy
+                    break
+                end
+            end
+        end
+    end
+    if Addon.QuestRepository:HasTargetLocation(matchedTarget) and GetUnitWorldPosition then
+        local pZone, pWorldX, _, pWorldZ = GetUnitWorldPosition("player")
+        if sourceType == COMBAT_UNIT_TYPE_GROUP
+            and not Addon.QuestRepository:IsPlayerInsideTargetLocation(matchedTarget, pZone, pWorldX, pWorldZ)
+            and IsUnitGrouped and IsUnitGrouped("player") and GetGroupSize and GetGroupUnitTagByIndex then
+            local groupSize = GetGroupSize() or 0
+            for i = 1, groupSize do
+                local unitTag = GetGroupUnitTagByIndex(i)
+                if unitTag and unitTag ~= "player" and not (AreUnitsEqual and AreUnitsEqual(unitTag, "player")) then
+                    local uZone, uWX, _, uWZ = GetUnitWorldPosition(unitTag)
+                    if uZone and uWX and uWZ and Addon.QuestRepository:IsPlayerInsideTargetLocation(matchedTarget, uZone, uWX, uWZ) then
+                        pZone, pWorldX, pWorldZ = uZone, uWX, uWZ
+                        break
+                    end
+                end
+            end
+        end
+        playerContext = playerContext or {}
+        playerContext.worldZoneId = pZone
+        playerContext.worldX = pWorldX
+        playerContext.worldZ = pWorldZ
+    end
 
-    local recorded, updatedQuest, justCompleted, finalTarget = Addon.QuestRepository:RecordTargetEliminated(
+    local recorded, updatedQuest, justCompleted, finalTarget, questFailed, showCustomMessage = Addon.QuestRepository:RecordTargetEliminated(
         targetName, playerContext, activeQuest, matchedTarget
     )
+    if questFailed and updatedQuest then
+        self:MarkUnitKilled(targetUnitId)
+        Addon.Announcements:AnnounceQuestFailed(updatedQuest, finalTarget)
+        return
+    end
     if not recorded or not updatedQuest then
         return
     end
@@ -196,6 +222,9 @@ function CombatTracker:OnCombatEvent(eventCode, result, isError, abilityName, ab
         Addon.Announcements:AnnounceQuestCompleted(updatedQuest, finalTarget)
     else
         Addon.Announcements:AnnounceQuestProgress(updatedQuest, finalTarget)
+    end
+    if showCustomMessage then
+        Addon.Announcements:AnnounceTargetCustomMessage(updatedQuest, finalTarget)
     end
 end
 

@@ -1,0 +1,9 @@
+## Title: Ride Along
+## Author: Schrodi
+## Version: 2.0.0
+## AddOnVersion: 200
+## Description: One keybind to hop on the multi-rider mount of a group member next to you, no targeting or interaction wheel needed.
+## APIVersion: 101051
+
+RideAlong.lua
+Bindings.xml

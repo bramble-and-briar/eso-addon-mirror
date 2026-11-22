@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Schrodi/Extra-TTC-Tooltips__5090",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5090",
+  "category_id": "94",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5090",
+  "deleted": false,
+  "directories": [
+    "ExtraTTCTooltips"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5090/",
+  "fingerprint": "cb67a1b0126308979220ee2e6fb3c5862e51ac742751fc47787829a2bd867fa5",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18682.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5090",
+  "source_url": "https://www.esoui.com/downloads/info5090-ExtraTTCTooltips.html",
+  "stats": {
+    "downloads": 13,
+    "favorites": 0,
+    "monthly_downloads": 11
+  },
+  "title": "Extra TTC Tooltips",
+  "updated_at": 1795274967000,
+  "version": "1.1"
+}

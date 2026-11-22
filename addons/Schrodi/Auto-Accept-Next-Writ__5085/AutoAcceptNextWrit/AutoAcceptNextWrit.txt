@@ -1,0 +1,15 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media
+; Inc. or its affiliates. The Elder Scrolls and related logos are registered
+; trademarks or trademarks of ZeniMax Media Inc. in the United States and/or
+; other countries. All rights reserved.
+; https://account.elderscrollsonline.com/add-on-terms
+
+## Title: Auto Accept Next Writ
+## Description: After turning in a master writ, opens and accepts the next sealed writ you have already crafted for. Writs go brrrrr.
+## Author: Schrodi
+## Version: 1.2
+## DependsOn: WritWorthy>=70603
+## OptionalDependsOn: DolgubonsLazyWritCreator
+## APIVersion: 101051
+
+AutoAcceptNextWrit.lua

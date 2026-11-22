@@ -3,6 +3,7 @@
 -- Ref: docs/adr/0005-separacion-misiones-preparacion-y-juego.md
 -- Ref: docs/adr/0006-puntos-de-descubrimiento-ocultos.md
 -- Ref: docs/adr/0007-dialogos-inyectados-en-npcs-nativos.md
+-- Ref: docs/adr/0010-comparticion-grupo-y-objetivos-compartidos.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -17,6 +18,8 @@ local VIEW_MODE = {
     DETAIL = "DETAIL",
     EDITOR = "EDITOR",
     IMPORT = "IMPORT",
+    MAIL_SEND = "MAIL_SEND",
+    MAIL_INBOX = "MAIL_INBOX",
 }
 
 local function CreateStyledButton(name, parent, width, height, text, onClick)
@@ -36,9 +39,7 @@ local function CreateStyledButton(name, parent, width, height, text, onClick)
 
     btn:SetText(text or "")
     btn:SetHandler("OnClicked", function()
-        if PlaySound and SOUNDS and SOUNDS.DEFAULT_CLICK then
-            PlaySound(SOUNDS.DEFAULT_CLICK)
-        end
+        PlaySound(SOUNDS.DEFAULT_CLICK)
         if onClick then onClick() end
     end)
     return btn
@@ -98,9 +99,7 @@ local function CreateEditBoxWithBackdrop(name, parent, width, height, maxChars, 
         if selectAllOnFocus and edit.SelectAll then
             edit:SelectAll()
         end
-        if PlaySound and SOUNDS and SOUNDS.EDIT_CLICK then
-            PlaySound(SOUNDS.EDIT_CLICK)
-        end
+        PlaySound(SOUNDS.EDIT_CLICK)
     end)
     edit:SetHandler("OnFocusLost", function()
         edit._focused = false
@@ -150,14 +149,22 @@ function JournalTab:Initialize()
 
     local panel = WINDOW_MANAGER:CreateControl(PANEL_NAME, GuiRoot, CT_TOPLEVELCONTROL)
     panel:SetDimensions(980, 680)
-    if ZO_QuestJournal then
-        panel:SetAnchor(TOPLEFT, ZO_QuestJournal, TOPLEFT, 0, 0)
-        panel:SetAnchor(BOTTOMRIGHT, ZO_QuestJournal, BOTTOMRIGHT, 0, 0)
-    else
-        panel:SetAnchor(TOPRIGHT, GuiRoot, TOPRIGHT, -30, 95)
-    end
+    panel:SetAnchor(TOPLEFT, ZO_QuestJournal, TOPLEFT, 0, 0)
+    panel:SetAnchor(BOTTOMRIGHT, ZO_QuestJournal, BOTTOMRIGHT, 0, 0)
     panel:SetHidden(true)
     self.panel = panel
+
+    local versionLabel = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_VersionLabel", panel, CT_LABEL)
+    versionLabel:SetDimensions(140, 20)
+    versionLabel:SetAnchor(TOPRIGHT, panel, TOPRIGHT, -33, 38)
+    if versionLabel.SetFont then versionLabel:SetFont("ZoFontGameSmall") end
+    if versionLabel.SetColor then versionLabel:SetColor(0.68, 0.68, 0.68, 1) end
+    if versionLabel.SetHorizontalAlignment and TEXT_ALIGN_RIGHT then
+        versionLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    end
+    local versionStr = (Addon.Constants and Addon.Constants.METADATA and Addon.Constants.METADATA.VERSION) or ""
+    versionLabel:SetText(versionStr ~= "" and ("v" .. tostring(versionStr)) or "")
+    self.versionLabel = versionLabel
 
     self:BuildLeftColumn(panel)
     self:BuildRightColumn(panel)
@@ -165,9 +172,7 @@ function JournalTab:Initialize()
     -- Use ZO_SimpleSceneFragment instead of ZO_FadeSceneFragment so ESO does not create
     -- per-instance animation OnStop closures in untrusted addon context (which taints
     -- transitions to protected scenes such as TamrielTomesSceneKeyboard).
-    if ZO_SimpleSceneFragment then
-        self.fragment = ZO_SimpleSceneFragment:New(panel)
-    end
+    self.fragment = ZO_SimpleSceneFragment:New(panel)
 
     self:IntegrateIntoQuestJournalModeBar()
 
@@ -219,6 +224,21 @@ function JournalTab:Initialize()
         end
     end)
 
+    if Addon.MailTransport and Addon.MailTransport.RegisterListener then
+        Addon.MailTransport:RegisterListener(function(evType, payload)
+            self:OnMailTransportEvent(evType, payload)
+        end)
+    end
+
+    if not self._groupListenerRegistered then
+        EVENT_MANAGER:RegisterForEvent("RPQuest_JournalTab_GroupUpdate", EVENT_GROUP_UPDATE, function()
+            if self.panel and not self.panel:IsHidden() and KEYBIND_STRIP and self.keybindStripDescriptor then
+                KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
+            end
+        end)
+        self._groupListenerRegistered = true
+    end
+
     self.isInitialized = true
     self._dirty = true
 end
@@ -236,7 +256,7 @@ function JournalTab:BuildLeftColumn(panel)
     self.importBtn = CreateStyledButton(
         PANEL_NAME .. "_ImportBtn",
         leftCol,
-        165,
+        104,
         28,
         Addon.Locale:Get("BTN_IMPORT_CODE"),
         function()
@@ -245,17 +265,29 @@ function JournalTab:BuildLeftColumn(panel)
     )
     self.importBtn:SetAnchor(TOPLEFT, leftCol, TOPLEFT, 4, 4)
 
+    self.mailInboxBtn = CreateStyledButton(
+        PANEL_NAME .. "_MailInboxBtn",
+        leftCol,
+        104,
+        28,
+        Addon.Locale:Get("BTN_MAIL_INBOX", 0),
+        function()
+            self:OpenMailInboxView()
+        end
+    )
+    self.mailInboxBtn:SetAnchor(TOPLEFT, leftCol, TOPLEFT, 112, 4)
+
     self.newBtn = CreateStyledButton(
         PANEL_NAME .. "_NewBtn",
         leftCol,
-        125,
+        104,
         28,
         Addon.Locale:Get("BTN_NEW_QUEST"),
         function()
             self:OpenCreateEditor()
         end
     )
-    self.newBtn:SetAnchor(TOPLEFT, leftCol, TOPLEFT, 179, 4)
+    self.newBtn:SetAnchor(TOPLEFT, leftCol, TOPLEFT, 220, 4)
 
     local emptyLabel = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_EmptyList", leftCol, CT_LABEL)
     emptyLabel:SetDimensions(310, 80)
@@ -284,14 +316,10 @@ function JournalTab:BuildLeftColumn(panel)
             local binding = self.rowBindings[rowIndex]
             if not binding then return end
             if binding.isHeader and binding.sectionKey then
-                if PlaySound and SOUNDS and SOUNDS.DEFAULT_CLICK then
-                    PlaySound(SOUNDS.DEFAULT_CLICK)
-                end
+                PlaySound(SOUNDS.DEFAULT_CLICK)
                 self:ToggleSection(binding.sectionKey)
             elseif binding.questId then
-                if PlaySound and SOUNDS and SOUNDS.DEFAULT_CLICK then
-                    PlaySound(SOUNDS.DEFAULT_CLICK)
-                end
+                PlaySound(SOUNDS.DEFAULT_CLICK)
                 self:SelectQuest(binding.questId)
             end
         end)
@@ -341,6 +369,8 @@ function JournalTab:BuildRightColumn(panel)
     self:BuildDetailPane(rightCol)
     self:BuildEditorPane(rightCol)
     self:BuildImportPane(rightCol)
+    self:BuildMailSendPane(rightCol)
+    self:BuildMailInboxPane(rightCol)
 end
 
 function JournalTab:BuildDetailPane(parent)
@@ -372,8 +402,8 @@ function JournalTab:BuildDetailPane(parent)
     titleLabel:SetAnchor(TOPLEFT, contentParent, TOPLEFT, 0, 0)
     if titleLabel.SetFont then titleLabel:SetFont("ZoFontWinH2") end
     if titleLabel.SetColor then titleLabel:SetColor(1, 1, 1, 1) end
-    if titleLabel.SetModifyTextType and TEXT_MODIFY_TYPE_UPPERCASE then
-        titleLabel:SetModifyTextType(TEXT_MODIFY_TYPE_UPPERCASE)
+    if titleLabel.SetModifyTextType then
+        titleLabel:SetModifyTextType(MODIFY_TEXT_TYPE_UPPERCASE)
     end
     self.detailTitle = titleLabel
 
@@ -408,8 +438,8 @@ function JournalTab:BuildDetailPane(parent)
     objHeader:SetAnchor(TOPLEFT, divider, BOTTOMLEFT, 0, 10)
     if objHeader.SetFont then objHeader:SetFont("ZoFontWinH3") end
     if objHeader.SetColor then objHeader:SetColor(1, 1, 1, 1) end
-    if objHeader.SetModifyTextType and TEXT_MODIFY_TYPE_UPPERCASE then
-        objHeader:SetModifyTextType(TEXT_MODIFY_TYPE_UPPERCASE)
+    if objHeader.SetModifyTextType then
+        objHeader:SetModifyTextType(MODIFY_TEXT_TYPE_UPPERCASE)
     end
     objHeader:SetText(Addon.Locale:Get("LABEL_OBJECTIVE_HEADER"))
     self.detailObjHeader = objHeader
@@ -439,7 +469,7 @@ function JournalTab:BuildDetailPane(parent)
     end)
     self.btnReset:SetAnchor(TOPLEFT, self.btnActivate, BOTTOMLEFT, 0, 10)
 
-    if ESO_Dialogs and not ESO_Dialogs["RPQUEST_ABANDON_QUEST"] then
+    if not ESO_Dialogs["RPQUEST_ABANDON_QUEST"] then
         ESO_Dialogs["RPQUEST_ABANDON_QUEST"] = {
             title = {
                 text = SI_PROMPT_TITLE_ABANDON_QUEST,
@@ -492,8 +522,22 @@ function JournalTab:BuildDetailPane(parent)
             return self.viewMode == VIEW_MODE.DETAIL and self.selectedQuestId ~= nil
         end,
     }
+    self.shareWithGroupDescriptor = {
+        name = (GetString and SI_QUEST_JOURNAL_SHARE) and GetString(SI_QUEST_JOURNAL_SHARE) or Addon.Locale:Get("BTN_SHARE_GROUP"),
+        keybind = "UI_SHORTCUT_TERTIARY",
+        callback = function()
+            self:ShareSelectedQuestWithGroup()
+        end,
+        visible = function()
+            return self.viewMode == VIEW_MODE.DETAIL
+                and self.selectedQuestId ~= nil
+                and IsUnitGrouped ~= nil
+                and IsUnitGrouped("player")
+        end,
+    }
     self.keybindStripDescriptor = {
         alignment = KEYBIND_STRIP_ALIGN_CENTER or 1,
+        self.shareWithGroupDescriptor,
         self.abandonQuestDescriptor,
         self.showOnMapDescriptor,
     }
@@ -501,9 +545,7 @@ function JournalTab:BuildDetailPane(parent)
     local showOnMapBtn = WINDOW_MANAGER.CreateControlFromVirtual
         and WINDOW_MANAGER:CreateControlFromVirtual(PANEL_NAME .. "_ShowOnMap", pane, "ZO_KeybindButton")
         or WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_ShowOnMap", pane, CT_CONTROL)
-    if ApplyTemplateToControl then
-        ApplyTemplateToControl(showOnMapBtn, "ZO_KeybindButton_Keyboard_Template")
-    end
+    ApplyTemplateToControl(showOnMapBtn, "ZO_KeybindButton_Keyboard_Template")
     if showOnMapBtn.SetKeybindButtonDescriptor then
         showOnMapBtn:SetKeybindButtonDescriptor(self.showOnMapDescriptor)
     end
@@ -519,12 +561,18 @@ function JournalTab:BuildDetailPane(parent)
 
     -- Grupo 2: Código para compartir siempre visible y sección de entrega/validación
     local shareHeader = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_ShareHeader", contentParent, CT_LABEL)
-    shareHeader:SetDimensions(520, 20)
+    shareHeader:SetDimensions(340, 20)
     shareHeader:SetAnchor(TOPLEFT, codeDivider, BOTTOMLEFT, 0, 8)
     if shareHeader.SetFont then shareHeader:SetFont("ZoFontGameBold") end
     if shareHeader.SetColor then shareHeader:SetColor(0.91, 0.83, 0.63, 1) end
     shareHeader:SetText(Addon.Locale:Get("LABEL_SHARE_CODE_HEADER"))
     self.shareHeader = shareHeader
+
+    self.btnSendByMail = CreateStyledButton(PANEL_NAME .. "_BtnSendByMail", contentParent, 160, 24, Addon.Locale:Get("BTN_SEND_BY_MAIL"), function()
+        self:OpenMailSendView()
+    end)
+    self.btnSendByMail:SetAnchor(TOPLEFT, codeDivider, BOTTOMLEFT, 350, 4)
+    self.btnSendByMail:SetHidden(true)
 
     local shareBg, shareEdit = CreateEditBoxWithBackdrop(PANEL_NAME .. "_ShareEdit", contentParent, 510, 32, 4096, false, nil, true, true)
     shareBg:SetAnchor(TOPLEFT, shareHeader, BOTTOMLEFT, 0, 2)
@@ -545,6 +593,17 @@ function JournalTab:BuildDetailPane(parent)
     deliveryBg:SetHidden(true)
     self.deliveryBg = deliveryBg
     self.deliveryEdit = deliveryEdit
+
+    self.btnReportCompletionMail = CreateStyledButton(PANEL_NAME .. "_BtnReportCompMail", contentParent, 260, 28, Addon.Locale:Get("BTN_REPORT_COMPLETION_MAIL"), function()
+        local q = self.selectedQuestId and Addon.QuestRepository:GetQuestById(self.selectedQuestId)
+        if not q or not Addon.MailTransport then return end
+        local ok, errKey = Addon.MailTransport:SendCompletionReport(q)
+        if not ok and errKey then
+            Addon.Announcements:ShowAlert(Addon.Locale:Get(errKey), true)
+        end
+    end)
+    self.btnReportCompletionMail:SetAnchor(TOPLEFT, deliveryBg, BOTTOMLEFT, 0, 8)
+    self.btnReportCompletionMail:SetHidden(true)
 
     local validateHeader = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_ValidateHeader", contentParent, CT_LABEL)
     validateHeader:SetDimensions(520, 20)
@@ -674,9 +733,7 @@ function JournalTab:BuildEditorPane(parent)
         hdrBg:SetEdgeColor(0.45, 0.39, 0.24, 0.55)
 
         headerBtn:SetHandler("OnClicked", function()
-            if PlaySound and SOUNDS and SOUNDS.DEFAULT_CLICK then
-                PlaySound(SOUNDS.DEFAULT_CLICK)
-            end
+            PlaySound(SOUNDS.DEFAULT_CLICK)
             self:ToggleEditorSection(key)
         end)
 
@@ -698,7 +755,7 @@ function JournalTab:BuildEditorPane(parent)
     end
 
     -- Sección 1: Objetivo (NPC) y Área de Búsqueda
-    local targetSec = CreateAccordionSection("target", "LABEL_TARGET_SECTION", 124)
+    local targetSec = CreateAccordionSection("target", "LABEL_TARGET_SECTION", 256)
     local targetBody = targetSec.body
 
     local lblCapturedTarget = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_LblCapturedTarget", targetBody, CT_LABEL)
@@ -708,6 +765,7 @@ function JournalTab:BuildEditorPane(parent)
     self.lblCapturedTarget = lblCapturedTarget
 
     self.btnClearTargets = CreateStyledButton(PANEL_NAME .. "_BtnClearTargets", targetBody, 140, 24, Addon.Locale:Get("BTN_CLEAR_TARGETS"), function()
+        self.selectedTargetIndex = nil
         Addon.QuestRepository:ClearDraftTargets()
     end)
     self.btnClearTargets:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 370, 0)
@@ -741,6 +799,130 @@ function JournalTab:BuildEditorPane(parent)
         Addon.QuestRepository:UpdateDraftFields({ hideMapArea = not (d and d.hideMapArea) })
     end)
     self.btnHideMapArea:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 94)
+
+    -- Configuración por objetivo (ubicación condicional + mensaje custom)
+    self.btnTargetPrev = CreateStyledButton(PANEL_NAME .. "_BtnTargetPrev", targetBody, 28, 24, "<", function()
+        local draft = Addon.QuestRepository:GetDraft()
+        local total = #(draft.targets or {})
+        if total > 0 then
+            local cur = self.selectedTargetIndex or 1
+            self.selectedTargetIndex = (cur > 1) and (cur - 1) or total
+            self:RefreshEditorPane()
+        end
+    end)
+    self.btnTargetPrev:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 130)
+    self.btnTargetPrev:SetHidden(true)
+
+    local lblTargetCfgIndex = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_LblTargetCfgIndex", targetBody, CT_LABEL)
+    lblTargetCfgIndex:SetDimensions(440, 24)
+    lblTargetCfgIndex:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 34, 132)
+    if lblTargetCfgIndex.SetFont then lblTargetCfgIndex:SetFont("ZoFontGameBold") end
+    self.lblTargetCfgIndex = lblTargetCfgIndex
+    self.lblTargetCfgIndex:SetHidden(true)
+
+    self.btnTargetNext = CreateStyledButton(PANEL_NAME .. "_BtnTargetNext", targetBody, 28, 24, ">", function()
+        local draft = Addon.QuestRepository:GetDraft()
+        local total = #(draft.targets or {})
+        if total > 0 then
+            local cur = self.selectedTargetIndex or 1
+            self.selectedTargetIndex = (cur < total) and (cur + 1) or 1
+            self:RefreshEditorPane()
+        end
+    end)
+    self.btnTargetNext:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 480, 130)
+    self.btnTargetNext:SetHidden(true)
+
+    self.btnCaptureTargetLoc = CreateStyledButton(PANEL_NAME .. "_BtnCaptureTargetLoc", targetBody, 136, 24, Addon.Locale:Get("BTN_CAPTURE_TARGET_LOC"), function()
+        local idx = self.selectedTargetIndex
+        local draft = Addon.QuestRepository:GetDraft()
+        local target = idx and draft.targets and draft.targets[idx]
+        if not target then return end
+        if not GetUnitWorldPosition then return end
+        local zoneId, worldX, _, worldZ = GetUnitWorldPosition("player")
+        if not zoneId or zoneId == 0 or not worldX or not worldZ then
+            Addon.Announcements:ShowAlert(Addon.Locale:Get("ALERT_DISCOVERY_INVALID_POS"), true)
+            return
+        end
+        local updated = Addon.QuestRepository:CaptureDraftTargetLocation(idx, zoneId, worldX, worldZ)
+        if updated then
+            local meters = math.floor((updated.radius or Addon.Constants.DISCOVERY_RADIUS.MEDIUM) / 100)
+            Addon.Announcements:ShowAlert(Addon.Locale:Get("ALERT_TARGET_LOC_CAPTURED", updated.name or "", meters), false)
+        end
+    end)
+    self.btnCaptureTargetLoc:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 160)
+    self.btnCaptureTargetLoc:SetHidden(true)
+
+    self.btnClearTargetLoc = CreateStyledButton(PANEL_NAME .. "_BtnClearTargetLoc", targetBody, 114, 24, Addon.Locale:Get("BTN_CLEAR_TARGET_LOC"), function()
+        local idx = self.selectedTargetIndex
+        if idx then
+            Addon.QuestRepository:ClearDraftTargetLocation(idx)
+        end
+    end)
+    self.btnClearTargetLoc:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 144, 160)
+    self.btnClearTargetLoc:SetHidden(true)
+
+    self.btnTargetLocRequired = CreateStyledButton(PANEL_NAME .. "_BtnTargetLocReq", targetBody, 170, 24, "", function()
+        local idx = self.selectedTargetIndex
+        local draft = Addon.QuestRepository:GetDraft()
+        local target = idx and draft.targets and draft.targets[idx]
+        if not target then return end
+        Addon.QuestRepository:UpdateDraftTarget(idx, { locationRequired = not (target.locationRequired == true) })
+    end)
+    self.btnTargetLocRequired:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 266, 160)
+    self.btnTargetLocRequired:SetHidden(true)
+
+    local discRadiiRef = Addon.Constants.DISCOVERY_RADIUS
+    local function SetSelectedTargetLocRadius(rad)
+        local idx = self.selectedTargetIndex
+        if idx then
+            Addon.QuestRepository:UpdateDraftTarget(idx, { radius = rad })
+        end
+    end
+
+    self.btnTargetRadSmall = CreateStyledButton(PANEL_NAME .. "_BtnTargetRadSmall", targetBody, 68, 22, "", function()
+        SetSelectedTargetLocRadius(discRadiiRef.SMALL)
+    end)
+    self.btnTargetRadSmall:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 190)
+    self.btnTargetRadSmall:SetHidden(true)
+
+    self.btnTargetRadMedium = CreateStyledButton(PANEL_NAME .. "_BtnTargetRadMedium", targetBody, 68, 22, "", function()
+        SetSelectedTargetLocRadius(discRadiiRef.MEDIUM)
+    end)
+    self.btnTargetRadMedium:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 74, 190)
+    self.btnTargetRadMedium:SetHidden(true)
+
+    self.btnTargetRadLarge = CreateStyledButton(PANEL_NAME .. "_BtnTargetRadLarge", targetBody, 68, 22, "", function()
+        SetSelectedTargetLocRadius(discRadiiRef.LARGE)
+    end)
+    self.btnTargetRadLarge:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 148, 190)
+    self.btnTargetRadLarge:SetHidden(true)
+
+    local lblTargetLocStatus = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_LblTargetLocStatus", targetBody, CT_LABEL)
+    lblTargetLocStatus:SetDimensions(286, 22)
+    lblTargetLocStatus:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 224, 192)
+    if lblTargetLocStatus.SetFont then lblTargetLocStatus:SetFont("ZoFontGame") end
+    self.lblTargetLocStatus = lblTargetLocStatus
+    self.lblTargetLocStatus:SetHidden(true)
+
+    local targetCustomBg, targetCustomEdit = CreateEditBoxWithBackdrop(
+        PANEL_NAME .. "_TargetCustomMsgEdit",
+        targetBody,
+        510,
+        30,
+        160,
+        false,
+        function(val)
+            local idx = self.selectedTargetIndex
+            if idx then
+                Addon.QuestRepository:UpdateDraftTarget(idx, { customMessage = val }, true)
+            end
+        end,
+        Addon.Locale:Get("HINT_TARGET_CUSTOM_MSG")
+    )
+    targetCustomBg:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 218)
+    targetCustomBg:SetHidden(true)
+    self.targetCustomBg = targetCustomBg
+    self.targetCustomEdit = targetCustomEdit
 
     -- Sección 2: Puntos de Descubrimiento Ocultos
     local discoverySec = CreateAccordionSection("discovery", "LABEL_DISCOVERY_SECTION", 142)
@@ -881,7 +1063,11 @@ function JournalTab:BuildEditorPane(parent)
     local dlgBody = dialogueSec.body
 
     self.btnAddLastNpc = CreateStyledButton(PANEL_NAME .. "_BtnAddLastNpc", dlgBody, 130, 26, Addon.Locale:Get("BTN_ADD_LAST_NPC"), function()
-        local _, resultOrErr = Addon.QuestRepository:AddDraftDialogueFromLastNpc("")
+        local preDraft = Addon.QuestRepository:GetDraft()
+        local isFirst = #(preDraft.dialogues or {}) == 0
+        local initResp = (isFirst and self.dlgResponseEdit and self.dlgResponseEdit:GetText()) or ""
+        local initClue = (isFirst and self.clueEdit and self.clueEdit:GetText()) or ""
+        local _, resultOrErr = Addon.QuestRepository:AddDraftDialogueFromLastNpc(initResp, initClue)
         if type(resultOrErr) == "number" then
             self.selectedDialogueIndex = resultOrErr
             local draft = Addon.QuestRepository:GetDraft()
@@ -949,10 +1135,18 @@ function JournalTab:BuildEditorPane(parent)
     self.btnDlgRemove:SetHidden(true)
 
     local lblLastNpc = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_LblLastNpc", dlgBody, CT_LABEL)
-    lblLastNpc:SetDimensions(510, 22)
+    lblLastNpc:SetDimensions(250, 22)
     lblLastNpc:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 4, 34)
     if lblLastNpc.SetFont then lblLastNpc:SetFont("ZoFontGame") end
     self.lblLastNpc = lblLastNpc
+
+    local lblSelectedNpc = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_LblSelectedNpc", dlgBody, CT_LABEL)
+    lblSelectedNpc:SetDimensions(250, 22)
+    lblSelectedNpc:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 258, 34)
+    if lblSelectedNpc.SetFont then lblSelectedNpc:SetFont("ZoFontGameBold") end
+    if lblSelectedNpc.SetHorizontalAlignment then lblSelectedNpc:SetHorizontalAlignment(TEXT_ALIGN_RIGHT) end
+    lblSelectedNpc:SetHidden(true)
+    self.lblSelectedNpc = lblSelectedNpc
 
     local lblClue = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_LblInputClue", dlgBody, CT_LABEL)
     lblClue:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 0, 64)
@@ -968,7 +1162,11 @@ function JournalTab:BuildEditorPane(parent)
         100,
         false,
         function(val)
-            Addon.QuestRepository:UpdateDraftFields({ clue = val }, true)
+            local draft = Addon.QuestRepository:GetDraft()
+            local idx = self.selectedDialogueIndex
+            if idx and draft.dialogues and draft.dialogues[idx] then
+                Addon.QuestRepository:UpdateDraftDialogue(idx, { clue = val }, true)
+            end
         end
     )
     clueBg:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 0, 86)
@@ -1101,6 +1299,378 @@ function JournalTab:BuildImportPane(parent)
     self.btnCancelImport:SetAnchor(TOPLEFT, pane, TOPLEFT, 195, 196)
 end
 
+function JournalTab:BuildMailSendPane(parent)
+    local pane = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_MailSendPane", parent, CT_CONTROL)
+    pane:SetDimensions(550, 580)
+    pane:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, 0)
+    pane:SetHidden(true)
+    self.mailSendPane = pane
+
+    local header = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_MailSendHeader", pane, CT_LABEL)
+    header:SetDimensions(520, 30)
+    header:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 0)
+    if header.SetFont then header:SetFont("ZoFontWinH2") end
+    if header.SetColor then header:SetColor(0.95, 0.88, 0.65, 1) end
+    self.mailSendHeader = header
+
+    local lblRec = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_MailRecLbl", pane, CT_LABEL)
+    lblRec:SetDimensions(520, 22)
+    lblRec:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 44)
+    if lblRec.SetFont then lblRec:SetFont("ZoFontGameBold") end
+    lblRec:SetText(Addon.Locale:Get("MAIL_RECIPIENTS_LABEL"))
+
+    local recBg, recEdit = CreateEditBoxWithBackdrop(
+        PANEL_NAME .. "_MailRecEdit", pane, 510, 32, 200, false, nil, false
+    )
+    recBg:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 68)
+    self.mailRecEdit = recEdit
+
+    local lblRole = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_MailRoleLbl", pane, CT_LABEL)
+    lblRole:SetDimensions(520, 22)
+    lblRole:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 114)
+    if lblRole.SetFont then lblRole:SetFont("ZoFontGameBold") end
+    lblRole:SetText(Addon.Locale:Get("MAIL_ROLE_MSG_LABEL"))
+
+    local roleBg, roleEdit = CreateEditBoxWithBackdrop(
+        PANEL_NAME .. "_MailRoleEdit", pane, 510, 110, 700, true, function()
+            self:RefreshMailSendCounter()
+        end, false
+    )
+    roleBg:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 138)
+    self.mailRoleEdit = roleEdit
+
+    local lblCounter = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_MailCounterLbl", pane, CT_LABEL)
+    lblCounter:SetDimensions(510, 44)
+    lblCounter:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 256)
+    if lblCounter.SetFont then lblCounter:SetFont("ZoFontGame") end
+    self.mailCounterLabel = lblCounter
+
+    local lblStatus = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_MailSendStatusLbl", pane, CT_LABEL)
+    lblStatus:SetDimensions(510, 28)
+    lblStatus:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 304)
+    if lblStatus.SetFont then lblStatus:SetFont("ZoFontGameBold") end
+    self.mailSendStatusLabel = lblStatus
+
+    self.btnConfirmMailSend = CreateStyledButton(PANEL_NAME .. "_BtnConfirmMailSend", pane, 165, 36, Addon.Locale:Get("BTN_MAIL_SEND_CONFIRM"), function()
+        self:OnConfirmSendMailClicked()
+    end)
+    self.btnConfirmMailSend:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 340)
+
+    self.btnCopyMailCode = CreateStyledButton(PANEL_NAME .. "_BtnCopyMailCode", pane, 165, 36, Addon.Locale:Get("BTN_MAIL_COPY_RPQ3"), function()
+        self:OnCopyMailCodeClicked()
+    end)
+    self.btnCopyMailCode:SetAnchor(TOPLEFT, pane, TOPLEFT, 175, 340)
+
+    self.btnCancelMailSend = CreateStyledButton(PANEL_NAME .. "_BtnCancelMailSend", pane, 155, 36, Addon.Locale:Get("BTN_CANCEL"), function()
+        self.viewMode = VIEW_MODE.DETAIL
+        self:Refresh()
+    end)
+    self.btnCancelMailSend:SetAnchor(TOPLEFT, pane, TOPLEFT, 350, 340)
+
+    local copyBg, copyEdit = CreateEditBoxWithBackdrop(
+        PANEL_NAME .. "_MailCopyEdit", pane, 510, 32, 4096, false, nil, true, true
+    )
+    copyBg:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 390)
+    copyBg:SetHidden(true)
+    self.mailCopyBg = copyBg
+    self.mailCopyEdit = copyEdit
+end
+
+function JournalTab:BuildMailInboxPane(parent)
+    local pane = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_MailInboxPane", parent, CT_CONTROL)
+    pane:SetDimensions(550, 580)
+    pane:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, 0)
+    pane:SetHidden(true)
+    self.mailInboxPane = pane
+
+    local header = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_MailInboxHeader", pane, CT_LABEL)
+    header:SetDimensions(340, 30)
+    header:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 0)
+    if header.SetFont then header:SetFont("ZoFontWinH2") end
+    if header.SetColor then header:SetColor(0.95, 0.88, 0.65, 1) end
+    header:SetText(Addon.Locale:Get("MAIL_INBOX_TITLE"))
+
+    self.btnMailRefresh = CreateStyledButton(PANEL_NAME .. "_BtnMailRefresh", pane, 100, 28, Addon.Locale:Get("BTN_MAIL_REFRESH"), function()
+        if Addon.MailTransport then
+            Addon.MailTransport:ScanInbox(true)
+        end
+        self:RefreshMailInboxPane()
+    end)
+    self.btnMailRefresh:SetAnchor(TOPLEFT, pane, TOPLEFT, 348, 0)
+
+    self.btnMailBack = CreateStyledButton(PANEL_NAME .. "_BtnMailBack", pane, 70, 28, Addon.Locale:Get("BTN_CANCEL"), function()
+        if Addon.MailTransport then
+            Addon.MailTransport:CloseMailboxIfOwned()
+        end
+        self.viewMode = VIEW_MODE.DETAIL
+        self:Refresh()
+    end)
+    self.btnMailBack:SetAnchor(TOPLEFT, pane, TOPLEFT, 456, 0)
+
+    self.btnToggleAutoDeleteMail = CreateStyledButton(PANEL_NAME .. "_BtnAutoDeleteMail", pane, 240, 26, "", function()
+        local cur = Addon.QuestRepository:GetSetting("autoDeleteMail")
+        Addon.QuestRepository:SetSetting("autoDeleteMail", not cur)
+        self:RefreshMailInboxPane()
+    end)
+    self.btnToggleAutoDeleteMail:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 42)
+
+    self.btnToggleAutoReportMail = CreateStyledButton(PANEL_NAME .. "_BtnAutoReportMail", pane, 260, 26, "", function()
+        local cur = Addon.QuestRepository:GetSetting("autoSendCompletionMail")
+        Addon.QuestRepository:SetSetting("autoSendCompletionMail", not cur)
+        self:RefreshMailInboxPane()
+    end)
+    self.btnToggleAutoReportMail:SetAnchor(TOPLEFT, pane, TOPLEFT, 250, 42)
+
+    self.btnToggleAutoAcceptMail = CreateStyledButton(PANEL_NAME .. "_BtnAutoAcceptMail", pane, 240, 26, "", function()
+        local cur = Addon.QuestRepository:GetSetting("autoAcceptMail")
+        Addon.QuestRepository:SetSetting("autoAcceptMail", not cur)
+        self:RefreshMailInboxPane()
+    end)
+    self.btnToggleAutoAcceptMail:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 74)
+
+    local lblEmpty = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_MailInboxEmpty", pane, CT_LABEL)
+    lblEmpty:SetDimensions(510, 40)
+    lblEmpty:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 118)
+    if lblEmpty.SetFont then lblEmpty:SetFont("ZoFontGame") end
+    lblEmpty:SetText(Addon.Locale:Get("MAIL_INBOX_EMPTY"))
+    self.mailInboxEmptyLabel = lblEmpty
+
+    local cardTitle = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_MailCardTitle", pane, CT_LABEL)
+    cardTitle:SetDimensions(510, 28)
+    cardTitle:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 118)
+    if cardTitle.SetFont then cardTitle:SetFont("ZoFontWinH3") end
+    if cardTitle.SetColor then cardTitle:SetColor(1, 1, 1, 1) end
+    self.mailCardTitle = cardTitle
+
+    local cardFrom = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_MailCardFrom", pane, CT_LABEL)
+    cardFrom:SetDimensions(510, 22)
+    cardFrom:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 150)
+    if cardFrom.SetFont then cardFrom:SetFont("ZoFontGameBold") end
+    if cardFrom.SetColor then cardFrom:SetColor(0.85, 0.78, 0.55, 1) end
+    self.mailCardFrom = cardFrom
+
+    local cardMsg = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_MailCardMsg", pane, CT_LABEL)
+    cardMsg:SetDimensions(510, 140)
+    cardMsg:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 180)
+    if cardMsg.SetFont then cardMsg:SetFont("ZoFontGame") end
+    self.mailCardMsg = cardMsg
+
+    self.btnMailAccept = CreateStyledButton(PANEL_NAME .. "_BtnMailAccept", pane, 140, 32, Addon.Locale:Get("BTN_MAIL_ACCEPT"), function()
+        local mails = Addon.MailTransport and Addon.MailTransport:GetReceivedMails() or {}
+        local entry = mails[self.selectedMailIndex or 1]
+        if not entry then return end
+        local imported, err = Addon.MailTransport:AcceptReceivedMail(entry.mailId)
+        if imported then
+            self.selectedQuestId = imported.id
+            self.viewMode = VIEW_MODE.DETAIL
+            Addon.Announcements:ShowAlert(Addon.Locale:Get("ALERT_QUEST_IMPORTED", imported.title), false)
+            Addon.Announcements:AnnounceQuestAccepted(imported)
+            self:Refresh()
+        elseif err then
+            Addon.Announcements:ShowAlert(Addon.Locale:Get(err), true)
+        end
+    end)
+    self.btnMailAccept:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 336)
+
+    self.btnMailReject = CreateStyledButton(PANEL_NAME .. "_BtnMailReject", pane, 140, 32, Addon.Locale:Get("BTN_MAIL_REJECT"), function()
+        local mails = Addon.MailTransport and Addon.MailTransport:GetReceivedMails() or {}
+        local entry = mails[self.selectedMailIndex or 1]
+        if not entry then return end
+        Addon.MailTransport:RejectReceivedMail(entry.mailId)
+        self:RefreshMailInboxPane()
+    end)
+    self.btnMailReject:SetAnchor(TOPLEFT, pane, TOPLEFT, 154, 336)
+
+    self.btnMailPrev = CreateStyledButton(PANEL_NAME .. "_BtnMailPrev", pane, 36, 28, "<", function()
+        local total = Addon.MailTransport and Addon.MailTransport:GetReceivedMailCount() or 0
+        if total > 0 then
+            local cur = self.selectedMailIndex or 1
+            self.selectedMailIndex = (cur > 1) and (cur - 1) or total
+            self:RefreshMailInboxPane()
+        end
+    end)
+    self.btnMailPrev:SetAnchor(TOPLEFT, pane, TOPLEFT, 330, 338)
+
+    local lblPage = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_MailPageLbl", pane, CT_LABEL)
+    lblPage:SetDimensions(60, 28)
+    lblPage:SetAnchor(TOPLEFT, pane, TOPLEFT, 372, 342)
+    if lblPage.SetFont then lblPage:SetFont("ZoFontGameBold") end
+    self.mailPageLabel = lblPage
+
+    self.btnMailNext = CreateStyledButton(PANEL_NAME .. "_BtnMailNext", pane, 36, 28, ">", function()
+        local total = Addon.MailTransport and Addon.MailTransport:GetReceivedMailCount() or 0
+        if total > 0 then
+            local cur = self.selectedMailIndex or 1
+            self.selectedMailIndex = (cur < total) and (cur + 1) or 1
+            self:RefreshMailInboxPane()
+        end
+    end)
+    self.btnMailNext:SetAnchor(TOPLEFT, pane, TOPLEFT, 438, 338)
+end
+
+function JournalTab:OnMailTransportEvent(evType, payload)
+    if self.mailInboxBtn and Addon.MailTransport then
+        self.mailInboxBtn:SetText(Addon.Locale:Get("BTN_MAIL_INBOX", Addon.MailTransport:GetReceivedMailCount()))
+    end
+    if evType == "MAIL_SEND_PROGRESS" and self.mailSendStatusLabel and type(payload) == "table" then
+        self.mailSendStatusLabel:SetText(Addon.Locale:Get("MAIL_SENDING_PROGRESS", payload.current, payload.total, payload.to or ""))
+    elseif evType == "MAIL_SEND_COMPLETE" and type(payload) == "table" then
+        local msg = (payload.failed and payload.failed > 0)
+            and Addon.Locale:Get("MAIL_SEND_DONE_ERRORS", payload.sent, payload.total, payload.failed)
+            or Addon.Locale:Get("MAIL_SEND_DONE", payload.sent, payload.total)
+        if self.mailSendStatusLabel then
+            self.mailSendStatusLabel:SetText(msg)
+        end
+        Addon.Announcements:ShowAlert(msg, (payload.failed or 0) > 0)
+    elseif evType == "MAIL_INBOX_UPDATED" and self.viewMode == VIEW_MODE.MAIL_INBOX then
+        self:RefreshMailInboxPane()
+    elseif evType == "MAIL_COMPLETION_SENT" and type(payload) == "table" then
+        Addon.Announcements:ShowAlert(Addon.Locale:Get("ALERT_MAIL_COMPLETION_SENT", payload.to or ""), false)
+        if self.viewMode == VIEW_MODE.DETAIL then
+            self:RefreshDetailPane()
+        end
+    end
+end
+
+function JournalTab:ShareSelectedQuestWithGroup()
+    if not Addon.MailTransport then return end
+    local quest = self.selectedQuestId and Addon.QuestRepository:GetQuestById(self.selectedQuestId)
+    if not quest then return end
+    local ok, errKey, count = Addon.MailTransport:ShareQuestWithGroup(quest)
+    if ok then
+        Addon.Announcements:ShowAlert(Addon.Locale:Get("ALERT_SHARE_GROUP_SENT", quest.title or "", count or 1), false)
+    elseif errKey then
+        Addon.Announcements:ShowAlert(Addon.Locale:Get(errKey), true)
+    end
+end
+
+function JournalTab:OpenMailSendView()
+    local quest = self.selectedQuestId and Addon.QuestRepository:GetQuestById(self.selectedQuestId)
+    if not quest then return end
+    self._mailSendQuestId = quest.id
+    self.viewMode = VIEW_MODE.MAIL_SEND
+    if self.mailSendHeader then
+        self.mailSendHeader:SetText(Addon.Locale:Get("MAIL_SEND_TITLE", quest.title or ""))
+    end
+    if self.mailSendStatusLabel then
+        self.mailSendStatusLabel:SetText("")
+    end
+    if self.mailCopyBg then
+        self.mailCopyBg:SetHidden(true)
+    end
+    if self.mailCopyEdit then
+        SetReadOnlyEditText(self.mailCopyEdit, "")
+    end
+    self:Refresh()
+    self:RefreshMailSendCounter()
+end
+
+function JournalTab:RefreshMailSendCounter()
+    if not Addon.MailTransport or not self.mailCounterLabel then return end
+    local quest = self._mailSendQuestId and Addon.QuestRepository:GetQuestById(self._mailSendQuestId)
+    if not quest then return end
+    local code = Addon.QuestRepository:ExportQuestToCode(quest.id) or ""
+    local roleMsg = self.mailRoleEdit and self.mailRoleEdit:GetText() or ""
+    local plan = Addon.MailTransport:BuildQuestMailPackets(roleMsg, code, quest.title)
+    if plan.partCount == 1 then
+        self.mailCounterLabel:SetText(Addon.Locale:Get("MAIL_CHAR_COUNTER", plan.totalLen, plan.maxLen))
+    elseif plan.fits then
+        self.mailCounterLabel:SetText(Addon.Locale:Get("MAIL_CHAR_COUNTER_MULTI", plan.totalLen, plan.partCount, plan.maxParts))
+    else
+        self.mailCounterLabel:SetText(Addon.Locale:Get("MAIL_CHAR_COUNTER_OVER", plan.totalLen, plan.maxTotalChars, plan.maxParts))
+    end
+end
+
+function JournalTab:OnCopyMailCodeClicked()
+    local quest = self._mailSendQuestId and Addon.QuestRepository:GetQuestById(self._mailSendQuestId)
+    if not quest then return end
+    local code = Addon.QuestRepository:ExportQuestToCode(quest.id) or ""
+    if self.mailCopyBg and self.mailCopyEdit then
+        self.mailCopyBg:SetHidden(false)
+        SetReadOnlyEditText(self.mailCopyEdit, code)
+        if self.mailCopyEdit.TakeFocus then self.mailCopyEdit:TakeFocus() end
+        if self.mailCopyEdit.SelectAll then self.mailCopyEdit:SelectAll() end
+    end
+    if self.mailSendStatusLabel then
+        self.mailSendStatusLabel:SetText(Addon.Locale:Get("MAIL_COPY_RPQ3_HINT"))
+    end
+end
+
+function JournalTab:OnConfirmSendMailClicked()
+    if not Addon.MailTransport then return end
+    local quest = self._mailSendQuestId and Addon.QuestRepository:GetQuestById(self._mailSendQuestId)
+    if not quest then return end
+    local rawRec = self.mailRecEdit and self.mailRecEdit:GetText() or ""
+    local roleMsg = self.mailRoleEdit and self.mailRoleEdit:GetText() or ""
+    local ok, errKey = Addon.MailTransport:SendQuestToRecipients(quest, rawRec, roleMsg)
+    if not ok and errKey then
+        local errMsg = Addon.Locale:Get(errKey)
+        if self.mailSendStatusLabel then
+            self.mailSendStatusLabel:SetText("|cFF4444" .. errMsg .. "|r")
+        end
+        Addon.Announcements:ShowAlert(errMsg, true)
+    end
+end
+
+function JournalTab:OpenMailInboxView()
+    self.viewMode = VIEW_MODE.MAIL_INBOX
+    if Addon.MailTransport then
+        Addon.MailTransport:ScanInbox(true)
+    end
+    self:Refresh()
+end
+
+function JournalTab:RefreshMailInboxPane()
+    if not self.mailInboxPane then return end
+    local autoDel = Addon.QuestRepository:GetSetting("autoDeleteMail")
+    if self.btnToggleAutoDeleteMail then
+        self.btnToggleAutoDeleteMail:SetText(Addon.Locale:Get(autoDel and "BTN_MAIL_AUTO_DELETE_ON" or "BTN_MAIL_AUTO_DELETE_OFF"))
+    end
+    local autoRep = Addon.QuestRepository:GetSetting("autoSendCompletionMail")
+    if self.btnToggleAutoReportMail then
+        self.btnToggleAutoReportMail:SetText(Addon.Locale:Get(autoRep and "BTN_AUTO_REPORT_ON" or "BTN_AUTO_REPORT_OFF"))
+    end
+    local autoAcc = Addon.QuestRepository:GetSetting("autoAcceptMail")
+    if self.btnToggleAutoAcceptMail then
+        self.btnToggleAutoAcceptMail:SetText(Addon.Locale:Get(autoAcc and "BTN_MAIL_AUTO_ACCEPT_ON" or "BTN_MAIL_AUTO_ACCEPT_OFF"))
+    end
+    local mails = Addon.MailTransport and Addon.MailTransport:GetReceivedMails() or {}
+    local total = #mails
+    if self.mailInboxBtn then
+        self.mailInboxBtn:SetText(Addon.Locale:Get("BTN_MAIL_INBOX", total))
+    end
+    local hasItems = total > 0
+    if self.mailInboxEmptyLabel then self.mailInboxEmptyLabel:SetHidden(hasItems) end
+    if self.mailCardTitle then self.mailCardTitle:SetHidden(not hasItems) end
+    if self.mailCardFrom then self.mailCardFrom:SetHidden(not hasItems) end
+    if self.mailCardMsg then self.mailCardMsg:SetHidden(not hasItems) end
+    if self.btnMailAccept then self.btnMailAccept:SetHidden(not hasItems) end
+    if self.btnMailReject then self.btnMailReject:SetHidden(not hasItems) end
+    if self.btnMailPrev then self.btnMailPrev:SetHidden(total <= 1) end
+    if self.btnMailNext then self.btnMailNext:SetHidden(total <= 1) end
+    if self.mailPageLabel then self.mailPageLabel:SetHidden(total <= 1) end
+
+    if not hasItems then
+        self.selectedMailIndex = nil
+        return
+    end
+    if not self.selectedMailIndex or self.selectedMailIndex < 1 or self.selectedMailIndex > total then
+        self.selectedMailIndex = 1
+    end
+    local entry = mails[self.selectedMailIndex]
+    self.mailCardTitle:SetText(entry.title or entry.subject or "")
+    self.mailCardFrom:SetText(Addon.Locale:Get("MAIL_FROM_LABEL", entry.senderDisplayName or ""))
+    if entry.isIncomplete then
+        self.mailCardMsg:SetText(Addon.Locale:Get("MAIL_INBOX_INCOMPLETE", entry.partsReceived or 0, entry.partsTotal or 0))
+        if self.btnMailAccept then self.btnMailAccept:SetHidden(true) end
+    else
+        self.mailCardMsg:SetText(entry.roleMessage or "")
+    end
+    if self.mailPageLabel then
+        self.mailPageLabel:SetText(Addon.Locale:Get("MAIL_INBOX_PAGE", self.selectedMailIndex, total))
+    end
+end
+
 function JournalTab:IntegrateIntoQuestJournalModeBar()
     local qj = QUEST_JOURNAL_KEYBOARD or (SYSTEMS and SYSTEMS.GetKeyboardObject and SYSTEMS:GetKeyboardObject("questJournal"))
     if not qj then return end
@@ -1187,7 +1757,7 @@ function JournalTab:OpenCreateEditor()
     self.selectedDiscoveryIndex = nil
     self.titleEdit:SetText(draft.title or "")
     self.descEdit:SetText(draft.description or "")
-    if self.clueEdit then self.clueEdit:SetText(draft.clue or "") end
+    if self.clueEdit then self.clueEdit:SetText("") end
     self.completionEdit:SetText(draft.completionMessage or "")
     self.selectedDialogueIndex = (#(draft.dialogues or {}) > 0) and 1 or nil
     self.editorSectionsCollapsed = {
@@ -1245,7 +1815,7 @@ function JournalTab:OpenEditEditor(questId)
     end
     self.titleEdit:SetText(draft.title or "")
     self.descEdit:SetText(draft.description or "")
-    if self.clueEdit then self.clueEdit:SetText(draft.clue or "") end
+    if self.clueEdit then self.clueEdit:SetText("") end
     self.completionEdit:SetText(draft.completionMessage or "")
     self.selectedDialogueIndex = (#(draft.dialogues or {}) > 0) and 1 or nil
     self.editorSectionsCollapsed = {
@@ -1285,8 +1855,13 @@ function JournalTab:OnSaveDraftClicked()
     local titleText = self.titleEdit:GetText()
     local descText = self.descEdit:GetText()
     local compMsgText = self.completionEdit and self.completionEdit:GetText() or ""
-    if self.clueEdit then
-        Addon.QuestRepository:UpdateDraftFields({ clue = self.clueEdit:GetText() }, true)
+    local draft = Addon.QuestRepository:GetDraft()
+    local dlgIdx = self.selectedDialogueIndex
+    if dlgIdx and draft.dialogues and draft.dialogues[dlgIdx] then
+        local dlgFields = {}
+        if self.clueEdit then dlgFields.clue = self.clueEdit:GetText() end
+        if self.dlgResponseEdit then dlgFields.response = self.dlgResponseEdit:GetText() end
+        Addon.QuestRepository:UpdateDraftDialogue(dlgIdx, dlgFields, true)
     end
 
     local savedQuest, err = Addon.QuestRepository:SaveDraft(titleText, descText, nil, compMsgText)
@@ -1333,16 +1908,8 @@ function JournalTab:ConfirmAbandonQuest(questId)
     local q = Addon.QuestRepository:GetQuestById(questId)
     if not q then return false end
 
-    if ESO_Dialogs and ZO_Dialogs_ShowDialog and ESO_Dialogs["RPQUEST_ABANDON_QUEST"] then
-        ZO_Dialogs_ShowDialog("RPQUEST_ABANDON_QUEST", { questId = questId }, { mainTextParams = { q.title or "" } })
-        return true
-    end
-
-    if Addon.QuestRepository:DeleteQuest(questId) then
-        Addon.Announcements:ShowAlert(Addon.Locale:Get("ALERT_QUEST_DELETED"), false)
-        return true
-    end
-    return false
+    ZO_Dialogs_ShowDialog("RPQUEST_ABANDON_QUEST", { questId = questId }, { mainTextParams = { q.title or "" } })
+    return true
 end
 
 function JournalTab:OnValidateDeliveryClicked()
@@ -1381,14 +1948,20 @@ function JournalTab:OpenTab()
         qj:SetMode(self.tabDescriptor or Addon.Constants.UI.TAB_DESCRIPTOR)
     end
 
-    if SCENE_MANAGER and SCENE_MANAGER.Show then
-        SCENE_MANAGER:Show("questJournal")
-    end
+    local wasShowing = SCENE_MANAGER and SCENE_MANAGER.IsShowing and SCENE_MANAGER:IsShowing("questJournal")
 
-    if qj and qj.tabs and qj.tabs.SelectFragment and self.tabCategoryName then
-        qj.tabs:SelectFragment(self.tabCategoryName)
-    elseif self.panel then
-        self.panel:SetHidden(false)
+    SCENE_MANAGER:Show("questJournal")
+
+    -- Solo seleccionar el fragmento de forma síncrona si questJournal ya está visible;
+    -- si estamos transicionando desde otra escena (p. ej. Notificaciones o Correo),
+    -- OnShowing lo seleccionará cuando la escena previa termine de ocultarse y libere su keybind strip.
+    local isShowingNow = SCENE_MANAGER and SCENE_MANAGER.IsShowing and SCENE_MANAGER:IsShowing("questJournal")
+    if wasShowing or isShowingNow or not SCENE_MANAGER or not SCENE_MANAGER.Show then
+        if qj and qj.tabs and qj.tabs.SelectFragment and self.tabCategoryName then
+            qj.tabs:SelectFragment(self.tabCategoryName)
+        elseif self.panel then
+            self.panel:SetHidden(false)
+        end
     end
 
     if self._dirty then
@@ -1478,10 +2051,11 @@ function JournalTab:RefreshQuestList(allQuests, activeQuest)
                 prefix = isAct and "      |t18:18:/esoui/art/journal/journal_quest_selected.dds|t " or "          "
                 selColor = isSelected and "|cFFFFFF" or "|cC5C29E"
             end
+            local suffix = q.failed and Addon.Locale:Get("LIST_FAILED_SUFFIX") or ""
             table.insert(displayRows, {
                 isHeader = false,
                 questId = q.id,
-                text = prefix .. selColor .. (q.title or "") .. "|r",
+                text = prefix .. selColor .. (q.title or "") .. "|r" .. suffix,
             })
         end
     end
@@ -1551,26 +2125,41 @@ function JournalTab:Refresh()
 
     -- 1. Actualizar columna izquierda
     self:RefreshQuestList(allQuests, activeQuest)
+    if self.mailInboxBtn and Addon.MailTransport then
+        self.mailInboxBtn:SetText(Addon.Locale:Get("BTN_MAIL_INBOX", Addon.MailTransport:GetReceivedMailCount()))
+    end
 
     -- 2. Actualizar columna derecha según el modo de vista
+    self.detailPane:SetHidden(true)
+    self.editorPane:SetHidden(true)
+    self.importPane:SetHidden(true)
+    if self.mailSendPane then self.mailSendPane:SetHidden(true) end
+    if self.mailInboxPane then self.mailInboxPane:SetHidden(true) end
+
     if self.viewMode == VIEW_MODE.EDITOR then
-        self.detailPane:SetHidden(true)
-        self.importPane:SetHidden(true)
         self.editorPane:SetHidden(false)
         self:RefreshEditorPane()
-        if KEYBIND_STRIP and self.keybindStripDescriptor then
+        if self.keybindStripDescriptor then
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
         end
     elseif self.viewMode == VIEW_MODE.IMPORT then
-        self.detailPane:SetHidden(true)
-        self.editorPane:SetHidden(true)
         self.importPane:SetHidden(false)
-        if KEYBIND_STRIP and self.keybindStripDescriptor then
+        if self.keybindStripDescriptor then
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
+        end
+    elseif self.viewMode == VIEW_MODE.MAIL_SEND and self.mailSendPane then
+        self.mailSendPane:SetHidden(false)
+        self:RefreshMailSendCounter()
+        if self.keybindStripDescriptor then
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
+        end
+    elseif self.viewMode == VIEW_MODE.MAIL_INBOX and self.mailInboxPane then
+        self.mailInboxPane:SetHidden(false)
+        self:RefreshMailInboxPane()
+        if self.keybindStripDescriptor then
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
         end
     else
-        self.editorPane:SetHidden(true)
-        self.importPane:SetHidden(true)
         self.detailPane:SetHidden(false)
         self:RefreshDetailPane(selectedQuest, activeQuest)
     end
@@ -1589,9 +2178,11 @@ function JournalTab:RefreshDetailPane(selectedQuest, activeQuest)
         self.detailObjText:SetText("")
         self.codeDivider:SetHidden(true)
         self.shareHeader:SetHidden(true)
+        if self.btnSendByMail then self.btnSendByMail:SetHidden(true) end
         self.shareBg:SetHidden(true)
         self.deliveryHeader:SetHidden(true)
         self.deliveryBg:SetHidden(true)
+        if self.btnReportCompletionMail then self.btnReportCompletionMail:SetHidden(true) end
         self.validateHeader:SetHidden(true)
         self.validateBg:SetHidden(true)
         self.validateResultLabel:SetHidden(true)
@@ -1600,7 +2191,7 @@ function JournalTab:RefreshDetailPane(selectedQuest, activeQuest)
         self.btnEdit:SetHidden(true)
         self.btnReset:SetHidden(true)
         self.btnValidateDelivery:SetHidden(true)
-        if KEYBIND_STRIP and self.keybindStripDescriptor then
+        if self.keybindStripDescriptor then
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
         end
         return
@@ -1614,7 +2205,10 @@ function JournalTab:RefreshDetailPane(selectedQuest, activeQuest)
     local activateLabel = isPrepared and Addon.Locale:Get("BTN_TEST_QUEST") or Addon.Locale:Get("BTN_ACTIVATE")
     local deactivateLabel = isPrepared and Addon.Locale:Get("BTN_STOP_TEST") or Addon.Locale:Get("BTN_DEACTIVATE")
 
-    if isCurrentActive then
+    if selectedQuest.failed then
+        self.detailStatus:SetText(Addon.Locale:Get("STATUS_FAILED"))
+        self.btnActivate:SetText(activateLabel)
+    elseif isCurrentActive then
         self.detailStatus:SetText(Addon.Locale:Get("STATUS_ACTIVE"))
         self.btnActivate:SetText(deactivateLabel)
     elseif selectedQuest.completed then
@@ -1649,6 +2243,9 @@ function JournalTab:RefreshDetailPane(selectedQuest, activeQuest)
         line = line:gsub("^•%s*", "|t16:16:/esoui/art/miscellaneous/bullet.dds|t ")
         if (t.currentCount or 0) >= (t.requiredCount or 1) then
             line = line .. Addon.Locale:Get("OBJECTIVE_COMPLETED_SUFFIX")
+        elseif isPrepared and Addon.QuestRepository:HasTargetLocation(t) then
+            local locKey = t.locationRequired and "TARGET_DETAIL_LOC_REQUIRED" or "TARGET_DETAIL_LOC_OPTIONAL"
+            line = line .. Addon.Locale:Get(locKey)
         end
         objLines[i] = line
     end
@@ -1708,6 +2305,7 @@ function JournalTab:RefreshDetailPane(selectedQuest, activeQuest)
     end
     self.shareHeader:SetText(Addon.Locale:Get("LABEL_SHARE_CODE_HEADER"))
     self.shareHeader:SetHidden(false)
+    if self.btnSendByMail then self.btnSendByMail:SetHidden(false) end
     self.shareBg:SetHidden(false)
 
     if self.showOnMapKeybindButton then
@@ -1724,16 +2322,33 @@ function JournalTab:RefreshDetailPane(selectedQuest, activeQuest)
         self.codeDivider:SetAnchor(TOPLEFT, self.btnActivate, BOTTOMLEFT, 0, 48)
         self.deliveryHeader:SetHidden(true)
         self.deliveryBg:SetHidden(true)
+        if self.btnReportCompletionMail then self.btnReportCompletionMail:SetHidden(true) end
         self.validateHeader:SetHidden(false)
         self.validateBg:SetHidden(false)
         self.btnValidateDelivery:SetHidden(false)
         self.validateResultLabel:SetHidden(false)
+        if self.btnReportCompletionMail then self.btnReportCompletionMail:SetHidden(true) end
+        local deliveries = selectedQuest.deliveries or {}
+        if #deliveries > 0 and self.validateResultLabel:GetText() == "" then
+            local names = {}
+            for _, d in ipairs(deliveries) do
+                local who = (d.senderDisplayName and d.senderDisplayName ~= "")
+                    and string.format("%s (%s)", d.senderDisplayName, d.characterName or "")
+                    or (d.characterName or "")
+                table.insert(names, who)
+            end
+            self.validateResultLabel:SetText(Addon.Locale:Get("LABEL_MAIL_DELIVERIES", #deliveries, table.concat(names, ", ")))
+        end
     else
         local showCompletion = selectedQuest.completed and true or false
-        self.btnActivate:SetHidden(showCompletion)
+        local showFailed = selectedQuest.failed and true or false
+        self.btnActivate:SetHidden(showCompletion or showFailed)
         self.btnEdit:SetHidden(true)
-        self.btnReset:SetHidden(true)
-        if showCompletion then
+        self.btnReset:SetHidden(not showFailed)
+        if showFailed then
+            self.btnReset:SetAnchor(TOPLEFT, self.detailObjText, BOTTOMLEFT, -25, 16)
+            self.codeDivider:SetAnchor(TOPLEFT, self.btnReset, BOTTOMLEFT, 0, 14)
+        elseif showCompletion then
             self.codeDivider:SetAnchor(TOPLEFT, self.detailObjText, BOTTOMLEFT, -25, 16)
         else
             self.codeDivider:SetAnchor(TOPLEFT, self.btnActivate, BOTTOMLEFT, 0, 14)
@@ -1744,6 +2359,12 @@ function JournalTab:RefreshDetailPane(selectedQuest, activeQuest)
         self.validateResultLabel:SetHidden(true)
         self.deliveryHeader:SetHidden(not showCompletion)
         self.deliveryBg:SetHidden(not showCompletion)
+        local hasMailSender = type(selectedQuest.senderDisplayName) == "string" and selectedQuest.senderDisplayName ~= ""
+        local isAutoReport = Addon.QuestRepository:GetSetting("autoSendCompletionMail") == true
+        local showReportBtn = showCompletion and hasMailSender and (not isAutoReport) and (not selectedQuest.completionReported)
+        if self.btnReportCompletionMail then
+            self.btnReportCompletionMail:SetHidden(not showReportBtn)
+        end
         if showCompletion then
             local deliveryCode = Addon.QuestRepository:ExportCompletionCode(selectedQuest.id) or ""
             if not self.deliveryEdit._focused and self.deliveryEdit:GetText() ~= deliveryCode then
@@ -1753,7 +2374,7 @@ function JournalTab:RefreshDetailPane(selectedQuest, activeQuest)
             SetReadOnlyEditText(self.deliveryEdit, "")
         end
     end
-    if KEYBIND_STRIP and self.keybindStripDescriptor then
+    if self.keybindStripDescriptor then
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
     end
 end
@@ -1838,10 +2459,6 @@ function JournalTab:RefreshEditorPane()
     if not self.descEdit._focused and self.descEdit:GetText() ~= draftDesc then
         self.descEdit:SetText(draftDesc)
     end
-    local draftClue = draft.clue or ""
-    if self.clueEdit and not self.clueEdit._focused and self.clueEdit:GetText() ~= draftClue then
-        self.clueEdit:SetText(draftClue)
-    end
     local draftCompMsg = draft.completionMessage or ""
     if self.completionEdit and not self.completionEdit._focused and self.completionEdit:GetText() ~= draftCompMsg then
         self.completionEdit:SetText(draftCompMsg)
@@ -1877,6 +2494,69 @@ function JournalTab:RefreshEditorPane()
     self.btnRadiusSmall:SetText(FormatSelected(Addon.Locale:Get("BTN_RADIUS_SMALL"), math.abs(curRad - radii.SMALL) < 0.005))
     self.btnRadiusMedium:SetText(FormatSelected(Addon.Locale:Get("BTN_RADIUS_MEDIUM"), math.abs(curRad - radii.MEDIUM) < 0.005))
     self.btnRadiusLarge:SetText(FormatSelected(Addon.Locale:Get("BTN_RADIUS_LARGE"), math.abs(curRad - radii.LARGE) < 0.005))
+
+    local totalTargets = #targets
+    if totalTargets > 0 then
+        if not self.selectedTargetIndex or self.selectedTargetIndex < 1 or self.selectedTargetIndex > totalTargets then
+            self.selectedTargetIndex = totalTargets
+        end
+    else
+        self.selectedTargetIndex = nil
+    end
+
+    local showTargetCfg = totalTargets > 0
+    local selTarget = self.selectedTargetIndex and targets[self.selectedTargetIndex] or nil
+    local hasTargetLoc = selTarget and Addon.QuestRepository:HasTargetLocation(selTarget) or false
+
+    if self.btnTargetPrev then self.btnTargetPrev:SetHidden(not showTargetCfg) end
+    if self.btnTargetNext then self.btnTargetNext:SetHidden(not showTargetCfg) end
+    if self.lblTargetCfgIndex then
+        self.lblTargetCfgIndex:SetHidden(not showTargetCfg)
+        if showTargetCfg and selTarget then
+            self.lblTargetCfgIndex:SetText(Addon.Locale:Get("TARGET_CFG_HEADER", self.selectedTargetIndex, totalTargets, selTarget.name or ""))
+        end
+    end
+    if self.btnCaptureTargetLoc then self.btnCaptureTargetLoc:SetHidden(not showTargetCfg) end
+    if self.btnClearTargetLoc then self.btnClearTargetLoc:SetHidden(not (showTargetCfg and hasTargetLoc)) end
+    if self.btnTargetLocRequired then
+        self.btnTargetLocRequired:SetHidden(not (showTargetCfg and hasTargetLoc))
+        if selTarget then
+            local reqKey = selTarget.locationRequired and "BTN_TARGET_LOC_REQUIRED" or "BTN_TARGET_LOC_OPTIONAL"
+            self.btnTargetLocRequired:SetText(FormatSelected(Addon.Locale:Get(reqKey), selTarget.locationRequired == true))
+        end
+    end
+    local discRadii = Addon.Constants.DISCOVERY_RADIUS
+    local curTargetRad = (selTarget and selTarget.radius) or discRadii.MEDIUM
+    if self.btnTargetRadSmall then
+        self.btnTargetRadSmall:SetHidden(not (showTargetCfg and hasTargetLoc))
+        self.btnTargetRadSmall:SetText(FormatSelected(Addon.Locale:Get("BTN_DISCOVERY_RAD_SMALL"), curTargetRad == discRadii.SMALL))
+    end
+    if self.btnTargetRadMedium then
+        self.btnTargetRadMedium:SetHidden(not (showTargetCfg and hasTargetLoc))
+        self.btnTargetRadMedium:SetText(FormatSelected(Addon.Locale:Get("BTN_DISCOVERY_RAD_MEDIUM"), curTargetRad == discRadii.MEDIUM))
+    end
+    if self.btnTargetRadLarge then
+        self.btnTargetRadLarge:SetHidden(not (showTargetCfg and hasTargetLoc))
+        self.btnTargetRadLarge:SetText(FormatSelected(Addon.Locale:Get("BTN_DISCOVERY_RAD_LARGE"), curTargetRad == discRadii.LARGE))
+    end
+    if self.lblTargetLocStatus then
+        self.lblTargetLocStatus:SetHidden(not showTargetCfg)
+        if showTargetCfg then
+            if hasTargetLoc then
+                local meters = math.floor(curTargetRad / 100)
+                self.lblTargetLocStatus:SetText(Addon.Locale:Get("TARGET_LOC_STATUS_SET", meters))
+            else
+                self.lblTargetLocStatus:SetText(Addon.Locale:Get("TARGET_LOC_STATUS_NONE"))
+            end
+        end
+    end
+    if self.targetCustomBg then self.targetCustomBg:SetHidden(not showTargetCfg) end
+    if self.targetCustomEdit then
+        local activeCustomMsg = (selTarget and selTarget.customMessage) or ""
+        if not self.targetCustomEdit._focused and self.targetCustomEdit:GetText() ~= activeCustomMsg then
+            self.targetCustomEdit:SetText(activeCustomMsg)
+        end
+    end
 
     local discoveries = draft.discoveries or {}
     local totalDisc = #discoveries
@@ -1962,9 +2642,36 @@ function JournalTab:RefreshEditorPane()
     end
 
     local selectedDlg = self.selectedDialogueIndex and dialogues[self.selectedDialogueIndex] or nil
+    local activeDlgClue = selectedDlg and (selectedDlg.clue or "") or ""
+    if self.clueEdit and not self.clueEdit._focused and self.clueEdit:GetText() ~= activeDlgClue then
+        self.clueEdit:SetText(activeDlgClue)
+    end
     local activeDlgResp = selectedDlg and (selectedDlg.response or "") or ""
     if self.dlgResponseEdit and not self.dlgResponseEdit._focused and self.dlgResponseEdit:GetText() ~= activeDlgResp then
         self.dlgResponseEdit:SetText(activeDlgResp)
+    end
+
+    if self.lblSelectedNpc then
+        if selectedDlg then
+            self.lblSelectedNpc:SetText(Addon.Locale:Get("DIALOGUE_SELECTED_NPC_FORMAT", selectedDlg.npcName or ""))
+            self.lblSelectedNpc:SetHidden(false)
+        else
+            self.lblSelectedNpc:SetHidden(true)
+        end
+    end
+    if self.lblInputClue then
+        if selectedDlg then
+            self.lblInputClue:SetText(Addon.Locale:Get("DIALOGUE_OPTION_FOR_NPC_FORMAT", selectedDlg.npcName or ""))
+        else
+            self.lblInputClue:SetText(Addon.Locale:Get("LABEL_INPUT_CLUE"))
+        end
+    end
+    if self.lblDlgResponse then
+        if selectedDlg then
+            self.lblDlgResponse:SetText(Addon.Locale:Get("DIALOGUE_RESPONSE_FOR_NPC_FORMAT", selectedDlg.npcName or ""))
+        else
+            self.lblDlgResponse:SetText(Addon.Locale:Get("LABEL_DIALOGUE_RESPONSE"))
+        end
     end
 
     local showDlgSel = totalDlg > 0
@@ -1983,8 +2690,13 @@ function JournalTab:RefreshEditorPane()
     if self.lblCapturedDialogues then
         if totalDlg > 0 then
             local names = {}
-            for _, d in ipairs(dialogues) do
-                table.insert(names, d.npcName or "")
+            for i, d in ipairs(dialogues) do
+                local n = d.npcName or ""
+                if i == self.selectedDialogueIndex then
+                    table.insert(names, "|cE8D5A0[" .. n .. "]|r")
+                else
+                    table.insert(names, n)
+                end
             end
             self.lblCapturedDialogues:SetText(Addon.Locale:Get("DIALOGUE_CAPTURED_FORMAT", totalDlg, maxNpcs, table.concat(names, ", ")))
         else

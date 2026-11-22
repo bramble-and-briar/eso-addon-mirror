@@ -4,7 +4,7 @@
 ## AddOnVersion: 6
 ## APIVersion: 101051 101052
 ## SavedVariables: RedLedgerSaved
-## OptionalDependsOn: LibAddonMenu-2.0
+## OptionalDependsOn: LibAddonMenu-2.0>=43
 
 RedLedger.lua
 Bindings.xml

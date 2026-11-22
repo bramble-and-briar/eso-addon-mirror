@@ -1,308 +1,294 @@
 # Teleport
 
-**Teleport** is a general purpose teleportation addon. Its main aim is to make teleportation a quick and pleasant experience, very different to what the game offers - minutes, if not _seconds (!!!)_ of looking trough menus, icons and lists. Ugh. The only extra feature it offers over in-game menus is teleporting to a specific house of any player. I took some ideas from [BeamMeUp](https://www.esoui.com/downloads/info2143-BeamMeUp-TeleporterFastTravel.html) as well from [Traveller](https://www.esoui.com/downloads/info1744-Traveller-FastTravelRedesigned.html), you may want to check them out before deciding on what to use. **Teleport** is not supposed to replace any of the addons mentioned above, it just takes a different approach to mostly the same problem (ok now that I look at **Traveller**'s readme it seems painfully similar, sorry not sorry).
+One chat command, `/tp`, for every kind of travel in ESO. Type the start of where you want to go and you're on your way, without clicking through the map, the friends list or the guild roster.
 
-## Changelog
+```
+/tp deshaan        a zone, free, through anyone you know who is there
+/tp vka            Kyne's Aegis on veteran
+/tp maps           your next survey or treasure map
+/tp @fren snug     a friend's house
+```
 
-See [changelog.md on github](https://github.com/wjtk4444/eso-addons/blob/master/Teleport/changelog.md) (or in the addon folder)
+Teleport always takes the free option when there is one. It jumps to a group member, friend or guildmate first and only pays for a wayshrine when it has to. When a teleport costs gold, the price is shown in chat. Like any teleport, it is cancelled if you move or use a skill before the loading screen.
 
-## Features
-- Teleporting to zones for free (using party members / friends / guildies)
-- Teleporting to survey/treasure map zones (free using see above, paid otherwise)
-- Teleporting to houses, other player's houses included (free, duh)
-- Teleporting to dungeons/arenas/trials (free if any of the party members is already in, paid otherwise)
-- Resetting instance or just changing difficulty before teleporting in (only as the group leader)
-- Teleporting to specific wayshrines (always paid)
+There is no window and no settings menu, only the command. If you prefer clicking, have a look at [BeamMeUp](https://www.esoui.com/downloads/info2143-BeamMeUp-TeleporterFastTravel.html) or [Traveller](https://www.esoui.com/downloads/info1744-Traveller-FastTravelRedesigned.html); Teleport borrows a few ideas from both.
 
-Note that when you're not teleporting to a player or his house, you need to have the destination discovered on current character. Game won't allow you to travel to unknown wayshrine or dungeon. If you have a wayshrine menu currently open, teleporting to a dungeon or wayshrine is free of charge.
+## How names are matched
 
-## Dependencies
+- Names are not case-sensitive.
+- Type the **start** of the name: `desh`, `DES` and `deshaan` all mean Deshaan.
+- If several names start with what you typed, the alphabetically first one wins: `/tp gr` is *Grahtwood*, not *Greenshade*. Type a little more, or make an [alias](#aliases), for the others.
+- "The" can be left out: `/tp reach` is *The Reach*, `/tp dread cellar` is *The Dread Cellar*.
 
-- [LibTreasure](https://www.esoui.com/downloads/info3227-LibTreasure.html) [LibGPS](https://www.esoui.com/downloads/info601-LibGPS.html) - needed for paid teleport to survey maps (finding closest wayshrine)
-- [PithkaAchievementTracker](https://www.esoui.com/downloads/info2892-PithkasAchievementTracker.html) - just to resolve conflicts (override Pithka's `/tp` command)
+What you type is checked against these lists, in this order:
 
-## Usage
+1. your own [aliases](#aliases)
+2. the commands: `--help`, `--aliases`, `--add`, `--remove`, `--list`, `leader`, `maps…`, `quest…`
+3. `@` names: players and their houses
+4. [dungeon, trial and arena short names](#dungeon-trial-and-arena-aliases) (exact match)
+5. names: zones, dungeons/trials/arenas, your houses, wayshrines
 
-### General informations
+While the wayshrine menu is open, step 5 goes the other way round (wayshrines, dungeons, houses, zones), since that's where you are most likely going, and travel from a wayshrine is free.
 
-There is no graphical user interface provided, everything is done using a `/tp` command. If you're not a keyboard person, this is probably where our ways part. Have fun clicking trough all the carefully designed context menus and scrolling trough long lists.
+You can only travel to wayshrines, dungeons and houses that the current character has discovered or owns. A jump to a player or to someone's house works anywhere.
 
-`/tp help` as well as `/tp --show-examples` commands are available, although I would recommend reading this document instead.
+`/tp --help` prints a short list of examples in chat.
 
-**If the teleportation request will cost player any amount of gold, cost will be displayed in chat. You can cancel queued teleportation request at any time by simply moving your character, casting skills, etc.**
+## Zones
 
-**`/tp` command arguments are not case sensitive and will match the fist name that starts with given input**. For example, all of the words listed below will expand to their first match, **Deshaan**.
+```
+/tp deshaan
+/tp crag
+/tp weald          West Weald
+```
 
-- Deshaan
-- desh
-- DES
+Teleport jumps to someone in your group, friends list or guilds who is in that zone. If nobody is there, it tells you so; zone travel never costs gold. Sub-zones such as Fargrave count too.
 
-Possible matches of every category are sorted (separately per category) in alphabetical order, which means that ie. **Vivec** will match **Vivec's Antlers** instead of **Vivec City** which most of the players would expect. If you want to travel specifically to **Vivec City** wayshrine, you need to either specify at least "**Vivec C**", or create an alias. If you want to target wayshrines only, you can append "** Wayshrine **" at the end of the name to avoid collisions with other names. User-defined aliases will be explained in a [later part of this manual](#aliases).
+## Dungeons, trials and arenas
 
-The input matching order is:
+```
+/tp fg1            Fungal Grotto I
+/tp ka             Kyne's Aegis
+/tp crypt of h     Crypt of Hearts I
+```
 
-- User defined alias
-- Settings (`--help`, `--add`, `--remove`, `--list`)
-- Internal commands (`leader`, `paidsurveymaps`, `freesurveymaps`, `bothsurveymaps`)
-- Predefined dungeon/arena/trial aliases
+Every instance has short names made from the first letters of its name (Kyne's Aegis → `ka`, White-Gold Tower → `wgt`), plus a few common community abbreviations. Short names must be typed in full: `hr` does not mean `hrc`. `/tp --aliases` lists them all in game, and the tables [at the end of this page](#dungeon-trial-and-arena-aliases) do the same.
 
-If wayshrine menu is not open:
+Put **n**, **v** or **r** in front of a short name to set the difficulty first:
 
-- Zone name
-- Full dungeon/arena/trial name
-- House name
-- Wayshrine name
+```
+/tp vhrc           veteran Hel Ra Citadel
+/tp ndsa           normal Dragonstar Arena
+/tp rbrp           reset the instance, then travel
+```
 
-Otherwise:
+Only the group leader can change the difficulty, and the game's usual rules apply. If something blocks it, Teleport shows the game's own reason. If a group member is inside a dungeon, `n`/`v` won't change the difficulty, because that would kick them out; change it yourself in the group menu if you really want to. A reset switches the difficulty to the other one and back (normal → veteran → normal), which gives the group a fresh instance.
 
-- Wayshrine name
-- Full dungeon/arena/trial name
-- House name
-- Zone name
+If a group member is already inside, Teleport jumps to them for free. Otherwise it travels to the entrance, paying unless you're at a wayshrine.
 
-The order was chosen in a way that should generate the least amount of conflicts and make the most sense given the context. If you have a wayshrine menu open, you most likely don't want to travel to a guildie in a zone or to a house, etc.
+## Wayshrines
 
-### Known bugs
+```
+/tp vivec city
+/tp solitude wayshrine
+```
 
-Once in a blue moon you will get a "**No suitable location found to jump to**" message. It may happen when the player you're attempting to teleport to changed zones and is currently in the loading screen limbo, but the game still thinks that he's in the previous location. It's very rare and I have no idea how to fix it since the game itself seems to be confused, so just wait ~5s and try again if it happens.
+The " Wayshrine" at the end of the name is optional and ignored when sorting, so `/tp solitude` is *Solitude Wayshrine*, not *Solitude Docks Wayshrine*. Adding "wayshrine" to the name helps when a zone or dungeon would match first. Wayshrine travel costs gold unless you're standing at one.
 
-### Teleporting to zones
+## Your houses
 
-To travel to any of the in-game zones, simply type `/tp <zone name prefix>` in chat. There are also [zone name aliases](#zones-httpsenuespnetwikionlinezonesoverworld_zones) available and they work the exact same way as regular zone names.
+```
+/tp snugpod
+/tp outside snugpod
+```
 
-For example:
+`outside` takes you to the house's front door instead of inside. A house you don't own opens in preview mode.
 
-- `/tp Deshaan`
-- `/tp desh`
-- `/tp Vvardenfell`
-- `/tp vv`
+## Players
 
-**Survey maps and Treasure Maps**
+```
+/tp @fren          the first group member, friend or guildmate whose account name starts with "fren"
+/tp leader         your group leader
+```
 
-If you're using `/tp ZoneName` to do your crafting surveys and treasure maps in the most efficient way, first, good effort. Second, you should be using `/tp bothsurveymaps` instead, which will look trough your inventory and call `/tp Zone` for you. On top of that, if there's noone in the said zone, it will tp you to the nearest wayshrine. If you want to always use paid teleport and end up at the nearest shrine you can use `paidsurveymaps` instead, or `freesurveymaps` if you hate paying that much. Third, you should probably [alias](#aliases) it to something shorter. Personally I'm using `/tp s`.
+Players are searched by account name (with `@`), not by character name: group members first, then friends, then guildmates. ESO only lets you jump to people in your group, friends list or guilds.
 
-### Teleporting to houses
+`/tp leader` does the same as the game's `/jumptoleader`, but shorter, and it says in chat where the leader is.
 
-Same as zones: `/tp <house name prefix>`.
+## Other players' houses
 
-If you want to travel to other player's house, check the "Teleporting to other player's houses" section instead. If you want to travel outside of _your own_ house, prepend the name with "outside", ie.
+```
+/tp @fren snug             fren's Snugpod
+/tp @fren primary          fren's primary residence (also: main)
+/tp @@exactname snugpod    anyone's house, exact account name required
+```
 
-- `/tp outside snugpod`
+For people you know, the first word is the start of their account name and the rest is the start of the house name. For anyone else, use `@@` and their full account name. Account names are not case-sensitive.
 
-### Teleporting to wayshrines
+Feel free to visit `/tp @@schrodingerscatgirl snugpod`.
 
-Same as teleporting to zones: `/tp <wayshrine name prefix>`. If you want to avoid name collisions you can also use `/tp <full wayshrine name> Wayshrine` instead. Wayshrines are sorted alphabetically without the " Wayshrine" suffix, for example `/tp solitude` will take you to `Solitude Wayshrine` instead of `Solitude Docks Wayshrine`. 
+## Survey and treasure maps
 
-### Teleporting to dungeons/arenas/trials
+```
+/tp maps           free if possible, paid otherwise
+/tp maps free      only free options: players, then your houses
+/tp maps paid      the closest wayshrine or house of yours
+```
 
-There is a list of [predefined aliases available](#trials-httpsenuespnetwikionlinetrials). You can view it at the end of this guide. Aliases contain all of the common shortcuts that players use (hopefully). **These aliases are still case insensitive, but other than that you have to use an exact match. HR won't expand to HRC, etc.** A few examples below:
+Teleport looks through your bags and takes you to your next map:
 
-- `/tp HRC`
-- `/tp MoL`
-- `/tp DSA`
-- `/tp FG1`
-- `/tp CoH2`
+- Maps in your current zone come first, so you don't sit through a zone-to-zone loading screen while there's still something to dig up nearby.
+- Then the zone you have the most maps for.
+- Free options win over paying for a wayshrine. First a jump to a player in any of those zones. If there's nobody, the outside of a house you own close to a map (jumping outside your own house is free from anywhere). Only then a paid wayshrine.
+- At a wayshrine, travel is free anyway, so it takes whichever wayshrine or house of yours is closest to a map.
+- If you're already closer to a map than any wayshrine or house of yours is (by at least ~150 m), you won't be teleported; Teleport tells you how far away the map is instead.
 
-If for whatever reason you prefer using full(er?) name instead, you're welcome to do the usual `/tp <dungeon name prefix>`, ie. `/tp Fungal Gro`
+Wayshrines and houses need **LibTreasure** to know where the maps are. Tip: make an alias, e.g. `/tp --add s maps`, then just `/tp s`.
 
-Additionally, you can prepend all of the aliases with **n**, **v** or **r** (for normal, veteran and reset). In that case addon will attempt changing dungeon difficulty for you and your group.
+## Tracked quest
 
-- `/tp vHRC`
-- `/tp NDSA`
-- `/tp vcoh1`
-- `/tp rbrp`
+```
+/tp quest
+/tp quest free
+/tp quest paid
+```
 
-### Teleporting to players
-
-To travel to a player, first make sure he's in your group / friends / guild and online. This is an in-game restriction that cannot by bypassed. Command syntax is very similar to all other presented up to this point, the only difference being **@** symbol at the beginning of account name. `/tp @<account_name>`. Using character name instead is not supported, because I'm not convinced that it should be. Feel free to make it into a feature request, I might reconsider if you bring actual arguments.
-
-Special `/tp leader` command works exactly the same as built-in `/jumptoleader`, it's just shorter to type (and aliasable, see [below](#aliases)) (yes, it takes you to the group leader). It also displays some extra info in the chat (unlike the built-in one), so you can abuse spamming it and cancelling teleport when waiting on leader to "port in". Though personally I'd spam `/tp <dungeon alias>` instead, maybe someone will be faster than the group leader.
-
-### Teleporting to other players' houses
-
-For group members / friends and guildies, the syntax is the same as when travelling to player, followed by house name. `/tp @account_name house name`. First word is considered account name prefix, everything else house name prefix. You can also use **primary** or **main** instead of house name, this will take you to player's primary residence instead. 
-For every other player you need to use the **exact account name** and double **@** instead. For example:
-
-- `/tp @@schrodingerscatgirl Snugpod`
-
-will take you to this addon author's residence. Feel free to visit. For house name, you can still use prefixes instead of full names. 
-
-By the way, did you know that account names in ESO are not case sensitive even though they appear as such? Now you do.
+Same rules as maps, for the quest you're tracking. All of its open objective markers are considered (quests with several markers, "talk to A or B", delves, quest endings), and you end up at the wayshrine closest to any of them. The world map is never opened.
 
 ## Aliases
 
-Hey, you. You're finally ~~awake~~ here.
+Anything you can type after `/tp` can be saved under a shorter name:
 
-At this point, if your brain hasn't melted yet from reading this huge wall of text, you must be thinking one thing:
+```
+/tp --add s maps
+/tp --add home @@myaccount primary
+/tp --add hof vhof
+/tp --list
+/tp --remove s
+```
 
-> Oh, how convienient. Free teleporting to zones and dungeon aliases are pretty cool, but just imagine typing
+- Alias names are a single word and not case-sensitive.
+- An alias must match exactly; it is not a prefix.
+- Aliases are checked before anything else, so you can even replace a built-in short name.
+- They are saved account-wide.
 
-> `/tp @@prettylongnameXXX69420_GAMER_69420XXX Hakkvild's High Hall`
+## Requirements
 
-> every time you want to visit your friends house. So simple, so elegant! I'm never using in-game menus again!
+- Optional: **LibTreasure**, for paid travel to survey and treasure maps.
+- Optional: **LibGPS**, for exact distances to maps and quest objectives. Without it the distances are estimates.
 
-First - you could probably just do `/tp @pretty hakk`, but if there are name conflicts or that player is not in your party / friends / guild, or you still consider it too much writing - there's aliases.
+## Known issues
 
-**You can alias any valid (or invalid...) input for something shorter and easier to remember.** There are 3 commands to operate on aliases:
+- Now and then a jump fails with "No suitable location found to jump to". This happens when the player you're jumping to has just changed zones and the game still has them in the old one. Wait a few seconds and try again.
+- Resetting an instance or changing difficulty depends on the server answering in time and occasionally doesn't go through. Teleport retries once and then gives up after a few seconds instead of sending you in on the wrong difficulty; just run the command again.
 
-- `/tp --add <alias name> <alias expansion>`
-- `/tp --remove <alias name>`
-- `/tp --list`
+## Changelog
 
-As their syntax suggests, first is for adding, second for removing and third for listing saved aliases. Aliases are saved account wide, obviously. So, going back to the case of visiting your old friend with a very long name, you can do this (once):
-
-- `/tp add 1 @@prettylongnameXXX69420_GAMER_69420XXX Hakkvild's High Hall`
-
-and then just use `/tp 1` to get there. Obviously, you are not limited to using numbers. Aliases are **exact matches** and, unlike everything else in this addon, they are **Case Sensitive**. You can even re-alias a built-in alias for a dungeon or a trial if that's what you desire.
-
-Important: **Alias names can not contain spaces**.
-
-As stated above, you can alias every possible command. Some examples below:
-
-- `/tp --add fungal2 Fungal Grotto II`
-- `/tp --add maw vMoL`
-- `/tp --add 3 @guildmaster primary`
-- `/tp --add 7 @friend earthtear`
-- `/tp --add nAA vHoF` (don't do that, it creates mustard gas)
-- `/tp --add BestSnugpodEU @@schrodingerscatgirl Snugpod`
-
-&nbsp;
-
-- `/tp --remove 7`
-- `/tp --remove nAA` (revert your misdoings to normal)
-
-&nbsp;
-
-- `/tp --list`
+See [changelog.md](changelog.md).
 
 ## Maintenance
 
-In the case of me ceasing to keep this addon up to date, here's all you need to know:
+The game provides all zone, dungeon, wayshrine and house names, so new content works without an update. Only the hand-picked short names in `Aliases.lua` might need attention when a new instance gets a popular abbreviation that the generated one doesn't cover.
 
-Pre-defined aliases in `Aliases.lua` are the only thing that needs to be up-to-date. If a new dungeon / arena / trial is added, someone has to figure out what are the most popular short names and add them. Ie. "se" for Sanity's Edge.
+The tables below are generated from `Aliases.lua` and `tools/instances.txt`. After changing either, run `make` (needs Lua 5.1 or LuaJIT). For a new instance, add its name to `tools/instances.txt`.
 
-> Any further instructions?
+## Dungeon, trial and arena aliases
 
-`README.md` is updated automatically with new aliases from `Aliases.lua` file. Just call `make` after doing any changes to `Aliases.lua`.
+Put **n**, **v** or **r** in front of any of these for normal, veteran or reset. In game, `/tp --aliases` shows the list that is actually in effect.
 
 <!--splitter-->
 
-### Zones: ([https://en.uesp.net/wiki/Online:Zones#Overworld_Zones](https://en.uesp.net/wiki/Online:Zones#Overworld_Zones))
-|alias|full name|
-|-|-|
-|Reach                     | The Reach |
-|Rift                      | The Rift |
-|Arkthzand Cavern          | Blackreach: Arkthzand Cavern |
-|Greymoor Caverns          | Blackreach: Greymoor Caverns |
-|Elsweyr                   | Northern Elsweyr |
-|Skyrim                    | Western Skyrim |
-|Deadlands                 | The Deadlands |
-|Weald                     | West Weald |
+### Trials
 
-### Trials: ([https://en.uesp.net/wiki/Online:Trials](https://en.uesp.net/wiki/Online:Trials))
-|alias|full name|
-|-|-|
-|as   | Asylum Sanctorium |
-|aa   | Aetherian Archive |
-|hrc  | Hel Ra Citadel |
-|so   | Sanctum Ophidia |
-|ss   | Sunspire |
-|mol  | Maw of Lorkhaj |
-|cr   | Cloudrest |
-|hof  | Halls of Fabrication |
-|ka   | Kyne's Aegis |
-|rg   | Rockgrove |
-|dsr  | Dreadsail Reef |
-|se   | Sanity's Edge |
-|lc   | Lucent Citadel |
+[https://en.uesp.net/wiki/Online:Trials](https://en.uesp.net/wiki/Online:Trials)
 
-### Arenas: ([https://en.uesp.net/wiki/Online:Arenas](https://en.uesp.net/wiki/Online:Arenas))
-|alias|full name|
+| Name | Aliases |
 |-|-|
-|ma   | Maelstrom Arena |
-|dsa  | Dragonstar Arena |
-|brp  | Blackrose Prison |
-|vh   | Vateshran Hollows |
+| Aetherian Archive | `aa` |
+| Hel Ra Citadel | `hrc` |
+| Sanctum Ophidia | `so` |
+| Maw of Lorkhaj | `mol` |
+| Halls of Fabrication | `hof` |
+| Asylum Sanctorium | `as` |
+| Cloudrest | `cr` |
+| Sunspire | `ss` |
+| Kyne's Aegis | `ka` |
+| Rockgrove | `rg` |
+| Dreadsail Reef | `dr`, `dsr` |
+| Sanity's Edge | `se` |
+| Lucent Citadel | `lc` |
+| Ossein Cage | `oc` |
 
-### Base Game Dungeons: ([https://en.uesp.net/wiki/Online:Group_Dungeons](https://en.uesp.net/wiki/Online:Group_Dungeons))
-|alias|full name|
-|-|-|
-|ac   | Arx Corinium |
-|arx  | Arx Corinium |
-|bc   | The Banished Cells I |
-|bc1  | The Banished Cells I |
-|tbc1 | The Banished Cells I |
-|bc2  | The Banished Cells II |
-|tbc2 | The Banished Cells II |
-|bh   | Blackheart Haven |
-|bc   | Blessed Crucible |
-|coa  | City of Ash I |
-|coa1 | City of Ash I |
-|coa2 | City of Ash II |
-|coh  | Crypt of Hearts I |
-|coh1 | Crypt of Hearts I |
-|coh2 | Crypt of Hearts II |
-|dc1  | Darkshade Caverns I |
-|dc2  | Darkshade Caverns II |
-|dk   | Direfrost Keep |
-|dfk  | Direfrost Keep |
-|eh   | Elden Hollow I |
-|eh1  | Elden Hollow I |
-|eh2  | Elden Hollow II |
-|fg   | Fungal Grotto I |
-|fg1  | Fungal Grotto I |
-|fg2  | Fungal Grotto II |
-|sw   | Selene's Web |
-|sc   | Spindleclutch I |
-|sc1  | Spindleclutch I |
-|sc2  | Spindleclutch II |
-|ti   | Tempest Island |
-|vom  | Vaults of Madness |
-|vf   | Volenfell |
-|vol  | Volenfell |
-|ws   | Wayrest Sewers I |
-|ws1  | Wayrest Sewers I |
-|ws2  | Wayrest Sewers II |
+### Arenas
 
-### DLC Dungeons: ([https://en.uesp.net/wiki/Online:Group_Dungeons](https://en.uesp.net/wiki/Online:Group_Dungeons))
-|alias|full name|
+[https://en.uesp.net/wiki/Online:Arenas](https://en.uesp.net/wiki/Online:Arenas)
+
+| Name | Aliases |
 |-|-|
-|icp  | Imperial City Prison |
-|ic   | Imperial City Prison |
-|wgt  | White-Gold Tower |
-|cos  | Cradle of Shadows |
-|cs   | Cradle of Shadows |
-|rom  | Ruins of Mazzatun |
-|bf   | Bloodroot Forge |
-|brf  | Bloodroot Forge |
-|fh   | Falkreath Hold |
-|fl   | Fang Lair |
-|sp   | Scalecaller Peak |
-|scp  | Scalecaller Peak |
-|mos  | March of Sacrifices |
-|mk   | Moon Hunter Keep |
-|mhk  | Moon Hunter Keep |
-|dom  | Depths of Malatar |
-|fv   | Frostvault |
-|lom  | Lair of Maarselok |
-|mf   | Moongrave Fane |
-|mgf  | Moongrave Fane |
-|ir   | Icereach |
-|ug   | Unhallowed Grave |
-|ct   | Castle Thorn |
-|sg   | Stone Garden |
-|bdv  | Black Drake Villa |
-|tc   | The Cauldron |
-|cd   | The Cauldron |
-|tdc  | The Dread Cellar |
-|dc   | The Dread Cellar |
-|rpb  | Red Petal Bastion |
-|ca   | Coral Aerie |
-|sr   | Shipwright's Regret |
-|ere  | Earthen Root Enclave |
-|gd   | Graven Deep |
-|sh   | Scrivener's Hall |
-|bs   | Bal Sunnar |
-|op   | Oathsworn Pit |
-|bv   | Bedlam Veil |
-|ia   | Infinite Archive |
+| Dragonstar Arena | `da`, `dsa` |
+| Maelstrom Arena | `ma` |
+| Blackrose Prison | `bp`, `brp` |
+| Vateshran Hollows | `vh` |
+| Infinite Archive | `ia` |
+
+### Base game dungeons
+
+[https://en.uesp.net/wiki/Online:Group_Dungeons](https://en.uesp.net/wiki/Online:Group_Dungeons)
+
+| Name | Aliases |
+|-|-|
+| Arx Corinium | `ac` |
+| Blackheart Haven | `bh` |
+| Blessed Crucible | `bc` |
+| City of Ash I | `coa`, `coa1` |
+| City of Ash II | `coa2` |
+| Crypt of Hearts I | `coh`, `coh1` |
+| Crypt of Hearts II | `coh2` |
+| Darkshade Caverns I | `dc1` |
+| Darkshade Caverns II | `dc2` |
+| Direfrost Keep | `dk` |
+| Elden Hollow I | `eh`, `eh1` |
+| Elden Hollow II | `eh2` |
+| Fungal Grotto I | `fg`, `fg1` |
+| Fungal Grotto II | `fg2` |
+| Selene's Web | `sw` |
+| Spindleclutch I | `s1`, `sc`, `sc1` |
+| Spindleclutch II | `s2`, `sc2` |
+| Tempest Island | `ti` |
+| The Banished Cells I | `bc1`, `tbc`, `tbc1` |
+| The Banished Cells II | `bc2`, `tbc2` |
+| Vaults of Madness | `vom` |
+| Volenfell | `vf` |
+| Wayrest Sewers I | `ws`, `ws1` |
+| Wayrest Sewers II | `ws2` |
+
+### DLC dungeons
+
+[https://en.uesp.net/wiki/Online:Group_Dungeons](https://en.uesp.net/wiki/Online:Group_Dungeons)
+
+| Name | Aliases |
+|-|-|
+| Imperial City Prison | `icp` |
+| White-Gold Tower | `wgt` |
+| Cradle of Shadows | `cos` |
+| Ruins of Mazzatun | `rom` |
+| Bloodroot Forge | `bf`, `brf` |
+| Falkreath Hold | `fh` |
+| Fang Lair | `fl` |
+| Scalecaller Peak | `sp`, `scp` |
+| March of Sacrifices | `mos` |
+| Moon Hunter Keep | `mk`, `mhk` |
+| Depths of Malatar | `dom` |
+| Frostvault | `fv` |
+| Lair of Maarselok | `lom` |
+| Moongrave Fane | `mf`, `mgf` |
+| Icereach | `ir` |
+| Unhallowed Grave | `ug` |
+| Castle Thorn | `ct` |
+| Stone Garden | `sg` |
+| Black Drake Villa | `bdv` |
+| The Cauldron | `cd`, `tc` |
+| Red Petal Bastion | `rpb` |
+| The Dread Cellar | `dc`, `tdc` |
+| Coral Aerie | `ca` |
+| Shipwright's Regret | `sr` |
+| Earthen Root Enclave | `ere` |
+| Graven Deep | `gd` |
+| Bal Sunnar | `bs` |
+| Scrivener's Hall | `sh` |
+| Oathsworn Pit | `op` |
+| Bedlam Veil | `bv` |
+| Exiled Redoubt | `er` |
+| Lep Seclusa | `ls` |
+| Naj-Caldeesh | `nc` |
+| Black Gem Foundry | `bgf` |
+
+### Zone short names
+
+Zones starting with "The " or a "Something: " label also work without it (The Reach → Reach, Blackreach: Greymoor Caverns → Greymoor Caverns). Additionally:
+
+| Short name | Zone |
+|-|-|
+| Elsweyr | Northern Elsweyr |
+| Skyrim | Western Skyrim |
+| Weald | West Weald |

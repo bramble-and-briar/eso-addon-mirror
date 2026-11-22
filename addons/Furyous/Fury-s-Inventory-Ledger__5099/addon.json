@@ -1,0 +1,44 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/Furyous/Fury-s-Inventory-Ledger__5099",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "Furyous",
+  "canonical_id": "esoui:5099",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5099",
+  "deleted": false,
+  "directories": [
+    "FurysInventoryLedger"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5099/",
+  "fingerprint": "14c4bc9d83b60b2f22f22897a91f8bccd7870623656e15bb42a399d0feff2bdb",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18716.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18717.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5099",
+  "source_url": "https://www.esoui.com/downloads/info5099-FurysInventoryLedger.html",
+  "stats": {
+    "downloads": 2,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Fury's Inventory Ledger",
+  "updated_at": 1795333356000,
+  "version": "1.2.2"
+}

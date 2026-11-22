@@ -29,19 +29,6 @@ QoL.charDefaults = {
     qolUseCharacter = false,
 }
 
-QoL.defaults = {
-    qolSkipTravel     = false,
-    qolSkipLogout     = false,
-    qolStayMounted    = false,
-    qolMountUse       = false,
-    qolMountOpen      = false,
-    qolMountTalk      = false,
-    qolRidingReminder = false,
-    qolClaimTome      = false,
-    qolClaimGolden    = false,
-    qolClaimVeterancy = false,
-    qolLuaErrors      = "chat",
-}
 
 QoL.skipChoices = {
     { name = "Travel", value = "travel" },
@@ -104,40 +91,38 @@ local nextError   = 0
 --------------------------------------------------
 -- Helpers
 --------------------------------------------------
-local charFilled = false
+local GROUP_PREFIXES = {
+    { "qolSkip",          "confirmations" },
+    { "qolInstantConfirm", "confirmations" },
+    { "qolStayMounted",   "mounts" },
+    { "qolMount",         "mounts" },
+    { "qolRidingReminder", "mounts" },
+    { "qolClaim",         "claims" },
+    { "qolLuaErrors",     "luaErrors" },
+    { "questTracker",     "questTracker" },
+    { "arc",              "readyCheck" },
+    { "dnl",              "doNotLearn" },
+    { "mi",               "missingItems" },
+}
 
-local function CharSettings()
-    local cv = ME.charVariables
-    if not cv then return nil end
-    if type(cv.qolCharSettings) ~= "table" then cv.qolCharSettings = {} end
-    local settings = cv.qolCharSettings
-    if not settings.seeded then
-        local account = ME.savedVariables
-        for key, value in pairs(QoL.defaults) do
-            local current = account and account[key]
-            if current == nil then current = value end
-            settings[key] = current
-        end
-        settings.seeded = true
-        charFilled = true
-    elseif not charFilled then
-        for key, value in pairs(QoL.defaults) do
-            if settings[key] == nil then settings[key] = value end
-        end
-        charFilled = true
+local function GroupFor(key)
+    for i = 1, #GROUP_PREFIXES do
+        local prefix = GROUP_PREFIXES[i][1]
+        if string.sub(key, 1, #prefix) == prefix then return GROUP_PREFIXES[i][2] end
     end
-    return settings
+    return nil
 end
 
-function QoL:UsesCharacterSettings()
-    return ME.charVariables ~= nil and ME.charVariables.qolUseCharacter == true
+local scope = ME:NewScope("qolCharSettings", "qolUseCharacter")
+QoL.scope = scope
+QoL.defaults = scope.defaults
+
+function QoL:UsesCharacterSettings(group)
+    return scope:UsesCharacter(group)
 end
 
 local function SV()
-    if QoL:UsesCharacterSettings() then
-        return CharSettings() or ME.savedVariables
-    end
-    return ME.savedVariables
+    return scope:Settings()
 end
 
 function QoL:Settings()
@@ -145,16 +130,30 @@ function QoL:Settings()
 end
 
 function QoL:AddDefaults(list)
-    for key, value in pairs(list) do
-        self.defaults[key] = value
-        ME.defaults[key] = value
-    end
-    charFilled = false
+    scope:AddDefaults(list, GroupFor)
 end
 
-local function SavedTip()
-    if QoL:UsesCharacterSettings() then return ME.SAVED_CHARACTER_TIP end
-    return ME.SAVED_ACCOUNT_TIP
+local BASE_DEFAULTS = {
+    qolSkipTravel     = false,
+    qolSkipLogout     = false,
+    qolStayMounted    = false,
+    qolMountUse       = false,
+    qolMountOpen      = false,
+    qolMountTalk      = false,
+    qolRidingReminder = false,
+    qolClaimTome      = false,
+    qolClaimGolden    = false,
+    qolClaimVeterancy = false,
+    qolLuaErrors      = "chat",
+}
+QoL:AddDefaults(BASE_DEFAULTS)
+
+function QoL:CharacterOption(group)
+    return ME:CharacterOption(scope, group, function() QoL:RefreshAll() end)
+end
+
+function QoL:SavedTip(group)
+    return ME:SavedTip(scope, group)
 end
 
 local function ChecklistGet(choices, keys)
@@ -676,167 +675,178 @@ function QoL:Refresh()
     self:WatchRiding(sv.qolRidingReminder == true)
 end
 
-function QoL:SetUseCharacterSettings(value)
-    local cv = ME.charVariables
-    if not cv then return end
-    value = value == true
-    if (cv.qolUseCharacter == true) == value then return end
-    cv.qolUseCharacter = value
+function QoL:RefreshAll()
     self:Refresh()
     if ME.QuestTracker then ME.QuestTracker:Apply() end
     if ME.AutoReadyCheck then ME.AutoReadyCheck:Refresh() end
     if ME.InstantConfirm then ME.InstantConfirm:Refresh() end
-    local panel = ME.settingsPanel
-    if panel and panel.Refresh then panel:Refresh() end
 end
 
 --------------------------------------------------
 -- Settings
 --------------------------------------------------
+local function Page(name, group, description, options)
+    if group then table.insert(options, 1, QoL:CharacterOption(group)) end
+    return {
+        type    = "submenu",
+        name    = name,
+        tooltip = function()
+            if group then return description .. "\n\n" .. QoL:SavedTip(group) end
+            return description
+        end,
+        options = options,
+    }
+end
+
+local function AddCharacterOption(submenu, group)
+    if not submenu or type(submenu.options) ~= "table" then return submenu end
+    local position = 1
+    if submenu.options[1] and submenu.options[1].name == "Enabled" then position = 2 end
+    table.insert(submenu.options, position, QoL:CharacterOption(group))
+    local description = submenu.tooltip
+    submenu.tooltip = function()
+        local text = type(description) == "function" and description() or description or ""
+        return text .. "\n\n" .. QoL:SavedTip(group)
+    end
+    return submenu
+end
+
 function QoL:GetOptions()
     local defaults = self.defaults
 
     local function MountOff() return not SV().qolStayMounted end
 
-    local page = {
+    local confirmations = {
+        {
+            type    = "checklist",
+            name    = "Skip Confirmations",
+            choices = self.skipChoices,
+            default = ChecklistDefault(self.skipChoices, SKIP_KEYS),
+            tooltip = "Skips the pop-up asking you to confirm.\n\n"
+                   .. "Travel: when you travel or recall to a wayshrine. If you don't have enough gold for a recall, it still asks.\n"
+                   .. "Logout: when you log out from the menu.",
+            getFunc = function() return ChecklistGet(QoL.skipChoices, SKIP_KEYS) end,
+            setFunc = function(values)
+                ChecklistSet(values, SKIP_KEYS)
+                QoL:Refresh()
+            end,
+        },
+    }
+    if ME.InstantConfirm then confirmations[#confirmations + 1] = ME.InstantConfirm:Option() end
+
+    local mounts = {
+        {
+            type    = "toggle",
+            name    = "Stay Mounted",
+            preset  = "YES_NO",
+            default = defaults.qolStayMounted,
+            tooltip = "Stops interact prompts from knocking you off your mount while you're riding. "
+                   .. "Pressing interact jumps instead, and the prompt shows \"" .. BLOCKED_TEXT .. "\"",
+            getFunc = function() return SV().qolStayMounted end,
+            setFunc = function(val)
+                SV().qolStayMounted = val
+                QoL:Refresh()
+            end,
+        },
+        {
+            type     = "checklist",
+            name     = "Allow While Mounted",
+            choices  = self.mountChoices,
+            default  = ChecklistDefault(self.mountChoices, MOUNT_KEYS),
+            tooltip  = "Prompts that still work while you're riding.\n\n"
+                    .. "Use: things you use, like levers and shrines.\n"
+                    .. "Open: things you open, like doors.\n"
+                    .. "Talk: characters you can talk to.",
+            disabled = MountOff,
+            getFunc  = function() return ChecklistGet(QoL.mountChoices, MOUNT_KEYS) end,
+            setFunc  = function(values) ChecklistSet(values, MOUNT_KEYS) end,
+        },
+        {
+            type    = "toggle",
+            name    = "Riding Reminder",
+            preset  = "YES_NO",
+            default = defaults.qolRidingReminder,
+            tooltip = "Tells you when your daily riding lesson is ready. It stops once your riding skills are maxed.",
+            getFunc = function() return SV().qolRidingReminder end,
+            setFunc = function(val)
+                SV().qolRidingReminder = val
+                QoL:Refresh()
+            end,
+        },
+    }
+
+    local claims = {
+        {
+            type    = "checklist",
+            name    = "Rewards",
+            choices = self.claimChoices,
+            default = ChecklistDefault(self.claimChoices, CLAIM_KEYS),
+            tooltip = "Claims these rewards for you as soon as they're ready.\n\n"
+                   .. "Tome Points: finished Tamriel Tomes activities.\n"
+                   .. "Golden Pursuits: finished activities, milestones and the final reward. Rewards where you choose an item are left for you to pick.\n"
+                   .. "PvP Veterancy: your veterancy rank rewards. If a claim doesn't go through, it tries again when you reach a new rank.",
+            getFunc = function() return ChecklistGet(QoL.claimChoices, CLAIM_KEYS) end,
+            setFunc = function(values)
+                ChecklistSet(values, CLAIM_KEYS)
+                vetBlocked = nil
+                QoL:Refresh()
+            end,
+        },
+    }
+
+    local luaErrors = {
+        {
+            type    = "dropdown",
+            name    = "Errors",
+            choices = self.errorChoices,
+            default = defaults.qolLuaErrors,
+            tooltip = "What happens when an addon has an error.",
+            details = function()
+                local mode = SV().qolLuaErrors
+                if mode == "hide" then
+                    return "Error windows are hidden."
+                elseif mode == "chat" then
+                    return "Error windows are hidden, and each error is listed in chat once. "
+                        .. "Highlight it in text chat and press " .. ERROR_KEYBIND .. " to see the full error."
+                end
+                return "Error windows pop up like normal."
+            end,
+            getFunc = function() return SV().qolLuaErrors end,
+            setFunc = function(val)
+                SV().qolLuaErrors = val
+                QoL:Refresh()
+            end,
+        },
+    }
+
+    local options = {
+        Page("Confirmations", "confirmations", "Skips confirmation pop-ups and their countdowns.", confirmations),
+        Page("Mounts", "mounts", "Keeps you on your mount and reminds you about riding lessons.", mounts),
+        Page("Auto Claim", "claims", "Claims rewards for you as soon as they're ready.", claims),
+    }
+    local function Add(submenu, group)
+        if not submenu then return end
+        if group then AddCharacterOption(submenu, group) end
+        options[#options + 1] = submenu
+    end
+    if ME.AutoReadyCheck then Add(ME.AutoReadyCheck:SubmenuOption(), "readyCheck") end
+    if ME.DoNotLearn then Add(ME.DoNotLearn:SubmenuOption(), "doNotLearn") end
+    if ME.MissingItems then Add(ME.MissingItems:SubmenuOption(), "missingItems") end
+    if ME.Knowledge then Add(ME.Knowledge:SubmenuOption()) end
+    if ME.QuestTracker then Add(ME.QuestTracker:SubmenuOption(), "questTracker") end
+    options[#options + 1] = Page("Lua Errors", "luaErrors", "What happens when an addon has an error.", luaErrors)
+
+    return {
         {
             type    = "submenu",
             name    = "Quality of Life",
             icon    = SUBMENU_ICON,
-            tooltip = function()
-                return "Skips confirmations, keeps you on your mount, claims rewards for you, moves your quest tracker, "
-                    .. "accepts ready checks, stops you from learning things by accident and handles Lua errors.\n\n" .. SavedTip()
-            end,
-            options = {
-                {
-                    type    = "toggle",
-                    name    = "Character Settings",
-                    tooltip = "Off uses the same settings for the whole account. On gives this character its own settings, "
-                           .. "copied from the account settings the first time you turn it on.",
-                    details = function()
-                        if QoL:UsesCharacterSettings() then
-                            return "This character has its own settings."
-                        end
-                        return "All your characters share the same settings."
-                    end,
-                    getFunc = function() return QoL:UsesCharacterSettings() end,
-                    setFunc = function(val) QoL:SetUseCharacterSettings(val) end,
-                },
-                {
-                    type    = "checklist",
-                    name    = "Skip Confirmations",
-                    choices = self.skipChoices,
-                    default = ChecklistDefault(self.skipChoices, SKIP_KEYS),
-                    tooltip = "Skips the pop-up asking you to confirm.\n\n"
-                           .. "Travel: when you travel or recall to a wayshrine. If you don't have enough gold for a recall, it still asks.\n"
-                           .. "Logout: when you log out from the menu.",
-                    getFunc = function() return ChecklistGet(QoL.skipChoices, SKIP_KEYS) end,
-                    setFunc = function(values)
-                        ChecklistSet(values, SKIP_KEYS)
-                        QoL:Refresh()
-                    end,
-                },
-                {
-                    type    = "toggle",
-                    name    = "Stay Mounted",
-                    preset  = "YES_NO",
-                    default = defaults.qolStayMounted,
-                    tooltip = "Stops interact prompts from knocking you off your mount while you're riding. "
-                           .. "Pressing interact jumps instead, and the prompt shows \"" .. BLOCKED_TEXT .. "\"",
-                    getFunc = function() return SV().qolStayMounted end,
-                    setFunc = function(val)
-                        SV().qolStayMounted = val
-                        QoL:Refresh()
-                    end,
-                },
-                {
-                    type     = "checklist",
-                    name     = "Allow While Mounted",
-                    choices  = self.mountChoices,
-                    default  = ChecklistDefault(self.mountChoices, MOUNT_KEYS),
-                    tooltip  = "Prompts that still work while you're riding.\n\n"
-                            .. "Use: things you use, like levers and shrines.\n"
-                            .. "Open: things you open, like doors.\n"
-                            .. "Talk: characters you can talk to.",
-                    disabled = MountOff,
-                    getFunc  = function() return ChecklistGet(QoL.mountChoices, MOUNT_KEYS) end,
-                    setFunc  = function(values) ChecklistSet(values, MOUNT_KEYS) end,
-                },
-                {
-                    type    = "toggle",
-                    name    = "Riding Reminder",
-                    preset  = "YES_NO",
-                    default = defaults.qolRidingReminder,
-                    tooltip = "Tells you when your daily riding lesson is ready. It stops once your riding skills are maxed.",
-                    getFunc = function() return SV().qolRidingReminder end,
-                    setFunc = function(val)
-                        SV().qolRidingReminder = val
-                        QoL:Refresh()
-                    end,
-                },
-                {
-                    type    = "checklist",
-                    name    = "Auto Claim",
-                    choices = self.claimChoices,
-                    default = ChecklistDefault(self.claimChoices, CLAIM_KEYS),
-                    tooltip = "Claims these rewards for you as soon as they're ready.\n\n"
-                           .. "Tome Points: finished Tamriel Tomes activities.\n"
-                           .. "Golden Pursuits: finished activities, milestones and the final reward. Rewards where you choose an item are left for you to pick.\n"
-                           .. "PvP Veterancy: your veterancy rank rewards. If a claim doesn't go through, it tries again when you reach a new rank.",
-                    getFunc = function() return ChecklistGet(QoL.claimChoices, CLAIM_KEYS) end,
-                    setFunc = function(values)
-                        ChecklistSet(values, CLAIM_KEYS)
-                        vetBlocked = nil
-                        QoL:Refresh()
-                    end,
-                },
-                {
-                    type    = "dropdown",
-                    name    = "Lua Errors",
-                    choices = self.errorChoices,
-                    default = defaults.qolLuaErrors,
-                    tooltip = "What happens when an addon has an error.",
-                    details = function()
-                        local mode = SV().qolLuaErrors
-                        if mode == "hide" then
-                            return "Error windows are hidden."
-                        elseif mode == "chat" then
-                            return "Error windows are hidden, and each error is listed in chat once. "
-                                .. "Highlight it in text chat and press " .. ERROR_KEYBIND .. " to see the full error."
-                        end
-                        return "Error windows pop up like normal."
-                    end,
-                    getFunc = function() return SV().qolLuaErrors end,
-                    setFunc = function(val)
-                        SV().qolLuaErrors = val
-                        QoL:Refresh()
-                    end,
-                },
-            },
+            tooltip = "Skips confirmations, keeps you on your mount, claims rewards for you, accepts ready checks, "
+                   .. "stops you from learning things by accident, marks items you're missing, shows what your "
+                   .. "characters know, moves your quest tracker and handles Lua errors.",
+            options = options,
         },
     }
-    local options = page[1].options
-    if ME.InstantConfirm then
-        for i = 1, #options do
-            if options[i].name == "Skip Confirmations" then
-                table.insert(options, i + 1, ME.InstantConfirm:Option())
-                break
-            end
-        end
-    end
-    local pages = { ME.QuestTracker, ME.AutoReadyCheck, ME.DoNotLearn }
-    for i = 1, #pages do
-        local submenu = pages[i] and pages[i]:SubmenuOption()
-        if submenu then options[#options + 1] = submenu end
-    end
-    for i = 1, #options do
-        if options[i].name == "Lua Errors" then
-            local luaErrors = table.remove(options, i)
-            options[#options + 1] = luaErrors
-            break
-        end
-    end
-    return page
 end
 
 --------------------------------------------------
@@ -852,24 +862,12 @@ function QoL:OnPlayerActivated()
 end
 
 function QoL:ResetSkipKeys()
-    local keys = {}
-    if self:UsesCharacterSettings() then
-        for key in pairs(self.defaults) do keys[#keys + 1] = key end
-    end
-    return keys
+    return scope:ResetSkipKeys()
 end
 
 function QoL:OnReset()
-    if self:UsesCharacterSettings() then
-        local settings = CharSettings()
-        if settings then
-            for key, value in pairs(self.defaults) do
-                settings[key] = value
-            end
-            settings.seeded = true
-        end
-    end
-    self:Refresh()
+    scope:ResetCharacter()
+    self:RefreshAll()
 end
 
 ME:RegisterFeature(QoL)

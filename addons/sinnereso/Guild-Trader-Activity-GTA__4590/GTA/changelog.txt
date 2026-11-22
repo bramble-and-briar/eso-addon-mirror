@@ -1,7 +1,5 @@
-2026.11.20
-- Minor polish mostly.
-- Added red/green highlight colors in tooltips for data complete and user online.
-- Added "link in chat" popup option for items in the player details view.
+2026.11.21c
+- Localized the global reference and reverted the manifest file back to .txt format as per Baertrams instructions.
 
 ** POSSIBLE FUTURE OPTIONS **
 - fix name length issue

@@ -1,0 +1,11 @@
+## Title: Extra TTC Tooltips
+## Description: Adds TamrielTradeCentre price tooltips to furniture TTC doesn't cover natively: the Housing Editor's furniture retrieval list, and CharacterKnowledge's furniture/recipe/motif browser.
+## Author: Schrodi
+## Version: 1.1
+## AddOnVersion: 10001
+## APIVersion: 101051
+## DependsOn: TamrielTradeCentre LibAddonMenu-2.0>=40
+## OptionalDependsOn: CharacterKnowledge
+## SavedVariables: ExtraTTCTooltipsSavedVars
+
+ExtraTTCTooltips.lua

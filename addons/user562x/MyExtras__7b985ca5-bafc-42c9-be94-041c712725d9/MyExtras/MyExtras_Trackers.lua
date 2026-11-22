@@ -27,9 +27,6 @@ local SUBMENU_ICON = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_buffsAndD
 
 local MOVE_SCENE  = "MyExtras_TrackersMove"
 local MOVE_SPEED  = 500
-local SPREAD_MIN   = 0
-local SPREAD_MAX   = 80
-local SPREAD_SPEED = 40
 local SCALE_SPEED = 10
 local SIZE_MIN    = 18
 local SIZE_MAX    = 60
@@ -43,7 +40,7 @@ Trackers.defaults = {
     trackerPosY   = 400,
     trackerSize   = 31,
     trackerLayout = "Vertical",
-    trackerSpread = 0,
+    trackerStretch = 100,
     showCrux      = false,
     showWarmask   = false,
 }
@@ -204,6 +201,7 @@ end
 function Trackers:ApplyPosition()
     self.panel:ClearAnchors()
     self.panel:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, SV().trackerPosX, SV().trackerPosY)
+    ME:ApplyStretch(self.panel, SV().trackerStretch)
 end
 
 function Trackers:CreatePanel()
@@ -412,7 +410,7 @@ function Trackers:RefreshDisplay()
 
             box:SetHidden(false)
             visible = visible + 1
-            offset = offset + frameSize + BOX_GAP + (tonumber(sv.trackerSpread) or 0)
+            offset = offset + frameSize + BOX_GAP
         else
             box.cdKey    = nil
             box.cdStamp  = nil
@@ -422,7 +420,7 @@ function Trackers:RefreshDisplay()
     end
 
     if visible > 0 then
-        local length = offset - BOX_GAP - (tonumber(sv.trackerSpread) or 0)
+        local length = offset - BOX_GAP
         if horizontal then
             self.panel:SetDimensions(length, frameSize)
         else
@@ -461,9 +459,9 @@ function Trackers.mover:UpdateDirectionalInput(deltaS)
     if x ~= 0 or y ~= 0 then
         Trackers:SetPosition(Trackers.moveX + x * MOVE_SPEED * deltaS, Trackers.moveY - y * MOVE_SPEED * deltaS)
     end
-    local spreadX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(spreadX) > math.abs(scaleY) then
-        Trackers:SetSpread(Trackers.moveSpread + spreadX * SPREAD_SPEED * deltaS)
+    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
+    if math.abs(stretchX) > math.abs(scaleY) then
+        Trackers:SetStretch(Trackers.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
     elseif scaleY ~= 0 then
         Trackers:SetScale(Trackers.moveSize + scaleY * SCALE_SPEED * deltaS)
     end
@@ -508,18 +506,16 @@ function Trackers:SetScale(size)
     end
 end
 
-function Trackers:SetSpread(value)
-    self.moveSpread = zo_clamp(value, SPREAD_MIN, SPREAD_MAX)
-    local rounded = zo_floor(self.moveSpread + 0.5)
+function Trackers:SetStretch(value)
+    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
+    local rounded = zo_floor(self.moveStretch + 0.5)
     local sv = SV()
-    if sv.trackerSpread ~= rounded then
-        sv.trackerSpread = rounded
-        self:RefreshDisplay()
-    end
+    if sv.trackerStretch ~= rounded then sv.trackerStretch = rounded end
+    ME:ApplyStretch(self.panel, rounded)
 end
 
 function Trackers:MoveToDefault()
-    self:SetSpread(Trackers.defaults.trackerSpread)
+    self:SetStretch(100)
     self:SetScale(self.defaults.trackerSize)
     self:SetPosition(self.defaults.trackerPosX, self.defaults.trackerPosY)
 end
@@ -557,8 +553,8 @@ function Trackers:OnMoveShowing()
     self.moveStartSize = sv.trackerSize
     self.moveX, self.moveY = sv.trackerPosX, sv.trackerPosY
     self.moveSize = sv.trackerSize
-    self.moveStartSpread = sv.trackerSpread or Trackers.defaults.trackerSpread
-    self.moveSpread = sv.trackerSpread or Trackers.defaults.trackerSpread
+    self.moveStartStretch = sv.trackerStretch or 100
+    self.moveStretch = sv.trackerStretch or 100
     KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
     DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
     ME:SetPlacing(true)
@@ -570,7 +566,7 @@ function Trackers:OnMoveHidden()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
     if not self.moveSaved then
         self:SetScale(self.moveStartSize)
-        self:SetSpread(self.moveStartSpread)
+        self:SetStretch(self.moveStartStretch)
         self:SetPosition(self.moveStartX, self.moveStartY)
     end
     self.moving = false
@@ -733,7 +729,7 @@ function Trackers:GetOptions()
                     type       = "button",
                     name       = "Move / Scale",
                     buttonText = "Move / Scale",
-                    tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right makes it longer or shorter.",
+                    tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right stretches it wider or narrower.",
                     func       = function() Trackers:StartMove() end,
                 },
                 {

@@ -18,7 +18,7 @@
     "PocketCritters"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5079/",
-  "fingerprint": "e7ee0e682205c96184187c0afa7c3a4f5fb038ed688a6f21af24efe47c7c7f66",
+  "fingerprint": "10998b933c84a4f47d5d6223f78b5bc031896afefc32fceab9ee0e7e61bdff93",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18638.png",
     "https://cdn-eso.mmoui.com/preview/pvw18621.png",
@@ -35,11 +35,11 @@
   "source_id": "5079",
   "source_url": "https://www.esoui.com/downloads/info5079-PocketCritters.html",
   "stats": {
-    "downloads": 9,
+    "downloads": 17,
     "favorites": 1,
-    "monthly_downloads": 7
+    "monthly_downloads": 13
   },
   "title": "Pocket Critters",
-  "updated_at": 1795212889000,
-  "version": "3.0.4"
+  "updated_at": 1795314674000,
+  "version": "3.0.5"
 }

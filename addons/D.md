@@ -51,6 +51,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [DebuffTracker - Track Debuff Durations!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/DebuffTracker---Track-Debuff-Durations__4030) | SkullElf | PC / Mac | 5.21.24 |
 | [DebugLogViewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/DebugLogViewer__2389) | sirinsidiator | PC / Mac | 1.2.0 |
 | [Decluttered Scrying Leads](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Decluttered-Scrying-Leads__3009) | kawamonkey | PC / Mac | 1.0.1 |
+| [Decluttered Scrying Leads](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Decluttered-Scrying-Leads__5088) | Schrodi | PC / Mac | 2.0.0 |
 | [DeconIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cmw69krinkle/DeconIcon__3347) | cmw69krinkle | PC / Mac | 1.0.0 |
 | [DeconOrSell](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/DeconOrSell__3972) | Saint-Ange | PC / Mac | 1.1.3 |
 | [DeconSelectAll](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KarimAG/DeconSelectAll__4873) | KarimAG | PC / Mac | 1.1.0 |
@@ -193,6 +194,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [DungeonGear](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sirtith/DungeonGear__4514) | Sirtith | PC / Mac | 0.16.1 |
 | [DungeonHistory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oInsideOut/DungeonHistory__3872) | oInsideOut | PC / Mac | 1.1.2 |
 | [DungeonOrder - Alphabetical order for Dungeons!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KrykiZZ/DungeonOrder---Alphabetical-order-for-Dungeons__3701) | KrykiZZ | PC / Mac | 1.2.0 |
+| [DungeonSorter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/DungeonSorter__5089) | Schrodi | PC / Mac | 1.0 |
 | [DungeonStrats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sirtith/DungeonStrats__4525) | Sirtith | PC / Mac | 0.2.1 |
 | [Dustman](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Garkin/Dustman__97) | Garkin | PC / Mac | 10.9.1 |
 | [DVD ScreenSaver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phamo1000/DVD-ScreenSaver__f0561a3c-bea9-49e8-926e-53825934fb7e) | Phamo1000 | Console | — |

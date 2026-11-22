@@ -9,13 +9,11 @@ local Locale = Addon.Locale
 local DEFAULT_LANG = "en"
 
 function Locale:DetectClientLanguage()
-    if GetCVar then
-        local lang = GetCVar("language.2") or GetCVar("Language.2")
-        if type(lang) == "string" and lang ~= "" then
-            lang = lang:lower()
-            if Addon.Locales and Addon.Locales[lang] then
-                return lang
-            end
+    local lang = GetCVar("language.2") or GetCVar("Language.2")
+    if type(lang) == "string" and lang ~= "" then
+        lang = lang:lower()
+        if Addon.Locales and Addon.Locales[lang] then
+            return lang
         end
     end
     return DEFAULT_LANG
@@ -30,7 +28,7 @@ function Locale:Initialize(overrideLang)
     self._dict = (Addon.Locales and Addon.Locales[lang]) or {}
     self._fallbackDict = (Addon.Locales and Addon.Locales[DEFAULT_LANG]) or {}
 
-    if not self._stringsRegistered and ZO_CreateStringId then
+    if not self._stringsRegistered then
         ZO_CreateStringId("SI_KEYBINDINGS_CATEGORY_RPQUEST", self:Get("SI_KEYBINDINGS_CATEGORY_RPQUEST"))
         ZO_CreateStringId("SI_BINDING_NAME_RPQUEST_CAPTURE_TARGET", self:Get("SI_BINDING_NAME_RPQUEST_CAPTURE_TARGET"))
         ZO_CreateStringId("SI_BINDING_NAME_RPQUEST_CAPTURE_DISCOVERY", self:Get("SI_BINDING_NAME_RPQUEST_CAPTURE_DISCOVERY"))
@@ -59,10 +57,7 @@ function Locale:Get(key, ...)
 
     local template = dict[key] or fallbackDict[key] or tostring(key)
     if select("#", ...) > 0 then
-        local ok, formatted = pcall(string.format, template, ...)
-        if ok then
-            return formatted
-        end
+        return string.format(template, ...)
     end
     return template
 end

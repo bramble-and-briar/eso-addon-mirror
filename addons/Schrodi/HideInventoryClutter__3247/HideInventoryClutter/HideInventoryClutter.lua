@@ -29,6 +29,12 @@ function HideInventoryClutter:toggleLocked(filter)
     self.dbg("locked items visible: " .. tostring(self.lockedVisible))
 end
 
+-- Crafting station filters get (bagId, slotIndex), the inventory filters a slot table.
+local function AsSlot(a, b)
+    if type(a) == "table" then return a end
+    return { bagId = a, slotIndex = b }
+end
+
 function HideInventoryClutter:initalize()
     self.consumablesVisible = false
     self.lockedVisible = false
@@ -38,40 +44,32 @@ function HideInventoryClutter:initalize()
     self.libFilters = LibFilters3
     self.libFilters:InitializeLibFilters()
     self:setupSavedVars()
-        
-    self.CONSUMABLE_ITEMTYPES = {
-        [ITEMTYPE_FOOD  ] = true,
-        [ITEMTYPE_DRINK ] = true,
-        [ITEMTYPE_POTION] = true,
-        [ITEMTYPE_POISON] = true,
-    }
-
-    self.EXTRA_CONSUMABLES = {
-        [30357 ] = true, -- Lockpick
-        [44879 ] = true, -- Grand Repair Kit
-        [33271 ] = true, -- Soul Gem
-        [121550] = true, -- Scroll of Pelinal's Ferocity
-    }
 
     local lockedFilters = {
-        [LF_BANK_DEPOSIT         ] = function(s) return not self:isLocked(s) end,
-        [LF_HOUSE_BANK_DEPOSIT   ] = function(s) return not self:isLocked(s) end,
-        [LF_INVENTORY            ] = function(s) return not self:isLocked(s) end,
-        [LF_VENDOR_SELL          ] = function(s) return self:isWorthSelling(s.bagId, s.slotIndex) end,
-        [LF_SMITHING_DECONSTRUCT ] = function(b, i) return self:isWorthDeconstructing(b, i) end,
-        [LF_JEWELRY_DECONSTRUCT  ] = function(b, i) return self:isWorthDeconstructing(b, i) end,
-        [LF_ENCHANTING_EXTRACTION] = function(b, i) return self:isWorthDeconstructing(b, i) end,
-    }
+        [LF_BANK_DEPOSIT         ] = function(s) if self:isLocked(s) then return self.lockedVisible else return true end end,
+        [LF_BANK_WITHDRAW        ] = function(s) if self:isLocked(s) then return self.lockedVisible else return true end end,
+        [LF_HOUSE_BANK_DEPOSIT   ] = function(s) if self:isLocked(s) then return self.lockedVisible else return true end end,
+        [LF_INVENTORY            ] = function(s) if self:isLocked(s) then return self.lockedVisible else return true end end,
+        [LF_RETRAIT              ] = function(a, b) if self:isLocked(AsSlot(a, b)) then return self.lockedVisible else return true end end,
+		
+        [LF_VENDOR_SELL          ] = function(s) if self.lockedVisible then return true else return self:isWorthSelling(s) end end,
+        
+		[LF_SMITHING_DECONSTRUCT ] = function(a, b) if self.lockedVisible then return true else return self:isWorthDeconstructing(AsSlot(a, b)) end end,
+        [LF_JEWELRY_DECONSTRUCT  ] = function(a, b) if self.lockedVisible then return true else return self:isWorthDeconstructing(AsSlot(a, b)) end end,
+        [LF_ENCHANTING_EXTRACTION] = function(a, b) if self.lockedVisible then return true else return self:isWorthDeconstructing(AsSlot(a, b)) end end,
+		
+	--	[LF_TRADE				 ] = function(s) if self.lockedVisible then return true else return self:isEitherTradeableGearOrDifferentItemType(s) end end,
+	}
     
     local consumableFilters = {
-        [LF_BANK_DEPOSIT         ] = function(s) return not self:isConsumable(s) end,
-        [LF_HOUSE_BANK_DEPOSIT   ] = function(s) return not self:isConsumable(s) end,
-        [LF_GUILDBANK_DEPOSIT    ] = function(s) return not self:isConsumable(s) end,
-        [LF_VENDOR_SELL          ] = function(s) return not self:isConsumable(s) end,
-        [LF_MAIL_SEND            ] = function(s) return not self:isConsumable(s) end,
-        [LF_TRADE                ] = function(s) return not self:isConsumable(s) end,
-        [LF_INVENTORY            ] = function(s) return not self:isConsumable(s) end,
-        [LF_GUILDSTORE_SELL      ] = function(s) return not self:isConsumable(s) end,
+        [LF_BANK_DEPOSIT         ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
+        [LF_HOUSE_BANK_DEPOSIT   ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
+        [LF_GUILDBANK_DEPOSIT    ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
+        [LF_VENDOR_SELL          ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
+        [LF_MAIL_SEND            ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
+        [LF_INVENTORY            ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
+        [LF_GUILDSTORE_SELL      ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
+		[LF_TRADE                ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
     }
     
     local universalDeconFilters = {
@@ -84,16 +82,17 @@ function HideInventoryClutter:initalize()
     
     self:SetupFilters(lockedFilters, "locked")
     self:SetupFilters(consumableFilters, "consumable")
-    self:SetupUniversalDeconFilter(universalDeconFilters, "decon", function(b, i) return self:isWorthDeconstructing(b, i) end)
-    
+    self:SetupUniversalDeconFilter(universalDeconFilters, "decon", function(b, i) if self.lockedVisible then return true else return self:isWorthDeconstructing({ bagId = b, slotIndex = i }) end end)
+    self:SetupButtonSafetyNets()
+
     self:initializeUI()
     self:buildLAM2Menu()
 end
 
 function HideInventoryClutter:SetupFilters(filters, name)
     for menu, filter in pairs(filters) do
-        local nameShown  = self.libFilters:RegisterCallbackName(self.ADDON_NAME .. name, menu, true)
-        local nameHidden = self.libFilters:RegisterCallbackName(self.ADDON_NAME .. name, menu, false)
+        local nameShown  = self.libFilters:CreateCallbackName(menu, true)
+        local nameHidden = self.libFilters:CreateCallbackName(menu, false)
         
         local callbackShown = function (callbackName, filterType, _, _, _, _, _)
             if not self.libFilters:IsFilterRegistered(self.ADDON_NAME .. name .. menu, menu) then
@@ -119,8 +118,8 @@ end
 
 function HideInventoryClutter:SetupUniversalDeconFilter(filters, name, filterFn)
     for scope, menu in pairs(filters) do
-        local nameShown  = self.libFilters:RegisterCallbackName(self.ADDON_NAME .. name, menu, true,  nil, scope)
-        local nameHidden = self.libFilters:RegisterCallbackName(self.ADDON_NAME .. name, menu, false, nil, scope)
+        local nameShown  = self.libFilters:CreateCallbackName(menu, true, scope)
+        local nameHidden = self.libFilters:CreateCallbackName(menu, false,scope)
             
         local callbackShown = function (callbackName, filterType, _, _, _, _, _)
             if not self.libFilters:IsFilterRegistered(self.ADDON_NAME .. name .. scope, menu) then
@@ -142,6 +141,31 @@ function HideInventoryClutter:SetupUniversalDeconFilter(filters, name, filterFn)
         CALLBACK_MANAGER:RegisterCallback(nameShown, callbackShown)
         CALLBACK_MANAGER:RegisterCallback(nameHidden, callbackHidden)
     end
+end
+
+-- LibFilters only raises the "hidden" callback for the panel it saw shown last. Switching the
+-- inventory to the Craft Bag tab shows LF_CRAFTBAG before LF_INVENTORY hides, so LF_INVENTORY's
+-- hidden callback never fires, and closing the inventory from the Craft Bag left the buttons on
+-- screen. None of the filters apply to the Craft Bag, so hide the buttons there, and hide them
+-- whenever the plain HUD comes back as a safety net for any similar path.
+function HideInventoryClutter:SetupButtonSafetyNets()
+    local function HideButtons()
+        if not self.movableIcon and self.buttonsVisible then
+            self:hideButtons()
+        end
+    end
+
+    CALLBACK_MANAGER:RegisterCallback(self.libFilters:CreateCallbackName(LF_CRAFTBAG, true), HideButtons)
+    CALLBACK_MANAGER:RegisterCallback(self.libFilters:CreateCallbackName(LF_CRAFTBAG, false), HideButtons)
+
+    SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(scene, _, newState)
+        if newState == SCENE_SHOWN then
+            local sceneName = scene:GetName()
+            if sceneName == "hud" or sceneName == "hudui" then
+                HideButtons()
+            end
+        end
+    end)
 end
 
 EVENT_MANAGER:RegisterForEvent(HideInventoryClutter.ADDON_NAME, EVENT_ADD_ON_LOADED, function(eventCode, addOnName)

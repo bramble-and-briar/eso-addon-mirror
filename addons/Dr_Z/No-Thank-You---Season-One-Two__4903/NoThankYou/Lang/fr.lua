@@ -18,9 +18,9 @@ SafeAddString(NOTY_LEAVING_GROUP_AREA,				"Sortie de la zone de groupe.", 1) -- 
 SafeAddString(NOTY_RAID_COMPLETE,				" ont", 1) -- Don't change
 SafeAddString(NOTY_RAID_OTHERS,					"et <<1>> autres", 1) -- Don't change
 
-SafeAddString(NOTY_GUILD_INV_OPTION_0,				"Jamais", 1)
-SafeAddString(NOTY_GUILD_INV_OPTION_1,				"Toujours", 1)
-SafeAddString(NOTY_GUILD_INV_OPTION_2,				"Si 5 Guildes", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_0,				"Afficher toutes les invitations", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_1,				"Afficher uniquement dans les notifications", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_2,				"Refuser automatiquement", 1)
 
 SafeAddString(NOTY_AVA_MODE_OPTION_0,				"Aucune", 1)
 SafeAddString(NOTY_AVA_MODE_OPTION_1,				"Chat", 1)
@@ -102,6 +102,11 @@ SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE, "Ignorer la confirmation depuis un o
 SafeAddString(NOTYOU_FAST_TRAVEL_WAYSHRINE_TOOLTIP, "Voyager immédiatement en choisissant une destination depuis un oratoire.", 1)
 SafeAddString(NOTYOU_FAST_TRAVEL_RECALL, "Ignorer la confirmation hors d’un oratoire", 1)
 SafeAddString(NOTYOU_FAST_TRAVEL_RECALL_TOOLTIP, "Voyager immédiatement en choisissant une destination hors d’un oratoire. Le coût normal en or reste applicable.", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE, "Voyager vers une maison possédée", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_TOOLTIP, "Afficher le choix habituel intérieur/extérieur ou voyager directement à l’intérieur ou à l’extérieur d’une maison possédée.", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_NORMAL, "Normalement", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_INSIDE, "Intérieur uniquement", 1)
+SafeAddString(NOTYOU_FAST_TRAVEL_HOUSE_OUTSIDE, "Extérieur uniquement", 1)
 
 SafeAddString(NOTYOU_FENCE_HEADER,				"Confirmations pour le vol", 1)
 SafeAddString(NOTYOU_FENCE,					"Supprimer \"Rachat impossible des objets volés\"", 1)
@@ -110,8 +115,8 @@ SafeAddString(NOTYOU_FENCE_TOOLTIP,				"Supprime la fenêtre de confirmation lor
 SafeAddString(NOTYOU_GROUPS_HEADER,				"Confirmations pour les groupes", 1)
 SafeAddString(NOTYOU_GROUPS_DISBAND,				"Supprimer \"Disperser le groupe\"", 1)
 SafeAddString(NOTYOU_GROUPS_DISBAND_TOOLTIP,			"Supprime la fenêtre de confirmation de dispersion du groupe.", 1)
-SafeAddString(NOTYOU_GROUPS_LARGE,				"Supprimer le dialogue et les messages de groupe élargi", 1)
-SafeAddString(NOTYOU_GROUPS_LARGE_TOOLTIP,			"Supprime la fenêtre de confirmation et les messages lorsqu'un groupe " .."devient ou cesse d'être un groupe élargi.", 1)
+SafeAddString(NOTYOU_GROUPS_LARGE,				"Supprimer le « dialogue et les messages de discussion » de groupe élargi", 1)
+SafeAddString(NOTYOU_GROUPS_LARGE_TOOLTIP,			"Lorsque cette option est activée, le dialogue de confirmation est ignoré et les messages de discussion indiquant le passage en groupe élargi ou normal sont masqués. Cela concerne le chef et les membres du groupe. Désactivée, elle conserve le fonctionnement normal du jeu.", 1)
 
 SafeAddString(NOTYOU_CRAFT_HEADER,				"Confirmations pour l'artisanat", 1)
 SafeAddString(NOTYOU_CRAFT,					"Supprime le message \"Tenter l'amélioration ...\"", 1)
@@ -152,8 +157,8 @@ SafeAddString(NOTY_NOPORTONLEADER_2,				"Toujours", 1)
 
 
 SafeAddString(NOTYOU_GUILDS_HEADER,				"Invitations de gulde", 1)
-SafeAddString(NOTYOU_GUILDS,					"Ignorer les invitations de guilde", 1)
-SafeAddString(NOTYOU_GUILDS_TOOLTIP,				"Ignorer les invitations et les notifications d'invitation à une guilde", 1)
+SafeAddString(NOTYOU_GUILDS,					"Régler les \"Invitations de guilde\" sur...", 1)
+SafeAddString(NOTYOU_GUILDS_TOOLTIP,				"Afficher les invitations normalement, uniquement dans les notifications, ou refuser automatiquement les invitations entrantes et en attente.", 1)
 SafeAddString(NOTYOU_GUILDSAPP,					"Masquer les notifications d'application de guilde", 1)
 SafeAddString(NOTYOU_GUILDSAPP_TOOLTIP,				"Masquez les notifications d'application de guilde.", 1)
 
@@ -177,6 +182,11 @@ SafeAddString(NOTYOU_GUILDLEAVE_HEADER,				"Désactiver \"Quitter la Guilde\"", 
 SafeAddString(NOTYOU_GUILDLEAVE_HEADER_TOOLTIP,			"Sélectionnez comment l'option \"Quitter la Guilde\" doit être gérée dans le panneau de guilde", 1)
 SafeAddString(NOTYOU_GUILDLEAVE_BLOCK,				"Désactivation pour :", 1)
 SafeAddString(NOTYOU_GUILDLEAVE_BLOCK_TOOLTIP,			"Sélectionnez comment l'option \"Quitter la Guilde\" doit être gérée:\n|cFFFFFFAucune|r - Pas de changement\n|cFFFFFFToutes les guildes|r - Désactivé pour toutes les guildes\n|cFFFFFFPar guilde|r - Sélectionnez quelle guilde doit avoir cette commande désactivée", 1)
+
+SafeAddString(NOTYOU_OWNED_HOUSES, "Masquer les maisons possédées", 2)
+SafeAddString(NOTYOU_OWNED_HOUSES_TOOLTIP, "Masque les maisons possédées sur les cartes de Tamriel et des zones, y compris la résidence principale et les favorites possédées.", 2)
+SafeAddString(NOTYOU_UNOWNED_HOUSES, "Masquer les maisons non possédées", 2)
+SafeAddString(NOTYOU_UNOWNED_HOUSES_TOOLTIP, "Masque les maisons non possédées sur les cartes de Tamriel et des zones, y compris les favorites non possédées.", 2)
 
 SafeAddString(NOTYOU_CAMERA_HEADER,				"Caméra & Interaction", 1)
 SafeAddString(NOTYOU_CAMERA_INTERRUPT,				"Ne pas interrompre les interactions", 1)

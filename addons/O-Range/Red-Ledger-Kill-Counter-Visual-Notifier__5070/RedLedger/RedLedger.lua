@@ -1,6 +1,8 @@
 RedLedger = {}
+local RedLedger = RedLedger
+
 RedLedger.name = "RedLedger"
-RedLedger.version = "0.5"
+RedLedger.version = "0.6"
 
 local WM = WINDOW_MANAGER
 
@@ -514,10 +516,8 @@ end
 -- Keybind
 --------------------------------------------------
 
-function RedLedger_Keybind_Test()
-    if RedLedger then
-        RedLedger:SimulateKill()
-    end
+function RedLedger.Keybind_Test()
+    RedLedger:SimulateKill()
 end
 
 ZO_CreateStringId("SI_BINDING_NAME_REDLEDGER_TEST", "Simulate Killing Blow")

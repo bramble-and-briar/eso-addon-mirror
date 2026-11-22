@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/O-Range/LibExecuteSkills__5098",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "O-Range",
+  "canonical_id": "esoui:5098",
+  "category_id": "53",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5098",
+  "deleted": false,
+  "directories": [
+    "LibExecuteSkills"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5098/",
+  "fingerprint": "2a76d0f6723ff5bd1f3ae37b13f0c407247034bf8cb1d665a83ce042167f8d9f",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18714.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5098",
+  "source_url": "https://www.esoui.com/downloads/info5098-LibExecuteSkills.html",
+  "stats": {
+    "downloads": 27,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "LibExecuteSkills",
+  "updated_at": 1795315894000,
+  "version": "1.1.0"
+}

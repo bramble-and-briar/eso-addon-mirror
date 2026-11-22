@@ -1,76 +1,58 @@
 --[[
     Execute Blocker
     Author: O-Range
-    Version: 2.3.0
+    Version: 2.4.0
 
     Prevents casting of execute abilities when the target's health is above
-    a configurable threshold. Supports Nightblade, Templar, Sorcerer,
-    weapon skills, and Warden Guardians.
+    a configurable threshold. Uses LibExecuteSkills for the core skill database.
+    Supports Nightblade, Templar, Sorcerer, weapon skills, and Warden Guardians.
 
-    Changes in 2.3.0:
-    - Fixed hotbarCategory handling for GetSlotBoundId (front/back bar correctness)
-    - Added fast fade-in / fade-out visual flash feedback when an execute is blocked
-    - Author consistently set to O-Range
-    - Improved settings organization and tooltips
-    - Cleaner code structure and comments
+    Changes in 2.4.0:
+    - Integrated LibExecuteSkills library
+    - Skill data now primarily comes from the shared library
+    - Only minimal local overrides remain (default thresholds, enabled state, special tooltips)
 ]]
 
 local ExecuteBlocker = {}
 ExecuteBlocker.name = "ExecuteBlocker"
-ExecuteBlocker.version = "2.3.0"
+ExecuteBlocker.version = "2.4.0"
 
--- Ordered list of all managed execute skills for the Settings Menu
-local SKILL_LIST = {
-    -- Nightblade
-    { id = 33386, name = "Nightblade: Assassin's Blade", defaultEnabled = true,  defaultThreshold = 25 },
-    { id = 34843, name = "Nightblade: Killer's Blade",   defaultEnabled = true,  defaultThreshold = 50 },
-    { id = 34851, name = "Nightblade: Impale",           defaultEnabled = true,  defaultThreshold = 25 },
+-- Only override what the library does not provide
+local SKILL_OVERRIDES = {
+    -- Templar – slightly lower default thresholds than the pure execute %
+    [63029] = { defaultThreshold = 40 },   -- Radiant Destruction
+    [63044] = { defaultThreshold = 40 },   -- Radiant Oppression
+    [63046] = { defaultThreshold = 40 },   -- Radiant Glory
 
-    -- Templar
-    { id = 63029, name = "Templar: Radiant Destruction", defaultEnabled = true,  defaultThreshold = 40 },
-    { id = 63044, name = "Templar: Radiant Oppression",  defaultEnabled = true,  defaultThreshold = 40 },
-    { id = 63046, name = "Templar: Radiant Glory",       defaultEnabled = true,  defaultThreshold = 40 },
+    -- Dual Wield – Whirling Blades
+    [38891] = {
+        defaultEnabled = false,
+        tooltip = "Disabled by default because Whirling Blades scales from all enemies hit rather than only your reticle target.",
+    },
 
-    -- Sorcerer
-    { id = 18718, name = "Sorcerer: Mages' Fury",        defaultEnabled = true,  defaultThreshold = 20 },
-    { id = 19123, name = "Sorcerer: Mages' Wrath",       defaultEnabled = true,  defaultThreshold = 20 },
-    { id = 19109, name = "Sorcerer: Endless Fury",       defaultEnabled = true,  defaultThreshold = 20 },
-
-    -- Two-Handed
-    { id = 28279, name = "2H: Reverse Slash",            defaultEnabled = true,  defaultThreshold = 50 },
-    { id = 38814, name = "2H: Executioner",              defaultEnabled = true,  defaultThreshold = 50 },
-    { id = 38807, name = "2H: Reverse Slice",            defaultEnabled = true,  defaultThreshold = 50 },
-
-    -- Dual Wield
-    { id = 28591, name = "Dual Wield: Whirlwind",        defaultEnabled = true,  defaultThreshold = 50 },
-    { id = 38891, name = "Dual Wield: Whirling Blades",  defaultEnabled = false, defaultThreshold = 50 },
-    { id = 38861, name = "Dual Wield: Steel Tornado",    defaultEnabled = true,  defaultThreshold = 50 },
-
-    -- Bow
-    { id = 38660, name = "Bow: Poison Injection",        defaultEnabled = true,  defaultThreshold = 50 },
-
-    -- Warden (Animal Companions ultimates – disabled by default)
-    -- Note: The true execute is the secondary activation (Guardian's Wrath / Savagery)
-    -- after the bear is summoned. Blocking the ultimate itself prevents summoning
-    -- when the target is above threshold.
-    { id = 85982, name = "Warden: Feral Guardian",       defaultEnabled = false, defaultThreshold = 25 },
-    { id = 85986, name = "Warden: Eternal Guardian",     defaultEnabled = false, defaultThreshold = 25 },
-    { id = 85990, name = "Warden: Wild Guardian",        defaultEnabled = false, defaultThreshold = 25 },
+    -- Warden Guardians (ultimates)
+    [85982] = {
+        defaultEnabled = false,
+        tooltip = "Disabled by default – these are ultimates; the real execute is the secondary activation after the bear is summoned. Blocking the ultimate prevents summoning the guardian when the target is above the threshold.",
+    },
+    [85986] = {
+        defaultEnabled = false,
+        tooltip = "Disabled by default – these are ultimates; the real execute is the secondary activation after the bear is summoned. Blocking the ultimate prevents summoning the guardian when the target is above the threshold.",
+    },
+    [85990] = {
+        defaultEnabled = false,
+        tooltip = "Disabled by default – these are ultimates; the real execute is the secondary activation after the bear is summoned. Blocking the ultimate prevents summoning the guardian when the target is above the threshold.",
+    },
 }
+
+local SKILL_LIST = {}
 
 local DEFAULTS = {
     masterEnabled     = true,
     blockWhenNoTarget = true,
-    showFlash         = true,   -- visual feedback when blocked
+    showFlash         = true,
     skills            = {},
 }
-
-for _, skill in ipairs(SKILL_LIST) do
-    DEFAULTS.skills[skill.id] = {
-        enabled   = skill.defaultEnabled,
-        threshold = skill.defaultThreshold,
-    }
-end
 
 local VALID_SLOTS = {
     [ACTION_BAR_FIRST_NORMAL_SLOT_INDEX]     = true,
@@ -82,7 +64,39 @@ local VALID_SLOTS = {
 }
 
 ---------------------------------------------------------------------------
--- Visual Flash Feedback (fast fade-in / fade-out)
+-- Build skill list from LibExecuteSkills + minimal overrides
+---------------------------------------------------------------------------
+local function BuildSkillList()
+    SKILL_LIST = {}
+
+    local lib = LibExecuteSkills
+    if not lib then
+        d("[Execute Blocker] LibExecuteSkills not found! Please install the library.")
+        return
+    end
+
+    local allSkills = lib:GetAllSkills() or lib:GetExecuteSkillIds() or {}
+
+    for id, data in pairs(allSkills) do
+        local override = SKILL_OVERRIDES[id] or {}
+
+        table.insert(SKILL_LIST, {
+            id               = id,
+            name             = string.format("%s: %s", data.class or "Unknown", data.name or ("Skill " .. tostring(id))),
+            defaultEnabled   = override.defaultEnabled ~= false,   -- true unless explicitly set to false
+            defaultThreshold = override.defaultThreshold or data.executePercent or 50,
+            tooltip          = override.tooltip,
+        })
+    end
+
+    -- Stable alphabetical order for the settings menu
+    table.sort(SKILL_LIST, function(a, b)
+        return a.name < b.name
+    end)
+end
+
+---------------------------------------------------------------------------
+-- Visual Flash Feedback
 ---------------------------------------------------------------------------
 local flashControl = nil
 local flashTimeline = nil
@@ -100,23 +114,22 @@ local function CreateFlashControl()
 
     local bg = WINDOW_MANAGER:CreateControl("$(parent)Bg", flashControl, CT_BACKDROP)
     bg:SetAnchorFill(flashControl)
-    bg:SetCenterColor(0.85, 0.15, 0.10, 0.35)   -- soft red-orange, low opacity
+    bg:SetCenterColor(0.85, 0.15, 0.10, 0.35)
     bg:SetEdgeColor(0, 0, 0, 0)
     bg:SetEdgeTexture("", 1, 1, 0)
     bg:SetCenterTexture("")
     bg:SetAlpha(1)
 
-    -- Animation timeline: quick fade in → hold briefly → fade out
     flashTimeline = ANIMATION_MANAGER:CreateTimeline()
     flashTimeline:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
 
     local fadeIn = flashTimeline:InsertAnimation(ANIMATION_ALPHA, flashControl, 0)
     fadeIn:SetAlphaValues(0, 1)
-    fadeIn:SetDuration(60)          -- very fast in
+    fadeIn:SetDuration(60)
 
     local fadeOut = flashTimeline:InsertAnimation(ANIMATION_ALPHA, flashControl, 80)
     fadeOut:SetAlphaValues(1, 0)
-    fadeOut:SetDuration(180)        -- slightly longer out for smooth feel
+    fadeOut:SetDuration(180)
 
     flashTimeline:SetHandler("OnStop", function()
         flashControl:SetHidden(true)
@@ -156,7 +169,6 @@ local function ShouldBlockSlot(slotNum, hotbarCategory)
         return false
     end
 
-    -- Critical: pass hotbarCategory so front/back bar (and other categories) are correct
     local abilityId = GetSlotBoundId(slotNum, hotbarCategory)
     if not abilityId or abilityId == 0 then
         return false
@@ -167,7 +179,6 @@ local function ShouldBlockSlot(slotNum, hotbarCategory)
         return false
     end
 
-    -- No living hostile target → respect blockWhenNoTarget
     if not DoesUnitExist("reticleover") or IsUnitDead("reticleover") then
         return ExecuteBlocker.savedVars.blockWhenNoTarget
     end
@@ -187,7 +198,6 @@ local function ShouldBlockSlot(slotNum, hotbarCategory)
 end
 
 local function SetupHooks()
-    -- Return true from the pre-hook to suppress the original function
     local function PreHookHandler(slotNum, hotbarCategory)
         if ShouldBlockSlot(slotNum, hotbarCategory) then
             PlayBlockFlash()
@@ -195,13 +205,12 @@ local function SetupHooks()
         end
     end
 
-    -- Cover both press and release (keybinds, mouse, most gamepad paths)
     ZO_PreHook("ZO_ActionBar_OnActionButtonDown", PreHookHandler)
     ZO_PreHook("ZO_ActionBar_OnActionButtonUp",   PreHookHandler)
 end
 
 ---------------------------------------------------------------------------
--- Settings Menu (LibAddonMenu-2.0)
+-- Settings Menu
 ---------------------------------------------------------------------------
 local function BuildSettingsMenu()
     local LAM = LibAddonMenu2
@@ -248,7 +257,7 @@ local function BuildSettingsMenu()
         {
             type    = "checkbox",
             name    = "Show Block Flash",
-            tooltip = "Plays a quick soft red-orange fade-in/fade-out flash when an execute is blocked. Non-intrusive visual feedback.",
+            tooltip = "Plays a quick soft red-orange fade-in/fade-out flash when an execute is blocked.",
             getFunc = function()
                 return ExecuteBlocker.savedVars.showFlash
             end,
@@ -266,7 +275,7 @@ local function BuildSettingsMenu()
         },
         {
             type = "description",
-            text = "Enable/disable individual skills and set the health percentage above which the ability is blocked. Threshold is checked against the reticle target.",
+            text = "Enable/disable individual skills and set the health percentage above which the ability is blocked.\nSkill database provided by LibExecuteSkills.",
         },
     }
 
@@ -276,11 +285,7 @@ local function BuildSettingsMenu()
         table.insert(optionsData, {
             type    = "checkbox",
             name    = skill.name,
-            tooltip = (id == 38891)
-                and "Disabled by default because Whirling Blades scales from all enemies hit rather than only your reticle target."
-                or (id == 85982 or id == 85986 or id == 85990)
-                and "Disabled by default – these are ultimates; the real execute is the secondary activation after the bear is summoned. Blocking the ultimate prevents summoning the guardian when the target is above the threshold."
-                or "Enable or disable blocking for this skill.",
+            tooltip = skill.tooltip or "Enable or disable blocking for this skill.",
             getFunc = function()
                 return ExecuteBlocker.savedVars.skills[id].enabled
             end,
@@ -328,14 +333,25 @@ local function OnAddOnLoaded(_, addonName)
 
     EVENT_MANAGER:UnregisterForEvent(ExecuteBlocker.name, EVENT_ADD_ON_LOADED)
 
+    -- Build skill list from LibExecuteSkills
+    BuildSkillList()
+
+    -- Create defaults from the built list
+    for _, skill in ipairs(SKILL_LIST) do
+        DEFAULTS.skills[skill.id] = {
+            enabled   = skill.defaultEnabled,
+            threshold = skill.defaultThreshold,
+        }
+    end
+
     ExecuteBlocker.savedVars = ZO_SavedVars:NewAccountWide(
         "ExecuteBlockerVars",
-        3,          -- bumped for showFlash + structure cleanup
+        4,          -- bumped for LibExecuteSkills integration
         nil,
         DEFAULTS
     )
 
-    -- Ensure newer defaults exist for players upgrading from older versions
+    -- Safety for older saved variables
     if ExecuteBlocker.savedVars.showFlash == nil then
         ExecuteBlocker.savedVars.showFlash = DEFAULTS.showFlash
     end

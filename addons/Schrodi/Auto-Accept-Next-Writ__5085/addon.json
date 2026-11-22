@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Schrodi/Auto-Accept-Next-Writ__5085",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5085",
+  "category_id": "40",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5085",
+  "deleted": false,
+  "directories": [
+    "AutoAcceptNextWrit"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5085/",
+  "fingerprint": "49cfc56b3d932eef7800a2f7946ad479c0c56bc2c49474e6762c943ce772946f",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5085",
+  "source_url": "https://www.esoui.com/downloads/info5085-AutoAcceptNextWrit.html",
+  "stats": {
+    "downloads": 11,
+    "favorites": 0,
+    "monthly_downloads": 11
+  },
+  "title": "Auto Accept Next Writ",
+  "updated_at": 1795267840000,
+  "version": "1.2"
+}

@@ -2,7 +2,7 @@ Bankir = Bankir or {}
 
 Bankir.name = "Bankir"
 Bankir.author = "vexaiv"
-Bankir.version = "2.9.8"
+Bankir.version = "2.9.9"
 
 local function debugPrint(message)
 	d(Bankir.name .. ": " .. message)
@@ -223,26 +223,36 @@ local function printToChat(itemName, amount, targetBagId)
 end
 
 local function processCurrency(bagId)
-	if Bankir.SVProfile[bagId].currency then
-		for currencyType, rules in pairs(Bankir.SVProfile[bagId].currency) do
-			local amount = GetCarriedCurrencyAmount(currencyType) - rules.amount
-			if amount > 0 and rules.push then
+	if not Bankir.SVProfile[bagId].currency then return end
+	for currencyType, rules in pairs(Bankir.SVProfile[bagId].currency) do
+		repeat
+			if not rules.push and not rules.pull then break end
+			local amount = GetCurrencyAmount(currencyType, CURRENCY_LOCATION_CHARACTER) - rules.amount
+			if rules.push and amount > 0 then
 				printToChat(ZO_Currency_GetPlatformFormattedCurrencyIcon(currencyType), amount, bagId)
 				if bagId == BAG_BANK then
 					DepositCurrencyIntoBank(currencyType, amount)
 				else
 					DepositCurrencyIntoGuildBank(currencyType, amount)
 				end
-			elseif amount < 0 and rules.pull then
-				amount = amount * -1
-				printToChat(ZO_Currency_GetPlatformFormattedCurrencyIcon(currencyType), amount, BAG_BACKPACK)
+			elseif rules.pull and amount < 0 then
+				local amountInBank
 				if bagId == BAG_BANK then
-					WithdrawCurrencyFromBank(currencyType, amount)
+					amountInBank = GetCurrencyAmount(currencyType, CURRENCY_LOCATION_BANK)
 				else
-					WithdrawCurrencyFromGuildBank(currencyType, amount)
+					amountInBank = GetCurrencyAmount(currencyType, CURRENCY_LOCATION_GUILD_BANK)
+				end
+				amount = math.min(amount * -1, amountInBank)
+				if amount > 0 then
+					printToChat(ZO_Currency_GetPlatformFormattedCurrencyIcon(currencyType), amount, BAG_BACKPACK)
+					if bagId == BAG_BANK then
+						WithdrawCurrencyFromBank(currencyType, amount)
+					else
+						WithdrawCurrencyFromGuildBank(currencyType, amount)
+					end
 				end
 			end
-		end
+		until true
 	end
 end
 
@@ -789,6 +799,9 @@ local function onAddOnLoaded(event, addonName)
 		Bankir.Data.onBanksUpdated()
 	end)
 	EVENT_MANAGER:RegisterForEvent(Bankir.name, EVENT_COLLECTIBLES_UNLOCK_STATE_CHANGED, function(eventCode)
+		local function GetNextDirtyUnlockStateCollectibleIdIter(_, lastCollectibleId)
+			return GetNextDirtyUnlockStateCollectibleId(lastCollectibleId)
+		end
 		for id in GetNextDirtyUnlockStateCollectibleIdIter do
 			local collectibleData = ZO_COLLECTIBLE_DATA_MANAGER:GetCollectibleDataById(id)
 			if collectibleData and (collectibleData:IsHouseBank() and not collectibleData:IsFurnitureVault()) then

@@ -1,0 +1,43 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/Schrodi/Quickslot-Profiles__5091",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5091",
+  "category_id": "19",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5091",
+  "deleted": false,
+  "directories": [
+    "QuickslotProfiles"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5091/",
+  "fingerprint": "2d3c5edfa2b242d8c6243942349910377726855a853bca65f132a9d758a9d904",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18683.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5091",
+  "source_url": "https://www.esoui.com/downloads/info5091-QuickslotProfiles.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 4
+  },
+  "title": "Quickslot Profiles",
+  "updated_at": 1795346168000,
+  "version": "1.4.0"
+}

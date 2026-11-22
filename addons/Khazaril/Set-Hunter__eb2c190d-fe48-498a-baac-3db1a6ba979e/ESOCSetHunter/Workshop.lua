@@ -179,10 +179,12 @@ function W.PlanReconstruction()
 end
 
 -- The copies you are carrying or wearing in the right trait, best quality first, up to the number wanted.
+-- With "Ignore equipped items" on, worn gear is left out so upgrades and glyphs can't land on it.
 local function ownedCopies(piece)
     local trait = I.TargetTrait(piece.want)
     local copies = {}
-    for _, bag in ipairs({ BAG_WORN, BAG_BACKPACK }) do
+    local bags = I.Options().ignoreEquipped and { BAG_BACKPACK } or { BAG_WORN, BAG_BACKPACK }
+    for _, bag in ipairs(bags) do
         for slot = 0, GetBagSize(bag) - 1 do
             if GetItemId(bag, slot) ~= 0 then
                 local link = GetItemLink(bag, slot)
@@ -259,14 +261,21 @@ local function alreadyEnchanted(copy, glyphId)
     return current ~= nil and current ~= "" and current == target
 end
 
--- A gold, CP160 glyph of this type in your backpack that isn't already spoken for.
-local function findGlyph(glyphId, bagSlot, used)
+-- A glyph of this type in your backpack that isn't already spoken for. Gold CP160 unless
+-- spec asks for a levelling glyph ({ level, quality }).
+local function findGlyph(glyphId, bagSlot, used, spec)
     for slot = 0, GetBagSize(BAG_BACKPACK) - 1 do
         if not used[slot] and GetItemId(BAG_BACKPACK, slot) == glyphId then
             local link = GetItemLink(BAG_BACKPACK, slot)
-            local _, glyphCp = GetItemLinkGlyphMinLevels(link)
-            if glyphCp == 160 and GetItemLinkFunctionalQuality(link) == LEGENDARY
-                and CanItemTakeEnchantment(bagSlot.bag, bagSlot.slot, BAG_BACKPACK, slot) then
+            local glyphLevel, glyphCp = GetItemLinkGlyphMinLevels(link)
+            local quality = GetItemLinkFunctionalQuality(link)
+            local matches
+            if spec then
+                matches = (glyphCp or 0) == 0 and glyphLevel == spec.level and quality == spec.quality
+            else
+                matches = glyphCp == 160 and quality == LEGENDARY
+            end
+            if matches and CanItemTakeEnchantment(bagSlot.bag, bagSlot.slot, BAG_BACKPACK, slot) then
                 return slot
             end
         end
@@ -300,11 +309,11 @@ local function runeSkillProblem(itemId)
     return nil
 end
 
-local function reserveRunes(glyphId, reserved)
+local function reserveRunes(glyphId, reserved, spec)
     local lib = LibLazyCrafting
     local enchantId = W.EnchantIdFor(glyphId)
     if not lib or not enchantId or not lib.EnchantAttributesToGlyphIds then return false, "LibLazyCrafting is needed" end
-    local ok, potency, essence, aspect = pcall(lib.EnchantAttributesToGlyphIds, true, 160, enchantId, 5)
+    local ok, potency, essence, aspect = pcall(lib.EnchantAttributesToGlyphIds, not spec, spec and spec.level or 160, enchantId, spec and spec.quality or 5)
     if not ok or not potency or not essence or not aspect then return false, "unknown glyph" end
     local ids = { potency, essence, aspect }
     for _, id in ipairs(ids) do
@@ -559,6 +568,7 @@ local function applyGlyph(job)
         if GetItemLink(job.bag, job.slot) == before then return finish("the enchant on " .. job.label .. " didn't apply") end
         sv.enchanted[Id64ToString(job.uniqueId)] = job.glyphId
         job.done = true
+        if job.onDone then pcall(job.onDone) end
         local continued, reason = W.Next()
         if continued == false then finish(reason) end
     end, ENCHANT_DELAY)
@@ -573,7 +583,9 @@ function STEP.glyph(job)
     waitFor("glyph")
     -- The argument after the reference is a linked gear request, so it must stay empty (quantity defaults to 1)
     run.glyphRef = "SetHunter" .. job.glyphId
-    local ok = pcall(W.llc.CraftEnchantingGlyphDesiredResult, W.llc, true, 160, job.glyphId, 5, true, run.glyphRef)
+    local spec = job.spec
+    local ok = pcall(W.llc.CraftEnchantingGlyphDesiredResult, W.llc, not spec, spec and spec.level or 160, job.glyphId,
+        spec and spec.quality or 5, true, run.glyphRef)
     if not ok then return false, "couldn't start the glyph" end
     return true
 end
@@ -598,6 +610,10 @@ local function start(plan)
     local ok, reason = W.Next()
     if ok == false then finish("stopped: " .. tostring(reason)) end
 end
+
+W.StartGlyphPlan = start
+W.FindGlyph = findGlyph
+W.ReserveRunes = reserveRunes
 
 -- The game needs a moment to finish its crafting animation before the next action.
 local function continueRun()
@@ -643,7 +659,7 @@ function W.OnLazyCraft(event, station, result)
             for _, other in ipairs(run.plan.jobs) do
                 if other ~= job and other.glyphSlot and not other.done then used[other.glyphSlot] = true end
             end
-            local slot = findGlyph(job.glyphId, job, used)
+            local slot = findGlyph(job.glyphId, job, used, job.spec)
             if not slot then return finish("couldn't find the new glyph") end
             job.glyphSlot, job.craft = slot, nil
             local ok, reason = W.Next()
@@ -1222,7 +1238,10 @@ function W.Init()
                 return W.PlanImprovement(skill)
             end)
         elseif skill == CRAFTING_TYPE_ENCHANTING then
-            offerSoon(W.PlanGlyphs)
+            offerSoon(function()
+                if SH.Training and SH.Training.OfferHere(skill) then return nil end
+                return W.PlanGlyphs()
+            end)
         end
     end)
     EVENT_MANAGER:RegisterForEvent(name, EVENT_END_CRAFTING_STATION_INTERACT, function() W.OnStationClosed() end)

@@ -14,7 +14,16 @@ local DEFAULTS = {
     showAtTrader = true,
     autoLock = true,
     autoBind = false,
+    ignoreEquipped = false,
     showHere = true,
+    archiveClasses = "mine",
+    traderSearchMode = "exact",
+    traderSticker = false,
+    traderMotifs = false,
+    traderFurniture = false,
+    traderRecipes = false,
+    traderCollectibles = false,
+    traderFurnishings = false,
     side = "right",
     height = 0,
     armorTrait = ITEM_TRAIT_TYPE_ARMOR_DIVINES or 0,
@@ -157,6 +166,7 @@ local function scanBag(bag)
                 found[#found + 1] = {
                     setId = setId, equip = equip, armor = armor, weapon = weapon,
                     trait = GetItemLinkTraitType(link), bound = IsItemBound(bag, slot),
+                    worn = bag == BAG_WORN or nil,
                 }
             end
         end
@@ -187,13 +197,17 @@ local function updateBags()
 end
 
 local function eachOwned(fn)
+    -- With "Ignore equipped items" on, gear being worn doesn't count, so a second copy can be made.
+    local function visit(entry)
+        if not (opts.ignoreEquipped and entry.worn) then fn(entry) end
+    end
     for id, list in pairs(sv.characters) do
         if id ~= charId then
-            for _, entry in ipairs(list) do fn(entry) end
+            for _, entry in ipairs(list) do visit(entry) end
         end
     end
     for _, bag in ipairs(SCAN_BAGS) do
-        for _, entry in ipairs(bagCache[bag] or {}) do fn(entry) end
+        for _, entry in ipairs(bagCache[bag] or {}) do visit(entry) end
     end
 end
 
@@ -329,14 +343,59 @@ local function jewelrySource(zone)
     return "Treasure chests"
 end
 
-local function dropSources(want, jewelryLabel)
-    if isWeapon(want) then return { "World bosses", "Public dungeon bosses" } end
+-- Zones with no public dungeon (UESP, Online:Public Dungeons), including their chapter names.
+-- "reworked": since 2023, world bosses drop shoulders and jewelry, and delve bosses drop hands.
+-- "chests": UESP says pieces with no other source may only come from treasure chests.
+local NO_PUBLIC_DUNGEON = {
+    ["gold coast"] = "reworked", ["dark brotherhood"] = "reworked",
+    ["hews bane"] = "reworked", ["thieves guild"] = "reworked",
+    ["clockwork city"] = "chests", ["murkmire"] = "chests", ["craglorn"] = "chests",
+    ["southern elsweyr"] = "chests", ["dragonhold"] = "chests",
+    ["reach"] = "chests", ["markarth"] = "chests",
+    ["deadlands"] = "chests", ["galen"] = "chests", ["firesong"] = "chests",
+}
+
+local function noPublicDungeonRule(zone)
+    local key = string.lower(zone or "")
+    key = string.gsub(key, "[^%a ]", "")
+    key = string.gsub(key, "^the ", "")
+    return NO_PUBLIC_DUNGEON[key]
+end
+
+local function dropSources(want, jewelryLabel, zone)
+    local rule = noPublicDungeonRule(zone)
+    if isWeapon(want) then
+        if rule then return { "World bosses" } end
+        return { "World bosses", "Public dungeon bosses" }
+    end
     local equip = want.equip
     if equip == EQUIP_TYPE_HEAD or equip == EQUIP_TYPE_CHEST or equip == EQUIP_TYPE_LEGS then return { "World bosses" } end
-    if equip == EQUIP_TYPE_SHOULDERS or equip == EQUIP_TYPE_HAND then return { "Public dungeon bosses" } end
+    if equip == EQUIP_TYPE_SHOULDERS then
+        if rule == "reworked" then return { "World bosses" } end
+        if rule == "chests" then return { "Treasure chests" } end
+        return { "Public dungeon bosses" }
+    end
+    if equip == EQUIP_TYPE_HAND then
+        if rule == "reworked" then return { "Delve bosses" } end
+        if rule == "chests" then return { "Treasure chests" } end
+        return { "Public dungeon bosses" }
+    end
     if equip == EQUIP_TYPE_WAIST or equip == EQUIP_TYPE_FEET then return { "Delve bosses" } end
-    if equip == EQUIP_TYPE_NECK or equip == EQUIP_TYPE_RING then return { jewelryLabel } end
+    if equip == EQUIP_TYPE_NECK or equip == EQUIP_TYPE_RING then
+        if rule == "reworked" then return { "World bosses", jewelryLabel } end
+        return { jewelryLabel }
+    end
     return {}
+end
+
+-- Category names can't be relied on alone, so the game's own set type counts too.
+local function isOverlandSet(setId, categoryText)
+    local text = string.lower(categoryText or "")
+    if string.find(text, "overland", 1, true) then return true end
+    for _, word in ipairs({ "dungeon", "trial", "arena", "pvp", "cyrodiil", "imperial", "battleground", "archive", "monster", "mythic" }) do
+        if string.find(text, word, 1, true) then return false end
+    end
+    return ITEM_SET_TYPE_WORLD ~= nil and GetItemSetType(setId) == ITEM_SET_TYPE_WORLD
 end
 
 -- The Sticker Book's own category, for example "Dungeons: Fungal Grotto I".
@@ -346,10 +405,10 @@ local function setLocation(setId)
     local name = zo_strformat("<<t:1>>", GetItemSetCollectionCategoryName(categoryId))
     local parentId = GetItemSetCollectionCategoryParentId(categoryId)
     if not parentId or parentId == 0 then
-        return name, string.find(string.lower(name), "overland", 1, true) ~= nil, name
+        return name, isOverlandSet(setId, name), name
     end
     local parent = zo_strformat("<<t:1>>", GetItemSetCollectionCategoryName(parentId))
-    return parent .. ": " .. name, string.find(string.lower(parent), "overland", 1, true) ~= nil, name
+    return parent .. ": " .. name, isOverlandSet(setId, parent), name
 end
 
 function SH.BuildPanelText()
@@ -393,7 +452,7 @@ function SH.BuildPanelText()
             have = have + pieceHave
             if pieceCount > 1 then label = label .. " " .. pieceHave .. "/" .. pieceCount end
             if state ~= "done" and state ~= "bind" then
-                for _, source in ipairs(dropSources(piece.want, jewelryLabel)) do
+                for _, source in ipairs(dropSources(piece.want, jewelryLabel, zone)) do
                     missingBySource[source] = missingBySource[source] or {}
                     local names = missingBySource[source]
                     names[#names + 1] = label
@@ -418,6 +477,9 @@ function SH.BuildPanelText()
             end
             if missingBySource[jewelryLabel] then
                 lines[#lines + 1] = colour(GREY, jewelryLabel .. ": " .. table.concat(missingBySource[jewelryLabel], ", "))
+            end
+            if jewelryLabel ~= "Treasure chests" and missingBySource["Treasure chests"] then
+                lines[#lines + 1] = colour(GREY, "Treasure chests: " .. table.concat(missingBySource["Treasure chests"], ", "))
             end
         end
         lines[#lines + 1] = ""
@@ -584,6 +646,7 @@ function SH.ClassifyListing(link)
 end
 
 local function hookTrader()
+    if SH.TraderSearch then pcall(SH.TraderSearch.Install) end
     local results = GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS
     if SH.traderHooked or not results then return end
     SH.traderHooked = true
@@ -723,11 +786,24 @@ local function createSettings()
                 SH.Workshop.OfferClearSets(function() pcall(function() settings:UpdateControls() end) end)
             end,
         },
+        check("Ignore equipped items", "Gear you're wearing doesn't count as owned, so you can make a second copy of a build. Upgrades and glyphs go on the new copies and leave your worn gear alone. Characters you haven't logged in to since this update still count until you do.", "ignoreEquipped", function()
+            lastStates = {}
+        end),
         { type = LHAS.ST_SECTION, label = "Side panel" },
         check("Show the panel", "Show your checklist on the side of the screen.", "showPanel"),
         check("Show at guild traders", "Keep the checklist on screen while you browse a guild trader.", "showAtTrader", SH.UpdateTraderScene),
         check("Show what's needed here", "Lists the Sticker Book pieces you're missing from the zone, dungeon or trial you're in.", "showHere", function() SH.Refresh() end),
         { type = LHAS.ST_LABEL, label = function() return SH.Here and SH.Here.StatusText() or "" end },
+        {
+            type = LHAS.ST_DROPDOWN, label = "Infinite Archive sets",
+            tooltip = "Which class sets Needed here shows in the Infinite Archive. My class follows the character you're on. When your class is complete, it shows how many pieces other classes are missing.",
+            items = function() return SH.Here.ArchiveItems() end,
+            getFunction = function() return SH.Here.ArchiveChoiceName() end,
+            setFunction = function(_, _, item)
+                opts.archiveClasses = dropdownValue(item, opts.archiveClasses)
+                SH.Refresh()
+            end,
+        },
         {
             type = LHAS.ST_DROPDOWN, label = "Screen side", items = sides, default = "Right",
             getFunction = function() return opts.side == "left" and "Left" or "Right" end,
@@ -738,6 +814,24 @@ local function createSettings()
             getFunction = function() return opts.height end,
             setFunction = function(v) opts.height = tonumber(v) or 0; placePanel() end,
         },
+        { type = LHAS.ST_SECTION, label = "Guild trader search" },
+        {
+            type = LHAS.ST_DROPDOWN, label = "Search my list for",
+            tooltip = "Exact trait: pieces you need in the trait you chose, even if the Sticker Book has them. Sticker Book: pieces on your list missing from your Sticker Book, in any trait. At a trader, press L3 to search. This is used while the trader filter below is off.",
+            items = { { name = "Exact trait", data = "exact" }, { name = "Sticker Book", data = "sticker" } },
+            getFunction = function() return SH.TraderSearch and SH.TraderSearch.ModeName() or "Exact trait" end,
+            setFunction = function(_, _, item)
+                local mode = dropdownValue(item, opts.traderSearchMode)
+                if SH.TraderSearch then SH.TraderSearch.SetMode(mode) else opts.traderSearchMode = mode end
+            end,
+        },
+        { type = LHAS.ST_SECTION, label = "Guild trader filter: only show what I don't have" },
+        check("Sticker Book gear", "Weapons, armor and jewelry missing from your Sticker Book.", "traderSticker"),
+        check("Motifs", "Motif books and chapters this character hasn't learned.", "traderMotifs"),
+        check("Furniture plans", "Furnishing plans this character hasn't learned.", "traderFurniture"),
+        check("Recipes", "Food and drink recipes this character hasn't learned.", "traderRecipes"),
+        check("Collectibles", "Style pages, runeboxes and other items that unlock a collectible your account doesn't own.", "traderCollectibles"),
+        check("Furnishings", "Furniture with no copy in your bags, bank, house storage or furniture vault. Furniture placed in your houses can't be counted, so it may still show.", "traderFurnishings"),
         { type = LHAS.ST_SECTION, label = "Protection" },
         check("Lock pieces you need", "When you pick up or buy a piece on your list in the right trait, lock it so it can't be sold, destroyed or deconstructed by accident. Spare copies aren't locked.", "autoLock"),
         check("Auto-bind new pieces", "When you loot a bind-on-equip piece that's missing from your Sticker Book, bind it. Binding can't be undone. Trader purchases, mail and trades are never bound. In the Sticker Book, press L3 to skip a piece or R3 to skip a whole set.", "autoBind", function()
@@ -785,19 +879,23 @@ local function onLoaded(_, name)
     for key, value in pairs(DEFAULTS) do
         if opts[key] == nil then opts[key] = value end
     end
+    if SH.TraderSearch then pcall(SH.TraderSearch.MigrateFilter, opts) end
     charId = GetCurrentCharacterId()
     SH.MarkAllDirty()
 
     SH.internal = {
         sv = sv, opts = opts, ActiveSets = activeSets, TargetTrait = targetTrait, TraitName = traitName,
+        Options = function() return opts end,
         PieceState = pieceState, PieceStatus = pieceStatus, DEFAULTS = DEFAULTS, ShortName = shortName, PieceOrder = pieceOrder, IsWeapon = isWeapon,
-        SetIdOf = setIdOf, LinkShape = linkShape, SameShape = sameShape, CrystalCost = crystalCost,
+        LockItem = lockItem, SetIdOf = setIdOf, LinkShape = linkShape, SameShape = sameShape, CrystalCost = crystalCost,
         DropdownValue = dropdownValue, Colour = colour, TRAITS = TRAITS, PREFIX = PREFIX,
+        SetLocation = setLocation, DropSources = dropSources, JewelrySource = jewelrySource, DROP_SOURCES = DROP_SOURCES,
     }
     createPanel()
     createSettings()
     if SH.Workshop then SH.Workshop.Init() end
     if SH.AutoBind then SH.AutoBind.Init() end
+    if SH.Here then SH.Here.CreateGuidePage() end
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED, onPlayerActivated)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_OPEN_TRADING_HOUSE, function() hookTrader(); SH.UpdateTraderScene() end)
@@ -819,6 +917,9 @@ local function onLoaded(_, name)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ITEM_SET_COLLECTION_UPDATED, queueRefresh)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ITEM_SET_COLLECTIONS_UPDATED, queueRefresh)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ZONE_CHANGED, queueRefresh)
+    if EVENT_ENDLESS_DUNGEON_COUNTER_VALUE_CHANGED then
+        EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ENDLESS_DUNGEON_COUNTER_VALUE_CHANGED, queueRefresh)
+    end
 end
 
 EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, onLoaded)

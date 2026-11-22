@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Schrodi/Schrodi-s-Housing-Tools__5093",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Schrodi",
+  "canonical_id": "esoui:5093",
+  "category_id": "160",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5093",
+  "deleted": false,
+  "directories": [
+    "SchrodisHousingTools"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5093/",
+  "fingerprint": "45da409d801ce396da9c5b9cb225268046993160e34555b2624f6896a7b2f32a",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18685.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18686.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5093",
+  "source_url": "https://www.esoui.com/downloads/info5093-SchrodisHousingTools.html",
+  "stats": {
+    "downloads": 2,
+    "favorites": 0,
+    "monthly_downloads": 1
+  },
+  "title": "Schrodi's Housing Tools",
+  "updated_at": 1795280149000,
+  "version": "2.1.0"
+}

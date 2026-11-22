@@ -8,6 +8,10 @@
   "category_id": "33",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "NoThankYou"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4903/",
-  "fingerprint": "b9bc95eae063c946e645e937b25da93aa82da838db99fcb9d4493600a0425f62",
+  "fingerprint": "10bd8005d39fc0510428c89b321e552e59ecf0e1dfd9d59c4ef9a56c76f21410",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17655.jpg"
   ],
@@ -28,11 +32,11 @@
   "source_id": "4903",
   "source_url": "https://www.esoui.com/downloads/info4903-NoThankYou-SeasonOneTwo.html",
   "stats": {
-    "downloads": 498,
-    "favorites": 4,
-    "monthly_downloads": 451
+    "downloads": 821,
+    "favorites": 5,
+    "monthly_downloads": 453
   },
   "title": "No, Thank You! - Season One & Two",
-  "updated_at": 1793481977000,
-  "version": "12.1.4"
+  "updated_at": 1795307697000,
+  "version": "12.2.0"
 }

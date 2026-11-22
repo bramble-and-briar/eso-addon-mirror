@@ -6,6 +6,7 @@ local tbug = TBUG or SYSTEMS:GetSystem("merTorchbug")
 ------------------------------------------------------------------------------------------------------------------------
 --Local helper pointers
 local type = type
+local select = select
 local strfind = string.find
 local tinsert = table.insert
 local tremove = table.remove
@@ -40,6 +41,8 @@ local lookupEventName = tbug.Events.eventList
 
 local realESOEventNames = tbug.realESOEventNames
 local blacklistedEventIds = tbug.blacklistedEventIds
+--local eventParamFieldsById = tbug.eventParamFieldsById
+local eventParamFieldsByName = tbug.eventParamFieldsByName
 
 ------------------------------------------------------------------------------------------------------------------------
 --The events currently tracked/fired list
@@ -137,14 +140,37 @@ function tbEvents.EventHandler(eventId, ...)
 
     local timeStampAdded = GetTimeStamp()
     local frameTime = GetFrameTimeMilliseconds()
-    local eventParametersOriginal = {...}
     local eventTab = {}
     eventTab._timeStamp     = timeStampAdded
     eventTab._frameTime     = frameTime
     eventTab._eventName     = lookupEventName[eventId] or "? UNKNOWN EVENT ?"
     eventTab._eventId       = eventId
-    for eventParamNo, eventParamValue in ipairs(eventParametersOriginal) do
-        eventTab["param" .. tostring(eventParamNo)] = eventParamValue
+
+    -- The wiki parameter list omits the callback's first argument. That argument is the event id
+    -- and is already stored as _eventId. select keeps fields that follow a nil hole.
+    -- Some callbacks pass that event id again as the first vararg. When they do, keep it as eventId
+    -- and start the documented names on the next argument. A first vararg that is not the event id
+    -- is a real payload field (guildId 266193 is not event id 131877).
+    -- The live client name is authoritative. EVENT_IDS numbers drift when new events are inserted.
+    local eventParamFields = tbEvents.GetEventParamFields(eventId, eventTab._eventName)
+
+    local eventParamCount = select("#", ...)
+    local firstEventParamValue = eventParamCount > 0 and select(1, ...) or nil
+    local eventParamIndexOffset = (firstEventParamValue == eventId) and 1 or 0
+
+    for paramIndex = 1, eventParamCount do
+        local eventParamValue = select(paramIndex, ...)
+        if eventParamValue ~= nil then
+            local eventParamKey
+            if paramIndex == 1 and eventParamIndexOffset == 1 then
+                eventParamKey = "eventId"
+            else
+                local documentedParamIndex = paramIndex - eventParamIndexOffset
+                local eventParamField = eventParamFields and eventParamFields[documentedParamIndex]
+                eventParamKey = (eventParamField and eventParamField[1]) or ("param" .. tostring(paramIndex))
+            end
+            eventTab[eventParamKey] = eventParamValue
+        end
     end
 
 	local tabPosAdded = tinsert(tbEvents.eventsTableInternal, eventTab)
@@ -153,6 +179,16 @@ function tbEvents.EventHandler(eventId, ...)
     throttledCall("UpdateTBUGEventsList", 100, updateEventTrackerLines)
 end
 local tbEvents_EventHandler = tbEvents.EventHandler
+
+function tbEvents.GetEventParamFields(eventId, eventName)
+    local eventParamFields = eventParamFieldsByName and eventName and eventParamFieldsByName[eventName]
+    --[[
+    if eventParamFields == nil and eventParamFieldsById ~= nil then
+        eventParamFields = eventParamFieldsById[eventId]
+    end
+    ]]
+    return eventParamFields
+end
 
 function tbug.UpdateEventsTrackingButton(selfVar)
     getGlobalInspector = getGlobalInspector or tbug.getGlobalInspector

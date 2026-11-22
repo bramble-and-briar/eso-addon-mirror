@@ -1,0 +1,9 @@
+## Title: LibExecuteSkills
+## Author: O-Range
+## Version: 1.1.0
+## APIVersion: 101051
+## AddOnVersion: 110
+## Description: Community library providing a database of execute skills for ESO addons. Includes lookup helpers, scaling type info, and runtime registration.
+## IsLibrary: true
+
+LibExecuteSkills.lua

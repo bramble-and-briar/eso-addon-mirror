@@ -10,7 +10,7 @@ local CT = FuryCT
 
 CT.name = "FurysCharacterTracker"
 CT.displayName = "Fury's Character Tracker"
-CT.version = "1.2.0"
+CT.version = "1.2.2"
 
 CT.defaults = {
     characters = {},   -- [character name] = everything read from that character (see Core/Scan.lua)
@@ -120,7 +120,7 @@ function CT.ViewLabel(entry)
 end
 
 -- Export button: the game only writes SavedVariables on a reload or logout, so save and reload in one go.
--- AutoExport.ps1 (turned on with "Turn On Auto Export.cmd") sees the new request and writes the CSV.
+-- AutoExport.ps1 (Windows Tools download, turned on with "Turn On Auto Export.cmd") sees the new request and writes the CSV.
 function CT.RequestExport()
     CT.Roster:BuildExportRows()
     CT.sv.exportRequestedAt = GetTimeStamp()

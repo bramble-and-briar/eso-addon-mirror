@@ -47,7 +47,7 @@
                             <Edge edgeSize="1"/>
                         </Backdrop>
                     </Controls>
-                </Button>
+                </Button>               
                 <Button name="$(parent)SettingsButton" clickSound="Click">
                     <Anchor point="TOPRIGHT" relativePoint="TOPLEFT" relativeTo="$(parent)FeedbackButton" offsetX="-5"/>
                     <Dimensions x="40" y="40"/>
@@ -1098,7 +1098,7 @@
             </Controls>
         </Control>
 
-        <Control name="LeoAltholicTrackedRowTemplate" virtual="true" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+        <Control name="LeoAltholicTrackedRowTemplate" virtual="true">
             <Dimensions x="990" y="110"/>
             <Controls>
                 <Backdrop name="$(parent)BG" centerColor="010101" edgeColor="222222" tier="LOW">
@@ -1107,14 +1107,14 @@
                     <Edge edgeSize="1"/>
                 </Backdrop>
 
-                <Label name="$(parent)Alliance" mouseEnabled="true" font="ZoFontWinH3" normalColor="ffffff" inheritAlpha="true" verticalAlignment="CENTER" horizontalAlignment="CENTER">
+                <Label name="$(parent)Alliance" mouseEnabled="true" font="ZoFontWinH3" color="ffffff" inheritAlpha="true" verticalAlignment="CENTER" horizontalAlignment="CENTER">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="10" offsetY="10"/>
                     <Dimensions x="60" y="75"/>
                     <OnMouseEnter> ZO_Tooltips_ShowTextTooltip(self, RIGHT, self.data) </OnMouseEnter>
                     <OnMouseExit> ZO_Tooltips_HideTextTooltip() </OnMouseExit>
                 </Label>
 
-                <Label name="$(parent)Name" font="ZoFontWinH3" normalColor="ffffff" inheritAlpha="true" verticalAlignment="CENTER" horizontalAlignment="LEFT">
+                <Label name="$(parent)Name" font="ZoFontWinH3" color="ffffff" inheritAlpha="true" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="80" offsetY="20"/>
                     <Dimensions x="180" y="30"/>
                 </Label>
@@ -1217,10 +1217,10 @@
             </Controls>
         </Control>
 
-        <Control name="LeoAltholicWritsListTemplate" virtual="true" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+        <Control name="LeoAltholicWritsListTemplate" virtual="true">
             <Dimensions x="990" y="30"/>
             <Controls>
-                <Label name="$(parent)Name" font="ZoFontGame" normalColor="ffffff" inheritAlpha="true" verticalAlignment="CENTER" horizontalAlignment="LEFT">
+                <Label name="$(parent)Name" font="ZoFontGame" color="ffffff" inheritAlpha="true" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="2" offsetY="0"/>
                     <Dimensions x="180" y="30"/>
                 </Label>
@@ -1295,7 +1295,7 @@
             </Controls>
         </Control>
 
-        <Control name="LeoAltholicSkillsListTemplate" virtual="true" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+        <Control name="LeoAltholicSkillsListTemplate" virtual="true">
             <Dimensions x="990" y="30"/>
             <Controls>
                 <Label name="$(parent)Name" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
@@ -1515,7 +1515,7 @@
             </Controls>
         </Control>
 
-        <Control name="LeoAltholicSkills2ListTemplate" virtual="true" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+        <Control name="LeoAltholicSkills2ListTemplate" virtual="true">
             <Dimensions x="990" y="30"/>
             <Controls>
                 <Label name="$(parent)Name" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
@@ -1662,7 +1662,7 @@
             </Controls>
         </Control>
 
-        <Control name="LeoAltholicChampionListTemplate" virtual="true" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+        <Control name="LeoAltholicChampionListTemplate" virtual="true">
             <Dimensions x="1000" y="30" />
             <Controls>
                 <Texture name="$(parent)BG" inherits="ZO_ThinListBgStrip" />
@@ -1696,7 +1696,7 @@
             </Controls>
         </Control>
 
-        <Control name="LeoAltholicInventoryListTemplate" virtual="true" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+        <Control name="LeoAltholicInventoryListTemplate" virtual="true">
             <Dimensions x="990" y="105"/>
             <Controls>
                 <Label name="$(parent)Name" font="LeoAltholicLargeFont" color="ffffff" verticalAlignment="CENTER">
@@ -1741,7 +1741,7 @@
             </Controls>
         </Control>
 
-        <Control name="LeoAltholicResearchListTemplate" virtual="true" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+        <Control name="LeoAltholicResearchListTemplate" virtual="true">
             <Dimensions x="880" y="260"/>
             <Controls>
                 <Label name="$(parent)Name" font="LeoAltholicLargeFont" color="ffffff" verticalAlignment="CENTER">
@@ -1861,7 +1861,7 @@
             </Controls>
         </TopLevelControl>
 
-        <Control name="LeoAltholicInventoryTemplate" virtual="true" mouseEnabled="true" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+        <Control name="LeoAltholicInventoryTemplate" virtual="true" mouseEnabled="true">
             <Dimensions x="400" y="30" />
             <Controls>
                 <Texture name="$(parent)BG" inherits="ZO_ThinListBgStrip" />
@@ -1873,7 +1873,7 @@
                     <Dimensions x="30" y="30" />
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" relativePoint="BOTTOMRIGHT" offsetX="4" offsetY="4" />
                 </Label>
-                <Label name="$(parent)Item" visible="true" mouseEnabled="true" font="ZoFontWinH4" color="ffffff" inheritAlpha="true" verticalAlignment="CENTER" horizontalAlignment="LEFT">
+                <Label name="$(parent)Item" hidden="false" mouseEnabled="true" font="ZoFontWinH4" color="ffffff" inheritAlpha="true" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="386" y="30" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" relativePoint="TOPRIGHT" offsetX="8" offsetY="0" />
                 </Label>
@@ -1907,7 +1907,7 @@
 <!--Teva added the section below-->
                 <Texture name="$(parent)BankSizeTexture" hidden="true" textureFile="/esoui/art/icons/mapkey/mapkey_bank.dds">
                     <Dimensions y="30" x="28"/>
-                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" verticalAlignment="CENTER"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0"/>
                 </Texture>
                 <Label name="$(parent)Bank" hidden="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER">
                     <Dimensions x="70" y="32" />
@@ -2048,13 +2048,13 @@
                 <Button name="$(parent)MinButton" clickSound="Click" inheritAlpha="false">
                     <Dimensions x="30" y="30"/>
                     <Anchor point="TOPRIGHT" relativeTo="$(parent)BGHeader" relativePoint="TOPRIGHT" offsetX="-2" offsetY="4"/>
-                    <Textures normal="/esoui/art/chatwindow/maximize_up.dds" mouseOver="/esoui/art/chatwindow/maximize_over.dds" mouseDown="esoui/art/chatwindow/maximize_down.dds" />
+                    <Textures normal="/esoui/art/chatwindow/maximize_up.dds" mouseOver="/esoui/art/chatwindow/maximize_over.dds" pressed="esoui/art/chatwindow/maximize_down.dds" />
                     <OnClicked> LeoAltholicChecklistUI:MinimizeUI() </OnClicked>
                 </Button>
                 <Button name="$(parent)MaxButton" hidden="true" clickSound="Click" inheritAlpha="false">
                     <Dimensions x="30" y="30"/>
                     <Anchor point="TOPRIGHT" relativeTo="$(parent)BGHeader" relativePoint="TOPRIGHT" offsetX="-2" offsetY="4"/>
-                    <Textures normal="/esoui/art/chatwindow/minimize_up.dds" mouseOver="/esoui/art/chatwindow/minimize_over.dds" mouseDown="esoui/art/chatwindow/minimize_down.dds" />
+                    <Textures normal="/esoui/art/chatwindow/minimize_up.dds" mouseOver="/esoui/art/chatwindow/minimize_over.dds" pressed="esoui/art/chatwindow/minimize_down.dds" />
                     <OnClicked> LeoAltholicChecklistUI:MaximizeUI() </OnClicked>
                 </Button>
 

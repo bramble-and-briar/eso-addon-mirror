@@ -14,14 +14,14 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [t](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/t__bbe159f8-5b9f-4b54-aa51-36d94bab4683) | user562x | Console | — |
 | [t](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/t__eb9e1258-2704-4f27-ae8a-ac3d34541fb9) | user562x | Console | — |
 | [TABEPHA BOPOH CEBEPA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BOPOH-CEBEPA/TABEPHA-BOPOH-CEBEPA__4076) | BOPOH CEBEPA | PC / Mac | 1.0 |
-| [Tactical Display (WIP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/moo_2021/Tactical-Display-WIP__5048) | moo_2021 | PC / Mac | 0.3.1 |
+| [Tactical Display (WIP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/moo_2021/Tactical-Display-WIP__5048) | moo_2021 | PC / Mac | 0.4.0 |
 | [Tagarn's Hard Mode Reminders (In Development)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagarn/Tagarn-s-Hard-Mode-Reminders-In-Development__4310) | Tagarn | PC / Mac | 0.51 |
 | [Tagarn's Skill Point Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagarn/Tagarn-s-Skill-Point-Alerts__3989) | Tagarn | PC / Mac | 1.30 |
 | [Taichou's Icon Highlight](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VitorTaichou/Taichou-s-Icon-Highlight__4599) | VitorTaichou | PC / Mac | 1.1.0 |
 | [Take One](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mightyjo/Take-One__3076) | mightyjo | PC / Mac | 1.3.0 |
 | [Talk Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dicen9/Talk-Toggle__cda29292-5e10-4045-9219-10ff1a9444fe) | dicen9 | Console | — |
 | [Tamriel Ambulance](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheInfiniti352/Tamriel-Ambulance__3124) | TheInfiniti352 | PC / Mac | 1.2.11 |
-| [Tamriel Calendar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/Tamriel-Calendar__4357) | Soul_Hagans | PC / Mac | 2.4.0 |
+| [Tamriel Calendar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/Tamriel-Calendar__4357) | Soul_Hagans | PC / Mac | 2.4.1 |
 | [Tamriel Chronos - Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gandalf/Tamriel-Chronos---Clock__3348) | Gandalf | PC / Mac | 20101 |
 | [Tamriel Collections - Archive Antiquities](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections---Archive-Antiquities__ce080e90-e198-4d6b-8b7e-19c933c02e6e) | MajesticMinxi | Console | — |
 | [Tamriel Collections - Archive Furnishing Plans](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections---Archive-Furnishing-Plans__8e8983cd-c304-4a89-b625-ec8c4560820d) | MajesticMinxi | Console | — |

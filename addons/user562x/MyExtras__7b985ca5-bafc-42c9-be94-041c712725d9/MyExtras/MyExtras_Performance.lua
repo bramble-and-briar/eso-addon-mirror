@@ -12,7 +12,6 @@ local MOVE_SPEED  = 500
 local SCALE_SPEED = 10
 local SIZE_MIN    = 14
 local SIZE_MAX    = 48
-local MOVE_SCENE  = "MyExtras_PerformanceMove"
 local BOX_PAD_X   = 0.45
 local BOX_PAD_Y   = 0.2
 local BOX_CORNER  = 0.35
@@ -263,145 +262,55 @@ end
 --------------------------------------------------
 -- Move
 --------------------------------------------------
-PF.mover = {}
-
-function PF.mover:UpdateDirectionalInput(deltaS)
-    local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK)
-    if x ~= 0 or y ~= 0 then
-        PF:SetPosition(PF.moveX + x * MOVE_SPEED * deltaS, PF.moveY - y * MOVE_SPEED * deltaS)
-    end
-    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(stretchX) > math.abs(scaleY) then
-        PF:SetStretch(PF.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
-    elseif scaleY ~= 0 then
-        PF:SetScale(PF.moveSize + scaleY * SCALE_SPEED * deltaS)
-    end
-end
-
-PF.moveKeybinds = {
-    alignment = KEYBIND_STRIP_ALIGN_CENTER,
-    {
-        name     = "Save",
-        keybind  = "UI_SHORTCUT_PRIMARY",
-        callback = function() PF:EndMove(true) end,
-    },
-    {
-        name     = "Default",
-        keybind  = "UI_SHORTCUT_TERTIARY",
-        callback = function() PF:MoveToDefault() end,
-    },
-    {
-        name     = "Cancel",
-        keybind  = "UI_SHORTCUT_NEGATIVE",
-        callback = function() PF:EndMove(false) end,
-    },
-}
-
-function PF:SetPosition(x, y)
-    local screenW, screenH = GuiRoot:GetDimensions()
-    self.moveX = zo_clamp(x, 0, screenW)
-    self.moveY = zo_clamp(y, 0, screenH)
-    local sv = SV()
-    sv.perfPosX = zo_floor(self.moveX + 0.5)
-    sv.perfPosY = zo_floor(self.moveY + 0.5)
-    self:ApplyPosition()
-end
-
-function PF:SetScale(size)
-    self.moveSize = zo_clamp(size, SIZE_MIN, SIZE_MAX)
-    local rounded = zo_floor(self.moveSize + 0.5)
-    local sv = SV()
-    if sv.perfSize ~= rounded then
-        sv.perfSize = rounded
-        self:Render(true)
-    end
-end
-
-function PF:SetStretch(value)
-    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
-    local rounded = zo_floor(self.moveStretch + 0.5)
-    local sv = SV()
-    if sv.perfStretch ~= rounded then sv.perfStretch = rounded end
-    ME:ApplyStretch(self.panel, rounded)
-end
-
-function PF:MoveToDefault()
-    self:SetStretch(100)
-    self:SetScale(DEFAULTS.perfSize)
-    self:SetPosition(DEFAULTS.perfPosX, DEFAULTS.perfPosY)
-end
-
-function PF:GetMoveScene()
-    if self.moveScene then return self.moveScene end
-    local scene = ZO_Scene:New(MOVE_SCENE, SCENE_MANAGER)
-    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_NO_KEYBIND_BACKGROUND_WINDOW)
-    ME:AddPlacementFragments(scene)
-    scene:RegisterCallback("StateChange", function(oldState, newState)
-        if newState == SCENE_SHOWING then
-            PF:OnMoveShowing()
-        elseif newState == SCENE_HIDDEN then
-            PF:OnMoveHidden()
-        end
-    end)
-    self.moveScene = scene
-    return scene
-end
-
 function PF:StartMove()
     if self.moving then return end
     self.movePreview = self.preview
-    self.moveSaved = false
     self.moving = true
-    self:GetMoveScene()
-    SCENE_MANAGER:Push(MOVE_SCENE)
-end
-
-function PF:OnMoveShowing()
-    local sv = SV()
-    self.moving = true
-    ME:RaiseWhilePlacing({ self.panel }, true)
-    self.moveStartX, self.moveStartY = sv.perfPosX, sv.perfPosY
-    self.moveStartSize = sv.perfSize
-    self.moveX, self.moveY = sv.perfPosX, sv.perfPosY
-    self.moveSize = sv.perfSize
-    self.moveStartStretch = sv.perfStretch or 100
-    self.moveStretch = sv.perfStretch or 100
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
-    DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
-    ME:SetPlacing(true)
-    self:Render(true)
-    self:UpdateVisibility()
-end
-
-function PF:OnMoveHidden()
-    DIRECTIONAL_INPUT:Deactivate(self.mover)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
-    if not self.moveSaved then
-        self:SetScale(self.moveStartSize)
-        self:SetStretch(self.moveStartStretch)
-        self:SetPosition(self.moveStartX, self.moveStartY)
-    end
-    self.moving = false
-    ME:RaiseWhilePlacing({ self.panel }, false)
-    ME:SetPlacing(false)
-    if self.movePreview then
-        self.movePreview = false
-        self:SetPreview(true)
-    else
-        self:Render(true)
-        self:UpdateVisibility()
-    end
-end
-
-function PF:EndMove(save)
-    if not self.moving then return end
-    self.moveSaved = save == true
-    if save then
-        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
-    else
-        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
-    end
-    SCENE_MANAGER:HideCurrentScene()
+    local started = LibUser562:StartMove({
+        controls    = { self.panel },
+        moveSpeed   = MOVE_SPEED,
+        scaleSpeed  = SCALE_SPEED,
+        sizeMin     = SIZE_MIN,
+        sizeMax     = SIZE_MAX,
+        defaults    = {
+            x    = DEFAULTS.perfPosX,
+            y    = DEFAULTS.perfPosY,
+            size = DEFAULTS.perfSize,
+        },
+        getPosition = function() return SV().perfPosX, SV().perfPosY end,
+        setPosition = function(x, y)
+            local sv = SV()
+            sv.perfPosX, sv.perfPosY = x, y
+            PF:ApplyPosition()
+        end,
+        getSize    = function() return SV().perfSize end,
+        setSize    = function(size)
+            SV().perfSize = size
+            PF:Render(true)
+        end,
+        getStretch = function() return SV().perfStretch or 100 end,
+        setStretch = function(percent)
+            SV().perfStretch = percent
+            ME:ApplyStretch(PF.panel, percent)
+        end,
+        onShow = function()
+            ME:SetPlacing(true)
+            PF:Render(true)
+            PF:UpdateVisibility()
+        end,
+        onHide = function()
+            PF.moving = false
+            ME:SetPlacing(false)
+            if PF.movePreview then
+                PF.movePreview = false
+                PF:SetPreview(true)
+            else
+                PF:Render(true)
+                PF:UpdateVisibility()
+            end
+        end,
+    })
+    if not started then self.moving = false end
 end
 
 --------------------------------------------------
@@ -489,11 +398,12 @@ function PF:GetOptions()
                 {
                     type    = "submenu",
                     name    = "Appearance",
-                    tooltip = "Colors, font and background for your frame rate and ping.",
+                    tooltip = "Font, colors and background for your frame rate and ping.",
                     options = {
                         {
                             type    = "dropdown",
                             name    = "Font",
+                            tooltip = "Some fonts look bigger or smaller than others. Default is Gamepad Medium.",
                             choices = ME.FONT_CHOICES,
                             default = DEFAULTS.perfFont,
                             sample  = Sample,
@@ -505,7 +415,7 @@ function PF:GetOptions()
                         },
                         {
                             type    = "toggle",
-                            name    = "Color by Value",
+                            name    = "Color By Value",
                             preset  = "YES_NO",
                             default = DEFAULTS.perfColorByValue,
                             tooltip = "Colors each number by how good it is.",

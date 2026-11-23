@@ -1,4 +1,5 @@
 Verdant = Verdant or {}
+local Verdant = Verdant
 Verdant.Visibility = {}
 local M = Verdant.Visibility
 
@@ -6,28 +7,24 @@ local Scene = Verdant.zenimax.scene
 local SCENE_SHOWN = Scene.SCENE_SHOWN
 local log = Verdant.Log.for_module("visibility")
 local in_hud = true
-local user_visible = { bar = false, graph = false }
-local bar_enabled = true
+local user_visible = { graph = false }
 local restore = {}
 local AUX_WINDOWS = { "VerdantSettingsPanel", "VerdantLibrary", "VerdantAssignPanel", "VerdantWatchOverlay" }
 
 
 local graph_shown = false
+local listeners = {}
+local hud_watchers = {}
 
 local function apply()
-  if VerdantBarWindow then
-    VerdantBarWindow:SetHidden(not (in_hud and user_visible.bar and bar_enabled))
-  end
   if VerdantGraphWindow then
     local show = in_hud and user_visible.graph
     VerdantGraphWindow:SetHidden(not show)
+    if not show and Verdant.Graph and Verdant.Graph.record_panel_close then Verdant.Graph.record_panel_close() end
     if show and not graph_shown and Verdant.Graph and Verdant.Graph.on_shown then
       Verdant.Graph.on_shown()
     end
     graph_shown = show
-  end
-  if VerdantGraphWindowBarBtn then
-    VerdantGraphWindowBarBtn:SetHidden(not bar_enabled)
   end
   for _, name in ipairs(AUX_WINDOWS) do
     local win = _G[name]
@@ -46,62 +43,37 @@ local function apply()
   if Verdant.Logo then
     Verdant.Logo.sync(in_hud and not user_visible.graph)
   end
+  for i = 1, #hud_watchers do hud_watchers[i](in_hud) end
+end
+
+function M.watch_hud(fn)
+  hud_watchers[#hud_watchers + 1] = fn
+  fn(in_hud)
 end
 
 local function persist()
   local sv = Verdant.SavedVars
   if not sv then return end
-  sv.bar      = sv.bar      or {} ; sv.bar.visible      = user_visible.bar
-  sv.bar.enabled = bar_enabled
   sv.temporal = sv.temporal or {} ; sv.temporal.visible = user_visible.graph
 end
 
 function M.set(key, visible)
-  if key == "bar" and visible and not bar_enabled then return end
   if user_visible[key] == visible then return end
   log:info("set", key, "->", visible and "visible" or "hidden")
   user_visible[key] = visible
   apply()
   persist()
+  for i = 1, #listeners do listeners[i](key, visible) end
 end
+
+function M.on_set(fn) listeners[#listeners + 1] = fn end
 
 function M.get(key) return user_visible[key] or false end
-
-function M.master_toggle()
-  if user_visible.bar or user_visible.graph then
-    log:info("master_toggle: hiding all")
-    user_visible.bar    = false
-    user_visible.graph  = false
-  else
-    if bar_enabled then
-      log:info("master_toggle: showing bar")
-      user_visible.bar = true
-    else
-      log:info("master_toggle: bars disabled, showing graph")
-      user_visible.graph = true
-    end
-  end
-  apply()
-  persist()
-end
-
-function M.set_bar_enabled(enabled)
-  if bar_enabled == enabled then return end
-  log:info("bar_enabled ->", enabled and "on" or "off")
-  bar_enabled = enabled
-  if enabled then user_visible.bar = true end
-  apply()
-  persist()
-end
-
-function M.is_bar_enabled() return bar_enabled end
 
 function M.init()
   local sv = Verdant.SavedVars
   if sv then
-    user_visible.bar   = (sv.bar      and sv.bar.visible)      or false
     user_visible.graph = (sv.temporal and sv.temporal.visible) or false
-    if sv.bar and sv.bar.enabled ~= nil then bar_enabled = sv.bar.enabled end
   end
 
   Scene.register_callback("SceneStateChanged",

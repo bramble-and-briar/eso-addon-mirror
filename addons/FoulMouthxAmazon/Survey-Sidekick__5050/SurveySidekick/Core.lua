@@ -5,15 +5,14 @@ local math, string, table = math, string, table
 local EVENT_MANAGER, SLASH_COMMANDS = EVENT_MANAGER, SLASH_COMMANDS
 local BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK = BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK
 local EVENT_ADD_ON_LOADED = EVENT_ADD_ON_LOADED
-local LINK_STYLE_DEFAULT, SI_TOOLTIP_ITEM_NAME = LINK_STYLE_DEFAULT, SI_TOOLTIP_ITEM_NAME
-local SPECIALIZED_ITEMTYPE_TROPHY_SURVEY_REPORT = SPECIALIZED_ITEMTYPE_TROPHY_SURVEY_REPORT
-local GetBagSize, GetItemInfo, GetItemLink = GetBagSize, GetItemInfo, GetItemLink
-local GetItemLinkItemId, GetItemLinkItemType, GetItemLinkName = GetItemLinkItemId, GetItemLinkItemType, GetItemLinkName
+local SI_TOOLTIP_ITEM_NAME = SI_TOOLTIP_ITEM_NAME
+local GetItemLinkItemType, GetItemLinkName = GetItemLinkItemType, GetItemLinkName
 local GetFrameTimeSeconds, GetTimeStamp = GetFrameTimeSeconds, GetTimeStamp
 local zo_callLater, zo_strformat, zo_strlower = zo_callLater, zo_strformat, zo_strlower
 
-SurveySidekick = {name = "SurveySidekick", version = "0.2.3-beta"}
+SurveySidekick = {name = "SurveySidekick", version = "0.6.0"}
 local S = SurveySidekick
+local function T(...) return S.Text(...) end
 S.Model = {}
 local M = S.Model
 local Q = SurveySidekickQuantityFilter
@@ -33,6 +32,22 @@ function M.Classify(run,id,quantity,bucket)
     mat[bucket]=(mat[bucket] or 0)+quantity
     run.breakdown[bucket]=(run.breakdown[bucket] or 0)+quantity
     run.pending=math.max(0,(run.pending or 0)-quantity)
+end
+function M.AddLoot(run,id,link,name,quantity)
+    if not run or not run.running or type(quantity)~="number" or quantity~=quantity
+        or quantity<=0 or quantity==math.huge then return false end
+    run.loot=run.loot or {}
+    local key=link or tostring(id)
+    local item=run.loot[key]
+    if not item then item={id=id,link=link,name=name,count=0};run.loot[key]=item end
+    item.count=item.count+quantity
+    run.lootTotal=(run.lootTotal or 0)+quantity
+    return true
+end
+function S.SortedLoot(run)
+    local rows={};for _,item in pairs(run and run.loot or {})do rows[#rows+1]=item end
+    table.sort(rows,function(a,b)return S.MaterialName(a)<S.MaterialName(b)end)
+    return rows
 end
 function M.Migrate(run)
     -- Preserve old totals; historical loot cannot be reconstructed into node-sized pulls.
@@ -61,7 +76,7 @@ end
 function S.Link(id)
     return string.format("|H1:item:%d:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",id)
 end
-function S.Say(text) d("|c68D9DBSurvey Sidekick|r: "..text) end
+function S.Say(text) d("|c68D9DBSurvey Sidekick|r: "..T(text)) end
 function S.Clean(text)
     return (tostring(text or ""):gsub("|c%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("[\t\r\n]", " "))
 end
@@ -87,61 +102,58 @@ function S.Craft(pin)
     return "Other"
 end
 function S.BuildLocations()
-    S.locations={}
+    S.locations={};S.treasureLocations={}
     if not LibTreasure_GetAllItemsData then return end
-    local data=LibTreasure_GetAllItemsData()
     local chosen={}
-    for id,pin in pairs(data) do if pin.pinType=="survey" then chosen[id]=pin end end
-    -- Walk the map catalog once, rather than once per survey.
+    local function remember(id,pin)
+        if pin.pinType=="survey" or pin.pinType=="treasure" then chosen[id]=pin end
+    end
+    for id,pin in pairs(LibTreasure_GetAllItemsData())do remember(id,pin)end
+    -- Prefer zone-map records for both surveys and treasure maps.
     if LibTreasure_GetMapIdData then
-        for index=1,GetNumMaps() do
+        for index=1,GetNumMaps()do
             local mapId=GetMapIdByIndex(index)
             local _,kind=GetMapInfoById(mapId)
             if kind==MAPTYPE_ZONE then
-                for _,pin in ipairs(LibTreasure_GetMapIdData(mapId) or {}) do
-                    if pin.pinType=="survey" then chosen[pin.itemId]=pin end
-                end
+                for _,pin in ipairs(LibTreasure_GetMapIdData(mapId) or {})do remember(pin.itemId,pin)end
             end
         end
     end
-    for id,pin in pairs(chosen) do
-        S.locations[id]={id=id,mapId=pin.mapId,x=pin.x,y=pin.y,zone=GetMapNameById(pin.mapId),craft=S.Craft(pin)}
+    for id,pin in pairs(chosen)do
+        if type(pin.mapId)=="number" and type(pin.x)=="number" and type(pin.y)=="number"
+            and pin.x>=0 and pin.x<=1 and pin.y>=0 and pin.y<=1 then
+            local location={id=id,mapId=pin.mapId,x=pin.x,y=pin.y,zone=GetMapNameById(pin.mapId)}
+            if pin.pinType=="survey" then
+                location.craft=S.Craft(pin);S.locations[id]=location
+            else S.treasureLocations[id]=location end
+        end
     end
 end
 function S.Scan()
-    local items={}
-    for slot=0,GetBagSize(BAG_BACKPACK)-1 do
-        local link=GetItemLink(BAG_BACKPACK,slot,LINK_STYLE_DEFAULT)
-        if link~="" then
-            local _,special=GetItemLinkItemType(link)
-            if special==SPECIALIZED_ITEMTYPE_TROPHY_SURVEY_REPORT then
-                local id=GetItemLinkItemId(link);local _,count=GetItemInfo(BAG_BACKPACK,slot)
-                if not items[id] then
-                    local loc=S.locations[id]
-                    items[id]={id=id,link=link,name=zo_strformat(SI_TOOLTIP_ITEM_NAME,GetItemLinkName(link)),count=0,
-                        zone=loc and loc.zone or "Location unavailable",craft=loc and loc.craft or "Other"}
-                end
-                items[id].count=items[id].count+count
-            end
-        end
+    local backpack=S.ReadMapBag(BAG_BACKPACK)
+    local surveys,treasures={},{}
+    for id,item in pairs(backpack)do
+        if item.kind=="survey" then
+            local loc=S.locations[id]
+            item.zone=item.unidentified and "Unidentified / Unopened" or (loc and loc.zone or "Location unavailable")
+            item.craft=item.craft or (loc and loc.craft or "Other")
+            surveys[id]=item
+        else treasures[id]=item end
     end
-    S.inventory=items
+    S.inventory=surveys;S.treasureInventory=treasures
     if IsBankOpen() then
-        local bank={}
-        for _,bag in ipairs({BAG_BANK,BAG_SUBSCRIBER_BANK}) do
-            for slot=0,GetBagSize(bag)-1 do
-                local link=GetItemLink(bag,slot,LINK_STYLE_DEFAULT)
-                if link~="" then
-                    local _,special=GetItemLinkItemType(link)
-                    if special==SPECIALIZED_ITEMTYPE_TROPHY_SURVEY_REPORT then
-                        local id=GetItemLinkItemId(link);local _,count=GetItemInfo(bag,slot)
-                        bank[id]=(bank[id] or 0)+count
-                    end
-                end
+        local bankItems,bankSurveys={},{}
+        for _,bag in ipairs({BAG_BANK,BAG_SUBSCRIBER_BANK})do
+            for id,item in pairs(S.ReadMapBag(bag))do
+                if bankItems[id] then bankItems[id].count=bankItems[id].count+item.count
+                else bankItems[id]=item end
+                if item.kind=="survey" then bankSurveys[id]=(bankSurveys[id] or 0)+item.count end
             end
         end
-        S.db.bank=bank;S.db.bankSeen=GetTimeStamp()
+        S.db.bankItems=bankItems;S.db.bank=bankSurveys;S.db.bankSeen=GetTimeStamp()
     end
+    if S.RenderDetours then S.RenderDetours()end
+    if S.RenderCatalog then S.RenderCatalog()end
     S.Refresh()
 end
 function S.QueueScan()
@@ -178,7 +190,7 @@ function S.EndRun()
     table.insert(S.db.history,1,run)
     while #S.db.history>30 do table.remove(S.db.history) end
     S.character.run=nil;S.reportIndex=1
-    S.Say("The Hoard Report is ready: "..run.total.." materials, "..S.Time(run.seconds)..".")
+    S.Say(T("The Hoard Report is ready: %d materials, %s.",run.total,S.Time(run.seconds)))
     if #run.newRecords>0 then S.Say("New personal record! Your hoard is getting out of hand.");S.Ping() end
     S.tab="report";S.Refresh()
 end
@@ -198,19 +210,19 @@ end
 function S.Value(materials)
     local value,unpriced=0,0
     for id,v in pairs(materials) do
-        local price=S.UnitPrice(id,v.link)
+        local price=S.UnitPrice(v.id or id,v.link)
         if price then value=value+price*v.count else unpriced=unpriced+v.count end
     end
     return value,unpriced
 end
 function S.Report(run,tsv)
-    if not run then return "No report yet. Start a run and go claim your hoard." end
+    if not run then return T("No report yet. Start a run and go claim your hoard.") end
     local value,unpriced=S.Value(run.materials)
     local b=run.breakdown or {regular=0,survey=0,other=run.total}
-    local rows={"THE HOARD REPORT","Materials looted: "..run.total.." | Active time: "..S.Time(run.seconds),
-        "Regular-sized: "..b.regular.." | Survey/Large: "..b.survey.." | Other: "..b.other,
+    local rows={T("THE HOARD REPORT"),T("Materials looted: %d | Active time: %s",run.total,S.Time(run.seconds)),
+        T("Regular-sized: %d | Survey/Large: %d | Other: %d",b.regular,b.survey,b.other),
         "Survey/Large is an estimate and may include other unusually large material drops.",
-        string.format("Estimated value: %.0fg | Unpriced items: %d (not included)",value,unpriced),
+        T("Estimated value: %.0fg | Unpriced items: %d (not included)",value,unpriced),
         "Values use current TTC suggestions/averages or manual prices; not guaranteed sale proceeds.",""}
     if run.legacyClassification then rows[#rows+1]="Older/unresolved loot is kept under Other; the original split is unavailable." end
     if tsv then rows[#rows+1]="Item ID\tMaterial\tQuantity\tRegular-sized\tSurvey/Large\tOther\tUnit estimate\tTotal estimate" end
@@ -219,12 +231,24 @@ function S.Report(run,tsv)
     for _,v in ipairs(sorted)do
         local p=S.UnitPrice(v.id,v.link)
         if tsv then
-            rows[#rows+1]=table.concat({v.id,S.Clean(v.name),v.count,v.regular or 0,v.survey or 0,v.other or v.count,p or "",p and string.format("%.0f",p*v.count) or ""},"\t")
+            rows[#rows+1]=table.concat({v.id,S.Clean(S.MaterialName(v)),v.count,v.regular or 0,v.survey or 0,v.other or v.count,p or "",p and string.format("%.0f",p*v.count) or ""},"\t")
         else
-            rows[#rows+1]=v.name.." x"..v.count.." | Regular "..(v.regular or 0).." / Survey-Large "..(v.survey or 0).." / Other "..(v.other or v.count)
+            rows[#rows+1]=T("%s x%d | Regular %d / Survey-Large %d / Other %d",S.MaterialName(v),v.count,v.regular or 0,v.survey or 0,v.other or v.count)
         end
     end
-    rows[#rows+1]="";rows[#rows+1]="PERSONAL RECORD: "..(S.db.records.haul or 0).." materials in one run"
+    if run.loot and next(run.loot) then
+        local lootValue,lootMissing=S.Value(run.loot)
+        rows[#rows+1]="";rows[#rows+1]=T("OTHER LOOT")
+        rows[#rows+1]=T("Estimated value: %.0fg | Unpriced items: %d (not included)",lootValue,lootMissing)
+        if tsv then rows[#rows+1]="Item ID\tItem\tQuantity\tUnit estimate\tTotal estimate"end
+        for _,item in ipairs(S.SortedLoot(run))do
+            local price=S.UnitPrice(item.id,item.link)
+            rows[#rows+1]=tsv and table.concat({item.id,S.Clean(S.MaterialName(item)),item.count,price or "",price and string.format("%.0f",price*item.count) or ""},"\t")
+                or (S.MaterialName(item).." x"..item.count)
+        end
+    end
+    rows[#rows+1]="";rows[#rows+1]=T("PERSONAL RECORD: %d materials in one run",S.db.records.haul or 0)
+    for i,row in ipairs(rows)do rows[i]=T(row)end
     return table.concat(rows,"\n")
 end
 S.GoalCrafts={"Alchemy","Blacksmithing","Clothing","Enchanting","Jewelry","Woodworking","Other materials"}
@@ -301,8 +325,11 @@ function S.Loot(_,receivedBy,itemName,quantity,soundCategory,lootType,isSelf,isP
     if not run or not run.running or not isSelf or not itemId or itemId<=0 then return end
     local link=itemName and itemName:find("|H",1,true) and itemName or S.Link(itemId)
     local kind=GetItemLinkItemType(link)
-    if not S.materialTypes[kind] then return end
     local name=zo_strformat(SI_TOOLTIP_ITEM_NAME,GetItemLinkName(link))
+    if not S.materialTypes[kind] then
+        if M.AddLoot(run,itemId,link,name,quantity)then S.Refresh()end
+        return
+    end
     S.RegisterGoalMaterial(itemId,link,name)
     if M.AddMaterial(run,itemId,link,name,quantity) then
         local category=Q.Category(kind,name)
@@ -317,7 +344,7 @@ function S.Loot(_,receivedBy,itemName,quantity,soundCategory,lootType,isSelf,isP
         end
         local current,target=M.GoalProgress(run)
         if target>0 and current>=target and not run.goal.announced then
-            run.goal.announced=true;S.Say("Material goal reached: "..(run.goal.name or name).." x"..target.."!");S.Ping()
+            run.goal.announced=true;S.Say(T("Material goal reached: %s x%d!",S.MaterialName({id=run.goal.id,name=run.goal.name or name}),target));S.Ping()
         end
         S.Refresh()
     end
@@ -338,14 +365,29 @@ function S.Command(args)
         local id,price=tail:match("^(%d+)%s+([%d%.]+)$");id,price=tonumber(id),tonumber(price)
         if id and price and price>=0 then S.db.prices[id]=price>0 and price or nil;S.Say("Manual price updated.");S.Refresh()
         else S.Say("/surveys price ITEM_ID GOLD_EACH (0 clears it).") end
+    elseif cmd=="journal" then S.OpenJournal()
+    elseif cmd=="inventory" then S.ShowCatalog()
+    elseif cmd=="detour" then S.ShowDetours()
+    elseif cmd=="compare" then S.ShowAccountant()
     elseif cmd=="colors" then S.ShowAppearance()
+    elseif cmd=="opacity" then S.SetOpacityPercent(tail)
+    elseif cmd=="buttons" then S.SetButtonOpacityPercent(tail)
     elseif cmd=="scale" then S.SetScalePercent(tail)
-    elseif cmd=="help" then S.ShowExport(S.Help())
+    elseif cmd=="help" then S.ShowExport(S.Help(),"Survey Sidekick Help")
     elseif cmd=="" then S.SetWindowVisible(S.ui:IsHidden());S.Scan()
     else S.Say("Use /surveys help for commands.") end
 end
+function S.MaterialName(material)
+    local link=material.link or (material.id and S.Link(material.id))
+    local name=link and GetItemLinkName(link)
+    if name and name~="" then return zo_strformat(SI_TOOLTIP_ITEM_NAME,name)end
+    return material.name or tostring(material.id or "")
+end
 function S.Help()
-    return "SURVEY SIDEKICK — HOW TO USE\n\nSTART A GATHERING RUN\n1. Type /surveys to open the window.\n2. Open Current Run and click Start / Resume.\n3. Gather materials. Your quantities and timer update automatically.\n4. Click Pause for a break; Start / Resume continues the same run.\n5. Click Finish Run to save your results in The Hoard Report.\n\nSET A COLLECTION GOAL\nIn Current Run, choose a Survey Type, choose a material by name, enter the quantity you want, then click Set Goal. Progress includes that material already gathered during the current run. You will get a message and sound when you reach the target.\n\nFIND AND TRAVEL TO SURVEYS\nPut your surveys in your backpack. In My Surveys, select a survey from the list. Survey Type beside The Hoard Report cycles through the crafting types.\n• Map icon: open the survey map and place a waypoint.\n• Wayshrine icon: travel to its closest unlocked wayshrine. Normal travel costs apply.\n• Gold coin: preview the destination and recall quote without traveling.\n• Circular arrow: refresh the list and duplicate counts. The list also updates automatically.\nLibTreasure is needed for survey locations and travel. Bank counts are refreshed while your bank is open.\n\nREAD AND COPY YOUR RESULTS\nFinish a run, then open The Hoard Report. Newer / Older browse saved runs. Copy Summary opens a short message to copy; Export Details opens the full list. Click the text and use Ctrl+A, then Ctrl+C. Nothing is sent automatically. Price estimates appear when price data is available.\n\nWINDOW CONTROLS\nClick Colors in the title bar or type /surveys colors to choose a preset, background, title bar and border colors. Changes apply instantly and save for this character. Reset Colors restores Plum.\nMinus minimizes to a live tracker bar. Plus restores the full window. Gathering keeps counting while minimized. Close hides the window; /surveys reopens it. Its position and open/closed state are remembered. Hover over buttons for their descriptions.\nUse /surveys scale 70 for a smaller window, or /surveys scale 80 for the default.\n\nCOMMANDS\n/surveys — open or close\n/surveys start — start or resume\n/surveys pause — pause\n/surveys finish — save the run\n/surveys goal — open collection setup\n/surveyport — travel to the selected survey\n/surveys help — show this guide\n\nAfter /reloadui or login, click Start / Resume to continue a saved run."
+    if S.journalUtilityMode then
+        return "SURVEYS & MAPS\nClick the map icon, then a zone to see your surveys and treasure maps. Filter by item type, storage or survey type. Select an item to use Hint, Open, Map Pin, cost preview or travel when available. Withdraw bank-only items before opening or traveling. Open unidentified containers from your backpack.\n\nCURRENT RUN\nClick the bag icon. Play starts or resumes tracking. Pause pauses it. Stop finishes and saves the run. Choose a material and quantity to set a gathering goal. Other Loot includes item drops collected while your run is active, including treasure-chest items.\n\nTHE HOARD REPORT\nClick the book icon to view saved runs, material totals and Other Loot. Use the arrows for older/newer reports, Copy or Export for shareable text, or Compare Runs for the Petty Accountant. Gold values and survey classifications are estimates.\n\nTREASURE DETOUR\nSelect a survey to see carried treasure maps for the same zone.\n\nUse Back to return from a page, or ESO's Exit control to leave Extended Journal."
+    end
+    return T("CLEANUP_HELP").."\n\n"..T("DETOUR_ACCOUNTANT_HELP").."\n\n"..T("HINT_OPEN_HELP")
 end
 function S.Init(_,name)
     if name~=S.name then return end
@@ -356,10 +398,12 @@ function S.Init(_,name)
     if S.character.visit then S.character.legacyVisit=S.character.visit;S.character.visit=nil end
     M.Migrate(S.character.run)
     for _,run in ipairs(S.db.history)do M.Migrate(run)end
-    S.tab="surveys";S.craftFilter="All";S.reportIndex=1
-    S.BuildLocations();S.BuildGoalCatalog();S.Scan();S.CreateUI()
+    S.tab=({surveys=true,run=true,report=true})[S.character.lastTab] and S.character.lastTab or "surveys"
+    S.craftFilter=({All=true,Blacksmithing=true,Clothing=true,Woodworking=true,Alchemy=true,Enchanting=true,Jewelry=true,Other=true})[S.character.craftFilter] and S.character.craftFilter or "All"
+    S.reportIndex=1
+    S.BuildLocations();S.BuildGoalCatalog();S.Scan();S.CreateUI();S.RegisterJournal()
     SLASH_COMMANDS["/surveys"]=S.Command
-    SLASH_COMMANDS["/surveyport"]=function()S.Travel(false)end
+    SLASH_COMMANDS["/surveyport"]=function()S.TravelCatalog(false)end
     EVENT_MANAGER:RegisterForEvent(S.name,EVENT_LOOT_RECEIVED,S.Loot)
     EVENT_MANAGER:RegisterForEvent(S.name,EVENT_INVENTORY_SINGLE_SLOT_UPDATE,function(_,bag)if bag==BAG_BACKPACK or bag==BAG_BANK or bag==BAG_SUBSCRIBER_BANK then S.QueueScan()end end)
     EVENT_MANAGER:RegisterForEvent(S.name,EVENT_OPEN_BANK,S.QueueScan)

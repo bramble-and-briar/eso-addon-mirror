@@ -1,0 +1,25 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name = "|cff9900Mark Trial Helper|r">
+             <Action name="MARKCHIVE_MARK_CURRENT_TARGET">
+                <Down>MarkTrialHelper.MarkCurrentTarget()</Down>
+            </Action>
+            <Action name="MARKCHIVE_UNMARK_CURRENT_TARGET">
+                <Down>MarkTrialHelper.UnmarkCurrentTarget()</Down>
+            </Action>
+            <Action name="MARKCHIVE_TOGGLE_CROSSING_HELPER">
+                <Down>MarkTrialHelper.ToggleCrossingHelper()</Down>
+            </Action>
+            <Action name="MARKCHIVE_ADD_PRIORITY_MOB">
+                <Down>MarkTrialHelper.AddPriorityMob(1)</Down>
+            </Action>
+            <Action name="MARKCHIVE_DEL_PRIORITY_MOB">
+                <Down>MarkTrialHelper.RemovePriorityMob()</Down>
+            </Action>
+            <Action name="MARKTRIALHELPER_SKYSHARD_ROUTE">
+                <Down>MarkTrialHelper.StartSkyshardRoute()</Down>
+            </Action>
+            <Action name="MARKTRIALHELPER_SKYSHARD_NEXT"><Down>MarkTrialHelper.NextSkyshard()</Down></Action>
+        </Category>
+    </Layer>
+</Bindings>

@@ -41,7 +41,7 @@ function GS:BuildEmpire(force)
                 if type(value)=="number" then
                     cat.value=cat.value+value
                     cat.items=cat.items+qty
-                    local name=get(GetItemLinkName,link) or link
+                    local name=GS:CleanName(get(GetItemLinkName,link)) or link
                     r.assets[#r.assets+1]={link=link,name=name,qty=qty,value=value,category=title}
                 else
                     cat.unpriced=cat.unpriced+1
@@ -184,7 +184,7 @@ function GS:EmpirePageRows(page)
         for i=1,6 do
             local a=holdings[i]
             if a then
-                local name=get(GetItemLinkName,a.link) or a.link or "Item"
+                local name=GS:CleanName(get(GetItemLinkName,a.link)) or a.link or "Item"
                 rows[i+6]=i..". "..name.." x"..a.excess.."  "..GREEN..fmt(a.value)..END
             end
         end

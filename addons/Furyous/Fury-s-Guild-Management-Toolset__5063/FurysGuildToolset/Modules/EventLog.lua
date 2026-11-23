@@ -13,7 +13,7 @@ local EventLog = GT:RegisterModule("log", {})
 local MAX_ROWS_SHOWN = 2000
 
 EventLog.defaults = {
-    enabled = true,
+    enabled = false,   -- every feature starts off on a new install (Albert, 1.3.0)
     keepDays = 90,
     maxEntries = 20000,
     returnHours = 72,   -- a deposit of the same item by the same member within this time counts as a return
@@ -402,75 +402,85 @@ function EventLog:FilterSummary()
         RANGES[self.filter.rangeIndex] == 1 and "day" or "days", guildId and U.GuildName(guildId) or "all guilds")
 end
 
+function EventLog:TabRows()
+    local list = self:GetFiltered()
+    local rows = {}
+    if self.filter.view == "members" then
+        for _, m in ipairs(self:GetMemberTotals(list)) do
+            if #rows >= MAX_ROWS_SHOWN then break end
+            local back = ""
+            if m.returnedWhole + m.returnedPart > 0 then
+                back = string.format(" |c9FD49F(%d put back)|r", m.returnedWhole + m.returnedPart)
+            end
+            rows[#rows + 1] = GT.Report.AddMenu({
+                text = string.format("%s  |cAAAAAA%s|r  took %d stacks%s (%d items), gave %d items   gold out %s / in %s",
+                    m.who, U.GuildName(m.g), m.stacksOut, back, m.itemsOut, m.itemsIn, U.FormatGold(m.goldOut), U.FormatGold(m.goldIn)),
+                tooltip = string.format("Stacks put back whole: %d\nStacks put back partly used: %d\nRoster events: %d\nLast activity: %s",
+                    m.returnedWhole, m.returnedPart, m.roster, U.FormatDate(m.last)),
+            }, GT.Report.ContactItems(m.who))
+        end
+    else
+        local returns = self:GetReturns()
+        local showNone = self.filter.group == "items"
+        for _, e in ipairs(list) do
+            if #rows >= MAX_ROWS_SHOWN then break end
+            local tooltip = string.format("%s\n%s\n%s", Describe(e), U.GuildName(e.g), U.FormatDate(e.ts))
+            local r = returns.byEntry[e]
+            if e.t == "item_out" then
+                local state = EventLog.ReturnState(r)
+                if state == "whole" then
+                    tooltip = tooltip .. string.format("\n|c9FD49FPut back whole (%d) by %s|r", r.returned, U.FormatDate(r.lastTs))
+                elseif state == "partial" then
+                    tooltip = tooltip .. string.format("\n|cFFCC66Put back %d of %d by %s, %d used or kept|r", r.returned, r.taken,
+                        U.FormatDate(r.lastTs), r.taken - r.returned)
+                else
+                    tooltip = tooltip .. string.format("\nNot put back within %dh", GT:GuildSettings(self, e.g).returnHours)
+                end
+            elseif r then
+                tooltip = tooltip .. string.format("\nPut back %d of an earlier withdrawal", r.returnQty)
+            end
+            -- Right-click: whisper or mail whoever did it, and the member it was done to.
+            local items = GT.Report.ContactItems(e.who)
+            if e.target and e.target ~= e.who then
+                for _, item in ipairs(GT.Report.ContactItems(e.target)) do items[#items + 1] = item end
+            end
+            rows[#rows + 1] = GT.Report.AddMenu({
+                text = string.format("|cAAAAAA%s|r  %s  |cAAAAAA%s|r", U.FormatDate(e.ts), Describe(e, returns, showNone), U.GuildName(e.g)),
+                tooltip = tooltip,
+            }, items)
+        end
+    end
+    return rows
+end
+
+function EventLog:TabSummary()
+    local list = self:GetFiltered()
+    local count = (self.filter.view == "members") and (#self:GetMemberTotals(list) .. " members") or (#list .. " events")
+    if self.filter.group == "items" and self.filter.view ~= "members" then
+        local returns, taken, whole, part = self:GetReturns(), 0, 0, 0
+        for _, e in ipairs(list) do
+            if e.t == "item_out" then
+                taken = taken + 1
+                local state = EventLog.ReturnState(returns.byEntry[e])
+                if state == "whole" then whole = whole + 1 elseif state == "partial" then part = part + 1 end
+            end
+        end
+        count = string.format("%s (%d stacks taken, %d returned whole, %d partly, %d not returned)", count, taken, whole, part, taken - whole - part)
+    end
+    return string.format("%s: %s. Use the buttons below to filter.", self:FilterSummary(), count)
+end
+
 function EventLog:RegisterTab()
     GT.Report:RegisterTab({
         id = "log",
+            GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "The history log") end,
         tip = "Bank item, bank gold and roster events for all your guilds.",
         title = "History",
         searchable = true,
         searchText = self.sv.filter.search or "",
         OnSearchChanged = function(text) self.sv.filter.search = text end,
-        GetSummary = function()
-            local list = self:GetFiltered()
-            local count = (self.filter.view == "members") and (#self:GetMemberTotals(list) .. " members") or (#list .. " events")
-            if self.filter.group == "items" and self.filter.view ~= "members" then
-                local returns, taken, whole, part = self:GetReturns(), 0, 0, 0
-                for _, e in ipairs(list) do
-                    if e.t == "item_out" then
-                        taken = taken + 1
-                        local state = EventLog.ReturnState(returns.byEntry[e])
-                        if state == "whole" then whole = whole + 1 elseif state == "partial" then part = part + 1 end
-                    end
-                end
-                count = string.format("%s (%d stacks taken, %d returned whole, %d partly, %d not returned)", count, taken, whole, part, taken - whole - part)
-            end
-            return string.format("%s: %s. Use the buttons below to filter.", self:FilterSummary(), count)
-        end,
-        GetRows = function()
-            local list = self:GetFiltered()
-            local rows = {}
-            if self.filter.view == "members" then
-                for _, m in ipairs(self:GetMemberTotals(list)) do
-                    if #rows >= MAX_ROWS_SHOWN then break end
-                    local back = ""
-                    if m.returnedWhole + m.returnedPart > 0 then
-                        back = string.format(" |c9FD49F(%d put back)|r", m.returnedWhole + m.returnedPart)
-                    end
-                    rows[#rows + 1] = {
-                        text = string.format("%s  |cAAAAAA%s|r  took %d stacks%s (%d items), gave %d items   gold out %s / in %s",
-                            m.who, U.GuildName(m.g), m.stacksOut, back, m.itemsOut, m.itemsIn, U.FormatGold(m.goldOut), U.FormatGold(m.goldIn)),
-                        tooltip = string.format("Stacks put back whole: %d\nStacks put back partly used: %d\nRoster events: %d\nLast activity: %s",
-                            m.returnedWhole, m.returnedPart, m.roster, U.FormatDate(m.last)),
-                    }
-                end
-            else
-                local returns = self:GetReturns()
-                local showNone = self.filter.group == "items"
-                for _, e in ipairs(list) do
-                    if #rows >= MAX_ROWS_SHOWN then break end
-                    local tooltip = string.format("%s\n%s\n%s", Describe(e), U.GuildName(e.g), U.FormatDate(e.ts))
-                    local r = returns.byEntry[e]
-                    if e.t == "item_out" then
-                        local state = EventLog.ReturnState(r)
-                        if state == "whole" then
-                            tooltip = tooltip .. string.format("\n|c9FD49FPut back whole (%d) by %s|r", r.returned, U.FormatDate(r.lastTs))
-                        elseif state == "partial" then
-                            tooltip = tooltip .. string.format("\n|cFFCC66Put back %d of %d by %s, %d used or kept|r", r.returned, r.taken,
-                                U.FormatDate(r.lastTs), r.taken - r.returned)
-                        else
-                            tooltip = tooltip .. string.format("\nNot put back within %dh", GT:GuildSettings(self, e.g).returnHours)
-                        end
-                    elseif r then
-                        tooltip = tooltip .. string.format("\nPut back %d of an earlier withdrawal", r.returnQty)
-                    end
-                    rows[#rows + 1] = {
-                        text = string.format("|cAAAAAA%s|r  %s  |cAAAAAA%s|r", U.FormatDate(e.ts), Describe(e, returns, showNone), U.GuildName(e.g)),
-                        tooltip = tooltip,
-                    }
-                end
-            end
-            return rows
-        end,
+        GetSummary = function() return self:TabSummary() end,
+        GetRows = function() return self:TabRows() end,
         footer = function()
             local guildId = self:GetGuildFilter()
             return {

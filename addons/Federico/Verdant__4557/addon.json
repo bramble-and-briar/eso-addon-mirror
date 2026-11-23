@@ -8,6 +8,10 @@
   "category_id": "150",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -22,7 +26,7 @@
     "Verdant"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4557/",
-  "fingerprint": "bce44e1dd008097a83d1eef3236b70803b119ed403931051d278372885a6df3e",
+  "fingerprint": "ada8dd9c52362ecc22d638657004205aeaf955a96645f5d49ae157874191693a",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16234.png",
     "https://cdn-eso.mmoui.com/preview/pvw16239.png",
@@ -45,11 +49,11 @@
   "source_id": "4557",
   "source_url": "https://www.esoui.com/downloads/info4557-Verdant.html",
   "stats": {
-    "downloads": 304,
+    "downloads": 477,
     "favorites": 4,
-    "monthly_downloads": 75
+    "monthly_downloads": 85
   },
   "title": "Verdant",
-  "updated_at": 1788999613000,
-  "version": "2.6.0"
+  "updated_at": 1795400414000,
+  "version": "3.0.2"
 }

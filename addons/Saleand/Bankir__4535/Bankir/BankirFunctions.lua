@@ -400,7 +400,7 @@ end
 local function createProcessButton()
 	local name = "BankirProcessButtonWindow"
 	
-	wnd = WINDOW_MANAGER:CreateControl(name, GuiRoot, CT_TOPLEVELCONTROL)
+	local wnd = WINDOW_MANAGER:CreateControl(name, GuiRoot, CT_TOPLEVELCONTROL)
 	--setWindowSize()
 	wnd:SetClampedToScreenInsets(10)
 	if Bankir.SVCommon.processButtonPosition then
@@ -433,22 +433,22 @@ local function createProcessButton()
 	lbl:SetFont("ZoFontGameBold")
 	lbl:SetDrawLayer(1)
 	lbl:SetHorizontalAlignment(1)
+	--lbl:SetTexture("/esoui/art/cursors/cursor_pan.dds")
 	
 	local bg = WINDOW_MANAGER:CreateControl(name .. "Bg", wnd, CT_BACKDROP)
 	bg:SetAnchorFill(wnd)
-	bg:SetCenterColor(0, 0, 0, 1)
+	bg:SetCenterColor(0, 0, 0, 0.5)
 	bg:SetEdgeColor(0, 0, 0, 0)
 	
 	local btn = WINDOW_MANAGER:CreateControlFromVirtual(name .. "Button", wnd, "ZO_DefaultButton")
 	btn.title = GetString(BANKIR_START_QUEUE_MANUALLY)
 	btn:SetNormalTexture("/esoui/art/guild/gamepad/gp_guild_options_changeicon.dds")
-	--btn:SetPressedTexture("/esoui/art/guild/gamepad/gp_guild_options_changeicon.dds")
-	btn:SetState(B_STATE_DISABLED, false) -- B_STATE_NORMAL, B_STATE_HIGHLIGHTED, B_STATE_PRESSED, B_STATE_DISABLED
-	btn:SetMouseEnabled(false)
+	btn:SetDisabledTexture("/esoui/art/guild/gamepad/gp_guild_options_changeicon.dds")
+	btn:SetState(BSTATE_DISABLED, false) -- BSTATE_NORMAL, BSTATE_HIGHLIGHTED, BSTATE_PRESSED, BSTATE_DISABLED
 	btn:SetAlpha(0.5)
 	btn:SetWidth(48)
 	btn:SetHeight(48)
-	btn:SetAnchor(CENTER, wnd, CENTER, 0, 10)
+	btn:SetAnchor(TOPLEFT, wnd, TOPLEFT, 6, 26)
 	
 	wnd.button = btn
 	

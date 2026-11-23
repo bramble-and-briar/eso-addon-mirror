@@ -1,0 +1,11 @@
+## Title: WritPrice
+## Version: 52.19
+## AddOnVersion: 5219
+## APIVersion: 101051 101052
+## Description: Gives costs to writs.
+## Author: gamer_sa22
+## SavedVariables: WritPriceVars
+## DependsOn: TSCPriceFetcher2>=124 LibCharacterKnowledge>=300040 LibAlchemy>=18 LibLazyCrafting>=4042 LibHarvensAddonSettings>=20200
+
+main.lua
+

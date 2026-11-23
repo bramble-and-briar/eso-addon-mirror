@@ -147,7 +147,7 @@ function LeoAltholic.GetSortedCharList()
 end
 
 local function refreshSkillUI()
-    if LeoAltholicUI and LeoAltholicWindow and not LeoAltholicWindow:IsHidden() then
+    if LeoAltholicUI then
         if LeoAltholicUI.skillsList then
             LeoAltholicUI.skillsList:RefreshData()
             LeoAltholicUI.skillsList:RefreshFilters()
@@ -1287,12 +1287,21 @@ end
 
 local function onCloseBank(eventCode, bagId)
     EVENT_MANAGER:UnregisterForEvent(LeoAltholic.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    EVENT_MANAGER:UnregisterForEvent(LeoAltholic.name .. "_SubBank", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
 end
 
 local function onOpenBank(eventCode, bagId)
     if bagId ~= BAG_BANK and bagId ~= BAG_SUBSCRIBER_BANK or not LeoAltholic.globalData.settings.inventory.enabled then return end
+    
     EVENT_MANAGER:UnregisterForEvent(LeoAltholic.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    EVENT_MANAGER:UnregisterForEvent(LeoAltholic.name .. "_SubBank", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+
     EVENT_MANAGER:RegisterForEvent(LeoAltholic.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onUpdateBank)
+    EVENT_MANAGER:AddFilterForEvent(LeoAltholic.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BANK)
+
+    EVENT_MANAGER:RegisterForEvent(LeoAltholic.name .. "_SubBank", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onUpdateBank)
+    EVENT_MANAGER:AddFilterForEvent(LeoAltholic.name .. "_SubBank", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_SUBSCRIBER_BANK)
+
     scanBank()
 end
 
@@ -1418,13 +1427,34 @@ end
 local function initialize()
 
     local showButton, feedbackWindow = LibFeedback:initializeFeedbackWindow(LeoAltholic,
-        LeoAltholic.name,LeoAltholicWindow, "@LeandroSilva",
-        {TOPRIGHT, LeoAltholicWindow, TOPRIGHT,-50,3},
-        {0,1000,10000,"https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=Y9KM4PZU2UZ6A"},
+        LeoAltholic.name, LeoAltholicWindow, "@sshogrin",
+        {TOPRIGHT, LeoAltholicWindow, TOPRIGHT, -50, 3},
+        {0, 1000, 10000, "https://paypal.me/sshogrin"},
         "If you found a bug, have a request or a suggestion, or simply wish to donate, send a mail.")
     LeoAltholic.feedback = feedbackWindow
     LeoAltholic.feedback:SetDrawLayer(DL_OVERLAY)
-    LeoAltholic.feedback:SetDrawTier(DT_MEDIUM)
+    LeoAltholic.feedback:SetDrawTier(DT_HIGH)
+    LeoAltholic.feedback:SetDrawLevel(10)
+
+        -- Hide the feedback popup immediately, then close the main window cleanly
+    -- once ESO's CONFIRM_OPEN_URL dialog is dismissed so cursor control never sticks
+    local pendingCloseAfterUrlDialog = false
+
+        ZO_PreHook("RequestOpenUnsafeURL", function(url)
+        if url == "https://paypal.me/sshogrin" then
+            if LeoAltholic.feedback and not LeoAltholic.feedback:IsHidden() then
+                LeoAltholic.feedback:SetHidden(true)
+            end
+            -- Wait 50ms so LibFeedback's click finishes and ESO's URL dialog opens cleanly first,
+            -- then close LeoAltholicWindow so it never covers the dialog or traps cursor focus
+            zo_callLater(function()
+                if LeoAltholicWindow and not LeoAltholicWindow:IsHidden() then
+                    LeoAltholic.CloseUI()
+                end
+            end, 50)
+        end
+    end)
+
 
     LeoAltholic.RestorePosition()
     LeoAltholicToolbarUI.RestorePosition()

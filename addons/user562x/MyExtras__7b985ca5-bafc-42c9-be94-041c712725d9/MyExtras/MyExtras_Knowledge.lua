@@ -504,8 +504,12 @@ local function AddKnowledge(tooltip, itemLink)
     end
 end
 
+local SKIP_TIP_PREFIX = "LibUser562"
+
 local function HookTooltip(tooltip)
     if not tooltip or hookedTips[tooltip] or type(tooltip.LayoutItem) ~= "function" then return end
+    local name = type(tooltip.GetName) == "function" and tooltip:GetName() or ""
+    if name:sub(1, #SKIP_TIP_PREFIX) == SKIP_TIP_PREFIX then return end
     hookedTips[tooltip] = true
 
     if type(tooltip.AddItemTitle) == "function" then
@@ -540,6 +544,13 @@ local function HookTooltip(tooltip)
     end
 end
 
+function ME:CharacterKnowledge(itemLink)
+    if not IsOn() or type(itemLink) ~= "string" or itemLink == "" then return nil end
+    local ok, lines = pcall(KnowledgeLine, itemLink)
+    if ok and type(lines) == "table" and #lines > 0 then return lines end
+    return nil
+end
+
 function CK:HookTooltips()
     local manager = GAMEPAD_TOOLTIPS
     if not manager or self.tooltipsHooked or type(manager.GetAndInitializeTooltipContainerTip) ~= "function" then return end
@@ -550,6 +561,12 @@ function CK:HookTooltips()
         local tip = getTip(self, ...)
         if tip and tip.tooltip then pcall(HookTooltip, tip.tooltip) end
         return tip
+    end
+
+    if ZO_ScrollTooltip_Gamepad and type(ZO_ScrollTooltip_Gamepad.Initialize) == "function" then
+        SecurePostHook(ZO_ScrollTooltip_Gamepad, "Initialize", function(_, control)
+            if type(control) == "table" and control.tooltip then pcall(HookTooltip, control.tooltip) end
+        end)
     end
 
     if type(manager.tooltips) == "table" then
@@ -621,14 +638,15 @@ function CK:Options()
             name     = "Enabled",
             preset   = "YES_NO",
             default  = DEFAULTS.ckEnabled,
-            tooltip  = "Adds a list of your characters to item tooltips. A green check knows it, a red X doesn't, "
-                    .. "grey hasn't been checked yet. Log in once on each character so it can be checked.",
+            tooltip  = "Adds a list of your characters to item tooltips. A green check means they know it, "
+                    .. "a red X means they don't, and grey means they haven't been checked yet. "
+                    .. "Log in once on each character so it can be checked.",
             getFunc  = function() return SV().ckEnabled end,
             setFunc  = function(val) SV().ckEnabled = val end,
         },
         {
             type     = "checklist",
-            name     = "Knowledge Types",
+            name     = "Item Types",
             choices  = CK.typeChoices,
             default  = allTypes,
             disabled = IsCkOff,
@@ -657,7 +675,7 @@ function CK:SubmenuOption()
     return {
         type    = "submenu",
         name    = "Character Knowledge",
-        tooltip = "Shows which of your characters know an item in its tooltip.\n\n" .. ME.SAVED_ACCOUNT_TIP,
+        tooltip = "Shows which of your characters know an item in its tooltip.",
         options = self:Options(),
     }
 end

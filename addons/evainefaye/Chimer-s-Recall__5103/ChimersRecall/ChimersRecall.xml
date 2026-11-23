@@ -1,0 +1,35 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="ChimersRecallProgressPanel" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true">
+            <Dimensions x="430" y="66" />
+            <Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="BOTTOM" offsetY="-215" />
+            <Controls>
+                <Backdrop name="ChimersRecallProgressBackdrop" mouseEnabled="false">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="ChimersRecallProgressLabel" font="ZoFontWinH4" mouseEnabled="false">
+                    <Dimensions x="318" />
+                    <Anchor point="TOPLEFT" relativePoint="TOPLEFT" offsetX="12" offsetY="9" />
+                </Label>
+                <Backdrop name="ChimersRecallProgressCancelPlate" mouseEnabled="false">
+                    <Dimensions x="84" y="24" />
+                    <Anchor point="TOPRIGHT" relativePoint="TOPRIGHT" offsetX="-10" offsetY="8" />
+                </Backdrop>
+                <Button name="ChimersRecallProgressCancel" font="ZoFontGame" text="CANCEL" mouseEnabled="true">
+                    <Dimensions x="84" y="24" />
+                    <Anchor point="TOPRIGHT" relativePoint="TOPRIGHT" offsetX="-10" offsetY="8" />
+                </Button>
+                <Backdrop name="ChimersRecallProgressTrack" mouseEnabled="false">
+                    <Dimensions x="406" y="12" />
+                    <Anchor point="TOPLEFT" relativePoint="TOPLEFT" offsetX="12" offsetY="44" />
+                    <Controls>
+                        <Backdrop name="ChimersRecallProgressFill" mouseEnabled="false">
+                            <Dimensions x="1" y="10" />
+                            <Anchor point="TOPLEFT" relativePoint="TOPLEFT" offsetX="1" offsetY="1" />
+                        </Backdrop>
+                    </Controls>
+                </Backdrop>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

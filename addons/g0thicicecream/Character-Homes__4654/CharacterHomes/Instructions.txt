@@ -1,0 +1,165 @@
+CHARACTER HOMES - HOW TO USE
+============================
+
+Character Homes keeps a list of the homes you want quick access to - your own,
+your friends', and guild halls - and teleports you to them with one click or a
+chat command.
+
+You can use it two ways:
+  - Open the Character Homes window with /homes
+  - Type the slash commands (listed further down) in chat
+
+
+SAVING A HOME
+-------------
+
+There are three kinds of saved home:
+  - Primary   One per character. This is where plain /home (or /gohome)
+              takes you.
+  - Named     As many as you like, for the character you're playing.
+  - Account   As many as you like, shared by every character on your account.
+
+Easiest way: stand inside the house and type one of these
+  /sethome                makes it this character's primary home
+  /sethome <label>        saves it as a named home for this character
+  /setglobalhome <label>  saves it as an account-wide home
+(If you use Essential Housing Tools, type /setmyhome instead of /sethome -
+see SLASH COMMANDS below.)
+
+This works inside a friend's house too: it saves their house, and teleporting
+to it later takes you to their house.
+
+Saving a house that's already in that list just changes its label - you
+won't get duplicates. Your primary home is its own slot, so the same house
+can also be saved as a named or account home.
+
+You can also save homes from the bars at the bottom of the window without
+being in the house (see "Friend bar" and "Owned bar" below).
+
+
+THE HOMES WINDOW (/homes)
+-------------------------
+
+The list has two sections: MY HOMES (this character's primary and named
+homes) and ACCOUNT HOMES (shared by all your characters).
+
+Each row shows, from left to right:
+  - Teleport icon   A house icon for your primary home, a wayshrine for the
+                    rest. Left-click to teleport.
+  - @owner          Only shown for friends' houses.
+  - Your label      The name you gave it.
+  - Inside/Outside  Where a left-click or /home (/gohome) takes you for this
+                    home.
+  - House name      The game's name for the house. Hover it to see the zone,
+                    click it to open the map at that house.
+  - Edit (pencil)   Change the label, the house, or Inside/Outside.
+  - X               Remove it from your list. (This only removes it from
+                    Character Homes - it doesn't affect the house itself.)
+
+Teleporting from the list
+  - Left-click the icon to go to that home's default (Inside or Outside).
+  - Right-click the icon on one of your own homes to pick Teleport Inside or
+    Teleport Outside for just this trip.
+  - Friends' houses always go inside. The game only lets you teleport outside
+    houses you own.
+
+Editing a home
+  Click the pencil. The label becomes a text box, and for your own homes you
+  also get a house dropdown and an Inside/Outside dropdown.
+  - Save with the check mark or Enter.
+  - Cancel with the X or Escape. Nothing is changed or deleted.
+  For friends' houses you can only change the label.
+
+Search and Owner filter
+  - Search (top of the window) matches your labels, house names, zones and
+    @owner names as you type.
+  - Owner (top right) filters the ACCOUNT HOMES section: All account homes,
+    My homes, or Friends' homes. It remembers your choice.
+
+Friend bar (above the bottom bar)
+  Friend: pick a friend, or a guild master or officer from your guilds.
+  Type:   Primary, Named or Account wide - where to save it.
+  House:  the house of theirs you want.
+  Name:   an optional label.
+  Then click the check mark to save it to your list, or the teleport button
+  to go there right now without saving.
+
+Owned bar (bottom)
+  Lists the houses you own. Pick a zone to narrow the list, then choose
+  Type, House and an optional Name.
+  - Check mark: saves it to your list. With no name, it uses the house's name
+    (or "Primary Residence" for a primary home).
+  - Teleport button: goes there now. Right-click it to choose Inside or
+    Outside.
+
+Close the window with Escape, your Close Dialog key, or the X at the top right.
+
+
+SLASH COMMANDS
+--------------
+
+/home or /gohome? /sethome or /setmyhome?
+  Each pair does exactly the same thing - use whichever works for you:
+    /home     = /gohome      (teleport)
+    /sethome  = /setmyhome   (save the house you're in for this character)
+
+  - /home and /sethome are the natural ones, and they're yours if you don't
+    use Essential Housing Tools (EHT): not installed, or turned off in the
+    add-ons list.
+  - If EHT is turned on, it has its own /home and /sethome commands, so
+    Character Homes doesn't take them over. Use /gohome and /setmyhome
+    instead.
+  - /gohome and /setmyhome always work, with or without EHT.
+
+  Character Homes checks once you're logged in: if nothing else has claimed
+  /home or /sethome by then, it uses it. So if one of them does something
+  different for you, another add-on has it - just use /gohome or
+  /setmyhome.
+
+Teleporting (/home and /gohome are interchangeable in all of these)
+
+  /home                      Teleport to this character's primary home,
+                             inside or outside as set for it
+  /home <name>               Teleport to the saved home whose label or house
+                             name contains <name>, inside or outside as set
+                             for it. If none match, it looks through the
+                             names of houses you own.
+  /home inside <name>        Same, but inside this time, whatever the setting
+  /home outside <name>       Same, but outside this time (your own houses
+                             only)
+                             (Leave out <name> to use your primary home.)
+
+Saving (/sethome and /setmyhome are interchangeable in these)
+
+  /sethome                   Make the house you're in this character's
+                             primary home
+  /sethome <label>           Save the house you're in as a named home for
+                             this character
+  /setglobalhome <label>     Save the house you're in as an account home
+
+Everything else
+
+  /homes                     Open the Character Homes window
+  /resethome                 Clear this character's primary home
+  /delhome <name>            Remove an account home (part of the name is
+                             enough)
+  /delmyhome <name>          Remove one of this character's named homes (part
+                             of the name is enough)
+  /delmyhome primary         Remove this character's primary home
+
+If more than one home matches, the addon lists them in chat so you can be
+more specific.
+
+
+GOOD TO KNOW
+------------
+
+  - /home and /sethome: see "/home or /gohome? /sethome or /setmyhome?"
+    above.
+  - If another addon already uses one of the other commands, Character Homes
+    leaves it alone and tells you in chat after you log in.
+  - Bought a new house? Type /reloadui so it shows up in the Owned bar and
+    the house dropdowns.
+  - Your lists on the NA and EU servers are kept separately.
+  - If Port to Friend's House is installed, a link to open it appears at the
+    top of the window.

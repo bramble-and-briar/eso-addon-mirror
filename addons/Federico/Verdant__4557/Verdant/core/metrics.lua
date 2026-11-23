@@ -5,10 +5,11 @@ Verdant.Metrics = {}
 
 local M = Verdant.Metrics
 
-local W_MS       = 5000
-local W_SHIELD_MS = 30000
+local W_MS = Verdant.Constants.METRICS.WINDOW_MS
 
 local heal_buf, overheal_buf, shield_buf, damage_buf
+local restore_mag_buf, restore_sta_buf
+local KIND_RESTORE_MAG = Verdant.Constants.ABILITY_KIND.RESTORE_MAG
 local event_pool
 local log = Verdant.Log.for_module("metrics")
 
@@ -44,60 +45,59 @@ local function release_to_pool(entry)
 end
 
 function M.init()
-  W_MS        = 5000
-  W_SHIELD_MS = 30000
-
   local cap   = (Verdant.Constants.POOL and Verdant.Constants.POOL.EVENT_CAPACITY) or 4096
   event_pool  = Verdant.lib.mem.BufferPool.new(Verdant.lib.mem.Event.factory, cap, "event_pool")
 
   local RingBuffer = Verdant.lib.mem.RingBuffer
   heal_buf     = RingBuffer.new(W_MS,        1024, release_to_pool)
   overheal_buf = RingBuffer.new(W_MS,        1024, release_to_pool)
-  shield_buf   = RingBuffer.new(W_SHIELD_MS,  512, release_to_pool)
+  shield_buf   = RingBuffer.new(W_MS,         512, release_to_pool)
   damage_buf   = RingBuffer.new(W_MS,        2048, release_to_pool)
+  restore_mag_buf = RingBuffer.new(W_MS,      512, release_to_pool)
+  restore_sta_buf = RingBuffer.new(W_MS,      512, release_to_pool)
 
   local zc = Verdant.zenimax.constants
   CRIT_HEAL = zc.ACTION_RESULT_CRITICAL_HEAL
   CRIT_HOT  = zc.ACTION_RESULT_HOT_TICK_CRITICAL
 
-  log:info("init: window=", W_MS, "ms shield_window=", W_SHIELD_MS, "ms pool=", cap)
-end
-
-function M.set_window(ms)
-  W_MS = ms or 5000
-  heal_buf.window_ms     = W_MS
-  overheal_buf.window_ms = W_MS
-  damage_buf.window_ms   = W_MS
-  log:info("window ->", W_MS, "ms")
-end
-
-function M.set_shield_window(ms)
-  W_SHIELD_MS = ms or 30000
-  shield_buf.window_ms = W_SHIELD_MS
-  log:info("shield_window ->", W_SHIELD_MS, "ms")
+  log:info("init: window=", W_MS, "ms pool=", cap)
 end
 
 function M.window_seconds() return W_MS / 1000 end
-function M.shield_window_seconds() return W_SHIELD_MS / 1000 end
+
+local oh_hot, oh_direct = 0, 0
+local tot_heal, tot_shield, tot_overheal = 0, 0, 0
+local tot_crit = 0
+local by_heal, by_shield = {}, {}
+local tot_rmag, tot_rsta = 0, 0
+local by_rmag, by_rsta = {}, {}
+local counting = false
 
 function M.ingest_heal(ev)
   if ev.amount > 0 then
+    if counting and in_M(ev) then
+      tot_heal = tot_heal + ev.amount
+      if is_crit(ev) then tot_crit = tot_crit + ev.amount end
+      local id = ev.ability_id or 0
+      by_heal[id] = (by_heal[id] or 0) + ev.amount
+    end
     heal_buf:push(ev)
   else
     event_pool:release(ev)
   end
 end
 
-local oh_hot, oh_direct = 0, 0
-
 function M.ingest_overheal(ev)
   if ev.amount > 0 then
-    local zc = Verdant.zenimax.constants
-    local r  = ev.result
-    if r == zc.ACTION_RESULT_HOT_TICK or r == zc.ACTION_RESULT_HOT_TICK_CRITICAL then
-      oh_hot = oh_hot + ev.amount
-    else
-      oh_direct = oh_direct + ev.amount
+    if counting and in_M(ev) then
+      local zc = Verdant.zenimax.constants
+      local r  = ev.result
+      if r == zc.ACTION_RESULT_HOT_TICK or r == zc.ACTION_RESULT_HOT_TICK_CRITICAL then
+        oh_hot = oh_hot + ev.amount
+      else
+        oh_direct = oh_direct + ev.amount
+      end
+      tot_overheal = tot_overheal + ev.amount
     end
     overheal_buf:push(ev)
   else
@@ -107,10 +107,51 @@ end
 
 function M.ingest_shield(ev)
   if ev.amount > 0 then
+    if counting and in_M(ev) then
+      tot_shield = tot_shield + ev.amount
+      local id = ev.ability_id or 0
+      by_shield[id] = (by_shield[id] or 0) + ev.amount
+    end
     shield_buf:push(ev)
   else
     event_pool:release(ev)
   end
+end
+
+function M.ingest_restore(ev)
+  local mag = ev.kind == KIND_RESTORE_MAG
+  if counting and in_M(ev) then
+    local id = ev.ability_id or 0
+    if mag then
+      tot_rmag = tot_rmag + ev.amount
+      by_rmag[id] = (by_rmag[id] or 0) + ev.amount
+    else
+      tot_rsta = tot_rsta + ev.amount
+      by_rsta[id] = (by_rsta[id] or 0) + ev.amount
+    end
+    Verdant.TemporalBuffer.add_restore(ev.t, id, mag, ev.target_name, ev.amount)
+  end
+  if mag then restore_mag_buf:push(ev) else restore_sta_buf:push(ev) end
+end
+
+function M.restore_totals()
+  return tot_rmag, tot_rsta
+end
+
+function M.restore_by_ability()
+  return by_rmag, by_rsta
+end
+
+function M.totals()
+  return tot_heal, tot_shield, tot_overheal
+end
+
+function M.by_ability()
+  return by_heal, by_shield
+end
+
+function M.crit_total()
+  return tot_crit
 end
 
 function M.ingest_damage_group(ev)
@@ -127,8 +168,10 @@ end
 
 function M.eHPS(now_ms)    return rate(heal_buf,     now_ms, in_M) end
 function M.OHPS(now_ms)    return rate(overheal_buf, now_ms, in_M) end
-function M.MPS(now_ms)     return shield_buf:sum(now_ms, "amount", in_M) / (W_SHIELD_MS / 1000) end
+function M.MPS(now_ms)     return rate(shield_buf,   now_ms, in_M) end
 function M.D_group(now_ms) return rate(damage_buf,   now_ms, nil)  end
+function M.RMag(now_ms)    return rate(restore_mag_buf, now_ms, in_M) end
+function M.RSta(now_ms)    return rate(restore_sta_buf, now_ms, in_M) end
 
 function M.EMS(now_ms)
   return M.eHPS(now_ms) + M.MPS(now_ms)
@@ -228,10 +271,24 @@ function M.reset()
   overheal_buf:reset()
   shield_buf:reset()
   damage_buf:reset()
+  restore_mag_buf:reset()
+  restore_sta_buf:reset()
 end
 
 function M.session_mark()
   oh_hot, oh_direct = 0, 0
+  tot_heal, tot_shield, tot_overheal = 0, 0, 0
+  tot_crit = 0
+  for id in pairs(by_heal) do by_heal[id] = nil end
+  for id in pairs(by_shield) do by_shield[id] = nil end
+  tot_rmag, tot_rsta = 0, 0
+  for id in pairs(by_rmag) do by_rmag[id] = nil end
+  for id in pairs(by_rsta) do by_rsta[id] = nil end
+  counting = true
+end
+
+function M.session_close()
+  counting = false
 end
 
 function M.overheal_split()
@@ -244,5 +301,7 @@ function M.size_snapshot()
     overheal = overheal_buf:size(),
     shield   = shield_buf:size(),
     damage   = damage_buf:size(),
+    restore_mag = restore_mag_buf:size(),
+    restore_sta = restore_sta_buf:size(),
   }
 end

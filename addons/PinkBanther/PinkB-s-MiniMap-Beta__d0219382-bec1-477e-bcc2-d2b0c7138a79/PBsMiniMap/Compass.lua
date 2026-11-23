@@ -28,7 +28,11 @@ local function TextureRoots()
         if name == "PBsMiniMap" then
             local root = manager:GetAddOnRootDirectoryPath(index)
             if type(root) == "string" and root ~= "" then
-                root = root:gsub("\\", "/"):gsub("/*$", "/")
+                -- Strip trailing slashes, then add exactly one. gsub("/*$", "/") is not the
+                -- same thing: on Lua 5.1 (which ESO runs) the empty match after the last slash
+                -- is replaced as well, giving ".../PBsMiniMap//assets/..." -- a path that does
+                -- not exist, so the console fallback could never have loaded the frame.
+                root = root:gsub("\\", "/"):gsub("/+$", "") .. "/"
                 if root ~= roots[1] then
                     roots[#roots + 1] = root
                 end
@@ -71,19 +75,40 @@ function addon:PollCompassTexture()
     self:ApplyCompassTexture(frame, (self.compassRootIndex or 1) % #roots + 1)
 end
 
--- One line for the existing troubleshooting report.
-function addon:CompassTextureStatus()
+-- The compass part of the troubleshooting report. Sampled as raw values into the report's own
+-- reused table once a second; turned into text only when the button is pressed.
+function addon:SampleCompassState(s)
     local frame = self.compassFrame
+    s.compassBuilt = frame ~= nil
     if not frame then
+        return
+    end
+    s.compassFile = frame.GetTextureFileName and frame:GetTextureFileName() or "?"
+    s.compassLoaded = frame.IsTextureLoaded and frame:IsTextureLoaded()
+    s.compassW, s.compassH = frame:GetTextureFileDimensions()
+    s.compassHidden = frame:IsHidden()
+    s.compassSettled = self.compassTextureSettled
+    if ZO_WorldMapMapBlackOut then
+        s.blackOutHidden = ZO_WorldMapMapBlackOut:IsHidden()
+    else
+        s.blackOutHidden = "missing"
+    end
+end
+
+function addon:FormatCompassState(s)
+    if not s.compassBuilt then
         return "compass frame not built"
     end
-    local loaded = frame.IsTextureLoaded and frame:IsTextureLoaded()
-    local width, height = frame:GetTextureFileDimensions()
     return string.format("compass texture=%s loaded=%s file=%dx%d hidden=%s settled=%s blackout=%s",
-        tostring(frame.GetTextureFileName and frame:GetTextureFileName() or "?"),
-        tostring(loaded), width or -1, height or -1,
-        tostring(frame:IsHidden()), tostring(self.compassTextureSettled),
-        ZO_WorldMapMapBlackOut and tostring(ZO_WorldMapMapBlackOut:IsHidden()) or "missing")
+        tostring(s.compassFile), tostring(s.compassLoaded), s.compassW or -1, s.compassH or -1,
+        tostring(s.compassHidden), tostring(s.compassSettled), tostring(s.blackOutHidden))
+end
+
+-- The same line for the current state.
+function addon:CompassTextureStatus()
+    local s = {}
+    self:SampleCompassState(s)
+    return self:FormatCompassState(s)
 end
 
 -- The black square behind the map.

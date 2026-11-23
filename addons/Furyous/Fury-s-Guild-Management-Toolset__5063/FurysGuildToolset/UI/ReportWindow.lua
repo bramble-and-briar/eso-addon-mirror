@@ -4,6 +4,7 @@
 --       title = function() return "Bank (3)" end,     -- string or function
 --       tip = "What this tab shows",                   -- optional hover text for the tab button
 --       GetSummary = function() return "..." end,      -- optional line under the tabs
+--       GetOffText = function() return GT:FeatureOffText(on, "Name") end,  -- optional: shown while the feature is off
 --       GetRows = function() return { { text=, tooltip=, actions={ {label=, fn=}, ... } } } end,
 --       footer = { { label = "Dismiss all", tip = "Hover text", fn = function() end }, ... },  -- optional
 --       searchable = true,                             -- optional: shows the search box, tab.searchText holds it
@@ -18,6 +19,7 @@
 --   and its rows return cells = { "text", ... } instead of text, plus up to four actions
 --   (buttons on the right, 86 px each; leave that much room after the columns).
 -- Any row can set OnRightClick = function(control) end for a right-click menu.
+-- Report.AddMenu(row, items) gives a row a menu of all its actions (see below).
 
 local GT = FuryGMT
 local Report = {}
@@ -28,7 +30,7 @@ local COLUMN_ROW_TYPE = 2
 local MAX_COLUMNS = 8
 local COLUMN_GAP = 8
 local ROW_HEIGHT = 32
-local MAX_FOOTER_BUTTONS = 6
+local MAX_FOOTER_BUTTONS = 7   -- 1.15.0: 7 for the Events tab (its buttons are narrower)
 local EXPORT_PART_CHARS = 20000
 
 Report.tabs = {}
@@ -62,6 +64,60 @@ function Report.SetTip(control, tip)
         control:SetHandler("OnMouseEnter", function(self) Report.ShowTip(self, Resolve(self.furyTip)) end)
         control:SetHandler("OnMouseExit", Report.HideTip)
     end
+end
+
+-- Row menus ---------------------------------------------------------------------
+-- Rows have no buttons: every action for a row lives in its right-click menu, and the line at
+-- the top of the tab says so. items = { { label =, fn = function(control) end,
+-- opensMenu = true if fn shows a menu of its own }, ... }
+Report.MENU_HINT = "Right-click a row for options."
+
+function Report.AddMenu(row, items)
+    if #items == 0 then return row end
+    row.tooltip = (row.tooltip and (row.tooltip .. "\n") or "") .. "|cAAAAAARight-click for options.|r"
+    row.OnRightClick = function(control)
+        ClearMenu()
+        for _, item in ipairs(items) do
+            AddMenuItem(item.label, function()
+                -- A menu can't open while this one is closing, so wait a moment.
+                if item.opensMenu then
+                    zo_callLater(function() item.fn(control) end, 50)
+                else
+                    item.fn(control)
+                end
+            end)
+        end
+        ShowMenu(control)
+    end
+    return row
+end
+
+-- Whisper and Mail items for a menu. Nothing is sent until you press Enter or Send.
+function Report.ContactItems(displayName)
+    if not displayName or displayName == "" or displayName == GetDisplayName() then return {} end
+    return {
+        { label = "Whisper " .. displayName, tip = "Starts a whisper to them in the chat box.", fn = function() GT.Actions.Warn(displayName, "", "", "whisper") end },
+        { label = "Mail " .. displayName, tip = "Opens an empty mail to them.", fn = function() GT.Actions.Warn(displayName, "", "", "mail") end },
+        Report.CopyItem(displayName),
+    }
+end
+
+-- "Copy @name" for a right-click menu (1.14.0).
+function Report.CopyItem(text)
+    return { label = "Copy " .. text, tip = "Shows the name selected in a small window. Press Ctrl+C to copy it.", fn = function() Report:ShowCopy(text) end }
+end
+
+-- Addons can't write to the clipboard: the text goes in the export window, selected, and the
+-- player presses Ctrl+C.
+function Report:ShowCopy(text)
+    self.exportParts = { text }
+    self.exportIndex = 1
+    self.exportTitle = "Copy"
+    GT.Util.ShowOnTop(FuryGMTExport)
+    self:ShowExportPart(0)
+    FuryGMTExportTextBox:TakeFocus()
+    FuryGMTExportTextBox:SelectAll()
+    GT.Util.Print("%s is selected. Press Ctrl+C to copy it.", text)
 end
 
 function Report:RegisterTab(def)
@@ -134,14 +190,20 @@ function Report:Initialize()
         return a.loadOrder < b.loadOrder
     end)
 
+    -- 1.6.4: more than 9 tabs go on two rows, so the titles fit (the window grows by one row).
+    local rows = #self.tabs > 9 and 2 or 1
+    local perRow = math.ceil(#self.tabs / rows)
+    local width = math.min(180, math.floor((1160 - 4 * (perRow - 1)) / perRow))
+    FuryGMTReportTabs:SetHeight(32 * rows)
+    if rows > 1 then FuryGMTReport:SetHeight(600 + 32 * (rows - 1)) end
     local previous
     for i, tab in ipairs(self.tabs) do
         local button = WINDOW_MANAGER:CreateControlFromVirtual("FuryGMTReportTab" .. i, FuryGMTReportTabs, "ZO_DefaultButton")
-        button:SetDimensions(math.min(180, math.floor((1160 - 4 * (#self.tabs - 1)) / #self.tabs)), 28)
-        if previous then
-            button:SetAnchor(LEFT, previous, RIGHT, 4, 0)
+        button:SetDimensions(width, 28)
+        if (i - 1) % perRow ~= 0 then
+            button:SetAnchor(TOPLEFT, previous, TOPRIGHT, 4, 0)
         else
-            button:SetAnchor(LEFT, FuryGMTReportTabs, LEFT, 0, 0)
+            button:SetAnchor(TOPLEFT, FuryGMTReportTabs, TOPLEFT, 0, 2 + 32 * math.floor((i - 1) / perRow))
         end
         button:SetHandler("OnClicked", function() self:SelectTab(tab.id) end)
         Report.SetTip(button, function() return Resolve(tab.tip) end)
@@ -152,7 +214,7 @@ function Report:Initialize()
     previous = nil
     for i = 1, MAX_FOOTER_BUTTONS do
         local button = WINDOW_MANAGER:CreateControlFromVirtual("FuryGMTReportFooter" .. i, FuryGMTReportFooter, "ZO_DefaultButton")
-        button:SetDimensions(150, 28)
+        button:SetDimensions(180, 28)   -- 1.7.0: wider, for labels like "Winners for Discord"
         if previous then
             button:SetAnchor(LEFT, previous, RIGHT, 6, 0)
         else
@@ -344,7 +406,16 @@ function Report:Refresh()
     ZO_ScrollList_Commit(self.list)
 
     local summary = tab.GetSummary and tab.GetSummary() or ""
-    if #rows == 0 and not usesPanel then
+    for _, row in ipairs(rows) do
+        if row.OnRightClick and not tab.noMenuHint then
+            summary = (summary ~= "" and (summary .. "  ") or "") .. Report.MENU_HINT
+            break
+        end
+    end
+    local offText = tab.GetOffText and tab.GetOffText()
+    if offText then
+        summary = "|cFF9933" .. offText .. "|r" .. (summary ~= "" and ("  " .. summary) or "")
+    elseif #rows == 0 and not usesPanel then
         summary = (summary ~= "" and (summary .. "  ") or "") .. "Nothing to review."
     end
     self.summary:SetText(summary)
@@ -362,6 +433,7 @@ function Report:Refresh()
         local action = footer[i]
         if action then
             button:SetText(action.label)
+            button:SetWidth(action.width or 180)
             button:SetHandler("OnClicked", function(control) action.fn(control) end)
             Report.SetTip(button, action.tip)
             button:SetHidden(false)
@@ -467,7 +539,8 @@ function Report:ShowExport(tabLines)
     parts[#parts + 1] = table.concat(current, "\n")
     self.exportParts = parts
     self.exportIndex = 1
-    if FuryGMTExport:IsHidden() then SCENE_MANAGER:ShowTopLevel(FuryGMTExport) end
+    self.exportTitle = nil
+    GT.Util.ShowOnTop(FuryGMTExport)
     self:ShowExportPart(0)
 end
 
@@ -475,6 +548,7 @@ function Report:ShowExportPart(delta)
     local parts = self.exportParts or { "" }
     self.exportIndex = zo_clamp((self.exportIndex or 1) + delta, 1, #parts)
     FuryGMTExportTextBox:SetText(parts[self.exportIndex])
+    FuryGMTExportTitle:SetText(self.exportTitle or "Export")
     FuryGMTExportPart:SetText(string.format("Part %d of %d", self.exportIndex, #parts))
     FuryGMTExportPrev:SetHidden(#parts <= 1)
     FuryGMTExportNext:SetHidden(#parts <= 1)

@@ -39,7 +39,7 @@ for _, id in ipairs(TARGETS) do
     for _, equipType in ipairs(ARMOR_TYPES) do demand['armor:' .. tostring(equipType)] = 1 end
     demand['jewelry:' .. tostring(EQUIP_TYPE_NECK)] = 1
     demand['jewelry:' .. tostring(EQUIP_TYPE_RING)] = 2
-    demand[id == SHARP and 'twoHand' or (id == EMBER and 'resto' or 'oneHand')] = id == ZERITH and 2 or 1
+    demand[id == EMBER and 'resto' or 'twoHand'] = 1
     REQUIREMENTS[id] = demand
 end
 
@@ -54,12 +54,9 @@ end
 ---@param item InventoryPocItem
 ---@return string|nil
 local function piece(item)
-    if item.weaponType == WEAPONTYPE_AXE or item.weaponType == WEAPONTYPE_SWORD
-        or item.weaponType == WEAPONTYPE_HAMMER or item.weaponType == WEAPONTYPE_DAGGER then return 'oneHand' end
     if item.weaponType == WEAPONTYPE_TWO_HANDED_AXE or item.weaponType == WEAPONTYPE_TWO_HANDED_SWORD
         or item.weaponType == WEAPONTYPE_TWO_HANDED_HAMMER then return 'twoHand' end
     if item.weaponType == WEAPONTYPE_HEALING_STAFF then return 'resto' end
-    if item.weaponType == WEAPONTYPE_SHIELD then return 'shield' end
     if item.armorType == ARMORTYPE_HEAVY then return 'armor:' .. tostring(item.equipType) end
     if item.equipType == EQUIP_TYPE_RING or item.equipType == EQUIP_TYPE_NECK then return 'jewelry:' .. tostring(item.equipType) end
 end
@@ -68,7 +65,7 @@ end
 ---@return string|nil
 local function key(item)
     local category = piece(item)
-    return QUICKENED[item.trait] and category ~= 'shield' and category or nil
+    return QUICKENED[item.trait] and category or nil
 end
 
 ---@param a InventoryPocItem
@@ -82,7 +79,7 @@ end
 ---@field item InventoryPocItem
 ---@field slot number
 
----Choose a small group of upgrades. Weapon changes require a usable full setup.
+---Choose the next group of upgrades: one slot's, or both rings'.
 ---@param id number
 ---@param backpack InventoryPocItem[] Eligible, currently equipable backpack items
 ---@param worn InventoryPocItem[]
@@ -113,7 +110,7 @@ function companions.nextEquipment(id, backpack, worn, locked)
     ---@param slots number[]
     ---@return InventoryPocCompanionEquip[]
     local function choose(category, slots)
-        -- Fill missing weapon halves first, then improve the weakest copy.
+        -- Fill an empty or mismatched slot first, then improve the weakest copy.
         local function rank(slot)
             local item = equipped[slot]
             if not item or piece(item) ~= category then return -2 end
@@ -142,19 +139,7 @@ function companions.nextEquipment(id, backpack, worn, locked)
     if #moves > 0 then return moves end
     moves = choose('jewelry:' .. tostring(EQUIP_TYPE_RING), { EQUIP_SLOT_RING1, EQUIP_SLOT_RING2 })
     if #moves > 0 then return moves end
-    if id == EMBER then return choose('resto', { EQUIP_SLOT_MAIN_HAND }) end
-    if id == SHARP then return choose('twoHand', { EQUIP_SLOT_MAIN_HAND }) end
-    moves = choose('oneHand', { EQUIP_SLOT_MAIN_HAND, EQUIP_SLOT_OFF_HAND })
-    local final = { [EQUIP_SLOT_MAIN_HAND] = equipped[EQUIP_SLOT_MAIN_HAND],
-        [EQUIP_SLOT_OFF_HAND] = equipped[EQUIP_SLOT_OFF_HAND] }
-    for _, move in ipairs(moves) do final[move.slot] = move.item end
-    if not final[EQUIP_SLOT_MAIN_HAND] or piece(final[EQUIP_SLOT_MAIN_HAND]) ~= 'oneHand'
-        or not final[EQUIP_SLOT_OFF_HAND] or piece(final[EQUIP_SLOT_OFF_HAND]) ~= 'oneHand' then
-        return {}
-    end
-    -- Establish the main hand before filling the off hand during a conversion.
-    table.sort(moves, function(a, b) return a.slot == EQUIP_SLOT_MAIN_HAND and b.slot ~= EQUIP_SLOT_MAIN_HAND end)
-    return moves
+    return choose(id == EMBER and 'resto' or 'twoHand', { EQUIP_SLOT_MAIN_HAND })
 end
 
 ---Allocate Quickened pieces in companion priority order, highest quality first.

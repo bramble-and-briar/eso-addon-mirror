@@ -1,0 +1,47 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/sshogrin/Leo-s-Altholic-Standalone-Viewer__5071",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "sshogrin",
+  "canonical_id": "esoui:5071",
+  "category_id": "18",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    }
+  ],
+  "content_id": "esoui:5071",
+  "deleted": false,
+  "directories": [
+    "LeoAltholicViewer"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5071/",
+  "fingerprint": "47ab9bdc143f6e55bd947732d93757ff1e21c30c29c446419f0ff4551a470f30",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18668.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18667.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18666.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18665.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18664.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18663.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18662.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18661.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18660.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18659.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5071",
+  "source_url": "https://www.esoui.com/downloads/info5071-LeosAltholicStandaloneViewer.html",
+  "stats": {
+    "downloads": 75,
+    "favorites": 2,
+    "monthly_downloads": 69
+  },
+  "title": "Leo's Altholic Standalone Viewer",
+  "updated_at": 1795308083000,
+  "version": "1.1.2"
+}

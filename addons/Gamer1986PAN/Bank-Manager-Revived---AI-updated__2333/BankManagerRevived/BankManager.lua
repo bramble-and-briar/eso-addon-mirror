@@ -25,10 +25,95 @@ http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
 ]]
  
 -- Global Vars
-BMR = {}
-local BMR = BMR -- Baertram: use a local reference to the single addon namespace
+BMR = BMR or {}
+local BMR = BMR -- The single global addon namespace.
+local CHAT_SYSTEM = CHAT_SYSTEM -- Stable ESO chat-system reference used in several functions.
+BMR.LibHarvensAddonSettings = LibHarvensAddonSettings
+BMR.LibConsoleDialogs = LibConsoleDialogs
+BMR.currentGBankName = nil
+BMR.Rules = BMR.Rules or {}
+BMR.FCOISCache = BMR.FCOISCache or {}
+local BankManagerRules = BMR.Rules -- Local compatibility name for the rule module.
+local db = {} -- SavedVariables database pointer is private to this file.
+BMR.db = db -- Shared with the custom-rule module without creating a global db.
+-- Stable ESO API globals are cached once in a local table to reduce repeated _G lookups.
+local ESOAPI = {
+	BAG_BACKPACK = BAG_BACKPACK,
+	BAG_BANK = BAG_BANK,
+	BAG_GUILDBANK = BAG_GUILDBANK,
+	BAG_SUBSCRIBER_BANK = BAG_SUBSCRIBER_BANK,
+	CALLBACK_MANAGER = CALLBACK_MANAGER,
+	EVENT_MANAGER = EVENT_MANAGER,
+	SCENE_MANAGER = SCENE_MANAGER,
+	SHARED_INVENTORY = SHARED_INVENTORY,
+	WINDOW_MANAGER = WINDOW_MANAGER,
+	SLASH_COMMANDS = SLASH_COMMANDS,
+	CallSecureProtected = CallSecureProtected,
+	GetString = GetString,
+	GetItemLink = GetItemLink,
+	GetSlotStackSize = GetSlotStackSize,
+	GetItemLinkItemId = GetItemLinkItemId,
+	GetBagSize = GetBagSize,
+	GetItemLinkInfo = GetItemLinkInfo,
+	GetNumBagFreeSlots = GetNumBagFreeSlots,
+	GetUnitName = GetUnitName,
+	GetDisplayName = GetDisplayName,
+	GetItemLinkName = GetItemLinkName,
+	GetItemCondition = GetItemCondition,
+	GetCurrencyAmount = GetCurrencyAmount,
+	TransferCurrency = TransferCurrency,
+	GetNumGuilds = GetNumGuilds,
+	GetGuildId = GetGuildId,
+	GetGuildName = GetGuildName,
+	IsKeyboardUISupported = IsKeyboardUISupported,
+	IsConsoleUI = IsConsoleUI,
+	GetCVar = GetCVar,
+	IsInGamepadPreferredMode = IsInGamepadPreferredMode,
+	GetBankingInteractionType = GetBankingInteractionType,
+	IsAddOnLoaded = IsAddOnLoaded,
+	zo_strformat = zo_strformat,
+	zo_strlower = zo_strlower,
+	zo_callLater = zo_callLater,
+	CRAFTING_TYPE_BLACKSMITHING = CRAFTING_TYPE_BLACKSMITHING,
+	CRAFTING_TYPE_CLOTHIER = CRAFTING_TYPE_CLOTHIER,
+	CRAFTING_TYPE_JEWELRYCRAFTING = CRAFTING_TYPE_JEWELRYCRAFTING,
+	CRAFTING_TYPE_WOODWORKING = CRAFTING_TYPE_WOODWORKING,
+	ITEM_TRAIT_TYPE_ARMOR_INTRICATE = ITEM_TRAIT_TYPE_ARMOR_INTRICATE,
+	ARMORTYPE_HEAVY = ARMORTYPE_HEAVY,
+	ARMORTYPE_LIGHT = ARMORTYPE_LIGHT,
+	ARMORTYPE_MEDIUM = ARMORTYPE_MEDIUM,
+	EVENT_INVENTORY_SINGLE_SLOT_UPDATE = EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+	CURT_MONEY = CURT_MONEY,
+	CURT_TELVAR_STONES = CURT_TELVAR_STONES,
+	CURT_ALLIANCE_POINTS = CURT_ALLIANCE_POINTS,
+	CURT_WRIT_VOUCHERS = CURT_WRIT_VOUCHERS,
+	CURRENCY_LOCATION_CHARACTER = CURRENCY_LOCATION_CHARACTER,
+	CURRENCY_LOCATION_BANK = CURRENCY_LOCATION_BANK,
+	CT_LABEL = CT_LABEL,
+	LEFT = LEFT,
+	RIGHT = RIGHT,
+	TOPRIGHT = TOPRIGHT,
+	BOTTOMRIGHT = BOTTOMRIGHT,
+	TOPLEFT = TOPLEFT,
+	TEXT_ALIGN_CENTER = TEXT_ALIGN_CENTER,
+	KEYBIND_STRIP_ALIGN_CENTER = KEYBIND_STRIP_ALIGN_CENTER,
+	KEYBIND_STRIP_ALIGN_LEFT = KEYBIND_STRIP_ALIGN_LEFT,
+	QUEST_MAIN_STEP_INDEX = QUEST_MAIN_STEP_INDEX,
+	EVENT_GUILD_BANK_TRANSFER_ERROR = EVENT_GUILD_BANK_TRANSFER_ERROR,
+	EVENT_GUILD_BANK_ITEM_ADDED = EVENT_GUILD_BANK_ITEM_ADDED,
+	ITEMTYPE_NONE = ITEMTYPE_NONE,
+	GetNumSmithingImprovementItems = GetNumSmithingImprovementItems,
+	ZO_CurrencyControl_FormatCurrencyAndAppendIcon = ZO_CurrencyControl_FormatCurrencyAndAppendIcon,
+	InitializeTooltip = InitializeTooltip,
+	ClearTooltip = ClearTooltip,
+	ReloadUI = ReloadUI,
+	GuiRoot = GuiRoot,
+	IsProtectedFunction = IsProtectedFunction,
+	StackBag = StackBag,
+	GetItemType = GetItemType,
+	GetItemId = GetItemId,
+}
 BMR.Console = { registeredScenes = {}, registeredSceneNames = {} }
-db = {}
 local ADDON_NAME					= "BankManagerRevived"
 local displayName					= "|c3366FFBank|r Manager |c990000Revived|r |cFF0000(AI Updated)|r"
 local ADDON_AUTHOR				= "Ayantir & SnowmanDK & Lexynide & Gamer1986PAN & @DeadSoon"
@@ -82,18 +167,15 @@ BMR._profileDebugPreInitLimit = 30
 function BMR.ProfileDebugSafeGetter(getterName)
 	local getter = _G and _G[getterName]
 	if type(getter) ~= "function" then return "n/a" end
-	local ok, value = pcall(getter)
-	if not ok or value == nil then return "n/a" end
+	local value = getter()
+	if value == nil then return "n/a" end
 	return tostring(value)
 end
 
 function BMR.ProfileDebugNow()
-	local ok, value = pcall(function()
-		if type(GetTimeString) == "function" then return GetTimeString() end
-		if type(GetTimeStamp) == "function" then return GetTimeStamp() end
-		return "time-n/a"
-	end)
-	return ok and tostring(value) or "time-n/a"
+	if type(GetTimeString) == "function" then return tostring(GetTimeString()) end
+	if type(GetTimeStamp) == "function" then return tostring(GetTimeStamp()) end
+	return "time-n/a"
 end
 
 function BMR.ProfileDebugAppendBounded(target, record, limit)
@@ -103,13 +185,7 @@ end
 
 function BMR.ProfileDiagnostic(stage, details)
 	local account = BMR.ProfileDebugSafeGetter("GetDisplayName")
-	local character = BMR.ProfileDebugSafeGetter("GetUnitName")
-	-- GetUnitName requires a unit tag in ESO; use a protected direct player lookup instead.
-	local unitGetter = _G and _G.GetUnitName
-	if type(unitGetter) == "function" then
-		local ok, value = pcall(unitGetter, "player")
-		if ok and value ~= nil then character = tostring(value) end
-	end
+	local character = tostring(ESOAPI.GetUnitName("player") or "n/a")
 	local world = BMR.ProfileDebugSafeGetter("GetWorldName")
 	local detail = tostring(details or "")	:gsub("[\r\n]+", " ")
 	if #detail > 700 then detail = string.sub(detail, 1, 700) .. "…" end
@@ -149,43 +225,11 @@ function BMR.ProfileDiagnosticFlushPreInit()
 	BMR._profileDebugPreInitLog = {}
 end
 
--- CHAT_SYSTEM is not available in every controller/console flow. Keep the
--- keyboard chat path first, then use the shared chat router which also services
--- the console chat implementation. An optional LibAPH raw-line helper is a final
--- console-specific fallback for environments where neither object is exposed.
--- Output is best-effort and must never interrupt transfer verification/cleanup.
-local function TrySendChatLine(target, methodName, message)
-	if not target then return false end
-	local method = target[methodName]
-	if type(method) ~= "function" then return false end
-	local ok = pcall(method, target, message)
-	return ok
-end
-
+-- CHAT_SYSTEM is a stable ESO global in keyboard and controller flows. Cache it
+-- locally and use its AddMessage method directly; no optional fallback is needed.
 function BMR.SafeAddChatMessage(message)
-	local text = tostring(message or "")
-	if TrySendChatLine(CHAT_SYSTEM, "AddMessage", text) then return true end
-
-	-- CHAT_SYSTEM is intentionally nil on console. CHAT_ROUTER:AddSystemMessage
-	-- is the normal UI entry point for system messages and works without the
-	-- keyboard chat-system object.
-	if TrySendChatLine(CHAT_ROUTER, "AddSystemMessage", text) then return true end
-
-	-- Some console-oriented libraries expose a raw-line adapter. Do not make it a
-	-- dependency: use it only when present, and retain native fallbacks otherwise.
-	local libAPH = _G and _G.LibAPH
-	if libAPH and type(libAPH.SendRawChatLine) == "function" then
-		local ok = pcall(libAPH.SendRawChatLine, text)
-		if ok then return true end
-	end
-
-	-- Last resort: ESO's debug output is routed through the system-message path
-	-- on supported clients, including controller flows.
-	if type(d) == "function" then
-		local ok = pcall(d, text)
-		if ok then return true end
-	end
-	return false
+	CHAT_SYSTEM:AddMessage(tostring(message or ""))
+	return true
 end
 
 function BMR.ProfileDiagnosticChat(message)
@@ -236,10 +280,10 @@ local function ScheduleHousingAutoRescan(itemsMovedInPass, reason, delayMs)
 	local rescanBag = activeHouseStorageBagId
 	local delay = delayMs or 500
 	CustomRuleDebug(string.format("HOUSE STORAGE AUTO-RESCAN scheduled pass=%d/%d movedItems=%d bag=%s delay=%dms reason=%s", rescanPass, MAX_HOUSING_AUTO_RESCANS, itemsMovedInPass or 0, tostring(rescanBag), delay, tostring(reason)))
-	zo_callLater(function()
+	ESOAPI.zo_callLater(function()
 		if isBanking and activeHouseStorageBagId == rescanBag and not checkingGBank then
 			CustomRuleDebug(string.format("HOUSE STORAGE AUTO-RESCAN execute pass=%d/%d bag=%s", rescanPass, MAX_HOUSING_AUTO_RESCANS, tostring(rescanBag)))
-			BankManagerRevived_executeRule(true)
+			BMR.executeRule(true)
 		else
 			CustomRuleDebug(string.format("HOUSE STORAGE AUTO-RESCAN cancelled pass=%d/%d reason=storage context changed", rescanPass, MAX_HOUSING_AUTO_RESCANS))
 			housingAutoRescanPasses = 0
@@ -304,12 +348,12 @@ end
 
 function BMR.ProfileDebugBagCacheSummary(bagId)
 	if type(db) ~= "table" or db.profileDebugEnabled ~= true then return "bagCacheSummary=disabled" end
-	local cache = SHARED_INVENTORY and SHARED_INVENTORY.bagCache and SHARED_INVENTORY.bagCache[bagId]
+	local cache = ESOAPI.SHARED_INVENTORY and ESOAPI.SHARED_INVENTORY.bagCache and ESOAPI.SHARED_INVENTORY.bagCache[bagId]
 	local cachedSlots, liveItems = 0, 0
 	if type(cache) == "table" then
 		for slotId in pairs(cache) do
 			cachedSlots = cachedSlots + 1
-			local link = type(GetItemLink) == "function" and GetItemLink(bagId, slotId) or nil
+			local link = type(ESOAPI.GetItemLink) == "function" and ESOAPI.GetItemLink(bagId, slotId) or nil
 			if link and link ~= "" then liveItems = liveItems + 1 end
 		end
 	end
@@ -346,19 +390,18 @@ local function RefreshActiveHouseStorageBagContext(source, eventBagId)
 	local bankingBag = eventBagId
 	local resolvedBy = eventBagId ~= nil and "EVENT_OPEN_BANK" or "GetBankingBag"
 	if bankingBag == nil and type(GetBankingBag) == "function" then
-		local ok, result = pcall(GetBankingBag)
-		if ok and result ~= nil then bankingBag = result end
+		bankingBag = GetBankingBag()
 	end
 	if bankingBag ~= nil then
 		local previousBag = activeHouseStorageBagId
 		if IsFurnitureStorageBag(bankingBag) then
 			activeHouseStorageBagId = bankingBag
-		elseif bankingBag == BAG_BANK or bankingBag == BAG_SUBSCRIBER_BANK then
+		elseif bankingBag == ESOAPI.BAG_BANK or bankingBag == ESOAPI.BAG_SUBSCRIBER_BANK then
 			activeHouseStorageBagId = nil
 		else
 			activeHouseStorageBagId = nil
 		end
-		local kind = IsFurnitureVaultBag(bankingBag) and "FURNITURE_VAULT" or (IsHouseBankChestBag(bankingBag) and "HOUSE_CHEST" or (bankingBag == BAG_SUBSCRIBER_BANK and "SUBSCRIBER_BANK" or (bankingBag == BAG_BANK and "PERSONAL_BANK" or "OTHER")))
+		local kind = IsFurnitureVaultBag(bankingBag) and "FURNITURE_VAULT" or (IsHouseBankChestBag(bankingBag) and "HOUSE_CHEST" or (bankingBag == ESOAPI.BAG_SUBSCRIBER_BANK and "SUBSCRIBER_BANK" or (bankingBag == ESOAPI.BAG_BANK and "PERSONAL_BANK" or "OTHER")))
 		CustomRuleDebug(string.format("STORAGE CONTEXT source=%s resolvedBy=%s liveBag=%s kind=%s previousHouseBag=%s activeHouseBag=%s", tostring(source), tostring(resolvedBy), tostring(bankingBag), kind, tostring(previousBag), tostring(activeHouseStorageBagId)))
 	else
 		CustomRuleDebug(string.format("STORAGE CONTEXT source=%s unresolved=true; preserving previousHouseBag=%s", tostring(source), tostring(activeHouseStorageBagId)))
@@ -368,29 +411,29 @@ end
 
 local function IsCurrentStorageSourceBag(bagId)
 	if activeHouseStorageBagId then return bagId == activeHouseStorageBagId end
-	return bagId == BAG_BANK or bagId == BAG_SUBSCRIBER_BANK
+	return bagId == ESOAPI.BAG_BANK or bagId == ESOAPI.BAG_SUBSCRIBER_BANK
 end
 
 local function GetCurrentStorageSourceBags()
 	if activeHouseStorageBagId then return {activeHouseStorageBagId} end
-	return {BAG_BANK, BAG_SUBSCRIBER_BANK}
+	return {ESOAPI.BAG_BANK, ESOAPI.BAG_SUBSCRIBER_BANK}
 end
 
 local function GetCurrentDepositBag()
-	return activeHouseStorageBagId or BAG_BANK
+	return activeHouseStorageBagId or ESOAPI.BAG_BANK
 end
 
 local function IsBankDestinationBag(bagId)
-	return bagId == BAG_BANK or bagId == BAG_SUBSCRIBER_BANK or IsFurnitureStorageBag(bagId)
+	return bagId == ESOAPI.BAG_BANK or bagId == ESOAPI.BAG_SUBSCRIBER_BANK or IsFurnitureStorageBag(bagId)
 end
 
 local function CountItemLinkInBag(itemLink, bagId)
 	local total = 0
 	if not itemLink or not bagId then return total end
-	local bagSize = GetBagSize(bagId) or 0
+	local bagSize = ESOAPI.GetBagSize(bagId) or 0
 	for slotId = 0, bagSize - 1 do
-		if GetItemLink(bagId, slotId) == itemLink then
-			total = total + (GetSlotStackSize(bagId, slotId) or 0)
+		if ESOAPI.GetItemLink(bagId, slotId) == itemLink then
+			total = total + (ESOAPI.GetSlotStackSize(bagId, slotId) or 0)
 		end
 	end
 	return total
@@ -402,13 +445,13 @@ end
 local function CountItemIdInBag(itemId, bagId)
 	local total = 0
 	if not itemId or not bagId then return total end
-	local bagSize = GetBagSize(bagId) or 0
+	local bagSize = ESOAPI.GetBagSize(bagId) or 0
 	for slotId = 0, bagSize - 1 do
-		local link = GetItemLink(bagId, slotId)
+		local link = ESOAPI.GetItemLink(bagId, slotId)
 		if link and link ~= "" then
-			local ok, candidateItemId = pcall(GetItemLinkItemId, link)
-			if ok and candidateItemId == itemId then
-				total = total + (GetSlotStackSize(bagId, slotId) or 0)
+			local candidateItemId = ESOAPI.GetItemLinkItemId(link)
+			if candidateItemId == itemId then
+				total = total + (ESOAPI.GetSlotStackSize(bagId, slotId) or 0)
 			end
 		end
 	end
@@ -427,9 +470,9 @@ local BMR_BAG_AND_SLOT			= 2
 local pushQueue = {}
 local pullQueue = {}
 local movedItems = {
-	[BAG_BACKPACK] = {},
-	[BAG_BANK] = {},
-	[BAG_SUBSCRIBER_BANK] = {},
+	[ESOAPI.BAG_BACKPACK] = {},
+	[ESOAPI.BAG_BANK] = {},
+	[ESOAPI.BAG_SUBSCRIBER_BANK] = {},
 }
 
 -- Items explicitly configured to keep exactly one stack in the backpack.
@@ -462,16 +505,16 @@ end
 -- Prefer the current item-link name so existing saved rules are also corrected and localized.
 local function FormatCustomItemName(itemLink, fallbackName)
 	local itemName = fallbackName
-	if itemLink and itemLink ~= "" and GetItemLinkName then
-		local ok, name = pcall(GetItemLinkName, itemLink)
-		if ok and type(name) == "string" and name ~= "" then
+	if itemLink and itemLink ~= "" and ESOAPI.GetItemLinkName then
+		local name = ESOAPI.GetItemLinkName(itemLink)
+		if type(name) == "string" and name ~= "" then
 			itemName = name
 		end
 	end
 	if type(itemName) ~= "string" or itemName == "" then return nil end
 	if ZO_CachedStrFormat then
-		local ok, formattedName = pcall(ZO_CachedStrFormat, "<<C:1>>", itemName)
-		if ok and type(formattedName) == "string" and formattedName ~= "" then
+		local formattedName = ZO_CachedStrFormat("<<C:1>>", itemName)
+		if type(formattedName) == "string" and formattedName ~= "" then
 			return formattedName
 		end
 	end
@@ -491,8 +534,8 @@ local function GetRejectedPvpStackTargetKey(bagId, slotId, itemLink)
 	return tostring(bagId) .. ":" .. tostring(slotId) .. ":" .. tostring(itemLink)
 end
 local function GetOneStackDestinationKey(itemLink, bagIdTo)
-	local itemId = itemLink and GetItemLinkItemId(itemLink)
-	local destination = (bagIdTo == BAG_BACKPACK) and "backpack" or ((bagIdTo == BAG_BANK or bagIdTo == BAG_SUBSCRIBER_BANK) and "bank" or tostring(bagIdTo))
+	local itemId = itemLink and ESOAPI.GetItemLinkItemId(itemLink)
+	local destination = (bagIdTo == ESOAPI.BAG_BACKPACK) and "backpack" or ((bagIdTo == ESOAPI.BAG_BANK or bagIdTo == ESOAPI.BAG_SUBSCRIBER_BANK) and "bank" or tostring(bagIdTo))
 	return tostring(itemId) .. ":" .. destination
 end
 local function ClearRejectedPvpStackTargetsForSlot(bagId, slotId)
@@ -509,7 +552,7 @@ local function ClearRejectedPvpStackTargetsForSlot(bagId, slotId)
 	end
 end
 
-SLASH_COMMANDS["/bmr/custom/debug"] = function()
+ESOAPI.SLASH_COMMANDS["/bmr/custom/debug"] = function()
 	if not db then
 		d("[BMR Custom Rules] Einstellungen sind noch nicht geladen.")
 		return
@@ -521,11 +564,11 @@ end
 
 local function GetCustomRuleSlotDebugInfo(bagId, slotId)
 	local details = {}
-	local ok, condition = pcall(GetItemCondition, bagId, slotId)
-	if ok and condition ~= nil then table.insert(details, "condition=" .. tostring(condition)) end
-	local chargeOk, charges, maxCharges = pcall(GetChargeInfoForItem, bagId, slotId)
-	if chargeOk and charges ~= nil then table.insert(details, "charge=" .. tostring(charges) .. "/" .. tostring(maxCharges)) end
-	local count, maximum = GetSlotStackSize(bagId, slotId)
+	local condition = ESOAPI.GetItemCondition(bagId, slotId)
+	if condition ~= nil then table.insert(details, "condition=" .. tostring(condition)) end
+	local charges, maxCharges = GetChargeInfoForItem(bagId, slotId)
+	if charges ~= nil then table.insert(details, "charge=" .. tostring(charges) .. "/" .. tostring(maxCharges)) end
+	local count, maximum = ESOAPI.GetSlotStackSize(bagId, slotId)
 	if count ~= nil then table.insert(details, "stack=" .. tostring(count) .. "/" .. tostring(maximum)) end
 	return table.concat(details, ", ")
 end
@@ -537,7 +580,7 @@ local BMR_PVP_ITEM_CATALOG
 -- for catalogued PvP siege items; unknown formats safely fall back to normal order.
 local function GetSiegeRemainingEnergy(itemLink)
 	if not itemLink then return nil end
-	local itemId = GetItemLinkItemId(itemLink)
+	local itemId = ESOAPI.GetItemLinkItemId(itemLink)
 	if not itemId or not BMR_PVP_ITEM_CATALOG or not BMR_PVP_ITEM_CATALOG[itemId] then return nil end
 	local payload = string.match(tostring(itemLink), "|H%d:item:([^|]+)|h")
 	if not payload then return nil end
@@ -567,8 +610,8 @@ local function GetPvpUsedState(itemId, itemLink, bagId, slotId)
 		return energy < fullEnergySentinel, true, energy
 	end
 	if bagId ~= nil and slotId ~= nil then
-		local ok, condition = pcall(GetItemCondition, bagId, slotId)
-		if ok and type(condition) == "number" and condition >= 0 and condition <= 100 then
+		local condition = ESOAPI.GetItemCondition(bagId, slotId)
+		if type(condition) == "number" and condition >= 0 and condition <= 100 then
 			return condition < 100, true, nil
 		end
 	end
@@ -586,28 +629,28 @@ local function BMR_DumpPvpStorageSnapshot(source)
 	profile.rules = profile.rules or {}
 	local rules = profile.rules
 	local bags = {
-		{ id = BAG_BACKPACK, label = "INVENTAR" },
+		{ id = ESOAPI.BAG_BACKPACK, label = "INVENTAR" },
 	}
 	if activeHouseStorageBagId then
 		local storageLabel = IsFurnitureVaultBag(activeHouseStorageBagId) and "FURNITURE VAULT" or "HOUSE CHEST"
 		table.insert(bags, { id = activeHouseStorageBagId, label = storageLabel })
 	else
-		table.insert(bags, { id = BAG_BANK, label = "BANK" })
-		table.insert(bags, { id = BAG_SUBSCRIBER_BANK, label = "ESO+ BANK" })
+		table.insert(bags, { id = ESOAPI.BAG_BANK, label = "BANK" })
+		table.insert(bags, { id = ESOAPI.BAG_SUBSCRIBER_BANK, label = "ESO+ BANK" })
 	end
 	local preferredUsed = (profile.pvpPriorityState or "unused") == "used"
 	local function actionLabel(action)
 		local labels = {
-			[ACTION_NOTSET] = GetString(BMR_ACTION_NOTSET),
-			[ACTION_PUSH] = GetString(BMR_ACTION_PUSH),
-			[ACTION_PULL] = GetString(BMR_ACTION_PULL),
-			[ACTION_PUSH_GBANK] = GetString(BMR_ACTION_PUSH_GBANK),
-			[ACTION_PUSH_BOTH] = GetString(BMR_ACTION_PUSH_BOTH),
-			[ACTION_KEEP_ONE_STACK] = GetString(BMR_ACTION_KEEP_ONE_STACK),
-			[ACTION_KEEP_ONE_STACK_BANK] = GetString(BMR_ACTION_KEEP_ONE_STACK_BANK),
-			[ACTION_PUSH_FURNITURE] = GetString(BMR_ACTION_PUSH_FURNITURE),
-			[ACTION_PUSH_ALL_STACKS] = GetString(BMR_ACTION_PUSH_ALL_STACKS),
-			[ACTION_PULL_ALL_STACKS] = GetString(BMR_ACTION_PULL_ALL_STACKS),
+			[ACTION_NOTSET] = ESOAPI.GetString(BMR_ACTION_NOTSET),
+			[ACTION_PUSH] = ESOAPI.GetString(BMR_ACTION_PUSH),
+			[ACTION_PULL] = ESOAPI.GetString(BMR_ACTION_PULL),
+			[ACTION_PUSH_GBANK] = ESOAPI.GetString(BMR_ACTION_PUSH_GBANK),
+			[ACTION_PUSH_BOTH] = ESOAPI.GetString(BMR_ACTION_PUSH_BOTH),
+			[ACTION_KEEP_ONE_STACK] = ESOAPI.GetString(BMR_ACTION_KEEP_ONE_STACK),
+			[ACTION_KEEP_ONE_STACK_BANK] = ESOAPI.GetString(BMR_ACTION_KEEP_ONE_STACK_BANK),
+			[ACTION_PUSH_FURNITURE] = ESOAPI.GetString(BMR_ACTION_PUSH_FURNITURE),
+			[ACTION_PUSH_ALL_STACKS] = ESOAPI.GetString(BMR_ACTION_PUSH_ALL_STACKS),
+			[ACTION_PULL_ALL_STACKS] = ESOAPI.GetString(BMR_ACTION_PULL_ALL_STACKS),
 		}
 		return tostring(labels[action] or ("UNKNOWN(" .. tostring(action) .. ")"))
 	end
@@ -629,7 +672,7 @@ local function BMR_DumpPvpStorageSnapshot(source)
 	d(string.format("[BMR PvP SNAPSHOT] START source=%s profile=%s preferredInventoryState=%s customDebug=true",
 		tostring(source), tostring(actualProfile), preferredUsed and "used" or "unused"))
 	d(string.format("[BMR PvP SNAPSHOT] CATEGORY rule=MiscPvpAll onlyIfNotFullStack=%s maxStacksRule=MiscPvpStacks maxStacks=%s maxStacksEffective=%s guildBankRule=MiscPvpGBank guildBank=%s",
-		boolLabel(categoryOnlyIf, true), tostring(categoryStacks or 1), tostring(categoryOnlyIf == false and (categoryStacks or 1) or 1), tostring(categoryGuild or GetString(BMR_ACTION_NOTSET))))
+		boolLabel(categoryOnlyIf, true), tostring(categoryStacks or 1), tostring(categoryOnlyIf == false and (categoryStacks or 1) or 1), tostring(categoryGuild or ESOAPI.GetString(BMR_ACTION_NOTSET))))
 	logRule("MASTER", "MiscPvpSiege", rules.MiscPvpSiege)
 	-- Always show all three faction dropdowns, including inactive '-' values. This
 	-- makes inherited actions and omissions visible in a text log.
@@ -655,20 +698,20 @@ local function BMR_DumpPvpStorageSnapshot(source)
 
 	local found = 0
 	for _, bag in ipairs(bags) do
-		local size = GetBagSize(bag.id) or 0
+		local size = ESOAPI.GetBagSize(bag.id) or 0
 		local scanned = 0
 		for slot = 0, size - 1 do
-			local link = GetItemLink(bag.id, slot)
-			local itemId = link and GetItemLinkItemId(link)
+			local link = ESOAPI.GetItemLink(bag.id, slot)
+			local itemId = link and ESOAPI.GetItemLinkItemId(link)
 			if itemId and (BMR_PVP_ITEM_CATALOG[itemId] or itemId == 30359) then
 				scanned = scanned + 1; found = found + 1
-				local count, maxStack = GetSlotStackSize(bag.id, slot)
+				local count, maxStack = ESOAPI.GetSlotStackSize(bag.id, slot)
 				local payload = string.match(tostring(link), "|H%d:item:([^|]+)|h") or "NO_PAYLOAD"
 				local fields = {}; for field in string.gmatch(payload, "([^:]+)") do fields[#fields + 1] = field end
 				local rawEnergy = tonumber(fields[20])
 				local energy = GetSiegeRemainingEnergy(link)
-				local ok, condition = pcall(GetItemCondition, bag.id, slot)
-				local name = GetItemLinkName(link)
+				local condition = ESOAPI.GetItemCondition(bag.id, slot)
+				local name = ESOAPI.GetItemLinkName(link)
 				local catalog = BMR_PVP_ITEM_CATALOG[itemId]
 				local alliance = catalog and catalog.alliance or "-"
 				local exactName = "pvpItem_" .. tostring(itemId)
@@ -704,7 +747,7 @@ local function BMR_DumpPvpStorageSnapshot(source)
 				d(string.format("[BMR PvP SNAPSHOT] ITEM bag=%s bagId=%s slot=%d id=%d name=%s alliance=%s category=%s count=%s/%s rawEnergy=%s parsedEnergy=%s observedState=%s stateEnergy=%s condition=%s conditionOK=%s effectiveRule=%s effectiveAction=%s(%s) resolution=%s effectiveOnlyIfNotFullStack=%s configuredMaxStacks=%s effectiveMaxStacks=%s stackLimitReason=%s effectiveGuildBank=%s exactRuleAction=%s allianceRuleAction=%s masterRuleAction=%s link=%s",
 					bag.label, tostring(bag.id), slot, itemId, tostring(name), alliance, tostring(catalog and catalog.category or "Öl/other"), tostring(count), tostring(maxStack), tostring(rawEnergy), tostring(energy), observedState, tostring(stateEnergy), tostring(condition), tostring(ok), chosenName,
 				tostring(effectiveAction), actionLabel(effectiveAction), resolveReason,
-				boolLabel(effectiveOnlyIf, true), tostring(effectiveStacks or 1), tostring(effectiveMaxStacks), tostring(stackLimitReason), tostring(effectiveGuild or GetString(BMR_ACTION_NOTSET)),
+				boolLabel(effectiveOnlyIf, true), tostring(effectiveStacks or 1), tostring(effectiveMaxStacks), tostring(stackLimitReason), tostring(effectiveGuild or ESOAPI.GetString(BMR_ACTION_NOTSET)),
 				tostring(exact and exact.action or ACTION_NOTSET), tostring(allianceRule and allianceRule.action or ACTION_NOTSET), tostring(master and master.action or ACTION_NOTSET), tostring(link)))
 			end
 		end
@@ -713,15 +756,15 @@ local function BMR_DumpPvpStorageSnapshot(source)
 	d(string.format("[BMR PvP SNAPSHOT] END total=%d; snapshot only, no transfers requested.", found))
 end
 
-SLASH_COMMANDS["/bmr/pvp/snapshot"] = function()
+ESOAPI.SLASH_COMMANDS["/bmr/pvp/snapshot"] = function()
 	if not db then d("[BMR PvP SNAPSHOT] Einstellungen sind noch nicht geladen."); return end
 	BMR_DumpPvpStorageSnapshot("manual command")
 end
 
 local function GetBrandOilDiagnosticInfo(bagId, slotId, itemLink)
 	if not (db and db.customRulesDebug == true) then return "" end
-	local slotLink = GetItemLink(bagId, slotId)
-	local itemId = GetItemLinkItemId(slotLink or itemLink)
+	local slotLink = ESOAPI.GetItemLink(bagId, slotId)
+	local itemId = ESOAPI.GetItemLinkItemId(slotLink or itemLink)
 	if itemId ~= 30359 then return "" end
 	local details = {}
 	-- Prefer the actual link returned for this slot. ESO link types vary (H0/H1),
@@ -773,7 +816,7 @@ end
 -- as a source comment on each catalog row for maintainer readability.
 local function GetPvpCatalogItemName(itemId)
 	local fallback = "Item " .. tostring(itemId)
-	if type(GetItemLinkName) ~= "function" then return fallback end
+	if type(ESOAPI.GetItemLinkName) ~= "function" then return fallback end
 	local itemLink = string.format("|H1:item:%d:1:50:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", tonumber(itemId) or 0)
 	return FormatCustomItemName(itemLink, fallback) or fallback
 end
@@ -919,9 +962,9 @@ local BMR_PVP_CATEGORY_ENGLISH_FALLBACKS = {
 local function GetPvpCategoryDisplayName(categoryName)
 	if categoryName == "Öl" then return GetPvpCatalogItemName(30359) end
 	local specializedType = BMR_PVP_CATEGORY_SPECIALIZED_TYPES[categoryName]
-	if specializedType and type(GetString) == "function" then
-		local ok, localizedName = pcall(GetString, "SI_SPECIALIZEDITEMTYPE", specializedType)
-		if ok and type(localizedName) == "string" and localizedName ~= "" then
+	if specializedType and type(ESOAPI.GetString) == "function" then
+		local localizedName = ESOAPI.GetString("SI_SPECIALIZEDITEMTYPE", specializedType)
+		if type(localizedName) == "string" and localizedName ~= "" then
 			return localizedName
 		end
 	end
@@ -949,7 +992,7 @@ end
 
 local function GetPvpCategoryRuleCountText(categoryName)
 	local activeCount, totalCount = GetPvpCategoryRuleCounts(categoryName)
-	return zo_strformat(GetString(BMR_PVP_RULES_ACTIVE), activeCount, totalCount)
+	return ESOAPI.zo_strformat(ESOAPI.GetString(BMR_PVP_RULES_ACTIVE), activeCount, totalCount)
 end
 
 -- Defaults structure for SavedVariables.
@@ -1036,18 +1079,18 @@ local function EnsureProfile(profileIndex, defined)
 	end
 	profile.rules = profile.rules or {}
 	profile.pvpPriorityState = profile.pvpPriorityState or "unused"
-	profile.rules.pvpAlliance_AD = profile.rules.pvpAlliance_AD or {action = ACTION_NOTSET, associatedGuild = GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
-	profile.rules.pvpAlliance_EP = profile.rules.pvpAlliance_EP or {action = ACTION_NOTSET, associatedGuild = GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
-	profile.rules.pvpAlliance_DC = profile.rules.pvpAlliance_DC or {action = ACTION_NOTSET, associatedGuild = GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
+	profile.rules.pvpAlliance_AD = profile.rules.pvpAlliance_AD or {action = ACTION_NOTSET, associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
+	profile.rules.pvpAlliance_EP = profile.rules.pvpAlliance_EP or {action = ACTION_NOTSET, associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
+	profile.rules.pvpAlliance_DC = profile.rules.pvpAlliance_DC or {action = ACTION_NOTSET, associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
 	profile.rules.customItemsAll = profile.rules.customItemsAll or {
 		action = ACTION_NOTSET,
-		associatedGuild = GetString(BMR_ACTION_NOTSET),
+		associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET),
 		onlyIfNotFullStack = true,
 		onlyStacks = 1,
 	}
 	profile.rules.customFilterAll = profile.rules.customFilterAll or {
 		action = ACTION_NOTSET,
-		associatedGuild = GetString(BMR_ACTION_NOTSET),
+		associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET),
 		onlyIfNotFullStack = true,
 		onlyStacks = 1,
 	}
@@ -1056,7 +1099,7 @@ local function EnsureProfile(profileIndex, defined)
 		if profile.rules[ruleName] == nil then
 			profile.rules[ruleName] = {
 				action = ACTION_NOTSET,
-				associatedGuild = profile.rules.customFilterAll.associatedGuild or GetString(BMR_ACTION_NOTSET),
+				associatedGuild = profile.rules.customFilterAll.associatedGuild or ESOAPI.GetString(BMR_ACTION_NOTSET),
 				onlyIfNotFullStack = profile.rules.customFilterAll.onlyIfNotFullStack ~= false,
 				onlyStacks = tonumber(profile.rules.customFilterAll.onlyStacks) or 1,
 			}
@@ -1067,7 +1110,7 @@ local function EnsureProfile(profileIndex, defined)
 		if profile.rules[ruleName] == nil then
 			profile.rules[ruleName] = {
 				action = ACTION_NOTSET,
-				associatedGuild = profile.rules.customItemsAll.associatedGuild or GetString(BMR_ACTION_NOTSET),
+				associatedGuild = profile.rules.customItemsAll.associatedGuild or ESOAPI.GetString(BMR_ACTION_NOTSET),
 				onlyIfNotFullStack = profile.rules.customItemsAll.onlyIfNotFullStack ~= false,
 				onlyStacks = tonumber(profile.rules.customItemsAll.onlyStacks) or 1,
 			}
@@ -1110,6 +1153,7 @@ local function InitializeCoreProfileStore()
 	local loadedDb = ZO_SavedVars:NewAccountWide("BMVars", 1, nil, defaults, nil)
 	if type(loadedDb) ~= "table" then error("ZO_SavedVars:NewAccountWide did not return a table") end
 	db = loadedDb
+	BMR.db = db
 	BMR._profileDebugSavedVarsReady = true
 	db.profileDebugEnabled = db.profileDebugEnabled == true
 	db.profileDebugLog = type(db.profileDebugLog) == "table" and db.profileDebugLog or {}
@@ -1130,7 +1174,7 @@ local function InitializeCoreProfileStore()
 	db.scriptTracker.debug = db.scriptTracker.debug == true
 	db.pvpSortMode = (db.pvpSortMode == "alliance") and "alliance" or "weaponType"
 	EnsureProfiles()
-	local characterName = GetUnitName("player")
+	local characterName = ESOAPI.GetUnitName("player")
 	if type(characterName) ~= "string" or characterName == "" then characterName = nil end
 	if characterName and db.actualProfile[characterName] == nil then db.actualProfile[characterName] = 1 end
 	actualProfile = characterName and (tonumber(db.actualProfile[characterName]) or 1) or 1
@@ -1147,28 +1191,24 @@ end
 
 function BMR.ProfileDebugControlState(controlName)
 	if not BankManager or type(BankManager.GetNamedChild) ~= "function" then return "parent-missing" end
-	local ok, control = pcall(BankManager.GetNamedChild, BankManager, controlName)
-	if not ok then return "lookup-error" end
+	local control = BankManager:GetNamedChild(controlName)
 	if not control then return "missing" end
 	local hidden = "unknown"
 	if type(control.IsHidden) == "function" then
-		local hiddenOk, hiddenValue = pcall(control.IsHidden, control)
-		if hiddenOk then hidden = tostring(hiddenValue) end
+		local hiddenValue = control:IsHidden()
+		hidden = tostring(hiddenValue)
 	end
 	local textValue = ""
 	if type(control.GetText) == "function" then
-		local textOk, value = pcall(control.GetText, control)
-		if textOk then textValue = tostring(value or "") end
+		local value = control:GetText()
+		textValue = tostring(value or "")
 	end
 	return "exists(hidden=" .. hidden .. (textValue ~= "" and ",text=" .. textValue or "") .. ")"
 end
 
 function BMR.ProfileDebugSnapshot()
-	local currentCharacter = BMR.ProfileDebugSafeGetter("GetUnitName")
-	if type(GetUnitName) == "function" then
-		local ok, value = pcall(GetUnitName, "player")
-		if ok and value ~= nil then currentCharacter = tostring(value) end
-	end
+	local currentCharacter = ESOAPI.GetUnitName("player") or "n/a"
+	currentCharacter = tostring(currentCharacter)
 	local count = tonumber(db and db.profileCount) or 0
 	local defined = {}
 	local profileStore = type(db) == "table" and type(db.profiles) == "table" and db.profiles or {}
@@ -1187,8 +1227,7 @@ function BMR.ProfileDebugSnapshot()
 	local mapped = type(db) == "table" and type(db.actualProfile) == "table" and db.actualProfile[currentCharacter] or nil
 	local rootHidden = "unknown"
 	if BankManager and type(BankManager.IsHidden) == "function" then
-		local ok, value = pcall(BankManager.IsHidden, BankManager)
-		if ok then rootHidden = tostring(value) end
+		rootHidden = tostring(BankManager:IsHidden())
 	end
 	return string.format("account=%s character=%s world=%s db=%s profileCount=%s countInitialized=%s defined=[%s] actualProfile=%s mappedProfile=%s activeExists=%s activeDefined=%s activeName=%s activeRuleCount=%d autoTransfert=%s initialWaitInSecs=%s isBanking=%s checkingGBank=%s inProgress=%s transferPhase=%s BankManager(hidden=%s) Before=%s After=%s RuleName=%s",
 		BMR.ProfileDebugSafeGetter("GetDisplayName"), currentCharacter, BMR.ProfileDebugSafeGetter("GetWorldName"),
@@ -1229,20 +1268,20 @@ local function SyncCustomItemRuleDefinitions()
 	for itemId, itemData in pairs(BMR_PVP_ITEM_CATALOG) do
 		local ruleName = "pvpItem_" .. tostring(itemId)
 		BankManagerRules.data[ruleName] = {
-			params = {{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {itemId}}},
+			params = {{func = ESOAPI.GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {itemId}}},
 			position = 9998,
 			name = itemData.name,
 			tooltip = itemData.name .. " (" .. itemData.category .. ", ID " .. tostring(itemId) .. ")",
 		}
 		BankManagerRules.defaults[ruleName] = BankManagerRules.defaults[ruleName] or {
-			action = ACTION_NOTSET, associatedGuild = GetString(BMR_ACTION_NOTSET),
+			action = ACTION_NOTSET, associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET),
 			onlyIfNotFullStack = true, onlyStacks = 1,
 		}
 		for _, profile in pairs(db.profiles or {}) do
 			if type(profile) == "table" then
 				profile.rules = profile.rules or {}
 				if profile.rules[ruleName] == nil then
-					profile.rules[ruleName] = {action = ACTION_NOTSET, associatedGuild = GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
+					profile.rules[ruleName] = {action = ACTION_NOTSET, associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
 				end
 			end
 		end
@@ -1255,32 +1294,32 @@ end
 
 -- Display a movement
 local function GetMovementDestinationText(bagIdTo)
-	if IsFurnitureVaultBag(bagIdTo) then return GetString(BMR_ACTION_ITEMS_MOVED_TO_FURNITURE) end
-	if IsHouseBankChestBag(bagIdTo) then return GetString(BMR_ACTION_ITEMS_MOVED_TO_HOUSE_STORAGE) end
-	return GetString("BMR_ACTION_ITEMS_MOVED_TO", bagIdTo)
+	if IsFurnitureVaultBag(bagIdTo) then return ESOAPI.GetString(BMR_ACTION_ITEMS_MOVED_TO_FURNITURE) end
+	if IsHouseBankChestBag(bagIdTo) then return ESOAPI.GetString(BMR_ACTION_ITEMS_MOVED_TO_HOUSE_STORAGE) end
+	return ESOAPI.GetString("BMR_ACTION_ITEMS_MOVED_TO", bagIdTo)
 end
 
-local function PrintItemsToBag(itemLink, itemIcon, bagIdTo, qty, currentGBankName)
-	BMR.SafeAddChatMessage(zo_strformat(BMR_ACTION_ITEMS_MOVED, zo_strformat(SI_TOOLTIP_ITEM_NAME, itemLink), itemIcon, qty, GetMovementDestinationText(bagIdTo), currentGBankName))
+local function PrintItemsToBag(itemLink, itemIcon, bagIdTo, qty, guildName)
+	BMR.SafeAddChatMessage(ESOAPI.zo_strformat(BMR_ACTION_ITEMS_MOVED, ESOAPI.zo_strformat(SI_TOOLTIP_ITEM_NAME, itemLink), itemIcon, qty, GetMovementDestinationText(bagIdTo), guildName))
 end
 
-local function PrintItemsNotMovedToBag(itemLink, itemIcon, bagIdTo, qty, currentGBankName)
-	BMR.SafeAddChatMessage(zo_strformat(BMR_ACTION_ITEMS_NOT_MOVED, zo_strformat(SI_TOOLTIP_ITEM_NAME, itemLink), itemIcon, qty, GetMovementDestinationText(bagIdTo), currentGBankName))
+local function PrintItemsNotMovedToBag(itemLink, itemIcon, bagIdTo, qty, guildName)
+	BMR.SafeAddChatMessage(ESOAPI.zo_strformat(BMR_ACTION_ITEMS_NOT_MOVED, ESOAPI.zo_strformat(SI_TOOLTIP_ITEM_NAME, itemLink), itemIcon, qty, GetMovementDestinationText(bagIdTo), guildName))
 end
 
 -- Display movement summary
-local function PrintSummaryToBag(bagIdTo, countMoved, qtyMoved, currentGBankName)
-	BMR.SafeAddChatMessage(zo_strformat(BMR_ACTION_ITEMS_SUMMARY, countMoved, qtyMoved, GetMovementDestinationText(bagIdTo), currentGBankName))
+local function PrintSummaryToBag(bagIdTo, countMoved, qtyMoved, guildName)
+	BMR.SafeAddChatMessage(ESOAPI.zo_strformat(BMR_ACTION_ITEMS_SUMMARY, countMoved, qtyMoved, GetMovementDestinationText(bagIdTo), guildName))
 end
 
 -- Display currency movement
 local function PrintCurrencyToBank(currencyType, qtyMoved)
-	if type(ZO_CurrencyControl_FormatCurrencyAndAppendIcon) == "function" then BMR.SafeAddChatMessage(zo_strformat(BMR_ACTION_CURRENCY_SUMMARY, ZO_CurrencyControl_FormatCurrencyAndAppendIcon(qtyMoved, true, currencyType), GetString(BMR_ACTION_ITEMS_MOVED_TO2))) end
+	if type(ESOAPI.ZO_CurrencyControl_FormatCurrencyAndAppendIcon) == "function" then BMR.SafeAddChatMessage(ESOAPI.zo_strformat(BMR_ACTION_CURRENCY_SUMMARY, ESOAPI.ZO_CurrencyControl_FormatCurrencyAndAppendIcon(qtyMoved, true, currencyType), ESOAPI.GetString(BMR_ACTION_ITEMS_MOVED_TO2))) end
 end
 
 -- Display currency movement
 local function PrintCurrencyToBag(currencyType, qtyMoved)
-	if type(ZO_CurrencyControl_FormatCurrencyAndAppendIcon) == "function" then BMR.SafeAddChatMessage(zo_strformat(BMR_ACTION_CURRENCY_SUMMARY, ZO_CurrencyControl_FormatCurrencyAndAppendIcon(qtyMoved, true, currencyType), GetString(BMR_ACTION_ITEMS_MOVED_TO1))) end
+	if type(ESOAPI.ZO_CurrencyControl_FormatCurrencyAndAppendIcon) == "function" then BMR.SafeAddChatMessage(ESOAPI.zo_strformat(BMR_ACTION_CURRENCY_SUMMARY, ESOAPI.ZO_CurrencyControl_FormatCurrencyAndAppendIcon(qtyMoved, true, currencyType), ESOAPI.GetString(BMR_ACTION_ITEMS_MOVED_TO1))) end
 end
 
 local function Sanitize(value)
@@ -1297,9 +1336,9 @@ local function BuildWritsItems()
 	
 	for journalQuestIndex = 1, GetNumJournalQuests() do
 		if GetJournalQuestType(journalQuestIndex) == QUEST_TYPE_CRAFTING then
-			if GetJournalQuestNumSteps(journalQuestIndex) == QUEST_MAIN_STEP_INDEX then
-				for numConditions = 1, GetJournalQuestNumConditions(journalQuestIndex, QUEST_MAIN_STEP_INDEX) do
-					local conditionText, current, max, _, isComplete = GetJournalQuestConditionInfo(journalQuestIndex, QUEST_MAIN_STEP_INDEX, numConditions)
+			if GetJournalQuestNumSteps(journalQuestIndex) == ESOAPI.QUEST_MAIN_STEP_INDEX then
+				for numConditions = 1, GetJournalQuestNumConditions(journalQuestIndex, ESOAPI.QUEST_MAIN_STEP_INDEX) do
+					local conditionText, current, max, _, isComplete = GetJournalQuestConditionInfo(journalQuestIndex, ESOAPI.QUEST_MAIN_STEP_INDEX, numConditions)
 					if conditionText ~= "" and current < max then
 						conditionText = string.gsub(conditionText, " ", " ") -- First is a NO-BREAK SPACE, 2nd a SPACE, found somes.
 						conditionText = Sanitize(conditionText)
@@ -1329,41 +1368,26 @@ local function OnCloseProcessAtGBank()
 	activeRuleRunPhase = nil
 	pushQueue = {}
 	
-	EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_GUILD_BANK_TRANSFER_ERROR)
-	EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_GUILD_BANK_ITEM_ADDED)
+	ESOAPI.EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, ESOAPI.EVENT_GUILD_BANK_TRANSFER_ERROR)
+	ESOAPI.EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, ESOAPI.EVENT_GUILD_BANK_ITEM_ADDED)
 	
 end
 
 -- Build the push/pull array
 local function queueAction(ruleName, bagId, slotId)
-
-	local ruleSettings = db.profiles[actualProfile].rules[ruleName]
-	local whichAction = ruleSettings.action
-	local itemLink = GetItemLink(bagId, slotId)
-	local itemIcon = GetItemLinkInfo(itemLink)
-
-	if bagId == BAG_BACKPACK then
-		if checkingGBank then
-			-- Guild-bank actions may only target the guild selected for this rule.
-			-- ACTION_PUSH_BOTH is eligible here as well as ACTION_PUSH_GBANK.
-			if (whichAction == ACTION_PUSH_GBANK or whichAction == ACTION_PUSH_BOTH)
-				and ruleSettings.associatedGuild and ruleSettings.associatedGuild == currentGBankName then
-				table.insert(pushQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = itemLink, itemIcon = itemIcon})
-			end
-		else
-			-- Personal-bank (or currently active personal storage) actions. A rule
-			-- assigned exclusively to a guild bank must never enter this queue.
-			if whichAction == ACTION_PUSH or whichAction == ACTION_PUSH_BOTH or whichAction == ACTION_PUSH_ALL_STACKS then
-				table.insert(pushQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = itemLink, itemIcon = itemIcon})
-			elseif whichAction == ACTION_PUSH_FURNITURE and activeHouseStorageBagId then
-				table.insert(pushQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = itemLink, itemIcon = itemIcon})
-			end
-		end
-	elseif not checkingGBank and (whichAction == ACTION_PULL or whichAction == ACTION_PULL_ALL_STACKS) and IsCurrentStorageSourceBag(bagId) then
-		-- Pull item to backpack. Guild-bank transfers are push-only.
-		table.insert(pullQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = itemLink, itemIcon = itemIcon})
+	
+	local whichAction = db.profiles[actualProfile].rules[ruleName].action
+	if (whichAction == ACTION_PUSH or whichAction == ACTION_PUSH_GBANK or whichAction == ACTION_PUSH_BOTH or whichAction == ACTION_PUSH_ALL_STACKS) and bagId == ESOAPI.BAG_BACKPACK then
+		-- Push item to the active destination: personal bank, or the currently opened house storage.
+		table.insert(pushQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = ESOAPI.GetItemLink(bagId, slotId), itemIcon = ESOAPI.GetItemLinkInfo(ESOAPI.GetItemLink(bagId, slotId))})
+	elseif whichAction == ACTION_PUSH_FURNITURE and bagId == ESOAPI.BAG_BACKPACK and activeHouseStorageBagId then
+		table.insert(pushQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = ESOAPI.GetItemLink(bagId, slotId), itemIcon = ESOAPI.GetItemLinkInfo(ESOAPI.GetItemLink(bagId, slotId))})
+	elseif (whichAction == ACTION_PULL or whichAction == ACTION_PULL_ALL_STACKS) and IsCurrentStorageSourceBag(bagId) then
+		-- Pull item to bank
+		--d("ACTION_PULL " .. ruleName .. " " .. bagId .. " " .. slotId)
+		table.insert(pullQueue, {ruleName = ruleName, bagId = bagId, slotId = slotId, itemLink = ESOAPI.GetItemLink(bagId, slotId), itemIcon = ESOAPI.GetItemLinkInfo(ESOAPI.GetItemLink(bagId, slotId))})
 	end
-
+	
 end
 
 -- return true if item is protected
@@ -1379,17 +1403,15 @@ local function IsItemProtected(bagId, slotId)
 		return true
 	end
 
-	--FCO ItemSaver support
-	if FCOIS and FCOIS.IsLocked then
-		return FCOIS.IsLocked(bagId, slotId)
+	-- FCO ItemSaver support. Cache the optional library and its frequently
+	-- called per-item check after it becomes available; no load-order assumption.
+	local fcoisCache = BMR.FCOISCache
+	if not fcoisCache.library then fcoisCache.library = _G.FCOIS end
+	if fcoisCache.library and not fcoisCache.isLocked then
+		fcoisCache.isLocked = fcoisCache.library.IsLocked
 	end
-
-	--FilterIt support
-	if FilterIt and FilterIt.AccountSavedVariables and FilterIt.AccountSavedVariables.FilteredItems then
-		local sUniqueId = Id64ToString(GetItemUniqueId(bagId, slotId))
-		if FilterIt.AccountSavedVariables.FilteredItems[sUniqueId] then
-			return FilterIt.AccountSavedVariables.FilteredItems[sUniqueId] ~= FILTERIT_VENDOR
-		end
+	if type(fcoisCache.isLocked) == "function" then
+		return fcoisCache.isLocked(bagId, slotId)
 	end
 
 	return false
@@ -1471,7 +1493,7 @@ local function QueueOneStackSlot(ruleName, itemLink, bagId, slotId, targetBank)
 	else
 		request.ruleName = ruleName
 	end
-	local slots = (bagId == BAG_BACKPACK) and request.backpackSlots or request.bankSlots
+	local slots = (bagId == ESOAPI.BAG_BACKPACK) and request.backpackSlots or request.bankSlots
 	table.insert(slots, {bagId = bagId, slotId = slotId})
 end
 
@@ -1483,8 +1505,8 @@ local function prepareItem(bagId, slotId, checkingGBank)
 	if IsItemStolen(bagId, slotId) then BMR.ProfileDebugScanIncrement("stolen"); return end
 	if db.profiles[actualProfile].protected and IsItemProtected(bagId, slotId) then BMR.ProfileDebugScanIncrement("protected"); return end
 	
-	local itemLink = GetItemLink(bagId, slotId)
-	local itemId = GetItemLinkItemId(itemLink)
+	local itemLink = ESOAPI.GetItemLink(bagId, slotId)
+	local itemId = ESOAPI.GetItemLinkItemId(itemLink)
 	local customRuleName = itemId and ("customItem_" .. tostring(itemId)) or nil
 	local pvpRuleName = itemId and BMR_PVP_ITEM_CATALOG[itemId] and ("pvpItem_" .. tostring(itemId)) or nil
 	local exactRuleName = customRuleName and db.profiles[actualProfile].rules[customRuleName] and db.profiles[actualProfile].rules[customRuleName].action ~= ACTION_NOTSET and customRuleName or nil
@@ -1510,14 +1532,14 @@ local function prepareItem(bagId, slotId, checkingGBank)
 	local customRuleActive = customRuleSettings and customRuleSettings.action and customRuleSettings.action ~= ACTION_NOTSET
 	if customRuleActive then
 		BMR.ProfileDebugScanIncrement("activeExact")
-		CustomRuleDebug(string.format("MATCH name=%s itemId=%s action=%s bag=%s slot=%s %s link=%s%s", tostring(GetItemLinkName(itemLink)), tostring(itemId), tostring(customRuleSettings.action), tostring(bagId), tostring(slotId), GetCustomRuleSlotDebugInfo(bagId, slotId), tostring(itemLink), GetBrandOilDiagnosticInfo(bagId, slotId, itemLink)))
+		CustomRuleDebug(string.format("MATCH name=%s itemId=%s action=%s bag=%s slot=%s %s link=%s%s", tostring(ESOAPI.GetItemLinkName(itemLink)), tostring(itemId), tostring(customRuleSettings.action), tostring(bagId), tostring(slotId), GetCustomRuleSlotDebugInfo(bagId, slotId), tostring(itemLink), GetBrandOilDiagnosticInfo(bagId, slotId, itemLink)))
 	end
 	if customRuleActive and (customRuleSettings.action == ACTION_PULL or customRuleSettings.action == ACTION_PULL_ALL_STACKS) then
 		hasAnyPullToDo = true
 	end
 	
 	-- Cannot be moved to bank
-	if bagId == BAG_BACKPACK and GetItemLinkBindType(itemLink) == BIND_TYPE_ON_PICKUP_BACKPACK then BMR.ProfileDebugScanIncrement("pickupPersonal"); return end
+	if bagId == ESOAPI.BAG_BACKPACK and GetItemLinkBindType(itemLink) == BIND_TYPE_ON_PICKUP_BACKPACK then BMR.ProfileDebugScanIncrement("pickupPersonal"); return end
 	
 	-- Cannot be moved to GBank
 	if checkingGBank and GetItemLinkBindType(itemLink) == BIND_TYPE_ON_PICKUP then BMR.ProfileDebugScanIncrement("pickupGuild"); return end
@@ -1567,7 +1589,7 @@ local function prepareItem(bagId, slotId, checkingGBank)
 	if customRuleActive then
 		itemMatch = true
 		ruleMatch = customRuleName
-		if checkingGBank and customRuleSettings.action ~= ACTION_PUSH_GBANK and customRuleSettings.action ~= ACTION_PUSH_BOTH then
+		if checkingGBank and (customRuleSettings.action == ACTION_PUSH or customRuleSettings.action == ACTION_PUSH_ALL_STACKS) then
 			forBankOnly = true
 		end
 	end
@@ -1611,13 +1633,10 @@ local function prepareItem(bagId, slotId, checkingGBank)
 	if not itemMatch and masterRuleName then
 		local masterSettings = db.profiles[actualProfile].rules[masterRuleName]
 		if masterSettings and masterSettings.action and masterSettings.action ~= ACTION_NOTSET then
-			-- A configured master action owns the item in every storage context.
-			-- queueAction() decides whether that action is valid for the currently
-			-- open destination, preventing a child rule from routing it elsewhere.
-			itemMatch = true
-			ruleMatch = masterRuleName
-			if checkingGBank and masterSettings.action ~= ACTION_PUSH_GBANK and masterSettings.action ~= ACTION_PUSH_BOTH then
-				forBankOnly = true
+			local isBankAction = (masterSettings.action == ACTION_PUSH or masterSettings.action == ACTION_PUSH_ALL_STACKS or masterSettings.action == ACTION_PULL or masterSettings.action == ACTION_PULL_ALL_STACKS)
+			if (checkingGBank and not isBankAction) or (not checkingGBank and isBankAction) then
+				itemMatch = true
+				ruleMatch = masterRuleName
 			end
 		elseif masterRuleName == "MiscContainerAntiquityLead" then
 
@@ -1635,7 +1654,7 @@ local function prepareItem(bagId, slotId, checkingGBank)
 					and DoesRuleMatchItem(BankManagerRules.data[qualityRuleName], itemLink, bagId, slotId) then
 					itemMatch = true
 					ruleMatch = qualityRuleName
-					if checkingGBank and qualitySettings.action ~= ACTION_PUSH_GBANK and qualitySettings.action ~= ACTION_PUSH_BOTH then
+					if checkingGBank and (qualitySettings.action == ACTION_PUSH or qualitySettings.action == ACTION_PUSH_ALL_STACKS) then
 						forBankOnly = true
 					end
 					break
@@ -1656,23 +1675,26 @@ local function prepareItem(bagId, slotId, checkingGBank)
 			db.profiles[actualProfile].rules = profileRules
 		end
 		local action = ruleSettings.action
+		local associatedGuild = ruleSettings.associatedGuild
 		
 		-- Check first if item didn't matched a previous rule
 		if not itemMatch then
 		
 			local shouldMove
-
-			if not checkingGBank and (action == ACTION_PULL or action == ACTION_PULL_ALL_STACKS) then
-				if ruleSettings.specialEnabled then
-					hasAnySpecialPullToDo = true
-				else
-					hasAnyPullToDo = true
+			
+			if checkingGBank then -- the 3rd is here to allow easy rules, see under
+				shouldMove = (BMR.currentGBankName == associatedGuild) and ((bagId == ESOAPI.BAG_BACKPACK and action == ACTION_PUSH_GBANK) or (bagId == ESOAPI.BAG_BACKPACK and action == ACTION_PUSH_BOTH) or (bagId == ESOAPI.BAG_BACKPACK and action == ACTION_PUSH))
+			else
+				if action == ACTION_PULL or action == ACTION_PULL_ALL_STACKS then
+					if ruleSettings.specialEnabled then
+						hasAnySpecialPullToDo = true
+					else
+						hasAnyPullToDo = true
+					end
 				end
+				shouldMove = (bagId == ESOAPI.BAG_BACKPACK and (action == ACTION_PUSH or action == ACTION_PUSH_FURNITURE or action == ACTION_PUSH_ALL_STACKS)) or (IsCurrentStorageSourceBag(bagId) and (action == ACTION_PULL or action == ACTION_PULL_ALL_STACKS)) or (bagId == ESOAPI.BAG_BACKPACK and action == ACTION_PUSH_BOTH)
 			end
-			-- Rule matching is independent of the currently open destination. This
-			-- preserves the most-specific rule even when its action belongs to the
-			-- other bank (or another guild); queueAction() performs the actual routing.
-			shouldMove = action ~= nil and action ~= ACTION_NOTSET
+			
 			-- If rule is well writen and set to do something
 			if ruleData.params and shouldMove then
 
@@ -1715,11 +1737,11 @@ local function prepareItem(bagId, slotId, checkingGBank)
 					
 				end
 
-				-- A matched specific action owns this item, even when it is not
-				-- eligible for the currently open guild bank. Do not fall through to
-				-- a broader rule that could send it to a different destination.
-				if itemMatch and checkingGBank and action ~= ACTION_PUSH_GBANK and action ~= ACTION_PUSH_BOTH then
+				-- Our item matched a rule - was it an ACTION_PUSH + checkingGBank ?
+				if itemMatch and checkingGBank and action == ACTION_PUSH then
+					-- this item must not be queued, it has been flagged to go to bank only
 					forBankOnly = true
+					--d(itemLink .. " (" .. bagId .. " " .. slotId.. ") ruleMatch:" .. ruleMatch .. " set flag 'For Bank Only' ")
 				end
 			
 			end
@@ -1761,11 +1783,11 @@ local function moveItems(atGBank, errorReasonAtGBank)
 
 	-- Our bagcache, because game don't have it in realtime
 	local tinyBagCache = {
-		[BAG_BACKPACK] = {},
-		[BAG_BANK] = {},
-		[BAG_SUBSCRIBER_BANK] = {},
+		[ESOAPI.BAG_BACKPACK] = {},
+		[ESOAPI.BAG_BANK] = {},
+		[ESOAPI.BAG_SUBSCRIBER_BANK] = {},
 	}
-	local pushTargetBag = (not atGBank and GetCurrentDepositBag()) or BAG_BANK
+	local pushTargetBag = (not atGBank and GetCurrentDepositBag()) or ESOAPI.BAG_BANK
 	if activeHouseStorageBagId then tinyBagCache[activeHouseStorageBagId] = {} end
 	
 	-- Our bagcache for qty, because game don't have it in realtime
@@ -1776,18 +1798,18 @@ local function moveItems(atGBank, errorReasonAtGBank)
 	
 	-- Avoid checking first 230 slots if we already did it.
 	local tinyBagCacheFirstSlot = {
-		[BAG_BACKPACK] = 0,
-		[BAG_BANK] = 0,
-		[BAG_SUBSCRIBER_BANK] = 0,
+		[ESOAPI.BAG_BACKPACK] = 0,
+		[ESOAPI.BAG_BANK] = 0,
+		[ESOAPI.BAG_SUBSCRIBER_BANK] = 0,
 	}
 	if activeHouseStorageBagId then tinyBagCacheFirstSlot[activeHouseStorageBagId] = 0 end
 	
 	local freeSlots = {
-		[BAG_BACKPACK] = 0,
-		[BAG_BANK] = 0,
-		[BAG_SUBSCRIBER_BANK] = 0,
+		[ESOAPI.BAG_BACKPACK] = 0,
+		[ESOAPI.BAG_BANK] = 0,
+		[ESOAPI.BAG_SUBSCRIBER_BANK] = 0,
 	}
-	if activeHouseStorageBagId then freeSlots[activeHouseStorageBagId] = GetNumBagFreeSlots(activeHouseStorageBagId) end
+	if activeHouseStorageBagId then freeSlots[activeHouseStorageBagId] = ESOAPI.GetNumBagFreeSlots(activeHouseStorageBagId) end
 	
 	-- Items moved in psuh + pull actions
 	local itemsMoved = 0
@@ -1803,7 +1825,7 @@ local function moveItems(atGBank, errorReasonAtGBank)
 		-- Queue metadata can be stale or inherited from a broader rule. For PvP items,
 		-- resolve the active exact-item rule first, then the item's alliance rule.
 		if action ~= ACTION_KEEP_ONE_STACK and action ~= ACTION_KEEP_ONE_STACK_BANK and itemLink then
-			local itemId = GetItemLinkItemId(itemLink)
+			local itemId = ESOAPI.GetItemLinkItemId(itemLink)
 			local exactName = itemId and ("pvpItem_" .. tostring(itemId)) or nil
 			local exact = exactName and db.profiles[actualProfile].rules[exactName]
 			if exact and exact.action and exact.action ~= ACTION_NOTSET then
@@ -1815,32 +1837,32 @@ local function moveItems(atGBank, errorReasonAtGBank)
 				if allianceRule and allianceRule.action then action = allianceRule.action end
 			end
 		end
-		return (action == ACTION_KEEP_ONE_STACK and bagIdTo == BAG_BACKPACK)
+		return (action == ACTION_KEEP_ONE_STACK and bagIdTo == ESOAPI.BAG_BACKPACK)
 			or (action == ACTION_KEEP_ONE_STACK_BANK and IsBankDestinationBag(bagIdTo))
 	end
 	
 	-- Thanks Merlight & circonian, FindFirstEmptySlotInBag don't refresh in realtime.
 	local function FindEmptySlotInBag(bagId)
 		
-		if isESOPlusSubscriber and bagId == BAG_BANK and freeSlots[bagId] == 0 then
-			bagId = BAG_SUBSCRIBER_BANK
+		if isESOPlusSubscriber and bagId == ESOAPI.BAG_BANK and freeSlots[bagId] == 0 then
+			bagId = ESOAPI.BAG_SUBSCRIBER_BANK
 		end
 		
 		--d("FindEmptySlotInBag (" .. bagId .. ")" .. " ; isESOPlusSubscriber=" .. tostring(isESOPlusSubscriber))
 		tinyBagCache[bagId] = tinyBagCache[bagId] or {}
 		tinyBagCacheFirstSlot[bagId] = tinyBagCacheFirstSlot[bagId] or 0
-		if freeSlots[bagId] == nil then freeSlots[bagId] = GetNumBagFreeSlots(bagId) or 0 end
-		local hasSpace = atGBank or (IsFurnitureStorageBag(bagId) and freeSlots[bagId] > 0) or (bagId == BAG_BANK and not isESOPlusSubscriber and freeSlots[bagId] > db.profiles[actualProfile].overfill) or (isESOPlusSubscriber and (bagId == BAG_BANK or bagId == BAG_SUBSCRIBER_BANK) and freeSlots[BAG_SUBSCRIBER_BANK] > db.profiles[actualProfile].overfill) or (bagId == BAG_BACKPACK and freeSlots[bagId] > db.profiles[actualProfile].overfill)
+		if freeSlots[bagId] == nil then freeSlots[bagId] = ESOAPI.GetNumBagFreeSlots(bagId) or 0 end
+		local hasSpace = atGBank or (IsFurnitureStorageBag(bagId) and freeSlots[bagId] > 0) or (bagId == ESOAPI.BAG_BANK and not isESOPlusSubscriber and freeSlots[bagId] > db.profiles[actualProfile].overfill) or (isESOPlusSubscriber and (bagId == ESOAPI.BAG_BANK or bagId == ESOAPI.BAG_SUBSCRIBER_BANK) and freeSlots[ESOAPI.BAG_SUBSCRIBER_BANK] > db.profiles[actualProfile].overfill) or (bagId == ESOAPI.BAG_BACKPACK and freeSlots[bagId] > db.profiles[actualProfile].overfill)
 		if hasSpace then
-			for slotIndex = tinyBagCacheFirstSlot[bagId], ((GetBagSize(bagId) or 0) - 1) do
+			for slotIndex = tinyBagCacheFirstSlot[bagId], ((ESOAPI.GetBagSize(bagId) or 0) - 1) do
 				-- Housing storage bags may not be fully represented in LibSharedInventory.
 				-- Query ESO's live slot state for these bags so an occupied slot is never
 				-- mistaken for an empty destination.
 				local occupied
 				if IsFurnitureStorageBag(bagId) then
-					occupied = GetItemType(bagId, slotIndex) ~= ITEMTYPE_NONE
+					occupied = ESOAPI.GetItemType(bagId, slotIndex) ~= ESOAPI.ITEMTYPE_NONE
 				else
-					occupied = (SHARED_INVENTORY.bagCache[bagId] or {})[slotIndex] ~= nil
+					occupied = (ESOAPI.SHARED_INVENTORY.bagCache[bagId] or {})[slotIndex] ~= nil
 				end
 				if not occupied and not tinyBagCache[bagId][slotIndex] then
 					--d("tinyBagCache -> " .. bagId .. " " .. slotIndex)
@@ -1859,17 +1881,17 @@ local function moveItems(atGBank, errorReasonAtGBank)
 	-- share it while their complete item links (and stacking compatibility) differ.
 	local function FindItemInBag(bagIdTo, bagIdFrom, slotIdFrom, maxStack, sourceItemLink)
 		--d("FindItemInBag")
-		local sourceData = SHARED_INVENTORY.bagCache[bagIdFrom] and SHARED_INVENTORY.bagCache[bagIdFrom][slotIdFrom]
+		local sourceData = ESOAPI.SHARED_INVENTORY.bagCache[bagIdFrom] and ESOAPI.SHARED_INVENTORY.bagCache[bagIdFrom][slotIdFrom]
 		local itemInstanceId = sourceData and sourceData.itemInstanceId
-		sourceItemLink = sourceItemLink or GetItemLink(bagIdFrom, slotIdFrom)
+		sourceItemLink = sourceItemLink or ESOAPI.GetItemLink(bagIdFrom, slotIdFrom)
 		if not sourceItemLink or (not itemInstanceId and not IsFurnitureStorageBag(bagIdFrom)) then
 			return FindEmptySlotInBag(bagIdTo)
 		end
-		local sourceItemId = GetItemLinkItemId(sourceItemLink)
+		local sourceItemId = ESOAPI.GetItemLinkItemId(sourceItemLink)
 		local function findMatchingStack(candidateBagId)
-			for _, data in pairs(SHARED_INVENTORY.bagCache[candidateBagId] or {}) do
-				if (data.itemInstanceId == itemInstanceId or (not itemInstanceId and GetItemLink(candidateBagId, data.slotIndex) == sourceItemLink)) and data.stackCount < maxStack then
-					local candidateLink = GetItemLink(candidateBagId, data.slotIndex)
+			for _, data in pairs(ESOAPI.SHARED_INVENTORY.bagCache[candidateBagId] or {}) do
+				if (data.itemInstanceId == itemInstanceId or (not itemInstanceId and ESOAPI.GetItemLink(candidateBagId, data.slotIndex) == sourceItemLink)) and data.stackCount < maxStack then
+					local candidateLink = ESOAPI.GetItemLink(candidateBagId, data.slotIndex)
 					if candidateLink == sourceItemLink then
 						local rejectedKey = GetRejectedPvpStackTargetKey(candidateBagId, data.slotIndex, sourceItemLink)
 						if rejectedPvpStackTargets[rejectedKey] then
@@ -1883,10 +1905,10 @@ local function moveItems(atGBank, errorReasonAtGBank)
 				end
 			end
 			if IsFurnitureStorageBag(candidateBagId) then
-				for slotId = 0, (GetBagSize(candidateBagId) or 0) - 1 do
-					local candidateLink = GetItemLink(candidateBagId, slotId)
-					local count = GetSlotStackSize(candidateBagId, slotId) or 0
-					local candidateData = SHARED_INVENTORY.bagCache[candidateBagId] and SHARED_INVENTORY.bagCache[candidateBagId][slotId]
+				for slotId = 0, (ESOAPI.GetBagSize(candidateBagId) or 0) - 1 do
+					local candidateLink = ESOAPI.GetItemLink(candidateBagId, slotId)
+					local count = ESOAPI.GetSlotStackSize(candidateBagId, slotId) or 0
+					local candidateData = ESOAPI.SHARED_INVENTORY.bagCache[candidateBagId] and ESOAPI.SHARED_INVENTORY.bagCache[candidateBagId][slotId]
 					local sameInstance = itemInstanceId and candidateData and candidateData.itemInstanceId == itemInstanceId
 					local cacheMissingButExactLink = not candidateData and candidateLink == sourceItemLink
 					if candidateLink == sourceItemLink and count > 0 and count < maxStack and (sameInstance or cacheMissingButExactLink or (not itemInstanceId and candidateLink == sourceItemLink)) then
@@ -1898,8 +1920,8 @@ local function moveItems(atGBank, errorReasonAtGBank)
 		end
 		local matchBag, matchSlot = findMatchingStack(bagIdTo)
 		if matchSlot then return matchBag, matchSlot end
-		if bagIdTo == BAG_BANK then
-			matchBag, matchSlot = findMatchingStack(BAG_SUBSCRIBER_BANK)
+		if bagIdTo == ESOAPI.BAG_BANK then
+			matchBag, matchSlot = findMatchingStack(ESOAPI.BAG_SUBSCRIBER_BANK)
 			if matchSlot then return matchBag, matchSlot end
 		end
 		
@@ -1921,8 +1943,7 @@ local function moveItems(atGBank, errorReasonAtGBank)
 	local function moveItemInSlot(bagIdFrom, slotIdFrom, bagIdTo, slotIdTo, qtyToMove, itemLink, verifyTransfer)
 		local sourceItemId
 		if itemLink and itemLink ~= "" then
-			local itemIdOk, resolvedItemId = pcall(GetItemLinkItemId, itemLink)
-			if itemIdOk then sourceItemId = resolvedItemId end
+			sourceItemId = ESOAPI.GetItemLinkItemId(itemLink)
 		end
 		local isPvpTransfer = sourceItemId and ((BMR_PVP_ITEM_CATALOG and BMR_PVP_ITEM_CATALOG[sourceItemId]) or sourceItemId == 30359)
 		-- PvP priority depends on exact item-link variants, so every cross-bag PvP move must
@@ -1938,14 +1959,14 @@ local function moveItems(atGBank, errorReasonAtGBank)
 				CustomRuleDebug("TRANSFER REQUEST BLOCKED reason=previous cross-bag transfer is still awaiting verification")
 				return false
 			end
-			local sourceCountBefore = GetSlotStackSize(bagIdFrom, slotIdFrom) or 0
-			local destCountBefore = GetSlotStackSize(bagIdTo, slotIdTo) or 0
+			local sourceCountBefore = ESOAPI.GetSlotStackSize(bagIdFrom, slotIdFrom) or 0
+			local destCountBefore = ESOAPI.GetSlotStackSize(bagIdTo, slotIdTo) or 0
 			request = {
 				fromBag = bagIdFrom, fromSlot = slotIdFrom, toBag = bagIdTo, toSlot = slotIdTo,
 				qty = qtyToMove, itemLink = itemLink, sourceItemId = sourceItemId,
-				sourceLinkBefore = GetItemLink(bagIdFrom, slotIdFrom),
+				sourceLinkBefore = ESOAPI.GetItemLink(bagIdFrom, slotIdFrom),
 			sourceCountBefore = sourceCountBefore,
-				destLinkBefore = GetItemLink(bagIdTo, slotIdTo),
+				destLinkBefore = ESOAPI.GetItemLink(bagIdTo, slotIdTo),
 				destCountBefore = destCountBefore,
 				destItemIdCountBefore = isHousingTransfer and sourceItemId and CountItemIdInBag(sourceItemId, bagIdTo) or nil,
 			}
@@ -1953,10 +1974,11 @@ local function moveItems(atGBank, errorReasonAtGBank)
 		
 		if deferVerification then
 			local callOk, callError
-			if IsProtectedFunction and IsProtectedFunction("RequestMoveItem") then
-				callOk, callError = CallSecureProtected("RequestMoveItem", bagIdFrom, slotIdFrom, bagIdTo, slotIdTo, qtyToMove)
+			if ESOAPI.IsProtectedFunction("RequestMoveItem") then
+				callOk, callError = ESOAPI.CallSecureProtected("RequestMoveItem", bagIdFrom, slotIdFrom, bagIdTo, slotIdTo, qtyToMove)
 			else
-				callOk, callError = pcall(RequestMoveItem, bagIdFrom, slotIdFrom, bagIdTo, slotIdTo, qtyToMove)
+				RequestMoveItem(bagIdFrom, slotIdFrom, bagIdTo, slotIdTo, qtyToMove)
+				callOk = true
 			end
 			if not callOk then
 				CustomRuleDebug(string.format("TRANSFER API REJECTED sourceBag=%s sourceSlot=%s targetBag=%s targetSlot=%s qty=%s error=%s", tostring(bagIdFrom), tostring(slotIdFrom), tostring(bagIdTo), tostring(slotIdTo), tostring(qtyToMove), tostring(callError)))
@@ -1967,8 +1989,8 @@ local function moveItems(atGBank, errorReasonAtGBank)
 			CustomRuleDebug(string.format("TRANSFER REQUEST sourceBag=%s sourceSlot=%s sourceCount=%s targetBag=%s targetSlot=%s targetLink=%s targetCount=%s qty=%s itemLink=%s", tostring(bagIdFrom), tostring(slotIdFrom), tostring(request.sourceCountBefore), tostring(bagIdTo), tostring(slotIdTo), tostring(request.destLinkBefore), tostring(request.destCountBefore), tostring(qtyToMove), tostring(itemLink)))
 			if RegisterExpectedPvpMoveTrace then request.traceEntry = RegisterExpectedPvpMoveTrace(bagIdFrom, slotIdFrom, bagIdTo, slotIdTo, qtyToMove, itemLink) end
 		else
-			if IsProtectedFunction("RequestMoveItem") then
-				CallSecureProtected("RequestMoveItem", bagIdFrom, slotIdFrom, bagIdTo, slotIdTo, qtyToMove)
+			if ESOAPI.IsProtectedFunction("RequestMoveItem") then
+				ESOAPI.CallSecureProtected("RequestMoveItem", bagIdFrom, slotIdFrom, bagIdTo, slotIdTo, qtyToMove)
 			else
 				RequestMoveItem(bagIdFrom, slotIdFrom, bagIdTo, slotIdTo, qtyToMove)
 			end
@@ -2011,24 +2033,24 @@ local function moveItems(atGBank, errorReasonAtGBank)
 		if not qtyBagCache[itemLink] then
 			stackCountBackpack, stackCountBank = GetItemLinkStacks(itemLink) -- Not updated in realtime
 			qtyBagCache[itemLink] = {}
-			qtyBagCache[itemLink][BAG_BACKPACK] = stackCountBackpack or 0
-			qtyBagCache[itemLink][BAG_BANK] = stackCountBank or 0
-			qtyBagCache[itemLink][BAG_SUBSCRIBER_BANK] = stackCountBank or 0
+			qtyBagCache[itemLink][ESOAPI.BAG_BACKPACK] = stackCountBackpack or 0
+			qtyBagCache[itemLink][ESOAPI.BAG_BANK] = stackCountBank or 0
+			qtyBagCache[itemLink][ESOAPI.BAG_SUBSCRIBER_BANK] = stackCountBank or 0
 			if activeHouseStorageBagId then qtyBagCache[itemLink][activeHouseStorageBagId] = CountItemLinkInBag(itemLink, activeHouseStorageBagId) end
 		else
-			stackCountBackpack = qtyBagCache[itemLink][BAG_BACKPACK] or 0
-			stackCountBank = (qtyBagCache[itemLink][BAG_BANK] or 0) + (qtyBagCache[itemLink][BAG_SUBSCRIBER_BANK] or 0)
+			stackCountBackpack = qtyBagCache[itemLink][ESOAPI.BAG_BACKPACK] or 0
+			stackCountBank = (qtyBagCache[itemLink][ESOAPI.BAG_BANK] or 0) + (qtyBagCache[itemLink][ESOAPI.BAG_SUBSCRIBER_BANK] or 0)
 		end
 		
-		local stackSize, maxStack = GetSlotStackSize(bagIdFrom, slotIdFrom)
-		if bagToCheck == BAG_BACKPACK then
+		local stackSize, maxStack = ESOAPI.GetSlotStackSize(bagIdFrom, slotIdFrom)
+		if bagToCheck == ESOAPI.BAG_BACKPACK then
 			if activeHouseStorageBagId then stackCountBank = qtyBagCache[itemLink][activeHouseStorageBagId] or CountItemLinkInBag(itemLink, activeHouseStorageBagId) end
 			return stackCountBackpack >= maxStack, stackSize, maxStack, stackCountBackpack, stackCountBank
 		elseif IsFurnitureStorageBag(bagToCheck) then
 			if qtyBagCache[itemLink][bagToCheck] == nil then qtyBagCache[itemLink][bagToCheck] = CountItemLinkInBag(itemLink, bagToCheck) end
 			stackCountBank = qtyBagCache[itemLink][bagToCheck] or 0
 			return stackCountBank >= maxStack, stackSize, maxStack, stackCountBackpack, stackCountBank
-		elseif bagToCheck == BAG_BANK or bagToCheck == BAG_SUBSCRIBER_BANK then
+		elseif bagToCheck == ESOAPI.BAG_BANK or bagToCheck == ESOAPI.BAG_SUBSCRIBER_BANK then
 			return stackCountBank >= maxStack, stackSize, maxStack, stackCountBackpack, stackCountBank
 		end
 	end
@@ -2036,12 +2058,12 @@ local function moveItems(atGBank, errorReasonAtGBank)
 	local function RestackBags()
 		-- Sometimes needed (2 stacks, first 79, 2nd 200, but limit is 200 -> will push 79 , then 121, resulting 2 stacks), maybe need to optimize tinyBagCache
 		if activeHouseStorageBagId then
-			StackBag(activeHouseStorageBagId)
+			ESOAPI.StackBag(activeHouseStorageBagId)
 		else
-			StackBag(BAG_BANK)
-			StackBag(BAG_SUBSCRIBER_BANK)
+			ESOAPI.StackBag(ESOAPI.BAG_BANK)
+			ESOAPI.StackBag(ESOAPI.BAG_SUBSCRIBER_BANK)
 		end
-		StackBag(BAG_BACKPACK)
+		ESOAPI.StackBag(ESOAPI.BAG_BACKPACK)
 	end
 	
 	local function FinishBankMoves()
@@ -2050,9 +2072,9 @@ local function moveItems(atGBank, errorReasonAtGBank)
 		pushQueue = {}
 		pullQueue = {}
 		movedItems = {
-			[BAG_BACKPACK] = {},
-			[BAG_BANK] = {},
-			[BAG_SUBSCRIBER_BANK] = {},
+			[ESOAPI.BAG_BACKPACK] = {},
+			[ESOAPI.BAG_BANK] = {},
+			[ESOAPI.BAG_SUBSCRIBER_BANK] = {},
 		}
 		
 		inProgress = false
@@ -2061,9 +2083,9 @@ local function moveItems(atGBank, errorReasonAtGBank)
 			profileIconRerunRequested = false
 			if isBanking then
 				CustomRuleDebug("PROFILE ICON DEFERRED RERUN released reason=previous move loop finished; re-snapshot and rebuild rules in 150ms")
-				zo_callLater(function()
+				ESOAPI.zo_callLater(function()
 					if isBanking and not checkingGBank then
-						BankManagerRevived_executeRule()
+						BMR.executeRule()
 					else
 						CustomRuleDebug(string.format("PROFILE ICON DEFERRED RERUN CANCELLED reason=bank context changed isBanking=%s checkingGBank=%s", tostring(isBanking), tostring(checkingGBank)))
 					end
@@ -2092,17 +2114,17 @@ local function moveItems(atGBank, errorReasonAtGBank)
 		local moveData = data[restartAt]
 		
 		if moveData then
-			if IsFurnitureVaultBag(bagIdTo) and GetItemType(moveData.bagId, moveData.slotId) ~= ITEMTYPE_FURNISHING then
-				CustomRuleDebug(string.format("FURNITURE VAULT SKIP itemId=%s sourceBag=%s sourceSlot=%s reason=only furnishing items can be stored", tostring(GetItemLinkItemId(moveData.itemLink)), tostring(moveData.bagId), tostring(moveData.slotId)))
-				zo_callLater(function() tryMoveSlots(data, bagIdTo, restartAt + 1) end, db.profiles[actualProfile].pauseInMs)
+			if IsFurnitureVaultBag(bagIdTo) and ESOAPI.GetItemType(moveData.bagId, moveData.slotId) ~= ITEMTYPE_FURNISHING then
+				CustomRuleDebug(string.format("FURNITURE VAULT SKIP itemId=%s sourceBag=%s sourceSlot=%s reason=only furnishing items can be stored", tostring(ESOAPI.GetItemLinkItemId(moveData.itemLink)), tostring(moveData.bagId), tostring(moveData.slotId)))
+				ESOAPI.zo_callLater(function() tryMoveSlots(data, bagIdTo, restartAt + 1) end, db.profiles[actualProfile].pauseInMs)
 				return
 			end
 			local oneStackTarget = IsOneStackTarget(moveData.ruleName, bagIdTo, moveData.itemLink)
 			local blockedOneStackKey = oneStackTarget and GetOneStackDestinationKey(moveData.itemLink, bagIdTo) or nil
 			local rejectedOneStackTarget = blockedOneStackKey and rejectedOneStackDestinations[blockedOneStackKey] or nil
 			if rejectedOneStackTarget then
-				CustomRuleDebug(string.format("ONE-STACK MOVE SKIP itemId=%s sourceBag=%s sourceSlot=%s targetBag=%s rejectedTargetBag=%s rejectedTargetSlot=%s reason=target stack previously refused merge; preserve one physical target stack", tostring(GetItemLinkItemId(moveData.itemLink)), tostring(moveData.bagId), tostring(moveData.slotId), tostring(bagIdTo), tostring(rejectedOneStackTarget.bagId), tostring(rejectedOneStackTarget.slotId)))
-				zo_callLater(function() tryMoveSlots(data, bagIdTo, restartAt + 1) end, db.profiles[actualProfile].pauseInMs)
+				CustomRuleDebug(string.format("ONE-STACK MOVE SKIP itemId=%s sourceBag=%s sourceSlot=%s targetBag=%s rejectedTargetBag=%s rejectedTargetSlot=%s reason=target stack previously refused merge; preserve one physical target stack", tostring(ESOAPI.GetItemLinkItemId(moveData.itemLink)), tostring(moveData.bagId), tostring(moveData.slotId), tostring(bagIdTo), tostring(rejectedOneStackTarget.bagId), tostring(rejectedOneStackTarget.slotId)))
+				ESOAPI.zo_callLater(function() tryMoveSlots(data, bagIdTo, restartAt + 1) end, db.profiles[actualProfile].pauseInMs)
 				return
 			end
 		
@@ -2119,7 +2141,7 @@ local function moveItems(atGBank, errorReasonAtGBank)
 				
 				if moveData.custom then
 					qtyToMove = math.min(stackSize, tonumber(moveData.maxQty) or stackSize)
-					local currentStackCount = bagIdTo == BAG_BACKPACK and stackCountBackpack or stackCountBank
+					local currentStackCount = bagIdTo == ESOAPI.BAG_BACKPACK and stackCountBackpack or stackCountBank
 					bagIdTo, destSlot = FindDestSlotInBag(currentStackCount, bagIdTo, moveData.bagId, moveData.slotId, maxStack, moveData.itemLink)
 					if destSlot then
 						itemMoved = moveItemInSlot(moveData.bagId, moveData.slotId, bagIdTo, destSlot, qtyToMove, moveData.itemLink, true)
@@ -2129,7 +2151,7 @@ local function moveItems(atGBank, errorReasonAtGBank)
 					
 				elseif not forceAllStacks and BankManagerRules.data[moveData.ruleName] and BankManagerRules.data[moveData.ruleName].isSpecial then
 				
-					if bagIdTo == BAG_BACKPACK then
+					if bagIdTo == ESOAPI.BAG_BACKPACK then
 						qtyToMove = BankManagerRules.static.special[moveData.ruleName][moveData.itemLink]
 						bagIdTo, destSlot = FindDestSlotInBag(stackCountBackpack, bagIdTo, moveData.bagId, moveData.slotId, maxStack, moveData.itemLink)
 					end
@@ -2144,7 +2166,7 @@ local function moveItems(atGBank, errorReasonAtGBank)
 					
 				elseif not forceAllStacks and not isFullStack and ruleSettings.onlyIfNotFullStack then
 					
-					if bagIdTo == BAG_BACKPACK then
+					if bagIdTo == ESOAPI.BAG_BACKPACK then
 						qtyToMove = math.min(stackSize, (maxStack - stackCountBackpack))
 						bagIdTo, destSlot = FindDestSlotInBag(stackCountBackpack, bagIdTo, moveData.bagId, moveData.slotId, maxStack, moveData.itemLink)
 					elseif IsBankDestinationBag(bagIdTo) then
@@ -2170,7 +2192,7 @@ local function moveItems(atGBank, errorReasonAtGBank)
 					
 					local stackCountInBag
 					-- got 80 to push, bank got 350, stack is 200, 1st stack will receive 50, 2nd stack: 30 if maxStack = 3, or 50 and 0 because of maxStack = 2
-					if bagIdTo == BAG_BACKPACK then
+					if bagIdTo == ESOAPI.BAG_BACKPACK then
 						stackCountInBag = stackCountBackpack
 					elseif IsBankDestinationBag(bagIdTo) then
 						stackCountInBag = stackCountBank
@@ -2241,10 +2263,10 @@ local function moveItems(atGBank, errorReasonAtGBank)
 					local function verifyCustomTransfer()
 						if pendingMoveVerification ~= verification then return end
 						attempts = attempts + 1
-						local sourceLinkAfter = GetItemLink(verification.fromBag, verification.fromSlot)
-						local sourceCountAfter = GetSlotStackSize(verification.fromBag, verification.fromSlot) or 0
-						local destLinkAfter = GetItemLink(verification.toBag, verification.toSlot)
-						local destCountAfter = GetSlotStackSize(verification.toBag, verification.toSlot) or 0
+						local sourceLinkAfter = ESOAPI.GetItemLink(verification.fromBag, verification.fromSlot)
+						local sourceCountAfter = ESOAPI.GetSlotStackSize(verification.fromBag, verification.fromSlot) or 0
+						local destLinkAfter = ESOAPI.GetItemLink(verification.toBag, verification.toSlot)
+						local destCountAfter = ESOAPI.GetSlotStackSize(verification.toBag, verification.toSlot) or 0
 						local sourceChanged = sourceLinkAfter ~= verification.sourceLinkBefore or sourceCountAfter <= (verification.sourceCountBefore - verification.qty)
 						local destChanged = destLinkAfter == verification.itemLink and destCountAfter >= (verification.destCountBefore + verification.qty)
 						local housingTransfer = IsFurnitureStorageBag(verification.fromBag) or IsFurnitureStorageBag(verification.toBag)
@@ -2262,9 +2284,9 @@ local function moveItems(atGBank, errorReasonAtGBank)
 							if not qtyBagCache[verification.itemLink] then
 								local stackCountBackpack, stackCountBank = GetItemLinkStacks(verification.itemLink)
 								qtyBagCache[verification.itemLink] = {
-									[BAG_BACKPACK] = stackCountBackpack or 0,
-									[BAG_BANK] = stackCountBank or 0,
-									[BAG_SUBSCRIBER_BANK] = stackCountBank or 0,
+									[ESOAPI.BAG_BACKPACK] = stackCountBackpack or 0,
+									[ESOAPI.BAG_BANK] = stackCountBank or 0,
+									[ESOAPI.BAG_SUBSCRIBER_BANK] = stackCountBank or 0,
 								}
 							end
 							if qtyBagCache[verification.itemLink][verification.toBag] == nil then qtyBagCache[verification.itemLink][verification.toBag] = IsFurnitureStorageBag(verification.toBag) and CountItemLinkInBag(verification.itemLink, verification.toBag) or 0 end
@@ -2280,11 +2302,11 @@ local function moveItems(atGBank, errorReasonAtGBank)
 							end
 							pendingMoveVerification = nil
 							activeTransferVerificationDebug = nil
-							zo_callLater(function() tryMoveSlots(data, bagIdTo, restartAt + 1) end, db.profiles[actualProfile].pauseInMs)
+							ESOAPI.zo_callLater(function() tryMoveSlots(data, bagIdTo, restartAt + 1) end, db.profiles[actualProfile].pauseInMs)
 						elseif attempts < 6 then
-							zo_callLater(verifyCustomTransfer, 250)
+							ESOAPI.zo_callLater(verifyCustomTransfer, 250)
 						else
-							local transferItemId = GetItemLinkItemId(verification.itemLink)
+							local transferItemId = ESOAPI.GetItemLinkItemId(verification.itemLink)
 							local isPvpItem = transferItemId and ((BMR_PVP_ITEM_CATALOG and BMR_PVP_ITEM_CATALOG[transferItemId]) or transferItemId == 30359)
 							local sourceUnchanged = sourceLinkAfter == verification.sourceLinkBefore and sourceCountAfter == verification.sourceCountBefore
 							local destinationUnchanged = destLinkAfter == verification.destLinkBefore and destCountAfter == verification.destCountBefore
@@ -2334,10 +2356,10 @@ local function moveItems(atGBank, errorReasonAtGBank)
 							pendingMoveVerification = nil
 							activeTransferVerificationDebug = nil
 							local nextIndex = retryCurrentMove and restartAt or (restartAt + 1)
-							zo_callLater(function() tryMoveSlots(data, bagIdTo, nextIndex) end, db.profiles[actualProfile].pauseInMs)
+							ESOAPI.zo_callLater(function() tryMoveSlots(data, bagIdTo, nextIndex) end, db.profiles[actualProfile].pauseInMs)
 						end
 					end
-					zo_callLater(verifyCustomTransfer, 250)
+					ESOAPI.zo_callLater(verifyCustomTransfer, 250)
 					return
 				elseif itemMoved then
 					qtyMoved = qtyMoved + qtyToMove
@@ -2348,11 +2370,11 @@ local function moveItems(atGBank, errorReasonAtGBank)
 					end
 				end
 				
-				zo_callLater(function() tryMoveSlots(data, bagIdTo, restartAt + 1) end, db.profiles[actualProfile].pauseInMs)
+				ESOAPI.zo_callLater(function() tryMoveSlots(data, bagIdTo, restartAt + 1) end, db.profiles[actualProfile].pauseInMs)
 				
 			else
 				
-				BMR.SafeAddChatMessage(GetString(BMR_ZOS_LIMITATIONS))
+				BMR.SafeAddChatMessage(ESOAPI.GetString(BMR_ZOS_LIMITATIONS))
 				pushInProgress = false -- Don't do pull
 				
 				-- End of moves
@@ -2381,8 +2403,8 @@ local function moveItems(atGBank, errorReasonAtGBank)
 			qtyMoved = 0
 			countMoved = 0
 			
-			freeSlots[BAG_BACKPACK] = GetNumBagFreeSlots(BAG_BACKPACK)
-			zo_callLater(function() tryMoveSlots(pullQueue, BAG_BACKPACK) end, db.profiles[actualProfile].pauseInMs)
+			freeSlots[ESOAPI.BAG_BACKPACK] = ESOAPI.GetNumBagFreeSlots(ESOAPI.BAG_BACKPACK)
+			ESOAPI.zo_callLater(function() tryMoveSlots(pullQueue, ESOAPI.BAG_BACKPACK) end, db.profiles[actualProfile].pauseInMs)
 			
 		else
 			
@@ -2402,12 +2424,12 @@ local function moveItems(atGBank, errorReasonAtGBank)
 	
 	local function doSingleMove(moveData)
 		
-		if db.profiles[actualProfile].rules[moveData.ruleName].associatedGuild and db.profiles[actualProfile].rules[moveData.ruleName].associatedGuild == currentGBankName then
+		if db.profiles[actualProfile].rules[moveData.ruleName].associatedGuild and db.profiles[actualProfile].rules[moveData.ruleName].associatedGuild == BMR.currentGBankName then
 		
 			--d(moveData.ruleName .. " will check qty and if, move " .. GetItemName(moveData.bagId, moveData.slotId))
 					
 			-- Is slot at max size in bank ?
-			local isFullStack, stackSize, maxStack, stackCountBackpack, stackCountBank = StackInfoInBag(BAG_BANK, moveData.slotId, moveData.bagId, moveData.itemLink)
+			local isFullStack, stackSize, maxStack, stackCountBackpack, stackCountBank = StackInfoInBag(ESOAPI.BAG_BANK, moveData.slotId, moveData.bagId, moveData.itemLink)
 			local itemMoved = false
 			local qtyToMove
 			
@@ -2416,16 +2438,15 @@ local function moveItems(atGBank, errorReasonAtGBank)
 				db.profiles[actualProfile].rules[moveData.ruleName].onlyStacks = 1
 			end
 			
-			if db.profiles[actualProfile].rules[moveData.ruleName].action == ACTION_PUSH_GBANK
-				or db.profiles[actualProfile].rules[moveData.ruleName].action == ACTION_PUSH_BOTH then
+			if db.profiles[actualProfile].rules[moveData.ruleName].action == ACTION_PUSH_GBANK then
 				
 				--d(moveData.ruleName .. " is set to push everything to GBank (ACTION_PUSH_GBANK)")
 				
 				qtyToMove = stackSize
-				if GetNumBagFreeSlots(BAG_GUILDBANK) > 0 then
+				if ESOAPI.GetNumBagFreeSlots(ESOAPI.BAG_GUILDBANK) > 0 then
 					itemMoved = moveItemInGBank(moveData.bagId, moveData.slotId)
 				elseif db.profiles[actualProfile].detailledNotMoved then
-					PrintItemsNotMovedToBag(moveData.itemLink, moveData.itemIcon, BAG_GUILDBANK, qtyToMove, currentGBankName)
+					PrintItemsNotMovedToBag(moveData.itemLink, moveData.itemIcon, ESOAPI.BAG_GUILDBANK, qtyToMove, BMR.currentGBankName)
 				end
 			
 			elseif db.profiles[actualProfile].rules[moveData.ruleName].onlyIfNotFullStack and stackSize + stackCountBank > maxStack then
@@ -2433,7 +2454,7 @@ local function moveItems(atGBank, errorReasonAtGBank)
 				qtyToMove = math.min(stackSize, stackCountBank + stackSize - maxStack)
 				
 				--d("qtyToMove " .. qtyToMove)
-				if GetNumBagFreeSlots(BAG_GUILDBANK) > 0 then
+				if ESOAPI.GetNumBagFreeSlots(ESOAPI.BAG_GUILDBANK) > 0 then
 					if qtyToMove == stackSize then
 						itemMoved = moveItemInGBank(moveData.bagId, moveData.slotId)
 					else
@@ -2441,7 +2462,7 @@ local function moveItems(atGBank, errorReasonAtGBank)
 						itemMoved = moveItemInGBank(moveData.bagId, moveData.slotId, qtyToMove, moveData.itemLink)
 					end
 				elseif db.profiles[actualProfile].detailledNotMoved then
-					PrintItemsNotMovedToBag(moveData.itemLink, moveData.itemIcon, BAG_GUILDBANK, qtyToMove, currentGBankName)
+					PrintItemsNotMovedToBag(moveData.itemLink, moveData.itemIcon, ESOAPI.BAG_GUILDBANK, qtyToMove, BMR.currentGBankName)
 				end
 			
 			elseif not db.profiles[actualProfile].rules[moveData.ruleName].onlyIfNotFullStack and stackSize + stackCountBank > db.profiles[actualProfile].rules[moveData.ruleName].onlyStacks * maxStack then
@@ -2449,7 +2470,7 @@ local function moveItems(atGBank, errorReasonAtGBank)
 				qtyToMove = math.min(stackSize, stackCountBank + stackSize - maxStack)
 				
 				--d("qtyToMove " .. qtyToMove)
-				if GetNumBagFreeSlots(BAG_GUILDBANK) > 0 then
+				if ESOAPI.GetNumBagFreeSlots(ESOAPI.BAG_GUILDBANK) > 0 then
 					if qtyToMove == stackSize then
 						itemMoved = moveItemInGBank(moveData.bagId, moveData.slotId)
 					else
@@ -2457,14 +2478,14 @@ local function moveItems(atGBank, errorReasonAtGBank)
 						itemMoved = moveItemInGBank(moveData.bagId, moveData.slotId, qtyToMove, moveData.itemLink)
 					end
 				elseif db.profiles[actualProfile].detailledNotMoved then
-					PrintItemsNotMovedToBag(moveData.itemLink, moveData.itemIcon, BAG_GUILDBANK, qtyToMove, currentGBankName)
+					PrintItemsNotMovedToBag(moveData.itemLink, moveData.itemIcon, ESOAPI.BAG_GUILDBANK, qtyToMove, BMR.currentGBankName)
 				end
 			
 			end
 			
 			if itemMoved then
 				if db.profiles[actualProfile].detailledDisplay then
-					PrintItemsToBag(moveData.itemLink, moveData.itemIcon, BAG_GUILDBANK, qtyToMove, currentGBankName)
+					PrintItemsToBag(moveData.itemLink, moveData.itemIcon, ESOAPI.BAG_GUILDBANK, qtyToMove, BMR.currentGBankName)
 				end
 			else
 				--d("Nothing moved for " .. GetItemName(moveData.bagId, moveData.slotId))
@@ -2512,7 +2533,7 @@ local function moveItems(atGBank, errorReasonAtGBank)
 				if qtyMovedToGBank > 0 then
 					
 					if db.profiles[actualProfile].summary then
-						PrintSummaryToBag(BAG_GUILDBANK, countMovedToGBank, qtyMovedToGBank, currentGBankName)
+						PrintSummaryToBag(ESOAPI.BAG_GUILDBANK, countMovedToGBank, qtyMovedToGBank, BMR.currentGBankName)
 					end
 					
 					-- Do a Roomba if the Addon is detected
@@ -2531,7 +2552,7 @@ local function moveItems(atGBank, errorReasonAtGBank)
 	
 	if atGBank then
 		
-		freeSlots[BAG_BACKPACK] = GetNumBagFreeSlots(BAG_BACKPACK)
+		freeSlots[ESOAPI.BAG_BACKPACK] = ESOAPI.GetNumBagFreeSlots(ESOAPI.BAG_BACKPACK)
 		
 		if not errorReasonAtGBank then
 			tryMoveSlotsToGBank(errorReasonAtGBank)
@@ -2546,9 +2567,9 @@ local function moveItems(atGBank, errorReasonAtGBank)
 		
 	else
 		
-		freeSlots[BAG_BANK] = GetNumBagFreeSlots(BAG_BANK)
-		freeSlots[BAG_SUBSCRIBER_BANK] = GetNumBagFreeSlots(BAG_SUBSCRIBER_BANK)
-		if IsFurnitureStorageBag(pushTargetBag) then freeSlots[pushTargetBag] = GetNumBagFreeSlots(pushTargetBag) or 0 end
+		freeSlots[ESOAPI.BAG_BANK] = ESOAPI.GetNumBagFreeSlots(ESOAPI.BAG_BANK)
+		freeSlots[ESOAPI.BAG_SUBSCRIBER_BANK] = ESOAPI.GetNumBagFreeSlots(ESOAPI.BAG_SUBSCRIBER_BANK)
+		if IsFurnitureStorageBag(pushTargetBag) then freeSlots[pushTargetBag] = ESOAPI.GetNumBagFreeSlots(pushTargetBag) or 0 end
 		tryMoveSlots(pushQueue, pushTargetBag)
 		
 	end
@@ -2560,10 +2581,10 @@ end
 -- DepositCurrencyIntoBank/WithdrawCurrencyFromBank aliases are PC-only on some
 -- clients (including Forced Console Flow). Prefer the supported location-based API.
 local function GetBMRCurrencyApiMode()
-	if type(GetCurrencyAmount) == "function"
-		and type(TransferCurrency) == "function"
-		and CURRENCY_LOCATION_CHARACTER ~= nil
-		and CURRENCY_LOCATION_BANK ~= nil then
+	if type(ESOAPI.GetCurrencyAmount) == "function"
+		and type(ESOAPI.TransferCurrency) == "function"
+		and ESOAPI.CURRENCY_LOCATION_CHARACTER ~= nil
+		and ESOAPI.CURRENCY_LOCATION_BANK ~= nil then
 		return "modern"
 	end
 	if type(GetCarriedCurrencyAmount) == "function"
@@ -2576,38 +2597,31 @@ local function GetBMRCurrencyApiMode()
 end
 
 local function ReadBMRCurrencyAmount(apiMode, currencyType, isBank)
-	local ok, amount
+	local amount
 	if apiMode == "modern" then
-		local location = isBank and CURRENCY_LOCATION_BANK or CURRENCY_LOCATION_CHARACTER
-		ok, amount = pcall(GetCurrencyAmount, currencyType, location)
+		local location = isBank and ESOAPI.CURRENCY_LOCATION_BANK or ESOAPI.CURRENCY_LOCATION_CHARACTER
+		amount = ESOAPI.GetCurrencyAmount(currencyType, location)
 	else
 		local currencyFunction = isBank and GetBankedCurrencyAmount or GetCarriedCurrencyAmount
 		if type(currencyFunction) ~= "function" then return nil end
-		ok, amount = pcall(currencyFunction, currencyType)
+		amount = currencyFunction(currencyType)
 	end
-	if ok and type(amount) == "number" then return amount end
-	if not ok and type(BMR.ProfileDiagnostic) == "function" then
-		BMR.ProfileDiagnostic("CURRENCY_READ_ERROR", tostring(amount))
-	end
+	if type(amount) == "number" then return amount end
 	return nil
 end
 
 local function TransferBMRCurrency(apiMode, currencyType, amount, toBank)
 	if type(amount) ~= "number" or amount <= 0 then return false end
-	local ok, err
 	if apiMode == "modern" then
-		local fromLocation = toBank and CURRENCY_LOCATION_CHARACTER or CURRENCY_LOCATION_BANK
-		local toLocation = toBank and CURRENCY_LOCATION_BANK or CURRENCY_LOCATION_CHARACTER
-		ok, err = pcall(TransferCurrency, currencyType, amount, fromLocation, toLocation)
+		local fromLocation = toBank and ESOAPI.CURRENCY_LOCATION_CHARACTER or ESOAPI.CURRENCY_LOCATION_BANK
+		local toLocation = toBank and ESOAPI.CURRENCY_LOCATION_BANK or ESOAPI.CURRENCY_LOCATION_CHARACTER
+		ESOAPI.TransferCurrency(currencyType, amount, fromLocation, toLocation)
 	else
 		local currencyFunction = toBank and DepositCurrencyIntoBank or WithdrawCurrencyFromBank
 		if type(currencyFunction) ~= "function" then return false end
-		ok, err = pcall(currencyFunction, currencyType, amount)
+		currencyFunction(currencyType, amount)
 	end
-	if not ok and type(BMR.ProfileDiagnostic) == "function" then
-		BMR.ProfileDiagnostic("CURRENCY_TRANSFER_ERROR", tostring(err))
-	end
-	return ok
+	return true
 end
 
 -- Move a currency.
@@ -2678,10 +2692,10 @@ local function moveCurrencies()
 		if not BMR._currencyApiWarningShown then
 			BMR._currencyApiWarningShown = true
 			local missing = {}
-			if type(GetCurrencyAmount) ~= "function" then missing[#missing + 1] = "GetCurrencyAmount" end
-			if type(TransferCurrency) ~= "function" then missing[#missing + 1] = "TransferCurrency" end
-			if CURRENCY_LOCATION_CHARACTER == nil then missing[#missing + 1] = "CURRENCY_LOCATION_CHARACTER" end
-			if CURRENCY_LOCATION_BANK == nil then missing[#missing + 1] = "CURRENCY_LOCATION_BANK" end
+			if type(ESOAPI.GetCurrencyAmount) ~= "function" then missing[#missing + 1] = "GetCurrencyAmount" end
+			if type(ESOAPI.TransferCurrency) ~= "function" then missing[#missing + 1] = "TransferCurrency" end
+			if ESOAPI.CURRENCY_LOCATION_CHARACTER == nil then missing[#missing + 1] = "ESOAPI.CURRENCY_LOCATION_CHARACTER" end
+			if ESOAPI.CURRENCY_LOCATION_BANK == nil then missing[#missing + 1] = "ESOAPI.CURRENCY_LOCATION_BANK" end
 			if type(GetCarriedCurrencyAmount) ~= "function" then missing[#missing + 1] = "GetCarriedCurrencyAmount" end
 			if type(GetBankedCurrencyAmount) ~= "function" then missing[#missing + 1] = "GetBankedCurrencyAmount" end
 			if type(DepositCurrencyIntoBank) ~= "function" then missing[#missing + 1] = "DepositCurrencyIntoBank" end
@@ -2696,11 +2710,12 @@ local function moveCurrencies()
 
 	local moves = {}
 	local amounts = {}
-	local currencyTypes = {}
-	if CURT_MONEY ~= nil then currencyTypes[#currencyTypes + 1] = CURT_MONEY end
-	if CURT_TELVAR_STONES ~= nil then currencyTypes[#currencyTypes + 1] = CURT_TELVAR_STONES end
-	if CURT_ALLIANCE_POINTS ~= nil then currencyTypes[#currencyTypes + 1] = CURT_ALLIANCE_POINTS end
-	if CURT_WRIT_VOUCHERS ~= nil then currencyTypes[#currencyTypes + 1] = CURT_WRIT_VOUCHERS end
+	local currencyTypes = {
+		ESOAPI.CURT_MONEY,
+		ESOAPI.CURT_TELVAR_STONES,
+		ESOAPI.CURT_ALLIANCE_POINTS,
+		ESOAPI.CURT_WRIT_VOUCHERS,
+	}
 
 	for _, currencyType in ipairs(currencyTypes) do
 		moves[currencyType], amounts[currencyType] = moveCurrency("currency" .. currencyType, currencyType, apiMode)
@@ -2708,22 +2723,19 @@ local function moveCurrencies()
 
 	-- Some controller/console UI flows lack the keyboard currency formatter. A
 	-- missing summary formatter must not undo or interrupt a currency transfer.
-	if type(ZO_CurrencyControl_FormatCurrencyAndAppendIcon) == "function"
-		and type(zo_strformat) == "function"
+	if type(ESOAPI.ZO_CurrencyControl_FormatCurrencyAndAppendIcon) == "function"
+		and type(ESOAPI.zo_strformat) == "function"
 		and db and db.profiles and db.profiles[actualProfile]
 		and db.profiles[actualProfile].summary
 		and (NonContiguousCount(moves) > 1 or (not db.profiles[actualProfile].detailledDisplay and NonContiguousCount(moves) == 1)) then
-		local ok, message = pcall(function()
-			local output
-			for currencyType, side in pairs(moves) do
-				if side ~= nil and amounts[currencyType] ~= nil then
-					local line = GetString(BMR_ACTION_HAS_MOVED) .. zo_strformat(BMR_ACTION_CURRENCY_GSUMMARY, ZO_CurrencyControl_FormatCurrencyAndAppendIcon(amounts[currencyType], true, currencyType), GetString("BMR_ACTION_CURRENCY_MOVED_TO", side))
-					if not output then output = line else output = table.concat({output, line}, GetString(SI_LIST_COMMA_SEPARATOR)) end
-				end
+		local output
+		for currencyType, side in pairs(moves) do
+			if side ~= nil and amounts[currencyType] ~= nil then
+				local line = ESOAPI.GetString(BMR_ACTION_HAS_MOVED) .. ESOAPI.zo_strformat(BMR_ACTION_CURRENCY_GSUMMARY, ESOAPI.ZO_CurrencyControl_FormatCurrencyAndAppendIcon(amounts[currencyType], true, currencyType), ESOAPI.GetString("BMR_ACTION_CURRENCY_MOVED_TO", side))
+				if not output then output = line else output = table.concat({output, line}, ESOAPI.GetString(SI_LIST_COMMA_SEPARATOR)) end
 			end
-			return output
-		end)
-		if ok and message then BMR.SafeAddChatMessage(message) end
+		end
+		if output then BMR.SafeAddChatMessage(output) end
 	end
 end
 
@@ -2742,9 +2754,9 @@ local function RunTransferProviders()
 	end
 	local function addCustomMove(bagId, slotId, direction, maxQty)
 		if not bagId or not slotId or (movedItems[bagId] and movedItems[bagId][slotId]) then return end
-		local itemLink = GetItemLink(bagId, slotId)
+		local itemLink = ESOAPI.GetItemLink(bagId, slotId)
 		if not itemLink or itemLink == "" then return end
-		local itemId = GetItemId(bagId, slotId)
+		local itemId = ESOAPI.GetItemId(bagId, slotId)
 		if not itemId or itemId == 0 then return end
 
 		local moveData = {
@@ -2752,12 +2764,12 @@ local function RunTransferProviders()
 			bagId = bagId,
 			slotId = slotId,
 			itemLink = itemLink,
-			itemIcon = GetItemLinkInfo(itemLink),
+			itemIcon = ESOAPI.GetItemLinkInfo(itemLink),
 			custom = true,
 			maxQty = maxQty,
 		}
 
-		if direction == "push" and bagId == BAG_BACKPACK then
+		if direction == "push" and bagId == ESOAPI.BAG_BACKPACK then
 			table.insert(pushQueue, moveData)
 			movedItems[bagId] = movedItems[bagId] or {}
 			movedItems[bagId][slotId] = true
@@ -2795,10 +2807,10 @@ local function RunTransferProviders()
 		-- this also prevents withdrawing a second copy of a script already carried.
 		if (db.scriptTracker.depositKnown or db.scriptTracker.withdrawUnknown) and ScriptTracker.GetScriptId then
 			local scanned, recognized, known, queued, inventoryCount = 0, 0, 0, 0, 0
-			local size = GetBagSize(BAG_BACKPACK)
+			local size = ESOAPI.GetBagSize(ESOAPI.BAG_BACKPACK)
 			ScriptDebug("Scanning backpack, size=" .. tostring(size))
 			for slotIndex = 0, size - 1 do
-				local itemId = GetItemId(BAG_BACKPACK, slotIndex)
+				local itemId = ESOAPI.GetItemId(ESOAPI.BAG_BACKPACK, slotIndex)
 				if itemId and itemId ~= 0 then
 					scanned = scanned + 1
 					local scriptId = ScriptTracker.GetScriptId(itemId)
@@ -2807,10 +2819,10 @@ local function RunTransferProviders()
 						if not inventoryScripts[scriptId] then inventoryCount = inventoryCount + 1 end
 						inventoryScripts[scriptId] = true
 						local knownState = isScriptKnown(scriptId)
-						ScriptDebug(string.format("BACKPACK slot=%d itemId=%d scriptId=%s known=%s item=%s", slotIndex, itemId, tostring(scriptId), tostring(knownState), tostring(GetItemName(BAG_BACKPACK, slotIndex))))
+						ScriptDebug(string.format("BACKPACK slot=%d itemId=%d scriptId=%s known=%s item=%s", slotIndex, itemId, tostring(scriptId), tostring(knownState), tostring(GetItemName(ESOAPI.BAG_BACKPACK, slotIndex))))
 						if db.scriptTracker.depositKnown and knownState then
 							known = known + 1
-							addCustomMove(BAG_BACKPACK, slotIndex, "push")
+							addCustomMove(ESOAPI.BAG_BACKPACK, slotIndex, "push")
 							queued = queued + 1
 						end
 					end
@@ -2822,10 +2834,10 @@ local function RunTransferProviders()
 		if db.scriptTracker.withdrawUnknown and ScriptTracker.GetScriptId then
 			local function scanBank(bagId, bagName)
 				local scanned, recognized, unknown, queued = 0, 0, 0, 0
-				local size = GetBagSize(bagId)
+				local size = ESOAPI.GetBagSize(bagId)
 				ScriptDebug("Scanning " .. bagName .. ", size=" .. tostring(size))
 				for slotIndex = 0, size - 1 do
-					local itemId = GetItemId(bagId, slotIndex)
+					local itemId = ESOAPI.GetItemId(bagId, slotIndex)
 					if itemId and itemId ~= 0 then
 						scanned = scanned + 1
 						local scriptId = ScriptTracker.GetScriptId(itemId)
@@ -2845,7 +2857,7 @@ local function RunTransferProviders()
 				ScriptDebug(string.format("%s result: scanned=%d recognized=%d unknown=%d queued=%d", bagName, scanned, recognized, unknown, queued))
 			end
 			for _, sourceBag in ipairs(GetCurrentStorageSourceBags()) do
-			scanBank(sourceBag, activeHouseStorageBagId and "HOUSE_STORAGE" or (sourceBag == BAG_SUBSCRIBER_BANK and "SUBSCRIBER_BANK" or "BANK"))
+			scanBank(sourceBag, activeHouseStorageBagId and "HOUSE_STORAGE" or (sourceBag == ESOAPI.BAG_SUBSCRIBER_BANK and "SUBSCRIBER_BANK" or "BANK"))
 		end
 		end
 	end
@@ -2882,18 +2894,18 @@ local function BuildOneStackQueues()
 	-- priority selects the preferred variant; otherwise use the existing location/count fallback.
 	local variantsByItemId = {}
 	for itemLink, request in pairs(oneStackRequests) do
-		local itemId = GetItemLinkItemId(itemLink)
+		local itemId = ESOAPI.GetItemLinkItemId(itemLink)
 		if itemId then
 			local stats = {itemLink = itemLink, request = request, backpackCount = 0, bankCount = 0, maxBankStack = 0}
 			for _, slot in ipairs(request.backpackSlots) do
-				if GetItemLink(slot.bagId, slot.slotId) == itemLink then
-					local count = GetSlotStackSize(slot.bagId, slot.slotId)
+				if ESOAPI.GetItemLink(slot.bagId, slot.slotId) == itemLink then
+					local count = ESOAPI.GetSlotStackSize(slot.bagId, slot.slotId)
 					if count and count > 0 then stats.backpackCount = stats.backpackCount + count end
 				end
 			end
 			for _, slot in ipairs(request.bankSlots) do
-				if GetItemLink(slot.bagId, slot.slotId) == itemLink then
-					local count = GetSlotStackSize(slot.bagId, slot.slotId)
+				if ESOAPI.GetItemLink(slot.bagId, slot.slotId) == itemLink then
+					local count = ESOAPI.GetSlotStackSize(slot.bagId, slot.slotId)
 					if count and count > 0 then
 						stats.bankCount = stats.bankCount + count
 						stats.maxBankStack = math.max(stats.maxBankStack, count)
@@ -2916,8 +2928,8 @@ local function BuildOneStackQueues()
 		for _, stats in ipairs(variants) do
 			stats.bestEnergy = nil
 			local function considerSlot(slot)
-				if GetItemLink(slot.bagId, slot.slotId) == stats.itemLink then
-					local energy = GetSiegeRemainingEnergy(GetItemLink(slot.bagId, slot.slotId))
+				if ESOAPI.GetItemLink(slot.bagId, slot.slotId) == stats.itemLink then
+					local energy = GetSiegeRemainingEnergy(ESOAPI.GetItemLink(slot.bagId, slot.slotId))
 					if energy == nil then allHaveEnergy = false
 					elseif stats.bestEnergy == nil or (preferredUsed and energy < stats.bestEnergy) or (not preferredUsed and energy > stats.bestEnergy) then stats.bestEnergy = energy end
 				end
@@ -2968,7 +2980,7 @@ local function BuildOneStackQueues()
 		end
 	end
 	for itemLink, request in pairs(oneStackRequests) do
-		local itemId = GetItemLinkItemId(itemLink)
+		local itemId = ESOAPI.GetItemLinkItemId(itemLink)
 		local selectedLink = itemId and selectedLinkByItemId[itemId]
 		if selectedLink and selectedLink ~= itemLink then
 			-- Keep incompatible variants outside the container targeted by the one-stack
@@ -2978,10 +2990,10 @@ local function BuildOneStackQueues()
 				local ignoredBank = request.bankSlots
 				for index = #ignoredBank, 1, -1 do
 					local slot = ignoredBank[index]
-					if GetItemLink(slot.bagId, slot.slotId) == itemLink then
-						local count = GetSlotStackSize(slot.bagId, slot.slotId)
+					if ESOAPI.GetItemLink(slot.bagId, slot.slotId) == itemLink then
+						local count = ESOAPI.GetSlotStackSize(slot.bagId, slot.slotId)
 						if count and count > 0 then
-							table.insert(pullQueue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = GetItemLinkInfo(itemLink), custom = true, maxQty = count})
+							table.insert(pullQueue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = ESOAPI.GetItemLinkInfo(itemLink), custom = true, maxQty = count})
 							CustomRuleDebug(string.format("  selected WITHDRAW incompatible variant itemId=%s bag=%s slot=%s qty=%d reason=one-stack target is BANK; keep ignored link variant outside bank", tostring(itemId), tostring(slot.bagId), tostring(slot.slotId), count))
 						end
 					end
@@ -2990,10 +3002,10 @@ local function BuildOneStackQueues()
 				local ignoredBackpack = request.backpackSlots
 				for index = #ignoredBackpack, 1, -1 do
 					local slot = ignoredBackpack[index]
-					if GetItemLink(slot.bagId, slot.slotId) == itemLink then
-						local count = GetSlotStackSize(slot.bagId, slot.slotId)
+					if ESOAPI.GetItemLink(slot.bagId, slot.slotId) == itemLink then
+						local count = ESOAPI.GetSlotStackSize(slot.bagId, slot.slotId)
 						if count and count > 0 then
-							table.insert(pushQueue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = GetItemLinkInfo(itemLink), custom = true, maxQty = count})
+							table.insert(pushQueue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = ESOAPI.GetItemLinkInfo(itemLink), custom = true, maxQty = count})
 							CustomRuleDebug(string.format("  selected DEPOSIT incompatible variant itemId=%s bag=%s slot=%s qty=%d reason=one-stack target is INVENTORY; keep ignored link variant outside backpack", tostring(itemId), tostring(slot.bagId), tostring(slot.slotId), count))
 						end
 					end
@@ -3001,12 +3013,12 @@ local function BuildOneStackQueues()
 			end
 		else
 		local ruleSource = request.isCustomRule and "CUSTOM ITEM RULE" or "NORMAL CATEGORY RULE"
-		CustomRuleDebug(string.format("ONE-STACK candidates source=%s name=%s itemId=%s rule=%s link=%s", ruleSource, tostring(GetItemLinkName(itemLink)), tostring(GetItemLinkItemId(itemLink)), tostring(request.ruleName), tostring(itemLink)))
+		CustomRuleDebug(string.format("ONE-STACK candidates source=%s name=%s itemId=%s rule=%s link=%s", ruleSource, tostring(ESOAPI.GetItemLinkName(itemLink)), tostring(ESOAPI.GetItemLinkItemId(itemLink)), tostring(request.ruleName), tostring(itemLink)))
 		local backpackCount, bankCount, maxStack = 0, 0, nil
 		local validBackpack, validBank = {}, {}
 		for _, slot in ipairs(request.backpackSlots) do
-			if GetItemLink(slot.bagId, slot.slotId) == itemLink then
-				local count, maximum = GetSlotStackSize(slot.bagId, slot.slotId)
+			if ESOAPI.GetItemLink(slot.bagId, slot.slotId) == itemLink then
+				local count, maximum = ESOAPI.GetSlotStackSize(slot.bagId, slot.slotId)
 				if count and count > 0 then
 					backpackCount = backpackCount + count; maxStack = maximum or maxStack
 					table.insert(validBackpack, {bagId = slot.bagId, slotId = slot.slotId, count = count})
@@ -3015,8 +3027,8 @@ local function BuildOneStackQueues()
 			end
 		end
 		for _, slot in ipairs(request.bankSlots) do
-			if GetItemLink(slot.bagId, slot.slotId) == itemLink then
-				local count, maximum = GetSlotStackSize(slot.bagId, slot.slotId)
+			if ESOAPI.GetItemLink(slot.bagId, slot.slotId) == itemLink then
+				local count, maximum = ESOAPI.GetSlotStackSize(slot.bagId, slot.slotId)
 				if count and count > 0 then
 					bankCount = bankCount + count; maxStack = maximum or maxStack
 					table.insert(validBank, {bagId = slot.bagId, slotId = slot.slotId, count = count})
@@ -3039,7 +3051,7 @@ local function BuildOneStackQueues()
 			end
 			local function queuePvPPhysicalMove(queue, slot, reason)
 				if not slot then return end
-				table.insert(queue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = GetItemLinkInfo(itemLink), custom = true, maxQty = slot.count})
+				table.insert(queue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = ESOAPI.GetItemLinkInfo(itemLink), custom = true, maxQty = slot.count})
 				CustomRuleDebug(string.format("  selected %s itemId=%s bag=%s slot=%s qty=%d reason=%s", queue == pushQueue and "DEPOSIT" or "WITHDRAW", tostring(itemId), tostring(slot.bagId), tostring(slot.slotId), tonumber(slot.count) or 0, reason))
 			end
 			if request.targetBank then
@@ -3078,7 +3090,7 @@ local function BuildOneStackQueues()
 				local preferredUsed = (db.profiles[actualProfile].pvpPriorityState or "unused") == "used"
 				local rankedBank = {}
 				for index, slot in ipairs(validBank) do
-					local link = GetItemLink(slot.bagId, slot.slotId)
+					local link = ESOAPI.GetItemLink(slot.bagId, slot.slotId)
 					local energy = GetSiegeRemainingEnergy(link)
 					table.insert(rankedBank, {slot = slot, index = index, energy = energy})
 				end
@@ -3096,7 +3108,7 @@ local function BuildOneStackQueues()
 					if excessBank <= 0 then break end
 					local slot = rankedBank[index].slot
 					local amount = math.min(slot.count, excessBank)
-					table.insert(pullQueue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = GetItemLinkInfo(itemLink), custom = true, maxQty = amount})
+					table.insert(pullQueue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = ESOAPI.GetItemLinkInfo(itemLink), custom = true, maxQty = amount})
 					CustomRuleDebug(string.format("  selected WITHDRAW bag=%s slot=%s qty=%d reason=BANK exceeds one target stack; preserve preferred PvP energy", tostring(slot.bagId), tostring(slot.slotId), amount))
 					excessBank = excessBank - amount
 				end
@@ -3104,7 +3116,7 @@ local function BuildOneStackQueues()
 				for _, slot in ipairs(validBackpack) do
 					if needBank <= 0 then break end
 					local amount = math.min(slot.count, needBank)
-					table.insert(pushQueue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = GetItemLinkInfo(itemLink), custom = true, maxQty = amount})
+					table.insert(pushQueue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = ESOAPI.GetItemLinkInfo(itemLink), custom = true, maxQty = amount})
 					needBank = needBank - amount
 				end
 			else
@@ -3116,7 +3128,7 @@ local function BuildOneStackQueues()
 			local preferredUsed = (db.profiles[actualProfile].pvpPriorityState or "unused") == "used"
 			local rankedBackpack = {}
 			for index, slot in ipairs(validBackpack) do
-				local link = GetItemLink(slot.bagId, slot.slotId)
+				local link = ESOAPI.GetItemLink(slot.bagId, slot.slotId)
 				local energy = GetSiegeRemainingEnergy(link)
 				table.insert(rankedBackpack, {slot = slot, index = index, energy = energy})
 			end
@@ -3135,7 +3147,7 @@ local function BuildOneStackQueues()
 				if excess <= 0 then break end
 				local slot = rankedBackpack[index].slot
 				local amount = math.min(slot.count, excess)
-				table.insert(pushQueue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = GetItemLinkInfo(itemLink), custom = true, maxQty = amount})
+				table.insert(pushQueue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = ESOAPI.GetItemLinkInfo(itemLink), custom = true, maxQty = amount})
 				CustomRuleDebug(string.format("  selected DEPOSIT bag=%s slot=%s qty=%d reason=inventory exceeds one target stack; preserve preferred PvP energy", tostring(slot.bagId), tostring(slot.slotId), amount))
 				excess = excess - amount
 			end
@@ -3143,7 +3155,7 @@ local function BuildOneStackQueues()
 			for _, slot in ipairs(validBank) do
 				if need <= 0 then break end
 				local amount = math.min(slot.count, need)
-				table.insert(pullQueue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = GetItemLinkInfo(itemLink), custom = true, maxQty = amount})
+				table.insert(pullQueue, {ruleName = request.ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = itemLink, itemIcon = ESOAPI.GetItemLinkInfo(itemLink), custom = true, maxQty = amount})
 				CustomRuleDebug(string.format("  selected WITHDRAW bag=%s slot=%s qty=%d reason=fill inventory toward one target stack", tostring(slot.bagId), tostring(slot.slotId), amount))
 				need = need - amount
 			end
@@ -3163,7 +3175,7 @@ local function interactWithBank()
 	if activeHouseStorageBagId then movedItems[activeHouseStorageBagId] = movedItems[activeHouseStorageBagId] or {} end
 	
 	CustomRuleDebug(string.format("INTERACT BANK ENTER isBanking=%s inProgress=%s phase=%s profile=%s pushQueue=%d pullQueue=%d hasAnyPullToDo=%s hasAnySpecialPullToDo=%s pendingVerification=%s expectedTraceCount=%d", tostring(isBanking), tostring(inProgress), tostring(activeRuleRunPhase), tostring(actualProfile), #pushQueue, #pullQueue, tostring(hasAnyPullToDo), tostring(hasAnySpecialPullToDo), tostring(activeTransferVerificationDebug ~= nil), #pvpExpectedMoveTraces))
-	BMR.ProfileDiagnostic("PERSONAL_BANK_SCAN_ENTRY", BMR.ProfileDebugRuleActionSummary() .. "; " .. BMR.ProfileDebugBagCacheSummary(BAG_BACKPACK) .. "; " .. BMR.ProfileDebugSnapshot())
+	BMR.ProfileDiagnostic("PERSONAL_BANK_SCAN_ENTRY", BMR.ProfileDebugRuleActionSummary() .. "; " .. BMR.ProfileDebugBagCacheSummary(ESOAPI.BAG_BACKPACK) .. "; " .. BMR.ProfileDebugSnapshot())
 	if inProgress and activeRuleRunPhase ~= "moving" and activeTransferVerificationDebug == nil then
 		-- Queue building is synchronous. If another click can run while the phase is
 		-- still building (or nil), the previous run has unwound and stale state can be cleared.
@@ -3172,7 +3184,7 @@ local function interactWithBank()
 		pushQueue = {}
 		pullQueue = {}
 		oneStackRequests = {}
-		movedItems = {[BAG_BACKPACK] = {}, [BAG_BANK] = {}, [BAG_SUBSCRIBER_BANK] = {}}
+		movedItems = {[ESOAPI.BAG_BACKPACK] = {}, [ESOAPI.BAG_BANK] = {}, [ESOAPI.BAG_SUBSCRIBER_BANK] = {}}
 		activeRuleRunPhase = nil
 	elseif inProgress and #pushQueue == 0 and #pullQueue == 0 and activeTransferVerificationDebug == nil then
 		-- No queued work and no async transfer can still be running.
@@ -3182,7 +3194,7 @@ local function interactWithBank()
 		hasAnyPullToDo = nil
 		hasAnySpecialPullToDo = nil
 		oneStackRequests = {}
-		movedItems = {[BAG_BACKPACK] = {}, [BAG_BANK] = {}, [BAG_SUBSCRIBER_BANK] = {}}
+		movedItems = {[ESOAPI.BAG_BACKPACK] = {}, [ESOAPI.BAG_BANK] = {}, [ESOAPI.BAG_SUBSCRIBER_BANK] = {}}
 	end
 	if not inProgress then
 		inProgress = true
@@ -3207,9 +3219,9 @@ local function interactWithBank()
 		ScriptDebug(string.format("Queues before normal BMR scan: push=%d pull=%d", #pushQueue, #pullQueue))
 		
 		-- Prepare items, check if they must be moved and queue them
-		for slotIndex in pairs(SHARED_INVENTORY.bagCache[BAG_BACKPACK]) do
-			if not movedItems[BAG_BACKPACK][slotIndex] then
-				prepareItem(BAG_BACKPACK, slotIndex)
+		for slotIndex in pairs(ESOAPI.SHARED_INVENTORY.bagCache[ESOAPI.BAG_BACKPACK]) do
+			if not movedItems[ESOAPI.BAG_BACKPACK][slotIndex] then
+				prepareItem(ESOAPI.BAG_BACKPACK, slotIndex)
 			else
 				CustomRuleDebug(string.format("SCAN SKIP bag=INVENTAR slot=%s reason=movedItems flag is set", tostring(slotIndex)))
 			end
@@ -3228,17 +3240,17 @@ local function interactWithBank()
 				movedItems[sourceBag] = movedItems[sourceBag] or {}
 				if activeHouseStorageBagId then
 					-- Housing bags are not guaranteed to be present in LibSharedInventory's cache.
-					for slotIndex = 0, (GetBagSize(sourceBag) or 0) - 1 do
-						local link = GetItemLink(sourceBag, slotIndex)
+					for slotIndex = 0, (ESOAPI.GetBagSize(sourceBag) or 0) - 1 do
+						local link = ESOAPI.GetItemLink(sourceBag, slotIndex)
 						if link and link ~= "" then
 							if not movedItems[sourceBag][slotIndex] then prepareItem(sourceBag, slotIndex)
 							else CustomRuleDebug(string.format("SCAN SKIP bag=HOUSE STORAGE slot=%s reason=movedItems flag is set", tostring(slotIndex))) end
 						end
 					end
 				else
-					for slotIndex in pairs(SHARED_INVENTORY.bagCache[sourceBag] or {}) do
+					for slotIndex in pairs(ESOAPI.SHARED_INVENTORY.bagCache[sourceBag] or {}) do
 						if not movedItems[sourceBag][slotIndex] then prepareItem(sourceBag, slotIndex)
-						else CustomRuleDebug(string.format("SCAN SKIP bag=%s slot=%s reason=movedItems flag is set", sourceBag == BAG_SUBSCRIBER_BANK and "ESO+ BANK" or "BANK", tostring(slotIndex))) end
+						else CustomRuleDebug(string.format("SCAN SKIP bag=%s slot=%s reason=movedItems flag is set", sourceBag == ESOAPI.BAG_SUBSCRIBER_BANK and "ESO+ BANK" or "BANK", tostring(slotIndex))) end
 					end
 				end
 			end
@@ -3277,7 +3289,7 @@ local function interactWithBank()
 		-- one-stack/energy-priority selection.
 		local oneStackPvpItemIds = {}
 		for itemLink in pairs(oneStackRequests) do
-			local itemId = GetItemLinkItemId(itemLink)
+			local itemId = ESOAPI.GetItemLinkItemId(itemLink)
 			if itemId and BMR_PVP_ITEM_CATALOG[itemId] then
 				oneStackPvpItemIds[itemId] = true
 			end
@@ -3288,10 +3300,10 @@ local function interactWithBank()
 
 		local statesById = {}
 		local function collectPvpStates(bagId)
-			local bagSize = GetBagSize(bagId) or 0
+			local bagSize = ESOAPI.GetBagSize(bagId) or 0
 			for slotIndex = 0, bagSize - 1 do
-				local link = GetItemLink(bagId, slotIndex)
-				local itemId = link and link ~= "" and GetItemLinkItemId(link)
+				local link = ESOAPI.GetItemLink(bagId, slotIndex)
+				local itemId = link and link ~= "" and ESOAPI.GetItemLinkItemId(link)
 				local catalog = itemId and BMR_PVP_ITEM_CATALOG[itemId]
 				local activeRuleName = catalog and getActivePvpRuleName({itemId = itemId, alliance = catalog.alliance})
 				if catalog and activeRuleName and not oneStackPvpItemIds[itemId] then
@@ -3300,21 +3312,21 @@ local function interactWithBank()
 						statesById[itemId] = statesById[itemId] or {used = false, unused = false, slots = {}, ruleName = activeRuleName}
 						local state = statesById[itemId]
 						state[used and "used" or "unused"] = true
-						local count = GetSlotStackSize(bagId, slotIndex)
+						local count = ESOAPI.GetSlotStackSize(bagId, slotIndex)
 						table.insert(state.slots, {bagId = bagId, slotId = slotIndex, itemLink = link, used = used, ruleName = activeRuleName, energy = energy, count = count or 1})
 					end
 				end
 			end
 		end
-		collectPvpStates(BAG_BACKPACK)
+		collectPvpStates(ESOAPI.BAG_BACKPACK)
 		for _, sourceBag in ipairs(GetCurrentStorageSourceBags()) do collectPvpStates(sourceBag) end
 
 		local function removeQueuedPvpItem(itemId)
 			for i = #pushQueue, 1, -1 do
-				if GetItemLinkItemId(pushQueue[i].itemLink) == itemId then table.remove(pushQueue, i) end
+				if ESOAPI.GetItemLinkItemId(pushQueue[i].itemLink) == itemId then table.remove(pushQueue, i) end
 			end
 			for i = #pullQueue, 1, -1 do
-				if GetItemLinkItemId(pullQueue[i].itemLink) == itemId then table.remove(pullQueue, i) end
+				if ESOAPI.GetItemLinkItemId(pullQueue[i].itemLink) == itemId then table.remove(pullQueue, i) end
 			end
 		end
 
@@ -3330,7 +3342,7 @@ local function interactWithBank()
 					return a.used == preferredUsed
 				end
 				-- Keep already-correct inventory stacks on ties to avoid needless movement.
-				local aBackpack, bBackpack = a.bagId == BAG_BACKPACK, b.bagId == BAG_BACKPACK
+				local aBackpack, bBackpack = a.bagId == ESOAPI.BAG_BACKPACK, b.bagId == ESOAPI.BAG_BACKPACK
 				if aBackpack ~= bBackpack then return aBackpack end
 				if a.bagId ~= b.bagId then return a.bagId < b.bagId end
 				return a.slotId < b.slotId
@@ -3364,12 +3376,12 @@ local function interactWithBank()
 					end
 					for _, slot in ipairs(state.slots) do
 						local key = tostring(slot.bagId) .. ":" .. tostring(slot.slotId)
-						if slot.bagId == BAG_BACKPACK and not selectedSlots[key] then
+						if slot.bagId == ESOAPI.BAG_BACKPACK and not selectedSlots[key] then
 							CustomRuleDebug(string.format("PVP-STATE MOVE OUT itemId=%s bag=%s slot=%s energy=%s reason=not among top %d preferred inventory stacks", tostring(itemId), tostring(slot.bagId), tostring(slot.slotId), tostring(slot.energy), maxPreferredStacks))
-							table.insert(pushQueue, {ruleName = ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = slot.itemLink, itemIcon = GetItemLinkInfo(slot.itemLink), custom = true, maxQty = slot.count})
+							table.insert(pushQueue, {ruleName = ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = slot.itemLink, itemIcon = ESOAPI.GetItemLinkInfo(slot.itemLink), custom = true, maxQty = slot.count})
 						elseif IsCurrentStorageSourceBag(slot.bagId) and selectedSlots[key] then
 							CustomRuleDebug(string.format("PVP-STATE MOVE IN itemId=%s bag=%s slot=%s energy=%s reason=top %d preferred inventory stacks", tostring(itemId), tostring(slot.bagId), tostring(slot.slotId), tostring(slot.energy), maxPreferredStacks))
-							table.insert(pullQueue, {ruleName = ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = slot.itemLink, itemIcon = GetItemLinkInfo(slot.itemLink), custom = true, maxQty = slot.count})
+							table.insert(pullQueue, {ruleName = ruleName, bagId = slot.bagId, slotId = slot.slotId, itemLink = slot.itemLink, itemIcon = ESOAPI.GetItemLinkInfo(slot.itemLink), custom = true, maxQty = slot.count})
 						end
 					end
 				elseif action == ACTION_PUSH or action == ACTION_PUSH_GBANK or action == ACTION_PUSH_BOTH then
@@ -3379,8 +3391,8 @@ local function interactWithBank()
 					-- still applies the chosen category stack limits to non-preferred items.
 					for index = #pushQueue, 1, -1 do
 						local move = pushQueue[index]
-						if GetItemLinkItemId(move.itemLink) == itemId and move.bagId == BAG_BACKPACK then
-							local used, known = GetPvpUsedState(itemId, GetItemLink(move.bagId, move.slotId) or move.itemLink, move.bagId, move.slotId)
+						if ESOAPI.GetItemLinkItemId(move.itemLink) == itemId and move.bagId == ESOAPI.BAG_BACKPACK then
+							local used, known = GetPvpUsedState(itemId, ESOAPI.GetItemLink(move.bagId, move.slotId) or move.itemLink, move.bagId, move.slotId)
 							if known and used == preferredUsed then
 								CustomRuleDebug(string.format("PVP-STATE KEEP INVENTORY itemId=%s slot=%s energy=%s reason=preferred state stays in inventory", tostring(itemId), tostring(move.slotId), tostring(GetSiegeRemainingEnergy(move.itemLink))))
 								table.remove(pushQueue, index)
@@ -3397,14 +3409,14 @@ local function interactWithBank()
 			for index, moveData in ipairs(queue) do
 				local rank = 1
 				local energyRank = nil
-				local itemId = moveData.itemLink and GetItemLinkItemId(moveData.itemLink)
+				local itemId = moveData.itemLink and ESOAPI.GetItemLinkItemId(moveData.itemLink)
 				if itemId and BMR_PVP_ITEM_CATALOG[itemId] then
-					local energy = GetSiegeRemainingEnergy(moveData.itemLink or GetItemLink(moveData.bagId, moveData.slotId))
+					local energy = GetSiegeRemainingEnergy(moveData.itemLink or ESOAPI.GetItemLink(moveData.bagId, moveData.slotId))
 					if energy ~= nil then
 						energyRank = preferredUsed and energy or -energy
 						if queue == pushQueue then energyRank = -energyRank end
 					end
-					local isUsed, stateKnown = GetPvpUsedState(itemId, moveData.itemLink or GetItemLink(moveData.bagId, moveData.slotId), moveData.bagId, moveData.slotId)
+					local isUsed, stateKnown = GetPvpUsedState(itemId, moveData.itemLink or ESOAPI.GetItemLink(moveData.bagId, moveData.slotId), moveData.bagId, moveData.slotId)
 					if stateKnown then
 						local matchesPreference = isUsed == preferredUsed
 						if queue == pushQueue then rank = matchesPreference and 2 or 0
@@ -3429,7 +3441,7 @@ local function interactWithBank()
 			activeRuleRunPhase = "moving"
 			moveItems() -- zo_CallLater inside, nothing behind this line should be run, but inside it.
 		else
-			BMR.ProfileDiagnostic("PERSONAL_BANK_NO_QUEUES", BMR.ProfileDebugScanSummary() .. "; " .. BMR.ProfileDebugRuleActionSummary() .. "; " .. BMR.ProfileDebugBagCacheSummary(BAG_BACKPACK))
+			BMR.ProfileDiagnostic("PERSONAL_BANK_NO_QUEUES", BMR.ProfileDebugScanSummary() .. "; " .. BMR.ProfileDebugRuleActionSummary() .. "; " .. BMR.ProfileDebugBagCacheSummary(ESOAPI.BAG_BACKPACK))
 			-- The old code left inProgress=true when a scan produced no queued moves,
 			-- silently blocking subsequent profile-icon clicks until the bank was closed.
 			local continueHousingRescan = activeHouseStorageBagId and isBanking and not checkingGBank and housingAutoRescanPasses > 0
@@ -3441,7 +3453,7 @@ local function interactWithBank()
 			pushQueue = {}
 			pullQueue = {}
 			oneStackRequests = {}
-			movedItems = {[BAG_BACKPACK] = {}, [BAG_BANK] = {}, [BAG_SUBSCRIBER_BANK] = {}}
+			movedItems = {[ESOAPI.BAG_BACKPACK] = {}, [ESOAPI.BAG_BANK] = {}, [ESOAPI.BAG_SUBSCRIBER_BANK] = {}}
 			if continueHousingRescan then
 				ScheduleHousingAutoRescan(0, "empty scan; retry after inventory/cache settles", 1000)
 			else
@@ -3463,7 +3475,7 @@ local function displayUI(multipleProfiles)
 		return
 	end
 	local ruleName = currentProfile.name
-	if ruleName == "" then ruleName = zo_strformat(BMR_PROFILE, actualProfile) end
+	if ruleName == "" then ruleName = ESOAPI.zo_strformat(BMR_PROFILE, actualProfile) end
 
 	local controllerMode = BMR.Console and type(BMR.Console.IsAvailable) == "function"
 		and (BMR.Console.IsAvailable() == true or (type(BMR.Console.IsBankSceneOpen) == "function" and BMR.Console.IsBankSceneOpen() == true))
@@ -3495,7 +3507,7 @@ local function displayUI(multipleProfiles)
 
 	local title = BankManager and BankManager:GetNamedChild("Title")
 	if title and type(title.SetText) == "function" then
-		title:SetText(controllerMode and GetString(BMR_CONSOLE_WIDGET_TITLE) or "BankManagerRevived")
+		title:SetText(controllerMode and ESOAPI.GetString(BMR_CONSOLE_WIDGET_TITLE) or "BankManagerRevived")
 		if type(title.SetDimensions) == "function" then title:SetDimensions(controllerMode and 285 or 185, 28) end
 	end
 	local label = BankManager and BankManager:GetNamedChild("RuleName")
@@ -3528,15 +3540,15 @@ local function nextRule(step)
 		actualProfile = 1
 	end
 	
-	db.actualProfile[GetUnitName("player")] = actualProfile
+	db.actualProfile[ESOAPI.GetUnitName("player")] = actualProfile
 	
 	-- Sync LAM
-	CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
+	ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 		
 	local ruleName = db.profiles[actualProfile].name
 	
 	if ruleName == "" then
-		ruleName = zo_strformat(BMR_PROFILE, actualProfile)
+		ruleName = ESOAPI.zo_strformat(BMR_PROFILE, actualProfile)
 	end
 	
 	local label = BankManager and BankManager:GetNamedChild("RuleName")
@@ -3556,29 +3568,22 @@ BMR.Console.bankSceneNames = { "gamepad_banking", "gamepad_guild_bank" }
 BMR.Console.sceneHooks = BMR.Console.sceneHooks or {}
 
 BMR.Console.GetScene = function(sceneName)
-	if not SCENE_MANAGER or type(SCENE_MANAGER.GetScene) ~= "function" then return nil end
-	local ok, scene = pcall(function() return SCENE_MANAGER:GetScene(sceneName) end)
-	return ok and scene or nil
+	if not ESOAPI.SCENE_MANAGER or type(ESOAPI.SCENE_MANAGER.GetScene) ~= "function" then return nil end
+	return ESOAPI.SCENE_MANAGER:GetScene(sceneName)
 end
 
 BMR.Console.IsSceneShowing = function(sceneName)
 	local scene = BMR.Console.GetScene(sceneName)
 	if not scene then return false end
-	if type(scene.IsShowing) == "function" then
-		local ok, result = pcall(function() return scene:IsShowing() end)
-		if ok and result == true then return true end
-	end
-	local ok, state = pcall(function() return scene:GetState() end)
-	return ok and (state == SCENE_SHOWING or state == SCENE_SHOWN) or false
+	if type(scene.IsShowing) == "function" and scene:IsShowing() == true then return true end
+	local state = scene:GetState()
+	return state == SCENE_SHOWING or state == SCENE_SHOWN
 end
 
 BMR.Console.GetCurrentSceneName = function()
-	if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentScene) == "function" then
-		local ok, scene = pcall(function() return SCENE_MANAGER:GetCurrentScene() end)
-		if ok and scene and type(scene.GetName) == "function" then
-			local nameOk, name = pcall(function() return scene:GetName() end)
-			if nameOk then return tostring(name or "") end
-		end
+	if ESOAPI.SCENE_MANAGER and type(ESOAPI.SCENE_MANAGER.GetCurrentScene) == "function" then
+		local scene = ESOAPI.SCENE_MANAGER:GetCurrentScene()
+		if scene and type(scene.GetName) == "function" then return tostring(scene:GetName() or "") end
 	end
 	return ""
 end
@@ -3587,22 +3592,13 @@ end
 -- activate the controller UI on PC, where IsKeyboardUISupported() may differ
 -- from the platform-specific console result.
 BMR.Console.IsControllerFlowActive = function()
-	if type(IsKeyboardUISupported) == "function" then
-		local ok, value = pcall(IsKeyboardUISupported)
-		if ok and value == false then return true end
+	if type(ESOAPI.IsKeyboardUISupported) == "function" and ESOAPI.IsKeyboardUISupported() == false then return true end
+	if type(ESOAPI.IsConsoleUI) == "function" and ESOAPI.IsConsoleUI() == true then return true end
+	if type(ESOAPI.GetCVar) == "function" then
+		local value = ESOAPI.GetCVar("ForceConsoleFlow.2")
+		if value == "1" or value == 1 or value == true then return true end
 	end
-	if type(IsConsoleUI) == "function" then
-		local ok, value = pcall(IsConsoleUI)
-		if ok and value == true then return true end
-	end
-	if type(GetCVar) == "function" then
-		local ok, value = pcall(GetCVar, "ForceConsoleFlow.2")
-		if ok and (value == "1" or value == 1 or value == true) then return true end
-	end
-	if type(IsInGamepadPreferredMode) == "function" then
-		local ok, value = pcall(IsInGamepadPreferredMode)
-		if ok and value == true then return true end
-	end
+	if type(ESOAPI.IsInGamepadPreferredMode) == "function" and ESOAPI.IsInGamepadPreferredMode() == true then return true end
 	return false
 end
 
@@ -3618,10 +3614,10 @@ BMR.Console.IsBankSceneOpen = function()
 	if BMR.Console.IsCurrentGamepadBankScene() then return true end
 	-- ForceConsoleFlow can leave the root scene named "hudui" even while a bank
 	-- interaction is active. The banking API is a useful additional signal.
-	if type(GetBankingInteractionType) == "function" then
-		local ok, interactionType = pcall(GetBankingInteractionType)
+	if type(ESOAPI.GetBankingInteractionType) == "function" then
+		local interactionType = ESOAPI.GetBankingInteractionType()
 		local noneType = _G.BANKING_TYPE_NONE
-		if ok and interactionType ~= nil and interactionType ~= 0 and (noneType == nil or interactionType ~= noneType) then
+		if interactionType ~= nil and interactionType ~= 0 and (noneType == nil or interactionType ~= noneType) then
 			return true
 		end
 	end
@@ -3656,25 +3652,16 @@ end
 BMR.Console.IsModeActive = function()
 	-- Use ESO's own keyboard-UI capability signal too. On ForceConsoleFlow the
 	-- current scene and CVar can disagree briefly while the gamepad UI initializes.
-	if type(IsKeyboardUISupported) == "function" then
-		local ok, keyboardSupported = pcall(IsKeyboardUISupported)
-		if ok and keyboardSupported == false then return true end
-	end
-	if type(IsConsoleUI) == "function" then
-		local ok, result = pcall(IsConsoleUI)
-		if ok and result == true then return true end
-	end
-	if type(GetCVar) == "function" then
-		local ok, value = pcall(GetCVar, "ForceConsoleFlow.2")
-		if ok and (value == "1" or value == 1 or value == true) then return true end
+	if type(ESOAPI.IsKeyboardUISupported) == "function" and ESOAPI.IsKeyboardUISupported() == false then return true end
+	if type(ESOAPI.IsConsoleUI) == "function" and ESOAPI.IsConsoleUI() == true then return true end
+	if type(ESOAPI.GetCVar) == "function" then
+		local value = ESOAPI.GetCVar("ForceConsoleFlow.2")
+		if value == "1" or value == 1 or value == true then return true end
 	end
 	-- Some PC builds do not expose the force-flow CVar consistently through GetCVar.
 	-- The actual bank scene is a reliable fallback once the player opens a gamepad bank.
 	if BMR.Console.IsBankSceneOpen() then return true end
-	if type(IsInGamepadPreferredMode) == "function" then
-		local ok, result = pcall(IsInGamepadPreferredMode)
-		if ok and result == true then return true end
-	end
+	if type(ESOAPI.IsInGamepadPreferredMode) == "function" and ESOAPI.IsInGamepadPreferredMode() == true then return true end
 	return false
 end
 
@@ -3683,10 +3670,10 @@ BMR.Console.IsAvailable = function()
 end
 
 BMR.Console.HasDialogSupport = function()
-	return type(LibConsoleDialogs) == "table"
-		and type(LibConsoleDialogs.RegisterKeybind) == "function"
-		and type(LibConsoleDialogs.Create) == "function"
-		and type(LibHarvensAddonSettings) == "table"
+	return type(BMR.LibConsoleDialogs) == "table"
+		and type(BMR.LibConsoleDialogs.RegisterKeybind) == "function"
+		and type(BMR.LibConsoleDialogs.Create) == "function"
+		and type(BMR.LibHarvensAddonSettings) == "table"
 end
 
 BMR.Console.GetDefinedProfiles = function()
@@ -3710,7 +3697,7 @@ BMR.Console.GetProfileLabel = function(profileIndex)
 	local profile = db and db.profiles and db.profiles[profileIndex]
 	if type(profile) ~= "table" or profile.defined ~= true then return tostring(profileIndex) end
 	local name = tostring(profile.name or "")
-	if name == "" then name = zo_strformat(BMR_PROFILE, profileIndex) end
+	if name == "" then name = ESOAPI.zo_strformat(BMR_PROFILE, profileIndex) end
 	return string.format("%d - %s", profileIndex, name)
 end
 
@@ -3740,9 +3727,8 @@ end
 BMR.Console.SyncBankRuntimeState = function(source)
 	if isBanking or checkingGBank then return true end
 	local interactionType
-	if type(GetBankingInteractionType) == "function" then
-		local ok, value = pcall(GetBankingInteractionType)
-		if ok then interactionType = value end
+	if type(ESOAPI.GetBankingInteractionType) == "function" then
+		interactionType = ESOAPI.GetBankingInteractionType()
 	end
 	local sceneName = string.lower(tostring(BMR.Console.GetCurrentSceneName() or ""))
 	if string.find(sceneName, "guild", 1, true) then
@@ -3778,9 +3764,9 @@ BMR.Console.SelectProfile = function(profileIndex, runImmediately)
 	local profile = profileIndex and db and db.profiles and db.profiles[profileIndex]
 	if type(profile) ~= "table" or profile.defined ~= true then return false end
 	actualProfile = profileIndex
-	db.actualProfile[GetUnitName("player")] = profileIndex
-	if CALLBACK_MANAGER and type(CALLBACK_MANAGER.FireCallbacks) == "function" and panel ~= nil then
-		CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
+	db.actualProfile[ESOAPI.GetUnitName("player")] = profileIndex
+	if ESOAPI.CALLBACK_MANAGER and type(ESOAPI.CALLBACK_MANAGER.FireCallbacks) == "function" and panel ~= nil then
+		ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 	end
 	-- Always refresh the floating label when the UI is in controller mode. The
 	-- bank scene can be live even when EVENT_OPEN_BANK did not set the legacy flags.
@@ -3825,18 +3811,18 @@ BMR.Console.BuildProfileItems = function()
 end
 
 BMR.Console.OpenProfileDialog = function()
-	if not BMR.Console.IsAvailable() or type(LibHarvensAddonSettings) ~= "table" or type(LibConsoleDialogs) ~= "table" or type(LibConsoleDialogs.Create) ~= "function" then
+	if not BMR.Console.IsAvailable() or type(BMR.LibHarvensAddonSettings) ~= "table" or type(BMR.LibConsoleDialogs) ~= "table" or type(BMR.LibConsoleDialogs.Create) ~= "function" then
 		BMR.ProfileDiagnosticChat("Controller-Profilmenü nicht verfügbar: LibConsoleDialogs/LibHarvensAddonSettings fehlt.")
 		return
 	end
 	local items = BMR.Console.BuildProfileItems()
-	if #items == 0 then BMR.ProfileDiagnosticChat(GetString(BMR_CONSOLE_NO_PROFILES)); return end
+	if #items == 0 then BMR.ProfileDiagnosticChat(ESOAPI.GetString(BMR_CONSOLE_NO_PROFILES)); return end
 	if not BMR.Console.profileDialog then
-		BMR.Console.profileDialog = LibConsoleDialogs:Create(GetString(BMR_CONSOLE_PROFILE_DIALOG_TITLE))
+		BMR.Console.profileDialog = BMR.LibConsoleDialogs:Create(ESOAPI.GetString(BMR_CONSOLE_PROFILE_DIALOG_TITLE))
 		BMR.Console.profileChoiceSetting = {
-			type = LibHarvensAddonSettings.ST_DROPDOWN,
-			label = GetString(BMR_CONSOLE_PROFILE_SELECT_LABEL),
-			tooltip = GetString(BMR_CONSOLE_CHOOSE_PROFILE_TOOLTIP),
+			type = BMR.LibHarvensAddonSettings.ST_DROPDOWN,
+			label = ESOAPI.GetString(BMR_CONSOLE_PROFILE_SELECT_LABEL),
+			tooltip = ESOAPI.GetString(BMR_CONSOLE_CHOOSE_PROFILE_TOOLTIP),
 			items = items,
 			getFunction = function() return BMR.Console.GetProfileLabel(actualProfile) end,
 			setFunction = function(control, selectedName, item)
@@ -3855,14 +3841,14 @@ BMR.Console.OpenProfileDialog = function()
 		}
 		BMR.Console.profileDialog:AddSetting(BMR.Console.profileChoiceSetting)
 		BMR.Console.profileDialog:AddSetting({
-			type = LibHarvensAddonSettings.ST_BUTTON,
-			label = GetString(BMR_CONSOLE_RUN_PROFILE),
-			tooltip = GetString(BMR_CONSOLE_RUN_PROFILE_TOOLTIP),
-			buttonText = GetString(BMR_CONSOLE_RUN_PROFILE),
+			type = BMR.LibHarvensAddonSettings.ST_BUTTON,
+			label = ESOAPI.GetString(BMR_CONSOLE_RUN_PROFILE),
+			tooltip = ESOAPI.GetString(BMR_CONSOLE_RUN_PROFILE_TOOLTIP),
+			buttonText = ESOAPI.GetString(BMR_CONSOLE_RUN_PROFILE),
 			clickHandler = function()
 				BMR._consoleLastAction = "profile-dialog-run-pressed"
 				BMR.ProfileDiagnostic("CONSOLE_PROFILE_DIALOG_RUN_PRESSED", BMR.ProfileDebugSnapshot())
-				if LibConsoleDialogs and type(LibConsoleDialogs.Close) == "function" then pcall(function() LibConsoleDialogs:Close() end) end
+				if BMR.LibConsoleDialogs and type(BMR.LibConsoleDialogs.Close) == "function" then BMR.LibConsoleDialogs:Close() end
 				BMR.Console.RunSelectedProfile("profile-dialog-button")
 			end,
 		})
@@ -3886,14 +3872,13 @@ BMR.Console.RunSelectedProfile = function(source)
 		return false
 	end
 	if not bankReady then
-		local interaction = "n/a"
-		if type(GetBankingInteractionType) == "function" then local ok, value = pcall(GetBankingInteractionType); if ok then interaction = tostring(value) end end
+		local interaction = type(ESOAPI.GetBankingInteractionType) == "function" and tostring(ESOAPI.GetBankingInteractionType()) or "n/a"
 		BMR._consoleLastAction = "run-blocked-bank-state-undetected"
 		BMR.ProfileDiagnostic("CONSOLE_RUN_BLOCKED_NO_BANK_STATE", "source=" .. tostring(source) .. "; interactionType=" .. interaction .. "; scene=" .. tostring(BMR.Console.GetCurrentSceneName()))
 		BMR.ProfileDiagnosticChat("BMR: Bankkontext nicht sicher erkannt; Ausführen abgebrochen, um keine Gegenstände in der falschen Bank zu bewegen. /bmr/consoledebug zeigt den Zustand.")
 		return false
 	end
-	local ok, err = pcall(BankManagerRevived_executeRule)
+	local ok, err = pcall(BMR.executeRule)
 	if not ok then
 		BMR._consoleLastAction = "run-error"
 		BMR.ProfileDiagnostic("CONSOLE_RUN_FAILED", tostring(err))
@@ -3914,10 +3899,9 @@ BMR.Console.RemoveNativeProfileKeybindGroup = function(source)
 	if group and KEYBIND_STRIP and type(KEYBIND_STRIP.RemoveKeybindButtonGroup) == "function" then
 		local present = BMR.Console.nativeKeybindGroupAdded == true
 		if type(KEYBIND_STRIP.HasKeybindButtonGroup) == "function" then
-			local ok, value = pcall(KEYBIND_STRIP.HasKeybindButtonGroup, KEYBIND_STRIP, group)
-			if ok then present = value == true end
+			present = KEYBIND_STRIP:HasKeybindButtonGroup(group) == true
 		end
-		if present then pcall(KEYBIND_STRIP.RemoveKeybindButtonGroup, KEYBIND_STRIP, group) end
+		if present then KEYBIND_STRIP:RemoveKeybindButtonGroup(group) end
 	end
 	BMR.Console.nativeKeybindGroupAdded = false
 end
@@ -3977,12 +3961,12 @@ local function GetBMRPersistentProfileRegistrationRegistry()
 	-- LibConsoleDialogs keeps its registrations for the life of the client session and
 	-- has no unregister API. Store successful-registration markers on the library object
 	-- too, so /reloadui cannot add another copy to the same scene while it remains loaded.
-	if type(LibConsoleDialogs) == "table" then
+	if type(BMR.LibConsoleDialogs) == "table" then
 		local ok, registry = pcall(function()
-			if type(LibConsoleDialogs._BankManagerRevivedProfileKeybinds) ~= "table" then
-				LibConsoleDialogs._BankManagerRevivedProfileKeybinds = {}
+			if type(BMR.LibConsoleDialogs._BankManagerRevivedProfileKeybinds) ~= "table" then
+				BMR.LibConsoleDialogs._BankManagerRevivedProfileKeybinds = {}
 			end
-			return LibConsoleDialogs._BankManagerRevivedProfileKeybinds
+			return BMR.LibConsoleDialogs._BankManagerRevivedProfileKeybinds
 		end)
 		if ok and type(registry) == "table" then return registry end
 	end
@@ -4037,7 +4021,7 @@ BMR.Console.RegisterSceneKeybinds = function()
 		local ok, err = pcall(function()
 			-- Pass the resolved scene object. This is supported by the library API and
 			-- avoids a string-name lookup resolving to a different scene alias.
-			LibConsoleDialogs:RegisterKeybind(scene, buttonInfo)
+			BMR.LibConsoleDialogs:RegisterKeybind(scene, buttonInfo)
 		end)
 		if ok then
 			registration[key] = true
@@ -4056,33 +4040,33 @@ BMR.Console.RegisterSceneKeybinds = function()
 	end
 
 	Register("previous", {
-		name = GetString(BMR_CONSOLE_PREVIOUS_PROFILE),
-		tooltip = GetString(BMR_CONSOLE_PREVIOUS_PROFILE_TOOLTIP),
-		alignment = KEYBIND_STRIP_ALIGN_LEFT or KEYBIND_STRIP_ALIGN_CENTER,
+		name = ESOAPI.GetString(BMR_CONSOLE_PREVIOUS_PROFILE),
+		tooltip = ESOAPI.GetString(BMR_CONSOLE_PREVIOUS_PROFILE_TOOLTIP),
+		alignment = ESOAPI.KEYBIND_STRIP_ALIGN_LEFT or ESOAPI.KEYBIND_STRIP_ALIGN_CENTER,
 		order = 80,
 		visible = function() return IsTargetBankActive() and not inProgress and #BMR.Console.GetDefinedProfiles() > 1 end,
 		callback = function() BMR._consoleLastAction = "keybind-previous-fired"; BMR.Console.CycleProfile(-1) end,
 	})
 	Register("next", {
-		name = GetString(BMR_CONSOLE_NEXT_PROFILE),
-		tooltip = GetString(BMR_CONSOLE_NEXT_PROFILE_TOOLTIP),
-		alignment = KEYBIND_STRIP_ALIGN_LEFT or KEYBIND_STRIP_ALIGN_CENTER,
+		name = ESOAPI.GetString(BMR_CONSOLE_NEXT_PROFILE),
+		tooltip = ESOAPI.GetString(BMR_CONSOLE_NEXT_PROFILE_TOOLTIP),
+		alignment = ESOAPI.KEYBIND_STRIP_ALIGN_LEFT or ESOAPI.KEYBIND_STRIP_ALIGN_CENTER,
 		order = 81,
 		visible = function() return IsTargetBankActive() and not inProgress and #BMR.Console.GetDefinedProfiles() > 1 end,
 		callback = function() BMR._consoleLastAction = "keybind-next-fired"; BMR.Console.CycleProfile(1) end,
 	})
 	Register("choose", {
-		name = GetString(BMR_CONSOLE_CHOOSE_PROFILE),
-		tooltip = GetString(BMR_CONSOLE_CHOOSE_PROFILE_TOOLTIP),
-		alignment = KEYBIND_STRIP_ALIGN_LEFT or KEYBIND_STRIP_ALIGN_CENTER,
+		name = ESOAPI.GetString(BMR_CONSOLE_CHOOSE_PROFILE),
+		tooltip = ESOAPI.GetString(BMR_CONSOLE_CHOOSE_PROFILE_TOOLTIP),
+		alignment = ESOAPI.KEYBIND_STRIP_ALIGN_LEFT or ESOAPI.KEYBIND_STRIP_ALIGN_CENTER,
 		order = 82,
 		visible = function() return IsTargetBankActive() and not inProgress and #BMR.Console.GetDefinedProfiles() > 0 end,
 		callback = function() BMR._consoleLastAction = "keybind-open-profile-dialog-fired"; BMR.Console.OpenProfileDialog() end,
 	})
 	Register("run", {
-		name = GetString(BMR_CONSOLE_RUN_PROFILE),
-		tooltip = GetString(BMR_CONSOLE_RUN_PROFILE_TOOLTIP),
-		alignment = KEYBIND_STRIP_ALIGN_RIGHT or KEYBIND_STRIP_ALIGN_CENTER,
+		name = ESOAPI.GetString(BMR_CONSOLE_RUN_PROFILE),
+		tooltip = ESOAPI.GetString(BMR_CONSOLE_RUN_PROFILE_TOOLTIP),
+		alignment = KEYBIND_STRIP_ALIGN_RIGHT or ESOAPI.KEYBIND_STRIP_ALIGN_CENTER,
 		order = 83,
 		visible = function() return IsTargetBankActive() and (isBanking or checkingGBank) and not inProgress end,
 		callback = function() BMR.Console.RunSelectedProfile("keybind") end,
@@ -4113,21 +4097,17 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 	BMR.Console.inventoryRuleActivationCounter = BMR.Console.inventoryRuleActivationCounter or 0
 
 	local function listHasBackpack(list)
-		if type(list) ~= "table" or type(list.inventoryTypes) ~= "table" or type(BAG_BACKPACK) ~= "number" then return false end
+		if type(list) ~= "table" or type(list.inventoryTypes) ~= "table" or type(ESOAPI.BAG_BACKPACK) ~= "number" then return false end
 		for _, bagId in ipairs(list.inventoryTypes) do
-			if bagId == BAG_BACKPACK then return true end
+			if bagId == ESOAPI.BAG_BACKPACK then return true end
 		end
 		return false
 	end
 
 	local function getSelectedBackpackItem(list)
-		if not list or type(list.GetTargetData) ~= "function" then return nil end
-		if type(list.IsActive) == "function" then
-			local ok, active = pcall(list.IsActive, list)
-			if not ok or not active then return nil end
-		end
-		local ok, targetData = pcall(list.GetTargetData, list)
-		if not ok or type(targetData) ~= "table" then return nil end
+		if not list or not list:IsActive() then return nil end
+		local targetData = list:GetTargetData()
+		if type(targetData) ~= "table" then return nil end
 		-- GetTargetData() returns ZO_GamepadEntryData. Its itemData is the exact
 		-- SHARED_INVENTORY slot record with bagId and slotIndex.
 		local itemData = type(targetData.itemData) == "table" and targetData.itemData
@@ -4135,7 +4115,7 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 			or targetData
 		local bagId = itemData.bagId or targetData.bagId
 		local slotIndex = itemData.slotIndex or targetData.slotIndex
-		if bagId ~= BAG_BACKPACK or slotIndex == nil then return nil end
+		if bagId ~= ESOAPI.BAG_BACKPACK or slotIndex == nil then return nil end
 		local custom = BMR.CustomRules
 		if type(custom) ~= "table" or type(custom.GetCustomRuleItemIdFromSlot) ~= "function" then return nil end
 		local itemId = custom.GetCustomRuleItemIdFromSlot(bagId, slotIndex)
@@ -4161,13 +4141,12 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 		if not group or not KEYBIND_STRIP then return end
 		local hasGroup = false
 		if type(KEYBIND_STRIP.HasKeybindButtonGroup) == "function" then
-			local ok, value = pcall(KEYBIND_STRIP.HasKeybindButtonGroup, KEYBIND_STRIP, group)
-			hasGroup = ok and value == true
+			hasGroup = KEYBIND_STRIP:HasKeybindButtonGroup(group) == true
 		else
 			hasGroup = list.bmrInventoryRuleKeybindGroupAdded == true
 		end
 		if hasGroup and type(KEYBIND_STRIP.RemoveKeybindButtonGroup) == "function" then
-			pcall(KEYBIND_STRIP.RemoveKeybindButtonGroup, KEYBIND_STRIP, group)
+			KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
 		end
 		list.bmrInventoryRuleKeybindGroupAdded = false
 	end
@@ -4177,16 +4156,15 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 		if not group or not KEYBIND_STRIP or type(KEYBIND_STRIP.AddKeybindButtonGroup) ~= "function" then return false end
 		local alreadyAdded = false
 		if type(KEYBIND_STRIP.HasKeybindButtonGroup) == "function" then
-			local ok, value = pcall(KEYBIND_STRIP.HasKeybindButtonGroup, KEYBIND_STRIP, group)
-			alreadyAdded = ok and value == true
+			alreadyAdded = KEYBIND_STRIP:HasKeybindButtonGroup(group) == true
 		else
 			alreadyAdded = list.bmrInventoryRuleKeybindGroupAdded == true
 		end
 		if not alreadyAdded then
-			local ok = pcall(KEYBIND_STRIP.AddKeybindButtonGroup, KEYBIND_STRIP, group)
-			list.bmrInventoryRuleKeybindGroupAdded = ok
-			if ok then BMR.ProfileDiagnostic("CONSOLE_INVENTORY_RULE_KEYBIND_GROUP_ADDED", "key=UI_SHORTCUT_RIGHT_STICK") end
-			return ok
+			KEYBIND_STRIP:AddKeybindButtonGroup(group)
+			list.bmrInventoryRuleKeybindGroupAdded = true
+			BMR.ProfileDiagnostic("CONSOLE_INVENTORY_RULE_KEYBIND_GROUP_ADDED", "key=UI_SHORTCUT_RIGHT_STICK")
+			return true
 		end
 		return true
 	end
@@ -4203,7 +4181,7 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 			shouldShow = type(custom) == "table" and type(custom.ShouldShowSetCustomRuleAction) == "function"
 				and custom.ShouldShowSetCustomRuleAction() == true
 		end
-		local desiredName = selection and selection.hasRule and GetString(BMR_CUSTOM_RULE_REMOVE_MENU) or GetString(BMR_CUSTOM_RULE_SET)
+		local desiredName = selection and selection.hasRule and ESOAPI.GetString(BMR_CUSTOM_RULE_REMOVE_MENU) or ESOAPI.GetString(BMR_CUSTOM_RULE_SET)
 		descriptor.name = desiredName
 		local signature = tostring(shouldShow) .. ":" .. tostring(selection and selection.itemId or "none") .. ":" .. tostring(selection and selection.hasRule or false) .. ":" .. tostring(desiredName)
 		if forceRefresh or signature ~= list.bmrInventoryRuleKeybindSignature then
@@ -4238,7 +4216,7 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 			return true
 		end
 		local descriptor = {
-			name = GetString(BMR_CUSTOM_RULE_SET),
+			name = ESOAPI.GetString(BMR_CUSTOM_RULE_SET),
 			keybind = "UI_SHORTCUT_RIGHT_STICK",
 			visible = function()
 				local selection = getSelectedBackpackItem(list)
@@ -4278,7 +4256,7 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 		}
 		list.bmrInventoryRuleDescriptor = descriptor
 		list.bmrInventoryRuleKeybindGroup = {
-			alignment = KEYBIND_STRIP_ALIGN_CENTER or KEYBIND_STRIP_ALIGN_LEFT,
+			alignment = ESOAPI.KEYBIND_STRIP_ALIGN_CENTER or ESOAPI.KEYBIND_STRIP_ALIGN_LEFT,
 			descriptor,
 		}
 		attachSelectionRefreshCallback(list)
@@ -4289,11 +4267,7 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 	local function updateActiveLists()
 		local newestList = getNewestActiveList()
 		for list in pairs(BMR.Console.inventoryRuleActiveLists) do
-			local active = true
-			if type(list.IsActive) == "function" then
-				local ok, result = pcall(list.IsActive, list)
-				active = ok and result == true
-			end
+			local active = list:IsActive()
 			if active then
 				attachDescriptor(list)
 				if list == newestList then
@@ -4311,16 +4285,7 @@ BMR.Console.InstallInventoryRuleKeybindHooks = function()
 
 	local function installPostHook(methodName, callback)
 		if type(inventoryClass[methodName]) ~= "function" then return false end
-		if type(ZO_PostHook) == "function" then
-			local ok = pcall(ZO_PostHook, inventoryClass, methodName, callback)
-			return ok
-		end
-		local original = inventoryClass[methodName]
-		inventoryClass[methodName] = function(self, ...)
-			local result = original(self, ...)
-			callback(self)
-			return result
-		end
+		ZO_PostHook(inventoryClass, methodName, callback)
 		return true
 	end
 
@@ -4351,7 +4316,7 @@ end
 -- floating control. This avoids a circular dependency in ForceConsoleFlow: the control can be
 -- hidden by the console UI flow, and previously that prevented keybind registration altogether.
 BMR.Console.InstallSceneHooks = function()
-	if not SCENE_MANAGER or type(SCENE_MANAGER.GetScene) ~= "function" then return false end
+	if not ESOAPI.SCENE_MANAGER or type(ESOAPI.SCENE_MANAGER.GetScene) ~= "function" then return false end
 	BMR.Console.sceneHooks = BMR.Console.sceneHooks or {}
 	local installed = 0
 	for _, sceneName in ipairs(BMR.Console.GetEffectiveBankSceneNames()) do
@@ -4366,7 +4331,7 @@ BMR.Console.InstallSceneHooks = function()
 							-- Register the scene keybinds independently of EVENT_OPEN_BANK and
 							-- displayUI. The latter remains the normal route for transfers.
 							BMR.Console.RegisterSceneKeybinds()
-							zo_callLater(function()
+							ESOAPI.zo_callLater(function()
 								if BMR.Console.IsBankSceneOpen() and db and db.profiles and type(db.profiles[actualProfile]) == "table" then
 									displayUI(#BMR.Console.GetDefinedProfiles() > 1)
 								end
@@ -4376,11 +4341,9 @@ BMR.Console.InstallSceneHooks = function()
 						BMR.ProfileDiagnostic("CONSOLE_BANK_SCENE_EXIT", "scene=" .. tostring(hookedSceneName))
 					end
 				end
-				local ok = pcall(function() scene:RegisterCallback("StateChange", callback) end)
-				if ok then
-					BMR.Console.sceneHooks[scene] = sceneName
-					installed = installed + 1
-				end
+				scene:RegisterCallback("StateChange", callback)
+				BMR.Console.sceneHooks[scene] = sceneName
+				installed = installed + 1
 			end
 		end
 	end
@@ -4398,29 +4361,11 @@ BMR.Console.RefreshForScene = function()
 end
 
 BMR.Console.PrintDebugStatus = function()
-	local cvar = "n/a"
-	if type(GetCVar) == "function" then
-		local ok, value = pcall(GetCVar, "ForceConsoleFlow.2")
-		if ok then cvar = tostring(value) end
-	end
-	local consoleUI = "n/a"
-	if type(IsConsoleUI) == "function" then
-		local ok, value = pcall(IsConsoleUI)
-		if ok then consoleUI = tostring(value) end
-	end
-	local gamepad = "n/a"
-	if type(IsInGamepadPreferredMode) == "function" then
-		local ok, value = pcall(IsInGamepadPreferredMode)
-		if ok then gamepad = tostring(value) end
-	end
-	local currentScene = "n/a"
-	if SCENE_MANAGER and type(SCENE_MANAGER.GetCurrentScene) == "function" then
-		local ok, scene = pcall(function() return SCENE_MANAGER:GetCurrentScene() end)
-		if ok and scene and type(scene.GetName) == "function" then
-			local nameOk, name = pcall(function() return scene:GetName() end)
-			if nameOk then currentScene = tostring(name) end
-		end
-	end
+	local cvar = type(ESOAPI.GetCVar) == "function" and tostring(ESOAPI.GetCVar("ForceConsoleFlow.2")) or "n/a"
+	local consoleUI = type(ESOAPI.IsConsoleUI) == "function" and tostring(ESOAPI.IsConsoleUI()) or "n/a"
+	local gamepad = type(ESOAPI.IsInGamepadPreferredMode) == "function" and tostring(ESOAPI.IsInGamepadPreferredMode()) or "n/a"
+	local currentScene = BMR.Console.GetCurrentSceneName()
+	if currentScene == "" then currentScene = "n/a" end
 	local bankSceneStates = {}
 	for _, name in ipairs(BMR.Console.bankSceneNames or {}) do
 		bankSceneStates[#bankSceneStates + 1] = name .. "=" .. tostring(BMR.Console.IsSceneShowing(name))
@@ -4431,17 +4376,12 @@ BMR.Console.PrintDebugStatus = function()
 	local definedProfiles = BMR.Console.GetDefinedProfiles()
 	local rootHidden = "unknown"
 	if BankManager and type(BankManager.IsControlHidden) == "function" then
-		local ok, value = pcall(BankManager.IsControlHidden, BankManager)
-		if ok then rootHidden = tostring(value) end
+		rootHidden = tostring(BankManager.IsControlHidden(BankManager))
 	end
-	local keyboardSupported = "n/a"
-	if type(IsKeyboardUISupported) == "function" then
-		local ok, value = pcall(IsKeyboardUISupported)
-		if ok then keyboardSupported = tostring(value) end
-	end
-	local lhaPresent = type(LibHarvensAddonSettings) == "table" and type(LibHarvensAddonSettings.AddAddon) == "function"
-	local libGamepadPresent = type(IsAddOnLoaded) == "function" and IsAddOnLoaded("LibGamepad") == true
-	local gamepadContextBridgePresent = type(IsAddOnLoaded) == "function" and IsAddOnLoaded("LibGamepadContextMenuBridge") == true
+	local keyboardSupported = type(ESOAPI.IsKeyboardUISupported) == "function" and tostring(ESOAPI.IsKeyboardUISupported()) or "n/a"
+	local lhaPresent = type(BMR.LibHarvensAddonSettings) == "table" and type(BMR.LibHarvensAddonSettings.AddAddon) == "function"
+	local libGamepadPresent = type(ESOAPI.IsAddOnLoaded) == "function" and ESOAPI.IsAddOnLoaded("LibGamepad") == true
+	local gamepadContextBridgePresent = type(ESOAPI.IsAddOnLoaded) == "function" and ESOAPI.IsAddOnLoaded("LibGamepadContextMenuBridge") == true
 	local libCustomMenuPresent = type(LibCustomMenu) == "table" and type(LibCustomMenu.RegisterContextMenu) == "function"
 	local contextMenuCallbackRegistered = BMR.customItemActionsRegistered == true
 	local activeInventoryRuleLists = 0
@@ -4452,8 +4392,7 @@ BMR.Console.PrintDebugStatus = function()
 		if list.bmrInventoryRuleDescriptor then inventoryRuleDescriptors = inventoryRuleDescriptors + 1 end
 		local group = list.bmrInventoryRuleKeybindGroup
 		if group and KEYBIND_STRIP and type(KEYBIND_STRIP.HasKeybindButtonGroup) == "function" then
-			local ok, present = pcall(KEYBIND_STRIP.HasKeybindButtonGroup, KEYBIND_STRIP, group)
-			if ok and present then inventoryRuleTriggerGroups = inventoryRuleTriggerGroups + 1 end
+			if KEYBIND_STRIP:HasKeybindButtonGroup(group) then inventoryRuleTriggerGroups = inventoryRuleTriggerGroups + 1 end
 		end
 	end
 	local hookCount, sceneCount = 0, 0
@@ -4481,12 +4420,12 @@ BMR.Console.PrintDebugStatus = function()
 		table.sort(names)
 		if #names > 0 then BMR.ProfileDiagnosticChat("Submenus skipped=" .. table.concat(names, ",")) end
 	end
-	BMR.ProfileDiagnosticChat("Settings controls=" .. tostring(BMR._consoleSettingsControlsAdded or 0) .. " regmode=" .. tostring(BMR._consoleSettingsRegistrationMode or "n/a") .. " LHA=" .. tostring(LibHarvensAddonSettings and LibHarvensAddonSettings.version or "unknown") .. " adapter=" .. tostring(BMR._consoleSettingsAdapter or "none"))
+	BMR.ProfileDiagnosticChat("Settings controls=" .. tostring(BMR._consoleSettingsControlsAdded or 0) .. " regmode=" .. tostring(BMR._consoleSettingsRegistrationMode or "n/a") .. " LHA=" .. tostring(BMR.LibHarvensAddonSettings and BMR.LibHarvensAddonSettings.version or "unknown") .. " adapter=" .. tostring(BMR._consoleSettingsAdapter or "none"))
 	if type(BMR._consoleSettingsCategoryCounts) == "table" then
 		local function ReadSettingsCategoryLabel(stringId)
-			if type(GetString) ~= "function" or stringId == nil then return nil end
-			local ok, value = pcall(GetString, stringId)
-			return ok and tostring(value or "") or nil
+			if type(ESOAPI.GetString) ~= "function" or stringId == nil then return nil end
+			local value = ESOAPI.GetString(stringId)
+			return tostring(value or "")
 		end
 		local labels = {
 			ReadSettingsCategoryLabel(BMR_CONTAINERS),
@@ -4531,43 +4470,43 @@ BMR.Console.PrintDebugStatus = function()
 		if #parts > 0 then BMR.ProfileDiagnosticChat("LAM erzeugte Zeilen " .. table.concat(parts, "; ")) end
 	end
 	local interaction = "n/a"
-	if type(GetBankingInteractionType) == "function" then local ok, value = pcall(GetBankingInteractionType); if ok then interaction = tostring(value) end end
+	if type(ESOAPI.GetBankingInteractionType) == "function" then interaction = tostring(ESOAPI.GetBankingInteractionType()) end
 	BMR.ProfileDiagnosticChat("Input last=" .. tostring(BMR._consoleLastAction or "none") .. " busy=" .. tostring(inProgress) .. "/" .. tostring(activeRuleRunPhase) .. " queues=" .. tostring(#pushQueue) .. "/" .. tostring(#pullQueue) .. " interaction=" .. interaction)
 	BMR.ProfileDiagnosticChat("Bank API constants: bank=" .. tostring(_G.BANKING_TYPE_BANK or _G.BANKING_TYPE_PERSONAL_BANK or "nil") .. " guild=" .. tostring(_G.BANKING_TYPE_GUILD_BANK or "nil") .. " none=" .. tostring(_G.BANKING_TYPE_NONE or "nil"))
 	if BMR._coreProfileStoreInitError then BMR.ProfileDiagnosticChat("Core error=" .. string.gsub(tostring(BMR._coreProfileStoreInitError), "[\r\n]+", " "):sub(1, 190)) end
 
 end
 
-SLASH_COMMANDS["/bmr/consoledebug"] = function() BMR.Console.PrintDebugStatus() end
+ESOAPI.SLASH_COMMANDS["/bmr/consoledebug"] = function() BMR.Console.PrintDebugStatus() end
 -- Direct test entry points bypass the scene keybind layer but use the same guarded handlers.
-SLASH_COMMANDS["/bmr/profile/next"] = function() BMR.Console.CycleProfile(1) end
-SLASH_COMMANDS["/bmr/profile/previous"] = function() BMR.Console.CycleProfile(-1) end
-SLASH_COMMANDS["/bmr/profile/run"] = function() BMR.Console.RunSelectedProfile("slash-command") end
+ESOAPI.SLASH_COMMANDS["/bmr/profile/next"] = function() BMR.Console.CycleProfile(1) end
+ESOAPI.SLASH_COMMANDS["/bmr/profile/previous"] = function() BMR.Console.CycleProfile(-1) end
+ESOAPI.SLASH_COMMANDS["/bmr/profile/run"] = function() BMR.Console.RunSelectedProfile("slash-command") end
 
 -- PvP movement trace helpers. The inventory event itself does not identify the actor, so only
 -- slot updates matched to a recorded BMR RequestMoveItem are labelled BMR_EXPECTED. Everything
 -- else affecting a tracked PvP item is marked UNMATCHED_EXTERNAL (manual move/other addon possible).
 local function IsTrackedPvpItemLink(link)
 	if not link or link == "" then return false end
-	local ok, itemId = pcall(GetItemLinkItemId, link)
-	return ok and itemId ~= nil and ((BMR_PVP_ITEM_CATALOG and BMR_PVP_ITEM_CATALOG[itemId]) or itemId == 30359) or false
+	local itemId = ESOAPI.GetItemLinkItemId(link)
+	return itemId ~= nil and ((BMR_PVP_ITEM_CATALOG and BMR_PVP_ITEM_CATALOG[itemId]) or itemId == 30359) or false
 end
 
 local function GetPvpTraceSlotState(bagId, slotId)
-	local link = GetItemLink(bagId, slotId)
+	local link = ESOAPI.GetItemLink(bagId, slotId)
 	if not IsTrackedPvpItemLink(link) then link = nil end
-	local count = link and (GetSlotStackSize(bagId, slotId) or 0) or 0
+	local count = link and (ESOAPI.GetSlotStackSize(bagId, slotId) or 0) or 0
 	return { link = link, count = count }
 end
 
 local function CapturePvpMovementTraceBaseline()
 	pvpMovementTraceBaseline = {}
-	local bags = { BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK }
+	local bags = { ESOAPI.BAG_BACKPACK, ESOAPI.BAG_BANK, ESOAPI.BAG_SUBSCRIBER_BANK }
 	if activeHouseStorageBagId then table.insert(bags, activeHouseStorageBagId) end
 	local total = 0
 	for _, bagId in ipairs(bags) do
 		pvpMovementTraceBaseline[bagId] = {}
-		local size = GetBagSize(bagId) or 0
+		local size = ESOAPI.GetBagSize(bagId) or 0
 		for slotId = 0, size - 1 do
 			pvpMovementTraceBaseline[bagId][slotId] = GetPvpTraceSlotState(bagId, slotId)
 			if pvpMovementTraceBaseline[bagId][slotId].link then total = total + 1 end
@@ -4583,7 +4522,7 @@ RegisterExpectedPvpMoveTrace = function(fromBag, fromSlot, toBag, toSlot, qty, i
 	local entry = { id = pvpExpectedMoveTraceSerial, fromBag = fromBag, fromSlot = fromSlot, toBag = toBag, toSlot = toSlot, qty = qty, itemLink = itemLink, sourceSeen = false, destSeen = false }
 	table.insert(pvpExpectedMoveTraces, entry)
 	CustomRuleDebug(string.format("MOVE TRACE EXPECTED id=%d sourceBag=%s sourceSlot=%s targetBag=%s targetSlot=%s qty=%s itemLink=%s", entry.id, tostring(fromBag), tostring(fromSlot), tostring(toBag), tostring(toSlot), tostring(qty), tostring(itemLink)))
-	zo_callLater(function()
+	ESOAPI.zo_callLater(function()
 		for index, pending in ipairs(pvpExpectedMoveTraces) do
 			if pending == entry then
 				CustomRuleDebug(string.format("MOVE TRACE TIMEOUT id=%d sourceUpdateSeen=%s targetUpdateSeen=%s sourceBag=%s sourceSlot=%s targetBag=%s targetSlot=%s qty=%s itemLink=%s", entry.id, tostring(entry.sourceSeen), tostring(entry.destSeen), tostring(entry.fromBag), tostring(entry.fromSlot), tostring(entry.toBag), tostring(entry.toSlot), tostring(entry.qty), tostring(entry.itemLink)))
@@ -4643,7 +4582,7 @@ end
 local function onSingleSlotUpdate(_, bagId, slotId)
 	
 	-- if not, item has been moved elsewhere? We can't use SHARED_INVENTORY, it's still not updated.
-	if GetItemType(bagId, slotId) ~= ITEMTYPE_NONE then
+	if ESOAPI.GetItemType(bagId, slotId) ~= ESOAPI.ITEMTYPE_NONE then
 		if not movedItems[bagId] then movedItems[bagId] = {} end -- Handle other moves. BAG_WORN per exemple
 		movedItems[bagId][slotId] = true
 	end
@@ -4666,18 +4605,18 @@ local function onOpenBank(eventCode, bagId)
 		-- scene callback. The bank-open event itself is reliable, so use it to show
 		-- the current profile name and bind the native keybind strip immediately.
 		if BMR.Console and BMR.Console.IsControllerFlowActive and BMR.Console.IsControllerFlowActive() then
-		pcall(function() BMR.Console.RefreshForScene() end)
+		BMR.Console.RefreshForScene()
 		if db and db.profiles and type(db.profiles[actualProfile]) == "table" then
-			pcall(function() displayUI(BMR.Console.GetDefinedProfiles and #BMR.Console.GetDefinedProfiles() > 1 or false) end)
+			displayUI(BMR.Console.GetDefinedProfiles and #BMR.Console.GetDefinedProfiles() > 1 or false)
 		end
 		-- Allow the scene transition to settle, then hook the now-current bank scene
 		-- as well. This is needed when ForceConsoleFlow temporarily reports the HUD
 		-- as current at EVENT_OPEN_BANK time.
-		zo_callLater(function()
+		ESOAPI.zo_callLater(function()
 			if isBanking and BMR.Console.IsControllerFlowActive() then
-				pcall(function() BMR.Console.RefreshForScene() end)
+				BMR.Console.RefreshForScene()
 				if db and db.profiles and type(db.profiles[actualProfile]) == "table" then
-					pcall(function() displayUI(BMR.Console.GetDefinedProfiles and #BMR.Console.GetDefinedProfiles() > 1 or false) end)
+					displayUI(BMR.Console.GetDefinedProfiles and #BMR.Console.GetDefinedProfiles() > 1 or false)
 				end
 			end
 		end, 150)
@@ -4685,12 +4624,12 @@ local function onOpenBank(eventCode, bagId)
 	
 	-- Trace all items moved by another addon while BMR waits
 	if db.profiles[actualProfile].moved then
-		EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onSingleSlotUpdate)
-		EVENT_MANAGER:AddFilterForEvent(ADDON_NAME, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
+		ESOAPI.EVENT_MANAGER:RegisterForEvent(ADDON_NAME, ESOAPI.EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onSingleSlotUpdate)
+		ESOAPI.EVENT_MANAGER:AddFilterForEvent(ADDON_NAME, ESOAPI.EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
 	end
 	
 	-- CallLater to let the bagCache be refreshed by core UI
-	zo_callLater(BMR.ProfileDebugWrapEvent("PERSONAL_BANK_DELAYED_WORK", function()
+	ESOAPI.zo_callLater(BMR.ProfileDebugWrapEvent("PERSONAL_BANK_DELAYED_WORK", function()
 		BMR.ProfileDiagnostic("PERSONAL_BANK_DELAYED_BEGIN", "isBanking=" .. tostring(isBanking) .. "; " .. BMR.ProfileDebugSnapshot())
 		-- Snapshot after the personal bank has had time to populate its slot cache.
 		BMR_DumpPvpStorageSnapshot("EVENT_OPEN_BANK delayed")
@@ -4698,15 +4637,15 @@ local function onOpenBank(eventCode, bagId)
 			CapturePvpMovementTraceBaseline()
 			if not pvpMovementTraceActive then
 				pvpMovementTraceActive = true
-				EVENT_MANAGER:RegisterForEvent(pvpMovementTraceEventName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onPvpMovementTraceSlotUpdate)
-				EVENT_MANAGER:AddFilterForEvent(pvpMovementTraceEventName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
+				ESOAPI.EVENT_MANAGER:RegisterForEvent(pvpMovementTraceEventName, ESOAPI.EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onPvpMovementTraceSlotUpdate)
+				ESOAPI.EVENT_MANAGER:AddFilterForEvent(pvpMovementTraceEventName, ESOAPI.EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
 				CustomRuleDebug("MOVE TRACE ACTIVE; unmatched PvP slot changes are external/unattributed, not proof of a manual action")
 			end
 		end
 		
 		-- Stop legacy moved-slot tracing (the PvP trace remains active until the bank closes).
 		if db.profiles[actualProfile].moved then
-			EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+			ESOAPI.EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, ESOAPI.EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
 		end
 		
 		if isBanking then
@@ -4766,7 +4705,7 @@ local function onCloseBank()
 		activeHouseStorageBagId = nil
 		housingAutoRescanPasses = 0
 	if pvpMovementTraceActive then
-		EVENT_MANAGER:UnregisterForEvent(pvpMovementTraceEventName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+		ESOAPI.EVENT_MANAGER:UnregisterForEvent(pvpMovementTraceEventName, ESOAPI.EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
 		CustomRuleDebug(string.format("MOVE TRACE STOPPED pendingExpectedMoves=%d", #pvpExpectedMoveTraces))
 	end
 	pvpMovementTraceActive = false
@@ -4781,9 +4720,9 @@ local function onCloseBank()
 	pushQueue = {}
 	pullQueue = {}
 	movedItems = {
-		[BAG_BACKPACK] = {},
-		[BAG_BANK] = {},
-		[BAG_SUBSCRIBER_BANK] = {},
+		[ESOAPI.BAG_BACKPACK] = {},
+		[ESOAPI.BAG_BANK] = {},
+		[ESOAPI.BAG_SUBSCRIBER_BANK] = {},
 	}
 	
 	inProgress = false	
@@ -4793,19 +4732,19 @@ end
 
 local function doInteractionWithGBank()
 	
-	CustomRuleDebug(string.format("INTERACT GUILD BANK ENTER inProgress=%s phase=%s pushQueue=%d pullQueue=%d checkingGBank=%s currentGuild=%s", tostring(inProgress), tostring(activeRuleRunPhase), #pushQueue, #pullQueue, tostring(checkingGBank), tostring(currentGBankName)))
+	CustomRuleDebug(string.format("INTERACT GUILD BANK ENTER inProgress=%s phase=%s pushQueue=%d pullQueue=%d checkingGBank=%s currentGuild=%s", tostring(inProgress), tostring(activeRuleRunPhase), #pushQueue, #pullQueue, tostring(checkingGBank), tostring(BMR.currentGBankName)))
 	if not inProgress then
 		inProgress = true
 		activeRuleRunPhase = "building"
 		BMR.ProfileDebugBeginScan("guild-bank")
-		BMR.ProfileDiagnostic("GUILD_BANK_SCAN_ENTRY", BMR.ProfileDebugRuleActionSummary() .. "; " .. BMR.ProfileDebugBagCacheSummary(BAG_BACKPACK) .. "; guild=" .. tostring(currentGBankName))
+		BMR.ProfileDiagnostic("GUILD_BANK_SCAN_ENTRY", BMR.ProfileDebugRuleActionSummary() .. "; " .. BMR.ProfileDebugBagCacheSummary(ESOAPI.BAG_BACKPACK) .. "; guild=" .. tostring(BMR.currentGBankName))
 		
 		dataSorted = sortByKeyAndPosition(BankManagerRules.data)
 		
 		-- Prepare items, check if they must be moved and queue them
-		for slotIndex, slotdata in pairs(SHARED_INVENTORY.bagCache[BAG_BACKPACK]) do
-			if not movedItems[BAG_BACKPACK][slotIndex] then
-				prepareItem(BAG_BACKPACK, slotIndex, checkingGBank)
+		for slotIndex, slotdata in pairs(ESOAPI.SHARED_INVENTORY.bagCache[ESOAPI.BAG_BACKPACK]) do
+			if not movedItems[ESOAPI.BAG_BACKPACK][slotIndex] then
+				prepareItem(ESOAPI.BAG_BACKPACK, slotIndex, checkingGBank)
 			end
 		end
 		
@@ -4815,13 +4754,13 @@ local function doInteractionWithGBank()
 			
 			--d("Registering events")
 			-- This will make the loop, because GBank cannot be looped
-			EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_GUILD_BANK_TRANSFER_ERROR, function() moveItems(true) end)
-			EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_GUILD_BANK_ITEM_ADDED, function(_, errorReason) moveItems(true, errorReason) end)
+			ESOAPI.EVENT_MANAGER:RegisterForEvent(ADDON_NAME, ESOAPI.EVENT_GUILD_BANK_TRANSFER_ERROR, function() moveItems(true) end)
+			ESOAPI.EVENT_MANAGER:RegisterForEvent(ADDON_NAME, ESOAPI.EVENT_GUILD_BANK_ITEM_ADDED, function(_, errorReason) moveItems(true, errorReason) end)
 		
 			activeRuleRunPhase = "moving"
 			moveItems(true)
 		else
-			BMR.ProfileDiagnostic("GUILD_BANK_NO_QUEUES", BMR.ProfileDebugScanSummary() .. "; " .. BMR.ProfileDebugRuleActionSummary() .. "; guild=" .. tostring(currentGBankName))
+			BMR.ProfileDiagnostic("GUILD_BANK_NO_QUEUES", BMR.ProfileDebugScanSummary() .. "; " .. BMR.ProfileDebugRuleActionSummary() .. "; guild=" .. tostring(BMR.currentGBankName))
 			inProgress = false
 			CustomRuleDebug("INTERACT GUILD BANK FINISH reason=no transfers queued; resetting inProgress")
 			activeRuleRunPhase = nil
@@ -4835,7 +4774,7 @@ end
 
 -- interactWithGBank
 local function interactWithGBank()
-	BMR.ProfileDiagnostic("GUILD_BANK_INTERACT_BEGIN", "guildId=" .. tostring(currentGBank) .. "; guildName=" .. tostring(currentGBankName) .. "; checkingGBank=" .. tostring(checkingGBank) .. "; " .. BMR.ProfileDebugSnapshot())
+	BMR.ProfileDiagnostic("GUILD_BANK_INTERACT_BEGIN", "guildId=" .. tostring(currentGBank) .. "; guildName=" .. tostring(BMR.currentGBankName) .. "; checkingGBank=" .. tostring(checkingGBank) .. "; " .. BMR.ProfileDebugSnapshot())
 
 	-- The permission is maybe not allowed
 	if DoesPlayerHaveGuildPermission(currentGBank, GUILD_PERMISSION_BANK_DEPOSIT) then
@@ -4882,7 +4821,7 @@ end
 local function onGuildBankItemsReady()
 	BMR.ProfileDiagnostic("GUILD_BANK_ITEMS_READY", "scheduling delayed readiness; " .. BMR.ProfileDebugSnapshot())
 	-- Guild bank is evented to be ready, but wait a short while before processing. (multiple readys for big banks ~3/4)
-	zo_callLater(BMR.ProfileDebugWrapEvent("GUILD_BANK_DELAYED_READY", onGuildBankItemsReallyReady), (db.profiles[actualProfile].initialWaitInSecs * 1000))
+	ESOAPI.zo_callLater(BMR.ProfileDebugWrapEvent("GUILD_BANK_DELAYED_READY", onGuildBankItemsReallyReady), (db.profiles[actualProfile].initialWaitInSecs * 1000))
 end
 
 -- onGuildBankSelected
@@ -4891,21 +4830,21 @@ local function onGuildBankSelected(_, guildId)
 	BankManager:SetHidden(true)
 	checkingGBank = false
 	currentGBank = guildId
-	currentGBankName = GetGuildName(currentGBank)
+	BMR.currentGBankName = ESOAPI.GetGuildName(currentGBank)
 	if BMR.Console and BMR.Console.IsControllerFlowActive and BMR.Console.IsControllerFlowActive() then
-		pcall(function() BMR.Console.RefreshForScene() end)
-		zo_callLater(function()
+		BMR.Console.RefreshForScene()
+		ESOAPI.zo_callLater(function()
 			if currentGBank ~= nil and BMR.Console.IsControllerFlowActive() then
-				pcall(function() BMR.Console.RefreshForScene() end)
+				BMR.Console.RefreshForScene()
 				if db and db.profiles and type(db.profiles[actualProfile]) == "table" then
-					pcall(function() displayUI(BMR.Console.GetDefinedProfiles and #BMR.Console.GetDefinedProfiles() > 1 or false) end)
+					displayUI(BMR.Console.GetDefinedProfiles and #BMR.Console.GetDefinedProfiles() > 1 or false)
 				end
 			end
 		end, 150)
 	end
 	
-	EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_GUILD_BANK_TRANSFER_ERROR)
-	EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_GUILD_BANK_ITEM_ADDED)
+	ESOAPI.EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, ESOAPI.EVENT_GUILD_BANK_TRANSFER_ERROR)
+	ESOAPI.EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, ESOAPI.EVENT_GUILD_BANK_ITEM_ADDED)
 	
 end
 
@@ -4914,7 +4853,7 @@ local function onCloseGuildBank()
 	BMR.ProfileDiagnostic("GUILD_BANK_CLOSE_HANDLER", BMR.ProfileDebugSnapshot())
 	checkingGBank = false
 	currentGBank = nil
-	currentGBankName = nil
+	BMR.currentGBankName = nil
 	OnCloseProcessAtGBank()
 	BankManager:SetHidden(true)
 	
@@ -4923,12 +4862,12 @@ end
 -- Resolve a currency display name without assuming the keyboard-flow API exists.
 local function GetBmrCurrencyName(currencyType)
 	if type(GetCurrencyName) == "function" then
-		local ok, value = pcall(GetCurrencyName, currencyType, false, false)
-		if ok and value ~= nil and tostring(value) ~= "" then return tostring(value) end
+		local value = GetCurrencyName(currencyType, false, false)
+		if value ~= nil and tostring(value) ~= "" then return tostring(value) end
 	end
-	if type(GetString) == "function" and currencyType ~= nil then
-		local ok, value = pcall(GetString, "SI_CURRENCYTYPE", currencyType)
-		if ok and value ~= nil and tostring(value) ~= "" then return tostring(value) end
+	if type(ESOAPI.GetString) == "function" and currencyType ~= nil then
+		local value = ESOAPI.GetString("SI_CURRENCYTYPE", currencyType)
+		if value ~= nil and tostring(value) ~= "" then return tostring(value) end
 	end
 	return "Währung " .. tostring(currencyType or "?")
 end
@@ -4938,8 +4877,8 @@ local function panelCurrencyPush(ruleName)
 
 	local optionPanel = {
 		type = "slider",
-		name = GetString(BMR_CURRENCY_PUSH),
-		tooltip = GetString(BMR_CURRENCY_PUSH_TOOLTIP),
+		name = ESOAPI.GetString(BMR_CURRENCY_PUSH),
+		tooltip = ESOAPI.GetString(BMR_CURRENCY_PUSH_TOOLTIP),
 		min = BankManagerRules.data[ruleName].min,
 		max = BankManagerRules.data[ruleName].max,
 		step = BankManagerRules.data[ruleName].step,
@@ -4957,8 +4896,8 @@ local function panelCurrencyPull(ruleName)
 
 	local optionPanel = {
 		type = "slider",
-		name = GetString(BMR_CURRENCY_PULL),
-		tooltip = GetString(BMR_CURRENCY_PULL_TOOLTIP),
+		name = ESOAPI.GetString(BMR_CURRENCY_PULL),
+		tooltip = ESOAPI.GetString(BMR_CURRENCY_PULL_TOOLTIP),
 		min = BankManagerRules.data[ruleName].min,
 		max = BankManagerRules.data[ruleName].max,
 		step = BankManagerRules.data[ruleName].step,
@@ -4976,8 +4915,8 @@ local function panelCurrencyNothing(ruleName, currencyType)
 
 	local optionPanel = {
 		type = "checkbox",
-		name = zo_strformat(BMR_CURRENCY_NOTHING, GetBmrCurrencyName(currencyType)),
-		tooltip = zo_strformat(BMR_CURRENCY_NOTHING_TOOLTIP, GetBmrCurrencyName(currencyType)),
+		name = ESOAPI.zo_strformat(BMR_CURRENCY_NOTHING, GetBmrCurrencyName(currencyType)),
+		tooltip = ESOAPI.zo_strformat(BMR_CURRENCY_NOTHING_TOOLTIP, GetBmrCurrencyName(currencyType)),
 		getFunc = function() return db.profiles[actualProfile].rules[ruleName].keepNothing end,
 		setFunc = function(newValue) db.profiles[actualProfile].rules[ruleName].keepNothing = newValue end,
 		default = false,
@@ -5000,8 +4939,8 @@ local function panelCurrencyKeepInBankInstead(ruleName, currencyType)
 
 	local optionPanel = {
 		type = "checkbox",
-		name = zo_strformat(BMR_CURRENCY_KEEP_IN_BANK, GetString("SI_CURRENCYTYPE", currencyType)),
-		tooltip = zo_strformat(BMR_CURRENCY_KEEP_IN_BANK_TOOLTIP, GetString("SI_CURRENCYTYPE", currencyType)),
+		name = ESOAPI.zo_strformat(BMR_CURRENCY_KEEP_IN_BANK, ESOAPI.GetString("SI_CURRENCYTYPE", currencyType)),
+		tooltip = ESOAPI.zo_strformat(BMR_CURRENCY_KEEP_IN_BANK_TOOLTIP, ESOAPI.GetString("SI_CURRENCYTYPE", currencyType)),
 		getFunc = function() return db.profiles[actualProfile].rules[ruleName].keepInBank end,
 		setFunc = function(newValue) db.profiles[actualProfile].rules[ruleName].keepInBank = newValue end,
 		default = false,
@@ -5013,34 +4952,29 @@ end
 
 -- Notify the header summaries immediately when an action selection changes.
 local function FireBmrRuleCountRefresh()
-	if CALLBACK_MANAGER and CALLBACK_MANAGER.FireCallbacks then
-		CALLBACK_MANAGER:FireCallbacks("BMR-RuleCountRefresh")
+	if ESOAPI.CALLBACK_MANAGER and ESOAPI.CALLBACK_MANAGER.FireCallbacks then
+		ESOAPI.CALLBACK_MANAGER:FireCallbacks("BMR-RuleCountRefresh")
 	end
 end
 
 BMR._RuleUi = BMR._RuleUi or {}
 function BMR._RuleUi.GetBmrGuildChoices()
-	local choices = {{name = GetString(BMR_ACTION_NOTSET), value = GetString(BMR_ACTION_NOTSET), slot = 0}}
+	local choices = {{name = ESOAPI.GetString(BMR_ACTION_NOTSET), value = ESOAPI.GetString(BMR_ACTION_NOTSET), slot = 0}}
 	local count = 0
-	if type(GetNumGuilds) == "function" and type(GetGuildId) == "function" and type(GetGuildName) == "function" then
-		local ok, guildCount = pcall(GetNumGuilds)
-		if ok then count = tonumber(guildCount) or 0 end
+	if type(ESOAPI.GetNumGuilds) == "function" and type(ESOAPI.GetGuildId) == "function" and type(ESOAPI.GetGuildName) == "function" then
+		count = tonumber(ESOAPI.GetNumGuilds()) or 0
 	end
 	for slot = 1, count do
-		local okId, guildId = pcall(GetGuildId, slot)
-		local guildName
-		if okId then
-			local nameOk, resolvedName = pcall(GetGuildName, guildId)
-			if nameOk then guildName = resolvedName end
-		end
+		local guildId = ESOAPI.GetGuildId(slot)
+		local guildName = guildId and ESOAPI.GetGuildName(guildId) or nil
 		if type(guildName) ~= "string" or guildName == "" then guildName = "Guild " .. tostring(guildId or slot) end
-		if okId then choices[#choices + 1] = {name = tostring(slot) .. " - " .. guildName, value = guildName, slot = slot} end
+		if guildId ~= nil then choices[#choices + 1] = {name = tostring(slot) .. " - " .. guildName, value = guildName, slot = slot} end
 	end
 	return choices
 end
 
 function BMR._RuleUi.GetBmrGuildSlotLabel(guildName)
-	if guildName == nil or guildName == "" or guildName == GetString(BMR_ACTION_NOTSET) then return "-" end
+	if guildName == nil or guildName == "" or guildName == ESOAPI.GetString(BMR_ACTION_NOTSET) then return "-" end
 	for _, choice in ipairs(BMR._RuleUi.GetBmrGuildChoices()) do
 		if choice.value == guildName then return tostring(choice.slot) end
 	end
@@ -5052,14 +4986,14 @@ function BMR._RuleUi.GetOrCreateBmrProfileRule(ruleName)
 	if not profile then profile = EnsureProfile(actualProfile, false) end
 	if not profile then return nil end
 	profile.rules = profile.rules or {}
-	profile.rules[ruleName] = profile.rules[ruleName] or {action = ACTION_NOTSET, associatedGuild = GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
+	profile.rules[ruleName] = profile.rules[ruleName] or {action = ACTION_NOTSET, associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
 	return profile.rules[ruleName]
 end
 
 function BMR._RuleUi.SetBmrRuleGuild(ruleName, guildName)
 	local rule = BMR._RuleUi.GetOrCreateBmrProfileRule(ruleName)
 	if not rule then return end
-	rule.associatedGuild = guildName or GetString(BMR_ACTION_NOTSET)
+	rule.associatedGuild = guildName or ESOAPI.GetString(BMR_ACTION_NOTSET)
 	FireBmrRuleCountRefresh()
 end
 
@@ -5098,14 +5032,14 @@ function BMR._RuleUi.LayoutBmrRuleRow(control)
 	local columns = BMR._RuleUi.GetBmrRuleColumnLayout(control:GetWidth())
 	control:SetHeight(40)
 	control.bmrItemLabel:ClearAnchors()
-	control.bmrItemLabel:SetAnchor(LEFT, control, LEFT, 0, 0)
+	control.bmrItemLabel:SetAnchor(ESOAPI.LEFT, control, ESOAPI.LEFT, 0, 0)
 	control.bmrItemLabel:SetDimensions(columns.labelWidth, 36)
 	control.bmrActionContainer:ClearAnchors()
-	control.bmrActionContainer:SetAnchor(LEFT, control, LEFT, columns.actionX, 0)
+	control.bmrActionContainer:SetAnchor(ESOAPI.LEFT, control, ESOAPI.LEFT, columns.actionX, 0)
 	control.bmrActionContainer:SetDimensions(columns.actionWidth, 28)
 	control.bmrActionDropdown.m_containerWidth = columns.actionWidth
 	control.bmrGuildContainer:ClearAnchors()
-	control.bmrGuildContainer:SetAnchor(RIGHT, control, RIGHT, 0, 0)
+	control.bmrGuildContainer:SetAnchor(ESOAPI.RIGHT, control, ESOAPI.RIGHT, 0, 0)
 	control.bmrGuildContainer:SetDimensions(columns.guildWidth, 28)
 	control.bmrGuildDropdown.m_containerWidth = columns.guildPopupWidth
 	if control.bmrGuildDropdown.m_dropdown and control.bmrGuildDropdown.m_dropdown.SetWidth then
@@ -5118,33 +5052,33 @@ function BMR._RuleUi.RefreshBmrRuleRow(control, ruleName)
 	if not control.bmrItemLabel then
 		BMR.ruleTableControlSerial = (BMR.ruleTableControlSerial or 0) + 1
 		local uniqueId = tostring(BMR.ruleTableControlSerial)
-		control.bmrItemLabel = WINDOW_MANAGER:CreateControl(nil, control, CT_LABEL)
+		control.bmrItemLabel = ESOAPI.WINDOW_MANAGER:CreateControl(nil, control, ESOAPI.CT_LABEL)
 		control.bmrItemLabel:SetFont("ZoFontGame")
 		control.bmrItemLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-		control.bmrActionContainer = WINDOW_MANAGER:CreateControlFromVirtual("BMRRuleActionCombo_" .. uniqueId, control, "ZO_ComboBox")
+		control.bmrActionContainer = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual("BMRRuleActionCombo_" .. uniqueId, control, "ZO_ComboBox")
 		control.bmrActionDropdown = ZO_ComboBox_ObjectFromContainer(control.bmrActionContainer)
 		control.bmrActionDropdown:SetSortsItems(false)
-		control.bmrGuildContainer = WINDOW_MANAGER:CreateControlFromVirtual("BMRRuleGuildCombo_" .. uniqueId, control, "ZO_ComboBox")
+		control.bmrGuildContainer = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual("BMRRuleGuildCombo_" .. uniqueId, control, "ZO_ComboBox")
 		control.bmrGuildDropdown = ZO_ComboBox_ObjectFromContainer(control.bmrGuildContainer)
 		control.bmrGuildDropdown:SetSortsItems(false)
 		control.bmrGuildContainer:SetMouseEnabled(true)
 		control.bmrGuildContainer:SetHandler("OnMouseEnter", function(self)
-			if InformationTooltip and InitializeTooltip then
-				InitializeTooltip(InformationTooltip, self, TOPRIGHT, 0, 0)
-				if InformationTooltip.AddLine then InformationTooltip:AddLine(GetString(BMR_GUILD_LIST_TOOLTIP)) end
+			if InformationTooltip and ESOAPI.InitializeTooltip then
+				ESOAPI.InitializeTooltip(InformationTooltip, self, ESOAPI.TOPRIGHT, 0, 0)
+				if InformationTooltip.AddLine then InformationTooltip:AddLine(ESOAPI.GetString(BMR_GUILD_LIST_TOOLTIP)) end
 			end
 		end)
-		control.bmrGuildContainer:SetHandler("OnMouseExit", function() if InformationTooltip and ClearTooltip then ClearTooltip(InformationTooltip) end end)
+		control.bmrGuildContainer:SetHandler("OnMouseExit", function() if InformationTooltip and ESOAPI.ClearTooltip then ESOAPI.ClearTooltip(InformationTooltip) end end)
 		control.bmrItemLabel:SetMouseEnabled(true)
 		control.bmrItemLabel:SetHandler("OnMouseEnter", function(self)
 			local name = control.bmrRuleName
 			local data = BankManagerRules and BankManagerRules.data and BankManagerRules.data[name]
-			if data and data.tooltip and InformationTooltip and InitializeTooltip then
-				InitializeTooltip(InformationTooltip, self, TOPRIGHT, 0, 0)
+			if data and data.tooltip and InformationTooltip and ESOAPI.InitializeTooltip then
+				ESOAPI.InitializeTooltip(InformationTooltip, self, ESOAPI.TOPRIGHT, 0, 0)
 				InformationTooltip:AddLine(tostring(data.tooltip))
 			end
 		end)
-		control.bmrItemLabel:SetHandler("OnMouseExit", function() if InformationTooltip and ClearTooltip then ClearTooltip(InformationTooltip) end end)
+		control.bmrItemLabel:SetHandler("OnMouseExit", function() if InformationTooltip and ESOAPI.ClearTooltip then ESOAPI.ClearTooltip(InformationTooltip) end end)
 		control:SetHandler("OnSizeChanged", function(self)
 			BMR._RuleUi.LayoutBmrRuleRow(self)
 		end)
@@ -5155,9 +5089,9 @@ function BMR._RuleUi.RefreshBmrRuleRow(control, ruleName)
 	control.bmrItemLabel:SetText(tostring(control.bmrRuleDisplayName or (ruleData and ruleData.name) or ruleName))
 	control.bmrActionDropdown:ClearItems()
 	local profileRule = BMR._RuleUi.GetOrCreateBmrProfileRule(ruleName)
-	local selectedAction = GetString(BMR_ACTION_NOTSET)
+	local selectedAction = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	for _, actionData in ipairs(BMR._RuleUi.RuleActionChoices) do
-		local actionLabel = GetString(actionData.labelId)
+		local actionLabel = ESOAPI.GetString(actionData.labelId)
 		local actionValue = actionData.value
 		local entry = control.bmrActionDropdown:CreateItemEntry(actionLabel, function()
 			local rule = BMR._RuleUi.GetOrCreateBmrProfileRule(control.bmrRuleName)
@@ -5171,7 +5105,7 @@ function BMR._RuleUi.RefreshBmrRuleRow(control, ruleName)
 	control.bmrGuildDropdown:ClearItems()
 	local selectedGuildLabel = "-"
 	local selectedGuildName = profileRule and profileRule.associatedGuild
-	local selectedGuildItem = GetString(BMR_ACTION_NOTSET)
+	local selectedGuildItem = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	for _, guildData in ipairs(BMR._RuleUi.GetBmrGuildChoices()) do
 		local label, guildValue, slot = guildData.name, guildData.value, guildData.slot
 		local selectedGuildValue, selectedGuildSlot = guildValue, slot
@@ -5194,9 +5128,9 @@ function BMR._RuleUi.LayoutBmrRuleHeader(control)
 	if not control or not control.bmrHeaderLabels then return end
 	local columns = BMR._RuleUi.GetBmrRuleColumnLayout(control:GetWidth())
 	local labels = control.bmrHeaderLabels
-	labels[1]:ClearAnchors(); labels[1]:SetAnchor(LEFT, control, LEFT, 0, 0); labels[1]:SetDimensions(columns.labelWidth, 24)
-	labels[2]:ClearAnchors(); labels[2]:SetAnchor(LEFT, control, LEFT, columns.actionX, 0); labels[2]:SetDimensions(columns.actionWidth, 24)
-	labels[3]:ClearAnchors(); labels[3]:SetAnchor(RIGHT, control, RIGHT, 0, 0); labels[3]:SetDimensions(columns.guildWidth, 24)
+	labels[1]:ClearAnchors(); labels[1]:SetAnchor(ESOAPI.LEFT, control, ESOAPI.LEFT, 0, 0); labels[1]:SetDimensions(columns.labelWidth, 24)
+	labels[2]:ClearAnchors(); labels[2]:SetAnchor(ESOAPI.LEFT, control, ESOAPI.LEFT, columns.actionX, 0); labels[2]:SetDimensions(columns.actionWidth, 24)
+	labels[3]:ClearAnchors(); labels[3]:SetAnchor(ESOAPI.RIGHT, control, ESOAPI.RIGHT, 0, 0); labels[3]:SetDimensions(columns.guildWidth, 24)
 end
 
 function BMR._RuleUi.CreateBmrRuleHeader(control)
@@ -5204,28 +5138,28 @@ function BMR._RuleUi.CreateBmrRuleHeader(control)
 	control.bmrHeaderCreated = true
 	control:SetHeight(26)
 	local function makeLabel(text)
-		local label = WINDOW_MANAGER:CreateControl(nil, control, CT_LABEL)
+		local label = ESOAPI.WINDOW_MANAGER:CreateControl(nil, control, ESOAPI.CT_LABEL)
 		label:SetFont("ZoFontWinH4")
 		label:SetText(text)
 		label:SetDimensions(100, 24)
-		label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+		label:SetVerticalAlignment(ESOAPI.TEXT_ALIGN_CENTER)
 		return label
 	end
 	control.bmrHeaderLabels = {
-		makeLabel(GetString(BMR_RULE_TABLE_ITEM)),
-		makeLabel(GetString(BMR_RULE_TABLE_ACTION)),
-		makeLabel(GetString(BMR_GUILD_LIST_SHORT)),
+		makeLabel(ESOAPI.GetString(BMR_RULE_TABLE_ITEM)),
+		makeLabel(ESOAPI.GetString(BMR_RULE_TABLE_ACTION)),
+		makeLabel(ESOAPI.GetString(BMR_GUILD_LIST_SHORT)),
 	}
-	control.bmrHeaderLabels[3]:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+	control.bmrHeaderLabels[3]:SetHorizontalAlignment(ESOAPI.TEXT_ALIGN_CENTER)
 	local guildHeader = control.bmrHeaderLabels[3]
 	guildHeader:SetMouseEnabled(true)
 	guildHeader:SetHandler("OnMouseEnter", function(self)
-		if InformationTooltip and InitializeTooltip then
-			InitializeTooltip(InformationTooltip, self, TOPRIGHT, 0, 0)
-			if InformationTooltip.AddLine then InformationTooltip:AddLine(GetString(BMR_GUILD_LIST_TOOLTIP)) end
+		if InformationTooltip and ESOAPI.InitializeTooltip then
+			ESOAPI.InitializeTooltip(InformationTooltip, self, ESOAPI.TOPRIGHT, 0, 0)
+			if InformationTooltip.AddLine then InformationTooltip:AddLine(ESOAPI.GetString(BMR_GUILD_LIST_TOOLTIP)) end
 		end
 	end)
-	guildHeader:SetHandler("OnMouseExit", function() if InformationTooltip and ClearTooltip then ClearTooltip(InformationTooltip) end end)
+	guildHeader:SetHandler("OnMouseExit", function() if InformationTooltip and ESOAPI.ClearTooltip then ESOAPI.ClearTooltip(InformationTooltip) end end)
 	BMR._RuleUi.LayoutBmrRuleHeader(control)
 	control:SetHandler("OnSizeChanged", function(self) BMR._RuleUi.LayoutBmrRuleHeader(self) end)
 end
@@ -5263,7 +5197,7 @@ local function GetCurrentProfileRule(ruleName)
 	if not profile then profile = EnsureProfile(actualProfile, false) end
 	if not profile then return nil end
 	profile.rules = profile.rules or {}
-	profile.rules[ruleName] = profile.rules[ruleName] or {action = ACTION_NOTSET, associatedGuild = GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
+	profile.rules[ruleName] = profile.rules[ruleName] or {action = ACTION_NOTSET, associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
 	return profile.rules[ruleName]
 end
 
@@ -5271,7 +5205,7 @@ end
 local function panelPvpAllianceAction(alliance, label)
 	local ruleName = "pvpAlliance_" .. alliance
 	local allianceStringId = ({AD = BMR_PVP_ALLIANCE_AD, EP = BMR_PVP_ALLIANCE_EP, DC = BMR_PVP_ALLIANCE_DC})[alliance]
-	local displayName = (label and label ~= " ") and label or GetString(allianceStringId)
+	local displayName = (label and label ~= " ") and label or ESOAPI.GetString(allianceStringId)
 	return {
 		type = "custom",
 		reference = "BMRRuleRow:" .. ruleName,
@@ -5292,7 +5226,7 @@ end
 -- Build the "Only if not full stack" optionPanel
 local function panelOnlyIfNotFullStack(ruleNamePatern, ruleNameToFollow)
 	return {
-		type = "checkbox", name = GetString(BMR_ONLY_IF_NOT_FULL_STACK), tooltip = GetString(BMR_ONLY_IF_NOT_FULL_STACK_TOOLTIP),
+		type = "checkbox", name = ESOAPI.GetString(BMR_ONLY_IF_NOT_FULL_STACK), tooltip = ESOAPI.GetString(BMR_ONLY_IF_NOT_FULL_STACK_TOOLTIP),
 		getFunc = function() local rule = GetCurrentProfileRule(ruleNameToFollow); return rule and rule.onlyIfNotFullStack ~= false or false end,
 		setFunc = function(value)
 			local profile = db.profiles and db.profiles[actualProfile]; if not profile then return end
@@ -5316,7 +5250,7 @@ end
 -- Build the "Max Stacks" optionPanel
 local function panelMaxStacks(ruleNamePatern, onlyIfNotFullStackToFollow, ruleNameToFollow)
 	return {
-		type = "slider", name = GetString(BMR_MAX_STACK), tooltip = GetString(BMR_MAX_STACK_TOOLTIP), min = 1, max = 500,
+		type = "slider", name = ESOAPI.GetString(BMR_MAX_STACK), tooltip = ESOAPI.GetString(BMR_MAX_STACK_TOOLTIP), min = 1, max = 500,
 		getFunc = function() local rule = GetCurrentProfileRule(ruleNameToFollow); return tonumber(rule and rule.onlyStacks) or 1 end,
 		setFunc = function(value)
 			local profile = db.profiles and db.profiles[actualProfile]; if not profile then return end
@@ -5342,11 +5276,11 @@ end
 -- List all active guilds
 local function listOfActiveGuilds()
 
-	guildList = {GetString(BMR_ACTION_NOTSET)}
-	if GetNumGuilds() > 0 then
-		for guild = 1, GetNumGuilds() do
-			local guildId = GetGuildId(guild)
-			local guildName = GetGuildName(guildId)
+	guildList = {ESOAPI.GetString(BMR_ACTION_NOTSET)}
+	if ESOAPI.GetNumGuilds() > 0 then
+		for guild = 1, ESOAPI.GetNumGuilds() do
+			local guildId = ESOAPI.GetGuildId(guild)
+			local guildName = ESOAPI.GetGuildName(guildId)
 			if(not guildName or (guildName):len() < 1) then
 				guildName = "Guild " .. guildId
 			end
@@ -5359,8 +5293,8 @@ end
 -- Will change the name of the associatedGuild for all rules who match ruleNamePatern
 local function panelGuildBank(ruleNamePatern, ruleNameToFollow)
 	return {
-		type = "dropdown", name = GetString(BMR_GUILD_LIST), tooltip = GetString(BMR_GUILD_LIST_TOOLTIP), choices = guildList or {GetString(BMR_ACTION_NOTSET)},
-		getFunc = function() local rule = GetCurrentProfileRule(ruleNameToFollow); return rule and rule.associatedGuild or GetString(BMR_ACTION_NOTSET) end,
+		type = "dropdown", name = ESOAPI.GetString(BMR_GUILD_LIST), tooltip = ESOAPI.GetString(BMR_GUILD_LIST_TOOLTIP), choices = guildList or {ESOAPI.GetString(BMR_ACTION_NOTSET)},
+		getFunc = function() local rule = GetCurrentProfileRule(ruleNameToFollow); return rule and rule.associatedGuild or ESOAPI.GetString(BMR_ACTION_NOTSET) end,
 		setFunc = function(value)
 			local profile = db.profiles and db.profiles[actualProfile]; if not profile then return end
 			profile.rules = profile.rules or {}
@@ -5377,7 +5311,7 @@ local function panelGuildBank(ruleNamePatern, ruleNameToFollow)
 			end
 			local rule = GetCurrentProfileRule(ruleNameToFollow); if rule then rule.associatedGuild = value end
 		end,
-		width = "half", default = GetString(BMR_ACTION_NOTSET),
+		width = "half", default = ESOAPI.GetString(BMR_ACTION_NOTSET),
 		bmrLegacyGroupGuildBank = true,
 		bmrGuildPattern = ruleNamePatern,
 		bmrGuildMasterRule = ruleNameToFollow,
@@ -5568,7 +5502,7 @@ local function CheckAndAddRule(ruleString, fromLAM)
 	end
 	
 	if lamCall then
-		CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
+		ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 	end
 		
 end
@@ -5579,12 +5513,12 @@ local function RuleWriterPanel()
 	local optionPanel = {
 		{
 			type = "header",
-			name = GetString(BMR_RULE_WRITER),
+			name = ESOAPI.GetString(BMR_RULE_WRITER),
 			width = "full",
 		},
 		{
 			type = "description",
-			text = GetString(BMR_RULE_WRITER_DESC),
+			text = ESOAPI.GetString(BMR_RULE_WRITER_DESC),
 			width = "full",
 		}
 	}
@@ -5597,8 +5531,8 @@ local function RuleWriterPanel()
 	table.insert(optionPanel,
 	{
 		type = "editbox",
-		name = GetString(BMR_RULE_WRITER_ADDNEWRULE),
-		tooltip = GetString(BMR_RULE_WRITER_ADDNEWRULE_TOOLTIP),
+		name = ESOAPI.GetString(BMR_RULE_WRITER_ADDNEWRULE),
+		tooltip = ESOAPI.GetString(BMR_RULE_WRITER_ADDNEWRULE_TOOLTIP),
 		isMultiline = true,
 		isExtraWide = true,
 		getFunc = function() return db.userRule end,
@@ -5612,8 +5546,8 @@ local function RuleWriterPanel()
 	table.insert(optionPanel,
 	{
 		type = "checkbox",
-		name = GetString(BMR_RULE_WRITER_RUNAFTER),
-		tooltip = GetString(BMR_RULE_WRITER_RUNAFTER_TOOLTIP),
+		name = ESOAPI.GetString(BMR_RULE_WRITER_RUNAFTER),
+		tooltip = ESOAPI.GetString(BMR_RULE_WRITER_RUNAFTER_TOOLTIP),
 		getFunc = function() return db.profiles[actualProfile].userRulesAfter end,
 		setFunc = function(value)
 			db.profiles[actualProfile].userRulesAfter = value
@@ -5647,15 +5581,15 @@ local function DebugDumpPvpSiegeItems()
 	}
 	local specialLancierIds = {[160528]=true,[160529]=true,[160530]=true,[160531]=true,[160532]=true,[160533]=true,[160534]=true,[160535]=true,[160536]=true}
 	local bags = {
-		{ id = BAG_BACKPACK, name = "Inventar" },
-		{ id = BAG_BANK, name = "Bank" },
-		{ id = BAG_SUBSCRIBER_BANK, name = "ESO+-Bank" },
+		{ id = ESOAPI.BAG_BACKPACK, name = "Inventar" },
+		{ id = ESOAPI.BAG_BANK, name = "Bank" },
+		{ id = ESOAPI.BAG_SUBSCRIBER_BANK, name = "ESO+-Bank" },
 	}
-	if BAG_GUILDBANK ~= nil then table.insert(bags, {id = BAG_GUILDBANK, name = "Gildenbank"}) end
+	table.insert(bags, {id = ESOAPI.BAG_GUILDBANK, name = "Gildenbank"})
 
 	local found = {}
 	local function classify(name)
-		local lower = zo_strlower(tostring(name or ""))
+		local lower = ESOAPI.zo_strlower(tostring(name or ""))
 		for _, category in ipairs(categories) do
 			for _, term in ipairs(category.terms) do
 				if string.find(lower, term, 1, true) then return category.key end
@@ -5664,19 +5598,17 @@ local function DebugDumpPvpSiegeItems()
 		return "Sonstige Belagerung"
 	end
 	local function safeBagSize(bagId)
-		local ok, size = pcall(GetBagSize, bagId)
-		if ok then return tonumber(size) or 0 end
-		return 0
+		return tonumber(ESOAPI.GetBagSize(bagId)) or 0
 	end
 
 	for _, bag in ipairs(bags) do
 		local size = safeBagSize(bag.id)
 		for slot = 0, size - 1 do
-			local ok, itemLink = pcall(GetItemLink, bag.id, slot)
-			if ok and itemLink and itemLink ~= "" then
-				local itemId = GetItemLinkItemId(itemLink)
+			local itemLink = ESOAPI.GetItemLink(bag.id, slot)
+			if itemLink and itemLink ~= "" then
+				local itemId = ESOAPI.GetItemLinkItemId(itemLink)
 				local itemType, specializedItemType = GetItemLinkItemType(itemLink)
-				local name = GetItemLinkName(itemLink) or "?"
+				local name = ESOAPI.GetItemLinkName(itemLink) or "?"
 				-- Siege is the reliable category gate. The known excavation Lancier
 				-- IDs are also included in case ESO assigns them a different item type.
 				if itemType == ITEMTYPE_SIEGE or specialLancierIds[itemId] then
@@ -5693,7 +5625,7 @@ local function DebugDumpPvpSiegeItems()
 						}
 						found[key] = entry
 					end
-					local stack = GetSlotStackSize(bag.id, slot) or 0
+					local stack = ESOAPI.GetSlotStackSize(bag.id, slot) or 0
 					entry.stackCount = entry.stackCount + stack
 					table.insert(entry.locations, bag.name .. ":" .. tostring(slot) .. "x" .. tostring(stack))
 				end
@@ -5744,7 +5676,7 @@ local function PvpClassifyItemName(name, specializedItemType)
 	}
 	if specializedCategories[specialized] then return specializedCategories[specialized] end
 
-	local lower = zo_strlower(tostring(name or ""))
+	local lower = ESOAPI.zo_strlower(tostring(name or ""))
 	if string.find(lower, "balliste", 1, true) or string.find(lower, "ballista", 1, true) then return "Ballisten" end
 	if string.find(lower, "tribok", 1, true) or string.find(lower, "trebuchet", 1, true) then return "Tribok" end
 	if string.find(lower, "katapult", 1, true) or string.find(lower, "catapult", 1, true) then return "Katapult" end
@@ -5756,7 +5688,7 @@ local function PvpClassifyItemName(name, specializedItemType)
 end
 
 local function PvpAllianceHint(name, specializedItemType)
-	local lower = zo_strlower(tostring(name or ""))
+	local lower = ESOAPI.zo_strlower(tostring(name or ""))
 	if string.find(lower, "pakt-", 1, true) or string.find(lower, "pact-", 1, true) or string.find(lower, "pact ", 1, true) then return "EP" end
 	if string.find(lower, "dominion-", 1, true) or string.find(lower, "dominion ", 1, true) then return "AD" end
 	if string.find(lower, "bündnis-", 1, true) or string.find(lower, "covenant-", 1, true) or string.find(lower, "covenant ", 1, true) then return "DC" end
@@ -5779,8 +5711,8 @@ local function DebugDumpPvpItemFinderResults(entries)
 	d("[BMR PvP DATABASE] Felder: Kategorie | Allianz-Hinweis | ID | Name | itemType | specializedType | maxStack | level | CP | value | linkPayload | Link")
 	local index = 1
 	local eventName = "BMR_PvPDatabaseDumpOutput"
-	EVENT_MANAGER:UnregisterForUpdate(eventName)
-	EVENT_MANAGER:RegisterForUpdate(eventName, 100, function()
+	ESOAPI.EVENT_MANAGER:UnregisterForUpdate(eventName)
+	ESOAPI.EVENT_MANAGER:RegisterForUpdate(eventName, 100, function()
 		local last = math.min(index + 2, #entries)
 		while index <= last do
 			local e = entries[index]
@@ -5792,7 +5724,7 @@ local function DebugDumpPvpItemFinderResults(entries)
 		end
 		if index > #entries then
 			d("[BMR PvP DATABASE] Ende der Datenbanksuche.")
-			EVENT_MANAGER:UnregisterForUpdate(eventName)
+			ESOAPI.EVENT_MANAGER:UnregisterForUpdate(eventName)
 		end
 	end)
 end
@@ -5815,32 +5747,32 @@ local function LAMSubmenu(subMenu)
 	
 	if subMenu == "currencies" then
 		
-		table.insert(submenuControls, {type = "description", text = zo_strformat("<<1>> :", GetBmrCurrencyName(CURT_MONEY))})
-		table.insert(submenuControls, panelCurrencyPush("currency" .. CURT_MONEY))
-		table.insert(submenuControls, panelCurrencyPull("currency" .. CURT_MONEY))
-		table.insert(submenuControls, panelCurrencyNothing("currency" .. CURT_MONEY, CURT_MONEY))
-		table.insert(submenuControls, panelCurrencyKeepInBankInstead("currency" .. CURT_MONEY, CURT_MONEY))
+		table.insert(submenuControls, {type = "description", text = ESOAPI.zo_strformat("<<1>> :", GetBmrCurrencyName(ESOAPI.CURT_MONEY))})
+		table.insert(submenuControls, panelCurrencyPush("currency" .. ESOAPI.CURT_MONEY))
+		table.insert(submenuControls, panelCurrencyPull("currency" .. ESOAPI.CURT_MONEY))
+		table.insert(submenuControls, panelCurrencyNothing("currency" .. ESOAPI.CURT_MONEY, ESOAPI.CURT_MONEY))
+		table.insert(submenuControls, panelCurrencyKeepInBankInstead("currency" .. ESOAPI.CURT_MONEY, ESOAPI.CURT_MONEY))
 		table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
 		
-		table.insert(submenuControls, {type = "description", text = zo_strformat("<<1>> :", GetBmrCurrencyName(CURT_TELVAR_STONES))})
-		table.insert(submenuControls, panelCurrencyPush("currency" .. CURT_TELVAR_STONES))
-		table.insert(submenuControls, panelCurrencyPull("currency" .. CURT_TELVAR_STONES))
-		table.insert(submenuControls, panelCurrencyNothing("currency" .. CURT_TELVAR_STONES, CURT_TELVAR_STONES))
-		table.insert(submenuControls, panelCurrencyKeepInBankInstead("currency" .. CURT_TELVAR_STONES, CURT_TELVAR_STONES))
+		table.insert(submenuControls, {type = "description", text = ESOAPI.zo_strformat("<<1>> :", GetBmrCurrencyName(ESOAPI.CURT_TELVAR_STONES))})
+		table.insert(submenuControls, panelCurrencyPush("currency" .. ESOAPI.CURT_TELVAR_STONES))
+		table.insert(submenuControls, panelCurrencyPull("currency" .. ESOAPI.CURT_TELVAR_STONES))
+		table.insert(submenuControls, panelCurrencyNothing("currency" .. ESOAPI.CURT_TELVAR_STONES, ESOAPI.CURT_TELVAR_STONES))
+		table.insert(submenuControls, panelCurrencyKeepInBankInstead("currency" .. ESOAPI.CURT_TELVAR_STONES, ESOAPI.CURT_TELVAR_STONES))
 		table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
 		
-		table.insert(submenuControls, {type = "description", text = zo_strformat("<<1>> :", GetBmrCurrencyName(CURT_ALLIANCE_POINTS))})
-		table.insert(submenuControls, panelCurrencyPush("currency" .. CURT_ALLIANCE_POINTS))
-		table.insert(submenuControls, panelCurrencyPull("currency" .. CURT_ALLIANCE_POINTS))
-		table.insert(submenuControls, panelCurrencyNothing("currency" .. CURT_ALLIANCE_POINTS, CURT_ALLIANCE_POINTS))
-		table.insert(submenuControls, panelCurrencyKeepInBankInstead("currency" .. CURT_ALLIANCE_POINTS, CURT_ALLIANCE_POINTS))
+		table.insert(submenuControls, {type = "description", text = ESOAPI.zo_strformat("<<1>> :", GetBmrCurrencyName(ESOAPI.CURT_ALLIANCE_POINTS))})
+		table.insert(submenuControls, panelCurrencyPush("currency" .. ESOAPI.CURT_ALLIANCE_POINTS))
+		table.insert(submenuControls, panelCurrencyPull("currency" .. ESOAPI.CURT_ALLIANCE_POINTS))
+		table.insert(submenuControls, panelCurrencyNothing("currency" .. ESOAPI.CURT_ALLIANCE_POINTS, ESOAPI.CURT_ALLIANCE_POINTS))
+		table.insert(submenuControls, panelCurrencyKeepInBankInstead("currency" .. ESOAPI.CURT_ALLIANCE_POINTS, ESOAPI.CURT_ALLIANCE_POINTS))
 		table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
 		
-		table.insert(submenuControls, {type = "description", text = zo_strformat("<<1>> :", GetBmrCurrencyName(CURT_WRIT_VOUCHERS))})
-		table.insert(submenuControls, panelCurrencyPush("currency" .. CURT_WRIT_VOUCHERS))
-		table.insert(submenuControls, panelCurrencyPull("currency" .. CURT_WRIT_VOUCHERS))
-		table.insert(submenuControls, panelCurrencyNothing("currency" .. CURT_WRIT_VOUCHERS, CURT_WRIT_VOUCHERS))
-		table.insert(submenuControls, panelCurrencyKeepInBankInstead("currency" .. CURT_WRIT_VOUCHERS, CURT_WRIT_VOUCHERS))
+		table.insert(submenuControls, {type = "description", text = ESOAPI.zo_strformat("<<1>> :", GetBmrCurrencyName(ESOAPI.CURT_WRIT_VOUCHERS))})
+		table.insert(submenuControls, panelCurrencyPush("currency" .. ESOAPI.CURT_WRIT_VOUCHERS))
+		table.insert(submenuControls, panelCurrencyPull("currency" .. ESOAPI.CURT_WRIT_VOUCHERS))
+		table.insert(submenuControls, panelCurrencyNothing("currency" .. ESOAPI.CURT_WRIT_VOUCHERS, ESOAPI.CURT_WRIT_VOUCHERS))
+		table.insert(submenuControls, panelCurrencyKeepInBankInstead("currency" .. ESOAPI.CURT_WRIT_VOUCHERS, ESOAPI.CURT_WRIT_VOUCHERS))
 	
 	-- Traits
 	elseif subMenu == "traits" and db.globalAddonProfile >= 3 then
@@ -5860,7 +5792,7 @@ local function LAMSubmenu(subMenu)
 			local traitType, itemName = GetSmithingTraitItemInfo(traitItemIndex)
 			local itemLink = GetSmithingTraitItemLink(traitItemIndex, LINK_STYLE_DEFAULT)
 			local itemType = GetItemLinkItemType(itemLink)
-			if itemType ~= ITEMTYPE_NONE and traitType ~= ITEM_TRAIT_TYPE_NONE then
+			if itemType ~= ESOAPI.ITEMTYPE_NONE and traitType ~= ITEM_TRAIT_TYPE_NONE then
 				table.insert(submenuControls, panelRule("trait" .. traitType))
 			end
 		end
@@ -5897,55 +5829,55 @@ local function LAMSubmenu(subMenu)
 		-- Blacksmithing equipment controls (weapons + heavy armor), matching the woodworking layout.
 		if db.globalAddonProfile == 2 or db.globalAddonProfile == 4 then
 			table.insert(submenuControls, panelOnlyIfNotFullStack({
-				"armorTypeWeight" .. ARMORTYPE_HEAVY,
-				"armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_HEAVY,
-				"armorTypeResearchableWeight" .. ARMORTYPE_HEAVY,
-				"weaponType" .. CRAFTING_TYPE_BLACKSMITHING,
-				"weaponTypeResearchable" .. CRAFTING_TYPE_BLACKSMITHING,
-			}, "blacksmithingEquipmentAll" .. CRAFTING_TYPE_BLACKSMITHING))
+				"armorTypeWeight" .. ESOAPI.ARMORTYPE_HEAVY,
+				"armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_HEAVY,
+				"armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_HEAVY,
+				"weaponType" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING,
+				"weaponTypeResearchable" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING,
+			}, "blacksmithingEquipmentAll" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
 			table.insert(submenuControls, panelGuildBank({
-				"armorTypeWeight" .. ARMORTYPE_HEAVY,
-				"armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_HEAVY,
-				"armorTypeResearchableWeight" .. ARMORTYPE_HEAVY,
-				"weaponType" .. CRAFTING_TYPE_BLACKSMITHING,
-				"weaponTypeResearchable" .. CRAFTING_TYPE_BLACKSMITHING,
-			}, "weaponType" .. CRAFTING_TYPE_BLACKSMITHING))
+				"armorTypeWeight" .. ESOAPI.ARMORTYPE_HEAVY,
+				"armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_HEAVY,
+				"armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_HEAVY,
+				"weaponType" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING,
+				"weaponTypeResearchable" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING,
+			}, "weaponType" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
 			table.insert(submenuControls, panelMaxStacks({
-				"armorTypeWeight" .. ARMORTYPE_HEAVY,
-				"armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_HEAVY,
-				"armorTypeResearchableWeight" .. ARMORTYPE_HEAVY,
-				"weaponType" .. CRAFTING_TYPE_BLACKSMITHING,
-				"weaponTypeResearchable" .. CRAFTING_TYPE_BLACKSMITHING,
-			}, "blacksmithingEquipmentAll" .. CRAFTING_TYPE_BLACKSMITHING, "blacksmithingEquipmentStacks" .. CRAFTING_TYPE_BLACKSMITHING))
-			table.insert(submenuControls, panelRule("armorTypeWeight" .. ARMORTYPE_HEAVY))
-			table.insert(submenuControls, panelRule("armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_HEAVY))
-			table.insert(submenuControls, panelRule("armorTypeResearchableWeight" .. ARMORTYPE_HEAVY))
-			table.insert(submenuControls, panelRule("weaponType" .. CRAFTING_TYPE_BLACKSMITHING))
-			table.insert(submenuControls, panelRule("weaponType" .. CRAFTING_TYPE_BLACKSMITHING .. "Trait" .. ITEM_TRAIT_TYPE_WEAPON_INTRICATE))
-			table.insert(submenuControls, panelRule("weaponTypeResearchable" .. CRAFTING_TYPE_BLACKSMITHING))
+				"armorTypeWeight" .. ESOAPI.ARMORTYPE_HEAVY,
+				"armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_HEAVY,
+				"armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_HEAVY,
+				"weaponType" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING,
+				"weaponTypeResearchable" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING,
+			}, "blacksmithingEquipmentAll" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING, "blacksmithingEquipmentStacks" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
+			table.insert(submenuControls, panelRule("armorTypeWeight" .. ESOAPI.ARMORTYPE_HEAVY))
+			table.insert(submenuControls, panelRule("armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_HEAVY))
+			table.insert(submenuControls, panelRule("armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_HEAVY))
+			table.insert(submenuControls, panelRule("weaponType" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
+			table.insert(submenuControls, panelRule("weaponType" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING .. "Trait" .. ITEM_TRAIT_TYPE_WEAPON_INTRICATE))
+			table.insert(submenuControls, panelRule("weaponTypeResearchable" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
 			table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
 		end
 		if db.globalAddonProfile >= 3 then
 			-- Improvement-material controls are deliberately between equipment and ordinary materials.
-			table.insert(submenuControls, panelOnlyIfNotFullStack("improvement" .. CRAFTING_TYPE_BLACKSMITHING, "improvementAll" .. CRAFTING_TYPE_BLACKSMITHING))
-			table.insert(submenuControls, panelGuildBank("improvement" .. CRAFTING_TYPE_BLACKSMITHING, "improvementGBank" .. CRAFTING_TYPE_BLACKSMITHING))
-			table.insert(submenuControls, panelMaxStacks("improvement" .. CRAFTING_TYPE_BLACKSMITHING, "improvementAll" .. CRAFTING_TYPE_BLACKSMITHING, "improvementStacks" .. CRAFTING_TYPE_BLACKSMITHING))
-			for improvementItemIndex = 1, GetNumSmithingImprovementItems() do
-				table.insert(submenuControls, panelRule("improvement" .. CRAFTING_TYPE_BLACKSMITHING .. improvementItemIndex))
+			table.insert(submenuControls, panelOnlyIfNotFullStack("improvement" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING, "improvementAll" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
+			table.insert(submenuControls, panelGuildBank("improvement" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING, "improvementGBank" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
+			table.insert(submenuControls, panelMaxStacks("improvement" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING, "improvementAll" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING, "improvementStacks" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
+			for improvementItemIndex = 1, ESOAPI.GetNumSmithingImprovementItems() do
+				table.insert(submenuControls, panelRule("improvement" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING .. improvementItemIndex))
 			end
 			table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
-			table.insert(submenuControls, panelOnlyIfNotFullStack("Material[A]?[l]?[l]?" .. CRAFTING_TYPE_BLACKSMITHING, "MaterialAll" .. CRAFTING_TYPE_BLACKSMITHING))
-			table.insert(submenuControls, panelGuildBank("Material[A]?[l]?[l]?" .. CRAFTING_TYPE_BLACKSMITHING, "MaterialGBank" .. CRAFTING_TYPE_BLACKSMITHING))
-			table.insert(submenuControls, panelMaxStacks("Material[A]?[l]?[l]?" .. CRAFTING_TYPE_BLACKSMITHING, "MaterialAll" .. CRAFTING_TYPE_BLACKSMITHING, "MaterialStacks" .. CRAFTING_TYPE_BLACKSMITHING))
-			table.insert(submenuControls, panelRule("MaterialAll" .. CRAFTING_TYPE_BLACKSMITHING))
-			table.insert(submenuControls, panelRule("refinedMaterialAll" .. CRAFTING_TYPE_BLACKSMITHING))
-			table.insert(submenuControls, panelRule("rawMaterialAll" .. CRAFTING_TYPE_BLACKSMITHING))
-			for materialIndex = 1, #BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_BLACKSMITHING] do
-				if BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_BLACKSMITHING][materialIndex] ~= "" then
-					table.insert(submenuControls, panelRule("refinedMaterial" .. CRAFTING_TYPE_BLACKSMITHING .. materialIndex))
+			table.insert(submenuControls, panelOnlyIfNotFullStack("Material[A]?[l]?[l]?" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING, "MaterialAll" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
+			table.insert(submenuControls, panelGuildBank("Material[A]?[l]?[l]?" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING, "MaterialGBank" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
+			table.insert(submenuControls, panelMaxStacks("Material[A]?[l]?[l]?" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING, "MaterialAll" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING, "MaterialStacks" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
+			table.insert(submenuControls, panelRule("MaterialAll" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
+			table.insert(submenuControls, panelRule("refinedMaterialAll" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
+			table.insert(submenuControls, panelRule("rawMaterialAll" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING))
+			for materialIndex = 1, #BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_BLACKSMITHING] do
+				if BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_BLACKSMITHING][materialIndex] ~= "" then
+					table.insert(submenuControls, panelRule("refinedMaterial" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING .. materialIndex))
 				end
-				if BankManagerRules.static.rawMaterial[CRAFTING_TYPE_BLACKSMITHING][materialIndex] ~= "" then
-					table.insert(submenuControls, panelRule("rawMaterial" .. CRAFTING_TYPE_BLACKSMITHING .. materialIndex))
+				if BankManagerRules.static.rawMaterial[ESOAPI.CRAFTING_TYPE_BLACKSMITHING][materialIndex] ~= "" then
+					table.insert(submenuControls, panelRule("rawMaterial" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING .. materialIndex))
 				end
 			end
 		end
@@ -5954,65 +5886,65 @@ local function LAMSubmenu(subMenu)
 		-- Clothing equipment controls (light + medium armor), separate from improvement materials.
 		if db.globalAddonProfile == 2 or db.globalAddonProfile == 4 then
 			table.insert(submenuControls, panelOnlyIfNotFullStack({
-				"armorTypeWeight" .. ARMORTYPE_LIGHT,
-				"armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_LIGHT,
-				"armorTypeResearchableWeight" .. ARMORTYPE_LIGHT,
-				"armorTypeWeight" .. ARMORTYPE_MEDIUM,
-				"armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_MEDIUM,
-				"armorTypeResearchableWeight" .. ARMORTYPE_MEDIUM,
-			}, "clothierEquipmentAll" .. CRAFTING_TYPE_CLOTHIER))
+				"armorTypeWeight" .. ESOAPI.ARMORTYPE_LIGHT,
+				"armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_LIGHT,
+				"armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_LIGHT,
+				"armorTypeWeight" .. ESOAPI.ARMORTYPE_MEDIUM,
+				"armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_MEDIUM,
+				"armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_MEDIUM,
+			}, "clothierEquipmentAll" .. ESOAPI.CRAFTING_TYPE_CLOTHIER))
 			table.insert(submenuControls, panelGuildBank({
-				"armorTypeWeight" .. ARMORTYPE_LIGHT,
-				"armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_LIGHT,
-				"armorTypeResearchableWeight" .. ARMORTYPE_LIGHT,
-				"armorTypeWeight" .. ARMORTYPE_MEDIUM,
-				"armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_MEDIUM,
-				"armorTypeResearchableWeight" .. ARMORTYPE_MEDIUM,
-			}, "armorTypeWeight" .. ARMORTYPE_LIGHT))
+				"armorTypeWeight" .. ESOAPI.ARMORTYPE_LIGHT,
+				"armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_LIGHT,
+				"armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_LIGHT,
+				"armorTypeWeight" .. ESOAPI.ARMORTYPE_MEDIUM,
+				"armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_MEDIUM,
+				"armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_MEDIUM,
+			}, "armorTypeWeight" .. ESOAPI.ARMORTYPE_LIGHT))
 			table.insert(submenuControls, panelMaxStacks({
-				"armorTypeWeight" .. ARMORTYPE_LIGHT,
-				"armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_LIGHT,
-				"armorTypeResearchableWeight" .. ARMORTYPE_LIGHT,
-				"armorTypeWeight" .. ARMORTYPE_MEDIUM,
-				"armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_MEDIUM,
-				"armorTypeResearchableWeight" .. ARMORTYPE_MEDIUM,
-			}, "clothierEquipmentAll" .. CRAFTING_TYPE_CLOTHIER, "clothierEquipmentStacks" .. CRAFTING_TYPE_CLOTHIER))
-			table.insert(submenuControls, panelRule("armorTypeWeight" .. ARMORTYPE_LIGHT))
-			table.insert(submenuControls, panelRule("armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_LIGHT))
-			table.insert(submenuControls, panelRule("armorTypeResearchableWeight" .. ARMORTYPE_LIGHT))
-			table.insert(submenuControls, panelRule("armorTypeWeight" .. ARMORTYPE_MEDIUM))
-			table.insert(submenuControls, panelRule("armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_MEDIUM))
-			table.insert(submenuControls, panelRule("armorTypeResearchableWeight" .. ARMORTYPE_MEDIUM))
+				"armorTypeWeight" .. ESOAPI.ARMORTYPE_LIGHT,
+				"armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_LIGHT,
+				"armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_LIGHT,
+				"armorTypeWeight" .. ESOAPI.ARMORTYPE_MEDIUM,
+				"armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_MEDIUM,
+				"armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_MEDIUM,
+			}, "clothierEquipmentAll" .. ESOAPI.CRAFTING_TYPE_CLOTHIER, "clothierEquipmentStacks" .. ESOAPI.CRAFTING_TYPE_CLOTHIER))
+			table.insert(submenuControls, panelRule("armorTypeWeight" .. ESOAPI.ARMORTYPE_LIGHT))
+			table.insert(submenuControls, panelRule("armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_LIGHT))
+			table.insert(submenuControls, panelRule("armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_LIGHT))
+			table.insert(submenuControls, panelRule("armorTypeWeight" .. ESOAPI.ARMORTYPE_MEDIUM))
+			table.insert(submenuControls, panelRule("armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_MEDIUM))
+			table.insert(submenuControls, panelRule("armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_MEDIUM))
 			table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
 		end
 		if db.globalAddonProfile >= 3 then
-			table.insert(submenuControls, panelOnlyIfNotFullStack("improvement" .. CRAFTING_TYPE_CLOTHIER, "improvementAll" .. CRAFTING_TYPE_CLOTHIER))
-			table.insert(submenuControls, panelGuildBank("improvement" .. CRAFTING_TYPE_CLOTHIER, "improvementGBank" .. CRAFTING_TYPE_CLOTHIER))
-			table.insert(submenuControls, panelMaxStacks("improvement" .. CRAFTING_TYPE_CLOTHIER, "improvementAll" .. CRAFTING_TYPE_CLOTHIER, "improvementStacks" .. CRAFTING_TYPE_CLOTHIER))
-			for improvementItemIndex = 1, GetNumSmithingImprovementItems() do
-				table.insert(submenuControls, panelRule("improvement" .. CRAFTING_TYPE_CLOTHIER .. improvementItemIndex))
+			table.insert(submenuControls, panelOnlyIfNotFullStack("improvement" .. ESOAPI.CRAFTING_TYPE_CLOTHIER, "improvementAll" .. ESOAPI.CRAFTING_TYPE_CLOTHIER))
+			table.insert(submenuControls, panelGuildBank("improvement" .. ESOAPI.CRAFTING_TYPE_CLOTHIER, "improvementGBank" .. ESOAPI.CRAFTING_TYPE_CLOTHIER))
+			table.insert(submenuControls, panelMaxStacks("improvement" .. ESOAPI.CRAFTING_TYPE_CLOTHIER, "improvementAll" .. ESOAPI.CRAFTING_TYPE_CLOTHIER, "improvementStacks" .. ESOAPI.CRAFTING_TYPE_CLOTHIER))
+			for improvementItemIndex = 1, ESOAPI.GetNumSmithingImprovementItems() do
+				table.insert(submenuControls, panelRule("improvement" .. ESOAPI.CRAFTING_TYPE_CLOTHIER .. improvementItemIndex))
 			end
 			table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
-			table.insert(submenuControls, panelOnlyIfNotFullStack("Material[A]?[l]?[l]?" .. CRAFTING_TYPE_CLOTHIER, "MaterialAll" .. CRAFTING_TYPE_CLOTHIER))
-			table.insert(submenuControls, panelGuildBank("Material[A]?[l]?[l]?" .. CRAFTING_TYPE_CLOTHIER, "MaterialGBank" .. CRAFTING_TYPE_CLOTHIER))
-			table.insert(submenuControls, panelMaxStacks("Material[A]?[l]?[l]?" .. CRAFTING_TYPE_CLOTHIER, "MaterialAll" .. CRAFTING_TYPE_CLOTHIER, "MaterialStacks" .. CRAFTING_TYPE_CLOTHIER))
-			table.insert(submenuControls, panelRule("MaterialAll" .. CRAFTING_TYPE_CLOTHIER))
-			table.insert(submenuControls, panelRule("refinedMaterialAll" .. CRAFTING_TYPE_CLOTHIER))
-			table.insert(submenuControls, panelRule("rawMaterialAll" .. CRAFTING_TYPE_CLOTHIER))
-			for materialIndex = 1, #BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_CLOTHIER] do
-				if BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_CLOTHIER][materialIndex] ~= "" then
-					table.insert(submenuControls, panelRule("refinedMaterial" .. CRAFTING_TYPE_CLOTHIER .. materialIndex))
+			table.insert(submenuControls, panelOnlyIfNotFullStack("Material[A]?[l]?[l]?" .. ESOAPI.CRAFTING_TYPE_CLOTHIER, "MaterialAll" .. ESOAPI.CRAFTING_TYPE_CLOTHIER))
+			table.insert(submenuControls, panelGuildBank("Material[A]?[l]?[l]?" .. ESOAPI.CRAFTING_TYPE_CLOTHIER, "MaterialGBank" .. ESOAPI.CRAFTING_TYPE_CLOTHIER))
+			table.insert(submenuControls, panelMaxStacks("Material[A]?[l]?[l]?" .. ESOAPI.CRAFTING_TYPE_CLOTHIER, "MaterialAll" .. ESOAPI.CRAFTING_TYPE_CLOTHIER, "MaterialStacks" .. ESOAPI.CRAFTING_TYPE_CLOTHIER))
+			table.insert(submenuControls, panelRule("MaterialAll" .. ESOAPI.CRAFTING_TYPE_CLOTHIER))
+			table.insert(submenuControls, panelRule("refinedMaterialAll" .. ESOAPI.CRAFTING_TYPE_CLOTHIER))
+			table.insert(submenuControls, panelRule("rawMaterialAll" .. ESOAPI.CRAFTING_TYPE_CLOTHIER))
+			for materialIndex = 1, #BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_CLOTHIER] do
+				if BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_CLOTHIER][materialIndex] ~= "" then
+					table.insert(submenuControls, panelRule("refinedMaterial" .. ESOAPI.CRAFTING_TYPE_CLOTHIER .. materialIndex))
 				end
-				if BankManagerRules.static.rawMaterial[CRAFTING_TYPE_CLOTHIER][materialIndex] ~= "" then
-					table.insert(submenuControls, panelRule("rawMaterial" .. CRAFTING_TYPE_CLOTHIER .. materialIndex))
+				if BankManagerRules.static.rawMaterial[ESOAPI.CRAFTING_TYPE_CLOTHIER][materialIndex] ~= "" then
+					table.insert(submenuControls, panelRule("rawMaterial" .. ESOAPI.CRAFTING_TYPE_CLOTHIER .. materialIndex))
 				end
 			end
-			for materialIndex = 1, #BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_CLOTHIER * 100] do
-				if BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_CLOTHIER * 100][materialIndex] ~= "" then
-					table.insert(submenuControls, panelRule("refinedMaterial" .. (CRAFTING_TYPE_CLOTHIER * 100) .. materialIndex))
+			for materialIndex = 1, #BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_CLOTHIER * 100] do
+				if BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_CLOTHIER * 100][materialIndex] ~= "" then
+					table.insert(submenuControls, panelRule("refinedMaterial" .. (ESOAPI.CRAFTING_TYPE_CLOTHIER * 100) .. materialIndex))
 				end
-				if BankManagerRules.static.rawMaterial[CRAFTING_TYPE_CLOTHIER * 100][materialIndex] ~= "" then
-					table.insert(submenuControls, panelRule("rawMaterial" .. (CRAFTING_TYPE_CLOTHIER * 100) .. materialIndex))
+				if BankManagerRules.static.rawMaterial[ESOAPI.CRAFTING_TYPE_CLOTHIER * 100][materialIndex] ~= "" then
+					table.insert(submenuControls, panelRule("rawMaterial" .. (ESOAPI.CRAFTING_TYPE_CLOTHIER * 100) .. materialIndex))
 				end
 			end
 		end
@@ -6020,21 +5952,21 @@ local function LAMSubmenu(subMenu)
 	elseif subMenu == "woodworking" and db.globalAddonProfile >= 2 then
 	-- Inserting woodworking items
 		if db.globalAddonProfile == 2 or db.globalAddonProfile == 4 then
-		table.insert(submenuControls, panelOnlyIfNotFullStack("weaponType" .. CRAFTING_TYPE_WOODWORKING, "woodworkingAll" .. CRAFTING_TYPE_WOODWORKING))
-		table.insert(submenuControls, panelGuildBank("weaponType" .. CRAFTING_TYPE_WOODWORKING, "woodworkingGBank" .. CRAFTING_TYPE_WOODWORKING))
-		table.insert(submenuControls, panelMaxStacks("weaponType" .. CRAFTING_TYPE_WOODWORKING, "woodworkingAll" .. CRAFTING_TYPE_WOODWORKING, "woodworkingStacks" .. CRAFTING_TYPE_WOODWORKING))
+		table.insert(submenuControls, panelOnlyIfNotFullStack("weaponType" .. ESOAPI.CRAFTING_TYPE_WOODWORKING, "woodworkingAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
+		table.insert(submenuControls, panelGuildBank("weaponType" .. ESOAPI.CRAFTING_TYPE_WOODWORKING, "woodworkingGBank" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
+		table.insert(submenuControls, panelMaxStacks("weaponType" .. ESOAPI.CRAFTING_TYPE_WOODWORKING, "woodworkingAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING, "woodworkingStacks" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
 		
-		table.insert(submenuControls, panelRule("weaponType" .. CRAFTING_TYPE_WOODWORKING))
-		table.insert(submenuControls, panelRule("weaponType" .. CRAFTING_TYPE_WOODWORKING .. "Trait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE))
-		table.insert(submenuControls, panelRule("weaponTypeResearchable" .. CRAFTING_TYPE_WOODWORKING))
+		table.insert(submenuControls, panelRule("weaponType" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
+		table.insert(submenuControls, panelRule("weaponType" .. ESOAPI.CRAFTING_TYPE_WOODWORKING .. "Trait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE))
+		table.insert(submenuControls, panelRule("weaponTypeResearchable" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
 		
 		table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
 
 		end
 		if db.globalAddonProfile >= 3 then
-			table.insert(submenuControls, panelOnlyIfNotFullStack("improvement" .. CRAFTING_TYPE_WOODWORKING, "improvementAll" .. CRAFTING_TYPE_WOODWORKING))
-			table.insert(submenuControls, panelGuildBank("improvement" .. CRAFTING_TYPE_WOODWORKING, "improvementGBank" .. CRAFTING_TYPE_WOODWORKING))
-			table.insert(submenuControls, panelMaxStacks("improvement" .. CRAFTING_TYPE_WOODWORKING, "improvementAll" .. CRAFTING_TYPE_WOODWORKING, "improvementStacks" .. CRAFTING_TYPE_WOODWORKING))
+			table.insert(submenuControls, panelOnlyIfNotFullStack("improvement" .. ESOAPI.CRAFTING_TYPE_WOODWORKING, "improvementAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
+			table.insert(submenuControls, panelGuildBank("improvement" .. ESOAPI.CRAFTING_TYPE_WOODWORKING, "improvementGBank" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
+			table.insert(submenuControls, panelMaxStacks("improvement" .. ESOAPI.CRAFTING_TYPE_WOODWORKING, "improvementAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING, "improvementStacks" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
 
 			--table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
 		--end
@@ -6044,25 +5976,25 @@ local function LAMSubmenu(subMenu)
 		table.insert(submenuControls, panelRule("weaponTypeResearchable" .. CRAFTING_TYPE_WOODWORKING))
 		end]]
 		--if db.globalAddonProfile >= 3 then
-			for improvementItemIndex = 1, GetNumSmithingImprovementItems() do
-				table.insert(submenuControls, panelRule("improvement" .. CRAFTING_TYPE_WOODWORKING .. improvementItemIndex))
+			for improvementItemIndex = 1, ESOAPI.GetNumSmithingImprovementItems() do
+				table.insert(submenuControls, panelRule("improvement" .. ESOAPI.CRAFTING_TYPE_WOODWORKING .. improvementItemIndex))
 			end
 			
 			table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
 			
-			table.insert(submenuControls, panelOnlyIfNotFullStack("Material[A]?[l]?[l]?" .. CRAFTING_TYPE_WOODWORKING, "MaterialAll" .. CRAFTING_TYPE_WOODWORKING))
-			table.insert(submenuControls, panelGuildBank("Material[A]?[l]?[l]?" .. CRAFTING_TYPE_WOODWORKING, "MaterialGBank" .. CRAFTING_TYPE_WOODWORKING))
-			table.insert(submenuControls, panelMaxStacks("Material[A]?[l]?[l]?" .. CRAFTING_TYPE_WOODWORKING, "MaterialAll" .. CRAFTING_TYPE_WOODWORKING, "MaterialStacks" .. CRAFTING_TYPE_WOODWORKING))
-			table.insert(submenuControls, panelRule("MaterialAll" .. CRAFTING_TYPE_WOODWORKING))
-			table.insert(submenuControls, panelRule("refinedMaterialAll" .. CRAFTING_TYPE_WOODWORKING))
-			table.insert(submenuControls, panelRule("rawMaterialAll" .. CRAFTING_TYPE_WOODWORKING))
+			table.insert(submenuControls, panelOnlyIfNotFullStack("Material[A]?[l]?[l]?" .. ESOAPI.CRAFTING_TYPE_WOODWORKING, "MaterialAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
+			table.insert(submenuControls, panelGuildBank("Material[A]?[l]?[l]?" .. ESOAPI.CRAFTING_TYPE_WOODWORKING, "MaterialGBank" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
+			table.insert(submenuControls, panelMaxStacks("Material[A]?[l]?[l]?" .. ESOAPI.CRAFTING_TYPE_WOODWORKING, "MaterialAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING, "MaterialStacks" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
+			table.insert(submenuControls, panelRule("MaterialAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
+			table.insert(submenuControls, panelRule("refinedMaterialAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
+			table.insert(submenuControls, panelRule("rawMaterialAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING))
 			
-			for materialIndex = 1, #BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_WOODWORKING] do
-				if BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_WOODWORKING][materialIndex] ~= "" then
-					table.insert(submenuControls, panelRule("refinedMaterial" .. CRAFTING_TYPE_WOODWORKING .. materialIndex))
+			for materialIndex = 1, #BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_WOODWORKING] do
+				if BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_WOODWORKING][materialIndex] ~= "" then
+					table.insert(submenuControls, panelRule("refinedMaterial" .. ESOAPI.CRAFTING_TYPE_WOODWORKING .. materialIndex))
 				end
-				if BankManagerRules.static.rawMaterial[CRAFTING_TYPE_WOODWORKING][materialIndex] ~= "" then
-					table.insert(submenuControls, panelRule("rawMaterial" .. CRAFTING_TYPE_WOODWORKING .. materialIndex))
+				if BankManagerRules.static.rawMaterial[ESOAPI.CRAFTING_TYPE_WOODWORKING][materialIndex] ~= "" then
+					table.insert(submenuControls, panelRule("rawMaterial" .. ESOAPI.CRAFTING_TYPE_WOODWORKING .. materialIndex))
 				end
 			end
 		end
@@ -6084,36 +6016,36 @@ local function LAMSubmenu(subMenu)
 -- End of new Jewelry block
 		
 		if db.globalAddonProfile >= 3 then -- relocating nonESO+ Crafting profile here
-			table.insert(submenuControls, panelOnlyIfNotFullStack("improvement" .. CRAFTING_TYPE_JEWELRYCRAFTING, "improvementAll" .. CRAFTING_TYPE_JEWELRYCRAFTING))
-			table.insert(submenuControls, panelGuildBank("improvement" .. CRAFTING_TYPE_JEWELRYCRAFTING, "improvementGBank" .. CRAFTING_TYPE_JEWELRYCRAFTING))
-			table.insert(submenuControls, panelMaxStacks("improvement" .. CRAFTING_TYPE_JEWELRYCRAFTING, "improvementAll" .. CRAFTING_TYPE_JEWELRYCRAFTING, "improvementStacks" .. CRAFTING_TYPE_JEWELRYCRAFTING))
+			table.insert(submenuControls, panelOnlyIfNotFullStack("improvement" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING, "improvementAll" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING))
+			table.insert(submenuControls, panelGuildBank("improvement" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING, "improvementGBank" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING))
+			table.insert(submenuControls, panelMaxStacks("improvement" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING, "improvementAll" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING, "improvementStacks" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING))
 		
-			for improvementItemIndex = 1, GetNumSmithingImprovementItems() do
-				table.insert(submenuControls, panelRule("improvement" .. CRAFTING_TYPE_JEWELRYCRAFTING .. improvementItemIndex))
+			for improvementItemIndex = 1, ESOAPI.GetNumSmithingImprovementItems() do
+				table.insert(submenuControls, panelRule("improvement" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING .. improvementItemIndex))
 			end
 	
-			table.insert(submenuControls, panelOnlyIfNotFullStack("improvement" .. (CRAFTING_TYPE_JEWELRYCRAFTING * 100), "improvementAll" .. (CRAFTING_TYPE_JEWELRYCRAFTING * 100)))
-			table.insert(submenuControls, panelGuildBank("improvement" .. (CRAFTING_TYPE_JEWELRYCRAFTING * 100), "improvementGBank" .. (CRAFTING_TYPE_JEWELRYCRAFTING * 100)))
-			table.insert(submenuControls, panelMaxStacks("improvement" .. (CRAFTING_TYPE_JEWELRYCRAFTING * 100), "improvementAll" .. (CRAFTING_TYPE_JEWELRYCRAFTING * 100), "improvementStacks" .. (CRAFTING_TYPE_JEWELRYCRAFTING * 100)))
-			for improvementItemIndex = 1, GetNumSmithingImprovementItems() do
-				table.insert(submenuControls, panelRule("improvement" .. (CRAFTING_TYPE_JEWELRYCRAFTING * 100) .. improvementItemIndex))
+			table.insert(submenuControls, panelOnlyIfNotFullStack("improvement" .. (ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING * 100), "improvementAll" .. (ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING * 100)))
+			table.insert(submenuControls, panelGuildBank("improvement" .. (ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING * 100), "improvementGBank" .. (ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING * 100)))
+			table.insert(submenuControls, panelMaxStacks("improvement" .. (ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING * 100), "improvementAll" .. (ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING * 100), "improvementStacks" .. (ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING * 100)))
+			for improvementItemIndex = 1, ESOAPI.GetNumSmithingImprovementItems() do
+				table.insert(submenuControls, panelRule("improvement" .. (ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING * 100) .. improvementItemIndex))
 			end
 		
 			table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
 			
-			table.insert(submenuControls, panelOnlyIfNotFullStack("Material[A]?[l]?[l]?" .. CRAFTING_TYPE_JEWELRYCRAFTING, "MaterialAll" .. CRAFTING_TYPE_JEWELRYCRAFTING))
-			table.insert(submenuControls, panelGuildBank("Material[A]?[l]?[l]?" .. CRAFTING_TYPE_JEWELRYCRAFTING, "MaterialGBank" .. CRAFTING_TYPE_JEWELRYCRAFTING))
-			table.insert(submenuControls, panelMaxStacks("Material[A]?[l]?[l]?" .. CRAFTING_TYPE_JEWELRYCRAFTING, "MaterialAll" .. CRAFTING_TYPE_JEWELRYCRAFTING, "MaterialStacks" .. CRAFTING_TYPE_JEWELRYCRAFTING))
-			table.insert(submenuControls, panelRule("MaterialAll" .. CRAFTING_TYPE_JEWELRYCRAFTING))
-			table.insert(submenuControls, panelRule("refinedMaterialAll" .. CRAFTING_TYPE_JEWELRYCRAFTING))
-			table.insert(submenuControls, panelRule("rawMaterialAll" .. CRAFTING_TYPE_JEWELRYCRAFTING))
+			table.insert(submenuControls, panelOnlyIfNotFullStack("Material[A]?[l]?[l]?" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING, "MaterialAll" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING))
+			table.insert(submenuControls, panelGuildBank("Material[A]?[l]?[l]?" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING, "MaterialGBank" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING))
+			table.insert(submenuControls, panelMaxStacks("Material[A]?[l]?[l]?" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING, "MaterialAll" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING, "MaterialStacks" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING))
+			table.insert(submenuControls, panelRule("MaterialAll" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING))
+			table.insert(submenuControls, panelRule("refinedMaterialAll" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING))
+			table.insert(submenuControls, panelRule("rawMaterialAll" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING))
 			
-			for materialIndex = 1, #BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_JEWELRYCRAFTING] do
-				if BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_JEWELRYCRAFTING][materialIndex] ~= "" then
-					table.insert(submenuControls, panelRule("refinedMaterial" .. CRAFTING_TYPE_JEWELRYCRAFTING .. materialIndex))
+			for materialIndex = 1, #BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING] do
+				if BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING][materialIndex] ~= "" then
+					table.insert(submenuControls, panelRule("refinedMaterial" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING .. materialIndex))
 				end
-				if BankManagerRules.static.rawMaterial[CRAFTING_TYPE_JEWELRYCRAFTING][materialIndex] ~= "" then
-					table.insert(submenuControls, panelRule("rawMaterial" .. CRAFTING_TYPE_JEWELRYCRAFTING .. materialIndex))
+				if BankManagerRules.static.rawMaterial[ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING][materialIndex] ~= "" then
+					table.insert(submenuControls, panelRule("rawMaterial" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING .. materialIndex))
 				end
 			end
 		end
@@ -6213,7 +6145,6 @@ local function LAMSubmenu(subMenu)
 		table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
 		
 		table.insert(submenuControls, panelRule("trophyTreasureMaps"))
-		table.insert(submenuControls, panelRule("trophyLuminousInk"))
 		table.insert(submenuControls, panelRule("trophySurveys"))
 		table.insert(submenuControls, panelRule("trophyFragMotifs"))
 		table.insert(submenuControls, panelRule("trophyFragRecipe"))
@@ -6221,15 +6152,15 @@ local function LAMSubmenu(subMenu)
 	
 	-- PvP / Siege equipment
 	elseif subMenu == "pvp" then
-		table.insert(submenuControls, {type = "description", text = GetString(BMR_PVP_DESC), width = "full"})
+		table.insert(submenuControls, {type = "description", text = ESOAPI.GetString(BMR_PVP_DESC), width = "full"})
 		-- Use a separate description label: LAM2 may not render dropdown names in nested submenus.
-		table.insert(submenuControls, {type = "description", text = GetString(BMR_PVP_PRIORITY_STATE), width = "full"})
+		table.insert(submenuControls, {type = "description", text = ESOAPI.GetString(BMR_PVP_PRIORITY_STATE), width = "full"})
 		table.insert(submenuControls, {
-			type = "dropdown", name = " ", tooltip = GetString(BMR_PVP_PRIORITY_STATE_TOOLTIP),
-			choices = {GetString(BMR_PVP_PRIORITY_UNUSED), GetString(BMR_PVP_PRIORITY_USED)}, width = "full",
-			getFunc = function() local p = db.profiles and db.profiles[actualProfile]; return (p and p.pvpPriorityState == "used") and GetString(BMR_PVP_PRIORITY_USED) or GetString(BMR_PVP_PRIORITY_UNUSED) end,
-			setFunc = function(value) local p = db.profiles and db.profiles[actualProfile]; if p then p.pvpPriorityState = (value == GetString(BMR_PVP_PRIORITY_USED)) and "used" or "unused" end end,
-			default = GetString(BMR_PVP_PRIORITY_UNUSED),
+			type = "dropdown", name = " ", tooltip = ESOAPI.GetString(BMR_PVP_PRIORITY_STATE_TOOLTIP),
+			choices = {ESOAPI.GetString(BMR_PVP_PRIORITY_UNUSED), ESOAPI.GetString(BMR_PVP_PRIORITY_USED)}, width = "full",
+			getFunc = function() local p = db.profiles and db.profiles[actualProfile]; return (p and p.pvpPriorityState == "used") and ESOAPI.GetString(BMR_PVP_PRIORITY_USED) or ESOAPI.GetString(BMR_PVP_PRIORITY_UNUSED) end,
+			setFunc = function(value) local p = db.profiles and db.profiles[actualProfile]; if p then p.pvpPriorityState = (value == ESOAPI.GetString(BMR_PVP_PRIORITY_USED)) and "used" or "unused" end end,
+			default = ESOAPI.GetString(BMR_PVP_PRIORITY_UNUSED),
 		})
 		-- Optional diagnostic buttons intentionally disabled for normal use.
 		-- Uncomment this block when new ESO siege items need to be scanned.
@@ -6253,20 +6184,20 @@ local function LAMSubmenu(subMenu)
 		-- account-wide and can be changed without losing any configured rules.
 		table.insert(submenuControls, {
 			type = "dropdown",
-			name = GetString(BMR_PVP_SORT_MODE),
-			tooltip = GetString(BMR_PVP_SORT_MODE_TOOLTIP),
-			choices = {GetString(BMR_PVP_SORT_WEAPONTYPE), GetString(BMR_PVP_SORT_ALLIANCE)},
+			name = ESOAPI.GetString(BMR_PVP_SORT_MODE),
+			tooltip = ESOAPI.GetString(BMR_PVP_SORT_MODE_TOOLTIP),
+			choices = {ESOAPI.GetString(BMR_PVP_SORT_WEAPONTYPE), ESOAPI.GetString(BMR_PVP_SORT_ALLIANCE)},
 			width = "full",
 			getFunc = function()
-				return (db.pvpSortMode == "alliance") and GetString(BMR_PVP_SORT_ALLIANCE) or GetString(BMR_PVP_SORT_WEAPONTYPE)
+				return (db.pvpSortMode == "alliance") and ESOAPI.GetString(BMR_PVP_SORT_ALLIANCE) or ESOAPI.GetString(BMR_PVP_SORT_WEAPONTYPE)
 			end,
 			setFunc = function(value)
-				local newMode = (value == GetString(BMR_PVP_SORT_ALLIANCE)) and "alliance" or "weaponType"
+				local newMode = (value == ESOAPI.GetString(BMR_PVP_SORT_ALLIANCE)) and "alliance" or "weaponType"
 				if db.pvpSortMode == newMode then return end
 				db.pvpSortMode = newMode
 			end,
 			requiresReload = true,
-			default = GetString(BMR_PVP_SORT_WEAPONTYPE),
+			default = ESOAPI.GetString(BMR_PVP_SORT_WEAPONTYPE),
 		})
 
 		-- Build sorted categories once so both display modes use the same localized order.
@@ -6366,7 +6297,7 @@ local function LAMSubmenu(subMenu)
 			if #nonAllianceControls > 0 then
 				table.insert(submenuControls, {
 					type = "submenu",
-					name = GetString(BMR_PVP_NOT_ALLIANCE_SPECIFIC),
+					name = ESOAPI.GetString(BMR_PVP_NOT_ALLIANCE_SPECIFIC),
 					bmrPvpNonAlliance = true,
 					controls = nonAllianceControls,
 				})
@@ -6375,8 +6306,8 @@ local function LAMSubmenu(subMenu)
 			-- Brand Oil remains the first individual-item category in this view.
 			AddPvpCategorySubmenu(submenuControls, "Öl", nil)
 		end
-		table.insert(submenuControls, {type = "description", text = GetString(BMR_PVP_ALLIANCE_DESC), width = "full"})
-		table.insert(submenuControls, {type = "description", text = GetString(BMR_PVP_INDIVIDUAL_DESC), width = "full"})
+		table.insert(submenuControls, {type = "description", text = ESOAPI.GetString(BMR_PVP_ALLIANCE_DESC), width = "full"})
+		table.insert(submenuControls, {type = "description", text = ESOAPI.GetString(BMR_PVP_INDIVIDUAL_DESC), width = "full"})
 
 		local alliances = {"AD", "EP", "DC"}
 		for _, alliance in ipairs(alliances) do
@@ -6385,7 +6316,7 @@ local function LAMSubmenu(subMenu)
 			local includeItems = db.pvpSortMode == "alliance"
 			table.insert(submenuControls, {
 				type = "submenu",
-				name = function() return GetString(allianceStringId) end,
+				name = function() return ESOAPI.GetString(allianceStringId) end,
 				bmrPvpAlliance = allianceKey,
 				controls = BuildPvpAllianceControls(allianceKey, includeItems),
 			})
@@ -6427,14 +6358,14 @@ local function LAMSubmenu(subMenu)
 	-- Containers: group controls affect only their own item families.
 	-- Individual item actions remain independently configurable below.
 	elseif subMenu == "containers" then
-		table.insert(submenuControls, {type = "description", text = GetString(BMR_CONTAINER_GROUP_WRITS), width = "full"})
+		table.insert(submenuControls, {type = "description", text = ESOAPI.GetString(BMR_CONTAINER_GROUP_WRITS), width = "full"})
 		-- This master action overrides all seven individual writ actions unless set to '-'.
 		table.insert(submenuControls, panelRule("MiscContainerUnknownAllWrit"))
 		table.insert(submenuControls, panelOnlyIfNotFullStack("MiscContainerUnknown.*Writ", "MiscContainerUnknownBlacksmithingWrit"))
 		table.insert(submenuControls, panelGuildBank("MiscContainerUnknown.*Writ", "MiscContainerUnknownBlacksmithingWrit"))
 		table.insert(submenuControls, panelMaxStacks("MiscContainerUnknown.*Writ", "MiscContainerUnknownBlacksmithingWrit", "MiscContainerUnknownBlacksmithingWrit"))
 		table.insert(submenuControls, {type = "texture", image="EsoUI/Art/Miscellaneous/horizontalDivider.dds", imageWidth=510, imageHeight=4})
-		table.insert(submenuControls, {type = "description", text = GetString(BMR_CONTAINER_GROUP_SURVEYS), width = "full"})
+		table.insert(submenuControls, {type = "description", text = ESOAPI.GetString(BMR_CONTAINER_GROUP_SURVEYS), width = "full"})
 		-- This master action overrides all six individual survey actions unless set to '-'.
 		table.insert(submenuControls, panelRule("MiscContainerUnidentifiedAllSurvey"))
 		table.insert(submenuControls, panelOnlyIfNotFullStack("MiscContainerUnidentified.*Survey", "MiscContainerUnidentifiedBlacksmithingSurvey"))
@@ -6485,23 +6416,23 @@ local function LAMSubmenu(subMenu)
 		
 	-- Exact-item rules created from an inventory context menu.
 	elseif subMenu == "custom" then
-		table.insert(submenuControls, {type = "description", text = GetString(BMR_CUSTOM_RULES_DESC), width = "full"})
+		table.insert(submenuControls, {type = "description", text = ESOAPI.GetString(BMR_CUSTOM_RULES_DESC), width = "full"})
 		table.insert(submenuControls, {
-			type = "button", name = GetString(BMR_CUSTOM_RULES_RELOAD), tooltip = GetString(BMR_CUSTOM_RULES_RELOAD_TOOLTIP), width = "full",
+			type = "button", name = ESOAPI.GetString(BMR_CUSTOM_RULES_RELOAD), tooltip = ESOAPI.GetString(BMR_CUSTOM_RULES_RELOAD_TOOLTIP), width = "full",
 			func = function()
 				SyncCustomItemRuleDefinitions()
 				BMR.CustomRules.SyncFilterRuleDefinitions()
 				if BMR.refreshCustomRuleOptions then BMR.refreshCustomRuleOptions() end
 			end,
 		})
-		table.insert(submenuControls, {type = "header", name = GetString(BMR_CUSTOM_FILTER_TITLE)})
-		table.insert(submenuControls, {type = "description", text = GetString(BMR_CUSTOM_FILTER_DESC), width = "full"})
+		table.insert(submenuControls, {type = "header", name = ESOAPI.GetString(BMR_CUSTOM_FILTER_TITLE)})
+		table.insert(submenuControls, {type = "description", text = ESOAPI.GetString(BMR_CUSTOM_FILTER_DESC), width = "full"})
 		-- The full catalog sweep is a maintenance tool for the designated account.
 		-- The shipped static tag catalog gives every other account the same filter values.
 		if BMR.CustomRules and BMR.CustomRules.CanStartItemTagCatalogScan
 			and BMR.CustomRules.CanStartItemTagCatalogScan() then
 			table.insert(submenuControls, {
-				type = "button", name = GetString(BMR_CUSTOM_FILTER_SCAN_TAGS), tooltip = GetString(BMR_CUSTOM_FILTER_SCAN_TAGS_TOOLTIP), width = "full",
+				type = "button", name = ESOAPI.GetString(BMR_CUSTOM_FILTER_SCAN_TAGS), tooltip = ESOAPI.GetString(BMR_CUSTOM_FILTER_SCAN_TAGS_TOOLTIP), width = "full",
 				func = function() if BMR.CustomRules then BMR.CustomRules.StartItemTagCatalogScan(500000) end end,
 			})
 		end
@@ -6518,13 +6449,13 @@ local function LAMSubmenu(subMenu)
 		table.insert(submenuControls, panelGuildBank("customFilter_", "customFilterAll"))
 		table.insert(submenuControls, panelMaxStacks("customFilter_", "customFilterAll", "customFilterAll"))
 		table.insert(submenuControls, {
-			type = "checkbox", name = GetString(BMR_CUSTOM_FILTER_HIDE_CONTEXT_MENU), tooltip = GetString(BMR_CUSTOM_FILTER_HIDE_CONTEXT_MENU_TOOLTIP), width = "full",
+			type = "checkbox", name = ESOAPI.GetString(BMR_CUSTOM_FILTER_HIDE_CONTEXT_MENU), tooltip = ESOAPI.GetString(BMR_CUSTOM_FILTER_HIDE_CONTEXT_MENU_TOOLTIP), width = "full",
 			getFunc = function() return db.hideSetAsBmrRule == true end,
 			setFunc = function(value) db.hideSetAsBmrRule = value == true end,
 			default = false,
 		})
 		table.insert(submenuControls, {
-			type = "checkbox", name = GetString(BMR_CUSTOM_RULES_DEBUG), tooltip = GetString(BMR_CUSTOM_RULES_DEBUG_TOOLTIP), width = "full",
+			type = "checkbox", name = ESOAPI.GetString(BMR_CUSTOM_RULES_DEBUG), tooltip = ESOAPI.GetString(BMR_CUSTOM_RULES_DEBUG_TOOLTIP), width = "full",
 			getFunc = function() return db.customRulesDebug == true end,
 			setFunc = function(value) db.customRulesDebug = value == true; CustomRuleDebug("debug mode enabled") end,
 			default = false,
@@ -6558,11 +6489,12 @@ local function NamesToIDSavedVars()
 
 	if not db.namesToIDSavedVars then
 		
-		local displayName = GetDisplayName()
-		local name = GetUnitName("player")
+		local displayName = ESOAPI.GetDisplayName()
+		local name = ESOAPI.GetUnitName("player")
 		
 		if BMVars.Default[displayName][name] then
 			db = BMVars.Default[displayName][name]
+			BMR.db = db
 			db.namesToIDSavedVars = true -- should not be necessary because data don't exist anymore in BMVars.Default[displayName][name]
 		end
 		
@@ -6867,15 +6799,13 @@ local function BMRDecodeCompressedProfileExport(encoded)
 end
 
 local function BMRProfileTransferMessage(stringId, ...)
-	if CHAT_SYSTEM and CHAT_SYSTEM.AddMessage then
-		local message = GetString(stringId)
-		local arguments = {...}
-		if #arguments > 0 then
-			for index = 1, #arguments do arguments[index] = tostring(arguments[index]) end
-			message = zo_strformat(message, unpack(arguments))
-		end
-		BMR.SafeAddChatMessage(message)
+	local message = ESOAPI.GetString(stringId)
+	local arguments = {...}
+	if #arguments > 0 then
+		for index = 1, #arguments do arguments[index] = tostring(arguments[index]) end
+		message = ESOAPI.zo_strformat(message, unpack(arguments))
 	end
+	BMR.SafeAddChatMessage(message)
 end
 
 function BMR._RuleUi.FindLamChildBySuffix(parent, suffix)
@@ -6895,8 +6825,7 @@ end
 
 function BMR._RuleUi.RuleNameMatchesGuildPattern(ruleName, pattern)
 	if type(pattern) ~= "string" or pattern == "" then return false end
-	local ok, matched = pcall(string.find, ruleName, pattern)
-	return ok and matched ~= nil
+	return string.find(ruleName, pattern) ~= nil
 end
 
 function BMR._RuleUi.NormalizeBmrRuleOptionTree(entries, allMigrationControls)
@@ -6932,7 +6861,7 @@ function BMR._RuleUi.NormalizeBmrRuleOptionTree(entries, allMigrationControls)
 				for _, legacyControl in ipairs(allMigrationControls) do
 					local masterRule = profile.rules[legacyControl.bmrGuildMasterRule]
 					local guildName = masterRule and masterRule.associatedGuild
-					if guildName and guildName ~= "" and guildName ~= GetString(BMR_ACTION_NOTSET) then
+					if guildName and guildName ~= "" and guildName ~= ESOAPI.GetString(BMR_ACTION_NOTSET) then
 						local patterns = type(legacyControl.bmrGuildPattern) == "table" and legacyControl.bmrGuildPattern or {legacyControl.bmrGuildPattern}
 						for ruleName, ruleData in pairs(profile.rules) do
 							local matches = legacyControl.bmrGuildPattern == "MiscPvp" and (string.find(ruleName, "^pvpItem_") or string.find(ruleName, "^pvpAlliance_")) ~= nil
@@ -6947,7 +6876,7 @@ function BMR._RuleUi.NormalizeBmrRuleOptionTree(entries, allMigrationControls)
 							end
 							if matches and type(ruleData) == "table" then
 								local currentGuild = ruleData.associatedGuild
-								local isUnassigned = currentGuild == nil or currentGuild == "" or currentGuild == GetString(BMR_ACTION_NOTSET)
+								local isUnassigned = currentGuild == nil or currentGuild == "" or currentGuild == ESOAPI.GetString(BMR_ACTION_NOTSET)
 								local previousSpecificity = migratedRuleGuildSpecificity[ruleName]
 								-- Existing per-item choices always win. When an old per-item value
 								-- was absent, migrate the most specific matching legacy group;
@@ -6974,7 +6903,7 @@ local function buildLAMPanel()
 	local function GetIdFromName(choice)
 
 		local charName, server = zo_strsplit("@", choice)
-		local data = BMVars.Default[GetDisplayName()]
+		local data = BMVars.Default[ESOAPI.GetDisplayName()]
 		for entryIndex, entryData in pairs(data) do
 			local name = entryData["$LastCharacterName"]
 			if charName == name and server == entryData.worldname then
@@ -6987,26 +6916,23 @@ local function buildLAMPanel()
 	BMR._lamInstance = LAM2
 	-- LibHarvensAddonSettings is still the in-game runtime name of the library;
 	-- LibVotans is the console-store package name used for delivery.
-	if type(LibHarvensAddonSettings) ~= "table" and type(LibVotansAddonSettings) == "table" then
-		_G.LibHarvensAddonSettings = LibVotansAddonSettings
-		LibHarvensAddonSettings = LibVotansAddonSettings
+	if type(BMR.LibHarvensAddonSettings) ~= "table" and type(LibVotansAddonSettings) == "table" then
+		BMR.LibHarvensAddonSettings = LibVotansAddonSettings
 	end
 	local consoleSettingsFrontend = false
 	local lamConsoleConverterUsable = false
-	if type(IsKeyboardUISupported) == "function" then
-		local ok, keyboardSupported = pcall(IsKeyboardUISupported)
-		if ok then
-			consoleSettingsFrontend = (keyboardSupported == false)
-			lamConsoleConverterUsable = (keyboardSupported == false)
-		end
+	if type(ESOAPI.IsKeyboardUISupported) == "function" then
+		local keyboardSupported = ESOAPI.IsKeyboardUISupported()
+		consoleSettingsFrontend = (keyboardSupported == false)
+		lamConsoleConverterUsable = (keyboardSupported == false)
 	else
 		consoleSettingsFrontend = BMR.Console and type(BMR.Console.IsModeActive) == "function" and BMR.Console.IsModeActive() == true
 	end
 	-- ForceConsoleFlow is used on PC for testing; treat an explicit CVar activation
 	-- as the console frontend even if the keyboard-capability query is inconsistent.
-	if type(GetCVar) == "function" then
-		local ok, value = pcall(GetCVar, "ForceConsoleFlow.2")
-		if ok and (value == "1" or value == 1 or value == true) then consoleSettingsFrontend = true end
+	if type(ESOAPI.GetCVar) == "function" then
+		local value = ESOAPI.GetCVar("ForceConsoleFlow.2")
+		if value == "1" or value == 1 or value == true then consoleSettingsFrontend = true end
 	end
 
 	-- LibGamepad injects ordinary LAM addon panels into ESO's native gamepad
@@ -7015,9 +6941,8 @@ local function buildLAMPanel()
 	-- LibHarvensAddonSettings converter. This is particularly useful in
 	-- ForceConsoleFlow on PC, where the normal keyboard frontend is not active.
 	local libGamepadLoaded = false
-	if type(IsAddOnLoaded) == "function" then
-		local ok, loaded = pcall(IsAddOnLoaded, "LibGamepad")
-		libGamepadLoaded = ok and loaded == true
+	if type(ESOAPI.IsAddOnLoaded) == "function" then
+		libGamepadLoaded = ESOAPI.IsAddOnLoaded("LibGamepad") == true
 	end
 	-- LibGamepad groups LAM submenu sections into separate gamepad menus, but it
 	-- does not preserve BMR's required multi-level parent/child PvP hierarchy.
@@ -7053,8 +6978,8 @@ local function buildLAMPanel()
 	if not consoleSettingsFrontend then EnsureLAMApplyButtonCompatibility() end
 	-- Some controls invoke LAM-RefreshPanel before the legacy library reaches its
 	-- unguarded RefreshReloadUIButton call. Restore the placeholder if it is still nil.
-	if not consoleSettingsFrontend and CALLBACK_MANAGER and CALLBACK_MANAGER.RegisterCallback and not BMR.legacyLAMApplyButtonGuardRegistered then
-		CALLBACK_MANAGER:RegisterCallback("LAM-RefreshPanel", EnsureLAMApplyButtonCompatibility)
+	if not consoleSettingsFrontend and ESOAPI.CALLBACK_MANAGER and ESOAPI.CALLBACK_MANAGER.RegisterCallback and not BMR.legacyLAMApplyButtonGuardRegistered then
+		ESOAPI.CALLBACK_MANAGER:RegisterCallback("LAM-RefreshPanel", EnsureLAMApplyButtonCompatibility)
 		BMR.legacyLAMApplyButtonGuardRegistered = true
 	end
 
@@ -7071,10 +6996,7 @@ local function buildLAMPanel()
 		-- Reconcile custom item rules whenever the BMR settings panel is opened.
 		callback = function()
 			BMR.ProfileDiagnostic("LAM_PANEL_OPEN", BMR.ProfileDebugSnapshot())
-			if BMR.refreshCustomRuleOptions then
-				local refreshOk, refreshError = pcall(BMR.refreshCustomRuleOptions)
-				if not refreshOk then BMR.ProfileDiagnostic("CUSTOM_RULE_OPTIONS_REFRESH_ERROR", tostring(refreshError)); BMR.ProfileDiagnosticChat("Fehler beim Aktualisieren der Regel-Einstellungen: " .. tostring(refreshError)) end
-			end
+			BMR.refreshCustomRuleOptions()
 		end,
 	}
 
@@ -7114,7 +7036,7 @@ local function buildLAMPanel()
 	BMR.ProfileDiagnostic("FILTER_RULE_DEFINITIONS_SYNCED", "customFilterRules=" .. tostring(customFilterCount))
 
 	-- Load profile
-	local characterName = GetUnitName("player")
+	local characterName = ESOAPI.GetUnitName("player")
 	if type(characterName) ~= "string" or characterName == "" then characterName = nil end
 	if characterName and db.actualProfile[characterName] == nil then db.actualProfile[characterName] = 1 end
 
@@ -7132,7 +7054,7 @@ local function buildLAMPanel()
 	-- converter further below. Do not silently skip the settings panel in console UI.
 	local settingsPanelId = ADDON_NAME .. "LAM2Options"
 	BMR._panelBuildPhase = "register-settings-panel"
-	if consoleSettingsFrontend and not useLibGamepadFrontend and (type(LibHarvensAddonSettings) ~= "table" or type(LibHarvensAddonSettings.AddAddon) ~= "function") then
+	if consoleSettingsFrontend and not useLibGamepadFrontend and (type(BMR.LibHarvensAddonSettings) ~= "table" or type(BMR.LibHarvensAddonSettings.AddAddon) ~= "function") then
 		BMR.ProfileDiagnostic("CONSOLE_SETTINGS_LIBRARY_MISSING", "LibHarvensAddonSettings runtime table/AddAddon missing; falling back to standard LAM registration")
 		BMR.ProfileDiagnosticChat("BMR: LibHarvensAddonSettings fehlt; Konsolen-Einstellungsseite nicht verfügbar. Standard-LAM-Seite wird dennoch registriert.")
 		consoleSettingsFrontend = false
@@ -7155,7 +7077,7 @@ local function buildLAMPanel()
 				if stored then return stored end
 			end
 			-- Fallback when the installed LAM predates its console converter.
-			return LibHarvensAddonSettings:AddAddon(panelData.name, {
+			return BMR.LibHarvensAddonSettings:AddAddon(panelData.name, {
 				allowDefaults = panelData.registerForDefaults,
 				allowRefresh = panelData.registerForRefresh,
 			})
@@ -7171,7 +7093,7 @@ local function buildLAMPanel()
 	end
 	if consoleSettingsFrontend and not useLibGamepadFrontend then panel = nil else panel = panelResult end
 	BMR._consoleSettingsPanel = (consoleSettingsFrontend and not useLibGamepadFrontend) and panelResult or nil
-	if not consoleSettingsFrontend and panel and CALLBACK_MANAGER and CALLBACK_MANAGER.RegisterCallback and not BMR.lamPanelLayoutCallbacksRegistered then
+	if not consoleSettingsFrontend and panel and ESOAPI.CALLBACK_MANAGER and ESOAPI.CALLBACK_MANAGER.RegisterCallback and not BMR.lamPanelLayoutCallbacksRegistered then
 		BMR.lamPanelLayoutCallbacksRegistered = true
 		local bmrPanelControl = panel
 		BMR._lamPanel = panel
@@ -7182,9 +7104,9 @@ local function buildLAMPanel()
 				BMR._RuleUi.ReflowBmrLamControls(bmrPanelControl)
 			end
 		end
-		CALLBACK_MANAGER:RegisterCallback("LAM-BeforePanelControlsCreated", HandleLamPanelLayout)
-		CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", HandleLamPanelLayout)
-		CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", HandleLamPanelLayout)
+		ESOAPI.CALLBACK_MANAGER:RegisterCallback("LAM-BeforePanelControlsCreated", HandleLamPanelLayout)
+		ESOAPI.CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", HandleLamPanelLayout)
+		ESOAPI.CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", HandleLamPanelLayout)
 	end
 	BMR._panelBuildPhase = "settings-panel-registered-build-options"
 	BMR.ProfileDiagnostic(consoleSettingsFrontend and "CONSOLE_SETTINGS_PANEL_REGISTERED" or "LAM_PANEL_REGISTERED", "settings panel created")
@@ -7245,10 +7167,10 @@ local function buildLAMPanel()
 
 
 	local charactersKnown = {}
-	if BMVars and BMVars.Default and BMVars.Default[GetDisplayName()] then
-		for id, data in pairs(BMVars.Default[GetDisplayName()]) do
+	if BMVars and BMVars.Default and BMVars.Default[ESOAPI.GetDisplayName()] then
+		for id, data in pairs(BMVars.Default[ESOAPI.GetDisplayName()]) do
 			if data.worldname then
-				if not (data.worldname == GetWorldName() and data["$LastCharacterName"] == GetUnitName("player")) then
+				if not (data.worldname == GetWorldName() and data["$LastCharacterName"] == ESOAPI.GetUnitName("player")) then
 					--table.insert(charactersKnown, data["$LastCharacterName"].."@"..data.worldname)
 				end
 			end
@@ -7271,7 +7193,7 @@ local function buildLAMPanel()
 	local profileExportScope = "single"
 	local profileExportChunks = {}
 	local profileExportChunkIndex = 1
-	local profileExportChunkChoices = {GetString(BMR_PROFILE_TRANSFER_NO_EXPORT)}
+	local profileExportChunkChoices = {ESOAPI.GetString(BMR_PROFILE_TRANSFER_NO_EXPORT)}
 	local profileExportChunkValues = {1}
 	local profileImportParts = {}
 	local profileImportPartTotal = nil
@@ -7299,14 +7221,14 @@ local function buildLAMPanel()
 		for index = #profileExportChunkChoices, 1, -1 do profileExportChunkChoices[index] = nil end
 		for index = #profileExportChunkValues, 1, -1 do profileExportChunkValues[index] = nil end
 		if not total or total < 1 then
-			profileExportChunkChoices[1] = GetString(BMR_PROFILE_TRANSFER_NO_EXPORT)
+			profileExportChunkChoices[1] = ESOAPI.GetString(BMR_PROFILE_TRANSFER_NO_EXPORT)
 			profileExportChunkValues[1] = 1
 			profileExportChunkIndex = 1
 			RefreshProfileExportChunkDropdownControl()
 			return
 		end
 		for index = 1, total do
-			profileExportChunkChoices[#profileExportChunkChoices + 1] = zo_strformat(GetString(BMR_PROFILE_TRANSFER_PART_CHOICE), tostring(index), tostring(total))
+			profileExportChunkChoices[#profileExportChunkChoices + 1] = ESOAPI.zo_strformat(ESOAPI.GetString(BMR_PROFILE_TRANSFER_PART_CHOICE), tostring(index), tostring(total))
 			profileExportChunkValues[#profileExportChunkValues + 1] = index
 		end
 		RefreshProfileExportChunkDropdownControl()
@@ -7389,7 +7311,7 @@ local function buildLAMPanel()
 	end
 	local function QueueProfileTransferReload(messageStringId, detail)
 		BMRProfileTransferMessage(messageStringId, detail)
-		if type(zo_callLater) == "function" then zo_callLater(function() ReloadUI() end, 700) else ReloadUI() end
+		if type(ESOAPI.zo_callLater) == "function" then ESOAPI.zo_callLater(function() ESOAPI.ReloadUI() end, 700) else ESOAPI.ReloadUI() end
 	end
 	local function GenerateProfileExport()
 		local ok, result = pcall(function() return BMRJsonEncode(MakeProfileTransferPayload(profileExportScope)) end)
@@ -7410,7 +7332,7 @@ local function buildLAMPanel()
 		profileTransferText = profileExportChunks[1] or ""
 		profileTransferTextOrigin = "export"
 		RefreshProfileExportChunkDropdownControl()
-		CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
+		ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 		BMRProfileTransferMessage(BMR_PROFILE_TRANSFER_EXPORTED_PARTS, tostring(#result), tostring(total))
 	end
 	local function CollectProfileImportPart()
@@ -7451,21 +7373,21 @@ local function buildLAMPanel()
 			for partIndex = 1, total do
 				if not profileImportParts[partIndex] then
 					BMRProfileTransferMessage(BMR_PROFILE_TRANSFER_PARTS_MISSING)
-					CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
+					ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 					return
 				end
 				encodedParts[#encodedParts + 1] = profileImportParts[partIndex]
 			end
 			local decodeOk, payload = pcall(BMRDecodeCompressedProfileExport, table.concat(encodedParts))
-			if not decodeOk then BMRProfileTransferMessage(BMR_PROFILE_TRANSFER_IMPORT_FAILED, tostring(payload)); CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel); return end
+			if not decodeOk then BMRProfileTransferMessage(BMR_PROFILE_TRANSFER_IMPORT_FAILED, tostring(payload)); ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel); return end
 			local valid, errorStringId = ValidateProfileTransferPayload(payload)
-			if not valid then BMRProfileTransferMessage(errorStringId); CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel); return end
+			if not valid then BMRProfileTransferMessage(errorStringId); ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel); return end
 			profileImportReadyPayload = payload
 			BMRProfileTransferMessage(BMR_PROFILE_TRANSFER_PARTS_READY, tostring(total))
 		else
 			BMRProfileTransferMessage(BMR_PROFILE_TRANSFER_PART_RECEIVED, tostring(index), tostring(total), tostring(received))
 		end
-		CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
+		ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 	end
 	local function ResetProfileImportParts()
 		local hasPendingData = profileImportPartTotal ~= nil
@@ -7474,30 +7396,30 @@ local function buildLAMPanel()
 		if hasPendingData and not profileImportResetArmed then
 			profileImportResetArmed = true
 			BMRProfileTransferMessage(BMR_PROFILE_TRANSFER_RESET_CONFIRM)
-			CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
+			ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 			return
 		end
 		profileImportResetArmed = false
 		profileImportParts, profileImportPartTotal, profileImportReadyPayload = {}, nil, nil
 		profileTransferText = ""
 		profileTransferTextOrigin = "none"
-		CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
+		ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 		BMRProfileTransferMessage(BMR_PROFILE_TRANSFER_PARTS_RESET)
 	end
 	local function GetProfileTransferTextStatus()
 		if profileTransferTextOrigin == "export" and #profileExportChunks > 0 then
-			return zo_strformat(GetString(BMR_PROFILE_TRANSFER_EXPORT_ACTIVE_STATUS), tostring(profileExportChunkIndex), tostring(#profileExportChunks))
+			return ESOAPI.zo_strformat(ESOAPI.GetString(BMR_PROFILE_TRANSFER_EXPORT_ACTIVE_STATUS), tostring(profileExportChunkIndex), tostring(#profileExportChunks))
 		end
 		local parseOk, partIndex, partTotal = pcall(BMRParseProfileExportChunk, profileTransferText)
 		if profileTransferTextOrigin == "input" and parseOk and partIndex then
-			return zo_strformat(GetString(BMR_PROFILE_TRANSFER_IMPORT_PART_DETECTED), tostring(partIndex), tostring(partTotal))
+			return ESOAPI.zo_strformat(ESOAPI.GetString(BMR_PROFILE_TRANSFER_IMPORT_PART_DETECTED), tostring(partIndex), tostring(partTotal))
 		end
 		if profileImportPartTotal then
 			local received = 0
 			for index = 1, profileImportPartTotal do if profileImportParts[index] then received = received + 1 end end
-			return zo_strformat(GetString(BMR_PROFILE_TRANSFER_IMPORT_PROGRESS), tostring(received), tostring(profileImportPartTotal))
+			return ESOAPI.zo_strformat(ESOAPI.GetString(BMR_PROFILE_TRANSFER_IMPORT_PROGRESS), tostring(received), tostring(profileImportPartTotal))
 		end
-		return GetString(BMR_PROFILE_TRANSFER_TEXT_DESC)
+		return ESOAPI.GetString(BMR_PROFILE_TRANSFER_TEXT_DESC)
 	end
 	local function ImportProfileTransfer()
 		-- Importing takes precedence over an armed reset confirmation. This is important
@@ -7661,22 +7583,22 @@ local function buildLAMPanel()
 	local optionsTable = {
 		{
 			type = "dropdown",
-			name = GetString(BMR_GLOBAL_ADDON_PROFILE),
-			tooltip = zo_strformat(GetString(BMR_GLOBAL_ADDON_PROFILE_TOOLTIP), defaults["globalAddonProfile"]),
+			name = ESOAPI.GetString(BMR_GLOBAL_ADDON_PROFILE),
+			tooltip = ESOAPI.zo_strformat(ESOAPI.GetString(BMR_GLOBAL_ADDON_PROFILE_TOOLTIP), defaults["globalAddonProfile"]),
 			choices = dropdownGlobalAddonProfileChoices,
 			choicesValues = dropdownGlobalAddonProfileValues,
 			getFunc = function() return db.globalAddonProfile end,
 			setFunc = function(value)
 				BMR.ProfileDiagnostic("GLOBAL_ADDON_PROFILE_CHANGED", "old=" .. tostring(db.globalAddonProfile) .. "; new=" .. tostring(value))
 				db.globalAddonProfile = value
-				ReloadUI();
+				ESOAPI.ReloadUI();
 			end,
 			default = defaults["globalAddonProfile"],
 		},
 		{
 			type = "slider",
-			name = GetString(BMR_PROFILE_COUNT),
-			tooltip = GetString(BMR_PROFILE_COUNT_TOOLTIP),
+			name = ESOAPI.GetString(BMR_PROFILE_COUNT),
+			tooltip = ESOAPI.GetString(BMR_PROFILE_COUNT_TOOLTIP),
 			min = PROFILE_MIN,
 			max = PROFILE_MAX,
 			step = 1,
@@ -7691,32 +7613,32 @@ local function buildLAMPanel()
 					actualProfile = 1
 					db.actualProfile[characterName] = 1
 				end
-				ReloadUI()
+				ESOAPI.ReloadUI()
 			end,
 			default = PROFILE_DEFAULT_COUNT,
 		},
 		{
 			type = "button",
-			name = GetString(BMR_GUI_POSITION_RESET),
-			tooltip = GetString(BMR_GUI_POSITION_RESET_TOOLTIP),
+			name = ESOAPI.GetString(BMR_GUI_POSITION_RESET),
+			tooltip = ESOAPI.GetString(BMR_GUI_POSITION_RESET_TOOLTIP),
 			width = "full",
 			func = function()
 				-- Restore the profile-switch UI to the safe default position.
 				db.gui_x = defaults.gui_x
 				db.gui_y = defaults.gui_y
 				BankManager:ClearAnchors()
-				BankManager:SetAnchor(BOTTOMRIGHT, GuiRoot, BOTTOMRIGHT, db.gui_x, db.gui_y)
+				BankManager:SetAnchor(ESOAPI.BOTTOMRIGHT, ESOAPI.GuiRoot, ESOAPI.BOTTOMRIGHT, db.gui_x, db.gui_y)
 				BMR.ProfileDiagnostic("GUI_POSITION_RESET", "gui_x=" .. tostring(db.gui_x) .. "; gui_y=" .. tostring(db.gui_y))
 			end,
 		},
 		{	-- Profile list
 			type = "submenu",
-			name = zo_strformat(GetString(BMR_PROFILES)),
+			name = ESOAPI.zo_strformat(ESOAPI.GetString(BMR_PROFILES)),
 			controls = {
 				{
 					type = "dropdown",
-					name = GetString(BMR_PROFILE_LIST),
-					tooltip = GetString(BMR_PROFILE_LIST_TOOLTIP),
+					name = ESOAPI.GetString(BMR_PROFILE_LIST),
+					tooltip = ESOAPI.GetString(BMR_PROFILE_LIST_TOOLTIP),
 					choices = listOfProfiles,
 					width = "full",
 					getFunc = function() return db.actualProfile[characterName] end,
@@ -7730,27 +7652,27 @@ local function buildLAMPanel()
 						EnsureProfile(actualProfile, true)
 						db.actualProfile[characterName] = actualProfile
 						profileImportTarget = actualProfile
-						local refreshOk, refreshError = pcall(CALLBACK_MANAGER.FireCallbacks, CALLBACK_MANAGER, "LAM-RefreshPanel", panel)
+						local refreshOk, refreshError = pcall(ESOAPI.CALLBACK_MANAGER.FireCallbacks, ESOAPI.CALLBACK_MANAGER, "LAM-RefreshPanel", panel)
 						if not refreshOk then BMR.ProfileDiagnostic("SETTINGS_PROFILE_REFRESH_ERROR", tostring(refreshError)); BMR.ProfileDiagnosticChat("Fehler bei Profil-Aktualisierung: " .. tostring(refreshError)) end
 						BMR.ProfileDiagnostic("SETTINGS_PROFILE_DROPDOWN_END", BMR.ProfileDebugSnapshot())
 					end,
 				},
 				{
 					type = "editbox",
-					name = GetString(BMR_PROFILE_NAME),
-					tooltip = GetString(BMR_PROFILE_NAME_TOOLTIP),
+					name = ESOAPI.GetString(BMR_PROFILE_NAME),
+					tooltip = ESOAPI.GetString(BMR_PROFILE_NAME_TOOLTIP),
 					width = "full",
 					getFunc = function() return db.profiles[actualProfile].name end,
 					setFunc = function(choice)
 						db.profiles[actualProfile].name = choice
 						RefreshProfileImportTargetChoices()
-						CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
+						ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 					end,
 				},
 				{
 					type = "button",
-					name = GetString(BMR_PROFILE_RESET),
-					tooltip = GetString(BMR_PROFILE_RESET_TOOLTIP),
+					name = ESOAPI.GetString(BMR_PROFILE_RESET),
+					tooltip = ESOAPI.GetString(BMR_PROFILE_RESET_TOOLTIP),
 					width = "full",
 					func = function()
 						local profileToDelete = actualProfile
@@ -7762,12 +7684,12 @@ local function buildLAMPanel()
 				},
 				{
 					type = "submenu",
-					name = GetString(BMR_PROFILE_TRANSFER_TITLE),
+					name = ESOAPI.GetString(BMR_PROFILE_TRANSFER_TITLE),
 					controls = {
 						{
 							type = "dropdown",
-							name = GetString(BMR_PROFILE_TRANSFER_EXPORT_SCOPE),
-							choices = {GetString(BMR_PROFILE_TRANSFER_CURRENT), GetString(BMR_PROFILE_TRANSFER_ALL)},
+							name = ESOAPI.GetString(BMR_PROFILE_TRANSFER_EXPORT_SCOPE),
+							choices = {ESOAPI.GetString(BMR_PROFILE_TRANSFER_CURRENT), ESOAPI.GetString(BMR_PROFILE_TRANSFER_ALL)},
 							choicesValues = {"single", "all"},
 							getFunc = function() return profileExportScope end,
 							setFunc = function(value) profileExportScope = value end,
@@ -7775,15 +7697,15 @@ local function buildLAMPanel()
 						},
 						{
 							type = "button",
-							name = GetString(BMR_PROFILE_TRANSFER_EXPORT_BUTTON),
-							tooltip = GetString(BMR_PROFILE_TRANSFER_EXPORT_TOOLTIP),
+							name = ESOAPI.GetString(BMR_PROFILE_TRANSFER_EXPORT_BUTTON),
+							tooltip = ESOAPI.GetString(BMR_PROFILE_TRANSFER_EXPORT_TOOLTIP),
 							width = "full",
 							func = GenerateProfileExport,
 						},
 						{
 							type = "dropdown",
-							name = GetString(BMR_PROFILE_TRANSFER_EXPORT_PART),
-							tooltip = GetString(BMR_PROFILE_TRANSFER_EXPORT_PART_TOOLTIP),
+							name = ESOAPI.GetString(BMR_PROFILE_TRANSFER_EXPORT_PART),
+							tooltip = ESOAPI.GetString(BMR_PROFILE_TRANSFER_EXPORT_PART_TOOLTIP),
 							reference = "BMRProfileExportChunkDropdown",
 							choices = profileExportChunkChoices,
 							choicesValues = profileExportChunkValues,
@@ -7792,7 +7714,7 @@ local function buildLAMPanel()
 								profileExportChunkIndex = tonumber(value) or 1
 								profileTransferText = profileExportChunks[profileExportChunkIndex] or ""
 								profileTransferTextOrigin = #profileExportChunks > 0 and "export" or "none"
-								CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
+								ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 							end,
 							width = "full",
 						},
@@ -7802,8 +7724,8 @@ local function buildLAMPanel()
 						},
 						{
 							type = "editbox",
-							name = GetString(BMR_PROFILE_TRANSFER_TEXT),
-							tooltip = GetString(BMR_PROFILE_TRANSFER_TEXT_TOOLTIP),
+							name = ESOAPI.GetString(BMR_PROFILE_TRANSFER_TEXT),
+							tooltip = ESOAPI.GetString(BMR_PROFILE_TRANSFER_TEXT_TOOLTIP),
 							width = "full",
 							isMultiline = true,
 							-- LAM's editbox option is maxChars (maxInputChars is the lower-level ESO API name).
@@ -7818,8 +7740,8 @@ local function buildLAMPanel()
 						},
 						{
 							type = "dropdown",
-							name = GetString(BMR_PROFILE_TRANSFER_TARGET),
-							tooltip = GetString(BMR_PROFILE_TRANSFER_TARGET_TOOLTIP),
+							name = ESOAPI.GetString(BMR_PROFILE_TRANSFER_TARGET),
+							tooltip = ESOAPI.GetString(BMR_PROFILE_TRANSFER_TARGET_TOOLTIP),
 							reference = "BMRProfileImportTargetDropdown",
 							choices = profileImportTargetChoices,
 							choicesValues = profileImportTargetValues,
@@ -7834,34 +7756,34 @@ local function buildLAMPanel()
 						},
 						{
 							type = "dropdown",
-							name = GetString(BMR_PROFILE_TRANSFER_IMPORT_MODE),
-							choices = {GetString(BMR_PROFILE_TRANSFER_OVERWRITE), GetString(BMR_PROFILE_TRANSFER_APPEND), GetString(BMR_PROFILE_TRANSFER_RESTORE_ALL)},
+							name = ESOAPI.GetString(BMR_PROFILE_TRANSFER_IMPORT_MODE),
+							choices = {ESOAPI.GetString(BMR_PROFILE_TRANSFER_OVERWRITE), ESOAPI.GetString(BMR_PROFILE_TRANSFER_APPEND), ESOAPI.GetString(BMR_PROFILE_TRANSFER_RESTORE_ALL)},
 							choicesValues = {"overwrite", "append", "restoreAll"},
 							getFunc = function() return profileImportMode end,
 							setFunc = function(value)
 								profileImportMode = value
-								CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
+								ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 							end,
 							width = "full",
 						},
 						{
 							type = "button",
-							name = GetString(BMR_PROFILE_TRANSFER_COLLECT_PART),
-							tooltip = GetString(BMR_PROFILE_TRANSFER_COLLECT_PART_TOOLTIP),
+							name = ESOAPI.GetString(BMR_PROFILE_TRANSFER_COLLECT_PART),
+							tooltip = ESOAPI.GetString(BMR_PROFILE_TRANSFER_COLLECT_PART_TOOLTIP),
 							width = "full",
 							func = CollectProfileImportPart,
 						},
 						{
 							type = "button",
-							name = GetString(BMR_PROFILE_TRANSFER_IMPORT_BUTTON),
-							tooltip = GetString(BMR_PROFILE_TRANSFER_IMPORT_TOOLTIP),
+							name = ESOAPI.GetString(BMR_PROFILE_TRANSFER_IMPORT_BUTTON),
+							tooltip = ESOAPI.GetString(BMR_PROFILE_TRANSFER_IMPORT_TOOLTIP),
 							width = "full",
 							func = ImportProfileTransfer,
 						},
 						{
 							type = "button",
-							name = GetString(BMR_PROFILE_TRANSFER_RESET_PARTS),
-							tooltip = GetString(BMR_PROFILE_TRANSFER_RESET_PARTS_TOOLTIP),
+							name = ESOAPI.GetString(BMR_PROFILE_TRANSFER_RESET_PARTS),
+							tooltip = ESOAPI.GetString(BMR_PROFILE_TRANSFER_RESET_PARTS_TOOLTIP),
 							width = "full",
 							func = ResetProfileImportParts,
 						},
@@ -7869,12 +7791,12 @@ local function buildLAMPanel()
 				},
 				{
 					type = "submenu",
-					name = GetString(BMR_PROFILE_DEBUG_TITLE),
+					name = ESOAPI.GetString(BMR_PROFILE_DEBUG_TITLE),
 					controls = {
 						{
 							type = "checkbox",
-							name = GetString(BMR_PROFILE_DEBUG_ENABLE),
-							tooltip = GetString(BMR_PROFILE_DEBUG_ENABLE_TOOLTIP),
+							name = ESOAPI.GetString(BMR_PROFILE_DEBUG_ENABLE),
+							tooltip = ESOAPI.GetString(BMR_PROFILE_DEBUG_ENABLE_TOOLTIP),
 							getFunc = function() return db.profileDebugEnabled == true end,
 							setFunc = function(value)
 								local enable = value == true
@@ -7892,19 +7814,19 @@ local function buildLAMPanel()
 						},
 						{
 							type = "description",
-							text = GetString(BMR_PROFILE_DEBUG_DESC),
+							text = ESOAPI.GetString(BMR_PROFILE_DEBUG_DESC),
 						},
 						{
 							type = "button",
-							name = GetString(BMR_PROFILE_DEBUG_DUMP),
-							tooltip = GetString(BMR_PROFILE_DEBUG_DUMP_TOOLTIP),
+							name = ESOAPI.GetString(BMR_PROFILE_DEBUG_DUMP),
+							tooltip = ESOAPI.GetString(BMR_PROFILE_DEBUG_DUMP_TOOLTIP),
 							width = "full",
 							func = function() BMR.ProfileDiagnosticDump() end,
 						},
 						{
 							type = "button",
-							name = GetString(BMR_PROFILE_DEBUG_CLEAR),
-							tooltip = GetString(BMR_PROFILE_DEBUG_CLEAR_TOOLTIP),
+							name = ESOAPI.GetString(BMR_PROFILE_DEBUG_CLEAR),
+							tooltip = ESOAPI.GetString(BMR_PROFILE_DEBUG_CLEAR_TOOLTIP),
 							width = "full",
 							func = function()
 								db.profileDebugLog = {}
@@ -7918,60 +7840,60 @@ local function buildLAMPanel()
 		},
 		{
 			type = "submenu",
-			name = GetString(BMR_SETTINGS),
+			name = ESOAPI.GetString(BMR_SETTINGS),
 			controls = {
 				{	-- Auto Transfer
 					type = "checkbox",
-					name = GetString(BMR_AUTO_TRANSFERT),
-					tooltip = GetString(BMR_AUTO_TRANSFERT_TOOLTIP),
+					name = ESOAPI.GetString(BMR_AUTO_TRANSFERT),
+					tooltip = ESOAPI.GetString(BMR_AUTO_TRANSFERT_TOOLTIP),
 					getFunc = function() return db.profiles[actualProfile].autoTransfert end,
 					setFunc = function(value) db.profiles[actualProfile].autoTransfert = value end,
 					default = true,
 				},
 				{	-- Detailed move/stack
 					type = "checkbox",
-					name = GetString(BMR_STACK_DETAILLED),
-					tooltip = GetString(BMR_STACK_DETAILLED_TOOLTIP),
+					name = ESOAPI.GetString(BMR_STACK_DETAILLED),
+					tooltip = ESOAPI.GetString(BMR_STACK_DETAILLED_TOOLTIP),
 					getFunc = function() return db.profiles[actualProfile].detailledDisplay end,
 					setFunc = function(value) db.profiles[actualProfile].detailledDisplay = value end,
 					default = true,
 				},
 				{	-- Detailed non moved
 					type = "checkbox",
-					name = GetString(BMR_STACK_DETAILLED_NOTMOVED),
-					tooltip = GetString(BMR_STACK_DETAILLED_NOTMOVED_TOOLTIP),
+					name = ESOAPI.GetString(BMR_STACK_DETAILLED_NOTMOVED),
+					tooltip = ESOAPI.GetString(BMR_STACK_DETAILLED_NOTMOVED_TOOLTIP),
 					getFunc = function() return db.profiles[actualProfile].detailledNotMoved end,
 					setFunc = function(value) db.profiles[actualProfile].detailledNotMoved = value end,
 					default = true,
 				},
 				{	-- Display Summary
 					type = "checkbox",
-					name = GetString(BMR_DISPLAY_SUMMARY),
-					tooltip = GetString(BMR_DISPLAY_SUMMARY_TOOLTIP),
+					name = ESOAPI.GetString(BMR_DISPLAY_SUMMARY),
+					tooltip = ESOAPI.GetString(BMR_DISPLAY_SUMMARY_TOOLTIP),
 					getFunc = function() return db.profiles[actualProfile].summary end,
 					setFunc = function(value) db.profiles[actualProfile].summary = value end,
 					default = true,
 				},
 				{	-- Display Summary
 					type = "checkbox",
-					name = GetString(BMR_DONT_MOVE_PROTECTED_ITEMS),
-					tooltip = GetString(BMR_DONT_MOVE_PROTECTED_ITEMS_TOOLTIP),
+					name = ESOAPI.GetString(BMR_DONT_MOVE_PROTECTED_ITEMS),
+					tooltip = ESOAPI.GetString(BMR_DONT_MOVE_PROTECTED_ITEMS_TOOLTIP),
 					getFunc = function() return db.profiles[actualProfile].protected end,
 					setFunc = function(value) db.profiles[actualProfile].protected = value end,
 					default = true,
 				},
 				{	-- Protect 3rd party moves
 					type = "checkbox",
-					name = GetString(BMR_DONT_MOVE_MOVED_ITEMS),
-					tooltip = GetString(BMR_DONT_MOVE_MOVED_ITEMS_TOOLTIP),
+					name = ESOAPI.GetString(BMR_DONT_MOVE_MOVED_ITEMS),
+					tooltip = ESOAPI.GetString(BMR_DONT_MOVE_MOVED_ITEMS_TOOLTIP),
 					getFunc = function() return db.profiles[actualProfile].moved end,
 					setFunc = function(value) db.profiles[actualProfile].moved = value end,
 					default = true,
 				},
 				{	-- Wait at startup
 					type = "slider",
-					name = GetString(BMR_WAIT_AT_STARTUP),
-					tooltip = GetString(BMR_WAIT_AT_STARTUP_TOOLTIP),
+					name = ESOAPI.GetString(BMR_WAIT_AT_STARTUP),
+					tooltip = ESOAPI.GetString(BMR_WAIT_AT_STARTUP_TOOLTIP),
 					step = 0.5,
 					min = 1,
 					max = 4,
@@ -7981,8 +7903,8 @@ local function buildLAMPanel()
 				},
 				{	-- Don't overfill bags
 					type = "slider",
-					name = GetString(BMR_NO_OVERFILL),
-					tooltip = GetString(BMR_NO_OVERFILL_TOOLTIP),
+					name = ESOAPI.GetString(BMR_NO_OVERFILL),
+					tooltip = ESOAPI.GetString(BMR_NO_OVERFILL_TOOLTIP),
 					step = 1,
 					min = 0,
 					max = 20,
@@ -7992,8 +7914,8 @@ local function buildLAMPanel()
 				},
 				{	-- Pause in Ms between moves
 					type = "slider",
-					name = GetString(BMR_DELAY_BETWEEN_MOVES),
-					tooltip = GetString(BMR_DELAY_BETWEEN_MOVES_TOOLTIP),
+					name = ESOAPI.GetString(BMR_DELAY_BETWEEN_MOVES),
+					tooltip = ESOAPI.GetString(BMR_DELAY_BETWEEN_MOVES_TOOLTIP),
 					step = 10,
 					min = 0,
 					max = 110,
@@ -8005,27 +7927,27 @@ local function buildLAMPanel()
 		},
 		{
 			type = "submenu",
-			name = zo_strformat(GetString(SI_INVENTORY_CURRENCIES)),
+			name = ESOAPI.zo_strformat(ESOAPI.GetString(SI_INVENTORY_CURRENCIES)),
 			controls = currenciesSubmenuControls,
 		},
 		{
 			type = "submenu",
-			name = GetString(BMR_CUSTOM_RULES),
+			name = ESOAPI.GetString(BMR_CUSTOM_RULES),
 			controls = customRulesSubmenuControls,
 		},
 		{
 			type = "submenu",
-			name = GetString(BMR_SCRIPTTRACKER),
+			name = ESOAPI.GetString(BMR_SCRIPTTRACKER),
 			controls = {
 				{
 					type = "description",
-					text = GetString(BMR_SCRIPTTRACKER_DESC),
+					text = ESOAPI.GetString(BMR_SCRIPTTRACKER_DESC),
 					width = "full",
 				},
 				{
 					type = "checkbox",
-					name = GetString(BMR_SCRIPTTRACKER_ENABLE),
-					tooltip = GetString(BMR_SCRIPTTRACKER_ENABLE_TOOLTIP),
+					name = ESOAPI.GetString(BMR_SCRIPTTRACKER_ENABLE),
+					tooltip = ESOAPI.GetString(BMR_SCRIPTTRACKER_ENABLE_TOOLTIP),
 					getFunc = function() return db.scriptTracker.enabled end,
 					setFunc = function(v) db.scriptTracker.enabled = v end,
 					default = true,
@@ -8033,30 +7955,30 @@ local function buildLAMPanel()
 				},
 				{
 					type = "checkbox",
-					name = GetString(BMR_SCRIPTTRACKER_DEPOSIT_KNOWN),
+					name = ESOAPI.GetString(BMR_SCRIPTTRACKER_DEPOSIT_KNOWN),
 					getFunc = function() return db.scriptTracker.depositKnown end,
 					setFunc = function(v) db.scriptTracker.depositKnown = v end,
 					default = true,
 				},
 				{
 					type = "checkbox",
-					name = GetString(BMR_SCRIPTTRACKER_WITHDRAW_UNKNOWN),
+					name = ESOAPI.GetString(BMR_SCRIPTTRACKER_WITHDRAW_UNKNOWN),
 					getFunc = function() return db.scriptTracker.withdrawUnknown end,
 					setFunc = function(v) db.scriptTracker.withdrawUnknown = v end,
 					default = true,
 				},
 				{
 					type = "checkbox",
-					name = GetString(BMR_SCRIPTTRACKER_ONE_ONLY),
-					tooltip = GetString(BMR_SCRIPTTRACKER_ONE_ONLY_TOOLTIP),
+					name = ESOAPI.GetString(BMR_SCRIPTTRACKER_ONE_ONLY),
+					tooltip = ESOAPI.GetString(BMR_SCRIPTTRACKER_ONE_ONLY_TOOLTIP),
 					getFunc = function() return db.scriptTracker.withdrawOneOnly end,
 					setFunc = function(v) db.scriptTracker.withdrawOneOnly = v end,
 					default = true,
 				},
 				{
 					type = "checkbox",
-					name = GetString(BMR_SCRIPTTRACKER_DEBUG),
-					tooltip = GetString(BMR_SCRIPTTRACKER_DEBUG_TOOLTIP),
+					name = ESOAPI.GetString(BMR_SCRIPTTRACKER_DEBUG),
+					tooltip = ESOAPI.GetString(BMR_SCRIPTTRACKER_DEBUG_TOOLTIP),
 					getFunc = function() return db.scriptTracker.debug end,
 					setFunc = function(v) db.scriptTracker.debug = v end,
 					default = false,
@@ -8065,27 +7987,27 @@ local function buildLAMPanel()
 		},
 		{
 			type = "submenu",
-			name = GetString(BMR_CONTAINERS),
+			name = ESOAPI.GetString(BMR_CONTAINERS),
 			controls = containersSubmenuControls,
 		},
 		{
 			type = "submenu",
-			name =  GetString("SI_ITEMTYPE", ITEMTYPE_TROPHY),
+			name =  ESOAPI.GetString("SI_ITEMTYPE", ITEMTYPE_TROPHY),
 			controls = trophiesSubmenuControls,
 		},
 		{
 			type = "submenu",
-			name = GetString(SI_PLAYER_MENU_MISC),
+			name = ESOAPI.GetString(SI_PLAYER_MENU_MISC),
 			controls = diverseSubmenuControls,
 		},
 		{
 			type = "submenu",
-			name = zo_strformat("<<1>> : <<2>>", GetString(SI_JOURNAL_MENU_QUESTS), GetString("SI_QUESTTYPE", QUEST_TYPE_CRAFTING)),
+			name = ESOAPI.zo_strformat("<<1>> : <<2>>", ESOAPI.GetString(SI_JOURNAL_MENU_QUESTS), ESOAPI.GetString("SI_QUESTTYPE", QUEST_TYPE_CRAFTING)),
 			controls = specialFiltersControls,
 		},
 		{
 			type = "submenu",
-			name = GetString(BMR_PVP_CATEGORY),
+			name = ESOAPI.GetString(BMR_PVP_CATEGORY),
 			-- LHA has one drill-down level. Keep child groups inside this page as
 			-- headings instead of registering them as independent main categories.
 			bmrConsoleFlattenChildren = true,
@@ -8093,7 +8015,7 @@ local function buildLAMPanel()
 		},
 		{
 			type = "submenu",
-			name =  GetString(SI_HOUSING_BOOK_TITLE),
+			name =  ESOAPI.GetString(SI_HOUSING_BOOK_TITLE),
 			controls = housingSubmenuControls,
 		},
 
@@ -8131,7 +8053,7 @@ local function buildLAMPanel()
                       SCENE_MANAGER:ShowBaseScene()
                       BMR.SafeAddChatMessage(zo_strformat(BMR_IMPORTED, choice))
 
-                      zo_callLater(function() ReloadUI() end, 2000)
+                      ESOAPI.zo_callLater(function() ReloadUI() end, 2000)
 
                   end
               end
@@ -8143,50 +8065,50 @@ local function buildLAMPanel()
 	if db.globalAddonProfile >= 3 then
 		table.insert(optionsTable, {
 			type = "submenu",
-			name = zo_strformat("<<1>> & <<2>> & <<3>>", GetString("SI_ITEMTYPE", ITEMTYPE_ARMOR_TRAIT), GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON_TRAIT), GetString("SI_ITEMTYPE", ITEMTYPE_JEWELRY_TRAIT)),
+			name = ESOAPI.zo_strformat("<<1>> & <<2>> & <<3>>", ESOAPI.GetString("SI_ITEMTYPE", ITEMTYPE_ARMOR_TRAIT), ESOAPI.GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON_TRAIT), ESOAPI.GetString("SI_ITEMTYPE", ITEMTYPE_JEWELRY_TRAIT)),
 			controls = BMR.traitSubmenuControls,
 		})
 		table.insert(optionsTable, {
 			type = "submenu",
-			name = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_STYLE_MATERIAL)),
+			name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ITEMTYPE_STYLE_MATERIAL)),
 			controls = BMR.styleSubmenuControls,
 		})
 		table.insert(optionsTable, {
 			type = "submenu",
-			name = zo_strformat("<<1>>", GetString(BMR_TRADESKILL_ALCHEMY)),
+			name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString(BMR_TRADESKILL_ALCHEMY)),
 			controls = BMR.alchemySubmenuControls,
 		})
 	end
 	if db.globalAddonProfile >= 2 then
 		table.insert(optionsTable, {
 			type = "submenu",
-			name = zo_strformat("<<1>>", GetString(BMR_TRADESKILL_BLACKSMITHING)),
+			name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString(BMR_TRADESKILL_BLACKSMITHING)),
 			controls = BMR.blacksmithingSubmenuControls,
 		})
 		table.insert(optionsTable, {
 			type = "submenu",
-			name = zo_strformat("<<1>>", GetString(BMR_TRADESKILL_CLOTHIER)),
+			name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString(BMR_TRADESKILL_CLOTHIER)),
 			controls = BMR.clothierSubmenuControls,
 		})
 		table.insert(optionsTable, {
 			type = "submenu",
-			name = zo_strformat("<<1>>", GetString(BMR_TRADESKILL_WOODWORKING)),
+			name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString(BMR_TRADESKILL_WOODWORKING)),
 			controls = BMR.woodworkingSubmenuControls,
 		})
 		table.insert(optionsTable, {
 			type = "submenu",
-			name = zo_strformat("<<1>>", GetString(BMR_TRADESKILL_JEWELRYCRAFTING)),
+			name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString(BMR_TRADESKILL_JEWELRYCRAFTING)),
 			controls = BMR.jewelrycraftingSubmenuControls,
 		})
 	end
 	table.insert(optionsTable, {
 		type = "submenu",
-		name = zo_strformat("<<1>>", GetString(BMR_TRADESKILL_PROVISIONING)),
+		name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString(BMR_TRADESKILL_PROVISIONING)),
 		controls = cookingSubmenuControls,
 	})
 	table.insert(optionsTable, {
 		type = "submenu",
-		name = zo_strformat("<<1>>", GetString(BMR_TRADESKILL_ENCHANTING)),
+		name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString(BMR_TRADESKILL_ENCHANTING)),
 		controls = enchantmentSubmenuControls,
 	})
 
@@ -8212,7 +8134,7 @@ local function buildLAMPanel()
 			if filterEditor and filterEditor.bmrDraftSummary then BMR.CustomRules.RefreshCustomFilterRuleEditor(filterEditor) end
 			local filterList = _G.BMRCustomFilterRuleDynamicList
 			if filterList and filterList.UpdateValue then filterList:UpdateValue() elseif filterList then BMR.CustomRules.RefreshCustomFilterRuleList(filterList) end
-			CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
+			ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 			local consoleSettings = BMR._consoleSettingsPanel
 			if consoleSettings then
 				if type(consoleSettings.RefreshSettings) == "function" then
@@ -8265,11 +8187,10 @@ local function buildLAMPanel()
 			if type(settings) ~= "table" or type(settings.AddSetting) ~= "function" then
 				error("LibHarvensAddonSettings AddAddon() did not return a settings object")
 			end
-			local LHA = LibHarvensAddonSettings
+			local LHA = BMR.LibHarvensAddonSettings
 			local function ResolveConsoleLabel(value)
-				if type(value) == "number" and type(GetString) == "function" then
-					local ok, resolved = pcall(GetString, value)
-					if ok then return tostring(resolved) end
+				if type(value) == "number" and type(ESOAPI.GetString) == "function" then
+					return tostring(ESOAPI.GetString(value))
 				end
 				if type(value) == "function" then
 					local ok, resolved = pcall(value)
@@ -8300,7 +8221,7 @@ local function buildLAMPanel()
 					return SafeAddConsoleSetting(setting, "custom-native", label or setting.label, rootCategory)
 				end
 				local function button(labelId, callback, disabled, tooltip)
-					return {type = LHA.ST_BUTTON, label = GetString(labelId), buttonText = GetString(labelId), clickHandler = callback, disable = disabled, tooltip = tooltip}
+					return {type = LHA.ST_BUTTON, label = ESOAPI.GetString(labelId), buttonText = ESOAPI.GetString(labelId), clickHandler = callback, disable = disabled, tooltip = tooltip}
 				end
 				-- LibHarvensAddonSettings calls dropdown setters as
 				-- setFunction(combobox, selectedName, itemEntry). The actual value is
@@ -8333,13 +8254,13 @@ local function buildLAMPanel()
 				local function actionDropdown(labelId, getter, setter, disabled, tooltip)
 					return {
 						type = LHA.ST_DROPDOWN,
-						label = GetString(labelId),
+						label = ESOAPI.GetString(labelId),
 						tooltip = tooltip,
 						items = custom.GetConsoleActionOptions,
 						getFunction = function() return (function()
 							local current = getter()
 							for _, item in ipairs(custom.GetConsoleActionOptions()) do if tonumber(item.data) == tonumber(current) then return item.name end end
-							return GetString(BMR_ACTION_NOTSET)
+							return ESOAPI.GetString(BMR_ACTION_NOTSET)
 						end)() end,
 						setFunction = function(_, selectedName, itemEntry)
 							local value = resolveDropdownValue(selectedName, itemEntry, custom.GetConsoleActionOptions)
@@ -8351,7 +8272,7 @@ local function buildLAMPanel()
 				local function selectedDropdown(labelId, itemsFunc, getter, setter, disabled, tooltip)
 					return {
 						type = LHA.ST_DROPDOWN,
-						label = GetString(labelId),
+						label = ESOAPI.GetString(labelId),
 						tooltip = tooltip,
 						items = itemsFunc,
 						getFunction = getter,
@@ -8378,7 +8299,7 @@ local function buildLAMPanel()
 					return custom.GetConsoleSelectedFilterRuleTooltip(true)
 				end
 				local function consoleGuildOptions()
-					local options = {{name = GetString(BMR_ACTION_NOTSET), data = GetString(BMR_ACTION_NOTSET)}}
+					local options = {{name = ESOAPI.GetString(BMR_ACTION_NOTSET), data = ESOAPI.GetString(BMR_ACTION_NOTSET)}}
 					for _, guild in ipairs(BMR._RuleUi.GetBmrGuildChoices()) do
 						if guild.slot and guild.slot > 0 then options[#options + 1] = {name = guild.name, data = guild.value} end
 					end
@@ -8386,9 +8307,9 @@ local function buildLAMPanel()
 				end
 				local function getRuleGuild(ruleName)
 					local rule = BMR._RuleUi.GetOrCreateBmrProfileRule(ruleName)
-					local guildName = rule and rule.associatedGuild or GetString(BMR_ACTION_NOTSET)
+					local guildName = rule and rule.associatedGuild or ESOAPI.GetString(BMR_ACTION_NOTSET)
 					for _, item in ipairs(consoleGuildOptions()) do if item.data == guildName then return item.name end end
-					return GetString(BMR_ACTION_NOTSET)
+					return ESOAPI.GetString(BMR_ACTION_NOTSET)
 				end
 				local function setRuleGuild(ruleName, guildName)
 					BMR._RuleUi.SetBmrRuleGuild(ruleName, guildName)
@@ -8409,10 +8330,10 @@ local function buildLAMPanel()
 					end), "Rule action " .. ruleName)
 					add(selectedDropdown(BMR_GUILD_LIST, consoleGuildOptions,
 						function() return getRuleGuild(ruleName) end,
-						function(value) setRuleGuild(ruleName, value) end, nil, GetString(BMR_GUILD_LIST_TOOLTIP)), "Rule guild " .. ruleName)
+						function(value) setRuleGuild(ruleName, value) end, nil, ESOAPI.GetString(BMR_GUILD_LIST_TOOLTIP)), "Rule guild " .. ruleName)
 					return true
 				elseif type(reference) == "string" and string.match(reference, "^BMRRuleTableHeader_") then
-					add({type = LHA.ST_LABEL, label = GetString(BMR_RULE_TABLE_ITEM) .. "    |    " .. GetString(BMR_RULE_TABLE_ACTION) .. "    |    " .. GetString(BMR_GUILD_LIST), tooltip = GetString(BMR_GUILD_LIST_TOOLTIP)}, "Rule table header")
+					add({type = LHA.ST_LABEL, label = ESOAPI.GetString(BMR_RULE_TABLE_ITEM) .. "    |    " .. ESOAPI.GetString(BMR_RULE_TABLE_ACTION) .. "    |    " .. ESOAPI.GetString(BMR_GUILD_LIST), tooltip = ESOAPI.GetString(BMR_GUILD_LIST_TOOLTIP)}, "Rule table header")
 					return true
 				end
 
@@ -8420,20 +8341,20 @@ local function buildLAMPanel()
 					-- LHA displays the focused setting's tooltip in its shared description area.
 					-- Put the live rule builder there so it stays visible during selection and
 					-- after adding/removing criteria, instead of adding easily missed label rows.
-					add({type = LHA.ST_LABEL, label = GetString(BMR_CUSTOM_FILTER_DESC), tooltip = filterBuilderTooltip}, "Filter description")
-					add({type = LHA.ST_EDIT, label = GetString(BMR_CUSTOM_FILTER_SEARCH_STRING), maxChars = 100,
+					add({type = LHA.ST_LABEL, label = ESOAPI.GetString(BMR_CUSTOM_FILTER_DESC), tooltip = filterBuilderTooltip}, "Filter description")
+					add({type = LHA.ST_EDIT, label = ESOAPI.GetString(BMR_CUSTOM_FILTER_SEARCH_STRING), maxChars = 100,
 						getFunction = custom.GetConsoleFilterSearchString,
 						setFunction = custom.SetConsoleFilterSearchString, tooltip = filterBuilderTooltip}, "Filter search text")
-					add({type = LHA.ST_DROPDOWN, label = GetString(BMR_CUSTOM_FILTER_FIELD), items = custom.GetConsoleFilterFieldOptions,
+					add({type = LHA.ST_DROPDOWN, label = ESOAPI.GetString(BMR_CUSTOM_FILTER_FIELD), items = custom.GetConsoleFilterFieldOptions,
 						getFunction = custom.GetConsoleFilterFieldLabel,
 						setFunction = function(_, selectedName, itemEntry)
 							local fieldKey = resolveDropdownValue(selectedName, itemEntry, custom.GetConsoleFilterFieldOptions)
 							if fieldKey then custom.SetConsoleFilterField(fieldKey) end
 						end, tooltip = filterBuilderTooltip}, "Filter field")
-					add({type = LHA.ST_EDIT, label = GetString(BMR_CUSTOM_FILTER_VALUE_SEARCH), maxChars = 100,
+					add({type = LHA.ST_EDIT, label = ESOAPI.GetString(BMR_CUSTOM_FILTER_VALUE_SEARCH), maxChars = 100,
 						getFunction = custom.GetConsoleFilterValueSearch,
 						setFunction = custom.SetConsoleFilterValueSearch, tooltip = filterBuilderTooltip}, "Filter value search")
-					add({type = LHA.ST_DROPDOWN, label = GetString(BMR_CUSTOM_FILTER_VALUE), items = custom.GetConsoleFilterValueOptions,
+					add({type = LHA.ST_DROPDOWN, label = ESOAPI.GetString(BMR_CUSTOM_FILTER_VALUE), items = custom.GetConsoleFilterValueOptions,
 						getFunction = custom.GetConsoleFilterValueLabel,
 						setFunction = function(_, selectedName, itemEntry)
 							local valueData = resolveDropdownValue(selectedName, itemEntry, custom.GetConsoleFilterValueOptions)
@@ -8447,7 +8368,7 @@ local function buildLAMPanel()
 						function() return not (db.customFilterDraft and tonumber(db.customFilterDraft.editingId)) end, filterBuilderTooltip), "Overwrite filter rule")
 					return true
 				elseif reference == "BMRCustomFilterRuleDynamicList" then
-					add({type = LHA.ST_LABEL, label = GetString(BMR_CUSTOM_FILTER_RULE_SELECT)}, "Saved filter rules")
+					add({type = LHA.ST_LABEL, label = ESOAPI.GetString(BMR_CUSTOM_FILTER_RULE_SELECT)}, "Saved filter rules")
 					add(selectedDropdown(BMR_CUSTOM_FILTER_RULE_SELECT, custom.GetConsoleFilterRuleOptions,
 						function()
 							local id = custom.GetConsoleSelectedFilterId()
@@ -8461,7 +8382,7 @@ local function buildLAMPanel()
 						local id = custom.GetConsoleSelectedFilterId()
 						if id then custom.LoadCustomFilterRuleIntoDraft(id) end
 					end, noSelection(custom.GetConsoleSelectedFilterId), selectedFilterRuleTooltip), "Load filter rule for editing")
-					add({type = LHA.ST_EDIT, label = GetString(BMR_CUSTOM_FILTER_RENAME), maxChars = 64,
+					add({type = LHA.ST_EDIT, label = ESOAPI.GetString(BMR_CUSTOM_FILTER_RENAME), maxChars = 64,
 						getFunction = custom.GetConsoleFilterRenameDraft,
 						setFunction = custom.SetConsoleFilterRenameDraft,
 						disable = noSelection(custom.GetConsoleSelectedFilterId), tooltip = selectedFilterRuleTooltip}, "Filter display name")
@@ -8480,8 +8401,8 @@ local function buildLAMPanel()
 						end,
 						custom.SetConsoleSelectedCustomItemId, noSelection(custom.GetConsoleSelectedCustomItemId)), "Select exact item rule")
 					add(actionDropdown(BMR_CUSTOM_RULE_ITEM_ACTION, custom.GetConsoleCustomItemAction, custom.SetConsoleCustomItemAction, noSelection(custom.GetConsoleSelectedCustomItemId)), "Exact item profile action")
-					add(selectedDropdown(BMR_GUILD_LIST, custom.GetConsoleGuildOptions, custom.GetConsoleCustomItemGuildLabel, custom.SetConsoleCustomItemGuild, noSelection(custom.GetConsoleSelectedCustomItemId), GetString(BMR_GUILD_LIST_TOOLTIP)), "Exact item guild bank")
-					add({type = LHA.ST_EDIT, label = GetString(BMR_CUSTOM_ITEM_RENAME), maxChars = 64,
+					add(selectedDropdown(BMR_GUILD_LIST, custom.GetConsoleGuildOptions, custom.GetConsoleCustomItemGuildLabel, custom.SetConsoleCustomItemGuild, noSelection(custom.GetConsoleSelectedCustomItemId), ESOAPI.GetString(BMR_GUILD_LIST_TOOLTIP)), "Exact item guild bank")
+					add({type = LHA.ST_EDIT, label = ESOAPI.GetString(BMR_CUSTOM_ITEM_RENAME), maxChars = 64,
 						getFunction = custom.GetConsoleCustomItemRenameDraft,
 						setFunction = custom.SetConsoleCustomItemRenameDraft,
 						disable = noSelection(custom.GetConsoleSelectedCustomItemId)}, "Exact item display name")
@@ -8651,23 +8572,23 @@ local function buildLAMPanel()
 	local dropdownMeasureLabel
 	local function MeasureDropdownChoice(textValue)
 		if not dropdownMeasureLabel then
-			dropdownMeasureLabel = WINDOW_MANAGER:CreateControl(nil, GuiRoot, CT_LABEL)
+			dropdownMeasureLabel = ESOAPI.WINDOW_MANAGER:CreateControl(nil, ESOAPI.GuiRoot, ESOAPI.CT_LABEL)
 			dropdownMeasureLabel:SetFont("ZoFontGame")
 			dropdownMeasureLabel:SetDimensions(1400, 28)
 			dropdownMeasureLabel:SetHidden(true)
 		end
 		dropdownMeasureLabel:SetText(tostring(textValue or ""))
-		if dropdownMeasureLabel.GetTextWidth then
-			local ok, width = pcall(dropdownMeasureLabel.GetTextWidth, dropdownMeasureLabel)
-			if ok and tonumber(width) and width > 0 then return width end
+		if type(dropdownMeasureLabel.GetTextWidth) == "function" then
+			local width = dropdownMeasureLabel:GetTextWidth()
+			if tonumber(width) and width > 0 then return width end
 		end
 		return #tostring(textValue or "") * 8.5
 	end
 
 	local function GetDropdownChoiceText(choice)
-		if type(choice) == "number" and type(GetString) == "function" then
-			local ok, value = pcall(GetString, choice)
-			if ok and type(value) == "string" then return value end
+		if type(choice) == "number" and type(ESOAPI.GetString) == "function" then
+			local value = ESOAPI.GetString(choice)
+			if type(value) == "string" then return value end
 		elseif type(choice) == "function" then
 			local ok, value = pcall(choice)
 			if ok and type(value) == "string" then return value end
@@ -8678,15 +8599,15 @@ local function buildLAMPanel()
 	local checkboxMeasureLabel
 	local function MeasureCheckboxStatusText(textValue)
 		if not checkboxMeasureLabel then
-			checkboxMeasureLabel = WINDOW_MANAGER:CreateControl(nil, GuiRoot, CT_LABEL)
+			checkboxMeasureLabel = ESOAPI.WINDOW_MANAGER:CreateControl(nil, ESOAPI.GuiRoot, ESOAPI.CT_LABEL)
 			checkboxMeasureLabel:SetFont("ZoFontGameBold")
 			checkboxMeasureLabel:SetDimensions(500, 28)
 			checkboxMeasureLabel:SetHidden(true)
 		end
 		checkboxMeasureLabel:SetText(tostring(textValue or ""))
-		if checkboxMeasureLabel.GetTextWidth then
-			local ok, measured = pcall(checkboxMeasureLabel.GetTextWidth, checkboxMeasureLabel)
-			if ok and tonumber(measured) and measured > 0 then return measured end
+		if type(checkboxMeasureLabel.GetTextWidth) == "function" then
+			local measured = checkboxMeasureLabel:GetTextWidth()
+			if tonumber(measured) and measured > 0 then return measured end
 		end
 		return #tostring(textValue or "") * 9
 	end
@@ -8697,8 +8618,8 @@ local function buildLAMPanel()
 	local function ResizeLamCheckbox(control)
 		if not control or not control.data or control.data.type ~= "checkbox" then return end
 		if not control.container or not control.checkbox then return end
-		local onText = type(GetString) == "function" and GetString(SI_CHECK_BUTTON_ON) or "ON"
-		local offText = type(GetString) == "function" and GetString(SI_CHECK_BUTTON_OFF) or "OFF"
+		local onText = type(ESOAPI.GetString) == "function" and ESOAPI.GetString(SI_CHECK_BUTTON_ON) or "ON"
+		local offText = type(ESOAPI.GetString) == "function" and ESOAPI.GetString(SI_CHECK_BUTTON_OFF) or "OFF"
 		onText = tostring(onText or "ON"):upper()
 		offText = tostring(offText or "OFF"):upper()
 		local statusWidth = math.max(MeasureCheckboxStatusText(onText), MeasureCheckboxStatusText(offText))
@@ -8709,7 +8630,7 @@ local function buildLAMPanel()
 		end
 		control.container:SetWidth(math.max(54, math.ceil(statusWidth + warningWidth + 14)))
 		control.checkbox:ClearAnchors()
-		control.checkbox:SetAnchor(RIGHT, control.container, RIGHT, 0, 0)
+		control.checkbox:SetAnchor(ESOAPI.RIGHT, control.container, ESOAPI.RIGHT, 0, 0)
 		control.bmrCheckboxRightAligned = true
 	end
 
@@ -8768,11 +8689,10 @@ local function buildLAMPanel()
 			if not parent or visited[parent] then return end
 			visited[parent] = true
 			if not parent.GetNumChildren or not parent.GetChild then return end
-			local okCount, childCount = pcall(parent.GetNumChildren, parent)
-			if not okCount then return end
+			local childCount = parent:GetNumChildren()
 			for index = 1, tonumber(childCount) or 0 do
-				local okChild, child = pcall(parent.GetChild, parent, index)
-				if okChild and child then
+				local child = parent:GetChild(index)
+				if child then
 					local data = child.data
 					if type(data) == "table" and type(data.type) == "string" and child.SetWidth then
 						local controlPanel = child.panel or rootPanel
@@ -8922,7 +8842,7 @@ local function buildLAMPanel()
 		for _, row in ipairs(BMR.ruleCountLabels or {}) do
 			if row.label and row.data then
 				local activeCount, totalCount = GetRuleCountsFromControlTree(row.data.controls)
-				row.label:SetText(zo_strformat(GetString(BMR_PVP_RULES_ACTIVE), activeCount, totalCount))
+				row.label:SetText(ESOAPI.zo_strformat(ESOAPI.GetString(BMR_PVP_RULES_ACTIVE), activeCount, totalCount))
 				row.label:SetHidden(false)
 			end
 		end
@@ -8944,10 +8864,10 @@ local function buildLAMPanel()
 				-- disables the label to let the count area behave as part of the row, we
 				-- must supply a real clickable hit target for the full header.
 				if not control.bmrHeaderClickTarget then
-					local clickTarget = WINDOW_MANAGER:CreateControl(nil, control, CT_CONTROL)
+					local clickTarget = ESOAPI.WINDOW_MANAGER:CreateControl(nil, control, CT_CONTROL)
 					control.bmrHeaderClickTarget = clickTarget
-					clickTarget:SetAnchor(TOPLEFT, control.label, TOPLEFT, -5, -5)
-					clickTarget:SetAnchor(TOPRIGHT, control.arrow, TOPRIGHT, 5, 0)
+					clickTarget:SetAnchor(ESOAPI.TOPLEFT, control.label, ESOAPI.TOPLEFT, -5, -5)
+					clickTarget:SetAnchor(ESOAPI.TOPRIGHT, control.arrow, ESOAPI.TOPRIGHT, 5, 0)
 					clickTarget:SetHeight(36)
 					clickTarget:SetAlpha(0)
 					clickTarget:SetMouseEnabled(true)
@@ -8975,31 +8895,31 @@ local function buildLAMPanel()
 				-- Do not add counters to purely informational submenus.
 				if totalCount > 0 then
 					local countWidth = 155
-					local countLabel = WINDOW_MANAGER:CreateControl(nil, control, CT_LABEL)
+					local countLabel = ESOAPI.WINDOW_MANAGER:CreateControl(nil, control, ESOAPI.CT_LABEL)
 					countLabel:SetFont("ZoFontWinH4")
 					countLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-					countLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+					countLabel:SetVerticalAlignment(ESOAPI.TEXT_ALIGN_CENTER)
 					countLabel:SetDimensions(countWidth, 30)
-					countLabel:SetAnchor(TOPRIGHT, control.arrow, TOPLEFT, -8, 0)
+					countLabel:SetAnchor(ESOAPI.TOPRIGHT, control.arrow, ESOAPI.TOPLEFT, -8, 0)
 					countLabel:SetDrawLayer(DL_OVERLAY)
 					countLabel:SetHidden(false)
 					countLabel:SetMouseEnabled(false)
 					control.label:SetWidth(math.max(140, (control.label:GetWidth() or 450) - countWidth - 8))
 					local row = {label = countLabel, data = submenuData, control = control}
 					table.insert(BMR.ruleCountLabels, row)
-					countLabel:SetText(zo_strformat(GetString(BMR_PVP_RULES_ACTIVE), activeCount, totalCount))
+					countLabel:SetText(ESOAPI.zo_strformat(ESOAPI.GetString(BMR_PVP_RULES_ACTIVE), activeCount, totalCount))
 				end
 			end
 			return control
 		end
 	end
 
-	if CALLBACK_MANAGER and CALLBACK_MANAGER.RegisterCallback and not BMR.bmrRuleCountCallbacksRegisteredV2 then
+	if ESOAPI.CALLBACK_MANAGER and ESOAPI.CALLBACK_MANAGER.RegisterCallback and not BMR.bmrRuleCountCallbacksRegisteredV2 then
 		BMR.bmrRuleCountCallbacksRegisteredV2 = true
-		CALLBACK_MANAGER:RegisterCallback("BMR-RuleCountRefresh", DispatchRuleCountUpdate)
-		CALLBACK_MANAGER:RegisterCallback("LAM-RefreshPanel", DispatchRuleCountUpdate)
-		CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", DispatchRuleCountUpdate)
-		CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", DispatchRuleCountUpdate)
+		ESOAPI.CALLBACK_MANAGER:RegisterCallback("BMR-RuleCountRefresh", DispatchRuleCountUpdate)
+		ESOAPI.CALLBACK_MANAGER:RegisterCallback("LAM-RefreshPanel", DispatchRuleCountUpdate)
+		ESOAPI.CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", DispatchRuleCountUpdate)
+		ESOAPI.CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", DispatchRuleCountUpdate)
 	end
 	UpdateRuleCountLabels()
 
@@ -9009,7 +8929,7 @@ end
 -- Move UI to its place
 local function RebuildAnchorsGUI()
 	BankManager:ClearAnchors()
-	BankManager:SetAnchor(BOTTOMRIGHT, GuiRoot, BOTTOMRIGHT, db.gui_x, db.gui_y)
+	BankManager:SetAnchor(ESOAPI.BOTTOMRIGHT, ESOAPI.GuiRoot, ESOAPI.BOTTOMRIGHT, db.gui_x, db.gui_y)
 end
 
 -- Item context-menu and exact custom-rule helpers are implemented in BankManagerCustomRules.lua.
@@ -9051,7 +8971,7 @@ local function onAddonLoaded(_, addon)
 		if not rulesReady and (BMR._startupRetryCount or 0) < 4 then
 			BMR._startupRetryCount = (BMR._startupRetryCount or 0) + 1
 			BMR._startupPhase = "wait-for-rule-definitions-" .. tostring(BMR._startupRetryCount)
-			zo_callLater(function() onAddonLoaded(nil, ADDON_NAME) end, 100)
+			ESOAPI.zo_callLater(function() onAddonLoaded(nil, ADDON_NAME) end, 100)
 			return
 		end
 
@@ -9181,7 +9101,7 @@ local function onAddonLoaded(_, addon)
 			local contextMenuReady = contextMenuCallOk and contextMenuRegistered == true
 			local contextMenuStatus = contextMenuCallOk and (contextMenuMessage or (contextMenuRegistered and "registered" or "not registered")) or tostring(contextMenuRegistered)
 			BMR.ProfileDiagnostic(contextMenuReady and "CONTEXT_MENU_REGISTERED" or "CONTEXT_MENU_REGISTER_FAILED", tostring(contextMenuStatus))
-			local gamepadBridgeLoaded = type(IsAddOnLoaded) == "function" and IsAddOnLoaded("LibGamepadContextMenuBridge") == true
+			local gamepadBridgeLoaded = type(ESOAPI.IsAddOnLoaded) == "function" and ESOAPI.IsAddOnLoaded("LibGamepadContextMenuBridge") == true
 			local libCustomMenuLoaded = type(LibCustomMenu) == "table" and type(LibCustomMenu.RegisterContextMenu) == "function"
 			local controllerFlow = BMR.Console and type(BMR.Console.IsControllerFlowActive) == "function" and BMR.Console.IsControllerFlowActive()
 			if controllerFlow and (not gamepadBridgeLoaded or not libCustomMenuLoaded or not contextMenuReady) then
@@ -9190,23 +9110,20 @@ local function onAddonLoaded(_, addon)
 			end
 			
 			-- Move GUI to its saved position
-			local anchorsOk, anchorsError = pcall(RebuildAnchorsGUI)
-			BMR.ProfileDiagnostic(anchorsOk and "GUI_ANCHORS_REBUILT" or "GUI_ANCHOR_REBUILD_FAILED", tostring(anchorsError or "ok") .. "; " .. BMR.ProfileDebugSnapshot())
-			if not anchorsOk then BMR.ProfileDiagnosticChat("BMR Profilwechsler-Position konnte nicht gesetzt werden: " .. tostring(anchorsError)) end
+			RebuildAnchorsGUI()
+			BMR.ProfileDiagnostic("GUI_ANCHORS_REBUILT", BMR.ProfileDebugSnapshot())
 			
-			local esoPlusOk, esoPlusValue = pcall(IsESOPlusSubscriber)
-			isESOPlusSubscriber = esoPlusOk and esoPlusValue or false
-			if not esoPlusOk then BMR.ProfileDiagnosticChat("BMR: ESO-Plus-Status nicht verfügbar: " .. tostring(esoPlusValue):gsub("[\r\n]+", " "):sub(1, 130)) end
+			isESOPlusSubscriber = IsESOPlusSubscriber()
 			
 			-- Register / Unregister
 			BMR._startupPhase = "register-bank-events"
 			BMR.ProfileDiagnostic("BANK_EVENTS_REGISTERING", "personal and guild bank callbacks; " .. BMR.ProfileDebugSnapshot())
-			EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_OPEN_BANK, BMR.ProfileDebugWrapEvent("EVENT_OPEN_BANK", onOpenBank))
-			EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_CLOSE_BANK, BMR.ProfileDebugWrapEvent("EVENT_CLOSE_BANK", onCloseBank))
+			ESOAPI.EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_OPEN_BANK, BMR.ProfileDebugWrapEvent("EVENT_OPEN_BANK", onOpenBank))
+			ESOAPI.EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_CLOSE_BANK, BMR.ProfileDebugWrapEvent("EVENT_CLOSE_BANK", onCloseBank))
 			
-			EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_GUILD_BANK_SELECTED, BMR.ProfileDebugWrapEvent("EVENT_GUILD_BANK_SELECTED", onGuildBankSelected))
-			EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_GUILD_BANK_ITEMS_READY, BMR.ProfileDebugWrapEvent("EVENT_GUILD_BANK_ITEMS_READY", onGuildBankItemsReady))
-			EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_CLOSE_GUILD_BANK, BMR.ProfileDebugWrapEvent("EVENT_CLOSE_GUILD_BANK", onCloseGuildBank))
+			ESOAPI.EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_GUILD_BANK_SELECTED, BMR.ProfileDebugWrapEvent("EVENT_GUILD_BANK_SELECTED", onGuildBankSelected))
+			ESOAPI.EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_GUILD_BANK_ITEMS_READY, BMR.ProfileDebugWrapEvent("EVENT_GUILD_BANK_ITEMS_READY", onGuildBankItemsReady))
+			ESOAPI.EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_CLOSE_GUILD_BANK, BMR.ProfileDebugWrapEvent("EVENT_CLOSE_GUILD_BANK", onCloseGuildBank))
 			BMR._bankEventsRegistered = true
 			BMR.ProfileDiagnostic("BANK_EVENTS_REGISTERED", BMR.ProfileDebugSnapshot())
 
@@ -9215,11 +9132,11 @@ local function onAddonLoaded(_, addon)
 			BMR.Console.RefreshForScene()
 			if not BMR.Console.modeEventHooksRegistered then
 				BMR.Console.modeEventHooksRegistered = true
-				EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_ConsoleModeChanged", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
+				ESOAPI.EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_ConsoleModeChanged", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
 					BMR.ProfileDiagnostic("CONSOLE_GAMEPAD_MODE_CHANGED", "mode=" .. tostring(BMR.Console.IsModeActive()))
 					BMR.Console.RefreshForScene()
 				end)
-				EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_ConsolePlayerActivated", EVENT_PLAYER_ACTIVATED, function()
+				ESOAPI.EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_ConsolePlayerActivated", EVENT_PLAYER_ACTIVATED, function()
 					BMR.Console.RefreshForScene()
 					if not BMR.customItemActionsRegistered and BMR.CustomRules and type(BMR.CustomRules.RegisterCustomItemContextMenuActions) == "function" then
 						local retryOk, retryRegistered, retryMessage = pcall(BMR.CustomRules.RegisterCustomItemContextMenuActions)
@@ -9228,7 +9145,7 @@ local function onAddonLoaded(_, addon)
 				end)
 			end
 			
-			EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
+			ESOAPI.EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
 			BMR._startupPhase = "complete"
 			BMR._bmrInitializationComplete = true
 			BMR._bmrInitializationRunning = false
@@ -9246,7 +9163,7 @@ local function onAddonLoaded(_, addon)
 end
 
 -- Called by UI
-function BankManagerRevived_nextRule(_, step)
+function BMR.nextRule(_, step)
 	local ok, err = pcall(nextRule, step)
 	if not ok then
 		BMR.ProfileDiagnostic("PROFILE_ARROW_ERROR", "step=" .. tostring(step) .. "; error=" .. tostring(err) .. "; " .. BMR.ProfileDebugSnapshot())
@@ -9255,7 +9172,7 @@ function BankManagerRevived_nextRule(_, step)
 end
 
 -- Called by UI
-function BankManagerRevived_executeRule(isHousingAutoRescan)
+function BMR.executeRule(isHousingAutoRescan)
 	if BMR._ruleBuildOk == false then
 		BMR.ProfileDiagnostic("RULE_EXECUTION_BLOCKED", "rule build failed; " .. tostring(BMR._ruleBuildError or "unknown error"))
 		if not BMR._ruleExecutionBlockedNoticeShown then
@@ -9280,14 +9197,14 @@ function BankManagerRevived_executeRule(isHousingAutoRescan)
 		end
 	end
 	if checkingGBank then
-		CustomRuleDebug(string.format("PROFILE ICON ROUTE target=GUILD_BANK inProgress=%s currentGuild=%s", tostring(inProgress), tostring(currentGBankName)))
+		CustomRuleDebug(string.format("PROFILE ICON ROUTE target=GUILD_BANK inProgress=%s currentGuild=%s", tostring(inProgress), tostring(BMR.currentGBankName)))
 		doInteractionWithGBank()
 	elseif inProgress and activeRuleRunPhase == "moving" then
 		profileIconRerunRequested = true
 		CustomRuleDebug(string.format("PROFILE ICON RERUN DEFERRED reason=current move loop is active phase=%s pushQueue=%d pullQueue=%d activeVerification=%s; one fresh run will start after completion", tostring(activeRuleRunPhase), #pushQueue, #pullQueue, tostring(activeTransferVerificationDebug ~= nil)))
 	else
 		local routeTarget = activeHouseStorageBagId and (IsFurnitureVaultBag(activeHouseStorageBagId) and "FURNITURE_VAULT" or "HOUSE_STORAGE_CHEST") or "PERSONAL_BANK"
-		local routeBag = activeHouseStorageBagId or BAG_BANK
+		local routeBag = activeHouseStorageBagId or ESOAPI.BAG_BANK
 		CustomRuleDebug(string.format("PROFILE ICON ROUTE target=%s bag=%s; calling interactWithBank", routeTarget, tostring(routeBag)))
 		interactWithBank()
 	end
@@ -9296,9 +9213,9 @@ function BankManagerRevived_executeRule(isHousingAutoRescan)
 end
 
 -- Called by UI
-function BankManagerRevived_saveGuiPosition()
+function BMR.saveGuiPosition()
 
-	local _, _, rightScreen, bottomScreen = GuiRoot:GetScreenRect()
+	local _, _, rightScreen, bottomScreen = ESOAPI.GuiRoot:GetScreenRect()
 	local _, _, right, bottom = BankManager:GetScreenRect()
 
 	db.gui_x = math.floor(right-rightScreen)
@@ -9307,19 +9224,19 @@ function BankManagerRevived_saveGuiPosition()
 end
 
 -- Called by Bindings
-function BankManagerRevived_runProfile(profile)
+function BMR.runProfile(profile)
 	BMR.ProfileDiagnostic("PROFILE_HOTKEY_REQUEST", "profile=" .. tostring(profile) .. "; " .. BMR.ProfileDebugSnapshot())
 	local requestedProfile = db and db.profiles and db.profiles[profile]
 	if type(requestedProfile) == "table" and requestedProfile.defined then
 		
 		actualProfile = profile
-		db.actualProfile[GetUnitName("player")] = profile
+		db.actualProfile[ESOAPI.GetUnitName("player")] = profile
 		
 		-- Sync LAM
-		CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
+		ESOAPI.CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 		
 		if isBanking then
-		
+			local multipleProfiles = false
 			for i=2, db.profileCount do
 				if db.profiles[i].defined == true then
 					multipleProfiles = true
@@ -9345,28 +9262,28 @@ function BankManagerRevived_runProfile(profile)
 end
 
 -- For API
-function BankManagerRevived_inProgress()
+function BMR.inProgress()
 	return inProgress
 end
 
 -- TEMPORARY Brand Oil diagnostics. This deliberately does not move items:
 -- first identify the actual remaining-energy field before testing transfer logic.
-SLASH_COMMANDS["/bmr/brandoil/debug"] = function()
+ESOAPI.SLASH_COMMANDS["/bmr/brandoil/debug"] = function()
 	local bags = {
-		{ id = BAG_BACKPACK, label = "Inventar" },
-		{ id = BAG_BANK, label = "Bank" },
-		{ id = BAG_SUBSCRIBER_BANK, label = "ESO+-Bank" },
+		{ id = ESOAPI.BAG_BACKPACK, label = "Inventar" },
+		{ id = ESOAPI.BAG_BANK, label = "Bank" },
+		{ id = ESOAPI.BAG_SUBSCRIBER_BANK, label = "ESO+-Bank" },
 	}
 	local found = 0
 	for _, bag in ipairs(bags) do
-		for slot = 0, (GetBagSize(bag.id) or 0) - 1 do
-			local link = GetItemLink(bag.id, slot)
-			local itemId = link and GetItemLinkItemId(link)
+		for slot = 0, (ESOAPI.GetBagSize(bag.id) or 0) - 1 do
+			local link = ESOAPI.GetItemLink(bag.id, slot)
+			local itemId = link and ESOAPI.GetItemLinkItemId(link)
 			if itemId == 30359 or itemId == 214329 then
 				found = found + 1
-				local stack = GetSlotStackSize(bag.id, slot) or 1
-				local okCondition, condition = pcall(GetItemCondition, bag.id, slot)
-				local okCharge, charges, maxCharges = pcall(GetChargeInfoForItem, bag.id, slot)
+				local stack = ESOAPI.GetSlotStackSize(bag.id, slot) or 1
+				local condition = ESOAPI.GetItemCondition(bag.id, slot)
+				local charges, maxCharges = GetChargeInfoForItem(bag.id, slot)
 				local raw = tostring(link or "")
 				local payload = string.match(raw, "|H%d:item:([^|]+)|h") or "NOT_PARSED"
 				d(string.format("[BMR Brandöl-Debug] %s Slot=%d ID=%d Stack=%d Condition=%s Charge=%s/%s LinkPayload=%s",
@@ -9391,14 +9308,14 @@ end
 local function BMR_BrandOilReadStacks()
 	local results = { backpack = {}, bank = {} }
 	local bags = {
-		{ id = BAG_BACKPACK, label = "Inventar", group = "backpack" },
-		{ id = BAG_BANK, label = "Bank", group = "bank" },
-		{ id = BAG_SUBSCRIBER_BANK, label = "ESO+-Bank", group = "bank" },
+		{ id = ESOAPI.BAG_BACKPACK, label = "Inventar", group = "backpack" },
+		{ id = ESOAPI.BAG_BANK, label = "Bank", group = "bank" },
+		{ id = ESOAPI.BAG_SUBSCRIBER_BANK, label = "ESO+-Bank", group = "bank" },
 	}
 	for _, bag in ipairs(bags) do
-		for slot = 0, (GetBagSize(bag.id) or 0) - 1 do
-			local link = GetItemLink(bag.id, slot)
-			if link and GetItemLinkItemId(link) == 30359 then
+		for slot = 0, (ESOAPI.GetBagSize(bag.id) or 0) - 1 do
+			local link = ESOAPI.GetItemLink(bag.id, slot)
+			if link and ESOAPI.GetItemLinkItemId(link) == 30359 then
 				local payload = string.match(tostring(link), "|H%d:item:([^|]+)|h")
 				local fields = {}
 				if payload then for field in string.gmatch(payload, "([^:]+)") do fields[#fields + 1] = field end end
@@ -9408,7 +9325,7 @@ local function BMR_BrandOilReadStacks()
 					results[bag.group][#results[bag.group] + 1] = {
 						bagId = bag.id, bagLabel = bag.label, slot = slot, link = link,
 						payload = payload, energy = energy, rawEnergy = rawEnergy,
-						stack = GetSlotStackSize(bag.id, slot) or 1,
+						stack = ESOAPI.GetSlotStackSize(bag.id, slot) or 1,
 					}
 				else
 					d(string.format("[BMR Brandöl-Sync] Kann Energie nicht auslesen: %s Slot=%d Link=%s", bag.label, slot, tostring(link)))
@@ -9423,16 +9340,16 @@ local function BMR_BrandOilFindEmptySlot(bagId)
 	-- Use the same occupancy source as BMR's normal mover. IsSlotUsed/GetItemLink
 	-- can disagree with the shared inventory cache, which led to choosing an
 	-- occupied destination slot and RequestMoveItem silently doing nothing.
-	local bagCache = SHARED_INVENTORY and SHARED_INVENTORY.bagCache and SHARED_INVENTORY.bagCache[bagId]
+	local bagCache = ESOAPI.SHARED_INVENTORY and ESOAPI.SHARED_INVENTORY.bagCache and ESOAPI.SHARED_INVENTORY.bagCache[bagId]
 	if not bagCache then
 		d(string.format("[BMR Brandöl-Sync] Inventarcache für Ziel-Bag=%s fehlt; kein Transfer gestartet.", tostring(bagId)))
 		return nil
 	end
-	for slot = 0, (GetBagSize(bagId) or 0) - 1 do
+	for slot = 0, (ESOAPI.GetBagSize(bagId) or 0) - 1 do
 		if not bagCache[slot] then
 			-- Extra guard: never choose a slot that currently reports an item link/ID.
-			local link = GetItemLink(bagId, slot)
-			local itemId = link and GetItemLinkItemId(link) or 0
+			local link = ESOAPI.GetItemLink(bagId, slot)
+			local itemId = link and ESOAPI.GetItemLinkItemId(link) or 0
 			if not link or link == "" or itemId == 0 then
 				return slot
 			end
@@ -9444,21 +9361,21 @@ end
 local function BMR_BrandOilMove(entry, destBag, destLabel, callback)
 	local destSlot = BMR_BrandOilFindEmptySlot(destBag)
 	if destSlot == nil then
-		d(string.format("[BMR Brandöl-Sync] Kein freier Slot in %s gefunden (Bag=%s Größe=%s). IsSlotUsed=%s. Abbruch.", destLabel, tostring(destBag), tostring(GetBagSize(destBag)), tostring(type(IsSlotUsed))))
+		d(string.format("[BMR Brandöl-Sync] Kein freier Slot in %s gefunden (Bag=%s Größe=%s). IsSlotUsed=%s. Abbruch.", destLabel, tostring(destBag), tostring(ESOAPI.GetBagSize(destBag)), tostring(type(IsSlotUsed))))
 		return false
 	end
 	d(string.format("[BMR Brandöl-Sync] Bewegungsauftrag: Stack=%d Energie=%d von %s Slot=%d nach %s Slot=%d",
 		entry.stack, entry.energy, entry.bagLabel, entry.slot, destLabel, destSlot))
-	local sourceLinkBefore = GetItemLink(entry.bagId, entry.slot)
-	local sourceStackBefore = GetSlotStackSize(entry.bagId, entry.slot) or 0
+	local sourceLinkBefore = ESOAPI.GetItemLink(entry.bagId, entry.slot)
+	local sourceStackBefore = ESOAPI.GetSlotStackSize(entry.bagId, entry.slot) or 0
 
 	-- Schedule the protected move on the next UI tick and inspect CallSecureProtected's
 	-- return value. Previously the return value was ignored, so a rejected API call looked
 	-- like a valid move request and the sync could only notice later that nothing happened.
-	zo_callLater(function()
+	ESOAPI.zo_callLater(function()
 		local callOk, callError
-		if IsProtectedFunction and IsProtectedFunction("RequestMoveItem") then
-			callOk, callError = CallSecureProtected("RequestMoveItem", entry.bagId, entry.slot, destBag, destSlot, entry.stack)
+		if ESOAPI.IsProtectedFunction("RequestMoveItem") then
+			callOk, callError = ESOAPI.CallSecureProtected("RequestMoveItem", entry.bagId, entry.slot, destBag, destSlot, entry.stack)
 		else
 			RequestMoveItem(entry.bagId, entry.slot, destBag, destSlot, entry.stack)
 			callOk = true
@@ -9471,9 +9388,9 @@ local function BMR_BrandOilMove(entry, destBag, destLabel, callback)
 		if RegisterExpectedPvpMoveTrace then RegisterExpectedPvpMoveTrace(entry.bagId, entry.slot, destBag, destSlot, entry.stack, sourceLinkBefore) end
 		-- A successful secure API call only means it was accepted, not that the item moved.
 		-- Verify the actual source slot before continuing with the next item.
-		zo_callLater(function()
-			local sourceLinkAfter = GetItemLink(entry.bagId, entry.slot)
-			local sourceStackAfter = GetSlotStackSize(entry.bagId, entry.slot) or 0
+		ESOAPI.zo_callLater(function()
+			local sourceLinkAfter = ESOAPI.GetItemLink(entry.bagId, entry.slot)
+			local sourceStackAfter = ESOAPI.GetSlotStackSize(entry.bagId, entry.slot) or 0
 			local sourceUnchanged = sourceLinkAfter == sourceLinkBefore and sourceStackAfter == sourceStackBefore
 			if sourceUnchanged then
 				d(string.format("[BMR Brandöl-Sync] API-Aufruf angenommen, aber Bewegung NICHT bestätigt; Quelle %s Slot=%d ist unverändert. Synchronisierung gestoppt.", entry.bagLabel, entry.slot))
@@ -9486,18 +9403,18 @@ local function BMR_BrandOilMove(entry, destBag, destLabel, callback)
 	return true
 end
 
-SLASH_COMMANDS["/bmr/brandoil/preview"] = function()
+ESOAPI.SLASH_COMMANDS["/bmr/brandoil/preview"] = function()
 	local all = BMR_BrandOilReadStacks()
 	local candidates = {}
 	for _, e in ipairs(all.backpack) do candidates[#candidates + 1] = e end
 	for _, e in ipairs(all.bank) do candidates[#candidates + 1] = e end
-	table.sort(candidates, function(a, b) if a.energy ~= b.energy then return a.energy < b.energy end; if a.bagId ~= b.bagId then return a.bagId == BAG_BACKPACK end; return a.slot < b.slot end)
+	table.sort(candidates, function(a, b) if a.energy ~= b.energy then return a.energy < b.energy end; if a.bagId ~= b.bagId then return a.bagId == ESOAPI.BAG_BACKPACK end; return a.slot < b.slot end)
 	d("[BMR Brandöl-Sync] Vorschau – keine Gegenstände bewegt; Reihenfolge nach Restenergie:")
 	for _, e in ipairs(candidates) do d(string.format("[BMR Brandöl-Sync] %s Slot=%d Stack=%d Energie=%d Rohwert=%d", e.bagLabel, e.slot, e.stack, e.energy, e.rawEnergy)) end
 end
 
-SLASH_COMMANDS["/bmr/brandoil/sync"] = function()
-	if type(GetBankingInteractionType) == "function" and GetBankingInteractionType() == 0 then
+ESOAPI.SLASH_COMMANDS["/bmr/brandoil/sync"] = function()
+	if type(ESOAPI.GetBankingInteractionType) == "function" and ESOAPI.GetBankingInteractionType() == 0 then
 		d("[BMR Brandöl-Sync] Bitte zuerst die persönliche Bank öffnen.")
 		return
 	end
@@ -9506,7 +9423,7 @@ SLASH_COMMANDS["/bmr/brandoil/sync"] = function()
 	for _, e in ipairs(all.backpack) do candidates[#candidates + 1] = e end
 	for _, e in ipairs(all.bank) do candidates[#candidates + 1] = e end
 	if #candidates == 0 then d("[BMR Brandöl-Sync] Keine Brandöl-Stacks (ID 30359) gefunden."); return end
-	table.sort(candidates, function(a, b) if a.energy ~= b.energy then return a.energy < b.energy end; if a.bagId ~= b.bagId then return a.bagId == BAG_BACKPACK end; return a.slot < b.slot end)
+	table.sort(candidates, function(a, b) if a.energy ~= b.energy then return a.energy < b.energy end; if a.bagId ~= b.bagId then return a.bagId == ESOAPI.BAG_BACKPACK end; return a.slot < b.slot end)
 	local best = candidates[1]
 	d(string.format("[BMR Brandöl-Sync] Zielstack: %s Slot=%d Energie=%d Stack=%d", best.bagLabel, best.slot, best.energy, best.stack))
 	-- Keep an inventory stack if it ties for the lowest energy; otherwise empty the backpack first,
@@ -9528,14 +9445,14 @@ SLASH_COMMANDS["/bmr/brandoil/sync"] = function()
 			end
 		end
 		if toMove then
-			BMR_BrandOilMove(toMove, BAG_BANK, "Bank", pushOtherInventoryStacks)
+			BMR_BrandOilMove(toMove, ESOAPI.BAG_BANK, "Bank", pushOtherInventoryStacks)
 			return
 		end
 		if not keepInBackpack then
 			local refreshed = BMR_BrandOilReadStacks()
 			table.sort(refreshed.bank, function(a,b) if a.energy ~= b.energy then return a.energy < b.energy end; return a.slot < b.slot end)
 			local pull = refreshed.bank[1]
-			if pull then BMR_BrandOilMove(pull, BAG_BACKPACK, "Inventar", function() d("[BMR Brandöl-Sync] Entnahme des Zielstacks bestätigt.") end) else d("[BMR Brandöl-Sync] Kein Brandöl-Stack mehr in der Bank zum Entnehmen.") end
+			if pull then BMR_BrandOilMove(pull, ESOAPI.BAG_BACKPACK, "Inventar", function() d("[BMR Brandöl-Sync] Entnahme des Zielstacks bestätigt.") end) else d("[BMR Brandöl-Sync] Kein Brandöl-Stack mehr in der Bank zum Entnehmen.") end
 		else
 			d("[BMR Brandöl-Sync] Fertig: niedrigste Restenergie bleibt im Inventar; übrige Brandöle wurden eingelagert.")
 		end
@@ -9553,14 +9470,14 @@ local PCFT_ITEM_ID = 64519
 local function BMR_PCFTReadStacks()
 	local results = { backpack = {}, bank = {} }
 	local bags = {
-		{ id = BAG_BACKPACK, label = "Inventar", group = "backpack" },
-		{ id = BAG_BANK, label = "Bank", group = "bank" },
-		{ id = BAG_SUBSCRIBER_BANK, label = "ESO+-Bank", group = "bank" },
+		{ id = ESOAPI.BAG_BACKPACK, label = "Inventar", group = "backpack" },
+		{ id = ESOAPI.BAG_BANK, label = "Bank", group = "bank" },
+		{ id = ESOAPI.BAG_SUBSCRIBER_BANK, label = "ESO+-Bank", group = "bank" },
 	}
 	for _, bag in ipairs(bags) do
-		for slot = 0, (GetBagSize(bag.id) or 0) - 1 do
-			local link = GetItemLink(bag.id, slot)
-			if link and GetItemLinkItemId(link) == PCFT_ITEM_ID then
+		for slot = 0, (ESOAPI.GetBagSize(bag.id) or 0) - 1 do
+			local link = ESOAPI.GetItemLink(bag.id, slot)
+			if link and ESOAPI.GetItemLinkItemId(link) == PCFT_ITEM_ID then
 				local payload = string.match(tostring(link), "|H%d:item:([^|]+)|h")
 				local fields = {}
 				if payload then for field in string.gmatch(payload, "([^:]+)") do fields[#fields + 1] = field end end
@@ -9573,7 +9490,7 @@ local function BMR_PCFTReadStacks()
 					results[bag.group][#results[bag.group] + 1] = {
 						bagId = bag.id, bagLabel = bag.label, slot = slot, link = link,
 						payload = payload, energy = energy, rawEnergy = rawEnergy,
-						stack = GetSlotStackSize(bag.id, slot) or 1,
+						stack = ESOAPI.GetSlotStackSize(bag.id, slot) or 1,
 					}
 				else
 					d(string.format("[BMR PCFT-Sync] Kann Energie nicht auslesen: %s Slot=%d Link=%s", bag.label, slot, tostring(link)))
@@ -9586,15 +9503,15 @@ end
 
 local function BMR_PCFTFindEmptySlot(bagId)
 	-- Same destination-slot validation as the Brand Oil sync.
-	local bagCache = SHARED_INVENTORY and SHARED_INVENTORY.bagCache and SHARED_INVENTORY.bagCache[bagId]
+	local bagCache = ESOAPI.SHARED_INVENTORY and ESOAPI.SHARED_INVENTORY.bagCache and ESOAPI.SHARED_INVENTORY.bagCache[bagId]
 	if not bagCache then
 		d(string.format("[BMR PCFT-Sync] Inventarcache für Ziel-Bag=%s fehlt; kein Transfer gestartet.", tostring(bagId)))
 		return nil
 	end
-	for slot = 0, (GetBagSize(bagId) or 0) - 1 do
+	for slot = 0, (ESOAPI.GetBagSize(bagId) or 0) - 1 do
 		if not bagCache[slot] then
-			local link = GetItemLink(bagId, slot)
-			local itemId = link and GetItemLinkItemId(link) or 0
+			local link = ESOAPI.GetItemLink(bagId, slot)
+			local itemId = link and ESOAPI.GetItemLinkItemId(link) or 0
 			if not link or link == "" or itemId == 0 then return slot end
 		end
 	end
@@ -9604,17 +9521,17 @@ end
 local function BMR_PCFTMove(entry, destBag, destLabel, callback)
 	local destSlot = BMR_PCFTFindEmptySlot(destBag)
 	if destSlot == nil then
-		d(string.format("[BMR PCFT-Sync] Kein freier Slot in %s gefunden (Bag=%s Größe=%s). Abbruch.", destLabel, tostring(destBag), tostring(GetBagSize(destBag))))
+		d(string.format("[BMR PCFT-Sync] Kein freier Slot in %s gefunden (Bag=%s Größe=%s). Abbruch.", destLabel, tostring(destBag), tostring(ESOAPI.GetBagSize(destBag))))
 		return false
 	end
 	d(string.format("[BMR PCFT-Sync] Bewegungsauftrag: Stack=%d Energie=%s (Rohwert=%s) von %s Slot=%d nach %s Slot=%d",
 		entry.stack, tostring(entry.energy), tostring(entry.rawEnergy), entry.bagLabel, entry.slot, destLabel, destSlot))
-	local sourceLinkBefore = GetItemLink(entry.bagId, entry.slot)
-	local sourceStackBefore = GetSlotStackSize(entry.bagId, entry.slot) or 0
-	zo_callLater(function()
+	local sourceLinkBefore = ESOAPI.GetItemLink(entry.bagId, entry.slot)
+	local sourceStackBefore = ESOAPI.GetSlotStackSize(entry.bagId, entry.slot) or 0
+	ESOAPI.zo_callLater(function()
 		local callOk, callError
-		if IsProtectedFunction and IsProtectedFunction("RequestMoveItem") then
-			callOk, callError = CallSecureProtected("RequestMoveItem", entry.bagId, entry.slot, destBag, destSlot, entry.stack)
+		if ESOAPI.IsProtectedFunction("RequestMoveItem") then
+			callOk, callError = ESOAPI.CallSecureProtected("RequestMoveItem", entry.bagId, entry.slot, destBag, destSlot, entry.stack)
 		else
 			RequestMoveItem(entry.bagId, entry.slot, destBag, destSlot, entry.stack)
 			callOk = true
@@ -9625,9 +9542,9 @@ local function BMR_PCFTMove(entry, destBag, destLabel, callback)
 			return
 		end
 		if RegisterExpectedPvpMoveTrace then RegisterExpectedPvpMoveTrace(entry.bagId, entry.slot, destBag, destSlot, entry.stack, sourceLinkBefore) end
-		zo_callLater(function()
-			local sourceLinkAfter = GetItemLink(entry.bagId, entry.slot)
-			local sourceStackAfter = GetSlotStackSize(entry.bagId, entry.slot) or 0
+		ESOAPI.zo_callLater(function()
+			local sourceLinkAfter = ESOAPI.GetItemLink(entry.bagId, entry.slot)
+			local sourceStackAfter = ESOAPI.GetSlotStackSize(entry.bagId, entry.slot) or 0
 			if sourceLinkAfter == sourceLinkBefore and sourceStackAfter == sourceStackBefore then
 				d(string.format("[BMR PCFT-Sync] API-Aufruf angenommen, aber Bewegung NICHT bestätigt; Quelle %s Slot=%d ist unverändert. Synchronisierung gestoppt.", entry.bagLabel, entry.slot))
 				return
@@ -9642,12 +9559,12 @@ end
 local function BMR_PCFTSortByLeastEnergy(entries)
 	table.sort(entries, function(a, b)
 		if a.energy ~= b.energy then return a.energy < b.energy end
-		if a.bagId ~= b.bagId then return a.bagId == BAG_BACKPACK end
+		if a.bagId ~= b.bagId then return a.bagId == ESOAPI.BAG_BACKPACK end
 		return a.slot < b.slot
 	end)
 end
 
-SLASH_COMMANDS["/bmr/pcft/preview"] = function()
+ESOAPI.SLASH_COMMANDS["/bmr/pcft/preview"] = function()
 	local all = BMR_PCFTReadStacks()
 	local candidates = {}
 	for _, e in ipairs(all.backpack) do candidates[#candidates + 1] = e end
@@ -9659,8 +9576,8 @@ SLASH_COMMANDS["/bmr/pcft/preview"] = function()
 	end
 end
 
-SLASH_COMMANDS["/bmr/pcft/sync"] = function()
-	if type(GetBankingInteractionType) == "function" and GetBankingInteractionType() == 0 then
+ESOAPI.SLASH_COMMANDS["/bmr/pcft/sync"] = function()
+	if type(ESOAPI.GetBankingInteractionType) == "function" and ESOAPI.GetBankingInteractionType() == 0 then
 		d("[BMR PCFT-Sync] Bitte zuerst die persönliche Bank öffnen.")
 		return
 	end
@@ -9693,7 +9610,7 @@ SLASH_COMMANDS["/bmr/pcft/sync"] = function()
 			end
 		end
 		if toMove then
-			BMR_PCFTMove(toMove, BAG_BANK, "Bank", pushOtherInventoryStacks)
+			BMR_PCFTMove(toMove, ESOAPI.BAG_BANK, "Bank", pushOtherInventoryStacks)
 			return
 		end
 		if not keepInBackpack then
@@ -9701,7 +9618,7 @@ SLASH_COMMANDS["/bmr/pcft/sync"] = function()
 			BMR_PCFTSortByLeastEnergy(refreshed.bank)
 			local pull = refreshed.bank[1]
 			if pull then
-				BMR_PCFTMove(pull, BAG_BACKPACK, "Inventar", function() d("[BMR PCFT-Sync] Entnahme des Zielstacks bestätigt.") end)
+				BMR_PCFTMove(pull, ESOAPI.BAG_BACKPACK, "Inventar", function() d("[BMR PCFT-Sync] Entnahme des Zielstacks bestätigt.") end)
 			else
 				d("[BMR PCFT-Sync] Kein Tribok-Stack mehr in der Bank zum Entnehmen.")
 			end
@@ -9713,7 +9630,7 @@ SLASH_COMMANDS["/bmr/pcft/sync"] = function()
 end
 
 
-SLASH_COMMANDS["/bmr/profiledebug"] = function(argument)
+ESOAPI.SLASH_COMMANDS["/bmr/profiledebug"] = function(argument)
 	local command = string.lower(tostring(argument or ""))
 	if string.find(command, "clear", 1, true) then
 		if type(db) == "table" then db.profileDebugLog = {} end
@@ -9723,10 +9640,10 @@ SLASH_COMMANDS["/bmr/profiledebug"] = function(argument)
 	BMR.ProfileDiagnosticDump()
 end
 
-EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, onAddonLoaded)
+ESOAPI.EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, onAddonLoaded)
 -- Defensive fallback for ForceConsoleFlow/.addon loading variants that do not dispatch
 -- EVENT_ADD_ON_LOADED to this handler at the expected point. The handler is idempotent.
-zo_callLater(function()
+ESOAPI.zo_callLater(function()
 	if not BMR._addonLoadEventMatched and not BMR._bmrInitializationComplete and not BMR._bmrInitializationRunning then
 		onAddonLoaded(nil, ADDON_NAME)
 	end

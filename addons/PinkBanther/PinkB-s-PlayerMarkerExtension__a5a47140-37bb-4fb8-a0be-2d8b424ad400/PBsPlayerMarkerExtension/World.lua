@@ -451,6 +451,18 @@ end
 
 local HOUSE_MS = 250
 
+-- The part of the tick that may fail, run under the tick's pcall. A method, not a closure made in Tick: a closure is a new
+-- object every frame (about 140 bytes of garbage, sixty times a second, even with nothing marked; measured in the harness).
+function A:TickWork(now)
+	if now - (self.lastHouse or 0) >= HOUSE_MS then
+		self.lastHouse = now
+		self:Housekeeping(now)
+		self:ShareTick(now)
+		self:CheckWorld()
+	end
+	self:UpdateWorld(now)
+end
+
 function A:Tick()
 	local now = A.Stamp()
 	local diag = self.diag
@@ -475,15 +487,7 @@ function A:Tick()
 		self.sceneName = named and tostring(name) or (scene and "?" or "none")
 	end
 
-	local ok, err = pcall(function()
-		if now - (self.lastHouse or 0) >= HOUSE_MS then
-			self.lastHouse = now
-			self:Housekeeping(now)
-			self:ShareTick(now)
-			self:CheckWorld()
-		end
-		self:UpdateWorld(now)
-	end)
+	local ok, err = pcall(self.TickWork, self, now)
 	-- the group frames and the compass bar have their own guards: a failure there never stops the 3D markers, nor the other way round
 	self:FramesTick(now)
 	self:CompassTick(now)

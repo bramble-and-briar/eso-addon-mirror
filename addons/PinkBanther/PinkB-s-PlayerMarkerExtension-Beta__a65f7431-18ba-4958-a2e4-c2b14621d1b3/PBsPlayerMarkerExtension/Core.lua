@@ -24,7 +24,7 @@ local S = PBS_PME_STRINGS
 A.baseTitle = "PB’s PlayerMarkerExtension"
 A.chatName = "PB’s PlayerMarkerExtension"
 A.author = "PinkBanther"
-A.version = "0.4.7"
+A.version = "0.4.8"
 
 -- The version comes from the manifest, the same way PB's other add-ons read it.
 do

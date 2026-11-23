@@ -455,7 +455,8 @@ function Skills:NeedsBars(name)
 end
 -- proc sets that buff or heal other players too (Grand Rejuvenation, Combat Physician): only listed for a player when the set
 -- is in their captured gear (group build), never guessed from a buff or effect seen on them
-local NEEDS_GEAR = { ["grand rejuvenation"] = true, ["combat physician"] = true, ["robes of transmutation"] = true }
+local NEEDS_GEAR = { ["grand rejuvenation"] = true, ["combat physician"] = true, ["robes of transmutation"] = true,
+    ["powerful assault"] = true }
 Skills.NEEDS_GEAR = NEEDS_GEAR
 -- morphs of one skill: a player has only one, so when the self-only morph is seen the group one came from
 -- someone else (Resolving Vigor heals only you; Echoing Vigor also heals group members)

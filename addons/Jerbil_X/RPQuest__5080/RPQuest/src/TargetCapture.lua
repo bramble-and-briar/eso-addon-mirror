@@ -95,12 +95,6 @@ function TargetCapture:CaptureFromReticle()
 end
 
 function TargetCapture:CaptureDiscoveryPoint(customMessage, customRadius)
-    if not GetUnitWorldPosition then
-        local err = Addon.Locale:Get("ALERT_DISCOVERY_INVALID_POS")
-        Addon.Announcements:ShowAlert(err, true)
-        return nil, err
-    end
-
     local zoneId, worldX, worldY, worldZ = GetUnitWorldPosition("player")
     if not zoneId or zoneId == 0 or not worldX or not worldZ then
         local err = Addon.Locale:Get("ALERT_DISCOVERY_INVALID_POS")

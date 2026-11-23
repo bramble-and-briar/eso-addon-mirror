@@ -118,66 +118,54 @@ end
 ---原生条下不可见；沉底只适用于可自由拖拽重叠的动态行)
 ---槽位非交互(纯展示，同原生 back row)。子控件全部匿名：显式名字会进全局
 ---名字注册表，多槽重复创建必撞名(实测坑：CreateControl("Icon",...) 第二槽即撞)
+---@type boolean|nil 迷你行创建中/创建中断(中途抛错则永久 true：错误如实上抛一次，心跳站住不再重试)
+l.creating = false
 ---@type fun()
 l.createRow = function()
-  if l.container or l.createFailed then
+  if l.container or l.creating then
     return
   end
-  local ok, err = pcall(function()
-    local host = ZO_ActionBar1 or GuiRoot
-    l.container = WINDOW_MANAGER:CreateControl("ADRMiniBarRow", host, CT_CONTROL)
-    l.slots = {}
-    for slotNum = 3, 8 do
-      local control = WINDOW_MANAGER:CreateControl("ADRMiniBarSlot" .. slotNum, l.container, CT_CONTROL)
-      control:SetMouseEnabled(false)
-      -- Icon：图标纹理(action 的 ability 图标；用户实物确认原生 back row 有图标)
-      local icon = WINDOW_MANAGER:CreateControl(nil, control, CT_TEXTURE)
-      icon:SetAnchor(TOPLEFT, control, TOPLEFT, 1, 1)
-      icon:SetAnchor(BOTTOMRIGHT, control, BOTTOMRIGHT, -1, -1)
-      -- 填充条(原生 back row 特征：框顶 8px 状态条，remain/duration 填充，
-      -- 施法条渐变色同原生 ZO_CAST_BAR_COLORS[BEGIN_CHARGE_UP]；
-      -- 锚几何按原生 XML：Frame TL+4,+3 / TR-4,+3。
-      -- 键盘原生即裸 StatusBar(无模板继承，dump 证实)——直接 CT_STATUSBAR；
-      -- ZO_StatusBar 虚拟模板不存在(实测 Duplicate 报错)，手柄亮泽层舍弃)
-      local nd = IsInGamepadPreferredMode() and MINI_DIMS.gamepad or MINI_DIMS.keyboard
-      local fillBar = WINDOW_MANAGER:CreateControl(nil, control, CT_STATUSBAR)
-      fillBar:SetAnchor(TOPLEFT, control, CENTER, -nd.w / 2 + 4, -nd.h / 2 + 3)
-      fillBar:SetAnchor(TOPRIGHT, control, CENTER, nd.w / 2 - 4, -nd.h / 2 + 3)
-      fillBar:SetHeight(8)
-      fillBar:SetMinMax(0, 1)
-      pcall(function()
-        ZO_StatusBar_SetGradientColor(fillBar, ZO_CAST_BAR_COLORS[ZO_CAST_STATE_BEGIN_CHARGE_UP])
-      end)
-      -- 胶囊框：仅 Frame 边框层(图标之上，原生创建序)。BG(BLANK) 实测是
-      -- 全幅盖板——盖上后连 Frame 边框都被盖没(用户实辨：所有边框消失)，
-      -- 原生可见边框感来自已移除的 Overlay 暗纱边缘；故不使用 BG/Overlay。
-      -- 方角艺术图标用内缩缓解(±3，微不可察)：个别图标四角戳出胶囊圆角
-      local art = IsInGamepadPreferredMode() and "EsoUI/Art/ActionBar/Gamepad/gp_backrow_abilityFrame"
-        or "EsoUI/Art/ActionBar/backrow_abilityFrame"
-      local frame = WINDOW_MANAGER:CreateControl(nil, control, CT_TEXTURE)
-      frame:SetTexture(art .. ".dds")
-      frame:SetAnchor(CENTER, control, CENTER)
-      frame:SetTextureCoords(unpack((IsInGamepadPreferredMode() and MINI_DIMS.gamepad or MINI_DIMS.keyboard).coords))
-      -- 图标内缩：角部收进，减少方角戳出胶囊圆角
-      icon:ClearAnchors()
-      icon:SetAnchor(TOPLEFT, control, TOPLEFT, 3, 3)
-      icon:SetAnchor(BOTTOMRIGHT, control, BOTTOMRIGHT, -3, -3)
-      l.slots[slotNum] =
-        { control = control, icon = icon, fillBar = fillBar, frame = frame, iconPath = nil }
-    end
-  end)
-  if not ok then
-    d(string.format("[ADR] MiniBar row creation failed: %s", tostring(err)))
-    l.createFailed = true
-    l.slots = nil
-    if l.container then
-      pcall(function()
-        l.container:SetHidden(true)
-      end)
-      l.container = nil
-    end
-    return
+  l.creating = true -- 中途抛错则永远为 true：错误如实上抛一次，心跳站住且不再重试
+  local host = ZO_ActionBar1 or GuiRoot
+  l.container = WINDOW_MANAGER:CreateControl("ADRMiniBarRow", host, CT_CONTROL)
+  l.slots = {}
+  for slotNum = 3, 8 do
+    local control = WINDOW_MANAGER:CreateControl("ADRMiniBarSlot" .. slotNum, l.container, CT_CONTROL)
+    control:SetMouseEnabled(false)
+    -- Icon：图标纹理(action 的 ability 图标；用户实物确认原生 back row 有图标)
+    local icon = WINDOW_MANAGER:CreateControl(nil, control, CT_TEXTURE)
+    icon:SetAnchor(TOPLEFT, control, TOPLEFT, 1, 1)
+    icon:SetAnchor(BOTTOMRIGHT, control, BOTTOMRIGHT, -1, -1)
+    -- 填充条(原生 back row 特征：框顶 8px 状态条，remain/duration 填充，
+    -- 施法条渐变色同原生 ZO_CAST_BAR_COLORS[BEGIN_CHARGE_UP]；
+    -- 锚几何按原生 XML：Frame TL+4,+3 / TR-4,+3。
+    -- 键盘原生即裸 StatusBar(无模板继承，dump 证实)——直接 CT_STATUSBAR；
+    -- ZO_StatusBar 虚拟模板不存在(实测 Duplicate 报错)，手柄亮泽层舍弃)
+    local nd = IsInGamepadPreferredMode() and MINI_DIMS.gamepad or MINI_DIMS.keyboard
+    local fillBar = WINDOW_MANAGER:CreateControl(nil, control, CT_STATUSBAR)
+    fillBar:SetAnchor(TOPLEFT, control, CENTER, -nd.w / 2 + 4, -nd.h / 2 + 3)
+    fillBar:SetAnchor(TOPRIGHT, control, CENTER, nd.w / 2 - 4, -nd.h / 2 + 3)
+    fillBar:SetHeight(8)
+    fillBar:SetMinMax(0, 1)
+    ZO_StatusBar_SetGradientColor(fillBar, ZO_CAST_BAR_COLORS[ZO_CAST_STATE_BEGIN_CHARGE_UP])
+    -- 胶囊框：仅 Frame 边框层(图标之上，原生创建序)。BG(BLANK) 实测是
+    -- 全幅盖板——盖上后连 Frame 边框都被盖没(用户实辨：所有边框消失)，
+    -- 原生可见边框感来自已移除的 Overlay 暗纱边缘；故不使用 BG/Overlay。
+    -- 方角艺术图标用内缩缓解(±3，微不可察)：个别图标四角戳出胶囊圆角
+    local art = IsInGamepadPreferredMode() and "EsoUI/Art/ActionBar/Gamepad/gp_backrow_abilityFrame"
+      or "EsoUI/Art/ActionBar/backrow_abilityFrame"
+    local frame = WINDOW_MANAGER:CreateControl(nil, control, CT_TEXTURE)
+    frame:SetTexture(art .. ".dds")
+    frame:SetAnchor(CENTER, control, CENTER)
+    frame:SetTextureCoords(unpack((IsInGamepadPreferredMode() and MINI_DIMS.gamepad or MINI_DIMS.keyboard).coords))
+    -- 图标内缩：角部收进，减少方角戳出胶囊圆角
+    icon:ClearAnchors()
+    icon:SetAnchor(TOPLEFT, control, TOPLEFT, 3, 3)
+    icon:SetAnchor(BOTTOMRIGHT, control, BOTTOMRIGHT, -3, -3)
+    l.slots[slotNum] =
+      { control = control, icon = icon, fillBar = fillBar, frame = frame, iconPath = nil }
   end
+  l.creating = false
   l.relayout()
 end
 
@@ -285,7 +273,7 @@ end
 ---心跳(Core 100ms)：数字倒数刷新 + 可见性/图标准时同步
 ---@type fun()
 l.onCoreUpdate = function()
-  if l.createFailed then
+  if l.creating then
     return
   end
   local sv = l.getSavedVars()
@@ -317,12 +305,11 @@ end
 m.debugDump = function()
   local lines = {}
   local nativeBackRow = "?"
-  if GetSetting_Bool then
-    local ok, v = pcall(GetSetting_Bool, SETTING_TYPE_UI, UI_SETTING_SHOW_ACTION_BAR_BACK_ROW)
-    nativeBackRow = (ok and v) and "ON" or "off"
+  if GetSetting_Bool and UI_SETTING_SHOW_ACTION_BAR_BACK_ROW ~= nil then
+    nativeBackRow = GetSetting_Bool(SETTING_TYPE_UI, UI_SETTING_SHOW_ACTION_BAR_BACK_ROW) and "ON" or "off"
   end
   lines[#lines + 1] = string.format("row=%s failed=%s hotbar=%s oakensoul=%s nativeBackRow=%s gamepad=%s",
-    tostring(l.container ~= nil), tostring(l.createFailed == true),
+    tostring(l.container ~= nil), tostring(l.creating == true),
     tostring(l.inactiveHotbar()), tostring(l.hasOakensoul()), nativeBackRow,
     tostring(IsInGamepadPreferredMode()))
   if l.slots then

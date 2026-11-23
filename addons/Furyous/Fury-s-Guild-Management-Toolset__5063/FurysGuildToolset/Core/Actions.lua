@@ -12,7 +12,8 @@
 --   in; you press Send. The one exception is the opt-in "Send the demotion mail
 --   automatically" setting: after an auto-demote it sends the mail in the background
 --   (Actions.SendMailNow), which costs normal postage. Success is reported only when the
---   server confirms with EVENT_MAIL_SEND_SUCCESS.
+--   server confirms with EVENT_MAIL_SEND_SUCCESS. The kick and blacklist mails (opt-in,
+--   per guild) are sent the same way, but only after you click Confirm in the kick window.
 --   Auto-demote (also opt-in) is the one roster change made without a dialog.
 
 local GT = FuryGMT
@@ -61,9 +62,9 @@ end
 -- Fills the mail compose window. Works whether or not it's already open
 -- (ComposeMailTo alone does nothing useful when the window is already showing).
 local function FillMail(displayName, subject, body)
-    if MAIL_SEND.to then MAIL_SEND.to:SetText(displayName) end
-    if MAIL_SEND.subject then MAIL_SEND.subject:SetText(subject) end
-    if MAIL_SEND.body then MAIL_SEND.body:SetText(body) end
+    MAIL_SEND.to:SetText(displayName)
+    MAIL_SEND.subject:SetText(subject)
+    MAIL_SEND.body:SetText(body)
 end
 
 -- method: "whisper" or "mail"
@@ -304,17 +305,221 @@ function Actions.AppendNote(guildId, displayName, line, onDone)
     end)
 end
 
-function Actions.Kick(guildId, displayName, alsoBlacklist, note, onDone)
-    if not NeedMember(guildId, displayName) then return end
-    if not Need(guildId, GUILD_PERMISSION_REMOVE, "remove members") then return end
-    if alsoBlacklist and not Need(guildId, GUILD_PERMISSION_MANAGE_BLACKLIST, "manage the blacklist") then return end
-    local body = alsoBlacklist
-        and zo_strformat("Remove <<1>> from <<2>> and add them to the guild blacklist?", displayName, U.GuildName(guildId))
-        or zo_strformat("Remove <<1>> from <<2>>?", displayName, U.GuildName(guildId))
-    Actions.Confirm(alsoBlacklist and "Kick and blacklist" or "Kick member", body, function()
-        GuildRemove(guildId, displayName)
-        U.Print("Removed %s from %s.", displayName, U.GuildName(guildId))
-        if alsoBlacklist then Actions.Blacklist(guildId, displayName, note) end
-        if onDone then onDone() end
+-- Kick / blacklist window ---------------------------------------------------------
+-- Kick, Kick and blacklist and Blacklist all go through one confirm window. When
+-- blacklisting it has a reason box (prefilled, you can change it) that becomes the
+-- blacklist note and the reason in the mail. A kick from the Inactive tab can mail the
+-- member why and that they're welcome back; a blacklist can mail them the reason. Both
+-- mails are off until you turn them on in the guild's settings, and the Mail button in the
+-- window turns the mail on or off for that one person. The mail is sent after you click
+-- Confirm, in the background (normal postage).
+
+local MAIL_BODY_MAX = 700
+local removeJob
+local removeDialogReady = false
+
+local function MemberTexts(guildId)
+    return GT:GetModule("members"):G(guildId)
+end
+
+-- Blacklist notes made by this addon start with "FGMT: ". The mail drops that prefix.
+local function MailReason(reason)
+    local text = (reason or ""):gsub("^FGMT:%s*", "")
+    text = zo_strtrim(text)
+    return (text:gsub("^%l", string.upper))
+end
+
+-- Subject and body of the mail for this kick or blacklist, or nil when there is none.
+function Actions.GetRemovalMail(job, reason)
+    local g = MemberTexts(job.guildId)
+    local guild = U.GuildName(job.guildId)
+    local subject, body
+    if job.blacklist then
+        subject = zo_strformat(g.blacklistSubject, job.name, guild, MailReason(reason))
+        body = zo_strformat(g.blacklistText, job.name, guild, MailReason(reason))
+    elseif job.inactive then
+        local days, limit = tostring(job.inactive.days), tostring(job.inactive.limitDays)
+        subject = zo_strformat(g.kickSubject, job.name, guild, days, limit)
+        body = zo_strformat(g.kickText, job.name, guild, days, limit)
+    else
+        return nil
+    end
+    return subject, body:sub(1, MAIL_BODY_MAX)
+end
+
+local function CurrentReason()
+    if not removeJob or not removeJob.blacklist then return "" end
+    return zo_strtrim(FuryGMTRemoveDialogReasonBox:GetText())
+end
+
+local function MailTip()
+    local job = removeJob
+    if not job then return nil end
+    local subject, body = Actions.GetRemovalMail(job, CurrentReason())
+    local lines = {
+        job.sendMail and "This mail is sent after you click Confirm. Click to skip it for this one."
+            or "No mail will be sent. Click to send this mail after you click Confirm.",
+        "Change the text in settings: Rules for (guild), Mail when you kick or blacklist.",
+        "",
+        "To: " .. job.name,
+        "Subject: " .. (subject or ""),
+        "",
+        body or "",
+    }
+    return table.concat(lines, "\n")
+end
+
+local function SetMailButtonText()
+    FuryGMTRemoveDialogMail:SetText(removeJob.sendMail and "Send mail: Yes" or "Send mail: No")
+end
+
+local function EnsureRemoveDialog()
+    if removeDialogReady then return end
+    removeDialogReady = true
+    -- Registering with the scene manager makes Esc close the window and shows the mouse cursor.
+    SCENE_MANAGER:RegisterTopLevel(FuryGMTRemoveDialog, false)
+    FuryGMTRemoveDialog:SetHandler("OnHide", function() removeJob = nil; ClearTooltip(InformationTooltip) end)
+    FuryGMTRemoveDialogReasonBox:SetMaxInputChars(BLACKLIST_NOTE_MAX)
+    local R = GT.Report
+    R.SetTip(FuryGMTRemoveDialogClose, "Cancel (Esc). Nothing is changed.")
+    R.SetTip(FuryGMTRemoveDialogCancel, "Closes this window. Nothing is changed and no mail is sent.")
+    R.SetTip(FuryGMTRemoveDialogConfirm, function()
+        if not removeJob then return nil end
+        local parts = {}
+        if removeJob.kick then parts[#parts + 1] = "removes them from the guild" end
+        if removeJob.blacklist then parts[#parts + 1] = "adds them to the guild blacklist with the reason above" end
+        if removeJob.canMail and removeJob.sendMail then parts[#parts + 1] = "sends them the mail (hover Send mail to read it)" end
+        return "Does it now: " .. table.concat(parts, ", then ") .. "."
     end)
+    R.SetTip(FuryGMTRemoveDialogMail, MailTip)
+    R.SetTip(FuryGMTRemoveDialogReasonBox, "What they did. It becomes their blacklist note (up to 150 characters) and the reason in the mail.")
+end
+
+local function LayoutRemoveDialog()
+    local job = removeJob
+    local c = FuryGMTRemoveDialog
+    FuryGMTRemoveDialogReasonLabel:SetHidden(not job.blacklist)
+    FuryGMTRemoveDialogReason:SetHidden(not job.blacklist)
+    FuryGMTRemoveDialogMail:SetHidden(not job.canMail)
+    local last = job.blacklist and FuryGMTRemoveDialogReason or FuryGMTRemoveDialogBody
+    FuryGMTRemoveDialogMail:ClearAnchors()
+    FuryGMTRemoveDialogMail:SetAnchor(TOPLEFT, last, BOTTOMLEFT, 0, 18)
+    FuryGMTRemoveDialogCancel:ClearAnchors()
+    FuryGMTRemoveDialogCancel:SetAnchor(TOPRIGHT, last, BOTTOMRIGHT, 0, 18)
+    local height = 18 + FuryGMTRemoveDialogTitle:GetTextHeight() + 12 + FuryGMTRemoveDialogBody:GetTextHeight()
+    if job.blacklist then
+        height = height + 12 + FuryGMTRemoveDialogReasonLabel:GetTextHeight() + 4 + FuryGMTRemoveDialogReason:GetHeight()
+    end
+    c:SetHeight(height + 18 + 30 + 22)
+end
+
+-- job = { guildId, name, kick = bool, blacklist = bool, reason = prefill text,
+--         inactive = { days, limitDays } for a kick from the Inactive tab, onDone = fn }
+function Actions.ConfirmRemove(job)
+    if job.kick then
+        if not NeedMember(job.guildId, job.name) then return end
+        if not Need(job.guildId, GUILD_PERMISSION_REMOVE, "remove members") then return end
+    end
+    if job.blacklist and not Need(job.guildId, GUILD_PERMISSION_MANAGE_BLACKLIST, "manage the blacklist") then return end
+    EnsureRemoveDialog()
+    local g = MemberTexts(job.guildId)
+    local guild = U.GuildName(job.guildId)
+    job.canMail = job.blacklist or job.inactive ~= nil
+    if job.blacklist then job.sendMail = g.blacklistMail
+    elseif job.inactive then job.sendMail = g.kickMail
+    else job.sendMail = false end
+    removeJob = job
+
+    local title, body
+    if job.kick and job.blacklist then
+        title = "Kick and blacklist"
+        body = zo_strformat("Remove <<1>> from <<2>> and add them to the guild blacklist?", job.name, guild)
+    elseif job.kick then
+        title = job.inactive and "Kick for inactivity" or "Kick member"
+        body = zo_strformat("Remove <<1>> from <<2>>?", job.name, guild)
+        if job.inactive then
+            body = body .. zo_strformat(" They have been offline <<1>> days and the limit for their rank is <<2>> days.",
+                tostring(job.inactive.days), tostring(job.inactive.limitDays))
+        end
+    else
+        title = "Blacklist"
+        body = zo_strformat("Add <<1>> to the <<2>> blacklist?", job.name, guild)
+    end
+    if job.canMail then
+        body = body .. "\n\n" .. (job.blacklist and "The mail tells them the reason. Hover Send mail to read it."
+            or "The mail tells them why and that they're welcome back. Hover Send mail to read it.")
+    end
+    FuryGMTRemoveDialogTitle:SetText(title)
+    FuryGMTRemoveDialogBody:SetText(body)
+    FuryGMTRemoveDialogReasonBox:SetText(job.reason or "")
+    SetMailButtonText()
+    LayoutRemoveDialog()
+    U.ShowOnTop(FuryGMTRemoveDialog)
+end
+
+function Actions.CloseRemoveDialog()
+    SCENE_MANAGER:HideTopLevel(FuryGMTRemoveDialog)
+end
+
+function Actions.ToggleRemoveMail()
+    if not removeJob then return end
+    removeJob.sendMail = not removeJob.sendMail
+    SetMailButtonText()
+    GT.Report.ShowTip(FuryGMTRemoveDialogMail, MailTip())
+end
+
+function Actions.SendRemovalMail(job, reason)
+    local subject, body = Actions.GetRemovalMail(job, reason)
+    if not subject then return end
+    U.Print("Mailing %s: %s", job.name, subject)
+    Actions.SendMailNow(job.name, subject, body, function(ok, why)
+        if ok then
+            U.Print("Mail sent to %s.", job.name)
+        else
+            U.Print("Couldn't mail %s (%s). Mail them yourself if you still want to.", job.name, why or "unknown")
+        end
+    end)
+end
+
+function Actions.ConfirmRemoveDialog()
+    local job = removeJob
+    if not job then return end
+    local reason = CurrentReason()
+    if job.blacklist and job.sendMail and MailReason(reason) == "" then
+        U.Print("Type the reason first. It goes in the blacklist note and the mail.")
+        return
+    end
+    Actions.CloseRemoveDialog()
+    if job.kick then
+        if not NeedMember(job.guildId, job.name) then return end
+        GuildRemove(job.guildId, job.name)
+        U.Print("Removed %s from %s.", job.name, U.GuildName(job.guildId))
+    end
+    if job.blacklist and not Actions.Blacklist(job.guildId, job.name, reason) then
+        if job.kick and job.onDone then job.onDone(reason) end
+        return
+    end
+    if job.canMail and job.sendMail then Actions.SendRemovalMail(job, reason) end
+    if job.onDone then job.onDone(reason) end
+end
+
+-- Kick (and blacklist). inactive = { days, limitDays } when kicking from the Inactive tab.
+function Actions.Kick(guildId, displayName, alsoBlacklist, note, onDone, inactive)
+    Actions.ConfirmRemove({ guildId = guildId, name = displayName, kick = true, blacklist = alsoBlacklist,
+        reason = note, inactive = inactive, onDone = onDone })
+end
+
+-- Blacklist someone (they may have left already). onDone(reason) after it worked.
+function Actions.ConfirmBlacklist(guildId, displayName, note, onDone)
+    Actions.ConfirmRemove({ guildId = guildId, name = displayName, blacklist = true, reason = note, onDone = onDone })
+end
+
+-- Blacklist without the window, for "Blacklist all new" (that list was confirmed once).
+-- Mails each person their reason when the guild's blacklist mail is on.
+function Actions.BlacklistAndMail(guildId, displayName, note)
+    if not Actions.Blacklist(guildId, displayName, note) then return false end
+    if MemberTexts(guildId).blacklistMail and MailReason(note) ~= "" then
+        Actions.SendRemovalMail({ guildId = guildId, name = displayName, blacklist = true }, note)
+    end
+    return true
 end

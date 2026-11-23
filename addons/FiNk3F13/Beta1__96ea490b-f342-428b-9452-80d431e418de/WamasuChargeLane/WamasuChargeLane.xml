@@ -1,0 +1,7 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="WamasuChargeLaneRoot" layer="BACKGROUND" tier="LOW" level="0" mouseEnabled="false">
+            <AnchorFill/>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

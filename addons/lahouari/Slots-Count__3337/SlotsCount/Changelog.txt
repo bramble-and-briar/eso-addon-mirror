@@ -1,0 +1,135 @@
+**************************************
+-- **** SLOTS COUNT  Changelog **** --
+**************************************
+
+Date: Nov 21, 2026		Version 2.51.00			by @Dr_Z
+==================		===============			==========
+* Fixed "Store Item Tooltips" displaying wrong item details after a Scan
+* Added /schelp slash command so users can view commands in the chat window.
+* Added a fix to Restore previous counts if the store gets closed during a new scan.
+* Removed some unused local varibales not being used anymore.
+* Updated and tested for API Version 51
+_______________________________________________________________________________________________________
+
+Date: Aug 24, 2026		Version: 2.50.13		by @Dr_Z
+====================		================		==========
+* Added the guild-trader ownership icon beside Slots Count in the viewer title.
+  The viewer now uses the same title icon shown in the Slots Count Settings Menu.
+* Guilds the player belongs to are now colored with Slots Count blue in the guild dropdown.
+  Scanned guilds the player does not belong to keep their normal dropdown color.
+* Added the visible guild count to the ALL GUILDS totals line.
+* Selecting one guild hides the guild count and continues showing Users and Listings totals.
+* Guild totals follow the current user @name filter.
+* Added the /slots short command to the Settings Menu slash-command list.
+  /slots and /slotscount both open or close the Slots Count viewer.
+* Added a Settings button to the right of Reset Filters in the Slots Count viewer.
+  The button opens the Slots Count settings panel directly.
+  also Added an Open Settings tooltip and used the existing gears.dds artwork.
+* Added a visible message showing the page number and retry attempt when a page does not respond.
+* Added completed-page tracking for every page processed during a scan.
+  The final scan is not saved if any page from the first through the last page is missing.
+  A missed page is retried after the Trading House request timeout.
+  After three unsuccessful retries, the scan stops and is not saved.
+* Added protection against AwesomeGuildStore Trading House responses colliding with a SlotsCount scan.
+* Fixed SlotsCount scans freezing when AGS interrupts an expected page response.
+* Duplicate listings are ignored by tracking each listing's unique ID.
+* Added scan validation for impossible listing totals over 30.
+* An invalid scan is not saved and the previous valid guild scan is restored.
+* The Last Scan time is updated only after a successful scan.
+* Reworked sortable-header direction handling.
+* First click on a header now sorts ascending; the second click sorts descending, then each click alternates direction.
+	- User @Name: A-Z / Z-A
+	- Item Listings: 1-30 / 30-1
+	- Guild: A-Z / Z-A
+* Updated the Slots Count viewing window.
+	- Normal row text is now explicitly pure white.
+	- Sellers in an outside scanned guild are shown in green when their @Name is also found in a guild the player belongs to.
+	- Shared-guild membership is cached when viewer data is rebuilt.
+	- Added User @Name search.
+	- Added numbered rows.
+	- Changed row text to white.
+	- Added row mouse-over highlighting.
+* Added the Slots Count viewing window.
+	- Guild dropdown defaults to ALL GUILDS.
+	- Displays User @Name, Item Listings, and Guild columns.
+	- Added sortable columns and combined user/listing totals.
+	- Added a Settings button, /slotscount command, and Show/Hide keybind.
+	- Window closes with its close button, the same keybind, Escape, or character movement.
+* Version Number Change
+_______________________________________________________________________________________________________
+
+Date: Aug 3, 2026		Version: 2.50.05		by @Dr_Z
+===================		================		==========
+* Added a Settings Menu.
+	Features in Settings Menu:
+	- Added support to turn OFF and ON the ability to Scan NonMember Guilds
+	  (NOTE: You'll only see this data by opening up the Saved Variables file)
+	- Added a Button to RELOADUI
+	- Added a Button to Clear Saved Data on the Account that is Logged In at that time
+	- Added a Button to Reset, or NUKE, All Saved Data on All Accounts for this Addon
+* Version Number Change
+_______________________________________________________________________________________________________
+
+Date: July 26, 2026		Version: 2.50.02		by @Dr_Z
+===================		================		==========
+* Fixed a complaint where the Addon's Custom Column in Guild Roster kepted changing positions.
+  SlotsCount's Cutsom Column now loads on the right side of all other columns.  Fixed the issue
+  by adding:
+  ## OptionalDependsOn: MasterMerchant ArkadiusTradeTools ITTsDonationBot GuildMemberManager
+
+  This lets all the addons that uses LibGuildRoster to initialize first so their Custom Columns  
+  will be listed first and Slots Count's Column will be the furthest right side of Guild Roster
+* Added color to the Column Title
+* Added Confirmation Dialog window for RESET SavedData
+* Localized a few Global Variables introduced by original coder
+* Cleaned up some old functions and code not needed. Started to look messy in there.
+* Version Number Change
+_______________________________________________________________________________________________________
+
+Date: July 13, 2026		Version: 2.50.00		by @Dr_Z
+===================		================		==========
+* Fixed an issue with "Slots Count" Colliding with AwsomeGuildStore and other Addons that
+  use the Trading House Search
+* Added WorldName, (EU Megaserver and NA Megaserver), Table Listings for SavedVariables.
+  (This Fixed a potential issue when 2 Guilds have the same name on both Megaservers.)
+* Added redundancy check to see if, Player/User of addon, is in Guild they're about to scan
+  (Count Slots Button is visible if your shopping at a guild store you're not in)
+* Added the ability to view Listing/Slots Count column in Guild Roster after a /reloadui
+  or Relogging back into the game
+* Added a Mouseover Tooltip to Listings/Slots Count column Heading.  
+	Shows:	Last Time Scanned
+  		Timer from Last Time Scanned
+		Total Guild Listings/Slots
+		Total Guild Members Listing Item Count
+	This feature also uses Color Coded Timer for a visual effect for when another Scan is Needed.
+	( Green, Yellow, Orange, and Red )
+* Did a Full API 101050 Version compliance check for "Slots Count" as there has been some Major Changes
+* Localized some Global Variables.
+* Addon Build Number Change w/ a definition for Addon Build Verion Numbering
+	v2.50.00
+	First Number	= This Addon's Verion Build
+	Second Number	= API Update Number
+	Third Number	= This Addon's Updates/Patch Numbers
+* Added a Changelog.txt file.  Nice to know whats been done for each Build/Version/Update/Patch
+* Added a License.txt file with Copyright stuff in it.
+_______________________________________________________________________________________________________
+
+Date: Oct. 10, 2022		Version: 1.0.5		by @lahouari / EU
+===================		================	=================
+* ?
+_______________________________________________________________________________________________________
+
+Date: Oct. 10, 2022		Version: 1.0.4		by @lahouari / EU
+===================		================	=================
+* ?
+_______________________________________________________________________________________________________
+
+Date: April 3, 2022		Version: 1.0.2		by @lahouari / EU
+===================		================	==================
+* Fixed a bug.
+_______________________________________________________________________________________________________
+
+Date: April 3, 2022		Version: 1.0.0		by @lahouari / EU
+===================		=================	=================
+* First Build run
+_______________________________________________________________________________________________________

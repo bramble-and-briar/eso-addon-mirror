@@ -149,6 +149,14 @@ function facts.linkItemId(link)
     return tonumber(link:match('^|H%d:item:(%d+):'))
 end
 
+---The same link for another item ID: its quality, level and other fields are kept.
+---@param link string
+---@param itemId number
+---@return string
+function facts.linkWithItemId(link, itemId)
+    return (link:gsub('^(|H%d:item:)%d+', function(prefix) return prefix .. itemId end, 1))
+end
+
 ---@param item InventoryPocVariant
 ---@return string
 function facts.variantKey(item)
@@ -229,6 +237,20 @@ function facts.guildIds()
     return result
 end
 
+---TSC records an average, a low and a high, and no number of sales. One sale
+---leaves the low and the high equal. Two leave the average at their midpoint.
+---Anything else took at least three.
+---@param average number
+---@param low number|nil
+---@param high number|nil
+---@return number|nil sales 1, 2, or 3 for three or more; nil without a range
+local function recordedSales(average, low, high)
+    if not low or not high then return nil end
+    if low == high then return 1 end
+    if math.abs(average - (low + high) / 2) <= 1 then return 2 end
+    return 3
+end
+
 ---TSC 120's 18-field records store white through gold in columns 1–15.
 ---Its API adds one to ESO's 1–5 quality value. Read this known format with the
 ---native value; do not patch TSC or reinterpret a future/unknown record format.
@@ -237,6 +259,7 @@ end
 ---@param allowLegacy boolean
 ---@return boolean recognized
 ---@return number|nil price
+---@return number|nil sales See `recordedSales`
 local function tscEntryPrice(entry, quality, allowLegacy)
     local values = {}
     for value in (entry .. ','):gmatch('(.-),') do
@@ -254,14 +277,18 @@ local function tscEntryPrice(entry, quality, allowLegacy)
     if not allowLegacy and values[offset] == values[16] and values[offset + 1] == values[17]
         and values[offset + 2] == values[18] then return true, nil end
     local price = tonumber(values[offset])
-    if policy.validPrice(price) then return true, price end
+    if policy.validPrice(price) then
+        return true, price, recordedSales(price, tonumber(values[offset + 1]), tonumber(values[offset + 2]))
+    end
     local legacy = allowLegacy and tonumber(values[16]) or nil
-    return true, policy.validPrice(legacy) and legacy or nil
+    if not policy.validPrice(legacy) then return true, nil end
+    return true, legacy, recordedSales(legacy, tonumber(values[17]), tonumber(values[18]))
 end
 
 ---@param link string
 ---@return number|nil
 ---@return boolean|nil loading
+---@return number|nil sales See `recordedSales`
 function facts.price(link)
     -- TSC's audited adapter maps the PC NA world to Xbox NA. Never use that
     -- mapping for the Mac test account or a different platform's economy.
@@ -277,8 +304,8 @@ function facts.price(link)
         return nil, true
     end
     if type(entry) == 'string' then
-        local recognized, price = tscEntryPrice(entry, GetItemLinkFunctionalQuality(link), not equipment)
-        if recognized then return price end
+        local recognized, price, sales = tscEntryPrice(entry, GetItemLinkFunctionalQuality(link), not equipment)
+        if recognized then return price, nil, sales end
     end
     if type(api.GetItemData) ~= 'function' then return nil end
     local data = api:GetItemData(link)
@@ -290,7 +317,40 @@ function facts.price(link)
     -- Equipment needs a quote with an identified quality. The legacy pool
     -- blends qualities and can include several traits for the same name.
     if equipment and data.fromLegacy ~= false then return nil end
-    return policy.validPrice(data.avgPrice) and data.avgPrice or nil
+    if not policy.validPrice(data.avgPrice) then return nil end
+    return data.avgPrice, nil, recordedSales(data.avgPrice, data.commonMin, data.commonMax)
+end
+
+---A piece of equipment's record at one quality. Read by ID: no link, so no
+---native item data.
+---@param itemId number
+---@param quality number
+---@return number|nil price
+---@return boolean|nil loading
+---@return number|nil sales See `recordedSales`
+function facts.recordedPrice(itemId, quality)
+    local api = rawget(_G, 'TSCPriceDataAPI') ---@type InventoryPocTsc|nil
+    local entry = api and api.priceData and api.priceData[itemId]
+    if api and api.LOADING ~= nil and entry == api.LOADING then return nil, true end
+    if type(entry) ~= 'string' then return nil end
+    local _, price, sales = tscEntryPrice(entry, quality, false)
+    return price, nil, sales
+end
+
+---Green, blue and purple records of an item ID that took three or more sales
+---at or above a price.
+---@param itemId number
+---@param minimum number
+---@return number count
+---@return boolean|nil loading
+function facts.provenRecords(itemId, minimum)
+    local count = 0
+    for quality = ITEM_FUNCTIONAL_QUALITY_MAGIC, ITEM_FUNCTIONAL_QUALITY_ARTIFACT do
+        local price, loading, sales = facts.recordedPrice(itemId, quality)
+        if loading then return 0, true end
+        if price and price >= minimum and sales == 3 then count = count + 1 end
+    end
+    return count
 end
 
 ---TSC exposes a loading sentinel, but no completion event. While it loads,

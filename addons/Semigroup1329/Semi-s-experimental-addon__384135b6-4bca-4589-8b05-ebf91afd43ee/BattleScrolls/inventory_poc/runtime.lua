@@ -96,6 +96,7 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field builds table<string, InventoryPocBuildState>
 ---@field returns InventoryPocReturnsSaved
 ---@field quotes table<string, InventoryPocCachedQuote>
+---@field quotesRevision number|nil `QUOTES_REVISION` the quotes were remembered under
 ---@field listings table<number, InventoryPocGuildListings> Listing counts as last read at a guild store
 ---@field coffers InventoryPocCofferSaved
 ---@field unread boolean|nil
@@ -1033,8 +1034,8 @@ local function companionWork()
         return
     end
     local batch = { action = 'equip', entries = {}, totals = {} } ---@type InventoryPocBatch
-    -- Validate the complete group immediately before sending. A dual-wield
-    -- conversion submits both halves in this callback, with no intervening yield.
+    -- Validate the complete group immediately before sending. Both rings
+    -- go in this callback, with no intervening yield.
     for _, move in ipairs(moves) do
         local item = move.item
         local current = facts.item(item.bag, item.slot, workPass.reserved)
@@ -1043,10 +1044,10 @@ local function companionWork()
             or facts.uniqueId(BAG_COMPANION_WORN, move.slot) ~= (wornIds[move.slot] or '0') then
             poc.finishVisit(); return
         end
-        if move.slot == EQUIP_SLOT_MAIN_HAND or move.slot == EQUIP_SLOT_OFF_HAND then
-            for _, slot in ipairs({ EQUIP_SLOT_MAIN_HAND, EQUIP_SLOT_OFF_HAND }) do
-                if facts.uniqueId(BAG_COMPANION_WORN, slot) ~= (wornIds[slot] or '0') then poc.finishVisit(); return end
-            end
+        -- A two-handed weapon also takes the off hand's piece off.
+        if move.slot == EQUIP_SLOT_MAIN_HAND
+            and facts.uniqueId(BAG_COMPANION_WORN, EQUIP_SLOT_OFF_HAND) ~= (wornIds[EQUIP_SLOT_OFF_HAND] or '0') then
+            poc.finishVisit(); return
         end
         if move.slot == EQUIP_SLOT_MAIN_HAND and item.equipType == EQUIP_TYPE_TWO_HAND
             and GetItemLink(BAG_COMPANION_WORN, EQUIP_SLOT_OFF_HAND, LINK_STYLE_DEFAULT) ~= ''
@@ -1670,6 +1671,11 @@ local function scheduleStart()
     end):Ensure(function() startFiber = nil end):Run()
 end
 
+---Raised when remembered quotes were computed wrongly: saved ones are dropped once.
+---2: set gear was priced from its set's collection IDs, another trait's records.
+---3: gear was priced from records of one or two sales in sets nobody trades.
+local QUOTES_REVISION = 3
+
 local function initialize()
     local root = rawget(_G, 'BattleScrollsInventoryPocSavedVariables') ---@type InventoryPocSavedRoot|nil
     if not root then
@@ -1687,7 +1693,10 @@ local function initialize()
     poc.saved.returns = poc.saved.returns or { stock = {}, discounted = {}, relisted = {}, unsold = {} }
     poc.saved.returns.relisted = poc.saved.returns.relisted or {}
     poc.saved.returns.unsold = poc.saved.returns.unsold or {}
-    poc.saved.quotes = poc.saved.quotes or {}
+    -- Quotes of an older revision came from wrong prices. The next guild store visit checks again.
+    if poc.saved.quotesRevision ~= QUOTES_REVISION then
+        poc.saved.quotes, poc.saved.quotesRevision = {}, QUOTES_REVISION
+    end
     -- Free listing slots decide how many listings the pack carries, and the
     -- guild store is the only place to count them: remember the last reading.
     poc.saved.listings = poc.saved.listings or {}

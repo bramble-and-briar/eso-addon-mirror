@@ -11,6 +11,7 @@ local STEP_CAP      = 4800
 local USED_CAP      = 100
 local ABIL_CAP      = 64
 local BARS          = 2
+local FULL_BAR      = 500
 
 local recording = false
 local t_start   = 0
@@ -162,8 +163,9 @@ function M.bar_id(b)    return bar_id[b or active_bar()] end
 function M.active_bar() return active_bar() end
 function M.is_recording() return recording end
 
-function M.load_session(steps, used, abilities)
+function M.load_session(steps, used, abilities, dur_ms)
   M.reset()
+  t_end = dur_ms or 0
   for i = 1, #steps do
     local r = steps[i]
     step_t[i] = r.t
@@ -205,8 +207,7 @@ function M.cost_at(b, t)
   for i = 1, n_abil do
     if abil_bar[i] == b and abil_t[i] <= t then c = abil_cost[i] end
   end
-  if c <= 0 then c = bar_cost[b] or 0 end
-  if c <= 0 then c = (cur_max > 0) and cur_max or 500 end
+  if c <= 0 then c = FULL_BAR end
   return c
 end
 
@@ -215,7 +216,6 @@ function M.id_at(b, t)
   for i = 1, n_abil do
     if abil_bar[i] == b and abil_t[i] <= t then id = abil_id[i] end
   end
-  if id == 0 and n_abil == 0 then id = bar_id[b] or 0 end
   return id
 end
 
@@ -243,7 +243,7 @@ function M.summary()
     local t1 = (i < n_steps) and step_t[i + 1] or t_hi
     if t1 > t0 then
       local c = M.cost_at(1, t0)
-      if bar_id[2] > 0 or n_abil > 0 then
+      if n_abil > 0 then
         local c2 = M.cost_at(2, t0)
         if c2 > 0 and c2 < c then c = c2 end
       end

@@ -1,0 +1,49 @@
+<GuiXml>
+    <Controls>
+        <!-- Text window for the Events tab: paste a sesh sign-up post, type someone's account,
+             or check the Group Finder listing before it is created. Nothing happens until OK. -->
+        <TopLevelControl name="FuryGMTEventsInput" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH">
+            <Dimensions x="760" y="520" />
+            <Anchor point="CENTER" />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontWinH3">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="10" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="10" />
+                    <OnClicked>FuryGMT.Events:CloseInput()</OnClicked>
+                    <OnMouseEnter>FuryGMT.Report.ShowTip(self, "Close without saving (Esc)")</OnMouseEnter>
+                    <OnMouseExit>FuryGMT.Report.HideTip()</OnMouseExit>
+                </Button>
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="AAAAAA">
+                    <Dimensions x="728" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetY="4" />
+                </Label>
+                <Backdrop name="$(parent)Text" inherits="ZO_MultiLineEditBackdrop_Keyboard">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Hint" relativePoint="BOTTOMLEFT" offsetY="8" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-54" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditMultiLineForBackdrop" />
+                    </Controls>
+                </Backdrop>
+                <Button name="$(parent)Cancel" inherits="ZO_DefaultButton" text="Cancel">
+                    <Dimensions x="140" y="28" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-14" />
+                    <OnClicked>FuryGMT.Events:CloseInput()</OnClicked>
+                    <OnMouseEnter>FuryGMT.Report.ShowTip(self, "Close without saving.")</OnMouseEnter>
+                    <OnMouseExit>FuryGMT.Report.HideTip()</OnMouseExit>
+                </Button>
+                <Button name="$(parent)OK" inherits="ZO_DefaultButton">
+                    <Dimensions x="200" y="28" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Cancel" relativePoint="LEFT" offsetX="-10" />
+                    <OnClicked>FuryGMT.Events:SubmitInput()</OnClicked>
+                    <OnMouseEnter>FuryGMT.Report.ShowTip(self, FuryGMT.Events:InputTip())</OnMouseEnter>
+                    <OnMouseExit>FuryGMT.Report.HideTip()</OnMouseExit>
+                </Button>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

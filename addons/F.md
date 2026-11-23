@@ -149,5 +149,5 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Furniture Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/killerkev77/Furniture-Tracker__655e721d-2e85-48fd-83f9-bcbb1e9c7392) | killerkev77 | Console | — |
 | [Fury](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DustyWarehouse/Fury__2422) | DustyWarehouse | PC / Mac | 1.11 |
 | [Fury's Character Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Character-Tracker__5078) | Furyous | PC / Mac | 1.2.2 |
-| [Fury's Guild Management Toolset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Guild-Management-Toolset__5063) | Furyous | PC / Mac | 1.4.0 |
+| [Fury's Guild Management Toolset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Guild-Management-Toolset__5063) | Furyous | PC / Mac | 1.16.11 |
 | [Fury's Inventory Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Inventory-Ledger__5099) | Furyous | PC / Mac | 1.2.2 |

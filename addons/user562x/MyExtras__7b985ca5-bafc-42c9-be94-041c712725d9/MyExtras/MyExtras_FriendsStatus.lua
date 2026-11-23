@@ -47,14 +47,16 @@ FS.defaults = {
     friendsStatusCharacter = true,
 }
 
+local scope = ME:NewScope("friendsCharSettings")
+scope:AddDefaults(FS.defaults, "friends")
+
 FS.showChoices = {
     { name = "All Friends", value = SHOW_ALL       },
     { name = "Favorites",   value = SHOW_FAVORITES },
 }
 
 local gameFormatter = nil
-local friends       = {}
-local members       = {}
+local people        = {}
 local watching      = false
 local checkId       = 0
 local hookedLists   = {}
@@ -63,7 +65,7 @@ local hookedLists   = {}
 -- Helpers
 --------------------------------------------------
 local function SV()
-    return ME.savedVariables
+    return scope:Settings()
 end
 
 local function IsEnabled()
@@ -76,13 +78,13 @@ local function ShowFavorites()
 end
 
 local function FriendFavorites()
-    local sv = SV()
+    local sv = ME.savedVariables
     if type(sv.friendsFavorites) ~= "table" then sv.friendsFavorites = {} end
     return sv.friendsFavorites
 end
 
 local function GuildFavorites(guildId)
-    local sv = SV()
+    local sv = ME.savedVariables
     if type(sv.guildFavorites) ~= "table" then sv.guildFavorites = {} end
     if guildId == nil then return sv.guildFavorites end
     local key = tostring(guildId)
@@ -104,12 +106,6 @@ local function SetFavorite(displayName, guildId, value)
     local favorites = guildId and GuildFavorites(guildId) or FriendFavorites()
     favorites[displayName] = value and true or nil
     if guildId and next(favorites) == nil then GuildFavorites()[tostring(guildId)] = nil end
-end
-
-local function FriendReported(displayName)
-    if not friends[displayName] then return false end
-    if not ShowFavorites() then return true end
-    return IsFavorite(displayName)
 end
 
 local function RawCharacter(friendIndex)
@@ -166,25 +162,27 @@ local function PrintSwitch(displayName, characterName, tag)
     Print(Line(zo_strformat(SWITCH_TEXT, ZO_LinkHandler_CreateDisplayNameLink(displayName), characterName), nil, tag))
 end
 
-local function Track(list, displayName, online, raw, silent, report, tag)
-    local entry = list[displayName]
+local function Track(displayName, state, silent)
+    local online, raw, report, tag = state.online, state.raw, state.report, state.tag
+    local entry = people[displayName]
     if not entry then
-        entry = { online = online, raw = nil, character = "" }
+        entry = { online = online, raw = nil, character = "", tag = tag }
         SetCharacter(entry, raw)
-        list[displayName] = entry
+        people[displayName] = entry
     elseif entry.online ~= online then
         if online then
+            entry.tag = tag
             SetCharacter(entry, raw)
-            if report and not silent then PrintStatus(displayName, entry.character, true, tag) end
+            if report and not silent then PrintStatus(displayName, entry.character, true, entry.tag) end
         else
-            if report and not silent then PrintStatus(displayName, entry.character, false, tag) end
+            if report and not silent then PrintStatus(displayName, entry.character, false, entry.tag) end
             SetCharacter(entry, "")
         end
         entry.online = online
     elseif online and raw ~= "" and raw ~= entry.raw then
         local hadCharacter = entry.character ~= ""
         SetCharacter(entry, raw)
-        if hadCharacter and report and not silent then PrintSwitch(displayName, entry.character, tag) end
+        if hadCharacter and report and not silent then PrintSwitch(displayName, entry.character, entry.tag) end
     end
     entry.seen = checkId
 end
@@ -192,26 +190,35 @@ end
 --------------------------------------------------
 -- Friends List
 --------------------------------------------------
-function FS:Check(silent)
+local function ReadFriends(states)
     if not (GetNumFriends and GetFriendInfo) then return end
-    checkId = checkId + 1
-
     local showFavorites = ShowFavorites()
     for friendIndex = 1, GetNumFriends() do
         local displayName, _, status = GetFriendInfo(friendIndex)
         if type(displayName) == "string" and displayName ~= "" then
             local online = status ~= nil and status ~= PLAYER_STATUS_OFFLINE
-            local raw    = online and RawCharacter(friendIndex) or ""
-            local report = not showFavorites or IsFavorite(displayName)
-            Track(friends, displayName, online, raw, silent, report)
+            states[displayName] = {
+                online = online,
+                raw    = online and RawCharacter(friendIndex) or "",
+                report = not showFavorites or IsFavorite(displayName),
+            }
         end
     end
+end
 
-    for displayName, entry in pairs(friends) do
-        if entry.seen ~= checkId then friends[displayName] = nil end
+function FS:Check(silent)
+    checkId = checkId + 1
+    local states = {}
+    ReadFriends(states)
+    self:ReadGuilds(states)
+
+    for displayName, state in pairs(states) do
+        Track(displayName, state, silent)
     end
 
-    self:CheckGuilds(silent)
+    for displayName, entry in pairs(people) do
+        if entry.seen ~= checkId then people[displayName] = nil end
+    end
 end
 
 local function RawMemberCharacter(guildId, memberIndex)
@@ -221,7 +228,7 @@ local function RawMemberCharacter(guildId, memberIndex)
     return characterName
 end
 
-function FS:CheckGuilds(silent)
+function FS:ReadGuilds(states)
     if not (GetNumGuilds and GetGuildId and GetGuildMemberIndexFromDisplayName and GetGuildMemberInfo) then return end
     local all = GuildFavorites()
     for guildIndex = 1, GetNumGuilds() do
@@ -230,22 +237,27 @@ function FS:CheckGuilds(silent)
         if type(favorites) == "table" then
             local tag = GetGuildName(guildId)
             for displayName in pairs(favorites) do
-                local entry = members[displayName]
-                if not FriendReported(displayName) and not (entry and entry.seen == checkId) then
-                    local memberIndex = GetGuildMemberIndexFromDisplayName(guildId, displayName)
-                    if memberIndex then
-                        local _, _, _, status = GetGuildMemberInfo(guildId, memberIndex)
-                        local online = status ~= nil and status ~= PLAYER_STATUS_OFFLINE
-                        local raw = online and RawMemberCharacter(guildId, memberIndex) or ""
-                        Track(members, displayName, online, raw, silent, true, tag)
+                local memberIndex = GetGuildMemberIndexFromDisplayName(guildId, displayName)
+                if memberIndex then
+                    local _, _, _, status = GetGuildMemberInfo(guildId, memberIndex)
+                    local online = status ~= nil and status ~= PLAYER_STATUS_OFFLINE
+                    local raw = online and RawMemberCharacter(guildId, memberIndex) or ""
+                    local state = states[displayName]
+                    if not state then
+                        states[displayName] = { online = online, raw = raw, report = true, tag = tag }
+                    else
+                        state.report = true
+                        if online and not state.online then
+                            state.online = true
+                            state.raw = raw
+                            state.tag = tag
+                        elseif online and state.raw == "" then
+                            state.raw = raw
+                        end
                     end
                 end
             end
         end
-    end
-
-    for displayName, entry in pairs(members) do
-        if entry.seen ~= checkId then members[displayName] = nil end
     end
 end
 
@@ -257,9 +269,7 @@ function FS:Refresh()
     if IsEnabled() then
         if watching then return end
         watching = true
-        friends = {}
-        members = {}
-        self:Check(true)
+        people = {}
         for i = 1, #FRIEND_EVENTS do
             if FRIEND_EVENTS[i] then
                 EVENT_MANAGER:RegisterForEvent(UPDATE_NAME .. i, FRIEND_EVENTS[i], OnFriendEvent)
@@ -271,10 +281,10 @@ function FS:Refresh()
             end
         end
         EVENT_MANAGER:RegisterForUpdate(UPDATE_NAME, CHECK_INTERVAL, OnFriendEvent)
+        self:Check(true)
     elseif watching then
         watching = false
-        friends = {}
-        members = {}
+        people = {}
         for i = 1, #FRIEND_EVENTS do
             if FRIEND_EVENTS[i] then
                 EVENT_MANAGER:UnregisterForEvent(UPDATE_NAME .. i, FRIEND_EVENTS[i])
@@ -506,21 +516,24 @@ function FS:GetOptions()
             type    = "submenu",
             name    = "Friends' Status",
             icon    = SUBMENU_ICON,
-            tooltip = "Tells you in chat when your friends, or people you've favorited in your guilds, come online or go offline.\n\n"
-                   .. ME.SAVED_ACCOUNT_TIP,
+            tooltip = function()
+                return "Tells you in chat when your friends, or people you've favorited in your guilds, come online or go offline.\n\n"
+                    .. ME:SavedTip(scope, "friends")
+            end,
             options = {
                 {
                     type    = "toggle",
                     name    = "Enabled",
                     preset  = "YES_NO",
                     default = defaults.friendsStatusEnabled,
-                    tooltip = "Shows a message in chat when a friend comes online or goes offline.",
+                    tooltip = "Shows a message in chat when a friend or guild favorite comes online or goes offline.",
                     getFunc = function() return SV().friendsStatusEnabled end,
                     setFunc = function(val)
                         SV().friendsStatusEnabled = val
                         FS:Refresh()
                     end,
                 },
+                ME:CharacterOption(scope, "friends", function() FS:Refresh() end),
                 {
                     type     = "dropdown",
                     name     = "Show",
@@ -546,7 +559,7 @@ function FS:GetOptions()
                     name     = "Show Online",
                     preset   = "YES_NO",
                     default  = defaults.friendsStatusOnline,
-                    tooltip  = "Shows a message when a friend comes online.",
+                    tooltip  = "Shows a message when someone comes online.",
                     sample   = function() return Sample(true) end,
                     disabled = IsOff,
                     getFunc  = function() return SV().friendsStatusOnline end,
@@ -557,7 +570,7 @@ function FS:GetOptions()
                     name     = "Show Offline",
                     preset   = "YES_NO",
                     default  = defaults.friendsStatusOffline,
-                    tooltip  = "Shows a message when a friend goes offline.",
+                    tooltip  = "Shows a message when someone goes offline.",
                     sample   = function() return Sample(false) end,
                     disabled = IsOff,
                     getFunc  = function() return SV().friendsStatusOffline end,
@@ -568,7 +581,7 @@ function FS:GetOptions()
                     name     = "Show Character Name",
                     preset   = "YES_NO",
                     default  = defaults.friendsStatusCharacter,
-                    tooltip  = "Shows which character your friend is on next to their name, and when they switch characters.",
+                    tooltip  = "Shows which character someone is on next to their name, and when they switch characters.",
                     sample   = function() return Sample(true) end,
                     disabled = IsOff,
                     getFunc  = function() return SV().friendsStatusCharacter end,
@@ -582,22 +595,31 @@ end
 --------------------------------------------------
 -- Lifecycle
 --------------------------------------------------
+local function Run(method, ...)
+    pcall(FS[method], FS, ...)
+end
+
 function FS:Init()
-    self:Hook()
-    self:HookLists()
-    self:RegisterCleanup()
-    self:Refresh()
+    Run("Refresh")
+    Run("Hook")
+    Run("HookLists")
+    Run("RegisterCleanup")
 end
 
 function FS:OnPlayerActivated()
-    self:Hook()
-    self:HookLists()
-    self:RegisterCleanup()
-    self:PruneGuilds(false)
-    self:Refresh()
+    Run("Refresh")
+    Run("Hook")
+    Run("HookLists")
+    Run("RegisterCleanup")
+    Run("PruneGuilds", false)
+end
+
+function FS:ResetSkipKeys()
+    return scope:ResetSkipKeys()
 end
 
 function FS:OnReset()
+    scope:ResetCharacter()
     self:Refresh()
 end
 

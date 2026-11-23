@@ -530,7 +530,9 @@ function DDP.SendAssignments(zoneId, mechKey)
         return false
     end
     local message = buildAssignmentMessage(objs)
-    DDP.SendNativeAssignmentPopup(mechKey, message)
+    if not DDP.SV or DDP.SV.sendReadyCheck ~= false then
+        DDP.SendNativeAssignmentPopup(mechKey, message)
+    end
     StartChatInput(message, CHAT_CHANNEL_PARTY)
 
     -- vLC Mirrors stays on the proven protocol-183 path. DO NOT change it.

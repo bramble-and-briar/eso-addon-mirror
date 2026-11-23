@@ -257,6 +257,10 @@ function AP:Record(diff, reason)
         local how = (text ~= name) and lastPick or nil          -- (for checking a place name later)
         ev[#ev + 1] = { t = now, v = diff, r = name, e = text, z = zone, kill = (name == self.KILLS) or nil, p = place, agg = agg, how = how }
     end
+    -- optional chat line for AP from keeps, outposts and resources
+    if diff > 0 and PDI.sv.settings.apChat and (text:find("^Capturing") or text:find("^Defending")) then
+        PDI.Msg(string.format("|c66DD66+%s AP|r %s", PDI.Num and PDI.Num(diff) or tostring(diff), text))
+    end
     if #ev > self.EVENTS_MAX + 100 then
         local keep = {}
         for i = #ev - self.EVENTS_MAX + 1, #ev do keep[#keep + 1] = ev[i] end

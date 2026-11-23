@@ -1,7 +1,7 @@
--- Deutsche Texte (überschreiben die englischen)
+-- German strings (override the English ones)
 local L = InventoryPulse.strings
 
--- Meldungen
+-- Messages
 L.INVENTORY_FULL    = "Inventar voll!"
 L.CRAFTBAG_EMPTY    = "Der Handwerksbeutel ist leer."
 L.NO_STACKABLE      = "Im Rucksack liegt kein Gegenstand, der sich auf 200 stapeln lässt."
@@ -11,7 +11,7 @@ L.UNKNOWN_COMMAND   = "Unbekannter Befehl oder ungültiger Wert. Liste mit /ipul
 L.SAVED             = "Gespeichert."
 L.RESET_DONE        = "Alle Einstellungen wurden auf Standard zurückgesetzt."
 
--- Schriften und Effekte
+-- Fonts and effects
 L.FONT_BOLD         = "ESO fett"
 L.FONT_MEDIUM       = "ESO mittel"
 L.FONT_CHAT         = "ESO Chat"
@@ -27,7 +27,7 @@ L.EFFECT_THICK      = "Dicker Umriss"
 L.EFFECT_SOFT_THIN  = "Weicher Schatten (dünn)"
 L.EFFECT_SOFT_THICK = "Weicher Schatten (dick)"
 
--- Einstellungen: allgemein
+-- Settings: general
 L.ENABLED           = "Anzeige"
 L.ENABLED_NONE      = "Alles aus"
 L.ENABLED_BAG       = "Nur BagCount"
@@ -38,7 +38,7 @@ L.HUD_ONLY_TT       = "Blendet die Meldungen in Menüs (Inventar, Karte, Einstel
 L.BANK_MUTE         = "An der Bank stummschalten"
 L.BANK_MUTE_TT      = "Keine Meldungen, solange eine Bank oder Gildenbank geöffnet ist."
 
--- Einstellungen: BagCount
+-- Settings: BagCount
 L.BAG_DESC          = "Zeigt bei Änderungen im Rucksack die belegten oder freien Plätze an. Die Meldung fliegt auf einer nach unten geöffneten Parabel davon."
 L.MODE              = "Zählweise"
 L.MODE_USED         = "Belegte Plätze"
@@ -61,7 +61,7 @@ L.MIN_FONT_SIZE     = "Schriftgröße bei leerem Rucksack"
 L.MIN_FONT_SIZE_TT  = "Schriftgröße bei leerem Rucksack. Ein voller Rucksack nutzt die Schriftgröße aus den gemeinsamen Einstellungen."
 L.TEST_BAG          = "Test BagCount"
 
--- Einstellungen: StackCount
+-- Settings: StackCount
 L.STACK_DESC        = "Meldet, sobald wieder ein voller 200er-Stapel zusammen ist (das Maximum pro Angebot im Gildenladen), und zeigt, wie viele volle Stapel du hast. Die Meldung fliegt auf einer nach oben geöffneten Parabel davon."
 L.STACK_MODE_CRAFTBAG = "|c66CCFFESO Plus aktiv: Der Handwerksbeutel wird zusätzlich überwacht.|r"
 L.STACK_MODE_BACKPACK = "|c66CCFFKein ESO Plus: Nur der Rucksack wird überwacht.|r"
@@ -81,7 +81,7 @@ L.SOUND_BELL        = "Glocke"
 L.SOUND_FANFARE     = "Fanfare"
 L.TEST_STACK        = "Test StackCount"
 
--- Einstellungen: gemeinsam
+-- Settings: shared
 L.SHARED_HEADER     = "Gemeinsame Einstellungen"
 L.SHARED_DESC       = "Gelten für BagCount und StackCount."
 L.FONT              = "Schriftart"
@@ -99,6 +99,14 @@ L.LENGTH            = "Flugstrecke (%)"
 L.LENGTH_TT         = "100 % = Ausblenden beim Erreichen der Starthöhe. Darunter verschwindet die Meldung früher, darüber fliegt sie über die Starthöhe hinaus."
 L.SHRINK            = "Verkleinerung im Flug (%)"
 L.SHRINK_TT         = "Die Meldung wird beim Wegfliegen kleiner, als würde sie in die Ferne fliegen. 0 = aus."
+L.ROTATION          = "Drehung im Flug"
+L.ROTATION_TT       = "Drehen: dreht sich in der Bildebene und neigt sich in Flugrichtung. Wenden: dreht sich wie eine Münze. Kippen: kippt wie eine Karte nach hinten."
+L.ROTATION_NONE     = "Aus"
+L.ROTATION_Z        = "Drehen (Z-Achse)"
+L.ROTATION_Y        = "Wenden (Y-Achse)"
+L.ROTATION_X        = "Kippen (X-Achse)"
+L.ROTATION_ANGLE    = "Drehwinkel (°)"
+L.ROTATION_ANGLE_TT = "Drehung am Ende des Flugs. Z. B. 30 = leicht schräg, 90 = Vierteldrehung (bei Wenden und Kippen steht die Meldung dann hochkant und verschwindet), 360 = volle Umdrehung."
 L.COLOR_NORMAL      = "Farbe BagCount: Standard"
 L.COLOR_15          = "Farbe BagCount: bis 15 Restplätze"
 L.COLOR_5           = "Farbe BagCount: bis 5 Restplätze"
@@ -108,7 +116,7 @@ L.COLOR_P95         = "Farbe BagCount Prozent: ab 95 %"
 L.COLOR_FULL        = "Farbe BagCount: Inventar voll"
 L.COLOR_STACK       = "Farbe StackCount"
 
--- Chat-Hilfe
+-- Chat help
 L.HELP_TITLE        = "InventoryPulse – Befehle (aktueller Wert in Klammern):"
 L.HELP_SHOW         = "was angezeigt wird"
 L.HELP_MODE         = "BagCount: belegte oder freie Plätze"
@@ -123,6 +131,8 @@ L.HELP_STACKDISPLAY = "StackCount: Darstellung"
 L.HELP_STACKBACKPACK = "StackCount: Rucksack überwachen"
 L.HELP_SOUND        = "StackCount: Ton"
 L.HELP_SHRINK       = "Verkleinerung im Flug in %"
+L.HELP_ROTATION     = "Drehung im Flug (Achse)"
+L.HELP_ANGLE        = "Drehwinkel in Grad"
 L.HELP_HUDONLY      = "nur im HUD anzeigen"
 L.HELP_BANKMUTE     = "an der Bank stummschalten"
 L.HELP_FONT         = "Schriftart (Liste: /ipulse fonts)"

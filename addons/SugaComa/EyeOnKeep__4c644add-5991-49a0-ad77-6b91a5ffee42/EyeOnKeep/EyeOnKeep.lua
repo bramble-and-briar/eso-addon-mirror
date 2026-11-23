@@ -1,11 +1,11 @@
 ﻿--------------------------------------------------------------
--- EyeOnKeep.lua — v1.3.2
+-- EyeOnKeep.lua — v1.4.3
 -- Author: SugaComa (Rik Sprint)
 -- RESOURCES NOW FILTER BY HOME TERRITORY (same as keeps/outposts/towns)
 --------------------------------------------------------------
 local ADDON_NAME = "EyeOnKeep"
 EyeOnKeep = EyeOnKeep or {}
-EyeOnKeep.version = "1.3.2"
+EyeOnKeep.version = "1.4.3"
 local EM = EVENT_MANAGER
 local EOK_SV_VERSION = 44
 local EOK_SV = nil
@@ -393,6 +393,84 @@ local function InCyrodiil()
     return IsInCyrodiil() and not IsInImperialCity() and not IsActiveWorldBattleground()
 end
 
+local hammerCampaign, hammerSpawnedAt, hammerRevealSeen, hammerReveal
+local hammerObjective
+
+local function ResetHammerTracking(campaign)
+    hammerCampaign = campaign
+    hammerSpawnedAt, hammerRevealSeen, hammerReveal, hammerObjective = nil, nil, nil, nil
+end
+
+local function TrackHammer(artifactId)
+    if trackingSuspended or not InCyrodiil()
+        or GetDaedricArtifactVisualType(artifactId) ~= DAEDRIC_ARTIFACT_VISUAL_TYPE_VOLENDRUNG then return false end
+    local campaign = GetCurrentCampaignId()
+    if not campaign or campaign <= 0 then return false end
+    if hammerCampaign ~= campaign then ResetHammerTracking(campaign) end
+    return true
+end
+
+local function OnHammerSpawned(_, artifactId)
+    if not TrackHammer(artifactId) or hammerSpawnedAt or hammerRevealSeen then return end
+    hammerSpawnedAt = nowMs()
+    chat("Volendrung spawned. Location hidden.")
+end
+
+local function ValidMapPoint(x, y)
+    return type(x) == "number" and type(y) == "number" and x > 0 and x < 1 and y > 0 and y < 1
+end
+
+local function GetHammerLandmark(reveal)
+    if GetCurrentMapIndex() ~= GetCyrodiilMapIndex()
+        or not IsObjectiveObjectVisible(reveal.keepId, reveal.objectiveId, reveal.context) then return end
+    local pinType, x, y = GetObjectivePinInfo(reveal.keepId, reveal.objectiveId, reveal.context)
+    if not pinType or pinType == MAP_PIN_TYPE_INVALID or not ValidMapPoint(x, y) then return end
+
+    local nearestName, nearestDistance
+    for index = 1, GetNumKeeps() do
+        local id, context = GetKeepKeysByIndex(index)
+        if IsLocalBattlegroundContext(context) and GetKeepType(id) == KEEPTYPE_KEEP then
+            local keepPinType, keepX, keepY = GetKeepPinInfo(id, context)
+            if keepPinType and keepPinType ~= MAP_PIN_TYPE_INVALID and ValidMapPoint(keepX, keepY) then
+                local distance = (keepX - x)^2 + (keepY - y)^2
+                local name = GetKeepName(id)
+                if name and name ~= "" and (not nearestDistance or distance < nearestDistance) then
+                    nearestName, nearestDistance = name, distance
+                end
+            end
+        end
+    end
+    return nearestName
+end
+
+local function AnnounceHammerReveal()
+    if not hammerReveal or hammerCampaign ~= GetCurrentCampaignId() then return end
+    local landmark = GetHammerLandmark(hammerReveal)
+    if landmark then
+        chat("Volendrung visible near " .. landmark .. ".")
+    elseif nowMs() >= hammerReveal.deadline then
+        chat("Volendrung revealed. Check the Cyrodiil map.")
+    else
+        return
+    end
+    hammerReveal = nil
+end
+
+local function OnHammerStateChanged(_, keepId, objectiveId, context, _, state, _, _, _, artifactId, lastState)
+    if not IsLocalBattlegroundContext(context) or not TrackHammer(artifactId) then return end
+    if state == OBJECTIVE_CONTROL_STATE_UNKNOWN then
+        if lastState ~= OBJECTIVE_CONTROL_STATE_UNKNOWN then ResetHammerTracking(hammerCampaign) end
+    else
+        hammerObjective = { keepId = keepId, objectiveId = objectiveId, context = context }
+        if lastState == OBJECTIVE_CONTROL_STATE_UNKNOWN and not hammerRevealSeen then
+            hammerRevealSeen = true
+            hammerReveal = hammerObjective
+            hammerReveal.deadline = nowMs() + 6000
+            AnnounceHammerReveal()
+        end
+    end
+end
+
 -- Announce actual coronations, never infer them from six-keep ownership.
 local lastCoronationKey, lastCoronationAt = nil, 0
 local function OnCoronation(_, campaignId, characterName, alliance, displayName)
@@ -473,6 +551,34 @@ local function SaySiege(name, owner, territory, kind, counts)
     end
 end
 
+local function CheckHammerAtAttackedKeep(id, st, name)
+    if muted then return end
+    if not st.under or not IsKeepTravelBlockedByDaedricArtifact(id) then
+        st.hammerAlliance = nil
+        return
+    end
+
+    local alliance = ALLIANCE_NONE
+    if hammerObjective and hammerCampaign == activeCampaign then
+        local holdingAlliance = GetCarryableObjectiveHoldingAllianceInfo(
+            hammerObjective.keepId, hammerObjective.objectiveId, hammerObjective.context)
+        if FACTION[holdingAlliance] then alliance = holdingAlliance end
+    end
+    if st.hammerAlliance == alliance then return end
+
+    local now = nowMs()
+    st.hammerReportedAt = st.hammerReportedAt or {}
+    local lastReport = st.hammerReportedAt[alliance]
+    if lastReport and now - lastReport < 60000 then return end
+
+    local message = "Volendrung blocking travel at " .. ChatPlace(name, "keep")
+    if alliance ~= ALLIANCE_NONE then
+        message = message .. " (" .. FACTION[alliance].tag .. " holds it)"
+    end
+    chat(message .. ".")
+    st.hammerAlliance, st.hammerReportedAt[alliance] = alliance, now
+end
+
 local function CheckSiege(id, st, name, owner, territory, kind)
     if kind ~= "keep" then return end
     local counts, freshFaction, growth = {}, false, false
@@ -500,6 +606,7 @@ local function CheckSiege(id, st, name, owner, territory, kind)
         st.lastSiegeAt = now
     end
     st.siege = counts
+    CheckHammerAtAttackedKeep(id, st, name)
 end
 
 local function HandleUpdate(id, ownerOverride, oldOwner, attackOverride)
@@ -538,6 +645,7 @@ end
 
 local function ResetTracking()
     STATE, activeCampaign, scanNumber = {}, GetCurrentCampaignId(), 0
+    if hammerCampaign ~= activeCampaign then ResetHammerTracking(activeCampaign) end
     BuildObjectiveIndex()
     -- Snapshot existing owners without inventing captures. Siege is checked on the next scan.
     for _, id in ipairs(OBJECTIVES) do
@@ -723,6 +831,7 @@ end
 
 local function Scan()
     if not EnsureContext() then return end
+    AnnounceHammerReveal()
     scanNumber = scanNumber + 1
     for _, id in ipairs(OBJECTIVES) do
         if GetKeepType(id) == KEEPTYPE_KEEP or scanNumber % 5 == 0 then HandleUpdate(id) end
@@ -734,6 +843,7 @@ local function ActivateTracking()
     EM:UnregisterForUpdate(ADDON_NAME .. "_Scan")
     STATE, activeCampaign = {}, nil
     if not InCyrodiil() then
+        ResetHammerTracking()
         lastTacticalAdvice, tacticalPopulation = nil, nil
         return
     end
@@ -742,6 +852,7 @@ local function ActivateTracking()
 end
 local function DeactivateTracking()
     trackingSuspended = true
+    ResetHammerTracking()
     lastTacticalAdvice, tacticalPopulation = nil, nil
     EM:UnregisterForUpdate(ADDON_NAME .. "_Scan")
     STATE, activeCampaign = {}, nil
@@ -847,6 +958,8 @@ local function EyeOnKeep_Init()
     --------------------------------------------------------------
     -- Register Core Events
     --------------------------------------------------------------
+    EM:RegisterForEvent(ADDON_NAME.."_HammerSpawn", EVENT_DAEDRIC_ARTIFACT_OBJECTIVE_SPAWNED_BUT_NOT_REVEALED, OnHammerSpawned)
+    EM:RegisterForEvent(ADDON_NAME.."_HammerState", EVENT_DAEDRIC_ARTIFACT_OBJECTIVE_STATE_CHANGED, OnHammerStateChanged)
     EM:RegisterForEvent(ADDON_NAME.."_Coronation", EVENT_CORONATE_EMPEROR_NOTIFICATION, OnCoronation)
     EM:RegisterForEvent(ADDON_NAME.."_Attack", EVENT_KEEP_UNDER_ATTACK_CHANGED, OnKeepUnderAttackChanged)
     EM:RegisterForEvent(ADDON_NAME.."_Owner", EVENT_KEEP_ALLIANCE_OWNER_CHANGED, OnKeepOwnerChanged)

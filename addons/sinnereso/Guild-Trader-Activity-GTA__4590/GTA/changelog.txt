@@ -1,5 +1,5 @@
-2026.11.21c
-- Localized the global reference and reverted the manifest file back to .txt format as per Baertrams instructions.
+2026.11.23
+- Minor additional localization adjustments for libHistoire.
 
 ** POSSIBLE FUTURE OPTIONS **
 - fix name length issue

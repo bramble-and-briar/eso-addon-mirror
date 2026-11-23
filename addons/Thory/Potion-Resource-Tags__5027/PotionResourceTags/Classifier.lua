@@ -84,14 +84,7 @@ function Classifier.Classify(link)
     if not link or link == "" then
         return nil, "empty"
     end
-    local ok, api = Read("GetAPIVersion")
-    if not ok then
-        return nil, api
-    elseif api ~= PRT.SOURCE_API_VERSION then
-        return nil, "unsupported-api"
-    end
-    local itemType
-    ok, itemType = Read("GetItemLinkItemType", link)
+    local ok, itemType = Read("GetItemLinkItemType", link)
     if not ok then
         return nil, itemType
     elseif type(itemType) ~= "number" then

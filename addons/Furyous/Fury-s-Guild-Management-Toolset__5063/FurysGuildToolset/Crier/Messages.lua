@@ -36,7 +36,7 @@
 --   - After editing, type /reloadui in game.
 -- ============================================================
 
-FuryGMT_CrierMessages = {
+FuryGMT.CrierMessages = {
 
     -- ===== Recruiting (zone chat) =====
     -- Tip: put your guild's link at the start and end of a recruiting ad so

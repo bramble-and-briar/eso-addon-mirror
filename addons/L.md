@@ -11,6 +11,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Landslide Tracker - Earthen Heart Passive](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Landslide-Tracker---Earthen-Heart-Passive__4470) | Duesentrieb | PC / Mac | 20260320-0002 |
 | [LanguageChanger for 1.5.5](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hiiko/LanguageChanger-for-1.5.5__827) | Hiiko | PC / Mac | 0.1 |
 | [LarvalTear - Change Skill lines, Skills, Attributes, and more](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thory/LarvalTear---Change-Skill-lines-Skills-Attributes-and-more__4485) | Thory | PC / Mac | 1.5.0.3 |
+| [Last Rites](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Last-Rites__e5420ffd-20f0-4b92-b30a-d74e81cd5e28) | SugaComa | Console | — |
 | [Latency Statistics](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tactitocalon/Latency-Statistics__1869) | Tactitocalon | PC / Mac | 1.0 |
 | [Lawful Lycanthropy Reborn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Lawful-Lycanthropy-Reborn__5077) | O-Range | PC / Mac | 1.0 |
 | [Lawful Necromancy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/muh/Lawful-Necromancy__2388) | muh | PC / Mac | 1.1 |
@@ -49,6 +50,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Left Right Simple Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sergi4ek/Left-Right-Simple-Addon__3767) | sergi4ek | PC / Mac | 1.2.2 |
 | [Lens Flare Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Lens-Flare-Toggle__1215) | CaptainBlagbird | PC / Mac | 1.0.14 |
 | [Leo's Altholic (Fix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Fix__3596) | sshogrin | PC / Mac | 1.9.8 |
+| [Leo's Altholic Standalone Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Standalone-Viewer__5071) | sshogrin | PC / Mac | 1.1.2 |
 | [Leo's Dolmen Runner - LDR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Dolmen-Runner---LDR__2534) | LeandroSilva | PC / Mac | 1.3.1 |
 | [Leo's Dolmen Runner - REDUX (with inviter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kiasmalyn/Leo-s-Dolmen-Runner---REDUX-with-inviter__3629) | Kiasmalyn | PC / Mac | 2.1.5 |
 | [Leo's Guild Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Guild-Manager__2151) | LeandroSilva | PC / Mac | 1.3.0 |
@@ -63,7 +65,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Less Bling Golden Pursuits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Less-Bling-Golden-Pursuits__3993) | kawamonkey | PC / Mac | 1.0 |
 | [Let There Be Light](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Let-There-Be-Light__1906) | Cardinal05 | PC / Mac | 1.0.4 |
 | [Let's Talk Later](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Let-s-Talk-Later__4304) | Saleand | PC / Mac | 0.1.4 |
-| [Lethal PvP Insights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lethal2k/Lethal-PvP-Insights__5037) | Lethal2k | PC / Mac | 1.11.4 |
+| [Lethal PvP Insights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lethal2k/Lethal-PvP-Insights__5037) | Lethal2k | PC / Mac | 1.11.5 |
 | [LetsFurnish!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NzuriL/LetsFurnish__5076) | NzuriL | PC / Mac | 0.6.3 |
 | [LFG Auto Accept](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/gitright/LFG-Auto-Accept__1754) | gitright | PC / Mac | 1.2.019 |
 | [LGM - Lilith's Group Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drummerx04/LGM---Lilith-s-Group-Manager__2088) | Drummerx04 | PC / Mac | 4.6.1 |
@@ -119,11 +121,11 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibCraftText](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/LibCraftText__2184) | ziggr | PC / Mac | 5.3.1 |
 | [LibCrypto](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/LibCrypto__4010) | akamatsu02 | PC / Mac | 1.1 |
 | [LibCustomDialog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/LibCustomDialog__2708) | MrPikPik | PC / Mac | 0.3 |
-| [LibCustomIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomIcons__4161) | m00nyONE | PC / Mac | 2026-11-16 |
+| [LibCustomIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomIcons__4161) | m00nyONE | PC / Mac | 2026-11-23 |
 | [LibCustomMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mYoda01/LibCustomMenu__fff7f7e3-b518-4545-9e96-a4f6c2a28dea) | mYoda01 | Console | — |
 | [LibCustomMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/LibCustomMenu__1146) | votan | PC / Mac | 7.3.0 |
 | [LibCustomNames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomNames__5eaa0d91-47f8-4c5e-8673-db3ab518a752) | m00nyONE | Console | — |
-| [LibCustomNames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomNames__4155) | m00nyONE | PC / Mac | 2026-11-16 |
+| [LibCustomNames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomNames__4155) | m00nyONE | PC / Mac | 2026-11-23 |
 | [LibDailyReset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/LibDailyReset__4424) | atharti | PC / Mac | 2.0 |
 | [LibDataEncode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/LibDataEncode__3980) | Solinur | PC / Mac | 2 |
 | [LibDataPacker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibDataPacker__4082) | imPDA | PC / Mac | v5 |

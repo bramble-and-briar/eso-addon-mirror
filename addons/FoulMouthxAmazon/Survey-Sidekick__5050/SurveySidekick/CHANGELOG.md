@@ -1,42 +1,25 @@
 # Changelog
 
-## 0.2.3-beta - 2026-11-14
+Survey Sidekick 0.6.0
 
-- Added a Colors menu accessible from the title bar or `/surveys colors`.
-- Added Plum, Emerald, Ocean, Ember, Midnight and Rose presets, plus independent
-  background, title bar and border choices.
-- Colors apply immediately, save per character, and carry across the minimized
-  tracker, quantity box, help/report copy window and color menu.
-- Added Reset Colors to restore the default Plum preset.
+- Added optional Extended Journal integration with a fixed ESO-style layout,
+  icon navigation, item icons and readable report columns. Open with /surveys journal.
+- Kept journal presentation separate from standalone colors, opacity and sizing.
+- Combined surveys and treasure maps into a zone-based list with expandable groups.
+- Added a separate Unidentified / Unopened group for surveys and treasure maps.
+- Added backpack and bank filters, remembered choices and clearer bank snapshot information.
+- Added item hints and buttons to view carried survey and treasure-map pictures.
+- Added Treasure Detour to find carried treasure maps in your selected survey's zone.
+- Added Other Loot to gathering reports and exports for gear, recipes, motifs and
+  other item drops collected during an active run, including treasure-chest items.
+- Added run comparisons through the Petty Accountant, with 32 optional witty comments.
+- Added independent background and button opacity controls for the standalone UI.
+- Improved minimized tracking, icon spacing and Play / Pause / Stop run controls.
+- Fixed journal zone-heading errors, appearance-slider errors and utility-page sizing.
+- Updated Help with the correct heading and journal-specific instructions.
 
-## 0.2.2-beta - 2026-11-14
-
-- Gave Survey Sidekick a separate color scheme: dark plum background, violet title
-  bar, lavender borders and pale lavender text.
-- Applied the matching colors to the minimized tracker, copy/help window and
-  quantity entry box.
-
-## 0.2.1-beta - 2026-11-14
-
-- Removed the automatic startup chat message.
-- Replaced the protected TTC price lookup with a direct call to its documented API;
-  missing TTC and missing price data still leave materials marked as unpriced.
-- Added local references for repeatedly used Lua functions, game APIs and UI constants.
-- Clarified the AI disclosure and credits in the release documentation and website copy.
-- Kept existing saved variables, gathering rules and controls unchanged.
-
-## 0.2.0-beta — 2026-11-14
-
-First public-beta candidate.
-
-- Survey inventory with duplicate counts and crafting-type selection.
-- Optional LibTreasure map waypoints and nearest-unlocked-wayshrine travel.
-- Live gathering totals, automatic estimated loot split and named material collection goals.
-- The Hoard Report with saved runs, personal record, copyable summary and detailed export.
-- Optional TTC value estimates and explicit unpriced totals.
-- Smaller adjustable window, live minimized bar and action-button descriptions.
-- Quantity input takes focus when clicked; survey rows and dropdowns have no tooltips.
-- Window position and open/closed state now survive reload/login.
-- Hidden windows no longer redraw for each loot event; visible loot bursts share one refresh.
-- Collection setup restores the full window when opened from its slash command.
-- Public-facing report text and documentation cleaned up; existing saved data retained.
+Existing saved runs and settings are preserved. Other Loot records new drops only;
+it cannot reconstruct item drops from older runs. Start a run before looting chests.
+All item sources during an active run are included; gold currency is not counted.
+LibExtendedJournal, LibTreasure and Tamriel Trade Centre remain optional and are
+installed separately. Bank quantities show the last scan until the bank is reopened.

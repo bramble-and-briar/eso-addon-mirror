@@ -18,12 +18,15 @@
     "GraveSight"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5069/",
-  "fingerprint": "598be697b90f2360c794f754dfd94494c63c06ad211a484073d38172787d7371",
+  "fingerprint": "4280e2e1d5fdd43083e414c7794b2d29088091416fb4cca27707f72979ccc1b0",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw18560.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18561.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18562.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18559.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18740.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18742.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18743.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18744.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18559.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18741.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18561.png"
   ],
   "platform": "pc",
   "published": true,
@@ -31,11 +34,11 @@
   "source_id": "5069",
   "source_url": "https://www.esoui.com/downloads/info5069-GraveSight.html",
   "stats": {
-    "downloads": 38,
+    "downloads": 61,
     "favorites": 0,
-    "monthly_downloads": 31
+    "monthly_downloads": 53
   },
-  "title": "Grave Sight",
-  "updated_at": 1795134361000,
-  "version": "5.0"
+  "title": "Grave Sight +",
+  "updated_at": 1795397619000,
+  "version": "0.8.1"
 }

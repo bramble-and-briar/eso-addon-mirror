@@ -1,0 +1,33 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Koenari/Alchemist-Koenari-ver.---Discontinued__2419",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Koenari",
+  "canonical_id": "esoui:2419",
+  "category_id": "40",
+  "compatibility": [],
+  "content_id": "esoui:2419",
+  "deleted": false,
+  "directories": [
+    "Alchemist"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl2419/",
+  "fingerprint": "e13d159ad788f6a71a27de3a10297c03eea0c55dc258daa78b72b97e52040aa0",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw8240.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "2419",
+  "source_url": "https://www.esoui.com/downloads/info2419-AlchemistKoenariver.-Discontinued.html",
+  "stats": {
+    "downloads": 11165,
+    "favorites": 18,
+    "monthly_downloads": 23
+  },
+  "title": "Alchemist (Koenari ver.) - Discontinued",
+  "updated_at": 1630244995000,
+  "version": "7.1.5-1.0"
+}

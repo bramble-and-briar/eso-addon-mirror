@@ -2,7 +2,7 @@
 InventoryPulse = InventoryPulse or {}
 local IP = InventoryPulse
 IP.name = "InventoryPulse"
-IP.version = "1.0.2"
+IP.version = "1.1.0"
 local L = IP.strings
 
 local defaults = {
@@ -37,6 +37,8 @@ local defaults = {
     flightMs     = 800,                -- time until back at start height
     flightLength = 100,                -- flight distance in %; 100 = fade out at start height
     shrink       = 0,                  -- shrink during flight in % (0 = off), gives a 3D effect
+    rotation     = "none",             -- rotation during flight: "none", "z", "y" or "x" (axis)
+    rotationAngle = 90,                -- rotation at the end of the flight in degrees
 
     colorNormal  = { 1, 1, 1 },        -- more than 15 free slots
     color15      = { 1, 0.85, 0.3 },   -- up to 15 free slots
@@ -73,6 +75,14 @@ local EFFECTS = {
     { key = "thick-outline",     name = L.EFFECT_THICK },
     { key = "soft-shadow-thin",  name = L.EFFECT_SOFT_THIN },
     { key = "soft-shadow-thick", name = L.EFFECT_SOFT_THICK },
+}
+
+-- Rotation axes: z = in the screen plane, y = like a coin, x = tipping over
+local ROTATIONS = {
+    { key = "none", name = L.ROTATION_NONE },
+    { key = "z",    name = L.ROTATION_Z },
+    { key = "y",    name = L.ROTATION_Y },
+    { key = "x",    name = L.ROTATION_X },
 }
 
 -- Sounds for StackCount (keys from the global SOUNDS table)
@@ -187,6 +197,13 @@ local function SetLabelScale(label, scale)
     end
 end
 
+-- Rotation in radians around the x, y and z axis; skipped on clients without transforms
+local function SetLabelRotation(label, rx, ry, rz)
+    if label.SetTransformRotation then
+        label:SetTransformRotation(rx, ry, rz)
+    end
+end
+
 local function AcquireLabel(size)
     local label = table.remove(freeLabels)
     if not label then
@@ -197,6 +214,7 @@ local function AcquireLabel(size)
     end
     label:SetFont(GetFontString(size))
     SetLabelScale(label, 1)
+    SetLabelRotation(label, 0, 0, 0)
     label:SetAlpha(0)
     label:SetHidden(false)
     return label
@@ -246,6 +264,18 @@ local function OnUpdate()
             a.label:SetAlpha(maxAlpha * (1 - progress))
             -- shrinking makes the message look like it flies into the distance
             SetLabelScale(a.label, 1 - IP.sv.shrink / 100 * progress)
+            -- rotation grows with the flight; z and y turn in the flight direction
+            local axis = IP.sv.rotation
+            if axis ~= "none" then
+                local angle = math.rad(IP.sv.rotationAngle) * progress
+                if axis == "z" then
+                    SetLabelRotation(a.label, 0, 0, -a.direction * angle)
+                elseif axis == "y" then
+                    SetLabelRotation(a.label, 0, a.direction * angle, 0)
+                else
+                    SetLabelRotation(a.label, angle, 0, 0)
+                end
+            end
             Place(a.label, x, -height)
         else
             ReleaseLabel(a.label)
@@ -556,6 +586,7 @@ local function CreateSettingsMenu()
         version = IP.version,
         slashCommand = "/ipulsemenu",
         registerForDefaults = true,
+        registerForRefresh = true, -- re-evaluate "disabled" states whenever a setting changes
     })
 
     local bagOff = function() return not BagCountEnabled() end
@@ -565,6 +596,11 @@ local function CreateSettingsMenu()
     for i, effect in ipairs(EFFECTS) do
         effectNames[i] = effect.name
         effectKeys[i] = effect.key
+    end
+    local rotationNames, rotationKeys = {}, {}
+    for i, rotation in ipairs(ROTATIONS) do
+        rotationNames[i] = rotation.name
+        rotationKeys[i] = rotation.key
     end
     local soundNames, soundKeys = {}, {}
     for _, sound in ipairs(SOUND_OPTIONS) do
@@ -775,6 +811,20 @@ local function CreateSettingsMenu()
             setFunc = function(v) IP.sv.shrink = v end,
             default = defaults.shrink,
         },
+        {
+            type = "dropdown", name = L.ROTATION, tooltip = L.ROTATION_TT,
+            choices = rotationNames, choicesValues = rotationKeys,
+            getFunc = function() return IP.sv.rotation end,
+            setFunc = function(v) IP.sv.rotation = v end,
+            default = defaults.rotation,
+        },
+        {
+            type = "slider", name = L.ROTATION_ANGLE, tooltip = L.ROTATION_ANGLE_TT, min = 15, max = 720, step = 15,
+            getFunc = function() return IP.sv.rotationAngle end,
+            setFunc = function(v) IP.sv.rotationAngle = v end,
+            disabled = function() return IP.sv.rotation == "none" end,
+            default = defaults.rotationAngle,
+        },
         { type = "divider" },
         ColorOption(L.COLOR_NORMAL, "colorNormal"),
         ColorOption(L.COLOR_15, "color15"),
@@ -849,6 +899,8 @@ local function ShowHelp()
         { "speed <200-5000>", sv.flightMs, L.HELP_SPEED },
         { "length <10-300>", sv.flightLength, L.HELP_LENGTH },
         { "shrink <0-90>", sv.shrink, L.HELP_SHRINK },
+        { "rotation <none|z|y|x>", sv.rotation, L.HELP_ROTATION },
+        { "angle <15-720>", sv.rotationAngle, L.HELP_ANGLE },
         { "color <normal|15|5|p80|p90|p95|full|stack> <RRGGBB>", string.format("%s, %s, %s, %s, %s, %s, %s, %s",
             ToHex(sv.colorNormal), ToHex(sv.color15), ToHex(sv.color5), ToHex(sv.colorP80), ToHex(sv.colorP90),
             ToHex(sv.colorP95), ToHex(sv.color0), ToHex(sv.stackColor)), L.HELP_COLOR },
@@ -929,6 +981,10 @@ local function SlashCommand(args)
         ok = SetNumber("minFontSize", value, 8, 150)
     elseif cmd == "shrink" then
         ok = SetNumber("shrink", value, 0, 90)
+    elseif cmd == "rotation" and (arg == "none" or arg == "z" or arg == "y" or arg == "x") then
+        sv.rotation = arg
+    elseif cmd == "angle" then
+        ok = SetNumber("rotationAngle", value, 15, 720)
     elseif cmd == "sound" then
         ok = false
         for _, sound in ipairs(SOUND_OPTIONS) do

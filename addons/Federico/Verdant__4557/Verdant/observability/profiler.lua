@@ -99,7 +99,7 @@ function M.span(name, fn, ...)
   M.enter(name)
   local ok, ret = pcall(fn, ...)
   M.exit(name)
-  if not ok then error(ret) end
+  if not ok then error(ret, 0) end
   return ret
 end
 

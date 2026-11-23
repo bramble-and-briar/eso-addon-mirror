@@ -6,7 +6,6 @@ ME.QuestTracker = QT
 --------------------------------------------------
 -- Config
 --------------------------------------------------
-local MOVE_SCENE  = "MyExtras_QuestTrackerMove"
 local MOVE_SPEED  = 500
 local SCALE_SPEED = 40
 local SCALE_MIN   = 50
@@ -38,6 +37,7 @@ local DEFAULTS = {
 QoL:AddDefaults(DEFAULTS)
 
 QT.moving = false
+QT.preview = false
 
 local applied  = false
 local applying = false
@@ -312,145 +312,85 @@ end
 --------------------------------------------------
 -- Move
 --------------------------------------------------
-QT.mover = {}
-
-function QT.mover:UpdateDirectionalInput(deltaS)
-    local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK)
-    if x ~= 0 or y ~= 0 then
-        QT:SetPosition(QT.moveX + x * MOVE_SPEED * deltaS, QT.moveY - y * MOVE_SPEED * deltaS)
-    end
-    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(stretchX) > math.abs(scaleY) then
-        QT:SetStretch(QT.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
-    elseif scaleY ~= 0 then
-        QT:SetScale(QT.moveScale + scaleY * SCALE_SPEED * deltaS)
-    end
-end
-
-QT.moveKeybinds = {
-    alignment = KEYBIND_STRIP_ALIGN_CENTER,
-    {
-        name     = "Save",
-        keybind  = "UI_SHORTCUT_PRIMARY",
-        callback = function() QT:EndMove(true) end,
-    },
-    {
-        name     = "Default",
-        keybind  = "UI_SHORTCUT_TERTIARY",
-        callback = function() QT:MoveToDefault() end,
-    },
-    {
-        name     = "Cancel",
-        keybind  = "UI_SHORTCUT_NEGATIVE",
-        callback = function() QT:EndMove(false) end,
-    },
-}
-
-function QT:SetPosition(x, y)
-    local screenW, screenH = GuiRoot:GetDimensions()
-    self.moveX = zo_clamp(x, -screenW + 50, 0)
-    self.moveY = zo_clamp(y, 0, screenH - 50)
-    local sv = SV()
-    sv.questTrackerPosX = zo_floor(self.moveX + 0.5)
-    sv.questTrackerPosY = zo_floor(self.moveY + 0.5)
-    self:ApplyPin()
-end
-
-function QT:SetScale(value)
-    self.moveScale = zo_clamp(value, SCALE_MIN, SCALE_MAX)
-    local rounded = zo_floor(self.moveScale + 0.5)
-    local sv = SV()
-    if sv.questTrackerScale ~= rounded then
-        sv.questTrackerScale = rounded
-        self:Apply()
-        if self.moving then self:ShowOutline(true) end
-    end
-end
-
-function QT:SetStretch(value)
-    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
-    local rounded = zo_floor(self.moveStretch + 0.5)
-    local sv = SV()
-    if sv.questTrackerStretch ~= rounded then
-        sv.questTrackerStretch = rounded
-        self:Apply()
-        if self.moving then self:ShowOutline(true) end
-    end
-end
-
-function QT:MoveToDefault()
-    self:SetStretch(100)
-    self:SetScale(DEFAULTS.questTrackerScale)
-    self:SetPosition(DEFAULTS.questTrackerPosX, DEFAULTS.questTrackerPosY)
-end
-
-function QT:GetMoveScene()
-    if self.moveScene then return self.moveScene end
-    local scene = ZO_Scene:New(MOVE_SCENE, SCENE_MANAGER)
-    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_NO_KEYBIND_BACKGROUND_WINDOW)
-    ME:AddPlacementFragments(scene)
-    for i = 1, #TRACKER_FRAGMENTS do
-        local fragment = rawget(_G, TRACKER_FRAGMENTS[i])
-        if fragment then scene:AddFragment(fragment) end
-    end
-    scene:RegisterCallback("StateChange", function(oldState, newState)
-        if newState == SCENE_SHOWING then
-            QT:OnMoveShowing()
-        elseif newState == SCENE_HIDDEN then
-            QT:OnMoveHidden()
-        end
-    end)
-    self.moveScene = scene
-    return scene
-end
-
 function QT:StartMove()
     if self.moving or not Manager() then return end
-    self.moveSaved = false
     self.moving = true
-    self:GetMoveScene()
-    SCENE_MANAGER:Push(MOVE_SCENE)
+    local started = LibUser562:StartMove({
+        inputControl = self:GetOutline(),
+        moveSpeed    = MOVE_SPEED,
+        scaleSpeed   = SCALE_SPEED,
+        sizeMin      = SCALE_MIN,
+        sizeMax      = SCALE_MAX,
+        bounds       = function()
+            local screenW, screenH = GuiRoot:GetDimensions()
+            return -screenW + 50, 0, 0, screenH - 50
+        end,
+        defaults     = {
+            x    = DEFAULTS.questTrackerPosX,
+            y    = DEFAULTS.questTrackerPosY,
+            size = DEFAULTS.questTrackerScale,
+        },
+        getPosition = function() return SV().questTrackerPosX, SV().questTrackerPosY end,
+        setPosition = function(x, y)
+            local sv = SV()
+            sv.questTrackerPosX, sv.questTrackerPosY = x, y
+            QT:ApplyPin()
+        end,
+        getSize    = function() return SV().questTrackerScale end,
+        setSize    = function(size)
+            SV().questTrackerScale = size
+            QT:Apply()
+            if QT.moving then QT:ShowOutline(true) end
+        end,
+        getStretch = function() return SV().questTrackerStretch or 100 end,
+        setStretch = function(percent)
+            SV().questTrackerStretch = percent
+            QT:Apply()
+            if QT.moving then QT:ShowOutline(true) end
+        end,
+        onShow = function()
+            QT:Apply()
+            QT:ShowOutline(true)
+            ME:SetPlacing(true)
+        end,
+        onHide = function()
+            QT.moving = false
+            QT:ShowOutline(false)
+            ME:SetPlacing(false)
+            QT:Apply()
+        end,
+    })
+    if not started then self.moving = false end
 end
 
-function QT:OnMoveShowing()
-    local sv = SV()
-    self.moving = true
-    self.moveStartX, self.moveStartY = sv.questTrackerPosX, sv.questTrackerPosY
-    self.moveStartScale = sv.questTrackerScale
-    self.moveX, self.moveY = sv.questTrackerPosX, sv.questTrackerPosY
-    self.moveScale = sv.questTrackerScale
-    self.moveStartStretch = sv.questTrackerStretch or 100
-    self.moveStretch = self.moveStartStretch
-    self:Apply()
-    self:ShowOutline(true)
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
-    DIRECTIONAL_INPUT:Activate(self.mover, self:GetOutline())
-    ME:SetPlacing(true)
-end
-
-function QT:OnMoveHidden()
-    DIRECTIONAL_INPUT:Deactivate(self.mover)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
-    if not self.moveSaved then
-        self:SetScale(self.moveStartScale)
-        self:SetStretch(self.moveStartStretch)
-        self:SetPosition(self.moveStartX, self.moveStartY)
+--------------------------------------------------
+-- Preview
+--------------------------------------------------
+function QT:SetPreview(value)
+    value = value == true
+    if self.preview == value then return end
+    self.preview = value
+    local scene = ME.settingsPanel and ME.settingsPanel.scene
+    if scene then
+        for i = 1, #TRACKER_FRAGMENTS do
+            local fragment = rawget(_G, TRACKER_FRAGMENTS[i])
+            if fragment then
+                if value then scene:AddFragment(fragment) else scene:RemoveFragment(fragment) end
+            end
+        end
     end
-    self.moving = false
-    self:ShowOutline(false)
-    ME:SetPlacing(false)
     self:Apply()
+    self:ShowOutline(value)
 end
 
-function QT:EndMove(save)
-    if not self.moving then return end
-    self.moveSaved = save == true
-    if save then
-        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
-    else
-        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
-    end
-    SCENE_MANAGER:HideCurrentScene()
+function QT:GetPreviewControls()
+    local manager = Manager()
+    if manager and manager.control then return { manager.control, self:GetOutline() } end
+    return {}
+end
+
+function QT:OnSettingsState(newState)
+    if newState == SCENE_HIDDEN and self.preview then self:SetPreview(false) end
 end
 
 --------------------------------------------------
@@ -474,6 +414,14 @@ function QT:SubmenuOption()
                     SV().questTrackerEnabled = val
                     QT:Apply()
                 end,
+            },
+            {
+                type    = "toggle",
+                name    = "Preview",
+                tooltip = "Shows your quest tracker here so you can see your changes. "
+                       .. "Stays on until you turn it off or leave the settings.",
+                getFunc = function() return QT.preview end,
+                setFunc = function(val) QT:SetPreview(val) end,
             },
             {
                 type       = "button",

@@ -502,6 +502,15 @@ besieged is simply a new attack of yours: red again, correctly.
 | `Hud.lua` | all three on-screen surfaces — the alerts, the campaign summary and the output window. Optional at runtime: without it, or on a client where the window cannot be created, every alert still goes to chat and `/pbalert` says so |
 | `Settings.lua` | the panel |
 
+## Memory
+
+A 24-hour soak in the test harness, with everything on and a busy campaign churning, holds the
+heap flat (about 1.1 MB after a full collect), makes no control after the first hour and
+registers no event twice. Two hours of it run as part of the tests, and fail if anything the
+add-on holds grows from the first hour to the second. The garbage made in normal running is
+about 100 KB a minute, mostly the summary's text: colours are worked out once, and the map
+updates its pins and lines in place rather than rebuilding them every pass.
+
 ## Installing
 
 Copy the `PBsCyrodiilAlert` folder into your `AddOns` folder. `LibHarvensAddonSettings` is
@@ -519,4 +528,4 @@ cannot be arranged on demand in a real campaign (a siege lasting past the repeat
 that flips while it is being hit) are played out in milliseconds. It also stubs the window
 manager, so what reaches the screen — which lines, in what colours, in what font, anchored
 where, and when they expire — and the campaign APIs, so the summary's numbers, ordering,
-colours and every way it degrades are checked too. 496 checks.
+colours and every way it degrades are checked too. 499 checks.

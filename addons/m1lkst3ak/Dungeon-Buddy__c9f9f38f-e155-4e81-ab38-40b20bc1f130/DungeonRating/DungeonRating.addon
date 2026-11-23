@@ -1,10 +1,10 @@
 ## Title: Dungeon Buddy
 ## Description: Dungeon Buddy - dungeon HUD, encounter intelligence, and performance reports
 ## Author: Trash Man Enterprises
-## Version: 0.3-blue
-## AddOnVersion: 12
+## Version: 0.3.4
+## AddOnVersion: 15
 ## APIVersion: 101051 101052
-## OptionalDependsOn: LibAddonMenu-2.0 LibRadialMenu
+## OptionalDependsOn: LibAddonMenu-2.0 LibRadialMenu GoldStandard
 ## SavedVariables: DungeonRatingSaved
 Catalog.lua
 EncounterData.lua

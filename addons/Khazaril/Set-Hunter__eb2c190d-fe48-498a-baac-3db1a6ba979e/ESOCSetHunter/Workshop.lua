@@ -38,6 +38,20 @@ local GLYPHS = {
     },
 }
 
+-- Build focus: the armor and jewelry glyph each piece uses unless it has its own. Weapons are left alone.
+local FOCUS = {
+    { key = "magicka", name = "Magicka", armor = 26582, jewelry = 45884 },
+    { key = "stamina", name = "Stamina", armor = 26588, jewelry = 45883 },
+    { key = "health", name = "Health", armor = 26580, jewelry = 26581 },
+}
+
+-- The game's own enchant types, the same check its trader filter uses. Works in every language.
+local GLYPH_CATEGORY = {
+    [26580] = ENCHANTMENT_SEARCH_CATEGORY_HEALTH, [26582] = ENCHANTMENT_SEARCH_CATEGORY_MAGICKA,
+    [26588] = ENCHANTMENT_SEARCH_CATEGORY_STAMINA, [26581] = ENCHANTMENT_SEARCH_CATEGORY_HEALTH_REGEN,
+    [45884] = ENCHANTMENT_SEARCH_CATEGORY_INCREASE_SPELL_DAMAGE, [45883] = ENCHANTMENT_SEARCH_CATEGORY_INCREASE_PHYSICAL_DAMAGE,
+}
+
 local function alert(text) pcall(ZO_Alert, UI_ALERT_CATEGORY_ALERT, nil, "Set Hunter: " .. text) end
 
 local function callGame(name, ...)
@@ -62,6 +76,27 @@ end
 
 local function targetQuality(want) return want.quality or LEGENDARY end
 
+local function focusEntry()
+    local key = sv.builds[sv.activeBuild].focus
+    for _, focus in ipairs(FOCUS) do
+        if focus.key == key then return focus end
+    end
+    return nil
+end
+
+local function focusGlyph(want)
+    local focus = focusEntry()
+    if not focus or want.category == ITEM_TRAIT_TYPE_CATEGORY_WEAPON then return nil end
+    return want.category == ITEM_TRAIT_TYPE_CATEGORY_JEWELRY and focus.jewelry or focus.armor
+end
+
+-- A piece's own enchant wins. 0 means keep what it has, even with a focus on.
+local function wantedGlyph(want)
+    if want.enchant == 0 then return nil end
+    return want.enchant or focusGlyph(want)
+end
+W.WantedGlyph = wantedGlyph
+
 local function sortedPieces()
     local pieces = {}
     for setId, goal in pairs(I.ActiveSets()) do
@@ -73,7 +108,7 @@ local function sortedPieces()
         if a.setId ~= b.setId then return a.setId < b.setId end
         local orderA, orderB = I.PieceOrder(a.want), I.PieceOrder(b.want)
         if orderA ~= orderB then return orderA < orderB end
-        return a.id < b.id
+        return tostring(a.id) < tostring(b.id)
     end)
     return pieces
 end
@@ -252,13 +287,33 @@ function W.EnchantIdFor(glyphId)
     return nil
 end
 
+-- Does this item already carry this kind of enchant, either by default or applied?
+local function linkHasEnchant(link, glyphId)
+    local category = GLYPH_CATEGORY[glyphId]
+    if category and GetItemLinkFinalEnchantId and GetEnchantSearchCategoryType then
+        local ok, matches = pcall(function()
+            local enchantId = GetItemLinkFinalEnchantId(link)
+            return enchantId ~= nil and enchantId ~= 0 and GetEnchantSearchCategoryType(enchantId) == category
+        end)
+        if ok then return matches end
+    end
+    local wanted = glyphLink(glyphId)
+    if not wanted then return false end
+    local current, target = enchantHeader(link), enchantHeader(wanted)
+    return current ~= nil and current ~= "" and current == target
+end
+
 local function alreadyEnchanted(copy, glyphId)
     local uniqueId = Id64ToString(GetItemUniqueId(copy.bag, copy.slot))
     if sv.enchanted[uniqueId] == glyphId then return true end
-    local wanted = glyphLink(glyphId)
-    if not wanted then return false end
-    local current, target = enchantHeader(copy.link), enchantHeader(wanted)
-    return current ~= nil and current ~= "" and current == target
+    return linkHasEnchant(copy.link, glyphId)
+end
+
+-- A Sticker Book piece you haven't made yet arrives with its default enchant. Crafted gear has none.
+local function arrivesEnchanted(piece, glyphId)
+    if piece.want.crafted then return false end
+    local link = GetItemSetCollectionPieceItemLink(piece.id, LINK_STYLE_DEFAULT, ITEM_TRAIT_TYPE_NONE)
+    return link ~= nil and link ~= "" and linkHasEnchant(link, glyphId)
 end
 
 -- A glyph of this type in your backpack that isn't already spoken for. Gold CP160 unless
@@ -332,7 +387,7 @@ function W.PlanGlyphs()
     local plan = { kind = "glyph", jobs = {}, blocked = {}, crystals = 0, budget = newBudget() }
     local usedGlyphs, reserved = {}, {}
     for _, piece in ipairs(sortedPieces()) do
-        local glyphId = piece.want.enchant
+        local glyphId = wantedGlyph(piece.want)
         if glyphId then
             for _, copy in ipairs(ownedCopies(piece)) do
                 if not alreadyEnchanted(copy, glyphId) then
@@ -379,9 +434,13 @@ function W.GoldTotals()
     for _, piece in ipairs(sortedPieces()) do
         if targetQuality(piece.want) >= LEGENDARY then
             local _, have, count = I.PieceStatus(piece.setId, piece.id, piece.want)
-            local link = GetItemSetCollectionPieceItemLink(piece.id, LINK_STYLE_DEFAULT, ITEM_TRAIT_TYPE_NONE)
-            local skill = GetItemLinkCraftingSkillType(link)
-            if GetItemLinkFunctionalQuality(link) < LEGENDARY then add(skill, count - have) end
+            if piece.want.crafted then
+                add(piece.want.station, count - have)
+            else
+                local link = GetItemSetCollectionPieceItemLink(piece.id, LINK_STYLE_DEFAULT, ITEM_TRAIT_TYPE_NONE)
+                local skill = GetItemLinkCraftingSkillType(link)
+                if GetItemLinkFunctionalQuality(link) < LEGENDARY then add(skill, count - have) end
+            end
             local below = {}
             for _, copy in ipairs(ownedCopies(piece)) do
                 if copy.quality < LEGENDARY then
@@ -404,7 +463,7 @@ local KUTA = 45854
 function W.KutaNeeded()
     local spare, need = {}, 0
     for _, piece in ipairs(sortedPieces()) do
-        local glyphId = piece.want.enchant
+        local glyphId = wantedGlyph(piece.want)
         if glyphId then
             if spare[glyphId] == nil then
                 spare[glyphId] = 0
@@ -416,9 +475,11 @@ function W.KutaNeeded()
                     end
                 end
             end
-            local missing = piece.want.count or 1
-            for _, copy in ipairs(ownedCopies(piece)) do
-                if alreadyEnchanted(copy, glyphId) then missing = missing - 1 end
+            -- Owned copies are checked one by one. Copies still to make only count if they won't arrive with it.
+            local copies = ownedCopies(piece)
+            local missing = arrivesEnchanted(piece, glyphId) and 0 or math.max((piece.want.count or 1) - #copies, 0)
+            for _, copy in ipairs(copies) do
+                if not alreadyEnchanted(copy, glyphId) then missing = missing + 1 end
             end
             local fromBag = math.min(math.max(missing, 0), spare[glyphId])
             spare[glyphId] = spare[glyphId] - fromBag
@@ -602,7 +663,7 @@ function W.Next()
     return STEP[run.plan.kind](job)
 end
 
-function W.IsBusy() return run ~= nil end
+function W.IsBusy() return run ~= nil or (SH.Crafted ~= nil and SH.Crafted.IsBusy()) end
 
 local function start(plan)
     if run or #plan.jobs == 0 then return end
@@ -642,10 +703,12 @@ function W.OnStationClosed()
     if run then finish("stopped because you left the station") end
     W.reviewPlan = nil
     if SH.Training then SH.Training.OnStationClosed() end
+    if SH.Crafted then SH.Crafted.OnStationClosed() end
 end
 
 function W.OnLazyCraft(event, station, result)
     if SH.Training and SH.Training.OnLazyCraft(event, station, result) then return end
+    if SH.Crafted and SH.Crafted.OnLazyCraft(event, station, result) then return end
     if not run or run.waiting ~= "glyph" then return end
     if event == LLC_CRAFT_SUCCESS then
         local job = run.plan.jobs[run.index]
@@ -735,7 +798,7 @@ local function registerDialog()
 end
 
 ---------------------------------------------------------------------------
--- Builds page: Settings > Add-Ons > Set Hunter Builds
+-- Build sections of the one settings page: Settings > Add-Ons > Set Hunter
 ---------------------------------------------------------------------------
 -- The current list is what you're working on. Saved builds are separate copies: nothing changes
 -- them except Save changes, Rename and Delete, so editing or clearing the list can't lose one.
@@ -904,7 +967,7 @@ local function activeBuild() return sv.builds[sv.activeBuild] end
 
 -- Empties the current list. Saved builds, items and locks are left alone.
 function W.ClearSets()
-    if run then
+    if W.IsBusy() then
         alert("wait for the current job to finish")
         return false
     end
@@ -930,12 +993,7 @@ local function selectedPiece()
     return pieces[1]
 end
 
-local function createBuildsPage()
-    local LHAS = LibHarvensAddonSettings
-    if not LHAS or not LHAS.AddAddon then return end
-    local page = LHAS:AddAddon("Set Hunter Builds", { allowDefaults = false, allowRefresh = true })
-    local function redraw() pcall(function() page:UpdateControls() end) end
-
+function W.SettingsRows(LHAS, redraw, listRows)
     local function savedItems()
         local items = {}
         for _, name in ipairs(W.SavedNames()) do items[#items + 1] = { name = name, data = name } end
@@ -979,9 +1037,16 @@ local function createBuildsPage()
         end
         return items
     end
+    local function focusLabel(piece)
+        local glyphId = piece and focusGlyph(piece.want)
+        return glyphId and ("Build focus (" .. glyphName(glyphId) .. ")") or nil
+    end
     local function enchantItems()
-        local items = { { name = "Keep current", data = 0 } }
+        local items = {}
         local piece = selectedPiece()
+        local label = focusLabel(piece)
+        if label then items[1] = { name = label, data = -1 } end
+        items[#items + 1] = { name = "Keep current", data = 0 }
         if piece then
             for _, glyph in ipairs(glyphGroup(piece.want)) do items[#items + 1] = { name = glyph[1], data = glyph[2] } end
         end
@@ -1007,8 +1072,12 @@ local function createBuildsPage()
             setFunction = function(_, _, item) I.opts[key] = I.DropdownValue(item, I.opts[key]); changed() end,
         }
     end
-    page:AddSettings({
-        { type = LHAS.ST_SECTION, label = "Current list" },
+    local allRows = {}
+    local function addRows(rows)
+        for _, row in ipairs(rows) do allRows[#allRows + 1] = row end
+    end
+    addRows({
+        { type = LHAS.ST_SECTION, label = "Your list" },
         { type = LHAS.ST_LABEL, label = function() return W.StatusText() end },
         {
             type = LHAS.ST_EDIT, label = "Save as new build",
@@ -1031,6 +1100,9 @@ local function createBuildsPage()
             disable = function() return not W.HasSets() end,
             clickHandler = function() W.OfferClearSets(redraw) end,
         },
+    })
+    addRows(listRows or {})
+    addRows({
         { type = LHAS.ST_SECTION, label = "Saved builds" },
         {
             type = LHAS.ST_DROPDOWN, label = "Saved build", items = savedItems,
@@ -1072,6 +1144,45 @@ local function createBuildsPage()
         defaultTraitDropdown("Armor", "armorTrait"),
         defaultTraitDropdown("Weapons", "weaponTrait"),
         defaultTraitDropdown("Jewelry", "jewelryTrait"),
+    })
+    local focusItems = { { name = "Off", data = "" } }
+    for _, focus in ipairs(FOCUS) do focusItems[#focusItems + 1] = { name = focus.name, data = focus.key } end
+    local function ownEnchants()
+        local count = 0
+        for _, piece in ipairs(sortedPieces()) do
+            if piece.want.enchant ~= nil and piece.want.category ~= ITEM_TRAIT_TYPE_CATEGORY_WEAPON then count = count + 1 end
+        end
+        return count
+    end
+    addRows({
+        { type = LHAS.ST_SECTION, label = "Build focus" },
+        {
+            type = LHAS.ST_DROPDOWN, label = "Build focus", items = focusItems,
+            tooltip = "Magicka: Max Magicka armor, Magical Harm jewelry. Stamina: Max Stamina armor, Physical Harm jewelry. Health: Max Health armor, Health Recovery jewelry. Weapons aren't changed. Pieces that already have the right enchant don't get a glyph. Saved with the build.",
+            getFunction = function()
+                local focus = focusEntry()
+                return focus and focus.name or "Off"
+            end,
+            setFunction = function(_, _, item)
+                local value = I.DropdownValue(item, "")
+                activeBuild().focus = value ~= "" and value or nil
+                changed()
+            end,
+        },
+        {
+            type = LHAS.ST_BUTTON, label = "Use focus on every piece", buttonText = "Use focus",
+            tooltip = function() return ownEnchants() .. " armor or jewelry pieces have their own enchant and ignore the focus. This clears those choices. Weapons aren't changed." end,
+            disable = function() return focusEntry() == nil or ownEnchants() == 0 end,
+            clickHandler = function()
+                for _, piece in ipairs(sortedPieces()) do
+                    if piece.want.category ~= ITEM_TRAIT_TYPE_CATEGORY_WEAPON then piece.want.enchant = nil end
+                end
+                changed()
+            end,
+        },
+    })
+    if SH.Crafted then addRows(SH.Crafted.SettingsRows(LHAS, redraw)) end
+    addRows({
         { type = LHAS.ST_SECTION, label = "Piece" },
         {
             type = LHAS.ST_DROPDOWN, label = "Piece to edit", items = pieceItems,
@@ -1131,15 +1242,36 @@ local function createBuildsPage()
             tooltip = "Crafted glyphs are gold CP160. Crafting needs LibLazyCrafting and your runes.",
             getFunction = function()
                 local piece = selectedPiece()
-                if not piece or not piece.want.enchant then return "Keep current" end
-                return glyphName(piece.want.enchant)
+                if not piece then return "Keep current" end
+                if piece.want.enchant == 0 then return "Keep current" end
+                if piece.want.enchant then return glyphName(piece.want.enchant) end
+                return focusLabel(piece) or "Keep current"
             end,
             setFunction = function(_, _, item)
                 local piece = selectedPiece()
                 if not piece then return end
                 local value = I.DropdownValue(item, 0)
-                piece.want.enchant = value ~= 0 and value or nil
+                if value == -1 then
+                    piece.want.enchant = nil
+                elseif value == 0 then
+                    -- With a focus on, 0 is how a piece opts out of it
+                    piece.want.enchant = focusGlyph(piece.want) and 0 or nil
+                else
+                    piece.want.enchant = value
+                end
                 changed()
+            end,
+        },
+        {
+            type = LHAS.ST_BUTTON, label = "Remove this piece", buttonText = "Remove",
+            tooltip = "Takes this piece off your current list. Your items aren't touched.",
+            disable = function() return selectedPiece() == nil or W.IsBusy() end,
+            clickHandler = function()
+                local piece = selectedPiece()
+                if not piece or W.IsBusy() then return end
+                SH.ToggleWanted(piece.setId, piece.id)
+                W.selected = nil
+                redraw()
             end,
         },
         { type = LHAS.ST_SECTION, label = "Stations" },
@@ -1150,6 +1282,7 @@ local function createBuildsPage()
             setFunction = function(value) I.opts.offerAtStations = value end,
         },
     })
+    return allRows
 end
 
 ---------------------------------------------------------------------------
@@ -1217,7 +1350,6 @@ function W.Init()
             { keybind = "DIALOG_NEGATIVE", text = SI_DIALOG_CANCEL },
         },
     })
-    createBuildsPage()
 
     if LibLazyCrafting and LibLazyCrafting.AddRequestingAddon then
         local ok, requester = pcall(LibLazyCrafting.AddRequestingAddon, LibLazyCrafting, "ESOCSetHunter", true, function(...)
@@ -1227,6 +1359,7 @@ function W.Init()
     end
 
     if SH.Training then SH.Training.Init() end
+    if SH.Crafted then SH.Crafted.Init() end
 
     local name = "ESOCSetHunterWorkshop"
     EVENT_MANAGER:RegisterForEvent(name, EVENT_RETRAIT_STATION_INTERACT_START, function() offerSoon(W.PlanReconstruction) end)
@@ -1235,7 +1368,12 @@ function W.Init()
             offerSoon(function()
                 -- A training kit with work at this station comes first
                 if SH.Training and SH.Training.OfferHere(skill) then return nil end
-                return W.PlanImprovement(skill)
+                local offered, blocked
+                if SH.Crafted then offered, blocked = SH.Crafted.OfferHere(skill) end
+                if offered then return nil end
+                local plan = W.PlanImprovement(skill)
+                for _, reason in ipairs(blocked or {}) do plan.blocked[#plan.blocked + 1] = reason end
+                return plan
             end)
         elseif skill == CRAFTING_TYPE_ENCHANTING then
             offerSoon(function()

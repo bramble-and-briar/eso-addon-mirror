@@ -1,6 +1,6 @@
 MyExtras = {}
 MyExtras.name = "MyExtras"
-MyExtras.version = "8.4"
+MyExtras.version = "9.7"
 MyExtras.savedVariables = nil
 MyExtras.charVariables = nil
 MyExtras.defaults = {
@@ -19,13 +19,16 @@ MyExtras.features = {}
 --------------------------------------------------
 MyExtras.SAVED_ACCOUNT_TIP   = "Account wide: the same on all your characters."
 MyExtras.SAVED_CHARACTER_TIP = "Per character: set separately on each of your characters."
+MyExtras.CHARACTER_SETTINGS_TIP = "On: this character has its own settings. Off: it uses your account settings."
 
-local MENU_ORDER = { "ActionBar", "Trackers", "Gear", "DungeonsTrials", "QualityOfLife", "Antiquity" }
-local MISC_FIRST = { "FriendsStatus" }
-local MISC_LAST  = { "Performance", "ChatTravel", "TitleLoop", "GuildLoop", "Streamer" }
+local SOCIAL_MENU  = "Social"
+local MENU_ORDER   = { "ActionBar", "Trackers", "Gear", "Items", "DungeonsTrials", "QualityOfLife", SOCIAL_MENU, "Antiquity" }
+local SOCIAL_ORDER = { "FriendsStatus", "ChatTravel", "TitleLoop", "GuildLoop", "Streamer" }
+local NESTED       = { "Performance" }
 
 local ICON_SETTINGS = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_settings.dds"
 local ICON_MENU     = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_misc.dds"
+local ICON_SOCIAL   = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_contacts.dds"
 
 local FRAME_GREY = { r = 0.55, g = 0.55, b = 0.55 }
 
@@ -172,38 +175,9 @@ end
 --------------------------------------------------
 -- Placing
 --------------------------------------------------
-local PLACE_FRAGMENTS = {
-    "PLAYER_ATTRIBUTE_BARS_FRAGMENT",
-    "BUFF_DEBUFF_FRAGMENT",
-    "COMPASS_FRAME_FRAGMENT",
-    "UNIT_FRAMES_FRAGMENT",
-}
-
-function MyExtras:AddPlacementFragments(scene)
-    for i = 1, #PLACE_FRAGMENTS do
-        local fragment = rawget(_G, PLACE_FRAGMENTS[i])
-        if fragment then scene:AddFragment(fragment) end
-    end
-end
-
 function MyExtras:SetPlacing(value)
     self.placing = value == true
     CallFeatures("OnPlacing", self.placing)
-end
-
-function MyExtras:RaiseWhilePlacing(controls, raise)
-    for i = 1, #controls do
-        local control = controls[i]
-        if control then
-            if raise then
-                control.placeTier = control:GetDrawTier()
-                control:SetDrawTier(DT_MEDIUM)
-            elseif control.placeTier then
-                control:SetDrawTier(control.placeTier)
-                control.placeTier = nil
-            end
-        end
-    end
 end
 
 --------------------------------------------------
@@ -294,17 +268,11 @@ end
 --------------------------------------------------
 -- Stretch
 --------------------------------------------------
-MyExtras.STRETCH_MIN   = 50
-MyExtras.STRETCH_MAX   = 200
-MyExtras.STRETCH_SPEED = 60
+MyExtras.STRETCH_MIN = LibUser562.STRETCH_MIN
+MyExtras.STRETCH_MAX = LibUser562.STRETCH_MAX
 
 function MyExtras:ApplyStretch(control, percent, originX, originY)
-    if not control or not control.SetTransformScaleX then return end
-    local value = zo_clamp(tonumber(percent) or 100, self.STRETCH_MIN, self.STRETCH_MAX) / 100
-    if control.SetTransformNormalizedOriginPoint then
-        pcall(control.SetTransformNormalizedOriginPoint, control, originX or 0.5, originY or 0.5)
-    end
-    pcall(control.SetTransformScaleX, control, value)
+    LibUser562:ApplyStretch(control, percent, originX, originY)
 end
 
 --------------------------------------------------
@@ -436,14 +404,7 @@ function MyExtras:CharacterOption(scope, group, onChange)
     return {
         type    = "toggle",
         name    = "Character Settings",
-        tooltip = "Off uses the same settings for the whole account. On gives this character its own settings, "
-               .. "copied from the account settings the first time you turn it on.",
-        details = function()
-            if scope:UsesCharacter(group) then
-                return "This character has its own settings."
-            end
-            return "All your characters share the same settings."
-        end,
+        tooltip = MyExtras.CHARACTER_SETTINGS_TIP,
         getFunc = function() return scope:UsesCharacter(group) end,
         setFunc = function(val)
             scope:SetUsesCharacter(group, val)
@@ -500,9 +461,17 @@ end
 -- Info
 --------------------------------------------------
 local GAMERTAG       = "user562"
+local DISCORD        = "user562."
 local NAME_COLOR     = "D65AD6"
 local TITLE_COLORED  = "|c" .. NAME_COLOR .. "MyExtras|r"
-local AUTHOR_COLORED = "user|c" .. NAME_COLOR .. "562|r"
+
+local function AccentTitle()
+    return "|c" .. MyExtras:AccentHex() .. "MyExtras|r"
+end
+
+local function AccentAuthor()
+    return "user|c" .. MyExtras:AccentHex() .. "562|r"
+end
 
 local STATUS_INSTALLED = "|c33DD33Installed|r"
 local STATUS_OFF       = "|cFFAA33Turned Off|r"
@@ -578,7 +547,7 @@ end
 
 local function AddOnRow(entry)
     local function State()
-        if entry.name == MyExtras.name then return "installed", entry.title end
+        if entry.name == MyExtras.name then return "installed", AccentTitle() end
         local title, enabled = FindAddOn(entry)
         if not title then return "missing", entry.title end
         if title == "" then title = entry.title end
@@ -622,14 +591,15 @@ end
 
 function MyExtras:InfoMenu()
     local options = {
+        { type = "header", name = "Contact" },
         {
             type    = "button",
-            name    = "Gamertag: " .. GAMERTAG,
+            name    = "Xbox: " .. GAMERTAG,
         },
         {
             type    = "button",
-            name    = "Version: " .. self.version,
-            tooltip = "The version of MyExtras you have.",
+            name    = "Discord: " .. DISCORD,
+            tooltip = "The period at the end is part of the name.",
         },
         { type = "header", name = "My Addons" },
     }
@@ -639,26 +609,18 @@ function MyExtras:InfoMenu()
     return {
         type    = "submenu",
         name    = "Info",
-        tooltip = "Information.",
+        tooltip = "How to reach me, and my other addons.",
         options = options,
     }
 end
 
 --------------------------------------------------
--- Miscellaneous
+-- Social
 --------------------------------------------------
-local function MiscOrder()
-    local order = {}
-    for i = 1, #MISC_FIRST do order[#order + 1] = MISC_FIRST[i] end
-    for i = 1, #MISC_LAST do order[#order + 1] = MISC_LAST[i] end
-    return order
-end
-
-function MyExtras:MiscellaneousMenu()
+function MyExtras:SocialMenu()
     local options = {}
-    local order = MiscOrder()
-    for i = 1, #order do
-        local feature = self[order[i]]
+    for i = 1, #SOCIAL_ORDER do
+        local feature = self[SOCIAL_ORDER[i]]
         if feature and type(feature.GetOptions) == "function" then
             local featureOptions = feature:GetOptions()
             for j = 1, #featureOptions do
@@ -671,9 +633,10 @@ function MyExtras:MiscellaneousMenu()
     if #options == 0 then return nil end
     return {
         type    = "submenu",
-        name    = "Miscellaneous",
-        icon    = ICON_MENU,
-        tooltip = "Friends' Status, FPS / Ping, Chat Travel, Title Loop, Guild Loop and Streamer.",
+        name    = "Social",
+        icon    = ICON_SOCIAL,
+        tooltip = "Tells you when friends come online, lets you travel to people from chat, cycles your titles "
+               .. "and guilds, and puts a message on screen for your viewers.",
         options = options,
     }
 end
@@ -733,12 +696,11 @@ function MyExtras:SettingsMenu()
                 default      = defaults.settingsHighlight,
                 colorDefault = { r = 214 / 255, g = 90 / 255, b = 214 / 255 },
                 details      = function()
-                    local where = ": the settings window, the MyExtras name in chat, the Antiquity Reminder pop-up, "
-                        .. "Group Finder and the Quest Tracker box."
+                    local where = ", like the settings window and the MyExtras name in chat."
                     if self.savedVariables.settingsHighlight == "Custom" then
-                        return "MyExtras' highlights use your color" .. where
+                        return "Colors MyExtras' highlights with your color" .. where
                     end
-                    return "MyExtras' highlights use your alliance color" .. where
+                    return "Colors MyExtras' highlights with your alliance color" .. where
                 end,
                 getFunc  = function() return self.savedVariables.settingsHighlight end,
                 setFunc  = function(val)
@@ -768,7 +730,7 @@ function MyExtras:SettingsMenu()
                 type       = "button",
                 name       = "|cFF3333Reset All|r",
                 buttonText = "Reset All",
-                details    = "Resets all categories to default.",
+                details    = "Resets every MyExtras setting to its default.",
                 confirm    = "Reset every MyExtras setting to its default? This can't be undone.",
                 func       = function() self:ResetSettings() end,
             },
@@ -797,19 +759,16 @@ function MyExtras:CreateSettings()
         return
     end
 
-    local ordered, listed = {}, {}
-    for i = 1, #MENU_ORDER do
-        local feature = self[MENU_ORDER[i]]
-        if feature then
-            ordered[#ordered + 1] = feature
-            listed[feature] = true
+    local listed = {}
+    local function List(names)
+        for i = 1, #names do
+            local feature = self[names[i]]
+            if feature then listed[feature] = true end
         end
     end
-    local miscOrder = MiscOrder()
-    for i = 1, #miscOrder do
-        local feature = self[miscOrder[i]]
-        if feature then listed[feature] = true end
-    end
+    List(MENU_ORDER)
+    List(SOCIAL_ORDER)
+    List(NESTED)
     local extra = {}
     for _, feature in ipairs(self.features) do
         if not listed[feature] then extra[#extra + 1] = feature end
@@ -826,10 +785,16 @@ function MyExtras:CreateSettings()
             end
         end
     end
-    AddFeatures(ordered)
+    for i = 1, #MENU_ORDER do
+        local name = MENU_ORDER[i]
+        if name == SOCIAL_MENU then
+            local social = self:SocialMenu()
+            if social then options[#options + 1] = social end
+        elseif self[name] then
+            AddFeatures({ self[name] })
+        end
+    end
     AddFeatures(extra)
-    local misc = self:MiscellaneousMenu()
-    if misc then options[#options + 1] = misc end
     options[#options + 1] = self:SettingsMenu()
 
     local sv = self.savedVariables
@@ -837,10 +802,10 @@ function MyExtras:CreateSettings()
         name            = "MyExtras",
         placement       = "main",
         menuAfter       = "SOCIAL",
-        menuTitle       = TITLE_COLORED,
+        menuTitle       = AccentTitle,
         menuIcon        = ICON_MENU,
-        title           = TITLE_COLORED,
-        author          = AUTHOR_COLORED,
+        title           = AccentTitle,
+        author          = AccentAuthor,
         version         = self.version,
         frameColor      = FRAME_GREY,
         previewControls = function() return MyExtras:SettingsPreviewControls() end,

@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="WayshrineArrow">
+            <Action name="WAYSHRINEARROW_TOGGLE">
+                <Down>WayshrineArrow.ToggleEnabled()</Down>
+            </Action>
+            <Action name="WAYSHRINEARROW_CYCLE_TARGET">
+                <Down>WayshrineArrow.CycleTarget()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

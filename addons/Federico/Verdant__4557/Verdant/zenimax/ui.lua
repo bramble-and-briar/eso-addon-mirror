@@ -9,6 +9,7 @@ local M = Verdant.zenimax.ui
 M.WINDOW_MANAGER          = WINDOW_MANAGER
 M.ZO_ObjectPool           = ZO_ObjectPool
 M.CreateControlFromVirtual = CreateControlFromVirtual
+M.ZO_AlphaAnimation       = ZO_AlphaAnimation
 
 local zos_PlaySound = PlaySound
 M.PlaySound = function(id)
@@ -17,11 +18,21 @@ M.PlaySound = function(id)
   return zos_PlaySound(id)
 end
 
-function M.tooltip(control, string_id, side)
-  control:SetHandler("OnMouseEnter", function(self)
-    ZO_Tooltips_ShowTextTooltip(self, side or BOTTOM, GetString(string_id))
-  end)
-  control:SetHandler("OnMouseExit", function()
-    ZO_Tooltips_HideTextTooltip()
-  end)
+function M.pick_color(cb, r, g, b)
+  local sys = SYSTEMS
+  local picker = sys and sys.GetObject and sys:GetObject("colorPicker")
+  if not (picker and picker.Show) then return false end
+  picker:Show(cb, r, g, b)
+  return true
 end
+
+function M.handler(control, event, fn)
+  if fn == nil then
+    control:SetHandler(event, nil)
+    return
+  end
+  local name = control:GetName()
+  if name == nil or name == "" then name = "a control" end
+  control:SetHandler(event, Verdant.zenimax.events.guard(name .. " " .. event, fn))
+end
+

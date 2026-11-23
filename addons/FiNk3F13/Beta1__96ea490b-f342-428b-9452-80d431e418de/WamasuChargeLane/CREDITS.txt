@@ -1,0 +1,15 @@
+Positionsschaetzung: recherchierter Ansatz der Kamera-Blicklinien-Triangulation
+aus der Beschreibung und dem Quellcode von Sul-Xan's Marker, Autor PUYO.
+Referenz (Version 2.7): https://www.esoui.com/downloads/info4943-Sul-Xansmarker.html
+
+AimEstimator.lua ist eine eigene Implementierung eines raeumlichen,
+gewichteten Least-Squares-Schnittpunkts mit Ausreisserpruefung. Kein Quellcode von Sul-Xan's Marker
+wurde uebernommen oder mitgeliefert. Das Referenz-Addon bleibt separat.
+
+Die Darstellung verwendet native ESO-UI-Funktionen. APIs und Vorgehensweisen
+wurden anhand des installierten CrutchAlerts (Kyzeragon) und der ESO-API
+untersucht. CrutchAlerts wird nicht veraendert; seine Gruppen-ID-Tabelle
+wird optional gelesen.
+
+Dieses Addon ist kein offizieller Bestandteil dieser Projekte und steht
+in keiner Verbindung zu oder unter der Foerderung von ZeniMax.

@@ -29,20 +29,33 @@
           <Dimensions x="320" y="44"/>
         </Label>
 
+        <!-- default teleport destination: shown as text; own homes get the dropdown in edit mode (friends' are inside only) -->
+        <Control name="$(parent)PortCombo" inherits="ZO_ComboBox" hidden="true">
+          <Anchor point="RIGHT" relativePoint="LEFT" relativeTo="$(parent)House" offsetX="-12"/>
+          <Dimensions x="110" y="28"/>
+        </Control>
+
+        <Label name="$(parent)PortLabel" font="ZoFontGame" color="888888" verticalAlignment="CENTER" text="Inside" mouseEnabled="true">
+          <Anchor point="LEFT" relativePoint="LEFT" relativeTo="$(parent)PortCombo" offsetX="8"/>
+          <Dimensions x="102" y="44"/>
+        </Label>
+
         <Label name="$(parent)Alias" font="ZoFontWinH4" color="FFFFFF" verticalAlignment="CENTER">
           <Anchor point="TOPLEFT" offsetX="220"/>
-          <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)House" offsetX="-4"/>
+          <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)PortCombo" offsetX="-4" offsetY="8"/>
         </Label>
 
         <!-- edit mode: label editbox replaces Alias, house dropdown replaces House -->
         <Backdrop name="$(parent)NameBg" centerColor="00000000" edgeColor="00000000" hidden="true">
           <Anchor point="LEFT" offsetX="220"/>
-          <Anchor point="RIGHT" relativePoint="LEFT" relativeTo="$(parent)House" offsetX="-8"/>
+          <Anchor point="RIGHT" relativePoint="LEFT" relativeTo="$(parent)PortCombo" offsetX="-8"/>
           <Dimensions y="36"/>
           <Controls>
-            <EditBox name="$(parent)Box" font="ZoFontGame" color="FFFFFF" maxInputCharacters="64">
+            <!-- mouseEnabled + TakeFocus, as in ESO's ZO_DefaultEdit, so clicking back into it works -->
+            <EditBox name="$(parent)Box" font="ZoFontGame" color="FFFFFF" maxInputCharacters="64" mouseEnabled="true">
               <Anchor point="TOPLEFT" offsetX="4" offsetY="4"/>
               <Anchor point="BOTTOMRIGHT" offsetX="-4" offsetY="-4"/>
+              <OnMouseDown>self:TakeFocus()</OnMouseDown>
             </EditBox>
           </Controls>
         </Backdrop>

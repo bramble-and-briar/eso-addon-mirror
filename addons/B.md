@@ -32,12 +32,12 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BanditsUserInterfaceZHPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/BanditsUserInterfaceZHPatch__3909) | FusRoDah | PC / Mac | 4.413 |
 | [Bank balancer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/Bank-balancer__2066) | Ek1 | PC / Mac | 4.0-180709 |
 | [Bank Data Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jreid01/Bank-Data-Exporter__3825) | jreid01 | PC / Mac | 1.0.3.1 |
-| [Bank Manager Revived - AI updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer1986PAN/Bank-Manager-Revived---AI-updated__2333) | Gamer1986PAN | PC / Mac | 16.04 |
+| [Bank Manager Revived - AI updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer1986PAN/Bank-Manager-Revived---AI-updated__2333) | Gamer1986PAN | PC / Mac | 16.05 |
 | [Bank Stacker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Bank-Stacker__1837) | Dolgubon | PC / Mac | 1.1.1 |
 | [Banker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/Banker__362) | Nols1000 | PC / Mac | 1.6 |
 | [Banker Shutup](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mctaylor/Banker-Shutup__869) | mctaylor | PC / Mac | 3.5c |
 | [Banker Shutup Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rkuhnjr/Banker-Shutup-Patch__839) | rkuhnjr | PC / Mac | 3.5b |
-| [Bankir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Bankir__4535) | Saleand | PC / Mac | 2.9.9 |
+| [Bankir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Bankir__4535) | Saleand | PC / Mac | 2.9.10 |
 | [BankManagerTESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IgorSab/BankManagerTESO__4072) | IgorSab | PC / Mac | 1 |
 | [Banner Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phamo1000/Banner-Status__608b7ab5-db64-423a-af5c-2438027f0eed) | Phamo1000 | Console | — |
 | [Bar Steward - Multi Toolbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Bar-Steward---Multi-Toolbar__3375) | FlatBadger | PC / Mac | 3.5.14 |
@@ -67,8 +67,10 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Berserk Tracker (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Berserk-Tracker-PC-Console__4801) | Duesentrieb | PC / Mac | 20260829-0001 |
 | [BestFriends 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/BestFriends-2018__1975) | Phuein | PC / Mac | 2.16 |
 | [Beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Beta__8fc4dbcc-bce3-471f-a036-2fb01acd6e4a) | FiNk3F13 | Console | — |
+| [Beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Beta__9115b4e2-1fab-4a8c-969b-4e8af57ea6f9) | FiNk3F13 | Console | — |
 | [Beta Dolg Alch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Beta-Dolg-Alch__2711aec8-a92b-4dae-97c9-096e8d72bf16) | Dolgubon | Console | — |
 | [beta jh](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/beta-jh__bd7f229c-f922-457b-a9c6-16e3f0427654) | j.hhh | Console | — |
+| [Beta1](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Beta1__96ea490b-f342-428b-9452-80d431e418de) | FiNk3F13 | Console | — |
 | [BetaBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tetsurion/BetaBars__1f95515e-9df4-487e-9e56-ab184190fd95) | Tetsurion | Console | — |
 | [BetaScry](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Latetide/BetaScry__3783) | Latetide | PC / Mac | 1.0.0 |
 | [Better Antiquities Journal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DH8Wolf/Better-Antiquities-Journal__2701) | DH8Wolf | PC / Mac | 0.3 |

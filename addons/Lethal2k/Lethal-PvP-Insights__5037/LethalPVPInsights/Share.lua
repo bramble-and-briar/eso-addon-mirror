@@ -20,24 +20,62 @@ Share.CATEGORIES = {
 local DEFAULTS = {}
 for _, c in ipairs(Share.CATEGORIES) do DEFAULTS[c.key] = c.default end
 
--- settings.share[key] = { mode = "friends", guilds = { [guildId] = true }, chosen = true }
--- `chosen` marks a mode the player picked; until then the category follows the default
+-- settings.share[key] = { modes = { friends = true, guild = true }, guilds = { [guildId] = true }, chosen = true }
+-- Several groups can be ticked at once (friends AND guild members...); "all" = everyone, nothing ticked = nobody.
+-- `mode` (one value) is what versions before 1.11.5 stored; it's kept in step for older servers.
+-- `chosen` marks a choice the player made; until then the category follows the default
 -- (Friendly Players: Your Faction; Group and Saved Builds: Friends).
+Share.GROUPS = { "all", "faction", "friends", "guild" }
+Share.GROUP_LABELS = { all = "Everyone", faction = "Players of my faction", friends = "My friends", guild = "Members of my guilds (tick them below)" }
+
 function Share:Get(key)
     local st = PDI.sv.settings
     st.share = st.share or {}
     local e = st.share[key]
     if type(e) ~= "table" then e = { guilds = {} }; st.share[key] = e end
-    if not e.chosen then e.mode = DEFAULTS[key] or "none" end
+    if not e.chosen then e.mode, e.modes = DEFAULTS[key] or "none", nil end
     e.mode = e.mode or "none"
+    if type(e.modes) ~= "table" then                    -- from the single choice of older versions
+        e.modes = {}
+        if e.mode ~= "none" then e.modes[e.mode] = true end
+    end
     e.guilds = e.guilds or {}
     return e
 end
 
+local function syncMode(e)
+    local m = "none"
+    for _, g in ipairs(Share.GROUPS) do if e.modes[g] then m = g; break end end
+    e.mode = m
+end
+
+-- tick / untick one group
+function Share:SetGroup(key, group, on)
+    local e = self:Get(key)
+    e.modes[group] = on and true or nil
+    e.chosen = true
+    syncMode(e)
+end
+
+function Share:Has(key, group) return self:Get(key).modes[group] == true end
+
+-- kept for /commands and older code: one group only
 function Share:SetMode(key, mode)
     local e = self:Get(key)
-    e.mode = mode
+    e.modes = {}
+    if mode and mode ~= "none" then e.modes[mode] = true end
     e.chosen = true
+    syncMode(e)
+end
+
+-- "Friends, Guild Members" / "Everyone" / "Nobody"
+function Share:Describe(key)
+    local e, parts = self:Get(key), {}
+    if e.modes.all then return "Everyone" end
+    for _, g in ipairs({ "faction", "friends", "guild" }) do
+        if e.modes[g] then parts[#parts + 1] = ({ faction = "my faction", friends = "my friends", guild = "my guilds" })[g] end
+    end
+    return #parts > 0 and table.concat(parts, ", ") or "Nobody"
 end
 
 function Share:GuildAt(slot)
@@ -64,13 +102,13 @@ end
 
 -- May data of kind `key` about player `acct` (alliance `al`) be shared?
 function Share:Allows(key, acct, al)
-    local e = self:Get(key)
-    if e.mode == "all" then return true end
-    if e.mode == "none" or not acct then return false end
-    if e.mode == "faction" then return al ~= nil and al == GetUnitAlliance("player") end
-    if e.mode == "friends" then return isFriend(acct) end
-    if e.mode == "guild" then
-        for gid in pairs(e.guilds) do
+    local m = self:Get(key).modes
+    if m.all then return true end
+    if not acct then return false end
+    if m.faction and al ~= nil and al == GetUnitAlliance("player") then return true end
+    if m.friends and isFriend(acct) then return true end
+    if m.guild then
+        for gid in pairs(self:Get(key).guilds) do
             if inGuild(gid, acct) then return true end
         end
     end

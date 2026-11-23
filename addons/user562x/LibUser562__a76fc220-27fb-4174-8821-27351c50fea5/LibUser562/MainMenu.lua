@@ -94,7 +94,7 @@ end
 -- Entries
 --------------------------------------------------
 local function NewEntry(id, data)
-    local entry = ZO_GamepadEntryData:New(data.name, data.icon)
+    local entry = ZO_GamepadEntryData:New(ResolveText(data.name), data.icon)
     entry:SetIconTintOnSelection(true)
     entry:SetIconDisabledTintOnSelection(true)
     entry.id = id
@@ -107,7 +107,7 @@ local function PanelEntry(panel)
     local id = ENTRY_PREFIX .. panel.name
     return NewEntry(id, {
         id    = id,
-        name  = ResolveText(menu.menuTitle or menu.title or panel.name),
+        name  = function() return ResolveText(menu.menuTitle or menu.title or panel.name) end,
         icon  = menu.menuIcon or DEFAULT_ICON,
         scene = panel.SCENE_NAME,
     })

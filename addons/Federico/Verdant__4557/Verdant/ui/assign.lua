@@ -1,4 +1,5 @@
 Verdant = Verdant or {}
+local Verdant = Verdant
 Verdant.Assign = {}
 local M = Verdant.Assign
 
@@ -6,6 +7,7 @@ local api = Verdant.zenimax.api
 local zui = Verdant.zenimax.ui
 local zc  = Verdant.zenimax.constants
 local Scene = Verdant.zenimax.scene
+local zev = Verdant.zenimax.events
 local GetString               = api.GetString
 local GetAbilityName          = api.GetAbilityName
 local WINDOW_MANAGER          = zui.WINDOW_MANAGER
@@ -49,13 +51,10 @@ local FLYOUT_PAD       = 6
 local FLYOUT_ENTRY_H   = 16
 local FLYOUT_COL_W     = 158
 local FLYOUT_COLS      = 2
-local PALETTE = {
-  { r = 0.95, g = 0.30, b = 0.25 }, { r = 0.98, g = 0.60, b = 0.20 }, { r = 0.98, g = 0.85, b = 0.30 },
-  { r = 0.60, g = 0.90, b = 0.25 }, { r = 0.25, g = 0.80, b = 0.45 }, { r = 0.20, g = 0.85, b = 0.80 },
-  { r = 0.30, g = 0.65, b = 0.98 }, { r = 0.45, g = 0.45, b = 0.95 }, { r = 0.70, g = 0.40, b = 0.95 },
-  { r = 0.95, g = 0.40, b = 0.80 }, { r = 0.80, g = 0.65, b = 0.45 }, { r = 0.92, g = 0.92, b = 0.90 },
-}
+local SUGGEST_STEPS = 24
+local SUGGEST_S, SUGGEST_V = 0.65, 0.95
 local Sound = Verdant.Sound
+local Skin  = Verdant.Skin
 local FILL_TEXTURE = "EsoUI/Art/UnitAttributeVisualizer/attributeBar_dynamic_fill.dds"
 
 
@@ -68,8 +67,9 @@ local assign_active
 local fly_entries = {}
 local scroll_off = 0
 local newcat_for
-local newcat_color = 1
-local swatches = {}
+local newcat_rgb = { r = 1, g = 1, b = 1 }
+local entries = {}
+local aliases = {}
 
 local function row_factory(row, counter)
   local nm = "VerdantAssignRow" .. counter
@@ -80,11 +80,12 @@ local function row_factory(row, counter)
 
   local pick = CreateControlFromVirtual(nm .. "Pick", row, "ZO_DefaultButton")
   pick:SetDimensions(130, 24)
+  Skin.button(pick)
   pick:SetAnchor(RIGHT, row, RIGHT, 0, 0)
-  pick:SetHandler("OnClicked", function() open_flyout_for(row) end)
-  pick:SetHandler("OnMouseWheel", function(_, delta) M.on_scroll(delta) end)
+  zui.handler(pick, "OnClicked", function() open_flyout_for(row) end)
+  zui.handler(pick, "OnMouseWheel", function(_, delta) M.on_scroll(delta) end)
   row:SetMouseEnabled(true)
-  row:SetHandler("OnMouseWheel", function(_, delta) M.on_scroll(delta) end)
+  zui.handler(row, "OnMouseWheel", function(_, delta) M.on_scroll(delta) end)
   row.vm_pick = pick
 
   local name = WINDOW_MANAGER:CreateControl(nm .. "Name", row, CT_LABEL)
@@ -104,14 +105,112 @@ local function row_reset(row)
   row:ClearAnchors()
 end
 
+local function trimmed_name()
+  local name = tostring(controls.newcat_edit:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
+  return name
+end
+
+local function existing(name)
+  local ck = SkillColors.custom_key(name)
+  if SkillColors.is_custom(ck) then return ck end
+  local low = name:lower()
+  for _, g in ipairs(SkillColors.groups_ordered()) do
+    if g.label:lower() == low then return g.key end
+  end
+  return nil
+end
+
+local function distance(a, r, g, b)
+  local dr, dg, db = a.r - r, a.g - g, a.b - b
+  return 2 * dr * dr + 4 * dg * dg + 3 * db * db
+end
+
+local function nearest(c)
+  local best, best_d
+  for _, g in ipairs(SkillColors.groups_ordered()) do
+    local d = distance(g, c.r, c.g, c.b)
+    if not best_d or d < best_d then best, best_d = g.key, d end
+  end
+  return best
+end
+
+local function hsv(h, sat, val)
+  local i = math_floor(h * 6)
+  local f = h * 6 - i
+  local p, q, t = val * (1 - sat), val * (1 - f * sat), val * (1 - (1 - f) * sat)
+  i = i % 6
+  if i == 0 then return val, t, p end
+  if i == 1 then return q, val, p end
+  if i == 2 then return p, val, t end
+  if i == 3 then return p, q, val end
+  if i == 4 then return t, p, val end
+  return val, p, q
+end
+
+local function suggestion()
+  local groups = SkillColors.groups_ordered()
+  local br, bg, bb = hsv(0, SUGGEST_S, SUGGEST_V)
+  local best_d
+  for i = 0, SUGGEST_STEPS - 1 do
+    local r, g, b = hsv(i / SUGGEST_STEPS, SUGGEST_S, SUGGEST_V)
+    local d
+    for _, grp in ipairs(groups) do
+      local x = distance(grp, r, g, b)
+      if not d or x < d then d = x end
+    end
+    if d and (not best_d or d > best_d) then br, bg, bb, best_d = r, g, b, d end
+  end
+  return br, bg, bb
+end
+
+local function refresh_newcat()
+  local c = newcat_rgb
+  local name = trimmed_name()
+  controls.newcat_sample:SetColor(c.r, c.g, c.b, 1)
+  controls.newcat_preview:SetText(name ~= "" and name or GetString(VERDANT_ASSIGN_NEW_TITLE))
+  controls.newcat_preview:SetColor(c.r, c.g, c.b, 1)
+  local key = name ~= "" and existing(name) or nil
+  local note
+  if key and SkillColors.is_custom(key) then
+    note = string_format(GetString(VERDANT_ASSIGN_NEW_RECOLOR), colored_label(key))
+  elseif key then
+    note = string_format(GetString(VERDANT_ASSIGN_NEW_TAKEN), colored_label(key))
+  else
+    local near = nearest(c)
+    note = near and string_format(GetString(VERDANT_ASSIGN_NEW_NEAREST), colored_label(near)) or ""
+  end
+  controls.newcat_note:SetText(note)
+end
+
 local function open_newcat()
   newcat_for = active_id
   active_id = nil
   controls.flyout:SetHidden(true)
-  newcat_color = 1
+  newcat_rgb.r, newcat_rgb.g, newcat_rgb.b = suggestion()
   controls.newcat_edit:SetText("")
-  for i = 1, #swatches do swatches[i].rim:SetHidden(i ~= newcat_color) end
+  refresh_newcat()
   controls.newcat:SetHidden(false)
+end
+
+local function picked(r, g, b)
+  controls.window:SetDrawTier(zc.DT_HIGH)
+  if type(r) ~= "number" or type(g) ~= "number" or type(b) ~= "number" then return end
+  newcat_rgb.r, newcat_rgb.g, newcat_rgb.b = r, g, b
+  refresh_newcat()
+end
+
+local picked_door = zev.guard("Verdant_ColorPicked", picked)
+
+function M.on_newcat_pick()
+  local c = newcat_rgb
+  controls.window:SetDrawTier(zc.DT_MEDIUM)
+  if not zui.pick_color(picked_door, c.r, c.g, c.b) then
+    controls.window:SetDrawTier(zc.DT_HIGH)
+    Sound.play("deny")
+    controls.newcat_note:SetText(GetString(VERDANT_ASSIGN_NEW_NOPICKER))
+    return
+  end
+  Sound.play("click")
 end
 
 local function build_flyout()
@@ -144,15 +243,15 @@ local function build_flyout()
       local cr, cg, cb = g.r, g.g, g.b
       e:SetText(g.label)
       e:SetColor(cr, cg, cb, 1)
-      e:SetHandler("OnMouseUp",    function() assign_active(key) end)
-      e:SetHandler("OnMouseEnter", function(self) self:SetColor(1, 1, 1, 1) end)
-      e:SetHandler("OnMouseExit",  function(self) self:SetColor(cr, cg, cb, 1) end)
+      zui.handler(e, "OnMouseUp",    function() assign_active(key) end)
+      zui.handler(e, "OnMouseEnter", function(self) self:SetColor(1, 1, 1, 1) end)
+      zui.handler(e, "OnMouseExit",  function(self) self:SetColor(cr, cg, cb, 1) end)
     else
       e:SetText(GetString(VERDANT_ASSIGN_NEW))
       e:SetColor(0.85, 0.70, 0.36, 1)
-      e:SetHandler("OnMouseUp",    function() Sound.play("click"); open_newcat() end)
-      e:SetHandler("OnMouseEnter", function(self) self:SetColor(1, 1, 1, 1) end)
-      e:SetHandler("OnMouseExit",  function(self) self:SetColor(0.85, 0.70, 0.36, 1) end)
+      zui.handler(e, "OnMouseUp",    function() Sound.play("click"); open_newcat() end)
+      zui.handler(e, "OnMouseEnter", function(self) self:SetColor(1, 1, 1, 1) end)
+      zui.handler(e, "OnMouseExit",  function(self) self:SetColor(0.85, 0.70, 0.36, 1) end)
     end
   end
   for i = n + 1, #fly_entries do fly_entries[i]:SetHidden(true) end
@@ -161,48 +260,68 @@ local function build_flyout()
                     FLYOUT_PAD * 2 + rows_per_col * FLYOUT_ENTRY_H)
 end
 
-local function build_swatches()
+local function build_newcat()
   local panel = controls.newcat
-  for i = 1, #PALETTE do
-    local c = PALETTE[i]
-    local x = 10 + (i - 1) * 24
-    local rim = WINDOW_MANAGER:CreateControl("VerdantAssignSwatchRim" .. i, panel, CT_TEXTURE)
-    rim:SetTexture(FILL_TEXTURE)
-    rim:SetTextureCoords(0, 1, 0, 0.05)
-    rim:SetDimensions(22, 22)
-    rim:SetAnchor(TOPLEFT, panel, TOPLEFT, x - 2, 38)
-    rim:SetColor(1, 1, 1, 0.9)
-    rim:SetHidden(i ~= 1)
-    local sw = WINDOW_MANAGER:CreateControl("VerdantAssignSwatch" .. i, panel, CT_TEXTURE)
-    sw:SetTexture(FILL_TEXTURE)
-    sw:SetTextureCoords(0, 1, 0, 0.05)
-    sw:SetDimensions(18, 18)
-    sw:SetAnchor(TOPLEFT, panel, TOPLEFT, x, 40)
-    sw:SetColor(c.r, c.g, c.b, 1)
-    local hit = WINDOW_MANAGER:CreateControl("VerdantAssignSwatchHit" .. i, panel, CT_CONTROL)
-    hit:SetDimensions(22, 22)
-    hit:SetAnchor(TOPLEFT, panel, TOPLEFT, x - 2, 38)
-    hit:SetMouseEnabled(true)
-    local idx = i
-    hit:SetHandler("OnMouseUp", function() M.on_newcat_swatch(idx) end)
-    swatches[i] = { rim = rim, sw = sw, hit = hit }
-  end
-end
+  local pick = CreateControlFromVirtual("VerdantAssignNewCatPick", panel, "ZO_DefaultButton")
+  pick:SetDimensions(120, 22)
+  pick:SetAnchor(TOPLEFT, panel, TOPLEFT, 10, 38)
+  pick:SetFont("ZoFontGameSmall")
+  pick:SetText(GetString(VERDANT_ASSIGN_NEW_COLOR))
+  Skin.button(pick)
+  zui.handler(pick, "OnClicked", function() M.on_newcat_pick() end)
+  controls.newcat_pick = pick
 
-function M.on_newcat_swatch(i)
-  if not PALETTE[i] then return end
-  newcat_color = i
-  for k = 1, #swatches do swatches[k].rim:SetHidden(k ~= i) end
-  Sound.play("click")
+  local rim = WINDOW_MANAGER:CreateControl("VerdantAssignNewCatSampleRim", panel, CT_TEXTURE)
+  rim:SetTexture(FILL_TEXTURE)
+  rim:SetTextureCoords(0, 1, 0, 0.05)
+  rim:SetDimensions(22, 22)
+  rim:SetAnchor(TOPLEFT, panel, TOPLEFT, 138, 38)
+  Skin.label(rim, "metal", 0.6)
+  local sample = WINDOW_MANAGER:CreateControl("VerdantAssignNewCatSample", panel, CT_TEXTURE)
+  sample:SetTexture(FILL_TEXTURE)
+  sample:SetTextureCoords(0, 1, 0, 0.05)
+  sample:SetDimensions(18, 18)
+  sample:SetAnchor(TOPLEFT, panel, TOPLEFT, 140, 40)
+  controls.newcat_sample = sample
+
+  local preview = WINDOW_MANAGER:CreateControl("VerdantAssignNewCatPreview", panel, CT_LABEL)
+  preview:SetFont("ZoFontGameBold")
+  preview:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+  preview:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+  preview:SetAnchor(TOPLEFT, panel, TOPLEFT, 168, 38)
+  preview:SetAnchor(TOPRIGHT, panel, TOPRIGHT, -10, 38)
+  preview:SetHeight(22)
+  preview:SetMaxLineCount(1)
+  preview:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+  controls.newcat_preview = preview
+
+  local note = WINDOW_MANAGER:CreateControl("VerdantAssignNewCatNote", panel, CT_LABEL)
+  note:SetFont("ZoFontGameSmall")
+  note:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+  note:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+  note:SetAnchor(TOPLEFT, panel, TOPLEFT, 10, 64)
+  note:SetAnchor(TOPRIGHT, panel, TOPRIGHT, -10, 64)
+  note:SetHeight(22)
+  note:SetMaxLineCount(1)
+  note:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+  Skin.label(note, "dim")
+  controls.newcat_note = note
 end
 
 function M.on_newcat_create()
-  local name = tostring(controls.newcat_edit:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
+  local name = trimmed_name()
   if name == "" then
     Sound.play("deny")
+    controls.newcat_note:SetText(GetString(VERDANT_ASSIGN_NEW_EMPTY))
     return
   end
-  local c   = PALETTE[newcat_color] or PALETTE[1]
+  local taken = existing(name)
+  if taken and not SkillColors.is_custom(taken) then
+    Sound.play("deny")
+    refresh_newcat()
+    return
+  end
+  local c   = newcat_rgb
   local key = SkillColors.custom_key(name)
   if not SkillColors.add_group(key, name, c.r, c.g, c.b) then
     Sound.play("deny")
@@ -258,11 +377,49 @@ assign_active = function(key)
   M.refresh()
 end
 
+local function gather()
+  for i = #entries, 1, -1 do entries[i] = nil end
+  for k in pairs(aliases) do aliases[k] = nil end
+  local skills = SkillColors.get_unknowns()
+  local buffs = Verdant.BuffOrigin.unknowns()
+  if #buffs > 0 and #skills > 0 then entries[#entries + 1] = { head = GetString(VERDANT_ASSIGN_SEC_SKILLS) } end
+  for i = 1, #skills do entries[#entries + 1] = skills[i] end
+  if #buffs > 0 then entries[#entries + 1] = { head = GetString(VERDANT_ASSIGN_SEC_BUFFS) } end
+  for i = 1, #buffs do
+    entries[#entries + 1] = buffs[i]
+    aliases[buffs[i].id] = buffs[i].ids
+  end
+  return entries
+end
+
+local function paint_row(row, u)
+  if u.head then
+    row.vm_id = nil
+    row.vm_icon:SetHidden(true)
+    row.vm_pick:SetHidden(true)
+    row.vm_name:SetText(u.head)
+    Skin.label(row.vm_name, "metal")
+    return
+  end
+  row.vm_id = u.id
+  row.vm_pick:SetHidden(false)
+  if u.icon ~= "" then row.vm_icon:SetTexture(u.icon) end
+  row.vm_icon:SetHidden(u.icon == "")
+  row.vm_name:SetText(u.name)
+  Skin.label(row.vm_name, "text")
+  local chosen = pending[u.id]
+  if chosen then
+    row.vm_pick:SetText(colored_label(chosen))
+  else
+    row.vm_pick:SetText(GetString(VERDANT_ASSIGN_PICK))
+  end
+end
+
 function M.refresh()
   row_pool:ReleaseAllObjects()
   controls.flyout:SetHidden(true)
 
-  local unknowns = SkillColors.get_unknowns()
+  local unknowns = gather()
   controls.help:SetText("")
   if #unknowns == 0 then
     controls.empty:SetHidden(false)
@@ -282,24 +439,14 @@ function M.refresh()
     local slot = i - scroll_off
     if slot > max_rows then break end
     if slot >= 1 then
-    local u   = unknowns[i]
-    local row = row_pool:AcquireObject()
-    row.vm_id = u.id
-    if u.icon ~= "" then row.vm_icon:SetTexture(u.icon) end
-    row.vm_icon:SetHidden(u.icon == "")
-    row.vm_name:SetText(u.name)
-    local chosen = pending[u.id]
-    if chosen then
-      row.vm_pick:SetText(colored_label(chosen))
-    else
-      row.vm_pick:SetText(GetString(VERDANT_ASSIGN_PICK))
-    end
-    row:ClearAnchors()
-    row:SetAnchor(TOPLEFT,  list, TOPLEFT,  0, (slot - 1) * ROW_H)
-    row:SetAnchor(TOPRIGHT, list, TOPRIGHT, 0, (slot - 1) * ROW_H)
-    row:SetHeight(ROW_H - 2)
-    row:SetHidden(false)
-    shown = shown + 1
+      local row = row_pool:AcquireObject()
+      paint_row(row, unknowns[i])
+      row:ClearAnchors()
+      row:SetAnchor(TOPLEFT,  list, TOPLEFT,  0, (slot - 1) * ROW_H)
+      row:SetAnchor(TOPRIGHT, list, TOPRIGHT, 0, (slot - 1) * ROW_H)
+      row:SetHeight(ROW_H - 2)
+      row:SetHidden(false)
+      shown = shown + 1
     end
   end
 
@@ -371,6 +518,7 @@ function M.hide()
   clear_pending()
   Scene.hide_top_level(controls.window)
   row_pool:ReleaseAllObjects()
+  Verdant.Settings.refresh_unknown()
 end
 
 function M.toggle()
@@ -395,16 +543,26 @@ end
 
 function M.on_confirm_yes()
   local sv = Verdant.SavedVars
-  for id, key in pairs(pending) do
-    SkillColors.set_override(id, key)
-    if sv then
-      sv.skill_overrides = sv.skill_overrides or {}
-      sv.skill_overrides[id] = key
+  for first, key in pairs(pending) do
+    local ids = aliases[first] or { first }
+    for i = 1, #ids do
+      local id = ids[i]
+      SkillColors.set_override(id, key)
+      if sv then
+        sv.skill_overrides = sv.skill_overrides or {}
+        sv.skill_overrides[id] = key
+      end
+      log:info("committed", id, "->", key)
     end
-    log:info("committed", id, "->", key)
   end
   controls.confirm:SetHidden(true)
   M.hide()
+  Verdant.Graph.rerender()
+end
+
+local function catalog_done()
+  if controls.window:IsHidden() or not controls.flyout:IsHidden() or not controls.newcat:IsHidden() then return end
+  M.refresh()
 end
 
 function M.on_move_stop()
@@ -437,8 +595,13 @@ function M.init()
   controls.newcat_cancel = VerdantAssignPanelNewCatCancelBtn
 
 
-  VerdantAssignPanelBg:SetCenterColor(0.62, 1.00, 0.74, 1.0)
-  VerdantAssignPanelBg:SetEdgeColor(0.42, 1.00, 0.60, 1.0)
+  Skin.panel(VerdantAssignPanelBg)
+  Skin.close(VerdantAssignPanelCloseBtn)
+  Skin.button(controls.assign_btn, true)
+  Skin.button(controls.newcat_create, true)
+  Skin.button(controls.newcat_cancel)
+  Skin.button(controls.confirm_yes, true)
+  Skin.button(controls.confirm_no)
 
   VerdantAssignPanelFlyoutFill:SetTexture("EsoUI/Art/UnitAttributeVisualizer/attributeBar_dynamic_fill.dds")
   VerdantAssignPanelFlyoutFill:SetTextureCoords(0, 1, 0, 0.05)
@@ -451,8 +614,7 @@ function M.init()
   VerdantAssignPanelFlyoutBg:SetDrawLevel(102)
   controls.flyout:SetDrawLevel(100)
   controls.confirm:SetDrawTier(DT_HIGH)
-  VerdantAssignConfirmBg:SetCenterColor(0.62, 1.00, 0.74, 1.0)
-  VerdantAssignConfirmBg:SetEdgeColor(0.42, 1.00, 0.60, 1.0)
+  Skin.panel(VerdantAssignConfirmBg)
 
   controls.title:SetText(GetString(VERDANT_ASSIGN_TITLE))
   controls.title:SetColor(0.75, 0.75, 0.75, 1)
@@ -470,24 +632,19 @@ function M.init()
   controls.confirm:SetHidden(true)
 
   row_pool = Verdant.lib.plot.Pool.new("VerdantAssignRowC", controls.list, CT_CONTROL, row_factory, row_reset)
-  VerdantAssignPanelNewCatBg:SetCenterColor(0.075, 0.070, 0.062, 0.98)
-  VerdantAssignPanelNewCatBg:SetEdgeColor(0.86, 0.70, 0.36, 0.85)
+  Skin.section(VerdantAssignPanelNewCatBg)
   VerdantAssignPanelNewCatTitle:SetText(GetString(VERDANT_ASSIGN_NEW_TITLE))
-  VerdantAssignPanelNewCatTitle:SetColor(0.85, 0.70, 0.36, 1)
+  Skin.label(VerdantAssignPanelNewCatTitle, "metal")
   controls.newcat_edit:SetDefaultText(GetString(VERDANT_ASSIGN_NEW_NAME))
   controls.newcat_create:SetText(GetString(VERDANT_ASSIGN_CREATE))
   controls.newcat_cancel:SetText(GetString(VERDANT_ASSIGN_CANCEL))
   controls.newcat:SetHidden(true)
-  build_swatches()
+  build_newcat()
+  zui.handler(controls.newcat_edit, "OnTextChanged", function() refresh_newcat() end)
   controls.list:SetMouseEnabled(true)
-  controls.list:SetHandler("OnMouseWheel", function(_, delta) M.on_scroll(delta) end)
-  zui.tooltip(controls.newcat_create, VERDANT_TIP_ASSIGN_CREATE)
-  zui.tooltip(controls.newcat_cancel, VERDANT_TIP_ASSIGN_CANCEL)
-  zui.tooltip(controls.assign_btn,    VERDANT_TIP_ASSIGN_DONE)
-  zui.tooltip(controls.confirm_yes,   VERDANT_TIP_CONFIRM_YES)
-  zui.tooltip(controls.confirm_no,    VERDANT_TIP_CONFIRM_NO)
-  zui.tooltip(VerdantAssignPanelCloseBtn, VERDANT_TIP_CLOSE)
+  zui.handler(controls.list, "OnMouseWheel", function(_, delta) M.on_scroll(delta) end)
   build_flyout()
+  Verdant.BuffCatalog.on_done(catalog_done)
 
   local sv = Verdant.SavedVars
   sv.assign = sv.assign or {}

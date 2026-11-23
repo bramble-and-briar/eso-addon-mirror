@@ -27,7 +27,7 @@ local DEFAULTS = {
 QoL:AddDefaults(DEFAULTS)
 
 MI.typeChoices = {
-    { name = "Gear",            value = "miGear"  },
+    { name = "Set Items",       value = "miGear"  },
     { name = "Learnable Items", value = "miLearn" },
 }
 
@@ -39,6 +39,7 @@ local TYPE_ICONS = {
 local chatHooked = false
 local listsHooked = false
 local lootLogHooked = false
+local entriesHooked = false
 local wrappedFormatters = {}
 local redTint
 
@@ -148,6 +149,31 @@ local function HookLists()
 end
 
 --------------------------------------------------
+-- Entries
+--------------------------------------------------
+local function MarkEntry(itemData)
+    if type(itemData) ~= "table" or itemData.bagId ~= nil or not IsOn() then return end
+    local itemLink = itemData.itemLink
+    if type(itemLink) ~= "string" or itemLink == "" then return end
+    local sv = SV()
+    if sv.miGear and not itemData.isLockedSetPiece and IsItemLinkLockedSetPiece and IsItemLinkLockedSetPiece(itemLink) then
+        itemData.isLockedSetPiece = true
+    end
+    if sv.miLearn and not itemData.canBeUsedToLearn and CanItemLinkBeUsedToLearn and CanItemLinkBeUsedToLearn(itemLink) then
+        itemData.canBeUsedToLearn = true
+    end
+end
+
+local function HookEntries()
+    if entriesHooked or not (ZO_GamepadEntryData and ZO_GamepadEntryData.InitializeInventoryVisualData) then return end
+    entriesHooked = true
+    ZO_PreHook(ZO_GamepadEntryData, "InitializeInventoryVisualData", function(_, itemData)
+        pcall(MarkEntry, itemData)
+        return false
+    end)
+end
+
+--------------------------------------------------
 -- Loot Log
 --------------------------------------------------
 local function LootLogKey(history, statusIcon)
@@ -221,9 +247,7 @@ function MI:SubmenuOption()
                 name    = "Enabled",
                 preset  = "YES_NO",
                 default = DEFAULTS.miEnabled,
-                tooltip = "Marks items you don't have yet with a red icon. In chat the icon goes after the link. "
-                       .. "In your inventory, bank, guild bank, craft bag, guild store, loot window and loot log, "
-                       .. "the game's own icon turns red.",
+                tooltip = "Turns the game's missing-item icons red, and adds a red icon after item links in chat.",
                 getFunc = function() return SV().miEnabled end,
                 setFunc = function(val) SV().miEnabled = val end,
             },
@@ -234,7 +258,7 @@ function MI:SubmenuOption()
                 default  = DefaultValues(self.typeChoices),
                 disabled = IsOff,
                 tooltip  = "Which items count as missing.\n\n"
-                        .. "Gear: set pieces you haven't added to your Sets Collection.\n"
+                        .. "Set Items: set pieces you haven't collected yet.\n"
                         .. "Learnable Items: recipes, motifs, style pages, runeboxes and anything else "
                         .. "you haven't learned yet.",
                 details  = function()
@@ -259,12 +283,14 @@ end
 --------------------------------------------------
 function MI:Init()
     HookLists()
+    HookEntries()
     HookLootLog()
     HookChat()
 end
 
 function MI:OnPlayerActivated()
     HookLists()
+    HookEntries()
     HookLootLog()
     HookChat()
 end

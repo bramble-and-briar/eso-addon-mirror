@@ -1,0 +1,35 @@
+## Title: Mark Trial Helper
+## Description: Trial & Dungeon priority target auto-marker and Endless Archive helper.
+## Author: Mark Streltcov
+## APIVersion: 101050 101051
+## AddOnVersion: 2003
+## Version: 2.0.3
+## SavedVariables: MarkTrialHelperSavedVars
+## DependsOn: LibFBCommon>=1007 LibSavedVars>=60101 LibAddonMenu-2.0>=43
+## OptionalDependsOn: LykeionsFabledMarker LibChatMessage
+
+# Credits: Enhancements by Mark Streltcov. Based on Markchive / Archive Helper by Flat Badger & IAHelper.
+
+languages/en.lua
+languages/$(language).lua
+data/defaults.lua
+data/abilities.lua
+data/danger_ids.lua
+misc/maintenance.lua
+misc/achievements.lua
+misc/alarms.lua
+misc/events.lua
+misc/markers.lua
+misc/trial_markers.lua
+misc/skyshard_tour.lua
+misc/slash.lua
+misc/utility.lua
+misc/danger.lua
+misc/debuffs.lua
+misc/spawns.lua
+ui/icons.lua
+ui/buffSelector.lua
+ui/ui.lua
+settings/settings.lua
+MarkTrialHelper.lua
+ui/bindings.xml

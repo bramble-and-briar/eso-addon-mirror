@@ -36,7 +36,7 @@ local function build()
   win:SetMovable(true)
   win:SetMouseEnabled(true)
   win:SetResizeHandleSize(8)
-  win:SetHandler("OnMoveStop", function()
+  zui.handler(win, "OnMoveStop", function()
     if Verdant.SavedVars and Verdant.SavedVars.copybox then
       Verdant.SavedVars.copybox.x = win:GetLeft()
       Verdant.SavedVars.copybox.y = win:GetTop()
@@ -57,7 +57,7 @@ local function build()
 
   local close = CreateControlFromVirtual("$(parent)Close", win, "ZO_CloseButton")
   close:SetAnchor(TOPRIGHT, win, TOPRIGHT, -8, 8)
-  close:SetHandler("OnClicked", function() M.hide() end)
+  zui.handler(close, "OnClicked", function() M.hide() end)
 
   local ebbg = CreateControlFromVirtual("$(parent)EBBg", win, "ZO_MultiLineEditBackdrop_Keyboard")
   ebbg:SetAnchor(TOPLEFT,     win, TOPLEFT,      14, 44)
@@ -65,7 +65,7 @@ local function build()
 
   local edit = CreateControlFromVirtual("VerdantCopyBoxEdit", ebbg, "ZO_DefaultEditMultiLineForBackdrop")
   edit:SetMaxInputChars(500000)
-  edit:SetHandler("OnMouseWheel", function(self, delta, ctrl, alt, shift)
+  zui.handler(edit, "OnMouseWheel", function(self, delta, ctrl, alt, shift)
     local cur = self:GetTopLineIndex()
     if shift then delta = delta * 10 end
     self:SetTopLineIndex(zo_clamp(cur - delta, 1, self:GetScrollExtents() + 1))
@@ -76,7 +76,7 @@ local function build()
     b:SetDimensions(120, 26)
     b:SetAnchor(BOTTOMLEFT, win, BOTTOMLEFT, anchor_offset_x, -16)
     b:SetText(label)
-    b:SetHandler("OnClicked", on_click)
+    zui.handler(b, "OnClicked", on_click)
     return b
   end
   mkbtn("SelAll", "Select All", 14,  function()

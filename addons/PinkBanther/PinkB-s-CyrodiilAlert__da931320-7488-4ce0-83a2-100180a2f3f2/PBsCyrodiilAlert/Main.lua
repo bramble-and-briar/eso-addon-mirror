@@ -733,16 +733,33 @@ addon.AllianceName = AllianceName
 -- to opaque and returns exactly "rrggbb" (zo_colordef.lua:182), but it is put through the same
 -- validation as a user-typed colour anyway: a malformed markup does not fail visibly, it eats
 -- the start of the line it was meant to colour.
+--
+-- Asked once per alliance and kept: an alliance's colour does not change during a session, and
+-- this is called for every summary line and every transitus link on every pass. Working it out
+-- each time made a pcall closure and two gsub results per call -- garbage, not a leak, but on
+-- a console every few seconds of it is GC work for nothing. A failed lookup is not cached, so
+-- a colour that was not ready yet is asked for again next time.
+local allianceHexCache = {}
+
+local function ReadAllianceHex(alliance)
+	local colour = GetAllianceColor(alliance)
+	return colour and colour:ToHex()
+end
+
 local function AllianceHex(alliance)
-	if GetAllianceColor and alliance and alliance ~= ALLIANCE_NONE then
-		local ok, hex = pcall(function()
-			return GetAllianceColor(alliance):ToHex()
-		end)
-		if ok then
-			local valid = addon:NormaliseHex(hex)
-			if valid then
-				return valid
-			end
+	if not (alliance and alliance ~= ALLIANCE_NONE) then
+		return "FFFFFF"
+	end
+	local cached = allianceHexCache[alliance]
+	if cached then
+		return cached
+	end
+	if GetAllianceColor then
+		local ok, hex = pcall(ReadAllianceHex, alliance)
+		local valid = ok and addon:NormaliseHex(hex)
+		if valid then
+			allianceHexCache[alliance] = valid
+			return valid
 		end
 	end
 	return "FFFFFF"
@@ -1828,7 +1845,16 @@ function addon:Scan()
 
 	local playerAlliance = GetUnitAlliance and GetUnitAlliance("player") or ALLIANCE_NONE
 	local now = Now()
-	local seen = {}
+	-- Reused from pass to pass rather than made new every five seconds.
+	local seen = self.scanSeen
+	if not seen then
+		seen = {}
+		self.scanSeen = seen
+	else
+		for key in pairs(seen) do
+			seen[key] = nil
+		end
+	end
 	-- Held and being fought over, per alliance, counted off the same pass. The alert switches
 	-- do not narrow it: which holdings you want to be woken up for is a different question
 	-- from what the campaign looks like.

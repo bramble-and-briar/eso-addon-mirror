@@ -71,7 +71,7 @@ local function HookInteractionClass(cls)
     }
 
     cls.PopulateChatterOptions = function(interactionSelf, optionCount, backToTOCOption)
-        local npcName = GetUnitName and GetUnitName("interact") or ""
+        local npcName = GetUnitName("interact") or ""
         local zoneId = GetCurrentPlayerZoneId()
         local match = Addon.QuestRepository:FindDialogueForActiveQuest(npcName, zoneId)
 
@@ -79,12 +79,14 @@ local function HookInteractionClass(cls)
         state.injected = false
         state.offset = 0
         state.match = match
+        state.importantOptions = nil
 
         local finalCount, importantOptions = origPopulateOptions(interactionSelf, optionCount, backToTOCOption)
         local totalOffset = state.offset
 
         state.active = false
         state.match = nil
+        state.importantOptions = nil
 
         return (finalCount or 0) + totalOffset, importantOptions
     end
@@ -104,6 +106,7 @@ local function HookInteractionClass(cls)
         dialogueTone
     )
         local maxOptions = MAX_CHATTER_OPTIONS or 10
+        state.importantOptions = state.importantOptions or importantOptions
         if state.active and not state.injected and optionType == CHATTER_GOODBYE then
             state.injected = true
             if controlID and controlID < maxOptions then
@@ -157,6 +160,35 @@ local function HookInteractionClass(cls)
     end
 
     cls.FinalizeChatterOptions = function(interactionSelf, optionCount)
+        local maxOptions = MAX_CHATTER_OPTIONS or 10
+        if state.active and not state.injected and state.match then
+            local nextID = (optionCount or 0) + 1
+            if nextID <= maxOptions then
+                state.injected = true
+                local match = state.match
+                local seenKey = GetSeenDialogueKey(match)
+                local wasChosenBefore = (seenKey and seenDialogues[seenKey]) == true
+                local callback = function()
+                    if seenKey then
+                        seenDialogues[seenKey] = true
+                    end
+                    DisplayDialogueResponse(interactionSelf, match.response)
+                    ApplySeenOptionColor(interactionSelf, nextID)
+                end
+                origPopulateOption(
+                    interactionSelf,
+                    nextID,
+                    callback,
+                    match.clue,
+                    CHATTER_TALK_CHOICE,
+                    nil,
+                    false,
+                    wasChosenBefore,
+                    state.importantOptions
+                )
+                state.offset = state.offset + 1
+            end
+        end
         return origFinalize(interactionSelf, (optionCount or 0) + state.offset)
     end
 
@@ -164,7 +196,6 @@ local function HookInteractionClass(cls)
 end
 
 function DialogueInjector:OnChatterBegin()
-    if not GetUnitName then return nil end
     local npcName = GetUnitName("interact")
     if type(npcName) ~= "string" or npcName == "" then
         return nil
@@ -178,6 +209,16 @@ function DialogueInjector:InstallHooks()
     HookInteractionClass(_G["ZO_GamepadInteraction"])
 end
 
+function DialogueInjector:ClearSeenDialoguesForQuest(questId)
+    if not questId then return end
+    local prefix = tostring(questId) .. ":"
+    for key in pairs(seenDialogues) do
+        if key:sub(1, #prefix) == prefix then
+            seenDialogues[key] = nil
+        end
+    end
+end
+
 function DialogueInjector:Initialize()
     if self.isInitialized then return end
     self.isInitialized = true
@@ -187,4 +228,14 @@ function DialogueInjector:Initialize()
     EVENT_MANAGER:RegisterForEvent(LISTENER_NAME, EVENT_CHATTER_BEGIN, function()
         self:OnChatterBegin()
     end)
+
+    if Addon.QuestRepository and Addon.QuestRepository.RegisterListener then
+        Addon.QuestRepository:RegisterListener(function(evType, payload)
+            if evType == "QUEST_IMPORTED" or evType == "ACTIVE_QUEST_CHANGED" or evType == "QUEST_ACCEPTED" then
+                self:InstallHooks()
+            elseif evType == "QUEST_RESET" and type(payload) == "table" then
+                self:ClearSeenDialoguesForQuest(payload.id)
+            end
+        end)
+    end
 end

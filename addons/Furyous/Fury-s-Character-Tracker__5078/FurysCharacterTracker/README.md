@@ -1,8 +1,12 @@
 # Fury's Character Tracker
 
+**AI disclosure:** Most of this addon's code was written with an AI coding assistant (Claude by Anthropic), working from my designs and instructions. I test every release in game on my own characters before it goes up, and I maintain it. Please report any problem in the comments.
+
 Your whole roster on one board: every character's skill lines, guild ranks, crafting, research,
 scribing, motifs, recipes, furnishing plans, companions, riding and time played, read straight
 from the game. Pick each character's role and gear, share a brag card, export to Excel.
+
+**Requires:** LibAddonMenu-2.0 (version 43 or newer). Install it separately; without it the addon will not load.
 
 ## Using it
 
@@ -71,39 +75,39 @@ and a progress bar. Sized for a screenshot to share on Discord.
   so the board works on any client language. Names on the board are in English.
 - **Renamed characters** show up as a new row; right-click the old one to remove it.
 
-## Offline viewer (Windows)
-
-See everything saved, for every account and megaserver on this PC, in your browser with the game closed.
-Same board as in game: tabs, columns, account button, brag card, research timers and character details.
-
-1. Log out, or type /reloadui. The game only writes its saved data at those moments.
-2. Open this folder (Documents\Elder Scrolls Online\live\AddOns\FurysCharacterTracker).
-3. Double-click **Open Offline Viewer.cmd**. Your browser opens **Fury's Character Tracker.html**, also saved
-   in Documents\Elder Scrolls Online.
-4. For newer data, run Open Offline Viewer.cmd again; the old .html keeps the data from when it was made.
-
-Picks are read-only there, and in-game-only buttons are grayed out. Text can be selected and copied.
-
 ## Settings
 
 The gear at the top of the board, Settings > Addons > Fury's Character Tracker, or `/fct settings`: chat alerts,
 login summary, open the board at login, reset window positions, show removed characters, export.
 Requires LibAddonMenu-2.0.
 
-## Export to Excel (Windows)
+## Windows Tools (optional, separate download)
 
-**One-time setup:** double-click `Turn On Auto Export.cmd` in this folder. A small helper then runs in
-the background (now, and every time you sign in to Windows). No admin rights needed.
+The offline viewer and the Excel export run outside the game, so they are not part of the addon download.
+They come as a separate free download, **Fury's Character Tracker Windows Tools**, linked on the addon's
+ESOUI page. Unzip it into any folder you like (for example Documents\Elder Scrolls Online). Every script is
+plain text you can open in Notepad; its own README says what each file does. The addon works fully in
+game without them.
 
-**Then, any time:** click **Export to Excel** on the board (or `/fct export`). The UI reloads, and a few
-seconds later `ESO Characters.csv` is in Documents\Elder Scrolls Online, updated.
+**Offline viewer.** See everything saved, for every account and megaserver on this PC, in your browser with
+the game closed: same board as in game, with tabs, account button, brag card, research timers and details.
+Log out or /reloadui (the game only saves then), then double-click **Open Offline Viewer.cmd**. Your browser
+opens **Fury's Character Tracker.html**, saved in Documents\Elder Scrolls Online. Run it again for newer data.
 
-- If you have that CSV open in Excel, it can't be replaced, so you get a dated copy beside it instead.
-- `Turn Off Auto Export.cmd` stops the helper. `AutoExport.log` here shows what it did.
-- Without the helper: click Export to Excel, then run `ExportToExcel.cmd` yourself.
+**Export to Excel.** One-time setup: double-click **Turn On Auto Export.cmd**. A small helper then runs in the
+background (now, and every time you sign in to Windows; no admin rights needed). After that, click
+**Export to Excel** on the board (or `/fct export`): the UI reloads and a few seconds later `ESO Characters.csv`
+is in Documents\Elder Scrolls Online. If that CSV is open in Excel, you get a dated copy beside it.
+`Turn Off Auto Export.cmd` stops the helper. Without the helper: click Export to Excel, then run
+`ExportToExcel.cmd` yourself.
 
-Mac: the export lines are in the saved data file below (lines starting `FCT|`, tab separated).
+Mac or no tools: the export lines are in the saved data file below (lines starting `FCT|`, tab separated).
 
 ## Saved data
 
 `SavedVariables\FurysCharacterTracker.lua`, account-wide, separate for NA and EU.
+
+## Credits
+
+- Settings page uses **LibAddonMenu-2.0** by Seerah and sirinsidiator.
+- Game API details from the ESOUI wiki and ZeniMax's ESO UI source code.

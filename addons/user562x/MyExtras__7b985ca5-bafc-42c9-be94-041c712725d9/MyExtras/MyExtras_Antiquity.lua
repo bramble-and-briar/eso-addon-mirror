@@ -21,7 +21,6 @@ local POPUP_PAD_Y    = 20
 local POPUP_LINE_GAP = 10
 local POPUP_CORNER   = 14
 
-local MOVE_SCENE  = "MyExtras_AntiquityMove"
 local MOVE_SPEED  = 500
 local SCALE_SPEED = 40
 local SIZE_MIN    = 50
@@ -56,7 +55,7 @@ local TRAVEL_WINDOW_MS = 30000
 local JOURNAL_DELAY_MS = 1500
 
 AR.defaults = {
-    antiquityEnabled      = true,
+    antiquityEnabled      = false,
     antiquityCheckLogin   = true,
     antiquityCheckZone    = false,
     antiquityCheckTimer   = false,
@@ -548,138 +547,52 @@ end
 --------------------------------------------------
 -- Move
 --------------------------------------------------
-AR.mover = {}
-
-function AR.mover:UpdateDirectionalInput(deltaS)
-    local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK)
-    if x ~= 0 or y ~= 0 then
-        AR:SetPosition(AR.moveX + x * MOVE_SPEED * deltaS, AR.moveY - y * MOVE_SPEED * deltaS)
-    end
-    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(stretchX) > math.abs(scaleY) then
-        AR:SetStretch(AR.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
-    elseif scaleY ~= 0 then
-        AR:SetScale(AR.moveSize + scaleY * SCALE_SPEED * deltaS)
-    end
-end
-
-AR.moveKeybinds = {
-    alignment = KEYBIND_STRIP_ALIGN_CENTER,
-    {
-        name     = "Save",
-        keybind  = "UI_SHORTCUT_PRIMARY",
-        callback = function() AR:EndMove(true) end,
-    },
-    {
-        name     = "Default",
-        keybind  = "UI_SHORTCUT_TERTIARY",
-        callback = function() AR:MoveToDefault() end,
-    },
-    {
-        name     = "Cancel",
-        keybind  = "UI_SHORTCUT_NEGATIVE",
-        callback = function() AR:EndMove(false) end,
-    },
-}
-
-function AR:SetPosition(x, y)
-    local screenW, screenH = GuiRoot:GetDimensions()
-    local halfW, halfH = screenW / 2, screenH / 2
-    self.moveX = zo_clamp(x, -halfW, halfW)
-    self.moveY = zo_clamp(y, -halfH, halfH)
-    local sv = SV()
-    sv.antiquityPosX = zo_floor(self.moveX + 0.5)
-    sv.antiquityPosY = zo_floor(self.moveY + 0.5)
-    self:ApplyPosition()
-end
-
-function AR:SetScale(size)
-    self.moveSize = zo_clamp(size, SIZE_MIN, SIZE_MAX)
-    local rounded = zo_floor(self.moveSize + 0.5)
-    local sv = SV()
-    if sv.antiquityPopupSize ~= rounded then
-        sv.antiquityPopupSize = rounded
-        self:ApplyPopupSize()
-    end
-end
-
-function AR:SetStretch(value)
-    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
-    local rounded = zo_floor(self.moveStretch + 0.5)
-    local sv = SV()
-    if sv.antiquityStretch ~= rounded then sv.antiquityStretch = rounded end
-    ME:ApplyStretch(self.popupRoot, rounded)
-end
-
-function AR:MoveToDefault()
-    self:SetStretch(100)
-    self:SetScale(self.defaults.antiquityPopupSize)
-    self:SetPosition(self.defaults.antiquityPosX, self.defaults.antiquityPosY)
-end
-
-function AR:GetMoveScene()
-    if self.moveScene then return self.moveScene end
-    local scene = ZO_Scene:New(MOVE_SCENE, SCENE_MANAGER)
-    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_NO_KEYBIND_BACKGROUND_WINDOW)
-    ME:AddPlacementFragments(scene)
-    scene:RegisterCallback("StateChange", function(oldState, newState)
-        if newState == SCENE_SHOWING then
-            AR:OnMoveShowing()
-        elseif newState == SCENE_HIDDEN then
-            AR:OnMoveHidden()
-        end
-    end)
-    self.moveScene = scene
-    return scene
-end
-
 function AR:StartMove()
     if self.moving then return end
     self:CreatePopup()
-    self.moveSaved = false
     self.moving = true
-    self:GetMoveScene()
-    SCENE_MANAGER:Push(MOVE_SCENE)
-end
-
-function AR:OnMoveShowing()
-    local sv = SV()
-    self.moving = true
-    self.moveStartX = tonumber(sv.antiquityPosX) or self.defaults.antiquityPosX
-    self.moveStartY = tonumber(sv.antiquityPosY) or self.defaults.antiquityPosY
-    self.moveStartSize = tonumber(sv.antiquityPopupSize) or self.defaults.antiquityPopupSize
-    self.moveX, self.moveY = self.moveStartX, self.moveStartY
-    self.moveSize = self.moveStartSize
-    self.moveStartStretch = tonumber(sv.antiquityStretch) or 100
-    self.moveStretch = self.moveStartStretch
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
-    DIRECTIONAL_INPUT:Activate(self.mover, self.popupRoot)
-    ME:SetPlacing(true)
-    self:SyncPreview()
-end
-
-function AR:OnMoveHidden()
-    DIRECTIONAL_INPUT:Deactivate(self.mover)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
-    if not self.moveSaved then
-        self:SetScale(self.moveStartSize)
-        self:SetStretch(self.moveStartStretch)
-        self:SetPosition(self.moveStartX, self.moveStartY)
-    end
-    self.moving = false
-    ME:SetPlacing(false)
-    self:SyncPreview()
-end
-
-function AR:EndMove(save)
-    if not self.moving then return end
-    self.moveSaved = save == true
-    if save then
-        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
-    else
-        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
-    end
-    SCENE_MANAGER:HideCurrentScene()
+    local started = LibUser562:StartMove({
+        inputControl = self.popupRoot,
+        moveSpeed    = MOVE_SPEED,
+        scaleSpeed   = SCALE_SPEED,
+        sizeMin      = SIZE_MIN,
+        sizeMax      = SIZE_MAX,
+        bounds       = function()
+            local screenW, screenH = GuiRoot:GetDimensions()
+            return -screenW / 2, screenW / 2, -screenH / 2, screenH / 2
+        end,
+        defaults     = {
+            x    = self.defaults.antiquityPosX,
+            y    = self.defaults.antiquityPosY,
+            size = self.defaults.antiquityPopupSize,
+        },
+        getPosition = function() return SV().antiquityPosX, SV().antiquityPosY end,
+        setPosition = function(x, y)
+            local sv = SV()
+            sv.antiquityPosX, sv.antiquityPosY = x, y
+            AR:ApplyPosition()
+        end,
+        getSize    = function() return SV().antiquityPopupSize end,
+        setSize    = function(size)
+            SV().antiquityPopupSize = size
+            AR:ApplyPopupSize()
+        end,
+        getStretch = function() return SV().antiquityStretch or 100 end,
+        setStretch = function(percent)
+            SV().antiquityStretch = percent
+            ME:ApplyStretch(AR.popupRoot, percent)
+        end,
+        onShow = function()
+            ME:SetPlacing(true)
+            AR:SyncPreview()
+        end,
+        onHide = function()
+            AR.moving = false
+            ME:SetPlacing(false)
+            AR:SyncPreview()
+        end,
+    })
+    if not started then self.moving = false end
 end
 
 --------------------------------------------------
@@ -917,41 +830,33 @@ function AR:SettingOptions()
     self.settingOptions = {
         {
             type    = "toggle",
-            name    = "Enabled",
-            preset  = "YES_NO",
-            default = defaults.antiquityEnabled,
-            tooltip = "Your expiring leads still show on this page whether enabled or not.",
-            getFunc = function() return SV().antiquityEnabled end,
-            setFunc = function(val) AR:SetEnabled(val) end,
-        },
-        {
-            type    = "toggle",
             name    = "Character Settings",
-            tooltip = "Off uses the same settings for the whole account. On gives this character its own settings, "
-                   .. "copied from the account settings the first time you turn it on.",
-            details = function()
-                if AR:UsesCharacterSettings() then
-                    return "This character has its own settings."
-                end
-                return "All your characters share the same settings."
-            end,
+            tooltip = MyExtras.CHARACTER_SETTINGS_TIP,
             getFunc = function() return AR:UsesCharacterSettings() end,
             setFunc = function(val) AR:SetUseCharacterSettings(val) end,
         },
         {
-            type       = "button",
-            name       = "Move / Scale",
-            buttonText = "Move / Scale",
-            tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right stretches it wider or narrower.",
-            disabled   = IsOff,
-            func       = function() AR:StartMove() end,
-        },
-        {
-            type     = "submenu",
-            name     = "Reminder",
-            disabled = IsOff,
-            tooltip  = "When and how you're reminded about expiring leads.",
-            options  = {
+            type    = "submenu",
+            name    = "Lead Reminder",
+            tooltip = "Shows a pop-up when your leads are about to expire.",
+            options = {
+                {
+                    type    = "toggle",
+                    name    = "Enabled",
+                    preset  = "YES_NO",
+                    default = defaults.antiquityEnabled,
+                    tooltip = "Shows a pop-up when your leads are about to expire.",
+                    getFunc = function() return SV().antiquityEnabled end,
+                    setFunc = function(val) AR:SetEnabled(val) end,
+                },
+                {
+                    type       = "button",
+                    name       = "Move / Scale",
+                    buttonText = "Move / Scale",
+                    tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right stretches it wider or narrower.",
+                    disabled   = IsOff,
+                    func       = function() AR:StartMove() end,
+                },
                 {
                     type     = "checklist",
                     name     = "Check On",
@@ -1276,10 +1181,10 @@ function AR:GetOptions()
     if not self.submenu then
         self.submenu = {
             type    = "submenu",
-            name    = "Antiquity Reminder",
+            name    = "Antiquities",
             icon    = SUBMENU_ICON,
             tooltip = function()
-                return "Reminds you when your antiquity leads are about to expire, and lists every lead under your time.\n\n"
+                return "Reminds you when your leads are about to expire, lists them here and uses your Antiquarian's Eye for you.\n\n"
                     .. SavedTip()
             end,
             options = function() return AR:PageOptions() end,

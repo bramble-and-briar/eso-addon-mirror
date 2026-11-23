@@ -2,7 +2,7 @@ Bankir = Bankir or {}
 
 Bankir.name = "Bankir"
 Bankir.author = "vexaiv"
-Bankir.version = "2.9.9"
+Bankir.version = "2.9.10"
 
 local function debugPrint(message)
 	d(Bankir.name .. ": " .. message)
@@ -719,9 +719,8 @@ local function onBankOpen(bagId)
 	}
 	-- process only supported bank bags. Furniture vault is not one of them yet.
 	if supportedBanks[bagId] then
-		Bankir.Button.button:SetState(B_STATE_NORMAL, true)
+		Bankir.Button.button:SetState(BSTATE_NORMAL, true)
 		Bankir.Button.button:SetAlpha(1.0)
-		Bankir.Button.button:SetMouseEnabled(true)
 		
 		Bankir.currentBankBagId = bagId
 	else
@@ -740,9 +739,8 @@ local function onBankClose()
 	
 	Bankir.currentBankBagId = nil
 	
-	Bankir.Button.button:SetState(B_STATE_DISABLED, false)
+	Bankir.Button.button:SetState(BSTATE_DISABLED, false)
 	Bankir.Button.button:SetAlpha(0.5)
-	Bankir.Button.button:SetMouseEnabled(false)
 end
 
 local function onAddOnLoaded(event, addonName)

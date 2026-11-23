@@ -18,7 +18,7 @@
     "ESQL"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5075/",
-  "fingerprint": "909cb20811821cd4fdc8b7011966fa2d49c41877f75fcb99f60c4363121b1323",
+  "fingerprint": "60feada2f91b5dee4f2f8870682105f8e7d8ff7f29211c71f7e9b61cd1d045e0",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18594.png",
     "https://cdn-eso.mmoui.com/preview/pvw18595.png",
@@ -30,11 +30,11 @@
   "source_id": "5075",
   "source_url": "https://www.esoui.com/downloads/info5075-ESQL.html",
   "stats": {
-    "downloads": 10,
+    "downloads": 22,
     "favorites": 0,
-    "monthly_downloads": 8
+    "monthly_downloads": 17
   },
   "title": "ESQL",
-  "updated_at": 1795237179000,
-  "version": "2.0.0"
+  "updated_at": 1795359928000,
+  "version": "3.0.0"
 }

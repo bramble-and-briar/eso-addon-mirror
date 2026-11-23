@@ -1,9 +1,14 @@
 <Bindings>
   <Layer name="SI_KEYBINDINGS_CATEGORY_GENERAL">
-    <Category name="Slots Count">
+    <Category name="|ca0a0F3Slots Count|r">
       <Action name="DLC_SC_SCAN">
         <Down>
           DLC_SlotsCount:Scan()
+        </Down>
+      </Action>
+      <Action name="DLC_SC_VIEWER_TOGGLE">
+        <Down>
+          DLC_SlotsCount.ToggleViewer()
         </Down>
       </Action>
     </Category>

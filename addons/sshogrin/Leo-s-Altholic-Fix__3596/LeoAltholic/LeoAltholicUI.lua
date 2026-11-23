@@ -40,7 +40,8 @@ function LeoAltholic.ShowInventoryUI(charName, bagId)
     LeoAltholic.listingInventoryFor = charName
     SCENE_MANAGER:ShowTopLevel(LeoAltholicInventoryWindow)
     LeoAltholicInventoryWindow:SetDrawLayer(DL_OVERLAY)
-    LeoAltholicInventoryWindow:SetDrawTier(DT_MEDIUM)
+    LeoAltholicInventoryWindow:SetDrawTier(DT_HIGH)
+    LeoAltholicInventoryWindow:SetDrawLevel(10)
     local header = WINDOW_MANAGER:GetControlByName("LeoAltholicInventoryWindowTitle")
     local char
     if charName ~= nil then
@@ -120,12 +121,27 @@ function LeoAltholic.ShowTab(tab)
     LeoAltholic.globalData.activeTab = tab
     LeoAltholicWindowTitle:SetText(LeoAltholic.displayName .. " v" .. LeoAltholic.version .. " - " .. tab)
     local control
-    for _,panel in ipairs(LeoAltholic.panelList) do
+    for _, panel in ipairs(LeoAltholic.panelList) do
         control = WINDOW_MANAGER:GetControlByName('LeoAltholicWindow' .. panel .. 'Panel')
         control:SetHidden(true)
     end
     control = WINDOW_MANAGER:GetControlByName("LeoAltholicWindow" .. tab .. "Panel")
     control:SetHidden(false)
+
+    -- Refresh the corresponding list whenever the tab is shown
+    local tabLists = {
+        Bio = LeoAltholicUI.bioList,
+        Stats = LeoAltholicUI.statsList,
+        Champion = LeoAltholicUI.championList,
+        Skills = LeoAltholicUI.skillsList,
+        Skills2 = LeoAltholicUI.skills2List,
+        Writs = LeoAltholicUI.writsList,
+        Inventory = LeoAltholicUI.invList,
+        Research = LeoAltholicUI.researchList,
+    }
+    if tabLists[tab] then
+        tabLists[tab]:RefreshData()
+    end
 end
 
 function LeoAltholicUI.InitPanels()

@@ -32,10 +32,11 @@ local function scan()
  local faction=call('GetUnitAlliance','player'); if not faction then C.mission=nil; return end
  local best,score,reason
  for _,k in ipairs(nodes) do
-  if k.attack then
+  if k.attack or (C.skirmishes and C.skirmishes[k.id] and now-C.skirmishes[k.id]<45000) then
    contested=contested+1
    local s=lower(k.name); local own=k.owner==faction; local resource=(KEEPTYPE_RESOURCE~=nil and k.kind==KEEPTYPE_RESOURCE) or contains(s,{'farm','mine','lumbermill'}); local p=own and 45 or 25; local r=own and 'Friendly objective under attack' or 'Contested enemy objective'
    if resource then p=p-25; r='Contested resource' elseif own and contains(s,home[faction]) then p=100; r='Homeland keep under attack' elseif contains(s,ring) then p=own and 85 or 75; r='Emperor ring objective' elseif own and contains(s,{'scroll','temple','gate'}) then p=110; r='Scroll defense' elseif own and k.resources==false then p=65; r='Transit supply threatened' end
+   if not k.attack then r="Reported local skirmish | "..r end
    if old and old.id==k.id then incumbent,oldScore,oldReason=k,p,r end
    if not score or p>score or (p==score and k.id<best.id) then best,score,reason=k,p,r end
   end
@@ -103,6 +104,7 @@ local function render()
  C.hud:SetDimensions(420,compact and not C.preview and 124 or 220); place(C.hud,'hud')
  C.body:SetText(C.preview and '|cE4C478DEFEND: Castle Alessia|r\nPriority: HIGH\nEmperor ring objective (preview)\nTransit: Example friendly keep\nObjectives tracked: Preview' or m and ('|cE4C478'..(m.owner==call('GetUnitAlliance','player') and 'DEFEND ' or 'ATTACK ')..m.name..'|r\nPriority: '..(C.score>=85 and 'CRITICAL' or C.score>=65 and 'HIGH' or 'STANDARD')..'\n'..C.reason..'\nTravel: '..(t and (t.name..(t.accessible==true and '' or ' (unverified)')) or 'No eligible shrine found')..'\nActive conflicts: '..(C.contested or 0)..' / '..C.count) or ('Awaiting battlefield intelligence\nObjectives tracked: '..(C.count or 0)))
  if compact and not C.preview then C.body:SetText(m and ('|cFFFFFF'..(m.owner==call('GetUnitAlliance','player') and 'DEFEND ' or 'ATTACK ')..m.name..'|r\n'..C.reason..'\nTransit: '..(t and t.name or 'No eligible shrine found')) or 'Awaiting battlefield intelligence') end
+ if C.nextCapture and not C.preview then C.body:SetText(C.body:GetText().."\n|c99D5A7NEXT CAPTURE: "..C.nextCapture.name.."|r"); C.hud:SetDimensions(420,compact and 165 or 245); place(C.hud,"hud") end
  C.hud:SetHidden(not C.preview and ((C.sv.autoVisibility and not C.active) or not C.sv.show or not hudVisible()))
 end
 local function waypoint(k)
@@ -153,7 +155,7 @@ end
 local function nearestBattle()
  local x,y=call('GetMapPlayerPosition','player'); if not xy(x,y) or call('GetMapZoneIndex')~=call('GetUnitZoneIndex','player') then return nil end
  local best,bd=nil,.035
- for _,k in ipairs(C.nodes) do if k.attack and k.x then local d=dist(k,{x=x,y=y}); if d<bd then best,bd=k,d end end end
+ for _,k in ipairs(C.nodes) do if k.x then local d=dist(k,{x=x,y=y}); if d<bd then best,bd=k,d end end end
  return best
 end
 local function equal(v,n) return _G[n]~=nil and v==_G[n] end
@@ -165,34 +167,54 @@ local function combat(_,result,isError,abilityName,abilityGraphic,abilityActionS
  local siege=equal(result,'ACTION_RESULT_SIEGE_DAMAGE')
  local damage=equal(result,'ACTION_RESULT_DAMAGE') or equal(result,'ACTION_RESULT_CRITICAL_DAMAGE') or equal(result,'ACTION_RESULT_DOT_TICK') or equal(result,'ACTION_RESULT_DOT_TICK_CRITICAL')
  if healing then r.healing=r.healing+math.max(0,hitValue) elseif siege then r.siege=r.siege+math.max(0,hitValue) elseif damage then r.damage=r.damage+math.max(0,hitValue) elseif equal(result,'ACTION_RESULT_KILLING_BLOW') then r.kills=r.kills+1 else return end
- C.lastAction=now; if not k then return end; local e=C.engaged[k.id]; if not e then e={owner=k.owner,first=now}; C.engaged[k.id]=e end
- e.last=now; e.hits=(e.hits or 0)+1; if e.hits==3 then r.battles=r.battles+1 end
+ if damage or siege or equal(result,'ACTION_RESULT_KILLING_BLOW') then
+  if k then C.skirmishes=C.skirmishes or {}; C.skirmishes[k.id]=now; C.dirty=true end
+ end
+ C.lastAction=now; if not k then return end; local e=C.engaged[k.id]; if not e then e={owner=k.owner,first=now,wasAttack=k.attack}; C.engaged[k.id]=e end
+ e.wasAttack=e.wasAttack or k.attack; e.last=now; e.hits=(e.hits or 0)+1; if e.hits==3 then r.battles=r.battles+1 end
 end
 local function tickScore()
  local now=GetFrameTimeMilliseconds(); local elapsed=math.min(5,math.max(0,(now-(C.scoreTick or now))/1000)); C.scoreTick=now
  if C.active then
-  if not C.run then C.run=fresh(); C.engaged={}; C.lastAction=nil end
+  if not C.run then C.run=fresh(); C.engaged={}; C.skirmishes={}; C.nextCapture=nil; C.lastAction=nil end
   local r=C.run; r.seconds=r.seconds+elapsed
   if C.lastAction and now-C.lastAction<15000 then r.active=r.active+elapsed end
   local faction=call('GetUnitAlliance','player')
-  for _,k in ipairs(C.nodes) do local e=C.engaged[k.id]; if e and not k.attack then
-   if e.hits>=3 and now-e.last<120000 and k.owner==faction then
-    if e.owner~=faction then r.captures=r.captures+1 else r.defenses=r.defenses+1 end
+  for _,k in ipairs(C.nodes) do local e=C.engaged[k.id]; if e then
+   local captured=e.owner~=faction and k.owner==faction
+   local defended=e.owner==faction and k.owner==faction and e.wasAttack and not k.attack
+   if (captured or defended) and now-e.last<180000 then
+    if captured then
+     r.captures=r.captures+1
+     local best,bestValue
+     if not contains(lower(k.name),{'farm','mine','lumbermill'}) then
+      for _,v in ipairs(C.nodes) do
+       if v.owner~=faction and v.transit and v.x and k.x then
+        local name=lower(v.name); local value=(contains(name,home[faction]) and 100 or contains(name,ring) and 85 or 45)-dist(k,v)*100
+        if not bestValue or value>bestValue then best,bestValue=v,value end
+       end
+      end
+      C.nextCapture=best; C.nextCaptureUntil=now+180000
+     end
+    else r.defenses=r.defenses+1 end
     local name=lower(k.name); r.objective=r.objective+(contains(name,home[faction]) and 1.5 or contains(name,ring) and 1.25 or contains(name,{'farm','mine','lumbermill'}) and .4 or 1)
     if C.previousMission==k.id then r.missions=r.missions+1 end
-   end
-   C.engaged[k.id]=nil
+    C.engaged[k.id]=nil
+   elseif now-e.last>=180000 then C.engaged[k.id]=nil end
   end end
+  if C.nextCapture then
+   if now>(C.nextCaptureUntil or 0) then C.nextCapture=nil else for _,k in ipairs(C.nodes) do if k.id==C.nextCapture.id and k.owner==faction then C.nextCapture=nil; break end end end
+  end
   C.previousMission=C.mission and C.mission.id
  elseif C.run then
-  local r=C.run; C.run=nil; if r.seconds>=1 then local career=C.sv.career; career.sessions=career.sessions+1; career.points=career.points+points(r); career.best=math.max(career.best,points(r)); career.last=r; table.insert(career.history,1,r); if #career.history>30 then table.remove(career.history) end; C.reportBody:SetText(summary(r)); C.report:SetHidden(false) end
+  local r=C.run; C.run=nil; if r.seconds>=1 then local career=C.sv.career; career.sessions=career.sessions+1; career.points=career.points+points(r); career.best=math.max(career.best,points(r)); career.last=r; table.insert(career.history,1,r); if #career.history>30 then table.remove(career.history) end; C.tmeManualReport=false; C.reportBody:SetText(summary(r)); C.report:SetHidden(false) end
  end
  if C.scoreBody then C.scoreHUD:SetDimensions(470,C.sv.compact and 130 or 200); place(C.scoreHUD,'score'); C.scoreBody:SetText(C.scorePreview and summary({seconds=3600,damage=400000,healing=600000,siege=200000,captures=3,defenses=2,objective=4,battles=5,active=2100,missions=2,kills=3}) or summary(C.run or fresh())); if C.sv.compact then local r=C.run or fresh(); if C.scorePreview then r=fresh(); r.seconds=3600; r.damage=400000; r.healing=600000; r.captures=3 end; C.scoreBody:SetText(string.format('|cFFFFFF%.1f FP|r  |c99D5A7%.1f FP/h|r\nCAP %d  DEF %d  K/D %d/%d\nDMG %s  HEAL %s',points(r),points(r)*3600/math.max(r.seconds,1),r.captures,r.defenses,r.kills,r.deaths or 0,tostring(r.damage),tostring(r.healing))) end; C.scoreHUD:SetHidden(not C.scorePreview and ((C.sv.autoVisibility and not C.active) or not C.sv.showScore or not hudVisible())) end
 end
 
 local function setup()
  C.sv=ZO_SavedVars:NewAccountWide('CyrodiilCommandSaved',1,nil,{show=true,showScore=true,compact=true,autoVisibility=true,opacity=.82,score={h=95,v=20,scale=1},report={h=50,v=50,scale=1},career={sessions=0,points=0,best=0,history={}},mapBriefing=true,debug=false,hud={h=5,v=20,scale=1},menu={h=50,v=50,scale=1}})
- C.hud=panel('HUD','hud',420,220); label(C.hud,12,8,330,30,22):SetText('|cE4C478CYRODIIL MERCENARY|r'); C.body=label(C.hud,12,45,395,140,19)
+ C.hud=panel('HUD','hud',420,220); label(C.hud,12,8,330,30,22):SetText('|cE4C478CYRODIIL MERCENARY|r'); C.body=label(C.hud,12,45,395,195,19)
  local missionClose=button(C.hud,'Close HUD',265,0,function() C.sv.show=false; C.preview=false; render() end)
  local transitButton=button(C.hud,'Mark transit',10,183,function() waypoint(C.travel) end); local objectiveButton=button(C.hud,'Mark objective',180,183,function() waypoint(C.mission) end)
  C.mapLabel=WINDOW_MANAGER:CreateTopLevelWindow(N..'MapBriefing'); C.mapLabel:SetDimensions(550,65); C.mapLabel:SetAnchor(TOP,GuiRoot,TOP,0,85); C.mapLabel:SetDrawTier(DT_HIGH); C.mapLabel:SetMouseEnabled(false); C.mapText=label(C.mapLabel,0,0,550,65,22); C.mapLabel:SetHidden(true)
@@ -201,7 +223,7 @@ local function setup()
  local scoreClose=button(C.scoreHUD,'Close HUD',310,0,function() C.sv.showScore=false; C.scorePreview=false; C.scoreHUD:SetHidden(true) end)
  missionClose:SetHidden(true); transitButton:SetHidden(true); objectiveButton:SetHidden(true); scoreClose:SetHidden(true)
  C.report=panel('Report','report',490,270); C.report:SetDrawLayer(DL_OVERLAY); C.report:SetDrawLevel(1000); label(C.report,12,8,325,30,22):SetText('|cE4C478MERCENARY REPORT|r'); C.reportBody=label(C.report,12,45,460,190,19)
- button(C.report,'Close Report',325,0,function() C.report:SetHidden(true) end)
+ button(C.report,'Close Report',325,0,function() C.tmeManualReport=false; C.report:SetHidden(true) end)
  if EVENT_COMBAT_EVENT then EVENT_MANAGER:RegisterForEvent(N..'Combat',EVENT_COMBAT_EVENT,combat) end
  if EVENT_PLAYER_DEAD then EVENT_MANAGER:RegisterForEvent(N..'Death',EVENT_PLAYER_DEAD,function() if C.active and C.run then C.run.deaths=(C.run.deaths or 0)+1 end end) end
  C.menu=panel('Settings','menu',440,320); label(C.menu,12,8,400,30,22):SetText('MERCENARY SETTINGS')
@@ -228,7 +250,7 @@ local function setup()
  if L then
   local ok,e=pcall(function()
    local id=N..'Panel'
-   L:RegisterAddonPanel(id,{type='panel',name='Cyrodiil Mercenary',displayName='Cyrodiil Mercenary',author='Trash Man Enterprises',version='0.2.3',registerForRefresh=true})
+   L:RegisterAddonPanel(id,{type='panel',name='Cyrodiil Mercenary',displayName='Cyrodiil Mercenary',author='Trash Man Enterprises',version='0.2.5',registerForRefresh=true})
    local opts={{type='checkbox',name='Show map briefing',getFunc=function() return C.sv.mapBriefing end,setFunc=function(v) C.sv.mapBriefing=v; mapUpdate() end},{type='checkbox',name='Show mission HUD',getFunc=function() return C.sv.show end,setFunc=function(v) C.sv.show=v; render() end},{type='checkbox',name='Live HUD preview',getFunc=function() return C.preview==true end,setFunc=function(v) C.preview=v; render() end}}
    local function option(key,field,title,min,max,step)
     opts[#opts+1]={type='slider',name=title,min=min,max=max,step=step,decimals=field=='scale' and 2 or 0,getFunc=function() return C.sv[key][field] end,setFunc=function(v) C.sv[key][field]=v; place(({hud=C.hud,menu=C.menu,score=C.scoreHUD,report=C.report})[key],key); render() end}
@@ -242,13 +264,13 @@ local function setup()
    opts[#opts+1]={type='checkbox',name='Show live score HUD',getFunc=function() return C.sv.showScore end,setFunc=function(v) C.sv.showScore=v end}
    opts[#opts+1]={type='checkbox',name='Preview score HUD',getFunc=function() return C.scorePreview==true end,setFunc=function(v) C.scorePreview=v end}
    for _,key in ipairs({'score','report'}) do option(key,'h',key..' horizontal (%)',0,100,1); option(key,'v',key..' vertical (%)',0,100,1); option(key,'scale',key..' scale',.5,2,.05) end
-   opts[#opts+1]={type='button',name='Career Profile',func=function() local c=C.sv.career; C.reportBody:SetText(string.format('Sessions: %d | Career points: %.1f | Best: %.1f\n',c.sessions,c.points,c.best)..(c.last and summary(c.last) or 'No completed session')); C.report:SetDrawLayer(DL_OVERLAY); C.report:SetDrawLevel(1000); C.report:SetHidden(false) end}
-   opts[#opts+1]={type='button',name='Preview report',func=function() C.reportBody:SetText(summary(C.run or fresh())); C.report:SetDrawLayer(DL_OVERLAY); C.report:SetDrawLevel(1000); C.report:SetHidden(false) end}
-   opts[#opts+1]={type='button',name='Close report / career profile',func=function() C.report:SetHidden(true) end}
+   opts[#opts+1]={type='button',name='Career Profile',func=function() C.tmeManualReport=true; local c=C.sv.career; C.reportBody:SetText(string.format('Sessions: %d | Career points: %.1f | Best: %.1f\n',c.sessions,c.points,c.best)..(c.last and summary(c.last) or 'No completed session')); C.report:SetDrawLayer(DL_OVERLAY); C.report:SetDrawLevel(1000); C.report:SetHidden(false) end}
+   opts[#opts+1]={type='button',name='Preview report',func=function() C.tmeManualReport=true; C.reportBody:SetText(summary(C.run or fresh())); C.report:SetDrawLayer(DL_OVERLAY); C.report:SetDrawLevel(1000); C.report:SetHidden(false) end}
+   opts[#opts+1]={type='button',name='Close report / career profile',func=function() C.tmeManualReport=false; C.report:SetHidden(true) end}
    opts[#opts+1]={type='button',name='Close mission HUD',func=function() C.sv.show=false; C.preview=false; render() end}
    opts[#opts+1]={type='button',name='Close live score HUD',func=function() C.sv.showScore=false; C.scorePreview=false; C.scoreHUD:SetHidden(true) end}
    opts[#opts+1]={type='button',name='Close map briefing',func=function() C.sv.mapBriefing=false; mapUpdate() end}
-   opts[#opts+1]={type='button',name='Diagnostics',func=function() C.reportBody:SetText('Personal combat events: '..(C.events or 0)..'\nObjectives: '..(C.count or 0)..'\nTransit: '..(C.travel and C.travel.name or 'none')); C.report:SetDrawLayer(DL_OVERLAY); C.report:SetDrawTier(DT_HIGH); C.report:SetDrawLevel(1000); C.report:SetDrawLayer(DL_OVERLAY); C.report:SetDrawLevel(1000); C.report:SetHidden(false) end}
+   opts[#opts+1]={type='button',name='Diagnostics',func=function() C.tmeManualReport=true; C.reportBody:SetText('Personal combat events: '..(C.events or 0)..'\nObjectives: '..(C.count or 0)..'\nTransit: '..(C.travel and C.travel.name or 'none')); C.report:SetDrawLayer(DL_OVERLAY); C.report:SetDrawTier(DT_HIGH); C.report:SetDrawLevel(1000); C.report:SetDrawLayer(DL_OVERLAY); C.report:SetDrawLevel(1000); C.report:SetHidden(false) end}
    opts[#opts+1]={type='button',name='Open fallback settings',func=function() C.menu:SetHidden(false) end}
    opts[#opts+1]={type='button',name='Mark mission objective',func=function() waypoint(C.mission) end}
    opts[#opts+1]={type='button',name='Mark transit destination',func=function() waypoint(C.travel) end}
@@ -273,7 +295,7 @@ local function setup()
    entry('Refresh mission','refresh',refresh,'Reassess contested objectives.')
    entry('Toggle mission HUD','togglemission',function() C.sv.show=not C.sv.show; C.preview=false; render() end,'Show or hide mission briefing.')
    entry('Toggle score HUD','togglescore',function() C.sv.showScore=not C.sv.showScore; C.scorePreview=false; tickScore() end,'Show or hide live score.')
-   entry('Toggle session report','report',function() if C.report:IsHidden() then C.reportBody:SetText(summary(C.run or C.sv.career.last or fresh())); C.report:SetHidden(false) else C.report:SetHidden(true) end end,'Open or close session report.')
+   entry('Toggle session report','report',function() if C.report:IsHidden() then C.reportBody:SetText(summary(C.run or C.sv.career.last or fresh())); C.report:SetHidden(false) else C.tmeManualReport=false; C.report:SetHidden(true) end end,'Open or close session report.')
   end)
   C.radialRegistered=ok; if not ok then C.errors.radial=tostring(e) end
  end
@@ -285,3 +307,40 @@ local function setup()
  refresh()
 end
 EVENT_MANAGER:RegisterForEvent(N,EVENT_ADD_ON_LOADED,function(_,name) if name~=N then return end EVENT_MANAGER:UnregisterForEvent(N,EVENT_ADD_ON_LOADED); local ok,e=pcall(setup); if not ok then log(tostring(e)) end end)
+
+
+-- TME Menu Visibility: independent of saved visibility and ongoing statistics.
+-- Suppress presentation, not SetHidden state: existing timers/close actions remain authoritative.
+local tmeMenuAlpha = setmetatable({}, {__mode="k"})
+local function tmeMenuContext()
+    if not SCENE_MANAGER then return false, false, false end
+    local scene=SCENE_MANAGER.GetCurrentScene and SCENE_MANAGER:GetCurrentScene()
+    local name=scene and scene.GetName and scene:GetName()
+    local main=SCENE_MANAGER.IsShowing and SCENE_MANAGER:IsShowing("mainMenuGamepad")
+    if main then return true,false,false end
+    if not name then return false,false,false end
+    local lower=string.lower(name)
+    local gameplay=(lower=="hud" or lower=="hudui" or lower=="hudgamepad" or lower=="huduigamepad")
+    local addon=lower:find("addon",1,true)~=nil or lower:find("libaddonmenu",1,true)~=nil or lower=="gamepadoptions" or lower=="gamepadoptionsroot"
+    local map=lower:find("worldmap",1,true)~=nil or lower=="gamepadworldmap"
+    return not gameplay,addon,map
+end
+local function tmeMenuSuppress(control, suppress)
+    if not control then return end
+    if suppress then
+        if tmeMenuAlpha[control]==nil then tmeMenuAlpha[control]=control:GetAlpha() end
+        if control:GetAlpha()~=0 then control:SetAlpha(0) end
+    elseif tmeMenuAlpha[control]~=nil then
+        control:SetAlpha(tmeMenuAlpha[control]);tmeMenuAlpha[control]=nil
+    end
+end
+
+EVENT_MANAGER:RegisterForUpdate("CyrodiilMercenaryTME_MenuVisibility", 100, function()
+    if not C.sv then return end
+    local blocked,addon,map=tmeMenuContext()
+    tmeMenuSuppress(C.hud,blocked and not C.preview)
+    tmeMenuSuppress(C.scoreHUD,blocked and not C.scorePreview)
+    tmeMenuSuppress(C.mapLabel,blocked and not map)
+    tmeMenuSuppress(C.report,blocked and not (addon and C.tmeManualReport))
+    tmeMenuSuppress(C.menu,blocked and not addon)
+end)

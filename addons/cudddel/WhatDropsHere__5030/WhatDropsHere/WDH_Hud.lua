@@ -1,21 +1,21 @@
 -- WDH_Hud.lua
--- Anzeige am Fadenkreuz (Phase 2)
+-- Crosshair display (phase 2)
 --
--- Zwei Anzeigen mit demselben Inhalt:
---   1. Interaktion (Vorkommen, Behaelter, Leichen, Kleintiere)
---      SecurePostHook auf RETICLE:TryHandlingInteraction. Das Spiel ruft die Funktion jedes Bild auf,
---      solange kein Lootfenster offen ist (siehe ZO_Reticle:UpdateInteractText im UI-Quellcode).
---      Das Label haengt an RETICLE.interact und verschwindet automatisch mit der Interaktionsanzeige.
---   2. Lebende Ziele (Gegner, Tiere, NPCs unter dem Fadenkreuz, "reticleover")
---      SecurePostHook auf RETICLE:UpdateInteractText, danach ist klar, ob die Interaktionsanzeige
---      sichtbar ist. Nur wenn sie es nicht ist, erscheint die Anzeige fuer das lebende Ziel.
---      Gezeigt wird nur die eindeutige Zuordnung (Name + Zone), keine Sammelpluenderungen (#aoe).
+-- Two displays with the same content:
+--   1. Interaction (nodes, containers, corpses, critters)
+--      SecurePostHook on RETICLE:TryHandlingInteraction. The game calls it every frame
+--      while no loot window is open (see ZO_Reticle:UpdateInteractText in the UI source).
+--      The label is attached to RETICLE.interact and hides together with the interaction prompt.
+--   2. Living targets (enemies, animals, NPCs under the crosshair, "reticleover")
+--      SecurePostHook on RETICLE:UpdateInteractText; afterwards it is known whether the interaction
+--      prompt is visible. Only if it is not, the display for the living target appears.
+--      Only unambiguous records (name + zone) are shown, no collective loots (#aoe).
 --
--- Beide Anzeigen werden im Kampf ausgeblendet. Der Text wird nur neu aufgebaut,
--- wenn sich das Ziel oder die Daten aendern.
+-- Both displays are hidden in combat. The text is only rebuilt
+-- when the target or the data changes.
 --
--- Sortierung: hoechste Qualitaet zuerst, bei gleicher Qualitaet die groesste Anzahl.
--- Prozent = Anteil der Pluenderungen, in denen der Eintrag mindestens einmal dabei war.
+-- Sorting: highest quality first, then the largest count.
+-- Percent = share of loots that contained the entry at least once.
 
 local WDH = WhatDropsHere
 local CAT = WDH.Categories
@@ -23,13 +23,13 @@ local WDH_STRINGS, WDH_SLOT_NAMES = WDH.L, WDH.SLOT_NAMES
 local Hud = {}
 WDH.Hud = Hud
 
--- Anzeige-Zustand: Label + Ziel, fuer das der Text gerade gilt
+-- Display state: label + the target the text currently belongs to
 local function NewView()
     return {
         label     = nil,
-        shownKey  = nil,   -- Schluessel des Ziels, fuer das der Text gerade gilt
-        hasText   = false, -- ob es fuer dieses Ziel Daten gibt
-        dirty     = true,  -- Daten haben sich geaendert, Text neu aufbauen
+        shownKey  = nil,   -- key of the target the text currently belongs to
+        hasText   = false, -- whether there is data for this target
+        dirty     = true,  -- data changed, rebuild the text
     }
 end
 
@@ -37,7 +37,7 @@ local interactView = NewView()
 local unitView     = NewView()
 
 -- -----------------------------------------------------------------------------
--- Hilfsfunktionen
+-- Helpers
 -- -----------------------------------------------------------------------------
 
 local function Settings()
@@ -72,7 +72,7 @@ local function CreateLabel(name, parent)
 end
 
 -- -----------------------------------------------------------------------------
--- Text aufbauen
+-- Building the text
 -- -----------------------------------------------------------------------------
 
 local function BuildText(rec, minQuality)
@@ -93,16 +93,16 @@ local function BuildText(rec, minQuality)
         end
     end
 
-    -- Items mit Namen: Kategorie-Modus DETAIL immer, DETAIL_Q ab "Mit Namen anzeigen ab".
-    -- Was nicht mit Namen erscheint, wird unten in seiner Kategorie gezeigt.
+    -- Items by name: category mode DETAIL always, DETAIL_Q from the "Show names from" quality up.
+    -- Whatever is not shown by name appears below in its category.
     local nameQuality = Settings().nameQuality
-    local catHasItems = {}  -- Kategorie hat gespeicherte Items
-    local hiddenBest  = {}  -- beste Qualitaet der Items, die nicht mit Namen erscheinen
+    local catHasItems = {}  -- category has stored items
+    local hiddenBest  = {}  -- best quality of the items not shown by name
     for id, s in pairs(rec.items) do
         local cat = s.cat
         if cat ~= "SET" then
             local quality = WDH.BestQuality(s.q)
-            -- Aeltere Items ohne Kategorie wurden nur einzeln gespeichert, also mit Namen zeigen
+            -- Older items without a category were only stored individually, so show them by name
             local mode   = cat and CAT.ModeOf(cat) or CAT.MODE_DETAIL
             local byName = mode == CAT.MODE_DETAIL or (mode == CAT.MODE_DETAIL_Q and quality >= nameQuality)
             if cat then catHasItems[cat] = true end
@@ -117,8 +117,8 @@ local function BuildText(rec, minQuality)
         end
     end
 
-    -- Kategorien: COUNT immer, sonst nur, wenn ein Teil nicht mit Namen erscheint
-    -- (oder es aus aelteren Versionen keine Items dazu gibt)
+    -- Categories: COUNT always, otherwise only if some of it is not shown by name
+    -- (or older versions stored no items for it)
     for key, s in pairs(rec.cats) do
         local mode = CAT.ModeOf(key)
         local show = mode ~= CAT.MODE_SET
@@ -150,20 +150,21 @@ local function BuildText(rec, minQuality)
 end
 
 -- -----------------------------------------------------------------------------
--- Aktualisierung
+-- Updating
 -- -----------------------------------------------------------------------------
 
--- Anzeige-Schwelle je Art der Quelle (rec.type, siehe DetermineSourceType in WhatDropsHere.lua)
+-- Display threshold per source type (rec.type, see DetermineSourceType in WhatDropsHere.lua)
 local TYPE_SETTING = {
     enemy     = "showEnemy",
     container = "showContainer",
     resource  = "showResource",
     other     = "showOther",
     theft     = "showTheft",
+    excavation = "showExcavation",
 }
 
--- Mindestqualitaet fuer die Anzeige dieser Quelle, nil = fuer diese Art ausgeschaltet.
--- Aeltere Eintraege ohne Art: niedrigste eingeschaltete Schwelle.
+-- Minimum quality for displaying this source, nil = display off for this type.
+-- Older records without a type: lowest enabled threshold.
 local function MinQuality(rec)
     local settings = Settings()
     local key = TYPE_SETTING[rec.type]
@@ -180,8 +181,8 @@ local function MinQuality(rec)
     return lowest
 end
 
--- Zeigt die Statistik fuer name (oder blendet aus, wenn name nil ist bzw. keine Daten vorliegen).
--- isOwned: Ziel gehoert jemandem -> Diebstahl-Eintrag statt des normalen
+-- Shows the statistics for name (or hides the label if name is nil or there is no data).
+-- isOwned: target belongs to someone -> theft record instead of the normal one
 local function ShowFor(view, name, isOwned)
     if not name or name == "" then
         view.label:SetHidden(true)
@@ -206,7 +207,7 @@ local function HudAllowed()
     return Settings().hud and not IsUnitInCombat("player")
 end
 
--- Nachlauf zu ZO_Reticle:TryHandlingInteraction(interactionPossible, currentFrameTimeSeconds)
+-- Post-hook for ZO_Reticle:TryHandlingInteraction(interactionPossible, currentFrameTimeSeconds)
 local function OnTryHandlingInteraction(_, interactionPossible)
     if not HudAllowed() or not interactionPossible then
         interactView.label:SetHidden(true)
@@ -216,16 +217,16 @@ local function OnTryHandlingInteraction(_, interactionPossible)
     ShowFor(interactView, name, isOwned)
 end
 
--- Lebendes Ziel unter dem Fadenkreuz (kein Spieler, nicht tot)
+-- Living target under the crosshair (not a player, not dead)
 local function LivingTargetName()
     if not DoesUnitExist("reticleover") then return nil end
     if IsUnitPlayer("reticleover") or IsUnitDead("reticleover") then return nil end
     return GetUnitName("reticleover")
 end
 
--- Nachlauf zu ZO_Reticle:UpdateInteractText(currentFrameTimeSeconds)
+-- Post-hook for ZO_Reticle:UpdateInteractText(currentFrameTimeSeconds)
 local function OnUpdateInteractText()
-    -- Lebende Ziele sind immer Feinde (bzw. Tiere/NPCs): beide Schalter muessen an sein
+    -- Living targets always count as enemies (or animals/NPCs): both switches must be on
     if not HudAllowed() or Settings().showEnemy == WDH.SHOW_OFF or not Settings().hudUnits
        or not RETICLE.interact:IsHidden() then
         unitView.label:SetHidden(true)
@@ -235,7 +236,7 @@ local function OnUpdateInteractText()
 end
 
 -- -----------------------------------------------------------------------------
--- Schnittstelle
+-- Interface
 -- -----------------------------------------------------------------------------
 
 function Hud:Invalidate()
@@ -244,12 +245,12 @@ function Hud:Invalidate()
 end
 
 function Hud:Init()
-    -- Unter der Zusatzinfo (z. B. Schlossstufe), die selbst unter dem Tastentext steht
+    -- Below the additional info (e.g. lock level), which itself sits below the key prompt
     interactView.label = CreateLabel("WhatDropsHereHud", RETICLE.interact)
     interactView.label:SetAnchor(TOPLEFT, RETICLE.additionalInfo, BOTTOMLEFT, 0, 6)
 
-    -- Lebende Ziele: an derselben Stelle, an der sonst der Interaktionstext steht.
-    -- Elternteil ist der Fadenkreuz-Container, weil RETICLE.interact dann ausgeblendet ist.
+    -- Living targets: at the same spot where the interaction text usually is.
+    -- Parent is the reticle container, because RETICLE.interact is hidden then.
     unitView.label = CreateLabel("WhatDropsHereHudUnit", RETICLE.control)
     unitView.label:SetAnchor(TOPLEFT, RETICLE.interact, BOTTOMLEFT, 0, 4)
 

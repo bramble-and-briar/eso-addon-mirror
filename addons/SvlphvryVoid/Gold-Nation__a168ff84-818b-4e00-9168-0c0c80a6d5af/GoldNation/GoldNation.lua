@@ -2,8 +2,8 @@
 GoldNation = GoldNation or {}
 
 GoldNation.name = "GoldNation"
-GoldNation.version = "1.0"
-GoldNation.author = "@SvlphvryVoid"
+GoldNation.version = "1.1.3"
+GoldNation.author = "SvlphvryVoid"
 GoldNation.initialized = false
 GoldNation.DebugMode = false
 GoldNation.savedVariables = nil
@@ -29,6 +29,8 @@ local defaultVariables = {
         AR_Threshold = 20,
     GN_AutoCollect = true,
     
+    GN_DebugMode = false,
+
     DB_Collect = {},
     DB_Sell = {},
 
@@ -36,11 +38,11 @@ local defaultVariables = {
 
 function GoldNation.DeliverMessage(message, type)
     if type == "error" then
-        d("|cE2E209[GN]: |cFF0000" .. message .. "|r")
+        d("|cFF8C00[G|cE2E209N]: " .. message .. "|r")
     elseif type == "success" then
-        d("|cE2E209[GN]: |c00FF00" .. message .. "|r")
+        d("|cFF8C00[G|cE2E209N]: " .. message .. "|r")
     elseif type == "info" then
-        d("|cE2E209[GN]: |cFFFFFF" .. message .. "|r")
+        d("|cFF8C00[G|cE2E209N]: " .. message .. "|r")
     else
         d("[GN]: " .. message)
     end
@@ -156,6 +158,43 @@ EVENT_MANAGER:RegisterForEvent(
     GoldNation.Automation.InventorySingleSlotUpdate
 )
 
+
+SLASH_COMMANDS["/gndebugtest"] = function()
+    if GetUnitDisplayName("player") == DecorateDisplayName(GoldNation.author) then
+        d("Current Player " .. GetUnitDisplayName("player") .. " and author is " .. GoldNation.author )
+    end
+   
+    local bagSize = GetNumBagUsedSlots(BAG_BACKPACK)
+    d("Current Bag Size: " .. bagSize)
+            for j = 0, bagSize, 1 do
+                local bagItemLink = GetItemLink(BAG_BACKPACK, j)
+                local itemtype, specitemtype = GetItemType(BAG_BACKPACK, j)
+
+                d("GoldNation Debug Test: " .. tostring(bagItemLink) .. " (Type: " .. tostring(itemtype) .. ", SpecType: " .. tostring(specitemtype) .. ")")
+                
+                if itemtype == ITEMTYPE_ARMOR then
+                    d("Found an armor item: " .. tostring(bagItemLink))
+                end
+                    
+                    if GetItemLink(BAG_BACKPACK, j) == bagItemLink then
+                        --GoldNation.DeliverMessage("Failed to sell -> " .. tostring(bagItemLink) .. " " .. tostring(stack) .. "x (Failed)", "error")
+                    else
+                        --table.remove(savedVariables.DB_Sell, i)
+                        --GoldNation.DeliverMessage("Sold -> " .. tostring(bagItemLink) .. " " .. tostring(stack) .. "x (Sold)", "success")
+                    end
+                    
+            end
+
+end
+
+SLASH_COMMANDS["/gndebugtoggle"] = function()
+    if savedVariables.GN_DebugMode == false then
+        savedVariables.GN_DebugMode = true
+    else
+        savedVariables.GN_DebugMode = false
+    end
+    d("GoldNation Debug Mode is now " .. tostring(savedVariables.GN_DebugMode))
+end
 -- EVENT_ADD_ON_LOADED
 -- EVENT_LOOT_RECEIVED
 -- EVENT_LOOT_CLOSED

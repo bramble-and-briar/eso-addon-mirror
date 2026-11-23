@@ -1,0 +1,54 @@
+<GuiXml>
+    <Controls>
+        <!-- Confirm window for Kick, Kick and blacklist and Blacklist. Shows what will happen,
+             a reason box when blacklisting (used for the blacklist note and the mail), and a
+             button to send or skip the mail for this one. Nothing happens until Confirm. -->
+        <TopLevelControl name="FuryGMTRemoveDialog" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH">
+            <Dimensions x="640" y="220" />
+            <Anchor point="CENTER" offsetY="-80" />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-12" offsetY="16" />
+                    <OnClicked>FuryGMT.Actions.CloseRemoveDialog()</OnClicked>
+                </Button>
+                <Label name="$(parent)Title" font="ZoFontWinH2" color="FF9933" horizontalAlignment="CENTER">
+                    <Dimensions x="540" />
+                    <Anchor point="TOP" offsetY="18" />
+                </Label>
+                <Label name="$(parent)Body" font="ZoFontGame" color="FFFFFF">
+                    <Dimensions x="580" />
+                    <Anchor point="TOP" relativeTo="$(parent)Title" relativePoint="BOTTOM" offsetY="12" />
+                </Label>
+                <Label name="$(parent)ReasonLabel" font="ZoFontGameSmall" color="AAAAAA" text="Reason (goes in the blacklist note and the mail):">
+                    <Dimensions x="580" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Body" relativePoint="BOTTOMLEFT" offsetY="12" />
+                </Label>
+                <Backdrop name="$(parent)Reason" inherits="ZO_SingleLineEditBackdrop_Keyboard">
+                    <Dimensions x="580" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ReasonLabel" relativePoint="BOTTOMLEFT" offsetY="4" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" defaultText="Type what they did">
+                            <OnEnter>self:LoseFocus()</OnEnter>
+                        </EditBox>
+                    </Controls>
+                </Backdrop>
+                <Button name="$(parent)Mail" inherits="ZO_DefaultButton">
+                    <Dimensions x="200" y="30" />
+                    <OnClicked>FuryGMT.Actions.ToggleRemoveMail()</OnClicked>
+                </Button>
+                <Button name="$(parent)Cancel" inherits="ZO_DefaultButton" text="Cancel">
+                    <Dimensions x="130" y="30" />
+                    <OnClicked>FuryGMT.Actions.CloseRemoveDialog()</OnClicked>
+                </Button>
+                <Button name="$(parent)Confirm" inherits="ZO_DefaultButton" text="Confirm">
+                    <Dimensions x="130" y="30" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Cancel" relativePoint="TOPLEFT" offsetX="-10" />
+                    <OnClicked>FuryGMT.Actions.ConfirmRemoveDialog()</OnClicked>
+                </Button>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

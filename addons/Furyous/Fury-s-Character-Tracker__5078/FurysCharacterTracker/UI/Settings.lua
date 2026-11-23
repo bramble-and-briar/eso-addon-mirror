@@ -56,13 +56,13 @@ function Settings:Build()
 
         { type = "header", name = "Export to Excel (Windows)" },
         { type = "description",
-          text = "Turn On Auto Export.cmd in the addon folder (Documents\\Elder Scrolls Online\\live\\AddOns\\FurysCharacterTracker) starts a small helper. " ..
+          text = "Needs Fury's Character Tracker Windows Tools, a separate download linked on the addon's ESOUI page. Turn On Auto Export.cmd there starts a small helper. " ..
                  "After that, Export to Excel saves ESO Characters.csv in Documents\\Elder Scrolls Online a few seconds after the UI reloads." },
         { type = "button", name = "Export to Excel now", warning = "Reloads the UI.", func = function() CT.RequestExport() end },
 
         { type = "header", name = "Offline viewer (Windows)" },
         { type = "description",
-          text = "Open Offline Viewer.cmd in the addon folder shows everything saved, for every account and megaserver on this PC, in your browser with no game running. " ..
+          text = "Open Offline Viewer.cmd in the Windows Tools download shows everything saved, for every account and megaserver on this PC, in your browser with no game running. " ..
                  "The game saves when you log out or /reloadui; run it again to see new data." },
     }
     self.panel = LAM:RegisterAddonPanel("FuryCTSettings", panel)

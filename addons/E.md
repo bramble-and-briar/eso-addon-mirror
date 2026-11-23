@@ -84,7 +84,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESO-Database.com Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Export-AddOn__916) | Keldor | PC / Mac | 4.6.18 |
 | [ESO-Database.com Game Data Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Game-Data-Export-AddOn__2687) | Keldor | PC / Mac | 1.0.24 |
 | [ESO-Database.com Leaderboard Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Leaderboard-Export-AddOn__3438) | Keldor | PC / Mac | 1.0.13 |
-| [ESO-Hub Trading](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Woeler/ESO-Hub-Trading__4095) | Woeler | PC / Mac | 2026.11.16.02.54 |
+| [ESO-Hub Trading](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Woeler/ESO-Hub-Trading__4095) | Woeler | PC / Mac | 2026.11.23.02.54 |
 | [ESO-Skillfactory.com Build Export](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Skillfactory.com-Build-Export__2899) | Keldor | PC / Mac | 1.2.12 |
 | [ESO_BuildForge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SremmurdDex/ESO_BuildForge__3ea08b32-8d76-48a9-8c15-7f6867883984) | SremmurdDex | Console | — |
 | [ESO_UnlimitedSkies \[WiP\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/devKyle/ESO_UnlimitedSkies-WiP__1781) | devKyle | PC / Mac | v0.00.000.01 |
@@ -111,7 +111,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESOTR_TEST_MODUL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOSTR/ESOTR_TEST_MODUL__cbc2e748-501a-4137-8faa-cabf349da2d7) | XANTOSTR | Console | — |
 | [EsoUA — Ukrainian Localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/w2unemdhysend/EsoUA-Ukrainian-Localization__3437) | w2unemdhysend | PC / Mac | 1.07 |
 | [ESOXP](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Deathfather/ESOXP__4078) | Deathfather | PC / Mac | 4 |
-| [ESQL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awhlina/ESQL__5075) | awhlina | PC / Mac | 2.0.0 |
+| [ESQL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awhlina/ESQL__5075) | awhlina | PC / Mac | 3.0.0 |
 | [ESQL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/ESQL__87e2599d-75fd-4fc9-94cd-630ad0c04a8b) | Vixen_Hunny | Console | — |
 | [Essence Thief Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Essence-Thief-Tracker__e6634e8a-1c51-45d7-ba7b-f062e50e5ee8) | codeWarrior82 | Console | — |
 | [Essential Housing Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Essential-Housing-Tools__1959) | Cardinal05 | PC / Mac | 1776 |

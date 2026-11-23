@@ -6,16 +6,28 @@
   "author": "manavortex",
   "canonical_id": "esoui:1865",
   "category_id": "33",
-  "compatibility": [],
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    }
+  ],
   "content_id": "esoui:1865",
   "deleted": false,
   "directories": [
     "FurnitureShoppingList"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1865/",
-  "fingerprint": "4d2324e84339fd4ea0134aebea041f4c6cd80b156e4543d6b9d58b0954a7e89f",
+  "fingerprint": "14f5d1ce49a4da8dc0935f2c2e2d4d6175b4642c65b0b2dcd01e841ebef6197f",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw9251.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18746.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18696.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18747.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18698.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18702.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18703.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18700.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18701.png"
   ],
   "platform": "pc",
   "published": true,
@@ -23,9 +35,9 @@
   "source_id": "1865",
   "source_url": "https://www.esoui.com/downloads/info1865-FurnitureShoppingListFurC2.0patch.html",
   "stats": {
-    "downloads": 14747,
-    "favorites": 36,
-    "monthly_downloads": 182
+    "downloads": 15204,
+    "favorites": 37,
+    "monthly_downloads": 202
   },
   "title": "Furniture Shopping List (FurC 2.0 patch)",
   "updated_at": 1596968144000,

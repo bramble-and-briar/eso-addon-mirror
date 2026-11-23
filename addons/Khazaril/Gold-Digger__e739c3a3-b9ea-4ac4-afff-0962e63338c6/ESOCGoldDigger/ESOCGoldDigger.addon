@@ -1,0 +1,29 @@
+## Title: Gold Digger
+## Description: A private gold-tracking tool. It only works for approved accounts with an invite.
+## Author: DextrousDigits
+## Version: 0.8.0
+## AddOnVersion: 15
+## APIVersion: 101051
+## SavedVariables: ESOCGoldDigger_SV
+## DependsOn: LibHarvensAddonSettings
+
+Scoring.lua
+History.lua
+GoldDigger.lua
+Access.lua
+Mail.lua
+Checklist.lua
+Events.lua
+Jobs.lua
+Selling.lua
+Scanner.lua
+Stockpile.lua
+Levels.lua
+Run.lua
+Farm.lua
+ReportScreen.lua
+Interface.lua
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
+; in the United States and/or other countries. All rights reserved.

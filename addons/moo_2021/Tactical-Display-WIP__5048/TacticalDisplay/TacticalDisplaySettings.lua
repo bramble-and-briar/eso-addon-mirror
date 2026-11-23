@@ -5,18 +5,21 @@ local _Base = TacticalDisplay.Base
 local _Data = TacticalDisplay.Data
 local _Panel = TacticalDisplay.Panel
 local _LibAddonMenu2 = LibAddonMenu2
+local _CountTable = TacticalDisplay.Utilities.CountTable
 
 local _config
 local _defaults = {
     enabled = true,
     debugLog = false,
-    minDamage = 300,
+    minDamage = 400,
+    signatureFilterOff = false,
+    signatureTTL = 600,
     panelEnabled = true,
     panelActiveDuration = 2,
-    panelVisibleDuration = 30,
+    panelVisibleDuration = 60,
 }
 
-local SAVED_VARS_VERSION = 2
+local SAVED_VARS_VERSION = 3
 
 local function ApplySettings()
     if _config.enabled then
@@ -38,9 +41,19 @@ local function ApplySettings()
     end
 end
 
+local function RebuildDBAndApply()
+    _Base.RebuildDB()
+
+    -- apply DoT changes
+    if _config.enabled then
+        _Data.Disable()
+        _Data.Enable()
+    end
+end
+
 local function UpdateParameters()
     _Base.UpdateParameters(_config.debugLog)
-    _Data.UpdateParameters(_config.debugLog, _config.minDamage)
+    _Data.UpdateParameters(_config.debugLog, _config.minDamage, _config.signatureFilterOff, _config.signatureTTL)
     _Panel.UpdateParameters(_config.panelActiveDuration, _config.panelVisibleDuration)
 end
 
@@ -56,6 +69,31 @@ local function CreateSettingsUI()
 
     _LibAddonMenu2:RegisterOptionControls("TacticalDisplayOptions", {
         {
+            type = "description",
+            name = "Game database",
+            title = "Game database",
+            text = function()
+                local numHiddenAbilities = _CountTable(_Base.HIDDEN_ABILITIES)
+                local numTrackedDoTs = _CountTable(_Base.TRACKED_DOT_ABILITIES)
+                local numSignatureAbilities = _CountTable(_Base.SIGNATURE_ABILITIES)
+                local numMeasurablePlayerAbilities = _CountTable(_Base.MEASURABLE_PLAYER_ABILITIES)
+                if numHiddenAbilities == 0 then
+                    return "Empty database; Click \"Rebuild game database\" below"
+                else
+                    return ("Hidden abilities: %d\nTracked DoTs: %d\nSignature ablities: %d\nMeasurable abilities: %d")
+                        :format(numHiddenAbilities, numTrackedDoTs, numSignatureAbilities, numMeasurablePlayerAbilities)
+                end
+            end,
+            width = "full",
+        },
+        {
+            type = "button",
+            name = "Rebuild game database",
+            func = function()
+                RebuildDBAndApply()
+            end,
+        },
+        {
             type = "checkbox",
             name = "Enable Combat Tracking",
             getFunc = function()
@@ -67,31 +105,45 @@ local function CreateSettingsUI()
             end,
         },
         {
-            type = "checkbox",
-            name = "Enable Debug Logging",
-            getFunc = function()
-                return _config.debugLog
-            end,
-            setFunc = function(enabled)
-                _config.debugLog = enabled
-                UpdateParameters()
-            end,
-        },
-        {
-            type = "slider",
-            name = "Minimum damage to track",
-            min = 0,
-            max = 1000,
+            type = "submenu",
+            name = "Combat Details",
             disabled = function()
                 return not _config.enabled
             end,
-            getFunc = function()
-                return _config.minDamage
-            end,
-            setFunc = function(value)
-                _config.minDamage = value
-                UpdateParameters()
-            end,
+            controls = {
+                {
+                    type = "slider",
+                    name = "Minimum damage to track",
+                    min = 0,
+                    max = 2000,
+                    disabled = function()
+                        return not _config.enabled
+                    end,
+                    getFunc = function()
+                        return _config.minDamage
+                    end,
+                    setFunc = function(value)
+                        _config.minDamage = value
+                        UpdateParameters()
+                    end,
+                },
+                {
+                    type = "slider",
+                    name = "How long to keep signatures, in received attacks",
+                    min = 20,
+                    max = 2000,
+                    disabled = function()
+                        return not _config.enabled
+                    end,
+                    getFunc = function()
+                        return _config.signatureTTL
+                    end,
+                    setFunc = function(value)
+                        _config.signatureTTL = value
+                        UpdateParameters()
+                    end,
+                },
+            },
         },
         {
             type = "submenu",
@@ -113,8 +165,8 @@ local function CreateSettingsUI()
                 },
                 {
                     type = "slider",
-                    name = "How long (seconds) to highlight recent opponents",
-                    min = 1,
+                    name = "How long to highlight recent opponents, in seconds",
+                    min = 2,
                     max = 30,
                     disabled = function()
                         return not _config.panelEnabled
@@ -129,7 +181,7 @@ local function CreateSettingsUI()
                 },
                 {
                     type = "slider",
-                    name = "How long (seconds) to keep recent opponents",
+                    name = "How long to keep recent opponents, in seconds",
                     min = 30,
                     max = 600,
                     disabled = function()
@@ -151,6 +203,37 @@ local function CreateSettingsUI()
                     end,
                     func = function()
                         _Panel.ResetLayout()
+                    end,
+                },
+            },
+        },
+        {
+            type = "submenu",
+            name = "Debug Functions",
+            disabled = function()
+                return not _config.enabled
+            end,
+            controls = {
+                {
+                    type = "checkbox",
+                    name = "Enable Logging to Chat",
+                    getFunc = function()
+                        return _config.debugLog
+                    end,
+                    setFunc = function(enabled)
+                        _config.debugLog = enabled
+                        UpdateParameters()
+                    end,
+                },
+                {
+                    type = "checkbox",
+                    name = "Mark all incoming attacks as signature",
+                    getFunc = function()
+                        return _config.signatureFilterOff
+                    end,
+                    setFunc = function(enabled)
+                        _config.signatureFilterOff = enabled
+                        UpdateParameters()
                     end,
                 },
             },

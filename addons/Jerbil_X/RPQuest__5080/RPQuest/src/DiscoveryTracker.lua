@@ -1,5 +1,4 @@
 -- Ref: docs/adr/0006-puntos-de-descubrimiento-ocultos.md
--- Ref: docs/adr/0010-comparticion-grupo-y-objetivos-compartidos.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -47,7 +46,7 @@ function DiscoveryTracker:UpdatePollingState()
 end
 
 function DiscoveryTracker:OnUpdateTick()
-    if not self._isPolling or not GetUnitWorldPosition then return end
+    if not self._isPolling then return end
     local activeQuest = Addon.QuestRepository:GetActiveQuest()
     if not Addon.QuestRepository:HasPendingDiscoveries(activeQuest) then
         self:UpdatePollingState()
@@ -57,25 +56,9 @@ function DiscoveryTracker:OnUpdateTick()
     if zoneId and zoneId ~= 0 and worldX and worldZ then
         self:EvaluatePlayerPosition(zoneId, worldX, worldY or 0, worldZ, activeQuest)
     end
-
-    if not activeQuest.completed and IsUnitGrouped and IsUnitGrouped("player") and GetGroupSize and GetGroupUnitTagByIndex then
-        local groupSize = GetGroupSize() or 0
-        for i = 1, groupSize do
-            local unitTag = GetGroupUnitTagByIndex(i)
-            if unitTag and unitTag ~= "player" and not (AreUnitsEqual and AreUnitsEqual(unitTag, "player")) then
-                local gz, gx, gy, gzCoord = GetUnitWorldPosition(unitTag)
-                if gz and gz ~= 0 and gx and gzCoord then
-                    self:EvaluatePlayerPosition(gz, gx, gy or 0, gzCoord, activeQuest)
-                    if activeQuest.completed then
-                        break
-                    end
-                end
-            end
-        end
-    end
 end
 
-function DiscoveryTracker:EvaluatePlayerPosition(zoneId, worldX, worldY, worldZ, preloadedQuest)
+function DiscoveryTracker:EvaluatePlayerPosition(zoneId, worldX, _worldY, worldZ, preloadedQuest)
     local activeQuest = preloadedQuest or Addon.QuestRepository:GetActiveQuest()
     if not preloadedQuest and not Addon.QuestRepository:HasPendingDiscoveries(activeQuest) then
         self:UpdatePollingState()

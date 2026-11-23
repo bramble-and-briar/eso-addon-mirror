@@ -11,8 +11,13 @@ Manual Installation:
 4. Launch ESO, open Add-Ons at the character select screen, and enable RPQuest.
 
 Usage:
-- Open the Quest Journal (J) and select the RPQuest tab in the top-right icons.
-- Use /rpq help in chat or bind keys under Controls -> RPQuest.
+- Open the Quest Journal (J) and select the RPQuests tab in the top-right icons.
+- Click "+ New" to create a quest, or use "Test Quest" / "Reset" on prepared quests.
+- Assign a recipient (@AccountName) in the editor and click "Send Quest" in the
+  quest details pane to send via in-game mail.
+- Incoming quests appear automatically in Pending (Accept or Reject), and results
+  are reported back to the Quest Master automatically via mail.
+- Bind keys under Settings -> Controls -> RPQuest - Custom Quests.
 
 AI Disclosure & Credits:
 - Author: JerbilX

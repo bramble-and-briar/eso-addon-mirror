@@ -1,12 +1,12 @@
 -- WDH_Menu.lua
--- Einstellungsmenue ueber LibAddonMenu-2.0 (optional)
+-- Settings menu via LibAddonMenu-2.0 (optional)
 --
--- Fehlt LibAddonMenu, laeuft das Addon ohne Menue weiter; alle Einstellungen
--- bleiben ueber die Slash-Befehle erreichbar.
+-- Without LibAddonMenu the addon runs without a menu; all settings
+-- stay available through the slash commands.
 --
--- Wichtig: Alle Einstellungen wirken NUR auf die Anzeige am Fadenkreuz.
--- Gespeichert wird immer jede Pluenderung, jedes Item mit Item-ID und Kategorie.
--- Die Anzeige-Einstellungen gelten je Charakter, die Debug-Ausgabe fuer den ganzen Account.
+-- Important: all settings affect ONLY the crosshair display.
+-- Every loot is always stored, every item with item ID and category.
+-- Display settings are per character, the debug output is account-wide.
 
 local WDH  = WhatDropsHere
 local WDH_STRINGS = WDH.L
@@ -16,14 +16,14 @@ WDH.Menu = Menu
 local PANEL_NAME = "WhatDropsHereMenu"
 
 -- -----------------------------------------------------------------------------
--- Hilfsfunktionen
+-- Helpers
 -- -----------------------------------------------------------------------------
 
 local function Settings()
     return WDH.Settings()
 end
 
--- Auswahlliste der Qualitaeten 0 (Trash) bis 5 (Legendaer), farbig
+-- Choice list of qualities 0 (trash) to 5 (legendary), colored
 local function QualityChoices()
     local names, values = {}, {}
     for quality = ITEM_DISPLAY_QUALITY_TRASH, ITEM_DISPLAY_QUALITY_LEGENDARY do
@@ -33,7 +33,7 @@ local function QualityChoices()
     return names, values
 end
 
--- Wie QualityChoices, mit "Aus" vorne (Schwelle je Art der Quelle)
+-- Like QualityChoices, with "Off" first (threshold per source type)
 local function TypeChoices()
     local names, values = QualityChoices()
     table.insert(names, 1, WDH_STRINGS.MENU_SHOW_OFF)
@@ -41,7 +41,7 @@ local function TypeChoices()
     return names, values
 end
 
--- Checkbox fuer eine Anzeige-Einstellung; aendert sie, wird die Anzeige neu aufgebaut
+-- Checkbox for a display setting; changing it rebuilds the display
 local function HudCheckbox(key, name, tooltip, disabled)
     return {
         type     = "checkbox",
@@ -61,7 +61,7 @@ local function HudDisabled()
     return not Settings().hud
 end
 
--- Auswahl der Anzeige-Schwelle fuer eine Art der Quelle
+-- Display threshold choice for one source type
 local function TypeDropdown(key, name, tooltip, names, values)
     return {
         type          = "dropdown",
@@ -79,7 +79,7 @@ local function TypeDropdown(key, name, tooltip, names, values)
     }
 end
 
--- Kurze Uebersicht ueber die gespeicherten Daten
+-- Short overview of the stored data
 local function DataSummary()
     local zones, sources, loots = 0, 0, 0
     for _, zone in pairs(WDH.sv.zones) do
@@ -95,7 +95,7 @@ local function DataSummary()
 end
 
 -- -----------------------------------------------------------------------------
--- Initialisierung
+-- Initialization
 -- -----------------------------------------------------------------------------
 
 function Menu:Init()
@@ -105,7 +105,7 @@ function Menu:Init()
     local qualityNames, qualityValues = QualityChoices()
     local typeNames, typeValues       = TypeChoices()
 
-    -- Andere Charaktere, deren Einstellungen kopiert werden koennen
+    -- Other characters whose settings can be copied
     local charNames, charIds = WDH.OtherCharacters()
     local copyFrom = charIds[1]
     local noChars  = #charIds == 0
@@ -129,7 +129,7 @@ function Menu:Init()
             text = WDH_STRINGS.MENU_INTRO,
         },
 
-        -- Anzeige am Fadenkreuz
+        -- Crosshair display
         { type = "header", name = WDH_STRINGS.MENU_HUD_HEADER },
         {
             type = "description",
@@ -166,7 +166,7 @@ function Menu:Init()
             default  = 6,
         },
 
-        -- Anzeige nach Art der Quelle
+        -- Display by source type
         { type = "header", name = WDH_STRINGS.MENU_TYPES_HEADER },
         {
             type = "description",
@@ -180,8 +180,9 @@ function Menu:Init()
         TypeDropdown("showResource",  WDH_STRINGS.MENU_RESOURCES,  WDH_STRINGS.MENU_RESOURCES_TT,  typeNames, typeValues),
         TypeDropdown("showOther",     WDH_STRINGS.MENU_OTHER,      WDH_STRINGS.MENU_OTHER_TT,      typeNames, typeValues),
         TypeDropdown("showTheft",     WDH_STRINGS.MENU_THEFT,      WDH_STRINGS.MENU_THEFT_TT,      typeNames, typeValues),
+        TypeDropdown("showExcavation", WDH_STRINGS.MENU_EXCAVATION, WDH_STRINGS.MENU_EXCAVATION_TT, typeNames, typeValues),
 
-        -- Einstellungen anderer Charaktere
+        -- Settings of other characters
         { type = "header", name = WDH_STRINGS.MENU_COPY_HEADER },
         {
             type = "description",
@@ -216,7 +217,7 @@ function Menu:Init()
             end,
         },
 
-        -- Datenbank
+        -- Database
         { type = "header", name = WDH_STRINGS.MENU_DATA_HEADER },
         {
             type = "description",
@@ -241,7 +242,7 @@ function Menu:Init()
             func        = function() WDH:ResetData() end,
         },
 
-        -- Entwicklung
+        -- Development
         { type = "header", name = WDH_STRINGS.MENU_DEV_HEADER },
         {
             type    = "checkbox",

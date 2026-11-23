@@ -22,6 +22,7 @@ TL.loopDefaults = {
 }
 TL.charDefaults = {
     titleLoop = TL.loopDefaults,
+    titleLoopUseCharacter = true,
 }
 
 TL.savedVars = nil
@@ -1098,11 +1099,17 @@ function TL:GetOptions()
             type          = "submenu",
             name          = "Title Loop",
             icon          = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_character.dds",
-            tooltip       = "Changes your title to your favorite titles on a timer.\n\n"
-                         .. "Take Me There just shows you where Title Loop is: the title list on your Character screen. "
-                         .. "You don't need to come back here each time. Open that list from your Character screen whenever you want to use it.\n\n"
-                         .. ME.SAVED_CHARACTER_TIP,
+            tooltip       = function()
+                return "Changes your title to your favorite titles on a timer.\n\nWorks from the title list on your Character screen. Take Me There opens it for you.\n\n" .. TL:SavedTip()
+            end,
             options       = {
+                {
+                    type    = "toggle",
+                    name    = "Character Settings",
+                    tooltip = ME.CHARACTER_SETTINGS_TIP,
+                    getFunc = function() return TL:UsesCharacterSettings() end,
+                    setFunc = function(val) TL:SetUseCharacterSettings(val) end,
+                },
                 {
                     type    = "button",
                     name    = "Take Me There",
@@ -1118,12 +1125,52 @@ end
 --------------------------------------------------
 -- Lifecycle
 --------------------------------------------------
-function TL:Init()
+local function CopyTable(value)
+    if not IsTable(value) then return value end
+    local copy = {}
+    for k, v in pairs(value) do copy[k] = CopyTable(v) end
+    return copy
+end
+
+function TL:UsesCharacterSettings()
+    return ME.charVariables == nil or ME.charVariables.titleLoopUseCharacter ~= false
+end
+
+function TL:SavedTip()
+    if self:UsesCharacterSettings() then return ME.SAVED_CHARACTER_TIP end
+    return ME.SAVED_ACCOUNT_TIP
+end
+
+function TL:Store()
     local charVars = ME.charVariables
     if not IsTable(charVars.titleLoop) then
         charVars.titleLoop = {}
     end
-    self.savedVars = charVars.titleLoop
+    if self:UsesCharacterSettings() then return charVars.titleLoop end
+    local account = ME.savedVariables
+    if not IsTable(account.titleLoop) then
+        account.titleLoop = CopyTable(charVars.titleLoop)
+    end
+    return account.titleLoop
+end
+
+function TL:SetUseCharacterSettings(value)
+    local charVars = ME.charVariables
+    if not charVars then return end
+    value = value == true
+    if self:UsesCharacterSettings() == value then return end
+    self:UnregisterRotationTimer()
+    charVars.titleLoopUseCharacter = value
+    self.savedVars = self:Store()
+    self:NormalizeSettings()
+    self:RestartRotationTimer()
+    self:RefreshDropdownKeybinds(self.currentDropdown)
+    local panel = ME.settingsPanel
+    if panel and panel.Refresh then panel:Refresh() end
+end
+
+function TL:Init()
+    self.savedVars = self:Store()
 
     self:NormalizeSettings()
     self:InstallHooks()

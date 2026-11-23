@@ -1804,7 +1804,7 @@ local function updateProfileHud()
         end
         return
     end
-    if not profileSettings.enabled or not isBattlegroundActive() then
+    if not profileSettings.enabled or isBattlegroundActive() then
         if profileHud then profileHud:SetHidden(true) end
         return
     end
@@ -2918,3 +2918,41 @@ local function onLoaded(eventCode, addonName)
 end
 
 EVENT_MANAGER:RegisterForEvent("ESOFantasy", EVENT_ADD_ON_LOADED, onLoaded)
+
+
+-- TME Menu Visibility: independent of saved visibility and ongoing statistics.
+-- Suppress presentation, not SetHidden state: existing timers/close actions remain authoritative.
+local tmeMenuAlpha = setmetatable({}, {__mode="k"})
+local function tmeMenuContext()
+    if not SCENE_MANAGER then return false, false, false end
+    local scene=SCENE_MANAGER.GetCurrentScene and SCENE_MANAGER:GetCurrentScene()
+    local name=scene and scene.GetName and scene:GetName()
+    local main=SCENE_MANAGER.IsShowing and SCENE_MANAGER:IsShowing("mainMenuGamepad")
+    if main then return true,false,false end
+    if not name then return false,false,false end
+    local lower=string.lower(name)
+    local gameplay=(lower=="hud" or lower=="hudui" or lower=="hudgamepad" or lower=="huduigamepad")
+    local addon=lower:find("addon",1,true)~=nil or lower:find("libaddonmenu",1,true)~=nil or lower=="gamepadoptions" or lower=="gamepadoptionsroot"
+    local map=lower:find("worldmap",1,true)~=nil or lower=="gamepadworldmap"
+    return not gameplay,addon,map
+end
+local function tmeMenuSuppress(control, suppress)
+    if not control then return end
+    if suppress then
+        if tmeMenuAlpha[control]==nil then tmeMenuAlpha[control]=control:GetAlpha() end
+        if control:GetAlpha()~=0 then control:SetAlpha(0) end
+    elseif tmeMenuAlpha[control]~=nil then
+        control:SetAlpha(tmeMenuAlpha[control]);tmeMenuAlpha[control]=nil
+    end
+end
+
+EVENT_MANAGER:RegisterForUpdate("ESOFantasyTME_MenuVisibility", 100, function()
+    local blocked,addon=tmeMenuContext()
+    tmeMenuSuppress(hud,blocked and not hudPreviewPlacement)
+    tmeMenuSuppress(teamHud,blocked and not hudPreviewPlacement)
+    tmeMenuSuppress(profileHud,blocked and not hudPreviewPlacement)
+    tmeMenuSuppress(scoutingHud,blocked and not hudPreviewPlacement)
+    tmeMenuSuppress(reticleHud,blocked)
+    tmeMenuSuppress(panel,blocked and not addon)
+    -- Native BG queue rating is intentional menu content, not a gameplay HUD.
+end)

@@ -23,22 +23,26 @@ M.ICON = {
   world   = "EsoUI/Art/Icons/mapKey/mapKey_adventureZone.dds",
 }
 
-M.LABEL = {
-  dungeon = "VERDANT_KIND_DUNGEON",
-  trial   = "VERDANT_KIND_TRIAL",
-  arena   = "VERDANT_KIND_ARENA",
-  archive = "VERDANT_KIND_ARCHIVE",
-  bg      = "VERDANT_KIND_BG",
-  bgc     = "VERDANT_KIND_BGC",
-  ava     = "VERDANT_KIND_AVA",
-  house   = "VERDANT_KIND_HOUSE",
-  world   = "VERDANT_KIND_WORLD",
-}
+local FAIL = "Verdant_ContentKind"
+local told = false
+
+local function failed(err)
+  local zev = Verdant.zenimax.events
+  local line = nil
+  if not told then
+    told = true
+    line = string.format(Verdant.zenimax.api.GetString(VERDANT_CONTENT_KIND_FAILED), zev.error_label(FAIL))
+  end
+  zev.fail(FAIL, err, line)
+end
 
 local function call(fn, ...)
   if type(fn) ~= "function" then return nil end
   local ok, v = pcall(fn, ...)
-  if not ok then return nil end
+  if not ok then
+    failed(v)
+    return nil
+  end
   return v
 end
 
@@ -67,11 +71,5 @@ function M.detect()
 end
 
 function M.icon(kind) return kind and M.ICON[kind] or nil end
-
-function M.label(kind)
-  local key = kind and M.LABEL[kind]
-  if not key then return nil end
-  return GetString(rawget(_G, key))
-end
 
 function M.arena_name(zone_id) return ARENAS[zone_id] end

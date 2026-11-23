@@ -1,83 +1,88 @@
 -- WhatDropsHere.lua
--- Hauptlogik des Addons (Phase 1: Erfassung, Kategorien, Debug-Ausgabe)
+-- Main logic of the addon (recording, categories, debug output)
 --
--- Ablauf einer Pluender-Sitzung:
---   1. EVENT_LOOT_UPDATED (erstes)  -> Quelle sichern (GetLootTargetInfo), Liste lesen
---   2. EVENT_LOOT_UPDATED (weitere) -> nur neue lootIds ergaenzen
---      (Auto-Loot-Addons nehmen Items, die Liste wird kuerzer, das Event feuert erneut)
---   3. EVENT_LOOT_CLOSED            -> Sitzung in SV schreiben
---   4. EVENT_LOOT_RECEIVED          -> Spuren (Antiquitaeten), Taschendiebstahl und
---                                      Beute ohne Lootfenster (siehe unten)
+-- Flow of a loot session:
+--   1. EVENT_LOOT_UPDATED (first)   -> remember the source (GetLootTargetInfo), read the list
+--   2. EVENT_LOOT_UPDATED (further) -> only add new lootIds
+--      (auto-loot addons take items, the list gets shorter, the event fires again)
+--   3. EVENT_LOOT_CLOSED            -> write the session to SV
+--   4. EVENT_LOOT_RECEIVED          -> leads (antiquities), pickpocketing and
+--                                      loot without a loot window (see below)
 --
--- Beute ohne Lootfenster: Kleintiere (Schmetterlinge, Quallen, Motten ...) und einzelne
--- Gegenstaende werden mit "Nehmen" direkt ins Inventar gelegt. Die Quelle merken wir uns
--- beim Druecken der Interaktionstaste (Hook auf INTERACTIVE_WHEEL_MANAGER:StartInteraction,
--- den Tastatur und Gamepad laut bindings.xml vor GameCameraInteractStart aufrufen).
--- Alle Items, die kurz danach ankommen, bilden eine Sitzung.
+-- Loot without a loot window: critters (butterflies, jellyfish, moths ...) and single
+-- items go straight into the inventory with "Take". The source is remembered
+-- when the interact key is pressed (hook on INTERACTIVE_WHEEL_MANAGER:StartInteraction,
+-- which keyboard and gamepad call before GameCameraInteractStart according to bindings.xml).
+-- All items arriving shortly afterwards form one session.
 --
--- Erfasst wird, was die Quelle ANGEBOTEN hat, nicht was genommen wurde.
--- So verfaelschen die Filter von Auto-Loot-Addons (MSAL, Smarter AutoLoot) die Statistik nicht.
+-- What gets recorded is what the source OFFERED, not what was taken.
+-- This way the filters of auto-loot addons (MSAL, Smarter AutoLoot) do not skew the statistics.
 --
--- Ausnahme Spuren: Im Lootfenster gibt es fuer Spuren keine Antiquitaeten-ID.
--- Die kommt erst mit EVENT_LOOT_RECEIVED (itemId = antiquityId). Spuren werden deshalb
--- im Lootfenster uebersprungen und beim Empfang der laufenden bzw. letzten Sitzung zugeordnet.
+-- Exception leads: the loot window has no antiquity ID for leads.
+-- It only comes with EVENT_LOOT_RECEIVED (itemId = antiquityId). Leads are therefore
+-- skipped in the loot window and assigned to the running or last session on receipt.
 --
--- Datenmodell (je Server und Account):
+-- Data model (per server and account):
 --   WhatDropsHere_Saved[GetWorldName()][GetDisplayName()] = SV
---   SV.zones[zoneId][key] = Quelle
---     zoneId 0      = Behaelter aus dem Inventar (ueberall gleich)
---     key           = Name in Kleinbuchstaben, "#aoe" fuer Sammelpluenderung,
---                     "pickpocket:" fuer Taschendiebstahl
---   Quelle = { name, kind, loots, gold, targetType, last, type, collective, sets = {}, items = {}, cats = {} }
---     collective = Sammeleintrag (gestohlene Einzelstuecke der Zone, Schluessel LOOSE_THEFT_KEY)
---     items[itemId] = Stat + cat (jeder Fund; "lead:<antiquityId>" bzw. "n:<Name>" fuer Nicht-Items)
---     cats[key]     = Stat (Kategorie-Schluessel aus WDH_Categories.lua, alle Funde der Kategorie)
---     sets[setId]   = Stat + slots[slot] = Anzahl (Set-Ausruestung zusaetzlich pro Set)
---   Was davon mit Namen oder als Kategorie angezeigt wird, entscheidet erst die Anzeige.
---   Stat = { n = Anzahl gesamt, hits = Pluenderungen mit Treffer, min, max, q = { [Qualitaet] = Anzahl } }
+--   SV.zones[zoneId][key] = source
+--     zoneId 0      = containers from the inventory (same everywhere)
+--     key           = lower-case name, "#aoe" for collective (AoE) loot,
+--                     "pickpocket:" for pickpocketing
+--   source = { name, kind, loots, gold, targetType, last, type, collective, digs, sets = {}, items = {}, cats = {} }
+--     collective = collective record (stolen loose items of the zone, key LOOSE_THEFT_KEY)
+--     digs       = { [antiquityId] = count } for dig sites (the antiquity itself is not counted as loot)
+--     items[itemId] = Stat + cat (every find; "lead:<antiquityId>" or "n:<name>" for non-items)
+--     cats[key]     = Stat (category key from WDH_Categories.lua, all finds of the category)
+--     sets[setId]   = Stat + slots[slot] = count (set gear, additionally per set)
+--   Whether something is shown by name or as category is decided by the display only.
+--   Stat = { n = total count, hits = loots with a hit, min, max, q = { [quality] = count } }
 
 local ADDON_NAME         = "WhatDropsHere"
-local SAVED_VERSION      = 3  -- 2: jeder Fund mit Item-ID, Schwelle nur noch fuer die Anzeige
-                              -- 3: herumliegende Gegenstaende nicht mehr als eigene Quelle
-local LOOSE_THEFT_KEY    = "#loose#theft"  -- Sammeleintrag je Zone fuer gestohlene Einzelstuecke ohne Lootfenster
-local RECEIVED_GRACE_MS  = 2000  -- ms nach LOOT_CLOSED, in denen LOOT_RECEIVED noch zur Sitzung gehoert
-local SESSION_TIMEOUT_MS = 5000  -- ms ohne LOOT_UPDATED, nach denen eine Sitzung ohne LOOT_CLOSED gespeichert wird
-local INTERACT_VALID_MS  = 3000  -- ms nach der Interaktion, in denen Beute ohne Lootfenster ihr zugeordnet wird
-local DIRECT_COMMIT_MS   = 1000  -- ms nach dem letzten Item, nach denen eine Sitzung ohne Lootfenster gespeichert wird
-local INTERACT_POLL_MS   = 100   -- Abfrage-Intervall fuer die Art der Interaktion nach Druck auf E
+local SAVED_VERSION      = 3  -- 2: every find with item ID, threshold only for the display
+                              -- 3: items lying around are no longer sources of their own
+local LOOSE_THEFT_KEY    = "#loose#theft"  -- collective record per zone for stolen loose items without a loot window
+local RECEIVED_GRACE_MS  = 2000  -- ms after LOOT_CLOSED in which LOOT_RECEIVED still belongs to the session
+local SESSION_TIMEOUT_MS = 5000  -- ms without LOOT_UPDATED after which a session without LOOT_CLOSED is saved
+local INTERACT_VALID_MS  = 3000  -- ms after the interaction in which loot without a loot window is assigned to it
+local DIRECT_COMMIT_MS   = 1000  -- ms after the last item after which a session without a loot window is saved
+local INTERACT_POLL_MS   = 100   -- poll interval for the interaction type after pressing E
 
 -- -----------------------------------------------------------------------------
--- Addon-Objekt
+-- Addon object
 -- -----------------------------------------------------------------------------
--- WhatDropsHere ist die einzige globale Variable des Addons (angelegt in lang/en.lua)
+-- WhatDropsHere is the addon's only global variable (created in lang/en.lua)
 local WDH = WhatDropsHere
-WDH.VERSION = "0.3.1-beta"  -- wie "## Version" im Manifest
+WDH.VERSION = "0.4.0-beta"  -- same as "## Version" in the manifest
 local CAT = WDH.Categories
 local WDH_STRINGS, WDH_SLOT_NAMES, WDH_CAT_NAMES = WDH.L, WDH.SLOT_NAMES, WDH.CAT_NAMES
 
--- Schwelle je Art der Quelle: Anzeige fuer diese Art aus
+-- Threshold per source type: display off for this type
 local SHOW_OFF = -1
 
--- Einstellungen fuer den ganzen Account
+-- Account-wide settings
 local DEFAULT_ACCOUNT = {
-    debug         = false,                        -- Debug-Ausgabe im Chat (/wdh_debug, Menue)
+    debug         = false,                        -- debug output in chat (/wdh_debug, menu)
 }
 
--- Anzeige-Einstellungen, je Charakter gespeichert (gespeichert wird immer alles)
+-- Display settings, stored per character (everything is always recorded)
 local DEFAULT_DISPLAY = {
-    hud           = true,                         -- Anzeige am Fadenkreuz
-    hudUnits      = true,                         -- auch fuer lebende Ziele (Gegner, Tiere, NPCs)
-    nameQuality   = ITEM_DISPLAY_QUALITY_ARCANE,  -- am Fadenkreuz mit Namen ab blau, darunter als Kategorie
-    hudMaxLines   = 6,                            -- Eintraege am Fadenkreuz, Rest als "+N weitere"
-    -- Anzeige-Schwelle je Art der Quelle (Qualitaet oder SHOW_OFF); ab weiss = Trash ausgeblendet
-    showEnemy     = ITEM_DISPLAY_QUALITY_NORMAL,  -- Feinde: Leichen und lebende Ziele
-    showContainer = ITEM_DISPLAY_QUALITY_NORMAL,  -- Truhen und Behaelter
-    showResource  = ITEM_DISPLAY_QUALITY_NORMAL,  -- Rohstoffvorkommen
-    showOther     = ITEM_DISPLAY_QUALITY_NORMAL,  -- Kleintiere, einzelne Gegenstaende, Sonstiges
-    showTheft     = ITEM_DISPLAY_QUALITY_NORMAL,  -- Diebstahl aus fremdem Besitz
+    hud           = true,                         -- crosshair display
+    hudUnits      = true,                         -- also for living targets (enemies, animals, NPCs)
+    nameQuality   = ITEM_DISPLAY_QUALITY_ARCANE,  -- at the crosshair by name from blue up, below that as category
+    hudMaxLines   = 6,                            -- entries at the crosshair, the rest as "+N more"
+    -- display threshold per source type (quality or SHOW_OFF); from white = trash hidden
+    showEnemy     = ITEM_DISPLAY_QUALITY_NORMAL,  -- enemies: corpses and living targets
+    showContainer = ITEM_DISPLAY_QUALITY_NORMAL,  -- chests and containers
+    showResource  = ITEM_DISPLAY_QUALITY_NORMAL,  -- resource nodes
+    showOther     = ITEM_DISPLAY_QUALITY_NORMAL,  -- critters, loose items, other
+    showTheft     = ITEM_DISPLAY_QUALITY_NORMAL,  -- theft from someone else's property
+    showExcavation = ITEM_DISPLAY_QUALITY_NORMAL, -- dig sites (bonus loot)
 }
 
--- Bis 0.2: Schalter je Art + eine gemeinsame Schwelle (Account-weit)
+-- All thresholds per type (for /wdh_show)
+local TYPE_THRESHOLDS = { "showEnemy", "showContainer", "showResource", "showOther", "showTheft", "showExcavation" }
+
+-- Up to 0.2: one switch per type + one shared threshold (account-wide)
 local LEGACY_TYPE_SWITCH = {
     showEnemy     = "hudEnemies",
     showContainer = "hudContainers",
@@ -100,49 +105,49 @@ local function CopyDisplay(source)
 end
 
 -- -----------------------------------------------------------------------------
--- Interne Zustaende
+-- Internal state
 -- -----------------------------------------------------------------------------
 
--- Gespeicherte Daten dieses Accounts auf diesem Server (Teil von WhatDropsHere_Saved, siehe OpenSaved)
+-- Saved data of this account on this server (part of WhatDropsHere_Saved, see OpenSaved)
 local SV = nil
 
--- Laufende Pluender-Sitzung (nil, wenn kein Lootfenster offen)
+-- Running loot session (nil if no loot window is open)
 local WDH_Session = nil
 
--- Abgeschlossenes Lootfenster, das schon leer war, als wir es lesen konnten:
--- Ein Auto-Loot-Addon (z. B. Much Smarter AutoLoot) war schneller, hat alles genommen und das
--- Fenster geschlossen. Die Beute kommt danach noch ueber LOOT_RECEIVED bzw. CURRENCY_UPDATE an
--- und wird hier gesammelt, bevor die Sitzung gespeichert wird.
+-- Finished loot window that was already empty when we could read it:
+-- an auto-loot addon (e.g. Much Smarter AutoLoot) was faster, took everything and closed the
+-- window. The loot still arrives afterwards through LOOT_RECEIVED or CURRENCY_UPDATE
+-- and is collected here before the session is saved.
 local WDH_Pending = nil
 
--- Zuletzt gespeicherte Quelle, fuer verspaetete Spuren und /wdh ohne Argument
+-- Last saved source, for late leads and /wdh without an argument
 local WDH_Last = {
     zoneId   = nil,
     key      = nil,
     closedAt = 0,
-    itemIds  = {},  -- Item-IDs der letzten Lootliste, zum Abgleich mit spaeterem LOOT_RECEIVED
-    lootKey  = nil, -- Schluessel und lootIds der letzten Sitzung, um erneutes Oeffnen
-    lootSeen = nil, -- derselben Quelle zu erkennen (Reste, die ein Auto-Loot-Addon liegen laesst)
+    itemIds  = {},  -- item IDs of the last loot list, to match a later LOOT_RECEIVED
+    lootKey  = nil, -- key and lootIds of the last session, to detect the same source being
+    lootSeen = nil, -- reopened (leftovers an auto-loot addon leaves behind)
 }
 
--- Letzte Interaktion (Taste E / Gamepad), Quelle fuer Beute ohne Lootfenster
--- Dazu, woran die Art der Quelle erkannt wird (siehe DetermineSourceType)
+-- Last interaction (E key / gamepad), source for loot without a loot window,
+-- plus what tells the source type (see DetermineSourceType)
 local WDH_Interact = {
     name    = nil,
     action  = nil,
     at      = 0,
-    monster = false,  -- IsGameCameraInteractableUnitMonster(): Leiche einer Kreatur/eines NPC
-    owned   = false,  -- gehoert jemandem (Diebstahl), aus GetGameCameraInteractableActionInfo()
-    itype   = nil,    -- erster GetInteractionType() nach der Interaktion (z. B. INTERACTION_HARVEST)
+    monster = false,  -- IsGameCameraInteractableUnitMonster(): corpse of a creature/NPC
+    owned   = false,  -- belongs to someone (theft), from GetGameCameraInteractableActionInfo()
+    itype   = nil,    -- first GetInteractionType() after the interaction (e.g. INTERACTION_HARVEST)
 }
 
--- Laufende Sitzung ohne Lootfenster (Kleintiere, einzelne Gegenstaende)
+-- Running session without a loot window (critters, loose items)
 local WDH_Direct = nil
 
 local WDH_Initialized = false
 
 -- -----------------------------------------------------------------------------
--- Hilfsfunktionen
+-- Helpers
 -- -----------------------------------------------------------------------------
 
 local function dbg(msg)
@@ -163,7 +168,7 @@ local function ZoneName(zoneId)
     return zo_strformat("<<C:1>>", GetZoneNameById(zoneId))
 end
 
--- Name der Quelle wie im Lootfenster formatieren (entfernt u. a. Geschlechts-Endungen wie ^n)
+-- Format the source name as in the loot window (removes e.g. gender suffixes like ^n)
 local function FormatTargetName(name, targetType)
     if name == nil or name == "" then return "" end
     if targetType == INTERACT_TARGET_TYPE_ITEM then
@@ -180,9 +185,9 @@ local function MakeKey(name)
     return zo_strlower(name)
 end
 
--- Ob das Lootfenster mehrere Leichen zusammenfasst (Flaechenpluendern).
--- INTERACT_TARGET_TYPE_AOE_LOOT ist eine Vermutung; gibt es die Konstante nicht,
--- bleibt das Ergebnis false. Die Debug-Ausgabe zeigt targetType zum Pruefen im Spiel.
+-- Whether the loot window combines several corpses (AoE loot).
+-- INTERACT_TARGET_TYPE_AOE_LOOT is an assumption; if the constant does not exist,
+-- the result stays false. The debug output shows targetType for checking in game.
 local function IsAoeTarget(targetType)
     return INTERACT_TARGET_TYPE_AOE_LOOT ~= nil and targetType == INTERACT_TARGET_TYPE_AOE_LOOT
 end
@@ -209,7 +214,7 @@ local function SetName(setId)
     return zo_strformat("<<C:1>>", name)
 end
 
--- Anzeigename fuer einen items-Schluessel (Item-ID, "lead:<id>" oder "n:<Name>")
+-- Display name for an items key (item ID, "lead:<id>" or "n:<name>")
 local function ItemLinkFromId(itemId)
     return string.format("|H1:item:%d:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", itemId)
 end
@@ -220,16 +225,18 @@ local function ItemName(id)
     end
     local leadId = id:match("^lead:(%d+)$")
     if leadId then
-        return zo_strformat(SI_TOOLTIP_ITEM_NAME, GetAntiquityName(tonumber(leadId)))
+        -- Mark as lead: the name is the antiquity's, which still has to be excavated
+        return string.format(WDH_STRINGS.LEAD_NAME,
+            zo_strformat(SI_TOOLTIP_ITEM_NAME, GetAntiquityName(tonumber(leadId))))
     end
     return (id:gsub("^n:", ""))
 end
 
 -- -----------------------------------------------------------------------------
--- Statistik-Bausteine
+-- Statistics building blocks
 -- -----------------------------------------------------------------------------
 
--- Zaehlt eine Menge in eine Sitzungs-Statistik. cat = Kategorie (nur bei items)
+-- Adds a quantity to a session statistic. cat = category (items only)
 local function AddStat(t, id, quantity, quality, cat)
     local s = t[id]
     if not s then
@@ -241,7 +248,7 @@ local function AddStat(t, id, quantity, quality, cat)
     return s
 end
 
--- Fuehrt eine Sitzungs-Statistik in die gespeicherte Statistik zusammen
+-- Merges a session statistic into the stored statistic
 local function MergeStat(dst, id, src)
     local s = dst[id]
     if not s then
@@ -265,10 +272,10 @@ local function MergeStat(dst, id, src)
 end
 
 -- -----------------------------------------------------------------------------
--- Speicher
+-- Storage
 -- -----------------------------------------------------------------------------
 
--- Anzeigename einer Quelle; Sammeleintraege in der Sprache des Clients
+-- Display name of a source; collective records in the client language
 local function RecordName(rec)
     if rec.collective then return WDH_STRINGS.RECORD_LOOSE end
     return rec.name
@@ -291,25 +298,27 @@ local function FindRecord(zoneId, key)
 end
 
 -- -----------------------------------------------------------------------------
--- Art der Quelle (nur fuer die Anzeige-Filter, gespeichert wird immer alles)
+-- Source type (only for the display filters, everything is always recorded)
 -- -----------------------------------------------------------------------------
---   enemy     -> Leiche einer Kreatur/eines NPC (IsGameCameraInteractableUnitMonster, wie ZO_PlayLootWindowSound)
---   resource  -> Rohstoffvorkommen (GetInteractionType() == INTERACTION_HARVEST kurz nach der Interaktion,
---                wie HarvestMap)
---   container -> Truhen, Saecke, Faesser, Kisten, Rucksaecke ... (alle uebrigen Lootfenster)
---   theft     -> Diebstahl aus fremdem Besitz (isOwned): Behaelter, Tresore, einzelne Gegenstaende
---   other     -> Taschendiebstahl und "Nehmen" ohne Lootfenster (Kleintiere, einzelne Gegenstaende)
+--   enemy     -> corpse of a creature/NPC (IsGameCameraInteractableUnitMonster, like ZO_PlayLootWindowSound)
+--   resource  -> resource node (GetInteractionType() == INTERACTION_HARVEST shortly after the interaction,
+--                like HarvestMap)
+--   container -> chests, sacks, barrels, crates, backpacks ... (all other loot windows)
+--   theft     -> theft from someone else's property (isOwned): containers, safeboxes, loose items
+--   other     -> pickpocketing and "Take" without a loot window (critters, loose items)
+--   excavation -> dig sites (bonus loot of the excavation, without the antiquity itself)
 
 local function IsRecentInteraction(name)
     return WDH_Interact.name == name and Now() - WDH_Interact.at <= INTERACT_VALID_MS
 end
 
 local function DetermineSourceType(name, kind)
+    if kind == "dig" then return "excavation" end
     local recent = IsRecentInteraction(name)
     if recent and WDH_Interact.itype == INTERACTION_HARVEST then return "resource" end
     if kind == "pickpocket" then return "other" end
     if kind == "theft" then return "theft" end
-    -- Bei Lootfenstern ist die Leiche noch das Kamera-Ziel (so nutzt es auch das Spiel fuer den Pluendersound)
+    -- With loot windows the corpse is still the camera target (the game uses this for the loot sound too)
     if (kind == "loot" and IsGameCameraInteractableUnitMonster()) or (recent and WDH_Interact.monster) then
         return "enemy"
     end
@@ -318,19 +327,19 @@ local function DetermineSourceType(name, kind)
 end
 
 -- -----------------------------------------------------------------------------
--- Sitzung
+-- Session
 -- -----------------------------------------------------------------------------
 
--- Schluessel einer Quelle: Name in Kleinbuchstaben, Diebstahl aus fremdem Besitz getrennt.
--- Auch von der Anzeige genutzt (Ziel am Fadenkreuz mit isOwned).
+-- Key of a source: lower-case name, theft from someone else's property kept separate.
+-- Also used by the display (target at the crosshair with isOwned).
 local function RecordKey(name, isOwned)
     local key = MakeKey(name)
     if isOwned then key = key .. "#theft" end
     return key
 end
 
--- kind: "loot" (Lootfenster), "take" ("Nehmen" ohne Fenster), "pickpocket"
--- isOwned: Quelle gehoert jemandem (Diebstahl) -> eigener Eintrag
+-- kind: "loot" (loot window), "take" ("Take" without a window), "pickpocket", "dig" (excavation)
+-- isOwned: source belongs to someone (theft) -> separate record
 local function NewSession(name, targetType, kind, isOwned)
     local fromWindow = kind == "loot"
     if isOwned and kind ~= "pickpocket" then kind = "theft" end
@@ -356,25 +365,26 @@ local function NewSession(name, targetType, kind, isOwned)
         startedAt  = Now(),
         gold       = 0,
         seen       = {},
-        itemIds    = {},  -- angebotene Item-IDs (fuer den Abgleich mit LOOT_RECEIVED)
+        itemIds    = {},  -- offered item IDs (to match LOOT_RECEIVED)
         sets       = {},
         items      = {},
         cats       = {},
-        lines      = {},  -- Debug-Zeilen, ausgegeben beim Abschluss
+        lines      = {},  -- debug lines, printed when the session is finished
     }
 end
 
--- Ordnet ein Item der Sitzung zu. Gespeichert wird immer das Item (Item-ID)
--- und seine Kategorie, bei Set-Ausruestung zusaetzlich das Set.
--- Was davon mit Namen angezeigt wird, entscheidet erst die Anzeige.
+-- Adds an item to the session. The item (item ID) and its category are always
+-- stored, for set gear also the set.
+-- Which of it is shown by name is decided by the display only.
 local function AddItem(session, itemLink, quantity)
     local entry = CAT.Classify(itemLink)
+    local quality = entry.quality
     session.itemIds[entry.itemId] = true
 
-    AddStat(session.items, entry.itemId, quantity, entry.quality, entry.key)
-    AddStat(session.cats, entry.key, quantity, entry.quality)
+    AddStat(session.items, entry.itemId, quantity, quality, entry.key)
+    AddStat(session.cats, entry.key, quantity, quality)
     if entry.setId then
-        local s = AddStat(session.sets, entry.setId, quantity, entry.quality)
+        local s = AddStat(session.sets, entry.setId, quantity, quality)
         s.slots = s.slots or {}
         s.slots[entry.slot] = (s.slots[entry.slot] or 0) + quantity
     end
@@ -383,7 +393,7 @@ local function AddItem(session, itemLink, quantity)
         itemLink, quantity, CatName(entry.key))
 end
 
--- Eintrag ohne Item-ID (Spur, Sammlungsstueck): id = "lead:<id>" bzw. "n:<Name>"
+-- Entry without an item ID (lead, collectible): id = "lead:<id>" or "n:<name>"
 local function AddNonItem(session, id, quantity, quality, cat)
     AddStat(session.items, id, quantity, quality, cat)
     AddStat(session.cats, cat, quantity, quality)
@@ -395,8 +405,8 @@ local function AddLead(session, antiquityId)
     AddNonItem(session, "lead:" .. antiquityId, 1, GetAntiquityQuality(antiquityId), "LEAD")
 end
 
--- Gold im Lootfenster, eigenes und gestohlenes zusammen.
--- Gleiche Quelle wie Much Smarter AutoLoot (LOOT_SHARED), GetLootCurrency nur als Rueckfall.
+-- Gold in the loot window, own and stolen together.
+-- Same source as Much Smarter AutoLoot (LOOT_SHARED), GetLootCurrency only as fallback.
 local function ReadLootGold()
     if LOOT_SHARED and LOOT_SHARED.GetLootCurrencyInformation then
         local info = LOOT_SHARED:GetLootCurrencyInformation()[CURT_MONEY]
@@ -411,20 +421,20 @@ local function ReadLootList(session)
     for i = 1, GetNumLootItems() do
         local lootId, name, _, count, _, _, isQuest, _, lootType = GetLootItemInfo(i)
         if lootId and session.prevSeen and session.prevSeen[lootId] then
-            -- Schon beim letzten Oeffnen dieser Quelle angeboten (Reste, die liegen geblieben sind)
+            -- Already offered when this source was last opened (leftovers)
             session.seen[lootId] = true
             session.reopened     = true
         elseif lootId and not session.seen[lootId] then
             session.seen[lootId] = true
-            -- Questitems gehoeren zur Quest, nicht zur Quelle.
-            -- Spuren kommen mit Antiquitaeten-ID ueber EVENT_LOOT_RECEIVED.
+            -- Quest items belong to the quest, not to the source.
+            -- Leads arrive with their antiquity ID through EVENT_LOOT_RECEIVED.
             local skip = isQuest or lootType == LOOT_TYPE_QUEST_ITEM or lootType == LOOT_TYPE_ANTIQUITY_LEAD
             if not skip then
                 local itemLink = GetLootItemLink(lootId, LINK_STYLE_DEFAULT)
                 if itemLink and itemLink ~= "" then
                     AddItem(session, itemLink, count)
                 else
-                    -- Kein Item (z. B. Sammlungsstueck): nach Namen speichern
+                    -- Not an item (e.g. collectible): store by name
                     AddNonItem(session, "n:" .. zo_strformat("<<C:1>>", name), count,
                         ITEM_DISPLAY_QUALITY_NORMAL, "NO_ITEM")
                 end
@@ -432,15 +442,15 @@ local function ReadLootList(session)
         end
     end
 
-    -- Gold: hoechsten gesehenen Wert merken (nach dem Pluendern steht hier 0).
-    -- Bei erneut geoeffneter Quelle ist liegen gebliebenes Gold schon gezaehlt.
+    -- Gold: remember the highest value seen (after looting it reads 0).
+    -- For a reopened source, leftover gold has already been counted.
     if not session.reopened then
         local gold = ReadLootGold()
         if gold > session.gold then session.gold = gold end
     end
 end
 
--- Hat eine erneut geoeffnete Quelle nichts Neues angeboten?
+-- Did a reopened source offer nothing new?
 local function IsPureReopen(session)
     return session.reopened and next(session.itemIds) == nil and next(session.items) == nil
         and next(session.cats) == nil and next(session.sets) == nil
@@ -453,8 +463,8 @@ local function CommitSession(session)
         return
     end
 
-    -- Gesehene lootIds merken, damit ein erneutes Oeffnen derselben Quelle erkannt wird
-    -- (nur Lootfenster; Taschendiebstahl und "Nehmen" ohne Fenster haben keine lootIds)
+    -- Remember the lootIds seen, so that reopening the same source is detected
+    -- (loot windows only; pickpocketing and "Take" without a window have no lootIds)
     if session.fromWindow then
         WDH_Last.lootKey  = session.key
         WDH_Last.lootSeen = session.seen
@@ -471,12 +481,17 @@ local function CommitSession(session)
     rec.loots      = rec.loots + 1
     rec.gold       = rec.gold + session.gold
     rec.targetType = session.targetType
-    -- "container" ist der Rueckfall, wenn nichts Genaueres erkannt wurde:
-    -- eine einmal erkannte Art (Feind, Rohstoff) wird davon nicht ueberschrieben
+    -- "container" is the fallback when nothing more specific was detected:
+    -- a type detected once (enemy, resource) is not overwritten by it
     if session.sourceType ~= "container" or rec.type == nil then
         rec.type = session.sourceType
     end
     rec.last       = GetTimeStamp()
+    -- Excavation: the antiquity dug up (not counted as loot)
+    if session.antiquityId then
+        rec.digs = rec.digs or {}
+        rec.digs[session.antiquityId] = (rec.digs[session.antiquityId] or 0) + 1
+    end
 
     for id, s in pairs(session.sets)  do MergeStat(rec.sets,  id, s) end
     for id, s in pairs(session.items) do MergeStat(rec.items, id, s) end
@@ -484,13 +499,13 @@ local function CommitSession(session)
 
     WDH_Last.zoneId   = session.zoneId
     WDH_Last.key      = session.key
-    -- Nachlauffrist nur fuer Lootfenster: Beute ohne Fenster (mehrere Gegenstaende vom Tisch
-    -- stehlen, Taschendiebstahl) kommt nicht verspaetet an und darf die naechste nicht verschlucken
+    -- Grace period only for loot windows: loot without a window (stealing several items from a
+    -- table, pickpocketing) does not arrive late and must not swallow the next one
     if session.fromWindow then
         WDH_Last.closedAt = Now()
         WDH_Last.itemIds  = session.itemIds
     end
-    -- Fuer /wdh ohne Argument auch nach Neustart merken
+    -- Remember for /wdh without an argument, also across restarts
     SV.last = { zoneId = session.zoneId, key = session.key }
 
     dbg(string.format(WDH_STRINGS.DEBUG_SESSION,
@@ -498,18 +513,18 @@ local function CommitSession(session)
         tostring(session.aoe), tostring(IsAoeSettingOn()), session.gold, tostring(session.sourceType)))
     for _, line in ipairs(session.lines) do dbg(line) end
 
-    -- Anzeige am Fadenkreuz beim naechsten Bild neu aufbauen
+    -- Rebuild the crosshair display on the next frame
     if WDH.Hud then WDH.Hud:Invalidate() end
 end
 
--- Spur, die nach dem Schliessen des Lootfensters ankommt, nachtraeglich zuordnen
+-- Assign a lead that arrives after the loot window closed
 local function AddLeadToLastRecord(antiquityId)
     local rec = WDH_Last.key and FindRecord(WDH_Last.zoneId, WDH_Last.key)
     if not rec then return false end
     local quality = GetAntiquityQuality(antiquityId)
     MergeStat(rec.items, "lead:" .. antiquityId, { n = 1, q = { [quality] = 1 }, cat = "LEAD" })
     MergeStat(rec.cats, "LEAD", { n = 1, q = { [quality] = 1 } })
-    dbg(string.format(WDH_STRINGS.DEBUG_ITEM, ItemName("lead:" .. antiquityId), 1, "Spur -> " .. rec.name))
+    dbg(string.format(WDH_STRINGS.DEBUG_ITEM, ItemName("lead:" .. antiquityId), 1, rec.name))
     return true
 end
 
@@ -517,7 +532,7 @@ end
 -- Event-Handler
 -- -----------------------------------------------------------------------------
 
--- Sitzung, die Beute aus LOOT_RECEIVED/CURRENCY_UPDATE uebernimmt (nur bei leer vorgefundenem Fenster)
+-- Session that takes loot from LOOT_RECEIVED/CURRENCY_UPDATE (only for a window found empty)
 local function LateTarget()
     if WDH_Session then
         return WDH_Session.emptyWindow and WDH_Session or nil
@@ -525,9 +540,9 @@ local function LateTarget()
     return WDH_Pending
 end
 
--- Gold-Aenderungen werden nur gebraucht, solange es eine solche Sitzung gibt:
--- EVENT_MONEY_UPDATE ist nur dann angemeldet (sonst liefe es bei jedem Kauf, Verkauf, Reparieren ...)
-local OnMoneyUpdate  -- unten definiert
+-- Gold changes are only needed while such a session exists:
+-- EVENT_MONEY_UPDATE is only registered then (otherwise it would run on every purchase, sale, repair ...)
+local OnMoneyUpdate  -- defined below
 local moneyWatched = false
 local function UpdateMoneyWatch()
     local needed = LateTarget() ~= nil
@@ -540,7 +555,7 @@ local function UpdateMoneyWatch()
     end
 end
 
--- Laufende Sitzung speichern (LOOT_CLOSED, Zeitueberschreitung, Ladebildschirm)
+-- Save the running session (LOOT_CLOSED, timeout, loading screen)
 local function FinishPending()
     EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "_Pending")
     if not WDH_Pending then return end
@@ -556,7 +571,7 @@ local function FinishSession()
     local session = WDH_Session
     WDH_Session = nil
     if session.emptyWindow then
-        -- Beute ist noch unterwegs: kurz sammeln, dann speichern
+        -- Loot is still on its way: collect briefly, then save
         FinishPending()
         WDH_Pending = session
         EVENT_MANAGER:RegisterForUpdate(ADDON_NAME .. "_Pending", RECEIVED_GRACE_MS, FinishPending)
@@ -566,11 +581,11 @@ local function FinishSession()
     UpdateMoneyWatch()
 end
 
--- Im Test kam LOOT_CLOSED nicht immer (vermutlich wenn ein Auto-Loot-Addon das Fenster schliesst).
--- Ohne diese Sicherung bliebe die Sitzung bis zur naechsten Pluenderung offen
--- und ginge bei /reloadui verloren.
--- Ist das Lootfenster noch sichtbar, laeuft die Sitzung weiter (sonst doppelte Zaehlung,
--- wenn danach noch ein LOOT_UPDATED fuer dieselbe Quelle kommt).
+-- In tests LOOT_CLOSED did not always arrive (probably when an auto-loot addon closes the window).
+-- Without this safeguard the session would stay open until the next loot
+-- and would be lost on /reloadui.
+-- If the loot window is still visible, the session goes on (otherwise double counting
+-- when another LOOT_UPDATED for the same source follows).
 local function IsLootWindowShowing()
     return SCENE_MANAGER:IsShowing("loot") or SCENE_MANAGER:IsShowing("lootGamepad")
 end
@@ -588,9 +603,9 @@ local function OnLootUpdated()
     local rawName, targetType, _, isOwned = GetLootTargetInfo()
     local name = FormatTargetName(rawName, targetType)
 
-    -- Manche Behaelter liefern im Lootfenster keinen Namen (z. B. die Truhe am Dunklen Anker).
-    -- Gibt es seit Beginn der offenen Sitzung keine neue Interaktion, ist es dasselbe Fenster
-    -- (z. B. Update nach dem Nehmen eines Items); sonst die letzte Interaktion nehmen.
+    -- Some containers give no name in the loot window (e.g. the Dark Anchor chest).
+    -- If there was no new interaction since the open session started, it is the same window
+    -- (e.g. update after taking an item); otherwise use the last interaction.
     if name == "" then
         local recent = WDH_Interact.name and Now() - WDH_Interact.at <= INTERACT_VALID_MS
         if WDH_Session and not (recent and WDH_Interact.at > WDH_Session.startedAt) then
@@ -607,12 +622,12 @@ local function OnLootUpdated()
     if not WDH_Session then
         FinishPending()
         WDH_Session = NewSession(name, targetType, "loot", isOwned)
-        -- Fenster ohne Ziel und ohne Inhalt: ein Auto-Loot-Addon hat es vor uns geleert und geschlossen
+        -- Window without target and content: an auto-loot addon emptied and closed it before us
         if rawName == "" and GetNumLootItems() == 0 then
             WDH_Session.emptyWindow = true
             WDH_Session.lines[#WDH_Session.lines + 1] = WDH_STRINGS.DEBUG_LATE
         end
-        -- Gleiche Quelle wie zuletzt: liegen gebliebene Reste nicht erneut zaehlen
+        -- Same source as last time: do not count leftovers again
         if WDH_Last.lootKey == WDH_Session.key then
             WDH_Session.prevSeen = WDH_Last.lootSeen
         end
@@ -629,8 +644,8 @@ local function OnLootClosed()
     FinishSession()
 end
 
--- Herumliegender Gegenstand ("Nehmen" ohne Fenster): Waffe/Ruestung (Interaktion heisst z. B. "Schild",
--- das Item "Nachtholzschild") oder ein Item mit dem Namen der Quelle. Kleintiere geben andere Beute.
+-- Item lying around ("Take" without a window): weapon/armor (the interaction is called e.g. "Shield",
+-- the item "Nightwood Shield") or an item named like the source. Critters give other loot.
 local function IsLooseItem(itemLink, sourceName)
     local itemType = GetItemLinkItemType(itemLink)
     if itemType == ITEMTYPE_WEAPON or itemType == ITEMTYPE_ARMOR then return true end
@@ -643,12 +658,12 @@ local function FinishDirectSession()
     if not session then return end
     WDH_Direct = nil
     if session.kind == "theft" then
-        -- Gestohlene Einzelstuecke: ein Sammeleintrag je Zone statt einer Quelle je Gegenstand
+        -- Stolen loose items: one collective record per zone instead of one source per item
         session.key        = LOOSE_THEFT_KEY
         session.name       = WDH_STRINGS.RECORD_LOOSE
         session.collective = true
     elseif session.loose then
-        -- Herumliegende Waffen/Ruestung in der offenen Welt: Trash, nicht speichern
+        -- Weapons/armor lying around in the open world: trash, do not store
         dbg(string.format(WDH_STRINGS.DEBUG_LOOSE_IGNORED, session.name))
         for _, line in ipairs(session.lines) do dbg(line) end
         return
@@ -656,13 +671,13 @@ local function FinishDirectSession()
     CommitSession(session)
 end
 
--- Beute ohne Lootfenster der letzten Interaktion zuordnen.
--- Rueckgabe false, wenn es keine passende Interaktion gibt.
+-- Assign loot without a loot window to the last interaction.
+-- Returns false if there is no matching interaction.
 local function AddDirectLoot(itemLink, quantity)
     if not WDH_Interact.name or Now() - WDH_Interact.at > INTERACT_VALID_MS then
         return false
     end
-    -- Neue Interaktion seit der laufenden Sitzung: alte zuerst speichern
+    -- New interaction since the running session: save the old one first
     if WDH_Direct and WDH_Direct.interactAt ~= WDH_Interact.at then
         FinishDirectSession()
     end
@@ -678,8 +693,8 @@ local function AddDirectLoot(itemLink, quantity)
     return true
 end
 
--- Nach der Interaktion kurz beobachten, welche Art Interaktion das Spiel startet
--- (Ernten, Schlossknacken ...). Das Lootfenster selbst (INTERACTION_LOOT) zaehlt nicht.
+-- After the interaction, briefly watch which kind of interaction the game starts
+-- (harvesting, lockpicking ...). The loot window itself (INTERACTION_LOOT) does not count.
 local function PollInteractionType()
     local itype = GetInteractionType()
     if itype ~= INTERACTION_NONE and itype ~= INTERACTION_LOOT and not WDH_Interact.itype then
@@ -704,7 +719,111 @@ local function OnInteractionStart()
     dbg(string.format(WDH_STRINGS.DEBUG_INTERACT, tostring(action), WDH_Interact.name))
 end
 
--- Gold, das ein Auto-Loot-Addon aus einem leer vorgefundenen Fenster genommen hat
+-- -----------------------------------------------------------------------------
+-- Excavations
+-- Excavation loot does not come through EVENT_LOOT_RECEIVED (test 2026-11-17), and the list
+-- of the summary screen (GetDigSpotBonusLootRewardInfo) is not available to addons.
+-- Therefore: whatever goes into the inventory or craft bag, is added as gold or acquired as a lead
+-- between start and exit of the excavation (plus a short grace period) is its bonus loot.
+-- The antiquity itself is certain through the lead and not bonus loot: not counted (nor its
+-- reward, e.g. a furnishing), only its ID in rec.digs.
+-- Only successful excavations count.
+-- The events are only registered during an excavation.
+-- -----------------------------------------------------------------------------
+
+local DIG_NAME_VALID_MS = 30000  -- "Excavate" interaction until the excavation starts (3.8 s in the test)
+local DIG_GRACE_MS      = 2000   -- grace period after leaving the excavation
+
+local DigSession = nil
+local OnDigItem, OnDigGold, OnDigLead  -- defined below
+
+local function SetDigWatch(on)
+    local ns = ADDON_NAME .. "_DigLoot"
+    EVENT_MANAGER:UnregisterForEvent(ns .. "Bag",   EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    EVENT_MANAGER:UnregisterForEvent(ns .. "Craft", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    EVENT_MANAGER:UnregisterForEvent(ns .. "Gold",  EVENT_MONEY_UPDATE)
+    EVENT_MANAGER:UnregisterForEvent(ns .. "Lead",  EVENT_ANTIQUITY_LEAD_ACQUIRED)
+    if not on then return end
+    for suffix, bag in pairs({ Bag = BAG_BACKPACK, Craft = BAG_VIRTUAL }) do
+        EVENT_MANAGER:RegisterForEvent(ns .. suffix, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnDigItem)
+        EVENT_MANAGER:AddFilterForEvent(ns .. suffix, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+            REGISTER_FILTER_BAG_ID, bag,
+            REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
+    end
+    EVENT_MANAGER:RegisterForEvent(ns .. "Gold", EVENT_MONEY_UPDATE, OnDigGold)
+    EVENT_MANAGER:RegisterForEvent(ns .. "Lead", EVENT_ANTIQUITY_LEAD_ACQUIRED, OnDigLead)
+end
+
+-- Item ID the antiquity itself gives as reward (not counted as bonus loot)
+local function AntiquityRewardItemId(antiquityId)
+    local rewardId = GetAntiquityRewardId(antiquityId)
+    if rewardId and rewardId ~= 0 and GetRewardType(rewardId) == REWARD_ENTRY_TYPE_ITEM then
+        return GetItemRewardItemId(rewardId)
+    end
+end
+
+function OnDigItem(_, bagId, slotIndex, _, _, _, stackCountChange)
+    if not DigSession or not stackCountChange or stackCountChange <= 0 then return end
+    local itemLink = GetItemLink(bagId, slotIndex)
+    if itemLink == "" then return end
+    if GetItemLinkItemId(itemLink) == DigSession.rewardItemId then
+        dbg(string.format(WDH_STRINGS.DEBUG_DIG_REWARD, itemLink))
+        return
+    end
+    AddItem(DigSession, itemLink, stackCountChange)
+end
+
+function OnDigGold(_, newMoney, oldMoney)
+    if DigSession and newMoney > oldMoney then
+        DigSession.gold = DigSession.gold + (newMoney - oldMoney)
+    end
+end
+
+function OnDigLead(_, antiquityId)
+    if DigSession then AddLead(DigSession, antiquityId) end
+end
+
+local function FinishDig()
+    EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "_DigFinish")
+    SetDigWatch(false)
+    local session = DigSession
+    DigSession = nil
+    if not session then return end
+    if not session.victory then
+        dbg(string.format(WDH_STRINGS.DEBUG_DIG_FAILED, tostring(session.gameOverFlags)))
+        for _, line in ipairs(session.lines) do dbg(line) end
+        return
+    end
+    CommitSession(session)
+end
+
+local function OnDigReady()
+    FinishDig()  -- previous excavation, in case its end never arrived
+    local name = WDH_Interact.name
+    if not name or Now() - WDH_Interact.at > DIG_NAME_VALID_MS then name = WDH_STRINGS.DIG_SITE end
+    local antiquityId = GetDigSpotAntiquityId()
+    DigSession = NewSession(name, nil, "dig")
+    DigSession.antiquityId  = antiquityId
+    DigSession.rewardItemId = AntiquityRewardItemId(antiquityId)
+    SetDigWatch(true)
+    dbg(string.format(WDH_STRINGS.DEBUG_DIG_START, name,
+        zo_strformat(SI_TOOLTIP_ITEM_NAME, GetAntiquityName(antiquityId))))
+end
+
+local function OnDigGameOver(_, gameOverFlags)
+    if not DigSession then return end
+    DigSession.victory       = gameOverFlags == ANTIQUITY_DIGGING_GAME_OVER_FLAGS_VICTORY
+    DigSession.gameOverFlags = gameOverFlags
+end
+
+-- Excavation left: grace period, then save
+local function OnDigExit(_, accept)
+    if not DigSession or not accept then return end
+    EVENT_MANAGER:UnregisterForUpdate(ADDON_NAME .. "_DigFinish")
+    EVENT_MANAGER:RegisterForUpdate(ADDON_NAME .. "_DigFinish", DIG_GRACE_MS, FinishDig)
+end
+
+-- Gold an auto-loot addon took from a window found empty
 function OnMoneyUpdate(_, newMoney, oldMoney, reason)
     if reason ~= CURRENCY_CHANGE_REASON_LOOT and reason ~= CURRENCY_CHANGE_REASON_LOOT_STOLEN then return end
     local late = LateTarget()
@@ -716,7 +835,7 @@ end
 local function OnLootReceived(_, _, itemLink, quantity, _, lootType, isSelf, isPickpocketLoot, _, itemId)
     if not isSelf then return end
 
-    -- Spuren: itemId ist hier die Antiquitaeten-ID
+    -- Leads: itemId is the antiquity ID here
     if lootType == LOOT_TYPE_ANTIQUITY_LEAD then
         local late = LateTarget()
         if late then
@@ -731,8 +850,8 @@ local function OnLootReceived(_, _, itemLink, quantity, _, lootType, isSelf, isP
         return
     end
 
-    -- Taschendiebstahl: kein Lootfenster. Opfer ist die letzte Interaktion,
-    -- sonst das Ziel unter dem Fadenkreuz
+    -- Pickpocketing: no loot window. The victim is the last interaction,
+    -- otherwise the target under the crosshair
     if isPickpocketLoot then
         local target
         if WDH_Interact.name and Now() - WDH_Interact.at <= INTERACT_VALID_MS then
@@ -749,30 +868,30 @@ local function OnLootReceived(_, _, itemLink, quantity, _, lootType, isSelf, isP
         return
     end
 
-    -- Lootfenster war schon leer: Beute hier zaehlen
+    -- Loot window was already empty: count the loot here
     local late = LateTarget()
     if late then
         if lootType == LOOT_TYPE_ITEM then AddItem(late, itemLink, quantity) end
         return
     end
 
-    -- Beute ohne Lootfenster (z. B. Kleintiere mit "Nehmen")
+    -- Loot without a loot window (e.g. critters with "Take")
     if not WDH_Session and Now() - WDH_Last.closedAt > RECEIVED_GRACE_MS then
         if lootType == LOOT_TYPE_ITEM and AddDirectLoot(itemLink, quantity) then return end
         dbg(string.format(WDH_STRINGS.DEBUG_NO_WINDOW, tostring(itemLink), quantity))
     elseif WDH_Session and not WDH_Session.itemIds[itemId] then
-        -- Waehrend ein Lootfenster offen ist, aber nicht in dessen Liste.
-        -- Moeglicher Hinweis auf Flaechenpluendern: Beute anderer Leichen direkt ins Inventar?
+        -- While a loot window is open, but not in its list.
+        -- Possible hint at AoE loot: loot of other corpses going straight into the inventory?
         dbg(string.format(WDH_STRINGS.DEBUG_DURING_WINDOW, tostring(itemLink), quantity, WDH_Session.name))
     elseif not WDH_Session and not WDH_Last.itemIds[itemId] then
-        -- Kurz nach einem Lootfenster, aber nicht in dessen Liste: sollte nicht vorkommen.
-        -- (Items aus der Liste kommen regelmaessig erst nach LOOT_CLOSED an, die sind bereits gezaehlt.)
+        -- Shortly after a loot window, but not in its list: should not happen.
+        -- (Items from the list regularly arrive only after LOOT_CLOSED; those are already counted.)
         dbg(string.format(WDH_STRINGS.DEBUG_AFTER_WINDOW, tostring(itemLink), quantity))
     end
 end
 
 -- -----------------------------------------------------------------------------
--- Ausgabe
+-- Output
 -- -----------------------------------------------------------------------------
 
 local function QualityList(q)
@@ -795,7 +914,7 @@ local function BestQuality(q)
 end
 
 -- -----------------------------------------------------------------------------
--- Schnittstelle fuer WDH_Hud.lua
+-- Interface for WDH_Hud.lua
 -- -----------------------------------------------------------------------------
 
 WDH.CurrentZoneId  = CurrentZoneId
@@ -810,13 +929,13 @@ WDH.BestQuality    = BestQuality
 WDH.QualityName    = QualityName
 WDH.SHOW_OFF       = SHOW_OFF
 
--- Anzeige-Einstellungen des eingeloggten Charakters
+-- Display settings of the logged-in character
 function WDH.Settings()
     return SV.chars[WDH.charId].settings
 end
 
--- Andere Charaktere des Accounts mit gespeicherten Einstellungen: Namen und IDs, sortiert.
--- Geloeschte Charaktere fallen heraus, umbenannte erscheinen mit aktuellem Namen.
+-- Other characters of the account with stored settings: names and IDs, sorted.
+-- Deleted characters drop out, renamed ones appear with their current name.
 function WDH.OtherCharacters()
     local list = {}
     for i = 1, GetNumCharacters() do
@@ -834,7 +953,7 @@ function WDH.OtherCharacters()
     return names, ids
 end
 
--- Uebernimmt die Anzeige-Einstellungen eines anderen Charakters
+-- Copies the display settings of another character
 function WDH.CopySettingsFrom(charId)
     local source = SV.chars[charId]
     if not source or charId == WDH.charId then return false end
@@ -859,7 +978,7 @@ function WDH:PrintRecord(zoneId, rec)
             ColorByQuality(BestQuality(s.q), SetName(setId)), table.concat(slots, ", "),
             s.n, s.hits, rec.loots, QualityList(s.q)))
     end
-    -- Kategorien, darunter eingerueckt ihre Items (Set-Teile stehen oben schon pro Set)
+    -- Categories, with their items indented below (set pieces are already listed per set above)
     local itemsByCat = {}
     for id, s in pairs(rec.items) do
         local cat = s.cat or ""
@@ -881,7 +1000,7 @@ function WDH:PrintRecord(zoneId, rec)
             itemsByCat[key] = nil
         end
     end
-    -- Items ohne Kategorie (Daten aus Version 0.1 vor dem Speichern aller Item-IDs)
+    -- Items without a category (data from version 0.1, before all item IDs were stored)
     for _, list in pairs(itemsByCat) do
         PrintItems(list, WDH_STRINGS.RECORD_LINE)
     end
@@ -897,8 +1016,8 @@ local function SearchZones(needle, zoneIds, found)
     end
 end
 
--- Sucht Quellen, deren Name den Suchtext enthaelt: zuerst aktuelle Zone und
--- Inventar-Behaelter, ohne Treffer dort in allen Zonen
+-- Finds sources whose name contains the search text: first the current zone and
+-- inventory containers, without hits there in all zones
 local function SearchRecords(text)
     local needle = zo_strlower(text)
     local found  = {}
@@ -914,7 +1033,7 @@ local function SearchRecords(text)
     return found
 end
 
--- Zonen mit gespeicherten Daten im Chat auflisten (/wdh_zones, Menue)
+-- List zones with stored data in chat (/wdh_zones, menu)
 function WDH:PrintZones()
     d(WDH_STRINGS.ZONES_HEADER)
     local any = false
@@ -932,7 +1051,7 @@ function WDH:PrintZones()
     if not any then d(WDH_STRINGS.RECORD_NONE) end
 end
 
--- Alle gesammelten Daten loeschen, Einstellungen bleiben (/wdh_reset ja, Menue)
+-- Delete all collected data, settings stay (/wdh_reset yes, menu)
 function WDH:ResetData()
     SV.zones = {}
     SV.last  = nil
@@ -943,7 +1062,7 @@ function WDH:ResetData()
 end
 
 -- -----------------------------------------------------------------------------
--- Slash-Befehle
+-- Slash commands
 -- -----------------------------------------------------------------------------
 
 local function RegisterSlashCommands()
@@ -1006,9 +1125,9 @@ local function RegisterSlashCommands()
             d(WDH_STRINGS.SHOW_USAGE)
             return
         end
-        -- Gilt fuer alle eingeschalteten Arten; einzeln im Menue
+        -- Applies to all enabled types; individually in the menu
         local settings = WDH.Settings()
-        for key in pairs(LEGACY_TYPE_SWITCH) do
+        for _, key in ipairs(TYPE_THRESHOLDS) do
             if settings[key] ~= SHOW_OFF then settings[key] = quality end
         end
         WDH.Hud:Invalidate()
@@ -1032,7 +1151,7 @@ local function RegisterSlashCommands()
     end
 
     SLASH_COMMANDS["/wdh_reset"] = function(args)
-        -- "yes" funktioniert in jeder Sprache, dazu das Wort der Client-Sprache ("ja")
+        -- "yes" works in every language, plus the word of the client language ("ja")
         local answer = zo_strlower(zo_strtrim(args or ""))
         if answer ~= "yes" and answer ~= WDH_STRINGS.RESET_CONFIRM then
             d(WDH_STRINGS.RESET_USAGE)
@@ -1043,11 +1162,11 @@ local function RegisterSlashCommands()
 end
 
 -- -----------------------------------------------------------------------------
--- Initialisierung
+-- Initialization
 -- -----------------------------------------------------------------------------
 
--- Bis 0.2 lagen die Anzeige-Einstellungen Account-weit in SV.settings.
--- Sie werden zur Vorlage, mit der jeder Charakter beim ersten Einloggen startet.
+-- Up to 0.2 the display settings were account-wide in SV.settings.
+-- They become the template every character starts with on its first login.
 local function MigrateAccountDisplay()
     local old = SV.settings
     if old.showQuality == nil and old.hud == nil then return end
@@ -1066,7 +1185,7 @@ local function MigrateAccountDisplay()
     SV.template = CopyDisplay(template)
 end
 
--- Fuehrt eine gespeicherte Quelle in eine andere zusammen (Migration)
+-- Merges one stored source into another (migration)
 local function MergeRecord(dst, src)
     dst.loots = dst.loots + src.loots
     dst.gold  = dst.gold + src.gold
@@ -1092,7 +1211,7 @@ local function MergeRecord(dst, src)
     end
 end
 
--- Quelle aus "Nehmen" ohne Fenster, die nur herumliegende Gegenstaende enthaelt (siehe IsLooseItem)
+-- Source from "Take" without a window that only holds items lying around (see IsLooseItem)
 local function IsLooseRecord(rec)
     if next(rec.items) == nil then return false end
     for id in pairs(rec.items) do
@@ -1101,8 +1220,8 @@ local function IsLooseRecord(rec)
     return true
 end
 
--- Bis 0.3.0 wurde jeder herumliegende Gegenstand eine eigene Quelle.
--- Ohne Lootfenster: targetType fehlt. Gestohlene -> Sammeleintrag der Zone, sonst loeschen.
+-- Up to 0.3.0 every item lying around became a source of its own.
+-- Without a loot window targetType is missing. Stolen -> collective record of the zone, otherwise delete.
 local function MigrateLooseItems()
     for zoneId, zone in pairs(SV.zones) do
         local stolen = {}
@@ -1126,10 +1245,10 @@ local function MigrateLooseItems()
     end
 end
 
--- Bis 0.3.1 hiess die SavedVariable WDH_Saved und galt fuer alle Server und Accounts.
--- Jetzt: WhatDropsHere_Saved[Server][@Account]. Die alten Daten uebernimmt der erste Account,
--- der sich nach dem Update einloggt (bisher hat ohnehin jeder Account in dieselbe Tabelle geschrieben);
--- danach wird WDH_Saved geleert und beim naechsten Speichern aus der Datei entfernt.
+-- Up to 0.3.1 the SavedVariable was called WDH_Saved and covered all servers and accounts.
+-- Now: WhatDropsHere_Saved[server][@account]. The first account logging in after the update
+-- takes over the old data (every account wrote into the same table anyway);
+-- afterwards WDH_Saved is cleared and removed from the file on the next save.
 local function OpenSaved()
     if type(WhatDropsHere_Saved) ~= "table" then WhatDropsHere_Saved = {} end
     local world, account = GetWorldName(), GetDisplayName()
@@ -1154,7 +1273,7 @@ local function InitSaved()
     MigrateAccountDisplay()
     FillDefaults(SV.settings, DEFAULT_ACCOUNT)
 
-    -- Anzeige-Einstellungen je Charakter (ID bleibt bei Umbenennung gleich)
+    -- Display settings per character (the ID stays the same on renaming)
     SV.chars = SV.chars or {}
     local charId = GetCurrentCharacterId()
     local char = SV.chars[charId]
@@ -1177,16 +1296,21 @@ local function RegisterLootTracking()
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_LootUpdated",  EVENT_LOOT_UPDATED,  OnLootUpdated)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_LootClosed",   EVENT_LOOT_CLOSED,   OnLootClosed)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_LootReceived", EVENT_LOOT_RECEIVED, OnLootReceived)
-    -- EVENT_MONEY_UPDATE nur bei Bedarf, siehe UpdateMoneyWatch
-    -- Vor Ladebildschirm, /reloadui und Logout offene Sitzungen sichern
+    -- EVENT_MONEY_UPDATE only when needed, see UpdateMoneyWatch
+    -- Save open sessions before loading screens, /reloadui and logout
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_Deactivated",  EVENT_PLAYER_DEACTIVATED, function()
         FinishSession()
         FinishPending()
         FinishDirectSession()
+        FinishDig()
     end)
-    -- Quelle fuer Beute ohne Lootfenster merken. Der Hook gibt nichts zurueck,
-    -- die Interaktion laeuft also normal weiter.
+    -- Remember the source for loot without a loot window. The hook returns nothing,
+    -- so the interaction continues normally.
     ZO_PreHook(INTERACTIVE_WHEEL_MANAGER, "StartInteraction", OnInteractionStart)
+    -- Excavations
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_DigReady",    EVENT_ANTIQUITY_DIGGING_READY_TO_PLAY, OnDigReady)
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_DigGameOver", EVENT_ANTIQUITY_DIGGING_GAME_OVER,     OnDigGameOver)
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_DigExit",     EVENT_ANTIQUITY_DIGGING_EXIT_RESPONSE, OnDigExit)
 end
 
 EVENT_MANAGER:RegisterForEvent(

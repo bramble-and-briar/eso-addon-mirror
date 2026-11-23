@@ -1,0 +1,34 @@
+<GuiXml>
+  <Controls>
+
+    <TopLevelControl name="VerdantAbout"
+                     tier="HIGH"
+                     hidden="true"
+                     clampedToScreen="true"
+                     movable="true"
+                     mouseEnabled="true">
+      <Dimensions x="340" y="320"/>
+      <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER"/>
+      <Controls>
+
+        <Backdrop name="$(parent)Bg">
+          <AnchorFill/>
+        </Backdrop>
+
+        <Texture name="$(parent)BrandLogo" textureFile="Verdant/assets/logo.dds">
+          <Anchor point="TOPLEFT" offsetX="12" offsetY="8"/>
+          <Dimensions x="24" y="24"/>
+        </Texture>
+
+        <Button name="$(parent)CloseBtn" mouseEnabled="true"
+                inherits="ZO_ButtonBehaviorClickSound">
+          <Anchor point="TOPRIGHT" offsetX="-8" offsetY="6"/>
+          <Dimensions x="22" y="22"/>
+          <OnClicked>Verdant.Window.About.hide()</OnClicked>
+        </Button>
+
+      </Controls>
+    </TopLevelControl>
+
+  </Controls>
+</GuiXml>

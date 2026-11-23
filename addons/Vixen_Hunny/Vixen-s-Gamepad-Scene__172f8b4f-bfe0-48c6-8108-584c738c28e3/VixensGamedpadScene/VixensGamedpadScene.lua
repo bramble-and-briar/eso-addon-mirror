@@ -28,7 +28,7 @@ VGS.defaults = {
     theme = "hearts",    -- a theme id from Themes.lua, or "class"
     allScenes = true,    -- also theme backgrounds found on other gamepad scenes
     keybindStrip = true, -- theme the button bar along the bottom
-    style = "auto",      -- Pink Hearts only: "auto", "textures" or "shapes"
+    style = "shapes",    -- "shapes" (pixel art) or "textures" (images)
     washAlpha = 0.55,
     heartsAlpha = 0.6,
     heartScale = 1.0,
@@ -38,23 +38,47 @@ VGS.defaults = {
     cornerAlpha = 0.35,
     showDivider = true,
     showRibbon = true,
-    tint = { r = 1, g = 1, b = 1 },
+    -- Stored as hex text like Bloom HPS's colors: a { r, g, b } table didn't
+    -- persist on this client, hex strings do.
+    tintHex = "FFFFFF",
 }
+
+-- Tint helpers ---------------------------------------------------------------
+local function Clamp255(v)
+    return math.max(0, math.min(255, math.floor((tonumber(v) or 1) * 255 + 0.5)))
+end
+
+function VGS.RGBToHex(r, g, b)
+    return string.format("%02X%02X%02X", Clamp255(r), Clamp255(g), Clamp255(b))
+end
+
+function VGS.HexToRGB(hex)
+    hex = type(hex) == "string" and hex:match("^#?(%x%x%x%x%x%x)$")
+    if not hex then return 1, 1, 1 end
+    return tonumber(hex:sub(1, 2), 16) / 255,
+           tonumber(hex:sub(3, 4), 16) / 255,
+           tonumber(hex:sub(5, 6), 16) / 255
+end
+
+-- The current tint as { r, g, b } (0-1), read from the saved hex text.
+function VGS.GetTint()
+    local r, g, b = VGS.HexToRGB(VGS.sv and VGS.sv.tintHex)
+    return { r = r, g = g, b = b }
+end
 
 VGS.skins = {}      -- one entry per skinned background control
 VGS.skinnedBy = {}  -- control -> skin
 VGS.errors = {}
-VGS.texturesFailed = false
 
 local TEX = "VixensGamedpadScene/textures/"
 local TILE_SIZE = 256          -- tile.dds is 256x256
 local DIVIDER_TEX_HEIGHT = 256 -- divider.dds is 32x256
-local TEXTURE_GRACE = 1.5      -- seconds visible before "auto" gives up on textures
 
 local HEART_COUNT = 14      -- floating particles on a full menu panel
 local DIVIDER_SPRITES = 6   -- little emblems along the side divider
 local QUADRANT_LEVEL = 1001 -- draw level on the shared menu panels
 local CORNER_SIZE = 180     -- approx. pixel size of the corner emblem
+local WASH_BANDS = 16       -- horizontal bands making up the background wash
 
 -- Extra panels found by scanning scenes
 local MIN_PANEL_W, MIN_PANEL_H = 250, 200
@@ -178,9 +202,21 @@ end
 -------------------------------------------------------------------------------
 -- Image style (.dds art per theme, in textures/<theme id>/)
 -------------------------------------------------------------------------------
+-- Images only when the player picks them. There's no automatic detection:
+-- on console the game can report add-on images as loaded while drawing them
+-- as flat blocks of the tint color, so "try images, fall back to pixel art"
+-- left the theme stuck as a flat sheet that looked like max opacity.
+--
+-- On console it's always pixel art: add-on images only ever draw as flat
+-- blocks there, and the settings menu (LibGamepad) fires stale writes when it
+-- closes, which could flip the style to images and leave a flat sheet.
+local function IsConsole()
+    return type(IsConsoleUI) == "function" and IsConsoleUI()
+end
+
 function VGS.UseTextures()
-    local style = VGS.sv.style
-    return style == "textures" or (style ~= "shapes" and not VGS.texturesFailed)
+    if IsConsole() then return false end
+    return VGS.sv.style == "textures"
 end
 
 -- Textures are assigned per theme in ApplyTextureSkin.
@@ -211,7 +247,6 @@ local function BuildTextureSkin(skin, bg, base)
     ts.ribbon:SetAnchor(TOPLEFT, bg, TOPLEFT, 10, 4)
     ts.ribbon:SetAnchor(TOPRIGHT, bg, TOPRIGHT, -10, 4)
 
-    local lastUpdate, visibleSince = 0, 0
     ts.hearts:SetHandler("OnUpdate", function(self)
         local sv = VGS.sv
         local now = GetFrameTimeSeconds()
@@ -225,18 +260,6 @@ local function BuildTextureSkin(skin, bg, base)
         if dh > 0 then
             ts.divider:SetTextureCoords(0, 1, 0, dh / DIVIDER_TEX_HEIGHT)
         end
-
-        -- "auto": if the art still hasn't loaded after being on screen for a
-        -- moment, this client can't load add-on images; switch to blocks.
-        if now - lastUpdate > 0.5 then visibleSince = now end
-        lastUpdate = now
-        if sv.style == "auto" and not VGS.texturesFailed
-            and now - math.max(visibleSince, ts.loadStart or 0) > TEXTURE_GRACE
-            and not ts.wash:IsTextureLoaded() then
-            VGS.texturesFailed = true
-            d("[Vixen's Gamepad Scene] Theme images didn't load, switched to pixel art.")
-            VGS.ApplyAll()
-        end
     end)
 
     skin.tex = ts
@@ -244,7 +267,7 @@ end
 
 local function ApplyTextureSkin(skin, show)
     local sv, ts, opts = VGS.sv, skin.tex, skin.opts
-    local t = sv.tint
+    local t = VGS.GetTint()
     ts.root:SetHidden(not show)
     if not show then return end
 
@@ -257,7 +280,6 @@ local function ApplyTextureSkin(skin, show)
         ts.divider:SetTexture(dir .. "divider.dds")
         ts.ribbon:SetTexture(dir .. "ribbon.dds")
         ts.themeId = theme.id
-        ts.loadStart = GetFrameTimeSeconds() -- give the new images time to load
     end
 
     ts.wash:SetHidden(sv.washAlpha <= 0)
@@ -275,6 +297,20 @@ end
 -------------------------------------------------------------------------------
 -- Block style: gradient wash, lines and pixel sprites for any theme
 -------------------------------------------------------------------------------
+-- Stack the wash bands over the panel's height (redone when the height changes).
+local function LayoutWashBands(skin)
+    local _, h = skin.bg:GetDimensions()
+    if not h or h <= 0 or h == skin.washHeight then return end
+    skin.washHeight = h
+    for i, band in ipairs(skin.washBands) do
+        local top = math.floor((i - 1) * h / WASH_BANDS)
+        local bottom = math.floor(i * h / WASH_BANDS)
+        band:ClearAnchors()
+        band:SetAnchor(TOPLEFT, skin.bg, TOPLEFT, 0, top)
+        band:SetAnchor(BOTTOMRIGHT, skin.bg, TOPRIGHT, 0, bottom)
+    end
+end
+
 local function BuildBlockSkin(skin, bg)
     local base = skin.opts.level
     skin.sets = {} -- theme id -> sprites for that theme, built on first use
@@ -283,8 +319,13 @@ local function BuildBlockSkin(skin, bg)
     skin.root = NewContainer(bg)
     skin.root:SetAnchorFill(bg)
 
-    skin.wash = NewBlock(skin.root, base)
-    skin.wash:SetAnchorFill(bg)
+    -- Background wash: a top-to-bottom fade built from plain colored bands.
+    -- (Not SetGradientColors: on console its per-corner opacity was ignored and
+    -- the wash drew at full strength whatever the opacity setting.)
+    skin.washBands = {}
+    for i = 1, WASH_BANDS do
+        skin.washBands[i] = NewBlock(skin.root, base)
+    end
 
     skin.particleLayer = NewContainer(skin.root)
     skin.particleLayer:SetAnchorFill(bg)
@@ -323,6 +364,7 @@ local function BuildBlockSkin(skin, bg)
     -- Particle motion and size-dependent positions. OnUpdate only fires
     -- while the panel is visible.
     skin.particleLayer:SetHandler("OnUpdate", function()
+        LayoutWashBands(skin)
         local set = skin.activeSet
         if not set then return end
         local sv = VGS.sv
@@ -425,13 +467,18 @@ local function ApplyBlockSkin(skin, show)
     end
     skin.activeSet = set
 
-    local t = sv.tint
+    local t = VGS.GetTint()
     local top, bottom = theme.wash[1], theme.wash[2]
-    skin.wash:SetHidden(sv.washAlpha <= 0)
-    skin.wash:SetColor(1, 1, 1, 1)
-    skin.wash:SetGradientColors(ORIENTATION_VERTICAL,
-        top[1] * t.r, top[2] * t.g, top[3] * t.b, sv.washAlpha,
-        bottom[1] * t.r, bottom[2] * t.g, bottom[3] * t.b, sv.washAlpha)
+    LayoutWashBands(skin)
+    for i, band in ipairs(skin.washBands) do
+        local f = (i - 0.5) / WASH_BANDS -- 0 at the top, 1 at the bottom
+        band:SetHidden(sv.washAlpha <= 0)
+        band:SetColor(
+            (top[1] + (bottom[1] - top[1]) * f) * t.r,
+            (top[2] + (bottom[2] - top[2]) * f) * t.g,
+            (top[3] + (bottom[3] - top[3]) * f) * t.b,
+            sv.washAlpha)
+    end
 
     for _, p in ipairs(set.particles) do
         p.sprite.control:SetHidden(sv.heartsAlpha <= 0)
@@ -459,10 +506,9 @@ local function ApplyBlockSkin(skin, show)
 
     if opts.ribbon then
         skin.ribbon:SetHidden(not sv.showRibbon)
-        skin.ribbonLeft:SetColor(1, 1, 1, 1)
-        skin.ribbonLeft:SetGradientColors(ORIENTATION_HORIZONTAL, lr, lg, lb, 0, lr, lg, lb, 0.9)
-        skin.ribbonRight:SetColor(1, 1, 1, 1)
-        skin.ribbonRight:SetGradientColors(ORIENTATION_HORIZONTAL, lr, lg, lb, 0.9, lr, lg, lb, 0)
+        -- plain colored lines (gradients aren't reliable on console)
+        skin.ribbonLeft:SetColor(lr, lg, lb, 0.7)
+        skin.ribbonRight:SetColor(lr, lg, lb, 0.7)
         set.ribbonSprite.control:SetHidden(not sv.showRibbon)
         LayoutSprite(set.ribbonSprite, 1)
         ColorSprite(set.ribbonSprite, t, 1)
@@ -500,7 +546,35 @@ function VGS.ApplySkin(skin)
     ApplyBlockSkin(skin, on and not useTextures)
 end
 
+-- Settings menus can hand values over as text: LibGamepad (which shows LAM2
+-- menus as native gamepad options) passes sliders as formatted strings such as
+-- "0.35". Put every saved value back to the type of its default, so numbers
+-- are numbers and checkboxes are true/false, and repair values already
+-- stored as text.
+function VGS.SanitizeSettings()
+    local sv, def = VGS.sv, VGS.defaults
+    if not sv then return end
+    for key, default in pairs(def) do
+        local value = sv[key]
+        local kind = type(default)
+        if kind == "number" and type(value) ~= "number" then
+            sv[key] = tonumber(value) or default
+        elseif kind == "boolean" and type(value) ~= "boolean" then
+            if value == "true" or value == 1 or value == "1" then
+                sv[key] = true
+            elseif value == "false" or value == 0 or value == "0" then
+                sv[key] = false
+            else
+                sv[key] = default
+            end
+        elseif kind == "string" and type(value) ~= "string" then
+            sv[key] = value ~= nil and tostring(value) or default
+        end
+    end
+end
+
 function VGS.ApplyAll()
+    VGS.SanitizeSettings()
     for _, skin in ipairs(VGS.skins) do
         VGS.ApplySkin(skin)
     end
@@ -731,37 +805,68 @@ end
 SLASH_COMMANDS["/vgsscan"] = VGS.ScanCurrentScene
 
 -------------------------------------------------------------------------------
+-- Settings write log (/vgslog): records the last changes to settings and
+-- whether they were saved or blocked, to track down anything that overwrites
+-- them.
+-------------------------------------------------------------------------------
+VGS.writeLog = {}
+local WRITE_LOG_SIZE = 15
+
+function VGS.LogWrite(key, value, result)
+    local log = VGS.writeLog
+    log[#log + 1] = string.format("%.1fs  %s = %s  (%s)",
+        GetFrameTimeSeconds(), tostring(key), tostring(value), tostring(result))
+    if #log > WRITE_LOG_SIZE then table.remove(log, 1) end
+end
+
+function VGS.ShowWriteLog()
+    local sv = VGS.sv
+    local t = VGS.GetTint()
+    d(string.format("[VGS] current: theme %s, style %s, tint %s (%.2f/%.2f/%.2f), enabled %s",
+        tostring(sv.theme), tostring(sv.style), tostring(sv.tintHex), t.r, t.g, t.b, tostring(sv.enabled)))
+    d(string.format("[VGS] wash %s, particles %s, corner %s, size %s, speed %s, saved data loaded %s time(s)",
+        tostring(sv.washAlpha), tostring(sv.heartsAlpha), tostring(sv.cornerAlpha),
+        tostring(sv.heartScale), tostring(sv.floatSpeed), tostring(sv.loadCount)))
+    if #VGS.writeLog == 0 then
+        d("[VGS] no setting changes this session")
+    end
+    for _, line in ipairs(VGS.writeLog) do
+        d("[VGS] " .. line)
+    end
+end
+
+SLASH_COMMANDS["/vgslog"] = VGS.ShowWriteLog
+
+-------------------------------------------------------------------------------
 -- Saving
 -------------------------------------------------------------------------------
--- The game normally writes saved variables only at logout / reload, and on
--- clients that keep them server-side (console) changes can be lost before
--- that. After a settings change, ask the game to save this add-on's data
--- right away. Rapid changes (e.g. dragging a slider) are batched into one
--- save, and saves are spaced out so the client doesn't throttle them.
-local SAVE_DELAY_MS = 2000     -- wait for changes to settle
-local SAVE_MIN_GAP_MS = 10000  -- at most one save request per 10 seconds
-local SAVE_UPDATE_NAME = "VixensGamedpadScene_Save"
-local lastSaveRequest = nil
-
+-- Saved variables are written by the game itself, like add-ons whose settings
+-- persist on this client (e.g. Bloom HPS). On this client that write doesn't
+-- seem to happen on every /reloadui: values set late in a session came back
+-- as older ones. VGS.SaveNow (Save now button, /vgssave) asks the game to
+-- write this add-on's data immediately so we can test whether that keeps the
+-- latest values. (An earlier automatic version was tested only while the
+-- saved-data name didn't match the folder, so it proved nothing either way.)
 function VGS.RequestSave()
-    EVENT_MANAGER:UnregisterForUpdate(SAVE_UPDATE_NAME)
-    local now = GetGameTimeMilliseconds()
-    local delay = SAVE_DELAY_MS
-    if lastSaveRequest then
-        delay = math.max(delay, lastSaveRequest + SAVE_MIN_GAP_MS - now)
-    end
-    EVENT_MANAGER:RegisterForUpdate(SAVE_UPDATE_NAME, delay, function()
-        EVENT_MANAGER:UnregisterForUpdate(SAVE_UPDATE_NAME)
-        lastSaveRequest = GetGameTimeMilliseconds()
-        local manager = GetAddOnManager and GetAddOnManager()
-        if manager and manager.RequestAddOnSavedVariablesPrioritySave then
-            local ok, err = pcall(manager.RequestAddOnSavedVariablesPrioritySave, manager, VGS.name)
-            if not ok then
-                VGS.errors[#VGS.errors + 1] = "save: " .. tostring(err)
-            end
-        end
-    end)
 end
+
+function VGS.SaveNow()
+    local manager = GetAddOnManager and GetAddOnManager()
+    if not (manager and manager.RequestAddOnSavedVariablesPrioritySave) then
+        d("[Vixen's Gamepad Scene] This client has no save-now request.")
+        return
+    end
+    local ok, err = pcall(manager.RequestAddOnSavedVariablesPrioritySave, manager, VGS.name)
+    if ok then
+        VGS.LogWrite("save now", "requested", "ok")
+        d("[Vixen's Gamepad Scene] Asked the game to save your settings now.")
+    else
+        VGS.LogWrite("save now", tostring(err), "failed")
+        d("[Vixen's Gamepad Scene] Save request failed: " .. tostring(err))
+    end
+end
+
+SLASH_COMMANDS["/vgssave"] = VGS.SaveNow
 
 -------------------------------------------------------------------------------
 -- Status
@@ -778,8 +883,8 @@ function VGS.GetStatus()
     if VGS.sv then
         local theme = VGS.GetTheme()
         local style = VGS.UseTextures() and "images" or "pixel art"
-        if VGS.texturesFailed then style = style .. ", images failed to load" end
         text = text .. " | Theme: " .. theme.name .. " (" .. style .. ")"
+        text = text .. " | Saved data loaded " .. tostring(VGS.sv.loadCount or 0) .. " time(s)"
     end
     if #VGS.errors > 0 then
         text = text .. " | Errors: " .. table.concat(VGS.errors, "; ")
@@ -801,7 +906,30 @@ local function OnAddOnLoaded(_, addonName)
     if addonName ~= VGS.name then return end
     EVENT_MANAGER:UnregisterForEvent(VGS.name, EVENT_ADD_ON_LOADED)
 
-    VGS.sv = ZO_SavedVars:NewAccountWide("VixensGamepadScene_SV", 1, nil, VGS.defaults)
+    -- The saved-data name starts with the add-on's folder name
+    -- ("VixensGamedpadScene", spelling included), like other add-ons whose
+    -- settings persist on this client. The old name ("VixensGamepadScene_SV")
+    -- didn't match the folder and its data was never kept.
+    VGS.sv = ZO_SavedVars:NewAccountWide("VixensGamedpadScene_SV", 1, nil, VGS.defaults)
+
+    -- Persistence check: counts loads. If this stays at 1 after relogging,
+    -- the game isn't keeping this add-on's saved data at all.
+    VGS.sv.loadCount = (VGS.sv.loadCount or 0) + 1
+
+    -- One-time move of an old { r, g, b } tint table to hex text.
+    if type(VGS.sv.tint) == "table" then
+        local t = VGS.sv.tint
+        VGS.sv.tintHex = VGS.RGBToHex(t.r, t.g, t.b)
+        VGS.sv.tint = nil
+    end
+    -- Repair values stored as text by earlier versions, before anything is drawn.
+    VGS.SanitizeSettings()
+
+    -- "auto" (try images, fall back to pixel art) is gone: move it, and
+    -- anything unknown, to pixel art.
+    if VGS.sv.style ~= "textures" then
+        VGS.sv.style = "shapes"
+    end
 
     VGS.SkinBackgrounds()
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", OnSceneStateChanged)

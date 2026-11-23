@@ -22,7 +22,7 @@
     "FurysGuildToolset"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5063/",
-  "fingerprint": "c107e5100200c71210b475f76be793ed290c9c30c709cb417d5df1142ef99ecd",
+  "fingerprint": "706b135fed9c588bd1952e1ac6a1498489725f3067200b90c282095f1c101abf",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18529.png",
     "https://cdn-eso.mmoui.com/preview/pvw18530.png",
@@ -40,11 +40,11 @@
   "source_id": "5063",
   "source_url": "https://www.esoui.com/downloads/info5063-FurysGuildManagementToolset.html",
   "stats": {
-    "downloads": 23,
+    "downloads": 39,
     "favorites": 2,
-    "monthly_downloads": 17
+    "monthly_downloads": 39
   },
   "title": "Fury's Guild Management Toolset",
-  "updated_at": 1795244965000,
-  "version": "1.2.5"
+  "updated_at": 1795414343000,
+  "version": "1.16.11"
 }

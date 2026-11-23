@@ -23,7 +23,6 @@ local MOVE_SPEED    = 500
 local SCALE_SPEED   = 15
 local SIZE_MIN      = 30
 local SIZE_MAX      = 80
-local MOVE_SCENE    = "MyExtras_ActionBarMove"
 local HIDE_REASON   = "MyExtras_ActionBar"
 
 local RESOURCE_OFFSET_GAMEPAD  = -105
@@ -1734,151 +1733,54 @@ end
 --------------------------------------------------
 -- Move
 --------------------------------------------------
-AB.mover = {}
-
-function AB.mover:UpdateDirectionalInput(deltaS)
-    local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK)
-    if x ~= 0 or y ~= 0 then
-        AB:Nudge(x * MOVE_SPEED * deltaS, -y * MOVE_SPEED * deltaS)
-    end
-    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(stretchX) > math.abs(scaleY) then
-        AB:SetStretch(AB.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
-    elseif scaleY ~= 0 then
-        AB:SetScale(AB.moveSize + scaleY * SCALE_SPEED * deltaS)
-    end
-end
-
-AB.moveKeybinds = {
-    alignment = KEYBIND_STRIP_ALIGN_CENTER,
-    {
-        name     = "Save",
-        keybind  = "UI_SHORTCUT_PRIMARY",
-        callback = function() AB:EndMove(true) end,
-    },
-    {
-        name     = "Default",
-        keybind  = "UI_SHORTCUT_TERTIARY",
-        callback = function() AB:MoveToDefault() end,
-    },
-    {
-        name     = "Cancel",
-        keybind  = "UI_SHORTCUT_NEGATIVE",
-        callback = function() AB:EndMove(false) end,
-    },
-}
-
-function AB:SetPosition(x, y)
-    local screenW, screenH = GuiRoot:GetDimensions()
-    self.moveX = zo_clamp(x, 0, screenW)
-    self.moveY = zo_clamp(y, 0, screenH)
-    local sv = SV()
-    sv.actionBarPosX = zo_floor(self.moveX + 0.5)
-    sv.actionBarPosY = zo_floor(self.moveY + 0.5)
-    self:ApplyPosition()
-end
-
-function AB:Nudge(dx, dy)
-    self:SetPosition(self.moveX + dx, self.moveY + dy)
-end
-
-function AB:SetScale(size)
-    self.moveSize = zo_clamp(size, SIZE_MIN, SIZE_MAX)
-    local rounded = zo_floor(self.moveSize + 0.5)
-    local sv = SV()
-    if sv.actionBarSize ~= rounded then
-        sv.actionBarSize = rounded
-        self:Layout()
-    end
-end
-
-function AB:SetStretch(value)
-    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
-    local rounded = zo_floor(self.moveStretch + 0.5)
-    local sv = SV()
-    if sv.actionBarStretch ~= rounded then
-        sv.actionBarStretch = rounded
-        self:ApplyStretch()
-    end
-end
-
-function AB:MoveToDefault()
-    self:SetStretch(100)
-    self:SetScale(self.defaults.actionBarSize)
-    self:SetPosition(self.defaults.actionBarPosX, self.defaults.actionBarPosY)
-end
-
-function AB:GetMoveScene()
-    if self.moveScene then return self.moveScene end
-    local scene = ZO_Scene:New(MOVE_SCENE, SCENE_MANAGER)
-    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_NO_KEYBIND_BACKGROUND_WINDOW)
-    ME:AddPlacementFragments(scene)
-    scene:RegisterCallback("StateChange", function(oldState, newState)
-        if newState == SCENE_SHOWING then
-            AB:OnMoveShowing()
-        elseif newState == SCENE_HIDDEN then
-            AB:OnMoveHidden()
-        end
-    end)
-    self.moveScene = scene
-    return scene
-end
-
 function AB:StartMove()
     if not IsEnabled() or self.moving then return end
     self.movePreview = self.preview
-    self.moveSaved = false
     self.moving = true
-    self:GetMoveScene()
-    SCENE_MANAGER:Push(MOVE_SCENE)
-end
-
-function AB:OnMoveShowing()
-    local sv = SV()
-    self.moving = true
-    ME:RaiseWhilePlacing({ self.panel, self.miniPanel, self.arrowPanel }, true)
-    self.moveStartX = sv.actionBarPosX
-    self.moveStartY = sv.actionBarPosY
-    self.moveX = sv.actionBarPosX
-    self.moveY = sv.actionBarPosY
-    self.moveStartSize = sv.actionBarSize
-    self.moveSize = sv.actionBarSize
-    self.moveStartStretch = sv.actionBarStretch or 100
-    self.moveStretch = self.moveStartStretch
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
-    DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
-    self:RefreshIcons()
-    ME:SetPlacing(true)
-end
-
-function AB:OnMoveHidden()
-    DIRECTIONAL_INPUT:Deactivate(self.mover)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
-    if not self.moveSaved then
-        self:SetScale(self.moveStartSize)
-        self:SetStretch(self.moveStartStretch)
-        self:SetPosition(self.moveStartX, self.moveStartY)
-    end
-    self.moving = false
-    ME:RaiseWhilePlacing({ self.panel, self.miniPanel, self.arrowPanel }, false)
-    ME:SetPlacing(false)
-    if self.movePreview then
-        self.movePreview = false
-        self:SetPreview(true)
-    else
-        self:UpdateVisibility()
-    end
-end
-
-function AB:EndMove(save)
-    if not self.moving then return end
-    self.moveSaved = save == true
-    if save then
-        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
-    else
-        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
-    end
-    SCENE_MANAGER:HideCurrentScene()
+    local started = LibUser562:StartMove({
+        controls     = { self.panel, self.miniPanel, self.arrowPanel },
+        inputControl = self.panel,
+        moveSpeed    = MOVE_SPEED,
+        scaleSpeed   = SCALE_SPEED,
+        sizeMin      = SIZE_MIN,
+        sizeMax      = SIZE_MAX,
+        defaults     = {
+            x    = self.defaults.actionBarPosX,
+            y    = self.defaults.actionBarPosY,
+            size = self.defaults.actionBarSize,
+        },
+        getPosition = function() return SV().actionBarPosX, SV().actionBarPosY end,
+        setPosition = function(x, y)
+            local sv = SV()
+            sv.actionBarPosX, sv.actionBarPosY = x, y
+            AB:ApplyPosition()
+        end,
+        getSize    = function() return SV().actionBarSize end,
+        setSize    = function(size)
+            SV().actionBarSize = size
+            AB:Layout()
+        end,
+        getStretch = function() return SV().actionBarStretch or 100 end,
+        setStretch = function(percent)
+            SV().actionBarStretch = percent
+            AB:ApplyStretch()
+        end,
+        onShow = function()
+            AB:RefreshIcons()
+            ME:SetPlacing(true)
+        end,
+        onHide = function()
+            AB.moving = false
+            ME:SetPlacing(false)
+            if AB.movePreview then
+                AB.movePreview = false
+                AB:SetPreview(true)
+            else
+                AB:UpdateVisibility()
+            end
+        end,
+    })
+    if not started then self.moving = false end
 end
 
 --------------------------------------------------
@@ -1952,7 +1854,7 @@ function AB:GetOptions()
             name    = "Action Bar",
             icon    = SUBMENU_ICON,
             tooltip = function()
-                return "Turn off any other action bar addon while this is enabled.\n\n" .. SavedTip()
+                return "Shows both of your bars at once. Turn off any other action bar addon while this is on.\n\n" .. SavedTip()
             end,
             options = {
                 {
@@ -1967,14 +1869,7 @@ function AB:GetOptions()
                 {
                     type    = "toggle",
                     name    = "Character Settings",
-                    tooltip = "Off uses the same settings for the whole account. On gives this character its own settings, "
-                           .. "copied from the account settings the first time you turn it on.",
-                    details = function()
-                        if AB:UsesCharacterSettings() then
-                            return "This character has its own settings."
-                        end
-                        return "All your characters share the same settings."
-                    end,
+                    tooltip = MyExtras.CHARACTER_SETTINGS_TIP,
                     getFunc = function() return AB:UsesCharacterSettings() end,
                     setFunc = function(val) AB:SetUseCharacterSettings(val) end,
                 },
@@ -2085,73 +1980,6 @@ function AB:GetOptions()
                                 SV().actionBarBuffs = val
                                 AB:ApplyPosition()
                                 AB:ApplyBuffs()
-                            end,
-                        },
-                    },
-                },
-                {
-                    type     = "submenu",
-                    name     = "Appearance",
-                    disabled = IsOff,
-                    tooltip  = "Colors for your rings, arrow and skill timers.",
-                    options  = {
-                        {
-                            type         = "stylecolor",
-                            name         = ME.RainbowText("Ring / Arrow Color"),
-                            choices      = { "Alliance", "Custom" },
-                            customValue  = "Custom",
-                            default      = defaults.actionBarRingStyle,
-                            colorDefault = { r = 1, g = 1, b = 1 },
-                            disabled     = IsOff,
-                            details      = function()
-                                if SV().actionBarRingStyle == "Custom" then
-                                    return "Rings, the arrow and proc borders use your color."
-                                end
-                                return "Rings, the arrow and proc borders use your alliance color."
-                            end,
-                            getFunc  = function() return SV().actionBarRingStyle end,
-                            setFunc  = function(val)
-                                SV().actionBarRingStyle = val
-                                AB:ApplyColors()
-                            end,
-                            getColor = function()
-                                local c = SV().actionBarRingColor
-                                if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
-                                return 1, 1, 1
-                            end,
-                            setColor = function(r, g, b)
-                                SV().actionBarRingColor = { r = r, g = g, b = b, a = 1 }
-                                AB:ApplyColors()
-                            end,
-                        },
-                        {
-                            type         = "stylecolor",
-                            name         = ME.RainbowText("Skill Number Color"),
-                            choices      = { "Alliance", "Custom" },
-                            customValue  = "Custom",
-                            default      = defaults.actionBarNumStyle,
-                            colorDefault = { r = 1, g = 1, b = 1 },
-                            disabled     = IsOff,
-                            sample       = function() return "18", Font(40), numR, numG, numB end,
-                            details      = function()
-                                if SV().actionBarNumStyle == "Custom" then
-                                    return "Skill timers use your color, then turn orange and red as they run out."
-                                end
-                                return "Skill timers use your alliance color, then turn orange and red as they run out."
-                            end,
-                            getFunc  = function() return SV().actionBarNumStyle end,
-                            setFunc  = function(val)
-                                SV().actionBarNumStyle = val
-                                AB:ApplyColors()
-                            end,
-                            getColor = function()
-                                local c = SV().actionBarNumColor
-                                if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
-                                return 1, 1, 1
-                            end,
-                            setColor = function(r, g, b)
-                                SV().actionBarNumColor = { r = r, g = g, b = b, a = 1 }
-                                AB:ApplyColors()
                             end,
                         },
                     },
@@ -2360,6 +2188,73 @@ function AB:GetOptions()
                             end,
                             setColor = function(r, g, b)
                                 SV().actionBarReadyColor = { r = r, g = g, b = b, a = 1 }
+                                AB:ApplyColors()
+                            end,
+                        },
+                    },
+                },
+                {
+                    type     = "submenu",
+                    name     = "Appearance",
+                    disabled = IsOff,
+                    tooltip  = "Colors for your rings, arrow and skill timers.",
+                    options  = {
+                        {
+                            type         = "stylecolor",
+                            name         = ME.RainbowText("Ring / Arrow Color"),
+                            choices      = { "Alliance", "Custom" },
+                            customValue  = "Custom",
+                            default      = defaults.actionBarRingStyle,
+                            colorDefault = { r = 1, g = 1, b = 1 },
+                            disabled     = IsOff,
+                            details      = function()
+                                if SV().actionBarRingStyle == "Custom" then
+                                    return "Rings, the arrow and proc borders use your color."
+                                end
+                                return "Rings, the arrow and proc borders use your alliance color."
+                            end,
+                            getFunc  = function() return SV().actionBarRingStyle end,
+                            setFunc  = function(val)
+                                SV().actionBarRingStyle = val
+                                AB:ApplyColors()
+                            end,
+                            getColor = function()
+                                local c = SV().actionBarRingColor
+                                if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
+                                return 1, 1, 1
+                            end,
+                            setColor = function(r, g, b)
+                                SV().actionBarRingColor = { r = r, g = g, b = b, a = 1 }
+                                AB:ApplyColors()
+                            end,
+                        },
+                        {
+                            type         = "stylecolor",
+                            name         = ME.RainbowText("Skill Number Color"),
+                            choices      = { "Alliance", "Custom" },
+                            customValue  = "Custom",
+                            default      = defaults.actionBarNumStyle,
+                            colorDefault = { r = 1, g = 1, b = 1 },
+                            disabled     = IsOff,
+                            sample       = function() return "18", Font(40), numR, numG, numB end,
+                            details      = function()
+                                if SV().actionBarNumStyle == "Custom" then
+                                    return "Skill timers use your color, then turn orange and red as they run out."
+                                end
+                                return "Skill timers use your alliance color, then turn orange and red as they run out."
+                            end,
+                            getFunc  = function() return SV().actionBarNumStyle end,
+                            setFunc  = function(val)
+                                SV().actionBarNumStyle = val
+                                AB:ApplyColors()
+                            end,
+                            getColor = function()
+                                local c = SV().actionBarNumColor
+                                if type(c) == "table" then return c.r or 1, c.g or 1, c.b or 1 end
+                                return 1, 1, 1
+                            end,
+                            setColor = function(r, g, b)
+                                SV().actionBarNumColor = { r = r, g = g, b = b, a = 1 }
                                 AB:ApplyColors()
                             end,
                         },

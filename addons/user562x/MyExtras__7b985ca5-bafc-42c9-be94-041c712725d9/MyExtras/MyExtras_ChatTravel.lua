@@ -220,10 +220,8 @@ function CT:GetOptions()
             type          = "submenu",
             name          = "Chat Travel",
             icon          = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_textChat.dds",
-            tooltip       = "Travel to a friend, guild member or group member straight from text chat.\n\n"
-                         .. "Take Me There just shows you where Chat Travel is: text chat. "
-                         .. "You don't need to come back here each time. Open text chat whenever you want to use it.\n\n"
-                         .. ME.SAVED_ACCOUNT_TIP,
+            tooltip       = "Travel to a friend, guild member or group member straight from text chat. "
+                         .. "Take Me There opens it for you.",
             options       = {
                 {
                     type    = "button",

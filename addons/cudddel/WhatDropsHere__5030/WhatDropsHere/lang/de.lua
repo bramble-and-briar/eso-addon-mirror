@@ -1,5 +1,5 @@
 -- lang/de.lua
--- Deutsche Texte (ueberschreiben die englischen aus lang/en.lua)
+-- German strings (override the English ones from lang/en.lua)
 
 local WDH_STRINGS    = WhatDropsHere.L
 local WDH_SLOT_NAMES = WhatDropsHere.SLOT_NAMES
@@ -10,69 +10,69 @@ local function Override(target, source)
 end
 
 Override(WDH_STRINGS, {
-    -- Allgemein
+    -- General
     PREFIX              = "|c66CCFF[WDH]|r ",
     DEBUG_PREFIX        = "|c888888[WDH-Debug]|r ",
 
     -- Debug
     DEBUG_ON            = "|c88FF88[WDH]|r Debug-Modus AN.",
     DEBUG_OFF           = "|c88FF88[WDH]|r Debug-Modus AUS.",
-    -- %s = Quelle, %s = Zone, %s = targetType, %s = AoE-Ziel, %s = AoE-Einstellung, %d = Gold, %s = Art
+    -- %s = source, %s = zone, %s = targetType, %s = AoE target, %s = AoE setting, %d = gold, %s = type
     DEBUG_SESSION       = "%s |cAAAAAA(Zone: %s, targetType=%s, AoE-Ziel=%s, AoE-Einstellung=%s, Gold=%d, Art=%s)|r",
-    -- %s = Item, %d = Anzahl, %s = Kategorie
+    -- %s = item, %d = count, %s = category
     DEBUG_ITEM          = "  %s x%d |cAAAAAA-> %s|r",
-    -- %s = Itemlink, %d = Anzahl
+    -- %s = item link, %d = count
     DEBUG_NO_WINDOW     = "Beute ohne Lootfenster: %s x%d",
     DEBUG_NEW_TARGET    = "Neues Ziel ohne LOOT_CLOSED dazwischen, vorherige Sitzung abgeschlossen.",
-    -- %s = Quelle
+    -- %s = source
     DEBUG_REOPEN        = "%s erneut geöffnet, nur bekannte Reste - nicht erneut gezählt.",
     DEBUG_NO_NAME       = "Plünderung ohne Namen der Quelle verworfen:",
-    -- %s = Aktion, %s = Ziel
+    -- %s = action, %s = target
     DEBUG_INTERACT      = "Interaktion: %s - %s",
-    -- %s = Itemlink, %d = Anzahl, %s = Quelle des offenen Lootfensters
+    -- %s = item link, %d = count, %s = source of the open loot window
     DEBUG_DURING_WINDOW = "Beute während Lootfenster, aber nicht in dessen Liste (nicht gezählt): %s x%d (Fenster: %s)",
     DEBUG_AFTER_WINDOW  = "Beute kurz nach Lootfenster, aber nicht in dessen Liste (nicht gezählt): %s x%d",
     DEBUG_TIMEOUT       = "Kein LOOT_CLOSED nach 5 Sek., Sitzung trotzdem gespeichert.",
     DEBUG_LATE          = "|cFFAA00Lootfenster war schon leer (Auto-Loot war schneller), Beute aus dem Eingang gezählt:|r",
 
-    -- Statistik (/wdh)
-    -- %s = Quelle, %s = Zone, %d = Plünderungen, %d = Gold
+    -- Statistics (/wdh)
+    -- %s = source, %s = zone, %d = loots, %d = gold
     RECORD_HEADER       = "|cFFFFFF%s|r |cAAAAAA(%s)|r - %dx geplündert, %d Gold",
     RECORD_AOE          = " |cFFAA00[Sammelplünderung]|r",
     RECORD_PICKPOCKET   = " |cFFAA00[Taschendiebstahl]|r",
     RECORD_THEFT        = " |cFF6666[Diebstahl]|r",
     RECORD_LOOSE        = "Einzelne Gegenstände",
     DEBUG_LOOSE_IGNORED = "|cFFAA00Herumliegender Gegenstand (%s), nicht gespeichert:|r",
-    -- %s = Name, %d = Anzahl, %d = Treffer, %d = Plünderungen, %s = Qualitäten
+    -- %s = name, %d = count, %d = hits, %d = loots, %s = qualities
     RECORD_LINE         = "  %s: %d gesamt, in %d von %d (%s)",
     RECORD_ITEM         = "      %s: %d gesamt, in %d von %d (%s)",
-    -- %s = Setname, %s = Plätze, %d = Anzahl, %d = Treffer, %d = Plünderungen, %s = Qualitäten
+    -- %s = set name, %s = slots, %d = count, %d = hits, %d = loots, %s = qualities
     RECORD_SET          = "  Set %s [%s]: %d gesamt, in %d von %d (%s)",
     RECORD_NONE         = "|cAAAAAA[WDH]|r Keine Daten gefunden.",
     RECORD_NO_LAST      = "|cAAAAAA[WDH]|r Keine letzte Quelle bekannt. Verwendung: /wdh [Name der Quelle], Übersicht: /wdh_zones",
 
-    -- Zonenliste (/wdh_zone)
+    -- Zone list (/wdh_zone)
     ZONE_HEADER         = "|cFFFFFF[WDH] Quellen in %s:|r",
     ZONE_ENTRY          = "  %s: %dx",
 
-    -- Zonenübersicht (/wdh_zones)
+    -- Zone overview (/wdh_zones)
     ZONES_HEADER        = "|cFFFFFF[WDH] Gespeicherte Daten:|r",
-    -- %s = Zone, %d = Quellen, %d = Plünderungen
+    -- %s = zone, %d = sources, %d = loots
     ZONES_ENTRY         = "  %s: %d Quellen, %d Plünderungen",
 
-    -- Anzeige am Fadenkreuz
-    -- %d = Plünderungen
+    -- Crosshair display
+    -- %d = loots
     HUD_HEADER          = "|cAAAAAA%dx geplündert|r",
-    -- %d = Gold pro Plünderung
+    -- %d = gold per loot
     HUD_GOLD            = "|cAAAAAA · Ø %d Gold|r",
-    -- %s = Name (farbig), %d = Anzahl, %d = Prozent
+    -- %s = name (colored), %d = count, %d = percent
     HUD_ITEM            = "%s  |cAAAAAA%dx · %d %%|r",
-    -- %s = Setname (farbig), %s = Plätze, %d = Anzahl, %d = Prozent
+    -- %s = set name (colored), %s = slots, %d = count, %d = percent
     HUD_SET             = "%s [%s]  |cAAAAAA%dx · %d %%|r",
-    -- %d = Anzahl weiterer Einträge, %s = Name für /wdh
+    -- %d = number of further entries, %s = name for /wdh
     HUD_MORE            = "|cAAAAAA+%d weitere (/wdh %s)|r",
 
-    -- Einstellungen
+    -- Settings
     NAMES_SET           = "|c88FF88[WDH]|r Am Fadenkreuz mit Namen ab: %s",
     NAMES_USAGE         = "|cFFFF00[WDH]|r Verwendung: /wdh_names 0-5 (0 = alles mit Namen, 2 = ab grün, 3 = ab blau)",
     SHOW_SET            = "|c88FF88[WDH]|r Anzeige-Schwelle für alle eingeschalteten Arten von Quellen: %s",
@@ -87,13 +87,18 @@ Override(WDH_STRINGS, {
     RESET_USAGE         = "|cFFFF00[WDH]|r Alle Daten löschen: /wdh_reset ja",
     RESET_DONE          = "|c88FF88[WDH]|r Alle Daten gelöscht.",
 
-    -- Sonstiges
+    -- Misc
     PICKPOCKET_UNKNOWN  = "Unbekanntes Opfer",
+    LEAD_NAME           = "Spur: %s",
+    DIG_SITE            = "Ausgrabungsstätte",
+    DEBUG_DIG_START     = "Ausgrabung: %s (%s)",
+    DEBUG_DIG_FAILED    = "Ausgrabung misslungen (%s), nicht gezählt.",
+    DEBUG_DIG_REWARD    = "  %s: Belohnung der Antiquität, nicht gezählt",
     ZONE_ANYWHERE       = "überall",
     SET_UNKNOWN         = "Set #%d",
 })
 
--- Einstellungsmenü (LibAddonMenu)
+-- Settings menu (LibAddonMenu)
 WDH_STRINGS.MENU_INTRO            = "Merkt sich, was dir jede Beutequelle bisher gegeben hat, und zeigt es am Fadenkreuz an.\n" ..
                                     "|cFFFF88Alle Plünderungen werden immer gespeichert.|r Die Anzeige-Einstellungen bestimmen nur, was am Fadenkreuz erscheint."
 WDH_STRINGS.MENU_HUD_HEADER       = "Anzeige am Fadenkreuz"
@@ -115,11 +120,13 @@ WDH_STRINGS.MENU_OTHER            = "Kleintiere und Sonstiges"
 WDH_STRINGS.MENU_OTHER_TT         = "Mit \"Nehmen\" eingesammelte Kleintiere und Gegenstände ohne Lootfenster."
 WDH_STRINGS.MENU_THEFT            = "Diebstahl"
 WDH_STRINGS.MENU_THEFT_TT         = "Fremde Behälter, Tresore und Gegenstände, die jemandem gehören. Werden getrennt von gleichnamigen freien Behältern gespeichert."
+WDH_STRINGS.MENU_EXCAVATION       = "Ausgrabungsstätten"
+WDH_STRINGS.MENU_EXCAVATION_TT    = "Beifang gelungener Ausgrabungen. Die Antiquität selbst wird nicht gezählt."
 WDH_STRINGS.MENU_DATA_HEADER      = "Datenbank"
 WDH_STRINGS.MENU_DATA_INFO        = "Jede Plünderung wird vollständig gespeichert: jedes Item mit Item-ID und Kategorie. Alle Einstellungen oben betreffen nur die Anzeige und lassen sich jederzeit ändern, auch rückwirkend."
 WDH_STRINGS.MENU_NAME_QUALITY     = "Mit Namen anzeigen ab Qualität"
 WDH_STRINGS.MENU_NAME_QUALITY_TT  = "Darunter erscheinen Items zusammengefasst in ihrer Kategorie (z. B. \"Schmiedematerial\"). Set-Gegenstände, Einrichtung, Stilseiten, Schatzkarten und Spuren immer mit Namen; Trash, Schätze und Ausrüstung ohne Set immer als Kategorie. Vollständige Liste mit /wdh <Name>."
--- %d = Zonen, %d = Quellen, %d = Plünderungen
+-- %d = zones, %d = sources, %d = loots
 WDH_STRINGS.MENU_DATA_SUMMARY     = "Gespeichert: %d Zonen, %d Quellen, %d Plünderungen."
 WDH_STRINGS.MENU_ZONES            = "Zonen im Chat"
 WDH_STRINGS.MENU_ZONES_TT         = "Listet alle Zonen mit gespeicherten Daten im Chat auf (wie /wdh_zones)."
@@ -130,8 +137,8 @@ WDH_STRINGS.MENU_DEV_HEADER       = "Entwicklung"
 WDH_STRINGS.MENU_DEBUG            = "Debug-Ausgabe im Chat"
 WDH_STRINGS.MENU_DEBUG_TT         = "Zeigt jede Plünderung mit Quelle, Art und Kategorien im Chat. Gilt für alle Charaktere."
 
--- Einstellungen je Charakter
--- %s = Name des Charakters
+-- Per-character settings
+-- %s = character name
 WDH_STRINGS.MENU_CHAR_INFO        = "Die Anzeige-Einstellungen gelten nur für |cFFFFFF%s|r. Jeder Charakter hat seine eigenen."
 WDH_STRINGS.MENU_SHOW_OFF         = "Aus"
 WDH_STRINGS.MENU_COPY_HEADER      = "Einstellungen anderer Charaktere"
@@ -142,19 +149,19 @@ WDH_STRINGS.MENU_COPY_NONE        = "(keine anderen Charaktere)"
 WDH_STRINGS.MENU_COPY             = "Übernehmen"
 WDH_STRINGS.MENU_COPY_TT          = "Ersetzt die Anzeige-Einstellungen dieses Charakters durch die des gewählten Charakters."
 WDH_STRINGS.MENU_COPY_WARNING     = "Die Anzeige-Einstellungen dieses Charakters werden überschrieben."
--- %s = Name des Charakters
+-- %s = character name
 WDH_STRINGS.COPY_DONE             = "|c88FF88[WDH]|r Anzeige-Einstellungen von %s übernommen."
 
--- Plätze für Ausrüstung
+-- Gear slots
 Override(WDH_SLOT_NAMES, {
     armor   = "Rüstung",
     weapon  = "Waffe",
     jewelry = "Schmuck",
-    -- Neuer Platz ab API 101052; Name aus dem Spiel, weil die deutsche Bezeichnung noch nicht feststeht
+    -- New slot since API 101052; name from the game, the German term is not settled yet
     trinket = ITEMTYPE_TRINKET and GetString("SI_ITEMTYPE", ITEMTYPE_TRINKET) or "Trinket",
 })
 
--- Anzeigenamen der Kategorien (Schlüssel aus WDH_Categories.lua)
+-- Category display names (keys from WDH_Categories.lua)
 Override(WDH_CAT_NAMES, {
     SET             = "Set-Ausrüstung",
     GEAR_ARMOR      = "Rüstung ohne Set",

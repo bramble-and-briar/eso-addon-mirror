@@ -21,6 +21,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Wayfinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KanashiReinkyatto/Wayfinder__4678) | KanashiReinkyatto | PC / Mac | 1.1 |
 | [Wayshrine Blocker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Infinite_1st/Wayshrine-Blocker__4745) | Infinite_1st | PC / Mac | 1.1 |
 | [Wayshrine Tab Selector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kulturnilpferd/Wayshrine-Tab-Selector__2294) | Kulturnilpferd | PC / Mac | 1.3 |
+| [WayshrineArrow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cudddel/WayshrineArrow__5100) | cudddel | PC / Mac | 0.1.0 |
 | [wd's pings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wdiscute/wd-s-pings__4000) | wdiscute | PC / Mac | 1.23 |
 | [Wealth Evaluator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Wealth-Evaluator__1559) | Rhyono | PC / Mac | 1.53 |
 | [Weapon & Spell Power Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bronson/Weapon-Spell-Power-Tracker__1444) | bronson | PC / Mac | 2.7 |
@@ -64,7 +65,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Who Wants Spaulder?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/Who-Wants-Spaulder__4052) | SkullElf | PC / Mac | 2.1.0 |
 | [Whoison?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/broekman/Whoison__4079) | broekman | PC / Mac | 1.0.0 |
 | [Wide Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagaris/Wide-Tooltips__3785) | Tagaris | PC / Mac | 1.0.1 |
-| [Wifey DPS Positions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Wifey-DPS-Positions__4861) | its_wifey | PC / Mac | 1.7 |
+| [Wifey DPS Positions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Wifey-DPS-Positions__4861) | its_wifey | PC / Mac | 1.8 |
 | [WifeyRytic's Magma Shell Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/WifeyRytic-s-Magma-Shell-Tracker__4821) | its_wifey | PC / Mac | 1.2 |
 | [WIIt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/WIIt__836b1e5f-ac9c-4e14-bb7f-7697ca3d6707) | user562x | Console | — |
 | [Wiki Links](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Wiki-Links__3005) | kawamonkey | PC / Mac | 1.0 |
@@ -95,6 +96,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Writcraft API 100018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/retired_adventurer/Writcraft-API-100018__1603) | retired_adventurer | PC / Mac | 100018 |
 | [WritGrabber](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kendaron/WritGrabber__1179) | kendaron | PC / Mac | 1.0.14 |
 | [WritHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/WritHelper__1610) | Wheels | PC / Mac | 1.0.1 |
+| [WritPrice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer_sa22/WritPrice__20d33141-7896-4ba2-9a65-348314a2ed9c) | Gamer_sa22 | Console | — |
 | [Written Item Quality](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SatinderESO/Written-Item-Quality__4721) | SatinderESO | PC / Mac | 1.0.1 |
 | [WritWorthy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/WritWorthy__1605) | ziggr | PC / Mac | 7.6.3 |
 | [WTBConduits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/WTBConduits__2176) | init3 | PC / Mac | 3.1 |

@@ -1,8 +1,12 @@
 
-
 LeoAltholicSkills2List = ZO_SortFilterList:Subclass()
 function LeoAltholicSkills2List:New(control)
+    local list = ZO_Object.New(self)
+    list:Initialize(control)
+    return list
+end
 
+function LeoAltholicSkills2List:Initialize(control)
     ZO_SortFilterList.InitializeSortFilterList(self, control)
 
     local sorterKeys =
@@ -14,13 +18,11 @@ function LeoAltholicSkills2List:New(control)
     self.masterList = {}
     self.currentSortKey = "queueIndex"
     self.currentSortOrder = ZO_SORT_ORDER_UP
-    ZO_ScrollList_AddDataType(self.list, 1, "LeoAltholicSkills2ListTemplate", 32, function(control, data) self:SetupEntry(control, data) end)
+    ZO_ScrollList_AddDataType(self.list, 1, "LeoAltholicSkills2ListTemplate", 32, function(rowControl, data) self:SetupEntry(rowControl, data) end)
 
     self.sortFunction = function(listEntry1, listEntry2)
         return ZO_TableOrderingFunction(listEntry1.data, listEntry2.data, self.currentSortKey, sorterKeys, self.currentSortOrder)
     end
-
-    return self
 end
 
 function LeoAltholicSkills2List:SetupEntry(control, data)

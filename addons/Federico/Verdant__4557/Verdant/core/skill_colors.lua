@@ -1,8 +1,10 @@
 Verdant = Verdant or {}
+local Verdant = Verdant
 Verdant.SkillColors = {}
 local M = Verdant.SkillColors
 
 local api = Verdant.zenimax.api
+local zc  = Verdant.zenimax.constants
 local GetAbilityName                          = api.GetAbilityName
 local GetAbilityIcon                          = api.GetAbilityIcon
 local GetSpecificSkillAbilityKeysByAbilityId  = api.GetSpecificSkillAbilityKeysByAbilityId
@@ -27,11 +29,28 @@ local GROUP_COLORS = {
   werewolf    = { r = 0.60, g = 0.28, b = 0.18, a = 0.95 },  -- blood-moon russet (World, sibling of vampire)
   psijic      = { r = 0.86, g = 0.80, b = 0.52, a = 0.95 },  -- astral gold (Psijic Order)
   mages_guild = { r = 0.10, g = 0.45, b = 0.65, a = 0.95 },  -- celeste oscuro
+  weapons     = { r = 0.07, g = 0.70, b = 0.07, a = 0.95 },
+  champion    = { r = 0.90, g = 0.27, b = 0.46, a = 0.95 },
   item        = { r = 0.95, g = 0.20, b = 0.80, a = 0.95 },  -- magenta
   companion   = { r = 0.30, g = 0.85, b = 0.75, a = 0.95 },  -- teal
+  synergy     = { r = 0.80, g = 0.60, b = 1.00, a = 0.95 },
   other       = { r = 0.55, g = 0.55, b = 0.55, a = 0.80 },  -- unknown (grey)
 }
 
+
+local ORIGINS, LAST = {}, {}
+do
+  local data = Verdant.AbilityOrigins
+  local function take(into, part)
+    for group, ids in pairs(part or {}) do
+      if GROUP_COLORS[group] then
+        for i = 1, #ids do into[ids[i]] = group end
+      end
+    end
+  end
+  take(ORIGINS, data and data.groups)
+  take(LAST, data and data.last)
+end
 
 local GROUP_LABELS = {
   templar        = "Templar",
@@ -50,18 +69,21 @@ local GROUP_LABELS = {
   psijic         = "Psijic Order",
   vampire        = "Vampire",
   werewolf       = "Werewolf",
+  weapons        = "Weapons",
+  champion       = "Champion Points",
   item           = "Item Set / Enchant",
   companion      = "Companion",
+  synergy        = "Synergies",
   other          = "Unknown (grey)",
 }
 
 
 local GROUP_ORDER = {
   "templar", "dk", "sorc", "nb", "warden", "necro", "arcanist",
-  "destru", "resto",
+  "destru", "resto", "weapons",
   "mages_guild", "undaunted", "support", "scribing", "psijic",
   "vampire", "werewolf",
-  "item", "companion",
+  "champion", "item", "companion", "synergy",
   "other",
 }
 
@@ -121,35 +143,21 @@ local SKILL_LINE_TO_GROUP = {
   -- World
   [51]  = "vampire",
   [50]  = "werewolf",
+  [351] = "dk",       [352] = "arcanist", [353] = "necro",
+  [354] = "warden",   [355] = "templar",  [356] = "nb",
+  [357] = "sorc",
 }
 
 
 local ABILITY_OVERRIDES = {
-  -- example: [29483] = "resto",
-  [186191] = "arcanist",
-  [186243] = "arcanist",
-  [186265] = "arcanist",
-  [186267] = "arcanist",
-  [186203] = "arcanist",
-  [61506]  = "support",
-  [33524]  = "templar",
-  [217608] = "scribing",
-  [22228]  = "templar",
   [44013]  = "resto",
-  [45518]  = "undaunted",
   [176922] = "item",
   [217469] = "scribing",
-  [69773]  = "destru",
-  [26824] =  "templar",
-  [44391] =  "templar",
-  [55677] =  "undaunted",
-  [63511] =  "undaunted",
-  [184634] =  "item",
-  [218784] =  "resto",
-  [172055] =  "item",
-  [218786] =  "resto",
-  [218787] =  "resto",
-
+  [184634] = "item",
+  [218784] = "resto",
+  [172055] = "item",
+  [218786] = "resto",
+  [218787] = "resto",
 }
 
 
@@ -176,8 +184,15 @@ local function classify_by_skill_tree_api(abilityId)
   local skillType, lineIndex = GetSpecificSkillAbilityKeysByAbilityId(abilityId)
   if not skillType or skillType <= 0 then return nil end
   local skillLineId = GetSkillLineId(skillType, lineIndex)
-  if not skillLineId then return nil end
-  return SKILL_LINE_TO_GROUP[skillLineId]
+  local g = skillLineId and SKILL_LINE_TO_GROUP[skillLineId]
+  if g then return g end
+  if skillType == zc.SKILL_TYPE_WEAPON then return "weapons" end
+  return nil
+end
+
+local function classify_by_champion(abilityId)
+  if Verdant.BuffOrigin.champion_of(abilityId) then return "champion" end
+  return nil
 end
 
 local function lookup_group(abilityId, quiet)
@@ -188,6 +203,12 @@ local function lookup_group(abilityId, quiet)
 
 
   g = USER_OVERRIDES[abilityId]
+  if g then
+    ability_cache[abilityId] = g
+    return g
+  end
+
+  g = ORIGINS[abilityId]
   if g then
     ability_cache[abilityId] = g
     return g
@@ -209,6 +230,18 @@ local function lookup_group(abilityId, quiet)
 
 
   g = classify_by_skill_tree_api(abilityId)
+  if g then
+    ability_cache[abilityId] = g
+    return g
+  end
+
+  g = classify_by_champion(abilityId)
+  if g then
+    ability_cache[abilityId] = g
+    return g
+  end
+
+  g = LAST[abilityId]
   if g then
     ability_cache[abilityId] = g
     return g
@@ -258,6 +291,22 @@ function M.unknown_lines()
 end
 
 local FALLBACK = GROUP_COLORS.other
+
+function M.user_group(abilityId)
+  return USER_OVERRIDES[abilityId]
+end
+
+function M.layers(abilityId)
+  return USER_OVERRIDES[abilityId], ABILITY_OVERRIDES[abilityId], classify_by_icon(abilityId),
+    classify_by_skill_tree_api(abilityId), classify_by_champion(abilityId), ORIGINS[abilityId], LAST[abilityId]
+end
+
+function M.override_ids()
+  local out = {}
+  for id in pairs(ABILITY_OVERRIDES) do out[#out + 1] = id end
+  table.sort(out)
+  return out
+end
 
 function M.has_explicit_override(abilityId)
   return USER_OVERRIDES[abilityId] ~= nil or ABILITY_OVERRIDES[abilityId] ~= nil
@@ -387,9 +436,12 @@ function M.group_shares(buf, now_ms, predicate)
   local out = {}
   for g, amt in pairs(buckets) do
     local c = GROUP_COLORS[g] or FALLBACK
-    out[#out + 1] = { r = c.r, g = c.g, b = c.b, a = c.a, share = amt / total }
+    out[#out + 1] = { r = c.r, g = c.g, b = c.b, a = c.a, share = amt / total, key = g }
   end
-  table.sort(out, function(a, b) return a.share > b.share end)
+  table.sort(out, function(a, b)
+    if a.share ~= b.share then return a.share > b.share end
+    return a.key < b.key
+  end)
   return out
 end
 
@@ -434,8 +486,9 @@ function M.group_shares_into(out, buf, now_ms, predicate)
   for i = 2, n do
     local key = out[i]
     local ks  = key.share
+    local kk  = key.key
     local j   = i - 1
-    while j >= 1 and out[j].share < ks do
+    while j >= 1 and (out[j].share < ks or (out[j].share == ks and out[j].key > kk)) do
       out[j + 1] = out[j]
       j = j - 1
     end
@@ -482,8 +535,9 @@ function M.ability_shares_into(out, buf, now_ms, predicate)
   for i = 2, n do
     local key = out[i]
     local ks  = key.share
+    local kid = key.id
     local j   = i - 1
-    while j >= 1 and out[j].share < ks do
+    while j >= 1 and (out[j].share < ks or (out[j].share == ks and out[j].id > kid)) do
       out[j + 1] = out[j]
       j = j - 1
     end
@@ -504,30 +558,14 @@ local BUFF_FAMILY_WORDS = {
   sorcery = "offense", brutality = "offense", prophecy = "offense", savagery = "offense",
   berserk = "offense", force = "offense", slayer = "offense", courage = "offense",
   empower = "offense", mending = "offense",
-  resolve = "defense", ward = "defense", protection = "defense", aegis = "defense",
+  resolve = "defense", protection = "defense", aegis = "defense",
   evasion = "defense", toughness = "defense", vitality = "defense",
   intellect = "sustain", endurance = "sustain", fortitude = "sustain", heroism = "sustain",
   expedition = "mobility", gallop = "mobility",
 }
 
-local family_cache = {}
-
-function M.buff_family(name)
-  if type(name) ~= "string" or name == "" then return nil end
-  local hit = family_cache[name]
-  if hit ~= nil then return hit or nil end
-  local fam = false
-  local lower = name:lower()
-  local tier, word = lower:match("^(m[ai][jn]or)%s+(%a+)")
-  if tier and word then fam = BUFF_FAMILY_WORDS[word] or false end
-  family_cache[name] = fam
-  return fam or nil
-end
-
-function M.buff_family_color(name)
-  local fam = M.buff_family(name)
-  return fam and BUFF_FAMILY_COLORS[fam] or nil
-end
+M.BUFF_FAMILY_WORDS = BUFF_FAMILY_WORDS
+M.buff_family_colors = BUFF_FAMILY_COLORS
 
 function M.ability_icon(id) return GetAbilityIcon(id) or "" end
 function M.ability_name(id) return GetAbilityName(id) or ("#" .. tostring(id)) end

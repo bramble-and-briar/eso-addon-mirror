@@ -24,6 +24,9 @@ local boss_name      = nil
 local auto_active    = false
 local session_auto   = false
 local grace_deadline = nil
+local held           = false
+local in_tick        = false
+local told           = {}
 local hist           = {}
 local hist_n         = 0
 
@@ -43,6 +46,8 @@ local function push_hist(what)
   rec.t = now_ms()
   rec.what = what
 end
+
+local zone_id = nil
 
 local function scan_bosses()
   local api = Verdant.zenimax.api
@@ -83,24 +88,62 @@ local function should_record()
   return false
 end
 
-local function try_start()
-  local TB = Verdant.TemporalBuffer
-  if TB.is_recording() then
-    bump("autorec.blocked_recording")
+local function wants_start()
+  return should_record() and not held
+end
+
+local function tell(name, string_id, err)
+  local E = Verdant.zenimax.events
+  local line = nil
+  if not told[name] then
+    told[name] = true
+    line = string.format(Verdant.zenimax.api.GetString(string_id), E.error_label(name))
+  end
+  E.fail(name, err, line)
+end
+
+local function keep_window_session()
+  if session_auto then return end
+  local SS = Verdant.SessionStore
+  SS.finish_autosave()
+  if not Verdant.Graph.save_available() then return end
+  if SS.save_now() then SS.finish_autosave() end
+  if Verdant.Graph.save_available() then
+    push_hist("could not keep the session in the window")
+    tell("Verdant_AR_Keep", VERDANT_AR_FAIL_KEEP, "the session in the window did not reach the library")
     return
   end
-  if TB.count() > 0 and not session_auto then
-    bump("autorec.blocked_manual_session")
-    push_hist("blocked_manual_session")
-    log:info("auto-start blocked: manual frozen session present")
-    return
-  end
+  bump("autorec.saved_before_start")
+  push_hist("kept the session in the window")
+  log:info("auto-start: the unsaved session in the window went to the library first")
+end
+
+local function start_now()
+  keep_window_session()
   bump("autorec.start")
   push_hist(boss_present and ("start boss=" .. tostring(boss_name)) or "start combat")
   log:info("auto-start", boss_present and boss_name or "combat")
   Verdant.Graph.on_record_click()
   auto_active  = true
   session_auto = true
+end
+
+local function try_start()
+  local TB = Verdant.TemporalBuffer
+  if TB.is_recording() then
+    bump("autorec.blocked_recording")
+    return
+  end
+  local ok, err = pcall(start_now)
+  if not ok then
+    push_hist("start failed")
+    tell("Verdant_AR_Start", VERDANT_AR_FAIL_START, err)
+    return
+  end
+  if in_tick then
+    push_hist("started late")
+    tell("Verdant_AR_Late", VERDANT_AR_FAIL_LATE, "a fight was found by the check of every second")
+  end
 end
 
 local function do_stop(reason)
@@ -114,13 +157,13 @@ end
 
 local function evaluate()
   if mode == MODE_OFF and not auto_stop_on() then return end
-  if should_record() or (in_combat and grace_deadline and not auto_active) then
+  if wants_start() or (in_combat and (auto_active or grace_deadline)) then
     if grace_deadline then
       bump("autorec.grace_cancelled")
       push_hist("grace cancelled")
       grace_deadline = nil
     end
-    if should_record() and not Verdant.TemporalBuffer.is_recording() then
+    if wants_start() and not Verdant.TemporalBuffer.is_recording() then
       try_start()
     end
   else
@@ -132,10 +175,85 @@ local function evaluate()
   end
 end
 
+local function set_combat(on)
+  if on and not in_combat then
+    for k in pairs(told) do told[k] = nil end
+  end
+  in_combat = on
+  if not on and held then
+    held = false
+    push_hist("hold released")
+  end
+end
+
 function M.on_combat_state(inCombat)
-  in_combat = inCombat and true or false
+  set_combat(inCombat and true or false)
   bump(in_combat and "autorec.combat_in" or "autorec.combat_out")
   evaluate()
+end
+
+local boss_ms, boss_slot = {}, {}
+local present, present_n = {}, 0
+local boss_last = nil
+local boss_tags = nil
+
+local function plain_name(raw)
+  if raw:find("^", 1, true) then return (raw:gsub("%^.*$", "")) end
+  return raw
+end
+
+function M.note_bosses()
+  local api = Verdant.zenimax.api
+  if not boss_tags then
+    local zc = Verdant.zenimax.constants
+    boss_tags = {}
+    for i = zc.BOSS_RANK_ITERATION_BEGIN, zc.BOSS_RANK_ITERATION_END do boss_tags[#boss_tags + 1] = "boss" .. i end
+  end
+  local t = now_ms()
+  local dt = boss_last and (t - boss_last) or 0
+  boss_last = t
+  if dt > 0 then
+    for k = 1, present_n do boss_ms[present[k]] = boss_ms[present[k]] + dt end
+  end
+  present_n = 0
+  for i = 1, #boss_tags do
+    local tag = boss_tags[i]
+    if api.DoesUnitExist(tag) then
+      local name = api.GetUnitName(tag)
+      if name and name ~= "" then
+        name = plain_name(name)
+        if not boss_ms[name] then boss_ms[name] = 0 end
+        local s = boss_slot[name]
+        if not s or i < s then boss_slot[name] = i end
+        present_n = present_n + 1
+        present[present_n] = name
+      end
+    end
+  end
+end
+
+function M.on_session_start()
+  for k in pairs(boss_ms) do boss_ms[k] = nil end
+  for k in pairs(boss_slot) do boss_slot[k] = nil end
+  present_n = 0
+  boss_last = nil
+  M.note_bosses()
+end
+
+function M.on_session_stop()
+  M.note_bosses()
+  present_n = 0
+end
+
+function M.session_boss()
+  local best, best_ms, best_slot = nil, 0, 0
+  for name, ms in pairs(boss_ms) do
+    local s = boss_slot[name] or 99
+    if best == nil or ms > best_ms or (ms == best_ms and s < best_slot) then
+      best, best_ms, best_slot = name, ms, s
+    end
+  end
+  return best
 end
 
 function M.on_bosses_changed()
@@ -151,25 +269,69 @@ function M.on_bosses_changed()
   evaluate()
 end
 
+local function current_zone()
+  local api = Verdant.zenimax.api
+  if not api.GetZoneId or not api.GetUnitZoneIndex then return nil end
+  local idx = api.GetUnitZoneIndex("player")
+  if not idx then return nil end
+  local z = api.GetZoneId(idx)
+  if not z or z <= 0 then return nil end
+  return z
+end
+
 function M.on_zone_changed()
+  local z = current_zone()
+  local same = z ~= nil and z == zone_id
+  zone_id = z
+  if same then
+    bump("autorec.same_zone")
+    push_hist("activated in the same zone")
+    if mode == MODE_OFF and not auto_stop_on() then return end
+    set_combat(Verdant.zenimax.api.IsUnitInCombat("player") and true or false)
+    boss_present, boss_name = scan_bosses()
+    evaluate()
+    return
+  end
   if auto_active and Verdant.TemporalBuffer.is_recording() then
     do_stop("zone")
   end
-  in_combat    = false
+  set_combat(false)
   boss_present = false
   boss_name    = nil
   grace_deadline = nil
 end
 
-function tick()
-  if mode == MODE_OFF and not auto_stop_on() then return end
+local function checks()
   local api = Verdant.zenimax.api
   local live = api.IsUnitInCombat("player") and true or false
   if live ~= in_combat then
     bump("autorec.combat_poll_fix")
-    in_combat = live
+    set_combat(live)
     evaluate()
   end
+  if mode == MODE_BOSS then
+    local found, name = scan_bosses()
+    if found ~= boss_present then
+      bump("autorec.boss_poll_fix")
+      push_hist(found and ("boss+ " .. tostring(name) .. " (poll)") or "boss- (poll)")
+      boss_present, boss_name = found, name
+      evaluate()
+    end
+  end
+  if wants_start() and not Verdant.TemporalBuffer.is_recording() then
+    bump("autorec.watchdog")
+    push_hist("watchdog start")
+    log:warn("auto-start: a fight was going on without a recording")
+    try_start()
+  end
+end
+
+function tick()
+  if mode == MODE_OFF and not auto_stop_on() then return end
+  in_tick = true
+  local ok, err = pcall(checks)
+  in_tick = false
+  if not ok then error(err, 0) end
   if grace_deadline and now_ms() >= grace_deadline then
     if stop_wanted() and Verdant.TemporalBuffer.is_recording() then
       do_stop(auto_active and "grace" or "combat_end")
@@ -185,6 +347,14 @@ function M.notify_manual_record()
   grace_deadline = nil
 end
 
+local function hold_for_this_fight(what)
+  if mode ~= MODE_OFF and in_combat and not held then
+    held = true
+    bump("autorec.held")
+    push_hist(what .. ": held until the fight ends")
+  end
+end
+
 function M.notify_manual_stop()
   if auto_active then
     bump("autorec.manual_stop_override")
@@ -192,7 +362,17 @@ function M.notify_manual_stop()
   end
   auto_active    = false
   grace_deadline = nil
+  hold_for_this_fight("manual stop")
 end
+
+function M.notify_discard()
+  if auto_active then push_hist("discarded") end
+  auto_active    = false
+  grace_deadline = nil
+  hold_for_this_fight("discard")
+end
+
+function M.is_held() return held end
 
 function M.is_auto_session() return session_auto end
 function M.is_auto_active()  return auto_active end
@@ -209,6 +389,7 @@ function M.set_mode(m)
   log:info("mode:", mode, "->", m)
   push_hist("mode " .. m)
   mode = m
+  held = false
   if mode == MODE_OFF then
     if auto_active and Verdant.TemporalBuffer.is_recording() then
       do_stop("disabled")
@@ -220,7 +401,7 @@ function M.set_mode(m)
     local found, name = scan_bosses()
     boss_present = found
     boss_name    = name
-    in_combat    = Verdant.zenimax.api.IsUnitInCombat("player") and true or false
+    set_combat(Verdant.zenimax.api.IsUnitInCombat("player") and true or false)
     evaluate()
   end
   local sv = Verdant.SavedVars
@@ -241,7 +422,7 @@ function M.set_auto_stop(on)
   log:info("auto_stop:", on)
   push_hist(on and "auto_stop on" or "auto_stop off")
   if on then
-    in_combat = Verdant.zenimax.api.IsUnitInCombat("player") and true or false
+    set_combat(Verdant.zenimax.api.IsUnitInCombat("player") and true or false)
   end
   sync_tick()
   if on then evaluate() end
@@ -255,7 +436,7 @@ function M.report_lines()
   lines[#lines + 1] = string.format(
     "mode=%s  auto_stop=%s  state=%s  in_combat=%s  boss=%s  grace=%s",
     mode, tostring(auto_stop_on()),
-    auto_active and (grace_deadline and "GRACE" or "RECORDING") or "IDLE",
+    auto_active and (grace_deadline and "GRACE" or "RECORDING") or (held and "HELD" or "IDLE"),
     tostring(in_combat),
     boss_present and tostring(boss_name) or "none",
     grace_deadline and string.format("%.1fs", (grace_deadline - now_ms()) / 1000) or "-")
@@ -273,7 +454,7 @@ function M.snapshot()
     mode = mode, in_combat = in_combat, boss_present = boss_present,
     boss_name = boss_name, auto_active = auto_active,
     session_auto = session_auto, grace_deadline = grace_deadline,
-    transitions = hist_n,
+    held = held, transitions = hist_n,
   }
 end
 
@@ -287,6 +468,7 @@ function M.init()
   end)
   zev.register("Verdant_AR_Bosses", zc.EVENT_BOSSES_CHANGED, M.on_bosses_changed)
   zev.register("Verdant_AR_Zone", zc.EVENT_PLAYER_ACTIVATED, M.on_zone_changed)
+  zone_id = current_zone()
 
   local saved = sv and sv.settings and sv.settings.auto_record or MODE_OFF
   mode = MODE_OFF

@@ -1,7 +1,7 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.11.21",
+	version = "2026.11.23",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
 	tradeTable = {},
@@ -18,8 +18,8 @@ local TP_PLAYER = nil
 local TP_HOUSE = nil
 local HAS_PASSENGER = false
 local PASSENGER_NAME = ""
-local chatMods = false
-local traderMods = false
+local chatHook = false
+local traderHook = false
 local searchDelay = 300
 local chatStamp = nil
 local avpData = {
@@ -46,7 +46,9 @@ local function InAlphaList(name)
 	return false
 end
 --IsCollectibleUnlocked(GetCollectibleIdFromLink(itemLink))--if itemType == ITEMTYPE_COLLECTIBLE
-local function IsKnowledgeUnknown(itemId, itemLink, itemType, specialType)
+local function IsKnowledgeUnknown(itemLink)
+	local itemId = GetItemLinkItemId(itemLink)
+	local itemType, specialType = GetItemLinkItemType(itemLink)
 	if IsItemLinkSetCollectionPiece(itemLink) and not IsItemSetCollectionPieceUnlocked(itemId) then return "|cFB2C36(+)|r" end
 	if LibCharacterKnowledge then
 		if specialType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_STYLE_PAGE and CanItemLinkBeUsedToLearn(itemLink) then return "|cFB2C36(+)|r" end
@@ -56,7 +58,7 @@ local function IsKnowledgeUnknown(itemId, itemLink, itemType, specialType)
 			local charName, charGender, charLevel, charClassID, charRaceID, charAlliance, charID, charLocatonID = GetCharacterInfo(i)
 			for c, character in ipairs(characters) do
 				if (character.id == charID) then
-					if LCK.GetItemKnowledgeForCharacter(itemId, nil, charID) == LCK.KNOWLEDGE_UNKNOWN then return "|cff8000(+)|r" end--C99912
+					if LCK.GetItemKnowledgeForCharacter(itemId, nil, charID) == LCK.KNOWLEDGE_UNKNOWN then return "|cff8000(+)|r" end
 				end
 			end
 		end
@@ -132,7 +134,7 @@ local function HasWritQuest()
 	end
 	return false
 end
---if RD.savedVariables.autoRecharge then zo_callLater(function() BrokenGearCheck() end, 2000) end--<< RUN AUTO RECHARGE IF ENABLED
+--if RD.acctVars.autoRecharge then zo_callLater(function() BrokenGearCheck() end, 2000) end--<< RUN AUTO RECHARGE IF ENABLED
 local function BrokenGearCheck()
 	local equipment = {
 		EQUIP_SLOT_MAIN_HAND,
@@ -266,7 +268,7 @@ local function InZoneWhitelist(value)
 	end
 	return false
 end
---<< /script df(tostring(GetCurrentZoneHouseId()))-- /script df("HouseName --> " .. GetHousingLink(106, RD.author))
+--<< /script df(tostring(GetCurrentZoneHouseId()))-- /script df("HouseName --> " .. GetHousingLink(106, RidinDirty.author))
 local function GetHouseID(value)
 	local playerHouses = {
 	["Mara's Kiss Public House"] = 1,
@@ -392,6 +394,8 @@ local function GetHouseID(value)
 	["Star-Gazer's Vigil"] = 130,
 	["Grotto of Desires"] = 131,
 	["Sheogorad Chateau"] = 132,
+	------
+	["Shimmerfrost Vale"] = 134,
 	}
 	for houseName, houseId in pairs(playerHouses) do
 		if string.find(string.lower(houseName), string.lower(value), 1, true) ~= nil then return houseId end
@@ -412,12 +416,28 @@ local function InLootWhitelist(value)
 	56863,--potent nirncrux
 	68342,--hakeijo
 	166045,--indeko
+	------
 	--204881,--luminous ink
 	--114889,--regulas
 	--114890,--bast
 	--114891,--clean pelt
 	--114893,--alchemical resin
 	--135161,--ochre
+	------
+	141731,--keep recall stone
+	29533,--ald forward camp
+	29534,--pact forward camp
+	29535,--dag forward camp
+	64515,--ald cold fire balista
+	64516,--pact cold fire balista
+	64517,--dag cold fire balista
+	64512,--ald cold fire treb
+	64513,--pact cold fire treb
+	64514,--dag cold fire treb
+	64520,--ald cold stone treb
+	64519,--pact cold stone treb
+	64518,--dag cold stone treb
+	------
 	178470,--Hidden Treasure Bag
 	197790,--Research Portfolio
 	188144,--Fallen Knight's Pack
@@ -463,7 +483,7 @@ local function SettingsPanelCharacterList()
 end
 
 local function SaveBankMemory()
-	ZO_ClearTable(RD.savedVariables["Banked Memory"])
+	ZO_ClearTable(RD.acctVars["Banked Memory"])
 	RD.bankedMemory["version"] = 1
 	for slotIndex = 0, GetBagSize(BAG_BANK) - 1 do
 		itemId = GetItemId(BAG_BANK, slotIndex)
@@ -496,7 +516,7 @@ end
 local function PvPAddonSave()
 	local addOnManager = GetAddOnManager()
 	local numAddOns = addOnManager:GetNumAddOns()
-	ZO_ClearTable(RD.savedVariables["Addon Memory"])
+	ZO_ClearTable(RD.acctVars["Addon Memory"])
 	RD.addonMemory["version"] = 1
 	for addonIndex = 1, numAddOns do
 		local addonName, addonTitle, addonAuthor, addonDescription, isEnabled, addonState, isOutOfDate, isLibrary = addOnManager:GetAddOnInfo(addonIndex)
@@ -524,15 +544,15 @@ local function RDInitializeControls()
     },
     {
 		type = "description",
-		text = ("Saved Player: " .. RD.savedVariables.savedPlayer),
+		text = ("Saved Player: " .. RD.acctVars.savedPlayer),
 		reference = "RIDINDIRTY_SETTINGS_SAVEDPLAYER_TEXT",
 		width = "half",
 	},
 	{
 		type = "checkbox",
 		name = "/tp home (inside = off, outside = on)",
-		getFunc = function() return RD.savedVariables.travelOutside end,
-		setFunc = function(value) RD.savedVariables.travelOutside = (value) end,
+		getFunc = function() return RD.acctVars.travelOutside end,
+		setFunc = function(value) RD.acctVars.travelOutside = (value) end,
 		width = "half",
 	},
 	{
@@ -543,7 +563,7 @@ local function RDInitializeControls()
 				type = "checkbox",
 				name = "Custom Withdrawls",
 				tooltip = "Adds popup withdraw 1 and withdraw (custom amount) from all storages if stack size permits",
-				getFunc = function() return RD.savedVariables.withdrawOne end,
+				getFunc = function() return RD.acctVars.withdrawOne end,
 				setFunc = function(value) RD.WithdrawOneToggle(value) end,
 				width = "half",
 			},
@@ -554,58 +574,58 @@ local function RDInitializeControls()
 				min = 5,
 				max = 50,
 				step = 5,
-				getFunc = function() return RD.savedVariables.withdrawAmount end,
-				setFunc = function(value) RD.savedVariables.withdrawAmount = (value) end,
-				disabled = function() return not RD.savedVariables.withdrawOne end,
+				getFunc = function() return RD.acctVars.withdrawAmount end,
+				setFunc = function(value) RD.acctVars.withdrawAmount = (value) end,
+				disabled = function() return not RD.acctVars.withdrawOne end,
 				width = "half",
 			},
 			{
 				type = "checkbox",
 				name = "Bank Manager",
 				tooltip = "Fills select existing stacks in bank. Does not stack foods, drinks, potions, poisons, soul gems or tools",
-				getFunc = function() return RD.savedVariables.bankManager end,
-				setFunc = function(value) RD.savedVariables.bankManager = (value) end,
+				getFunc = function() return RD.acctVars.bankManager end,
+				setFunc = function(value) RD.acctVars.bankManager = (value) end,
 				warning = "Temporarily disables while crafting writ active",
 			},
 			{
 				type = "checkbox",
 				name = "Bank ALL",
 				tooltip = "Fills ALL existing stacks in bank",
-				getFunc = function() return RD.savedVariables.bankALL end,
-				setFunc = function(value) RD.savedVariables.bankALL = (value) end,
-				disabled = function() return not RD.savedVariables.bankManager end,
+				getFunc = function() return RD.acctVars.bankALL end,
+				setFunc = function(value) RD.acctVars.bankALL = (value) end,
+				disabled = function() return not RD.acctVars.bankManager end,
 			},
 			{
 				type = "checkbox",
 				name = "Storage Manager",
 				tooltip = "Fills select existing stacks in house storages. Does not stack foods, drinks, potions, poisons, soul gems or tools",
-				getFunc = function() return RD.savedVariables.storageManager end,
-				setFunc = function(value) RD.savedVariables.storageManager = (value) end,
+				getFunc = function() return RD.acctVars.storageManager end,
+				setFunc = function(value) RD.acctVars.storageManager = (value) end,
 				warning = "Temporarily disables while crafting writ active",
 			},
 			{
 				type = "checkbox",
 				name = "Store ALL",
 				tooltip = "Fills ALL existing stacks in house storages",
-				getFunc = function() return RD.savedVariables.storageAll end,
-				setFunc = function(value) RD.savedVariables.storageAll = (value) end,
-				disabled = function() return not RD.savedVariables.storageManager end,
+				getFunc = function() return RD.acctVars.storageAll end,
+				setFunc = function(value) RD.acctVars.storageAll = (value) end,
+				disabled = function() return not RD.acctVars.storageManager end,
 			},
 			{
 				type = "checkbox",
 				name = "Check Bank Memory",
 				tooltip = "Automatically compares the current bank inventory to the saved bank memory when opening the bank. Currently ONLY works for the bank",
-				getFunc = function() return RD.savedVariables.checkBankMemory end,
-				setFunc = function(value) RD.savedVariables.checkBankMemory = (value) end,
+				getFunc = function() return RD.acctVars.checkBankMemory end,
+				setFunc = function(value) RD.acctVars.checkBankMemory = (value) end,
 				warning = "Requires Bank Manager. Temporarily disables while crafting writ active",
-				disabled = function() return not RD.savedVariables.bankManager end,
+				disabled = function() return not RD.acctVars.bankManager end,
 			},
 			{
 				type = "button",
 				name = "SAVE BANK MEMORY",
 				tooltip = "Saves current bank inventory to memory for comparison when opening the bank",
 				func = function() SaveBankMemory() end,
-				disabled = function() return not RD.savedVariables.bankManager end,
+				disabled = function() return not RD.acctVars.bankManager end,
 				isDangerous = true,
 			},
 			{
@@ -617,8 +637,8 @@ local function RDInitializeControls()
 				type = "checkbox",
 				name = "Gold Deposit",
 				tooltip = "Auto deposits or withdraws gold above or below GOLD RESERVE to or from bank",
-				getFunc = function() return RD.savedVariables.goldDeposit end,
-				setFunc = function(value) RD.savedVariables.goldDeposit = (value) end,
+				getFunc = function() return RD.acctVars.goldDeposit end,
+				setFunc = function(value) RD.acctVars.goldDeposit = (value) end,
 				warning = "Temporarily disables while crafting writ active",
 			},
 			{
@@ -627,25 +647,25 @@ local function RDInitializeControls()
 				tooltip = "Maximum gold to reserve on each character",
 				choices = {"|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "0", "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "10,000", "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "50,000", "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "100,000", "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "500,000", "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "1,000,000", "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "10,000,000"},
 				choicesValues = {0, 10000, 50000, 100000, 500000, 1000000, 10000000},
-				getFunc = function() return RD.savedVariables.goldReserve end,
-				setFunc = function(var) RD.savedVariables.goldReserve = (var) end,
-				disabled = function() return not RD.savedVariables.goldDeposit end,
+				getFunc = function() return RD.acctVars.goldReserve end,
+				setFunc = function(var) RD.acctVars.goldReserve = (var) end,
+				disabled = function() return not RD.acctVars.goldDeposit end,
 			},
 			{
 				type = "dropdown",
 				name = "Gold Hoarder",
 				tooltip = "Character that does not auto deposit gold per account",
 				choices = SettingsPanelCharacterList(),
-				getFunc = function() return RD.savedVariables.noDeposit end,
-				setFunc = function(var) RD.savedVariables.noDeposit = (var) end,
-				disabled = function() return not RD.savedVariables.goldDeposit end,
+				getFunc = function() return RD.acctVars.noDeposit end,
+				setFunc = function(var) RD.acctVars.noDeposit = (var) end,
+				disabled = function() return not RD.acctVars.goldDeposit end,
 			},
 			{
 				type = "checkbox",
 				name = "(AP) Deposit",
 				tooltip = "Auto deposits ALL alliance points into bank",
-				getFunc = function() return RD.savedVariables.apDeposit end,
-				setFunc = function(value) RD.savedVariables.apDeposit = (value) end,
+				getFunc = function() return RD.acctVars.apDeposit end,
+				setFunc = function(value) RD.acctVars.apDeposit = (value) end,
 				warning = "Temporarily disables while crafting writ active",
 			},
 			{
@@ -654,16 +674,16 @@ local function RDInitializeControls()
 				tooltip = "Maximum AP to reserve on each character",
 				choices = {"|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "0", "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "10,000", "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "50,000", "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "100,000", "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "500,000", "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "1,000,000", "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "10,000,000"},
 				choicesValues = {0, 10000, 50000, 100000, 500000, 1000000, 10000000},
-				getFunc = function() return RD.savedVariables.apReserve end,
-				setFunc = function(var) RD.savedVariables.apReserve = (var) end,
-				disabled = function() return not RD.savedVariables.apDeposit end,
+				getFunc = function() return RD.acctVars.apReserve end,
+				setFunc = function(var) RD.acctVars.apReserve = (var) end,
+				disabled = function() return not RD.acctVars.apDeposit end,
 			},
 			{
 				type = "checkbox",
 				name = "Telvar Deposit",
 				tooltip = "Auto deposits or withdraws telvar stones above or below TELVAR RESERVE to or from bank",
-				getFunc = function() return RD.savedVariables.telvarDeposit end,
-				setFunc = function(value) RD.savedVariables.telvarDeposit = (value) end,
+				getFunc = function() return RD.acctVars.telvarDeposit end,
+				setFunc = function(value) RD.acctVars.telvarDeposit = (value) end,
 				warning = "Temporarily disables while crafting writ active",
 			},
 			{
@@ -673,24 +693,24 @@ local function RDInitializeControls()
 				choices = {"|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "0", "|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "99", "|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "1,000", "|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "10,000"},
 				choicesValues = {0, 99, 1000, 10000},
 				choicesTooltips = {"No Multiplier", "2X Queue Max", "3X Multiplier", "4X Multiplier"},
-				getFunc = function() return RD.savedVariables.telvarReserve end,
-				setFunc = function(var) RD.savedVariables.telvarReserve = (var) end,
-				disabled = function() return not RD.savedVariables.telvarDeposit end,
+				getFunc = function() return RD.acctVars.telvarReserve end,
+				setFunc = function(var) RD.acctVars.telvarReserve = (var) end,
+				disabled = function() return not RD.acctVars.telvarDeposit end,
 			},
 			{
 				type = "checkbox",
 				name = "Voucher Deposit",
 				tooltip = "Auto deposits ALL writ vouchers into bank",
-				getFunc = function() return RD.savedVariables.voucherDeposit end,
-				setFunc = function(value) RD.savedVariables.voucherDeposit = (value) end,
+				getFunc = function() return RD.acctVars.voucherDeposit end,
+				setFunc = function(value) RD.acctVars.voucherDeposit = (value) end,
 				warning = "Temporarily disables while crafting writ active",
 			},
 			{
 				type = "checkbox",
 				name = "Display Bank Balances",
 				tooltip = "Displays all banked balances to chat when opening the bank or after auto balancing",
-				getFunc = function() return RD.savedVariables.balanceDisplay end,
-				setFunc = function(value) RD.savedVariables.balanceDisplay = (value) end,
+				getFunc = function() return RD.acctVars.balanceDisplay end,
+				setFunc = function(value) RD.acctVars.balanceDisplay = (value) end,
 			},
 		},
 	},
@@ -702,7 +722,7 @@ local function RDInitializeControls()
 				type = "checkbox",
 				name = "Junk Manager",
 				tooltip = "Marks & sells all trash, monster trophy's, rare fish and ornates plus enabled options below. Also self cleans junk list of enabled options below as looted and repairs all gear at merchants & with kits and gems",
-				getFunc = function() return RD.savedVariables.junkManager end,
+				getFunc = function() return RD.acctVars.junkManager end,
 				setFunc = function(value) RD.JunkManagerToggle(value) end,
 				width = "half",
 			},
@@ -710,83 +730,83 @@ local function RDInitializeControls()
 				type = "checkbox",
 				name = "Silent Junk Mode",
 				tooltip = "Silently move junk without chat output",
-				getFunc = function() return RD.savedVariables.junkSilentMode end,
-				setFunc = function(value) RD.savedVariables.junkSilentMode = (value) end,
-				disabled = function() return not RD.savedVariables.junkManager end,
+				getFunc = function() return RD.acctVars.junkSilentMode end,
+				setFunc = function(value) RD.acctVars.junkSilentMode = (value) end,
+				disabled = function() return not RD.acctVars.junkManager end,
 				width = "half",
 			},
 			{
 				type = "checkbox",
 				name = "Save Craftables",
 				tooltip = "Don't move all newly crafted items to junk",
-				getFunc = function() return RD.savedVariables.saveCraftables end,
-				setFunc = function(value) RD.savedVariables.saveCraftables = (value) end,
-				disabled = function() return RD.savedVariables.junkManager or not RD.savedVariables.junkManager end,
+				getFunc = function() return RD.acctVars.saveCraftables end,
+				setFunc = function(value) RD.acctVars.saveCraftables = (value) end,
+				disabled = function() return RD.acctVars.junkManager or not RD.acctVars.junkManager end,
 				warning = "Forced on for crafting writ compatibility",
 			},
 			{
 				type = "checkbox",
 				name = "Junk Intricates",
 				tooltip = "Move all newly looted intricates to junk",
-				getFunc = function() return RD.savedVariables.junkIntricates end,
-				setFunc = function(value) RD.savedVariables.junkIntricates = (value) end,
-				disabled = function() return not RD.savedVariables.junkManager end,
+				getFunc = function() return RD.acctVars.junkIntricates end,
+				setFunc = function(value) RD.acctVars.junkIntricates = (value) end,
+				disabled = function() return not RD.acctVars.junkManager end,
 			},
 			{
 				type = "checkbox",
 				name = "Junk Treasures",
 				tooltip = "Move all newly looted treasures with a value greater than 0 to junk",
-				getFunc = function() return RD.savedVariables.junkTreasures end,
-				setFunc = function(value) RD.savedVariables.junkTreasures = (value) end,
-				disabled = function() return not RD.savedVariables.junkManager end,
+				getFunc = function() return RD.acctVars.junkTreasures end,
+				setFunc = function(value) RD.acctVars.junkTreasures = (value) end,
+				disabled = function() return not RD.acctVars.junkManager end,
 			},
 			{
 				type = "checkbox",
 				name = "Junk Stolen Items",
 				tooltip = "Move all newly looted stolen items to junk",
-				getFunc = function() return RD.savedVariables.junkStolen end,
-				setFunc = function(value) RD.savedVariables.junkStolen = (value) end,
-				disabled = function() return not RD.savedVariables.junkManager end,
+				getFunc = function() return RD.acctVars.junkStolen end,
+				setFunc = function(value) RD.acctVars.junkStolen = (value) end,
+				disabled = function() return not RD.acctVars.junkManager end,
 			},
 			{
 				type = "checkbox",
 				name = "Junk Known Scripts",
 				tooltip = "Move all newly looted known scribing scripts to junk",
-				getFunc = function() return RD.savedVariables.junkKnownScripts end,
-				setFunc = function(value) RD.savedVariables.junkKnownScripts = (value) end,
-				disabled = function() return not RD.savedVariables.junkManager end,
+				getFunc = function() return RD.acctVars.junkKnownScripts end,
+				setFunc = function(value) RD.acctVars.junkKnownScripts = (value) end,
+				disabled = function() return not RD.acctVars.junkManager end,
 				warning = "Requires LibCharacterKnowledge to detect what is knownst on other characters",
 			},
 			{
 				type = "checkbox",
 				name = "Junk Treasure Maps",
 				tooltip = "Move all newly looted treasure maps to junk",
-				getFunc = function() return RD.savedVariables.junkMaps end,
-				setFunc = function(value) RD.savedVariables.junkMaps = (value) end,
-				disabled = function() return not RD.savedVariables.junkManager end,
+				getFunc = function() return RD.acctVars.junkMaps end,
+				setFunc = function(value) RD.acctVars.junkMaps = (value) end,
+				disabled = function() return not RD.acctVars.junkManager end,
 			},
 			{
 				type = "checkbox",
 				name = "DESTROY LQ Stolen Items",
 				tooltip = "DESTROYS all newly looted low quality stolen items(not crafting materials) of white quality or less valued < 60 and indicate carried value for the professional thief",
-				getFunc = function() return RD.savedVariables.destroyLQStolen end,
-				setFunc = function(value) RD.savedVariables.destroyLQStolen = (value) end,
-				disabled = function() return not RD.savedVariables.junkManager end,
+				getFunc = function() return RD.acctVars.destroyLQStolen end,
+				setFunc = function(value) RD.acctVars.destroyLQStolen = (value) end,
+				disabled = function() return not RD.acctVars.junkManager end,
 			},
 			{
 				type = "checkbox",
 				name = "DESTROY Marked Unsellable",
 				tooltip = "DESTROYS all newly looted unsellable items that have been marked as permanent junk ONLY",
-				getFunc = function() return RD.savedVariables.destroyUnsellable end,
-				setFunc = function(value) RD.savedVariables.destroyUnsellable = (value) end,
-				disabled = function() return not RD.savedVariables.junkManager end,
+				getFunc = function() return RD.acctVars.destroyUnsellable end,
+				setFunc = function(value) RD.acctVars.destroyUnsellable = (value) end,
+				disabled = function() return not RD.acctVars.junkManager end,
 			},
 			{
 				type = "button",
 				name = "RESET JUNK MEMORY",
 				tooltip = "Completely clears junk memory",
 				func = function() RD.ClearJunkMemory() end,
-				disabled = function() return not RD.savedVariables.junkManager end,
+				disabled = function() return not RD.acctVars.junkManager end,
 				isDangerous = true,
 				width = "half",
 			},
@@ -795,7 +815,7 @@ local function RDInitializeControls()
 				name = "EDIT JUNK MEMORY",
 				tooltip = "Brings up the junk memory window so you can remove items as needed",
 				func = function() RD.JunkMemory:ToggleHidden() PlaySound("Click") end,
-				disabled = function() return not RD.savedVariables.junkManager end,
+				disabled = function() return not RD.acctVars.junkManager end,
 				width = "half",
 			},
 		},
@@ -808,7 +828,7 @@ local function RDInitializeControls()
 				type = "checkbox",
 				name = "Loot Manager",
 				tooltip = "Outputs group loot to chat and filters out most trash and anything below selected quality with a minimal whitelist & TTC values everywhere",
-				getFunc = function() return RD.savedVariables.lootManager end,
+				getFunc = function() return RD.acctVars.lootManager end,
 				setFunc = function(value) RD.lootManagerToggle(value) end,
 				warning = "NOT compatible with Loot Log. Requires LibCharacterKnowledge to detect what is knownst on other characters & TTC for pricing data",
 			},
@@ -818,9 +838,9 @@ local function RDInitializeControls()
 				tooltip = "Minimum general loot quality to log to chat",
 				choices = {"|cF8FAFCWHITE|r", "|c7CCF35GREEN|r", "|c2B7FFFBLUE|r", "|cAD46FFPURPLE|r", "|cFFDF20GOLD|r"},
 				choicesValues = {1, 2, 3, 4, 5},
-				getFunc = function() return RD.savedVariables.lootQuality end,
-				setFunc = function(var) RD.savedVariables.lootQuality = (var) end,
-				disabled = function() return not RD.savedVariables.lootManager end,
+				getFunc = function() return RD.acctVars.lootQuality end,
+				setFunc = function(var) RD.acctVars.lootQuality = (var) end,
+				disabled = function() return not RD.acctVars.lootManager end,
 			},
 			{
 				type = "divider",
@@ -833,10 +853,8 @@ local function RDInitializeControls()
 				tooltip = "With loot manager enabled shows TTC values everywhere. Also used for auto pricing with trader enhancements. Fallback to listing average if no preferred data",
 				choices = {"Suggested Price", "Sales Average", "List Average", "List Minimum", "List Maximum"},
 				choicesValues = {"SuggestedPrice", "SaleAvg", "Avg", "Min", "Max"},
-				getFunc = function() return RD.savedVariables.ttcPricing end,
-				setFunc = function(var) RD.savedVariables.ttcPricing = (var) end,
-				--disabled = function() return not RD.savedVariables.lootManager end,
-				--warning = "Requires Loot Manager because they share the same function for efficiency and TTC for pricing data",
+				getFunc = function() return RD.acctVars.ttcPricing end,
+				setFunc = function(var) RD.acctVars.ttcPricing = (var) end,
 			},
 			{
 				type = "divider",
@@ -847,7 +865,7 @@ local function RDInitializeControls()
 				type = "checkbox",
 				name = "Trader Enhancements",
 				tooltip = "Adds some QoL features to the trader window including active trader cycling by clicking guild name(skips non trading guilds with no listings), auto pricing, auto last search, listing counts & totals",
-				getFunc = function() return RD.savedVariables.traderEnhance end,
+				getFunc = function() return RD.acctVars.traderEnhance end,
 				setFunc = function(value) RD.TraderEnhanceToggle(value) end,
 				warning = "NOT compatible with AwesomeGuildStore. Requires LibCharacterKnowledge to detect what is knownst on other characters & TTC for pricing data",
 			},
@@ -861,7 +879,7 @@ local function RDInitializeControls()
 				type = "checkbox",
 				name = "AP, Vet & Telvar Log to Chat",
 				tooltip = "If either conditions below are met then all cached data will be output",
-				getFunc = function() return RD.savedVariables.avtLog end,
+				getFunc = function() return RD.acctVars.avtLog end,
 				setFunc = function(value) RD.AVTLogToggle(value) end,
 				width = "full",
 			},
@@ -872,9 +890,9 @@ local function RDInitializeControls()
 				min = 20,
 				max = 400,
 				step = 20,
-				getFunc = function() return RD.savedVariables.minimumAVT end,
-				setFunc = function(value) RD.savedVariables.minimumAVT = (value) end,
-				disabled = function() return not RD.savedVariables.avtLog end,
+				getFunc = function() return RD.acctVars.minimumAVT end,
+				setFunc = function(value) RD.acctVars.minimumAVT = (value) end,
+				disabled = function() return not RD.acctVars.avtLog end,
 				width = "full",
 			},
 			{
@@ -884,9 +902,9 @@ local function RDInitializeControls()
 				min = 100,
 				max = 2000,
 				step = 100,
-				getFunc = function() return RD.savedVariables.bombSensitivity end,
-				setFunc = function(value) RD.savedVariables.bombSensitivity = (value) end,
-				disabled = function() return not RD.savedVariables.avtLog end,
+				getFunc = function() return RD.acctVars.bombSensitivity end,
+				setFunc = function(value) RD.acctVars.bombSensitivity = (value) end,
+				disabled = function() return not RD.acctVars.avtLog end,
 				width = "full",
 			},
 			{
@@ -898,7 +916,7 @@ local function RDInitializeControls()
 				type = "checkbox",
 				name = "PvP Personal / Group Kill Feed",
 				tooltip = "Enables personal / group kill feed including personal total daily killing blows, deaths and ratio% in cyrodiil, imperial city, battlegrounds & adds a forward camp reuse timer to cyrodiil map",
-				getFunc = function() return RD.savedVariables.pvpKillFeed end,
+				getFunc = function() return RD.acctVars.pvpKillFeed end,
 				setFunc = function(value) RD.PvpKillFeedToggle(value) end,
 				warning = "Audio feedback only if ingame global kill feed is enabled",
 				width = "full",
@@ -908,7 +926,7 @@ local function RDInitializeControls()
 				name = "CLEAR & SET",
 				tooltip = "Set to current time for daily reset & clear daily statistics for pvp personal kill feed",
 				func = function() RD.SetClearKillFeed(true) end,
-				disabled = function() return not RD.savedVariables.pvpKillFeed end,
+				disabled = function() return not RD.acctVars.pvpKillFeed end,
 				isDangerous = true,
 				width = "half",
 			},
@@ -917,7 +935,7 @@ local function RDInitializeControls()
 				name = "RESET TO DEFAULT",
 				tooltip = "Reset to default original daily reset time for pvp personal kill feed",
 				func = function() RD.ResetKillFeed() end,
-				disabled = function() return not RD.savedVariables.pvpKillFeed end,
+				disabled = function() return not RD.acctVars.pvpKillFeed end,
 				isDangerous = true,
 				width = "half",
 			},
@@ -934,7 +952,7 @@ local function RDInitializeControls()
 		tooltip = "Audio notification of whispers, group and yells with enhanced saved player login / logout / away info",
 		choices = {"|ccc0000*DISABLED*|r", "Selection 1", "Selection 2", "Selection 3", "Selection 4", "Selection 5"},
 		choicesValues = {false, "Book_Acquired", "InventoryItem_ApplyCharge", "New_Mail", "New_NotificationTimed", "Ability_Companion_Ultimate_Ready_Sound"},
-		getFunc = function() return RD.savedVariables.chatNotify end,
+		getFunc = function() return RD.acctVars.chatNotify end,
 		setFunc = function(value) RD.ChatNotifyToggle(value) end,
 	},
 	{
@@ -943,56 +961,63 @@ local function RDInitializeControls()
 		tooltip = "Increase nameplate font size from 20pt to 26, 32, 38 and 44pt",
 		choices = {"|ccc0000*DISABLED*|r", "Slightly Bigger", "Considerably Bigger", "Massively Bigger", "Hugemungusly Bigger"},
 		choicesValues = {false, 26, 32, 38, 44},
-		getFunc = function() return RD.savedVariables.fontBoost end,
+		getFunc = function() return RD.acctVars.fontBoost end,
 		setFunc = function(value) RD.NamePlatesToggle(value) end,
 	},
 	{
 		type = "checkbox",
 		name = "Lock Armory Save Build",
 		tooltip = "Locks armory save build button from accidental use",
-		getFunc = function() return RD.savedVariables.lockArmory end,
+		getFunc = function() return RD.acctVars.lockArmory end,
 		setFunc = function(value) RD.LockArmoryToggle(value) end,
 	},
 	{
 		type = "checkbox",
 		name = "Stack Attribute Bars",
 		tooltip = "Stacks all default attribute bars into a tight pyramid above the ability bars. Does not modify anything else and works well with UI scaling.",
-		getFunc = function() return RD.savedVariables.stackAttributes end,
+		getFunc = function() return RD.acctVars.stackAttributes end,
 		setFunc = function(value) RD.StackAttributesToggle(value) end,
 	},
 	{
 		type = "checkbox",
 		name = "Log Companion Info",
 		tooltip = "Logs companion rapport changes to chat with display of current / maximum rapport & notifies on companion death",
-		getFunc = function() return RD.savedVariables.companionRapport end,
+		getFunc = function() return RD.acctVars.companionRapport end,
 		setFunc = function(value) RD.CompanionRapportToggle(value) end,
 	},
 	{
 		type = "checkbox",
 		name = "Skip Many Dialogs",
 		tooltip = "Skips many NPC dialogs including assistants, merchants and traders if no writ quest active for compatability",
-		getFunc = function() return RD.savedVariables.skipDialogs end,
+		getFunc = function() return RD.acctVars.skipDialogs end,
 		setFunc = function(value) RD.SkipDialogsToggle(value) end,
+	},
+	{
+		type = "checkbox",
+		name = "Guild Spam Filter",
+		tooltip = "Filters most guild spam down to a single small line leaving only the guild link incase you might want to click it.",
+		getFunc = function() return RD.acctVars.spamFilter end,
+		setFunc = function(value) RD.SpamFilterToggle(value) end,
 	},
 	{
 		type = "checkbox",
 		name = "Auto Accept Queues",
 		tooltip = "Auto accept queues for dungeons, battlegrounds, cyrodiil and imperial city",
-		getFunc = function() return RD.savedVariables.autoQueue end,
+		getFunc = function() return RD.acctVars.autoQueue end,
 		setFunc = function(value) RD.AutoQueueToggle(value) end,
 	},
 	{
 		type = "checkbox",
 		name = "Combat & Taunt Reticle",
 		tooltip = "Shows if in combat or target taunt time left, including companion taunts, as well as taunt immunity in the center of reticle",
-		getFunc = function() return RD.savedVariables.combatReticle end,
+		getFunc = function() return RD.acctVars.combatReticle end,
 		setFunc = function(value) RD.CombatReticleToggle(value) end,
 	},
 	{
 		type = "checkbox",
 		name = "Furnishing Craft Search",
 		tooltip = "Adds a search field for furnishing crafting",
-		getFunc = function() return RD.savedVariables.craftingSearch end,
+		getFunc = function() return RD.acctVars.craftingSearch end,
 		setFunc = function(value) RD.CraftingSearchToggle(value) end,
 	},
 	{
@@ -1017,7 +1042,7 @@ local function RDInitializeControls()
 	LAM2:RegisterOptionControls(panelName, optionsData)
 	CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", function(panel)
 		if panel ~= RD.settingsPanel then return end
-		RD.UpdateSettingsSavedPlayer(RD.savedVariables.savedPlayer)
+		RD.UpdateSettingsSavedPlayer(RD.acctVars.savedPlayer)
 		local junkMemory = RD.PopulateJunkMemory()
 		RD.UpdateJunkMemoryList(RD.JunkMemoryList, junkMemory, 1)
 	end)
@@ -1027,7 +1052,7 @@ local function RDInitializeControls()
 	end)
 	--CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
 		--if panel ~= RD.settingsPanel then return end
-		--RD.UpdateSettingsSavedPlayer(RD.savedVariables.savedPlayer)
+		--RD.UpdateSettingsSavedPlayer(RD.acctVars.savedPlayer)
 	--end)
 ---------------------------------------------
 ------ CONTROLS & ANIMATIONS
@@ -1214,35 +1239,30 @@ end
 -------- PLAYER ACTIVATED --
 ---------------------------------------------
 local function OnPlayerActivated()
-	if RD.savedVariables.lootManager and not chatMods then
-		chatMods = true
-		local origFormatter = CHAT_ROUTER:GetRegisteredMessageFormatters()[EVENT_CHAT_MESSAGE_CHANNEL]
-			CHAT_ROUTER:RegisterMessageFormatter(EVENT_CHAT_MESSAGE_CHANNEL, function(channelType, fromName, text, isCustomerService, fromDisplayName)
-				if InAlphaList(GetUnitDisplayName("player")) then-->> TESTING
-					text = text:gsub(".-(|H.:guild:.-|h.-|h).*", "Spam Filter: %1")
-				end
-				local formattedText, saveTarget, _, originalText = origFormatter(channelType, fromName, text, isCustomerService, fromDisplayName)
-				if formattedText then
-					local newFormatted = formattedText
-					--for itemLink in formattedText:gmatch("|H.-|h.-|h") do
-					for itemLink in formattedText:gmatch("|H.:item:.-|h.-|h") do-->> TESTING
-						if not itemLink then break end
-						local itemId = GetItemLinkItemId(itemLink)
-						local itemType, specialType = GetItemLinkItemType(itemLink)
-						if not (itemId and itemType and specialType) then break end
-						if IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) then 
-							local newLink = (IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) .. itemLink) or itemLink
-							newFormatted = string.gsub(newFormatted, itemLink, newLink)
-							break
-						end
-					end
-					return newFormatted, saveTarget, fromDisplayName, originalText
-				else
-					return formattedText, saveTarget, fromDisplayName, originalText
-				end
+	if not chatHook and RD.acctVars.lootManager then
+		chatHook = true
+		local origFormat = CHAT_ROUTER:GetRegisteredMessageFormatters()[EVENT_CHAT_MESSAGE_CHANNEL]
+		CHAT_ROUTER:RegisterMessageFormatter(EVENT_CHAT_MESSAGE_CHANNEL, function(channelType, fromName, text, isCustomerService, fromDisplayName)
+			if RD.acctVars.spamFilter then
+				text = string.gsub(text, ".-(|H.:guild:.-|h.-|h).*", (RD_LOGO .. "[SPAM]: %1"))
+			end
+			local text = string.gsub(text, "|H.:item:.-|h.-|h", function(itemLink)
+				local itemNeeded = IsKnowledgeUnknown(itemLink)
+				if itemNeeded then return (itemNeeded .. itemLink) else return itemLink end
 			end)
+			local formattedText, saveTarget, _, originalText = origFormat(channelType, fromName, text, isCustomerService, fromDisplayName)
+			return formattedText, saveTarget, fromDisplayName, originalText
+		end)
+	elseif not chatHook and RD.acctVars.spamFilter then
+		chatHook = true
+		local origFormat = CHAT_ROUTER:GetRegisteredMessageFormatters()[EVENT_CHAT_MESSAGE_CHANNEL]
+		CHAT_ROUTER:RegisterMessageFormatter(EVENT_CHAT_MESSAGE_CHANNEL, function(channelType, fromName, text, isCustomerService, fromDisplayName)
+			text = string.gsub(text, ".-(|H.:guild:.-|h.-|h).*", (RD_LOGO .. "[SPAM]: %1"))
+			local formattedText, saveTarget, _, originalText = origFormat(channelType, fromName, text, isCustomerService, fromDisplayName)
+			return formattedText, saveTarget, fromDisplayName, originalText
+		end)
 	end
-	if RD.savedVariables.lockArmory and ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled then
+	if ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled and RD.acctVars.lockArmory then
 		ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Armory save build auto locked.")
 		ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled = false
 		ARMORY_KEYBOARD.keybindStripDescriptor[2].name = ("Save Locked")
@@ -1250,13 +1270,13 @@ local function OnPlayerActivated()
 		RD.ArmoryLock:SetMouseEnabled(true)
 		RD.ArmoryLock:SetAlpha(1)
 	end
-	if RD.savedVariables.stackAttributes then
+	if RD.acctVars.stackAttributes then
 		ZO_PlayerAttributeHealth:SetAnchor(TOP, ZO_BuffDebuffTopLevelSelfContainer, BOTTOM, 0, 24)
 		ZO_PlayerAttributeMagicka:SetAnchor(TOPRIGHT, ZO_PlayerAttributeHealth, BOTTOM, 0, 8)
 		ZO_PlayerAttributeStamina:SetAnchor(TOPLEFT, ZO_PlayerAttributeHealth, BOTTOM, 0, 8)
 	end
-	if RD.savedVariables.fontBoost then
-		SetNameplateKeyboardFont(string.format("%s|%d", "$(BOLD_FONT)", RD.savedVariables.fontBoost), FONT_STYLE_SOFT_SHADOW_THIN)
+	if RD.acctVars.fontBoost then
+		SetNameplateKeyboardFont(string.format("%s|%d", "$(BOLD_FONT)", RD.acctVars.fontBoost), FONT_STYLE_SOFT_SHADOW_THIN)
 	end
 	PassengerStateChange()
 end
@@ -1269,7 +1289,7 @@ function RD.SaveMenu(data)
 end
 
 function RD.SavePlayer(displayName)
-	RD.savedVariables.savedPlayer = displayName
+	RD.acctVars.savedPlayer = displayName
 	df(RD_LOGO .. "Saving: " .. displayName)
 	RD.UpdateSettingsSavedPlayer(displayName)
 end
@@ -1305,7 +1325,7 @@ function RD.MountPlayer()
 	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "No group member in range.")
 end
 ---------------------------------------------
-------- TRAVEL TO PRIMARY HOME -- --ForceCancelMounted *private* ()
+------- TRAVEL TO PRIMARY HOME --
 ---------------------------------------------
 function RD.TeleportDeathState()
 	if IsUnitDead("player") then
@@ -1319,7 +1339,7 @@ end
 function RD.TravelToHome()
 	if IsPlayerInAvAWorld() or IsActiveWorldBattleground() then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("You cannot travel from this location.")) return end
 	if IsUnitDeadOrReincarnating("player") then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("You are dead and cannot travel.")) return end
-	local travelOutside = RD.savedVariables.travelOutside
+	local travelOutside = RD.acctVars.travelOutside
 	if IsUnitInCombat("player") then
 		if RD.HourGlass:GetAlpha() == 1 then
 			RD.TeleportHomeQueueOff()
@@ -1374,7 +1394,7 @@ end
 -------- TRAVEL TO SAVED PLAYER OR In Zone --
 ---------------------------------------------
 local function spInGroup()
-	local savedPlayer = RD.savedVariables.savedPlayer
+	local savedPlayer = RD.acctVars.savedPlayer
 	for iD = 1, GetGroupSize() do
 		local playerID = GetGroupUnitTagByIndex(iD)
 		local playerDisplayName = GetUnitDisplayName(playerID)
@@ -1388,7 +1408,7 @@ end
 function RD.TravelToPlayer()
 	if IsPlayerInAvAWorld() or IsActiveWorldBattleground() then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("You cannot travel from this location.")) return end
 	if IsUnitDeadOrReincarnating("player") then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("You are dead and cannot travel.")) return end
-	local savedPlayer = RD.savedVariables.savedPlayer
+	local savedPlayer = RD.acctVars.savedPlayer
 	local displayNamePref = nil
 	local spInGroup = spInGroup()
 	for iD = 1, GetGroupSize() do
@@ -1508,7 +1528,7 @@ end
 function RD.Teleport(value1, value2)
 	if IsPlayerInAvAWorld() or IsActiveWorldBattleground() then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("You cannot travel from this location.")) return end
 	if IsUnitDeadOrReincarnating("player") then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("You are dead and cannot travel.")) return end
-	local travelOutside = RD.savedVariables.travelOutside
+	local travelOutside = RD.acctVars.travelOutside
 	local displayNamePref = nil
 	if TP_PLAYER ~= nil then
 		value1 = TP_PLAYER
@@ -1687,7 +1707,7 @@ end
 ---------------------------------------------
 local function CheckBankMemory()
 	local itemFound = false
-	for i, v in pairs(RD.savedVariables["Banked Memory"]) do
+	for i, v in pairs(RD.acctVars["Banked Memory"]) do
 		if i ~= nil and i ~= "version" and i ~= "default" then
 			for slotIndex = 0, GetBagSize(BAG_BANK) - 1 do
 				if i == GetItemId(BAG_BANK, slotIndex) then itemFound = true break end
@@ -1706,7 +1726,6 @@ local function CheckBankMemory()
 end
 
 local function BankBalances(eventCode, bagId, carriedGold, carriedAP, carriedTelvar, carriedVoucher, moveGold, moveAP, moveTelvar, moveVoucher)
-	--if not RD.savedVariables.balanceDisplay then return end
 	local bankedCurrencies = (RD_LOGO .. "Balances:")
 	local curbankGold = GetBankedCurrencyAmount(CURT_MONEY)
 	local curbankAP = GetBankedCurrencyAmount(CURT_ALLIANCE_POINTS)
@@ -1737,16 +1756,16 @@ local function DepositCurrency(eventCode, bagId)
 	local moveTelvar = false
 	local moveVoucher = false
 	local carriedGold = GetCarriedCurrencyAmount(CURT_MONEY)
-	local goldReserve = RD.savedVariables.goldReserve
+	local goldReserve = RD.acctVars.goldReserve
 	local withdrawGold = 0
 	local carriedAP = GetCarriedCurrencyAmount(CURT_ALLIANCE_POINTS)
-	local apReserve = RD.savedVariables.apReserve
+	local apReserve = RD.acctVars.apReserve
 	local withdrawAP = 0
 	local carriedTelvar = GetCarriedCurrencyAmount(CURT_TELVAR_STONES)
-	local telvarReserve = RD.savedVariables.telvarReserve
+	local telvarReserve = RD.acctVars.telvarReserve
 	local withdrawTelvar = 0
 	local carriedVoucher = GetCarriedCurrencyAmount(CURT_WRIT_VOUCHERS)
-	if RD.savedVariables.goldDeposit and GetUnitName("player") ~= RD.savedVariables.noDeposit then
+	if RD.acctVars.goldDeposit and GetUnitName("player") ~= RD.acctVars.noDeposit then
 		if (carriedGold < goldReserve) and ((goldReserve - carriedGold) < GetBankedCurrencyAmount(CURT_MONEY)) then
 			moveGold = true
 			withdrawGold = (goldReserve - carriedGold)
@@ -1760,7 +1779,7 @@ local function DepositCurrency(eventCode, bagId)
 			df(RD_LOGO .. "Deposited:" .. GOLD_ICON .. ZO_LocalizeDecimalNumber(carriedGold))
 		end
 	end
-	if RD.savedVariables.apDeposit then
+	if RD.acctVars.apDeposit then
 		if (carriedAP < apReserve) and ((apReserve - carriedAP) < GetBankedCurrencyAmount(CURT_ALLIANCE_POINTS)) then
 			moveAP = true
 			withdrawAP = (apReserve - carriedAP)
@@ -1774,7 +1793,7 @@ local function DepositCurrency(eventCode, bagId)
 			df(RD_LOGO .. "Deposited:" .. AP_ICON .. "|c339933" .. ZO_LocalizeDecimalNumber(carriedAP) .. "|r")
 		end
 	end
-	if RD.savedVariables.telvarDeposit then
+	if RD.acctVars.telvarDeposit then
 		if (carriedTelvar < telvarReserve) and ((telvarReserve - carriedTelvar) < GetBankedCurrencyAmount(CURT_TELVAR_STONES)) then
 			moveTelvar = true
 			withdrawTelvar = (telvarReserve - carriedTelvar)
@@ -1788,32 +1807,32 @@ local function DepositCurrency(eventCode, bagId)
 			df(RD_LOGO .. "Deposited:" .. TELVAR_ICON .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(carriedTelvar) .. "|r")
 		end
 	end
-	if RD.savedVariables.voucherDeposit then
+	if RD.acctVars.voucherDeposit then
 		if (carriedVoucher > 0) then
 			moveVoucher = true
 			DepositCurrencyIntoBank(CURT_WRIT_VOUCHERS, carriedVoucher)
 			df(RD_LOGO .. "Deposited:" .. VOUCHER_ICON .. "|cFFEECC" .. ZO_LocalizeDecimalNumber(carriedVoucher) .. "|r")
 		end
 	end
-	if RD.savedVariables.balanceDisplay then
+	if RD.acctVars.balanceDisplay then
 		BankBalances(eventCode, bagId, carriedGold, carriedAP, carriedTelvar, carriedVoucher, moveGold, moveAP, moveTelvar, moveVoucher)
 	end
-	if RD.savedVariables.checkBankMemory then
+	if RD.acctVars.checkBankMemory then
 		CheckBankMemory()
 	end
 end
 
 local function BankManager(eventCode, bagId)
-	if bagId ~= BAG_BANK and not RD.savedVariables.storageManager then return end
+	if bagId ~= BAG_BANK and not RD.acctVars.storageManager then return end
 	if HasWritQuest() then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Auto deposit disabled while writ quests active.") return end--<< CRAFTING WRIT COMPATIBILITY
 	local bankCache = SHARED_INVENTORY:GetOrCreateBagCache(bagId)
 	local bagCache  = SHARED_INVENTORY:GetOrCreateBagCache(BAG_BACKPACK)
-	if (RD.savedVariables.bankManager and bagId == BAG_BANK) or (RD.savedVariables.storageManager and bagId ~= BAG_BANK) then
+	if (RD.acctVars.bankManager and bagId == BAG_BANK) or (RD.acctVars.storageManager and bagId ~= BAG_BANK) then
 		for bankSlot, bankSlotData in pairs(bankCache) do
 			local bankStack, bankMaxStack = GetSlotStackSize(bagId, bankSlot)
 			if bankStack > 0 and bankStack < bankMaxStack then
 				for bagSlot, bagSlotData in pairs(bagCache) do
-					if ((bagId == BAG_BANK and not RD.savedVariables.bankALL) or (bagId ~= BAG_BANK and not RD.savedVariables.storageAll))
+					if ((bagId == BAG_BANK and not RD.acctVars.bankALL) or (bagId ~= BAG_BANK and not RD.acctVars.storageAll))
 						and (bankSlotData.itemType == ITEMTYPE_FOOD or bankSlotData.itemType == ITEMTYPE_DRINK or bankSlotData.itemType == ITEMTYPE_POTION
 						or bankSlotData.itemType == ITEMTYPE_POISON or bankSlotData.itemType == ITEMTYPE_SOUL_GEM or bankSlotData.itemType == ITEMTYPE_TOOL
 						or bankSlotData.itemType == ITEMTYPE_AVA_REPAIR or bankSlotData.itemType == ITEMTYPE_RECALL_STONE or bankSlotData.itemType == ITEMTYPE_SIEGE) then break end
@@ -1840,12 +1859,12 @@ local function BankManager(eventCode, bagId)
 	if IsESOPlusSubscriber() then
 		local subBankCache = SHARED_INVENTORY:GetOrCreateBagCache(BAG_SUBSCRIBER_BANK)
 		local subBagCache  = SHARED_INVENTORY:GetOrCreateBagCache(BAG_BACKPACK)
-		if (RD.savedVariables.bankManager and bagId == BAG_BANK) then
+		if (RD.acctVars.bankManager and bagId == BAG_BANK) then
 			for bankSlot, bankSlotData in pairs(subBankCache) do
 				local bankStack, bankMaxStack = GetSlotStackSize(BAG_SUBSCRIBER_BANK, bankSlot)
 				if bankStack > 0 and bankStack < bankMaxStack then
 					for bagSlot, bagSlotData in pairs(subBagCache) do
-						if (bagId == BAG_BANK and not RD.savedVariables.bankALL)
+						if (bagId == BAG_BANK and not RD.acctVars.bankALL)
 							and (bankSlotData.itemType == ITEMTYPE_FOOD or bankSlotData.itemType == ITEMTYPE_DRINK or bankSlotData.itemType == ITEMTYPE_POTION
 							or bankSlotData.itemType == ITEMTYPE_POISON or bankSlotData.itemType == ITEMTYPE_SOUL_GEM or bankSlotData.itemType == ITEMTYPE_TOOL
 							or bankSlotData.itemType == ITEMTYPE_AVA_REPAIR or bankSlotData.itemType == ITEMTYPE_RECALL_STONE or bankSlotData.itemType == ITEMTYPE_SIEGE) then break end
@@ -1961,19 +1980,19 @@ local function WithdrawMenu(inventorySlot, slotActions)
 	local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
     local itemId = GetItemId(bagId, slotIndex)
 	AddCustomMenuItem("Withdraw 1", function() WithdrawTake(inventorySlot, itemId, 1) end)
-	if ValidWithdrawContainer(inventorySlot, RD.savedVariables.withdrawAmount) then
-		AddCustomMenuItem(("Withdraw " .. tostring(RD.savedVariables.withdrawAmount)), function() WithdrawTake(inventorySlot, itemId, RD.savedVariables.withdrawAmount) end)
+	if ValidWithdrawContainer(inventorySlot, RD.acctVars.withdrawAmount) then
+		AddCustomMenuItem(("Withdraw " .. tostring(RD.acctVars.withdrawAmount)), function() WithdrawTake(inventorySlot, itemId, RD.acctVars.withdrawAmount) end)
 	end
 end
 
 function RD.WithdrawOneToggle(toggle)
 	if toggle then
-		RD.savedVariables.withdrawOne = toggle
+		RD.acctVars.withdrawOne = toggle
 		local primary = LibCustomMenu.CATEGORY_PRIMARY
 		LibCustomMenu:RegisterContextMenu(WithdrawMenu, primary)
 		--EVENT_MANAGER:RegisterForEvent("RidinDirtyWithdrawOne", EVENT_OPEN_GUILD_BANK, OpenGuildBank)
 	else
-		RD.savedVariables.withdrawOne = toggle
+		RD.acctVars.withdrawOne = toggle
 		--EVENT_MANAGER:UnregisterForEvent("RidinDirtyWithdrawOne", EVENT_OPEN_GUILD_BANK)
 		ReloadUI()
 	end
@@ -2043,12 +2062,12 @@ local function JunkManager(eventCode, bagId, slotIndex, isNewItem, soundCategory
 	local isTrash = (itemType == ITEMTYPE_TRASH or itemTrait == ITEM_TRAIT_INFORMATION_ORNATE or
 		(itemType == ITEMTYPE_COLLECTIBLE and specialType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_MONSTER_TROPHY) or
 			(itemType == ITEMTYPE_COLLECTIBLE and specialType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_RARE_FISH) or
-				(RD.savedVariables.junkIntricates and itemTrait == ITEM_TRAIT_INFORMATION_INTRICATE) or
-					(RD.savedVariables.junkTreasures and itemType == ITEMTYPE_TREASURE and itemValue > 0) or
-						(RD.savedVariables.junkStolen and IsItemStolen(bagId, slotIndex)) or
-							(RD.savedVariables.junkMaps and (itemType == ITEMTYPE_TROPHY and specialType == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP and not CanItemBeUsedToLearn(bagId, slotIndex))) or
-								(RD.savedVariables.junkKnownScripts and (itemType == ITEMTYPE_CRAFTED_ABILITY_SCRIPT and IsItemBound(bagId, slotIndex) and not IsKnowledgeUnknown(itemId, itemLink, itemType, specialType))))
-	if RD.savedVariables.destroyLQStolen and IsItemStolen(bagId, slotIndex) and GetItemSellValueWithBonuses(bagId, slotIndex) >= 100 then
+				(RD.acctVars.junkIntricates and itemTrait == ITEM_TRAIT_INFORMATION_INTRICATE) or
+					(RD.acctVars.junkTreasures and itemType == ITEMTYPE_TREASURE and itemValue > 0) or
+						(RD.acctVars.junkStolen and IsItemStolen(bagId, slotIndex)) or
+							(RD.acctVars.junkMaps and (itemType == ITEMTYPE_TROPHY and specialType == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP and not CanItemBeUsedToLearn(bagId, slotIndex))) or
+								(RD.acctVars.junkKnownScripts and (itemType == ITEMTYPE_CRAFTED_ABILITY_SCRIPT and IsItemBound(bagId, slotIndex) and not IsKnowledgeUnknown(itemLink))))
+	if RD.acctVars.destroyLQStolen and IsItemStolen(bagId, slotIndex) and GetItemSellValueWithBonuses(bagId, slotIndex) >= 100 then
 		local stolenValue = 0
 		for slotIndex = 0, GetBagSize(bagId) do
 			if IsItemStolen(bagId, slotIndex) and GetItemSellValueWithBonuses(bagId, slotIndex) >= 100 then
@@ -2063,17 +2082,17 @@ local function JunkManager(eventCode, bagId, slotIndex, isNewItem, soundCategory
 	if not IsItemJunk(bagId, slotIndex) and (RD.junkMemory[itemId] ~= nil or isTrash) and not IsItemPlayerLocked(bagId, slotIndex) then
 		if isCrafted then RD.junkMemory[itemId] = nil return end--<< Cleanup
 		if isTrash and not IsItemStolen(bagId, slotIndex) then RD.junkMemory[itemId] = nil end--<< Cleanup
-		if RD.savedVariables.destroyLQStolen and IsItemStolen(bagId, slotIndex) and GetItemLinkDisplayQuality(itemLink) <= 1 and
+		if RD.acctVars.destroyLQStolen and IsItemStolen(bagId, slotIndex) and GetItemLinkDisplayQuality(itemLink) <= 1 and
 			(GetItemSellValueWithBonuses(bagId, slotIndex) < 60 and not InLootWhitelist(itemId)) then
 				DestroyItem(bagId, slotIndex)
-				if not RD.savedVariables.junkSilentMode then df(RD_LOGO .. "|cFFA2A2Destroying|r " .. itemLink) end
-		elseif RD.savedVariables.destroyUnsellable and RD.junkMemory[itemId] ~= nil and
+				if not RD.acctVars.junkSilentMode then df(RD_LOGO .. "|cFFA2A2Destroying|r " .. itemLink) end
+		elseif RD.acctVars.destroyUnsellable and RD.junkMemory[itemId] ~= nil and
 			GetItemSellInformation(bagId, slotIndex) == ITEM_SELL_INFORMATION_CANNOT_SELL then
 				DestroyItem(bagId, slotIndex)
-				if not RD.savedVariables.junkSilentMode then df(RD_LOGO .. "|cFFA2A2Destroying|r " .. itemLink) end
+				if not RD.acctVars.junkSilentMode then df(RD_LOGO .. "|cFFA2A2Destroying|r " .. itemLink) end
 		else
 			SetItemIsJunk(bagId, slotIndex, true)
-			if not RD.savedVariables.junkSilentMode then df(RD_LOGO .. "Moved " .. itemLink .. " to junk!") end
+			if not RD.acctVars.junkSilentMode then df(RD_LOGO .. "Moved " .. itemLink .. " to junk!") end
 		end
 	end
 end
@@ -2092,11 +2111,11 @@ local function MarkPermJunkMenu(inventorySlot, slotActions)
 	local isTrash = (itemType == ITEMTYPE_TRASH or itemTrait == ITEM_TRAIT_INFORMATION_ORNATE or
 		(itemType == ITEMTYPE_COLLECTIBLE and specialType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_MONSTER_TROPHY) or
 			(itemType == ITEMTYPE_COLLECTIBLE and specialType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_RARE_FISH) or
-				(RD.savedVariables.junkIntricates and itemTrait == ITEM_TRAIT_INFORMATION_INTRICATE) or
-					(RD.savedVariables.junkTreasures and itemType == ITEMTYPE_TREASURE and itemValue > 0) or
-						(RD.savedVariables.junkStolen and IsItemStolen(bagId, slotIndex)) or
-							(RD.savedVariables.junkMaps and (itemType == ITEMTYPE_TROPHY and specialType == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP and not CanItemBeUsedToLearn(bagId, slotIndex))) or
-								(RD.savedVariables.junkKnownScripts and (itemType == ITEMTYPE_CRAFTED_ABILITY_SCRIPT and IsItemBound(bagId, slotIndex) and not IsKnowledgeUnknown(itemId, itemLink, itemType, specialType))))
+				(RD.acctVars.junkIntricates and itemTrait == ITEM_TRAIT_INFORMATION_INTRICATE) or
+					(RD.acctVars.junkTreasures and itemType == ITEMTYPE_TREASURE and itemValue > 0) or
+						(RD.acctVars.junkStolen and IsItemStolen(bagId, slotIndex)) or
+							(RD.acctVars.junkMaps and (itemType == ITEMTYPE_TROPHY and specialType == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP and not CanItemBeUsedToLearn(bagId, slotIndex))) or
+								(RD.acctVars.junkKnownScripts and (itemType == ITEMTYPE_CRAFTED_ABILITY_SCRIPT and IsItemBound(bagId, slotIndex) and not IsKnowledgeUnknown(itemLink))))
 	if IsItemJunk(bagId, slotIndex) or IsItemPlayerLocked(bagId, slotIndex) or bagId ~= BAG_BACKPACK or not CanItemBeMarkedAsJunk(bagId, slotIndex) or RD.junkMemory[itemId] ~= nil or isCrafted or isTrash then return end
 	AddCustomMenuItem("Mark Perm Junk", function() RD.junkMemory[itemId] = itemLink
 		SetItemIsJunk(bagId, slotIndex, true) df(RD_LOGO .. "Added " .. itemLink .. " to junk memory!")
@@ -2117,11 +2136,11 @@ local function UnMarkPermJunkMenu(inventorySlot, slotActions)
 	local isTrash = (itemType == ITEMTYPE_TRASH or itemTrait == ITEM_TRAIT_INFORMATION_ORNATE or
 		(itemType == ITEMTYPE_COLLECTIBLE and specialType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_MONSTER_TROPHY) or
 			(itemType == ITEMTYPE_COLLECTIBLE and specialType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_RARE_FISH) or
-				(RD.savedVariables.junkIntricates and itemTrait == ITEM_TRAIT_INFORMATION_INTRICATE) or
-					(RD.savedVariables.junkTreasures and itemType == ITEMTYPE_TREASURE and itemValue > 0) or
-						(RD.savedVariables.junkStolen and IsItemStolen(bagId, slotIndex)) or
-							(RD.savedVariables.junkMaps and (itemType == ITEMTYPE_TROPHY and specialType == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP and not CanItemBeUsedToLearn(bagId, slotIndex))) or
-								(RD.savedVariables.junkKnownScripts and (itemType == ITEMTYPE_CRAFTED_ABILITY_SCRIPT and IsItemBound(bagId, slotIndex) and not IsKnowledgeUnknown(itemId, itemLink, itemType, specialType))))
+				(RD.acctVars.junkIntricates and itemTrait == ITEM_TRAIT_INFORMATION_INTRICATE) or
+					(RD.acctVars.junkTreasures and itemType == ITEMTYPE_TREASURE and itemValue > 0) or
+						(RD.acctVars.junkStolen and IsItemStolen(bagId, slotIndex)) or
+							(RD.acctVars.junkMaps and (itemType == ITEMTYPE_TROPHY and specialType == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP and not CanItemBeUsedToLearn(bagId, slotIndex))) or
+								(RD.acctVars.junkKnownScripts and (itemType == ITEMTYPE_CRAFTED_ABILITY_SCRIPT and IsItemBound(bagId, slotIndex) and not IsKnowledgeUnknown(itemLink))))
 	if not IsItemJunk(bagId, slotIndex) or bagId ~= BAG_BACKPACK or RD.junkMemory[itemId] == nil or isCrafted or isTrash then return end
 	AddCustomMenuItem("UnMark Perm Junk", function() RD.junkMemory[itemId] = nil
 		SetItemIsJunk(bagId, slotIndex, false) df(RD_LOGO .. "Removed " .. itemLink .. " from junk memory!")
@@ -2129,7 +2148,7 @@ local function UnMarkPermJunkMenu(inventorySlot, slotActions)
 end
 
 function RD.ClearJunkMemory()
-	ZO_ClearTable(RD.savedVariables["Junk Memory"])
+	ZO_ClearTable(RD.acctVars["Junk Memory"])
 	RD.junkMemory["version"] = 1
 	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Junk memory cleared.")
 end
@@ -2137,7 +2156,7 @@ end
 function RD.PopulateJunkMemory()
 	local junkMemory = {}
 	local counter = 0
-	for i, v in pairs(RD.savedVariables["Junk Memory"]) do
+	for i, v in pairs(RD.acctVars["Junk Memory"]) do
 		if i ~= nil and i ~= "version" then
 			counter = counter + 1
 			junkMemory[counter] = {
@@ -2236,7 +2255,7 @@ end
 
 function RD.JunkManagerToggle(toggle)
 	if toggle then
-		RD.savedVariables.junkManager = toggle
+		RD.acctVars.junkManager = toggle
 		local tertiary = LibCustomMenu.CATEGORY_TERTIARY
 		LibCustomMenu:RegisterContextMenu(MarkPermJunkMenu, tertiary)
 		LibCustomMenu:RegisterContextMenu(UnMarkPermJunkMenu, tertiary)
@@ -2245,7 +2264,7 @@ function RD.JunkManagerToggle(toggle)
 		--EVENT_MANAGER:AddFilterForEvent("RidinDirtyJunk", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
 		EVENT_MANAGER:RegisterForEvent("RidinDirtyJunk", EVENT_OPEN_STORE, AutoSellRepair)
 	else
-		RD.savedVariables.junkManager = toggle
+		RD.acctVars.junkManager = toggle
 		EVENT_MANAGER:UnregisterForEvent("RidinDirtyJunk", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
 		EVENT_MANAGER:UnregisterForEvent("RidinDirtyJunk", EVENT_OPEN_STORE)
 		ReloadUI()
@@ -2258,10 +2277,9 @@ local function LootManager(eventCode, receivedBy, itemLink, quantity, _, lootTyp
 	local itemType, specialType = GetItemLinkItemType(itemLink)
 	local _, _, _, equipType, itemStyleId = GetItemLinkInfo(itemLink)
 	local leadHeader = ""
-	local needHeader = ""
+	local needHeader = IsKnowledgeUnknown(itemLink) or ""
 	if (itemType == ITEMTYPE_ARMOR or itemType == ITEMTYPE_WEAPON) and not (GetItemLinkSetInfo(itemLink, false) or GetItemStyleName(itemStyleId) == (nil or "")) then return end
-	if IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) then needHeader = IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) end
-	if (GetItemLinkDisplayQuality(itemLink) >= RD.savedVariables.lootQuality and itemType ~= ITEMTYPE_TRASH and itemType ~= ITEMTYPE_TREASURE and itemType ~= ITEMTYPE_SOUL_GEM)--(itemType == ITEMTYPE_TREASURE and isStolen)
+	if (GetItemLinkDisplayQuality(itemLink) >= RD.acctVars.lootQuality and itemType ~= ITEMTYPE_TRASH and itemType ~= ITEMTYPE_TREASURE and itemType ~= ITEMTYPE_SOUL_GEM)--(itemType == ITEMTYPE_TREASURE and isStolen)
 	or (lootType == LOOT_TYPE_ANTIQUITY_LEAD) or (InLootWhitelist(itemId)) or needHeader ~= "" then
 		local traitType, traitDesc = GetItemLinkTraitInfo(itemLink)
 		local traitName = ""
@@ -2308,6 +2326,8 @@ end
 --if not statusControl then return end
 --df(nameText .. " - " .. tostring(statusControl:IsHidden()))--statusControl:SetHidden(true)
 --local RDPrice = ((ttcPriceData.Avg + (ttcPriceData.SaleAvg or ttcPriceData.Avg)) / 2)--<< UNUSED
+--local nameText = string.gsub(nameControl:GetText(), "%(%+%)", "")
+--local originalPrice = SellPriceControl:GetText()
 local function NeedsAndPrice(control, slot)
 	local itemData = control.dataEntry and control.dataEntry.data
 	local bagId = itemData.bagId
@@ -2323,24 +2343,21 @@ local function NeedsAndPrice(control, slot)
 	local itemType, specialType = GetItemLinkItemType(itemLink)
 	local nameControl = control:GetNamedChild("Name")
 	if not nameControl then return end
-	--local nameText = nameControl:GetText()
-	local nameText = string.gsub(nameControl:GetText(), "%(%+%)", "")
-	if RD.savedVariables.lootManager then
-		if IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) then
-			nameControl:SetText(IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) .. nameText)
-		end
+	local nameText = nameControl:GetText()
+	if RD.acctVars.lootManager then
+		local itemNeeded = IsKnowledgeUnknown(itemLink)
+		if itemNeeded then nameControl:SetText(itemNeeded .. nameText) end
 	end
 	if slot.lootId or STORE_FRAGMENT:IsShowing() then return end
 	if bagId and (IsItemBound(bagId, slotIndex) or IsItemBoPAndTradeable(bagId, slotIndex)) then return end
 	if not TamrielTradeCentre then return end
 	local SellPriceControl = control:GetNamedChild("SellPriceText") or control:GetNamedChild("SellPrice")
 	if not SellPriceControl then return end
-	--local originalPrice = SellPriceControl:GetText()--purchasePrice
 	local ttcPriceData = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
 	if not ttcPriceData then return end
-	local TTCPrice = ttcPriceData[RD.savedVariables.ttcPricing] or ttcPriceData.Avg
+	local TTCPrice = ttcPriceData[RD.acctVars.ttcPricing] or ttcPriceData.Avg
 	local TTCStackPrice = (TTCPrice * itemData.stackCount)
-	if itemData.purchasePrice and RD.savedVariables.traderEnhance then
+	if itemData.purchasePrice and RD.acctVars.traderEnhance then
 		if itemData.stackCount > 1 and TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
 			if itemData.purchasePrice > (TTCStackPrice * 1.2) then
 				SellPriceControl:SetText("|cFFA2A2" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. "|r" .. GOLD_ICON .. "\n@ " .. ZO_LocalizeDecimalNumber(zo_roundToNearest((tonumber(itemData.purchasePrice) / tonumber(itemData.stackCount)), 1)))
@@ -2363,7 +2380,7 @@ end
 
 function RD.lootManagerToggle(toggle)
 	if toggle then
-		RD.savedVariables.lootManager = toggle
+		RD.acctVars.lootManager = toggle
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_LOOT_RECEIVED, LootManager)
 		ZO_PostHook(ItemTooltip, "SetStoreItem", TooltipLeadInfo)
 		ZO_PostHook(ItemTooltip, "SetLootItem", TooltipLeadInfo)
@@ -2411,8 +2428,8 @@ function RD.lootManagerToggle(toggle)
 			NeedsAndPrice(control, slot)
 		end)
 		SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
-			if not traderMods then
-				traderMods = true
+			if not traderHook then
+				traderHook = true
 				local oldSearch = ZO_ScrollList_GetDataTypeTable(ZO_TradingHouseBrowseItemsRightPaneSearchResults, 1).setupCallback
 				local oldListing = ZO_ScrollList_GetDataTypeTable(ZO_TradingHousePostedItemsList, 2).setupCallback
 					ZO_ScrollList_GetDataTypeTable(ZO_TradingHouseBrowseItemsRightPaneSearchResults, 1).setupCallback = function(control, slot)
@@ -2423,7 +2440,7 @@ function RD.lootManagerToggle(toggle)
 		end)
 		ReloadUI()
 	else
-		RD.savedVariables.lootManager = toggle
+		RD.acctVars.lootManager = toggle
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_LOOT_RECEIVED)
 		ReloadUI()
 	end
@@ -2465,7 +2482,7 @@ end
 
 function RD.TraderEnhanceToggle(toggle)
 	if toggle then
-		RD.savedVariables.traderEnhance = toggle
+		RD.acctVars.traderEnhance = toggle
 		ZO_TradingHouseTitleLabel:SetMouseEnabled(true)
 		ZO_TradingHouseTitleLabel:SetHandler("OnMouseUp", function(self, mouseButton, upInside)
 			if upInside then
@@ -2528,7 +2545,7 @@ function RD.TraderEnhanceToggle(toggle)
 			if not itemLink or itemLink == "" then return end
 			local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
 			if not priceInfo then return end
-			local unitPrice = priceInfo[RD.savedVariables.ttcPricing] or priceInfo.Avg
+			local unitPrice = priceInfo[RD.acctVars.ttcPricing] or priceInfo.Avg
 			if not unitPrice or unitPrice <= 0 then return end
 			local stackCount = GetSlotStackSize(BAG_BACKPACK, slotId)
 			local totalPrice = math.floor(unitPrice * stackCount + 0.5)
@@ -2538,7 +2555,7 @@ function RD.TraderEnhanceToggle(toggle)
 			zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)
 		end)
 	else
-		RD.savedVariables.traderEnhance = toggle
+		RD.acctVars.traderEnhance = toggle
 		ReloadUI()
 	end
 end
@@ -2546,9 +2563,9 @@ end
 -------- AP, VET & TELVAR LOG TO CHAT --
 ---------------------------------------------
 local function OutputAVPData()
-	local dataReady = avpData.allianceGained > RD.savedVariables.minimumAVT or
-		avpData.telvarDifference > RD.savedVariables.minimumAVT or avpData.telvarDifference < -RD.savedVariables.minimumAVT or
-			avpData.veterancyGained > RD.savedVariables.minimumAVT
+	local dataReady = avpData.allianceGained > RD.acctVars.minimumAVT or
+		avpData.telvarDifference > RD.acctVars.minimumAVT or avpData.telvarDifference < -RD.acctVars.minimumAVT or
+			avpData.veterancyGained > RD.acctVars.minimumAVT
 	local formattedText = ""
 	local tickReason = "Gained: "
 	if dataReady and avpData.allianceGained ~= 0 then
@@ -2626,7 +2643,7 @@ local function CollectAVPData(allianceGained, telvarDifference, veterancyGained)
 	end
 	if not avpProcessing then
         avpProcessing = true
-		zo_callLater(function() OutputAVPData() end, RD.savedVariables.bombSensitivity)
+		zo_callLater(function() OutputAVPData() end, RD.acctVars.bombSensitivity)
     end
 end
 
@@ -2657,24 +2674,24 @@ local function VetLog(eventCode, trackType, trackId, prevTierIndex, tierIndex, n
 	if trackType ~= REWARD_TRACK_TYPE_AVA_VETERANCY then return end
 	local rewardTrackId = GetRewardTrackIdFromReferenceTrackId(REWARD_TRACK_TYPE_AVA_VETERANCY, GetActiveReferenceTrackIdsForRewardTrackType(REWARD_TRACK_TYPE_AVA_VETERANCY))
 	local totalNeeded = GetTotalProgressAtRewardTrackTier(rewardTrackId, tierIndex)
-	local veterancyGained = newProgress - RD.charVariables.veterancyProgress
+	local veterancyGained = newProgress - RD.charVars.veterancyProgress
 	if veterancyGained < 0 then
 		local totalPrevNeeded = GetTotalProgressAtRewardTrackTier(rewardTrackId, prevTierIndex)
-		veterancyGained = newProgress + (totalPrevNeeded - RD.charVariables.veterancyProgress)
+		veterancyGained = newProgress + (totalPrevNeeded - RD.charVars.veterancyProgress)
 	end
-	RD.charVariables.veterancyProgress = newProgress
+	RD.charVars.veterancyProgress = newProgress
 	CollectAVPData(nil, nil, veterancyGained)
 end
 
 function RD.AVTLogToggle(toggle)
 	if toggle then
-		RD.savedVariables.avtLog = toggle
+		RD.acctVars.avtLog = toggle
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_ALLIANCE_POINT_UPDATE, ApLog)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_REWARD_TRACK_PROGRESS_GAINED, VetLog)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_TELVAR_STONE_UPDATE, TelvarLog)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_PENDING_CURRENCY_REWARD_CACHED, ApLog)
 	else
-		RD.savedVariables.avtLog = toggle
+		RD.acctVars.avtLog = toggle
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_PENDING_CURRENCY_REWARD_CACHED)
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_ALLIANCE_POINT_UPDATE)
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_REWARD_TRACK_PROGRESS_GAINED)
@@ -2686,38 +2703,38 @@ end
 ---------------------------------------------
 local function PvpKillFeed(eventCode, killLocation, killerDisplayName, killerCharacterName, killerAlliance, killerRank, victomDisplayName, victomCharacterName, victomAlliance, victomRank, isKillLocation)
 	if (GetUnitDisplayName('player') == killerDisplayName or IsPlayerInGroup(killerDisplayName)) and not isKillLocation then
-		if GetUnitDisplayName('player') == killerDisplayName then RD.savedVariables.pvpKills = (RD.savedVariables.pvpKills + 1) end
+		if GetUnitDisplayName('player') == killerDisplayName then RD.acctVars.pvpKills = (RD.acctVars.pvpKills + 1) end
 		PlaySound("Ability_Companion_Ultimate_Ready_Sound")
 		if GetSetting_Bool(SETTING_TYPE_UI, UI_SETTING_SHOW_PVP_KILL_FEED_NOTIFICATIONS) then return end
 		if not ZO_ShouldPreferUserId() then
 			victomCharacterName = zo_strformat("<<1>>", victomCharacterName)--<< Strip gemders
 			killerCharacterName = zo_strformat("<<1>>", killerCharacterName)--<< Strip gemders
 			if GetUnitDisplayName('player') == killerDisplayName then
-				df(RD_LOGO .. " |cCC6600You killed " .. tostring(victomCharacterName) .. " [K-" .. tostring(RD.savedVariables.pvpKills) .. " / D-" .. tostring(RD.savedVariables.pvpDeaths) .. " / " .. tostring(zo_round((RD.savedVariables.pvpKills / math.max(1, RD.savedVariables.pvpDeaths)) * 100)) .. "%%]|r")
+				df(RD_LOGO .. " |cCC6600You killed " .. tostring(victomCharacterName) .. " [K-" .. tostring(RD.acctVars.pvpKills) .. " / D-" .. tostring(RD.acctVars.pvpDeaths) .. " / " .. tostring(zo_round((RD.acctVars.pvpKills / math.max(1, RD.acctVars.pvpDeaths)) * 100)) .. "%%]|r")
 			else
 				df(RD_LOGO .. " |cCC6600" .. killerCharacterName .. " killed " .. tostring(victomCharacterName) .. "|r")
 			end
 		else
 			if GetUnitDisplayName('player') == killerDisplayName then
-				df(RD_LOGO .. " |cCC6600You killed " .. tostring(victomDisplayName) .. " [K-" .. tostring(RD.savedVariables.pvpKills) .. " / D-" .. tostring(RD.savedVariables.pvpDeaths) .. " / " .. tostring(zo_round((RD.savedVariables.pvpKills / math.max(1, RD.savedVariables.pvpDeaths)) * 100)) .. "%%]|r")
+				df(RD_LOGO .. " |cCC6600You killed " .. tostring(victomDisplayName) .. " [K-" .. tostring(RD.acctVars.pvpKills) .. " / D-" .. tostring(RD.acctVars.pvpDeaths) .. " / " .. tostring(zo_round((RD.acctVars.pvpKills / math.max(1, RD.acctVars.pvpDeaths)) * 100)) .. "%%]|r")
 			else
 				df(RD_LOGO .. " |cCC6600" .. killerDisplayName .. " killed " .. tostring(victomDisplayName) .. "|r")
 			end
 		end
 	elseif (GetUnitDisplayName('player') == victomDisplayName or IsPlayerInGroup(victomDisplayName)) and not isKillLocation then
-		if GetUnitDisplayName('player') == victomDisplayName then RD.savedVariables.pvpDeaths = (RD.savedVariables.pvpDeaths + 1) end
+		if GetUnitDisplayName('player') == victomDisplayName then RD.acctVars.pvpDeaths = (RD.acctVars.pvpDeaths + 1) end
 		if GetSetting_Bool(SETTING_TYPE_UI, UI_SETTING_SHOW_PVP_KILL_FEED_NOTIFICATIONS) then return end
 		if not ZO_ShouldPreferUserId() then
 			killerCharacterName = zo_strformat("<<1>>", killerCharacterName)--<< Strip genders
 			victomCharacterName = zo_strformat("<<1>>", victomCharacterName)--<< Strip genders
 			if GetUnitDisplayName('player') == victomDisplayName then
-				df(RD_LOGO .. "|cCC6600Killed by " .. tostring(killerCharacterName) .. " [K-" .. tostring(RD.savedVariables.pvpKills) .. " / D-" .. tostring(RD.savedVariables.pvpDeaths) .. "]|r")
+				df(RD_LOGO .. "|cCC6600Killed by " .. tostring(killerCharacterName) .. " [K-" .. tostring(RD.acctVars.pvpKills) .. " / D-" .. tostring(RD.acctVars.pvpDeaths) .. "]|r")
 			else
 				df(RD_LOGO .. "|cCC6600" .. victomCharacterName .. " killed by " .. tostring(killerCharacterName) .. "|r")
 			end
 		else
 			if GetUnitDisplayName('player') == victomDisplayName then
-				df(RD_LOGO .. "|cCC6600Killed by " .. tostring(killerDisplayName) .. " [K-" .. tostring(RD.savedVariables.pvpKills) .. " / D-" .. tostring(RD.savedVariables.pvpDeaths) .. "]|r")
+				df(RD_LOGO .. "|cCC6600Killed by " .. tostring(killerDisplayName) .. " [K-" .. tostring(RD.acctVars.pvpKills) .. " / D-" .. tostring(RD.acctVars.pvpDeaths) .. "]|r")
 			else
 				df(RD_LOGO .. "|cCC6600" .. victomDisplayName .. " killed by " .. tostring(killerDisplayName) .. "|r")
 			end
@@ -2731,36 +2748,36 @@ function RD.SetClearKillFeed(isSetting)
 		local time = os.time()
 		local t = os.date("*t", time)
 		local resetTime = os.time({year = t.year, month = t.month, day = t.day, hour = t.hour, min = 0, sec = 0})
-		RD.savedVariables.pvpKillsReset = resetTime
+		RD.acctVars.pvpKillsReset = resetTime
 		ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("PvP Kill Feed cleared and set to " .. tostring(os.date("%H:%M:%S", resetTime)) .. " daily."))
 	else
 		local ONE_DAY = 86400
 		local time = os.time()
-		local lastReset = RD.savedVariables.pvpKillsReset
+		local lastReset = RD.acctVars.pvpKillsReset
 		--local r = os.date("!*t", lastReset)
 		--local t = os.date("!*t", time)
 		local diff_secs = os.difftime(time, lastReset)
 		local diff_days = diff_secs / ONE_DAY
 		local whole_days = math.floor(diff_days)
 		local wholedays_secs = whole_days * ONE_DAY
-		RD.savedVariables.pvpKillsReset = RD.savedVariables.pvpKillsReset + wholedays_secs
+		RD.acctVars.pvpKillsReset = RD.acctVars.pvpKillsReset + wholedays_secs
 		zo_callLater(function() df(RD_LOGO .. "|cCC6600PvP Kill Feed *DAILY RESET*|r") end, 7000)
 	end
-	RD.savedVariables.pvpKills = 0
-	RD.savedVariables.pvpDeaths = 0
+	RD.acctVars.pvpKills = 0
+	RD.acctVars.pvpDeaths = 0
 end
 
 function RD.ResetKillFeed()
-	RD.savedVariables.pvpKillsReset = GetLastDailyReset()
-	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("PvP Kill Feed reset to default " .. tostring(os.date("%H:%M:%S", RD.savedVariables.pvpKillsReset)) .. " daily."))
+	RD.acctVars.pvpKillsReset = GetLastDailyReset()
+	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("PvP Kill Feed reset to default " .. tostring(os.date("%H:%M:%S", RD.acctVars.pvpKillsReset)) .. " daily."))
 end
 
 function RD.PvpKillFeedToggle(toggle)
 	if toggle then
-		RD.savedVariables.pvpKillFeed = toggle
+		RD.acctVars.pvpKillFeed = toggle
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_PVP_KILL_FEED_DEATH, PvpKillFeed)
 	else
-		RD.savedVariables.pvpKillFeed = toggle
+		RD.acctVars.pvpKillFeed = toggle
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_PVP_KILL_FEED_DEATH)
 	end
 end
@@ -2769,10 +2786,10 @@ end
 ---------------------------------------------
 function RD.NamePlatesToggle(toggle)
 	if toggle then
-		RD.savedVariables.fontBoost = toggle
-		SetNameplateKeyboardFont(string.format("%s|%d", "$(BOLD_FONT)", RD.savedVariables.fontBoost), FONT_STYLE_SOFT_SHADOW_THIN)
+		RD.acctVars.fontBoost = toggle
+		SetNameplateKeyboardFont(string.format("%s|%d", "$(BOLD_FONT)", RD.acctVars.fontBoost), FONT_STYLE_SOFT_SHADOW_THIN)
 	else
-		RD.savedVariables.fontBoost = toggle
+		RD.acctVars.fontBoost = toggle
 		SetNameplateKeyboardFont(string.format("%s|%d", "$(BOLD_FONT)", "20"), FONT_STYLE_SOFT_SHADOW_THIN)
 	end
 end
@@ -2781,7 +2798,7 @@ end
 ---------------------------------------------
 function RD.ArmoryUnlock()
 	local armoryScene = SCENE_MANAGER:GetScene("armoryKeyboard")
-	if RD.savedVariables.lockArmory and armoryScene:GetState() == SCENE_SHOWN then
+	if RD.acctVars.lockArmory and armoryScene:GetState() == SCENE_SHOWN then
 		if not ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled then
 			PlaySound("Click")
 			SCENE_MANAGER:Show("hud")
@@ -2816,14 +2833,14 @@ end
 
 function RD.LockArmoryToggle(toggle)
 	if toggle then
-		RD.savedVariables.lockArmory = toggle
+		RD.acctVars.lockArmory = toggle
 		ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled = false
 		ARMORY_KEYBOARD.keybindStripDescriptor[2].name = ("Save Locked")
 		RD.ArmoryLock:SetText("|t32:32:ESOUI/art/miscellaneous/locked_up.dds|t")
 		RD.ArmoryLock:SetMouseEnabled(true)
 		RD.ArmoryLock:SetAlpha(1)
 	else
-		RD.savedVariables.lockArmory = toggle
+		RD.acctVars.lockArmory = toggle
 		ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled = true
 		RD.ArmoryLock:SetText("")
 		RD.ArmoryLock:SetMouseEnabled(false)
@@ -2835,12 +2852,12 @@ end
 ---------------------------------------------
 function RD.StackAttributesToggle(toggle)
 	if toggle then
-		RD.savedVariables.stackAttributes = toggle
+		RD.acctVars.stackAttributes = toggle
 		ZO_PlayerAttributeHealth:SetAnchor(TOP, ZO_BuffDebuffTopLevelSelfContainer, BOTTOM, 0, 24)
 		ZO_PlayerAttributeMagicka:SetAnchor(TOPRIGHT, ZO_PlayerAttributeHealth, BOTTOM, 0, 8)
 		ZO_PlayerAttributeStamina:SetAnchor(TOPLEFT, ZO_PlayerAttributeHealth, BOTTOM, 0, 8)
 	else
-		RD.savedVariables.stackAttributes = toggle
+		RD.acctVars.stackAttributes = toggle
 		ReloadUI()
 	end
 end
@@ -2850,12 +2867,12 @@ end
 --or IsFriend(fromDisplayName)
 local function ChatNotify(eventId, channelType, fromName, chatText, isCustomerService, fromDisplayName)
 	if (channelType == CHAT_CHANNEL_WHISPER or channelType == CHAT_CHANNEL_PARTY or channelType == CHAT_CHANNEL_YELL) and fromDisplayName ~= GetUnitDisplayName("player") then
-		PlaySound(RD.savedVariables.chatNotify)
+		PlaySound(RD.acctVars.chatNotify)
 	end
 end
 
 function RD.FSC(eventCode, displayName, charName, oldStatus, newStatus)
-	if displayName == GetUnitDisplayName("player") or displayName ~= RD.savedVariables.savedPlayer or GetTimeStamp() == chatStamp then return end
+	if displayName == GetUnitDisplayName("player") or displayName ~= RD.acctVars.savedPlayer or GetTimeStamp() == chatStamp then return end
 	local guildId = nil
 	local zoneName = RD.GetFriendZone(charName)
 	RD.GSC(eventCode, guildId, displayName, oldStatus, newStatus, charName, zoneName)
@@ -2871,36 +2888,36 @@ function RD.GetFriendZone(characterName)
 end
 
 function RD.GSC(eventCode, guildId, displayName, oldStatus, newStatus, charName, zoneName)
-	if displayName == GetUnitDisplayName("player") or displayName ~= RD.savedVariables.savedPlayer or IsIgnored(displayName) or GetTimeStamp() == chatStamp then return end
+	if displayName == GetUnitDisplayName("player") or displayName ~= RD.acctVars.savedPlayer or IsIgnored(displayName) or GetTimeStamp() == chatStamp then return end
 	local displayNamePref = nil
 	if guildId ~= nil then _, charName, zoneName = GetGuildMemberCharacterInfo(guildId, GetGuildMemberIndexFromDisplayName(guildId, displayName)) end
 	if not ZO_ShouldPreferUserId() then displayNamePref = charName else displayNamePref = displayName end
 	local displayNamePref = zo_strformat("<<1>>", displayNamePref)--<< Strip genders
 	chatStamp = GetTimeStamp()
 	if not IsFriend(displayName) and newStatus ~= PLAYER_STATUS_OFFLINE and oldStatus == PLAYER_STATUS_OFFLINE then
-		--PlaySound(RD.savedVariables.chatNotify)
+		--PlaySound(RD.acctVars.chatNotify)
 		df(RD_LOGO .. " " .. tostring(ZO_FormatClockTime()) .. " " .. tostring(displayNamePref) .. " logged on in " .. zoneName)
 	elseif not IsFriend(displayName) and newStatus == PLAYER_STATUS_OFFLINE then
-		--PlaySound(RD.savedVariables.chatNotify)
+		--PlaySound(RD.acctVars.chatNotify)
 		df(RD_LOGO .. " " .. tostring(ZO_FormatClockTime()) .. " " .. tostring(displayNamePref) .. " logged off in " .. zoneName)
 	elseif newStatus == PLAYER_STATUS_ONLINE and oldStatus == PLAYER_STATUS_AWAY then
-		--PlaySound(RD.savedVariables.chatNotify)
+		--PlaySound(RD.acctVars.chatNotify)
 		df(RD_LOGO .. " " .. tostring(ZO_FormatClockTime()) .. " " .. tostring(displayNamePref) .. " is BACK in " .. zoneName)
 	elseif newStatus == PLAYER_STATUS_AWAY and oldStatus == PLAYER_STATUS_ONLINE then
-		--PlaySound(RD.savedVariables.chatNotify)
+		--PlaySound(RD.acctVars.chatNotify)
 		df(RD_LOGO .. " " .. tostring(ZO_FormatClockTime()) .. " " .. tostring(displayNamePref) .. " is AWAY in " .. zoneName)
 	end
 end
 
 function RD.ChatNotifyToggle(toggle)
 	if toggle then
-		RD.savedVariables.chatNotify = toggle
+		RD.acctVars.chatNotify = toggle
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CHAT_MESSAGE_CHANNEL, ChatNotify)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_FRIEND_PLAYER_STATUS_CHANGED, RD.FSC)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_GUILD_MEMBER_PLAYER_STATUS_CHANGED, RD.GSC)
-		PlaySound(RD.savedVariables.chatNotify)
+		PlaySound(RD.acctVars.chatNotify)
 	else
-		RD.savedVariables.chatNotify = toggle
+		RD.acctVars.chatNotify = toggle
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_CHAT_MESSAGE_CHANNEL)
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_FRIEND_PLAYER_STATUS_CHANGED)
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_GUILD_MEMBER_PLAYER_STATUS_CHANGED)
@@ -2964,7 +2981,7 @@ end
 
 function RD.CompanionRapportToggle(toggle)
 	if toggle then
-		RD.savedVariables.companionRapport = toggle
+		RD.acctVars.companionRapport = toggle
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_RAPPORT_UPDATE, CompanionRapport)
 		EVENT_MANAGER:RegisterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED, CompanionDeathState)
 		EVENT_MANAGER:AddFilterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "companion")
@@ -2972,7 +2989,7 @@ function RD.CompanionRapportToggle(toggle)
 			EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT, CompanionSummonResult)
 		end
 	else
-		RD.savedVariables.companionRapport = toggle
+		RD.acctVars.companionRapport = toggle
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_COMPANION_RAPPORT_UPDATE)
 		EVENT_MANAGER:UnregisterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED)
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT)
@@ -3000,7 +3017,7 @@ local function ChatterWhiteList(choice)
 	end
 	return false
 end
-
+--df(tostring(i) .. " - " .. tostring(choiceNumbers[i]) .. " - " .. tostring(choiceNames[i]))
 local function ChatterMonitor(eventCode, optionCount, debugSource)
 	local choiceNames = {}
 	local choiceNumbers = {}
@@ -3008,7 +3025,6 @@ local function ChatterMonitor(eventCode, optionCount, debugSource)
 		local choiceName, choiceNumber = GetChatterOption(i)
 		choiceNames[i] = choiceName
 		choiceNumbers[i] = choiceNumber
-		--df(tostring(i) .. " - " .. tostring(choiceNumbers[i]) .. " - " .. tostring(choiceNames[i]))
 	end
 	if (choiceNames[2] == nil or choiceNumbers[2] == 3800) and ChatterWhiteList(GetChatterOption(1)) then
 		if HasWritQuest() then
@@ -3021,11 +3037,23 @@ end
 
 function RD.SkipDialogsToggle(toggle)
 	if toggle then
-		RD.savedVariables.skipDialogs = toggle
+		RD.acctVars.skipDialogs = toggle
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CHATTER_BEGIN, ChatterMonitor)
 	else
-		RD.savedVariables.skipDialogs = toggle
+		RD.acctVars.skipDialogs = toggle
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_CHATTER_BEGIN)
+	end
+end
+---------------------------------------------
+---------- GUILD SPAM FILTER --
+---------------------------------------------
+function RD.SpamFilterToggle(toggle)
+	if toggle then
+		RD.acctVars.spamFilter = toggle
+		ReloadUI()
+	else
+		RD.acctVars.spamFilter = toggle
+		ReloadUI()
 	end
 end
 ---------------------------------------------
@@ -3058,11 +3086,11 @@ end
 
 function RD.AutoQueueToggle(toggle)
    if toggle then
-		RD.savedVariables.autoQueue = toggle
+		RD.acctVars.autoQueue = toggle
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_ACTIVITY_FINDER_STATUS_UPDATE, AutoQueue)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CAMPAIGN_QUEUE_STATE_CHANGED, PvPAutoQueue)
 	else
-		RD.savedVariables.autoQueue = toggle
+		RD.acctVars.autoQueue = toggle
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_ACTIVITY_FINDER_STATUS_UPDATE)
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_CAMPAIGN_QUEUE_STATE_CHANGED)
 	end
@@ -3137,12 +3165,12 @@ end
 
 function RD.CombatReticleToggle(toggle)
 	if toggle then
-		RD.savedVariables.combatReticle = toggle
+		RD.acctVars.combatReticle = toggle
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_PLAYER_COMBAT_STATE, CombatState)
 		EVENT_MANAGER:RegisterForEvent("RDCombatDeath", EVENT_PLAYER_DEAD, CombatState)
 		EVENT_MANAGER:RegisterForEvent("RDCombatAlive", EVENT_PLAYER_ALIVE, CombatState)
 	else
-		RD.savedVariables.combatReticle = toggle
+		RD.acctVars.combatReticle = toggle
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_PLAYER_COMBAT_STATE)
 		EVENT_MANAGER:UnregisterForEvent("RDCombatDeath", EVENT_PLAYER_DEAD)
 		EVENT_MANAGER:UnregisterForEvent("RDCombatAlive", EVENT_PLAYER_ALIVE)
@@ -3159,7 +3187,7 @@ end
 
 function RD.CraftingSearchToggle(toggle)
 	if toggle then
-		RD.savedVariables.craftingSearch = toggle
+		RD.acctVars.craftingSearch = toggle
 		RD.CraftSearchBox:SetHidden(false)
 		ZO_PostHook(ZO_Provisioner, "OnTabFilterChanged", function(provisioner)
 			local show = provisioner.filterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING
@@ -3180,7 +3208,7 @@ function RD.CraftingSearchToggle(toggle)
 			return not (RD.craftTable[resultItemId] or ""):find(text, 1, true)
 		end)
 	else
-		RD.savedVariables.craftingSearch = toggle
+		RD.acctVars.craftingSearch = toggle
 		ReloadUI()
 	end
 end
@@ -3198,8 +3226,8 @@ function RD.GroupLeave()
 		ExitInstanceImmediately()
 		--LeaveBattleground()???
 	elseif not IsUnitGrouped("player") then
-		ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("Inviting " .. RD.savedVariables.savedPlayer .. " to group."))
-		GroupInviteByName(RD.savedVariables.savedPlayer)
+		ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("Inviting " .. RD.acctVars.savedPlayer .. " to group."))
+		GroupInviteByName(RD.acctVars.savedPlayer)
 	end
 end
 ---------------------------------------------
@@ -3265,7 +3293,7 @@ function RD.RDBopTradeable()
 		local itemId = GetItemId(bagId, slotIndex)
 		local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
 		local itemType, specialType = GetItemType(bagId, slotIndex)
-		if count < 4 and IsItemBoPAndTradeable(bagId, slotIndex) and not IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) and not RD.InTradeTable(itemLink) then
+		if count < 4 and IsItemBoPAndTradeable(bagId, slotIndex) and not IsKnowledgeUnknown(itemLink) and not RD.InTradeTable(itemLink) then
 			local isTradeable = false
 			for iD = 1, GetGroupSize() do
 				local playerID = GetGroupUnitTagByIndex(iD)
@@ -3282,7 +3310,8 @@ function RD.RDBopTradeable()
 			end
 		end
 	end
-	if links == "" then
+	local editControl = CHAT_SYSTEM.textEntry:GetEditControl()
+	if links == "" and editControl:GetText() == "" then
 		ZO_ClearTable(RD.tradeTable) df(RD_LOGO .. "*Linking complete*") CHAT_SYSTEM.textEntry:GetEditControl():LoseFocus()
 	else
 		StartChatInput(links, CHAT_CHANNEL_PARTY)
@@ -3347,7 +3376,7 @@ SLASH_COMMANDS["/rdpvp"] = function (option)
 		for addonIndex = 1, numAddOns do
 			addOnManager:SetAddOnEnabled(addonIndex, false)
 			local addonName, addonTitle, addonAuthor, addonDescription, isEnabled, addonState, isOutOfDate, isLibrary = addOnManager:GetAddOnInfo(addonIndex)
-			for i, v in pairs(RD.savedVariables["Addon Memory"]) do
+			for i, v in pairs(RD.acctVars["Addon Memory"]) do
 				if i ~= nil and i ~= "version" then
 					if v == addonName then addOnManager:SetAddOnEnabled(addonIndex, true) end
 				end
@@ -3380,7 +3409,8 @@ if InAlphaList(GetUnitDisplayName("player")) then
 				local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
 				local itemType, specialType = GetItemType(bagId, slotIndex)
 				--local containerCoId = GetItemLinkContainerCollectibleId(itemLink)
-				if IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) then itemLink = (IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) .. itemLink) end
+				local itemNeeded = IsKnowledgeUnknown(itemLink)
+				if itemNeeded then itemLink = (itemNeeded .. itemLink) end
 				if itemLink ~= (nil or "") then
 					df(itemLink .. " - " .. itemId .. " - " .. itemType .. " - " .. specialType)-- .. " - " .. containerCoId)
 				end
@@ -3408,11 +3438,11 @@ local function RDInitializeSettings()
 	LibCustomMenu:RegisterGroupListContextMenu(RD.SaveMenu, late)
 	EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_MOUNTED_STATE_CHANGED, PassengerStateChange)
 	-- ADDITIONAL FEATURES --
-	if RD.savedVariables.bankManager or RD.savedVariables.storageManager or RD.savedVariables.goldDeposit or
-		RD.savedVariables.apDeposit or RD.savedVariables.telvarDeposit or RD.savedVariables.voucherDeposit or
-			RD.savedVariables.balanceDisplay then EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_OPEN_BANK, BankManager)
+	if RD.acctVars.bankManager or RD.acctVars.storageManager or RD.acctVars.goldDeposit or
+		RD.acctVars.apDeposit or RD.acctVars.telvarDeposit or RD.acctVars.voucherDeposit or
+			RD.acctVars.balanceDisplay then EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_OPEN_BANK, BankManager)
 	end
-	if RD.savedVariables.junkManager then
+	if RD.acctVars.junkManager then
 		local tertiary = LibCustomMenu.CATEGORY_TERTIARY
 		LibCustomMenu:RegisterContextMenu(MarkPermJunkMenu, tertiary)
 		LibCustomMenu:RegisterContextMenu(UnMarkPermJunkMenu, tertiary)
@@ -3421,19 +3451,19 @@ local function RDInitializeSettings()
 		--EVENT_MANAGER:AddFilterForEvent("RidinDirtyJunk", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
 		EVENT_MANAGER:RegisterForEvent("RidinDirtyJunk", EVENT_OPEN_STORE, AutoSellRepair)
 	end
-	if RD.savedVariables.lockArmory then
+	if RD.acctVars.lockArmory then
 		ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled = false
 		ARMORY_KEYBOARD.keybindStripDescriptor[2].name = ("Save Locked")
 		RD.ArmoryLock:SetText("|t32:32:ESOUI/art/miscellaneous/locked_up.dds|t")
 		RD.ArmoryLock:SetMouseEnabled(true)
 		RD.ArmoryLock:SetAlpha(1)
 	end
-	if RD.savedVariables.chatNotify then
+	if RD.acctVars.chatNotify then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CHAT_MESSAGE_CHANNEL, ChatNotify)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_FRIEND_PLAYER_STATUS_CHANGED, RD.FSC)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_GUILD_MEMBER_PLAYER_STATUS_CHANGED, RD.GSC)
 	end
-	if RD.savedVariables.companionRapport then
+	if RD.acctVars.companionRapport then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_RAPPORT_UPDATE, CompanionRapport)
 		EVENT_MANAGER:RegisterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED, CompanionDeathState)
 		EVENT_MANAGER:AddFilterForEvent("RDCompDeath", EVENT_UNIT_DEATH_STATE_CHANGED, REGISTER_FILTER_UNIT_TAG_PREFIX, "companion")
@@ -3441,19 +3471,19 @@ local function RDInitializeSettings()
 			EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_COMPANION_SUMMON_RESULT, CompanionSummonResult)
 		end
 	end
-	if RD.savedVariables.skipDialogs then
+	if RD.acctVars.skipDialogs then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CHATTER_BEGIN, ChatterMonitor)
 	end
-	if RD.savedVariables.autoQueue then
+	if RD.acctVars.autoQueue then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_ACTIVITY_FINDER_STATUS_UPDATE, AutoQueue)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CAMPAIGN_QUEUE_STATE_CHANGED, PvPAutoQueue)
 	end
-	if RD.savedVariables.combatReticle then
+	if RD.acctVars.combatReticle then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_PLAYER_COMBAT_STATE, CombatState)
 		EVENT_MANAGER:RegisterForEvent("RDCombatDeath", EVENT_PLAYER_DEAD, CombatState)
 		EVENT_MANAGER:RegisterForEvent("RDCombatAlive", EVENT_PLAYER_ALIVE, CombatState)
 	end
-	if RD.savedVariables.craftingSearch then
+	if RD.acctVars.craftingSearch then
 		RD.CraftSearchBox:SetHidden(false)
 		ZO_PostHook(ZO_Provisioner, "OnTabFilterChanged", function(provisioner)
 			local show = provisioner.filterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING
@@ -3474,12 +3504,12 @@ local function RDInitializeSettings()
 			return not (RD.craftTable[resultItemId] or ""):find(text, 1, true)
 		end)
 	end
-	if RD.savedVariables.withdrawOne then
+	if RD.acctVars.withdrawOne then
 		local primary = LibCustomMenu.CATEGORY_PRIMARY
 		LibCustomMenu:RegisterContextMenu(WithdrawMenu, primary)
 		--EVENT_MANAGER:RegisterForEvent("RidinDirtyWithdrawOne", EVENT_OPEN_GUILD_BANK, OpenGuildBank)
 	end
-	if RD.savedVariables.avtLog then
+	if RD.acctVars.avtLog then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_ALLIANCE_POINT_UPDATE, ApLog)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_REWARD_TRACK_PROGRESS_GAINED, VetLog)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_TELVAR_STONE_UPDATE, TelvarLog)
@@ -3488,17 +3518,17 @@ local function RDInitializeSettings()
 			ZO_PostHook(BATTLEGROUND_FINDER_KEYBOARD.filterComboBox, 'SelectItem', function(_, item)
 				if not item then return end
 				if not BATTLEGROUND_FINDER_KEYBOARD.filterComboBox:IsDropdownVisible() then return end
-				RD.savedVariables.lastBGMode = item.name
+				RD.acctVars.lastBGMode = item.name
 			end)
 			ZO_PostHook(BATTLEGROUND_FINDER_KEYBOARD, 'RefreshFilters', function()
-				local lastBGMode = RD.savedVariables.lastBGMode and GetLastBGModeItem(RD.savedVariables.lastBGMode)
+				local lastBGMode = RD.acctVars.lastBGMode and GetLastBGModeItem(RD.acctVars.lastBGMode)
 				if lastBGMode and lastBGMode.name ~= BATTLEGROUND_FINDER_KEYBOARD.filterComboBox:GetSelectedItemData().name and BATTLEGROUND_FINDER_KEYBOARD.fragment:IsShowing() then
 					BATTLEGROUND_FINDER_KEYBOARD.filterComboBox:SelectItem(lastBGMode)
 				end
 			end)
 		end
 	end
-	if RD.savedVariables.lootManager then
+	if RD.acctVars.lootManager then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_LOOT_RECEIVED, LootManager)
 		ZO_PostHook(ItemTooltip, "SetStoreItem", TooltipLeadInfo)
 		ZO_PostHook(ItemTooltip, "SetLootItem", TooltipLeadInfo)
@@ -3546,8 +3576,8 @@ local function RDInitializeSettings()
 			NeedsAndPrice(control, slot)
 		end)
 		SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
-			if not traderMods then
-				traderMods = true
+			if not traderHook then
+				traderHook = true
 				local oldSearch = ZO_ScrollList_GetDataTypeTable(ZO_TradingHouseBrowseItemsRightPaneSearchResults, 1).setupCallback
 				local oldListing = ZO_ScrollList_GetDataTypeTable(ZO_TradingHousePostedItemsList, 2).setupCallback
 					ZO_ScrollList_GetDataTypeTable(ZO_TradingHouseBrowseItemsRightPaneSearchResults, 1).setupCallback = function(control, slot)
@@ -3557,7 +3587,7 @@ local function RDInitializeSettings()
 			end
 		end)
 	end
-	if RD.savedVariables.traderEnhance then
+	if RD.acctVars.traderEnhance then
 		ZO_TradingHouseTitleLabel:SetMouseEnabled(true)
 		ZO_TradingHouseTitleLabel:SetHandler("OnMouseUp", function(self, mouseButton, upInside)
 			if upInside then
@@ -3620,7 +3650,7 @@ local function RDInitializeSettings()
 			if not itemLink or itemLink == "" then return end
 			local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
 			if not priceInfo then return end
-			local unitPrice = priceInfo[RD.savedVariables.ttcPricing] or priceInfo.Avg
+			local unitPrice = priceInfo[RD.acctVars.ttcPricing] or priceInfo.Avg
 			if not unitPrice or unitPrice <= 0 then return end
 			local stackCount = GetSlotStackSize(BAG_BACKPACK, slotId)
 			local totalPrice = math.floor(unitPrice * stackCount + 0.5)
@@ -3630,7 +3660,7 @@ local function RDInitializeSettings()
 			zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)
 		end)
 	end
-	if RD.savedVariables.pvpKillFeed then
+	if RD.acctVars.pvpKillFeed then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_PVP_KILL_FEED_DEATH, PvpKillFeed)
 	end
 	EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
@@ -3642,7 +3672,7 @@ local function AddOnLoaded(eventCode, addOnName)
 	ZO_CreateStringId("SI_BINDING_NAME_TRAVEL_TO_PLAYER", "Travel To Player & In Zone")
 	ZO_CreateStringId("SI_BINDING_NAME_LEAVE_GROUP", "Leave Group & Exit Instance")
 	if not BUI then ZO_CreateStringId("SI_BINDING_NAME_SIEGE_CAMERA_TOGGLE", "Siege Camera Toggle") end
-	local defaultAccountVars = {
+	local defAcctVars = {
 		savedPlayer = "|ccc0000@NotSet|r",
 		travelOutside = false,
 		bankManager = false,
@@ -3689,31 +3719,32 @@ local function AddOnLoaded(eventCode, addOnName)
 		stackAttributes = false,
 		companionRapport = false,
 		skipDialogs = false,
+		spamFilter = false,
 		autoQueue = false,
 		combatReticle = false,
 		craftingSearch = false,
 	}
-	local defaultCharVars = {
+	local defCharVars = {
 		charClass = GetUnitClass("player"),
 		veterancyProgress = 0,
 	}
-	local defaultJunkVars = {
+	local defJunkVars = {
 	}
-	local defaultAddonVars = {
+	local defAddonVars = {
 	}
-	local defaultBankedVars = {
+	local defBankedVars = {
 	}
-	RD.savedVariables = ZO_SavedVars:NewAccountWide( RD.svName, RD.svVersion, nil, defaultAccountVars )
-	RD.charVariables = ZO_SavedVars:NewAccountWide( RD.svName, RD.svVersion, GetUnitName("player"), defaultCharVars )
-	RD.junkMemory = ZO_SavedVars:NewAccountWide( RD.svName, RD.svVersion, "Junk Memory", defaultJunkVars )
-	RD.addonMemory = ZO_SavedVars:NewAccountWide( RD.svName, RD.svVersion, "Addon Memory", defaultAddonVars )
-	RD.bankedMemory = ZO_SavedVars:NewAccountWide( RD.svName, RD.svVersion, "Banked Memory", defaultBankedVars )
-	--RD.savedVariables.travelHome = nil--<< SAVE
-	--RD.charVariables.veterancyPoints = nil--<< SAVE
-	--RD.charVariables.veterancyRank = nil--<< SAVE
+	RD.acctVars = ZO_SavedVars:NewAccountWide( RD.svName, RD.svVersion, nil, defAcctVars )
+	RD.charVars = ZO_SavedVars:NewAccountWide( RD.svName, RD.svVersion, GetUnitName("player"), defCharVars )
+	RD.junkMemory = ZO_SavedVars:NewAccountWide( RD.svName, RD.svVersion, "Junk Memory", defJunkVars )
+	RD.addonMemory = ZO_SavedVars:NewAccountWide( RD.svName, RD.svVersion, "Addon Memory", defAddonVars )
+	RD.bankedMemory = ZO_SavedVars:NewAccountWide( RD.svName, RD.svVersion, "Banked Memory", defBankedVars )
+	--RD.acctVars.travelHome = nil--<< SAVE
+	--RD.charVars.veterancyPoints = nil--<< SAVE
+	--RD.charVars.veterancyRank = nil--<< SAVE
 	RDInitializeControls()
 	RDInitializeSettings()
-	if GetTimeStamp() > (RD.savedVariables.pvpKillsReset + 86400) then RD.SetClearKillFeed(false) end
+	if GetTimeStamp() > (RD.acctVars.pvpKillsReset + 86400) then RD.SetClearKillFeed(false) end
 	EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_ADD_ON_LOADED)
 end
 EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_ADD_ON_LOADED, AddOnLoaded)

@@ -8,6 +8,10 @@
   "category_id": "20",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "PotionResourceTags"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5027/",
-  "fingerprint": "0a2db67fa1c8d54340aee1827ab900b077ecd0ccc9a1074200f4b9c6f8de999e",
+  "fingerprint": "9626c4c8a7a4f84878d11b4213b198bb3fd036f8f3254ec941640fae5169583f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18342.png",
     "https://cdn-eso.mmoui.com/preview/pvw18343.png",
@@ -30,11 +34,11 @@
   "source_id": "5027",
   "source_url": "https://www.esoui.com/downloads/info5027-PotionResourceTags.html",
   "stats": {
-    "downloads": 18,
+    "downloads": 49,
     "favorites": 0,
-    "monthly_downloads": 18
+    "monthly_downloads": 45
   },
   "title": "Potion Resource Tags",
-  "updated_at": 1793941180000,
-  "version": "0.4.0"
+  "updated_at": 1795355291000,
+  "version": "0.4.1"
 }

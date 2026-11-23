@@ -216,12 +216,13 @@ end
 ---------------------------------------------------------------------------
 -- done: have it in the right trait. bind: have it, but it must be bound to fill the Sticker Book.
 -- reconstruct: unlocked, can be made with crystals. wrong: owned in another trait, not unlocked.
--- need: nothing yet.
+-- craft: a crafted set piece still to make. need: nothing yet.
 -- Returns the state, copies you have (capped at the number wanted), copies wanted, and copies found.
 local function pieceStatus(setId, pieceId, want)
     local target = targetTrait(want)
     local count = want.count or 1
-    local unlocked = IsItemSetCollectionPieceUnlocked(pieceId)
+    -- Crafted sets aren't in the Sticker Book, so there is nothing to unlock or bind
+    local unlocked = want.crafted or IsItemSetCollectionPieceUnlocked(pieceId)
     local have, wrong = 0, false
     eachOwned(function(entry)
         if entry.setId == setId and sameShape(want, entry.equip, entry.armor, entry.weapon) then
@@ -240,6 +241,8 @@ local function pieceStatus(setId, pieceId, want)
     local state
     if have >= count then
         state = unlocked and "done" or "bind"
+    elseif want.crafted then
+        state = "craft"
     elseif unlocked then
         state = "reconstruct"
     elseif wrong then
@@ -265,6 +268,7 @@ local ROW = {
     done = function(label) return colour(GREEN, "[x] " .. label) end,
     bind = function(label) return colour(GREEN, "[x] " .. label) .. colour(AMBER, " (bind it)") end,
     reconstruct = function(label) return colour(GOLD, "[  ] " .. label) .. colour(GREY, " (reconstruct)") end,
+    craft = function(label) return colour(GOLD, "[  ] " .. label) .. colour(GREY, " (craft)") end,
     wrong = function(label) return colour(AMBER, "[  ] " .. label) .. colour(GREY, " (wrong trait)") end,
     need = function(label) return "[  ] " .. label end,
 }
@@ -426,7 +430,7 @@ function SH.BuildPanelText()
             local orderA, orderB = pieceOrder(a.want), pieceOrder(b.want)
             if orderA ~= orderB then return orderA < orderB end
             if (a.want.armor or 0) ~= (b.want.armor or 0) then return (a.want.armor or 0) < (b.want.armor or 0) end
-            return a.id < b.id
+            return tostring(a.id) < tostring(b.id)
         end)
 
         -- Only name the weight when the list has the same slot in two weights
@@ -451,7 +455,7 @@ function SH.BuildPanelText()
             total = total + pieceCount
             have = have + pieceHave
             if pieceCount > 1 then label = label .. " " .. pieceHave .. "/" .. pieceCount end
-            if state ~= "done" and state ~= "bind" then
+            if state ~= "done" and state ~= "bind" and not goal.crafted then
                 for _, source in ipairs(dropSources(piece.want, jewelryLabel, zone)) do
                     missingBySource[source] = missingBySource[source] or {}
                     local names = missingBySource[source]
@@ -465,9 +469,16 @@ function SH.BuildPanelText()
             end
             lastStates[piece.id] = state
         end
-        lines[#lines + 1] = colour(GOLD, zo_strformat("<<t:1>>", GetItemSetName(setId))) .. "  " .. have .. "/" .. total
-            .. colour(GREY, "  Book " .. GetNumItemSetCollectionSlotsUnlocked(setId) .. "/" .. GetNumItemSetCollectionPieces(setId))
-        if location then lines[#lines + 1] = colour(GREY, location) end
+        local heading = colour(GOLD, zo_strformat("<<t:1>>", GetItemSetName(setId))) .. "  " .. have .. "/" .. total
+        if goal.crafted then
+            lines[#lines + 1] = heading
+            lines[#lines + 1] = colour(GREY, SH.Crafted.SetNote(setId))
+            isOverland = false
+        else
+            lines[#lines + 1] = heading
+                .. colour(GREY, "  Book " .. GetNumItemSetCollectionSlotsUnlocked(setId) .. "/" .. GetNumItemSetCollectionPieces(setId))
+            if location then lines[#lines + 1] = colour(GREY, location) end
+        end
         for _, row in ipairs(rows) do lines[#lines + 1] = row end
         if isOverland then
             for _, source in ipairs(DROP_SOURCES) do
@@ -716,6 +727,8 @@ end
 
 function SH.OnNewItem(bag, slot)
     if not opts.autoLock or bag ~= BAG_BACKPACK then return end
+    -- A piece being crafted still has to be improved, so it's locked when it's finished
+    if SH.Crafted and SH.Crafted.IsBusy() then return end
     local link = GetItemLink(bag, slot)
     if not link or link == "" then return end
     local pieceId = pieceToLock(link)
@@ -765,9 +778,13 @@ end
 local function createSettings()
     local LHAS = LibHarvensAddonSettings
     if not LHAS or not LHAS.AddAddon then return end
-    local settings = LHAS:AddAddon("Set Hunter", { allowDefaults = true, allowRefresh = true })
+    local settings = LHAS:AddAddon("Set Hunter", { allowDefaults = false, allowRefresh = true })
+    local function redraw() pcall(function() settings:UpdateControls() end) end
 
+    -- The library's page-wide reset would also reach the build and crafting rows, so this page has its own
+    local resettable = { "side", "height", "offerAtStations" }
     local function check(label, tooltip, name, after)
+        resettable[#resettable + 1] = name
         return {
             type = LHAS.ST_CHECKBOX, label = label, tooltip = tooltip, default = DEFAULTS[name],
             getFunction = function() return opts[name] end,
@@ -776,19 +793,21 @@ local function createSettings()
     end
     local sides = { { name = "Right", data = "right" }, { name = "Left", data = "left" } }
 
-    settings:AddSettings({
-        { type = LHAS.ST_SECTION, label = "Your list" },
-        {
-            type = LHAS.ST_BUTTON, label = "Clear all sets", buttonText = "Clear all",
-            tooltip = "Empties your current list in one go. Saved builds and your items aren't touched, and pieces already locked stay locked.",
-            disable = function() return not SH.Workshop or not SH.Workshop.HasSets() end,
-            clickHandler = function()
-                SH.Workshop.OfferClearSets(function() pcall(function() settings:UpdateControls() end) end)
-            end,
-        },
-        check("Ignore equipped items", "Gear you're wearing doesn't count as owned, so you can make a second copy of a build. Upgrades and glyphs go on the new copies and leave your worn gear alone. Characters you haven't logged in to since this update still count until you do.", "ignoreEquipped", function()
-            lastStates = {}
-        end),
+    -- Everything lives on this one page. Console sections are sub-menus set up per AddSettings call,
+    -- so the whole page goes in as one batch.
+    local allRows = {}
+    local function addRows(rows)
+        for _, row in ipairs(rows) do allRows[#allRows + 1] = row end
+    end
+    if SH.Workshop then
+        addRows(SH.Workshop.SettingsRows(LHAS, redraw, {
+            check("Ignore equipped items", "Gear you're wearing doesn't count as owned, so you can make a second copy of a build. Upgrades and glyphs go on the new copies and leave your worn gear alone. Characters you haven't logged in to since this update still count until you do.", "ignoreEquipped", function()
+                lastStates = {}
+            end),
+        }))
+    end
+    if SH.Training then addRows(SH.Training.SettingsRows(LHAS, redraw)) end
+    addRows({
         { type = LHAS.ST_SECTION, label = "Side panel" },
         check("Show the panel", "Show your checklist on the side of the screen.", "showPanel"),
         check("Show at guild traders", "Keep the checklist on screen while you browse a guild trader.", "showAtTrader", SH.UpdateTraderScene),
@@ -835,7 +854,7 @@ local function createSettings()
         { type = LHAS.ST_SECTION, label = "Protection" },
         check("Lock pieces you need", "When you pick up or buy a piece on your list in the right trait, lock it so it can't be sold, destroyed or deconstructed by accident. Spare copies aren't locked.", "autoLock"),
         check("Auto-bind new pieces", "When you loot a bind-on-equip piece that's missing from your Sticker Book, bind it. Binding can't be undone. Trader purchases, mail and trades are never bound. In the Sticker Book, press L3 to skip a piece or R3 to skip a whole set.", "autoBind", function()
-            pcall(function() settings:UpdateControls() end)
+            redraw()
         end),
         { type = LHAS.ST_LABEL, label = function() return SH.AutoBind and SH.AutoBind.StatusText() or "" end },
         {
@@ -843,10 +862,26 @@ local function createSettings()
             tooltip = function() return SH.AutoBind and SH.internal and SH.AutoBind.ExceptionsText() or "" end,
             disable = function() return not SH.AutoBind or not SH.AutoBind.HasExceptions() end,
             clickHandler = function()
-                SH.AutoBind.OfferClear(function() pcall(function() settings:UpdateControls() end) end)
+                SH.AutoBind.OfferClear(redraw)
+            end,
+        },
+        {
+            type = LHAS.ST_BUTTON, label = "Reset options to defaults", buttonText = "Reset",
+            tooltip = "Resets the on/off switches, screen side and panel position. Your list, saved builds, traits, crafted sets, training kit and auto-bind exceptions aren't touched.",
+            clickHandler = function()
+                for _, name in ipairs(resettable) do
+                    if name == "offerAtStations" then opts[name] = true else opts[name] = DEFAULTS[name] end
+                end
+                lastStates = {}
+                placePanel()
+                if SH.UpdateTraderScene then SH.UpdateTraderScene() end
+                SH.Refresh()
+                redraw()
             end,
         },
     })
+    if SH.Here then addRows(SH.Here.GuideRows(LHAS)) end
+    settings:AddSettings(allRows)
 end
 
 ---------------------------------------------------------------------------
@@ -892,10 +927,9 @@ local function onLoaded(_, name)
         SetLocation = setLocation, DropSources = dropSources, JewelrySource = jewelrySource, DROP_SOURCES = DROP_SOURCES,
     }
     createPanel()
-    createSettings()
     if SH.Workshop then SH.Workshop.Init() end
     if SH.AutoBind then SH.AutoBind.Init() end
-    if SH.Here then SH.Here.CreateGuidePage() end
+    createSettings()
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED, onPlayerActivated)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_OPEN_TRADING_HOUSE, function() hookTrader(); SH.UpdateTraderScene() end)

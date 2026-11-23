@@ -20,6 +20,7 @@ GL.loopDefaults = {
 }
 GL.charDefaults = {
     guildLoop = GL.loopDefaults,
+    guildLoopUseCharacter = true,
 }
 
 GL.savedVars = nil
@@ -956,11 +957,17 @@ function GL:GetOptions()
             type          = "submenu",
             name          = "Guild Loop",
             icon          = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_guilds.dds",
-            tooltip       = "Cycles through your favorite guilds on a timer.\n\n"
-                         .. "Take Me There just shows you where Guild Loop is: the guild list on your Character screen. "
-                         .. "You don't need to come back here each time. Open that list from your Character screen whenever you want to use it.\n\n"
-                         .. ME.SAVED_CHARACTER_TIP,
+            tooltip       = function()
+                return "Cycles through your favorite guilds on a timer.\n\nWorks from the guild list on your Character screen. Take Me There opens it for you.\n\n" .. GL:SavedTip()
+            end,
             options       = {
+                {
+                    type    = "toggle",
+                    name    = "Character Settings",
+                    tooltip = ME.CHARACTER_SETTINGS_TIP,
+                    getFunc = function() return GL:UsesCharacterSettings() end,
+                    setFunc = function(val) GL:SetUseCharacterSettings(val) end,
+                },
                 {
                     type    = "button",
                     name    = "Take Me There",
@@ -976,12 +983,52 @@ end
 --------------------------------------------------
 -- Lifecycle
 --------------------------------------------------
-function GL:Init()
+local function CopyTable(value)
+    if not IsTable(value) then return value end
+    local copy = {}
+    for k, v in pairs(value) do copy[k] = CopyTable(v) end
+    return copy
+end
+
+function GL:UsesCharacterSettings()
+    return ME.charVariables == nil or ME.charVariables.guildLoopUseCharacter ~= false
+end
+
+function GL:SavedTip()
+    if self:UsesCharacterSettings() then return ME.SAVED_CHARACTER_TIP end
+    return ME.SAVED_ACCOUNT_TIP
+end
+
+function GL:Store()
     local charVars = ME.charVariables
     if not IsTable(charVars.guildLoop) then
         charVars.guildLoop = {}
     end
-    self.savedVars = charVars.guildLoop
+    if self:UsesCharacterSettings() then return charVars.guildLoop end
+    local account = ME.savedVariables
+    if not IsTable(account.guildLoop) then
+        account.guildLoop = CopyTable(charVars.guildLoop)
+    end
+    return account.guildLoop
+end
+
+function GL:SetUseCharacterSettings(value)
+    local charVars = ME.charVariables
+    if not charVars then return end
+    value = value == true
+    if self:UsesCharacterSettings() == value then return end
+    self:UnregisterRotationTimer()
+    charVars.guildLoopUseCharacter = value
+    self.savedVars = self:Store()
+    self:NormalizeSettings()
+    self:RestartRotationTimer()
+    self:RefreshDropdownKeybinds(self.currentDropdown)
+    local panel = ME.settingsPanel
+    if panel and panel.Refresh then panel:Refresh() end
+end
+
+function GL:Init()
+    self.savedVars = self:Store()
 
     self:NormalizeSettings()
     self:InstallHooks()

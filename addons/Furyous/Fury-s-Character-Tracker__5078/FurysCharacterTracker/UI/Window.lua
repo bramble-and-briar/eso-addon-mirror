@@ -374,7 +374,7 @@ function Win:Initialize()
           fn = function() CT.Roster:ShowAll(); CT.Roster:BuildExportRows(); self:Refresh() end },
         { label = "Research timers", tip = "Every research slot on this account: what is researching, time left, and slots that are free.",
           fn = function() CT.Timers:Toggle() end },
-        { label = "Export to Excel", tip = "Saves the board and reloads the UI.\nWith Auto Export turned on (Turn On Auto Export.cmd in the addon folder), ESO Characters.csv appears in Documents\\Elder Scrolls Online a few seconds later.",
+        { label = "Export to Excel", tip = "Saves the board and reloads the UI.\nWith Auto Export turned on (Windows Tools, a separate download linked on the addon page), ESO Characters.csv appears in Documents\\Elder Scrolls Online a few seconds later.",
           fn = function() CT.RequestExport() end },
     }
     previous = nil

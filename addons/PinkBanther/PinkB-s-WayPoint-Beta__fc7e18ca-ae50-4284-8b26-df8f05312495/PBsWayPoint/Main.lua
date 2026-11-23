@@ -248,7 +248,7 @@ function A:StatusLines()
 
 	add("%s", self.title)
 	if self.startErrors and #self.startErrors > 0 then
-		add("start-up problems: %s", table.concat(self.startErrors, "; "))
+		add("start-up problems: %s", self:StartErrorsText())
 	end
 
 	local heading = self:ReadHeading()
@@ -582,7 +582,7 @@ end
 
 function A:CommandBody(input)
 	if not self.sv or not self.route then
-		self:Print(S.notReady, self.startErrors and table.concat(self.startErrors, "; ") or "not loaded yet")
+		self:Print(S.notReady, self.startErrors and #self.startErrors > 0 and self:StartErrorsText() or "not loaded yet")
 		return
 	end
 	local command, arg = Split(input)
@@ -664,14 +664,36 @@ end
 -- Start-up
 -- ---------------------------------------------------------------------------------------
 
+-- One entry per step that failed: { name, message (the last one), count }. Some steps run again at every loading
+-- screen, so a step that keeps failing is counted, not listed again (a list would grow for the whole session).
 A.startErrors = {}
+
+function A:NoteStartError(name, err)
+	local message = tostring(err)
+	for _, item in ipairs(self.startErrors) do
+		if item.name == name then
+			item.message, item.count = message, item.count + 1
+			return
+		end
+	end
+	self.startErrors[#self.startErrors + 1] = { name = name, message = message, count = 1 }
+end
+
+-- "settings: library broke; group sharing: boom (x3)"
+function A:StartErrorsText()
+	local parts = {}
+	for _, item in ipairs(self.startErrors) do
+		parts[#parts + 1] = item.name .. ": " .. item.message .. (item.count > 1 and string.format(" (x%d)", item.count) or "")
+	end
+	return table.concat(parts, "; ")
+end
 
 -- Each step of the start-up on its own, so one that fails does not take the others with it, and the
 -- command and the banner can say which one it was.
 local function Step(name, fn)
 	local ok, err = pcall(fn)
 	if not ok then
-		A.startErrors[#A.startErrors + 1] = name .. ": " .. tostring(err)
+		A:NoteStartError(name, err)
 	end
 	return ok
 end
@@ -757,7 +779,7 @@ local function OnLoaded(_, name)
 			bannerShown = true
 			A:Print(S.bannerLine, A.title)
 			if #A.startErrors > 0 then
-				A:Print(S.notReady, table.concat(A.startErrors, "; "))
+				A:Print(S.notReady, A:StartErrorsText())
 			end
 		end
 	end)

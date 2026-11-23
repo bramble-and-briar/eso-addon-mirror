@@ -8,6 +8,10 @@
   "category_id": "19",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "ActionDurationReminder"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1536/",
-  "fingerprint": "f91e2f1015aa1ba58b09761fc984c37249cbaa3b4980e8bd9619cfb06937b334",
+  "fingerprint": "b0afcbe149c665c7e35ed1c7a3c565c907eb2049870a40ddb17219933a5beccf",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5001.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw5004.jpg",
@@ -35,11 +39,11 @@
   "source_id": "1536",
   "source_url": "https://www.esoui.com/downloads/info1536-ActionDurationReminder.html",
   "stats": {
-    "downloads": 6703382,
+    "downloads": 6708016,
     "favorites": 1557,
-    "monthly_downloads": 60843
+    "monthly_downloads": 62656
   },
   "title": "Action Duration Reminder",
-  "updated_at": 1795186943000,
-  "version": "3.175"
+  "updated_at": 1795434939000,
+  "version": "3.176"
 }

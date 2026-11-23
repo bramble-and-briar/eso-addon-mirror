@@ -31,83 +31,48 @@ local function loadAddonMenu()
                     setFunc = function(value) savedVariables.AL_Gold = value end,
                 },
                 [3] = {
-                    type = "checkbox",
-                    name = "Loot Weapons",
-                    tooltip = "Automatically loot weapons from corpses.",
-                    getFunc = function() return savedVariables.AL_Weapons end,
-                    setFunc = function(value) savedVariables.AL_Weapons = value end,
-                },
-                [4] = {
                     type = "dropdown",
                     name = "Weapons Handling",
                     choices = {"Sell", "Keep", "Discard"},
                     getFunc = function() return savedVariables.AL_Weapons_Handle end,
                     setFunc = function(value) savedVariables.AL_Weapons_Handle = value end,
                 },
-                [5] = {
-                    type = "checkbox",
-                    name = "Loot Armour",
-                    tooltip = "Automatically loot armour from corpses.",
-                    getFunc = function() return savedVariables.AL_Armour end,
-                    setFunc = function(value) savedVariables.AL_Armour = value end,
-                },
-                [6] = {
+                [4] = {
                     type = "dropdown",
                     name = "Armour Handling",
                     choices = {"Sell", "Keep", "Discard"},
                     getFunc = function() return savedVariables.AL_Armour_Handle end,
                     setFunc = function(value) savedVariables.AL_Armour_Handle = value end,
                 },
-                [7] = {
-                    type = "checkbox",
-                    name = "Loot Jewellery",
-                    tooltip = "Automatically loot jewellery from corpses.",
-                    getFunc = function() return savedVariables.AL_Jewellery end,
-                    setFunc = function(value) savedVariables.AL_Jewellery = value end,
-                },
-                [8] = {
+                [5] = {
                     type = "dropdown",
                     name = "Jewellery Handling",
                     choices = {"Sell", "Keep", "Discard"},
                     getFunc = function() return savedVariables.AL_Jewellery_Handle end,
                     setFunc = function(value) savedVariables.AL_Jewellery_Handle = value end,
                 },
-                [9] = {
-                    type = "checkbox",
-                    name = "Loot Consumables",
-                    tooltip = "Automatically loot consumables from corpses.",
-                    getFunc = function() return savedVariables.AL_Consumables end,
-                    setFunc = function(value) savedVariables.AL_Consumables = value end,
-                },
-                [10] = {
+                [6] = {
                     type = "dropdown",
                     name = "Consumables Handling",
                     choices = {"Sell", "Keep", "Discard"},
                     getFunc = function() return savedVariables.AL_Consumables_Handle end,
                     setFunc = function(value) savedVariables.AL_Consumables_Handle = value end,
                 },
-                [11] = {
-                    type = "checkbox",
-                    name = "Loot Collectables",
-                    tooltip = "Automatically loot collectables from corpses.",
-                    getFunc = function() return savedVariables.AL_Collectables end,
-                    setFunc = function(value) savedVariables.AL_Collectables = value end,
-                },
-                [12] = {
+                [7] = {
                     type = "dropdown",
                     name = "Collectables Handling",
                     choices = {"Sell", "Keep", "Discard"},
                     getFunc = function() return savedVariables.AL_Collectables_Handle end,
                     setFunc = function(value) savedVariables.AL_Collectables_Handle = value end,
                 },
-                [13] = {
+                [8] = {
                     type = "checkbox",
                     name = "Bind Collectables to Account",
                     tooltip = "Bind collectables to your account.",
                     getFunc = function() return savedVariables.AL_Collectables_Bind end,
                     setFunc = function(value) savedVariables.AL_Collectables_Bind = value end,
                 },
-                [14] = {
+                [9] = {
                     type = "checkbox",
                     name = "Loot Stackables",
                     tooltip = "Automatically loot stackable items from corpses.",
@@ -159,41 +124,13 @@ local function loadAddonMenu()
         },
         [4] = {
             type = "submenu",
-            name = "Misc Menu",
-            controls = {
-                [1] = {
-                    type = "checkbox",
-                    name = "Spare Some Change",
-                    tooltip = "Automatically donate small amounts of gold to round your carried gold balance off to the nearest 1000. This will not take any more than 1000 gold at any one time.",
-                    getFunc = function() return savedVariables.GN_AutoCollect end,
-                    setFunc = function(value) savedVariables.GN_AutoCollect = value end,
-                },
-                [2] = {
-                    type = "divider",
-                    width = "half",
-                },
-                [3] = {
-                    type = "description",
-                    text = "https://discord.gg/NKqEwWXD5K",
-                }
-            }
-        },
-        [5] = {
-            type = "submenu",
             name = "Settings",
             controls = {
                 [1] = {
-                    type = "checkbox",
-                    name = "Spare Some Change",
-                    tooltip = "Automatically donate small amounts of gold to round your carried gold balance off to the nearest 1000. This will not take any more than 1000 gold at any one time.",
-                    getFunc = function() return savedVariables.GN_AutoCollect end,
-                    setFunc = function(value) savedVariables.GN_AutoCollect = value end,
-                },
-                [2] = {
                     type = "divider",
                     width = "half",
                 },
-                [3] = {
+                [2] = {
                     type = "description",
                     text = "https://discord.gg/NKqEwWXD5K",
                 }
@@ -211,7 +148,4 @@ function GoldNation.Menu.Initialize()
 end
 
 
-SLASH_COMMANDS["/goldnation"] = function()
- -- leave this here for example of slash menu
-    d("gold nation menu slash command!")
-end
+

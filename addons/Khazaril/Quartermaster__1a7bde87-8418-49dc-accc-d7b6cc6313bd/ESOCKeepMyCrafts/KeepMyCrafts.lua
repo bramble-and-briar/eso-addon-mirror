@@ -247,8 +247,19 @@ local function wrapBankToggle(bank)
         end)
         return ok and mine
     end
+    -- On the Withdraw tab of the real bank the game doesn't use X, so it stacks the bank.
+    local function tidyHere()
+        local ok, yes = pcall(function()
+            return ESOC_Organizer ~= nil and GetBankingBag() == BAG_BANK and bank:IsInWithdrawMode()
+        end)
+        return ok and yes
+    end
+    if ESOC_Organizer then
+        ESOC_Organizer.SetButtonCallback(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(group) end)
+    end
     local gameName, gameVisible, gameCallback = button.name, button.visible, button.callback
     button.name = function(...)
+        if tidyHere() then return ESOC_Organizer.ButtonName() end
         if ours() then
             if settings.hideBank then
                 local n = bankHiddenCount()
@@ -260,11 +271,12 @@ local function wrapBankToggle(bank)
         return gameName
     end
     button.visible = function(...)
-        if ours() then return true end
+        if ours() or tidyHere() then return true end
         if type(gameVisible) == "function" then return gameVisible(...) end
         return gameVisible ~= false
     end
     button.callback = function(...)
+        if tidyHere() then return ESOC_Organizer.PressTidy() end
         if ours() then
             settings.hideBank = not settings.hideBank
             if bank.depositList and bank.depositList.RefreshList then pcall(bank.depositList.RefreshList, bank.depositList) end
@@ -470,6 +482,13 @@ local function makeSettings()
     local QM, LHAS = ESOC_Quartermaster, LibHarvensAddonSettings
     if not QM or not savedVars or not LHAS then return end
     QM.CreateSettings(savedVars, {
+        { type = LHAS.ST_SECTION, label = "Organizer" },
+        {
+            type = LHAS.ST_BUTTON, label = "Open item report", buttonText = "Open",
+            tooltip = "Everything you own across characters, the bank, the craft bag and house chests, with what could be learned or sold. Log in to each character and open each chest once to fill it in. LB and RB change page.",
+            clickHandler = function() if ESOC_Organizer then ESOC_Organizer.OpenReport() end end,
+        },
+        { type = LHAS.ST_LABEL, label = "On the bank's Withdraw tab, X stacks the bank. The Organizer never moves items between bags, and never sells, deletes, opens or binds anything." },
         { type = LHAS.ST_SECTION, label = "Protection" },
         {
             type = LHAS.ST_CHECKBOX, label = "Hide crafted and kept items", default = true,
@@ -502,6 +521,7 @@ EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, function(_, name
             QM.Init(savedVars, WS.IsWritStock)
             QM.onChanged = changed
         end
+        if ESOC_Organizer then ESOC_Organizer.Init(savedVars) end
         return WS.Init(savedVars)
     end)
     if not ok then

@@ -1,5 +1,6 @@
 
 Verdant = Verdant or {}
+local Verdant = Verdant
 Verdant.lib = Verdant.lib or {}
 Verdant.lib.plot = Verdant.lib.plot or {}
 

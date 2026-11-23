@@ -8,6 +8,10 @@
   "category_id": "45",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "WifeyDPSPositions"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4861/",
-  "fingerprint": "f64d2e4ef36580f76ea2fe496a94158cf48f7a34b6f2564b96facf5432da2301",
+  "fingerprint": "f5c729c53fba65e045b548fb2885bdaba83fab46c4cdcdf82aa980c81bbf2959",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17523.png",
     "https://cdn-eso.mmoui.com/preview/pvw17524.png"
@@ -29,11 +33,11 @@
   "source_id": "4861",
   "source_url": "https://www.esoui.com/downloads/info4861-WifeyDPSPositions.html",
   "stats": {
-    "downloads": 160,
-    "favorites": 2,
-    "monthly_downloads": 98
+    "downloads": 484,
+    "favorites": 4,
+    "monthly_downloads": 369
   },
   "title": "Wifey DPS Positions",
-  "updated_at": 1793662751000,
-  "version": "1.7"
+  "updated_at": 1795407575000,
+  "version": "1.8"
 }

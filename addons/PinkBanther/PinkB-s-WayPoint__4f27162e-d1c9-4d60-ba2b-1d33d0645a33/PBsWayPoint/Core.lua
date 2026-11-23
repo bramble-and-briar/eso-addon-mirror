@@ -44,7 +44,7 @@ PBS_WAYPOINT = {
 	baseTitle = "PB’s WayPoint",
 	chatName = "PB’s WayPoint",
 	author = "PinkBanther",
-	version = "0.6.4",
+	version = "0.6.5",
 	slash = "/pbwp",
 	shortSlash = "/pbwaypoint",
 	-- a file marks itself here on its last line (see Main.lua: it tells "the files did not run" from "start-up failed")

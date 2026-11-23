@@ -1,0 +1,46 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/evainefaye/Chimer-s-Recall__5103",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "evainefaye",
+  "canonical_id": "esoui:5103",
+  "category_id": "160",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
+  "content_id": "esoui:5103",
+  "deleted": false,
+  "directories": [
+    "ChimersRecall"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5103/",
+  "fingerprint": "b48f6591d5e7156e7732508e01dcef64079e285f2a721104e2412516d73ba983",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18736.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5103",
+  "source_url": "https://www.esoui.com/downloads/info5103-ChimersRecall.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 0,
+    "monthly_downloads": 3
+  },
+  "title": "Chimer's Recall",
+  "updated_at": 1795369558000,
+  "version": "1.2.0"
+}

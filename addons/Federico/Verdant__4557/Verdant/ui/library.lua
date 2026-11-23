@@ -4,6 +4,7 @@ local Verdant = Verdant
 Verdant.Library = {}
 local M = Verdant.Library
 local Sound = Verdant.Sound
+local Skin  = Verdant.Skin
 
 local string_format = string.format
 local math_floor    = math.floor
@@ -18,31 +19,36 @@ local ROW_H   = 30
 local ROW_GAP = 2
 local MAX_ROWS = 10
 
-local C_PIP_SAVE  = { r = 0.55, g = 0.92, b = 0.62 }
-local C_PIP_OTHER = { r = 0.55, g = 0.66, b = 0.82 }
-local C_PIP_LOST  = { r = 0.95, g = 0.42, b = 0.34 }
-local C_PIP_NONE  = { r = 0.45, g = 0.48, b = 0.45 }
 local C_NAME      = { r = 0.86, g = 0.92, b = 0.88 }
 local C_DIM       = { r = 0.55, g = 0.58, b = 0.55 }
-local C_SEL       = { r = 0.55, g = 0.92, b = 0.62 }
-local C_STAR      = { r = 0.91, g = 0.72, b = 0.29 }
+local C_SEL       = Verdant.lib.themes.tint("select")
 local VET_ICON    = "EsoUI/Art/LFG/LFG_veteranDungeon_up.dds"
+local TICK_OFF    = "EsoUI/Art/Buttons/checkbox_unchecked.dds"
+local TICK_ON     = "EsoUI/Art/Buttons/checkbox_checked.dds"
+local TICK_X      = 7
+local TICK_W      = 15
+local TICK_ROOM   = 20
+local TICK_DIM    = 0.55
 
 local controls = {}
 local rows = {}
 local row_session = {}
-local selected = nil
-local pending_idx = nil
+local picked = nil
+local pending_sess = nil
 local delete_armed = false
+local asked_pick, asked_n = nil, 0
+local marked = setmetatable({}, { __mode = "k" })
+local marked_n = 0
 local scroll_off = 0
 local drag = { on = false, y0 = 0, off0 = 0 }
 local log
 
-local function pip_color(sum)
-  if (sum.l or 0) + (sum.m or 0) > 0 then return C_PIP_LOST end
-  if (sum.saves or 0) > 0 and sum.saves >= (sum.o or 0) then return C_PIP_SAVE end
-  if (sum.o or 0) > 0 then return C_PIP_OTHER end
-  return C_PIP_NONE
+local function picked_index()
+  local SS = Verdant.SessionStore
+  for i = 1, SS.count() do
+    if SS.get(i) == picked then return i end
+  end
+  return nil
 end
 
 local function fmt_dur(ms)
@@ -55,6 +61,10 @@ local function fmt_ago(ts)
   local days = math_floor((now - (ts or now)) / 86400)
   if days <= 0 then return GetString(VERDANT_LIB_TODAY) end
   return days .. "d"
+end
+
+local function fmt_date(ts)
+  return (api.GetDateStringFromTimestamp and ts and api.GetDateStringFromTimestamp(ts)) or fmt_ago(ts)
 end
 
 local function fmt_k(v)
@@ -79,13 +89,13 @@ local function make_row(i)
   row:SetAnchor(TOPRIGHT, controls.list, TOPRIGHT, 0, (i - 1) * (ROW_H + ROW_GAP))
   row:SetHeight(ROW_H)
   row:SetMouseEnabled(true)
-  row:SetHandler("OnMouseUp", function() M.on_row_click(i) end)
-  row:SetHandler("OnMouseDoubleClick", function()
+  zui.handler(row, "OnMouseUp", function() M.on_row_click(i) end)
+  zui.handler(row, "OnMouseDoubleClick", function()
     M.on_row_click(i)
     M.on_open_click()
   end)
-  row:SetHandler("OnMouseEnter", function() M.on_row_enter(i) end)
-  row:SetHandler("OnMouseExit", function() M.on_row_exit(i) end)
+  zui.handler(row, "OnMouseEnter", function() M.on_row_enter(i) end)
+  zui.handler(row, "OnMouseExit", function() M.on_row_exit(i) end)
 
   local bg = WM:CreateControl(nm .. "Bg", row, CT_TEXTURE)
   solidify(bg)
@@ -118,21 +128,16 @@ local function make_row(i)
   sel:SetColor(C_SEL.r, C_SEL.g, C_SEL.b, 0.10)
   sel:SetHidden(true)
 
-  local pip = WM:CreateControl(nm .. "Pip", row, CT_TEXTURE)
-  solidify(pip)
-  pip:SetDimensions(3, ROW_H - 12)
-  pip:SetAnchor(LEFT, row, LEFT, 4, 0)
-
   local kind = WM:CreateControl(nm .. "Kind", row, CT_TEXTURE)
   kind:SetDimensions(22, 22)
-  kind:SetAnchor(LEFT, row, LEFT, 7, 0)
+  kind:SetAnchor(LEFT, row, LEFT, 7 + TICK_ROOM, 0)
   kind:SetColor(0.85, 0.90, 0.86, 0.95)
   kind:SetHidden(true)
 
   local vet = WM:CreateControl(nm .. "Vet", row, CT_TEXTURE)
   vet:SetTexture(VET_ICON)
   vet:SetDimensions(13, 13)
-  vet:SetAnchor(LEFT, row, LEFT, 31, 0)
+  vet:SetAnchor(LEFT, row, LEFT, 31 + TICK_ROOM, 0)
   vet:SetColor(0.95, 0.80, 0.35, 1)
   vet:SetHidden(true)
 
@@ -140,8 +145,8 @@ local function make_row(i)
   name:SetFont("ZoFontGameSmall")
   name:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
   name:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-  name:SetDimensions(96, ROW_H)
-  name:SetAnchor(LEFT, row, LEFT, 46, 0)
+  name:SetDimensions(86, ROW_H)
+  name:SetAnchor(LEFT, row, LEFT, 46 + TICK_ROOM, 0)
   name:SetMaxLineCount(1)
   name:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
 
@@ -150,7 +155,7 @@ local function make_row(i)
   stats:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
   stats:SetVerticalAlignment(TEXT_ALIGN_CENTER)
   stats:SetDimensions(176, ROW_H)
-  stats:SetAnchor(LEFT, row, LEFT, 144, 0)
+  stats:SetAnchor(LEFT, row, LEFT, 154, 0)
 
   local when = WM:CreateControl(nm .. "When", row, CT_LABEL)
   when:SetFont("ZoFontGameSmall")
@@ -160,49 +165,80 @@ local function make_row(i)
   when:SetAnchor(RIGHT, row, RIGHT, -20, 0)
 
   local star = WM:CreateControl(nm .. "Star", row, CT_TEXTURE)
-  star:SetTexture("EsoUI/Art/Miscellaneous/status_locked.dds")
-  star:SetDimensions(13, 15)
+  Skin.texture(star, "lock_closed")
+  star:SetDimensions(14, 14)
   star:SetAnchor(RIGHT, row, RIGHT, -4, 0)
-  star:SetColor(C_STAR.r, C_STAR.g, C_STAR.b, 0.95)
   star:SetHidden(true)
 
-  return { root = row, bg = bg, sel = sel, hov = hov, pip = pip, vet = vet, kind = kind,
-           name = name, stats = stats, when = when, star = star }
+  local tick = WM:CreateControl(nm .. "Tick", row, CT_TEXTURE)
+  tick:SetDimensions(TICK_W, TICK_W)
+  tick:SetAnchor(LEFT, row, LEFT, TICK_X, 0)
+
+  local tick_hit = WM:CreateControl(nm .. "TickHit", row, CT_CONTROL)
+  tick_hit:SetDimensions(TICK_X + TICK_W + 2, ROW_H)
+  tick_hit:SetAnchor(LEFT, row, LEFT, 0, 0)
+  tick_hit:SetMouseEnabled(true)
+  zui.handler(tick_hit, "OnMouseUp", function(_, _, upInside)
+    if upInside ~= false then M.on_tick_click(i) end
+  end)
+  zui.handler(tick_hit, "OnMouseEnter", function() M.on_row_enter(i) end)
+  zui.handler(tick_hit, "OnMouseExit", function() M.on_row_exit(i) end)
+
+  return { root = row, bg = bg, sel = sel, hov = hov, vet = vet, kind = kind,
+           name = name, stats = stats, when = when, star = star, tick = tick, tick_hit = tick_hit }
 end
 
 local HAND_GLYPH  = "|t12:12:EsoUI/Art/Buttons/edit_save_up.dds|t "
-local ICON_LOCK   = "EsoUI/Art/Miscellaneous/locked_up.dds"
-local ICON_UNLOCK = "EsoUI/Art/Miscellaneous/unlocked_up.dds"
-
-local function tint_icon(icon, on, r, g, b)
-  icon:SetColor(r, g, b, on and 0.9 or 0.25)
+local function tint_icon(icon, on)
+  icon:SetColor(1, 1, 1, on and 1 or 0.3)
 end
 
 local function set_buttons()
-  local has = selected ~= nil
-  local locked = false
-  if has then
-    local s = Verdant.SessionStore.get(row_session[selected])
-    locked = (s and s.head.locked) or false
-    controls.lock_btn:SetText(locked
-      and GetString(VERDANT_LIB_UNLOCK) or GetString(VERDANT_LIB_LOCK))
-  else
-    controls.lock_btn:SetText(GetString(VERDANT_LIB_LOCK))
-  end
-  controls.lock_icon:SetTexture(locked and ICON_UNLOCK or ICON_LOCK)
+  local has = picked ~= nil
+  local locked = has and picked.head.locked
+  controls.lock_btn:SetText(GetString(locked and VERDANT_LIB_UNLOCK or VERDANT_LIB_LOCK))
+  Skin.texture(controls.lock_icon, locked and "lock_open" or "lock_closed")
   controls.open_btn:SetEnabled(has)
   controls.lock_btn:SetEnabled(has)
-  controls.delete_btn:SetEnabled(has and not locked)
-  controls.delete_btn:SetText(delete_armed and GetString(VERDANT_LIB_CONFIRM)
-                                            or GetString(VERDANT_LIB_DELETE))
-  tint_icon(controls.open_icon,   has, 0.62, 1.00, 0.74)
-  tint_icon(controls.lock_icon,   has, 0.62, 1.00, 0.74)
-  tint_icon(controls.delete_icon, has and not locked, 1.00, 0.55, 0.50)
+  local many = marked_n > 0
+  local can_delete = many or (has and not locked)
+  controls.delete_btn:SetEnabled(can_delete)
+  if many then
+    controls.delete_btn:SetText(string_format(
+      GetString(delete_armed and VERDANT_LIB_CONFIRM_N or VERDANT_LIB_DELETE_N), marked_n))
+  else
+    controls.delete_btn:SetText(GetString(delete_armed and VERDANT_LIB_CONFIRM or VERDANT_LIB_DELETE))
+  end
+  tint_icon(controls.open_icon,   has)
+  tint_icon(controls.lock_icon,   has)
+  tint_icon(controls.delete_icon, can_delete)
+end
+
+local function tidy_marks()
+  local SS = Verdant.SessionStore
+  local live = 0
+  for i = 1, SS.count() do
+    local sess = SS.get(i)
+    if marked[sess] then
+      if sess.head.locked then marked[sess] = nil else live = live + 1 end
+    end
+  end
+  marked_n = live
+end
+
+local function clear_marks()
+  for sess in pairs(marked) do marked[sess] = nil end
+  marked_n = 0
 end
 
 function M.refresh()
+  for i = 1, #rows do
+    rows[i].hov:SetColor(C_SEL.r, C_SEL.g, C_SEL.b, 0.05)
+    rows[i].sel:SetColor(C_SEL.r, C_SEL.g, C_SEL.b, 0.10)
+  end
   local SS = Verdant.SessionStore
   local n = SS.count()
+  tidy_marks()
   local max_off = (n > MAX_ROWS) and (n - MAX_ROWS) or 0
   if scroll_off > max_off then scroll_off = max_off end
   if scroll_off < 0 then scroll_off = 0 end
@@ -228,6 +264,8 @@ function M.refresh()
   controls.empty:SetText(GetString(VERDANT_LIB_EMPTY))
   controls.empty:SetColor(0.5, 0.5, 0.5, 1)
 
+  local want = picked_index()
+  local on_screen = false
   local shown = 0
   for i = n - scroll_off, 1, -1 do
     if shown >= MAX_ROWS then break end
@@ -235,91 +273,62 @@ function M.refresh()
     local row = rows[shown]
     if not row then row = make_row(shown); rows[shown] = row end
     row_session[shown] = i
+    if i == want then on_screen = true end
     local sess = SS.get(i)
     local h = sess.head
-    local pc = pip_color(h.sum or {})
     row.root:SetHidden(false)
     row.bg:SetColor(1, 1, 1, (shown % 2 == 0) and 0.04 or 0.02)
-    row.sel:SetHidden(shown ~= selected)
-    row.pip:SetColor(pc.r, pc.g, pc.b, 1)
-    row.name:SetText(h.label or h.zone or "?")
+    row.sel:SetHidden(i ~= want)
+    row.name:SetText(SS.title(h))
     row.name:SetColor(C_NAME.r, C_NAME.g, C_NAME.b, 1)
     local sum = h.sum or {}
-    local denom = (sum.saves or 0) + (sum.o or 0) + (sum.l or 0) + (sum.m or 0)
-    row.stats:SetText(string_format(
-      "|c94d9eb%s|r  |cf2a0c0%s|r  |c%s%d/%d|r",
-      fmt_k(sum.avg or 0), fmt_k(sum.peak or 0),
-      (pc == C_PIP_LOST) and "f26b56" or "8cea9e",
-      sum.saves or 0, denom))
+    row.stats:SetText(string_format("|c94d9eb%s|r  |cf2a0c0%s|r  |c8c948c%s|r",
+      fmt_k(sum.avg or 0), fmt_k(sum.peak or 0), fmt_date(h.ts)))
     row.stats:SetColor(1, 1, 1, 1)
     local kind_icon = Verdant.ContentKind.icon(h.kind)
     if kind_icon then row.kind:SetTexture(kind_icon) end
     row.kind:SetHidden(kind_icon == nil)
     row.vet:SetHidden((h.difficulty or 0) ~= Verdant.zenimax.constants.DUNGEON_DIFFICULTY_VETERAN)
-    row.when:SetText((h.manual and HAND_GLYPH or "") .. fmt_dur(h.dur_ms) .. "  " .. fmt_ago(h.ts))
+    row.when:SetText((h.manual and HAND_GLYPH or "") .. fmt_dur(h.dur_ms))
     row.when:SetColor(C_DIM.r, C_DIM.g, C_DIM.b, 1)
     row.star:SetHidden(not h.locked)
+    local on = marked[sess]
+    row.tick:SetTexture(on and TICK_ON or TICK_OFF)
+    row.tick:SetColor(C_SEL.r, C_SEL.g, C_SEL.b, on and 1 or TICK_DIM)
+    row.tick:SetHidden(h.locked == true)
+    row.tick_hit:SetHidden(h.locked == true)
   end
   for i = shown + 1, #rows do
     rows[i].root:SetHidden(true)
     row_session[i] = nil
   end
-  if selected and (selected > shown) then selected = nil end
+  if not on_screen then picked = nil end
+  if delete_armed and (picked ~= asked_pick or marked_n ~= asked_n) then delete_armed = false end
   set_buttons()
+  Verdant.Graph.refresh_loaded_status()
 end
 
 function M.on_row_exit(i)
-  ZO_Tooltips_HideTextTooltip()
   if rows[i] then rows[i].hov:SetHidden(true) end
 end
 
 function M.on_row_enter(i)
-  local idx = row_session[i]
-  if not idx then return end
-  rows[i].hov:SetHidden(false)
-  local s = Verdant.SessionStore.get(idx)
-  if not s then return end
-  local sum = s.head.sum or {}
-  local h = s.head
-  local api = Verdant.zenimax.api
-  local zc  = Verdant.zenimax.constants
-  local when = (api.GetDateStringFromTimestamp and h.ts and api.GetDateStringFromTimestamp(h.ts)) or fmt_ago(h.ts)
-  local diff = ""
-  local kind_label = Verdant.ContentKind.label(h.kind)
-  if kind_label then diff = "  ·  " .. kind_label end
-  if (h.difficulty or 0) == zc.DUNGEON_DIFFICULTY_VETERAN then diff = diff .. "  ·  " .. GetString(VERDANT_LIB_VETERAN)
-  elseif (h.difficulty or 0) == zc.DUNGEON_DIFFICULTY_NORMAL then diff = diff .. "  ·  " .. GetString(VERDANT_LIB_NORMAL) end
-  local text = string_format(GetString(VERDANT_LIB_ROW_HEAD),
-    when, h.zone or "?", diff, h.group_size or 0, fmt_dur(h.dur_ms))
-  text = text .. "\n" .. string_format(GetString(VERDANT_LIB_ROW_TIP),
-    sum.saves or 0, sum.o or 0, (sum.l or 0) + (sum.m or 0))
-  if s.head.locked then
-    text = text .. "\n" .. GetString(VERDANT_LIB_ROW_TIP_LOCKED)
-  end
-  ZO_Tooltips_ShowTextTooltip(rows[i].root, TOP, text)
+  if row_session[i] then rows[i].hov:SetHidden(false) end
 end
 
 function M.on_label_focus(on)
-  local box = controls.label_box
-  if not box then return end
-  if on then
-    box:SetEdgeColor(0.62, 1.00, 0.74, 0.80)
-    if controls.label_edit.SelectAll then controls.label_edit:SelectAll() end
-  else
-    box:SetEdgeColor(0.42, 1.00, 0.60, 0.30)
-  end
+  Skin.field(controls.label_box, on)
+  if on and controls.label_edit.SelectAll then controls.label_edit:SelectAll() end
 end
 
 local function sync_label_box()
-  local edit = controls.label_edit
-  if not edit then return end
-  local s = selected and Verdant.SessionStore.get(row_session[selected])
-  edit:SetText((s and s.head and s.head.label) or "")
-  controls.label_btn:SetEnabled(selected ~= nil)
+  controls.label_edit:SetText((picked and picked.head.label) or "")
+  controls.label_btn:SetEnabled(picked ~= nil)
 end
 
 local function disarm_delete()
   zev.unregister_update("VerdantLibDisarm")
+  asked_pick = nil
   if delete_armed then
     delete_armed = false
     set_buttons()
@@ -328,12 +337,13 @@ end
 
 local function arm_delete()
   delete_armed = true
+  asked_pick, asked_n = picked, marked_n
   zev.register_update("VerdantLibDisarm", 3000, disarm_delete)
 end
 
 function M.on_row_click(i)
   if not row_session[i] then return end
-  selected = i
+  picked = Verdant.SessionStore.get(row_session[i])
   disarm_delete()
   for k = 1, #rows do
     rows[k].sel:SetHidden(k ~= i)
@@ -342,42 +352,47 @@ function M.on_row_click(i)
   sync_label_box()
 end
 
+function M.on_tick_click(i)
+  local idx = row_session[i]
+  local sess = idx and Verdant.SessionStore.get(idx)
+  if not sess or sess.head.locked then return end
+  local on = not marked[sess]
+  marked[sess] = on or nil
+  Sound.play(on and "on" or "off")
+  M.refresh()
+end
+
+function M.marked_count() return marked_n end
+
 function M.on_label_save()
-  if not selected then
+  local idx = picked_index()
+  if not idx then
     Sound.play("deny")
     return
   end
-  local idx = row_session[selected]
   local text = controls.label_edit:GetText() or ""
   if Verdant.SessionStore.set_label(idx, text) then
     Sound.play("confirm")
-    local keep = selected
     M.refresh()
-    selected = keep
-    for k = 1, #rows do rows[k].sel:SetHidden(k ~= keep) end
-    set_buttons()
     sync_label_box()
   end
 end
 
 function M.on_open_click()
-  if not selected then return end
-  local sess = Verdant.SessionStore.get(row_session[selected])
-  if sess and Verdant.Graph.load_session(sess) then
+  if not picked_index() then return end
+  if Verdant.Graph.load_session(picked) then
     Sound.play("page")
     M.hide()
   end
 end
 
 function M.on_lock_click()
-  if not selected then return end
-  local idx = row_session[selected]
-  local s = Verdant.SessionStore.get(idx)
-  if s then
-    Verdant.SessionStore.set_locked(idx, not s.head.locked)
-    Sound.play("confirm")
-    M.refresh()
-  end
+  local idx = picked_index()
+  if not idx then return end
+  Verdant.SessionStore.set_locked(idx, not picked.head.locked)
+  disarm_delete()
+  Sound.play("confirm")
+  M.refresh()
 end
 
 local function max_offset()
@@ -391,9 +406,10 @@ local function set_scroll(off)
   if off > max_off then off = max_off end
   if off ~= scroll_off then
     scroll_off = off
-    selected = nil
-    delete_armed = false
+    picked = nil
+    disarm_delete()
     M.refresh()
+    sync_label_box()
   end
 end
 
@@ -425,79 +441,87 @@ end
 function M.on_thumb_down()
   local _, my = api.GetUIMousePosition()
   drag.on, drag.y0, drag.off0 = true, my, scroll_off
-  controls.window:SetHandler("OnUpdate", drag_update)
+  zui.handler(controls.window, "OnUpdate", drag_update)
 end
 
 function M.on_thumb_up()
   if not drag.on then return end
   drag.on = false
-  controls.window:SetHandler("OnUpdate", nil)
+  zui.handler(controls.window, "OnUpdate", nil)
 end
 
-local function shown_rows()
-  local n = 0
-  for i = 1, #rows do
-    if row_session[i] and not rows[i].root:IsHidden() then n = i end
-  end
-  return n
+local function asks_first()
+  if delete_armed then return false end
+  arm_delete()
+  Sound.play("deny")
+  set_buttons()
+  return true
 end
 
 function M.on_delete_click()
-  if not selected then return end
-  local s = Verdant.SessionStore.get(row_session[selected])
-  if s and s.head.locked then return end
-  if not delete_armed then
-    arm_delete()
-    Sound.play("deny")
-    set_buttons()
+  local SS = Verdant.SessionStore
+  if marked_n > 0 then
+    if asks_first() then return end
+    disarm_delete()
+    Sound.play("discard")
+    for i = SS.count(), 1, -1 do
+      local sess = SS.get(i)
+      if marked[sess] and not sess.head.locked then SS.delete(i) end
+    end
+    M.refresh()
+    sync_label_box()
     return
   end
+  local idx = picked_index()
+  if not idx or picked.head.locked then return end
+  if asks_first() then return end
   disarm_delete()
   Sound.play("discard")
-  Verdant.SessionStore.delete(row_session[selected])
-  selected = nil
+  SS.delete(idx)
   M.refresh()
+  sync_label_box()
 end
 
-local function dock_window()
-  local win = controls.window
-  local host = VerdantGraphWindow
-  if not host or host:IsHidden() then return end
-  local screen_h = GuiRoot:GetHeight()
-  win:ClearAnchors()
-  if host:GetBottom() + win:GetHeight() + 16 <= screen_h then
-    win:SetAnchor(TOPLEFT, host, BOTTOMLEFT, 0, 8)
-  else
-    win:SetAnchor(BOTTOMLEFT, host, TOPLEFT, 0, -8)
-  end
+local DOCK_SIDES = { "bottom", "top" }
+
+local function dock_of()
+  return Verdant.Dock.new(controls.window, VerdantGraphWindow, Verdant.Settings.library_place(), DOCK_SIDES)
 end
+
+function M.on_move_stop() Verdant.Dock.released(dock_of()) end
+function M.is_detached() return Verdant.Dock.is_detached(dock_of()) end
+function M.forget_dock() Verdant.Dock.forget(dock_of()) end
 
 local function select_pending()
-  if not pending_idx then return end
   for k = 1, #rows do
-    if row_session[k] == pending_idx then
-      M.on_row_click(k)
-      break
-    end
+    if row_session[k] and Verdant.SessionStore.get(row_session[k]) == pending_sess then M.on_row_click(k) end
   end
-  pending_idx = nil
+  pending_sess = nil
 end
 
+Verdant.lib.themes.on_change(function()
+  if controls.window and not controls.window:IsHidden() then M.refresh() end
+end)
+
 function M.show()
-  selected = nil
+  picked = nil
+  clear_marks()
   disarm_delete()
   scroll_off = 0
-  dock_window()
+  Verdant.Dock.open(dock_of())
   M.refresh()
   select_pending()
   sync_label_box()
   Scene.show_top_level(controls.window)
+  controls.window:BringWindowToTop()
   Sound.play("open")
 end
 
 function M.hide()
   M.on_thumb_up()
   if controls.window:IsHidden() then return end
+  clear_marks()
+  disarm_delete()
   Sound.play("close")
   Scene.hide_top_level(controls.window)
 end
@@ -507,7 +531,7 @@ function M.toggle()
 end
 
 function M.on_session_saved(manual)
-  if manual then pending_idx = Verdant.SessionStore.count() end
+  if manual then pending_sess = Verdant.SessionStore.get(Verdant.SessionStore.count()) end
   if not controls.window or controls.window:IsHidden() then return end
   scroll_off = 0
   M.refresh()
@@ -538,28 +562,26 @@ function M.init()
   controls.label_edit:SetDefaultText(GetString(VERDANT_LIB_LABEL_HINT))
   controls.label_btn:SetText(GetString(VERDANT_LIB_LABEL_SAVE))
   controls.label_btn:SetEnabled(false)
-  zui.tooltip(controls.open_btn,   VERDANT_TIP_LIB_OPEN,   TOP)
-  zui.tooltip(controls.lock_btn,   VERDANT_TIP_LIB_LOCK,   TOP)
-  zui.tooltip(controls.delete_btn, VERDANT_TIP_LIB_DELETE, TOP)
-  zui.tooltip(VerdantLibraryCloseBtn, VERDANT_TIP_CLOSE)
 
   controls.title:SetText(GetString(VERDANT_LIB_TITLE))
   controls.open_btn:SetText(GetString(VERDANT_LIB_OPEN))
   controls.lock_btn:SetText(GetString(VERDANT_LIB_LOCK))
   controls.delete_btn:SetText(GetString(VERDANT_LIB_DELETE))
-  set_buttons()
-  VerdantLibraryBg:SetCenterColor(0.62, 1.00, 0.74, 1.0)
-  VerdantLibraryBg:SetEdgeColor(0.42, 1.00, 0.60, 1.0)
+  Skin.panel(VerdantLibraryBg)
+  Skin.close(VerdantLibraryCloseBtn)
+  Skin.buttons({ controls.open_btn, controls.lock_btn, controls.delete_btn, controls.label_btn })
+  Skin.icon(controls.scroll_up, "arrow_up")
+  Skin.icon(controls.scroll_down, "arrow_down")
+  Skin.texture(controls.open_icon, "arrow_right_up")
+  Skin.texture(controls.delete_icon, "delete")
+  Skin.texture(VerdantLibraryScrollTrackBg, "scroll_track")
+  Skin.texture(VerdantLibraryScrollTrackThumbTex, "scroll_thumb")
   VerdantLibraryListBg:SetEdgeColor(0.42, 1.00, 0.60, 0.55)
   VerdantLibraryListBg:SetCenterColor(0, 0, 0, 0)
   VerdantLibraryListFill:SetTextureCoords(0, 1, 0, 0.05)
   VerdantLibraryListFill:SetColor(0.055, 0.052, 0.046, 0.92)
   controls.label_box:SetCenterColor(0, 0, 0, 0)
   controls.label_edit:SetDefaultTextColor(0.62, 0.70, 0.64, 0.45)
-  VerdantLibraryScrollTrackBg:SetTextureCoords(0, 1, 0, 0.05)
-  VerdantLibraryScrollTrackBg:SetColor(0.42, 1.00, 0.60, 0.12)
-  VerdantLibraryScrollTrackThumbTex:SetTextureCoords(0, 1, 0, 0.05)
-  VerdantLibraryScrollTrackThumbTex:SetColor(0.62, 1.00, 0.74, 0.55)
   M.on_label_focus(false)
   set_buttons()
 end

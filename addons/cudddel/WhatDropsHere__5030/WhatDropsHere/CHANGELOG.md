@@ -1,5 +1,14 @@
 # Änderungen
 
+## 0.4.0-beta (22.11.2026)
+
+- **Ausgrabungsstätten.** Der Beifang gelungener Ausgrabungen (Plunder, Ausrüstung, Stilmaterial, Gold, Spuren)
+  wird je Ausgrabungsstätte und Zone gezählt und am Fadenkreuz angezeigt. Die Antiquität selbst zählt nicht als Beute,
+  misslungene Ausgrabungen zählen nicht. Eigene Anzeige-Schwelle „Ausgrabungsstätten“ im Menü.
+
+- Spuren erscheinen als „Spur: <Antiquität>“ (z. B. „Spur: Thron des Kluftkönigs“). Vorher stand nur der Name
+  der Antiquität da, als hätte die Quelle das Möbelstück selbst gegeben.
+
 ## 0.3.1-beta (08.11.2026)
 
 - **ESOUI-Regeln:** Nur noch eine globale Variable (`WhatDropsHere`), `EVENT_MONEY_UPDATE` nur noch angemeldet,

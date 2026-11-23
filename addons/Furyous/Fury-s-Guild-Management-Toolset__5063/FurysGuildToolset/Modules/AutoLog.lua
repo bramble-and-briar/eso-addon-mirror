@@ -19,8 +19,8 @@ local RANK_CONFIRM_TIMEOUT_MS = 20000
 local ALERT_MAX_LINES = 8            -- demotions listed in the alert window, newest first
 
 AutoLog.defaults = {
-    bigNotice = true,     -- large center-screen notice for demotions and mail results
-    alertWindow = true,   -- alert window for auto-demotes that stays until you close it
+    bigNotice = false,     -- large center-screen notice for demotions and mail results
+    alertWindow = false,   -- alert window for auto-demotes that stays until you close it
     keepDays = 90,
     nextId = 1,
     entries = {},         -- newest last
@@ -125,7 +125,7 @@ function AutoLog:ShowAlert(entry)
     FuryGMTAutoAlertBody:SetText(table.concat(lines, "\n"))
     FuryGMTAutoAlert:SetHeight(20 + FuryGMTAutoAlertTitle:GetTextHeight() + 14 + FuryGMTAutoAlertBody:GetTextHeight() + 18 + 30 + 20)
     PlaySound(SOUNDS.GENERAL_ALERT_ERROR)
-    if FuryGMTAutoAlert:IsHidden() then SCENE_MANAGER:ShowTopLevel(FuryGMTAutoAlert) end
+    U.ShowOnTop(FuryGMTAutoAlert)
 end
 
 function AutoLog:HideAlert()
@@ -174,7 +174,7 @@ function AutoLog:RecordDemotion(info)
     if entry.mail == "queued" then
         U.Print("  Mail: the demotion mail will be sent automatically. You'll get a notice when the server confirms it.")
     else
-        U.Print("  Mail: automatic mail is off. Use Send mail on /gt auto or /gt bank.")
+        U.Print("  Mail: automatic mail is off. Right-click it on /gt auto or /gt bank and pick Send the demotion mail.")
     end
     return entry
 end
@@ -210,14 +210,14 @@ function AutoLog:MailResult(entry, ok, reason)
     else
         entry.mail, entry.mailReason = "failed", reason or "unknown"
         self:Notice(zo_strformat("Demotion mail to <<1>> FAILED", entry.who),
-            zo_strformat("<<1>>. Use Send mail on /gt auto.", entry.mailReason), SOUNDS.GENERAL_ALERT_ERROR)
-        U.Print("|cFF6666Mail failed|r: the demotion mail to %s was not sent (%s). Use Send mail on /gt auto or /gt bank.",
+            zo_strformat("<<1>>. Right-click it on /gt auto and pick Send the demotion mail.", entry.mailReason), SOUNDS.GENERAL_ALERT_ERROR)
+        U.Print("|cFF6666Mail failed|r: the demotion mail to %s was not sent (%s). Right-click it on /gt auto or /gt bank and pick Send the demotion mail.",
             entry.who, entry.mailReason)
     end
     GT.Report:RefreshIfShown()
 end
 
--- Sent by hand from the Send mail button (opens the compose window; you press Send).
+-- Sent by hand from Send mail in the right-click menu (opens the compose window; you press Send).
 function AutoLog:MailOpenedByHand(entry)
     entry.mail, entry.mailReason, entry.mailTs = "manual", nil, GetTimeStamp()
     GT.Report:RefreshIfShown()
@@ -332,7 +332,7 @@ function AutoLog:GetRow(e)
     if e.kind == "demote" and e.mail ~= "sent" and e.mail ~= "queued" and U.IsMember(e.g, e.who) then
         local bank, case = FindBankCase(e)
         if case then
-            actions[#actions + 1] = { label = "Send mail", tip = "Opens the demotion mail for you to review and send.", fn = function()
+            actions[#actions + 1] = { label = "Send the demotion mail", tip = "Opens the demotion mail for you to review and send.", fn = function()
                 case.mailPending = nil
                 bank:MailDemotion(case)
                 self:MailOpenedByHand(e)
@@ -340,18 +340,19 @@ function AutoLog:GetRow(e)
         end
     end
     if e.new then
-        actions[#actions + 1] = { label = "Reviewed", tip = "Marks this as reviewed so it no longer counts as new.", fn = function()
+        actions[#actions + 1] = { label = "Mark reviewed", tip = "Marks this as reviewed so it no longer counts as new.", fn = function()
             e.new = nil
             GT.Report:RefreshIfShown()
         end }
     end
-    actions[#actions + 1] = { label = "Remove", tip = "Deletes this entry from the log.", fn = function()
+    actions[#actions + 1] = { label = "Remove from log", tip = "Deletes this entry from the log.", fn = function()
         for i, x in ipairs(self.sv.entries) do
             if x == e then table.remove(self.sv.entries, i) break end
         end
         GT.Report:RefreshIfShown()
     end }
-    return { text = text, tooltip = self:GetTooltip(e), actions = actions }
+    for _, item in ipairs(GT.Report.ContactItems(e.who)) do actions[#actions + 1] = item end
+    return GT.Report.AddMenu({ text = text, tooltip = self:GetTooltip(e) }, actions)
 end
 
 function AutoLog:GetVisible()
@@ -363,6 +364,33 @@ function AutoLog:GetVisible()
     return list
 end
 
+function AutoLog:TabRows()
+    local rows = {}
+    for _, e in ipairs(self:GetVisible()) do rows[#rows + 1] = self:GetRow(e) end
+    return rows
+end
+
+function AutoLog:TabExportLines()
+    local lines = { "Time\tAction\tGuild\tMember\tFrom rank\tTo rank\tAmount\tRule\tRank change\tMail\tReason / withdrawals" }
+    for _, e in ipairs(self:GetVisible()) do
+        local detail = e.reason or ""
+        if e.kind == "demote" then
+            local w = {}
+            for _, x in ipairs(e.withdrawals) do w[#w + 1] = os.date("%Y-%m-%d %H:%M", x.ts) .. " " .. x.text end
+            if (e.moreWithdrawals or 0) > 0 then w[#w + 1] = string.format("...and %d more", e.moreWithdrawals) end
+            detail = table.concat(w, "; ")
+        end
+        lines[#lines + 1] = (table.concat({ U.FormatDate(e.ts), e.kind, e.guild or "", e.who or "", e.fromRank or "", e.toRank or "",
+            e.amount or "", e.rule or "", e.kind == "demote" and PlainRank(e) or "", e.kind == "demote" and PlainMail(e) or "",
+            detail }, "\t"):gsub("\n", " "))
+    end
+    return lines
+end
+
+function AutoLog:TabSummary()
+    return string.format("Automatic actions, newest first, kept %d days. Hover a row for the full reason.", self.sv.keepDays)
+end
+
 function AutoLog:RegisterTab()
     GT.Report:RegisterTab({
         id = "auto",
@@ -371,30 +399,9 @@ function AutoLog:RegisterTab()
             local n = self:CountNew()
             return n > 0 and string.format("Auto (%d new)", n) or "Auto"
         end,
-        GetSummary = function()
-            return string.format("Automatic actions, newest first, kept %d days. Hover a row for the full reason.", self.sv.keepDays)
-        end,
-        GetRows = function()
-            local rows = {}
-            for _, e in ipairs(self:GetVisible()) do rows[#rows + 1] = self:GetRow(e) end
-            return rows
-        end,
-        GetExportLines = function()
-            local lines = { "Time\tAction\tGuild\tMember\tFrom rank\tTo rank\tAmount\tRule\tRank change\tMail\tReason / withdrawals" }
-            for _, e in ipairs(self:GetVisible()) do
-                local detail = e.reason or ""
-                if e.kind == "demote" then
-                    local w = {}
-                    for _, x in ipairs(e.withdrawals) do w[#w + 1] = os.date("%Y-%m-%d %H:%M", x.ts) .. " " .. x.text end
-                    if (e.moreWithdrawals or 0) > 0 then w[#w + 1] = string.format("...and %d more", e.moreWithdrawals) end
-                    detail = table.concat(w, "; ")
-                end
-                lines[#lines + 1] = (table.concat({ U.FormatDate(e.ts), e.kind, e.guild or "", e.who or "", e.fromRank or "", e.toRank or "",
-                    e.amount or "", e.rule or "", e.kind == "demote" and PlainRank(e) or "", e.kind == "demote" and PlainMail(e) or "",
-                    detail }, "\t"):gsub("\n", " "))
-            end
-            return lines
-        end,
+        GetSummary = function() return self:TabSummary() end,
+        GetRows = function() return self:TabRows() end,
+        GetExportLines = function() return self:TabExportLines() end,
         footer = {
             { label = "Mark all reviewed", tip = "Marks every entry as reviewed so none count as new.", fn = function()
                 for _, e in ipairs(self.sv.entries) do e.new = nil end
@@ -420,7 +427,8 @@ end
 function AutoLog:BuildSettings(options)
     local sv, defaults = self.sv, self.defaults
     options[#options + 1] = { type = "submenu", name = "Automatic actions", controls = {
-        { type = "description", text = "Every automatic action (auto-demote, the automatic demotion mail, hoppers added to the watchlist) is announced in chat with the reason and kept in the Auto tab (/gt auto)." },
+        { type = "description", text = "Every automatic action (auto-demote, the automatic demotion mail, hoppers added to the watchlist) is announced in chat with the reason and kept in the Auto tab (/gt auto). Whether each guild auto-demotes and sends the demotion mail is set under Rules for (guild) on the Guild rules page." },
+        GT.Settings:RulesButton("Opens the Guild rules page, where auto-demote and the automatic demotion mail are turned on or off for each guild."),
         { type = "checkbox", name = "Alert window for auto-demotes",
           tooltip = "Opens a big alert window when someone is auto-demoted. It stays on screen until you close it with its Close button, the X or Esc. Several demotions in a row are listed in the same window. Off: a short notice that fades by itself instead.",
           getFunc = function() return sv.alertWindow end, setFunc = function(v) sv.alertWindow = v end, default = defaults.alertWindow },

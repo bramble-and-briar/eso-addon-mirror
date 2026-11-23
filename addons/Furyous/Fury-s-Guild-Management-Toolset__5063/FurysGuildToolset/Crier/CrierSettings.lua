@@ -64,6 +64,7 @@ local function TryReminder()
         return
     end
     GC.reminderPending = false
+    GC.sv.timerLastAt = GetTimeStamp()     -- saved, so the next one is on time after logouts and reloads
     if GC.sv.timerAutoLoad then
         GC.Say("Reminder: next rotation message loaded into chat. Press Enter to send.")
         GC.Post()
@@ -81,11 +82,26 @@ function GC.FireReminder()
     TryReminder()
 end
 
+-- The time of the last reminder is saved (sv.timerLastAt, account-wide), so the
+-- interval keeps counting through logouts, character switches and /reloadui.
+-- A check every 15 seconds fires the reminder once the interval has passed since
+-- the last one. If it came due while you were offline, it fires soon after login.
+local CHECK_MS = 15000
+
+local function CheckReminder()
+    local minutes = tonumber(GC.sv.timerMinutes) or 0
+    if minutes <= 0 then return end
+    if GetTimeStamp() - (GC.sv.timerLastAt or 0) >= minutes * 60 then
+        GC.FireReminder()
+    end
+end
+
 function GC.StartTimer()
     EVENT_MANAGER:UnregisterForUpdate(TIMER_NAME)
     local minutes = tonumber(GC.sv.timerMinutes) or 0
     if minutes > 0 then
-        EVENT_MANAGER:RegisterForUpdate(TIMER_NAME, minutes * 60000, GC.FireReminder)
+        if not GC.sv.timerLastAt then GC.sv.timerLastAt = GetTimeStamp() end   -- first start: full interval
+        EVENT_MANAGER:RegisterForUpdate(TIMER_NAME, CHECK_MS, CheckReminder)
     end
 end
 
@@ -392,7 +408,7 @@ local function BuildOptions()
     o[#o + 1] = {
         type = "slider",
         name = "Remind me every (minutes)",
-        tooltip = "0 = off. Waits until you're out of combat and not typing.",
+        tooltip = "0 = off. Counts from the last reminder, including time logged out, so logging on and off or reloading doesn't restart it. Waits until you're out of combat and not typing.",
         min = 0, max = 120, step = 5,
         getFunc = function() return GC.sv.timerMinutes or 0 end,
         setFunc = function(v) GC.sv.timerMinutes = v; GC.StartTimer() end,
@@ -474,7 +490,6 @@ function GC.InitSettings()
     EVENT_MANAGER:RegisterForEvent(GC.name .. "Combat", EVENT_PLAYER_COMBAT_STATE, OnCombatState)
 
     local LAM = LibAddonMenu2
-    if not LAM then return end
 
     -- Guild names aren't always ready at load, so build the panel once
     -- the player is in the world.
@@ -491,8 +506,8 @@ function GC.InitSettings()
         LAM:RegisterOptionControls("FuryGMTCrierPanel", BuildOptions())
     end
     Register()  -- the toolset calls InitSettings once you're in the world, so guild names are ready
+end
 
-    GC.OpenSettings = function()
-        if panel then LAM:OpenToPanel(panel) end
-    end
+function GC.OpenSettings()
+    if panel then LibAddonMenu2:OpenToPanel(panel) end
 end

@@ -1,12 +1,21 @@
-## Title: Slots Count
-## APIVersion: 101035
-## Version: 1.0.5
-## AddOnVersion: 10005
-## Description: Merchants Slot Counting addon v 1.0.5; @lahouari EU
-## DependsOn: LibGuildRoster>=10
-## OptionalDependsOn: LibDebugLogger 
-## Author: |ca0a0F3|DLC
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls Online and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+## Title: |ca0a0F3Slots Count|r |t32:32:SlotsCount/guildkiosk.dds|t
+## APIVersion: 101051
+## Author: |cFFF1B8@Dr_Z, |ca0a0F3DLC|r
+## Version: 2.51.00
+## AddOnVersion: 25100
+## Description: Addon solution that adds a Custom Colmun in the Guild Roster to track members listing counts.    Use Command: /scmenu to open Settings Menu.
+## LastUpdated: 11.22.2026
+## DependsOn: LibGuildRoster>=104 LibAddonMenu-2.0>=43
+## OptionalDependsOn: LibDebugLogger
+## OptionalDependsOn: MasterMerchant ArkadiusTradeTools ITTsDonationBot GuildMemberManager
 ## SavedVariables: SlotsCountData
 
 SlotsCount.lua
+SlotsCount.xml
 bindings.xml

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.2
+- The offline viewer and Excel export helper (Windows scripts) are now a separate download, Fury's Character Tracker Windows Tools, linked on the addon page. ESOUI asks that addon downloads hold only addon files. Nothing changes in game; the Export to Excel button works as before.
+- Shorter description line in the addon manifest, so the game reads all of it.
+
+## 1.2.1
+- Shows as up to date in the game's Add-Ons list again (API version 101051, today's live game, plus 101052).
+- Now asks for LibAddonMenu-2.0 version 43 or newer, the current release.
+- Chat lines go straight to the game's chat router (code cleanup for the ESOUI addon check).
+
 ## 1.2.0
 - Settings page (gear on the board, Settings > Addons, or /fct settings): alerts, login summary, open the board at login, reset window positions, export. Now requires LibAddonMenu-2.0.
 - Daily tab: crafting writs per character (started, ready to deliver, done since today's reset at 10:00 UTC on NA and 03:00 UTC on EU), and when each character can take its next riding lesson.

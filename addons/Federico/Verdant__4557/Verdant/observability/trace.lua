@@ -15,6 +15,7 @@ M.on_stop     = NOOP
 M.set_auto    = NOOP
 M.auto_enabled = function() return false end
 M.status_line = function() return "trace disabled (DEBUG=false)" end
+M.mark        = function() return "trace disabled (DEBUG=false)" end
 
 if not Verdant.Constants.DEBUG then return end
 
@@ -26,9 +27,10 @@ local zev     = Verdant.zenimax.events
 local C       = Verdant.zenimax.constants
 local GetGameTimeMilliseconds = api.GetGameTimeMilliseconds
 
-local CAP       = 40000
+local CAP       = 60000
 local CHUNK_MAX = 1800
-local RING      = 3
+local RING      = 30
+local RING_EVENTS = 200000
 
 local CONST_NAMES = {
   "ACTION_RESULT_HEAL", "ACTION_RESULT_CRITICAL_HEAL", "ACTION_RESULT_HOT_TICK",
@@ -46,6 +48,7 @@ local CONST_NAMES = {
 local lines  = {}
 local n      = 0
 local active = false
+local capped = false
 
 local function fld(v)
   local tv = type(v)
@@ -59,7 +62,8 @@ local function rec(tag, ...)
   if not active then return end
   if n >= CAP then
     active = false
-    d("[trace] capacity reached (" .. CAP .. "), capture stopped")
+    capped = true
+    d("[trace] capacity reached (" .. CAP .. "), capture stopped; what was captured is kept and saved on stop")
     return
   end
   local parts = { tag, tostring(GetGameTimeMilliseconds()) }
@@ -93,11 +97,52 @@ local function rec_bosses()
   rec("BO", table.concat(names, "|"))
 end
 
+local function rec_bars()
+  local bars = {}
+  for b, cat in ipairs({ C.HOTBAR_CATEGORY_PRIMARY, C.HOTBAR_CATEGORY_BACKUP }) do
+    local ids = {}
+    for slot = 3, 8 do ids[#ids + 1] = tostring(api.GetSlotBoundId(slot, cat) or 0) end
+    bars[b] = table.concat(ids, "|")
+  end
+  rec("BR", bars[1], bars[2])
+end
+
+local function rec_members()
+  local known = Verdant.GroupSet.snapshot()
+  local ids = {}
+  for i, id in ipairs(known.members) do ids[i] = id end
+  table.sort(ids)
+  rec("GS", known.player_unit_id or 0, table.concat(ids, "|"), known.since)
+end
+
+function M.set_cap(cap)
+  CAP = cap
+end
+
+function M.set_ring(count, events)
+  RING = count
+  RING_EVENTS = events
+end
+
 function M.start()
   active = true
+  capped = false
+  rec("EP", api.GetTimeStamp() or 0)
   rec_group()
   rec_bosses()
+  rec_bars()
+  rec_members()
   d("[trace] capturing (" .. n .. "/" .. CAP .. " events)")
+end
+
+function M.mark(label)
+  label = label or ""
+  local ts = api.GetTimeStamp() or 0
+  local gm = GetGameTimeMilliseconds()
+  rec("MK", label, ts)
+  return "mark " .. (label ~= "" and ("'" .. label .. "' ") or "")
+    .. "epoch=" .. ts .. " game_ms=" .. gm
+    .. (active and "" or " (trace idle, not recorded)")
 end
 
 function M.stop()
@@ -119,6 +164,7 @@ local function reset()
   lines  = {}
   n      = 0
   active = false
+  capped = false
 end
 
 function M.save(sv)
@@ -144,7 +190,7 @@ function M.save(sv)
     build     = Verdant.Constants.VERSION,
     settings  = {
       sample_rate_ms = temporal.sample_rate_ms or Verdant.Constants.TEMPORAL.SAMPLE_RATE_DEFAULT,
-      time_window_s  = temporal.time_window_s or Verdant.Constants.TEMPORAL.TIME_WINDOW_DEFAULT,
+      sample_auto    = temporal.sample_auto == true,
     },
     world     = api.GetWorldName(),
     zone      = api.GetUnitZone("player") or "",
@@ -157,7 +203,12 @@ function M.save(sv)
   sv.traces = sv.traces or {}
   local ring = sv.traces
   ring[#ring + 1] = entry
-  while #ring > RING do table.remove(ring, 1) end
+  local held = 0
+  for i = 1, #ring do held = held + (ring[i].count or 0) end
+  while #ring > 1 and (#ring > RING or held > RING_EVENTS) do
+    held = held - (ring[1].count or 0)
+    table.remove(ring, 1)
+  end
   d("[trace] " .. n .. " events staged, slot " .. #ring .. "/" .. RING .. "; /verdant flush writes them to disk")
   return entry
 end
@@ -179,13 +230,15 @@ function M.on_record(sv)
 end
 
 function M.on_stop(sv)
-  if not (active and M.auto_enabled(sv)) then return end
+  if not M.auto_enabled(sv) then return end
+  if not (active or capped) then return end
   M.stop()
   if n > 0 then M.save(sv) end
 end
 
 function M.status_line()
-  return "trace " .. (active and "ACTIVE" or "idle") .. "  events=" .. n .. "/" .. CAP
+  return "trace " .. (active and "ACTIVE" or "idle") .. (capped and " (capped)" or "")
+    .. "  events=" .. n .. "/" .. CAP
 end
 
 function M.init()
@@ -193,14 +246,18 @@ function M.init()
   zev.register("Verdant_Trace_EF", C.EVENT_EFFECT_CHANGED, function(...) rec("EF", ...) end)
   zev.register("Verdant_Trace_CS", C.EVENT_PLAYER_COMBAT_STATE, function(in_combat) rec("CS", in_combat) end)
   zev.register("Verdant_Trace_DE", C.EVENT_UNIT_DEATH_STATE_CHANGED, function(tag, dead) rec("DE", tag, dead) end)
-  zev.register("Verdant_Trace_WP", C.EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function() rec("WP") end)
+  zev.register("Verdant_Trace_WP", C.EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function()
+    if active then rec_bars() end
+    rec("WP")
+  end)
+  zev.register("Verdant_Trace_AU", C.EVENT_ACTION_SLOT_ABILITY_USED, function(slot)
+    local id, pool, cost, channel = Verdant.Casts.slot_info(slot)
+    rec("AU", slot, id, pool, cost, channel)
+  end)
   zev.register("Verdant_Trace_BO", C.EVENT_BOSSES_CHANGED, rec_bosses)
-  zev.register("Verdant_Trace_PU", C.EVENT_POWER_UPDATE, function(...) rec("PU", ...) end)
-  zev.add_filter("Verdant_Trace_PU", C.EVENT_POWER_UPDATE,
-    C.REGISTER_FILTER_POWER_TYPE, C.POWERTYPE_HEALTH)
-  zev.add_filter("Verdant_Trace_PU", C.EVENT_POWER_UPDATE,
-    C.REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
   zev.register("Verdant_Trace_GJ", C.EVENT_GROUP_MEMBER_JOINED, rec_group)
   zev.register("Verdant_Trace_GL", C.EVENT_GROUP_MEMBER_LEFT, rec_group)
   zev.register("Verdant_Trace_GU", C.EVENT_GROUP_UPDATE, rec_group)
+  zev.register("Verdant_Trace_PU", C.EVENT_POWER_UPDATE, function(...) rec("PU", ...) end)
+  zev.add_filter("Verdant_Trace_PU", C.EVENT_POWER_UPDATE, C.REGISTER_FILTER_UNIT_TAG, "player")
 end

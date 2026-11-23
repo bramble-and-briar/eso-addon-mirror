@@ -110,7 +110,7 @@
                 </Control>
                 <Backdrop name="$(parent)Search" inherits="ZO_SingleLineEditBackdrop_Keyboard" hidden="true">
                     <Dimensions x="220" />
-                    <Anchor point="TOPRIGHT" offsetX="-56" offsetY="12" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Settings" relativePoint="LEFT" offsetX="-12" />
                     <Controls>
                         <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" defaultText="Search names or items">
                             <OnTextChanged>FuryGMT.Report.OnSearchChanged(self)</OnTextChanged>
@@ -136,7 +136,7 @@
             </Controls>
         </TopLevelControl>
 
-        <TopLevelControl name="FuryGMTExport" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true">
+        <TopLevelControl name="FuryGMTExport" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH">
             <Dimensions x="900" y="560" />
             <Anchor point="CENTER" />
             <Controls>

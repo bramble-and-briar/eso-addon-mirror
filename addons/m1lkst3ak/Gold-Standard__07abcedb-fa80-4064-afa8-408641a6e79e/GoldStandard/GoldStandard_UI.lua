@@ -353,7 +353,7 @@ function GS:UpdateFlipPopup()
     for i=1,6 do
         local r=best[i]
         if r then
-            local name=r.name or "Item"
+            local name=self:CleanName(r.name) or "Item"
             self.flipPopupRows[i]:SetText(i..". "..name.." x"..r.qty.." | "..self:Money(r.asking).."g | "..GREEN.."+"..self:Money(r.profit).."g ("..string.format("%.0f",r.roi).."%)"..END)
         else self.flipPopupRows[i]:SetText(i==1 and "No qualifying deals in scanned listings yet." or "") end
     end
@@ -362,7 +362,9 @@ end
 function GS:ShowToast(s)
     if self.layoutMode then return end
     if not self.toastControl then return end
-    self.toastLabel:SetText(GREEN..tostring(s)..END)
+    local lines=1;for _ in tostring(s):gmatch("\n") do lines=lines+1 end
+    self.toastControl:SetHeight(math.max(70,lines*33+20));self.toastLabel:SetHeight(math.max(55,lines*33+8))
+    self.toastLabel:SetText(GREEN..tostring(s):gsub("%^%a+", "")..END)
     self.toastControl:SetHidden(false)
     local token=GetFrameTimeMilliseconds()
     self.toastToken=token
@@ -442,7 +444,7 @@ function GS:RefreshUI()
         end
     else self.hudTel:SetText("") end
     self:RefreshWealthHUD()
-    self.hudLast:SetText("Last: "..(self.lastLoot or "none"))
+    self.hudLast:SetText("Last: "..(self.lastLoot or "none"):gsub("%^%a+",""))
     if self.panel and not self.panel:IsHidden() then self:RenderPanel() end
 end
 function GS:RefreshWealthHUD()
@@ -463,7 +465,7 @@ function GS:RefreshWealthHUD()
     for i,control in ipairs(self.wealthRows) do
         local r=items[i]
         if r then
-            local name=(GetItemLinkName and GetItemLinkName(r.link)) or r.link
+            local name=self:CleanName(GetItemLinkName and GetItemLinkName(r.link)) or r.link
             control:SetText(i..". "..name.." x"..self:Money(r.excess).."   "..GREEN..self:Money(r.value).."g"..END)
         else control:SetText("") end
     end
@@ -667,6 +669,45 @@ function GS:RenderPanel()
     end
     -- Font scaling is intentionally much larger than the PC client UI.
     -- Long ESO item links can overflow; constrain each row to its panel.
-    for i,c in ipairs(self.rows) do c:SetText(rows[i] or "") end
+    for i,c in ipairs(self.rows) do c:SetText((rows[i] or ""):gsub("%^%a+","")) end
     self.footer:SetText(MUTED..footer..END)
 end
+
+
+-- TME Menu Visibility: independent of saved visibility and ongoing statistics.
+-- Suppress presentation, not SetHidden state: existing timers/close actions remain authoritative.
+local tmeMenuAlpha = setmetatable({}, {__mode="k"})
+local function tmeMenuContext()
+    if not SCENE_MANAGER then return false, false, false end
+    local scene=SCENE_MANAGER.GetCurrentScene and SCENE_MANAGER:GetCurrentScene()
+    local name=scene and scene.GetName and scene:GetName()
+    local main=SCENE_MANAGER.IsShowing and SCENE_MANAGER:IsShowing("mainMenuGamepad")
+    if main then return true,false,false end
+    if not name then return false,false,false end
+    local lower=string.lower(name)
+    local gameplay=(lower=="hud" or lower=="hudui" or lower=="hudgamepad" or lower=="huduigamepad")
+    local addon=lower:find("addon",1,true)~=nil or lower:find("libaddonmenu",1,true)~=nil or lower=="gamepadoptions" or lower=="gamepadoptionsroot"
+    local map=lower:find("worldmap",1,true)~=nil or lower=="gamepadworldmap"
+    return not gameplay,addon,map
+end
+local function tmeMenuSuppress(control, suppress)
+    if not control then return end
+    if suppress then
+        if tmeMenuAlpha[control]==nil then tmeMenuAlpha[control]=control:GetAlpha() end
+        if control:GetAlpha()~=0 then control:SetAlpha(0) end
+    elseif tmeMenuAlpha[control]~=nil then
+        control:SetAlpha(tmeMenuAlpha[control]);tmeMenuAlpha[control]=nil
+    end
+end
+
+EVENT_MANAGER:RegisterForUpdate("GoldStandardTME_MenuVisibility", 100, function()
+    if not GS.saved then return end
+    local blocked,addon=tmeMenuContext()
+    local function hide(id,control,allowed)
+        tmeMenuSuppress(control,blocked and not GS.layoutMode and GS.sliderPreviewId~=id and not allowed)
+    end
+    hide("hud",GS.hud);hide("wealth",GS.wealthHUD);hide("toast",GS.toastControl)
+    hide("panel",GS.panel,addon)
+    -- Flip Finder is deliberately exempt so trading remains usable.
+    tmeMenuSuppress(GS.layoutBanner,blocked and not GS.layoutMode)
+end)

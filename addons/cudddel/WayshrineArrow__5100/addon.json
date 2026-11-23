@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/cudddel/WayshrineArrow__5100",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "cudddel",
+  "canonical_id": "esoui:5100",
+  "category_id": "24",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5100",
+  "deleted": false,
+  "directories": [
+    "WayshrineArrow"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5100/",
+  "fingerprint": "e09bd22b03cb17038880320e6367183a1eb35599af0e53f5aa34522e3cbedef3",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18719.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18720.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18721.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5100",
+  "source_url": "https://www.esoui.com/downloads/info5100-WayshrineArrow.html",
+  "stats": {
+    "downloads": 7,
+    "favorites": 0,
+    "monthly_downloads": 5
+  },
+  "title": "WayshrineArrow",
+  "updated_at": 1795343899000,
+  "version": "0.1.0"
+}

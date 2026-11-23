@@ -9,10 +9,10 @@ ME.DoNotLearn = DNL
 local LEARN_ANYWAY = "Learn Anyway"
 
 local DEFAULTS = {
-    dnlRecipes     = true,
-    dnlFurnishings = true,
-    dnlMotifs      = true,
-    dnlScribing    = true,
+    dnlRecipes     = false,
+    dnlFurnishings = false,
+    dnlMotifs      = false,
+    dnlScribing    = false,
     dnlCollectible = false,
     dnlRunebox     = false,
 }
@@ -209,13 +209,7 @@ function DNL:SubmenuOption()
                 choices = self.blockChoices,
                 default = defaultValues,
                 tooltip = "Stops you from learning these when you use them. "
-                       .. "To learn one anyway, highlight it in your inventory and pick " .. LEARN_ANYWAY .. ".\n\n"
-                       .. "Recipes: food and drink recipes.\n"
-                       .. "Furnishing Plans: plans for furniture.\n"
-                       .. "Motifs: style books and chapters.\n"
-                       .. "Scribing: grimoires and scripts.\n"
-                       .. "Collectible Items: style pages and other items that unlock a collectible, like pets and mounts.\n"
-                       .. "Runeboxes: boxes that unlock a collectible.",
+                       .. "To learn one anyway, highlight it in your inventory and pick " .. LEARN_ANYWAY .. ".",
                 getFunc = function()
                     local sv = SV()
                     local values = {}

@@ -4,7 +4,7 @@ ZO_CreateStringId("SI_BINDING_NAME_DUNGEON_BUDDY_OPEN_BOSS_DRAFT", "Dungeon Budd
 ZO_CreateStringId("SI_BINDING_NAME_DUNGEON_BUDDY_PREPARE_BOSS_REPORT", "Dungeon Buddy: Prepare Boss Report (Radial)")
 -- Dungeon Buddy (integrated v0.3)
 -- Separate from Battle Ground Rating. Conservative event attribution.
-local DR = {name="DungeonRating", version="0.3"}
+local DR = {name="DungeonRating", version="0.3.4"}
 local EM = EVENT_MANAGER
 local function now() return GetFrameTimeSeconds and GetFrameTimeSeconds() or 0 end
 local function bool(v) return v==true end
@@ -26,8 +26,9 @@ end
 local function clamp(x,a,b) return math.max(a,math.min(b,x)) end
 local function fmt(n) return string.format("%.0f",n or 0) end
 local function clock(t) t=math.max(0,math.floor(t)); return string.format("%02d:%02d",math.floor(t/60),t%60) end
-local defaults={learnedBuffs={},ultimateEffectIds={},observedAbilities={},settings={showHUD=true,showPace=true,showTrend=true,manualRole="AUTO",difficultyLabels=true,showBossHUD=true,autoReport=true,showPlayerCard=true,previewWindows=false,windowLayout={live={x=200,y=180,scale=100},boss={x=720,y=180,scale=100},report={x=350,y=190,scale=100},career={x=330,y=150,scale=100},playerCard={x=220,y=90,scale=100}}},history={},players={},records={},ratings={HEAL=0,DPS=0,TANK=0},runs=0}
+local defaults={learnedBuffs={},ultimateEffectIds={},observedAbilities={},settings={showHUD=true,showWorldHUD=true,showPace=true,showTrend=true,manualRole="AUTO",difficultyLabels=true,showBossHUD=true,autoReport=true,showPlayerCard=true,previewWindows=false,windowLayout={world={x=200,y=180,scale=100},live={x=200,y=180,scale=100},boss={x=720,y=180,scale=100},report={x=350,y=190,scale=100},career={x=330,y=150,scale=100},playerCard={x=220,y=90,scale=100}}},history={},players={},records={},ratings={HEAL=0,DPS=0,TANK=0},runs=0}
 local S,run,hud,bossHUD,reportHUD,menu,playerCard
+local worldHUD
 local completedInstance=false
 local lastBossReportContext=nil
 local pendingBossReport=nil
@@ -173,7 +174,12 @@ local function roleUptime(kind)
 end
 local function buffUptime() return roleUptime("buff") end
 local function debuffUptime() return roleUptime("debuff") end
-local function dotUptime() return roleUptime("dot") end
+local function dotUptime()
+  if not run or combatDuration()<=0 then return nil end
+  if run.dotObserved then return clamp(100*((run.dotSeconds or 0)+(run.combatStart and run.lastDotTick and math.min(2,math.max(0,now()-run.lastDotTick)) or 0))/combatDuration(),0,100) end
+  if (run.damageEvents or 0)>0 then return 0 end
+  return nil
+end
 local function targetUptime()
   if not run or combatDuration()<=0 or (run.damageEvents or 0)==0 then return nil end
   local seconds=run.targetSeconds or 0
@@ -188,10 +194,15 @@ local function closeUptimeSegment(entry)
     entry.since=nil
   end
 end
+local function targetGrade(p)
+  if not p then return "UNAVAILABLE" end
+  if p>=95 then return "LEGENDARY" elseif p>=90 then return "ELITE" elseif p>=85 then return "GREAT" elseif p>=80 then return "GOOD" elseif p>=70 then return "AVERAGE" elseif p>=60 then return "SUBPAR" end
+  return "BAD"
+end
 local buffGrade
 local function roleMetricLines(h)
   local function line(label,v)
-    return label..": "..(type(v)=="number" and string.format("%.1f%% | %s",v,buffGrade(v)) or "N/A")
+    return label..": "..(type(v)=="number" and string.format("%.1f%% | %s",v,(label:find("TIME ON TARGET",1,true) and targetGrade(v) or buffGrade(v))) or "N/A")
   end
   if h.role=="HEAL" then return line("BUFF UPTIME",h.buffUptime).."\n"..line("DEBUFF UPTIME",h.debuffUptime) end
   if h.role=="TANK" then return line("BUFF UPTIME",h.buffUptime).."\n"..line("DEBUFF UPTIME",h.debuffUptime) end
@@ -219,8 +230,8 @@ local function scoreParts()
     damage=clamp(dps/700,0,8)
     healing=clamp(hps/700,0,4)
   else
-    buff=((dotUptime() or 0)+(targetUptime() or 0))*0.08
-    damage=clamp(dps/400,0,32)
+    buff=(dotUptime() or 0)*0.06+(targetUptime() or 0)*0.09
+    damage=clamp(dps/1800,0,24)
     healing=clamp(hps/1200,0,3)
     utility=clamp(run.interrupts*2+run.ccEvents,0,6)
   end
@@ -232,6 +243,21 @@ local function makeLabel(parent,y,size,color,width)
   local c=WINDOW_MANAGER:CreateControl(nil,parent,CT_LABEL)
   c:SetAnchor(TOPLEFT,parent,TOPLEFT,14,y);c:SetDimensions(width or 470,28)
   c:SetFont(string.format("$(BOLD_FONT)|%d|soft-shadow-thin",size));c:SetColor(unpack(color));return c
+end
+-- Fit informational panels vertically; fixed width avoids layout jitter.
+local function fitBody(panel,label,top,minHeight,padding)
+  if not panel or not label then return end
+  local old=label:GetHeight()
+  label:SetHeight(0)
+  local h=safe(label.GetTextHeight,label) or safe(label.GetHeight,label)
+  if not h or h<=0 then
+    local lines=1; for _ in (label:GetText() or ""):gmatch("\n") do lines=lines+1 end
+    h=math.max(22,lines*22)
+  end
+  h=math.ceil(h)+4
+  label:SetHeight(h)
+  local wanted=math.max(minHeight,top+h+(padding or 12))
+  if math.abs(panel:GetHeight()-wanted)>1 then panel:SetHeight(wanted) end
 end
 local function applyWindowLayout(window,key)
   if not window or not S then return end
@@ -260,6 +286,7 @@ local function enableWindowDrag(window,key)
 end
 local function refreshWindowLayouts()
   applyWindowLayout(hud,"live")
+  applyWindowLayout(worldHUD,"world")
   applyWindowLayout(bossHUD,"boss")
   applyWindowLayout(reportHUD,"report")
   if menu then applyWindowLayout(menu,"career") end
@@ -292,7 +319,7 @@ local function makePanel(name,width,height,x,y)
 end
 local function ensureHUD()
   if hud or not WINDOW_MANAGER then return end
-  hud=makePanel("DungeonRatingHUD",500,400,200,180)
+  hud=makePanel("DungeonRatingHUD",550,510,200,180)
   local labels={
     {"header",10,19,{0.95,0.78,0.43}},{"diff",40,14,{0.7,0.85,1}},
     {"timer",68,16,{1,1,1}},{"fight",103,17,{1,1,1}},
@@ -300,6 +327,8 @@ local function ensureHUD()
     {"healing",205,15,{1,1,1}},{"score",241,18,{0.98,0.86,0.55}},
     {"pace",275,15,{0.70,0.86,0.98}},{"buff",308,15,{0.70,0.95,0.76}},{"role2",340,15,{0.70,0.95,0.76}}}
   for _,a in ipairs(labels) do hud[a[1]]=makeLabel(hud,a[2],a[3],a[4]) end
+  hud.targetDetail=makeLabel(hud,370,14,{.7,.85,1},520)
+  hud.timers=makeLabel(hud,400,14,{.7,.85,1},520); hud.timers:SetDimensions(520,100)
   enableWindowDrag(hud,"live");applyWindowLayout(hud,"live")
   bossHUD=makePanel("DungeonRatingBossIntelligenceHUD",560,245,720,180)
   bossHUD.header=makeLabel(bossHUD,12,18,{0.98,0.82,0.46})
@@ -327,7 +356,7 @@ local function updatePlayerCard()
   ensurePlayerCard()
   if not playerCard then return end
   local inDungeon=safe(IsUnitInDungeon,"player") or safe(IsUnitInGroupDungeon,"player") or safe(IsInDungeon)
-  local visible=S.settings.previewWindows or (S.settings.showPlayerCard~=false and inDungeon and not run)
+  local visible=S.settings.previewWindows or (S.settings.showPlayerCard~=false and not inDungeon and not run)
   playerCard:SetHidden(not visible)
   if not visible then return end
   local name=characterKey()
@@ -361,6 +390,92 @@ local function updatePlayerCard()
     playerCard.last:SetText("LAST RUN  No saved dungeon runs for this character")
   end
 end
+local worldCasts={}
+local world={damage=0,heal=0,seconds=0,effects={}}
+local function insideDungeon()
+  return safe(IsUnitInDungeon,"player") or safe(IsUnitInGroupDungeon,"player") or safe(IsInDungeon)
+end
+local function worldState(_,active)
+  if insideDungeon() then world={damage=0,heal=0,seconds=0,effects={}}; return end
+  if active and not world.started then world.damage=0;world.heal=0;world.seconds=0;world.started=now()
+  elseif not active and world.started then world.seconds=now()-world.started;world.started=nil end
+end
+local function worldCombat(_,result,isError,abilityName,abilityGraphic,abilityAction,sourceName,sourceType,targetName,targetType,hitValue)
+  if insideDungeon() or isError then return end
+  if not (sourceType==COMBAT_UNIT_TYPE_PLAYER or sourceType==COMBAT_UNIT_TYPE_PLAYER_PET or isOwnName(sourceName)) then return end
+  if not world.started and safe(IsUnitInCombat,"player") then worldState(nil,true) end
+  if not world.started then return end
+  local v=math.max(0,tonumber(hitValue) or 0)
+  if result==ACTION_RESULT_DAMAGE or result==ACTION_RESULT_CRITICAL_DAMAGE or result==ACTION_RESULT_DOT_TICK or result==ACTION_RESULT_DOT_TICK_CRITICAL then world.damage=world.damage+v
+  elseif result==ACTION_RESULT_HEAL or result==ACTION_RESULT_CRITICAL_HEAL or result==ACTION_RESULT_HOT_TICK or result==ACTION_RESULT_HOT_TICK_CRITICAL then world.heal=world.heal+v end
+end
+local function worldEffect(_,change,slot,name,tag,beg,ending,stack,icon,buffType,effectType,abilityType,statusEffectType,unitName,unitId,abilityId,sourceType)
+  if insideDungeon() then return end
+  local key=tostring(tag)..":"..tostring(unitId)..":"..tostring(slot)..":"..tostring(abilityId)
+  if change==EFFECT_RESULT_FADED then world.effects[key]=nil;return end
+  local kind=buffType==BUFF_EFFECT_TYPE_DEBUFF and "DEBUFF" or (buffType==BUFF_EFFECT_TYPE_BUFF and "BUFF" or nil)
+  local registered=supportRegistry[name or ""]
+  if registered=="buff" or registered=="debuff" then kind=registered:upper() end
+  if not kind or registered=="instant" or registered=="passive" then return end
+  local attributed=sourceType==COMBAT_UNIT_TYPE_PLAYER or (COMBAT_UNIT_TYPE_PLAYER_PET and sourceType==COMBAT_UNIT_TYPE_PLAYER_PET)
+  local t=now()
+  if not attributed then
+    for id,cast in pairs(worldCasts) do
+      if t-cast.at>2.5 then worldCasts[id]=nil
+      elseif id==abilityId or (t-cast.at<=1.25 and cast.name and name and cast.name:lower()==name:lower()) then attributed=true end
+    end
+  end
+  if kind=="DEBUFF" then
+    if not attributed or tag=="player" or (tag and tag:match("^group%d+$")) then return end
+  elseif tag~="player" and not attributed then return end
+  if (change==EFFECT_RESULT_GAINED or change==EFFECT_RESULT_UPDATED) and tonumber(ending) and ending>t then
+    world.effects["cast:"..tostring(abilityId)]=nil
+    world.effects[key]={name=name or "Effect",ending=ending,kind=kind}
+  end
+end
+local function updateWorld()
+  if not worldHUD then
+    worldHUD=makePanel("DungeonBuddyWorldHUD",550,280,200,180)
+    worldHUD.header=makeLabel(worldHUD,10,19,{.95,.78,.43},520)
+    worldHUD.body=makeLabel(worldHUD,42,16,{1,1,1},520);worldHUD.body:SetDimensions(520,230)
+    applyWindowLayout(worldHUD,"world")
+  end
+  local preview=S.settings.previewWindows
+  local inside=insideDungeon()
+  if inside then world={damage=0,heal=0,seconds=0,effects={}} end
+  local visible=preview or (not inside and S.settings.showWorldHUD~=false)
+  worldHUD:SetHidden(not visible);if not visible then return end
+  local elapsed=world.started and now()-world.started or world.seconds
+  local lines={string.format("%s  |  DPS %s  |  HPS %s",world.started and "COMBAT" or "LAST FIGHT",fmt(world.damage/math.max(1,elapsed)),fmt(world.heal/math.max(1,elapsed))),"Damage "..fmt(world.damage).."  |  Healing "..fmt(world.heal),"Combat time "..clock(elapsed)}
+  local buffs,debuffs={},{}
+  for k,e in pairs(world.effects) do
+    if e.ending<=now() then world.effects[k]=nil else local bucket=e.kind=="BUFF" and buffs or debuffs;bucket[#bucket+1]=e end
+  end
+  for _,bucket in ipairs({buffs,debuffs}) do table.sort(bucket,function(a,b) return a.ending<b.ending end) end
+  for i,bucket in ipairs({buffs,debuffs}) do
+    lines[#lines+1]=i==1 and "BUFFS" or "DEBUFFS"
+    local entries={};for j=1,math.min(3,#bucket) do local e=bucket[j];entries[#entries+1]=e.name.." "..fmt(e.ending-now()).."s" end
+    lines[#lines+1]=#entries>0 and table.concat(entries," | ") or "None observed"
+  end
+  worldHUD.header:SetText("DUNGEON BUDDY  |  WORLD COMBAT")
+  worldHUD.body:SetText(table.concat(lines,"\n"))
+  fitBody(worldHUD,worldHUD.body,42,100,12)
+end
+local function goldSnapshot()
+  local gs=GoldStandard
+  local wallet=safe(GetCurrentMoney) or 0
+  if gs and gs.saved and gs.saved.tracking and gs.initialized then return {wallet=wallet,found=gs.saved.lifetimeFound or 0,raw=gs.saved.lifetimeRawIn or 0} end
+  return {wallet=wallet}
+end
+local function goldEarned(start)
+  if not start then return nil end
+  local current=goldSnapshot()
+  if start.found and current.found then return math.max(0,current.found-start.found)+math.max(0,current.raw-start.raw),"Gold Standard gross estimate" end
+  return math.max(0,current.wallet-start.wallet),"Wallet net gain only"
+end
+local function goldLine(h)
+  return h.goldEarned~=nil and ("Gold earned: ~"..fmt(h.goldEarned).."g ("..tostring(h.goldSource)..")") or "Gold earned: N/A (not recorded)"
+end
 local function updateHUD()
   if not run or not hud then return end
   run.activeSeconds=math.max(1,now()-run.started)
@@ -386,7 +501,24 @@ local function updateHUD()
   local value=run.role=="HEAL" and pct or run.role=="TANK" and debuffUptime() or dotUptime()
   hud.buff:SetText(metric.."  "..(value and string.format("%.1f%%  |  %s",value,buffGrade(value)) or "N/A"))
   local target=targetUptime()
-  hud.role2:SetText(run.role=="DPS" and ("TIME ON TARGET (EST.)  "..(target and string.format("%.1f%%  |  %s",target,buffGrade(target)) or "N/A")) or "")
+  hud.role2:SetText(run.role=="DPS" and ("TIME ON TARGET (EST.)  "..(target and string.format("%.1f%%  |  %s",target,targetGrade(target)) or "N/A")) or "")
+  local covered=target and ct*target/100 or 0
+  hud.targetDetail:SetText(run.role=="DPS" and string.format("Active %.1fs / %.1fs | Downtime %.1fs",covered,ct,math.max(0,ct-covered)) or "")
+  local lines={}
+  for _,kind in ipairs({"buff","debuff"}) do
+    local entries={}
+    for _,e in pairs(run.durationCoverage[kind]) do
+      local remaining=(e.expires or 0)-now()
+      if remaining>0 then entries[#entries+1]={name=e.name,remaining=remaining} end
+    end
+    table.sort(entries,function(a,b) return a.remaining<b.remaining end)
+    local parts={}; for i=1,math.min(3,#entries) do parts[#parts+1]=string.format("%s %.0fs",entries[i].name,entries[i].remaining) end
+    lines[#lines+1]=kind:upper()..": "..(#parts>0 and table.concat(parts," | ") or "None active")
+  end
+  hud.timers:SetText(table.concat(lines,"\n"))
+  local timerY=run.role=="DPS" and 400 or 340
+  hud.timers:ClearAnchors();hud.timers:SetAnchor(TOPLEFT,hud,TOPLEFT,14,timerY)
+  fitBody(hud,hud.timers,timerY,360,12)
   hud:SetHidden(not (S.settings.showHUD or S.settings.previewWindows))
   if bossHUD then
     local boss=run.activeBoss
@@ -406,6 +538,10 @@ local function updateHUD()
       bossHUD.mechanic:SetText(#tips>0 and table.concat(tips,"\n") or "TANK AND SPANK  |  No special mechanic documented")
       bossHUD.response:SetText(ref and ref.kind=="OPTIONAL" and "OPTIONAL ENCOUNTER" or "")
       bossHUD.source:SetText("REFERENCE GUIDE  |  No automatic mechanic alerts")
+      fitBody(bossHUD,bossHUD.mechanic,81,120,76)
+      local y=81+bossHUD.mechanic:GetHeight()
+      bossHUD.response:ClearAnchors();bossHUD.response:SetAnchor(TOPLEFT,bossHUD,TOPLEFT,14,y+4)
+      bossHUD.source:ClearAnchors();bossHUD.source:SetAnchor(TOPLEFT,bossHUD,TOPLEFT,14,y+36)
     end
   end
 end
@@ -436,6 +572,7 @@ local function begin()
   lastBossReportContext=nil; pendingBossReport=nil
   local tier,mode,z=difficulty()
   run={started=now(),activeSeconds=1,combatSeconds=0,combatStart=nil,fightDamage=0,fightHeal=0,lastFightDamage=0,lastFightHeal=0,lastFightSeconds=0,damage=0,heal=0,shield=0,damageTaken=0,blocked=0,shieldEvents=0,interrupts=0,taunts=0,ccEvents=0,groupDeaths=0,healAbsorbed=0,healEffective=0,uptime={buff={},debuff={},dot={}},durationCoverage={buff={},debuff={},dot={}},recentCasts={},durationObserved={},targetSeconds=0,lastTargetHit=nil,buffSeconds=0,buffActive={},buffKeys={},buffCoverageSeconds=0,buffCoverageActive=false,buffCoverageObserved=false,buffCoverageLast=nil,ultimateUses=0,ultimateSupportUses=0,ultimatePoints=0,ultimateSupportPending=false,deaths=0,events=0,ownEvents=0,damageEvents=0,healEvents=0,role=S.settings.manualRole~="AUTO" and S.settings.manualRole or role(),zone=zone(),zoneId=z,mode=mode,abilities={},key=tostring(z or zone())..":"..mode,group=groupSnapshot(),lastScore=0,checkpoint=0,checkpoints={},bossKills=0,bosses={},activeBoss=nil,encounters={}}
+  run.goldStart=goldSnapshot()
   ensureHUD()
   if safe(IsUnitInCombat,"player") then state(nil,true) end
   say("Run started: "..run.zone.." ("..run.role..")")
@@ -445,7 +582,8 @@ local function finish()
   if not run then return end
   run.activeSeconds=math.max(1,now()-run.started)
   if run.combatStart then state(nil,false) end
-  local parts=scoreParts();local ct=combatDuration();local result={id=tostring(safe(GetTimeStamp) or 0)..":"..tostring(S.runs+1),scoringVersion="0.3",character=safe(GetUnitName,"player"),combatSeconds=ct,overallDPS=run.damage/math.max(1,ct),overallHPS=run.heal/math.max(1,ct),rawHealing=run.heal,ultimateUses=run.ultimateUses,ultimateSupportUses=run.ultimateSupportUses,ultimatePoints=run.ultimatePoints,effectiveHealingAvailable=(run.healEffective or 0)>0,buffUptime=buffUptime(),debuffUptime=debuffUptime(),dotUptime=dotUptime(),timeOnTarget=targetUptime(),scoreParts=parts,zone=run.zone,mode=run.mode or "Unknown",role=run.role,seconds=run.activeSeconds,score=score(),damage=run.damage,heal=run.heal,damageTaken=run.damageTaken,blocked=run.blocked,taunts=run.taunts,healEffective=run.healEffective,healAbsorbed=run.healAbsorbed,groupDeaths=run.groupDeaths,interrupts=run.interrupts,ccEvents=run.ccEvents,buffSeconds=run.buffSeconds,deaths=run.deaths,date=safe(GetTimeStamp) or 0,group=run.group,abilities=run.abilities,completionVerified=run.completionVerified==true,events=run.events,ownEvents=run.ownEvents,damageEvents=run.damageEvents,healEvents=run.healEvents,bossKills=run.bossKills,bosses=run.bosses,encounters=run.encounters,grade=grade(score())}
+  local parts=scoreParts();local ct=combatDuration();local result={id=tostring(safe(GetTimeStamp) or 0)..":"..tostring(S.runs+1),scoringVersion="0.3.4",character=safe(GetUnitName,"player"),combatSeconds=ct,overallDPS=run.damage/math.max(1,ct),overallHPS=run.heal/math.max(1,ct),rawHealing=run.heal,ultimateUses=run.ultimateUses,ultimateSupportUses=run.ultimateSupportUses,ultimatePoints=run.ultimatePoints,effectiveHealingAvailable=(run.healEffective or 0)>0,buffUptime=buffUptime(),debuffUptime=debuffUptime(),dotUptime=dotUptime(),timeOnTarget=targetUptime(),scoreParts=parts,zone=run.zone,mode=run.mode or "Unknown",role=run.role,seconds=run.activeSeconds,score=score(),damage=run.damage,heal=run.heal,damageTaken=run.damageTaken,blocked=run.blocked,taunts=run.taunts,healEffective=run.healEffective,healAbsorbed=run.healAbsorbed,groupDeaths=run.groupDeaths,interrupts=run.interrupts,ccEvents=run.ccEvents,buffSeconds=run.buffSeconds,deaths=run.deaths,date=safe(GetTimeStamp) or 0,group=run.group,abilities=run.abilities,completionVerified=run.completionVerified==true,events=run.events,ownEvents=run.ownEvents,damageEvents=run.damageEvents,healEvents=run.healEvents,bossKills=run.bossKills,bosses=run.bosses,encounters=run.encounters,grade=grade(score())}
+  result.goldEarned,result.goldSource=goldEarned(run.goldStart)
   -- Personal records are scoped to character, dungeon, difficulty and role.
   local recordKey=table.concat({result.character or "Unknown",result.zone or "Unknown",result.mode or "Unknown",result.role or "UNKNOWN"},"|")
   S.personalBests=S.personalBests or {}
@@ -543,6 +681,9 @@ local function combat(_,result,isError,abilityName,abilityGraphic,abilityAction,
     if run.combatStart and amount>0 and (result==ACTION_RESULT_DOT_TICK or result==ACTION_RESULT_DOT_TICK_CRITICAL) and abilityId and (targetUnitId or (targetName and targetName~="")) then
       -- Tick-based coverage estimate, bounded to the observed tick interval.
       -- Not a claim that the game exposed the exact underlying DoT duration.
+      local t=now(); run.dotObserved=true
+      if run.lastDotTick then run.dotSeconds=(run.dotSeconds or 0)+math.min(2,math.max(0,t-run.lastDotTick)) end
+      run.lastDotTick=t
       local key=tostring(abilityId)..":"..tostring(targetUnitId or targetName or "enemy")
       local bucket=run.uptime.dot
       local entry=bucket[key] or {seconds=0,observed=true}
@@ -629,6 +770,9 @@ state=function(_,inCombat)
     end
   elseif not inCombat and run.combatStart then
     for _,bucket in pairs(run.uptime) do for _,entry in pairs(bucket) do closeUptimeSegment(entry) end end
+    if run.lastTargetHit then run.targetSeconds=run.targetSeconds+math.min(2,math.max(0,now()-run.lastTargetHit)) end
+    if run.lastDotTick then run.dotSeconds=(run.dotSeconds or 0)+math.min(2,math.max(0,now()-run.lastDotTick)) end
+    run.lastDotTick=nil
     run.lastTargetHit=nil
     for _,entry in pairs(run.uptime.dot) do entry.lastTick=nil end
     durationCoverageFlush()
@@ -639,6 +783,17 @@ state=function(_,inCombat)
   end
 end
 local function abilityUsed(_,slotId)
+  if not insideDungeon() then
+    local id=safe(GetSlotBoundId,slotId)
+    if id and id~=0 then
+      local t=now(); for k,v in pairs(worldCasts) do if t-v.at>2.5 then worldCasts[k]=nil end end
+      worldCasts[id]={at=t,name=safe(GetAbilityName,id)}
+      local learned=S.learnedBuffs and S.learnedBuffs[characterKey()] and S.learnedBuffs[characterKey()][tostring(id)]
+      if learned and tonumber(learned.duration) and learned.duration>0 and learned.kind=="debuff" then
+        world.effects["cast:"..id]={name=(learned.name or "Effect").." (est.)",ending=t+learned.duration,kind="DEBUFF"}
+      end
+    end
+  end
   if not run or not run.combatStart then return end
   local slot=tonumber(slotId)
   if not slot then return end
@@ -668,24 +823,27 @@ local function ultimateUsed(_,slotId)
   if t-ultimateLastAt<1.5 then return end
   ultimateLastAt=t
   run.ultimateUses=(run.ultimateUses or 0)+1
-  run.ultimatePoints=(run.ultimatePoints or 0)+1
+  run.ultimatePoints=(run.ultimatePoints or 0)+0.05
   run.ultimateSupportPending=t
   run.lastUltimateAt=t
 end
 local function dead(_,unitTag,isDead)
   if run and isDead then bossDeath(unitTag); if unitTag=="player" then run.deaths=run.deaths+1 elseif unitTag and unitTag:match("^group%d+$") then run.groupDeaths=run.groupDeaths+1 end end
 end
+local closeReport
 local function tick()
   if safe(IsUnitInDungeon,"player") or safe(IsUnitInGroupDungeon,"player") or safe(IsInDungeon) then
     begin()
   else
     -- Only rearm after actually leaving the instance.
     finish()
+    if not S.settings.previewWindows and closeReport and reportHUD and not reportHUD:IsHidden() then closeReport() end
     completedInstance=false
   end
   if run then bossChanged() end
   updateHUD()
   updatePlayerCard()
+  updateWorld()
 end
 local function activityCompleted()
   -- ESO's native center-screen announcement uses this exact event.
@@ -724,7 +882,7 @@ local function openMenu()
   end
   if not menu.index then menu.index=1 end
   menu.scope=menu.scope or "CHARACTER"
-  menu.items={"SETTINGS","CAREER","HISTORY","RUN DETAILS","ENCOUNTERS","TRENDS","RECORDS","SUMMARY","HEALER","DPS","TANK","BOSSES","PLAYERS","DIFFICULTY","SUPPORT"}
+  menu.items={"SETTINGS","CAREER","HISTORY","RUN DETAILS","ENCOUNTERS","TRENDS","RECORDS","SUMMARY","HEALER","DPS","TANK","BOSSES","PLAYERS","DIFFICULTY","SUPPORT","PROFITABILITY"}
   local function refresh()
     local page=menu.items[menu.index]
     menu.title:SetText("DUNGEON BUDDY  |  "..page)
@@ -746,11 +904,23 @@ local function openMenu()
         local h=S.history[i]
         content=content..string.format("\n%s %d. %s | %s | %.1f %s",i==menu.historyIndex and ">" or " ",i,tostring(h.zone),tostring(h.mode),h.score or 0,tostring(h.grade or ""))
       end
+    elseif page=="PROFITABILITY" then
+      local groups={};for _,h in ipairs(S.history) do
+        if h.completionVerified and h.goldEarned~=nil then
+          local key=tostring(h.zone).." | "..tostring(h.mode).." | "..tostring(h.goldSource)
+          local g=groups[key] or {name=key,n=0,gold=0,seconds=0};groups[key]=g;g.n=g.n+1;g.gold=g.gold+h.goldEarned;g.seconds=g.seconds+(h.seconds or 0)
+        end
+      end
+      local rows={};for _,g in pairs(groups) do rows[#rows+1]=g end
+      table.sort(rows,function(a,b) return a.gold/math.max(1,a.seconds)>b.gold/math.max(1,b.seconds) end)
+      content="DUNGEON PROFITABILITY | Verified clears | Ranked by gold/hour"
+      for i=1,math.min(8,#rows) do local g=rows[i];content=content..string.format("\n%s\n%d runs | ~%sg/run | ~%sg/h",g.name,g.n,fmt(g.gold/g.n),fmt(g.gold*3600/math.max(1,g.seconds))) end
+      if #rows==0 then content=content.."\nNo valued clears yet" end
     elseif page=="RUN DETAILS" then
       local h=S.history[menu.historyIndex or #S.history]
       if not h then content="No saved runs yet" else
         local t=math.max(1,h.combatSeconds or 0)
-        content=string.format("%s  |  %s  |  %s\nScore %.1f (%s)  |  %s\nDuration %s  |  Combat %s\nOverall DPS %s  |  Overall HPS %s\nTotal damage %s\nTotal healing %s\n%s\nDeaths %d  |  Boss kills %d\nVerified clear: %s\nScoring version: %s",tostring(h.zone),tostring(h.mode),tostring(h.role),h.score or 0,tostring(h.grade),tostring(h.character or "Character"),clock(h.seconds or 0),clock(h.combatSeconds or 0),fmt(h.overallDPS or (h.damage or 0)/t),fmt(h.overallHPS or (h.heal or 0)/t),fmt(h.damage),fmt(h.rawHealing or h.heal),roleMetricLines(h),h.deaths or 0,h.bossKills or 0,h.completionVerified and "YES" or "NO",tostring(h.scoringVersion or "legacy"))
+        content=string.format("%s  |  %s  |  %s\nScore %.1f (%s)  |  %s\nDuration %s  |  Combat %s\nOverall DPS %s  |  Overall HPS %s\nTotal damage %s\nTotal healing %s\n%s\nDeaths %d  |  Boss kills %d\nVerified clear: %s\nScoring version: %s",tostring(h.zone),tostring(h.mode),tostring(h.role),h.score or 0,tostring(h.grade),tostring(h.character or "Character"),clock(h.seconds or 0),clock(h.combatSeconds or 0),fmt(h.overallDPS or (h.damage or 0)/t),fmt(h.overallHPS or (h.heal or 0)/t),fmt(h.damage),fmt(h.rawHealing or h.heal),roleMetricLines(h),h.deaths or 0,h.bossKills or 0,h.completionVerified and "YES" or "NO",tostring(h.scoringVersion or "legacy")).."\n"..goldLine(h)
       end
     elseif page=="ENCOUNTERS" then
       local h=S.history[menu.historyIndex or #S.history]
@@ -842,6 +1012,7 @@ local function openMenu()
     end
     local navHint = (page=="HISTORY" or page=="RUN DETAILS") and "L1/R1: cycle runs" or page=="SETTINGS" and "L1/R1: select setting" or page=="RECORDS" and "L1/R1: cycle records" or "L1/R1: change page"
     menu.body:SetText(content.."\n\nL2/R2: previous/next page  |  "..navHint.."\nX: choose  |  Circle: back / close")
+    fitBody(menu,menu.body,70,180,16)
   end
   menu.refresh=refresh
   menu:SetHidden(false);refresh()
@@ -884,7 +1055,7 @@ local function openMenu()
   end
   if KEYBIND_STRIP and menu.bindings then KEYBIND_STRIP:AddKeybindButtonGroup(menu.bindings) end
 end
-local function closeReport()
+closeReport=function()
   if not reportHUD then return end
   reportHUD:SetHidden(true)
   if KEYBIND_STRIP and reportHUD.bindings then KEYBIND_STRIP:RemoveKeybindButtonGroup(reportHUD.bindings) end
@@ -892,19 +1063,21 @@ end
 openReport=function(h)
   if not WINDOW_MANAGER or not h then return end
   if not reportHUD then
-    reportHUD=makePanel("DungeonRatingPerformanceReport",720,460,350,190)
+    reportHUD=makePanel("DungeonRatingPerformanceReport",720,510,350,190)
     enableWindowDrag(reportHUD,"report");applyWindowLayout(reportHUD,"report")
     reportHUD.title=makeLabel(reportHUD,16,22,{0.95,0.78,0.43},620)
     reportHUD.body=makeLabel(reportHUD,62,16,{1,1,1},690)
-    reportHUD.body:SetDimensions(690,380)
+    reportHUD.body:SetDimensions(690,435)
     reportHUD.bindings={{alignment=KEYBIND_STRIP_ALIGN_RIGHT,name="Close report",keybind="UI_SHORTCUT_NEGATIVE",callback=function()
       closeReport()
     end}}
   end
   reportHUD.title:SetText("DUNGEON BUDDY  |  PERFORMANCE REPORT")
   local p=h.scoreParts or {}
-  reportHUD.body:SetText(string.format("%s  |  %s  |  %s\nFINAL SCORE  %.1f  |  %s\nRun %s  |  Combat %s\n\nDamage %s  |  Overall DPS %s\nTotal healing %s  |  Overall HPS %s\n%s\nDeaths: %d  |  Boss kills: %d\n\nRole uptime %.1f  Healing %.1f  Damage %.1f  Utility %.1f  Death penalty -%.1f\n\nCircle: close",tostring(h.zone),tostring(h.mode),tostring(h.role),h.score or 0,tostring(h.grade),clock(h.seconds or 0),clock(h.combatSeconds or 0),fmt(h.damage),fmt(h.overallDPS),fmt(h.rawHealing or h.heal),fmt(h.overallHPS),roleMetricLines(h)..(h.role=="HEAL" and string.format("\nUltimates %d | Ultimate score +%.1f",h.ultimateUses or 0,h.ultimatePoints or 0) or ""),h.deaths or 0,h.bossKills or 0,p.buff or 0,p.healing or 0,p.damage or 0,p.utility or 0,p.penalty or 0))
+  reportHUD.body:SetText(string.format("%s  |  %s  |  %s\nFINAL SCORE  %.1f  |  %s\nRun %s  |  Combat %s\n\nDamage %s  |  Overall DPS %s\nTotal healing %s  |  Overall HPS %s\n%s\nDeaths: %d  |  Boss kills: %d\n\nRole uptime %.1f  Healing %.1f  Damage %.1f  Utility %.1f  Death penalty -%.1f\n\nCircle: close",tostring(h.zone),tostring(h.mode),tostring(h.role),h.score or 0,tostring(h.grade),clock(h.seconds or 0),clock(h.combatSeconds or 0),fmt(h.damage),fmt(h.overallDPS),fmt(h.rawHealing or h.heal),fmt(h.overallHPS),roleMetricLines(h)..(h.role=="HEAL" and string.format("\nUltimate Score: +%.2f",h.ultimatePoints or 0) or ""),h.deaths or 0,h.bossKills or 0,p.buff or 0,p.healing or 0,p.damage or 0,p.utility or 0,p.penalty or 0))
 
+  reportHUD.body:SetText(reportHUD.body:GetText().."\n"..goldLine(h))
+  fitBody(reportHUD,reportHUD.body,62,180,14)
   reportHUD:SetHidden(false)
   if KEYBIND_STRIP then KEYBIND_STRIP:AddKeybindButtonGroup(reportHUD.bindings) end
 end
@@ -1119,6 +1292,7 @@ local function registerAddonSettings()
     }
     local toggles={
       {"showHUD","Show Live HUD"},
+      {"showWorldHUD","Show world combat HUD"},
       {"showPlayerCard","Show out-of-dungeon Player Card"},
       {"showBossHUD","Show Boss Intelligence HUD"},
       {"showPace","Show performance pace"},
@@ -1134,8 +1308,8 @@ local function registerAddonSettings()
     end
     options[#options+1]={type="header",name="Window positioning and size"}
     options[#options+1]={type="checkbox",name="Preview HUD windows",tooltip="Show Live HUD, Boss Intelligence and End-of-Run report while arranging windows. Drag windows with a mouse or use the position sliders.",getFunc=function() return S.settings.previewWindows==true end,setFunc=setWindowPreview,default=false,width="full"}
-    local windowNames={live="Live HUD",boss="Boss Intelligence",report="End-of-Run HUD",career="Career Profile",playerCard="Out-of-Dungeon Player Card"}
-    local windowOrder={"live","boss","report","career","playerCard"}
+    local windowNames={world="World Combat HUD",live="Live HUD",boss="Boss Intelligence",report="End-of-Run HUD",career="Career Profile",playerCard="Out-of-Dungeon Player Card"}
+    local windowOrder={"world","live","boss","report","career","playerCard"}
     for _,key in ipairs(windowOrder) do
       local title=windowNames[key]
       options[#options+1]={type="header",name=title}
@@ -1173,20 +1347,57 @@ local function initialized(_,addon)
     S.settings.windowLayout[key]=S.settings.windowLayout[key] or {x=layout.x,y=layout.y,scale=layout.scale}
   end
   SLASH_COMMANDS["/dr"]=command
-  EM:RegisterForEvent(DR.name.."Combat",EVENT_COMBAT_EVENT,combat)
+  EM:RegisterForEvent(DR.name.."Combat",EVENT_COMBAT_EVENT,function(...) combat(...);worldCombat(...) end)
   if EVENT_ACTIVITY_FINDER_ACTIVITY_COMPLETE then
     EM:RegisterForEvent(DR.name.."Complete",EVENT_ACTIVITY_FINDER_ACTIVITY_COMPLETE,activityCompleted)
   end
   if EVENT_PLAYER_ACTIVATED then
     EM:RegisterForEvent(DR.name.."Activated",EVENT_PLAYER_ACTIVATED,function() tick() end)
   end
-  EM:RegisterForEvent(DR.name.."State",EVENT_PLAYER_COMBAT_STATE,state)
+  EM:RegisterForEvent(DR.name.."State",EVENT_PLAYER_COMBAT_STATE,function(...) state(...);worldState(...) end)
   if EVENT_ACTION_SLOT_ABILITY_USED then EM:RegisterForEvent(DR.name.."Ultimates",EVENT_ACTION_SLOT_ABILITY_USED,function(...) abilityUsed(...);ultimateUsed(...) end) end
   if EVENT_BOSSES_CHANGED then EM:RegisterForEvent(DR.name.."Bosses",EVENT_BOSSES_CHANGED,bossChanged) end
-  if EVENT_EFFECT_CHANGED then EM:RegisterForEvent(DR.name.."Effects",EVENT_EFFECT_CHANGED,effect) end
+  if EVENT_EFFECT_CHANGED then EM:RegisterForEvent(DR.name.."Effects",EVENT_EFFECT_CHANGED,function(...) effect(...);worldEffect(...) end) end
   if EVENT_UNIT_DEATH_STATE_CHANGED then EM:RegisterForEvent(DR.name.."Dead",EVENT_UNIT_DEATH_STATE_CHANGED,dead) end
   EM:RegisterForUpdate(DR.name.."Tick",1000,tick)
   registerRadialMenu(); EM:RegisterForUpdate(DR.name.."RadialRetry",2500,function() if registerRadialMenu() then EM:UnregisterForUpdate(DR.name.."RadialRetry") end end)
   ensureHUD(); ensurePlayerCard(); updatePlayerCard(); registerAddonSettings(); EM:RegisterForUpdate(DR.name.."SettingsRetry",2000,function() if settingsRegistered then EM:UnregisterForUpdate(DR.name.."SettingsRetry") else registerAddonSettings() end end); say("v0.3 loaded. Career Profile is available in Add-Ons > Dungeon Buddy when LibAddonMenu-2.0 is installed.")
 end
 EM:RegisterForEvent(DR.name.."Init",EVENT_ADD_ON_LOADED,initialized)
+
+
+-- TME Menu Visibility: independent of saved visibility and ongoing statistics.
+-- Suppress presentation, not SetHidden state: existing timers/close actions remain authoritative.
+local tmeMenuAlpha = setmetatable({}, {__mode="k"})
+local function tmeMenuContext()
+    if not SCENE_MANAGER then return false, false, false end
+    local scene=SCENE_MANAGER.GetCurrentScene and SCENE_MANAGER:GetCurrentScene()
+    local name=scene and scene.GetName and scene:GetName()
+    local main=SCENE_MANAGER.IsShowing and SCENE_MANAGER:IsShowing("mainMenuGamepad")
+    if main then return true,false,false end
+    if not name then return false,false,false end
+    local lower=string.lower(name)
+    local gameplay=(lower=="hud" or lower=="hudui" or lower=="hudgamepad" or lower=="huduigamepad")
+    local addon=lower:find("addon",1,true)~=nil or lower:find("libaddonmenu",1,true)~=nil or lower=="gamepadoptions" or lower=="gamepadoptionsroot"
+    local map=lower:find("worldmap",1,true)~=nil or lower=="gamepadworldmap"
+    return not gameplay,addon,map
+end
+local function tmeMenuSuppress(control, suppress)
+    if not control then return end
+    if suppress then
+        if tmeMenuAlpha[control]==nil then tmeMenuAlpha[control]=control:GetAlpha() end
+        if control:GetAlpha()~=0 then control:SetAlpha(0) end
+    elseif tmeMenuAlpha[control]~=nil then
+        control:SetAlpha(tmeMenuAlpha[control]);tmeMenuAlpha[control]=nil
+    end
+end
+
+EVENT_MANAGER:RegisterForUpdate("DungeonRatingTME_MenuVisibility", 100, function()
+    if not S then return end
+    local blocked,addon=tmeMenuContext()
+    local hide=blocked and not S.settings.previewWindows
+    tmeMenuSuppress(hud,hide);tmeMenuSuppress(bossHUD,hide)
+    tmeMenuSuppress(worldHUD,hide);tmeMenuSuppress(playerCard,hide)
+    tmeMenuSuppress(reportHUD,hide)
+    tmeMenuSuppress(menu,hide and not addon)
+end)

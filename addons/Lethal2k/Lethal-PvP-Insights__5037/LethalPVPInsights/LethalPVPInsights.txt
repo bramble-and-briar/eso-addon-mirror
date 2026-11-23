@@ -1,7 +1,7 @@
 ## Title: Lethal PVP Insights
 ## Author: Lethal2k
-## Version: 1.11.4
-## AddOnVersion: 291
+## Version: 1.11.5
+## AddOnVersion: 292
 ## APIVersion: 101048 101051
 ## Description: PvP companion for Cyrodiil, Imperial City and Battlegrounds: combat alerts, FPS per zone, kills, Alliance Points, kill feed leaderboards, enemy skills and sets, group builds. Settings > Lethal PVP Insights, or /lpi.
 ## SavedVariables: PVPDataInsight_SV LPI_PvPTools_SV

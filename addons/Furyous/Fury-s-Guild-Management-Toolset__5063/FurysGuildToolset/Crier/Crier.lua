@@ -40,6 +40,7 @@ local defaults = {
     closeOnClick = false,  -- close the menu after clicking a message
     timerMinutes = 0,      -- rotation reminder interval, 0 = off
     timerAutoLoad = false, -- reminder loads the next rotation message into chat
+    timerLastAt = nil,     -- GetTimeStamp() of the last reminder, kept between sessions
     collapsed = {},        -- section name -> true when closed in the menu
 }
 
@@ -49,7 +50,7 @@ local ICON_CLOSED = "|t20:20:EsoUI/Art/Buttons/tree_closed_up.dds|t "
 local function Say(msg) d(PREFIX .. msg) end
 local function Messages()
     if GC.sv and GC.sv.messages then return GC.sv.messages end
-    return FuryGMT_CrierMessages or {}
+    return FuryGMT.CrierMessages
 end
 GC.Messages = Messages
 GC.Say = Say
@@ -58,7 +59,7 @@ GC.MAX_CHAT = MAX_CHAT
 -- Copy of the default list in Messages.lua (so edits never touch the defaults)
 function GC.CopyDefaults()
     local out = {}
-    for i, m in ipairs(FuryGMT_CrierMessages or {}) do
+    for i, m in ipairs(FuryGMT.CrierMessages) do
         out[i] = { cat = m.cat, chan = m.chan, weight = m.weight, text = m.text }
     end
     return out
@@ -514,7 +515,7 @@ local function Slash(args)
         GC.ResetRotation()
         Say("Rotation reset.")
     elseif cmd == "settings" or cmd == "options" then
-        if GC.OpenSettings then GC.OpenSettings() else Say("Settings need LibAddonMenu-2.0 installed.") end
+        GC.OpenSettings()
     else
         ShowHelp()
     end
@@ -569,51 +570,65 @@ end
 
 local PAUSED_TEXT = "Paused: the old standalone \"Fury's Guild Crier\" addon is still turned on. To switch over: Esc > Add-Ons, untick \"Fury's Guild Crier\", then /reloadui. Your messages and settings were already copied here."
 
+function module:TabRows()
+    local rows = {}
+    if not GC.active then
+        rows[1] = { text = "Fury's Guild Crier is part of this toolset now, but it's paused (see above)." }
+        return rows
+    end
+    for _, m in ipairs(Messages()) do
+        if m.text and m.text ~= "" then
+            local msg = m
+            local tag = (m.cat or "Messages")
+            if (m.chan or "") ~= "" then tag = tag .. ", " .. m.chan end
+            if Weight(m) > 0 then tag = tag .. ", rotation x" .. Weight(m) end
+            rows[#rows + 1] = {
+                text = "|cD4AF37[" .. tag .. "]|r " .. m.text,
+                tooltip = m.text,
+                actions = { { label = "Post", tip = "Loads this message into chat. Press Enter to send it.",
+                    fn = function() SendToChat(msg) end } },
+            }
+        end
+    end
+    if #rows == 0 then rows[1] = { text = "No messages yet. Add some in Crier settings." } end
+    return rows
+end
+
+function module:TabExportLines()
+    local lines = { "Category\tChannel\tRotation weight\tMessage" }
+    for _, m in ipairs(Messages()) do
+        lines[#lines + 1] = table.concat({ m.cat or "Messages", m.chan or "guild", Weight(m), m.text or "" }, "\t")
+    end
+    return lines
+end
+
+function module:TabSummary()
+    if not GC.active then return "|cFFCC66" .. PAUSED_TEXT .. "|r" end
+    local reminder = (GC.sv.timerMinutes or 0) > 0 and ("reminder every " .. GC.sv.timerMinutes .. " min") or "reminder off"
+    return "Same as the Crier menu (" .. reminder .. ")."
+end
+
+function module:TabSetPanelShown(shown, area)
+    if not GC.active then return false end
+    if shown then
+        if not GC.window then BuildWindow() end
+        GC.DockInto(area)
+    else
+        GC.Undock()
+    end
+    return true
+end
+
 -- "Crier" tab in the report window, so the crier is easy to find from /gt.
 function module:RegisterTab()
     GT.Report:RegisterTab({
         id = "crier",
         title = "Crier",
         tip = "Your guild, zone and whisper messages. Click one to load it into chat.",
-        GetSummary = function()
-            if not GC.active then return "|cFFCC66" .. PAUSED_TEXT .. "|r" end
-            local reminder = (GC.sv.timerMinutes or 0) > 0 and ("reminder every " .. GC.sv.timerMinutes .. " min") or "reminder off"
-            return "Same as the Crier menu (" .. reminder .. ")."
-        end,
+        GetSummary = function() return self:TabSummary() end,
         -- While active, the tab shows the Crier menu itself instead of a list.
-        SetPanelShown = function(shown, area)
-            if not GC.active then return false end
-            if shown then
-                if not GC.window then BuildWindow() end
-                GC.DockInto(area)
-            else
-                GC.Undock()
-            end
-            return true
-        end,
-        GetRows = function()
-            local rows = {}
-            if not GC.active then
-                rows[1] = { text = "Fury's Guild Crier is part of this toolset now, but it's paused (see above)." }
-                return rows
-            end
-            for _, m in ipairs(Messages()) do
-                if m.text and m.text ~= "" then
-                    local msg = m
-                    local tag = (m.cat or "Messages")
-                    if (m.chan or "") ~= "" then tag = tag .. ", " .. m.chan end
-                    if Weight(m) > 0 then tag = tag .. ", rotation x" .. Weight(m) end
-                    rows[#rows + 1] = {
-                        text = "|cD4AF37[" .. tag .. "]|r " .. m.text,
-                        tooltip = m.text,
-                        actions = { { label = "Post", tip = "Loads this message into chat. Press Enter to send it.",
-                            fn = function() SendToChat(msg) end } },
-                    }
-                end
-            end
-            if #rows == 0 then rows[1] = { text = "No messages yet. Add some in Crier settings." } end
-            return rows
-        end,
+        SetPanelShown = function(shown, area) return self:TabSetPanelShown(shown, area) end,
+        GetRows = function() return self:TabRows() end,
         footer = function()
             if not GC.active then return {} end
             return {
@@ -622,16 +637,10 @@ function module:RegisterTab()
                 { label = "Post next (rotation)", tip = "Loads the next message in the rotation into chat.",
                   fn = function() GC.Post() end },
                 { label = "Crier settings", tip = "Edit the messages, rotation and reminder.",
-                  fn = function() if GC.OpenSettings then GC.OpenSettings() end end },
+                  fn = function() GC.OpenSettings() end },
             }
         end,
-        GetExportLines = function()
-            local lines = { "Category\tChannel\tRotation weight\tMessage" }
-            for _, m in ipairs(Messages()) do
-                lines[#lines + 1] = table.concat({ m.cat or "Messages", m.chan or "guild", Weight(m), m.text or "" }, "\t")
-            end
-            return lines
-        end,
+        GetExportLines = function() return self:TabExportLines() end,
     })
 end
 
@@ -645,7 +654,7 @@ function module:BuildSettings(options)
         { type = "button", name = "Open Crier settings", width = "half",
           tooltip = "Opens the Crier's own settings page for messages, rotation and reminder.",
           disabled = function() return not GC.active end,
-          func = function() if GC.OpenSettings then GC.OpenSettings() end end },
+          func = function() GC.OpenSettings() end },
     } }
 end
 
@@ -667,8 +676,8 @@ function module:OnPlayerActivated()
     GC.active = true
     EVENT_MANAGER:RegisterForEvent(GC.name, EVENT_GUILD_MEMBER_ADDED, OnMemberAdded)
     SLASH_COMMANDS["/crier"] = Slash
-    if GC.InitSettings then GC.InitSettings() end
-    if GC.StartTimer then GC.StartTimer() end
+    GC.InitSettings()
+    GC.StartTimer()
 end
 
 -- Keybinds call these; they do nothing while paused.

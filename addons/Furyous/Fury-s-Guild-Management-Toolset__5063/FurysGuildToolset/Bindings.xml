@@ -10,6 +10,15 @@
             <Action name="FURYGMT_CRIER_POST">
                 <Down>FuryGMT.Crier.KeyPost()</Down>
             </Action>
+            <Action name="FURYGMT_RECRUIT_AD">
+                <Down>FuryGMT.Recruit.KeyAd()</Down>
+            </Action>
+            <Action name="FURYGMT_RECRUIT_TOUR">
+                <Down>FuryGMT.Recruit.KeyTour()</Down>
+            </Action>
+            <Action name="FURYGMT_RECRUIT_NEXT">
+                <Down>FuryGMT.Recruit.KeyNext()</Down>
+            </Action>
         </Category>
     </Layer>
 </Bindings>

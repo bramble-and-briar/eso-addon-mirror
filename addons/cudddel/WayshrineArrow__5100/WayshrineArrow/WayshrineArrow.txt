@@ -1,0 +1,13 @@
+## Title: WayshrineArrow
+## Author: cudddel
+## Version: 0.1.0
+## AddOnVersion: 1
+## APIVersion: 101051 101052
+## Description: A movable HUD arrow that points in a straight line to the nearest known or unknown wayshrine of the current map. Optionally shows the name, status and distance. Hidden in delves, dungeons, arenas and trials.
+## SavedVariables: WayshrineArrow_Saved
+## OptionalDependsOn: LibAddonMenu-2.0
+
+lang/en.lua
+lang/$(language).lua
+WayshrineArrow.lua
+Bindings.xml

@@ -2,14 +2,20 @@ local GT = FuryGMT
 local U = {}
 GT.Util = U
 
+-- Shows a pop-up window (export/copy, confirm, text box, alert) in front of the Toolset
+-- window (1.14.1). Pop-ups draw on the high tier, and each one shown goes above the one before.
+local popupLevel = 0
+function U.ShowOnTop(control)
+    if control:IsHidden() then SCENE_MANAGER:ShowTopLevel(control) end
+    popupLevel = popupLevel + 1
+    control:SetDrawTier(DT_HIGH)
+    control:SetDrawLevel(popupLevel)
+end
+
 function U.Print(fmt, ...)
     local text = select("#", ...) > 0 and string.format(fmt, ...) or fmt
     local line = "|c7FB2FF[Fury GMT]|r " .. text
-    if CHAT_ROUTER then
-        CHAT_ROUTER:AddSystemMessage(line)
-    else
-        d(line)
-    end
+    CHAT_ROUTER:AddSystemMessage(line)
 end
 
 function U.Alert(text)

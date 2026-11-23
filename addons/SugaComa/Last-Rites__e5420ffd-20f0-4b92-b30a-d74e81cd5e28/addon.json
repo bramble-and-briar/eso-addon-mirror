@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/SugaComa/Last-Rites__e5420ffd-20f0-4b92-b30a-d74e81cd5e28",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "SugaComa",
+  "canonical_id": "bethesda:e5420ffd-20f0-4b92-b30a-d74e81cd5e28",
+  "content_id": "e5420ffd-20f0-4b92-b30a-d74e81cd5e28",
+  "deleted": false,
+  "fingerprint": "51c1c12843e4bd1fcc495dd9c3fabfc4137f9ac32997fab7120d2a71c3a0a9df",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "e5420ffd-20f0-4b92-b30a-d74e81cd5e28",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/e5420ffd-20f0-4b92-b30a-d74e81cd5e28",
+  "title": "Last Rites"
+}

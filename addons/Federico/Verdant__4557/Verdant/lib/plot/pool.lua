@@ -1,5 +1,6 @@
 
 Verdant = Verdant or {}
+local Verdant = Verdant
 Verdant.lib = Verdant.lib or {}
 Verdant.lib.plot = Verdant.lib.plot or {}
 
@@ -22,23 +23,6 @@ function M.new(name_prefix, parent, ctype, on_factory, on_reset)
       return c
     end,
 
-    function(c)
-      if on_reset then on_reset(c)
-      else Primitives.clear(c) end
-    end
-  )
-end
-
-function M.new_virtual(name_prefix, parent, virtual_template, on_factory, on_reset)
-  local CreateControlFromVirtual = zui.CreateControlFromVirtual
-  local counter = 0
-  return ZO_ObjectPool:New(
-    function()
-      counter = counter + 1
-      local c = CreateControlFromVirtual(name_prefix .. counter, parent, virtual_template)
-      if on_factory then on_factory(c, counter) end
-      return c
-    end,
     function(c)
       if on_reset then on_reset(c)
       else Primitives.clear(c) end

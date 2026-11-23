@@ -193,7 +193,8 @@ local function BuildOptions()
         {
             type = "description",
             text = "The LPI Companion uploads your LPI data to esopvp.com after each /reloadui or logout - only if you " ..
-                "agreed in the Companion. Choose who may see each kind below. Opponents' combat data and the kill " ..
+                "agreed in the Companion. Below, tick who may see each kind - you can tick several, for example your friends " ..
+                "and your guild members. Opponents' combat data and the kill " ..
                 "feed are always used for the public stats.",
         },
         {
@@ -212,32 +213,40 @@ local function BuildOptions()
             end,
         },
     }
+    -- per kind of data: tick every group that may see it (friends AND guild members, for example)
     for _, cat in ipairs(PDI.Share.CATEGORIES) do
-        opts[#opts + 1] = {
-            type = "dropdown", name = cat.label,
-            tooltip = cat.tooltip .. "\nAll - everyone\nYour Faction - players of your alliance\nGuild Members - members of " ..
-                "the guilds you tick below\nFriends - your friends list\nNone - don't share\n\nDefault: " .. (cat.default == "faction" and "Your Faction" or "Friends"),
-            choices = PDI.Share.MODE_LABELS, choicesValues = PDI.Share.MODES,
-            getFunc = function() return PDI.Share:Get(cat.key).mode end,
-            setFunc = function(v) PDI.Share:SetMode(cat.key, v) end,
-            default = cat.default,
-        }
-        -- five slots, one per guild you can be in (names are looked up when the panel is shown)
-        local guildControls = {}
+        local controls = {}
+        for _, g in ipairs(PDI.Share.GROUPS) do
+            controls[#controls + 1] = {
+                type = "checkbox", name = PDI.Share.GROUP_LABELS[g],
+                tooltip = g == "all" and "Everyone signed in on esopvp.com. (Ticking this makes the others unnecessary.)" or nil,
+                getFunc = function() return PDI.Share:Has(cat.key, g) end,
+                setFunc = function(v) PDI.Share:SetGroup(cat.key, g, v) end,
+                disabled = function() return g ~= "all" and PDI.Share:Has(cat.key, "all") end,
+            }
+        end
+        -- one tick box per guild you're in (names are looked up when the panel is shown)
         for slot = 1, PDI.Share.MAX_GUILDS do
-            guildControls[#guildControls + 1] = {
+            controls[#controls + 1] = {
                 type = "checkbox",
-                name = function() local g = PDI.Share:GuildAt(slot); return g and g.name or ("Guild " .. slot .. " (not in a guild)") end,
+                name = function() local g = PDI.Share:GuildAt(slot); return "    " .. (g and g.name or ("Guild " .. slot .. " (not in a guild)")) end,
                 getFunc = function() local g = PDI.Share:GuildAt(slot); return g ~= nil and PDI.Share:Get(cat.key).guilds[g.id] == true end,
                 setFunc = function(v)
                     local g = PDI.Share:GuildAt(slot)
                     if g then PDI.Share:Get(cat.key).guilds[g.id] = v or nil end
                 end,
-                disabled = function() return PDI.Share:Get(cat.key).mode ~= "guild" or PDI.Share:GuildAt(slot) == nil end,
+                disabled = function()
+                    return not PDI.Share:Has(cat.key, "guild") or PDI.Share:Has(cat.key, "all") or PDI.Share:GuildAt(slot) == nil
+                end,
             }
         end
-        opts[#opts + 1] = { type = "submenu", name = cat.label .. ": guilds", controls = guildControls,
-                            tooltip = "Used when " .. cat.label .. " is set to Guild Members." }
+        opts[#opts + 1] = {
+            type = "submenu",
+            name = function() return cat.label .. " with:  |c999999" .. PDI.Share:Describe(cat.key) .. "|r" end,
+            tooltip = cat.tooltip .. "\nTick every group that may see it. Nothing ticked = nobody.\nDefault: " ..
+                (cat.default == "faction" and "players of my faction" or "my friends"),
+            controls = controls,
+        }
     end
     for _, o in ipairs({
         { type = "header", name = "Data" },
@@ -306,7 +315,15 @@ S.SECTIONS = {
     { name = "Data Handling",   icon = "EsoUI/Art/MainMenu/menuBar_journal_up.dds",
       options = function() return BuildOptions() end },
     { name = "Alerts",          icon = "EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds",
-      options = function() return toolsBy("PvP Notifications", "Notification Display", "Break Free Alert", "Critical Alerts", "Blocking Alert") end },
+      options = function()
+          local o = toolsBy("PvP Notifications", "Notification Display", "Break Free Alert", "Critical Alerts", "Blocking Alert")
+          o[#o + 1] = { type = "header", name = "Alliance Points" }
+          o[#o + 1] = { type = "checkbox", name = "Chat line when I earn AP from keeps and resources",
+              tooltip = "Writes a line in chat, for example \"+1,250 AP Capturing Chalman Keep\", whenever you get AP for capturing or defending a keep, outpost or resource.",
+              getFunc = function() return PDI.sv.settings.apChat == true end,
+              setFunc = function(v) PDI.sv.settings.apChat = v end }
+          return o
+      end },
     { name = "Group Features",  icon = "EsoUI/Art/MainMenu/menuBar_group_up.dds",
       options = function() return toolsBy("Group Leader Marker") end },
     { name = "General",         icon = "EsoUI/Art/Guild/tabIcon_home_up.dds",

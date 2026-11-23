@@ -1,11 +1,5 @@
 Bankir = Bankir or {}
 
-local actionChoices = {
-	[1] = GetString(BANKIR_MENU_MODE_DO_NOTHING),
-	[2] = GetString(BANKIR_MENU_MODE_DEPOSIT),
-	[3] = GetString(BANKIR_MENU_MODE_WITHDRAW),
-}
-
 local qualityChoices = {
 	GetItemQualityColor(1):Colorize(GetString("SI_ITEMQUALITY", 1)),
 	GetItemQualityColor(2):Colorize(GetString("SI_ITEMQUALITY", 2)),

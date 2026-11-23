@@ -1,12 +1,12 @@
 -- WDH_Categories.lua
--- Einordnung von Beute in Kategorien
+-- Sorting loot into categories
 --
--- Jedes Item landet in genau einer Kategorie. Gespeichert wird IMMER beides:
--- das Item mit seiner Item-ID und die Kategorie. Der Modus bestimmt nur die Anzeige:
---   SET      -> zusammengefasst pro setId, mit Platz (Ruestung/Waffe/Schmuck)
---   DETAIL   -> immer mit Namen
---   DETAIL_Q -> mit Namen ab "Mit Namen anzeigen ab" (Qualitaet), sonst als Kategorie
---   COUNT    -> immer als Kategorie (Kategorie x Qualitaet)
+-- Every item lands in exactly one category. BOTH are always stored:
+-- the item with its item ID, and the category. The mode only decides the display:
+--   SET      -> grouped per setId, with slot (armor/weapon/jewelry)
+--   DETAIL   -> always by name
+--   DETAIL_Q -> by name from the "Show names from" quality up, otherwise as category
+--   COUNT    -> always as category (category x quality)
 
 WhatDropsHere.Categories = {}
 local CAT = WhatDropsHere.Categories
@@ -22,12 +22,12 @@ CAT.MODE_DETAIL_Q = DETAIL_Q
 CAT.MODE_COUNT    = COUNT
 
 -- -----------------------------------------------------------------------------
--- Zuordnung itemType -> Kategorie
+-- Mapping itemType -> category
 -- -----------------------------------------------------------------------------
 
 local BY_ITEMTYPE = {}
 
--- Anzeige-Modus je Kategorie-Schluessel (fuer die Anzeige gespeicherter Daten)
+-- Display mode per category key (for displaying stored data)
 local MODE_BY_KEY = {
     SET             = SET,
     GEAR_ARMOR      = COUNT,
@@ -41,33 +41,33 @@ local MODE_BY_KEY = {
     MISC            = COUNT,
 }
 
--- Konstanten, die es in dieser API-Version nicht gibt (nil), werden uebersprungen.
--- Ein nil-Schluessel im Tabellen-Konstruktor wuerde sonst einen Fehler werfen.
+-- Constants that do not exist in this API version (nil) are skipped.
+-- A nil key in the table constructor would raise an error otherwise.
 local function add(itemType, key, mode)
     if itemType == nil then return end
     BY_ITEMTYPE[itemType] = { key = key, mode = mode }
     MODE_BY_KEY[key] = mode
 end
 
--- Wertloses
+-- Worthless
 add(ITEMTYPE_TREASURE,                     "TREASURE",       COUNT)
 add(ITEMTYPE_TRASH,                        "TRASH",          COUNT)
 
--- Trinkets: neuer Ausruestungsplatz ab API 101052 (PTS 12.2). Auf Live ist ITEMTYPE_TRINKET nil
--- und wird von add() uebersprungen. Trinkets mit Set laufen ueber den Ausruestungs-Zweig in Classify.
+-- Trinkets: new gear slot from API 101052 (PTS 12.2). On live, ITEMTYPE_TRINKET is nil
+-- and add() skips it. Trinkets with a set go through the gear branch in Classify.
 add(ITEMTYPE_TRINKET,                      "TRINKET",        DETAIL)
 
--- Immer einzeln
+-- Always by name
 add(ITEMTYPE_FURNISHING,                   "FURNISHING",     DETAIL)
 add(ITEMTYPE_RACIAL_STYLE_MOTIF,           "MOTIF",          DETAIL)
 add(ITEMTYPE_COLLECTIBLE,                  "COLLECTIBLE",    DETAIL)
 add(ITEMTYPE_TROPHY,                       "TROPHY",         DETAIL)
 
--- Einzeln ab Schwelle
+-- By name from the threshold up
 add(ITEMTYPE_RECIPE,                       "RECIPE",         DETAIL_Q)
 add(ITEMTYPE_CONTAINER,                    "CONTAINER",      DETAIL_Q)
 
--- Handwerksmaterial (roh und veredelt in einer Kategorie, damit Stufen keine Rolle spielen)
+-- Crafting materials (raw and refined in one category, so material tiers do not matter)
 add(ITEMTYPE_BLACKSMITHING_RAW_MATERIAL,   "MAT_SMITH",      DETAIL_Q)
 add(ITEMTYPE_BLACKSMITHING_MATERIAL,       "MAT_SMITH",      DETAIL_Q)
 add(ITEMTYPE_CLOTHIER_RAW_MATERIAL,        "MAT_CLOTH",      DETAIL_Q)
@@ -84,14 +84,14 @@ add(ITEMTYPE_JEWELRY_RAW_TRAIT,            "MAT_TRAIT",      DETAIL_Q)
 add(ITEMTYPE_JEWELRY_TRAIT,                "MAT_TRAIT",      DETAIL_Q)
 add(ITEMTYPE_FURNISHING_MATERIAL,          "MAT_FURNISHING", DETAIL_Q)
 
--- Haertungsmittel (gruen bis gold, blau+ landet bei Standard-Schwelle einzeln)
+-- Tempers (green to gold; blue and up are shown by name with the default threshold)
 add(ITEMTYPE_BLACKSMITHING_BOOSTER,        "TEMPER",         DETAIL_Q)
 add(ITEMTYPE_CLOTHIER_BOOSTER,             "TEMPER",         DETAIL_Q)
 add(ITEMTYPE_WOODWORKING_BOOSTER,          "TEMPER",         DETAIL_Q)
 add(ITEMTYPE_JEWELRYCRAFTING_BOOSTER,      "TEMPER",         DETAIL_Q)
 add(ITEMTYPE_JEWELRYCRAFTING_RAW_BOOSTER,  "TEMPER",         DETAIL_Q)
 
--- Alchemie, Versorgen, Verzaubern
+-- Alchemy, provisioning, enchanting
 add(ITEMTYPE_REAGENT,                      "REAGENT",        DETAIL_Q)
 add(ITEMTYPE_POTION_BASE,                  "SOLVENT",        DETAIL_Q)
 add(ITEMTYPE_POISON_BASE,                  "SOLVENT",        DETAIL_Q)
@@ -100,7 +100,7 @@ add(ITEMTYPE_ENCHANTING_RUNE_ASPECT,       "RUNE_ASPECT",    DETAIL_Q)
 add(ITEMTYPE_ENCHANTING_RUNE_ESSENCE,      "RUNE_ESSENCE",   DETAIL_Q)
 add(ITEMTYPE_ENCHANTING_RUNE_POTENCY,      "RUNE_POTENCY",   DETAIL_Q)
 
--- Nur zaehlen
+-- Count only
 add(ITEMTYPE_LURE,                         "LURE",           COUNT)
 add(ITEMTYPE_FOOD,                         "CONSUMABLE",     COUNT)
 add(ITEMTYPE_DRINK,                        "CONSUMABLE",     COUNT)
@@ -113,7 +113,7 @@ add(ITEMTYPE_SOUL_GEM,                     "SOUL_GEM",       COUNT)
 add(ITEMTYPE_LOCKPICK,                     "TOOL",           COUNT)
 add(ITEMTYPE_TOOL,                         "TOOL",           COUNT)
 
--- Spezialisierte Typen, die eine eigene Kategorie bekommen (vor itemType geprueft)
+-- Specialized types that get their own category (checked before itemType)
 local BY_SPECIALIZED = {}
 local function addSpecial(specializedType, key, mode)
     if specializedType == nil then return end
@@ -127,9 +127,9 @@ addSpecial(SPECIALIZED_ITEMTYPE_TROPHY_SURVEY_REPORT,   "SURVEY",       DETAIL)
 
 local MISC = { key = "MISC", mode = COUNT }
 
--- Leder (roh und veredelt). Das Spiel unterscheidet Stoff und Leder nicht ueber den Itemtyp,
--- beides ist ITEMTYPE_CLOTHIER_(RAW_)MATERIAL. Alles Schneidermaterial, das hier nicht steht, gilt als Stoff.
--- Item-IDs wie in CraftingMaterialLevelDisplay (ClothingMaterials.lua).
+-- Leather (raw and refined). The game does not tell cloth and leather apart by item type,
+-- both are ITEMTYPE_CLOTHIER_(RAW_)MATERIAL. Any clothier material not listed here counts as cloth.
+-- Item IDs as in CraftingMaterialLevelDisplay (ClothingMaterials.lua).
 local LEATHER_IDS = {
     [793]   = true, [794]   = true,  -- rawhide scraps, rawhide          (1-14)
     [4448]  = true, [4447]  = true,  -- hide scraps, hide                (16-24)
@@ -144,7 +144,7 @@ local LEATHER_IDS = {
 }
 
 -- -----------------------------------------------------------------------------
--- Hilfsfunktionen
+-- Helpers
 -- -----------------------------------------------------------------------------
 
 local function GearSlot(itemLink, itemType)
@@ -170,18 +170,18 @@ end
 -- Classify
 -- -----------------------------------------------------------------------------
 
--- Ordnet einen Itemlink ein.
--- Rueckgabe: Tabelle mit
---   key     = Kategorie-Schluessel (siehe WDH_CAT_NAMES)
---   quality = Anzeige-Qualitaet
---   itemId  = Item-ID
---   setId, slot (nur bei Set-Ausruestung)
+-- Classifies an item link.
+-- Returns a table with
+--   key     = category key (see WDH_CAT_NAMES)
+--   quality = display quality
+--   itemId  = item ID
+--   setId, slot (set gear only)
 function CAT.Classify(itemLink)
     local itemType, specializedType = GetItemLinkItemType(itemLink)
     local quality = GetItemLinkDisplayQuality(itemLink)
     local itemId  = GetItemLinkItemId(itemLink)
 
-    -- Trinket mit Set (ob es die geben wird, ist auf dem PTS noch offen)
+    -- Trinket with a set (whether these will exist is still open on the PTS)
     if ITEMTYPE_TRINKET and itemType == ITEMTYPE_TRINKET then
         local hasSet, _, _, _, _, setId = GetItemLinkSetInfo(itemLink, false)
         if hasSet and setId and setId > 0 then
@@ -189,7 +189,7 @@ function CAT.Classify(itemLink)
         end
     end
 
-    -- Ausruestung: Set, Gefaehrte oder ohne Set
+    -- Gear: set, companion or no set
     if itemType == ITEMTYPE_WEAPON or itemType == ITEMTYPE_ARMOR then
         local slot = GearSlot(itemLink, itemType)
         if IsCompanionGear(itemLink) then
@@ -211,7 +211,7 @@ function CAT.Classify(itemLink)
     return { key = key, quality = quality, itemId = itemId }
 end
 
--- Anzeige-Modus einer Kategorie (unbekannte Schluessel wie COUNT behandeln)
+-- Display mode of a category (unknown keys are treated like COUNT)
 function CAT.ModeOf(key)
     return MODE_BY_KEY[key] or COUNT
 end

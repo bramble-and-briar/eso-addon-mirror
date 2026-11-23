@@ -2,7 +2,7 @@
 -- ESO gamepad / keyboard: tracker, inventory advisor, visited-trader flip finder.
 GoldStandard = GoldStandard or {}
 local GS = GoldStandard
-GS.name, GS.version = "GoldStandard", "1.0.22-test"
+GS.name, GS.version = "GoldStandard", "1.0.28"
 GS.defaults = {
     tracking=true, showHUD=true, showLootToast=true, minToast=500,
     hudShowGold=true, hudShowAP=true, hudShowTelVar=true, showWealthHUD=true,
@@ -29,6 +29,11 @@ local function call(fn,...)
     local ok,a,b,c,d,e,f,g,h = pcall(fn,...)
     if ok then return a,b,c,d,e,f,g,h end
     return nil
+end
+function GS:CleanName(name)
+    if type(name)~="string" then return name end
+    local formatted=call(zo_strformat,"<<1>>",name) or name
+    return (formatted:gsub("%^%a+", ""))
 end
 local function money(n)
     n=math.floor((tonumber(n) or 0)+0.5)
@@ -362,6 +367,9 @@ function GS:ResetSession(quiet)
         apGained=0,apSpent=0,telGained=0,telSpent=0,
         transactions=0, transfers=0, vendorSales=0, vendorPurchases=0, otherSpent=0, otherIncome=0}
     self.currencyBaseline=self:ReadCurrencies()
+    self.wallet=self:ReadOwnedGold()
+    self.lastWalletRecord=nil
+    self.pendingVendorReceipt=nil
     if not quiet then self:Print("New session started.") end
     self:Refresh()
 end
@@ -393,8 +401,10 @@ function GS:TrackItem(link,quantity,reason,bag,source)
         end
         self.lastLoot=link.." x"..quantity
         self.lastValue=v
-        if v and v>=self.saved.minToast and self.saved.showLootToast then
-            self:Toast("+"..money(v).."g  "..(call(GetItemLinkName,link) or "Loot"))
+        if self.lootBatch then
+            self.lootBatch[#self.lootBatch+1]={link=link,qty=quantity,value=v}
+        elseif v and v>=self.saved.minToast and self.saved.showLootToast then
+            self:Toast("+"..money(v).."g  "..(self:CleanName(call(GetItemLinkName,link)) or "Loot"))
         elseif not v and self.saved.showUnpriced then
             self.lastValue=nil
         end
@@ -407,17 +417,46 @@ function GS:TrackItem(link,quantity,reason,bag,source)
     self:AddHistory({time=timestamp(),link=link,qty=quantity,value=v,source=source or "inventory",bag=bag})
     self:Refresh()
 end
+-- Coalesce matching positive and negative stack movements across owned bags.
+function GS:FlushInventoryDeltas()
+    local pending=self.pendingInventory or {}; self.pendingInventory={}
+    self.lootBatch={}
+    for _,e in pairs(pending) do
+        local net=e.delta
+        if net>0 and e.eligible then self:TrackItem(e.link,net,e.reason,e.bag,"inventory")
+        elseif net<0 and e.processing then self:TrackItem(e.link,net,e.reason,e.bag,"inventory") end
+    end
+    local batch=self.lootBatch;self.lootBatch=nil
+    local total=0;for _,e in ipairs(batch) do total=total+(e.value or 0) end
+    if #batch>0 and self.saved.showLootToast and total>=(self.saved.minToast or 0) then
+        table.sort(batch,function(a,b) return (a.value or -1)>(b.value or -1) end)
+        local lines={"LOOT  +"..money(total).."g estimated"};local remainder,unknown=0,0
+        for i,e in ipairs(batch) do
+            if i<=5 then lines[#lines+1]=(self:CleanName(call(GetItemLinkName,e.link)) or "Item").." x"..e.qty.." | "..(e.value and money(e.value).."g" or "Unpriced")
+            else remainder=remainder+(e.value or 0);if not e.value then unknown=unknown+1 end end
+        end
+        if #batch>5 then lines[#lines+1]="... +"..money(remainder).."g for items not shown"..(unknown>0 and (" ("..unknown.." unpriced)") or "") end
+        self:Toast(table.concat(lines,"\n"))
+    end
+end
 function GS:OnInventory(_,bag,slot,isNew,_,updateReason,stackCountChange)
     if not self.saved or not self.saved.tracking then return end
-    if bag~=BAG_BACKPACK and (not BAG_VIRTUAL or bag~=BAG_VIRTUAL) then return end
-    local delta=tonumber(stackCountChange)
-    if not delta or delta==0 then return end
+    local owned=bag==BAG_BACKPACK or bag==BAG_VIRTUAL or bag==BAG_BANK or bag==BAG_SUBSCRIBER_BANK
+    if not owned then return end
+    self.slotLinks=self.slotLinks or {}; self.pendingInventory=self.pendingInventory or {}
+    local key=tostring(bag)..":"..tostring(slot)
     local link=call(GetItemLink,bag,slot,LINK_STYLE_DEFAULT)
-    if not link or link=="" then
-        -- Depleted slots may no longer have an itemLink: do not invent a loss.
-        return
-    end
-    self:TrackItem(link,delta,updateReason,bag,"inventory")
+    local delta=tonumber(stackCountChange) or 0
+    if not link or link=="" then link=self.slotLinks[key]; self.slotLinks[key]=nil else self.slotLinks[key]=link end
+    if not link or delta==0 then return end
+    local id=link
+    local e=self.pendingInventory[id] or {link=link,delta=0}
+    e.delta=e.delta+delta
+    if delta>0 and (bag==BAG_BACKPACK or bag==BAG_VIRTUAL) then e.eligible=true; e.bag=bag; e.reason=updateReason end
+    e.processing=e.processing or clockms()<(self.craftWindow.expires or 0)
+    self.pendingInventory[id]=e
+    EVENT_MANAGER:UnregisterForUpdate(self.name.."_stack_batch")
+    EVENT_MANAGER:RegisterForUpdate(self.name.."_stack_batch",250,function() EVENT_MANAGER:UnregisterForUpdate(self.name.."_stack_batch"); self:FlushInventoryDeltas() end)
 end
 -- Use the same wallet source as ESO's merchant interface, with a safe fallback.
 function GS:ReadWallet()
@@ -441,9 +480,33 @@ function GS:CategorizeWalletRecord(record,kind)
     record.source=kind
     record.vendorCategorized=true
 end
+-- A bank transfer changes location, not owned gold. Never substitute zero
+-- for an unavailable bank balance, which would fabricate a cash transaction.
+function GS:ReadOwnedGold()
+    local c=self:ReadCurrencies()
+    if type(c.carried)~="number" or type(c.banked)~="number" then return nil end
+    return c.carried+c.banked
+end
+function GS:ScheduleMoneyUpdate()
+    self.moneyToken=(self.moneyToken or 0)+1
+    local token=self.moneyToken
+    self.moneyPending=true
+    if zo_callLater then
+        zo_callLater(function()
+            if self.moneyToken==token then
+                self.moneyPending=false
+                self:OnMoneyUpdate()
+            end
+        end,500)
+    else
+        self.moneyPending=false
+        self:OnMoneyUpdate()
+    end
+end
 function GS:OnMoneyUpdate()
-    local current=self:ReadWallet()
-    if current==nil then return end
+    if self.moneyPending then return end
+    local current=self:ReadOwnedGold()
+    if current==nil then self.wallet=nil; return end
     if self.wallet~=nil and self.saved and self.saved.tracking then
         local change=current-self.wallet
         if change~=0 then
@@ -481,7 +544,7 @@ function GS:OnVendorReceipt(kind)
     -- receipt amount separately, which would count the same gold twice.
     self:OnMoneyUpdate()
     local recent=self.lastWalletRecord
-    if recent and clockms()-(recent.at or 0)<=2500 and not recent.vendorCategorized and
+    if not self.moneyPending and recent and clockms()-(recent.at or 0)<=2500 and not recent.vendorCategorized and
         ((kind=="vendor sale" and (recent.qty or 0)>0) or
          (kind=="vendor purchase" and (recent.qty or 0)<0)) then
         self:CategorizeWalletRecord(recent,kind)
@@ -813,16 +876,18 @@ function GS:Initialize()
     self:ResetSession(true)
     self:ResetTrader()
     self.wealthSnapshot=nil
-    self.wallet=self:ReadWallet()
+    self.wallet=self:ReadOwnedGold()
     self:InitializeUI()
     self:RegisterStartMenuVisibility()
     self:InitializeSettings()
     EVENT_MANAGER:RegisterForEvent(self.name.."_items",EVENT_INVENTORY_SINGLE_SLOT_UPDATE,function(...) self:OnInventory(...); self:InvalidateWealth(select(2,...)) end)
-    if EVENT_MONEY_UPDATE then EVENT_MANAGER:RegisterForEvent(self.name.."_cash",EVENT_MONEY_UPDATE,function() self:OnMoneyUpdate() end) end
+    if EVENT_MONEY_UPDATE then EVENT_MANAGER:RegisterForEvent(self.name.."_cash",EVENT_MONEY_UPDATE,function() self:ScheduleMoneyUpdate() end) end
     if EVENT_CURRENCY_UPDATE then
         EVENT_MANAGER:RegisterForEvent(self.name.."_currency",EVENT_CURRENCY_UPDATE,
             function(_,currencyType)
-                if currencyType==CURT_ALLIANCE_POINTS or currencyType==CURT_TELVAR_STONES then
+                if currencyType==CURT_MONEY then
+                    self:ScheduleMoneyUpdate()
+                elseif currencyType==CURT_ALLIANCE_POINTS or currencyType==CURT_TELVAR_STONES then
                     self:ScheduleCurrencyReconcile()
                 end
             end)

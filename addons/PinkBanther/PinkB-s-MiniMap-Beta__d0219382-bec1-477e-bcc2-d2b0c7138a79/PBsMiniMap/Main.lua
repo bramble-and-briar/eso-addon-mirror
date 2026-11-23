@@ -343,22 +343,22 @@ local function IsOurControl(control)
 	return name ~= nil and (zo_plainstrfind(name, "PBsMiniMap") or name == "ZO_WorldMapTitle")
 end
 
+-- One function for the life of the add-on. Passing an inline function to ForEachLabel built a
+-- new closure on every sweep, which runs once a second while the minimap is up.
+local function HideAreaLabel(label)
+	if not label:IsHidden() and not IsOurControl(label) then
+		local text = label.GetText and label:GetText()
+		if text and text ~= "" then
+			label:SetHidden(true)
+		end
+	end
+end
+
 function addon:HideMapAreaLabels()
 	if not ZO_WorldMap then
 		return
 	end
-	ForEachLabel(
-		ZO_WorldMap,
-		0,
-		function(label)
-			if not label:IsHidden() and not IsOurControl(label) then
-				local text = label.GetText and label:GetText()
-				if text and text ~= "" then
-					label:SetHidden(true)
-				end
-			end
-		end
-	)
+	ForEachLabel(ZO_WorldMap, 0, HideAreaLabel)
 end
 
 -- Runs the sweep when something has asked for one, and otherwise at most once a second.
@@ -482,6 +482,10 @@ end
 
 -- Preserve the last HUD sample so opening Settings does not replace the evidence
 -- with the (working) full-screen map state. One small sample per second, no pin scan.
+--
+-- The sample is raw values written into one table that is reused for the life of the add-on;
+-- the text is only built when the report button is pressed. It used to be a new table and five
+-- formatted strings every second, all of it thrown away unread unless the button was pressed.
 function addon:CaptureLitePlayerPinDiagnostic()
 	if self.dormant or self.litePreviewAdded or IsWorldMapShownElsewhere()
 		or not ZO_WorldMap or ZO_WorldMap:IsHidden() then
@@ -497,24 +501,51 @@ function addon:CaptureLitePlayerPinDiagnostic()
 	local px, py = 0, 0
 	local cx, cy = ZO_WorldMapScroll:GetCenter()
 	if control then px, py = control:GetCenter() end
-	self.playerPinDiagnostic = {
-		string.format("v%s t=%.1f map=%s (%s) floor=%s", self.version, now / 1000,
-			tostring(GetMapName()), tostring(GetCurrentMapId()), tostring(GetMapFloorInfo())),
-		string.format("pos=%.4f,%.4f shown=%s symbolic=%s ownMap=%s world=%s follow=%s", x, y,
-			tostring(shown), tostring(symbolic), tostring(DoesCurrentMapMatchMapForPlayerLocation()),
-			tostring(DoesCurrentMapShowPlayerWorld()), tostring(self.followSkip)),
-		control and string.format("pin hidden=%s alpha=%.2f level=%d size=%.1fx%.1f offset=%.1f,%.1f",
-			tostring(control:IsHidden()), control:GetAlpha(), control:GetDrawLevel(),
-			control:GetWidth(), control:GetHeight(), px - cx, py - cy) or "pin missing",
-		background and string.format("texture hidden=%s alpha=%.2f layer=%d level=%d texture=%s",
-			tostring(background:IsHidden()), background:GetAlpha(), background:GetDrawLayer(),
-			background:GetDrawLevel(), tostring(background:GetTextureFileName())) or "texture missing",
-		self.CompassTextureStatus and self:CompassTextureStatus() or "compass not loaded",
+
+	local s = self.playerPinSample
+	if not s then
+		s = {}
+		self.playerPinSample = s
+	end
+	s.t, s.mapName, s.mapId, s.floor = now, GetMapName(), GetCurrentMapId(), GetMapFloorInfo()
+	s.x, s.y, s.shown, s.symbolic = x, y, shown, symbolic
+	s.ownMap, s.world, s.follow = DoesCurrentMapMatchMapForPlayerLocation(), DoesCurrentMapShowPlayerWorld(), self.followSkip
+	s.hasPin = control ~= nil
+	if control then
+		s.pinHidden, s.pinAlpha, s.pinLevel = control:IsHidden(), control:GetAlpha(), control:GetDrawLevel()
+		s.pinW, s.pinH, s.offX, s.offY = control:GetWidth(), control:GetHeight(), px - cx, py - cy
+	end
+	s.hasTexture = background ~= nil
+	if background then
+		s.texHidden, s.texAlpha, s.texLayer = background:IsHidden(), background:GetAlpha(), background:GetDrawLayer()
+		s.texLevel, s.texFile = background:GetDrawLevel(), background:GetTextureFileName()
+	end
+	if self.SampleCompassState then
+		self:SampleCompassState(s)
+	end
+end
+
+-- The report's text, built from the last HUD sample. Only runs when the button is pressed.
+function addon:FormatLitePlayerPinDiagnostic()
+	local s = self.playerPinSample
+	if not s then
+		return nil
+	end
+	return {
+		string.format("v%s t=%.1f map=%s (%s) floor=%s", self.version, s.t / 1000,
+			tostring(s.mapName), tostring(s.mapId), tostring(s.floor)),
+		string.format("pos=%.4f,%.4f shown=%s symbolic=%s ownMap=%s world=%s follow=%s", s.x or -1, s.y or -1,
+			tostring(s.shown), tostring(s.symbolic), tostring(s.ownMap), tostring(s.world), tostring(s.follow)),
+		s.hasPin and string.format("pin hidden=%s alpha=%.2f level=%d size=%.1fx%.1f offset=%.1f,%.1f",
+			tostring(s.pinHidden), s.pinAlpha, s.pinLevel, s.pinW, s.pinH, s.offX, s.offY) or "pin missing",
+		s.hasTexture and string.format("texture hidden=%s alpha=%.2f layer=%d level=%d texture=%s",
+			tostring(s.texHidden), s.texAlpha, s.texLayer, s.texLevel, tostring(s.texFile)) or "texture missing",
+		self.FormatCompassState and self:FormatCompassState(s) or "compass not loaded",
 	}
 end
 
 function addon:PrintLitePlayerPinDiagnostic()
-	local lines = self.playerPinDiagnostic
+	local lines = self:FormatLitePlayerPinDiagnostic()
 	if not lines then
 		d(GetString(SI_PBSMINIMAP_PIN_DIAGNOSTIC_EMPTY))
 	else
@@ -2255,6 +2286,14 @@ function addon:Initialize()
 	-- calling ClearTargetOffset. Meanwhile PanToNormalizedPosition, the call actually built
 	-- for this, was never reached because the SetCurrentOffset branch matched first.
 	local centreRoute
+	-- Defined once rather than inside CentreOnPlayer: that runs at 10Hz while the player moves,
+	-- and a local function there is a new closure -- fresh garbage -- on every call.
+	local function route(self, name)
+		if centreRoute ~= name then
+			centreRoute = name
+			self:ReportCentreRoute(name)
+		end
+	end
 	function addon:CentreOnPlayer(normalizedX, normalizedY)
 		self.centreCalls = (self.centreCalls or 0) + 1
 
@@ -2263,19 +2302,12 @@ function addon:Initialize()
 			return
 		end
 
-		local function route(name)
-			if centreRoute ~= name then
-				centreRoute = name
-				self:ReportCentreRoute(name)
-			end
-		end
-
 		-- 1. The purpose-built call. It routes through GetNormalizedPositionFocusZoomAndOffset,
 		-- which we override, so it lands on our centred offsets and follows the game's own
 		-- sequencing rather than fighting it.
 		if panZoom.PanToNormalizedPosition then
 			panZoom:PanToNormalizedPosition(normalizedX, normalizedY)
-			route("PanToNormalizedPosition")
+			route(self, "PanToNormalizedPosition")
 			return
 		end
 
@@ -2295,7 +2327,7 @@ function addon:Initialize()
 				-- CentreOnPlayerHard. Clearing the target and then setting a target offset
 				-- walks into ComputeCurvedZoom with no zoom to ease towards. This route has
 				-- not thrown only because route 1 above always wins.
-				route("SetCurrentOffset")
+				route(self, "SetCurrentOffset")
 				return
 			end
 		end
@@ -2303,7 +2335,7 @@ function addon:Initialize()
 		-- 3. The global helper, which is where this started.
 		if ZO_WorldMap_JumpToPlayer then
 			ZO_WorldMap_JumpToPlayer()
-			route("ZO_WorldMap_JumpToPlayer")
+			route(self, "ZO_WorldMap_JumpToPlayer")
 		end
 	end
 

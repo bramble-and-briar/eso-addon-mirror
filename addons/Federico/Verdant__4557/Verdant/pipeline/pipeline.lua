@@ -10,6 +10,7 @@ local Filter      = Verdant.Pipeline.Filter
 local Processing  = Verdant.Pipeline.Processing
 
 local C = Verdant.zenimax.constants
+local string_find = string.find
 local EVENT_COMBAT_EVENT          = C.EVENT_COMBAT_EVENT
 local EVENT_EFFECT_CHANGED        = C.EVENT_EFFECT_CHANGED
 local EVENT_GROUP_MEMBER_JOINED   = C.EVENT_GROUP_MEMBER_JOINED
@@ -28,6 +29,11 @@ local ACTION_RESULT_HOT_TICK          = C.ACTION_RESULT_HOT_TICK
 local ACTION_RESULT_CRITICAL_HEAL     = C.ACTION_RESULT_CRITICAL_HEAL
 local ACTION_RESULT_HOT_TICK_CRITICAL = C.ACTION_RESULT_HOT_TICK_CRITICAL
 local ACTION_RESULT_DAMAGE_SHIELDED   = C.ACTION_RESULT_DAMAGE_SHIELDED
+local ACTION_RESULT_POWER_ENERGIZE    = C.ACTION_RESULT_POWER_ENERGIZE
+local POOL_MAGICKA                    = C.COMBAT_MECHANIC_FLAGS_MAGICKA
+local POOL_STAMINA                    = C.COMBAT_MECHANIC_FLAGS_STAMINA
+local KIND_RESTORE_MAG = Verdant.Constants.ABILITY_KIND.RESTORE_MAG
+local KIND_RESTORE_STA = Verdant.Constants.ABILITY_KIND.RESTORE_STA
 local ACTION_RESULT_DAMAGE            = C.ACTION_RESULT_DAMAGE
 local ACTION_RESULT_DOT_TICK          = C.ACTION_RESULT_DOT_TICK
 local ACTION_RESULT_CRITICAL_DAMAGE   = C.ACTION_RESULT_CRITICAL_DAMAGE
@@ -76,7 +82,6 @@ function M.dispatch_heal_out(result, isError, _name, _g, _slot,
   bump("engine.heal.accepted")
 
   local t = now()
-  Verdant.Triage.on_own_heal(targetName, hit, overflow, t, targetType, result)
   prof_enter("pipeline.combat_event.acquisition")
   local ev_heal, ev_overheal = Acquisition.acquire_heal_out(
     t, hit, overflow, targetUnitId, targetType, abilityId, result)
@@ -116,6 +121,30 @@ function M.dispatch_heal_out(result, isError, _name, _g, _slot,
   prof_exit("pipeline.combat_event")
 end
 
+function M.dispatch_restore_out(_result, _isError, _name, _g, _slot,
+                                 _src, _sourceType, targetName, targetType, hit,
+                                 pool, _dt, _log, _suid, _tuid,
+                                 abilityId, _overflow)
+  prof_enter("pipeline.combat_event")
+  bump("engine.restore.in")
+  local kind = (pool == POOL_MAGICKA and KIND_RESTORE_MAG) or (pool == POOL_STAMINA and KIND_RESTORE_STA) or nil
+  if targetType == COMBAT_UNIT_TYPE_PLAYER then
+    bump("engine.restore.dropped_self")
+  elseif not kind then
+    bump("engine.restore.dropped_pool")
+  else
+    local ev = Acquisition.acquire_restore(now(), kind, hit, targetType, abilityId, targetName)
+    if ev then
+      bump("engine.restore.accepted")
+      Processing.process(ev)
+    elseif (hit or 0) > 0 then
+      bump("engine.pool.exhausted")
+      Log:warn("event pool exhausted (restore)")
+    end
+  end
+  prof_exit("pipeline.combat_event")
+end
+
 function M.dispatch_shield_abs(_result, isError, _name, _g, _slot,
                                 _src, _sourceType, _tgt, targetType, hit,
                                 _pt, _dt, _log, _suid, targetUnitId,
@@ -136,6 +165,10 @@ function M.dispatch_shield_abs(_result, isError, _name, _g, _slot,
     local allowed = Filter.allow(ev)
     prof_exit("pipeline.combat_event.filter")
     if allowed then
+      if not Verdant.Coverage.is_group_target_type(ev.target_type)
+         and Verdant.ShieldRegistry.on_member(ev.ability_id, ev.target_unit_id) then
+        ev.target_type = COMBAT_UNIT_TYPE_GROUP
+      end
       bump("engine.shield.accepted")
       prof_enter("pipeline.combat_event.processing")
       Processing.process(ev)
@@ -185,7 +218,7 @@ function M.dispatch_group_damage(_result, isError, _name, _g, _slot,
   prof_exit("pipeline.combat_event")
 end
 
-function M.dispatch_effect_player_src(changeType, _slot, _name, unitTag, _bt, endTime,
+function M.dispatch_effect_player_src(changeType, _slot, _name, unitTag, beginTime, endTime,
                                        _stack, _icon, _depBuff, effectType, abilityType,
                                        _stat, _uname, unitId, abilityId, sourceType)
   prof_enter("pipeline.effect")
@@ -195,10 +228,19 @@ function M.dispatch_effect_player_src(changeType, _slot, _name, unitTag, _bt, en
   elseif changeType == EFFECT_RESULT_FADED then
     bump("engine.effect.faded")
   end
-  Verdant.ShieldRegistry.on_effect(changeType, abilityId, unitId, sourceType, endTime)
-  Verdant.BuffTracker.on_effect(changeType, abilityId, unitId, endTime, now(), unitTag, effectType, abilityType)
-  Verdant.BuffWatch.on_effect(changeType, abilityId, unitId, endTime, now(), unitTag)
+  Verdant.ShieldRegistry.on_effect(changeType, abilityId, unitId, sourceType, endTime, unitTag)
+  local ends = (endTime and endTime > (beginTime or 0)) and endTime or 0
+  Verdant.BuffTracker.on_effect(changeType, abilityId, unitId, ends, now(), unitTag, effectType, abilityType)
+  Verdant.BuffWatch.on_effect(changeType, abilityId, unitId, ends, now(), unitTag)
   prof_exit("pipeline.effect")
+end
+
+function M.dispatch_effect_on_group(_changeType, _slot, _name, unitTag, _bt, _endTime,
+                                    _stack, _icon, _depBuff, _effectType, _abilityType,
+                                    _stat, _uname, unitId)
+  if unitTag and string_find(unitTag, "^group%d+$") then
+    Verdant.GroupSet.add(unitId)
+  end
 end
 
 function M.dispatch_death_state(_unitTag, isDead)
@@ -209,15 +251,7 @@ function M.dispatch_death_state(_unitTag, isDead)
   end
 end
 
-function M.dispatch_power(unitTag, idx, ptype, value, pmax, effMax)
-  prof_enter("pipeline.power")
-  bump("engine.power.in")
-  Verdant.Triage.on_power(unitTag, idx, ptype, value, pmax, effMax)
-  prof_exit("pipeline.power")
-end
-
 function M.dispatch_death_state_group(unitTag, isDead)
-  Verdant.Triage.on_unit_death(unitTag, isDead)
   if Verdant.zenimax.api.AreUnitsEqual(unitTag, "player") then return end
   bump(isDead and "engine.death.group_died" or "engine.death.group_res")
   if not Verdant.TemporalBuffer.is_recording() then return end
@@ -231,7 +265,12 @@ function M.dispatch_group_change()
   bump("engine.group.changed")
   Log:info("group changed; refreshing coverage mode")
   Verdant.Coverage.refresh_mode()
-  Verdant.Triage.refresh_names()
+end
+
+function M.dispatch_zone_arrived()
+  bump("engine.zone.arrived")
+  Verdant.Coverage.refresh_mode()
+  Verdant.GroupSet.reset()
 end
 
 function M.dispatch_group_left()
@@ -255,6 +294,8 @@ function M.init()
        or r == ACTION_RESULT_CRITICAL_HEAL
        or r == ACTION_RESULT_HOT_TICK_CRITICAL then
       M.dispatch_heal_out(...)
+    elseif r == ACTION_RESULT_POWER_ENERGIZE then
+      M.dispatch_restore_out(...)
     end
   end)
   E.add_filter("Verdant_E_HealOut", EVENT_COMBAT_EVENT,
@@ -286,6 +327,10 @@ function M.init()
   E.add_filter("Verdant_E_EffectPlayer", EVENT_EFFECT_CHANGED,
     REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
 
+  E.register("Verdant_E_EffectGroup", EVENT_EFFECT_CHANGED, M.dispatch_effect_on_group)
+  E.add_filter("Verdant_E_EffectGroup", EVENT_EFFECT_CHANGED,
+    C.REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
+
   E.register("Verdant_E_WeaponPair", C.EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function()
     Verdant.BuffTracker.on_bars_changed()
   end)
@@ -298,16 +343,10 @@ function M.init()
   E.add_filter("Verdant_E_DeathGroup", EVENT_UNIT_DEATH_STATE_CHANGED,
     C.REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
 
-  E.register("Verdant_E_Power", C.EVENT_POWER_UPDATE, M.dispatch_power)
-  E.add_filter("Verdant_E_Power", C.EVENT_POWER_UPDATE,
-    C.REGISTER_FILTER_POWER_TYPE, C.POWERTYPE_HEALTH)
-  E.add_filter("Verdant_E_Power", C.EVENT_POWER_UPDATE,
-    C.REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
-
   E.register("Verdant_E_GroupJ", EVENT_GROUP_MEMBER_JOINED, M.dispatch_group_change)
   E.register("Verdant_E_GroupL", EVENT_GROUP_MEMBER_LEFT,   M.dispatch_group_left)
   E.register("Verdant_E_GroupU", EVENT_GROUP_UPDATE,        M.dispatch_group_change)
-  E.register("Verdant_E_PlayerAct", EVENT_PLAYER_ACTIVATED, M.dispatch_group_change)
+  E.register("Verdant_E_PlayerAct", EVENT_PLAYER_ACTIVATED, M.dispatch_zone_arrived)
 
-  Log:info("init complete; 7 event handlers registered")
+  Log:info("init complete")
 end

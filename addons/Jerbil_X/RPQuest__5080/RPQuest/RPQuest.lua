@@ -2,6 +2,7 @@
 -- Ref: docs/adr/0002-modelo-de-dominio-captura-y-codec-de-comparticion.md
 -- Ref: docs/adr/0003-integracion-nativa-ui-diario-mapa-y-hud.md
 -- Ref: docs/adr/0004-objetivos-multiples-inferidos-por-reticula.md
+-- Ref: docs/adr/0012-savedvars-account-wide-y-migracion-por-personaje.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -15,8 +16,9 @@ function Addon:Initialize()
     local defaults = Addon.QuestRepository:GetDefaults()
     local svName = Addon.Constants.SAVED_VARS.NAME
     local svVersion = Addon.Constants.SAVED_VARS.VERSION
-    local savedVars = ZO_SavedVars:NewCharacterIdSettings(svName, svVersion, nil, defaults)
+    local savedVars = ZO_SavedVars:NewAccountWide(svName, svVersion, nil, defaults)
     self.savedVars = savedVars
+    Addon.QuestRepository:MigrateCharacterSavedVars(_G[svName], GetDisplayName(), savedVars, GetCurrentCharacterId())
 
     Addon.QuestRepository:Initialize(savedVars)
     Addon.CombatTracker:Initialize()
@@ -27,10 +29,6 @@ function Addon:Initialize()
         Addon.MailTransport:Initialize()
     end
     Addon.JournalTab:Initialize()
-
-    SLASH_COMMANDS["/rpquest"] = function(args)
-        self:HandleSlashCommand(args)
-    end
 end
 
 function Addon:OnCaptureTargetKeybind()
@@ -45,20 +43,7 @@ function Addon:OnToggleJournalKeybind()
     Addon.JournalTab:ToggleTab()
 end
 
-function Addon:HandleSlashCommand(args)
-    local cmd = (type(args) == "string" and args:gsub("^%s+", ""):gsub("%s+$", ""):lower()) or ""
-    if cmd == "capture" or cmd == "target" then
-        self:OnCaptureTargetKeybind()
-    elseif cmd == "discovery" or cmd == "point" then
-        self:OnCaptureDiscoveryKeybind()
-    elseif cmd == "map" then
-        Addon.WorldMapArea:ShowQuestOnMap()
-    else
-        self:OnToggleJournalKeybind()
-    end
-end
-
-local function OnAddOnLoaded(eventCode, addOnName)
+local function OnAddOnLoaded(_eventCode, addOnName)
     if addOnName ~= Addon.name then
         return
     end

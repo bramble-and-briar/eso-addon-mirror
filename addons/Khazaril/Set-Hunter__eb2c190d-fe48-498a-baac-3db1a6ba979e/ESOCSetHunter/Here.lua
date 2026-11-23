@@ -466,13 +466,10 @@ function H.PanelLines()
     return lines
 end
 
--- Always available from Settings > Add-Ons, wherever you are.
-function H.CreateGuidePage()
-    local LHAS = LibHarvensAddonSettings
-    if not LHAS or not LHAS.AddAddon then return end
-    local page = LHAS:AddAddon("Set Hunter Farming Guide", { allowDefaults = false })
-    local rows = {
-        { type = LHAS.ST_SECTION, label = "Where overland gear drops" },
+-- The farming guide sections of the one settings page, available wherever you are.
+function H.GuideRows(LHAS)
+    return {
+        { type = LHAS.ST_SECTION, label = "Farming guide: overland gear" },
         { type = LHAS.ST_LABEL, label = "Head, Chest, Legs: World bosses" },
         { type = LHAS.ST_LABEL, label = "Shoulders, Hands: Public dungeon bosses and champions" },
         { type = LHAS.ST_LABEL, label = "Waist, Feet: Delve bosses" },
@@ -480,19 +477,18 @@ function H.CreateGuidePage()
         { type = LHAS.ST_LABEL, label = "Necklace, Rings: World event chests, most often Dark Anchors" },
         { type = LHAS.ST_LABEL, label = "Any piece: Treasure chests in that zone" },
         { type = LHAS.ST_LABEL, label = "No world events, such as Wrothgar? Farm jewelry from treasure chests." },
-        { type = LHAS.ST_SECTION, label = "Zones with no public dungeons" },
+        { type = LHAS.ST_SECTION, label = "Farming guide: zones with no public dungeons" },
         { type = LHAS.ST_LABEL, label = "Gold Coast, Hew's Bane: Shoulders from world bosses, hands from delve bosses" },
         { type = LHAS.ST_LABEL, label = "Gold Coast, Hew's Bane: World bosses can also drop jewelry" },
         { type = LHAS.ST_LABEL, label = "Clockwork City, Craglorn, Murkmire, Southern Elsweyr, The Reach, The Deadlands, Galen: Shoulders and hands from treasure chests" },
         { type = LHAS.ST_LABEL, label = "All of these zones: Weapons from world bosses" },
-        { type = LHAS.ST_SECTION, label = "Infinite Archive" },
+        { type = LHAS.ST_SECTION, label = "Farming guide: Infinite Archive" },
         { type = LHAS.ST_LABEL, label = "Odd arcs (1, 3, 5): Body armor" },
         { type = LHAS.ST_LABEL, label = "Even arcs (2, 4, 6): Weapons and jewelry" },
         { type = LHAS.ST_LABEL, label = "Class gear comes from the Tho'at boss at the end of each arc and from Marauders" },
         { type = LHAS.ST_LABEL, label = "Marauders follow the arc and first appear in arc 2" },
         { type = LHAS.ST_LABEL, label = "You get your own class first, then other classes" },
     }
-    page:AddSettings(rows)
 end
 
 function H.ResetForTest()

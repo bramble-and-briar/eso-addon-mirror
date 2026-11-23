@@ -82,7 +82,7 @@ function LeoAltholicToolbarUI.GetItem(item)
     return LeoAltholic.globalData.settings.toolbar.items[item]
 end
 
-function checkCenter()
+local function checkCenter()
     if LeoAltholicToolbar:GetTop() <= 60 or LeoAltholicToolbar:GetTop() >= 1500 then --Teva added the second condition
         local x = LeoAltholicToolbar:GetCenter()
         local guiRootX = GuiRoot:GetCenter()

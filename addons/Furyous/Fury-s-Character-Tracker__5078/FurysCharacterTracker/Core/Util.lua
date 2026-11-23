@@ -5,11 +5,7 @@ CT.Util = U
 function U.Print(fmt, ...)
     local text = select("#", ...) > 0 and string.format(fmt, ...) or fmt
     local line = "|cD4AF37[Characters]|r " .. text
-    if CHAT_ROUTER then
-        CHAT_ROUTER:AddSystemMessage(line)
-    else
-        d(line)
-    end
+    CHAT_ROUTER:AddSystemMessage(line)
 end
 
 function U.FormatDate(timestamp)

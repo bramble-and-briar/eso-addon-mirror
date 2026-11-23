@@ -22,7 +22,7 @@
     "FurysCharacterTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5078/",
-  "fingerprint": "682102c21d9e6bc72d402b5ac1fdd8ac10e44d624843885d5d7e4adff0407f1b",
+  "fingerprint": "9c667345cfc33dd00b5858d55eb13e99feee440d1b4bcd82f8dd629a26194398",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18627.png",
     "https://cdn-eso.mmoui.com/preview/pvw18628.png",
@@ -40,11 +40,11 @@
   "source_id": "5078",
   "source_url": "https://www.esoui.com/downloads/info5078-FurysCharacterTracker.html",
   "stats": {
-    "downloads": 12,
+    "downloads": 36,
     "favorites": 2,
-    "monthly_downloads": 5
+    "monthly_downloads": 32
   },
   "title": "Fury's Character Tracker",
-  "updated_at": 1795244964000,
-  "version": "1.2.0"
+  "updated_at": 1795329915000,
+  "version": "1.2.2"
 }

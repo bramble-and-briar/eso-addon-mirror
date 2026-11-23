@@ -9,13 +9,17 @@ local SUBMENU_ICON  = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_characte
 local ICON_SIZE     = 40
 local DETAILS_ICON  = 96
 local EMPTY_COLOR   = "8C8C8C"
+local WEIGHT_NAMES  = {
+    [ARMORTYPE_LIGHT]  = "Light",
+    [ARMORTYPE_MEDIUM] = "Medium",
+    [ARMORTYPE_HEAVY]  = "Heavy",
+}
 local TITLE_TEXT    = "Equipped Sets"
 local REFRESH_MS    = 100
 local MOVE_SPEED    = 500
 local SCALE_SPEED   = 10
 local SIZE_MIN      = 16
 local SIZE_MAX      = 48
-local MOVE_SCENE    = "MyExtras_GearMove"
 local BOX_PAD_X     = 0.4
 local BOX_PAD_Y     = 0.2
 local BOX_CORNER    = 0.35
@@ -40,7 +44,7 @@ Gear.defaults = {
     gearPartialColor  = { r = 0.7, g = 0.7, b = 0.7, a = 1 },
     gearPosX          = 60,
     gearPosY          = 520,
-    gearBackground        = false,
+    gearBackground        = true,
     gearBackgroundOpacity = 100,
     gearAutoRepair        = false,
     gearRepairBelow       = 10,
@@ -140,11 +144,62 @@ function Gear:UsesCharacterSettings()
     return ME.charVariables ~= nil and ME.charVariables.gearUseCharacter == true
 end
 
-local function SV()
+local CARE_KEYS = {
+    gearAutoRepair     = true,
+    gearRepairBelow    = true,
+    gearMerchantRepair = true,
+    gearAutoCharge     = true,
+    gearChargeBelow    = true,
+    gearAutoBind       = true,
+    gearLogRepair      = true,
+    gearLogCharge      = true,
+    gearLogBind        = true,
+}
+
+local careScope = ME:NewScope("gearCareCharSettings")
+do
+    local careDefaults = {}
+    for key in pairs(CARE_KEYS) do careDefaults[key] = Gear.defaults[key] end
+    careScope:AddDefaults(careDefaults, "gearCare")
+end
+
+local function BaseSV()
     if Gear:UsesCharacterSettings() then
         return CharSettings() or ME.savedVariables
     end
     return ME.savedVariables
+end
+
+local settingsProxy = setmetatable({}, {
+    __index = function(_, key)
+        if CARE_KEYS[key] then return careScope:Settings()[key] end
+        return BaseSV()[key]
+    end,
+    __newindex = function(_, key, value)
+        if CARE_KEYS[key] then
+            careScope:Settings()[key] = value
+        else
+            BaseSV()[key] = value
+        end
+    end,
+})
+
+local function SV()
+    return settingsProxy
+end
+
+local function MigrateCare()
+    local cv = ME.charVariables
+    if not cv or cv.gearCareCharSettingsScopes ~= nil then return end
+    if cv.gearUseCharacter == true and type(cv.gearCharSettings) == "table" then
+        careScope:SetUsesCharacter("gearCare", true)
+        local settings = careScope:CharTable()
+        for key in pairs(CARE_KEYS) do
+            if cv.gearCharSettings[key] ~= nil then settings[key] = cv.gearCharSettings[key] end
+        end
+    else
+        careScope:Flags()
+    end
 end
 
 local function SavedTip()
@@ -474,145 +529,55 @@ end
 --------------------------------------------------
 -- Move
 --------------------------------------------------
-Gear.mover = {}
-
-function Gear.mover:UpdateDirectionalInput(deltaS)
-    local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK)
-    if x ~= 0 or y ~= 0 then
-        Gear:SetPosition(Gear.moveX + x * MOVE_SPEED * deltaS, Gear.moveY - y * MOVE_SPEED * deltaS)
-    end
-    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(stretchX) > math.abs(scaleY) then
-        Gear:SetStretch(Gear.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
-    elseif scaleY ~= 0 then
-        Gear:SetScale(Gear.moveSize + scaleY * SCALE_SPEED * deltaS)
-    end
-end
-
-Gear.moveKeybinds = {
-    alignment = KEYBIND_STRIP_ALIGN_CENTER,
-    {
-        name     = "Save",
-        keybind  = "UI_SHORTCUT_PRIMARY",
-        callback = function() Gear:EndMove(true) end,
-    },
-    {
-        name     = "Default",
-        keybind  = "UI_SHORTCUT_TERTIARY",
-        callback = function() Gear:MoveToDefault() end,
-    },
-    {
-        name     = "Cancel",
-        keybind  = "UI_SHORTCUT_NEGATIVE",
-        callback = function() Gear:EndMove(false) end,
-    },
-}
-
-function Gear:SetPosition(x, y)
-    local screenW, screenH = GuiRoot:GetDimensions()
-    self.moveX = zo_clamp(x, 0, screenW)
-    self.moveY = zo_clamp(y, 0, screenH)
-    local sv = SV()
-    sv.gearPosX = zo_floor(self.moveX + 0.5)
-    sv.gearPosY = zo_floor(self.moveY + 0.5)
-    self:ApplyPosition()
-end
-
-function Gear:SetScale(size)
-    self.moveSize = zo_clamp(size, SIZE_MIN, SIZE_MAX)
-    local rounded = zo_floor(self.moveSize + 0.5)
-    local sv = SV()
-    if sv.gearSize ~= rounded then
-        sv.gearSize = rounded
-        self:Render()
-    end
-end
-
-function Gear:SetStretch(value)
-    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
-    local rounded = zo_floor(self.moveStretch + 0.5)
-    local sv = SV()
-    if sv.gearStretch ~= rounded then sv.gearStretch = rounded end
-    ME:ApplyStretch(self.panel, rounded)
-end
-
-function Gear:MoveToDefault()
-    self:SetStretch(100)
-    self:SetScale(self.defaults.gearSize)
-    self:SetPosition(self.defaults.gearPosX, self.defaults.gearPosY)
-end
-
-function Gear:GetMoveScene()
-    if self.moveScene then return self.moveScene end
-    local scene = ZO_Scene:New(MOVE_SCENE, SCENE_MANAGER)
-    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_NO_KEYBIND_BACKGROUND_WINDOW)
-    ME:AddPlacementFragments(scene)
-    scene:RegisterCallback("StateChange", function(oldState, newState)
-        if newState == SCENE_SHOWING then
-            Gear:OnMoveShowing()
-        elseif newState == SCENE_HIDDEN then
-            Gear:OnMoveHidden()
-        end
-    end)
-    self.moveScene = scene
-    return scene
-end
-
 function Gear:StartMove()
     if self.moving then return end
     self.movePreview = self.preview
-    self.moveSaved = false
     self.moving = true
-    self:GetMoveScene()
-    SCENE_MANAGER:Push(MOVE_SCENE)
-end
-
-function Gear:OnMoveShowing()
-    local sv = SV()
-    self.moving = true
-    ME:RaiseWhilePlacing({ self.panel }, true)
-    self.moveStartX, self.moveStartY = sv.gearPosX, sv.gearPosY
-    self.moveStartSize = sv.gearSize
-    self.moveX, self.moveY = sv.gearPosX, sv.gearPosY
-    self.moveSize = sv.gearSize
-    self.moveStartStretch = sv.gearStretch or 100
-    self.moveStretch = sv.gearStretch or 100
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
-    DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
-    ME:SetPlacing(true)
-    self:Render()
-    self:UpdateVisibility()
-end
-
-function Gear:OnMoveHidden()
-    DIRECTIONAL_INPUT:Deactivate(self.mover)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
-    if not self.moveSaved then
-        self:SetScale(self.moveStartSize)
-        self:SetStretch(self.moveStartStretch)
-        self:SetPosition(self.moveStartX, self.moveStartY)
-    end
-    self.moving = false
-    ME:RaiseWhilePlacing({ self.panel }, false)
-    ME:SetPlacing(false)
-    if self.movePreview then
-        self.movePreview = false
-        self:SetPreview(true)
-    else
-        self:Render()
-        self:UpdateVisibility()
-    end
-end
-
-function Gear:EndMove(save)
-    if not self.moving then return end
-    self.moveSaved = save == true
-    if save then
-        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
-    else
-        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
-    end
-    SCENE_MANAGER:HideCurrentScene()
+    local started = LibUser562:StartMove({
+        controls    = { self.panel },
+        moveSpeed   = MOVE_SPEED,
+        scaleSpeed  = SCALE_SPEED,
+        sizeMin     = SIZE_MIN,
+        sizeMax     = SIZE_MAX,
+        defaults    = {
+            x    = self.defaults.gearPosX,
+            y    = self.defaults.gearPosY,
+            size = self.defaults.gearSize,
+        },
+        getPosition = function() return SV().gearPosX, SV().gearPosY end,
+        setPosition = function(x, y)
+            local sv = SV()
+            sv.gearPosX, sv.gearPosY = x, y
+            Gear:ApplyPosition()
+        end,
+        getSize    = function() return SV().gearSize end,
+        setSize    = function(size)
+            SV().gearSize = size
+            Gear:Render()
+        end,
+        getStretch = function() return SV().gearStretch or 100 end,
+        setStretch = function(percent)
+            SV().gearStretch = percent
+            ME:ApplyStretch(Gear.panel, percent)
+        end,
+        onShow = function()
+            ME:SetPlacing(true)
+            Gear:Render()
+            Gear:UpdateVisibility()
+        end,
+        onHide = function()
+            Gear.moving = false
+            ME:SetPlacing(false)
+            if Gear.movePreview then
+                Gear.movePreview = false
+                Gear:SetPreview(true)
+            else
+                Gear:Render()
+                Gear:UpdateVisibility()
+            end
+        end,
+    })
+    if not started then self.moving = false end
 end
 
 --------------------------------------------------
@@ -843,6 +808,9 @@ local function ItemDetails(entry, link)
         return table.concat(details, "\n")
     end
 
+    local weight = WEIGHT_NAMES[GetItemLinkArmorType(link)]
+    if weight then details[#details + 1] = "Weight: " .. weight end
+
     local hasSet, setName = GetItemLinkSetInfo(link, false)
     details[#details + 1] = "Set: " .. (hasSet and CleanName(setName) or "None")
 
@@ -910,52 +878,51 @@ function Gear:SettingOptions()
     if self.settingOptions then return self.settingOptions end
     local defaults = self.defaults
 
-    self.settingOptions = {
+    local function IsOff() return not SV().gearShow end
+
+    local equippedSets = {
         {
             type    = "toggle",
-            name    = "Show",
+            name    = "Enabled",
             preset  = "YES_NO",
             default = defaults.gearShow,
-            tooltip = "Shows your equipped sets on screen.",
+            tooltip = "Shows your equipped sets on screen, with how many pieces of each you're wearing.",
             getFunc = function() return SV().gearShow end,
             setFunc = function(val)
                 SV().gearShow = val
+                if not val and Gear.preview then Gear:SetPreview(false) end
                 Gear:UpdateVisibility()
             end,
         },
         {
             type    = "toggle",
             name    = "Character Settings",
-            tooltip = "Off uses the same settings for the whole account. On gives this character its own settings, "
-                   .. "copied from the account settings the first time you turn it on.",
-            details = function()
-                if Gear:UsesCharacterSettings() then
-                    return "This character has its own settings."
-                end
-                return "All your characters share the same settings."
-            end,
+            tooltip = MyExtras.CHARACTER_SETTINGS_TIP,
             getFunc = function() return Gear:UsesCharacterSettings() end,
             setFunc = function(val) Gear:SetUseCharacterSettings(val) end,
         },
         {
-            type    = "toggle",
-            name    = "Preview",
-            tooltip = "Shows your sets here so you can see your changes. "
-                   .. "Stays on until you turn it off or leave the settings.",
-            getFunc = function() return Gear.preview end,
-            setFunc = function(val) Gear:SetPreview(val) end,
+            type     = "toggle",
+            name     = "Preview",
+            tooltip  = "Shows your sets here so you can see your changes. "
+                    .. "Stays on until you turn it off or leave the settings.",
+            disabled = IsOff,
+            getFunc  = function() return Gear.preview end,
+            setFunc  = function(val) Gear:SetPreview(val) end,
         },
         {
             type       = "button",
             name       = "Move / Scale",
             buttonText = "Move / Scale",
             tooltip    = "Move it with the left stick. Right stick up and down scales it, left and right stretches it wider or narrower.",
+            disabled   = IsOff,
             func       = function() Gear:StartMove() end,
         },
         {
             type     = "submenu",
             name     = "Appearance",
-            tooltip  = "Title, font, colors and background for your gear list.",
+            tooltip  = "Title, font, colors and background for your sets.",
+            disabled = IsOff,
             options  = {
                 {
                     type    = "toggle",
@@ -973,6 +940,7 @@ function Gear:SettingOptions()
                 {
                     type    = "dropdown",
                     name    = "Font",
+                    tooltip = "Some fonts look bigger or smaller than others. Default is Gamepad Medium.",
                     choices = ME.FONT_CHOICES,
                     default = defaults.gearFont,
                     sample  = function() return TITLE_TEXT, SampleFont(), 1, 1, 1 end,
@@ -1075,11 +1043,25 @@ function Gear:SettingOptions()
                 },
             },
         },
+    }
+
+    self.settingOptions = {
+        {
+            type    = "submenu",
+            name    = "Equipped Sets",
+            tooltip = function()
+                return "Shows your equipped sets on screen.\n\n" .. SavedTip()
+            end,
+            options = equippedSets,
+        },
         {
             type     = "submenu",
             name     = "Maintenance",
-            tooltip  = "Keeps your gear repaired, charged and bound for you.",
+            tooltip  = function()
+                return "Keeps your gear repaired, charged and bound for you.\n\n" .. ME:SavedTip(careScope, "gearCare")
+            end,
             options  = {
+                ME:CharacterOption(careScope, "gearCare", function() Gear:RefreshCare() end),
                 {
                     type    = "toggle",
                     name    = "Auto Repair",
@@ -1156,7 +1138,7 @@ function Gear:SettingOptions()
                     name    = "Auto Bind",
                     preset  = "YES_NO",
                     default = defaults.gearAutoBind,
-                    tooltip = "Binds new set pieces you pick up that aren't in your set collection yet, so they're added to it.",
+                    tooltip = "Binds new set pieces you haven't collected yet. Type /bindall to bind the ones already in your bags.",
                     getFunc = function() return SV().gearAutoBind end,
                     setFunc = function(val)
                         SV().gearAutoBind = val
@@ -1214,7 +1196,7 @@ function Gear:BuildPageOptions()
     for i = 1, #settings do options[#options + 1] = settings[i] end
     options[#options + 1] = {
         type    = "submenu",
-        name    = "Equipped",
+        name    = "Equipped Items",
         tooltip = "Everything you have equipped right now. Highlight an item to see its details.",
         options = function() return Gear:EquippedOptions() end,
     }
@@ -1236,9 +1218,8 @@ function Gear:GetOptions()
             type    = "submenu",
             name    = "Gear",
             icon    = SUBMENU_ICON,
-            tooltip = function()
-                return "Shows your equipped sets on screen and keeps your gear repaired, charged and bound.\n\n" .. SavedTip()
-            end,
+            tooltip = "Shows your equipped sets on screen, keeps your gear repaired, charged and bound, "
+                   .. "and lists everything you have equipped.",
             options = function() return Gear:PageOptions() end,
         }
     end
@@ -1261,6 +1242,7 @@ local function OnWornChanged()
 end
 
 function Gear:Init()
+    MigrateCare()
     self:CreatePanel()
     self:RegisterScenes()
     self:ApplyPosition()
@@ -1291,15 +1273,18 @@ function Gear:SetUseCharacterSettings(value)
 end
 
 function Gear:ResetSkipKeys()
-    local keys = {}
+    local keys = careScope:ResetSkipKeys()
     if self:UsesCharacterSettings() then
-        for key in pairs(self.defaults) do keys[#keys + 1] = key end
+        for key in pairs(self.defaults) do
+            if not CARE_KEYS[key] then keys[#keys + 1] = key end
+        end
     end
     return keys
 end
 
 function Gear:OnReset()
     self.preview = false
+    careScope:ResetCharacter()
     if self:UsesCharacterSettings() then
         local settings = CharSettings()
         if settings then

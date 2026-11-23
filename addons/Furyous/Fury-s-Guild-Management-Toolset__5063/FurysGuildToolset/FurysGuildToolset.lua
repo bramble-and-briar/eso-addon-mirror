@@ -6,7 +6,7 @@ local GT = FuryGMT
 
 GT.name = "FurysGuildToolset"
 GT.displayName = "Fury's Guild Management Toolset"
-GT.version = "1.2.5"
+GT.version = "1.16.11"
 GT.savedVarsVersion = 1
 
 GT.modules = {}
@@ -41,8 +41,80 @@ function GT:ForEachModule(methodName, ...)
 end
 
 -- The "Guilds to get alerts from" setting. History is still logged for every guild.
+-- Installs from 1.3.0 on start with no guild ticked (alertGuildsOptIn); older installs keep
+-- every guild ticked unless they unticked it (alertsDisabledGuilds).
 function GT:IsAlertGuild(guildId)
-    return not (self.sv and self.sv.alertsDisabledGuilds[guildId])
+    if not self.sv then return true end
+    if self.sv.alertGuildsOptIn then return self.sv.alertGuilds[guildId] == true end
+    return not self.sv.alertsDisabledGuilds[guildId]
+end
+
+function GT:AnyAlertGuild()
+    for _, guildId in ipairs(self.Util.GetGuildIds()) do
+        if self:IsAlertGuild(guildId) then return true end
+    end
+    return false
+end
+
+-- The line a report tab shows while its feature is off, or nil when it's on.
+-- perGuild: the feature also needs a guild ticked under Guilds to get alerts from.
+function GT:FeatureOffText(on, what, perGuild)
+    if perGuild and not self:AnyAlertGuild() then
+        return "No guild is ticked under Guilds to get alerts from. Tick one in /gtsettings."
+    end
+    if not on then return what .. " is turned off. Turn it on in /gtsettings." end
+    return nil
+end
+
+function GT:SetAlertGuild(guildId, on)
+    if self.sv.alertGuildsOptIn then
+        self.sv.alertGuilds[guildId] = on or nil
+    else
+        self.sv.alertsDisabledGuilds[guildId] = (not on) or nil
+    end
+end
+
+-- 1.3.0: everything that can be turned off starts off on a new install (Albert). These
+-- settings used to start on. An install from before 1.3.0 that never saved one of them gets
+-- the old value (on) written in once, so nothing changes for people who already use the addon.
+local OLD_ON_DEFAULTS = {
+    bank = { "enabled", "goldEnabled", "openWindowOnLogin", "autoDemoteNote", "blacklistOnKick" },
+    auto = { "bigNotice", "alertWindow" },
+    capacity = { "enabled" },
+    log = { "enabled" },
+    hoppers = { "enabled", "autoWatchlist", "alertOnWatchlistJoin", "openWindowOnLogin" },
+    members = { "inactiveEnabled", "alertOnLogin" },
+    trader = { "enabled" },
+}
+
+-- Before ZO_SavedVars fills in the defaults: is there saved data for this account and
+-- megaserver, and which of the old "on" settings did it never save?
+local function ReadOldInstall()
+    local byWorld = FuryGMT_SV and FuryGMT_SV[GetWorldName()]
+    local byAccount = byWorld and byWorld[GetDisplayName()]
+    local saved = byAccount and byAccount["$AccountWide"]
+    if not saved then return nil end
+    if saved.defaultsOff ~= nil then return nil end   -- already set up by 1.3.0 or later
+    local missing = {}
+    local modules = saved.modules or {}
+    for id, keys in pairs(OLD_ON_DEFAULTS) do
+        for _, key in ipairs(keys) do
+            if not modules[id] or modules[id][key] == nil then missing[#missing + 1] = { id, key } end
+        end
+    end
+    return missing
+end
+
+local function SetUpDefaults(oldMissing)
+    local sv = GT.sv
+    if sv.defaultsOff ~= nil then return end
+    if oldMissing then
+        sv.defaultsOff = false   -- installed before 1.3.0: keep what they had
+        for _, entry in ipairs(oldMissing) do sv.modules[entry[1]][entry[2]] = true end
+    else
+        sv.defaultsOff = true    -- new install: every feature starts off
+        sv.alertGuildsOptIn = true
+    end
 end
 
 -- Per-guild settings. A module lists the settings that can differ between guilds in
@@ -93,7 +165,8 @@ local function BuildDefaults()
         historyCursor = {},
         mailQueue = {},      -- [processorKey] = last processed eventId
         firstRunLookbackDays = 30,
-        alertsDisabledGuilds = {},   -- [guildId] = true: no alerts, cases or auto actions for that guild
+        alertsDisabledGuilds = {},   -- [guildId] = true: no alerts, cases or auto actions for that guild (installs before 1.3.0)
+        alertGuilds = {},            -- [guildId] = true: alerts on for that guild (installs from 1.3.0, see alertGuildsOptIn)
         modules = {},
     }
     for _, id in ipairs(GT.moduleOrder) do
@@ -109,7 +182,9 @@ local function OnAddOnLoaded(_, addonName)
     EVENT_MANAGER:UnregisterForEvent(GT.name, EVENT_ADD_ON_LOADED)
 
     -- Account-wide, but split per megaserver because guild ids differ between NA and EU.
+    local oldMissing = ReadOldInstall()
     GT.sv = ZO_SavedVars:NewAccountWide("FuryGMT_SV", GT.savedVarsVersion, nil, BuildDefaults(), GetWorldName())
+    SetUpDefaults(oldMissing)
 
     for _, id in ipairs(GT.moduleOrder) do
         local module = GT.modules[id]
@@ -124,6 +199,10 @@ end
 local function OnPlayerActivated()
     EVENT_MANAGER:UnregisterForEvent(GT.name, EVENT_PLAYER_ACTIVATED)
     GT.Settings:Build()
+    if GT.sv.defaultsOff and not GT.sv.welcomeShown then
+        GT.sv.welcomeShown = true
+        GT.Util.Print("Every feature starts turned off. Open /gtsettings, tick your guilds under Guilds to get alerts from, and turn on the features you want.")
+    end
     GT:ForEachModule("OnPlayerActivated")
     GT.History:Start()
 end
@@ -157,6 +236,12 @@ end
 
 function GT.RegisterSlashCommands()
     SLASH_COMMANDS["/gt"] = function(arg)
+        -- /gt raffle add @Name 3: names keep their capitals, so this goes first.
+        local raffleArgs = zo_strtrim(arg or ""):match("^[Rr][Aa][Ff][Ff][Ll][Ee]%s*(.*)$")
+        if raffleArgs then
+            GT.Raffle:Slash(raffleArgs)
+            return
+        end
         arg = zo_strlower(zo_strtrim(arg or ""))
         if arg == "" or arg == "show" then
             GT.Report:Toggle()
@@ -168,6 +253,12 @@ function GT.RegisterSlashCommands()
             GT.Report:Show(arg)
         elseif arg == "trader" or arg == "week" or arg == "weekly" then
             GT.Report:Show("trader")
+        elseif arg == "recruit" then
+            GT.Report:Show("recruit")
+        elseif arg == "events" or arg == "event" then
+            GT.Report:Show("events")
+        elseif arg == "tour" then
+            GT.Recruit:ToggleTour()
         elseif arg == "sales" then
             GT.Report:Show("sales")
         elseif arg == "auto" or arg == "actions" then
@@ -195,7 +286,9 @@ function GT.RegisterSlashCommands()
             GT.Util.Print("Fury's Guild Management Toolset v%s", GT.version)
             GT.Util.Print("/gt  open the report window")
             -- No "|" here: ESO treats it as a text-formatting character and hides it.
-            GT.Util.Print("/gt bank, /gt hoppers, /gt watchlist, /gt history, /gt space, /gt members, /gt inactive, /gt trader, /gt sales, /gt auto  open a specific tab")
+            GT.Util.Print("/gt bank, /gt hoppers, /gt watchlist, /gt history, /gt space, /gt members, /gt inactive, /gt trader, /gt sales, /gt auto, /gt recruit, /gt events  open a specific tab")
+            GT.Util.Print("/gt tour  start or stop the recruiting zone tour")
+            GT.Util.Print("/gt raffle  open the Raffle tab;  /gt raffle add @name 3 (reason), /gt raffle remove @name 3 (reason)  change someone's tickets by hand")
             GT.Util.Print("/gt crier (or /crier)  open the Guild Crier message menu")
             GT.Util.Print("/gt guilds  show which guilds send alerts")
             GT.Util.Print("/gt reset  rebuild bank alerts and hoppers from the History log with your current settings")

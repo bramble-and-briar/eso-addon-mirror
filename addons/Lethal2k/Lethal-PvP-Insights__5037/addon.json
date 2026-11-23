@@ -18,7 +18,7 @@
     "LethalPVPInsights"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5037/",
-  "fingerprint": "390e857f90a04935d4ca035610d5a44ed67ea1c34c3a627e9e856a8942d2e14c",
+  "fingerprint": "d96fd19e4cec129956d540cf3041e7c490e4fed58f8f48d1ee9d5aa579a418bd",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18396.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18367.jpg",
@@ -38,11 +38,11 @@
   "source_id": "5037",
   "source_url": "https://www.esoui.com/downloads/info5037-LethalPvPInsights.html",
   "stats": {
-    "downloads": 197,
+    "downloads": 234,
     "favorites": 2,
-    "monthly_downloads": 192
+    "monthly_downloads": 226
   },
   "title": "Lethal PvP Insights",
-  "updated_at": 1795131980000,
-  "version": "1.11.4"
+  "updated_at": 1795430472000,
+  "version": "1.11.5"
 }

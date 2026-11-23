@@ -42,11 +42,6 @@ local function UpdateHUD(button)
 end
 
 function Hooks.Initialize()
-    if GetAPIVersion() ~= PRT.SOURCE_API_VERSION then
-        Hooks.missing[1] = "UI hooks disabled: API differs from inspected 101051"
-        return
-    end
-
     -- Read the registered data type from each inventory, never hardcode type 1.
     -- Its setup callback runs after the bag/slot has been bound to the row.
     local types = { INVENTORY_BACKPACK, INVENTORY_BANK, INVENTORY_HOUSE_BANK, INVENTORY_GUILD_BANK }
@@ -89,7 +84,5 @@ function Hooks.Initialize()
 end
 
 function Hooks.RefreshHUD()
-    if GetAPIVersion() == PRT.SOURCE_API_VERSION then
-        UpdateHUD(ZO_ActionBar_GetButton(nil, HOTBAR_CATEGORY_QUICKSLOT_WHEEL))
-    end
+    UpdateHUD(ZO_ActionBar_GetButton(nil, HOTBAR_CATEGORY_QUICKSLOT_WHEEL))
 end

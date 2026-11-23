@@ -66,11 +66,13 @@ local defaults =
     leaderMarkerColor = { r = 1, g = 1, b = 1 }, -- v7.22.0: white (was cyan) - "make it white", per direct user request
     leaderMarkerSize = 300, -- unchanged since v7.20.0 - still the OUTER ring's diameter
     showBreakFreeAlert = false,
+    breakFreeChat = false,
     breakFreeAlertText = "{type} - BREAK FREE",
     breakFreeAlertColor = { r = 1, g = 0.1, b = 0.1 }, -- bright red - same as criticalDelayedColor, for the same "impossible to miss" reason
     breakFreeAlertTextSize = 72, -- v7.27.0: bumped from 48 per direct user request, for maximum visibility
     breakFreeAlertPvpOnly = false,
     showBlockingAlert = false,
+    blockingChat = false,
     blockingAlertText = "BLOCKING",
     blockingAlertColor = { r = 0.3, g = 0.6, b = 1 }, -- light/shield blue - distinct from the other alerts' red/orange/yellow
     blockingAlertTextSize = 48,
@@ -448,7 +450,11 @@ local function UpdateBreakFreeAlert()
 end
 local function AddActiveBreakFreeCc(abilityId, typeName)
     if activeBreakFreeCc[abilityId] == typeName then return end -- already tracked identically; avoid a pointless re-render
+    local wasFree = next(activeBreakFreeCc) == nil
     activeBreakFreeCc[abilityId] = typeName
+    if wasFree and PvPFPSLimiter.savedVars.breakFreeChat then
+        d("|cff3333[LPI] BREAK FREE|r (" .. tostring(typeName) .. ")")
+    end
     UpdateBreakFreeAlert()
 end
 local function RemoveActiveBreakFreeCc(abilityId)
@@ -494,7 +500,11 @@ local function RefreshBlockingAlertAppearance()
     blockingAlertControl:SetColor(c.r, c.g, c.b, 1)
     blockingAlertControl:SetText(PvPFPSLimiter.savedVars.blockingAlertText)
 end
+local blockingChatActive = false
 local function UpdateBlockingAlertState()
+    local blockChat = PvPFPSLimiter.savedVars.blockingChat and IsBlockingAlertZoneAllowed() and IsBlockActive()
+    if blockChat and not blockingChatActive then d("|c4d99ff[LPI] Blocking|r") end
+    blockingChatActive = blockChat and true or false
     local shouldShow = PvPFPSLimiter.savedVars.showBlockingAlert
         and IsBlockingAlertZoneAllowed()
         and IsBlockActive()
@@ -515,7 +525,7 @@ local function OnPlayerEffectChanged(_, changeType, _, effectName, _, _, _, _, _
             tostring(BREAK_FREE_ABILITY_TYPE_NAMES[abilityType] ~= nil),
             tostring(PvPFPSLimiter.savedVars.showBreakFreeAlert), tostring(IsBreakFreeAlertZoneAllowed())))
     end
-    if not PvPFPSLimiter.savedVars.showBreakFreeAlert then return end
+    if not (PvPFPSLimiter.savedVars.showBreakFreeAlert or PvPFPSLimiter.savedVars.breakFreeChat) then return end
     if not IsBreakFreeAlertZoneAllowed() then return end
     local typeName = BREAK_FREE_ABILITY_TYPE_NAMES[abilityType]
     if not typeName then return end -- not one of the three types tracked this way (includes Disorient, deliberately excluded - see comment above)
@@ -638,7 +648,7 @@ local function OnPvPNotificationCombatEvent(eventCode, result, isError, abilityN
     abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType,
     damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
     local playerName = GetRawUnitName("player")
-    if PvPFPSLimiter.savedVars.showBreakFreeAlert and IsBreakFreeAlertZoneAllowed()
+    if (PvPFPSLimiter.savedVars.showBreakFreeAlert or PvPFPSLimiter.savedVars.breakFreeChat) and IsBreakFreeAlertZoneAllowed()
         and targetType == COMBAT_UNIT_TYPE_PLAYER and targetName == playerName then
         if result == ACTION_RESULT_CHARMED then
             AddActiveBreakFreeCc(abilityId, "Charm")
@@ -646,7 +656,7 @@ local function OnPvPNotificationCombatEvent(eventCode, result, isError, abilityN
             RemoveActiveBreakFreeCc(abilityId)
         end
     end
-    if PvPFPSLimiter.savedVars.showBreakFreeAlert and IsBreakFreeAlertZoneAllowed()
+    if (PvPFPSLimiter.savedVars.showBreakFreeAlert or PvPFPSLimiter.savedVars.breakFreeChat) and IsBreakFreeAlertZoneAllowed()
         and sourceType == COMBAT_UNIT_TYPE_PLAYER and sourceName == playerName
         and abilityId == ABILITY_ID_BREAK_FREE then
         ClearAllActiveBreakFreeCc()
@@ -1155,14 +1165,15 @@ function PvPFPSLimiter.GetOptions()
             text = "Notifications are active while you're in PvP zone OR in an active duel (anywhere) and shown both in chat and as floating text.",
         },
         {
-            type = "checkbox",
+            type = "dropdown",
             name = "Notify When Target Blocks Your Attack",
             tooltip = "Notifies when an attack you land gets mitigated by your target's block. Only fires on attacks you actually land - " ..
                 "there's no way to see an untouched enemy's block state.",
-            getFunc = function() return PvPFPSLimiter.savedVars.notifyBlockingMode ~= NOTIFY_MODE_OFF end,
-            setFunc = function(value) PvPFPSLimiter.savedVars.notifyBlockingMode = value and NOTIFY_MODE_BOTH or NOTIFY_MODE_OFF end,
+            choices = { "Off", "On screen", "In chat", "On screen and in chat" }, choicesValues = { NOTIFY_MODE_OFF, NOTIFY_MODE_NOTIFICATION, NOTIFY_MODE_CHAT, NOTIFY_MODE_BOTH },
+            getFunc = function() return NormalizeNotifyMode(PvPFPSLimiter.savedVars.notifyBlockingMode) end,
+            setFunc = function(value) PvPFPSLimiter.savedVars.notifyBlockingMode = NormalizeNotifyMode(value) end,
             width = "full",
-            default = defaults.notifyBlockingMode ~= NOTIFY_MODE_OFF,
+            default = defaults.notifyBlockingMode,
         },
         {
             type = "editbox",
@@ -1194,14 +1205,15 @@ function PvPFPSLimiter.GetOptions()
             disabled = function() return PvPFPSLimiter.savedVars.notifyBlockingMode == NOTIFY_MODE_OFF end,
         },
         {
-            type = "checkbox",
+            type = "dropdown",
             name = "Notify When Hit by an Enemy Ultimate",
             tooltip = "Notifies when a player's ultimate ability affects you. Excludes yourself and your current group/raid members. " ..
                 "Debounced so a multi-tick/AOE ultimate only notifies once every couple seconds, not per tick.",
-            getFunc = function() return PvPFPSLimiter.savedVars.notifyUltimateMode ~= NOTIFY_MODE_OFF end,
-            setFunc = function(value) PvPFPSLimiter.savedVars.notifyUltimateMode = value and NOTIFY_MODE_BOTH or NOTIFY_MODE_OFF end,
+            choices = { "Off", "On screen", "In chat", "On screen and in chat" }, choicesValues = { NOTIFY_MODE_OFF, NOTIFY_MODE_NOTIFICATION, NOTIFY_MODE_CHAT, NOTIFY_MODE_BOTH },
+            getFunc = function() return NormalizeNotifyMode(PvPFPSLimiter.savedVars.notifyUltimateMode) end,
+            setFunc = function(value) PvPFPSLimiter.savedVars.notifyUltimateMode = NormalizeNotifyMode(value) end,
             width = "full",
-            default = defaults.notifyUltimateMode ~= NOTIFY_MODE_OFF,
+            default = defaults.notifyUltimateMode,
         },
         {
             type = "editbox",
@@ -1232,13 +1244,14 @@ function PvPFPSLimiter.GetOptions()
             disabled = function() return PvPFPSLimiter.savedVars.notifyUltimateMode == NOTIFY_MODE_OFF end,
         },
         {
-            type = "checkbox",
+            type = "dropdown",
             name = "Notify When Stunned",
             tooltip = "Notifies when you get stunned by an enemy. Excludes yourself and your current group/raid members.",
-            getFunc = function() return PvPFPSLimiter.savedVars.notifyStunnedMode ~= NOTIFY_MODE_OFF end,
-            setFunc = function(value) PvPFPSLimiter.savedVars.notifyStunnedMode = value and NOTIFY_MODE_BOTH or NOTIFY_MODE_OFF end,
+            choices = { "Off", "On screen", "In chat", "On screen and in chat" }, choicesValues = { NOTIFY_MODE_OFF, NOTIFY_MODE_NOTIFICATION, NOTIFY_MODE_CHAT, NOTIFY_MODE_BOTH },
+            getFunc = function() return NormalizeNotifyMode(PvPFPSLimiter.savedVars.notifyStunnedMode) end,
+            setFunc = function(value) PvPFPSLimiter.savedVars.notifyStunnedMode = NormalizeNotifyMode(value) end,
             width = "full",
-            default = defaults.notifyStunnedMode ~= NOTIFY_MODE_OFF,
+            default = defaults.notifyStunnedMode,
         },
         {
             type = "editbox",
@@ -1269,14 +1282,15 @@ function PvPFPSLimiter.GetOptions()
             disabled = function() return PvPFPSLimiter.savedVars.notifyStunnedMode == NOTIFY_MODE_OFF end,
         },
         {
-            type = "checkbox",
+            type = "dropdown",
             name = "Notify When Immobilized",
             tooltip = "Notifies when you get immobilized (rooted) by an enemy. Excludes yourself and your current " ..
                 "group/raid members. NOTE: this is distinct from being snared (slowed) - only a full immobilize counts.",
-            getFunc = function() return PvPFPSLimiter.savedVars.notifyImmobilizedMode ~= NOTIFY_MODE_OFF end,
-            setFunc = function(value) PvPFPSLimiter.savedVars.notifyImmobilizedMode = value and NOTIFY_MODE_BOTH or NOTIFY_MODE_OFF end,
+            choices = { "Off", "On screen", "In chat", "On screen and in chat" }, choicesValues = { NOTIFY_MODE_OFF, NOTIFY_MODE_NOTIFICATION, NOTIFY_MODE_CHAT, NOTIFY_MODE_BOTH },
+            getFunc = function() return NormalizeNotifyMode(PvPFPSLimiter.savedVars.notifyImmobilizedMode) end,
+            setFunc = function(value) PvPFPSLimiter.savedVars.notifyImmobilizedMode = NormalizeNotifyMode(value) end,
             width = "full",
-            default = defaults.notifyImmobilizedMode ~= NOTIFY_MODE_OFF,
+            default = defaults.notifyImmobilizedMode,
         },
         {
             type = "editbox",
@@ -1399,16 +1413,25 @@ function PvPFPSLimiter.GetOptions()
                 "runs out.",
         },
         {
-            type = "checkbox",
+            type = "dropdown",
             name = "Show Break Free Alert",
-            tooltip = "Turns the Break Free Alert on or off. OFF by default.",
-            getFunc = function() return PvPFPSLimiter.savedVars.showBreakFreeAlert end,
+            tooltip = "Where it is shown: a large text in the middle of the screen while it lasts, and/or a line in chat when it starts. Off by default.",
+            choices = { "Off", "On screen", "In chat", "On screen and in chat" }, choicesValues = { NOTIFY_MODE_OFF, NOTIFY_MODE_NOTIFICATION, NOTIFY_MODE_CHAT, NOTIFY_MODE_BOTH },
+            getFunc = function()
+                local sv = PvPFPSLimiter.savedVars
+                if sv.showBreakFreeAlert and sv.breakFreeChat then return NOTIFY_MODE_BOTH end
+                if sv.showBreakFreeAlert then return NOTIFY_MODE_NOTIFICATION end
+                if sv.breakFreeChat then return NOTIFY_MODE_CHAT end
+                return NOTIFY_MODE_OFF
+            end,
             setFunc = function(value)
-                PvPFPSLimiter.savedVars.showBreakFreeAlert = value
+                local sv = PvPFPSLimiter.savedVars
+                sv.showBreakFreeAlert = (value == NOTIFY_MODE_NOTIFICATION or value == NOTIFY_MODE_BOTH)
+                sv.breakFreeChat = (value == NOTIFY_MODE_CHAT or value == NOTIFY_MODE_BOTH)
                 UpdateBreakFreeAlert()
             end,
             width = "full",
-            default = defaults.showBreakFreeAlert,
+            default = NOTIFY_MODE_OFF,
         },
         {
             type = "checkbox",
@@ -1481,16 +1504,25 @@ function PvPFPSLimiter.GetOptions()
                 "actually lands. Disappears the instant you let go.",
         },
         {
-            type = "checkbox",
+            type = "dropdown",
             name = "Show Blocking Alert",
-            tooltip = "Turns the Blocking Alert on or off. OFF by default.",
-            getFunc = function() return PvPFPSLimiter.savedVars.showBlockingAlert end,
+            tooltip = "Where it is shown: a large text in the middle of the screen while it lasts, and/or a line in chat when it starts. Off by default.",
+            choices = { "Off", "On screen", "In chat", "On screen and in chat" }, choicesValues = { NOTIFY_MODE_OFF, NOTIFY_MODE_NOTIFICATION, NOTIFY_MODE_CHAT, NOTIFY_MODE_BOTH },
+            getFunc = function()
+                local sv = PvPFPSLimiter.savedVars
+                if sv.showBlockingAlert and sv.blockingChat then return NOTIFY_MODE_BOTH end
+                if sv.showBlockingAlert then return NOTIFY_MODE_NOTIFICATION end
+                if sv.blockingChat then return NOTIFY_MODE_CHAT end
+                return NOTIFY_MODE_OFF
+            end,
             setFunc = function(value)
-                PvPFPSLimiter.savedVars.showBlockingAlert = value
+                local sv = PvPFPSLimiter.savedVars
+                sv.showBlockingAlert = (value == NOTIFY_MODE_NOTIFICATION or value == NOTIFY_MODE_BOTH)
+                sv.blockingChat = (value == NOTIFY_MODE_CHAT or value == NOTIFY_MODE_BOTH)
                 UpdateBlockingAlertState()
             end,
             width = "full",
-            default = defaults.showBlockingAlert,
+            default = NOTIFY_MODE_OFF,
         },
         {
             type = "checkbox",
@@ -1597,14 +1629,15 @@ function PvPFPSLimiter.GetOptions()
                 "exactly what's being detected if timing ever looks off.",
         },
         {
-            type = "checkbox",
+            type = "dropdown",
             name = "Notify Before a Delayed Hit Lands",
             tooltip = "For an ability that announces itself and then actually hits some seconds later (see the ability list " ..
                 "below) - warns 'Lead Time' seconds before each of its hits, for 'Alert Duration' seconds, ending right at impact.",
-            getFunc = function() return PvPFPSLimiter.savedVars.criticalDelayedMode ~= NOTIFY_MODE_OFF end,
-            setFunc = function(value) PvPFPSLimiter.savedVars.criticalDelayedMode = value and NOTIFY_MODE_BOTH or NOTIFY_MODE_OFF end,
+            choices = { "Off", "On screen", "In chat", "On screen and in chat" }, choicesValues = { NOTIFY_MODE_OFF, NOTIFY_MODE_NOTIFICATION, NOTIFY_MODE_CHAT, NOTIFY_MODE_BOTH },
+            getFunc = function() return NormalizeNotifyMode(PvPFPSLimiter.savedVars.criticalDelayedMode) end,
+            setFunc = function(value) PvPFPSLimiter.savedVars.criticalDelayedMode = NormalizeNotifyMode(value) end,
             width = "full",
-            default = defaults.criticalDelayedMode ~= NOTIFY_MODE_OFF,
+            default = defaults.criticalDelayedMode,
         },
         {
             type = "editbox",
@@ -1680,17 +1713,18 @@ function PvPFPSLimiter.GetOptions()
             default = defaults.criticalDelayedAbilityList,
         },
         {
-            type = "checkbox",
+            type = "dropdown",
             name = "Notify While Standing in a Critical AOE/DOT Ultimate",
             tooltip = "For an ultimate that keeps damaging you over time (see the ability list below) - a persistent " ..
                 "ground AOE you can walk out of, or a channeled/bleed effect still ticking on you after the initial hit - " ..
                 "shows a continuous warning for as long as the hits keep landing, fading out shortly after the last one. " ..
                 "Any ultimate listed here is EXCLUDED from the regular 'Hit by an Enemy Ultimate' notification above - " ..
                 "it gets only this alert.",
-            getFunc = function() return PvPFPSLimiter.savedVars.criticalAoeMode ~= NOTIFY_MODE_OFF end,
-            setFunc = function(value) PvPFPSLimiter.savedVars.criticalAoeMode = value and NOTIFY_MODE_BOTH or NOTIFY_MODE_OFF end,
+            choices = { "Off", "On screen", "In chat", "On screen and in chat" }, choicesValues = { NOTIFY_MODE_OFF, NOTIFY_MODE_NOTIFICATION, NOTIFY_MODE_CHAT, NOTIFY_MODE_BOTH },
+            getFunc = function() return NormalizeNotifyMode(PvPFPSLimiter.savedVars.criticalAoeMode) end,
+            setFunc = function(value) PvPFPSLimiter.savedVars.criticalAoeMode = NormalizeNotifyMode(value) end,
             width = "full",
-            default = defaults.criticalAoeMode ~= NOTIFY_MODE_OFF,
+            default = defaults.criticalAoeMode,
         },
         {
             type = "editbox",

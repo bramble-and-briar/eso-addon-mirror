@@ -1,0 +1,109 @@
+<GuiXml>
+	<Controls>
+		<Control name="DLCSlotsCountViewerRow" mouseEnabled="true" virtual="true">
+			<Dimensions y="30"/>
+			<OnMouseEnter>DLC_SlotsCount.ViewerRow_OnMouseEnter(self)</OnMouseEnter>
+			<OnMouseExit>DLC_SlotsCount.ViewerRow_OnMouseExit(self)</OnMouseExit>
+			<Controls>
+				<Texture name="$(parent)BG" inherits="ZO_ThinListBgStrip"/>
+				<Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED">
+					<Anchor point="LEFT"/>
+					<Dimensions x="240" y="24"/>
+				</Label>
+				<Label name="$(parent)Listings" font="ZoFontGame" horizontalAlignment="RIGHT" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED">
+					<Anchor point="LEFT" relativeTo="$(parent)Name" relativePoint="RIGHT" offsetX="10"/>
+					<Dimensions x="140" y="24"/>
+				</Label>
+				<Label name="$(parent)Guild" font="ZoFontGame" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED">
+					<Anchor point="LEFT" relativeTo="$(parent)Listings" relativePoint="RIGHT" offsetX="20"/>
+					<Dimensions x="280" y="24"/>
+				</Label>
+			</Controls>
+		</Control>
+
+		<TopLevelControl name="DLCSlotsCountViewer" movable="true" mouseEnabled="true" hidden="true">
+			<Anchor point="CENTER" relativeTo="GuiRoot"/>
+			<Dimensions x="720" y="600"/>
+			<OnInitialized>DLC_SlotsCount.Viewer_OnInitialized(self)</OnInitialized>
+			<OnMoveStop>DLC_SlotsCount.Viewer_SaveWindowPosition(self)</OnMoveStop>
+			<Controls>
+				<Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop"><AnchorFill/></Backdrop>
+				<Button name="$(parent)CloseButton" inherits="ZO_CloseButton">
+					<Anchor point="TOPRIGHT" offsetX="-10" offsetY="10"/>
+					<OnClicked>DLC_SlotsCount.Viewer_Close()</OnClicked>
+				</Button>
+				<Label name="$(parent)Title" font="ZoFontWindowTitle" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" text="|cA0A0F3Slots Count|r |t32:32:/esoui/art/guild/gamepad/gp_ownership_icon_guildtrader.dds|t">
+					<Anchor point="TOPLEFT" offsetX="10" offsetY="10"/>
+					<Dimensions x="220" y="45"/>
+				</Label>
+				<Label name="$(parent)ResultCount" font="ZoFontWinH3" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" horizontalAlignment="RIGHT">
+					<Anchor point="RIGHT" relativeTo="$(parent)CloseButton" relativePoint="LEFT" offsetX="-8" offsetY="16"/>
+					<Dimensions x="410" y="30"/>
+				</Label>
+				<Control name="$(parent)GuildFilter" inherits="ZO_ComboBox">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT"/>
+					<Dimensions x="300" y="30"/>
+				</Control>
+				<Backdrop name="$(parent)NameFilter" tier="HIGH" inherits="ZO_EditBackdrop">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)GuildFilter" relativePoint="TOPRIGHT" offsetX="8"/>
+					<Dimensions x="275" y="30"/>
+					<Controls>
+						<EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop ZO_EditDefaultText">
+							<OnInitialized>ZO_EditDefaultText_Initialize(self, "Enter user @name")</OnInitialized>
+							<OnFocusGained/>
+						</EditBox>
+					</Controls>
+				</Backdrop>
+				<Button name="$(parent)ResetFilters" clickSound="Click" mouseOverBlendMode="ADD">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)NameFilter" relativePoint="TOPRIGHT" offsetX="10"/>
+					<Dimensions x="32" y="32"/>
+					<Textures
+						normal="EsoUI/Art/Buttons/cancel_up.dds"
+						pressed="EsoUI/Art/Buttons/cancel_down.dds"
+						mouseOver="EsoUI/Art/Buttons/cancel_over.dds"
+					/>
+					<OnMouseEnter>DLC_SlotsCount.ViewerResetFilters_OnMouseEnter(self)</OnMouseEnter>
+					<OnMouseExit>DLC_SlotsCount.ViewerResetFilters_OnMouseExit(self)</OnMouseExit>
+					<OnClicked>DLC_SlotsCount.ViewerResetFilters_OnClicked(self)</OnClicked>
+				</Button>
+				<Button name="$(parent)Settings" clickSound="Click" mouseOverBlendMode="ADD">
+					<Anchor point="LEFT" relativeTo="$(parent)ResetFilters" relativePoint="RIGHT" offsetX="8"/>
+					<Dimensions x="32" y="32"/>
+					<Textures
+						normal="SlotsCount/gears.dds"
+						pressed="SlotsCount/gears.dds"
+						mouseOver="SlotsCount/gears.dds"
+					/>
+					<OnMouseEnter>DLC_SlotsCount.ViewerSettings_OnMouseEnter(self)</OnMouseEnter>
+					<OnMouseExit>DLC_SlotsCount.ViewerSettings_OnMouseExit(self)</OnMouseExit>
+					<OnClicked>DLC_SlotsCount.ViewerSettings_OnClicked(self)</OnClicked>
+				</Button>
+				<Control name="$(parent)Headers">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)GuildFilter" relativePoint="BOTTOMLEFT"/>
+					<Dimensions x="690" y="32"/>
+					<Controls>
+						<Control name="$(parent)Name" inherits="ZO_SortHeader">
+							<OnInitialized>ZO_SortHeader_Initialize(self, "USER @NAME", "displayName", ZO_SORT_ORDER_UP, TEXT_ALIGN_LEFT, "ZoFontGameLargeBold")</OnInitialized>
+							<Anchor point="TOPLEFT"/>
+							<Dimensions x="240" y="32"/>
+						</Control>
+						<Control name="$(parent)Listings" inherits="ZO_SortHeader">
+							<OnInitialized>ZO_SortHeader_Initialize(self, "ITEM LISTINGS", "listingCount", ZO_SORT_ORDER_DOWN, TEXT_ALIGN_RIGHT, "ZoFontGameLargeBold")</OnInitialized>
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Name" relativePoint="TOPRIGHT" offsetX="10"/>
+							<Dimensions x="140" y="32"/>
+						</Control>
+						<Control name="$(parent)Guild" inherits="ZO_SortHeader">
+							<OnInitialized>ZO_SortHeader_Initialize(self, "GUILD", "guildName", ZO_SORT_ORDER_UP, TEXT_ALIGN_LEFT, "ZoFontGameLargeBold")</OnInitialized>
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Listings" relativePoint="TOPRIGHT" offsetX="20"/>
+							<Dimensions x="280" y="32"/>
+						</Control>
+					</Controls>
+				</Control>
+				<Control name="$(parent)List" inherits="ZO_ScrollList">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Headers" relativePoint="BOTTOMLEFT" offsetY="3"/>
+					<Anchor point="BOTTOMRIGHT" offsetX="-10" offsetY="-10"/>
+				</Control>
+			</Controls>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

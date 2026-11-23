@@ -1,0 +1,10 @@
+## Title: Chimer's Recall
+## APIVersion: 101051
+## Version: 1.1.0
+## AddOnVersion: 10100
+## Description: Save and restore each placed interactive furnishing's state per house owner and house, with named presets, undo, and tunable pacing.
+## SavedVariables: ChimersRecallSavedVariables
+## OptionalDependsOn: LibAddonMenu-2.0
+
+ChimersRecall.xml
+ChimersRecall.lua

@@ -131,6 +131,7 @@ local function onAddonLoaded(event, addonName)
         panelPosition = {x = 500, y = 300},
         savedAssignments = {},
 		freeAssignments = {},
+        sendReadyCheck = true,
     })
 	
 	if not DDP.SV.freeAssignments then

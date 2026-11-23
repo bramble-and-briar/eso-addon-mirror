@@ -2,7 +2,7 @@
    <Controls>
 		<TopLevelControl name="BankManager" mouseEnabled="true" hidden="true" movable="true">
 			<OnMoveStop>
-				BankManagerRevived_saveGuiPosition()
+				BMR.saveGuiPosition()
 			</OnMoveStop>
 			<Dimensions x="230" y="200" />
 			<Anchor offsetX="-600" offsetY="-400" point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" relativeTo="GuiRoot" />
@@ -22,7 +22,7 @@
 				<Button name="$(parent)Before" inherits="ZO_ButtonBehaviorClickSound" hidden="true">
 					<Dimensions x="64" y="64" />
 					<OnClicked>
-						BankManagerRevived_nextRule(_, -1)
+						BMR.nextRule(_, -1)
 					</OnClicked>
 					<Textures
 						normal="/esoui/art/tutorial/smithing_leftarrow_up.dds"
@@ -41,10 +41,10 @@
 						self:SetDimensions(120, 120)
 					</OnMouseExit>
 					<OnClicked>
-						BankManagerRevived_executeRule()
+						BMR.executeRule()
 					</OnClicked>
 					<OnMouseWheel>
-						BankManagerRevived_nextRule(_, delta)
+						BMR.nextRule(_, delta)
 					</OnMouseWheel>
 					<FontColors
 						normalColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL"
@@ -61,7 +61,7 @@
 				<Button name="$(parent)After" inherits="ZO_ButtonBehaviorClickSound" hidden="true">
 					<Dimensions x="64" y="64" />
 					<OnClicked>
-						BankManagerRevived_nextRule(_, 1)
+						BMR.nextRule(_, 1)
 					</OnClicked>
 					<Textures
 						normal="/esoui/art/tutorial/smithing_rightarrow_up.dds"

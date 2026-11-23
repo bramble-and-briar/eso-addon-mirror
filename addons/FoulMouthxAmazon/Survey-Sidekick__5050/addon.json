@@ -18,7 +18,7 @@
     "SurveySidekick"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5050/",
-  "fingerprint": "aecd059ebe4c1c757651cfb32f637836ee8162c8ef623cb403eb91d5e23e309d",
+  "fingerprint": "055ab372b4d30e673f5e92f4653a405cf0cb798eea40fc2e4af7af3339565b35",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18434.png",
     "https://cdn-eso.mmoui.com/preview/pvw18435.png",
@@ -37,11 +37,11 @@
   "source_id": "5050",
   "source_url": "https://www.esoui.com/downloads/info5050-SurveySidekick.html",
   "stats": {
-    "downloads": 40,
+    "downloads": 120,
     "favorites": 0,
-    "monthly_downloads": 34
+    "monthly_downloads": 111
   },
   "title": "Survey Sidekick",
-  "updated_at": 1794673694000,
-  "version": "0.2.3-beta"
+  "updated_at": 1795394839000,
+  "version": "0.6.0-beta"
 }

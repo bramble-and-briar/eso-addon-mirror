@@ -30,21 +30,21 @@ local STATUS_LABEL = {
 local KEEP_CLOSED_CASES_SECONDS = 30 * 86400
 
 BankWatch.defaults = {
-    enabled = true,
+    enabled = false,                 -- every feature starts off on a new install (Albert, 1.3.0)
     countMode = "withdrawals",       -- "withdrawals": each stack taken counts as 1. "quantity": every item in the stack counts
     windowMode = "day",              -- "day": per calendar day, midnight to midnight on this PC's clock. "rolling": any windowHours
     windowHours = 24,
     warnAt = 0,                      -- 0 = off; new installs start with only the demote limit (Albert, 1.2.4)
     demoteAt = 50,
     kickAt = 0,                      -- 0 = off
-    goldEnabled = true,
+    goldEnabled = false,
     goldWarnAt = 50000,
     goldDemoteAt = 200000,
     goldKickAt = 500000,
     excludeNames = "",
     excludeRanks = "",
     excludeTopRanks = 2,             -- ranks 1..2 (Guild Master and the next rank) are ignored
-    openWindowOnLogin = true,
+    openWindowOnLogin = false,
     warnMethod = "whisper",
     warnText = "Hi <<1>>, on <<5>> you withdrew <<2>> from the <<3>> guild bank.\n\n<<6>>",
     demoteText = "Hi <<1>>, on <<5>> you withdrew <<2>> from the <<3>> guild bank.\n\n<<6>>\n\nYou have been demoted until you contact the Guild Leader or one of the officers to discuss this.",
@@ -53,9 +53,9 @@ BankWatch.defaults = {
     autoDemoteSince = 0,             -- only withdrawals after this time (set when auto-demote is turned on)
     autoDemoteMaxPerSession = 5,
     autoDemoteMail = false,          -- opt-in: send the demotion mail by itself after an auto-demote
-    autoDemoteNote = true,           -- after an auto-demote, add the reason to their guild note (Albert asked, 0.4.28)
+    autoDemoteNote = false,          -- after an auto-demote, add the reason to their guild note (Albert asked, 0.4.28)
     demoteToRank = 0,                -- 0 = one step down, otherwise the rank number to set
-    blacklistOnKick = true,
+    blacklistOnKick = false,
     ledger = {},                     -- [guildId][displayName] = { {id, ts, n, kind, link, qty, ret, retTs, retIds} }
     cases = {},
 }
@@ -668,7 +668,7 @@ function BankWatch:GetBankRules(guildId)
     local rulesText = self:G(guildId).rulesText
     if rulesText and zo_strtrim(rulesText) ~= "" then return zo_strtrim(rulesText) end
     local crier = GT.Crier
-    local msgs = (crier.sv and crier.sv.messages) or FuryGMT_CrierMessages
+    local msgs = (crier.sv and crier.sv.messages) or FuryGMT.CrierMessages
     for _, m in ipairs(msgs) do
         if m.text:find("Bank 101", 1, true) then return m.text end
     end
@@ -718,10 +718,11 @@ function BankWatch:MailDemotion(case)
     A.Warn(case.name, "Guild bank: demoted", self:BuildMessage(case, self:G(case.guildId).demoteText), "mail")
 end
 
-function BankWatch:WarnCase(case)
+-- method: "whisper" or "mail"; nil uses the "Warn by" setting.
+function BankWatch:WarnCase(case, method)
     local g = self:G(case.guildId)
     local body = self:BuildMessage(case, g.warnText)
-    A.Warn(case.name, "Guild bank withdrawals", body, g.warnMethod)
+    A.Warn(case.name, "Guild bank withdrawals", body, method or g.warnMethod)
     self:CloseCase(case, "warned")
 end
 
@@ -805,66 +806,73 @@ function BankWatch:GetCaseRow(case)
         end
     end
 
-    local actions = {}
-    if case.status ~= "kicked" and case.status ~= "blacklisted" then
-        if stillMember then
-            if case.mailPending then
-                actions[#actions + 1] = { label = "Send mail", tip = "Opens the demotion mail for you to review and send.", fn = function()
-                    case.mailPending = nil
-                    self:MailDemotion(case)
-                    GT.Report:RefreshIfShown()
-                end }
-            else
-                actions[#actions + 1] = { label = "Warn", tip = "Opens a warning mail for you to review and send.", fn = function() self:WarnCase(case) end }
-            end
-            actions[#actions + 1] = { label = "Demote", tip = "Demotes them to the rank set in settings, then opens the demotion mail. Asks first.", fn = function()
-                A.Demote(case.guildId, case.name, g.demoteToRank, function()
-                    self:CloseCase(case, "demoted")
-                    self:MailDemotion(case)
-                end, DEMOTE_MAIL_NOTE)
-            end }
-            actions[#actions + 1] = { label = "Set rank", tip = "Pick a new rank. Lowering it opens the demotion mail. Asks first.", fn = function(button)
-                A.ChooseRank(button, case.guildId, case.name, function(rankName, lowered)
-                    case.rankSetTo = rankName
-                    self:CloseCase(case, "rankset")
-                    if lowered then self:MailDemotion(case) end
-                end, DEMOTE_MAIL_NOTE)
-            end }
-            actions[#actions + 1] = { label = case.notedAt and "Noted" or "Note",
-                tip = case.notedAt and ("Added to their guild note on " .. U.FormatDate(case.notedAt) .. ". Click to add the current line again (asks first):\n" .. self:GetNoteLine(case))
-                    or ("Adds one line to the end of their guild note (their note is kept). Asks first:\n" .. self:GetNoteLine(case)),
-                fn = function()
-                A.AppendNote(case.guildId, case.name, self:GetNoteLine(case), function()
-                    case.notedAt = GetTimeStamp()
-                    GT.Report:RefreshIfShown()
-                end)
-            end }
-            actions[#actions + 1] = { label = g.blacklistOnKick and "Kick+BL" or "Kick",
-                tip = g.blacklistOnKick and "Kicks them and adds them to the guild blacklist. Asks first." or "Kicks them from the guild. Asks first.",
-                fn = function()
-                A.Kick(case.guildId, case.name, g.blacklistOnKick, self:BlacklistNote(case),
-                    function() self:CloseCase(case, "kicked") end)
-            end }
-        else
-            actions[#actions + 1] = { label = "Blacklist", tip = "They already left. Adds them to the guild blacklist. Asks first.", fn = function()
-                A.Confirm("Blacklist", zo_strformat("Add <<1>> to the <<2>> blacklist?", case.name, case.guildName), function()
-                    if A.Blacklist(case.guildId, case.name, self:BlacklistNote(case)) then self:CloseCase(case, "blacklisted") end
-                end)
-            end }
+    return GT.Report.AddMenu({ text = text, tooltip = table.concat(lines, "\n") }, self:CaseItems(case))
+end
+
+function BankWatch:KickCase(case, alsoBlacklist)
+    A.Kick(case.guildId, case.name, alsoBlacklist, self:BlacklistNote(case), function() self:CloseCase(case, "kicked") end)
+end
+
+function BankWatch:BlacklistCase(case)
+    A.ConfirmBlacklist(case.guildId, case.name, self:BlacklistNote(case), function() self:CloseCase(case, "blacklisted") end)
+end
+
+-- Everything you can do about a bank alert, for its right-click menu (Whisper first).
+-- Nothing that changes the guild runs without its confirm window, and nothing is sent
+-- until you press Enter or Send.
+function BankWatch:CaseItems(case)
+    local g = self:G(case.guildId)
+    local stillMember = U.IsPlayerInGuild(case.guildId) and U.IsMember(case.guildId, case.name)
+    local handled = case.status == "kicked" or case.status == "blacklisted"
+    local items = GT.Report.ContactItems(case.name)
+    local function Add(item) items[#items + 1] = item end
+    if stillMember and not handled then
+        if case.mailPending then
+            Add({ label = "Send the demotion mail", fn = function()
+                case.mailPending = nil
+                self:MailDemotion(case)
+                GT.Report:RefreshIfShown()
+            end })
         end
+        -- Both ways to warn; the one picked under "Warn by" in settings comes first.
+        for _, method in ipairs(g.warnMethod == "mail" and { "mail", "whisper" } or { "whisper", "mail" }) do
+            Add({ label = "Warn by " .. method, fn = function() self:WarnCase(case, method) end })
+        end
+        Add({ label = "Demote (asks first)", fn = function()
+            A.Demote(case.guildId, case.name, g.demoteToRank, function()
+                self:CloseCase(case, "demoted")
+                self:MailDemotion(case)
+            end, DEMOTE_MAIL_NOTE)
+        end })
+        Add({ label = "Set rank...", opensMenu = true, fn = function(control)
+            A.ChooseRank(control, case.guildId, case.name, function(rankName, lowered)
+                case.rankSetTo = rankName
+                self:CloseCase(case, "rankset")
+                if lowered then self:MailDemotion(case) end
+            end, DEMOTE_MAIL_NOTE)
+        end })
+        Add({ label = (case.notedAt and "Add to guild note again" or "Add to guild note") .. " (asks first)", fn = function()
+            A.AppendNote(case.guildId, case.name, self:GetNoteLine(case), function()
+                case.notedAt = GetTimeStamp()
+                GT.Report:RefreshIfShown()
+            end)
+        end })
+        Add({ label = "Kick (asks first)", fn = function() self:KickCase(case, false) end })
+        Add({ label = "Kick and blacklist (asks first)", fn = function() self:KickCase(case, true) end })
+    elseif not handled then
+        Add({ label = "Blacklist (asks first)", fn = function() self:BlacklistCase(case) end })
     end
     if case.status == "open" then
-        actions[#actions + 1] = { label = "Dismiss", tip = "Hides this alert.", fn = function() self:CloseCase(case, "dismissed") end }
+        Add({ label = "Dismiss alert", fn = function() self:CloseCase(case, "dismissed") end })
     else
-        actions[#actions + 1] = { label = "Remove", tip = "Deletes this handled alert from the list.", fn = function()
+        Add({ label = "Remove from list", fn = function()
             for i, c in ipairs(self.sv.cases) do
                 if c == case then table.remove(self.sv.cases, i) break end
             end
             GT.Report:RefreshIfShown()
-        end }
+        end })
     end
-
-    return { text = text, tooltip = table.concat(lines, "\n"), actions = actions }
+    return items
 end
 
 -- "stacks per day: warn 6, demote 15, kick off" for one guild.
@@ -897,37 +905,44 @@ function BankWatch:CountOpen()
     return n
 end
 
+function BankWatch:TabRows()
+    local rows = {}
+    for _, case in ipairs(self:GetVisibleCases()) do rows[#rows + 1] = self:GetCaseRow(case) end
+    return rows
+end
+
+function BankWatch:TabExportLines()
+    local lines = { "Severity\tStatus\tGuild\tMember\tRank when flagged\tType\tAmount counted\tStacks taken\tItems taken\tPut back whole\tPut back partly\tFirst\tLast\tItems" }
+    local names = { [SEVERITY_WARN] = "Warn", [SEVERITY_DEMOTE] = "Demote", [SEVERITY_KICK] = "Kick" }
+    for _, case in ipairs(self:GetVisibleCases()) do
+        local returns = self:GetCaseReturns(case)
+        local items = {}
+        for link, count in pairs(case.items or {}) do items[#items + 1] = count .. "x " .. ItemName(link) end
+        lines[#lines + 1] = table.concat({ names[case.severity] or "", case.status, case.guildName, case.name,
+            case.rankName or "", case.kind, case.total, returns.stacks or "", returns.items, returns.whole, returns.partial,
+            U.FormatDate(case.firstTs), U.FormatDate(case.lastTs), (table.concat(items, ", "):gsub("[\t\n]", " ")) }, "\t")
+    end
+    return lines
+end
+
+function BankWatch:TabSummary()
+    local parts = {}
+    for _, guildId in ipairs(U.GetGuildIds()) do
+        if GT:IsAlertGuild(guildId) then parts[#parts + 1] = U.GuildName(guildId) .. ": " .. self:DescribeLimits(guildId) end
+    end
+    if #parts == 0 then return "No guild is ticked under Guilds to get alerts from (/gtsettings)." end
+    return table.concat(parts, ".  ") .. ".  Stacks put back whole don't count. Hover a row for details."
+end
+
 function BankWatch:RegisterTab()
     GT.Report:RegisterTab({
         id = "bank",
+            GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "Bank alerts", true) end,
         tip = "People who took more from the guild bank than your limits allow.",
         title = function() return string.format("Bank alerts (%d new)", self:CountOpen()) end,
-        GetSummary = function()
-            local parts = {}
-            for _, guildId in ipairs(U.GetGuildIds()) do
-                if GT:IsAlertGuild(guildId) then parts[#parts + 1] = U.GuildName(guildId) .. ": " .. self:DescribeLimits(guildId) end
-            end
-            if #parts == 0 then return "No guild is ticked under Guilds to get alerts from (/gtsettings)." end
-            return table.concat(parts, ".  ") .. ".  Stacks put back whole don't count. Hover a row for details."
-        end,
-        GetRows = function()
-            local rows = {}
-            for _, case in ipairs(self:GetVisibleCases()) do rows[#rows + 1] = self:GetCaseRow(case) end
-            return rows
-        end,
-        GetExportLines = function()
-            local lines = { "Severity\tStatus\tGuild\tMember\tRank when flagged\tType\tAmount counted\tStacks taken\tItems taken\tPut back whole\tPut back partly\tFirst\tLast\tItems" }
-            local names = { [SEVERITY_WARN] = "Warn", [SEVERITY_DEMOTE] = "Demote", [SEVERITY_KICK] = "Kick" }
-            for _, case in ipairs(self:GetVisibleCases()) do
-                local returns = self:GetCaseReturns(case)
-                local items = {}
-                for link, count in pairs(case.items or {}) do items[#items + 1] = count .. "x " .. ItemName(link) end
-                lines[#lines + 1] = table.concat({ names[case.severity] or "", case.status, case.guildName, case.name,
-                    case.rankName or "", case.kind, case.total, returns.stacks or "", returns.items, returns.whole, returns.partial,
-                    U.FormatDate(case.firstTs), U.FormatDate(case.lastTs), (table.concat(items, ", "):gsub("[\t\n]", " ")) }, "\t")
-            end
-            return lines
-        end,
+        GetSummary = function() return self:TabSummary() end,
+        GetRows = function() return self:TabRows() end,
+        GetExportLines = function() return self:TabExportLines() end,
         footer = {
             { label = "Rescan with settings", tip = "Checks the bank history again with your current limits.", fn = function() GT:Rescan() end },
             { label = "Dismiss all new", tip = "Hides every new alert. Asks first.", fn = function()
@@ -955,7 +970,8 @@ function BankWatch:BuildSettings(options)
     local controls = {
         { type = "checkbox", name = "Enable bank alerts", getFunc = function() return sv.enabled end,
           setFunc = function(v) sv.enabled = v end, default = defaults.enabled, requiresReload = true },
-        { type = "description", text = "Limits, who to ignore, mail texts and auto-demote are set for each guild under Rules for (guild) below." },
+        { type = "description", text = "Limits, who to ignore, mail texts and auto-demote are set for each guild under Rules for (guild) on the Guild rules page." },
+        GT.Settings:RulesButton("Opens the Guild rules page, where each guild's bank limits, ignored ranks and names, warning and demotion mails, and auto-demote are set."),
         { type = "slider", name = "Auto-demote at most per session (all guilds)", min = 1, max = 20, step = 1,
           tooltip = "A safety cap for auto-demote, counted over all your guilds together.",
           getFunc = function() return sv.autoDemoteMaxPerSession end, setFunc = function(v) sv.autoDemoteMaxPerSession = v end,
@@ -1015,7 +1031,7 @@ function BankWatch:BuildGuildSettings(controls, guildId)
           isMultiline = true, getFunc = function() return g.excludeNames end, setFunc = function(v) g.excludeNames = v end },
         { type = "description", text = GT.Settings:DescribeGuildRanks(guildId) },
         { type = "header", name = "Bank: actions and mail" },
-        { type = "dropdown", name = "Warn by", choices = { "Whisper (you press Enter)", "Mail (you press Send)" },
+        { type = "dropdown", name = "Warn by", tooltip = "The right-click menu on a bank alert offers both ways to warn. This one is listed first.", choices = { "Whisper (you press Enter)", "Mail (you press Send)" },
           choicesValues = { "whisper", "mail" }, getFunc = function() return g.warnMethod end,
           setFunc = function(v) g.warnMethod = v end, default = defaults.warnMethod },
         { type = "editbox", name = "Warning text", isMultiline = true,
@@ -1042,8 +1058,6 @@ function BankWatch:BuildGuildSettings(controls, guildId)
           tooltip = "After an auto-demote, adds one line to the end of their guild note, for example \"Bank Nov 18: took 41 stacks (157 items), put back 0 whole/0 partly. Auto-demoted (limit 15 per day).\" Their note is kept. Skipped if the line is already there or the note would go over the game's 254 characters. Needs the note-editing permission for your rank.",
           getFunc = function() return g.autoDemoteNote end, setFunc = function(v) g.autoDemoteNote = v end,
           default = defaults.autoDemoteNote, disabled = function() return not g.autoDemote end },
-        { type = "checkbox", name = "Kick also adds to guild blacklist", getFunc = function() return g.blacklistOnKick end,
-          setFunc = function(v) g.blacklistOnKick = v end, default = defaults.blacklistOnKick },
     }
     for _, control in ipairs(list) do controls[#controls + 1] = control end
 end

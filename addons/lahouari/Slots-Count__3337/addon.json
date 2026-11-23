@@ -1,14 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/lahouari/Slots-Count__3337",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "lahouari",
   "canonical_id": "esoui:3337",
   "category_id": "94",
   "compatibility": [
     {
-      "name": "Lost Depths",
-      "version": "8.1.5"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3337",
@@ -17,19 +22,29 @@
     "SlotsCount"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3337/",
-  "fingerprint": "b8c591f6563fce50f5742482e98992f14d3f34f168b3f78249b80a3a5d900da8",
-  "images": [],
+  "fingerprint": "02b1388ec4a89cc1360496ea67aeb76dceff84a6cfa4865182a6ade3b108a89e",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18725.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18726.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18728.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18729.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18730.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18731.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18732.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18733.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18734.jpg"
+  ],
   "platform": "pc",
   "published": true,
   "source": "esoui",
   "source_id": "3337",
   "source_url": "https://www.esoui.com/downloads/info3337-SlotsCount.html",
   "stats": {
-    "downloads": 2762,
-    "favorites": 1,
-    "monthly_downloads": 29
+    "downloads": 2818,
+    "favorites": 2,
+    "monthly_downloads": 27
   },
   "title": "Slots Count",
-  "updated_at": 1665423717000,
-  "version": "1.0.5"
+  "updated_at": 1795369200000,
+  "version": "2.51.00"
 }

@@ -13,6 +13,7 @@ local d                       = d
 local string_format           = string.format
 local string_lower            = string.lower
 local string_match            = string.match
+local string_gmatch           = string.gmatch
 local api                     = Verdant.zenimax.api
 local GetGameTimeMilliseconds = api.GetGameTimeMilliseconds
 local GetString               = api.GetString
@@ -154,6 +155,12 @@ local function on_slash(input)
       Verdant.SkillColors.print_unknown() ; return
     elseif cmd == "donut" then
       Verdant.DonutProbe.toggle() ; return
+    elseif cmd == "tideprobe" then
+      Verdant.TideProbe.toggle() ; return
+    elseif cmd == "buffprobe" then
+      Verdant.BuffProbe.run() ; return
+    elseif cmd == "skillprobe" then
+      Verdant.SkillProbe.run() ; return
     elseif cmd == "clear" then
       Verdant.Probe.clear()
       Verdant.Metrics.reset()
@@ -161,8 +168,34 @@ local function on_slash(input)
       Verdant.Coverage.reset()
       Verdant.GroupSet.reset()
       Verdant.Diagnostics.reset()
-      Verdant.Bar.reset_peaks()
       d("[V] " .. GetString(VERDANT_BUFFER_CLEARED))
+      return
+    elseif cmd == "dev" then
+      Verdant.DevTools.toggle() ; return
+    elseif cmd == "themes" then
+      Verdant.ThemeGallery.toggle() ; return
+    elseif cmd == "filmtest" then
+      if Verdant.TemporalBuffer.is_recording() or not Verdant.Visibility.get("graph") then
+        d("[filmtest] open the window and stop recording first")
+        return
+      end
+      local lengths = {}
+      for minutes in string_gmatch(input, "(%d+)") do lengths[#lengths + 1] = tonumber(minutes) end
+      if #lengths == 0 then lengths = { 5, 16, 30 } end
+      Verdant.CopyBox.show("Verdant film test", Verdant.FilmTest.run(lengths, GetGameTimeMilliseconds))
+      return
+    elseif cmd == "elog" then
+      local sub = string_match(string_lower(input), "^%s*%S+%s+(%S+)") or ""
+      local EL = Verdant.EncounterLog
+      if sub == "on" then EL.set_enabled(true)
+      elseif sub == "off" then EL.set_enabled(false)
+      elseif sub ~= "status" then EL.toggle() end
+      d("[V] " .. EL.status_line())
+      Verdant.DevTools.refresh()
+      return
+    elseif cmd == "mark" then
+      local label = string_match(input, "^%s*%S+%s+(.-)%s*$") or ""
+      d("[V] " .. Verdant.Trace.mark(label))
       return
     end
   end
@@ -194,19 +227,29 @@ local function on_slash(input)
     return
   end
 
+  if cmd == "errors" then
+    local events = Verdant.zenimax.events
+    if events.error_count() == 0 then
+      d("[V] " .. GetString(VERDANT_ERRORS_NONE))
+      return
+    end
+    for _, line in ipairs(events.error_lines()) do d("[V] " .. line) end
+    return
+  end
+
   if cmd == "help" then
     d(GetString(VERDANT_HELP_HEADER))
     d(GetString(VERDANT_HELP_TOGGLE))
-    d(GetString(VERDANT_HELP_GRAPH))
     d(GetString(VERDANT_HELP_LIB))
-    d(GetString(VERDANT_HELP_HITCH))
+    d(GetString(VERDANT_HELP_HITCH))
+    d(GetString(VERDANT_HELP_ERRORS))
     d(GetString(VERDANT_HELP_GRID))
     d(GetString(VERDANT_HELP_CARD))
     d(GetString(VERDANT_HELP_HELP))
     return
   end
 
-  Verdant.Bar.toggle()
+  Verdant.Graph.toggle()
 end
 
 local function on_addon_loaded()
@@ -216,9 +259,12 @@ local function on_addon_loaded()
   local world = GetWorldName()
   Verdant.SavedVars = Verdant.zenimax.savedvars.new_account_wide(
     C.SV_TABLE, C.SV_VERSION, world,
-    { probe = {}, bar = {}, temporal = {}, copybox = {}, settings = {}, skill_overrides = {}, custom_groups = {}, logo = {}, assign = {}, library = {} })
+    { probe = {}, temporal = {}, copybox = {}, settings = {}, skill_overrides = {}, custom_groups = {}, logo = {}, assign = {}, library = {},
+      buff_answers = {} })
 
   Verdant.SkillColors.load_persisted(Verdant.SavedVars)
+  Verdant.BuffCatalog.bind(Verdant.SavedVars.buff_answers)
+  Verdant.StorageReport.attach(Verdant.SavedVars)
 
   if Verdant.SavedVars.settings then
     Verdant.SavedVars.settings.font_scale = nil
@@ -227,28 +273,32 @@ local function on_addon_loaded()
 
   if C.DEBUG then Verdant.Probe.init() end
   Verdant.Trace.init()
-  Verdant.Triage.init()
   Verdant.SessionStore.init()
   Verdant.GC.init()            -- GC pacing (ported): smooth the incremental collector
   Verdant.Hitch.init()
   Verdant.Pipeline.init()
   Verdant.Ultimate.init()
-  Verdant.Bar.init()
+  Verdant.Resources.init()
+  Verdant.Casts.init()
+  Verdant.Restores.init()
   Verdant.Logo.init()
+  Verdant.LogLamp.init()
   Verdant.Settings.init()
+  Verdant.DevTools.init()
   Verdant.Graph.init()
   Verdant.Watch.init()
   Verdant.BuffWatch.init()
   Verdant.AutoRecord.init()
   Verdant.Assign.init()
   Verdant.Library.init()
+  Verdant.Export.init()
+  Verdant.About.init()
   Verdant.Visibility.init()
 
-  SLASH_COMMANDS[C.SLASH_COMMAND] = on_slash
+  Verdant.slash = on_slash
+  SLASH_COMMANDS[C.SLASH_COMMAND] = Verdant.zenimax.events.guard(C.SLASH_COMMAND, on_slash)
 
   Log:info("loaded v" .. C.VERSION, "DEBUG=" .. tostring(C.DEBUG))
-  d("[V] " .. string_format(GetString(VERDANT_LOADED), C.VERSION, C.SLASH_COMMAND))
-  if C.DEBUG then d("[V] build " .. tostring(C.BUILD)) end
 end
 
 Verdant.zenimax.events.register_addon_loaded(Verdant.Constants.ADDON_NAME, on_addon_loaded)

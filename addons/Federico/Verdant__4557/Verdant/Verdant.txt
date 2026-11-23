@@ -1,14 +1,17 @@
 ## Title: Verdant
-## Description: Real-time healer contribution tool — healing, shields and triage, with skill-colour breakdown
+## Description: Real-time healer contribution tool — healing and shields, with skill-colour breakdown
 ## Author: Federico Vergelli
-## Version: 2.6.0
-## AddOnVersion: 11
-## APIVersion: 101051 101050
+## Version: 3.0.2
+## AddOnVersion: 14
+## APIVersion: 101052 101051
 ## SavedVariables: VerdantSavedVars
 
 # This Add-on is not created by, affiliated with, or sponsored by ZeniMax Media Inc. or its affiliates.
 # The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
 # in the United States and/or other countries. All rights reserved.
+#
+# License: Verdant License, version 1. The full text is in the LICENSE file of this folder.
+# Code, name, logo and artwork (c) 2026 Federico Vergelli. All rights reserved.
 
 
 bindings.xml
@@ -33,8 +36,19 @@ lib/plot/style.lua
 lib/plot/primitives.lua
 lib/plot/pool.lua
 lib/plot/donut.lua
-lib/plot/plot_stacked_bar.lua
+lib/themes.lua
+assets/themes/piano/theme.lua
+assets/themes/lichen/theme.lua
+assets/themes/moss/theme.lua
+assets/themes/kintsugi/theme.lua
+assets/themes/eucalyptus/theme.lua
+assets/themes/lavender/theme.lua
+assets/themes/moonstone/theme.lua
+assets/themes/desert/theme.lua
 observability/copybox.lua
+observability/encounter_log.lua
+observability/devtools.lua
+observability/theme_gallery.lua
 observability/log.lua
 observability/profiler.lua
 observability/validation.lua
@@ -42,38 +56,92 @@ core/shield_registry.lua
 core/coverage.lua
 core/group_set.lua
 core/mode.lua
+core/ability_origins.lua
 core/skill_colors.lua
+core/buff_origin.lua
+core/buff_catalog.lua
 core/metrics.lua
 core/buff_tracker.lua
 core/buff_watch.lua
-core/triage.lua
 core/session_store.lua
+core/storage_report.lua
 observability/diagnostics.lua
 observability/trace.lua
 pipeline/acquisition.lua
 pipeline/filter.lua
 pipeline/processing.lua
-pipeline/presentation.lua
 pipeline/pipeline.lua
 core/probe.lua
 core/temporal_buffer.lua
+core/fight_stats.lua
 core/ultimate.lua
+core/casts.lua
+core/restores.lua
+core/resources.lua
+core/resource_sums.lua
 core/auto_record.lua
 core/visibility.lua
-ui/bar.xml
-ui/bar.lua
+ui/doors.lua
+ui/skin.lua
+ui/widgets/slider.lua
+ui/widgets/dropdown.lua
+ui/widgets/dock.lua
 ui/settings.xml
 ui/settings.lua
+ui/format.lua
+ui/chart/pools.lua
+ui/chart/grid.lua
+ui/film/window.lua
+ui/chart/columns.lua
+ui/film/dead.lua
+ui/film/overview.lua
+ui/film/test.lua
+ui/chart/hit.lua
+ui/chart/overlay.lua
+ui/widgets/fader.lua
+ui/widgets/hover_card.lua
+ui/widgets/radio.lua
+ui/widgets/meter.lua
+ui/cards/report.lua
+ui/cards/hover.lua
+ui/views/ems.lua
+ui/views/resources.lua
+ui/views/overheal.lua
+ui/views/restore.lua
+ui/views/skill.lua
+ui/views/buffs.lua
+ui/contrib.lua
+ui/views/registry.lua
+ui/shell/light.lua
+ui/shell/chip.lua
+ui/shell/tabs.lua
+ui/shell/saving.lua
+ui/shell/sampler.lua
+ui/shell/opened.lua
+ui/say.lua
+ui/shell/recorder.lua
+ui/record_panel.lua
+ui/chart/drag.lua
+ui/chart/build.lua
 ui/graph.xml
 ui/graph.lua
-ui/contrib.lua
 ui/watch.xml
 ui/watch.lua
 ui/library.xml
 ui/library.lua
+ui/export_report.lua
+ui/export.xml
+ui/export.lua
+ui/about.xml
+ui/about.lua
 ui/assign.xml
 ui/assign.lua
 ui/donut_probe.lua
+ui/tide_probe.lua
+observability/buff_probe.lua
+observability/skill_probe.lua
 ui/logo.xml
 ui/logo.lua
+ui/log_lamp.xml
+ui/log_lamp.lua
 Verdant.lua

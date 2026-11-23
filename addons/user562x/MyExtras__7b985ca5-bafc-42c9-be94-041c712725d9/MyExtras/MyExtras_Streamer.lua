@@ -14,7 +14,6 @@ local MOVE_SPEED    = 500
 local SCALE_SPEED   = 15
 local SIZE_MIN      = 25
 local SIZE_MAX      = 90
-local MOVE_SCENE    = "MyExtras_StreamerMove"
 local BOX_PAD_X     = 0.3
 local BOX_PAD_Y     = 0.12
 local BOX_CORNER    = 0.35
@@ -33,7 +32,7 @@ Streamer.defaults = {
     streamerPosX     = 0,
     streamerPosY     = -400,
     streamerShowing  = false,
-    streamerBackground        = false,
+    streamerBackground        = true,
     streamerBackgroundOpacity = 100,
 }
 
@@ -268,145 +267,58 @@ end
 --------------------------------------------------
 -- Move
 --------------------------------------------------
-Streamer.mover = {}
-
-function Streamer.mover:UpdateDirectionalInput(deltaS)
-    local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK)
-    if x ~= 0 or y ~= 0 then
-        Streamer:SetPosition(Streamer.moveX + x * MOVE_SPEED * deltaS, Streamer.moveY - y * MOVE_SPEED * deltaS)
-    end
-    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(stretchX) > math.abs(scaleY) then
-        Streamer:SetStretch(Streamer.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
-    elseif scaleY ~= 0 then
-        Streamer:SetScale(Streamer.moveSize + scaleY * SCALE_SPEED * deltaS)
-    end
-end
-
-Streamer.moveKeybinds = {
-    alignment = KEYBIND_STRIP_ALIGN_CENTER,
-    {
-        name     = "Save",
-        keybind  = "UI_SHORTCUT_PRIMARY",
-        callback = function() Streamer:EndMove(true) end,
-    },
-    {
-        name     = "Default",
-        keybind  = "UI_SHORTCUT_TERTIARY",
-        callback = function() Streamer:MoveToDefault() end,
-    },
-    {
-        name     = "Cancel",
-        keybind  = "UI_SHORTCUT_NEGATIVE",
-        callback = function() Streamer:EndMove(false) end,
-    },
-}
-
-function Streamer:SetPosition(x, y)
-    local screenW, screenH = GuiRoot:GetDimensions()
-    local halfW, halfH = screenW / 2, screenH / 2
-    self.moveX = zo_clamp(x, -halfW, halfW)
-    self.moveY = zo_clamp(y, -halfH, halfH)
-    local sv = SV()
-    sv.streamerPosX = zo_floor(self.moveX + 0.5)
-    sv.streamerPosY = zo_floor(self.moveY + 0.5)
-    self:ApplyPosition()
-end
-
-function Streamer:SetScale(size)
-    self.moveSize = zo_clamp(size, SIZE_MIN, SIZE_MAX)
-    local rounded = zo_floor(self.moveSize + 0.5)
-    local sv = SV()
-    if sv.streamerSize ~= rounded then
-        sv.streamerSize = rounded
-        self:ApplyStyle()
-    end
-end
-
-function Streamer:SetStretch(value)
-    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
-    local rounded = zo_floor(self.moveStretch + 0.5)
-    local sv = SV()
-    if sv.streamerStretch ~= rounded then sv.streamerStretch = rounded end
-    ME:ApplyStretch(self.panel, rounded)
-end
-
-function Streamer:MoveToDefault()
-    self:SetStretch(100)
-    self:SetScale(self.defaults.streamerSize)
-    self:SetPosition(self.defaults.streamerPosX, self.defaults.streamerPosY)
-end
-
-function Streamer:GetMoveScene()
-    if self.moveScene then return self.moveScene end
-    local scene = ZO_Scene:New(MOVE_SCENE, SCENE_MANAGER)
-    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_NO_KEYBIND_BACKGROUND_WINDOW)
-    ME:AddPlacementFragments(scene)
-    scene:RegisterCallback("StateChange", function(oldState, newState)
-        if newState == SCENE_SHOWING then
-            Streamer:OnMoveShowing()
-        elseif newState == SCENE_HIDDEN then
-            Streamer:OnMoveHidden()
-        end
-    end)
-    self.moveScene = scene
-    return scene
-end
-
 function Streamer:StartMove()
     if self.moving then return end
     self.movePreview = self.preview
-    self.moveSaved = false
     self.moving = true
-    self:GetMoveScene()
-    SCENE_MANAGER:Push(MOVE_SCENE)
-end
-
-function Streamer:OnMoveShowing()
-    local sv = SV()
-    self.moving = true
-    ME:RaiseWhilePlacing({ self.panel }, true)
-    self.moveStartX, self.moveStartY = sv.streamerPosX, sv.streamerPosY
-    self.moveStartSize = sv.streamerSize
-    self.moveX, self.moveY = sv.streamerPosX, sv.streamerPosY
-    self.moveSize = sv.streamerSize
-    self.moveStartStretch = sv.streamerStretch or 100
-    self.moveStretch = sv.streamerStretch or 100
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
-    DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
-    ME:SetPlacing(true)
-    self:ApplyStyle()
-    self:UpdateVisibility()
-end
-
-function Streamer:OnMoveHidden()
-    DIRECTIONAL_INPUT:Deactivate(self.mover)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
-    if not self.moveSaved then
-        self:SetScale(self.moveStartSize)
-        self:SetStretch(self.moveStartStretch)
-        self:SetPosition(self.moveStartX, self.moveStartY)
-    end
-    self.moving = false
-    ME:RaiseWhilePlacing({ self.panel }, false)
-    ME:SetPlacing(false)
-    if self.movePreview then
-        self.movePreview = false
-        self:SetPreview(true)
-    else
-        self:UpdateVisibility()
-    end
-end
-
-function Streamer:EndMove(save)
-    if not self.moving then return end
-    self.moveSaved = save == true
-    if save then
-        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
-    else
-        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
-    end
-    SCENE_MANAGER:HideCurrentScene()
+    local started = LibUser562:StartMove({
+        controls    = { self.panel },
+        moveSpeed   = MOVE_SPEED,
+        scaleSpeed  = SCALE_SPEED,
+        sizeMin     = SIZE_MIN,
+        sizeMax     = SIZE_MAX,
+        bounds      = function()
+            local screenW, screenH = GuiRoot:GetDimensions()
+            return -screenW / 2, screenW / 2, -screenH / 2, screenH / 2
+        end,
+        defaults    = {
+            x    = self.defaults.streamerPosX,
+            y    = self.defaults.streamerPosY,
+            size = self.defaults.streamerSize,
+        },
+        getPosition = function() return SV().streamerPosX, SV().streamerPosY end,
+        setPosition = function(x, y)
+            local sv = SV()
+            sv.streamerPosX, sv.streamerPosY = x, y
+            Streamer:ApplyPosition()
+        end,
+        getSize    = function() return SV().streamerSize end,
+        setSize    = function(size)
+            SV().streamerSize = size
+            Streamer:ApplyStyle()
+        end,
+        getStretch = function() return SV().streamerStretch or 100 end,
+        setStretch = function(percent)
+            SV().streamerStretch = percent
+            ME:ApplyStretch(Streamer.panel, percent)
+        end,
+        onShow = function()
+            ME:SetPlacing(true)
+            Streamer:ApplyStyle()
+            Streamer:UpdateVisibility()
+        end,
+        onHide = function()
+            Streamer.moving = false
+            ME:SetPlacing(false)
+            if Streamer.movePreview then
+                Streamer.movePreview = false
+                Streamer:SetPreview(true)
+            else
+                Streamer:UpdateVisibility()
+            end
+        end,
+    })
+    if not started then self.moving = false end
 end
 
 --------------------------------------------------
@@ -436,7 +348,7 @@ function Streamer:GetOptions()
             options = {
                 {
                     type    = "toggle",
-                    name    = "Show Message",
+                    name    = "Enabled",
                     preset  = "YES_NO",
                     tooltip = "Puts your message on screen.",
                     getFunc = function() return Streamer.active end,
@@ -445,14 +357,7 @@ function Streamer:GetOptions()
                 {
                     type    = "toggle",
                     name    = "Character Settings",
-                    tooltip = "Off uses the same settings for the whole account. On gives this character its own settings, "
-                           .. "copied from the account settings the first time you turn it on.",
-                    details = function()
-                        if Streamer:UsesCharacterSettings() then
-                            return "This character has its own settings."
-                        end
-                        return "All your characters share the same settings."
-                    end,
+                    tooltip = MyExtras.CHARACTER_SETTINGS_TIP,
                     getFunc = function() return Streamer:UsesCharacterSettings() end,
                     setFunc = function(val) Streamer:SetUseCharacterSettings(val) end,
                 },
@@ -508,6 +413,7 @@ function Streamer:GetOptions()
                         {
                             type    = "dropdown",
                             name    = "Font",
+                            tooltip = "Some fonts look bigger or smaller than others. Default is Gamepad Medium.",
                             choices = ME.FONT_CHOICES,
                             default = defaults.streamerFont,
                             sample  = Sample,
@@ -519,7 +425,7 @@ function Streamer:GetOptions()
                         },
                         {
                             type    = "colorpicker",
-                            name    = ME.RainbowText("Color"),
+                            name    = ME.RainbowText("Text Color"),
                             default = defaults.streamerColor,
                             sample  = Sample,
                             getFunc = function()

@@ -7,7 +7,7 @@
                      movable="true"
                      mouseEnabled="true">
       <Dimensions x="230" y="34"/>
-      <OnMoveStop>Verdant.Watch.on_move_stop()</OnMoveStop>
+      <OnMoveStop>Verdant.Window.Watch.on_move_stop()</OnMoveStop>
     </TopLevelControl>
 
   </Controls>

@@ -1,6 +1,7 @@
 -- Ref: docs/adr/0001-arquitectura-modular-zero-dependency-y-savedvars-por-personaje.md
 -- Ref: docs/adr/0002-modelo-de-dominio-captura-y-codec-de-comparticion.md
 -- Ref: docs/adr/0007-dialogos-inyectados-en-npcs-nativos.md
+-- Ref: docs/adr/0013-protocolo-versionado-de-esquema-y-migraciones-de-misiones.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -9,8 +10,11 @@ Addon.Constants = {
     METADATA = {
         NAME = "RPQuest",
         TITLE = "RPQuest",
-        VERSION = "1.4.1",
+        VERSION = "1.8.1",
         AUTHOR = "JerbilX",
+    },
+    QUEST_SCHEMA = {
+        CURRENT_VERSION = 1,
     },
     SAVED_VARS = {
         NAME = "RPQuest_SavedVariables",
@@ -18,8 +22,6 @@ Addon.Constants = {
     },
     SHARE_CODEC = {
         PREFIX = "RPQ3",
-        LEGACY_PREFIX_V2 = "RPQ2",
-        LEGACY_PREFIX = "RPQ1",
         COMPLETION_PREFIX = "RPQC1",
         VERSION = 3,
     },
@@ -29,6 +31,10 @@ Addon.Constants = {
     QUEST_ROLE = {
         PREPARED = "prepared",
         RECEIVED = "received",
+    },
+    QUEST_STATUS = {
+        OFFERED = "offered",
+        ACTIVE = "active",
     },
     AREA_RADIUS = {
         SMALL = 0.045,

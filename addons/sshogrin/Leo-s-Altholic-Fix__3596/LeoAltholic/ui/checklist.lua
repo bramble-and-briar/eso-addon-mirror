@@ -1,3 +1,8 @@
+local lastStarted = nil
+local lastUpdated = nil
+local lastPreDeliver = nil
+
+
 function LeoAltholicChecklistUI.normalizeSettings()
     if not LeoAltholic.globalData.checklist then LeoAltholic.globalData.checklist = {} end
     if not LeoAltholic.globalData.settings.checklist then LeoAltholic.globalData.settings.checklist = {} end
@@ -57,8 +62,13 @@ function LeoAltholicChecklistUI.SetEnabled(value)
     LeoAltholic.charData.settings.checklist.enabled = value
     LeoAltholicChecklistUI.RestorePosition()
 end
+
 function LeoAltholicChecklistUI.IsEnabled()
-    if LeoAltholic.charData.settings.checklist.enabled == nil then LeoAltholic.charData.settings.checklist.enabled = true end
+    if not LeoAltholic.charData
+        or not LeoAltholic.charData.settings
+        or not LeoAltholic.charData.settings.checklist then
+        return false
+    end
     return LeoAltholic.charData.settings.checklist.enabled
 end
 

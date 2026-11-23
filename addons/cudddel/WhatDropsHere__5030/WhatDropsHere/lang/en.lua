@@ -85,6 +85,14 @@ local WDH_STRINGS = {
 
     -- Misc
     PICKPOCKET_UNKNOWN  = "Unknown victim",
+    LEAD_NAME           = "Lead: %s",
+    DIG_SITE            = "Dig Site",  -- fallback when the "Excavate" interaction is missing
+    -- %s = dig site, %s = antiquity
+    DEBUG_DIG_START     = "Excavation: %s (%s)",
+    -- %s = game over flags
+    DEBUG_DIG_FAILED    = "Excavation failed (%s), not counted.",
+    -- %s = item link
+    DEBUG_DIG_REWARD    = "  %s: reward of the antiquity, not counted",
     ZONE_ANYWHERE       = "anywhere",
     SET_UNKNOWN         = "Set #%d",
 }
@@ -111,6 +119,8 @@ WDH_STRINGS.MENU_OTHER            = "Critters and other"
 WDH_STRINGS.MENU_OTHER_TT         = "Critters picked up with \"Take\" and items without a loot window."
 WDH_STRINGS.MENU_THEFT            = "Theft"
 WDH_STRINGS.MENU_THEFT_TT         = "Owned containers, safeboxes and items that belong to someone. Stored separately from free containers with the same name."
+WDH_STRINGS.MENU_EXCAVATION       = "Dig sites"
+WDH_STRINGS.MENU_EXCAVATION_TT    = "Bonus loot of successful excavations. The antiquity itself is not counted."
 WDH_STRINGS.MENU_DATA_HEADER      = "Database"
 WDH_STRINGS.MENU_DATA_INFO        = "Every loot is stored completely: each item with item ID and category. All settings above only affect the display and can be changed at any time, also for past data."
 WDH_STRINGS.MENU_NAME_QUALITY     = "Show names from quality"

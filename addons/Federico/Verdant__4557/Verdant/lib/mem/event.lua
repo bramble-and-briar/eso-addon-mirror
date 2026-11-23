@@ -1,4 +1,5 @@
 Verdant = Verdant or {}
+local Verdant = Verdant
 Verdant.lib = Verdant.lib or {}
 Verdant.lib.mem = Verdant.lib.mem or {}
 

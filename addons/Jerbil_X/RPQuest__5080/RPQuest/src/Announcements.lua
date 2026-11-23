@@ -52,7 +52,16 @@ function Announcements:AnnounceQuestAccepted(quest)
     emitLargeBanner(mainText, nil, SOUNDS.QUEST_ACCEPTED, CENTER_SCREEN_ANNOUNCE_TYPE_QUEST_ADDED)
 end
 
-function Announcements:AnnounceQuestCompleted(quest, matchedTarget)
+function Announcements:AnnounceQuestReceived(quest)
+    if not quest then return end
+
+    local mainText = Addon.Locale:Get("CSA_QUEST_RECEIVED")
+    local subText = (type(quest.title) == "string" and quest.title ~= "") and quest.title or nil
+    local soundId = SOUNDS.QUEST_OBJECTIVE_INCREMENT or SOUNDS.BOOK_PAGE_TURN
+    emitLargeBanner(mainText, subText, soundId, CENTER_SCREEN_ANNOUNCE_TYPE_QUEST_ADDED)
+end
+
+function Announcements:AnnounceQuestCompleted(quest, _matchedTarget)
     if not quest then return end
 
     local mainText = Addon.Locale:Get("CSA_QUEST_COMPLETED", quest.title or "")
@@ -70,14 +79,14 @@ local function emitDiscoveryStyleMessage(text)
     CHAT_SYSTEM:AddMessage(Addon.Constants.UI.CHAT_PREFIX .. text)
 end
 
-function Announcements:AnnounceDiscovery(quest, point)
+function Announcements:AnnounceDiscovery(_quest, point)
     if not point or type(point.message) ~= "string" or point.message == "" then
         return
     end
     emitDiscoveryStyleMessage(point.message)
 end
 
-function Announcements:AnnounceTargetCustomMessage(quest, target)
+function Announcements:AnnounceTargetCustomMessage(_quest, target)
     if not target or type(target.customMessage) ~= "string" then
         return
     end
@@ -99,5 +108,20 @@ function Announcements:AnnounceQuestFailed(quest, target)
     emitLargeBanner(mainText, subText, soundId, CENTER_SCREEN_ANNOUNCE_TYPE_QUEST_PROGRESSION_CHANGED)
 
     local chatText = subText and (mainText .. " — " .. subText) or mainText
+    CHAT_SYSTEM:AddMessage(Addon.Constants.UI.CHAT_PREFIX .. "|cFF4444" .. chatText .. "|r")
+end
+
+function Announcements:AnnounceMailDecodeError(message, senderDisplayName)
+    if type(message) ~= "string" or message == "" then return end
+
+    local mainText = Addon.Locale:Get("CSA_MAIL_DECODE_ERROR")
+    local hasSender = type(senderDisplayName) == "string" and senderDisplayName ~= ""
+    local subText = hasSender
+        and Addon.Locale:Get("ALERT_MAIL_DECODE_ERROR_FROM", senderDisplayName, message)
+        or message
+
+    emitLargeBanner(mainText, subText, SOUNDS.GENERAL_ALERT_ERROR, CENTER_SCREEN_ANNOUNCE_TYPE_QUEST_PROGRESSION_CHANGED)
+
+    local chatText = mainText .. " — " .. subText
     CHAT_SYSTEM:AddMessage(Addon.Constants.UI.CHAT_PREFIX .. "|cFF4444" .. chatText .. "|r")
 end

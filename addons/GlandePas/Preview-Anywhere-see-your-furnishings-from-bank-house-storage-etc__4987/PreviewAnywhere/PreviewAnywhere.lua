@@ -107,6 +107,10 @@ end
 -- with Escape like any menu. The player is framed at the screen center, in an empty world.
 local PREVIEW_SCENE_NAME = "previewAnywhere"
 
+-- The link to preview once our scene has shown. Preview mode only starts when the scene shows, which can wait for
+-- the previous scene's hide animation (e.g. the mail window), so polling before that would drop the request.
+local pendingSceneLink
+
 local function CreatePreviewScene()
     local scene = ZO_Scene:New(PREVIEW_SCENE_NAME, SCENE_MANAGER)
     scene:AddFragmentGroup(FRAGMENT_GROUP.MOUSE_DRIVEN_UI_WINDOW)
@@ -134,15 +138,32 @@ local function CreatePreviewScene()
     scene:RegisterCallback("StateChange", function(oldState, newState)
         if newState == SCENE_SHOWING then
             KEYBIND_STRIP:AddKeybindButtonGroup(exitKeybind)
+        elseif newState == SCENE_SHOWN then
+            if pendingSceneLink then
+                PreviewWhenReady(pendingSceneLink)
+                pendingSceneLink = nil
+            end
         elseif newState == SCENE_HIDDEN then
             KEYBIND_STRIP:RemoveKeybindButtonGroup(exitKeybind)
+            pendingSceneLink = nil
         end
     end)
 end
 
+local MAIL_INBOX_SCENE_NAME = "mailInbox"
+
+local function IsInMail()
+    return SCENE_MANAGER:IsShowing(MAIL_INBOX_SCENE_NAME)
+end
+
 local function StartScenePreview(itemLink)
-    SCENE_MANAGER:Show(PREVIEW_SCENE_NAME)
-    PreviewWhenReady(itemLink)
+    if IsInMail() then
+        -- Pushed so that closing the preview pops back to the mail window, which reopens the mailbox
+        SCENE_MANAGER:Push(PREVIEW_SCENE_NAME)
+    else
+        SCENE_MANAGER:Show(PREVIEW_SCENE_NAME)
+    end
+    pendingSceneLink = itemLink
 end
 
 local function IsOurPreviewActive()
@@ -154,10 +175,10 @@ local function IsInOpenWorld()
     return SCENE_MANAGER:IsShowingBaseScene() or SCENE_MANAGER:IsShowing("hudui")
 end
 
--- Only where the base game has no preview: banks and the open world. Elsewhere (inventory, merchants, guild stores,
+-- Only where the base game has no preview: banks, the mail window and the open world. Elsewhere (inventory, merchants, guild stores,
 -- crafting stations) leave it to the base game.
 local function CanPreviewHere()
-    return IsOurPreviewActive() or BANK_INTERACTION_TYPES[GetInteractionType()] or IsInOpenWorld()
+    return IsOurPreviewActive() or BANK_INTERACTION_TYPES[GetInteractionType()] or IsInOpenWorld() or IsInMail()
 end
 
 local function OnSlashCommand(args)
@@ -171,15 +192,18 @@ local function OnSlashCommand(args)
         return
     end
 
-    if IsOurPreviewActive() then
+    if pendingSceneLink then
+        -- Our scene is still on its way: preview this one instead once it has shown
+        pendingSceneLink = itemLink
+    elseif IsOurPreviewActive() then
         -- Swap the item (once ready); also supersedes any pending request
         PreviewWhenReady(itemLink)
     elseif BANK_INTERACTION_TYPES[GetInteractionType()] then
         StartInteractionPreview(itemLink)
-    elseif IsInOpenWorld() then
+    elseif IsInOpenWorld() or IsInMail() then
         StartScenePreview(itemLink)
     else
-        Print("Only available in the open world and at banks.")
+        Print("Only available in the open world, at banks and in the mail window.")
     end
 end
 
@@ -194,6 +218,9 @@ local function GetIIfARowItemLink(inventorySlot)
 end
 
 local function GetSlotItemLink(inventorySlot)
+    if ZO_InventorySlot_GetType(inventorySlot) == SLOT_TYPE_MAIL_ATTACHMENT then
+        return GetAttachedItemLink(MAIL_INBOX:GetOpenMailId(), ZO_Inventory_GetSlotIndex(inventorySlot))
+    end
     local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
     if bagId then
         return GetItemLink(bagId, slotIndex)
@@ -201,7 +228,7 @@ local function GetSlotItemLink(inventorySlot)
     return GetIIfARowItemLink(inventorySlot)
 end
 
--- "Preview" on hover (keybind strip) and in the right-click menu of items at banks and of IIfA rows, same as
+-- "Preview" on hover (keybind strip) and in the right-click menu of items at banks, of mail attachments and of IIfA rows, same as
 -- /preview <link>. The base game offers no preview there, even while ours runs.
 local function AddPreviewSlotAction(inventorySlot, slotActions)
     if not CanPreviewHere() then

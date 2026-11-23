@@ -3,6 +3,7 @@
 
     <TopLevelControl name="VerdantLibrary"
                      hidden="true"
+                     tier="MEDIUM"
                      clampedToScreen="true"
                      movable="true"
                      mouseEnabled="true">
@@ -10,16 +11,13 @@
       <Dimensions x="440" y="470"/>
       <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="120" offsetY="0"/>
 
-      <OnMouseWheel>Verdant.Library.on_scroll(delta)</OnMouseWheel>
+      <OnMoveStop>Verdant.Window.Library.on_move_stop()</OnMoveStop>
+      <OnMouseWheel>Verdant.Window.Library.on_scroll(delta)</OnMouseWheel>
 
       <Controls>
 
         <Backdrop name="$(parent)Bg">
           <AnchorFill/>
-          <Edge file="EsoUI/Art/Tooltips/UI-Border.dds"
-                edgeFileWidth="128" edgeFileHeight="16" edgeSize="6"/>
-          <Center file="EsoUI/Art/Tooltips/UI-TooltipCenter.dds"/>
-          <Insets left="6" top="6" right="-6" bottom="-6"/>
         </Backdrop>
 
         <Texture name="$(parent)BrandLogo" textureFile="Verdant/assets/logo.dds">
@@ -36,13 +34,10 @@
         </Label>
 
         <Button name="$(parent)CloseBtn" mouseEnabled="true"
-                mouseOverBlendMode="ADD" inherits="ZO_ButtonBehaviorClickSound">
-          <Anchor point="TOPRIGHT" offsetX="-8" offsetY="8"/>
-          <Dimensions x="16" y="16"/>
-          <Textures normal="EsoUI/Art/Buttons/decline_up.dds"
-                    pressed="EsoUI/Art/Buttons/decline_down.dds"
-                    mouseOver="EsoUI/Art/Buttons/decline_over.dds"/>
-          <OnClicked>Verdant.Library.hide()</OnClicked>
+                inherits="ZO_ButtonBehaviorClickSound">
+          <Anchor point="TOPRIGHT" offsetX="-8" offsetY="6"/>
+          <Dimensions x="22" y="22"/>
+          <OnClicked>Verdant.Window.Library.hide()</OnClicked>
         </Button>
 
         <Texture name="$(parent)ListFill"
@@ -59,40 +54,34 @@
           <Insets left="4" top="4" right="-4" bottom="-4"/>
         </Backdrop>
 
-        <Button name="$(parent)ScrollUp" mouseEnabled="true" hidden="true" mouseOverBlendMode="ADD">
+        <Button name="$(parent)ScrollUp" mouseEnabled="true" hidden="true">
           <Anchor point="TOPRIGHT" relativeTo="$(parent)ListBg" relativePoint="TOPRIGHT" offsetX="-4" offsetY="4"/>
           <Dimensions x="16" y="16"/>
-          <Textures normal="EsoUI/Art/Buttons/scrollbox_upArrow_up.dds"
-                    pressed="EsoUI/Art/Buttons/scrollbox_upArrow_down.dds"
-                    mouseOver="EsoUI/Art/Buttons/scrollbox_upArrow_over.dds"/>
-          <OnClicked>Verdant.Library.on_scroll(1)</OnClicked>
+          <OnClicked>Verdant.Window.Library.on_scroll(1)</OnClicked>
         </Button>
 
-        <Button name="$(parent)ScrollDown" mouseEnabled="true" hidden="true" mouseOverBlendMode="ADD">
+        <Button name="$(parent)ScrollDown" mouseEnabled="true" hidden="true">
           <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" relativePoint="BOTTOMRIGHT" offsetX="-4" offsetY="-4"/>
           <Dimensions x="16" y="16"/>
-          <Textures normal="EsoUI/Art/Buttons/scrollbox_downArrow_up.dds"
-                    pressed="EsoUI/Art/Buttons/scrollbox_downArrow_down.dds"
-                    mouseOver="EsoUI/Art/Buttons/scrollbox_downArrow_over.dds"/>
-          <OnClicked>Verdant.Library.on_scroll(-1)</OnClicked>
+          <OnClicked>Verdant.Window.Library.on_scroll(-1)</OnClicked>
         </Button>
 
         <Control name="$(parent)ScrollTrack" mouseEnabled="true" hidden="true">
           <Anchor point="TOPRIGHT"    relativeTo="$(parent)ListBg" relativePoint="TOPRIGHT"    offsetX="-8" offsetY="22"/>
           <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" relativePoint="BOTTOMRIGHT" offsetX="-8" offsetY="-22"/>
           <Dimensions x="8"/>
-          <OnMouseUp>Verdant.Library.on_track_click()</OnMouseUp>
+          <OnMouseUp>Verdant.Window.Library.on_track_click()</OnMouseUp>
           <Controls>
-            <Texture name="$(parent)Bg" textureFile="EsoUI/Art/UnitAttributeVisualizer/attributeBar_dynamic_fill.dds">
+            <Texture name="$(parent)Bg">
               <AnchorFill/>
             </Texture>
             <Control name="$(parent)Thumb" mouseEnabled="true">
               <Anchor point="TOPLEFT" offsetX="0" offsetY="0"/>
               <Dimensions x="8" y="24"/>
-              <OnMouseDown>Verdant.Library.on_thumb_down()</OnMouseDown>
-              <OnMouseUp>Verdant.Library.on_thumb_up()</OnMouseUp>
+              <OnMouseDown>Verdant.Window.Library.on_thumb_down()</OnMouseDown>
+              <OnMouseUp>Verdant.Window.Library.on_thumb_up()</OnMouseUp>
               <Controls>
-                <Texture name="$(parent)Tex" textureFile="EsoUI/Art/UnitAttributeVisualizer/attributeBar_dynamic_fill.dds">
+                <Texture name="$(parent)Tex">
                   <AnchorFill/>
                 </Texture>
               </Controls>
@@ -123,9 +112,9 @@
                      defaultTextColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_DISABLED">
               <Anchor point="TOPLEFT"     offsetX="8"  offsetY="0"/>
               <Anchor point="BOTTOMRIGHT" offsetX="-8" offsetY="0"/>
-              <OnEnter>Verdant.Library.on_label_save()</OnEnter>
-              <OnFocusGained>Verdant.Library.on_label_focus(true)</OnFocusGained>
-              <OnFocusLost>Verdant.Library.on_label_focus(false)</OnFocusLost>
+              <OnEnter>Verdant.Window.Library.on_label_save()</OnEnter>
+              <OnFocusGained>Verdant.Window.Library.on_label_focus(true)</OnFocusGained>
+              <OnFocusLost>Verdant.Window.Library.on_label_focus(false)</OnFocusLost>
             </EditBox>
           </Controls>
         </Backdrop>
@@ -136,7 +125,7 @@
                 inherits="ZO_DefaultButton">
           <Anchor point="BOTTOMRIGHT" offsetX="-14" offsetY="-52"/>
           <Dimensions x="110" y="26"/>
-          <OnClicked>Verdant.Library.on_label_save()</OnClicked>
+          <OnClicked>Verdant.Window.Library.on_label_save()</OnClicked>
         </Button>
 
         <Button name="$(parent)OpenBtn"
@@ -145,9 +134,9 @@
                 inherits="ZO_DefaultButton">
           <Anchor point="BOTTOMLEFT" offsetX="14" offsetY="-12"/>
           <Dimensions x="110" y="24"/>
-          <OnClicked>Verdant.Library.on_open_click()</OnClicked>
+          <OnClicked>Verdant.Window.Library.on_open_click()</OnClicked>
           <Controls>
-            <Texture name="$(parent)Icon" textureFile="EsoUI/Art/Buttons/rightArrow_up.dds">
+            <Texture name="$(parent)Icon">
               <Anchor point="LEFT" offsetX="10" offsetY="0"/>
               <Dimensions x="16" y="16"/>
             </Texture>
@@ -160,9 +149,9 @@
                 inherits="ZO_DefaultButton">
           <Anchor point="BOTTOM" offsetX="0" offsetY="-12"/>
           <Dimensions x="110" y="24"/>
-          <OnClicked>Verdant.Library.on_lock_click()</OnClicked>
+          <OnClicked>Verdant.Window.Library.on_lock_click()</OnClicked>
           <Controls>
-            <Texture name="$(parent)Icon" textureFile="EsoUI/Art/Miscellaneous/locked_up.dds">
+            <Texture name="$(parent)Icon">
               <Anchor point="LEFT" offsetX="10" offsetY="0"/>
               <Dimensions x="16" y="16"/>
             </Texture>
@@ -175,9 +164,9 @@
                 inherits="ZO_DefaultButton">
           <Anchor point="BOTTOMRIGHT" offsetX="-14" offsetY="-12"/>
           <Dimensions x="110" y="24"/>
-          <OnClicked>Verdant.Library.on_delete_click()</OnClicked>
+          <OnClicked>Verdant.Window.Library.on_delete_click()</OnClicked>
           <Controls>
-            <Texture name="$(parent)Icon" textureFile="EsoUI/Art/Buttons/decline_up.dds">
+            <Texture name="$(parent)Icon">
               <Anchor point="LEFT" offsetX="10" offsetY="0"/>
               <Dimensions x="16" y="16"/>
             </Texture>

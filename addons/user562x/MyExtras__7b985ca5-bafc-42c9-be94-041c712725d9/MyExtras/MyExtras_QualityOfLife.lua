@@ -103,6 +103,7 @@ local GROUP_PREFIXES = {
     { "arc",              "readyCheck" },
     { "dnl",              "doNotLearn" },
     { "mi",               "missingItems" },
+    { "ck",               "knowledge" },
 }
 
 local function GroupFor(key)
@@ -144,7 +145,7 @@ local BASE_DEFAULTS = {
     qolClaimTome      = false,
     qolClaimGolden    = false,
     qolClaimVeterancy = false,
-    qolLuaErrors      = "chat",
+    qolLuaErrors      = "show",
 }
 QoL:AddDefaults(BASE_DEFAULTS)
 
@@ -829,11 +830,11 @@ function QoL:GetOptions()
         if group then AddCharacterOption(submenu, group) end
         options[#options + 1] = submenu
     end
-    if ME.AutoReadyCheck then Add(ME.AutoReadyCheck:SubmenuOption(), "readyCheck") end
-    if ME.DoNotLearn then Add(ME.DoNotLearn:SubmenuOption(), "doNotLearn") end
-    if ME.MissingItems then Add(ME.MissingItems:SubmenuOption(), "missingItems") end
-    if ME.Knowledge then Add(ME.Knowledge:SubmenuOption()) end
     if ME.QuestTracker then Add(ME.QuestTracker:SubmenuOption(), "questTracker") end
+    if ME.Performance then
+        local performance = ME.Performance:GetOptions()
+        for i = 1, #performance do options[#options + 1] = performance[i] end
+    end
     options[#options + 1] = Page("Lua Errors", "luaErrors", "What happens when an addon has an error.", luaErrors)
 
     return {
@@ -841,12 +842,29 @@ function QoL:GetOptions()
             type    = "submenu",
             name    = "Quality of Life",
             icon    = SUBMENU_ICON,
-            tooltip = "Skips confirmations, keeps you on your mount, claims rewards for you, accepts ready checks, "
-                   .. "stops you from learning things by accident, marks items you're missing, shows what your "
-                   .. "characters know, moves your quest tracker and handles Lua errors.",
+            tooltip = "Small helpers that make the game smoother.",
             options = options,
         },
     }
+end
+
+function QoL:ItemPages()
+    local pages = {}
+    local function Add(submenu, group)
+        if not submenu then return end
+        if group then AddCharacterOption(submenu, group) end
+        pages[#pages + 1] = submenu
+    end
+    if ME.MissingItems then Add(ME.MissingItems:SubmenuOption(), "missingItems") end
+    if ME.Loot and ME.Loot.PageOption then pages[#pages + 1] = ME.Loot:PageOption() end
+    if ME.Knowledge then Add(ME.Knowledge:SubmenuOption(), "knowledge") end
+    if ME.DoNotLearn then Add(ME.DoNotLearn:SubmenuOption(), "doNotLearn") end
+    return pages
+end
+
+function QoL:ReadyCheckPage()
+    if not ME.AutoReadyCheck then return nil end
+    return AddCharacterOption(ME.AutoReadyCheck:SubmenuOption(), "readyCheck")
 end
 
 --------------------------------------------------

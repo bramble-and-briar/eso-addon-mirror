@@ -1,11 +1,12 @@
 GuildTraderActivity = {
 	name = "GTA",
 	author = "@sinnereso",
-	version = "2026.11.21",
+	version = "2026.11.23",
 	svName = "GTAVars",
 	svVersion = 1,
 }
 local GTA = GuildTraderActivity
+local LH = LibHistoire
 local CATEGORY = GUILD_HISTORY_EVENT_CATEGORY_TRADER
 local SELECTED_GUILD_LIST
 local SELECTED_GUILD_ID
@@ -57,8 +58,8 @@ local function GuildTraderHistoryTrim(isSlash)
 	local nowStamp = GetTimeStamp()
 	local monthStamp = nowStamp - 2592000
 	local resetStamp, prevStamp = GetLastKioskReset()
-	if GTA.savedVariables.cacheTrim and GTA.savedVariables.lastReset ~= resetStamp or isSlash then
-		GTA.savedVariables.lastReset = resetStamp
+	if GTA.savedVars.cacheTrim and GTA.savedVars.lastReset ~= resetStamp or isSlash then
+		GTA.savedVars.lastReset = resetStamp
 		for i = 1, GetNumGuilds() do
 			local guildId = GetGuildId(i)
 			local guildName = GetGuildName(guildId)
@@ -318,7 +319,7 @@ GTAShowAllBoxLabel:SetHandler("OnMouseExit", function(self)
 	--ClearTooltip(InformationTooltip)
 end)
 local function OnShowAllBoxToggled(GTAShowAllBox, checkedState)
-	GTA.savedVariables.showAll = checkedState
+	GTA.savedVars.showAll = checkedState
 	GTAShowAllBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
 	GTA.Refresh()
 end
@@ -353,7 +354,7 @@ GTACacheTrimBoxLabel:SetHandler("OnMouseExit", function(self)
 	--ClearTooltip(InformationTooltip)
 end)
 local function OnCacheTrimBoxToggled(GTACacheTrimBox, checkedState)
-	GTA.savedVariables.cacheTrim = checkedState
+	GTA.savedVars.cacheTrim = checkedState
 	GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
 end
 ZO_CheckButton_SetToggleFunction(GTACacheTrimBox, OnCacheTrimBoxToggled)
@@ -412,7 +413,7 @@ GTANameLabel:SetHandler("OnMouseUp", function(self, button, upInside)
 	if button == 1 and upInside then
 		PlaySound("Click")
 		zo_callLater(function()
-			GTA.savedVariables.activitySorting = "name"
+			GTA.savedVars.activitySorting = "name"
 			GTA.Refresh()
 		end, 50)
 	end
@@ -440,7 +441,7 @@ GTASalesLabel:SetHandler("OnMouseUp", function(self, button, upInside)
 	if button == 1 and upInside then
 		PlaySound("Click")
 		zo_callLater(function()
-			GTA.savedVariables.activitySorting = "sales"
+			GTA.savedVars.activitySorting = "sales"
 			GTA.Refresh()
 		end, 50)
 	end
@@ -468,7 +469,7 @@ GTAPurchaseLabel:SetHandler("OnMouseUp", function(self, button, upInside)
 	if button == 1 and upInside then
 		PlaySound("Click")
 		zo_callLater(function()
-			GTA.savedVariables.activitySorting = "purchases"
+			GTA.savedVars.activitySorting = "purchases"
 			GTA.Refresh()
 		end, 50)
 	end
@@ -496,7 +497,7 @@ GTAActivityLabel:SetHandler("OnMouseUp", function(self, button, upInside)
 	if button == 1 and upInside then
 		PlaySound("Click")
 		zo_callLater(function()
-			GTA.savedVariables.activitySorting = "activity"
+			GTA.savedVars.activitySorting = "activity"
 			GTA.Refresh()
 		end, 50)
 	end
@@ -1009,7 +1010,7 @@ local ItemHeader = Label(combine(salesStyle, headerStyle))
 -- total 750
 local playerDetailColumns = {
 	Column('Item',		260,  0,	LeftAlignedCell, 'ITEM LINK |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',	LeftAlignedHeader,		SORTABLE),
-	Column('Buyer',		180,  10,	LeftAlignedCell, 'BUYER |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',		LeftAlignedHeader,		SORTABLE),
+	Column('Buyer',		170,  20,	LeftAlignedCell, 'BUYER |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',		LeftAlignedHeader,		SORTABLE),
 	Column('Quant',		56,  0,		ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t Qty',				ItemHeader,				SORTABLE),
 	Column('Price',		110,  0,	ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t PRICE',				ItemHeader,				SORTABLE),
 	Column('Time',		134,  0,	ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t SALE TIME',			ItemHeader,				SORTABLE),
@@ -1105,9 +1106,9 @@ local function CreateMainGuildList()
 					if DecorateDisplayName(sellerName) == GetUnitDisplayName("player") then prevSales = (prevSales + itemPrice) prevAllSales = (prevAllSales + itemPrice) prevAllActivity = (prevAllActivity + itemPrice) end
 				end
 			end
-			if guildTotal ~= 0 or GTA.savedVariables.showAll then
+			if guildTotal ~= 0 or GTA.savedVars.showAll then
 				local isComplete = IsGuildHistoryGaplessBetween(guildId, CATEGORY, resetStamp, nowStamp)
-				if LibHistoire:IsCategoryLinked(guildId, CATEGORY) and isComplete then LINKED_INDICATOR = LINKED_IMAGE else LINKED_INDICATOR = UNLINKED_IMAGE end
+				if LH:IsCategoryLinked(guildId, CATEGORY) and isComplete then LINKED_INDICATOR = LINKED_IMAGE else LINKED_INDICATOR = UNLINKED_IMAGE end
 				currentCounter = currentCounter + 1
 				currentList[currentCounter] = {
 					index = i,
@@ -1119,7 +1120,7 @@ local function CreateMainGuildList()
 					activity = sales + purchases,
 				}
 			end
-			if prevGuildTotal ~= 0 or GTA.savedVariables.showAll then
+			if prevGuildTotal ~= 0 or GTA.savedVars.showAll then
 				local isComplete = IsGuildHistoryGaplessBetween(guildId, CATEGORY, prevStamp, resetStamp)
 				if isComplete then LINKED_INDICATOR = LINKED_IMAGE else LINKED_INDICATOR = UNLINKED_IMAGE end
 				previousCounter = previousCounter + 1
@@ -1271,10 +1272,10 @@ local function UpdateTraderActivityList(ctrl, data, rowType)
 		local entry = ZO_ScrollList_CreateDataEntry(rowType, value)
 		table.insert(dataList, entry)
 	end
-	if GTA.savedVariables.activitySorting == "name" then
-		table.sort(dataList, function(a,b) return a.data[GTA.savedVariables.activitySorting] < b.data[GTA.savedVariables.activitySorting] end)
+	if GTA.savedVars.activitySorting == "name" then
+		table.sort(dataList, function(a,b) return a.data[GTA.savedVars.activitySorting] < b.data[GTA.savedVars.activitySorting] end)
 	else
-		table.sort(dataList, function(a,b) return a.data[GTA.savedVariables.activitySorting] > b.data[GTA.savedVariables.activitySorting] end)
+		table.sort(dataList, function(a,b) return a.data[GTA.savedVars.activitySorting] > b.data[GTA.savedVars.activitySorting] end)
 	end
 	ZO_ScrollList_Commit(ctrl)
 end
@@ -1316,9 +1317,9 @@ function GTA.Toggle(justReturn)
 		GuildTraderHistoryTrim()
 		SCENE_MANAGER:Hide("GTA")
 	else
-		ZO_CheckButton_SetCheckState(GTAShowAllBox, GTA.savedVariables.showAll)
-		ZO_CheckButton_SetCheckState(GTAShowAllBox, GTA.savedVariables.showAll)
-		ZO_CheckButton_SetCheckState(GTACacheTrimBox, GTA.savedVariables.cacheTrim)
+		ZO_CheckButton_SetCheckState(GTAShowAllBox, GTA.savedVars.showAll)
+		ZO_CheckButton_SetCheckState(GTAShowAllBox, GTA.savedVars.showAll)
+		ZO_CheckButton_SetCheckState(GTACacheTrimBox, GTA.savedVars.cacheTrim)
 		GTASelectedPlayerView:SetHidden(true)
 		GTASelectedGuildView:SetHidden(true)
 		GTAPersonalView:SetHidden(false)
@@ -1341,10 +1342,10 @@ end
 local function AddOnLoaded(eventCode, addOnName)
 	if addOnName ~= "GTA" then return end
 	ZO_CreateStringId("SI_BINDING_NAME_TRADER_ACTIVITY_TOGGLE", "Trader Activity Toggle")
-	if LibHistoire and GetNumGuilds() > 0 then
+	if LH and GetNumGuilds() > 0 then
 		LibHistoire_Settings.markGapsInHistory = false
 		--SetSetting(SETTING_TYPE_USER_INTERFACE, UI_SETTING_GUILD_HISTORY_CACHE_MAX_NUMBER_OF_DAYS_TRADER, "15")
-		LibHistoire:OnReady(function(lib)
+		LH:OnReady(function(lib)
 			local resetStamp, prevStamp = GetLastKioskReset()
 			for i = 1, GetNumGuilds() do
 				local guildId = GetGuildId(i)
@@ -1359,14 +1360,14 @@ local function AddOnLoaded(eventCode, addOnName)
 			end
 		end)
 	end
-	local defaultAccountVars = {
+	local defAcctVars = {
 		activitySorting = "name",
 		lastReset = 0,
 		showAll = false,
 		cacheTrim = false,
 	}
-	GTA.savedVariables = ZO_SavedVars:NewAccountWide( GTA.svName, GTA.svVersion, nil, defaultAccountVars )
-	--GTA.savedVariables.pvpLastReset = nil--<< SAVE
+	GTA.savedVars = ZO_SavedVars:NewAccountWide( GTA.svName, GTA.svVersion, nil, defAcctVars )
+	--GTA.savedVars.pvpLastReset = nil--<< SAVE
 	GTA_SCENE:RegisterCallback("StateChange", OnSceneStateChanged)
 	EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_ADD_ON_LOADED)
 end

@@ -64,9 +64,8 @@ local function ts_sample()
     grp_sz = Verdant.GroupSet and Verdant.GroupSet.size() or 0,
     metric = (function()
       if not Verdant.Metrics then return nil end
-      local ok, r = pcall(Verdant.Metrics.contribution, GetGameTimeMilliseconds())
-      if ok then return { eHPS=r.eHPS, MPS=r.MPS, EMS=r.EMS } end
-      return nil
+      local r = Verdant.Metrics.contribution(GetGameTimeMilliseconds())
+      return { eHPS=r.eHPS, MPS=r.MPS, EMS=r.EMS }
     end)(),
   }
   ts_head = (ts_head % TS_CAP) + 1
@@ -194,7 +193,8 @@ function M.full_report(include_gc)
   end
   out[#out+1] = "Verdant full report — uptime "
                 .. (GetGameTimeMilliseconds() - start_time) .. "ms  build="
-                .. tostring(Verdant.Constants.BUILD or "?")
+                .. tostring(Verdant.Constants.VERSION or "?")
+  section("handler errors", Verdant.zenimax.events.error_lines())
   if Verdant.Settings and Verdant.Settings.report_lines then
     section("config", Verdant.Settings.report_lines())
   end
@@ -221,9 +221,6 @@ function M.full_report(include_gc)
   end
   if Verdant.Trace and Verdant.Trace.status_line then
     section("trace", { Verdant.Trace.status_line() })
-  end
-  if Verdant.Triage and Verdant.Triage.report_lines then
-    section("triage", Verdant.Triage.report_lines())
   end
   if Verdant.SessionStore and Verdant.SessionStore.report_lines then
     section("session library", Verdant.SessionStore.report_lines())
@@ -306,15 +303,8 @@ function M.gc_probe_lines(n)
     TB.push(now, e, m, c, nc, gcprobe_eg, gcprobe_mg)
   end)
 
-  local tp = 0
-  if Verdant.Triage and not Verdant.Triage.is_active() then
-    tp = measure("triage.on_power (idle)", function()
-      Verdant.Triage.on_power("group2", 0, 0, 15000, 40000, 40000)
-    end)
-  end
-
   TB.clear()
-  emit((dp < 1 and tp < 1) and "VERDICT: data path ~0 -> ZERO-ALLOC CONFIRMED"
+  emit((dp < 1) and "VERDICT: data path ~0 -> ZERO-ALLOC CONFIRMED"
                or "VERDICT: data path NONZERO -> an alloc leaked, investigate")
   emit("(temporal buffer cleared)")
   return lines

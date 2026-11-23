@@ -132,6 +132,20 @@ function UI:Create()
     self.actionArea:SetAnchor(TOPRIGHT, self.window, TOPRIGHT, -18, 100)
     self.actionArea:SetDimensions(150, 190)
 
+    -- Optional Ready Check on SEND/RESEND; saved account-wide.
+    local function refreshReadyCheckLabel()
+        local enabled = not DDP.SV or DDP.SV.sendReadyCheck ~= false
+        self.readyCheckButton.label:SetText("Ready Check: " .. (enabled and "ON" or "OFF"))
+    end
+    self.readyCheckButton = makeButton(self.actionArea, "Ready Check: ON", 150, 23, function()
+        if DDP.SV then
+            DDP.SV.sendReadyCheck = DDP.SV.sendReadyCheck == false
+            refreshReadyCheckLabel()
+        end
+    end)
+    self.readyCheckButton:SetAnchor(TOPLEFT, self.actionArea, TOPLEFT, 0, 0)
+    refreshReadyCheckLabel()
+
     self.modeLabel = makeLabel(self.window, "ZoFontGameSmall", "")
     self.modeLabel:SetAnchor(BOTTOMLEFT, self.window, BOTTOMLEFT, 18, -15)
     setColor(self.modeLabel, C.red)
@@ -188,9 +202,71 @@ function UI:BuildTabs(zoneData)
     end
 end
 
+-- Manual selection edits only the current lineup; it never locks a slot.
+-- HM PORTALS is derived from HM CURSE, so edit its source slot instead.
+function UI:ChoosePlayerForAssignment(index)
+    local zoneId, zoneData = self:GetContext()
+    local mech = self.currentMechanic
+    if not zoneData or not mech then return end
+    local sourceMech, sourceIndex = mech, index
+    if zoneId == 1548 and mech == "HM PORTALS" then
+        local mapping = {1,3,4,2,5,6,7,9,10,8,11,12}
+        sourceMech, sourceIndex = "HM CURSE", mapping[index]
+    end
+    local board = DDP.savedAssignments and DDP.savedAssignments[zoneId] and DDP.savedAssignments[zoneId][sourceMech]
+    if not board or not board[sourceIndex] then return end
+
+    local names, seen = {}, {}
+    for groupIndex = 1, GetGroupSize() do
+        local tag = GetGroupUnitTagByIndex(groupIndex)
+        if tag and DoesUnitExist(tag) then
+            local name = DDP.NormalizeName(GetUnitDisplayName(tag))
+            if name and name ~= "" and not seen[name] then
+                seen[name] = true
+                table.insert(names, name)
+            end
+        end
+    end
+    table.sort(names)
+    if #names == 0 then
+        DDP.msg("No group members available for manual selection.")
+        return
+    end
+    ClearMenu()
+    local function choose(name)
+        local current = board[sourceIndex].name
+        if name == current then return end
+        -- Swap if already present; never duplicate a player in the same board.
+        for j, slot in ipairs(board) do
+            if j ~= sourceIndex and slot.name == name then
+                slot.name = current or "@Missing"
+                slot.override = false
+                break
+            end
+        end
+        board[sourceIndex].name = name
+        board[sourceIndex].override = false
+        if zoneId == 1548 and mech == "HM PORTALS" then
+            DDP.SyncVOCHMPortals()
+        end
+        if DDP.SV then DDP.SV.savedAssignments = DDP.savedAssignments end
+        self:MarkDirty()
+        self:RefreshAssignments()
+    end
+    for _, playerName in ipairs(names) do
+        local name = playerName
+        AddCustomMenuItem(name, function() choose(name) end, MENU_ADD_OPTION_LABEL)
+    end
+    ShowMenu(self.assignmentControls and self.assignmentControls[(index - 1) * 3 + 1])
+end
+
 function UI:OnAssignmentClicked(index)
     local zoneId, zoneData = self:GetContext()
     local mech = self.currentMechanic
+    if self.editMode ~= "swap" then
+        self:ChoosePlayerForAssignment(index)
+        return
+    end
     if zoneId == 1548 and mech == "HM PORTALS" then return end
     local objs = DDP.savedAssignments and DDP.savedAssignments[zoneId] and DDP.savedAssignments[zoneId][mech]
     if not objs or not objs[index] then return end
@@ -295,7 +371,7 @@ function UI:BuildActions()
             {"RESEND", function() DDP.SendAssignments(zoneId, mech) end},
         }
     end
-    local y = 0
+    local y = 26 -- Leave the first row for the Ready Check toggle.
     for _, a in ipairs(actions) do
         local action = a
         local b = makeButton(self.actionArea, action[1], 150, 23, action[2])

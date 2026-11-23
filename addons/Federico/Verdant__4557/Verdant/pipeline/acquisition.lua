@@ -75,6 +75,19 @@ function M.acquire_damage_group(t, hit, targetUnitId)
   return ev
 end
 
+function M.acquire_restore(t, kind, hit, targetType, abilityId, targetName)
+  if (hit or 0) <= 0 then return nil end
+  local ev = acquire()
+  if not ev then return nil end
+  ev.t              = t
+  ev.kind           = kind
+  ev.amount         = hit
+  ev.target_type    = targetType   or 0
+  ev.ability_id     = abilityId    or 0
+  ev.target_name    = targetName
+  return ev
+end
+
 function M.now()
   return GetGameTimeMilliseconds()
 end

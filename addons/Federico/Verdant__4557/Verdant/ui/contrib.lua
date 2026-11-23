@@ -1,4 +1,5 @@
 Verdant = Verdant or {}
+local Verdant = Verdant
 Verdant.ContribView = {}
 local M = Verdant.ContribView
 
@@ -8,7 +9,7 @@ local table_sort    = table.sort
 
 local L = { HEADER_H = 20, ROW_H = 24, ROW_GAP = 2, ICON = 18, PAD = 4, TYPE_W = 54, VAL_W = 72, BAR_H = 5, NAME_H = 14 }
 local C_HEAD   = { r = 0.60, g = 0.64, b = 0.61, a = 0.95 }
-local C_NAME   = { r = 0.86, g = 0.92, b = 0.88, a = 1.0 }
+local C_NAME   = Verdant.lib.themes.tint("name", 1.0)
 local C_VAL    = { r = 0.87, g = 0.87, b = 0.83, a = 1.0 }
 local C_MORE   = { r = 0.70, g = 0.68, b = 0.62, a = 1.0 }
 local C_TRACK  = { r = 1.0, g = 1.0, b = 1.0, a = 0.06 }
@@ -23,12 +24,12 @@ local seen = {}
 local entries = {}
 local order = { n = 0 }
 local hit = { n = 0, y0 = {}, y1 = {}, e = {} }
-local totals = { heal = 0, shield = 0, span = 0 }
+local totals = { heal = 0, shield = 0, span = 0, exact = false }
 local more = { n = -1, text = "" }
 local hover_row = nil
 local scroll = 0
 local max_scroll = 0
-local C_BAND = { r = 0.78, g = 1.00, b = 0.86, a = 0.10 }
+local C_BAND = Verdant.lib.themes.tint("band", 0.10)
 local str = nil
 
 local function strings()
@@ -42,6 +43,7 @@ local function strings()
     more    = GetString(VERDANT_CONTRIB_MORE),
     scrolled = GetString(VERDANT_CONTRIB_SCROLLED),
     est     = GetString(VERDANT_CONTRIB_TIP_EST),
+    whole   = GetString(VERDANT_CONTRIB_TIP_WHOLE),
     parts   = GetString(VERDANT_CONTRIB_PARTS),
   }
   return str
@@ -67,13 +69,54 @@ local function row_for(e)
   local r = bucket[e.name]
   if not r then
     r = { name = e.name, icon = e.icon, ch = e.ch, v = 0, n = 0, gen = -1, disp = -1, text = "",
-          r = e.r, g = e.g, b = e.b, hov_pct = -1, hov_disp = -1, hov_n = -1, hov = "" }
+          top = -1, top_id = 0,
+          r = e.r, g = e.g, b = e.b, hov_pct = -1, hov_disp = -1, hov_n = -1, hov_exact = nil, hov = "" }
     bucket[e.name] = r
   end
   return r
 end
 
-local function by_value_desc(a, b) return a.v > b.v end
+local function by_value_desc(a, b)
+  if a.v ~= b.v then return a.v > b.v end
+  if a.name ~= b.name then return a.name < b.name end
+  return a.ch < b.ch
+end
+
+local on = 0
+
+local function add(e, v)
+  local r = row_for(e)
+  if r.gen ~= gen then
+    r.gen = gen
+    r.v = 0
+    r.n = 0
+    r.top = -1
+    r.top_id = 0
+    on = on + 1
+    order[on] = r
+  end
+  if v > r.top or (v == r.top and e.id < r.top_id) then
+    r.top, r.top_id = v, e.id
+    r.icon = e.icon
+    r.r, r.g, r.b = e.r, e.g, e.b
+  end
+  r.v = r.v + v
+  r.n = r.n + 1
+end
+
+local function exact(by, ch)
+  local SC = Verdant.SkillColors
+  local sum = 0
+  for id, v in pairs(by) do
+    local e = entry_for(id, ch)
+    local c = SC.group_color(SC.ability_group(id))
+    e.r, e.g, e.b = c.r, c.g, c.b
+    add(e, v)
+    sum = sum + v
+  end
+  return sum
+end
+
 
 local function note(id)
   if seen[id] then return end
@@ -84,9 +127,27 @@ local function note(id)
   acc_shield[id] = 0
 end
 
+local function finish()
+  for k = on + 1, #order do order[k] = nil end
+  order.n = on
+  if on > 1 then table_sort(order, by_value_desc) end
+end
+
 local function aggregate()
   local TB = Verdant.TemporalBuffer
   local n = TB.count()
+  gen = gen + 1
+  on = 0
+  local heal_by, shield_by = TB.ability_sums()
+  if heal_by then
+    totals.exact = true
+    totals.heal = exact(heal_by, CH_HEAL)
+    totals.shield = exact(shield_by, CH_SHIELD)
+    totals.span = Verdant.BuffTracker.session_end() - Verdant.BuffTracker.session_start()
+    finish()
+    return
+  end
+  totals.exact = false
   for i = 1, ids.n do
     local id = ids[i]
     acc_heal[id] = 0
@@ -129,22 +190,6 @@ local function aggregate()
   end
   totals.span = t_prev - t0
 
-  gen = gen + 1
-  local on = 0
-  local function add(e, v)
-    local r = row_for(e)
-    if r.gen ~= gen then
-      r.gen = gen
-      r.v = 0
-      r.n = 0
-      r.icon = e.icon
-      r.r, r.g, r.b = e.r, e.g, e.b
-      on = on + 1
-      order[on] = r
-    end
-    r.v = r.v + v
-    r.n = r.n + 1
-  end
   for i = 1, ids.n do
     local id = ids[i]
     local h = acc_heal[id]
@@ -152,9 +197,7 @@ local function aggregate()
     local sh = acc_shield[id]
     if sh > 0 then add(entry_for(id, CH_SHIELD), sh) end
   end
-  for k = on + 1, #order do order[k] = nil end
-  order.n = on
-  if on > 1 then table_sort(order, by_value_desc) end
+  finish()
 end
 
 local function label(c, text, x, y, w, h, col, align)
@@ -245,6 +288,7 @@ function M.render()
     local ic = c.icon:AcquireObject()
     ic:ClearAnchors()
     ic:SetTexture(e.icon)
+    ic:SetColor(1, 1, 1, 1)
     ic:SetDimensions(L.ICON, L.ICON)
     ic:SetAnchor(TOPLEFT, canvas, TOPLEFT, L.PAD, y + (L.ROW_H - L.ICON) / 2)
     ic:SetHidden(false)
@@ -315,11 +359,11 @@ function M.hover(mx, my)
         local heal = (e.ch == CH_HEAL)
         local tot = heal and totals.heal or totals.shield
         local pct = (tot > 0) and math_floor(e.v / tot * 100 + 0.5) or 0
-        if e.hov_pct ~= pct or e.hov_disp ~= e.disp or e.hov_n ~= e.n then
-          e.hov_pct, e.hov_disp, e.hov_n = pct, e.disp, e.n
+        if e.hov_pct ~= pct or e.hov_disp ~= e.disp or e.hov_n ~= e.n or e.hov_exact ~= totals.exact then
+          e.hov_pct, e.hov_disp, e.hov_n, e.hov_exact = pct, e.disp, e.n, totals.exact
           local tc = heal and C_HEAL or C_SHIELD
           e.hov = string_format("|c%s%s %s|r  ·  %d%%  ·  %s%s",
-            c.hexc(tc), e.text, heal and S.heal or S.shield, pct, S.est,
+            c.hexc(tc), e.text, heal and S.heal or S.shield, pct, totals.exact and S.whole or S.est,
             (e.n > 1) and string_format(S.parts, e.n) or "")
         end
         c.show_card(e, e.name, e.hov, totals.span, mx, my)
@@ -349,4 +393,10 @@ function M.reset_scroll() scroll = 0 end
 function M.scroll_state() return scroll, max_scroll end
 
 function M.rows() return order, order.n end
+M.KIND_HEAL, M.KIND_SHIELD = CH_HEAL, CH_SHIELD
+
+function M.compute()
+  aggregate()
+  return order, order.n, totals
+end
 function M.totals() return totals end

@@ -186,8 +186,8 @@ local function chooseStyle(pattern, usedStones)
     return best
 end
 
-local function buildRequest(piece, level, setId, style)
-    local materialIndex = level < 3 and 1 or math.floor(level / 2)
+local function buildRequest(piece, level, setId, style, materialIndex)
+    materialIndex = materialIndex or (level < 3 and 1 or math.floor(level / 2))
     local request = {
         type = "smithing", pattern = piece.pattern, style = style, trait = piece.trait, materialIndex = materialIndex,
         materialQuantity = W.llc.GetMatRequirements(piece.pattern, materialIndex, piece.station),
@@ -218,6 +218,10 @@ local function knowledgeProblem(request, setId, piece)
     if knowledge.style then return "style isn't known" end
     return nil
 end
+
+-- Shared with crafted sets
+T.ARMOR, T.EQUIP, T.ARMOR_TYPE = ARMOR, EQUIP, ARMOR_TYPE
+T.ItemLink, T.CanMakeHere, T.ChooseStyle, T.BuildRequest, T.KnowledgeProblem = itemLink, canMakeHere, chooseStyle, buildRequest, knowledgeProblem
 
 function T.PlanHere(skill)
     local kit = sv.kit
@@ -653,11 +657,8 @@ function T.StatusText()
     return "Current kit: " .. sv.kit.recipe .. ", level " .. sv.kit.level .. ", " .. made .. "/" .. total .. " made"
 end
 
-local function createPage()
-    local LHAS = LibHarvensAddonSettings
-    if not LHAS or not LHAS.AddAddon then return end
-    local page = LHAS:AddAddon("Set Hunter Training Kits", { allowDefaults = false, allowRefresh = true })
-    local function redraw() pcall(function() page:UpdateControls() end) end
+-- The training kit section of the one settings page
+function T.SettingsRows(LHAS, redraw)
     local function locked() return sv.kit ~= nil end
     local function showChoice()
         pcall(function() GAMEPAD_TOOLTIPS:LayoutSettingTooltip(GAMEPAD_LEFT_TOOLTIP, T.ChoiceText(), "") end)
@@ -685,7 +686,7 @@ local function createPage()
     for _, recipe in ipairs(RECIPES) do recipeNames[#recipeNames + 1] = recipe.name end
     for _, weapon in ipairs(WEAPONS) do weaponNames[#weaponNames + 1] = weapon.name end
 
-    page:AddSettings({
+    return {
         { type = LHAS.ST_SECTION, label = "Training kit" },
         { type = LHAS.ST_LABEL, label = function() return T.StatusText() end },
         dropdown("Recipe", "recipe", list(recipeNames, same), same),
@@ -707,7 +708,7 @@ local function createPage()
             disable = function() return not locked() end,
             clickHandler = function() if T.CancelKit() then redraw() end end,
         },
-    })
+    }
 end
 
 function T.Init()
@@ -722,5 +723,4 @@ function T.Init()
             { keybind = "DIALOG_NEGATIVE", text = SI_DIALOG_CANCEL, callback = function() T.reviewPlan = nil end },
         },
     })
-    createPage()
 end

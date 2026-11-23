@@ -1,4 +1,10 @@
 --========================================
+--        ActionDurationReminder / BackBar
+--        双栏克隆行(克隆原生技能槽、浮动/静态预设、迷你行联动)
+--        Credits: the clone-row approach (ActionButton:New on a custom container,
+--        suppressing the system back row) was arrived at by studying FancyActionBar.
+--========================================
+--========================================
 --        vars
 --========================================
 ---@type adr.addon.M
@@ -56,8 +62,8 @@ l.nativeLifted = false
 
 ---@type boolean 静态双克隆行已接管(原生槽隐藏中)
 l.staticEngaged = false
----@type boolean 静态克隆行创建失败闭锁(本会话不再重试)
-l.staticRowsFailed = false
+---@type boolean 静态克隆行已尝试创建(本会话不再重试；抛错则布局退回动态行)
+l.staticRowsAttempted = false
 ---@type table<number, table> 静态主手行 slotNum(3..8) -> 克隆(恒绑定 PRIMARY)
 l.staticPrimary = {}
 ---@type table<number, table> 静态副手行 slotNum(3..8) -> 克隆(恒绑定 BACKUP)
@@ -69,8 +75,8 @@ l.buttons = {}
 l.container = nil
 ---@type boolean 行已激活(事件已注册)
 l.active = false
----@type boolean 克隆行创建失败闭锁(本会话不再重试)
-l.createFailed = false
+---@type boolean 克隆行已尝试创建(本会话不再重试；抛错则由贴图行回退兜底)
+l.createAttempted = false
 ---@type number|nil 当前克隆行对应的非激活武器条
 l.currentHotbar = nil
 ---@type string|nil 上次已应用布局的预设(切换预设时触发重布局)
@@ -917,71 +923,57 @@ l.applyStaticRoles = function()
   l.animateStaticRoles()
 end
 
----创建静态双克隆行(幂等，失败闭锁)
+---创建静态双克隆行(每会话尝试一次)：创建中抛错则错误如实上抛一次，之后的
+---布局退回动态行(不再重试)。完整创建以末槽(8)为标志；半成品槽创建即隐藏、
+---留在容器内无害
 ---@type fun(): boolean
 l.createStaticRows = function()
-  if l.staticPrimary[3] then
+  if l.staticPrimary[8] then
     return true
   end
-  if l.staticRowsFailed or not l.container then
+  if l.staticRowsAttempted or not l.container then
     return false
   end
-  local ok, err = pcall(function()
-    for slotNum = 3, 8 do
-      local template = slotNum == 8 and "ZO_UltimateActionButton" or "ZO_ActionButton"
-      local pButton = ActionButton:New(
-        slotNum + 60,
-        ACTION_BUTTON_TYPE_VISIBLE,
-        l.container,
-        template,
-        HOTBAR_CATEGORY_PRIMARY
-      )
-      local bButton = ActionButton:New(
-        slotNum + 80,
-        ACTION_BUTTON_TYPE_VISIBLE,
-        l.container,
-        template,
-        HOTBAR_CATEGORY_BACKUP
-      )
-      for _, button in ipairs({ pButton, bButton }) do
-        button.slot.slotNum = slotNum
-        button.button.slotNum = slotNum
-        -- 显式设置分类(与动态组一致)：不依赖 Initialize 参数传递
-        local twinCategory = (pButton == button) and HOTBAR_CATEGORY_PRIMARY or HOTBAR_CATEGORY_BACKUP
-        button.slot.hotbarCategory = twinCategory
-        button.button.hotbarCategory = twinCategory
-        button:SetShowBindingText(false)
-        -- 创建即隐藏：锚定完成前不可见(否则短暂/永久停留在容器原点=左上角)
-        button.slot:SetHidden(true)
-        -- ApplyStyle→ResetBounceAnimation 依赖 self.bounceAnimation；
-        -- 且 ZO_ActionButton 虚拟模板不带尺寸，不注入平台模板则 FlipCard 0x0 图标不可见
-        button:SetupBounceAnimation()
-        button:ApplyStyle(ZO_GetPlatformTemplate(template))
-        l.setupDragDropHandlers(button, function()
-          return button.slot.hotbarCategory
-        end)
-        if slotNum == 8 then
-          l.hideUltimateDecorations(button)
-        end
-      end
-      l.staticPrimary[slotNum] = pButton
-      l.staticBackup[slotNum] = bButton
-    end
-  end)
-  if not ok then
-    l.staticRowsFailed = true
-    -- 隐藏已创建的孤儿控件(仅清表引用会让它们永久停在容器原点)
-    for _, set in ipairs(l.staticPair()) do
-      for _, button in pairs(set) do
-        pcall(function()
-          button.slot:SetHidden(true)
-        end)
+  l.staticRowsAttempted = true
+  for slotNum = 3, 8 do
+    local template = slotNum == 8 and "ZO_UltimateActionButton" or "ZO_ActionButton"
+    local pButton = ActionButton:New(
+      slotNum + 60,
+      ACTION_BUTTON_TYPE_VISIBLE,
+      l.container,
+      template,
+      HOTBAR_CATEGORY_PRIMARY
+    )
+    local bButton = ActionButton:New(
+      slotNum + 80,
+      ACTION_BUTTON_TYPE_VISIBLE,
+      l.container,
+      template,
+      HOTBAR_CATEGORY_BACKUP
+    )
+    for _, button in ipairs({ pButton, bButton }) do
+      button.slot.slotNum = slotNum
+      button.button.slotNum = slotNum
+      -- 显式设置分类(与动态组一致)：不依赖 Initialize 参数传递
+      local twinCategory = (pButton == button) and HOTBAR_CATEGORY_PRIMARY or HOTBAR_CATEGORY_BACKUP
+      button.slot.hotbarCategory = twinCategory
+      button.button.hotbarCategory = twinCategory
+      button:SetShowBindingText(false)
+      -- 创建即隐藏：锚定完成前不可见(否则短暂/永久停留在容器原点=左上角)
+      button.slot:SetHidden(true)
+      -- ApplyStyle→ResetBounceAnimation 依赖 self.bounceAnimation；
+      -- 且 ZO_ActionButton 虚拟模板不带尺寸，不注入平台模板则 FlipCard 0x0 图标不可见
+      button:SetupBounceAnimation()
+      button:ApplyStyle(ZO_GetPlatformTemplate(template))
+      l.setupDragDropHandlers(button, function()
+        return button.slot.hotbarCategory
+      end)
+      if slotNum == 8 then
+        l.hideUltimateDecorations(button)
       end
     end
-    l.staticPrimary = {}
-    l.staticBackup = {}
-    d(string.format("[ADR] static rows creation failed: %s (dynamic fallback)", tostring(err)))
-    return false
+    l.staticPrimary[slotNum] = pButton
+    l.staticBackup[slotNum] = bButton
   end
   return true
 end
@@ -1133,30 +1125,19 @@ l.setRoleInstant = function(button, isActive, s, dimAlpha, desat)
   l.updateUltGlow(button, isActive)
 end
 
----懒创建角色渐变时间线(创建失败退化为瞬时切换，不影响按钮本身)
+---懒创建角色渐变时间线(已存在则直接复用)
 ---@type fun(button: table): boolean
 l.ensureRoleTimeline = function(button)
   if button.adrRoleTimeline then
     return true
   end
-  if button.adrRoleFailed then
-    return false
-  end
-  local ok, err = pcall(function()
-    button.adrRoleTimeline = ANIMATION_MANAGER:CreateTimeline()
-    button.adrRoleScale = button.adrRoleTimeline:InsertAnimation(ANIMATION_SCALE, button.slot)
-    button.adrRoleScale:SetDuration(300)
-    button.adrRoleScale:SetEasingFunction(ZO_EaseOutQuadratic)
-    button.adrRoleAlpha = button.adrRoleTimeline:InsertAnimation(ANIMATION_ALPHA, button.icon)
-    button.adrRoleAlpha:SetDuration(300)
-    button.adrRoleAlpha:SetEasingFunction(ZO_EaseOutQuadratic)
-  end)
-  if not ok then
-    button.adrRoleFailed = true
-    button.adrRoleTimeline = nil
-    d(string.format("[ADR] role animation unavailable: %s", tostring(err)))
-    return false
-  end
+  button.adrRoleTimeline = ANIMATION_MANAGER:CreateTimeline()
+  button.adrRoleScale = button.adrRoleTimeline:InsertAnimation(ANIMATION_SCALE, button.slot)
+  button.adrRoleScale:SetDuration(300)
+  button.adrRoleScale:SetEasingFunction(ZO_EaseOutQuadratic)
+  button.adrRoleAlpha = button.adrRoleTimeline:InsertAnimation(ANIMATION_ALPHA, button.icon)
+  button.adrRoleAlpha:SetDuration(300)
+  button.adrRoleAlpha:SetEasingFunction(ZO_EaseOutQuadratic)
   return true
 end
 
@@ -1215,44 +1196,32 @@ l.animateStaticRoles = function()
   end
 end
 
----切手按钮滑动(TranslateAnimation)。动画栈不可用时退化为瞬时落位，绝不让异常炸同步链
+---切手按钮滑动(TranslateAnimation)
 ---@type fun(weaponSwap: Control, swapX: number, fromY: number, toY: number)
 l.playSwapGlide = function(weaponSwap, swapX, fromY, toY)
   local setAnchor = function(y)
     weaponSwap:ClearAnchors()
     weaponSwap:SetAnchor(TOPLEFT, ZO_ActionBar1, TOPLEFT, swapX, y)
   end
-  if l.swapGlideFailed then
-    setAnchor(toY)
-    return
+  if not l.swapGlideTimeline then
+    l.swapGlideTimeline = ANIMATION_MANAGER:CreateTimeline()
+    l.swapGlideTranslate = l.swapGlideTimeline:InsertAnimation(ANIMATION_TRANSLATE, weaponSwap)
+    l.swapGlideTranslate:SetDuration(300)
+    l.swapGlideTranslate:SetEasingFunction(ZO_EaseOutQuadratic)
   end
-  local ok, err = pcall(function()
-    if not l.swapGlideTimeline then
-      l.swapGlideTimeline = ANIMATION_MANAGER:CreateTimeline()
-      l.swapGlideTranslate = l.swapGlideTimeline:InsertAnimation(ANIMATION_TRANSLATE, weaponSwap)
-      l.swapGlideTranslate:SetDuration(300)
-      l.swapGlideTranslate:SetEasingFunction(ZO_EaseOutQuadratic)
-    end
-    -- 并发控制：滑移中重触发先停在当前目标(OnStop 落位)，新滑移从那里出发，
-    -- 避免回跳到旧起点
-    if l.swapGlideTimeline:IsPlaying() then
-      l.swapGlideTimeline:Stop()
-    end
-    setAnchor(fromY)
-    -- SetTranslateDeltas 自动以控件当前锚定位置为原点做增量平移
-    -- (SetTranslateOffsets 的坐标是锚点偏移绝对值，会造成动画期间跳位)
-    l.swapGlideTranslate:SetTranslateDeltas(0, toY - fromY)
-    l.swapGlideTimeline:SetHandler("OnStop", function()
-      setAnchor(toY)
-    end)
-    l.swapGlideTimeline:PlayFromStart()
+  -- 并发控制：滑移中重触发先停在当前目标(OnStop 落位)，新滑移从那里出发，
+  -- 避免回跳到旧起点
+  if l.swapGlideTimeline:IsPlaying() then
+    l.swapGlideTimeline:Stop()
+  end
+  setAnchor(fromY)
+  -- SetTranslateDeltas 自动以控件当前锚定位置为原点做增量平移
+  -- (SetTranslateOffsets 的坐标是锚点偏移绝对值，会造成动画期间跳位)
+  l.swapGlideTranslate:SetTranslateDeltas(0, toY - fromY)
+  l.swapGlideTimeline:SetHandler("OnStop", function()
+    setAnchor(toY)
   end)
-  if not ok then
-    l.swapGlideFailed = true
-    l.swapGlideTimeline = nil
-    d(string.format("[ADR] swap glide animation unavailable: %s", tostring(err)))
-    setAnchor(toY)
-  end
+  l.swapGlideTimeline:PlayFromStart()
 end
 
 ---@type fun()
@@ -1403,9 +1372,7 @@ l.applyNativeAbilityStyle = function()
   for slotNum = 3, 8 do
     local nb = ZO_ActionBar_GetButton(slotNum)
     if nb and nb.slot then
-      pcall(function()
-        nb:ApplyStyle(ZO_GetPlatformTemplate("ZO_ActionButton"))
-      end)
+      nb:ApplyStyle(ZO_GetPlatformTemplate("ZO_ActionButton"))
       if slotNum == 8 and isGamepad then
         ultBtn = nb
         -- 唯一保留的显式锚：ult 基础模板的 Backdrop±12 覆盖不会被技能模板
@@ -1480,12 +1447,8 @@ l.restoreNativeUlt = function()
   -- 尺寸/锚/装饰全部模板自管，零手写像素；装饰可见性由模板+SetUltimateMeter 恢复
   local nb = ZO_ActionBar_GetButton(8)
   if nb and nb.slot then
-    pcall(function()
-      nb:ApplyStyle(ZO_GetPlatformTemplate("ZO_UltimateActionButton"))
-    end)
-    pcall(function()
-      nb:UpdateUltimateMeter()
-    end)
+    nb:ApplyStyle(ZO_GetPlatformTemplate("ZO_UltimateActionButton"))
+    nb:UpdateUltimateMeter()
   end
 end
 
@@ -1515,22 +1478,15 @@ l.updateUltGlow = function(button, isActive, playSound)
     loop:SetHidden(false)
     -- 懒创建时间线(原生虚拟时间线 UltimateReadyBurst/Loop，同款帧动画+音效)
     if l.ultGlowTimelines[button] == nil then
-      local ok = pcall(function()
-        local burstTL = ANIMATION_MANAGER:CreateTimelineFromVirtual("UltimateReadyBurst", glow)
-        local loopTL = ANIMATION_MANAGER:CreateTimelineFromVirtual("UltimateReadyLoop", loop)
-        burstTL:SetHandler("OnStop", function(tl)
-          if tl:GetProgress() >= 1.0 then
-            glow:SetHidden(true)
-            loopTL:PlayFromStart()
-          end
-        end)
-        l.ultGlowTimelines[button] = { burst = burstTL, loop = loopTL }
+      local burstTL = ANIMATION_MANAGER:CreateTimelineFromVirtual("UltimateReadyBurst", glow)
+      local loopTL = ANIMATION_MANAGER:CreateTimelineFromVirtual("UltimateReadyLoop", loop)
+      burstTL:SetHandler("OnStop", function(tl)
+        if tl:GetProgress() >= 1.0 then
+          glow:SetHidden(true)
+          loopTL:PlayFromStart()
+        end
       end)
-      if not ok then
-        l.ultGlowTimelines[button] = false
-        d("[ADR] ult glow animation unavailable")
-        return
-      end
+      l.ultGlowTimelines[button] = { burst = burstTL, loop = loopTL }
     end
     -- 音效直接在调用点播(不放在时间线闭包里——闭包捕获首次创建时的参数不会更新)
     if playSound then
@@ -1730,9 +1686,7 @@ l.unpinQuickslotKeybind = function()
     label:SetParent(qs.slot)
     label:ClearAnchors()
     -- 重放平台模板恢复原生锚(内嵌 -6)
-    pcall(function()
-      qs:ApplyStyle(ZO_GetPlatformTemplate("ZO_ActionButton"))
-    end)
+    qs:ApplyStyle(ZO_GetPlatformTemplate("ZO_ActionButton"))
   end
 end
 
@@ -1774,9 +1728,7 @@ local function onSwapAnimationDone(_, button)
     end
     local nb = ZO_ActionBar_GetButton(8)
     if nb then
-      pcall(function()
-        nb:UpdateUltimateMeter()
-      end)
+      nb:UpdateUltimateMeter()
     end
   end, 50)
 end
@@ -1931,14 +1883,12 @@ l.applySwapAnimStyleLocal = function(button, size)
   if not tl then
     return
   end
-  pcall(function()
-    local first = tl:GetFirstAnimation()
-    local last = tl:GetLastAnimation()
-    first:SetStartAndEndWidth(size, size)
-    first:SetStartAndEndHeight(size, 0)
-    last:SetStartAndEndWidth(size, size)
-    last:SetStartAndEndHeight(0, size)
-  end)
+  local first = tl:GetFirstAnimation()
+  local last = tl:GetLastAnimation()
+  first:SetStartAndEndWidth(size, size)
+  first:SetStartAndEndHeight(size, 0)
+  last:SetStartAndEndWidth(size, size)
+  last:SetStartAndEndHeight(0, size)
 end
 
 l.playSwapAnimation = function()
@@ -2031,17 +1981,24 @@ l.registerEvents = function()
   EM:RegisterForEvent(EVENT_NAME, EVENT_PLAYER_ACTIVATED, function()
     l.syncAll()
   end)
-  -- 终极能量变化时更新攒满光效
-  EM:RegisterForEvent(EVENT_NAME .. "UltGlow", EVENT_POWER_UPDATE, function(_, unitTag, _, powerType)
-    if unitTag ~= "player" or powerType ~= COMBAT_MECHANIC_FLAGS_ULTIMATE then
-      return
-    end
+  -- 终极能量变化时更新攒满光效。过滤在引擎层完成(仅玩家 + 仅终极能量)：
+  -- POWER_UPDATE 对所有单位/所有能量类型触发，Lua 里逐次判 unitTag/powerType
+  -- 是无谓开销(esoui 审查 Critical 项)
+  EM:RegisterForEvent(EVENT_NAME .. "UltGlow", EVENT_POWER_UPDATE, function()
     if l.staticEngaged then
       local active = GetActiveHotbarCategory()
       local activeSet = active == HOTBAR_CATEGORY_PRIMARY and l.staticPrimary or l.staticBackup
       l.updateUltGlow(activeSet[8], true)
     end
   end)
+  EM:AddFilterForEvent(
+    EVENT_NAME .. "UltGlow",
+    EVENT_POWER_UPDATE,
+    REGISTER_FILTER_POWER_TYPE,
+    COMBAT_MECHANIC_FLAGS_ULTIMATE,
+    REGISTER_FILTER_UNIT_TAG,
+    "player"
+  )
   EM:RegisterForEvent(EVENT_NAME, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function()
     -- 换装高频事件：仅刷数据(可用状态/计数)，不重排锚点
     l.syncAll(false)
@@ -2088,27 +2045,15 @@ l.suppressSystemBackRow = function()
   end
 end
 
----激活克隆行(双bar预设)。创建失败时清理残缺状态并闭锁本次会话不再重试，
----由 Bar.lua 的贴图满行回退兜底
+---激活克隆行(双bar预设)。每会话尝试创建一次：创建中抛错则错误如实上抛一次，
+---行保持未激活(l.active=false → isRowUsable=false)，由 Bar.lua 的贴图满行回退兜底
 ---@type fun()
 l.activate = function()
-  if l.createFailed then
+  if l.createAttempted then
     return
   end
-  local ok, err = pcall(l.createRow)
-  if not ok then
-    d(string.format("[ADR] BackBar clone row creation failed: %s (texture fallback active)", tostring(err)))
-    addon.debug("[BB]create row failed: %s", tostring(err))
-    l.createFailed = true
-    l.buttons = {}
-    if l.container then
-      pcall(function()
-        l.container:SetHidden(true)
-      end)
-      l.container = nil
-    end
-    return
-  end
+  l.createAttempted = true
+  l.createRow()
   l.active = true
   l.lastAppliedPreset = l.effectivePreset()
   if l.lastAppliedPreset ~= "classic" then
@@ -2218,9 +2163,7 @@ l.onCoreUpdate = function()
       for slotNum = 3, 8 do
         local b = set[slotNum]
         if b and b.hasAction then
-          pcall(function()
-            b:UpdateActivationHighlight()
-          end)
+          b:UpdateActivationHighlight()
         end
       end
     end

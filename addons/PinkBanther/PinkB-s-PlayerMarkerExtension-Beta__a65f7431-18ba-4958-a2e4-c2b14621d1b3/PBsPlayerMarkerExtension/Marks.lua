@@ -93,7 +93,10 @@ function A:RefreshRoster(force)
 						-- (a marker that disappears for this reason is explained by this line)
 						self:Trace("roster", name .. (online and " is online again" or " went offline"))
 					end
-					local entry = { tag = tag, name = name, hash = hash, self = isSelf, online = online }
+					-- the person's entry of the last reading is filled in again: the roster is read every second while anything is
+					-- marked, and a new table per member each time was the add-on's steadiest garbage after the tick's closures
+					local entry = was or {}
+					entry.tag, entry.name, entry.hash, entry.self, entry.online = tag, name, hash, isSelf, online
 					list[#list + 1] = entry
 					byHash[hash] = entry
 				end
@@ -106,7 +109,8 @@ function A:RefreshRoster(force)
 		local own = self:OwnName()
 		if own then
 			local hash = A.Hash(own)
-			local entry = { tag = "player", name = own, hash = hash, self = true, online = true }
+			local entry = before[hash] or {}
+			entry.tag, entry.name, entry.hash, entry.self, entry.online = "player", own, hash, true, true
 			list[1] = entry
 			byHash[hash] = entry
 		end

@@ -23,7 +23,7 @@ local WEEK = 7 * 86400
 local KNOWN_FLIP = 1794924000
 
 TraderWeek.defaults = {
-    enabled = true,
+    enabled = false,     -- every feature starts off on a new install (Albert, 1.3.0)
     keepWeeks = 12,
     weeks = {},          -- [guildId] = { [weekStart] = week totals }
     bankGold = {},       -- [guildId] = { amount =, ts = } last count, taken when that guild bank is opened
@@ -699,6 +699,7 @@ function TraderWeek:ContactMenu(control, e)
             GT.Actions.Warn(e.name, "", "", "mail")
         end
     end)
+    AddMenuItem("Copy " .. e.name, function() GT.Report:ShowCopy(e.name) end)
     if e.rank then
         AddMenuItem("Shout out " .. e.name .. " in guild chat", function()
             self:PostToGuild(e.g, { self:ShoutOutText(e) })
@@ -926,20 +927,31 @@ local function GuildButton(self, f)
     end }
 end
 
+function TraderWeek:TabRows()
+    if self.sv.filter.view == "traders" then return self:GetTraderRows() end
+    return self:GetWeekRows()
+end
+
+function TraderWeek:MemberTabSort(mf, key)
+    if mf.sort == key then
+        mf.desc = not mf.desc
+    else
+        mf.sort, mf.desc = key, key ~= "name"
+    end
+end
+
 function TraderWeek:RegisterTab()
     local f = self.sv.filter
     if f.view ~= "traders" then f.view = "weeks" end   -- 0.4.14 and older also had a members view here
     f.weekOffset, f.sort, f.desc = nil, nil, nil
     GT.Report:RegisterTab({
         id = "trader",
+            GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "Weekly trader and bank totals") end,
         title = "Trader",
         tip = "Trader management: what each week's trader cost, every bid, and whether revenue (tax plus member deposits) paid for it.",
         columns = function() return f.view == "traders" and TRADER_COLUMNS or WEEK_COLUMNS end,
         GetSummary = function() return self:GetSummary() end,
-        GetRows = function()
-            if f.view == "traders" then return self:GetTraderRows() end
-            return self:GetWeekRows()
-        end,
+        GetRows = function() return self:TabRows() end,
         footer = function()
             return {
                 GuildButton(self, f),
@@ -956,17 +968,13 @@ function TraderWeek:RegisterTab()
     local mf = self.sv.memberFilter
     GT.Report:RegisterTab({
         id = "sales",
+        noMenuHint = true,
+            GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "Weekly trader and bank totals") end,
         title = "Member sales",
         tip = "Per member for one trader week: what they sold in the guild store, the tax that earned, and the gold and items they gave or took. Right-click a member to whisper or mail them.",
         columns = MEMBER_COLUMNS,
         sortKey = function() return mf.sort, mf.desc end,
-        OnSort = function(key)
-            if mf.sort == key then
-                mf.desc = not mf.desc
-            else
-                mf.sort, mf.desc = key, key ~= "name"
-            end
-        end,
+        OnSort = function(key) self:MemberTabSort(mf, key) end,
         GetSummary = function() return self:GetMemberSummary() end,
         GetRows = function() return self:GetMemberRows() end,
         footer = function()

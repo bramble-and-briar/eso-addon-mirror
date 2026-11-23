@@ -2,22 +2,28 @@
   <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
     <Category name="Verdant">
       <Action name="VERDANT_TOGGLE">
-        <Down>Verdant.Visibility.master_toggle()</Down>
+        <Down>Verdant.Key.Graph.toggle()</Down>
       </Action>
       <Action name="VERDANT_GRAPH">
-        <Down>Verdant.Graph.toggle()</Down>
+        <Down>Verdant.Key.Graph.toggle()</Down>
       </Action>
       <Action name="VERDANT_RECORD">
-        <Down>Verdant.Graph.toggle_record()</Down>
+        <Down>Verdant.Key.Graph.toggle_record()</Down>
       </Action>
       <Action name="VERDANT_SAVE">
-        <Down>Verdant.Graph.on_save_click()</Down>
+        <Down>Verdant.Key.Graph.on_save_click()</Down>
       </Action>
       <Action name="VERDANT_NEXT_VIEW">
-        <Down>Verdant.Graph.step_view(1)</Down>
+        <Down>Verdant.Key.Graph.step_view(1)</Down>
       </Action>
       <Action name="VERDANT_PREV_VIEW">
-        <Down>Verdant.Graph.step_view(-1)</Down>
+        <Down>Verdant.Key.Graph.step_view(-1)</Down>
+      </Action>
+      <Action name="VERDANT_NEXT_SESSION">
+        <Down>Verdant.Key.Graph.step_session(1)</Down>
+      </Action>
+      <Action name="VERDANT_PREV_SESSION">
+        <Down>Verdant.Key.Graph.step_session(-1)</Down>
       </Action>
     </Category>
   </Layer>

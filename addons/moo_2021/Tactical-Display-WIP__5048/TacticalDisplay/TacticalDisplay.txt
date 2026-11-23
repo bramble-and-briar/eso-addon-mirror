@@ -1,6 +1,6 @@
 ## Title: Tactical Display
 ## Author: moo
-## Version: 0.3.1
+## Version: 0.4.0
 ## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=43
 ## SavedVariables: TacticalDisplaySavedVariables

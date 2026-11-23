@@ -23,17 +23,26 @@ local RULE_BY_LABEL = { ["Officer limit"] = RULE_OFFICER, ["Member limit"] = RUL
 local RANK_COLORS = { "D4AF37", "E06666", "C27BA0", "8E7CC3", "6FA8DC", "76A5AF", "93C47D", "B7B7B7", "999999", "888888" }
 
 Members.defaults = {
-    inactiveEnabled = true,
+    inactiveEnabled = false,   -- every feature starts off on a new install (Albert, 1.3.0)
     officerDays = 30,
     memberDays = 21,
     recruitDays = 14,
-    alertOnLogin = true,
+    alertOnLogin = false,
     -- Contact templates. <<1>> = @name, <<2>> = guild, <<3>> = days offline, <<4>> = their limit in days.
     contactSubject = "<<2>>",
     contactText = "Hi <<1>>, ",
     inactiveSubject = "We miss you in <<2>>",
     inactiveText = "Hi <<1>>, you haven't logged in to <<2>> for <<3>> days, and our limit for your rank is <<4>> days. If you'll be away for a while, let an officer know and we'll hold your spot. Otherwise you may be removed to make room for active players. Hope to see you soon!",
     removeNote = "Removed from the roster",
+    -- Mails sent after a confirmed kick from the Inactive tab, or a blacklist (off until turned on).
+    -- Kick: <<1>> = @name, <<2>> = guild, <<3>> = days offline, <<4>> = their limit in days.
+    -- Blacklist: <<1>> = @name, <<2>> = guild, <<3>> = the reason (the blacklist note).
+    kickMail = false,
+    kickSubject = "Removed from <<2>> for inactivity",
+    kickText = "Hi <<1>>,\n\nYou were removed from <<2>> because you hadn't logged in for <<3>> days, and our limit for your rank is <<4>> days. Nothing personal, we just keep spots open for active players.\n\nIf you come back to the game, you're welcome back! Mail or whisper an officer, or apply to <<2>> again.\n\nHope to see you soon!",
+    blacklistMail = false,
+    blacklistSubject = "<<2>> guild blacklist",
+    blacklistText = "Hi <<1>>,\n\nYou have been added to the <<2>> guild blacklist for this reason:\n\n<<3>>\n\nThis means you can't rejoin or apply to <<2>>.",
     rankRules = {},   -- [guildId] = { [rankIndex] = "officer" | "member" | "recruit" | "off" }; missing = default
     dismissed = {},   -- ["guildId:@name"] = when they had last logged off at the time you dismissed them
     rankInfo = {},    -- [guildId] = { ["@name"] = { joined, changed, promoted } }
@@ -44,7 +53,8 @@ Members.defaults = {
 
 -- Settings each guild has its own copy of (see GT:GuildSettings). Per-rank rules are kept per guild in rankRules.
 Members.guildKeys = { "inactiveEnabled", "officerDays", "memberDays", "recruitDays", "contactSubject", "contactText",
-    "inactiveSubject", "inactiveText", "removeNote" }
+    "inactiveSubject", "inactiveText", "removeNote", "kickMail", "kickSubject", "kickText", "blacklistMail",
+    "blacklistSubject", "blacklistText" }
 
 function Members:G(guildId)
     return GT:GuildSettings(self, guildId)
@@ -342,8 +352,8 @@ function Members:GetColumns()
     if not self:GetGuildFilter() then columns[#columns + 1] = { title = "Guild", width = 110, sort = "guild" } end
     local used = 0
     for _, c in ipairs(columns) do used = used + c.width + 8 end
-    -- 3 buttons (Contact, Set rank, Remove) take about 265 px on the right.
-    columns[#columns + 1] = { title = "Note", width = math.max(80, 1140 - 265 - used), sort = "note" }
+    -- No row buttons (everything is in the right-click menu), so the note gets the rest of the row.
+    columns[#columns + 1] = { title = "Note", width = math.max(80, 1140 - used), sort = "note" }
     return columns
 end
 
@@ -375,8 +385,9 @@ function Members:GetMemberRow(m)
         "Last online: " .. (m.online and "online now" or self:DescribeOnline(m)),
         "Note: " .. (m.note ~= "" and m.note or "(none)"),
     }, "\n")
-    local actions = (m.name ~= GetDisplayName()) and self:GetManageActions(m, false) or nil
-    return { cells = cells, tooltip = tooltip, actions = actions }
+    local row = { cells = cells, tooltip = tooltip }
+    if m.name == GetDisplayName() then return row end
+    return GT.Report.AddMenu(row, self:MemberItems(m, false))
 end
 
 -- Inactive -------------------------------------------------------------------
@@ -469,6 +480,14 @@ function Members:GetInactive()
 end
 
 -- What the Inactive tab shows: rank filter, then sorted (grouped by rank if chosen).
+-- True when at least one ticked guild has inactivity alerts on.
+function Members:AnyInactiveOn()
+    for _, guildId in ipairs(U.GetGuildIds()) do
+        if GT:IsAlertGuild(guildId) and self:G(guildId).inactiveEnabled then return true end
+    end
+    return false
+end
+
 function Members:GetVisibleInactive()
     local list = {}
     for _, m in ipairs(self:GetInactive()) do
@@ -487,7 +506,7 @@ function Members:GetInactiveColumns()
         { title = "Offline", width = 70, sort = "offline", tip = "How long they have been offline." },
         { title = "Last online", width = 95, sort = "lastonline" },
         { title = "Limit", width = 45, sort = "limit", tip = "The inactivity limit for their rank, in days." },
-        { title = "Note", width = 125, sort = "note" },
+        { title = "Note", width = 470, sort = "note" },
     }
 end
 
@@ -496,36 +515,35 @@ function Members:Dismiss(m)
     GT.Report:RefreshIfShown()
 end
 
--- Buttons shared by the Members and Inactive rows. Every change still asks for confirmation.
-function Members:Contact(button, m, inactive)
-    local days = tostring(math.floor(m.offlineSecs / DAY))
+-- Menu items shared by the Members and Inactive rows. Every change still asks for confirmation.
+-- inactive: Inactive tab (they're offline, so no whisper; Kick counts as a kick for inactivity
+-- and can send the "welcome back" mail).
+function Members:MemberItems(m, inactive)
     local g = self:G(m.guildId)
-    local subjectTemplate = inactive and g.inactiveSubject or g.contactSubject
-    local textTemplate = inactive and g.inactiveText or g.contactText
-    local subject = zo_strformat(subjectTemplate, m.name, U.GuildName(m.guildId), days, m.limitDays or "")
-    local text = zo_strformat(textTemplate, m.name, U.GuildName(m.guildId), days, m.limitDays or "")
-    ClearMenu()
-    AddMenuItem("Whisper", function() A.Warn(m.name, subject, text, "whisper") end)
-    AddMenuItem("Mail", function() A.Warn(m.name, subject, text, "mail") end)
-    ShowMenu(button)
-end
-
-function Members:Remove(button, m)
+    local days = tostring(math.floor(m.offlineSecs / DAY))
+    local subject = zo_strformat(inactive and g.inactiveSubject or g.contactSubject, m.name, U.GuildName(m.guildId), days, m.limitDays or "")
+    local text = zo_strformat(inactive and g.inactiveText or g.contactText, m.name, U.GuildName(m.guildId), days, m.limitDays or "")
     local done = function() GT.Report:RefreshIfShown() end
-    ClearMenu()
-    AddMenuItem("Kick", function() A.Kick(m.guildId, m.name, false, nil, done) end)
-    AddMenuItem("Kick and blacklist", function() A.Kick(m.guildId, m.name, true, self:G(m.guildId).removeNote, done) end)
-    ShowMenu(button)
-end
-
-function Members:GetManageActions(m, inactive)
-    return {
-        { label = "Contact", tip = "Whisper or mail them, using the texts from settings.", fn = function(button) self:Contact(button, m, inactive) end },
-        { label = "Set rank", tip = "Pick a new rank for them. Asks first.", fn = function(button)
-            A.ChooseRank(button, m.guildId, m.name, function() GT.Report:RefreshIfShown() end)
-        end },
-        { label = "Remove", tip = "Kick, or kick and blacklist. Asks first.", fn = function(button) self:Remove(button, m) end },
-    }
+    local items = {}
+    local function Add(item) items[#items + 1] = item end
+    if inactive then
+        Add({ label = "Mail the \"we miss you\" text", fn = function() A.Warn(m.name, subject, text, "mail") end })
+        Add({ label = "Mail " .. m.name, fn = function() A.Warn(m.name, "", "", "mail") end })
+        Add(GT.Report.CopyItem(m.name))
+    else
+        for _, item in ipairs(GT.Report.ContactItems(m.name)) do Add(item) end
+        Add({ label = "Whisper the contact text", fn = function() A.Warn(m.name, subject, text, "whisper") end })
+        Add({ label = "Mail the contact text", fn = function() A.Warn(m.name, subject, text, "mail") end })
+    end
+    Add({ label = "Set rank...", opensMenu = true, fn = function(control) A.ChooseRank(control, m.guildId, m.name, done) end })
+    Add({ label = "Kick (asks first)", fn = function()
+        A.Kick(m.guildId, m.name, false, nil, done, inactive and { days = math.floor(m.offlineSecs / DAY), limitDays = m.limitDays } or nil)
+    end })
+    Add({ label = "Kick and blacklist (asks first)", fn = function() A.Kick(m.guildId, m.name, true, g.removeNote, done) end })
+    if inactive then
+        Add({ label = "Dismiss (until they log in and go over again)", fn = function() self:Dismiss(m) end })
+    end
+    return items
 end
 
 function Members:GetInactiveRow(m)
@@ -543,14 +561,69 @@ function Members:GetInactiveRow(m)
         "Rank: " .. m.rankName .. ", held " .. self:DescribeRankTime(m),
         "Last online: " .. FormatDay(m.lastOnline),
         "Note: " .. (m.note ~= "" and m.note or "(none)"),
-        "Dismiss hides them until they log in and go over the limit again.",
     }, "\n")
-    local actions = self:GetManageActions(m, true)
-    actions[#actions + 1] = { label = "Dismiss", tip = "Hides them until they log in and go over the limit again.", fn = function() self:Dismiss(m) end }
-    return { cells = cells, tooltip = tooltip, actions = actions }
+    return GT.Report.AddMenu({ cells = cells, tooltip = tooltip }, self:MemberItems(m, true))
 end
 
 -- Tabs -----------------------------------------------------------------------
+
+function Members:MembersTabRows(tab)
+    local rows = {}
+    for _, m in ipairs(self:GetVisibleMembers(tab.searchText)) do rows[#rows + 1] = self:GetMemberRow(m) end
+    return rows
+end
+
+function Members:MembersTabExportLines(tab)
+    local lines = { "Guild\tMember\tRank\tAt rank since\tDays at rank\tLast promoted\tLast online\tDays offline\tNote" }
+    local now = GetTimeStamp()
+    for _, m in ipairs(self:GetVisibleMembers(tab.searchText)) do
+        local rec = self:GetRankInfo(m.guildId, m.name)
+        local oldest = self.sv.oldest[m.guildId]
+        local since = (rec and rec.changed) and FormatDay(rec.changed) or (oldest and ("before " .. FormatDay(oldest)) or "")
+        local daysAt = (rec and rec.changed) and string.format("%.1f", (now - rec.changed) / DAY) or ""
+        local promoted = (rec and rec.promoted) and FormatDay(rec.promoted) or ""
+        lines[#lines + 1] = table.concat({ U.GuildName(m.guildId), m.name, m.rankName, since, daysAt, promoted,
+            m.online and "online" or FormatDay(m.lastOnline), string.format("%.1f", m.offlineSecs / DAY), OneLine(m.note) }, "\t")
+    end
+    return lines
+end
+
+function Members:InactiveTabRows()
+    local rows = {}
+    for _, m in ipairs(self:GetVisibleInactive()) do rows[#rows + 1] = self:GetInactiveRow(m) end
+    return rows
+end
+
+function Members:InactiveTabExportLines()
+    local lines = { "Guild\tMember\tRank\tLast online\tDays offline\tLimit (days)\tNote" }
+    for _, m in ipairs(self:GetVisibleInactive()) do
+        lines[#lines + 1] = table.concat({ U.GuildName(m.guildId), m.name, m.rankName, FormatDay(m.lastOnline),
+            string.format("%.1f", m.offlineSecs / DAY), m.limitDays, OneLine(m.note) }, "\t")
+    end
+    return lines
+end
+
+function Members:MembersTabSummary(membersTab)
+    local guildId = self:GetGuildFilter()
+    return string.format("%s: %d members. Click a column header to sort. Rank dates come from roster history; hover a row for the full note.",
+        guildId and U.GuildName(guildId) or "All guilds", #self:GetVisibleMembers(membersTab.searchText))
+end
+
+function Members:InactiveTabSummary()
+    local parts = {}
+    for _, guildId in ipairs(U.GetGuildIds()) do
+        if GT:IsAlertGuild(guildId) then
+            local g = self:G(guildId)
+            if g.inactiveEnabled then
+                parts[#parts + 1] = string.format("%s: officers %dd, members %dd, recruits %dd", U.GuildName(guildId),
+                    g.officerDays, g.memberDays, g.recruitDays)
+            else
+                parts[#parts + 1] = U.GuildName(guildId) .. ": off"
+            end
+        end
+    end
+    return string.format("%s  Limits: %s.", self:GetSlotSummary(), table.concat(parts, "; "))
+end
 
 function Members:RegisterTabs()
     local membersTab
@@ -562,30 +635,9 @@ function Members:RegisterTabs()
         columns = function() return self:GetColumns() end,
         sortKey = function() return self.sv.filter.sort, self.sv.filter.desc end,
         OnSort = function(key) self:OnSortClicked(self.sv.filter, key) end,
-        GetSummary = function()
-            local guildId = self:GetGuildFilter()
-            return string.format("%s: %d members. Click a column header to sort. Rank dates come from roster history; hover a row for the full note.",
-                guildId and U.GuildName(guildId) or "All guilds", #self:GetVisibleMembers(membersTab.searchText))
-        end,
-        GetRows = function()
-            local rows = {}
-            for _, m in ipairs(self:GetVisibleMembers(membersTab.searchText)) do rows[#rows + 1] = self:GetMemberRow(m) end
-            return rows
-        end,
-        GetExportLines = function()
-            local lines = { "Guild\tMember\tRank\tAt rank since\tDays at rank\tLast promoted\tLast online\tDays offline\tNote" }
-            local now = GetTimeStamp()
-            for _, m in ipairs(self:GetVisibleMembers(membersTab.searchText)) do
-                local rec = self:GetRankInfo(m.guildId, m.name)
-                local oldest = self.sv.oldest[m.guildId]
-                local since = (rec and rec.changed) and FormatDay(rec.changed) or (oldest and ("before " .. FormatDay(oldest)) or "")
-                local daysAt = (rec and rec.changed) and string.format("%.1f", (now - rec.changed) / DAY) or ""
-                local promoted = (rec and rec.promoted) and FormatDay(rec.promoted) or ""
-                lines[#lines + 1] = table.concat({ U.GuildName(m.guildId), m.name, m.rankName, since, daysAt, promoted,
-                    m.online and "online" or FormatDay(m.lastOnline), string.format("%.1f", m.offlineSecs / DAY), OneLine(m.note) }, "\t")
-            end
-            return lines
-        end,
+        GetSummary = function() return self:MembersTabSummary(membersTab) end,
+        GetRows = function() return self:MembersTabRows(membersTab) end,
+        GetExportLines = function() return self:MembersTabExportLines(membersTab) end,
         footer = function()
             local guildId = self:GetGuildFilter()
             local footer = {
@@ -615,39 +667,15 @@ function Members:RegisterTabs()
 
     GT.Report:RegisterTab({
         id = "inactive",
-        tip = "Members who have been offline longer than the limit for their rank, and how many guild slots are open. Limits and ranks are in /gtsettings.",
+            GetOffText = function() return GT:FeatureOffText(self:AnyInactiveOn(), "Inactivity alerts (in Rules for each guild)", true) end,
+        tip = "Members who have been offline longer than the limit for their rank, and how many guild slots are open. Limits and ranks are on the Guild rules settings page (/gtsettings > Open Guild rules settings).",
         title = function() return string.format("Inactive (%d)", #self:GetInactive()) end,
         columns = function() return self:GetInactiveColumns() end,
         sortKey = function() return self.sv.inactiveFilter.sort, self.sv.inactiveFilter.desc end,
         OnSort = function(key) self:OnSortClicked(self.sv.inactiveFilter, key) end,
-        GetSummary = function()
-            local parts = {}
-            for _, guildId in ipairs(U.GetGuildIds()) do
-                if GT:IsAlertGuild(guildId) then
-                    local g = self:G(guildId)
-                    if g.inactiveEnabled then
-                        parts[#parts + 1] = string.format("%s: officers %dd, members %dd, recruits %dd", U.GuildName(guildId),
-                            g.officerDays, g.memberDays, g.recruitDays)
-                    else
-                        parts[#parts + 1] = U.GuildName(guildId) .. ": off"
-                    end
-                end
-            end
-            return string.format("%s  Limits: %s.", self:GetSlotSummary(), table.concat(parts, "; "))
-        end,
-        GetRows = function()
-            local rows = {}
-            for _, m in ipairs(self:GetVisibleInactive()) do rows[#rows + 1] = self:GetInactiveRow(m) end
-            return rows
-        end,
-        GetExportLines = function()
-            local lines = { "Guild\tMember\tRank\tLast online\tDays offline\tLimit (days)\tNote" }
-            for _, m in ipairs(self:GetVisibleInactive()) do
-                lines[#lines + 1] = table.concat({ U.GuildName(m.guildId), m.name, m.rankName, FormatDay(m.lastOnline),
-                    string.format("%.1f", m.offlineSecs / DAY), m.limitDays, OneLine(m.note) }, "\t")
-            end
-            return lines
-        end,
+        GetSummary = function() return self:InactiveTabSummary() end,
+        GetRows = function() return self:InactiveTabRows() end,
+        GetExportLines = function() return self:InactiveTabExportLines() end,
         footer = function()
             local footer = self:GetRankFooter(self.sv.inactiveFilter, nil)
             footer[#footer + 1] = { label = "Dismiss shown", tip = "Hides everyone listed until they log in again. Asks first.", fn = function()
@@ -674,7 +702,8 @@ function Members:BuildSettings(options)
     local controls = {
         { type = "checkbox", name = "Alert at login", tooltip = "Tell me at login how many members are over their limit.",
           getFunc = function() return sv.alertOnLogin end, setFunc = function(v) sv.alertOnLogin = v end, default = defaults.alertOnLogin },
-        { type = "description", text = "Inactivity limits, the limit for each rank and the contact texts are set for each guild under Rules for (guild) below." },
+        { type = "description", text = "Inactivity limits, the limit for each rank and the contact texts are set for each guild under Rules for (guild) on the Guild rules page." },
+        GT.Settings:RulesButton("Opens the Guild rules page, where each guild's inactivity limits, the limit for each rank, and the \"we miss you\", kick and blacklist mails are set."),
     }
     options[#options + 1] = { type = "submenu", name = "Members and inactivity", controls = controls }
 end
@@ -721,8 +750,24 @@ function Members:BuildGuildSettings(controls, guildId)
           setFunc = function(v) g.inactiveSubject = v end, default = defaults.inactiveSubject },
         { type = "editbox", name = "Inactive tab: message", isMultiline = true, getFunc = function() return g.inactiveText end,
           setFunc = function(v) g.inactiveText = v end, default = defaults.inactiveText },
-        { type = "editbox", name = "Blacklist note (Kick and blacklist)", getFunc = function() return g.removeNote end,
-          setFunc = function(v) g.removeNote = v end, default = defaults.removeNote },
+        { type = "editbox", name = "Blacklist reason (Kick and blacklist)", tooltip = "Filled into the reason box when you click Kick and blacklist on the Members or Inactive tab. You can change it there before confirming.",
+          getFunc = function() return g.removeNote end, setFunc = function(v) g.removeNote = v end, default = defaults.removeNote },
+        { type = "header", name = "Mail when you kick or blacklist" },
+        { type = "description", text = "Sent in the background after you click Confirm in the kick window (normal postage). The window has a Send mail button to skip it for one person, and hovering it shows the mail." },
+        { type = "checkbox", name = "Mail members kicked for inactivity", tooltip = "Kick on the Inactive tab mails them why they were removed and that they're welcome back.",
+          getFunc = function() return g.kickMail end, setFunc = function(v) g.kickMail = v end, default = defaults.kickMail },
+        { type = "description", text = "<<1>> = @name, <<2>> = guild, <<3>> = days offline, <<4>> = their limit in days." },
+        { type = "editbox", name = "Inactivity kick: subject", getFunc = function() return g.kickSubject end,
+          setFunc = function(v) g.kickSubject = v end, default = defaults.kickSubject, disabled = function() return not g.kickMail end },
+        { type = "editbox", name = "Inactivity kick: message", isMultiline = true, getFunc = function() return g.kickText end,
+          setFunc = function(v) g.kickText = v end, default = defaults.kickText, disabled = function() return not g.kickMail end },
+        { type = "checkbox", name = "Mail members you blacklist", tooltip = "Kick and blacklist, or Blacklist, mails them the reason you typed. Works from every tab (Members, Inactive, Bank, Hoppers, Watchlist).",
+          getFunc = function() return g.blacklistMail end, setFunc = function(v) g.blacklistMail = v end, default = defaults.blacklistMail },
+        { type = "description", text = "<<1>> = @name, <<2>> = guild, <<3>> = the reason." },
+        { type = "editbox", name = "Blacklist: subject", getFunc = function() return g.blacklistSubject end,
+          setFunc = function(v) g.blacklistSubject = v end, default = defaults.blacklistSubject, disabled = function() return not g.blacklistMail end },
+        { type = "editbox", name = "Blacklist: message", isMultiline = true, getFunc = function() return g.blacklistText end,
+          setFunc = function(v) g.blacklistText = v end, default = defaults.blacklistText, disabled = function() return not g.blacklistMail end },
     }
     for _, control in ipairs(list) do controls[#controls + 1] = control end
     for _, control in ipairs(texts) do controls[#controls + 1] = control end

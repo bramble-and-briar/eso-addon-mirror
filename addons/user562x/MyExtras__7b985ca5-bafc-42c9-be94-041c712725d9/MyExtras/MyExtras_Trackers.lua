@@ -25,7 +25,6 @@ local RING_R, RING_G, RING_B = 0.2, 1.0, 0.2
 
 local SUBMENU_ICON = "EsoUI/Art/Addons/Gamepad/gp_mod_listing_category_buffsAndDebuffs.dds"
 
-local MOVE_SCENE  = "MyExtras_TrackersMove"
 local MOVE_SPEED  = 500
 local SCALE_SPEED = 10
 local SIZE_MIN    = 18
@@ -452,138 +451,48 @@ end
 --------------------------------------------------
 -- Move
 --------------------------------------------------
-Trackers.mover = {}
-
-function Trackers.mover:UpdateDirectionalInput(deltaS)
-    local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK)
-    if x ~= 0 or y ~= 0 then
-        Trackers:SetPosition(Trackers.moveX + x * MOVE_SPEED * deltaS, Trackers.moveY - y * MOVE_SPEED * deltaS)
-    end
-    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(stretchX) > math.abs(scaleY) then
-        Trackers:SetStretch(Trackers.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
-    elseif scaleY ~= 0 then
-        Trackers:SetScale(Trackers.moveSize + scaleY * SCALE_SPEED * deltaS)
-    end
-end
-
-Trackers.moveKeybinds = {
-    alignment = KEYBIND_STRIP_ALIGN_CENTER,
-    {
-        name     = "Save",
-        keybind  = "UI_SHORTCUT_PRIMARY",
-        callback = function() Trackers:EndMove(true) end,
-    },
-    {
-        name     = "Default",
-        keybind  = "UI_SHORTCUT_TERTIARY",
-        callback = function() Trackers:MoveToDefault() end,
-    },
-    {
-        name     = "Cancel",
-        keybind  = "UI_SHORTCUT_NEGATIVE",
-        callback = function() Trackers:EndMove(false) end,
-    },
-}
-
-function Trackers:SetPosition(x, y)
-    local screenW, screenH = GuiRoot:GetDimensions()
-    self.moveX = zo_clamp(x, 0, screenW)
-    self.moveY = zo_clamp(y, 0, screenH)
-    local sv = SV()
-    sv.trackerPosX = zo_floor(self.moveX + 0.5)
-    sv.trackerPosY = zo_floor(self.moveY + 0.5)
-    self:ApplyPosition()
-end
-
-function Trackers:SetScale(size)
-    self.moveSize = zo_clamp(size, SIZE_MIN, SIZE_MAX)
-    local rounded = zo_floor(self.moveSize + 0.5)
-    local sv = SV()
-    if sv.trackerSize ~= rounded then
-        sv.trackerSize = rounded
-        self:RefreshDisplay()
-    end
-end
-
-function Trackers:SetStretch(value)
-    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
-    local rounded = zo_floor(self.moveStretch + 0.5)
-    local sv = SV()
-    if sv.trackerStretch ~= rounded then sv.trackerStretch = rounded end
-    ME:ApplyStretch(self.panel, rounded)
-end
-
-function Trackers:MoveToDefault()
-    self:SetStretch(100)
-    self:SetScale(self.defaults.trackerSize)
-    self:SetPosition(self.defaults.trackerPosX, self.defaults.trackerPosY)
-end
-
-function Trackers:GetMoveScene()
-    if self.moveScene then return self.moveScene end
-    local scene = ZO_Scene:New(MOVE_SCENE, SCENE_MANAGER)
-    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_NO_KEYBIND_BACKGROUND_WINDOW)
-    ME:AddPlacementFragments(scene)
-    scene:RegisterCallback("StateChange", function(oldState, newState)
-        if newState == SCENE_SHOWING then
-            Trackers:OnMoveShowing()
-        elseif newState == SCENE_HIDDEN then
-            Trackers:OnMoveHidden()
-        end
-    end)
-    self.moveScene = scene
-    return scene
-end
-
 function Trackers:StartMove()
     if self.moving then return end
-    self.moveSaved = false
     self.moving = true
-    self:GetMoveScene()
-    SCENE_MANAGER:Push(MOVE_SCENE)
-end
-
-function Trackers:OnMoveShowing()
-    local sv = SV()
-    if not self.preview then self:StartSample() end
-    self.moving = true
-    ME:RaiseWhilePlacing({ self.panel }, true)
-    self.moveStartX, self.moveStartY = sv.trackerPosX, sv.trackerPosY
-    self.moveStartSize = sv.trackerSize
-    self.moveX, self.moveY = sv.trackerPosX, sv.trackerPosY
-    self.moveSize = sv.trackerSize
-    self.moveStartStretch = sv.trackerStretch or 100
-    self.moveStretch = sv.trackerStretch or 100
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
-    DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
-    ME:SetPlacing(true)
-    self:RefreshDisplay()
-end
-
-function Trackers:OnMoveHidden()
-    DIRECTIONAL_INPUT:Deactivate(self.mover)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
-    if not self.moveSaved then
-        self:SetScale(self.moveStartSize)
-        self:SetStretch(self.moveStartStretch)
-        self:SetPosition(self.moveStartX, self.moveStartY)
-    end
-    self.moving = false
-    ME:RaiseWhilePlacing({ self.panel }, false)
-    ME:SetPlacing(false)
-    self:RefreshDisplay()
-end
-
-function Trackers:EndMove(save)
-    if not self.moving then return end
-    self.moveSaved = save == true
-    if save then
-        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
-    else
-        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
-    end
-    SCENE_MANAGER:HideCurrentScene()
+    local started = LibUser562:StartMove({
+        controls    = { self.panel },
+        moveSpeed   = MOVE_SPEED,
+        scaleSpeed  = SCALE_SPEED,
+        sizeMin     = SIZE_MIN,
+        sizeMax     = SIZE_MAX,
+        defaults    = {
+            x    = self.defaults.trackerPosX,
+            y    = self.defaults.trackerPosY,
+            size = self.defaults.trackerSize,
+        },
+        getPosition = function() return SV().trackerPosX, SV().trackerPosY end,
+        setPosition = function(x, y)
+            local sv = SV()
+            sv.trackerPosX, sv.trackerPosY = x, y
+            Trackers:ApplyPosition()
+        end,
+        getSize    = function() return SV().trackerSize end,
+        setSize    = function(size)
+            SV().trackerSize = size
+            Trackers:RefreshDisplay()
+        end,
+        getStretch = function() return SV().trackerStretch or 100 end,
+        setStretch = function(percent)
+            SV().trackerStretch = percent
+            ME:ApplyStretch(Trackers.panel, percent)
+        end,
+        onShow = function()
+            if not Trackers.preview then Trackers:StartSample() end
+            ME:SetPlacing(true)
+            Trackers:RefreshDisplay()
+        end,
+        onHide = function()
+            Trackers.moving = false
+            ME:SetPlacing(false)
+            Trackers:RefreshDisplay()
+        end,
+    })
+    if not started then self.moving = false end
 end
 
 --------------------------------------------------
@@ -706,14 +615,7 @@ function Trackers:GetOptions()
                 {
                     type    = "toggle",
                     name    = "Character Settings",
-                    tooltip = "Off uses the same settings for the whole account. On gives this character its own settings, "
-                           .. "copied from the account settings the first time you turn it on.",
-                    details = function()
-                        if Trackers:UsesCharacterSettings() then
-                            return "This character has its own settings."
-                        end
-                        return "All your characters share the same settings."
-                    end,
+                    tooltip = MyExtras.CHARACTER_SETTINGS_TIP,
                     getFunc = function() return Trackers:UsesCharacterSettings() end,
                     setFunc = function(val) Trackers:SetUseCharacterSettings(val) end,
                 },

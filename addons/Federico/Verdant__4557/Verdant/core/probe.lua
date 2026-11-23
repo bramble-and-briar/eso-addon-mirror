@@ -533,7 +533,7 @@ function M.print_context()
   local c = state.context
   if not c then d("[V] context not yet captured (waits for EVENT_PLAYER_ACTIVATED).") return end
   local p = c.player
-  d(string_format("[V] %s %s lv%d cp%d %s/%s | zone=%s (idx=%d) | api=%d",
+  d(string_format("[V] %s %s lv%d cp%d %s/%s · zone=%s (idx=%d) · api=%d",
     p.display or "?", p.name or "?", p.level or 0, p.cp or 0,
     tostring(p.class), tostring(p.race), c.zone.name or "", c.zone.index or 0, c.api_version or 0))
   for i, bar in ipairs(c.bars) do
@@ -566,6 +566,14 @@ local function deep_copy(t)
   local out = {}
   for k, v in pairs(t) do out[k] = deep_copy(v) end
   return out
+end
+
+function M.keep(key, value)
+  local sv = Verdant.SavedVars
+  if not sv then return false end
+  sv.probe = sv.probe or {}
+  sv.probe[key] = value
+  return true
 end
 
 function M.persist_to_savedvars(sv)

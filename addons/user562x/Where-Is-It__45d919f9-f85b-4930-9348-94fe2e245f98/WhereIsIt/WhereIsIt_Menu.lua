@@ -47,7 +47,12 @@ local WINDOW_DEFAULTS = {
     settingsHighlightColor = { r = 1, g = 1, b = 1, a = 1 },
     settingsRemember       = true,
     showPrice              = "average",
+    markMissing            = true,
 }
+
+local MISSING_GEAR_ICON  = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_locked_set_piece.dds"
+local MISSING_LEARN_ICON = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_can_learn.dds"
+local MISSING_HEX        = "FF3333"
 
 local UPDATE_CHARACTERS = "Updates when you log in, log out, and any time your inventory changes."
 local UPDATE_CURRENCIES = "Updates whenever an amount changes."
@@ -277,6 +282,54 @@ local function AllianceColored(text, alliance)
     local hex = AllianceHex(alliance)
     if not hex then return text end
     return string.format("|c%s%s|r", hex, text)
+end
+
+local CLASS_ICONS = {
+    [1]   = "EsoUI/Art/Icons/class/gamepad/gp_class_dragonknight.dds",
+    [2]   = "EsoUI/Art/Icons/class/gamepad/gp_class_sorcerer.dds",
+    [3]   = "EsoUI/Art/Icons/class/gamepad/gp_class_nightblade.dds",
+    [4]   = "EsoUI/Art/Icons/class/gamepad/gp_class_warden.dds",
+    [5]   = "EsoUI/Art/Icons/class/gamepad/gp_class_necromancer.dds",
+    [6]   = "EsoUI/Art/Icons/class/gamepad/gp_class_templar.dds",
+    [117] = "EsoUI/Art/Icons/class/gamepad/gp_class_arcanist.dds",
+}
+
+local ALLIANCE_ICONS = {
+    [ALLIANCE_ALDMERI_DOMINION or 1]    = "EsoUI/Art/Stats/allianceBadge_aldmeri.dds",
+    [ALLIANCE_EBONHEART_PACT or 2]      = "EsoUI/Art/Stats/allianceBadge_ebonheart.dds",
+    [ALLIANCE_DAGGERFALL_COVENANT or 3] = "EsoUI/Art/Stats/allianceBadge_daggerfall.dds",
+}
+
+local function InlineIcon(path)
+    if type(path) ~= "string" or path == "" then return "" end
+    return zo_iconFormat(path, "100%", "100%")
+end
+
+local function ClassIcon(classId)
+    local path = CLASS_ICONS[classId]
+    if not path and ZO_GetGamepadClassIcon then path = ZO_GetGamepadClassIcon(classId) end
+    return InlineIcon(path)
+end
+
+local function CharacterInfo()
+    local info = {}
+    if not (GetNumCharacters and GetCharacterInfo) then return info end
+    local count = GetNumCharacters()
+    if type(count) ~= "number" then return info end
+    for i = 1, count do
+        local _, _, _, classId, _, alliance, id = GetCharacterInfo(i)
+        if id then info[tostring(id)] = { classId = classId, alliance = alliance } end
+    end
+    return info
+end
+
+local function CharacterLabel(charName, data, info)
+    local alliance = info and info.alliance or data.alliance
+    local label = AllianceColored(charName, alliance)
+    if not info then return label end
+    local icons = ClassIcon(info.classId) .. InlineIcon(ALLIANCE_ICONS[alliance])
+    if icons ~= "" then label = icons .. " " .. label end
+    return label
 end
 
 local function GuildAlliance(guildId)
@@ -1048,6 +1101,23 @@ local function PriceHeader(opt)
     return PRICE_LABELS[mode] .. ": " .. FormatPrice(value) .. " " .. PRICE_ICON
 end
 
+local function KnowledgeText(itemLink)
+    local addon = rawget(_G, "MyExtras")
+    if type(addon) ~= "table" or type(addon.CharacterKnowledge) ~= "function" then return nil end
+    local ok, lines = pcall(addon.CharacterKnowledge, addon, itemLink)
+    if not ok or type(lines) ~= "table" or #lines == 0 then return nil end
+    return table.concat(lines, "\n")
+end
+
+local function ItemHeader(opt)
+    local price = PriceHeader(opt)
+    local item = opt and opt.item
+    local itemLink = item and item.itemLink
+    local names = type(itemLink) == "string" and itemLink ~= "" and KnowledgeText(itemLink) or nil
+    if price and names then return price .. "\n" .. names end
+    return price or names
+end
+
 --------------------------------------------------
 -- Item Rows
 --------------------------------------------------
@@ -1060,10 +1130,26 @@ local function NextCategory()
     if panel then panel:SelectNextHeader() end
 end
 
+local function MissingIcon(itemLink)
+    if type(itemLink) ~= "string" or itemLink == "" then return "" end
+    local sv = SV()
+    if sv and sv.markMissing == false then return "" end
+    local path
+    if IsItemLinkLockedSetPiece and IsItemLinkLockedSetPiece(itemLink) then
+        path = MISSING_GEAR_ICON
+    elseif CanItemLinkBeUsedToLearn and CanItemLinkBeUsedToLearn(itemLink) then
+        path = MISSING_LEARN_ICON
+    end
+    if not path then return "" end
+    return " |c" .. MISSING_HEX .. zo_iconFormatInheritColor(path, "100%", "100%") .. "|r"
+end
+
 local function ItemLabel(item)
-    local label = string.format("|c%s%s|r  |c888888x%s|r",
+    local ok, missing = pcall(MissingIcon, item.itemLink)
+    local label = string.format("|c%s%s|r%s  |c888888x%s|r",
         QualityHex(item.quality),
         item.displayName or "",
+        ok and missing or "",
         FormatCount(item.count))
     if item.where then
         label = label .. "  |c777777" .. item.where .. "|r"
@@ -1104,7 +1190,7 @@ local function ItemRows(items, emptyText)
             name       = ItemLabel(item),
             namePrefix = MarkPrefix,
             itemLink   = item.itemLink,
-            itemHeader = PriceHeader,
+            itemHeader = ItemHeader,
             item       = item,
             tooltip    = (item.itemLink == nil or item.itemLink == "") and BuildItemFallbackTooltip(item) or nil,
             buttonText = mixed and "Next Category" or nil,
@@ -1311,6 +1397,8 @@ local function BuildCharacterSection()
 
     local options = {}
     local ids     = SortedCharacterIds()
+    local okInfo, info = pcall(CharacterInfo)
+    if not okInfo then info = {} end
 
     for i = 1, #ids do
         local charId   = ids[i]
@@ -1318,15 +1406,16 @@ local function BuildCharacterSection()
         local charName = data.name or ("Char " .. charId)
 
         if HasEntries(data.items) then
+            local charInfo = info[tostring(charId)]
             local section = GroupedSource(
                 charName,
-                ICON_INVENTORY,
+                not charInfo and ICON_INVENTORY or nil,
                 function()
                     local current = SV() and SV().characters and SV().characters[charId]
                     if not current then return {} end
                     return { current.items }
                 end,
-                AllianceColored(charName, data.alliance),
+                CharacterLabel(charName, data, charInfo),
                 UPDATE_CHARACTERS)
 
             if section then options[#options + 1] = section end
@@ -1654,6 +1743,15 @@ local function BuildSettingsSection()
                        .. "Needs TSCPriceFetcher2.\n\nDefault is Average.",
                 getFunc = function() return Setting("showPrice") end,
                 setFunc = function(val) SetSetting("showPrice", val) end,
+            },
+            {
+                type    = "toggle",
+                name    = "Mark Missing Items",
+                preset  = "YES_NO",
+                default = WINDOW_DEFAULTS.markMissing,
+                tooltip = "Shows a red icon next to set pieces you haven't collected and items this character can still learn.",
+                getFunc = function() return Setting("markMissing") end,
+                setFunc = function(val) SetSetting("markMissing", val) end,
             },
             {
                 type    = "slider",

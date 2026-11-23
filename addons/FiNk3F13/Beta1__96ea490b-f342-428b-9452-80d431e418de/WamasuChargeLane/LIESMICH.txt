@@ -1,0 +1,97 @@
+WamasuChargeLane 1.2.2 - experimentelle PS5-Version
+
+Pflichtbibliothek: LibHarvensAddonSettings.
+Optional: CrutchAlerts fuer die vorhandene Zuordnung von Gruppen-IDs.
+Sul-Xan's Marker muss NICHT installiert oder ausgeruestet sein.
+
+NEU: POSITION AUS BLICKLINIEN SCHAETZEN
+1.2.0 verbessert den Schätzer: raeumliche 3D-Blicklinien statt nur X/Z,
+Kamerahoehe und -neigung, vorsichtiges Filtern alter Ausreisser sowie
+Pruefung der neuesten Blicklinie und der Tiefenunsicherheit.
+Eine Gegner-ID wird jetzt auch OHNE direkte Gegnerkoordinaten gespeichert.
+Eine Messung bleibt bis zu 1,5 Sekunden nach dem Wegschauen nutzbar,
+unter der Annahme, dass der Wamasu noch dort steht. Ohne bestaetigte ID
+wird eine fruehere Sichtung nur bei einer einzigen passenden Beobachtung
+in diesem Zeitfenster genutzt. Der Chat nennt das Alter der Messung.
+Die Richtung ergibt sich aus diesem Startpunkt und der Position des
+markierten Spielers bei Ladebeginn. Ein nie erfasster Trash-Wamasu
+liefert dem Addon ueber das Charge-Ereignis keinen Startpunkt.
+Die eingefrorene Flaeche wird waehrenddessen nicht neu ausgerichtet.
+
+In Einstellungen > Addons > WamasuChargeLane ist die Blicklinien-Schaetzung
+standardmaessig eingeschaltet. Kein fester Spawnpunkt erforderlich.
+
+1. Einen noch stehenden Wamasu wirklich ins Fadenkreuz nehmen.
+2. Seitlich bewegen fuer Triangulation. Frontal im Stand auf ebenem Boden die
+   Kamera etwas von oben auf die Fuesse richten und den Wamasu kurz im
+   Fadenkreuz halten. Ab 1.2.1 kann eine ruhige, abwaerts gerichtete
+   Blicklinie die eigene Bodenhoehe schneiden. So entsteht eine geschaetzte
+   Startposition. Zielst du auf den Koerper, kann der Punkt hinter dem Wamasu
+   liegen. Bei unterschiedlicher Bodenhoehe kann er ebenfalls abweichen.
+3. Beim Charge verwendet das Addon den aus dem ESO-Ereignis erkannten
+   Zielspieler. Auch Gruppenmitglieder werden unterstuetzt. CrutchAlerts
+   nutzt dieselben Ereignisse; falls vorhanden, wird zusaetzlich seine
+   Gruppen-ID-Zuordnung gelesen. Crutch selbst wird nicht veraendert.
+4. Gelbes Kreuz am Boden = geschaetzter Wamasu-Startpunkt.
+   Gelber Streifen von dort zum Zielspieler = geschaetzte Charge-Bahn.
+5. Waren beim Beginn noch zu wenige Messungen da, waehrend der Aufladung
+   weiter anvisieren. Eine hinreichende Schaetzung
+   darf noch waehrend der Aufladung erscheinen, aber nicht erst danach.
+
+WAS WIR TATSAECHLICH WISSEN
+- Gegnerkoordinaten werden NICHT aus einer beliebigen Gegner-ID gelesen.
+- Kameraposition und Blickrichtung koennen Blicklinien liefern.
+- Aus mehreren Linien wird ein raeumlicher Schnittpunkt berechnet und auf
+  die neueste passende Blicklinie projiziert, um seitliche Abweichungen zu begrenzen.
+- Die Bodenhoehe wird aus der Position des naechsten erfassten Spielers
+  angenaehert. Treppen, Haenge und Ebenenwechsel koennen deshalb abweichen.
+- Die Genauigkeit im echten PS5-Spiel ist NOCH NICHT bestaetigt.
+
+Die Blicklinien bleiben maximal 3 Sekunden und 70 Messungen pro Beobachtung
+im Speicher. Zu wenige oder fast parallele Linien, hohe Abweichungen,
+Schnittpunkte hinter der Kamera und unplausible Tiefen werden verworfen.
+Name, Zielwechsel, Gesundheitsverlauf und vorhandene Effekt-IDs helfen,
+Beobachtungen auseinanderzuhalten. Ohne ID bleibt die Quellenzuordnung
+UNBESTAETIGT. Ein gleicher Name allein beweist nicht, welcher Wamasu charged.
+Bei erkannten gleichzeitigen unbestaetigten Charges gleicher Namen werden
+diese Spuren entfernt. Das verhindert nicht jede denkbare Verwechslung.
+Im Menue kann die Schaetzung ausgeschaltet und der Messstatus abgefragt werden.
+
+DARSTELLUNG UND AUFRAEUMEN
+Breite standardmaessig 6 Meter: weiterhin eine TESTBREITE, nicht vermessen.
+Breite, Deckkraft und Bodenabstand sind im Controller-Menue einstellbar.
+Start und Ziel werden pro Charge festgehalten und nicht mehr nachgefuehrt.
+Auch alte gespeicherte Ziel-folgen-Einstellungen werden nicht mehr verwendet.
+Weitere Kameramessungen und doppelte BEGIN-Meldungen verschieben die Spur nicht.
+Wird der Startpunkt erst waehrend der Aufladung ausreichend geschaetzt, bleibt
+die Zielposition trotzdem die des Spielers vom Beginn dieser Aufladung.
+Wann die echte Mechanik ihre Richtung festlegt, muss im Trial geprueft werden.
+Hindernisse, tatsaechlicher Trefferbereich und Ueberschiessen werden nicht
+vom Server bezogen. Die Spur ist eine gerade Vorhersage.
+
+Treffer/Ausweichen, Unterbrechung, Stun, Furcht und Tod des passenden Wamasu
+entfernen seine Spur und noch wartende Schaetzungen. Bei Verschwinden oder
+Tod des Zielspielers und Gruppen-/Gebietswechsel wird aufgeraeumt.
+Mit gemeldeter Ladezeit: maximal 1,5 Sekunden danach entfernen.
+Ohne gemeldete Ladezeit: maximal 5 Sekunden Anzeige, kein behaupteter Timer.
+
+WEITERE STARTQUELLEN
+Manuell gespeicherte feste Boss- und Trash-Spawnpunkte bleiben erhalten.
+Die ID-bestaetigte alte Trash-Zuordnung und der direkte Fadenkreuz-Modus
+bleiben als alternative Startquellen bestehen. Letzterer kann nur arbeiten,
+wenn ESO fuer das Ziel tatsaechlich brauchbare Koordinaten liefert.
+Ein alter Spawnpunkt wird nicht fuer beliebige spaetere Charges benutzt.
+
+TEST UND DIAGNOSE
+Spur testen: 10 Sekunden Vorschau direkt vor der Kamera. Beginnt erst,
+wenn das Einstellungsmenue geschlossen ist. Testet nur die Darstellung.
+Letzten Charge pruefen: Ereignis, Ablehnungsgrund, urspruengliche Messwerte.
+Positionsschaetzung pruefen: aktueller Stand der Blicklinien-Erfassung.
+Der Chat zeigt bei einer Spur die verwendete Methode an.
+Optional: /wcharge spawn | trashspawn | test | stop
+
+Die Anzeige ist lokal. Gruppenmitglieder benoetigen das Addon nur, wenn
+sie selbst die Spuren sehen wollen. Kein Nachrichtenaustausch.
+Desktop-Ordner fuer Konsolen-Uploader vorbereitet, nicht automatisch hochgeladen.
+Lokale Tests verwenden simulierte ESO-Ereignisse und geometrisch bekannte
+Blicklinien. Sie beweisen keine Genauigkeit im echten PS5-Kampf.

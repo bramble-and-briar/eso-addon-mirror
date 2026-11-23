@@ -10,7 +10,7 @@ function PDI.OpenCompanionPage()
     else PDI.Msg("Get the LPI Companion at |cFFFFFF" .. PDI.COMPANION_URL .. "|r") end
 end
 PDI.displayName = "Lethal PVP Insights"
-PDI.version     = "1.11.4"
+PDI.version = "1.11.5"
 
 -- Retention
 PDI.OPPONENT_RETENTION_DAYS = 7    -- combat/opponent data (feature 3)
@@ -82,7 +82,9 @@ PDI.defaults = {
         window     = {},
         autoQuest  = "off",   -- hand in quests automatically: off | pvp | all
         foodNotice = false,   -- remind me when I have no food / drink buff
-        foodPvPOnly = true,   -- ... only in PvP areas
+        foodPvPOnly = true,
+        foodAlert  = "both",  -- food reminder: screen | chat | both
+        apChat     = false,   -- chat line when AP comes from keeps / resources   -- ... only in PvP areas
         skillBlock = { enabled = true, pvp = true, showError = true, recastSeconds = 0, blocked = {}, recast = {} },
     },
 }

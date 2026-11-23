@@ -1,0 +1,48 @@
+TrueShotMarkers 1.0.2
+
+Eigenstaendiges Test-Addon fuer Rand des Wahnsinns / Sanity's Edge.
+Benötigt jetzt LibHarvensAddonSettings fuer das PS5-/Controller-Menue.
+Keine Abhaengigkeit von CrutchAlerts.
+
+1.0.1: Pfeil als eigene transparente DXT5-Textur statt Schriftzeichen.
+Dadurch kein fehlendes Pfeilzeichen als Quadrat auf Konsolenschriften.
+Bewegung pro Spielbild statt im 33-ms-Takt. Der Marker wird nicht
+mehr bei jedem Update unnoetig aus- und eingeblendet.
+
+1.0.2: Direkte Anbindung an die Spielerposition ohne verzoegerte Glaettung.
+Damit kein kuenstliches seitliches Nachziehen beim Richtungswechsel.
+Einstellungen > Addons > TrueShotMarkers:
+- Markergroesse 50 bis 250 Prozent, Standard jetzt 125 Prozent.
+- Hoehe ueber dem Spieler 100 bis 600 cm, hoeher oder tiefer einstellbar.
+- Markerfarbe mit Farbwaehler (Pfeil und Timer gemeinsam).
+- Optional letzte Sekunde rot, standardmaessig bleibt die gewaehlte Farbe.
+- 15-Sekunden-Vorschau, startet erst nach dem Schliessen der Einstellungen.
+Alle Darstellungsoptionen werden dauerhaft gespeichert.
+
+Erkennt True Shot (184802) beim Aufladen. Ueber dem betroffenen Spieler
+erscheinen ein Pfeil und die verbleibende Aufladezeit in Sekunden.
+Die Anzeige folgt der aktuellen Spielerposition, auch beim Laufen.
+Bei mehreren Bogenschuetzen auf demselben Spieler: kuerzester Timer + x2 usw.
+
+Unterbrechung, Betaeubung, Furcht oder Tod des passenden Bogenschuetzen
+beenden nur seinen eigenen Timer. Einschlag, Ausweichen und Ablauf entfernen
+ihn ebenfalls. Gruppenwechsel, Gebietswechsel und Kampfende raeumen auf.
+Das funktioniert nur, soweit ESO die entsprechenden Ereignisse lokal meldet.
+Es ist ein lokaler 3D-Marker, keine geteilte ESO-Zielmarkierung.
+
+Aktiv fuer die gesamte Gruppe einschliesslich dir selbst. Andere Spieler
+muessen das Addon nicht installieren, damit du ihre Marker sehen kannst.
+Damit sie selbst Marker sehen, brauchen sie das Addon ebenfalls.
+
+/tshot                 Status und Befehle
+/tshot test            5 Sekunden Test ueber dir, auch ausserhalb der Pruefung
+/tshot test group1     Test ueber einem Gruppenmitglied
+/tshot stop            Anzeigen sofort entfernen
+/tshot aus             Bis zum naechsten Neuladen ausschalten
+/tshot an              Einschalten
+
+Nach Installation /reloadui. Unter Add-Ons TrueShotMarkers aktivieren.
+Die Countdown-Dauer kommt aus dem BEGIN-Ereignis, ersatzweise aus ESOs
+Faehigkeitsdaten. Ohne gueltige Dauer wird kein erfundener Timer angezeigt.
+Der Timer beschreibt die gemeldete Aufladung, keine zusaetzlich geschaetzte
+Projektilflugzeit. Live-Test im Trial fuer Ereignisabdeckung noch erforderlich.

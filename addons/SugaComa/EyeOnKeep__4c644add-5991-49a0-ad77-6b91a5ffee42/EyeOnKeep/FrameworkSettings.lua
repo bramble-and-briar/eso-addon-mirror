@@ -1,7 +1,7 @@
 -- Per-addon framework support. Loaded before this addon's runtime files.
 -- Existing SavedVariables paths and schema versions are preserved.
 local F = {
-    id = "EyeOnKeep", savedPrefix = "EyeOnKeep", displayName = "EyeOnKeep", version = "1.3.2",
+    id = "EyeOnKeep", savedPrefix = "EyeOnKeep", displayName = "EyeOnKeep", version = "1.4.3",
     accountOnly = false, defaultAccountWide = true,
     nativeProfile = false, standalone = false,
     toggleEnabled = false,

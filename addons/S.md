@@ -218,7 +218,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Slip's OffTaunt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SlipperySoap/Slip-s-OffTaunt__3481) | SlipperySoap | PC / Mac | 1.5.2 |
 | [Slip's Sanity's Edge Assist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SlipperySoap/Slip-s-Sanity-s-Edge-Assist__3630) | SlipperySoap | PC / Mac | 3.6.2 |
 | [SlippyCheeze's Read It Once](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SlippyCheeze/SlippyCheeze-s-Read-It-Once__2087) | SlippyCheeze | PC / Mac | 4 |
-| [Slots Count](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lahouari/Slots-Count__3337) | lahouari | PC / Mac | 1.0.5 |
+| [Slots Count](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lahouari/Slots-Count__3337) | lahouari | PC / Mac | 2.51.00 |
 | [SlowDialogs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/SlowDialogs__66) | Shinni | PC / Mac | 1.13 |
 | [SlowDialogs - Custom Control Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tyx/SlowDialogs---Custom-Control-Patch__1767) | Tyx | PC / Mac | 1.1.3 |
 | [Smart Chat Messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/Smart-Chat-Messages__4482) | evainefaye | PC / Mac | 3.0.2 |
@@ -359,7 +359,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Survey Resetter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Survey-Resetter__5001) | Lykeion | PC / Mac | 1.0 |
 | [Survey Resetter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Survey-Resetter__be74c988-2267-4f01-a4e5-c54cbf6aba19) | Lykeion+ | Console | — |
 | [Survey Sentinel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ReliktKoala/Survey-Sentinel__d9ba289c-0a0a-4233-80ab-25f3be9c35eb) | ReliktKoala | Console | — |
-| [Survey Sidekick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FoulMouthxAmazon/Survey-Sidekick__5050) | FoulMouthxAmazon | PC / Mac | 0.2.3-beta |
+| [Survey Sidekick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FoulMouthxAmazon/Survey-Sidekick__5050) | FoulMouthxAmazon | PC / Mac | 0.6.0-beta |
 | [Survey The World](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Survey-The-World__1817) | manavortex | PC / Mac | 1.5a |
 | [Survey Zone List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bulton-fr/Survey-Zone-List__2797) | bulton-fr | PC / Mac | 2.0.1 |
 | [SurvivalMode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TankiestTank/SurvivalMode__79d39b6d-3f2c-48e3-a08f-b6c2c69751fd) | TankiestTank | Console | — |

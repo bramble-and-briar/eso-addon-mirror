@@ -3,6 +3,42 @@ local U = GT.Util
 local Settings = {}
 GT.Settings = Settings
 
+-- 1.10.0: big sections have settings pages of their own ("Fury's Guild Management - <title>"),
+-- like the Crier, so the main page stays short. The main page keeps a small section with a
+-- button that opens each one. Only where the controls are shown changes; the saved settings
+-- stay the same.
+function Settings:AddPage(id, title, controls, withDefaults)
+    local LAM = LibAddonMenu2
+    local name = "FuryGMT" .. id .. "Panel"
+    local panel = LAM:RegisterAddonPanel(name, {
+        type = "panel",
+        name = "Fury's Guild Management - " .. title,
+        displayName = "Fury's Guild Management Toolset: " .. title,
+        author = "Furyous",
+        version = GT.version,
+        registerForRefresh = true,
+        registerForDefaults = withDefaults,
+    })
+    LAM:RegisterOptionControls(name, controls)
+    return panel
+end
+
+-- A section on the main page that points to a page of its own.
+function Settings:AddPointer(options, title, text, open)
+    options[#options + 1] = { type = "submenu", name = title, controls = {
+        { type = "description", text = text },
+        { type = "button", name = "Open " .. title .. " settings", width = "half",
+          tooltip = "Opens the " .. title .. " settings page.", func = open },
+    } }
+end
+
+-- 1.10.1: an "Open Guild rules settings" button for main-page sections whose settings for
+-- each guild are on the Guild rules page.
+function Settings:RulesButton(tip)
+    return { type = "button", name = "Open Guild rules settings", width = "half", tooltip = tip,
+        func = function() self:OpenRules() end }
+end
+
 -- One checkbox per guild for the global "Guilds to get alerts from" setting.
 function Settings:AppendAlertGuildToggles(controls)
     controls[#controls + 1] = { type = "header", name = "Guilds to get alerts from" }
@@ -15,12 +51,12 @@ function Settings:AppendAlertGuildToggles(controls)
             name = U.GuildName(gid),
             getFunc = function() return GT:IsAlertGuild(gid) end,
             setFunc = function(v)
-                GT.sv.alertsDisabledGuilds[gid] = (not v) or nil
+                GT:SetAlertGuild(gid, v)
                 GT.Report:RefreshIfShown()
             end,
             tooltip = "Ticking or unticking a guild adds or removes its Rules section after a reload.",
             requiresReload = true,
-            default = true,
+            default = not GT.sv.alertGuildsOptIn,
         }
     end
 end
@@ -44,9 +80,8 @@ function Settings:AppendGuildRules(options)
     for _, guildId in ipairs(U.GetGuildIds()) do
         if GT:IsAlertGuild(guildId) then monitored[#monitored + 1] = guildId end
     end
-    options[#options + 1] = { type = "header", name = "Rules for each guild" }
     if #monitored == 0 then
-        options[#options + 1] = { type = "description", text = "Tick at least one guild under Guilds to get alerts from, then reload, to set its rules here." }
+        options[#options + 1] = { type = "description", text = "Tick at least one guild under Guilds to get alerts from (on the main Fury's Guild Management settings page), then reload, to set its rules here." }
         return
     end
     options[#options + 1] = { type = "description",
@@ -71,7 +106,7 @@ function Settings:AppendGuildRules(options)
                 warning = "Replaces this guild's settings with the other guild's. Click Rescan with current settings afterwards.",
                 func = function()
                     GT:CopyGuildSettings(copyFrom, gid)
-                    CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", self.panel)
+                    CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", self.rulesPanel)
                     GT.Report:RefreshIfShown()
                     U.Print("Copied the rules from %s to %s.", U.GuildName(copyFrom), U.GuildName(gid))
                 end }
@@ -86,7 +121,6 @@ end
 
 function Settings:Build()
     local LAM = LibAddonMenu2
-    if not LAM then return end
     local panelData = {
         type = "panel",
         name = "Fury's Guild Management",
@@ -110,10 +144,22 @@ function Settings:Build()
     }
     self:AppendAlertGuildToggles(options)
     GT:ForEachModule("BuildSettings", options)
-    self:AppendGuildRules(options)
+    -- 1.10.0: each guild's rules (limits, mails, auto-demote, inactivity, hoppers, bank space)
+    -- moved to their own page.
+    local rules = {}
+    self:AppendGuildRules(rules)
+    self.rulesPanel = self:AddPage("Rules", "Guild rules", rules, true)
+    options[#options + 1] = { type = "header", name = "Rules for each guild" }
+    options[#options + 1] = { type = "description", text = "Each guild's bank limits, ignored ranks, mail texts, auto-demote, inactivity limits, hopper and bank space settings are on their own page: \"Fury's Guild Management - Guild rules\" in the Add-Ons list." }
+    options[#options + 1] = { type = "button", name = "Open Guild rules settings", width = "half",
+        tooltip = "Opens the Guild rules settings page.", func = function() self:OpenRules() end }
     LAM:RegisterOptionControls("FuryGMTSettings", options)
 end
 
+function Settings:OpenRules()
+    LibAddonMenu2:OpenToPanel(self.rulesPanel)
+end
+
 function Settings:Open()
-    if self.panel and LibAddonMenu2 then LibAddonMenu2:OpenToPanel(self.panel) end
+    if self.panel then LibAddonMenu2:OpenToPanel(self.panel) end
 end

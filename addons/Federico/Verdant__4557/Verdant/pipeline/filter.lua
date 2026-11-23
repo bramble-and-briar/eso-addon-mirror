@@ -15,7 +15,7 @@ local function bump(key) Verdant.Diagnostics.bump(key) end
 function M.allow(ev)
   local k = ev.kind
   if k == KIND_SHIELD then
-    if not Verdant.ShieldRegistry.is_self_cast(ev.ability_id, ev.target_unit_id) then
+    if not Verdant.ShieldRegistry.is_self_cast(ev.ability_id, ev.target_unit_id, ev.t) then
       bump("engine.shield.foreign")
       return false
     end

@@ -1,0 +1,13 @@
+## Title: WamasuChargeLane
+## Description: Ground lanes for the first Wamasu charge at Yaseyla and identified trash Wamasu in Sanity's Edge. Console settings included.
+## Author: FiNk3F13
+## Version: 1.2.2
+## AddOnVersion: 10202
+## APIVersion: 101049 101050 101051
+## DependsOn: LibHarvensAddonSettings>=20002
+## OptionalDependsOn: CrutchAlerts
+## SavedVariables: WamasuChargeLaneSavedVariables
+
+WamasuChargeLane.xml
+AimEstimator.lua
+WamasuChargeLane.lua

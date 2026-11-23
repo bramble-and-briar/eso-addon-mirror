@@ -1260,6 +1260,7 @@ end
 function S:ApplyAccent()
     RefreshAccent()
     if not S.IsShowing() then return end
+    S.RefreshHeader()
     if S.categoryList then S.categoryList:RefreshVisible() end
     if S.settingsList then S.settingsList:RefreshPointer() end
 end

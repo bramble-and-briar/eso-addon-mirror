@@ -36,6 +36,8 @@ local runeNames=nameSet({
     "Ta","Jejota","Denata","Rekuta","Kuta","Oko","Makko","Deni","Okoma","Makkoma","Denima","Kuoko","Rakeipa","Dekeipa","Meip","Haoko","Deteri","Okori","Jaedi","Lire","Oru","Taderi","Makderi","Kaderi","Hakeijo","Indeko"
 })
 function Q.Category(itemType,name)
+    -- ESO item-type constants work in every client language. English names below
+    -- are only a compatibility fallback; localized item names are not required.
     local key=normalize(name)
     -- Solvents are explicitly exempt, including when an item name is used as fallback.
     if baseNames[key] or isType(itemType,ITEMTYPE_POTION_BASE,ITEMTYPE_POISON_BASE) then return nil end

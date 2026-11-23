@@ -140,26 +140,10 @@ function PvPUA:SettingsMenu()
           tooltip = "Reopens the last page where you left off.",
           getFunc = function() return self.savedVariables.settingsRemember end,
           setFunc = function(v) self.savedVariables.settingsRemember = v end },
-        -- Patch: requeue when the campaign turns out full ("Campaign Queue: Auto Requeue" in PvPUA.lua).
-        { type = "toggle", name = "Auto Requeue", preset = "YES_NO",
-          default = PvPUA.defaults.autoRequeue,
-          tooltip = "When a campaign you queued for turns you away because it is full (\"Jump failed. Instance is full.\" and the like), queues you for it again and keeps trying until a try holds, as fast as the game accepts (about every 10 seconds). An alert names each try: leave the queue to the add-on while it works, since a press of your own beside it can queue you twice. After 30 tries in a row (about 5 minutes) it slows to one every 30 seconds, the row reads STUCK and the alarm sounds. Turn this off to stop it. A queue that is still moving is left alone. Each step is posted in chat.",
-          getFunc = function() return self.savedVariables.autoRequeue ~= false end,
-          setFunc = function(v) self.savedVariables.autoRequeue = v == true end },
-        -- Patch: queue again on demand ("Requeue Now" in PvPUA.lua); the probe for a queue the game broke.
-        { type = "button", name = "Requeue Now",
-          buttonText = "Requeue",
-          tooltip = "Repairs a broken campaign queue. A queue marked STUCK that the game still shows cannot be queued or left: this logs you out at once, which is the only thing that clears it, and you queue again once you are back in. Otherwise it asks the game to queue you again: the queue you are in or were last in, or your home campaign. A queue the game says is alive is left alone. Each step shows as an alert and in chat, and goes to the Debug Log.",
-          func = function()
-              local ok, err = pcall(self.RQManual, self)
-              if not ok and CHAT_ROUTER and CHAT_ROUTER.AddSystemMessage then
-                  pcall(CHAT_ROUTER.AddSystemMessage, CHAT_ROUTER, "PvP UA requeue failed: " .. tostring(err))
-              end
-          end },
-        -- Patch: repeating error sound while a queue is marked STUCK ("Stuck alarm" in PvPUA.lua).
+        -- Patch: repeating error sound while a queue is marked STUCK ("Campaign Queue: Stuck Mark" in PvPUA.lua).
         { type = "toggle", name = "Stuck Alarm", preset = "YES_NO",
           default = PvPUA.defaults.stuckAlarm,
-          tooltip = "Plays an error sound every 3 seconds while a campaign queue is marked STUCK, until the queue works again or you log out.",
+          tooltip = "When a campaign queue breaks (\"The destination is full.\" and the like), its row in the queue window turns red and reads STUCK. With this on, an error sound also plays every 3 seconds while the row reads STUCK, until you queue again, the queue moves, or you log out.",
           getFunc = function() return self.savedVariables.stuckAlarm ~= false end,
           setFunc = function(v) self.savedVariables.stuckAlarm = v == true end },
         -- Patch: kill-marker / kill-feed diagnostics through the optional LibConsoleLogger (buffer only, no chat).

@@ -89,12 +89,15 @@ function Q:FoodCheck(manual)
     local now = GetFrameTimeSeconds()
     if self.foodWarned and now - self.foodWarned < 300 then return end      -- at most every 5 minutes
     self.foodWarned = now
-    -- on screen (the same big text as the Break Free alert), with a sound, and in chat
-    local shown = LPI_PvPTools and LPI_PvPTools.ShowScreenAlert and
-        pcall(LPI_PvPTools.ShowScreenAlert, "NO FOOD BUFF!", 1, 0.55, 0.1, 4)
-    if not shown then ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, "No food buff!") end
-    PlaySound(SOUNDS.GENERAL_ALERT_ERROR)
-    PDI.Msg("|cFF6655No food buff!|r Eat or drink something.")
+    -- on screen (the same big text as the Break Free alert) with a sound, and / or in chat
+    local how = s.foodAlert or "both"
+    if how ~= "chat" then
+        local shown = LPI_PvPTools and LPI_PvPTools.ShowScreenAlert and
+            pcall(LPI_PvPTools.ShowScreenAlert, "NO FOOD BUFF!", 1, 0.55, 0.1, 4)
+        if not shown then ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, "No food buff!") end
+        PlaySound(SOUNDS.GENERAL_ALERT_ERROR)
+    end
+    if how ~= "screen" then PDI.Msg("|cFF6655No food buff!|r Eat or drink something.") end
 end
 
 function Q:Init()
@@ -127,6 +130,14 @@ function Q:GetOptions()
                 "at most one reminder every 5 minutes). /lpi foodcheck shows what was found.",
             getFunc = function() return PDI.sv.settings.foodNotice == true end,
             setFunc = function(v) PDI.sv.settings.foodNotice = v; Q.foodWarned = nil end,
+        },
+        {
+            type = "dropdown", name = "Show the reminder",
+            choices = { "On screen", "In chat", "On screen and in chat" },
+            choicesValues = { "screen", "chat", "both" },
+            getFunc = function() return PDI.sv.settings.foodAlert or "both" end,
+            setFunc = function(v) PDI.sv.settings.foodAlert = v end,
+            disabled = function() return PDI.sv.settings.foodNotice ~= true end,
         },
         {
             type = "checkbox", name = "Only in PvP areas",

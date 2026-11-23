@@ -13,7 +13,6 @@ local MOVE_SPEED    = 500
 local SCALE_SPEED   = 10
 local SIZE_MIN      = 18
 local SIZE_MAX      = 60
-local MOVE_SCENE    = "MyExtras_TrialTimerMove"
 local BOX_PAD_X     = 0.45
 local BOX_PAD_Y     = 0.2
 local BOX_CORNER    = 0.35
@@ -348,146 +347,59 @@ end
 --------------------------------------------------
 -- Move
 --------------------------------------------------
-TT.mover = {}
-
-function TT.mover:UpdateDirectionalInput(deltaS)
-    local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK)
-    if x ~= 0 or y ~= 0 then
-        TT:SetPosition(TT.moveX + x * MOVE_SPEED * deltaS, TT.moveY - y * MOVE_SPEED * deltaS)
-    end
-    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(stretchX) > math.abs(scaleY) then
-        TT:SetStretch(TT.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
-    elseif scaleY ~= 0 then
-        TT:SetScale(TT.moveSize + scaleY * SCALE_SPEED * deltaS)
-    end
-end
-
-TT.moveKeybinds = {
-    alignment = KEYBIND_STRIP_ALIGN_CENTER,
-    {
-        name     = "Save",
-        keybind  = "UI_SHORTCUT_PRIMARY",
-        callback = function() TT:EndMove(true) end,
-    },
-    {
-        name     = "Default",
-        keybind  = "UI_SHORTCUT_TERTIARY",
-        callback = function() TT:MoveToDefault() end,
-    },
-    {
-        name     = "Cancel",
-        keybind  = "UI_SHORTCUT_NEGATIVE",
-        callback = function() TT:EndMove(false) end,
-    },
-}
-
-function TT:SetPosition(x, y)
-    local screenW, screenH = GuiRoot:GetDimensions()
-    local halfW, halfH = screenW / 2, screenH / 2
-    self.moveX = zo_clamp(x, -halfW, halfW)
-    self.moveY = zo_clamp(y, -halfH, halfH)
-    local sv = SV()
-    sv.trialTimerPosX = zo_floor(self.moveX + 0.5)
-    sv.trialTimerPosY = zo_floor(self.moveY + 0.5)
-    self:ApplyPosition()
-end
-
-function TT:SetScale(size)
-    self.moveSize = zo_clamp(size, SIZE_MIN, SIZE_MAX)
-    local rounded = zo_floor(self.moveSize + 0.5)
-    local sv = SV()
-    if sv.trialTimerSize ~= rounded then
-        sv.trialTimerSize = rounded
-        self:Render(true)
-    end
-end
-
-function TT:SetStretch(value)
-    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
-    local rounded = zo_floor(self.moveStretch + 0.5)
-    local sv = SV()
-    if sv.trialTimerStretch ~= rounded then sv.trialTimerStretch = rounded end
-    ME:ApplyStretch(self.panel, rounded)
-end
-
-function TT:MoveToDefault()
-    self:SetStretch(100)
-    self:SetScale(DEFAULTS.trialTimerSize)
-    self:SetPosition(DEFAULTS.trialTimerPosX, DEFAULTS.trialTimerPosY)
-end
-
-function TT:GetMoveScene()
-    if self.moveScene then return self.moveScene end
-    local scene = ZO_Scene:New(MOVE_SCENE, SCENE_MANAGER)
-    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_NO_KEYBIND_BACKGROUND_WINDOW)
-    ME:AddPlacementFragments(scene)
-    scene:RegisterCallback("StateChange", function(oldState, newState)
-        if newState == SCENE_SHOWING then
-            TT:OnMoveShowing()
-        elseif newState == SCENE_HIDDEN then
-            TT:OnMoveHidden()
-        end
-    end)
-    self.moveScene = scene
-    return scene
-end
-
 function TT:StartMove()
     if self.moving then return end
     self.movePreview = self.preview
-    self.moveSaved = false
     self.moving = true
-    self:GetMoveScene()
-    SCENE_MANAGER:Push(MOVE_SCENE)
-end
-
-function TT:OnMoveShowing()
-    local sv = SV()
-    self.moving = true
-    ME:RaiseWhilePlacing({ self.panel }, true)
-    self.moveStartX, self.moveStartY = sv.trialTimerPosX, sv.trialTimerPosY
-    self.moveStartSize = sv.trialTimerSize
-    self.moveX, self.moveY = sv.trialTimerPosX, sv.trialTimerPosY
-    self.moveSize = sv.trialTimerSize
-    self.moveStartStretch = sv.trialTimerStretch or 100
-    self.moveStretch = sv.trialTimerStretch or 100
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
-    DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
-    ME:SetPlacing(true)
-    self:Render(true)
-    self:UpdateVisibility()
-end
-
-function TT:OnMoveHidden()
-    DIRECTIONAL_INPUT:Deactivate(self.mover)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
-    if not self.moveSaved then
-        self:SetScale(self.moveStartSize)
-        self:SetStretch(self.moveStartStretch)
-        self:SetPosition(self.moveStartX, self.moveStartY)
-    end
-    self.moving = false
-    ME:RaiseWhilePlacing({ self.panel }, false)
-    ME:SetPlacing(false)
-    if self.movePreview then
-        self.movePreview = false
-        self:SetPreview(true)
-    else
-        self:Render(true)
-        self:UpdateVisibility()
-    end
-end
-
-function TT:EndMove(save)
-    if not self.moving then return end
-    self.moveSaved = save == true
-    if save then
-        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
-    else
-        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
-    end
-    SCENE_MANAGER:HideCurrentScene()
+    local started = LibUser562:StartMove({
+        controls    = { self.panel },
+        moveSpeed   = MOVE_SPEED,
+        scaleSpeed  = SCALE_SPEED,
+        sizeMin     = SIZE_MIN,
+        sizeMax     = SIZE_MAX,
+        bounds      = function()
+            local screenW, screenH = GuiRoot:GetDimensions()
+            return -screenW / 2, screenW / 2, -screenH / 2, screenH / 2
+        end,
+        defaults    = {
+            x    = DEFAULTS.trialTimerPosX,
+            y    = DEFAULTS.trialTimerPosY,
+            size = DEFAULTS.trialTimerSize,
+        },
+        getPosition = function() return SV().trialTimerPosX, SV().trialTimerPosY end,
+        setPosition = function(x, y)
+            local sv = SV()
+            sv.trialTimerPosX, sv.trialTimerPosY = x, y
+            TT:ApplyPosition()
+        end,
+        getSize    = function() return SV().trialTimerSize end,
+        setSize    = function(size)
+            SV().trialTimerSize = size
+            TT:Render(true)
+        end,
+        getStretch = function() return SV().trialTimerStretch or 100 end,
+        setStretch = function(percent)
+            SV().trialTimerStretch = percent
+            ME:ApplyStretch(TT.panel, percent)
+        end,
+        onShow = function()
+            ME:SetPlacing(true)
+            TT:Render(true)
+            TT:UpdateVisibility()
+        end,
+        onHide = function()
+            TT.moving = false
+            ME:SetPlacing(false)
+            if TT.movePreview then
+                TT.movePreview = false
+                TT:SetPreview(true)
+            else
+                TT:Render(true)
+                TT:UpdateVisibility()
+            end
+        end,
+    })
+    if not started then self.moving = false end
 end
 
 --------------------------------------------------
@@ -569,11 +481,12 @@ function TT:SubmenuOption()
             {
                 type    = "submenu",
                 name    = "Appearance",
-                tooltip = "Font, text color and background for your timer.",
+                tooltip = "Font, color and background for your timer.",
                 options = {
                     {
                         type    = "dropdown",
                         name    = "Font",
+                        tooltip = "Some fonts look bigger or smaller than others. Default is Gamepad Medium.",
                         choices = ME.FONT_CHOICES,
                         default = DEFAULTS.trialTimerFont,
                         sample  = function()

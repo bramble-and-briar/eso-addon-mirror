@@ -162,7 +162,7 @@ function WorldMapArea:Initialize()
 end
 
 function WorldMapArea:ShouldRenderOnCurrentMap(quest)
-    if not quest or quest.completed or quest.hideMapArea then
+    if not quest or quest.completed or quest.failed or quest.hideMapArea then
         return false
     end
 
@@ -277,13 +277,106 @@ function WorldMapArea:ShowQuestOnMap(quest)
 
     if targetQuest.areaCenterX and targetQuest.areaCenterY then
         PanWorldMapToNormalizedPosition(targetQuest.areaCenterX, targetQuest.areaCenterY)
-        if zo_callLater then
-            zo_callLater(function()
-                if IsMapSceneShowing() then
-                    PanWorldMapToNormalizedPosition(targetQuest.areaCenterX, targetQuest.areaCenterY)
-                end
-            end, 50)
+        zo_callLater(function()
+            if IsMapSceneShowing() then
+                PanWorldMapToNormalizedPosition(targetQuest.areaCenterX, targetQuest.areaCenterY)
+            end
+        end, 50)
+    end
+
+    return true
+end
+
+local function Clamp(val, minVal, maxVal)
+    if val < minVal then return minVal end
+    if val > maxVal then return maxVal end
+    return val
+end
+
+-- Calcula un centro desplazado aleatorio para que (targetX, targetY) quede
+-- garantizadamente dentro del círculo de radio `radius`, pero no en su centro exacto.
+function WorldMapArea:ComputeOffsetCenter(targetX, targetY, radius, randomAngle01, randomDist01)
+    local r = tonumber(radius) or 0.075
+    if r <= 0 then r = 0.075 end
+
+    local tx = Clamp(tonumber(targetX) or 0.5, 0.01, 0.99)
+    local ty = Clamp(tonumber(targetY) or 0.5, 0.01, 0.99)
+
+    local minRatio = Addon.Constants.AREA_OFFSET.MIN_RATIO
+    local maxRatio = Addon.Constants.AREA_OFFSET.MAX_RATIO
+
+    local uAngle = (randomAngle01 ~= nil) and randomAngle01 or math.random()
+    local uDist = (randomDist01 ~= nil) and randomDist01 or math.random()
+
+    local angle = uAngle * 2 * math.pi
+    local dist = (minRatio + (uDist * (maxRatio - minRatio))) * r
+
+    local cx = tx + (dist * math.cos(angle))
+    local cy = ty + (dist * math.sin(angle))
+
+    local minBound = math.max(0.02, r * 0.5)
+    local maxBound = math.min(0.98, 1.0 - (r * 0.5))
+
+    cx = Clamp(cx, minBound, maxBound)
+    cy = Clamp(cy, minBound, maxBound)
+
+    -- Garantizar matemáticamente que la distancia entre (tx, ty) y (cx, cy) sea <= 0.80 * r
+    local dx = tx - cx
+    local dy = ty - cy
+    local actualDist = math.sqrt((dx * dx) + (dy * dy))
+    local maxAllowedDist = r * 0.80
+    if actualDist > maxAllowedDist and actualDist > 0 then
+        local scale = maxAllowedDist / actualDist
+        cx = tx - (dx * scale)
+        cy = ty - (dy * scale)
+    end
+
+    return cx, cy
+end
+
+function WorldMapArea:IsPlayerInsideTargetLocation(target, playerZoneId, playerWorldX, playerWorldZ)
+    if type(target) ~= "table" or target.worldX == nil or target.worldZ == nil then
+        return true
+    end
+    if not playerWorldX or not playerWorldZ then
+        return false
+    end
+    local targetZone = tonumber(target.zoneId) or 0
+    local pZone = tonumber(playerZoneId) or 0
+    if targetZone > 0 and pZone > 0 and targetZone ~= pZone then
+        return false
+    end
+    local dx = playerWorldX - target.worldX
+    local dz = playerWorldZ - target.worldZ
+    local radius = tonumber(target.radius) or Addon.Constants.DISCOVERY_RADIUS.MEDIUM
+    return ((dx * dx) + (dz * dz)) <= (radius * radius)
+end
+
+function WorldMapArea:IsPlayerInsideQuestArea(quest, playerMapId, playerZoneId, playerX, playerY)
+    if not quest then return false end
+
+    -- Si la misión tiene mapId o zoneId definidos (> 0), validar coincidencia de mapa o zona
+    local mapMatches = true
+    if (quest.mapId and quest.mapId > 0) and (playerMapId and playerMapId > 0) then
+        mapMatches = (quest.mapId == playerMapId)
+        if not mapMatches and (quest.zoneId and quest.zoneId > 0) and (playerZoneId and playerZoneId > 0) then
+            mapMatches = (quest.zoneId == playerZoneId)
         end
+    elseif (quest.zoneId and quest.zoneId > 0) and (playerZoneId and playerZoneId > 0) then
+        mapMatches = (quest.zoneId == playerZoneId)
+    end
+
+    if not mapMatches then
+        return false
+    end
+
+    -- Si tenemos coordenadas del jugador en el mismo mapa, verificar que esté dentro de un radio generoso del área de búsqueda
+    if (quest.mapId and quest.mapId > 0 and playerMapId == quest.mapId) and playerX and playerY and quest.areaCenterX and quest.areaCenterY then
+        local dx = playerX - quest.areaCenterX
+        local dy = playerY - quest.areaCenterY
+        local dist = math.sqrt((dx * dx) + (dy * dy))
+        local toleranceRadius = (quest.areaRadius or 0.075) * 1.35
+        return dist <= toleranceRadius
     end
 
     return true

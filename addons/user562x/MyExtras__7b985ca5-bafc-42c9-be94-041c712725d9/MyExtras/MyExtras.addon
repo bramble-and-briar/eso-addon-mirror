@@ -1,9 +1,9 @@
 ## Title: |cD65AD6MyExtras|r
-## Author: user|cD65AD6562|r
-## Version: 8.4
+## Author: user|c4F81BD5|r|cC2AA496|r|cDE5B4E2|r
+## Version: 9.7
 ## APIVersion: 101048 101049 101050 101051
 ## SavedVariables: MyExtras_SavedVars MyExtras_CharVars
-## DependsOn: LibUser562
+## DependsOn: LibUser562>=15
 
 MyExtras.xml
 MyExtras.lua
@@ -11,6 +11,7 @@ MyExtras_Trackers.lua
 MyExtras_GuildLoop.lua
 MyExtras_TitleLoop.lua
 MyExtras_ChatTravel.lua
+MyExtras_Loot.lua
 MyExtras_Antiquity.lua
 MyExtras_ActionBar.lua
 MyExtras_Gear.lua
@@ -27,4 +28,5 @@ MyExtras_DoNotLearn.lua
 MyExtras_MissingItems.lua
 MyExtras_Knowledge.lua
 MyExtras_InstantConfirm.lua
+MyExtras_Items.lua
 MyExtras_WhatsNew.lua

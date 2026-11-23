@@ -6,6 +6,7 @@ local M = Verdant.BuffTracker
 
 local pairs      = pairs
 local table_sort = table.sort
+local string_find = string.find
 local log        = Verdant.Log.for_module("buff_tracker")
 
 local C = Verdant.zenimax.constants
@@ -16,8 +17,11 @@ local EFFECT_RESULT_TRANSFER     = C.EFFECT_RESULT_TRANSFER
 local EFFECT_RESULT_FADED        = C.EFFECT_RESULT_FADED
 local BUFF_EFFECT_TYPE_BUFF      = C.BUFF_EFFECT_TYPE_BUFF
 local ABILITY_TYPE_HEAL          = C.ABILITY_TYPE_HEAL
+local ABILITY_TYPE_IMMUNITY      = C.ABILITY_TYPE_IMMUNITY
 
 local MAX_TRACKED = 48
+local IDS_PER_ROW = 64
+local SAME_GAIN_MS = 50
 
 local BUFF_VETO = {
   [217608] = true,
@@ -58,7 +62,9 @@ local function rec_reset(rec, id)
   rec.desc         = ""
   rec.desc_tries   = 0
   rec.only_self    = true
+  rec.on_group     = false
   rec.vetoed       = false
+  rec.immunity     = false
   rec.applications = 0
   rec.unique_units = 0
   rec.max_conc     = 0
@@ -68,10 +74,13 @@ local function rec_reset(rec, id)
   rec.n_iv         = 0
   rec.n_steps      = 0
   rec.open_t0      = nil
-  wipe(rec.holders)
-  wipe(rec.holders_n)
+  wipe(rec.held)
+  wipe(rec.gained_at)
+  wipe(rec.ended)
+  wipe(rec.per_unit)
   wipe(rec.units_ever)
   wipe(rec.ids)
+  wipe(rec.index)
 end
 
 local function rec_acquire(id)
@@ -81,8 +90,8 @@ local function rec_acquire(id)
     free_recs[n_free] = nil
     n_free = n_free - 1
   else
-    rec = { iv_t0 = {}, iv_t1 = {}, step_t = {}, step_c = {}, holders = {},
-            holders_n = {}, units_ever = {}, ids = {} }
+    rec = { iv_t0 = {}, iv_t1 = {}, step_t = {}, step_c = {}, held = {}, gained_at = {}, ended = {},
+            per_unit = {}, units_ever = {}, ids = {}, index = {} }
   end
   rec_reset(rec, id)
   return rec
@@ -95,6 +104,11 @@ local function note_excluded(id, effectType, abilityType, reason)
   n_excluded = n_excluded + 1
   excluded[name] = { id = id, et = effectType or -1, at = abilityType or -1,
                      why = reason or "type" }
+end
+
+local function on_group_tag(tag)
+  if tag == "player" or tag == "companion" then return true end
+  return type(tag) == "string" and string_find(tag, "^group%d") ~= nil
 end
 
 local function skill_key_of(id)
@@ -163,9 +177,14 @@ local function get_rec(id, tag)
   local name = SC.ability_name(id)
   rec = by_name[name]
   if rec then
+    if rec.n_ids >= IDS_PER_ROW then
+      bump("buffs.dropped_alias")
+      return nil
+    end
     by_id[id] = rec
     rec.n_ids = rec.n_ids + 1
     rec.ids[rec.n_ids] = id
+    rec.index[id] = rec.n_ids
     if rec.group == "other" then
       local g = SC.group_of_quiet(id)
       if g and g ~= "other" then rec.group = g end
@@ -207,7 +226,7 @@ local function get_rec(id, tag)
     return nil
   end
   local grp = SC.group_of_quiet(id) or "other"
-  if grp ~= "other" and grp ~= "item" and not BUFF_VETO[id] then
+  if grp ~= "other" and grp ~= "item" and grp ~= "champion" and grp ~= "synergy" and not BUFF_VETO[id] and not SC.user_group(id) then
     bump("buffs.skipped_skill_line_proc")
     note_excluded(id, nil, nil, "skill-line proc (" .. grp .. ")")
     return nil
@@ -221,6 +240,7 @@ local function get_rec(id, tag)
   rec.group   = grp
   rec.n_ids   = 1
   rec.ids[1]  = id
+  rec.index[id] = 1
   rec.desc    = resolve_desc(id, tag)
   rec.desc_tries = (tag and tag ~= "") and 1 or 0
   rec.vetoed  = BUFF_VETO[id] == true
@@ -264,19 +284,22 @@ local function close_interval(rec, t)
   rec.open_t0 = nil
 end
 
-local function holder_add(rec, unitId, endTime, t)
-  local n = rec.holders_n[unitId]
-  if n == nil or n == 0 then
-    rec.holders_n[unitId] = 1
-    rec.conc = rec.conc + 1
-    if rec.conc > rec.max_conc then rec.max_conc = rec.conc end
-    if rec.conc == 1 then open_interval(rec, t) end
-    push_step(rec, t)
-    rec.holders[unitId] = endTime or 0
-  else
-    rec.holders_n[unitId] = n + 1
-    local et = endTime or 0
-    if et > (rec.holders[unitId] or 0) then rec.holders[unitId] = et end
+local function held_key(rec, abilityId, unitId)
+  return unitId * IDS_PER_ROW + rec.index[abilityId] - 1
+end
+
+local function holder_add(rec, key, unitId, endTime, t)
+  local added = rec.held[key] == nil
+  rec.held[key] = endTime or 0
+  if added then
+    local n = (rec.per_unit[unitId] or 0) + 1
+    rec.per_unit[unitId] = n
+    if n == 1 then
+      rec.conc = rec.conc + 1
+      if rec.conc > rec.max_conc then rec.max_conc = rec.conc end
+      if rec.conc == 1 then open_interval(rec, t) end
+      push_step(rec, t)
+    end
   end
   if not rec.units_ever[unitId] then
     rec.units_ever[unitId] = true
@@ -284,19 +307,16 @@ local function holder_add(rec, unitId, endTime, t)
   end
 end
 
-local function holder_remove(rec, unitId, t, force)
-  local n = rec.holders_n[unitId]
-  if n == nil or n == 0 then return end
-  if force then n = 1 end
-  if n > 1 then
-    rec.holders_n[unitId] = n - 1
-    return
+local function holder_drop(rec, key, unitId, t)
+  if rec.held[key] == nil then return end
+  rec.held[key] = nil
+  local n = rec.per_unit[unitId] - 1
+  rec.per_unit[unitId] = n
+  if n == 0 then
+    rec.conc = rec.conc - 1
+    push_step(rec, t)
+    if rec.conc == 0 then close_interval(rec, t) end
   end
-  rec.holders_n[unitId] = 0
-  rec.holders[unitId] = nil
-  rec.conc = rec.conc - 1
-  push_step(rec, t)
-  if rec.conc == 0 then close_interval(rec, t) end
 end
 
 function M.on_effect(changeType, abilityId, unitId, endTime, now_ms, unitTag, effectType, abilityType)
@@ -325,8 +345,28 @@ function M.on_effect(changeType, abilityId, unitId, endTime, now_ms, unitTag, ef
     end
     local rec = get_rec(abilityId, unitTag)
     if not rec then return end
-    if changeType == EFFECT_RESULT_GAINED then
-      rec.applications = rec.applications + 1
+    if abilityType == ABILITY_TYPE_IMMUNITY then rec.immunity = true end
+    local key = held_key(rec, abilityId, unitId)
+    local gained = changeType == EFFECT_RESULT_GAINED
+    if not gained and endTime and endTime > 0 and endTime * 1000 <= now_ms then
+      bump("buffs.already_over")
+      return
+    end
+    if not gained and rec.ended[key] and rec.held[key] == nil then
+      bump("buffs.refresh_after_end")
+      return
+    end
+    if unitTag == "player" then
+      Verdant.GroupSet.set_player(unitId)
+    elseif unitId ~= Verdant.GroupSet.player_id() then
+      rec.only_self = false
+    end
+    if on_group_tag(unitTag) then rec.on_group = true end
+    holder_add(rec, key, unitId, endTime, now_ms)
+    if gained then
+      local last = rec.gained_at[key]
+      if last == nil or now_ms - last > SAME_GAIN_MS then rec.applications = rec.applications + 1 end
+      rec.gained_at[key] = now_ms
       bump("buffs.gained")
       if rec.desc == "" and unitTag and unitTag ~= "" and rec.desc_tries < 5 then
         rec.desc_tries = rec.desc_tries + 1
@@ -335,17 +375,13 @@ function M.on_effect(changeType, abilityId, unitId, endTime, now_ms, unitTag, ef
     else
       bump("buffs.refreshed")
     end
-    if unitTag == "player" then
-      Verdant.GroupSet.set_player(unitId)
-    elseif unitId ~= Verdant.GroupSet.player_id() then
-      rec.only_self = false
-    end
-    holder_add(rec, unitId, endTime, now_ms)
   elseif changeType == EFFECT_RESULT_FADED then
     local rec = by_id[abilityId]
     if rec then
       bump("buffs.faded")
-      holder_remove(rec, unitId, now_ms)
+      local key = held_key(rec, abilityId, unitId)
+      rec.ended[key] = true
+      holder_drop(rec, key, unitId, now_ms)
     end
   end
 end
@@ -377,10 +413,10 @@ function M.expire_stale(now_ms)
   local now_s = now_ms / 1000
   for i = 1, n_tracked do
     local rec = order[i]
-    for unitId, endTime in pairs(rec.holders) do
-      if endTime and endTime > 0 and endTime < now_s then
+    for key, endTime in pairs(rec.held) do
+      if endTime > 0 and endTime < now_s then
         bump("buffs.expired_watchdog")
-        holder_remove(rec, unitId, now_ms, true)
+        holder_drop(rec, key, (key - key % IDS_PER_ROW) / IDS_PER_ROW, now_ms)
       end
     end
     if rec.desc == "" and rec.desc_tries < 8 then
@@ -431,6 +467,11 @@ local function finalize_rec(rec, t)
   rec.longest_gap_ms = longest
 end
 
+function M.shown(rec)
+  if rec.on_group == false then return false end
+  return not (rec.only_self and (rec.desc == "" or rec.immunity) and rec.group ~= "item" and not rec.vetoed)
+end
+
 function M.finalize(now_ms)
   if not recording then return end
   recording = false
@@ -440,9 +481,14 @@ function M.finalize(now_ms)
   end
   for i = n_tracked, 1, -1 do
     local rec = order[i]
-    if rec.only_self and rec.desc == "" and rec.group ~= "item" and not rec.vetoed then
-      bump("buffs.excluded_self_state")
-      note_excluded(rec.id, nil, nil, "self-only state")
+    if not M.shown(rec) then
+      if rec.on_group then
+        bump("buffs.excluded_self_state")
+        note_excluded(rec.id, nil, nil, "self-only state")
+      else
+        bump("buffs.excluded_off_group")
+        note_excluded(rec.id, nil, nil, "never on the group")
+      end
       for k = 1, rec.n_ids do by_id[rec.ids[k]] = nil end
       by_name[rec.name] = nil
       table.remove(order, i)
@@ -452,6 +498,10 @@ function M.finalize(now_ms)
     end
   end
   table_sort(order, function(a, b) return a.uptime_ms > b.uptime_ms end)
+  for i = 1, n_tracked do
+    local rec = order[i]
+    for k = 1, rec.n_ids do Verdant.BuffOrigin.note(rec.ids[k], rec.name) end
+  end
   log:info("session finalize: tracked=", n_tracked, "dur_ms=", now_ms - t_start)
 end
 
@@ -487,9 +537,10 @@ function M.load_session(metas, steps, t0, t1)
       conc_avg = m.conc_avg or 0, longest_gap_ms = m.longest_gap_ms or 0,
       n_steps = 0, step_t = {}, step_c = {},
       n_iv = 0, iv_t0 = {}, iv_t1 = {},
-      holders = {}, holders_n = {}, units_ever = {}, ids = { m.id },
+      held = {}, gained_at = {}, ended = {}, per_unit = {}, units_ever = {}, ids = { m.id }, index = { [m.id] = 1 },
     }
     n_tracked = i
+    Verdant.BuffOrigin.note(m.id, m.name)
   end
   for i = 1, #steps do
     local st = steps[i]

@@ -30,7 +30,90 @@ http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
 
 -- addFiltersTaggedAll is intended to regroup multiple  filters, such as "all trait stones", "all armors", thoses rules are executed AFTER filters defined in addFilters() thanks to .position flag
 
-BankManagerRules = {}
+local BMR = BMR -- Use the single addon namespace initialized by BankManager.lua.
+BMR.Rules = BMR.Rules or {}
+local BankManagerRules = BMR.Rules
+-- Stable ESO API globals are cached once in a local table to reduce repeated _G lookups.
+local ESOAPI = {
+	GetString = GetString,
+	GetItemLinkName = GetItemLinkName,
+	GetItemLinkItemType = GetItemLinkItemType,
+	GetItemStyleName = GetItemStyleName,
+	zo_strformat = zo_strformat,
+	GetItemLinkSetInfo = GetItemLinkSetInfo,
+	IsItemJunk = IsItemJunk,
+	GetItemLinkArmorType = GetItemLinkArmorType,
+	GetItemLinkTraitInfo = GetItemLinkTraitInfo,
+	GetItemLinkWeaponType = GetItemLinkWeaponType,
+	ARMORTYPE_HEAVY = ARMORTYPE_HEAVY,
+	ARMORTYPE_LIGHT = ARMORTYPE_LIGHT,
+	ARMORTYPE_MEDIUM = ARMORTYPE_MEDIUM,
+	CRAFTING_TYPE_BLACKSMITHING = CRAFTING_TYPE_BLACKSMITHING,
+	CRAFTING_TYPE_CLOTHIER = CRAFTING_TYPE_CLOTHIER,
+	CRAFTING_TYPE_JEWELRYCRAFTING = CRAFTING_TYPE_JEWELRYCRAFTING,
+	CRAFTING_TYPE_WOODWORKING = CRAFTING_TYPE_WOODWORKING,
+	EQUIP_TYPE_NECK = EQUIP_TYPE_NECK,
+	EQUIP_TYPE_RING = EQUIP_TYPE_RING,
+	ITEMTYPE_ARMOR = ITEMTYPE_ARMOR,
+	ITEMTYPE_ARMOR_TRAIT = ITEMTYPE_ARMOR_TRAIT,
+	ITEMTYPE_AVA_REPAIR = ITEMTYPE_AVA_REPAIR,
+	ITEMTYPE_BLACKSMITHING_MATERIAL = ITEMTYPE_BLACKSMITHING_MATERIAL,
+	ITEMTYPE_BLACKSMITHING_RAW_MATERIAL = ITEMTYPE_BLACKSMITHING_RAW_MATERIAL,
+	ITEMTYPE_CLOTHIER_MATERIAL = ITEMTYPE_CLOTHIER_MATERIAL,
+	ITEMTYPE_CLOTHIER_RAW_MATERIAL = ITEMTYPE_CLOTHIER_RAW_MATERIAL,
+	ITEMTYPE_CONTAINER = ITEMTYPE_CONTAINER,
+	ITEMTYPE_CROWN_REPAIR = ITEMTYPE_CROWN_REPAIR,
+	ITEMTYPE_DISGUISE = ITEMTYPE_DISGUISE,
+	ITEMTYPE_DRINK = ITEMTYPE_DRINK,
+	ITEMTYPE_ENCHANTING_RUNE_ASPECT = ITEMTYPE_ENCHANTING_RUNE_ASPECT,
+	ITEMTYPE_ENCHANTING_RUNE_ESSENCE = ITEMTYPE_ENCHANTING_RUNE_ESSENCE,
+	ITEMTYPE_ENCHANTING_RUNE_POTENCY = ITEMTYPE_ENCHANTING_RUNE_POTENCY,
+	ITEMTYPE_FOOD = ITEMTYPE_FOOD,
+	ITEMTYPE_FURNISHING = ITEMTYPE_FURNISHING,
+	ITEMTYPE_FURNISHING_MATERIAL = ITEMTYPE_FURNISHING_MATERIAL,
+	ITEMTYPE_INGREDIENT = ITEMTYPE_INGREDIENT,
+	ITEMTYPE_JEWELRYCRAFTING_MATERIAL = ITEMTYPE_JEWELRYCRAFTING_MATERIAL,
+	ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL = ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL,
+	ITEMTYPE_JEWELRY_TRAIT = ITEMTYPE_JEWELRY_TRAIT,
+	ITEMTYPE_LURE = ITEMTYPE_LURE,
+	ITEMTYPE_MASTER_WRIT = ITEMTYPE_MASTER_WRIT,
+	ITEMTYPE_POISON = ITEMTYPE_POISON,
+	ITEMTYPE_POISON_BASE = ITEMTYPE_POISON_BASE,
+	ITEMTYPE_POTION = ITEMTYPE_POTION,
+	ITEMTYPE_POTION_BASE = ITEMTYPE_POTION_BASE,
+	ITEMTYPE_RACIAL_STYLE_MOTIF = ITEMTYPE_RACIAL_STYLE_MOTIF,
+	ITEMTYPE_REAGENT = ITEMTYPE_REAGENT,
+	ITEMTYPE_RECIPE = ITEMTYPE_RECIPE,
+	ITEMTYPE_SOUL_GEM = ITEMTYPE_SOUL_GEM,
+	ITEMTYPE_STYLE_MATERIAL = ITEMTYPE_STYLE_MATERIAL,
+	ITEMTYPE_TROPHY = ITEMTYPE_TROPHY,
+	ITEMTYPE_WEAPON = ITEMTYPE_WEAPON,
+	ITEMTYPE_WEAPON_TRAIT = ITEMTYPE_WEAPON_TRAIT,
+	ITEMTYPE_WOODWORKING_MATERIAL = ITEMTYPE_WOODWORKING_MATERIAL,
+	ITEMTYPE_WOODWORKING_RAW_MATERIAL = ITEMTYPE_WOODWORKING_RAW_MATERIAL,
+	ITEM_TRAIT_TYPE_ARMOR_INTRICATE = ITEM_TRAIT_TYPE_ARMOR_INTRICATE,
+	ITEM_TRAIT_TYPE_JEWELRY_INTRICATE = ITEM_TRAIT_TYPE_JEWELRY_INTRICATE,
+	ITEM_TRAIT_TYPE_WEAPON_INTRICATE = ITEM_TRAIT_TYPE_WEAPON_INTRICATE,
+	SI_ITEMFILTERTYPE0 = SI_ITEMFILTERTYPE0,
+	SI_ITEM_FORMAT_STR_ARMOR = SI_ITEM_FORMAT_STR_ARMOR,
+	SI_ITEM_FORMAT_STR_UNKNOWN_RECIPE = SI_ITEM_FORMAT_STR_UNKNOWN_RECIPE,
+	SI_RECIPE_ALREADY_KNOWN = SI_RECIPE_ALREADY_KNOWN,
+	SI_SMITHING_RESEARCH_RESEARCHABLE = SI_SMITHING_RESEARCH_RESEARCHABLE,
+	SI_TOOLTIP_ITEM_NAME = SI_TOOLTIP_ITEM_NAME,
+	WEAPONTYPE_AXE = WEAPONTYPE_AXE,
+	WEAPONTYPE_BOW = WEAPONTYPE_BOW,
+	WEAPONTYPE_DAGGER = WEAPONTYPE_DAGGER,
+	WEAPONTYPE_FIRE_STAFF = WEAPONTYPE_FIRE_STAFF,
+	WEAPONTYPE_FROST_STAFF = WEAPONTYPE_FROST_STAFF,
+	WEAPONTYPE_HAMMER = WEAPONTYPE_HAMMER,
+	WEAPONTYPE_HEALING_STAFF = WEAPONTYPE_HEALING_STAFF,
+	WEAPONTYPE_LIGHTNING_STAFF = WEAPONTYPE_LIGHTNING_STAFF,
+	WEAPONTYPE_SHIELD = WEAPONTYPE_SHIELD,
+	WEAPONTYPE_SWORD = WEAPONTYPE_SWORD,
+	WEAPONTYPE_TWO_HANDED_AXE = WEAPONTYPE_TWO_HANDED_AXE,
+	WEAPONTYPE_TWO_HANDED_HAMMER = WEAPONTYPE_TWO_HANDED_HAMMER,
+	WEAPONTYPE_TWO_HANDED_SWORD = WEAPONTYPE_TWO_HANDED_SWORD,
+}
 BankManagerRules.data = {}
 BankManagerRules.defaults = {}
 
@@ -73,10 +156,10 @@ local BMR_ITEM_QUALITY_LEGENDARY = ITEM_QUALITY_LEGENDARY or 5
 
 local function BMRColorizeQualityText(quality, text)
     if type(GetItemQualityColor) == "function" and quality ~= nil then
-        local colorOk, color = pcall(GetItemQualityColor, quality)
-        if colorOk and color and type(color.Colorize) == "function" then
-            local textOk, coloredText = pcall(color.Colorize, color, text)
-            if textOk and coloredText ~= nil then return coloredText end
+        local color = GetItemQualityColor(quality)
+        if color and type(color.Colorize) == "function" then
+            local coloredText = color:Colorize(text)
+            if coloredText ~= nil then return coloredText end
         end
     end
     return text
@@ -93,7 +176,7 @@ BankManagerRules.static = {}
 -- itemLink cannot be used, because GetItemLink() returns a link with the name hardcoded inside the link, so use the itemId.
 -- /script d(GetItemLink(1, 19) .. " " .. BankManagerRules.static.refinedMaterial[1][10])
  BankManagerRules.static.refinedMaterial = {
-	[CRAFTING_TYPE_BLACKSMITHING] = {
+	[ESOAPI.CRAFTING_TYPE_BLACKSMITHING] = {
 		[1] = "|H0:item:5413:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[2] = "|H0:item:4487:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[3] = "|H0:item:23107:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
@@ -105,7 +188,7 @@ BankManagerRules.static = {}
 		[9] = "|H0:item:46130:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[10] = "|H0:item:64489:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 	},
-	[CRAFTING_TYPE_CLOTHIER] = {
+	[ESOAPI.CRAFTING_TYPE_CLOTHIER] = {
 		[1] = "|H0:item:811:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[2] = "|H0:item:4463:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[3] = "|H0:item:23125:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
@@ -117,7 +200,7 @@ BankManagerRules.static = {}
 		[9] = "|H0:item:46134:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[10] = "|H0:item:64504:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 	},
-	[CRAFTING_TYPE_CLOTHIER * 100] = {
+	[ESOAPI.CRAFTING_TYPE_CLOTHIER * 100] = {
 		[1] = "|H0:item:794:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[2] = "|H0:item:4447:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[3] = "|H0:item:23099:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
@@ -129,7 +212,7 @@ BankManagerRules.static = {}
 		[9] = "|H0:item:46138:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[10] = "|H0:item:64506:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 	},
-	[CRAFTING_TYPE_WOODWORKING] = {
+	[ESOAPI.CRAFTING_TYPE_WOODWORKING] = {
 		[1] = "|H0:item:803:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[2] = "|H0:item:533:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[3] = "|H0:item:23121:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
@@ -141,7 +224,7 @@ BankManagerRules.static = {}
 		[9] = "|H0:item:46142:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[10] = "|H0:item:64502:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 	},	
-	[CRAFTING_TYPE_JEWELRYCRAFTING] = {
+	[ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING] = {
 		[1] = "|H1:item:135146:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[2] = "|H1:item:135144:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[3] = "|H1:item:135142:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
@@ -152,7 +235,7 @@ BankManagerRules.static = {}
 
 -- Thanks guild
 BankManagerRules.static.rawMaterial = {
-	[CRAFTING_TYPE_BLACKSMITHING] = {
+	[ESOAPI.CRAFTING_TYPE_BLACKSMITHING] = {
 		[1] = "|H0:item:808:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[2] = "|H0:item:5820:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[3] = "|H0:item:23103:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
@@ -164,7 +247,7 @@ BankManagerRules.static.rawMaterial = {
 		[9] = "|H0:item:23135:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[10] = "|H0:item:71198:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 	},
-	[CRAFTING_TYPE_CLOTHIER] = {
+	[ESOAPI.CRAFTING_TYPE_CLOTHIER] = {
 		[1] = "|H0:item:812:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[2] = "|H0:item:4464:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[3] = "|H0:item:23129:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
@@ -176,7 +259,7 @@ BankManagerRules.static.rawMaterial = {
 		[9] = "|H0:item:33220:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[10] = "|H0:item:71200:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 	},
-	[CRAFTING_TYPE_CLOTHIER * 100] = {
+	[ESOAPI.CRAFTING_TYPE_CLOTHIER * 100] = {
 		[1] = "|H0:item:793:30:50:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[2] = "|H0:item:4448:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[3] = "|H0:item:23095:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
@@ -188,7 +271,7 @@ BankManagerRules.static.rawMaterial = {
 		[9] = "|H0:item:4478:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[10] = "|H0:item:71239:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 	},
-	[CRAFTING_TYPE_WOODWORKING] = {
+	[ESOAPI.CRAFTING_TYPE_WOODWORKING] = {
 		[1] = "|H0:item:802:30:50:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[2] = "|H0:item:521:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[3] = "|H0:item:23117:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
@@ -200,7 +283,7 @@ BankManagerRules.static.rawMaterial = {
 		[9] = "|H0:item:23138:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[10] = "|H0:item:71199:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 	},
-	[CRAFTING_TYPE_JEWELRYCRAFTING] = {
+	[ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING] = {
 		[1] = "|H1:item:135137:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[2] = "|H1:item:135139:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
 		[3] = "|H1:item:135141:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h",
@@ -348,12 +431,12 @@ BankManagerRules.keywordConditionTable = {
 	
 	ARMOR = { -- keyword
 		[BMR_RULEWRITER_VALUE_OPTIONAL_KEYWORD] = {
-			LIGHT = {func = GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ARMORTYPE_LIGHT}},
-			MEDIUM = {func = GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ARMORTYPE_MEDIUM}},
-			HEAVY = {func = GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ARMORTYPE_HEAVY}},
+			LIGHT = {func = ESOAPI.GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ARMORTYPE_LIGHT}},
+			MEDIUM = {func = ESOAPI.GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ARMORTYPE_MEDIUM}},
+			HEAVY = {func = ESOAPI.GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ARMORTYPE_HEAVY}},
 		},
 		data = {
-			func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ARMOR}
+			func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ARMOR}
 		},
 	},
 
@@ -373,7 +456,7 @@ BankManagerRules.keywordConditionTable = {
 
 	MAXIMUM = { -- keyword
 		[BMR_RULEWRITER_VALUE_WITHOUT_OPERATOR] = {
-			func = BankManagerRules.MaxItemsMoved, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ARMOR}, paramType = BMR_RULEWRITER_VALUE_NUMBER,
+			func = BankManagerRules.MaxItemsMoved, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ARMOR}, paramType = BMR_RULEWRITER_VALUE_NUMBER,
 		},
 	},
 	
@@ -391,7 +474,7 @@ end
 
 -- Local function for Recipes and Housing
 local function GetItemLinkSpecializedItemType(itemLink)
-	return select(2, GetItemLinkItemType(itemLink))
+	return select(2, ESOAPI.GetItemLinkItemType(itemLink))
 end
 
 -- Antiquity Leads must be matched by their actual displayed name, never by
@@ -400,7 +483,7 @@ end
 -- a few ZOS item names can also remain in English in every client language.
 local function IsAntiquityLeadItem(itemLink)
 	if type(itemLink) ~= "string" then return false end
-	local itemName = GetItemLinkName(itemLink)
+	local itemName = ESOAPI.GetItemLinkName(itemLink)
 	if type(itemName) ~= "string" or itemName == "" then return false end
 	local lowerName = string.lower(itemName)
 
@@ -467,7 +550,7 @@ local function IsStandardSoulGem(itemLink, wantedQuality)
 	if type(itemLink) ~= "string" then return false end
 	local itemId = GetItemLinkItemId(itemLink)
 	if itemId == CROWN_SOUL_GEM_ITEM_ID or itemId == MIGHTY_BLACKSTONE_ITEM_ID then return false end
-	if GetItemLinkItemType(itemLink) ~= ITEMTYPE_SOUL_GEM then return false end
+	if ESOAPI.GetItemLinkItemType(itemLink) ~= ESOAPI.ITEMTYPE_SOUL_GEM then return false end
 	local quality = GetBMRItemLinkQuality(itemLink)
 	if wantedQuality == "empty" then
 		return quality == BMR_ITEM_QUALITY_NORMAL
@@ -536,7 +619,7 @@ end
 
 local function IsWritItem(itemLink)
 
-	local itemName = " " .. zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(itemLink))
+	local itemName = " " .. ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, ESOAPI.GetItemLinkName(itemLink))
 	
 	for _, data in ipairs(BankManagerRules.static.special.writsQuests) do
 		if string.find(data.text, Sanitize(itemName)) then
@@ -552,7 +635,7 @@ local function IsWritItem(itemLink)
 end
 
 local function IsCraftedPotion(itemLink)
-	if GetItemLinkItemType(itemLink) == ITEMTYPE_POTION or GetItemLinkItemType(itemLink) == ITEMTYPE_POISON then
+	if ESOAPI.GetItemLinkItemType(itemLink) == ESOAPI.ITEMTYPE_POTION or ESOAPI.GetItemLinkItemType(itemLink) == ESOAPI.ITEMTYPE_POISON then
 		if select(24, ZO_LinkHandler_ParseLink(itemLink)) ~= "0" then
 			return true
 		end
@@ -589,18 +672,18 @@ function BankManagerRules.addFiltersTaggedAll()
 		-- params which will define if the item analized match the rule. if multiple params, it will be a logical "and"
 		params = {
 			{
-				func = GetItemLinkItemType, -- func to use to check if item will match
+				func = ESOAPI.GetItemLinkItemType, -- func to use to check if item will match
 				funcArgs = BMR_ITEMLINK,    -- args of function, if BMR_ITEMLINK, BMR will send itemLink, if BMR_BAG_AND_SLOT, BMR will send bagId and slotId
 				values = {
-					ITEMTYPE_ARMOR_TRAIT,    -- if multiple args, it will be a logical "or"
-					ITEMTYPE_WEAPON_TRAIT,
-					ITEMTYPE_JEWELRY_TRAIT,
+					ESOAPI.ITEMTYPE_ARMOR_TRAIT,    -- if multiple args, it will be a logical "or"
+					ESOAPI.ITEMTYPE_WEAPON_TRAIT,
+					ESOAPI.ITEMTYPE_JEWELRY_TRAIT,
 				},
 			},
 		},
 		position = 1, -- rules with the position flag are executed after, then first 1, then 2, then 3.
-		name = GetString(SI_ITEMFILTERTYPE0), -- used by LAM, name of the dropdown
-		tooltip = zo_strformat("<<1>> & <<2>> & <<3>>", GetString("SI_ITEMTYPE", ITEMTYPE_ARMOR_TRAIT), GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON_TRAIT), GetString("SI_ITEMTYPE", ITEMTYPE_JEWELRY_TRAIT)), -- used by LAM, tooltip of the dropdown
+		name = ESOAPI.GetString(ESOAPI.SI_ITEMFILTERTYPE0), -- used by LAM, name of the dropdown
+		tooltip = ESOAPI.zo_strformat("<<1>> & <<2>> & <<3>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_ARMOR_TRAIT), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON_TRAIT), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_JEWELRY_TRAIT)), -- used by LAM, tooltip of the dropdown
 	}
 	
 	-- Styles All
@@ -608,171 +691,171 @@ function BankManagerRules.addFiltersTaggedAll()
 	BankManagerRules.data[ruleName] = {
 		params = {
 			{
-				func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_STYLE_MATERIAL, ITEMTYPE_RAW_MATERIAL},
+				func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_STYLE_MATERIAL, ITEMTYPE_RAW_MATERIAL},
 			},
 		},
 		position = 1,
-		name = GetString(SI_ITEMFILTERTYPE0),
-		tooltip = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_STYLE_MATERIAL)),
+		name = ESOAPI.GetString(ESOAPI.SI_ITEMFILTERTYPE0),
+		tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_STYLE_MATERIAL)),
 	}
 	
 	-- Material All Blacksmithing
-	ruleName = "MaterialAll" .. CRAFTING_TYPE_BLACKSMITHING
+	ruleName = "MaterialAll" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_BLACKSMITHING_MATERIAL, ITEMTYPE_BLACKSMITHING_RAW_MATERIAL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_BLACKSMITHING_MATERIAL, ESOAPI.ITEMTYPE_BLACKSMITHING_RAW_MATERIAL}},
 		},
 		position = 2,
-		name = GetString(SI_ITEMFILTERTYPE0),
-		tooltip = zo_strformat("<<1>> & <<2>>", GetString("SI_ITEMTYPE", ITEMTYPE_BLACKSMITHING_MATERIAL), GetString("SI_ITEMTYPE", ITEMTYPE_BLACKSMITHING_RAW_MATERIAL)),
+		name = ESOAPI.GetString(ESOAPI.SI_ITEMFILTERTYPE0),
+		tooltip = ESOAPI.zo_strformat("<<1>> & <<2>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_BLACKSMITHING_MATERIAL), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_BLACKSMITHING_RAW_MATERIAL)),
 	}
 	
 	-- Material All Clothier
-	ruleName = "MaterialAll" .. CRAFTING_TYPE_CLOTHIER
+	ruleName = "MaterialAll" .. ESOAPI.CRAFTING_TYPE_CLOTHIER
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_CLOTHIER_MATERIAL, ITEMTYPE_CLOTHIER_RAW_MATERIAL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_CLOTHIER_MATERIAL, ESOAPI.ITEMTYPE_CLOTHIER_RAW_MATERIAL}},
 		},
 		position = 2,
-		name = GetString(SI_ITEMFILTERTYPE0),
-		tooltip = zo_strformat("<<1>> & <<2>>", GetString("SI_ITEMTYPE", ITEMTYPE_CLOTHIER_MATERIAL), GetString("SI_ITEMTYPE", ITEMTYPE_CLOTHIER_RAW_MATERIAL)),
+		name = ESOAPI.GetString(ESOAPI.SI_ITEMFILTERTYPE0),
+		tooltip = ESOAPI.zo_strformat("<<1>> & <<2>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_CLOTHIER_MATERIAL), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_CLOTHIER_RAW_MATERIAL)),
 	}
 	
 	-- Material All Woodworking
-	ruleName = "MaterialAll" .. CRAFTING_TYPE_WOODWORKING
+	ruleName = "MaterialAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_WOODWORKING_MATERIAL, ITEMTYPE_WOODWORKING_RAW_MATERIAL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_WOODWORKING_MATERIAL, ESOAPI.ITEMTYPE_WOODWORKING_RAW_MATERIAL}},
 		},
 		position = 2,
-		name = GetString(SI_ITEMFILTERTYPE0),
-		tooltip = zo_strformat("<<1>> & <<2>>", GetString("SI_ITEMTYPE", ITEMTYPE_WOODWORKING_MATERIAL), GetString("SI_ITEMTYPE", ITEMTYPE_WOODWORKING_RAW_MATERIAL)),
+		name = ESOAPI.GetString(ESOAPI.SI_ITEMFILTERTYPE0),
+		tooltip = ESOAPI.zo_strformat("<<1>> & <<2>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WOODWORKING_MATERIAL), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WOODWORKING_RAW_MATERIAL)),
 	}
 	
 	-- Material All Jewelcrafting
-	ruleName = "MaterialAll" .. CRAFTING_TYPE_JEWELRYCRAFTING
+	ruleName = "MaterialAll" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_JEWELRYCRAFTING_MATERIAL, ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_JEWELRYCRAFTING_MATERIAL, ESOAPI.ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL}},
 		},
 		position = 2,
-		name = GetString(SI_ITEMFILTERTYPE0),
-		tooltip = zo_strformat("<<1>> & <<2>>", GetString("SI_ITEMTYPE", ITEMTYPE_JEWELRYCRAFTING_MATERIAL), GetString("SI_ITEMTYPE", ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL)),
+		name = ESOAPI.GetString(ESOAPI.SI_ITEMFILTERTYPE0),
+		tooltip = ESOAPI.zo_strformat("<<1>> & <<2>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_JEWELRYCRAFTING_MATERIAL), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL)),
 	}
 	
 	-- Refined All Blacksmithing
-	ruleName = "refinedMaterialAll" .. CRAFTING_TYPE_BLACKSMITHING
+	ruleName = "refinedMaterialAll" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_BLACKSMITHING_MATERIAL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_BLACKSMITHING_MATERIAL}},
 		},
 		position = 1,
-		name = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_BLACKSMITHING_MATERIAL)),
-		tooltip = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_BLACKSMITHING_MATERIAL)),
+		name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_BLACKSMITHING_MATERIAL)),
+		tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_BLACKSMITHING_MATERIAL)),
 	}
 	
 	-- Raw All Blacksmithing
-	ruleName = "rawMaterialAll" .. CRAFTING_TYPE_BLACKSMITHING
+	ruleName = "rawMaterialAll" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_BLACKSMITHING_RAW_MATERIAL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_BLACKSMITHING_RAW_MATERIAL}},
 		},
 		position = 1,
-		name = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_BLACKSMITHING_RAW_MATERIAL)),
-		tooltip = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_BLACKSMITHING_RAW_MATERIAL)),
+		name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_BLACKSMITHING_RAW_MATERIAL)),
+		tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_BLACKSMITHING_RAW_MATERIAL)),
 	}
 	
 	-- Refined All Clothier
-	ruleName = "refinedMaterialAll" .. CRAFTING_TYPE_CLOTHIER
+	ruleName = "refinedMaterialAll" .. ESOAPI.CRAFTING_TYPE_CLOTHIER
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_CLOTHIER_MATERIAL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_CLOTHIER_MATERIAL}},
 		},
 		position = 1,
-		name = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_CLOTHIER_MATERIAL)),
-		tooltip = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_CLOTHIER_MATERIAL)),
+		name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_CLOTHIER_MATERIAL)),
+		tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_CLOTHIER_MATERIAL)),
 	}
 	
 	-- Raw All Clothier
-	ruleName = "rawMaterialAll" .. CRAFTING_TYPE_CLOTHIER
+	ruleName = "rawMaterialAll" .. ESOAPI.CRAFTING_TYPE_CLOTHIER
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_CLOTHIER_RAW_MATERIAL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_CLOTHIER_RAW_MATERIAL}},
 		},
 		position = 1,
-		name = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_CLOTHIER_RAW_MATERIAL)),
-		tooltip = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_CLOTHIER_RAW_MATERIAL)),
+		name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_CLOTHIER_RAW_MATERIAL)),
+		tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_CLOTHIER_RAW_MATERIAL)),
 	}
 	
 	-- Refined All Woodworking
-	ruleName = "refinedMaterialAll" .. CRAFTING_TYPE_WOODWORKING
+	ruleName = "refinedMaterialAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_WOODWORKING_MATERIAL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_WOODWORKING_MATERIAL}},
 		},
 		position = 1,
-		name = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_WOODWORKING_MATERIAL)),
-		tooltip = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_WOODWORKING_MATERIAL)),
+		name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WOODWORKING_MATERIAL)),
+		tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WOODWORKING_MATERIAL)),
 	}
 	
 	-- Refined All Jewelcrafting
-	ruleName = "refinedMaterialAll" .. CRAFTING_TYPE_JEWELRYCRAFTING
+	ruleName = "refinedMaterialAll" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_JEWELRYCRAFTING_MATERIAL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_JEWELRYCRAFTING_MATERIAL}},
 		},
 		position = 1,
-		name = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_JEWELRYCRAFTING_MATERIAL)),
-		tooltip = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_JEWELRYCRAFTING_MATERIAL)),
+		name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_JEWELRYCRAFTING_MATERIAL)),
+		tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_JEWELRYCRAFTING_MATERIAL)),
 	}
 	
 	-- Raw All Woodworking
-	ruleName = "rawMaterialAll" .. CRAFTING_TYPE_WOODWORKING
+	ruleName = "rawMaterialAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_WOODWORKING_RAW_MATERIAL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_WOODWORKING_RAW_MATERIAL}},
 		},
 		position = 1,
-		name = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_WOODWORKING_RAW_MATERIAL)),
-		tooltip = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_WOODWORKING_RAW_MATERIAL)),
+		name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WOODWORKING_RAW_MATERIAL)),
+		tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WOODWORKING_RAW_MATERIAL)),
 	}
 	
 	-- Raw All Jewelcrafting
-	ruleName = "rawMaterialAll" .. CRAFTING_TYPE_JEWELRYCRAFTING
+	ruleName = "rawMaterialAll" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL}},
 		},
 		position = 1,
-		name = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL)),
-		tooltip = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL)),
+		name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL)),
+		tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL)),
 	}
 	
 	-- Enchanting All
 	ruleName = "enchantingAll"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ENCHANTING_RUNE_ESSENCE, ITEMTYPE_ENCHANTING_RUNE_POTENCY, ITEMTYPE_ENCHANTING_RUNE_ASPECT}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ENCHANTING_RUNE_ESSENCE, ESOAPI.ITEMTYPE_ENCHANTING_RUNE_POTENCY, ESOAPI.ITEMTYPE_ENCHANTING_RUNE_ASPECT}},
 		},
 		position = 1,
-		name = GetString(SI_ITEMFILTERTYPE0),
-		tooltip = zo_strformat("<<1>>, <<2>>, <<3>>", GetString("SI_ITEMTYPE", ITEMTYPE_ENCHANTING_RUNE_ESSENCE), GetString("SI_ITEMTYPE", ITEMTYPE_ENCHANTING_RUNE_POTENCY), GetString("SI_ITEMTYPE", ITEMTYPE_ENCHANTING_RUNE_ASPECT)),
+		name = ESOAPI.GetString(ESOAPI.SI_ITEMFILTERTYPE0),
+		tooltip = ESOAPI.zo_strformat("<<1>>, <<2>>, <<3>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_ENCHANTING_RUNE_ESSENCE), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_ENCHANTING_RUNE_POTENCY), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_ENCHANTING_RUNE_ASPECT)),
 	}
 	
 	-- Alchemy All
 	ruleName = "alchemyAll"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_POTION_BASE, ITEMTYPE_POISON_BASE, ITEMTYPE_REAGENT}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_POTION_BASE, ESOAPI.ITEMTYPE_POISON_BASE, ESOAPI.ITEMTYPE_REAGENT}},
 		},
 		position = 1,
-		name = GetString(SI_ITEMFILTERTYPE0),
-		tooltip = zo_strformat("<<1>>, <<2>> & <<3>>", GetString("SI_ITEMTYPE", ITEMTYPE_POTION_BASE), GetString("SI_ITEMTYPE", ITEMTYPE_POISON_BASE), GetString("SI_ITEMTYPE", ITEMTYPE_REAGENT)),
+		name = ESOAPI.GetString(ESOAPI.SI_ITEMFILTERTYPE0),
+		tooltip = ESOAPI.zo_strformat("<<1>>, <<2>> & <<3>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_POTION_BASE), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_POISON_BASE), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_REAGENT)),
 	}
 	
 	-- This rule won't be executed, it's a placeholder for the OnlyIfNotFullStack
 	-- CRAFTING_TYPE_BLACKSMITHING Improvement All
-	ruleName = "improvementAll" .. CRAFTING_TYPE_BLACKSMITHING
+	ruleName = "improvementAll" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING
 	BankManagerRules.data[ruleName] = {
 		true, -- Don't write params section or rule will be executed. ruleName will be the Lua var to store the value
 	}
@@ -782,158 +865,158 @@ function BankManagerRules.addFiltersTaggedAll()
 	BankManagerRules.defaults[ruleName].onlyIfNotFullStack = true
 	
 	-- improvementStacks CRAFTING_TYPE_BLACKSMITHING
-	ruleName = "improvementStacks" .. CRAFTING_TYPE_BLACKSMITHING
+	ruleName = "improvementStacks" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyStacks = 1
 	
 	-- improvementStacks CRAFTING_TYPE_BLACKSMITHING GBank
-	ruleName = "improvementGBank" .. CRAFTING_TYPE_BLACKSMITHING
+	ruleName = "improvementGBank" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- CRAFTING_TYPE_CLOTHIER Improvement All
-	ruleName = "improvementAll" .. CRAFTING_TYPE_CLOTHIER
+	ruleName = "improvementAll" .. ESOAPI.CRAFTING_TYPE_CLOTHIER
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyIfNotFullStack = true
 	
 	-- improvementStacks CRAFTING_TYPE_CLOTHIER
-	ruleName = "improvementStacks" .. CRAFTING_TYPE_CLOTHIER
+	ruleName = "improvementStacks" .. ESOAPI.CRAFTING_TYPE_CLOTHIER
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyStacks = 1
 	
 	-- improvementStacks CRAFTING_TYPE_CLOTHIER GBank
-	ruleName = "improvementGBank" .. CRAFTING_TYPE_CLOTHIER
+	ruleName = "improvementGBank" .. ESOAPI.CRAFTING_TYPE_CLOTHIER
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- CRAFTING_TYPE_WOODWORKING Improvement All
-	ruleName = "improvementAll" .. CRAFTING_TYPE_WOODWORKING
+	ruleName = "improvementAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyIfNotFullStack = true
 	
 	-- improvementStacks CRAFTING_TYPE_WOODWORKING
-	ruleName = "improvementStacks" .. CRAFTING_TYPE_WOODWORKING
+	ruleName = "improvementStacks" .. ESOAPI.CRAFTING_TYPE_WOODWORKING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyStacks = 1
 	
 	-- improvementStacks CRAFTING_TYPE_WOODWORKING GBank
-	ruleName = "improvementGBank" .. CRAFTING_TYPE_WOODWORKING
+	ruleName = "improvementGBank" .. ESOAPI.CRAFTING_TYPE_WOODWORKING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- CRAFTING_TYPE_JEWELRYCRAFTING Improvement All
-	ruleName = "improvementAll" .. CRAFTING_TYPE_JEWELRYCRAFTING
+	ruleName = "improvementAll" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyIfNotFullStack = true
 	
 	-- improvementStacks CRAFTING_TYPE_JEWELRYCRAFTING
-	ruleName = "improvementStacks" .. CRAFTING_TYPE_JEWELRYCRAFTING
+	ruleName = "improvementStacks" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyStacks = 1
 	
 	-- improvementStacks CRAFTING_TYPE_JEWELRYCRAFTING GBank
-	ruleName = "improvementGBank" .. CRAFTING_TYPE_JEWELRYCRAFTING
+	ruleName = "improvementGBank" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- (CRAFTING_TYPE_JEWELRYCRAFTING * 100) Improvement All
-	ruleName = "improvementAll" .. (CRAFTING_TYPE_JEWELRYCRAFTING * 100)
+	ruleName = "improvementAll" .. (ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING * 100)
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyIfNotFullStack = true
 	
 	-- improvementStacks (CRAFTING_TYPE_JEWELRYCRAFTING * 100)
-	ruleName = "improvementStacks" .. (CRAFTING_TYPE_JEWELRYCRAFTING * 100)
+	ruleName = "improvementStacks" .. (ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING * 100)
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyStacks = 1
 	
 	-- improvementStacks (CRAFTING_TYPE_JEWELRYCRAFTING * 100) GBank
-	ruleName = "improvementGBank" .. (CRAFTING_TYPE_JEWELRYCRAFTING * 100)
+	ruleName = "improvementGBank" .. (ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING * 100)
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- CRAFTING_TYPE_BLACKSMITHING Material Stacks
-	ruleName = "MaterialStacks" .. CRAFTING_TYPE_BLACKSMITHING
+	ruleName = "MaterialStacks" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyStacks = 1
 	
 	-- CRAFTING_TYPE_BLACKSMITHING Material GBank
-	ruleName = "MaterialGBank" .. CRAFTING_TYPE_BLACKSMITHING
+	ruleName = "MaterialGBank" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- CRAFTING_TYPE_CLOTHIER Material Stacks
-	ruleName = "MaterialStacks" .. CRAFTING_TYPE_CLOTHIER
+	ruleName = "MaterialStacks" .. ESOAPI.CRAFTING_TYPE_CLOTHIER
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyStacks = 1
 	
 	-- CRAFTING_TYPE_CLOTHIER Material GBank
-	ruleName = "MaterialGBank" .. CRAFTING_TYPE_CLOTHIER
+	ruleName = "MaterialGBank" .. ESOAPI.CRAFTING_TYPE_CLOTHIER
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- CRAFTING_TYPE_WOODWORKING Material Stacks
-	ruleName = "MaterialStacks" .. CRAFTING_TYPE_WOODWORKING
+	ruleName = "MaterialStacks" .. ESOAPI.CRAFTING_TYPE_WOODWORKING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyStacks = 1
 	
 	-- CRAFTING_TYPE_WOODWORKING Material GBank
-	ruleName = "MaterialGBank" .. CRAFTING_TYPE_WOODWORKING
+	ruleName = "MaterialGBank" .. ESOAPI.CRAFTING_TYPE_WOODWORKING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- CRAFTING_TYPE_JEWELRYCRAFTING Material Stacks
-	ruleName = "MaterialStacks" .. CRAFTING_TYPE_JEWELRYCRAFTING
+	ruleName = "MaterialStacks" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyStacks = 1
 	
 	-- CRAFTING_TYPE_JEWELRYCRAFTING Material GBank
-	ruleName = "MaterialGBank" .. CRAFTING_TYPE_JEWELRYCRAFTING
+	ruleName = "MaterialGBank" .. ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- CookingIngredients All
 	ruleName = "cookingIngredientsAll"
@@ -954,14 +1037,14 @@ function BankManagerRules.addFiltersTaggedAll()
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- cookingRecipeGBank GBank
 	ruleName = "cookingRecipeGBank"
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- enchantingStacks
 	ruleName = "enchantingStacks"
@@ -975,14 +1058,14 @@ function BankManagerRules.addFiltersTaggedAll()
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- enchantingGlyphs GBank
 	ruleName = "enchantingGlyphsGBank"
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- alchemy Stacks
 	ruleName = "alchemyStacks"
@@ -996,7 +1079,7 @@ function BankManagerRules.addFiltersTaggedAll()
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- trait Stacks
 	ruleName = "traitStacks"
@@ -1010,7 +1093,7 @@ function BankManagerRules.addFiltersTaggedAll()
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- style Stacks
 	ruleName = "styleStacks"
@@ -1024,7 +1107,7 @@ function BankManagerRules.addFiltersTaggedAll()
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- Trophy All
 	ruleName = "trophyAll"
@@ -1045,7 +1128,7 @@ function BankManagerRules.addFiltersTaggedAll()
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- Misc All
 	ruleName = "MiscAll"
@@ -1066,7 +1149,7 @@ function BankManagerRules.addFiltersTaggedAll()
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- PvP / Siege equipment master settings
 	ruleName = "MiscPvpAll"
@@ -1082,7 +1165,7 @@ function BankManagerRules.addFiltersTaggedAll()
 	ruleName = "MiscPvpGBank"
 	BankManagerRules.data[ruleName] = {true}
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 
 	-- Housing All
 	ruleName = "HousingAll"
@@ -1103,17 +1186,17 @@ function BankManagerRules.addFiltersTaggedAll()
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- Writ Quests
 	ruleName = "writsQuests"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_POTION_BASE, ITEMTYPE_REAGENT, ITEMTYPE_ENCHANTING_RUNE_ASPECT, ITEMTYPE_ENCHANTING_RUNE_ESSENCE, ITEMTYPE_ENCHANTING_RUNE_POTENCY, ITEMTYPE_FOOD, ITEMTYPE_DRINK}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_POTION_BASE, ESOAPI.ITEMTYPE_REAGENT, ESOAPI.ITEMTYPE_ENCHANTING_RUNE_ASPECT, ESOAPI.ITEMTYPE_ENCHANTING_RUNE_ESSENCE, ESOAPI.ITEMTYPE_ENCHANTING_RUNE_POTENCY, ESOAPI.ITEMTYPE_FOOD, ESOAPI.ITEMTYPE_DRINK}},
 			{func = IsWritItem, funcArgs = BMR_ITEMLINK, values = {true}},
 		},
-		name = GetString(BMR_WRIT_QUESTS),
-		tooltip = GetString(BMR_WRIT_QUESTS_TOOLTIP),
+		name = ESOAPI.GetString(BMR_WRIT_QUESTS),
+		tooltip = ESOAPI.GetString(BMR_WRIT_QUESTS_TOOLTIP),
 		isSpecial = true,
 	}
 	
@@ -1125,14 +1208,14 @@ function BankManagerRules.addFiltersTaggedAll()
 	ruleName = "writsQuestsGlyphs"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_GLYPH_ARMOR}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_GLYPH_ARMOR}},
 			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_NORMAL}},
 			{func = IsItemLinkCrafted, funcArgs = BMR_ITEMLINK, values = {true}},
 			{func = GetItemCreatorName, funcArgs = BMR_BAG_AND_SLOT, values = {GetUnitName("player")}},
 			{func = IsWritItem, funcArgs = BMR_ITEMLINK, values = {true}},
 		},
-		name = GetString(BMR_WRIT_QUESTS),
-		tooltip = GetString(BMR_WRIT_QUESTS_TOOLTIP),
+		name = ESOAPI.GetString(BMR_WRIT_QUESTS),
+		tooltip = ESOAPI.GetString(BMR_WRIT_QUESTS_TOOLTIP),
 		isSpecial = true,
 	}
 	
@@ -1144,13 +1227,13 @@ function BankManagerRules.addFiltersTaggedAll()
 	ruleName = "writsQuestsPots"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_POTION}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_POTION}},
 			{func = IsCraftedPotion, funcArgs = BMR_ITEMLINK, values = {true}},
 			{func = GetNumberOfTraits, funcArgs = BMR_ITEMLINK, values = {1}},
 			{func = IsWritItem, funcArgs = BMR_ITEMLINK, values = {true}},
 		},
-		name = GetString(BMR_WRIT_QUESTS),
-		tooltip = GetString(BMR_WRIT_QUESTS_TOOLTIP),
+		name = ESOAPI.GetString(BMR_WRIT_QUESTS),
+		tooltip = ESOAPI.GetString(BMR_WRIT_QUESTS_TOOLTIP),
 		isSpecial = true,
 	}
 	
@@ -1177,7 +1260,7 @@ function BankManagerRules.addFiltersTaggedAll()
 	BankManagerRules.data[ruleName] = {true}
 	
 	BankManagerRules.defaults[ruleName] = {}
-	BankManagerRules.defaults[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET)
+	BankManagerRules.defaults[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	
 	-- To help sorting array
 	for ruleName, ruleData in pairs(BankManagerRules.data) do
@@ -1256,18 +1339,18 @@ function BankManagerRules.addFilters()
 	
       local traitType, itemName = GetSmithingTraitItemInfo(traitItemIndex)
       local itemLink = GetSmithingTraitItemLink(traitItemIndex, LINK_STYLE_DEFAULT)
-      local itemType = GetItemLinkItemType(itemLink)
+      local itemType = ESOAPI.GetItemLinkItemType(itemLink)
 	  
       if itemType ~= ITEMTYPE_NONE and traitType ~= ITEM_TRAIT_TYPE_NONE then 
 			
 			ruleName = "trait" .. traitType
 			BankManagerRules.data[ruleName] = {
 				params = {
-					{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ARMOR_TRAIT, ITEMTYPE_WEAPON_TRAIT, ITEMTYPE_JEWELRY_TRAIT}},
-					{func = GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {traitType}},
+					{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ARMOR_TRAIT, ESOAPI.ITEMTYPE_WEAPON_TRAIT, ESOAPI.ITEMTYPE_JEWELRY_TRAIT}},
+					{func = ESOAPI.GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {traitType}},
 				},
-				name = zo_strformat(SI_TOOLTIP_ITEM_NAME, itemLink),
-				tooltip = zo_strformat("<<1>>: <<2>>", GetString("SI_ITEMTYPE", itemType), GetString("SI_ITEMTRAITTYPE", traitType)),
+				name = ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, itemLink),
+				tooltip = ESOAPI.zo_strformat("<<1>>: <<2>>", ESOAPI.GetString("SI_ITEMTYPE", itemType), ESOAPI.GetString("SI_ITEMTRAITTYPE", traitType)),
 			}
 			
       end
@@ -1282,11 +1365,11 @@ function BankManagerRules.addFilters()
 		ruleName = "styleRaw" .. styleItemIndex
 		BankManagerRules.data[ruleName] = {
 			params = {
-				{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_RAW_MATERIAL}},
+				{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_RAW_MATERIAL}},
 				{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {GetItemLinkItemId(data)}},
 			},
-			name = zo_strformat("<<1>> (<<2>>)", GetItemStyleName(styleItemIndex), GetItemLinkName(data)),
-			tooltip = zo_strformat("<<1>> (<<2>>)", GetItemStyleName(styleItemIndex), GetItemLinkName(data)),
+			name = ESOAPI.zo_strformat("<<1>> (<<2>>)", ESOAPI.GetItemStyleName(styleItemIndex), ESOAPI.GetItemLinkName(data)),
+			tooltip = ESOAPI.zo_strformat("<<1>> (<<2>>)", ESOAPI.GetItemStyleName(styleItemIndex), ESOAPI.GetItemLinkName(data)),
 		}
 	
 	end
@@ -1315,8 +1398,8 @@ for rawItemIndex, data in pairs(BankManagerRules.static.jewelrycraftingRawTraits
         params = {
             {func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {GetItemLinkItemId(data)}},
         },
-        name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(cleanLink)),
-        tooltip = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(cleanLink)),
+        name = ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, ESOAPI.GetItemLinkName(cleanLink)),
+        tooltip = ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, ESOAPI.GetItemLinkName(cleanLink)),
     }
 end
 
@@ -1325,7 +1408,7 @@ end
    for styleItemIndex = 1, GetHighestItemStyleId() do
 	
 		local styleItemLink = GetItemStyleMaterialLink(styleItemIndex)
-		local itemName = GetItemLinkName(styleItemLink)
+		local itemName = ESOAPI.GetItemLinkName(styleItemLink)
 		local _, _, meetsUsageRequirement = GetItemLinkInfo(styleItemLink)
 		
       if meetsUsageRequirement then
@@ -1334,11 +1417,11 @@ end
 			
 			BankManagerRules.data[ruleName] = {
 				params = {
-					{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_STYLE_MATERIAL}},
+					{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_STYLE_MATERIAL}},
 					{func = GetItemLinkItemStyle, funcArgs = BMR_ITEMLINK, values = {styleItemIndex}},
 				},
-				name = zo_strformat("<<1>> (<<2>>)", GetItemStyleName(styleItemIndex), zo_strformat(SI_TOOLTIP_ITEM_NAME, itemName)),
-				tooltip = zo_strformat("<<1>> (<<2>>)", GetItemStyleName(styleItemIndex), zo_strformat(SI_TOOLTIP_ITEM_NAME, itemName)),
+				name = ESOAPI.zo_strformat("<<1>> (<<2>>)", ESOAPI.GetItemStyleName(styleItemIndex), ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, itemName)),
+				tooltip = ESOAPI.zo_strformat("<<1>> (<<2>>)", ESOAPI.GetItemStyleName(styleItemIndex), ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, itemName)),
 			}
 			
 		end
@@ -1350,45 +1433,40 @@ end
 		for improvementItemIndex = 1, GetNumSmithingImprovementItems() do
 			local infoOk, itemName, quality
 			if type(GetSmithingImprovementItemInfo) == "function" then
-				local info = {pcall(GetSmithingImprovementItemInfo, craftId, improvementItemIndex)}
-				if info[1] then
-					infoOk = true
-					itemName = info[2]
-					quality = tonumber(info[9]) -- pcall status + 8th ESO result (functionalQuality)
-				else
-					infoOk = false
-				end
+				local icon, currentStack, sellPrice, meetsUsageRequirement, equipType, itemStyle, itemQuality
+				itemName, icon, currentStack, sellPrice, meetsUsageRequirement, equipType, itemStyle, itemQuality = GetSmithingImprovementItemInfo(craftId, improvementItemIndex)
+				infoOk = true
+				quality = tonumber(itemQuality)
 			end
 			local itemLink
 			if type(GetSmithingImprovementItemLink) == "function" then
-				local linkOk, link = pcall(GetSmithingImprovementItemLink, craftId, improvementItemIndex, LINK_STYLE_DEFAULT or 0)
-				if linkOk and type(link) == "string" and link ~= "" then itemLink = link end
+				local link = GetSmithingImprovementItemLink(craftId, improvementItemIndex, LINK_STYLE_DEFAULT or 0)
+				if type(link) == "string" and link ~= "" then itemLink = link end
 			end
 			-- Some platform wrappers omit the functional-quality result. The generated
 			-- item link provides a fallback through the same compatibility adapter.
 			if (not quality or quality < 0 or quality > 5) and itemLink then
-				local qualityOk, linkQuality = pcall(GetBMRItemLinkQuality, itemLink)
-				if qualityOk then quality = tonumber(linkQuality) end
+				local linkQuality = GetBMRItemLinkQuality(itemLink)
+				quality = tonumber(linkQuality)
 			end
 			sub = sub or 1
 			prefix = prefix or ''
 			ruleName = "improvement" .. (craftId * sub) .. improvementItemIndex
 			if quality and quality >= 0 and quality <= 5 then
 				local resolvedName = itemName
-				if (type(resolvedName) ~= "string" or resolvedName == "") and itemLink and type(GetItemLinkName) == "function" then
-					local nameOk, linkName = pcall(GetItemLinkName, itemLink)
-					if nameOk then resolvedName = linkName end
+				if (type(resolvedName) ~= "string" or resolvedName == "") and itemLink and type(ESOAPI.GetItemLinkName) == "function" then
+					resolvedName = ESOAPI.GetItemLinkName(itemLink)
 				end
 				resolvedName = tostring(resolvedName or ("Verbesserungsmaterial " .. tostring(improvementItemIndex)))
-				local plainName = zo_strformat(SI_TOOLTIP_ITEM_NAME, prefix .. resolvedName)
+				local plainName = ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, prefix .. resolvedName)
 				local displayName = BMRColorizeQualityText(quality, plainName)
 				BankManagerRules.data[ruleName] = {
 					params = {
-						{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {craftBooster}},
+						{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {craftBooster}},
 						{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {quality}},
 					},
-					name = zo_strformat("<<1>>", displayName),
-					tooltip = zo_strformat("<<2>> (<<1>>)", GetString("SI_ITEMTYPE", craftBooster), plainName),
+					name = ESOAPI.zo_strformat("<<1>>", displayName),
+					tooltip = ESOAPI.zo_strformat("<<2>> (<<1>>)", ESOAPI.GetString("SI_ITEMTYPE", craftBooster), plainName),
 				}
 			else
 				if BMR and type(BMR.ProfileDiagnostic) == "function" then
@@ -1398,11 +1476,11 @@ end
 		end
 	end
 	
-	addBoosters(CRAFTING_TYPE_BLACKSMITHING, ITEMTYPE_BLACKSMITHING_BOOSTER)
-	addBoosters(CRAFTING_TYPE_CLOTHIER, ITEMTYPE_CLOTHIER_BOOSTER)
-	addBoosters(CRAFTING_TYPE_WOODWORKING, ITEMTYPE_WOODWORKING_BOOSTER)
-	addBoosters(CRAFTING_TYPE_JEWELRYCRAFTING, ITEMTYPE_JEWELRYCRAFTING_BOOSTER)
-	addBoosters(CRAFTING_TYPE_JEWELRYCRAFTING, ITEMTYPE_JEWELRYCRAFTING_RAW_BOOSTER, 100, 'Raw ')
+	addBoosters(ESOAPI.CRAFTING_TYPE_BLACKSMITHING, ITEMTYPE_BLACKSMITHING_BOOSTER)
+	addBoosters(ESOAPI.CRAFTING_TYPE_CLOTHIER, ITEMTYPE_CLOTHIER_BOOSTER)
+	addBoosters(ESOAPI.CRAFTING_TYPE_WOODWORKING, ITEMTYPE_WOODWORKING_BOOSTER)
+	addBoosters(ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING, ITEMTYPE_JEWELRYCRAFTING_BOOSTER)
+	addBoosters(ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING, ITEMTYPE_JEWELRYCRAFTING_RAW_BOOSTER, 100, 'Raw ')
 	
 	-- Raw material - Impossible without interacting with a crafting station.
 	-- Refined material - Impossible without interacting with a crafting station.
@@ -1430,78 +1508,78 @@ end
 			local refinedItemLink = refinedMaterialArray[materialIndex]
 			if type(refinedItemLink) == "string" and refinedItemLink ~= "" then
 				ruleName = "refinedMaterial" .. craftId .. materialIndex
-				local itemName = GetItemLinkName(refinedItemLink)
+				local itemName = ESOAPI.GetItemLinkName(refinedItemLink)
 				BankManagerRules.data[ruleName] = {
 					params = {
-						{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {refinedMaterialType}},
+						{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {refinedMaterialType}},
 						{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {GetItemLinkItemId(refinedItemLink)}},
 					},
-					name = zo_strformat("<<1>>", zo_strformat(SI_TOOLTIP_ITEM_NAME, itemName)),
-					tooltip = zo_strformat("<<1>>", zo_strformat(SI_TOOLTIP_ITEM_NAME, itemName)),
+					name = ESOAPI.zo_strformat("<<1>>", ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, itemName)),
+					tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, itemName)),
 				}
 			end
 
 			local rawItemLink = rawMaterialArray[materialIndex]
 			if type(rawItemLink) == "string" and rawItemLink ~= "" then
 				ruleName = "rawMaterial" .. craftId .. materialIndex
-				local itemName = GetItemLinkName(rawItemLink)
+				local itemName = ESOAPI.GetItemLinkName(rawItemLink)
 				BankManagerRules.data[ruleName] = {
 					params = {
-						{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {rawMaterialType}},
+						{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {rawMaterialType}},
 						{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {GetItemLinkItemId(rawItemLink)}},
 					},
-					name = zo_strformat("<<1>>", zo_strformat(SI_TOOLTIP_ITEM_NAME, itemName)),
-					tooltip = zo_strformat("<<1>>", zo_strformat(SI_TOOLTIP_ITEM_NAME, itemName)),
+					name = ESOAPI.zo_strformat("<<1>>", ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, itemName)),
+					tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, itemName)),
 				}
 			end
 		end
 	end
 	
-	addMaterial(CRAFTING_TYPE_BLACKSMITHING, ITEMTYPE_BLACKSMITHING_MATERIAL, ITEMTYPE_BLACKSMITHING_RAW_MATERIAL, BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_BLACKSMITHING], BankManagerRules.static.rawMaterial[CRAFTING_TYPE_BLACKSMITHING])
-	addMaterial(CRAFTING_TYPE_CLOTHIER, ITEMTYPE_CLOTHIER_MATERIAL, ITEMTYPE_CLOTHIER_RAW_MATERIAL, BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_CLOTHIER], BankManagerRules.static.rawMaterial[CRAFTING_TYPE_CLOTHIER])
-	addMaterial(CRAFTING_TYPE_CLOTHIER * 100, ITEMTYPE_CLOTHIER_MATERIAL, ITEMTYPE_CLOTHIER_RAW_MATERIAL, BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_CLOTHIER * 100], BankManagerRules.static.rawMaterial[CRAFTING_TYPE_CLOTHIER * 100])
-	addMaterial(CRAFTING_TYPE_WOODWORKING, ITEMTYPE_WOODWORKING_MATERIAL, ITEMTYPE_WOODWORKING_RAW_MATERIAL, BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_WOODWORKING], BankManagerRules.static.rawMaterial[CRAFTING_TYPE_WOODWORKING])
+	addMaterial(ESOAPI.CRAFTING_TYPE_BLACKSMITHING, ESOAPI.ITEMTYPE_BLACKSMITHING_MATERIAL, ESOAPI.ITEMTYPE_BLACKSMITHING_RAW_MATERIAL, BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_BLACKSMITHING], BankManagerRules.static.rawMaterial[ESOAPI.CRAFTING_TYPE_BLACKSMITHING])
+	addMaterial(ESOAPI.CRAFTING_TYPE_CLOTHIER, ESOAPI.ITEMTYPE_CLOTHIER_MATERIAL, ESOAPI.ITEMTYPE_CLOTHIER_RAW_MATERIAL, BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_CLOTHIER], BankManagerRules.static.rawMaterial[ESOAPI.CRAFTING_TYPE_CLOTHIER])
+	addMaterial(ESOAPI.CRAFTING_TYPE_CLOTHIER * 100, ESOAPI.ITEMTYPE_CLOTHIER_MATERIAL, ESOAPI.ITEMTYPE_CLOTHIER_RAW_MATERIAL, BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_CLOTHIER * 100], BankManagerRules.static.rawMaterial[ESOAPI.CRAFTING_TYPE_CLOTHIER * 100])
+	addMaterial(ESOAPI.CRAFTING_TYPE_WOODWORKING, ESOAPI.ITEMTYPE_WOODWORKING_MATERIAL, ESOAPI.ITEMTYPE_WOODWORKING_RAW_MATERIAL, BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_WOODWORKING], BankManagerRules.static.rawMaterial[ESOAPI.CRAFTING_TYPE_WOODWORKING])
 	-- jewelcraft
-	addMaterial(CRAFTING_TYPE_JEWELRYCRAFTING, ITEMTYPE_JEWELRYCRAFTING_MATERIAL, ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL, BankManagerRules.static.refinedMaterial[CRAFTING_TYPE_JEWELRYCRAFTING], BankManagerRules.static.rawMaterial[CRAFTING_TYPE_JEWELRYCRAFTING])
+	addMaterial(ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING, ESOAPI.ITEMTYPE_JEWELRYCRAFTING_MATERIAL, ESOAPI.ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL, BankManagerRules.static.refinedMaterial[ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING], BankManagerRules.static.rawMaterial[ESOAPI.CRAFTING_TYPE_JEWELRYCRAFTING])
 	
 	-- Jewelry
 	ruleName = "jewelry" -- is not complete or wrong standalone
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {EQUIP_TYPE_NECK, EQUIP_TYPE_RING}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.EQUIP_TYPE_NECK, ESOAPI.EQUIP_TYPE_RING}},
 		},
-		name = GetString(BMR_JEWELRY_LABEL), -- there's no ItemType for Jewelry
-		tooltip = GetString(BMR_JEWELRY_LABEL),
+		name = ESOAPI.GetString(BMR_JEWELRY_LABEL), -- there's no ItemType for Jewelry
+		tooltip = ESOAPI.GetString(BMR_JEWELRY_LABEL),
 	}
 	
 	-- JewelryGBank
 	ruleName = "jewelryGBank"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {EQUIP_TYPE_NECK, EQUIP_TYPE_RING}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.EQUIP_TYPE_NECK, ESOAPI.EQUIP_TYPE_RING}},
 		},
-		name = GetString(BMR_JEWELRY_LABEL), -- there's no ItemType for Jewelry
-		tooltip = GetString(BMR_JEWELRY_LABEL),
+		name = ESOAPI.GetString(BMR_JEWELRY_LABEL), -- there's no ItemType for Jewelry
+		tooltip = ESOAPI.GetString(BMR_JEWELRY_LABEL),
 	}
 
 	-- JewelryAll
 	ruleName = "jewelryAll"  -- is not complete or wrong standalone
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {EQUIP_TYPE_NECK, EQUIP_TYPE_RING}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.EQUIP_TYPE_NECK, ESOAPI.EQUIP_TYPE_RING}},
 		},
-		name = GetString(BMR_JEWELRY_LABEL), -- there's no ItemType for Jewelry
-		tooltip = GetString(BMR_JEWELRY_LABEL),
+		name = ESOAPI.GetString(BMR_JEWELRY_LABEL), -- there's no ItemType for Jewelry
+		tooltip = ESOAPI.GetString(BMR_JEWELRY_LABEL),
 	}
 
 	-- JewelryStacks
 	ruleName = "jewelryStacks"-- .. CRAFTING_TYPE_JEWELRYCRAFTING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {EQUIP_TYPE_NECK, EQUIP_TYPE_RING}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.EQUIP_TYPE_NECK, ESOAPI.EQUIP_TYPE_RING}},
 		},
-		name = GetString(BMR_JEWELRY_LABEL), -- there's no ItemType for Jewelry
-		tooltip = GetString(BMR_JEWELRY_LABEL),
+		name = ESOAPI.GetString(BMR_JEWELRY_LABEL), -- there's no ItemType for Jewelry
+		tooltip = ESOAPI.GetString(BMR_JEWELRY_LABEL),
 	}
 	BankManagerRules.defaults[ruleName] = {}
 	BankManagerRules.defaults[ruleName].onlyStacks = 1
@@ -1510,216 +1588,216 @@ end
 	ruleName = "jewelryIntricate"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {EQUIP_TYPE_NECK, EQUIP_TYPE_RING}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
-			{func = GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {ITEM_TRAIT_TYPE_JEWELRY_INTRICATE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.EQUIP_TYPE_NECK, ESOAPI.EQUIP_TYPE_RING}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEM_TRAIT_TYPE_JEWELRY_INTRICATE}},
 		},
-		name = zo_strformat("<<1>> (<<2>>)", GetString(BMR_JEWELRY_LABEL), GetString("SI_ITEMTRAITTYPE", ITEM_TRAIT_TYPE_JEWELRY_INTRICATE)),
-		tooltip = zo_strformat("<<1>> (<<2>>)", GetString(BMR_JEWELRY_LABEL), GetString("SI_ITEMTRAITTYPE", ITEM_TRAIT_TYPE_JEWELRY_INTRICATE)),
+		name = ESOAPI.zo_strformat("<<1>> (<<2>>)", ESOAPI.GetString(BMR_JEWELRY_LABEL), ESOAPI.GetString("SI_ITEMTRAITTYPE", ESOAPI.ITEM_TRAIT_TYPE_JEWELRY_INTRICATE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> (<<2>>)", ESOAPI.GetString(BMR_JEWELRY_LABEL), ESOAPI.GetString("SI_ITEMTRAITTYPE", ESOAPI.ITEM_TRAIT_TYPE_JEWELRY_INTRICATE)),
 	}
 
 	-- Researchable Jewelry
 	ruleName = "jewelryResearchable" -- might be wrong because it takes out all armor you are able to research
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {EQUIP_TYPE_NECK, EQUIP_TYPE_RING}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.EQUIP_TYPE_NECK, ESOAPI.EQUIP_TYPE_RING}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
 			{func = IsItemNeededForResearch, funcArgs = BMR_ITEMLINK, values = {true}},
 		},
-		name = zo_strformat("<<1>> (<<2>>)", GetString(BMR_JEWELRY_LABEL), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
-		tooltip = zo_strformat("<<1>> (<<2>>)", GetString(BMR_JEWELRY_LABEL), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		name = ESOAPI.zo_strformat("<<1>> (<<2>>)", ESOAPI.GetString(BMR_JEWELRY_LABEL), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> (<<2>>)", ESOAPI.GetString(BMR_JEWELRY_LABEL), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
 	}
 	
 	-- Heavy Armors
-	ruleName = "armorTypeWeight" .. ARMORTYPE_HEAVY
+	ruleName = "armorTypeWeight" .. ESOAPI.ARMORTYPE_HEAVY
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ARMOR}},
-			{func = GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ARMORTYPE_HEAVY}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ARMOR}},
+			{func = ESOAPI.GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ARMORTYPE_HEAVY}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
 		},
-		name = zo_strformat("<<1>> : <<2>>", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_HEAVY)),
-		tooltip = zo_strformat("<<1>> : <<2>>", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_HEAVY)),
+		name = ESOAPI.zo_strformat("<<1>> : <<2>>", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_HEAVY)),
+		tooltip = ESOAPI.zo_strformat("<<1>> : <<2>>", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_HEAVY)),
 	}
 	
 	-- Medium Armors
-	ruleName = "armorTypeWeight" .. ARMORTYPE_MEDIUM
+	ruleName = "armorTypeWeight" .. ESOAPI.ARMORTYPE_MEDIUM
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ARMOR}},
-			{func = GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ARMORTYPE_MEDIUM}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ARMOR}},
+			{func = ESOAPI.GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ARMORTYPE_MEDIUM}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
 		},
-		name = zo_strformat("<<1>> : <<2>>", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_MEDIUM)),
-		tooltip = zo_strformat("<<1>> : <<2>>", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_MEDIUM)),
+		name = ESOAPI.zo_strformat("<<1>> : <<2>>", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_MEDIUM)),
+		tooltip = ESOAPI.zo_strformat("<<1>> : <<2>>", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_MEDIUM)),
 	}
 	
 	-- Light Armors
-	ruleName = "armorTypeWeight" .. ARMORTYPE_LIGHT
+	ruleName = "armorTypeWeight" .. ESOAPI.ARMORTYPE_LIGHT
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ARMOR}},
-			{func = GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ARMORTYPE_LIGHT}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ARMOR}},
+			{func = ESOAPI.GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ARMORTYPE_LIGHT}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
 		},
-		name = zo_strformat("<<1>> : <<2>>", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_LIGHT)),
-		tooltip = zo_strformat("<<1>> : <<2>>", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_LIGHT)),
+		name = ESOAPI.zo_strformat("<<1>> : <<2>>", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_LIGHT)),
+		tooltip = ESOAPI.zo_strformat("<<1>> : <<2>>", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_LIGHT)),
 	}
 	
 	-- Light Armors
-	ruleName = "armorQuality" .. ARMORTYPE_LIGHT
+	ruleName = "armorQuality" .. ESOAPI.ARMORTYPE_LIGHT
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ARMOR}},
-			{func = GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ARMORTYPE_LIGHT}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ARMOR}},
+			{func = ESOAPI.GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ARMORTYPE_LIGHT}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
 		},
-		name = zo_strformat("<<1>> : <<2>>", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_LIGHT)),
-		tooltip = zo_strformat("<<1>> : <<2>>", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_LIGHT)),
+		name = ESOAPI.zo_strformat("<<1>> : <<2>>", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_LIGHT)),
+		tooltip = ESOAPI.zo_strformat("<<1>> : <<2>>", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_LIGHT)),
 	}
 	
 	-- Intricate Heavy Armors
-	ruleName = "armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_HEAVY
+	ruleName = "armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_HEAVY
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ARMOR}},
-			{func = GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ARMORTYPE_HEAVY}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
-			{func = GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {ITEM_TRAIT_TYPE_ARMOR_INTRICATE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ARMOR}},
+			{func = ESOAPI.GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ARMORTYPE_HEAVY}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE}},
 		},
-		name = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_HEAVY), GetString("SI_ITEMTRAITTYPE", ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
-		tooltip = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_HEAVY), GetString("SI_ITEMTRAITTYPE", ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
+		name = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_HEAVY), ESOAPI.GetString("SI_ITEMTRAITTYPE", ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_HEAVY), ESOAPI.GetString("SI_ITEMTRAITTYPE", ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
 	}
 	
 	-- Intricate Medium Armors
-	ruleName = "armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_MEDIUM
+	ruleName = "armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_MEDIUM
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ARMOR}},
-			{func = GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ARMORTYPE_MEDIUM}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
-			{func = GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {ITEM_TRAIT_TYPE_ARMOR_INTRICATE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ARMOR}},
+			{func = ESOAPI.GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ARMORTYPE_MEDIUM}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE}},
 		},
-		name = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_MEDIUM), GetString("SI_ITEMTRAITTYPE", ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
-		tooltip = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_MEDIUM), GetString("SI_ITEMTRAITTYPE", ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
+		name = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_MEDIUM), ESOAPI.GetString("SI_ITEMTRAITTYPE", ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_MEDIUM), ESOAPI.GetString("SI_ITEMTRAITTYPE", ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
 	}
 
 	-- Intricate Light Armors
-	ruleName = "armorTypeTrait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ARMORTYPE_LIGHT
+	ruleName = "armorTypeTrait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE .. "Weight" .. ESOAPI.ARMORTYPE_LIGHT
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ARMOR}},
-			{func = GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ARMORTYPE_LIGHT}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
-			{func = GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {ITEM_TRAIT_TYPE_ARMOR_INTRICATE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ARMOR}},
+			{func = ESOAPI.GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ARMORTYPE_LIGHT}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE}},
 		},
-		name = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_LIGHT), GetString("SI_ITEMTRAITTYPE", ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
-		tooltip = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_LIGHT), GetString("SI_ITEMTRAITTYPE", ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
+		name = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_LIGHT), ESOAPI.GetString("SI_ITEMTRAITTYPE", ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_LIGHT), ESOAPI.GetString("SI_ITEMTRAITTYPE", ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
 	}
 	
 	-- Weapons (smithing)
-	ruleName = "weaponType" .. CRAFTING_TYPE_BLACKSMITHING
+	ruleName = "weaponType" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_WEAPON}},
-			{func = GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {WEAPONTYPE_AXE, WEAPONTYPE_DAGGER, WEAPONTYPE_HAMMER, WEAPONTYPE_SWORD, WEAPONTYPE_TWO_HANDED_AXE, WEAPONTYPE_TWO_HANDED_HAMMER, WEAPONTYPE_TWO_HANDED_SWORD}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_WEAPON}},
+			{func = ESOAPI.GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.WEAPONTYPE_AXE, ESOAPI.WEAPONTYPE_DAGGER, ESOAPI.WEAPONTYPE_HAMMER, ESOAPI.WEAPONTYPE_SWORD, ESOAPI.WEAPONTYPE_TWO_HANDED_AXE, ESOAPI.WEAPONTYPE_TWO_HANDED_HAMMER, ESOAPI.WEAPONTYPE_TWO_HANDED_SWORD}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
 		},
-		name = zo_strformat("<<1>> : <<2>>", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString(BMR_TRADESKILL_BLACKSMITHING)),
-		tooltip = zo_strformat("<<1>> : <<2>>", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString(BMR_TRADESKILL_BLACKSMITHING)),
+		name = ESOAPI.zo_strformat("<<1>> : <<2>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString(BMR_TRADESKILL_BLACKSMITHING)),
+		tooltip = ESOAPI.zo_strformat("<<1>> : <<2>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString(BMR_TRADESKILL_BLACKSMITHING)),
 	}
 	
 	-- Weapons (Woodworking)
-	ruleName = "weaponType" .. CRAFTING_TYPE_WOODWORKING
+	ruleName = "weaponType" .. ESOAPI.CRAFTING_TYPE_WOODWORKING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_WEAPON}},
-			{func = GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {WEAPONTYPE_BOW, WEAPONTYPE_FIRE_STAFF, WEAPONTYPE_FROST_STAFF, WEAPONTYPE_LIGHTNING_STAFF, WEAPONTYPE_HEALING_STAFF, WEAPONTYPE_SHIELD}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_WEAPON}},
+			{func = ESOAPI.GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.WEAPONTYPE_BOW, ESOAPI.WEAPONTYPE_FIRE_STAFF, ESOAPI.WEAPONTYPE_FROST_STAFF, ESOAPI.WEAPONTYPE_LIGHTNING_STAFF, ESOAPI.WEAPONTYPE_HEALING_STAFF, ESOAPI.WEAPONTYPE_SHIELD}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
 		},
-		name = zo_strformat("<<1>> & <<2>> : <<3>>", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString("SI_WEAPONTYPE", WEAPONTYPE_SHIELD), GetString(BMR_TRADESKILL_WOODWORKING)),
-		tooltip = zo_strformat("<<1>> & <<2>> : <<3>>", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString("SI_WEAPONTYPE", WEAPONTYPE_SHIELD), GetString(BMR_TRADESKILL_WOODWORKING)),
+		name = ESOAPI.zo_strformat("<<1>> & <<2>> : <<3>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString("SI_WEAPONTYPE", ESOAPI.WEAPONTYPE_SHIELD), ESOAPI.GetString(BMR_TRADESKILL_WOODWORKING)),
+		tooltip = ESOAPI.zo_strformat("<<1>> & <<2>> : <<3>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString("SI_WEAPONTYPE", ESOAPI.WEAPONTYPE_SHIELD), ESOAPI.GetString(BMR_TRADESKILL_WOODWORKING)),
 	}
 	
 	-- Intricate Weapons (smithing)
-	ruleName = "weaponType" .. CRAFTING_TYPE_BLACKSMITHING .. "Trait" .. ITEM_TRAIT_TYPE_WEAPON_INTRICATE
+	ruleName = "weaponType" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING .. "Trait" .. ESOAPI.ITEM_TRAIT_TYPE_WEAPON_INTRICATE
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_WEAPON}},
-			{func = GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {WEAPONTYPE_AXE, WEAPONTYPE_DAGGER, WEAPONTYPE_HAMMER, WEAPONTYPE_SWORD, WEAPONTYPE_TWO_HANDED_AXE, WEAPONTYPE_TWO_HANDED_HAMMER, WEAPONTYPE_TWO_HANDED_SWORD}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
-			{func = GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {ITEM_TRAIT_TYPE_WEAPON_INTRICATE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_WEAPON}},
+			{func = ESOAPI.GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.WEAPONTYPE_AXE, ESOAPI.WEAPONTYPE_DAGGER, ESOAPI.WEAPONTYPE_HAMMER, ESOAPI.WEAPONTYPE_SWORD, ESOAPI.WEAPONTYPE_TWO_HANDED_AXE, ESOAPI.WEAPONTYPE_TWO_HANDED_HAMMER, ESOAPI.WEAPONTYPE_TWO_HANDED_SWORD}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEM_TRAIT_TYPE_WEAPON_INTRICATE}},
 		},
-		name = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString(BMR_TRADESKILL_BLACKSMITHING), GetString("SI_ITEMTRAITTYPE", ITEM_TRAIT_TYPE_WEAPON_INTRICATE)),
-		tooltip = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString(BMR_TRADESKILL_BLACKSMITHING), GetString("SI_ITEMTRAITTYPE", ITEM_TRAIT_TYPE_WEAPON_INTRICATE)),
+		name = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString(BMR_TRADESKILL_BLACKSMITHING), ESOAPI.GetString("SI_ITEMTRAITTYPE", ESOAPI.ITEM_TRAIT_TYPE_WEAPON_INTRICATE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString(BMR_TRADESKILL_BLACKSMITHING), ESOAPI.GetString("SI_ITEMTRAITTYPE", ESOAPI.ITEM_TRAIT_TYPE_WEAPON_INTRICATE)),
 	}
 	
 	-- Intricate (Woodworking)
-	ruleName = "weaponType" .. CRAFTING_TYPE_WOODWORKING .. "Trait" .. ITEM_TRAIT_TYPE_ARMOR_INTRICATE
+	ruleName = "weaponType" .. ESOAPI.CRAFTING_TYPE_WOODWORKING .. "Trait" .. ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_WEAPON}},
-			{func = GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {WEAPONTYPE_BOW, WEAPONTYPE_FIRE_STAFF, WEAPONTYPE_FROST_STAFF, WEAPONTYPE_LIGHTNING_STAFF, WEAPONTYPE_HEALING_STAFF, WEAPONTYPE_SHIELD}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
-			{func = GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {ITEM_TRAIT_TYPE_ARMOR_INTRICATE, ITEM_TRAIT_TYPE_WEAPON_INTRICATE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_WEAPON}},
+			{func = ESOAPI.GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.WEAPONTYPE_BOW, ESOAPI.WEAPONTYPE_FIRE_STAFF, ESOAPI.WEAPONTYPE_FROST_STAFF, ESOAPI.WEAPONTYPE_LIGHTNING_STAFF, ESOAPI.WEAPONTYPE_HEALING_STAFF, ESOAPI.WEAPONTYPE_SHIELD}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.GetItemLinkTraitInfo, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE, ESOAPI.ITEM_TRAIT_TYPE_WEAPON_INTRICATE}},
 		},
-		name = zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString("SI_WEAPONTYPE", WEAPONTYPE_SHIELD), GetString(BMR_TRADESKILL_WOODWORKING), GetString("SI_ITEMTRAITTYPE", ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
-		tooltip = zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString("SI_WEAPONTYPE", WEAPONTYPE_SHIELD), GetString(BMR_TRADESKILL_WOODWORKING), GetString("SI_ITEMTRAITTYPE", ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
+		name = ESOAPI.zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString("SI_WEAPONTYPE", ESOAPI.WEAPONTYPE_SHIELD), ESOAPI.GetString(BMR_TRADESKILL_WOODWORKING), ESOAPI.GetString("SI_ITEMTRAITTYPE", ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString("SI_WEAPONTYPE", ESOAPI.WEAPONTYPE_SHIELD), ESOAPI.GetString(BMR_TRADESKILL_WOODWORKING), ESOAPI.GetString("SI_ITEMTRAITTYPE", ESOAPI.ITEM_TRAIT_TYPE_ARMOR_INTRICATE)),
 	}
 	
 	-- Researchable Armor (heavy)
-	ruleName = "armorTypeResearchableWeight" .. ARMORTYPE_HEAVY
+	ruleName = "armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_HEAVY
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ARMOR}},
-			{func = GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ARMORTYPE_HEAVY}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ARMOR}},
+			{func = ESOAPI.GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ARMORTYPE_HEAVY}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
 			{func = IsItemNeededForResearch, funcArgs = BMR_ITEMLINK, values = {true}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
 		},
-		name = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_HEAVY), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
-		tooltip = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_HEAVY), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		name = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_HEAVY), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_HEAVY), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
 	}
 	
 	-- Researchable Armor (medium)
-	ruleName = "armorTypeResearchableWeight" .. ARMORTYPE_MEDIUM
+	ruleName = "armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_MEDIUM
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_MEDIUM}},
-			{func = GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ARMORTYPE_MEDIUM}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_MEDIUM}},
+			{func = ESOAPI.GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ARMORTYPE_MEDIUM}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
 			{func = IsItemNeededForResearch, funcArgs = BMR_ITEMLINK, values = {true}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
 		},
-		name = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_MEDIUM), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
-		tooltip = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_MEDIUM), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		name = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_MEDIUM), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_MEDIUM), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
 	}
 
 	-- Researchable Armor (light)
-	ruleName = "armorTypeResearchableWeight" .. ARMORTYPE_LIGHT
+	ruleName = "armorTypeResearchableWeight" .. ESOAPI.ARMORTYPE_LIGHT
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ARMOR}},
-			{func = GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ARMORTYPE_LIGHT}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ARMOR}},
+			{func = ESOAPI.GetItemLinkArmorType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ARMORTYPE_LIGHT}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
 			{func = IsItemNeededForResearch, funcArgs = BMR_ITEMLINK, values = {true}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
 		},
-		name = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_LIGHT), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
-		tooltip = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString(SI_ITEM_FORMAT_STR_ARMOR), GetString("SI_ARMORTYPE", ARMORTYPE_LIGHT), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		name = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_LIGHT), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_ARMOR), ESOAPI.GetString("SI_ARMORTYPE", ESOAPI.ARMORTYPE_LIGHT), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
 	}
 
 	--[[ ClothierAll										-- not working so far
@@ -1786,73 +1864,73 @@ end
 	}]]   -- not working so far
 
 	-- Researchable Weapons (smithing)
-	ruleName = "weaponTypeResearchable" .. CRAFTING_TYPE_BLACKSMITHING
+	ruleName = "weaponTypeResearchable" .. ESOAPI.CRAFTING_TYPE_BLACKSMITHING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_WEAPON}},
-			{func = GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {WEAPONTYPE_AXE, WEAPONTYPE_DAGGER, WEAPONTYPE_HAMMER, WEAPONTYPE_SWORD, WEAPONTYPE_TWO_HANDED_AXE, WEAPONTYPE_TWO_HANDED_HAMMER, WEAPONTYPE_TWO_HANDED_SWORD}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_WEAPON}},
+			{func = ESOAPI.GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.WEAPONTYPE_AXE, ESOAPI.WEAPONTYPE_DAGGER, ESOAPI.WEAPONTYPE_HAMMER, ESOAPI.WEAPONTYPE_SWORD, ESOAPI.WEAPONTYPE_TWO_HANDED_AXE, ESOAPI.WEAPONTYPE_TWO_HANDED_HAMMER, ESOAPI.WEAPONTYPE_TWO_HANDED_SWORD}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
 			{func = IsItemNeededForResearch, funcArgs = BMR_ITEMLINK, values = {true}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
 		},
-		name = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString(BMR_TRADESKILL_BLACKSMITHING), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
-		tooltip = zo_strformat("<<1>> : <<2>> (<<3>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString(BMR_TRADESKILL_BLACKSMITHING), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		name = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString(BMR_TRADESKILL_BLACKSMITHING), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> : <<2>> (<<3>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString(BMR_TRADESKILL_BLACKSMITHING), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
 	}
 	
 	-- Researchable Weapons (Woodworking)
-	ruleName = "weaponTypeResearchable" .. CRAFTING_TYPE_WOODWORKING
+	ruleName = "weaponTypeResearchable" .. ESOAPI.CRAFTING_TYPE_WOODWORKING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_WEAPON}},
-			{func = GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {WEAPONTYPE_BOW, WEAPONTYPE_FIRE_STAFF, WEAPONTYPE_FROST_STAFF, WEAPONTYPE_LIGHTNING_STAFF, WEAPONTYPE_HEALING_STAFF, WEAPONTYPE_SHIELD}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_WEAPON}},
+			{func = ESOAPI.GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.WEAPONTYPE_BOW, ESOAPI.WEAPONTYPE_FIRE_STAFF, ESOAPI.WEAPONTYPE_FROST_STAFF, ESOAPI.WEAPONTYPE_LIGHTNING_STAFF, ESOAPI.WEAPONTYPE_HEALING_STAFF, ESOAPI.WEAPONTYPE_SHIELD}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {false}},
 			{func = IsItemNeededForResearch, funcArgs = BMR_ITEMLINK, values = {true}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {false}},
 		},
-		name = zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString("SI_WEAPONTYPE", WEAPONTYPE_SHIELD), GetString(BMR_TRADESKILL_WOODWORKING), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
-		tooltip = zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString("SI_WEAPONTYPE", WEAPONTYPE_SHIELD), GetString(BMR_TRADESKILL_WOODWORKING), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		name = ESOAPI.zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString("SI_WEAPONTYPE", ESOAPI.WEAPONTYPE_SHIELD), ESOAPI.GetString(BMR_TRADESKILL_WOODWORKING), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString("SI_WEAPONTYPE", ESOAPI.WEAPONTYPE_SHIELD), ESOAPI.GetString(BMR_TRADESKILL_WOODWORKING), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
 	}
 	
 	-- WoodworkingAll
-	ruleName = "woodworkingAll" .. CRAFTING_TYPE_WOODWORKING
+	ruleName = "woodworkingAll" .. ESOAPI.CRAFTING_TYPE_WOODWORKING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_WEAPON}},
-			{func = GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {WEAPONTYPE_BOW, WEAPONTYPE_FIRE_STAFF, WEAPONTYPE_FROST_STAFF, WEAPONTYPE_LIGHTNING_STAFF, WEAPONTYPE_HEALING_STAFF, WEAPONTYPE_SHIELD}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {true}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_WEAPON}},
+			{func = ESOAPI.GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.WEAPONTYPE_BOW, ESOAPI.WEAPONTYPE_FIRE_STAFF, ESOAPI.WEAPONTYPE_FROST_STAFF, ESOAPI.WEAPONTYPE_LIGHTNING_STAFF, ESOAPI.WEAPONTYPE_HEALING_STAFF, ESOAPI.WEAPONTYPE_SHIELD}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {true}},
 			{func = IsItemNeededForResearch, funcArgs = BMR_ITEMLINK, values = {true}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {true}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {true}},
 		},
-		name = zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString("SI_WEAPONTYPE", WEAPONTYPE_SHIELD), GetString(BMR_TRADESKILL_WOODWORKING), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
-		tooltip = zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString("SI_WEAPONTYPE", WEAPONTYPE_SHIELD), GetString(BMR_TRADESKILL_WOODWORKING), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		name = ESOAPI.zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString("SI_WEAPONTYPE", ESOAPI.WEAPONTYPE_SHIELD), ESOAPI.GetString(BMR_TRADESKILL_WOODWORKING), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString("SI_WEAPONTYPE", ESOAPI.WEAPONTYPE_SHIELD), ESOAPI.GetString(BMR_TRADESKILL_WOODWORKING), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
 	}
 	
 	-- WoodworkingGBank
-	ruleName = "woodworkingGBank" .. CRAFTING_TYPE_WOODWORKING
+	ruleName = "woodworkingGBank" .. ESOAPI.CRAFTING_TYPE_WOODWORKING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_WEAPON}},
-			{func = GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {WEAPONTYPE_BOW, WEAPONTYPE_FIRE_STAFF, WEAPONTYPE_FROST_STAFF, WEAPONTYPE_LIGHTNING_STAFF, WEAPONTYPE_HEALING_STAFF, WEAPONTYPE_SHIELD}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {true}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_WEAPON}},
+			{func = ESOAPI.GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.WEAPONTYPE_BOW, ESOAPI.WEAPONTYPE_FIRE_STAFF, ESOAPI.WEAPONTYPE_FROST_STAFF, ESOAPI.WEAPONTYPE_LIGHTNING_STAFF, ESOAPI.WEAPONTYPE_HEALING_STAFF, ESOAPI.WEAPONTYPE_SHIELD}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {true}},
 			{func = IsItemNeededForResearch, funcArgs = BMR_ITEMLINK, values = {true}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {true}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {true}},
 		},
-		name = zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString("SI_WEAPONTYPE", WEAPONTYPE_SHIELD), GetString(BMR_TRADESKILL_WOODWORKING), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
-		tooltip = zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString("SI_WEAPONTYPE", WEAPONTYPE_SHIELD), GetString(BMR_TRADESKILL_WOODWORKING), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		name = ESOAPI.zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString("SI_WEAPONTYPE", ESOAPI.WEAPONTYPE_SHIELD), ESOAPI.GetString(BMR_TRADESKILL_WOODWORKING), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString("SI_WEAPONTYPE", ESOAPI.WEAPONTYPE_SHIELD), ESOAPI.GetString(BMR_TRADESKILL_WOODWORKING), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
 	}
 	
 		-- WoodworkingStacks
-	ruleName = "woodworkingStacks" .. CRAFTING_TYPE_WOODWORKING
+	ruleName = "woodworkingStacks" .. ESOAPI.CRAFTING_TYPE_WOODWORKING
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_WEAPON}},
-			{func = GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {WEAPONTYPE_BOW, WEAPONTYPE_FIRE_STAFF, WEAPONTYPE_FROST_STAFF, WEAPONTYPE_LIGHTNING_STAFF, WEAPONTYPE_HEALING_STAFF, WEAPONTYPE_SHIELD}},
-			{func = GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {true}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_WEAPON}},
+			{func = ESOAPI.GetItemLinkWeaponType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.WEAPONTYPE_BOW, ESOAPI.WEAPONTYPE_FIRE_STAFF, ESOAPI.WEAPONTYPE_FROST_STAFF, ESOAPI.WEAPONTYPE_LIGHTNING_STAFF, ESOAPI.WEAPONTYPE_HEALING_STAFF, ESOAPI.WEAPONTYPE_SHIELD}},
+			{func = ESOAPI.GetItemLinkSetInfo, funcArgs = BMR_ITEMLINK, values = {true}},
 			{func = IsItemNeededForResearch, funcArgs = BMR_ITEMLINK, values = {true}},
-			{func = IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {true}},
+			{func = ESOAPI.IsItemJunk, funcArgs = BMR_BAG_AND_SLOT, values = {true}},
 		},
-		name = zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString("SI_WEAPONTYPE", WEAPONTYPE_SHIELD), GetString(BMR_TRADESKILL_WOODWORKING), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
-		tooltip = zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", GetString("SI_ITEMTYPE", ITEMTYPE_WEAPON), GetString("SI_WEAPONTYPE", WEAPONTYPE_SHIELD), GetString(BMR_TRADESKILL_WOODWORKING), GetString(SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		name = ESOAPI.zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString("SI_WEAPONTYPE", ESOAPI.WEAPONTYPE_SHIELD), ESOAPI.GetString(BMR_TRADESKILL_WOODWORKING), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
+		tooltip = ESOAPI.zo_strformat("<<1>> & <<2>> : <<3>> (<<4>>)", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_WEAPON), ESOAPI.GetString("SI_WEAPONTYPE", ESOAPI.WEAPONTYPE_SHIELD), ESOAPI.GetString(BMR_TRADESKILL_WOODWORKING), ESOAPI.GetString(ESOAPI.SI_SMITHING_RESEARCH_RESEARCHABLE)),
 	}
 	
 	-- Cooking
@@ -1861,40 +1939,40 @@ end
 	ruleName = "cookingIngredientsFood"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_INGREDIENT}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_INGREDIENT}},
 			{func = GetItemLinkIngredientType, funcArgs = BMR_ITEMLINK, values = {1}},
 		},
-		name = zo_strformat("<<1>> - <<2>>", GetString("SI_ITEMTYPE", ITEMTYPE_INGREDIENT), GetString("SI_ITEMTYPE", ITEMTYPE_FOOD)),
-		tooltip = zo_strformat("<<1>> - <<2>>", GetString("SI_ITEMTYPE", ITEMTYPE_INGREDIENT), GetString("SI_ITEMTYPE", ITEMTYPE_FOOD)),
+		name = ESOAPI.zo_strformat("<<1>> - <<2>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_INGREDIENT), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_FOOD)),
+		tooltip = ESOAPI.zo_strformat("<<1>> - <<2>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_INGREDIENT), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_FOOD)),
 	}
 	
 	-- Ingredients for drink
 	ruleName = "cookingIngredientsDrink"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_INGREDIENT}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_INGREDIENT}},
 			{func = GetItemLinkIngredientType, funcArgs = BMR_ITEMLINK, values = {2}},
 		},
-		name = zo_strformat("<<1>> - <<2>>", GetString("SI_ITEMTYPE", ITEMTYPE_INGREDIENT), GetString("SI_ITEMTYPE", ITEMTYPE_DRINK)),
-		tooltip = zo_strformat("<<1>> - <<2>>", GetString("SI_ITEMTYPE", ITEMTYPE_INGREDIENT), GetString("SI_ITEMTYPE", ITEMTYPE_DRINK)),
+		name = ESOAPI.zo_strformat("<<1>> - <<2>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_INGREDIENT), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_DRINK)),
+		tooltip = ESOAPI.zo_strformat("<<1>> - <<2>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_INGREDIENT), ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_DRINK)),
 	}
 	
 	-- Ingredients rare
 	ruleName = "cookingIngredientsRare"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_INGREDIENT}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_INGREDIENT}},
 			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARTIFACT, BMR_ITEM_QUALITY_LEGENDARY}},
 		},
-		name = zo_strformat(GetString(BMR_RARE_INGREDIENTS), "|H0:item:26802:28:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", "|H0:item:27059:28:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", "|H0:item:64222:29:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h"),
-		tooltip = zo_strformat(GetString(BMR_RARE_INGREDIENTS), "|H0:item:26802:28:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", "|H0:item:27059:28:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", "|H0:item:64222:29:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h"),
+		name = ESOAPI.zo_strformat(ESOAPI.GetString(BMR_RARE_INGREDIENTS), "|H0:item:26802:28:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", "|H0:item:27059:28:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", "|H0:item:64222:29:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h"),
+		tooltip = ESOAPI.zo_strformat(ESOAPI.GetString(BMR_RARE_INGREDIENTS), "|H0:item:26802:28:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", "|H0:item:27059:28:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", "|H0:item:64222:29:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h"),
 	}
 	
 	-- Ingredients rare
 	ruleName = "cookingAmbrosia"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_DRINK}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_DRINK}},
 			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_LEGENDARY}},
 		},
 		name = "|H0:item:64221:124:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h & |H0:item:115027:124:1:0:0:0:0:0:0:0:0:0:0:0:0:0:1:0:0:0:0|h|h",
@@ -1905,34 +1983,34 @@ end
 	ruleName = "cookingRecipeKnown"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_RECIPE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_RECIPE}},
 			{func = GetItemLinkSpecializedItemType, funcArgs = BMR_ITEMLINK, values = {SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_FOOD, SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_DRINK}},
 			{func = IsItemLinkRecipeKnown, funcArgs = BMR_ITEMLINK, values = {true}},
 		},
-		name = GetString(SI_RECIPE_ALREADY_KNOWN),
-		tooltip = GetString(SI_RECIPE_ALREADY_KNOWN),
+		name = ESOAPI.GetString(ESOAPI.SI_RECIPE_ALREADY_KNOWN),
+		tooltip = ESOAPI.GetString(ESOAPI.SI_RECIPE_ALREADY_KNOWN),
 	}
 	
 	-- Recipes Unknown
 	ruleName = "cookingRecipeUnknown"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_RECIPE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_RECIPE}},
 			{func = GetItemLinkSpecializedItemType, funcArgs = BMR_ITEMLINK, values = {SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_FOOD, SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_DRINK}},
 			{func = IsItemLinkRecipeKnown, funcArgs = BMR_ITEMLINK, values = {false}},
 		},
-		name = GetString(SI_ITEM_FORMAT_STR_UNKNOWN_RECIPE),
-		tooltip = GetString(SI_ITEM_FORMAT_STR_UNKNOWN_RECIPE),
+		name = ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_UNKNOWN_RECIPE),
+		tooltip = ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_UNKNOWN_RECIPE),
 	}
 	
 	-- Enchanting 
 	ruleName = "enchantingEssence"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ENCHANTING_RUNE_ESSENCE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ENCHANTING_RUNE_ESSENCE}},
 		},
-		name = GetString("SI_ITEMTYPE", ITEMTYPE_ENCHANTING_RUNE_ESSENCE),
-		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_ENCHANTING_RUNE_ESSENCE),
+		name = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_ENCHANTING_RUNE_ESSENCE),
+		tooltip = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_ENCHANTING_RUNE_ESSENCE),
 	}
 	
 --	local MAX_ENCHANTING_SKILL = 10 -- No UI function for that
@@ -1940,11 +2018,11 @@ end
 		ruleName = "enchantingPotency" --.. enchantingSkill
 		BankManagerRules.data[ruleName] = {
 			params = {
-				{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ENCHANTING_RUNE_POTENCY}},
+				{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ENCHANTING_RUNE_POTENCY}},
 			--	{func = GetItemLinkRequiredCraftingSkillRank, funcArgs = BMR_ITEMLINK, values = {enchantingSkill}},
 			},
-			name = GetString("SI_ITEMTYPE", ITEMTYPE_ENCHANTING_RUNE_POTENCY), -- .. " " .. zo_strformat(SI_QUEST_JOURNAL_QUEST_LEVEL, enchantingSkill),
-			tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_ENCHANTING_RUNE_POTENCY), -- .. " " .. zo_strformat(SI_QUEST_JOURNAL_QUEST_LEVEL, enchantingSkill),
+			name = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_ENCHANTING_RUNE_POTENCY), -- .. " " .. zo_strformat(SI_QUEST_JOURNAL_QUEST_LEVEL, enchantingSkill),
+			tooltip = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_ENCHANTING_RUNE_POTENCY), -- .. " " .. zo_strformat(SI_QUEST_JOURNAL_QUEST_LEVEL, enchantingSkill),
 		}
 		
 --	end
@@ -1952,7 +2030,7 @@ end
 	ruleName = "enchantingTa"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ENCHANTING_RUNE_ASPECT}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ENCHANTING_RUNE_ASPECT}},
 			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_NORMAL}},
 		},
 		name = "|H0:item:45850:20:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", -- "Ta" item
@@ -1962,29 +2040,29 @@ end
 	ruleName = "enchantingAspect"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_ENCHANTING_RUNE_ASPECT}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_ENCHANTING_RUNE_ASPECT}},
 			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_MAGIC, BMR_ITEM_QUALITY_ARCANE, BMR_ITEM_QUALITY_ARTIFACT, BMR_ITEM_QUALITY_LEGENDARY}},
 		},
-		name = GetString("SI_ITEMTYPE", ITEMTYPE_ENCHANTING_RUNE_ASPECT),
-		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_ENCHANTING_RUNE_ASPECT),
+		name = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_ENCHANTING_RUNE_ASPECT),
+		tooltip = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_ENCHANTING_RUNE_ASPECT),
 	}
 	
 	ruleName = "enchantingGlyphs"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_GLYPH_ARMOR, ITEMTYPE_GLYPH_JEWELRY, ITEMTYPE_GLYPH_WEAPON}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_GLYPH_ARMOR, ITEMTYPE_GLYPH_JEWELRY, ITEMTYPE_GLYPH_WEAPON}},
 		},
-		name = GetString(SI_GAMEPADITEMCATEGORY13),
-		tooltip = GetString(SI_GAMEPADITEMCATEGORY13),
+		name = ESOAPI.GetString(SI_GAMEPADITEMCATEGORY13),
+		tooltip = ESOAPI.GetString(SI_GAMEPADITEMCATEGORY13),
 	}
 	
 	ruleName = "alchemyReagent"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_REAGENT}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_REAGENT}},
 		},
-		name = GetString("SI_ITEMTYPE", ITEMTYPE_REAGENT),
-		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_REAGENT),
+		name = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_REAGENT),
+		tooltip = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_REAGENT),
 	}
 	
 	local MAX_ALCHEMY_SKILL = 8 -- No UI function for that
@@ -1992,20 +2070,20 @@ end
 		ruleName = "alchemySolvent" .. alchemySkill
 		BankManagerRules.data[ruleName] = {
 			params = {
-				{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_POTION_BASE}},
+				{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_POTION_BASE}},
 				{func = GetItemLinkRequiredCraftingSkillRank, funcArgs = BMR_ITEMLINK, values = {alchemySkill}},
 			},
-			name = GetString(SI_GROUP_LIST_PANEL_LEVEL_HEADER) .. alchemySkill .. " - " .. zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(BankManagerRules.static.alchemySolventArray[alchemySkill])),
-			tooltip = GetString(SI_GROUP_LIST_PANEL_LEVEL_HEADER) .. alchemySkill .. " - " .. zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(BankManagerRules.static.alchemySolventArray[alchemySkill])),
+			name = ESOAPI.GetString(SI_GROUP_LIST_PANEL_LEVEL_HEADER) .. alchemySkill .. " - " .. ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, ESOAPI.GetItemLinkName(BankManagerRules.static.alchemySolventArray[alchemySkill])),
+			tooltip = ESOAPI.GetString(SI_GROUP_LIST_PANEL_LEVEL_HEADER) .. alchemySkill .. " - " .. ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, ESOAPI.GetItemLinkName(BankManagerRules.static.alchemySolventArray[alchemySkill])),
 		}
 		
 			ruleName = "alchemyPoisonSolvent"
 		BankManagerRules.data[ruleName] = {
 			params = {
-				{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_POISON_BASE}},
+				{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_POISON_BASE}},
 			},
-			name = GetString("SI_ITEMTYPE", ITEMTYPE_POISON_BASE),
-			tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_POISON_BASE),
+			name = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_POISON_BASE),
+			tooltip = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_POISON_BASE),
 		}
 	
 	end
@@ -2016,30 +2094,30 @@ end
 	ruleName = "MiscAvaRepair"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_AVA_REPAIR}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_AVA_REPAIR}},
 		},
-		name = GetString("SI_ITEMTYPE", ITEMTYPE_AVA_REPAIR),
-		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_AVA_REPAIR),
+		name = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_AVA_REPAIR),
+		tooltip = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_AVA_REPAIR),
 	}
 	
 	-- PvP siege equipment. Individual item rules can override this broad rule.
 	ruleName = "MiscPvpSiege"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_SIEGE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_SIEGE}},
 		},
-		name = GetString(BMR_PVP_SIEGE_EQUIPMENT),
-		tooltip = GetString(BMR_PVP_SIEGE_EQUIPMENT_TOOLTIP),
+		name = ESOAPI.GetString(BMR_PVP_SIEGE_EQUIPMENT),
+		tooltip = ESOAPI.GetString(BMR_PVP_SIEGE_EQUIPMENT_TOOLTIP),
 	}
 
 	-- Disguises
 	ruleName = "MiscDisguises"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_DISGUISE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_DISGUISE}},
 		},
-		name = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_DISGUISE)),
-		tooltip = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_DISGUISE)),
+		name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_DISGUISE)),
+		tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_DISGUISE)),
 	}
 	
 	-- Lockpicks: match the item ID directly because the generic item-type/quality
@@ -2049,58 +2127,58 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {30357}},
 		},
-		name = GetString("SI_ITEMTYPE", ITEMTYPE_LOCKPICK),
-		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_LOCKPICK),
+		name = ESOAPI.GetString("SI_ITEMTYPE", ITEMTYPE_LOCKPICK),
+		tooltip = ESOAPI.GetString("SI_ITEMTYPE", ITEMTYPE_LOCKPICK),
 	}
 	
 	-- Lures
 	ruleName = "MiscLure"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_LURE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_LURE}},
 		},
-		name = GetString("SI_ITEMTYPE", ITEMTYPE_LURE),
-		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_LURE),
+		name = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_LURE),
+		tooltip = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_LURE),
 	}
 	
 	-- Potions
 	ruleName = "MiscPotion"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_POTION}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_POTION}},
 		},
-		name = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_POTION)),
-		tooltip = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_POTION)),
+		name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_POTION)),
+		tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_POTION)),
 	}
 	
 	-- Poisons
 	ruleName = "MiscPoison"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_POISON}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_POISON}},
 		},
-		name = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_POISON)),
-		tooltip = zo_strformat("<<1>>", GetString("SI_ITEMTYPE", ITEMTYPE_POISON)),
+		name = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_POISON)),
+		tooltip = ESOAPI.zo_strformat("<<1>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_POISON)),
 	}
 	
 	-- Racial books
 	ruleName = "MiscRacial"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_RACIAL_STYLE_MOTIF}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_RACIAL_STYLE_MOTIF}},
 		},
-		name = GetString("SI_ITEMTYPE", ITEMTYPE_RACIAL_STYLE_MOTIF),
-		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_RACIAL_STYLE_MOTIF),
+		name = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_RACIAL_STYLE_MOTIF),
+		tooltip = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_RACIAL_STYLE_MOTIF),
 	}
 	
 	-- Containers
 	ruleName = "MiscContainer"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_CONTAINER}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_CONTAINER}},
 		},
-		name = GetString("SI_ITEMTYPE", ITEMTYPE_CONTAINER),
-		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_CONTAINER),
+		name = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_CONTAINER),
+		tooltip = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_CONTAINER),
 	}
 	
 	-- Group rules are sorted before the individual rules. If a group action is set,
@@ -2111,8 +2189,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {217917, 217918, 217919, 217920, 217921, 217922, 217923}},
 		},
-		name = GetString(BMR_CONTAINER_ALL_WRITS),
-		tooltip = GetString(BMR_CONTAINER_ALL_WRITS),
+		name = ESOAPI.GetString(BMR_CONTAINER_ALL_WRITS),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_ALL_WRITS),
 	}
 
 	ruleName = "MiscContainerUnidentifiedAllSurvey"
@@ -2120,8 +2198,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {219849, 219850, 219851, 219852, 219853, 219854}},
 		},
-		name = GetString(BMR_CONTAINER_ALL_SURVEYS),
-		tooltip = GetString(BMR_CONTAINER_ALL_SURVEYS),
+		name = ESOAPI.GetString(BMR_CONTAINER_ALL_SURVEYS),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_ALL_SURVEYS),
 	}
 
 	-- Each item has its own rule so every global profile can configure it independently.
@@ -2130,8 +2208,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {217917}},
 		},
-		name = GetString(BMR_CONTAINER_UNKNOWN_BLACKSMITHING_WRIT),
-		tooltip = GetString(BMR_CONTAINER_UNKNOWN_BLACKSMITHING_WRIT),
+		name = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_BLACKSMITHING_WRIT),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_BLACKSMITHING_WRIT),
 	}
 
 	ruleName = "MiscContainerUnknownClothingWrit"
@@ -2139,8 +2217,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {217918}},
 		},
-		name = GetString(BMR_CONTAINER_UNKNOWN_CLOTHING_WRIT),
-		tooltip = GetString(BMR_CONTAINER_UNKNOWN_CLOTHING_WRIT),
+		name = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_CLOTHING_WRIT),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_CLOTHING_WRIT),
 	}
 
 	ruleName = "MiscContainerUnknownWoodworkingWrit"
@@ -2148,8 +2226,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {217919}},
 		},
-		name = GetString(BMR_CONTAINER_UNKNOWN_WOODWORKING_WRIT),
-		tooltip = GetString(BMR_CONTAINER_UNKNOWN_WOODWORKING_WRIT),
+		name = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_WOODWORKING_WRIT),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_WOODWORKING_WRIT),
 	}
 
 	ruleName = "MiscContainerUnknownEnchantingWrit"
@@ -2157,8 +2235,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {217920}},
 		},
-		name = GetString(BMR_CONTAINER_UNKNOWN_ENCHANTING_WRIT),
-		tooltip = GetString(BMR_CONTAINER_UNKNOWN_ENCHANTING_WRIT),
+		name = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_ENCHANTING_WRIT),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_ENCHANTING_WRIT),
 	}
 
 	ruleName = "MiscContainerUnknownProvisioningWrit"
@@ -2166,8 +2244,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {217921}},
 		},
-		name = GetString(BMR_CONTAINER_UNKNOWN_PROVISIONING_WRIT),
-		tooltip = GetString(BMR_CONTAINER_UNKNOWN_PROVISIONING_WRIT),
+		name = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_PROVISIONING_WRIT),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_PROVISIONING_WRIT),
 	}
 
 	ruleName = "MiscContainerUnknownAlchemyWrit"
@@ -2175,8 +2253,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {217922}},
 		},
-		name = GetString(BMR_CONTAINER_UNKNOWN_ALCHEMY_WRIT),
-		tooltip = GetString(BMR_CONTAINER_UNKNOWN_ALCHEMY_WRIT),
+		name = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_ALCHEMY_WRIT),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_ALCHEMY_WRIT),
 	}
 
 	ruleName = "MiscContainerUnknownJewelryWrit"
@@ -2184,8 +2262,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {217923}},
 		},
-		name = GetString(BMR_CONTAINER_UNKNOWN_JEWELRY_WRIT),
-		tooltip = GetString(BMR_CONTAINER_UNKNOWN_JEWELRY_WRIT),
+		name = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_JEWELRY_WRIT),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_UNKNOWN_JEWELRY_WRIT),
 	}
 
 	ruleName = "MiscContainerTreasureMap"
@@ -2193,8 +2271,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {224681}},
 		},
-		name = GetString(BMR_CONTAINER_TREASURE_MAP),
-		tooltip = GetString(BMR_CONTAINER_TREASURE_MAP),
+		name = ESOAPI.GetString(BMR_CONTAINER_TREASURE_MAP),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_TREASURE_MAP),
 	}
 
 	ruleName = "MiscContainerUnidentifiedBlacksmithingSurvey"
@@ -2202,8 +2280,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {219849}},
 		},
-		name = GetString(BMR_CONTAINER_SURVEY_BLACKSMITHING),
-		tooltip = GetString(BMR_CONTAINER_SURVEY_BLACKSMITHING),
+		name = ESOAPI.GetString(BMR_CONTAINER_SURVEY_BLACKSMITHING),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_SURVEY_BLACKSMITHING),
 	}
 
 	ruleName = "MiscContainerUnidentifiedClothingSurvey"
@@ -2211,8 +2289,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {219850}},
 		},
-		name = GetString(BMR_CONTAINER_SURVEY_CLOTHING),
-		tooltip = GetString(BMR_CONTAINER_SURVEY_CLOTHING),
+		name = ESOAPI.GetString(BMR_CONTAINER_SURVEY_CLOTHING),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_SURVEY_CLOTHING),
 	}
 
 	ruleName = "MiscContainerUnidentifiedWoodworkingSurvey"
@@ -2220,8 +2298,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {219851}},
 		},
-		name = GetString(BMR_CONTAINER_SURVEY_WOODWORKING),
-		tooltip = GetString(BMR_CONTAINER_SURVEY_WOODWORKING),
+		name = ESOAPI.GetString(BMR_CONTAINER_SURVEY_WOODWORKING),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_SURVEY_WOODWORKING),
 	}
 
 	ruleName = "MiscContainerUnidentifiedEnchantingSurvey"
@@ -2229,8 +2307,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {219852}},
 		},
-		name = GetString(BMR_CONTAINER_SURVEY_ENCHANTING),
-		tooltip = GetString(BMR_CONTAINER_SURVEY_ENCHANTING),
+		name = ESOAPI.GetString(BMR_CONTAINER_SURVEY_ENCHANTING),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_SURVEY_ENCHANTING),
 	}
 
 	ruleName = "MiscContainerUnidentifiedAlchemySurvey"
@@ -2238,8 +2316,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {219853}},
 		},
-		name = GetString(BMR_CONTAINER_SURVEY_ALCHEMY),
-		tooltip = GetString(BMR_CONTAINER_SURVEY_ALCHEMY),
+		name = ESOAPI.GetString(BMR_CONTAINER_SURVEY_ALCHEMY),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_SURVEY_ALCHEMY),
 	}
 
 	ruleName = "MiscContainerUnidentifiedJewelrySurvey"
@@ -2247,8 +2325,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {219854}},
 		},
-		name = GetString(BMR_CONTAINER_SURVEY_JEWELRY),
-		tooltip = GetString(BMR_CONTAINER_SURVEY_JEWELRY),
+		name = ESOAPI.GetString(BMR_CONTAINER_SURVEY_JEWELRY),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_SURVEY_JEWELRY),
 	}
 
 	-- Master action for all Antiquity Leads. If set to '-', each lead can be
@@ -2258,8 +2336,8 @@ end
 		params = {
 			{func = IsAntiquityLeadItem, funcArgs = BMR_ITEMLINK, values = {true}},
 		},
-		name = GetString(BMR_CONTAINER_ANTIQUITY_LEAD),
-		tooltip = GetString(BMR_CONTAINER_ANTIQUITY_LEAD),
+		name = ESOAPI.GetString(BMR_CONTAINER_ANTIQUITY_LEAD),
+		tooltip = ESOAPI.GetString(BMR_CONTAINER_ANTIQUITY_LEAD),
 	}
 
 	do
@@ -2275,8 +2353,8 @@ end
 		for _, qualityData in ipairs(antiquityLeadQualities) do
 			local qualityKey, qualityValue, qualityStringId = qualityData[1], qualityData[2], qualityData[3]
 			ruleName = "MiscContainerAntiquityLead" .. qualityKey
-			local qualityName = GetString(qualityStringId)
-			local displayName = zo_strformat("<<1>> (<<2>>)" , GetString(BMR_CONTAINER_ANTIQUITY_LEAD), qualityName)
+			local qualityName = ESOAPI.GetString(qualityStringId)
+			local displayName = ESOAPI.zo_strformat("<<1>> (<<2>>)" , ESOAPI.GetString(BMR_CONTAINER_ANTIQUITY_LEAD), qualityName)
 			BankManagerRules.data[ruleName] = {
 				params = {
 					{func = IsAntiquityLeadItem, funcArgs = BMR_ITEMLINK, values = {true}},
@@ -2293,21 +2371,21 @@ end
 	ruleName = "MiscRepair"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_TOOL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_TOOL}},
 			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARCANE, BMR_ITEM_QUALITY_MAGIC}},
 		},
-		name = GetString(SI_REPAIR_KIT_CONFIRM),
-		tooltip = GetString(SI_REPAIR_KIT_CONFIRM),
+		name = ESOAPI.GetString(SI_REPAIR_KIT_CONFIRM),
+		tooltip = ESOAPI.GetString(SI_REPAIR_KIT_CONFIRM),
 	}
 
 	ruleName = "MiscCrownRepair"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_CROWN_REPAIR}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_CROWN_REPAIR}},
 			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARCANE, BMR_ITEM_QUALITY_MAGIC}},
 		},
-		name = GetString("SI_ITEMTYPE", ITEMTYPE_CROWN_REPAIR),
-		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_CROWN_REPAIR),
+		name = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_CROWN_REPAIR),
+		tooltip = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_CROWN_REPAIR),
 	}
 	
 	-- Do not classify crown soul gems or the Mighty Blackstone as regular soul
@@ -2318,8 +2396,8 @@ end
 		params = {
 			{func = IsStandardEmptySoulGem, funcArgs = BMR_ITEMLINK, values = {true}},
 		},
-		name = zo_strformat("<<1>> - <<2>>", GetString("SI_ITEMTYPE", ITEMTYPE_SOUL_GEM), GetString(SI_GAME_CAMERA_ACTION_EMPTY)),
-		tooltip = zo_strformat("<<1>> - <<2>>", GetString("SI_ITEMTYPE", ITEMTYPE_SOUL_GEM), GetString(SI_GAME_CAMERA_ACTION_EMPTY)),
+		name = ESOAPI.zo_strformat("<<1>> - <<2>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_SOUL_GEM), ESOAPI.GetString(SI_GAME_CAMERA_ACTION_EMPTY)),
+		tooltip = ESOAPI.zo_strformat("<<1>> - <<2>>", ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_SOUL_GEM), ESOAPI.GetString(SI_GAME_CAMERA_ACTION_EMPTY)),
 	}
 	
 	-- Soul Gems Fulfilled
@@ -2328,8 +2406,8 @@ end
 		params = {
 			{func = IsStandardFilledSoulGem, funcArgs = BMR_ITEMLINK, values = {true}},
 		},
-		name = zo_strformat("<<1>>", BMRColorizeQualityText(BMR_ITEM_QUALITY_MAGIC, GetString("SI_ITEMTYPE", ITEMTYPE_SOUL_GEM))),
-		tooltip = zo_strformat("<<1>>", BMRColorizeQualityText(BMR_ITEM_QUALITY_MAGIC, GetString("SI_ITEMTYPE", ITEMTYPE_SOUL_GEM))),
+		name = ESOAPI.zo_strformat("<<1>>", BMRColorizeQualityText(BMR_ITEM_QUALITY_MAGIC, ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_SOUL_GEM))),
+		tooltip = ESOAPI.zo_strformat("<<1>>", BMRColorizeQualityText(BMR_ITEM_QUALITY_MAGIC, ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_SOUL_GEM))),
 	}
 
 	ruleName = "MiscSoulGemsCrown"
@@ -2337,8 +2415,8 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {CROWN_SOUL_GEM_ITEM_ID}},
 		},
-		name = GetString(BMR_MISC_CROWN_SOUL_GEM),
-		tooltip = GetString(BMR_MISC_CROWN_SOUL_GEM),
+		name = ESOAPI.GetString(BMR_MISC_CROWN_SOUL_GEM),
+		tooltip = ESOAPI.GetString(BMR_MISC_CROWN_SOUL_GEM),
 	}
 	
 	--[[ Master Writs
@@ -2355,23 +2433,23 @@ end
 	ruleName = "questMasterWrit"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_MASTER_WRIT}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_MASTER_WRIT}},
 		},
-		name = GetString("SI_ITEMTYPE", ITEMTYPE_MASTER_WRIT),
-		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_MASTER_WRIT),
+		name = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_MASTER_WRIT),
+		tooltip = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_MASTER_WRIT),
 	}
 	
 	-- Treasure Maps
 	ruleName = "trophyTreasureMaps"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_TROPHY}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_TROPHY}},
 			{func = GetBMRItemLinkQuality, funcArgs = BMR_ITEMLINK, values = {BMR_ITEM_QUALITY_ARCANE}},
 			{func = GetItemLinkBindType, funcArgs = BMR_ITEMLINK, values = {BIND_TYPE_NONE}},
 			{func = IsItemLinkConsumable, funcArgs = BMR_ITEMLINK, values = {false}},
 		},
-		name = GetString(BMR_TROPHY_TREASURE_MAP),
-		tooltip = GetString(BMR_TROPHY_TREASURE_MAP),
+		name = ESOAPI.GetString(BMR_TROPHY_TREASURE_MAP),
+		tooltip = ESOAPI.GetString(BMR_TROPHY_TREASURE_MAP),
 	}
 
 -- Luminous Ink added by Sirb42
@@ -2382,96 +2460,96 @@ end
 		params = {
 			{func = GetItemLinkItemId, funcArgs = BMR_ITEMLINK, values = {204881}},
 		},
-		name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName("|H0:item:204881:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")),
-		tooltip = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName("|H0:item:204881:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")),
+		name = ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, ESOAPI.GetItemLinkName("|H1:item:204881:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")),
+		tooltip = ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_NAME, ESOAPI.GetItemLinkName("|H1:item:204881:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")),
 	}
 
 	-- Craft Surveys
 	ruleName = "trophySurveys"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_TROPHY}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_TROPHY}},
 			{func = GetItemLinkSpecializedItemType, funcArgs = BMR_ITEMLINK, values = {SPECIALIZED_ITEMTYPE_TROPHY_SURVEY_REPORT}},
 		},
-		name = GetString(BMR_TROPHY_SURVEY_MAP),
-		tooltip = GetString(BMR_TROPHY_SURVEY_MAP),
+		name = ESOAPI.GetString(BMR_TROPHY_SURVEY_MAP),
+		tooltip = ESOAPI.GetString(BMR_TROPHY_SURVEY_MAP),
 	}
 	
 	-- Frag motifs
 	ruleName = "trophyFragMotifs"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_RACIAL_STYLE_MOTIF}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_RACIAL_STYLE_MOTIF}},
 			{func = GetItemLinkSpecializedItemType, funcArgs = BMR_ITEMLINK, values = {SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_CHAPTER }},
 		},
-		name = GetString(BMR_TROPHY_MOTIF_FRAGMENT),
-		tooltip = GetString(BMR_TROPHY_MOTIF_FRAGMENT),
+		name = ESOAPI.GetString(BMR_TROPHY_MOTIF_FRAGMENT),
+		tooltip = ESOAPI.GetString(BMR_TROPHY_MOTIF_FRAGMENT),
 	}
 	
 	-- Recipe Fragments -- share same rules as IC trophies (sewers & exterior)
 	ruleName = "trophyFragRecipe"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_TROPHY}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_TROPHY}},
 			{func = GetItemLinkSpecializedItemType, funcArgs = BMR_ITEMLINK, values = {SPECIALIZED_ITEMTYPE_TROPHY_RECIPE_FRAGMENT}},
 		},
-		name = GetString(BMR_TROPHY_RECIPE_FRAGMENT),
-		tooltip = GetString(BMR_TROPHY_RECIPE_FRAGMENT),
+		name = ESOAPI.GetString(BMR_TROPHY_RECIPE_FRAGMENT),
+		tooltip = ESOAPI.GetString(BMR_TROPHY_RECIPE_FRAGMENT),
 	}
 	
 	-- IC Trophies (dungeons)
 	ruleName = "trophyICPVE"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_TROPHY}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_TROPHY}},
 			{func = GetItemLinkSpecializedItemType, funcArgs = BMR_ITEMLINK, values = {SPECIALIZED_ITEMTYPE_TROPHY_KEY_FRAGMENT}},
 		},
-		name = GetString(BMR_TROPHY_IMPERIALCITY_PVE),
-		tooltip = GetString(BMR_TROPHY_IMPERIALCITY_PVE),
+		name = ESOAPI.GetString(BMR_TROPHY_IMPERIALCITY_PVE),
+		tooltip = ESOAPI.GetString(BMR_TROPHY_IMPERIALCITY_PVE),
 	}
 	
 	-- Recipes known
 	ruleName = "HousingRecipeKnown"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_RECIPE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_RECIPE}},
 			{func = GetItemLinkSpecializedItemType, funcArgs = BMR_ITEMLINK, values = {SPECIALIZED_ITEMTYPE_RECIPE_ALCHEMY_FORMULA_FURNISHING, SPECIALIZED_ITEMTYPE_RECIPE_BLACKSMITHING_DIAGRAM_FURNISHING, SPECIALIZED_ITEMTYPE_RECIPE_CLOTHIER_PATTERN_FURNISHING, SPECIALIZED_ITEMTYPE_RECIPE_ENCHANTING_SCHEMATIC_FURNISHING, SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_DESIGN_FURNISHING, SPECIALIZED_ITEMTYPE_RECIPE_WOODWORKING_BLUEPRINT_FURNISHING, SPECIALIZED_ITEMTYPE_RECIPE_JEWELRYCRAFTING_SKETCH_FURNISHING}},
 			{func = IsItemLinkRecipeKnown, funcArgs = BMR_ITEMLINK, values = {true}},
 		},
-		name = GetString(SI_RECIPE_ALREADY_KNOWN),
-		tooltip = GetString(SI_RECIPE_ALREADY_KNOWN),
+		name = ESOAPI.GetString(ESOAPI.SI_RECIPE_ALREADY_KNOWN),
+		tooltip = ESOAPI.GetString(ESOAPI.SI_RECIPE_ALREADY_KNOWN),
 	}
 	
 	-- Recipes Unknown
 	ruleName = "HousingRecipeUnknown"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_RECIPE}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_RECIPE}},
 			{func = GetItemLinkSpecializedItemType, funcArgs = BMR_ITEMLINK, values = {SPECIALIZED_ITEMTYPE_RECIPE_ALCHEMY_FORMULA_FURNISHING, SPECIALIZED_ITEMTYPE_RECIPE_BLACKSMITHING_DIAGRAM_FURNISHING, SPECIALIZED_ITEMTYPE_RECIPE_CLOTHIER_PATTERN_FURNISHING, SPECIALIZED_ITEMTYPE_RECIPE_ENCHANTING_SCHEMATIC_FURNISHING, SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_DESIGN_FURNISHING, SPECIALIZED_ITEMTYPE_RECIPE_WOODWORKING_BLUEPRINT_FURNISHING, SPECIALIZED_ITEMTYPE_RECIPE_JEWELRYCRAFTING_SKETCH_FURNISHING}},
 			{func = IsItemLinkRecipeKnown, funcArgs = BMR_ITEMLINK, values = {false}},
 		},
-		name = GetString(SI_ITEM_FORMAT_STR_UNKNOWN_RECIPE),
-		tooltip = GetString(SI_ITEM_FORMAT_STR_UNKNOWN_RECIPE),
+		name = ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_UNKNOWN_RECIPE),
+		tooltip = ESOAPI.GetString(ESOAPI.SI_ITEM_FORMAT_STR_UNKNOWN_RECIPE),
 	}
 	
 	-- Furnitures
 	ruleName = "HousingFurnitures"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_FURNISHING}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_FURNISHING}},
 		},
-		name = GetString("SI_ITEMTYPE", ITEMTYPE_FURNISHING),
-		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_FURNISHING),
+		name = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_FURNISHING),
+		tooltip = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_FURNISHING),
 	}
 	
 	-- Housing Ingredients
 	ruleName = "HousingIngredients"
 	BankManagerRules.data[ruleName] = {
 		params = {
-			{func = GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ITEMTYPE_FURNISHING_MATERIAL}},
+			{func = ESOAPI.GetItemLinkItemType, funcArgs = BMR_ITEMLINK, values = {ESOAPI.ITEMTYPE_FURNISHING_MATERIAL}},
 		},
-		name = GetString("SI_ITEMTYPE", ITEMTYPE_FURNISHING_MATERIAL),
-		tooltip = GetString("SI_ITEMTYPE", ITEMTYPE_FURNISHING_MATERIAL),
+		name = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_FURNISHING_MATERIAL),
+		tooltip = ESOAPI.GetString("SI_ITEMTYPE", ESOAPI.ITEMTYPE_FURNISHING_MATERIAL),
 	}
 	
 end
@@ -2485,7 +2563,7 @@ function BankManagerRules.addDefaultFilters(rulesArray, defaultsArray)
 			defaultsArray[ruleName].action = ACTION_NOTSET -- Action per default
 			defaultsArray[ruleName].onlyIfNotFullStack = true -- Value per default, even if the value is not configurable, it is present and checked
 			defaultsArray[ruleName].onlyStacks = 1 -- Same as onlyIfNotFullStack, but checked only if onlyIfNotFullStack = false
-			defaultsArray[ruleName].associatedGuild = GetString(BMR_ACTION_NOTSET) -- Default value
+			defaultsArray[ruleName].associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET) -- Default value
 		end
 	end
 	

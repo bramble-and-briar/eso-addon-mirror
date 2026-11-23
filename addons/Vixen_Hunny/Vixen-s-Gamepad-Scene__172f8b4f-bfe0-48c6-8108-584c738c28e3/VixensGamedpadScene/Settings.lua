@@ -1,164 +1,292 @@
--- Settings panel (console-friendly) via LibHarvensAddonSettings, if installed.
+-- Settings panel via LibAddonMenu-2.0 (LAM2).
+--
+-- Written the same way as Bloom HPS, whose settings persist on this client:
+-- every control reads and writes saved data directly, sliders store their
+-- 0-1 values as-is, and colors are stored as hex text.
+--
+-- Console notes: LAM2 menus can be shown by LibGamepad (as native gamepad
+-- options) or LibHarvensAddonSettings, depending on what's installed.
+--   * LibGamepad passes slider values as text ("0.35") and has no color
+--     picker, so values are converted before saving and the custom tint is a
+--     hex text box
+--   * a dropdown whose current value isn't in its list crashes the
+--     LibHarvensAddonSettings panel, so every getFunc returns a valid value,
+--     and dropdown defaults are display names on console
+--   * "refresh" is off on console: it pushed each setting's value into reused
+--     slider controls
 local VGS = VGS
 
+local PANEL_ID = "VixensGamedpadSceneSettings"
+
 local PRESETS = {
-    { name = "Natural pink", r = 1.00, g = 1.00, b = 1.00 },
-    { name = "Bubblegum",    r = 1.00, g = 0.85, b = 1.00 },
-    { name = "Lavender",     r = 0.80, g = 0.75, b = 1.00 },
-    { name = "Peach",        r = 1.00, g = 0.92, b = 0.80 },
-    { name = "Rose noir",    r = 0.70, g = 0.45, b = 0.55 },
+    { name = "Natural",   hex = "FFFFFF" },
+    { name = "Bubblegum", hex = "FFD9FF" },
+    { name = "Lavender",  hex = "CCBFFF" },
+    { name = "Peach",     hex = "FFEBCC" },
+    { name = "Rose noir", hex = "B3738C" },
 }
 
+local function IsConsole()
+    return type(IsConsoleUI) == "function" and IsConsoleUI()
+end
+
 function VGS.RegisterSettings()
-    local LHAS = LibHarvensAddonSettings
-    if type(LHAS) ~= "table" or type(LHAS.AddAddon) ~= "function" then return end
+    local LAM = LibAddonMenu2
+    if type(LAM) ~= "table" or type(LAM.RegisterAddonPanel) ~= "function" then
+        d("[Vixen's Gamepad Scene] LibAddonMenu-2.0 is missing, so there's no settings menu.")
+        return
+    end
 
     local sv, def = VGS.sv, VGS.defaults
-    local panel = LHAS:AddAddon(VGS.displayName, { allowDefaults = true, allowRefresh = true })
-    if not panel then return end
+    local console = IsConsole()
 
-    -- Every setting change goes through here: redraw, then save.
-    local function apply()
+    -- Write straight into saved data, note it for /vgslog, redraw.
+    local function set(key, value)
+        sv[key] = value
+        VGS.LogWrite(key, value, "saved")
         VGS.ApplyAll()
-        VGS.RequestSave()
     end
 
-    local function checkbox(label, key, tooltip)
-        panel:AddSetting({
-            type = LHAS.ST_CHECKBOX, label = label, tooltip = tooltip,
-            getFunction = function() return sv[key] end,
-            setFunction = function(v) sv[key] = v; apply() end,
-            default = def[key],
-        })
+    -- Defaults button: restore every setting (keeps the load counter).
+    local function ResetAll()
+        for key, value in pairs(def) do
+            sv[key] = value
+        end
+        VGS.LogWrite("all settings", "defaults", "reset")
+        VGS.ApplyAll()
     end
 
-    local function slider(label, key, min, max, step, tooltip)
-        panel:AddSetting({
-            type = LHAS.ST_SLIDER, label = label, tooltip = tooltip,
-            min = min, max = max, step = step, format = "%.2f",
-            getFunction = function() return sv[key] end,
-            setFunction = function(v) sv[key] = v; apply() end,
-            default = def[key],
-        })
-    end
-
-    panel:AddSetting({ type = LHAS.ST_SECTION, label = "Status" })
-    panel:AddSetting({ type = LHAS.ST_LABEL, label = function() return VGS.GetStatus() end })
-    panel:AddSetting({
-        type = LHAS.ST_BUTTON, label = "Display test", buttonText = "Toggle test",
-        tooltip = "Shows four test squares and paints the menu panels magenta. Press again to turn off.",
-        clickHandler = function() VGS.ToggleTest() end,
+    LAM:RegisterAddonPanel(PANEL_ID, {
+        type = "panel",
+        name = VGS.displayName,
+        displayName = VGS.displayName,
+        author = "Vixen",
+        version = "1.0.0",
+        slashCommand = "/vgs",
+        registerForDefaults = true,
+        registerForRefresh = true,
+        resetFunc = ResetAll,
     })
 
-    panel:AddSetting({ type = LHAS.ST_SECTION, label = "Theme" })
+    local options = {}
+    local function add(option) options[#options + 1] = option end
+
+    -- Console guard against stale writes. LibGamepad attaches its "save on
+    -- change" handler to pooled slider / list controls, and the game moves
+    -- those controls itself when the options list is rebuilt (e.g. when the
+    -- menu closes); that saved values nobody chose, such as max opacity. A
+    -- player on a gamepad can only move a slider one step, or a list one item,
+    -- at a time, so on console any bigger jump is treated as stale and ignored.
+    -- (On PC a slider can be dragged and a dropdown can jump, so no guard.)
+    local function IsOneStep(old, new, step)
+        if not console then return true end
+        old = tonumber(old)
+        if not old then return true end
+        return math.abs(new - old) <= step * 1.5 + 1e-6
+    end
+
+    local function IsNeighbourItem(values, old, new)
+        if not console then return true end
+        local oldIndex, newIndex
+        for i, v in ipairs(values) do
+            if v == old then oldIndex = i end
+            if v == new then newIndex = i end
+        end
+        if not (oldIndex and newIndex) then return true end
+        local distance = math.abs(oldIndex - newIndex)
+        return distance <= 1 or distance == #values - 1 -- lists wrap around
+    end
+
+    -- Dropdown default: PC LAM2 wants the value, console wants the name.
+    local function dropdownDefault(names, values, value)
+        if not console then return value end
+        for i, v in ipairs(values) do
+            if v == value then return names[i] end
+        end
+        return names[1]
+    end
+
+    local function checkbox(name, key, tooltip)
+        add({
+            type = "checkbox", name = name, tooltip = tooltip,
+            getFunc = function() return sv[key] end,
+            setFunc = function(value)
+                -- may arrive as text from the gamepad options screen
+                set(key, value == true or value == "true" or value == 1 or value == "1")
+            end,
+            default = def[key],
+        })
+    end
+
+    -- Same shape as Bloom HPS's sliders: the stored 0-1 value. LibGamepad
+    -- hands the value over as formatted text ("0.35"), so convert it to a
+    -- number (and keep it in range) before saving.
+    local function slider(name, key, min, max, step, tooltip)
+        add({
+            type = "slider", name = name, tooltip = tooltip,
+            min = min, max = max, step = step,
+            decimals = step < 0.01 and 3 or (step < 1 and 2 or 0),
+            getFunc = function() return tonumber(sv[key]) or def[key] end,
+            setFunc = function(value)
+                local n = tonumber(value)
+                if not n then return end
+                n = math.max(min, math.min(max, n))
+                local old = tonumber(sv[key])
+                if old == n then return end
+                if not IsOneStep(old, n, step) then
+                    VGS.LogWrite(key, n, "BLOCKED: jump from " .. tostring(old))
+                    return
+                end
+                set(key, n)
+            end,
+            default = def[key],
+        })
+    end
+
+    -- Status (before the first header, so it sits on the main page on console,
+    -- where headers become sub-menus) ----------------------------------------
+    add({ type = "description", title = "Status", text = function() return VGS.GetStatus() end })
+    add({
+        type = "button", name = "Save now",
+        tooltip = "Asks the game to save your settings right away (also /vgssave).",
+        func = function() VGS.SaveNow() end,
+    })
+    -- No "Display test" button here on purpose: the gamepad settings menu
+    -- (LibGamepad) can fire button callbacks by itself when it closes, which
+    -- switched the test on and painted every panel magenta (it looked like
+    -- max opacity). The test is only available as /vgstest.
+
+    -- Theme ------------------------------------------------------------------
+    add({ type = "header", name = "Theme" })
     checkbox("Enable theme", "enabled")
 
-    -- Theme picker: "My class" first, then every theme grouped by kind.
-    local themeItems = { { name = "My class (auto)", data = "class" } }
+    -- Pink Hearts (the default) first, then "My class", then every theme.
+    local themeNames, themeValues, validTheme = {}, {}, {}
+    local function addTheme(name, value)
+        themeNames[#themeNames + 1] = name
+        themeValues[#themeValues + 1] = value
+        validTheme[value] = true
+    end
     for _, theme in ipairs(VGS.THEMES) do
-        themeItems[#themeItems + 1] = { name = theme.group .. ": " .. theme.name, data = theme.id }
+        if theme.id == def.theme then addTheme(theme.group .. ": " .. theme.name, theme.id) end
     end
-    local defaultThemeItem
-    for _, item in ipairs(themeItems) do
-        if item.data == def.theme then defaultThemeItem = item end
+    addTheme("My class (auto)", "class")
+    for _, theme in ipairs(VGS.THEMES) do
+        if theme.id ~= def.theme then addTheme(theme.group .. ": " .. theme.name, theme.id) end
     end
-    panel:AddSetting({
-        type = LHAS.ST_DROPDOWN, label = "Theme",
+
+    add({
+        type = "dropdown", name = "Theme",
         tooltip = "Cute, cool or class themes. \"My class\" follows the character you're playing.",
-        items = themeItems,
-        getFunction = function()
-            for _, item in ipairs(themeItems) do
-                if item.data == sv.theme then return item end
+        choices = themeNames, choicesValues = themeValues,
+        getFunc = function() return validTheme[sv.theme] and sv.theme or def.theme end,
+        setFunc = function(value)
+            if not validTheme[value] or value == sv.theme then return end
+            if not IsNeighbourItem(themeValues, sv.theme, value) then
+                VGS.LogWrite("theme", value, "BLOCKED: jump from " .. tostring(sv.theme))
+                return
             end
-            return defaultThemeItem
+            set("theme", value)
         end,
-        setFunction = function(_, _, itemData)
-            if not itemData then return end
-            sv.theme = itemData.data
-            apply()
-        end,
-        default = defaultThemeItem.name,
+        default = dropdownDefault(themeNames, themeValues, def.theme),
     })
+
     checkbox("Theme every gamepad screen", "allScenes",
         "Also theme the backgrounds of other gamepad screens and dialogs, not just the main menu panels.")
     checkbox("Theme the button bar", "keybindStrip",
         "The bar along the bottom with Select / Back / Text Chat and your name and location.")
-    panel:AddSetting({
-        type = LHAS.ST_BUTTON, label = "Scan this screen", buttonText = "Scan",
+    add({
+        type = "button", name = "Scan this screen",
         tooltip = "Themes the current screen now and lists what was found in chat (also /vgsscan).",
-        clickHandler = function() VGS.ScanCurrentScene() end,
+        func = function() VGS.ScanCurrentScene() end,
     })
 
-    local STYLES = {
-        { name = "Auto", data = "auto" },
-        { name = "Images", data = "textures" },
-        { name = "Pixel art", data = "shapes" },
-    }
-    panel:AddSetting({
-        type = LHAS.ST_DROPDOWN, label = "Drawing style",
-        tooltip = "Images: smooth artwork for each theme. Pixel art: drawn from blocks, works everywhere. Auto: images, switching to pixel art if they can't load.",
-        items = STYLES,
-        -- Return the list entry itself: the library matches tables by .data,
-        -- and crashes if the current value isn't found in the list.
-        getFunction = function()
-            for _, s in ipairs(STYLES) do
-                if s.data == sv.style then return s end
+    -- Drawing style: PC only. Console always uses pixel art (images draw as
+    -- flat blocks there), and leaving the option out means the menu's stale
+    -- writes on close can't switch it.
+    local styleNames = { "Pixel art", "Images" }
+    local styleValues = { "shapes", "textures" }
+    local validStyle = { shapes = true, textures = true }
+    if not console then add({
+        type = "dropdown", name = "Drawing style",
+        tooltip = "Pixel art: drawn from blocks, works everywhere (recommended on console). Images: smooth artwork for each theme, only if your game can show add-on images; otherwise they appear as flat blocks.",
+        choices = styleNames, choicesValues = styleValues,
+        getFunc = function() return validStyle[sv.style] and sv.style or "shapes" end,
+        setFunc = function(value)
+            if not validStyle[value] or value == sv.style then return end
+            if not IsNeighbourItem(styleValues, sv.style, value) then
+                VGS.LogWrite("style", value, "BLOCKED: jump from " .. tostring(sv.style))
+                return
             end
-            return STYLES[1]
+            set("style", value)
         end,
-        setFunction = function(_, _, itemData)
-            if not itemData then return end
-            sv.style = itemData.data
-            VGS.texturesFailed = false -- give images another try
-            apply()
-        end,
-        default = STYLES[1].name,
-    })
+        default = dropdownDefault(styleNames, styleValues, "shapes"),
+    }) end
 
-    -- "Custom" is a real entry so a color-picker tint (e.g. 0.996) that
-    -- matches no preset still has something to show.
-    local presetItems = {}
-    for i, p in ipairs(PRESETS) do presetItems[i] = { name = p.name, data = i } end
-    local customItem = { name = "Custom", data = 0 }
-    presetItems[#presetItems + 1] = customItem
+    -- Tint presets (hex text, like Bloom HPS's colors). "Custom" (0) shows
+    -- when the color picker's tint matches no preset.
+    local presetNames, presetValues = {}, {}
+    for i, p in ipairs(PRESETS) do
+        presetNames[i], presetValues[i] = p.name, i
+    end
+    presetNames[#presetNames + 1], presetValues[#presetValues + 1] = "Custom", 0
 
-    local function near(a, b) return math.abs(a - b) < 0.01 end
-    panel:AddSetting({
-        type = LHAS.ST_DROPDOWN, label = "Tint preset",
-        items = presetItems,
-        getFunction = function()
-            for i, p in ipairs(PRESETS) do
-                if near(p.r, sv.tint.r) and near(p.g, sv.tint.g) and near(p.b, sv.tint.b) then
-                    return presetItems[i]
-                end
+    local function CurrentPreset()
+        local current = (sv.tintHex or ""):upper()
+        for i, p in ipairs(PRESETS) do
+            if p.hex == current then return i end
+        end
+        return 0
+    end
+
+    add({
+        type = "dropdown", name = "Tint preset",
+        tooltip = "Tints the whole theme. Natural keeps each theme's own colors.",
+        choices = presetNames, choicesValues = presetValues,
+        getFunc = CurrentPreset,
+        setFunc = function(value)
+            local index = tonumber(value) or 0
+            local p = PRESETS[index]
+            if not p then return end
+            local old = CurrentPreset()
+            if old == index then return end
+            if not IsNeighbourItem(presetValues, old, index) then
+                VGS.LogWrite("tint", p.hex, "BLOCKED: jump from preset " .. tostring(old))
+                return
             end
-            return customItem
+            set("tintHex", p.hex)
         end,
-        setFunction = function(_, _, itemData)
-            local p = itemData and PRESETS[itemData.data]
-            if not p then return end -- "Custom": keep the picker's color
-            sv.tint = { r = p.r, g = p.g, b = p.b }
-            apply()
-        end,
-        default = PRESETS[1].name,
-    })
-    panel:AddSetting({
-        type = LHAS.ST_COLOR, label = "Custom tint",
-        getFunction = function() return sv.tint.r, sv.tint.g, sv.tint.b end,
-        setFunction = function(r, g, b) sv.tint = { r = r, g = g, b = b }; apply() end,
-        default = { def.tint.r, def.tint.g, def.tint.b },
+        default = dropdownDefault(presetNames, presetValues, 1),
     })
 
-    panel:AddSetting({ type = LHAS.ST_SECTION, label = "Background" })
+    -- Custom tint as a hex text box, like Bloom HPS's colors: LibGamepad (the
+    -- gamepad options screen) has no color picker, but it does have text boxes.
+    add({
+        type = "editbox", name = "Custom tint (hex)",
+        tooltip = "6-digit hex color, e.g. FFD9FF. FFFFFF keeps each theme's own colors.",
+        getFunc = function() return sv.tintHex end,
+        setFunc = function(value)
+            local hex = type(value) == "string" and value:match("^%s*#?(%x%x%x%x%x%x)%s*$")
+            if hex then set("tintHex", hex:upper()) end
+        end,
+        default = def.tintHex,
+    })
+
+    -- Background --------------------------------------------------------------
+    add({ type = "header", name = "Background" })
     slider("Background wash opacity", "washAlpha", 0, 1, 0.05)
     slider("Particle opacity", "heartsAlpha", 0, 1, 0.05)
     slider("Particle size", "heartScale", 0.5, 2, 0.1)
-    checkbox("Animate particles", "floating", "Particles drift, fall, twinkle or flicker while a menu is open, depending on the theme.")
-    slider("Float speed", "floatSpeed", 0.005, 0.1, 0.005)
+    checkbox("Animate particles", "floating",
+        "Particles drift, fall, twinkle or flicker while a menu is open, depending on the theme.")
+    slider("Animation speed", "floatSpeed", 0.005, 0.1, 0.005)
 
-    panel:AddSetting({ type = LHAS.ST_SECTION, label = "Decorations" })
+    -- Decorations -------------------------------------------------------------
+    add({ type = "header", name = "Decorations" })
     checkbox("Corner emblem", "showCorner")
     slider("Corner emblem opacity", "cornerAlpha", 0, 1, 0.05)
     checkbox("Side divider", "showDivider")
     checkbox("Top ribbon", "showRibbon")
+
+    LAM:RegisterOptionControls(PANEL_ID, options)
 end

@@ -18,12 +18,12 @@ function TC.RegisterSettings()
     local optionsData = {
         {
             type = "header",
-            name = "Внешний вид плашки",
+            name = GetString(SI_TC_SECTION_APPEARANCE),
         },
         {
             type = "checkbox",
-            name = "Автоматическая ширина",
-            tooltip = "Плашка сама подстраивает свою ширину под длину текста, чтобы слова никогда не обрезались.",
+            name = GetString(SI_TC_AUTO_WIDTH_NAME),
+            tooltip = GetString(SI_TC_AUTO_WIDTH_TIP),
             getFunc = function() return TC.savedVars.autoWidth end,
             setFunc = function(value)
                 TC.savedVars.autoWidth = value
@@ -34,8 +34,8 @@ function TC.RegisterSettings()
         },
         {
             type = "slider",
-            name = "Фиксированная ширина (px)",
-            tooltip = "Работает, только если выключена автоматическая ширина.",
+            name = GetString(SI_TC_STRIP_WIDTH_NAME),
+            tooltip = GetString(SI_TC_STRIP_WIDTH_TIP),
             min = 200,
             max = 1000,
             step = 10,
@@ -49,7 +49,7 @@ function TC.RegisterSettings()
         },
         {
             type = "slider",
-            name = "Высота плашки (px)",
+            name = GetString(SI_TC_STRIP_HEIGHT_NAME),
             min = 20,
             max = 80,
             step = 2,
@@ -62,7 +62,7 @@ function TC.RegisterSettings()
         },
         {
             type = "slider",
-            name = "Прозрачность фона (%)",
+            name = GetString(SI_TC_STRIP_ALPHA_NAME),
             min = 0,
             max = 100,
             step = 5,
@@ -75,8 +75,8 @@ function TC.RegisterSettings()
         },
         {
             type = "checkbox",
-            name = "Закрепить плашку",
-            tooltip = "Блокирует случайное перемещение плашки мышью.",
+            name = GetString(SI_TC_STRIP_LOCK_NAME),
+            tooltip = GetString(SI_TC_STRIP_LOCK_TIP),
             getFunc = function() return TC.savedVars.stripLocked end,
             setFunc = function(value)
                 TC.savedVars.stripLocked = value
@@ -86,12 +86,12 @@ function TC.RegisterSettings()
         },
         {
             type = "header",
-            name = "Настройка шрифта и текста",
+            name = GetString(SI_TC_SECTION_FONT),
         },
         {
             type = "colorpicker",
-            name = "Цвет текста",
-            tooltip = "Выберите цвет текста на плашке.",
+            name = GetString(SI_TC_TEXT_COLOR_NAME),
+            tooltip = GetString(SI_TC_TEXT_COLOR_TIP),
             getFunc = function()
                 local c = TC.savedVars.textColor or {r = 0.9, g = 0.82, b = 0.5, a = 1}
                 return c.r, c.g, c.b, c.a or 1
@@ -104,15 +104,15 @@ function TC.RegisterSettings()
         },
         {
             type = "dropdown",
-            name = "Гарнитура шрифта",
+            name = GetString(SI_TC_FONT_FAMILY_NAME),
             choices = {
-                "Системный Жирный (Univers Bold)",
-                "Системный Обычный (Univers Regular)",
-                "Системный Средний (Univers Medium)",
-                "Игровой интерфейсный (Game UI)",
-                "Книжный / Свитки (Antique)",
-                "Рукописный / Записки (Handwritten)",
-                "Каменная плита / Заголовки (Stone Tablet)",
+                GetString(SI_TC_FONT_CHOICE_BOLD),
+                GetString(SI_TC_FONT_CHOICE_REGULAR),
+                GetString(SI_TC_FONT_CHOICE_MEDIUM),
+                GetString(SI_TC_FONT_CHOICE_GAME),
+                GetString(SI_TC_FONT_CHOICE_ANTIQUE),
+                GetString(SI_TC_FONT_CHOICE_HANDWRITTEN),
+                GetString(SI_TC_FONT_CHOICE_STONE),
             },
             choicesValues = {
                 "$(BOLD_FONT)",
@@ -133,7 +133,7 @@ function TC.RegisterSettings()
         },
         {
             type = "slider",
-            name = "Размер шрифта (px)",
+            name = GetString(SI_TC_FONT_SIZE_NAME),
             min = 12,
             max = 36,
             step = 1,
@@ -147,13 +147,13 @@ function TC.RegisterSettings()
         },
         {
             type = "dropdown",
-            name = "Стиль тени / обводки",
+            name = GetString(SI_TC_FONT_STYLE_NAME),
             choices = {
-                "Мягкая тень (Рекомендуется)",
-                "Четкая тень",
-                "Контур (Outline)",
-                "Тонкая тень",
-                "Без тени",
+                GetString(SI_TC_STYLE_CHOICE_SOFT),
+                GetString(SI_TC_STYLE_CHOICE_HARD),
+                GetString(SI_TC_STYLE_CHOICE_OUTLINE),
+                GetString(SI_TC_STYLE_CHOICE_THIN),
+                GetString(SI_TC_STYLE_CHOICE_NONE),
             },
             choicesValues = {
                 "soft-shadow-thick",
@@ -172,12 +172,12 @@ function TC.RegisterSettings()
         },
         {
             type = "header",
-            name = "Отображаемые элементы",
+            name = GetString(SI_TC_SECTION_ELEMENTS),
         },
         {
             type = "checkbox",
-            name = "День недели",
-            tooltip = "Показывать день недели (Сандас, Морндас...)",
+            name = GetString(SI_TC_SHOW_WDAY_NAME),
+            tooltip = GetString(SI_TC_SHOW_WDAY_TIP),
             getFunc = function() return TC.savedVars.showDayOfWeek end,
             setFunc = function(value)
                 TC.savedVars.showDayOfWeek = value
@@ -187,8 +187,8 @@ function TC.RegisterSettings()
         },
         {
             type = "checkbox",
-            name = "Число и месяц",
-            tooltip = "Показывать число и месяц (14 Утренней звезды...)",
+            name = GetString(SI_TC_SHOW_DATE_NAME),
+            tooltip = GetString(SI_TC_SHOW_DATE_TIP),
             getFunc = function() return TC.savedVars.showDate end,
             setFunc = function(value)
                 TC.savedVars.showDate = value
@@ -198,8 +198,8 @@ function TC.RegisterSettings()
         },
         {
             type = "checkbox",
-            name = "Год и эра",
-            tooltip = "Показывать год (582 год 2-й эры)",
+            name = GetString(SI_TC_SHOW_YEAR_NAME),
+            tooltip = GetString(SI_TC_SHOW_YEAR_TIP),
             getFunc = function() return TC.savedVars.showYear end,
             setFunc = function(value)
                 TC.savedVars.showYear = value
@@ -209,8 +209,8 @@ function TC.RegisterSettings()
         },
         {
             type = "checkbox",
-            name = "Знак зодиака",
-            tooltip = "Показывать текущее созвездие (Знак: Ритуал...)",
+            name = GetString(SI_TC_SHOW_SIGN_NAME),
+            tooltip = GetString(SI_TC_SHOW_SIGN_TIP),
             getFunc = function() return TC.savedVars.showSign end,
             setFunc = function(value)
                 TC.savedVars.showSign = value
@@ -220,8 +220,8 @@ function TC.RegisterSettings()
         },
         {
             type = "checkbox",
-            name = "Время Тамриэля",
-            tooltip = "Показывать игровое время (часы и минуты)",
+            name = GetString(SI_TC_SHOW_TIME_NAME),
+            tooltip = GetString(SI_TC_SHOW_TIME_TIP),
             getFunc = function() return TC.savedVars.showTime end,
             setFunc = function(value)
                 TC.savedVars.showTime = value

@@ -422,16 +422,19 @@ function A:UpdateCompass(now)
 	c.why = count > 0 and "drawing" or "no marked member could be placed (see each marker)"
 end
 
+-- What the tick runs under its pcall (a method, so that no closure is made every frame: see A:TickWork).
+function A:CompassStep(now)
+	self:CompassLearn(now)
+	self:UpdateCompass(now)
+end
+
 -- Called by the tick: a failure counts, and five in a row switch this part off for the session.
 function A:CompassTick(now)
 	local c = self.compass
 	if c.off then
 		return
 	end
-	local ok, err = pcall(function()
-		self:CompassLearn(now)
-		self:UpdateCompass(now)
-	end)
+	local ok, err = pcall(self.CompassStep, self, now)
 	if ok then
 		c.errorsInRow = 0
 		return

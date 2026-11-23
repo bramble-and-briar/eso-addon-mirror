@@ -1,8 +1,8 @@
 ## Title: Battle Ground Rating
 ## Description: BG Rating ladder, Fantasy ESO analytics, scouting and career tracking
 ## Author: Trash Man Enterprises
-## Version: 4.0.6-blue
-## AddOnVersion: 31.0.0
+## Version: 4.0.8
+## AddOnVersion: 32.0.0
 ## APIVersion: 2.5.3.0
 ## SavedVariables: ESOFantasySaved
 ESOFantasy.lua

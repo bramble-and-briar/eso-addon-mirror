@@ -25,7 +25,7 @@ local ROW_GAP  = 4
 local PAD      = 2
 
 local C_BG     = { r = 0.05, g = 0.11, b = 0.07, a = 0.92 }
-local C_ACCENT = { r = 0.40, g = 0.85, b = 0.52, a = 1.0 }
+local C_ACCENT = Verdant.lib.themes.tint("watch", 1.0)
 local C_NAME   = { r = 0.90, g = 1.00, b = 0.92, a = 1.0 }
 local C_SOON   = { r = 1.00, g = 0.85, b = 0.40, a = 1.0 }
 local C_NOW    = { r = 0.95, g = 0.34, b = 0.28, a = 1.0 }
@@ -47,7 +47,7 @@ local function build_row(i)
 
   local accent = WM:CreateControl("VerdantWatchRowAccent" .. i, window, CT_TEXTURE)
   accent:SetTexture(FILL_TEXTURE)
-  accent:SetTextureCoords(0, 0.05, 0, 1)
+  accent:SetTextureCoords(0, 1, 0, 0.05)
   accent:SetAnchor(TOPLEFT, window, TOPLEFT, 0, y)
   accent:SetDimensions(3, ROW_H)
   accent:SetColor(C_ACCENT.r, C_ACCENT.g, C_ACCENT.b, C_ACCENT.a)
@@ -89,8 +89,11 @@ local function row_hidden(row, hidden)
   row.time:SetHidden(hidden)
 end
 
+local last_alerts
+
 function M.render(alerts)
   if not window then return end
+  last_alerts = alerts
   local chime = alerts.chime or 0
   if chime == 2 then
     Sound.play("alert_ready")
@@ -136,6 +139,10 @@ function M.render(alerts)
   window:SetHeight(PAD * 2 + n * ROW_H + (n - 1) * ROW_GAP)
   window:SetHidden(false)
 end
+
+Verdant.lib.themes.on_change(function()
+  if window and last_alerts and not window:IsHidden() then M.render(last_alerts) end
+end)
 
 function M.on_move_stop()
   local sv = Verdant.SavedVars

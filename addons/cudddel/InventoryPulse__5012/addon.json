@@ -18,7 +18,7 @@
     "InventoryPulse"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5012/",
-  "fingerprint": "3a818657694ad2b21d2bc76c5ce5356f44111490b469e4b4217751d7d4c90f5b",
+  "fingerprint": "b661231d77364aeb478a8ad032d325bd0621e7d18a14068675e29d2d53e1277b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18245.png",
     "https://cdn-eso.mmoui.com/preview/pvw18246.png",
@@ -31,11 +31,11 @@
   "source_id": "5012",
   "source_url": "https://www.esoui.com/downloads/info5012-InventoryPulse.html",
   "stats": {
-    "downloads": 65,
+    "downloads": 90,
     "favorites": 0,
-    "monthly_downloads": 41
+    "monthly_downloads": 88
   },
   "title": "InventoryPulse",
-  "updated_at": 1794416115000,
-  "version": "1.0.2"
+  "updated_at": 1795361206000,
+  "version": "1.1.0"
 }

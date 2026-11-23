@@ -132,7 +132,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rhythmos - ESO Combat Overhaul](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nickxon/Rhythmos---ESO-Combat-Overhaul__4586) | Nickxon | PC / Mac | 1.0 |
 | [Ride Along](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Ride-Along__e6c08a97-e33e-4716-83c6-a46ad3c43fbb) | clubwratt | Console | — |
 | [Ride Along](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Ride-Along__5092) | Schrodi | PC / Mac | 2.0.0 |
-| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.11.21 |
+| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.11.23 |
 | [Riding School](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Riding-School__2491) | Shadowfen | PC / Mac | 1.4.22 |
 | [RipFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/RipFilter__1844) | kadeer | PC / Mac | 0.75 |
 | [Riposte Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Riposte-Tracker__491c3ac5-72b5-4579-80fa-36d9e97a7f5b) | codeWarrior82 | Console | — |
@@ -176,7 +176,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RP Profile Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBobbyLlama/RP-Profile-Viewer__2959) | TheBobbyLlama | PC / Mac | 1.7 |
 | [RP Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/RP-Target-Frame__1371) | Phinix | PC / Mac | 1.05 |
 | [RPFlagger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/iwontsay/RPFlagger__1644) | iwontsay | PC / Mac | 1.1.0 |
-| [RPQuest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jerbil_X/RPQuest__5080) | Jerbil_X | PC / Mac | 1.4.1 |
+| [RPQuest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jerbil_X/RPQuest__5080) | Jerbil_X | PC / Mac | 1.8.1 |
 | [RSS Theme Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/RSS-Theme-Bars__4957) | its_wifey | PC / Mac | 1.4.1 |
 | [RU Client Fix Font](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marvellous-Chester/RU-Client-Fix-Font__3829) | Marvellous Chester | PC / Mac | 1.2.0 |
 | [RU Patch for Asylum Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/qulilalti/RU-Patch-for-Asylum-Tracker__2636) | qulilalti | PC / Mac | 1.0 |

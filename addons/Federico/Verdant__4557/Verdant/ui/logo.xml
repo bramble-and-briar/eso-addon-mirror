@@ -18,11 +18,11 @@
                      clampedToScreen="true">
       <Dimensions x="64" y="64"/>
 
-      <OnMoveStop>Verdant.Logo.on_move_stop()</OnMoveStop>
-      <OnMouseDown>Verdant.Logo.on_mouse_down()</OnMouseDown>
-      <OnMouseUp>Verdant.Logo.on_mouse_up(upInside)</OnMouseUp>
-      <OnMouseEnter>Verdant.Logo.on_enter()</OnMouseEnter>
-      <OnMouseExit>Verdant.Logo.on_exit()</OnMouseExit>
+      <OnMoveStop>Verdant.Window.Logo.on_move_stop()</OnMoveStop>
+      <OnMouseDown>Verdant.Window.Logo.on_mouse_down()</OnMouseDown>
+      <OnMouseUp>Verdant.Window.Logo.on_mouse_up(upInside)</OnMouseUp>
+      <OnMouseEnter>Verdant.Window.Logo.on_enter()</OnMouseEnter>
+      <OnMouseExit>Verdant.Window.Logo.on_exit()</OnMouseExit>
 
       <Controls>
         <!-- Glow halo, drawn BEHIND the logo (declared first). Bigger than the

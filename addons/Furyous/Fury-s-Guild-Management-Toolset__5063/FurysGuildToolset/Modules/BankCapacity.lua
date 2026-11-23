@@ -14,7 +14,7 @@ local BankCapacity = GT:RegisterModule("capacity", {})
 local REARM_BELOW_POINTS = 5   -- alert again only after dropping 5 points below the threshold
 
 BankCapacity.defaults = {
-    enabled = true,
+    enabled = false,   -- every feature starts off on a new install (Albert, 1.3.0)
     alertAtPercent = 90,
     snapshots = {},   -- [guildId] = { used, size, ts }
     alerted = {},     -- [guildId] = true while over the threshold and already alerted
@@ -79,34 +79,41 @@ function BankCapacity:DescribeGuild(guildId)
     return string.format("|c%s%d%%|r  (%d/%d slots)  counted %s", color, percent, used, size, U.FormatAgo(ts))
 end
 
+function BankCapacity:TabRows()
+    local rows = {}
+    for _, guildId in ipairs(U.GetGuildIds()) do
+        if GT:IsAlertGuild(guildId) then
+            rows[#rows + 1] = { text = string.format("%s (alert at %d%%):  %s", U.GuildName(guildId), self:AlertAt(guildId), self:DescribeGuild(guildId)) }
+        end
+    end
+    return rows
+end
+
+function BankCapacity:TabExportLines()
+    local lines = { "Guild\tUsed\tSize\tPercent\tLast counted" }
+    for _, guildId in ipairs(U.GetGuildIds()) do
+        local used, size, ts = self:GetCount(guildId)
+        if used and GT:IsAlertGuild(guildId) then
+            lines[#lines + 1] = table.concat({ U.GuildName(guildId), used, size, math.floor(used * 100 / size),
+                U.FormatDate(ts) }, "\t")
+        end
+    end
+    return lines
+end
+
+function BankCapacity:TabSummary()
+    return "Counted each time you open a guild bank. Each guild's alert level is on the Guild rules settings page (/gtsettings > Open Guild rules settings)."
+end
+
 function BankCapacity:RegisterTab()
     GT.Report:RegisterTab({
         id = "capacity",
+            GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "Bank space alerts", true) end,
         tip = "How full each guild bank is, counted when you open it.",
         title = "Bank space",
-        GetSummary = function()
-            return "Counted each time you open a guild bank. Each guild's alert level is in /gtsettings under Rules for (guild)."
-        end,
-        GetRows = function()
-            local rows = {}
-            for _, guildId in ipairs(U.GetGuildIds()) do
-                if GT:IsAlertGuild(guildId) then
-                    rows[#rows + 1] = { text = string.format("%s (alert at %d%%):  %s", U.GuildName(guildId), self:AlertAt(guildId), self:DescribeGuild(guildId)) }
-                end
-            end
-            return rows
-        end,
-        GetExportLines = function()
-            local lines = { "Guild\tUsed\tSize\tPercent\tLast counted" }
-            for _, guildId in ipairs(U.GetGuildIds()) do
-                local used, size, ts = self:GetCount(guildId)
-                if used and GT:IsAlertGuild(guildId) then
-                    lines[#lines + 1] = table.concat({ U.GuildName(guildId), used, size, math.floor(used * 100 / size),
-                        U.FormatDate(ts) }, "\t")
-                end
-            end
-            return lines
-        end,
+        GetSummary = function() return self:TabSummary() end,
+        GetRows = function() return self:TabRows() end,
+        GetExportLines = function() return self:TabExportLines() end,
     })
 end
 
@@ -126,7 +133,8 @@ function BankCapacity:BuildSettings(options)
     options[#options + 1] = { type = "submenu", name = "Guild bank space", controls = {
         { type = "checkbox", name = "Alert when a guild bank is nearly full", getFunc = function() return sv.enabled end,
           setFunc = function(v) sv.enabled = v end, default = defaults.enabled },
-        { type = "description", text = "The game only shows guild bank slots while the bank is open, so the count is taken each time you open a guild bank. Between visits you see the last count and how long ago it was taken. How full counts as nearly full is set for each guild under Rules for (guild) below." },
+        { type = "description", text = "The game only shows guild bank slots while the bank is open, so the count is taken each time you open a guild bank. Between visits you see the last count and how long ago it was taken. How full counts as nearly full is set for each guild under Rules for (guild) on the Guild rules page." },
+        GT.Settings:RulesButton("Opens the Guild rules page, where each guild's \"nearly full\" level is set."),
     } }
 end
 

@@ -77,10 +77,12 @@ BattleScrolls = BattleScrolls or {}
 
 ---@class InventoryPocPolicy
 ---@field MIN_LISTING number
+---@field GEAR_MIN_LISTING number Gear below this is not worth a listing slot
 ---@field EXPENSIVE_PLAN number
 ---@field LISTING_RESERVE number Listings the pack keeps ready beyond the free listing slots
 local policy = {
     MIN_LISTING = 2000,
+    GEAR_MIN_LISTING = 5000,
     EXPENSIVE_PLAN = 10000,
     LISTING_RESERVE = 10,
 }
@@ -146,7 +148,7 @@ function policy.gearSaleMinimum(item)
         -- floor covers its possible return without assuming an extraction rate.
         materialValue = materialValue + item.improvementMaterialUnit
     end
-    return math.max(policy.MIN_LISTING, item.vendorUnit, materialValue)
+    return math.max(policy.GEAR_MIN_LISTING, item.vendorUnit, materialValue)
 end
 
 ---@param item InventoryPocItem
@@ -299,7 +301,7 @@ local function classify(item)
                 if minimum and math.floor(item.marketUnit) >= minimum then return decision('list', 'sale') end
                 -- The native trait list has not loaded yet: wait. A material that
                 -- exists without any price falls through to deconstruction.
-                if not item.traitMaterialResolved and item.marketUnit >= policy.MIN_LISTING then
+                if not item.traitMaterialResolved and item.marketUnit >= policy.GEAR_MIN_LISTING then
                     return decision('defer', 'price')
                 end
             end

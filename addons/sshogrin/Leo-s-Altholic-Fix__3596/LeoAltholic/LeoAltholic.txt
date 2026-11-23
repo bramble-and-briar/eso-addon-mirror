@@ -1,0 +1,29 @@
+## Title: Leo's Altholic
+## APIVersion: 101051 101052
+## Version: 1.9.8
+## AddOnVersion: 1980
+## Author: |c39B027@LeandroSilva|r Fix by |c2046e5sshogrin|r
+## SavedVariables: LeoAltholicSavedVariables LeoAltholicCharVariables
+## DependsOn: LibFeedback LibAddonMenu-2.0>=43
+
+Lang\en.lua
+Lang\$(language).lua
+
+LeoAltholic.xml
+LeoAltholicInit.lua
+ui/bio.lua
+ui/stats.lua
+ui/champion.lua
+ui/skills.lua
+ui/skills2.lua
+ui/tracked.lua
+ui/writs.lua
+ui/inventory.lua
+ui/research.lua
+ui/toolbar.lua
+ui/checklist.lua
+LeoAltholic.lua
+LeoAltholicUI.lua
+LeoAltholic_API.lua
+Settings.lua
+Bindings.xml

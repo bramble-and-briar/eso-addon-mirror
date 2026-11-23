@@ -1,0 +1,35 @@
+## Title: Alchemist
+
+## APIVersion: 100027
+## Author: Koenari (Past Authors: weixm09(fix) @awesomebilly(mod) Helge Milde(OriginalAuthor))
+## Version: 7.1.5-1.0
+
+
+## OptionalDependsOn: LibStub LibAddonMenu-2.0 LibLuminary.lua
+## SavedVariables: alchemist_sv
+
+lib/LibStub.lua
+lib/LibLuminary.lua
+
+## Alchemist
+Alchemist.xml
+Alchemist.lua
+Alchemist/SI.lua
+localization/$(language).lua
+Alchemist/Inventory.lua
+
+
+
+
+; Original Author Helge, Maintainer and Major refactoring @awesomebilly - North America.
+; DISCLOSURE:
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls? and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+
+;If you wish to join development with my add ons.. please message me 
+;and checkout the github.
+;https://github.com/williamrussellajb/ESOPublicAddons

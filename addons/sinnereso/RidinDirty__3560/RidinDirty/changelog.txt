@@ -1,6 +1,6 @@
-2026.11.21b
-- Localized the global reference and reverted the manifest file back to .txt format as per Baertrams instructions.
-- Fixed a minor loot manager chat issue causing it to check if knownst via character knowledge etc when no itemlink found which is obviously less than ideal.
+2026.11.23
+- Added keep recall stones, forward camps and "cold" siege to loot manager white list.
+- Added "Shimmerfrost Vale" to housing whitelist.
 ** POSSIBLE FUTURE OPTIONS **
 - Auto com res?
 - add needs hook to trader window

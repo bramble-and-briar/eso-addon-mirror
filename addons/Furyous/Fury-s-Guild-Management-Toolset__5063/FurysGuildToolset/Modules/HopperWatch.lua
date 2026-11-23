@@ -13,12 +13,12 @@ local KEEP_JOINS_SECONDS = 30 * 86400
 local KEEP_RECORDS_SECONDS = 60 * 86400
 
 HopperWatch.defaults = {
-    enabled = true,
+    enabled = false,   -- every feature starts off on a new install (Albert, 1.3.0)
     maxHours = 48,
     countKicks = false,
-    autoWatchlist = true,
-    alertOnWatchlistJoin = true,
-    openWindowOnLogin = true,
+    autoWatchlist = false,
+    alertOnWatchlistJoin = false,
+    openWindowOnLogin = false,
     blacklistNote = "Bank hopper: joined and left within <<1>>",
     joins = {},        -- [guildId][displayName] = join timestamp
     records = {},      -- list of { id, guildId, guildName, name, joinTs, leaveTs, kicked, status }
@@ -209,11 +209,15 @@ function HopperWatch:IsOnGuildBlacklist(guildId, name)
     return false
 end
 
+function HopperWatch:MarkBlacklisted(record)
+    record.status = "blacklisted"
+    GT.Report:RefreshIfShown()
+end
+
+-- Used by "Blacklist all new" (confirmed once for the whole list). Mails each person
+-- the reason when that guild's blacklist mail is on.
 function HopperWatch:BlacklistRecord(record)
-    if A.Blacklist(record.guildId, record.name, self:BlacklistNote(record)) then
-        record.status = "blacklisted"
-        GT.Report:RefreshIfShown()
-    end
+    if A.BlacklistAndMail(record.guildId, record.name, self:BlacklistNote(record)) then self:MarkBlacklisted(record) end
 end
 
 -- Report tabs ---------------------------------------------------------------
@@ -239,10 +243,8 @@ function HopperWatch:GetRecordRow(record)
 
     local actions = {}
     if record.status ~= "blacklisted" and inGuild then
-        actions[#actions + 1] = { label = "Blacklist", tip = "Adds them to that guild's blacklist. Asks first.", fn = function()
-            A.Confirm("Blacklist", zo_strformat("Add <<1>> to the <<2>> blacklist?", record.name, record.guildName), function()
-                self:BlacklistRecord(record)
-            end)
+        actions[#actions + 1] = { label = "Blacklist (asks first)", tip = "Adds them to that guild's blacklist. Asks first, and can mail them the reason.", fn = function()
+            A.ConfirmBlacklist(record.guildId, record.name, self:BlacklistNote(record), function() self:MarkBlacklisted(record) end)
         end }
     end
     if self:GetWatch(record.name) then
@@ -258,11 +260,11 @@ function HopperWatch:GetRecordRow(record)
             GT.Report:RefreshIfShown()
         end }
     end
-    return {
+    for _, item in ipairs(GT.Report.ContactItems(record.name)) do actions[#actions + 1] = item end
+    return GT.Report.AddMenu({
         text = text,
         tooltip = string.format("%s\nJoined %s\nLeft %s", record.name, U.FormatDate(record.joinTs), U.FormatDate(record.leaveTs)),
-        actions = actions,
-    }
+    }, actions)
 end
 
 function HopperWatch:GetVisibleRecords()
@@ -281,31 +283,73 @@ function HopperWatch:GetSortedWatchlist()
     return list
 end
 
+function HopperWatch:HoppersTabRows()
+    local rows = {}
+    for _, record in ipairs(self:GetVisibleRecords()) do rows[#rows + 1] = self:GetRecordRow(record) end
+    return rows
+end
+
+function HopperWatch:HoppersTabExportLines()
+    local lines = { "Guild\tMember\tJoined\tLeft\tHours in guild\tHow\tStatus" }
+    for _, r in ipairs(self:GetVisibleRecords()) do
+        lines[#lines + 1] = table.concat({ r.guildName, r.name, U.FormatDate(r.joinTs), U.FormatDate(r.leaveTs),
+            string.format("%.1f", (r.leaveTs - r.joinTs) / 3600), r.kicked and "kicked" or "left", r.status }, "\t")
+    end
+    return lines
+end
+
+function HopperWatch:WatchlistTabExportLines()
+    local lines = { "Member\tReason\tAdded" }
+    for _, entry in ipairs(self:GetSortedWatchlist()) do
+        lines[#lines + 1] = table.concat({ entry.name, ((entry.reason or ""):gsub("[\t\n]", " ")), U.FormatDate(entry.ts) }, "\t")
+    end
+    return lines
+end
+
+function HopperWatch:WatchlistTabRows()
+    local rows = {}
+    for _, entry in ipairs(self:GetSortedWatchlist()) do
+        local actions = {}
+        for _, guildId in ipairs(U.GetGuildIds()) do
+            if U.IsMember(guildId, entry.name) then
+                local gid = guildId
+                actions[#actions + 1] = { label = "Kick and blacklist (asks first)", tip = "Kicks them and adds them to the guild blacklist. Asks first, and can mail them the reason.", fn = function()
+                    A.Kick(gid, entry.name, true, "Watchlist: " .. (entry.reason or ""))
+                end }
+                break
+            end
+        end
+        actions[#actions + 1] = { label = "Remove from watchlist", tip = "Takes them off your watchlist.", fn = function() self:RemoveWatch(entry.name) end }
+        for _, item in ipairs(GT.Report.ContactItems(entry.name)) do actions[#actions + 1] = item end
+        rows[#rows + 1] = GT.Report.AddMenu({
+            text = zo_strformat("<<1>>  |cAAAAAA<<2>>|r", entry.name, entry.reason or ""),
+            tooltip = "Added " .. U.FormatDate(entry.ts),
+        }, actions)
+    end
+    return rows
+end
+
+function HopperWatch:HoppersTabSummary()
+    local parts = {}
+    for _, guildId in ipairs(U.GetGuildIds()) do
+        if GT:IsAlertGuild(guildId) then parts[#parts + 1] = string.format("%s %dh", U.GuildName(guildId), self:G(guildId).maxHours) end
+    end
+    return string.format("People who left soon after joining, last 60 days. Limit: %s.", table.concat(parts, ", "))
+end
+
+function HopperWatch:WatchlistTabSummary()
+    return "Account-wide. You get an alert when anyone here joins one of your guilds."
+end
+
 function HopperWatch:RegisterTabs()
     GT.Report:RegisterTab({
         id = "hoppers",
+            GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "The hopper report", true) end,
         tip = "People who joined and left quickly, often to empty the bank.",
         title = function() return string.format("Bank hoppers (%d)", self:CountOpen()) end,
-        GetSummary = function()
-            local parts = {}
-            for _, guildId in ipairs(U.GetGuildIds()) do
-                if GT:IsAlertGuild(guildId) then parts[#parts + 1] = string.format("%s %dh", U.GuildName(guildId), self:G(guildId).maxHours) end
-            end
-            return string.format("People who left soon after joining, last 60 days. Limit: %s.", table.concat(parts, ", "))
-        end,
-        GetRows = function()
-            local rows = {}
-            for _, record in ipairs(self:GetVisibleRecords()) do rows[#rows + 1] = self:GetRecordRow(record) end
-            return rows
-        end,
-        GetExportLines = function()
-            local lines = { "Guild\tMember\tJoined\tLeft\tHours in guild\tHow\tStatus" }
-            for _, r in ipairs(self:GetVisibleRecords()) do
-                lines[#lines + 1] = table.concat({ r.guildName, r.name, U.FormatDate(r.joinTs), U.FormatDate(r.leaveTs),
-                    string.format("%.1f", (r.leaveTs - r.joinTs) / 3600), r.kicked and "kicked" or "left", r.status }, "\t")
-            end
-            return lines
-        end,
+        GetSummary = function() return self:HoppersTabSummary() end,
+        GetRows = function() return self:HoppersTabRows() end,
+        GetExportLines = function() return self:HoppersTabExportLines() end,
         footer = {
             { label = "Blacklist all new", tip = "Blacklists everyone new on this list. Asks first.", fn = function()
                 local targets = {}
@@ -313,7 +357,8 @@ function HopperWatch:RegisterTabs()
                     if record.status == "open" and U.IsPlayerInGuild(record.guildId) then targets[#targets + 1] = record end
                 end
                 if #targets == 0 then return end
-                A.Confirm("Blacklist hoppers", zo_strformat("Add <<1>> <<1[person/people]>> to your guild blacklists?", #targets), function()
+                A.Confirm("Blacklist hoppers", zo_strformat("Add <<1>> <<1[person/people]>> to your guild blacklists?", #targets)
+                    .. "\n\nIn guilds where Mail members you blacklist is on, each of them is mailed the reason.", function()
                     for _, record in ipairs(targets) do self:BlacklistRecord(record) end
                 end)
             end },
@@ -330,37 +375,9 @@ function HopperWatch:RegisterTabs()
         id = "watchlist",
         tip = "Known hoppers. You get an alert when one joins any of your guilds.",
         title = function() return string.format("Watchlist (%d)", U.Count(self.sv.watchlist)) end,
-        GetSummary = function()
-            return "Account-wide. You get an alert when anyone here joins one of your guilds."
-        end,
-        GetExportLines = function()
-            local lines = { "Member\tReason\tAdded" }
-            for _, entry in ipairs(self:GetSortedWatchlist()) do
-                lines[#lines + 1] = table.concat({ entry.name, ((entry.reason or ""):gsub("[\t\n]", " ")), U.FormatDate(entry.ts) }, "\t")
-            end
-            return lines
-        end,
-        GetRows = function()
-            local rows = {}
-            for _, entry in ipairs(self:GetSortedWatchlist()) do
-                local actions = { { label = "Remove", tip = "Takes them off your watchlist.", fn = function() self:RemoveWatch(entry.name) end } }
-                for _, guildId in ipairs(U.GetGuildIds()) do
-                    if U.IsMember(guildId, entry.name) then
-                        local gid = guildId
-                        actions[#actions + 1] = { label = "Kick", tip = "Kicks them and adds them to the guild blacklist. Asks first.", fn = function()
-                            A.Kick(gid, entry.name, true, "Watchlist: " .. (entry.reason or ""))
-                        end }
-                        break
-                    end
-                end
-                rows[#rows + 1] = {
-                    text = zo_strformat("<<1>>  |cAAAAAA<<2>>|r", entry.name, entry.reason or ""),
-                    tooltip = "Added " .. U.FormatDate(entry.ts),
-                    actions = actions,
-                }
-            end
-            return rows
-        end,
+        GetSummary = function() return self:WatchlistTabSummary() end,
+        GetExportLines = function() return self:WatchlistTabExportLines() end,
+        GetRows = function() return self:WatchlistTabRows() end,
     })
 end
 
@@ -371,7 +388,8 @@ function HopperWatch:BuildSettings(options)
     local controls = {
         { type = "checkbox", name = "Enable hopper report", getFunc = function() return sv.enabled end,
           setFunc = function(v) sv.enabled = v; self:UpdateEventRegistration() end, default = defaults.enabled, requiresReload = true },
-        { type = "description", text = "How soon a leave counts, kicks, the watchlist and the blacklist note are set for each guild under Rules for (guild) below. The watchlist itself is shared by all your guilds." },
+        { type = "description", text = "How soon a leave counts, kicks, the watchlist and the blacklist note are set for each guild under Rules for (guild) on the Guild rules page. The watchlist itself is shared by all your guilds." },
+        GT.Settings:RulesButton("Opens the Guild rules page, where each guild's hopper settings are set: how soon a leave counts, kicks, the watchlist and the blacklist note."),
         { type = "checkbox", name = "Open the report at login when there are new hoppers",
           getFunc = function() return sv.openWindowOnLogin end, setFunc = function(v) sv.openWindowOnLogin = v end,
           default = defaults.openWindowOnLogin },

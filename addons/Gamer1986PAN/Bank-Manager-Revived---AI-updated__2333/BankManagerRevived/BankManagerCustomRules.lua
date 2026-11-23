@@ -1,7 +1,38 @@
 -- BankManagerCustomRules.lua
 -- Centralized custom-item and filter-based rule management for BankManagerRevived.
 -- Loaded after BankManager.lua and BankManagerRules.lua; runtime state is supplied via BMR.CustomRulesContext.
-local BMR = BMR -- Baertram: use the namespace initialized by BankManager.lua
+local BMR = BMR -- Use the single addon namespace initialized by BankManager.lua.
+local BankManagerRules = BMR.Rules
+-- Stable ESO API globals are cached once in a local table to reduce repeated _G lookups.
+local ESOAPI = {
+	GetString = GetString,
+	WINDOW_MANAGER = WINDOW_MANAGER,
+	zo_strformat = zo_strformat,
+	zo_strlower = zo_strlower,
+	ZO_ComboBox_ObjectFromContainer = ZO_ComboBox_ObjectFromContainer,
+	ZO_InventorySlot_GetType = ZO_InventorySlot_GetType,
+	TOPLEFT = TOPLEFT,
+	TOPRIGHT = TOPRIGHT,
+	LEFT = LEFT,
+	RIGHT = RIGHT,
+	CT_CONTROL = CT_CONTROL,
+	CT_LABEL = CT_LABEL,
+	ITEMTYPE_FURNISHING = ITEMTYPE_FURNISHING,
+	ZO_DISABLED_TEXT = ZO_DISABLED_TEXT,
+	ZO_SECOND_CONTRAST_TEXT = ZO_SECOND_CONTRAST_TEXT,
+	TEXT_WRAP_MODE_ELLIPSIS = TEXT_WRAP_MODE_ELLIPSIS,
+	ZO_COMBOBOX_SUPRESS_UPDATE = ZO_COMBOBOX_SUPRESS_UPDATE,
+	TAG_CATEGORY_FURNITURE_BEHAVIOR = TAG_CATEGORY_FURNITURE_BEHAVIOR,
+	SI_TOOLTIP_ITEM_TAG_FORMATER = SI_TOOLTIP_ITEM_TAG_FORMATER,
+	ZO_Dialogs_ShowDialog = ZO_Dialogs_ShowDialog,
+	ESO_Dialogs = ESO_Dialogs,
+	ZO_Dialogs_GetEditBoxText = ZO_Dialogs_GetEditBoxText,
+	InitializeTooltip = InitializeTooltip,
+	ClearTooltip = ClearTooltip,
+	ClearMenu = ClearMenu,
+	AddMenuItem = AddMenuItem,
+	ShowMenu = ShowMenu,
+}
 BMR.CustomRules = BMR.CustomRules or {}
 local C = BMR.CustomRules
 local function Context() return BMR.CustomRulesContext or {} end
@@ -33,7 +64,7 @@ end
 
 function C.GetCustomItemDisplayName(itemId, itemData)
 	if type(itemData) ~= "table" then
-		local rules = db and db.customItemRules or {}
+		local rules = BMR.db and BMR.db.customItemRules or {}
 		itemData = rules[tostring(itemId)] or rules[tonumber(itemId)]
 	end
 	if type(itemData) ~= "table" then return "Item " .. tostring(itemId or "?") end
@@ -47,16 +78,8 @@ local function CustomRuleDebug(message)
 	if type(fn) == "function" then fn(message) end
 end
 
--- Chat output must also work in ForcedConsoleFlow, where CHAT_SYSTEM can be nil.
 local function SendCustomRuleMessage(message)
-	if type(BMR.SafeAddChatMessage) == "function" then
-		return BMR.SafeAddChatMessage(message)
-	end
-	if CHAT_SYSTEM and type(CHAT_SYSTEM.AddMessage) == "function" then
-		local ok = pcall(CHAT_SYSTEM.AddMessage, CHAT_SYSTEM, tostring(message or ""))
-		return ok
-	end
-	return false
+	return BMR.SafeAddChatMessage(message)
 end
 local function FireBmrRuleCountRefresh()
 	local fn = A("FireRuleCountRefresh")
@@ -69,14 +92,12 @@ end
 local function SafeGetItemLinkValue(apiName, itemLink)
 	local api = _G and _G[apiName]
 	if type(api) ~= "function" then return nil end
-	local ok, first, second = pcall(api, itemLink)
-	if ok then return first, second end
-	return nil
+	return api(itemLink)
 end
 
 local function TextContains(haystack, needle)
-	local text = zo_strlower(tostring(haystack or ""))
-	local search = zo_strlower(tostring(needle or ""))
+	local text = ESOAPI.zo_strlower(tostring(haystack or ""))
+	local search = ESOAPI.zo_strlower(tostring(needle or ""))
 	return search ~= "" and string.find(text, search, 1, true) ~= nil
 end
 
@@ -121,8 +142,8 @@ local function GetItemTagReferenceInfo(reference)
 	local itemLink = BuildItemTagProbeLink(itemId)
 	local api = _G and _G.GetItemLinkItemTagInfo
 	if not itemLink or type(api) ~= "function" then return nil end
-	local ok, description, category = pcall(api, itemLink, tagIndex)
-	if ok and type(description) == "string" and description ~= "" then
+	local description, category = api(itemLink, tagIndex)
+	if type(description) == "string" and description ~= "" then
 		ITEM_TAG_REFERENCE_CACHE[reference] = {description = description, category = tonumber(category)}
 		return description, tonumber(category)
 	end
@@ -135,13 +156,13 @@ local function FormatItemTagDisplayLabel(description)
 	if string.sub(description, 1, 2) == "°" and string.sub(description, -2) == "°" then return description end
 	-- ESO exposes raw localized tag names with grammar suffixes such as ^f/^p.
 	-- The game's own formatter removes those markers and adds the tooltip's degree signs.
-	if _G and _G.SI_TOOLTIP_ITEM_TAG_FORMATER and type(zo_strformat) == "function" then
-		local ok, formatted = pcall(zo_strformat, _G.SI_TOOLTIP_ITEM_TAG_FORMATER, description)
-		if ok and type(formatted) == "string" and formatted ~= "" then return formatted end
+	if _G and ESOAPI.SI_TOOLTIP_ITEM_TAG_FORMATER and type(ESOAPI.zo_strformat) == "function" then
+		local formatted = ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_TAG_FORMATER, description)
+		if type(formatted) == "string" and formatted ~= "" then return formatted end
 	end
-	if type(zo_strformat) == "function" then
-		local ok, formatted = pcall(zo_strformat, "<<C:1>>", description)
-		if ok and type(formatted) == "string" and formatted ~= "" then return formatted end
+	if type(ESOAPI.zo_strformat) == "function" then
+		local formatted = ESOAPI.zo_strformat("<<C:1>>", description)
+		if type(formatted) == "string" and formatted ~= "" then return formatted end
 	end
 	return (string.gsub(description, "%^[%a][%a]?", ""))
 end
@@ -175,7 +196,7 @@ local function IsFoodOrDrinkTagReference(reference)
 	local itemType = GetTagReferenceSourceItemType(reference)
 	-- Provisioning tags such as Coffee, Cheese, Tea, and Sweets can be exposed
 	-- by ingredient items as well as by prepared food/drink consumables.
-	return itemType ~= nil and (itemType == _G.ITEMTYPE_FOOD or itemType == _G.ITEMTYPE_DRINK or itemType == _G.ITEMTYPE_INGREDIENT)
+	return itemType ~= nil and (itemType == ITEMTYPE_FOOD or itemType == ITEMTYPE_DRINK or itemType == ITEMTYPE_INGREDIENT)
 end
 
 local function ItemHasTagText(itemLink, query)
@@ -201,28 +222,26 @@ local function ItemHasTagText(itemLink, query)
 	for index = 1, count do
 		local api = _G and _G.GetItemLinkItemTagInfo
 		if type(api) == "function" then
-			local ok, description, category = pcall(api, itemLink, index)
-			if ok then
-				if #targetReferences > 0 then
-					-- A grouped option matches the same localized tag label across all
-					-- category IDs that ESO exposes under that label.
-					for _, target in ipairs(targetReferences) do
-						if zo_strlower(tostring(description or "")) == zo_strlower(tostring(target.description or ""))
-							and tonumber(category) == tonumber(target.category) then return true end
-					end
-				else
-					-- Compatibility path for older rules saved as plain localized text.
-					if TextContains(description, query) then return true end
-					if description and _G.SI_TOOLTIP_ITEM_TAG_FORMATER and type(zo_strformat) == "function" then
-						local formatOk, formattedTag = pcall(zo_strformat, _G.SI_TOOLTIP_ITEM_TAG_FORMATER, description)
-						if formatOk and TextContains(formattedTag, query) then return true end
-					end
-					if type(category) == "number" and type(GetString) == "function" then
-						local stringId = _G.SI_ITEMTAGCATEGORY
-						if stringId then
-							local stringOk, categoryText = pcall(GetString, stringId, category)
-							if stringOk and TextContains(categoryText, query) then return true end
-						end
+			local description, category = api(itemLink, index)
+			if #targetReferences > 0 then
+				-- A grouped option matches the same localized tag label across all
+				-- category IDs that ESO exposes under that label.
+				for _, target in ipairs(targetReferences) do
+					if ESOAPI.zo_strlower(tostring(description or "")) == ESOAPI.zo_strlower(tostring(target.description or ""))
+						and tonumber(category) == tonumber(target.category) then return true end
+				end
+			else
+				-- Compatibility path for older rules saved as plain localized text.
+				if TextContains(description, query) then return true end
+				if description and ESOAPI.SI_TOOLTIP_ITEM_TAG_FORMATER and type(ESOAPI.zo_strformat) == "function" then
+					local formattedTag = ESOAPI.zo_strformat(ESOAPI.SI_TOOLTIP_ITEM_TAG_FORMATER, description)
+					if TextContains(formattedTag, query) then return true end
+				end
+				if type(category) == "number" and type(ESOAPI.GetString) == "function" then
+					local stringId = _G.SI_ITEMTAGCATEGORY
+					if stringId then
+						local categoryText = ESOAPI.GetString(stringId, category)
+						if TextContains(categoryText, query) then return true end
 					end
 				end
 			end
@@ -235,9 +254,7 @@ local function GetCustomFilterProperty(itemLink, field)
 	if field == "quality" then
 		local api = BMR and BMR.GetItemLinkQuality
 		if type(api) ~= "function" then return nil end
-		local ok, quality = pcall(api, itemLink)
-		if ok then return quality end
-		return nil
+		return api(itemLink)
 	end
 	if field == "equipType" then return SafeGetItemLinkValue("GetItemLinkEquipType", itemLink) end
 	if field == "armorType" then return SafeGetItemLinkValue("GetItemLinkArmorType", itemLink) end
@@ -321,13 +338,13 @@ local function GetFurnitureCategoryDisplayName(categoryId)
 	if not categoryId then return nil end
 	local getName = _G and _G.GetFurnitureCategoryName
 	if type(getName) == "function" then
-		local ok, name = pcall(getName, categoryId)
-		if ok and type(name) == "string" and name ~= "" then return name end
+		local name = getName(categoryId)
+		if type(name) == "string" and name ~= "" then return name end
 	end
 	local getInfo = _G and _G.GetFurnitureCategoryInfo
 	if type(getInfo) == "function" then
-		local ok, name = pcall(getInfo, categoryId)
-		if ok and type(name) == "string" and name ~= "" then return name end
+		local name = getInfo(categoryId)
+		if type(name) == "string" and name ~= "" then return name end
 	end
 	return nil
 end
@@ -358,11 +375,10 @@ local function DoesFurnishingTaxonomyValueMatch(itemLink, value)
 	local getFurnitureDataId = _G and _G.GetItemLinkFurnitureDataId
 	local getCategoryInfo = _G and _G.GetFurnitureDataCategoryInfo
 	if type(getFurnitureDataId) ~= "function" or type(getCategoryInfo) ~= "function" then return false end
-	local idOk, furnitureDataId = pcall(getFurnitureDataId, itemLink)
-	furnitureDataId = idOk and tonumber(furnitureDataId) or nil
+	local furnitureDataId = tonumber(getFurnitureDataId(itemLink))
 	if not furnitureDataId or furnitureDataId <= 0 then return false end
-	local infoOk, actualCategoryId, actualSubcategoryId = pcall(getCategoryInfo, furnitureDataId)
-	if not infoOk or actualCategoryId == nil then return false end
+	local actualCategoryId, actualSubcategoryId = getCategoryInfo(furnitureDataId)
+	if actualCategoryId == nil then return false end
 	if categoryId then return tonumber(actualCategoryId) == tonumber(categoryId) end
 	if groupBody then
 		for pair in string.gmatch(groupBody, "([^,]+)") do
@@ -464,19 +480,19 @@ function C.GetCustomFilterDisplayName(filterId, filterData)
 	if displayName ~= "" then return displayName end
 	local searchString = tostring(filterData and filterData.searchString or "")
 	if searchString ~= "" then return searchString end
-	return GetString(BMR_CUSTOM_FILTER_RULE_SHORT) .. " " .. tostring(filterId)
+	return ESOAPI.GetString(BMR_CUSTOM_FILTER_RULE_SHORT) .. " " .. tostring(filterId)
 end
 
 function C.FindActiveCustomFilterRule(itemLink, profileRules)
 	local ids = {}
-	for filterId, filterData in pairs(db.customFilterRules or {}) do
+	for filterId, filterData in pairs(BMR.db.customFilterRules or {}) do
 		if type(filterData) == "table" and tonumber(filterId) then table.insert(ids, tostring(filterId)) end
 	end
 	table.sort(ids, function(a, b) return tonumber(a) < tonumber(b) end)
 	for _, filterId in ipairs(ids) do
 		local ruleName = GetCustomFilterRuleName(filterId)
 		local rule = profileRules and profileRules[ruleName]
-		local filterData = db.customFilterRules[filterId] or db.customFilterRules[tonumber(filterId)]
+		local filterData = BMR.db.customFilterRules[filterId] or BMR.db.customFilterRules[tonumber(filterId)]
 		if rule and rule.action ~= nil and rule.action ~= ACTION_NOTSET and DoesCustomFilterMatch(itemLink, filterData) then
 			return ruleName, rule
 		end
@@ -486,17 +502,17 @@ end
 
 function C.SyncFilterRuleDefinitions()
 	if not (BankManagerRules and BankManagerRules.data and BankManagerRules.defaults) then return end
-	db.customFilterRules = db.customFilterRules or {}
+	BMR.db.customFilterRules = BMR.db.customFilterRules or {}
 	-- Remove stale definitions after a filter is deleted.
 	for ruleName in pairs(BankManagerRules.data) do
 		local filterId = type(ruleName) == "string" and tonumber(string.match(ruleName, "^customFilter_(%d+)$")) or nil
-		if filterId and not db.customFilterRules[tostring(filterId)] and not db.customFilterRules[filterId] then
+		if filterId and not BMR.db.customFilterRules[tostring(filterId)] and not BMR.db.customFilterRules[filterId] then
 			BankManagerRules.data[ruleName] = nil
 			BankManagerRules.defaults[ruleName] = nil
-			for _, profile in pairs(db.profiles or {}) do if profile.rules then profile.rules[ruleName] = nil end end
+			for _, profile in pairs(BMR.db.profiles or {}) do if profile.rules then profile.rules[ruleName] = nil end end
 		end
 	end
-	for filterId, filterData in pairs(db.customFilterRules) do
+	for filterId, filterData in pairs(BMR.db.customFilterRules) do
 		local numericId = tonumber(filterId)
 		if numericId and type(filterData) == "table" then
 			local key = tostring(numericId)
@@ -505,7 +521,7 @@ function C.SyncFilterRuleDefinitions()
 			filterData.searchString = tostring(filterData.searchString or "")
 			filterData.specifications = type(filterData.specifications) == "table" and filterData.specifications or {}
 			local function MatchSavedFilter(itemLink)
-				local saved = db.customFilterRules[key] or db.customFilterRules[numericId]
+				local saved = BMR.db.customFilterRules[key] or BMR.db.customFilterRules[numericId]
 				return DoesCustomFilterMatch(itemLink, saved)
 			end
 			BankManagerRules.data[ruleName] = {
@@ -516,18 +532,18 @@ function C.SyncFilterRuleDefinitions()
 			}
 			BankManagerRules.defaults[ruleName] = BankManagerRules.defaults[ruleName] or {
 				action = ACTION_NOTSET,
-				associatedGuild = GetString(BMR_ACTION_NOTSET),
+				associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET),
 				onlyIfNotFullStack = true,
 				onlyStacks = 1,
 			}
-			for _, profile in pairs(db.profiles or {}) do
+			for _, profile in pairs(BMR.db.profiles or {}) do
 				if type(profile) == "table" then
 					profile.rules = profile.rules or {}
-					profile.rules.customFilterAll = profile.rules.customFilterAll or {action = ACTION_NOTSET, associatedGuild = GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
+					profile.rules.customFilterAll = profile.rules.customFilterAll or {action = ACTION_NOTSET, associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
 					if profile.rules[ruleName] == nil then
 						profile.rules[ruleName] = {
 							action = ACTION_NOTSET,
-							associatedGuild = profile.rules.customFilterAll.associatedGuild or GetString(BMR_ACTION_NOTSET),
+							associatedGuild = profile.rules.customFilterAll.associatedGuild or ESOAPI.GetString(BMR_ACTION_NOTSET),
 							onlyIfNotFullStack = profile.rules.customFilterAll.onlyIfNotFullStack ~= false,
 							onlyStacks = tonumber(profile.rules.customFilterAll.onlyStacks) or 1,
 						}
@@ -540,20 +556,20 @@ end
 
 
 function C.SyncExactItemRuleDefinitions()
-	db.customItemRules = db.customItemRules or {}
+	BMR.db.customItemRules = BMR.db.customItemRules or {}
 	-- Remove orphaned custom rule definitions/profile entries so the UI and rule
 	-- engine always match the saved customItemRules list.
 	for ruleName in pairs(BankManagerRules.data or {}) do
 		local numericId = type(ruleName) == "string" and tonumber(string.match(ruleName, "^customItem_(%d+)$")) or nil
-		if numericId and not db.customItemRules[tostring(numericId)] and not db.customItemRules[numericId] then
+		if numericId and not BMR.db.customItemRules[tostring(numericId)] and not BMR.db.customItemRules[numericId] then
 			BankManagerRules.data[ruleName] = nil
 			if BankManagerRules.defaults then BankManagerRules.defaults[ruleName] = nil end
-			for _, profile in pairs(db.profiles or {}) do
+			for _, profile in pairs(BMR.db.profiles or {}) do
 				if profile.rules then profile.rules[ruleName] = nil end
 			end
 		end
 	end
-	for itemId, itemData in pairs(db.customItemRules) do
+	for itemId, itemData in pairs(BMR.db.customItemRules) do
 		local numericId = tonumber(itemId)
 		if numericId and type(itemData) == "table" then
 			local ruleName = "customItem_" .. tostring(numericId)
@@ -569,18 +585,18 @@ function C.SyncExactItemRuleDefinitions()
 			}
 			BankManagerRules.defaults[ruleName] = BankManagerRules.defaults[ruleName] or {
 				action = ACTION_NOTSET,
-				associatedGuild = GetString(BMR_ACTION_NOTSET),
+				associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET),
 				onlyIfNotFullStack = true,
 				onlyStacks = 1,
 			}
-			for _, profile in pairs(db.profiles or {}) do
+			for _, profile in pairs(BMR.db.profiles or {}) do
 				if type(profile) == "table" then
 					profile.rules = profile.rules or {}
-					profile.rules.customItemsAll = profile.rules.customItemsAll or {action = ACTION_NOTSET, associatedGuild = GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
+					profile.rules.customItemsAll = profile.rules.customItemsAll or {action = ACTION_NOTSET, associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
 					if profile.rules[ruleName] == nil then
 						profile.rules[ruleName] = {
 							action = ACTION_NOTSET,
-							associatedGuild = profile.rules.customItemsAll.associatedGuild or GetString(BMR_ACTION_NOTSET),
+							associatedGuild = profile.rules.customItemsAll.associatedGuild or ESOAPI.GetString(BMR_ACTION_NOTSET),
 							onlyIfNotFullStack = profile.rules.customItemsAll.onlyIfNotFullStack ~= false,
 							onlyStacks = tonumber(profile.rules.customItemsAll.onlyStacks) or 1,
 						}
@@ -596,26 +612,23 @@ end
 
 C._RuleUi = C._RuleUi or {}
 function C._RuleUi.GetCustomGuildChoices()
-	local unset = GetString(BMR_ACTION_NOTSET)
+	local unset = ESOAPI.GetString(BMR_ACTION_NOTSET)
 	local choices = {{name = unset, value = unset, slot = 0}}
 	local count = 0
 	if type(GetNumGuilds) == "function" and type(GetGuildId) == "function" and type(GetGuildName) == "function" then
-		local ok, value = pcall(GetNumGuilds)
-		if ok then count = tonumber(value) or 0 end
+		count = tonumber(GetNumGuilds()) or 0
 	end
 	for slot = 1, count do
-		local okId, guildId = pcall(GetGuildId, slot)
-		if okId then
-			local okName, guildName = pcall(GetGuildName, guildId)
-			if not okName or type(guildName) ~= "string" or guildName == "" then guildName = "Guild " .. tostring(slot) end
-			choices[#choices + 1] = {name = tostring(slot) .. " - " .. guildName, value = guildName, slot = slot}
-		end
+		local guildId = GetGuildId(slot)
+		local guildName = guildId and GetGuildName(guildId)
+		if type(guildName) ~= "string" or guildName == "" then guildName = "Guild " .. tostring(slot) end
+		choices[#choices + 1] = {name = tostring(slot) .. " - " .. guildName, value = guildName, slot = slot}
 	end
 	return choices
 end
 
 function C._RuleUi.GetCustomProfileRule(ruleName, aggregateRuleName)
-	local profile = db.profiles and db.profiles[ActualProfile()]
+	local profile = BMR.db.profiles and BMR.db.profiles[ActualProfile()]
 	if not profile then return nil end
 	profile.rules = profile.rules or {}
 	local rule = profile.rules[ruleName]
@@ -623,7 +636,7 @@ function C._RuleUi.GetCustomProfileRule(ruleName, aggregateRuleName)
 		local aggregate = profile.rules[aggregateRuleName] or {}
 		rule = {
 			action = ACTION_NOTSET,
-			associatedGuild = aggregate.associatedGuild or GetString(BMR_ACTION_NOTSET),
+			associatedGuild = aggregate.associatedGuild or ESOAPI.GetString(BMR_ACTION_NOTSET),
 			onlyIfNotFullStack = aggregate.onlyIfNotFullStack ~= false,
 			onlyStacks = tonumber(aggregate.onlyStacks) or 1,
 		}
@@ -635,31 +648,31 @@ end
 function C._RuleUi.SetCustomProfileRuleGuild(ruleName, aggregateRuleName, guildName)
 	local rule = C._RuleUi.GetCustomProfileRule(ruleName, aggregateRuleName)
 	if not rule then return false end
-	rule.associatedGuild = guildName or GetString(BMR_ACTION_NOTSET)
+	rule.associatedGuild = guildName or ESOAPI.GetString(BMR_ACTION_NOTSET)
 	FireBmrRuleCountRefresh()
 	return true
 end
 
 function C._RuleUi.GetCustomGuildSlotLabel(guildName)
-	if not guildName or guildName == "" or guildName == GetString(BMR_ACTION_NOTSET) then return "-" end
+	if not guildName or guildName == "" or guildName == ESOAPI.GetString(BMR_ACTION_NOTSET) then return "-" end
 	for _, choice in ipairs(C._RuleUi.GetCustomGuildChoices()) do if choice.value == guildName then return tostring(choice.slot) end end
 	return "?"
 end
 
 function C._RuleUi.CreateCustomGuildCombo(row, uniqueId)
 	if row.bmrGuildDropdown then return row.bmrGuildContainer, row.bmrGuildDropdown end
-	row.bmrGuildContainer = WINDOW_MANAGER:CreateControlFromVirtual("BMRCustomGuildCombo_" .. tostring(uniqueId), row, "ZO_ComboBox")
+	row.bmrGuildContainer = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual("BMRCustomGuildCombo_" .. tostring(uniqueId), row, "ZO_ComboBox")
 	row.bmrGuildContainer:SetDimensions(92, 28)
-	row.bmrGuildDropdown = ZO_ComboBox_ObjectFromContainer(row.bmrGuildContainer)
+	row.bmrGuildDropdown = ESOAPI.ZO_ComboBox_ObjectFromContainer(row.bmrGuildContainer)
 	row.bmrGuildDropdown:SetSortsItems(false)
 	row.bmrGuildContainer:SetMouseEnabled(true)
 	row.bmrGuildContainer:SetHandler("OnMouseEnter", function(self)
-		if InformationTooltip and InitializeTooltip then
-			InitializeTooltip(InformationTooltip, self, TOPRIGHT, 0, 0)
-			if InformationTooltip.AddLine then InformationTooltip:AddLine(GetString(BMR_GUILD_LIST_TOOLTIP)) end
+		if InformationTooltip and ESOAPI.InitializeTooltip then
+			ESOAPI.InitializeTooltip(InformationTooltip, self, ESOAPI.TOPRIGHT, 0, 0)
+			if InformationTooltip.AddLine then InformationTooltip:AddLine(ESOAPI.GetString(BMR_GUILD_LIST_TOOLTIP)) end
 		end
 	end)
-	row.bmrGuildContainer:SetHandler("OnMouseExit", function() if InformationTooltip and ClearTooltip then ClearTooltip(InformationTooltip) end end)
+	row.bmrGuildContainer:SetHandler("OnMouseExit", function() if InformationTooltip and ESOAPI.ClearTooltip then ESOAPI.ClearTooltip(InformationTooltip) end end)
 	return row.bmrGuildContainer, row.bmrGuildDropdown
 end
 
@@ -667,9 +680,9 @@ function C._RuleUi.RefreshCustomGuildCombo(row, ruleName, aggregateRuleName)
 	local combo = row and row.bmrGuildDropdown
 	if not combo then return end
 	local rule = C._RuleUi.GetCustomProfileRule(ruleName, aggregateRuleName)
-	local currentGuild = rule and rule.associatedGuild or GetString(BMR_ACTION_NOTSET)
+	local currentGuild = rule and rule.associatedGuild or ESOAPI.GetString(BMR_ACTION_NOTSET)
 	combo:ClearItems()
-	local selectedName, selectedShort = GetString(BMR_ACTION_NOTSET), "-"
+	local selectedName, selectedShort = ESOAPI.GetString(BMR_ACTION_NOTSET), "-"
 	for _, choice in ipairs(C._RuleUi.GetCustomGuildChoices()) do
 		local label, value, slot = choice.name, choice.value, choice.slot
 		local selectedGuildValue, selectedGuildSlot = value, slot
@@ -677,7 +690,7 @@ function C._RuleUi.RefreshCustomGuildCombo(row, ruleName, aggregateRuleName)
 			C._RuleUi.SetCustomProfileRuleGuild(ruleName, aggregateRuleName, selectedGuildValue)
 			if combo.SetSelectedItemText then combo:SetSelectedItemText(selectedGuildSlot == 0 and "-" or tostring(selectedGuildSlot)) end
 		end)
-		combo:AddItem(entry, ZO_COMBOBOX_SUPRESS_UPDATE)
+		combo:AddItem(entry, ESOAPI.ZO_COMBOBOX_SUPRESS_UPDATE)
 		if value == currentGuild then
 			selectedName = label
 			selectedShort = slot == 0 and "-" or tostring(slot)
@@ -709,28 +722,28 @@ end
 
 function C._RuleUi.CreateCustomRuleTableHeader(control)
 	if control.bmrHeader then return end
-	control.bmrHeader = WINDOW_MANAGER:CreateControl(nil, control, CT_CONTROL)
+	control.bmrHeader = ESOAPI.WINDOW_MANAGER:CreateControl(nil, control, ESOAPI.CT_CONTROL)
 	control.bmrHeader:SetDimensions(control:GetWidth(), 24)
-	control.bmrHeader:SetAnchor(TOPLEFT, control, TOPLEFT, 0, 0)
+	control.bmrHeader:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, 0, 0)
 	control.bmrHeaderLabels = {}
 	for index = 1, 4 do
-		local label = WINDOW_MANAGER:CreateControl(nil, control.bmrHeader, CT_LABEL)
+		local label = ESOAPI.WINDOW_MANAGER:CreateControl(nil, control.bmrHeader, ESOAPI.CT_LABEL)
 		label:SetFont("ZoFontWinH4")
 		label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
 		control.bmrHeaderLabels[index] = label
 	end
-	control.bmrHeaderLabels[1]:SetText(GetString(BMR_RULE_TABLE_ITEM))
-	control.bmrHeaderLabels[2]:SetText(GetString(BMR_CUSTOM_RULE_REMOVE_SHORT))
-	control.bmrHeaderLabels[3]:SetText(GetString(BMR_RULE_TABLE_ACTION))
-	control.bmrHeaderLabels[4]:SetText(GetString(BMR_GUILD_LIST_SHORT))
+	control.bmrHeaderLabels[1]:SetText(ESOAPI.GetString(BMR_RULE_TABLE_ITEM))
+	control.bmrHeaderLabels[2]:SetText(ESOAPI.GetString(BMR_CUSTOM_RULE_REMOVE_SHORT))
+	control.bmrHeaderLabels[3]:SetText(ESOAPI.GetString(BMR_RULE_TABLE_ACTION))
+	control.bmrHeaderLabels[4]:SetText(ESOAPI.GetString(BMR_GUILD_LIST_SHORT))
 	control.bmrHeaderLabels[4]:SetMouseEnabled(true)
 	control.bmrHeaderLabels[4]:SetHandler("OnMouseEnter", function(self)
-		if InformationTooltip and InitializeTooltip then
-			InitializeTooltip(InformationTooltip, self, TOPRIGHT, 0, 0)
-			if InformationTooltip.AddLine then InformationTooltip:AddLine(GetString(BMR_GUILD_LIST_TOOLTIP)) end
+		if InformationTooltip and ESOAPI.InitializeTooltip then
+			ESOAPI.InitializeTooltip(InformationTooltip, self, ESOAPI.TOPRIGHT, 0, 0)
+			if InformationTooltip.AddLine then InformationTooltip:AddLine(ESOAPI.GetString(BMR_GUILD_LIST_TOOLTIP)) end
 		end
 	end)
-	control.bmrHeaderLabels[4]:SetHandler("OnMouseExit", function() if InformationTooltip and ClearTooltip then ClearTooltip(InformationTooltip) end end)
+	control.bmrHeaderLabels[4]:SetHandler("OnMouseExit", function() if InformationTooltip and ESOAPI.ClearTooltip then ESOAPI.ClearTooltip(InformationTooltip) end end)
 end
 
 function C._RuleUi.LayoutCustomRuleHeader(control)
@@ -738,25 +751,25 @@ function C._RuleUi.LayoutCustomRuleHeader(control)
 	local columns = C._RuleUi.GetCustomRuleColumnLayout(control:GetWidth())
 	control.bmrHeader:SetWidth(control:GetWidth())
 	local labels = control.bmrHeaderLabels
-	labels[1]:ClearAnchors(); labels[1]:SetAnchor(LEFT, control.bmrHeader, LEFT, columns.labelX, 0); labels[1]:SetDimensions(columns.labelWidth, 24)
-	labels[2]:ClearAnchors(); labels[2]:SetAnchor(LEFT, control.bmrHeader, LEFT, columns.removeX, 0); labels[2]:SetDimensions(columns.removeWidth, 24)
-	labels[3]:ClearAnchors(); labels[3]:SetAnchor(LEFT, control.bmrHeader, LEFT, columns.actionX, 0); labels[3]:SetDimensions(columns.actionWidth, 24)
-	labels[4]:ClearAnchors(); labels[4]:SetAnchor(RIGHT, control.bmrHeader, RIGHT, 0, 0); labels[4]:SetDimensions(columns.guildWidth, 24)
+	labels[1]:ClearAnchors(); labels[1]:SetAnchor(ESOAPI.LEFT, control.bmrHeader, ESOAPI.LEFT, columns.labelX, 0); labels[1]:SetDimensions(columns.labelWidth, 24)
+	labels[2]:ClearAnchors(); labels[2]:SetAnchor(ESOAPI.LEFT, control.bmrHeader, ESOAPI.LEFT, columns.removeX, 0); labels[2]:SetDimensions(columns.removeWidth, 24)
+	labels[3]:ClearAnchors(); labels[3]:SetAnchor(ESOAPI.LEFT, control.bmrHeader, ESOAPI.LEFT, columns.actionX, 0); labels[3]:SetDimensions(columns.actionWidth, 24)
+	labels[4]:ClearAnchors(); labels[4]:SetAnchor(ESOAPI.RIGHT, control.bmrHeader, ESOAPI.RIGHT, 0, 0); labels[4]:SetDimensions(columns.guildWidth, 24)
 end
 
 function C._RuleUi.LayoutCustomRuleRow(row, control)
 	local columns = C._RuleUi.GetCustomRuleColumnLayout(control:GetWidth())
 	row:SetWidth(control:GetWidth())
-	row.label:ClearAnchors(); row.label:SetAnchor(LEFT, row, LEFT, columns.labelX, 0); row.label:SetDimensions(columns.labelWidth, 32)
-	row.bmrGuildContainer:ClearAnchors(); row.bmrGuildContainer:SetAnchor(RIGHT, row, RIGHT, 0, 0); row.bmrGuildContainer:SetDimensions(columns.guildWidth, 28)
+	row.label:ClearAnchors(); row.label:SetAnchor(ESOAPI.LEFT, row, ESOAPI.LEFT, columns.labelX, 0); row.label:SetDimensions(columns.labelWidth, 32)
+	row.bmrGuildContainer:ClearAnchors(); row.bmrGuildContainer:SetAnchor(ESOAPI.RIGHT, row, ESOAPI.RIGHT, 0, 0); row.bmrGuildContainer:SetDimensions(columns.guildWidth, 28)
 	-- m_containerWidth controls the opened list width; the closed selector
 	-- is sized independently by bmrGuildContainer above.
 	row.bmrGuildDropdown.m_containerWidth = columns.guildPopupWidth
 	if row.bmrGuildDropdown.m_dropdown and row.bmrGuildDropdown.m_dropdown.SetWidth then
 		row.bmrGuildDropdown.m_dropdown:SetWidth(columns.guildPopupWidth)
 	end
-	row.removeButton:ClearAnchors(); row.removeButton:SetAnchor(LEFT, row, LEFT, columns.removeX, 0); row.removeButton:SetDimensions(columns.removeWidth, 28)
-	row.dropdownContainer:ClearAnchors(); row.dropdownContainer:SetAnchor(LEFT, row, LEFT, columns.actionX, 0); row.dropdownContainer:SetDimensions(columns.actionWidth, 28)
+	row.removeButton:ClearAnchors(); row.removeButton:SetAnchor(ESOAPI.LEFT, row, ESOAPI.LEFT, columns.removeX, 0); row.removeButton:SetDimensions(columns.removeWidth, 28)
+	row.dropdownContainer:ClearAnchors(); row.dropdownContainer:SetAnchor(ESOAPI.LEFT, row, ESOAPI.LEFT, columns.actionX, 0); row.dropdownContainer:SetDimensions(columns.actionWidth, 28)
 	row.dropdown.m_containerWidth = columns.actionWidth
 end
 
@@ -768,47 +781,47 @@ function C.RefreshCustomRuleList(control)
 	C._RuleUi.CreateCustomRuleTableHeader(control)
 	C._RuleUi.LayoutCustomRuleHeader(control)
 	local itemIds = {}
-	for itemId in pairs(db.customItemRules or {}) do table.insert(itemIds, tostring(itemId)) end
+	for itemId in pairs(BMR.db.customItemRules or {}) do table.insert(itemIds, tostring(itemId)) end
 	table.sort(itemIds, function(a, b) return tonumber(a) < tonumber(b) end)
 	local actions = {
-		{label = GetString(BMR_ACTION_NOTSET), value = ACTION_NOTSET},
-		{label = GetString(BMR_ACTION_PUSH), value = ACTION_PUSH},
-		{label = GetString(BMR_ACTION_PULL), value = ACTION_PULL},
-		{label = GetString(BMR_ACTION_PUSH_ALL_STACKS), value = ACTION_PUSH_ALL_STACKS},
-		{label = GetString(BMR_ACTION_PULL_ALL_STACKS), value = ACTION_PULL_ALL_STACKS},
-		{label = GetString(BMR_ACTION_PUSH_GBANK), value = ACTION_PUSH_GBANK},
-		{label = GetString(BMR_ACTION_PUSH_BOTH), value = ACTION_PUSH_BOTH},
-		{label = GetString(BMR_ACTION_KEEP_ONE_STACK), value = ACTION_KEEP_ONE_STACK},
-		{label = GetString(BMR_ACTION_KEEP_ONE_STACK_BANK), value = ACTION_KEEP_ONE_STACK_BANK},
-		{label = GetString(BMR_ACTION_PUSH_FURNITURE), value = ACTION_PUSH_FURNITURE},
+		{label = ESOAPI.GetString(BMR_ACTION_NOTSET), value = ACTION_NOTSET},
+		{label = ESOAPI.GetString(BMR_ACTION_PUSH), value = ACTION_PUSH},
+		{label = ESOAPI.GetString(BMR_ACTION_PULL), value = ACTION_PULL},
+		{label = ESOAPI.GetString(BMR_ACTION_PUSH_ALL_STACKS), value = ACTION_PUSH_ALL_STACKS},
+		{label = ESOAPI.GetString(BMR_ACTION_PULL_ALL_STACKS), value = ACTION_PULL_ALL_STACKS},
+		{label = ESOAPI.GetString(BMR_ACTION_PUSH_GBANK), value = ACTION_PUSH_GBANK},
+		{label = ESOAPI.GetString(BMR_ACTION_PUSH_BOTH), value = ACTION_PUSH_BOTH},
+		{label = ESOAPI.GetString(BMR_ACTION_KEEP_ONE_STACK), value = ACTION_KEEP_ONE_STACK},
+		{label = ESOAPI.GetString(BMR_ACTION_KEEP_ONE_STACK_BANK), value = ACTION_KEEP_ONE_STACK_BANK},
+		{label = ESOAPI.GetString(BMR_ACTION_PUSH_FURNITURE), value = ACTION_PUSH_FURNITURE},
 	}
 	for _, row in ipairs(control.bmrRows) do row:SetHidden(true) end
 	for index, itemId in ipairs(itemIds) do
-		local itemData = db.customItemRules[itemId] or db.customItemRules[tonumber(itemId)]
+		local itemData = BMR.db.customItemRules[itemId] or BMR.db.customItemRules[tonumber(itemId)]
 		local ruleName = "customItem_" .. itemId
 		if itemData and BankManagerRules.data[ruleName] then
 			local row = control.bmrRows[index]
 			if not row then
-				row = WINDOW_MANAGER:CreateControl(nil, control, CT_CONTROL)
+				row = ESOAPI.WINDOW_MANAGER:CreateControl(nil, control, ESOAPI.CT_CONTROL)
 				row:SetDimensions(control:GetWidth(), 42)
-				row.label = WINDOW_MANAGER:CreateControl(nil, row, CT_LABEL)
+				row.label = ESOAPI.WINDOW_MANAGER:CreateControl(nil, row, ESOAPI.CT_LABEL)
 				row.label:SetFont("ZoFontGame")
-				row.label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+				row.label:SetWrapMode(ESOAPI.TEXT_WRAP_MODE_ELLIPSIS)
 				BMR.customRuleControlSerial = (BMR.customRuleControlSerial or 0) + 1
 				local uniqueControlId = tostring(itemId) .. "_" .. tostring(BMR.customRuleControlSerial)
-				row.dropdownContainer = WINDOW_MANAGER:CreateControlFromVirtual("BMRCustomRuleCombo_" .. uniqueControlId, row, "ZO_ComboBox")
-				row.dropdown = ZO_ComboBox_ObjectFromContainer(row.dropdownContainer)
+				row.dropdownContainer = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual("BMRCustomRuleCombo_" .. uniqueControlId, row, "ZO_ComboBox")
+				row.dropdown = ESOAPI.ZO_ComboBox_ObjectFromContainer(row.dropdownContainer)
 				row.dropdown:SetSortsItems(false)
 				C._RuleUi.CreateCustomGuildCombo(row, uniqueControlId)
-				row.removeButton = WINDOW_MANAGER:CreateControlFromVirtual("BMRCustomRuleRemove_" .. uniqueControlId, row, "ZO_DefaultButton")
-				row.measureLabel = WINDOW_MANAGER:CreateControl(nil, row, CT_LABEL)
+				row.removeButton = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual("BMRCustomRuleRemove_" .. uniqueControlId, row, "ZO_DefaultButton")
+				row.measureLabel = ESOAPI.WINDOW_MANAGER:CreateControl(nil, row, ESOAPI.CT_LABEL)
 				row.measureLabel:SetFont("ZoFontGame")
 				row.measureLabel:SetDimensions(1000, 28)
 				row.measureLabel:SetHidden(true)
 				row.removeButton:SetHandler("OnClicked", function()
 					local id = row.bmrItemId
 					if id then
-						local savedItem = db.customItemRules and (db.customItemRules[tostring(id)] or db.customItemRules[id])
+						local savedItem = BMR.db.customItemRules and (BMR.db.customItemRules[tostring(id)] or BMR.db.customItemRules[id])
 						local name = savedItem and C.GetCustomItemDisplayName(id, savedItem) or tostring(id)
 						C.RemoveCustomItemRuleById(id)
 						CustomRuleDebug("removed from options: " .. tostring(name) .. " itemId=" .. tostring(id))
@@ -820,28 +833,28 @@ function C.RefreshCustomRuleList(control)
 			row.label:SetText(C.GetCustomItemDisplayName(itemId, itemData))
 			row.label:SetMouseEnabled(true)
 			row.label:SetHandler("OnMouseEnter", function(self)
-				if itemData.itemLink and InformationTooltip and InitializeTooltip then
-					InitializeTooltip(InformationTooltip, self, TOPRIGHT, 0, 0)
+				if itemData.itemLink and InformationTooltip and ESOAPI.InitializeTooltip then
+					ESOAPI.InitializeTooltip(InformationTooltip, self, ESOAPI.TOPRIGHT, 0, 0)
 					if InformationTooltip.SetLink then InformationTooltip:SetLink(itemData.itemLink) elseif InformationTooltip.AddLine then InformationTooltip:AddLine(itemData.itemLink) end
 				end
 			end)
-			row.label:SetHandler("OnMouseExit", function() if InformationTooltip and ClearTooltip then ClearTooltip(InformationTooltip) end end)
+			row.label:SetHandler("OnMouseExit", function() if InformationTooltip and ESOAPI.ClearTooltip then ESOAPI.ClearTooltip(InformationTooltip) end end)
 			row.label:SetHandler("OnMouseUp", function(self, button, upInside)
-				if button == MOUSE_BUTTON_INDEX_RIGHT and upInside and type(ClearMenu) == "function" and type(AddMenuItem) == "function" and type(ShowMenu) == "function" then
+				if button == MOUSE_BUTTON_INDEX_RIGHT and upInside and type(ESOAPI.ClearMenu) == "function" and type(ESOAPI.AddMenuItem) == "function" and type(ESOAPI.ShowMenu) == "function" then
 					local selectedId = row.bmrItemId
-					ClearMenu()
-					AddMenuItem(GetString(BMR_CUSTOM_ITEM_RENAME), function() C.ShowRenameCustomItemDialog(selectedId) end)
-					ShowMenu()
+					ESOAPI.ClearMenu()
+					ESOAPI.AddMenuItem(ESOAPI.GetString(BMR_CUSTOM_ITEM_RENAME), function() C.ShowRenameCustomItemDialog(selectedId) end)
+					ESOAPI.ShowMenu()
 				end
 			end)
 			row:ClearAnchors()
-			row:SetAnchor(TOPLEFT, control, TOPLEFT, 0, 26 + (index - 1) * 44)
+			row:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, 0, 26 + (index - 1) * 44)
 			row:SetHeight(42)
 			row:SetHidden(false)
-			row.removeButton:SetText(GetString(BMR_CUSTOM_RULE_REMOVE_SHORT))
+			row.removeButton:SetText(ESOAPI.GetString(BMR_CUSTOM_RULE_REMOVE_SHORT))
 			row.dropdown:ClearItems()
 			local currentRule = C._RuleUi.GetCustomProfileRule(ruleName, "customItemsAll")
-			local selectedLabel = GetString(BMR_ACTION_NOTSET)
+			local selectedLabel = ESOAPI.GetString(BMR_ACTION_NOTSET)
 			for _, action in ipairs(actions) do
 				local actionValue, actionLabel = action.value, action.label
 				local entry = row.dropdown:CreateItemEntry(actionLabel, function()
@@ -849,7 +862,7 @@ function C.RefreshCustomRuleList(control)
 					local currentRule = currentId and C._RuleUi.GetCustomProfileRule("customItem_" .. tostring(currentId), "customItemsAll")
 					if currentRule then currentRule.action = actionValue; FireBmrRuleCountRefresh() end
 				end)
-				row.dropdown:AddItem(entry, ZO_COMBOBOX_SUPRESS_UPDATE)
+				row.dropdown:AddItem(entry, ESOAPI.ZO_COMBOBOX_SUPRESS_UPDATE)
 				if currentRule and currentRule.action == action.value then selectedLabel = action.label end
 			end
 			row.dropdown:SetSelectedItem(selectedLabel)
@@ -866,30 +879,30 @@ local function FormatEnumDisplayLabel(label)
 	-- GetString(SI_ITEMTYPE, value) may return grammatical suffixes such as ^m/^f.
 	-- Run the returned enum text through ESO's formatter instead of displaying raw markers.
 	if type(ZO_CachedStrFormat) == "function" then
-		local ok, formatted = pcall(ZO_CachedStrFormat, "<<C:1>>", label)
-		if ok and type(formatted) == "string" and formatted ~= "" then return formatted end
+		local formatted = ZO_CachedStrFormat("<<C:1>>", label)
+		if type(formatted) == "string" and formatted ~= "" then return formatted end
 	end
-	if type(zo_strformat) == "function" then
-		local ok, formatted = pcall(zo_strformat, "<<C:1>>", label)
-		if ok and type(formatted) == "string" and formatted ~= "" then return formatted end
+	if type(ESOAPI.zo_strformat) == "function" then
+		local formatted = ESOAPI.zo_strformat("<<C:1>>", label)
+		if type(formatted) == "string" and formatted ~= "" then return formatted end
 	end
 	return (string.gsub(label, "%^[%a][%a]?", ""))
 end
 
 local function FilterEnumLabel(kind, value, fallback)
-	if type(GetString) == "function" then
+	if type(ESOAPI.GetString) == "function" then
 		local stringId = nil
 		if kind == "quality" then stringId = _G["SI_ITEMQUALITY" .. tostring(value)] end
 		if stringId then
-			local ok, label
-			if type(zo_strformat) == "function" then ok, label = pcall(zo_strformat, stringId) else ok, label = pcall(GetString, stringId) end
-			if ok and type(label) == "string" and label ~= "" then return FormatEnumDisplayLabel(label) end
+			local label
+			if type(ESOAPI.zo_strformat) == "function" then label = ESOAPI.zo_strformat(stringId) else label = ESOAPI.GetString(stringId) end
+			if type(label) == "string" and label ~= "" then return FormatEnumDisplayLabel(label) end
 		end
 		local formatId = ({equipType = "SI_EQUIPTYPE", armorType = "SI_ARMORTYPE", itemType = "SI_ITEMTYPE", specializedType = "SI_SPECIALIZEDITEMTYPE", weaponType = "SI_WEAPONTYPE"})[kind]
 		if formatId then
 			-- ESO enum strings must be queried with GetString(stringId, numericValue).
-			local ok, label = pcall(GetString, formatId, value)
-			if ok and type(label) == "string" and label ~= "" and label ~= formatId then return FormatEnumDisplayLabel(label) end
+			local label = ESOAPI.GetString(formatId, value)
+			if type(label) == "string" and label ~= "" and label ~= formatId then return FormatEnumDisplayLabel(label) end
 		end
 	end
 	return FormatEnumDisplayLabel(fallback or tostring(value))
@@ -937,19 +950,18 @@ local STATIC_ITEM_TAG_REFERENCES = {
 -- baseline above and can still discover extra tags naturally from items in their bags.
 local TAG_SCAN_MAINTAINER_ACCOUNT = "gamer1986pan"
 local function IsTagCatalogScanAllowed()
-	local getter = _G and _G.GetDisplayName
+	local getter = GetDisplayName
 	if type(getter) ~= "function" then return false end
-	local ok, displayName = pcall(getter)
-	if not ok then return false end
+	local displayName = getter()
 	displayName = string.lower(tostring(displayName or "")):gsub("^@", "")
 	return displayName == TAG_SCAN_MAINTAINER_ACCOUNT
 end
 
 local function NotifyTagCatalogScanRestricted()
 	local message = "[BMR] The full item-tag scan is restricted to @Gamer1986PAN. Built-in filter catalogs remain available on this account."
-	if type(GetString) == "function" and BMR_CUSTOM_FILTER_SCAN_RESTRICTED then
-		local ok, localized = pcall(GetString, BMR_CUSTOM_FILTER_SCAN_RESTRICTED)
-		if ok and type(localized) == "string" and localized ~= "" then message = localized end
+	if type(ESOAPI.GetString) == "function" and BMR_CUSTOM_FILTER_SCAN_RESTRICTED then
+		local localized = ESOAPI.GetString(BMR_CUSTOM_FILTER_SCAN_RESTRICTED)
+		if type(localized) == "string" and localized ~= "" then message = localized end
 	end
 	SendCustomRuleMessage(message)
 end
@@ -965,33 +977,33 @@ local TAG_REFERENCE_INDEX
 local TAG_STORAGE_INDEX
 
 local function EnsureTagCatalog()
-	db.customItemTagCatalog = db.customItemTagCatalog or {}
-	db.customItemTagScan = db.customItemTagScan or {nextId = 1, maxId = TAG_SCAN_MAX_DEFAULT, completed = false}
+	BMR.db.customItemTagCatalog = BMR.db.customItemTagCatalog or {}
+	BMR.db.customItemTagScan = BMR.db.customItemTagScan or {nextId = 1, maxId = TAG_SCAN_MAX_DEFAULT, completed = false}
 	-- Catalog format 4 preserves separate tag identities by (visible label, category).
 	-- Older scans could merge equal labels from different categories into one record,
 	-- which produced misleading duplicates and could overwrite a representative ref.
-	if db.customItemTagScan.catalogFormatVersion ~= 4 then
-		for key in pairs(db.customItemTagCatalog) do db.customItemTagCatalog[key] = nil end
-		db.customItemTagScan.catalogFormatVersion = 4
-		db.customItemTagScan.probeFormatVersion = 4
-		db.customItemTagScan.nextId = 1
-		db.customItemTagScan.maxId = TAG_SCAN_MAX_DEFAULT
-		db.customItemTagScan.completed = false
+	if BMR.db.customItemTagScan.catalogFormatVersion ~= 4 then
+		for key in pairs(BMR.db.customItemTagCatalog) do BMR.db.customItemTagCatalog[key] = nil end
+		BMR.db.customItemTagScan.catalogFormatVersion = 4
+		BMR.db.customItemTagScan.probeFormatVersion = 4
+		BMR.db.customItemTagScan.nextId = 1
+		BMR.db.customItemTagScan.maxId = TAG_SCAN_MAX_DEFAULT
+		BMR.db.customItemTagScan.completed = false
 	end
 	-- Seed the static reference catalog for every account. Do not hard-code display
 	-- strings: PrepareTagCatalogIndex refreshes them from localized ESO SI strings.
 	for _, referenceData in ipairs(STATIC_ITEM_TAG_REFERENCES) do
 		local itemId, tagIndex, category = referenceData[1], referenceData[2], referenceData[3]
 		local key = string.format("tagref:%d:%d:%d", itemId, tagIndex, category)
-		local record = db.customItemTagCatalog[key]
-		if type(record) ~= "table" then record = {}; db.customItemTagCatalog[key] = record end
+		local record = BMR.db.customItemTagCatalog[key]
+		if type(record) ~= "table" then record = {}; BMR.db.customItemTagCatalog[key] = record end
 		record.key = key
 		record.sourceItemId = tonumber(record.sourceItemId) or itemId
 		record.sourceTagIndex = tonumber(record.sourceTagIndex) or tagIndex
 		record.category = tonumber(record.category) or category
 		record.staticCatalog = true
 	end
-	return db.customItemTagCatalog, db.customItemTagScan
+	return BMR.db.customItemTagCatalog, BMR.db.customItemTagScan
 end
 
 local function TagReferenceKey(itemId, tagIndex, category)
@@ -1001,14 +1013,14 @@ local function TagReferenceKey(itemId, tagIndex, category)
 end
 
 local function TagLabelIndexKey(label, category)
-	return zo_strlower(tostring(label or "")) .. "\31" .. tostring(tonumber(category) or 0)
+	return ESOAPI.zo_strlower(tostring(label or "")) .. "\31" .. tostring(tonumber(category) or 0)
 end
 
 local function AddTagAlias(record, label)
 	label = tostring(label or "")
 	if label == "" then return end
 	record.aliases = record.aliases or {}
-	record.aliases[zo_strlower(label)] = true
+	record.aliases[ESOAPI.zo_strlower(label)] = true
 end
 
 local function RefreshTagRecordLabel(record)
@@ -1016,7 +1028,7 @@ local function RefreshTagRecordLabel(record)
 	local reference = TagReferenceKey(record.sourceItemId, record.sourceTagIndex, record.category)
 	local label, category = GetItemTagReferenceInfo(reference)
 	if label and label ~= "" then
-		if record.label and zo_strlower(record.label) ~= zo_strlower(label) then AddTagAlias(record, record.label) end
+		if record.label and ESOAPI.zo_strlower(record.label) ~= ESOAPI.zo_strlower(label) then AddTagAlias(record, record.label) end
 		record.label = label
 		if category ~= nil then record.category = category end
 		record.key = TagReferenceKey(record.sourceItemId, record.sourceTagIndex, record.category) or reference
@@ -1044,8 +1056,8 @@ local function PrepareTagCatalogIndex(refreshLabels)
 		local refItemId, refTagIndex, refCategory = ParseItemTagReference(key)
 		if refItemId then
 			local itemType = GetTagReferenceSourceItemType(key)
-			local furnishingItemType = _G and tonumber(_G.ITEMTYPE_FURNISHING)
-			local furnitureBehaviorCategory = _G and tonumber(_G.TAG_CATEGORY_FURNITURE_BEHAVIOR)
+			local furnishingItemType = tonumber(ESOAPI.ITEMTYPE_FURNISHING)
+			local furnitureBehaviorCategory = tonumber(ESOAPI.TAG_CATEGORY_FURNITURE_BEHAVIOR)
 			if furnishingItemType ~= nil and itemType == furnishingItemType then
 				if (tonumber(refTagIndex) or 0) > 1 or (furnitureBehaviorCategory ~= nil and tonumber(refCategory) == furnitureBehaviorCategory) then
 					record.furnishing = true
@@ -1061,13 +1073,13 @@ local function PrepareTagCatalogIndex(refreshLabels)
 			local labelIndexKey = TagLabelIndexKey(label, record.category)
 			if TAG_LABEL_INDEX[labelIndexKey] == nil then TAG_LABEL_INDEX[labelIndexKey] = key end
 			if ParseItemTagReference(key) then
-				local plainKey = zo_strlower(label)
+				local plainKey = ESOAPI.zo_strlower(label)
 				aliasReferenceSets[plainKey] = aliasReferenceSets[plainKey] or {}
 				aliasReferenceSets[plainKey][key] = true
 			end
 		end
 		for alias in pairs(record.aliases or {}) do
-			local aliasKey = zo_strlower(tostring(alias))
+			local aliasKey = ESOAPI.zo_strlower(tostring(alias))
 			if ParseItemTagReference(key) then
 				aliasReferenceSets[aliasKey] = aliasReferenceSets[aliasKey] or {}
 				aliasReferenceSets[aliasKey][key] = true
@@ -1105,7 +1117,7 @@ local function CacheTag(description, category, sourceItemId, tagIndex, sourceIte
 	if not selectedKey then
 		for legacyKey, legacyRecord in pairs(catalog) do
 			if type(legacyRecord) == "table" and not legacyRecord.sourceItemId and not legacyRecord.sourceTagIndex
-				and zo_strlower(tostring(legacyRecord.label or "")) == zo_strlower(label)
+				and ESOAPI.zo_strlower(tostring(legacyRecord.label or "")) == ESOAPI.zo_strlower(label)
 				and (legacyRecord.category == nil or tonumber(legacyRecord.category) == numericCategory) then
 				selectedKey = legacyKey
 				break
@@ -1123,8 +1135,8 @@ local function CacheTag(description, category, sourceItemId, tagIndex, sourceIte
 	-- in the dedicated Furnishing specification even when the same label was
 	-- first discovered on a non-furnishing item.
 	sourceItemType = tonumber(sourceItemType)
-	local furnishingItemType = _G and tonumber(_G.ITEMTYPE_FURNISHING)
-	local furnitureBehaviorCategory = _G and tonumber(_G.TAG_CATEGORY_FURNITURE_BEHAVIOR)
+	local furnishingItemType = tonumber(ESOAPI.ITEMTYPE_FURNISHING)
+	local furnitureBehaviorCategory = tonumber(ESOAPI.TAG_CATEGORY_FURNITURE_BEHAVIOR)
 	local numericTagIndex = tonumber(tagIndex) or 0
 	local isFurnishingSource = furnishingItemType ~= nil and sourceItemType == furnishingItemType
 	local isFurnishingDetail = isFurnishingSource and (numericTagIndex > 1 or numericCategory == furnitureBehaviorCategory)
@@ -1153,7 +1165,7 @@ local function CacheTag(description, category, sourceItemId, tagIndex, sourceIte
 	end
 
 	if record then
-		if record.label and zo_strlower(tostring(record.label)) ~= zo_strlower(label) then AddTagAlias(record, record.label) end
+		if record.label and ESOAPI.zo_strlower(tostring(record.label)) ~= ESOAPI.zo_strlower(label) then AddTagAlias(record, record.label) end
 		record.label = label
 		record.category = numericCategory
 		if not record.sourceItemId and sourceItemId then record.sourceItemId = tonumber(sourceItemId) end
@@ -1166,7 +1178,7 @@ local function CacheTag(description, category, sourceItemId, tagIndex, sourceIte
 		TAG_REFERENCE_INDEX[selectedKey] = {storageKey = selectedKey, record = record}
 		TAG_STORAGE_INDEX[selectedKey] = selectedKey
 		TAG_LABEL_INDEX[labelKey] = selectedKey
-		local plainKey = zo_strlower(label)
+		local plainKey = ESOAPI.zo_strlower(label)
 		if TAG_ALIAS_INDEX[plainKey] == nil then TAG_ALIAS_INDEX[plainKey] = selectedKey end
 	end
 	return discovered
@@ -1190,11 +1202,11 @@ local BASE_SPECIALIZED_TYPE_IDS = {
 }
 
 function C.GetSpecializedTypeCatalog()
-	db.customItemSpecializedTypeCatalog = db.customItemSpecializedTypeCatalog or {}
+	BMR.db.customItemSpecializedTypeCatalog = BMR.db.customItemSpecializedTypeCatalog or {}
 	for _, value in ipairs(BASE_SPECIALIZED_TYPE_IDS) do
-		db.customItemSpecializedTypeCatalog[tostring(value)] = true
+		BMR.db.customItemSpecializedTypeCatalog[tostring(value)] = true
 	end
-	return db.customItemSpecializedTypeCatalog
+	return BMR.db.customItemSpecializedTypeCatalog
 end
 
 function C.CacheSpecializedTypeFromItemLink(itemLink)
@@ -1218,12 +1230,11 @@ local function CollectTagsFromItemLink(itemLink, explicitItemId)
 	local sourceItemId = tonumber(explicitItemId) or SafeGetItemLinkValue("GetItemLinkItemId", itemLink)
 	local sourceItemTypeValue = SafeGetItemLinkValue("GetItemLinkItemType", itemLink)
 	local sourceItemType = tonumber(sourceItemTypeValue)
-	local ok, count = pcall(getCount, itemLink)
-	if not ok then return 0 end
+	local count = getCount(itemLink)
 	local discovered = 0
 	for index = 1, tonumber(count) or 0 do
-		local infoOk, description, category = pcall(getInfo, itemLink, index)
-		if infoOk and CacheTag(description, category, sourceItemId, index, sourceItemType) then discovered = discovered + 1 end
+		local description, category = getInfo(itemLink, index)
+		if CacheTag(description, category, sourceItemId, index, sourceItemType) then discovered = discovered + 1 end
 	end
 	return discovered
 end
@@ -1256,12 +1267,10 @@ function C.CollectTagsFromAccessibleBags()
 	if type(GetBagSize) ~= "function" or type(GetItemLink) ~= "function" then return 0 end
 	local discovered = 0
 	for _, bagId in ipairs(bags) do
-		local sizeOk, size = pcall(GetBagSize, bagId)
-		if sizeOk then
-			for slot = 0, (tonumber(size) or 0) - 1 do
-				local linkOk, itemLink = pcall(GetItemLink, bagId, slot)
-				if linkOk then discovered = discovered + CollectTagsFromItemLink(itemLink) end
-			end
+		local size = GetBagSize(bagId) or 0
+		for slot = 0, (tonumber(size) or 0) - 1 do
+			local itemLink = GetItemLink(bagId, slot)
+			discovered = discovered + CollectTagsFromItemLink(itemLink)
 		end
 	end
 	return discovered
@@ -1276,15 +1285,15 @@ local function MigrateSavedTagValues()
 				for index, value in ipairs(specification.values or {}) do
 					local valueText = tostring(value or "")
 					if not ParseItemTagReference(valueText) then
-						local key = TAG_ALIAS_INDEX[zo_strlower(valueText)]
+						local key = TAG_ALIAS_INDEX[ESOAPI.zo_strlower(valueText)]
 						if key and (ParseItemTagReference(key) or ParseItemTagGroup(key)) then specification.values[index] = key end
 					end
 				end
 			end
 		end
 	end
-	for _, filterData in pairs(db.customFilterRules or {}) do MigrateFilterData(filterData) end
-	MigrateFilterData(db.customFilterDraft)
+	for _, filterData in pairs(BMR.db.customFilterRules or {}) do MigrateFilterData(filterData) end
+	MigrateFilterData(BMR.db.customFilterDraft)
 end
 
 local function IsFurnishingDetailTagReference(reference)
@@ -1300,8 +1309,8 @@ local function IsFurnishingDetailTagReference(reference)
 	local entry = TAG_REFERENCE_INDEX and TAG_REFERENCE_INDEX[reference]
 	if entry and entry.record and entry.record.furnishing then return true end
 	local itemType = GetTagReferenceSourceItemType(reference)
-	local furnishingItemType = _G and tonumber(_G.ITEMTYPE_FURNISHING)
-	local furnitureBehaviorCategory = _G and tonumber(_G.TAG_CATEGORY_FURNITURE_BEHAVIOR)
+	local furnishingItemType = tonumber(ESOAPI.ITEMTYPE_FURNISHING)
+	local furnitureBehaviorCategory = tonumber(ESOAPI.TAG_CATEGORY_FURNITURE_BEHAVIOR)
 	return furnishingItemType ~= nil and itemType == furnishingItemType
 		and ((tonumber(tagIndex) or 0) > 1 or (furnitureBehaviorCategory ~= nil and tonumber(category) == furnitureBehaviorCategory))
 end
@@ -1319,14 +1328,14 @@ local function IsFurnishingRootTagReference(reference)
 	local entry = TAG_REFERENCE_INDEX and TAG_REFERENCE_INDEX[reference]
 	if entry and entry.record and entry.record.furnishingRoot and not entry.record.furnishing then return true end
 	local itemType = GetTagReferenceSourceItemType(reference)
-	local furnishingItemType = _G and tonumber(_G.ITEMTYPE_FURNISHING)
-	local furnitureBehaviorCategory = _G and tonumber(_G.TAG_CATEGORY_FURNITURE_BEHAVIOR)
+	local furnishingItemType = tonumber(ESOAPI.ITEMTYPE_FURNISHING)
+	local furnitureBehaviorCategory = tonumber(ESOAPI.TAG_CATEGORY_FURNITURE_BEHAVIOR)
 	return furnishingItemType ~= nil and itemType == furnishingItemType and (tonumber(tagIndex) or 0) == 1
 		and not (furnitureBehaviorCategory ~= nil and tonumber(category) == furnitureBehaviorCategory)
 end
 
 local function IsInternalFurnishingTaxonomyKey(value)
-	local normalized = zo_strlower(tostring(value or ""))
+	local normalized = ESOAPI.zo_strlower(tostring(value or ""))
 	return string.match(normalized, "^furnishingsubcategorygroup:") ~= nil
 		or string.match(normalized, "^furnishingsubcategory:") ~= nil
 		or string.match(normalized, "^furnishingcategory:") ~= nil
@@ -1341,7 +1350,7 @@ local function GetCustomFilterTagOptions(categoryFilter, displayMode)
 	MigrateSavedTagValues()
 
 	local treasureCategory = _G and tonumber(_G.TAG_CATEGORY_TREASURE_TYPE)
-	local furnitureCategory = _G and tonumber(_G.TAG_CATEGORY_FURNITURE_BEHAVIOR)
+	local furnitureCategory = tonumber(ESOAPI.TAG_CATEGORY_FURNITURE_BEHAVIOR)
 	local function ReferenceAllowed(reference, category)
 		local members = ParseItemTagGroup(reference)
 		if members then
@@ -1400,7 +1409,7 @@ local function GetCustomFilterTagOptions(categoryFilter, displayMode)
 		if #filteredReferences == 0 then return end
 		local value = filteredReferences[1]
 		if #filteredReferences > 1 then value = "taggroup:" .. table.concat(filteredReferences, "|") end
-		local groupKey = zo_strlower(label)
+		local groupKey = ESOAPI.zo_strlower(label)
 		if not groups[groupKey] then groups[groupKey] = {label = label, references = {}, legacy = {}} end
 		local group = groups[groupKey]
 		if ParseItemTagReference(value) then group.references[value] = true
@@ -1427,8 +1436,8 @@ local function GetCustomFilterTagOptions(categoryFilter, displayMode)
 			end
 		end
 	end
-	for _, filterData in pairs(db.customFilterRules or {}) do AddSaved(filterData) end
-	AddSaved(db.customFilterDraft)
+	for _, filterData in pairs(BMR.db.customFilterRules or {}) do AddSaved(filterData) end
+	AddSaved(BMR.db.customFilterDraft)
 
 	local options = {}
 	for _, group in pairs(groups) do
@@ -1448,7 +1457,7 @@ local function GetCustomFilterTagOptions(categoryFilter, displayMode)
 		end
 		if optionValue then table.insert(options, {label = group.label, value = optionValue}) end
 	end
-	table.sort(options, function(a, b) return zo_strlower(tostring(a.label)) < zo_strlower(tostring(b.label)) end)
+	table.sort(options, function(a, b) return ESOAPI.zo_strlower(tostring(a.label)) < ESOAPI.zo_strlower(tostring(b.label)) end)
 	return options
 end
 
@@ -1459,7 +1468,7 @@ function C.GetSpecializedTypeDisplayLabelCount()
 	for specializedType in pairs(C.GetSpecializedTypeCatalog()) do
 		local value = tonumber(specializedType)
 		if value and value > 0 then
-			labels[zo_strlower(tostring(FilterEnumLabel("specializedType", value, "Specialized type " .. tostring(value))))] = true
+			labels[ESOAPI.zo_strlower(tostring(FilterEnumLabel("specializedType", value, "Specialized type " .. tostring(value))))] = true
 		end
 	end
 	local count = 0
@@ -1477,7 +1486,7 @@ function C.StartItemTagCatalogScan(maxItemId)
 		return false
 	end
 	if TAG_SCAN_RUNNING then
-		SendCustomRuleMessage(GetString(BMR_CUSTOM_FILTER_SCAN_ALREADY_RUNNING))
+		SendCustomRuleMessage(ESOAPI.GetString(BMR_CUSTOM_FILTER_SCAN_ALREADY_RUNNING))
 		return false
 	end
 	local _, scan = EnsureTagCatalog()
@@ -1486,7 +1495,7 @@ function C.StartItemTagCatalogScan(maxItemId)
 	local getCount = _G and _G.GetItemLinkNumItemTags
 	local getInfo = _G and _G.GetItemLinkItemTagInfo
 	if type(getCount) ~= "function" or type(getInfo) ~= "function" then
-		SendCustomRuleMessage(GetString(BMR_CUSTOM_FILTER_SCAN_API_MISSING))
+		SendCustomRuleMessage(ESOAPI.GetString(BMR_CUSTOM_FILTER_SCAN_API_MISSING))
 		return false
 	end
 	maxItemId = math.min(TAG_SCAN_MAX_LIMIT, math.max(1, tonumber(maxItemId) or TAG_SCAN_MAX_DEFAULT))
@@ -1495,18 +1504,18 @@ function C.StartItemTagCatalogScan(maxItemId)
 	scan.maxId = maxItemId
 	scan.completed = false
 	TAG_SCAN_RUNNING = true
-	SendCustomRuleMessage(zo_strformat(GetString(BMR_CUSTOM_FILTER_SCAN_START), nextId, maxItemId))
+	SendCustomRuleMessage(ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_FILTER_SCAN_START), nextId, maxItemId))
 	local function ScanBatch()
 		if not TAG_SCAN_RUNNING then return end
 		local lastId = math.min(nextId + TAG_SCAN_BATCH_SIZE - 1, maxItemId)
 		if type(getCount) == "function" and type(getInfo) == "function" then
-			local getName = _G and _G.GetItemLinkName
+			local getName = GetItemLinkName
 			for itemId = nextId, lastId do
 				local itemLink = BuildItemTagProbeLink(itemId)
 				local validItemLink = itemLink ~= nil
-				if validItemLink and type(getName) == "function" then
-					local nameOk, itemName = pcall(getName, itemLink)
-					validItemLink = nameOk and type(itemName) == "string" and itemName ~= "" and itemName ~= "h"
+				if validItemLink then
+					local itemName = getName(itemLink)
+					validItemLink = type(itemName) == "string" and itemName ~= "" and itemName ~= "h"
 				end
 				if validItemLink then CollectTagsFromItemLink(itemLink, itemId) end
 			end
@@ -1517,14 +1526,14 @@ function C.StartItemTagCatalogScan(maxItemId)
 			TAG_SCAN_RUNNING = false
 			scan.completed = true
 			local specializedLabelCount = C.GetSpecializedTypeDisplayLabelCount()
-			SendCustomRuleMessage(zo_strformat(GetString(BMR_CUSTOM_FILTER_SCAN_COMPLETE), #C.getCustomFilterTagOptions(), specializedLabelCount))
+			SendCustomRuleMessage(ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_FILTER_SCAN_COMPLETE), #C.getCustomFilterTagOptions(), specializedLabelCount))
 			local editor = _G.BMRCustomFilterRuleEditor
 			if editor then editor.bmrValueChoicesCache = {} end
 			if editor and editor.bmrRefreshValueChoices then editor.bmrRefreshValueChoices() end
 			if editor then C.RefreshCustomFilterRuleEditor(editor) end
 		else
 			if lastId % 25000 < TAG_SCAN_BATCH_SIZE then
-				SendCustomRuleMessage(zo_strformat(GetString(BMR_CUSTOM_FILTER_SCAN_PROGRESS), lastId, maxItemId))
+				SendCustomRuleMessage(ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_FILTER_SCAN_PROGRESS), lastId, maxItemId))
 			end
 			zo_callLater(ScanBatch, TAG_SCAN_DELAY_MS)
 		end
@@ -1533,18 +1542,16 @@ function C.StartItemTagCatalogScan(maxItemId)
 	return true
 end
 
-if SLASH_COMMANDS then
-	SLASH_COMMANDS["/bmr/scantags"] = function(text)
-		if not IsTagCatalogScanAllowed() then NotifyTagCatalogScanRestricted(); return end
-		local argument = zo_strlower(tostring(text or "")):gsub("^%s+", ""):gsub("%s+$", "")
-		if argument == "stop" then
-			TAG_SCAN_RUNNING = false
-			local _, scan = EnsureTagCatalog()
-			SendCustomRuleMessage(zo_strformat(GetString(BMR_CUSTOM_FILTER_SCAN_PAUSED), tonumber(scan.nextId) or 1))
-			return
-		end
-		C.StartItemTagCatalogScan(tonumber(argument) or TAG_SCAN_MAX_DEFAULT)
+SLASH_COMMANDS["/bmr/scantags"] = function(text)
+	if not IsTagCatalogScanAllowed() then NotifyTagCatalogScanRestricted(); return end
+	local argument = ESOAPI.zo_strlower(tostring(text or "")):gsub("^%s+", ""):gsub("%s+$", "")
+	if argument == "stop" then
+		TAG_SCAN_RUNNING = false
+		local _, scan = EnsureTagCatalog()
+		SendCustomRuleMessage(ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_FILTER_SCAN_PAUSED), tonumber(scan.nextId) or 1))
+		return
 	end
+	C.StartItemTagCatalogScan(tonumber(argument) or TAG_SCAN_MAX_DEFAULT)
 end
 
 -- Never enumerate the global environment (_G) to discover constants. ESO exposes
@@ -1605,18 +1612,18 @@ end
 
 local function GetCustomFilterSpecificationFields()
 	return {
-		{key = "tagContains", label = GetString(BMR_CUSTOM_FILTER_TAG)},
-		{key = "treasureType", label = GetString(BMR_CUSTOM_FILTER_TREASURE_TYPE)},
-		{key = "furnitureBehavior", label = GetString(BMR_CUSTOM_FILTER_FURNITURE_BEHAVIOR)},
-		{key = "foodTag", label = GetString(BMR_CUSTOM_FILTER_FOOD_TAG)},
-		{key = "recipe", label = GetString(BMR_CUSTOM_FILTER_RECIPE)},
-		{key = "quality", label = GetString(BMR_CUSTOM_FILTER_QUALITY)},
-		{key = "traitInfo", label = GetString(BMR_CUSTOM_FILTER_SPECIAL_TRAIT)},
-		{key = "equipType", label = GetString(BMR_CUSTOM_FILTER_EQUIP_TYPE)},
-		{key = "armorType", label = GetString(BMR_CUSTOM_FILTER_ARMOR_TYPE)},
-		{key = "itemType", label = GetString(BMR_CUSTOM_FILTER_ITEM_TYPE)},
-		{key = "specializedType", label = GetString(BMR_CUSTOM_FILTER_SPECIALIZED_TYPE)},
-		{key = "weaponType", label = GetString(BMR_CUSTOM_FILTER_WEAPON_TYPE)},
+		{key = "tagContains", label = ESOAPI.GetString(BMR_CUSTOM_FILTER_TAG)},
+		{key = "treasureType", label = ESOAPI.GetString(BMR_CUSTOM_FILTER_TREASURE_TYPE)},
+		{key = "furnitureBehavior", label = ESOAPI.GetString(BMR_CUSTOM_FILTER_FURNITURE_BEHAVIOR)},
+		{key = "foodTag", label = ESOAPI.GetString(BMR_CUSTOM_FILTER_FOOD_TAG)},
+		{key = "recipe", label = ESOAPI.GetString(BMR_CUSTOM_FILTER_RECIPE)},
+		{key = "quality", label = ESOAPI.GetString(BMR_CUSTOM_FILTER_QUALITY)},
+		{key = "traitInfo", label = ESOAPI.GetString(BMR_CUSTOM_FILTER_SPECIAL_TRAIT)},
+		{key = "equipType", label = ESOAPI.GetString(BMR_CUSTOM_FILTER_EQUIP_TYPE)},
+		{key = "armorType", label = ESOAPI.GetString(BMR_CUSTOM_FILTER_ARMOR_TYPE)},
+		{key = "itemType", label = ESOAPI.GetString(BMR_CUSTOM_FILTER_ITEM_TYPE)},
+		{key = "specializedType", label = ESOAPI.GetString(BMR_CUSTOM_FILTER_SPECIALIZED_TYPE)},
+		{key = "weaponType", label = ESOAPI.GetString(BMR_CUSTOM_FILTER_WEAPON_TYPE)},
 	}
 end
 
@@ -1630,8 +1637,7 @@ local function GetNativeFurnishingTaxonomyOptions()
 		or type(getNumSubcategories) ~= "function" or type(getSubcategoryId) ~= "function" then
 		return options
 	end
-	local countOk, categoryCount = pcall(getNumCategories)
-	if not countOk then return options end
+	local categoryCount = getNumCategories()
 	categoryCount = math.max(0, tonumber(categoryCount) or 0)
 	local function add(label, value)
 		if type(label) ~= "string" or label == "" or not value or seen[value] then return end
@@ -1639,22 +1645,18 @@ local function GetNativeFurnishingTaxonomyOptions()
 		options[#options + 1] = {label = label, value = value}
 	end
 	for categoryIndex = 1, categoryCount do
-		local idOk, categoryId = pcall(getCategoryId, categoryIndex)
-		categoryId = idOk and tonumber(categoryId) or nil
+		local categoryId = tonumber(getCategoryId(categoryIndex))
 		local categoryName = categoryId and GetFurnitureCategoryDisplayName(categoryId) or nil
 		if categoryId and categoryName then
 			add(categoryName, "furnishingCategory:" .. tostring(categoryId))
-			local subCountOk, subCount = pcall(getNumSubcategories, categoryIndex)
-			if subCountOk then
-				for subIndex = 1, math.max(0, tonumber(subCount) or 0) do
-					local subOk, subcategoryId = pcall(getSubcategoryId, categoryIndex, subIndex)
-					subcategoryId = subOk and tonumber(subcategoryId) or nil
-					local subcategoryName = subcategoryId and GetFurnitureCategoryDisplayName(subcategoryId) or nil
-					if subcategoryId and subcategoryName then
-						local groupKey = zo_strlower(subcategoryName)
-						subcategoryGroups[groupKey] = subcategoryGroups[groupKey] or {label = subcategoryName, pairs = {}}
-						subcategoryGroups[groupKey].pairs[tostring(categoryId) .. ":" .. tostring(subcategoryId)] = true
-					end
+			local subCount = getNumSubcategories(categoryIndex)
+			for subIndex = 1, math.max(0, tonumber(subCount) or 0) do
+				local subcategoryId = tonumber(getSubcategoryId(categoryIndex, subIndex))
+				local subcategoryName = subcategoryId and GetFurnitureCategoryDisplayName(subcategoryId) or nil
+				if subcategoryId and subcategoryName then
+					local groupKey = ESOAPI.zo_strlower(subcategoryName)
+					subcategoryGroups[groupKey] = subcategoryGroups[groupKey] or {label = subcategoryName, pairs = {}}
+					subcategoryGroups[groupKey].pairs[tostring(categoryId) .. ":" .. tostring(subcategoryId)] = true
 				end
 			end
 		end
@@ -1669,7 +1671,7 @@ local function GetNativeFurnishingTaxonomyOptions()
 		local value = "furnishingSubcategoryGroup:" .. table.concat(pairsList, ",")
 		add(group.label, value)
 	end
-	table.sort(options, function(a, b) return zo_strlower(tostring(a.label)) < zo_strlower(tostring(b.label)) end)
+	table.sort(options, function(a, b) return ESOAPI.zo_strlower(tostring(a.label)) < ESOAPI.zo_strlower(tostring(b.label)) end)
 	return options
 end
 
@@ -1690,7 +1692,7 @@ local function GetCustomFilterSpecificationValues(field)
 		-- fetched from ESO's current localized Furniture API at runtime.
 		for _, option in ipairs(C.getCustomFilterTagOptions(nil, "furniture")) do options[#options + 1] = option end
 		for _, option in ipairs(GetNativeFurnishingTaxonomyOptions()) do options[#options + 1] = option end
-		table.sort(options, function(a, b) return zo_strlower(tostring(a.label)) < zo_strlower(tostring(b.label)) end)
+		table.sort(options, function(a, b) return ESOAPI.zo_strlower(tostring(a.label)) < ESOAPI.zo_strlower(tostring(b.label)) end)
 		return options
 	elseif field == "foodTag" then
 		-- Merge tag values and native item/specialized types by their localized
@@ -1723,7 +1725,7 @@ local function GetCustomFilterSpecificationValues(field)
 			local label = isTagDecorated and string.sub(rawLabel, 3, -3) or rawLabel
 			local value = tostring(option.value or "")
 			if label ~= "" and value ~= "" then
-				local key = zo_strlower(label)
+				local key = ESOAPI.zo_strlower(label)
 				groups[key] = groups[key] or {label = rawLabel, values = {}}
 				-- Prefer the ordinary localized enum label when a tag and item type
 				-- share the same visible name; retain tag decoration for tag-only values.
@@ -1740,7 +1742,7 @@ local function GetCustomFilterSpecificationValues(field)
 			if #members > 1 then value = "foodGroup:" .. table.concat(members, ";") end
 			options[#options + 1] = {label = group.label, value = value}
 		end
-		table.sort(options, function(a, b) return zo_strlower(tostring(a.label)) < zo_strlower(tostring(b.label)) end)
+		table.sort(options, function(a, b) return ESOAPI.zo_strlower(tostring(a.label)) < ESOAPI.zo_strlower(tostring(b.label)) end)
 		return options
 	elseif field == "recipe" then
 		local recipeItemType = _G and tonumber(_G.ITEMTYPE_RECIPE)
@@ -1751,7 +1753,7 @@ local function GetCustomFilterSpecificationValues(field)
 		local groups = {}
 		for value in pairs(GetRecipeSpecializedTypeIds()) do
 			local label = FilterEnumLabel("specializedType", value, "Recipe subtype " .. tostring(value))
-			local key = zo_strlower(tostring(label))
+			local key = ESOAPI.zo_strlower(tostring(label))
 			groups[key] = groups[key] or {label = tostring(label), values = {}}
 			groups[key].values[#groups[key].values + 1] = value
 		end
@@ -1782,20 +1784,20 @@ local function GetCustomFilterSpecificationValues(field)
 				seen[value] = true
 				local stringId = _G[entry[2]]
 				local label = entry[3]
-				if stringId and type(GetString) == "function" then
-					local ok, localized = pcall(GetString, stringId)
-					if ok and type(localized) == "string" and localized ~= "" then label = localized end
+				if stringId and type(ESOAPI.GetString) == "function" then
+					local localized = ESOAPI.GetString(stringId)
+					if type(localized) == "string" and localized ~= "" then label = localized end
 				end
 				table.insert(options, {label = FormatEnumDisplayLabel(label), value = value})
 			end
 		end
 	elseif field == "quality" then
-		add("ITEM_QUALITY_TRASH", GetString(BMR_CUSTOM_FILTER_QUALITY_TRASH))
-		add("ITEM_QUALITY_NORMAL", GetString(BMR_CUSTOM_FILTER_QUALITY_NORMAL))
-		add("ITEM_QUALITY_MAGIC", GetString(BMR_CUSTOM_FILTER_QUALITY_FINE))
-		add("ITEM_QUALITY_ARCANE", GetString(BMR_CUSTOM_FILTER_QUALITY_SUPERIOR))
-		add("ITEM_QUALITY_ARTIFACT", GetString(BMR_CUSTOM_FILTER_QUALITY_EPIC))
-		add("ITEM_QUALITY_LEGENDARY", GetString(BMR_CUSTOM_FILTER_QUALITY_LEGENDARY))
+		add("ITEM_QUALITY_TRASH", ESOAPI.GetString(BMR_CUSTOM_FILTER_QUALITY_TRASH))
+		add("ITEM_QUALITY_NORMAL", ESOAPI.GetString(BMR_CUSTOM_FILTER_QUALITY_NORMAL))
+		add("ITEM_QUALITY_MAGIC", ESOAPI.GetString(BMR_CUSTOM_FILTER_QUALITY_FINE))
+		add("ITEM_QUALITY_ARCANE", ESOAPI.GetString(BMR_CUSTOM_FILTER_QUALITY_SUPERIOR))
+		add("ITEM_QUALITY_ARTIFACT", ESOAPI.GetString(BMR_CUSTOM_FILTER_QUALITY_EPIC))
+		add("ITEM_QUALITY_LEGENDARY", ESOAPI.GetString(BMR_CUSTOM_FILTER_QUALITY_LEGENDARY))
 	elseif field == "equipType" then
 		local values = {
 			{"EQUIP_TYPE_HEAD", "Head"}, {"EQUIP_TYPE_CHEST", "Chest"}, {"EQUIP_TYPE_SHOULDERS", "Shoulders"},
@@ -1828,7 +1830,7 @@ local function GetCustomFilterSpecificationValues(field)
 			local value = tonumber(specializedType)
 			if value and value > 0 and not excludedIds[value] then
 				local label = FilterEnumLabel("specializedType", value, "Specialized type " .. tostring(value))
-				local groupKey = zo_strlower(tostring(label))
+				local groupKey = ESOAPI.zo_strlower(tostring(label))
 				if not groups[groupKey] then groups[groupKey] = {label = tostring(label), values = {}} end
 				table.insert(groups[groupKey].values, value)
 			end
@@ -1867,7 +1869,7 @@ local function GetCustomFilterSpecificationValues(field)
 			local value = _G[entry[1]]
 			if type(value) == "number" then
 				local label = FilterEnumLabel("itemType", value, entry[2])
-				local key = zo_strlower(tostring(label))
+				local key = ESOAPI.zo_strlower(tostring(label))
 				groups[key] = groups[key] or {label = tostring(label), values = {}}
 				groups[key].values[#groups[key].values + 1] = value
 			end
@@ -1905,7 +1907,7 @@ local function GetCustomFilterSpecificationValues(field)
 			local value = _G[v[1]]
 			if type(value) == "number" then
 				local label = FilterEnumLabel("weaponType", value, v[2])
-				local key = zo_strlower(tostring(label))
+				local key = ESOAPI.zo_strlower(tostring(label))
 				if not groups[key] then groups[key] = {label = tostring(label), values = {}} end
 				table.insert(groups[key].values, value)
 			end
@@ -1932,7 +1934,7 @@ end
 local function BuildCustomFilterSummary(filterData)
 	local parts = {}
 	local searchString = tostring(filterData and filterData.searchString or "")
-	if searchString ~= "" then table.insert(parts, GetString(BMR_CUSTOM_FILTER_NAME_CONTAINS) .. ' "' .. searchString .. '"') end
+	if searchString ~= "" then table.insert(parts, ESOAPI.GetString(BMR_CUSTOM_FILTER_NAME_CONTAINS) .. ' "' .. searchString .. '"') end
 	local fields = {}
 	for _, field in ipairs(GetCustomFilterSpecificationFields()) do fields[field.key] = field.label end
 	for _, spec in ipairs(filterData and filterData.specifications or {}) do
@@ -1962,7 +1964,7 @@ local function BuildCustomFilterSummary(filterData)
 		end
 		if #labels > 0 then table.insert(parts, tostring(fields[spec.field] or spec.field) .. ": " .. table.concat(labels, " / ")) end
 	end
-	return (#parts > 0) and table.concat(parts, " · ") or GetString(BMR_CUSTOM_FILTER_NO_SPECS)
+	return (#parts > 0) and table.concat(parts, " · ") or ESOAPI.GetString(BMR_CUSTOM_FILTER_NO_SPECS)
 end
 
 -- Console/gamepad editor helpers. LibHarvensAddonSettings does not support LAM's
@@ -1972,8 +1974,8 @@ local CONSOLE_FILTER_VALUE_CACHE = {}
 local CONSOLE_FILTER_VALUE_LIMIT = 300
 
 local function ConsoleRuleSelection()
-	db.consoleCustomRuleSelection = db.consoleCustomRuleSelection or {}
-	return db.consoleCustomRuleSelection
+	BMR.db.consoleCustomRuleSelection = BMR.db.consoleCustomRuleSelection or {}
+	return BMR.db.consoleCustomRuleSelection
 end
 
 local function RefreshConsoleCustomRulePanel()
@@ -1998,16 +2000,16 @@ C.RefreshConsoleCustomRulePanel = RefreshConsoleCustomRulePanel
 
 local function GetConsoleActionOptions()
 	return {
-		{name = GetString(BMR_ACTION_NOTSET), data = ACTION_NOTSET},
-		{name = GetString(BMR_ACTION_PUSH), data = ACTION_PUSH},
-		{name = GetString(BMR_ACTION_PULL), data = ACTION_PULL},
-		{name = GetString(BMR_ACTION_PUSH_ALL_STACKS), data = ACTION_PUSH_ALL_STACKS},
-		{name = GetString(BMR_ACTION_PULL_ALL_STACKS), data = ACTION_PULL_ALL_STACKS},
-		{name = GetString(BMR_ACTION_PUSH_GBANK), data = ACTION_PUSH_GBANK},
-		{name = GetString(BMR_ACTION_PUSH_BOTH), data = ACTION_PUSH_BOTH},
-		{name = GetString(BMR_ACTION_KEEP_ONE_STACK), data = ACTION_KEEP_ONE_STACK},
-		{name = GetString(BMR_ACTION_KEEP_ONE_STACK_BANK), data = ACTION_KEEP_ONE_STACK_BANK},
-		{name = GetString(BMR_ACTION_PUSH_FURNITURE), data = ACTION_PUSH_FURNITURE},
+		{name = ESOAPI.GetString(BMR_ACTION_NOTSET), data = ACTION_NOTSET},
+		{name = ESOAPI.GetString(BMR_ACTION_PUSH), data = ACTION_PUSH},
+		{name = ESOAPI.GetString(BMR_ACTION_PULL), data = ACTION_PULL},
+		{name = ESOAPI.GetString(BMR_ACTION_PUSH_ALL_STACKS), data = ACTION_PUSH_ALL_STACKS},
+		{name = ESOAPI.GetString(BMR_ACTION_PULL_ALL_STACKS), data = ACTION_PULL_ALL_STACKS},
+		{name = ESOAPI.GetString(BMR_ACTION_PUSH_GBANK), data = ACTION_PUSH_GBANK},
+		{name = ESOAPI.GetString(BMR_ACTION_PUSH_BOTH), data = ACTION_PUSH_BOTH},
+		{name = ESOAPI.GetString(BMR_ACTION_KEEP_ONE_STACK), data = ACTION_KEEP_ONE_STACK},
+		{name = ESOAPI.GetString(BMR_ACTION_KEEP_ONE_STACK_BANK), data = ACTION_KEEP_ONE_STACK_BANK},
+		{name = ESOAPI.GetString(BMR_ACTION_PUSH_FURNITURE), data = ACTION_PUSH_FURNITURE},
 	}
 end
 C.GetConsoleActionOptions = GetConsoleActionOptions
@@ -2019,7 +2021,7 @@ function C.GetConsoleGuildOptions()
 end
 
 local function GetConsoleProfile()
-	return db.profiles and db.profiles[ActualProfile()] or nil
+	return BMR.db.profiles and BMR.db.profiles[ActualProfile()] or nil
 end
 
 local function GetConsoleRuleAction(ruleName)
@@ -2037,7 +2039,7 @@ local function SetConsoleRuleAction(ruleName, aggregateRuleName, actionValue)
 	if type(rule) ~= "table" then
 		rule = {
 			action = ACTION_NOTSET,
-			associatedGuild = aggregate.associatedGuild or GetString(BMR_ACTION_NOTSET),
+			associatedGuild = aggregate.associatedGuild or ESOAPI.GetString(BMR_ACTION_NOTSET),
 			onlyIfNotFullStack = aggregate.onlyIfNotFullStack ~= false,
 			onlyStacks = tonumber(aggregate.onlyStacks) or 1,
 		}
@@ -2051,7 +2053,7 @@ end
 local function GetConsoleRuleGuild(ruleName)
 	local profile = GetConsoleProfile()
 	local rule = profile and profile.rules and profile.rules[ruleName]
-	return rule and rule.associatedGuild or GetString(BMR_ACTION_NOTSET)
+	return rule and rule.associatedGuild or ESOAPI.GetString(BMR_ACTION_NOTSET)
 end
 
 local function SetConsoleRuleGuild(ruleName, aggregateRuleName, guildName)
@@ -2061,23 +2063,23 @@ local function SetConsoleRuleGuild(ruleName, aggregateRuleName, guildName)
 	local rule = profile.rules[ruleName]
 	if type(rule) ~= "table" then
 		local aggregate = profile.rules[aggregateRuleName] or {}
-		rule = {action = ACTION_NOTSET, associatedGuild = aggregate.associatedGuild or GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = aggregate.onlyIfNotFullStack ~= false, onlyStacks = tonumber(aggregate.onlyStacks) or 1}
+		rule = {action = ACTION_NOTSET, associatedGuild = aggregate.associatedGuild or ESOAPI.GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = aggregate.onlyIfNotFullStack ~= false, onlyStacks = tonumber(aggregate.onlyStacks) or 1}
 		profile.rules[ruleName] = rule
 	end
-	rule.associatedGuild = guildName or GetString(BMR_ACTION_NOTSET)
+	rule.associatedGuild = guildName or ESOAPI.GetString(BMR_ACTION_NOTSET)
 	FireBmrRuleCountRefresh()
 	return true
 end
 
 local function GetConsoleGuildLabel(guildName)
 	for _, choice in ipairs(C.GetConsoleGuildOptions()) do if choice.data == guildName then return choice.name end end
-	return GetString(BMR_ACTION_NOTSET)
+	return ESOAPI.GetString(BMR_ACTION_NOTSET)
 end
 
 local function GetConsoleCustomItemIds()
 	local ids = {}
 	local seen = {}
-	for itemId, itemData in pairs(db.customItemRules or {}) do
+	for itemId, itemData in pairs(BMR.db.customItemRules or {}) do
 		local numericId = tonumber(itemId)
 		if numericId and type(itemData) == "table" and not seen[numericId] then
 			seen[numericId] = true
@@ -2085,10 +2087,10 @@ local function GetConsoleCustomItemIds()
 		end
 	end
 	table.sort(ids, function(a, b)
-		local aData = db.customItemRules[tostring(a)] or db.customItemRules[a] or {}
-		local bData = db.customItemRules[tostring(b)] or db.customItemRules[b] or {}
-		local aName = zo_strlower(C.GetCustomItemDisplayName(a, aData))
-		local bName = zo_strlower(C.GetCustomItemDisplayName(b, bData))
+		local aData = BMR.db.customItemRules[tostring(a)] or BMR.db.customItemRules[a] or {}
+		local bData = BMR.db.customItemRules[tostring(b)] or BMR.db.customItemRules[b] or {}
+		local aName = ESOAPI.zo_strlower(C.GetCustomItemDisplayName(a, aData))
+		local bName = ESOAPI.zo_strlower(C.GetCustomItemDisplayName(b, bData))
 		if aName == bName then return a < b end
 		return aName < bName
 	end)
@@ -2098,7 +2100,7 @@ end
 function C.GetConsoleCustomItemOptions()
 	local options = {}
 	for _, itemId in ipairs(GetConsoleCustomItemIds()) do
-		local itemData = db.customItemRules[tostring(itemId)] or db.customItemRules[itemId] or {}
+		local itemData = BMR.db.customItemRules[tostring(itemId)] or BMR.db.customItemRules[itemId] or {}
 		local itemName = C.GetCustomItemDisplayName(itemId, itemData)
 		options[#options + 1] = {name = tostring(itemName) .. " (#" .. tostring(itemId) .. ")", data = itemId}
 	end
@@ -2107,7 +2109,7 @@ end
 
 function C.GetConsoleSelectedCustomItemId()
 	local selection = ConsoleRuleSelection()
-	local rules = db.customItemRules or {}
+	local rules = BMR.db.customItemRules or {}
 	local selected = tonumber(selection.itemId)
 	if selected and (rules[tostring(selected)] or rules[selected]) then return selected end
 	local ids = GetConsoleCustomItemIds()
@@ -2117,7 +2119,7 @@ end
 
 function C.SetConsoleSelectedCustomItemId(itemId)
 	local numericId = tonumber(itemId)
-	local rules = db.customItemRules or {}
+	local rules = BMR.db.customItemRules or {}
 	if numericId and (rules[tostring(numericId)] or rules[numericId]) then
 		ConsoleRuleSelection().itemId = numericId
 	end
@@ -2149,7 +2151,7 @@ function C.GetConsoleFilterRuleOptions()
 	local options = {}
 	local ids = {}
 	local seen = {}
-	for id, filterData in pairs(db.customFilterRules or {}) do
+	for id, filterData in pairs(BMR.db.customFilterRules or {}) do
 		local numericId = tonumber(id)
 		if numericId and type(filterData) == "table" and not seen[numericId] then
 			seen[numericId] = true
@@ -2158,7 +2160,7 @@ function C.GetConsoleFilterRuleOptions()
 	end
 	table.sort(ids)
 	for _, id in ipairs(ids) do
-		local filterData = db.customFilterRules[tostring(id)] or db.customFilterRules[id]
+		local filterData = BMR.db.customFilterRules[tostring(id)] or BMR.db.customFilterRules[id]
 		local title = C.GetCustomFilterDisplayName(id, filterData)
 		options[#options + 1] = {name = title .. " (#" .. tostring(id) .. ")", data = id}
 	end
@@ -2167,12 +2169,12 @@ end
 
 function C.GetConsoleSelectedFilterId()
 	local selection = ConsoleRuleSelection()
-	local rules = db.customFilterRules or {}
+	local rules = BMR.db.customFilterRules or {}
 	local selected = tonumber(selection.filterId)
 	if selected and (rules[tostring(selected)] or rules[selected]) then return selected end
 	local ids = {}
 	local seen = {}
-	for id, filterData in pairs(db.customFilterRules or {}) do
+	for id, filterData in pairs(BMR.db.customFilterRules or {}) do
 		local numericId = tonumber(id)
 		if numericId and type(filterData) == "table" and not seen[numericId] then
 			seen[numericId] = true
@@ -2186,7 +2188,7 @@ end
 
 function C.SetConsoleSelectedFilterId(filterId)
 	local numericId = tonumber(filterId)
-	local rules = db.customFilterRules or {}
+	local rules = BMR.db.customFilterRules or {}
 	if numericId and (rules[tostring(numericId)] or rules[numericId]) then
 		local selection = ConsoleRuleSelection()
 		local changed = tonumber(selection.filterId) ~= numericId
@@ -2228,10 +2230,10 @@ function C.GetConsoleFilterFieldOptions()
 end
 
 local function GetConsoleDraft()
-	if type(db.customFilterDraft) ~= "table" then
-		db.customFilterDraft = {searchString = "", specifications = {}, editingId = nil, consoleField = "quality", consoleValueSearch = ""}
+	if type(BMR.db.customFilterDraft) ~= "table" then
+		BMR.db.customFilterDraft = {searchString = "", specifications = {}, editingId = nil, consoleField = "quality", consoleValueSearch = ""}
 	end
-	local draft = db.customFilterDraft
+	local draft = BMR.db.customFilterDraft
 	draft.searchString = tostring(draft.searchString or "")
 	draft.specifications = type(draft.specifications) == "table" and draft.specifications or {}
 	draft.consoleField = tostring(draft.consoleField or "quality")
@@ -2293,7 +2295,7 @@ end
 function C.GetConsoleFilterValueOptions()
 	local draft = GetConsoleDraft()
 	local currentField = C.GetConsoleFilterField()
-	local search = zo_strlower(tostring(draft.consoleValueSearch or ""))
+	local search = ESOAPI.zo_strlower(tostring(draft.consoleValueSearch or ""))
 	local fields = GetCustomFilterSpecificationFields()
 	local options = {}
 	local function getValues(fieldKey)
@@ -2309,18 +2311,18 @@ function C.GetConsoleFilterValueOptions()
 			for _, option in ipairs(getValues(field.key)) do
 				local label = tostring(option.label or "")
 				local displayName = (search ~= "" and (label .. " (" .. tostring(field.label) .. ")")) or label
-				if search == "" or string.find(zo_strlower(displayName), search, 1, true) then
+				if search == "" or string.find(ESOAPI.zo_strlower(displayName), search, 1, true) then
 					options[#options + 1] = {name = displayName, data = {field = field.key, value = option.value, label = displayName}}
 				end
 			end
 		end
 	end
-	table.sort(options, function(a, b) return zo_strlower(tostring(a.name)) < zo_strlower(tostring(b.name)) end)
+	table.sort(options, function(a, b) return ESOAPI.zo_strlower(tostring(a.name)) < ESOAPI.zo_strlower(tostring(b.name)) end)
 		if #options > CONSOLE_FILTER_VALUE_LIMIT then
 			for i = #options, CONSOLE_FILTER_VALUE_LIMIT + 1, -1 do options[i] = nil end
 		end
 	if #options == 0 then
-		options[1] = {name = GetString(BMR_CUSTOM_FILTER_NO_VALUES), data = nil}
+		options[1] = {name = ESOAPI.GetString(BMR_CUSTOM_FILTER_NO_VALUES), data = nil}
 	end
 	return options
 end
@@ -2333,7 +2335,7 @@ end
 function C.SetConsoleFilterValue(valueData)
 	if type(valueData) ~= "table" or valueData.value == nil or valueData.field == nil then
 		CustomRuleDebug("console filter dropdown returned invalid value data; type=" .. type(valueData))
-		SendCustomRuleMessage("[BMR] " .. GetString(BMR_CUSTOM_FILTER_NO_VALUE))
+		SendCustomRuleMessage("[BMR] " .. ESOAPI.GetString(BMR_CUSTOM_FILTER_NO_VALUE))
 		return false
 	end
 	local valid = false
@@ -2351,7 +2353,7 @@ function C.SetConsoleFilterValue(valueData)
 	end
 	local valueLabel = tostring(draft.consoleSelectedValueLabel)
 	CustomRuleDebug("console filter value selected field=" .. tostring(valueData.field) .. " value=" .. tostring(valueData.value))
-	SendCustomRuleMessage("[BMR] " .. zo_strformat(GetString(BMR_CUSTOM_FILTER_BUILDER_SELECTED), fieldLabel, valueLabel))
+	SendCustomRuleMessage("[BMR] " .. ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_FILTER_BUILDER_SELECTED), fieldLabel, valueLabel))
 	return true
 end
 
@@ -2381,17 +2383,17 @@ local function BuildConsoleFilterBuilderExpression(filterData)
 	filterData = filterData or GetConsoleDraft()
 	local parts = {}
 	if tostring(filterData.searchString or "") ~= "" then
-		parts[#parts + 1] = GetString(BMR_CUSTOM_FILTER_NAME_CONTAINS) .. ' "' .. tostring(filterData.searchString) .. '"'
+		parts[#parts + 1] = ESOAPI.GetString(BMR_CUSTOM_FILTER_NAME_CONTAINS) .. ' "' .. tostring(filterData.searchString) .. '"'
 	end
 	for _, specification in ipairs(filterData.specifications or {}) do
 		if type(specification) == "table" and type(specification.values) == "table" and #specification.values > 0 then
 			local specificationSummary = BuildCustomFilterSummary({specifications = {specification}})
-			if specificationSummary ~= "" and specificationSummary ~= GetString(BMR_CUSTOM_FILTER_NO_SPECS) then
+			if specificationSummary ~= "" and specificationSummary ~= ESOAPI.GetString(BMR_CUSTOM_FILTER_NO_SPECS) then
 				parts[#parts + 1] = specificationSummary
 			end
 		end
 	end
-	if #parts == 0 then return GetString(BMR_CUSTOM_FILTER_NO_SPECS) end
+	if #parts == 0 then return ESOAPI.GetString(BMR_CUSTOM_FILTER_NO_SPECS) end
 	return table.concat(parts, "  +  ")
 end
 
@@ -2401,15 +2403,15 @@ end
 
 function C.GetConsoleFilterDraftCountsLine()
 	local specificationCount, valueCount = GetConsoleFilterDraftCounts()
-	return zo_strformat(GetString(BMR_CUSTOM_FILTER_BUILDER_COUNTS), specificationCount, valueCount)
+	return ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_FILTER_BUILDER_COUNTS), specificationCount, valueCount)
 end
 
 function C.GetConsoleFilterDraftPendingLine()
 	local draft = GetConsoleDraft()
-	if draft.consoleSelectedValue == nil then return GetString(BMR_CUSTOM_FILTER_BUILDER_PENDING_NONE) end
+	if draft.consoleSelectedValue == nil then return ESOAPI.GetString(BMR_CUSTOM_FILTER_BUILDER_PENDING_NONE) end
 	local fieldLabel = GetConsoleFilterFieldLabelByKey(draft.consoleSelectedField or draft.consoleField)
 	local valueLabel = tostring(draft.consoleSelectedValueLabel or draft.consoleSelectedValue)
-	return zo_strformat(GetString(BMR_CUSTOM_FILTER_BUILDER_PENDING), fieldLabel, valueLabel)
+	return ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_FILTER_BUILDER_PENDING), fieldLabel, valueLabel)
 end
 
 -- The console frontend presents the focused setting's tooltip in its shared
@@ -2419,8 +2421,8 @@ end
 function C.GetConsoleFilterRuleBuilderTooltip(includeGuildTooltip)
 	local draft = GetConsoleDraft()
 	local selectedId = C.GetConsoleSelectedFilterId()
-	local selectedRule = selectedId and db.customFilterRules
-		and (db.customFilterRules[tostring(selectedId)] or db.customFilterRules[selectedId]) or nil
+	local selectedRule = selectedId and BMR.db.customFilterRules
+		and (BMR.db.customFilterRules[tostring(selectedId)] or BMR.db.customFilterRules[selectedId]) or nil
 	local draftHasContent = tostring(draft.searchString or '') ~= ''
 		or #(draft.specifications or {}) > 0
 		or draft.consoleSelectedValue ~= nil
@@ -2429,8 +2431,8 @@ function C.GetConsoleFilterRuleBuilderTooltip(includeGuildTooltip)
 	local data = (draftHasContent or draftIsSelectedForEdit or not selectedRule) and draft or selectedRule
 	local specificationCount, valueCount = GetConsoleFilterDraftCounts(data)
 	local lines = {
-		GetString(BMR_CUSTOM_FILTER_RULE_BUILDER),
-		zo_strformat(GetString(BMR_CUSTOM_FILTER_BUILDER_COUNTS), specificationCount, valueCount),
+		ESOAPI.GetString(BMR_CUSTOM_FILTER_RULE_BUILDER),
+		ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_FILTER_BUILDER_COUNTS), specificationCount, valueCount),
 		BuildConsoleFilterBuilderExpression(data),
 	}
 	if data == draft and draft.consoleSelectedValue ~= nil then
@@ -2438,7 +2440,7 @@ function C.GetConsoleFilterRuleBuilderTooltip(includeGuildTooltip)
 	end
 	if includeGuildTooltip then
 		lines[#lines + 1] = ''
-		lines[#lines + 1] = GetString(BMR_GUILD_LIST_TOOLTIP)
+		lines[#lines + 1] = ESOAPI.GetString(BMR_GUILD_LIST_TOOLTIP)
 	end
 	return table.concat(lines, '\n')
 end
@@ -2447,22 +2449,22 @@ end
 -- selected persisted rule, so the same help area verifies what was actually saved.
 function C.GetConsoleSelectedFilterRuleTooltip(includeGuildTooltip)
 	local selectedId = C.GetConsoleSelectedFilterId()
-	local selectedRule = selectedId and db.customFilterRules
-		and (db.customFilterRules[tostring(selectedId)] or db.customFilterRules[selectedId]) or nil
+	local selectedRule = selectedId and BMR.db.customFilterRules
+		and (BMR.db.customFilterRules[tostring(selectedId)] or BMR.db.customFilterRules[selectedId]) or nil
 	if type(selectedRule) ~= "table" then
 		return C.GetConsoleFilterRuleBuilderTooltip(includeGuildTooltip)
 	end
 	local specificationCount, valueCount = GetConsoleFilterDraftCounts(selectedRule)
 	local displayName = C.GetCustomFilterDisplayName(selectedId, selectedRule)
 	local lines = {
-		GetString(BMR_CUSTOM_FILTER_RULE_BUILDER),
-		zo_strformat(GetString(BMR_CUSTOM_FILTER_BUILDER_SAVED), specificationCount, valueCount),
+		ESOAPI.GetString(BMR_CUSTOM_FILTER_RULE_BUILDER),
+		ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_FILTER_BUILDER_SAVED), specificationCount, valueCount),
 		displayName,
 		BuildConsoleFilterBuilderExpression(selectedRule),
 	}
 	if includeGuildTooltip then
 		lines[#lines + 1] = ""
-		lines[#lines + 1] = GetString(BMR_GUILD_LIST_TOOLTIP)
+		lines[#lines + 1] = ESOAPI.GetString(BMR_GUILD_LIST_TOOLTIP)
 	end
 	return table.concat(lines, "\n")
 end
@@ -2477,7 +2479,7 @@ function C.AddConsoleFilterDraftSpecification()
 	local field = draft.consoleSelectedField or draft.consoleField
 	local value = draft.consoleSelectedValue
 	if value == nil or tostring(value) == "" then
-		SendCustomRuleMessage("[BMR] " .. GetString(BMR_CUSTOM_FILTER_NO_VALUE))
+		SendCustomRuleMessage("[BMR] " .. ESOAPI.GetString(BMR_CUSTOM_FILTER_NO_VALUE))
 		return false
 	end
 	local validField = false
@@ -2498,9 +2500,9 @@ function C.AddConsoleFilterDraftSpecification()
 	draft.consoleSelectedValueLabel = nil
 	RefreshConsoleCustomRulePanel()
 	if exists then
-		SendCustomRuleMessage("[BMR] " .. GetString(BMR_CUSTOM_FILTER_BUILDER_DUPLICATE))
+		SendCustomRuleMessage("[BMR] " .. ESOAPI.GetString(BMR_CUSTOM_FILTER_BUILDER_DUPLICATE))
 	else
-		SendCustomRuleMessage("[BMR] " .. zo_strformat(GetString(BMR_CUSTOM_FILTER_BUILDER_ADDED), fieldLabel, valueLabel, specificationCount, valueCount))
+		SendCustomRuleMessage("[BMR] " .. ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_FILTER_BUILDER_ADDED), fieldLabel, valueLabel, specificationCount, valueCount))
 	end
 	return not exists
 end
@@ -2513,7 +2515,7 @@ end
 
 function C.ClearConsoleFilterDraft()
 	local draft = GetConsoleDraft()
-	db.customFilterDraft = {searchString = "", specifications = {}, editingId = nil, consoleField = draft.consoleField or "quality", consoleValueSearch = ""}
+	BMR.db.customFilterDraft = {searchString = "", specifications = {}, editingId = nil, consoleField = draft.consoleField or "quality", consoleValueSearch = ""}
 	RefreshConsoleCustomRulePanel()
 end
 
@@ -2522,7 +2524,7 @@ function C.SaveCustomFilterDraft(overwriteEdited)
 	-- A selected dropdown value is only a pending candidate. Refuse to save until
 	-- it has been explicitly added, so the UI can never imply it was persisted.
 	if currentDraft.consoleSelectedValue ~= nil then
-		SendCustomRuleMessage("[BMR] " .. GetString(BMR_CUSTOM_FILTER_BUILDER_SAVE_PENDING))
+		SendCustomRuleMessage("[BMR] " .. ESOAPI.GetString(BMR_CUSTOM_FILTER_BUILDER_SAVE_PENDING))
 		RefreshConsoleCustomRulePanel()
 		return false
 	end
@@ -2543,19 +2545,19 @@ function C.SaveCustomFilterDraft(overwriteEdited)
 	end
 	local specificationCount, valueCount = GetConsoleFilterDraftCounts({specifications = normalizedSpecifications})
 	if currentDraft.searchString == "" and specificationCount == 0 then
-		SendCustomRuleMessage("[BMR] " .. GetString(BMR_CUSTOM_FILTER_NEED_CONDITION))
+		SendCustomRuleMessage("[BMR] " .. ESOAPI.GetString(BMR_CUSTOM_FILTER_NEED_CONDITION))
 		return false
 	end
-	db.customFilterRules = db.customFilterRules or {}
+	BMR.db.customFilterRules = BMR.db.customFilterRules or {}
 	local editingId = tonumber(currentDraft.editingId)
-	local existing = editingId and (db.customFilterRules[tostring(editingId)] or db.customFilterRules[editingId])
+	local existing = editingId and (BMR.db.customFilterRules[tostring(editingId)] or BMR.db.customFilterRules[editingId])
 	local overwrite = overwriteEdited == true and existing ~= nil
 	local id
 	if overwrite then
 		id = editingId
 	else
 		local maxId = 0
-		for existingId in pairs(db.customFilterRules) do maxId = math.max(maxId, tonumber(existingId) or 0) end
+		for existingId in pairs(BMR.db.customFilterRules) do maxId = math.max(maxId, tonumber(existingId) or 0) end
 		id = maxId + 1
 	end
 	local filterData = DeepCopy(currentDraft)
@@ -2571,16 +2573,16 @@ function C.SaveCustomFilterDraft(overwriteEdited)
 	filterData.summary = BuildCustomFilterSummary(filterData)
 	filterData.displayName = overwrite and existing and (existing.displayName or nil) or nil
 	filterData.name = (filterData.displayName and filterData.displayName ~= "" and filterData.displayName) or (filterData.searchString ~= "" and filterData.searchString) or filterData.summary
-	db.customFilterRules[tostring(id)] = filterData
-	db.customFilterRules[id] = nil
+	BMR.db.customFilterRules[tostring(id)] = filterData
+	BMR.db.customFilterRules[id] = nil
 	if not overwrite then
-		for _, profile in pairs(db.profiles or {}) do
+		for _, profile in pairs(BMR.db.profiles or {}) do
 			if type(profile) == "table" then
 				profile.rules = profile.rules or {}
-				profile.rules.customFilterAll = profile.rules.customFilterAll or {action = ACTION_NOTSET, associatedGuild = GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
+				profile.rules.customFilterAll = profile.rules.customFilterAll or {action = ACTION_NOTSET, associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
 				profile.rules[GetCustomFilterRuleName(id)] = {
 					action = ACTION_NOTSET,
-					associatedGuild = profile.rules.customFilterAll.associatedGuild or GetString(BMR_ACTION_NOTSET),
+					associatedGuild = profile.rules.customFilterAll.associatedGuild or ESOAPI.GetString(BMR_ACTION_NOTSET),
 					onlyIfNotFullStack = profile.rules.customFilterAll.onlyIfNotFullStack ~= false,
 					onlyStacks = tonumber(profile.rules.customFilterAll.onlyStacks) or 1,
 				}
@@ -2591,8 +2593,8 @@ function C.SaveCustomFilterDraft(overwriteEdited)
 	ConsoleRuleSelection().filterId = id
 	local messageKey = overwrite and BMR_CUSTOM_FILTER_UPDATED or BMR_CUSTOM_FILTER_ADDED
 	CustomRuleDebug("console filter saved id=" .. tostring(id) .. " overwrite=" .. tostring(overwrite) .. " specifications=" .. tostring(specificationCount) .. " values=" .. tostring(valueCount) .. " matcher=DoesCustomFilterMatch")
-	SendCustomRuleMessage("[BMR] " .. zo_strformat(GetString(messageKey), filterData.name) .. " — " .. zo_strformat(GetString(BMR_CUSTOM_FILTER_BUILDER_SAVED), specificationCount, valueCount))
-	db.customFilterDraft = {searchString = "", specifications = {}, editingId = nil, consoleField = currentDraft.consoleField or "quality", consoleValueSearch = ""}
+	SendCustomRuleMessage("[BMR] " .. ESOAPI.zo_strformat(ESOAPI.GetString(messageKey), filterData.name) .. " — " .. ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_FILTER_BUILDER_SAVED), specificationCount, valueCount))
+	BMR.db.customFilterDraft = {searchString = "", specifications = {}, editingId = nil, consoleField = currentDraft.consoleField or "quality", consoleValueSearch = ""}
 	if BMR.refreshCustomRuleOptions then BMR.refreshCustomRuleOptions() else RefreshConsoleCustomRulePanel() end
 	return true, id
 end
@@ -2601,20 +2603,20 @@ function C.RenameCustomFilterRuleById(filterId, newName)
 	local id = tonumber(filterId)
 	if not id then return false, "invalid-id" end
 	local key = tostring(id)
-	local filterData = db.customFilterRules and (db.customFilterRules[key] or db.customFilterRules[id])
+	local filterData = BMR.db.customFilterRules and (BMR.db.customFilterRules[key] or BMR.db.customFilterRules[id])
 	if type(filterData) ~= "table" then return false, "missing-rule" end
 	local name = string.gsub(tostring(newName or ""), "^%s*(.-)%s*$", "%1")
 	if name == "" then return false, "empty-name" end
 	local nameLength = type(zo_strlen) == "function" and zo_strlen(name) or #name
 	if nameLength > 64 then return false, "too-long" end
-	local normalized = zo_strlower(name)
-	for otherId, otherData in pairs(db.customFilterRules or {}) do
+	local normalized = ESOAPI.zo_strlower(name)
+	for otherId, otherData in pairs(BMR.db.customFilterRules or {}) do
 		if tonumber(otherId) and tonumber(otherId) ~= id and type(otherData) == "table" then
-			if zo_strlower(C.GetCustomFilterDisplayName(otherId, otherData)) == normalized then return false, "duplicate-name" end
+			if ESOAPI.zo_strlower(C.GetCustomFilterDisplayName(otherId, otherData)) == normalized then return false, "duplicate-name" end
 		end
 	end
-	for otherId, otherData in pairs(db.customItemRules or {}) do
-		if tonumber(otherId) and type(otherData) == "table" and zo_strlower(C.GetCustomItemDisplayName(otherId, otherData)) == normalized then return false, "duplicate-name" end
+	for otherId, otherData in pairs(BMR.db.customItemRules or {}) do
+		if tonumber(otherId) and type(otherData) == "table" and ESOAPI.zo_strlower(C.GetCustomItemDisplayName(otherId, otherData)) == normalized then return false, "duplicate-name" end
 	end
 	filterData.displayName = name
 	C.SyncFilterRuleDefinitions()
@@ -2623,21 +2625,21 @@ function C.RenameCustomFilterRuleById(filterId, newName)
 end
 
 function C.ShowRenameCustomFilterDialog(filterId)
-	if type(ZO_Dialogs_ShowDialog) ~= "function" then return false end
+	if type(ESOAPI.ZO_Dialogs_ShowDialog) ~= "function" then return false end
 	local dialogName = "BMR_CUSTOM_FILTER_RENAME_DIALOG"
 	if not C._renameDialogRegistered then
-		if type(ESO_Dialogs) ~= "table" then return false end
-		ESO_Dialogs[dialogName] = {
-			title = {text = GetString(BMR_CUSTOM_FILTER_RENAME_TITLE)},
-			mainText = {text = GetString(BMR_CUSTOM_FILTER_RENAME_PROMPT)},
+		if type(ESOAPI.ESO_Dialogs) ~= "table" then return false end
+		ESOAPI.ESO_Dialogs[dialogName] = {
+			title = {text = ESOAPI.GetString(BMR_CUSTOM_FILTER_RENAME_TITLE)},
+			mainText = {text = ESOAPI.GetString(BMR_CUSTOM_FILTER_RENAME_PROMPT)},
 			editBox = {maxInputCharacters = 64},
 			buttons = {
 				{text = SI_DIALOG_CONFIRM, callback = function(dialog)
 						local id = dialog and dialog.data and tonumber(dialog.data[1])
-						local value = type(ZO_Dialogs_GetEditBoxText) == "function" and ZO_Dialogs_GetEditBoxText(dialog) or ""
+						local value = type(ESOAPI.ZO_Dialogs_GetEditBoxText) == "function" and ESOAPI.ZO_Dialogs_GetEditBoxText(dialog) or ""
 						local ok, reason = C.RenameCustomFilterRuleById(id, value)
 						if not ok then
-							local message = reason == "duplicate-name" and GetString(BMR_CUSTOM_FILTER_RENAME_DUPLICATE) or GetString(BMR_CUSTOM_FILTER_RENAME_INVALID)
+							local message = reason == "duplicate-name" and ESOAPI.GetString(BMR_CUSTOM_FILTER_RENAME_DUPLICATE) or ESOAPI.GetString(BMR_CUSTOM_FILTER_RENAME_INVALID)
 						SendCustomRuleMessage("[BMR] " .. message)
 					end
 					end},
@@ -2646,41 +2648,41 @@ function C.ShowRenameCustomFilterDialog(filterId)
 		}
 		C._renameDialogRegistered = true
 	end
-	ZO_Dialogs_ShowDialog(dialogName, {tonumber(filterId)}, {initialEditText = C.GetCustomFilterDisplayName(filterId)})
+	ESOAPI.ZO_Dialogs_ShowDialog(dialogName, {tonumber(filterId)}, {initialEditText = C.GetCustomFilterDisplayName(filterId)})
 	return true
 end
 
 function C._RuleUi.GetCurrentConsoleFilterRenameTarget()
 	local id = C.GetConsoleSelectedFilterId()
 	if not id then return nil, nil end
-	local data = db.customFilterRules and (db.customFilterRules[tostring(id)] or db.customFilterRules[id])
+	local data = BMR.db.customFilterRules and (BMR.db.customFilterRules[tostring(id)] or BMR.db.customFilterRules[id])
 	return id, data
 end
 
 function C.GetConsoleFilterRenameDraft()
 	local id, data = C._RuleUi.GetCurrentConsoleFilterRenameTarget()
 	if not id or not data then return "" end
-	if tonumber(db.customFilterRenameTarget) ~= tonumber(id) then
-		db.customFilterRenameTarget = id
-		db.customFilterRenameDraft = C.GetCustomFilterDisplayName(id, data)
+	if tonumber(BMR.db.customFilterRenameTarget) ~= tonumber(id) then
+		BMR.db.customFilterRenameTarget = id
+		BMR.db.customFilterRenameDraft = C.GetCustomFilterDisplayName(id, data)
 	end
-	return tostring(db.customFilterRenameDraft or "")
+	return tostring(BMR.db.customFilterRenameDraft or "")
 end
 
 function C.SetConsoleFilterRenameDraft(value)
-	db.customFilterRenameDraft = tostring(value or "")
+	BMR.db.customFilterRenameDraft = tostring(value or "")
 end
 
 function C.ApplyConsoleFilterRename()
 	local id = C.GetConsoleSelectedFilterId()
 	if not id then return false end
-	local ok, reason = C.RenameCustomFilterRuleById(id, db.customFilterRenameDraft or "")
+	local ok, reason = C.RenameCustomFilterRuleById(id, BMR.db.customFilterRenameDraft or "")
 	if not ok then
-		local message = reason == "duplicate-name" and GetString(BMR_CUSTOM_FILTER_RENAME_DUPLICATE) or GetString(BMR_CUSTOM_FILTER_RENAME_INVALID)
+		local message = reason == "duplicate-name" and ESOAPI.GetString(BMR_CUSTOM_FILTER_RENAME_DUPLICATE) or ESOAPI.GetString(BMR_CUSTOM_FILTER_RENAME_INVALID)
 		SendCustomRuleMessage("[BMR] " .. message)
 		return false
 	end
-	SendCustomRuleMessage("[BMR] " .. zo_strformat(GetString(BMR_CUSTOM_FILTER_RENAMED), C.GetCustomFilterDisplayName(id, db.customFilterRules[tostring(id)])))
+	SendCustomRuleMessage("[BMR] " .. ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_FILTER_RENAMED), C.GetCustomFilterDisplayName(id, BMR.db.customFilterRules[tostring(id)])))
 		return true
 end
 
@@ -2688,11 +2690,11 @@ function C.DeleteCustomFilterRuleById(filterId)
 	local id = tonumber(filterId)
 	if not id then return false end
 	local key = tostring(id)
-	if not db.customFilterRules or not (db.customFilterRules[key] or db.customFilterRules[id]) then return false end
-	db.customFilterRules[key] = nil
-	db.customFilterRules[id] = nil
+	if not BMR.db.customFilterRules or not (BMR.db.customFilterRules[key] or BMR.db.customFilterRules[id]) then return false end
+	BMR.db.customFilterRules[key] = nil
+	BMR.db.customFilterRules[id] = nil
 	local ruleName = GetCustomFilterRuleName(key)
-	for _, profile in pairs(db.profiles or {}) do if profile.rules then profile.rules[ruleName] = nil end end
+	for _, profile in pairs(BMR.db.profiles or {}) do if profile.rules then profile.rules[ruleName] = nil end end
 	if BankManagerRules and BankManagerRules.data then BankManagerRules.data[ruleName] = nil end
 	if BankManagerRules and BankManagerRules.defaults then BankManagerRules.defaults[ruleName] = nil end
 	C.SyncFilterRuleDefinitions()
@@ -2715,10 +2717,10 @@ function C.RefreshCustomFilterRuleEditor(control)
 	local summary = control.bmrDraftSummary
 	if not summary or not summary.SetText then return end
 
-	if type(db.customFilterDraft) ~= "table" then
-		db.customFilterDraft = {searchString = "", specifications = {}}
+	if type(BMR.db.customFilterDraft) ~= "table" then
+		BMR.db.customFilterDraft = {searchString = "", specifications = {}}
 	end
-	local draft = db.customFilterDraft
+	local draft = BMR.db.customFilterDraft
 	if type(draft.searchString) ~= "string" then draft.searchString = tostring(draft.searchString or "") end
 	if type(draft.specifications) ~= "table" then draft.specifications = {} end
 
@@ -2735,48 +2737,48 @@ function C.RefreshCustomFilterRuleList(control)
 	C._RuleUi.CreateCustomRuleTableHeader(control)
 	C._RuleUi.LayoutCustomRuleHeader(control)
 	local filterIds = {}
-	for id, filterData in pairs(db.customFilterRules or {}) do if tonumber(id) and type(filterData) == "table" then table.insert(filterIds, tostring(id)) end end
+	for id, filterData in pairs(BMR.db.customFilterRules or {}) do if tonumber(id) and type(filterData) == "table" then table.insert(filterIds, tostring(id)) end end
 	table.sort(filterIds, function(a, b) return tonumber(a) < tonumber(b) end)
 	local actions = {
-		{label = GetString(BMR_ACTION_NOTSET), value = ACTION_NOTSET},
-		{label = GetString(BMR_ACTION_PUSH), value = ACTION_PUSH},
-		{label = GetString(BMR_ACTION_PULL), value = ACTION_PULL},
-		{label = GetString(BMR_ACTION_PUSH_ALL_STACKS), value = ACTION_PUSH_ALL_STACKS},
-		{label = GetString(BMR_ACTION_PULL_ALL_STACKS), value = ACTION_PULL_ALL_STACKS},
-		{label = GetString(BMR_ACTION_PUSH_GBANK), value = ACTION_PUSH_GBANK},
-		{label = GetString(BMR_ACTION_PUSH_BOTH), value = ACTION_PUSH_BOTH},
-		{label = GetString(BMR_ACTION_KEEP_ONE_STACK), value = ACTION_KEEP_ONE_STACK},
-		{label = GetString(BMR_ACTION_KEEP_ONE_STACK_BANK), value = ACTION_KEEP_ONE_STACK_BANK},
-		{label = GetString(BMR_ACTION_PUSH_FURNITURE), value = ACTION_PUSH_FURNITURE},
+		{label = ESOAPI.GetString(BMR_ACTION_NOTSET), value = ACTION_NOTSET},
+		{label = ESOAPI.GetString(BMR_ACTION_PUSH), value = ACTION_PUSH},
+		{label = ESOAPI.GetString(BMR_ACTION_PULL), value = ACTION_PULL},
+		{label = ESOAPI.GetString(BMR_ACTION_PUSH_ALL_STACKS), value = ACTION_PUSH_ALL_STACKS},
+		{label = ESOAPI.GetString(BMR_ACTION_PULL_ALL_STACKS), value = ACTION_PULL_ALL_STACKS},
+		{label = ESOAPI.GetString(BMR_ACTION_PUSH_GBANK), value = ACTION_PUSH_GBANK},
+		{label = ESOAPI.GetString(BMR_ACTION_PUSH_BOTH), value = ACTION_PUSH_BOTH},
+		{label = ESOAPI.GetString(BMR_ACTION_KEEP_ONE_STACK), value = ACTION_KEEP_ONE_STACK},
+		{label = ESOAPI.GetString(BMR_ACTION_KEEP_ONE_STACK_BANK), value = ACTION_KEEP_ONE_STACK_BANK},
+		{label = ESOAPI.GetString(BMR_ACTION_PUSH_FURNITURE), value = ACTION_PUSH_FURNITURE},
 	}
 	for _, row in ipairs(control.bmrRows) do row:SetHidden(true) end
 	for index, filterId in ipairs(filterIds) do
 		local key = tostring(filterId)
-		local filterData = db.customFilterRules[key] or db.customFilterRules[tonumber(key)]
+		local filterData = BMR.db.customFilterRules[key] or BMR.db.customFilterRules[tonumber(key)]
 		local ruleName = GetCustomFilterRuleName(key)
 		local row = control.bmrRows[index]
 		if not row then
-			row = WINDOW_MANAGER:CreateControl(nil, control, CT_CONTROL)
-			row.label = WINDOW_MANAGER:CreateControl(nil, row, CT_LABEL)
+			row = ESOAPI.WINDOW_MANAGER:CreateControl(nil, control, ESOAPI.CT_CONTROL)
+			row.label = ESOAPI.WINDOW_MANAGER:CreateControl(nil, row, ESOAPI.CT_LABEL)
 			row.label:SetFont("ZoFontGame")
-			row.label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-			row.dropdownContainer = WINDOW_MANAGER:CreateControlFromVirtual("BMRCustomFilterCombo_" .. key, row, "ZO_ComboBox")
-			row.dropdown = ZO_ComboBox_ObjectFromContainer(row.dropdownContainer)
+			row.label:SetWrapMode(ESOAPI.TEXT_WRAP_MODE_ELLIPSIS)
+			row.dropdownContainer = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual("BMRCustomFilterCombo_" .. key, row, "ZO_ComboBox")
+			row.dropdown = ESOAPI.ZO_ComboBox_ObjectFromContainer(row.dropdownContainer)
 			row.dropdown:SetSortsItems(false)
 			C._RuleUi.CreateCustomGuildCombo(row, "filter_" .. key)
-			row.removeButton = WINDOW_MANAGER:CreateControlFromVirtual("BMRCustomFilterRemove_" .. key, row, "ZO_DefaultButton")
+			row.removeButton = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual("BMRCustomFilterRemove_" .. key, row, "ZO_DefaultButton")
 			control.bmrRows[index] = row
 		end
 		row.bmrFilterId = tonumber(key)
 		row:ClearAnchors()
-		row:SetAnchor(TOPLEFT, control, TOPLEFT, 0, 26 + (index - 1) * 44)
+		row:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, 0, 26 + (index - 1) * 44)
 		row:SetHeight(42)
 		row:SetHidden(false)
 		row.label:ClearAnchors()
-		row.label:SetAnchor(LEFT, row, LEFT, 0, 0)
+		row.label:SetAnchor(ESOAPI.LEFT, row, ESOAPI.LEFT, 0, 0)
 		row.label:SetText(C.GetCustomFilterDisplayName(key, filterData))
 		local rule = C._RuleUi.GetCustomProfileRule(ruleName, "customFilterAll")
-		local selectedLabel = GetString(BMR_ACTION_NOTSET)
+		local selectedLabel = ESOAPI.GetString(BMR_ACTION_NOTSET)
 		row.dropdown:ClearItems()
 		for _, action in ipairs(actions) do
 			local actionValue, actionLabel = action.value, action.label
@@ -2785,7 +2787,7 @@ function C.RefreshCustomFilterRuleList(control)
 				local currentRule = currentId and C._RuleUi.GetCustomProfileRule(GetCustomFilterRuleName(currentId), "customFilterAll")
 				if currentRule then currentRule.action = actionValue; FireBmrRuleCountRefresh() end
 			end)
-			row.dropdown:AddItem(entry, ZO_COMBOBOX_SUPRESS_UPDATE)
+			row.dropdown:AddItem(entry, ESOAPI.ZO_COMBOBOX_SUPRESS_UPDATE)
 			if rule and (rule.action or ACTION_NOTSET) == action.value then selectedLabel = action.label end
 		end
 		row.dropdown:SetSelectedItem(selectedLabel)
@@ -2793,26 +2795,26 @@ function C.RefreshCustomFilterRuleList(control)
 		local columns = C._RuleUi.GetCustomRuleColumnLayout(control:GetWidth())
 		row.label:SetWidth(columns.labelWidth)
 		C._RuleUi.LayoutCustomRuleRow(row, control)
-		row.removeButton:SetText(GetString(BMR_CUSTOM_RULE_REMOVE_SHORT))
+		row.removeButton:SetText(ESOAPI.GetString(BMR_CUSTOM_RULE_REMOVE_SHORT))
 		row.removeButton:SetHandler("OnClicked", function()
 			local id = row.bmrFilterId
 			if id then C.DeleteCustomFilterRuleById(id) end
 		end)
 		row.label:SetMouseEnabled(true)
 		row.label:SetHandler("OnMouseEnter", function(self)
-			if InformationTooltip and InitializeTooltip then
-				InitializeTooltip(InformationTooltip, self, TOPRIGHT, 0, 0)
+			if InformationTooltip and ESOAPI.InitializeTooltip then
+				ESOAPI.InitializeTooltip(InformationTooltip, self, ESOAPI.TOPRIGHT, 0, 0)
 				if InformationTooltip.AddLine then InformationTooltip:AddLine(BuildCustomFilterSummary(filterData)) end
 			end
 		end)
-		row.label:SetHandler("OnMouseExit", function() if InformationTooltip and ClearTooltip then ClearTooltip(InformationTooltip) end end)
+		row.label:SetHandler("OnMouseExit", function() if InformationTooltip and ESOAPI.ClearTooltip then ESOAPI.ClearTooltip(InformationTooltip) end end)
 		row.label:SetHandler("OnMouseUp", function(self, button, upInside)
-			if button == MOUSE_BUTTON_INDEX_RIGHT and upInside and type(ClearMenu) == "function" and type(AddMenuItem) == "function" and type(ShowMenu) == "function" then
+			if button == MOUSE_BUTTON_INDEX_RIGHT and upInside and type(ESOAPI.ClearMenu) == "function" and type(ESOAPI.AddMenuItem) == "function" and type(ESOAPI.ShowMenu) == "function" then
 				local selectedId = row.bmrFilterId
-				ClearMenu()
-				AddMenuItem(GetString(BMR_CUSTOM_FILTER_EDIT), function() C.LoadCustomFilterRuleIntoDraft(selectedId) end)
-				AddMenuItem(GetString(BMR_CUSTOM_FILTER_RENAME), function() C.ShowRenameCustomFilterDialog(selectedId) end)
-				ShowMenu()
+				ESOAPI.ClearMenu()
+				ESOAPI.AddMenuItem(ESOAPI.GetString(BMR_CUSTOM_FILTER_EDIT), function() C.LoadCustomFilterRuleIntoDraft(selectedId) end)
+				ESOAPI.AddMenuItem(ESOAPI.GetString(BMR_CUSTOM_FILTER_RENAME), function() C.ShowRenameCustomFilterDialog(selectedId) end)
+				ESOAPI.ShowMenu()
 			end
 		end)
 	end
@@ -2845,116 +2847,116 @@ function C.CreateCustomFilterRuleEditor(control)
 	control:SetDimensionConstraints(400, 300, 1500, 420)
 	control:SetHeight(300)
 	local function label(text, x, y, w, h, font)
-		local c = WINDOW_MANAGER:CreateControl(nil, control, CT_LABEL)
+		local c = ESOAPI.WINDOW_MANAGER:CreateControl(nil, control, ESOAPI.CT_LABEL)
 		c:SetFont(font or "ZoFontGame")
 		c:SetText(text)
 		c:SetDimensions(w, h)
-		c:SetAnchor(TOPLEFT, control, TOPLEFT, x, y)
+		c:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, x, y)
 		return c
 	end
-	local searchLabel = label(GetString(BMR_CUSTOM_FILTER_SEARCH_STRING), 0, 2, 500, 22)
-	local searchBox = WINDOW_MANAGER:CreateControl(controlPrefix .. "SearchBox", control, CT_CONTROL)
+	local searchLabel = label(ESOAPI.GetString(BMR_CUSTOM_FILTER_SEARCH_STRING), 0, 2, 500, 22)
+	local searchBox = ESOAPI.WINDOW_MANAGER:CreateControl(controlPrefix .. "SearchBox", control, ESOAPI.CT_CONTROL)
 	searchBox:SetDimensions(500, 30)
-	searchBox:SetAnchor(TOPLEFT, control, TOPLEFT, 0, 24)
-	local searchBg = WINDOW_MANAGER:CreateControl(controlPrefix .. "SearchBg", searchBox, CT_BACKDROP)
+	searchBox:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, 0, 24)
+	local searchBg = ESOAPI.WINDOW_MANAGER:CreateControl(controlPrefix .. "SearchBg", searchBox, CT_BACKDROP)
 	searchBg:SetAnchorFill()
 	searchBg:SetDrawLayer(DL_BACKGROUND)
 	searchBg:SetAlpha(1)
 	searchBg:SetCenterColor(0, 0, 0, 0.25)
-	searchBg:SetEdgeColor(ZO_DISABLED_TEXT:UnpackRGBA())
+	searchBg:SetEdgeColor(ESOAPI.ZO_DISABLED_TEXT:UnpackRGBA())
 	searchBg:SetEdgeTexture("", 1, 1, 0, 0)
-	local searchButton = WINDOW_MANAGER:CreateControl(controlPrefix .. "SearchButton", searchBox, CT_BUTTON)
+	local searchButton = ESOAPI.WINDOW_MANAGER:CreateControl(controlPrefix .. "SearchButton", searchBox, CT_BUTTON)
 	searchButton:SetDimensions(32, 30)
-	searchButton:SetAnchor(LEFT, searchBox, LEFT, 2, 0)
+	searchButton:SetAnchor(ESOAPI.LEFT, searchBox, ESOAPI.LEFT, 2, 0)
 	-- Match BeamMeUp's familiar search affordance.
 	searchButton:SetNormalTexture("EsoUI/Art/LFG/LFG_tabIcon_groupTools_up.dds")
 	searchButton:SetPressedTexture("EsoUI/Art/LFG/LFG_tabIcon_groupTools_down.dds")
 	searchButton:SetMouseOverTexture("EsoUI/Art/LFG/LFG_tabIcon_groupTools_over.dds")
-	local searchEdit = WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "SearchEdit", searchBox, "ZO_DefaultEdit")
+	local searchEdit = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "SearchEdit", searchBox, "ZO_DefaultEdit")
 	searchEdit:SetDimensions(460, 28)
-	searchEdit:SetAnchor(LEFT, searchButton, RIGHT, 4, 1)
-	searchEdit:SetAnchor(RIGHT, searchBox, RIGHT, -4, 1)
+	searchEdit:SetAnchor(ESOAPI.LEFT, searchButton, ESOAPI.RIGHT, 4, 1)
+	searchEdit:SetAnchor(ESOAPI.RIGHT, searchBox, ESOAPI.RIGHT, -4, 1)
 	searchEdit:SetColor(ZO_NORMAL_TEXT:UnpackRGBA())
 	searchEdit:SetMaxInputChars(250)
 	searchButton:SetHandler("OnClicked", function() searchEdit:TakeFocus() end)
 	searchBox:SetMouseEnabled(true)
-	searchBox:SetHandler("OnMouseEnter", function() searchBg:SetEdgeColor(ZO_SECOND_CONTRAST_TEXT:UnpackRGBA()) end)
-	searchBox:SetHandler("OnMouseExit", function() if not searchEdit:HasFocus() then searchBg:SetEdgeColor(ZO_DISABLED_TEXT:UnpackRGBA()) end end)
-	searchEdit:SetHandler("OnFocusGained", function() searchBg:SetEdgeColor(ZO_SECOND_CONTRAST_TEXT:UnpackRGBA()) end)
-	searchEdit:SetHandler("OnFocusLost", function() searchBg:SetEdgeColor(ZO_DISABLED_TEXT:UnpackRGBA()) end)
+	searchBox:SetHandler("OnMouseEnter", function() searchBg:SetEdgeColor(ESOAPI.ZO_SECOND_CONTRAST_TEXT:UnpackRGBA()) end)
+	searchBox:SetHandler("OnMouseExit", function() if not searchEdit:HasFocus() then searchBg:SetEdgeColor(ESOAPI.ZO_DISABLED_TEXT:UnpackRGBA()) end end)
+	searchEdit:SetHandler("OnFocusGained", function() searchBg:SetEdgeColor(ESOAPI.ZO_SECOND_CONTRAST_TEXT:UnpackRGBA()) end)
+	searchEdit:SetHandler("OnFocusLost", function() searchBg:SetEdgeColor(ESOAPI.ZO_DISABLED_TEXT:UnpackRGBA()) end)
 	searchEdit:SetHandler("OnEscape", function(self) self:Clear(); self:LoseFocus() end)
 	control.bmrSearchBox, control.bmrSearchEdit = searchBox, searchEdit
 
-	local fieldLabel = label(GetString(BMR_CUSTOM_FILTER_FIELD), 0, 56, 160, 22)
-	local valueSearchLabel = label(GetString(BMR_CUSTOM_FILTER_VALUE_SEARCH), 176, 56, 320, 22)
-	local fieldContainer = WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "FieldCombo", control, "ZO_ComboBox")
+	local fieldLabel = label(ESOAPI.GetString(BMR_CUSTOM_FILTER_FIELD), 0, 56, 160, 22)
+	local valueSearchLabel = label(ESOAPI.GetString(BMR_CUSTOM_FILTER_VALUE_SEARCH), 176, 56, 320, 22)
+	local fieldContainer = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "FieldCombo", control, "ZO_ComboBox")
 	fieldContainer:SetDimensions(160, 28)
-	fieldContainer:SetAnchor(TOPLEFT, control, TOPLEFT, 0, 78)
-	local fieldCombo = ZO_ComboBox_ObjectFromContainer(fieldContainer)
+	fieldContainer:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, 0, 78)
+	local fieldCombo = ESOAPI.ZO_ComboBox_ObjectFromContainer(fieldContainer)
 	fieldCombo:SetSortsItems(false)
 	control.bmrFieldCombo = fieldCombo
-	local valueContainer = WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "ValueCombo", control, "ZO_ComboBox")
+	local valueContainer = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "ValueCombo", control, "ZO_ComboBox")
 	valueContainer:SetDimensions(320, 28)
-	valueContainer:SetAnchor(TOPLEFT, control, TOPLEFT, 176, 126)
-	local valueCombo = ZO_ComboBox_ObjectFromContainer(valueContainer)
+	valueContainer:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, 176, 126)
+	local valueCombo = ESOAPI.ZO_ComboBox_ObjectFromContainer(valueContainer)
 	valueCombo:SetSortsItems(false)
 	control.bmrValueContainer, control.bmrValueCombo = valueContainer, valueCombo
-	local valueLabel = label(GetString(BMR_CUSTOM_FILTER_VALUE), 176, 108, 320, 18)
-	local valueSearchBox = WINDOW_MANAGER:CreateControl(controlPrefix .. "ValueSearchBox", control, CT_CONTROL)
+	local valueLabel = label(ESOAPI.GetString(BMR_CUSTOM_FILTER_VALUE), 176, 108, 320, 18)
+	local valueSearchBox = ESOAPI.WINDOW_MANAGER:CreateControl(controlPrefix .. "ValueSearchBox", control, ESOAPI.CT_CONTROL)
 	valueSearchBox:SetDimensions(320, 27)
-	valueSearchBox:SetAnchor(TOPLEFT, control, TOPLEFT, 176, 78)
-	local valueSearchBg = WINDOW_MANAGER:CreateControl(controlPrefix .. "ValueSearchBg", valueSearchBox, CT_BACKDROP)
+	valueSearchBox:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, 176, 78)
+	local valueSearchBg = ESOAPI.WINDOW_MANAGER:CreateControl(controlPrefix .. "ValueSearchBg", valueSearchBox, CT_BACKDROP)
 	valueSearchBg:SetAnchorFill()
 	valueSearchBg:SetDrawLayer(DL_BACKGROUND)
 	valueSearchBg:SetAlpha(1)
 	valueSearchBg:SetCenterColor(0, 0, 0, 0.25)
-	valueSearchBg:SetEdgeColor(ZO_DISABLED_TEXT:UnpackRGBA())
+	valueSearchBg:SetEdgeColor(ESOAPI.ZO_DISABLED_TEXT:UnpackRGBA())
 	valueSearchBg:SetEdgeTexture("", 1, 1, 0, 0)
-	local valueSearchButton = WINDOW_MANAGER:CreateControl(controlPrefix .. "ValueSearchButton", valueSearchBox, CT_BUTTON)
+	local valueSearchButton = ESOAPI.WINDOW_MANAGER:CreateControl(controlPrefix .. "ValueSearchButton", valueSearchBox, CT_BUTTON)
 	valueSearchButton:SetDimensions(32, 27)
-	valueSearchButton:SetAnchor(LEFT, valueSearchBox, LEFT, 2, 0)
+	valueSearchButton:SetAnchor(ESOAPI.LEFT, valueSearchBox, ESOAPI.LEFT, 2, 0)
 	valueSearchButton:SetNormalTexture("EsoUI/Art/LFG/LFG_tabIcon_groupTools_up.dds")
 	valueSearchButton:SetPressedTexture("EsoUI/Art/LFG/LFG_tabIcon_groupTools_down.dds")
 	valueSearchButton:SetMouseOverTexture("EsoUI/Art/LFG/LFG_tabIcon_groupTools_over.dds")
-	local valueSearchEdit = WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "ValueSearchEdit", valueSearchBox, "ZO_DefaultEdit")
+	local valueSearchEdit = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "ValueSearchEdit", valueSearchBox, "ZO_DefaultEdit")
 	valueSearchEdit:SetDimensions(275, 25)
-	valueSearchEdit:SetAnchor(LEFT, valueSearchButton, RIGHT, 4, 1)
-	valueSearchEdit:SetAnchor(RIGHT, valueSearchBox, RIGHT, -5, 1)
+	valueSearchEdit:SetAnchor(ESOAPI.LEFT, valueSearchButton, ESOAPI.RIGHT, 4, 1)
+	valueSearchEdit:SetAnchor(ESOAPI.RIGHT, valueSearchBox, ESOAPI.RIGHT, -5, 1)
 	valueSearchButton:SetHandler("OnClicked", function() valueSearchEdit:TakeFocus() end)
 	valueSearchEdit:SetColor(ZO_NORMAL_TEXT:UnpackRGBA())
 	valueSearchEdit:SetMaxInputChars(100)
 	valueSearchBox:SetMouseEnabled(true)
-	valueSearchBox:SetHandler("OnMouseEnter", function() valueSearchBg:SetEdgeColor(ZO_SECOND_CONTRAST_TEXT:UnpackRGBA()) end)
-	valueSearchBox:SetHandler("OnMouseExit", function() if not valueSearchEdit:HasFocus() then valueSearchBg:SetEdgeColor(ZO_DISABLED_TEXT:UnpackRGBA()) end end)
-	valueSearchEdit:SetHandler("OnFocusGained", function() valueSearchBg:SetEdgeColor(ZO_SECOND_CONTRAST_TEXT:UnpackRGBA()) end)
-	valueSearchEdit:SetHandler("OnFocusLost", function() valueSearchBg:SetEdgeColor(ZO_DISABLED_TEXT:UnpackRGBA()) end)
+	valueSearchBox:SetHandler("OnMouseEnter", function() valueSearchBg:SetEdgeColor(ESOAPI.ZO_SECOND_CONTRAST_TEXT:UnpackRGBA()) end)
+	valueSearchBox:SetHandler("OnMouseExit", function() if not valueSearchEdit:HasFocus() then valueSearchBg:SetEdgeColor(ESOAPI.ZO_DISABLED_TEXT:UnpackRGBA()) end end)
+	valueSearchEdit:SetHandler("OnFocusGained", function() valueSearchBg:SetEdgeColor(ESOAPI.ZO_SECOND_CONTRAST_TEXT:UnpackRGBA()) end)
+	valueSearchEdit:SetHandler("OnFocusLost", function() valueSearchBg:SetEdgeColor(ESOAPI.ZO_DISABLED_TEXT:UnpackRGBA()) end)
 	valueSearchEdit:SetHandler("OnEscape", function(self) self:Clear(); self:LoseFocus() end)
 	control.bmrValueSearchEdit = valueSearchEdit
 	-- Two full-width rows keep all localized button captions readable.
 	local buttonWidth = 247
 	local secondButtonX = 253
-	local addSpec = WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "AddSpec", control, "ZO_DefaultButton")
+	local addSpec = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "AddSpec", control, "ZO_DefaultButton")
 	addSpec:SetDimensions(buttonWidth, 28)
-	addSpec:SetAnchor(TOPLEFT, control, TOPLEFT, 0, 159)
-	addSpec:SetText(GetString(BMR_CUSTOM_FILTER_ADD_SPEC))
+	addSpec:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, 0, 159)
+	addSpec:SetText(ESOAPI.GetString(BMR_CUSTOM_FILTER_ADD_SPEC))
 	control.bmrAddSpec = addSpec
-	local removeSpec = WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "RemoveSpec", control, "ZO_DefaultButton")
+	local removeSpec = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "RemoveSpec", control, "ZO_DefaultButton")
 	removeSpec:SetDimensions(buttonWidth, 28)
-	removeSpec:SetAnchor(TOPLEFT, control, TOPLEFT, secondButtonX, 159)
-	removeSpec:SetText(GetString(BMR_CUSTOM_FILTER_REMOVE_LAST))
+	removeSpec:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, secondButtonX, 159)
+	removeSpec:SetText(ESOAPI.GetString(BMR_CUSTOM_FILTER_REMOVE_LAST))
 	control.bmrRemoveSpec = removeSpec
-	local clearDraft = WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "ClearDraft", control, "ZO_DefaultButton")
+	local clearDraft = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "ClearDraft", control, "ZO_DefaultButton")
 	clearDraft:SetDimensions(buttonWidth, 28)
-	clearDraft:SetAnchor(TOPLEFT, control, TOPLEFT, 0, 193)
-	clearDraft:SetText(GetString(BMR_CUSTOM_FILTER_CLEAR))
+	clearDraft:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, 0, 193)
+	clearDraft:SetText(ESOAPI.GetString(BMR_CUSTOM_FILTER_CLEAR))
 	control.bmrClearDraft = clearDraft
-	local addRule = WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "AddRule", control, "ZO_DefaultButton")
+	local addRule = ESOAPI.WINDOW_MANAGER:CreateControlFromVirtual(controlPrefix .. "AddRule", control, "ZO_DefaultButton")
 	addRule:SetDimensions(buttonWidth, 28)
-	addRule:SetAnchor(TOPLEFT, control, TOPLEFT, secondButtonX, 193)
-	addRule:SetText(GetString(BMR_CUSTOM_FILTER_ADD_RULE))
+	addRule:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, secondButtonX, 193)
+	addRule:SetText(ESOAPI.GetString(BMR_CUSTOM_FILTER_ADD_RULE))
 	control.bmrAddRule = addRule
 	local summary = label("", 0, 227, 500, 52, "ZoFontGameSmall")
-	summary:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+	summary:SetWrapMode(ESOAPI.TEXT_WRAP_MODE_ELLIPSIS)
 	control.bmrDraftSummary = summary
 
 	-- Reflow every custom-editor child when LAM changes the parent width.
@@ -2982,44 +2984,44 @@ function C.CreateCustomFilterRuleEditor(control)
 		fieldCombo.m_containerWidth = leftWidth
 		if fieldCombo.m_dropdown and fieldCombo.m_dropdown.SetWidth then fieldCombo.m_dropdown:SetWidth(leftWidth) end
 		valueSearchLabel:ClearAnchors()
-		valueSearchLabel:SetAnchor(TOPLEFT, control, TOPLEFT, rightX, 56)
+		valueSearchLabel:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, rightX, 56)
 		valueSearchLabel:SetDimensions(rightWidth, 22)
 		valueLabel:ClearAnchors()
-		valueLabel:SetAnchor(TOPLEFT, control, TOPLEFT, rightX, 108)
+		valueLabel:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, rightX, 108)
 		valueLabel:SetDimensions(rightWidth, 18)
 		valueSearchBox:ClearAnchors()
-		valueSearchBox:SetAnchor(TOPLEFT, control, TOPLEFT, rightX, 78)
+		valueSearchBox:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, rightX, 78)
 		valueSearchBox:SetDimensions(rightWidth, 27)
 		valueSearchEdit:SetWidth(math.max(100, rightWidth - 48))
 		valueContainer:ClearAnchors()
-		valueContainer:SetAnchor(TOPLEFT, control, TOPLEFT, rightX, 126)
+		valueContainer:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, rightX, 126)
 		valueContainer:SetDimensions(rightWidth, 28)
 		valueCombo.m_containerWidth = rightWidth
 		if valueCombo.m_dropdown and valueCombo.m_dropdown.SetWidth then valueCombo.m_dropdown:SetWidth(rightWidth) end
 		for _, button in ipairs({addSpec, removeSpec, clearDraft, addRule}) do button:SetWidth(buttonWidth) end
-		removeSpec:ClearAnchors(); removeSpec:SetAnchor(TOPLEFT, control, TOPLEFT, buttonWidth + buttonGap, 159)
+		removeSpec:ClearAnchors(); removeSpec:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, buttonWidth + buttonGap, 159)
 		clearDraft:SetWidth(buttonWidth)
 		addRule:SetWidth(buttonWidth)
-		addRule:ClearAnchors(); addRule:SetAnchor(TOPLEFT, control, TOPLEFT, buttonWidth + buttonGap, 193)
+		addRule:ClearAnchors(); addRule:SetAnchor(ESOAPI.TOPLEFT, control, ESOAPI.TOPLEFT, buttonWidth + buttonGap, 193)
 		summary:SetWidth(width - 4)
 	end
 	control.bmrResizeLayout(control:GetWidth())
 	control.bmrSelectedField = "quality"
 	control.bmrSelectedValue = nil
 	control.bmrBuilding = true
-	local draft = db.customFilterDraft or {searchString = "", specifications = {}}
-	db.customFilterDraft = draft
+	local draft = BMR.db.customFilterDraft or {searchString = "", specifications = {}}
+	BMR.db.customFilterDraft = draft
 	draft.specifications = type(draft.specifications) == "table" and draft.specifications or {}
 	searchEdit:SetText(tostring(draft.searchString or ""))
 	control.bmrBuilding = false
 	searchEdit:SetHandler("OnTextChanged", function(self)
-		db.customFilterDraft.searchString = self:GetText() or ""
+		BMR.db.customFilterDraft.searchString = self:GetText() or ""
 		C.RefreshCustomFilterRuleEditor(control)
 	end)
 
 	local function RefreshValueChoices()
 		local field = control.bmrSelectedField
-		local filterText = zo_strlower(tostring(valueSearchEdit:GetText() or ""))
+		local filterText = ESOAPI.zo_strlower(tostring(valueSearchEdit:GetText() or ""))
 		local previousField = control.bmrSelectedField
 		local previousValue = control.bmrSelectedValue
 		valueCombo:ClearItems()
@@ -3047,7 +3049,7 @@ function C.CreateCustomFilterRuleEditor(control)
 				for _, option in ipairs(getCachedValues(fieldData.key)) do
 					local optionLabel = tostring(option.label or "")
 					local displayLabel = optionLabel .. " (" .. tostring(fieldData.label) .. ")"
-					if string.find(zo_strlower(displayLabel), filterText, 1, true) then
+					if string.find(ESOAPI.zo_strlower(displayLabel), filterText, 1, true) then
 						table.insert(candidates, {field = fieldData.key, option = option, displayLabel = displayLabel})
 					end
 				end
@@ -3058,18 +3060,18 @@ function C.CreateCustomFilterRuleEditor(control)
 			if #values == 0 then
 				local emptyLabel
 				if field == "treasureType" then
-					emptyLabel = GetString(BMR_CUSTOM_FILTER_NO_TREASURE_TYPES)
+					emptyLabel = ESOAPI.GetString(BMR_CUSTOM_FILTER_NO_TREASURE_TYPES)
 				elseif field == "furnitureBehavior" then
-					emptyLabel = GetString(BMR_CUSTOM_FILTER_NO_FURNITURE_TAGS)
+					emptyLabel = ESOAPI.GetString(BMR_CUSTOM_FILTER_NO_FURNITURE_TAGS)
 				elseif field == "foodTag" then
-					emptyLabel = GetString(BMR_CUSTOM_FILTER_NO_FOOD_TAGS)
+					emptyLabel = ESOAPI.GetString(BMR_CUSTOM_FILTER_NO_FOOD_TAGS)
 				elseif field == "tagContains" then
-					emptyLabel = GetString(BMR_CUSTOM_FILTER_NO_TAGS)
+					emptyLabel = ESOAPI.GetString(BMR_CUSTOM_FILTER_NO_TAGS)
 				else
-					emptyLabel = GetString(BMR_CUSTOM_FILTER_NO_VALUES)
+					emptyLabel = ESOAPI.GetString(BMR_CUSTOM_FILTER_NO_VALUES)
 				end
 				local entry = valueCombo:CreateItemEntry(emptyLabel, function() control.bmrSelectedValue = nil end)
-				valueCombo:AddItem(entry, ZO_COMBOBOX_SUPRESS_UPDATE)
+				valueCombo:AddItem(entry, ESOAPI.ZO_COMBOBOX_SUPRESS_UPDATE)
 				valueCombo:SetSelectedItem(emptyLabel)
 				return
 			end
@@ -3096,7 +3098,7 @@ function C.CreateCustomFilterRuleEditor(control)
 			end)
 			entry.bmrFilterField = candidateField
 			entry.bmrFilterValue = optionValue
-			valueCombo:AddItem(entry, ZO_COMBOBOX_SUPRESS_UPDATE)
+			valueCombo:AddItem(entry, ESOAPI.ZO_COMBOBOX_SUPRESS_UPDATE)
 			visibleCount = visibleCount + 1
 			if previousValue ~= nil and previousField == candidateField and tostring(previousValue) == tostring(optionValue) then
 				control.bmrSelectedValue = optionValue
@@ -3104,9 +3106,9 @@ function C.CreateCustomFilterRuleEditor(control)
 			end
 		end
 		if visibleCount == 0 then
-			local noMatchLabel = GetString(BMR_CUSTOM_FILTER_NO_MATCHING_VALUES)
+			local noMatchLabel = ESOAPI.GetString(BMR_CUSTOM_FILTER_NO_MATCHING_VALUES)
 			local entry = valueCombo:CreateItemEntry(noMatchLabel, function() control.bmrSelectedValue = nil end)
-			valueCombo:AddItem(entry, ZO_COMBOBOX_SUPRESS_UPDATE)
+			valueCombo:AddItem(entry, ESOAPI.ZO_COMBOBOX_SUPRESS_UPDATE)
 			valueCombo:SetSelectedItem(noMatchLabel)
 			control.bmrSelectedValue = nil
 		elseif selectedLabel then
@@ -3129,14 +3131,14 @@ function C.CreateCustomFilterRuleEditor(control)
 			RefreshValueChoices()
 		end)
 		entry.bmrFilterField = fieldKey
-		fieldCombo:AddItem(entry, ZO_COMBOBOX_SUPRESS_UPDATE)
+		fieldCombo:AddItem(entry, ESOAPI.ZO_COMBOBOX_SUPRESS_UPDATE)
 	end
 	valueSearchEdit:SetHandler("OnTextChanged", function() RefreshValueChoices() end)
 	local initialFieldLabel = nil
 	for _, fieldData in ipairs(GetCustomFilterSpecificationFields()) do
 		if fieldData.key == control.bmrSelectedField then initialFieldLabel = fieldData.label break end
 	end
-	fieldCombo:SetSelectedItem(initialFieldLabel or GetString(BMR_CUSTOM_FILTER_QUALITY))
+	fieldCombo:SetSelectedItem(initialFieldLabel or ESOAPI.GetString(BMR_CUSTOM_FILTER_QUALITY))
 	RefreshValueChoices()
 
 	local function ShowFilterMessage(message)
@@ -3148,24 +3150,24 @@ function C.CreateCustomFilterRuleEditor(control)
 		for _, candidate in ipairs(GetCustomFilterSpecificationFields()) do if candidate.key == field then fieldData = candidate break end end
 		if not fieldData then return end
 		local value = control.bmrSelectedValue
-		if value == nil or tostring(value) == "" then ShowFilterMessage(GetString(BMR_CUSTOM_FILTER_NO_VALUE)); return end
-		local specs = db.customFilterDraft.specifications or {}
+		if value == nil or tostring(value) == "" then ShowFilterMessage(ESOAPI.GetString(BMR_CUSTOM_FILTER_NO_VALUE)); return end
+		local specs = BMR.db.customFilterDraft.specifications or {}
 		local target
 		for _, spec in ipairs(specs) do if spec.field == field then target = spec break end end
 		if not target then target = {field = field, values = {}}; table.insert(specs, target) end
 		local exists = false
 		for _, priorValue in ipairs(target.values) do if tostring(priorValue) == tostring(value) then exists = true break end end
 		if not exists then table.insert(target.values, value) end
-		db.customFilterDraft.specifications = specs
+		BMR.db.customFilterDraft.specifications = specs
 		C.RefreshCustomFilterRuleEditor(control)
 	end)
 	removeSpec:SetHandler("OnClicked", function()
-		local specs = db.customFilterDraft.specifications or {}
-		if #specs > 0 then table.remove(specs, #specs); db.customFilterDraft.specifications = specs end
+		local specs = BMR.db.customFilterDraft.specifications or {}
+		if #specs > 0 then table.remove(specs, #specs); BMR.db.customFilterDraft.specifications = specs end
 		C.RefreshCustomFilterRuleEditor(control)
 	end)
 	clearDraft:SetHandler("OnClicked", function()
-		db.customFilterDraft = {searchString = "", specifications = {}, editingId = nil}
+		BMR.db.customFilterDraft = {searchString = "", specifications = {}, editingId = nil}
 		searchEdit:SetText("")
 		valueSearchEdit:SetText("")
 		RefreshValueChoices()
@@ -3183,14 +3185,14 @@ function C.CreateCustomFilterRuleEditor(control)
 	end
 
 	addRule:SetHandler("OnClicked", function()
-		local currentDraft = db.customFilterDraft or {searchString = "", specifications = {}}
+		local currentDraft = BMR.db.customFilterDraft or {searchString = "", specifications = {}}
 		local editingId = tonumber(currentDraft.editingId)
-		local existing = editingId and db.customFilterRules and (db.customFilterRules[tostring(editingId)] or db.customFilterRules[editingId])
-		if existing and type(ClearMenu) == "function" and type(AddMenuItem) == "function" and type(ShowMenu) == "function" then
-			ClearMenu()
-			AddMenuItem(GetString(BMR_CUSTOM_FILTER_SAVE_NEW), function() SaveDraftAsNewOrOverwrite(false) end)
-			AddMenuItem(GetString(BMR_CUSTOM_FILTER_OVERWRITE), function() SaveDraftAsNewOrOverwrite(true) end)
-			ShowMenu()
+		local existing = editingId and BMR.db.customFilterRules and (BMR.db.customFilterRules[tostring(editingId)] or BMR.db.customFilterRules[editingId])
+		if existing and type(ESOAPI.ClearMenu) == "function" and type(ESOAPI.AddMenuItem) == "function" and type(ESOAPI.ShowMenu) == "function" then
+			ESOAPI.ClearMenu()
+			ESOAPI.AddMenuItem(ESOAPI.GetString(BMR_CUSTOM_FILTER_SAVE_NEW), function() SaveDraftAsNewOrOverwrite(false) end)
+			ESOAPI.AddMenuItem(ESOAPI.GetString(BMR_CUSTOM_FILTER_OVERWRITE), function() SaveDraftAsNewOrOverwrite(true) end)
+			ESOAPI.ShowMenu()
 		else
 			SaveDraftAsNewOrOverwrite(false)
 		end
@@ -3200,10 +3202,10 @@ end
 
 function C.LoadCustomFilterRuleIntoDraft(filterId)
 	local numericId = tonumber(filterId)
-	local filterData = numericId and db.customFilterRules and (db.customFilterRules[tostring(numericId)] or db.customFilterRules[numericId])
+	local filterData = numericId and BMR.db.customFilterRules and (BMR.db.customFilterRules[tostring(numericId)] or BMR.db.customFilterRules[numericId])
 	if type(filterData) ~= "table" then return end
 	local previousDraft = GetConsoleDraft()
-	db.customFilterDraft = {
+	BMR.db.customFilterDraft = {
 		searchString = tostring(filterData.searchString or ""),
 		specifications = DeepCopy(filterData.specifications or {}),
 		editingId = numericId,
@@ -3213,10 +3215,10 @@ function C.LoadCustomFilterRuleIntoDraft(filterId)
 	ConsoleRuleSelection().filterId = numericId
 	local editor = _G.BMRCustomFilterRuleEditor
 	if editor and editor.bmrSearchEdit then
-		editor.bmrSearchEdit:SetText(db.customFilterDraft.searchString)
+		editor.bmrSearchEdit:SetText(BMR.db.customFilterDraft.searchString)
 		C.RefreshCustomFilterRuleEditor(editor)
 	end
-	SendCustomRuleMessage(zo_strformat(GetString(BMR_CUSTOM_FILTER_EDIT_LOADED), tostring(filterData.name or numericId)))
+	SendCustomRuleMessage(ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_FILTER_EDIT_LOADED), tostring(filterData.name or numericId)))
 	RefreshConsoleCustomRulePanel()
 end
 
@@ -3248,31 +3250,31 @@ end
 function C.HasCustomItemRule(itemId)
 	local numericId = tonumber(itemId)
 	if not numericId then return false end
-	local rules = db.customItemRules or {}
+	local rules = BMR.db.customItemRules or {}
 	return rules[tostring(numericId)] ~= nil or rules[numericId] ~= nil
 end
 
 function C.ShouldShowSetCustomRuleAction()
-	return db.hideSetAsBmrRule ~= true
+	return BMR.db.hideSetAsBmrRule ~= true
 end
 
 function C.AddCustomItemRuleFromSlot(bagId, slotIndex)
 	local itemId, itemLink = C.GetCustomRuleItemIdFromSlot(bagId, slotIndex)
 	if not itemId then return false, "no-item" end
-	db.customItemRules = db.customItemRules or {}
+	BMR.db.customItemRules = BMR.db.customItemRules or {}
 	local key = tostring(itemId)
 	if C.HasCustomItemRule(itemId) then return false, "already-exists" end
 	local itemName = FormatCustomItemName(itemLink, "Item " .. key) or ("Item " .. key)
-	db.customItemRules[key] = {itemId = itemId, itemLink = itemLink, name = itemName}
+	BMR.db.customItemRules[key] = {itemId = itemId, itemLink = itemLink, name = itemName}
 	ConsoleRuleSelection().itemId = itemId
-	for _, profile in pairs(db.profiles or {}) do
+	for _, profile in pairs(BMR.db.profiles or {}) do
 		if type(profile) == "table" then
 			profile.rules = profile.rules or {}
-			profile.rules.customItemsAll = profile.rules.customItemsAll or {action = ACTION_NOTSET, associatedGuild = GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
+			profile.rules.customItemsAll = profile.rules.customItemsAll or {action = ACTION_NOTSET, associatedGuild = ESOAPI.GetString(BMR_ACTION_NOTSET), onlyIfNotFullStack = true, onlyStacks = 1}
 			local ruleName = "customItem_" .. key
 			profile.rules[ruleName] = {
 				action = ACTION_NOTSET,
-				associatedGuild = profile.rules.customItemsAll.associatedGuild or GetString(BMR_ACTION_NOTSET),
+				associatedGuild = profile.rules.customItemsAll.associatedGuild or ESOAPI.GetString(BMR_ACTION_NOTSET),
 				onlyIfNotFullStack = profile.rules.customItemsAll.onlyIfNotFullStack ~= false,
 				onlyStacks = tonumber(profile.rules.customItemsAll.onlyStacks) or 1,
 			}
@@ -3280,7 +3282,7 @@ function C.AddCustomItemRuleFromSlot(bagId, slotIndex)
 	end
 	if BMR.SyncCustomItemRuleDefinitions then BMR.SyncCustomItemRuleDefinitions() end
 	if BMR.refreshCustomRuleOptions then BMR.refreshCustomRuleOptions() end
-	SendCustomRuleMessage(zo_strformat(GetString(BMR_CUSTOM_RULE_ADDED), itemName))
+	SendCustomRuleMessage(ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_RULE_ADDED), itemName))
 	return true, itemId
 end
 
@@ -3288,47 +3290,47 @@ function C.RenameCustomItemRuleById(itemId, newName)
 	local numericId = tonumber(itemId)
 	if not numericId then return false, "invalid-id" end
 	local key = tostring(numericId)
-	local itemData = db.customItemRules and (db.customItemRules[key] or db.customItemRules[numericId])
+	local itemData = BMR.db.customItemRules and (BMR.db.customItemRules[key] or BMR.db.customItemRules[numericId])
 	if type(itemData) ~= "table" then return false, "missing-rule" end
 	local name = string.gsub(tostring(newName or ""), "^%s*(.-)%s*$", "%1")
 	if name == "" then return false, "empty-name" end
 	local nameLength = type(zo_strlen) == "function" and zo_strlen(name) or #name
 	if nameLength > 64 then return false, "too-long" end
-	local normalized = zo_strlower(name)
-	for otherId, otherData in pairs(db.customItemRules or {}) do
+	local normalized = ESOAPI.zo_strlower(name)
+	for otherId, otherData in pairs(BMR.db.customItemRules or {}) do
 		if tonumber(otherId) and tonumber(otherId) ~= numericId and type(otherData) == "table" then
-			if zo_strlower(C.GetCustomItemDisplayName(otherId, otherData)) == normalized then return false, "duplicate-name" end
+			if ESOAPI.zo_strlower(C.GetCustomItemDisplayName(otherId, otherData)) == normalized then return false, "duplicate-name" end
 		end
 	end
-	for otherId, otherData in pairs(db.customFilterRules or {}) do
-		if tonumber(otherId) and type(otherData) == "table" and zo_strlower(C.GetCustomFilterDisplayName(otherId, otherData)) == normalized then return false, "duplicate-name" end
+	for otherId, otherData in pairs(BMR.db.customFilterRules or {}) do
+		if tonumber(otherId) and type(otherData) == "table" and ESOAPI.zo_strlower(C.GetCustomFilterDisplayName(otherId, otherData)) == normalized then return false, "duplicate-name" end
 	end
 	local originalName = FormatCustomItemName(itemData.itemLink, itemData.name) or itemData.name or ("Item " .. key)
-	if zo_strlower(originalName) == normalized then itemData.displayName = nil else itemData.displayName = name end
+	if ESOAPI.zo_strlower(originalName) == normalized then itemData.displayName = nil else itemData.displayName = name end
 	if BMR.SyncCustomItemRuleDefinitions then BMR.SyncCustomItemRuleDefinitions() end
 	if BMR.refreshCustomRuleOptions then BMR.refreshCustomRuleOptions() else RefreshConsoleCustomRulePanel() end
 	return true
 end
 
 function C.ShowRenameCustomItemDialog(itemId)
-	if type(ZO_Dialogs_ShowDialog) ~= "function" then return false end
+	if type(ESOAPI.ZO_Dialogs_ShowDialog) ~= "function" then return false end
 	local dialogName = "BMR_CUSTOM_ITEM_RENAME_DIALOG"
 	if not C._renameItemDialogRegistered then
-		if type(ESO_Dialogs) ~= "table" then return false end
-		ESO_Dialogs[dialogName] = {
-			title = {text = GetString(BMR_CUSTOM_ITEM_RENAME_TITLE)},
-			mainText = {text = GetString(BMR_CUSTOM_ITEM_RENAME_PROMPT)},
+		if type(ESOAPI.ESO_Dialogs) ~= "table" then return false end
+		ESOAPI.ESO_Dialogs[dialogName] = {
+			title = {text = ESOAPI.GetString(BMR_CUSTOM_ITEM_RENAME_TITLE)},
+			mainText = {text = ESOAPI.GetString(BMR_CUSTOM_ITEM_RENAME_PROMPT)},
 			editBox = {maxInputCharacters = 64},
 			buttons = {
 				{text = SI_DIALOG_CONFIRM, callback = function(dialog)
 					local id = dialog and dialog.data and tonumber(dialog.data[1])
-					local value = type(ZO_Dialogs_GetEditBoxText) == "function" and ZO_Dialogs_GetEditBoxText(dialog) or ""
+					local value = type(ESOAPI.ZO_Dialogs_GetEditBoxText) == "function" and ESOAPI.ZO_Dialogs_GetEditBoxText(dialog) or ""
 					local ok, reason = C.RenameCustomItemRuleById(id, value)
 					if not ok then
-						local message = reason == "duplicate-name" and GetString(BMR_CUSTOM_FILTER_RENAME_DUPLICATE) or GetString(BMR_CUSTOM_FILTER_RENAME_INVALID)
+						local message = reason == "duplicate-name" and ESOAPI.GetString(BMR_CUSTOM_FILTER_RENAME_DUPLICATE) or ESOAPI.GetString(BMR_CUSTOM_FILTER_RENAME_INVALID)
 						SendCustomRuleMessage("[BMR] " .. message)
 					else
-						SendCustomRuleMessage("[BMR] " .. zo_strformat(GetString(BMR_CUSTOM_ITEM_RENAMED), C.GetCustomItemDisplayName(id)))
+						SendCustomRuleMessage("[BMR] " .. ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_ITEM_RENAMED), C.GetCustomItemDisplayName(id)))
 					end
 				end},
 				{text = SI_DIALOG_CANCEL},
@@ -3336,34 +3338,34 @@ function C.ShowRenameCustomItemDialog(itemId)
 		}
 		C._renameItemDialogRegistered = true
 	end
-	ZO_Dialogs_ShowDialog(dialogName, {tonumber(itemId)}, {initialEditText = C.GetCustomItemDisplayName(itemId)})
+	ESOAPI.ZO_Dialogs_ShowDialog(dialogName, {tonumber(itemId)}, {initialEditText = C.GetCustomItemDisplayName(itemId)})
 	return true
 end
 
 function C.GetConsoleCustomItemRenameDraft()
 	local id = C.GetConsoleSelectedCustomItemId()
 	if not id then return "" end
-	if tonumber(db.customItemRenameTarget) ~= tonumber(id) then
-		db.customItemRenameTarget = id
-		db.customItemRenameDraft = C.GetCustomItemDisplayName(id)
+	if tonumber(BMR.db.customItemRenameTarget) ~= tonumber(id) then
+		BMR.db.customItemRenameTarget = id
+		BMR.db.customItemRenameDraft = C.GetCustomItemDisplayName(id)
 	end
-	return tostring(db.customItemRenameDraft or "")
+	return tostring(BMR.db.customItemRenameDraft or "")
 end
 
 function C.SetConsoleCustomItemRenameDraft(value)
-	db.customItemRenameDraft = tostring(value or "")
+	BMR.db.customItemRenameDraft = tostring(value or "")
 end
 
 function C.ApplyConsoleCustomItemRename()
 	local id = C.GetConsoleSelectedCustomItemId()
 	if not id then return false end
-	local ok, reason = C.RenameCustomItemRuleById(id, db.customItemRenameDraft or "")
+	local ok, reason = C.RenameCustomItemRuleById(id, BMR.db.customItemRenameDraft or "")
 	if not ok then
-		local message = reason == "duplicate-name" and GetString(BMR_CUSTOM_FILTER_RENAME_DUPLICATE) or GetString(BMR_CUSTOM_FILTER_RENAME_INVALID)
+		local message = reason == "duplicate-name" and ESOAPI.GetString(BMR_CUSTOM_FILTER_RENAME_DUPLICATE) or ESOAPI.GetString(BMR_CUSTOM_FILTER_RENAME_INVALID)
 		SendCustomRuleMessage("[BMR] " .. message)
 		return false
 	end
-	SendCustomRuleMessage("[BMR] " .. zo_strformat(GetString(BMR_CUSTOM_ITEM_RENAMED), C.GetCustomItemDisplayName(id)))
+	SendCustomRuleMessage("[BMR] " .. ESOAPI.zo_strformat(ESOAPI.GetString(BMR_CUSTOM_ITEM_RENAMED), C.GetCustomItemDisplayName(id)))
 	return true
 end
 
@@ -3371,11 +3373,11 @@ function C.RemoveCustomItemRuleById(itemId)
 	local numericId = tonumber(itemId)
 	if not numericId then return false end
 	local key = tostring(numericId)
-	if not db.customItemRules or not (db.customItemRules[key] or db.customItemRules[numericId]) then return false end
-	db.customItemRules[key] = nil
-	db.customItemRules[numericId] = nil
+	if not BMR.db.customItemRules or not (BMR.db.customItemRules[key] or BMR.db.customItemRules[numericId]) then return false end
+	BMR.db.customItemRules[key] = nil
+	BMR.db.customItemRules[numericId] = nil
 	local ruleName = "customItem_" .. key
-	for _, profile in pairs(db.profiles or {}) do if profile.rules then profile.rules[ruleName] = nil end end
+	for _, profile in pairs(BMR.db.profiles or {}) do if profile.rules then profile.rules[ruleName] = nil end end
 	if BankManagerRules and BankManagerRules.data then BankManagerRules.data[ruleName] = nil end
 	if BankManagerRules and BankManagerRules.defaults then BankManagerRules.defaults[ruleName] = nil end
 	if ConsoleRuleSelection().itemId == numericId then ConsoleRuleSelection().itemId = nil end
@@ -3409,37 +3411,31 @@ function C.RegisterCustomItemContextMenuActions()
 		-- Gamepad bridge versions normalize their slot type, but controller inventory
 		-- flows can still expose a different type constant than the keyboard UI. Do not
 		-- whitelist slot types here: a valid bag/index containing a real item is enough.
-		if type(ZO_Inventory_GetBagAndIndex) ~= "function" then
-			CustomRuleDebug("CONTEXT ACTION SKIP reason=ZO_Inventory_GetBagAndIndex unavailable")
-			return
-		end
-		local bagOk, bagId, slotIndex = pcall(ZO_Inventory_GetBagAndIndex, inventorySlot)
-		if not bagOk or bagId == nil or slotIndex == nil then
+		local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
+		if bagId == nil or slotIndex == nil then
 			local slotType = "n/a"
-			if type(ZO_InventorySlot_GetType) == "function" then
-				local typeOk, resolvedType = pcall(ZO_InventorySlot_GetType, inventorySlot)
-				if typeOk then slotType = tostring(resolvedType) end
+			if ESOAPI.ZO_InventorySlot_GetType then
+				slotType = tostring(ESOAPI.ZO_InventorySlot_GetType(inventorySlot))
 			end
 			CustomRuleDebug("CONTEXT ACTION SKIP reason=bag/index unavailable slotType=" .. slotType)
 			return
 		end
-		local itemOk, itemId = pcall(C.GetCustomRuleItemIdFromSlot, bagId, slotIndex)
-		if not itemOk or not itemId then
-			CustomRuleDebug("CONTEXT ACTION SKIP reason=no item bag=" .. tostring(bagId) .. " slot=" .. tostring(slotIndex) .. " error=" .. tostring(itemId))
+		local itemId = C.GetCustomRuleItemIdFromSlot(bagId, slotIndex)
+		if not itemId then
+			CustomRuleDebug("CONTEXT ACTION SKIP reason=no item bag=" .. tostring(bagId) .. " slot=" .. tostring(slotIndex))
 			return
 		end
-		local hasRule = db.customItemRules and (db.customItemRules[tostring(itemId)] ~= nil or db.customItemRules[itemId] ~= nil)
+		local hasRule = BMR.db.customItemRules and (BMR.db.customItemRules[tostring(itemId)] ~= nil or BMR.db.customItemRules[itemId] ~= nil)
 		local slotType = "n/a"
-		if type(ZO_InventorySlot_GetType) == "function" then
-			local typeOk, resolvedType = pcall(ZO_InventorySlot_GetType, inventorySlot)
-			if typeOk then slotType = tostring(resolvedType) end
+		if ESOAPI.ZO_InventorySlot_GetType then
+			slotType = tostring(ESOAPI.ZO_InventorySlot_GetType(inventorySlot))
 		end
 		if hasRule then
 			local added, addError = pcall(slotActions.AddCustomSlotAction, slotActions, BMR_CUSTOM_RULE_REMOVE_MENU, function()
 				C.RemoveCustomItemRuleFromSlot(bagId, slotIndex)
 			end, "secondary")
 			CustomRuleDebug("CONTEXT ACTION " .. (added and "ADDED" or "ADD FAILED") .. " remove itemId=" .. tostring(itemId) .. " bag=" .. tostring(bagId) .. " slot=" .. tostring(slotIndex) .. " slotType=" .. tostring(slotType) .. (not added and (" error=" .. tostring(addError)) or ""))
-		elseif db.hideSetAsBmrRule ~= true then
+		elseif BMR.db.hideSetAsBmrRule ~= true then
 			local added, addError = pcall(slotActions.AddCustomSlotAction, slotActions, BMR_CUSTOM_RULE_SET, function()
 				C.AddCustomItemRuleFromSlot(bagId, slotIndex)
 			end, "secondary")
@@ -3458,7 +3454,7 @@ end
 
 
 -- Ensure new account-wide catalogue storage exists after BMVars has been loaded.
-if db then
-	db.customItemTagCatalog = db.customItemTagCatalog or {}
-	db.customItemTagScan = db.customItemTagScan or {nextId = 1, maxId = TAG_SCAN_MAX_DEFAULT, completed = false}
+if BMR.db then
+	BMR.db.customItemTagCatalog = BMR.db.customItemTagCatalog or {}
+	BMR.db.customItemTagScan = BMR.db.customItemTagScan or {nextId = 1, maxId = TAG_SCAN_MAX_DEFAULT, completed = false}
 end

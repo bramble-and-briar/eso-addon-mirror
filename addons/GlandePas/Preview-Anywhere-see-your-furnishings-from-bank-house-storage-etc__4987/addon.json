@@ -18,7 +18,7 @@
     "PreviewAnywhere"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4987/",
-  "fingerprint": "79d01d4c01b3f012cdf72eb92d6800323c3addbec58e4e4c6a73d6cfafd12bfb",
+  "fingerprint": "ddb266f1c8c83e9a3fc7094037ed2e4ebc74e93d4a5e38f81cdb5033e4f9550d",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "4987",
   "source_url": "https://www.esoui.com/downloads/info4987-PreviewAnywhereseeyourfurnishingsfrombankhousestorageetc..html",
   "stats": {
-    "downloads": 15,
+    "downloads": 102,
     "favorites": 2,
-    "monthly_downloads": 10
+    "monthly_downloads": 97
   },
   "title": "Preview Anywhere: see your furnishings from bank, house storage, etc.",
-  "updated_at": 1792948671000,
-  "version": "1"
+  "updated_at": 1795343315000,
+  "version": "0.2.0"
 }

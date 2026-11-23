@@ -1,0 +1,43 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/BadKeni/Mark-Trial-Helper__5102",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "BadKeni",
+  "canonical_id": "esoui:5102",
+  "category_id": "45",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5102",
+  "deleted": false,
+  "directories": [
+    "MarkTrialHelper"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5102/",
+  "fingerprint": "51ee785df8714829361152e6f4afa8d69c789e43a12689feab39e6f144d33626",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18739.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18735.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5102",
+  "source_url": "https://www.esoui.com/downloads/info5102-MarkTrialHelper.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 1,
+    "monthly_downloads": 6
+  },
+  "title": "Mark Trial Helper",
+  "updated_at": 1795377279000,
+  "version": "2.0.3"
+}

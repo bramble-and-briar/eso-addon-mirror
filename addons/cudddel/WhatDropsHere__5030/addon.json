@@ -18,7 +18,7 @@
     "WhatDropsHere"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5030/",
-  "fingerprint": "5ab5980f63eac30cce198ec8011d49509665d728689e9128321c5f528631fb4d",
+  "fingerprint": "316c82c7fc4559f0e07f43929c19afed65c17344750272cba630bf41b6e69200",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18347.png",
     "https://cdn-eso.mmoui.com/preview/pvw18348.png"
@@ -29,11 +29,11 @@
   "source_id": "5030",
   "source_url": "https://www.esoui.com/downloads/info5030-WhatDropsHere.html",
   "stats": {
-    "downloads": 77,
+    "downloads": 108,
     "favorites": 1,
-    "monthly_downloads": 57
+    "monthly_downloads": 105
   },
   "title": "WhatDropsHere?",
-  "updated_at": 1794406246000,
-  "version": "0.3.1"
+  "updated_at": 1795347416000,
+  "version": "0.4.0"
 }

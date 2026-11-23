@@ -331,8 +331,10 @@ function DT:GetOptions()
 
     local options = {}
     if ME.GroupFinder then options[#options + 1] = AddCharacterOption(ME.GroupFinder:SubmenuOption(), "groupFinder") end
-    options[#options + 1] = Page("Hide Players", "hidePlayers", "Hides your group's characters in dungeons and trials.", hidePlayers)
     options[#options + 1] = Page("Dungeon Finder", "dungeonFinder", "Sorts the Dungeon Finder.", dungeonFinder)
+    local readyCheck = ME.QualityOfLife and ME.QualityOfLife.ReadyCheckPage and ME.QualityOfLife:ReadyCheckPage()
+    if readyCheck then options[#options + 1] = readyCheck end
+    options[#options + 1] = Page("Hide Players", "hidePlayers", "Hides your group's characters in dungeons and trials.", hidePlayers)
     if ME.TrialTimer then options[#options + 1] = AddCharacterOption(ME.TrialTimer:SubmenuOption(), "trialTimer") end
 
     return {
@@ -340,8 +342,8 @@ function DT:GetOptions()
             type    = "submenu",
             name    = "Dungeons & Trials",
             icon    = SUBMENU_ICON,
-            tooltip = "Checks the Group Finder for you, hides other players in dungeons and trials, "
-                   .. "sorts the Dungeon Finder and times your trials.",
+            tooltip = "Checks the Group Finder for you, sorts the Dungeon Finder, accepts queues and ready checks, "
+                   .. "hides other players and times your trials.",
             options = options,
         },
     }

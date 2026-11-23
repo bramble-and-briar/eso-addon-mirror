@@ -504,7 +504,10 @@ function map:RefreshKeeps()
 		self:RefreshBursts()
 		return
 	end
-	local seen = {}
+	-- Which keeps this pass saw, marked with a pass number on the pin itself rather than in a
+	-- table made new every pass.
+	self.keepPass = (self.keepPass or 0) + 1
+	local pass = self.keepPass
 	local resources = Settings().resources ~= false
 	for index = 1, (GetNumKeeps() or 0) do
 		local keepId, bgContext = GetKeepKeysByIndex(index)
@@ -518,12 +521,18 @@ function map:RefreshKeeps()
 				-- not (the world map showing somewhere the conversion cannot reach) is ignored
 				-- and the last good one stands.
 				if OnMap(cx, cy) then
-					self.keepPositions[keepId] = { x = cx, y = cy }
+					-- Updated in place: a keep's position table is made once, not every pass.
+					local known = self.keepPositions[keepId]
+					if known then
+						known.x, known.y = cx, cy
+					else
+						self.keepPositions[keepId] = { x = cx, y = cy }
+					end
 				end
 				local position = self.keepPositions[keepId]
 				if position then
-					seen[keepId] = true
 					local keep = self:KeepPin(keepId, keepType)
+					keep.pass = pass
 					-- No usable art for this pin type: no icon, rather than some other icon
 					-- standing in for it. An attack burst still shows if it is under attack.
 					local texture = PinTexture(pinType, nil)
@@ -539,8 +548,8 @@ function map:RefreshKeeps()
 			end
 		end
 	end
-	for keepId, keep in pairs(self.keepPins) do
-		if not seen[keepId] then
+	for _, keep in pairs(self.keepPins) do
+		if keep.pass ~= pass then
 			keep.icon:SetHidden(true)
 			keep.burst:SetHidden(true)
 		end
@@ -559,9 +568,16 @@ function map:LinkThickness()
 	return math.max(1.5, self:Size() * 0.008)
 end
 
+-- Kept per colour: there are four (three alliances and white), and every link asks on every pass.
+local rgbCache = {}
 local function HexToRgb(hex)
 	hex = hex or "FFFFFF"
-	return tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255
+	local rgb = rgbCache[hex]
+	if not rgb then
+		rgb = { tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255 }
+		rgbCache[hex] = rgb
+	end
+	return rgb[1], rgb[2], rgb[3]
 end
 
 function map:LinkControl(index)
@@ -605,7 +621,13 @@ function map:RefreshLinks()
 		-- Links do not move either: a position that converts is kept, and one that does not
 		-- leaves the last good one standing.
 		if OnMap(ax, ay) and OnMap(bx, by) then
-			self.linkPositions[index] = { ax = ax, ay = ay, bx = bx, by = by }
+			-- In place, like the keeps.
+			local known = self.linkPositions[index]
+			if known then
+				known.ax, known.ay, known.bx, known.by = ax, ay, bx, by
+			else
+				self.linkPositions[index] = { ax = ax, ay = ay, bx = bx, by = by }
+			end
 		end
 		local position = self.linkPositions[index]
 		local link = self:LinkControl(index)

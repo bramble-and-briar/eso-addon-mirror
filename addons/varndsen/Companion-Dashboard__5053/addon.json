@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/varndsen/Companion-Dashboard__5053",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "varndsen",
+  "canonical_id": "esoui:5053",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5053",
+  "deleted": false,
+  "directories": [
+    "CompanionDashboard"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5053/",
+  "fingerprint": "6b2e0c26fa686750db7556d2884542652bc49103902b721a13bffa9799707a06",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18684.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5053",
+  "source_url": "https://www.esoui.com/downloads/info5053-CompanionDashboard.html",
+  "stats": {
+    "downloads": 64,
+    "favorites": 0,
+    "monthly_downloads": 61
+  },
+  "title": "Companion Dashboard",
+  "updated_at": 1795358722000,
+  "version": "1.5.3"
+}

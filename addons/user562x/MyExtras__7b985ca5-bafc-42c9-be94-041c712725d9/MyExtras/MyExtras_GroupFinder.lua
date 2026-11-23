@@ -10,7 +10,6 @@ local EVENT_NAME      = ME.name .. "_GroupFinder"
 local TIMER_NAME      = EVENT_NAME .. "Timer"
 local TIMEOUT_NAME    = EVENT_NAME .. "Timeout"
 local STATUS_NAME     = EVENT_NAME .. "Status"
-local MOVE_SCENE      = "MyExtras_GroupFinderMove"
 local ONE_MS          = 30000
 local MANY_MS         = 60000
 local SEARCH_WAIT_MS  = 30000
@@ -1471,144 +1470,57 @@ end
 --------------------------------------------------
 -- Move
 --------------------------------------------------
-GF.mover = {}
-
-function GF.mover:UpdateDirectionalInput(deltaS)
-    local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK)
-    if x ~= 0 or y ~= 0 then
-        GF:SetPosition(GF.moveX + x * MOVE_SPEED * deltaS, GF.moveY - y * MOVE_SPEED * deltaS)
-    end
-    local stretchX, scaleY = DIRECTIONAL_INPUT:GetXY(ZO_DI_RIGHT_STICK)
-    if math.abs(stretchX) > math.abs(scaleY) then
-        GF:SetStretch(GF.moveStretch + stretchX * ME.STRETCH_SPEED * deltaS)
-    elseif scaleY ~= 0 then
-        GF:SetScale(GF.moveScale + scaleY * SCALE_SPEED * deltaS)
-    end
-end
-
-GF.moveKeybinds = {
-    alignment = KEYBIND_STRIP_ALIGN_CENTER,
-    {
-        name     = "Save",
-        keybind  = "UI_SHORTCUT_PRIMARY",
-        callback = function() GF:EndMove(true) end,
-    },
-    {
-        name     = "Default",
-        keybind  = "UI_SHORTCUT_TERTIARY",
-        callback = function() GF:MoveToDefault() end,
-    },
-    {
-        name     = "Cancel",
-        keybind  = "UI_SHORTCUT_NEGATIVE",
-        callback = function() GF:EndMove(false) end,
-    },
-}
-
-function GF:SetPosition(x, y)
-    local screenW, screenH = GuiRoot:GetDimensions()
-    local halfW, halfH = screenW / 2, screenH / 2
-    self.moveX = zo_clamp(x, -halfW, halfW)
-    self.moveY = zo_clamp(y, -halfH, halfH)
-    local sv = SV()
-    sv.groupFinderPosX = zo_floor(self.moveX + 0.5)
-    sv.groupFinderPosY = zo_floor(self.moveY + 0.5)
-    self:ApplyPosition()
-end
-
-function GF:SetScale(value)
-    self.moveScale = zo_clamp(value, SCALE_MIN, SCALE_MAX)
-    local rounded = zo_floor(self.moveScale + 0.5)
-    local sv = SV()
-    if sv.groupFinderScale ~= rounded then
-        sv.groupFinderScale = rounded
-        self:Render()
-    end
-end
-
-function GF:SetStretch(value)
-    self.moveStretch = zo_clamp(value, ME.STRETCH_MIN, ME.STRETCH_MAX)
-    local rounded = zo_floor(self.moveStretch + 0.5)
-    local sv = SV()
-    if sv.groupFinderStretch ~= rounded then sv.groupFinderStretch = rounded end
-    ME:ApplyStretch(self.panel, rounded)
-end
-
-function GF:MoveToDefault()
-    self:SetStretch(100)
-    self:SetScale(DEFAULTS.groupFinderScale)
-    self:SetPosition(DEFAULTS.groupFinderPosX, DEFAULTS.groupFinderPosY)
-end
-
-function GF:GetMoveScene()
-    if self.moveScene then return self.moveScene end
-    local scene = ZO_Scene:New(MOVE_SCENE, SCENE_MANAGER)
-    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_NO_KEYBIND_BACKGROUND_WINDOW)
-    ME:AddPlacementFragments(scene)
-    scene:RegisterCallback("StateChange", function(oldState, newState)
-        if newState == SCENE_SHOWING then
-            GF:OnMoveShowing()
-        elseif newState == SCENE_HIDDEN then
-            GF:OnMoveHidden()
-        end
-    end)
-    self.moveScene = scene
-    return scene
-end
-
 function GF:StartMove()
     if self.moving then return end
     self.movePreview = self.preview
-    self.moveSaved = false
     self.moving = true
-    self:GetMoveScene()
-    SCENE_MANAGER:Push(MOVE_SCENE)
-end
-
-function GF:OnMoveShowing()
-    local sv = SV()
-    self.moving = true
-    ME:RaiseWhilePlacing({ self.panel }, true)
-    self.moveStartX, self.moveStartY = sv.groupFinderPosX, sv.groupFinderPosY
-    self.moveStartScale = sv.groupFinderScale
-    self.moveX, self.moveY = sv.groupFinderPosX, sv.groupFinderPosY
-    self.moveScale = sv.groupFinderScale
-    self.moveStartStretch = sv.groupFinderStretch or 100
-    self.moveStretch = sv.groupFinderStretch or 100
-    KEYBIND_STRIP:AddKeybindButtonGroup(self.moveKeybinds)
-    DIRECTIONAL_INPUT:Activate(self.mover, self.panel)
-    ME:SetPlacing(true)
-    self:Render()
-end
-
-function GF:OnMoveHidden()
-    DIRECTIONAL_INPUT:Deactivate(self.mover)
-    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.moveKeybinds)
-    if not self.moveSaved then
-        self:SetScale(self.moveStartScale)
-        self:SetStretch(self.moveStartStretch)
-        self:SetPosition(self.moveStartX, self.moveStartY)
-    end
-    self.moving = false
-    ME:RaiseWhilePlacing({ self.panel }, false)
-    ME:SetPlacing(false)
-    if self.movePreview then
-        self.movePreview = false
-        self:SetPreview(true)
-    else
-        self:Render()
-    end
-end
-
-function GF:EndMove(save)
-    if not self.moving then return end
-    self.moveSaved = save == true
-    if save then
-        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
-    else
-        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
-    end
-    SCENE_MANAGER:HideCurrentScene()
+    local started = LibUser562:StartMove({
+        controls    = { self.panel },
+        moveSpeed   = MOVE_SPEED,
+        scaleSpeed  = SCALE_SPEED,
+        sizeMin     = SCALE_MIN,
+        sizeMax     = SCALE_MAX,
+        bounds      = function()
+            local screenW, screenH = GuiRoot:GetDimensions()
+            return -screenW / 2, screenW / 2, -screenH / 2, screenH / 2
+        end,
+        defaults    = {
+            x    = DEFAULTS.groupFinderPosX,
+            y    = DEFAULTS.groupFinderPosY,
+            size = DEFAULTS.groupFinderScale,
+        },
+        getPosition = function() return SV().groupFinderPosX, SV().groupFinderPosY end,
+        setPosition = function(x, y)
+            local sv = SV()
+            sv.groupFinderPosX, sv.groupFinderPosY = x, y
+            GF:ApplyPosition()
+        end,
+        getSize    = function() return SV().groupFinderScale end,
+        setSize    = function(size)
+            SV().groupFinderScale = size
+            GF:Render()
+        end,
+        getStretch = function() return SV().groupFinderStretch or 100 end,
+        setStretch = function(percent)
+            SV().groupFinderStretch = percent
+            ME:ApplyStretch(GF.panel, percent)
+        end,
+        onShow = function()
+            ME:SetPlacing(true)
+            GF:Render()
+        end,
+        onHide = function()
+            GF.moving = false
+            ME:SetPlacing(false)
+            if GF.movePreview then
+                GF.movePreview = false
+                GF:SetPreview(true)
+            else
+                GF:Render()
+            end
+        end,
+    })
+    if not started then self.moving = false end
 end
 
 --------------------------------------------------
@@ -1670,11 +1582,9 @@ function GF:SubmenuOption()
                 name    = "Enabled",
                 preset  = "YES_NO",
                 default = DEFAULTS.groupFinderShow,
-                tooltip = "Checks the Group Finder every 30 seconds, or every 60 seconds if you pick more than one category, "
-                       .. "and lists matching groups on screen while you play.\n\n"
-                       .. "You can also turn it on or off with Monitor in the Group Finder. "
-                       .. "It pauses while the Group Finder is open, while you have your own group listed "
-                       .. "and where the Group Finder can't be used, and it puts your Group Finder filters back after each check.",
+                tooltip = "Checks the Group Finder for you and lists matching groups on screen. "
+                       .. "It pauses while the Group Finder is open or while your own group is listed. "
+                       .. "You can also turn it on or off with Monitor in the Group Finder.",
                 getFunc = function() return SV().groupFinderShow end,
                 setFunc = function(val)
                     SV().groupFinderShow = val
@@ -1756,7 +1666,7 @@ function GF:SubmenuOption()
                 options = {
                     {
                         type    = "toggle",
-                        name    = "Alarm",
+                        name    = "Enabled",
                         preset  = "YES_NO",
                         default = DEFAULTS.groupFinderAlarm,
                         tooltip = "Plays a sound and highlights a group in red when it's one you picked below. "
@@ -1796,11 +1706,12 @@ function GF:SubmenuOption()
             {
                 type    = "submenu",
                 name    = "Appearance",
-                tooltip = "Font, size of the list and background.",
+                tooltip = "Font, size and background for your group list.",
                 options = {
                     {
                         type    = "dropdown",
                         name    = "Font",
+                        tooltip = "Some fonts look bigger or smaller than others. Default is Gamepad Medium.",
                         choices = ME.FONT_CHOICES,
                         default = DEFAULTS.groupFinderFont,
                         sample  = function() return "Lair of Maarselok", SampleFont(), 1, 1, 1 end,
@@ -1839,7 +1750,7 @@ function GF:SubmenuOption()
                         name    = "Background",
                         preset  = "YES_NO",
                         default = DEFAULTS.groupFinderBackground,
-                        tooltip = "Puts a dark box behind the list so it's easier to read.",
+                        tooltip = "Puts a black box behind the list so it's easier to read.",
                         getFunc = function() return SV().groupFinderBackground end,
                         setFunc = function(val)
                             SV().groupFinderBackground = val

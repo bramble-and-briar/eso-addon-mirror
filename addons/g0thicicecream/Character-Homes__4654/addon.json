@@ -78,9 +78,9 @@
     "CharacterHomes"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4654/",
-  "fingerprint": "63e381e9511683a40ccab576fd7e79312bec76bc3c70dc91904731b47916f1ee",
+  "fingerprint": "b51a16ffe3ac4eee63a2140067ac9d6aa3d3abd40e0be8c51bf4c9479388661e",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw18694.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18738.png",
     "https://cdn-eso.mmoui.com/preview/pvw16426.png"
   ],
   "platform": "pc",
@@ -89,11 +89,11 @@
   "source_id": "4654",
   "source_url": "https://www.esoui.com/downloads/info4654-CharacterHomes.html",
   "stats": {
-    "downloads": 392,
+    "downloads": 407,
     "favorites": 2,
-    "monthly_downloads": 110
+    "monthly_downloads": 124
   },
   "title": "Character Homes",
-  "updated_at": 1795293024000,
-  "version": "1.4.1"
+  "updated_at": 1795370114000,
+  "version": "1.5.0"
 }

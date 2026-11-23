@@ -56,6 +56,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Marcus' Guild Management Tool (Poukav CLI)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marcus-Brody/Marcus-Guild-Management-Tool-Poukav-CLI__3484) | Marcus Brody | PC / Mac | 1.9.2 |
 | [Mark My Spot](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smaxx/Mark-My-Spot__3369) | Smaxx | PC / Mac | 1.0.1 |
 | [Mark Of The Afflicted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/WidgetInteractive/Mark-Of-The-Afflicted__1707) | WidgetInteractive | PC / Mac | 1.2.1 |
+| [Mark Trial Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BadKeni/Mark-Trial-Helper__5102) | BadKeni | PC / Mac | 2.0.3 |
 | [Marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/Marker__3684) | akamatsu02 | PC / Mac | 3.16 |
 | [MarkPledges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/MarkPledges__2261) | KLISK | PC / Mac | 1.0.5 |
 | [Martial Knowledge Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Skvysh/Martial-Knowledge-Tracker__2680) | Skvysh | PC / Mac | 1.7.1 |

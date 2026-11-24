@@ -8,8 +8,8 @@
   "category_id": "20",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:4335",
@@ -18,7 +18,7 @@
     "ItemSaverLite"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4335/",
-  "fingerprint": "2e3f2f5cea7ba84a0186f0a4be85b140333bbc90630f981ccce2562219a0e95c",
+  "fingerprint": "87996a5ee6cb823b5a99a234b81bfe428a34c0016884c097cd34a41b9dbeae06",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17314.png",
     "https://cdn-eso.mmoui.com/preview/pvw18082.png"
@@ -29,11 +29,11 @@
   "source_id": "4335",
   "source_url": "https://www.esoui.com/downloads/info4335-ItemSaverLite.html",
   "stats": {
-    "downloads": 1604,
+    "downloads": 1728,
     "favorites": 3,
-    "monthly_downloads": 294
+    "monthly_downloads": 275
   },
   "title": "Item Saver Lite",
-  "updated_at": 1793901680000,
-  "version": "2.4"
+  "updated_at": 1795455081000,
+  "version": "2.5"
 }

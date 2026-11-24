@@ -55,7 +55,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Taos Group Tools - Necromancer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aldericon/Taos-Group-Tools---Necromancer__2384) | aldericon | PC / Mac | 1.1.3 |
 | [Target Dummy Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/Target-Dummy-Tools__2492) | Phuein | PC / Mac | 1.09 |
 | [Target Focus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Target-Focus__1268) | CaptainBlagbird | PC / Mac | 1.0.12 |
-| [Target Frame Line](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Target-Frame-Line__5095) | Schrodi | PC / Mac | 1.2.0 |
+| [Target Frame Line](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Target-Frame-Line__5095) | Schrodi | PC / Mac | 1.2.1 |
 | [Target Lookup (High Isle updated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eshja/Target-Lookup-High-Isle-updated__1695) | Eshja | PC / Mac | 0.6.1 |
 | [Target Taunt - Visual Taunt Confirmation And Tracking](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Target-Taunt---Visual-Taunt-Confirmation-And-Tracking__4462) | Duesentrieb | PC / Mac | 20260604-0001 |
 | [Target Whisper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Target-Whisper__1123) | CaptainBlagbird | PC / Mac | 1.0.15 |
@@ -79,7 +79,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TeilzeitLegende's Restock Style Materials and Auto Repair (Fixed)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jakki/TeilzeitLegende-s-Restock-Style-Materials-and-Auto-Repair-Fixed__3125) | Jakki | PC / Mac | 0.8.6.1 |
 | [Tel Var Counter (TelVar Logger)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mladen90/Tel-Var-Counter-TelVar-Logger__2737) | Mladen90 | PC / Mac | 1.1.0 |
 | [Tel Var Saver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/EHansonn/Tel-Var-Saver__3664) | EHansonn | PC / Mac | 1.9 |
-| [Teleport - general purpose teleporting tool](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Teleport---general-purpose-teleporting-tool__2781) | Schrodi | PC / Mac | 1.5.0 |
+| [Teleport - general purpose teleporting tool](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Teleport---general-purpose-teleporting-tool__2781) | Schrodi | PC / Mac | 1.5.1 |
 | [Teleport Tool](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/deagl0r/Teleport-Tool__1333) | deagl0r | PC / Mac | 1.24.0.0 |
 | [TemplarMastery](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/TemplarMastery__4827) | its_wifey | PC / Mac | 1.7 |
 | [TESO Ingame Messenger - TIM (for Update 6)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Migoda/TESO-Ingame-Messenger---TIM-for-Update-6__944) | Migoda | PC / Mac | 5.52 |

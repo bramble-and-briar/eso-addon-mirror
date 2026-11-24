@@ -17,14 +17,10 @@
 -- both of those same two sources below (same unique-id scheme, so no need
 -- to go through DLWC's own icon code) rather than the icon itself.
 local function isWritCompleted(bagId, slotIndex)
-	local WW = WritWorthy
-	local list = WritWorthyInventoryList and WritWorthyInventoryList.singleton
-	if WW and list then
-		local id = WW.UniqueID(bagId, slotIndex)
-		local data = list:UniqueIDToInventoryData(id)
-		if data and data.ui_is_completed == true then
-			return true
-		end
+	local id = WritWorthy.UniqueID(bagId, slotIndex)
+	local data = WritWorthyInventoryList.singleton:UniqueIDToInventoryData(id)
+	if data and data.ui_is_completed == true then
+		return true
 	end
 
 	-- DolgubonsLazyWritCreator (optional) tracks its own crafted-writ
@@ -58,9 +54,7 @@ local function acceptNextReadyWrit()
 	-- WritWorthy only rebuilds this data when its own window is shown or
 	-- refreshed - force that here since we're reacting to a game event, not
 	-- the WritWorthy UI being open.
-	if WritWorthyUI_Refresh then
-		WritWorthyUI_Refresh()
-	end
+	WritWorthyUI_Refresh()
 
 	for i = 0, GetBagSize(BAG_BACKPACK) do
 		if GetItemType(BAG_BACKPACK, i) == ITEMTYPE_MASTER_WRIT then
@@ -75,7 +69,7 @@ local function acceptNextReadyWrit()
 	return false
 end
 
-EVENT_MANAGER:RegisterForEvent("queueNextWrit", EVENT_QUEST_COMPLETE, function(_, questName, _, _, _, _, questType)
+EVENT_MANAGER:RegisterForEvent("AutoAcceptNextWrit", EVENT_QUEST_COMPLETE, function(_, questName, _, _, _, _, questType)
 	zo_callLater(function()
 		if questType ~= QUEST_TYPE_CRAFTING or not questName:find("Masterful") then
 			return
@@ -83,14 +77,6 @@ EVENT_MANAGER:RegisterForEvent("queueNextWrit", EVENT_QUEST_COMPLETE, function(_
 		acceptNextReadyWrit()
 	end, 300)
 end)
-
--- Manual trigger for testing, or for grabbing a ready writ without waiting
--- on a turn-in to fire the event above.
-SLASH_COMMANDS["/aanwtest"] = function()
-	if not acceptNextReadyWrit() then
-		d("|c66CCFFAutoAcceptNextWrit:|r no ready writ found.")
-	end
-end
 
 SLASH_COMMANDS["/ww"] = function()
 	SLASH_COMMANDS["/writworthy"]("")

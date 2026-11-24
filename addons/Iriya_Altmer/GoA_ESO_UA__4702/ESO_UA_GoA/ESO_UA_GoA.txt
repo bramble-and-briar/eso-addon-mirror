@@ -1,9 +1,9 @@
 ## Title: GoA_ESO_UA
-## Author: GoA
-## APIVersion: 101049 101050 101051 101052
-## Version: 1.07
-## AddOnVersion: 107
-## Description: Укр локалізація «TESO»
+## Author: GoA (Guards of Amber)
+## APIVersion: 101051 101052
+## Version: 1.08
+## AddOnVersion: 108
+## Description: Українська локалізація «The Elder Scrolls Online» від Guards of Amber. Переклад виконано командою GoA з використанням ШІ (Claude, Anthropic) як допоміжного інструменту з подальшою людською перевіркою. Кредити: GoA / Guards of Amber. https://discord.gg/cVNYKrTmej
 ## SavedVariables: ESO_UA_GoA_settings
 
 ESO_UA_GoA.lua

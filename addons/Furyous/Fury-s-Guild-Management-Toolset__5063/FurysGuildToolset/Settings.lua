@@ -1,4 +1,4 @@
-local GT = FuryGMT
+local GT = FurysGuildToolset
 local U = GT.Util
 local Settings = {}
 GT.Settings = Settings
@@ -9,11 +9,11 @@ GT.Settings = Settings
 -- stay the same.
 function Settings:AddPage(id, title, controls, withDefaults)
     local LAM = LibAddonMenu2
-    local name = "FuryGMT" .. id .. "Panel"
+    local name = "FurysGuildToolset_" .. id .. "Panel"
     local panel = LAM:RegisterAddonPanel(name, {
         type = "panel",
         name = "Fury's Guild Management - " .. title,
-        displayName = "Fury's Guild Management Toolset: " .. title,
+        displayName = "|cA08CFFFury's Guild Management Toolset: " .. title .. "|r",
         author = "Furyous",
         version = GT.version,
         registerForRefresh = true,
@@ -124,14 +124,14 @@ function Settings:Build()
     local panelData = {
         type = "panel",
         name = "Fury's Guild Management",
-        displayName = "Fury's Guild Management Toolset",
+        displayName = "|cA08CFFFury's Guild Management Toolset|r",
         author = "Furyous",
         version = GT.version,
         slashCommand = "/gtsettings",
         registerForRefresh = true,
         registerForDefaults = true,
     }
-    self.panel = LAM:RegisterAddonPanel("FuryGMTSettings", panelData)
+    self.panel = LAM:RegisterAddonPanel("FurysGuildToolset_Settings", panelData)
 
     local options = {
         { type = "description", text = "Type /gt to open the report window. Alerts appear in chat and on screen while you play, and a summary appears at login." },
@@ -153,7 +153,7 @@ function Settings:Build()
     options[#options + 1] = { type = "description", text = "Each guild's bank limits, ignored ranks, mail texts, auto-demote, inactivity limits, hopper and bank space settings are on their own page: \"Fury's Guild Management - Guild rules\" in the Add-Ons list." }
     options[#options + 1] = { type = "button", name = "Open Guild rules settings", width = "half",
         tooltip = "Opens the Guild rules settings page.", func = function() self:OpenRules() end }
-    LAM:RegisterOptionControls("FuryGMTSettings", options)
+    LAM:RegisterOptionControls("FurysGuildToolset_Settings", options)
 end
 
 function Settings:OpenRules()

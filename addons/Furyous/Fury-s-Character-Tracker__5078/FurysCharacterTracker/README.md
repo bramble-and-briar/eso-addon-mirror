@@ -1,6 +1,6 @@
 # Fury's Character Tracker
 
-**AI disclosure:** Most of this addon's code was written with an AI coding assistant (Claude by Anthropic), working from my designs and instructions. I test every release in game on my own characters before it goes up, and I maintain it. Please report any problem in the comments.
+**AI disclosure:** This addon's code was written with the assistance of an AI coding assistant (Claude by Anthropic), working from my designs and instructions. I test every release in game on my own characters before it goes up, and I maintain it. Please report any problem in the comments.
 
 Your whole roster on one board: every character's skill lines, guild ranks, crafting, research,
 scribing, motifs, recipes, furnishing plans, companions, riding and time played, read straight
@@ -21,9 +21,9 @@ from the game. Pick each character's role and gear, share a brag card, export to
   per item. Timers count down live for every character.
 - **Research timers** (button on the board, `/fct timers`, or a key in Controls): every research in progress,
   one line each, with character, craft, item, trait, time left and when it finishes, soonest first.
-  Finished and idle slots are listed at the top in gold. `/fct research` lists slots and timers in chat,
+  Finished and idle slots are listed at the top in amber. `/fct research` lists slots and timers in chat,
   and at login a line names any character whose research has finished.
-- **Gold tile** = maxed. Light text = in progress. Dim dash = not started.
+- **Violet tile** = maxed. White text = in progress. Dim dash = not started.
 - Hover any cell for details. Click a column title to sort; again to reverse; a third time for your order.
 - **Roles & gear**: click a blue cell for a dropdown. Role (Tank, Healer, DPS, any two, or all three),
   DPS gear and Tank/healer gear (Trial set, Crafted set, Overland set, Mixed, None), planned race.
@@ -84,8 +84,9 @@ Requires LibAddonMenu-2.0.
 ## Windows Tools (optional, separate download)
 
 The offline viewer and the Excel export run outside the game, so they are not part of the addon download.
-They come as a separate free download, **Fury's Character Tracker Windows Tools**, linked on the addon's
-ESOUI page. Unzip it into any folder you like (for example Documents\Elder Scrolls Online). Every script is
+They come as a separate free download, **Fury's Character Tracker Windows Tools**: in game, click
+**Get the Windows Tools** under `/fct settings` or type `/fct tools` (the game asks before it opens your browser), or use the link on the
+addon's ESOUI page. Unzip it into any folder you like (for example Documents\Elder Scrolls Online). Every script is
 plain text you can open in Notepad; its own README says what each file does. The addon works fully in
 game without them.
 

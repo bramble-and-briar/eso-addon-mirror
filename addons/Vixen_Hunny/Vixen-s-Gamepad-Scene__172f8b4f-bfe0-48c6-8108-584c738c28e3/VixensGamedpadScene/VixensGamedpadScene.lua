@@ -8,7 +8,7 @@
 --     used by inventory, character, skills, journal, crafting and more
 --   * the button bar along the bottom (keybind strip)
 --   * any other large background panel found on a gamepad scene when it opens
---     (and in gamepad dialogs), recognised by name or by its background art
+--     (not dialogs, see OnSceneStateChanged), recognised by name or art
 --
 -- Drawing ("Drawing style" setting):
 --   images     every theme has smooth .dds art in textures/<theme id>/
@@ -69,6 +69,44 @@ end
 VGS.skins = {}      -- one entry per skinned background control
 VGS.skinnedBy = {}  -- control -> skin
 VGS.errors = {}
+
+-- Error safety -----------------------------------------------------------------
+-- Code that runs inside the game's own UI flows (screen changes, per-frame
+-- updates, the settings menu) must never let an error escape: an error there
+-- can leave the game's menus half-switched and stop all input until a reload.
+-- Errors are caught, kept for /vgslog and the status line, and shown in chat
+-- once per place so they can be reported.
+local reportedErrors = {}
+
+function VGS.ReportError(where, err)
+    local text = tostring(where) .. ": " .. tostring(err)
+    if #VGS.errors < 20 then VGS.errors[#VGS.errors + 1] = text end
+    if not reportedErrors[where] then
+        reportedErrors[where] = true
+        if type(d) == "function" then
+            d("[Vixen's Gamepad Scene] Caught an error (the game was protected): " .. text)
+        end
+    end
+end
+
+-- Calls fn safely; returns true if it ran without an error.
+function VGS.Try(where, fn, ...)
+    local ok, err = pcall(fn, ...)
+    if not ok then VGS.ReportError(where, err) end
+    return ok
+end
+
+-- OnUpdate handler that switches itself off after an error, so a broken
+-- handler can't throw a new error every frame.
+function VGS.SetSafeOnUpdate(control, where, fn)
+    control:SetHandler("OnUpdate", function(...)
+        local ok, err = pcall(fn, ...)
+        if not ok then
+            control:SetHandler("OnUpdate", nil)
+            VGS.ReportError(where, err)
+        end
+    end)
+end
 
 local TEX = "VixensGamedpadScene/textures/"
 local TILE_SIZE = 256          -- tile.dds is 256x256
@@ -247,7 +285,7 @@ local function BuildTextureSkin(skin, bg, base)
     ts.ribbon:SetAnchor(TOPLEFT, bg, TOPLEFT, 10, 4)
     ts.ribbon:SetAnchor(TOPRIGHT, bg, TOPRIGHT, -10, 4)
 
-    ts.hearts:SetHandler("OnUpdate", function(self)
+    VGS.SetSafeOnUpdate(ts.hearts, "image animation", function(self)
         local sv = VGS.sv
         local now = GetFrameTimeSeconds()
 
@@ -363,7 +401,7 @@ local function BuildBlockSkin(skin, bg)
 
     -- Particle motion and size-dependent positions. OnUpdate only fires
     -- while the panel is visible.
-    skin.particleLayer:SetHandler("OnUpdate", function()
+    VGS.SetSafeOnUpdate(skin.particleLayer, "particle animation", function()
         LayoutWashBands(skin)
         local set = skin.activeSet
         if not set then return end
@@ -573,10 +611,12 @@ function VGS.SanitizeSettings()
     end
 end
 
+-- Called after every settings change, often from inside the settings menu's
+-- own code, so errors are caught here (per panel) instead of escaping.
 function VGS.ApplyAll()
-    VGS.SanitizeSettings()
+    VGS.Try("settings check", VGS.SanitizeSettings)
     for _, skin in ipairs(VGS.skins) do
-        VGS.ApplySkin(skin)
+        VGS.Try("redraw", VGS.ApplySkin, skin)
     end
 end
 
@@ -765,27 +805,22 @@ function VGS.ScanScene(scene, report)
     return added
 end
 
+-- Runs while the game is switching screens, so it must never error (an error
+-- here can leave the screen change half-done and the UI unresponsive).
 local function OnSceneStateChanged(scene, _, newState)
     if newState ~= SCENE_SHOWN then return end
-    if not (VGS.sv and VGS.sv.enabled and VGS.sv.allScenes) then return end
-    if not IsInGamepadPreferredMode() then return end
-    VGS.ScanScene(scene)
+    VGS.Try("screen theming", function()
+        if not (VGS.sv and VGS.sv.enabled and VGS.sv.allScenes) then return end
+        if not IsInGamepadPreferredMode() then return end
+        VGS.ScanScene(scene)
+    end)
 end
 
--- Gamepad dialogs aren't scenes; scan each one right after it opens.
-local function HookDialogs()
-    if type(ZO_PostHook) ~= "function" or type(ZO_Dialogs_ShowGamepadDialog) ~= "function" then return end
-    local ok, err = pcall(ZO_PostHook, _G, "ZO_Dialogs_ShowGamepadDialog", function(dialogName)
-        if not (VGS.sv and VGS.sv.enabled and VGS.sv.allScenes) then return end
-        zo_callLater(function()
-            local dialog = type(ZO_Dialogs_FindDialog) == "function" and ZO_Dialogs_FindDialog(dialogName)
-            if IsControl(dialog) then pcall(ScanControl, dialog) end
-        end, 50)
-    end)
-    if not ok then
-        VGS.errors[#VGS.errors + 1] = "dialog hook: " .. tostring(err)
-    end
-end
+-- Gamepad dialogs are no longer themed. Doing that meant wrapping the game's
+-- ZO_Dialogs_ShowGamepadDialog; on console, game code running through an
+-- add-on's wrapper loses access to protected functions, so some dialogs
+-- (e.g. ones confirming protected actions) could fail with a UI error and
+-- leave input stuck until a reload.
 
 -- /vgsscan: theme the current scene now and list what was found, so missed
 -- backgrounds can be reported.
@@ -832,6 +867,12 @@ function VGS.ShowWriteLog()
     end
     for _, line in ipairs(VGS.writeLog) do
         d("[VGS] " .. line)
+    end
+    if #VGS.errors == 0 then
+        d("[VGS] no caught errors this session")
+    end
+    for _, line in ipairs(VGS.errors) do
+        d("[VGS] caught error: " .. line)
     end
 end
 
@@ -898,8 +939,8 @@ end
 local function OnPlayerActivated()
     EVENT_MANAGER:UnregisterForEvent(VGS.name, EVENT_PLAYER_ACTIVATED)
     -- second pass in case any backgrounds were created after addon load
-    VGS.SkinBackgrounds()
-    d("[Vixen's Gamepad Scene] " .. VGS.GetStatus())
+    VGS.Try("theming menus", VGS.SkinBackgrounds)
+    VGS.Try("status", function() d("[Vixen's Gamepad Scene] " .. VGS.GetStatus()) end)
 end
 
 local function OnAddOnLoaded(_, addonName)
@@ -931,13 +972,12 @@ local function OnAddOnLoaded(_, addonName)
         VGS.sv.style = "shapes"
     end
 
-    VGS.SkinBackgrounds()
+    VGS.Try("theming menus", VGS.SkinBackgrounds)
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", OnSceneStateChanged)
-    HookDialogs()
     EVENT_MANAGER:RegisterForEvent(VGS.name, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
 
     if VGS.RegisterSettings then
-        VGS.RegisterSettings()
+        VGS.Try("settings menu", VGS.RegisterSettings)
     end
 end
 

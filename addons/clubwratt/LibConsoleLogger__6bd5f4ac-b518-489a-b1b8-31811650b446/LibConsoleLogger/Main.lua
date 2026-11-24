@@ -50,6 +50,10 @@ local function OnAddonLoaded(_eventId, addonName)
         LibConsoleLogger.Settings.Initialize()
     end
 
+    if LibConsoleLogger.Errors and LibConsoleLogger.Errors.Register then
+        LibConsoleLogger.Errors.Register()
+    end
+
     if EVENT_MANAGER and EVENT_MANAGER.UnregisterForEvent then
         EVENT_MANAGER:UnregisterForEvent(LibConsoleLogger.name, EVENT_ADD_ON_LOADED)
     end

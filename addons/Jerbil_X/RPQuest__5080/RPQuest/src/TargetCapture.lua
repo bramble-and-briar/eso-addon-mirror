@@ -16,6 +16,7 @@ function TargetCapture:GetPlayerMapContext(forceSync, includeMapName)
     end
 
     local mapId = GetCurrentMapId() or 0
+    local mapType = GetMapType()
     local zoneIndex = GetUnitZoneIndex("player") or GetCurrentMapZoneIndex() or 0
     local zoneId = (zoneIndex and zoneIndex > 0 and GetZoneId(zoneIndex)) or 0
     local mapName = (includeMapName ~= false and GetMapName()) or ""
@@ -25,13 +26,21 @@ function TargetCapture:GetPlayerMapContext(forceSync, includeMapName)
         normX = x
         normY = y
     end
+    local worldZoneId, worldX, worldY, worldZ = GetUnitWorldPosition("player")
+    if zoneId == 0 and worldZoneId and worldZoneId > 0 then
+        zoneId = worldZoneId
+    end
 
     return {
         mapId = mapId,
+        mapType = mapType,
         zoneId = zoneId,
         mapName = mapName,
         x = normX,
         y = normY,
+        worldX = (worldZoneId and worldZoneId > 0 and worldX) or nil,
+        worldY = (worldZoneId and worldZoneId > 0 and (worldY or 0)) or nil,
+        worldZ = (worldZoneId and worldZoneId > 0 and worldZ) or nil,
     }
 end
 
@@ -78,10 +87,14 @@ function TargetCapture:CaptureFromReticle()
     local draft = Addon.QuestRepository:SetDraftCapturedTarget({
         targetName = nameOrErr,
         mapId = ctx.mapId,
+        mapType = ctx.mapType,
         zoneId = ctx.zoneId,
         mapName = ctx.mapName,
         targetX = ctx.x,
         targetY = ctx.y,
+        worldX = ctx.worldX,
+        worldY = ctx.worldY,
+        worldZ = ctx.worldZ,
     })
 
     if draft then

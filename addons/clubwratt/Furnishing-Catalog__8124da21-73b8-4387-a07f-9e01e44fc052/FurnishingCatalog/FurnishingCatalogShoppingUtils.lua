@@ -155,6 +155,16 @@ function ShoppingUtils.Delete(store, listId)
     return true, nil
 end
 
+---@param store FurnishingCatalogShoppingStore
+---@return integer numItems furnishings on all the lists together
+function ShoppingUtils.NumListed(store)
+    local numItems = 0
+    for _, list in ipairs(store.lists) do
+        numItems = numItems + #list.items
+    end
+    return numItems
+end
+
 ---@param list FurnishingCatalogShoppingList
 ---@param itemId integer
 ---@return integer|nil index

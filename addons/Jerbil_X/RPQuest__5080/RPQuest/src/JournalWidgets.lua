@@ -55,6 +55,7 @@ function Widgets.CreateEditBoxWithBackdrop(name, parent, width, height, maxChars
     edit:SetText("")
 
     local function FocusEditBox()
+        if edit._disabled then return end
         edit:SetEditEnabled(true)
         edit:TakeFocus()
     end
@@ -104,4 +105,54 @@ function Widgets.CycleIndex(currentIndex, totalCount, delta)
         return (cur > 1) and (cur - 1) or totalCount
     end
     return (cur < totalCount) and (cur + 1) or 1
+end
+
+function Widgets.SetEditBoxEnabled(bg, edit, enabled)
+    local isEnabled = (enabled ~= false)
+    if edit then
+        edit._disabled = not isEnabled
+        if edit.SetEditEnabled then edit:SetEditEnabled(isEnabled) end
+        if edit.SetMouseEnabled then edit:SetMouseEnabled(isEnabled) end
+        if not isEnabled and edit._focused and edit.LoseFocus then
+            edit:LoseFocus()
+        end
+    end
+    if bg then
+        if bg.SetMouseEnabled then bg:SetMouseEnabled(isEnabled) end
+        if bg.SetAlpha then bg:SetAlpha(isEnabled and 1 or 0.45) end
+    end
+end
+
+function Widgets.CreateIconButton(name, parent, size, normalTex, downTex, overTex, disabledTex, tooltipText, onClick)
+    local btn = WINDOW_MANAGER:CreateControl(name, parent, CT_BUTTON)
+    btn:SetDimensions(size, size)
+    btn:SetMouseEnabled(true)
+    if normalTex and btn.SetNormalTexture then btn:SetNormalTexture(normalTex) end
+    if downTex and btn.SetPressedTexture then btn:SetPressedTexture(downTex) end
+    if overTex and btn.SetMouseOverTexture then btn:SetMouseOverTexture(overTex) end
+    if disabledTex and btn.SetDisabledTexture then btn:SetDisabledTexture(disabledTex) end
+
+    btn:SetHandler("OnMouseEnter", function(ctrl)
+        if tooltipText and tooltipText ~= "" then
+            ZO_Tooltips_ShowTextTooltip(ctrl, TOP, tooltipText)
+        end
+    end)
+    btn:SetHandler("OnMouseExit", function()
+        ZO_Tooltips_HideTextTooltip()
+    end)
+    btn:SetHandler("OnClicked", function()
+        PlaySound(SOUNDS.DEFAULT_CLICK)
+        if onClick then onClick() end
+    end)
+    return btn
+end
+
+function Widgets.CreateCheckButton(name, parent, labelText, onToggle)
+    local btn = WINDOW_MANAGER:CreateControlFromVirtual(name, parent, "ZO_CheckButton")
+    btn:SetDimensions(20, 20)
+    ZO_CheckButton_SetLabelText(btn, labelText or "")
+    ZO_CheckButton_SetToggleFunction(btn, function(_, isChecked)
+        if onToggle then onToggle(isChecked == true) end
+    end)
+    return btn
 end

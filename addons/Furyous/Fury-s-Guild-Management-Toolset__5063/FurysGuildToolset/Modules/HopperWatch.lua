@@ -2,7 +2,7 @@
 -- looking for an open bank), lets you blacklist them, and keeps an account-wide watchlist
 -- that warns you when a known hopper joins any of your other guilds.
 
-local GT = FuryGMT
+local GT = FurysGuildToolset
 local U = GT.Util
 local A = GT.Actions
 
@@ -13,7 +13,7 @@ local KEEP_JOINS_SECONDS = 30 * 86400
 local KEEP_RECORDS_SECONDS = 60 * 86400
 
 HopperWatch.defaults = {
-    enabled = false,   -- every feature starts off on a new install (Albert, 1.3.0)
+    enabled = false,   -- every feature starts turned off on a new install (Albert, 1.3.0)
     maxHours = 48,
     countKicks = false,
     autoWatchlist = false,
@@ -46,11 +46,11 @@ end
 -- The watchlist join alert only listens while the hopper report is turned on.
 function HopperWatch:UpdateEventRegistration()
     if self.sv.enabled then
-        EVENT_MANAGER:RegisterForEvent("FuryGMTHopper", EVENT_GUILD_MEMBER_ADDED, function(_, guildId, displayName)
+        EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_Hopper", EVENT_GUILD_MEMBER_ADDED, function(_, guildId, displayName)
             self:OnMemberAdded(guildId, displayName)
         end)
     else
-        EVENT_MANAGER:UnregisterForEvent("FuryGMTHopper", EVENT_GUILD_MEMBER_ADDED)
+        EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_Hopper", EVENT_GUILD_MEMBER_ADDED)
     end
 end
 
@@ -163,7 +163,7 @@ function HopperWatch:OnHistoryCaughtUp()
     end
     if fresh > 0 then
         U.Alert(zo_strformat("<<1>> <<1[person/people]>> joined and left again quickly since your last login. /gt hoppers", fresh))
-        if self.sv.openWindowOnLogin and FuryGMTReport:IsHidden() then GT.Report:Show("hoppers") end
+        if self.sv.openWindowOnLogin and FurysGuildToolset_Report:IsHidden() then GT.Report:Show("hoppers") end
     end
     for _, seen in ipairs(self.returnedWhileAway) do
         if U.IsMember(seen.guildId, seen.name) and GT:IsAlertGuild(seen.guildId) then
@@ -238,8 +238,8 @@ function HopperWatch:GetRecordRow(record)
     end
     local text = zo_strformat("<<1>> <<2>> <<3>> after <<4>>, <<5>>", record.name,
         record.kicked and "was kicked from" or "left", record.guildName, stay, U.FormatAgo(record.leaveTs))
-    if record.status == "blacklisted" then text = text .. "  |c9FD49Fblacklisted|r" end
-    if record.status == "dismissed" then text = text .. "  |c888888dismissed|r" end
+    if record.status == "blacklisted" then text = text .. "  |c5EE6A0blacklisted|r" end
+    if record.status == "dismissed" then text = text .. "  |c8A86B0dismissed|r" end
 
     local actions = {}
     if record.status ~= "blacklisted" and inGuild then
@@ -322,7 +322,7 @@ function HopperWatch:WatchlistTabRows()
         actions[#actions + 1] = { label = "Remove from watchlist", tip = "Takes them off your watchlist.", fn = function() self:RemoveWatch(entry.name) end }
         for _, item in ipairs(GT.Report.ContactItems(entry.name)) do actions[#actions + 1] = item end
         rows[#rows + 1] = GT.Report.AddMenu({
-            text = zo_strformat("<<1>>  |cAAAAAA<<2>>|r", entry.name, entry.reason or ""),
+            text = zo_strformat("<<1>>  |cB4B0D8<<2>>|r", entry.name, entry.reason or ""),
             tooltip = "Added " .. U.FormatDate(entry.ts),
         }, actions)
     end

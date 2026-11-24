@@ -24,7 +24,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Raid Auto Skeleton](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Raid-Auto-Skeleton__2537) | ownedbynico | PC / Mac | 1.3.1 |
 | [Raid Reset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eymix/Raid-Reset__2850) | Eymix | PC / Mac | 1.8 |
 | [RaidBuffs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/RaidBuffs__1939) | Wheels | PC / Mac | 0.17.0 |
-| [Raidificator (Dungeon, Trial, and Arena Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Raidificator-Dungeon-Trial-and-Arena-Tracker__1101) | code65536 | PC / Mac | 4.8.3 |
+| [Raidificator (Dungeon, Trial, and Arena Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Raidificator-Dungeon-Trial-and-Arena-Tracker__1101) | code65536 | PC / Mac | 4.8.4 |
 | [RaidManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/blackmetallive/RaidManager__3436) | blackmetallive | PC / Mac | 1.0 |
 | [RaidNotifier - Traduzione Italiana](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dusty82/RaidNotifier---Traduzione-Italiana__2991) | Dusty82 | PC / Mac | 2.18 |
 | [RaidNotifier Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyoma/RaidNotifier-Updated__1355) | Kyoma | PC / Mac | 2.30 |
@@ -176,7 +176,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RP Profile Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBobbyLlama/RP-Profile-Viewer__2959) | TheBobbyLlama | PC / Mac | 1.7 |
 | [RP Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/RP-Target-Frame__1371) | Phinix | PC / Mac | 1.05 |
 | [RPFlagger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/iwontsay/RPFlagger__1644) | iwontsay | PC / Mac | 1.1.0 |
-| [RPQuest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jerbil_X/RPQuest__5080) | Jerbil_X | PC / Mac | 1.8.1 |
+| [RPQuest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jerbil_X/RPQuest__5080) | Jerbil_X | PC / Mac | 1.10.0 |
 | [RSS Theme Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/RSS-Theme-Bars__4957) | its_wifey | PC / Mac | 1.4.1 |
 | [RU Client Fix Font](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marvellous-Chester/RU-Client-Fix-Font__3829) | Marvellous Chester | PC / Mac | 1.2.0 |
 | [RU Patch for Asylum Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/qulilalti/RU-Patch-for-Asylum-Tracker__2636) | qulilalti | PC / Mac | 1.0 |

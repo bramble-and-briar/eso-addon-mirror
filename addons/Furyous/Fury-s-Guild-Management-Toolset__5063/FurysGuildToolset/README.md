@@ -1,4 +1,4 @@
-# Fury's Guild Management Toolset (ESO addon) v1.16.11
+# Fury's Guild Management Toolset (ESO addon) v1.24.3
 
 **AI disclosure:** This addon's code was written with the assistance of an AI coding assistant (Claude by Anthropic), working from my designs and instructions. I test every release in game in my own guilds before it goes up, and I maintain it. Please report any problem in the comments.
 
@@ -10,15 +10,19 @@
 - Thanks to Dack for code review feedback on how guild history should be read.
 - The Guild Crier started as my own separate addon, "Fury's Guild Crier", and is now part of this toolset.
 
-**An officer toolkit for ESO guild leaders and officers.** It watches your guild banks, rosters, trader and guild store, tells you when something needs your attention, and lets you deal with it in a click or two. It also helps you advertise, recruit, welcome new members, run raffles and fill your guild events from sesh sign-ups.
+*Bank, roster, trader, recruiting, raffles and events. One window, your rules.*
 
-**Every feature starts turned off.** Nothing runs, alerts, logs or mails until you turn it on, so you can switch on only what you want. Updating from an older version keeps your settings as they were.
+**Built for the leaders and officers who keep a guild running.** It watches your guild banks, rosters, trader and guild store, tells you when something needs your attention, and lets you deal with it in a click or two. It also helps you advertise, recruit, welcome new members, run raffles and fill your guild events from sesh sign-ups.
 
-**You stay in control.** Nothing is done to a member without your click, unless you turn on auto-demote yourself. The addon never kicks, invites or posts in chat by itself: chat text waits in the chat box for you to press Enter, and mails open for you to press Send.
+**Get your data out of the game.** ESO keeps your guild's records locked inside the game. Here, every tab has an **Export / copy** button: the member list, inactive members, bank alerts, hoppers, the watchlist, the bank and roster history, trader weeks and member sales all come out as comma-separated text you paste straight into Excel, Google Sheets or Discord.
+
+- **Everything starts turned off.** Nothing runs, alerts, logs or mails until you turn it on, so you switch on only what you want. Updating keeps your settings as they were.
+- **You stay in control.** Nothing is done to a member without your click, unless you turn on auto-demote or automatic invites yourself. It never kicks or posts in chat on its own: chat text waits in the chat box for your Enter, and mails open for your Send.
+- **Easy on the server.** Guild history comes only through **LibHistoire**, the way the ESO addon community asks. No extra history requests, no polling.
 
 **Requires:** **LibHistoire** (AddOn version 1112 or newer) and **LibAddonMenu-2.0** (version 43 or newer). Both are separate downloads: search for them in Minion, or get them from ESOUI.
 
-**Download:** [ESOUI](https://www.esoui.com/downloads/info5063.html) or Minion, or [FurysGuildToolset-1.16.11.zip](https://github.com/AlbertHoffpauir/FurysGuildToolset/raw/main/downloads/FurysGuildToolset-1.16.11.zip) from GitHub. To install by hand, copy the `FurysGuildToolset` folder to `Documents/Elder Scrolls Online/live/AddOns/`.
+**Download:** [ESOUI](https://www.esoui.com/downloads/info5063.html) or Minion, or [FurysGuildToolset-1.24.3.zip](https://github.com/AlbertHoffpauir/FurysGuildToolset/raw/main/downloads/FurysGuildToolset-1.24.3.zip) from GitHub. To install by hand, copy the `FurysGuildToolset` folder to `Documents/Elder Scrolls Online/live/AddOns/`.
 
 **Contents:** [Getting started](#getting-started) · [Finding your way around](#finding-your-way-around) · [Bank alerts](#bank-alerts) · [Auto-demote and the Auto tab](#auto-demote-and-the-auto-tab) · [Members and Inactive](#members-and-inactive) · [Kick and blacklist mails](#kick-and-blacklist-mails) · [Bank hoppers and watchlist](#bank-hoppers-and-watchlist) · [History](#history) · [Bank space](#bank-space) · [Trader and Member sales](#trader-and-member-sales) · [Guild Crier](#guild-crier) · [Recruiting](#recruiting) · [Raffle](#raffle) · [Events](#events) · [Questions](#questions)
 
@@ -38,7 +42,7 @@
 - **Right-click any row** for what you can do with it: whisper, mail, set rank, kick, dismiss and more. The line at the top of each tab reminds you.
 - To copy someone's @name, right-click their row > **Copy @name**. The name shows up selected in a small window; press Ctrl+C.
 - **Hover** over any button, tab, column header or row for a short tip or the full details.
-- Click a column header to sort, and again to reverse.
+- Click a column header to sort, and again to reverse. Tabs with a search box have a small X to clear it.
 - Every tab has an **Export / copy** button: the tab as comma-separated text to paste into Excel, Google Sheets or Discord.
 - The gear at the top right opens the settings.
 
@@ -71,7 +75,7 @@ Catch members who take more from the guild bank than your rules allow.
 ### Turn it on
 
 - Tick your guilds under **Guilds to get alerts from**, then turn on **Guild bank alerts > Enable bank alerts** (main settings page).
-- On the **Guild rules** page, set each guild's limits: warn, demote and kick at X stacks per day (0 = never). Demote starts at 50; warn and kick start off.
+- On the **Guild rules** page, set each guild's limits: warn, demote and kick at X stacks per day (0 = never). Demote starts at 50; warn and kick start turned off.
 - Add your bankers and restocking officers under **Ignore rank names** or **Ignore @names**. The top 2 ranks are ignored from the start.
 - Optional: **Watch gold withdrawals too** (warn 50,000, demote 200,000, kick 500,000 gold per day), counting items instead of stacks, or a rolling window of hours instead of midnight to midnight.
 
@@ -148,7 +152,8 @@ Optional: mail people why they were removed.
 - **Kick** on the Inactive tab mails them why (days offline and their limit) and that they're welcome back if they return to the game.
 - **Kick and blacklist** or **Blacklist** on any tab opens a confirm window with a reason box, filled in for you. The reason becomes their blacklist note and goes in the mail.
 - The **Send mail** button in the confirm window skips the mail for one person. Hover it to read the mail. The mail goes out after you click Confirm, with normal postage.
-- In the mail texts, `<<1>>` is their @name and `<<2>>` the guild; then `<<3>>` is the days offline and `<<4>>` their limit (kick), or `<<3>>` is the reason (blacklist).
+- In the **kick mail** text: `<<1>>` is their @name, `<<2>>` the guild, `<<3>>` the days offline and `<<4>>` their limit.
+- In the **blacklist mail** text: `<<1>>` is their @name, `<<2>>` the guild and `<<3>>` the reason.
 
 ## Bank hoppers and watchlist
 
@@ -242,7 +247,7 @@ Advertise in zones, invite, and welcome new members. Every part is off until you
 ### Invites and leads
 
 - Right-click a name in chat for **Invite to (guild)**.
-- **Whisper leads:** when someone whispers a keyword (inv, invite, join, guild to start with), you get an [Invite] link and a row on the Recruit tab. Nobody is invited without your click.
+- **Whisper leads:** when someone whispers a keyword (inv, invite, join, guild to start with), you get an [Invite] link and a row on the Recruit tab. Nobody is invited without your click, unless you tick **Invite automatically** (off to start with): then the invite goes out right away, with a chat line saying who was invited. One invite per person; whispering again within 10 minutes doesn't send another.
 - **Join notices:** who joined, how many slots are left, and a warning when the guild is nearly full or has no trader.
 
 ### Welcomes
@@ -267,10 +272,11 @@ Sell raffle tickets for gold and draw the winners. Works without a guild too, fo
 ### Run it
 
 - On the **Raffle** tab (`/gt raffle`), click **Start sales now** (or let your start time arrive). The tab counts down to the end.
-- **Announce in guild** puts the announcement in the guild chat box; **Text for Discord** gives you text to paste into Discord.
+- **Announce in guild** puts the announcement in the guild chat box; **Text for Discord** gives you text to paste into Discord, with the tickets sold so far and one line per holder with their ticket numbers.
 - Each deposit or mail buys its amount divided by the ticket price; the rest is dropped (with 1,000g tickets, 5,600g buys 5). Plain donations count too.
 - For mailed gold, open your mailbox: each gold mail is counted once and printed in chat. Open it once more after sales end.
-- Right-click a buyer to add or remove tickets, or leave them out of the draw. Every change is logged.
+- Ticket numbers never change once someone has them. New tickets always get the next numbers after everyone else's, so someone who buys again later holds numbers spread through the list. Tickets you remove by hand take that person's highest numbers out of the draw.
+- Right-click a buyer to add or remove tickets, or leave them out of the draw. To give tickets to someone who hasn't bought any (a helper, say), right-click them on the **Members** tab and pick **Give raffle tickets...**. Every change is logged.
 
 ### Draw the winners
 
@@ -294,7 +300,7 @@ See who signed up for a guild event in Discord (sesh bot) and who actually showe
 - Open the **Events** settings page (or the button under Events in `/gtsettings`) and tick **Turn on Events**.
 - Under **Guilds to advertise in**, tick the guilds that should get your ads for open slots.
 - **Group forms (minutes before start)** is when your group starts forming (15 minutes before the start time by default). Before then, ads ask people to sign up. From then on, they ask for replacements.
-- Tick **Invite by code** and set your **Invite code** ("X" to start with; upper or lower case both work) if people who type the code in guild chat should get a group invite (see Fill the empty slots).
+- Turn **Invite by code** on and set your **Invite code** ("X" to start with; upper or lower case both work) if people who type the code in guild chat should get a group invite (see Fill the empty slots). The Events tab has its own **Invite by code: ON/OFF** button and **Code** box at the top of the window, so you can switch it and change the code without opening the settings. With no event pasted, the **IA (2)**, **Group (4)** and **Trial (12)** buttons next to them turn it on until your group has that many (you included), solo or already grouped; it turns off by itself at that size, or when you leave or disband the group. Invite by code always starts turned off when you log in or reload, and the ON button also turns itself off when your group fills up or breaks up.
 - Change the whisper, mail and guild ad texts if you like (one ad for sign-ups, one for replacements). {name}, {event}, {time} (how long until it starts, like "3d 4h 30m from now", right in every time zone), {date}, {need}, {cp}, {code} and {me} are filled in for you.
 
 ### Read the sign-ups
@@ -308,7 +314,7 @@ See who signed up for a guild event in Discord (sesh bot) and who actually showe
 
 - Each sign-up shows as **In group**, **In group as (another role)**, **Online, not in group** or **Offline** (with how long), plus their group role and CP. CP under the requirement shows in red.
 - People in your group who didn't sign up show as **Not signed up**.
-- Discord names are matched to @accounts by name (fancy letters and spaces are ignored). If a match is wrong or missing, right-click the row > **Set account**. The addon remembers it for every event.
+- Discord names are matched to @accounts by name (fancy letters and spaces are ignored). If a match is wrong or missing, right-click the row > **Set account**. **Set account (type it)** drops down names from your guilds, friends, group and recent contacts as you type (it starts with names that look like the Discord name); click one, or pick it with the arrow keys and Tab. A name you type is checked when you save and saved with the game's spelling; if it isn't found, the addon says so and suggests close names, and **Save anyway** keeps it as typed. The addon remembers it for every event.
 - The line at the top shows each section's sign-ups and how many are here, and the open slots:
 - Before the group forms: **Open sign-up slots** (for example "1 tank, 6 DPS"), the slots nobody has signed up for. Everyone who signed up keeps their slot.
 - Once the group forms (start time minus the minutes in the settings): **Need now** (for example "1 tank, 1 healer, 7 DPS"), what your group is missing, so people who signed up and didn't show count as open too.
@@ -317,18 +323,18 @@ See who signed up for a guild event in Discord (sesh bot) and who actually showe
 
 - Right-click a sign-up to **Whisper** them (the text waits in the chat box), **Invite** them to the group, or **Mail** them (the mail opens for you to send).
 - **Invite online** sends a group invite to every sign-up who is online and not in your group (not Standby).
-- **Copy for Discord** gives you a message to paste into Discord. Before the group forms it lists the open sign-up slots. Once it forms it lists the missing names and what the group needs now. A menu lets you pick either; the one that fits the time is first.
+- **Copy for Discord** gives you a ready-made Discord post with headings, emoji and the start time shown in each reader's own time zone. Before the group forms it shows the open slots per role and who signed up. Once it forms it shows who is still missing and what the group needs now. A menu lets you pick either; the one that fits the time is first. Events with no limit (Attendees only) always say there's room for more.
 
 ### Fill the empty slots
 
-- With **Invite by code** on, anyone who types your invite code in the chat of a guild you advertise in, or whispers it to you, gets a group invite once the group forms (until 2 hours after the start time). The replacement ad tells people the code; while Invite by code is off, the ad leaves the code out. Nobody is invited when the group is full, when you aren't the group leader, or when their CP (as their guild shows it) is under the post's requirement; you get a chat line instead.
+- With **Invite by code** on, anyone who types your invite code (upper or lower case) in the chat of a guild you advertise in, or whispers it to you, gets a group invite. With no event pasted, that works any time, up to a full group. With an event pasted, it starts once the group forms (until 2 hours after the start time) and stops at the event's group size. The replacement ad tells people the code; while Invite by code is off, the ad leaves the code out. Nobody is invited when the group is full, when you aren't the group leader, when the event hasn't formed yet, or when their CP (as their guild shows it) is under the post's requirement; you get a chat line saying why instead.
 - **Advertise in guilds** puts an ad in the chat box of each ticked guild, one after another. Press Enter for each. Pick the kind from the menu: **Ask for sign-ups** (before the event, for the slots nobody signed up for) or **Ask for replacements, join now** (once the group forms, for no-shows and empty slots). The one that fits the time is first.
 - **Group Finder** shows a listing to check: the first line is its title (the event's name; numbers and symbols are taken out, since the Group Finder takes letters and spaces only, and at most 5 words: day names go first, then words from the end), the rest its description (the description from the sesh post, cut to fit; the Group Finder shows the roles it still needs by itself). It picks the trial from the post ("Sunspire", "vSS") and lists it as Veteran unless the post says normal (or "nSS") and switches your difficulty to match, as the game's own Group Finder does, the playstyle (Educational when the post says trainer or training, Speed Run for a zerg or loot run, Standard otherwise), Voice Chat Required with VOICE REQUIRED in the description (and in the title when the game takes it) when the post says learn, sets the CP minimum, and sets the group's roles to the sign-up limits (2 tanks, 2 healers, 8 DPS for a trial when the post doesn't say). The Group Finder shows who's there and who's still needed by itself. Edit it, then press **Create listing**. You accept applicants in the game's Group Finder window.
 
 ## Questions
 
 **Will it kick, blacklist or invite people on its own?**  
-Kick, blacklist and Group Finder listings always need your click, and kicks and blacklists ask to confirm. It can do two things by itself, and only if you turn them on: demote (auto-demote), and invite someone who types your event invite code (Invite by code on the Events page).
+Kick, blacklist and Group Finder listings always need your click, and kicks and blacklists ask to confirm. It can do three things by itself, and only if you turn them on: demote (auto-demote), invite someone who types your event invite code (Invite by code on the Events page), and invite someone who whispers a recruiting keyword (Invite automatically under Recruiting).
 
 **I just installed it and already have a pile of alerts. Did it do anything?**  
 No. The first time, it looks back 30 days so you can review older withdrawals. Nothing is done to anyone for those.

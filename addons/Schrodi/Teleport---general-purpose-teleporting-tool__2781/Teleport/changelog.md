@@ -1,3 +1,7 @@
+### 1.5.1
+- `/tp` without arguments shows a one-line usage (what you can type) and points to `/tp --help`
+- code cleanup for the ESOUI upload rules
+
 ### 1.5.0
 - survey/treasure maps: houses you own count as travel spots. Jumping outside your own house is free from anywhere, so with `maps` / `maps free` a house close to a map is used when there's no player in any of the zones, before paying for a wayshrine. With `maps paid` and at a wayshrine, the closest wayshrine *or* house wins
 - survey/treasure maps: a house is skipped if running to the map from where you stand is shorter; houses aren't used where the game doesn't allow jumping to a house (Cyrodiil, battlegrounds, dungeons, ...)

@@ -1,9 +1,9 @@
 ## Title: Furnishing Catalog
 ## Author: clubwratt
-## Version: 1.6.0
+## Version: 1.8.1
 ## AddOnVersion: 10000
 ## APIVersion: 101050 101051
-## Description: Browse the game's furnishings by category and see each one in 3D as you scroll, the way a trader previews it. /furn opens the catalog; search by name from the box above the list; keep shopping lists and search a guild trader from them; see which furnishings have a plan and read the plan's tooltip; look a furnishing up online. Gamepad UI.
+## Description: Browse the game's furnishings by category and see each one in 3D as you scroll, the way a trader previews it. /furn opens the catalog; search by name from the box above the list; keep shopping lists, search a guild trader from them and show one list alone on the housing editor's Place tab; see which furnishings have a plan and read the plan's tooltip; link a furnishing or its plan in chat; look a furnishing up online. Gamepad UI.
 ## SavedVariables: FurnishingCatalogSavedVars
 ## ConsoleDependsOn: LibHarvensAddonSettings
 ## OptionalDependsOn: LibConsoleLogger JumpToSearch
@@ -20,11 +20,14 @@ FurnishingCatalogScanUtils.lua
 FurnishingCatalogScanActions.lua
 FurnishingCatalogBrowseUtils.lua
 FurnishingCatalogShoppingUtils.lua
+FurnishingCatalogEditorUtils.lua
 FurnishingCatalogPlanUtils.lua
 FurnishingCatalogSearchActions.lua
 FurnishingCatalogShoppingActions.lua
 FurnishingCatalogPlanActions.lua
+FurnishingCatalogItemActions.lua
 FurnishingCatalogTraderActions.lua
+FurnishingCatalogEditorActions.lua
 FurnishingCatalogBrowseActions.lua
 FurnishingCatalogSettingsActions.lua
 FurnishingCatalogMain.lua

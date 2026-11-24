@@ -1,0 +1,74 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="FurysInventoryLedgerWindow" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH">
+            <Dimensions x="900" y="620" />
+            <Anchor point="CENTER" />
+            <Controls>
+                <Backdrop name="$(parent)Bg" edgeColor="FF4A3D99">
+                    <AnchorFill />
+                    <Edge edgeSize="2" />
+                    <OnInitialized>self:SetCenterColor(0.059, 0.055, 0.122, 1)</OnInitialized>
+                </Backdrop>
+
+                <Label name="$(parent)Title" font="$(ANTIQUE_FONT)|26|soft-shadow-thick" color="ECEAF8" text="Fury's Inventory Ledger">
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="14" />
+                </Label>
+
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-12" offsetY="12" />
+                    <OnClicked>FurysInventoryLedger.CloseWindow()</OnClicked>
+                </Button>
+
+                <Button name="$(parent)Settings">
+                    <Dimensions x="32" y="32" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Close" relativePoint="LEFT" offsetX="-10" />
+                    <Textures normal="/esoui/art/chatwindow/chat_options_up.dds" pressed="/esoui/art/chatwindow/chat_options_down.dds" mouseOver="/esoui/art/chatwindow/chat_options_over.dds" />
+                    <OnClicked>FurysInventoryLedger.OpenSettings()</OnClicked>
+                    <OnMouseEnter>InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -4); SetTooltipText(InformationTooltip, "Settings (also /ledger settings)")</OnMouseEnter>
+                    <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
+                </Button>
+
+                <Label name="$(parent)Info" font="ZoFontGame" color="B4B0D8" wrapMode="ELLIPSIS">
+                    <Dimensions x="860" y="24" />
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="56" />
+                </Label>
+
+                <Backdrop name="$(parent)EditBg" inherits="ZO_EditBackdrop">
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="86" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-20" offsetY="-60" />
+                    <Controls>
+                        <EditBox name="$(parent)Edit" inherits="ZO_DefaultEditMultiLineForBackdrop" maxInputCharacters="32000" font="ZoFontChat" />
+                    </Controls>
+                </Backdrop>
+
+                <Button name="$(parent)Prev" inherits="ZO_DefaultButton" text="&lt; Prev">
+                    <Dimensions x="120" y="30" />
+                    <Anchor point="BOTTOMLEFT" offsetX="20" offsetY="-16" />
+                    <OnClicked>FurysInventoryLedger.PrevPage()</OnClicked>
+                </Button>
+
+                <Label name="$(parent)PageLabel" font="ZoFontGameBold" color="A08CFF">
+                    <Anchor point="LEFT" relativeTo="$(parent)Prev" relativePoint="RIGHT" offsetX="16" />
+                </Label>
+
+                <Button name="$(parent)Next" inherits="ZO_DefaultButton" text="Next &gt;">
+                    <Dimensions x="120" y="30" />
+                    <Anchor point="LEFT" relativeTo="$(parent)PageLabel" relativePoint="RIGHT" offsetX="16" />
+                    <OnClicked>FurysInventoryLedger.NextPage()</OnClicked>
+                </Button>
+
+                <Button name="$(parent)Summary" inherits="ZO_DefaultButton" text="Summary">
+                    <Dimensions x="140" y="30" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)SelectAll" relativePoint="LEFT" offsetX="-12" />
+                    <OnClicked>FurysInventoryLedger.OpenSummary()</OnClicked>
+                </Button>
+
+                <Button name="$(parent)SelectAll" inherits="ZO_DefaultButton" text="Select All">
+                    <Dimensions x="160" y="30" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-20" offsetY="-16" />
+                    <OnClicked>FurysInventoryLedger.SelectAll()</OnClicked>
+                </Button>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

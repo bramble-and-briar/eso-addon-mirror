@@ -4,7 +4,7 @@ ZO_CreateStringId("SI_BINDING_NAME_DUNGEON_BUDDY_OPEN_BOSS_DRAFT", "Dungeon Budd
 ZO_CreateStringId("SI_BINDING_NAME_DUNGEON_BUDDY_PREPARE_BOSS_REPORT", "Dungeon Buddy: Prepare Boss Report (Radial)")
 -- Dungeon Buddy (integrated v0.3)
 -- Separate from Battle Ground Rating. Conservative event attribution.
-local DR = {name="DungeonRating", version="0.3.4"}
+local DR = {name="DungeonRating", version="2.0.1"}
 local EM = EVENT_MANAGER
 local function now() return GetFrameTimeSeconds and GetFrameTimeSeconds() or 0 end
 local function bool(v) return v==true end
@@ -26,9 +26,10 @@ end
 local function clamp(x,a,b) return math.max(a,math.min(b,x)) end
 local function fmt(n) return string.format("%.0f",n or 0) end
 local function clock(t) t=math.max(0,math.floor(t)); return string.format("%02d:%02d",math.floor(t/60),t%60) end
-local defaults={learnedBuffs={},ultimateEffectIds={},observedAbilities={},settings={showHUD=true,showWorldHUD=true,showPace=true,showTrend=true,manualRole="AUTO",difficultyLabels=true,showBossHUD=true,autoReport=true,showPlayerCard=true,previewWindows=false,windowLayout={world={x=200,y=180,scale=100},live={x=200,y=180,scale=100},boss={x=720,y=180,scale=100},report={x=350,y=190,scale=100},career={x=330,y=150,scale=100},playerCard={x=220,y=90,scale=100}}},history={},players={},records={},ratings={HEAL=0,DPS=0,TANK=0},runs=0}
+local defaults={learnedBuffs={},ultimateEffectIds={},observedAbilities={},settings={showHUD=true,showWorldHUD=true,showRollingEffects=false,showRefreshHighlights=true,showPace=true,showTrend=true,manualRole="AUTO",difficultyLabels=true,showBossHUD=true,autoReport=true,showPlayerCard=true,previewWindows=false,windowLayout={rollingBuff={x=100,y=420,scale=100},rollingDebuff={x=1350,y=420,scale=100},world={x=200,y=180,scale=100},live={x=200,y=180,scale=100},boss={x=720,y=180,scale=100},report={x=350,y=190,scale=100},career={x=330,y=150,scale=100},playerCard={x=220,y=90,scale=100}}},history={},players={},records={},ratings={HEAL=0,DPS=0,TANK=0},runs=0}
 local S,run,hud,bossHUD,reportHUD,menu,playerCard
 local worldHUD
+local rollingPanels={}
 local completedInstance=false
 local lastBossReportContext=nil
 local pendingBossReport=nil
@@ -285,6 +286,7 @@ local function enableWindowDrag(window,key)
   end)
 end
 local function refreshWindowLayouts()
+  for key,panel in pairs(rollingPanels) do applyWindowLayout(panel,key) end
   applyWindowLayout(hud,"live")
   applyWindowLayout(worldHUD,"world")
   applyWindowLayout(bossHUD,"boss")
@@ -414,7 +416,7 @@ local function worldEffect(_,change,slot,name,tag,beg,ending,stack,icon,buffType
   local key=tostring(tag)..":"..tostring(unitId)..":"..tostring(slot)..":"..tostring(abilityId)
   if change==EFFECT_RESULT_FADED then world.effects[key]=nil;return end
   local kind=buffType==BUFF_EFFECT_TYPE_DEBUFF and "DEBUFF" or (buffType==BUFF_EFFECT_TYPE_BUFF and "BUFF" or nil)
-  local registered=supportRegistry[name or ""]
+  local registered=supportRegistry[(name or ""):gsub("%^%a+","")]
   if registered=="buff" or registered=="debuff" then kind=registered:upper() end
   if not kind or registered=="instant" or registered=="passive" then return end
   local attributed=sourceType==COMBAT_UNIT_TYPE_PLAYER or (COMBAT_UNIT_TYPE_PLAYER_PET and sourceType==COMBAT_UNIT_TYPE_PLAYER_PET)
@@ -432,6 +434,205 @@ local function worldEffect(_,change,slot,name,tag,beg,ending,stack,icon,buffType
     world.effects["cast:"..tostring(abilityId)]=nil
     world.effects[key]={name=name or "Effect",ending=ending,kind=kind}
   end
+end
+-- Independent display-only effects stream. Never writes scoring coverage.
+local rollingEffects={}
+local rollingCasts={}
+local rollingZone=nil
+local refreshGlows={}
+local rollingLinks={}
+local function clearRefreshGlows()
+  for _,g in pairs(refreshGlows) do g:SetHidden(true) end
+end
+local rollingAliases={ ["major sorcery"]="Major Brutality", ["major brutality"]="Major Brutality", ["major prophecy"]="Major Savagery", ["major savagery"]="Major Savagery", ["minor sorcery"]="Minor Brutality", ["minor brutality"]="Minor Brutality", ["minor prophecy"]="Minor Savagery", ["minor savagery"]="Minor Savagery", ["bright harbinger"]="Bright Harbinger", ["illuminate"]="Illuminate" }
+local function rollingDisplay(n) local clean=tostring(n or ""):gsub("%^%a+",""); return rollingAliases[clean:lower()] or clean end
+local function rollingName(n) return rollingDisplay(n):lower() end
+local function rollingKnown(n) return rollingAliases[tostring(n or ""):gsub("%^%a+",""):lower()]~=nil end
+local function rollingSlotId(slot)
+  local bar=safe(GetActiveHotbarCategory)
+  local id=bar~=nil and safe(GetSlotBoundId,slot,bar) or nil
+  if not id or id==0 then id=safe(GetSlotBoundId,slot) end
+  return id
+end
+local function rollingLink(e,t)
+  if e.persistent then return end
+  local link=rollingLinks[rollingName(e.name)]
+  if link and link.ending>t and math.abs(link.ending-e.ending)<2 then return link.id end
+  if e.own and e.id then
+    for slot=3,8 do if tostring(rollingSlotId(slot))==tostring(e.id) then return tostring(e.id) end end
+  end
+end
+local function usableSlotControl(c)
+  return c and safe(c.GetWidth,c) and safe(c.GetWidth,c)>0 and not safe(c.IsHidden,c)
+end
+local function rollingSlotControl(slot)
+  local button=safe(ZO_ActionBar_GetButton,slot)
+  if button then
+    local c=safe(button.GetControl,button) or button.slot or button.control or button
+    if usableSlotControl(c) then return c end
+  end
+  if ACTION_BAR then
+    local b=safe(ACTION_BAR.GetButton,ACTION_BAR,slot)
+    if b then local c=safe(b.GetControl,b) or b.slot or b.control or b;if usableSlotControl(c) then return c end end
+  end
+  local c=safe(GetControl,"ActionButton"..slot) or _G["ActionButton"..slot]
+  if usableSlotControl(c) then return c end
+end
+local function refreshActionSlots(wanted,t)
+  clearRefreshGlows()
+  if not S.settings.showRefreshHighlights or S.settings.previewWindows then return end
+  for slot=3,8 do
+    local id=rollingSlotId(slot)
+    if id and wanted[tostring(id)] then
+      local control=rollingSlotControl(slot)
+      if control then
+        local g=refreshGlows[slot]
+        if not g then
+          g=WINDOW_MANAGER:CreateControl("DungeonBuddyRefreshGlow"..slot,GuiRoot,CT_LABEL)
+          g:SetFont("$(BOLD_FONT)|26|soft-shadow-thick")
+          g:SetHorizontalAlignment(TEXT_ALIGN_CENTER);g:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+          g:SetMouseEnabled(false)
+          if g.SetDrawTier and DT_HIGH then g:SetDrawTier(DT_HIGH) end
+          if g.SetDrawLayer and DL_OVERLAY then g:SetDrawLayer(DL_OVERLAY) end
+          refreshGlows[slot]=g
+        end
+        g:ClearAnchors();g:SetAnchor(BOTTOM,control,TOP,0,-4);g:SetDimensions(130,36)
+        local urgent=wanted[tostring(id)]<=3
+        g:SetText("▼ REFRESH");g:SetColor(1,urgent and .24 or .88,.15,.75+.25*math.sin(t*9));g:SetHidden(false)
+      end
+    end
+  end
+end
+local function rollingResetZone()
+  local z=tostring(safe(GetUnitZoneIndex,"player") or zone())..":"..tostring(insideDungeon())
+  if rollingZone~=z then rollingZone=z;rollingEffects={};rollingCasts={};rollingLinks={};clearRefreshGlows() end
+end
+local function rollingCast(_,slot)
+  rollingResetZone()
+  local id=rollingSlotId(slot)
+  if id and id~=0 then rollingCasts[tostring(id)]={at=now(),name=safe(GetAbilityName,id),slot=slot} end
+end
+local function rollingEffect(_,change,slot,name,tag,beg,ending,stack,icon,buffType,effectType,abilityType,statusEffectType,unitName,unitId,abilityId,sourceType)
+  rollingResetZone()
+  local key=tostring(tag)..":"..tostring(unitId)..":"..tostring(slot)..":"..tostring(abilityId)
+  if change==EFFECT_RESULT_FADED then rollingEffects[key]=nil;return end
+  if change~=EFFECT_RESULT_GAINED and change~=EFFECT_RESULT_UPDATED then return end
+  local kind=(BUFF_EFFECT_TYPE_DEBUFF and buffType==BUFF_EFFECT_TYPE_DEBUFF) and "debuff" or ((BUFF_EFFECT_TYPE_BUFF and buffType==BUFF_EFFECT_TYPE_BUFF) and "buff" or nil)
+  local registered=supportRegistry[(name or ""):gsub("%^%a+","")]
+  if registered=="buff" or registered=="debuff" then kind=registered end
+  if tag=="player" and rollingKnown(name) then kind="buff" end
+  if not kind or ((registered=="instant" or registered=="passive") and not rollingKnown(name)) then return end
+  local t=now();ending=tonumber(ending)
+  if not ending or ending<=t or ending-t>600 then return end
+  local own=sourceType==COMBAT_UNIT_TYPE_PLAYER or (COMBAT_UNIT_TYPE_PLAYER_PET and sourceType==COMBAT_UNIT_TYPE_PLAYER_PET)
+  for id,c in pairs(rollingCasts) do
+    if t-c.at>2.5 then rollingCasts[id]=nil
+    elseif id==tostring(abilityId) or (t-c.at<=1.25 and c.name and name and c.name:lower()==name:lower()) then own=true end
+  end
+  -- Link only observed own effects to an exact ID/name or a unique recent cast.
+  if own then
+    local exact,unique,count=nil,nil,0
+    for id,c in pairs(rollingCasts) do
+      if t-c.at<=1.25 then
+        count=count+1;unique=id
+        if id==tostring(abilityId) or rollingName(c.name)==rollingName(name) then exact=id end
+      end
+    end
+    local prior=rollingLinks[rollingName(name)]
+    local candidate=exact or (count==1 and change==EFFECT_RESULT_GAINED and unique)
+    if not candidate then for actionSlot=3,8 do if tostring(rollingSlotId(actionSlot))==tostring(abilityId) then candidate=tostring(abilityId);exact=candidate;break end end end
+    if candidate and (exact or not prior or prior.id==candidate) then
+      rollingLinks[rollingName(name)]={id=candidate,ending=ending}
+    elseif prior and exact==nil and candidate and prior.id~=candidate then
+      rollingLinks[rollingName(name)]=nil
+    elseif prior and prior.ending>t and not candidate then prior.ending=ending end
+  end
+  local friendly=tag=="player" or (tag and tag:match("^group%d+$"))
+  if kind=="debuff" and (friendly or not own) then return end
+  if kind=="buff" and not (tag=="player" or (friendly and own)) then return end
+  rollingEffects[key]={name=name or "Effect",kind=kind,ending=ending,duration=math.max(0.1,ending-(tonumber(beg) or t)),id=tostring(abilityId),own=own,entered=rollingEffects[key] and rollingEffects[key].entered or t}
+end
+local function rollingPanel(key,kind)
+  local p=rollingPanels[key];if p then return p end
+  p=WINDOW_MANAGER:CreateTopLevelWindow("DungeonBuddy"..key)
+  p:SetDimensions(440,320);p:SetClampedToScreen(false);p:SetHidden(true)
+  p:SetMouseEnabled(false);p.rows={};rollingPanels[key]=p
+  for i=1,8 do
+    local r=makeLabel(p,0,20,{1,1,1},440)
+    r:SetHorizontalAlignment(kind=="buff" and TEXT_ALIGN_RIGHT or TEXT_ALIGN_LEFT)
+    r:SetHidden(true);p.rows[i]=r
+  end
+  applyWindowLayout(p,key);return p
+end
+-- Snapshot currently visible effects, including effects applied before loading.
+-- GetUnitBuffInfo returns castByPlayer, unlike the event's source type.
+local function rollingSnapshot(tag,kind,add,t)
+  if not GetUnitBuffInfo or not GetNumBuffs then return end
+  local count=safe(GetNumBuffs,tag) or 0
+  for i=1,count do
+    local ok,name,beg,ending,slot,stack,icon,buffType,effectType,abilityType,statusEffectType,abilityId,castByPlayer=pcall(GetUnitBuffInfo,tag,i)
+    if ok and name then
+      ending=tonumber(ending)
+      local actual=(BUFF_EFFECT_TYPE_DEBUFF and buffType==BUFF_EFFECT_TYPE_DEBUFF) and "debuff" or ((BUFF_EFFECT_TYPE_BUFF and buffType==BUFF_EFFECT_TYPE_BUFF) and "buff" or nil)
+      local known=tag=="player" and rollingKnown(name)
+      if known then actual="buff" end
+      local persistent=known and (not ending or ending==0 or ending-t>600)
+      if actual==kind and (tag=="player" or castByPlayer==true) and (persistent or (ending and ending>t and ending-t<=600)) then
+        add({name=name,kind=kind,ending=persistent and t+100000 or ending,persistent=persistent,duration=persistent and 0 or math.max(.1,ending-(tonumber(beg) or t)),own=castByPlayer==true,id=tostring(abilityId),entered=t})
+      end
+    end
+  end
+end
+local function updateRolling()
+  if not S then return end
+  rollingResetZone();local t=now();local preview=S.settings.previewWindows
+  if not S.settings.showRollingEffects and not preview then for _,p in pairs(rollingPanels) do p:SetHidden(true) end;clearRefreshGlows();return end
+  local wanted={}
+  local buckets={buff={},debuff={}}
+  local function add(e)
+    local bucket=buckets[e.kind];if not bucket or not e.name or e.ending<=t then return end
+    local k=rollingDisplay(e.name:gsub(" %(est%.%)$",""));local old=bucket[k]
+    e.name=k
+    if not old or (e.persistent and not old.persistent) or (not old.persistent and ((old.estimated and not e.estimated) or (old.estimated==e.estimated and e.ending<old.ending))) then bucket[k]=e end
+  end
+  for k,e in pairs(rollingEffects) do if e.ending<=t then rollingEffects[k]=nil else add(e) end end
+  rollingSnapshot("player","buff",add,t)
+  rollingSnapshot("reticleover","debuff",add,t)
+  for i=1,6 do rollingSnapshot("boss"..i,"debuff",add,t) end
+  if insideDungeon() and run then
+    for _,kind in ipairs({"buff","debuff"}) do for id,e in pairs(run.durationCoverage[kind] or {}) do
+      add({name=e.name,kind=kind,ending=e.expires or 0,duration=(run.durationObserved[id] or {}).duration or 10,estimated=true})
+    end end
+  else
+    for _,e in pairs(world.effects) do add({name=e.name,kind=e.kind:lower(),ending=e.ending,estimated=true}) end
+  end
+  for _,kind in ipairs({"buff","debuff"}) do
+    local p=rollingPanel(kind=="buff" and "rollingBuff" or "rollingDebuff",kind);local entries={}
+    for _,e in pairs(buckets[kind]) do entries[#entries+1]=e end
+    if preview then entries={{name=kind=="buff" and "Major Resolve" or "Major Breach",ending=t+12},{name=kind=="buff" and "Minor Berserk" or "Minor Breach",ending=t+2}} end
+    table.sort(entries,function(a,b) if a.ending==b.ending then return a.name<b.name end return a.ending<b.ending end)
+    p:SetHidden(not preview and #entries==0)
+    p.positions=p.positions or {};local positions={}
+    for i,r in ipairs(p.rows) do
+      local e=entries[i];r:SetHidden(not e)
+      if e then
+        local remaining=e.ending-t;local target=(i-1)*39;
+        local id=not preview and rollingLink(e,t)
+        if id and not e.persistent and remaining<=6 then wanted[id]=math.min(wanted[id] or 6,remaining) end
+        local fontSize=remaining<=3 and math.floor(28+2*math.sin(t*9)) or (remaining<=6 and 25 or 20)
+        if r.refreshFont~=fontSize then r:SetFont(string.format("$(BOLD_FONT)|%d|soft-shadow-thick",fontSize));r.refreshFont=fontSize end
+        r:SetHeight(38);local old=p.positions[e.name]
+        local y=old and (old+(target-old)*.32) or target+16
+        positions[e.name]=y
+        r:ClearAnchors();r:SetAnchor(TOPLEFT,p,TOPLEFT,0,y)
+        local cr,cg,cb=.45,.95,.65;if kind=="debuff" then cr,cg,cb=1,.65,.39 end
+        if remaining<=3 then cr,cg,cb=1,.30,.30 elseif remaining<=6 then cr,cg,cb=1,.83,.35 end
+        r:SetText(e.persistent and (e.name.."  ACTIVE") or string.format("%s%s  %.1fs",e.name,e.estimated and "~" or "",remaining));r:SetColor(cr,cg,cb,math.min(1,remaining/.35))
+      end
+    end
+    p.positions=positions
+  end
+  refreshActionSlots(wanted,t)
 end
 local function updateWorld()
   if not worldHUD then
@@ -988,8 +1189,8 @@ local function openMenu()
     elseif page=="SUPPORT" then
       content=run and ("Shield: "..fmt(run.shield).."\nBlocked: "..fmt(run.blocked).."\nTaunts: "..fmt(run.taunts).."\nGroup deaths: "..fmt(run.groupDeaths).."\nInterrupts: "..run.interrupts.."\nCC: "..run.ccEvents.."\nBuff seconds: "..fmt(run.buffSeconds)) or "Enter a dungeon to view support measurements"
     elseif page=="SETTINGS" then
-      menu.settingKeys={"careerProfile","showHUD","showBossHUD","showPace","showTrend","autoReport"}
-      menu.settingNames={"Open Career Profile","Live HUD","Boss reference","PB pace","Score trend","Auto report"}
+      menu.settingKeys={"careerProfile","showHUD","showBossHUD","showPace","showTrend","autoReport","showRollingEffects"}
+      menu.settingNames={"Open Career Profile","Live HUD","Boss reference","PB pace","Score trend","Auto report","Rolling effects HUD"}
       menu.settingIndex=menu.settingIndex or 1
       content="SETTINGS  |  L1/R1 select setting, X activate\n"
       for i,key in ipairs(menu.settingKeys) do
@@ -1275,8 +1476,7 @@ local function registerAddonSettings()
       author="Trash Man Enterprises", version=DR.version,
       registerForRefresh=true, registerForDefaults=true,
     })
-    local options={
-      {type="description",text="Dungeon Buddy performance HUD, End-of-Run report, and Career Profile."},
+    local actions={
       {type="button",name="Prepare Boss Report",tooltip="Prepare an editable Party chat report from the current or most recently detected boss mechanics. Nothing is sent automatically.",func=prepareBossReport,width="full"},
        {type="button",name="Open Prepared Boss Report",tooltip="Open the prepared boss mechanics in editable Party chat. You must press Send yourself.",func=openBossReportDraft,width="full"},
        {type="button",name="Close End-of-Run Report",tooltip="Dismiss the current report without affecting saved history.",func=closeReport,width="full"},
@@ -1290,35 +1490,42 @@ local function registerAddonSettings()
         end
       end,width="full"},
     }
-    local toggles={
-      {"showHUD","Show Live HUD"},
-      {"showWorldHUD","Show world combat HUD"},
-      {"showPlayerCard","Show out-of-dungeon Player Card"},
-      {"showBossHUD","Show Boss Intelligence HUD"},
-      {"showPace","Show performance pace"},
-      {"showTrend","Show score trend"},
-      {"autoReport","Show End-of-Run report automatically"},
-    }
+    local options={actions[4]}
+    local function section(name,controls)
+      options[#options+1]={type="submenu",name=name,controls=controls}
+    end
+    local function toggles(toggles)
+      local controls={}
     for _,item in ipairs(toggles) do
       local key,label=item[1],item[2]
-      options[#options+1]={type="checkbox",name=label,
+      controls[#controls+1]={type="checkbox",name=label,
         getFunc=function() return S.settings[key]==true end,
         setFunc=function(v) S.settings[key]=(v==true); if menu and menu.refresh and not menu:IsHidden() then menu.refresh() end end,
         default=defaults.settings[key],width="full"}
     end
-    options[#options+1]={type="header",name="Window positioning and size"}
-    options[#options+1]={type="checkbox",name="Preview HUD windows",tooltip="Show Live HUD, Boss Intelligence and End-of-Run report while arranging windows. Drag windows with a mouse or use the position sliders.",getFunc=function() return S.settings.previewWindows==true end,setFunc=setWindowPreview,default=false,width="full"}
-    local windowNames={world="World Combat HUD",live="Live HUD",boss="Boss Intelligence",report="End-of-Run HUD",career="Career Profile",playerCard="Out-of-Dungeon Player Card"}
-    local windowOrder={"world","live","boss","report","career","playerCard"}
+      return controls
+    end
+    section("Combat HUDs",toggles({{"showHUD","Dungeon combat meter"},{"showWorldHUD","World combat meter"},{"showPlayerCard","Out-of-dungeon player card"},{"showBossHUD","Boss intelligence"}}))
+    section("Rolling Effects & Refresh Alerts",toggles({{"showRollingEffects","Rolling buff / debuff text"},{"showRefreshHighlights","Action bar refresh highlights"}}))
+    section("Performance & Reports",toggles({{"showPace","Performance pace"},{"showTrend","Score trend"},{"autoReport","Automatic end-of-run report"}}))
+    options[#options+1]={type="header",name="HUD placement"}
+    local preview={type="checkbox",name="Preview HUD windows",tooltip="Show Live HUD, Boss Intelligence and End-of-Run report while arranging windows. Drag windows with a mouse or use the position sliders.",getFunc=function() return S.settings.previewWindows==true end,setFunc=setWindowPreview,default=false,width="full"}
+    options[#options+1]=preview
+    local layouts={}
+    local windowNames={rollingBuff="Rolling Buffs (left)",rollingDebuff="Rolling Debuffs (right)",world="World Combat HUD",live="Live HUD",boss="Boss Intelligence",report="End-of-Run HUD",career="Career Profile",playerCard="Out-of-Dungeon Player Card"}
+    local windowOrder={"rollingBuff","rollingDebuff","world","live","boss","report","career","playerCard"}
     for _,key in ipairs(windowOrder) do
       local title=windowNames[key]
-      options[#options+1]={type="header",name=title}
+      local controls={}
       for _,axis in ipairs({"x","y"}) do
         local coord=axis
-        options[#options+1]={type="slider",name=title.." "..(coord=="x" and "horizontal position" or "vertical position"),min=0,max=1800,step=5,getFunc=function() return S.settings.windowLayout[key][coord] end,setFunc=function(v) S.settings.windowLayout[key][coord]=v;refreshWindowLayouts() end,default=defaults.settings.windowLayout[key][coord],width="full"}
+        controls[#controls+1]={type="slider",name=coord=="x" and "Horizontal position" or "Vertical position",min=(key=="rollingBuff" or key=="rollingDebuff") and -440 or 0,max=(key=="rollingBuff" or key=="rollingDebuff") and math.ceil((coord=="x" and GuiRoot:GetWidth() or GuiRoot:GetHeight())/5)*5 or 1800,step=5,getFunc=function() return S.settings.windowLayout[key][coord] end,setFunc=function(v) S.settings.windowLayout[key][coord]=v;refreshWindowLayouts() end,default=defaults.settings.windowLayout[key][coord],width="full"}
       end
-      options[#options+1]={type="slider",name=title.." size (%)",min=50,max=200,step=5,getFunc=function() return S.settings.windowLayout[key].scale end,setFunc=function(v) S.settings.windowLayout[key].scale=v;refreshWindowLayouts() end,default=100,width="full"}
+      controls[#controls+1]={type="slider",name="Size (%)",min=50,max=200,step=5,getFunc=function() return S.settings.windowLayout[key].scale end,setFunc=function(v) S.settings.windowLayout[key].scale=v;refreshWindowLayouts() end,default=100,width="full"}
+      layouts[key]=controls
     end
+    for _,key in ipairs(windowOrder) do section(windowNames[key].." layout",layouts[key]) end
+    section("Report Tools & Advanced",{actions[1],actions[2],actions[3],actions[5]})
     lam:RegisterOptionControls(panelId,options)
   end)
   if ok then settingsRegistered=true else say("Dungeon Buddy settings registration error: "..tostring(err)) end
@@ -1355,13 +1562,14 @@ local function initialized(_,addon)
     EM:RegisterForEvent(DR.name.."Activated",EVENT_PLAYER_ACTIVATED,function() tick() end)
   end
   EM:RegisterForEvent(DR.name.."State",EVENT_PLAYER_COMBAT_STATE,function(...) state(...);worldState(...) end)
-  if EVENT_ACTION_SLOT_ABILITY_USED then EM:RegisterForEvent(DR.name.."Ultimates",EVENT_ACTION_SLOT_ABILITY_USED,function(...) abilityUsed(...);ultimateUsed(...) end) end
+  if EVENT_ACTION_SLOT_ABILITY_USED then EM:RegisterForEvent(DR.name.."Ultimates",EVENT_ACTION_SLOT_ABILITY_USED,function(...) abilityUsed(...);ultimateUsed(...);rollingCast(...) end) end
   if EVENT_BOSSES_CHANGED then EM:RegisterForEvent(DR.name.."Bosses",EVENT_BOSSES_CHANGED,bossChanged) end
-  if EVENT_EFFECT_CHANGED then EM:RegisterForEvent(DR.name.."Effects",EVENT_EFFECT_CHANGED,function(...) effect(...);worldEffect(...) end) end
+  if EVENT_EFFECT_CHANGED then EM:RegisterForEvent(DR.name.."Effects",EVENT_EFFECT_CHANGED,function(...) effect(...);worldEffect(...);rollingEffect(...) end) end
   if EVENT_UNIT_DEATH_STATE_CHANGED then EM:RegisterForEvent(DR.name.."Dead",EVENT_UNIT_DEATH_STATE_CHANGED,dead) end
   EM:RegisterForUpdate(DR.name.."Tick",1000,tick)
+  EM:RegisterForUpdate(DR.name.."RollingEffects",100,updateRolling)
   registerRadialMenu(); EM:RegisterForUpdate(DR.name.."RadialRetry",2500,function() if registerRadialMenu() then EM:UnregisterForUpdate(DR.name.."RadialRetry") end end)
-  ensureHUD(); ensurePlayerCard(); updatePlayerCard(); registerAddonSettings(); EM:RegisterForUpdate(DR.name.."SettingsRetry",2000,function() if settingsRegistered then EM:UnregisterForUpdate(DR.name.."SettingsRetry") else registerAddonSettings() end end); say("v0.3 loaded. Career Profile is available in Add-Ons > Dungeon Buddy when LibAddonMenu-2.0 is installed.")
+  ensureHUD(); ensurePlayerCard(); updatePlayerCard(); registerAddonSettings(); EM:RegisterForUpdate(DR.name.."SettingsRetry",2000,function() if settingsRegistered then EM:UnregisterForUpdate(DR.name.."SettingsRetry") else registerAddonSettings() end end); say("v2.0.5 loaded. Career Profile is available in Add-Ons > Dungeon Buddy when LibAddonMenu-2.0 is installed.")
 end
 EM:RegisterForEvent(DR.name.."Init",EVENT_ADD_ON_LOADED,initialized)
 
@@ -1399,5 +1607,7 @@ EVENT_MANAGER:RegisterForUpdate("DungeonRatingTME_MenuVisibility", 100, function
     tmeMenuSuppress(hud,hide);tmeMenuSuppress(bossHUD,hide)
     tmeMenuSuppress(worldHUD,hide);tmeMenuSuppress(playerCard,hide)
     tmeMenuSuppress(reportHUD,hide)
+    for _,p in pairs(rollingPanels) do tmeMenuSuppress(p,hide) end
+    for _,g in pairs(refreshGlows) do tmeMenuSuppress(g,blocked) end
     tmeMenuSuppress(menu,hide and not addon)
 end)

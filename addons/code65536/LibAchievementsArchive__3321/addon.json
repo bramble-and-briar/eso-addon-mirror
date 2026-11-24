@@ -8,6 +8,10 @@
   "category_id": "53",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -74,7 +78,7 @@
     "LibAchievementsArchive"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3321/",
-  "fingerprint": "49b06b41912310cfb5159faae06ccfdb94331e62983a94446f2dfed7aad69d2d",
+  "fingerprint": "d6eaeaeb403853317f7d10cfa050465c70a7a2457d667bfd042278cc2c662ff5",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -82,11 +86,11 @@
   "source_id": "3321",
   "source_url": "https://www.esoui.com/downloads/info3321-LibAchievementsArchive.html",
   "stats": {
-    "downloads": 121540,
+    "downloads": 124162,
     "favorites": 27,
-    "monthly_downloads": 3133
+    "monthly_downloads": 611
   },
   "title": "LibAchievementsArchive",
-  "updated_at": 1785798104000,
-  "version": "1.2.4.1"
+  "updated_at": 1795532974000,
+  "version": "1.2.4.2"
 }

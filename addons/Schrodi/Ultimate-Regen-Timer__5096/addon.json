@@ -8,6 +8,10 @@
   "category_id": "25",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "UltimateRegenTimer"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5096/",
-  "fingerprint": "bac5d6afada2e2cff1dbef43b0763c0dda2c0a8cc927a28bb56ca507f37f7fef",
+  "fingerprint": "824eceebf46bbd63d3cec751c65fc482f73d4ac30fd96278cb4d86d53562f08f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18690.png"
   ],
@@ -28,11 +32,11 @@
   "source_id": "5096",
   "source_url": "https://www.esoui.com/downloads/info5096-UltimateRegenTimer.html",
   "stats": {
-    "downloads": 4,
+    "downloads": 16,
     "favorites": 0,
-    "monthly_downloads": 1
+    "monthly_downloads": 9
   },
   "title": "Ultimate Regen Timer",
-  "updated_at": 1795290538000,
-  "version": "3.0.0"
+  "updated_at": 1795475575000,
+  "version": "3.0.1"
 }

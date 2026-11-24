@@ -1,3 +1,7 @@
+Version 4.10.8 (2026/11/24)
+* Further consolidated code associated with tooltip handling across all Extended
+  Journal addons to reduce duplicated work and improve efficiency
+
 Version 4.10.7 (2026/11/12)
 * The antiquity lead tooltip extension now supports the Torc of Tonal Constancy
   Antiquities Coffer 

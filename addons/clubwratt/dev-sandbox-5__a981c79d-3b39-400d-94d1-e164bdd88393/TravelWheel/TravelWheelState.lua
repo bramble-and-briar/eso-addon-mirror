@@ -9,21 +9,14 @@ function TravelWheelState.Create()
         savedVars = {
             destinations = {},
             nextId = 1,
-            afterInstance = "off",
-            fromScoreboard = true,
-            requeueCampaign = true,
             accept = {
                 campaign = 0,
                 battleground = 9999,
                 dungeon = -1,
             },
         },
-        returnCampaigns = {},
         pendingAccepts = {},
-        armed = false,
-        origin = nil,
-        lastPlace = nil,
-        pendingReturn = nil,
+        unstuckAsked = false,
     }
 end
 

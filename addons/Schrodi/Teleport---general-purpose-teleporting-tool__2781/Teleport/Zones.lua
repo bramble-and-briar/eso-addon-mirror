@@ -1,3 +1,4 @@
+local Teleport = Teleport
 Teleport.Zones = {}
 
 local info  = Teleport.info

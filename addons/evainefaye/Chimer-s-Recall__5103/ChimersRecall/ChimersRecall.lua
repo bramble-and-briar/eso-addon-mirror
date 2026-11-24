@@ -1,6 +1,6 @@
 -- ChimersRecall: independent per-instance furnishing state snapshots.
 -- ESO id64 values must never be converted with tonumber or persisted as numbers.
-ChimersRecall = {}
+local ChimersRecall = {}
 local addon = ChimersRecall
 local NAME, UPDATE = "ChimersRecall", "ChimersRecallRestore"
 
@@ -97,27 +97,33 @@ end
 
 local function context()
     local houseId = GetCurrentZoneHouseId()
-    if not integer(houseId, 1) then error("This action is only available inside a player house.", 0) end
+    if not integer(houseId, 1) then return nil, "This action is only available inside a player house." end
     if type(GetCurrentHousePreviewTemplateId) == "function"
         and GetCurrentHousePreviewTemplateId() ~= 0 then
-        error("House previews cannot be saved or restored.")
+        return nil, "House previews cannot be saved or restored."
     end
     local owner = GetCurrentHouseOwner()
-    if type(owner) ~= "string" then error("The house owner is unavailable. Try again once the house has loaded.") end
+    if type(owner) ~= "string" then return nil, "The house owner is unavailable. Try again once the house has loaded." end
     owner = owner:match("^%s*(.-)%s*$")
-    if owner == "" then error("The house owner is unavailable. Try again once the house has loaded.") end
+    if owner == "" then return nil, "The house owner is unavailable. Try again once the house has loaded." end
     return { owner = string.lower(owner), ownerDisplayName = owner,
         houseId = houseId, houseKey = tostring(houseId), world = GetWorldName() }
 end
 
 local function sameContext(a, b)
-    return a.owner == b.owner and a.houseId == b.houseId and a.world == b.world
+    return b ~= nil and a.owner == b.owner and a.houseId == b.houseId and a.world == b.world
+end
+
+local function commandContext()
+    local ctx, reason = context()
+    if not ctx then printMessage(reason) end
+    return ctx
 end
 
 local function instanceKey(id)
     local key = Id64ToString(id)
     if type(key) ~= "string" or not key:match("^%d+$") then
-        error("ESO returned an invalid furniture instance ID.")
+        return nil
     end
     return key
 end
@@ -226,8 +232,7 @@ local INVALID_LAYOUT_NAME = "Use up to 32 letters, numbers, hyphens, underscores
 local function scanPosition(id)
     local getter = HousingEditorGetFurnitureWorldPosition
     if type(getter) ~= "function" then return nil end
-    local ok, x, y, z = pcall(getter, id)
-    if not ok then return nil end
+    local x, y, z = getter(id)
     if type(x) ~= "number" or type(y) ~= "number" or type(z) ~= "number" then return nil end
     if x ~= x or y ~= y or z ~= z then return nil end
     return x, y, z
@@ -246,19 +251,20 @@ local function scanChunk(scan)
         local id = GetNextPlacedHousingFurnitureId(scan.previous)
         if id == nil then return true end
         local key = instanceKey(id)
+        if not key then return nil, "ESO returned an invalid furniture instance ID." end
         if key == "0" then return true end
-        if scan.result[key] then error("The furniture iterator repeated an instance ID; scan aborted.") end
+        if scan.result[key] then return nil, "The furniture iterator repeated an instance ID; scan aborted." end
         local name, _, dataId = GetPlacedHousingFurnitureInfo(id)
         local count = GetPlacedHousingFurnitureNumObjectStates(id)
         if type(name) ~= "string" or name == "" or not integer(dataId, 0)
             or not integer(count, 0) then
-            error("Furniture information is unavailable; scan aborted.")
+            return nil, "Furniture information is unavailable; scan aborted."
         end
         local state
         if count > 1 then
             state = GetPlacedHousingFurnitureCurrentObjectStateIndex(id)
             if not integer(state, 0) or state >= count then
-                error("Invalid interactive state for " .. name .. "; scan aborted.")
+                return nil, "Invalid interactive state for " .. name .. "; scan aborted."
             end
         end
         local x, y, z = scanPosition(id)
@@ -334,9 +340,9 @@ local scheduleUpdate
 local refreshLayoutChoices
 
 local function commitSave(ctx, name, live)
-    if not sameContext(ctx, context()) then error("The house changed during the scan. Nothing was saved.") end
+    if not sameContext(ctx, context()) then printMessage("The house changed during the scan. Nothing was saved."); return end
     local house, unsupported = houseFor(ctx, true)
-    if unsupported then error("The stored data uses an unsupported format. Nothing was saved.") end
+    if unsupported then printMessage("The stored data uses an unsupported format. Nothing was saved."); return end
     local preset = presetFromLive(live, nil)
     house.presets[name] = preset
     if refreshLayoutChoices then refreshLayoutChoices() end
@@ -386,7 +392,7 @@ end
 local function planRestore(snapshot, live)
     local keys = {}
     for key in pairs(snapshot.items) do
-        if type(key) ~= "string" then error("The layout contains an invalid instance key.") end
+        if type(key) ~= "string" then return nil, "The layout contains an invalid instance key." end
         keys[#keys + 1] = key
     end
     table.sort(keys)
@@ -429,13 +435,8 @@ end
 
 -- ===== progress panel =====
 
--- A small on-screen bar during a restore, so the chat log is not the only sign
--- of progress. Everything here is optional: if the UI API is unavailable the
--- calls do nothing, and a panel that fails to build must never break a restore.
+-- A restore can run without the progress bar if its XML controls are missing.
 local progressUi
--- Set once, so a bar that cannot be built says so a single time instead of every
--- restore drawing nothing at all in silence.
-local progressBuildFailed
 -- Forward declaration: the bar's Cancel button calls the queue's cancel.
 local cancel
 
@@ -448,8 +449,8 @@ local BAR_CHAT_GAP = 23
 local function clampBarPosition(x, y)
     local screenWidth, screenHeight = 1920, 1080
     if GuiRoot and type(GuiRoot.GetDimensions) == "function" then
-        local ok, width, height = pcall(GuiRoot.GetDimensions, GuiRoot)
-        if ok and type(width) == "number" and type(height) == "number"
+        local width, height = GuiRoot:GetDimensions()
+        if type(width) == "number" and type(height) == "number"
             and width > 0 and height > 0 then
             screenWidth, screenHeight = width, height
         end
@@ -474,8 +475,8 @@ end
 local function barPositionAboveChat(chatWindow)
     if type(chatWindow) ~= "table" and type(chatWindow) ~= "userdata" then return nil end
     if type(chatWindow.GetLeft) ~= "function" or type(chatWindow.GetTop) ~= "function" then return nil end
-    local ok, left, top = pcall(function() return chatWindow:GetLeft(), chatWindow:GetTop() end)
-    if not ok or type(left) ~= "number" or type(top) ~= "number" then return nil end
+    local left, top = chatWindow:GetLeft(), chatWindow:GetTop()
+    if type(left) ~= "number" or type(top) ~= "number" then return nil end
     return clampBarPosition(left, top - BAR_CHAT_GAP - BAR_HEIGHT)
 end
 
@@ -483,67 +484,63 @@ end
 -- and /reloadui, so the bar comes back where it was left.
 local function saveBarPosition(panel)
     if type(panel.GetLeft) ~= "function" or type(panel.GetTop) ~= "function" then return end
-    local okLeft, left = pcall(panel.GetLeft, panel)
-    local okTop, top = pcall(panel.GetTop, panel)
-    if not okLeft or not okTop or type(left) ~= "number" or type(top) ~= "number" then return end
+    local left, top = panel:GetLeft(), panel:GetTop()
+    if type(left) ~= "number" or type(top) ~= "number" then return end
     local x, y = clampBarPosition(left, top)
     settings().barPosition = { x = x, y = y }
 end
 
 local function buildProgressUi()
     if progressUi ~= nil then return progressUi or nil end
-    local ok, built = pcall(function()
-        local panel = _G.ChimersRecallProgressPanel
-        local label = _G.ChimersRecallProgressLabel
-        local cancelPlate = _G.ChimersRecallProgressCancelPlate
-        local cancelButton = _G.ChimersRecallProgressCancel
-        local track = _G.ChimersRecallProgressTrack
-        local fill = _G.ChimersRecallProgressFill
-        local background = _G.ChimersRecallProgressBackdrop
-
-        local savedPosition = savedBarPosition()
-        local x, y
-        if savedPosition then
-            x, y = clampBarPosition(savedPosition.x, savedPosition.y)
-        else
-            x, y = barPositionAboveChat(_G.ZO_ChatWindow)
-        end
-        if x then
-            panel:ClearAnchors()
-            panel:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
-        end
-        -- The XML window lets ESO handle mouse movement. Save only when a move ends.
-        panel:SetHandler("OnMoveStop", saveBarPosition)
-
-        background:SetCenterColor(0, 0, 0, 0.7)
-        background:SetEdgeColor(0.62, 0.54, 0.32, 0.9)
-        label:SetColor(1, 0.92, 0.72, 1)
-        cancelPlate:SetCenterColor(0.42, 0.07, 0.07, 0.95)
-        cancelPlate:SetEdgeColor(0.88, 0.3, 0.26, 1)
-        cancelButton:SetHandler("OnMouseEnter", function()
-            cancelPlate:SetCenterColor(0.62, 0.13, 0.12, 1)
-        end)
-        cancelButton:SetHandler("OnMouseExit", function()
-            cancelPlate:SetCenterColor(0.42, 0.07, 0.07, 0.95)
-        end)
-        cancelButton:SetHandler("OnClicked", function()
-            cancel("you pressed CANCEL")
-        end)
-        track:SetCenterColor(0.1, 0.1, 0.1, 0.9)
-        track:SetEdgeColor(0.4, 0.36, 0.26, 0.9)
-        fill:SetCenterColor(0.45, 0.72, 0.4, 0.95)
-        fill:SetEdgeColor(0.45, 0.72, 0.4, 0.95)
-
-        return { panel = panel, label = label, fill = fill, width = 404 }
-    end)
-    progressUi = ok and built or false
-    if not progressUi and not progressBuildFailed then
-        -- Silence here is how a bar can "disappear": the panel is optional, but a
-        -- client whose UI API rejects it should say so rather than look broken.
-        progressBuildFailed = true
-        pcall(printMessage, "The restore bar could not be created (" .. tostring(built) .. "); restores still run. Try /reloadui.")
+    local wm = WINDOW_MANAGER
+    local panel = wm:GetControlByName("ChimersRecallProgressPanel", "")
+    local label = wm:GetControlByName("ChimersRecallProgressLabel", "")
+    local cancelPlate = wm:GetControlByName("ChimersRecallProgressCancelPlate", "")
+    local cancelButton = wm:GetControlByName("ChimersRecallProgressCancel", "")
+    local track = wm:GetControlByName("ChimersRecallProgressTrack", "")
+    local fill = wm:GetControlByName("ChimersRecallProgressFill", "")
+    local background = wm:GetControlByName("ChimersRecallProgressBackdrop", "")
+    if not (panel and label and cancelPlate and cancelButton and track and fill and background) then
+        progressUi = false
+        printMessage("The restore bar is unavailable. Restores still run.")
+        return nil
     end
-    return progressUi or nil
+
+    local savedPosition = savedBarPosition()
+    local x, y
+    if savedPosition then
+        x, y = clampBarPosition(savedPosition.x, savedPosition.y)
+    else
+        x, y = barPositionAboveChat(wm:GetControlByName("ZO_ChatWindow", ""))
+    end
+    if x then
+        panel:ClearAnchors()
+        panel:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
+    end
+    -- The XML window lets ESO handle mouse movement. Save only when a move ends.
+    panel:SetHandler("OnMoveStop", saveBarPosition)
+
+    background:SetCenterColor(0, 0, 0, 0.7)
+    background:SetEdgeColor(0.62, 0.54, 0.32, 0.9)
+    label:SetColor(1, 0.92, 0.72, 1)
+    cancelPlate:SetCenterColor(0.42, 0.07, 0.07, 0.95)
+    cancelPlate:SetEdgeColor(0.88, 0.3, 0.26, 1)
+    cancelButton:SetHandler("OnMouseEnter", function()
+        cancelPlate:SetCenterColor(0.62, 0.13, 0.12, 1)
+    end)
+    cancelButton:SetHandler("OnMouseExit", function()
+        cancelPlate:SetCenterColor(0.42, 0.07, 0.07, 0.95)
+    end)
+    cancelButton:SetHandler("OnClicked", function()
+        cancel("you pressed CANCEL")
+    end)
+    track:SetCenterColor(0.1, 0.1, 0.1, 0.9)
+    track:SetEdgeColor(0.4, 0.36, 0.26, 0.9)
+    fill:SetCenterColor(0.45, 0.72, 0.4, 0.95)
+    fill:SetEdgeColor(0.45, 0.72, 0.4, 0.95)
+
+    progressUi = { panel = panel, label = label, fill = fill, width = 404 }
+    return progressUi
 end
 
 -- Reads the running job, so callers only say when to redraw. Nothing here may
@@ -574,7 +571,7 @@ local function showProgress()
     -- the bar again on every redraw keeps it in front of the panel the ordinary way,
     -- so it needs no topmost flag or draw tier to be seen.
     if type(ui.panel.BringWindowToTop) == "function" then
-        pcall(ui.panel.BringWindowToTop, ui.panel)
+        ui.panel:BringWindowToTop()
     end
 end
 
@@ -595,9 +592,8 @@ end
 
 local function issue(entry, stateValue)
     entry.attempts = entry.attempts + 1
-    local ok, result = pcall(HousingEditorRequestChangeState, entry.id, stateValue)
-    local success = ok and result == HOUSING_REQUEST_RESULT_SUCCESS
-    if not ok then result = "error: " .. tostring(result) end
+    local result = HousingEditorRequestChangeState(entry.id, stateValue)
+    local success = result == HOUSING_REQUEST_RESULT_SUCCESS
     if not success then job.errors[entry.key] = tostring(result) end
     entry.lastSuccess = success
     logRequest(entry, result)
@@ -641,10 +637,10 @@ local function stateLabel(furnitureId, index, count)
     local countGetter = GetNumPlacedFurniturePreviewVariations
     if type(nameGetter) ~= "function" or type(countGetter) ~= "function" then return nil end
     if not integer(index, 0) or not integer(count, 2) or index >= count then return nil end
-    local okCount, variations = pcall(countGetter, furnitureId)
-    if not okCount or variations ~= count then return nil end
-    local okName, name = pcall(nameGetter, furnitureId, index + 1)
-    if not okName or type(name) ~= "string" or name == "" then return nil end
+    local variations = countGetter(furnitureId)
+    if variations ~= count then return nil end
+    local name = nameGetter(furnitureId, index + 1)
+    if type(name) ~= "string" or name == "" then return nil end
     return name
 end
 
@@ -761,6 +757,7 @@ end
 
 local function startRestore(ctx, house, presetNameText, preset, live, mode, onlyKeys)
     local entries, keyMap, nameMap, stats = planRestore(preset, live)
+    if not entries then printMessage(keyMap); return end
     if onlyKeys then
         local filtered = {}
         for _, entry in ipairs(entries) do
@@ -835,8 +832,8 @@ local askConfirmation
 
 local function confirmInHouse(action, message, ctx, mutation)
     local shown = askConfirmation(action, message, function()
-        local ok, current = pcall(context)
-        if not ok or not sameContext(ctx, current) then
+        local current = context()
+        if not sameContext(ctx, current) then
             printMessage("The house changed. No layout was modified.")
             return
         end
@@ -847,7 +844,8 @@ end
 
 local function save(text)
     if busyReason() then return end
-    local ctx = context()
+    local ctx = commandContext()
+    if not ctx then return end
     local name = layoutName(text, DEFAULT_PRESET)
     if not name then printMessage(INVALID_LAYOUT_NAME); return end
     if name == "previous" or name == "undo" then
@@ -855,7 +853,7 @@ local function save(text)
         return
     end
     local house, unsupported = houseFor(ctx, false)
-    if unsupported then error("The stored data uses an unsupported format.") end
+    if unsupported then printMessage("The stored data uses an unsupported format."); return end
     local original = house and house.presets[name]
     local function startSave()
         local current = houseFor(ctx, false)
@@ -875,9 +873,10 @@ end
 
 local function restore(text, mode, onlyKeys)
     if busyReason() then return end
-    local ctx = context()
+    local ctx = commandContext()
+    if not ctx then return end
     local house, unsupported = houseFor(ctx, false)
-    if unsupported then error("The stored data uses an unsupported format. Save a new layout before restoring.") end
+    if unsupported then printMessage("The stored data uses an unsupported format. Save a new layout before restoring."); return end
     if not house then printMessage("No layouts for this owner and house. Use /chimersrecall save first."); return end
     local name = layoutName(text, DEFAULT_PRESET, house.presets)
     if not name then printMessage(INVALID_LAYOUT_NAME); return end
@@ -887,8 +886,10 @@ end
 -- ===== commands =====
 
 local function listPresets()
-    local house, unsupported = houseFor(context(), false)
-    if unsupported then error("The stored data uses an unsupported format.") end
+    local ctx = commandContext()
+    if not ctx then return end
+    local house, unsupported = houseFor(ctx, false)
+    if unsupported then printMessage("The stored data uses an unsupported format."); return end
     local names = {}
     for name in pairs(house and house.presets or {}) do names[#names + 1] = name end
     table.sort(names)
@@ -896,9 +897,10 @@ local function listPresets()
 end
 
 local function status()
-    local ctx = context()
+    local ctx = commandContext()
+    if not ctx then return end
     local house, unsupported = houseFor(ctx, false)
-    if unsupported then error("The stored data uses an unsupported format.") end
+    if unsupported then printMessage("The stored data uses an unsupported format."); return end
     local count = 0
     for _ in pairs(house and house.presets or {}) do count = count + 1 end
     printMessage(string.format("Saved layouts: %d. Load on entry: %s. Undo: %s. Saved size: %s.",
@@ -913,9 +915,10 @@ end
 
 local function deletePreset(text)
     if busyReason() then return end
-    local ctx = context()
+    local ctx = commandContext()
+    if not ctx then return end
     local house, unsupported = houseFor(ctx, false)
-    if unsupported then error("The stored data uses an unsupported format.") end
+    if unsupported then printMessage("The stored data uses an unsupported format."); return end
     local name = layoutName(text, DEFAULT_PRESET, house and house.presets)
     if not name then printMessage(INVALID_LAYOUT_NAME); return end
     local undo = name == "previous" or name == "undo"
@@ -997,8 +1000,10 @@ end
 -- the only way to make it: that forced a re-save of the live house just to pick
 -- an existing preset. This sets the pointer without touching saved states.
 local function setDefaultPreset(text, quiet)
-    local house, unsupported = houseFor(context(), false)
-    if unsupported then error("The stored data uses an unsupported format.") end
+    local ctx = commandContext()
+    if not ctx then return end
+    local house, unsupported = houseFor(ctx, false)
+    if unsupported then printMessage("The stored data uses an unsupported format."); return end
     if not house then printMessage("Save a layout in this house first."); return end
     if text == "" or text == nil then
         printMessage("Load on entry: " .. (autoPresetName(house) or "None") .. ".")
@@ -1034,8 +1039,8 @@ end
 local function openSettings()
     local LAM = LibAddonMenu2
     if type(LAM) == "table" and addon.settingsPanel and type(LAM.OpenToPanel) == "function" then
-        local ok = pcall(function() LAM:OpenToPanel(addon.settingsPanel) end)
-        if ok then return end
+        LAM:OpenToPanel(addon.settingsPanel)
+        return
     end
     help()
 end
@@ -1047,9 +1052,10 @@ local function retryLast()
         printMessage("Nothing to retry: the last restore had no failed instances.")
         return
     end
-    local ctx = context()
+    local ctx = commandContext()
+    if not ctx then return end
     local house, unsupported = houseFor(ctx, false)
-    if unsupported then error("The stored data uses an unsupported format.") end
+    if unsupported then printMessage("The stored data uses an unsupported format."); return end
     if not house then printMessage("No layouts for this owner and house."); return end
     -- The states that restore was aiming at, kept by value rather than looked up
     -- by name: an undo restores the undo slot and rewrites it while doing so, so
@@ -1120,9 +1126,10 @@ end
 
 local function checkPreset(text)
     if busyReason() then return end
-    local ctx = context()
+    local ctx = commandContext()
+    if not ctx then return end
     local house, unsupported = houseFor(ctx, false)
-    if unsupported then error("The stored data uses an unsupported format.") end
+    if unsupported then printMessage("The stored data uses an unsupported format."); return end
     if not house then printMessage("No layouts for this owner and house."); return end
     local name = layoutName(text, DEFAULT_PRESET, house.presets)
     if not name then printMessage(INVALID_LAYOUT_NAME); return end
@@ -1177,7 +1184,8 @@ end
 
 local function listItems(text)
     if busyReason() then return end
-    local ctx = context()
+    local ctx = commandContext()
+    if not ctx then return end
     local filter = string.lower((text or ""):match("^%s*(.-)%s*$"))
     scanJob = beginScan(ctx, "list", function(live)
         reportList(live, filter)
@@ -1203,10 +1211,9 @@ end
 local function maybeAutoRestore()
     if not settings().autoRestore then return end
     if job or scanJob or autoJob then return end
-    local ok, ctx = pcall(context)
-    if not ok then return end
-    local okHouse, house = pcall(houseFor, ctx, false)
-    if not okHouse then return end
+    local ctx = context()
+    if not ctx then return end
+    local house = houseFor(ctx, false)
     -- Ignored here when this house has no auto-restore preset: entering a house
     -- never restores a preset chosen for another one.
     local name = autoPresetName(house)
@@ -1217,8 +1224,6 @@ local function maybeAutoRestore()
 end
 
 -- ===== update loop =====
-
-local update
 
 local function abort(reason)
     local mode = activeMode
@@ -1240,7 +1245,7 @@ local function abort(reason)
     end
 end
 
-function update()
+local function update()
     if autoJob then
         autoJob.ticks = autoJob.ticks - 1
         if autoJob.ticks <= 0 then runAutoRestore() end
@@ -1248,7 +1253,13 @@ function update()
     end
     if scanJob then
         local scan = scanJob
-        if not scanChunk(scan) then return end
+        if not sameContext(scan.ctx, context()) then
+            cancel("the house or owner changed")
+            return
+        end
+        local done, reason = scanChunk(scan)
+        if reason then abort(reason); return end
+        if not done then return end
         EVENT_MANAGER:UnregisterForUpdate(UPDATE)
         -- Keep scanJob set while the continuation runs so a cancellation inside it
         -- can still identify the phase; only clear it if nothing replaced it.
@@ -1265,13 +1276,22 @@ function update()
     end
 end
 
-local function guardedUpdate()
-    local ok, err = pcall(update)
-    if not ok then abort(err) end
+-- Schedule one tick at a time so an exception reaches ESO without repeating
+-- on every timer tick. A phase can replace the timer with a new interval.
+local scheduledInterval
+local function runUpdate()
+    local interval = scheduledInterval
+    scheduledInterval = nil
+    EVENT_MANAGER:UnregisterForUpdate(UPDATE)
+    update()
+    if not scheduledInterval and (job or scanJob or autoJob) then
+        scheduleUpdate(interval)
+    end
 end
 
 function scheduleUpdate(intervalMs)
-    EVENT_MANAGER:RegisterForUpdate(UPDATE, intervalMs, guardedUpdate)
+    scheduledInterval = intervalMs
+    EVENT_MANAGER:RegisterForUpdate(UPDATE, intervalMs, runUpdate)
 end
 
 -- ===== settings UI =====
@@ -1280,16 +1300,13 @@ end
 -- something while standing inside one of your own houses. These helpers answer
 -- that question safely from inside the UI callbacks.
 function addon.CurrentHouse()
-    local ok, ctx = pcall(context)
-    if not ok or not ctx then return nil end
-    local okHouse, house = pcall(houseFor, ctx, false)
-    if not okHouse then return nil end
-    return house
+    local ctx = context()
+    if not ctx then return nil end
+    return (houseFor(ctx, false))
 end
 
 function addon.InPlayerHouse()
-    local ok = pcall(context)
-    return ok
+    return context() ~= nil
 end
 
 function addon.HousePresetNames()
@@ -1319,11 +1336,11 @@ addon.saveNameDraft = addon.saveNameDraft or ""
 -- having taken focus away from the box first. The draft is used when LAM is
 -- absent or the box was never built.
 local function draftPresetName()
-    local box = _G.ChimersRecallSaveNameBox
+    local box = addon.saveNameControl
     local editbox = box and box.editbox
     if editbox and type(editbox.GetText) == "function" then
-        local ok, text = pcall(editbox.GetText, editbox)
-        if ok and type(text) == "string" then return text end
+        local text = editbox:GetText()
+        if type(text) == "string" then return text end
     end
     return addon.saveNameDraft
 end
@@ -1347,7 +1364,7 @@ local function registerConfirmation(action)
     if confirmationDialogs[action] then return confirmationDialogs[action] end
     if type(ZO_Dialogs_RegisterCustomDialog) ~= "function" then return nil end
     local name = "ChimersRecallConfirm" .. action
-    local ok = pcall(ZO_Dialogs_RegisterCustomDialog, name, {
+    ZO_Dialogs_RegisterCustomDialog(name, {
         title = { text = action .. " saved layout?" },
         mainText = { text = function(dialog) return dialog.data.message end },
         buttons = {
@@ -1355,13 +1372,15 @@ local function registerConfirmation(action)
             { text = "Cancel" },
         },
     })
-    if ok then confirmationDialogs[action] = name; return name end
+    confirmationDialogs[action] = name
+    return name
 end
 
 askConfirmation = function(action, message, callback)
     local dialog = registerConfirmation(action)
     if not dialog or type(ZO_Dialogs_ShowDialog) ~= "function" then return false end
-    return pcall(ZO_Dialogs_ShowDialog, dialog, { message = message, onConfirm = callback })
+    ZO_Dialogs_ShowDialog(dialog, { message = message, onConfirm = callback })
+    return true
 end
 
 function addon.SavePresetFromPanel()
@@ -1412,7 +1431,7 @@ local function registerSettingsUI()
           end },
         { type = "editbox", name = "New Layout Name",
           tooltip = "Leave blank to save as default. Spaces are removed. Replacing a layout requires confirmation.",
-          reference = "ChimersRecallSaveNameBox",
+          controlKey = "saveNameControl",
           getFunc = function() return addon.saveNameDraft end,
           setFunc = function(value) addon.saveNameDraft = value or "" end,
           disabled = outsideHouse },
@@ -1420,7 +1439,7 @@ local function registerSettingsUI()
         { type = "dropdown", name = "Saved Layout",
           tooltip = "Choose the layout to load, delete or compare.",
           choices = addon.HousePresetNames(), scrollable = true,
-          reference = "ChimersRecallRestoreDropdown",
+          controlKey = "layoutDropdown",
           getFunc = addon.RestoreChoice,
           setFunc = function(value) addon.restorePresetChoice = value end,
           disabled = function() return outsideHouse() or #addon.HousePresetNames() == 0 end },
@@ -1430,7 +1449,7 @@ local function registerSettingsUI()
         { type = "dropdown", name = "Load on Entry",
           tooltip = "Choose which layout loads in this house when automatic loading is enabled.",
           choices = entryLabels, choicesValues = entryValues, scrollable = true,
-          reference = "ChimersRecallPresetDropdown",
+          controlKey = "entryDropdown",
           getFunc = function() return addon.CurrentDefaultPreset() or "" end,
           setFunc = function(value)
               if value == "" then
@@ -1490,11 +1509,11 @@ local function registerSettingsUI()
     }
     LAM:RegisterOptionControls("ChimersRecallOptions", options)
     refreshLayoutChoices = function()
-        local selected = _G.ChimersRecallRestoreDropdown
+        local selected = addon.layoutDropdown
         if selected and type(selected.UpdateChoices) == "function" then
             selected:UpdateChoices(addon.HousePresetNames())
         end
-        local entry = _G.ChimersRecallPresetDropdown
+        local entry = addon.entryDropdown
         if entry and type(entry.UpdateChoices) == "function" then
             entry:UpdateChoices(entryChoices())
         end
@@ -1503,6 +1522,14 @@ local function registerSettingsUI()
         end
     end
     if CALLBACK_MANAGER and type(CALLBACK_MANAGER.RegisterCallback) == "function" then
+        CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", function(created)
+            if created ~= panel then return end
+            for _, control in ipairs(panel.controlsToRefresh or {}) do
+                local key = control.data and control.data.controlKey
+                if key then addon[key] = control end
+            end
+            refreshLayoutChoices()
+        end)
         CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(opened)
             if opened == panel then refreshLayoutChoices() end
         end)
@@ -1528,7 +1555,7 @@ local function barTest()
     ui.fill:SetWidth(math.floor(ui.width * 0.5))
     ui.panel:SetHidden(false)
     if type(ui.panel.BringWindowToTop) == "function" then
-        pcall(ui.panel.BringWindowToTop, ui.panel)
+        ui.panel:BringWindowToTop()
     end
     printMessage("Bar test: the panel is showing for 6 seconds. Nothing is being restored and CANCEL does nothing here.")
     if type(zo_callLater) == "function" then
@@ -1567,8 +1594,7 @@ function addon.HandleSlashCommand(args)
     local command, rest = text:match("^(%S*)%s*(.*)$")
     local action = commands[string.lower(command or "")]
     if not action then printMessage("Unknown command. Use /cr help for the command list."); return end
-    local ok, err = pcall(action, rest)
-    if not ok then printMessage(tostring(err):gsub("^.-:%d+: ", "")) end
+    action(rest)
 end
 
 local function onLoaded(_, addonName)

@@ -296,25 +296,23 @@ end
 
 -- Kept short on purpose: what the scan is doing, and how many buys this trader has.
 local function traderText(fresh)
-    local _, here = GetCurrentTradingHouseGuildDetails()
-    here = here or ""
-    local zone = zo_strformat("<<C:1>>", GetUnitZone("player"))
-    local lines = { "Gold Digger: " .. pageText(here, zone) }
+    local here, zone, _, _, atBank = GP.Scanner.StoreLocation()
+    local lines = { "Gold Digger: " .. (atBank and "Choose List what I bought to sell." or pageText(here, zone)) }
     if fresh then GP.Scanner.Report() end
     local report = GP.Scanner.CachedReport()
-    if report and not GP.Scanner.IsScanning() then
+    if report and not GP.Scanner.IsScanning() and not atBank then
         local count = 0
         for _, row in ipairs(report.rows) do
-            if row.listing.t == here and row.listing.z == zone then count = count + 1 end
+            if row.listing.t == here then count = count + 1 end
         end
         if count > 0 then
             lines[#lines + 1] = count .. (count == 1 and " buy" or " buys") .. " here. Open the report for details."
         end
     end
-    if #GP.sv.stock > 0 and not GP.Scanner.IsScanning() then
+    if #GP.sv.stock > 0 and not GP.Scanner.IsScanning() and not atBank then
         lines[#lines + 1] = #GP.sv.stock .. " bought. To sell, choose List what I bought."
     end
-    if not GP.Scanner.IsScanning() then
+    if not GP.Scanner.IsScanning() and not atBank then
         local ok, needs = pcall(GP.Levels.Shortfalls)
         if ok and #needs > 0 then lines[#lines + 1] = #needs .. " below stock level. Choose Restock materials." end
     end
@@ -752,6 +750,41 @@ local function stockLevelControls(LHAS)
             end,
         },
     }
+    local function writField(label, tooltip, read, write)
+        return {
+            type = LHAS.ST_EDIT, label = label, tooltip = tooltip,
+            getFunction = function() return tostring(read()) end,
+            setFunction = function(text)
+                if not text or text == "" then return end
+                local value = Interface.ParseGold(text)
+                if value then write(value) else GP.Alert("enter a whole number") end
+                refreshPage()
+            end,
+        }
+    end
+    add(controls, {
+        writField("Max-level writ characters",
+            "Characters making writs with top-tier materials. Your writ materials are kept at the level your characters need. What's below it goes on your restock list, and they're never sold as excess.",
+            function() return (Levels.WritPlan()) end, Levels.SetWritCharacters),
+        writField("Level 1 writ characters",
+            "Characters making writs with the lowest-tier materials, like Iron and Jute.",
+            function()
+                local _, _, low = Levels.WritPlan()
+                return low
+            end, Levels.SetWritLowCharacters),
+        writField("Days of writ supply to keep",
+            "How many days of materials to hold for those characters.",
+            function()
+                local _, days = Levels.WritPlan()
+                return days
+            end, Levels.SetWritDays),
+        {
+            type = LHAS.ST_BUTTON, label = "View writ supply", buttonText = "Open",
+            tooltip = "Shows what your writs need, what you have, and what to buy or sell.",
+            disable = function() return not GP.unlocked end,
+            clickHandler = function() GP.ReportScreen.Open("Writ Supply", Levels.WritText) end,
+        },
+    })
     for _, group in ipairs(Levels.GROUPS) do
         if group.canKeep then
             controls[#controls + 1] = levelField(group.label .. ": keep at least",
@@ -759,13 +792,15 @@ local function stockLevelControls(LHAS)
                 function() return (Levels.GroupSetting(group.id)) end,
                 function(value) Levels.SetGroup(group.id, "keep", value or 0) end)
         end
-        controls[#controls + 1] = levelField(group.label .. ": sell above",
-            "Anything over this can be sold as excess.",
-            function()
-                local _, sell = Levels.GroupSetting(group.id)
-                return sell
-            end,
-            function(value) Levels.SetGroup(group.id, "sell", value) end)
+        if not group.neverSell then
+            controls[#controls + 1] = levelField(group.label .. ": sell above",
+                "Anything over this can be sold as excess.",
+                function()
+                    local _, sell = Levels.GroupSetting(group.id)
+                    return sell
+                end,
+                function(value) Levels.SetGroup(group.id, "sell", value) end)
+        end
     end
     add(controls, {
         { type = LHAS.ST_LABEL, label = unlockedText(function()

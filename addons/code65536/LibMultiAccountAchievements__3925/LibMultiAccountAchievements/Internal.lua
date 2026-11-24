@@ -198,10 +198,9 @@ function Internal.Refresh( )
 	EVENT_MANAGER:RegisterForUpdate(Internal.name, Internal.scanThrottle, Internal.ScanAchievements, true)
 end
 
+local resultsA = { }
+local resultsC = { }
 function Internal.ScanAchievements( )
-	local resultsA = { }
-	local resultsC = { }
-
 	for id = 1, Internal.GetMaxAchievementId() do
 		local progress = ""
 		local sum = 0
@@ -262,6 +261,9 @@ function Internal.ScanAchievements( )
 	-- Invalidate the cache
 	Internal.cache[AccountKey()] = nil
 	Internal.cache[Internal.charId] = nil
+
+	ZO_ClearTable(resultsA)
+	ZO_ClearTable(resultsC)
 end
 
 

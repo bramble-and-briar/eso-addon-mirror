@@ -8,6 +8,14 @@
   "category_id": "53",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     },
@@ -70,7 +78,7 @@
     "LibMultiAccountCollectibles"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3320/",
-  "fingerprint": "5aac582f8b2fd7fecba13fc200994b013ab33af295467a17ef15bc4f83e131db",
+  "fingerprint": "e79e5d8d42fbaace88af46781c9e2d0b0c248b43537d2bc05cc06ca6ae364d05",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -78,11 +86,11 @@
   "source_id": "3320",
   "source_url": "https://www.esoui.com/downloads/info3320-LibMultiAccountCollectibles.html",
   "stats": {
-    "downloads": 152332,
-    "favorites": 63,
-    "monthly_downloads": 4187
+    "downloads": 158998,
+    "favorites": 65,
+    "monthly_downloads": 888
   },
   "title": "LibMultiAccountCollectibles",
-  "updated_at": 1785798142000,
-  "version": "1.2.5.1"
+  "updated_at": 1795533028000,
+  "version": "1.2.6"
 }

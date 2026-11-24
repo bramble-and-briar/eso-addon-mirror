@@ -65,7 +65,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Who Wants Spaulder?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/Who-Wants-Spaulder__4052) | SkullElf | PC / Mac | 2.1.0 |
 | [Whoison?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/broekman/Whoison__4079) | broekman | PC / Mac | 1.0.0 |
 | [Wide Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagaris/Wide-Tooltips__3785) | Tagaris | PC / Mac | 1.0.1 |
-| [Wifey DPS Positions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Wifey-DPS-Positions__4861) | its_wifey | PC / Mac | 1.8 |
+| [Wifey DPS Positions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Wifey-DPS-Positions__4861) | its_wifey | PC / Mac | 1.8.3 |
 | [WifeyRytic's Magma Shell Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/WifeyRytic-s-Magma-Shell-Tracker__4821) | its_wifey | PC / Mac | 1.2 |
 | [WIIt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/WIIt__836b1e5f-ac9c-4e14-bb7f-7697ca3d6707) | user562x | Console | — |
 | [Wiki Links](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Wiki-Links__3005) | kawamonkey | PC / Mac | 1.0 |

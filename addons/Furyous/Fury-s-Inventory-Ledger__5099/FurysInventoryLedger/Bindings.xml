@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Fury's Inventory Ledger">
+            <Action name="FURYSINVENTORYLEDGER_SUMMARY">
+                <Down>FurysInventoryLedger.ToggleSummary()</Down>
+            </Action>
+            <Action name="FURYSINVENTORYLEDGER_COPY">
+                <Down>FurysInventoryLedger.ToggleCopy()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

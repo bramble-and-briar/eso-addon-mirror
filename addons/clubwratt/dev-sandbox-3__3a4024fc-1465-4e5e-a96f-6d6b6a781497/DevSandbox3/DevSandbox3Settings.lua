@@ -152,7 +152,7 @@ function Settings.Initialize()
     Add(Section(LAS, "DEBUG"))
     Add({ type = LAS.ST_BUTTON, label = "EXPORT LOG", buttonText = "Export", tooltip = "Send the buffered log to the LibConsoleLogger receiver.", clickHandler = function() DevSandbox3.LogUtils.Export() end })
     Add(Check(LAS, "CYAN NODE DOTS", "debugNodes", "Where the compass says each nearby node is. Must sit on top of real nodes."))
-    Add(Check(LAS, "LOGGING", "debug"))
+    Add(Check(LAS, "LOGGING", "debug", "Write the detection log to chat and LibConsoleLogger. Off: nothing is logged."))
 end
 
 DevSandbox3.Settings = Settings

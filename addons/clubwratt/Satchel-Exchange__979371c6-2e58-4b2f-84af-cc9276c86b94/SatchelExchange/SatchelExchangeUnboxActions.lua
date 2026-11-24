@@ -7,6 +7,10 @@
 --           a purchase), filtered by the "open on arrival" setting
 --   manual  UnboxAll: every container in the backpack (the LibRadialMenu
 --           entry and the settings button)
+--
+-- Geodes and the game's "Unopened" items (stacked treasure maps, survey
+-- reports, master writs) are opened by auto and manual only while their own
+-- setting is on; both are off by default.
 --   vendor  the satchel a settled Satchel Exchange run bought; StoreActions
 --           leaves its link in unbox.pendingItemLink and the next
 --           interaction-end event starts waiting for it
@@ -175,6 +179,9 @@ local function IsEligible(slotIndex, source)
         return false
     end
     if kind == "geode" and not settings.openGeodes then
+        return false
+    end
+    if kind == "unopened" and not settings.openUnopened then
         return false
     end
     if source == SOURCE_MANUAL then

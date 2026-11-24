@@ -22,7 +22,7 @@
     "TargetFrameLine"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5095/",
-  "fingerprint": "1c75402446791b5c4c2f18f420219202599967d7d3113653feb611305cc060f1",
+  "fingerprint": "9b5e0982b3e1c7f4bd15792e67ed296dfc91b36a7efcaa925d04cf9e7f2484bc",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18688.png",
     "https://cdn-eso.mmoui.com/preview/pvw18689.png"
@@ -33,11 +33,11 @@
   "source_id": "5095",
   "source_url": "https://www.esoui.com/downloads/info5095-TargetFrameLine.html",
   "stats": {
-    "downloads": 3,
+    "downloads": 15,
     "favorites": 0,
-    "monthly_downloads": 1
+    "monthly_downloads": 9
   },
   "title": "Target Frame Line",
-  "updated_at": 1795289935000,
-  "version": "1.2.0"
+  "updated_at": 1795475542000,
+  "version": "1.2.1"
 }

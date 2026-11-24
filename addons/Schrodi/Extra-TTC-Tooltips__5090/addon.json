@@ -8,6 +8,10 @@
   "category_id": "94",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "ExtraTTCTooltips"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5090/",
-  "fingerprint": "cb67a1b0126308979220ee2e6fb3c5862e51ac742751fc47787829a2bd867fa5",
+  "fingerprint": "a4462cbeba04357ea817a6e30af175838562834f01d6bbac825841d69c714ea9",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18682.png"
   ],
@@ -28,11 +32,11 @@
   "source_id": "5090",
   "source_url": "https://www.esoui.com/downloads/info5090-ExtraTTCTooltips.html",
   "stats": {
-    "downloads": 13,
+    "downloads": 27,
     "favorites": 0,
-    "monthly_downloads": 11
+    "monthly_downloads": 20
   },
   "title": "Extra TTC Tooltips",
-  "updated_at": 1795274967000,
-  "version": "1.1"
+  "updated_at": 1795475729000,
+  "version": "1.1.1"
 }

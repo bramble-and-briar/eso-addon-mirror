@@ -69,9 +69,10 @@ local function nextItem()
 end
 
 local function nextItemHere()
-    local here = GP.Scanner.CurrentPlace()
+    -- A guild holds one trader, so its name is enough, even if its zone was only known by town
+    local here = GP.Scanner.StoreLocation()
     for _, item in ipairs(run().items) do
-        if item.status == "todo" and place(item) == here then return item end
+        if item.status == "todo" and item.t == here then return item end
     end
     return nil
 end
@@ -336,6 +337,10 @@ function Run.StartRestock()
         GP.Alert("finish or stop your current run first")
         return false
     end
+    if select(5, GP.Scanner.StoreLocation()) then
+        GP.Alert("restock at a guild trader. Banks are just for selling")
+        return false
+    end
     local items = {}
     for _, need in ipairs(GP.Levels.Shortfalls()) do
         items[#items + 1] = {
@@ -366,7 +371,7 @@ local function findRestock(item, numItems)
             and (budget <= 0 or spent + price <= budget)
             and (not item.maxUnit or price / stack <= item.maxUnit + 0.001) then
             local link = GetTradingHouseSearchResultItemLink(index)
-            if link and link ~= "" and GP.Scanner.KeyFor(link) == item.key then
+            if link and link ~= "" and GetItemLinkItemId(link) == GetItemLinkItemId(item.link) then
                 item.q, item.total, item.unit = stack, price, price / stack
                 return index
             end

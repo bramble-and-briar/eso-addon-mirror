@@ -20,19 +20,6 @@ function TravelWheelCatalogUtils.SortByName(list)
     return list
 end
 
----Owned houses first, then by name.
----@param houses TravelWheelHouse[]
----@return TravelWheelHouse[] houses The same table, sorted
-function TravelWheelCatalogUtils.SortHouses(houses)
-    table.sort(houses, function(a, b)
-        if a.owned ~= b.owned then
-            return a.owned
-        end
-        return a.name < b.name
-    end)
-    return houses
-end
-
 ---The zone the map shows for where a player stands: a city or delve reports
 ---its own zone id with the surrounding zone as its parent.
 ---@param zoneId integer

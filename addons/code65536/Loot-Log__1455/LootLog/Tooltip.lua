@@ -162,7 +162,7 @@ function LootLog.HookAntiquityTooltips( )
 	if (AreAntiquityTooltipsHooked or not LootLog.vars.antiquityEnabled) then return end
 	AreAntiquityTooltipsHooked = true
 
-	do -- Antiquity Leads
+	do -- Antiquity leads
 		local TooltipHook = function( control, functionName, leadFunction )
 			ZO_PostHook(control, functionName, function( self, ... )
 				if (LootLog.vars.antiquityEnabled) then
@@ -181,32 +181,12 @@ function LootLog.HookAntiquityTooltips( )
 		TooltipHook(ItemTooltip, "SetLootItem", GetLootAntiquityLeadId)
 	end
 
-	do -- Treasure Maps
-		local TooltipHook = function( control, functionName, linkFunction )
-			ZO_PostHook(control, functionName, function( self, ... )
-				if (LootLog.vars.antiquityEnabled) then
-					LootLog.AddTreasureMapTooltipExtension(control, linkFunction(...))
-				end
-			end)
+	-- Physical items (e.g, treasure maps and tradeable leads)
+	LEJ.HookItemTooltips(function( control, functionName, itemLink, sourceContext )
+		if (LootLog.vars.antiquityEnabled) then
+			LootLog.AddTreasureMapTooltipExtension(control, itemLink)
 		end
-
-		local ItemLinkPassthrough = function( itemLink )
-			return itemLink
-		end
-
-		TooltipHook(PopupTooltip, "SetLink", ItemLinkPassthrough)
-		TooltipHook(ItemTooltip, "SetLink", ItemLinkPassthrough)
-		TooltipHook(ItemTooltip, "SetBagItem", GetItemLink)
-		TooltipHook(ItemTooltip, "SetTradeItem", GetTradeItemLink)
-		TooltipHook(ItemTooltip, "SetBuybackItem", GetBuybackItemLink)
-		TooltipHook(ItemTooltip, "SetStoreItem", GetStoreItemLink)
-		TooltipHook(ItemTooltip, "SetAttachedMailItem", GetAttachedItemLink)
-		TooltipHook(ItemTooltip, "SetLootItem", GetLootItemLink)
-		TooltipHook(ItemTooltip, "SetReward", GetItemRewardItemLink)
-		TooltipHook(ItemTooltip, "SetQuestReward", GetQuestRewardItemLink)
-		TooltipHook(ItemTooltip, "SetTradingHouseItem", GetTradingHouseSearchResultItemLink)
-		TooltipHook(ItemTooltip, "SetTradingHouseListing", GetTradingHouseListingItemLink)
-	end
+	end)
 end
 
 LCCC.RunAfterInitialLoadscreen(LootLog.HookAntiquityTooltips)

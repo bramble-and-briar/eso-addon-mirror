@@ -2,7 +2,7 @@
 -- A column is { title =, width =, value = function(name, c, m) -> number or text,
 --               max = number or function(c) (makes it a progress cell), align =, tip =,
 --               pick = { field =, values = } (click for a dropdown of your own picks) }.
-local CT = FuryCT
+local CT = FurysCharacterTracker
 local U = CT.Util
 local Win = {}
 CT.Window = Win
@@ -13,12 +13,14 @@ local MAX_CELLS = 16
 local GAP = 6
 local NAME_WIDTH = 184
 
--- Colors: gold tile = maxed, light text = in progress, dim dash = not started.
-local GOLD = { 0.83, 0.69, 0.22 }
-local INK = { 0.10, 0.07, 0.02 }
-local PARCH = { 0.89, 0.83, 0.71 }
-local DIM = { 0.45, 0.40, 0.33 }
-local MANUAL = { 0.62, 0.78, 0.95 }   -- cells you pick from a dropdown
+-- Colors: violet tile = maxed, white text = in progress, dim dash = not started.
+local T = CT.Theme                    -- Fury Night colors and fonts (UI/Theme.lua)
+local GOLD = T.RGB.VIOLET             -- maxed tiles and totals
+local INK = T.RGB.VOID                -- text on a maxed tile
+local PARCH = T.RGB.TEXT
+local DIM = T.RGB.MUTED
+local MANUAL = T.RGB.BLUE             -- cells you pick from a dropdown
+local HEAD = T.RGB.BLUE               -- column headers
 
 -- Columns -----------------------------------------------------------------------------
 
@@ -137,7 +139,7 @@ local SLOTS = { title = "Slots", width = 84,
                 value = function(_, c) return (R.Summary(c)) end,
                 display = function(v, c) local _, slots = R.Summary(c); return slots > 0 and (v .. "/" .. slots) or "-" end,
                 dim = function(_, c) local _, slots = R.Summary(c); return slots == 0 end,
-                tip = "Research slots busy right now, across the crafts that still have traits to learn.\nGold = every slot working. Counts down live, even for characters you are not on." }
+                tip = "Research slots busy right now, across the crafts that still have traits to learn.\nViolet = every slot working. Counts down live, even for characters you are not on." }
 local NEXT_DONE = { title = "Next done", width = 104,
                     value = function(_, c) local _, _, nextIn = R.Summary(c); return nextIn or math.huge end,
                     display = function(v) return v == math.huge and "-" or R.Duration(v) end,
@@ -199,7 +201,7 @@ local function ChampionTree(index)
              tip = function(_, c)
                  local t = (c.cp or {})[index]
                  if not t then return "Not read yet" end
-                 return string.format("%s: %d spent, %d not spent\nGold = every point in this tree spent", t.name, t.spent, t.unspent)
+                 return string.format("%s: %d spent, %d not spent\nViolet = every point in this tree spent", t.name, t.spent, t.unspent)
              end }
 end
 -- Tree names come from the game; use the first character that has them.
@@ -321,29 +323,35 @@ local function SetTip(control, tipFn)
     control.furyTip = tipFn
     if not control.furyTipHooked then
         control.furyTipHooked = true
-        control:SetHandler("OnMouseEnter", function(self) if self.furyTip then ShowTip(self, self.furyTip()) end end)
-        control:SetHandler("OnMouseExit", HideTip)
+        control:SetHandler("OnMouseEnter", function(self)
+            if self.furyRow then T.RowHover(self.furyRow, true) end
+            if self.furyTip then ShowTip(self, self.furyTip()) end
+        end)
+        control:SetHandler("OnMouseExit", function(self)
+            if self.furyRow then T.RowHover(self.furyRow, false) end
+            HideTip()
+        end)
     end
 end
 
 -- Setup -------------------------------------------------------------------------------
 
 function Win:Initialize()
-    self.control = FuryCTWindow
-    self.list = FuryCTWindowList
-    SCENE_MANAGER:RegisterTopLevel(FuryCTWindow, false)
-    FuryCTWindow:SetHandler("OnHide", HideTip)
+    self.control = FurysCharacterTracker_Window
+    self.list = FurysCharacterTracker_WindowList
+    SCENE_MANAGER:RegisterTopLevel(FurysCharacterTracker_Window, false)
+    FurysCharacterTracker_Window:SetHandler("OnHide", HideTip)
 
-    ZO_ScrollList_AddDataType(self.list, ROW_TYPE, "FuryCT_Row", ROW_HEIGHT, function(control, data)
+    ZO_ScrollList_AddDataType(self.list, ROW_TYPE, "FurysCharacterTracker_Row", ROW_HEIGHT, function(control, data)
         self:SetupRow(control, data)
     end)
 
     -- Column headers, made once and reused by every view.
     self.headers = {}
     for i = 1, MAX_CELLS do
-        local label = WINDOW_MANAGER:CreateControl("FuryCTWindowHeaderCol" .. i, FuryCTWindowHeader, CT_LABEL)
-        label:SetFont("ZoFontGameBold")
-        label:SetColor(GOLD[1], GOLD[2], GOLD[3], 1)
+        local label = WINDOW_MANAGER:CreateControl("FurysCharacterTracker_WindowHeaderCol" .. i, FurysCharacterTracker_WindowHeader, CT_LABEL)
+        label:SetFont(T.FONT_HEADER)
+        label:SetColor(HEAD[1], HEAD[2], HEAD[3], 1)
         label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
         label:SetMouseEnabled(true)
@@ -354,10 +362,10 @@ function Win:Initialize()
     -- View buttons.
     local previous
     for i, view in ipairs(self.VIEWS) do
-        local button = WINDOW_MANAGER:CreateControlFromVirtual("FuryCTWindowView" .. i, FuryCTWindowViews, "ZO_DefaultButton")
+        local button = WINDOW_MANAGER:CreateControlFromVirtual("FurysCharacterTracker_WindowView" .. i, FurysCharacterTracker_WindowViews, "ZO_DefaultButton")
         button:SetDimensions(120, 28)
         button:SetText(view.title)
-        if previous then button:SetAnchor(LEFT, previous, RIGHT, 6, 0) else button:SetAnchor(LEFT, FuryCTWindowViews, LEFT, 0, 0) end
+        if previous then button:SetAnchor(LEFT, previous, RIGHT, 6, 0) else button:SetAnchor(LEFT, FurysCharacterTracker_WindowViews, LEFT, 0, 0) end
         button:SetHandler("OnClicked", function() self:Show(view.id) end)
         if view.tip then SetTip(button, function() return view.tip end) end
         view.button = button
@@ -374,27 +382,27 @@ function Win:Initialize()
           fn = function() CT.Roster:ShowAll(); CT.Roster:BuildExportRows(); self:Refresh() end },
         { label = "Research timers", tip = "Every research slot on this account: what is researching, time left, and slots that are free.",
           fn = function() CT.Timers:Toggle() end },
-        { label = "Export to Excel", tip = "Saves the board and reloads the UI.\nWith Auto Export turned on (Windows Tools, a separate download linked on the addon page), ESO Characters.csv appears in Documents\\Elder Scrolls Online a few seconds later.",
+        { label = "Export to Excel", tip = "Saves the board and reloads the UI.\nWith Auto Export turned on (Windows Tools: /fct settings > Get the Windows Tools), ESO Characters.csv appears in Documents\\Elder Scrolls Online a few seconds later.",
           fn = function() CT.RequestExport() end },
     }
     previous = nil
     for i, def in ipairs(footer) do
-        local button = WINDOW_MANAGER:CreateControlFromVirtual("FuryCTWindowFooter" .. i, FuryCTWindowFooter, "ZO_DefaultButton")
+        local button = WINDOW_MANAGER:CreateControlFromVirtual("FurysCharacterTracker_WindowFooter" .. i, FurysCharacterTracker_WindowFooter, "ZO_DefaultButton")
         button:SetDimensions(150, 28)
         button:SetText(def.label)
-        if previous then button:SetAnchor(LEFT, previous, RIGHT, 8, 0) else button:SetAnchor(LEFT, FuryCTWindowFooter, LEFT, 0, 0) end
+        if previous then button:SetAnchor(LEFT, previous, RIGHT, 8, 0) else button:SetAnchor(LEFT, FurysCharacterTracker_WindowFooter, LEFT, 0, 0) end
         button:SetHandler("OnClicked", def.fn)
         SetTip(button, function() return def.tip end)
         previous = button
     end
 
-    FuryCTWindowLegend:SetText("|cD4AF37Gold|r maxed  ·  light in progress  ·  |c736654-|r none  ·  |c9EC7F2blue|r pick  ·  click details  ·  right-click remove")
-    FuryCTWindowSubtitle:SetText("v" .. CT.version .. "  ·  /fct")
+    FurysCharacterTracker_WindowLegend:SetText("|cA08CFFViolet|r maxed  ·  white in progress  ·  |c8A86B0-|r none  ·  |c5CC2FFblue|r pick  ·  click details  ·  right-click remove")
+    FurysCharacterTracker_WindowSubtitle:SetText("v" .. CT.version .. "  ·  /fct")
 
     -- Which account and megaserver you are looking at.
-    local picker = WINDOW_MANAGER:CreateControlFromVirtual("FuryCTWindowAccount", FuryCTWindow, "ZO_DefaultButton")
+    local picker = WINDOW_MANAGER:CreateControlFromVirtual("FurysCharacterTracker_WindowAccount", FurysCharacterTracker_Window, "ZO_DefaultButton")
     picker:SetDimensions(300, 28)
-    picker:SetAnchor(TOPRIGHT, FuryCTWindow, TOPRIGHT, -52, 12)
+    picker:SetAnchor(TOPRIGHT, FurysCharacterTracker_Window, TOPRIGHT, -52, 12)
     picker:SetHandler("OnClicked", function(control) Win.PickAccount(control) end)
     SetTip(picker, function()
         return "The account and megaserver on the board. Every account that plays on this PC shows up here after it logs in once with the addon on.\nOther accounts show what they saved at their last logout."
@@ -402,7 +410,7 @@ function Win:Initialize()
     self.accountButton = picker
 
     -- Settings: the gear left of the account button.
-    local gear = WINDOW_MANAGER:CreateControl("FuryCTWindowSettings", FuryCTWindow, CT_BUTTON)
+    local gear = WINDOW_MANAGER:CreateControl("FurysCharacterTracker_WindowSettings", FurysCharacterTracker_Window, CT_BUTTON)
     gear:SetDimensions(32, 32)
     gear:SetAnchor(RIGHT, picker, LEFT, -10, 0)
     gear:SetNormalTexture("/esoui/art/chatwindow/chat_options_up.dds")
@@ -419,24 +427,24 @@ function Win:Initialize()
 end
 
 function Win.SavePosition()
-    CT.sv.window = { x = FuryCTWindow:GetLeft(), y = FuryCTWindow:GetTop() }
+    CT.sv.window = { x = FurysCharacterTracker_Window:GetLeft(), y = FurysCharacterTracker_Window:GetTop() }
 end
 
 -- Show / hide -------------------------------------------------------------------------
 
 function Win:Toggle()
-    if FuryCTWindow:IsHidden() then self:Show() else self:Hide() end
+    if FurysCharacterTracker_Window:IsHidden() then self:Show() else self:Hide() end
 end
 
 function Win:Show(viewId)
     if viewId then CT.sv.lastView = viewId end
-    SCENE_MANAGER:ShowTopLevel(FuryCTWindow)
-    CT.Raise(FuryCTWindow)
+    SCENE_MANAGER:ShowTopLevel(FurysCharacterTracker_Window)
+    CT.Raise(FurysCharacterTracker_Window)
     self:Refresh()
 end
 
 function Win:Hide()
-    SCENE_MANAGER:HideTopLevel(FuryCTWindow)
+    SCENE_MANAGER:HideTopLevel(FurysCharacterTracker_Window)
 end
 
 function Win:RefreshIfShown()
@@ -451,9 +459,13 @@ local function EnsureCells(row)
     local base = row:GetName()
     for i = 1, MAX_CELLS do
         local tile = WINDOW_MANAGER:CreateControl(base .. "Tile" .. i, row, CT_TEXTURE)
+        -- Above the row's stripe (level 3) and hover highlight (level 5), under the cell text.
+        tile:SetDrawLayer(DL_BACKGROUND)
+        tile:SetDrawLevel(8)
         tile:SetColor(GOLD[1], GOLD[2], GOLD[3], 0.9)
         tile:SetHidden(true)
         local label = WINDOW_MANAGER:CreateControl(base .. "Cell" .. i, row, CT_LABEL)
+        label:SetDrawLayer(DL_TEXT)
         label:SetFont("ZoFontGame")
         label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
@@ -520,7 +532,7 @@ function Win.PickAccount(owner)
     ClearMenu()
     for _, entry in ipairs(CT.Accounts()) do
         local label = CT.ViewLabel(entry) .. (entry == CT.home and "  (you)" or "")
-        if entry.world == CT.view.world and entry.account == CT.view.account then label = "|cD4AF37" .. label .. "  <|r" end
+        if entry.world == CT.view.world and entry.account == CT.view.account then label = "|cA08CFF" .. label .. "  <|r" end
         AddMenuItem(label, function() CT.SetView(entry) end)
     end
     ShowMenu(owner)
@@ -532,7 +544,7 @@ function Win.Pick(owner, name, field, values)
     ClearMenu()
     for _, value in ipairs(values) do
         local label = (value == "") and "(none)" or value
-        if value == current then label = "|cD4AF37" .. label .. "  <|r" end
+        if value == current then label = "|cA08CFF" .. label .. "  <|r" end
         AddMenuItem(label, function()
             CT.Roster:SetManual(name, field, value)
             Win:Refresh()
@@ -557,11 +569,13 @@ function Win:SetupRow(row, data)
     local columns = self.columns
     LayoutCells(row, columns)
     row:GetNamedChild("Stripe"):SetHidden(data.stripe ~= true)
+    T.RowHover(row, false)
     local c, m = CT.Roster:Get(data.name)
     for i, cell in ipairs(row.cells) do
         local column = columns[i]
         if column then
             PaintCell(cell, column, data.name, c, m)
+            cell.label.furyRow = row
             local tip = column.tip
             SetTip(cell.label, function()
                 if type(tip) == "function" then return tip(data.name, c, m) end
@@ -583,7 +597,7 @@ end
 
 -- Totals row: how many characters have each column maxed (or the sum, for plain numbers).
 function Win:SetupTotals(names)
-    local row = FuryCTWindowTotals
+    local row = FurysCharacterTracker_WindowTotals
     EnsureCells(row)
     LayoutCells(row, self.columns)
     for i, cell in ipairs(row.cells) do
@@ -613,6 +627,7 @@ function Win:SetupTotals(names)
             cell.label:SetFont("ZoFontGameBold")
             cell.label:SetColor(GOLD[1], GOLD[2], GOLD[3], 1)
             SetTip(cell.label, nil)
+            cell.label.furyRow = nil
             cell.label:SetHandler("OnMouseUp", nil)
         end
     end
@@ -649,7 +664,7 @@ function Win:Refresh()
         if column then
             local arrow = (sort and sort.col == i) and (sort.desc and " v" or " ^") or ""
             label:ClearAnchors()
-            label:SetAnchor(LEFT, FuryCTWindowHeader, LEFT, x + 4, 0)
+            label:SetAnchor(LEFT, FurysCharacterTracker_WindowHeader, LEFT, x + 4, 0)
             label:SetDimensions(column.width - 8, 26)
             label:SetHorizontalAlignment(column.align or TEXT_ALIGN_CENTER)
             label:SetText(column.title .. arrow)
@@ -708,5 +723,5 @@ function Win:Refresh()
     elseif view.id == "daily" then
         summary = summary .. "  ·  writs reset at " .. os.date("%I:%M %p", D.LastReset(CT.view.world) + 86400) .. " your time"
     end
-    FuryCTWindowSummary:SetText(summary)
+    FurysCharacterTracker_WindowSummary:SetText(summary)
 end

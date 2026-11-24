@@ -22,10 +22,6 @@ The number turns a warning color at 0, so you see right away that you need to we
 
 The timer is only shown on the HUD, like the action bar.
 
-## Upgrading from UltimateRetarded
-
-This is the same addon under a new name, with settings. Delete the old `UltimateRetarded` folder. The old position is not carried over; the new default position sits next to the ultimate button.
-
 ## Requirements
 
 - LibAddonMenu-2.0

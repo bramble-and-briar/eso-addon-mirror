@@ -1,5 +1,6 @@
 -- Ref: docs/adr/0012-savedvars-account-wide-y-migracion-por-personaje.md
 -- Ref: docs/adr/0013-protocolo-versionado-de-esquema-y-migraciones-de-misiones.md
+-- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -10,6 +11,71 @@ local QuestMigration = Addon.QuestMigration
 -- Registry of sequential schema migrators keyed by source schemaVersion (vN -> vN+1).
 -- A migrator may return `false, reason` to flag a breaking PREPARED quest with `needsMigration = true`.
 QuestMigration.SCHEMA_MIGRATORS = QuestMigration.SCHEMA_MIGRATORS or {}
+
+QuestMigration.SCHEMA_MIGRATORS[1] = function(quest)
+    if type(quest) ~= "table" then
+        return true
+    end
+    local modes = Addon.Constants and Addon.Constants.STEALTH_MODE
+    local disabled = (modes and modes.DISABLED) or "disabled"
+    local optional = (modes and modes.OPTIONAL) or "optional"
+    local required = (modes and modes.REQUIRED) or "required"
+
+    local mode = quest.stealthMode
+    if mode ~= disabled and mode ~= optional and mode ~= required then
+        quest.stealthMode = (quest.requireUndetected == true) and optional or disabled
+    end
+    quest.requireUndetected = nil
+    return true
+end
+
+QuestMigration.SCHEMA_MIGRATORS[2] = function(quest)
+    if type(quest) ~= "table" then
+        return true
+    end
+    if quest.recommendHideMapAreas == nil then
+        quest.recommendHideMapAreas = (quest.hideMapArea == true)
+    end
+    quest.hideMapArea = nil
+
+    local defaultRad = (Addon.Constants and Addon.Constants.AREA_RADIUS and Addon.Constants.AREA_RADIUS.MEDIUM) or 0.125
+    local qCenterX = quest.areaCenterX
+    local qCenterY = quest.areaCenterY
+    local qRadius = tonumber(quest.areaRadius)
+    if not qRadius or qRadius <= 0 then
+        qRadius = defaultRad
+    end
+
+    if type(quest.targets) == "table" then
+        for _, target in ipairs(quest.targets) do
+            if type(target) == "table" then
+                if target.areaCenterX == nil and qCenterX ~= nil then
+                    target.areaCenterX = qCenterX
+                end
+                if target.areaCenterY == nil and qCenterY ~= nil then
+                    target.areaCenterY = qCenterY
+                end
+                if target.areaRadius == nil or (tonumber(target.areaRadius) or 0) <= 0 then
+                    target.areaRadius = qRadius
+                end
+                if type(target.customMessage) ~= "string" then
+                    target.customMessage = ""
+                end
+                if type(target.customMessageInLocation) ~= "string" then
+                    target.customMessageInLocation = ""
+                end
+                if type(target.customMessageOutsideLocation) ~= "string" then
+                    target.customMessageOutsideLocation = ""
+                end
+            end
+        end
+    end
+
+    quest.areaCenterX = nil
+    quest.areaCenterY = nil
+    quest.areaRadius = nil
+    return true
+end
 
 function QuestMigration:GetCurrentSchemaVersion()
     local schema = Addon.Constants and Addon.Constants.QUEST_SCHEMA

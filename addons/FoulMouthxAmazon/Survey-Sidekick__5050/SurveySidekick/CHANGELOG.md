@@ -1,5 +1,17 @@
 # Changelog
 
+Survey Sidekick 0.6.2
+
+- Added author/version and support links directly to the Extended Journal page.
+- Journal Website, Feedback, Buy Me a Coffee and Tip ESO Gold links work without LibAddonMenu.
+- Kept the journal footer at a fixed size in ESO journal colors.
+
+Survey Sidekick 0.6.1
+
+- Added the author/version footer with Website, Feedback and Donate links in Settings > Addons.
+- Added an optional ESO gold tip button that opens a mail draft to @FoulMouthxAmazon.
+- Added optional LibAddonMenu-2.0 support; install that library separately to see this panel.
+
 Survey Sidekick 0.6.0
 
 - Added optional Extended Journal integration with a fixed ESO-style layout,

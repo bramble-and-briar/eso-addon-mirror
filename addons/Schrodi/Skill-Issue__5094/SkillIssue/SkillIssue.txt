@@ -1,9 +1,10 @@
-## APIVersion: 101051
+## APIVersion: 101051 101052
 ## Title: Skill Issue
 ## Description: Blocks chosen skills from being cast: always, only in combat or only out of combat.
 ## Author: Schrodi
-## Version: 1.0
-## DependsOn: LibAddonMenu-2.0
+## Version: 1.0.1
+## AddOnVersion: 101
+## DependsOn: LibAddonMenu-2.0>=43
 ## SavedVariables: SkillIssue_SV
 
 SkillIssue.lua

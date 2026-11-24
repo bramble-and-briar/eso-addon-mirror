@@ -2,22 +2,22 @@
     <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
         <Category name="Fury's Guild Management">
             <Action name="FURYGMT_REPORT">
-                <Down>FuryGMT.Report:Toggle()</Down>
+                <Down>FurysGuildToolset.Report:Toggle()</Down>
             </Action>
             <Action name="FURYGMT_CRIER_MENU">
-                <Down>FuryGMT.Crier.KeyToggleMenu()</Down>
+                <Down>FurysGuildToolset.Crier.KeyToggleMenu()</Down>
             </Action>
             <Action name="FURYGMT_CRIER_POST">
-                <Down>FuryGMT.Crier.KeyPost()</Down>
+                <Down>FurysGuildToolset.Crier.KeyPost()</Down>
             </Action>
             <Action name="FURYGMT_RECRUIT_AD">
-                <Down>FuryGMT.Recruit.KeyAd()</Down>
+                <Down>FurysGuildToolset.Recruit.KeyAd()</Down>
             </Action>
             <Action name="FURYGMT_RECRUIT_TOUR">
-                <Down>FuryGMT.Recruit.KeyTour()</Down>
+                <Down>FurysGuildToolset.Recruit.KeyTour()</Down>
             </Action>
             <Action name="FURYGMT_RECRUIT_NEXT">
-                <Down>FuryGMT.Recruit.KeyNext()</Down>
+                <Down>FurysGuildToolset.Recruit.KeyNext()</Down>
             </Action>
         </Category>
     </Layer>

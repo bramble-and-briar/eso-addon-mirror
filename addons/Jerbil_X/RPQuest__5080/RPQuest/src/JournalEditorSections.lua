@@ -3,6 +3,7 @@
 -- Ref: docs/adr/0004-objetivos-multiples-inferidos-por-reticula.md
 -- Ref: docs/adr/0006-puntos-de-descubrimiento-ocultos.md
 -- Ref: docs/adr/0007-dialogos-inyectados-en-npcs-nativos.md
+-- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -36,9 +37,14 @@ function EditorSections.CreateAccordionSection(tab, formParent, panelName, key, 
         tab:ToggleEditorSection(key)
     end)
 
-    local body = WINDOW_MANAGER:CreateControl(panelName .. "_EdBody_" .. key, formParent, CT_CONTROL)
+    local body = WINDOW_MANAGER:CreateControl(panelName .. "_EdBody_" .. key, formParent, CT_SCROLL)
     body:SetDimensions(510, bodyHeight)
     body:SetAnchor(TOPLEFT, headerBtn, BOTTOMLEFT, 0, 10)
+
+    local isCollapsed = tab.editorSectionsCollapsed and tab.editorSectionsCollapsed[key] and true or false
+    local isOpen = not isCollapsed
+    local timeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("ZO_TreeOpenAnimation", body)
+    body:SetAlpha(isOpen and 1 or 0)
 
     local sec = {
         key = key,
@@ -47,6 +53,9 @@ function EditorSections.CreateAccordionSection(tab, formParent, panelName, key, 
         headerBtn = headerBtn,
         body = body,
         bodyHeight = bodyHeight,
+        timeline = timeline,
+        isOpen = isOpen,
+        openPercentage = isOpen and 1 or 0,
     }
     table.insert(tab.editorSections, sec)
     tab.editorSectionsByKey[key] = sec
@@ -114,92 +123,137 @@ function EditorSections.BuildBaseFields(tab, formParent, panelName)
 end
 
 function EditorSections.BuildTargetAreaControls(tab, targetBody, panelName)
-    local CreateStyledButton = Addon.JournalWidgets.CreateStyledButton
+    local CreateIconButton = Addon.JournalWidgets.CreateIconButton
+    local CreateCheckButton = Addon.JournalWidgets.CreateCheckButton
 
-    local lblCapturedTarget = WINDOW_MANAGER:CreateControl(panelName .. "_LblCapturedTarget", targetBody, CT_LABEL)
-    lblCapturedTarget:SetDimensions(360, 28)
-    lblCapturedTarget:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 4, 2)
-    if lblCapturedTarget.SetFont then lblCapturedTarget:SetFont("ZoFontGame") end
-    tab.lblCapturedTarget = lblCapturedTarget
+    local targetDropdown = WINDOW_MANAGER:CreateControlFromVirtual(panelName .. "_TargetDropdown", targetBody, "ZO_ComboBox")
+    targetDropdown:SetDimensions(436, 28)
+    targetDropdown:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 0)
+    tab.targetDropdown = targetDropdown
 
-    tab.btnClearTargets = CreateStyledButton(panelName .. "_BtnClearTargets", targetBody, 140, 24, Addon.Locale:Get("BTN_CLEAR_TARGETS"), function()
-        tab.selectedTargetIndex = nil
-        Addon.QuestRepository:ClearDraftTargets()
-    end)
-    tab.btnClearTargets:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 370, 0)
-    tab.btnClearTargets:SetHidden(true)
+    local targetCombo = ZO_ComboBox_ObjectFromContainer(targetDropdown)
+    if targetCombo then
+        targetCombo:SetSortsItems(false)
+        tab.targetComboBox = targetCombo
+    end
+
+    tab.btnRemoveTarget = CreateIconButton(
+        panelName .. "_BtnRemoveTarget", targetBody, 28,
+        "/esoui/art/buttons/decline_up.dds",
+        "/esoui/art/buttons/decline_down.dds",
+        "/esoui/art/buttons/decline_over.dds",
+        "/esoui/art/buttons/decline_disabled.dds",
+        Addon.Locale:Get("TOOLTIP_REMOVE_TARGET"),
+        function()
+            local idx = tab.selectedTargetIndex
+            if not idx then return end
+            local draft = Addon.QuestRepository:RemoveDraftTarget(idx)
+            local total = draft and #(draft.targets or {}) or 0
+            tab.selectedTargetIndex = (total > 0) and math.min(idx, total) or nil
+            tab:RefreshEditorPane()
+        end
+    )
+    tab.btnRemoveTarget:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 444, 0)
+
+    tab.btnClearTargets = CreateIconButton(
+        panelName .. "_BtnClearTargets", targetBody, 28,
+        "/esoui/art/inventory/inventory_tabicon_trash_up.dds",
+        "/esoui/art/inventory/inventory_tabicon_trash_down.dds",
+        "/esoui/art/inventory/inventory_tabicon_trash_over.dds",
+        nil,
+        Addon.Locale:Get("TOOLTIP_CLEAR_TARGETS"),
+        function()
+            tab.selectedTargetIndex = nil
+            Addon.QuestRepository:ClearDraftTargets()
+        end
+    )
+    tab.btnClearTargets:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 478, 0)
+
+    tab.chkTargetOptional = CreateCheckButton(
+        panelName .. "_ChkTargetOptional", targetBody,
+        Addon.Locale:Get("CHK_TARGET_OPTIONAL"),
+        function(isChecked)
+            local idx = tab.selectedTargetIndex
+            if idx then
+                Addon.QuestRepository:UpdateDraftTarget(idx, { optional = isChecked })
+            end
+        end
+    )
+    tab.chkTargetOptional:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 2, 36)
 
     local lblAreaSize = WINDOW_MANAGER:CreateControl(panelName .. "_LblAreaSize", targetBody, CT_LABEL)
-    lblAreaSize:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 36)
+    lblAreaSize:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 66)
     if lblAreaSize.SetFont then lblAreaSize:SetFont("ZoFontGameBold") end
     lblAreaSize:SetText(Addon.Locale:Get("LABEL_AREA_SIZE"))
     tab.lblAreaSize = lblAreaSize
 
-    local radii = Addon.Constants.AREA_RADIUS
-    tab.btnRadiusSmall = CreateStyledButton(panelName .. "_BtnRadSmall", targetBody, 110, 26, "", function()
-        Addon.QuestRepository:UpdateDraftFields({ areaRadius = radii.SMALL })
-    end)
-    tab.btnRadiusSmall:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 58)
+    local areaSizeDropdown = WINDOW_MANAGER:CreateControlFromVirtual(panelName .. "_AreaSizeDropdown", targetBody, "ZO_ComboBox")
+    areaSizeDropdown:SetDimensions(220, 28)
+    areaSizeDropdown:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 88)
+    tab.areaSizeDropdown = areaSizeDropdown
 
-    tab.btnRadiusMedium = CreateStyledButton(panelName .. "_BtnRadMedium", targetBody, 110, 26, "", function()
-        Addon.QuestRepository:UpdateDraftFields({ areaRadius = radii.MEDIUM })
-    end)
-    tab.btnRadiusMedium:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 120, 58)
-
-    tab.btnRadiusLarge = CreateStyledButton(panelName .. "_BtnRadLarge", targetBody, 110, 26, "", function()
-        Addon.QuestRepository:UpdateDraftFields({ areaRadius = radii.LARGE })
-    end)
-    tab.btnRadiusLarge:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 240, 58)
-
-    tab.btnHideMapArea = CreateStyledButton(panelName .. "_BtnHideMapArea", targetBody, 280, 26, Addon.Locale:Get("OPT_HIDE_MAP_AREA"), function()
-        local d = Addon.QuestRepository:GetDraft()
-        Addon.QuestRepository:UpdateDraftFields({ hideMapArea = not (d and d.hideMapArea) })
-    end)
-    tab.btnHideMapArea:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 94)
-end
-
-local function BuildTargetNavControls(tab, targetBody, panelName)
-    local CreateStyledButton = Addon.JournalWidgets.CreateStyledButton
-    local CycleIndex = Addon.JournalWidgets.CycleIndex
-
-    tab.btnTargetPrev = CreateStyledButton(panelName .. "_BtnTargetPrev", targetBody, 28, 24, "<", function()
-        local total = #(Addon.QuestRepository:GetDraft().targets or {})
-        local nextIdx = CycleIndex(tab.selectedTargetIndex, total, -1)
-        if nextIdx then tab.selectedTargetIndex = nextIdx; tab:RefreshEditorPane() end
-    end)
-    tab.btnTargetPrev:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 130)
-    tab.btnTargetPrev:SetHidden(true)
-
-    local lblTargetCfgIndex = WINDOW_MANAGER:CreateControl(panelName .. "_LblTargetCfgIndex", targetBody, CT_LABEL)
-    lblTargetCfgIndex:SetDimensions(300, 24)
-    lblTargetCfgIndex:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 34, 132)
-    if lblTargetCfgIndex.SetFont then lblTargetCfgIndex:SetFont("ZoFontGameBold") end
-    lblTargetCfgIndex:SetHidden(true)
-    tab.lblTargetCfgIndex = lblTargetCfgIndex
-
-    tab.btnTargetOptional = CreateStyledButton(panelName .. "_BtnTargetOptional", targetBody, 134, 24, "", function()
-        local idx = tab.selectedTargetIndex
-        local draft = Addon.QuestRepository:GetDraft()
-        local target = idx and draft.targets and draft.targets[idx]
-        if target then Addon.QuestRepository:UpdateDraftTarget(idx, { optional = target.optional ~= true }) end
-    end)
-    tab.btnTargetOptional:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 340, 130)
-    tab.btnTargetOptional:SetHidden(true)
-
-    tab.btnTargetNext = CreateStyledButton(panelName .. "_BtnTargetNext", targetBody, 28, 24, ">", function()
-        local total = #(Addon.QuestRepository:GetDraft().targets or {})
-        local nextIdx = CycleIndex(tab.selectedTargetIndex, total, 1)
-        if nextIdx then tab.selectedTargetIndex = nextIdx; tab:RefreshEditorPane() end
-    end)
-    tab.btnTargetNext:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 480, 130)
-    tab.btnTargetNext:SetHidden(true)
+    local areaCombo = ZO_ComboBox_ObjectFromContainer(areaSizeDropdown)
+    if areaCombo then
+        areaCombo:SetSortsItems(false)
+        local radii = Addon.Constants.AREA_RADIUS
+        local options = {
+            { radius = radii.SMALL, label = Addon.Locale:Get("BTN_RADIUS_SMALL") },
+            { radius = radii.MEDIUM, label = Addon.Locale:Get("BTN_RADIUS_MEDIUM") },
+            { radius = radii.LARGE, label = Addon.Locale:Get("BTN_RADIUS_LARGE") },
+        }
+        for _, opt in ipairs(options) do
+            local entry = areaCombo:CreateItemEntry(opt.label, function()
+                local idx = tab.selectedTargetIndex
+                if idx then
+                    Addon.QuestRepository:UpdateDraftTarget(idx, { areaRadius = opt.radius })
+                end
+            end)
+            entry.areaRadius = opt.radius
+            areaCombo:AddItem(entry)
+        end
+        tab.areaSizeComboBox = areaCombo
+    end
 end
 
 local function BuildTargetLocationControls(tab, targetBody, panelName)
     local CreateStyledButton = Addon.JournalWidgets.CreateStyledButton
+    local CreateIconButton = Addon.JournalWidgets.CreateIconButton
+    local CreateCheckButton = Addon.JournalWidgets.CreateCheckButton
     local CreateEditBox = Addon.JournalWidgets.CreateEditBoxWithBackdrop
 
-    tab.btnCaptureTargetLoc = CreateStyledButton(panelName .. "_BtnCaptureTargetLoc", targetBody, 136, 24, Addon.Locale:Get("BTN_CAPTURE_TARGET_LOC"), function()
+    local locDivider = WINDOW_MANAGER:CreateControl(panelName .. "_TargetLocDivider", targetBody, CT_TEXTURE)
+    locDivider:SetDimensions(510, 4)
+    locDivider:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 128)
+    locDivider:SetTexture(Addon.Constants.UI.DIVIDER_TEXTURE)
+    tab.targetLocDivider = locDivider
+
+    local lblLocHeader = WINDOW_MANAGER:CreateControl(panelName .. "_LblTargetLocHeader", targetBody, CT_LABEL)
+    lblLocHeader:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 140)
+    if lblLocHeader.SetFont then lblLocHeader:SetFont("ZoFontGameBold") end
+    lblLocHeader:SetText(Addon.Locale:Get("LABEL_TARGET_LOC_SECTION"))
+    tab.lblTargetLocHeader = lblLocHeader
+
+    tab.chkTargetLocRequired = CreateCheckButton(
+        panelName .. "_ChkTargetLocRequired", targetBody,
+        Addon.Locale:Get("CHK_TARGET_LOC_REQUIRED"),
+        function(isChecked)
+            local idx = tab.selectedTargetIndex
+            if idx then
+                Addon.QuestRepository:UpdateDraftTarget(idx, { locationRequired = isChecked })
+            end
+        end
+    )
+    tab.chkTargetLocRequired:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 110, 141)
+
+    local lblLocNote = WINDOW_MANAGER:CreateControl(panelName .. "_LblTargetLocNote", targetBody, CT_LABEL)
+    lblLocNote:SetDimensions(510, 34)
+    lblLocNote:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 166)
+    if lblLocNote.SetFont then lblLocNote:SetFont("ZoFontGameSmall") end
+    if lblLocNote.SetColor then lblLocNote:SetColor(0.76, 0.76, 0.76, 1) end
+    lblLocNote:SetText(Addon.Locale:Get("NOTE_TARGET_LOC_REQUIRED"))
+    tab.lblTargetLocNote = lblLocNote
+
+    tab.btnCaptureTargetLoc = CreateStyledButton(panelName .. "_BtnCaptureTargetLoc", targetBody, 140, 28, Addon.Locale:Get("BTN_CAPTURE_TARGET_LOC"), function()
         local idx = tab.selectedTargetIndex
         local draft = Addon.QuestRepository:GetDraft()
         if not (idx and draft.targets and draft.targets[idx]) then return end
@@ -214,65 +268,87 @@ local function BuildTargetLocationControls(tab, targetBody, panelName)
             Addon.Announcements:ShowAlert(Addon.Locale:Get("ALERT_TARGET_LOC_CAPTURED", updated.name or "", meters), false)
         end
     end)
-    tab.btnCaptureTargetLoc:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 160)
-    tab.btnCaptureTargetLoc:SetHidden(true)
+    tab.btnCaptureTargetLoc:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 206)
 
-    tab.btnClearTargetLoc = CreateStyledButton(panelName .. "_BtnClearTargetLoc", targetBody, 114, 24, Addon.Locale:Get("BTN_CLEAR_TARGET_LOC"), function()
-        if tab.selectedTargetIndex then Addon.QuestRepository:ClearDraftTargetLocation(tab.selectedTargetIndex) end
-    end)
-    tab.btnClearTargetLoc:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 144, 160)
-    tab.btnClearTargetLoc:SetHidden(true)
+    tab.btnClearTargetLoc = CreateIconButton(
+        panelName .. "_BtnClearTargetLoc", targetBody, 28,
+        "/esoui/art/buttons/decline_up.dds",
+        "/esoui/art/buttons/decline_down.dds",
+        "/esoui/art/buttons/decline_over.dds",
+        "/esoui/art/buttons/decline_disabled.dds",
+        Addon.Locale:Get("TOOLTIP_CLEAR_TARGET_LOC"),
+        function()
+            if tab.selectedTargetIndex then
+                Addon.QuestRepository:ClearDraftTargetLocation(tab.selectedTargetIndex)
+            end
+        end
+    )
+    tab.btnClearTargetLoc:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 148, 206)
 
-    tab.btnTargetLocRequired = CreateStyledButton(panelName .. "_BtnTargetLocReq", targetBody, 170, 24, "", function()
-        local idx = tab.selectedTargetIndex
-        local draft = Addon.QuestRepository:GetDraft()
-        local target = idx and draft.targets and draft.targets[idx]
-        if target then Addon.QuestRepository:UpdateDraftTarget(idx, { locationRequired = target.locationRequired ~= true }) end
-    end)
-    tab.btnTargetLocRequired:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 266, 160)
-    tab.btnTargetLocRequired:SetHidden(true)
+    local locRadDropdown = WINDOW_MANAGER:CreateControlFromVirtual(panelName .. "_TargetLocRadDropdown", targetBody, "ZO_ComboBox")
+    locRadDropdown:SetDimensions(180, 28)
+    locRadDropdown:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 184, 206)
+    tab.targetLocRadDropdown = locRadDropdown
 
-    local discRadii = Addon.Constants.DISCOVERY_RADIUS
-    local function SetTargetLocRad(rad)
-        if tab.selectedTargetIndex then Addon.QuestRepository:UpdateDraftTarget(tab.selectedTargetIndex, { radius = rad }) end
+    local locRadCombo = ZO_ComboBox_ObjectFromContainer(locRadDropdown)
+    if locRadCombo then
+        locRadCombo:SetSortsItems(false)
+        local discRadii = Addon.Constants.DISCOVERY_RADIUS
+        local options = {
+            { radius = discRadii.SMALL, label = Addon.Locale:Get("BTN_RADIUS_SMALL") },
+            { radius = discRadii.MEDIUM, label = Addon.Locale:Get("BTN_RADIUS_MEDIUM") },
+            { radius = discRadii.LARGE, label = Addon.Locale:Get("BTN_RADIUS_LARGE") },
+        }
+        for _, opt in ipairs(options) do
+            local entry = locRadCombo:CreateItemEntry(opt.label, function()
+                if tab.selectedTargetIndex then
+                    Addon.QuestRepository:UpdateDraftTarget(tab.selectedTargetIndex, { radius = opt.radius })
+                end
+            end)
+            entry.locRadius = opt.radius
+            locRadCombo:AddItem(entry)
+        end
+        tab.targetLocRadComboBox = locRadCombo
     end
 
-    tab.btnTargetRadSmall = CreateStyledButton(panelName .. "_BtnTargetRadSmall", targetBody, 68, 22, "", function() SetTargetLocRad(discRadii.SMALL) end)
-    tab.btnTargetRadSmall:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 190)
-    tab.btnTargetRadSmall:SetHidden(true)
+    local lblTargetMsg = WINDOW_MANAGER:CreateControl(panelName .. "_LblTargetMsg", targetBody, CT_LABEL)
+    lblTargetMsg:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 246)
+    if lblTargetMsg.SetFont then lblTargetMsg:SetFont("ZoFontGameBold") end
+    lblTargetMsg:SetText(Addon.Locale:Get("LABEL_TARGET_MSG_SECTION"))
+    tab.lblTargetMsg = lblTargetMsg
 
-    tab.btnTargetRadMedium = CreateStyledButton(panelName .. "_BtnTargetRadMedium", targetBody, 68, 22, "", function() SetTargetLocRad(discRadii.MEDIUM) end)
-    tab.btnTargetRadMedium:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 74, 190)
-    tab.btnTargetRadMedium:SetHidden(true)
+    local targetMsgDropdown = WINDOW_MANAGER:CreateControlFromVirtual(panelName .. "_TargetMsgDropdown", targetBody, "ZO_ComboBox")
+    targetMsgDropdown:SetDimensions(300, 28)
+    targetMsgDropdown:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 268)
+    tab.targetMsgDropdown = targetMsgDropdown
 
-    tab.btnTargetRadLarge = CreateStyledButton(panelName .. "_BtnTargetRadLarge", targetBody, 68, 22, "", function() SetTargetLocRad(discRadii.LARGE) end)
-    tab.btnTargetRadLarge:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 148, 190)
-    tab.btnTargetRadLarge:SetHidden(true)
-
-    local lblTargetLocStatus = WINDOW_MANAGER:CreateControl(panelName .. "_LblTargetLocStatus", targetBody, CT_LABEL)
-    lblTargetLocStatus:SetDimensions(286, 22)
-    lblTargetLocStatus:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 224, 192)
-    if lblTargetLocStatus.SetFont then lblTargetLocStatus:SetFont("ZoFontGame") end
-    lblTargetLocStatus:SetHidden(true)
-    tab.lblTargetLocStatus = lblTargetLocStatus
+    local msgCombo = ZO_ComboBox_ObjectFromContainer(targetMsgDropdown)
+    if msgCombo then
+        msgCombo:SetSortsItems(false)
+        tab.targetMsgComboBox = msgCombo
+    end
 
     local targetCustomBg, targetCustomEdit = CreateEditBox(
         panelName .. "_TargetCustomMsgEdit", targetBody, 510, 30, 160, false,
         function(val)
-            if tab.selectedTargetIndex then
-                Addon.QuestRepository:UpdateDraftTarget(tab.selectedTargetIndex, { customMessage = val }, true)
+            local idx = tab.selectedTargetIndex
+            if not idx then return end
+            local state = tab.selectedTargetMsgState or "elimination"
+            if state == "in_location" then
+                Addon.QuestRepository:UpdateDraftTarget(idx, { customMessageInLocation = val }, true)
+            elseif state == "outside_location" then
+                Addon.QuestRepository:UpdateDraftTarget(idx, { customMessageOutsideLocation = val }, true)
+            else
+                Addon.QuestRepository:UpdateDraftTarget(idx, { customMessage = val }, true)
             end
-        end,
-        Addon.Locale:Get("HINT_TARGET_CUSTOM_MSG")
+        end
     )
-    targetCustomBg:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 218)
-    targetCustomBg:SetHidden(true)
+    targetCustomBg:SetAnchor(TOPLEFT, targetBody, TOPLEFT, 0, 302)
     tab.targetCustomBg = targetCustomBg
     tab.targetCustomEdit = targetCustomEdit
 end
 
 function EditorSections.BuildTargetConfigControls(tab, targetBody, panelName)
-    BuildTargetNavControls(tab, targetBody, panelName)
     BuildTargetLocationControls(tab, targetBody, panelName)
 end
 
@@ -514,7 +590,6 @@ function EditorSections.BuildDialogueInputs(tab, dlgBody, panelName)
 end
 
 function EditorSections.BuildOptionsSection(tab, optBody, panelName)
-    local CreateStyledButton = Addon.JournalWidgets.CreateStyledButton
     local CreateEditBox = Addon.JournalWidgets.CreateEditBoxWithBackdrop
 
     local lblCompletionMsg = WINDOW_MANAGER:CreateControl(panelName .. "_LblInputCompletionMsg", optBody, CT_LABEL)
@@ -531,11 +606,44 @@ function EditorSections.BuildOptionsSection(tab, optBody, panelName)
     tab.completionBg = compBg
     tab.completionEdit = compEdit
 
-    tab.btnRequireUndetected = CreateStyledButton(panelName .. "_BtnRequireUndetected", optBody, 280, 26, Addon.Locale:Get("OPT_REQUIRE_UNDETECTED"), function()
-        local d = Addon.QuestRepository:GetDraft()
-        Addon.QuestRepository:UpdateDraftFields({ requireUndetected = not (d and d.requireUndetected) })
-    end)
-    tab.btnRequireUndetected:SetAnchor(TOPLEFT, optBody, TOPLEFT, 0, 62)
+    local lblStealth = WINDOW_MANAGER:CreateControl(panelName .. "_LblStealthMode", optBody, CT_LABEL)
+    lblStealth:SetAnchor(TOPLEFT, optBody, TOPLEFT, 0, 62)
+    if lblStealth.SetFont then lblStealth:SetFont("ZoFontGameBold") end
+    lblStealth:SetText(Addon.Locale:Get("LABEL_STEALTH_MODE"))
+    tab.lblStealthMode = lblStealth
+
+    local stealthDropdown = WINDOW_MANAGER:CreateControlFromVirtual(panelName .. "_StealthDropdown", optBody, "ZO_ComboBox")
+    stealthDropdown:SetDimensions(280, 28)
+    stealthDropdown:SetAnchor(TOPLEFT, optBody, TOPLEFT, 0, 84)
+    tab.stealthDropdown = stealthDropdown
+
+    local combo = ZO_ComboBox_ObjectFromContainer(stealthDropdown)
+    if combo then
+        combo:SetSortsItems(false)
+        local modes = Addon.Constants.STEALTH_MODE
+        local options = {
+            { mode = modes.DISABLED, label = Addon.Locale:Get("OPT_STEALTH_DISABLED") },
+            { mode = modes.OPTIONAL, label = Addon.Locale:Get("OPT_STEALTH_OPTIONAL") },
+            { mode = modes.REQUIRED, label = Addon.Locale:Get("OPT_STEALTH_REQUIRED") },
+        }
+        for _, opt in ipairs(options) do
+            local entry = combo:CreateItemEntry(opt.label, function()
+                Addon.QuestRepository:UpdateDraftFields({ stealthMode = opt.mode })
+            end)
+            entry.stealthMode = opt.mode
+            combo:AddItem(entry)
+        end
+        tab.stealthComboBox = combo
+    end
+
+    tab.chkHideMapArea = Addon.JournalWidgets.CreateCheckButton(
+        panelName .. "_ChkHideMapArea", optBody,
+        Addon.Locale:Get("OPT_HIDE_MAP_AREA"),
+        function(isChecked)
+            Addon.QuestRepository:UpdateDraftFields({ recommendHideMapAreas = isChecked })
+        end
+    )
+    tab.chkHideMapArea:SetAnchor(TOPLEFT, optBody, TOPLEFT, 2, 122)
 end
 
 function EditorSections.BuildFooterButtons(tab, pane, panelName)
@@ -545,21 +653,4 @@ function EditorSections.BuildFooterButtons(tab, pane, panelName)
         tab:OnSaveDraftClicked()
     end)
     tab.btnSaveEditor:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 514)
-
-    tab.btnCancelEditor = CreateStyledButton(panelName .. "_BtnCancelEditor", pane, 150, 34, Addon.Locale:Get("BTN_CANCEL"), function()
-        tab.viewMode = tab.VIEW_MODE.DETAIL
-        Addon.QuestRepository:ResetDraft()
-        tab:ClearEditorInputs()
-        tab:Refresh()
-    end)
-    tab.btnCancelEditor:SetAnchor(TOPLEFT, pane, TOPLEFT, 195, 514)
-
-    tab.btnShowMapEditor = CreateStyledButton(panelName .. "_BtnShowMapEditor", pane, 155, 34, Addon.Locale:Get("BTN_SHOW_ON_MAP"), function()
-        local draft = Addon.QuestRepository:GetDraft()
-        if draft and draft.mapId and draft.mapId > 0 then
-            Addon.WorldMapArea:ShowQuestOnMap(draft)
-        end
-    end)
-    tab.btnShowMapEditor:SetAnchor(TOPLEFT, pane, TOPLEFT, 360, 514)
-    tab.btnShowMapEditor:SetHidden(true)
 end

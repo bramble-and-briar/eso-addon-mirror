@@ -1,0 +1,30 @@
+ARCLIGHT TAUNT - CHANGELOG
+
+VERSION 1.4.0 | Interface & Quality of Life Update | 24 November 2026
+
+INTERFACE & SETTINGS
+
+- Reorganized the settings by task. The test is at the top of Boss warnings, the preview is easy to find under Crosshair, and boss detection is now under Targets & markers.
+- A one-time chat tip shows first-time users where to find the addon settings.
+- Shortened settings labels and help in English, German, French, Spanish and Russian. In German and French, the list footer now uses the singular when exactly one enemy is hidden.
+
+COMBAT HUD & WARNINGS
+
+- Improved countdown readability in High contrast for both narrow and full-row bars, including the final zero. Boss skulls and ESO target markers have more space between them, and the two warning banners align their skulls and text.
+- Boss warnings adjust their position when a short window or high UI scale leaves less room on screen.
+- Live boss warnings and cleanup continue while the taunt list preview is paused. A confirmed death clears only that boss from a shared expiration warning, even if its row has already gone.
+- Boss detection now considers every boss slot provided by ESO.
+
+TRACKING & COMPATIBILITY
+
+- Delayed updates could bring back an ended taunt or cut a refreshed one short. Timers now ignore those outdated updates. Incomplete updates preserve the known enemy name and start time. Duplicate expiry updates no longer extend the brief display at zero.
+- Switching aim to a player no longer lets a delayed update clear the enemy’s active taunt.
+- Reassigning an ESO target marker clears it from the previous enemy even if a customized icon can’t be retrieved. Reapplying the enabled marker setting preserves markers already seen on other enemies.
+- Incomplete crosshair settings restore missing values for the selected shape. Invalid media and translations fall back to built-in media and English, respectively. Existing valid settings carry over.
+
+PERFORMANCE
+
+- Reduced repeated checks when observing the target under the crosshair and skipped redundant sorting when an unpinned list contains only expired taunts already in order.
+
+Full release history on ESOUI
+https://www.esoui.com/downloads/info5008.html#changelog

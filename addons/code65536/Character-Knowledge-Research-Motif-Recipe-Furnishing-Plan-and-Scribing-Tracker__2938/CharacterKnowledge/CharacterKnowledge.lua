@@ -257,7 +257,7 @@ function CharacterKnowledge.RegisterSettingsPanel( )
 			--------------------
 			{
 				type = "checkbox",
-				name = string.format("|u40:0::%s|u", GetString(SI_CK_SETTINGS_SETTING_SCRIPT)),
+				name = LCCC.IndentedKeyboardText(GetString(SI_CK_SETTINGS_SETTING_SCRIPT)),
 				getFunc = function() return CharacterKnowledge.vars.tooltips.scriptInfo end,
 				setFunc = function(enabled) CharacterKnowledge.vars.tooltips.scriptInfo = enabled end,
 				disabled = function() return not CharacterKnowledge.vars.tooltips.enabled end

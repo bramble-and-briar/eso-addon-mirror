@@ -8,6 +8,10 @@
   "category_id": "27",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "Teleport"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2781/",
-  "fingerprint": "1de5b7bfbd7eea1280433591229a24584e882629ba6f2e2526db995b6129aef5",
+  "fingerprint": "e43c3da169ed9712a8db52cb5f543ac52d38d0de5eaa26aff18256c6c805c478",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +30,11 @@
   "source_id": "2781",
   "source_url": "https://www.esoui.com/downloads/info2781-Teleport-generalpurposeteleportingtool.html",
   "stats": {
-    "downloads": 9053,
-    "favorites": 3,
-    "monthly_downloads": 59
+    "downloads": 9076,
+    "favorites": 4,
+    "monthly_downloads": 71
   },
   "title": "Teleport - general purpose teleporting tool",
-  "updated_at": 1795259977000,
-  "version": "1.5.0"
+  "updated_at": 1795475769000,
+  "version": "1.5.1"
 }

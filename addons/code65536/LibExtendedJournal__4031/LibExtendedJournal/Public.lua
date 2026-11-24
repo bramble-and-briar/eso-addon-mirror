@@ -139,6 +139,60 @@ end
 
 
 --------------------------------------------------------------------------------
+-- Tooltip Hooking
+-- callback( control, functionName, itemLink, sourceContext )
+--------------------------------------------------------------------------------
+
+do
+	local registrants, sourceContext
+
+	function Public.HookItemTooltips( callback )
+		if (registrants) then
+			table.insert(registrants, callback)
+		else
+			registrants = { callback }
+
+			local TooltipHook = function( control, functionName, linkFunction, sourceParam1, sourceParam2 )
+				if (control and linkFunction) then
+					ZO_PostHook(control, functionName, function( self, ... )
+						local itemLink = linkFunction(...)
+						sourceContext = LCCC.PrepareScratchTable(sourceContext)
+						if (sourceParam1) then sourceContext[sourceParam1] = select(1, ...) end
+						if (sourceParam2) then sourceContext[sourceParam2] = select(2, ...) end
+						for _, fn in ipairs(registrants) do
+							fn(control, functionName, itemLink, sourceContext)
+						end
+					end)
+				end
+			end
+
+			local ItemLinkPassthrough = function( itemLink )
+				return itemLink
+			end
+
+			TooltipHook(PopupTooltip, "SetLink", ItemLinkPassthrough)
+			TooltipHook(ItemTooltip, "SetLink", ItemLinkPassthrough)
+			TooltipHook(ItemTooltip, "SetWornItem", function(slot, bagId) return GetItemLink(bagId, slot) end, "slotIndex", "bagId")
+			TooltipHook(ItemTooltip, "SetBagItem", GetItemLink, "bagId", "slotIndex")
+			TooltipHook(ItemTooltip, "SetTradeItem", GetTradeItemLink, "who", "tradeIndex")
+			TooltipHook(ItemTooltip, "SetBuybackItem", GetBuybackItemLink)
+			TooltipHook(ItemTooltip, "SetStoreItem", GetStoreItemLink)
+			TooltipHook(ItemTooltip, "SetAttachedMailItem", GetAttachedItemLink, "mailId", "attachIndex")
+			TooltipHook(ItemTooltip, "SetLootItem", GetLootItemLink, "lootId")
+			TooltipHook(ItemTooltip, "SetReward", LCCC.GetRewardLink)
+			TooltipHook(ItemTooltip, "SetQuestReward", GetQuestRewardItemLink)
+			TooltipHook(ItemTooltip, "SetTradingHouseItem", GetTradingHouseSearchResultItemLink)
+			TooltipHook(ItemTooltip, "SetTradingHouseListing", GetTradingHouseListingItemLink)
+			TooltipHook(ItemTooltip, "SetItemSetCollectionPieceLink", ItemLinkPassthrough)
+			TooltipHook(ItemTooltip, "SetCollectible", ItemLinkPassthrough)
+			TooltipHook(ItemTooltip, "SetPlacedFurniture", GetPlacedFurnitureLink)
+			TooltipHook(ZO_SmithingTopLevelCreationPanelResultTooltip, "SetPendingSmithingItem", GetSmithingPatternResultLink, "patternIndex")
+		end
+	end
+end
+
+
+--------------------------------------------------------------------------------
 -- Tooltip Colors
 --------------------------------------------------------------------------------
 

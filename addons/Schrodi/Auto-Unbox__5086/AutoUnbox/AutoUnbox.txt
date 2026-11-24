@@ -7,8 +7,8 @@
 ## Title: Auto Unbox
 ## Description: Opens every container as soon as it lands in your backpack, plus an Unbox All button in the inventory.
 ## Author: Schrodi
-## Version: 1.0
-## AddOnVersion: 1
+## Version: 1.0.1
+## AddOnVersion: 2
 ## APIVersion: 101051 101052
 ## SavedVariables: AutoUnbox_SV
 ## OptionalDependsOn: LibAddonMenu-2.0

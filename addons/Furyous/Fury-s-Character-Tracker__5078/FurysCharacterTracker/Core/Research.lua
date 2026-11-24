@@ -1,6 +1,6 @@
 -- Research across the roster: traits known and missing per craft, research slots, and timers.
 -- Timers are saved as the moment they finish, so they count down on whichever character you play.
-local CT = FuryCT
+local CT = FurysCharacterTracker
 local U = CT.Util
 local Research = {}
 CT.Research = Research

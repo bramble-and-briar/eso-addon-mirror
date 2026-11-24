@@ -146,7 +146,7 @@ function Internal.DataHousekeeping( )
 		local name, _, _, _, _, _, id = GetCharacterInfo(i)
 		if (Internal.DoesCharacterExist(server, id)) then
 			Internal.SetCharacterField(server, id, "account", Internal.userId)
-			Internal.SetCharacterField(server, id, "name", zo_strformat("<<1>>", name))
+			Internal.SetCharacterField(server, id, "name", LocalizeString("<<1>>", name))
 		end
 	end
 

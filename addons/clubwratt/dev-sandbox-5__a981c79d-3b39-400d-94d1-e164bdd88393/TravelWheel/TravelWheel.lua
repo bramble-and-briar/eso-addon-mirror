@@ -2,7 +2,7 @@
 TravelWheel = {
     name = "TravelWheel",
     title = "Travel Wheel",
-    version = "0.5.0",
+    version = "0.15.0",
     savedVarsName = "TravelWheelSavedVars",
     savedVarsVersion = 1,
     ---@type TravelWheelState

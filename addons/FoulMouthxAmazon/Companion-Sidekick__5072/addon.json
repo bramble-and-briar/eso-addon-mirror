@@ -18,18 +18,16 @@
     "CompanionSidekick"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5072/",
-  "fingerprint": "ad786cfdb0dfd1f80162d42b6b246211f6b269a8ccc7f1b9eeb4a51427283a3b",
+  "fingerprint": "e389c4d2db1e9ca39b02cbc1581d874744f10f13efa13f5edfcd16708302baf9",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw18578.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18579.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18580.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18581.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18582.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18583.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18584.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18588.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18586.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18587.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18760.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18759.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18758.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18757.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18756.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18761.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18755.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18762.png"
   ],
   "platform": "pc",
   "published": true,
@@ -37,11 +35,11 @@
   "source_id": "5072",
   "source_url": "https://www.esoui.com/downloads/info5072-CompanionSidekick.html",
   "stats": {
-    "downloads": 31,
+    "downloads": 47,
     "favorites": 0,
-    "monthly_downloads": 24
+    "monthly_downloads": 45
   },
   "title": "Companion Sidekick",
-  "updated_at": 1795308253000,
-  "version": "0.1.2-beta"
+  "updated_at": 1795499355000,
+  "version": "0.2.2-beta"
 }

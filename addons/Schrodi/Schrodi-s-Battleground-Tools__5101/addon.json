@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/Schrodi/Schrodi-s-Battleground-Tools__5101",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "Schrodi",
   "canonical_id": "esoui:5101",
   "category_id": "96",
@@ -23,7 +22,7 @@
     "SchrodisBattlegroundTools"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5101/",
-  "fingerprint": "1bf3d93b5fbe1a7a5183cbe165db627c3a779b3a881044c8733942021c7f16a6",
+  "fingerprint": "9e90d9bf60d8345dd766b388c6d13d1e410cc8783daa8527f1106a001a5c4b63",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18722.png",
     "https://cdn-eso.mmoui.com/preview/pvw18723.png",
@@ -35,11 +34,11 @@
   "source_id": "5101",
   "source_url": "https://www.esoui.com/downloads/info5101-SchrodisBattlegroundTools.html",
   "stats": {
-    "downloads": 0,
+    "downloads": 8,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 4
   },
   "title": "Schrodi's Battleground Tools",
-  "updated_at": 1795346321000,
-  "version": "2.0.0"
+  "updated_at": 1795475689000,
+  "version": "2.0.1"
 }

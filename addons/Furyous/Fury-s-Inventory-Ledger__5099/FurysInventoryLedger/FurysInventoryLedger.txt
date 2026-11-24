@@ -1,0 +1,15 @@
+## Title: |cA08CFFFury's Inventory Ledger|r |c8A86B0v1.4.0|r
+## Description: Every item you own in one list: every character's bags and gear, the bank, craft bag, house storage, Furniture Vault, furniture placed in your houses, and your currencies. See it all on a summary page with running currency totals, copy it in game, or export it to Excel.
+## Author: Furyous
+## Version: 1.4.0
+## AddOnVersion: 140
+## APIVersion: 101051 101052
+## SavedVariables: FurysInventoryLedger_SV
+## DependsOn: LibAddonMenu-2.0>=43
+
+FurysInventoryLedger.lua
+Theme.lua
+FurysInventoryLedger.xml
+Summary.lua
+Summary.xml
+Bindings.xml

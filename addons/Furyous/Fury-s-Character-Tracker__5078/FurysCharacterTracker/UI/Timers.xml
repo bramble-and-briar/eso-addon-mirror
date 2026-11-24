@@ -1,10 +1,15 @@
 <GuiXml>
     <Controls>
         <!-- One research line: character, craft, item, trait, time left, when it finishes. -->
-        <Control name="FuryCT_TimerRow" virtual="true" mouseEnabled="true">
+        <Control name="FurysCharacterTracker_TimerRow" virtual="true" mouseEnabled="true">
             <Dimensions x="948" y="26" />
+            <OnMouseEnter>FurysCharacterTracker.Theme.RowHover(self, true)</OnMouseEnter>
+            <OnMouseExit>FurysCharacterTracker.Theme.RowHover(self, false)</OnMouseExit>
             <Controls>
-                <Texture name="$(parent)Stripe" color="FFFFFF" alpha="0.035" hidden="true">
+                <Texture name="$(parent)Stripe" color="16142C" layer="BACKGROUND" level="3" hidden="true">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Highlight" color="211D46" layer="BACKGROUND" level="5" hidden="true">
                     <AnchorFill />
                 </Texture>
                 <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS">
@@ -34,34 +39,34 @@
             </Controls>
         </Control>
 
-        <TopLevelControl name="FuryCTTimers" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true">
+        <TopLevelControl name="FurysCharacterTracker_Timers" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true">
             <Dimensions x="1000" y="620" />
             <Anchor point="CENTER" />
-            <OnMouseDown>FuryCT.Raise(self)</OnMouseDown>
-            <OnMoveStop>FuryCT.Timers.SavePosition()</OnMoveStop>
+            <OnMouseDown>FurysCharacterTracker.Raise(self)</OnMouseDown>
+            <OnMoveStop>FurysCharacterTracker.Timers.SavePosition()</OnMoveStop>
             <Controls>
-                <Backdrop name="$(parent)BG" centerColor="100C08" edgeColor="96733A" alpha="1">
+                <Backdrop name="$(parent)BG" centerColor="0F0E1F" edgeColor="4A3D99" alpha="1">
                     <AnchorFill />
                     <Edge edgeSize="2" />
                 </Backdrop>
-                <Label name="$(parent)Title" font="ZoFontWinH2" color="D4AF37" text="Research timers">
+                <Label name="$(parent)Title" font="ZoFontWinH2" color="ECEAF8" text="Research timers">
                     <Anchor point="TOPLEFT" offsetX="18" offsetY="12" />
                 </Label>
-                <Label name="$(parent)Subtitle" font="ZoFontGameSmall" color="968770">
+                <Label name="$(parent)Subtitle" font="ZoFontGameSmall" color="B4B0D8">
                     <Anchor point="LEFT" relativeTo="$(parent)Title" relativePoint="RIGHT" offsetX="14" offsetY="4" />
                 </Label>
                 <Button name="$(parent)Close" inherits="ZO_CloseButton">
                     <Anchor point="TOPRIGHT" offsetX="-12" offsetY="12" />
-                    <OnClicked>FuryCT.Timers:Hide()</OnClicked>
+                    <OnClicked>FurysCharacterTracker.Timers:Hide()</OnClicked>
                 </Button>
-                <Label name="$(parent)Summary" font="ZoFontGameSmall" color="968770">
+                <Label name="$(parent)Summary" font="ZoFontGameSmall" color="B4B0D8">
                     <Dimensions x="960" y="20" />
-                    <Anchor point="TOPLEFT" offsetX="20" offsetY="50" />
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="56" />
                 </Label>
-                <Control name="$(parent)Header" inherits="FuryCT_TimerRow" mouseEnabled="false">
+                <Control name="$(parent)Header" inherits="FurysCharacterTracker_TimerRow" mouseEnabled="false">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Summary" relativePoint="BOTTOMLEFT" offsetX="-2" offsetY="6" />
                 </Control>
-                <Texture name="$(parent)HeaderLine" color="96733A">
+                <Texture name="$(parent)HeaderLine" color="4A3D99">
                     <Dimensions x="960" y="1" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetY="2" />
                 </Texture>
@@ -69,7 +74,7 @@
                     <Anchor point="TOPLEFT" relativeTo="$(parent)HeaderLine" relativePoint="BOTTOMLEFT" offsetY="4" />
                     <Anchor point="BOTTOMRIGHT" offsetX="-18" offsetY="-44" />
                 </Control>
-                <Label name="$(parent)Legend" font="ZoFontGameSmall" color="968770">
+                <Label name="$(parent)Legend" font="ZoFontGameSmall" color="B4B0D8">
                     <Anchor point="BOTTOMLEFT" offsetX="20" offsetY="-16" />
                 </Label>
             </Controls>

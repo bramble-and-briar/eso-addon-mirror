@@ -1,12 +1,18 @@
 <GuiXml>
     <Controls>
-        <Control name="FuryGMT_ReportRow" virtual="true" mouseEnabled="true">
+        <Control name="FurysGuildToolset_ReportRow" virtual="true" mouseEnabled="true">
             <Dimensions x="1160" y="32" />
-            <OnMouseEnter>FuryGMT.Report.OnRowMouseEnter(self)</OnMouseEnter>
-            <OnMouseExit>FuryGMT.Report.OnRowMouseExit(self)</OnMouseExit>
-            <OnMouseUp>FuryGMT.Report.OnRowMouseUp(self, button, upInside)</OnMouseUp>
+            <OnMouseEnter>FurysGuildToolset.Report.OnRowMouseEnter(self)</OnMouseEnter>
+            <OnMouseExit>FurysGuildToolset.Report.OnRowMouseExit(self)</OnMouseExit>
+            <OnMouseUp>FurysGuildToolset.Report.OnRowMouseUp(self, button, upInside)</OnMouseUp>
             <Controls>
-                <Texture name="$(parent)Highlight" color="FFFFFF" alpha="0.06" hidden="true">
+                <Texture name="$(parent)Stripe" color="16142C" layer="BACKGROUND" level="3" hidden="true">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Selected" color="2D2566" layer="BACKGROUND" level="4" hidden="true">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Highlight" color="211D46" layer="BACKGROUND" level="5" hidden="true">
                     <AnchorFill />
                 </Texture>
                 <Label name="$(parent)Text" font="ZoFontGame" wrapMode="ELLIPSIS" verticalAlignment="CENTER">
@@ -40,13 +46,19 @@
             </Controls>
         </Control>
 
-        <Control name="FuryGMT_ReportColumnRow" virtual="true" mouseEnabled="true">
+        <Control name="FurysGuildToolset_ReportColumnRow" virtual="true" mouseEnabled="true">
             <Dimensions x="1160" y="28" />
-            <OnMouseEnter>FuryGMT.Report.OnRowMouseEnter(self)</OnMouseEnter>
-            <OnMouseExit>FuryGMT.Report.OnRowMouseExit(self)</OnMouseExit>
-            <OnMouseUp>FuryGMT.Report.OnRowMouseUp(self, button, upInside)</OnMouseUp>
+            <OnMouseEnter>FurysGuildToolset.Report.OnRowMouseEnter(self)</OnMouseEnter>
+            <OnMouseExit>FurysGuildToolset.Report.OnRowMouseExit(self)</OnMouseExit>
+            <OnMouseUp>FurysGuildToolset.Report.OnRowMouseUp(self, button, upInside)</OnMouseUp>
             <Controls>
-                <Texture name="$(parent)Highlight" color="FFFFFF" alpha="0.06" hidden="true">
+                <Texture name="$(parent)Stripe" color="16142C" layer="BACKGROUND" level="3" hidden="true">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Selected" color="2D2566" layer="BACKGROUND" level="4" hidden="true">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Highlight" color="211D46" layer="BACKGROUND" level="5" hidden="true">
                     <AnchorFill />
                 </Texture>
                 <Label name="$(parent)Col1" font="ZoFontGame" wrapMode="ELLIPSIS" verticalAlignment="CENTER" />
@@ -76,48 +88,62 @@
             </Controls>
         </Control>
 
-        <TopLevelControl name="FuryGMTReport" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true">
+        <TopLevelControl name="FurysGuildToolset_Report" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true">
             <Dimensions x="1200" y="600" />
             <Anchor point="CENTER" />
-            <OnMoveStop>FuryGMT.Report.SavePosition()</OnMoveStop>
+            <OnMoveStop>FurysGuildToolset.Report.SavePosition()</OnMoveStop>
             <Controls>
-                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                <Backdrop name="$(parent)BG" centerColor="0F0E1F" edgeColor="4A3D99" alpha="1">
                     <AnchorFill />
+                    <Edge edgeSize="2" />
                 </Backdrop>
                 <Label name="$(parent)Title" font="ZoFontWinH2" text="Fury's Guild Management Toolset">
                     <Anchor point="TOPLEFT" offsetX="16" offsetY="10" />
                 </Label>
-                <Label name="$(parent)Version" font="ZoFontGameSmall" color="AAAAAA">
+                <Label name="$(parent)Version" font="ZoFontGameSmall" color="8A86B0">
                     <Anchor point="BOTTOMLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMRIGHT" offsetX="8" offsetY="-4" />
                 </Label>
                 <Button name="$(parent)Close" inherits="ZO_CloseButton">
                     <Anchor point="TOPRIGHT" offsetX="-10" offsetY="10" />
-                    <OnClicked>FuryGMT.Report:Hide()</OnClicked>
-                    <OnMouseEnter>FuryGMT.Report.ShowTip(self, "Close (Esc)")</OnMouseEnter>
-                    <OnMouseExit>FuryGMT.Report.HideTip()</OnMouseExit>
+                    <OnClicked>FurysGuildToolset.Report:Hide()</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Close (Esc)")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
                 </Button>
                 <Button name="$(parent)Settings">
                     <Dimensions x="32" y="32" />
                     <Anchor point="RIGHT" relativeTo="$(parent)Close" relativePoint="LEFT" offsetX="-10" />
                     <Textures normal="/esoui/art/chatwindow/chat_options_up.dds" pressed="/esoui/art/chatwindow/chat_options_down.dds" mouseOver="/esoui/art/chatwindow/chat_options_over.dds" />
-                    <OnClicked>FuryGMT.Settings:Open()</OnClicked>
-                    <OnMouseEnter>FuryGMT.Report.ShowTip(self, "Settings (also /gtsettings)")</OnMouseEnter>
-                    <OnMouseExit>FuryGMT.Report.HideTip()</OnMouseExit>
+                    <OnClicked>FurysGuildToolset.Settings:Open()</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Settings (also /gtsettings)")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
                 </Button>
                 <Control name="$(parent)Tabs">
                     <Dimensions x="1160" y="32" />
-                    <Anchor point="TOPLEFT" offsetX="16" offsetY="46" />
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="58" />
                 </Control>
-                <Backdrop name="$(parent)Search" inherits="ZO_SingleLineEditBackdrop_Keyboard" hidden="true">
-                    <Dimensions x="220" />
+                <!-- Search: a lighter box with a violet edge so it stands out on the dark window
+                     (colors set in ReportWindow.lua from the Fury Night palette), and an X that clears it. -->
+                <Backdrop name="$(parent)Search" hidden="true">
+                    <Dimensions x="250" y="30" />
                     <Anchor point="RIGHT" relativeTo="$(parent)Settings" relativePoint="LEFT" offsetX="-12" />
+                    <Edge edgeSize="2" />
                     <Controls>
                         <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" defaultText="Search names or items">
-                            <OnTextChanged>FuryGMT.Report.OnSearchChanged(self)</OnTextChanged>
+                            <Anchor point="TOPLEFT" offsetX="8" offsetY="5" />
+                            <Anchor point="BOTTOMRIGHT" offsetX="-30" offsetY="-4" />
+                            <OnTextChanged>FurysGuildToolset.Report.OnSearchChanged(self)</OnTextChanged>
                         </EditBox>
+                        <Button name="$(parent)Clear" alpha="0.5">
+                            <Dimensions x="22" y="22" />
+                            <Anchor point="RIGHT" offsetX="-5" />
+                            <Textures normal="/esoui/art/buttons/decline_up.dds" pressed="/esoui/art/buttons/decline_down.dds" mouseOver="/esoui/art/buttons/decline_over.dds" />
+                            <OnClicked>FurysGuildToolset.Report.ClearSearch()</OnClicked>
+                            <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Clear the search")</OnMouseEnter>
+                            <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
+                        </Button>
                     </Controls>
                 </Backdrop>
-                <Label name="$(parent)Summary" font="ZoFontGameSmall" color="AAAAAA">
+                <Label name="$(parent)Summary" font="ZoFontGameSmall" color="B4B0D8">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Tabs" relativePoint="BOTTOMLEFT" offsetY="6" />
                     <Dimensions x="1160" y="20" />
                 </Label>
@@ -136,24 +162,25 @@
             </Controls>
         </TopLevelControl>
 
-        <TopLevelControl name="FuryGMTExport" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH">
+        <TopLevelControl name="FurysGuildToolset_Export" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH">
             <Dimensions x="900" y="560" />
             <Anchor point="CENTER" />
             <Controls>
-                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                <Backdrop name="$(parent)BG" centerColor="0F0E1F" edgeColor="4A3D99" alpha="1">
                     <AnchorFill />
+                    <Edge edgeSize="2" />
                 </Backdrop>
                 <Label name="$(parent)Title" font="ZoFontWinH3" text="Export">
                     <Anchor point="TOPLEFT" offsetX="16" offsetY="10" />
                 </Label>
                 <Button name="$(parent)Close" inherits="ZO_CloseButton">
                     <Anchor point="TOPRIGHT" offsetX="-10" offsetY="10" />
-                    <OnClicked>FuryGMT.Report:HideExport()</OnClicked>
-                    <OnMouseEnter>FuryGMT.Report.ShowTip(self, "Close (Esc)")</OnMouseEnter>
-                    <OnMouseExit>FuryGMT.Report.HideTip()</OnMouseExit>
+                    <OnClicked>FurysGuildToolset.Report:HideExport()</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Close (Esc)")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
                 </Button>
-                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="AAAAAA" text="CSV, one line per row. Select all, Ctrl+C, then in Excel: Data &gt; Text to Columns &gt; Comma.">
-                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetY="4" />
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="B4B0D8" text="CSV, one line per row. Select all, Ctrl+C, then in Excel: Data &gt; Text to Columns &gt; Comma.">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetY="14" />
                 </Label>
                 <Backdrop name="$(parent)Text" inherits="ZO_MultiLineEditBackdrop_Keyboard">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Hint" relativePoint="BOTTOMLEFT" offsetY="8" />
@@ -165,9 +192,9 @@
                 <Button name="$(parent)Prev" inherits="ZO_DefaultButton" text="Previous part">
                     <Dimensions x="160" y="28" />
                     <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-14" />
-                    <OnClicked>FuryGMT.Report:ShowExportPart(-1)</OnClicked>
-                    <OnMouseEnter>FuryGMT.Report.ShowTip(self, "Big exports are split into parts. Shows the part before this one.")</OnMouseEnter>
-                    <OnMouseExit>FuryGMT.Report.HideTip()</OnMouseExit>
+                    <OnClicked>FurysGuildToolset.Report:ShowExportPart(-1)</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Big exports are split into parts. Shows the part before this one.")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
                 </Button>
                 <Label name="$(parent)Part" font="ZoFontGame">
                     <Anchor point="LEFT" relativeTo="$(parent)Prev" relativePoint="RIGHT" offsetX="12" />
@@ -175,16 +202,16 @@
                 <Button name="$(parent)Next" inherits="ZO_DefaultButton" text="Next part">
                     <Dimensions x="160" y="28" />
                     <Anchor point="LEFT" relativeTo="$(parent)Part" relativePoint="RIGHT" offsetX="12" />
-                    <OnClicked>FuryGMT.Report:ShowExportPart(1)</OnClicked>
-                    <OnMouseEnter>FuryGMT.Report.ShowTip(self, "Shows the next part of this export.")</OnMouseEnter>
-                    <OnMouseExit>FuryGMT.Report.HideTip()</OnMouseExit>
+                    <OnClicked>FurysGuildToolset.Report:ShowExportPart(1)</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Shows the next part of this export.")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
                 </Button>
                 <Button name="$(parent)SelectAll" inherits="ZO_DefaultButton" text="Select all">
                     <Dimensions x="160" y="28" />
                     <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-14" />
-                    <OnClicked>FuryGMT.Report:CopyExport()</OnClicked>
-                    <OnMouseEnter>FuryGMT.Report.ShowTip(self, "Selects all the text. Then press Ctrl+C to copy it.")</OnMouseEnter>
-                    <OnMouseExit>FuryGMT.Report.HideTip()</OnMouseExit>
+                    <OnClicked>FurysGuildToolset.Report:CopyExport()</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Selects all the text. Then press Ctrl+C to copy it.")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
                 </Button>
             </Controls>
         </TopLevelControl>

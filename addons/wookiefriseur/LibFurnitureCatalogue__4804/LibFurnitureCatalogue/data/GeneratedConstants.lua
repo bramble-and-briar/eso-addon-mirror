@@ -6,8 +6,8 @@ LFCGeneratedConstants={
     [0]=1, -- default
     [2]=2, -- pvp_vendor
     [3]=4, -- writ_vendor
-    [7]=7, -- crown_crate
-    [8]=6, -- crown_store
+    [7]=6, -- crown_crate
+    [8]=5, -- crown_store
   },
   ["format"]=1,
   ["ids"]={
@@ -135,15 +135,14 @@ LFCGeneratedConstants={
     ["crown_store_subtypes"]={["housing_editor"]=1},
     ["currencies"]={
       ["AP"]=2,
-      ["ARCHIVAL_FORTUNES"]=10,
-      ["CROWNS"]=6,
-      ["CROWN_GEMS"]=7,
-      ["EVENT_TICKETS"]=5,
+      ["ARCHIVAL_FORTUNES"]=9,
+      ["CROWNS"]=5,
+      ["CROWN_GEMS"]=6,
       ["GOLD"]=1,
-      ["SEALS"]=8,
+      ["SEALS"]=7,
       ["TEL_VAR"]=3,
-      ["TRADE_BARS"]=11,
-      ["UNDAUNTED_KEYS"]=9,
+      ["TRADE_BARS"]=10,
+      ["UNDAUNTED_KEYS"]=8,
       ["WRIT_VOUCHERS"]=4,
     },
     ["drop_subtypes"]={
@@ -1103,13 +1102,12 @@ LFCGeneratedConstants={
       [2]="AP",
       [3]="TEL_VAR",
       [4]="WRIT_VOUCHERS",
-      [5]="EVENT_TICKETS",
-      [6]="CROWNS",
-      [7]="CROWN_GEMS",
-      [8]="SEALS",
-      [9]="UNDAUNTED_KEYS",
-      [10]="ARCHIVAL_FORTUNES",
-      [11]="TRADE_BARS",
+      [5]="CROWNS",
+      [6]="CROWN_GEMS",
+      [7]="SEALS",
+      [8]="UNDAUNTED_KEYS",
+      [9]="ARCHIVAL_FORTUNES",
+      [10]="TRADE_BARS",
     },
     ["drop_subtypes"]={
       [1]="chest",
@@ -1492,5 +1490,5 @@ LFCGeneratedConstants={
       {nil,2},
     },
   },
-  ["vocabulary"]="ddcdf831b4ac704ff4b488b3ac7ff17b6333ce3e153430755ac070e4b7c545e1",
+  ["vocabulary"]="e301a650449128e724cdcfefa6148ed2c396224be594b4bc65c01e98d7e9e1e7",
 }

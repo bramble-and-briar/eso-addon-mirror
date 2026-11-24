@@ -1,3 +1,4 @@
+local Teleport = Teleport
 Teleport.SurveyMaps = {}
 
 local info  = Teleport.info

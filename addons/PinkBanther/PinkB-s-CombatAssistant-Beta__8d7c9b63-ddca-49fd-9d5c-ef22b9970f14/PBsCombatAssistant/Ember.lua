@@ -6,16 +6,18 @@
 -- ---------------------------------------------------------------------------------------
 --
 -- Watch.lua says what is going on in the game with three calls:
---     A:Raise(kind, data)         something needs saying (kind = "danger" | "hp" | "major" | "minor" | "brutal");
+--     A:Raise(kind, data)         something needs saying (kind = "cc" | "danger" | "hp" | "major" | "minor" | "brutal");
 --                                 called again for the same kind it only refreshes the data
 --     A:Settle(kind, state)       it ended: state "relief" (it is fine again) or "lost" (it ran out)
 --     A:Withdraw(kind) / A:ClearReasons()   gone without comment
--- A raised reason stays for the "seconds she stays" setting, a settled one for about two seconds, then it is
+-- A raised reason stays for the "seconds she stays" setting (a CC for CC_S, kept up while it goes on), a settled
+-- one for about two seconds, then it is
 -- dropped. While any reason is alive Ember is on screen; when the last one goes she leaves. One line of the
 -- speech bubble per reason (three at most, the most urgent first).
 --
 -- Her mood follows the most urgent reason: alarm (Resolve running out: hops and points at the bubble),
--- worry (health low: trembles, hands at her chest, ears down), panic (health very low: both arms up, shaking),
+-- worry (health low: trembles, hands at her chest, ears down), panic (health very low, or crowd controlled: both
+-- arms up, shaking),
 -- relief (it ended well: hops, sparkles) and sad (it ran out).
 --
 -- ---------------------------------------------------------------------------------------
@@ -42,6 +44,7 @@ local BLEND_S = 0.25
 local MAX_STEP = 0.25 -- one hitch must not skip a whole move
 local LOST_S = 2.2 -- a "ran out" line stays this long
 local RELIEF_S = 1.7
+local CC_S = 3 -- a CC line stays this long (a CC is over in a few seconds; "free again" settles it sooner)
 local TEXT_EVERY = 0.2 -- s between two refreshes of the bubble text
 local MAX_LINES = 3
 local PREVIEW_UNIT_MAX = 1.5
@@ -50,9 +53,11 @@ local PREVIEW_ANCHOR = { x = 60, y = 330 } -- from the right and the bottom edge
 local TAU = math.pi * 2
 local sin, abs, pi, min, max = math.sin, math.abs, math.pi, math.min, math.max
 
-local PRIORITY = { danger = 1, hp = 2, major = 3, minor = 4, brutal = 5 }
-local MOOD_OF = { danger = "panic", hp = "worry", major = "alarm", minor = "alarm", brutal = "alarm" }
+local PRIORITY = { cc = 0, danger = 1, hp = 2, major = 3, minor = 4, brutal = 5 }
+local MOOD_OF = { cc = "panic", danger = "panic", hp = "worry", major = "alarm", minor = "alarm", brutal = "alarm" }
+local STAY = { cc = CC_S } -- kinds that stay a fixed time instead of the "seconds she stays" setting
 local LINE_COLOR = {
+	cc = { 0.86, 0.66, 1.00 },
 	danger = { 1.00, 0.45, 0.45 },
 	hp = { 1.00, 0.72, 0.74 },
 	major = { 1.00, 0.85, 0.45 },
@@ -62,6 +67,7 @@ local LINE_COLOR = {
 	lost = { 0.80, 0.80, 0.86 },
 }
 local LINE_ICON = { danger = "ico_heart", hp = "ico_heart", major = "ico_shield", minor = "ico_shield", brutal = "ico_sword" }
+-- (no "cc": its sound is the crowd-control sound of both designs, played by Watch.lua)
 local SOUND_NAME = { danger = "GENERAL_ALERT_ERROR", hp = "ABILITY_NOT_ENOUGH_HEALTH", major = "NEW_TIMED_NOTIFICATION", minor = "NEW_TIMED_NOTIFICATION", brutal = "NEW_TIMED_NOTIFICATION", relief = "ARMORY_RESTORE_SUCCESS" }
 
 -- Bubble text sizes (named gamepad faces the console UI already has loaded; a face nothing else is drawing with
@@ -510,7 +516,9 @@ end
 function A.LineText(reason, now)
 	local data = reason.data or {}
 	if reason.state == "relief" then
-		return S.lineRelief
+		return reason.kind == "cc" and S.lineCcFree or S.lineRelief
+	elseif reason.kind == "cc" then
+		return string.format(S.lineCc, S[data.name or "ccStun"] or S.ccStun)
 	elseif reason.state == "lost" then
 		return string.format(S.lineLost, NameOf(reason))
 	elseif reason.kind == "major" or reason.kind == "minor" or reason.kind == "brutal" then
@@ -673,11 +681,16 @@ function A:Raise(kind, data)
 	end
 	local now = A.Now()
 	local r = ember.reasons[kind]
+	local stay = STAY[kind]
 	if r and r.state == "active" then
 		r.data = data or r.data
+		if stay then
+			r.expire = max(r.expire, now + stay)
+			ember.lastText = -1 -- what the CC was may have changed
+		end
 		return r
 	end
-	r = { kind = kind, state = "active", since = now, expire = now + A.sv.hold, data = data or {} }
+	r = { kind = kind, state = "active", since = now, expire = now + (stay or A.sv.hold), data = data or {} }
 	ember.reasons[kind] = r
 	ember.raised = ember.raised + 1
 	ember.lastText = -1 -- the bubble is laid out again for the new line
@@ -842,7 +855,7 @@ end
 
 -- Times are seconds from the start. Each step runs once. "at" below is in the order they happen.
 local SCRIPT = {
-	period = 17.5,
+	period = 19.5,
 	steps = {
 		{ 0.0, function(now)
 			A:Raise("major", { name = S.majorName, endTime = now + 3.4 })
@@ -856,6 +869,13 @@ local SCRIPT = {
 		{ 9.0, function() A:Raise("hp", { pct = 61 }) end },
 		{ 10.2, function() A:Withdraw("hp") A:Raise("danger", { pct = 31 }) end },
 		{ 12.8, function() A:Settle("danger", "relief") end },
+		{ 15.0, function()
+			if A.sv.cc then
+				A:Raise("cc", { name = "ccStun" })
+				A:PlayCcSound()
+			end
+		end },
+		{ 16.8, function() A:Settle("cc", "relief") end },
 	},
 }
 

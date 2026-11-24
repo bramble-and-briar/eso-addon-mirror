@@ -197,7 +197,7 @@ local SHARE_VERSION_COMPATIBILITY = {
 }
 
 function Internal.CountExportSelection( )
-	return LCCC.CountTable(Internal.GetVarsTable("exportSelection"))
+	return NonContiguousCount(Internal.GetVarsTable("exportSelection"))
 end
 
 function Internal.GetExportSelectedText( )

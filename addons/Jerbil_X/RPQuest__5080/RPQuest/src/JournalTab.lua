@@ -27,10 +27,40 @@ JournalTab.VIEW_MODE = VIEW_MODE
 
 local CreateStyledButton = Addon.JournalWidgets.CreateStyledButton
 
+local function IsValidSectionKey(sectionKey)
+    if not sectionKey then return false end
+    for _, key in ipairs(QUEST_SECTIONS) do
+        if key == sectionKey then
+            return true
+        end
+    end
+    return false
+end
+
+local function SetSelectedQuestId(self, questId)
+    self.selectedQuestId = questId
+    if Addon.QuestRepository and Addon.QuestRepository.SetLastSelectedQuestId then
+        Addon.QuestRepository:SetLastSelectedQuestId(questId)
+    end
+end
+
+local function GetExpandedSectionKey(self)
+    if not self.collapsedSections then return nil end
+    for _, key in ipairs(QUEST_SECTIONS) do
+        if self.collapsedSections[key] == false then
+            return key
+        end
+    end
+    return nil
+end
+
 local function ExpandOnlySection(self, sectionKey)
     if not sectionKey or not self.collapsedSections then return end
     for _, key in ipairs(QUEST_SECTIONS) do
         self.collapsedSections[key] = (key ~= sectionKey)
+    end
+    if Addon.QuestRepository and Addon.QuestRepository.SetLastSectionKey then
+        Addon.QuestRepository:SetLastSectionKey(sectionKey)
     end
 end
 
@@ -47,20 +77,65 @@ local function GetQuestSectionKey(quest)
     return "missions"
 end
 
+local function EnsureExpandedSectionWithQuests(self, buckets, activeQuest)
+    if not self.collapsedSections then return end
+    for _, key in ipairs(QUEST_SECTIONS) do
+        if #buckets[key] > 0 and self.collapsedSections[key] == false then
+            return
+        end
+    end
+
+    local targetKey = nil
+    if self.selectedQuestId then
+        local selected = Addon.QuestRepository:GetQuestById(self.selectedQuestId)
+        local selectedKey = GetQuestSectionKey(selected)
+        if selectedKey and buckets[selectedKey] and #buckets[selectedKey] > 0 then
+            targetKey = selectedKey
+        end
+    end
+
+    if not targetKey and activeQuest then
+        local activeKey = GetQuestSectionKey(activeQuest)
+        if activeKey and buckets[activeKey] and #buckets[activeKey] > 0 then
+            targetKey = activeKey
+        end
+    end
+
+    if not targetKey then
+        for _, key in ipairs(QUEST_SECTIONS) do
+            if #buckets[key] > 0 then
+                targetKey = key
+                break
+            end
+        end
+    end
+
+    if targetKey then
+        ExpandOnlySection(self, targetKey)
+    end
+end
+
 function JournalTab:RegisterRepositoryListener()
     Addon.QuestRepository:RegisterListener(function(eventType, quest)
         if eventType == "QUEST_CREATED" or eventType == "QUEST_UPDATED" or eventType == "QUEST_SENT" then
             if quest and quest.id then
                 ExpandOnlySection(self, GetQuestSectionKey(quest))
                 self.listOffset = 0
-                self.selectedQuestId = quest.id
+                SetSelectedQuestId(self, quest.id)
             end
             self.viewMode = VIEW_MODE.DETAIL
+        elseif eventType == "QUEST_DRAFT_CREATED" then
+            if quest and quest.id then
+                ExpandOnlySection(self, GetQuestSectionKey(quest))
+                self.listOffset = 0
+                SetSelectedQuestId(self, quest.id)
+            end
+            self.viewMode = VIEW_MODE.EDITOR
         elseif eventType == "QUEST_IMPORTED" or eventType == "QUEST_ACCEPTED" then
             if quest and quest.id then
                 ExpandOnlySection(self, "missions")
                 self.listOffset = 0
-                self.selectedQuestId = quest.id
+                SetSelectedQuestId(self, quest.id)
             end
             self.viewMode = VIEW_MODE.DETAIL
         elseif eventType == "QUEST_OFFERED" then
@@ -68,12 +143,18 @@ function JournalTab:RegisterRepositoryListener()
                 ExpandOnlySection(self, "pending")
                 self.listOffset = 0
                 if not self.selectedQuestId then
-                    self.selectedQuestId = quest.id
+                    SetSelectedQuestId(self, quest.id)
                 end
             end
         elseif eventType == "QUEST_DELETED" or eventType == "QUEST_REJECTED" then
             if quest and self.selectedQuestId == quest.id then
-                self.selectedQuestId = nil
+                SetSelectedQuestId(self, nil)
+            end
+            local draft = Addon.QuestRepository:GetDraft()
+            if quest and (self.viewMode == VIEW_MODE.EDITOR or draft.editingQuestId == quest.id) then
+                Addon.QuestRepository:ResetDraft()
+                self:ClearEditorInputs()
+                self.viewMode = VIEW_MODE.DETAIL
             end
         elseif eventType == "DRAFT_TARGET_CAPTURED" then
             if self.viewMode ~= VIEW_MODE.EDITOR then
@@ -95,26 +176,35 @@ function JournalTab:RegisterRepositoryListener()
     end)
 end
 
+function JournalTab:RestoreUiState()
+    local uiState = Addon.QuestRepository and Addon.QuestRepository.GetJournalUiState and Addon.QuestRepository:GetJournalUiState() or {}
+    local targetSection = IsValidSectionKey(uiState.lastSectionKey) and uiState.lastSectionKey or "missions"
+    self.collapsedSections = {}
+    for _, key in ipairs(QUEST_SECTIONS) do
+        self.collapsedSections[key] = (key ~= targetSection)
+    end
+    local savedQuestId = uiState.lastSelectedQuestId
+    if savedQuestId and Addon.QuestRepository and Addon.QuestRepository:GetQuestById(savedQuestId) then
+        self.selectedQuestId = savedQuestId
+    else
+        self.selectedQuestId = nil
+    end
+end
+
 function JournalTab:Initialize()
     if self.isInitialized then
         return
     end
 
     self.viewMode = VIEW_MODE.DETAIL
-    self.collapsedSections = {
-        pending = true,
-        missions = false,
-        completed = true,
-        preparing = true,
-        sent = true,
-    }
+    self:RestoreUiState()
     self.editorSectionsCollapsed = {
+        header = false,
         target = true,
         discovery = true,
         dialogue = true,
         options = true,
     }
-    self.selectedQuestId = nil
     self.listOffset = 0
 
     local panel = WINDOW_MANAGER:CreateControl(PANEL_NAME, GuiRoot, CT_TOPLEVELCONTROL)
@@ -122,6 +212,9 @@ function JournalTab:Initialize()
     panel:SetAnchor(TOPLEFT, ZO_QuestJournal, TOPLEFT, 0, 0)
     panel:SetAnchor(BOTTOMRIGHT, ZO_QuestJournal, BOTTOMRIGHT, 0, 0)
     panel:SetHidden(true)
+    panel:SetHandler("OnHide", function()
+        self:AutoPreserveDraft()
+    end)
     self.panel = panel
 
     local versionLabel = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_VersionLabel", panel, CT_LABEL)
@@ -344,7 +437,7 @@ function JournalTab:MigrateSelectedQuest()
         end
         return nil
     end
-    self.selectedQuestId = newQuest.id
+    SetSelectedQuestId(self, newQuest.id)
     Addon.Announcements:ShowAlert(Addon.Locale:Get("ALERT_QUEST_MIGRATED", newQuest.title or ""), false)
     self:OpenEditEditor(newQuest.id)
     return newQuest
@@ -415,11 +508,52 @@ function JournalTab:IntegrateIntoQuestJournalModeBar()
     end)
 end
 
+function JournalTab:SyncEditorInputsToDraft()
+    local draft = Addon.QuestRepository:GetDraft()
+    local fields = {}
+    if self.titleEdit then fields.title = self.titleEdit:GetText() end
+    if self.descEdit then fields.description = self.descEdit:GetText() end
+    if self.recipientEdit then fields.recipientAccount = self.recipientEdit:GetText() end
+    if self.recipientCharEdit then fields.recipientCharacterName = self.recipientCharEdit:GetText() end
+    if self.completionEdit then fields.completionMessage = self.completionEdit:GetText() end
+    if next(fields) ~= nil then
+        Addon.QuestRepository:UpdateDraftFields(fields, true)
+    end
+    local dlgIdx = self.selectedDialogueIndex
+    if dlgIdx and draft.dialogues and draft.dialogues[dlgIdx] then
+        local dlgFields = {}
+        if self.clueEdit then dlgFields.clue = self.clueEdit:GetText() end
+        if self.dlgResponseEdit then dlgFields.response = self.dlgResponseEdit:GetText() end
+        Addon.QuestRepository:UpdateDraftDialogue(dlgIdx, dlgFields, true)
+    end
+    local discIdx = self.selectedDiscoveryIndex
+    if discIdx and draft.discoveries and draft.discoveries[discIdx] and self.discoveryMsgEdit then
+        Addon.QuestRepository:UpdateDraftDiscoveryPoint(discIdx, { message = self.discoveryMsgEdit:GetText() }, true)
+    end
+    local targetIdx = self.selectedTargetIndex
+    if targetIdx and draft.targets and draft.targets[targetIdx] and self.targetCustomEdit then
+        Addon.QuestRepository:UpdateDraftTarget(targetIdx, { customMessage = self.targetCustomEdit:GetText() }, true)
+    end
+end
+
+function JournalTab:AutoPreserveDraft()
+    if self.viewMode ~= VIEW_MODE.EDITOR then
+        return nil
+    end
+    local draft = Addon.QuestRepository:GetDraft()
+    if not draft or not draft.editingQuestId then
+        return nil
+    end
+    self:SyncEditorInputsToDraft()
+    return Addon.QuestRepository:CommitDraftChanges()
+end
+
 function JournalTab:SelectQuest(questId)
+    self:AutoPreserveDraft()
     if Addon.QuestRepository:GetDraft().editingQuestId then
         Addon.QuestRepository:ResetDraft()
     end
-    self.selectedQuestId = questId
+    SetSelectedQuestId(self, questId)
     self.viewMode = VIEW_MODE.DETAIL
     if self.detailScroll and self.detailScroll.scroll and self.detailScroll.scroll.SetVerticalScroll then
         self.detailScroll.scroll:SetVerticalScroll(0)
@@ -437,6 +571,7 @@ local function ApplyDraftToEditor(self, draft)
     self.completionEdit:SetText(draft.completionMessage or "")
     self.selectedDialogueIndex = (#(draft.dialogues or {}) > 0) and 1 or nil
     self.editorSectionsCollapsed = {
+        header = false,
         target = true,
         discovery = true,
         dialogue = true,
@@ -447,46 +582,40 @@ local function ApplyDraftToEditor(self, draft)
 end
 
 function JournalTab:OpenCreateEditor()
-    local draft = Addon.QuestRepository:ResetDraft()
+    self:AutoPreserveDraft()
+    local newQuest = Addon.QuestRepository:CreateNewPreparedDraft()
+    if newQuest then
+        ExpandOnlySection(self, GetQuestSectionKey(newQuest))
+        self.listOffset = 0
+        SetSelectedQuestId(self, newQuest.id)
+    end
+    local draft = Addon.QuestRepository:GetDraft()
     ApplyDraftToEditor(self, draft)
-end
-
-function JournalTab:IsSectionLockedExpanded(sectionKey)
-    if not sectionKey then return false end
-    if self.selectedQuestId then
-        local selected = Addon.QuestRepository:GetQuestById(self.selectedQuestId)
-        if GetQuestSectionKey(selected) == sectionKey then
-            return true
-        end
-    end
-    local activeQuest = Addon.QuestRepository:GetActiveQuest()
-    if activeQuest and GetQuestSectionKey(activeQuest) == sectionKey then
-        return true
-    end
-    return false
 end
 
 function JournalTab:ToggleSection(sectionKey)
     if not sectionKey or not self.collapsedSections then return end
-    if self.collapsedSections[sectionKey] ~= false then
-        ExpandOnlySection(self, sectionKey)
-    else
-        if self:IsSectionLockedExpanded(sectionKey) then
-            return
-        end
-        self.collapsedSections[sectionKey] = true
+    if self.collapsedSections[sectionKey] == false then
+        return
     end
+    ExpandOnlySection(self, sectionKey)
     self.listOffset = 0
     self:RefreshQuestList()
 end
 
 function JournalTab:OpenEditEditor(questId)
+    local quest = Addon.QuestRepository:GetQuestById(questId)
     local draft, err = Addon.QuestRepository:LoadQuestIntoDraft(questId)
     if not draft then
         if err then
             Addon.Announcements:ShowAlert(err, true)
         end
         return
+    end
+    if quest then
+        ExpandOnlySection(self, GetQuestSectionKey(quest))
+        self.listOffset = 0
+        SetSelectedQuestId(self, quest.id)
     end
     ApplyDraftToEditor(self, draft)
 end
@@ -521,7 +650,9 @@ function JournalTab:OnSaveDraftClicked()
 
     local savedQuest, err = Addon.QuestRepository:SaveDraft(titleText, descText, nil, compMsgText, nil, recipientText, recipientCharText)
     if not savedQuest then
-        Addon.Announcements:ShowAlert(err or Addon.Locale:Get("ERR_MISSING_TARGET"), true)
+        if err then
+            Addon.Announcements:ShowAlert(err, true)
+        end
         return
     end
 
@@ -543,13 +674,19 @@ function JournalTab:OnToggleActiveClicked()
             Addon.QuestRepository:SetActiveQuest(nil)
         end
     else
-        local activated
+        local activated, errKey
         if q.completed or q.failed or isPrepared then
-            activated = Addon.QuestRepository:ResetQuest(q.id)
+            activated, errKey = Addon.QuestRepository:ResetQuest(q.id)
         else
-            activated = Addon.QuestRepository:SetActiveQuest(q.id)
+            activated, errKey = Addon.QuestRepository:SetActiveQuest(q.id)
         end
-        if activated and isPrepared then
+        if not activated then
+            if errKey then
+                Addon.Announcements:ShowAlert(Addon.Locale:Get(errKey), true)
+            end
+            return
+        end
+        if isPrepared then
             Addon.Announcements:AnnounceQuestAccepted(q)
         end
     end
@@ -613,6 +750,7 @@ function JournalTab:ToggleTab()
     local sceneShowing = SCENE_MANAGER:IsShowing("questJournal")
 
     if sceneShowing and qj and qj.mode == (self.tabDescriptor or Addon.Constants.UI.TAB_DESCRIPTOR) then
+        self:AutoPreserveDraft()
         SCENE_MANAGER:Hide("questJournal")
         if self.panel then
             self.panel:SetHidden(true)
@@ -843,6 +981,7 @@ function JournalTab:RefreshQuestList(allQuests, activeQuest)
     end
 
     local buckets = PartitionQuestsBySection(allQuests)
+    EnsureExpandedSectionWithQuests(self, buckets, activeQuest)
     local displayRows = {}
 
     for _, def in ipairs(SECTION_DEFINITIONS) do
@@ -967,14 +1106,19 @@ function JournalTab:Refresh()
         if not selectedQuest then
             if activeQuest then
                 selectedQuest = activeQuest
-                self.selectedQuestId = activeQuest.id
-            elseif allQuests[1] then
-                selectedQuest = allQuests[1]
-                self.selectedQuestId = allQuests[1].id
             else
-                selectedQuest = nil
-                self.selectedQuestId = nil
+                local openKey = GetExpandedSectionKey(self)
+                if openKey then
+                    local buckets = PartitionQuestsBySection(allQuests)
+                    if buckets[openKey] and buckets[openKey][1] then
+                        selectedQuest = buckets[openKey][1]
+                    end
+                end
+                if not selectedQuest and allQuests[1] then
+                    selectedQuest = allQuests[1]
+                end
             end
+            SetSelectedQuestId(self, selectedQuest and selectedQuest.id or nil)
         end
     end
 
@@ -989,10 +1133,6 @@ function JournalTab:Refresh()
     if self.viewMode == VIEW_MODE.EDITOR then
         self.editorPane:SetHidden(false)
         self:RefreshEditorPane()
-        self:UpdateShowOnMapVisibility()
-        if self.keybindStripDescriptor then
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
-        end
     elseif self.viewMode == VIEW_MODE.MAIL_SEND and self.mailSendPane then
         self.mailSendPane:SetHidden(false)
         self:RefreshMailSendCounter()
@@ -1020,4 +1160,8 @@ end
 
 function JournalTab:RefreshEditorPane()
     Addon.JournalEditorPane.Refresh(self)
+    self:UpdateShowOnMapVisibility()
+    if self.keybindStripDescriptor then
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
+    end
 end

@@ -1,0 +1,43 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Furyous/Fury-s-Account-Sync__5106",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Furyous",
+  "canonical_id": "esoui:5106",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5106",
+  "deleted": false,
+  "directories": [
+    "FurysAccountSync"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5106/",
+  "fingerprint": "5152e2cb191b0503682afc86ca58a11c8beeac52c1e6cbb5833807d1d7362e66",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18771.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18770.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5106",
+  "source_url": "https://www.esoui.com/downloads/info5106-FurysAccountSync.html",
+  "stats": {
+    "downloads": 21,
+    "favorites": 1,
+    "monthly_downloads": 0
+  },
+  "title": "Fury's Account Sync",
+  "updated_at": 1795505043000,
+  "version": "0.2.2"
+}

@@ -12,11 +12,45 @@ local MAX_OVER_USUAL = 1.25       -- restocking won't pay more than this times t
 local MIN_GAP = 1.5               -- "sell above" stays well over "keep", so a stack can't be bought then resold
 local PENDING_SECONDS = 7 * 86400 -- how long a purchase is assumed to be waiting in the mail
 local LEGENDARY = 5
+local DEFAULT_WRIT_DAYS = 31
+local MAX_WRIT_CHARACTERS = 100
+local MAX_WRIT_DAYS = 365
+
+-- What one character uses over the three-day writ rotation: "high" for max-level crafters, "low" for level 1.
+-- Crafters are kept at one or the other, so the materials in between are never needed.
+-- All armor and weapons use the Breton style, so Molybdenum is the only style material.
+-- "protect" items are kept from being sold but never bought from a guild trader: potency runes come
+-- from an Enchanter, Molybdenum from a Clothier, and alchemy depends on how many potions you batch.
+Levels.WRIT_MATERIALS = {
+    { id = 64489, name = "Rubedite Ingot", high = 116, low = 0, sub = 30, level = 1 },
+    { id = 64502, name = "Sanded Ruby Ash", high = 112, low = 0, sub = 30, level = 1 },
+    { id = 135146, name = "Platinum Ounce", high = 85, low = 0, sub = 30, level = 1 },
+    { id = 64504, name = "Ancestor Silk", high = 81, low = 0, sub = 30, level = 1 },
+    { id = 64506, name = "Rubedo Leather", high = 39, low = 0, sub = 30, level = 1 },
+    { id = 5413, name = "Iron Ingot", high = 0, low = 43, sub = 30, level = 1 },
+    { id = 803, name = "Sanded Maple", high = 0, low = 33, sub = 30, level = 1 },
+    { id = 811, name = "Jute", high = 0, low = 33, sub = 30, level = 1 },
+    { id = 135138, name = "Pewter Ounce", high = 0, low = 17, sub = 30, level = 1 },
+    { id = 794, name = "Rawhide", high = 0, low = 15, sub = 30, level = 1 },
+    { id = 64509, name = "Rejera", high = 3, low = 0, sub = 308, level = 50, protect = true, vendor = "an Enchanter" },
+    { id = 64508, name = "Jehade", high = 1, low = 0, sub = 308, level = 50, protect = true, vendor = "an Enchanter" },
+    { id = 45855, name = "Jora", high = 0, low = 3, sub = 20, level = 5, protect = true, vendor = "an Enchanter" },
+    { id = 45817, name = "Jode", high = 0, low = 1, sub = 20, level = 5, protect = true, vendor = "an Enchanter" },
+    { id = 45850, name = "Ta", high = 4, low = 4, sub = 20, level = 13 },
+    { id = 45831, name = "Oko", high = 2, low = 2, sub = 20, level = 46 },
+    { id = 45833, name = "Deni", high = 1, low = 1, sub = 20, level = 46 },
+    { id = 45832, name = "Makko", high = 1, low = 1, sub = 20, level = 46 },
+    { id = 33251, name = "Molybdenum", high = 27, low = 27, sub = 30, level = 1, protect = true, vendor = "a Clothier" },
+    { id = 64501, name = "Lorkhan's Tears", high = 3, low = 0, sub = 308, level = 50, protect = true },
+    { id = 883, name = "Natural Water", high = 0, low = 3, sub = 30, level = 1, protect = true },
+}
+local writById = {}
+for _, material in ipairs(Levels.WRIT_MATERIALS) do writById[material.id] = material end
 
 Levels.GROUPS = {
     { id = "gold", label = "Gold improvement materials", sell = false, canKeep = true },
-    { id = "writ", label = "Writ and crafting materials", sell = 200 },
-    { id = "style", label = "Style materials", sell = 100 },
+    { id = "writ", label = "Writ and crafting materials", sell = false, neverSell = true },
+    { id = "style", label = "Style materials", sell = false, neverSell = true },
     { id = "consumable", label = "Alchemy, enchanting and provisioning", sell = 200 },
     { id = "furnishing", label = "Furnishing materials", sell = 0 },
 }
@@ -43,6 +77,43 @@ local function store()
     saved.pending, saved.known = saved.pending or {}, saved.known or {}
     if saved.budget == nil then saved.budget = DEFAULT_BUDGET end
     return saved
+end
+
+function Levels.WritPlan()
+    local saved = store()
+    return saved.writCharacters or 0, saved.writDays or DEFAULT_WRIT_DAYS, saved.writLowCharacters or 0
+end
+
+function Levels.WritActive()
+    local high, _, low = Levels.WritPlan()
+    return high > 0 or low > 0
+end
+
+function Levels.SetWritLowCharacters(value)
+    store().writLowCharacters = math.max(0, math.min(math.floor(value), MAX_WRIT_CHARACTERS))
+    GP.Scanner.MarkDirty()
+end
+
+function Levels.SetWritCharacters(value)
+    store().writCharacters = math.max(0, math.min(math.floor(value), MAX_WRIT_CHARACTERS))
+    GP.Scanner.MarkDirty()
+end
+
+function Levels.SetWritDays(value)
+    store().writDays = math.max(1, math.min(math.floor(value), MAX_WRIT_DAYS))
+    GP.Scanner.MarkDirty()
+end
+
+-- How much of a writ material your characters and buffer days call for.
+function Levels.WritNeed(material)
+    local high, days, low = Levels.WritPlan()
+    return math.ceil((material.high * high + material.low * low) * days / 3)
+end
+
+local function writLink(material)
+    local ok, link = pcall(GetItemLink, BAG_VIRTUAL, material.id)
+    if ok and link and link ~= "" and GetItemLinkItemId(link) == material.id then return link end
+    return string.format("|H1:item:%d:%d:%d:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", material.id, material.sub, material.level)
 end
 
 function Levels.Budget()
@@ -77,7 +148,7 @@ function Levels.GroupSetting(groupId)
     if not group then return 0, nil end
     local keep = group.canKeep and saved and saved.keep or 0
     local sell = group.sell
-    if saved and saved.sell ~= nil then sell = saved.sell end
+    if saved and saved.sell ~= nil and not group.neverSell then sell = saved.sell end
     if sell == false then sell = nil end
     return keep, sell
 end
@@ -91,7 +162,17 @@ end
 
 -- The levels for one item: keep at least, sell above (nil = never), most to pay each (nil = automatic).
 function Levels.For(link)
-    local item = store().items[GetItemLinkItemId(link)]
+    local id = GetItemLinkItemId(link)
+    local item = store().items[id]
+    local material = writById[id]
+    -- A level you set on this exact item always wins
+    if material and not (item and (item.keep ~= nil or item.sell ~= nil)) then
+        local need = Levels.WritActive() and Levels.WritNeed(material) or 0
+        -- Not part of your plan, so it's left alone rather than treated as excess
+        if need <= 0 then return 0, nil, item and item.maxPrice or nil, true end
+        -- Writ materials get used and topped up, so they're never sold as excess
+        return need, nil, item and item.maxPrice or nil, material.protect == true
+    end
     local keep, sell = Levels.GroupSetting(Levels.GroupFor(link))
     if item then
         if item.keep ~= nil then keep = item.keep end
@@ -157,13 +238,14 @@ function Levels.Shortfalls()
     local function check(id, link)
         if seen[id] or not link then return end
         seen[id] = true
-        local keep, sell, maxPrice = Levels.For(link)
-        if keep <= 0 then return end
+        local keep, sell, maxPrice, protectOnly = Levels.For(link)
+        if keep <= 0 or protectOnly then return end
         local owned = Levels.Owned(link)
         local have = owned + Levels.Pending(link, owned)
         if have >= keep then return end
         local need = keep - have
-        local room = sell and (sell - have) or math.ceil(need * MIN_GAP)
+        -- Writ materials are never sold, so a top-up can take a normal full stack
+        local room = sell and (sell - have) or (writById[id] and math.max(need, MAX_STACK) or math.ceil(need * MIN_GAP))
         if not maxPrice then
             local usual = GP.Scanner.FindRate(link)
             maxPrice = usual and usual * MAX_OVER_USUAL or nil
@@ -175,6 +257,11 @@ function Levels.Shortfalls()
     end
     for id, item in pairs(saved.items) do check(id, item.link) end
     for id, link in pairs(saved.known) do check(id, link) end
+    if Levels.WritActive() then
+        for _, material in ipairs(Levels.WRIT_MATERIALS) do
+            if not material.protect then check(material.id, writLink(material)) end
+        end
+    end
     table.sort(needs, function(a, b)
         if a.name ~= b.name then return a.name < b.name end
         return a.id < b.id
@@ -191,6 +278,38 @@ function Levels.RestockText()
     end
     lines[#lines + 1] = ""
     lines[#lines + 1] = "At a trader, choose Gold Digger: Restock materials."
+    return table.concat(lines, "\n")
+end
+
+-- Each writ material against what your characters and buffer days call for.
+function Levels.WritText()
+    local high, days, low = Levels.WritPlan()
+    if not Levels.WritActive() then return "Enter how many characters do daily writs to turn this on." end
+    local lines = { high .. " max-level and " .. low .. " level 1 characters, " .. days .. " days of supply", "" }
+    for _, material in ipairs(Levels.WRIT_MATERIALS) do
+        local link = writLink(material)
+        local keep, sell, _, protectOnly = Levels.For(link)
+        local owned = Levels.Owned(link)
+        local have = owned + Levels.Pending(link, owned)
+        local status = "OK"
+        if have < keep then
+            local short = ZO_CommaDelimitNumber(keep - have)
+            if material.vendor then
+                status = "buy " .. short .. " from " .. material.vendor
+            elseif protectOnly then
+                status = "low by " .. short
+            else
+                status = "buy " .. short
+            end
+        end
+        if keep > 0 then
+            lines[#lines + 1] = material.name .. ": need " .. ZO_CommaDelimitNumber(keep) .. ", have "
+                .. ZO_CommaDelimitNumber(have) .. ", " .. status
+        end
+    end
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = "Items marked with an NPC are bought there, not from guild traders. Alchemy solvents are never bought automatically."
+    lines[#lines + 1] = "Provisioning and alchemy reagents aren't counted."
     return table.concat(lines, "\n")
 end
 

@@ -853,7 +853,7 @@ local function createSettings()
         check("Furnishings", "Furniture with no copy in your bags, bank, house storage or furniture vault. Furniture placed in your houses can't be counted, so it may still show.", "traderFurnishings"),
         { type = LHAS.ST_SECTION, label = "Protection" },
         check("Lock pieces you need", "When you pick up or buy a piece on your list in the right trait, lock it so it can't be sold, destroyed or deconstructed by accident. Spare copies aren't locked.", "autoLock"),
-        check("Auto-bind new pieces", "When you loot a bind-on-equip piece that's missing from your Sticker Book, bind it. Binding can't be undone. Trader purchases, mail and trades are never bound. In the Sticker Book, press L3 to skip a piece or R3 to skip a whole set.", "autoBind", function()
+        check("Auto-bind new pieces", "When you loot a piece that's missing from your Sticker Book, bind it. This includes dungeon and trial drops you could still trade, so you can't give those away. Binding can't be undone. Trader purchases, mail and trades are never bound. In the Sticker Book, press L3 to skip a piece or R3 to skip a whole set.", "autoBind", function()
             redraw()
         end),
         { type = LHAS.ST_LABEL, label = function() return SH.AutoBind and SH.AutoBind.StatusText() or "" end },

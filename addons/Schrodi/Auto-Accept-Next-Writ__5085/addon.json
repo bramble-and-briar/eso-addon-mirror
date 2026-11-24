@@ -8,6 +8,10 @@
   "category_id": "40",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "AutoAcceptNextWrit"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5085/",
-  "fingerprint": "49cfc56b3d932eef7800a2f7946ad479c0c56bc2c49474e6762c943ce772946f",
+  "fingerprint": "3899e04b82d30fffdece59bb59d99e493fee5b658d7629f4e012394a3f521b23",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +30,11 @@
   "source_id": "5085",
   "source_url": "https://www.esoui.com/downloads/info5085-AutoAcceptNextWrit.html",
   "stats": {
-    "downloads": 11,
+    "downloads": 39,
     "favorites": 0,
-    "monthly_downloads": 11
+    "monthly_downloads": 32
   },
   "title": "Auto Accept Next Writ",
-  "updated_at": 1795267840000,
-  "version": "1.2"
+  "updated_at": 1795476441000,
+  "version": "1.2.1"
 }

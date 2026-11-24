@@ -1,3 +1,4 @@
+local Teleport = Teleport
 Teleport.Aliases = {}
 
 local info  = Teleport.info

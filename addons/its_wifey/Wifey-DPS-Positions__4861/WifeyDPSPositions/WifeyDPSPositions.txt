@@ -1,0 +1,14 @@
+## Title: Wifey DPS Positions
+## APIVersion: 101050 101051
+## Version: 1.8.3
+## AddOnVersion: 183
+## Author: WifeyRytic
+## SavedVariables: WifeyDPSPositions_SavedVars
+## Description: Trial DPS mechanic assignments with group chat output, optional Ready Check, and manual player selection.
+
+data/Bindings.xml
+data/WifeyDPSPositions_Data.lua
+data/WifeyDPSPositions_Utils.lua
+data/WifeyDPSPositions_Core.lua
+data/WifeyDPSPositions_UI.lua
+WifeyDPSPositions.lua

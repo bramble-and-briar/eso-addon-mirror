@@ -8,6 +8,8 @@
 --       GetRows = function() return { { text=, tooltip=, actions={ {label=, fn=}, ... } } } end,
 --       footer = { { label = "Dismiss all", tip = "Hover text", fn = function() end }, ... },  -- optional
 --       searchable = true,                             -- optional: shows the search box, tab.searchText holds it
+--       topBar = control or function,                  -- optional (1.23.0): controls in the title row, shown only on this tab
+--       UpdateTopBar = function() end,                 -- optional: refreshes them (may hide them)
 --       GetExportLines = function() return { "header", "row", ... } end,  -- optional: adds an Export button
 --   })
 -- Rows can have up to six action buttons ({ label =, tip =, fn = }). Every button
@@ -21,7 +23,7 @@
 -- Any row can set OnRightClick = function(control) end for a right-click menu.
 -- Report.AddMenu(row, items) gives a row a menu of all its actions (see below).
 
-local GT = FuryGMT
+local GT = FurysGuildToolset
 local Report = {}
 GT.Report = Report
 
@@ -32,6 +34,8 @@ local COLUMN_GAP = 8
 local ROW_HEIGHT = 32
 local MAX_FOOTER_BUTTONS = 7   -- 1.15.0: 7 for the Events tab (its buttons are narrower)
 local EXPORT_PART_CHARS = 20000
+-- The copy window's hint for CSV exports; Copy for Discord sets its own (Report.exportHint).
+local EXPORT_HINT = "CSV, one line per row. Select all, Ctrl+C, then in Excel: Data > Text to Columns > Comma."
 
 Report.tabs = {}
 Report.tabButtons = {}
@@ -74,7 +78,7 @@ Report.MENU_HINT = "Right-click a row for options."
 
 function Report.AddMenu(row, items)
     if #items == 0 then return row end
-    row.tooltip = (row.tooltip and (row.tooltip .. "\n") or "") .. "|cAAAAAARight-click for options.|r"
+    row.tooltip = (row.tooltip and (row.tooltip .. "\n") or "") .. "|cB4B0D8Right-click for options.|r"
     row.OnRightClick = function(control)
         ClearMenu()
         for _, item in ipairs(items) do
@@ -113,10 +117,11 @@ function Report:ShowCopy(text)
     self.exportParts = { text }
     self.exportIndex = 1
     self.exportTitle = "Copy"
-    GT.Util.ShowOnTop(FuryGMTExport)
+    self.exportHint = nil
+    GT.Util.ShowOnTop(FurysGuildToolset_Export)
     self:ShowExportPart(0)
-    FuryGMTExportTextBox:TakeFocus()
-    FuryGMTExportTextBox:SelectAll()
+    FurysGuildToolset_ExportTextBox:TakeFocus()
+    FurysGuildToolset_ExportTextBox:SelectAll()
     GT.Util.Print("%s is selected. Press Ctrl+C to copy it.", text)
 end
 
@@ -131,29 +136,49 @@ function Report:GetTab(id)
 end
 
 function Report:Initialize()
-    self.control = FuryGMTReport
-    self.list = FuryGMTReportList
-    self.summary = FuryGMTReportSummary
-    self.search = FuryGMTReportSearch
-    self.searchBox = FuryGMTReportSearchBox
-    FuryGMTReportVersion:SetText("v" .. GT.version)
-    FuryGMTExportTextBox:SetMaxInputChars(EXPORT_PART_CHARS + 2000)
+    self.control = FurysGuildToolset_Report
+    self.list = FurysGuildToolset_ReportList
+    self.summary = FurysGuildToolset_ReportSummary
+    self.search = FurysGuildToolset_ReportSearch
+    self.searchBox = FurysGuildToolset_ReportSearchBox
+    FurysGuildToolset_ReportVersion:SetText("v" .. GT.version)
+    -- Fury Night look for every window (colors and fonts are set here, not in the XML).
+    local T = GT.Theme
+    T.Window(FurysGuildToolset_Report, { bg = "BG" })
+    T.Window(FurysGuildToolset_Export, { bg = "BG" })
+    T.Window(FurysGuildToolset_EventsInput, { bg = "BG" })
+    T.Window(FurysGuildToolset_AutoAlert, { bg = "BG", plain = true, font = "$(ANTIQUE_FONT)|34|soft-shadow-thick" })
+    T.Window(FurysGuildToolset_RemoveDialog, { bg = "BG", plain = true })
+    T.Window(FurysGuildToolset_RecruitBar, { bg = "BG", title = "Text", plain = true, font = "ZoFontGameSmall" })
+    -- Search box: lighter than the window, violet edge, bright text, so it's easy to find.
+    -- It sits in the title bar, so it has to draw above the theme's title glow (DL_BACKGROUND),
+    -- which otherwise covers it. Solid black with a violet edge and bright text (Albert).
+    self.search:SetDrawLayer(DL_CONTROLS)
+    self.search:SetDrawLevel(1)
+    self.searchBox:SetDrawLayer(DL_CONTROLS)
+    self.searchBox:SetDrawLevel(2)
+    FurysGuildToolset_ReportSearchClear:SetDrawLayer(DL_CONTROLS)
+    FurysGuildToolset_ReportSearchClear:SetDrawLevel(3)
+    self.search:SetCenterColor(0, 0, 0, 1)
+    self.search:SetEdgeColor(T.VIOLET:UnpackRGBA())
+    T.Paint(self.searchBox, T.TEXT)
+    FurysGuildToolset_ExportTextBox:SetMaxInputChars(EXPORT_PART_CHARS + 2000)
     -- Without these the edit box drops line breaks and everything runs together.
-    FuryGMTExportTextBox:SetMultiLine(true)
-    FuryGMTExportTextBox:SetNewLineEnabled(true)
+    FurysGuildToolset_ExportTextBox:SetMultiLine(true)
+    FurysGuildToolset_ExportTextBox:SetNewLineEnabled(true)
     -- Registering with the scene manager makes Esc close these windows
     -- and handles the mouse cursor for us.
-    SCENE_MANAGER:RegisterTopLevel(FuryGMTReport, false)
-    SCENE_MANAGER:RegisterTopLevel(FuryGMTExport, false)
-    FuryGMTReport:SetHandler("OnHide", function()
+    SCENE_MANAGER:RegisterTopLevel(FurysGuildToolset_Report, false)
+    SCENE_MANAGER:RegisterTopLevel(FurysGuildToolset_Export, false)
+    FurysGuildToolset_Report:SetHandler("OnHide", function()
         ClearTooltip(InformationTooltip)
         if self.panelTab then self.panelTab.SetPanelShown(false); self.panelTab = nil end
     end)
 
-    ZO_ScrollList_AddDataType(self.list, ROW_TYPE, "FuryGMT_ReportRow", ROW_HEIGHT, function(control, data)
+    ZO_ScrollList_AddDataType(self.list, ROW_TYPE, "FurysGuildToolset_ReportRow", ROW_HEIGHT, function(control, data)
         self:SetupRow(control, data)
     end)
-    ZO_ScrollList_AddDataType(self.list, COLUMN_ROW_TYPE, "FuryGMT_ReportColumnRow", 28, function(control, data)
+    ZO_ScrollList_AddDataType(self.list, COLUMN_ROW_TYPE, "FurysGuildToolset_ReportColumnRow", 28, function(control, data)
         self:SetupColumnRow(control, data)
     end)
     -- Hide a row's hover text as soon as the list scrolls. Left anchored to a row that is moving
@@ -168,12 +193,12 @@ function Report:Initialize()
     end)
 
     -- Column headers: clickable labels, created once and reused by every column tab.
-    self.header = FuryGMTReportHeader
+    self.header = FurysGuildToolset_ReportHeader
     self.headerLabels = {}
     for i = 1, MAX_COLUMNS do
-        local label = WINDOW_MANAGER:CreateControl("FuryGMTReportHeaderCol" .. i, self.header, CT_LABEL)
-        label:SetFont("ZoFontGameBold")
-        label:SetColor(0.83, 0.69, 0.22, 1)
+        local label = WINDOW_MANAGER:CreateControl("FurysGuildToolset_ReportHeaderCol" .. i, self.header, CT_LABEL)
+        label:SetFont(GT.Theme.FONT_HEADER)
+        GT.Theme.Paint(label, GT.Theme.BLUE)
         label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
         label:SetMouseEnabled(true)
@@ -194,16 +219,16 @@ function Report:Initialize()
     local rows = #self.tabs > 9 and 2 or 1
     local perRow = math.ceil(#self.tabs / rows)
     local width = math.min(180, math.floor((1160 - 4 * (perRow - 1)) / perRow))
-    FuryGMTReportTabs:SetHeight(32 * rows)
-    if rows > 1 then FuryGMTReport:SetHeight(600 + 32 * (rows - 1)) end
+    FurysGuildToolset_ReportTabs:SetHeight(32 * rows)
+    if rows > 1 then FurysGuildToolset_Report:SetHeight(600 + 32 * (rows - 1)) end
     local previous
     for i, tab in ipairs(self.tabs) do
-        local button = WINDOW_MANAGER:CreateControlFromVirtual("FuryGMTReportTab" .. i, FuryGMTReportTabs, "ZO_DefaultButton")
+        local button = WINDOW_MANAGER:CreateControlFromVirtual("FurysGuildToolset_ReportTab" .. i, FurysGuildToolset_ReportTabs, "ZO_DefaultButton")
         button:SetDimensions(width, 28)
         if (i - 1) % perRow ~= 0 then
             button:SetAnchor(TOPLEFT, previous, TOPRIGHT, 4, 0)
         else
-            button:SetAnchor(TOPLEFT, FuryGMTReportTabs, TOPLEFT, 0, 2 + 32 * math.floor((i - 1) / perRow))
+            button:SetAnchor(TOPLEFT, FurysGuildToolset_ReportTabs, TOPLEFT, 0, 2 + 32 * math.floor((i - 1) / perRow))
         end
         button:SetHandler("OnClicked", function() self:SelectTab(tab.id) end)
         Report.SetTip(button, function() return Resolve(tab.tip) end)
@@ -213,12 +238,12 @@ function Report:Initialize()
 
     previous = nil
     for i = 1, MAX_FOOTER_BUTTONS do
-        local button = WINDOW_MANAGER:CreateControlFromVirtual("FuryGMTReportFooter" .. i, FuryGMTReportFooter, "ZO_DefaultButton")
+        local button = WINDOW_MANAGER:CreateControlFromVirtual("FurysGuildToolset_ReportFooter" .. i, FurysGuildToolset_ReportFooter, "ZO_DefaultButton")
         button:SetDimensions(180, 28)   -- 1.7.0: wider, for labels like "Winners for Discord"
         if previous then
             button:SetAnchor(LEFT, previous, RIGHT, 6, 0)
         else
-            button:SetAnchor(LEFT, FuryGMTReportFooter, LEFT, 0, 0)
+            button:SetAnchor(LEFT, FurysGuildToolset_ReportFooter, LEFT, 0, 0)
         end
         button:SetHidden(true)
         self.footerButtons[i] = button
@@ -236,11 +261,18 @@ function Report:Initialize()
 end
 
 function Report.SavePosition()
-    local control = FuryGMTReport
+    local control = FurysGuildToolset_Report
     GT.sv.window = { x = control:GetLeft(), y = control:GetTop() }
 end
 
+-- Fury Night row fills: every other row striped, the row you right-clicked stays lit.
+function Report:PaintRow(control, data)
+    control:GetNamedChild("Stripe"):SetHidden(data.furyStripe ~= true)
+    control:GetNamedChild("Selected"):SetHidden(data ~= self.selectedData)
+end
+
 function Report:SetupRow(control, data)
+    self:PaintRow(control, data)
     local label = control:GetNamedChild("Text")
     label:SetText(data.text or "")
     -- The text gets whatever width the buttons leave (86 px per button); rows without
@@ -265,6 +297,7 @@ end
 
 -- Lays the column labels out left to right using the widths in data.columns.
 function Report:SetupColumnRow(control, data)
+    self:PaintRow(control, data)
     local x = 6
     for i = 1, MAX_COLUMNS do
         local label = control:GetNamedChild("Col" .. i)
@@ -349,6 +382,8 @@ function Report.OnRowMouseUp(control, button, upInside)
     local data = ZO_ScrollList_GetData(control)
     if data and data.OnRightClick then
         ClearTooltip(InformationTooltip)
+        Report.selectedData = data
+        ZO_ScrollList_RefreshVisible(Report.list)
         data.OnRightClick(control)
     end
 end
@@ -362,6 +397,7 @@ end
 function Report:SelectTab(id)
     self.currentTab = id
     GT.sv.lastTab = id
+    self.selectedData = nil
     self:Refresh()
 end
 
@@ -395,7 +431,8 @@ function Report:Refresh()
     if columns then self:LayoutHeader(tab, columns) end
     ZO_ScrollList_Clear(self.list)
     local dataList = ZO_ScrollList_GetDataList(self.list)
-    for _, row in ipairs(rows) do
+    for i, row in ipairs(rows) do
+        row.furyStripe = (i % 2 == 0)
         if columns then
             row.columns = columns
             dataList[#dataList + 1] = ZO_ScrollList_CreateDataEntry(COLUMN_ROW_TYPE, row)
@@ -414,7 +451,7 @@ function Report:Refresh()
     end
     local offText = tab.GetOffText and tab.GetOffText()
     if offText then
-        summary = "|cFF9933" .. offText .. "|r" .. (summary ~= "" and ("  " .. summary) or "")
+        summary = "|cFFA45C" .. offText .. "|r" .. (summary ~= "" and ("  " .. summary) or "")
     elseif #rows == 0 and not usesPanel then
         summary = (summary ~= "" and (summary .. "  ") or "") .. "Nothing to review."
     end
@@ -424,6 +461,11 @@ function Report:Refresh()
     if tab.searchable and self.searchBox:GetText() ~= (tab.searchText or "") then
         self.searchBox:SetText(tab.searchText or "")
     end
+    for _, other in ipairs(self.tabs) do
+        local bar = Resolve(other.topBar)
+        if bar then bar:SetHidden(other ~= tab) end
+    end
+    if tab.UpdateTopBar then tab.UpdateTopBar() end
 
     local footer = {}
     for _, action in ipairs(Resolve(tab.footer) or {}) do footer[#footer + 1] = action end
@@ -466,6 +508,8 @@ function Report:RefreshIfShown()
 end
 
 function Report.OnSearchChanged(editBox)
+    -- The X is always there; it's brighter while there's something to clear.
+    FurysGuildToolset_ReportSearchClear:SetAlpha((editBox:GetText() or "") == "" and 0.5 or 1)
     local tab = Report:GetTab(Report.currentTab)
     if not tab or not tab.searchable then return end
     local text = editBox:GetText() or ""
@@ -473,6 +517,13 @@ function Report.OnSearchChanged(editBox)
     tab.searchText = text
     if tab.OnSearchChanged then tab.OnSearchChanged(text) end
     Report:Refresh()
+end
+
+-- The X in the search box: empties it (the list updates through OnSearchChanged).
+function Report.ClearSearch()
+    Report.searchBox:SetText("")
+    Report.searchBox:LoseFocus()
+    Report.HideTip()
 end
 
 -- Export ---------------------------------------------------------------------
@@ -540,29 +591,31 @@ function Report:ShowExport(tabLines)
     self.exportParts = parts
     self.exportIndex = 1
     self.exportTitle = nil
-    GT.Util.ShowOnTop(FuryGMTExport)
+    self.exportHint = nil
+    GT.Util.ShowOnTop(FurysGuildToolset_Export)
     self:ShowExportPart(0)
 end
 
 function Report:ShowExportPart(delta)
     local parts = self.exportParts or { "" }
     self.exportIndex = zo_clamp((self.exportIndex or 1) + delta, 1, #parts)
-    FuryGMTExportTextBox:SetText(parts[self.exportIndex])
-    FuryGMTExportTitle:SetText(self.exportTitle or "Export")
-    FuryGMTExportPart:SetText(string.format("Part %d of %d", self.exportIndex, #parts))
-    FuryGMTExportPrev:SetHidden(#parts <= 1)
-    FuryGMTExportNext:SetHidden(#parts <= 1)
-    FuryGMTExportPart:SetHidden(#parts <= 1)
+    FurysGuildToolset_ExportTextBox:SetText(parts[self.exportIndex])
+    FurysGuildToolset_ExportTitle:SetText(self.exportTitle or "Export")
+    FurysGuildToolset_ExportHint:SetText(self.exportHint or EXPORT_HINT)
+    FurysGuildToolset_ExportPart:SetText(string.format("Part %d of %d", self.exportIndex, #parts))
+    FurysGuildToolset_ExportPrev:SetHidden(#parts <= 1)
+    FurysGuildToolset_ExportNext:SetHidden(#parts <= 1)
+    FurysGuildToolset_ExportPart:SetHidden(#parts <= 1)
 end
 
 -- Addons can't write to the clipboard, so select the text and let the player press Ctrl+C.
 function Report:CopyExport()
-    local box = FuryGMTExportTextBox
+    local box = FurysGuildToolset_ExportTextBox
     box:TakeFocus()
     box:SelectAll()
-    FuryGMT.Util.Print("Part %d is selected. Press Ctrl+C to copy it.", self.exportIndex or 1)
+    GT.Util.Print("Part %d is selected. Press Ctrl+C to copy it.", self.exportIndex or 1)
 end
 
 function Report:HideExport()
-    SCENE_MANAGER:HideTopLevel(FuryGMTExport)
+    SCENE_MANAGER:HideTopLevel(FurysGuildToolset_Export)
 end

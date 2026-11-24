@@ -8,9 +8,9 @@
 ## Description: Library for archival character-specific achievements
 ## Author: @code65536
 ## IsLibrary: true
-## Version: 1.2.4.1
-## AddOnVersion: 102041
-## APIVersion: 101050 101051
+## Version: 1.2.4.2
+## AddOnVersion: 102042
+## APIVersion: 101051 101052
 ## SavedVariables: LibAchievementsArchiveData
 
 LibCodesCommonCode.lua

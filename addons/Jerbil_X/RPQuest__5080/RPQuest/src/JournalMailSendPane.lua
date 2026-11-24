@@ -106,6 +106,10 @@ function MailSendPane.SendSelectedPrepared(tab)
         Addon.Announcements:ShowAlert(Addon.Locale:Get("ERR_QUEST_NEEDS_MIGRATION"), true)
         return false
     end
+    if not Addon.QuestRepository:HasPlayableObjectives(quest) then
+        Addon.Announcements:ShowAlert(Addon.Locale:Get("ERR_MISSING_TARGET"), true)
+        return false
+    end
     local recipient = type(quest.recipientAccount) == "string"
         and quest.recipientAccount:gsub("^%s+", ""):gsub("%s+$", "")
         or ""

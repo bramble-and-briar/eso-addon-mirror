@@ -7,10 +7,10 @@
 ## Title: Ultimate Regen Timer
 ## Description: Counts down the 8 seconds of passive ultimate generation you get from a light or heavy attack hit, a block or a dodge, right next to your ultimate button.
 ## Author: Schrodi
-## Version: 3.0.0
-## AddOnVersion: 300
-## APIVersion: 101051
-## DependsOn: LibAddonMenu-2.0
+## Version: 3.0.1
+## AddOnVersion: 301
+## APIVersion: 101051 101052
+## DependsOn: LibAddonMenu-2.0>=43
 ## SavedVariables: UltimateRegenTimer_SV
 
 UltimateRegenTimer.lua

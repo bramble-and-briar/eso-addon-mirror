@@ -191,41 +191,11 @@ function CharacterKnowledge.HookExternalTooltips( )
 	if (AreExternalTooltipsHooked or not CharacterKnowledge.vars.tooltips.enabled) then return end
 	AreExternalTooltipsHooked = true
 
-	local TooltipHook = function( control, functionName, linkFunction, sourceParams )
-		ZO_PostHook(control, functionName, function( self, ... )
-			if (CharacterKnowledge.vars.tooltips.enabled) then
-				local itemSource
-				if (sourceParams) then
-					itemSource = { }
-					for i, param in ipairs(sourceParams) do
-						itemSource[param] = select(i, ...)
-					end
-				end
-				CharacterKnowledge.AddTooltipExtension(control, linkFunction(...), itemSource)
-			end
-		end)
-	end
-
-	local ItemLinkPassthrough = function( itemLink )
-		return itemLink
-	end
-
-	TooltipHook(PopupTooltip, "SetLink", ItemLinkPassthrough)
-	TooltipHook(ItemTooltip, "SetLink", ItemLinkPassthrough)
-	TooltipHook(ItemTooltip, "SetBagItem", GetItemLink, { "bagId", "slotIndex" })
-	TooltipHook(ItemTooltip, "SetTradeItem", GetTradeItemLink, { "who", "tradeIndex" })
-	TooltipHook(ItemTooltip, "SetBuybackItem", GetBuybackItemLink)
-	TooltipHook(ItemTooltip, "SetStoreItem", GetStoreItemLink)
-	TooltipHook(ItemTooltip, "SetAttachedMailItem", GetAttachedItemLink)
-	TooltipHook(ItemTooltip, "SetLootItem", GetLootItemLink)
-	TooltipHook(ItemTooltip, "SetReward", GetItemRewardItemLink)
-	TooltipHook(ItemTooltip, "SetQuestReward", GetQuestRewardItemLink)
-	TooltipHook(ItemTooltip, "SetTradingHouseItem", GetTradingHouseSearchResultItemLink)
-	TooltipHook(ItemTooltip, "SetTradingHouseListing", GetTradingHouseListingItemLink)
-	TooltipHook(ItemTooltip, "SetPlacedFurniture", GetPlacedFurnitureLink)
-	if (ZO_SmithingTopLevelCreationPanelResultTooltip) then
-		TooltipHook(ZO_SmithingTopLevelCreationPanelResultTooltip, "SetPendingSmithingItem", GetSmithingPatternResultLink, { "patternIndex" })
-	end
+	LEJ.HookItemTooltips(function( control, functionName, itemLink, sourceContext )
+		if (CharacterKnowledge.vars.tooltips.enabled) then
+			CharacterKnowledge.AddTooltipExtension(control, itemLink, sourceContext)
+		end
+	end)
 end
 
 LCK.RegisterForCallback("CharacterKnowledgeTooltip", LCK.EVENT_INITIALIZED, CharacterKnowledge.HookExternalTooltips)

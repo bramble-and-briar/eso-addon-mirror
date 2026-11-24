@@ -32,10 +32,8 @@ local function AppendTTCPrice(control, itemLink)
 	if not itemLink or itemLink == "" then
 		return
 	end
-	if not TamrielTradeCentre or not TamrielTradeCentre.Settings or not TamrielTradeCentre.Settings.EnableItemToolTipPricing then
-		return
-	end
-	if not TamrielTradeCentrePrice or not TamrielTradeCentrePrice.AppendPriceInfo then
+	-- TTC's own "show prices in item tooltips" setting applies here too.
+	if not TamrielTradeCentre.Settings.EnableItemToolTipPricing then
 		return
 	end
 	TamrielTradeCentrePrice:AppendPriceInfo(control, itemLink)
@@ -43,7 +41,7 @@ end
 
 -- 1) Housing Editor furniture retrieval list ("Retrieve" tab).
 ZO_PostHook(ItemTooltip, "SetPlacedFurniture", function(self, placedFurnitureId)
-	if savedVars and savedVars.housingRetrieval == false then
+	if not savedVars.housingRetrieval then
 		return
 	end
 	local itemLink = GetPlacedFurnitureLink(placedFurnitureId)
@@ -57,7 +55,7 @@ end)
 -- this check only ever fails when CK/LEJ genuinely aren't installed.
 if ExtendedJournalItemTooltip then
 	ZO_PostHook(ExtendedJournalItemTooltip, "SetLink", function(self, itemLink)
-		if savedVars and savedVars.characterKnowledge == false then
+		if not savedVars.characterKnowledge then
 			return
 		end
 		AppendTTCPrice(self, itemLink)
@@ -70,36 +68,35 @@ EVENT_MANAGER:RegisterForEvent("ExtraTTCTooltips", EVENT_ADD_ON_LOADED, function
 
 	savedVars = ZO_SavedVars:NewAccountWide("ExtraTTCTooltipsSavedVars", 1, nil, DEFAULT_SETTINGS)
 
-	if LibAddonMenu2 then
-		local panelData = {
-			type = "panel",
-			name = "Extra TTC Tooltips",
-			displayName = "Extra TTC Tooltips",
-			author = "Schrodi",
-			version = "1.1",
-			registerForRefresh = true,
-			registerForDefaults = true,
-		}
-		LibAddonMenu2:RegisterAddonPanel("ExtraTTCTooltipsOptions", panelData)
+	local LAM = LibAddonMenu2
+	local panelData = {
+		type = "panel",
+		name = "Extra TTC Tooltips",
+		displayName = "Extra TTC Tooltips",
+		author = "Schrodi",
+		version = "1.1.1",
+		registerForRefresh = true,
+		registerForDefaults = true,
+	}
+	LAM:RegisterAddonPanel("ExtraTTCTooltipsOptions", panelData)
 
-		local optionsData = {
-			{
-				type = "checkbox",
-				name = "Housing Editor retrieval list",
-				tooltip = "Show TTC prices on the Housing Editor's furniture retrieval (\"Retrieve\") list.",
-				default = true,
-				getFunc = function() return savedVars.housingRetrieval end,
-				setFunc = function(value) savedVars.housingRetrieval = value end,
-			},
-			{
-				type = "checkbox",
-				name = "CharacterKnowledge browser",
-				tooltip = "Show TTC prices in CharacterKnowledge's furniture/recipe/motif browser.",
-				default = true,
-				getFunc = function() return savedVars.characterKnowledge end,
-				setFunc = function(value) savedVars.characterKnowledge = value end,
-			},
-		}
-		LibAddonMenu2:RegisterOptionControls("ExtraTTCTooltipsOptions", optionsData)
-	end
+	local optionsData = {
+		{
+			type = "checkbox",
+			name = "Housing Editor retrieval list",
+			tooltip = "Show TTC prices on the Housing Editor's furniture retrieval (\"Retrieve\") list.",
+			default = true,
+			getFunc = function() return savedVars.housingRetrieval end,
+			setFunc = function(value) savedVars.housingRetrieval = value end,
+		},
+		{
+			type = "checkbox",
+			name = "CharacterKnowledge browser",
+			tooltip = "Show TTC prices in CharacterKnowledge's furniture/recipe/motif browser.",
+			default = true,
+			getFunc = function() return savedVars.characterKnowledge end,
+			setFunc = function(value) savedVars.characterKnowledge = value end,
+		},
+	}
+	LAM:RegisterOptionControls("ExtraTTCTooltipsOptions", optionsData)
 end)

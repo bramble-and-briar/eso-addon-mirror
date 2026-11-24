@@ -2,7 +2,7 @@
     <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
         <Category name="Wifey DPS Positions">
             <Action name="WIFEYDPSPOSITIONS_PANEL_KEYBIND">
-                <Down>WifeyDPSPositions_TogglePanel()</Down>
+                <Down>WifeyDPSPositions.TogglePanel()</Down>
             </Action>
         </Category>
     </Layer>

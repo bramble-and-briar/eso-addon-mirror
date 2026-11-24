@@ -1,4 +1,4 @@
--- Set Hunter auto-bind: binds a looted bind-on-equip piece the first time it's new to your Sticker Book.
+-- Set Hunter auto-bind: binds a looted bind-on-equip or still-tradeable dungeon/trial piece the first time it's new to your Sticker Book.
 -- Binding can't be undone, so it's off by default and any set or single piece can be left out.
 -- Only loot counts. Trader purchases, mail and trades are never bound.
 
@@ -40,8 +40,10 @@ function B.PieceToBind(bag, slot)
     local link = GetItemLink(bag, slot)
     local setId = I.SetIdOf(link)
     if not setId then return nil end
-    if IsItemBound(bag, slot) or IsItemStolen(bag, slot) or IsItemBoPAndTradeable(bag, slot) then return nil end
-    if GetItemBindType(bag, slot) ~= BIND_TYPE_ON_EQUIP then return nil end
+    if IsItemBound(bag, slot) or IsItemStolen(bag, slot) then return nil end
+    -- Bind-on-equip pieces, and dungeon or trial drops still tradeable with the group
+    -- (those don't reach the Sticker Book until they're bound, the same as the game's own Bind option).
+    if GetItemBindType(bag, slot) ~= BIND_TYPE_ON_EQUIP and not IsItemBoPAndTradeable(bag, slot) then return nil end
     local noSets, noPieces = exceptions()
     if noSets[setId] then return nil end
     local pieceId = pieceFor(setId, I.LinkShape(link))

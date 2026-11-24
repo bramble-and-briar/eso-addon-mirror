@@ -396,6 +396,9 @@ function MailTransport:SendQuestToRecipients(quest, rawRecipients, roleMessage)
     if self._isSending then
         return false, "ERR_MAIL_SEND_IN_PROGRESS"
     end
+    if not Addon.QuestRepository:HasPlayableObjectives(quest) then
+        return false, "ERR_MISSING_TARGET"
+    end
 
     local recipients, recErr = self:ParseRecipients(rawRecipients)
     if recErr then
@@ -415,9 +418,9 @@ function MailTransport:SendQuestToRecipients(quest, rawRecipients, roleMessage)
         end
     end
 
-    local questCode = Addon.QuestRepository:ExportQuestToCode(quest.id)
+    local questCode, exportErr = Addon.QuestRepository:ExportQuestToCode(quest.id)
     if not questCode or questCode == "" then
-        return false, "ERR_INVALID_CODE"
+        return false, exportErr or "ERR_INVALID_CODE"
     end
 
     local plan = self:BuildQuestMailPackets(roleMessage, questCode, quest.title)

@@ -1,11 +1,11 @@
 ## To release a new version, edit the version in the two lines below and nothing else.
 ## |cRRGGBB...|r in Title and Author colours them in the in-game add-on list; the version
 ## is read back through that markup, so it can sit inside or outside the colour.
-## Title: |cFF69B4PB's Combat Assistant|r 0.3.0
+## Title: |cFF69B4PB's Combat Assistant|r 0.4.1
 ## Author: |cFF69B4PinkBanther|r
-## Description: Ember, a tiny two-head-tall mascot, pops up on the game screen during a fight and tells you in a speech bubble when Major Resolve, Minor Resolve or Major Brutality is about to run out and when your health falls low, with a little animation. Or pick the Meru-Sawa Style: three hand-lettered countdown tiles for the same buffs.
-## Version: 0.3.0
-## AddOnVersion: 6
+## Description: Three hand-lettered countdown tiles for Major Brutality, Major Resolve and Minor Resolve (Meru-Sawa Style). Or pick the Ember Style: a tiny two-head-tall mascot pops up during a fight and tells you in a speech bubble when one is about to run out and when your health falls low. A sound tells you when you are crowd controlled.
+## Version: 0.4.1
+## AddOnVersion: 8
 ## APIVersion: 101050 101051
 ## OptionalDependsOn: LibHarvensAddonSettings>=20106
 ## SavedVariables: PBsCombatAssistant_Data

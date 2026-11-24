@@ -8,6 +8,10 @@
   "category_id": "53",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -74,7 +78,7 @@
     "LibMultiAccountSets"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2843/",
-  "fingerprint": "bb7942adbe378e513a3d2b20c96c9b57e9e1e648040ce154f63258f6c9fdf2ef",
+  "fingerprint": "0c441fa6d6b4e2c0afdc26ea9cb4c541dbf77477038159a83f6750faee895d52",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw9638.png"
   ],
@@ -84,11 +88,11 @@
   "source_id": "2843",
   "source_url": "https://www.esoui.com/downloads/info2843-LibMultiAccountSets.html",
   "stats": {
-    "downloads": 440260,
-    "favorites": 148,
-    "monthly_downloads": 8280
+    "downloads": 447429,
+    "favorites": 151,
+    "monthly_downloads": 1657
   },
   "title": "LibMultiAccountSets",
-  "updated_at": 1785798156000,
-  "version": "4.0.3.1"
+  "updated_at": 1795533046000,
+  "version": "4.0.3.2"
 }

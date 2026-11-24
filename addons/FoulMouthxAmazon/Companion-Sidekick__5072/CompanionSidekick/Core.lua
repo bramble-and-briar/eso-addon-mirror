@@ -255,9 +255,10 @@ function C.Init(_,name)
     C.equipmentSlots={EQUIP_SLOT_HEAD,EQUIP_SLOT_SHOULDERS,EQUIP_SLOT_CHEST,EQUIP_SLOT_HAND,
         EQUIP_SLOT_WAIST,EQUIP_SLOT_LEGS,EQUIP_SLOT_FEET,EQUIP_SLOT_NECK,EQUIP_SLOT_RING1,EQUIP_SLOT_RING2,
         EQUIP_SLOT_MAIN_HAND,EQUIP_SLOT_OFF_HAND}
-    C.Discover();C.CreateUI();C.BuildIndexes()
+    C.Discover();C.CreateUI();C.RegisterJournal();C.BuildIndexes()
     local function command(arg)
         arg=string.lower(arg or "")
+        if arg=="journal" then C.OpenJournal();return end
         if arg=="refresh" then C.Refresh();return end
         if arg=="help" then C.ShowHelp();return end
         if arg=="colors" or arg=="size" then C.ShowAppearance();return end
@@ -265,6 +266,7 @@ function C.Init(_,name)
         if scale then
             C.SetScalePercent(scale);return
         end
+        if C.JournalIsOpen()then C.CloseJournal();return end
         C.window:SetHidden(not C.window:IsHidden())
         if not C.window:IsHidden()then C.Refresh()end
     end

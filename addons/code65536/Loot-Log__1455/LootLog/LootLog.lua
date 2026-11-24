@@ -500,16 +500,7 @@ end
 function LootLog.GetAntiquityRewardLink( antiquityId )
 	local setId = GetAntiquitySetId(antiquityId)
 	local rewardId = (setId == 0) and GetAntiquityRewardId(antiquityId) or GetAntiquitySetRewardId(setId)
-	local link = GetItemRewardItemLink(rewardId)
-
-	if (link == "") then
-		local id = GetCollectibleRewardCollectibleId(rewardId)
-		if (id > 0) then
-			link = GetCollectibleLink(id, LINK_STYLE_DEFAULT)
-		end
-	end
-
-	return link
+	return LCCC.GetRewardLink(rewardId)
 end
 
 function LootLog.GetItemLinkCollectionStatus( itemLink )
@@ -835,7 +826,7 @@ function LootLog.RegisterSettingsPanel( )
 			--------------------
 			{
 				type = "checkbox",
-				name = string.format("|u40:0::%s|u", GetString(SI_LOOTLOG_SETTING_TRADEHBGI)),
+				name = LCCC.IndentedKeyboardText(GetString(SI_LOOTLOG_SETTING_TRADEHBGI)),
 				getFunc = function() return LootLog.vars.tradeFlagHideVanilla end,
 				setFunc = function( enabled )
 					LootLog.vars.tradeFlagHideVanilla = enabled
@@ -858,7 +849,7 @@ function LootLog.RegisterSettingsPanel( )
 			--------------------
 			{
 				type = "dropdown",
-				name = string.format("|u40:0::%s|u", GetString(SI_LOOTLOG_SETTING_TRADEREQ)),
+				name = LCCC.IndentedKeyboardText(GetString(SI_LOOTLOG_SETTING_TRADEREQ)),
 				choices = requestModeLabels,
 				choicesValues = requestModes,
 				getFunc = function() return LootLog.vars.tradeRequestMode end,
@@ -868,7 +859,7 @@ function LootLog.RegisterSettingsPanel( )
 			--------------------
 			{
 				type = "editbox",
-				name = string.format("|u40:0::%s|u", GetString(SI_LOOTLOG_SETTING_TRADEREQM)),
+				name = LCCC.IndentedKeyboardText(GetString(SI_LOOTLOG_SETTING_TRADEREQM)),
 				getFunc = function() return LootLog.vars.tradeRequestPrefix end,
 				setFunc = function(text) LootLog.vars.tradeRequestPrefix = text end,
 				disabled = function() return not (LootLog.vars.tradeFlagChat and LootLog.vars.tradeRequestMode > 0) end,

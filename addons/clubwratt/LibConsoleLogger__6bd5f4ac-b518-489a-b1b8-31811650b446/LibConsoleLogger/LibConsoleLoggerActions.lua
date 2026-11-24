@@ -22,15 +22,6 @@ local function PrefixSource(source, line)
     return line
 end
 
----@param source string|nil
----@param line any
-local function BufferLine(source, line)
-    local webExport = LibConsoleLogger and LibConsoleLogger.WebExport
-    if webExport and webExport.BufferD then
-        webExport.BufferD(PrefixSource(source, Utils.NormalizeLine(line)))
-    end
-end
-
 ---@return boolean
 local function IsChatMirrorActive()
     if not State.runtimeEnabled then
@@ -40,11 +31,8 @@ local function IsChatMirrorActive()
 end
 
 ---Write one line to the user's chat log (console text chat / system messages).
----@param source string|nil
----@param line any
-local function ChatLine(source, line)
-    local message = PrefixSource(source, Utils.NormalizeLine(line))
-
+---@param message string
+local function ChatLine(message)
     local chatRouter = rawget(_G, "CHAT_ROUTER")
     if chatRouter and chatRouter.AddSystemMessage then
         pcall(function() chatRouter:AddSystemMessage(message) end)
@@ -59,16 +47,22 @@ local function ChatLine(source, line)
 end
 
 ---Log one or more values into the export buffer and (when the chat mirror is on)
----the user's chat log. Tables expand recursively.
+---the user's chat log. Tables expand recursively. Every line is buffered; chat shows the selected scope.
 ---@param source string|nil
 local function EmitLog(source, ...)
+    local webExport = LibConsoleLogger.WebExport
     local chatActive = IsChatMirrorActive()
+    local scope = chatActive and LibConsoleLogger:GetScope() or ""
+    local includeErrors = scope ~= "" and LibConsoleLogger:IsIncludingErrors()
 
     ---@param line any
     local function EmitOne(line)
-        BufferLine(source, line)
-        if chatActive then
-            ChatLine(source, line)
+        local message = PrefixSource(source, Utils.NormalizeLine(line))
+        if webExport and webExport.BufferD then
+            webExport.BufferD(message)
+        end
+        if chatActive and (scope == "" or (webExport and webExport.InScope(message, scope, includeErrors))) then
+            ChatLine(message)
         end
     end
 
@@ -264,7 +258,53 @@ end
 LibConsoleLogger.ExportNow = LibConsoleLogger.Debug
 LibConsoleLogger.D = LibConsoleLogger.Debug
 
----Export buffered logs (no chat output).
+---The scope viewed and exported: a name given to For, or "" for all scopes. Persisted.
+---@return string
+function LibConsoleLogger:GetScope()
+    local scope
+    if LibConsoleLogger:_EnsureSavedVars() and LibConsoleLogger.savedVars ~= nil then
+        scope = LibConsoleLogger.savedVars.scope
+    else
+        scope = LibConsoleLogger._pendingScope
+    end
+    return type(scope) == "string" and scope or ""
+end
+
+---Choose the scope the log dialog, the chat mirror and Export show ("" or nil for all scopes).
+---Every scope keeps being buffered whatever is chosen, so the choice can change after the fact.
+---@param scope string|nil
+function LibConsoleLogger:SetScope(scope)
+    local value = Utils.Trim(scope)
+    if LibConsoleLogger:_EnsureSavedVars() and LibConsoleLogger.savedVars ~= nil then
+        LibConsoleLogger.savedVars.scope = value
+    else
+        LibConsoleLogger._pendingScope = value
+    end
+    RefreshLogDialogIfVisible()
+end
+
+---Whether the game's errors show alongside the selected scope (dialog, chat mirror, Export). Persisted;
+---on by default. Under all scopes, and under the Errors scope itself, they show either way.
+---@return boolean
+function LibConsoleLogger:IsIncludingErrors()
+    if LibConsoleLogger:_EnsureSavedVars() and LibConsoleLogger.savedVars ~= nil then
+        return LibConsoleLogger.savedVars.includeErrors ~= false
+    end
+    return LibConsoleLogger._pendingIncludeErrors ~= false
+end
+
+---@param include boolean
+function LibConsoleLogger:SetIncludeErrors(include)
+    local flag = include == true
+    if LibConsoleLogger:_EnsureSavedVars() and LibConsoleLogger.savedVars ~= nil then
+        LibConsoleLogger.savedVars.includeErrors = flag
+    else
+        LibConsoleLogger._pendingIncludeErrors = flag
+    end
+    RefreshLogDialogIfVisible()
+end
+
+---Export buffered logs (no chat output): the selected scope's, or everything when no scope is selected.
 ---@return boolean ok
 ---@return string|nil reason
 function LibConsoleLogger:Export()
@@ -272,10 +312,10 @@ function LibConsoleLogger:Export()
     if not (webExport and webExport.SubmitBuffered) then
         return false, "unsupported"
     end
-    return webExport.SubmitBuffered(nil)
+    return webExport.SubmitBuffered(nil, LibConsoleLogger:GetScope(), LibConsoleLogger:IsIncludingErrors())
 end
 
----Clear buffered logs (no chat output).
+---Clear buffered logs of every scope (no chat output).
 ---@return boolean ok
 ---@return number cleared
 function LibConsoleLogger:Clear()
@@ -354,6 +394,7 @@ end
 local scopedLoggers = {}
 
 ---Get a logger scoped to a source (usually your addon name). Cached per source.
+---Calling this registers the scope: it is listed by GetScopes and offered in the settings' Scope dropdown.
 ---@param source string
 ---@return LibConsoleLoggerScoped
 function LibConsoleLogger:For(source)
@@ -368,6 +409,33 @@ function LibConsoleLogger:For(source)
         scopedLoggers[key] = scoped
     end
     return scoped
+end
+
+---Every scope there is to choose from, sorted: the ones registered through For this session, the ones with
+---lines in the buffer (an earlier UI load's included), and the selected one.
+---@return string[]
+function LibConsoleLogger:GetScopes()
+    local seen = {}
+    for name in pairs(scopedLoggers) do
+        seen[name] = true
+    end
+    local webExport = LibConsoleLogger.WebExport
+    if webExport and webExport.BufferScopes then
+        for name in pairs(webExport.BufferScopes()) do
+            seen[name] = true
+        end
+    end
+    local selected = LibConsoleLogger:GetScope()
+    if selected ~= "" then
+        seen[selected] = true
+    end
+
+    local names = {}
+    for name in pairs(seen) do
+        names[#names + 1] = name
+    end
+    table.sort(names)
+    return names
 end
 
 -- ============================================================================

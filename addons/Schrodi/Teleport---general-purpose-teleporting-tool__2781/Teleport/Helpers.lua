@@ -1,3 +1,4 @@
+local Teleport = Teleport
 Teleport.Helpers = {}
 
 function Teleport.Helpers:startsWith(str, start)
@@ -96,8 +97,8 @@ local FALLBACK_MAP_SIZE_METERS = 4000
 -- distance between two points on the *current* map, in meters
 function Teleport.Helpers:mapDistance(x1, y1, x2, y2)
     if LibGPS3 then
-        local ok, distance = pcall(LibGPS3.GetLocalDistanceInMeters, LibGPS3, x1, y1, x2, y2)
-        if ok and distance then return distance end
+        local distance = LibGPS3:GetLocalDistanceInMeters(x1, y1, x2, y2)
+        if distance then return distance end
     end
 
     local dx, dy = x2 - x1, y2 - y1

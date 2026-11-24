@@ -22,7 +22,7 @@
     "WifeyDPSPositions"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4861/",
-  "fingerprint": "f5c729c53fba65e045b548fb2885bdaba83fab46c4cdcdf82aa980c81bbf2959",
+  "fingerprint": "513d0231ad79769269e0a69d61afa49679faca3b6d5a09f93d2d25ea6a898207",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17523.png",
     "https://cdn-eso.mmoui.com/preview/pvw17524.png"
@@ -33,11 +33,11 @@
   "source_id": "4861",
   "source_url": "https://www.esoui.com/downloads/info4861-WifeyDPSPositions.html",
   "stats": {
-    "downloads": 484,
+    "downloads": 544,
     "favorites": 4,
-    "monthly_downloads": 369
+    "monthly_downloads": 416
   },
   "title": "Wifey DPS Positions",
-  "updated_at": 1795407575000,
-  "version": "1.8"
+  "updated_at": 1795484862000,
+  "version": "1.8.3"
 }

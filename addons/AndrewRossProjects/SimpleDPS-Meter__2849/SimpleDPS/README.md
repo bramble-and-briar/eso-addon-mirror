@@ -2,10 +2,10 @@
 Standalone damage meter add-on for Elder Scrolls Online
 
 # Current Version
-4.1.101042
+4.1.101052
 
 # Latest Support API Version
-101042
+101052
 
 # Add-on Managers
 Minion - www.esoui.com - https://www.esoui.com/downloads/info2849-SimpleDPSMeter.html

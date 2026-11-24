@@ -1,0 +1,23 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="SimpleGroupDPSWamasuRoot" mouseEnabled="false">
+            <Controls>
+                <Control name="SimpleGroupDPSWamasuCamera" hidden="true"/>
+            </Controls>
+        </TopLevelControl>
+        <Control name="SimpleGroupDPSWamasuWorld" virtual="true" space="WORLD" hidden="true" mouseEnabled="false">
+            <Dimensions x="150" y="115"/>
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER"/>
+            <Controls>
+                <Label name="$(parent)Text" font="$(BOLD_FONT)|48|thick-outline" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                    <Dimensions x="440" y="65"/>
+                    <Anchor point="TOP" relativePoint="TOP"/>
+                </Label>
+                <Texture name="$(parent)Arrow" textureFile="SimpleGroupDPS/assets/WamasuArrow.dds">
+                    <Dimensions x="46" y="46"/>
+                    <Anchor point="BOTTOM" relativePoint="BOTTOM"/>
+                </Texture>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

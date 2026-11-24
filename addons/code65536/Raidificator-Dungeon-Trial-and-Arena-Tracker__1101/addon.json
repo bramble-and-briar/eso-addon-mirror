@@ -8,6 +8,10 @@
   "category_id": "95",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -74,7 +78,7 @@
     "Raidificator"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1101/",
-  "fingerprint": "155b09c17eef8c15f2b97bcbfff28bdfa9fc5889a3513217fdf0d0348fe04810",
+  "fingerprint": "f7eefe96eee11739966bb97e875306b70a7f9379d20bd67a27a2eb4c54abe531",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13337.png",
     "https://cdn-eso.mmoui.com/preview/pvw12621.png",
@@ -93,11 +97,11 @@
   "source_id": "1101",
   "source_url": "https://www.esoui.com/downloads/info1101-RaidificatorDungeonTrialandArenaTracker.html",
   "stats": {
-    "downloads": 167889,
-    "favorites": 120,
-    "monthly_downloads": 3082
+    "downloads": 169467,
+    "favorites": 121,
+    "monthly_downloads": 2812
   },
   "title": "Raidificator (Dungeon, Trial, and Arena Tracker)",
-  "updated_at": 1794535235000,
-  "version": "4.8.3"
+  "updated_at": 1795533287000,
+  "version": "4.8.4"
 }

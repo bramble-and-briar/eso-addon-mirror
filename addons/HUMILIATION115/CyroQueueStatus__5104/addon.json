@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/HUMILIATION115/CyroQueueStatus__5104",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "HUMILIATION115",
+  "canonical_id": "esoui:5104",
+  "category_id": "96",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5104",
+  "deleted": false,
+  "directories": [
+    "CyroQueueStatus"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5104/",
+  "fingerprint": "5c690abaf796499f6ad286edb3c840dbf79f3550424a546472bddd303d7878b8",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5104",
+  "source_url": "https://www.esoui.com/downloads/info5104-CyroQueueStatus.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 1
+  },
+  "title": "CyroQueueStatus",
+  "updated_at": 1795472830000,
+  "version": "1.4.2"
+}

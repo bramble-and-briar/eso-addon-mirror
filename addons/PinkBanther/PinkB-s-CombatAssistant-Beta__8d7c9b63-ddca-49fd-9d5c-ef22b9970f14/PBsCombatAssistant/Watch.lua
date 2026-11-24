@@ -26,6 +26,20 @@
 -- not make her appear and leave over and over. Dead, nothing is said.
 --
 -- ---------------------------------------------------------------------------------------
+-- CROWD CONTROL
+-- ---------------------------------------------------------------------------------------
+--
+-- EVENT_COMBAT_EVENT with the player as the target and one of the hard-CC results (stunned, knocked down, feared,
+-- disoriented, levitated, charmed): the results the client's own gamepad vibration reacts to. One registration
+-- per result, each filtered in the engine (result, target = the player, not an error), so the add-on is not
+-- woken for the hits and heals of a fight. A result the player caused (sourceType = the player) is not counted.
+-- EVENT_PLAYER_STUNNED_STATE_CHANGED is a second source (true = stunned, in a fight only) and its false says
+-- the player is free again (Ember is relieved). One CC can arrive by both within a moment: an alert within
+-- CC_GAP_S of the last one plays no new sound and only keeps her line up.
+-- Both designs play the chosen sound; in the Ember Style she also comes and says it. Not gated by "only in
+-- combat": a CC is a fight.
+--
+-- ---------------------------------------------------------------------------------------
 -- WHEN
 -- ---------------------------------------------------------------------------------------
 --
@@ -46,6 +60,17 @@ local NS_EFFECT = A.name .. "Effect"
 local NS_POWER = A.name .. "Power"
 local NS_STATE = A.name .. "State"
 local NS_CHECK = A.name .. "Check"
+local NS_CC = A.name .. "Cc"
+local CC_GAP_S = 1.5
+-- the hard-CC results followed, by the name of their constant -> the line she says (a string key)
+local CC_RESULTS = {
+	{ "ACTION_RESULT_STUNNED", "ccStun" },
+	{ "ACTION_RESULT_KNOCKBACK", "ccKnock" },
+	{ "ACTION_RESULT_FEARED", "ccFear" },
+	{ "ACTION_RESULT_DISORIENTED", "ccDisorient" },
+	{ "ACTION_RESULT_LEVITATED", "ccLevitate" },
+	{ "ACTION_RESULT_CHARMED", "ccCharm" },
+}
 
 local watch = {
 	inCombat = false,
@@ -57,11 +82,16 @@ local watch = {
 	cache = {}, -- abilityId -> kind or false: the answer of A.BuffKind for that effect's name
 	cacheSize = 0,
 	cacheResets = 0,
-	said = { major = {}, minor = {}, brutal = {}, hp = {}, danger = {} }, -- kind -> the data table handed to A:Raise, filled again each time
+	said = { major = {}, minor = {}, brutal = {}, hp = {}, danger = {}, cc = {} }, -- kind -> the data table handed to A:Raise, filled again each time
+	ccKey = {}, -- ACTION_RESULT_* value -> the line's string key (filled at start-up)
+	ccAt = nil, -- when the last CC alert played
+	stunned = false,
 	-- counted for /pbca status
 	effects = 0,
 	recognised = 0,
-	fired = { major = 0, minor = 0, brutal = 0, hp = 0, danger = 0 },
+	ccSeen = 0, -- CC events that reached the add-on
+	ccLast = nil, -- the string key of the last one
+	fired = { major = 0, minor = 0, brutal = 0, hp = 0, danger = 0, cc = 0 },
 	lastName = {}, -- kind -> the name it was recognised under
 }
 A.watch = watch
@@ -309,6 +339,78 @@ local function OnPower(_, _, _, _, value, max, effective)
 end
 
 -- ---------------------------------------------------------------------------------------
+-- Crowd control
+-- ---------------------------------------------------------------------------------------
+
+-- The player is crowd controlled (what = the line's string key). Returns true when an alert was given.
+function A:CrowdControlled(what, now)
+	watch.ccSeen = watch.ccSeen + 1
+	watch.ccLast = what
+	local sv = self.sv
+	if not (sv.enabled and sv.cc) or watch.dead then
+		return false
+	end
+	now = now or A.Now()
+	local ember = sv.style ~= 2
+	if watch.ccAt and now - watch.ccAt < CC_GAP_S and now >= watch.ccAt then
+		-- the same CC seen a second time (the hit and the stunned state): no new sound, her line stays up
+		if ember then
+			self:Raise("cc", Said("cc", what))
+		end
+		return false
+	end
+	watch.ccAt = now
+	watch.fired.cc = watch.fired.cc + 1
+	self:PlayCcSound()
+	if ember then
+		self:Raise("cc", Said("cc", what))
+	end
+	return true
+end
+
+-- (eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType,
+--  targetName, targetType, ...)
+local function OnCombatCc(_, result, isError, _, _, _, _, sourceType, _, targetType)
+	if isError or targetType ~= COMBAT_UNIT_TYPE_PLAYER or sourceType == COMBAT_UNIT_TYPE_PLAYER then
+		return
+	end
+	local what = watch.ccKey[result]
+	if what then
+		A:CrowdControlled(what)
+	end
+end
+
+local function OnStunned(_, stunned)
+	watch.stunned = stunned and true or false
+	if watch.stunned then
+		if watch.inCombat then
+			A:CrowdControlled("ccStun")
+		end
+	elseif A:ReasonState("cc") == "active" then
+		A:Settle("cc", "relief")
+	end
+end
+
+local function WatchCrowdControl()
+	local filtered = REGISTER_FILTER_COMBAT_RESULT and REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE and REGISTER_FILTER_IS_ERROR and COMBAT_UNIT_TYPE_PLAYER
+	if EVENT_COMBAT_EVENT and filtered then
+		for _, entry in ipairs(CC_RESULTS) do
+			local result = _G[entry[1]]
+			if result ~= nil then
+				watch.ccKey[result] = entry[2]
+				local ns = NS_CC .. entry[1]
+				em:RegisterForEvent(ns, EVENT_COMBAT_EVENT, A.Guard(OnCombatCc))
+				em:AddFilterForEvent(ns, EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, result,
+					REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_IS_ERROR, false)
+			end
+		end
+	end
+	if EVENT_PLAYER_STUNNED_STATE_CHANGED then
+		em:RegisterForEvent(NS_CC .. "Stunned", EVENT_PLAYER_STUNNED_STATE_CHANGED, A.Guard(OnStunned))
+	end
+end
+
+-- ---------------------------------------------------------------------------------------
 -- The check
 -- ---------------------------------------------------------------------------------------
 
@@ -406,6 +508,7 @@ function A:InitWatch()
 	em:RegisterForEvent(NS_STATE, EVENT_PLAYER_COMBAT_STATE, A.Guard(OnCombatState))
 	em:RegisterForEvent(NS_STATE .. "Dead", EVENT_PLAYER_DEAD, A.Guard(OnDead))
 	em:RegisterForEvent(NS_STATE .. "Alive", EVENT_PLAYER_ALIVE, A.Guard(OnAlive))
+	WatchCrowdControl()
 	self:WatchSync()
 end
 

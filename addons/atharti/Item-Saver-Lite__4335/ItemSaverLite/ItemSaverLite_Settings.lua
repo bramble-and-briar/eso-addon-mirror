@@ -228,7 +228,7 @@ function ISL.RefreshSavedItemsDropdown()
 	if not ISL_SAVED_ITEMS_LIST then return end
 	local choices, values = ISL.GetSavedItemChoices()
 	ISL.currentSavedDropdownValues = values
-	ISL_SAVED_ITEMS_LIST:UpdateChoices(choices, values)
+	ISL_SAVED_ITEMS_LIST:UpdateChoices(choices, values, choices)
 	ISL_SAVED_ITEMS_LIST:UpdateValue()
 end
 

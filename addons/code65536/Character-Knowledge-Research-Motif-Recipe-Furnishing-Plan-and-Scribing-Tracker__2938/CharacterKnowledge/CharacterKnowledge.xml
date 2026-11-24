@@ -25,10 +25,14 @@
 					<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)Icon" offsetX="4" />
 					<Dimensions x="380" y="30" />
 				</Label>
-				<Texture name="$(parent)NameSuffix" hidden="true" layer="OVERLAY">
+				<Texture name="$(parent)AuxIcon" hidden="true" layer="OVERLAY">
 					<Anchor point="RIGHT" relativePoint="RIGHT" relativeTo="$(parent)Name" />
 					<Dimensions x="26" y="26" />
 				</Texture>
+				<Label name="$(parent)AuxLabel" hidden="true" inherits="ExtendedJournalRowLabel" font="LejFontSmall" horizontalAlignment="RIGHT">
+					<Anchor point="RIGHT" relativePoint="RIGHT" relativeTo="$(parent)AuxIcon" />
+					<Dimensions x="60" y="26" />
+				</Label>
 				<Label name="$(parent)Extended" inherits="ExtendedJournalRowLabel" horizontalAlignment="RIGHT">
 					<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)Name" />
 					<Dimensions x="160" y="30" />
@@ -84,20 +88,20 @@
 								ZO_SortHeader_Initialize(self, GetString(SI_CK_HEADER_QUALITY), "quality", ZO_SORT_ORDER_UP, TEXT_ALIGN_LEFT, "ZoFontGameLargeBold")
 							</OnInitialized>
 							<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" relativeTo="$(parent)Name" />
-							<Dimensions x="210" y="32" />
+							<Dimensions x="184" y="32" />
 						</Control>
-						<Control name="$(parent)NameSuffix" inherits="ZO_SortHeaderIcon">
+						<Control name="$(parent)Auxiliary" inherits="ZO_SortHeaderIcon">
 							<OnInitialized>
-								ZO_SortHeader_InitializeArrowHeader(self, "nameSuffix", ZO_SORT_ORDER_DOWN)
+								ZO_SortHeader_InitializeArrowHeader(self, "auxiliary", ZO_SORT_ORDER_DOWN)
 							</OnInitialized>
-							<Anchor point="TOPRIGHT" relativePoint="TOPRIGHT" relativeTo="$(parent)Quality" offsetX="-5" />
+							<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" relativeTo="$(parent)Quality" offsetX="5" />
 							<Dimensions x="16" y="32" />
 						</Control>
 						<Control name="$(parent)Extended" inherits="ZO_SortHeaderIcon">
 							<OnInitialized>
 								ZO_SortHeader_InitializeArrowHeader(self, "extended", ZO_SORT_ORDER_UP)
 							</OnInitialized>
-							<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" relativeTo="$(parent)Quality" offsetX="134" />
+							<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" relativeTo="$(parent)Auxiliary" offsetX="139" />
 							<Dimensions x="16" y="32" />
 						</Control>
 						<Control name="$(parent)Known" inherits="ZO_SortHeader">

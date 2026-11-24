@@ -16,7 +16,7 @@
 --   per guild) are sent the same way, but only after you click Confirm in the kick window.
 --   Auto-demote (also opt-in) is the one roster change made without a dialog.
 
-local GT = FuryGMT
+local GT = FurysGuildToolset
 local U = GT.Util
 local Actions = {}
 GT.Actions = Actions
@@ -70,7 +70,7 @@ end
 -- method: "whisper" or "mail"
 function Actions.Warn(displayName, subject, body, method)
     if method == "mail" then
-        local reportWasOpen = FuryGMTReport and not FuryGMTReport:IsHidden()
+        local reportWasOpen = FurysGuildToolset_Report and not FurysGuildToolset_Report:IsHidden()
         if SCENE_MANAGER:IsShowing("mailSend") then
             FillMail(displayName, subject, body)
         else
@@ -78,7 +78,7 @@ function Actions.Warn(displayName, subject, body, method)
             SCENE_MANAGER:CallWhen("mailSend", SCENE_SHOWN, function()
                 FillMail(displayName, subject, body)
                 -- Opening the mail scene can close the report window; bring it back.
-                if reportWasOpen and FuryGMTReport:IsHidden() then GT.Report:Show() end
+                if reportWasOpen and FurysGuildToolset_Report:IsHidden() then GT.Report:Show() end
             end)
         end
         U.Print("Mail to %s is ready. Review it and press Send.", displayName)
@@ -134,24 +134,24 @@ local function MailPump()
     local job = mailQueue[1]
     local token = {}
     job.token = token
-    EVENT_MANAGER:RegisterForEvent("FuryGMTMail", EVENT_MAIL_OPEN_MAILBOX, function()
-        EVENT_MANAGER:UnregisterForEvent("FuryGMTMail", EVENT_MAIL_OPEN_MAILBOX)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_Mail", EVENT_MAIL_OPEN_MAILBOX, function()
+        EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_Mail", EVENT_MAIL_OPEN_MAILBOX)
         SendMail(job.to, job.subject, job.body)
     end)
     local function Finish(ok, reason)
         if job.token ~= token then return end
         job.token = nil
-        EVENT_MANAGER:UnregisterForEvent("FuryGMTMail", EVENT_MAIL_OPEN_MAILBOX)
-        EVENT_MANAGER:UnregisterForEvent("FuryGMTMail", EVENT_MAIL_SEND_SUCCESS)
-        EVENT_MANAGER:UnregisterForEvent("FuryGMTMail", EVENT_MAIL_SEND_FAILED)
+        EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_Mail", EVENT_MAIL_OPEN_MAILBOX)
+        EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_Mail", EVENT_MAIL_SEND_SUCCESS)
+        EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_Mail", EVENT_MAIL_SEND_FAILED)
         CloseMailbox()
         table.remove(mailQueue, 1)
         mailBusy = false
         if job.onResult then job.onResult(ok, reason) end
         zo_callLater(MailPump, 1500)
     end
-    EVENT_MANAGER:RegisterForEvent("FuryGMTMail", EVENT_MAIL_SEND_SUCCESS, function() Finish(true) end)
-    EVENT_MANAGER:RegisterForEvent("FuryGMTMail", EVENT_MAIL_SEND_FAILED, function(_, reason)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_Mail", EVENT_MAIL_SEND_SUCCESS, function() Finish(true) end)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_Mail", EVENT_MAIL_SEND_FAILED, function(_, reason)
         Finish(false, GetString("SI_SENDMAILRESULT", reason) ~= "" and GetString("SI_SENDMAILRESULT", reason) or tostring(reason))
     end)
     zo_callLater(function() Finish(false, "timed out") end, MAIL_TIMEOUT_MS)
@@ -349,7 +349,7 @@ end
 
 local function CurrentReason()
     if not removeJob or not removeJob.blacklist then return "" end
-    return zo_strtrim(FuryGMTRemoveDialogReasonBox:GetText())
+    return zo_strtrim(FurysGuildToolset_RemoveDialogReasonBox:GetText())
 end
 
 local function MailTip()
@@ -370,20 +370,20 @@ local function MailTip()
 end
 
 local function SetMailButtonText()
-    FuryGMTRemoveDialogMail:SetText(removeJob.sendMail and "Send mail: Yes" or "Send mail: No")
+    FurysGuildToolset_RemoveDialogMail:SetText(removeJob.sendMail and "Send mail: Yes" or "Send mail: No")
 end
 
 local function EnsureRemoveDialog()
     if removeDialogReady then return end
     removeDialogReady = true
     -- Registering with the scene manager makes Esc close the window and shows the mouse cursor.
-    SCENE_MANAGER:RegisterTopLevel(FuryGMTRemoveDialog, false)
-    FuryGMTRemoveDialog:SetHandler("OnHide", function() removeJob = nil; ClearTooltip(InformationTooltip) end)
-    FuryGMTRemoveDialogReasonBox:SetMaxInputChars(BLACKLIST_NOTE_MAX)
+    SCENE_MANAGER:RegisterTopLevel(FurysGuildToolset_RemoveDialog, false)
+    FurysGuildToolset_RemoveDialog:SetHandler("OnHide", function() removeJob = nil; ClearTooltip(InformationTooltip) end)
+    FurysGuildToolset_RemoveDialogReasonBox:SetMaxInputChars(BLACKLIST_NOTE_MAX)
     local R = GT.Report
-    R.SetTip(FuryGMTRemoveDialogClose, "Cancel (Esc). Nothing is changed.")
-    R.SetTip(FuryGMTRemoveDialogCancel, "Closes this window. Nothing is changed and no mail is sent.")
-    R.SetTip(FuryGMTRemoveDialogConfirm, function()
+    R.SetTip(FurysGuildToolset_RemoveDialogClose, "Cancel (Esc). Nothing is changed.")
+    R.SetTip(FurysGuildToolset_RemoveDialogCancel, "Closes this window. Nothing is changed and no mail is sent.")
+    R.SetTip(FurysGuildToolset_RemoveDialogConfirm, function()
         if not removeJob then return nil end
         local parts = {}
         if removeJob.kick then parts[#parts + 1] = "removes them from the guild" end
@@ -391,24 +391,24 @@ local function EnsureRemoveDialog()
         if removeJob.canMail and removeJob.sendMail then parts[#parts + 1] = "sends them the mail (hover Send mail to read it)" end
         return "Does it now: " .. table.concat(parts, ", then ") .. "."
     end)
-    R.SetTip(FuryGMTRemoveDialogMail, MailTip)
-    R.SetTip(FuryGMTRemoveDialogReasonBox, "What they did. It becomes their blacklist note (up to 150 characters) and the reason in the mail.")
+    R.SetTip(FurysGuildToolset_RemoveDialogMail, MailTip)
+    R.SetTip(FurysGuildToolset_RemoveDialogReasonBox, "What they did. It becomes their blacklist note (up to 150 characters) and the reason in the mail.")
 end
 
 local function LayoutRemoveDialog()
     local job = removeJob
-    local c = FuryGMTRemoveDialog
-    FuryGMTRemoveDialogReasonLabel:SetHidden(not job.blacklist)
-    FuryGMTRemoveDialogReason:SetHidden(not job.blacklist)
-    FuryGMTRemoveDialogMail:SetHidden(not job.canMail)
-    local last = job.blacklist and FuryGMTRemoveDialogReason or FuryGMTRemoveDialogBody
-    FuryGMTRemoveDialogMail:ClearAnchors()
-    FuryGMTRemoveDialogMail:SetAnchor(TOPLEFT, last, BOTTOMLEFT, 0, 18)
-    FuryGMTRemoveDialogCancel:ClearAnchors()
-    FuryGMTRemoveDialogCancel:SetAnchor(TOPRIGHT, last, BOTTOMRIGHT, 0, 18)
-    local height = 18 + FuryGMTRemoveDialogTitle:GetTextHeight() + 12 + FuryGMTRemoveDialogBody:GetTextHeight()
+    local c = FurysGuildToolset_RemoveDialog
+    FurysGuildToolset_RemoveDialogReasonLabel:SetHidden(not job.blacklist)
+    FurysGuildToolset_RemoveDialogReason:SetHidden(not job.blacklist)
+    FurysGuildToolset_RemoveDialogMail:SetHidden(not job.canMail)
+    local last = job.blacklist and FurysGuildToolset_RemoveDialogReason or FurysGuildToolset_RemoveDialogBody
+    FurysGuildToolset_RemoveDialogMail:ClearAnchors()
+    FurysGuildToolset_RemoveDialogMail:SetAnchor(TOPLEFT, last, BOTTOMLEFT, 0, 18)
+    FurysGuildToolset_RemoveDialogCancel:ClearAnchors()
+    FurysGuildToolset_RemoveDialogCancel:SetAnchor(TOPRIGHT, last, BOTTOMRIGHT, 0, 18)
+    local height = 18 + FurysGuildToolset_RemoveDialogTitle:GetTextHeight() + 12 + FurysGuildToolset_RemoveDialogBody:GetTextHeight()
     if job.blacklist then
-        height = height + 12 + FuryGMTRemoveDialogReasonLabel:GetTextHeight() + 4 + FuryGMTRemoveDialogReason:GetHeight()
+        height = height + 12 + FurysGuildToolset_RemoveDialogReasonLabel:GetTextHeight() + 4 + FurysGuildToolset_RemoveDialogReason:GetHeight()
     end
     c:SetHeight(height + 18 + 30 + 22)
 end
@@ -449,23 +449,23 @@ function Actions.ConfirmRemove(job)
         body = body .. "\n\n" .. (job.blacklist and "The mail tells them the reason. Hover Send mail to read it."
             or "The mail tells them why and that they're welcome back. Hover Send mail to read it.")
     end
-    FuryGMTRemoveDialogTitle:SetText(title)
-    FuryGMTRemoveDialogBody:SetText(body)
-    FuryGMTRemoveDialogReasonBox:SetText(job.reason or "")
+    FurysGuildToolset_RemoveDialogTitle:SetText(title)
+    FurysGuildToolset_RemoveDialogBody:SetText(body)
+    FurysGuildToolset_RemoveDialogReasonBox:SetText(job.reason or "")
     SetMailButtonText()
     LayoutRemoveDialog()
-    U.ShowOnTop(FuryGMTRemoveDialog)
+    U.ShowOnTop(FurysGuildToolset_RemoveDialog)
 end
 
 function Actions.CloseRemoveDialog()
-    SCENE_MANAGER:HideTopLevel(FuryGMTRemoveDialog)
+    SCENE_MANAGER:HideTopLevel(FurysGuildToolset_RemoveDialog)
 end
 
 function Actions.ToggleRemoveMail()
     if not removeJob then return end
     removeJob.sendMail = not removeJob.sendMail
     SetMailButtonText()
-    GT.Report.ShowTip(FuryGMTRemoveDialogMail, MailTip())
+    GT.Report.ShowTip(FurysGuildToolset_RemoveDialogMail, MailTip())
 end
 
 function Actions.SendRemovalMail(job, reason)

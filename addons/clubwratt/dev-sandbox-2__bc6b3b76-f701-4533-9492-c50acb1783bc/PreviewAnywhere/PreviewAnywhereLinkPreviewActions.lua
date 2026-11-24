@@ -229,8 +229,34 @@ local function InjectLinkKeybind(gamepadLinks)
     end
 end
 
+---Keep the link preview scenes open when a preview dismounts the player.
+---The scene manager leaves UI mode, closing whatever screen is open, on every mount state change
+---(ZO_IngameSceneManager:OnMountStateChanged in ingamescenemanager.lua), except on the scenes of
+---a list local to that file: the stock screens that preview, because a preview dismounts the
+---player. An add-on scene cannot be put on that list, so the manager's question is answered for
+---the link preview scenes (the plain one and its interact twins share the name prefix) and
+---passed on otherwise. Field: Furnishing Catalog 0.2.1 closed on its first preview while mounted.
+function LinkPreview.KeepOpenOnMountChange()
+    local manager = SCENE_MANAGER
+    local original = manager.DoesCurrentSceneOverrideMountStateChange
+    if type(original) ~= "function" then
+        PA.Log("scene manager has no DoesCurrentSceneOverrideMountStateChange: a link preview while mounted will close")
+        return
+    end
+    manager.DoesCurrentSceneOverrideMountStateChange = function(self, ...)
+        local current = self:GetCurrentScene()
+        local name = current and current:GetName()
+        if name and string.find(name, LinkPreview.SCENE_NAME, 1, true) == 1 and self:IsShowing(name) then
+            PA.Count("mountChangeKept")
+            return true
+        end
+        return original(self, ...)
+    end
+end
+
 function LinkPreview.Initialize()
     ITEM_PREVIEW_GAMEPAD.previewTypeObjects[LinkPreview.PREVIEW_TYPE] = ItemLinkPreviewType:New()
+    LinkPreview.KeepOpenOnMountChange()
 
     local scene = ZO_Scene:New(LinkPreview.SCENE_NAME, SCENE_MANAGER)
     AddPreviewFragments(scene)

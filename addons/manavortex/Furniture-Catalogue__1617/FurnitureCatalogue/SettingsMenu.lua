@@ -3,6 +3,7 @@
 local LFC = LibFurnitureCatalogue
 local src = LFC.API.GetSourceTypes()
 local furcInternal = FurC.Internal
+local FSL_URL = "https://www.esoui.com/downloads/fileinfo.php?id=1865"
 
 function FurC.CreateSettings(savedVars, defaults)
   local LAM = LibAddonMenu2
@@ -42,6 +43,16 @@ function FurC.CreateSettings(savedVars, defaults)
         FurC.WipeDatabase()
       end,
     },
+    { -- button: Delete all lists
+      type = "button",
+      name = GetString(SI_FURC_LIST_DELETE_ALL),
+      tooltip = GetString(SI_FURC_LIST_DELETE_ALL_TT),
+      warning = GetString(SI_FURC_LIST_DELETE_ALL_WARNING),
+      isDangerous = true,
+      func = function()
+        FurC.DeleteAllLists()
+      end,
+    },
     { -- button: Re-scan data
       type = "button",
       name = GetString(SI_FURC_STRING_MENU_SCAN_FILES_NAME),
@@ -62,9 +73,22 @@ function FurC.CreateSettings(savedVars, defaults)
       type = "header",
       name = "Furniture Shopping List",
     },
+    { -- link: the maintained FSL on ESOUI, so nobody installs the deprecated original
+      type = "description",
+      text = "|c5FB4FF"
+        .. ZO_LinkHandler_CreateLinkWithoutBrackets(GetString(SI_FURC_STRING_MENU_SHOPPINGLIST_LINK), nil, "furc_url")
+        .. "|r",
+      tooltip = FSL_URL,
+      enableLinks = function(_, _, _, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT then
+          RequestOpenUnsafeURL(FSL_URL)
+        end
+      end,
+    },
     { -- checkbox: Enable
       type = "checkbox",
       name = GetString(SI_FURC_STRING_MENU_ENABLE_SHOPPINGLIST),
+      tooltip = GetString(SI_FURC_STRING_MENU_ENABLE_SHOPPINGLIST_TT),
       getFunc = function()
         return (FurC.GetEnableShoppingList())
       end,
@@ -73,25 +97,6 @@ function FurC.CreateSettings(savedVars, defaults)
       end,
     },
 
-    -- =======================================================================================
-    -- header: UI and performance
-    -- =======================================================================================
-    { -- header: UI and performance
-      type = "header",
-      name = "Performance",
-    },
-
-    { -- checkbox: Skip Initial Scan
-      type = "checkbox",
-      name = GetString(SI_FURC_STRING_MENU_SKIP_INITIALSCAN),
-      tooltip = GetString(SI_FURC_STRING_MENU_SKIP_INITIALSCAN_TT),
-      getFunc = function()
-        return FurC.GetSkipInitialScan()
-      end,
-      setFunc = function(value)
-        FurC.SetSkipInitialScan(value)
-      end,
-    },
     -- =======================================================================================
     -- header: Inventory and bank
     -- =======================================================================================

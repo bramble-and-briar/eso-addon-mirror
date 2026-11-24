@@ -1,6 +1,6 @@
 -- Alerts while you play: a chat line when research or a riding lesson becomes ready on any
 -- character (any account or megaserver saved on this PC). Checked once a minute. Settings page, or /fct alerts on|off
-local CT = FuryCT
+local CT = FurysCharacterTracker
 local U = CT.Util
 local Alerts = {}
 CT.Alerts = Alerts

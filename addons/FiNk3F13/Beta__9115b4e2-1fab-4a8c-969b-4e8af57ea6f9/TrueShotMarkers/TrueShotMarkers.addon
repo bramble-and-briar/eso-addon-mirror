@@ -1,8 +1,8 @@
 ## Title: TrueShotMarkers
 ## Description: Following overhead countdowns for players targeted by True Shot in Sanity's Edge.
 ## Author: FiNk3F13
-## Version: 1.0.2
-## AddOnVersion: 10002
+## Version: 1.0.11
+## AddOnVersion: 10011
 ## APIVersion: 101051
 
 ## DependsOn: LibHarvensAddonSettings

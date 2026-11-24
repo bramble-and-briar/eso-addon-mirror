@@ -8,9 +8,9 @@
 ## Description: Library for tracking collectibles across multiple accounts
 ## Author: @code65536
 ## IsLibrary: true
-## Version: 1.2.5.1
-## AddOnVersion: 102051
-## APIVersion: 101050 101051
+## Version: 1.2.6
+## AddOnVersion: 102060
+## APIVersion: 101051 101052
 ## SavedVariables: LibMultiAccountCollectiblesData MultiAccountCollectiblesTooltip
 ## OptionalDependsOn: LibAddonMenu-2.0 AdvancedFilters LibExtendedJournal
 
@@ -24,7 +24,7 @@ Internal.lua
 Public.lua
 Settings.lua
 
-InternalCleanup.lua
-
 extensions/AdvancedFiltersPlugin.lua
 extensions/Tooltip.lua
+
+InternalCleanup.lua

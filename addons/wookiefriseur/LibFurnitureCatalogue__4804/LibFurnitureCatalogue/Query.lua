@@ -344,7 +344,7 @@ local function getCraftingSkillType(recipeKey, recipeArray)
   elseif 0 == craftingSkillType then
     local listIndex, index = grantedRecipeIndices(recipeArray)
     if listIndex and index then
-      _, _, _, _, _, _, craftingSkillType = GetRecipeInfo(listIndex, index)
+      craftingSkillType = select(7, GetRecipeInfo(listIndex, index))
     end
   end
 

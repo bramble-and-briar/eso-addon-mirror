@@ -1,6 +1,7 @@
 -- Ref: docs/adr/0001-arquitectura-modular-zero-dependency-y-savedvars-por-personaje.md
 -- Ref: docs/adr/0003-integracion-nativa-ui-diario-mapa-y-hud.md
 -- Ref: docs/adr/0011-flujo-solo-correo-1-a-1-y-eliminacion-codigos-manuales.md
+-- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -81,6 +82,46 @@ local function BuildDetailHeaderAndBody(tab, pane, panelName)
     return contentParent
 end
 
+local function IsQuestMapOptionEnabled(quest, key)
+    if not quest then return false end
+    if quest[key] ~= nil then
+        return quest[key] == true
+    end
+    return Addon.QuestRepository and Addon.QuestRepository:GetSetting(key) == true
+end
+
+local function BuildDetailMapControls(tab, contentParent, panelName)
+    local CreateStyledButton = Addon.JournalWidgets.CreateStyledButton
+    local objText = tab.detailObjText
+
+    local mapNotice = CreateDetailLabel(contentParent, panelName .. "_DetailMapRecommend", 495, 22, "ZoFontWinH4", objText, BOTTOMLEFT, -25, 12)
+    if mapNotice.SetColor then mapNotice:SetColor(0.95, 0.80, 0.35, 1) end
+    mapNotice:SetHidden(true)
+    tab.detailMapRecommendNotice = mapNotice
+
+    tab.btnShowSearchAreas = CreateStyledButton(panelName .. "_BtnShowSearchAreas", contentParent, 360, 26, "", function()
+        if not tab.selectedQuestId then return end
+        local q = Addon.QuestRepository:GetQuestById(tab.selectedQuestId)
+        if not q then return end
+        local cur = IsQuestMapOptionEnabled(q, "showSearchAreas")
+        Addon.QuestRepository:SetQuestMapVisibility(q.id, "showSearchAreas", not cur)
+        Addon.WorldMapArea:RefreshPins()
+    end)
+    tab.btnShowSearchAreas:SetAnchor(TOPLEFT, mapNotice, BOTTOMLEFT, 0, 8)
+    tab.btnShowSearchAreas:SetHidden(true)
+
+    tab.btnShowLocationAreas = CreateStyledButton(panelName .. "_BtnShowLocationAreas", contentParent, 360, 26, "", function()
+        if not tab.selectedQuestId then return end
+        local q = Addon.QuestRepository:GetQuestById(tab.selectedQuestId)
+        if not q or not Addon.QuestRepository:HasQuestTargetLocation(q) then return end
+        local cur = IsQuestMapOptionEnabled(q, "showLocationAreas")
+        Addon.QuestRepository:SetQuestMapVisibility(q.id, "showLocationAreas", not cur)
+        Addon.WorldMapArea:RefreshPins()
+    end)
+    tab.btnShowLocationAreas:SetAnchor(TOPLEFT, tab.btnShowSearchAreas, BOTTOMLEFT, 0, 6)
+    tab.btnShowLocationAreas:SetHidden(true)
+end
+
 local function BuildDetailActionButtons(tab, contentParent, panelName)
     local CreateStyledButton = Addon.JournalWidgets.CreateStyledButton
     local objText = tab.detailObjText
@@ -147,8 +188,27 @@ local function BuildDetailActionButtons(tab, contentParent, panelName)
     tab.btnRejectOffered:SetHidden(true)
 end
 
-local function RegisterAbandonDialogAndKeybinds(tab, pane, panelName)
+local function ResolveShowOnMapTarget(tab, detailMode, editorMode)
+    if tab.viewMode == editorMode then
+        local draft = Addon.QuestRepository:GetDraft()
+        if Addon.WorldMapArea:HasMapLocation(draft) then
+            return draft
+        end
+        return nil
+    end
+    if tab.viewMode == detailMode and tab.selectedQuestId ~= nil then
+        local q = Addon.QuestRepository:GetQuestById(tab.selectedQuestId)
+        if Addon.WorldMapArea:HasMapLocation(q) then
+            return q
+        end
+        return nil
+    end
+    return nil
+end
+
+local function RegisterAbandonDialogAndKeybinds(tab, pane, parent, panelName)
     local DETAIL_MODE = tab.VIEW_MODE.DETAIL
+    local EDITOR_MODE = tab.VIEW_MODE.EDITOR
 
     if not ESO_Dialogs["RPQUEST_ABANDON_QUEST"] then
         ESO_Dialogs["RPQUEST_ABANDON_QUEST"] = {
@@ -170,7 +230,7 @@ local function RegisterAbandonDialogAndKeybinds(tab, pane, panelName)
     end
 
     local function CanAbandonSelectedQuest()
-        if tab.viewMode ~= DETAIL_MODE or not tab.selectedQuestId then
+        if (tab.viewMode ~= DETAIL_MODE and tab.viewMode ~= EDITOR_MODE) or not tab.selectedQuestId then
             return false
         end
         local quest = Addon.QuestRepository:GetQuestById(tab.selectedQuestId)
@@ -194,15 +254,16 @@ local function RegisterAbandonDialogAndKeybinds(tab, pane, panelName)
         keybind = "UI_SHORTCUT_SHOW_QUEST_ON_MAP",
         ethereal = true,
         callback = function()
-            local q = Addon.QuestRepository:GetQuestById(tab.selectedQuestId)
-            if q then
-                Addon.WorldMapArea:ShowQuestOnMap(q)
+            local target = ResolveShowOnMapTarget(tab, DETAIL_MODE, EDITOR_MODE)
+            if target then
+                Addon.WorldMapArea:ShowQuestOnMap(target)
             end
         end,
         visible = function()
-            return tab.viewMode == DETAIL_MODE
-                and tab.selectedQuestId ~= nil
-                and Addon.QuestRepository:GetQuestById(tab.selectedQuestId) ~= nil
+            return ResolveShowOnMapTarget(tab, DETAIL_MODE, EDITOR_MODE) ~= nil
+        end,
+        enabled = function()
+            return ResolveShowOnMapTarget(tab, DETAIL_MODE, EDITOR_MODE) ~= nil
         end,
     }
     tab.keybindStripDescriptor = {
@@ -211,14 +272,15 @@ local function RegisterAbandonDialogAndKeybinds(tab, pane, panelName)
         tab.showOnMapDescriptor,
     }
 
+    local showOnMapParent = parent or pane
     local showOnMapBtn = WINDOW_MANAGER.CreateControlFromVirtual
-        and WINDOW_MANAGER:CreateControlFromVirtual(panelName .. "_ShowOnMap", pane, "ZO_KeybindButton")
-        or WINDOW_MANAGER:CreateControl(panelName .. "_ShowOnMap", pane, CT_CONTROL)
+        and WINDOW_MANAGER:CreateControlFromVirtual(panelName .. "_ShowOnMap", showOnMapParent, "ZO_KeybindButton")
+        or WINDOW_MANAGER:CreateControl(panelName .. "_ShowOnMap", showOnMapParent, CT_CONTROL)
     ApplyTemplateToControl(showOnMapBtn, "ZO_KeybindButton_Keyboard_Template")
     if showOnMapBtn.SetKeybindButtonDescriptor then
         showOnMapBtn:SetKeybindButtonDescriptor(tab.showOnMapDescriptor)
     end
-    showOnMapBtn:SetAnchor(TOPLEFT, pane, BOTTOMLEFT, 0, 0)
+    showOnMapBtn:SetAnchor(TOPLEFT, showOnMapParent, BOTTOMLEFT, 0, 0)
     tab.showOnMapKeybindButton = showOnMapBtn
 end
 
@@ -231,8 +293,9 @@ function DetailPane.Build(tab, parent)
     tab.detailPane = pane
 
     local contentParent = BuildDetailHeaderAndBody(tab, pane, panelName)
+    BuildDetailMapControls(tab, contentParent, panelName)
     BuildDetailActionButtons(tab, contentParent, panelName)
-    RegisterAbandonDialogAndKeybinds(tab, pane, panelName)
+    RegisterAbandonDialogAndKeybinds(tab, pane, parent, panelName)
 end
 
 local function FormatPreparedStatusText(quest)
@@ -381,12 +444,25 @@ local function AppendExtraObjectiveLines(objLines, selectedQuest, isPrepared, pI
         end
     end
 
-    if selectedQuest.requireUndetected then
+    local modes = Addon.Constants.STEALTH_MODE
+    local stealthMode = Addon.QuestDraftStore:NormalizeStealthMode(selectedQuest.stealthMode, selectedQuest.requireUndetected)
+    if stealthMode ~= modes.DISABLED then
         local wasDetected = selectedQuest.wasDetected
         if isSentCompleted and pInfo.wasDetected ~= nil then
             wasDetected = pInfo.wasDetected
         end
-        local stealthKey = wasDetected and "STEALTH_STATUS_DETECTED" or "STEALTH_STATUS_UNDETECTED"
+        local stealthKey
+        if stealthMode == modes.REQUIRED then
+            if selectedQuest.failed and wasDetected then
+                stealthKey = "STEALTH_STATUS_REQUIRED_FAILED"
+            elseif wasDetected then
+                stealthKey = "STEALTH_STATUS_REQUIRED_DETECTED"
+            else
+                stealthKey = "STEALTH_STATUS_REQUIRED_UNDETECTED"
+            end
+        else
+            stealthKey = wasDetected and "STEALTH_STATUS_OPTIONAL_DETECTED" or "STEALTH_STATUS_OPTIONAL_UNDETECTED"
+        end
         table.insert(objLines, bullet .. Addon.Locale:Get(stealthKey))
     end
 
@@ -401,7 +477,7 @@ local function AppendExtraObjectiveLines(objLines, selectedQuest, isPrepared, pI
             local dlgLine = Addon.Locale:Get("DIALOGUE_DETAIL_NPCS_FORMAT", #dialogues, maxNpcs):gsub("^•%s*", bullet)
             table.insert(objLines, dlgLine)
         end
-        if selectedQuest.hideMapArea then
+        if selectedQuest.recommendHideMapAreas or selectedQuest.hideMapArea then
             local mapHiddenLine = Addon.Locale:Get("DIALOGUE_DETAIL_MAP_HIDDEN"):gsub("^•%s*", bullet)
             table.insert(objLines, mapHiddenLine)
         end
@@ -423,8 +499,84 @@ local function BuildObjectiveLines(selectedQuest, isPrepared)
     return objLines
 end
 
-local function UpdateDetailActionButtons(tab, selectedQuest, isOffered, isPrepared)
+local function UpdateDetailMapControls(tab, selectedQuest, isOffered, isPrepared, isCurrentActive)
+    local needsMigration = isPrepared and (selectedQuest.needsMigration == true)
+    local showNotice = (selectedQuest.recommendHideMapAreas == true) or (selectedQuest.hideMapArea == true)
+    local showToggles = (not isOffered) and (not needsMigration) and ((not isPrepared) or isCurrentActive)
+
+    local anchorControl = tab.detailObjText
+    local offsetX = -25
+    local offsetY = 16
+    local extraHeight = 0
+
+    if tab.detailMapRecommendNotice then
+        if showNotice then
+            tab.detailMapRecommendNotice:ClearAnchors()
+            tab.detailMapRecommendNotice:SetAnchor(TOPLEFT, anchorControl, BOTTOMLEFT, offsetX, 12)
+            tab.detailMapRecommendNotice:SetDimensions(495, 0)
+            tab.detailMapRecommendNotice:SetText(Addon.Locale:Get("DETAIL_RECOMMEND_HIDE_MAP_AREAS"))
+            local noticeHeight = tab.detailMapRecommendNotice.GetTextHeight and tab.detailMapRecommendNotice:GetTextHeight()
+            if not noticeHeight then
+                noticeHeight = 40
+            end
+            noticeHeight = math.max(22, noticeHeight)
+            tab.detailMapRecommendNotice:SetDimensions(495, noticeHeight)
+            tab.detailMapRecommendNotice:SetHidden(false)
+            anchorControl = tab.detailMapRecommendNotice
+            offsetX = 0
+            offsetY = 10
+            extraHeight = extraHeight + noticeHeight + 12
+        else
+            tab.detailMapRecommendNotice:SetHidden(true)
+        end
+    end
+
+    if tab.btnShowSearchAreas and tab.btnShowLocationAreas then
+        if showToggles then
+            local searchOn = IsQuestMapOptionEnabled(selectedQuest, "showSearchAreas")
+            tab.btnShowSearchAreas:ClearAnchors()
+            tab.btnShowSearchAreas:SetAnchor(TOPLEFT, anchorControl, BOTTOMLEFT, offsetX, showNotice and 8 or 12)
+            tab.btnShowSearchAreas:SetText(Addon.Locale:Get(searchOn and "OPT_SHOW_SEARCH_AREAS_ACTIVE" or "OPT_SHOW_SEARCH_AREAS"))
+            tab.btnShowSearchAreas:SetHidden(false)
+
+            local hasTargetLoc = Addon.QuestRepository:HasQuestTargetLocation(selectedQuest)
+            local locOn = hasTargetLoc and IsQuestMapOptionEnabled(selectedQuest, "showLocationAreas")
+            tab.btnShowLocationAreas:ClearAnchors()
+            tab.btnShowLocationAreas:SetAnchor(TOPLEFT, tab.btnShowSearchAreas, BOTTOMLEFT, 0, 6)
+            if hasTargetLoc then
+                tab.btnShowLocationAreas:SetText(Addon.Locale:Get(locOn and "OPT_SHOW_LOCATION_AREAS_ACTIVE" or "OPT_SHOW_LOCATION_AREAS"))
+            else
+                tab.btnShowLocationAreas:SetText(Addon.Locale:Get("OPT_SHOW_LOCATION_AREAS_DISABLED"))
+            end
+            if tab.btnShowLocationAreas.SetEnabled then
+                tab.btnShowLocationAreas:SetEnabled(hasTargetLoc)
+            end
+            if tab.btnShowLocationAreas.SetAlpha then
+                tab.btnShowLocationAreas:SetAlpha(hasTargetLoc and 1 or 0.45)
+            end
+            tab.btnShowLocationAreas:SetHidden(false)
+
+            anchorControl = tab.btnShowLocationAreas
+            offsetX = 0
+            offsetY = 14
+            extraHeight = extraHeight + 72
+        else
+            tab.btnShowSearchAreas:SetHidden(true)
+            tab.btnShowLocationAreas:SetHidden(true)
+        end
+    end
+
+    return anchorControl, offsetX, offsetY, extraHeight
+end
+
+local function UpdateDetailActionButtons(tab, selectedQuest, isOffered, isPrepared, anchorControl, offsetX, offsetY)
     tab:UpdateShowOnMapVisibility()
+    tab.btnActivate:ClearAnchors()
+    tab.btnActivate:SetAnchor(TOPLEFT, anchorControl, BOTTOMLEFT, offsetX, offsetY)
+    if tab.btnAcceptOffered then
+        tab.btnAcceptOffered:ClearAnchors()
+        tab.btnAcceptOffered:SetAnchor(TOPLEFT, anchorControl, BOTTOMLEFT, offsetX, offsetY)
+    end
     tab.btnReset:ClearAnchors()
     local needsMigration = isPrepared and (selectedQuest.needsMigration == true)
     if tab.btnAcceptOffered then tab.btnAcceptOffered:SetHidden(not isOffered) end
@@ -461,7 +613,7 @@ local function UpdateDetailActionButtons(tab, selectedQuest, isOffered, isPrepar
         tab.btnEdit:SetHidden(true)
         tab.btnReset:SetHidden(not showFailed)
         if showFailed then
-            tab.btnReset:SetAnchor(TOPLEFT, tab.detailObjText, BOTTOMLEFT, -25, 16)
+            tab.btnReset:SetAnchor(TOPLEFT, anchorControl, BOTTOMLEFT, offsetX, offsetY)
         end
     end
 
@@ -479,6 +631,9 @@ local function RenderEmptyDetailPane(tab)
     tab.detailDescBody:SetText("")
     tab.detailObjHeader:SetHidden(true)
     tab.detailObjText:SetText("")
+    if tab.detailMapRecommendNotice then tab.detailMapRecommendNotice:SetHidden(true) end
+    if tab.btnShowSearchAreas then tab.btnShowSearchAreas:SetHidden(true) end
+    if tab.btnShowLocationAreas then tab.btnShowLocationAreas:SetHidden(true) end
     tab.btnActivate:SetHidden(true)
     if tab.btnComplete then tab.btnComplete:SetHidden(true) end
     if tab.btnAcceptOffered then tab.btnAcceptOffered:SetHidden(true) end
@@ -554,9 +709,10 @@ function DetailPane.Refresh(tab, selectedQuest, activeQuest)
     local textHeight = tab.detailObjText.GetTextHeight and tab.detailObjText:GetTextHeight()
     local objHeight = textHeight and (textHeight + 16) or (#objLines * 24)
     tab.detailObjText:SetDimensions(495, math.max(32, objHeight))
+    local anchorControl, offsetX, offsetY, extraMapHeight = UpdateDetailMapControls(tab, selectedQuest, isOffered, isPrepared, isCurrentActive)
     if tab.detailScrollChild and tab.detailScrollChild.SetDimensions then
-        tab.detailScrollChild:SetDimensions(526, math.max(650, 620 + objHeight + math.max(0, statusHeight - 22)))
+        tab.detailScrollChild:SetDimensions(526, math.max(650, 620 + objHeight + math.max(0, statusHeight - 22) + extraMapHeight))
     end
 
-    UpdateDetailActionButtons(tab, selectedQuest, isOffered, isPrepared)
+    UpdateDetailActionButtons(tab, selectedQuest, isOffered, isPrepared, anchorControl, offsetX, offsetY)
 end

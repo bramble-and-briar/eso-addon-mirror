@@ -1,0 +1,17 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media
+; Inc. or its affiliates. The Elder Scrolls and related logos are registered
+; trademarks or trademarks of ZeniMax Media Inc. in the United States and/or
+; other countries. All rights reserved.
+; https://account.elderscrollsonline.com/add-on-terms
+
+## Title: Schrodi's Battleground Tools
+## Description: Battlegrounds scoreboard with damage, healing and class icons that fits 9v9 and 6v6v6 without scrolling, plus a multi-queue panel in place of the Battlegrounds panel, one-click queue buttons, a requeue cooldown timer and the time in queue on the HUD.
+## Author: Schrodi
+## Version: 2.0.1
+## AddOnVersion: 201
+## APIVersion: 101051 101052
+## SavedVariables: SchrodisBattlegroundTools_SV
+## OptionalDependsOn: LibAddonMenu-2.0
+
+SchrodisBattlegroundTools.lua
+SchrodisBattlegroundTools.xml

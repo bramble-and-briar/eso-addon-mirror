@@ -324,18 +324,96 @@ function WebExport.BufferCount()
     return ring.tail - ring.head + 1
 end
 
+-- ============================================================================
+-- Scopes
+--
+-- A line's scope is its leading "[Name] " tag: the one LibConsoleLogger:For("Name") puts on every line it logs,
+-- and the one this library puts on its own lines (the UI-load markers). The tag is read off the line itself, so
+-- it holds for lines saved by an earlier UI load and for an addon that writes the tag by hand.
+-- ============================================================================
+
+---@param line string
+---@return string|nil scope
+function WebExport.ScopeOf(line)
+    return string.match(line, "^%[([^%]]+)%] ")
+end
+
+---Whether a line shows under a scope: every line under "" (all scopes), else that scope's lines, the
+---library's own (the UI-load markers are the only clock a log has) and, with includeErrors, the game's errors.
+---@param line string
+---@param scope string|nil
+---@param includeErrors boolean|nil
+---@return boolean
+function WebExport.InScope(line, scope, includeErrors)
+    if scope == nil or scope == "" then
+        return true
+    end
+    local lineScope = WebExport.ScopeOf(line)
+    return lineScope == scope
+        or lineScope == LibConsoleLogger.name
+        or (includeErrors == true and lineScope == LibConsoleLogger.errorsScope)
+end
+
+---The buffered lines, oldest first; with a scope, only the lines that show under it (WebExport.InScope).
+---@param scope string|nil
+---@param includeErrors boolean|nil
 ---@return string[]
-function WebExport.BufferGetLines()
+function WebExport.BufferGetLines(scope, includeErrors)
     if ring.lines == nil or ring.head > ring.tail then
         return EMPTY_STRING_ARRAY
     end
 
     local copy, n = {}, 0
     for i = ring.head, ring.tail do
-        n = n + 1
-        copy[n] = ring.lines[i]
+        local line = ring.lines[i]
+        if WebExport.InScope(line, scope, includeErrors) then
+            n = n + 1
+            copy[n] = line
+        end
     end
     return copy
+end
+
+---How many buffered lines each scope holds.
+---@return table<string, number>
+function WebExport.BufferScopes()
+    local counts = {}
+    if ring.lines == nil then
+        return counts
+    end
+    for i = ring.head, ring.tail do
+        local scope = WebExport.ScopeOf(ring.lines[i])
+        if scope then
+            counts[scope] = (counts[scope] or 0) + 1
+        end
+    end
+    return counts
+end
+
+-- Take one scope's lines (and the errors, when they went out with it) out of the buffer, in place: the ring is
+-- the saved table (see above).
+---@param scope string
+---@param includeErrors boolean
+local function RemoveScopeLines(scope, includeErrors)
+    if ring.lines == nil then
+        return
+    end
+    local kept, n, bytes = {}, 0, 0
+    for i = ring.head, ring.tail do
+        local line = ring.lines[i]
+        local lineScope = WebExport.ScopeOf(line)
+        local sent = lineScope == scope or (includeErrors and lineScope == LibConsoleLogger.errorsScope)
+        if not sent then
+            n = n + 1
+            kept[n] = line
+            bytes = bytes + #line + 1
+        end
+    end
+    if n == 0 then
+        ClearExportBuffer()
+        return
+    end
+    ring.lines, ring.head, ring.tail, ring.bytes = kept, 1, n, bytes
 end
 
 -- ============================================================================
@@ -690,10 +768,15 @@ function WebExport.CancelExport()
     StopExport(string.format("[LibConsoleLogger] Export cancelled at chunk %d/%d", s.currentIndex, s.totalChunks))
 end
 
+---Export the buffer, then empty it. With a scope, export the lines that show under it (WebExport.InScope) and
+---take out only that scope's lines and the errors sent with them; the other scopes and the UI-load markers
+---stay buffered.
 ---@param cfg table|nil
+---@param scope string|nil
+---@param includeErrors boolean|nil
 ---@return boolean ok
 ---@return string|nil reason
-function WebExport.SubmitBuffered(cfg)
+function WebExport.SubmitBuffered(cfg, scope, includeErrors)
     if not IsRuntimeEnabled() then
         return false, "disabled"
     end
@@ -702,7 +785,17 @@ function WebExport.SubmitBuffered(cfg)
         return false, "empty"
     end
 
-    local lines = WebExport.BufferGetLines()
+    local scoped = scope ~= nil and scope ~= ""
+    includeErrors = includeErrors == true
+    if scoped then
+        local counts = WebExport.BufferScopes()
+        if not (counts[scope] or (includeErrors and counts[LibConsoleLogger.errorsScope])) then
+            ReportStatusf("[LibConsoleLogger] Nothing buffered for scope %s", scope)
+            return false, "empty"
+        end
+    end
+
+    local lines = WebExport.BufferGetLines(scope, includeErrors)
     if #lines == 0 then
         return false, "empty"
     end
@@ -711,7 +804,11 @@ function WebExport.SubmitBuffered(cfg)
     local allText = EnsureTrailingNewline(table.concat(lines, "\n"))
     local ok, reason = StartSubmit(allText, cfg, false)
     if ok then
-        WebExport.BufferClear()
+        if scoped then
+            RemoveScopeLines(scope, includeErrors)
+        else
+            WebExport.BufferClear()
+        end
         return true, nil
     end
     return false, reason

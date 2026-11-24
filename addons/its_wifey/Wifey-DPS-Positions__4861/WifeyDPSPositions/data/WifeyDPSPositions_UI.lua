@@ -415,9 +415,10 @@ function UI:PopulateFreeAssignments() end
 function UI:Toggle()
     if self.panelOpen then
         self.panelOpen = false
+        if WifeyDPSPositions.CheckGroupEventsNeeded then WifeyDPSPositions.CheckGroupEventsNeeded() end
         if self.hudFragment then
-            if HUD_SCENE then HUD_SCENE:RemoveFragment(self.hudFragment) end
-            if HUD_UI_SCENE then HUD_UI_SCENE:RemoveFragment(self.hudFragment) end
+            HUD_SCENE:RemoveFragment(self.hudFragment)
+            HUD_UI_SCENE:RemoveFragment(self.hudFragment)
         end
         if self.window then self.window:SetHidden(true) end
         SCENE_MANAGER:SetInUIMode(false)
@@ -431,11 +432,12 @@ function UI:Toggle()
     end
     if not self.window then self:Create() end
     self.panelOpen = true
+    if WifeyDPSPositions.CheckGroupEventsNeeded then WifeyDPSPositions.CheckGroupEventsNeeded() end
     self:Refresh()
     SCENE_MANAGER:SetInUIMode(true)
     if self.hudFragment then
-        if HUD_SCENE then HUD_SCENE:AddFragment(self.hudFragment) end
-        if HUD_UI_SCENE then HUD_UI_SCENE:AddFragment(self.hudFragment) end
+        HUD_SCENE:AddFragment(self.hudFragment)
+        HUD_UI_SCENE:AddFragment(self.hudFragment)
     else
         self.window:SetHidden(false)
     end

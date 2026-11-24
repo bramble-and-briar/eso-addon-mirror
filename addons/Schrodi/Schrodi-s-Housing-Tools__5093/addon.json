@@ -8,6 +8,10 @@
   "category_id": "160",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "SchrodisHousingTools"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5093/",
-  "fingerprint": "45da409d801ce396da9c5b9cb225268046993160e34555b2624f6896a7b2f32a",
+  "fingerprint": "32e0af8c82d562ba630a241ce747336c6105dd89dc00b1b5cf97e08e45dc836e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18685.png",
     "https://cdn-eso.mmoui.com/preview/pvw18686.png"
@@ -29,11 +33,11 @@
   "source_id": "5093",
   "source_url": "https://www.esoui.com/downloads/info5093-SchrodisHousingTools.html",
   "stats": {
-    "downloads": 2,
+    "downloads": 35,
     "favorites": 0,
-    "monthly_downloads": 1
+    "monthly_downloads": 25
   },
   "title": "Schrodi's Housing Tools",
-  "updated_at": 1795280149000,
-  "version": "2.1.0"
+  "updated_at": 1795476095000,
+  "version": "2.1.1"
 }

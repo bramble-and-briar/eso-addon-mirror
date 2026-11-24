@@ -7,11 +7,11 @@
 ## Title: Target Frame Line
 ## Description: Rebuilds the name line of the targeted player: name, Alliance War rank, class icon, then level or champion points. No veterancy rank or difficulty icon in front.
 ## Author: Schrodi
-## Version: 1.2.0
-## AddOnVersion: 3
+## Version: 1.2.1
+## AddOnVersion: 4
 ## APIVersion: 101051 101052
 ## SavedVariables: TargetFrameLine_SV
-## DependsOn: LibAddonMenu-2.0
+## DependsOn: LibAddonMenu-2.0>=43
 
 TargetFrameLine.lua
 Settings.lua

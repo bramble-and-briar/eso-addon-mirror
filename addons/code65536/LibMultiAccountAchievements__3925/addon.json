@@ -8,6 +8,10 @@
   "category_id": "53",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -54,7 +58,7 @@
     "LibMultiAccountAchievements"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3925/",
-  "fingerprint": "78f418885c19263ffb793b4279ba2cbf44c6f8e46e7152e1c6c92f9b5ffa2065",
+  "fingerprint": "f6011bad9d828993f3731b4f9f99ee8a7ef45a67e8ca4bcf0c0825b45cde3883",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -62,11 +66,11 @@
   "source_id": "3925",
   "source_url": "https://www.esoui.com/downloads/info3925-LibMultiAccountAchievements.html",
   "stats": {
-    "downloads": 35215,
-    "favorites": 25,
-    "monthly_downloads": 2368
+    "downloads": 37362,
+    "favorites": 26,
+    "monthly_downloads": 493
   },
   "title": "LibMultiAccountAchievements",
-  "updated_at": 1785798125000,
-  "version": "1.1.4.1"
+  "updated_at": 1795532994000,
+  "version": "1.1.4.2"
 }

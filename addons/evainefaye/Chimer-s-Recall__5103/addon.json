@@ -26,7 +26,7 @@
     "ChimersRecall"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5103/",
-  "fingerprint": "b48f6591d5e7156e7732508e01dcef64079e285f2a721104e2412516d73ba983",
+  "fingerprint": "9dcebc7e3a7c2e37b5abc3e940b1b4cb6820ade3f59fe86be89a62ec1b873801",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18736.png"
   ],
@@ -36,11 +36,11 @@
   "source_id": "5103",
   "source_url": "https://www.esoui.com/downloads/info5103-ChimersRecall.html",
   "stats": {
-    "downloads": 6,
+    "downloads": 9,
     "favorites": 0,
-    "monthly_downloads": 3
+    "monthly_downloads": 8
   },
   "title": "Chimer's Recall",
-  "updated_at": 1795369558000,
-  "version": "1.2.0"
+  "updated_at": 1795452023000,
+  "version": "1.2.1"
 }

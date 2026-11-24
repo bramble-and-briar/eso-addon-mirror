@@ -204,6 +204,19 @@ end)
 
 
 --------------------------------------------------------------------------------
+-- Auxiliary Column
+-- GetAuxiliaryData( itemId, category )
+-- GetAuxiliaryLabel( auxData )
+--------------------------------------------------------------------------------
+
+local GetAuxiliaryData, GetAuxiliaryLabel
+
+function CharacterKnowledge.ConfigureAuxiliaryColumn( ... )
+	GetAuxiliaryData, GetAuxiliaryLabel = ...
+end
+
+
+--------------------------------------------------------------------------------
 -- CharacterKnowledgeList
 --------------------------------------------------------------------------------
 
@@ -219,7 +232,7 @@ function CharacterKnowledgeList:Setup( )
 
 	local sortKeys = {
 		["name"]       = { caseInsensitive = true },
-		["nameSuffix"] = { tiebreaker = "extended", tieBreakerSortOrder = ZO_SORT_ORDER_UP },
+		["auxiliary"]  = { tiebreaker = "extended", tieBreakerSortOrder = ZO_SORT_ORDER_UP },
 		["quality"]    = { isNumeric = true, tiebreaker = "extended", tieBreakerSortOrder = ZO_SORT_ORDER_UP },
 		["extended"]   = { caseInsensitive = true, tiebreaker = "name", tieBreakerSortOrder = ZO_SORT_ORDER_UP },
 		["ratioKnown"] = { isNumeric = true, tiebreaker = "extended", tieBreakerSortOrder = ZO_SORT_ORDER_UP },
@@ -302,7 +315,7 @@ function CharacterKnowledgeList:BuildMasterList( )
 				extended = string.format("%03d", items.number),
 				quality = LCK.GetMotifStyleQuality(styleId),
 				chapters = (#items.chapters > 0) and items.chapters or nil,
-				nameSuffix = "", -- Unused
+				auxiliary = 0, -- Unused
 				bookIds = items.bookIds,
 			})
 		end
@@ -366,7 +379,7 @@ function CharacterKnowledgeList:BuildMasterList( )
 					planType = planType,
 					level = level,
 					quality = GetItemLinkFunctionalQuality(itemLink),
-					nameSuffix = "", -- Unused
+					auxiliary = GetAuxiliaryData and GetAuxiliaryData(itemId, category) or 0,
 				})
 			end
 		end
@@ -398,7 +411,7 @@ function CharacterKnowledgeList:BuildMasterList( )
 				name = zo_strformat(SI_CRAFTED_ABILITY_NAME_FORMATTER, GetCraftedAbilityDisplayName(id)),
 				extendedText = types[SCRIBING_SLOT_NONE][1],
 				extended = types[SCRIBING_SLOT_NONE][2],
-				nameSuffix = grimoireIcons[id] or "",
+				auxiliary = grimoireIcons[id] or 0,
 				quality = 0, -- Unused
 			})
 		end
@@ -424,7 +437,7 @@ function CharacterKnowledgeList:BuildMasterList( )
 				name = zo_strformat(SI_CRAFTED_ABILITY_SCRIPT_NAME_FORMATTER, GetCraftedAbilityScriptDisplayName(id)),
 				extendedText = types[slot][1],
 				extended = types[slot][2],
-				nameSuffix = scriptIcons[id] or "",
+				auxiliary = scriptIcons[id] or 0,
 				quality = 0, -- Unused
 			})
 		end
@@ -559,10 +572,13 @@ function CharacterKnowledgeList:FilterScrollList( )
 
 	if (filterId == LCK.ITEM_CATEGORY_SCRIBING) then
 		self.headers:GetNamedChild("Quality"):SetHidden(true)
-		self.headers:GetNamedChild("NameSuffix"):SetHidden(false)
+		self.headers:GetNamedChild("Auxiliary"):SetHidden(false)
+	elseif (GetAuxiliaryLabel and (filterId == LCK.ITEM_CATEGORY_RECIPE or filterId == LCK.ITEM_CATEGORY_PLAN)) then
+		self.headers:GetNamedChild("Quality"):SetHidden(false)
+		self.headers:GetNamedChild("Auxiliary"):SetHidden(false)
 	else
 		self.headers:GetNamedChild("Quality"):SetHidden(false)
-		self.headers:GetNamedChild("NameSuffix"):SetHidden(true)
+		self.headers:GetNamedChild("Auxiliary"):SetHidden(true)
 	end
 
 	local searchInput = self.searchBox:GetText()
@@ -604,12 +620,20 @@ function CharacterKnowledgeList:SetupItemRow( control, data )
 		cell2:SetTexture(GetCraftedAbilityScriptIcon(data.scriptId))
 	end
 
-	cell = control:GetNamedChild("NameSuffix")
-	if (data.nameSuffix ~= "") then
-		cell:SetTexture(ICONS[data.nameSuffix])
+	cell = control:GetNamedChild("AuxIcon")
+	cell2 = control:GetNamedChild("AuxLabel")
+	cell2.normalColor = ZO_DEFAULT_TEXT
+	if (type(data.auxiliary) == "string") then
+		cell:SetTexture(ICONS[data.auxiliary])
 		cell:SetHidden(false)
+		cell2:SetHidden(true)
+	elseif (data.auxiliary ~= 0 and GetAuxiliaryLabel) then
+		cell:SetHidden(true)
+		cell2:SetText(GetAuxiliaryLabel(data.auxiliary))
+		cell2:SetHidden(false)
 	else
 		cell:SetHidden(true)
+		cell2:SetHidden(true)
 	end
 
 	cell = control:GetNamedChild("Extended")

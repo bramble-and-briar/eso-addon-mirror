@@ -5,12 +5,14 @@
 --   Core/Roster.lua  the stored roster: characters, manual fields, totals, export rows
 --   UI/              the board (/fct) and the brag card (/fct brag)
 
-FuryCT = FuryCT or {}
-local CT = FuryCT
+FurysCharacterTracker = {}
+local CT = FurysCharacterTracker
 
 CT.name = "FurysCharacterTracker"
 CT.displayName = "Fury's Character Tracker"
-CT.version = "1.2.2"
+CT.version = "1.4.0"
+-- The Windows Tools (offline viewer, Excel export) can't ship in the ESOUI zip; this page has the download.
+CT.toolsUrl = "https://github.com/AlbertHoffpauir/FurysCharacterTracker#downloads"
 
 CT.defaults = {
     characters = {},   -- [character name] = everything read from that character (see Core/Scan.lua)
@@ -40,6 +42,11 @@ local function OnAddOnLoaded(_, addonName)
 
     CT.Roster:Initialize()
     CT.Window:Initialize()
+    local T = CT.Theme
+    T.Window(FurysCharacterTracker_Window, { bg = "BG" })
+    T.Window(FurysCharacterTracker_Timers, { bg = "BG" })
+    T.Window(FurysCharacterTracker_Details, { bg = "BG", bar = 66 })
+    T.Window(FurysCharacterTracker_Brag, { bg = "BG", bar = 92, center = true, font = "$(ANTIQUE_FONT)|36|soft-shadow-thick" })
     CT.Settings:Build()
     CT.RegisterSlashCommands()
 end
@@ -109,7 +116,7 @@ end
 function CT.SetView(entry)
     CT.view = entry
     CT.Window:Refresh()
-    if not FuryCTBrag:IsHidden() then CT.Brag:Refresh() end
+    if not FurysCharacterTracker_Brag:IsHidden() then CT.Brag:Refresh() end
     CT.Timers:RefreshIfShown()
 end
 
@@ -147,6 +154,8 @@ function CT.RegisterSlashCommands()
             CT.RequestExport()
         elseif arg == "settings" then
             CT.Settings:Open()
+        elseif arg == "tools" then
+            RequestOpenUnsafeURL(CT.toolsUrl)
         elseif arg == "alerts on" or arg == "alerts off" then
             CT.Alerts:Set(arg == "alerts on")
         elseif arg == "research" then
@@ -167,6 +176,7 @@ function CT.RegisterSlashCommands()
             U.Print("/fct todo  characters never read, or not read in 7 days (/fct todo 30 for 30 days)")
             U.Print("/fct scan  read this character again now")
             U.Print("/fct export  export to Excel (reloads the UI; Auto Export writes the CSV)")
+            U.Print("/fct tools  get the Windows Tools (offline viewer, Excel export) from GitHub")
         end
     end
 end

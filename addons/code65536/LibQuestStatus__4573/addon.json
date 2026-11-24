@@ -8,6 +8,10 @@
   "category_id": "53",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     },
@@ -26,7 +30,7 @@
     "LibQuestStatus"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4573/",
-  "fingerprint": "c102a7ea342c1935f3feccacb49d983a5a1f03c039a3317f70ddf1bf083145ad",
+  "fingerprint": "80527f2ecb003912eb140da806391ea6870b6c0bebbcedc3e757dabc2c55b89d",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -34,11 +38,11 @@
   "source_id": "4573",
   "source_url": "https://www.esoui.com/downloads/info4573-LibQuestStatus.html",
   "stats": {
-    "downloads": 3414,
-    "favorites": 7,
-    "monthly_downloads": 1332
+    "downloads": 5274,
+    "favorites": 9,
+    "monthly_downloads": 470
   },
   "title": "LibQuestStatus",
-  "updated_at": 1786011430000,
-  "version": "1.0.3"
+  "updated_at": 1795533066000,
+  "version": "1.0.3.1"
 }

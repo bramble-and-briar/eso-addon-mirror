@@ -5,7 +5,7 @@
 -- It sees everything LibHistoire has for each guild from the first-run look-back onward,
 -- and keeps it for "keepDays" even after the game's own history window has moved on.
 
-local GT = FuryGMT
+local GT = FurysGuildToolset
 local U = GT.Util
 
 local EventLog = GT:RegisterModule("log", {})
@@ -13,7 +13,7 @@ local EventLog = GT:RegisterModule("log", {})
 local MAX_ROWS_SHOWN = 2000
 
 EventLog.defaults = {
-    enabled = false,   -- every feature starts off on a new install (Albert, 1.3.0)
+    enabled = false,   -- every feature starts turned off on a new install (Albert, 1.3.0)
     keepDays = 90,
     maxEntries = 20000,
     returnHours = 72,   -- a deposit of the same item by the same member within this time counts as a return
@@ -232,11 +232,11 @@ end
 function EventLog.ReturnNote(r, takenTs, showNone)
     local state = EventLog.ReturnState(r)
     if state == "whole" then
-        return string.format("|c9FD49Freturned after %s|r", U.FormatDuration(r.lastTs - takenTs))
+        return string.format("|c5EE6A0returned after %s|r", U.FormatDuration(r.lastTs - takenTs))
     elseif state == "partial" then
-        return string.format("|cFFCC66returned %d of %d|r", r.returned, r.taken)
+        return string.format("|cFFC857returned %d of %d|r", r.returned, r.taken)
     elseif showNone then
-        return "|cFF7777not returned|r"
+        return "|cFF6B86not returned|r"
     end
     return nil
 end
@@ -271,7 +271,7 @@ local function Describe(e, returns, showNone)
             local note = EventLog.ReturnNote(r, e.ts, showNone)
             if note then text = text .. "  " .. note end
         elseif r then
-            text = text .. "  |cAAAAAA(return)|r"
+            text = text .. "  |cB4B0D8(return)|r"
         end
         return text
     elseif e.t == "gold_out" or e.t == "gold_in" then
@@ -410,10 +410,10 @@ function EventLog:TabRows()
             if #rows >= MAX_ROWS_SHOWN then break end
             local back = ""
             if m.returnedWhole + m.returnedPart > 0 then
-                back = string.format(" |c9FD49F(%d put back)|r", m.returnedWhole + m.returnedPart)
+                back = string.format(" |c5EE6A0(%d put back)|r", m.returnedWhole + m.returnedPart)
             end
             rows[#rows + 1] = GT.Report.AddMenu({
-                text = string.format("%s  |cAAAAAA%s|r  took %d stacks%s (%d items), gave %d items   gold out %s / in %s",
+                text = string.format("%s  |cB4B0D8%s|r  took %d stacks%s (%d items), gave %d items   gold out %s / in %s",
                     m.who, U.GuildName(m.g), m.stacksOut, back, m.itemsOut, m.itemsIn, U.FormatGold(m.goldOut), U.FormatGold(m.goldIn)),
                 tooltip = string.format("Stacks put back whole: %d\nStacks put back partly used: %d\nRoster events: %d\nLast activity: %s",
                     m.returnedWhole, m.returnedPart, m.roster, U.FormatDate(m.last)),
@@ -429,9 +429,9 @@ function EventLog:TabRows()
             if e.t == "item_out" then
                 local state = EventLog.ReturnState(r)
                 if state == "whole" then
-                    tooltip = tooltip .. string.format("\n|c9FD49FPut back whole (%d) by %s|r", r.returned, U.FormatDate(r.lastTs))
+                    tooltip = tooltip .. string.format("\n|c5EE6A0Put back whole (%d) by %s|r", r.returned, U.FormatDate(r.lastTs))
                 elseif state == "partial" then
-                    tooltip = tooltip .. string.format("\n|cFFCC66Put back %d of %d by %s, %d used or kept|r", r.returned, r.taken,
+                    tooltip = tooltip .. string.format("\n|cFFC857Put back %d of %d by %s, %d used or kept|r", r.returned, r.taken,
                         U.FormatDate(r.lastTs), r.taken - r.returned)
                 else
                     tooltip = tooltip .. string.format("\nNot put back within %dh", GT:GuildSettings(self, e.g).returnHours)
@@ -445,7 +445,7 @@ function EventLog:TabRows()
                 for _, item in ipairs(GT.Report.ContactItems(e.target)) do items[#items + 1] = item end
             end
             rows[#rows + 1] = GT.Report.AddMenu({
-                text = string.format("|cAAAAAA%s|r  %s  |cAAAAAA%s|r", U.FormatDate(e.ts), Describe(e, returns, showNone), U.GuildName(e.g)),
+                text = string.format("|cB4B0D8%s|r  %s  |cB4B0D8%s|r", U.FormatDate(e.ts), Describe(e, returns, showNone), U.GuildName(e.g)),
                 tooltip = tooltip,
             }, items)
         end
@@ -497,7 +497,7 @@ function EventLog:RegisterTab()
                     local current = self:GetGuildFilter()
                     ClearMenu()
                     local function Add(label, id)
-                        AddMenuItem((id == (current or 0)) and ("|cD4AF37" .. label .. "|r") or label, function()
+                        AddMenuItem((id == (current or 0)) and ("|cA08CFF" .. label .. "|r") or label, function()
                             self.filter.guildId = id
                             GT.Report:Refresh()
                         end)

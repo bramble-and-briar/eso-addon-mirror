@@ -271,6 +271,27 @@ function BrowseUtils.WebUrl(name)
     return "https://eso-hub.com/en/furniture/" .. slug
 end
 
+---A chat message with a link added: after what is already written, a space between. A link the
+---message already holds is not added twice.
+---@param existing string|nil what the message box holds
+---@param link string
+---@param maxLength integer the most the message box takes
+---@return string|nil text the message to put in the box; nil when the link does not fit
+function BrowseUtils.ChatText(existing, link, maxLength)
+    existing = existing or ""
+    if existing:find(link, 1, true) then
+        return existing
+    end
+    local text = link
+    if existing ~= "" then
+        text = existing .. (existing:find("%s$") and "" or " ") .. link
+    end
+    if #text > maxLength then
+        return nil
+    end
+    return text
+end
+
 ---By name, any case; the ones the game gave no name (unnamed) after the named; ties by id.
 ---@param a { id: any, name: string, unnamed: boolean|nil }
 ---@param b { id: any, name: string, unnamed: boolean|nil }

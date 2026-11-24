@@ -23,6 +23,7 @@ local ShoppingUtils = FC.ShoppingUtils
 local Shopping = FC.Shopping
 local PlanUtils = FC.PlanUtils
 local Plans = FC.Plans
+local ItemActions = FC.ItemActions
 
 local Browse = {}
 
@@ -445,6 +446,8 @@ function Screen:Initialize(control, scene)
     self.probe = nil            -- the preview test while it runs: { steps, index }
     self.probeSummary = nil     -- its result, shown in the header until the screen closes
     self.gameTreeLogged = false
+    self.resume = nil           -- where a link was taken to chat from: { view, inLists }, until the screen shows again
+    self.awaitingShown = false  -- back from chat on that view: its tooltip and preview wait for the scene to be shown
 end
 
 function Screen:InitializeKeybindStripDescriptors()
@@ -505,10 +508,10 @@ function Screen:InitializeKeybindStripDescriptors()
         },
         {
             -- Root list: go to the shopping lists. Shopping lists: delete the list.
-            -- A shopping list's items: take the furnishing off it.
+            -- On a furnishing: the Actions prompt (Link in Chat; on a shopping list, Remove from List).
             name = function()
                 if self.viewing then
-                    return "Remove from List"
+                    return ItemActions.Label()
                 elseif self.inLists then
                     return "Delete"
                 end
@@ -517,7 +520,7 @@ function Screen:InitializeKeybindStripDescriptors()
             keybind = "UI_SHORTCUT_TERTIARY",
             visible = Visible(function()
                 if self.viewing then
-                    return self.viewing.shoppingList ~= nil and self:TargetItem() ~= nil
+                    return self:TargetItem() ~= nil and (self.viewing.shoppingList ~= nil or ItemActions.CanLinkInChat())
                 elseif self.inLists then
                     local shoppingList = self:TargetShoppingList()
                     return shoppingList ~= nil and shoppingList.id ~= ShoppingUtils.DEFAULT_ID
@@ -526,7 +529,7 @@ function Screen:InitializeKeybindStripDescriptors()
             end),
             callback = FC.Guard("Tertiary", function()
                 if self.viewing then
-                    self:RemoveTargetFromList()
+                    self:ShowTargetActions()
                 elseif self.inLists then
                     self:DeleteTargetList()
                 else
@@ -739,6 +742,9 @@ function Screen:OnShowing()
         self.inLists = false
         self.viewing = nil
         self.previewNote = nil
+        local resume = self.resume
+        self.resume = nil
+        self.awaitingShown = false
         local wantFullScan = fullScanRequested
         fullScanRequested = false
         if wantFullScan then
@@ -752,6 +758,21 @@ function Screen:OnShowing()
         self:RefreshHeader()
         FC.Log("catalog showing: catalog=%s scanning=%s | %s | %s", tostring(self.catalog ~= nil), tostring(self.scanning), PreviewStateLine(), FC.MemText())
         FC.Log("  context: %s", ContextLine())
+        if resume then
+            -- A link was taken to chat from a furnishing. Back from the Text Chat screen, the
+            -- list it was on shows again, the cursor on that furnishing; opened any other
+            -- way, the catalog starts at its categories as always.
+            local previousScene = SCENE_MANAGER.GetPreviousSceneName and SCENE_MANAGER:GetPreviousSceneName() or nil
+            local back = previousScene == ItemActions.CHAT_SCENE and self.catalog ~= nil and not self.scanning and not probeRequested
+            FC.Log("back from scene %s: %s %s", tostring(previousScene), back and "reopening" or "not reopening", resume.view.id)
+            if back then
+                self.inLists = resume.inLists
+                -- The preview system switches on as the scene's fragments show, which is
+                -- after this: tooltip and preview follow in OnShow.
+                self.awaitingShown = true
+                self:OpenView(resume.view)
+            end
+        end
         if probeRequested then
             probeRequested = false
             -- Once the scene has settled and the preview system has had time to switch on.
@@ -760,10 +781,18 @@ function Screen:OnShowing()
     end)
 end
 
+function Screen:OnShow()
+    if self.awaitingShown then
+        self.awaitingShown = false
+        FC.SafeCall("RefreshTargetOnShow", self.RefreshTarget, self)
+    end
+end
+
 function Screen:OnHiding()
     FC.SafeCall("OnHiding", function()
         self.viewing = nil
         self.inLists = false
+        self.awaitingShown = false
         -- Passes run only while this screen is open.
         if self.scanning then
             Scan.Pause()
@@ -1245,15 +1274,57 @@ function Screen:DropItemRow(item)
     self:RefreshKeybinds()
 end
 
----Take the furnishing the item list is on off the shopping list being shown.
-function Screen:RemoveTargetFromList()
+---Take a furnishing off the shopping list being shown.
+---@param item FurnishingCatalogItem
+function Screen:RemoveFromList(item)
     local viewing = self.viewing
-    local item = self:TargetItem()
-    if not (viewing and viewing.shoppingList and item) then
+    if not (viewing and viewing.shoppingList and ShoppingUtils.IndexOf(viewing.shoppingList, item.id)) then
         return
     end
     Shopping.RemoveItem(viewing.shoppingList, item)
     self:DropItemRow(item)
+end
+
+---Take a link to chat: the game's Text Chat screen opens on top of this one with the link in
+---its message box, and Back from it returns here, to the furnishing the list was on.
+---@param link string the furnishing's link, or its plan's
+function Screen:LinkInChat(link)
+    local view = self.viewing
+    if not view then
+        return
+    end
+    self:TrackCurrentAnchor()
+    -- Hiding drops the view (OnHiding); OnShowing opens it again from here.
+    self.resume = { view = view, inLists = self.inLists }
+    if not ItemActions.LinkInChat(link) then
+        self.resume = nil
+    end
+end
+
+---The Actions prompt for the furnishing the item list is on: Link in Chat, Link Plan in Chat
+---where it has a plan, and on a shopping list Remove from List.
+function Screen:ShowTargetActions()
+    local view = self.viewing
+    local item = self:TargetItem()
+    if not (view and item) then
+        return
+    end
+    -- The row acted on is the one to come back to.
+    self:TrackCurrentAnchor()
+    ---@type FurnishingCatalogItemAction[]
+    local actions = {}
+    if ItemActions.CanLinkInChat() then
+        actions[#actions + 1] = { name = ItemActions.LinkLabel(), callback = function() self:LinkInChat(item.link) end }
+        Plans.Fill(item)
+        if item.planLink then
+            local planLink = item.planLink
+            actions[#actions + 1] = { name = "Link Plan in Chat", callback = function() self:LinkInChat(planLink) end }
+        end
+    end
+    if view.shoppingList then
+        actions[#actions + 1] = { name = "Remove from List", callback = function() self:RemoveFromList(item) end }
+    end
+    ItemActions.Show(item, actions)
 end
 
 ---The Add to List prompt put a furnishing on a list or took it off one. Taken off the list
@@ -1348,7 +1419,7 @@ end
 
 ---Tooltip and 3D preview for the item the list is on.
 function Screen:RefreshTarget()
-    if not self.viewing then
+    if not self.viewing or self.awaitingShown then
         return
     end
     local targetData = self.itemList:GetTargetData()

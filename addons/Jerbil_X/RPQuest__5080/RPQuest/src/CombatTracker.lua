@@ -1,5 +1,6 @@
 -- Ref: docs/adr/0002-modelo-de-dominio-captura-y-codec-de-comparticion.md
 -- Ref: docs/adr/0004-objetivos-multiples-inferidos-por-reticula.md
+-- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -29,9 +30,12 @@ local function RegisterDeathFilter(listenerName, expectedResult, callback)
 end
 
 function CombatTracker:UpdateJusticeRegistration(activeQuest)
+    local modes = Addon.Constants.STEALTH_MODE
+    local stealthMode = activeQuest and activeQuest.stealthMode
     local shouldTrack = (activeQuest ~= nil)
         and not activeQuest.completed
-        and (activeQuest.requireUndetected == true)
+        and not activeQuest.failed
+        and (stealthMode == modes.OPTIONAL or stealthMode == modes.REQUIRED)
         and not activeQuest.wasDetected
 
     if not shouldTrack then
@@ -154,21 +158,22 @@ function CombatTracker:OnCombatEvent(_eventCode, result, isError, _abilityName, 
         return
     end
 
-    local playerContext = GetAreaContextIfNeeded(activeQuest)
-    if Addon.QuestRepository:HasTargetLocation(matchedTarget) then
+    local playerContext = nil
+    if Addon.QuestRepository:HasTargetLocation(matchedTarget) and matchedTarget.locationRequired == true then
         local pZone, pWorldX, _, pWorldZ = GetUnitWorldPosition("player")
-        playerContext = playerContext or {}
-        playerContext.worldZoneId = pZone
-        playerContext.worldX = pWorldX
-        playerContext.worldZ = pWorldZ
+        playerContext = {
+            worldZoneId = pZone,
+            worldX = pWorldX,
+            worldZ = pWorldZ,
+        }
     end
 
-    local recorded, updatedQuest, justCompleted, finalTarget, questFailed, showCustomMessage = Addon.QuestRepository:RecordTargetEliminated(
+    local recorded, updatedQuest, justCompleted, finalTarget, questFailed, customMsgText = Addon.QuestRepository:RecordTargetEliminated(
         targetName, playerContext, activeQuest, matchedTarget
     )
     if questFailed and updatedQuest then
         self:MarkUnitKilled(targetUnitId)
-        Addon.Announcements:AnnounceQuestFailed(updatedQuest, finalTarget)
+        Addon.Announcements:AnnounceQuestFailed(updatedQuest, finalTarget, customMsgText)
         return
     end
     if not recorded or not updatedQuest then
@@ -182,20 +187,28 @@ function CombatTracker:OnCombatEvent(_eventCode, result, isError, _abilityName, 
     else
         Addon.Announcements:AnnounceQuestProgress(updatedQuest, finalTarget)
     end
-    if showCustomMessage then
-        Addon.Announcements:AnnounceTargetCustomMessage(updatedQuest, finalTarget)
+    if type(customMsgText) == "string" and customMsgText ~= "" then
+        Addon.Announcements:AnnounceTargetCustomMessage(updatedQuest, finalTarget, customMsgText)
     end
 end
 
 function CombatTracker:HandleJusticeViolation()
     local activeQuest = Addon.QuestRepository:GetActiveQuest()
-    if not activeQuest or activeQuest.completed or not activeQuest.requireUndetected or activeQuest.wasDetected then
+    local modes = Addon.Constants.STEALTH_MODE
+    if not activeQuest or activeQuest.completed or activeQuest.failed or activeQuest.wasDetected then
+        return
+    end
+    if activeQuest.stealthMode ~= modes.OPTIONAL and activeQuest.stealthMode ~= modes.REQUIRED then
         return
     end
     local playerContext = GetAreaContextIfNeeded(activeQuest)
-    local recorded, updatedQuest = Addon.QuestRepository:RecordPlayerDetected(playerContext)
+    local recorded, updatedQuest, questFailed = Addon.QuestRepository:RecordPlayerDetected(playerContext)
     if recorded and updatedQuest then
-        Addon.Announcements:ShowAlert(Addon.Locale:Get("ALERT_STEALTH_DETECTED"), true)
+        if questFailed then
+            Addon.Announcements:AnnounceQuestFailed(updatedQuest, nil, Addon.Locale:Get("ALERT_QUEST_FAILED_STEALTH"))
+        else
+            Addon.Announcements:ShowAlert(Addon.Locale:Get("ALERT_STEALTH_DETECTED"), true)
+        end
     end
 end
 

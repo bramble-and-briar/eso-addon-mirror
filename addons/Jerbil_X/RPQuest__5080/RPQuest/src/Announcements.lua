@@ -1,5 +1,6 @@
 -- Ref: docs/adr/0003-integracion-nativa-ui-diario-mapa-y-hud.md
 -- Ref: docs/adr/0004-objetivos-multiples-inferidos-por-reticula.md
+-- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -86,21 +87,26 @@ function Announcements:AnnounceDiscovery(_quest, point)
     emitDiscoveryStyleMessage(point.message)
 end
 
-function Announcements:AnnounceTargetCustomMessage(_quest, target)
-    if not target or type(target.customMessage) ~= "string" then
+function Announcements:AnnounceTargetCustomMessage(_quest, target, overrideText)
+    local rawText = (type(overrideText) == "string" and overrideText ~= "")
+        and overrideText
+        or (target and target.customMessage)
+    if type(rawText) ~= "string" then
         return
     end
-    local text = target.customMessage:gsub("^%s+", ""):gsub("%s+$", "")
+    local text = rawText:gsub("^%s+", ""):gsub("%s+$", "")
     if text == "" then return end
     emitDiscoveryStyleMessage(text)
 end
 
-function Announcements:AnnounceQuestFailed(quest, target)
+function Announcements:AnnounceQuestFailed(quest, target, reasonText)
     if not quest then return end
 
     local mainText = Addon.Locale:Get("CSA_QUEST_FAILED", quest.title or "")
     local subText = nil
-    if target and target.name and target.name ~= "" then
+    if type(reasonText) == "string" and reasonText ~= "" then
+        subText = reasonText
+    elseif target and target.name and target.name ~= "" then
         subText = Addon.Locale:Get("ALERT_QUEST_FAILED_LOCATION", target.name)
     end
     local soundId = SOUNDS.QUEST_STEP_FAILED or SOUNDS.GENERAL_ALERT_ERROR

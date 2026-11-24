@@ -1,10 +1,10 @@
--- JumpToSearchFocusActions.lua: the D-pad Right jump into the search header and the up/down return.
+-- JumpToSearchFocusActions.lua: the D-pad Right jump into the search header; the game's own "down" returns.
 --
 -- How the base game does it (zo_gamepadparametricscrolllistscreen.lua): the header is only
 -- reachable by pressing up at list index 1 (UpdateDirectionalInput -> RequestEnterHeader).
 -- RequestEnterHeader deactivates the current list WITHOUT touching its selection, and
 -- RequestLeaveHeader reactivates it in place - so the game already remembers where you were.
--- All we add is a way in from anywhere (D-pad Right) and a way back from the header on "up".
+-- All we add is a way in from anywhere (D-pad Right). The way back is the game's: "down".
 --
 --   D-pad Right ──▶ CanJump? ──no──▶ return false (falls through to the screen's own D-pad Right keybind, if any)
 --           │yes
@@ -16,8 +16,14 @@
 --     down ──▶ RequestLeaveHeader()            ──▶ list resumes at the same entry
 --     up   ──▶ list:MovePrevious() on the hidden list (index ~= 1)
 --              └─ we override MovePrevious on that one list INSTANCE for the duration of the
---                 jump so it calls RequestLeaveHeader() instead; removed when the header
---                 deactivates, so normal scrolling never runs through addon code.
+--                 jump so it does nothing; removed when the header deactivates, so normal
+--                 scrolling never runs through addon code.
+--
+-- Leaving the header is the game's to do, never ours. RequestLeaveHeader rebuilds the selected
+-- item's actions (ZO_GamepadInventory:RequestLeaveHeader -> SetSelectedInventoryData), and
+-- actions built with an addon function on the call stack are untrusted: the game then refuses
+-- their protected calls (use, equip) without a word until the selection moves. Up to 0.3.0 the
+-- override called RequestLeaveHeader itself, so "up" returned to an item with dead buttons.
 --
 -- DO NOT wrap anything on the per-frame input path (movementController:CheckMovement,
 -- UpdateDirectionalInput, DIRECTIONAL_INPUT). The game polls the d-pad with IsKeyDown, which
@@ -51,7 +57,8 @@ local function ClearJump()
 end
 
 ---While the header is active after a jump, "up" reaches list:MovePrevious on the deactivated
----list (stock UpdateDirectionalInput, index ~= 1). Leave the header instead, like "down".
+---list (stock UpdateDirectionalInput, index ~= 1), which would scroll the hidden list. Hold the
+---list still instead, calling no game code (see the header: the return is the game's "down").
 ---Installed on the list instance only; the class method is untouched.
 ---@param screen table
 ---@param target JumpToSearchScreenTarget
@@ -64,10 +71,8 @@ local function InstallMovePreviousOverride(screen, target, list)
 
     rawset(list, "MovePrevious", function(self, ...)
         if state.jumpedScreen == screen and screen.IsHeaderActive and screen:IsHeaderActive() then
-            Log.Debug("%s: up in header -> return to list (index %s)", target.name, tostring(ScreenUtils.GetSelectedIndex(self)))
-            state.counters.returns = state.counters.returns + 1
-            screen:RequestLeaveHeader()
-            return true
+            Log.Debug("%s: up in header held (index %s stays)", target.name, tostring(ScreenUtils.GetSelectedIndex(self)))
+            return false
         end
         -- Not our situation (should not happen: the override is removed on header deactivate).
         local original = state.jumpedListOriginalMovePrevious or getmetatable(self).__index.MovePrevious
@@ -90,6 +95,7 @@ local function EnsureHeaderHooks(screen, target)
         headerFocus:RegisterCallback("FocusDeactivated", function()
             if state.jumpedScreen == screen then
                 Log.Debug("%s: header deactivated; jump cleared", target.name)
+                state.counters.returns = state.counters.returns + 1
                 ClearJump()
             end
         end)

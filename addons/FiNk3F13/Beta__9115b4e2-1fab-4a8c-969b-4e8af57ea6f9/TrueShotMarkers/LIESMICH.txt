@@ -1,8 +1,30 @@
-TrueShotMarkers 1.0.2
+TrueShotMarkers 1.0.11
 
 Eigenstaendiges Test-Addon fuer Rand des Wahnsinns / Sanity's Edge.
 Benötigt jetzt LibHarvensAddonSettings fuer das PS5-/Controller-Menue.
 Keine Abhaengigkeit von CrutchAlerts.
+
+1.0.11: Boss-Ansturm 191139 zeigt den Bodeninspektor bei Tod. Ueberlebte Treffer bleiben stumm.
+1.0.10: Treffer-ID 191139 fuer den Wamasu-Ansturm bei Yaseyla.
+1.0.9: Eigene Wamasu-Ansturm-Treffer erscheinen mit ID im Chat. /tshot charge zeigt den letzten Treffer erneut.
+1.0.8: /tshot treffer zeigt den letzten gemeldeten Todestreffer auf dich oder die Gruppe mit ID. Auflade-IDs werden ausgeschlossen.
+
+1.0.7: Unter Einstellungen > Addons > TrueShotMarkers kann der Bodeninspektor abgeschaltet werden.
+
+1.0.6: Der toedliche Ansturm des Trash-Wamasu (Treffer-ID 200558)
+zaehlt fuer den Bodeninspektor. /tshot tod zeigt auch die Zuordnung an.
+
+1.0.5: Beim eigenen Tod wertet das Addon auch nachgereichte Treffer im
+Todesrueckblick aus. Fehlen spaeter die Koordinaten deiner Leiche, nutzt
+der Marker die zuletzt beim selben Tod erfasste Position.
+/tshot tod zeigt den gemeldeten toedlichen Treffer und den Positionsstatus.
+
+1.0.4: In Rand des Wahnsinns erscheint bei einem zugeordneten Wamasu-Tod
+„Bodeninspektor“ mit Abwaertspfeil ueber dir oder dem betroffenen Gruppenmitglied.
+Das Addon prueft den Angreifer oder die bekannte Charge-Faehigkeit in der
+Todesmeldung. Beim eigenen Tod kann auch der Todesrueckblick den letzten
+Treffer bestaetigen. Ein vorheriger Wamasu-Treffer allein reicht nicht aus.
+Die Anzeige bleibt nach Kampfende bis zum Aufstehen oder Eintritt in Geistform.
 
 1.0.1: Pfeil als eigene transparente DXT5-Textur statt Schriftzeichen.
 Dadurch kein fehlendes Pfeilzeichen als Quadrat auf Konsolenschriften.
@@ -36,7 +58,10 @@ Damit sie selbst Marker sehen, brauchen sie das Addon ebenfalls.
 
 /tshot                 Status und Befehle
 /tshot test            5 Sekunden Test ueber dir, auch ausserhalb der Pruefung
-/tshot test group1     Test ueber einem Gruppenmitglied
+/tshot test group1     10 Sekunden ueber dem ersten Gruppenmitglied; bist du
+                      selbst auf Platz 1, wird ein anderer Mitspieler gewaehlt.
+                      Chat schliessen. Beim Start erscheint der Charaktername
+                      im Chat, bei fehlender Position der Grund.
 /tshot stop            Anzeigen sofort entfernen
 /tshot aus             Bis zum naechsten Neuladen ausschalten
 /tshot an              Einschalten

@@ -8,6 +8,10 @@
   "category_id": "159",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "DeclutteredScryingLeads"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5088/",
-  "fingerprint": "d08dbf0ace5dbfd34c56440982be2f3e914407ff409168776378c16f0f04df8a",
+  "fingerprint": "47339d36dab98c9f76bba055cf4e463e957420db3f389047b1a4d87076f1c2f0",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18681.png"
   ],
@@ -28,11 +32,11 @@
   "source_id": "5088",
   "source_url": "https://www.esoui.com/downloads/info5088-DeclutteredScryingLeads.html",
   "stats": {
-    "downloads": 6,
+    "downloads": 17,
     "favorites": 0,
-    "monthly_downloads": 4
+    "monthly_downloads": 12
   },
   "title": "Decluttered Scrying Leads",
-  "updated_at": 1795274619000,
-  "version": "2.0.0"
+  "updated_at": 1795476028000,
+  "version": "2.0.1"
 }

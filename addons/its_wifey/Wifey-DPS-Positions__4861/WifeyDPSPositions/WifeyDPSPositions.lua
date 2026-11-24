@@ -2,7 +2,7 @@
 WifeyDPSPositions = WifeyDPSPositions or {}
 local DDP = WifeyDPSPositions
 
-function WifeyDPSPositions_TogglePanel()
+function DDP.TogglePanel()
     if DDP.UI and DDP.UI.Toggle then
         DDP.UI:Toggle()
     end
@@ -58,8 +58,6 @@ end
 
 local function hookSceneVisibility()
     if hudFragment or not DDP.UI or not DDP.UI.window then return end
-    if not HUD_SCENE or not HUD_UI_SCENE then return end
-
     -- Keep the TopLevelControl parented to GuiRoot. The fragment controls visibility
     -- only while the panel is intentionally open, so other scenes (map, inventory,
     -- character, etc.) hide it automatically.
@@ -68,18 +66,16 @@ local function hookSceneVisibility()
 end
 
 local function onGroupChanged(eventCode, unitTag, reason, name)
-    if not DDP.UI or not DDP.UI.window or DDP.UI.window:IsHidden() then
-        return
-    end
-
     if GetGroupSize() == 0 then
+        if not DDP.UI or not DDP.UI.window then return end
         DDP.UI:ClearButtons()
         DDP.UI.panelOpen = false
         if DDP.UI.hudFragment then
-            if HUD_SCENE then HUD_SCENE:RemoveFragment(DDP.UI.hudFragment) end
-            if HUD_UI_SCENE then HUD_UI_SCENE:RemoveFragment(DDP.UI.hudFragment) end
+            HUD_SCENE:RemoveFragment(DDP.UI.hudFragment)
+            HUD_UI_SCENE:RemoveFragment(DDP.UI.hudFragment)
         end
         DDP.UI.window:SetHidden(true)
+        DDP.CheckGroupEventsNeeded()
 		DDP.savedAssignments = {}
 		DDP.freeAssignments = {}
 		if DDP.SV then
@@ -93,6 +89,7 @@ local function onGroupChanged(eventCode, unitTag, reason, name)
         return
     end
 
+    if not DDP.UI or not DDP.UI.panelOpen or not DDP.UI.window then return end
     local currentZoneId = GetZoneId(GetUnitZoneIndex("player"))
     local zoneData = DDP.positions[currentZoneId]
     if not zoneData then return end
@@ -118,6 +115,54 @@ local function onGroupChanged(eventCode, unitTag, reason, name)
     if DDP.UI and DDP.UI.freeAssignmentsVisible then
         DDP.UI:PopulateFreeAssignments(currentZoneId)
     end
+end
+
+-- Only listen for member changes while the assignment panel is open in a group.
+-- The join event remains registered so entering a group can activate listeners.
+local groupEventsActive = false
+local groupEvents = {
+    {"WifeyDPSPositions_GroupLeave", EVENT_GROUP_MEMBER_LEFT},
+    {"WifeyDPSPositions_RoleChanged", EVENT_GROUP_MEMBER_ROLE_CHANGED},
+    {"WifeyDPSPositions_GroupOffline", EVENT_GROUP_MEMBER_CONNECTED_STATUS},
+}
+
+local function refreshGroupAssignments()
+    onGroupChanged()
+end
+
+local groupHandlers = {
+    ["WifeyDPSPositions_GroupLeave"] = refreshGroupAssignments,
+    ["WifeyDPSPositions_RoleChanged"] = function(eventCode, unitTag)
+        if unitTag and DoesUnitExist(unitTag) then
+            local role = DDP.GetUnitRole(unitTag)
+            if role ~= LFG_ROLE_TANK and role ~= LFG_ROLE_HEAL and role ~= LFG_ROLE_DPS then return end
+        end
+        refreshGroupAssignments()
+    end,
+    ["WifeyDPSPositions_GroupOffline"] = refreshGroupAssignments,
+}
+
+function DDP.CheckGroupEventsNeeded()
+    local shouldRegister = not not (DDP.UI and DDP.UI.panelOpen and GetGroupSize() > 0)
+    if shouldRegister == groupEventsActive then return end
+    groupEventsActive = shouldRegister
+    for _, entry in ipairs(groupEvents) do
+        EVENT_MANAGER:UnregisterForEvent(entry[1], entry[2])
+        if shouldRegister then
+            EVENT_MANAGER:RegisterForEvent(entry[1], entry[2], groupHandlers[entry[1]])
+        end
+    end
+end
+
+local function onGroupJoined()
+    DDP.CheckGroupEventsNeeded()
+    if groupEventsActive then refreshGroupAssignments() end
+end
+
+local function onPlayerActivated()
+    -- Refresh registrations after zoning/reloading, including leaving a trial.
+    groupEventsActive = true
+    DDP.CheckGroupEventsNeeded()
 end
 
 local function onAddonLoaded(event, addonName)
@@ -159,11 +204,9 @@ local function onAddonLoaded(event, addonName)
 
     EVENT_MANAGER:RegisterForUpdate("WifeyDPSPositions_RCRTMirrorHUDSync", 250, syncMirrorsFromRCRT)
 
-    EVENT_MANAGER:RegisterForEvent("WifeyDPSPositions_GroupJoined", EVENT_GROUP_MEMBER_JOINED, onGroupChanged)
-    EVENT_MANAGER:RegisterForEvent("WifeyDPSPositions_GroupLeave", EVENT_GROUP_MEMBER_LEFT, onGroupChanged)
-    EVENT_MANAGER:RegisterForEvent("WifeyDPSPositions_GroupKick", EVENT_GROUP_MEMBER_KICKED, onGroupChanged)
-    EVENT_MANAGER:RegisterForEvent("WifeyDPSPositions_RoleChanged", EVENT_GROUP_MEMBER_ROLE_CHANGED, onGroupChanged)
-    EVENT_MANAGER:RegisterForEvent("WifeyDPSPositions_GroupOffline", EVENT_GROUP_MEMBER_CONNECTED_STATUS, onGroupChanged)
+    EVENT_MANAGER:RegisterForEvent("WifeyDPSPositions_GroupJoined", EVENT_GROUP_MEMBER_JOINED, onGroupJoined)
+    EVENT_MANAGER:RegisterForEvent("WifeyDPSPositions_PlayerActivated", EVENT_PLAYER_ACTIVATED, onPlayerActivated)
+    DDP.CheckGroupEventsNeeded()
 
     EVENT_MANAGER:UnregisterForEvent("WifeyDPSPositions", EVENT_ADD_ON_LOADED)
 end

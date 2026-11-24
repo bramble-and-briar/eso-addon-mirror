@@ -1,0 +1,23 @@
+## Title: FurnitureShoppingList
+## Description: It makes a shopping list.
+## Version: 2.0.0
+## AddOnVersion: 2000000
+## Author: @noobanidus
+## APIVersion: 101051 101052
+## DependsOn: LibCustomMenu>=730 LibFurnitureCatalogue>=1003000
+## SavedVariables: FurnitureShoppingListSV
+
+locale\en.lua
+locale\$(language).lua
+Bindings.xml
+FurnitureShoppingList.lua
+FurnitureShoppingList.xml
+
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls? and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries.
+;
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms

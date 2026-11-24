@@ -1,0 +1,37 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/lousytourist/Hide-Friend-Status__5105",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "lousytourist",
+  "canonical_id": "esoui:5105",
+  "category_id": "95",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5105",
+  "deleted": false,
+  "directories": [
+    "HideFriendStatus"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5105/",
+  "fingerprint": "b88a575acbd290ccd57d8a63b6e1d63cfcdca7476e87eb3161ca519800813218",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5105",
+  "source_url": "https://www.esoui.com/downloads/info5105-HideFriendStatus.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Hide Friend Status",
+  "updated_at": 1795528596000,
+  "version": "26.11.24"
+}

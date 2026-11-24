@@ -8,11 +8,12 @@ function LogUtils.Log(fmt, ...)
     logger:Log(select("#", ...) > 0 and string.format(fmt, ...) or fmt)
 end
 
----Verbose: chat when debug is on, buffer-only (for export) otherwise.
+---Verbose: written (chat and the library's buffer) only while the LOGGING setting is on. Off, the default, writes
+---nothing: the library's buffer is shared by every addon, and the 5 s summary line alone filled a third of it.
 function LogUtils.Debug(fmt, ...)
     local s = DevSandbox3.state
-    local msg = select("#", ...) > 0 and string.format(fmt, ...) or fmt
-    if s and s.savedVars.settings.debug then logger:Log(msg) else logger:Buffer(msg) end
+    if not (s and s.savedVars.settings.debug) then return end
+    logger:Log(select("#", ...) > 0 and string.format(fmt, ...) or fmt)
 end
 
 ---Push everything buffered to the configured receiver (no-op without the library).

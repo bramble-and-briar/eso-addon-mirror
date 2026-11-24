@@ -32,8 +32,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ScapegoatIconPack - icon pack for OdySupport Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/JimBoSS/ScapegoatIconPack---icon-pack-for-OdySupport-Icons__3800) | JimBoSS | PC / Mac | 0.25 |
 | [Schlosswerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Schlosswerk__4863) | Torfason | PC / Mac | 2.0.0 |
 | [Scholar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/WidgetInteractive/Scholar__1670) | WidgetInteractive | PC / Mac | 1.7.0 |
-| [Schrodi's Battleground Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Schrodi-s-Battleground-Tools__5101) | Schrodi | PC / Mac | 2.0.0 |
-| [Schrodi's Housing Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Schrodi-s-Housing-Tools__5093) | Schrodi | PC / Mac | 2.1.0 |
+| [Schrodi's Battleground Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Schrodi-s-Battleground-Tools__5101) | Schrodi | PC / Mac | 2.0.1 |
+| [Schrodi's Housing Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Schrodi-s-Housing-Tools__5093) | Schrodi | PC / Mac | 2.1.1 |
 | [Scoreboard Fix Xbox BETA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RUSKlI/Scoreboard-Fix-Xbox-BETA__0e9f8669-fa46-49bb-a578-54569ddb865b) | RUSKlI | Console | — |
 | [Scoreboard Remastered \[BETA\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Scoreboard-Remastered-BETA__0798cfcd-e028-41a6-a40d-fb1654087be8) | Vixen_Hunny | Console | — |
 | [SCQ - Share contributable quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/SCQ---Share-contributable-quests__2453) | Ek1 | PC / Mac | 1.3.200324 |
@@ -161,7 +161,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SimpleDailyCraft](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MelanAster/SimpleDailyCraft__3844) | MelanAster | PC / Mac | 0.93 |
 | [SimpleDailyCraft 0.97 (0.96 + New Alchemy Regs)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/SimpleDailyCraft-0.97-0.96-New-Alchemy-Regs__4945) | sinnereso | PC / Mac | 0.97 |
 | [SimpleDailyCraft 0.97 — U51 FIX](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VotMyID/SimpleDailyCraft-0.97-U51-FIX__4898) | VotMyID | PC / Mac | 0.97 |
-| [SimpleDPS Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AndrewRossProjects/SimpleDPS-Meter__2849) | AndrewRossProjects | PC / Mac | 4.1.101042 |
+| [SimpleDPS Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AndrewRossProjects/SimpleDPS-Meter__2849) | AndrewRossProjects | PC / Mac | 4.1.101052 |
 | [SimpleGroupDPS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/SimpleGroupDPS__31353ae2-3899-477e-935e-69f9756c9d60) | FiNk3F13 | Console | — |
 | [SimpleGroupDPS2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/SimpleGroupDPS2__7a5d051d-6b7c-4117-8748-0b3ec7a3c234) | FiNk3F13 | Console | — |
 | [SimpleHelmetToggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DeanGrey/SimpleHelmetToggle__374) | DeanGrey | PC / Mac | 0.4d |
@@ -178,7 +178,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Skill Blocker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Skill-Blocker__3483) | notnear | PC / Mac | 3.10.0 |
 | [Skill Blocker by Ness_Jess](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ness_Jess/Skill-Blocker-by-Ness_Jess__4318) | Ness_Jess | PC / Mac | 1.5 |
 | [Skill Blocker Extension - Banner Bearer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Skill-Blocker-Extension---Banner-Bearer__4066) | notnear | PC / Mac | 1.0.2 |
-| [Skill Issue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Skill-Issue__5094) | Schrodi | PC / Mac | 1.0 |
+| [Skill Issue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Skill-Issue__5094) | Schrodi | PC / Mac | 1.0.1 |
 | [Skill Issue Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drako-Ei/Skill-Issue-Tracker__4744) | Drako-Ei | PC / Mac | 1.0.3 |
 | [Skill Lines](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ranckor90/Skill-Lines__4041) | Ranckor90 | PC / Mac | v2.1.2 |
 | [Skill Point Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Skill-Point-Finder__427000e9-72c4-4fc9-b9b6-3cca4f863607) | TheGreyWolf98 | Console | — |
@@ -359,7 +359,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Survey Resetter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Survey-Resetter__5001) | Lykeion | PC / Mac | 1.0 |
 | [Survey Resetter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Survey-Resetter__be74c988-2267-4f01-a4e5-c54cbf6aba19) | Lykeion+ | Console | — |
 | [Survey Sentinel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ReliktKoala/Survey-Sentinel__d9ba289c-0a0a-4233-80ab-25f3be9c35eb) | ReliktKoala | Console | — |
-| [Survey Sidekick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FoulMouthxAmazon/Survey-Sidekick__5050) | FoulMouthxAmazon | PC / Mac | 0.6.0-beta |
+| [Survey Sidekick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FoulMouthxAmazon/Survey-Sidekick__5050) | FoulMouthxAmazon | PC / Mac | 0.6.2-beta |
 | [Survey The World](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Survey-The-World__1817) | manavortex | PC / Mac | 1.5a |
 | [Survey Zone List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bulton-fr/Survey-Zone-List__2797) | bulton-fr | PC / Mac | 2.0.1 |
 | [SurvivalMode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TankiestTank/SurvivalMode__79d39b6d-3f2c-48e3-a08f-b6c2c69751fd) | TankiestTank | Console | — |

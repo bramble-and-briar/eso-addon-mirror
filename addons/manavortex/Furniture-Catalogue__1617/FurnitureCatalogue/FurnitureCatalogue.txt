@@ -1,12 +1,12 @@
 ## Title: FurnitureCatalogue
 ## Author: manavortex
-## Version: 8.1.0
-## AddOnVersion: 8001000
+## Version: 9.0.0
+## AddOnVersion: 9000000
 ## APIVersion: 101051 101052
-## SavedVariables: FurnitureCatalogue_Settings
+## SavedVariables: FurnitureCatalogue_Settings FurnitureCatalogue_Export
 ## DependsOn: LibFurnitureCatalogue>=1003000
 ## DependsOn: LibAddonMenu-2.0>=43
-## DependsOn: LibAsync>=30103
+## DependsOn: LibAsync>=30106
 ## DependsOn: LibCustomMenu>=730
 ## DependsOn: LibScrollableMenu>=020408
 ## OptionalDependsOn: LibDebugLogger
@@ -30,6 +30,10 @@ Events.lua
 InventoryIcons.lua
 
 Favorites.lua
+Transfer.lua
+Lists.lua
+CraftingExport.lua
+ListManager.lua
 Migrations.lua
 Chat.lua
 SearchIndex.lua

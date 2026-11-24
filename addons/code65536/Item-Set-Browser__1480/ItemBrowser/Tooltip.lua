@@ -238,49 +238,21 @@ function ItemBrowser.HookExternalTooltips( )
 	if (AreExternalTooltipsHooked or not ItemBrowser.vars.externalTooltips.enableExtension) then return end
 	AreExternalTooltipsHooked = true
 
-	local TooltipHook = function( control, functionName, linkFunction, flagMask, sourceParams )
-		ZO_PostHook(control, functionName, function( self, ... )
-			if (ItemBrowser.vars.externalTooltips.enableExtension) then
-				local flags = FLAG_SHOW_HEADER
-				if (ItemBrowser.vars.externalTooltips.showPieces > 0) then
-					flags = BitOr(flags, FLAG_SHOW_PIECES)
-				end
-				if (ItemBrowser.vars.externalTooltips.showAccounts > 0) then
-					flags = BitOr(flags, FLAG_SHOW_ACCOUNTS)
-				end
-				if (flagMask) then
-					flags = BitAnd(flags, flagMask)
-				end
-				local itemSource
-				if (sourceParams) then
-					itemSource = { }
-					for i, param in ipairs(sourceParams) do
-						itemSource[param] = select(i, ...)
-					end
-				end
-				ItemBrowser.AddTooltipExtension(control, linkFunction(...), nil, flags, itemSource)
+	LEJ.HookItemTooltips(function( control, functionName, itemLink, sourceContext )
+		if (ItemBrowser.vars.externalTooltips.enableExtension) then
+			local flags = FLAG_SHOW_HEADER
+			if (ItemBrowser.vars.externalTooltips.showPieces > 0) then
+				flags = BitOr(flags, FLAG_SHOW_PIECES)
 			end
-		end)
-	end
-
-	local ItemLinkPassthrough = function( itemLink )
-		return itemLink
-	end
-
-	TooltipHook(PopupTooltip, "SetLink", ItemLinkPassthrough)
-	TooltipHook(ItemTooltip, "SetLink", ItemLinkPassthrough)
-	TooltipHook(ItemTooltip, "SetWornItem", function(slot, bagId) return GetItemLink(bagId, slot) end)
-	TooltipHook(ItemTooltip, "SetBagItem", GetItemLink, nil, { "bagId", "slotIndex" })
-	TooltipHook(ItemTooltip, "SetTradeItem", GetTradeItemLink, nil, { "who", "tradeIndex" })
-	TooltipHook(ItemTooltip, "SetBuybackItem", GetBuybackItemLink)
-	TooltipHook(ItemTooltip, "SetStoreItem", GetStoreItemLink)
-	TooltipHook(ItemTooltip, "SetAttachedMailItem", GetAttachedItemLink)
-	TooltipHook(ItemTooltip, "SetLootItem", GetLootItemLink, nil, { "lootId" })
-	TooltipHook(ItemTooltip, "SetReward", GetItemRewardItemLink)
-	TooltipHook(ItemTooltip, "SetQuestReward", GetQuestRewardItemLink)
-	TooltipHook(ItemTooltip, "SetTradingHouseItem", GetTradingHouseSearchResultItemLink)
-	TooltipHook(ItemTooltip, "SetTradingHouseListing", GetTradingHouseListingItemLink)
-	TooltipHook(ItemTooltip, "SetItemSetCollectionPieceLink", ItemLinkPassthrough, FLAG_SHOW_ACCOUNTS)
+			if (ItemBrowser.vars.externalTooltips.showAccounts > 0) then
+				flags = BitOr(flags, FLAG_SHOW_ACCOUNTS)
+			end
+			if (functionName == "SetItemSetCollectionPieceLink") then
+				flags = BitAnd(flags, FLAG_SHOW_ACCOUNTS)
+			end
+			ItemBrowser.AddTooltipExtension(control, itemLink, nil, flags, sourceContext)
+		end
+	end)
 end
 
 LCCC.RunAfterInitialLoadscreen(ItemBrowser.HookExternalTooltips)

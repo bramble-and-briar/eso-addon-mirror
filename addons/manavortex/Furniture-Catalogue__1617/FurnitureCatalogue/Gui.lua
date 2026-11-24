@@ -24,6 +24,8 @@ local additiveSources = FurC.AdditiveSources
 -- reused as the persistent (non-hover) label color for a right-click pick.
 local ADDITIVE_SOURCE_COLOR = ZO_ColorDef:New("00ff00")
 local ADDITIVE_SOURCE_ICON = "esoui/art/cadwell/check.dds"
+local FAVE_ICON = zo_iconFormat("EsoUI/Art/Collections/Favorite_StarOnly.dds", 16, 16) .. " "
+local LSM_DIVIDER = "-" -- LibScrollableMenu label as a separator
 
 -- id -> the live GUI entry/item table for that Source tree node, so a rolled-up count
 -- can be written into its label after the fact. Rebuilt fresh each createSourceDropdown()
@@ -499,6 +501,7 @@ local function createGui()
 
     wire(FurCGui_Header_Bar1_Feedback, SI_FURC_TOOLTIP_DONATE)
     wire(FurCGui_Header_Bar1_Settings, SI_FURC_TOOLTIP_SETTINGS)
+    wire(FurCGui_Header_Bar1_Transfer, SI_FURC_LIST_TRANSFER)
     wire(FurC_RecipeCount, SI_FURC_TOOLTIP_RECIPE_COUNT)
     wire(FurCGui_Header_Bar1_Hide, SI_FURC_TOOLTIP_HIDE_WINDOW)
     wire(FurCGui_Header_Bar1_Reload, SI_FURC_TOOLTIP_RESCAN)
@@ -665,7 +668,7 @@ local function createGui()
       InformationTooltipTopLevel:BringWindowToTop()
     end
 
-    function OnItemSelect(control, choiceText, somethingElse)
+    local function OnItemSelect(control, choiceText, somethingElse)
       local dropdownName = tostring(control.m_name):gsub("FurC_Dropdown", "")
       FurC.SetDropdownChoice(dropdownName, choiceText, somethingElse and somethingElse.furcId)
       HideTooltip()
@@ -722,16 +725,58 @@ local function createGui()
     for _, node in ipairs(nodes) do
       local label = (node.id and choices[node.id]) or (node.stringId and GetString(node.stringId))
       if label then
+        -- a list's label is its whole path
+        local listInfo = node.id and FurC.GetListInfo(FurC.ListIdFromSource(node.id))
         local entry = {
-          label = label,
+          label = listInfo and listInfo.leaf or label,
           tooltip = node.id and tooltips[node.id],
         }
         if node.children then
           entry.entries = buildSourceEntries(node.children, choices, tooltips, selectSource)
         end
+        -- a list's submenu holds its sublists and what can be done to it
+        if listInfo then
+          local listId = listInfo.id
+          local actions = {
+            {
+              label = GetString(SI_FURC_LIST_RENAME),
+              callback = function()
+                FurC.PromptRenameList(listId)
+              end,
+            },
+            {
+              label = GetString(SI_FURC_LIST_TRANSFER),
+              callback = function()
+                FurC.OpenListTransfer(listId)
+              end,
+            },
+            {
+              label = GetString(SI_FURC_LIST_DELETE),
+              callback = function()
+                FurC.ConfirmDeleteList(listId)
+              end,
+            },
+          }
+          if listInfo.depth < 3 then
+            table.insert(actions, 1, {
+              label = GetString(SI_FURC_LIST_NEW_SUB),
+              callback = function()
+                FurC.PromptNewList(nil, listId)
+              end,
+            })
+          end
+          if entry.entries then
+            entry.entries[#entry.entries + 1] = { label = LSM_DIVIDER }
+          else
+            entry.entries = {}
+          end
+          for _, action in ipairs(actions) do
+            entry.entries[#entry.entries + 1] = action
+          end
+        end
         if node.id then
           local id = node.id
-          entry.baseLabel = label
+          entry.baseLabel = entry.label
           entryById[id] = entry
           entry.callback = function()
             selectSource(label, id)
@@ -808,8 +853,44 @@ local function createGui()
         if node.children then
           item.entries = buildSourceEntries(node.children, choices, tooltips, selectSource)
         end
+        if node.id == src.FAVE then
+          -- "Lists" drawer holds Favorites first, then the lists
+          local listEntries = item.entries or {}
+          local fave = buildSourceEntries({ { id = src.FAVE } }, choices, tooltips, selectSource)[1]
+          fave.label = FAVE_ICON .. label
+          fave.baseLabel = fave.label
+          fave.entries = {
+            {
+              label = GetString(SI_FURC_LIST_TRANSFER),
+              callback = function()
+                FurC.OpenListTransfer("faves")
+              end,
+            },
+          }
+          item = comboBox:CreateItemEntry(GetString(SI_FURC_LISTS))
+          item.entries = { fave, { label = LSM_DIVIDER } }
+          for _, entry in ipairs(listEntries) do
+            item.entries[#item.entries + 1] = entry
+          end
+          if #listEntries > 0 then
+            item.entries[#item.entries + 1] = { label = LSM_DIVIDER }
+          end
+          item.entries[#item.entries + 1] = {
+            label = GetString(SI_FURC_LIST_NEW),
+            callback = function()
+              FurC.PromptNewList()
+            end,
+          }
+          item.entries[#item.entries + 1] = {
+            label = GetString(SI_FURC_LIST_TRANSFER),
+            callback = function()
+              FurC.OpenListTransfer()
+            end,
+          }
+        end
         comboBox:AddItem(item)
-        if node.id and label == FurC.GetDropdownChoiceTextual("Source") then
+        -- by id: a list may carry the label of a filter
+        if item.furcId and item.furcId == FurC.GetDropdownChoice("Source") then
           comboBox:SetSelectedItem(label)
         end
       end
@@ -838,6 +919,11 @@ local function createGui()
       )
     end
   end
+  -- Lists.lua calls this whenever a list is created, renamed or deleted
+  FurC.RefreshSourceDropdown = function()
+    createSourceDropdown()
+    FurC.UpdateDropdownChoice("Source")
+  end
   FurC.ChangeTemplateFromButton(FurC.GetTinyUi())
   FurC.SetFontSize(FurC.GetFontSize())
   FurC.LoadFrameInfo()
@@ -856,6 +942,24 @@ function FurnitureCatalogue_Toggle()
   zo_callLater(function()
     FurC.UpdateGui(FurC.GetResetDropdownChoice())
   end, 500)
+end
+
+---Show the window with one source selected
+---@param sourceId integer
+function FurC.ShowSource(sourceId)
+  if not FurC.guiInitialized then
+    return
+  end
+  for extraId in pairs(additiveSources) do
+    additiveSources[extraId] = nil
+  end
+  refreshAllGroupLabels()
+  FurC.EnsureDB()
+  SCENE_MANAGER:ShowTopLevel(FurCGui)
+  FurCGui:BringWindowToTop()
+  -- refreshes the list once the window shows
+  FurC.SetDropdownChoice("Source", FurC.DropdownData.ChoicesSource[sourceId], sourceId)
+  FurC.UpdateDropdownChoice("Source")
 end
 
 function FurnitureCatalogue_ToggleRecipeDisplay()

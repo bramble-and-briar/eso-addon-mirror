@@ -1,0 +1,10 @@
+<Bindings>
+  <Layer name="SI_ARSENAL_BANK_GRID_LAYER">
+    <Category name="SI_KEYBINDINGS_CATEGORY_USER_INTERFACE">
+      <Action name="ARSENAL_BANK_GRID_LEFT"><Down>ArsenalBankInput('left')</Down></Action>
+      <Action name="ARSENAL_BANK_GRID_RIGHT"><Down>ArsenalBankInput('right')</Down></Action>
+      <Action name="ARSENAL_BANK_GRID_UP"><Down>ArsenalBankInput('up')</Down></Action>
+      <Action name="ARSENAL_BANK_GRID_DOWN"><Down>ArsenalBankInput('down')</Down></Action>
+    </Category>
+  </Layer>
+</Bindings>

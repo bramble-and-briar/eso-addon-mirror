@@ -18,7 +18,7 @@
     "Colorblind"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5032/",
-  "fingerprint": "be7b66c133413fa1905f301a8e5462f4cadb4ccef2fa825f3c428209c119e441",
+  "fingerprint": "a214e2e055799d33c3ca209ff811efd9a70b37d06ddfec2d3ca2ce63fa4b9cb7",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "5032",
   "source_url": "https://www.esoui.com/downloads/info5032-Colorblind.html",
   "stats": {
-    "downloads": 46,
+    "downloads": 50,
     "favorites": 0,
-    "monthly_downloads": 45
+    "monthly_downloads": 47
   },
   "title": "Colorblind",
-  "updated_at": 1795358347000,
-  "version": "2026.11.22"
+  "updated_at": 1795463599000,
+  "version": "2026.11.23"
 }

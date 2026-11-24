@@ -1,3 +1,9 @@
+Version 3.1.7 (2026/11/24)
+* Fixed an issue where the inconsistent in-game data for the Breton Footbridge
+  plan caused a number of items to be erroneously labeled as craftable
+* Further consolidated code associated with tooltip handling across all Extended
+  Journal addons to reduce duplicated work and improve efficiency
+
 Version 3.1.6 (2026/11/20)
 * Added support for some Update 52 furnishing plans that were unexpectedly added
   mid-cycle to Update 51 in an incremental update

@@ -1,9 +1,10 @@
 local LCCC = LibCodesCommonCode
 local LMAC = LibMultiAccountCollectibles
 local LEJ = LibExtendedJournal
+local Internal = LibMultiAccountCollectiblesInternal
 
 -- The tooltip extension is available only to users of an Extended Journal addon
-if (not LEJ or not LEJ.GetTooltipColor) then return end
+if (not LEJ or not LEJ.HookItemTooltips) then return end
 
 local Vars
 
@@ -13,7 +14,7 @@ local Vars
 --------------------------------------------------------------------------------
 
 local function GenerateAccountList( server, accounts, collectibleId )
-	local results = { }
+	local results = Internal.GetScratch()
 	for _, account in ipairs(accounts) do
 		local unlocked = LMAC.IsCollectibleOwnedByAccount(server, account, collectibleId)
 		table.insert(results, string.format("|c%06X%s|r", LEJ.GetTooltipColor(2, unlocked and 1 or 2), account))
@@ -54,8 +55,10 @@ local function AddTooltipExtension( tooltip, item, server )
 
 		extension:Finalize(tooltip)
 	else
+		local placeholder = -1
+
 		-- If no server is specified, then default to the first set (current server)
-		local accounts = server and { } or nil
+		local accounts = server and placeholder or nil
 		for _, data in ipairs(servers) do
 			if (data.server == server or not accounts) then
 				accounts = data.accounts
@@ -63,7 +66,7 @@ local function AddTooltipExtension( tooltip, item, server )
 		end
 
 		-- Accounts section
-		if (#accounts > 1) then
+		if (accounts ~= placeholder and #accounts > 1) then
 			local extension = LEJ.TooltipExtensionInitialize(false)
 			extension:AddSection(GetString(SI_MACTT_COLLECTED_BY), GenerateAccountList(server, accounts, collectibleId))
 			extension:Finalize(tooltip)
@@ -82,31 +85,11 @@ local function HookExternalTooltips( )
 	if (AreExternalTooltipsHooked or not Vars.enabled) then return end
 	AreExternalTooltipsHooked = true
 
-	local TooltipHook = function( control, functionName, linkFunction )
-		ZO_PostHook(control, functionName, function( self, ... )
-			if (Vars.enabled) then
-				AddTooltipExtension(control, linkFunction(...))
-			end
-		end)
-	end
-
-	local ItemLinkPassthrough = function( itemLink )
-		return itemLink
-	end
-
-	TooltipHook(PopupTooltip, "SetLink", ItemLinkPassthrough)
-	TooltipHook(ItemTooltip, "SetLink", ItemLinkPassthrough)
-	TooltipHook(ItemTooltip, "SetBagItem", GetItemLink)
-	TooltipHook(ItemTooltip, "SetTradeItem", GetTradeItemLink)
-	TooltipHook(ItemTooltip, "SetBuybackItem", GetBuybackItemLink)
-	TooltipHook(ItemTooltip, "SetStoreItem", GetStoreItemLink)
-	TooltipHook(ItemTooltip, "SetAttachedMailItem", GetAttachedItemLink)
-	TooltipHook(ItemTooltip, "SetLootItem", GetLootItemLink)
-	TooltipHook(ItemTooltip, "SetReward", GetItemRewardItemLink)
-	TooltipHook(ItemTooltip, "SetQuestReward", GetQuestRewardItemLink)
-	TooltipHook(ItemTooltip, "SetTradingHouseItem", GetTradingHouseSearchResultItemLink)
-	TooltipHook(ItemTooltip, "SetTradingHouseListing", GetTradingHouseListingItemLink)
-	TooltipHook(ItemTooltip, "SetCollectible", ItemLinkPassthrough)
+	LEJ.HookItemTooltips(function( control, functionName, itemLink, sourceContext )
+		if (Vars.enabled) then
+			AddTooltipExtension(control, itemLink)
+		end
+	end)
 end
 
 

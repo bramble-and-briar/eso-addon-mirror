@@ -1,0 +1,141 @@
+-- Fury's Account Sync - what each addon keeps in its saved data
+-- Keyed by the name of the addon's saved variable (the "## SavedVariables:" line of its manifest).
+--   "settings"        the main's account-wide settings are copied to the other accounts
+--   { keep = {...} }  the same, but these parts stay as each account has them (stats, logs, history)
+--   "data"            never copied (inventories, knowledge, history, guild data)
+--   "own"             this addon, the base game, or an addon this one replaces
+-- An addon that isn't listed is left alone. The Windows tool uses the same list.
+
+local AS = FurysAccountSync
+
+AS.RULES = {
+    AddonSelectorSavedVars                 = "settings",
+    AdvancedFilters_Settings               = "settings",
+    ArchiveHelperSavedVars                 = "settings",
+    AsquartOsseinCageHelperSavedVariables  = "settings",
+    AutoBindVariables                      = "settings",
+    AutoCategorySavedVars                  = "settings",
+    AutoCatRules                           = "settings",
+    AutoInviteSettings                     = "settings",
+    AutoRecruitSavedVars                   = "settings",
+    BSCHTKASaved                           = "settings",
+    BanditsCompanions_SavedVars            = "settings",
+    BUI_VARS                               = "settings",
+    CombatInsightsSavedVariables           = "settings",
+    CombatMetrics_Save                     = "settings",
+    CombatMetronomeSavedVars               = "settings",
+    CrutchAlertsSavedVariables             = "settings",
+    DDPositions_SavedVars                  = "settings",
+    DDPositions_Mirror_SavedVars           = "settings",
+    dolgubonslazysetcraftersavedvars       = "settings",
+    DryzlerElderGeekNetTauntSavedVariables = "settings",
+    FancyActionBarSV                       = "settings",
+    GroupFinderPlus_SavedVariables         = "settings",
+    GroupManager_Data                      = "settings",
+    HodorReflexesSavedVars                 = "settings",
+    HowToCloudrestVariables                = "settings",
+    HowToKyneVariables                     = "settings",
+    HowToSunspireVariables                 = "settings",
+    ILeadListVars                          = "settings",
+    InsatiableHungerBlocker_SV             = "settings",
+    LBooks_SavedVariables                  = "settings",
+    LibCustomIconsSV                       = "settings",
+    LibScrollableMenu_SavedVars            = "settings",
+    LPNSavedVars                           = "settings",
+    MeterskullSettings                     = "settings",
+    MP_SavedGlobal                         = "settings",
+    NowhereVaultSecretSeekerSavedVars      = "settings",
+    OSIStore                               = "settings",
+    OsseinCageHelperSavedVariables         = "settings",
+    PerfectPixel                           = "settings",
+    PerfectWeaveSV                         = "settings",
+    PersonalAssistant_SavedVariables       = "settings",
+    PersonalAssistantBanking_SavedVariables     = "settings",
+    PersonalAssistantConsume_SavedVariables     = "settings",
+    PersonalAssistantIntegration_SavedVariables = "settings",
+    PersonalAssistantJunk_SavedVariables        = "settings",
+    PersonalAssistantLoot_SavedVariables        = "settings",
+    PersonalAssistantRepair_SavedVariables      = "settings",
+    PersonalAssistantWorker_SavedVariables      = "settings",
+    PotionMaker_Data                       = "settings",
+    PowerfulAssaultTrackerSavedVars        = "settings",
+    QcellDreadsailReefHelperSavedVariables = "settings",
+    QcellRockgroveHelperSavedVariables     = "settings",
+    QuestMap_SavedVariables                = "settings",
+    RDLVars                                = "settings",
+    ResistOMeterSettings                   = "settings",
+    RNVars                                 = "settings",
+    SanitysEdgeHelperSavedVariables        = "settings",
+    StudsGroupFinderTweaksVars             = "settings",
+    SurveyZoneListSavedVariables           = "settings",
+    Untaunted_Save                         = "settings",
+    WhoPulledVariables                     = "settings",
+    WritWorthyVars                         = "settings",
+
+    BeamMeUp_SV                       = { keep = { "portCounterPerZone", "lastPortedZones", "savedGold", "initialTimeStamp", "houseFurnitureCount_LII", "lastofflineReminder" } },
+    CSPSSavedVariables                = { keep = { "charData" } },
+    DolgubonsWritCrafterSavedVars     = { keep = { "rewards", "craftLog", "writLocations", "skipItemQuests", "totalCraftsCount" } },
+    EzStalking_SavedVars              = { keep = { "log" } },
+    MagicCarpetSavedVars              = { keep = { "EarnedTrophies", "LastOogyBoogy" } },
+    MagicSorter                       = { keep = { "Data" } },
+    PCHAT_OPTS                        = { keep = { "LineStrings", "history" } },
+    PortToFriendsHouseVars            = { keep = { "myHousesFavorites" } },
+    ResearchAssistant_Settings_Server = { keep = { "acquiredTraits", "blacksmithCharacter", "clothierCharacter", "leatherworkerCharacter", "weaponsmithCharacter", "woodworkingCharacter", "jewelryCraftingCharacter" } },
+    SkillLinesSavedVars               = { keep = { "NA Megaserver", "EU Megaserver" } },
+    TamrielTradeCentreVars            = { keep = { "NAData", "EUData" } },
+    USPF_Settings                     = { keep = { "ptsData", "charInfo" } },
+    WizardsWardrobeSV                 = { keep = { "accountWideStorage" } },
+    XLGearBankerSavedVariables        = { keep = { "gearSetList", "pages", "displayingSet", "displayingPage" } },
+
+    ArmoryStyleManagerData              = "data",
+    AutomateSavedVars                   = "data",
+    AwesomeGuildStore_Data              = "data",
+    BUI_REPORTS                         = "data",
+    CombatInsightsFightDataSV           = "data",
+    CombatMetricsFightData              = "data",
+    CraftStore_Account                  = "data",
+    CraftStore_Character                = "data",
+    DecoTrackSavedVars                  = "data",
+    DSSTSavedVariables                  = "data",
+    EssentialHousingCommunitySavedVars  = "data",
+    FCOItemSaver_Settings               = "data",
+    FurnitureCatalogue_Settings         = "data",
+    FuryCT_SV                           = "data",
+    FuryGMT_SV                          = "data",
+    FuryGTT_SV                          = "data",
+    FurysGuildCrier_SV                  = "data",
+    FurysInventoryLedger_SV             = "data",
+    Harvest_SavedVars                   = "data",
+    IIFA_DATABASE                       = "data",
+    LeoAltholicSavedVariables           = "data",
+    LibCharacterKnowledgeData           = "data",
+    LibCustomNamesSV                    = "data",
+    LibDebugLoggerLog                   = "data",
+    LibDebugLoggerSettings              = "data",
+    LibHistoire_GuildHistoryCache       = "data",
+    LibHistoire_Settings                = "data",
+    MP_ChestData                        = "data",
+    MP_ThievesTrove                     = "data",
+    PithkaSavedVariables                = "data",
+    SUPERSTAR                           = "data",
+    WPamA_SV_Debug                      = "data",
+    WPamA_SV_Main                       = "data",
+    ZO_InternalIngame_SavedVariables    = "data",
+
+    AccountSettings_SV          = "own",
+    FurysAccountSync_SV         = "own",
+    ZO_Ingame_SavedVariables    = "own",
+    ZO_Pregame_SavedVariables   = "own",
+}
+
+-- Returns whether the saved variable is copied, and the set of parts that stay as they are.
+function AS.CopyRule(name)
+    local rule = AS.RULES[name]
+    if rule == "settings" then return true, {} end
+    if type(rule) == "table" then
+        local keep = {}
+        for _, key in ipairs(rule.keep) do keep[key] = true end
+        return true, keep
+    end
+    return false, {}
+end

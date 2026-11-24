@@ -92,6 +92,12 @@ function A:StatusLines()
 	add("design: %s; tiles: yellow under %d s, size %d%%, x %d, y %d from the bottom, shown %s, preview %s, test running %s, %d frames, %d times running out",
 		sv.style == 2 and "Meru-Sawa Style" or "Ember Style", sv.tileWarn, sv.tileSize, sv.tileX, sv.tileY, YesNo(tiles and tiles.shown),
 		YesNo(tiles and tiles.preview), YesNo(tiles and tiles.demoStart ~= nil), tiles and tiles.frames or 0, tiles and tiles.pops or 0)
+	local watchCc = 0
+	for _ in pairs(self.watch.ccKey) do
+		watchCc = watchCc + 1
+	end
+	add("crowd control: on %s, sound %d, tile sound %s; results followed %d; seen %d (last %s), alerts %d, stunned now %s",
+		YesNo(sv.cc), sv.ccSound, YesNo(sv.tileSound), watchCc, self.watch.ccSeen, tostring(self.watch.ccLast), self.watch.fired.cc, YesNo(self.watch.stunned))
 	add("she: size %d%%, side %d, %d from the edge, %d from the bottom, stays %d s, bubble %s, sound %s, rotation %s",
 		sv.size, sv.side, sv.posX, sv.posY, sv.hold, YesNo(sv.bubble), YesNo(sv.sound), sv.rotFlip and "REVERSED" or "normal")
 

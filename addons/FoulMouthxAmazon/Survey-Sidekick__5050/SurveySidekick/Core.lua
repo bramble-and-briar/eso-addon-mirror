@@ -10,7 +10,7 @@ local GetItemLinkItemType, GetItemLinkName = GetItemLinkItemType, GetItemLinkNam
 local GetFrameTimeSeconds, GetTimeStamp = GetFrameTimeSeconds, GetTimeStamp
 local zo_callLater, zo_strformat, zo_strlower = zo_callLater, zo_strformat, zo_strlower
 
-SurveySidekick = {name = "SurveySidekick", version = "0.6.0"}
+SurveySidekick = {name = "SurveySidekick", version = "0.6.2"}
 local S = SurveySidekick
 local function T(...) return S.Text(...) end
 S.Model = {}

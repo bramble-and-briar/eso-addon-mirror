@@ -1,3 +1,7 @@
+Version 3.1.5 (2026/11/24)
+* Fixed an issue where the inconsistent in-game data for the Breton Footbridge
+  plan caused an incorrect return from GetSourceItemIdFromResultItem
+
 Version 3.1.4 (2026/11/20)
 * Added support for some Update 52 furnishing plans that were unexpectedly added
   mid-cycle to Update 51 in an incremental update

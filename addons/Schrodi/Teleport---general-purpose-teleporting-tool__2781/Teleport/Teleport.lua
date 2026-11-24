@@ -1,4 +1,5 @@
 Teleport = {}
+local Teleport = Teleport
 
 Teleport.COLORS = {
     NONE = nil,
@@ -87,7 +88,7 @@ end
 local function tp(args)
     args = removeExtraWhitespace(args)
     if not args or args =='' then
-        info("Where to? See " .. color("/tp --help", C.NOT_FOUND) .. " for examples.")
+        info("Usage: /tp <zone, dungeon, wayshrine, house, @player, maps or quest>. More: " .. color("/tp --help", C.NOT_FOUND))
         return
     end
 

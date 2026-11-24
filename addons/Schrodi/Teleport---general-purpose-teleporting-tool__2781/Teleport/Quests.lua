@@ -1,3 +1,4 @@
+local Teleport = Teleport
 Teleport.Quests = {}
 
 local info  = Teleport.info

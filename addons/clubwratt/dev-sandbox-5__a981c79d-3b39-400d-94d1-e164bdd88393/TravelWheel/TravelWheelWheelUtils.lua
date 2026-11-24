@@ -21,12 +21,18 @@ function TravelWheelWheelUtils.Description(destination)
         if destination.outside then
             return "Travels to the front door of the house. Free."
         end
-        return "Travels into the house; a house you do not own opens as a preview. Free."
+        if destination.owner then
+            return "Travels into this player's house, as House Tours does. Free."
+        end
+        return "Travels into the house. Free."
     end
     if destination.kind == "campaign" then
         return "Joins the campaign's queue through the game's own queue flow."
     end
-    return "Joins the queue through the game's own activity finder."
+    if destination.kind == "unstuck" then
+        return "Opens the game's Get Me Unstuck prompt, the one in the Help menu: confirm there. Costs what the prompt says."
+    end
+    return "Joins the battleground queues ticked for this entry, in one search, as ticking them in the Activity Finder does. Free."
 end
 
 TravelWheel.WheelUtils = TravelWheelWheelUtils

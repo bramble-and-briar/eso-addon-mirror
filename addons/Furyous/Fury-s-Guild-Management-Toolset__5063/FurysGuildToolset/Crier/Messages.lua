@@ -36,7 +36,9 @@
 --   - After editing, type /reloadui in game.
 -- ============================================================
 
-FuryGMT.CrierMessages = {
+local GT = FurysGuildToolset
+
+GT.CrierMessages = {
 
     -- ===== Recruiting (zone chat) =====
     -- Tip: put your guild's link at the start and end of a recruiting ad so

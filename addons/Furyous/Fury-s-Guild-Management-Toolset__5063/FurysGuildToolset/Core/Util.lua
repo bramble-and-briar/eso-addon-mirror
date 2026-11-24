@@ -1,4 +1,4 @@
-local GT = FuryGMT
+local GT = FurysGuildToolset
 local U = {}
 GT.Util = U
 
@@ -14,7 +14,7 @@ end
 
 function U.Print(fmt, ...)
     local text = select("#", ...) > 0 and string.format(fmt, ...) or fmt
-    local line = "|c7FB2FF[Fury GMT]|r " .. text
+    local line = "|cA08CFF[Fury GMT]|r " .. text
     CHAT_ROUTER:AddSystemMessage(line)
 end
 

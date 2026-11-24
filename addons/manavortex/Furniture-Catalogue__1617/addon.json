@@ -10,6 +10,66 @@
     {
       "name": "Echoes of Skyrim",
       "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
+    {
+      "name": "Season Zero",
+      "version": "11.3.0"
+    },
+    {
+      "name": "Seasons of the Worm Cult Pt2",
+      "version": "11.2.0"
+    },
+    {
+      "name": "Feast of Shadows",
+      "version": "11.1.0"
+    },
+    {
+      "name": " Seasons of the Worm Cult Pt1",
+      "version": "11.0.0"
+    },
+    {
+      "name": "Fallen Banners",
+      "version": "10.3.5"
+    },
+    {
+      "name": "Update 44",
+      "version": "10.2.0"
+    },
+    {
+      "name": "Update 43",
+      "version": "10.1.0"
+    },
+    {
+      "name": "Gold Road",
+      "version": "10.0.0"
+    },
+    {
+      "name": "Scions of Ithelia",
+      "version": "9.3.0"
+    },
+    {
+      "name": "Endless Archive",
+      "version": "9.2.5"
+    },
+    {
+      "name": "base-game patch",
+      "version": "9.1.5"
+    },
+    {
+      "name": "Necrom",
+      "version": "9.0.0"
+    },
+    {
+      "name": "Scribes of Fate",
+      "version": "8.3.5"
     }
   ],
   "content_id": "esoui:1617",
@@ -18,9 +78,9 @@
     "FurnitureCatalogue"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1617/",
-  "fingerprint": "232696a0e0cc5ae350372669bd5cd20c329ad8bf8aa8a75eb2a65a581eeb7d00",
+  "fingerprint": "bd1d4a8f620992b6353c8cd97f20db3f2b0aae70849442c734d7e7bb849dd432",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17917.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18745.png",
     "https://cdn-eso.mmoui.com/preview/pvw17918.png",
     "https://cdn-eso.mmoui.com/preview/pvw18708.png",
     "https://cdn-eso.mmoui.com/preview/pvw17920.png",
@@ -38,11 +98,11 @@
   "source_id": "1617",
   "source_url": "https://www.esoui.com/downloads/info1617-FurnitureCatalogue.html",
   "stats": {
-    "downloads": 1243299,
+    "downloads": 1245042,
     "favorites": 435,
-    "monthly_downloads": 6515
+    "monthly_downloads": 7233
   },
   "title": "Furniture Catalogue",
-  "updated_at": 1793846241000,
-  "version": "8.1.0"
+  "updated_at": 1795454510000,
+  "version": "9.0.0"
 }

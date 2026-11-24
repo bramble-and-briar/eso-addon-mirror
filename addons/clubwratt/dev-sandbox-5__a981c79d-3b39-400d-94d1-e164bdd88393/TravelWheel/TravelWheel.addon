@@ -1,8 +1,8 @@
 ## Title: Travel Wheel
 ## Author: clubwratt
-## Version: 0.5.0
+## Version: 0.15.0
 ## APIVersion: 101050 101051
-## Description: Everything about travelling fast. Wheel entries (LibRadialMenu) for wayshrines, any house inside or outside, Cyrodiil, Imperial City and battleground queues. Takes you back where you were after a battleground, campaign or dungeon. Accepts ready queues at once or after a wait.
+## Description: Everything about travelling fast. Wheel entries (LibRadialMenu) for wayshrines, any house inside or outside, Cyrodiil, Imperial City and battleground queues, and Get Me Unstuck. Accepts ready queues at once or after a wait.
 ## SavedVariables: TravelWheelSavedVars
 ## DependsOn: LibHarvensAddonSettings LibRadialMenu
 ## OptionalDependsOn: LibConsoleLogger
@@ -17,12 +17,11 @@ TravelWheelCatalogUtils.lua
 TravelWheelCatalogActions.lua
 TravelWheelTravelUtils.lua
 TravelWheelTravelActions.lua
-TravelWheelReturnUtils.lua
-TravelWheelReturnActions.lua
 TravelWheelAcceptUtils.lua
 TravelWheelAcceptActions.lua
 TravelWheelWheelUtils.lua
 TravelWheelWheelActions.lua
 TravelWheelSettingsUtils.lua
+TravelWheelMenuActions.lua
 TravelWheelSettingsActions.lua
 TravelWheelMain.lua

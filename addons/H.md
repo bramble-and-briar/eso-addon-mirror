@@ -83,6 +83,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Hide Antiquarian's Eye Prompt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Hide-Antiquarian-s-Eye-Prompt__9d18decc-c49a-447c-afad-03a243ddfc6a) | code65536 | Console | — |
 | [Hide Antiquarian's Eye Prompt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Hide-Antiquarian-s-Eye-Prompt__4902) | code65536 | PC / Mac | 1.0.0 |
 | [Hide Completed Tome Challenges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Infinite_1st/Hide-Completed-Tome-Challenges__4811) | Infinite_1st | PC / Mac | 1.0 |
+| [Hide Friend Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Hide-Friend-Status__5105) | lousytourist | PC / Mac | 26.11.24 |
 | [Hide Friend Status messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Hide-Friend-Status-messages__5034) | lousytourist | PC / Mac | 2026.11.08 |
 | [Hide Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/Hide-Group-Frames__2159) | init3 | PC / Mac | 1.0 |
 | [Hide MOTD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Hide-MOTD__5033) | lousytourist | PC / Mac | 26.11.11 |
@@ -100,7 +101,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [HideGroupNecro](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/B7TxSpeed/HideGroupNecro__3472) | B7TxSpeed | PC / Mac | 1.5.1 |
 | [HideHousePreviews (Updated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Zandar/HideHousePreviews-Updated__3175) | Zandar | PC / Mac | 3.0.5 |
 | [HideHousePreviews on World Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baumkuchen3/HideHousePreviews-on-World-Map__2245) | Baumkuchen3 | PC / Mac | 3.0.25 |
-| [HideInventoryClutter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/HideInventoryClutter__3247) | Schrodi | PC / Mac | 2.2.0 |
+| [HideInventoryClutter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/HideInventoryClutter__3247) | Schrodi | PC / Mac | 2.2.1 |
 | [HideLoginAnnouncement](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/anathemort/HideLoginAnnouncement__2009) | anathemort | PC / Mac | 1.2.1 |
 | [HideLoginNotice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HideLoginNotice__4248) | VollständigerName | PC / Mac | 1.0.3 |
 | [HidePlayerMapMarker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HidePlayerMapMarker__4249) | VollständigerName | PC / Mac | 1.0.2 |

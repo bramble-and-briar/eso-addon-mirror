@@ -81,30 +81,21 @@ end
 
 -- ---------------------------------------------------------------- campaign queue
 
-local STILL_QUEUED = {}
-
 ---@param campaignId integer
 ---@param isGroup boolean
 ---@param queueState integer CampaignQueueRequestStateType
 local function OnCampaignQueueStateChanged(campaignId, isGroup, queueState)
-    local state = TravelWheel.state
     local key = string.format("campaign:%d:%s", campaignId, isGroup and "group" or "solo")
 
     if queueState ~= CAMPAIGN_QUEUE_REQUEST_STATE_CONFIRMING then
         Forget(key)
-        if not STILL_QUEUED[queueState] then
-            state.returnCampaigns[campaignId] = nil
-        end
         return
     end
 
-    -- The queue joined to bring the player back where he was is accepted at
-    -- once; any other campaign queue follows the rule for campaigns.
-    local rule = state.returnCampaigns[campaignId] and Utils.RULE_AT_ONCE or state.savedVars.accept.campaign
     local remainingSeconds = GetCampaignQueueRemainingConfirmationSeconds(campaignId, isGroup)
-    local waitSeconds = Utils.WaitSeconds(rule, remainingSeconds)
-    Log(string.format("campaign %d group=%s ready return=%s remaining=%s wait=%s",
-        campaignId, tostring(isGroup), tostring(state.returnCampaigns[campaignId] == true), tostring(remainingSeconds), tostring(waitSeconds)))
+    local waitSeconds = Utils.WaitSeconds(TravelWheel.state.savedVars.accept.campaign, remainingSeconds)
+    Log(string.format("campaign %d group=%s ready remaining=%s wait=%s",
+        campaignId, tostring(isGroup), tostring(remainingSeconds), tostring(waitSeconds)))
     if waitSeconds then
         Schedule(key, waitSeconds, "campaign", function()
             return GetCampaignQueueState(campaignId, isGroup) == CAMPAIGN_QUEUE_REQUEST_STATE_CONFIRMING
@@ -124,9 +115,6 @@ local function OnPlayerActivated()
 end
 
 function TravelWheelAcceptActions.Initialize()
-    STILL_QUEUED[CAMPAIGN_QUEUE_REQUEST_STATE_PENDING_JOIN] = true
-    STILL_QUEUED[CAMPAIGN_QUEUE_REQUEST_STATE_WAITING] = true
-
     local name = TravelWheel.name .. "_Accept"
     EVENT_MANAGER:RegisterForEvent(name, EVENT_GROUPING_TOOLS_READY_CHECK_UPDATED, function() OnReadyCheckUpdated() end)
     EVENT_MANAGER:RegisterForEvent(name, EVENT_GROUPING_TOOLS_READY_CHECK_CANCELLED, function() Forget(READY_CHECK_KEY) end)

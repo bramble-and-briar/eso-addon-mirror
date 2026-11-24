@@ -1,7 +1,7 @@
 -- The stored roster. One entry per character name, account-wide:
 --   sv.characters[name]  what the scanner read from the game the last time you logged in on it
 --   sv.manual[name]      what only you know: role, gear, planned race (picked from dropdowns)
-local CT = FuryCT
+local CT = FurysCharacterTracker
 local U = CT.Util
 local Roster = {}
 CT.Roster = Roster

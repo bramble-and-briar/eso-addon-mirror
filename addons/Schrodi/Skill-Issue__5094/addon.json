@@ -8,6 +8,10 @@
   "category_id": "25",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "SkillIssue"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5094/",
-  "fingerprint": "f62f091b8ab34e64770ba748ca6f06e9a39c66f3bd047a4806ad699fc8be1026",
+  "fingerprint": "8bc48171b5bd08efa755b7707a6f70366157a7889f4653ce55acbc4b33e04bca",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18687.png"
   ],
@@ -28,11 +32,11 @@
   "source_id": "5094",
   "source_url": "https://www.esoui.com/downloads/info5094-SkillIssue.html",
   "stats": {
-    "downloads": 1,
+    "downloads": 9,
     "favorites": 0,
-    "monthly_downloads": 1
+    "monthly_downloads": 6
   },
   "title": "Skill Issue",
-  "updated_at": 1795289759000,
-  "version": "1.0"
+  "updated_at": 1795475495000,
+  "version": "1.0.1"
 }

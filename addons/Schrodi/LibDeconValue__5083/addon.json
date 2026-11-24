@@ -1,13 +1,16 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/Schrodi/LibDeconValue__5083",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "Schrodi",
   "canonical_id": "esoui:5083",
   "category_id": "53",
   "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
     {
       "name": "Season One",
       "version": "12.1.0"
@@ -19,7 +22,7 @@
     "LibDeconValue"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5083/",
-  "fingerprint": "f9b39cf2615108a291ba15e93bf7ed1837fbc11ef344287f3ed40f4be6492608",
+  "fingerprint": "41ebdaf434782c3a0549b8e121d2d5fd9238f3e5937bb5b94fcefd74669185fc",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18676.png"
   ],
@@ -29,11 +32,11 @@
   "source_id": "5083",
   "source_url": "https://www.esoui.com/downloads/info5083-LibDeconValue.html",
   "stats": {
-    "downloads": 4,
+    "downloads": 96,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 81
   },
   "title": "LibDeconValue",
-  "updated_at": 1795260485000,
-  "version": "1.2"
+  "updated_at": 1795475871000,
+  "version": "1.2.1"
 }

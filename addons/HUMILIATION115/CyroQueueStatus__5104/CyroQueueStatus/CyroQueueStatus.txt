@@ -1,0 +1,9 @@
+## Title: Cyrodiil Queue Status
+## Description: Displays whether the Cyrodiil campaign queue is active, broken, or inactive.
+## Author: HUMILIATION115
+## Version: 1.4.2
+## APIVersion: 101051
+## SavedVariables: CyroQueueStatusSaved
+## DependsOn: LibAddonMenu-2.0>=43
+
+CyroQueueStatus.lua

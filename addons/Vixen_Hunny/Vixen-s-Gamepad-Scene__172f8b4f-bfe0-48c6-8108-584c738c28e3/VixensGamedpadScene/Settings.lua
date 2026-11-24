@@ -41,9 +41,10 @@ function VGS.RegisterSettings()
     local console = IsConsole()
 
     -- Write straight into saved data, note it for /vgslog, redraw.
+    -- Runs inside the settings menu's code, so nothing here may throw.
     local function set(key, value)
         sv[key] = value
-        VGS.LogWrite(key, value, "saved")
+        VGS.Try("settings log", VGS.LogWrite, key, value, "saved")
         VGS.ApplyAll()
     end
 
@@ -192,7 +193,7 @@ function VGS.RegisterSettings()
     })
 
     checkbox("Theme every gamepad screen", "allScenes",
-        "Also theme the backgrounds of other gamepad screens and dialogs, not just the main menu panels.")
+        "Also theme the backgrounds of other gamepad screens, not just the main menu panels.")
     checkbox("Theme the button bar", "keybindStrip",
         "The bar along the bottom with Select / Back / Text Chat and your name and location.")
     add({

@@ -16,7 +16,7 @@ SimpleDPS.ConfigUI = {
 		-- Stats Shown
 		statsshown = ZO_ComboBox_ObjectFromContainer(SimpleDPSConfigMenuSectionStatsShownDropdown)
 		statsshown.m_sortOrder = false
-		formatEntries = {
+		formatEntries = {									
 			"DPS",
 			"Percentage",
 			"Total",
@@ -33,23 +33,23 @@ SimpleDPS.ConfigUI = {
 			"DPS (Total) Percentage",
 			"DPS (Percentage) Total"
 		}
-
+		
 		for k, v in pairs(formatEntries) do
 			item = statsshown:CreateItemEntry(v, function () CALLBACK_MANAGER:FireCallbacks(SimpleDPS.FORMAT_CHANGED) end)
 			statsshown:AddItem(item)
 		end
-		statsshown:SetSelectedItemText(SimpleDPS.config.damageFormat)
+		statsshown:SetSelectedItemText(SimpleDPS.config.damageFormat)	
 		CALLBACK_MANAGER:RegisterCallback(SimpleDPS.FORMAT_CHANGED, function() self:changeDamageFormat() end, SimpleDPS.name .. "StatsShownClick")
 		
 		-- Current Fight Behavior
-		fightBehavior = ZO_ComboBox_ObjectFromContainer(SimpleDPSConfigMenuSectionCurrentFightBehaviorDropdown)
+		fightBehavior = ZO_ComboBox_ObjectFromContainer(SimpleDPSConfigMenuSectionCurrentFightBehaviorDropdown)		
 		fightBehavior.m_sortOrder = false
 		fightEntries = {
 			"Reset immediately after combat",
 			"Reset shortly after combat",
 			"Reset when re-entering combat"
 		}
-
+		
 		for k, v in pairs(fightEntries) do
 			item = fightBehavior:CreateItemEntry(v, function () CALLBACK_MANAGER:FireCallbacks(SimpleDPS.BEHAVIOR_CHANGED) end)
 			fightBehavior:AddItem(item)

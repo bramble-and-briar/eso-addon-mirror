@@ -8,8 +8,8 @@
 ## Description: Common framework for addons that provide a UI similar to the in-game journal
 ## Author: @code65536
 ## IsLibrary: true
-## Version: 2.5.4
-## AddOnVersion: 205040
+## Version: 2.6.0
+## AddOnVersion: 206000
 ## APIVersion: 101051 101052
 ## SavedVariables: LibExtendedJournalTooltipColors
 

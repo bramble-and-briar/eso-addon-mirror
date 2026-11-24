@@ -53,6 +53,7 @@ local pagesSincePrune = 0
 local lastBytes = 0
 local restoreSort = false  -- a scan changed the order, so put it back before your next search
 local scanRowShown = false
+local rowsAtBank = false   -- banks are only for selling, so they get just the List row
 local scan, scanToken = nil, 0
 local seenIds, seenDay, seenCount = {}, nil, 0
 local MAX_SEEN_IDS = 6000
@@ -369,6 +370,32 @@ local function townName(zoneName)
     return name
 end
 
+-- A banker's guild store offers all your guilds. A trader only offers its own.
+local function atBanker()
+    local count = rawget(_G, "GetNumTradingHouseGuilds")
+    if not count then return false end
+    local ok, guilds = pcall(count)
+    return ok and guilds ~= nil and guilds > 1
+end
+
+-- Where the listings on screen really are: guild, zone, trader NPC, town, and whether you're at a bank.
+-- At a bank that's the guild's hired trader, not the zone you happen to be standing in.
+function Scanner.StoreLocation()
+    local _, traderName = GetCurrentTradingHouseGuildDetails()
+    traderName = traderName or ""
+    if atBanker() then
+        for _, guild in ipairs(Selling.Guilds()) do
+            if guild.name == traderName then
+                if not guild.kiosk then return traderName, "Guild store", nil, nil, true end
+                return traderName, guild.zone or guild.town or "Unknown zone", guild.kiosk, guild.town, true
+            end
+        end
+        -- Not one of your guilds, so this can only be that guild's own trader, right here
+    end
+    local zoneName = zo_strformat("<<C:1>>", GetUnitZone("player"))
+    return traderName, zoneName, traderNpcName(), townName(zoneName), false
+end
+
 -- A fresh price check for this item, if there is one.
 function Scanner.CheckFor(key)
     local check = GP.sv.checks[key]
@@ -408,15 +435,13 @@ function Scanner.ReadPage()
     if not GP.unlocked then return 0 end
     Selling.Refresh()
     local numItems, page, hasMore = GetTradingHouseSearchResultsInfo()
-    local _, traderName = GetCurrentTradingHouseGuildDetails()
-    traderName = traderName or ""
-    local zoneName = zo_strformat("<<C:1>>", GetUnitZone("player"))
+    local traderName, zoneName, npc, town, atBank = Scanner.StoreLocation()
     local today, now, logged = GP.Today(), GetTimeStamp(), 0
     if GP.sv.listingDaysAt and now - GP.sv.listingDaysAt > 31 * 86400 then
         GP.sv.listingDays, GP.sv.listingDaysAt = nil, nil
     end
-    local npc, town = traderNpcName(), townName(zoneName)
-    Selling.Learn(npc, town, zoneName)
+    -- Only a real trader teaches where it stands. A banker isn't one.
+    if not atBank then Selling.Learn(npc, town, zoneName) end
     local inSellZone = Selling.InSellZone(zoneName)
     local zoneKey = Selling.ZoneKey(zoneName)
     -- Taken before reading the page, because a cheaper copy can knock an item off the report
@@ -952,8 +977,8 @@ function Scanner.EvaluateListing(id)
 end
 
 function Scanner.CurrentPlace()
-    local _, traderName = GetCurrentTradingHouseGuildDetails()
-    return (traderName or "") .. "|" .. zo_strformat("<<C:1>>", GetUnitZone("player"))
+    local traderName, zoneName = Scanner.StoreLocation()
+    return traderName .. "|" .. zoneName
 end
 
 function Scanner.IsScanning()
@@ -1006,7 +1031,7 @@ function Scanner.FinishScan(completed, problem)
 end
 
 function Scanner.CanStartScan()
-    return GP.unlocked and not scan and not GP.Run.IsActive()
+    return GP.unlocked and not scan and not GP.Run.IsActive() and not atBanker()
 end
 
 -- One pass through this trader's newest listings, when you ask for it. B stops it.
@@ -1092,7 +1117,7 @@ local RESTOCK_ROW = {
     labelText = "Gold Digger: Restock materials",
     isSelectableEntry = true,
     onSelectedCallback = function() GP.Run.StartRestock() end,
-    isEnabledCallback = function() return GP.unlocked == true and not scan and not GP.Run.IsActive() end,
+    isEnabledCallback = function() return GP.unlocked == true and not scan and not GP.Run.IsActive() and not atBanker() end,
     narrationText = function(entryData)
         return SCREEN_NARRATION_MANAGER:CreateNarratableObject(entryData.labelText)
     end,
@@ -1109,13 +1134,16 @@ local function installScanRow()
             scanRowShown = GP.unlocked == true
             -- Players without access never see it
             if scanRowShown then
-                itemList:AddEntry("ZO_GamepadGuildStoreBrowseSelectableEntryTemplate", SCAN_ROW)
+                rowsAtBank = atBanker()
+                if not rowsAtBank then itemList:AddEntry("ZO_GamepadGuildStoreBrowseSelectableEntryTemplate", SCAN_ROW) end
                 itemList:AddEntry("ZO_GamepadGuildStoreBrowseSelectableEntryTemplate", LIST_ROW)
-                itemList:AddEntry("ZO_GamepadGuildStoreBrowseSelectableEntryTemplate", RESTOCK_ROW)
+                if not rowsAtBank then itemList:AddEntry("ZO_GamepadGuildStoreBrowseSelectableEntryTemplate", RESTOCK_ROW) end
             end
         end
     end
-    if browse.isInitialized and scanRowShown ~= (GP.unlocked == true) then browse:RefreshList() end
+    if browse.isInitialized and (scanRowShown ~= (GP.unlocked == true) or (scanRowShown and rowsAtBank ~= atBanker())) then
+        browse:RefreshList()
+    end
 end
 
 local function watchLeaving()

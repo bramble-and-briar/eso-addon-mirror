@@ -6,7 +6,7 @@
 -- background. We only remember the last eventId we processed per guild/category, so each
 -- login resumes exactly where the previous session stopped.
 
-local GT = FuryGMT
+local GT = FurysGuildToolset
 local History = {}
 GT.History = History
 
@@ -260,10 +260,10 @@ function History:PrintStatus()
                 local label = CategoryName(stats.category)
                 if stats.reader ~= MAIN_READER then label = stats.reader .. " " .. label end
                 parts[#parts + 1] = string.format("%s %d%s%s", label, stats.received, range,
-                    stats.live and "" or " |cFFCC66still loading|r")
+                    stats.live and "" or " |cFFC857still loading|r")
             end
         end
-        U.Print("%s%s: %s", U.GuildName(guildId), GT:IsAlertGuild(guildId) and "" or " |cFF6666(alerts off)|r",
-            #parts > 0 and table.concat(parts, ", ") or "|cFF6666no reader (LibHistoire has no cache for this guild)|r")
+        U.Print("%s%s: %s", U.GuildName(guildId), GT:IsAlertGuild(guildId) and "" or " |cFF6B86(alerts off)|r",
+            #parts > 0 and table.concat(parts, ", ") or "|cFF6B86no reader (LibHistoire has no cache for this guild)|r")
     end
 end

@@ -75,7 +75,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Character Bound Item Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Character-Bound-Item-Hider__4922) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
 | [Character Bound Item Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/Character-Bound-Item-Hider__49e5c9da-dc0d-4bf5-b60c-6e6e53784107) | APH0NlC | Console | — |
 | [Character Homes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g0thicicecream/Character-Homes__4654) | g0thicicecream | PC / Mac | 1.5.0 |
-| [Character Knowledge (Research, Motif, Recipe, Furnishing Plan and Scribing Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Character-Knowledge-Research-Motif-Recipe-Furnishing-Plan-and-Scribing-Tracker__2938) | code65536 | PC / Mac | 3.1.6 |
+| [Character Knowledge (Research, Motif, Recipe, Furnishing Plan and Scribing Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Character-Knowledge-Research-Motif-Recipe-Furnishing-Plan-and-Scribing-Tracker__2938) | code65536 | PC / Mac | 3.1.7 |
 | [Character Zone Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Character-Zone-Tracker__3323) | silvereyes | PC / Mac | 1.3.0 |
 | [CharacterGearUI (for alone or PerfectPixel)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Trobo/CharacterGearUI-for-alone-or-PerfectPixel__4743) | Trobo | PC / Mac | 0.4.7 |
 | [CharacterMarkdown](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/solaegis/CharacterMarkdown__4279) | solaegis | PC / Mac | 2.3.0 |
@@ -106,7 +106,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Chest Master 9000](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CrazyDutchGuy/Chest-Master-9000__713) | CrazyDutchGuy | PC / Mac | 2.3 |
 | [ChestFarmer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xgoku1/ChestFarmer__3045) | xgoku1 | PC / Mac | 1.22 |
 | [Chill Item Share](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HellWhyNot/Chill-Item-Share__5054) | HellWhyNot | PC / Mac | 2.0 |
-| [Chimer's Recall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/Chimer-s-Recall__5103) | evainefaye | PC / Mac | 1.2.0 |
+| [Chimer's Recall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/Chimer-s-Recall__5103) | evainefaye | PC / Mac | 1.2.1 |
 | [Chorus - Minimal Combat Text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Krogdalo/Chorus---Minimal-Combat-Text__4810) | Krogdalo | PC / Mac | 0.2.4 |
 | [Christmas Bongo cat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Emma/Christmas-Bongo-cat__2206) | Emma | PC / Mac | 1 |
 | [ChromaConfig](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/otac0n/ChromaConfig__3361) | otac0n | PC / Mac | 1.1 |
@@ -152,15 +152,15 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Clutch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Apogee/Clutch__2302) | Apogee | PC / Mac | 0.9.1 |
 | [CobbDialogueLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DavidJCobb/CobbDialogueLogger__2560) | DavidJCobb | PC / Mac | 1 |
 | [Code's Combat Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Code-s-Combat-Alerts__fe065445-3217-4a76-8932-23a0a1c9c16c) | code65536 | Console | — |
-| [Code's Combat Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Code-s-Combat-Alerts__1855) | code65536 | PC / Mac | 2.7.2 |
+| [Code's Combat Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Code-s-Combat-Alerts__1855) | code65536 | PC / Mac | 2.7.3 |
 | [Cogs Assistants](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/coginthemachine/Cogs-Assistants__4687) | coginthemachine | PC / Mac | 0.1.5 |
 | [Collect Them All](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Springpeace2575/Collect-Them-All__75167780-fb8c-479c-86be-c0a208443b97) | Springpeace2575 | Console | — |
 | [CollectablesTesting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brossin13/CollectablesTesting__9cb042d4-e427-4f0c-9c9c-48e1a355c970) | brossin13 | Console | — |
 | [Collectible Toggler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Collectible-Toggler__2699) | MrPikPik | PC / Mac | 1.2 |
-| [Collectibles Tracker (formerly Event Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Collectibles-Tracker-formerly-Event-Collectibles__2588) | code65536 | PC / Mac | 3.6.6 |
+| [Collectibles Tracker (formerly Event Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Collectibles-Tracker-formerly-Event-Collectibles__2588) | code65536 | PC / Mac | 3.6.6.1 |
 | [Collection bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jarth/Collection-bars__2339) | Jarth | PC / Mac | 1.1.14 |
 | [Color Blind Mode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/attriel/Color-Blind-Mode__2981) | attriel | PC / Mac | 1.0.12 |
-| [Colorblind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Colorblind__5032) | lousytourist | PC / Mac | 2026.11.22 |
+| [Colorblind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Colorblind__5032) | lousytourist | PC / Mac | 2026.11.23 |
 | [Colorful Map Areas - Quests, Forward Camps, Dig Sites!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Valve/Colorful-Map-Areas---Quests-Forward-Camps-Dig-Sites__3393) | Valve | PC / Mac | 1.2.0 |
 | [Colourful ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Colourful-ESO__1662) | Dolgubon | PC / Mac | 2.3 |
 | [Combat Alerts Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DrSova/Combat-Alerts-Extended__3439) | DrSova | PC / Mac | 1.0.5 |
@@ -200,7 +200,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Companion Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/Companion-Helper__ac31de38-34d3-4d5d-b0a4-282e26e25fa1) | Scribe_Rob | Console | — |
 | [Companion Rapport](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ParanoidGaming/Companion-Rapport__1d8faf08-ce78-4d71-8e33-81d704e62fc5) | ParanoidGaming | Console | — |
 | [Companion Rapport Numbers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smaxx/Companion-Rapport-Numbers__3128) | Smaxx | PC / Mac | 1.2 |
-| [Companion Sidekick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FoulMouthxAmazon/Companion-Sidekick__5072) | FoulMouthxAmazon | PC / Mac | 0.1.2-beta |
+| [Companion Sidekick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FoulMouthxAmazon/Companion-Sidekick__5072) | FoulMouthxAmazon | PC / Mac | 0.2.2-beta |
 | [Companion Stuff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VisioTempus/Companion-Stuff-Tracker__3986) | VisioTempus | PC / Mac | 1.2.3 |
 | [Companion's Containers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Companion-s-Containers__4143) | atharti | PC / Mac | 1.9 |
 | [CompanionFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/CompanionFix__3677) | sinnereso | PC / Mac | 2026.03.10 |
@@ -354,5 +354,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Cyrodiil Mercenary](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m1lkst3ak/Cyrodiil-Mercenary__6ae238fd-705e-4e6d-8338-f8a7bb26d34a) | m1lkst3ak | Console | — |
 | [Cyrodiil Mission Share](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aldericon/Cyrodiil-Mission-Share__1836) | aldericon | PC / Mac | 12.0 |
 | [Cyrodiil Score Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tdenc/Cyrodiil-Score-Viewer__3166) | tdenc | PC / Mac | 0.5.0 |
+| [CyroQueueStatus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HUMILIATION115/CyroQueueStatus__5104) | HUMILIATION115 | PC / Mac | 1.4.2 |
 | [CyroQuickslots](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gerrit/CyroQuickslots__3134) | Gerrit | PC / Mac | 1.31.1 |
 | [Cyrotivity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aldericon/Cyrotivity__1996) | aldericon | PC / Mac | 11.0 |

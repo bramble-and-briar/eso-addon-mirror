@@ -2,6 +2,8 @@
 local this = FurCDev
 local LFC = LibFurnitureCatalogue
 local PAGE_BYTES = 24000
+-- First line of every page of a "Detect deleted" list; the webui needs it
+local MISSING_HEADER = "furniture-missing-ids-v1"
 local pages, page = {}, 1
 local running = false
 local cancelled = false
@@ -17,6 +19,7 @@ local function refreshControls()
   controls.last:SetEditEnabled(not running)
   controls.scan:SetEnabled(not running)
   controls.request:SetEnabled(not running)
+  controls.missing:SetEnabled(not running)
   controls.cancel:SetEnabled(running and not cancelled)
   controls.prev:SetEnabled(not running and page > 1 and #pages > 0)
   controls.next:SetEnabled(not running and page < #pages)
@@ -27,6 +30,10 @@ end
 local function report(text, summary)
   status = text
   refreshControls()
+  -- progress stays where it is; a result or refusal brings the window up
+  if not running then
+    this.ShowWindow()
+  end
   this.SetScanSummary(summary or (running and "Datamine: scanning" or "Datamine: stopped"))
 end
 
@@ -58,8 +65,38 @@ local function object(values)
   return "{" .. table.concat(out, ",") .. "}"
 end
 
-function this.DiscoveryLine(id, blueprint)
+local function isFurnishing(link)
+  return IsItemLinkPlaceableFurniture(link)
+end
+
+---A blueprint stands for the furnishing it makes
+---@param id integer? any item id
+---@return integer? furnishingId nil for no id, or a blueprint that makes nothing
+---@return integer? blueprintId
+local function furnishingOf(id)
+  if not id or id <= 0 then
+    return
+  end
   local link = FurC.Utils.GetItemLink(id)
+  if IsItemLinkFurnitureRecipe(link) then
+    local made = GetItemLinkItemId(GetItemLinkRecipeResultItemLink(link, LINK_STYLE_BRACKETS))
+    if not made or made == 0 then
+      return
+    end
+    return made, id
+  end
+  return id
+end
+
+---@param id integer furnishing id
+---@param blueprint integer?
+---@param offer { currency: string, amount: integer, achievement: integer? }? what a store asks for it
+---@return string? line nil when the id is not a furnishing on this client
+function this.DiscoveryLine(id, blueprint, offer)
+  local link = FurC.Utils.GetItemLink(id)
+  if not isFurnishing(link) then
+    return nil
+  end
   local dataId = GetItemLinkFurnitureDataId(link)
   local cat, sub, theme = 0, 0, 0
   if dataId and dataId ~= 0 then
@@ -87,33 +124,179 @@ function this.DiscoveryLine(id, blueprint)
     .. record
     .. ',"meta":'
     .. object(meta)
+    .. (offer and (',"offer":' .. object(offer)) or "")
     .. "}"
+end
+
+---Append lines to the output box, skipping any it already holds
+---@param lines string[]
+---@return integer added
+local function appendLines(lines)
+  local text, added = this.textbox:GetText() or "", 0
+  for _, line in ipairs(lines) do
+    if not text:find(line, 1, true) then
+      if text ~= "" and text:sub(-1) ~= "\n" then
+        text = text .. "\n"
+      end
+      text = text .. line .. "\n"
+      added = added + 1
+    end
+  end
+  if added > 0 then
+    this.textbox:SetText(text)
+  end
+  this.ShowWindow()
+  return added
+end
+
+local currencyKeys
+---The library's currency vocabulary key for a game currency. EVENT_TICKETS is left out: the library maps it to the
+---same game currency as TRADE_BARS, so a store price in that currency reads as TRADE_BARS
+---@param currencyType integer CURT_*
+---@return string? key
+local function currencyKey(currencyType)
+  if not currencyKeys then
+    currencyKeys = {}
+    local function add(curt, key)
+      if curt then
+        currencyKeys[curt] = key
+      end
+    end
+    add(CURT_MONEY, "GOLD")
+    add(CURT_ALLIANCE_POINTS, "AP")
+    add(CURT_TELVAR_STONES, "TEL_VAR")
+    add(CURT_WRIT_VOUCHERS, "WRIT_VOUCHERS")
+    add(CURT_CROWNS, "CROWNS")
+    add(CURT_CROWN_GEMS, "CROWN_GEMS")
+    add(CURT_ENDEAVOR_SEALS, "SEALS")
+    add(CURT_UNDAUNTED_KEYS, "UNDAUNTED_KEYS")
+    add(CURT_ARCHIVAL_FORTUNES, "ARCHIVAL_FORTUNES")
+    add(CURT_TRADE_BARS, "TRADE_BARS")
+  end
+  return currencyKeys[currencyType]
+end
+
+---Achievement name in a store's "requires" text: EN "Requires <name> [Achievement] to purchase.", DE „<name>“
+---@param text string?
+---@return string? name
+function this.GateAchievementName(text)
+  text = tostring(text or "")
+  return text:match("„(.-)“")
+    or text:match("^Requires (.-) Achievement to purchase")
+    or text:match("^Requires (.-) to purchase")
+end
+
+---What a store entry asks for, in the offer shape of a trader line
+---@param price integer gold price, 0 when the entry costs another currency
+---@param currencyType integer? CURT_* of the other currency
+---@param quantity integer? amount of it
+---@param achievement integer? id of the achievement that gates the entry, 0 or nil for none
+---@return table? offer nil when the entry costs nothing or its currency has no vocabulary key
+---@return string? reason "currency" when the currency has no key
+function this.Offer(price, currencyType, quantity, achievement)
+  local offer
+  if price and price > 0 then
+    offer = { currency = "GOLD", amount = price }
+  elseif quantity and quantity > 0 then
+    local key = currencyKey(currencyType)
+    if not key then
+      return nil, "currency"
+    end
+    offer = { currency = key, amount = quantity }
+  else
+    return nil
+  end
+  if achievement and achievement > 0 then
+    offer.achievement = achievement
+  end
+  return offer
+end
+
+---@param index integer store entry
+local function storeOffer(index)
+  local _, _, _, price, _, canBuy, _, _, _, currencyType, quantity, _, _, _, _, errorStringId = GetStoreEntryInfo(index)
+  local achievement
+  -- the store names its gate only to a character who has not met it
+  if not canBuy and errorStringId and errorStringId ~= 0 then
+    achievement = this.GetAchievementId(this.GateAchievementName(GetErrorString(errorStringId)))
+  end
+  return this.Offer(price, currencyType, quantity, achievement)
+end
+
+---Discovery lines with an offer for every furnishing the open store sells, catalogued or not
+function this.AddAllFromTrader()
+  local count = GetNumStoreItems()
+  if IsStoreEmpty() or count == 0 then
+    FurC.Logger:Info("|cFF3333FurCDev|r: no store open, or trader has no items.")
+    return
+  end
+  local lines, noKey = {}, 0
+  for index = 1, count do
+    local id, blueprint = furnishingOf(GetItemLinkItemId(GetStoreItemLink(index)))
+    if id then
+      local offer, reason = storeOffer(index)
+      local line = this.DiscoveryLine(id, blueprint, offer)
+      if line then
+        lines[#lines + 1] = line
+        noKey = noKey + (reason == "currency" and 1 or 0)
+      end
+    end
+  end
+  local added = appendLines(lines)
+  FurC.Logger:Info(
+    "|cFF3333FurCDev|r: %d furnishing(s) of %d store item(s), %d new; %d without offer (currency has no key).",
+    #lines,
+    count,
+    added,
+    noKey
+  )
+end
+
+---The bags the keyboard inventory shows now, read from the scene fragments the ESOUI inventory shows them with.
+---At a bank the deposit side is the backpack; the gamepad UI uses other fragments and always reads as the backpack
+---@return integer[] bagIds
+---@return string name
+local function shownBags()
+  local function showing(fragment)
+    return fragment ~= nil and fragment:IsShowing()
+  end
+  if showing(GUILD_BANK_FRAGMENT) then
+    return { BAG_GUILDBANK }, "guild bank"
+  elseif showing(HOUSE_BANK_FRAGMENT) then
+    return { GetBankingBag() }, "house storage"
+  elseif showing(FURNITURE_VAULT_FRAGMENT) then
+    return { BAG_FURNITURE_VAULT }, "furniture vault"
+  elseif showing(BANK_FRAGMENT) then
+    return { BAG_BANK, BAG_SUBSCRIBER_BANK }, "bank"
+  end
+  return { BAG_BACKPACK }, "backpack"
+end
+
+---Discovery lines, without an offer, for every furnishing in the bag the player looks at
+function this.AddAllFromBag()
+  local bags, name = shownBags()
+  local lines = {}
+  for _, bagId in ipairs(bags) do
+    -- guild bank and furniture vault slot ids have gaps, so walk them the way ESOUI does
+    for slot in ZO_IterateBagSlots(bagId) do
+      local id, blueprint = furnishingOf(GetItemLinkItemId(GetItemLink(bagId, slot)))
+      local line = id and this.DiscoveryLine(id, blueprint)
+      if line then
+        lines[#lines + 1] = line
+      end
+    end
+  end
+  local added = appendLines(lines)
+  FurC.Logger:Info("|cFF3333FurCDev|r: %d furnishing(s) in the %s, %d new.", #lines, name, added)
 end
 
 ---One item's line appended to the output box, whether the catalogue knows it or not: the menu asks about this item, where a scan looks for new ones
 ---@param id integer furnishing or blueprint id
 ---@return boolean added
 function this.AppendDiscovery(id)
-  local link = FurC.Utils.GetItemLink(id)
-  local blueprint
-  if IsItemLinkFurnitureRecipe(link) then
-    local made = GetItemLinkItemId(GetItemLinkRecipeResultItemLink(link, LINK_STYLE_BRACKETS))
-    if not made or made == 0 then
-      return false
-    end
-    id, blueprint = made, id
-  end
-  local line = this.DiscoveryLine(id, blueprint)
-  local text = this.textbox:GetText() or ""
-  if text:find(line, 1, true) then
-    return false
-  end
-  if text ~= "" and text:sub(-1) ~= "\n" then
-    text = text .. "\n"
-  end
-  this.textbox:SetText(text .. line .. "\n")
-  this.control:SetHidden(false)
-  return true
+  local furnishing, blueprint = furnishingOf(id)
+  local line = furnishing and this.DiscoveryLine(furnishing, blueprint)
+  return line ~= nil and appendLines({ line }) > 0
 end
 
 function this.ShowDiscoveryPage(delta)
@@ -128,7 +311,7 @@ function this.ShowDiscoveryPage(delta)
     report("The textbox could not hold this page. Output kept; copying disabled.", "Datamine: output too large")
     return
   end
-  this.control:SetHidden(false)
+  this.ShowWindow()
   this.selectAllOutput()
   refreshControls()
 end
@@ -169,25 +352,23 @@ function this.RequestItems(text)
     report("Discovery is running. Wait for it or Cancel it first.")
     return
   end
+  -- every number in the box counts as an id, so stray numbers from a dump would turn into ids
+  if tostring(text or ""):find('[{}"]') or tostring(text or ""):find(MISSING_HEADER, 1, true) then
+    report("The text box holds discovery output, not item ids. Clear it, paste the requested ids, then Item list.")
+    return
+  end
   local seen, lines, unknown = {}, {}, 0
   local built, failure = pcall(function()
     for number in tostring(text or ""):gmatch("%d+") do
-      local id = tonumber(number)
-      if id > 0 and not seen[id] then
-        seen[id] = true
-        local link = FurC.Utils.GetItemLink(id)
-        local blueprint
-        if IsItemLinkFurnitureRecipe(link) then
-          local made = GetItemLinkItemId(GetItemLinkRecipeResultItemLink(link, LINK_STYLE_BRACKETS))
-          if made and made > 0 then
-            id, blueprint = made, id
-            link = FurC.Utils.GetItemLink(id)
-          end
-        end
-        if GetItemLinkName(link) == "" then
-          unknown = unknown + 1
+      local requested = tonumber(number)
+      if requested > 0 and not seen[requested] then
+        seen[requested] = true
+        local id, blueprint = furnishingOf(requested)
+        local line = id and GetItemLinkName(FurC.Utils.GetItemLink(id)) ~= "" and this.DiscoveryLine(id, blueprint)
+        if line then
+          lines[#lines + 1] = line
         else
-          lines[#lines + 1] = this.DiscoveryLine(id, blueprint)
+          unknown = unknown + 1
         end
       end
     end
@@ -212,6 +393,59 @@ function this.RequestItems(text)
       unknown
     ),
     string.format("Datamine: %d requested items", #lines)
+  )
+  showPages(output)
+end
+
+---Every catalogued id (furnishings, their blueprints, ignored ids) whose name this client does not know, as a plain
+---list for the website. Nothing is removed here
+function this.DetectDeleted()
+  if running then
+    report("Discovery is running. Wait for it or Cancel it first.")
+    return
+  end
+  if not LFC.API.IsReady() then
+    LFC.Internal.Build.EnsureDB()
+    report("Catalogue is not ready. Wait for it to load, then Detect deleted again.")
+    return
+  end
+  local seen, ids, missing = {}, {}, {}
+  local function add(id)
+    if type(id) == "number" and not seen[id] then
+      seen[id] = true
+      ids[#ids + 1] = id
+    end
+  end
+  local checked, failure = pcall(function()
+    for _, id in ipairs(LFC.API.GetItemIds()) do
+      local entry = LFC.API.GetEntry(id)
+      add(id)
+      add(entry and entry.blueprint)
+    end
+    table.sort(ids)
+    for _, id in ipairs(ids) do
+      if GetItemLinkName(FurC.Utils.GetItemLink(id)) == "" then
+        missing[#missing + 1] = tostring(id)
+      end
+    end
+  end)
+  if not checked then
+    report("Detect deleted failed: " .. tostring(failure))
+    return
+  end
+  -- each page is pasted on its own, so each one names the list
+  local output = paginate(missing)
+  for index, text in ipairs(output) do
+    output[index] = MISSING_HEADER .. "\n" .. text
+  end
+  report(
+    string.format(
+      "Detect deleted: %d of %d catalogued id(s) this client does not know.%s",
+      #missing,
+      #ids,
+      #missing > 0 and " Copy each page into the website." or ""
+    ),
+    string.format("Datamine: %d missing ids", #missing)
   )
   showPages(output)
 end
@@ -277,11 +511,7 @@ function this.ScanFurniture(first, last)
               end
             end
           end
-        elseif
-          not ignored[id]
-          and not known[id]
-          and (IsItemLinkPlaceableFurniture(link) or GetItemLinkItemType(link) == ITEMTYPE_FURNISHING)
-        then
+        elseif not ignored[id] and not known[id] and isFurnishing(link) then
           if GetItemLinkName(link) ~= "" then
             items[id] = true
           end
@@ -318,7 +548,7 @@ function this.ScanFurniture(first, last)
     local built, failure = pcall(function()
       local lines = {}
       for _, row in ipairs(rows) do
-        lines[#lines + 1] = this.DiscoveryLine(row.id, row.blueprint)
+        lines[#lines + 1] = this.DiscoveryLine(row.id, row.blueprint) -- skips non-furnishings
       end
       output = paginate(lines)
     end)
@@ -333,7 +563,7 @@ function this.ScanFurniture(first, last)
     )
     showPages(output)
   end
-  this.control:SetHidden(false)
+  this.ShowWindow()
   this.SelectTab("datamine")
   report(string.format("Scanning IDs %d-%d...", first, last))
   batch()
@@ -402,7 +632,8 @@ function this.BuildDiscoveryTab()
   controls.request = button("Request", "Item list", 0, 146, 276, function()
     this.RequestItems(this.textbox:GetText())
   end)
-  controls.status = label("Status", status, 0, 186, 276)
+  controls.missing = button("Missing", "Detect deleted", 0, 186, 276, this.DetectDeleted)
+  controls.status = label("Status", status, 0, 226, 276)
   controls.status:SetHeight(96)
   this.RegisterTab("datamine", "Datamine", panel, function()
     refreshControls()

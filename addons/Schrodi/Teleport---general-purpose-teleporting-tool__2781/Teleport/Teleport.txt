@@ -7,8 +7,9 @@
 ## Title: Teleport
 ## Description: One chat command, /tp, for every kind of travel: zones, dungeons, trials, wayshrines, houses, players, survey and treasure maps and your tracked quest. Free whenever possible.
 ## Author: Schrodi
-## Version: 1.5.0
-## APIVersion: 101051
+## Version: 1.5.1
+## AddOnVersion: 151
+## APIVersion: 101051 101052
 ## SavedVariables: TeleportAliases
 ## OptionalDependsOn: LibTreasure LibGPS
 

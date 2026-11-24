@@ -1,0 +1,42 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/tareN/Arclight-Taunt__5008",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "tareN",
+  "canonical_id": "esoui:5008",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    }
+  ],
+  "content_id": "esoui:5008",
+  "deleted": false,
+  "directories": [
+    "ArclightTaunt"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5008/",
+  "fingerprint": "d8cca7798ddb99cbfbd4648dc996776ab29c185432494d04e282a78f77aeca6d",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18763.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18764.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18769.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18766.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18767.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5008",
+  "source_url": "https://www.esoui.com/downloads/info5008-ArclightTaunt.html",
+  "stats": {
+    "downloads": 299,
+    "favorites": 6,
+    "monthly_downloads": 266
+  },
+  "title": "Arclight Taunt",
+  "updated_at": 1795495152000,
+  "version": "1.4.0"
+}

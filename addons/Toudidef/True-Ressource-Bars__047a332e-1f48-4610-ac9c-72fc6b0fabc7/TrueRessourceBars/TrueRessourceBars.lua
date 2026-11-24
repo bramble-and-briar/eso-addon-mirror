@@ -1,10 +1,9 @@
 -- Initialisation de l'addon
 local TrueRessourceBars = {
     name = "TrueRessourceBars",
-    version = "3.2",
+    version = "3.4",
     updateInterval = 50,
     previewMode = false,
-    previewMount = false,
     controls = {
         targetBuffs = {},
         targetDebuffs = {}
@@ -16,10 +15,9 @@ local TrueRessourceBars = {
 }
 
 -- Constantes des attributs de combat ESO
-local MECHANIC_HEALTH        = COMBAT_MECHANIC_FLAGS_HEALTH or 1
-local MECHANIC_MAGICKA       = COMBAT_MECHANIC_FLAGS_MAGICKA or 2
-local MECHANIC_STAMINA       = COMBAT_MECHANIC_FLAGS_STAMINA or 4
-local MECHANIC_MOUNT_STAMINA = COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA or 64
+local MECHANIC_HEALTH  = COMBAT_MECHANIC_FLAGS_HEALTH or 1
+local MECHANIC_MAGICKA = COMBAT_MECHANIC_FLAGS_MAGICKA or 2
+local MECHANIC_STAMINA = COMBAT_MECHANIC_FLAGS_STAMINA or 4
 
 -- Épaisseur de la bordure noire : 3 pixels
 local BORDER_SIZE = 3
@@ -76,7 +74,7 @@ local function GetStyleDescriptor(selectedStyleName)
     return "outline"
 end
 
--- Emplacements dans les coins pour la valeur du bouclier
+-- Emplacements dans les coins
 local cornerPositionMapping = {
     ["Top Left"]     = { point = TOPLEFT, relPoint = TOPLEFT, x = 6, y = 2 },
     ["Top Right"]    = { point = TOPRIGHT, relPoint = TOPRIGHT, x = -6, y = 2 },
@@ -189,18 +187,6 @@ local defaults = {
             warningThreshold = 25,
             warningPulseSpeed = 120,
         },
-        mount = {
-            enabled = "Yes",
-            x = 220, y = 415, width = 260, height = 24,
-            color = { r = 0.15, g = 0.85, b = 0.55, a = 1 },
-            font = "Gamepad Bold", fontSize = 16, fontStyle = "Outline",
-            textColor = { r = 1, g = 1, b = 1, a = 1 },
-            textFormat = "Current / Max (Percent)",
-            drainDirection = "Left to Right",
-            warningEnabled = false,
-            warningThreshold = 25,
-            warningPulseSpeed = 120,
-        },
         target = {
             enabled = "Yes",
             x = 0, y = -340, width = 460, height = 32,
@@ -253,10 +239,30 @@ local defaults = {
         hidePermanent = false,
         hideLongBuffs = false,
         longBuffThreshold = 60
+    },
+    enemyBuffAlert = {
+        enabled = "Yes",
+        -- Alertes Résolution
+        resolveDisplayMode = "Both", -- "Bar Color Change", "Text Display", "Both"
+        minorMissingColor  = { r = 1, g = 0.5, b = 0, a = 1 },
+        majorMissingColor  = { r = 0.9, g = 0.1, b = 0.8, a = 1 },
+        bothMissingColor   = { r = 1, g = 0.9, b = 0.1, a = 1 },
+        resolveTextX       = 0,
+        resolveTextY       = -260,
+        resolveTextFontSize= 16,
+
+        -- Alertes CC Immune
+        ccImmuneMode       = "Both", -- "Bar Corner Label", "Movable Timer", "Both"
+        ccImmuneCorner     = "Bottom Left", -- Calé en Bottom Left par défaut
+        ccImmuneColor      = { r = 0.2, g = 0.9, b = 1, a = 1 },
+        ccImmuneFontSize   = 20, -- Taille 20 par défaut
+        ccTimerX           = 0,
+        ccTimerY           = -225,
+        ccTimerFontSize    = 22
     }
 }
 
--- Échantillons factices pour l'aperçu
+-- Échantillons factices complets pour l'aperçu
 local dummyBuffData = {
     { icon = "/esoui/art/icons/ability_warrior_010.dds", time = 25 },
     { icon = "/esoui/art/icons/ability_rogue_038.dds", time = 120 },
@@ -309,8 +315,6 @@ local function GetPower(unitTag, mechanicType)
             cur, max, eff = GetUnitPower(unitTag, 2)
         elseif mechanicType == MECHANIC_STAMINA then
             cur, max, eff = GetUnitPower(unitTag, 4)
-        elseif mechanicType == MECHANIC_MOUNT_STAMINA then
-            cur, max, eff = GetUnitPower(unitTag, 64)
         end
     end
     return cur or 0, max or 0, (eff and eff > 0) and eff or (max or 1)
@@ -334,44 +338,87 @@ local function FormatTime(seconds)
     elseif seconds > 60 then
         return string.format("%dm", math.floor(seconds / 60))
     else
-        return string.format("%ds", math.floor(seconds))
+        return string.format("%.1fs", seconds)
     end
 end
 
--- Récupération du bouclier (Damage Shield) avec vérification en temps réel et purge du cache
+-- Couleur dynamique du minuteur CC Immune selon le temps restant
+local function GetCCTimerColor(duration)
+    if duration > 4 then
+        return 0.2, 0.9, 1.0, 1.0 -- Cyan (> 4s)
+    elseif duration > 2 then
+        return 1.0, 0.85, 0.1, 1.0 -- Jaune / Or (2s à 4s)
+    else
+        return 1.0, 0.25, 0.25, 1.0 -- Rouge vif (<= 2s)
+    end
+end
+
+-- Récupération du bouclier (Damage Shield)
 local function GetShieldValue(unitTag)
-    if not DoesUnitExist(unitTag) or IsUnitDead(unitTag) then
-        TrueRessourceBars.shieldCache[unitTag] = 0
-        return 0
+    if TrueRessourceBars.shieldCache[unitTag] and TrueRessourceBars.shieldCache[unitTag] > 0 then
+        return TrueRessourceBars.shieldCache[unitTag]
     end
 
     local value = GetUnitAttributeVisualizerEffectInfo(
         unitTag,
         ATTRIBUTE_VISUAL_POWER_SHIELDING,
-        STAT_MITIGATION,
+        STAT_MITIGATION or 2,
         ATTRIBUTE_HEALTH,
         MECHANIC_HEALTH
     )
-    if value and value > 0 then
-        TrueRessourceBars.shieldCache[unitTag] = value
-        return value
-    end
+    if value and value > 0 then return value end
 
     local valueDef = GetUnitAttributeVisualizerEffectInfo(
         unitTag,
         ATTRIBUTE_VISUAL_POWER_SHIELDING,
-        STAT_DEFENSE,
+        STAT_DEFENSE or 1,
         ATTRIBUTE_HEALTH,
         MECHANIC_HEALTH
     )
-    if valueDef and valueDef > 0 then
-        TrueRessourceBars.shieldCache[unitTag] = valueDef
-        return valueDef
+    if valueDef and valueDef > 0 then return valueDef end
+
+    return 0
+end
+
+-- Analyse des alertes sur la cible (Résolution majeure/mineure et CC Immune)
+local function CheckTargetBuffAlerts(unitTag)
+    local hasMajorResolve = false
+    local hasMinorResolve = false
+    local isCCImmune = false
+    local ccDuration = 0
+
+    if not DoesUnitExist(unitTag) then
+        return hasMajorResolve, hasMinorResolve, isCCImmune, ccDuration
     end
 
-    -- Si l'effet visuel n'existe plus sur l'unité, on réinitialise le cache pour éviter tout affichage fantôme
-    TrueRessourceBars.shieldCache[unitTag] = 0
-    return 0
+    local currentTime = GetFrameTimeSeconds()
+
+    for i = 1, GetNumBuffs(unitTag) do
+        local buffName, timeStarted, timeEnding, _, _, iconFilename = GetUnitBuffInfo(unitTag, i)
+        if buffName and buffName ~= "" then
+            local lowerName = string.lower(buffName)
+            local lowerIcon = string.lower(iconFilename or "")
+
+            if string.find(lowerIcon, "major_resolve") or string.find(lowerName, "major resolve") or string.find(lowerName, "résolution majeure") then
+                hasMajorResolve = true
+            end
+
+            if string.find(lowerIcon, "minor_resolve") or string.find(lowerName, "minor resolve") or string.find(lowerName, "résolution mineure") then
+                hasMinorResolve = true
+            end
+
+            if string.find(lowerIcon, "cc_immune") or string.find(lowerIcon, "unstoppable") or string.find(lowerIcon, "immovable")
+                or string.find(lowerName, "cc immun") or string.find(lowerName, "crowd control")
+                or string.find(lowerName, "inarrêtable") or string.find(lowerName, "immunité") then
+                isCCImmune = true
+                if timeEnding and timeEnding > currentTime then
+                    ccDuration = timeEnding - currentTime
+                end
+            end
+        end
+    end
+
+    return hasMajorResolve, hasMinorResolve, isCCImmune, ccDuration
 end
 
 -- Calcul mathématique du double-pulsation
@@ -469,10 +516,16 @@ local function CreateBarControl(barKey, config)
     shieldLabel:SetDrawTier(DT_HIGH)
 
     local targetNameLabel = nil
+    local ccImmuneLabel = nil
     if barKey == "target" then
         targetNameLabel = wm:CreateControl(name .. "TargetNameLabel", container, CT_LABEL)
         targetNameLabel:SetDrawLayer(DL_OVERLAY)
         targetNameLabel:SetDrawTier(DT_HIGH)
+
+        ccImmuneLabel = wm:CreateControl(name .. "CCImmuneLabel", container, CT_LABEL)
+        ccImmuneLabel:SetDrawLayer(DL_OVERLAY)
+        ccImmuneLabel:SetDrawTier(DT_HIGH)
+        ccImmuneLabel:SetHidden(true)
     end
 
     return {
@@ -489,8 +542,114 @@ local function CreateBarControl(barKey, config)
         label = label,
         shieldLabel = shieldLabel,
         targetNameLabel = targetNameLabel,
+        ccImmuneLabel = ccImmuneLabel,
         animValue = nil
     }
+end
+
+-- Création des contrôles avancés pour les alertes (Texte Resolve raturé et Minuteur CC Immune déplaçable)
+local function CreateAlertOverlayControls()
+    local wm = WINDOW_MANAGER
+
+    -- 1. Minuteur CC Immune déplaçable
+    local ccFrame = wm:CreateTopLevelWindow(TrueRessourceBars.name .. "CCImmuneTimerFrame")
+    ccFrame:SetDimensions(180, 40)
+    ccFrame:SetDrawTier(DT_HIGH)
+
+    local ccTimerLabel = wm:CreateControl(TrueRessourceBars.name .. "CCTimerLabel", ccFrame, CT_LABEL)
+    ccTimerLabel:SetAnchor(CENTER, ccFrame, CENTER, 0, 0)
+    ccTimerLabel:SetDrawLayer(DL_OVERLAY)
+    ccTimerLabel:SetDrawTier(DT_HIGH)
+    ccFrame.label = ccTimerLabel
+    TrueRessourceBars.ccTimerFrame = ccFrame
+
+    -- 2. Cadre de texte "Resolve Maj Min" avec barres de rature physiques
+    local resFrame = wm:CreateTopLevelWindow(TrueRessourceBars.name .. "ResolveTextFrame")
+    resFrame:SetDimensions(250, 30)
+    resFrame:SetDrawTier(DT_HIGH)
+
+    local container = wm:CreateControl(TrueRessourceBars.name .. "ResolveContainer", resFrame, CT_CONTROL)
+    container:SetAnchor(CENTER, resFrame, CENTER, 0, 0)
+    container:SetDimensions(220, 26)
+
+    -- Morceau 1 : "Resolve "
+    local labelRes = wm:CreateControl(TrueRessourceBars.name .. "LblResolve", container, CT_LABEL)
+    labelRes:SetAnchor(LEFT, container, LEFT, 0, 0)
+    labelRes:SetText("Resolve ")
+
+    local strikeRes = wm:CreateControl(TrueRessourceBars.name .. "StrikeResolve", labelRes, CT_TEXTURE)
+    strikeRes:SetAnchor(LEFT, labelRes, LEFT, -2, 0)
+    strikeRes:SetAnchor(RIGHT, labelRes, RIGHT, 2, 0)
+    strikeRes:SetHeight(2)
+    strikeRes:SetDrawLayer(DL_OVERLAY)
+    strikeRes:SetDrawTier(DT_HIGH)
+    strikeRes:SetHidden(true)
+
+    -- Morceau 2 : "Maj "
+    local labelMaj = wm:CreateControl(TrueRessourceBars.name .. "LblMaj", container, CT_LABEL)
+    labelMaj:SetAnchor(LEFT, labelRes, RIGHT, 2, 0)
+    labelMaj:SetText("Maj ")
+
+    local strikeMaj = wm:CreateControl(TrueRessourceBars.name .. "StrikeMaj", labelMaj, CT_TEXTURE)
+    strikeMaj:SetAnchor(LEFT, labelMaj, LEFT, -2, 0)
+    strikeMaj:SetAnchor(RIGHT, labelMaj, RIGHT, 0, 0)
+    strikeMaj:SetHeight(2)
+    strikeMaj:SetDrawLayer(DL_OVERLAY)
+    strikeMaj:SetDrawTier(DT_HIGH)
+    strikeMaj:SetHidden(true)
+
+    -- Morceau 3 : "Min"
+    local labelMin = wm:CreateControl(TrueRessourceBars.name .. "LblMin", container, CT_LABEL)
+    labelMin:SetAnchor(LEFT, labelMaj, RIGHT, 2, 0)
+    labelMin:SetText("Min")
+
+    local strikeMin = wm:CreateControl(TrueRessourceBars.name .. "StrikeMin", labelMin, CT_TEXTURE)
+    strikeMin:SetAnchor(LEFT, labelMin, LEFT, -2, 0)
+    strikeMin:SetAnchor(RIGHT, labelMin, RIGHT, 2, 0)
+    strikeMin:SetHeight(2)
+    strikeMin:SetDrawLayer(DL_OVERLAY)
+    strikeMin:SetDrawTier(DT_HIGH)
+    strikeMin:SetHidden(true)
+
+    resFrame.container = container
+    resFrame.labelRes = labelRes
+    resFrame.strikeRes = strikeRes
+    resFrame.labelMaj = labelMaj
+    resFrame.strikeMaj = strikeMaj
+    resFrame.labelMin = labelMin
+    resFrame.strikeMin = strikeMin
+    TrueRessourceBars.resolveFrame = resFrame
+end
+
+-- Mise à jour visuelle des alertes avancées
+local function ApplyAlertVisuals()
+    local alertCfg = TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert
+    local targetCfg = TrueRessourceBars.savedVars.bars.target
+    local fontPath = fontMapping[targetCfg.font] or "$(GAMEPAD_BOLD_FONT)"
+    local outline = GetStyleDescriptor(targetCfg.fontStyle)
+
+    -- Minuteur CC Immune déplaçable
+    if TrueRessourceBars.ccTimerFrame then
+        local frame = TrueRessourceBars.ccTimerFrame
+        frame:ClearAnchors()
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, alertCfg.ccTimerX or 0, alertCfg.ccTimerY or -225)
+
+        local tFontSize = alertCfg.ccTimerFontSize or 22
+        frame.label:SetFont(string.format("%s|%d|%s", fontPath, tFontSize, outline))
+    end
+
+    -- Texte "Resolve Maj Min" raturé
+    if TrueRessourceBars.resolveFrame then
+        local rf = TrueRessourceBars.resolveFrame
+        rf:ClearAnchors()
+        rf:SetAnchor(CENTER, GuiRoot, CENTER, alertCfg.resolveTextX or 0, alertCfg.resolveTextY or -260)
+
+        local rFontSize = alertCfg.resolveTextFontSize or 16
+        local fStr = string.format("%s|%d|%s", fontPath, rFontSize, outline)
+        rf.labelRes:SetFont(fStr)
+        rf.labelMaj:SetFont(fStr)
+        rf.labelMin:SetFont(fStr)
+    end
 end
 
 -- Application dynamique des styles visuels
@@ -598,6 +757,22 @@ local function ApplyBarVisuals(barKey)
         ui.targetNameLabel:SetFont(string.format("%s|%d|%s", fontPath, nameFontSize, outline))
         ui.targetNameLabel:SetColor(tr, tg, tb, ta)
     end
+
+    -- Mention CC Immune sur le coin de la barre (Taille 20 et Bottom Left par défaut)
+    if ui.ccImmuneLabel then
+        local alertCfg = TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert
+        local cornerPos = alertCfg.ccImmuneCorner or "Bottom Left"
+        local ccPosData = cornerPositionMapping[cornerPos] or cornerPositionMapping["Bottom Left"]
+        ui.ccImmuneLabel:ClearAnchors()
+        ui.ccImmuneLabel:SetAnchor(ccPosData.point, ui.container, ccPosData.relPoint, ccPosData.x, ccPosData.y)
+
+        local ccFSize = alertCfg.ccImmuneFontSize or 20
+        ui.ccImmuneLabel:SetFont(string.format("%s|%d|%s", fontPath, ccFSize, outline))
+        local ccr, ccg, ccb, cca = GetRGBA(alertCfg.ccImmuneColor, 0.2, 0.9, 1, 1)
+        ui.ccImmuneLabel:SetColor(ccr, ccg, ccb, cca)
+    end
+
+    ApplyAlertVisuals()
 end
 
 -- Création ou réutilisation d'un contrôle d'icône d'aura
@@ -774,7 +949,7 @@ local function LerpValue(currentVal, targetVal, speed)
     return currentVal + (targetVal - currentVal) * speed
 end
 
--- Mise à jour unitaire d'une barre
+-- Mise à jour unitaire d'une barre avec alertes
 local function UpdateSingleBar(barKey, unitTag, mechanicType)
     local ui = TrueRessourceBars.bars[barKey]
     local cfg = TrueRessourceBars.savedVars.bars[barKey]
@@ -782,16 +957,6 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
 
     if cfg.enabled == "No" then
         ui.container:SetHidden(true)
-        return
-    end
-
-    -- Gestion spécifique de la barre de vigueur de monture (uniquement en monture ou en mode aperçu)
-    local isMountBar = (barKey == "mount")
-    local isMountPreview = (isMountBar and (TrueRessourceBars.previewMode or TrueRessourceBars.previewMount) and not IsMounted())
-
-    if isMountBar and not IsMounted() and not isMountPreview then
-        ui.container:SetHidden(true)
-        ui.animValue = nil
         return
     end
 
@@ -804,13 +969,6 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
         current = 75000
         effectiveMax = 100000
         targetName = "Target Dummy"
-    elseif isMountPreview then
-        ui.container:SetHidden(false)
-        current, max, effectiveMax = GetPower(unitTag, mechanicType)
-        if effectiveMax <= 1 or current <= 0 then
-            current = 1600
-            effectiveMax = 2000
-        end
     else
         if not DoesUnitExist(unitTag) then
             ui.container:SetHidden(true)
@@ -840,6 +998,112 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
         mainVal = ui.animValue
         ghostVal = current
     end
+
+    -- Gestion des alertes sur la cible ennemie
+    local barColor = cfg.color
+
+    if barKey == "target" then
+        local alertCfg = TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert
+        local hasMajorResolve, hasMinorResolve, isCCImmune, ccDuration
+
+        if isDummyTarget then
+            hasMajorResolve = false
+            hasMinorResolve = false
+            isCCImmune = true
+            ccDuration = 4.2
+        else
+            hasMajorResolve, hasMinorResolve, isCCImmune, ccDuration = CheckTargetBuffAlerts(unitTag)
+        end
+
+        local alertsActive = (alertCfg.enabled ~= "No")
+
+        -- 1. Alerte Résolution (Couleur de la barre)
+        local resMode = alertCfg.resolveDisplayMode or "Both"
+        if alertsActive and (resMode == "Bar Color Change" or resMode == "Both") then
+            if not hasMajorResolve and not hasMinorResolve then
+                barColor = alertCfg.bothMissingColor
+            elseif not hasMajorResolve then
+                barColor = alertCfg.majorMissingColor
+            elseif not hasMinorResolve then
+                barColor = alertCfg.minorMissingColor
+            end
+        end
+
+        -- 2. Alerte Résolution (Texte raturé "Resolve Maj Min")
+        if TrueRessourceBars.resolveFrame then
+            local rf = TrueRessourceBars.resolveFrame
+            if alertsActive and (resMode == "Text Display" or resMode == "Both") and (isDummyTarget or DoesUnitExist(unitTag)) then
+                rf:SetHidden(false)
+                if not hasMajorResolve and not hasMinorResolve then
+                    -- Les deux manquent : tout est barré et tout devient rouge
+                    rf.labelRes:SetColor(1, 0.2, 0.2, 1)
+                    rf.labelMaj:SetColor(1, 0.2, 0.2, 1)
+                    rf.labelMin:SetColor(1, 0.2, 0.2, 1)
+
+                    rf.strikeRes:SetColor(1, 0.2, 0.2, 1)
+                    rf.strikeRes:SetHidden(false)
+                    rf.strikeMaj:SetColor(1, 0.2, 0.2, 1)
+                    rf.strikeMaj:SetHidden(false)
+                    rf.strikeMin:SetColor(1, 0.2, 0.2, 1)
+                    rf.strikeMin:SetHidden(false)
+                else
+                    -- "Resolve" normal
+                    rf.labelRes:SetColor(1, 1, 1, 1)
+                    rf.strikeRes:SetHidden(true)
+
+                    -- Majeure
+                    if not hasMajorResolve then
+                        rf.labelMaj:SetColor(0.7, 0.7, 0.7, 1)
+                        rf.strikeMaj:SetColor(1, 0.2, 0.2, 1)
+                        rf.strikeMaj:SetHidden(false)
+                    else
+                        rf.labelMaj:SetColor(0.2, 1, 0.4, 1)
+                        rf.strikeMaj:SetHidden(true)
+                    end
+
+                    -- Mineure
+                    if not hasMinorResolve then
+                        rf.labelMin:SetColor(0.7, 0.7, 0.7, 1)
+                        rf.strikeMin:SetColor(1, 0.2, 0.2, 1)
+                        rf.strikeMin:SetHidden(false)
+                    else
+                        rf.labelMin:SetColor(0.2, 1, 0.4, 1)
+                        rf.strikeMin:SetHidden(true)
+                    end
+                end
+            else
+                rf:SetHidden(true)
+            end
+        end
+
+        -- 3. Alerte CC Immune (Mention dans le coin de la barre)
+        local ccMode = alertCfg.ccImmuneMode or "Both"
+        if ui.ccImmuneLabel then
+            if alertsActive and isCCImmune and (ccMode == "Bar Corner Label" or ccMode == "Both") then
+                ui.ccImmuneLabel:SetText("Cc Immune")
+                ui.ccImmuneLabel:SetHidden(false)
+            else
+                ui.ccImmuneLabel:SetHidden(true)
+            end
+        end
+
+        -- 4. Alerte CC Immune (Minuteur déplaçable avec couleurs dynamiques)
+        if TrueRessourceBars.ccTimerFrame then
+            local cf = TrueRessourceBars.ccTimerFrame
+            if alertsActive and isCCImmune and (ccMode == "Movable Timer" or ccMode == "Both") then
+                cf:SetHidden(false)
+                cf.label:SetText(string.format("CC: %s", FormatTime(ccDuration)))
+                local r, g, b, a = GetCCTimerColor(ccDuration)
+                cf.label:SetColor(r, g, b, a)
+            else
+                cf:SetHidden(true)
+            end
+        end
+    end
+
+    SetBarColor(ui.barNormal, barColor)
+    SetBarColor(ui.barCenterL, barColor)
+    SetBarColor(ui.barCenterR, barColor)
 
     if cfg.drainDirection == "To Center" then
         local halfMax = effectiveMax / 2
@@ -1040,7 +1304,6 @@ local function SuppressControl(ctrl)
 end
 
 local function CleanGamepadUI()
-    -- 1. Récupération des fragments réels du joueur et de la cible
     local playerFrag = PLAYER_ATTRIBUTE_BARS_FRAGMENT or (PLAYER_ATTRIBUTE_BARS and PLAYER_ATTRIBUTE_BARS.fragment)
     local targetFrag = (GAMEPAD_TARGET_UNIT_FRAME and GAMEPAD_TARGET_UNIT_FRAME.fragment) or TARGET_UNIT_FRAME_FRAGMENT
 
@@ -1049,7 +1312,6 @@ local function CleanGamepadUI()
         targetFrag,
     }
 
-    -- 2. Nettoyage sur l'ensemble des scènes de HUD Gamepad et Standard
     local scenesToClean = {
         HUD_SCENE,
         HUD_UI_SCENE,
@@ -1069,7 +1331,6 @@ local function CleanGamepadUI()
         end
     end
 
-    -- 3. Neutralisation du conteneur des barres de ressources joueur et monture (Gamepad & Standard)
     local playerGamepadContainer = ZO_PlayerAttributeContainerGamepad or (PLAYER_ATTRIBUTE_BARS and PLAYER_ATTRIBUTE_BARS.control)
     if playerGamepadContainer then
         SuppressControl(playerGamepadContainer)
@@ -1077,14 +1338,7 @@ local function CleanGamepadUI()
     if ZO_PlayerAttribute then
         SuppressControl(ZO_PlayerAttribute)
     end
-    if ZO_PlayerAttributeMountStamina then
-        SuppressControl(ZO_PlayerAttributeMountStamina)
-    end
-    if ZO_PlayerAttributeMountStaminaGamepad then
-        SuppressControl(ZO_PlayerAttributeMountStaminaGamepad)
-    end
 
-    -- 4. Neutralisation de la barre de cible Gamepad (Contrôle et Frame interne)
     if GAMEPAD_TARGET_UNIT_FRAME then
         if GAMEPAD_TARGET_UNIT_FRAME.control then
             SuppressControl(GAMEPAD_TARGET_UNIT_FRAME.control)
@@ -1097,7 +1351,6 @@ local function CleanGamepadUI()
         SuppressControl(ZO_GamepadTargetUnitFrame)
     end
 
-    -- 5. Neutralisation des auras natives de la cible Gamepad
     local targetAuraControls = {
         ZO_GamepadTargetUnitFrameBuffs,
         ZO_GamepadTargetUnitFrameDebuffs,
@@ -1111,7 +1364,7 @@ end
 
 -- Détection des menus, discussions et tableau des scores (BG Scoreboard)
 local function ShouldHideAllUI()
-    if TrueRessourceBars.previewMode or TrueRessourceBars.previewMount then
+    if TrueRessourceBars.previewMode then
         return false
     end
 
@@ -1131,19 +1384,11 @@ local function ShouldHideAllUI()
     return false
 end
 
--- Événements des effets visuels (Détection instantanée des boucliers avec signatures distinctes)
-local function OnVisualAdded(eventCode, unitTag, unitAttributeVisual, statType, attributeType, powerType, value)
+-- Événements des effets visuels (Détection instantanée des boucliers)
+local function OnVisualAddedOrUpdated(eventCode, unitTag, unitAttributeVisual, statType, attributeType, powerType, value)
     if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
         if unitTag == "player" or unitTag == "reticleover" then
-            TrueRessourceBars.shieldCache[unitTag] = (value and value > 0) and value or 0
-        end
-    end
-end
-
-local function OnVisualUpdated(eventCode, unitTag, unitAttributeVisual, statType, attributeType, powerType, oldValue, newValue)
-    if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
-        if unitTag == "player" or unitTag == "reticleover" then
-            TrueRessourceBars.shieldCache[unitTag] = (newValue and newValue > 0) and newValue or 0
+            TrueRessourceBars.shieldCache[unitTag] = value or 0
         end
     end
 end
@@ -1168,17 +1413,25 @@ local function MasterUpdateLoop()
     TrueRessourceBars.targetBuffFrame:SetHidden(hideUI)
     TrueRessourceBars.targetDebuffFrame:SetHidden(hideUI)
 
+    if TrueRessourceBars.ccTimerFrame and hideUI then
+        TrueRessourceBars.ccTimerFrame:SetHidden(true)
+    end
+    if TrueRessourceBars.resolveFrame and hideUI then
+        TrueRessourceBars.resolveFrame:SetHidden(true)
+    end
+
     if hideUI then return end
 
     UpdateSingleBar("health", "player", MECHANIC_HEALTH)
     UpdateSingleBar("magicka", "player", MECHANIC_MAGICKA)
     UpdateSingleBar("stamina", "player", MECHANIC_STAMINA)
-    UpdateSingleBar("mount", "player", MECHANIC_MOUNT_STAMINA)
 
     if DoesUnitExist("reticleover") or TrueRessourceBars.previewMode then
         UpdateSingleBar("target", "reticleover", MECHANIC_HEALTH)
     else
         TrueRessourceBars.bars.target.container:SetHidden(true)
+        if TrueRessourceBars.ccTimerFrame then TrueRessourceBars.ccTimerFrame:SetHidden(true) end
+        if TrueRessourceBars.resolveFrame then TrueRessourceBars.resolveFrame:SetHidden(true) end
     end
 
     UpdateTargetAuras()
@@ -1213,19 +1466,7 @@ local function BuildSettingsMenu()
     local formatChoices = { "Current / Max (Percent)", "Current / Max", "Current (Percent)", "Current", "Percent" }
 
     local function CreateBarSubmenu(title, barKey, isHealth)
-        local controls = {}
-
-        if barKey == "mount" then
-            table.insert(controls, {
-                type = "checkbox",
-                name = "|c00FF00Force Show Mount Bar (Preview)|r",
-                tooltip = "Temporarily displays the mount stamina bar even when dismounted so you can position and configure it.",
-                getFunc = function() return TrueRessourceBars.previewMount end,
-                setFunc = function(v) TrueRessourceBars.previewMount = v end,
-            })
-        end
-
-        local baseControls = {
+        local controls = {
             {
                 type = "dropdown",
                 name = "Active",
@@ -1350,10 +1591,6 @@ local function BuildSettingsMenu()
             }
         }
 
-        for _, ctrl in ipairs(baseControls) do
-            table.insert(controls, ctrl)
-        end
-
         if barKey == "target" then
             table.insert(controls, {
                 type = "header",
@@ -1427,15 +1664,206 @@ local function BuildSettingsMenu()
         {
             type = "checkbox",
             name = "|c00FF00Preview Mode (Test Target & Bars)|r",
-            tooltip = "Shows dummy target bars, mount stamina bar, and dummy auras to adjust positions easily.",
+            tooltip = "Shows dummy target bars and dummy auras to adjust positions easily.",
             getFunc = function() return TrueRessourceBars.previewMode end,
             setFunc = function(v) TrueRessourceBars.previewMode = v end,
         },
         CreateBarSubmenu("Player Health Bar", "health", true),
         CreateBarSubmenu("Player Magicka Bar", "magicka", false),
         CreateBarSubmenu("Player Stamina Bar", "stamina", false),
-        CreateBarSubmenu("Player Mount Stamina Bar", "mount", false),
         CreateBarSubmenu("Target Health Bar", "target", true),
+
+        -- SOUS-MENU : Enemy Buff Alerts
+        {
+            type = "submenu",
+            name = "Enemy Buff Alerts",
+            tooltip = "Configure visual alerts on the enemy health bar based on missing buffs or CC immunity.",
+            controls = {
+                {
+                    type = "dropdown",
+                    name = "Active",
+                    tooltip = "Enable or disable enemy buff alerts.",
+                    choices = { "Yes", "No" },
+                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).enabled or "Yes" end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.enabled = v
+                    end,
+                },
+                {
+                    type = "header",
+                    name = "Missing Resolve Alerts (Resolve Maj Min)",
+                },
+                {
+                    type = "dropdown",
+                    name = "Resolve Display Mode",
+                    tooltip = "Choose how missing Resolve buffs are signaled (Bar Color, Strikethrough Text, or Both).",
+                    choices = { "Bar Color Change", "Text Display", "Both" },
+                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).resolveDisplayMode or "Both" end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.resolveDisplayMode = v
+                    end,
+                },
+                {
+                    type = "slider",
+                    name = "Text Position X (Resolve Maj Min)",
+                    min = -1500, max = 1500, step = 5,
+                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).resolveTextX or 0 end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.resolveTextX = v
+                        ApplyAlertVisuals()
+                    end,
+                },
+                {
+                    type = "slider",
+                    name = "Text Position Y (Resolve Maj Min)",
+                    min = -1000, max = 1000, step = 5,
+                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).resolveTextY or -260 end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.resolveTextY = v
+                        ApplyAlertVisuals()
+                    end,
+                },
+                {
+                    type = "slider",
+                    name = "Text Font Size (Resolve Maj Min)",
+                    min = 10, max = 36, step = 1,
+                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).resolveTextFontSize or 16 end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.resolveTextFontSize = v
+                        ApplyAlertVisuals()
+                    end,
+                },
+                {
+                    type = "colorpicker",
+                    name = "Missing Minor Resolve Bar Color",
+                    tooltip = "Color applied when target is missing Minor Resolve only.",
+                    getFunc = function()
+                        local c = (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).minorMissingColor
+                        return c.r, c.g, c.b, c.a
+                    end,
+                    setFunc = function(r, g, b, a)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.minorMissingColor = { r = r, g = g, b = b, a = a }
+                    end,
+                },
+                {
+                    type = "colorpicker",
+                    name = "Missing Major Resolve Bar Color",
+                    tooltip = "Color applied when target is missing Major Resolve only.",
+                    getFunc = function()
+                        local c = (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).majorMissingColor
+                        return c.r, c.g, c.b, c.a
+                    end,
+                    setFunc = function(r, g, b, a)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.majorMissingColor = { r = r, g = g, b = b, a = a }
+                    end,
+                },
+                {
+                    type = "colorpicker",
+                    name = "Missing Both Resolves Bar Color",
+                    tooltip = "Color applied when target is missing BOTH Major and Minor Resolve at the same time.",
+                    getFunc = function()
+                        local c = (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).bothMissingColor
+                        return c.r, c.g, c.b, c.a
+                    end,
+                    setFunc = function(r, g, b, a)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.bothMissingColor = { r = r, g = g, b = b, a = a }
+                    end,
+                },
+                {
+                    type = "header",
+                    name = "CC Immunity Alert (Countdown & Corners)",
+                },
+                {
+                    type = "dropdown",
+                    name = "CC Immune Display Mode",
+                    tooltip = "Choose between displaying CC Immune in the corner of the bar, on a movable timer, or both.",
+                    choices = { "Bar Corner Label", "Movable Timer", "Both" },
+                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccImmuneMode or "Both" end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.ccImmuneMode = v
+                        ApplyBarVisuals("target")
+                    end,
+                },
+                {
+                    type = "dropdown",
+                    name = "CC Immune Corner Position",
+                    tooltip = "Corner position on the enemy bar for the 'Cc Immune' indicator.",
+                    choices = cornerPositionChoices,
+                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccImmuneCorner or "Bottom Left" end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.ccImmuneCorner = v
+                        ApplyBarVisuals("target")
+                    end,
+                },
+                {
+                    type = "slider",
+                    name = "Corner Text Size (Cc Immune)",
+                    min = 10, max = 36, step = 1,
+                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccImmuneFontSize or 20 end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.ccImmuneFontSize = v
+                        ApplyBarVisuals("target")
+                    end,
+                },
+                {
+                    type = "colorpicker",
+                    name = "Corner Text Color (Cc Immune)",
+                    getFunc = function()
+                        local c = (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccImmuneColor
+                        return c.r, c.g, c.b, c.a
+                    end,
+                    setFunc = function(r, g, b, a)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.ccImmuneColor = { r = r, g = g, b = b, a = a }
+                        ApplyBarVisuals("target")
+                    end,
+                },
+                {
+                    type = "slider",
+                    name = "Movable Timer Position X",
+                    min = -1500, max = 1500, step = 5,
+                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccTimerX or 0 end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.ccTimerX = v
+                        ApplyAlertVisuals()
+                    end,
+                },
+                {
+                    type = "slider",
+                    name = "Movable Timer Position Y",
+                    min = -1000, max = 1000, step = 5,
+                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccTimerY or -225 end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.ccTimerY = v
+                        ApplyAlertVisuals()
+                    end,
+                },
+                {
+                    type = "slider",
+                    name = "Movable Timer Font Size",
+                    min = 12, max = 44, step = 1,
+                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccTimerFontSize or 22 end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
+                        TrueRessourceBars.savedVars.enemyBuffAlert.ccTimerFontSize = v
+                        ApplyAlertVisuals()
+                    end,
+                },
+            }
+        },
 
         -- Sous-menu : Filtres des Auras
         {
@@ -1731,8 +2159,6 @@ end
 
 -- Réactivation et masquage lors du changement de zone
 local function OnPlayerActivated()
-    TrueRessourceBars.shieldCache["player"] = 0
-    TrueRessourceBars.shieldCache["reticleover"] = 0
     CleanGamepadUI()
 end
 
@@ -1744,21 +2170,15 @@ local function OnAddOnLoaded(eventCode, addonName)
     -- Maintien strict de la version 9 des SavedVariables
     TrueRessourceBars.savedVars = ZO_SavedVars:NewAccountWide("TrueRessourceBarsSV", 9, nil, defaults)
 
-    -- Sécurité de rétrocompatibilité pour les SavedVariables existantes en version 9
-    if not TrueRessourceBars.savedVars.bars.mount then
-        TrueRessourceBars.savedVars.bars.mount = ZO_DeepTableCopy(defaults.bars.mount)
-    end
-
     local wm = WINDOW_MANAGER
     TrueRessourceBars.root = wm:CreateTopLevelWindow("TrueRessourceBarsRoot")
     TrueRessourceBars.root:SetAnchorFill()
 
-    -- Construction des 5 barres de ressource (incluant la monture)
+    -- Construction des 4 barres de ressource
     TrueRessourceBars.bars = {
         health = CreateBarControl("health", TrueRessourceBars.savedVars.bars.health),
         magicka = CreateBarControl("magicka", TrueRessourceBars.savedVars.bars.magicka),
         stamina = CreateBarControl("stamina", TrueRessourceBars.savedVars.bars.stamina),
-        mount = CreateBarControl("mount", TrueRessourceBars.savedVars.bars.mount),
         target = CreateBarControl("target", TrueRessourceBars.savedVars.bars.target)
     }
 
@@ -1767,17 +2187,21 @@ local function OnAddOnLoaded(eventCode, addonName)
     TrueRessourceBars.targetBuffFrame:SetDrawTier(DT_HIGH)
     TrueRessourceBars.targetDebuffFrame:SetDrawTier(DT_HIGH)
 
+    -- Création des contrôles pour les alertes avancées (Timer CC Immune & Texte Resolve raturé)
+    CreateAlertOverlayControls()
+
     for key in pairs(TrueRessourceBars.bars) do
         ApplyBarVisuals(key)
     end
     UpdateAuraPositions()
+    ApplyAlertVisuals()
 
     CleanGamepadUI()
     BuildSettingsMenu()
 
     -- Enregistrement des événements de détection des boucliers et cible
-    EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, OnVisualAdded)
-    EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, OnVisualUpdated)
+    EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, OnVisualAddedOrUpdated)
+    EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, OnVisualAddedOrUpdated)
     EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, OnVisualRemoved)
     EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_RETICLE_TARGET_CHANGED, OnReticleTargetChanged)
 

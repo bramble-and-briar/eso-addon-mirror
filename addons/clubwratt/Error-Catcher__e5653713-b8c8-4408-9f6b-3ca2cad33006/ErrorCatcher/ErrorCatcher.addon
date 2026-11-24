@@ -1,0 +1,29 @@
+## Title: Error Catcher
+## Author: clubwratt
+## Version: 0.1.0
+## AddOnVersion: 100
+## APIVersion: 101050 101051
+## Description: The author's personal debugging tool, published only so it can be installed on a console. It writes to LibConsoleLogger: each Lua error with its whole call chain, every dialog shown and who asked for it, which add-on wraps which game function, and the moment a button is built that the game does not trust.
+## SavedVariables: ErrorCatcherSavedVars
+## DependsOn: LibConsoleLogger
+## DevId: e5653713-b8c8-4408-9f6b-3ca2cad33006
+
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+
+ErrorCatcher.lua
+ErrorCatcherTypes.lua
+ErrorCatcherState.lua
+ErrorCatcherLogUtils.lua
+ErrorCatcherGameUtils.lua
+ErrorCatcherTraceUtils.lua
+ErrorCatcherErrorUtils.lua
+ErrorCatcherErrorActions.lua
+ErrorCatcherButtonUtils.lua
+ErrorCatcherButtonActions.lua
+ErrorCatcherHookUtils.lua
+ErrorCatcherHookActions.lua
+ErrorCatcherScanUtils.lua
+ErrorCatcherScanActions.lua
+SlashCommandUtils.lua
+SlashCommandActions.lua
+Main.lua

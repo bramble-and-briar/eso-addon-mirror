@@ -1,0 +1,12 @@
+<Bindings>
+  <Layer name="SI_KEYBINDINGS_CATEGORY_GENERAL">
+    <Category name="FurnitureShoppingList">
+      <Action name="SL_ADD">
+          <Down>FurnitureShoppingListAdd_Crafting()</Down>
+      </Action>
+      <Action name="SL_TOGGLE">
+          <Down>FurnitureShoppingListWindow_Toggle()</Down>
+      </Action>
+    </Category>
+  </Layer>
+</Bindings>

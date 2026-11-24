@@ -1,8 +1,8 @@
 ## Title: Set Hunter
 ## Description: A checklist for the gear sets you're farming or buying. In the Sticker Book, highlight a piece and press X to add it to your list. A panel on the side of the screen shows each set's Sticker Book progress, the transmute crystal cost to reconstruct, and which pieces you still need in the trait you want (Divines for armor by default). Pieces are crossed off when you pick them up or buy them. At a guild trader, press L3 to search for your list by exact trait or to fill your Sticker Book, and listings you need are marked NEED, and pieces that would fill an empty Sticker Book slot in another trait are marked STICKER. An optional trader filter shows only the gear, motifs, furniture plans, recipes, collectibles and furnishings you do not have yet. Set a trait, quality and enchant for each piece, then save and load named builds in Settings > Add-Ons > Set Hunter. At a transmute, crafting or enchanting station it shows what it can make and what materials are missing; one press makes it all. The panel also lists the Sticker Book pieces you still need from the zone, dungeon or trial you are in. Optional auto-bind fills your Sticker Book from new loot, with exceptions for pieces you want to sell. Training Kits craft a full set of XP gear with matching glyphs and jewelry traits for levelling a new character. Options are in Settings > Add-Ons > Set Hunter. Find it useful? Gold donations by in-game mail to @DextrousDigits (Xbox NA or EU) are very welcome.
 ## Author: DextrousDigits
-## Version: 2.17.1
-## AddOnVersion: 38
+## Version: 2.17.2
+## AddOnVersion: 39
 ## APIVersion: 101051
 ## SavedVariables: ESOCSetHunter_SV
 ## OptionalDependsOn: LibHarvensAddonSettings LibLazyCrafting

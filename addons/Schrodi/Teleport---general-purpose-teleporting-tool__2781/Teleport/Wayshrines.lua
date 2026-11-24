@@ -1,3 +1,4 @@
+local Teleport = Teleport
 Teleport.Wayshrines = {}
 
 local info  = Teleport.info

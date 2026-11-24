@@ -1,11 +1,52 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/AndrewRossProjects/SimpleDPS-Meter__2849",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "AndrewRossProjects",
   "canonical_id": "esoui:2849",
   "category_id": "149",
   "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
+    {
+      "name": "Season Zero",
+      "version": "11.3.0"
+    },
+    {
+      "name": "Seasons of the Worm Cult Pt2",
+      "version": "11.2.0"
+    },
+    {
+      "name": "Feast of Shadows",
+      "version": "11.1.0"
+    },
+    {
+      "name": " Seasons of the Worm Cult Pt1",
+      "version": "11.0.0"
+    },
+    {
+      "name": "Fallen Banners",
+      "version": "10.3.5"
+    },
+    {
+      "name": "Update 44",
+      "version": "10.2.0"
+    },
+    {
+      "name": "Update 43",
+      "version": "10.1.0"
+    },
     {
       "name": "Gold Road",
       "version": "10.0.0"
@@ -37,18 +78,14 @@
     "SimpleDPS"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2849/",
-  "fingerprint": "ef8419ff70c3ab4849660216db759d2b0c7517156b01b01b68becd69dd522c3c",
+  "fingerprint": "722b9f5a47603b839fa62fa8924225dca1ac818af854857d3278e10eec852ff5",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw9634.png",
+    "https://cdn-eso.mmoui.com/preview/pvw9660.png",
     "https://cdn-eso.mmoui.com/preview/pvw9657.png",
     "https://cdn-eso.mmoui.com/preview/pvw9658.png",
     "https://cdn-eso.mmoui.com/preview/pvw9659.png",
-    "https://cdn-eso.mmoui.com/preview/pvw9660.png",
     "https://cdn-eso.mmoui.com/preview/pvw9661.png",
-    "https://cdn-eso.mmoui.com/preview/pvw9662.png",
-    "https://cdn-eso.mmoui.com/preview/pvw9663.png",
-    "https://cdn-eso.mmoui.com/preview/pvw9664.png",
-    "https://cdn-eso.mmoui.com/preview/pvw9665.png"
+    "https://cdn-eso.mmoui.com/preview/pvw9634.png"
   ],
   "platform": "pc",
   "published": true,
@@ -56,11 +93,11 @@
   "source_id": "2849",
   "source_url": "https://www.esoui.com/downloads/info2849-SimpleDPSMeter.html",
   "stats": {
-    "downloads": 91796,
+    "downloads": 93769,
     "favorites": 38,
-    "monthly_downloads": 616
+    "monthly_downloads": 405
   },
   "title": "SimpleDPS Meter",
-  "updated_at": 1718908488000,
-  "version": "4.1.101042"
+  "updated_at": 1795498345000,
+  "version": "4.1.101052"
 }

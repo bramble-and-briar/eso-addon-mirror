@@ -1,10 +1,10 @@
-local CT = FuryCT
+local CT = FurysCharacterTracker
 local U = {}
 CT.Util = U
 
 function U.Print(fmt, ...)
     local text = select("#", ...) > 0 and string.format(fmt, ...) or fmt
-    local line = "|cD4AF37[Characters]|r " .. text
+    local line = "|cA08CFF[Characters]|r " .. text
     CHAT_ROUTER:AddSystemMessage(line)
 end
 

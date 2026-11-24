@@ -42,12 +42,12 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ImpitoyableStack](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tenshiraito/ImpitoyableStack__4168) | Tenshiraito | PC / Mac | 1.1 |
 | [Importers for Master Merchant 3.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Importers-for-Master-Merchant-3.0__3334) | Sharlikran | PC / Mac | 1.03 |
 | [Impressive Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/Impressive-Stats__4032) | imPDA | PC / Mac | 1.5.8 |
-| [Improved Achievement Categories](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Improved-Achievement-Categories__3114) | MrPikPik | PC / Mac | 1.0.5 |
+| [Improved Achievement Categories](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Improved-Achievement-Categories__3114) | MrPikPik | PC / Mac | 1.0.6 |
 | [Improved Attribute Bars and Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Attribute-Bars-and-Target-Frame__11036cca-172c-4428-83fe-301cb496b33e) | code65536 | Console | — |
 | [Improved Attribute Bars and Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Attribute-Bars-and-Target-Frame__4884) | code65536 | PC / Mac | 1.3.0 |
 | [Improved Companion Rapport Information](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Companion-Rapport-Information__3103) | code65536 | PC / Mac | 1.0.0 |
 | [Improved Death Recap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/Improved-Death-Recap__1319) | Solinur | PC / Mac | 1.0.2 |
-| [Improved Death Recap: Vanilla UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Improved-Death-Recap-Vanilla-UI__5097) | Schrodi | PC / Mac | 3.1.0 |
+| [Improved Death Recap: Vanilla UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Improved-Death-Recap-Vanilla-UI__5097) | Schrodi | PC / Mac | 3.1.1 |
 | [Improved Golden Pursuit Filters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Improved-Golden-Pursuit-Filters__4005) | MrPikPik | PC / Mac | 1.6.0 |
 | [Improved Item Set Collection Filters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Improved-Item-Set-Collection-Filters__3402) | MrPikPik | PC / Mac | 1.1.1 |
 | [Improved Night Market HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Night-Market-HUD__b344faa0-0b93-431e-ae22-befcaaa36333) | code65536 | Console | — |
@@ -131,9 +131,9 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Item Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Item-Finder__1541) | Rhyono | PC / Mac | 1.31 |
 | [Item Finder (PTS)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Item-Finder-PTS__1980) | Rhyono | PC / Mac | 1.31 |
 | [Item Quality as Text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cavalier07/Item-Quality-as-Text__745) | Cavalier07 | PC / Mac | 1.3.0 |
-| [Item Saver Lite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Item-Saver-Lite__4335) | atharti | PC / Mac | 2.4 |
+| [Item Saver Lite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Item-Saver-Lite__4335) | atharti | PC / Mac | 2.5 |
 | [Item Scripting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Amerlite/Item-Scripting__2089) | Amerlite | PC / Mac | 2.3 |
-| [Item Set Browser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Item-Set-Browser__1480) | code65536 | PC / Mac | 4.7.2 |
+| [Item Set Browser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Item-Set-Browser__1480) | code65536 | PC / Mac | 4.7.3 |
 | [Item Set Collection Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/Item-Set-Collection-Tracker__2816) | zelenin | PC / Mac | 0.4.1 |
 | [Item Sets Summary Page Percentages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tombaa/Item-Sets-Summary-Page-Percentages__2831) | tombaa | PC / Mac | 0.4.2 |
 | [Item Stack Splitter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Item-Stack-Splitter__fd260c09-574e-4494-9d13-dad835b05662) | Eldibabalo | Console | — |

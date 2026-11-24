@@ -1,6 +1,6 @@
 local L = SimpleGroupDPS_Translate or function(text) return text end
 local ADDON_NAME = "SimpleGroupDPS"
-local ADDON_VERSION = "2.0.6"
+local ADDON_VERSION = "2.0.7"
 local UPDATE_INTERVAL_MS = 300
 local wm = WINDOW_MANAGER
 local meter, panel = SimpleGroupDPS_DamageMeter, SimpleGroupDPS_DPSPanel
@@ -420,6 +420,7 @@ local function onAddonLoaded(_, name)
         receiver:MarkResult()
         updateUI()
     end
+    SimpleGroupDPS_WamasuLover:Initialize()
     meter:Initialize(settings.lastSummary)
     createUI()
     receiver.onChanged = function() updateUI() end

@@ -1,6 +1,8 @@
--- Last Rites 1.0.9
-local NAME, TITLE, VERSION = "LastRites", "Last Rites", "1.0.9"
-local WINDOW_MS, CAPACITY, HISTORY_LIMIT = 15000, 384, 10
+-- Last Rites 1.0.14
+local NAME, TITLE, VERSION = "LastRites", "Last Rites", "1.0.14"
+local CAPACITY, HISTORY_LIMIT = 30, 10
+local CAPTURE_WINDOWS = {["5 seconds"] = 5000, ["10 seconds"] = 10000,
+    ["15 seconds"] = 15000, ["20 seconds"] = 20000, ["30 seconds"] = 30000}
 local PAGE_SIZE, SCENE_NAME = 7, "LastRitesHistory"
 local JOURNAL_ICON = "EsoUI/Art/TreeIcons/Gamepad/gp_tutorial_idexIcon_combat.dds"
 local saved, scene, recap, rowPool, liveKeys, journalKeys, livePrompt
@@ -16,6 +18,7 @@ local JOURNAL_SORTS = {
 local journalEntryInstalled = false
 local deathIndex, pageIndex = 1, 1
 local ring, first, count = {}, 1, 0
+local lastDroppedTime
 local observedPlayers, siegeAbilities = {}, {}
 local pending
 local filters = {
@@ -28,7 +31,7 @@ local filters = {
     {"Earth", "Earth"}, {"Drown", "Drowning"}, {"Generic", "Generic"},
     {"Unknown", "Unknown element"},
 }
-local defaults = {mode = "Both", reopenRecap = true, sources = "One timeline", order = "Chronological", filters = {}, deaths = {}}
+local defaults = {mode = "Both", captureWindow = "30 seconds", reopenRecap = true, sources = "One timeline", order = "Chronological", filters = {}, deaths = {}}
 for _, filter in ipairs(filters) do defaults.filters[filter[1]] = true end
 
 local results, elements = {}, {}
@@ -90,6 +93,17 @@ end
 
 local function ResetCapture()
     ring, first, count = {}, 1, 0
+    lastDroppedTime = nil
+end
+
+local function TrimCapture(now)
+    local cutoff = now - (CAPTURE_WINDOWS[saved.captureWindow] or 30000)
+    while count > 0 and ring[first].time < cutoff do
+        ring[first] = nil
+        first = first % CAPACITY + 1
+        count = count - 1
+    end
+    return cutoff
 end
 
 local function RememberPlayer(unitTag)
@@ -97,8 +111,9 @@ local function RememberPlayer(unitTag)
     local name = CleanName(GetUnitName(unitTag))
     local display = CleanName(GetUnitDisplayName(unitTag))
     local now = GetGameTimeMilliseconds()
-    if name ~= "" then observedPlayers[name] = now end
-    if display ~= "" then observedPlayers[display] = now end
+    local identity = {time = now, display = display}
+    if name ~= "" then observedPlayers[name] = identity end
+    if display ~= "" then observedPlayers[display] = identity end
 end
 
 local function IsSiege(abilityId, ability)
@@ -137,18 +152,22 @@ local function OnCombat(_, result, isError, ability, _, slot, source, sourceType
     if not ability or ability == "" then ability = kind == "Environment" and "Environment" or "Unknown ability" end
     local duel, opponent, opponentDisplay
     if pvp then duel, opponent, opponentDisplay = GetDuelInfo() end
-    local player = sourceType == COMBAT_UNIT_TYPE_GROUP
+    local selfCast = sourceType == COMBAT_UNIT_TYPE_PLAYER or (sourceId and sourceId > 0 and sourceId == targetId)
+    local player = selfCast or sourceType == COMBAT_UNIT_TYPE_GROUP
         or (sourceType == COMBAT_UNIT_TYPE_OTHER and IsDecoratedDisplayName(source))
         or (duel == DUEL_STATE_DUELING and source ~= ""
             and (source == CleanName(opponent) or source == CleanName(opponentDisplay)))
     local health, maxHealth = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
     local physicalResist = GetPlayerStat(STAT_PHYSICAL_RESIST, STAT_BONUS_OPTION_APPLY_BONUS)
     local spellResist = GetPlayerStat(STAT_SPELL_RESIST, STAT_BONUS_OPTION_APPLY_BONUS)
+    TrimCapture(now)
     local position = (first + count - 1) % CAPACITY + 1
+    if count == CAPACITY then lastDroppedTime = ring[position].time end
     ring[position] = {
         time = now, pvp = pvp, name = source, sourceId = sourceId, ability = ability,
         kind = kind, element = elements[damageType] or "Unknown", amount = damage,
-        player = player, siege = pvp and (IsInAvAZone() or IsInImperialCity()) and IsSiege(abilityId, ability),
+        player = player, displayName = selfCast and CleanName(GetUnitDisplayName("player")) or nil,
+        siege = pvp and (IsInAvAZone() or IsInImperialCity()) and IsSiege(abilityId, ability),
         critical = result == ACTION_RESULT_CRITICAL_DAMAGE or result == ACTION_RESULT_DOT_TICK_CRITICAL
             or result == ACTION_RESULT_CRITICAL_HEAL or result == ACTION_RESULT_HOT_TICK_CRITICAL,
         slot = slot, abilityId = abilityId,
@@ -167,21 +186,35 @@ local function FinishDeath()
     if not death then return end
     pending = nil
     local players = {}
-    if death.pvp then
-        for index = 1, GetNumKillingAttacks() do
-            local raw, _, _, _, player, _, _, minion, display = GetKillingAttackerInfo(index)
-            if player and (not minion or minion == "") then
-                players[CleanName(raw)] = true
-                players[CleanName(display)] = true
-            end
+    for index = 1, GetNumKillingAttacks() do
+        local raw, _, _, _, player, _, _, minion, display, platform = GetKillingAttackerInfo(index)
+        if player and (not minion or minion == "") then
+            raw, display, platform = CleanName(raw), CleanName(display), CleanName(platform)
+            local identity = {display = platform ~= "" and platform or display}
+            if raw ~= "" then players[raw] = identity end
+            if display ~= "" then players[display] = identity end
+            if platform ~= "" then players[platform] = identity end
         end
     end
     local accepted = {}
     for _, hit in ipairs(death.hits) do
         local observed = observedPlayers[hit.name]
-        local known = hit.name ~= "" and (players[hit.name]
-            or (observed and math.abs(observed - hit.time) <= 30000))
+        if observed and math.abs(observed.time - hit.time) > 30000 then observed = nil end
+        local known = players[hit.name] or observed
         if hit.kind == "Heal" or not death.pvp or (hit.eligible and (hit.siege or hit.player or known)) then
+            local native = players[hit.name]
+            local display = hit.displayName
+            if (not display or display == "") and native then display = native.display end
+            if (not display or display == "") and observed then display = observed.display end
+            if display and display ~= "" then
+                hit.displayName = display
+            elseif IsDecoratedDisplayName(hit.name) then
+                hit.displayName = hit.name
+            elseif hit.player or known then
+                hit.displayName = nil
+                hit.name = ""
+                hit.unknownPlayer = true
+            end
             hit.age = death.time - hit.time
             hit.time, hit.pvp, hit.eligible, hit.player = nil, nil, nil, nil
             accepted[#accepted + 1] = hit
@@ -205,13 +238,14 @@ local function OnDeath()
         return
     end
     ReopenDeathRecap(pvp)
+    local cutoff = TrimCapture(now)
     pending = {
         time = now, date = GetDateStringFromTimestamp(GetTimeStamp()), clock = GetTimeString(),
-        zone = GetUnitZone("player"), character = CleanName(GetUnitName("player")), pvp = pvp, hits = {}, excluded = 0, full = count == CAPACITY,
+        zone = GetUnitZone("player"), character = CleanName(GetUnitName("player")), pvp = pvp, hits = {}, excluded = 0, full = lastDroppedTime ~= nil and lastDroppedTime >= cutoff,
     }
     for offset = 0, count - 1 do
         local hit = ring[(first + offset - 1) % CAPACITY + 1]
-        if hit.pvp == pvp and now - hit.time <= WINDOW_MS then
+        if hit.pvp == pvp then
             pending.hits[#pending.hits + 1] = hit
         end
     end
@@ -232,8 +266,10 @@ local function Bucket(list, index, key, name)
 end
 
 local function SourceLabel(hit)
-    if hit.siege then return hit.name ~= "" and hit.name .. " [Siege]" or "Siege" end
-    return hit.name ~= "" and hit.name or "Unknown source"
+    local name = hit.displayName or hit.name
+    if name ~= "" then return hit.siege and name .. " [Siege]" or name end
+    if hit.siege then return "Siege" end
+    return hit.unknownPlayer and "Unknown player" or "Unknown source"
 end
 
 local function BuildRows(death, sourceMode, order)
@@ -241,11 +277,11 @@ local function BuildRows(death, sourceMode, order)
     if sourceMode ~= "By attacker" then sources[1] = {} end
     for _, hit in ipairs(death.hits) do
         if saved.filters[hit.kind] and (hit.kind == "Heal" or saved.filters[hit.element]) then
-            local key = hit.name
+            local key = hit.displayName or hit.name
             if key == "" then key = hit.sourceId and hit.sourceId > 0 and hit.sourceId or SourceLabel(hit) end
             local group = sources[1]
             if sourceMode == "By attacker" then
-                local heading = hit.name ~= "" and hit.name or SourceLabel(hit)
+                local heading = SourceLabel(hit)
                 group = Bucket(sources, sourceKeys, key, heading)
             end
             group[#group + 1] = hit
@@ -329,8 +365,21 @@ end
 local function FormatHitSnapshot(hit)
     if hit.maxHealth == nil or hit.health == nil
         or hit.physicalResist == nil or hit.spellResist == nil then return "" end
-    return string.format("HP %d/%d  ·  Phys %d  ·  Spell %d",
-        hit.health, hit.maxHealth, hit.physicalResist, hit.spellResist)
+    local healthColor = "FFD700"
+    if hit.health < hit.maxHealth then
+        if hit.kind == "Heal" then
+            healthColor = "8CFF8F"
+        elseif hit.kind == "Shielded" or hit.kind == "Absorbed" then
+            healthColor = "A6DEFF"
+        else
+            healthColor = "FF7070"
+        end
+    end
+    local function Number(value)
+        return zo_strformat(SI_NUMBER_FORMAT, value)
+    end
+    return string.format("HP: |c%s%s|r / |cFFD700%s|r  |  Resistances: Physical %s  Spell %s",
+        healthColor, Number(hit.health), Number(hit.maxHealth), Number(hit.physicalResist), Number(hit.spellResist))
 end
 
 local function FormatHitAmount(hit)
@@ -343,6 +392,7 @@ local function FormatHitAmount(hit)
     return prefix .. zo_strformat(SI_NUMBER_FORMAT, hit.amount)
 end
 
+local renderGeneration = 0
 local function Refresh()
     if not view then return end
     local death
@@ -350,7 +400,7 @@ local function Refresh()
     else death = latestDeath end
     local sorting = view == "journal" and JOURNAL_SORTS[journalSortIndex] or saved
     local rows = death and BuildRows(death, sorting.sources, sorting.order) or {}
-    local pageSize = view == "live" and math.max(1, #rows) or PAGE_SIZE
+    local pageSize = view == "latest" and PAGE_SIZE or math.max(1, #rows)
     pageCount = math.max(1, math.ceil(#rows / pageSize))
     pageIndex = math.min(pageIndex, pageCount)
 
@@ -366,7 +416,8 @@ local function Refresh()
         else
             context = latestSaved and "Saved to Journal" or "Last death  |  " .. death.clock
         end
-        status = string.format("%s  |  %s  |  Page %d/%d", context, death.pvp and "PvP" or "PvE", pageIndex, pageCount)
+        status = string.format("%s  |  %s", context, death.pvp and "PvP" or "PvE")
+        if view == "latest" then status = status .. string.format("  |  Page %d/%d", pageIndex, pageCount) end
         if death.full then status = status .. "  |  Buffer full" end
         if #rows == 0 then status = status .. "  |  No matching hits" end
     end
@@ -375,66 +426,48 @@ local function Refresh()
     rowPool:ReleaseAllObjects()
     local parent = scroll:GetNamedChild("Attacks")
     local previous
-    for index = 1, pageSize do
+    local function RenderRow(index)
         local hit = rows[(pageIndex - 1) * pageSize + index]
-        if not hit then break end
-        local row = rowPool:AcquireObject(index)
-        local icon = row:GetNamedChild("Icon")
-        local attackText = row:GetNamedChild("AttackText")
-        local attacker = attackText:GetNamedChild("AttackerName")
-        local name = attackText:GetNamedChild("AttackName")
-        local iconTexture = hit.abilityId and hit.abilityId > 0 and GetAbilityIcon(hit.abilityId)
-        icon:SetTexture(iconTexture and iconTexture ~= "" and iconTexture or FALLBACK_ICON)
-        icon:SetHidden(hit.heading ~= nil)
-        row:GetNamedChild("SkillStyle"):SetHidden(true)
-        row:GetNamedChild("NumAttackHits"):SetHidden(true)
-        attacker:SetHidden(hit.heading ~= nil)
-        local damage = row:GetNamedChild("Damage")
-        local damageLabel = row:GetNamedChild("DamageLabel")
-        local timestamp = row.lastRitesTimestamp
-        if not timestamp then
-            timestamp = WINDOW_MANAGER:CreateControl(row:GetName() .. "Timestamp", row, CT_LABEL)
-            timestamp:SetAnchor(RIGHT, icon, LEFT, -12)
-            row.lastRitesTimestamp = timestamp
-        end
-        local snapshot = row.lastRitesSnapshot
-        if not snapshot then
-            snapshot = WINDOW_MANAGER:CreateControl(row:GetName() .. "Snapshot", attackText, CT_LABEL)
-            snapshot:SetFont("ZoFontGamepad22")
-            snapshot:SetAnchor(TOPLEFT, name, BOTTOMLEFT)
-            snapshot:SetAnchor(TOPRIGHT, name, BOTTOMRIGHT)
-            row.lastRitesSnapshot = snapshot
-        end
-        local snapshotText = hit.heading and "" or FormatHitSnapshot(hit)
-        snapshot:SetText(snapshotText)
-        snapshot:SetHidden(snapshotText == "")
-        timestamp:SetFont(damage:GetFont())
-        timestamp:SetHidden(hit.heading ~= nil)
-        damage:SetHidden(hit.heading ~= nil)
-        damageLabel:SetHidden(hit.heading ~= nil)
-        name:ClearAnchors()
-        if hit.heading then
-            name:SetAnchor(TOPLEFT, attackText, TOPLEFT)
-            name:SetAnchor(TOPRIGHT, attackText, TOPRIGHT)
-            name:SetText(hit.heading)
-        else
-            name:SetAnchor(TOPLEFT, attacker, BOTTOMLEFT)
-            name:SetAnchor(TOPRIGHT, attacker, BOTTOMRIGHT)
-            name:SetText(hit.ability)
-            timestamp:SetText(string.format("-%.3fs", hit.age / 1000))
+        if not hit then return end
+        local row = rowPool:AcquireObject()
+        row:SetHidden(false)
+        local card = row.lastRitesCard
+        local heading = hit.heading ~= nil
+        local snapshot = heading and "" or FormatHitSnapshot(hit)
+        row:SetHeight(heading and 42 or (snapshot == "" and 96 or 124))
+        card.source:SetText(heading and hit.heading or SourceLabel(hit))
+        card.time:SetHidden(heading)
+        card.amount:SetHidden(heading)
+        card.skill:SetHidden(heading)
+        card.icon:SetHidden(heading)
+        card.snapshot:SetHidden(snapshot == "")
+        card.snapshot:SetText(snapshot)
+        if not heading then
+            local texture = hit.abilityId and hit.abilityId > 0 and GetAbilityIcon(hit.abilityId)
+            card.icon:SetTexture(texture and texture ~= "" and texture or FALLBACK_ICON)
+            card.time:SetText(string.format("-%.3fs", hit.age / 1000))
             local category = hit.kind == "Heal" and "Heal" or (hit.kind .. " / " .. hit.element)
-            attacker:SetText(string.format("%s  |  %s%s",
-                SourceLabel(hit), hit.critical and "Critical " or "", category))
-            damage:SetText(FormatHitAmount(hit))
-            damageLabel:SetText(RecapAmountLabel(hit.kind))
+            card.skill:SetText(string.format("%s |cCACDD0(%s%s)|r",
+                string.upper(hit.ability), hit.critical and "Critical " or "", category))
+            card.amount:SetText(FormatHitAmount(hit) .. " " .. RecapAmountLabel(hit.kind))
             local red, green, blue = RecapAmountColor(hit.kind)
-            damage:SetColor(red, green, blue, 1)
-            damageLabel:SetColor(red, green, blue, 1)
+            card.amount:SetColor(red, green, blue, 1)
         end
         row:ClearAnchors()
         row:SetAnchor(TOPLEFT, previous or parent, previous and BOTTOMLEFT or TOPLEFT, 0, previous and 10 or 0)
         previous = row
     end
+    renderGeneration = renderGeneration + 1
+    local generation = renderGeneration
+    local function RenderBatch(firstRow)
+        if generation ~= renderGeneration or not view then return end
+        local lastRow = math.min(pageSize, firstRow + 15)
+        for index = firstRow, lastRow do RenderRow(index) end
+        if lastRow < pageSize then
+            zo_callLater(function() RenderBatch(lastRow + 1) end, 0)
+        end
+    end
+    RenderBatch(1)
     ZO_Scroll_ResetToTop(recap.scrollContainer)
 end
 
@@ -492,16 +525,42 @@ end
 local function CreateViewer()
     recap = DEATH_RECAP
     local parent = recap.scrollControl:GetNamedChild("Attacks")
-    rowPool = ZO_ControlPool:New("ZO_DeathRecapAttack", parent, NAME)
-    rowPool:SetCustomAcquireBehavior(function(row)
-        ApplyTemplateToControl(row, ZO_GetPlatformTemplate("ZO_DeathRecapAttack"))
-        -- Widen the space before the icon while keeping the damage column fixed.
-        local icon = row:GetNamedChild("Icon")
-        icon:ClearAnchors()
-        icon:SetAnchor(CENTER, row, TOPLEFT, 186, 32)
-        local damageLabel = row:GetNamedChild("DamageLabel")
-        damageLabel:ClearAnchors()
-        damageLabel:SetAnchor(RIGHT, row:GetNamedChild("Text"), LEFT, 449, 0)
+    local cardId = 0
+    rowPool = ZO_ObjectPool:New(function()
+        cardId = cardId + 1
+        local prefix = NAME .. "Card" .. cardId
+        local row = WINDOW_MANAGER:CreateControl(prefix, parent, CT_BACKDROP)
+        row:SetWidth(704)
+        row:SetCenterColor(0.045, 0.055, 0.065, 0.94)
+        row:SetEdgeTexture("EsoUI/Art/Miscellaneous/Gamepad/gp_toolTip_edge_semiTrans_16.dds", 128, 16, 8, 0)
+        row:SetEdgeColor(0.58, 0.62, 0.66, 0.85)
+
+        local function Label(suffix, x, y, width, font, alignment, lines)
+            local label = WINDOW_MANAGER:CreateControl(prefix .. suffix, row, CT_LABEL)
+            label:SetAnchor(TOPLEFT, row, TOPLEFT, x, y)
+            label:SetWidth(width)
+            label:SetFont(font)
+            label:SetHorizontalAlignment(alignment)
+            label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+            label:SetMaxLineCount(lines or 1)
+            return label
+        end
+
+        local icon = WINDOW_MANAGER:CreateControl(prefix .. "Icon", row, CT_TEXTURE)
+        icon:SetDimensions(46, 46)
+        icon:SetAnchor(TOPLEFT, row, TOPLEFT, 16, 39)
+        row.lastRitesCard = {
+            icon = icon,
+            source = Label("Source", 72, 7, 242, "ZoFontGamepad27", TEXT_ALIGN_LEFT),
+            time = Label("Time", 319, 6, 144, "ZoFontGamepad27", TEXT_ALIGN_CENTER),
+            amount = Label("Amount", 470, 3, 217, "ZoFontGamepad34", TEXT_ALIGN_RIGHT),
+            skill = Label("Skill", 72, 38, 615, "ZoFontGamepad27", TEXT_ALIGN_LEFT, 2),
+            snapshot = Label("Snapshot", 72, 95, 615, "ZoFontGamepad22", TEXT_ALIGN_LEFT),
+        }
+        return row
+    end, function(row)
+        row:SetHidden(true)
+        row:ClearAnchors()
     end)
 
     local saveBinding = "UI_SHORTCUT_QUATERNARY"
@@ -513,8 +572,8 @@ local function CreateViewer()
     livePrompt:SetCallback(SaveDeath)
     livePrompt:SetHidden(true)
 
-    local previousPage = {name = "Previous page", keybind = "UI_SHORTCUT_LEFT_TRIGGER", callback = function() NavigatePage(-1) end}
-    local nextPage = {name = "Next page", keybind = "UI_SHORTCUT_RIGHT_TRIGGER", callback = function() NavigatePage(1) end}
+    local previousPage = {name = "Previous page", keybind = "UI_SHORTCUT_LEFT_TRIGGER", visible = function() return view == "latest" end, callback = function() NavigatePage(-1) end}
+    local nextPage = {name = "Next page", keybind = "UI_SHORTCUT_RIGHT_TRIGGER", visible = function() return view == "latest" end, callback = function() NavigatePage(1) end}
     liveKeys = {
         {name = "Save to Journal", keybind = saveBinding, ethereal = true,
             visible = CanSaveDeath, callback = SaveDeath},
@@ -689,6 +748,12 @@ local function RegisterSettings()
             SyncDeathRecap()
         end,
     })
+    Dropdown("Recap time window", "captureWindow",
+        {"5 seconds", "10 seconds", "15 seconds", "20 seconds", "30 seconds"}, function(value)
+            saved.captureWindow = value
+            TrimCapture(GetGameTimeMilliseconds())
+            MarkSettingsDirty()
+        end)
     Dropdown("Group incoming damage", "sources", {"One timeline", "By attacker"}, function(value) saved.sources = value end)
     Dropdown("Order within each list", "order", {"Chronological", "By skill"}, function(value) saved.order = value end)
     panel:AddSetting({type = library.ST_SECTION, subMenu = false, label = "Damage filters"})
@@ -741,8 +806,6 @@ EVENT_MANAGER:RegisterForEvent(NAME, EVENT_ADD_ON_LOADED, function(_, addonName)
     end)
     InstallJournalEntry()
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_RETICLE_TARGET_CHANGED, function()
-        if saved.mode == "PvP" or saved.mode == "Both" then
-            if IsPvP() then RememberPlayer("reticleover") end
-        end
+        if CaptureEnabled(IsPvP()) then RememberPlayer("reticleover") end
     end)
 end)

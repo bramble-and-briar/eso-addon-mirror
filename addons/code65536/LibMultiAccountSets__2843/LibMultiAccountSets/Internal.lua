@@ -132,7 +132,7 @@ function Internal.RefreshCollections( )
 end
 
 function Internal.ScanSets( )
-	local results = { GetTimeStamp() }
+	local results = Internal.GetScratch(GetTimeStamp())
 	local maxSetId = 0
 	local found = 0
 	local total = 0
@@ -203,13 +203,21 @@ function Internal.CanSave( account )
 	end
 end
 
+do
+	local scratch
+	function Internal.GetScratch( ... )
+		scratch = LCCC.PrepareScratchTable(scratch, ...)
+		return scratch
+	end
+end
+
 function Internal.GetTradeEligibility( itemLink, itemSource, accounts )
 	-- Returns:
 	-- false: not eligible
 	-- true: eligible
 	-- 0: unknown eligibility
 
-	local results = { }
+	local results = Internal.GetScratch()
 
 	local FillResults = function( value )
 		for _, account in ipairs(accounts) do

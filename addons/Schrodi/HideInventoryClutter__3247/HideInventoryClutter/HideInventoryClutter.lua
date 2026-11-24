@@ -4,29 +4,30 @@ HideInventoryClutter = {
     dbg = false and function(msg) d("[HideInventoryClutter][DEBUG]: " .. msg) end or function() end,
     err = true  and function(msg) d("[HideInventoryClutter][ERROR]: " .. msg) end or function() end,
 }
+local HIC = HideInventoryClutter
 
-function HideInventoryClutter:toggleConsumables()
-    if self.movableIcon then
-        self.log("Toggle is disabled when icons are unlocked!")
+function HIC.toggleConsumables()
+    if HIC.movableIcon then
+        HIC.log("Toggle is disabled when icons are unlocked!")
         return
     end
 
-    self.consumablesVisible = not self.consumablesVisible
-    self.libFilters:RequestUpdate(self.lastActiveMenu)
-    HideInventoryClutter_ConsumablesButton:SetAlpha(self.consumablesVisible and 1 or 0.3)
-    self.dbg("consumables visible: " .. tostring(self.consumablesVisible))
+    HIC.consumablesVisible = not HIC.consumablesVisible
+    HIC.libFilters:RequestUpdate(HIC.lastActiveMenu)
+    HideInventoryClutter_ConsumablesButton:SetAlpha(HIC.consumablesVisible and 1 or 0.3)
+    HIC.dbg("consumables visible: " .. tostring(HIC.consumablesVisible))
 end
 
-function HideInventoryClutter:toggleLocked(filter)
-    if self.movableIcon then
-        self.log("Toggle is disabled when icons are unlocked!")
+function HIC.toggleLocked(filter)
+    if HIC.movableIcon then
+        HIC.log("Toggle is disabled when icons are unlocked!")
         return
     end
     
-    self.lockedVisible = not self.lockedVisible
-    self.libFilters:RequestUpdate(self.lastActiveMenu)
-    HideInventoryClutter_LockedButton:SetAlpha(self.lockedVisible and 1 or 0.3)
-    self.dbg("locked items visible: " .. tostring(self.lockedVisible))
+    HIC.lockedVisible = not HIC.lockedVisible
+    HIC.libFilters:RequestUpdate(HIC.lastActiveMenu)
+    HideInventoryClutter_LockedButton:SetAlpha(HIC.lockedVisible and 1 or 0.3)
+    HIC.dbg("locked items visible: " .. tostring(HIC.lockedVisible))
 end
 
 -- Crafting station filters get (bagId, slotIndex), the inventory filters a slot table.
@@ -35,41 +36,41 @@ local function AsSlot(a, b)
     return { bagId = a, slotIndex = b }
 end
 
-function HideInventoryClutter:initalize()
-    self.consumablesVisible = false
-    self.lockedVisible = false
-    self.movableIcon = false
-    self.buttonsVisible = false
-    self.lastActiveMenu = nil
-    self.libFilters = LibFilters3
-    self.libFilters:InitializeLibFilters()
-    self:setupSavedVars()
+function HIC.initalize()
+    HIC.consumablesVisible = false
+    HIC.lockedVisible = false
+    HIC.movableIcon = false
+    HIC.buttonsVisible = false
+    HIC.lastActiveMenu = nil
+    HIC.libFilters = LibFilters3
+    HIC.libFilters:InitializeLibFilters()
+    HIC.setupSavedVars()
 
     local lockedFilters = {
-        [LF_BANK_DEPOSIT         ] = function(s) if self:isLocked(s) then return self.lockedVisible else return true end end,
-        [LF_BANK_WITHDRAW        ] = function(s) if self:isLocked(s) then return self.lockedVisible else return true end end,
-        [LF_HOUSE_BANK_DEPOSIT   ] = function(s) if self:isLocked(s) then return self.lockedVisible else return true end end,
-        [LF_INVENTORY            ] = function(s) if self:isLocked(s) then return self.lockedVisible else return true end end,
-        [LF_RETRAIT              ] = function(a, b) if self:isLocked(AsSlot(a, b)) then return self.lockedVisible else return true end end,
+        [LF_BANK_DEPOSIT         ] = function(s) if HIC.isLocked(s) then return HIC.lockedVisible else return true end end,
+        [LF_BANK_WITHDRAW        ] = function(s) if HIC.isLocked(s) then return HIC.lockedVisible else return true end end,
+        [LF_HOUSE_BANK_DEPOSIT   ] = function(s) if HIC.isLocked(s) then return HIC.lockedVisible else return true end end,
+        [LF_INVENTORY            ] = function(s) if HIC.isLocked(s) then return HIC.lockedVisible else return true end end,
+        [LF_RETRAIT              ] = function(a, b) if HIC.isLocked(AsSlot(a, b)) then return HIC.lockedVisible else return true end end,
 		
-        [LF_VENDOR_SELL          ] = function(s) if self.lockedVisible then return true else return self:isWorthSelling(s) end end,
+        [LF_VENDOR_SELL          ] = function(s) if HIC.lockedVisible then return true else return HIC.isWorthSelling(s) end end,
         
-		[LF_SMITHING_DECONSTRUCT ] = function(a, b) if self.lockedVisible then return true else return self:isWorthDeconstructing(AsSlot(a, b)) end end,
-        [LF_JEWELRY_DECONSTRUCT  ] = function(a, b) if self.lockedVisible then return true else return self:isWorthDeconstructing(AsSlot(a, b)) end end,
-        [LF_ENCHANTING_EXTRACTION] = function(a, b) if self.lockedVisible then return true else return self:isWorthDeconstructing(AsSlot(a, b)) end end,
+		[LF_SMITHING_DECONSTRUCT ] = function(a, b) if HIC.lockedVisible then return true else return HIC.isWorthDeconstructing(AsSlot(a, b)) end end,
+        [LF_JEWELRY_DECONSTRUCT  ] = function(a, b) if HIC.lockedVisible then return true else return HIC.isWorthDeconstructing(AsSlot(a, b)) end end,
+        [LF_ENCHANTING_EXTRACTION] = function(a, b) if HIC.lockedVisible then return true else return HIC.isWorthDeconstructing(AsSlot(a, b)) end end,
 		
-	--	[LF_TRADE				 ] = function(s) if self.lockedVisible then return true else return self:isEitherTradeableGearOrDifferentItemType(s) end end,
+	--	[LF_TRADE				 ] = function(s) if HIC.lockedVisible then return true else return HIC.isEitherTradeableGearOrDifferentItemType(s) end end,
 	}
     
     local consumableFilters = {
-        [LF_BANK_DEPOSIT         ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
-        [LF_HOUSE_BANK_DEPOSIT   ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
-        [LF_GUILDBANK_DEPOSIT    ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
-        [LF_VENDOR_SELL          ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
-        [LF_MAIL_SEND            ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
-        [LF_INVENTORY            ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
-        [LF_GUILDSTORE_SELL      ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
-		[LF_TRADE                ] = function(s) if self:isConsumable(s) then return self.consumablesVisible else return true end end,
+        [LF_BANK_DEPOSIT         ] = function(s) if HIC.isConsumable(s) then return HIC.consumablesVisible else return true end end,
+        [LF_HOUSE_BANK_DEPOSIT   ] = function(s) if HIC.isConsumable(s) then return HIC.consumablesVisible else return true end end,
+        [LF_GUILDBANK_DEPOSIT    ] = function(s) if HIC.isConsumable(s) then return HIC.consumablesVisible else return true end end,
+        [LF_VENDOR_SELL          ] = function(s) if HIC.isConsumable(s) then return HIC.consumablesVisible else return true end end,
+        [LF_MAIL_SEND            ] = function(s) if HIC.isConsumable(s) then return HIC.consumablesVisible else return true end end,
+        [LF_INVENTORY            ] = function(s) if HIC.isConsumable(s) then return HIC.consumablesVisible else return true end end,
+        [LF_GUILDSTORE_SELL      ] = function(s) if HIC.isConsumable(s) then return HIC.consumablesVisible else return true end end,
+		[LF_TRADE                ] = function(s) if HIC.isConsumable(s) then return HIC.consumablesVisible else return true end end,
     }
     
     local universalDeconFilters = {
@@ -80,35 +81,35 @@ function HideInventoryClutter:initalize()
         ["enchanting"] = LF_ENCHANTING_EXTRACTION,
     }
     
-    self:SetupFilters(lockedFilters, "locked")
-    self:SetupFilters(consumableFilters, "consumable")
-    self:SetupUniversalDeconFilter(universalDeconFilters, "decon", function(b, i) if self.lockedVisible then return true else return self:isWorthDeconstructing({ bagId = b, slotIndex = i }) end end)
-    self:SetupButtonSafetyNets()
+    HIC.SetupFilters(lockedFilters, "locked")
+    HIC.SetupFilters(consumableFilters, "consumable")
+    HIC.SetupUniversalDeconFilter(universalDeconFilters, "decon", function(b, i) if HIC.lockedVisible then return true else return HIC.isWorthDeconstructing({ bagId = b, slotIndex = i }) end end)
+    HIC.SetupButtonSafetyNets()
 
-    self:initializeUI()
-    self:buildLAM2Menu()
+    HIC.initializeUI()
+    HIC.buildLAM2Menu()
 end
 
-function HideInventoryClutter:SetupFilters(filters, name)
+function HIC.SetupFilters(filters, name)
     for menu, filter in pairs(filters) do
-        local nameShown  = self.libFilters:CreateCallbackName(menu, true)
-        local nameHidden = self.libFilters:CreateCallbackName(menu, false)
+        local nameShown  = HIC.libFilters:CreateCallbackName(menu, true)
+        local nameHidden = HIC.libFilters:CreateCallbackName(menu, false)
         
         local callbackShown = function (callbackName, filterType, _, _, _, _, _)
-            if not self.libFilters:IsFilterRegistered(self.ADDON_NAME .. name .. menu, menu) then
-                self.libFilters:RegisterFilter(self.ADDON_NAME .. name .. menu, menu, filters[menu])
-                self.libFilters:RequestUpdate(menu)
-                self.dbg("registered " .. tostring(name) .. " " .. tostring(menu))
+            if not HIC.libFilters:IsFilterRegistered(HIC.ADDON_NAME .. name .. menu, menu) then
+                HIC.libFilters:RegisterFilter(HIC.ADDON_NAME .. name .. menu, menu, filters[menu])
+                HIC.libFilters:RequestUpdate(menu)
+                HIC.dbg("registered " .. tostring(name) .. " " .. tostring(menu))
             end
-            self.lastActiveMenu = menu
-            self.dbg("lastActiveMenu: " .. tostring(self.lastActiveMenu))
-            self:showButtons()
+            HIC.lastActiveMenu = menu
+            HIC.dbg("lastActiveMenu: " .. tostring(HIC.lastActiveMenu))
+            HIC.showButtons()
         end
         
         local callbackHidden = function (callbackName, filterType, _, _, _, _, _)
-            self.libFilters:UnregisterFilter(self.ADDON_NAME .. name .. menu, menu)
-            self:hideButtons()
-            self.dbg("unregistered " .. tostring(name) .. " " .. tostring(menu))
+            HIC.libFilters:UnregisterFilter(HIC.ADDON_NAME .. name .. menu, menu)
+            HIC.hideButtons()
+            HIC.dbg("unregistered " .. tostring(name) .. " " .. tostring(menu))
         end
         
         CALLBACK_MANAGER:RegisterCallback(nameShown, callbackShown)
@@ -116,26 +117,26 @@ function HideInventoryClutter:SetupFilters(filters, name)
     end
 end
 
-function HideInventoryClutter:SetupUniversalDeconFilter(filters, name, filterFn)
+function HIC.SetupUniversalDeconFilter(filters, name, filterFn)
     for scope, menu in pairs(filters) do
-        local nameShown  = self.libFilters:CreateCallbackName(menu, true, scope)
-        local nameHidden = self.libFilters:CreateCallbackName(menu, false,scope)
+        local nameShown  = HIC.libFilters:CreateCallbackName(menu, true, scope)
+        local nameHidden = HIC.libFilters:CreateCallbackName(menu, false,scope)
             
         local callbackShown = function (callbackName, filterType, _, _, _, _, _)
-            if not self.libFilters:IsFilterRegistered(self.ADDON_NAME .. name .. scope, menu) then
-                self.libFilters:RegisterFilter(self.ADDON_NAME .. name .. scope, menu, filterFn)
-                self.libFilters:RequestUpdate(menu)
-                self.dbg("registered " .. name .. " " .. tostring(scope) .. " " .. tostring(menu))
+            if not HIC.libFilters:IsFilterRegistered(HIC.ADDON_NAME .. name .. scope, menu) then
+                HIC.libFilters:RegisterFilter(HIC.ADDON_NAME .. name .. scope, menu, filterFn)
+                HIC.libFilters:RequestUpdate(menu)
+                HIC.dbg("registered " .. name .. " " .. tostring(scope) .. " " .. tostring(menu))
             end
-            self.lastActiveMenu = menu
-            self.dbg("lastActiveMenu: " .. tostring(self.lastActiveMenu))
-            self:showButtons()
+            HIC.lastActiveMenu = menu
+            HIC.dbg("lastActiveMenu: " .. tostring(HIC.lastActiveMenu))
+            HIC.showButtons()
         end
             
         local callbackHidden = function (callbackName, filterType, _, _, _, _, _)
-            self.libFilters:UnregisterFilter(self.ADDON_NAME .. name .. scope, menu)
-            self:hideButtons()
-            self.dbg("unregistered " .. name .. " " .. tostring(scope) .. " " .. tostring(menu))
+            HIC.libFilters:UnregisterFilter(HIC.ADDON_NAME .. name .. scope, menu)
+            HIC.hideButtons()
+            HIC.dbg("unregistered " .. name .. " " .. tostring(scope) .. " " .. tostring(menu))
         end
             
         CALLBACK_MANAGER:RegisterCallback(nameShown, callbackShown)
@@ -148,15 +149,15 @@ end
 -- hidden callback never fires, and closing the inventory from the Craft Bag left the buttons on
 -- screen. None of the filters apply to the Craft Bag, so hide the buttons there, and hide them
 -- whenever the plain HUD comes back as a safety net for any similar path.
-function HideInventoryClutter:SetupButtonSafetyNets()
+function HIC.SetupButtonSafetyNets()
     local function HideButtons()
-        if not self.movableIcon and self.buttonsVisible then
-            self:hideButtons()
+        if not HIC.movableIcon and HIC.buttonsVisible then
+            HIC.hideButtons()
         end
     end
 
-    CALLBACK_MANAGER:RegisterCallback(self.libFilters:CreateCallbackName(LF_CRAFTBAG, true), HideButtons)
-    CALLBACK_MANAGER:RegisterCallback(self.libFilters:CreateCallbackName(LF_CRAFTBAG, false), HideButtons)
+    CALLBACK_MANAGER:RegisterCallback(HIC.libFilters:CreateCallbackName(LF_CRAFTBAG, true), HideButtons)
+    CALLBACK_MANAGER:RegisterCallback(HIC.libFilters:CreateCallbackName(LF_CRAFTBAG, false), HideButtons)
 
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(scene, _, newState)
         if newState == SCENE_SHOWN then
@@ -168,8 +169,8 @@ function HideInventoryClutter:SetupButtonSafetyNets()
     end)
 end
 
-EVENT_MANAGER:RegisterForEvent(HideInventoryClutter.ADDON_NAME, EVENT_ADD_ON_LOADED, function(eventCode, addOnName)
-    if addOnName ~= HideInventoryClutter.ADDON_NAME then return end 
-    EVENT_MANAGER:UnregisterForEvent(HideInventoryClutter.ADDON_NAME, EVENT_ADD_ON_LOADED)
-    HideInventoryClutter:initalize()
+EVENT_MANAGER:RegisterForEvent(HIC.ADDON_NAME, EVENT_ADD_ON_LOADED, function(eventCode, addOnName)
+    if addOnName ~= HIC.ADDON_NAME then return end 
+    EVENT_MANAGER:UnregisterForEvent(HIC.ADDON_NAME, EVENT_ADD_ON_LOADED)
+    HIC.initalize()
 end)

@@ -3,7 +3,7 @@
 -- (Scribing is not here: it has no skill line. It is learned like recipes, so the board counts it.)
 -- short: column title on the board. keepPeak: the game hides the line when you are cured,
 -- so the board keeps the highest rank it has ever seen instead of dropping to nothing.
-local CT = FuryCT
+local CT = FurysCharacterTracker
 
 CT.GROUPS = {
     { id = "weapons", title = "Weapons", lines = {

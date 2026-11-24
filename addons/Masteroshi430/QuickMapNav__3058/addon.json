@@ -8,8 +8,8 @@
   "category_id": "24",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:3058",
@@ -18,7 +18,7 @@
     "QuickMapNav"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3058/",
-  "fingerprint": "ce98779b5e68f4d517f37a5ce71a7756d047129f021aeb5b409f437f750addc7",
+  "fingerprint": "2a5ccea1eee50a1375eef21f0d73baa882ae967c99f9ed8102fe12dd2be19fc8",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw11736.png",
     "https://cdn-eso.mmoui.com/preview/pvw11735.png",
@@ -40,11 +40,11 @@
   "source_id": "3058",
   "source_url": "https://www.esoui.com/downloads/info3058-QuickMapNav.html",
   "stats": {
-    "downloads": 105041,
+    "downloads": 105658,
     "favorites": 106,
-    "monthly_downloads": 295
+    "monthly_downloads": 708
   },
   "title": "QuickMapNav",
-  "updated_at": 1793105415000,
-  "version": "2026.10.27"
+  "updated_at": 1795504315000,
+  "version": "2026.11.23"
 }

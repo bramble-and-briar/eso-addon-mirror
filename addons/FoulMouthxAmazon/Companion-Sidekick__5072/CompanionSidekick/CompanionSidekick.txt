@@ -1,11 +1,14 @@
 ## Title: Companion Sidekick
 ## Description: Compact account companion roster, character quests and rapport, perks, gear and skills.
 ## Author: FoulMouthxAmazon
-## Version: 0.1.2
-## AddOnVersion: 102
+## Version: 0.2.2
+## AddOnVersion: 202
 ## APIVersion: 101051
+## OptionalDependsOn: LibExtendedJournal>=205031 LibAddonMenu-2.0
 ## SavedVariables: CompanionSidekickSavedVariables
 
 Data.lua
 Core.lua
 UI.lua
+ExtendedJournal.lua
+AuthorInfo.lua

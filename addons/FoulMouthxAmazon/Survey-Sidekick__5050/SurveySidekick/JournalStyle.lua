@@ -70,8 +70,9 @@ local function MakeToolbar()
         b:SetHandler("OnEffectivelyHidden",function()ClearTooltip(InformationTooltip)end)
         toolbar[#toolbar+1]={button=b,prefix=prefix}
     end
-    toolbar.footer=Label(S.canvas,"",20,658,875)
-    toolbar.footer:SetFont("ZoFontGameSmall")
+    toolbar.footer=Label(S.canvas,"",20,650,875)
+    toolbar.footer:SetFont("ZoFontGameSmall");toolbar.footer:SetHeight(20)
+    toolbar.support=S.CreateJournalSupportFooter(S.canvas,678,875)
 end
 local function Row(parent,index)
     local row=WM:CreateControl(nil,parent,CT_CONTROL)
@@ -189,6 +190,7 @@ function S.ApplyJournalStyle(value)
         toolbar.caption:SetHidden(not active)
         toolbar.caption:SetText(T(({surveys="Surveys & Maps",run="Current Run",report="The Hoard Report"})[S.tab] or "Surveys & Maps"))
         toolbar.footer:SetHidden(not active)
+        toolbar.support:SetHidden(not active)
         toolbar.footer:SetText(T(S.tab=="surveys" and "Click a zone to expand its surveys and treasure maps." or "Survey/Large and gold values are estimates. Unpriced items are excluded."))
     end
     local reportIndex=0

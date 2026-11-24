@@ -7,7 +7,7 @@
 QMN = {}
 
 QMN.name = "|cf49b42QuickMapNav|r"
-QMN.version = "2026.10.27"
+QMN.version = "2026.11.23"
 QMN.throttle = {}
 QMN.activeControls = {} -- controls currently shown by UpdateMapID, so we only have to hide these next update
 QMN.defaults = {
@@ -126,8 +126,30 @@ function QuickMapNav:ColorPortalMapTextById(ID)
     return string.format("|c000000%s|r", zo_strformat("|t24:24:esoui/art/icons/poi/poi_portal_complete.dds|t<<1>>|t24:24:esoui/art/icons/poi/poi_portal_complete.dds|t",GetMapNameById(ID)))
 end
 
+-- Returns the campaign name when the displayed map is a campaign map
+-- (Cyrodiil, Imperial City, Imperial Sewers, Cyrodiil sub-maps), else nil
+function QuickMapNav:GetCampaignSuffix()
+     local m = GetCurrentMapId()
+     -- MAP_CONTENT_AVA covers Cyrodiil and its sub-maps (the 6 gates, Imperial City...)
+     local isCampaignMap = (m == 16 or m == 660 or m == 590 or m == 1056 or m == 2847 or m == 2066
+                            or GetMapContentType() == MAP_CONTENT_AVA
+                            or GetZoneId(GetCurrentMapZoneIndex()) == 643)
+     if not isCampaignMap then return nil end
+     local campaignId = GetCurrentCampaignId and GetCurrentCampaignId() or 0
+     if not campaignId or campaignId == 0 then
+          campaignId = GetAssignedCampaignId and GetAssignedCampaignId() or 0
+     end
+     if not campaignId or campaignId == 0 then return nil end
+     local campaignName = GetCampaignName(campaignId)
+     if not campaignName or campaignName == "" then return nil end
+     return zo_strformat("<<1>>", campaignName)
+end
+
 function QuickMapNav:colorMapTitle()
-     return string.format("|cFFFFFF%s|r", zo_strformat("<<1>>",QMN.LMD.mapName))
+     local title = zo_strformat("<<1>>",QMN.LMD.mapName)
+     local campaign = QuickMapNav:GetCampaignSuffix()
+     if campaign then title = title.." ("..campaign..")" end
+     return string.format("|cFFFFFF%s|r", title)
 end
 
 
@@ -6187,8 +6209,11 @@ function QuickMapNav:UpdateMapID()
 	local mapChanged = (m ~= QMN.lastMapId)
 	QMN.lastMapId = m
 
-	if mapChanged then
-		self.mapTitle:SetText(QuickMapNav:colorMapTitle())
+	-- title also depends on the campaign, which can change without the map id changing
+	local newTitle = QuickMapNav:colorMapTitle()
+	if mapChanged or newTitle ~= QMN.lastTitle then
+		QMN.lastTitle = newTitle
+		self.mapTitle:SetText(newTitle)
 	end
 	QuickMapNav:UpdateTime()
 	

@@ -11,7 +11,7 @@ FurC.AdditiveSources = FurC.AdditiveSources or {}
 local additiveSources = FurC.AdditiveSources
 
 local searchString = ""
-local searchPattern = ""
+local searchNeedle = ""
 local dropdownChoiceVersion = 1
 local dropdownTextVersion = "All"
 local ddSource = 1
@@ -40,10 +40,11 @@ local ONLY_RUMOUR = build.SourceMask({ [src.RUMOUR] = true })
 -- Local imports for performance
 local GetItemLinkName = GetItemLinkName
 local LocaleAwareToLower = LocaleAwareToLower
-local gsub = string.gsub
-local match = string.match
+local find = string.find
 local getEntry = LFC.API.GetEntry
 local getItemLink = LFC.API.GetItemLink
+local listIdFromSource = FurC.ListIdFromSource
+local isInListById = FurC.IsInListById
 
 -- Build item link lazily (only if required and not already cached)
 local function ensureItemLink()
@@ -73,7 +74,7 @@ local searchNameCache = {}
 local function getSearchName()
   local n = searchNameCache[itemId]
   if nil == n then
-    n = LocaleAwareToLower(GetItemLinkName(ensureItemLink()))
+    n = searchIndex.Fold(GetItemLinkName(ensureItemLink()))
     searchNameCache[itemId] = n
   end
   return n
@@ -88,7 +89,7 @@ end
 function FurC.SetFilter(useDefaults, skipRefresh)
   ClearTooltip(InformationTooltip)
   searchString = FurC.GetSearchFilter()
-  searchPattern = gsub(LocaleAwareToLower(searchString), "-", "%%-")
+  searchNeedle = searchIndex.Fold(searchString)
 
   if useDefaults then
     dropdownChoiceVersion = FurC.GetDefaultDropdownChoice("Version")
@@ -108,7 +109,14 @@ function FurC.SetFilter(useDefaults, skipRefresh)
   furnCategoryFilter = FurC.GetFilterFurnCategory()
   furnSubcategoryFilter = FurC.GetFilterFurnSubcategory()
   hideBooks = FurC.GetHideBooks()
-  hideRumours = ddSource ~= src.RUMOUR
+  -- Rumour items show when rumour filter is picked or a list holds one
+  local function holdsRumours(id)
+    return id == src.RUMOUR or id == src.FAVE or listIdFromSource(id) ~= nil
+  end
+  hideRumours = not holdsRumours(ddSource)
+  for extraId in pairs(additiveSources) do
+    hideRumours = hideRumours and not holdsRumours(extraId)
+  end
 
   -- ignore filtered items when no dropdown filter is set and there's a text search?
   showAllOnTextSearch = FurC.GetFilterAllOnText()
@@ -214,6 +222,11 @@ local function matchesSource(candidate)
   if src.FAVE == candidate then
     return FurC.IsFavoriteById(itemId)
   end
+  -- a custom list holds what was put on it, nothing rolls up into it or out of it
+  local listId = listIdFromSource(candidate)
+  if listId then
+    return isInListById(listId, itemId)
+  end
   if src.CRAFTING_KNOWN == candidate or src.CRAFTING_UNKNOWN == candidate then
     if not hasSource(src.CRAFTING) then
       return false
@@ -300,13 +313,13 @@ local function matchSearchString()
   if #searchString == 0 then
     return true
   end
-  if match(getSearchName(), searchPattern) then -- name first
+  if find(getSearchName(), searchNeedle, 1, true) then
     return true
   end
 
   -- vendor, zone, event, container, folio and achievement names second
   local terms = searchIndex.GetTerms(itemId)
-  return nil ~= terms and nil ~= match(terms, searchPattern)
+  return nil ~= terms and nil ~= find(terms, searchNeedle, 1, true)
 end
 
 local function matchCraftingTypeFilter()

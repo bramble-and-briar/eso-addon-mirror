@@ -66,18 +66,7 @@ local function AddTooltipExtension( tooltip, itemLink )
 end
 
 function RCR.HookTrialItemTooltips( )
-	local TooltipHook = function( control, functionName, linkFunction )
-		ZO_PostHook(control, functionName, function( self, ... )
-			AddTooltipExtension(control, linkFunction(...))
-		end)
-	end
-
-	local ItemLinkPassthrough = function( itemLink )
-		return itemLink
-	end
-
-	TooltipHook(PopupTooltip, "SetLink", ItemLinkPassthrough)
-	TooltipHook(ItemTooltip, "SetLink", ItemLinkPassthrough)
-	TooltipHook(ItemTooltip, "SetBagItem", GetItemLink)
-	TooltipHook(ItemTooltip, "SetLootItem", GetLootItemLink)
+	LEJ.HookItemTooltips(function( control, functionName, itemLink, sourceContext )
+		AddTooltipExtension(control, itemLink)
+	end)
 end

@@ -8,9 +8,9 @@
 ## Description: Library for tracking achievements across multiple servers, accounts, and characters
 ## Author: @code65536
 ## IsLibrary: true
-## Version: 1.1.4.1
-## AddOnVersion: 101041
-## APIVersion: 101050 101051
+## Version: 1.1.4.2
+## AddOnVersion: 101042
+## APIVersion: 101051 101052
 ## SavedVariables: LibMultiAccountAchievementsData
 
 LibCodesCommonCode.lua

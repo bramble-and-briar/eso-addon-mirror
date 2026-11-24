@@ -1,0 +1,11 @@
+Version 2.0.1
+-------------
+- Quick queue buttons are labeled with just the queue's name ("Big Team Battles" instead of
+  "Queue Big Team Battles"), so they're the same size as Join Queue / View Veterancy and line up
+  with them.
+- Code cleanup for the ESOUI upload rules: LibAddonMenu-2.0 stays optional, but without the old
+  LibStub fallback.
+
+Version 2.0.0
+-------------
+- First release on ESOUI.

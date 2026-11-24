@@ -1,5 +1,5 @@
 ## Title: Colorblind
-## APIVersion: 101042
+## APIVersion: 101042 101051
 ## Version: 2026.11.07
 ## Author: LousyTourist
 ## SavedVariables: ColorblindVars

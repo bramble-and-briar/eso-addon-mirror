@@ -18,7 +18,7 @@
 --   Discord: the addon can't reach Discord. "Copy for Discord" shows the text to copy.
 -- Off on a new install.
 
-local GT = FuryGMT
+local GT = FurysGuildToolset
 local U = GT.Util
 local A = GT.Actions
 
@@ -28,7 +28,7 @@ GT.Events = Events
 local MAX_PASTE = 12000
 local MAX_CHAT = 350
 local REFRESH_DELAY_MS = 500
-local CHAT_EVENT_NAME = "FuryGMTEventsChat"
+local CHAT_EVENT_NAME = "FurysGuildToolset_EventsChat"
 local DRAFT = GROUP_FINDER_GROUP_LISTING_USER_TYPE_GROUP_LISTING_DRAFT
 
 local GUILD_CHANNELS = {
@@ -75,7 +75,7 @@ local OLD_DEFAULTS = {
     inviteCode = { "+trial" },
 }
 
-local CODE_EVENT_NAME = "FuryGMTEventsCode"
+local CODE_EVENT_NAME = "FurysGuildToolset_EventsCode"
 local CODE_HOURS_AFTER_START = 2   -- the invite code works until this long after the start time
 local MAX_GROUP = 12
 
@@ -359,17 +359,21 @@ end
 
 function Events:Initialize(sv)
     self.sv = sv
+    -- Invite by code starts turned off at every login and /reloadui (1.24.1, Albert): it's only on
+    -- from a click until the group fills or breaks up.
+    sv.autoInvite = false
+    sv.codeSize = nil
     for key, olds in pairs(OLD_DEFAULTS) do
         for _, old in ipairs(olds) do
             if sv[key] == old then sv[key] = Events.defaults[key] end
         end
     end
     self:RegisterTab()
-    SCENE_MANAGER:RegisterTopLevel(FuryGMTEventsInput, false)
-    FuryGMTEventsInputTextBox:SetMaxInputChars(MAX_PASTE)
-    FuryGMTEventsInputTextBox:SetMultiLine(true)
-    FuryGMTEventsInputTextBox:SetNewLineEnabled(true)
-    EVENT_MANAGER:RegisterForEvent("FuryGMTEventsListing", EVENT_GROUP_FINDER_CREATE_GROUP_LISTING_RESULT,
+    SCENE_MANAGER:RegisterTopLevel(FurysGuildToolset_EventsInput, false)
+    FurysGuildToolset_EventsInputTextBox:SetMaxInputChars(MAX_PASTE)
+    FurysGuildToolset_EventsInputTextBox:SetMultiLine(true)
+    FurysGuildToolset_EventsInputTextBox:SetNewLineEnabled(true)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_EventsListing", EVENT_GROUP_FINDER_CREATE_GROUP_LISTING_RESULT,
         function(_, result) self:OnListingResult(result) end)
     self:RegisterWatch()
     self:RegisterCode()
@@ -383,7 +387,7 @@ local WATCH_EVENTS = {
 
 function Events:RegisterWatch()
     for i, event in ipairs(WATCH_EVENTS) do
-        local name = "FuryGMTEventsWatch" .. i
+        local name = "FurysGuildToolset_EventsWatch" .. i
         EVENT_MANAGER:UnregisterForEvent(name, event)
         if self.sv.enabled then
             EVENT_MANAGER:RegisterForEvent(name, event, function() self:QueueRefresh() end)
@@ -465,7 +469,7 @@ end
 -- Returns account, how ("picked", "post", "name") or nil.
 function Events:AccountFor(person, index, group)
     local picked = self.sv.map[person.key]
-    if picked then return picked, "picked" end
+    if picked and picked ~= "" then return picked, "picked" end
     if person.base:sub(1, 1) == "@" then return person.base, "post" end
     local keys = { person.key }
     for _, alt in ipairs(person.alts or {}) do keys[#keys + 1] = alt end
@@ -507,14 +511,17 @@ function Events:Suggestions(person, index)
     return found
 end
 
-function Events:SetAccount(person, account)
+-- note: added to the chat line, like " (checked: in nUber, online)".
+function Events:SetAccount(person, account, note)
     self.cache = nil
     account = U.NormalizeName(account)
-    if account == "@" then
+    -- "" too: NormalizeName leaves an empty name empty (1.21.0; Forget used to save "").
+    if account == "" or account == "@" then
         self.sv.map[person.key] = nil
+        U.Print("Forgot the account for %s.", person.base)
     else
         self.sv.map[person.key] = account
-        U.Print("%s is now matched to %s.", person.base, account)
+        U.Print("%s is now matched to %s%s.", person.base, account, note or "")
     end
     GT.Report:RefreshIfShown()
 end
@@ -523,21 +530,21 @@ end
 
 local function StatusText(info, entry)
     if info.inGroup then
-        local text = "|c9FD49FIn group|r"
+        local text = "|c5EE6A0In group|r"
         if entry.role and info.groupRole ~= LFG_ROLE_INVALID and info.groupRole ~= entry.role then
-            text = string.format("|cFF9933In group as %s|r", ROLE_NAME[info.groupRole] or "?")
+            text = string.format("|cFFA45CIn group as %s|r", ROLE_NAME[info.groupRole] or "?")
         end
-        if not info.online then text = text .. " |cAAAAAA(disconnected)|r" end
+        if not info.online then text = text .. " |cB4B0D8(disconnected)|r" end
         return text
     end
-    if not info.account then return "|cAAAAAANo account matched. Right-click to set it.|r" end
-    if not info.status then return "|cAAAAAANot in your guilds or friends|r" end
+    if not info.account then return "|cB4B0D8No account matched. Right-click to set it.|r" end
+    if not info.status then return "|cB4B0D8Not in your guilds or friends|r" end
     if info.status == PLAYER_STATUS_OFFLINE then
-        return "|cAAAAAAOffline " .. U.FormatDuration(info.secs) .. "|r"
+        return "|cB4B0D8Offline " .. U.FormatDuration(info.secs) .. "|r"
     end
-    if info.status == PLAYER_STATUS_AWAY then return "|cFFFF66Online (away), not in group|r" end
-    if info.status == PLAYER_STATUS_DO_NOT_DISTURB then return "|cFFFF66Online (busy), not in group|r" end
-    return "|cFFFF66Online, not in group|r"
+    if info.status == PLAYER_STATUS_AWAY then return "|cFFC857Online (away), not in group|r" end
+    if info.status == PLAYER_STATUS_DO_NOT_DISTURB then return "|cFFC857Online (busy), not in group|r" end
+    return "|cFFC857Online, not in group|r"
 end
 
 -- Everything the tab and the buttons need: one entry per sign-up, the walk-ins, counts and
@@ -686,6 +693,8 @@ function Events:RegisterTab()
         columns = Events.columns,
         footer = function() return self:TabFooter() end,
         GetExportLines = function() return self:TabExportLines() end,
+        topBar = function() return self:CodeBar() end,
+        UpdateTopBar = function() self:UpdateCodeBar() end,
     })
 end
 
@@ -717,16 +726,16 @@ function Events:TabSummary()
                 section.max and ("/" .. section.max) or "", here)
         end
     end
-    local line = string.format("|cFFFFFF%s|r%s.  %s.", ev.title, ev.time and (", " .. ev.time) or "", table.concat(parts, "; "))
+    local line = string.format("|cECEAF8%s|r%s.  %s.", ev.title, ev.time and (", " .. ev.time) or "", table.concat(parts, "; "))
     if (ev.minCP or 0) > 0 then line = line .. string.format("  CP %d+.", ev.minCP) end
     local signup, now = self:NeedText(state, state.openSignup), self:NeedText(state, state.openNow)
     if next(state.openNow) == nil then
         -- No section has a limit (a class with Attendees only): no open slots to show.
     elseif state.mode == "now" then
-        line = line .. "  |cFFFFFFNeed now:|r " .. (now ~= "" and now or "nobody") .. "."
+        line = line .. "  |cECEAF8Need now:|r " .. (now ~= "" and now or "nobody") .. "."
         if signup ~= "" then line = line .. "  Sign-up slots nobody took: " .. signup .. "." end
     else
-        line = line .. "  |cFFFFFFOpen sign-up slots:|r " .. (signup ~= "" and signup or "none") .. "."
+        line = line .. "  |cECEAF8Open sign-up slots:|r " .. (signup ~= "" and signup or "none") .. "."
         if state.formUpTs then
             line = line .. string.format("  Ads ask for replacements from %s.", Clock(state.formUpTs))
         end
@@ -736,7 +745,7 @@ end
 
 local function CpText(info, minCP)
     if not info.cp then return "" end
-    if minCP and minCP > 0 and info.cp < minCP then return "|cFF6666" .. info.cp .. "|r" end
+    if minCP and minCP > 0 and info.cp < minCP then return "|cFF6B86" .. info.cp .. "|r" end
     return tostring(info.cp)
 end
 
@@ -748,7 +757,7 @@ function Events:TabRows()
     local minCP = state.ev.minCP
     for _, info in ipairs(state.entries) do
         local person = info.person
-        local accountText = info.account or "|cAAAAAA?|r"
+        local accountText = info.account or "|cB4B0D8?|r"
         local tip
         if info.how == "name" then
             tip = string.format("%s was matched to %s by name. Right-click > Set account if that's the wrong person.", person.raw, info.account)
@@ -766,7 +775,7 @@ function Events:TabRows()
     end
     for _, info in ipairs(state.walkIns) do
         local row = {
-            cells = { "|cAAAAAANot signed up|r", "", info.account, "|c9FD49FIn group|r", ROLE_NAME[info.groupRole] or "-", CpText(info, minCP) },
+            cells = { "|cB4B0D8Not signed up|r", "", info.account, "|c5EE6A0In group|r", ROLE_NAME[info.groupRole] or "-", CpText(info, minCP) },
             tooltip = "In your group but not in the sesh post, or not matched to a sign-up yet.",
         }
         rows[#rows + 1] = GT.Report.AddMenu(row, GT.Report.ContactItems(info.account))
@@ -794,7 +803,7 @@ function Events:MenuItems(info, state)
             end
         end
     end
-    items[#items + 1] = { label = "Set account (type it)...", fn = function() self:AskAccount(info.person, account) end }
+    items[#items + 1] = { label = "Set account (type it)...", tip = "Type their @account. It's checked against your guilds, friends and group before it's saved.", fn = function() self:AskAccount(info.person, account) end }
     if info.how == "picked" then
         items[#items + 1] = { label = "Forget the account for " .. info.person.base, fn = function() self:SetAccount(info.person, "") end }
     end
@@ -833,26 +842,44 @@ end
 -- The text window --------------------------------------------------------------------------
 -- One window for pasting the post, typing an account and checking the Group Finder listing.
 
+-- def.singleLine: a one-line box (Set account) in a short window instead of the big text box.
+-- def.onShown runs a moment after the window opens (after the right-click menu has closed).
+local INPUT_HEIGHT, INPUT_HEIGHT_LINE = 520, 230
+
+local function InputBox(def)
+    if def and def.singleLine then return FurysGuildToolset_EventsInputLineBox end
+    return FurysGuildToolset_EventsInputTextBox
+end
+
 function Events:OpenInput(def)
     self.input = def
-    FuryGMTEventsInputTitle:SetText(def.title)
-    FuryGMTEventsInputHint:SetText(def.hint or "")
-    FuryGMTEventsInputOK:SetText(def.okLabel or "OK")
-    FuryGMTEventsInputTextBox:SetText(def.text or "")
-    U.ShowOnTop(FuryGMTEventsInput)
-    FuryGMTEventsInputTextBox:TakeFocus()
+    FurysGuildToolset_EventsInputTitle:SetText(def.title)
+    FurysGuildToolset_EventsInputHint:SetText(def.hint or "")
+    FurysGuildToolset_EventsInputOK:SetText(def.okLabel or "OK")
+    FurysGuildToolset_EventsInputText:SetHidden(def.singleLine == true)
+    FurysGuildToolset_EventsInputLine:SetHidden(def.singleLine ~= true)
+    FurysGuildToolset_EventsInput:SetHeight(def.singleLine and INPUT_HEIGHT_LINE or INPUT_HEIGHT)
+    local box = InputBox(def)
+    box:SetText(def.text or "")
+    U.ShowOnTop(FurysGuildToolset_EventsInput)
+    box:TakeFocus()
+    if def.onShown then
+        zo_callLater(function() if self.input == def and not FurysGuildToolset_EventsInput:IsHidden() then def.onShown() end end, 100)
+    end
 end
 
 function Events:CloseInput()
-    FuryGMTEventsInputTextBox:LoseFocus()
-    SCENE_MANAGER:HideTopLevel(FuryGMTEventsInput)
+    FurysGuildToolset_EventsInputTextBox:LoseFocus()
+    FurysGuildToolset_EventsInputLineBox:LoseFocus()
+    SCENE_MANAGER:HideTopLevel(FurysGuildToolset_EventsInput)
 end
 
+-- onOk returning false keeps the window open (Set account shows why the name wasn't found).
 function Events:SubmitInput()
     local def = self.input
-    local text = FuryGMTEventsInputTextBox:GetText() or ""
-    self:CloseInput()
-    if def then def.onOk(text) end
+    local text = InputBox(def):GetText() or ""
+    if def and def.onOk(text) == false then return end
+    if self.input == def then self:CloseInput() end
 end
 
 function Events:InputTip()
@@ -896,15 +923,206 @@ function Events:ClearEvent()
     GT.Report:RefreshIfShown()
 end
 
+-- Looks a typed @account up in everything the game lets an addon see: the members of all your
+-- guilds, your friend list, your group and the game's recent contacts (1.21.0, recent 1.22.0).
+-- There's no call that asks the server whether any account exists, so other names can't be
+-- checked. Returns the entry from AccountCandidates, or nil and up to four close names.
+function Events:LookupAccount(account)
+    local list = self.accountList or self:AccountCandidates()
+    local found = list[zo_strlower(account)]
+    if found then return found end
+    local close = {}
+    for _, entry in ipairs(self:AccountMatches(account)) do
+        if #close < 4 then close[#close + 1] = entry.name end
+    end
+    return nil, close
+end
+
+-- Suggestions as you type (1.22.0) -----------------------------------------------------------
+-- The game's own autocomplete (ZO_AutoComplete, the one under the mail "To" box), fed with
+-- @accounts only: members of all your guilds, your friends, your group, and the game's list
+-- of people you recently mailed, whispered or met (AUTO_COMPLETE_FLAG_RECENT). Each line shows
+-- where the name comes from. Up, Down and Tab or a click pick one; Enter saves.
+
+local MAX_SUGGESTIONS = 8
+
+-- [lower @name] = { name, places = { "nUber", ... }, online }
+function Events:AccountCandidates()
+    local list = {}
+    local function Add(name, place, online)
+        if not name or name == "" or name:sub(1, 1) ~= "@" then return end
+        local key = zo_strlower(name)
+        local entry = list[key]
+        if not entry then
+            entry = { name = name, norm = Norm(name), places = {}, online = false }
+            list[key] = entry
+        end
+        if place and not entry.places[place] then
+            entry.places[place] = true
+            entry.places[#entry.places + 1] = place
+        end
+        if online then entry.online = true end
+    end
+    for _, guildId in ipairs(U.GetGuildIds()) do
+        local guildName = U.GuildName(guildId)
+        for i = 1, GetNumGuildMembers(guildId) do
+            local name, _, _, status = GetGuildMemberInfo(guildId, i)
+            Add(name, guildName, status ~= PLAYER_STATUS_OFFLINE)
+        end
+    end
+    for i = 1, GetNumFriends() do
+        local name, _, status = GetFriendInfo(i)
+        Add(name, "friend", status ~= PLAYER_STATUS_OFFLINE)
+    end
+    for _, member in pairs(self:BuildGroup()) do
+        Add(member.name, "group", member.online)
+    end
+    local recent = {}
+    ZO_AutoComplete.FlagHandlers[AUTO_COMPLETE_FLAG_RECENT](recent, "", false, true)
+    for _, name in pairs(recent) do Add(name, nil, false) end
+    list[zo_strlower(GetDisplayName())] = nil
+    return list
+end
+
+local function SuggestionLabel(entry)
+    local where = #entry.places > 0 and table.concat(entry.places, ", ") or "recent contact"
+    local label = string.format("%s  |c8A86B0%s|r", entry.name, where)
+    if entry.online then label = label .. "  |c5EE6A0online|r" end
+    return label
+end
+
+-- The best names for what's typed: names starting with it, then containing it, then the same
+-- letters ignoring dots, dashes and fancy letters, then the game's fuzzy match. With nothing
+-- typed yet: names that look like the Discord name.
+function Events:AccountMatches(text, person)
+    local list = self.accountList or {}
+    local typed = zo_strlower(Trim(text or "")):gsub("^@", "")
+    local found, seen = {}, {}
+    local function Take(entry)
+        if entry and #found < MAX_SUGGESTIONS and not seen[entry.name] then
+            seen[entry.name] = true
+            found[#found + 1] = entry
+        end
+    end
+    local function Pass(test)
+        local hits = {}
+        for key, entry in pairs(list) do
+            if not seen[entry.name] and test(key:sub(2), entry) then hits[#hits + 1] = entry end
+        end
+        table.sort(hits, function(a, b)
+            if a.online ~= b.online then return a.online end
+            return zo_strlower(a.name) < zo_strlower(b.name)
+        end)
+        for _, entry in ipairs(hits) do Take(entry) end
+    end
+    if typed == "" then
+        if not person then return found end
+        local keys = { person.key }
+        if person.nick then keys[#keys + 1] = Norm(person.nick) end
+        for _, alt in ipairs(person.alts or {}) do keys[#keys + 1] = alt end
+        for _, key in ipairs(keys) do
+            if #key >= 3 then
+                Pass(function(_, entry) local n = entry.norm return n:find(key, 1, true) ~= nil or (#n >= 4 and key:find(n, 1, true) ~= nil) end)
+            end
+        end
+    else
+        local plain = Norm(typed)
+        Pass(function(name) return name:sub(1, #typed) == typed end)
+        Pass(function(name) return name:find(typed, 1, true) ~= nil end)
+        if #plain >= 2 then Pass(function(_, entry) return entry.norm:find(plain, 1, true) ~= nil end) end
+        if #found < MAX_SUGGESTIONS and #typed >= 3 then
+            local byLower = {}
+            for key, entry in pairs(list) do byLower[key] = key end
+            for _, key in ipairs(GetTopMatchesByLevenshteinSubStringScore(byLower, "@" .. typed, 1, MAX_SUGGESTIONS) or {}) do Take(list[key]) end
+        end
+    end
+    return found
+end
+
+-- Puts the matches in the drop-down under the box (the game's own list under a text box).
+function Events:ShowAccountSuggestions(text)
+    local complete = self.accountComplete
+    local def = self.input
+    if not complete or not def or not def.person then return end
+    local labels = {}
+    self.accountLabels = {}
+    for _, entry in ipairs(self:AccountMatches(text, def.person)) do
+        local label = SuggestionLabel(entry)
+        self.accountLabels[label] = entry.name
+        labels[#labels + 1] = label
+    end
+    if not complete:ApplyAutoCompletionResults(unpack(labels)) then complete:Hide() end
+end
+
+function Events:SetUpAccountComplete()
+    if self.accountComplete then return end
+    local box = FurysGuildToolset_EventsInputLineBox
+    local complete = ZO_AutoComplete:New(box, nil, nil, AUTO_COMPLETION_ONLINE_OR_OFFLINE, MAX_SUGGESTIONS, AUTO_COMPLETION_MANUAL_MODE)
+    complete:SetUseCallbacks(true)
+    complete:RegisterCallback(ZO_AutoComplete.ON_ENTRY_SELECTED, function(label)
+        local name = self.accountLabels and self.accountLabels[label]
+        if name then
+            -- Setting the text would show the list again; this pick is done.
+            self.accountPicking = true
+            box:SetText(name)
+            box:SetCursorPosition(#name)
+            self.accountPicking = false
+        end
+    end)
+    ZO_PreHookHandler(box, "OnTextChanged", function()
+        if not self.accountPicking and self.input and self.input.person and box:HasFocus() then self:ShowAccountSuggestions(box:GetText()) end
+    end)
+    self.accountComplete = complete
+end
+
 function Events:AskAccount(person, current)
-    self:OpenInput({
+    self:SetUpAccountComplete()
+    self.accountList = self:AccountCandidates()
+    local def
+    def = {
         title = "Account for " .. person.base,
-        hint = string.format("Type the ESO @account of %s. It's remembered for every event. Leave it empty to forget it.", person.raw),
+        hint = string.format("Type the ESO @account of %s. Names from your guilds, friends, group and recent contacts drop down as you type: click one or pick it with the arrow keys and Tab. It's checked when you save and remembered for every event. Leave it empty to forget it.", person.raw),
         okLabel = "Save account",
-        okTip = "Remembers this account for this Discord name.",
+        okTip = "Checks the account and remembers it for this Discord name.",
         text = current or "@",
-        onOk = function(text) self:SetAccount(person, Trim((text:gsub("[\r\n].*", "")))) end,
-    })
+        singleLine = true,
+        person = person,
+        onOk = function(text) return self:CheckAccount(person, text, def) end,
+        onShown = function() self:ShowAccountSuggestions(FurysGuildToolset_EventsInputLineBox:GetText()) end,
+    }
+    self:OpenInput(def)
+end
+
+-- Saves a typed account once it's found in your guilds, friends or group, with the game's
+-- spelling. Not found: the window stays open and says so, with close names; pressing
+-- "Save anyway" on the same name keeps it.
+function Events:CheckAccount(person, text, def)
+    local account = U.NormalizeName(Trim((text:gsub("[\r\n].*", ""))))
+    if account == "" or account == "@" then
+        self:SetAccount(person, "")
+        return true
+    end
+    local found, close = self:LookupAccount(account)
+    if found then
+        local note = " (checked: a recent contact)"
+        if #found.places > 0 then
+            note = string.format(" (checked: in %s, %s)", table.concat(found.places, ", "), found.online and "online" or "offline")
+        end
+        self:SetAccount(person, found.name, note)
+        return true
+    end
+    if def.unchecked == zo_strlower(account) then
+        self:SetAccount(person, account, " (not checked: not in your guilds, friends, group or recent contacts)")
+        return true
+    end
+    def.unchecked = zo_strlower(account)
+    local hint = string.format("|cFFA45C%s isn't in any of your guilds, your friend list, your group or your recent contacts,|r so the addon can't check it (the game has no lookup for other accounts).", account)
+    if #close > 0 then hint = hint .. " Did you mean " .. table.concat(close, ", ") .. "?" end
+    hint = hint .. " Fix the name, or press Save anyway to keep it as typed."
+    FurysGuildToolset_EventsInputHint:SetText(hint)
+    FurysGuildToolset_EventsInputOK:SetText("Save anyway")
+    def.okTip = "Keeps this account as typed, without a check."
+    return false
 end
 
 -- Actions ---------------------------------------------------------------------------------
@@ -941,13 +1159,208 @@ end
 
 -- Invite code ------------------------------------------------------------------------------
 
+-- On/off button and code box in the window's title row, on the Events tab only (1.23.0, Albert:
+-- the settings page is too far away for this). The same saved settings as the settings page.
+local CODE_MAX_CHARS = 30
+local CODE_SIZES = {
+    { name = "IA", count = 2, width = 70 },
+    { name = "Group", count = 4, width = 100 },
+    { name = "Trial", count = 12, width = 100 },
+}
+
+function Events:CodeBar()
+    if self.codeBar then return self.codeBar end
+    local T = GT.Theme
+    local bar = WINDOW_MANAGER:CreateControl("FurysGuildToolset_EventsCodeBar", FurysGuildToolset_Report, CT_CONTROL)
+    bar:SetDimensions(640, 30)
+    bar:SetAnchor(RIGHT, FurysGuildToolset_ReportSettings, LEFT, -12, 0)
+    bar:SetDrawLayer(DL_CONTROLS)
+    bar:SetHidden(true)
+
+    local toggle = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)Toggle", bar, "ZO_DefaultButton")
+    toggle:SetDimensions(180, 28)
+    toggle:SetAnchor(LEFT, bar, LEFT, 0, 0)
+    toggle:SetHandler("OnClicked", function() self:SetCodeOn(not self.sv.autoInvite) end)
+    GT.Report.SetTip(toggle, function()
+        local now = self.sv.autoInvite and ("\n\n" .. self:CodeStatus()) or ""
+        return string.format("Turns Invite by code on or off. While it's on, anyone who types %s (upper or lower case) in the chat of a guild ticked for ads, or whispers it to you, gets a group invite. With no event pasted: anyone, up to a full group. With an event pasted: once its group forms (until 2 hours after the start), up to its group size, and not when their CP is under the post's requirement. Only while you lead the group or are solo. Starts turned off at every login, and turns itself off when your group fills up or breaks up.%s", self:CodeText(), now)
+    end)
+
+    local label = WINDOW_MANAGER:CreateControl("$(parent)Label", bar, CT_LABEL)
+    label:SetFont("ZoFontGame")
+    label:SetText("Code")
+    label:SetAnchor(LEFT, toggle, RIGHT, 12, 0)
+    T.Paint(label, T.TEXT)
+
+    local back = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)Code", bar, "ZO_SingleLineEditBackdrop_Keyboard")
+    back:SetDimensions(110, 28)
+    back:SetAnchor(LEFT, label, RIGHT, 8, 0)
+    local box = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)Box", back, "ZO_DefaultEditForBackdrop")
+    box:SetMaxInputChars(CODE_MAX_CHARS)
+    box:SetHandler("OnEnter", function(control) control:LoseFocus() end)
+    box:SetHandler("OnEscape", function(control)
+        control:SetText(self:CodeText())
+        control:LoseFocus()
+    end)
+    box:SetHandler("OnFocusLost", function(control) self:SetCode(control:GetText()) end)
+    GT.Report.SetTip(back, "The invite code: the whole chat message has to be this (upper or lower case). Type a new one and press Enter. {code} in the ads.")
+    GT.Report.SetTip(box, "The invite code: the whole chat message has to be this (upper or lower case). Type a new one and press Enter. {code} in the ads.")
+
+    -- Size buttons (1.24.0, Albert): with no event pasted, pick how big the group should get.
+    -- Invite by code turns on and turns itself off at that size, or when you leave the group.
+    local sizeButtons, previous = {}, back
+    for _, size in ipairs(CODE_SIZES) do
+        local button = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)Size" .. size.count, bar, "ZO_DefaultButton")
+        button:SetDimensions(size.width, 28)
+        button:SetAnchor(LEFT, previous, RIGHT, previous == back and 10 or 2, 0)
+        button:SetHandler("OnClicked", function() self:PickCodeSize(size.count) end)
+        GT.Report.SetTip(button, function()
+            if self.sv.codeSize == size.count then
+                return string.format("Inviting by code until your group has %d. Click to stop.", size.count)
+            end
+            return string.format("%s: turns Invite by code on until your group has %d (you included), whether you're solo or already grouped. It turns off by itself at %d, or when you leave or disband the group. For when no event is pasted; a pasted event uses its own group size.", size.name, size.count, size.count)
+        end)
+        button.furySize = size
+        sizeButtons[#sizeButtons + 1] = button
+        previous = button
+    end
+
+    -- Above the title-bar glow, like the search box (1.18.3).
+    local layered = { toggle, label, back, box }
+    for _, button in ipairs(sizeButtons) do layered[#layered + 1] = button end
+    for level, control in ipairs(layered) do
+        control:SetDrawLayer(DL_CONTROLS)
+        control:SetDrawLevel(level)
+    end
+    back:SetCenterColor(0, 0, 0, 1)
+    back:SetEdgeColor(T.VIOLET:UnpackRGBA())
+    T.Paint(box, T.TEXT)
+
+    self.codeBar, self.codeToggle, self.codeBox, self.codeSizeButtons = bar, toggle, box, sizeButtons
+    return bar
+end
+
+function Events:CodeText()
+    return self.sv.inviteCode or Events.defaults.inviteCode
+end
+
+function Events:UpdateCodeBar()
+    local bar = self:CodeBar()
+    -- Nothing to switch while the Events tab itself is off.
+    if not self.sv.enabled then bar:SetHidden(true); return end
+    if self.sv.autoInvite then
+        self.codeToggle:SetText("Invite by code: |c5EE6A0ON|r")
+    else
+        self.codeToggle:SetText("Invite by code: |cFFA45COFF|r")
+    end
+    if not self.codeBox:HasFocus() then self.codeBox:SetText(self:CodeText()) end
+    -- The size buttons only matter with no (current) event pasted.
+    local open = self:CodeWindow() == "open"
+    for _, button in ipairs(self.codeSizeButtons) do
+        local size = button.furySize
+        button:SetHidden(not open)
+        if self.sv.autoInvite and self.sv.codeSize == size.count then
+            button:SetText(string.format("|c5EE6A0%s (%d)|r", size.name, size.count))
+        else
+            button:SetText(string.format("%s (%d)", size.name, size.count))
+        end
+    end
+end
+
+-- Your group's size, you included (1 when solo).
+local function GroupCount()
+    local count = GetGroupSize()
+    if count < 1 then count = 1 end
+    return count
+end
+
+-- Turns Invite by code on until the group has `count` people, or off when that size is
+-- already the one running.
+function Events:PickCodeSize(count)
+    if self.sv.autoInvite and self.sv.codeSize == count then
+        self:SetCodeOn(false)
+        return
+    end
+    local have = GroupCount()
+    if have >= count then
+        U.Print("Your group already has %d, so there's nobody to invite for a group of %d.", have, count)
+        return
+    end
+    self.sv.codeSize = count
+    self.codePending = {}
+    self.sv.autoInvite = true
+    self:RegisterCode()
+    U.Print("Invite by code is on until your group has %d (it has %d now). Code: %s, in whispers and the chat of the guilds ticked for ads. It turns off by itself at %d, or when you leave or disband the group.",
+        count, have, self:CodeText(), count)
+    GT.Report:RefreshIfShown()
+end
+
+-- With a size picked: off once the group has that many, or when you leave or disband it.
+-- Off once the group is full: the picked size, else the pasted event's group size, else a full
+-- group (1.24.1: every mode turns itself off, Albert).
+function Events:CheckCodeSize()
+    if not self.sv.autoInvite then return end
+    local have, limit = GroupCount(), self:CodeLimit()
+    if have >= limit then
+        self:SetCodeOn(false, string.format("Your group has %d now, so it's full. Invite by code is off.", have))
+    end
+end
+
+function Events:SetCodeOn(on, message)
+    if on then
+        local have, limit = GroupCount(), self:CodeLimit(true)
+        if have >= limit then
+            U.Print("Your group already has %d, so it's full. Invite by code stays off.", have)
+            GT.Report:RefreshIfShown()
+            return
+        end
+    end
+    self.sv.autoInvite = on
+    -- The button turns on the plain mode (no size); off ends a picked size too.
+    self.sv.codeSize = nil
+    if not on then self.codePending = nil end
+    self:RegisterCode()
+    if on then
+        U.Print("Invite by code is on. Code: %s, in whispers and the chat of the guilds ticked for ads. %s", self:CodeText(), self:CodeStatus())
+    else
+        U.Print(message or "Invite by code is off.")
+    end
+    GT.Report:RefreshIfShown()
+end
+
+-- Saves a code typed in the box. An empty box puts the old code back.
+function Events:SetCode(text)
+    local code = zo_strtrim(text or "")
+    if code == "" then
+        self.codeBox:SetText(self:CodeText())
+        return
+    end
+    if code == self:CodeText() then return end
+    self.sv.inviteCode = code
+    U.Print("The invite code is now %s.", code)
+    GT.Report:RefreshIfShown()
+end
+
 -- Listens to guild chat and whispers while inviting by code is on. The handler only acts when
 -- a whole message is the code.
 function Events:RegisterCode()
     EVENT_MANAGER:UnregisterForEvent(CODE_EVENT_NAME, EVENT_CHAT_MESSAGE_CHANNEL)
+    EVENT_MANAGER:UnregisterForEvent(CODE_EVENT_NAME, EVENT_GROUP_MEMBER_JOINED)
+    EVENT_MANAGER:UnregisterForEvent(CODE_EVENT_NAME, EVENT_GROUP_MEMBER_LEFT)
     if self.sv.enabled and self.sv.autoInvite then
         EVENT_MANAGER:RegisterForEvent(CODE_EVENT_NAME, EVENT_CHAT_MESSAGE_CHANNEL, function(_, channelType, _, text, _, fromDisplayName)
             self:OnCodeMessage(channelType, text, fromDisplayName)
+        end)
+        -- The group's size can lag the event a moment, so check a bit later.
+        EVENT_MANAGER:RegisterForEvent(CODE_EVENT_NAME, EVENT_GROUP_MEMBER_JOINED, function(_, _, displayName)
+            if self.codePending and displayName then self.codePending[displayName] = nil end
+            zo_callLater(function() self:CheckCodeSize() end, 500)
+        end)
+        EVENT_MANAGER:RegisterForEvent(CODE_EVENT_NAME, EVENT_GROUP_MEMBER_LEFT, function(_, _, _, isLocalPlayer)
+            -- You left, or the group broke up or was disbanded: done.
+            if isLocalPlayer and self.sv.autoInvite then
+                self:SetCodeOn(false, "You left the group, or it broke up. Invite by code is off.")
+            end
         end)
     end
 end
@@ -973,15 +1386,34 @@ local function GuildCP(name, guildId)
     return nil
 end
 
--- Whether the code works now: an event pasted, the group has formed (start time minus the
--- forming minutes) and it's not more than CODE_HOURS_AFTER_START past the start time. Returns
--- the state, or nil and why.
+-- When the code invites (1.23.1; it used to need a pasted event, so with none it silently did
+-- nothing):
+--   No event pasted, or the pasted one started more than CODE_HOURS_AFTER_START ago: anyone who
+--   types the code, up to a full group. Returns "open".
+--   An event pasted and its group has formed (start time minus the forming minutes): the
+--   event's group size and CP. Returns "event", state.
+--   An event pasted that hasn't formed yet: nobody. Returns nil, why.
 function Events:CodeWindow()
     local state = self:State()
-    if not state then return nil, "no event pasted" end
-    if state.mode ~= "now" then return nil, "the group hasn't formed yet" end
-    if state.startTs and GetTimeStamp() > state.startTs + CODE_HOURS_AFTER_START * 3600 then return nil, "the event started too long ago" end
-    return state
+    if not state then return "open" end
+    if state.startTs and GetTimeStamp() > state.startTs + CODE_HOURS_AFTER_START * 3600 then return "open" end
+    if state.mode ~= "now" then
+        local why = string.format("%s hasn't formed yet", state.ev.title)
+        if state.formUpTs then why = why .. string.format(" (it forms at %s)", Clock(state.formUpTs)) end
+        return nil, why
+    end
+    return "event", state
+end
+
+-- One line for the button's tip and the "on" message: what the code does right now.
+function Events:CodeStatus()
+    local kind, info = self:CodeWindow()
+    if kind == "open" and self.sv.codeSize then
+        return string.format("It invites anyone who types it until your group has %d, then turns off.", self.sv.codeSize)
+    end
+    if kind == "open" then return "It invites anyone who types it now, up to a full group (no current event pasted)." end
+    if kind == "event" then return string.format("It invites for %s now: up to the event's group size and CP.", info.ev.title) end
+    return string.format("Nobody is invited yet: %s.", info)
 end
 
 -- The group size the event needs: its role limits (Standby left out), or a full group.
@@ -993,40 +1425,70 @@ local function GroupLimit(ev)
     return (total > 0 and total < MAX_GROUP) and total or MAX_GROUP
 end
 
+-- How big the group may get while inviting by code: the picked size, the pasted event's group
+-- size, or a full group. plainOn: for the ON button, which drops a picked size.
+function Events:CodeLimit(plainOn)
+    if self.sv.codeSize and not plainOn then return self.sv.codeSize end
+    local state = self:State()
+    if state and self:CodeWindow() ~= "open" then return GroupLimit(state.ev) end
+    return MAX_GROUP
+end
+
+-- Chat text without the game's markup (icons |t..|t, colors |c..|r, links), for comparing.
+local function PlainChat(text)
+    text = tostring(text or "")
+    text = text:gsub("|t[^|]*|t", ""):gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
+    text = text:gsub("|H[^|]*|h(.-)|h", "%1")
+    return zo_strtrim(text)
+end
+
 function Events:OnCodeMessage(channelType, text, fromDisplayName)
     local code = zo_strlower(zo_strtrim(self.sv.inviteCode or ""))
-    if code == "" or zo_strlower(zo_strtrim(text or "")) ~= code then return end
+    if code == "" or zo_strlower(PlainChat(text)) ~= code then return end
     if not fromDisplayName or fromDisplayName == "" or fromDisplayName == GetDisplayName() then return end
     local guildId = GuildOfChannel(channelType)
-    if guildId then
-        if not self.sv.adGuilds[guildId] then return end
-    elseif channelType ~= CHAT_CHANNEL_WHISPER then
-        return
-    end
-    local state, why = self:CodeWindow()
-    if not state then return end
+    if not guildId and channelType ~= CHAT_CHANNEL_WHISPER then return end
     local group = self:BuildGroup()
     if group[Norm(fromDisplayName)] then return end
+    -- One answer per person a minute, whatever it is.
     self.codeSeen = self.codeSeen or {}
     local now = GetTimeStamp()
     if self.codeSeen[fromDisplayName] and now - self.codeSeen[fromDisplayName] < 60 then return end
     self.codeSeen[fromDisplayName] = now
     local link = ZO_LinkHandler_CreateDisplayNameLink(fromDisplayName)
+    if guildId and not self.sv.adGuilds[guildId] then
+        U.Print("%s typed the invite code in %s, but that guild isn't ticked under Guilds to advertise in (Events settings). Not invited.", link, U.GuildName(guildId))
+        return
+    end
+    local kind, info = self:CodeWindow()
+    if not kind then
+        U.Print("%s typed the invite code, but %s. Not invited.", link, info)
+        return
+    end
     if not IsUnitSoloOrGroupLeader("player") then
         U.Print("%s typed the invite code, but only the group leader can invite.", link)
         return
     end
-    if GetGroupSize() >= GroupLimit(state.ev) then
-        U.Print("%s typed the invite code, but the group is full. Not invited.", link)
+    local limit = kind == "event" and GroupLimit(info.ev) or (self.sv.codeSize or MAX_GROUP)
+    -- Invites still waiting for an answer (up to a minute) count too, so a group of 4 doesn't
+    -- get 5 people when several type the code at once.
+    local pending = 0
+    self.codePending = self.codePending or {}
+    for name, at in pairs(self.codePending) do
+        if now - at > 60 then self.codePending[name] = nil else pending = pending + 1 end
+    end
+    if GroupCount() + pending >= limit then
+        U.Print("%s typed the invite code, but the group is full%s. Not invited.", link, pending > 0 and " (counting invites not answered yet)" or "")
         return
     end
-    local minCP = state.ev.minCP or 0
+    local minCP = kind == "event" and (info.ev.minCP or 0) or 0
     local cp = GuildCP(fromDisplayName, guildId)
     if minCP > 0 and cp and cp < minCP then
         U.Print("%s typed the invite code, but has CP %d (the event needs %d). Not invited.", link, cp, minCP)
         return
     end
     GroupInviteByName(fromDisplayName)
+    self.codePending[fromDisplayName] = now
     U.Print("Invited %s (typed the invite code%s).", link, cp and string.format(", CP %d", cp) or "")
 end
 
@@ -1143,40 +1605,160 @@ function Events:NextAd()
         queue.total - #queue.posts, queue.total, #queue.posts > 0 and "; the next guild's follows" or "")
 end
 
+-- Discord (1.20.2) ---------------------------------------------------------------------------
+-- Discord takes far more than game chat: headers, bold, block quotes, :emoji: shortcodes (Discord
+-- turns them into emoji when you send), <t:...> timestamps that show in each reader's own time
+-- zone, and up to 2000 characters. The text stays plain ASCII so the game's text box keeps it.
+
+local DISCORD_MAX = 2000
+local DISCORD_EMOJI = { tank = ":shield:", heal = ":green_heart:", dps = ":crossed_swords:", any = ":busts_in_silhouette:", standby = ":hourglass:" }
+local DISCORD_ROLE = { tank = { "Tank", "Tanks" }, heal = { "Healer", "Healers" }, dps = { "DPS", "DPS" } }
+
+-- Names and titles can hold * _ ~ ` | > that Discord would read as formatting.
+local function DiscordEscape(text)
+    return (tostring(text or ""):gsub("([%*_~`|>\\])", "\\%1"))
+end
+
+-- "<t:1795470000:F> (<t:1795470000:R>)": Discord shows the date and "in 2 hours" in each
+-- reader's own time zone. The post's own text when the time can't be read.
+local function DiscordWhen(state, style)
+    if state.startTs then return string.format("<t:%d:%s> (<t:%d:R>)", state.startTs, style or "F", state.startTs) end
+    return state.ev.time and DiscordEscape(state.ev.time) or nil
+end
+
+-- One line per role with a limit: ":shield: **Tanks:** 1 open (1/2 signed up)" or
+-- ":green_heart: **Healers:** full :white_check_mark:". Nothing when no section has a limit.
+local function DiscordOpenLines(state, open, now)
+    local maxOf = {}
+    for _, section in ipairs(state.ev.sections) do
+        if section.max and (ROLE_OF_KIND[section.kind] or section.kind == "any") then
+            maxOf[section.kind] = (maxOf[section.kind] or 0) + section.max
+        end
+    end
+    local lines = {}
+    for _, kind in ipairs({ "tank", "heal", "dps", "any" }) do
+        local n = open[kind]
+        if n and maxOf[kind] then
+            local label = kind == "any" and "Spots" or DISCORD_ROLE[kind][2]
+            -- Taken = the limit minus the open slots, so walk-ins in your group count too.
+            local count = string.format("(%d/%d %s)", math.max(0, maxOf[kind] - n), maxOf[kind], now and "here" or "taken")
+            if n > 0 then
+                lines[#lines + 1] = string.format("> %s **%s:** %d open %s", DISCORD_EMOJI[kind], label, n, count)
+            else
+                lines[#lines + 1] = string.format("> %s **%s:** full :white_check_mark: %s", DISCORD_EMOJI[kind], label, count)
+            end
+        end
+    end
+    return lines
+end
+
+-- ":shield: **Tank (1/2):** Furyous, Marth Wolf", one line per section that isn't "out" (or
+-- an empty standby).
+-- withNames false gives counts only (for a long roster that would pass Discord's limit).
+local function DiscordRoster(state, withNames)
+    local lines = {}
+    for _, section in ipairs(state.ev.sections) do
+        if section.kind ~= "out" and not (section.kind == "standby" and #section.people == 0) then
+            local count = section.max and string.format("%d/%d", #section.people, section.max) or tostring(#section.people)
+            local line = string.format("%s **%s (%s)**", DISCORD_EMOJI[section.kind] or ":small_blue_diamond:", DiscordEscape(section.name), count)
+            if withNames and #section.people > 0 then
+                local names = {}
+                for _, person in ipairs(section.people) do names[#names + 1] = DiscordEscape(person.base) end
+                line = line .. ": " .. table.concat(names, ", ")
+            end
+            lines[#lines + 1] = line
+        end
+    end
+    return lines
+end
+
+function Events:DiscordText(state, mode, withNames)
+    local ev = state.ev
+    local title = DiscordEscape(ev.title)
+    local when = DiscordWhen(state, mode == "now" and "t" or "F")
+    local lines = {}
+    if mode == "signup" then
+        local open = state.openSignup
+        lines[#lines + 1] = "## :crossed_swords: " .. title
+        if when then lines[#lines + 1] = ":calendar: " .. when end
+        if (ev.minCP or 0) > 0 then lines[#lines + 1] = string.format(":star: **CP %d+**", ev.minCP) end
+        lines[#lines + 1] = ""
+        if next(open) == nil then
+            -- No section has a limit (Attendees only): there's always room (1.20.2; it used to
+            -- say every slot was taken).
+            local signed = 0
+            for _, section in ipairs(ev.sections) do
+                if section.kind ~= "standby" and section.kind ~= "out" then signed = signed + #section.people end
+            end
+            lines[#lines + 1] = string.format("### :sparkles: Room for more! %d signed up so far.", signed)
+        elseif self:NeedText(state, open) == "" then
+            lines[#lines + 1] = "### :white_check_mark: Every slot is taken!"
+            lines[#lines + 1] = "Sign up as **Standby** if you'd like to come."
+        else
+            lines[#lines + 1] = "### :mega: Still open"
+            for _, line in ipairs(DiscordOpenLines(state, open, false)) do lines[#lines + 1] = line end
+        end
+        lines[#lines + 1] = ""
+        lines[#lines + 1] = "**:clipboard: Signed up**"
+        for _, line in ipairs(DiscordRoster(state, withNames)) do lines[#lines + 1] = line end
+        lines[#lines + 1] = ""
+        lines[#lines + 1] = ":point_right: **Sign up on the event post!**"
+    else
+        local open = state.openNow
+        lines[#lines + 1] = string.format("## :rotating_light: %s is forming up now!", title)
+        if when then lines[#lines + 1] = ":alarm_clock: " .. when end
+        if (ev.minCP or 0) > 0 then lines[#lines + 1] = string.format(":star: **CP %d+**", ev.minCP) end
+        lines[#lines + 1] = ""
+        if #state.missing > 0 then
+            lines[#lines + 1] = "### :mag: Still missing"
+            -- One line per section: "> :shield: **Tank:** sshogrin".
+            local order, namesOf = {}, {}
+            for _, info in ipairs(state.missing) do
+                local section = info.section
+                if not namesOf[section] then order[#order + 1] = section; namesOf[section] = {} end
+                local names = namesOf[section]
+                names[#names + 1] = DiscordEscape(info.person.base)
+            end
+            for _, section in ipairs(order) do
+                local names = namesOf[section]
+                lines[#lines + 1] = string.format("> %s **%s:** %s", DISCORD_EMOJI[section.kind] or ":small_blue_diamond:", DiscordEscape(section.name),
+                    withNames and table.concat(names, ", ") or (#names .. (#names == 1 and " person" or " people")))
+            end
+            lines[#lines + 1] = "Are you coming? Log in and we'll send an invite!"
+        else
+            lines[#lines + 1] = ":white_check_mark: **Everyone who signed up is here.**"
+        end
+        lines[#lines + 1] = ""
+        if next(open) == nil then
+            lines[#lines + 1] = "### :sos: Room for more!"
+        elseif self:NeedText(state, open) ~= "" then
+            lines[#lines + 1] = "### :sos: Need now"
+            for _, line in ipairs(DiscordOpenLines(state, open, true)) do lines[#lines + 1] = line end
+        else
+            lines[#lines + 1] = ":white_check_mark: **The group is full.**"
+        end
+        if next(open) == nil or self:NeedText(state, open) ~= "" then
+            lines[#lines + 1] = ""
+            lines[#lines + 1] = string.format(":point_right: Whisper **%s** in game for an invite.", DiscordEscape(GetDisplayName()))
+        end
+    end
+    lines[#lines + 1] = string.format("-# Updated <t:%d:R>", GetTimeStamp())
+    return table.concat(lines, "\n")
+end
+
 function Events:CopyForDiscord(mode)
     local state = self:State()
     if not state then U.Print("Paste a sesh sign-up post first."); return end
-    local ev = state.ev
     mode = mode or state.mode
-    local cp = (ev.minCP or 0) > 0 and string.format(", CP %d+", ev.minCP) or ""
-    local lines
-    if mode == "signup" then
-        local need = self:NeedText(state, state.openSignup)
-        lines = { string.format("**%s**%s", ev.title, ev.time and (" (" .. ev.time .. ")") or "") }
-        if need ~= "" then
-            lines[#lines + 1] = string.format("Still open: **%s**%s. Sign up on the event post!", need, cp)
-        else
-            lines[#lines + 1] = "Every slot is taken. Sign up as Standby if you'd like to come."
-        end
-    else
-        lines = { string.format("**%s** is forming up now%s.", ev.title, ev.time and (" (" .. ev.time .. ")") or "") }
-        if #state.missing > 0 then
-            local names = {}
-            for _, info in ipairs(state.missing) do names[#names + 1] = string.format("%s (%s)", info.person.base, info.section.name) end
-            lines[#lines + 1] = "Still missing: " .. table.concat(names, ", ") .. ". Are you coming?"
-        else
-            lines[#lines + 1] = "Everyone who signed up is here."
-        end
-        local need = self:NeedText(state, state.openNow)
-        if need ~= "" then
-            lines[#lines + 1] = string.format("Need now: **%s**%s. Whisper %s in game for an invite.", need, cp, GetDisplayName())
-        end
-    end
+    local text = self:DiscordText(state, mode, true)
+    -- A long roster: counts instead of names, so the message fits one Discord post.
+    if #text > DISCORD_MAX then text = self:DiscordText(state, mode, false) end
     local Report = GT.Report
-    Report.exportParts = { table.concat(lines, "\n") }
+    Report.exportParts = { text }
     Report.exportTitle = "Copy for Discord"
+    Report.exportHint = "Select all, Ctrl+C, paste into Discord. The :emoji: and <t:...> times turn fancy when you send."
     Report.exportIndex = 1
-    U.ShowOnTop(FuryGMTExport)
+    U.ShowOnTop(FurysGuildToolset_Export)
     Report:ShowExportPart(0)
     U.Print("The Discord message is in the copy window. Click Select all, press Ctrl+C, and paste it into Discord.")
 end
@@ -1451,13 +2033,13 @@ function Events:SwitchDifficultyThen(veteran, fn)
     local function Go()
         if done then return end
         done = true
-        EVENT_MANAGER:UnregisterForEvent("FuryGMTEventsDifficulty", EVENT_VETERAN_DIFFICULTY_CHANGED)
-        EVENT_MANAGER:UnregisterForEvent("FuryGMTEventsDifficulty", EVENT_GROUP_VETERAN_DIFFICULTY_CHANGED)
+        EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_EventsDifficulty", EVENT_VETERAN_DIFFICULTY_CHANGED)
+        EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_EventsDifficulty", EVENT_GROUP_VETERAN_DIFFICULTY_CHANGED)
         fn()
     end
     local function Later() zo_callLater(Go, 300) end
-    EVENT_MANAGER:RegisterForEvent("FuryGMTEventsDifficulty", EVENT_VETERAN_DIFFICULTY_CHANGED, Later)
-    EVENT_MANAGER:RegisterForEvent("FuryGMTEventsDifficulty", EVENT_GROUP_VETERAN_DIFFICULTY_CHANGED, Later)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_EventsDifficulty", EVENT_VETERAN_DIFFICULTY_CHANGED, Later)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_EventsDifficulty", EVENT_GROUP_VETERAN_DIFFICULTY_CHANGED, Later)
     zo_callLater(Go, 3000)
     SetVeteranDifficulty(veteran)
 end
@@ -1634,11 +2216,10 @@ function Events:SettingsControls()
         { type = "editbox", name = "Guild ad for sign-ups", tooltip = "Before the group forms: Advertise in guilds puts this in each ticked guild's chat box. {need} is the sign-up slots nobody has taken. Up to 350 characters.",
           getFunc = function() return sv.signupAdText or Events.defaults.signupAdText end, setFunc = function(v) sv.signupAdText = v end, default = Events.defaults.signupAdText },
         { type = "checkbox", name = "Invite by code",
-          tooltip = "Once the group forms (until 2 hours after the start time), anyone who types the invite code in the chat of a guild ticked below, or whispers it to you, gets a group invite. Not when the group is full, when you aren't the leader, or when their CP is under the post's requirement. Put {code} in the replacement ad so people know it.",
-          getFunc = function() return sv.autoInvite end, setFunc = function(v) sv.autoInvite = v; self:RegisterCode() end, default = false },
+          tooltip = "Anyone who types the invite code (upper or lower case) in the chat of a guild ticked below, or whispers it to you, gets a group invite. With no event pasted: anyone, up to a full group. With an event pasted: once its group forms (until 2 hours after the start time), up to its group size, and not when their CP is under the post's requirement. Only while you lead the group or are solo. Put {code} in the replacement ad so people know it. Also on the Events tab: the Invite by code button and Code box. Starts turned off at every login and /reloadui, and turns itself off when your group fills up or breaks up.",
+          getFunc = function() return sv.autoInvite end, setFunc = function(v) if v ~= sv.autoInvite then self:SetCodeOn(v) end end, default = false },
         { type = "editbox", name = "Invite code", tooltip = "The whole message has to be this (upper or lower case). {code} in the ads.",
-          getFunc = function() return sv.inviteCode or Events.defaults.inviteCode end, setFunc = function(v) sv.inviteCode = zo_strtrim(v) end, default = Events.defaults.inviteCode,
-          disabled = function() return not sv.autoInvite end },
+          getFunc = function() return sv.inviteCode or Events.defaults.inviteCode end, setFunc = function(v) sv.inviteCode = zo_strtrim(v) end, default = Events.defaults.inviteCode },
         { type = "editbox", name = "Guild ad for replacements", tooltip = "Once the group forms: Advertise in guilds puts this in each ticked guild's chat box. {need} is what your group is missing now, no-shows included. While Invite by code is off, the part with {code} is left out (\"Type {code} into guild chat or whisper {me}.\" becomes \"Whisper {me}.\"). Up to 350 characters.",
           getFunc = function() return sv.adText end, setFunc = function(v) sv.adText = v end, default = Events.defaults.adText },
         { type = "header", name = "Guilds to advertise in" },

@@ -18,18 +18,14 @@
     "SurveySidekick"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5050/",
-  "fingerprint": "055ab372b4d30e673f5e92f4653a405cf0cb798eea40fc2e4af7af3339565b35",
+  "fingerprint": "5fadcb539ee867079d6c6e64881070584b20ea120317609458c77d051f7a889d",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw18434.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18435.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18436.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18437.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18438.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18439.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18440.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18459.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18460.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18461.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18754.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18753.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18751.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18752.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18749.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18748.png"
   ],
   "platform": "pc",
   "published": true,
@@ -37,11 +33,11 @@
   "source_id": "5050",
   "source_url": "https://www.esoui.com/downloads/info5050-SurveySidekick.html",
   "stats": {
-    "downloads": 120,
+    "downloads": 129,
     "favorites": 0,
-    "monthly_downloads": 111
+    "monthly_downloads": 124
   },
   "title": "Survey Sidekick",
-  "updated_at": 1795394839000,
-  "version": "0.6.0-beta"
+  "updated_at": 1795499252000,
+  "version": "0.6.2-beta"
 }

@@ -274,7 +274,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ArchdruidTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/ArchdruidTracker__3473) | tmbrinks | PC / Mac | 1.1.1 |
 | [Archive Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Archive-Helper__3772) | FlatBadger | PC / Mac | 1.4.2 |
 | [ArchiveAdvisor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/ArchiveAdvisor__4787) | NPViral | PC / Mac | 1.0.1 |
-| [Arclight Taunt – Multi-Target Tank HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tareN/Arclight-Taunt-Multi-Target-Tank-HUD__5008) | tareN | PC / Mac | 1.3.1 |
+| [Arclight Taunt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tareN/Arclight-Taunt__5008) | tareN | PC / Mac | 1.4.0 |
 | [ArcTech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTech__fd28ddff-8837-4702-8beb-110fee70b432) | Scribe_Rob | Console | — |
 | [ArcTechv2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTechv2__798e2650-33dc-48bb-80c5-8c09cabc36b5) | Scribe_Rob | Console | — |
 | [Ardy's Buff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Buff-Tracker__5021) | giga'chad | PC / Mac | 1.2.0 |
@@ -345,7 +345,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto Abandon Not Killing Spree Contracts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furious_Sniper/Auto-Abandon-Not-Killing-Spree-Contracts__4481) | Furious_Sniper | PC / Mac | 1.1 |
 | [Auto Abandon Quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Auto-Abandon-Quests__5084) | Schrodi | PC / Mac | 1.5 |
 | [Auto Accept Duel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GhostGat/Auto-Accept-Duel__3468) | GhostGat | PC / Mac | 1.0 |
-| [Auto Accept Next Writ](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Auto-Accept-Next-Writ__5085) | Schrodi | PC / Mac | 1.2 |
+| [Auto Accept Next Writ](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Auto-Accept-Next-Writ__5085) | Schrodi | PC / Mac | 1.2.1 |
 | [Auto Banish Pets/Assistants/Companions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tdenc/Auto-Banish-Pets-Assistants-Companions__3099) | tdenc | PC / Mac | 0.8.0 |
 | [Auto Category - Revised](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Auto-Category---Revised__2300) | Shadowfen | PC / Mac | 4.7.1 |
 | [Auto Category - Revised plugin for CraftStore FoA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rufusredbeard/Auto-Category---Revised-plugin-for-CraftStore-FoA__2535) | rufusredbeard | PC / Mac | 2.17 |
@@ -384,7 +384,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto Research Scrolls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/Auto-Research-Scrolls__3659) | ghostbane | PC / Mac | 1.2.0 |
 | [Auto Run](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Auto-Run__1310) | CaptainBlagbird | PC / Mac | 1.0.12 |
 | [Auto Sell Junk - Abah's Appraiser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/Auto-Sell-Junk---Abah-s-Appraiser__2d6ff530-edbc-4425-be68-daadbc3c0afa) | xbutch | Console | — |
-| [Auto Unbox](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Auto-Unbox__5086) | Schrodi | PC / Mac | 1.0 |
+| [Auto Unbox](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Auto-Unbox__5086) | Schrodi | PC / Mac | 1.0.1 |
 | [Auto-Claim or Hide Golden Pursuits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Auto-Claim-or-Hide-Golden-Pursuits__48b63611-befb-44e1-b87a-1bac567ee234) | code65536 | Console | — |
 | [Auto-Claim or Hide Golden Pursuits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Auto-Claim-or-Hide-Golden-Pursuits__4545) | code65536 | PC / Mac | 2.0.0 |
 | [Auto-Claim or Hide Tome Challenges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Auto-Claim-or-Hide-Tome-Challenges__910446ca-4e83-47c8-8c9b-a5d99bcec73e) | code65536 | Console | — |

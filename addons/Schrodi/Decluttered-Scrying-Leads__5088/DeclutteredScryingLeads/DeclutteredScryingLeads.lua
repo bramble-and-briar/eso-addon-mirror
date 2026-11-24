@@ -197,15 +197,13 @@ EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, function(_, addo
     EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
 
     sv = ZO_SavedVars:NewAccountWide("DeclutteredScryingLeads_SV", 2, nil, defaults)
-    if ANTIQUITY_JOURNAL_KEYBOARD then
-        SecurePostHook(ANTIQUITY_JOURNAL_KEYBOARD, "OnCategorySelected", OnCategorySelected)
-        ZO_PreHook(ANTIQUITY_JOURNAL_KEYBOARD, "BuildCategoryAntiquityTiles", function(_, categoryData)
-            InstallSectionFilter()
-            ZO_ClearTable(buildResults)
-            filterDuringBuild = IsAllLeads(categoryData) and IsAnyFilterSelected()
-        end)
-        SecurePostHook(ANTIQUITY_JOURNAL_KEYBOARD, "BuildCategoryAntiquityTiles", function()
-            filterDuringBuild = false
-        end)
-    end
+    SecurePostHook(ANTIQUITY_JOURNAL_KEYBOARD, "OnCategorySelected", OnCategorySelected)
+    ZO_PreHook(ANTIQUITY_JOURNAL_KEYBOARD, "BuildCategoryAntiquityTiles", function(_, categoryData)
+        InstallSectionFilter()
+        ZO_ClearTable(buildResults)
+        filterDuringBuild = IsAllLeads(categoryData) and IsAnyFilterSelected()
+    end)
+    SecurePostHook(ANTIQUITY_JOURNAL_KEYBOARD, "BuildCategoryAntiquityTiles", function()
+        filterDuringBuild = false
+    end)
 end)

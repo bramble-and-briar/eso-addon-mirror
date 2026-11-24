@@ -1,6 +1,6 @@
 -- Daily: crafting writs per character (started, ready to deliver, done today) and the riding lesson
 -- timer. The daily reset is 10:00 UTC on NA and 03:00 UTC on EU (since Update 37).
-local CT = FuryCT
+local CT = FurysCharacterTracker
 local U = CT.Util
 local Daily = {}
 CT.Daily = Daily

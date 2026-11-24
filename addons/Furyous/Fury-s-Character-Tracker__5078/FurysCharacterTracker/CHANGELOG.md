@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.4.0
+- New button in Settings > Addons > Fury's Character Tracker: "Get the Windows Tools" opens the download page for the offline viewer and Excel export in your browser (the game asks first). /fct tools does the same, so there's no more hunting for the link on the addon page.
+
+## 1.3.2
+- Fixed: the violet "maxed" tile was hidden on every other row and on the row under the mouse, leaving dark text on a dark row. The tile now shows on every row, on every tab of the board.
+
+## 1.3.1
+- Code cleanup for the ESOUI addon check: the addon's one global table is now named FurysCharacterTracker (was FuryCT), and its window and control names start with FurysCharacterTracker_, so they can't clash with other addons.
+- Your roster, picks and settings carry over unchanged (saved variables keep their name), and so do your keybinds.
+
+## 1.3.0
+- New look, "Fury Night", shared by all of Fury's addons: deep blue-black windows with an indigo frame, a soft glow behind the title, a violet line under it and a character icon beside it. Titles use the game's book font (Prose Antique).
+- Blue column headers, striped rows, and the row under the mouse lights up.
+- The "ready" color is now violet instead of gold; research timers that need you are amber.
+- The Brag window uses the same look, with a larger Prose Antique title.
+- Chat messages and the settings title use the new violet color.
+- Nothing about what the addon does or your settings has changed.
+
 ## 1.2.2
 - The offline viewer and Excel export helper (Windows scripts) are now a separate download, Fury's Character Tracker Windows Tools, linked on the addon page. ESOUI asks that addon downloads hold only addon files. Nothing changes in game; the Export to Excel button works as before.
 - Shorter description line in the addon manifest, so the game reads all of it.

@@ -1,0 +1,55 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="FurysInventoryLedgerSummary" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH">
+            <Dimensions x="980" y="760" />
+            <Anchor point="CENTER" />
+            <Controls>
+                <Backdrop name="$(parent)Bg" edgeColor="FF4A3D99">
+                    <AnchorFill />
+                    <Edge edgeSize="2" />
+                    <OnInitialized>self:SetCenterColor(0.059, 0.055, 0.122, 1)</OnInitialized>
+                </Backdrop>
+
+                <Label name="$(parent)Title" font="$(ANTIQUE_FONT)|26|soft-shadow-thick" color="ECEAF8" text="Fury's Inventory Ledger - Summary">
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="14" />
+                </Label>
+
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-12" offsetY="12" />
+                    <OnClicked>FurysInventoryLedger.CloseSummary()</OnClicked>
+                </Button>
+
+                <Button name="$(parent)Settings">
+                    <Dimensions x="32" y="32" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Close" relativePoint="LEFT" offsetX="-10" />
+                    <Textures normal="/esoui/art/chatwindow/chat_options_up.dds" pressed="/esoui/art/chatwindow/chat_options_down.dds" mouseOver="/esoui/art/chatwindow/chat_options_over.dds" />
+                    <OnClicked>FurysInventoryLedger.OpenSettings()</OnClicked>
+                    <OnMouseEnter>InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -4); SetTooltipText(InformationTooltip, "Settings (also /ledger settings)")</OnMouseEnter>
+                    <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
+                </Button>
+
+                <Label name="$(parent)Sub" font="ZoFontGame" color="B4B0D8" wrapMode="ELLIPSIS">
+                    <Dimensions x="940" y="24" />
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="54" />
+                </Label>
+
+                <Control name="$(parent)Body" inherits="ZO_ScrollContainer">
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="82" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-60" />
+                </Control>
+
+                <Button name="$(parent)Refresh" inherits="ZO_DefaultButton" text="Refresh">
+                    <Dimensions x="140" y="30" />
+                    <Anchor point="BOTTOMLEFT" offsetX="20" offsetY="-16" />
+                    <OnClicked>FurysInventoryLedger.RefreshSummary()</OnClicked>
+                </Button>
+
+                <Button name="$(parent)Copy" inherits="ZO_DefaultButton" text="Copy for Excel">
+                    <Dimensions x="200" y="30" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-20" offsetY="-16" />
+                    <OnClicked>FurysInventoryLedger.SummaryToCopy()</OnClicked>
+                </Button>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

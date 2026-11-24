@@ -1,12 +1,12 @@
 -- Fury's Guild Management Toolset: core namespace, module registry, saved variables and lifecycle.
 -- Each feature lives in Modules/<Name>.lua and registers itself with GT:RegisterModule.
 
-FuryGMT = FuryGMT or {}
-local GT = FuryGMT
+FurysGuildToolset = {}
+local GT = FurysGuildToolset
 
 GT.name = "FurysGuildToolset"
 GT.displayName = "Fury's Guild Management Toolset"
-GT.version = "1.16.11"
+GT.version = "1.24.3"
 GT.savedVarsVersion = 1
 
 GT.modules = {}
@@ -21,7 +21,7 @@ GT.moduleOrder = {}
 --   module:OnHistoryCaughtUp(category)   every guild has delivered its backlog for this category
 --   module:BuildSettings(options)   append LibAddonMenu controls to the options table
 function GT:RegisterModule(id, module)
-    assert(not self.modules[id], "FuryGMT module registered twice: " .. tostring(id))
+    assert(not self.modules[id], "FurysGuildToolset module registered twice: " .. tostring(id))
     module.id = id
     self.modules[id] = module
     table.insert(self.moduleOrder, id)
@@ -74,7 +74,7 @@ function GT:SetAlertGuild(guildId, on)
     end
 end
 
--- 1.3.0: everything that can be turned off starts off on a new install (Albert). These
+-- 1.3.0: everything that can be turned off starts turned off on a new install (Albert). These
 -- settings used to start on. An install from before 1.3.0 that never saved one of them gets
 -- the old value (on) written in once, so nothing changes for people who already use the addon.
 local OLD_ON_DEFAULTS = {
@@ -112,7 +112,7 @@ local function SetUpDefaults(oldMissing)
         sv.defaultsOff = false   -- installed before 1.3.0: keep what they had
         for _, entry in ipairs(oldMissing) do sv.modules[entry[1]][entry[2]] = true end
     else
-        sv.defaultsOff = true    -- new install: every feature starts off
+        sv.defaultsOff = true    -- new install: every feature starts turned off
         sv.alertGuildsOptIn = true
     end
 end
@@ -277,7 +277,7 @@ function GT.RegisterSlashCommands()
             GT:FullReset()
         elseif arg == "guilds" then
             for _, guildId in ipairs(GT.Util.GetGuildIds()) do
-                GT.Util.Print("%s: alerts %s", GT.Util.GuildName(guildId), GT:IsAlertGuild(guildId) and "|c9FD49Fon|r" or "|cFF6666off|r")
+                GT.Util.Print("%s: alerts %s", GT.Util.GuildName(guildId), GT:IsAlertGuild(guildId) and "|c5EE6A0on|r" or "|cFF6B86off|r")
             end
             GT.Util.Print("Change this in /gtsettings under Guilds to get alerts from.")
         elseif arg == "settings" then

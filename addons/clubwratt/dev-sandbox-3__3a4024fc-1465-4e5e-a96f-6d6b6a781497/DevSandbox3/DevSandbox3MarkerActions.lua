@@ -155,7 +155,7 @@ local function Update()
     end
     local drawn = Markers.drawn
     drawn.tracked, drawn.empty, drawn.unknown, drawn.checked = nTracked, nEmpty, nUnknown, nChecked
-    -- every 5 s: one summary line for the export (chat too when debug is on)
+    -- every 5 s: one summary line, written while LOGGING is on
     local now = GetFrameTimeMilliseconds()
     if now - lastSummaryMs >= SUMMARY_MS then
         lastSummaryMs = now

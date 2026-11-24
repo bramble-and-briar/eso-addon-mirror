@@ -78,7 +78,7 @@
     "CharacterKnowledge"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2938/",
-  "fingerprint": "023b19f12a5edf7e208d6eeb38161bdc599be6876779be1048998fb300bf9002",
+  "fingerprint": "94149237c4a630a601c6d5a9b798875d3b0fed01bdbb075ea6a0da8b89a54a99",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15692.png",
     "https://cdn-eso.mmoui.com/preview/pvw13225.png",
@@ -97,11 +97,11 @@
   "source_id": "2938",
   "source_url": "https://www.esoui.com/downloads/info2938-CharacterKnowledgeResearchMotifRecipeFurnishingPlanandScribingTracker.html",
   "stats": {
-    "downloads": 841332,
+    "downloads": 844395,
     "favorites": 486,
-    "monthly_downloads": 15781
+    "monthly_downloads": 18563
   },
   "title": "Character Knowledge (Research, Motif, Recipe, Furnishing Plan and Scribing Tracker)",
-  "updated_at": 1795188438000,
-  "version": "3.1.6"
+  "updated_at": 1795533190000,
+  "version": "3.1.7"
 }

@@ -10,6 +10,7 @@
 ---@field unboxTimeoutMs integer Stop waiting for a bought satchel to arrive this long after the interaction ends
 ---@field autoOpenMode string "all" | "bound" | "off": which containers are opened the moment they arrive
 ---@field openGeodes boolean Transmute geodes count as openable (off keeps a hoard intact)
+---@field openUnopened boolean The game's "Unopened" items (stacked treasure maps, survey reports, master writs) count as openable (off keeps the stacks)
 
 ---@class SatchelExchangeRunState
 ---@field active boolean

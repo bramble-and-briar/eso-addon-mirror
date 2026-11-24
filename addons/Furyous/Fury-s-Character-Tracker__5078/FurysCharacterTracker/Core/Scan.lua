@@ -1,7 +1,7 @@
 -- Reads the character you are logged in on: skill lines, skill points, research, scribing, motifs, recipes,
 -- furnishing plans, riding, companions, time played. Runs at login and a few seconds after
 -- any progress (a rank up, a trait finished, a recipe learned...).
-local CT = FuryCT
+local CT = FurysCharacterTracker
 local U = CT.Util
 local Scan = {}
 CT.Scan = Scan

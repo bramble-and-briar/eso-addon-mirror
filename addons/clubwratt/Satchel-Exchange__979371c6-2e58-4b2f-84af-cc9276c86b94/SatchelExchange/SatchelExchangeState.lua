@@ -30,6 +30,8 @@ function SatchelExchangeState.Create()
             -- Opt-in: opening every container a player receives is theirs to turn on.
             autoOpenMode = "off",
             openGeodes = false,
+            -- Unopened maps, surveys and master writs are kept as stacks unless asked for.
+            openUnopened = false,
         },
         run = SatchelExchangeState.CreateRun(),
         session = {

@@ -114,7 +114,7 @@ local function GetBoundRedirectBag(furnitureId)
         return nil -- collectible furnishings (no item link) go back to collections anyway
     end
 
-    local vaultInfo = HOUSING_FURNITURE_RETRIEVE_TO_KEYBOARD and HOUSING_FURNITURE_RETRIEVE_TO_KEYBOARD:GetBagInfo(BAG_FURNITURE_VAULT)
+    local vaultInfo = HOUSING_FURNITURE_RETRIEVE_TO_KEYBOARD:GetBagInfo(BAG_FURNITURE_VAULT)
     if not (vaultInfo and vaultInfo:IsEnabled()) then
         return nil -- no ESO+ / vault not unlocked: fall back to the selected bag
     end

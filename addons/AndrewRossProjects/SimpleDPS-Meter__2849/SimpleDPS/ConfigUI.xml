@@ -46,7 +46,7 @@
 					<Anchor point="TOP" relativeTo="$(parent)TitleContainer" relativePoint="BOTTOM" />
 					
 					<Controls>
-						<Label name="$(parent)Template" font="ZoFontWinH4" text="Developed By:  ProjectileRage" hidden="true">
+						<Label name="$(parent)Template" font="ZoFontWinH4" text="Developed By:  AndrewRossProjects" hidden="true">
 							<Anchor point="TOP" relativeTo="$(parent)" relativePoint="BOTTOM" offsetY="40"/>
 						</Label>
 						
@@ -54,7 +54,7 @@
 							<Anchor point="TOPLEFT" relativeTo="$(parent)Template" relativePoint="TOPLEFT"/>
 						</Label>
 						
-						<Label name="$(parent)Author" font="ZoFontWinH4" color="FF0000" text=" ProjectileRage">
+						<Label name="$(parent)Author" font="ZoFontWinH4" color="FF0000" text=" AndrewRossProjects">
 							<Anchor point="TOPRIGHT" relativeTo="$(parent)Template" relativePoint="TOPRIGHT"/>
 						</Label>
 					</Controls>
@@ -70,24 +70,24 @@
 							<Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP "/>
 
 							 <Controls>
-								 <Control name="$(parent)Dropdown" inherits="ZO_ComboBox">
-									 <Dimensions x="200" y="26" />
-									 <Anchor point="RIGHT" />
-								 </Control>
+								<Control name="$(parent)Dropdown" inherits="ZO_ComboBox">
+									<Dimensions x="200" y="26" />
+									<Anchor point="RIGHT" />
+								</Control>
 
-								 <Label name="$(parent)Name" font="ZoFontWinH4" wrapMode="ELLIPSIS" text="Personal Stat Format: ">
-									 <Dimensions x="190" y="26" />
-									 <Anchor point="LEFT" />
-									 <Anchor point="RIGHT" relativeTo="$(parent)Dropdown" relativePoint="LEFT" />
-								 </Label>
-							 </Controls>
+								<Label name="$(parent)Name" font="ZoFontWinH4" wrapMode="ELLIPSIS" text="Personal Stat Format: ">
+									<Dimensions x="190" y="26" />
+									<Anchor point="LEFT" />
+									<Anchor point="RIGHT" relativeTo="$(parent)Dropdown" relativePoint="LEFT" />
+								</Label>
+							</Controls>
 						</Control>
 
 						<Control name="$(parent)CurrentFightBehavior" hidden="false">
 							<Dimensions x="460" y="25" />
 							<Anchor point="TOP" relativeTo="$(parent)StatsShown" relativePoint="BOTTOM" offsetX="5" offsetY="12" />
 
-							<Controls>
+							 <Controls>
 								<Control name="$(parent)Dropdown" inherits="ZO_ComboBox">
 									<Dimensions x="280" y="26" />
 									<Anchor point="RIGHT" />
@@ -100,136 +100,136 @@
 								</Label>
 							</Controls>
 						</Control>						
-
+						
 						<Control name="$(parent)AutoHide" inherits="ZO_Options_Checkbox">
 							<Dimensions x="500" y="25" />
 							<Anchor point="TOP" relativeTo="$(parent)CurrentFightBehavior" relativePoint="BOTTOM" offsetY="24"/>							
 							<OnInitialized>
 								self.data = {
-								tooltipText="The meter will be hidden shortly after combat"
+									tooltipText="The meter will be hidden shortly after combat"
 								}
 							</OnInitialized>
 						</Control>
-
+						
 						<Control name="$(parent)PreviousFight" inherits="ZO_Options_Checkbox">
 							<Dimensions x="500" y="25" />
 							<Anchor point="TOPRIGHT" relativeTo="$(parent)AutoHide" relativePoint="BOTTOMRIGHT" offsetY="12"/>							
-
+							
 							<OnInitialized>
 								self.data = {
 									tooltipText="The meter will also display stats for the previous fight"
 								}
 							</OnInitialized>
 						</Control>		
-
+						
 						<Control name="$(parent)WindowScale">
 							<Dimensions x="500" y="25" />
 							<Anchor point="TOP" relativeTo="$(parent)PreviousFight" relativePoint="BOTTOM" offsetY="12" />
-
+							
 							<OnInitialized> self.data = { tooltipText = "Controls the size of the meter" } </OnInitialized>							
-
+							
 							<Controls>						
 								<Slider name="$(parent)Slider" inherits="ZO_Slider" mouseEnabled="true" hidden="false" verticalAlignment="CENTER" >
 									<Dimensions x="250" y="15" />
 									<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="40"/>
-
+									
 									<OnInitialized>
 										local min = 0.5
 										local default = 1
 										local max = 2.25
-
+										
 										self:SetMinMax(min, max)
 										local defaultMarkerControl = CreateControlFromVirtual("$(parent)DefaultMarker", self, "ZO_Options_DefaultMarker")
 										local offsetX = zo_clampedPercentBetween(min, max, default) * self:GetWidth()
 										defaultMarkerControl:SetAnchor(TOP, self, LEFT, offsetX + 3, 4)
-
+										
 										local slider = self
 										defaultMarkerControl:SetHandler("OnClicked", 
-										function()
-										PlaySound(SOUNDS.SINGLE_SETTING_RESET_TO_DEFAULT)
-										slider:SetValue(default)
-										end)
+											function()
+												PlaySound(SOUNDS.SINGLE_SETTING_RESET_TO_DEFAULT)
+												slider:SetValue(default)
+											end)
 									</OnInitialized>
-
+									
 									<OnMouseEnter> ZO_Options_OnMouseEnter(self:GetParent()) </OnMouseEnter>
 									<OnMouseExit> ZO_Options_OnMouseExit(self:GetParent()) </OnMouseExit>
 								</Slider>
-
+								
 								<Label name="$(parent)Label" font="ZoFontWinH4" verticalAlignment="TOP" horizontalAlignment="RIGHT" text="Window Size:">
 									<Dimensions x="150" y="25" />
 									<Anchor point="RIGHT" relativeTo="$(parent)Slider" relativePoint="LEFT" offsetX="-18"/>
 								</Label>
-
+								
 								<Label name="$(parent)Value" font="ZoFontWinH4" verticalAlignment="TOP" horizontalAlignment="LEFT" text="--">
 									<Dimensions x="75" y="25" />
 									<Anchor point="LEFT" relativeTo="$(parent)Slider" relativePoint="RIGHT" offsetX="12"/>
 								</Label>
 							</Controls>
 						</Control>
-
+						
 						<Control name="$(parent)Transparency">
 							<Dimensions x="500" y="25" />
 							<Anchor point="TOP" relativeTo="$(parent)WindowScale" relativePoint="BOTTOM" offsetY="18" />							
-
+							
 							<OnInitialized> self.data = { tooltipText = "Controls the visibility of the meter background" } </OnInitialized>
-
+							
 							<Controls>							
 								<Slider name="$(parent)Slider" inherits="ZO_Slider" mouseEnabled="true" hidden="false" verticalAlignment="CENTER">
 									<Dimensions x="250" y="15" />
 									<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="40"/>
-
+									
 									<OnInitialized>
 										local min = 0
 										local default = 0
 										local max = 1
-
+										
 										self:SetMinMax(min, max)
 										local defaultMarkerControl = CreateControlFromVirtual("$(parent)DefaultMarker", self, "ZO_Options_DefaultMarker")
 										local offsetX = zo_clampedPercentBetween(min, max, default) * self:GetWidth()
 										defaultMarkerControl:SetAnchor(TOP, self, LEFT, offsetX + 3, 4)
-
+										
 										local slider = self
 										defaultMarkerControl:SetHandler("OnClicked", 
-										function()
-										PlaySound(SOUNDS.SINGLE_SETTING_RESET_TO_DEFAULT)
-										slider:SetValue(default)
-										end)
+											function()
+												PlaySound(SOUNDS.SINGLE_SETTING_RESET_TO_DEFAULT)
+												slider:SetValue(default)
+											end)
 									</OnInitialized>
-
+									
 									<OnMouseEnter> ZO_Options_OnMouseEnter(self:GetParent()) </OnMouseEnter>
 									<OnMouseExit> ZO_Options_OnMouseExit(self:GetParent()) </OnMouseExit>
 								</Slider>
-
+								
 								<Label name="$(parent)Label" font="ZoFontWinH4" verticalAlignment="TOP" horizontalAlignment="RIGHT" text="Transparency:">
 									<Dimensions x="150" y="25" />
 									<Anchor point="RIGHT" relativeTo="$(parent)Slider" relativePoint="LEFT" offsetX="-18"/>
 								</Label>
-
+							
 								<Label name="$(parent)Value" font="ZoFontWinH4" verticalAlignment="TOP" horizontalAlignment="LEFT" text="--">
 									<Dimensions x="75" y="25" />
 									<Anchor point="LEFT" relativeTo="$(parent)Slider" relativePoint="RIGHT" offsetX="12"/>
 								</Label>
 							</Controls>
 						</Control>
-
+						
 						<Control name="$(parent)Background">
 							<Dimensions x="450" y="26" />
 							<Anchor point="TOPLEFT" relativeTo="$(parent)Transparency" relativePoint="BOTTOMLEFT" offsetY="24" />
-
+							
 							<Controls>
 								<Control name="$(parent)Color" inherits="ZO_Options_Color" inheritAlpha="true" hidden="false">
 									<Dimensions x="300" y="26" />
 									<Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT"/>
-
+									
 									<OnInitialized>
 										self.state = 1
 										self.data = {
-										tooltipText = "Choose the meter background color",
-										text = "Background Color: ",
-										controlType = OPTIONS_COLOR,
-										GetSettingOverride = function(control)
-										return ZO_ColorDef.ToARGBHexadecimal(control:GetNamedChild("Color"):GetColor())
-										end,
+											tooltipText = "Choose the meter background color",
+											text = "Background Color: ",
+											controlType = OPTIONS_COLOR,
+											GetSettingOverride = function(control)
+												return ZO_ColorDef.ToARGBHexadecimal(control:GetNamedChild("Color"):GetColor())
+											end,
 										}						
 									</OnInitialized>
 								</Control>
@@ -259,25 +259,25 @@
 								</Button>									
 							</Controls>
 						</Control>
-
+						
 						<Control name="$(parent)Static">
 							<Dimensions x="450" y="26" />
 							<Anchor point="TOP" relativeTo="$(parent)Background" relativePoint="BOTTOM" offsetY="18" />
-
+							
 							<Controls>
 								<Control name="$(parent)Color" inherits="ZO_Options_Color" inheritAlpha="true" hidden="false">
 									<Dimensions x="300" y="26" />
 									<Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT"/>
-
+									
 									<OnInitialized>
 										self.state = 1
 										self.data = {
-										tooltipText = "Choose the coloring of static meter text (labels and previous fight stats)",
-										text = "Static Text Color: ",
-										controlType = OPTIONS_COLOR,
-										GetSettingOverride = function(control)
-										return ZO_ColorDef.ToARGBHexadecimal(control:GetNamedChild("Color"):GetColor())
-										end,
+											tooltipText = "Choose the coloring of static meter text (labels and previous fight stats)",
+											text = "Static Text Color: ",
+											controlType = OPTIONS_COLOR,
+											GetSettingOverride = function(control)
+												return ZO_ColorDef.ToARGBHexadecimal(control:GetNamedChild("Color"):GetColor())
+											end,
 										}						
 									</OnInitialized>
 								</Control>
@@ -307,25 +307,25 @@
 								</Button>									
 							</Controls>
 						</Control>
-
+						
 						<Control name="$(parent)Active">
 							<Dimensions x="450" y="26" />
 							<Anchor point="TOP" relativeTo="$(parent)Static" relativePoint="BOTTOM" offsetY="18" />
-
+							
 							<Controls>
 								<Control name="$(parent)Color" inherits="ZO_Options_Color" inheritAlpha="true" hidden="false">
 									<Dimensions x="300" y="26" />
 									<Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT"/>
-
+									
 									<OnInitialized>
 										self.state = 1
 										self.data = {
-										tooltipText = "Choose the coloring of current fight stats when in combat",
-										text = "Active Text Color: ",
-										controlType = OPTIONS_COLOR,
-										GetSettingOverride = function(control)
-										return ZO_ColorDef.ToARGBHexadecimal(control:GetNamedChild("Color"):GetColor())
-										end,
+											tooltipText = "Choose the coloring of current fight stats when in combat",
+											text = "Active Text Color: ",
+											controlType = OPTIONS_COLOR,
+											GetSettingOverride = function(control)
+												return ZO_ColorDef.ToARGBHexadecimal(control:GetNamedChild("Color"):GetColor())
+											end,
 										}						
 									</OnInitialized>
 								</Control>
@@ -355,25 +355,25 @@
 								</Button>								
 							</Controls>
 						</Control>
-
+						
 						<Control name="$(parent)Inactive">
 							<Dimensions x="450" y="26" />
 							<Anchor point="TOP" relativeTo="$(parent)Active" relativePoint="BOTTOM" offsetY="18" />
-
+			
 							<Controls>
 								<Control name="$(parent)Color" inherits="ZO_Options_Color" inheritAlpha="true" hidden="false">
 									<Dimensions x="300" y="26" />
 									<Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT"/>
-
+									
 									<OnInitialized>
 										self.state = 1
 										self.data = {
-										tooltipText = "Choose the coloring of final current fight stats after leaving combat",
-										text = "Inactive Text Color: ",
-										controlType = OPTIONS_COLOR,
-										GetSettingOverride = function(control)
-										return ZO_ColorDef.ToARGBHexadecimal(control:GetNamedChild("Color"):GetColor())
-										end,
+											tooltipText = "Choose the coloring of final current fight stats after leaving combat",
+											text = "Inactive Text Color: ",
+											controlType = OPTIONS_COLOR,
+											GetSettingOverride = function(control)
+												return ZO_ColorDef.ToARGBHexadecimal(control:GetNamedChild("Color"):GetColor())
+											end,
 										}						
 									</OnInitialized>
 								</Control>
@@ -405,9 +405,9 @@
 						</Control>
 					</Controls>
 				</Control>
-
+				
 				<Label name="$(parent)SlashCommand" font="ZoFontGame" inheritAlpha="true" color="FAFAFA"
-					   wrapMode="TRUNCATE" verticalAlignment="TOP" horizontalAlignment="CENTER" text="/simpledps">
+					wrapMode="TRUNCATE" verticalAlignment="TOP" horizontalAlignment="CENTER" text="/simpledps">
 					<Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="BOTTOM" offsetY="-12"/>		
 				</Label>
 			</Controls>

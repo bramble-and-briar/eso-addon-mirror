@@ -205,7 +205,7 @@ function Public.GetSourceItemIdFromResultItem( resultItem )
 		for _, category in ipairs({ Public.ITEM_CATEGORY_RECIPE, Public.ITEM_CATEGORY_PLAN }) do
 			for _, itemId in ipairs(Public.GetItemIdsForCategory(category)) do
 				local resultId = GetItemLinkItemId(GetItemLinkRecipeResultItemLink(Internal.GetItemLink(itemId)))
-				if (not results[resultId]) then
+				if (resultId > 0 and not results[resultId]) then
 					results[resultId] = itemId
 				end
 			end

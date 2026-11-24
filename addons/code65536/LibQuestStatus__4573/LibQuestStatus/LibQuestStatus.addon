@@ -8,9 +8,9 @@
 ## Description: Library for tracking quest status across multiple characters, accounts, and servers
 ## Author: @code65536
 ## IsLibrary: true
-## Version: 1.0.3
-## AddOnVersion: 100030
-## APIVersion: 101050 101051
+## Version: 1.0.3.1
+## AddOnVersion: 100031
+## APIVersion: 101051 101052
 ## SavedVariables: LibQuestStatusData
 ## DependsOn: LibServerResetTime>=200000
 ## OptionalDependsOn: LibAddonMenu-2.0

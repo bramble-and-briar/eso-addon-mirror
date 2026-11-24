@@ -3,7 +3,8 @@
 --
 -- A tile is light blue with whole seconds while its buff has 5 s or more ("the tiles turn yellow" setting),
 -- yellow with tenths under that ("1.6"), and grey with OFF when the buff is gone. A buff with no end shows a dash
--- in light blue. A tile whose switch is off is not shown, and the row closes up.
+-- in light blue. A tile whose switch is off is not shown, and the row closes up. Turning yellow plays a sound when
+-- the tiles' sound switch is on (the test plays it too, the preview in the settings panel does not).
 --
 -- The tiles are on the game screen only (a fragment in the HUD scenes, like Ember's window) and, with "only in
 -- combat", only in a fight. Their update runs every 100 ms while they are up and changes a control only when
@@ -297,14 +298,12 @@ local function Demo()
 	return tiles.preview or tiles.demoStart ~= nil
 end
 
+-- The tiles' own sound switch ("a sound when a tile turns yellow"), not Ember's.
 local function PlayPop()
-	if not A.sv.sound or Demo() then
+	if not A.sv.tileSound or tiles.preview then
 		return
 	end
-	local id = SOUNDS and SOUNDS.NEW_TIMED_NOTIFICATION
-	if id and PlaySound then
-		pcall(PlaySound, id)
-	end
+	A.PlayNamed("NEW_TIMED_NOTIFICATION")
 end
 
 function A:TilesRender(now)

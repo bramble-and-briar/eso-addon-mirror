@@ -56,6 +56,11 @@ QM.DEFAULTS = {
     openGear = false, -- ...boxes of set gear, e.g. dungeon and trial curated coffers
     openWorthy = false, -- ...Rewards for the Worthy (saved: the first each day gives transmute crystals)
     autoCharge = true, -- recharge equipped weapons with soul gems
+    keepLockpicks = true, -- one stack: sell over the amount below, buy back up to it
+    lockpickAmount = 200, -- ...this many (10 to 200, one slot)
+    keepSoulGems = true, -- one stack of filled gems: sell over 200
+    warnSoulGems = true, -- warn in a dungeon or trial when filled gems are below the minimum
+    soulGemWarnAt = 10, -- ...this minimum
     chargePercent = 10, -- ...when their charge is at or below this
     keepTraits = {}, -- filled from DEFAULT_KEEP below
 }
@@ -163,6 +168,8 @@ end
 function QM.IsKept(bag, slot)
     local itemType = safe(GetItemType, bag, slot)
     if not isGear(itemType) then return false end
+    if safe(IsItemInArmory, bag, slot) then return true end -- part of a saved Armory build
+    if isCompanion(bag, slot) and safe(GetItemDisplayQuality, bag, slot) == ITEM_DISPLAY_QUALITY_MAGIC then return false end
     if not hasKeptTrait(bag, slot) then return false end
     return isCompanion(bag, slot) or isSetPiece(bag, slot)
 end
@@ -176,6 +183,7 @@ function QM.SellReason(bag, slot, isMine)
     local o = opts
     if (safe(GetItemId, bag, slot) or 0) == 0 then return nil end
     if safe(IsItemPlayerLocked, bag, slot) then return nil end
+    if safe(IsItemInArmory, bag, slot) then return nil end -- part of a saved Armory build
     if safe(IsItemStolen, bag, slot) then return nil end
     if safe(IsItemFromCrownStore, bag, slot) or safe(IsItemFromCrownCrate, bag, slot) then return nil end
     if safe(IsItemJunk, bag, slot) then return nil end -- the game's Sell All Junk handles these
@@ -206,6 +214,8 @@ function QM.SellReason(bag, slot, isMine)
     -- Otherwise only green, blue or purple, and not with a kept trait
     local green, blue, purple = ITEM_DISPLAY_QUALITY_MAGIC, ITEM_DISPLAY_QUALITY_ARCANE, ITEM_DISPLAY_QUALITY_ARTIFACT
     if quality ~= green and quality ~= blue and quality ~= purple then return nil end
+    -- Green companion gear always goes, whatever its trait.
+    if quality == green and o.sellCompanionGreen and isCompanion(bag, slot) then return "companion gear" end
     if hasKeptTrait(bag, slot) then return nil end
     if isIntricate(trait) then return nil end
     if isCompanion(bag, slot) then
@@ -276,6 +286,7 @@ local function finish(report)
     if #parts > 0 then say(table.concat(parts, " ")) end
     selling = nil
     if QM.onChanged then pcall(QM.onChanged) end
+    if not report.stopped and QM.Supplies then pcall(QM.Supplies.Run) end
 end
 
 local function sellNext()
@@ -297,6 +308,12 @@ end
 -- Sell everything on the list (and marked junk). Called automatically, or by the Sell trash button.
 function QM.SellNow(isMine, report)
     if selling or not atStore or atFence then return false end
+    -- Organize mode may be carrying items, so nothing is sold until it's finished.
+    if ESOC_Organizer and ESOC_Organizer.IsOrganizing() then
+        say("Selling is paused while Organize mode is running or still carrying items.")
+        if report and report.repaired then finish(report) end
+        return false
+    end
     report = report or { items = 0, gold = 0 }
     if opts.sellJunk then
         local n, value = junkCount()
@@ -351,6 +368,8 @@ function QM.Init(saved, isMine)
                 QM.SellNow(isMine, report)
             elseif report.repaired then
                 finish(report)
+            elseif QM.Supplies then
+                pcall(QM.Supplies.Run)
             end
             if QM.onChanged then pcall(QM.onChanged) end
         end
@@ -361,6 +380,7 @@ function QM.Init(saved, isMine)
     end)
     watchCharge()
     watchContainers()
+    if QM.InitSupplies then QM.InitSupplies() end
 end
 
 ---------------------------------------------------------------------------
@@ -559,6 +579,7 @@ end
 
 -- Is now a good moment? Out of combat, alive, nothing else on screen, bags not nearly full.
 function QM.CanOpenNow()
+    if ESOC_Organizer and ESOC_Organizer.IsOrganizing() then return false end
     if not opts.autoOpen or blocked then return false end
     if safe(IsUnitInCombat, "player") or safe(IsUnitDead, "player") then return false end
     if SCENE_MANAGER and SCENE_MANAGER.IsShowingBaseScene and not safe(SCENE_MANAGER.IsShowingBaseScene, SCENE_MANAGER) then
@@ -632,7 +653,7 @@ local function quietLootWindow(window)
     if type(window) ~= "table" or type(window.UpdateLootWindow) ~= "function" or window.esocQuiet then return end
     local original = window.UpdateLootWindow
     window.UpdateLootWindow = function(self, ...)
-        if opening and opening.waiting then return end
+        if (opening and opening.waiting) or QM.externalOpening then return end
         return original(self, ...)
     end
     window.esocQuiet = true
@@ -725,6 +746,26 @@ function QM.CreateSettings(saved, extra)
         kind("Writ rewards", "The boxes and shipments you get for crafting writs. Off by default so a writ add-on can open them.", "openWrit"),
         kind("Boxes of set gear", "Curated coffers and other dungeon or trial reward boxes that give set pieces. Off by default so you can open them yourself and fill your set collection.", "openGear"),
         kind("Rewards for the Worthy", "The PvP coffers that arrive by mail. Off by default so you can save them: the first one you open each day gives 25 transmute crystals.", "openWorthy"),
+        { type = LHAS.ST_SECTION, label = "Supplies" },
+        check("Keep a stock of lockpicks", "At a merchant: one stack only. Extra stacks and anything over your amount are sold, and if you have fewer it buys more if that merchant sells them.", "keepLockpicks"),
+        {
+            type = LHAS.ST_SLIDER, label = "Lockpicks to keep",
+            tooltip = "Up to 200, so they always fit in one bag slot.",
+            min = 10, max = 200, step = 10, format = "%d", default = QM.DEFAULTS.lockpickAmount,
+            getFunction = function() return o.lockpickAmount end,
+            setFunction = function(v) o.lockpickAmount = math.floor(tonumber(v) or QM.DEFAULTS.lockpickAmount) end,
+            disable = function() return not o.keepLockpicks end,
+        },
+        check("Keep filled soul gems at 200", "At a merchant: one stack only. Extra stacks and anything over 200 are sold. Empty and Crown soul gems are never touched.", "keepSoulGems"),
+        check("Warn when low on soul gems", "In a group dungeon or trial, a warning on screen when you enter below your minimum, when reviving takes you below it, and if you run out.", "warnSoulGems"),
+        {
+            type = LHAS.ST_SLIDER, label = "Soul gem minimum",
+            tooltip = "Warn below this many filled soul gems. Healers and anyone doing a lot of rezzing in hard trials may want it higher.",
+            min = 1, max = 100, step = 1, format = "%d", default = QM.DEFAULTS.soulGemWarnAt,
+            getFunction = function() return o.soulGemWarnAt end,
+            setFunction = function(v) o.soulGemWarnAt = math.floor(tonumber(v) or QM.DEFAULTS.soulGemWarnAt) end,
+            disable = function() return not o.warnSoulGems end,
+        },
         { type = LHAS.ST_SECTION, label = "Weapon charge" },
         check("Recharge weapons automatically", "Use a filled soul gem from your backpack when an equipped weapon (either bar) runs low. Ordinary soul gems are used before Crown ones.", "autoCharge"),
         {
@@ -744,7 +785,7 @@ function QM.CreateSettings(saved, extra)
         check("Repair kits (green or lower)", "Higher-quality, group and Crown repair kits are kept.", "sellRepairKits"),
         check("Ornate gear (any quality)", "Ornate pieces are worth more sold than deconstructed.", "sellOrnate"),
         check("White gear", "All white (normal quality) armor, weapons and jewelry, including companion gear.", "sellWhiteGear"),
-        check("Green companion gear", "Unless it has a companion trait you keep.", "sellCompanionGreen"),
+        check("Green companion gear", "All of it, whatever its trait.", "sellCompanionGreen"),
         check("Blue companion gear", "Unless it has a companion trait you keep.", "sellCompanionBlue"),
         check("Purple companion gear", "Unless it has a companion trait you keep.", "sellCompanionPurple"),
         { type = LHAS.ST_LABEL, label = "Never sold: locked, stolen and Crown items, and anything your characters crafted. Gold gear and other green, blue and purple player gear (including Intricate) are left for you to deconstruct, unless Ornate." },

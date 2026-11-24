@@ -3,7 +3,7 @@ local name = "ImprovedAchievementCategories"
 local function AddTopLevelCategory(self, categoryIndex, name, numSubCategories, hidesUnearned, normalIcon, pressedIcon, mouseoverIcon)
     if categoryIndex == nil then return false end -- Summary has categoryIndex set to nil
     
-    for sub = 1, numSubCategories do
+    for sub = 0, numSubCategories do
         local ids = ZO_GetAchievementIds(categoryIndex, sub, 99, true)
         
         for i = 1, #ids do

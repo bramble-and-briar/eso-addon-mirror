@@ -4,7 +4,8 @@
 -- A two-head-tall mascot, Ember, who appears on the game screen during a fight and tells the player, in a
 -- speech bubble and with a little animation, when one of these happens:
 --   * Major Resolve, Minor Resolve or Major Brutality is about to run out,
---   * the player's health falls below a set share (and again, more urgently, below a lower one).
+--   * the player's health falls below a set share (and again, more urgently, below a lower one),
+--   * the player is crowd controlled (stunned, knocked down, feared ...): a sound in both designs.
 --
 -- ---------------------------------------------------------------------------------------
 -- WHERE THE INFORMATION COMES FROM
@@ -20,6 +21,11 @@
 -- can be added from one real list.
 --
 -- Health: EVENT_POWER_UPDATE (player, health) and GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH).
+--
+-- Crowd control: EVENT_COMBAT_EVENT with the player as the target and a hard-CC result (ACTION_RESULT_STUNNED,
+-- _KNOCKBACK, _FEARED, _DISORIENTED, _LEVITATED, _CHARMED), the same results the client's own gamepad
+-- vibration reacts to, filtered in the engine (one registration per result); and EVENT_PLAYER_STUNNED_STATE_CHANGED,
+-- whose "false" says the player is free again. Watch.lua, "CROWD CONTROL".
 --
 -- ---------------------------------------------------------------------------------------
 -- WHAT IS NOT KNOWN YET (nothing here has been run on a console)
@@ -45,7 +51,7 @@ PBS_COMBAT_ASSISTANT = {
 	baseTitle = "PB’s Combat Assistant",
 	chatName = "PB’s Combat Assistant",
 	author = "PinkBanther",
-	version = "0.3.0",
+	version = "0.4.1",
 	slash = "/pbca",
 	aliasSlash = "/pbember", -- the command from when the add-on was called PB's Ember
 	savedVar = "PBsCombatAssistant_Data",
@@ -63,10 +69,11 @@ PBS_COMBAT_ASSISTANT = {
 		tileX = { -900, 900 },
 		tileY = { 0, 1000 },
 		tileWarn = { 1, 9 },
+		ccSound = { 0, 4 },
 	},
 	defaults = {
 		enabled = true,
-		style = 1, -- 1 = Ember Style (the mascot), 2 = Meru-Sawa Style (countdown tiles)
+		style = 2, -- 1 = Ember Style (the mascot), 2 = Meru-Sawa Style (countdown tiles, the default since 0.4.1)
 		major = true, -- Major Resolve about to run out
 		brutal = true, -- Major Brutality about to run out
 		minor = true, -- Minor Resolve about to run out
@@ -92,6 +99,10 @@ PBS_COMBAT_ASSISTANT = {
 		tileX = 0, -- from the middle of the screen, right is positive
 		tileY = 230, -- height above the bottom of the screen (above the health bar)
 		tileWarn = 5, -- seconds left under which a tile turns yellow and shows tenths
+		tileSound = true, -- a sound when a tile turns yellow
+		-- crowd control, both designs
+		cc = true, -- tell the player when they are crowd controlled
+		ccSound = 1, -- which sound (A.CC_SOUNDS); 0 = none
 	},
 }
 local A = PBS_COMBAT_ASSISTANT
@@ -184,7 +195,7 @@ end
 -- Whatever is in the saved file (an older version, a hand edit) is brought back into range.
 function A:Sanitize()
 	local sv, defaults = self.sv, self.defaults
-	for _, key in ipairs({ "enabled", "major", "minor", "brutal", "hp", "combatOnly", "bubble", "sound", "preview", "rotFlip" }) do
+	for _, key in ipairs({ "enabled", "major", "minor", "brutal", "hp", "combatOnly", "bubble", "sound", "preview", "rotFlip", "tileSound", "cc" }) do
 		if type(sv[key]) ~= "boolean" then
 			sv[key] = defaults[key]
 		end
@@ -198,10 +209,39 @@ function A:Sanitize()
 	if sv.style ~= 1 and sv.style ~= 2 then
 		sv.style = defaults.style
 	end
+	-- 0.4.1 made the Meru-Sawa Style the default. A default already sits in the saved file (ZO_SavedVars writes the
+	-- defaults into it), so a changed default never reaches an existing player: their design is switched once,
+	-- marked by a key that is not among the defaults, and after that it is theirs to choose again.
+	if sv.styleSince ~= 2 then
+		sv.style = 2
+		sv.styleSince = 2
+	end
 	-- the urgent level must lie below the first one
 	if sv.hpDanger >= sv.hpWarn then
 		sv.hpDanger = math.max(0, sv.hpWarn - 10)
 	end
+end
+
+-- ---------------------------------------------------------------------------------------
+-- Sounds
+-- ---------------------------------------------------------------------------------------
+
+-- The crowd-control sounds to pick from (the ccSound setting is the position; 0 = none). Names from the client's
+-- soundids.lua, looked up when played: a name a console does not have plays nothing.
+A.CC_SOUNDS = { "DUEL_BOUNDARY_WARNING", "ABILITY_CASTER_STUNNED", "GENERAL_ALERT_ERROR", "COUNTDOWN_WARNING" }
+
+-- Plays a sound by its name in SOUNDS, the form that is proven on a console. Returns whether one was played.
+function A.PlayNamed(name)
+	local id = name and SOUNDS and SOUNDS[name]
+	if id and PlaySound then
+		return (pcall(PlaySound, id))
+	end
+	return false
+end
+
+-- The crowd-control sound: the chosen one, or the one given (the settings panel plays a choice when it is picked).
+function A:PlayCcSound(choice)
+	return A.PlayNamed(A.CC_SOUNDS[choice or self.sv.ccSound])
 end
 
 function A:Set(key, value)

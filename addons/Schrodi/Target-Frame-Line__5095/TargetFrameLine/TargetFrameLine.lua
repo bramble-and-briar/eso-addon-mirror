@@ -6,7 +6,7 @@
 
 TargetFrameLine = {
     name = "TargetFrameLine",
-    version = "1.2.0",
+    version = "1.2.1",
 }
 local TFL = TargetFrameLine
 
@@ -110,8 +110,7 @@ function TFL.Refresh()
 end
 
 local function Initialize()
-    frame = UNIT_FRAMES and UNIT_FRAMES:GetFrame("reticleover")
-    if not frame then return end
+    frame = UNIT_FRAMES:GetFrame("reticleover")
 
     ZO_PostHook(frame, "UpdateName", Apply)
     ZO_PostHook(frame, "UpdateLevel", Apply)

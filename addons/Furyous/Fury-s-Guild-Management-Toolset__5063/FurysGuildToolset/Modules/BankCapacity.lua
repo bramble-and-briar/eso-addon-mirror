@@ -6,7 +6,7 @@
 -- Between visits the last count is shown with how long ago it was taken; nothing is guessed
 -- from bank history.
 
-local GT = FuryGMT
+local GT = FurysGuildToolset
 local U = GT.Util
 
 local BankCapacity = GT:RegisterModule("capacity", {})
@@ -14,7 +14,7 @@ local BankCapacity = GT:RegisterModule("capacity", {})
 local REARM_BELOW_POINTS = 5   -- alert again only after dropping 5 points below the threshold
 
 BankCapacity.defaults = {
-    enabled = false,   -- every feature starts off on a new install (Albert, 1.3.0)
+    enabled = false,   -- every feature starts turned off on a new install (Albert, 1.3.0)
     alertAtPercent = 90,
     snapshots = {},   -- [guildId] = { used, size, ts }
     alerted = {},     -- [guildId] = true while over the threshold and already alerted
@@ -31,9 +31,9 @@ function BankCapacity:Initialize(sv)
     self.sv = sv
     sv.deltas = nil   -- 0.4.1 and older kept history-based estimates here
     self:RegisterTab()
-    EVENT_MANAGER:RegisterForEvent("FuryGMTCapacity", EVENT_GUILD_BANK_ITEMS_READY, function() self:TakeSnapshot() end)
-    EVENT_MANAGER:RegisterForEvent("FuryGMTCapacity", EVENT_GUILD_BANK_ITEM_ADDED, function() self:TakeSnapshot() end)
-    EVENT_MANAGER:RegisterForEvent("FuryGMTCapacity", EVENT_GUILD_BANK_ITEM_REMOVED, function() self:TakeSnapshot() end)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_Capacity", EVENT_GUILD_BANK_ITEMS_READY, function() self:TakeSnapshot() end)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_Capacity", EVENT_GUILD_BANK_ITEM_ADDED, function() self:TakeSnapshot() end)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_Capacity", EVENT_GUILD_BANK_ITEM_REMOVED, function() self:TakeSnapshot() end)
 end
 
 -- Real count, only possible while the guild bank window is open.

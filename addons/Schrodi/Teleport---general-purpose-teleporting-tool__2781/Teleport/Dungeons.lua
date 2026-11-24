@@ -1,3 +1,4 @@
+local Teleport = Teleport
 Teleport.Dungeons = {}
 
 local info  = Teleport.info

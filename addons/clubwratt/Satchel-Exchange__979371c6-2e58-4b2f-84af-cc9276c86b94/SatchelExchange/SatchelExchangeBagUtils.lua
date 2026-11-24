@@ -17,9 +17,10 @@ end
 
 ---What kind of openable container a backpack slot holds, or nil. Style pages
 ---are containers to the game but using one learns the style, so they are
----never openable here.
+---never openable here. "unopened" is the game's own name for its stackable
+---container type: stacked treasure maps, survey reports and master writs.
 ---@param slotIndex integer
----@return string|nil kind "container" | "stackable" | "geode"
+---@return string|nil kind "container" | "unopened" | "geode"
 function SatchelExchangeBagUtils.GetContainerKind(slotIndex)
     local itemType, specializedItemType = GetItemType(BAG_BACKPACK, slotIndex)
     if specializedItemType == SPECIALIZED_ITEMTYPE_CONTAINER_STYLE_PAGE then
@@ -28,7 +29,7 @@ function SatchelExchangeBagUtils.GetContainerKind(slotIndex)
     if itemType == ITEMTYPE_CONTAINER then
         return "container"
     elseif itemType == ITEMTYPE_CONTAINER_STACKABLE then
-        return "stackable"
+        return "unopened"
     elseif itemType == ITEMTYPE_CONTAINER_CURRENCY then
         return "geode"
     end

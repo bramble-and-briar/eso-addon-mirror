@@ -1,0 +1,105 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/manavortex/FurnitureShoppingList-patched__1865",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "manavortex",
+  "canonical_id": "esoui:1865",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
+    {
+      "name": "Season Zero",
+      "version": "11.3.0"
+    },
+    {
+      "name": "Seasons of the Worm Cult Pt2",
+      "version": "11.2.0"
+    },
+    {
+      "name": "Feast of Shadows",
+      "version": "11.1.0"
+    },
+    {
+      "name": " Seasons of the Worm Cult Pt1",
+      "version": "11.0.0"
+    },
+    {
+      "name": "Fallen Banners",
+      "version": "10.3.5"
+    },
+    {
+      "name": "Update 44",
+      "version": "10.2.0"
+    },
+    {
+      "name": "Update 43",
+      "version": "10.1.0"
+    },
+    {
+      "name": "Gold Road",
+      "version": "10.0.0"
+    },
+    {
+      "name": "Scions of Ithelia",
+      "version": "9.3.0"
+    },
+    {
+      "name": "Endless Archive",
+      "version": "9.2.5"
+    },
+    {
+      "name": "base-game patch",
+      "version": "9.1.5"
+    },
+    {
+      "name": "Necrom",
+      "version": "9.0.0"
+    },
+    {
+      "name": "Scribes of Fate",
+      "version": "8.3.5"
+    }
+  ],
+  "content_id": "esoui:1865",
+  "deleted": false,
+  "directories": [
+    "FurnitureShoppingList"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl1865/",
+  "fingerprint": "d7d9acd9bfa79524d4a5ead2abf5b9cf804514774b2d8f219f5f0eeb9c3df510",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18746.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18696.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18747.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18698.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18702.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18703.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18700.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18701.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "1865",
+  "source_url": "https://www.esoui.com/downloads/info1865-FurnitureShoppingListpatched.html",
+  "stats": {
+    "downloads": 15437,
+    "favorites": 37,
+    "monthly_downloads": 322
+  },
+  "title": "FurnitureShoppingList (patched)",
+  "updated_at": 1795454445000,
+  "version": "2.0.0"
+}

@@ -152,6 +152,41 @@ local function ShowUrlDialog()
 end
 
 -- ============================================================================
+-- Scope dropdown
+--
+-- The scopes are known only once the other addons have loaded and logged, well after this panel is built, so
+-- the dropdown's items are a function: LibHarvensAddonSettings calls it each time it sets the row up.
+-- ============================================================================
+
+local ALL_SCOPES_LABEL = "All scopes"
+
+-- One item table per scope, reused across row setups.
+---@type table<string, { name: string, data: string }>
+local scopeItemsByName = {}
+
+---@param name string the dropdown label
+---@param scope string the scope it selects, "" for all
+---@return { name: string, data: string }
+local function ScopeItem(name, scope)
+    local item = scopeItemsByName[name]
+    if not item then
+        item = { name = name, data = scope }
+        scopeItemsByName[name] = item
+    end
+    return item
+end
+
+---@return { name: string, data: string }[]
+local function ScopeItems()
+    local items = { ScopeItem(ALL_SCOPES_LABEL, "") }
+    local scopes = LibConsoleLogger:GetScopes()
+    for i = 1, #scopes do
+        items[#items + 1] = ScopeItem(scopes[i], scopes[i])
+    end
+    return items
+end
+
+-- ============================================================================
 -- Settings panel
 -- ============================================================================
 
@@ -254,6 +289,37 @@ function Settings.Initialize()
     })
 
     panel:AddSetting({
+        type = LAS.ST_DROPDOWN,
+        label = "Scope",
+        tooltip = "Whose lines you see and send: \"View logs\", the chat log and \"Export buffered logs\" (an addon's own export command too) show only the scope chosen here, plus this library's \"UI loaded\" markers and (see below) the game's errors. Every scope keeps being recorded whatever is chosen, so you can switch after the fact. An addon is listed once it has asked for its logger (LibConsoleLogger:For) or has lines in the buffer. Exporting one scope removes only that scope's lines from the buffer.",
+        items = ScopeItems,
+        ignoreDefault = true,
+        getFunction = function()
+            local scope = LibConsoleLogger:GetScope()
+            return scope == "" and ALL_SCOPES_LABEL or scope
+        end,
+        setFunction = function(_, name, item)
+            local scope = item and item.data
+            if scope == nil then
+                scope = (name == ALL_SCOPES_LABEL) and "" or name
+            end
+            LibConsoleLogger:SetScope(scope)
+        end,
+    })
+
+    panel:AddSetting({
+        type = LAS.ST_CHECKBOX,
+        label = "Include errors",
+        tooltip = "Show the game's Lua errors alongside the scope chosen above, in \"View logs\" and in an export. While logging is enabled every error is recorded, whichever addon or part of the game raised it: each distinct one once in full, then a count when it repeats. They are always there under \"All scopes\" and under the \"Errors\" scope; this switch only decides whether they come along with another scope.",
+        getFunction = function()
+            return LibConsoleLogger:IsIncludingErrors()
+        end,
+        setFunction = function(value)
+            LibConsoleLogger:SetIncludeErrors(value)
+        end,
+    })
+
+    panel:AddSetting({
         type = LAS.ST_BUTTON,
         label = "View logs",
         buttonText = "View",
@@ -280,6 +346,7 @@ function Settings.Initialize()
     panel:AddSetting({
         type = LAS.ST_BUTTON,
         label = "Clear buffered logs",
+        tooltip = "Empties the whole buffer, every scope.",
         buttonText = "Clear",
         clickHandler = function()
             if LibConsoleLogger and LibConsoleLogger.Clear then
@@ -308,7 +375,7 @@ function Settings.Initialize()
             .. "  logger:Buffer(\"quiet line\")     -- buffer only, no chat\n"
             .. "  logger:Debug(\"urgent\", info)    -- export immediately (needs URL)\n"
             .. "  logger:Export()                 -- export the whole buffer\n\n"
-            .. "All calls are safe no-ops until the user enables logging above, so you can leave them in shipping code. Logged lines are prefixed with [MyAddon].",
+            .. "All calls are safe no-ops until the user enables logging above, so you can leave them in shipping code. Logged lines are prefixed with [MyAddon], and MyAddon becomes a choice in the Scope dropdown above.",
     })
 
     if LAS.RefreshAddonSettings then

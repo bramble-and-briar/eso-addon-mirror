@@ -4,7 +4,8 @@
 -- Adding, deleting or renaming sections changes the layout of this panel,
 -- which LibAddonMenu can only rebuild with a UI reload, so those reload.
 
-local GC = FuryGMT.Crier
+local GT = FurysGuildToolset
+local GC = GT.Crier
 
 local CHANNEL_NAMES  = { "Guild", "Zone", "Whisper" }
 local CHANNEL_VALUES = { "guild", "zone", "whisper" }
@@ -39,13 +40,13 @@ end
 local function LengthLabel(m)
     local len = #(m.text or "")
     if len > GC.MAX_CHAT then
-        return string.format("|cFF5555%d/%d characters, too long!|r", len, GC.MAX_CHAT)
+        return string.format("|cFF6B86%d/%d characters, too long!|r", len, GC.MAX_CHAT)
     end
     return string.format("%d/%d characters", len, GC.MAX_CHAT)
 end
 
 -- ---------- rotation reminder ----------
-local TIMER_NAME = "FuryGMTCrierTimer"
+local TIMER_NAME = "FurysGuildToolset_CrierTimer"
 
 local function ChatBusy()
     return CHAT_SYSTEM:IsTextEntryOpen()
@@ -69,10 +70,7 @@ local function TryReminder()
         GC.Say("Reminder: next rotation message loaded into chat. Press Enter to send.")
         GC.Post()
     else
-        local sound = SOUNDS and (SOUNDS.NEW_NOTIFICATION or SOUNDS.DEFAULT_CLICK)
-        if ZO_Alert then
-            ZO_Alert(UI_ALERT_CATEGORY_ALERT, sound, "Fury's Guild Crier: time for a guild message!")
-        end
+        ZO_Alert(UI_ALERT_CATEGORY_ALERT, SOUNDS.NEW_NOTIFICATION, "Fury's Guild Crier: time for a guild message!")
         GC.Say("Time for a guild message! Use your rotation key or /crier next.")
     end
 end
@@ -228,7 +226,7 @@ local function SectionSubmenu(cat)
         type = "editbox",
         name = function()
             local len = #(quickAdd[cat] or "")
-            local t = string.format("|cD4AF37+ Add a message to %s|r (%d/%d)", cat, len, GC.MAX_CHAT)
+            local t = string.format("|cA08CFF+ Add a message to %s|r (%d/%d)", cat, len, GC.MAX_CHAT)
             return t
         end,
         tooltip = "Type the new message, click out of the box, then click Add. It uses the same channel as this section's first message; change channel or weight afterwards if needed.",
@@ -271,7 +269,7 @@ end
 local function AddSubmenu(cats)
     return {
         type = "submenu",
-        name = "|cD4AF37+ Add a new section|r",
+        name = "|cA08CFF+ Add a new section|r",
         controls = {
             {
                 type = "editbox",
@@ -303,7 +301,7 @@ local function AddSubmenu(cats)
                 name = function()
                     local len = #(addForm.text or "")
                     local s = string.format("First message (%d/%d characters)", len, GC.MAX_CHAT)
-                    if len > GC.MAX_CHAT then s = "|cFF5555" .. s .. "|r" end
+                    if len > GC.MAX_CHAT then s = "|cFF6B86" .. s .. "|r" end
                     return s
                 end,
                 isMultiline = true,
@@ -369,7 +367,7 @@ local function BuildOptions()
     local o = {}
     o[#o + 1] = {
         type = "description",
-        text = "Open the menu with |cD4AF37/crier|r or your keybind, click a message, then press Enter to send. Edits to a message save when you click out of the box and show in the menu right away. Adding, deleting or renaming reloads the UI.",
+        text = "Open the menu with |cA08CFF/crier|r or your keybind, click a message, then press Enter to send. Edits to a message save when you click out of the box and show in the menu right away. Adding, deleting or renaming reloads the UI.",
     }
 
     -- General
@@ -495,15 +493,15 @@ function GC.InitSettings()
     -- the player is in the world.
     local function Register()
         EVENT_MANAGER:UnregisterForEvent(GC.name .. "Settings", EVENT_PLAYER_ACTIVATED)
-        panel = LAM:RegisterAddonPanel("FuryGMTCrierPanel", {
+        panel = LAM:RegisterAddonPanel("FurysGuildToolset_CrierPanel", {
             type = "panel",
             name = "Fury's Guild Management - Crier",
-            displayName = "|cD4AF37Fury's Guild Management Toolset: Guild Crier|r",
+            displayName = "|cA08CFFFury's Guild Management Toolset: Guild Crier|r",
             author = "Furyous",
-            version = FuryGMT.version,
+            version = GT.version,
             registerForRefresh = true,
         })
-        LAM:RegisterOptionControls("FuryGMTCrierPanel", BuildOptions())
+        LAM:RegisterOptionControls("FurysGuildToolset_CrierPanel", BuildOptions())
     end
     Register()  -- the toolset calls InitSettings once you're in the world, so guild names are ready
 end

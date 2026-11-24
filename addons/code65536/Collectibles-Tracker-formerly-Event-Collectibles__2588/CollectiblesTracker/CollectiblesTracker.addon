@@ -7,11 +7,11 @@
 ## Title: Collectibles Tracker
 ## Description: Improved interface for tracking the collection of collectibles
 ## Author: @code65536
-## Version: 3.6.6
-## AddOnVersion: 306060
+## Version: 3.6.6.1
+## AddOnVersion: 306061
 ## APIVersion: 101051 101052
 ## SavedVariables: CollectiblesTrackerSavedVariables ACACUC_CollectiblesTracker
-## DependsOn: LibExtendedJournal>=205040
+## DependsOn: LibExtendedJournal>=206000
 ## OptionalDependsOn: LibMultiAccountCollectibles
 
 l10n/default.lua

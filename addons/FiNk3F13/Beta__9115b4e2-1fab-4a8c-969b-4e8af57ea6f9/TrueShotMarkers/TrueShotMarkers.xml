@@ -10,7 +10,7 @@
             <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER"/>
             <Controls>
                 <Label name="$(parent)Timer" font="$(BOLD_FONT)|48|thick-outline" horizontalAlignment="CENTER" verticalAlignment="CENTER">
-                    <Dimensions x="150" y="65"/>
+                    <Dimensions x="440" y="65"/>
                     <Anchor point="TOP" relativePoint="TOP"/>
                 </Label>
                 <Texture name="$(parent)Arrow" textureFile="TrueShotMarkers/assets/arrow.dds">

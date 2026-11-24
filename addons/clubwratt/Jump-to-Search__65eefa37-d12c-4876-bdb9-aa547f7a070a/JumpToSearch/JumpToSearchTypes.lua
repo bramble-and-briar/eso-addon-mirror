@@ -29,4 +29,4 @@
 ---@field keyDowns integer D-pad Right presses seen on our layer
 ---@field jumps integer Presses that entered the header
 ---@field fallthroughs integer Presses passed on to the game's own D-pad Right handler (if any)
----@field returns integer Times up/down returned focus to the list
+---@field returns integer Times the header gave focus back after a jump (down, a confirmed search, back)

@@ -1,0 +1,127 @@
+<GuiXml>
+	<Controls>
+		<!-- Group & Activity Finder category panel: pick which battleground queues to join at once. -->
+		<!-- ZO_GroupMenuKeyboard_ContentAnchors (esoui/ingame/group/keyboard/zo_groupmenu_keyboard.xml) is
+		     the same content rectangle every built-in category panel uses (Battlegrounds, Dungeon
+		     Finder, etc.), inheriting it instead of ZO_RightPanelFootPrint is what makes our own
+		     bottom button bar line up with theirs. -->
+		<TopLevelControl name="SBT_Panel" inherits="ZO_GroupMenuKeyboard_ContentAnchors" hidden="true">
+			<Controls>
+				<!-- Veterancy rank display, copied from the built-in Battlegrounds screen's own
+				     VeterancyRank control (esoui/ingame/lfg/keyboard/zo_activityfindertemplate_keyboard.xml),
+				     minus the game-mode filter dropdown that sits next to it there. Populated in
+				     Lua via the same ZO_VeterancyRank object the base game uses. Sits near the top
+				     of the panel, where the old plain-text "Scoreboard" header used to.
+				     Fixed Dimensions instead of resizeToFitDescendents: the Rank/Name labels use
+				     large fonts, and letting the container auto-size around them was shifting its
+				     anchored top-left corner well below where offsetY said it should be. -->
+				<Control name="$(parent)VeterancyRank" hidden="true">
+					<Dimensions x="320" y="64"/>
+					<Anchor point="TOPLEFT" offsetX="0" offsetY="-65"/>
+					<Controls>
+						<Texture name="$(parent)Icon">
+							<Anchor point="TOPLEFT"/>
+							<Dimensions x="64" y="64"/>
+						</Texture>
+						<Label name="$(parent)Rank" font="ZoFontCallout3">
+							<Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="5"/>
+						</Label>
+						<Label name="$(parent)Name" font="ZoFontHeader2" modifyTextType="UPPERCASE">
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Rank" relativePoint="TOPRIGHT" offsetX="15" offsetY="9"/>
+						</Label>
+						<StatusBar name="$(parent)XPBar" mouseEnabled="true" inherits="ZO_ArrowStatusBarWithBG">
+							<Dimensions x="170"/>
+							<Anchor point="BOTTOMLEFT" relativeTo="$(parent)Rank" relativePoint="BOTTOMRIGHT" offsetX="15" offsetY="-11"/>
+						</StatusBar>
+					</Controls>
+				</Control>
+
+				<!-- Caption for the checklist below it, right after the veterancy bar. -->
+				<Label name="$(parent)Hint" font="ZoFontWinH4" wrapMode="ELLIPSIS" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" text="Select battleground queues you would like to join at once:">
+					<Dimensions x="500"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)VeterancyRank" relativePoint="BOTTOMLEFT" offsetX="20" offsetY="20"/>
+				</Label>
+
+				<!-- Row height is set from Lua once the queue list is known (one SBT_Row per queue).
+				     No border/background here, plain rows on the panel, like Dungeon Finder's list. -->
+				<Control name="$(parent)List">
+					<Dimensions x="360" y="30"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Hint" relativePoint="BOTTOMLEFT" offsetY="15"/>
+				</Control>
+
+				<!-- resizeToFitDescendents (no fixed Dimensions), same as the built-in
+				     Battlegrounds action bar's own $(parent)ActionButtonContainer: sizing it to
+				     exactly the 28px button height, instead of a padded fixed height, is what
+				     keeps it flush with the panel's bottom edge instead of floating above it. -->
+				<Control name="$(parent)ButtonContainer" resizeToFitDescendents="true">
+					<Anchor point="BOTTOM"/>
+				</Control>
+
+				<!-- "<name>" shortcut buttons (e.g. "Big Team Battles"), 2 per row (built/shown/hidden from Lua depending
+				     on which queues are currently on offer), directly above Join Queue / View
+				     Veterancy. Anchoring its own BOTTOM to ButtonContainer's TOP keeps it centered
+				     above that row the same way that row is centered on the panel, and makes extra
+				     rows stack upward. -->
+				<Control name="$(parent)QuickQueueContainer" resizeToFitDescendents="true">
+					<Anchor point="BOTTOM" relativeTo="$(parent)ButtonContainer" relativePoint="TOP" offsetY="-10"/>
+				</Control>
+			</Controls>
+		</TopLevelControl>
+
+		<!-- One queue entry: checkbox + name, matching the game's own filter-list look
+		     (checkbox style, font, hover highlight) instead of a bare checkbox row. -->
+		<Control name="SBT_Row" virtual="true" mouseEnabled="true">
+			<Dimensions x="360" y="30"/>
+			<OnInitialized>
+				self.highlight = self:GetNamedChild("Highlight")
+				self.check = self:GetNamedChild("Check")
+			</OnInitialized>
+			<OnMouseEnter>
+				self.highlight:SetAlpha(1)
+			</OnMouseEnter>
+			<OnMouseExit>
+				self.highlight:SetAlpha(0)
+			</OnMouseExit>
+			<OnMouseUp>
+				if button == MOUSE_BUTTON_INDEX_LEFT and upInside then
+					ZO_CheckButton_OnClicked(self.check)
+				end
+			</OnMouseUp>
+			<Controls>
+				<Texture name="$(parent)Highlight" inherits="ZO_ThinListHighlight"/>
+				<Button name="$(parent)Check" inherits="ZO_CheckButton" mouseEnabled="false">
+					<Anchor point="LEFT" offsetX="10"/>
+				</Button>
+				<Label name="$(parent)Name" font="ZoFontWinH4" mouseEnabled="false" maxLineCount="1" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+					<Anchor point="LEFT" relativeTo="$(parent)Check" relativePoint="RIGHT" offsetX="10"/>
+				</Label>
+			</Controls>
+		</Control>
+
+		<!-- Bottom action bar, matching the built-in Join Queue / View Veterancy button pair. -->
+		<Button name="SBT_QueueButtonTemplate" inherits="ZO_DefaultButton" text="SI_LFG_JOIN_QUEUE" virtual="true">
+			<Dimensions x="200"/>
+			<OnClicked>
+				SchrodisBattlegroundTools.joinQueue()
+			</OnClicked>
+		</Button>
+
+		<Button name="SBT_ViewVeterancyButtonTemplate" inherits="ZO_DefaultButton" text="SI_LFG_VIEW_VETERANCY" virtual="true">
+			<Dimensions x="200"/>
+			<OnClicked>
+				SchrodisBattlegroundTools.viewVeterancy()
+			</OnClicked>
+		</Button>
+
+		<!-- "<name>" shortcut button: text, width and self.quickQueueKey are all set from Lua
+		     (sbt.rebuildQuickQueueButtons) since the queues on offer are queried live, not fixed.
+		     Clicking it selects every queue location that shares that key (its Solo and Group
+		     variants) and queues immediately (sbt.quickQueue). -->
+		<Button name="SBT_QuickQueueButtonTemplate" inherits="ZO_DefaultButton" virtual="true">
+			<Dimensions x="200"/>
+			<OnClicked>
+				SchrodisBattlegroundTools.quickQueue(self.quickQueueKey)
+			</OnClicked>
+		</Button>
+	</Controls>
+</GuiXml>

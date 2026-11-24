@@ -1,11 +1,11 @@
 ## Title: Survey Sidekick
 ## Description: Survey inventory, treasure detours, harvest goals and run comparisons.
 ## Author: FoulMouthxAmazon
-## Version: 0.6.0
-## AddOnVersion: 600
+## Version: 0.6.2
+## AddOnVersion: 602
 ## APIVersion: 101051
 ## SavedVariables: SurveySidekickSavedVariables
-## OptionalDependsOn: LibTreasure TamrielTradeCentre LibExtendedJournal>=205031
+## OptionalDependsOn: LibTreasure TamrielTradeCentre LibExtendedJournal>=205031 LibAddonMenu-2.0
 
 QuantityFilter.lua
 GoalMaterials.lua
@@ -17,3 +17,4 @@ InventoryCatalog.lua
 UI.lua
 JournalStyle.lua
 ExtendedJournal.lua
+AuthorInfo.lua

@@ -141,7 +141,7 @@ function SI.CreateSettings()
 		name = "SkillIssue",
 		displayName = "Skill Issue",
 		author = "Schrodi",
-		version = "1.0",
+		version = "1.0.1",
 		slashCommand = "/skillissue",
 		registerForRefresh = true,
 	}

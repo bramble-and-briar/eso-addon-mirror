@@ -1,0 +1,10 @@
+<Bindings>
+  <Layer name="SI_ARSENAL_GRID_LAYER">
+    <Category name="SI_KEYBINDINGS_CATEGORY_USER_INTERFACE">
+      <Action name="ARSENAL_GRID_LEFT"><Down>ArsenalInventoryInput('left')</Down></Action>
+      <Action name="ARSENAL_GRID_RIGHT"><Down>ArsenalInventoryInput('right')</Down></Action>
+      <Action name="ARSENAL_GRID_UP"><Down>ArsenalInventoryInput('up')</Down></Action>
+      <Action name="ARSENAL_GRID_DOWN"><Down>ArsenalInventoryInput('down')</Down></Action>
+    </Category>
+  </Layer>
+</Bindings>

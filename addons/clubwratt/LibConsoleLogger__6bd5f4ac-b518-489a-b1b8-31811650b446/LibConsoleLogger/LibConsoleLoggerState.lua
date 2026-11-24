@@ -10,6 +10,8 @@ State.defaults = State.defaults or {
     chatEnabled = true,
     url = "",
     maxLines = 4000, -- buffer cap in lines; see LibConsoleLogger:SetMaxLines
+    scope = "",      -- the scope viewed and exported; "" is all scopes; see LibConsoleLogger:SetScope
+    includeErrors = true, -- the game's errors show alongside the selected scope; see LibConsoleLogger:SetIncludeErrors
 }
 
 State.runtimeEnabled = State.runtimeEnabled or false
@@ -20,6 +22,8 @@ LibConsoleLogger._pendingUrl = LibConsoleLogger._pendingUrl or nil
 LibConsoleLogger._pendingEnabled = LibConsoleLogger._pendingEnabled or nil
 LibConsoleLogger._pendingChatEnabled = LibConsoleLogger._pendingChatEnabled or nil
 LibConsoleLogger._pendingMaxLines = LibConsoleLogger._pendingMaxLines or nil
+LibConsoleLogger._pendingScope = LibConsoleLogger._pendingScope or nil
+LibConsoleLogger._pendingIncludeErrors = LibConsoleLogger._pendingIncludeErrors or nil
 
 LibConsoleLogger.savedVars = State.savedVars
 
@@ -56,6 +60,14 @@ function LibConsoleLogger:_EnsureSavedVars()
     if LibConsoleLogger._pendingMaxLines ~= nil then
         State.savedVars.maxLines = LibConsoleLogger._pendingMaxLines
         LibConsoleLogger._pendingMaxLines = nil
+    end
+    if LibConsoleLogger._pendingScope ~= nil then
+        State.savedVars.scope = LibConsoleLogger._pendingScope
+        LibConsoleLogger._pendingScope = nil
+    end
+    if LibConsoleLogger._pendingIncludeErrors ~= nil then
+        State.savedVars.includeErrors = LibConsoleLogger._pendingIncludeErrors
+        LibConsoleLogger._pendingIncludeErrors = nil
     end
 
     return true

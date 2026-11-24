@@ -1,6 +1,6 @@
 -- Research timers (/fct timers): every research slot on the account being viewed, one line each.
 -- Finished and idle slots come first (those need you), then running research, soonest first.
-local CT = FuryCT
+local CT = FurysCharacterTracker
 local U = CT.Util
 local R = CT.Research
 local Timers = {}
@@ -8,9 +8,10 @@ CT.Timers = Timers
 
 local ROW_TYPE = 1
 local UPDATE_MS = 30000
-local GOLD = { 0.83, 0.69, 0.22 }
-local PARCH = { 0.89, 0.83, 0.71 }
-local DIM = { 0.45, 0.40, 0.33 }
+local T = CT.Theme                    -- Fury Night colors and fonts (UI/Theme.lua)
+local GOLD = T.RGB.WARN               -- needs you: done or idle
+local PARCH = T.RGB.TEXT
+local DIM = T.RGB.MUTED
 
 local function Paint(label, text, rgb)
     label:SetText(text or "")
@@ -49,27 +50,27 @@ end
 
 function Timers:Build()
     if self.list then return end
-    SCENE_MANAGER:RegisterTopLevel(FuryCTTimers, false)
-    self.list = FuryCTTimersList
-    ZO_ScrollList_AddDataType(self.list, ROW_TYPE, "FuryCT_TimerRow", 26, SetupRow)
+    SCENE_MANAGER:RegisterTopLevel(FurysCharacterTracker_Timers, false)
+    self.list = FurysCharacterTracker_TimersList
+    ZO_ScrollList_AddDataType(self.list, ROW_TYPE, "FurysCharacterTracker_TimerRow", 26, SetupRow)
 
-    local header = FuryCTTimersHeader
+    local header = FurysCharacterTracker_TimersHeader
     for child, text in pairs({ Name = "Character", Craft = "Craft", Item = "Item", Trait = "Trait", Left = "Time left", Ends = "Finishes" }) do
         local label = header:GetNamedChild(child)
-        label:SetFont("ZoFontGameBold")
-        Paint(label, text, GOLD)
+        label:SetFont(T.FONT_HEADER)
+        Paint(label, text, T.RGB.BLUE)
     end
-    FuryCTTimersLegend:SetText("|cD4AF37Gold|r needs you (done or idle)  ·  light researching  ·  updates every 30 seconds  ·  /fct timers")
+    FurysCharacterTracker_TimersLegend:SetText("|cFFC857Amber|r needs you (done or idle)  ·  white researching  ·  updates every 30 seconds  ·  /fct timers")
 
     local pos = CT.sv.timersWindow
     if pos then
-        FuryCTTimers:ClearAnchors()
-        FuryCTTimers:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, pos.x, pos.y)
+        FurysCharacterTracker_Timers:ClearAnchors()
+        FurysCharacterTracker_Timers:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, pos.x, pos.y)
     end
 end
 
 function Timers.SavePosition()
-    CT.sv.timersWindow = { x = FuryCTTimers:GetLeft(), y = FuryCTTimers:GetTop() }
+    CT.sv.timersWindow = { x = FurysCharacterTracker_Timers:GetLeft(), y = FurysCharacterTracker_Timers:GetTop() }
 end
 
 function Timers:Refresh()
@@ -85,7 +86,7 @@ function Timers:Refresh()
     end
     ZO_ScrollList_Commit(self.list)
 
-    FuryCTTimersSubtitle:SetText(CT.ViewLabel())
+    FurysCharacterTracker_TimersSubtitle:SetText(CT.ViewLabel())
     local summary
     if #rows == 0 then
         summary = "Nothing to show: every character has every trait, or none has been read with version 1.1.0 or later yet."
@@ -93,29 +94,29 @@ function Timers:Refresh()
         summary = string.format("%d researching  ·  %d slot%s free", running, waiting, waiting == 1 and "" or "s")
         if not CT.IsHome() then summary = summary .. "  ·  as saved at that account's last logout" end
     end
-    FuryCTTimersSummary:SetText(summary)
+    FurysCharacterTracker_TimersSummary:SetText(summary)
 end
 
 function Timers:Show()
     self:Build()
     self:Refresh()
-    SCENE_MANAGER:ShowTopLevel(FuryCTTimers)
-    CT.Raise(FuryCTTimers)
+    SCENE_MANAGER:ShowTopLevel(FurysCharacterTracker_Timers)
+    CT.Raise(FurysCharacterTracker_Timers)
     EVENT_MANAGER:RegisterForUpdate(CT.name .. "Timers", UPDATE_MS, function()
         -- Closed some other way (Esc)? Stop counting.
-        if FuryCTTimers:IsHidden() then EVENT_MANAGER:UnregisterForUpdate(CT.name .. "Timers") else self:Refresh() end
+        if FurysCharacterTracker_Timers:IsHidden() then EVENT_MANAGER:UnregisterForUpdate(CT.name .. "Timers") else self:Refresh() end
     end)
 end
 
 function Timers:Hide()
     EVENT_MANAGER:UnregisterForUpdate(CT.name .. "Timers")
-    SCENE_MANAGER:HideTopLevel(FuryCTTimers)
+    SCENE_MANAGER:HideTopLevel(FurysCharacterTracker_Timers)
 end
 
 function Timers:Toggle()
-    if FuryCTTimers:IsHidden() then self:Show() else self:Hide() end
+    if FurysCharacterTracker_Timers:IsHidden() then self:Show() else self:Hide() end
 end
 
 function Timers:RefreshIfShown()
-    if FuryCTTimers and not FuryCTTimers:IsHidden() then self:Refresh() end
+    if FurysCharacterTracker_Timers and not FurysCharacterTracker_Timers:IsHidden() then self:Refresh() end
 end

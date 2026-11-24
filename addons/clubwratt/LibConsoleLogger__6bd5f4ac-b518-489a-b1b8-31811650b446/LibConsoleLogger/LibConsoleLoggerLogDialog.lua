@@ -10,12 +10,20 @@ local ShowGamepadDialog = ZO_Dialogs_ShowGamepadDialog
 ---@type fun(nameOrDialog: any, releasedFromButton: any|nil, filterFunction: function|nil)
 local ReleaseDialog = ZO_Dialogs_ReleaseDialog
 
-local function BuildLogText(lines, statusLine)
+---@param lines string[]|nil
+---@param statusLine string|nil
+---@param scope string the selected scope, "" for all
+---@param includeErrors boolean the game's errors show alongside the scope
+local function BuildLogText(lines, statusLine, scope, includeErrors)
     local text
     if not lines or #lines == 0 then
         text = "[No buffered logs]"
     else
         text = table.concat(lines, "\n")
+    end
+    if scope ~= "" then
+        local with = (includeErrors and scope ~= LibConsoleLogger.errorsScope) and " + errors" or ""
+        text = string.format("Scope: %s%s (change it in the settings)\n\n%s", scope, with, text)
     end
     if statusLine and statusLine ~= "" then
         text = text .. "\n\n" .. statusLine
@@ -126,10 +134,18 @@ function LibConsoleLoggerLogDialog:ScrollToBottom()
     end
 end
 
+---What the dialog shows, as selected in the settings: the scope ("" for all) and whether the game's errors
+---come with it.
+---@return string scope
+---@return boolean includeErrors
+function LibConsoleLoggerLogDialog:GetView()
+    return LibConsoleLogger:GetScope(), LibConsoleLogger:IsIncludingErrors()
+end
+
 function LibConsoleLoggerLogDialog:GetLogLines()
     local webExport = LibConsoleLogger and LibConsoleLogger.WebExport
     if webExport and webExport.BufferGetLines then
-        return webExport.BufferGetLines()
+        return webExport.BufferGetLines(self:GetView())
     end
     return nil
 end
@@ -148,11 +164,16 @@ function LibConsoleLoggerLogDialog:CacheLogSignature(lines, statusLine)
     self.lastLineCount = count
     self.lastLineText = lastLine
     self.lastStatusLine = statusLine
+    self.lastScope, self.lastIncludeErrors = self:GetView()
 end
 
 function LibConsoleLoggerLogDialog:HasLogChanged(lines, statusLine)
     local count = lines and #lines or 0
     local lastLine = count > 0 and lines[count] or nil
+    local scope, includeErrors = self:GetView()
+    if self.lastScope ~= scope or self.lastIncludeErrors ~= includeErrors then
+        return true
+    end
     if self.lastLineCount ~= count then
         return true
     end
@@ -172,7 +193,7 @@ function LibConsoleLoggerLogDialog:RefreshLogs(scrollToBottom)
 
     local lines = self:GetLogLines()
     local statusLine = self:GetStatusLine()
-    self.mainTextLabel:SetText(BuildLogText(lines, statusLine))
+    self.mainTextLabel:SetText(BuildLogText(lines, statusLine, self:GetView()))
     if scrollToBottom then
         self:ScrollToBottom()
     end
@@ -192,7 +213,7 @@ function LibConsoleLoggerLogDialog:RefreshIfVisible()
 
     local shouldScrollToBottom = self:IsScrolledToBottom()
     if self.mainTextLabel then
-        self.mainTextLabel:SetText(BuildLogText(lines, statusLine))
+        self.mainTextLabel:SetText(BuildLogText(lines, statusLine, self:GetView()))
     end
     if shouldScrollToBottom then
         self:ScrollToBottom()

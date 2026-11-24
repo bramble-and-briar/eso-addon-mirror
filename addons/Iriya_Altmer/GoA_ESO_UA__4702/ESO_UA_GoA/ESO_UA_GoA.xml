@@ -1,11 +1,11 @@
 <GuiXml>
 	<Controls>
-		<TopLevelControl name="ESO_UA_GoAUI" mouseEnabled="true" movable="true" drawLayer="DL_BACKGROUND" clampedToScreen="false" hidden="true" level="40" layer="CONTROLS">
+		<TopLevelControl name="ESO_UA_GoAUI" mouseEnabled="true" movable="true" clampedToScreen="false" hidden="true">
 			<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" relativeTo="GuiRoot" offsetX="0" offsetY="7" />
 			<OnMouseUp>
-				ESO_UA_GoA_Selected()
+				ESO_UA_GoA.Selected()
 			</OnMouseUp>
-			<Controls level="40" layer="CONTROLS">
+			<Controls>
 				<Texture name="$(parent)Bg" textureFile="EsoUI/Art/Performance/StatusMeterMunge.dds">
 					<Dimensions x="200" y="256"/>
 					<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"/>
@@ -18,9 +18,10 @@
 			<Controls>
 				<Texture name="$(parent)Texture" alpha=".7" >
 					<Dimensions x="32" y="32" />
-					<Anchor fill="$(parent)" point="CENTER" offsetX="0" offsetY="0" />
+					<AnchorFill />
 				</Texture>
 			</Controls>
 		</Button>
+
 	</Controls>
 </GuiXml>

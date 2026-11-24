@@ -8,6 +8,10 @@
   "category_id": "20",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "AutoUnbox"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5086/",
-  "fingerprint": "6e248e89721f7b99e41272a106aeee1139740bc2bc37d86eff400376ed8468e6",
+  "fingerprint": "1534484581a75b10c253b69c6d9f35f282c0261c6c3ac7ca850558cf96f39c65",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +30,11 @@
   "source_id": "5086",
   "source_url": "https://www.esoui.com/downloads/info5086-AutoUnbox.html",
   "stats": {
-    "downloads": 9,
+    "downloads": 23,
     "favorites": 0,
-    "monthly_downloads": 8
+    "monthly_downloads": 18
   },
   "title": "Auto Unbox",
-  "updated_at": 1795268756000,
-  "version": "1.0"
+  "updated_at": 1795475912000,
+  "version": "1.0.1"
 }

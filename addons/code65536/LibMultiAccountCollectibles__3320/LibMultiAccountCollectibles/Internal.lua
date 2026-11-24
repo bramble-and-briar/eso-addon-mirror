@@ -122,7 +122,7 @@ function Internal.ScanCollection( )
 	local maxScanId = zo_ceil(Internal.vars.maxId / BLOCK_BITS) * BLOCK_BITS
 
 	-- Scan and encode
-	local results = { LCCC.Encode(GetTimeStamp(), BLOCK_BYTES) }
+	local results = Internal.GetScratch(LCCC.Encode(GetTimeStamp(), BLOCK_BYTES))
 	local field = 0
 	for currentId = 1, maxScanId do
 		field = field * 2
@@ -187,6 +187,14 @@ function Internal.CanSave( account )
 		return false
 	else
 		return true
+	end
+end
+
+do
+	local scratch
+	function Internal.GetScratch( ... )
+		scratch = LCCC.PrepareScratchTable(scratch, ...)
+		return scratch
 	end
 end
 

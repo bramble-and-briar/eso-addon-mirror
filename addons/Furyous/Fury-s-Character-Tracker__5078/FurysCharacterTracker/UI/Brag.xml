@@ -1,46 +1,46 @@
 <GuiXml>
     <Controls>
         <!-- The brag card: one screen of best numbers, made for a screenshot. Filled in by Brag.lua. -->
-        <TopLevelControl name="FuryCTBrag" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true">
+        <TopLevelControl name="FurysCharacterTracker_Brag" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true">
             <Dimensions x="960" y="726" />
             <Anchor point="CENTER" />
-            <OnMouseDown>FuryCT.Raise(self)</OnMouseDown>
-            <OnMoveStop>FuryCT.Brag.SavePosition()</OnMoveStop>
+            <OnMouseDown>FurysCharacterTracker.Raise(self)</OnMouseDown>
+            <OnMoveStop>FurysCharacterTracker.Brag.SavePosition()</OnMoveStop>
             <Controls>
-                <Backdrop name="$(parent)BG" centerColor="100C08" edgeColor="96733A" alpha="1">
+                <Backdrop name="$(parent)BG" centerColor="0F0E1F" edgeColor="4A3D99" alpha="1">
                     <AnchorFill />
                     <Edge edgeSize="2" />
                 </Backdrop>
-                <Texture name="$(parent)InnerLine" color="4A3A1C">
+                <Texture name="$(parent)InnerLine" color="4A3D99">
                     <Dimensions y="1" />
                     <Anchor point="TOPLEFT" offsetX="10" offsetY="10" />
                     <Anchor point="TOPRIGHT" offsetX="-10" offsetY="10" />
                 </Texture>
-                <Label name="$(parent)Title" font="ZoFontWinH1" color="D4AF37" horizontalAlignment="CENTER">
+                <Label name="$(parent)Title" font="ZoFontWinH1" color="ECEAF8" horizontalAlignment="CENTER">
                     <Anchor point="TOP" offsetY="22" />
                 </Label>
-                <Label name="$(parent)Subtitle" font="ZoFontGame" color="E3D4B5" horizontalAlignment="CENTER">
+                <Label name="$(parent)Subtitle" font="ZoFontGame" color="B4B0D8" horizontalAlignment="CENTER">
                     <Anchor point="TOP" relativeTo="$(parent)Title" relativePoint="BOTTOM" offsetY="2" />
                 </Label>
                 <Button name="$(parent)Close" inherits="ZO_CloseButton">
                     <Anchor point="TOPRIGHT" offsetX="-12" offsetY="12" />
-                    <OnClicked>FuryCT.Brag:Hide()</OnClicked>
+                    <OnClicked>FurysCharacterTracker.Brag:Hide()</OnClicked>
                 </Button>
                 <Control name="$(parent)Tiles">
                     <Dimensions x="912" y="452" />
                     <Anchor point="TOP" offsetY="104" />
                 </Control>
-                <Label name="$(parent)CoverageTitle" font="ZoFontWinH4" color="D4AF37" horizontalAlignment="CENTER">
+                <Label name="$(parent)CoverageTitle" font="ZoFontWinH4" color="ECEAF8" horizontalAlignment="CENTER">
                     <Anchor point="TOP" relativeTo="$(parent)Tiles" relativePoint="BOTTOM" offsetY="12" />
                 </Label>
                 <Control name="$(parent)Coverage">
                     <Dimensions x="912" y="56" />
                     <Anchor point="TOP" relativeTo="$(parent)CoverageTitle" relativePoint="BOTTOM" offsetY="6" />
                 </Control>
-                <Label name="$(parent)Footer" font="ZoFontGameSmall" color="968770">
+                <Label name="$(parent)Footer" font="ZoFontGameSmall" color="B4B0D8">
                     <Anchor point="BOTTOMRIGHT" offsetX="-22" offsetY="-12" />
                 </Label>
-                <Label name="$(parent)FooterLeft" font="ZoFontGameSmall" color="968770">
+                <Label name="$(parent)FooterLeft" font="ZoFontGameSmall" color="B4B0D8">
                     <Anchor point="BOTTOMLEFT" offsetX="22" offsetY="-12" />
                 </Label>
             </Controls>

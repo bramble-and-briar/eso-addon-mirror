@@ -10,10 +10,8 @@ local MAX_ATTEMPTS = 3
 local CONTAINER_TYPES = {
     [ITEMTYPE_CONTAINER] = true,
     [ITEMTYPE_CONTAINER_CURRENCY] = true,
+    [ITEMTYPE_CONTAINER_STACKABLE] = true,
 }
-if ITEMTYPE_CONTAINER_STACKABLE then
-    CONTAINER_TYPES[ITEMTYPE_CONTAINER_STACKABLE] = true
-end
 
 -- Containers that turn into another item. Skipped by auto-open only; Unbox All opens them.
 local IGNORE_SURVEYS = {
@@ -291,7 +289,10 @@ local function OnNewItem(_, _, slot)
     Enqueue(slot, false)
 end
 
-function AutoUnbox_UnboxAll()
+-- The addon's only global: the keybind (Bindings.xml) calls AutoUnbox.UnboxAll.
+AutoUnbox = {}
+
+function AutoUnbox.UnboxAll()
     if IsActive() then
         Clear()
         return
@@ -312,7 +313,7 @@ local keybindGroup = {
         visible = function()
             return IsActive() or (GetInteractionType() == INTERACTION_NONE and HasOpenable())
         end,
-        callback = AutoUnbox_UnboxAll,
+        callback = AutoUnbox.UnboxAll,
     },
 }
 
@@ -339,7 +340,7 @@ local function SetupSettings()
         type = "panel",
         name = TITLE,
         author = "Schrodi",
-        version = "1.0",
+        version = "1.0.1",
         registerForDefaults = true,
     })
     local function NotAuto() return not sv.autoOpen end
@@ -394,9 +395,10 @@ EVENT_MANAGER:RegisterForEvent(ADDON, EVENT_ADD_ON_LOADED, function(_, addonName
     sv = ZO_SavedVars:NewAccountWide("AutoUnbox_SV", 1, nil, defaults)
 
     EVENT_MANAGER:RegisterForEvent(ADDON .. "NewItem", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnNewItem)
-    EVENT_MANAGER:AddFilterForEvent(ADDON .. "NewItem", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
-    EVENT_MANAGER:AddFilterForEvent(ADDON .. "NewItem", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_IS_NEW_ITEM, true)
-    EVENT_MANAGER:AddFilterForEvent(ADDON .. "NewItem", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
+    EVENT_MANAGER:AddFilterForEvent(ADDON .. "NewItem", EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+        REGISTER_FILTER_BAG_ID, BAG_BACKPACK,
+        REGISTER_FILTER_IS_NEW_ITEM, true,
+        REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
 
     EVENT_MANAGER:RegisterForEvent(ADDON .. "Slot", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, QueueKeybindRefresh)
     EVENT_MANAGER:AddFilterForEvent(ADDON .. "Slot", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)

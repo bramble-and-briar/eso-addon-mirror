@@ -8,8 +8,8 @@
   "category_id": "18",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:3114",
@@ -18,7 +18,7 @@
     "ImprovedAchievementCategories"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3114/",
-  "fingerprint": "dabc57650d0a9563daeea60508bc931dd90bced512df8361e7f8c9cbd79bcceb",
+  "fingerprint": "4b15051e8083fb8975a0dc3a61feee31e2670865e671d661116b03665a52c21c",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10483.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "3114",
   "source_url": "https://www.esoui.com/downloads/info3114-ImprovedAchievementCategories.html",
   "stats": {
-    "downloads": 8361,
-    "favorites": 14,
-    "monthly_downloads": 127
+    "downloads": 8862,
+    "favorites": 15,
+    "monthly_downloads": 193
   },
   "title": "Improved Achievement Categories",
-  "updated_at": 1791143714000,
-  "version": "1.0.5"
+  "updated_at": 1795468237000,
+  "version": "1.0.6"
 }

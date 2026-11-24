@@ -1,4 +1,4 @@
--- Ultimate Regen Timer (formerly UltimateRetarded)
+-- Ultimate Regen Timer
 --
 -- In combat, ultimate is only generated passively for 8 seconds after a light or heavy
 -- attack hits, you block an attack, or you dodge one. This shows the seconds left.

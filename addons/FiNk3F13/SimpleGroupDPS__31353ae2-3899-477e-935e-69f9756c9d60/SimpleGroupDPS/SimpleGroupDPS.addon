@@ -1,6 +1,6 @@
 ## Title: SimpleGroupDPS
 ## APIVersion: 101051
-## Version: 2.0.6
+## Version: 2.0.9
 ## Author: FiNk3--F13--
 ## Description: Eigene Messung mit eingebettetem LibCombat 89 und getrenntem Gruppen-DPS/HPS-Austausch.
 ## DependsOn: LibHarvensAddonSettings LibGroupBroadcast
@@ -15,4 +15,6 @@ CombatAnalysis.lua
 DamageMeter.lua
 DPSPanel.lua
 PersonalDPSPanel.lua
+WamasuLover.xml
+WamasuLover.lua
 SimpleGroupDPS.lua

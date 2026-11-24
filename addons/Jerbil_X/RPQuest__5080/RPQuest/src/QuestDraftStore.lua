@@ -4,12 +4,30 @@
 -- Ref: docs/adr/0005-separacion-misiones-preparacion-y-juego.md
 -- Ref: docs/adr/0006-puntos-de-descubrimiento-ocultos.md
 -- Ref: docs/adr/0007-dialogos-inyectados-en-npcs-nativos.md
+-- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
 
 Addon.QuestDraftStore = {}
 local QuestDraftStore = Addon.QuestDraftStore
+
+function QuestDraftStore:NormalizeStealthMode(value, legacyBool)
+    local modes = Addon.Constants and Addon.Constants.STEALTH_MODE
+    local disabled = (modes and modes.DISABLED) or "disabled"
+    local optional = (modes and modes.OPTIONAL) or "optional"
+    local required = (modes and modes.REQUIRED) or "required"
+    if value == disabled or value == optional or value == required then
+        return value
+    end
+    if type(value) == "boolean" then
+        return value and optional or disabled
+    end
+    if legacyBool == true then
+        return optional
+    end
+    return disabled
+end
 
 function QuestDraftStore:CreateDefaultDraft()
     return {
@@ -27,6 +45,7 @@ function QuestDraftStore:CreateDefaultDraft()
         discoveryMessage = "",
         lastCapturedDisplay = nil,
         mapId = 0,
+        mapType = nil,
         zoneId = 0,
         mapName = "",
         targetX = nil,
@@ -34,8 +53,8 @@ function QuestDraftStore:CreateDefaultDraft()
         areaCenterX = nil,
         areaCenterY = nil,
         areaRadius = Addon.Constants.AREA_RADIUS.MEDIUM,
-        hideMapArea = false,
-        requireUndetected = false,
+        recommendHideMapAreas = true,
+        stealthMode = Addon.Constants.STEALTH_MODE.DISABLED,
     }
 end
 
@@ -46,6 +65,16 @@ function QuestDraftStore:EnsureDraft(draft)
     draft.targets = draft.targets or {}
     draft.discoveries = draft.discoveries or {}
     draft.dialogues = draft.dialogues or {}
+    if draft.recommendHideMapAreas == nil then
+        if draft.hideMapArea ~= nil then
+            draft.recommendHideMapAreas = (draft.hideMapArea == true)
+        else
+            draft.recommendHideMapAreas = true
+        end
+    end
+    draft.hideMapArea = nil
+    draft.stealthMode = self:NormalizeStealthMode(draft.stealthMode, draft.requireUndetected)
+    draft.requireUndetected = nil
     return draft
 end
 
@@ -106,12 +135,16 @@ function QuestDraftStore:CloneTargetsList(targets, existingTargetsByName)
                 cur = math.min(req, existingTargetsByName[t.name:lower()])
             end
             local hasLoc = (t.worldX ~= nil and t.worldZ ~= nil)
+            local tAreaRad = tonumber(t.areaRadius)
             table.insert(out, {
                 name = t.name,
                 currentCount = cur,
                 requiredCount = req,
                 targetX = t.targetX,
                 targetY = t.targetY,
+                areaCenterX = tonumber(t.areaCenterX),
+                areaCenterY = tonumber(t.areaCenterY),
+                areaRadius = (tAreaRad and tAreaRad > 0) and tAreaRad or nil,
                 zoneId = hasLoc and math.floor(tonumber(t.zoneId) or 0) or nil,
                 worldX = hasLoc and tonumber(t.worldX) or nil,
                 worldZ = hasLoc and tonumber(t.worldZ) or nil,
@@ -119,6 +152,8 @@ function QuestDraftStore:CloneTargetsList(targets, existingTargetsByName)
                 locationRequired = hasLoc and (t.locationRequired == true) or false,
                 optional = (t.optional == true),
                 customMessage = type(t.customMessage) == "string" and t.customMessage or "",
+                customMessageInLocation = type(t.customMessageInLocation) == "string" and t.customMessageInLocation or "",
+                customMessageOutsideLocation = type(t.customMessageOutsideLocation) == "string" and t.customMessageOutsideLocation or "",
             })
         end
     end
@@ -148,12 +183,63 @@ function QuestDraftStore:ClearDraftTargets(repo)
     draft.lastCapturedDisplay = nil
     draft.targetX = nil
     draft.targetY = nil
+    draft.worldX = nil
+    draft.worldY = nil
+    draft.worldZ = nil
     draft.areaCenterX = nil
     draft.areaCenterY = nil
     if #draft.discoveries == 0 then
         draft.mapId = 0
         draft.zoneId = 0
         draft.mapName = ""
+    end
+    repo:NotifyListeners("DRAFT_UPDATED", draft)
+    return draft
+end
+
+local function RecalculateDraftTargetCentroid(draft)
+    local sumX, sumY, countCoords = 0, 0, 0
+    for _, entry in ipairs(draft.targets or {}) do
+        if entry.targetX and entry.targetY then
+            sumX = sumX + entry.targetX
+            sumY = sumY + entry.targetY
+            countCoords = countCoords + 1
+        end
+    end
+    if countCoords > 0 then
+        draft.targetX = sumX / countCoords
+        draft.targetY = sumY / countCoords
+        local firstTarget = draft.targets[1]
+        draft.areaCenterX = firstTarget and firstTarget.areaCenterX or draft.areaCenterX
+        draft.areaCenterY = firstTarget and firstTarget.areaCenterY or draft.areaCenterY
+    else
+        draft.targetX = nil
+        draft.targetY = nil
+        draft.worldX = nil
+        draft.worldY = nil
+        draft.worldZ = nil
+        draft.areaCenterX = nil
+        draft.areaCenterY = nil
+    end
+end
+
+function QuestDraftStore:RemoveDraftTarget(repo, index)
+    local draft = self:GetDraft(repo)
+    if not draft.targets or not draft.targets[index] then
+        return nil
+    end
+    table.remove(draft.targets, index)
+    if #draft.targets == 0 then
+        draft.lastCapturedDisplay = nil
+        RecalculateDraftTargetCentroid(draft)
+        if #(draft.discoveries or {}) == 0 then
+            draft.mapId = 0
+            draft.zoneId = 0
+            draft.mapName = ""
+        end
+    else
+        draft.lastCapturedDisplay = repo:FormatTargetEntry(draft.targets[#draft.targets])
+        RecalculateDraftTargetCentroid(draft)
     end
     repo:NotifyListeners("DRAFT_UPDATED", draft)
     return draft
@@ -343,11 +429,14 @@ function QuestDraftStore:LoadQuestIntoDraft(repo, questId)
         mapName = quest.mapName or "",
         targetX = quest.targetX,
         targetY = quest.targetY,
-        areaCenterX = quest.areaCenterX,
-        areaCenterY = quest.areaCenterY,
-        areaRadius = quest.areaRadius or 0.075,
-        hideMapArea = quest.hideMapArea and true or false,
-        requireUndetected = quest.requireUndetected and true or false,
+        worldX = quest.worldX,
+        worldY = quest.worldY,
+        worldZ = quest.worldZ,
+        areaCenterX = (quest.targets and quest.targets[1] and quest.targets[1].areaCenterX) or quest.areaCenterX,
+        areaCenterY = (quest.targets and quest.targets[1] and quest.targets[1].areaCenterY) or quest.areaCenterY,
+        areaRadius = (quest.targets and quest.targets[1] and quest.targets[1].areaRadius) or quest.areaRadius or Addon.Constants.AREA_RADIUS.MEDIUM,
+        recommendHideMapAreas = (quest.recommendHideMapAreas ~= nil) and (quest.recommendHideMapAreas == true) or (quest.hideMapArea == true),
+        stealthMode = self:NormalizeStealthMode(quest.stealthMode, quest.requireUndetected),
     }
     repo:NotifyListeners("DRAFT_UPDATED", repo.savedVars.draft)
     return repo.savedVars.draft
@@ -363,7 +452,11 @@ function QuestDraftStore:UpdateDraftFields(repo, fields, silent)
     if fields.recipientCharacterName ~= nil then draft.recipientCharacterName = tostring(fields.recipientCharacterName) end
     if fields.clue ~= nil then draft.clue = tostring(fields.clue) end
     if fields.completionMessage ~= nil then draft.completionMessage = tostring(fields.completionMessage) end
-    if fields.hideMapArea ~= nil then draft.hideMapArea = (fields.hideMapArea == true) end
+    if fields.recommendHideMapAreas ~= nil then
+        draft.recommendHideMapAreas = (fields.recommendHideMapAreas == true)
+    elseif fields.hideMapArea ~= nil then
+        draft.recommendHideMapAreas = (fields.hideMapArea == true)
+    end
     if fields.discoveryMessage ~= nil then draft.discoveryMessage = tostring(fields.discoveryMessage) end
     if fields.discoveryRadius ~= nil then
         local newDiscRadius = tonumber(fields.discoveryRadius)
@@ -371,13 +464,24 @@ function QuestDraftStore:UpdateDraftFields(repo, fields, silent)
             draft.discoveryRadius = math.floor(newDiscRadius)
         end
     end
-    if fields.requireUndetected ~= nil then draft.requireUndetected = (fields.requireUndetected == true) end
+    if fields.stealthMode ~= nil then
+        draft.stealthMode = self:NormalizeStealthMode(fields.stealthMode)
+    elseif fields.requireUndetected ~= nil then
+        draft.stealthMode = self:NormalizeStealthMode(fields.requireUndetected)
+    end
     if fields.areaRadius ~= nil then
         local newRadius = tonumber(fields.areaRadius) or draft.areaRadius
         if newRadius > 0 then
             draft.areaRadius = newRadius
+            local effectiveRadius = Addon.WorldMapArea:GetEffectiveAreaRadius(newRadius, draft.mapType)
+            for _, t in ipairs(draft.targets or {}) do
+                t.areaRadius = newRadius
+                if t.targetX and t.targetY then
+                    t.areaCenterX, t.areaCenterY = repo:ComputeOffsetCenter(t.targetX, t.targetY, effectiveRadius)
+                end
+            end
             if draft.targetX and draft.targetY then
-                draft.areaCenterX, draft.areaCenterY = repo:ComputeOffsetCenter(draft.targetX, draft.targetY, draft.areaRadius)
+                draft.areaCenterX, draft.areaCenterY = repo:ComputeOffsetCenter(draft.targetX, draft.targetY, effectiveRadius)
             end
         end
     end
@@ -412,10 +516,17 @@ function QuestDraftStore:SetDraftCapturedTarget(repo, captureData)
         end
     end
 
+    local radius = (matchedEntry and matchedEntry.areaRadius) or draft.areaRadius or Addon.Constants.AREA_RADIUS.MEDIUM
+    local effectiveTargetRadius = Addon.WorldMapArea:GetEffectiveAreaRadius(radius, captureData.mapType or draft.mapType)
+    local tAreaCenterX, tAreaCenterY = repo:ComputeOffsetCenter(tx, ty, effectiveTargetRadius)
+
     if matchedEntry then
         matchedEntry.requiredCount = math.min(999, (tonumber(matchedEntry.requiredCount) or 1) + 1)
         matchedEntry.targetX = tx
         matchedEntry.targetY = ty
+        matchedEntry.areaRadius = radius
+        matchedEntry.areaCenterX = tAreaCenterX
+        matchedEntry.areaCenterY = tAreaCenterY
     else
         matchedEntry = {
             name = cleanName,
@@ -423,15 +534,27 @@ function QuestDraftStore:SetDraftCapturedTarget(repo, captureData)
             requiredCount = 1,
             targetX = tx,
             targetY = ty,
+            areaCenterX = tAreaCenterX,
+            areaCenterY = tAreaCenterY,
+            areaRadius = radius,
             optional = false,
+            customMessage = "",
+            customMessageInLocation = "",
+            customMessageOutsideLocation = "",
         }
         table.insert(draft.targets, matchedEntry)
     end
 
     draft.lastCapturedDisplay = repo:FormatTargetEntry(matchedEntry)
     draft.mapId = tonumber(captureData.mapId) or draft.mapId or 0
+    draft.mapType = captureData.mapType or draft.mapType
     draft.zoneId = tonumber(captureData.zoneId) or draft.zoneId or 0
     draft.mapName = tostring(captureData.mapName or draft.mapName or "")
+    if captureData.worldX ~= nil and captureData.worldZ ~= nil then
+        draft.worldX = tonumber(captureData.worldX)
+        draft.worldY = tonumber(captureData.worldY) or 0
+        draft.worldZ = tonumber(captureData.worldZ)
+    end
 
     -- Calcular centroide de los objetivos capturados para situar el área de búsqueda
     local sumX, sumY, countCoords = 0, 0, 0
@@ -450,9 +573,10 @@ function QuestDraftStore:SetDraftCapturedTarget(repo, captureData)
         draft.targetY = ty
     end
 
-    local radius = draft.areaRadius or Addon.Constants.AREA_RADIUS.MEDIUM
-    draft.areaRadius = radius
-    draft.areaCenterX, draft.areaCenterY = repo:ComputeOffsetCenter(draft.targetX, draft.targetY, radius)
+    local questRadius = draft.areaRadius or Addon.Constants.AREA_RADIUS.MEDIUM
+    draft.areaRadius = questRadius
+    local effectiveRadius = Addon.WorldMapArea:GetEffectiveAreaRadius(questRadius, draft.mapType)
+    draft.areaCenterX, draft.areaCenterY = repo:ComputeOffsetCenter(draft.targetX, draft.targetY, effectiveRadius)
 
     repo:NotifyListeners("DRAFT_TARGET_CAPTURED", draft)
     return draft
@@ -488,6 +612,28 @@ function QuestDraftStore:UpdateDraftTarget(repo, index, fields, silent)
     if fields.customMessage ~= nil then
         target.customMessage = tostring(fields.customMessage)
     end
+    if fields.customMessageInLocation ~= nil then
+        target.customMessageInLocation = tostring(fields.customMessageInLocation)
+    end
+    if fields.customMessageOutsideLocation ~= nil then
+        target.customMessageOutsideLocation = tostring(fields.customMessageOutsideLocation)
+    end
+    if fields.areaRadius ~= nil then
+        local newAreaRad = tonumber(fields.areaRadius)
+        if newAreaRad and newAreaRad > 0 then
+            target.areaRadius = newAreaRad
+            if target.targetX and target.targetY then
+                local effectiveRadius = Addon.WorldMapArea:GetEffectiveAreaRadius(newAreaRad, draft.mapType)
+                target.areaCenterX, target.areaCenterY = repo:ComputeOffsetCenter(target.targetX, target.targetY, effectiveRadius)
+            end
+        end
+    end
+    if fields.areaCenterX ~= nil then
+        target.areaCenterX = tonumber(fields.areaCenterX)
+    end
+    if fields.areaCenterY ~= nil then
+        target.areaCenterY = tonumber(fields.areaCenterY)
+    end
 
     if not silent then
         repo:NotifyListeners("DRAFT_UPDATED", draft)
@@ -513,7 +659,28 @@ function QuestDraftStore:ClearDraftTargetLocation(repo, index)
     return self:UpdateDraftTarget(repo, index, { clearLocation = true })
 end
 
-local function ApplyDraftToExistingQuest(store, repo, existing, draft, fields)
+local function BuildNormalizedDraftFields(repo, draft, fallbackTitle)
+    local cleanTitle = (draft.title or ""):gsub("^%s+", ""):gsub("%s+$", "")
+    if cleanTitle == "" then
+        cleanTitle = fallbackTitle
+    end
+
+    local fields = {
+        title = cleanTitle,
+        description = (draft.description or ""):gsub("^%s+", ""):gsub("%s+$", ""),
+        clue = (draft.clue or ""):gsub("^%s+", ""):gsub("%s+$", ""),
+        completionMessage = (draft.completionMessage or ""):gsub("^%s+", ""):gsub("%s+$", ""),
+        recipientAccount = repo:NormalizeAccountName(draft.recipientAccount),
+        recipientCharacterName = repo:NormalizeCharacterName(draft.recipientCharacterName),
+    }
+    draft.clue = fields.clue
+    draft.completionMessage = fields.completionMessage
+    draft.recipientAccount = fields.recipientAccount
+    draft.recipientCharacterName = fields.recipientCharacterName
+    return fields
+end
+
+local function ApplyDraftFieldsToQuest(store, repo, existing, draft, fields)
     local prevProgress = {}
     for _, t in ipairs(existing.targets or {}) do
         prevProgress[t.name:lower()] = t.currentCount or 0
@@ -542,13 +709,18 @@ local function ApplyDraftToExistingQuest(store, repo, existing, draft, fields)
     existing.mapName = draft.mapName or ""
     existing.targetX = draft.targetX
     existing.targetY = draft.targetY
-    existing.areaCenterX = draft.areaCenterX
-    existing.areaCenterY = draft.areaCenterY
-    existing.areaRadius = draft.areaRadius
-    existing.hideMapArea = draft.hideMapArea and true or false
-    local reqUndetected = draft.requireUndetected and true or false
-    existing.requireUndetected = reqUndetected
-    if not reqUndetected then
+    existing.worldX = draft.worldX
+    existing.worldY = draft.worldY
+    existing.worldZ = draft.worldZ
+    existing.areaCenterX = nil
+    existing.areaCenterY = nil
+    existing.areaRadius = nil
+    existing.hideMapArea = nil
+    existing.recommendHideMapAreas = (draft.recommendHideMapAreas ~= false)
+    local stealthMode = store:NormalizeStealthMode(draft.stealthMode)
+    existing.stealthMode = stealthMode
+    existing.requireUndetected = nil
+    if stealthMode == Addon.Constants.STEALTH_MODE.DISABLED then
         existing.wasDetected = false
     end
     existing.failed = false
@@ -560,9 +732,59 @@ local function ApplyDraftToExistingQuest(store, repo, existing, draft, fields)
     if repo._activeTargetCache and repo._activeTargetCache.questId == existing.id then
         repo:InvalidateActiveTargetCache()
     end
+end
 
+local function ApplyDraftToExistingQuest(store, repo, existing, draft, fields)
+    ApplyDraftFieldsToQuest(store, repo, existing, draft, fields)
     store:ResetDraft(repo)
     repo:NotifyListeners("QUEST_UPDATED", existing)
+    return existing
+end
+
+function QuestDraftStore:CreateNewPreparedDraft(repo)
+    if not repo.savedVars then
+        repo:Initialize()
+    end
+    local targetId = repo.savedVars.nextId
+    repo.savedVars.nextId = targetId + 1
+
+    local title = Addon.Locale:Get("DEFAULT_NEW_QUEST_TITLE")
+    local newQuest = repo:BuildQuestRecord(
+        targetId,
+        title,
+        "",
+        {},
+        { senderCharacterName = repo:GetPlayerCharacterName() },
+        Addon.Constants.QUEST_ROLE.PREPARED
+    )
+
+    table.insert(repo.savedVars.quests, newQuest)
+    if repo._questById then
+        repo._questById[newQuest.id] = newQuest
+    end
+
+    self:LoadQuestIntoDraft(repo, newQuest.id)
+    repo:NotifyListeners("QUEST_DRAFT_CREATED", newQuest)
+    return newQuest
+end
+
+function QuestDraftStore:CommitDraftChanges(repo)
+    local draft = self:GetDraft(repo)
+    local existing = draft.editingQuestId and repo:GetQuestById(draft.editingQuestId) or nil
+    if not existing or not repo:IsPreparedQuest(existing) then
+        return nil
+    end
+
+    draft.targets = draft.targets or {}
+    draft.discoveries = draft.discoveries or {}
+    if #draft.targets > 0 and draft.targetX and draft.targetY and (not draft.areaCenterX or not draft.areaCenterY) then
+        local effectiveRadius = Addon.WorldMapArea:GetEffectiveAreaRadius(draft.areaRadius, draft.mapType)
+        draft.areaCenterX, draft.areaCenterY = repo:ComputeOffsetCenter(draft.targetX, draft.targetY, effectiveRadius)
+    end
+
+    local fallbackTitle = Addon.Locale:Get("DEFAULT_NEW_QUEST_TITLE")
+    local fields = BuildNormalizedDraftFields(repo, draft, fallbackTitle)
+    ApplyDraftFieldsToQuest(self, repo, existing, draft, fields)
     return existing
 end
 
@@ -582,11 +804,11 @@ local function CreateQuestFromDraft(store, repo, targetId, draft, fields)
         mapName = draft.mapName,
         targetX = draft.targetX,
         targetY = draft.targetY,
-        areaCenterX = draft.areaCenterX,
-        areaCenterY = draft.areaCenterY,
-        areaRadius = draft.areaRadius,
-        hideMapArea = draft.hideMapArea,
-        requireUndetected = draft.requireUndetected,
+        worldX = draft.worldX,
+        worldY = draft.worldY,
+        worldZ = draft.worldZ,
+        recommendHideMapAreas = (draft.recommendHideMapAreas ~= false),
+        stealthMode = store:NormalizeStealthMode(draft.stealthMode),
     }
 
     local newQuest = repo:BuildQuestRecord(
@@ -608,7 +830,7 @@ local function CreateQuestFromDraft(store, repo, targetId, draft, fields)
     return newQuest
 end
 
-function QuestDraftStore:SaveDraft(repo, titleInput, descriptionInput, areaRadiusInput, completionMessageInput, requireUndetectedInput, recipientAccountInput, recipientCharacterNameInput)
+function QuestDraftStore:SaveDraft(repo, titleInput, descriptionInput, areaRadiusInput, completionMessageInput, stealthModeInput, recipientAccountInput, recipientCharacterNameInput)
     local draft = self:GetDraft(repo)
 
     if titleInput ~= nil then draft.title = tostring(titleInput) end
@@ -616,45 +838,43 @@ function QuestDraftStore:SaveDraft(repo, titleInput, descriptionInput, areaRadiu
     if recipientAccountInput ~= nil then draft.recipientAccount = tostring(recipientAccountInput) end
     if recipientCharacterNameInput ~= nil then draft.recipientCharacterName = tostring(recipientCharacterNameInput) end
     if completionMessageInput ~= nil then draft.completionMessage = tostring(completionMessageInput) end
-    if requireUndetectedInput ~= nil then draft.requireUndetected = (requireUndetectedInput == true) end
+    if stealthModeInput ~= nil then draft.stealthMode = self:NormalizeStealthMode(stealthModeInput) end
     if areaRadiusInput ~= nil and tonumber(areaRadiusInput) and tonumber(areaRadiusInput) > 0 then
-        draft.areaRadius = tonumber(areaRadiusInput)
+        local newRad = tonumber(areaRadiusInput)
+        draft.areaRadius = newRad
+        local effectiveRadius = Addon.WorldMapArea:GetEffectiveAreaRadius(newRad, draft.mapType)
+        for _, t in ipairs(draft.targets or {}) do
+            t.areaRadius = newRad
+            if t.targetX and t.targetY then
+                t.areaCenterX, t.areaCenterY = repo:ComputeOffsetCenter(t.targetX, t.targetY, effectiveRadius)
+            end
+        end
     end
 
     draft.targets = draft.targets or {}
     draft.discoveries = draft.discoveries or {}
 
-    local hasTargets = #draft.targets > 0 and draft.targetX and draft.targetY
-    local hasDiscoveries = #draft.discoveries > 0
-
-    if not hasTargets and not hasDiscoveries then
-        return nil, Addon.Locale:Get("ERR_MISSING_TARGET")
+    local defaultAreaRad = draft.areaRadius or Addon.Constants.AREA_RADIUS.MEDIUM
+    for _, t in ipairs(draft.targets) do
+        if not t.areaRadius or t.areaRadius <= 0 then
+            t.areaRadius = defaultAreaRad
+        end
+        if t.targetX and t.targetY and (not t.areaCenterX or not t.areaCenterY) then
+            local effectiveRadius = Addon.WorldMapArea:GetEffectiveAreaRadius(t.areaRadius, draft.mapType)
+            t.areaCenterX, t.areaCenterY = repo:ComputeOffsetCenter(t.targetX, t.targetY, effectiveRadius)
+        end
     end
 
+    local hasTargets = #draft.targets > 0 and draft.targetX and draft.targetY
+
     if hasTargets and (not draft.areaCenterX or not draft.areaCenterY) then
-        draft.areaCenterX, draft.areaCenterY = repo:ComputeOffsetCenter(draft.targetX, draft.targetY, draft.areaRadius)
+        local effectiveRadius = Addon.WorldMapArea:GetEffectiveAreaRadius(draft.areaRadius, draft.mapType)
+        draft.areaCenterX, draft.areaCenterY = repo:ComputeOffsetCenter(draft.targetX, draft.targetY, effectiveRadius)
     end
 
     local existing = draft.editingQuestId and repo:GetQuestById(draft.editingQuestId) or nil
     local targetId = existing and existing.id or repo.savedVars.nextId
-
-    local cleanTitle = (draft.title or ""):gsub("^%s+", ""):gsub("%s+$", "")
-    if cleanTitle == "" then
-        cleanTitle = Addon.Locale:Get("DEFAULT_QUEST_TITLE", targetId)
-    end
-
-    local fields = {
-        title = cleanTitle,
-        description = (draft.description or ""):gsub("^%s+", ""):gsub("%s+$", ""),
-        clue = (draft.clue or ""):gsub("^%s+", ""):gsub("%s+$", ""),
-        completionMessage = (draft.completionMessage or ""):gsub("^%s+", ""):gsub("%s+$", ""),
-        recipientAccount = repo:NormalizeAccountName(draft.recipientAccount),
-        recipientCharacterName = repo:NormalizeCharacterName(draft.recipientCharacterName),
-    }
-    draft.clue = fields.clue
-    draft.completionMessage = fields.completionMessage
-    draft.recipientAccount = fields.recipientAccount
-    draft.recipientCharacterName = fields.recipientCharacterName
+    local fields = BuildNormalizedDraftFields(repo, draft, Addon.Locale:Get("DEFAULT_QUEST_TITLE", targetId))
 
     if existing then
         return ApplyDraftToExistingQuest(self, repo, existing, draft, fields)

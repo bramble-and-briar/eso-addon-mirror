@@ -8,8 +8,8 @@
   "category_id": "114",
   "compatibility": [
     {
-      "name": "Echoes of Skyrim",
-      "version": "12.2.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:5080",
@@ -18,7 +18,7 @@
     "RPQuest"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5080/",
-  "fingerprint": "41f7da10087d053400d919ffb89c60dad341b8112900f7fe623505fd797c9a65",
+  "fingerprint": "41f524bdfea5163ef3769a6031c652f09acd2ae9c3a6cb97196735b626e9cb96",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18649.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "5080",
   "source_url": "https://www.esoui.com/downloads/info5080-RPQuest.html",
   "stats": {
-    "downloads": 59,
+    "downloads": 70,
     "favorites": 0,
-    "monthly_downloads": 49
+    "monthly_downloads": 65
   },
   "title": "RPQuest",
-  "updated_at": 1795440413000,
-  "version": "1.8.1"
+  "updated_at": 1795495118000,
+  "version": "1.10.0"
 }

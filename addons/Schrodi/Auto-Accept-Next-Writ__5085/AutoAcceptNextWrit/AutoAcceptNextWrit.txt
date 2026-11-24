@@ -7,9 +7,10 @@
 ## Title: Auto Accept Next Writ
 ## Description: After turning in a master writ, opens and accepts the next sealed writ you have already crafted for. Writs go brrrrr.
 ## Author: Schrodi
-## Version: 1.2
+## Version: 1.2.1
+## AddOnVersion: 121
 ## DependsOn: WritWorthy>=70603
 ## OptionalDependsOn: DolgubonsLazyWritCreator
-## APIVersion: 101051
+## APIVersion: 101051 101052
 
 AutoAcceptNextWrit.lua

@@ -1,3 +1,7 @@
+Version 4.8.4 (2026/11/24)
+* Further consolidated code associated with tooltip handling across all Extended
+  Journal addons to reduce duplicated work and improve efficiency
+
 Version 4.8.3 (2026/11/12)
 * Address an edge case where the status bar would fail to appear if the player
   ports directly from an inactive instance of a trial into a new already-started

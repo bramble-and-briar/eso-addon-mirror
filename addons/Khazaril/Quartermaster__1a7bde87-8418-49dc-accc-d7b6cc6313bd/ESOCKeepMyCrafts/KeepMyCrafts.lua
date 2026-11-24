@@ -254,11 +254,17 @@ local function wrapBankToggle(bank)
         end)
         return ok and yes
     end
+    local function organizeHere()
+        if ESOC_Organizer == nil then return false end
+        local ok, onDeposit = pcall(function() return bank:IsInDepositMode() end)
+        return ESOC_Organizer.OrganizeButtonVisible(ok and onDeposit)
+    end
     if ESOC_Organizer then
         ESOC_Organizer.SetButtonCallback(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(group) end)
     end
     local gameName, gameVisible, gameCallback = button.name, button.visible, button.callback
     button.name = function(...)
+        if organizeHere() then return ESOC_Organizer.OrganizeButtonName() end
         if tidyHere() then return ESOC_Organizer.ButtonName() end
         if ours() then
             if settings.hideBank then
@@ -271,11 +277,12 @@ local function wrapBankToggle(bank)
         return gameName
     end
     button.visible = function(...)
-        if ours() or tidyHere() then return true end
+        if organizeHere() or ours() or tidyHere() then return true end
         if type(gameVisible) == "function" then return gameVisible(...) end
         return gameVisible ~= false
     end
     button.callback = function(...)
+        if organizeHere() then return ESOC_Organizer.PressOrganize() end
         if tidyHere() then return ESOC_Organizer.PressTidy() end
         if ours() then
             settings.hideBank = not settings.hideBank
@@ -481,14 +488,47 @@ local savedVars
 local function makeSettings()
     local QM, LHAS = ESOC_Quartermaster, LibHarvensAddonSettings
     if not QM or not savedVars or not LHAS then return end
-    QM.CreateSettings(savedVars, {
+    local settingsList = {
         { type = LHAS.ST_SECTION, label = "Organizer" },
         {
-            type = LHAS.ST_BUTTON, label = "Open item report", buttonText = "Open",
-            tooltip = "Everything you own across characters, the bank, the craft bag and house chests, with what could be learned or sold. Log in to each character and open each chest once to fill it in. LB and RB change page.",
+            type = LHAS.ST_BUTTON, label = "|cFFD700Full Inventory|r", buttonText = "Open",
+            tooltip = "Everything you own: what's in each chest, surveys ready to run, and what to learn or sell.",
             clickHandler = function() if ESOC_Organizer then ESOC_Organizer.OpenReport() end end,
         },
-        { type = LHAS.ST_LABEL, label = "On the bank's Withdraw tab, X stacks the bank. The Organizer never moves items between bags, and never sells, deletes, opens or binds anything." },
+        {
+            type = LHAS.ST_EDIT, label = "Search items",
+            tooltip = "Type an item, set or trait to see where it is.",
+            getFunction = function() return "" end,
+            setFunction = function(text) if ESOC_Organizer then ESOC_Organizer.Search(text) end end,
+        },
+        {
+            type = LHAS.ST_DROPDOWN, label = "Main crafter",
+            tooltip = "The character who learns your motifs and recipes.",
+            items = function()
+                local items = {}
+                for _, name in ipairs(ESOC_Organizer.CharacterNames()) do items[#items + 1] = { name = name, data = name } end
+                if #items == 0 then items[1] = { name = "No characters", data = false } end
+                return items
+            end,
+            getFunction = function() return ESOC_Organizer.Crafter() or "Choose a character" end,
+            setFunction = function(_, name, item)
+                local value = item
+                if type(item) == "table" then value = item.data end
+                if value == nil then value = name end
+                if value then ESOC_Organizer.SetCrafter(value) end
+            end,
+        },
+        {
+            type = LHAS.ST_BUTTON, label = "Chest setup", buttonText = "Open",
+            tooltip = "Step-by-step instructions, the exact names your chests need, and what goes in each. It's off unless you turn it on.",
+            clickHandler = function() ESOC_Organizer.OpenPlanGuide() end,
+        },
+        {
+            type = LHAS.ST_BUTTON, label = "What will move", buttonText = "Open",
+            tooltip = "Shows what will move. To move it, press X at the bank (Withdraw tab) or at a named chest.",
+            disable = function() return ESOC_Organizer.Plan() == "off" end,
+            clickHandler = function() ESOC_Organizer.OpenOrganize() end,
+        },
         { type = LHAS.ST_SECTION, label = "Protection" },
         {
             type = LHAS.ST_CHECKBOX, label = "Hide crafted and kept items", default = true,
@@ -508,7 +548,8 @@ local function makeSettings()
             getFunction = function() return savedVars.tradeLootOnly end,
             setFunction = function(v) savedVars.tradeLootOnly = v end,
         },
-    })
+    }
+    QM.CreateSettings(savedVars, settingsList)
 end
 
 EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, function(_, name)

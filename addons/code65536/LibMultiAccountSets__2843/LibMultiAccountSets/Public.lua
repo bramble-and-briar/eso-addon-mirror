@@ -107,28 +107,11 @@ function Public.GetServerAndAccountList( alwaysIncludeCurrentAccount )
 	return results
 end
 
-function Public.GetItemCollectionAndTradabilityStatus( accounts, itemLink, itemSource )
-	if (not itemLink) then
-		if (itemSource.bagId and itemSource.slotIndex) then
-			itemLink = GetItemLink(itemSource.bagId, itemSource.slotIndex)
-		elseif (itemSource.who and itemSource.tradeIndex) then
-			itemLink = GetTradeItemLink(itemSource.who, itemSource.tradeIndex)
-		elseif (itemSource.lootId) then
-			itemLink = GetLootItemLink(itemSource.lootId)
-		else
-			return Public.ITEM_UNCOLLECTIBLE
-		end
-	end
+do
+	local NO_SOURCE = { }
+	local singleAccountList
 
-	if (not IsItemLinkSetCollectionPiece(itemLink)) then
-		return Public.ITEM_UNCOLLECTIBLE
-	end
-
-	if (type(itemSource) ~= "table") then
-		itemSource = { }
-	end
-
-	local GetStatus = function( account, tradeEligibility )
+	local function GetStatus( account, itemLink, tradeEligibility )
 		if (Public.IsItemSetCollectionItemLinkUnlockedForAccount(account, itemLink)) then
 			return Public.ITEM_COLLECTED
 		elseif (tradeEligibility[account] == true) then
@@ -140,23 +123,46 @@ function Public.GetItemCollectionAndTradabilityStatus( accounts, itemLink, itemS
 		end
 	end
 
-	if (type(accounts) == "string") then
-		-- Single account
-		return GetStatus(accounts, Internal.GetTradeEligibility(itemLink, itemSource, { accounts }))
-	else
-		-- Multiple accounts
-		if (not accounts) then
-			accounts = Public.GetAccountList(true)
-			table.insert(accounts, Internal.account)
+	function Public.GetItemCollectionAndTradabilityStatus( accounts, itemLink, itemSource )
+		if (type(itemSource) ~= "table") then
+			itemSource = NO_SOURCE
 		end
 
-		local tradeEligibility = Internal.GetTradeEligibility(itemLink, itemSource, accounts)
-
-		local results = { }
-		for _, account in ipairs(accounts) do
-			results[account] = GetStatus(account, tradeEligibility)
+		if (not itemLink) then
+			if (itemSource.bagId and itemSource.slotIndex) then
+				itemLink = GetItemLink(itemSource.bagId, itemSource.slotIndex)
+			elseif (itemSource.who and itemSource.tradeIndex) then
+				itemLink = GetTradeItemLink(itemSource.who, itemSource.tradeIndex)
+			elseif (itemSource.lootId) then
+				itemLink = GetLootItemLink(itemSource.lootId)
+			else
+				return Public.ITEM_UNCOLLECTIBLE
+			end
 		end
-		return results
+
+		if (not IsItemLinkSetCollectionPiece(itemLink)) then
+			return Public.ITEM_UNCOLLECTIBLE
+		end
+
+		if (type(accounts) == "string") then
+			-- Single account
+			singleAccountList = LCCC.PrepareScratchTable(singleAccountList, accounts)
+			return GetStatus(accounts, itemLink, Internal.GetTradeEligibility(itemLink, itemSource, singleAccountList))
+		else
+			-- Multiple accounts
+			if (not accounts) then
+				accounts = Public.GetAccountList(true)
+				table.insert(accounts, Internal.account)
+			end
+
+			local tradeEligibility = Internal.GetTradeEligibility(itemLink, itemSource, accounts)
+
+			local results = { }
+			for _, account in ipairs(accounts) do
+				results[account] = GetStatus(account, itemLink, tradeEligibility)
+			end
+			return results
+		end
 	end
 end
 

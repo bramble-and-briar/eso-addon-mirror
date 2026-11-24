@@ -136,7 +136,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Furnishing Recipe Collector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomstock/Furnishing-Recipe-Collector__3862) | tomstock | PC / Mac | 1.4.9 |
 | [Furnishing Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Furnishing-Tracker__c49eb98c-6821-47de-9cb2-10b972d1a55f) | Eldibabalo | Console | — |
 | [Furnishings placed 2 Nickname](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/remosito/Furnishings-placed-2-Nickname__3579) | remosito | PC / Mac | 37.0 |
-| [Furniture Catalogue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Furniture-Catalogue__1617) | manavortex | PC / Mac | 8.1.0 |
+| [Furniture Catalogue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Furniture-Catalogue__1617) | manavortex | PC / Mac | 9.0.0 |
 | [Furniture Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GlandePas/Furniture-Filter__4986) | GlandePas | PC / Mac | 1.0.1 |
 | [Furniture Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/killerkev77/Furniture-Finder__2b591c30-b518-46da-978a-c1a788963735) | killerkev77 | Console | — |
 | [Furniture Finder Lite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Furniture-Finder-Lite__db56a562-b091-41ec-b9e7-80b4523c8a69) | clubwratt | Console | — |
@@ -144,10 +144,11 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Furniture Placer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/killerkev77/Furniture-Placer__33acf830-6318-4dc0-8458-4a061eca1ad3) | killerkev77 | Console | — |
 | [Furniture Plan Search](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Furniture-Plan-Search__5d0f8b9b-9537-4b51-b576-5ec13219cc73) | SugaComa | Console | — |
 | [Furniture Preview modified by Teva](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Teva/Furniture-Preview-modified-by-Teva__2970) | Teva | PC / Mac | 2.60 |
-| [Furniture Shopping List (FurC 2.0 patch)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Furniture-Shopping-List-FurC-2.0-patch__1865) | manavortex | PC / Mac | 1.4.11 |
 | [Furniture Snap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Furniture-Snap__1944) | Cardinal05 | PC / Mac | 1.3 |
 | [Furniture Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/killerkev77/Furniture-Tracker__655e721d-2e85-48fd-83f9-bcbb1e9c7392) | killerkev77 | Console | — |
+| [FurnitureShoppingList (patched)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/FurnitureShoppingList-patched__1865) | manavortex | PC / Mac | 2.0.0 |
 | [Fury](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DustyWarehouse/Fury__2422) | DustyWarehouse | PC / Mac | 1.11 |
-| [Fury's Character Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Character-Tracker__5078) | Furyous | PC / Mac | 1.2.2 |
-| [Fury's Guild Management Toolset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Guild-Management-Toolset__5063) | Furyous | PC / Mac | 1.16.11 |
-| [Fury's Inventory Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Inventory-Ledger__5099) | Furyous | PC / Mac | 1.2.2 |
+| [Fury's Account Sync](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Account-Sync__5106) | Furyous | PC / Mac | 0.2.2 |
+| [Fury's Character Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Character-Tracker__5078) | Furyous | PC / Mac | 1.4.0 |
+| [Fury's Guild Management Toolset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Guild-Management-Toolset__5063) | Furyous | PC / Mac | 1.24.3 |
+| [Fury's Inventory Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Inventory-Ledger__5099) | Furyous | PC / Mac | 1.4.0 |

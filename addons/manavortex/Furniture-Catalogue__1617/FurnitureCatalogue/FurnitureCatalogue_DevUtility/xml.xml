@@ -8,7 +8,7 @@
     <TopLevelControl name="FurCDevControl" clampedToScreen="true" movable="true" mouseEnabled="true"
       hidden="true" resizeHandleSize="15">
       <Dimensions x="860" y="520" />
-      <DimensionConstraints minX="740" minY="360" />
+      <DimensionConstraints minX="800" minY="400" />
       <Anchor point="CENTER" relativeTo="GUI_ROOT" relativePoint="CENTER" offsetX="0"
         offsetY="-120" />
       <Controls>
@@ -83,22 +83,6 @@
                     mouseOver="/esoui/art/dye/dyes_toolicon_erase_over.dds"
                   />
                 </Button>
-                <Button name="$(parent)_fromTrader" inherits="ZO_ButtonBehaviorClickSound">
-                  <OnClicked>FurCDev.AddAllFromTrader()</OnClicked>
-                  <OnMouseEnter>
-                    InitializeTooltip(InformationTooltip, self, TOP, 0, 5, BOTTOM)
-                    SetTooltipText(InformationTooltip, "Add all furnishings from the open trader")
-                  </OnMouseEnter>
-                  <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
-                  <Dimensions x="36" y="36" />
-                  <Anchor point="RIGHT" relativeTo="$(parent)_clear" relativePoint="LEFT"
-                    offsetX="-8" offsetY="0" />
-                  <Textures
-                    normal="/esoui/art/buttons/plus_up.dds"
-                    pressed="/esoui/art/buttons/plus_down.dds"
-                    mouseOver="/esoui/art/buttons/plus_over.dds"
-                  />
-                </Button>
                 <Button name="$(parent)_selectAll" inherits="ZO_ButtonBehaviorClickSound">
                   <OnClicked>FurCDev.selectAllOutput()</OnClicked>
                   <OnMouseEnter>
@@ -107,12 +91,44 @@
                   </OnMouseEnter>
                   <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
                   <Dimensions x="36" y="36" />
-                  <Anchor point="RIGHT" relativeTo="$(parent)_fromTrader" relativePoint="LEFT"
+                  <Anchor point="RIGHT" relativeTo="$(parent)_clear" relativePoint="LEFT"
                     offsetX="-8" offsetY="0" />
                   <Textures
                     normal="/esoui/art/buttons/edit_up.dds"
                     pressed="/esoui/art/buttons/edit_down.dds"
                     mouseOver="/esoui/art/buttons/edit_over.dds"
+                  />
+                </Button>
+                <Button name="$(parent)_fromTrader" inherits="ZO_ButtonBehaviorClickSound">
+                  <OnClicked>FurCDev.AddAllFromTrader()</OnClicked>
+                  <OnMouseEnter>
+                    InitializeTooltip(InformationTooltip, self, TOP, 0, 5, BOTTOM)
+                    SetTooltipText(InformationTooltip, "Add all furnishings from the open trader")
+                  </OnMouseEnter>
+                  <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
+                  <Dimensions x="36" y="36" />
+                  <Anchor point="RIGHT" relativeTo="$(parent)_selectAll" relativePoint="LEFT"
+                    offsetX="-8" offsetY="0" />
+                  <Textures
+                    normal="/esoui/art/buttons/plus_up.dds"
+                    pressed="/esoui/art/buttons/plus_down.dds"
+                    mouseOver="/esoui/art/buttons/plus_over.dds"
+                  />
+                </Button>
+                <Button name="$(parent)_fromBag" inherits="ZO_ButtonBehaviorClickSound">
+                  <OnClicked>FurCDev.AddAllFromBag()</OnClicked>
+                  <OnMouseEnter>
+                    InitializeTooltip(InformationTooltip, self, TOP, 0, 5, BOTTOM)
+                    SetTooltipText(InformationTooltip, "Add all furnishings from the open bag: backpack, bank, guild bank or house storage")
+                  </OnMouseEnter>
+                  <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
+                  <Dimensions x="36" y="36" />
+                  <Anchor point="RIGHT" relativeTo="$(parent)_fromTrader" relativePoint="LEFT"
+                    offsetX="-8" offsetY="0" />
+                  <Textures
+                    normal="/esoui/art/inventory/inventory_tabicon_items_up.dds"
+                    pressed="/esoui/art/inventory/inventory_tabicon_items_down.dds"
+                    mouseOver="/esoui/art/inventory/inventory_tabicon_items_over.dds"
                   />
                 </Button>
                 <!-- Background for scratchpad -->

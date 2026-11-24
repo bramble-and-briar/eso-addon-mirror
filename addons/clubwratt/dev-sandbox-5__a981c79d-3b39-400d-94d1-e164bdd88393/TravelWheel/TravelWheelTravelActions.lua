@@ -1,11 +1,13 @@
 -- TravelWheelTravelActions.lua: Makes the trip a destination names: a
--- wayshrine, a house, a campaign queue or a battleground queue.
+-- wayshrine, a house, a campaign queue, a battleground queue or the game's
+-- Get Me Unstuck.
 
 local TravelWheelTravelActions = {}
 
 local Log = TravelWheel.Log
 local Alert = TravelWheel.Alert
 local Utils = TravelWheel.TravelUtils
+local CatalogUtils = TravelWheel.CatalogUtils
 local Catalog = TravelWheel.CatalogActions
 
 ---@param id string
@@ -61,10 +63,23 @@ local function GoHouse(destination)
         Alert(string.format("%s: you cannot travel to a house from here", destination.name))
         return false
     end
-    -- An unowned house is entered as a preview, which has no front door.
+    if destination.owner and destination.owner ~= GetDisplayName() then
+        -- Another player's house, favorited in House Tours: visited the way
+        -- House Tours visits it, which is inside.
+        local FROM_HOUSE_TOURS = true
+        Log(string.format("house %d of %s", houseId, destination.owner))
+        JumpToSpecificHouse(destination.owner, houseId, FROM_HOUSE_TOURS)
+        return true
+    end
+    -- The player's own house. One not owned would open as a preview, which
+    -- this addon does not travel to: an entry saved for one says so.
     local owned = IsCollectibleUnlocked(GetCollectibleIdForHouse(houseId))
-    local outside = destination.outside == true and owned
+    local outside = destination.outside == true
     Log(string.format("house %d owned=%s outside=%s", houseId, tostring(owned), tostring(outside)))
+    if not owned then
+        Alert(string.format("%s: you do not own this house", destination.name))
+        return false
+    end
     RequestJumpToHouse(houseId, outside)
     return true
 end
@@ -127,33 +142,107 @@ end
 
 -- ---------------------------------------------------------------- battleground
 
+---The Activity Finder queues the player is in now, by name, as the finder
+---itself reads them: a queue by its set, a single activity by its own id.
+---@return string names "A, B"; "" when the game names none
+local function FinderQueueNames()
+    local names = {}
+    for index = 1, GetNumActivityRequests() do
+        local activityId, setId = GetActivityRequestIds(index)
+        local rawName = setId ~= 0 and GetActivitySetInfo(setId) or GetActivityName(activityId)
+        local name = CatalogUtils.CleanName(rawName)
+        if name ~= "" then
+            names[#names + 1] = name
+        end
+    end
+    return table.concat(names, ", ")
+end
+
+---Join the battleground queues ticked for the entry, the way the Activity
+---Finder does when several are ticked there: one search holding each of them.
+---The finder runs one search at a time, so a press during one says which
+---queues it holds. Only this kind of entry is held back by it: a campaign
+---queue and every trip are separate from the finder.
 ---@param destination TravelWheelDestination
 ---@return boolean sent
 local function GoActivity(destination)
-    local location = Catalog.FindActivityLocation(destination.activityType, destination.activityId, destination.isSet == true)
-    if not location then
-        Alert(string.format("%s is not offered to this character", destination.name))
-        return false
-    end
     if IsCurrentlySearchingForGroup() then
-        Alert("already in a queue")
+        local names = FinderQueueNames()
+        Log(string.format("battleground queue: the finder is searching requests=%d for=[%s]", GetNumActivityRequests(), names))
+        Alert(names ~= "" and ("already queued for " .. names) or "already in an Activity Finder queue")
         return false
     end
-    if location:IsLocked() then
-        Alert(string.format("%s: %s", destination.name, tostring(location:GetLockReasonText() or "locked")))
+    local queues = Catalog.Battlegrounds()
+    local join, reason = Utils.QueuesToJoin(queues, destination.queues or {})
+    if #join == 0 then
+        Log(string.format("battleground queue: nothing to join offered=%d reason=%s", #queues, tostring(reason)))
+        for _, line in ipairs(Catalog.DescribeBattlegroundFinder()) do
+            Log(line)
+        end
+        Alert(string.format("%s: %s", destination.name, reason))
         return false
     end
-    Log(string.format("activity type=%d id=%d queue", destination.activityType, destination.activityId))
-    -- The game's own finder: select this one entry and search, so its
-    -- cooldown and group checks apply and its alerts say why a queue failed.
-    local finder = ZO_ACTIVITY_FINDER_ROOT_MANAGER
-    finder:ClearSelections()
-    finder:SetLocationSelected(location, true)
-    finder:StartSearch()
-    if IsCurrentlySearchingForGroup() then
-        Alert(string.format("in the queue for %s", location:GetNameGamepad()))
+    -- The finder's own three steps (ZO_ACTIVITY_FINDER_ROOT_MANAGER:StartSearch),
+    -- made here so the result is in hand for the log.
+    ClearActivityFinderSearch()
+    for _, queue in ipairs(join) do
+        AddActivityFinderSetSearchEntry(queue.setId)
     end
+    local result = StartActivityFinderSearch()
+    Log(string.format("battleground queue: offered=%d join=[%s] result=%s", #queues, Utils.QueueNames(join), tostring(result)))
+    if result ~= ACTIVITY_QUEUE_RESULT_SUCCESS then
+        -- The game's own words for why, as its finder shows them.
+        ZO_AlertEvent(EVENT_ACTIVITY_QUEUE_RESULT, result)
+        return false
+    end
+    Alert("queueing for " .. Utils.QueueNames(join))
     return true
+end
+
+-- ---------------------------------------------------------------- get me unstuck
+
+-- The Help menu's own prompts for Get Me Unstuck, under the names the game
+-- registers them by (help_root_gamepad.lua).
+local UNSTUCK_CONFIRM_DIALOG = "GAMEPAD_UNSTUCK_CONFIRM_DIALOG"
+local UNSTUCK_COOLDOWN_DIALOG = "GAMEPAD_UNSTUCK_COOLDOWN_DIALOG"
+
+---Open the game's own Get Me Unstuck prompt, the one the Help menu opens.
+---The player confirms there and the game does the rest: an addon may not
+---send the unstuck request itself (SendPlayerStuck is private).
+---@param destination TravelWheelDestination
+---@return boolean sent The prompt was opened
+local function GoUnstuck(destination)
+    if IsStuckFixPending() then
+        Alert("the game is already getting you unstuck")
+        return false
+    end
+    -- As the Help menu picks: the countdown while unstuck is on cooldown,
+    -- which opens the confirm prompt itself when it runs out; else the
+    -- confirm prompt.
+    local cooldownMs = GetTimeUntilStuckAvailable()
+    local dialogName = cooldownMs > 0 and UNSTUCK_COOLDOWN_DIALOG or UNSTUCK_CONFIRM_DIALOG
+    Log(string.format("unstuck: opening %s cooldownMs=%d", dialogName, cooldownMs))
+    TravelWheel.state.unstuckAsked = true
+    ZO_Dialogs_ShowGamepadDialog(dialogName)
+    return true
+end
+
+---The game raised a Lua error. After the prompt was opened from here, an
+---error from the game's unstuck code means the game refused the request
+---because an addon opened the prompt: close it and say so.
+---@param errorText string
+function TravelWheelTravelActions.OnLuaError(errorText)
+    local state = TravelWheel.state
+    if not state.unstuckAsked then
+        return
+    end
+    local PLAIN = true
+    if not (string.find(errorText, "SendPlayerStuck", 1, PLAIN) or string.find(errorText, "help_root_gamepad", 1, PLAIN)) then
+        return
+    end
+    state.unstuckAsked = false
+    ZO_Dialogs_ReleaseDialog(UNSTUCK_CONFIRM_DIALOG)
+    Alert("the game refused Get Me Unstuck from the wheel: use Help, Get Me Unstuck")
 end
 
 -- ---------------------------------------------------------------- entry
@@ -163,6 +252,7 @@ local GO_BY_KIND = {
     house = GoHouse,
     campaign = GoCampaign,
     activity = GoActivity,
+    unstuck = GoUnstuck,
 }
 
 ---Make the trip of one saved destination: what a wheel entry does.
@@ -178,18 +268,16 @@ function TravelWheelTravelActions.Go(id)
     return GO_BY_KIND[destination.kind](destination)
 end
 
----@param id string
----@return TravelWheelDestination|nil
-function TravelWheelTravelActions.Find(id)
-    return FindDestination(id)
-end
-
----Join the queue of a campaign by its id: the requeue after an instance.
----@param campaignId integer
----@return boolean sent
-function TravelWheelTravelActions.QueueCampaign(campaignId)
-    Log(string.format("queue campaign %d", campaignId))
-    return QueueCampaign(campaignId)
+function TravelWheelTravelActions.Initialize()
+    -- What the server answered to a queue request, whoever made it: the log
+    -- shows why a battleground queue did not start.
+    EVENT_MANAGER:RegisterForEvent(TravelWheel.name .. "_Travel", EVENT_ACTIVITY_QUEUE_RESULT, function(_, result)
+        Log(string.format("activity queue result=%s %s", tostring(result), tostring(GetString("SI_ACTIVITYQUEUERESULT", result))))
+    end)
+    EVENT_MANAGER:RegisterForEvent(TravelWheel.name .. "_Travel", EVENT_STUCK_BEGIN, function()
+        Log(string.format("unstuck: the game began it, asked from the wheel=%s", tostring(TravelWheel.state.unstuckAsked)))
+        TravelWheel.state.unstuckAsked = false
+    end)
 end
 
 TravelWheel.TravelActions = TravelWheelTravelActions

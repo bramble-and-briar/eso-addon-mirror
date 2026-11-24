@@ -11,9 +11,9 @@
 --   on their own.
 --   Mail: the welcome mail opens filled in for you to send, unless you turn on
 --   "Send automatically" (sent through GT.Actions.SendMailNow, like the demotion mail).
--- Every part starts off on a new install.
+-- Every part starts turned off on a new install.
 
-local GT = FuryGMT
+local GT = FurysGuildToolset
 local U = GT.Util
 local A = GT.Actions
 
@@ -37,7 +37,7 @@ ZO_CreateStringId("SI_BINDING_NAME_FURYGMT_RECRUIT_TOUR", "Recruit: start/stop t
 ZO_CreateStringId("SI_BINDING_NAME_FURYGMT_RECRUIT_NEXT", "Recruit: travel to the next ready zone")
 
 Recruit.defaults = {
-    -- Every part starts off on a new install (Albert's rule).
+    -- Every part starts turned off on a new install (Albert's rule).
     enabled = false,          -- zone ads, cooldowns and the zone tour
     guildId = 0,              -- guild you recruit for; 0 = your first guild
     ads = {},                 -- [guildId] = zone ad text ({guild} = guild name)
@@ -49,6 +49,7 @@ Recruit.defaults = {
     playerMenu = false,       -- "Invite to (guild)" when you right-click a name in chat
     leads = false,            -- whispers with a keyword become leads
     keywords = "inv, invite, join, guild",
+    leadsAutoInvite = false,  -- a keyword whisper sends the guild invite right away, no click
     joinNotice = false,       -- chat line when someone joins
     nearlyFull = 10,          -- warn when this many slots or fewer are open (0 = never)
     traderWarning = true,     -- the join line also says when the guild has no trader
@@ -79,10 +80,10 @@ function Recruit:Initialize(sv)
     self.badTargets = {}   -- people (and houses) a jump failed on this session
     self:Prune()
     self:RegisterTab()
-    EVENT_MANAGER:RegisterForEvent("FuryGMTRecruit", EVENT_CHAT_MESSAGE_CHANNEL, function(_, channel, _, text, _, fromDisplayName)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_Recruit", EVENT_CHAT_MESSAGE_CHANNEL, function(_, channel, _, text, _, fromDisplayName)
         self:OnChat(channel, text, fromDisplayName)
     end)
-    EVENT_MANAGER:RegisterForEvent("FuryGMTRecruit", EVENT_GUILD_MEMBER_ADDED, function(_, guildId, displayName)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_Recruit", EVENT_GUILD_MEMBER_ADDED, function(_, guildId, displayName)
         self:OnMemberAdded(guildId, displayName)
     end)
     LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_MOUSE_UP_EVENT, self.OnLink, self)
@@ -102,7 +103,7 @@ end
 local BAR_UPDATE_MS = 2000
 
 function Recruit:SetUpBar()
-    local bar = FuryGMTRecruitBar
+    local bar = FurysGuildToolset_RecruitBar
     self.barText = bar:GetNamedChild("Text")
     if self.sv.barX and self.sv.barY then
         bar:ClearAnchors()
@@ -124,9 +125,9 @@ function Recruit:RefreshBar()
     self.barFragment:Refresh()
     if self:BarWanted() then
         self:UpdateBar()
-        EVENT_MANAGER:RegisterForUpdate("FuryGMTRecruitBar", BAR_UPDATE_MS, function() self:UpdateBar() end)
+        EVENT_MANAGER:RegisterForUpdate("FurysGuildToolset_RecruitBar", BAR_UPDATE_MS, function() self:UpdateBar() end)
     else
-        EVENT_MANAGER:UnregisterForUpdate("FuryGMTRecruitBar")
+        EVENT_MANAGER:UnregisterForUpdate("FurysGuildToolset_RecruitBar")
     end
 end
 
@@ -144,26 +145,26 @@ end
 
 function Recruit:UpdateBar()
     -- No nested colors: each piece gets its own |c...|r.
-    local function Gray(t) return "|cC5C29E" .. t .. "|r" end
+    local function Gray(t) return "|cB4B0D8" .. t .. "|r" end
     local guildId = self:GuildId()
-    local parts = { "|cD4AF37" .. ((guildId and guildId ~= 0) and U.GuildName(guildId) or "No guild") .. "|r" }
-    if self.touring then parts[#parts + 1] = "|c9FD49FTour on|r" end
+    local parts = { "|cA08CFF" .. ((guildId and guildId ~= 0) and U.GuildName(guildId) or "No guild") .. "|r" }
+    if self.touring then parts[#parts + 1] = "|c5EE6A0Tour on|r" end
     if self.sv.enabled then
         local done, total = self:ZoneProgress()
         parts[#parts + 1] = Gray("Zones ") .. string.format("%d/%d", done, total)
     end
     if guildId and guildId ~= 0 then
         local apps = GetGuildFinderNumGuildApplications(guildId)
-        parts[#parts + 1] = Gray("Applications ") .. (apps > 0 and ("|cFFCC66" .. apps .. "|r") or "0")
+        parts[#parts + 1] = Gray("Applications ") .. (apps > 0 and ("|cFFC857" .. apps .. "|r") or "0")
     end
     if self.sv.leads then
         local n = U.Count(self.sv.leadList)
-        parts[#parts + 1] = Gray("Whispers ") .. "|c9FD49Flistening|r" .. (n > 0 and Gray(string.format(" (%d %s)", n, n == 1 and "lead" or "leads")) or "")
+        parts[#parts + 1] = Gray("Whispers ") .. "|c5EE6A0listening|r" .. (n > 0 and Gray(string.format(" (%d %s)", n, n == 1 and "lead" or "leads")) or "")
     else
-        parts[#parts + 1] = Gray("Whispers ") .. "|c999999off|r"
+        parts[#parts + 1] = Gray("Whispers ") .. "|c8A86B0off|r"
     end
     self.barText:SetText(table.concat(parts, "    "))
-    FuryGMTRecruitBar:SetWidth(self.barText:GetTextWidth() + 24)
+    FurysGuildToolset_RecruitBar:SetWidth(self.barText:GetTextWidth() + 24)
 end
 
 function Recruit:BarTip()
@@ -171,13 +172,13 @@ function Recruit:BarTip()
 end
 
 function Recruit:SaveBarPosition()
-    self.sv.barX, self.sv.barY = FuryGMTRecruitBar:GetLeft(), FuryGMTRecruitBar:GetTop()
+    self.sv.barX, self.sv.barY = FurysGuildToolset_RecruitBar:GetLeft(), FurysGuildToolset_RecruitBar:GetTop()
 end
 
 function Recruit:ResetBarPosition()
     self.sv.barX, self.sv.barY = nil, nil
-    FuryGMTRecruitBar:ClearAnchors()
-    FuryGMTRecruitBar:SetAnchor(TOP, GuiRoot, TOP, 0, 70)
+    FurysGuildToolset_RecruitBar:ClearAnchors()
+    FurysGuildToolset_RecruitBar:SetAnchor(TOP, GuiRoot, TOP, 0, 70)
 end
 
 function Recruit:OnPlayerActivated()
@@ -185,8 +186,8 @@ function Recruit:OnPlayerActivated()
     self:BuildZoneList()
     self:RefreshBar()
     -- Every load screen (the tour waits for the one after a jump).
-    EVENT_MANAGER:RegisterForEvent("FuryGMTRecruitArrive", EVENT_PLAYER_ACTIVATED, function() self:OnArrived() end)
-    EVENT_MANAGER:RegisterForEvent("FuryGMTRecruitArrive", EVENT_PLAYER_DEACTIVATED, function() self:OnLeaving() end)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_RecruitArrive", EVENT_PLAYER_ACTIVATED, function() self:OnArrived() end)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_RecruitArrive", EVENT_PLAYER_DEACTIVATED, function() self:OnLeaving() end)
 end
 
 -- Roster history tells us who invited or accepted whom; only needed for welcomes.
@@ -252,7 +253,7 @@ end
 
 local function Link(label, action, ...)
     local data = table.concat({ LINK_TYPE, action, ... }, ":")
-    return string.format("|c66CCFF|H1:%s|h[%s]|h|r", data, label)
+    return string.format("|c5CC2FF|H1:%s|h[%s]|h|r", data, label)
 end
 
 -- Guild slots ----------------------------------------------------------------
@@ -381,6 +382,9 @@ function Recruit:AdText()
     return Fill(zo_strtrim(self.sv.ads[guildId] or ""), guildId)
 end
 
+-- How long after the ad goes in the chat box your first post in that zone still counts as the ad.
+local PASTE_WINDOW_SECONDS = 300
+
 -- Puts the ad in the zone chat box. Asks first if you posted in this zone too recently.
 function Recruit:PasteAd(skipCheck)
     if not self.sv.enabled then
@@ -403,7 +407,30 @@ function Recruit:PasteAd(skipCheck)
         U.Print("Your ad is %d characters. ESO cuts chat at %d.", #ad, MAX_CHAT)
     end
     self.pasted = { zoneId = zoneId, at = GetTimeStamp() }
+    self:PutInChatBox(ad)
+end
+
+-- The ad goes into the chat box's text first (zone channel), then the box opens.
+-- If the game window isn't in front (alt-tabbed during the load screen), opening can't take
+-- the keyboard, and the box can sit "open" without it, so Enter never reaches it. The text is
+-- already in the box either way, and the watch below closes a box that has no keyboard, keeping
+-- the text: pressing Enter then opens chat with the ad ready to post.
+local AD_WATCH_MS = 1000
+function Recruit:PutInChatBox(ad)
+    local textEntry = CHAT_SYSTEM.textEntry
+    CHAT_SYSTEM:SetChannel(CHAT_CHANNEL_ZONE)
+    textEntry:SetText(ad)
     StartChatInput(ad, CHAT_CHANNEL_ZONE)
+    local pasted = self.pasted
+    EVENT_MANAGER:UnregisterForUpdate("FurysGuildToolset_RecruitAdBox")
+    EVENT_MANAGER:RegisterForUpdate("FurysGuildToolset_RecruitAdBox", AD_WATCH_MS, function()
+        if self.pasted ~= pasted or GetTimeStamp() - pasted.at > PASTE_WINDOW_SECONDS then
+            EVENT_MANAGER:UnregisterForUpdate("FurysGuildToolset_RecruitAdBox")
+        elseif CHAT_SYSTEM:IsTextEntryOpen() and not textEntry:GetEditControl():HasFocus() then
+            local KEEP_TEXT = true
+            CHAT_SYSTEM:CloseTextEntry(KEEP_TEXT)
+        end
+    end)
 end
 
 -- Your own zone message that matches the ad starts that zone's cooldown, and moves the tour on.
@@ -417,7 +444,6 @@ end
 
 -- A zone post counts as your ad when it reads the same as the ad, or when it's the first
 -- thing you post in that zone within a few minutes of the addon putting the ad in your chat box.
-local PASTE_WINDOW_SECONDS = 300
 
 function Recruit:IsAdPost(text, zoneId)
     local ad = self:AdText()
@@ -486,7 +512,7 @@ function Recruit:StopTour(reason)
     self.touring = false
     self.trip = nil
     self:RefreshBar()
-    EVENT_MANAGER:UnregisterForEvent("FuryGMTRecruitJump", EVENT_SOCIAL_ERROR)
+    EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_RecruitJump", EVENT_SOCIAL_ERROR)
     U.Print(reason or "Zone tour stopped.")
     GT.Report:RefreshIfShown()
 end
@@ -548,8 +574,8 @@ function Recruit:Jump(trip)
     end
     -- The game reports a refused jump ("not in same group", "can't travel there") as a social
     -- error; a jump that never starts (cancelled, they moved) just times out.
-    EVENT_MANAGER:UnregisterForEvent("FuryGMTRecruitJump", EVENT_SOCIAL_ERROR)
-    EVENT_MANAGER:RegisterForEvent("FuryGMTRecruitJump", EVENT_SOCIAL_ERROR, function(_, result)
+    EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_RecruitJump", EVENT_SOCIAL_ERROR)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_RecruitJump", EVENT_SOCIAL_ERROR, function(_, result)
         if self.trip == trip and trip.token == token and not trip.started then self:JumpFailed(trip, GetString("SI_SOCIALACTIONRESULT", result)) end
     end)
     zo_callLater(function()
@@ -566,7 +592,7 @@ end
 local RETRY_DELAY_MS = 2000
 
 function Recruit:JumpFailed(trip, reason)
-    EVENT_MANAGER:UnregisterForEvent("FuryGMTRecruitJump", EVENT_SOCIAL_ERROR)
+    EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_RecruitJump", EVENT_SOCIAL_ERROR)
     trip.token = nil
     local way, zone = trip.ways[trip.index], trip.zone
     local why = (reason and reason ~= "") and reason or "the travel didn't start"
@@ -607,7 +633,7 @@ function Recruit:OnLeaving()
     local trip = self.trip
     if trip and trip.token then
         trip.started = true
-        EVENT_MANAGER:UnregisterForEvent("FuryGMTRecruitJump", EVENT_SOCIAL_ERROR)
+        EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_RecruitJump", EVENT_SOCIAL_ERROR)
     end
 end
 
@@ -655,14 +681,23 @@ function Recruit:Invite(guildId, name)
     GT.Report:RefreshIfShown()
 end
 
+-- Whole words only: both sides become " word word word " and the keyword's words must appear
+-- in a row. (No %f frontier patterns: ESO's Lua doesn't match them, so the old version never
+-- found a keyword in game.)
+local function Words(text)
+    local words = {}
+    for word in text:gmatch("%w+") do words[#words + 1] = word end
+    return " " .. table.concat(words, " ") .. " "
+end
+
 local function MatchesKeyword(text, keyword)
     if keyword:find("%w") then
-        local escaped = keyword:gsub("(%W)", "%%%1")
-        return text:find("%f[%w]" .. escaped .. "%f[%W]") ~= nil
+        return Words(text):find(Words(keyword), 1, true) ~= nil
     end
     return zo_strtrim(text) == keyword   -- a keyword like "+" counts only on its own
 end
 
+local REINVITE_SECONDS = 10 * 60
 function Recruit:CheckLead(name, text)
     local lower = zo_strlower(text)
     local hit
@@ -672,6 +707,14 @@ function Recruit:CheckLead(name, text)
     if not hit then return end
     local guildId = self:GuildId()
     if U.IsMember(guildId, name) then return end
+    if self.sv.leadsAutoInvite and U.HasPermission(guildId, GUILD_PERMISSION_INVITE) then
+        -- One invite per person: a second whisper while the invite is still open does nothing.
+        local sent = self.sv.invited[guildId .. ":" .. name]
+        if sent and GetTimeStamp() - sent < REINVITE_SECONDS then return end
+        U.Print("%s whispered \"%s\".", name, text)
+        self:Invite(guildId, name)
+        return
+    end
     self.sv.leadList[name] = { at = GetTimeStamp(), text = text }
     U.Print("Lead: %s whispered \"%s\". %s", name, text, Link("Invite to " .. U.GuildName(guildId), "invite", guildId, name))
     GT.Report:RefreshIfShown()
@@ -721,10 +764,10 @@ function Recruit:JoinNotice(guildId, name)
     local open, numMembers = self:OpenSlots(guildId)
     local line = string.format("%s joined %s. %d/%d members, %d open.", name, U.GuildName(guildId), numMembers, GUILD_MAX_MEMBERS, open)
     if self.sv.nearlyFull > 0 and open <= self.sv.nearlyFull then
-        line = line .. (open <= 0 and " |cFF6666The guild is full.|r" or " |cFF6666Nearly full.|r")
+        line = line .. (open <= 0 and " |cFF6B86The guild is full.|r" or " |cFF6B86Nearly full.|r")
     end
     if self.sv.traderWarning and not self:HasTrader(guildId) then
-        line = line .. " |cFFCC66No trader hired this week.|r"
+        line = line .. " |cFFC857No trader hired this week.|r"
     end
     U.Print(line)
 end
@@ -843,7 +886,7 @@ function Recruit:TabSummary()
     local parts = { string.format("Recruiting for %s: %d/%d members, %d open", U.GuildName(guildId), numMembers, GUILD_MAX_MEMBERS, open) }
     parts[#parts + 1] = string.format("%d pending %s", GetGuildFinderNumGuildApplications(guildId),
         GetGuildFinderNumGuildApplications(guildId) == 1 and "application" or "applications")
-    if not self:HasTrader(guildId) then parts[#parts + 1] = "|cFFCC66no trader this week|r" end
+    if not self:HasTrader(guildId) then parts[#parts + 1] = "|cFFC857no trader this week|r" end
     local line = table.concat(parts, ", ") .. "."
     if self.sv.enabled then
         local ready, total = 0, 0
@@ -853,7 +896,7 @@ function Recruit:TabSummary()
                 if self:CooldownLeft(zone.id) == 0 then ready = ready + 1 end
             end
         end
-        line = line .. string.format("  Zones ready: %d of %d.%s", ready, total, self.touring and "  |c9FD49FTour on.|r" or "")
+        line = line .. string.format("  Zones ready: %d of %d.%s", ready, total, self.touring and "  |c5EE6A0Tour on.|r" or "")
     end
     return line
 end
@@ -866,7 +909,7 @@ function Recruit:TabRows()
     table.sort(leads, function(a, b) return a.lead.at > b.lead.at end)
     for _, entry in ipairs(leads) do
         local name = entry.name
-        local row = { text = string.format("|c66CCFFLead|r  %s  whispered \"%s\"  %s", name, entry.lead.text, U.FormatAgo(entry.lead.at)),
+        local row = { text = string.format("|c5CC2FFLead|r  %s  whispered \"%s\"  %s", name, entry.lead.text, U.FormatAgo(entry.lead.at)),
             tooltip = "Someone whispered one of your keywords." }
         local items = {
             { label = "Invite to " .. U.GuildName(guildId), fn = function() self:Invite(guildId, name) end },
@@ -876,7 +919,7 @@ function Recruit:TabRows()
         rows[#rows + 1] = GT.Report.AddMenu(row, items)
     end
     for key, job in pairs(self.sv.mailWaiting) do
-        local row = { text = string.format("|cD4AF37Welcome mail|r  %s joined %s %s", job.name, U.GuildName(job.guildId), U.FormatAgo(job.at)),
+        local row = { text = string.format("|cA08CFFWelcome mail|r  %s joined %s %s", job.name, U.GuildName(job.guildId), U.FormatAgo(job.at)),
             tooltip = "They joined while offline. Write them a welcome mail." }
         rows[#rows + 1] = GT.Report.AddMenu(row, {
             { label = "Write welcome mail", fn = function() self:OpenWelcomeMail(job.guildId, job.name) end },
@@ -889,13 +932,13 @@ function Recruit:TabRows()
             local zoneId = zone.id
             local status
             if self.sv.skipZones[zoneId] then
-                status = "|c888888skipped|r"
+                status = "|c8A86B0skipped|r"
             elseif self:CooldownLeft(zoneId) > 0 then
                 status = string.format("posted %s, ready in %s", U.FormatAgo(self.sv.posted[zoneId]), U.FormatDuration(self:CooldownLeft(zoneId)))
             else
-                status = "|c9FD49Fready|r" .. (self.sv.posted[zoneId] and (" (posted " .. U.FormatAgo(self.sv.posted[zoneId]) .. ")") or "")
+                status = "|c5EE6A0ready|r" .. (self.sv.posted[zoneId] and (" (posted " .. U.FormatAgo(self.sv.posted[zoneId]) .. ")") or "")
             end
-            local row = { text = string.format("Zone  %s%s  %s", zone.name, zoneId == here and " |c66CCFF(you are here)|r" or "", status) }
+            local row = { text = string.format("Zone  %s%s  %s", zone.name, zoneId == here and " |c5CC2FF(you are here)|r" or "", status) }
             local items = {}
             if zoneId == here then
                 items[#items + 1] = { label = "Put the ad in chat", fn = function() self:PasteAd() end }
@@ -991,7 +1034,7 @@ function Recruit:BuildSettings(options)
     end
     local function NotOn() local w = W(); return not (w and w.on) end
     local controls = {
-        { type = "description", text = "Everything here starts off. Chat is never sent for you: ads and welcomes go into the chat box and you press Enter. Nobody is invited until you click Invite." },
+        { type = "description", text = "Everything here starts turned off. Chat is never sent for you: ads and welcomes go into the chat box and you press Enter. Nobody is invited until you click Invite." },
         { type = "header", name = "Zone ads and zone tour" },
         { type = "checkbox", name = "Turn on zone ads and the zone tour",
           tooltip = "Adds zone cooldowns and the zone tour to the Recruit tab (/gt recruit), plus keybinds to put the ad in chat, start or stop the tour, and travel to the next ready zone.",
@@ -1020,8 +1063,12 @@ function Recruit:BuildSettings(options)
           tooltip = "Right-click a player's name in chat for \"Invite to (guild)\", for each guild where your rank can invite.",
           getFunc = function() return sv.playerMenu end, setFunc = function(v) sv.playerMenu = v end, default = d.playerMenu },
         { type = "checkbox", name = "Whisper leads",
-          tooltip = "When someone whispers one of the keywords below, you get a chat line with an Invite link and a row on the Recruit tab. Nobody is invited until you click.",
+          tooltip = "When someone who isn't in the guild you recruit for whispers one of the keywords below, you get a chat line with an Invite link and a row on the Recruit tab. Nobody is invited until you click, unless you tick the option below.",
           getFunc = function() return sv.leads end, setFunc = function(v) sv.leads = v; refresh() end, default = d.leads },
+        { type = "checkbox", name = "Invite automatically",
+          tooltip = "A keyword whisper sends the guild invite right away, without a click, and a chat line says who was invited. Each person gets one invite; whispering again within 10 minutes doesn't send another.",
+          getFunc = function() return sv.leadsAutoInvite end, setFunc = function(v) sv.leadsAutoInvite = v end, default = d.leadsAutoInvite,
+          disabled = function() return not sv.leads end },
         { type = "editbox", name = "Lead keywords",
           tooltip = "Separated by commas. Whole words only, upper or lower case. A keyword like + counts only when it's the whole whisper.",
           getFunc = function() return sv.keywords end, setFunc = function(v) sv.keywords = v end, default = d.keywords },

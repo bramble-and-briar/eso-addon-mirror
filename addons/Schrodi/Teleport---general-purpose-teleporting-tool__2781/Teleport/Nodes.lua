@@ -1,3 +1,4 @@
+local Teleport = Teleport
 Teleport.Nodes = {}
 
 local info  = Teleport.info

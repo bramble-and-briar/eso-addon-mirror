@@ -9,7 +9,7 @@
 --     already logged. For anyone whose last rank change is older than that, the tab shows
 --     "before <date>", the oldest roster event we have for that guild.
 
-local GT = FuryGMT
+local GT = FurysGuildToolset
 local U = GT.Util
 local A = GT.Actions
 
@@ -23,7 +23,7 @@ local RULE_BY_LABEL = { ["Officer limit"] = RULE_OFFICER, ["Member limit"] = RUL
 local RANK_COLORS = { "D4AF37", "E06666", "C27BA0", "8E7CC3", "6FA8DC", "76A5AF", "93C47D", "B7B7B7", "999999", "888888" }
 
 Members.defaults = {
-    inactiveEnabled = false,   -- every feature starts off on a new install (Albert, 1.3.0)
+    inactiveEnabled = false,   -- every feature starts turned off on a new install (Albert, 1.3.0)
     officerDays = 30,
     memberDays = 21,
     recruitDays = 14,
@@ -75,9 +75,9 @@ function Members:Initialize(sv)
     -- Redraw when it does, so kicked members drop off Members and Inactive right away
     -- and the counts and open slots stay right. Joins and leaves by anyone else count too.
     local function RosterChanged() GT.Report:RefreshIfShown() end
-    EVENT_MANAGER:RegisterForEvent("FuryGMTMembers", EVENT_GUILD_MEMBER_REMOVED, RosterChanged)
-    EVENT_MANAGER:RegisterForEvent("FuryGMTMembers", EVENT_GUILD_MEMBER_ADDED, RosterChanged)
-    EVENT_MANAGER:RegisterForEvent("FuryGMTMembers", EVENT_GUILD_MEMBER_RANK_CHANGED, RosterChanged)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_Members", EVENT_GUILD_MEMBER_REMOVED, RosterChanged)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_Members", EVENT_GUILD_MEMBER_ADDED, RosterChanged)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_Members", EVENT_GUILD_MEMBER_RANK_CHANGED, RosterChanged)
 end
 
 function Members:GetHistoryCategories()
@@ -189,7 +189,7 @@ function Members:DescribePromoted(member)
 end
 
 function Members:DescribeOnline(member)
-    if member.online then return "|c9FD49Fonline now|r" end
+    if member.online then return "|c5EE6A0online now|r" end
     return FormatDay(member.lastOnline) .. " (" .. U.FormatDuration(member.offlineSecs) .. " ago)"
 end
 
@@ -262,7 +262,7 @@ function Members:GetRankFooter(filter, guildId)
         { label = "Rank: " .. ((filter.rank or "") == "" and "All" or filter.rank), tip = "Show only one rank.", fn = function(button)
             ClearMenu()
             local function Add(label, value)
-                AddMenuItem((value == (filter.rank or "")) and ("|cD4AF37" .. label .. "|r") or label, function()
+                AddMenuItem((value == (filter.rank or "")) and ("|cA08CFF" .. label .. "|r") or label, function()
                     filter.rank = value
                     GT.Report:Refresh()
                 end)
@@ -362,13 +362,13 @@ function Members:GetMemberRow(m)
     local oldest = self.sv.oldest[m.guildId]
     local held
     if rec and rec.changed then
-        held = U.FormatDuration(GetTimeStamp() - rec.changed) .. "  |cAAAAAA" .. FormatDay(rec.changed) .. "|r"
+        held = U.FormatDuration(GetTimeStamp() - rec.changed) .. "  |cB4B0D8" .. FormatDay(rec.changed) .. "|r"
     else
-        held = "|cAAAAAA" .. (oldest and ("before " .. FormatDay(oldest)) or "unknown") .. "|r"
+        held = "|cB4B0D8" .. (oldest and ("before " .. FormatDay(oldest)) or "unknown") .. "|r"
     end
-    local promoted = (rec and rec.promoted) and FormatDay(rec.promoted) or "|cAAAAAA-|r"
-    local online = m.online and "|c9FD49Fonline now|r"
-        or (U.FormatDuration(m.offlineSecs) .. " ago  |cAAAAAA" .. FormatDay(m.lastOnline) .. "|r")
+    local promoted = (rec and rec.promoted) and FormatDay(rec.promoted) or "|cB4B0D8-|r"
+    local online = m.online and "|c5EE6A0online now|r"
+        or (U.FormatDuration(m.offlineSecs) .. " ago  |cB4B0D8" .. FormatDay(m.lastOnline) .. "|r")
     local cells = {
         m.name,
         "|c" .. self:GetRankColor(m.rankIndex) .. m.rankName .. "|r",
@@ -376,8 +376,8 @@ function Members:GetMemberRow(m)
         promoted,
         online,
     }
-    if not self:GetGuildFilter() then cells[#cells + 1] = "|cAAAAAA" .. U.GuildName(m.guildId) .. "|r" end
-    cells[#cells + 1] = "|cCCCCCC" .. OneLine(m.note) .. "|r"
+    if not self:GetGuildFilter() then cells[#cells + 1] = "|cB4B0D8" .. U.GuildName(m.guildId) .. "|r" end
+    cells[#cells + 1] = "|cB4B0D8" .. OneLine(m.note) .. "|r"
     local tooltip = table.concat({
         m.name .. " - " .. U.GuildName(m.guildId),
         "Rank: " .. m.rankName .. ", held " .. self:DescribeRankTime(m),
@@ -534,6 +534,9 @@ function Members:MemberItems(m, inactive)
         for _, item in ipairs(GT.Report.ContactItems(m.name)) do Add(item) end
         Add({ label = "Whisper the contact text", fn = function() A.Warn(m.name, subject, text, "whisper") end })
         Add({ label = "Mail the contact text", fn = function() A.Warn(m.name, subject, text, "mail") end })
+        if #GT.Raffle:GiftRaffles() > 0 then
+            Add({ label = "Give raffle tickets...", opensMenu = true, fn = function(control) GT.Raffle:GiftMenu(control, m.name) end })
+        end
     end
     Add({ label = "Set rank...", opensMenu = true, fn = function(control) A.ChooseRank(control, m.guildId, m.name, done) end })
     Add({ label = "Kick (asks first)", fn = function()
@@ -550,11 +553,11 @@ function Members:GetInactiveRow(m)
     local cells = {
         m.name,
         "|c" .. self:GetRankColor(m.rankIndex) .. m.rankName .. "|r",
-        "|cAAAAAA" .. U.GuildName(m.guildId) .. "|r",
-        "|cFF9933" .. U.FormatDuration(m.offlineSecs) .. "|r",
+        "|cB4B0D8" .. U.GuildName(m.guildId) .. "|r",
+        "|cFFA45C" .. U.FormatDuration(m.offlineSecs) .. "|r",
         FormatDay(m.lastOnline),
         m.limitDays .. "d",
-        "|cCCCCCC" .. OneLine(m.note) .. "|r",
+        "|cB4B0D8" .. OneLine(m.note) .. "|r",
     }
     local tooltip = table.concat({
         m.name .. " - " .. U.GuildName(m.guildId),
@@ -644,7 +647,7 @@ function Members:RegisterTabs()
                 { label = "Guild: " .. (guildId and U.GuildName(guildId) or "All guilds"), tip = "Pick which guild to show.", fn = function(button)
                     ClearMenu()
                     local function Add(label, id)
-                        AddMenuItem((id == (guildId or 0)) and ("|cD4AF37" .. label .. "|r") or label, function()
+                        AddMenuItem((id == (guildId or 0)) and ("|cA08CFF" .. label .. "|r") or label, function()
                             self.sv.filter.guildId = id
                             GT.Report:Refresh()
                         end)

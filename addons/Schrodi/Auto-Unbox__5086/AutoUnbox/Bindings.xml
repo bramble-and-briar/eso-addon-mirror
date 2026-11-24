@@ -2,7 +2,7 @@
   <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
     <Category name="SI_AUTOUNBOX">
       <Action name="AUTOUNBOX_UNBOX_ALL">
-        <Down>AutoUnbox_UnboxAll()</Down>
+        <Down>AutoUnbox.UnboxAll()</Down>
       </Action>
     </Category>
   </Layer>

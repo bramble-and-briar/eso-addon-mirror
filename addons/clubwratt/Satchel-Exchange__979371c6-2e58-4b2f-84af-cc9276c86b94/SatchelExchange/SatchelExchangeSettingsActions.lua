@@ -124,6 +124,18 @@ function SatchelExchangeSettingsActions.Initialize()
     })
 
     panel:AddSetting({
+        type = LAS.ST_CHECKBOX,
+        label = "Open unopened maps, surveys and writs",
+        tooltip = "Count the game's Unopened items (stacked treasure maps, survey reports and master writs) as containers, on arrival and for Open Containers. Leave off to keep them stacked.",
+        getFunction = function()
+            return GetSettings().openUnopened
+        end,
+        setFunction = function(value)
+            GetSettings().openUnopened = value
+        end,
+    })
+
+    panel:AddSetting({
         type = LAS.ST_BUTTON,
         label = "Open all containers now",
         tooltip = "Close this menu and open every container in your backpack, one after another. The same action is the Open Containers entry on the LibRadialMenu wheel.",

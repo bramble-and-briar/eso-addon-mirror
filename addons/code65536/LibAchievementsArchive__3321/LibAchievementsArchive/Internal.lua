@@ -34,7 +34,7 @@ local function OnAddOnLoaded( eventCode, addonName )
 		LibAchievementsArchiveData = { }
 	end
 	Internal.data = LibAchievementsArchiveData or { }
-	if (not Internal.data.characters) then Internal.data.characters = {} end
+	if (not Internal.data.characters) then Internal.data.characters = { } end
 	Internal.data.keys = nil -- Delete deprecated data
 
 	-- Listen for achievement updates

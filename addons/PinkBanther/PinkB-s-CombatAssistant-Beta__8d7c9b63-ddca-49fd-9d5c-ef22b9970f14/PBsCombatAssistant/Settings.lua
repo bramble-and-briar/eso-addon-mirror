@@ -197,6 +197,34 @@ function A:InitSettings()
 	toggle("hp", nil, emberOnly)
 	slider("hpWarn", " %", 5, nil, emberOnly)
 	slider("hpDanger", " %", 5, nil, emberOnly)
+	-- crowd control: both designs (a sound; in the Ember Style she also says it)
+	toggle("cc", refresh)
+	local ccItems = {
+		{ name = S.ccSoundNone, data = 0 },
+		{ name = S.ccSound1, data = 1 },
+		{ name = S.ccSound2, data = 2 },
+		{ name = S.ccSound3, data = 3 },
+		{ name = S.ccSound4, data = 4 },
+	}
+	panel:AddSetting({
+		type = L.ST_DROPDOWN,
+		label = S.ccSound,
+		tooltip = S.ccSoundTip,
+		disable = function()
+			return not self.sv.cc
+		end,
+		items = ccItems,
+		getFunction = function()
+			return (ccItems[(self.sv.ccSound or 0) + 1] or ccItems[1]).name
+		end,
+		setFunction = function(_, _, item)
+			if item and item.data then
+				self:Set("ccSound", item.data)
+				-- picking a sound plays it, so it can be heard before a fight
+				self:PlayCcSound()
+			end
+		end,
+	})
 	toggle("combatOnly", function()
 		self:WatchUpdateState()
 		self:TilesUpdateState()
@@ -204,6 +232,7 @@ function A:InitSettings()
 
 	panel:AddSetting({ type = SECTION, label = S.tilesSection })
 	slider("tileWarn", " s", 1, tilesLayout, tilesOnly)
+	toggle("tileSound", nil, tilesOnly)
 	slider("tileSize", " %", 10, tilesLayout, tilesOnly)
 	slider("tileX", " px", 10, tilesLayout, tilesOnly)
 	slider("tileY", " px", 10, tilesLayout, tilesOnly)
@@ -233,7 +262,7 @@ function A:InitSettings()
 	slider("posY", " px", 10, layout, emberOnly)
 	slider("hold", " s", 1, nil, emberOnly)
 	toggle("bubble", layout, emberOnly)
-	toggle("sound")
+	toggle("sound", nil, emberOnly)
 
 	-- What the add-on did lately: the chat window is hidden while a console menu is open, so the log is a label.
 	panel:AddSetting({

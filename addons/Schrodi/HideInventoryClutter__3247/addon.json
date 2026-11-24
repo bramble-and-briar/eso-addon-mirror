@@ -8,6 +8,10 @@
   "category_id": "20",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
     }
@@ -18,7 +22,7 @@
     "HideInventoryClutter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3247/",
-  "fingerprint": "306b007bc89335dcf68712e4be65960f674792e7966a14816c6f4d00cece28ec",
+  "fingerprint": "501caf9c2c50a8cccbc53d304ee635a6732a09ed9b711ed88619907e64a2b1a2",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18677.png"
   ],
@@ -28,11 +32,11 @@
   "source_id": "3247",
   "source_url": "https://www.esoui.com/downloads/info3247-HideInventoryClutter.html",
   "stats": {
-    "downloads": 3834,
+    "downloads": 3847,
     "favorites": 2,
-    "monthly_downloads": 24
+    "monthly_downloads": 34
   },
   "title": "HideInventoryClutter",
-  "updated_at": 1795260996000,
-  "version": "2.2.0"
+  "updated_at": 1795475827000,
+  "version": "2.2.1"
 }

@@ -1,7 +1,7 @@
 ## Title: LibConsoleLogger
 ## Author: clubwratt
-## Version: 0.5.0
-## AddOnVersion: 500
+## Version: 0.6.0
+## AddOnVersion: 600
 ## APIVersion: 101050
 ## IsLibrary: true
 ## Description: Shared console logger: chat output, export buffer, and webview export. Exposes global LibConsoleLogger for other addons.
@@ -15,6 +15,7 @@ LibConsoleLoggerUtils.lua
 LibConsoleLoggerState.lua
 LibConsoleLoggerWebExport.lua
 LibConsoleLoggerActions.lua
+LibConsoleLoggerErrors.lua
 LibConsoleLoggerLogDialog.lua
 LibConsoleLoggerLogDialog.xml
 LibConsoleLoggerSettings.lua

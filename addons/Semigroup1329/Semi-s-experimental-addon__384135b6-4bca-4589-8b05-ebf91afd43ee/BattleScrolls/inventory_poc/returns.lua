@@ -300,9 +300,11 @@ function returns.initialize()
         if own then awaitedRead = nil end
         readExpiredMail(own)
     end)
-    -- Observe the existing claim flow.
-    ZO_PreHook('TakeMailAttachments', prepareClaim)
-    ZO_PreHook('TakeMailAttachedItems', prepareClaim)
+    -- Observe the existing claim flow. The game passes its own arguments
+    -- after the mail (deleteOnClaim), which are not a shared baseline.
+    local function claimOne(mailId) prepareClaim(mailId) end
+    ZO_PreHook('TakeMailAttachments', claimOne)
+    ZO_PreHook('TakeMailAttachedItems', claimOne)
     ZO_PreHook('TakeAllMailAttachmentsInCategory', function(category)
         if not poc.enabled then return end
         -- Every mail in the bulk claim starts from the same backpack: count it once.

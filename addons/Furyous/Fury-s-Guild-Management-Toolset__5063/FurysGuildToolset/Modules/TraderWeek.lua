@@ -11,7 +11,7 @@
 -- the whole look-back period without replaying old events to the alert modules. Only the
 -- weekly totals are saved, not the single events.
 
-local GT = FuryGMT
+local GT = FurysGuildToolset
 local U = GT.Util
 
 local TraderWeek = GT:RegisterModule("trader", {})
@@ -23,7 +23,7 @@ local WEEK = 7 * 86400
 local KNOWN_FLIP = 1794924000
 
 TraderWeek.defaults = {
-    enabled = false,     -- every feature starts off on a new install (Albert, 1.3.0)
+    enabled = false,     -- every feature starts turned off on a new install (Albert, 1.3.0)
     keepWeeks = 12,
     weeks = {},          -- [guildId] = { [weekStart] = week totals }
     bankGold = {},       -- [guildId] = { amount =, ts = } last count, taken when that guild bank is opened
@@ -39,7 +39,7 @@ function TraderWeek:Initialize(sv)
     self.sv = sv
     self:Prune()
     self:RegisterTab()
-    EVENT_MANAGER:RegisterForEvent("FuryGMTTraderWeek", EVENT_GUILD_BANK_ITEMS_READY, function() self:CountBankGold() end)
+    EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_TraderWeek", EVENT_GUILD_BANK_ITEMS_READY, function() self:CountBankGold() end)
 end
 
 function TraderWeek:OnPlayerActivated()
@@ -348,7 +348,7 @@ local WEEK_COLUMNS = {
 }
 
 local function GoldCell(amount)
-    if amount == 0 then return "|c8888880|r" end
+    if amount == 0 then return "|c8A86B00|r" end
     return U.FormatGold(amount)
 end
 
@@ -360,10 +360,10 @@ end
 -- Green when the tax covered the cost, red when it fell short.
 local function BalanceCell(tax, cost)
     local diff = tax - cost
-    if cost == 0 and tax == 0 then return "|c8888880|r" end
+    if cost == 0 and tax == 0 then return "|c8A86B00|r" end
     local pct = Percent(tax, cost)
     local text = (diff >= 0 and "+" or "-") .. U.FormatGold(math.abs(diff)) .. (pct and string.format(" (%d%%)", pct) or "")
-    return (diff >= 0 and "|c9FD49F" or "|cFF6666") .. text .. "|r"
+    return (diff >= 0 and "|c5EE6A0" or "|cFF6B86") .. text .. "|r"
 end
 
 local RESULT_LABEL = { won = "won", lost = "lost, refunded", pending = "bidding open" }
@@ -427,14 +427,14 @@ function TraderWeek:GetWeekRows()
                 if showGuild then label = U.GuildName(guildId) .. ": " .. label end
                 local costCell, balanceCell
                 if o.pending then
-                    costCell, balanceCell = "|cAAAAAAbidding|r", ""
+                    costCell, balanceCell = "|cB4B0D8bidding|r", ""
                 elseif not o.costKnown then
-                    costCell, balanceCell = "|cAAAAAA?|r", ""
+                    costCell, balanceCell = "|cB4B0D8?|r", ""
                 else
                     costCell, balanceCell = GoldCell(o.cost), BalanceCell(Revenue(w), o.cost)
                 end
                 rows[#rows + 1] = {
-                    cells = { label, o.won or "|cAAAAAA-|r", tostring(w.sales), GoldCell(w.tax), GoldCell(w.goldIn), costCell,
+                    cells = { label, o.won or "|cB4B0D8-|r", tostring(w.sales), GoldCell(w.tax), GoldCell(w.goldIn), costCell,
                               balanceCell, GoldCell(GoldOut(w, o)) },
                     tooltip = self:WeekTooltip(guildId, start, w, o, self:GetWeek(guildId, start - WEEK)),
                 }
@@ -589,7 +589,7 @@ end
 -- before it.
 
 local MAX_CHAT = 350
-local CHAT_EVENT_NAME = "FuryGMTTraderWeekChat"
+local CHAT_EVENT_NAME = "FurysGuildToolset_TraderWeekChat"
 
 local function GuildChannel(guildId)
     for i = 1, GetNumGuilds() do
@@ -715,9 +715,9 @@ function TraderWeek:GetMemberRows()
     for _, e in ipairs(list) do
         local m = e.m
         rows[#rows + 1] = {
-            cells = { showGuild and (e.name .. "  |cAAAAAA" .. U.GuildName(e.g) .. "|r") or e.name, tostring(m.s), GoldCell(m.v),
+            cells = { showGuild and (e.name .. "  |cB4B0D8" .. U.GuildName(e.g) .. "|r") or e.name, tostring(m.s), GoldCell(m.v),
                       GoldCell(m.x), GoldCell(m.gi), tostring(m.si), GoldCell(m.go), tostring(m.so) },
-            tooltip = string.format("%s, %s\nSold %d listings for %s (tax %s)\nGave %s and %d stacks (%d items)\nTook %s and %d stacks (%d items)\n|cAAAAAA%s|r",
+            tooltip = string.format("%s, %s\nSold %d listings for %s (tax %s)\nGave %s and %d stacks (%d items)\nTook %s and %d stacks (%d items)\n|cB4B0D8%s|r",
                 e.name, U.GuildName(e.g), m.s, U.FormatGold(m.v), U.FormatGold(m.x), U.FormatGold(m.gi), m.si, m.qi,
                 U.FormatGold(m.go), m.so, m.qo,
                 e.rank and ("Seller #" .. e.rank .. ". Right-click to whisper, mail " .. e.name .. " a congratulations note, or shout them out in guild chat.")
@@ -786,7 +786,7 @@ function TraderWeek:GetTraderRows()
             if st.prev then
                 local prevPerWeek = st.prev.rev / st.prev.weeks
                 local pct = Percent(perWeek - prevPerWeek, prevPerWeek)
-                vs = pct and string.format("%s%+d%%|r", pct >= 0 and "|c9FD49F" or "|cFF6666", pct) or ""
+                vs = pct and string.format("%s%+d%%|r", pct >= 0 and "|c5EE6A0" or "|cFF6B86", pct) or ""
             end
             local range = ShortDate(st.first) .. " - " .. ShortDate(st.last + WEEK)
             local tip = { string.format("%s, %s: %d %s", U.GuildName(guildId), st.name, st.weeks, st.weeks == 1 and "week" or "weeks"),
@@ -798,8 +798,8 @@ function TraderWeek:GetTraderRows()
                     U.FormatGold(math.floor(st.prev.rev / st.prev.weeks)), st.prev.weeks, st.prev.weeks == 1 and "week" or "weeks")
             end
             rows[#rows + 1] = {
-                cells = { showGuild and (st.name .. "  |cAAAAAA" .. U.GuildName(guildId) .. "|r") or st.name,
-                          string.format("%s (%d)", range, st.weeks), st.costKnown and GoldCell(st.cost) or "|cAAAAAA?|r",
+                cells = { showGuild and (st.name .. "  |cB4B0D8" .. U.GuildName(guildId) .. "|r") or st.name,
+                          string.format("%s (%d)", range, st.weeks), st.costKnown and GoldCell(st.cost) or "|cB4B0D8?|r",
                           GoldCell(st.rev), st.costKnown and BalanceCell(st.rev, st.cost) or "",
                           tostring(math.floor(st.sales / st.weeks)), GoldCell(perWeek), vs },
                 tooltip = table.concat(tip, "\n"),
@@ -916,7 +916,7 @@ local function GuildButton(self, f)
     return { label = "Guild: " .. (guildId and U.GuildName(guildId) or "All guilds"), tip = "Pick which guild to show.", fn = function(button)
         ClearMenu()
         local function Add(label, id)
-            AddMenuItem((id == (guildId or 0)) and ("|cD4AF37" .. label .. "|r") or label, function()
+            AddMenuItem((id == (guildId or 0)) and ("|cA08CFF" .. label .. "|r") or label, function()
                 f.guildId = id
                 GT.Report:Refresh()
             end)
@@ -991,13 +991,13 @@ function TraderWeek:RegisterTab()
                         local oldest = self:OldestWeekStart()
                         allLabel = oldest and ("All weeks (since " .. ShortDate(oldest) .. ")") or "All weeks"
                     end
-                    AddMenuItem(selected and allLabel or ("|cD4AF37" .. allLabel .. "|r"), function()
+                    AddMenuItem(selected and allLabel or ("|cA08CFF" .. allLabel .. "|r"), function()
                         mf.weekOffset = -1
                         GT.Report:Refresh()
                     end)
                     for i, start in ipairs(self:GetWeekStarts()) do
                         local label = self:WeekLabel(start)
-                        AddMenuItem((start == selected) and ("|cD4AF37" .. label .. "|r") or label, function()
+                        AddMenuItem((start == selected) and ("|cA08CFF" .. label .. "|r") or label, function()
                             mf.weekOffset = i - 1
                             GT.Report:Refresh()
                         end)

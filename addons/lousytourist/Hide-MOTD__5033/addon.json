@@ -18,7 +18,7 @@
     "HideMOTD"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5033/",
-  "fingerprint": "548996d53cec44754d1eddf2f2e010f5ddde4c7083ed5c79d5c2a52db424a908",
+  "fingerprint": "cae24aef4987b57b2b48f41c92a6dc4efb387461975cf909d0723ac67f6f8633",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "5033",
   "source_url": "https://www.esoui.com/downloads/info5033-HideMOTD.html",
   "stats": {
-    "downloads": 47,
+    "downloads": 214,
     "favorites": 0,
-    "monthly_downloads": 38
+    "monthly_downloads": 208
   },
   "title": "Hide MOTD",
-  "updated_at": 1794403681000,
-  "version": "26.11.11"
+  "updated_at": 1795613185000,
+  "version": "26.11.25"
 }

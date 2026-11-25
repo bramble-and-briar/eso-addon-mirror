@@ -10,7 +10,7 @@
 FurysAccountSync = {
     name        = "FurysAccountSync",
     title       = "Fury's Account Sync",
-    version     = "0.2.2",
+    version     = "0.2.3",
     toolUrl     = "https://github.com/AlbertHoffpauir/FurysAccountSync",
     SCENE       = "FurysAccountSync_Scene",
 }
@@ -162,7 +162,7 @@ local function ForEachSetting(panel, fn)
                     local s = data.system or system
                     local i = data.settingId or settingId
                     local language = (s == SETTING_TYPE_UI and i == UI_SETTING_TEXT_LANGUAGE)
-                                  or (s == SETTING_TYPE_LANGUAGE and i == LANGUAGE_SETTING_TEXT_LANGUAGE)
+                                  or s == SETTING_TYPE_LANGUAGE
                     if type(s) == "number" and type(i) == "number" and not SKIP_SYSTEM[s] and not language then
                         fn(s, i, TextOf(data.text))
                     end

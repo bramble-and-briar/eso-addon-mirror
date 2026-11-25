@@ -22,11 +22,29 @@ function ErrorUtils.UntrustedDepth(text)
     return tonumber(string.match(text, "became untrusted (%d+) stack frame"))
 end
 
+---What to say of the frame the count lands on when it is the wrapper ZO_PreHook or ZO_PostHook put around a
+---game function: the wrapper is the add-on's own closure, so the game function under it runs untrusted, and
+---the add-on that placed it is the one to name.
+---@param frame ErrorCatcherFrame
+---@param hookersOf (fun(fn: string): string[]|nil)|nil Add-ons seen hooking a function, by the name a trace prints
+---@return string
+local function WrapperNote(frame, hookersOf)
+    if frame.file ~= TraceUtils.HOOK_FILE then
+        return ""
+    end
+    local hookers = hookersOf and hookersOf(frame.fn)
+    if hookers and #hookers > 0 then
+        return string.format(" (the wrapper a hook put around this game function: hook by %s)", table.concat(hookers, ", "))
+    end
+    return " (the wrapper a hook put around this game function, by an add-on whose hook this add-on did not see)"
+end
+
 ---One line for an error text that carries a stack trace; nil for text without one (the game also sends
 ---plain notices, such as the low memory warning, as errors).
 ---@param text any
+---@param hookersOf (fun(fn: string): string[]|nil)|nil Add-ons seen hooking a function, by the name a trace prints
 ---@return string|nil
-function ErrorUtils.Describe(text)
+function ErrorUtils.Describe(text, hookersOf)
     if type(text) ~= "string" then
         return nil
     end
@@ -39,7 +57,7 @@ function ErrorUtils.Describe(text)
     if depth then
         local landing = frames[depth + 1]
         local landingText = landing
-            and (TraceUtils.Short(landing) .. (SHARED_NOTES[landing.file] or ""))
+            and (TraceUtils.Short(landing) .. (SHARED_NOTES[landing.file] or "") .. WrapperNote(landing, hookersOf))
             or string.format("below the %d frames reported", #frames)
         return string.format("insecure call '%s' at %s | untrusted frame %d: %s | addons in trace: %s | frames: %s",
             string.match(text, "private function '([^']+)'") or "?",

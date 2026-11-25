@@ -47,11 +47,47 @@
                     <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Close without saving.")</OnMouseEnter>
                     <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
                 </Button>
+                <!-- 1.25.0: only in the Paste sign-ups window. -->
+                <Button name="$(parent)Template" inherits="ZO_DefaultButton" text="Copy template" hidden="true">
+                    <Dimensions x="150" y="28" />
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-14" />
+                    <OnClicked>FurysGuildToolset.Events:CopyTemplate()</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Shows how sign-up sheets are read (page 1), then examples to copy (Ctrl+C) and post in Discord: a trial with your own roles, a trial, a dungeon and a class with Attending. Pick one with Next part. Their parts mix freely. Sheets made from them read best here.")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
+                </Button>
+                <Button name="$(parent)Time" inherits="ZO_DefaultButton" text="Discord time" hidden="true">
+                    <Dimensions x="140" y="28" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Template" relativePoint="RIGHT" offsetX="10" />
+                    <OnClicked>FurysGuildToolset.Events:AskDiscordTime()</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Type a date and time (like Sat Nov 28 8:00 PM CT) and get a Discord time code to copy. Discord shows it in each reader's own time zone, with a countdown.")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
+                </Button>
                 <Button name="$(parent)OK" inherits="ZO_DefaultButton">
                     <Dimensions x="200" y="28" />
                     <Anchor point="RIGHT" relativeTo="$(parent)Cancel" relativePoint="LEFT" offsetX="-10" />
                     <OnClicked>FurysGuildToolset.Events:SubmitInput()</OnClicked>
                     <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, FurysGuildToolset.Events:InputTip())</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
+                </Button>
+            </Controls>
+        </TopLevelControl>
+        <!-- 1.25.7 (Albert): the Invite by code window, opened from the status button in the
+             Events tab's title row. Its buttons and boxes are made in Events:CodeWindowControl. -->
+        <TopLevelControl name="FurysGuildToolset_EventsCode" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH">
+            <Dimensions x="640" y="500" />
+            <Anchor point="CENTER" />
+            <Controls>
+                <Backdrop name="$(parent)BG" centerColor="0F0E1F" edgeColor="4A3D99" alpha="1">
+                    <AnchorFill />
+                    <Edge edgeSize="2" />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontWinH3" text="Invite by code">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="10" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="10" />
+                    <OnClicked>SCENE_MANAGER:HideTopLevel(FurysGuildToolset_EventsCode)</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Close. Invite by code keeps running as it is.")</OnMouseEnter>
                     <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
                 </Button>
             </Controls>

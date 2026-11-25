@@ -5,6 +5,9 @@
 --       tip = "What this tab shows",                   -- optional hover text for the tab button
 --       GetSummary = function() return "..." end,      -- optional line under the tabs
 --       GetOffText = function() return GT:FeatureOffText(on, "Name") end,  -- optional: shown while the feature is off
+--       about = { "line", ... },                       -- optional (1.27.0): what the tab is for, listed while it has no rows
+--       emptyText = "..." or function,                 -- optional (1.27.0): the top line's note while it has no rows
+--       hidden = true,                                 -- optional (1.27.0): no tab button (the Start here page has its own button)
 --       GetRows = function() return { { text=, tooltip=, actions={ {label=, fn=}, ... } } } end,
 --       footer = { { label = "Dismiss all", tip = "Hover text", fn = function() end }, ... },  -- optional
 --       searchable = true,                             -- optional: shows the search box, tab.searchText holds it
@@ -31,9 +34,14 @@ local ROW_TYPE = 1
 local COLUMN_ROW_TYPE = 2
 local MAX_COLUMNS = 8
 local COLUMN_GAP = 8
+local FADED_ALPHA = 0.6   -- rows marked faded (offline members) draw their text a bit dimmer
 local ROW_HEIGHT = 32
 local MAX_FOOTER_BUTTONS = 7   -- 1.15.0: 7 for the Events tab (its buttons are narrower)
 local EXPORT_PART_CHARS = 20000
+local REFRESH_DELAY_MS = 100   -- 1.27.0: redraw requests from events are collected and done once
+local SEARCH_DELAY_MS = 250    -- 1.27.0: the list is searched once you pause typing
+local SEARCH_TIMER = "FurysGuildToolset_ReportSearchWait"
+local START_TAB = "start"
 -- The copy window's hint for CSV exports; Copy for Discord sets its own (Report.exportHint).
 local EXPORT_HINT = "CSV, one line per row. Select all, Ctrl+C, then in Excel: Data > Text to Columns > Comma."
 
@@ -43,6 +51,19 @@ Report.footerButtons = {}
 
 local function Resolve(value)
     if type(value) == "function" then return value() end
+    return value
+end
+
+-- One redraw asks for the same list several times (a tab's button, its top line and its
+-- rows). Report:Cached(key, build) builds it once per redraw (1.27.0). Outside a redraw, or
+-- in a later frame, it just calls build, so nothing can go stale.
+function Report:Cached(key, build)
+    if not self.frame or self.frameTime ~= GetFrameTimeMilliseconds() then return build() end
+    local value = self.frame[key]
+    if value == nil then
+        value = build()
+        self.frame[key] = value
+    end
     return value
 end
 
@@ -117,6 +138,7 @@ function Report:ShowCopy(text)
     self.exportParts = { text }
     self.exportIndex = 1
     self.exportTitle = "Copy"
+    self.exportTitles = nil
     self.exportHint = nil
     GT.Util.ShowOnTop(FurysGuildToolset_Export)
     self:ShowExportPart(0)
@@ -142,6 +164,13 @@ function Report:Initialize()
     self.search = FurysGuildToolset_ReportSearch
     self.searchBox = FurysGuildToolset_ReportSearchBox
     FurysGuildToolset_ReportVersion:SetText("v" .. GT.version)
+    -- 1.27.0: a top line too long for the window ends in "..." and shows in full on hover.
+    self.summary:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    self.summary:SetMouseEnabled(true)
+    Report.SetTip(self.summary, function()
+        if self.summary:WasTruncated() then return self.summary:GetText() end
+        return nil
+    end)
     -- Fury Night look for every window (colors and fonts are set here, not in the XML).
     local T = GT.Theme
     T.Window(FurysGuildToolset_Report, { bg = "BG" })
@@ -172,6 +201,7 @@ function Report:Initialize()
     SCENE_MANAGER:RegisterTopLevel(FurysGuildToolset_Export, false)
     FurysGuildToolset_Report:SetHandler("OnHide", function()
         ClearTooltip(InformationTooltip)
+        self:LeaveTab()
         if self.panelTab then self.panelTab.SetPanelShown(false); self.panelTab = nil end
     end)
 
@@ -206,8 +236,13 @@ function Report:Initialize()
         self.headerLabels[i] = label
     end
 
-    -- Tab order: these first, then the rest in the order their modules load.
-    local FIRST = { crier = 1, members = 2, inactive = 3 }
+    -- Tab order (1.27.0, Albert): grouped by job. With seven tabs to a row, the top row is
+    -- people and trade and the bottom row is the bank and the Crier. A tab not listed here
+    -- comes after these, in the order its module loads.
+    local FIRST = {
+        members = 1, inactive = 2, recruit = 3, events = 4, raffle = 5, trader = 6, sales = 7,
+        bank = 8, capacity = 9, hoppers = 10, watchlist = 11, auto = 12, log = 13, crier = 14,
+    }
     for i, tab in ipairs(self.tabs) do tab.loadOrder = i end
     table.sort(self.tabs, function(a, b)
         local fa, fb = FIRST[a.id] or 100, FIRST[b.id] or 100
@@ -216,24 +251,53 @@ function Report:Initialize()
     end)
 
     -- 1.6.4: more than 9 tabs go on two rows, so the titles fit (the window grows by one row).
-    local rows = #self.tabs > 9 and 2 or 1
-    local perRow = math.ceil(#self.tabs / rows)
+    local shownTabs = 0
+    for _, tab in ipairs(self.tabs) do
+        if not tab.hidden then shownTabs = shownTabs + 1 end
+    end
+    local rows = shownTabs > 9 and 2 or 1
+    local perRow = math.ceil(shownTabs / rows)
     local width = math.min(180, math.floor((1160 - 4 * (perRow - 1)) / perRow))
     FurysGuildToolset_ReportTabs:SetHeight(32 * rows)
     if rows > 1 then FurysGuildToolset_Report:SetHeight(600 + 32 * (rows - 1)) end
+    -- tabButtons[i] belongs to tabs[i]; a hidden tab has none.
     local previous
+    local slot = 0
     for i, tab in ipairs(self.tabs) do
-        local button = WINDOW_MANAGER:CreateControlFromVirtual("FurysGuildToolset_ReportTab" .. i, FurysGuildToolset_ReportTabs, "ZO_DefaultButton")
-        button:SetDimensions(width, 28)
-        if (i - 1) % perRow ~= 0 then
-            button:SetAnchor(TOPLEFT, previous, TOPRIGHT, 4, 0)
-        else
-            button:SetAnchor(TOPLEFT, FurysGuildToolset_ReportTabs, TOPLEFT, 0, 2 + 32 * math.floor((i - 1) / perRow))
+        if not tab.hidden then
+            slot = slot + 1
+            local button = WINDOW_MANAGER:CreateControlFromVirtual("FurysGuildToolset_ReportTab" .. i, FurysGuildToolset_ReportTabs, "ZO_DefaultButton")
+            button:SetDimensions(width, 28)
+            if (slot - 1) % perRow ~= 0 then
+                button:SetAnchor(TOPLEFT, previous, TOPRIGHT, 4, 0)
+            else
+                button:SetAnchor(TOPLEFT, FurysGuildToolset_ReportTabs, TOPLEFT, 0, 2 + 32 * math.floor((slot - 1) / perRow))
+            end
+            button:SetHandler("OnClicked", function() self:SelectTab(tab.id) end)
+            -- 1.27.0: the tip of a tab whose feature is turned off says so.
+            Report.SetTip(button, function()
+                local tip = Resolve(tab.tip)
+                local offText = tab.GetOffText and tab.GetOffText()
+                if offText then tip = (tip and (tip .. "\n") or "") .. "|cFFA45C" .. offText .. "|r" end
+                return tip
+            end)
+            self.tabButtons[i] = button
+            previous = button
         end
-        button:SetHandler("OnClicked", function() self:SelectTab(tab.id) end)
-        Report.SetTip(button, function() return Resolve(tab.tip) end)
-        self.tabButtons[i] = button
-        previous = button
+    end
+
+    -- 1.27.0: the Start here page (Modules/Setup.lua) has its button in the title row, next to
+    -- the version, so the tab rows keep their width. Above the title glow, like the search box.
+    if self:GetTab(START_TAB) then
+        local start = WINDOW_MANAGER:CreateControlFromVirtual("FurysGuildToolset_ReportStart", FurysGuildToolset_Report, "ZO_DefaultButton")
+        start:SetDimensions(110, 28)
+        start:SetAnchor(LEFT, FurysGuildToolset_ReportVersion, RIGHT, 14, 0)
+        start:SetDrawLayer(DL_CONTROLS)
+        start:SetDrawLevel(1)
+        start:SetText("Start here")
+        start:SetHandler("OnClicked", function() self:SelectTab(START_TAB) end)
+        Report.SetTip(start, function() return Resolve(self:GetTab(START_TAB).tip) end)
+        self.startButton = start
     end
 
     previous = nil
@@ -257,7 +321,13 @@ function Report:Initialize()
     end
 
     -- Reopen on the tab you last used.
-    self.currentTab = (GT.sv.lastTab and self:GetTab(GT.sv.lastTab)) and GT.sv.lastTab or (self.tabs[1] and self.tabs[1].id)
+    -- 1.27.0: a new install that hasn't picked a tab yet opens on Start here.
+    local first
+    for _, tab in ipairs(self.tabs) do
+        if not tab.hidden then first = tab.id; break end
+    end
+    if GT.sv.defaultsOff and self:GetTab(START_TAB) then first = START_TAB end
+    self.currentTab = (GT.sv.lastTab and self:GetTab(GT.sv.lastTab)) and GT.sv.lastTab or first
 end
 
 function Report.SavePosition()
@@ -307,6 +377,7 @@ function Report:SetupColumnRow(control, data)
             label:SetAnchor(LEFT, control, LEFT, x, 0)
             label:SetDimensions(column.width, 28)
             label:SetText(data.cells[i] or "")
+            label:SetAlpha(data.faded and FADED_ALPHA or 1)
             label:SetHidden(false)
             x = x + column.width + COLUMN_GAP
         else
@@ -376,9 +447,20 @@ function Report.OnRowMouseEnter(control)
     end
 end
 
--- Rows can offer a right-click menu with data.OnRightClick(control).
+-- Rows can offer a right-click menu with data.OnRightClick(control). A row can also set
+-- OnClick = function(control) end for a left click (1.27.0: the switches on the Start here
+-- page); whatever it does is in that row's right-click menu too.
 function Report.OnRowMouseUp(control, button, upInside)
-    if not upInside or button ~= MOUSE_BUTTON_INDEX_RIGHT then return end
+    if not upInside then return end
+    if button == MOUSE_BUTTON_INDEX_LEFT then
+        local data = ZO_ScrollList_GetData(control)
+        if data and data.OnClick then
+            ClearTooltip(InformationTooltip)
+            data.OnClick(control)
+        end
+        return
+    end
+    if button ~= MOUSE_BUTTON_INDEX_RIGHT then return end
     local data = ZO_ScrollList_GetData(control)
     if data and data.OnRightClick then
         ClearTooltip(InformationTooltip)
@@ -394,21 +476,44 @@ function Report.OnRowMouseExit(control)
     ClearTooltip(InformationTooltip)
 end
 
+-- A tab can have OnLeave: called when you switch to another tab or close the window while it is shown.
+function Report:LeaveTab()
+    local tab = self:GetTab(self.currentTab)
+    if tab and tab.OnLeave then tab.OnLeave() end
+end
+
 function Report:SelectTab(id)
+    if id ~= self.currentTab and not self.control:IsHidden() then self:LeaveTab() end
     self.currentTab = id
     GT.sv.lastTab = id
     self.selectedData = nil
     self:Refresh()
 end
 
+-- Footer button that opens the Start here page, shown on a tab whose feature is turned off.
+local function SetUpButton()
+    return { label = "Set up", width = 110, tip = "Opens the Start here page, where you pick your guilds and turn features on or off.",
+        fn = function() Report:SelectTab(START_TAB) end }
+end
+
 function Report:Refresh()
     if not self.control or self.control:IsHidden() then return end
+    self.refreshPending = false
+    -- Lists built during this redraw are shared through Report:Cached.
+    self.frame = {}
+    self.frameTime = GetFrameTimeMilliseconds()
 
     for i, tab in ipairs(self.tabs) do
         local button = self.tabButtons[i]
-        button:SetText(Resolve(tab.title))
-        button:SetEnabled(tab.id ~= self.currentTab)
+        if button then
+            -- 1.27.0: a tab whose feature is turned off has a dimmed title.
+            local title = Resolve(tab.title)
+            if tab.GetOffText and tab.GetOffText() then title = "|c8A86B0" .. title .. "|r" end
+            button:SetText(title)
+            button:SetEnabled(tab.id ~= self.currentTab)
+        end
     end
+    if self.startButton then self.startButton:SetEnabled(self.currentTab ~= START_TAB) end
 
     local tab = self:GetTab(self.currentTab)
     if not tab then return end
@@ -424,6 +529,33 @@ function Report:Refresh()
 
     local rows = usesPanel and {} or (tab.GetRows() or {})
     local columns = (not usesPanel) and Resolve(tab.columns) or nil
+    local offText = tab.GetOffText and tab.GetOffText()
+    local isEmpty = #rows == 0 and not usesPanel
+
+    local summary = tab.GetSummary and tab.GetSummary() or ""
+    for _, row in ipairs(rows) do
+        if row.OnRightClick and not tab.noMenuHint then
+            summary = (summary ~= "" and (summary .. "  ") or "") .. Report.MENU_HINT
+            break
+        end
+    end
+    if offText then
+        summary = "|cFFA45C" .. offText .. "|r" .. (summary ~= "" and ("  " .. summary) or "")
+    elseif isEmpty then
+        summary = (summary ~= "" and (summary .. "  ") or "") .. (Resolve(tab.emptyText) or "Nothing to review.")
+    end
+    self.summary:SetText(summary)
+
+    -- 1.27.0: a tab with nothing to list says what it is for instead of staying blank.
+    if isEmpty and tab.about then
+        columns = nil
+        rows = { { text = "|c5CC2FFWhat this tab is for|r" } }
+        for _, line in ipairs(tab.about) do rows[#rows + 1] = { text = "|cB4B0D8" .. line .. "|r" } end
+        if offText then
+            rows[#rows + 1] = { text = "|cFFA45CIt isn't running yet. Click Set up below.|r" }
+        end
+    end
+
     self.header:SetHidden(columns == nil)
     self.list:ClearAnchors()
     self.list:SetAnchor(TOPLEFT, columns and self.header or self.summary, BOTTOMLEFT, 0, columns and 2 or 6)
@@ -442,21 +574,6 @@ function Report:Refresh()
     end
     ZO_ScrollList_Commit(self.list)
 
-    local summary = tab.GetSummary and tab.GetSummary() or ""
-    for _, row in ipairs(rows) do
-        if row.OnRightClick and not tab.noMenuHint then
-            summary = (summary ~= "" and (summary .. "  ") or "") .. Report.MENU_HINT
-            break
-        end
-    end
-    local offText = tab.GetOffText and tab.GetOffText()
-    if offText then
-        summary = "|cFFA45C" .. offText .. "|r" .. (summary ~= "" and ("  " .. summary) or "")
-    elseif #rows == 0 and not usesPanel then
-        summary = (summary ~= "" and (summary .. "  ") or "") .. "Nothing to review."
-    end
-    self.summary:SetText(summary)
-
     self.search:SetHidden(not tab.searchable)
     if tab.searchable and self.searchBox:GetText() ~= (tab.searchText or "") then
         self.searchBox:SetText(tab.searchText or "")
@@ -468,9 +585,16 @@ function Report:Refresh()
     if tab.UpdateTopBar then tab.UpdateTopBar() end
 
     local footer = {}
-    for _, action in ipairs(Resolve(tab.footer) or {}) do footer[#footer + 1] = action end
-    footer[#footer + 1] = { label = "Export / copy", tip = "Shows this tab as comma-separated text (CSV) you can copy into Excel, Google Sheets or Discord.",
-        fn = function() self:ShowExport(self:GetExportLines(tab)) end }
+    -- 1.27.0: while the feature is off, Set up comes first. Export / copy always keeps its place,
+    -- so a tab with a full row of its own buttons loses its last one instead.
+    if offText and tab.id ~= START_TAB and self:GetTab(START_TAB) then footer[#footer + 1] = SetUpButton() end
+    for _, action in ipairs(Resolve(tab.footer) or {}) do
+        if #footer < MAX_FOOTER_BUTTONS - 1 then footer[#footer + 1] = action end
+    end
+    if not tab.noExport then
+        footer[#footer + 1] = { label = "Export / copy", tip = "Shows this tab as comma-separated text (CSV) you can copy into Excel, Google Sheets or Discord.",
+            fn = function() self:ShowExport(self:GetExportLines(tab)) end }
+    end
     for i, button in ipairs(self.footerButtons) do
         local action = footer[i]
         if action then
@@ -487,6 +611,7 @@ end
 
 function Report:Show(tabId)
     if tabId and self:GetTab(tabId) then
+        if tabId ~= self.currentTab and not self.control:IsHidden() then self:LeaveTab() end
         self.currentTab = tabId
         GT.sv.lastTab = tabId
     end
@@ -503,8 +628,19 @@ function Report:Toggle()
     if self.control:IsHidden() then self:Show() else self:Hide() end
 end
 
+-- Asked for by events (history, roster, bank, mail...). A catch-up or a rescan can ask
+-- hundreds of times in a row, so the requests are collected and the window is redrawn once,
+-- a moment later (1.27.0). Your own clicks call Report:Refresh, which redraws at once.
 function Report:RefreshIfShown()
-    self:Refresh()
+    if not self.control or self.control:IsHidden() then return end
+    if self.refreshPending then return end
+    self.refreshPending = true
+    zo_callLater(function()
+        -- Nothing to do if a click redrew the window in the meantime.
+        if not self.refreshPending then return end
+        self.refreshPending = false
+        self:Refresh()
+    end, REFRESH_DELAY_MS)
 end
 
 function Report.OnSearchChanged(editBox)
@@ -516,7 +652,17 @@ function Report.OnSearchChanged(editBox)
     if text == (tab.searchText or "") then return end
     tab.searchText = text
     if tab.OnSearchChanged then tab.OnSearchChanged(text) end
-    Report:Refresh()
+    -- 1.27.0: search once you pause typing, not on every letter (the History log can hold
+    -- thousands of events). Emptying the box shows everything again at once.
+    EVENT_MANAGER:UnregisterForUpdate(SEARCH_TIMER)
+    if text == "" then
+        Report:Refresh()
+        return
+    end
+    EVENT_MANAGER:RegisterForUpdate(SEARCH_TIMER, SEARCH_DELAY_MS, function()
+        EVENT_MANAGER:UnregisterForUpdate(SEARCH_TIMER)
+        Report:Refresh()
+    end)
 end
 
 -- The X in the search box: empties it (the list updates through OnSearchChanged).
@@ -591,6 +737,7 @@ function Report:ShowExport(tabLines)
     self.exportParts = parts
     self.exportIndex = 1
     self.exportTitle = nil
+    self.exportTitles = nil
     self.exportHint = nil
     GT.Util.ShowOnTop(FurysGuildToolset_Export)
     self:ShowExportPart(0)
@@ -600,7 +747,8 @@ function Report:ShowExportPart(delta)
     local parts = self.exportParts or { "" }
     self.exportIndex = zo_clamp((self.exportIndex or 1) + delta, 1, #parts)
     FurysGuildToolset_ExportTextBox:SetText(parts[self.exportIndex])
-    FurysGuildToolset_ExportTitle:SetText(self.exportTitle or "Export")
+    -- 1.25.4: a title per part when exportTitles is set (the Events sheet examples).
+    FurysGuildToolset_ExportTitle:SetText(self.exportTitles and self.exportTitles[self.exportIndex] or self.exportTitle or "Export")
     FurysGuildToolset_ExportHint:SetText(self.exportHint or EXPORT_HINT)
     FurysGuildToolset_ExportPart:SetText(string.format("Part %d of %d", self.exportIndex, #parts))
     FurysGuildToolset_ExportPrev:SetHidden(#parts <= 1)

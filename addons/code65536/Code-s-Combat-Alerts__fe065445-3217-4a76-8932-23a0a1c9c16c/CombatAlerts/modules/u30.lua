@@ -130,7 +130,6 @@ function Module:Initialize( )
 	Vars = self.vars
 
 	self:HandleCompatibility()
-	self:MigrateLegacyGroundArrowSettings() -- TODO: Remove in 2027
 
 	self.BannerPoll_Astral = function( )
 		local a = Vars.astral
@@ -242,7 +241,6 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 end
 
 function Module:GetSettingsControls( )
-	self:MigrateLegacyGroundArrowSettings() -- TODO: Remove in 2027
 	return {
 		--------------------
 		{
@@ -297,17 +295,6 @@ function Module:HandleCompatibility( )
 			QRH.data.soulweaver_remnant = "off"
 		end
 	end
-end
-
--- TODO: Remove in 2027
-function Module:MigrateLegacyGroundArrowSettings( )
-	local color = self:GetSetting("groundArrow")
-	if (color == false) then
-		self:SetSetting("eyeArrow", 0)
-	elseif (type(color) == "number") then
-		self:SetSetting("eyeArrow", color)
-	end
-	self:SetSetting("groundArrow", nil)
 end
 
 function Module:CreepingEye( textId, orientation, groundTextureId, lrArrow )

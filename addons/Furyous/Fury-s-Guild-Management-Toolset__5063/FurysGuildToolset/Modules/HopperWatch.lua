@@ -200,13 +200,17 @@ function HopperWatch:BlacklistNote(record)
     return zo_strformat(self:G(record.guildId).blacklistNote, U.FormatDuration(record.leaveTs - record.joinTs))
 end
 
+-- 1.27.0: the guild's blacklist is read once per redraw of the window, not once per row.
 function HopperWatch:IsOnGuildBlacklist(guildId, name)
-    local lower = zo_strlower(name)
-    for i = 1, GetNumGuildBlacklistEntries(guildId) do
-        local accountName = GetGuildBlacklistInfoAt(guildId, i)
-        if accountName and zo_strlower(accountName) == lower then return true end
-    end
-    return false
+    local set = GT.Report:Cached("hoppers:blacklist:" .. guildId, function()
+        local names = {}
+        for i = 1, GetNumGuildBlacklistEntries(guildId) do
+            local accountName = GetGuildBlacklistInfoAt(guildId, i)
+            if accountName then names[zo_strlower(accountName)] = true end
+        end
+        return names
+    end)
+    return set[zo_strlower(name)] == true
 end
 
 function HopperWatch:MarkBlacklisted(record)
@@ -334,6 +338,7 @@ function HopperWatch:HoppersTabSummary()
     for _, guildId in ipairs(U.GetGuildIds()) do
         if GT:IsAlertGuild(guildId) then parts[#parts + 1] = string.format("%s %dh", U.GuildName(guildId), self:G(guildId).maxHours) end
     end
+    if #parts == 0 then return "" end   -- no guild ticked: the tab says so itself
     return string.format("People who left soon after joining, last 60 days. Limit: %s.", table.concat(parts, ", "))
 end
 
@@ -347,6 +352,12 @@ function HopperWatch:RegisterTabs()
             GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "The hopper report", true) end,
         tip = "People who joined and left quickly, often to empty the bank.",
         title = function() return string.format("Bank hoppers (%d)", self:CountOpen()) end,
+        about = {
+            "Lists people who joined one of your guilds and left again soon after, often to empty the bank.",
+            "Right-click one to blacklist them, add them to your watchlist or dismiss them.",
+            "How soon counts (48 hours to start) is set for each guild on the Guild rules settings page.",
+        },
+        emptyText = "No one has joined and left quickly.",
         GetSummary = function() return self:HoppersTabSummary() end,
         GetRows = function() return self:HoppersTabRows() end,
         GetExportLines = function() return self:HoppersTabExportLines() end,
@@ -375,6 +386,12 @@ function HopperWatch:RegisterTabs()
         id = "watchlist",
         tip = "Known hoppers. You get an alert when one joins any of your guilds.",
         title = function() return string.format("Watchlist (%d)", U.Count(self.sv.watchlist)) end,
+        about = {
+            "Your own list of accounts to keep an eye on, shared by all your guilds.",
+            "Add someone from the Bank hoppers tab: right-click them and pick Watch.",
+            "To be told when one of them joins, turn on Bank hoppers, then \"Alert when a watchlisted person joins\" for that guild on the Guild rules settings page.",
+        },
+        emptyText = "Your watchlist is empty.",
         GetSummary = function() return self:WatchlistTabSummary() end,
         GetExportLines = function() return self:WatchlistTabExportLines() end,
         GetRows = function() return self:WatchlistTabRows() end,

@@ -48,7 +48,18 @@ local function build()
  for i,v in ipairs({{"MAGICKA",.16,.45,.92},{"HEALTH",.85,.16,.22},{"STAMINA",.15,.7,.35}}) do
   local p=frame(UI.resourceRoot,214,44);p:SetAnchor(TOPLEFT,UI.resourceRoot,TOPLEFT,(i-1)*223,0)
   local fill=WINDOW_MANAGER:CreateControl(nil,p,CT_BACKDROP);fill:SetAnchor(TOPLEFT,p,TOPLEFT,2,2);fill:SetCenterColor(v[2],v[3],v[4],1);fill:SetEdgeColor(0,0,0,0);fill:SetHeight(40);fill:SetWidth(1)
-  local txt=label(p,22);txt:SetDrawLayer(DL_TEXT or DL_OVERLAY);s(txt.SetDrawLevel,txt,5);UI.resources[i]={p=p,fill=fill,text=txt,power=v[1]}
+  local txt=label(p,22);txt:SetDrawLayer(DL_TEXT or DL_OVERLAY);s(txt.SetDrawLevel,txt,5)
+  local o={p=p,fill=fill,text=txt,power=v[1],color=v};UI.resources[i]=o
+  if i~=2 then
+   local arc=WINDOW_MANAGER:CreateControl(nil,UI.resourceRoot,CT_CONTROL);arc:SetDimensions(128,300);o.arc=arc
+   o.parts={};local side=i==1 and -1 or 1
+   for j=1,40 do
+    local f=(j-.5)/40;local x=64+side*35*math.sin(math.pi*f);local y=270-250*f
+    local bg=WINDOW_MANAGER:CreateControl(nil,arc,CT_TEXTURE);bg:SetDimensions(20,8);bg:SetAnchor(CENTER,arc,TOPLEFT,x,y);bg:SetColor(.06,.09,.12,.9)
+    local q=WINDOW_MANAGER:CreateControl(nil,arc,CT_TEXTURE);q:SetDimensions(14,7);q:SetAnchor(CENTER,arc,TOPLEFT,x,y);q:SetColor(v[2],v[3],v[4],1);o.parts[j]=q
+   end
+   local t=label(arc,18);t:ClearAnchors();t:SetDimensions(180,30);t:SetAnchor(TOP,arc,BOTTOM,0,-20);o.arcText=t
+  end
  end
  local mode=label(UI.root,15);mode:ClearAnchors();mode:SetAnchor(TOP,UI.root,TOP,0,0);mode:SetDimensions(420,22);mode:SetColor(.88,.76,.52,1);UI.mode=mode
 end
@@ -145,6 +156,7 @@ local function update()
  if queueYield then UI.root:SetHidden(true);visible=false end
  local bars={HOTBAR_CATEGORY_PRIMARY or 0,HOTBAR_CATEGORY_BACKUP or 1};local active=s(GetActiveHotbarCategory)
  local t=s(GetFrameTimeSeconds) or 0;E.tick(t)
+ local values={};local maxima={};for _,kind in ipairs({"MAGICKA","HEALTH","STAMINA","ULTIMATE"}) do values[kind],maxima[kind]=power(kind) end
  local valid=false;local activeSlots=0
  local activeValid=active==bars[1] or active==bars[2]
  for r,row in ipairs(UI.slots) do for i,o in ipairs(row) do
@@ -152,7 +164,21 @@ local function update()
   if id and id~=0 and icon and icon~='' then valid=true;if active==bars[r] then activeSlots=activeSlots+1 end;o.icon:SetTexture(icon);o.icon:SetHidden(false) else o.icon:SetHidden(true) end
   o.p:SetHidden(not cfg.bars);local rem,estimated,stacks=E.duration(id,t);local durationText=rem and (rem>3 and tostring(math.ceil(rem)) or string.format('%.1f',rem));local warn=rem;local ready=warn and warn<=5 and warn>0
   o.bg:SetEdgeColor(ready and 1 or (active==bars[r] and .78 or .42),ready and (warn<=3 and .2 or .8) or (active==bars[r] and .62 or .34),ready and .1 or (active==bars[r] and .34 or .21),1)
-  o.icon:SetAlpha(active==bars[r] and 1 or .65)
+  local poor=false
+  if cfg.dimUnaffordable and type(id)=='number' and id>0 then
+   if active==bars[r] then
+    poor=s(ActionSlotHasCostFailure,slot,bars[r])
+   end
+   if type(poor)~='boolean' or active~=bars[r] then
+    poor=false
+    for _,kind in ipairs({"MAGICKA","STAMINA","HEALTH","ULTIMATE"}) do
+     local flag=_G['COMBAT_MECHANIC_FLAGS_'..kind];local value=values[kind]
+     if flag and type(value)=='number' then local cost=s(GetAbilityCost,id,flag,nil,'player');if type(cost)=='number' and cost>0 and value<cost then poor=true;break end end
+    end
+   end
+  end
+  if o.poor~=poor then s(o.icon.SetDesaturation,o.icon,poor and 1 or 0);o.poor=poor end
+  o.icon:SetAlpha(poor and .28 or (active==bars[r] and 1 or .65))
   -- Slot cooldown lookups are only trusted for the active hotbar.
   local cd,cdDuration,global
   if active==bars[r] then cd,cdDuration,global=s(GetSlotCooldownInfo,slot,bars[r]);if type(cd)~='number' then cd,cdDuration,global=s(GetSlotCooldownInfo,slot) end end
@@ -160,13 +186,13 @@ local function update()
   o.cd:SetHidden(not cooling)
   if cooling then o.cd:SetHeight(math.max(1,60*math.min(1,cd/cdDuration))) end
   if slot==8 then
-   local ult=power('ULTIMATE')
+   local ult=values.ULTIMATE
    -- Only the active hotbar may glow: slot cost can resolve to the active slot even with a category argument.
    local cost
    if active==bars[r] and type(id)=='number' and id>0 then
     cost=s(GetSlotAbilityCost,slot,bars[r]);if type(cost)~='number' or cost<=0 then cost=s(GetAbilityCost,id,COMBAT_MECHANIC_FLAGS_ULTIMATE or POWERTYPE_ULTIMATE) end
    end
-   local charged=active==bars[r] and type(ult)=='number' and type(cost)=='number' and cost>0 and ult>=cost
+   local charged=not poor and active==bars[r] and type(ult)=='number' and type(cost)=='number' and cost>0 and ult>=cost
    for _,g in ipairs(o.glow) do g:SetHidden(not charged);if charged then g:SetAlpha(.65+.35*math.sin(t*7)) end end
    o.timer:SetText(tostring(ult or ''))
   else o.timer:SetText(durationText or '') end
@@ -175,8 +201,23 @@ local function update()
  end end
  local resourceValid=true
  for _,o in ipairs(UI.resources) do
-  local value,max=power(o.power);o.p:SetHidden(not cfg.resources)
-  if type(max)=='number' and max>0 and type(value)=='number' then o.fill:SetWidth(math.max(1,210*math.max(0,math.min(1,value/max))));o.text:SetText(string.format('%d / %d  (%d%%)',value,max,math.floor(100*value/max))) else resourceValid=false;o.text:SetText('—');o.fill:SetWidth(1) end
+  local value,max=values[o.power],maxima[o.power];local curved=cfg.curvedResources and o.arc~=nil
+  o.p:SetHidden(not cfg.resources or curved)
+  if o.arc then
+   o.arc:SetHidden(not cfg.resources or not curved)
+   if curved then
+    o.arc:ClearAnchors();o.arc:SetAnchor(CENTER,GuiRoot,CENTER,(o.power=='MAGICKA' and -1 or 1)*(cfg.arcDistance or 330)+(cfg.resourceX or 0),cfg.arcY or 0)
+   end
+  end
+  local fraction=0;local str='—'
+  if type(max)=='number' and max>0 and type(value)=='number' then fraction=math.max(0,math.min(1,value/max));str=string.format('%d / %d  (%d%%)',value,max,math.floor(100*fraction)) else resourceValid=false end
+  if curved then
+   for j,q in ipairs(o.parts) do local alpha=math.max(0,math.min(1,fraction*#o.parts-j+1));if q.lastAlpha~=alpha then q:SetAlpha(alpha);q.lastAlpha=alpha end end
+   local low=fraction<.2 and cfg.resourcePulse; o.arc:SetAlpha(low and (.75+.25*math.sin(t*6)) or 1)
+   o.arcText:SetText(cfg.resourceNumbers and str or (str=='—' and str or string.format('%d%%',math.floor(fraction*100))))
+  else
+   o.fill:SetWidth(math.max(1,210*fraction));o.text:SetText(cfg.resourceNumbers and str or (str=='—' and str or string.format('%d%%',math.floor(fraction*100))))
+  end
  end
  restore();N.customBarsActive=cfg.bars and cfg.replaceAction and valid and activeSlots>0 and activeValid and visible and not cfg.preview
  if N.customBarsActive then
@@ -203,7 +244,7 @@ local function settings()
  local id='TMENexusSettings';lam:RegisterAddonPanel(id,{type='panel',name='ESO Arsenal',displayName='ESO Arsenal',author='Trash Man Enterprises',version='0.5.4',registerForRefresh=true})
  local opts={{type='button',name='Apply recommended layout',func=function() preset(false) end},{type='button',name='Apply minimal layout',func=function() preset(true) end}};local function toggle(k,n) return {type='checkbox',name=n,getFunc=function()return N.saved[k]end,setFunc=function(v)N.saved[k]=v;update()end} end
  local function slider(k,n,a,b) return {type='slider',name=n,min=a,max=b,step=5,getFunc=function()return N.saved[k]end,setFunc=function(v)N.saved[k]=v;update()end} end
- opts[#opts+1]={type='submenu',name='Core interface & placement',controls={toggle('bars','Dual action bars'),toggle('resources','Resource meters'),toggle('replaceAction','Hide native ability slots (experimental)'),toggle('replaceResources','Hide native resource meters (experimental)'),toggle('preview','Preview layout'),toggle('moveSynergy','Move native synergy prompt'),slider('synergyX','Synergy prompt X',-1500,1500),slider('synergyY','Synergy prompt Y',-1000,1000),{type='button',name='Reset synergy placement',func=function() N.saved.synergyX=0;N.saved.synergyY=0;update() end},toggle('moveNativeBuffs','Move native buff icons'),slider('buffX','Native buffs X',-1500,1500),slider('buffY','Native buffs Y',-1000,1000),{type='button',name='Reset native buff placement',func=function() N.saved.buffX=0;N.saved.buffY=0;update() end},slider('x','Horizontal offset',-1500,1500),slider('y','Vertical offset',-1000,0),slider('scale','Overall scale (%)',50,200),slider('barX','Action bars X',-1500,1500),slider('barY','Action bars Y',-1000,1000),slider('barScale','Action bars scale (%)',50,200),slider('resourceX','Resource meters X',-1500,1500),slider('resourceY','Resource meters Y',-1000,1000),slider('resourceScale','Resource meters scale (%)',50,200)}}
+ opts[#opts+1]={type='submenu',name='Core interface & placement',controls={toggle('bars','Dual action bars'),toggle('resources','Resource meters'),toggle('curvedResources','Curved Magicka / Stamina'),toggle('dimUnaffordable','Dim unaffordable abilities'),toggle('resourceNumbers','Show resource numbers'),toggle('resourcePulse','Pulse low side resources'),slider('arcDistance','Side meter distance',150,900),slider('arcY','Side meter vertical offset',-600,600),toggle('replaceAction','Hide native ability slots (experimental)'),toggle('replaceResources','Hide native resource meters (experimental)'),toggle('preview','Preview layout'),toggle('moveSynergy','Move native synergy prompt'),slider('synergyX','Synergy prompt X',-1500,1500),slider('synergyY','Synergy prompt Y',-1000,1000),{type='button',name='Reset synergy placement',func=function() N.saved.synergyX=0;N.saved.synergyY=0;update() end},toggle('moveNativeBuffs','Move native buff icons'),slider('buffX','Native buffs X',-1500,1500),slider('buffY','Native buffs Y',-1000,1000),{type='button',name='Reset native buff placement',func=function() N.saved.buffX=0;N.saved.buffY=0;update() end},slider('x','Horizontal offset',-1500,1500),slider('y','Vertical offset',-1000,0),slider('scale','Overall scale (%)',50,200),slider('barX','Action bars X',-1500,1500),slider('barY','Action bars Y',-1000,1000),slider('barScale','Action bars scale (%)',50,200),slider('resourceX','Resource meters X',-1500,1500),slider('resourceY','Resource meters Y',-1000,1000),slider('resourceScale','Resource meters scale (%)',50,200)}}
  -- Flatten original nested submenus to avoid unsupported nested LAM controls.
  local keys={};for k in pairs(N.settingsGroups) do keys[#keys+1]=k end;table.sort(keys)
  for _,k in ipairs(keys) do local g=N.settingsGroups[k];local flat={};for _,o in ipairs(g.controls or {}) do if o.type=='submenu' then flat[#flat+1]={type='header',name=o.name};for _,c in ipairs(o.controls or {}) do flat[#flat+1]=c end else flat[#flat+1]=o end end;opts[#opts+1]={type='submenu',name=g.name or k,controls=flat} end
@@ -214,7 +255,7 @@ local function settings()
 end
 EVENT_MANAGER:RegisterForEvent('NexusInit',EVENT_ADD_ON_LOADED,function(_,name)
  if name~='TMENexus' then return end;EVENT_MANAGER:UnregisterForEvent('NexusInit',EVENT_ADD_ON_LOADED)
- N.saved=ZO_SavedVars:NewAccountWide('NexusCoreSaved',1,nil,{bars=true,resources=true,replaceAction=true,replaceResources=true,x=0,y=-100,scale=100,barX=0,barY=0,barScale=100,resourceX=0,resourceY=-160,resourceScale=100,moveSynergy=true,synergyX=0,synergyY=0,moveNativeBuffs=true,buffX=0,buffY=0,preview=false});N.saved.preview=false
+ N.saved=ZO_SavedVars:NewAccountWide('NexusCoreSaved',1,nil,{bars=true,resources=true,replaceAction=true,replaceResources=true,x=0,y=-100,scale=100,barX=0,barY=0,barScale=100,resourceX=0,resourceY=-160,resourceScale=100,moveSynergy=true,synergyX=0,synergyY=0,moveNativeBuffs=true,buffX=0,buffY=0,preview=false,curvedResources=true,dimUnaffordable=true,resourceNumbers=true,resourcePulse=true,arcDistance=330,arcY=0});N.saved.preview=false
  if not N.saved.layoutV31 then N.saved.moveNativeBuffs=true;N.saved.buffX=0;N.saved.buffY=0;N.saved.layoutV31=true end
  if not N.saved.layoutV3 then N.saved.replaceAction=true;N.saved.replaceResources=true;N.saved.layoutV3=true end
  E.register()

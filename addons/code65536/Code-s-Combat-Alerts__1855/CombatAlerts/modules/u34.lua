@@ -41,7 +41,9 @@ Module.STRINGS = {
 
 	-- Custom (Settings)
 	statusPanel = { default = "Enable status panel" },
-	portSounds = { default = "Sound chime for summoning each teleport location" },
+	portCount = { default = "Count teleport locations for twins" },
+	portCountText = { default = "Text" },
+	portCountBoth = { default = "Text and Chime" },
 	extraSounds = { default = "Additional audio cues" },
 	brandMarker = { default = "Show marker for hard mode brand stack" },
 	clockLabels = { default = "Show clock numbers for Veteran Taleria" },
@@ -53,7 +55,7 @@ Module.STRINGS = {
 
 Module.DEFAULT_SETTINGS = {
 	statusPanel = true,
-	portSounds = false,
+	portCount = true,
 	extraSounds = true,
 	brandMarker = false,
 	clockLabels = true,
@@ -651,17 +653,19 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 			end
 		end
 		multi.count = multi.count + 1
-		local bannerText = zo_strformat(self:GetString("teleportCounter"), multi.count)
-		if (multi.count == 1) then
-			multi.id = CA1.StartBanner(nil, bannerText, 0xFF3333FF, nil, true, nil, true)
-			LCA.PlaySounds("DUEL_BOUNDARY_WARNING", 5)
-			zo_callLater(function()
-				CA1.DisableBanner(multi.id)
-			end, 6500)
-		else
-			CA1.ModifyBanner(multi.id, nil, bannerText, 0xFF3333FF)
-			if (self:GetSetting("portSounds")) then
-				LCA.PlaySounds("DUEL_BOUNDARY_WARNING", 2)
+		if (self:GetSetting("portCount")) then
+			local bannerText = zo_strformat(self:GetString("teleportCounter"), multi.count)
+			if (multi.count == 1) then
+				multi.id = CA1.StartBanner(nil, bannerText, 0xFF3333FF, nil, true, nil, true)
+				LCA.PlaySounds("DUEL_BOUNDARY_WARNING", 5)
+				zo_callLater(function()
+					CA1.DisableBanner(multi.id)
+				end, 6500)
+			else
+				CA1.ModifyBanner(multi.id, nil, bannerText, 0xFF3333FF)
+				if (self:GetSetting("portCount") == 2) then
+					LCA.PlaySounds("DUEL_BOUNDARY_WARNING", 2)
+				end
 			end
 		end
 	elseif (result == ACTION_RESULT_BEGIN and DATA.imminent[abilityId]) then
@@ -918,6 +922,12 @@ function Module:GetCustomizedAbilityName( abilityId )
 end
 
 function Module:GetSettingsControls( )
+	-- Settings migration
+	if (self:GetSetting("portSounds")) then
+		self:SetSetting("portSounds", nil)
+		self:SetSetting("portCount", 2)
+	end
+
 	return {
 		--------------------
 		{
@@ -928,10 +938,12 @@ function Module:GetSettingsControls( )
 		},
 		--------------------
 		{
-			type = "checkbox",
-			name = self:GetString("portSounds"),
-			getFunc = function() return self:GetSetting("portSounds") end,
-			setFunc = function(enabled) self:SetSetting("portSounds", enabled) end,
+			type = "dropdown",
+			name = self:GetString("portCount"),
+			choices = { GetString(SI_CHECK_BUTTON_OFF), self:GetString("portCountText"), self:GetString("portCountBoth") },
+			choicesValues = { false, true, 2 },
+			getFunc = function() return self:GetSetting("portCount") end,
+			setFunc = function(mode) self:SetSetting("portCount", mode) end,
 		},
 		--------------------
 		{

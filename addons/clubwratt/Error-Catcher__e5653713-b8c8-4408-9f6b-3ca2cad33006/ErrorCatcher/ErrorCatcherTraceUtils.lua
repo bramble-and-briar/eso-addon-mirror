@@ -26,9 +26,14 @@ function TraceUtils.Clip(text, max)
     return text
 end
 
+---The add-on a source file belongs to; nil for a file of the game. The game keeps its own add-on manager and
+---browser under "/EsoUI/PregameAndIngame/AddOns/Gamepad/", which is no add-on named Gamepad.
 ---@param source string
 ---@return string|nil addon
 function TraceUtils.AddonOf(source)
+    if string.find(string.lower(source), "^/?esoui/") then
+        return nil
+    end
     return string.match(source, "AddOnsManaged/[^/]+/([^/]+)/") or string.match(source, "AddOns/([^/]+)/")
 end
 
@@ -184,5 +189,7 @@ function TraceUtils.Summary(frames, max)
         TraceUtils.ListOrNone(TraceUtils.Wrapped(frames)),
         TraceUtils.Chain(frames, max))
 end
+
+TraceUtils.HOOK_FILE = HOOK_FILE
 
 ErrorCatcher.TraceUtils = TraceUtils

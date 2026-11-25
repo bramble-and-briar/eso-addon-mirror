@@ -250,7 +250,7 @@ function Module:GetSettingsControls( )
 		--------------------
 		{
 			type = "colorpicker",
-			name = string.format("|u40:0::%s|u", GetString(SI_LCA_LOW)),
+			name = LCA.IndentedKeyboardText(GetString(SI_LCA_LOW)),
 			getFunc = function() return LCA.UnpackRGBA(self:GetSetting("colorCarrionLow")) end,
 			setFunc = function(...) self:SetSetting("colorCarrionLow", LCA.PackRGBA(...)) end,
 			disabled = groupPanelDisabled,
@@ -258,7 +258,7 @@ function Module:GetSettingsControls( )
 		--------------------
 		{
 			type = "colorpicker",
-			name = string.format("|u40:0::%s|u", GetString(SI_LCA_HIGH)),
+			name = LCA.IndentedKeyboardText(GetString(SI_LCA_HIGH)),
 			getFunc = function() return LCA.UnpackRGBA(self:GetSetting("colorCarrionHigh")) end,
 			setFunc = function(...) self:SetSetting("colorCarrionHigh", LCA.PackRGBA(...)) end,
 			disabled = groupPanelDisabled,
@@ -266,7 +266,7 @@ function Module:GetSettingsControls( )
 		--------------------
 		{
 			type = "colorpicker",
-			name = string.format("|u40:0::%s|u", LCA.GetAbilityName(DATA.blaze)),
+			name = LCA.IndentedKeyboardText(LCA.GetAbilityName(DATA.blaze)),
 			getFunc = function() return LCA.UnpackRGBA(self:GetSetting("colorBlaze")) end,
 			setFunc = function(...) self:SetSetting("colorBlaze", LCA.PackRGBA(...)) end,
 			disabled = groupPanelDisabled,
@@ -327,7 +327,7 @@ end
 function Module:ShowScalesBorder( )
 	local color = self:GetSetting("scalesBorder")
 	if (color ~= 0) then
-		CA2.ScreenBorderEnable(color, 1100, "CA_M_U46_SCALES")
+		CA2.ScreenBorderEnable(color, 2100, "u46refscales")
 	end
 end
 

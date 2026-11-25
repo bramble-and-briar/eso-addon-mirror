@@ -8,6 +8,7 @@
 -- remainder of each payment is dropped, not carried over, and plain donations buy tickets too.
 -- Tickets per person stop at the optional cap. Unused gold is shown as "Not used".
 -- Tickets can also be added or removed by hand (right-click a row, or /gt raffle add).
+-- Gold mailed to you and then deposited by you counts once, for the sender (1.29.0, see Routing).
 --
 -- Several raffles at once (1.9.0): each raffle has its own settings, sale, draw and posts.
 -- A payment that only one raffle could take counts for it as above. When two or more raffles
@@ -74,7 +75,7 @@ local RAFFLE_TABLES = { "adjust", "excluded", "changes" }
 Raffle.defaults = {
     enabled = false,        -- every feature starts turned off on a new install (Albert, 1.3.0)
     buyNotice = false,      -- chat line when someone buys tickets
-    deposits = {},          -- { g =, id =, ts =, who =, amt =, src = "mail" or nil, subj = } bank deposits and gold mails, kept KEEP_DAYS
+    deposits = {},          -- { g =, id =, ts =, who =, amt =, src = "mail" or nil, subj =, got = } bank deposits and gold mails, kept KEEP_DAYS
     raffles = {},           -- the raffles, each like RAFFLE_DEFAULTS (1.9.0; before that one sv.raffle)
     current = 0,            -- id of the raffle shown on the tab and in the settings
     nextId = 1,
@@ -90,6 +91,9 @@ function Raffle.SeenKey(d)
 end
 
 local function FillRaffle(r)
+    -- 1.29.0: gold mailed to you and then deposited by you counts once (see Raffle:Routing).
+    -- A raffle whose winners were drawn before 1.29.0 keeps the count it was drawn with.
+    if r.passMail == nil then r.passMail = (r.draw == nil) end
     for key, value in pairs(RAFFLE_DEFAULTS) do
         if r[key] == nil then r[key] = value end
     end
@@ -128,7 +132,13 @@ function Raffle:Initialize(sv)
         table.insert(sv.raffles, 1, r)
     end
     sv.settingsVersion = 3
-    for _, r in ipairs(sv.raffles) do FillRaffle(r) end
+    self.freeTop = {}
+    for _, r in ipairs(sv.raffles) do
+        local running = r.passMail == nil and r.issued ~= nil
+        FillRaffle(r)
+        -- A raffle that was already running when 1.29.0 arrived: see KeepNumbers.
+        if running and r.passMail then self.freeTop[r.id] = true end
+    end
     if #sv.raffles == 0 then sv.raffles[1] = self:MakeRaffle() end
     if not self:ById(sv.current) then sv.current = sv.raffles[1].id end
 
@@ -230,6 +240,11 @@ function Raffle:OnHistoryEvent(guildId, category, info, isLive)
     self:Dirty()
     if isLive then
         local r, why = self:Route(d)
+        local passed = r and self:Routing().passed[d]
+        if passed then
+            U.Print("%s: %s of your %s deposit is ticket gold that was mailed to you, so that part buys you no tickets.", self:Tag(r),
+                U.FormatGold(passed), U.FormatGold(d.amt))
+        end
         if r and self.sv.buyNotice then
             local buyer = self:GetTally(r).byName[d.who]
             if buyer then
@@ -264,7 +279,10 @@ function Raffle:RecordMail(mailId, money, cod)
     local sender, _, subject, _, _, fromSystem, fromCustomerService, returned, _, _, _, _, secsSinceReceived = GetMailItemInfo(mailId)
     if fromSystem or fromCustomerService or returned or not sender or sender == "" then return false end
     self.seen[key] = true
-    local d = { g = 0, id = Id64ToString(mailId), src = "mail", ts = GetTimeStamp() - (secsSinceReceived or 0), who = U.NormalizeName(sender), amt = money, subj = subject }
+    -- ts: when it arrived (decides which raffle it is for). got: when it was first seen in your
+    -- mailbox, the earliest you could have taken its gold (decides which of your deposits pass it on).
+    local d = { g = 0, id = Id64ToString(mailId), src = "mail", ts = GetTimeStamp() - (secsSinceReceived or 0), got = GetTimeStamp(),
+        who = U.NormalizeName(sender), amt = money, subj = subject }
     table.insert(self.sv.deposits, d)
     self:Dirty()
     local r, why = self:Route(d)
@@ -488,24 +506,60 @@ function Raffle:Route(d)
     return nil, "a multiple of the prices of " .. NameList(self, hits)
 end
 
--- Every payment, routed once: { byRaffle = { [id] = { d, ... } }, unclear = { { d =, why =, candidates =, how =, r = } } }
+local function FlowOrder(a, b)
+    if a.at ~= b.at then return a.at < b.at end
+    if a.mail ~= b.mail then return a.mail end   -- at the same second the mail comes first
+    return a.i < b.i
+end
+
+-- Every payment, routed once: { byRaffle = { [id] = { d, ... } }, unclear = { { d =, why =, candidates =, how =, r = } },
+-- passed = { [d] = gold of this deposit that buys no tickets }, owed = mailed gold you still hold }
 -- unclear holds the payments still to decide and those decided by hand (to undo).
+--
+-- 1.29.0 (Albert): gold mailed to you for tickets is the sender's payment. When you then put
+-- that gold in the guild bank, your deposit is the same gold again, so it buys you no tickets
+-- until every mailed gold piece is passed on. In time order: each counted mail adds to what
+-- you hold, and each counted bank deposit of yours first pays that off (passed[d]); only the
+-- rest of the deposit is yours. 100,000g mailed, then 101,000g deposited = 1,000g for you.
 function Raffle:Routing()
     if self.routing then return self.routing end
     local byRaffle, unclear, open = {}, {}, 0
-    for _, d in ipairs(self.sv.deposits) do
+    local me = zo_strlower(GetDisplayName())
+    local flow = {}
+    for i, d in ipairs(self.sv.deposits) do
         local r, why, how = self:Route(d)
         if r then
             byRaffle[r.id] = byRaffle[r.id] or {}
             table.insert(byRaffle[r.id], d)
+            if r.passMail then
+                if d.src == "mail" then flow[#flow + 1] = { d = d, at = d.got or d.ts, mail = true, i = i }
+                elseif zo_strlower(d.who) == me then flow[#flow + 1] = { d = d, at = d.ts, mail = false, i = i } end
+            end
         end
         if why then open = open + 1 end
         if why or how == "hand" or how == "ignored" then
             unclear[#unclear + 1] = { d = d, why = why, how = how, r = r, candidates = self:Candidates(d) }
         end
     end
-    self.routing = { byRaffle = byRaffle, unclear = unclear, open = open }
+    table.sort(flow, FlowOrder)
+    local passed, owed = {}, 0
+    for _, f in ipairs(flow) do
+        if f.mail then
+            owed = owed + f.d.amt
+        elseif owed > 0 then
+            local part = math.min(owed, f.d.amt)
+            passed[f.d] = part
+            owed = owed - part
+        end
+    end
+    self.routing = { byRaffle = byRaffle, unclear = unclear, open = open, passed = passed, owed = owed }
     return self.routing
+end
+
+-- The gold of a payment that buys tickets: all of it, except the part of your own bank deposit
+-- that only passes mailed ticket gold on to the bank.
+function Raffle:Counted(d)
+    return d.amt - (self:Routing().passed[d] or 0)
 end
 
 -- Payments still on the Unassigned list that this raffle (or any raffle, without r) could take.
@@ -590,8 +644,8 @@ function Raffle:HasSource(r)
 end
 
 -- Buyers in ticket-number order (first deposit first), with ticket ranges.
--- Result: { list = { buyer, ... }, byName = { [name] = buyer }, total =, gold = }
--- buyer = { who, gold, paid, deposits, first, last, bought, adjust, tickets, refund, from, to, excluded }
+-- Result: { list = { buyer, ... }, byName = { [name] = buyer }, total =, gold =, passed = }
+-- buyer = { who, gold, paid, deposits, first, last, bought, adjust, tickets, refund, from, to, excluded, passed }
 function Raffle:GetTally(r)
     self.tallies = self.tallies or {}
     if self.tallies[r.id] then return self.tallies[r.id] end
@@ -606,13 +660,19 @@ function Raffle:GetTally(r)
         return b
     end
     local price = math.max(1, r.price)
+    local passed = 0
     for _, d in ipairs(self:Routing().byRaffle[r.id] or {}) do
-        local b = Buyer(d.who, d.ts)
-        b.gold = b.gold + d.amt
-        b.paid = b.paid + math.floor(d.amt / price)   -- each payment on its own; the remainder is dropped
-        if d.src == "mail" then b.mails = b.mails + 1 else b.deposits = b.deposits + 1 end
-        b.first = math.min(b.first, d.ts)
-        b.last = math.max(b.last, d.ts)
+        local amt = self:Counted(d)
+        passed = passed + d.amt - amt
+        -- A deposit of yours that only passes mailed gold on doesn't make you a buyer.
+        if amt > 0 then
+            local b = Buyer(d.who, d.ts)
+            b.gold = b.gold + amt
+            b.paid = b.paid + math.floor(amt / price)   -- each payment on its own; the remainder is dropped
+            if d.src == "mail" then b.mails = b.mails + 1 else b.deposits = b.deposits + 1 end
+            b.first = math.min(b.first, d.ts)
+            b.last = math.max(b.last, d.ts)
+        end
     end
     self:MergeNameCase(r, byName)
     for who in pairs(r.adjust) do Buyer(who, math.huge) end
@@ -642,7 +702,7 @@ function Raffle:GetTally(r)
     end
     if r.numbering == "time" then total = self:NumberByTime(r, byName, price) end
     total = self:KeepNumbers(r, list, byName, price)
-    local tally = { list = list, byName = byName, total = total, gold = gold }
+    local tally = { list = list, byName = byName, total = total, gold = gold, passed = passed }
     self.tallies[r.id] = tally
     return tally
 end
@@ -658,7 +718,7 @@ function Raffle:NumberByTime(r, byName, price)
     local function Real(who) return real[zo_strlower(who)] or who end
     local blocks, bought, removed, logged = {}, {}, {}, {}
     for _, d in ipairs(self:Routing().byRaffle[r.id] or {}) do
-        local n = math.floor(d.amt / price)
+        local n = math.floor(self:Counted(d) / price)
         if r.maxTickets > 0 then n = math.max(0, math.min(n, r.maxTickets - (bought[d.who] or 0))) end
         bought[d.who] = (bought[d.who] or 0) + n
         blocks[#blocks + 1] = { ts = d.ts, who = d.who, n = n }
@@ -769,18 +829,30 @@ function Raffle:KeepNumbers(r, list, byName, price)
     -- Take away tickets someone no longer has, from their highest numbers.
     local wanted = {}
     for _, b in ipairs(list) do wanted[zo_strlower(b.who)] = b.tickets end
+    local lowestTaken, highestTaken
     for key, blocks in pairs(held) do
         local extra = Count(blocks) - (wanted[key] or 0)
         for i = #blocks, 1, -1 do
             if extra <= 0 then break end
             local block = blocks[i]
             local take = math.min(extra, block.to - block.from + 1)
+            highestTaken = math.max(highestTaken or 0, block.to)
             block.to = block.to - take
+            lowestTaken = math.min(lowestTaken or block.to + 1, block.to + 1)
             extra = extra - take
         end
     end
     for i = #r.issued, 1, -1 do
         if r.issued[i].to < r.issued[i].from then table.remove(r.issued, i) end
+    end
+    -- 1.29.0, once for a raffle that was already running: tickets your own deposits of mailed
+    -- gold had been given come off here. When they were the last numbers handed out, those
+    -- numbers are free again, so the list gets no hole.
+    if self.freeTop[r.id] then
+        self.freeTop[r.id] = nil
+        local top = 0
+        for _, block in ipairs(r.issued) do top = math.max(top, block.to) end
+        if lowestTaken and lowestTaken > top and highestTaken == r.nextTicket - 1 then r.nextTicket = lowestTaken end
     end
     -- New tickets go after every number handed out so far, oldest payment first.
     local new = {}
@@ -913,6 +985,27 @@ function Raffle:AddTickets(r, who, n, why)
     if why and why ~= "" then text = text .. ": " .. why end
     self:Change(r, who, text)
     U.Print("%s: %s %s.", self:Tag(r), who, text)
+end
+
+-- Asks how many tickets to add or remove by hand, then does it. Removing never takes more
+-- than the person has.
+function Raffle:AskTickets(r, who, add, why)
+    if not self:CanChangeTickets(r) then return end
+    local buyer = self:GetTally(r).byName[who]
+    local has = buyer and buyer.tickets or 0
+    local now = string.format("%s has %d %s now.", who, has, has == 1 and "ticket" or "tickets")
+    if add then
+        GT.Actions.AskNumber("Add raffle tickets", string.format("How many tickets do you want to add for %s?\n\n%s", who, now), function(n)
+            self:AddTickets(r, who, n, why)
+        end)
+    else
+        GT.Actions.AskNumber("Remove raffle tickets", string.format("How many tickets do you want to remove from %s?\n\n%s Their highest numbers come off, and those numbers are not used again.", who, now), function(n)
+            local current = self:GetTally(r).byName[who]
+            local most = current and current.tickets or 0
+            if most == 0 then return end
+            self:AddTickets(r, who, -math.min(n, most))
+        end)
+    end
 end
 
 function Raffle:SetExcluded(r, who, on)
@@ -1165,7 +1258,7 @@ local function SplitParts(header, entries, closing)
     for _, entry in ipairs(entries) do
         local sep = (line == "") and "" or " "
         if #line + #sep + #entry > MAX_CHAT then
-            parts[#parts + 1] = line
+            if line ~= "" then parts[#parts + 1] = line end
             line, sep = "", ""
         end
         line = line .. sep .. entry
@@ -1244,14 +1337,22 @@ function Raffle:AnnounceParts(r)
     local now = GetTimeStamp()
     local when
     if now < start then
-        when = string.format("Ticket sales open in %s and run for %s.", NiceLeft(start - now), NiceLeft(finish - start))
+        when = string.format("Sales open in %s and run for %s.", NiceLeft(start - now), NiceLeft(finish - start))
     else
-        when = string.format("Ticket sales end in %s.", NiceLeft(finish - now))
+        when = string.format("Sales end in %s.", NiceLeft(finish - now))
     end
     local prizes = #self:Prizes(r) > 1 and ("! Prizes: " .. self:PrizeListText(r) .. ".") or (" for " .. self:PrizeText(r) .. "!")
-    local text = string.format("RAFFLE%s Tickets are %s each: %s (every %s in one deposit or mail is one ticket, so send a multiple of it). %s %s Good luck!",
-        prizes, U.FormatGold(r.price), table.concat(self:Ways(r), " or "), U.FormatGold(r.price), when, self:Rules(r))
-    return SplitParts("", { text })
+    -- 1.30.1 (Albert): short wording, so the announcement with its totals fits one chat message.
+    -- Each sentence is its own entry: if long prizes push it over, it splits between sentences.
+    local entries = {
+        "RAFFLE" .. prizes,
+        string.format("Tickets are %s each: %s, in multiples of %s.", U.FormatGold(r.price), table.concat(self:Ways(r), " or "), U.FormatGold(r.price)),
+        when,
+        self:Rules(r),
+    }
+    -- 1.30.0 (Albert): the running totals go out with the announcement.
+    if self:GetTally(r).total > 0 then entries[#entries + 1] = "So far: " .. self:TotalsText(r) .. "." end
+    return SplitParts("", entries, "Good luck!")
 end
 
 function Raffle:Buyers(r)
@@ -1260,10 +1361,20 @@ function Raffle:Buyers(r)
     return buyers
 end
 
+-- The running totals (1.30.0): "705 tickets, 14 buyers, 680,000g". Tickets are
+-- those in the draw (bought or given by hand), buyers are the people holding at least one, and
+-- the gold is everything paid for this raffle. After the draw, tickets is the number drawn from.
+function Raffle:TotalsText(r)
+    local tally = self:GetTally(r)
+    local tickets = r.draw and r.draw.total or tally.total
+    local buyers = self:Buyers(r)
+    return string.format("%s %s, %s %s, %s", ZO_CommaDelimitNumber(tickets), tickets == 1 and "ticket" or "tickets",
+        ZO_CommaDelimitNumber(buyers), buyers == 1 and "buyer" or "buyers", U.FormatGold(tally.gold))
+end
+
 function Raffle:ResultParts(r)
     local draw = r.draw
-    local buyers = self:Buyers(r)
-    local header = string.format("Raffle draw for %s: %d tickets from %d %s.", self:PrizeText(r), draw.total, buyers, buyers == 1 and "buyer" or "buyers")
+    local header = string.format("Raffle draw for %s: %s.", self:PrizeText(r), self:TotalsText(r))
     local entries = {}
     for _, res in ipairs(draw.results) do
         if res.void then
@@ -1282,6 +1393,7 @@ end
 function Raffle:ShowCopy(text, what)
     local Report = GT.Report
     Report.exportParts = { text }
+    Report.exportTitles = nil
     Report.exportIndex = 1
     U.ShowOnTop(FurysGuildToolset_Export)
     Report:ShowExportPart(0)
@@ -1309,7 +1421,7 @@ function Raffle:DiscordAnnounce(r)
     local tally = self:GetTally(r)
     if tally.total > 0 then
         lines[#lines + 1] = ""
-        lines[#lines + 1] = string.format("**Tickets so far: %d**", tally.total)
+        lines[#lines + 1] = string.format("**So far: %s**", self:TotalsText(r))
         for _, b in ipairs(tally.list) do
             if b.tickets > 0 then
                 lines[#lines + 1] = string.format("%s: %d (%s)", b.who, b.tickets, Raffle.NumbersText(b.ranges))
@@ -1321,9 +1433,7 @@ end
 
 function Raffle:DiscordResults(r)
     local draw = r.draw
-    local buyers = self:Buyers(r)
-    local lines = { string.format("**Raffle results: %s**", self:PrizeText(r)),
-        string.format("%d tickets from %d %s.", draw.total, buyers, buyers == 1 and "buyer" or "buyers"), "" }
+    local lines = { string.format("**Raffle results: %s**", self:PrizeText(r)), self:TotalsText(r) .. ".", "" }
     for _, res in ipairs(draw.results) do
         local prize = self:PrizeFor(r, Slot(res))
         if res.void then
@@ -1358,6 +1468,7 @@ function Raffle:Post(r, parts)
     end
     local Report = GT.Report
     Report.exportParts = { table.concat(parts, "\n") }
+    Report.exportTitles = nil
     Report.exportIndex = 1
     U.ShowOnTop(FurysGuildToolset_Export)
     Report:ShowExportPart(0)
@@ -1413,9 +1524,18 @@ function Raffle:TabSummary()
     if r.useMail then where[#where + 1] = "mail" .. (Keyword(r) ~= "" and string.format(" (\"%s\")", r.mailSubject) or "") end
     local warnings = ""
     for _, text in ipairs(self:Warnings(r)) do warnings = warnings .. "  |cFFA45C" .. text .. "|r" end
-    return string.format("%s  %s: %s, %s a ticket, %d %s%s. %d tickets, %s.%s", head, table.concat(where, " + "), self:PrizeText(r),
+    -- 1.29.0: mailed ticket gold you passed on to the bank, and what you still hold.
+    local owed = r.passMail and self:Routing().owed or 0
+    if tally.passed > 0 then extra = extra .. string.format("  |cB4B0D8Mailed gold you put in the bank: %s (counts for the senders, not you).|r", U.FormatGold(tally.passed)) end
+    if owed > 0 then extra = extra .. string.format("  |cFFC857Mailed gold you still hold: %s. Your next bank deposits pass it on before they buy you tickets.|r", U.FormatGold(owed)) end
+    -- 1.30.0 (Albert): the running totals come first, right after the countdown.
+    local sold = ""
+    if status == "selling" then sold = string.format("  |cECEAF8Sold so far: %s.|r", self:TotalsText(r))
+    elseif status == "closed" or status == "drawn" then sold = string.format("  |cECEAF8Sold: %s.|r", self:TotalsText(r)) end
+    return string.format("%s%s  %s: %s, %s a ticket, %d %s%s.%s", head, sold,
+        table.concat(where, " + "), self:PrizeText(r),
         U.FormatGold(r.price), r.winners, r.winners == 1 and "winner" or "winners", (r.oneWin and r.winners > 1) and " (one each)" or "",
-        tally.total, U.FormatGold(tally.gold), loading) .. self:PrizeWarning(r) .. warnings .. extra
+        loading) .. self:PrizeWarning(r) .. warnings .. extra
 end
 
 -- A warning on the top line when several prizes are listed but the number of winners differs.
@@ -1444,6 +1564,11 @@ function Raffle:RowTooltip(r, b)
         b.mails, b.mails == 1 and "mail" or "mails")
     if b.overCap > 0 then lines[#lines + 1] = string.format("%d tickets over the cap of %d.", b.overCap, r.maxTickets) end
     if b.refund > 0 then lines[#lines + 1] = string.format("Not used: %s (each payment's remainder below the ticket price%s).", U.FormatGold(b.refund), b.overCap > 0 and ", and gold over the limit" or "") end
+    if zo_strlower(b.who) == zo_strlower(GetDisplayName()) then
+        local tally, owed = self:GetTally(r), self:Routing().owed
+        if tally.passed > 0 then lines[#lines + 1] = string.format("%s of your bank deposits was ticket gold mailed to you. It counts for the senders, not for you.", U.FormatGold(tally.passed)) end
+        if owed > 0 then lines[#lines + 1] = string.format("You still hold %s of mailed ticket gold. Your next deposits pass it on first.", U.FormatGold(owed)) end
+    end
     for _, c in ipairs(r.changes) do
         if c.who == b.who then lines[#lines + 1] = string.format("%s: %s", U.FormatDate(c.ts), c.text) end
     end
@@ -1463,9 +1588,9 @@ function Raffle:RowMenu(r, b)
         end
     end
     if not r.draw then
-        items[#items + 1] = { label = "Add 1 ticket", fn = function() self:AddTickets(r, b.who, 1) end }
-        items[#items + 1] = { label = "Add 5 tickets", fn = function() self:AddTickets(r, b.who, 5) end }
-        if b.tickets > 0 then items[#items + 1] = { label = "Remove 1 ticket", fn = function() self:AddTickets(r, b.who, -1) end } end
+        -- 1.29.0 (Albert): a box to type the amount, instead of Add 1 / Add 5 / Remove 1.
+        items[#items + 1] = { label = "Add tickets...", fn = function() self:AskTickets(r, b.who, true) end }
+        if b.tickets > 0 then items[#items + 1] = { label = "Remove tickets...", fn = function() self:AskTickets(r, b.who, false) end } end
         items[#items + 1] = { label = b.excluded and "Put back in the draw" or "Leave out of the draw", fn = function() self:SetExcluded(r, b.who, not b.excluded) end }
         if b.adjust ~= 0 or b.excluded then items[#items + 1] = { label = "Undo hand changes", fn = function() self:ResetHand(r, b.who) end } end
     end
@@ -1482,7 +1607,7 @@ Raffle.columns = {
     { title = "Buyer", width = 190, tip = "Who deposited or mailed gold during the sale, or got tickets by hand. In order of their first payment." },
     { title = "Tickets", width = 80, tip = "Tickets in the draw: gold / ticket price (up to the cap), plus or minus changes made by hand." },
     { title = "Numbers", width = 160, tip = "This buyer's ticket numbers. The draw picks a random number. New raffles (1.20.0) number tickets in the order they were bought, so someone who buys again later gets later numbers; hover a row for all of them." },
-    { title = "Gold", width = 120, tip = "Gold deposited or mailed during the sale." },
+    { title = "Gold", width = 120, tip = "Gold deposited or mailed during the sale. Gold mailed to you that you then put in the guild bank counts once, for whoever mailed it." },
     { title = "Not used", width = 110, tip = "Gold that didn't buy a ticket: each payment's remainder below the ticket price (dropped, not carried over), and gold over the per-person limit." },
     { title = "Chance", width = 80, tip = "Share of all tickets." },
     { title = "Last payment", width = 130 },
@@ -1637,6 +1762,7 @@ function Raffle:GiftMenu(control, who)
         for _, n in ipairs({ 1, 2, 5, 10 }) do
             AddMenuItem(string.format("%sGive %d %s", prefix, n, n == 1 and "ticket" or "tickets"), function() self:AddTickets(r, who, n, why) end)
         end
+        AddMenuItem(prefix .. "Give another amount...", function() self:AskTickets(r, who, true, why) end)
     end
     ShowMenu(control)
 end
@@ -1706,6 +1832,11 @@ function Raffle:RegisterTab()
         title = function() return self:TabTitle() end,
         tip = "Raffle tickets bought with gold deposited into a guild bank or mailed to you, and the winners draw.",
         GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "The raffle") end,
+        about = {
+            "Runs a guild raffle: members buy tickets with gold put in a guild bank or mailed to you, and you draw the winners.",
+            "Set the prize, the ticket price and the sale times on the Raffle settings page. Ticket buyers are listed here as their gold arrives.",
+        },
+        emptyText = "No tickets yet.",
         GetSummary = function() return self:TabSummary() end,
         GetRows = function() return self:TabRows() end,
         columns = function() return self.view == "unassigned" and Raffle.unassignedColumns or Raffle.columns end,

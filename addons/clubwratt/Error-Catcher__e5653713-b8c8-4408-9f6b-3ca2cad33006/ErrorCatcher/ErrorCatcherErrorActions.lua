@@ -12,10 +12,18 @@ local EVENT_NAMESPACE = ErrorCatcher.name .. "_Errors"
 
 local handling = false
 
+---@param fn string A function's name as a trace prints it
+---@return string[]|nil addons Those seen hooking it
+local function HookersOf(fn)
+    return ErrorCatcher.state.hookersByFn[ErrorCatcher.HookUtils.BareName(fn)]
+end
+
 ---@param errorText any
 local function Handle(errorText)
-    local line = ErrorUtils.Describe(errorText)
+    local line = ErrorUtils.Describe(errorText, HookersOf)
     if not line then
+        -- Text without a trace is a notice; the low memory warning is worth a memory reading.
+        ErrorCatcher.MemoryActions.OnNotice(errorText)
         return
     end
     ErrorCatcher.state.counters.errors = ErrorCatcher.state.counters.errors + 1

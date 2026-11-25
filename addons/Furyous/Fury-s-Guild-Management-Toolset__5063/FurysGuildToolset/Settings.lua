@@ -85,7 +85,7 @@ function Settings:AppendGuildRules(options)
         return
     end
     options[#options + 1] = { type = "description",
-        text = "Each guild you get alerts from has its own limits, ignored ranks, mail texts, auto-demote, inactivity limits, hopper and bank space settings. After changing bank limits, click Rescan with current settings." }
+        text = "Each guild you get alerts from has its own limits, ignored ranks, mail texts, auto-demote, inactivity limits, hopper and bank space settings. After changing bank limits, click Rescan alerts." }
     for _, guildId in ipairs(monitored) do
         local gid = guildId
         local controls = {}
@@ -103,7 +103,7 @@ function Settings:AppendGuildRules(options)
                 getFunc = function() return copyFrom end, setFunc = function(v) copyFrom = v end, width = "half" }
             controls[#controls + 1] = { type = "button", name = "Copy", width = "half", isDangerous = true,
                 tooltip = "Copies every setting in this section from the guild picked on the left, except the limit for each rank (ranks differ between guilds). Asks first.",
-                warning = "Replaces this guild's settings with the other guild's. Click Rescan with current settings afterwards.",
+                warning = "Replaces this guild's settings with the other guild's. Click Rescan alerts afterwards.",
                 func = function()
                     GT:CopyGuildSettings(copyFrom, gid)
                     CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", self.rulesPanel)
@@ -134,11 +134,11 @@ function Settings:Build()
     self.panel = LAM:RegisterAddonPanel("FurysGuildToolset_Settings", panelData)
 
     local options = {
-        { type = "description", text = "Type /gt to open the report window. Alerts appear in chat and on screen while you play, and a summary appears at login." },
-        { type = "slider", name = "First run: look back (days)", min = 1, max = 30, step = 1,
-          tooltip = "How far back to scan the first time a guild is checked. Later logins pick up where the last session stopped.",
+        { type = "description", text = "Type /gt to open the report window. Its Start here button (next to the version number) sets up your guilds and features in one place; the pages here have the details. Alerts appear in chat and on screen while you play, and a summary appears at login." },
+        { type = "slider", name = "First run: look back (days)", min = 1, max = 365, step = 1,
+          tooltip = "How far back to scan the first time a guild is checked (up to what LibHistoire has saved). Later logins pick up where the last session stopped, so changing it only affects guilds the toolset has not read yet. The Members tab always reads all saved roster history.",
           getFunc = function() return GT.sv.firstRunLookbackDays end, setFunc = function(v) GT.sv.firstRunLookbackDays = v end, default = 30 },
-        { type = "button", name = "Rescan with current settings", width = "half",
+        { type = "button", name = "Rescan alerts", width = "half",
           tooltip = "Rebuilds bank alerts and the hopper report from the History log using the settings below. No reload needed. Use it after changing thresholds or ignored ranks.",
           func = function() GT:Rescan() end },
     }

@@ -161,7 +161,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SimpleDailyCraft](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MelanAster/SimpleDailyCraft__3844) | MelanAster | PC / Mac | 0.93 |
 | [SimpleDailyCraft 0.97 (0.96 + New Alchemy Regs)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/SimpleDailyCraft-0.97-0.96-New-Alchemy-Regs__4945) | sinnereso | PC / Mac | 0.97 |
 | [SimpleDailyCraft 0.97 — U51 FIX](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VotMyID/SimpleDailyCraft-0.97-U51-FIX__4898) | VotMyID | PC / Mac | 0.97 |
-| [SimpleDPS Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AndrewRossProjects/SimpleDPS-Meter__2849) | AndrewRossProjects | PC / Mac | 4.1.101052 |
+| [SimpleDPS Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AndrewRossProjects/SimpleDPS-Meter__2849) | AndrewRossProjects | PC / Mac | 4.1.101052+1 |
 | [SimpleGroupDPS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/SimpleGroupDPS__31353ae2-3899-477e-935e-69f9756c9d60) | FiNk3F13 | Console | — |
 | [SimpleGroupDPS2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/SimpleGroupDPS2__7a5d051d-6b7c-4117-8748-0b3ec7a3c234) | FiNk3F13 | Console | — |
 | [SimpleHelmetToggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DeanGrey/SimpleHelmetToggle__374) | DeanGrey | PC / Mac | 0.4d |
@@ -181,6 +181,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Skill Issue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Skill-Issue__5094) | Schrodi | PC / Mac | 1.0.1 |
 | [Skill Issue Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drako-Ei/Skill-Issue-Tracker__4744) | Drako-Ei | PC / Mac | 1.0.3 |
 | [Skill Lines](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ranckor90/Skill-Lines__4041) | Ranckor90 | PC / Mac | v2.1.2 |
+| [Skill Point Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Khazaril/Skill-Point-Finder__da73e1a0-38b3-44ff-b0d1-f450aea66fa4) | Khazaril | Console | — |
 | [Skill Point Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Skill-Point-Finder__427000e9-72c4-4fc9-b9b6-3cca4f863607) | TheGreyWolf98 | Console | — |
 | [Skill Ranks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Skill-Ranks__3745) | notnear | PC / Mac | 1.4.0 |
 | [Skill Style Cycler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Skill-Style-Cycler__4014) | Kyzeragon | PC / Mac | 1.4.3 |

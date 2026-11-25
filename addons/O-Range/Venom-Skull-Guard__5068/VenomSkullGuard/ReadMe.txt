@@ -1,5 +1,5 @@
 Venom Skull Guard
-Version 1.5.1
+Version 1.6.0
 
 Author
 ------
@@ -8,13 +8,18 @@ O-Range
 Description
 -----------
 Venom Skull Guard helps prevent accidental low-value
-casts of the Necromancer Venom Skull morph.
+casts of the Necromancer Venom Skull morph, and can also
+optionally block Render Flesh and its morphs above a
+configurable health percentage.
 
 Unlike other Skull abilities, Venom Skull builds stacks
 and gains additional power as those stacks increase.
 
 This addon allows players to protect those valuable
-casts through configurable stamina and stack thresholds.
+casts through configurable stamina and stack thresholds,
+while also offering an independent health threshold
+guard for Render Flesh, Resistant Flesh, and Blood
+Sacrifice.
 
 Protection types may be used independently or together.
 
@@ -25,6 +30,9 @@ Features
 - Optional Stack Protection
 - Configurable Stamina Threshold
 - Configurable Stack Threshold
+- Optional Render Flesh Protection (Render Flesh,
+  Resistant Flesh, Blood Sacrifice)
+- Configurable Health Threshold ("Block Above Health %")
 - Alert Notifications
 - Account-wide Settings
 - LibAddonMenu Settings Panel
@@ -34,7 +42,7 @@ Settings
 
 Enable Blocker
 --------------
-Master enable/disable toggle.
+Master enable/disable toggle for Venom Skull Guard.
 
 Stamina Protection
 ------------------
@@ -93,7 +101,7 @@ This effectively reserves Venom Skull for empowered casts.
 Combined Protection
 -------------------
 
-Both protection systems can run together.
+Both Venom Skull protection systems can run together.
 
 Example:
 
@@ -109,6 +117,19 @@ Venom Skull is only allowed when:
 
 - Stamina is 25% or higher
 - Venom Skull stacks are 2 or higher
+
+Render Flesh Protection
+-----------------------
+
+Enable Render Flesh Protection
+When enabled, Render Flesh and its morphs (Resistant
+Flesh and Blood Sacrifice) are blocked while your
+current health percentage is above the configured
+threshold.
+
+Block Above Health %
+Adjust the health percentage above which Render Flesh
+and its morphs are blocked (default: 70%).
 
 Alerts
 ------
@@ -138,6 +159,14 @@ Installation
 Version History
 ---------------
 
+Version 1.6.0
+- Merged Render Flesh protection (Render Flesh, Resistant
+  Flesh, Blood Sacrifice) above a configurable health %
+- Added Render Flesh settings to the LibAddonMenu panel
+- Added Render Flesh block alerts and independent alert
+  cooldown tracking
+- Updated addon version to 1.6.0 and documentation
+
 Version 1.5.1
 - Added explicit dependency version requirements
 - Updated documentation
@@ -152,8 +181,8 @@ Version 1.4
 - Added Venom Skull stack protection
 - Added configurable minimum stack threshold
 - Added separate stamina protection toggle
-- Added combined protection logic
-- Added stack-based alerts
+- Added combined stamina and stack blocking logic
+- Added stack-based alert messages
 
 Version 1.0
 - Initial release
@@ -161,6 +190,7 @@ Version 1.0
 Thank You
 ---------
 
-Venom Skull Guard was created to help Necromancer players
-protect valuable Venom Skull casts while preserving the
-freedom to customize how those protections work.
+Venom Skull Guard was created to help players protect
+valuable Venom Skull casts and avoid wasted Render
+Flesh casts while preserving the freedom to customize
+how those protections work.

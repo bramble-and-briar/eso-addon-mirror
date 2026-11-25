@@ -24,12 +24,21 @@ function U.Alert(text)
 end
 
 -- "a, b\nc" -> { a = true, b = true, c = true }, lowercased and trimmed.
+-- 1.27.0: the last few texts read are kept, so the "ignore these names and ranks" lists aren't
+-- taken apart again for every bank event. Callers only read the result.
+local parsedLists, parsedCount = {}, 0
 function U.ParseList(str)
-    local set = {}
-    for raw in string.gmatch(str or "", "[^,\n;]+") do
+    str = str or ""
+    local set = parsedLists[str]
+    if set then return set end
+    set = {}
+    for raw in string.gmatch(str, "[^,\n;]+") do
         local entry = zo_strtrim(raw)
         if entry ~= "" then set[zo_strlower(entry)] = true end
     end
+    if parsedCount >= 50 then parsedLists, parsedCount = {}, 0 end
+    parsedLists[str] = set
+    parsedCount = parsedCount + 1
     return set
 end
 

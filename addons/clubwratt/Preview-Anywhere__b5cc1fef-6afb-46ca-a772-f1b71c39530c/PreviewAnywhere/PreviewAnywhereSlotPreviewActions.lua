@@ -1,7 +1,8 @@
 -- PreviewAnywhereSlotPreviewActions.lua: the 3D item preview for bag slots on gamepad screens
 -- that lack it, driven the way each host screen expects:
 --   * interaction scenes without a preview fragment (bank, house bank, Furnishing Vault, guild
---     bank, vendor Sell / Buyback / Repair tabs) use the vendor Buy-screen pattern:
+--     bank, vendor Sell / Buyback / Repair tabs, guild trader Sell tab) use the vendor Buy-screen
+--     pattern:
 --     ITEM_PREVIEW_GAMEPAD:SetInteractionCameraPreviewEnabled(...) then PreviewInventoryItem;
 --     re-preview as the selection moves; drop out when the tab or scene goes away.
 --   * the inventory root scene already embeds the preview fragment, so we call the inventory's
@@ -56,20 +57,47 @@ local function TargetName(target)
     return tostring(GetItemName(target.bagId, target.slotIndex))
 end
 
+---Whether the engine previews this bag slot as a slot (PreviewInventoryItem).
+---@param bagId integer|nil
+---@param slotIndex integer|nil
+---@return boolean
+local function CanPreviewSlot(bagId, slotIndex)
+    if not (bagId and slotIndex) then
+        return false
+    end
+    local ok, can = pcall(CanInventoryItemBePreviewed, bagId, slotIndex)
+    return ok and can == true
+end
+
+---The target the engine can render for a selection: the selection itself, or, for a bag slot the
+---engine will not preview as a slot (a furnishing plan), the slot's item link when that previews
+---(the link preview type renders what the plan crafts); nil when nothing renders.
+---@param target table|nil
+---@return table|nil
+local function RenderableTarget(target)
+    if not target then
+        return nil
+    end
+    if target.link then
+        return ProbeUtils.CanPreviewLink(target.link) and target or nil
+    end
+    if CanPreviewSlot(target.bagId, target.slotIndex) then
+        return target
+    end
+    if not (target.bagId and target.slotIndex) then
+        return nil
+    end
+    local ok, link = pcall(GetItemLink, target.bagId, target.slotIndex)
+    if ok and ProbeUtils.CanPreviewLink(link) then
+        return { link = link }
+    end
+    return nil
+end
+
 ---@param target table|nil
 ---@return boolean
 local function CanPreviewTarget(target)
-    if not target then
-        return false
-    end
-    if target.link then
-        return ProbeUtils.CanPreviewLink(target.link)
-    end
-    if not (target.bagId and target.slotIndex) then
-        return false
-    end
-    local ok, can = pcall(CanInventoryItemBePreviewed, target.bagId, target.slotIndex)
-    return ok and can == true
+    return RenderableTarget(target) ~= nil
 end
 
 local function IsInteractionPreviewOn()
@@ -78,13 +106,6 @@ end
 
 local function IsCamPreviewing()
     return camPreview.active or IsInteractionPreviewOn()
-end
-
----@param bagId integer|nil
----@param slotIndex integer|nil
----@return boolean
-local function CanPreviewSlot(bagId, slotIndex)
-    return CanPreviewTarget({ bagId = bagId, slotIndex = slotIndex })
 end
 
 ---Availability context, logged whenever a preview is attempted.
@@ -101,8 +122,10 @@ end
 
 -- Hosts ----------------------------------------------------------------------
 -- A host describes one interaction scene: how to read the selected bag slot and which keybind
--- group carries our R3 button (so its label can be refreshed), plus whether the scene carries the
--- quadrant-3 blur fragment permanently (bank scenes do; the vendor adds it only on its Buy tab).
+-- group carries our R3 button (so its label can be refreshed), plus the blur fragment that would
+-- sit over the preview and whether the scene carries it permanently (the bank and guild trader
+-- scenes do; the vendor adds it only on its Buy tab). refreshKeybindsOnSelection marks the screens
+-- whose own buttons never re-evaluate as the selection moves.
 
 local STORE_PREVIEW_MODES = {} -- filled in Initialize once the ZO_MODE_STORE_* constants are known
 
@@ -111,6 +134,7 @@ local HOSTS = {}
 HOSTS.gamepad_banking = {
     sceneName = "gamepad_banking",
     label = "bank",
+    blurFragmentName = "FRAME_TARGET_BLUR_QUADRANT_3_GAMEPAD_FRAGMENT",
     hasPermanentBlur = true,
     GetObject = function() return rawget(_G, "GAMEPAD_BANKING") end,
     GetTarget = function(self)
@@ -134,6 +158,7 @@ HOSTS.gamepad_banking = {
 HOSTS.gamepad_guild_bank = {
     sceneName = "gamepad_guild_bank",
     label = "guild bank",
+    blurFragmentName = "FRAME_TARGET_BLUR_QUADRANT_3_GAMEPAD_FRAGMENT",
     hasPermanentBlur = true,
     GetObject = function() return rawget(_G, "GAMEPAD_GUILD_BANK") end,
     GetTarget = HOSTS.gamepad_banking.GetTarget,
@@ -146,7 +171,9 @@ HOSTS.gamepad_guild_bank = {
 HOSTS.gamepad_store = {
     sceneName = "gamepad_store",
     label = "vendor",
+    blurFragmentName = "FRAME_TARGET_BLUR_QUADRANT_3_GAMEPAD_FRAGMENT",
     hasPermanentBlur = false,
+    refreshKeybindsOnSelection = true,
     GetObject = function() return rawget(_G, "STORE_WINDOW_GAMEPAD") end,
     ---Only the tabs that list the player's own items (Sell, Buyback, Repair, fence Sell/Launder);
     ---the Buy tab has the game's own R3 preview. Buyback rows are store entries, not bag slots, so
@@ -185,6 +212,39 @@ HOSTS.gamepad_store = {
     end,
 }
 
+-- Guild trader: only the Sell tab, which lists the player's own bag (Browse results have the
+-- game's own Preview; Listings has R3 as its sort button). The trader scene frames its NPC in
+-- quadrant 4, so that is where its blur sits. The Sell tab object does not exist until the first
+-- trader visit (the trader builds its tabs lazily), so R3 goes in as the scene shows
+-- (InstallTraderSell).
+HOSTS.gamepad_trading_house = {
+    sceneName = "gamepad_trading_house",
+    label = "guild trader",
+    blurFragmentName = "FRAME_TARGET_BLUR_QUADRANT_4_GAMEPAD_FRAGMENT",
+    hasPermanentBlur = true,
+    refreshKeybindsOnSelection = true,
+    GetObject = function() return rawget(_G, "GAMEPAD_TRADING_HOUSE_SELL") end,
+    GetTarget = function(self)
+        local sell = self.GetObject()
+        if not (sell and sell.itemList and sell:GetFragment():IsShowing()) then
+            return nil
+        end
+        local data = sell.itemList:GetTargetData()
+        if not data then
+            return nil
+        end
+        local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(data)
+        if not (bagId and slotIndex) then
+            return nil
+        end
+        return { bagId = bagId, slotIndex = slotIndex }
+    end,
+    GetKeybindGroup = function(self)
+        local sell = self.GetObject()
+        return sell and sell.keybindStripDescriptor
+    end,
+}
+
 ---@return table|nil host The host owning the current scene
 local function GetCurrentHost()
     return HOSTS[ProbeUtils.CurrentSceneName()]
@@ -192,13 +252,13 @@ end
 
 -- Interaction camera preview ------------------------------------------------------
 
----Bank scenes carry FRAME_TARGET_BLUR_QUADRANT_3_GAMEPAD_FRAGMENT permanently, so we pull it out of
----the scene's own fragment list while the preview renders and put it back afterwards (always
----restored on scene hidden so the scene definition is never left altered). The vendor adds the
----same blur as a temporary fragment (its Buy tab leaves it behind when you switch tabs), which
----the scene manager's temporary-fragment API handles.
+---Bank and guild trader scenes carry their blur fragment permanently, so we pull it out of the
+---scene's own fragment list while the preview renders and put it back afterwards (always
+---restored on scene hidden so the scene definition is never left altered). The vendor adds its
+---blur as a temporary fragment (its Buy tab leaves it behind when you switch tabs), which the
+---scene manager's temporary-fragment API handles.
 local function SetHostBlurActive(host, active)
-    local blur = FRAME_TARGET_BLUR_QUADRANT_3_GAMEPAD_FRAGMENT
+    local blur = host and rawget(_G, host.blurFragmentName)
     local scene = host and SCENE_MANAGER:GetScene(host.sceneName)
     if not (blur and scene) then
         return
@@ -247,13 +307,17 @@ local function PreviewCamTarget(target)
         return
     end
     camPreview.targetKey = key
-    PA.Debug("preview %s '%s'", key, TargetName(target))
+    local renderable = RenderableTarget(target)
+    if not renderable then
+        return
+    end
+    PA.Debug("preview %s '%s'%s", key, TargetName(target), renderable ~= target and " through its link" or "")
     PA.SafeCall("PreviewTarget", function()
         ITEM_PREVIEW_GAMEPAD:ClearPreviewCollection()
-        if target.link then
-            ITEM_PREVIEW_GAMEPAD:SharedPreviewSetup(PA.LinkPreview.PREVIEW_TYPE, target.link)
+        if renderable.link then
+            ITEM_PREVIEW_GAMEPAD:SharedPreviewSetup(PA.LinkPreview.PREVIEW_TYPE, renderable.link)
         else
-            ITEM_PREVIEW_GAMEPAD:PreviewInventoryItem(target.bagId, target.slotIndex)
+            ITEM_PREVIEW_GAMEPAD:PreviewInventoryItem(renderable.bagId, renderable.slotIndex)
         end
     end)
     PA.DebugLater(500, "  +500ms: %s")
@@ -341,10 +405,11 @@ local function OnHostSelectionChanged(host)
     if GetCurrentHost() ~= host then
         return
     end
-    -- The vendor's Sell/Buyback/Repair tabs never refresh their keybind group on selection change
-    -- (their stock buttons do not depend on the row), so our R3 label/visibility would only update
-    -- by accident. Refresh it here (strip only; see the rules at the top of the file).
-    if host == HOSTS.gamepad_store then
+    -- The vendor's Sell/Buyback/Repair tabs and the guild trader's Sell tab never refresh their
+    -- keybind group on selection change (their stock buttons do not depend on the row), so our R3
+    -- label/visibility would only update by accident. Refresh it here (strip only; see the rules
+    -- at the top of the file).
+    if host.refreshKeybindsOnSelection then
         RefreshHostKeybinds(host)
     end
     if not camPreview.active then
@@ -361,7 +426,9 @@ end
 
 local function OnHostSceneStateChange(host, newState)
     PA.Debug("%s state %s | %s", host.sceneName, tostring(newState), ProbeUtils.PreviewStateLine())
-    if newState == SCENE_HIDING and IsCamPreviewing() then
+    if newState == SCENE_SHOWING and host.OnSceneShowing then
+        host.OnSceneShowing(host)
+    elseif newState == SCENE_HIDING and IsCamPreviewing() then
         -- Restore the interact camera before the interaction tears down (store buy does the same).
         PA.Log("%s hiding while previewing; ending preview", host.sceneName)
         StopCamPreview(host)
@@ -489,6 +556,29 @@ local function AddStoreKeybinds(store)
     end
 end
 
+---Guild trader Sell tab, once, the first time the trader scene shows after the tab was built:
+---R3 into the tab's button group, selection following through the list's own callback, and an
+---end to the preview when the tab goes away (switching tabs leaves the trader scene up). All
+---three are the trader's own registration points, so no trader function is hooked.
+local function InstallTraderSell(host)
+    local sell = host.GetObject()
+    if not sell or sell.previewAnywhereInstalled then
+        return
+    end
+    sell.previewAnywhereInstalled = true
+    AddR3ToGroup(sell.keybindStripDescriptor, "guild trader Sell")
+    sell.itemList:GetParametricList():SetOnTargetDataChangedCallback(PA.Guard("TraderSellTargetChanged", function()
+        OnHostSelectionChanged(host)
+    end))
+    sell:GetFragment():RegisterCallback("StateChange", PA.Guard("TraderSellTabStateChange", function(_oldState, newState)
+        if newState == SCENE_FRAGMENT_HIDING and IsCamPreviewing() and GetCurrentHost() == host then
+            PA.Log("guild trader Sell tab hiding while previewing; ending preview")
+            StopCamPreview(host)
+        end
+    end))
+end
+HOSTS.gamepad_trading_house.OnSceneShowing = InstallTraderSell
+
 -- Inventory -------------------------------------------------------------------
 
 local function RefreshInventoryKeybinds()
@@ -550,7 +640,7 @@ local function AddPreviewSlotAction(inventorySlot, slotActions)
                 PA.Log("Actions: End Preview (%s)", host.label)
                 StopCamPreview(host)
             end)
-        elseif CanPreviewSlot(bagId, slotIndex) then
+        elseif CanPreviewTarget({ bagId = bagId, slotIndex = slotIndex }) then
             slotActions:AddSlotAction(SI_ITEM_ACTION_PREVIEW, function()
                 PA.Log("Actions: Preview (%s) bag %d slot %d", host.label, bagId, slotIndex)
                 -- Let the dialog finish closing before we swap camera fragments.
@@ -643,11 +733,6 @@ function SlotPreview.Initialize()
             PA.Log("scene %s not found; no auto-exit for it", sceneName)
         end
     end
-end
-
----Hosts the hover module must leave alone (they have R3 + Actions-menu preview already).
-function SlotPreview.IsHostScene(sceneName)
-    return HOSTS[sceneName] ~= nil
 end
 
 PA.SlotPreview = SlotPreview

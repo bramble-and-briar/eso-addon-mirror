@@ -1,0 +1,5 @@
+-- HomeStationMarker.lua: on purpose empty.
+--
+-- This add-on carries the name HomeStationMarker and nothing of it. It defines no global: LibLazyCrafting asks
+-- "if HomeStationMarker then" before it calls the real add-on, and has to go on reading nil.
+-- See README.md for why it exists.

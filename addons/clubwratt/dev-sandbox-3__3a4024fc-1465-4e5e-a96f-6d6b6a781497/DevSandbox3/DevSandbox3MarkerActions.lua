@@ -8,6 +8,8 @@
 --                   distance; for a tracker with candidates on, also a slot of its kind whose node is not named yet.
 --                   A candidate that resolves to something nobody hunts just disappears.
 --   checkpoint colour instead of orange / purple / yellow for a slot the player has been within checkedM of recently
+--   survey site     drawn by DevSandbox3.Survey before anything else: a dot per node of the site (not per slot), or
+--                   one white dot on a site with no node
 --   cyan            dot above every known node when debugNodes is on (must sit on real nodes). Same size as the other
 --                   dots, 1.5 m above the nearest known location's ground height (nodes carry no height), else player height.
 -- CT_TEXTURE controls with a render space, billboarded, constant apparent size (optional far shrink). Each dot has a
@@ -17,6 +19,7 @@ local Markers = {}
 
 local Utils = DevSandbox3.MarkerUtils
 local SlotActions = DevSandbox3.SlotActions
+local Survey = DevSandbox3.Survey
 
 local MAX = 128
 local TEXTURE = "DevSandbox3/textures/dot_plain.dds"
@@ -97,15 +100,17 @@ local function Place(x, z, h, r, g, b, a)
 end
 
 local function Update()
-    if IsReticleHidden() or not SlotActions.IsActiveZone() then
+    -- two things draw: the slots something marks in this zone, and a survey site (in any zone, marked or not)
+    local active = SlotActions.IsActiveZone()
+    if not active then local dr = Markers.drawn; dr.tracked, dr.empty, dr.unknown, dr.checked = 0, 0, 0, 0 end
+    if IsReticleHidden() or not (active or Survey.site) then
         HideFrom(1)
-        if not SlotActions.IsActiveZone() then local dr = Markers.drawn; dr.tracked, dr.empty, dr.unknown, dr.checked = 0, 0, 0, 0 end
         return
     end
     local s = S()
     local _, prx, pry, prz = GetUnitRawWorldPosition("player")
     local px, ph, pz = prx / 100, pry / 100, prz / 100
-    SlotActions.Judge(px, pz)
+    if active then SlotActions.Judge(px, pz) end
 
     local probe = Markers.probe
     Set3DRenderSpaceToCurrentCamera(probe:GetName())
@@ -119,14 +124,22 @@ local function Update()
     local wt, ps, un, ck = s.warTorteColor, s.psijicColor, s.unknownColor, s.checkedColor
     local showUnknown = s.markUnknown
 
+    -- the survey site first, then tracked nodes: the pool is finite (MAX) and they are the dots that must not be
+    -- the ones left out. A slot inside the site gets no dot of its own: the site draws one per node.
+    Survey.Draw(Place, ph)
+    if not active then
+        HideFrom(nextIndex)
+        Markers.shown = nextIndex - 1
+        return
+    end
+
     local nTracked, nEmpty, nUnknown, nChecked = 0, 0, 0, 0
     local inRange, empty, unknown, named, unnamed = SlotActions.inRange, SlotActions.empty, SlotActions.unknown, SlotActions.named, SlotActions.unnamed
     local trackerByKey, candidateKinds = SlotActions.trackerByKey, SlotActions.candidateKinds
-    -- tracked nodes first: the pool is finite (MAX) and they are the dots that must not be the ones left out
     for i = 1, SlotActions.inRangeCount do
         local slot = inRange[i]
         local tracker = trackerByKey[named[slot]]
-        if tracker then
+        if tracker and not Survey.Covers(slot) then
             local c = tracker.color
             Place(slot.x, slot.z, slot.h + DOT_HEIGHT_M, c.r, c.g, c.b, c.a)
             nTracked = nTracked + 1
@@ -136,7 +149,9 @@ local function Update()
         local slot = inRange[i]
         -- c: the colour this slot gets unless it is a checkpoint; nil = no dot (a named node nobody hunts included)
         local c, candidate
-        if empty[slot] then
+        if Survey.Covers(slot) then
+            c = nil
+        elseif empty[slot] then
             local kind = SlotActions.MarkerKind(slot)
             c = kind == "psijic" and ps or (kind == "wartorte" and wt) or nil
         elseif unknown[slot] then

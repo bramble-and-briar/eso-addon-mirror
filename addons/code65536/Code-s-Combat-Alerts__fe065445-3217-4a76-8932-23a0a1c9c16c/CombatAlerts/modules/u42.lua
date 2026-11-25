@@ -1063,7 +1063,7 @@ function Module:GetSettingsControls( )
 		--------------------
 		{
 			type = "colorpicker",
-			name = string.format("|u40:0::%s|u", LCA.GetAbilityName(DATA.knot.passage.id)),
+			name = LCA.IndentedKeyboardText(LCA.GetAbilityName(DATA.knot.passage.id)),
 			getFunc = function() return LCA.UnpackRGBA(self:GetSetting("colorPassage")) end,
 			setFunc = function(...) self:SetSetting("colorPassage", LCA.PackRGBA(...)) end,
 			disabled = cooldownPanelDisabled,
@@ -1071,7 +1071,7 @@ function Module:GetSettingsControls( )
 		--------------------
 		{
 			type = "colorpicker",
-			name = string.format("|u40:0::%s|u", LCA.GetAbilityName(DATA.flux.overloaded)),
+			name = LCA.IndentedKeyboardText(LCA.GetAbilityName(DATA.flux.overloaded)),
 			getFunc = function() return LCA.UnpackRGBA(self:GetSetting("colorOverloaded")) end,
 			setFunc = function(...) self:SetSetting("colorOverloaded", LCA.PackRGBA(...)) end,
 			disabled = cooldownPanelDisabled,
@@ -1079,7 +1079,7 @@ function Module:GetSettingsControls( )
 		--------------------
 		{
 			type = "colorpicker",
-			name = string.format("|u40:0::%s & %s|u", LCA.GetAbilityName(DATA.knot.passage.id), LCA.GetAbilityName(DATA.flux.overloaded)),
+			name =  LCA.IndentedKeyboardText(string.format("%s & %s", LCA.GetAbilityName(DATA.knot.passage.id), LCA.GetAbilityName(DATA.flux.overloaded))),
 			getFunc = function() return LCA.UnpackRGBA(self:GetSetting("colorBoth")) end,
 			setFunc = function(...) self:SetSetting("colorBoth", LCA.PackRGBA(...)) end,
 			disabled = cooldownPanelDisabled,

@@ -24,8 +24,8 @@ local BY_NAME = {
     ["Pure Water"] = P.WATER, ["Water Skin"] = P.WATER, ["Potable Liquids"] = P.WATER, ["Herbalist's Satchel"] = P.HERBALIST,
     ["Torn Cloth"] = P.CLOTHING, ["Scrap Wood"] = P.WOODWORKING,
 }
-local lower = {}
-for name, id in pairs(BY_NAME) do lower[string.lower(name)] = id end
+local lower, display = {}, {}
+for name, id in pairs(BY_NAME) do lower[string.lower(name)] = id; display[string.lower(name)] = name end
 local PREFIXES = { "rich ", "lush ", "pristine ", "protean " }
 
 -- Every node name, in the order the tracker dropdown lists them: alchemy reagents first, then the rest; each
@@ -57,6 +57,12 @@ end
 ---@return integer|nil
 function PinTypeUtils.TypeOfKey(key)
     return lower[key]
+end
+
+---@param key string a key from PinTypeUtils.Key
+---@return string name as the game writes it ("Columbine")
+function PinTypeUtils.Display(key)
+    return display[key] or key
 end
 
 ---@param name string|nil compass pin description

@@ -1,0 +1,16 @@
+<Bindings>
+    <Layer name="ControllerWardrobeMap">
+        <Category>
+            <Action name="CONTROLLER_WARDROBE_MAP" inheritsBindFrom="TOGGLE_MAP" rebindable="false" hideAction="true">
+                <Down>ControllerWardrobePadDown("map")</Down>
+            </Action>
+        </Category>
+    </Layer>
+    <Layer name="ControllerWardrobeWeapon">
+        <Category>
+            <Action name="CONTROLLER_WARDROBE_WEAPON" inheritsBindFrom="SHEATHE_WEAPON_TOGGLE" rebindable="false" hideAction="true">
+                <Down>ControllerWardrobePadDown("weapon")</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

@@ -7,19 +7,11 @@ LibConsoleLogger = LibConsoleLogger or {}
 ---@param kept number
 ---@return string
 local function LoadMarker(kept)
-    local stamp = GetTimeStamp and GetTimeStamp() or 0
-    local wallClock = "t=" .. tostring(stamp)
-    local osLib = rawget(_G, "os")
-    if type(osLib) == "table" and type(osLib.date) == "function" then
-        local ok, formatted = pcall(osLib.date, "%Y-%m-%d %H:%M:%S", stamp)
-        if ok and type(formatted) == "string" then wallClock = formatted end
-    elseif GetDateStringFromTimestamp and GetTimeString then
-        local ok, formatted = pcall(function() return GetDateStringFromTimestamp(stamp) .. " " .. GetTimeString() end)
-        if ok and type(formatted) == "string" then wallClock = formatted end
-    end
+    local wallClock = LibConsoleLogger.Utils.WallClock(GetTimeStamp and GetTimeStamp() or 0)
     local gameClock = GetGameTimeMilliseconds and GetGameTimeMilliseconds() / 1000 or 0
-    return string.format("[LibConsoleLogger] --- UI loaded %s (game clock %.1f s, %d earlier lines kept) ---",
-        wallClock, gameClock, kept)
+    -- The version rides on the marker: a log then says which build of the library wrote it.
+    return string.format("[LibConsoleLogger] --- UI loaded %s (game clock %.1f s, %d earlier lines kept, v%s) ---",
+        wallClock, gameClock, kept, tostring(LibConsoleLogger.version))
 end
 
 local function OnAddonLoaded(_eventId, addonName)
@@ -53,6 +45,10 @@ local function OnAddonLoaded(_eventId, addonName)
     if LibConsoleLogger.Errors and LibConsoleLogger.Errors.Register then
         LibConsoleLogger.Errors.Register()
     end
+
+    -- From here a line handed in is kept or dropped by the saved "enabled" switch, no longer dropped for
+    -- coming early: an add-on that loads ahead of the library (Error Catcher) holds its lines until this is set.
+    LibConsoleLogger.loaded = true
 
     if EVENT_MANAGER and EVENT_MANAGER.UnregisterForEvent then
         EVENT_MANAGER:UnregisterForEvent(LibConsoleLogger.name, EVENT_ADD_ON_LOADED)

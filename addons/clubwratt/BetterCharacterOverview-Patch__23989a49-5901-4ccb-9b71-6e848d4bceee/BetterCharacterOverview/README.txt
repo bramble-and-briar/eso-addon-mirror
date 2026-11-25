@@ -1,6 +1,146 @@
 Better Character Overview
-Version 1.12.0
+Version 1.16.0
 PS5 Update 50 native-list architecture test
+
+
+WHAT SHARES A ROW IN 1.16.0
+- Reported from the console: one bound furnishing in the Furnishing Vault
+  and the same one placed in a house were two rows of All Inventories.
+- A row was one exact item link, and the link of a placed furnishing
+  (GetPlacedFurnitureLink) differs from the link of the same furnishing in
+  a bag. Which field differs has not been read off the console; the fix
+  does not depend on it.
+- A row is now:
+    a furnishing     its item id. A furnishing has no trait, enchantment
+                     or wear, so the id is the whole item.
+    anything else    its link without the link style and without the
+                     condition or charges field. Two copies that differ
+                     only in wear are one row.
+  Enchantment, trait, style, crafted or reconstructed, bound and stolen
+  each still make a row of their own (IsItemLinkReconstructed reads the
+  link, and every field but those two is kept).
+- Cost: one item-type lookup more per unique link while the aggregate
+  builds, and a link-to-row map held only while Inventory is open.
+
+REGRESSION TEST FOR 1.16.0
+1. All Inventories, a furnishing held in the Furnishing Vault and placed
+   in a house: one row, both places in ITEM LOCATIONS, counts summed.
+2. Two identical pieces of gear, one worn down: one row.
+3. A bound and an unbound copy of the same gear, or a reconstructed copy
+   beside a dropped one: two rows.
+4. Preview still opens on a furnishing row that is only placed in a house.
+
+
+SAME TRAIT AND ENCHANTMENT, AND ICON COLOUR, IN 1.15.0
+- Reported from the console: the tooltip of a worn amulet in the native
+  Inventory counted it in the bank and a storage coffer too. Those were
+  amulets of the same set with another trait and enchantment, which All
+  Inventories rightly lists as a separate row.
+- Outside All Inventories a tooltip matched copies by item id, quality and
+  level only. It now matches on everything that makes the item what it is,
+  enchantment and transmuted trait included, and ignores only what
+  describes one copy's state: bound, stolen, and condition or charges. So
+  another trait or enchantment is another item, as in All Inventories,
+  while a bound or worn copy still matches a fresh one in a store.
+- The character, house and guild trader icons were plain white beside the
+  game's tan bag, bank, chest and vault icons. They are now drawn in the
+  same colour (the game's normal text colour, C5C29E, measured from the
+  game's icon art).
+- Cost: the longer match key takes the index on the large test account
+  from about 0.6 MB to about 0.8 MB.
+
+REGRESSION TEST FOR 1.15.0
+1. Native Inventory, select a worn piece of jewelry while pieces of the
+   same set with another trait or enchantment sit in the bank: the tooltip
+   shows the character icon only. All Inventories shows the same split.
+2. Select an item you hold in several identical copies, one of them bound:
+   every copy is counted.
+3. The character, house and guild trader icons are the same tan as the
+   bag and bank icons.
+
+
+ONE LIST OF PLACES ON ITEM TOOLTIPS IN 1.14.0
+- 1.13.0 still left a place to the game's own count line whenever the game
+  had a count for it. The game sees storage chests and the Furnishing Vault
+  only inside a house, so those lines came and went with where you stood,
+  and the counts sat in two rows.
+- BCO now draws the whole list itself in one row (bag, bank, chest, vault,
+  characters, houses, guild trader) and the game's own bag, bank, chest and
+  vault lines are taken off the tooltip, so no place shows twice. The
+  game's Craft Bag line stays: BCO keeps no snapshot of the Craft Bag.
+- Where each number comes from:
+    bag, bank     the game's live number when it has one (it sees these
+                  everywhere, and BCO's snapshot lags a change by a
+                  moment); BCO's snapshot otherwise, as for gear
+    chest, vault  BCO's snapshot when it holds the item; the game's number
+                  only where no snapshot does
+    the rest      BCO's snapshots
+  In All Inventories a row's icons are that row's ITEM LOCATIONS and
+  nothing else, as in 1.13.0.
+- A tooltip no longer makes a stack lookup of its own: it reuses the one
+  the game makes.
+
+REGRESSION TEST FOR 1.14.0
+1. Outside a house, select an item held in a storage chest: the chest icon
+   and count show. Enter a house and select it again: same icon, same
+   count, once.
+2. Native Inventory, select a potion also held in the bank: one row with
+   the bag and bank counts, each once. Use one: the bag count drops at
+   once.
+3. Select a material held in the Craft Bag: the Craft Bag count still
+   shows.
+4. Steps 1, 3, 4, 5 and 6 of the 1.13.0 test below.
+
+
+EVERY PLACE ON ITEM TOOLTIPS IN 1.13.0
+- Reported from the console: 30 identical set amulets (7 in the bank, 22 in
+  a storage chest, 1 listed) showed a character count of 2 and a guild trader
+  count of 1 on the tooltip, with no bank or storage count, under an ITEM
+  LOCATIONS list that said Bank x7, chest x22 and one other location.
+- Two causes. 1.12.0 left the bag, bank, housing storage and Furnishing
+  Vault to the game's own counts, and the game counted none of those
+  copies. And the tooltip row matched copies in any state (bound, enchant,
+  wear) while a row of All Inventories is one exact item link, so the row
+  and its tooltip could count different sets of copies.
+- The tooltip row now has a count for every place BCO's snapshots hold the
+  item, in this order:
+    bag icon           this character's backpack
+    bank icon          the bank
+    chest icon         housing storage chests and coffers
+    vault icon         the Furnishing Vault
+    character icon     equipped on this character; backpack and equipped
+                       on the others
+    house icon         furnishings placed in owned houses
+    guild trader icon  the account's own guild store listings
+  A place the game has counted on that tooltip keeps the game's live number
+  and gets no line from BCO, so nothing is shown twice.
+- In All Inventories the tooltip of a row is counted from that row's own
+  locations: its icons are the ITEM LOCATIONS list summed by place, always.
+  Copies in another state (the bound one an alt is wearing) are a row of
+  their own with their own icons. On every other screen the tooltip counts
+  every copy whatever its state, as in 1.12.0.
+- Cost: the index now also holds this character, the bank and housing
+  storage (about 0.6 MB on the large test account). An inventory change
+  recounts this character's two lists, and the open bank or chest, right
+  after the scan BCO already does; other sources are left as they were.
+  A tooltip makes one extra GetItemLinkStacks call, and only when one of
+  the game's four places holds the item.
+
+REGRESSION TEST FOR 1.13.0
+1. All Inventories, select an item of gear held in the bank and a storage
+   chest: the tooltip shows the bank icon and the chest icon with the same
+   numbers as ITEM LOCATIONS, and no icon for a place not in that list.
+   Expand ITEM LOCATIONS and add the rows up by place to confirm.
+2. Native Inventory, select a stackable item also held in the bank (a
+   potion or a material): the bag and bank counts appear once each, not
+   twice.
+3. Native Inventory, select a piece of gear: a bag icon with 1 (or the
+   number of identical copies in the bag).
+4. Loot or destroy an item, select it again: the bag count follows.
+5. Deposit or withdraw at the bank and at a storage chest, select the item:
+   the bank and chest counts follow.
+6. Confirm seven icons in one row still fit the tooltip width, and that
+   tooltips still scroll and lay out as before.
 
 
 OWNED ELSEWHERE ON ITEM TOOLTIPS IN 1.12.0

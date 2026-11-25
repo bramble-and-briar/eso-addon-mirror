@@ -1,5 +1,5 @@
 local NAME = "LibCodesCommonCode"
-local VERSION = 40
+local VERSION = 41
 
 if (type(_G[NAME]) == "table" and type(_G[NAME].version) == "number" and _G[NAME].version >= VERSION) then return end
 
@@ -379,6 +379,23 @@ function Lib.GetLibAddonMenu( )
 	return LibAddonMenu2
 end
 
+-- Conditional indentation only for keyboard UI
+function Lib.IndentedKeyboardText( label )
+	return ZO_IsConsoleOrGameCoreUI() and label or string.format("|u40:0::%s|u", label)
+end
+
+-- Links for reward tooltips
+function Lib.GetRewardLink( rewardId )
+	local rewardType = GetRewardType(rewardId)
+	if (rewardType == REWARD_ENTRY_TYPE_ITEM) then
+		return GetItemRewardItemLink(rewardId)
+	elseif (rewardType == REWARD_ENTRY_TYPE_COLLECTIBLE) then
+		return GetCollectibleLink(GetCollectibleRewardCollectibleId(rewardId))
+	else
+		return ""
+	end
+end
+
 
 --------------------------------------------------------------------------------
 -- Zone functions
@@ -529,9 +546,12 @@ function Lib.ConcatTables( dest, src )
 	return dest
 end
 
-function Lib.PrepareScratchTable( tbl )
-	if (not tbl) then return { } end
+function Lib.PrepareScratchTable( tbl, ... )
+	if (not tbl) then return { ... } end
 	ZO_ClearTable(tbl)
+	for i = 1, select("#", ...) do
+		tbl[i] = select(i, ...)
+	end
 	return tbl
 end
 
@@ -678,9 +698,9 @@ function Lib.GetAddOnVersion( name )
 end
 
 do
-	local fields = { }
+	local fields
 	function Lib.FormatVersion( version )
-		ZO_ClearTable(fields)
+		fields = Lib.PrepareScratchTable(fields)
 		if (type(version) == "number") then
 			for i = 1, 4 do
 				local base = (i > 1) and 100 or 10

@@ -16,6 +16,14 @@ function LogUtils.Debug(fmt, ...)
     logger:Log(select("#", ...) > 0 and string.format(fmt, ...) or fmt)
 end
 
+---Survey lines: into the library's buffer only, never chat, each with the game clock in seconds. Written while the
+---SURVEY LOG setting is on, and only by events at a survey site (found, a spawn, a reset, left).
+function LogUtils.Survey(fmt, ...)
+    local s = DevSandbox3.state
+    if not (s and s.savedVars.settings.surveyLog) then return end
+    logger:Buffer(string.format("survey t=%.1f " .. fmt, GetFrameTimeMilliseconds() / 1000, ...))
+end
+
 ---Push everything buffered to the configured receiver (no-op without the library).
 function LogUtils.Export()
     if not (LibConsoleLogger and LibConsoleLogger.Export) then d(string.format("[%s] LibConsoleLogger not loaded", DevSandbox3.displayName)); return end

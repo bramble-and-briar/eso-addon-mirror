@@ -296,11 +296,8 @@ local function make_control(control, rel)
     local scale = display.scale
     local name = control.name
     local bg = w.bg
-    local pixel2UI = GetUIGlobalScale()
-
 
     logDebug("making control for ", name)
-
 
     -- Icon creation
     local icon = WM:CreateControl(TT.name .. "Icon" .. name, bg, CT_TEXTURE)
@@ -333,14 +330,9 @@ local function make_control(control, rel)
     label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
 
-    -- Measure the configured placeholder text without the previous
-    -- width constraining the measurement.
     label:SetWidth(0)
+    label:SetMaxLineCount(1)
     label:SetText(control.showText and control.text or " ")
-
-    local labelWidth = (label:GetStringWidth(control.showText and control.text or " ")/pixel2UI) * math.min(1.0, scale)
-
-    label:SetWidth(labelWidth)
 
     -- Store controls using the names expected by UpdateControls().
     local lowerName = string.lower(name)
@@ -446,9 +438,9 @@ function TT:InitializeBelt()
     TT.beltWindow = win
 
     -- Apply initial visibility, layout, and styling.
-    win:SetScale(1)
-    self:UpdateControls()
+    --win:SetScale(1)
     win:SetScale(TT.options.display.scale)
+    self:UpdateControls()
 end
 
 --[[ Updates the visibility, layout, and appearance of existing belt
@@ -507,20 +499,21 @@ function TT:UpdateControls()
         if icon then
             icon:SetHidden(not enabled)
         end
+        -- new
+        local hit = win["hit_" .. lowerName]
+        if hit then
+            hit:SetHidden(not enabled)
+        end
 
         if enabled then
             label:ClearAnchors()
 
             -- Measure the configured label text.
             local text = control.showText and label:GetText() or " "
-            label:SetText(text)
 
-            local labelWidth = label:GetTextWidth() * min(1.0, scale)
-            label:SetWidth(labelWidth)
-
-            label:SetDimensionConstraints(labelWidth, 0, 0, 0)
+            label:SetWidth(0)
+            label:SetMaxLineCount(1)
             label:SetText(text)
-            label:SetDimensionConstraints(0, 0, 0, 0)
 
             if icon then
                 icon:ClearAnchors()

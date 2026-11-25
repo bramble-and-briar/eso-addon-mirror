@@ -315,6 +315,29 @@ function LibConsoleLogger:Export()
     return webExport.SubmitBuffered(nil, LibConsoleLogger:GetScope(), LibConsoleLogger:IsIncludingErrors())
 end
 
+---The last few exports, newest first. Their chunks are kept in case one did not reach the receiver.
+---@return { id: number, at: string, scope: string, chunks: number, opened: number, opens: number[], bytes: number }[]
+function LibConsoleLogger:GetPastExports()
+    local webExport = LibConsoleLogger and LibConsoleLogger.WebExport
+    if not (webExport and webExport.GetPastExports) then
+        return {}
+    end
+    return webExport.GetPastExports()
+end
+
+---Send a past export again: all of it, the chunks whose browser never opened, or one chunk.
+---@param id number|nil The export's id (GetPastExports); nil for the newest
+---@param which nil|"all"|"unopened"|number Which chunks; nil is all
+---@return boolean ok
+---@return string|nil reason
+function LibConsoleLogger:ExportAgain(id, which)
+    local webExport = LibConsoleLogger and LibConsoleLogger.WebExport
+    if not (webExport and webExport.Resend) then
+        return false, "unsupported"
+    end
+    return webExport.Resend(id, which, nil)
+end
+
 ---Clear buffered logs of every scope (no chat output).
 ---@return boolean ok
 ---@return number cleared

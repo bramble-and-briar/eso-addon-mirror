@@ -1,0 +1,17 @@
+## Title: SetupWardrobe
+## Author: FiNk3F13
+## Version: 1.4.6
+## AddOnVersion: 10406
+## APIVersion: 101051
+## Description: Ausrüstung und beide Skillleisten per Controller wechseln.
+## DependsOn: LibHarvensAddonSettings
+## OptionalDependsOn: LibRadialMenu
+## SavedVariables: ControllerWardrobeSaved
+
+FoodEffects.lua
+RaidData.lua
+SetupPreview.lua
+WardrobePad.lua
+WardrobeMenu.lua
+SetupWardrobe.lua
+Bindings.xml

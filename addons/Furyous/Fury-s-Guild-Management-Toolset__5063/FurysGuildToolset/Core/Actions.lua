@@ -47,6 +47,39 @@ function Actions.Confirm(title, body, onConfirm)
     })
 end
 
+-- A small box that asks for a whole number (1 or more), then calls onNumber(n). Used for
+-- adding and removing raffle tickets by hand (1.29.0). Confirm stays greyed out until
+-- something is typed; Cancel changes nothing.
+local NUMBER_DIALOG = "FURYSGUILDTOOLSET_NUMBER"
+local numberDialogRegistered = false
+
+local function NumberEntered(dialog)
+    local n = tonumber(ZO_Dialogs_GetEditBoxText(dialog))
+    if n and n >= 1 then dialog.data.onNumber(math.floor(n)) end
+end
+
+local function EnsureNumberDialog()
+    if numberDialogRegistered then return end
+    numberDialogRegistered = true
+    ZO_Dialogs_RegisterCustomDialog(NUMBER_DIALOG, {
+        title = { text = "<<1>>" },
+        mainText = { text = "<<1>>" },
+        editBox = { defaultText = "Type a number", maxInputCharacters = 5, textType = TEXT_TYPE_NUMERIC_UNSIGNED_INT },
+        buttons = {
+            { text = SI_DIALOG_CONFIRM, requiresTextInput = true, callback = NumberEntered },
+            { text = SI_DIALOG_CANCEL },
+        },
+    })
+end
+
+function Actions.AskNumber(title, body, onNumber)
+    EnsureNumberDialog()
+    ZO_Dialogs_ShowDialog(NUMBER_DIALOG, { onNumber = onNumber }, {
+        titleParams = { title },
+        mainTextParams = { body },
+    })
+end
+
 local function Need(guildId, permission, what)
     if U.HasPermission(guildId, permission) then return true end
     U.Print("Your rank in %s can't %s.", U.GuildName(guildId), what)

@@ -35,6 +35,31 @@ function HookUtils.Describe(record)
     return string.format("%s %s.%s", record.kind, record.targetName or "?", record.fnName)
 end
 
+---A function's name without its table: "ZO_Reticle:OnUpdate" and "RETICLE.OnUpdate" are both "OnUpdate".
+---@param name string
+---@return string
+function HookUtils.BareName(name)
+    return string.match(name, "([^:.]+)$") or name
+end
+
+---Wrapped functions with the add-ons seen hooking them: "ZO_Dialogs_ShowDialog (hook by LazyConfirm)".
+---A function wrapped by an add-on that loaded before this one has no name to give.
+---@param wrapped string[] Function names as a trace prints them
+---@param hookersByFn table<string, string[]>
+---@return string[]
+function HookUtils.NameHookers(wrapped, hookersByFn)
+    local named = {}
+    for index, fn in ipairs(wrapped) do
+        local hookers = hookersByFn[HookUtils.BareName(fn)]
+        if hookers and #hookers > 0 then
+            named[index] = string.format("%s (hook by %s)", fn, table.concat(hookers, ", "))
+        else
+            named[index] = fn
+        end
+    end
+    return named
+end
+
 ---@param records ErrorCatcherHookRecord[]
 ---@return table<string, string[]> byAddon, string[] addons Sorted add-on names
 function HookUtils.GroupByAddon(records)

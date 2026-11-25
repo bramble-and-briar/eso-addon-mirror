@@ -1,0 +1,13 @@
+## Title: Error Catcher load-first placeholder
+## Author: clubwratt
+## Version: 0.1.0
+## AddOnVersion: 100
+## APIVersion: 101050 101051
+## IsLibrary: true
+## Description: Not the HomeStationMarker add-on, and it does nothing: a private placeholder for the author's own console. An add-on early in the game's load order names HomeStationMarker as an optional dependency, and this placeholder requires Error Catcher, so the game loads Error Catcher ahead of everything. DO NOT INSTALL.
+## DependsOn: ErrorCatcher
+## DevId: f16394fb-891b-4101-b0ac-d3611ec1b527
+
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+
+HomeStationMarker.lua

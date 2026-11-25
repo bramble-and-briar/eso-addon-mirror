@@ -1,0 +1,14 @@
+## Title: Vendor Sidekick
+## Description: Vendor receipts, manual fence/launder history and automatic ordinary-junk sales.
+## Author: FoulMouthxAmazon
+## Version: 0.1.2-beta
+## AddOnVersion: 102
+## APIVersion: 101051
+## SavedVariables: VendorSidekickSaved
+## DependsOn: LibSidekickUI>=101
+## OptionalDependsOn: LibExtendedJournal>=205031 LibAddonMenu-2.0
+
+Model.lua
+Tracking.lua
+UI.lua
+Core.lua

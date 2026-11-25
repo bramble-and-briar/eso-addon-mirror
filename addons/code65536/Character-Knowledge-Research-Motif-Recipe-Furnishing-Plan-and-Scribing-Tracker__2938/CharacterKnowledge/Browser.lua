@@ -125,11 +125,14 @@ local GUILD_SCRIPTS = {
 	50, 59, 60, -- Affix
 }
 
+local AUXILIARY_RESERVED = -1
+local SCRIBING_ICON_GUILD = -2
+local SCRIBING_ICON_QUEST = -3
 local ICONS = {
 	cp = "/esoui/art/champion/champion_icon_32.dds",
 	crown = "/esoui/art/currency/crowns_mipmap.dds",
-	quest = "/esoui/art/compass/quest_icon_assisted.dds",
-	guild = "/esoui/art/icons/mapkey/mapkey_magesguild.dds",
+	[SCRIBING_ICON_GUILD] = "/esoui/art/icons/mapkey/mapkey_magesguild.dds",
+	[SCRIBING_ICON_QUEST] = "/esoui/art/compass/quest_icon_assisted.dds",
 }
 
 local MAX_LEVEL = GetMaxLevel()
@@ -232,7 +235,7 @@ function CharacterKnowledgeList:Setup( )
 
 	local sortKeys = {
 		["name"]       = { caseInsensitive = true },
-		["auxiliary"]  = { tiebreaker = "extended", tieBreakerSortOrder = ZO_SORT_ORDER_UP },
+		["auxiliary"]  = { isNumeric = true, tiebreaker = "extended", tieBreakerSortOrder = ZO_SORT_ORDER_UP },
 		["quality"]    = { isNumeric = true, tiebreaker = "extended", tieBreakerSortOrder = ZO_SORT_ORDER_UP },
 		["extended"]   = { caseInsensitive = true, tiebreaker = "name", tieBreakerSortOrder = ZO_SORT_ORDER_UP },
 		["ratioKnown"] = { isNumeric = true, tiebreaker = "extended", tieBreakerSortOrder = ZO_SORT_ORDER_UP },
@@ -294,7 +297,7 @@ function CharacterKnowledgeList:UpdateState( )
 end
 
 function CharacterKnowledgeList:BuildMasterList( )
-	self.masterList = { }
+	ZO_ClearTable(self.masterList)
 
 	--------
 	-- Motifs
@@ -315,7 +318,7 @@ function CharacterKnowledgeList:BuildMasterList( )
 				extended = string.format("%03d", items.number),
 				quality = LCK.GetMotifStyleQuality(styleId),
 				chapters = (#items.chapters > 0) and items.chapters or nil,
-				auxiliary = 0, -- Unused
+				auxiliary = AUXILIARY_RESERVED, -- Unused
 				bookIds = items.bookIds,
 			})
 		end
@@ -379,7 +382,7 @@ function CharacterKnowledgeList:BuildMasterList( )
 					planType = planType,
 					level = level,
 					quality = GetItemLinkFunctionalQuality(itemLink),
-					auxiliary = GetAuxiliaryData and GetAuxiliaryData(itemId, category) or 0,
+					auxiliary = GetAuxiliaryData and GetAuxiliaryData(itemId, category) or AUXILIARY_RESERVED,
 				})
 			end
 		end
@@ -395,9 +398,9 @@ function CharacterKnowledgeList:BuildMasterList( )
 		types[i] = { name, string.format("%d:%s", i, name) }
 	end
 
-	local grimoireIcons = { }
+	local scribingIcons = { }
 	for _, id in ipairs(QUEST_GRIMOIRES) do
-		grimoireIcons[id] = "quest"
+		scribingIcons[id] = SCRIBING_ICON_QUEST
 	end
 
 	for id = 1, LCK.GetMaxCraftedAbilityId() do
@@ -411,18 +414,18 @@ function CharacterKnowledgeList:BuildMasterList( )
 				name = zo_strformat(SI_CRAFTED_ABILITY_NAME_FORMATTER, GetCraftedAbilityDisplayName(id)),
 				extendedText = types[SCRIBING_SLOT_NONE][1],
 				extended = types[SCRIBING_SLOT_NONE][2],
-				auxiliary = grimoireIcons[id] or 0,
+				auxiliary = scribingIcons[id] or AUXILIARY_RESERVED,
 				quality = 0, -- Unused
 			})
 		end
 	end
 
-	local scriptIcons = { }
+	ZO_ClearTable(scribingIcons)
 	for _, id in ipairs(QUEST_SCRIPTS) do
-		scriptIcons[id] = "quest"
+		scribingIcons[id] = SCRIBING_ICON_QUEST
 	end
 	for _, id in ipairs(GUILD_SCRIPTS) do
-		scriptIcons[id] = "guild"
+		scribingIcons[id] = SCRIBING_ICON_GUILD
 	end
 
 	for id = 1, LCK.GetMaxCraftedAbilityScriptId() do
@@ -437,7 +440,7 @@ function CharacterKnowledgeList:BuildMasterList( )
 				name = zo_strformat(SI_CRAFTED_ABILITY_SCRIPT_NAME_FORMATTER, GetCraftedAbilityScriptDisplayName(id)),
 				extendedText = types[slot][1],
 				extended = types[slot][2],
-				auxiliary = scriptIcons[id] or 0,
+				auxiliary = scribingIcons[id] or AUXILIARY_RESERVED,
 				quality = 0, -- Unused
 			})
 		end
@@ -623,11 +626,11 @@ function CharacterKnowledgeList:SetupItemRow( control, data )
 	cell = control:GetNamedChild("AuxIcon")
 	cell2 = control:GetNamedChild("AuxLabel")
 	cell2.normalColor = ZO_DEFAULT_TEXT
-	if (type(data.auxiliary) == "string") then
+	if (data.auxiliary < AUXILIARY_RESERVED) then
 		cell:SetTexture(ICONS[data.auxiliary])
 		cell:SetHidden(false)
 		cell2:SetHidden(true)
-	elseif (data.auxiliary ~= 0 and GetAuxiliaryLabel) then
+	elseif (data.auxiliary > AUXILIARY_RESERVED and GetAuxiliaryLabel) then
 		cell:SetHidden(true)
 		cell2:SetText(GetAuxiliaryLabel(data.auxiliary))
 		cell2:SetHidden(false)

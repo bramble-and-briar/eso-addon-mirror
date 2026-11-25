@@ -946,8 +946,13 @@ function TraderWeek:RegisterTab()
     f.weekOffset, f.sort, f.desc = nil, nil, nil
     GT.Report:RegisterTab({
         id = "trader",
-            GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "Weekly trader and bank totals") end,
+            GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "Trader and sales tracking") end,
         title = "Trader",
+        about = {
+            "Shows what each week's guild trader cost, every bid, and whether sales tax and member deposits paid for it.",
+            "Totals are per trader week, from the guild history LibHistoire has saved. The first weeks fill in a little after you turn it on.",
+        },
+        emptyText = "No trader weeks yet. They fill in as guild history loads.",
         tip = "Trader management: what each week's trader cost, every bid, and whether revenue (tax plus member deposits) paid for it.",
         columns = function() return f.view == "traders" and TRADER_COLUMNS or WEEK_COLUMNS end,
         GetSummary = function() return self:GetSummary() end,
@@ -969,8 +974,13 @@ function TraderWeek:RegisterTab()
     GT.Report:RegisterTab({
         id = "sales",
         noMenuHint = true,
-            GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "Weekly trader and bank totals") end,
+            GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "Trader and sales tracking") end,
         title = "Member sales",
+        about = {
+            "Shows, for one trader week, what each member sold in the guild store, the tax that earned, and the gold and items they gave or took.",
+            "Click a column header to sort. Right-click a member to whisper or mail them.",
+        },
+        emptyText = "No sales or bank activity for this week yet.",
         tip = "Per member for one trader week: what they sold in the guild store, the tax that earned, and the gold and items they gave or took. Right-click a member to whisper or mail them.",
         columns = MEMBER_COLUMNS,
         sortKey = function() return mf.sort, mf.desc end,

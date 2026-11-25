@@ -1,0 +1,16 @@
+## Title: Tamriel Navigator
+## Author: Trash Man Enterprises
+## Description: Quest briefings and spoken adventure recaps.
+## Version: 0.3.10
+## APIVersion: 101050
+## SavedVariables: TamrielNavigatorSaved
+## OptionalDependsOn: LibUespQuestData LibAddonMenu-2.0
+Lore.lua
+TamrielNavigator.lua
+Chronicle.lua
+ZoneData.lua
+Progression.lua
+AdventureData.lua
+Adventure.lua
+ResearchData.lua
+Narrative.lua

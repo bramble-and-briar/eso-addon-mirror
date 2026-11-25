@@ -12,6 +12,7 @@ local Log = ErrorCatcher.LogUtils
 local GameUtils = ErrorCatcher.GameUtils
 local TraceUtils = ErrorCatcher.TraceUtils
 local ButtonUtils = ErrorCatcher.ButtonUtils
+local HookUtils = ErrorCatcher.HookUtils
 
 local MAX_CHAIN_FRAMES = 14
 
@@ -51,6 +52,14 @@ local function CheckDescriptor(descriptor, index)
     if Log.Seen(label) then
         return
     end
+    -- A dialog's buttons are built frames after the dialog was asked for, on a stack that no longer holds
+    -- who asked: what the asking went through is the cause, so it is said first.
+    local shown = state.lastDialogShow
+    if dialogName and shown and shown.name == dialogName then
+        Log.Once(label, "UNTRUSTED %s | when its dialog was asked for: %s | when it was built: %s",
+            label, shown.summary, TraceUtils.Summary(StackHere(), MAX_CHAIN_FRAMES))
+        return
+    end
     Log.Once(label, "UNTRUSTED %s | %s", label, TraceUtils.Summary(StackHere(), MAX_CHAIN_FRAMES))
 end
 
@@ -77,9 +86,14 @@ function ButtonActions.OnDialogShow(name, _data, _textParams, isGamepad)
     local state = ErrorCatcher.state
     state.counters.dialogs = state.counters.dialogs + 1
     local frames = StackHere()
-    local key = string.format("dialog %s%s | addons on stack: %s | wrapped by a hook: %s",
-        tostring(name), isGamepad and " (gamepad)" or "",
-        TraceUtils.ListOrNone(TraceUtils.Addons(frames)), TraceUtils.ListOrNone(TraceUtils.Wrapped(frames)))
+    -- The trace holds the wrappers placed after this add-on's own hook; one placed before sits inside it and
+    -- is known only from the trust read at file scope.
+    local summary = string.format("addons on stack: %s | wrapped by a hook: %s%s",
+        TraceUtils.ListOrNone(TraceUtils.Addons(frames)),
+        TraceUtils.ListOrNone(HookUtils.NameHookers(TraceUtils.Wrapped(frames), state.hookersByFn)),
+        state.wrappedBeforeLoad.ZO_Dialogs_ShowDialog and " | also wrapped before this add-on loaded (by one of the add-ons the scan lists as loaded before)" or "")
+    state.lastDialogShow = { name = tostring(name), summary = summary }
+    local key = string.format("dialog %s%s | %s", tostring(name), isGamepad and " (gamepad)" or "", summary)
     if Log.Seen(key) then
         return
     end

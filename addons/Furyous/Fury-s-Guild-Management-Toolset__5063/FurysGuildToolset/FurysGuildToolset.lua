@@ -6,7 +6,7 @@ local GT = FurysGuildToolset
 
 GT.name = "FurysGuildToolset"
 GT.displayName = "Fury's Guild Management Toolset"
-GT.version = "1.24.3"
+GT.version = "1.30.1"
 GT.savedVarsVersion = 1
 
 GT.modules = {}
@@ -60,9 +60,9 @@ end
 -- perGuild: the feature also needs a guild ticked under Guilds to get alerts from.
 function GT:FeatureOffText(on, what, perGuild)
     if perGuild and not self:AnyAlertGuild() then
-        return "No guild is ticked under Guilds to get alerts from. Tick one in /gtsettings."
+        return "No guild is ticked to get alerts from. Click Set up below, or tick one in /gtsettings."
     end
-    if not on then return what .. " is turned off. Turn it on in /gtsettings." end
+    if not on then return what .. " is turned off. Click Set up below, or turn it on in /gtsettings." end
     return nil
 end
 
@@ -201,7 +201,7 @@ local function OnPlayerActivated()
     GT.Settings:Build()
     if GT.sv.defaultsOff and not GT.sv.welcomeShown then
         GT.sv.welcomeShown = true
-        GT.Util.Print("Every feature starts turned off. Open /gtsettings, tick your guilds under Guilds to get alerts from, and turn on the features you want.")
+        GT.Util.Print("Everything starts turned off. Type /gt to get started: the Start here page lets you pick your guilds and turn on the features you want.")
     end
     GT:ForEachModule("OnPlayerActivated")
     GT.History:Start()
@@ -212,7 +212,7 @@ end
 -- the current settings flag.
 function GT:Rescan()
     local log = self:GetModule("log")
-    local entries = log and log.sv and log.sv.entries or {}
+    local entries = log and log.entries or {}
     local bank, hoppers = self:GetModule("bank"), self:GetModule("hoppers")
     local bankCount = bank and bank.sv and bank:RebuildFromLog(entries) or 0
     local hopperCount = hoppers and hoppers.sv and hoppers:RebuildFromLog(entries) or 0
@@ -229,7 +229,7 @@ function GT:FullReset()
     local modules = GT.sv.modules
     if modules.bank then modules.bank.cases = {}; modules.bank.ledger = {} end
     if modules.hoppers then modules.hoppers.records = {}; modules.hoppers.joins = {} end
-    if modules.log then modules.log.entries = {} end
+    if modules.log then modules.log.packed = {}; modules.log.entries = nil; modules.log.oldLogSince = nil end
     if modules.trader then modules.trader.weeks = {} end
     ReloadUI("ingame")
 end
@@ -245,6 +245,8 @@ function GT.RegisterSlashCommands()
         arg = zo_strlower(zo_strtrim(arg or ""))
         if arg == "" or arg == "show" then
             GT.Report:Toggle()
+        elseif arg == "start" or arg == "setup" then
+            GT.Report:Show("start")
         elseif arg == "crier" then
             if GT.Crier and GT.Crier.active then GT.Crier.ToggleMenu() else GT.Util.Print("The Guild Crier is paused while the standalone Fury's Guild Crier addon is enabled.") end
         elseif arg == "space" then
@@ -285,6 +287,7 @@ function GT.RegisterSlashCommands()
         else
             GT.Util.Print("Fury's Guild Management Toolset v%s", GT.version)
             GT.Util.Print("/gt  open the report window")
+            GT.Util.Print("/gt start  open the Start here page: pick your guilds and turn features on or off")
             -- No "|" here: ESO treats it as a text-formatting character and hides it.
             GT.Util.Print("/gt bank, /gt hoppers, /gt watchlist, /gt history, /gt space, /gt members, /gt inactive, /gt trader, /gt sales, /gt auto, /gt recruit, /gt events  open a specific tab")
             GT.Util.Print("/gt tour  start or stop the recruiting zone tour")

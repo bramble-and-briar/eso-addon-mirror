@@ -48,6 +48,19 @@ local function OnHook(kind, first, second)
         if record.target == _G then
             record.target, record.targetName = nil, "_G"
         end
+        local bare = HookUtils.BareName(record.fnName)
+        local hookers = state.hookersByFn[bare]
+        if not hookers then
+            hookers = {}
+            state.hookersByFn[bare] = hookers
+        end
+        local known = false
+        for _, name in ipairs(hookers) do
+            known = known or name == addon
+        end
+        if not known then
+            hookers[#hookers + 1] = addon
+        end
     end
 
     if state.hooksSummarized then

@@ -219,6 +219,32 @@ local function IsRuntimeEnabled()
     return LibConsoleLogger.IsEnabled and LibConsoleLogger:IsEnabled()
 end
 
+local CONTINUES = "(continues the line above) "
+
+---A line as the lines the buffer keeps for it: itself when short, else cut into lines of at most
+---Utils.MAX_SAVED_STRING_BYTES, the later ones under the same "[Name] " tag and marked, so that they stay in
+---the line's scope and the whole can be joined again. The buffer lives in the saved variables, which cannot
+---hold a longer string.
+---@param line string
+---@return string[]
+function WebExport.SafeLines(line)
+    local max = Utils.MAX_SAVED_STRING_BYTES
+    if #line <= max then
+        return { line }
+    end
+    local tag = string.match(line, "^(%[[^%]]+%] )") or ""
+    local prefix = tag .. CONTINUES
+    if #prefix >= max / 2 then
+        prefix = CONTINUES
+    end
+    local first = Utils.Pieces(line, max)[1]
+    local out = { first }
+    for _, piece in ipairs(Utils.Pieces(string.sub(line, #first + 1), max - #prefix)) do
+        out[#out + 1] = prefix .. piece
+    end
+    return out
+end
+
 ---The strings a saved ring holds, oldest first; an unreadable one (older format, hand-edited) reads as empty.
 ---@param saved any
 ---@return string[]
@@ -229,7 +255,12 @@ local function SavedLines(saved)
     if head == nil or tail == nil or tail - head >= MAX_CAPTURE_LINES * 5 then return out end
     for i = head, tail do
         local line = saved.lines[i]
-        if type(line) == "string" then out[#out + 1] = line end
+        if type(line) == "string" then
+            -- A line saved by a version that kept long ones is cut here, like a new one.
+            for _, part in ipairs(WebExport.SafeLines(line)) do
+                out[#out + 1] = part
+            end
+        end
     end
     return out
 end
@@ -244,6 +275,7 @@ function WebExport.AdoptSavedBuffer(keep)
         return 0
     end
     local sv = LibConsoleLogger.savedVars
+    WebExport._AdoptSavedExports(keep)
     local lines = keep and SavedLines(sv.log) or {}
     local kept = #lines
     for i = ring.head, ring.tail do
@@ -280,6 +312,12 @@ function WebExport.BufferD(line)
     local s = tostring(line or "")
     if s == "" then
         s = "[Empty String]"
+    end
+    if #s > Utils.MAX_SAVED_STRING_BYTES then
+        for _, part in ipairs(WebExport.SafeLines(s)) do
+            WebExport.BufferD(part)
+        end
+        return
     end
 
     -- Keep the buffer bounded (approx by UTF-8 byte length).
@@ -417,9 +455,239 @@ local function RemoveScopeLines(scope, includeErrors)
 end
 
 -- ============================================================================
+-- Past exports
+--
+-- An export takes its lines out of the buffer when it starts, and the library cannot tell whether a chunk
+-- reached the receiver: it sees the browser open and close, nothing more. So the chunks of the last few
+-- exports are kept, in the saved variables like the buffer, and any of them can be sent again: all of an
+-- export, the chunks whose browser never opened, or one chunk. Each chunk goes out under a line naming its
+-- export and its place in it, so the receiving end can see a gap or a repeat.
+-- ============================================================================
+
+local MAX_KEPT_EXPORTS = 5
+-- Older exports are dropped past this many bytes of chunk text; the newest is kept whatever its size.
+local MAX_KEPT_EXPORT_BYTES = 512 * 1024
+-- Room left in every chunk for the line it is sent under (ChunkHeader).
+local CHUNK_HEADER_RESERVE = 100
+
+---@class LibConsoleLoggerExportRecord One export, as saved
+---@field id number Counts up for the life of the saved variables
+---@field at string Wall clock when it started
+---@field scope string The scope it carried; "" for all scopes
+---@field chunks string[][] The text of each chunk, without the line it is sent under, in pieces short enough to be saved
+---@field opens number[] Times the browser opened for each chunk
+---@field bytes number
+
+-- Exports started before the saved variables load are held here and moved over when they do.
+---@type { seq: number, list: LibConsoleLoggerExportRecord[] }
+local memoryStore = { seq = 0, list = {} }
+
+---@param record any
+---@return boolean
+local function IsExportRecord(record)
+    if type(record) ~= "table" or type(record.id) ~= "number" or type(record.chunks) ~= "table" then
+        return false
+    end
+    if #record.chunks == 0 or type(record.opens) ~= "table" then
+        return false
+    end
+    for i = 1, #record.chunks do
+        local pieces = record.chunks[i]
+        if type(pieces) ~= "table" or #pieces == 0 or type(record.opens[i]) ~= "number" then
+            return false
+        end
+        for p = 1, #pieces do
+            if type(pieces[p]) ~= "string" or #pieces[p] > Utils.MAX_SAVED_STRING_BYTES then
+                return false
+            end
+        end
+    end
+    return true
+end
+
+---The text of one chunk of a kept export.
+---@param record LibConsoleLoggerExportRecord
+---@param index number
+---@return string
+local function ChunkText(record, index)
+    return table.concat(record.chunks[index])
+end
+
+---The table the kept exports live in: the saved variables' once they are loaded.
+---@return { seq: number, list: LibConsoleLoggerExportRecord[] }
+local function ExportStore()
+    if not (EnsureSavedVars() and LibConsoleLogger.savedVars ~= nil) then
+        return memoryStore
+    end
+    local sv = LibConsoleLogger.savedVars
+    local store = sv.exports
+    if type(store) ~= "table" or type(store.list) ~= "table" or type(store.seq) ~= "number" then
+        store = { seq = 0, list = {} }
+        sv.exports = store
+    end
+    return store
+end
+
+---Drop the oldest exports past the caps. The newest stays whatever its size.
+---@param list LibConsoleLoggerExportRecord[]
+local function TrimExports(list)
+    local bytes = 0
+    for i = 1, #list do
+        bytes = bytes + (tonumber(list[i].bytes) or 0)
+    end
+    while #list > 1 and (#list > MAX_KEPT_EXPORTS or bytes > MAX_KEPT_EXPORT_BYTES) do
+        bytes = bytes - (tonumber(list[1].bytes) or 0)
+        table.remove(list, 1)
+    end
+end
+
+---Read the kept exports back after a UI load: unreadable ones (older format, hand-edited) are dropped, and
+---any started before the saved variables loaded are moved in. With keep == false (logging disabled) all go.
+---@param keep boolean
+function WebExport._AdoptSavedExports(keep)
+    local store = ExportStore()
+    if store == memoryStore then
+        return
+    end
+    local kept = {}
+    if keep then
+        for i = 1, #store.list do
+            local record = store.list[i]
+            if IsExportRecord(record) then
+                kept[#kept + 1] = record
+                if record.id > store.seq then store.seq = record.id end
+            end
+        end
+        for i = 1, #memoryStore.list do
+            local record = memoryStore.list[i]
+            store.seq = store.seq + 1
+            record.id = store.seq
+            kept[#kept + 1] = record
+        end
+        TrimExports(kept)
+    end
+    store.list = kept
+    memoryStore = { seq = 0, list = {} }
+end
+
+---@param chunks string[]
+---@param scope string|nil
+---@return LibConsoleLoggerExportRecord
+local function KeepExport(chunks, scope)
+    local store = ExportStore()
+    store.seq = store.seq + 1
+    -- A chunk is some 6 KB of text and the saved variables hold no string of 2000 bytes: it is kept in pieces.
+    local opens, bytes, kept = {}, 0, {}
+    for i = 1, #chunks do
+        opens[i] = 0
+        bytes = bytes + #chunks[i]
+        kept[i] = Utils.Pieces(chunks[i], Utils.MAX_SAVED_STRING_BYTES)
+    end
+    local record = {
+        id = store.seq,
+        at = Utils.WallClock(GetTimeStamp and GetTimeStamp() or 0),
+        scope = type(scope) == "string" and scope or "",
+        chunks = kept,
+        opens = opens,
+        bytes = bytes,
+    }
+    store.list[#store.list + 1] = record
+    TrimExports(store.list)
+    return record
+end
+
+---@param id number|nil nil for the newest
+---@return LibConsoleLoggerExportRecord|nil
+local function FindExport(id)
+    local list = ExportStore().list
+    if id == nil then
+        return list[#list]
+    end
+    for i = #list, 1, -1 do
+        if list[i].id == id then
+            return list[i]
+        end
+    end
+    return nil
+end
+
+---@param record LibConsoleLoggerExportRecord
+---@return number opened Chunks whose browser opened at least once
+local function OpenedCount(record)
+    local opened = 0
+    for i = 1, #record.chunks do
+        if (record.opens[i] or 0) > 0 then
+            opened = opened + 1
+        end
+    end
+    return opened
+end
+
+---The line a chunk is sent under. A chunk that starts inside a line (one line longer than a chunk) says so,
+---on a line of its own, so the two halves can be told and joined.
+---@param record LibConsoleLoggerExportRecord
+---@param index number
+---@param again boolean
+---@return string
+local function ChunkHeader(record, index, again)
+    local continues = index > 1 and string.sub(ChunkText(record, index - 1), -1) ~= "\n"
+    return string.format("%s[%s] --- export %d chunk %d/%d%s%s ---\n",
+        continues and "\n" or "",
+        LibConsoleLogger.name, record.id, index, #record.chunks,
+        again and ", sent again" or "",
+        continues and ", continues the line above" or "")
+end
+
+---The kept exports, newest first.
+---@return { id: number, at: string, scope: string, chunks: number, opened: number, opens: number[], bytes: number }[]
+function WebExport.GetPastExports()
+    local list = ExportStore().list
+    local out = {}
+    for i = #list, 1, -1 do
+        local record = list[i]
+        local opens = {}
+        for c = 1, #record.chunks do
+            opens[c] = record.opens[c] or 0
+        end
+        out[#out + 1] = {
+            id = record.id,
+            at = tostring(record.at or ""),
+            scope = tostring(record.scope or ""),
+            chunks = #record.chunks,
+            opened = OpenedCount(record),
+            opens = opens,
+            bytes = tonumber(record.bytes) or 0,
+        }
+    end
+    return out
+end
+
+---Forget the kept exports. The caller stops an export being sent first.
+local function ClearPastExports()
+    local store = ExportStore()
+    store.list = {}
+    memoryStore.list = {}
+end
+
+-- ============================================================================
 -- Submit state (shared across all addons)
 -- ============================================================================
 
+---@class LibConsoleLoggerSubmitState The export being sent
+---@field record LibConsoleLoggerExportRecord
+---@field order number[] The chunks to send, by their index in the record
+---@field position number Index into order of the chunk being sent
+---@field again boolean A kept export being sent again
+---@field baseUrl string
+---@field awaitingOpen boolean
+---@field awaitingClose boolean
+---@field attempts number
+---@field allowWhenDisabled boolean
+---@field base64 table<number, string> Encoded chunks, by position
+---@field openTimeoutCallLaterId number|nil
+---@field scheduledAttemptCallLaterId number|nil
+
+---@type LibConsoleLoggerSubmitState|nil
 local submitState = nil
 local EXPORT_EVENT_NAMESPACE = "LibConsoleLogger_WebExport"
 local OPEN_TIMEOUT_MS = 10000
@@ -450,6 +718,29 @@ local function StopExport(message)
     if message ~= nil then
         ReportStatus(message)
     end
+end
+
+---Where the export being sent stands: "chunk 3/7", and for a kept export sent again which one it is.
+---@param s LibConsoleLoggerSubmitState
+---@return string
+local function Progress(s)
+    local index = s.order[s.position] or s.order[#s.order]
+    if s.again then
+        return string.format("chunk %d/%d of export %d, sent again (%d of %d)",
+            index, #s.record.chunks, s.record.id, math.min(s.position, #s.order), #s.order)
+    end
+    return string.format("chunk %d/%d", index, #s.record.chunks)
+end
+
+---@param s LibConsoleLoggerSubmitState
+---@return string
+local function CompleteMessage(s)
+    if s.again then
+        return string.format("[LibConsoleLogger] Export %d sent again: %d chunks. A chunk that did not arrive can be sent again from the settings (Past exports)",
+            s.record.id, #s.order)
+    end
+    return string.format("[LibConsoleLogger] Export complete: %d chunks sent (export %d; it can be sent again from the settings, Past exports)",
+        #s.order, s.record.id)
 end
 
 local AttemptOpenCurrentChunk -- forward decl
@@ -487,14 +778,14 @@ local function OnOpenTimeout(callLaterId)
     if (s.attempts or 0) < MAX_OPEN_ATTEMPTS then
         -- This attempt timed out; ignore any late EVENT_WEB_BROWSER_OPENED and retry.
         s.awaitingOpen = false
-        ReportStatusf("[LibConsoleLogger] No browser open within %ds; retrying chunk %d/%d",
-            OPEN_TIMEOUT_MS / 1000, s.currentIndex, s.totalChunks)
+        ReportStatusf("[LibConsoleLogger] No browser open within %ds; retrying %s",
+            OPEN_TIMEOUT_MS / 1000, Progress(s))
         ScheduleAttempt(0)
         return
     end
 
-    StopExport(string.format("[LibConsoleLogger] Export cancelled (browser did not open): chunk %d/%d",
-        s.currentIndex, s.totalChunks))
+    StopExport(string.format("[LibConsoleLogger] Export cancelled (browser did not open): %s. The chunks are kept: send them again from the settings (Past exports)",
+        Progress(s)))
 end
 
 local function OnWebBrowserOpened(_eventId)
@@ -511,6 +802,12 @@ local function OnWebBrowserOpened(_eventId)
     s.awaitingOpen = false
     s.awaitingClose = true
     s.attempts = 0
+
+    -- The browser opening is all the library can see of a chunk's delivery; it is counted on the kept export.
+    local index = s.order[s.position]
+    if index then
+        s.record.opens[index] = (s.record.opens[index] or 0) + 1
+    end
 
     if s.scheduledAttemptCallLaterId then
         zo_removeCallLater(s.scheduledAttemptCallLaterId)
@@ -530,9 +827,9 @@ local function OnWebBrowserClosed(_eventId)
     s.awaitingClose = false
 
     -- Advance only after the user closes the browser (one chunk per open/close cycle).
-    s.currentIndex = s.currentIndex + 1
-    if s.currentIndex > s.totalChunks then
-        StopExport(string.format("[LibConsoleLogger] Export complete: %d chunks sent", s.totalChunks))
+    s.position = s.position + 1
+    if s.position > #s.order then
+        StopExport(CompleteMessage(s))
         return
     end
 
@@ -629,8 +926,8 @@ AttemptOpenCurrentChunk = function()
         return
     end
 
-    if s.currentIndex > s.totalChunks then
-        StopExport(string.format("[LibConsoleLogger] Export complete: %d chunks sent", s.totalChunks))
+    if s.position > #s.order then
+        StopExport(CompleteMessage(s))
         return
     end
 
@@ -639,19 +936,25 @@ AttemptOpenCurrentChunk = function()
         return
     end
 
+    local index = s.order[s.position]
+    local b64 = s.base64[s.position]
+    if not b64 then
+        b64 = Base64Encode(ChunkHeader(s.record, index, s.again) .. ChunkText(s.record, index))
+        s.base64[s.position] = b64
+    end
+    local url = s.baseUrl .. "?d=" .. b64
+    if #url > MAX_URL_LEN then
+        -- A kept chunk was cut to fit the export URL of its day; a longer URL since leaves it no room.
+        StopExport(string.format("[LibConsoleLogger] Export cancelled: %s does not fit the export URL, which is longer than when it was exported",
+            Progress(s)))
+        return
+    end
+
     s.attempts = (s.attempts or 0) + 1
     s.awaitingOpen = true
     s.awaitingClose = false
 
-    local chunk = s.chunks[s.currentIndex]
-    local b64 = s.base64Chunks[s.currentIndex]
-    if not b64 then
-        b64 = Base64Encode(chunk)
-        s.base64Chunks[s.currentIndex] = b64
-    end
-    local url = s.baseUrl .. "?d=" .. b64
-
-    ReportStatusf("[LibConsoleLogger] Chunk %d/%d (attempt %d)", s.currentIndex, s.totalChunks, s.attempts)
+    ReportStatusf("[LibConsoleLogger] %s (attempt %d)", Progress(s), s.attempts)
     if not TryOpenUnsafeUrl(url) then
         StopExport("[LibConsoleLogger] Export cancelled (failed to open URL)")
         return
@@ -664,12 +967,52 @@ AttemptOpenCurrentChunk = function()
     s.openTimeoutCallLaterId = zo_callLater(OnOpenTimeout, OPEN_TIMEOUT_MS)
 end
 
----@param allText string
----@param cfg table|nil
+---Start sending chunks of a kept export, one browser open/close cycle each.
+---@param record LibConsoleLoggerExportRecord
+---@param order number[] The chunks to send, by index
+---@param again boolean
+---@param baseUrl string
 ---@param allowWhenDisabled boolean|nil
 ---@return boolean ok
 ---@return string|nil reason
-local function StartSubmit(allText, cfg, allowWhenDisabled)
+local function BeginSubmit(record, order, again, baseUrl, allowWhenDisabled)
+    submitState = {
+        record = record,
+        order = order,
+        position = 1,
+        again = again,
+        baseUrl = baseUrl,
+        awaitingOpen = false,
+        awaitingClose = false,
+        attempts = 0,
+        allowWhenDisabled = allowWhenDisabled == true,
+        base64 = {},
+        openTimeoutCallLaterId = nil,
+        scheduledAttemptCallLaterId = nil,
+    }
+
+    if not EnsureBrowserEventsRegistered() then
+        submitState = nil
+        return false, "no-event-manager"
+    end
+
+    if again then
+        ReportStatusf("[LibConsoleLogger] Sending %d chunks of export %d again (close browser after each)", #order, record.id)
+    else
+        ReportStatusf("[LibConsoleLogger] Exporting %d chunks (close browser after each; cancel via LibConsoleLogger.WebExport.CancelExport())",
+            #order)
+    end
+    AttemptOpenCurrentChunk()
+    return true, nil
+end
+
+---@param allText string
+---@param cfg table|nil
+---@param allowWhenDisabled boolean|nil
+---@param scope string|nil The scope the text was taken from, for the kept export
+---@return boolean ok
+---@return string|nil reason
+local function StartSubmit(allText, cfg, allowWhenDisabled, scope)
     if not IsRuntimeEnabled() and not allowWhenDisabled then
         return false, "disabled"
     end
@@ -692,11 +1035,12 @@ local function StartSubmit(allText, cfg, allowWhenDisabled)
 
     -- Calculate how much raw text fits per chunk
     -- URL format: baseUrl?d=<base64>
-    -- Base64 expands by 4/3, so raw chars per chunk = (maxUrl - baseLen - 3) * 3/4
+    -- Base64 expands by 4/3, so raw chars per chunk = (maxUrl - baseLen - 3) * 3/4, less the line the chunk
+    -- is sent under (ChunkHeader)
     local maxUrlLen = MAX_URL_LEN
     local baseLen = #baseUrl + 3                         -- "?d="
     local maxB64Len = maxUrlLen - baseLen
-    local maxRawLen = math.floor(maxB64Len * 3 / 4) - 10 -- safety margin
+    local maxRawLen = math.floor(maxB64Len * 3 / 4) - 10 - CHUNK_HEADER_RESERVE -- safety margin
 
     if maxRawLen <= 0 then
         return false, "url-too-long"
@@ -733,29 +1077,11 @@ local function StartSubmit(allText, cfg, allowWhenDisabled)
         return false, "no-chunks"
     end
 
-    submitState = {
-        chunks = chunks,
-        base64Chunks = {},
-        currentIndex = 1,
-        totalChunks = #chunks,
-        baseUrl = baseUrl,
-        awaitingOpen = false,
-        awaitingClose = false,
-        attempts = 0,
-        allowWhenDisabled = allowWhenDisabled == true,
-        openTimeoutCallLaterId = nil,
-        scheduledAttemptCallLaterId = nil,
-    }
-
-    if not EnsureBrowserEventsRegistered() then
-        submitState = nil
-        return false, "no-event-manager"
+    local order = {}
+    for i = 1, #chunks do
+        order[i] = i
     end
-
-    ReportStatusf("[LibConsoleLogger] Exporting %d chunks (close browser after each; cancel via LibConsoleLogger.WebExport.CancelExport())",
-        #chunks)
-    AttemptOpenCurrentChunk()
-    return true, nil
+    return BeginSubmit(KeepExport(chunks, scope), order, false, baseUrl, allowWhenDisabled)
 end
 
 function WebExport.CancelExport()
@@ -765,12 +1091,67 @@ function WebExport.CancelExport()
     end
 
     local s = submitState
-    StopExport(string.format("[LibConsoleLogger] Export cancelled at chunk %d/%d", s.currentIndex, s.totalChunks))
+    StopExport(string.format("[LibConsoleLogger] Export cancelled at %s. The chunks are kept: send them again from the settings (Past exports)",
+        Progress(s)))
+end
+
+---Send a kept export again: all of it, the chunks whose browser never opened, or one chunk.
+---@param id number|nil The export's id (WebExport.GetPastExports); nil for the newest
+---@param which nil|"all"|"unopened"|number Which chunks; nil is all
+---@param cfg table|nil
+---@return boolean ok
+---@return string|nil reason "disabled", "no-api", "busy", "unknown-export", "no-url" or "empty" (no such chunk, or none unopened)
+function WebExport.Resend(id, which, cfg)
+    if not IsRuntimeEnabled() then
+        return false, "disabled"
+    end
+    if not rawget(_G, "RequestOpenUnsafeURL") then
+        return false, "no-api"
+    end
+    if submitState then
+        return false, "busy"
+    end
+    local record = FindExport(id)
+    if not record then
+        ReportStatus("[LibConsoleLogger] No such past export")
+        return false, "unknown-export"
+    end
+    local baseUrl = GetBaseUrl(cfg)
+    if not baseUrl or baseUrl == "" then
+        return false, "no-url"
+    end
+
+    local order = {}
+    if type(which) == "number" then
+        local index = math.floor(which)
+        if index >= 1 and index <= #record.chunks then
+            order[1] = index
+        end
+    else
+        for i = 1, #record.chunks do
+            if which ~= "unopened" or (record.opens[i] or 0) == 0 then
+                order[#order + 1] = i
+            end
+        end
+    end
+    if #order == 0 then
+        ReportStatusf("[LibConsoleLogger] Nothing to send again from export %d", record.id)
+        return false, "empty"
+    end
+    return BeginSubmit(record, order, true, baseUrl, false)
+end
+
+---Forget the kept exports; one being sent is cancelled.
+function WebExport.ClearPastExports()
+    if submitState ~= nil then
+        StopExport("[LibConsoleLogger] Export cancelled (past exports cleared)")
+    end
+    ClearPastExports()
 end
 
 ---Export the buffer, then empty it. With a scope, export the lines that show under it (WebExport.InScope) and
 ---take out only that scope's lines and the errors sent with them; the other scopes and the UI-load markers
----stay buffered.
+---stay buffered. The chunks are kept as a past export (WebExport.Resend) in case one does not arrive.
 ---@param cfg table|nil
 ---@param scope string|nil
 ---@param includeErrors boolean|nil
@@ -802,7 +1183,7 @@ function WebExport.SubmitBuffered(cfg, scope, includeErrors)
 
     -- Always end with a newline so repeated exports don't run together in receivers.
     local allText = EnsureTrailingNewline(table.concat(lines, "\n"))
-    local ok, reason = StartSubmit(allText, cfg, false)
+    local ok, reason = StartSubmit(allText, cfg, false, scope)
     if ok then
         if scoped then
             RemoveScopeLines(scope, includeErrors)
@@ -836,9 +1217,10 @@ function WebExport.ExportRaw(exportType, source, rawText, cfg, allowWhenDisabled
         (GetTimeStamp and GetTimeStamp()) or 0)
     local allText = header .. tostring(rawText)
     allText = EnsureTrailingNewline(allText)
-    return StartSubmit(allText, cfg, allowWhenDisabled)
+    return StartSubmit(allText, cfg, allowWhenDisabled, source)
 end
 
+---Disable: the buffer, the kept exports and any export being sent all go.
 ---@return boolean ok
 ---@return string|nil reason
 function WebExport.Reset()
@@ -849,7 +1231,6 @@ function WebExport.Reset()
     else
         UnregisterBrowserEvents()
     end
+    ClearPastExports()
     return true, nil
 end
-
-

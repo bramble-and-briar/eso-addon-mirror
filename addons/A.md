@@ -186,6 +186,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Alliance Rank Progress](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dusty-Warehouse/Alliance-Rank-Progress__8e880053-fe2b-4934-9745-a0670e1e12d6) | Dusty-Warehouse | Console | — |
 | [Alliance Rank Progress](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DustyWarehouse/Alliance-Rank-Progress__2772) | DustyWarehouse | PC / Mac | 1.18 |
 | [AllianceBuddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Minceraft/AllianceBuddy__872) | Minceraft | PC / Mac | 3.2 |
+| [Alpha](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Alpha__ff14753f-cf35-4f3e-89b9-3880b4976bab) | FiNk3F13 | Console | — |
 | [AlphaGear 2 (Builds, Gear, Skills, Banking)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaGear-2-Builds-Gear-Skills-Banking__1812) | mesota | PC / Mac | 7.0.1 |
 | [AlphaGear 2 Preview Channel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaGear-2-Preview-Channel__2170) | mesota | PC / Mac | 6.4.1 beta 3 |
 | [AlphaScry (Leads, Antiquities, Filter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaScry-Leads-Antiquities-Filter__2689) | mesota | PC / Mac | 1.0.0 |

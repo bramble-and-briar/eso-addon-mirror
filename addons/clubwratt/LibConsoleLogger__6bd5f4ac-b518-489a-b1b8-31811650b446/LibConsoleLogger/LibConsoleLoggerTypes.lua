@@ -36,6 +36,8 @@
 ---@field GetScopes fun(self: LibConsoleLogger): string[]
 ---@field IsIncludingErrors fun(self: LibConsoleLogger): boolean
 ---@field SetIncludeErrors fun(self: LibConsoleLogger, include: boolean)
+---@field GetPastExports fun(self: LibConsoleLogger): table[]
+---@field ExportAgain fun(self: LibConsoleLogger, id: number|nil, which: nil|"all"|"unopened"|number): (boolean, string|nil)
 ---@field errorsScope string
 ---@field Errors table|nil
 ---@field LogDialog table|nil
@@ -45,7 +47,7 @@ LibConsoleLogger.name = "LibConsoleLogger"
 -- The scope the game's own Lua errors are recorded under (LibConsoleLoggerErrors.lua)
 LibConsoleLogger.errorsScope = "Errors"
 -- Keep in sync with ## Version in LibConsoleLogger.addon
-LibConsoleLogger.version = "0.6.0"
+LibConsoleLogger.version = "0.7.3"
 
 LibConsoleLogger.savedVarsName = "LibConsoleLoggerSavedVars"
 LibConsoleLogger.savedVarsVersion = 1

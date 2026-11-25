@@ -18,8 +18,9 @@
     "VenomSkullGuard"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5068/",
-  "fingerprint": "c2066306e1194c782575d782b17769393d62858c2d742b2d2e6877f0735ea08e",
+  "fingerprint": "aadc1d478ddc8845827f045f96d62f0a34864fa3609b0d4bf0126e29302460dd",
   "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18784.png",
     "https://cdn-eso.mmoui.com/preview/pvw18558.png"
   ],
   "platform": "pc",
@@ -28,11 +29,11 @@
   "source_id": "5068",
   "source_url": "https://www.esoui.com/downloads/info5068-VenomSkullGuard.html",
   "stats": {
-    "downloads": 9,
+    "downloads": 41,
     "favorites": 0,
-    "monthly_downloads": 1
+    "monthly_downloads": 40
   },
   "title": "Venom Skull Guard",
-  "updated_at": 1795061629000,
-  "version": "1.5.1"
+  "updated_at": 1795569151000,
+  "version": "1.6.0"
 }

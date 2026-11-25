@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/imPDA/LibScrollList__4609",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "imPDA",
   "canonical_id": "esoui:4609",
   "category_id": "53",
@@ -17,7 +18,7 @@
     "LibScrollList"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4609/",
-  "fingerprint": "93a1609694a0d22655cf547ef2691fd2f9cbfe6a9e5102498eee13654153e01e",
+  "fingerprint": "b19be6e706083b339a595540c221f3016dff83e047cb92f21434a6405f3ff652",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16186.png"
   ],
@@ -27,11 +28,11 @@
   "source_id": "4609",
   "source_url": "https://www.esoui.com/downloads/info4609-LibScrollList.html",
   "stats": {
-    "downloads": 1586,
-    "favorites": 2,
-    "monthly_downloads": 514
+    "downloads": 3076,
+    "favorites": 4,
+    "monthly_downloads": 297
   },
   "title": "LibScrollList",
-  "updated_at": 1781184395000,
-  "version": "4"
+  "updated_at": 1795576449000,
+  "version": "5"
 }

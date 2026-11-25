@@ -58,7 +58,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Go Fast Don't Die](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drezzek/Go-Fast-Don-t-Die__3332) | Drezzek | PC / Mac | 1.4 |
 | [Go Home](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Go-Home__1604) | static_recharge | PC / Mac | 8.0.0 |
 | [GoA_DolgubonsLazyWritCreatorUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_DolgubonsLazyWritCreatorUAPatch__4703) | Iriya_Altmer | PC / Mac | 1.7 |
-| [GoA_ESO_UA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_ESO_UA__4702) | Iriya_Altmer | PC / Mac | 47.74 |
+| [GoA_ESO_UA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_ESO_UA__4702) | Iriya_Altmer | PC / Mac | 47.77 |
 | [GoA_FCOLockpickerUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_FCOLockpickerUAPatch__4733) | Iriya_Altmer | PC / Mac | 1.0 |
 | [GoA_HarvestMapUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_HarvestMapUAPatch__4707) | Iriya_Altmer | PC / Mac | 1.1 |
 | [GoA_TamrielTradeCentreUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_TamrielTradeCentreUAPatch__4705) | Iriya_Altmer | PC / Mac | 1.2 |
@@ -80,6 +80,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Golden Light Guild Hall Portal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lerozain/Golden-Light-Guild-Hall-Portal__3389) | Lerozain | PC / Mac | 1.1 |
 | [Golden Pursuits Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Golden-Pursuits-Tracker__4276) | atharti | PC / Mac | 1.8 |
 | [GoldTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/drecho0426/GoldTracker__4257) | drecho0426 | PC / Mac | 1.0 |
+| [Goliath Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ratpack/Goliath-Timer__5108) | Ratpack | PC / Mac | 1.1.2 |
 | [Gorethief Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Gorethief-Tracker__6077d87d-fafc-431b-9380-f25348d7b430) | codeWarrior82 | Console | — |
 | [Goron Dev](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/goron_spice/Goron-Dev__4ff8232a-3b96-4a66-8401-dad48e8b5301) | goron_spice | Console | — |
 | [Got My Five](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Taraezor/Got-My-Five__586) | Taraezor | PC / Mac | v1.13r |

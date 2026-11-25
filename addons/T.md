@@ -32,6 +32,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tamriel Hello](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wildskiller/Tamriel-Hello__a3daf4c1-aa98-4c59-9eca-7832fa036029) | wildskiller | Console | — |
 | [Tamriel Master Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xPricee/Tamriel-Master-Ledger__1e746db5-8418-4a6f-9f17-4449e0d7e3f0) | xPricee | Console | — |
 | [Tamriel Master Ledger - DEV](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xPricee/Tamriel-Master-Ledger---DEV__89ecfc27-e76b-48ae-8d40-e76bbf0c5c13) | xPricee | Console | — |
+| [Tamriel Navigator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m1lkst3ak/Tamriel-Navigator__7f606012-a484-44be-8f9d-065486e2419e) | m1lkst3ak | Console | — |
 | [Tamriel Progress Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Racconplayz/Tamriel-Progress-Map__4799) | Racconplayz | PC / Mac | 2.9.0 |
 | [Tamriel Races](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Tamriel-Races__167ff6ab-0d5c-4582-83cc-0ec8ced35cc1) | SugaComa | Console | — |
 | [Tamriel Sky Dial](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MemphisKane991/Tamriel-Sky-Dial__4860) | MemphisKane991 | PC / Mac | 1.1 |

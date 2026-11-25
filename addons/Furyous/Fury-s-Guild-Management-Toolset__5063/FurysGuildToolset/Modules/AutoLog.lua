@@ -399,6 +399,11 @@ function AutoLog:RegisterTab()
             local n = self:CountNew()
             return n > 0 and string.format("Auto (%d new)", n) or "Auto"
         end,
+        about = {
+            "Lists everything the addon did by itself, with the reason: auto-demotes, automatic demotion mails and hoppers added to the watchlist.",
+            "It stays empty unless you turn on auto-demote or the automatic watchlist for a guild on the Guild rules settings page.",
+        },
+        emptyText = "Nothing has been done automatically.",
         GetSummary = function() return self:TabSummary() end,
         GetRows = function() return self:TabRows() end,
         GetExportLines = function() return self:TabExportLines() end,

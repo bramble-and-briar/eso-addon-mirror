@@ -1,5 +1,7 @@
 local appName = "LibNotify"
-local appVersion = 3  -- bump this on each update
+local appVersion = 4  -- bump this on each update
+local name = "LibNotify"
+local info = "What's New:\nFixed an issue where colours for scrolling text were not being set correctly."
 local notifyInProgress = false
 local colourStartup
 local colourSet
@@ -387,27 +389,27 @@ end
 local function setupTextSlots()
     libNotifyBox:SetMovable(true)
 
-    libNotifyBoxNotify1:SetColor(0, 255, 0, 255)
+    libNotifyBoxNotify1:SetColor(colourStartup:UnpackRGBA())
     libNotifyBoxNotify1:SetFont("$(GAMEPAD_LIGHT_FONT)|$(GP_54)|soft-shadow-thick")
     libNotifyBoxNotify1:SetText("")
 
-    libNotifyBoxNotify2:SetColor(0, 255, 0, 255)
+    libNotifyBoxNotify2:SetColor(colourStartup:UnpackRGBA())
     libNotifyBoxNotify2:SetFont("$(GAMEPAD_LIGHT_FONT)|$(GP_54)|soft-shadow-thick")
     libNotifyBoxNotify2:SetText("")
 
-    libNotifyBoxNotify3:SetColor(0, 255, 0, 255)
+    libNotifyBoxNotify3:SetColor(colourStartup:UnpackRGBA())
     libNotifyBoxNotify3:SetFont("$(GAMEPAD_LIGHT_FONT)|$(GP_54)|soft-shadow-thick")
     libNotifyBoxNotify3:SetText("")
 
-    libNotifyBoxNotify4:SetColor(0, 255, 0, 255)
+    libNotifyBoxNotify4:SetColor(colourStartup:UnpackRGBA())
     libNotifyBoxNotify4:SetFont("$(GAMEPAD_LIGHT_FONT)|$(GP_54)|soft-shadow-thick")
     libNotifyBoxNotify4:SetText("")
 
-    libNotifyBoxNotify5:SetColor(0, 255, 0, 255)
+    libNotifyBoxNotify5:SetColor(colourStartup:UnpackRGBA())
     libNotifyBoxNotify5:SetFont("$(GAMEPAD_LIGHT_FONT)|$(GP_54)|soft-shadow-thick")
     libNotifyBoxNotify5:SetText("")
 
-    libNotifyBoxNotify6:SetColor(0, 255, 0, 255)
+    libNotifyBoxNotify6:SetColor(colourStartup:UnpackRGBA())
     libNotifyBoxNotify6:SetFont("$(GAMEPAD_LIGHT_FONT)|$(GP_54)|soft-shadow-thick")
     libNotifyBoxNotify6:SetText("")
 
@@ -529,7 +531,7 @@ local function onPlayerActivated()
     EVENT_MANAGER:UnregisterForEvent(appName, EVENT_PLAYER_ACTIVATED)
 
     if LibNotify.savedVariables.lastSeenVersion ~= appVersion then
-        LibNotify.postUpdateNotification(appName, "What's New:\nAdded option for all addons using this library to use the games notification system.", "LibNotify")
+        LibNotify.postUpdateNotification(appName, info, name)
         LibNotify.savedVariables.lastSeenVersion = appVersion
     end
 end
@@ -647,6 +649,12 @@ local function createOptions()
                 LibNotify.savedVariables.textColor = { r, g, b, a }
                 colourSet = ZO_ColorDef:New(unpack(LibNotify.savedVariables.textColor))
                 libNotifyNotifyStatic:SetColor(colourSet:UnpackRGBA())
+                libNotifyBoxNotify1:SetColor(colourSet:UnpackRGBA())
+                libNotifyBoxNotify2:SetColor(colourSet:UnpackRGBA())
+                libNotifyBoxNotify3:SetColor(colourSet:UnpackRGBA())
+                libNotifyBoxNotify4:SetColor(colourSet:UnpackRGBA())
+                libNotifyBoxNotify5:SetColor(colourSet:UnpackRGBA())
+                libNotifyBoxNotify6:SetColor(colourSet:UnpackRGBA())
             end,
         },
         {

@@ -96,11 +96,9 @@ function Public.PlaySounds( soundId, amplification, delayForNext, ... )
 			PlaySound(sound)
 		end
 	end
-	if (type(delayForNext) == "number") then
+	if (type(delayForNext) == "number" and select("#", ...) > 0) then
 		local args = { ... }
-		if (#args > 0) then
-			zo_callLater(function() Public.PlaySounds(unpack(args)) end, delayForNext)
-		end
+		zo_callLater(function() Public.PlaySounds(unpack(args)) end, delayForNext)
 	end
 end
 
@@ -322,21 +320,30 @@ do
 	-- Taunt
 	local TAUNT_ABILITIES = {
 		[ 28306] = 0, -- Puncture
+		[ 29552] = 0, -- Unstoppable
 		[ 38250] = 0, -- Pierce Armor
 		[ 38256] = 0, -- Ransack
 		[ 38984] = 1, -- Destructive Clench
 		[ 38985] = 1, -- Flame Clench
 		[ 38989] = 1, -- Frost Clench
 		[ 38993] = 1, -- Shock Clench
+		[ 39197] = 0, -- Immovable
+		[ 39205] = 0, -- Unstoppable Brute
 		[ 39114] = 0, -- Deafening Roar
 		[ 39475] = 0, -- Inner Fire
 		[ 42056] = 0, -- Inner Rage
-		[ 42060] = 0, -- Inner Beast
 		[183165] = 0, -- Runic Jolt
 		[183430] = 0, -- Runic Sunder
 		[186531] = 0, -- Runic Embrace
 	}
 	local TAUNT_SCRIPT_ID = 12
+
+	if (GetAPIVersion() < 101052) then -- TODO: Temporary
+		TAUNT_ABILITIES[29552] = nil
+		TAUNT_ABILITIES[39197] = nil
+		TAUNT_ABILITIES[39205] = nil
+		TAUNT_ABILITIES[42060] = 0
+	end
 
 	-- Pull
 	local PULL_ABILITIES = {

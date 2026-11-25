@@ -79,6 +79,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RecoveryTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/RecoveryTracker__c8397663-7bee-4e0b-89de-16dcf5c029d7) | Vixen_Hunny | Console | — |
 | [Red Ledger (Kill Counter + Visual Notifier)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Red-Ledger-Kill-Counter-Visual-Notifier__5070) | O-Range | PC / Mac | 0.6 |
 | [Red's Countess Travel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/redeven/Red-s-Countess-Travel__2623) | redeven | PC / Mac | 1.1.0 |
+| [Reef Guardian Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ratpack/Reef-Guardian-Helper__5107) | Ratpack | PC / Mac | 1.4.4 |
 | [Refinement Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Refinement-Tracker__2130) | Kyzeragon | PC / Mac | 0.9.6 |
 | [Regrouper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Regrouper__888) | Baertram | PC / Mac | 2.2 |
 | [Relationships](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Relationships__4758) | atharti | PC / Mac | 1.1 |

@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/DakJaniels/Character-Knowledge-Prices__5109",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "DakJaniels",
+  "canonical_id": "esoui:5109",
+  "category_id": "26",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5109",
+  "deleted": false,
+  "directories": [
+    "CharacterKnowledgePrices"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5109/",
+  "fingerprint": "36147bec9aa0df9e0aea3e99a41656a32c1fd1c2e39b3d114f87d9efd624bd92",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18774.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5109",
+  "source_url": "https://www.esoui.com/downloads/info5109-CharacterKnowledgePrices.html",
+  "stats": {
+    "downloads": 45,
+    "favorites": 1,
+    "monthly_downloads": 17
+  },
+  "title": "Character Knowledge Prices",
+  "updated_at": 1795579256000,
+  "version": "1.0.2"
+}

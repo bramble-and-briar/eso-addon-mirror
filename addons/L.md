@@ -20,6 +20,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Lazy Alik'r Dolmen Runner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Lazy-Alik-r-Dolmen-Runner__3001) | kawamonkey | PC / Mac | 1.0 |
 | [Lazy Confirm (and delete)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Lazy-Confirm-and-delete__8fbbe7ae-8178-4e35-9755-3cafefd42095) | Dolgubon | Console | — |
 | [Lazy Confirm (And Delete)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Lazy-Confirm-And-Delete__2359) | Dolgubon | PC / Mac | 1.0.3 |
+| [Lazy Confirm (Patch)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Lazy-Confirm-Patch__a2a9a715-4e28-49e9-9b50-446b33917287) | clubwratt | Console | — |
 | [Lazy Crafting Certification](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/robert.labrie/Lazy-Crafting-Certification__3787) | robert.labrie | PC / Mac | 1.0.0 |
 | [Lazy Crown](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/absolventR3M/Lazy-Crown__a0257a7b-725f-4051-91ee-a686c0c70fc2) | absolventR3M | Console | — |
 | [Lazy Deconstructor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/StorybookTerror/Lazy-Deconstructor__3449) | StorybookTerror | PC / Mac | 0.6.1 |
@@ -268,7 +269,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibSaveToDisk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomtomhotep/LibSaveToDisk__1993) | tomtomhotep | PC / Mac | 1.3g r6 |
 | [LibScroll](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/circonian/LibScroll__1151) | circonian | PC / Mac | 2 |
 | [LibScrollableMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomstock/LibScrollableMenu__3546) | tomstock | PC / Mac | 2.48 |
-| [LibScrollList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibScrollList__4609) | imPDA | PC / Mac | 4 |
+| [LibScrollList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibScrollList__4609) | imPDA | PC / Mac | 5 |
 | [LibSeasonalEventManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IsJustaGhost/LibSeasonalEventManager__3670) | IsJustaGhost | PC / Mac | 1.3 |
 | [LibServerResetTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibServerResetTime__d1e62d86-1a34-4727-8221-e23b1c5b7616) | code65536 | Console | — |
 | [LibServerResetTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibServerResetTime__4427) | code65536 | PC / Mac | 2.0.0 |
@@ -276,6 +277,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibSets (All set items ingame & preview. lua API + excel sheet)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/LibSets-All-set-items-ingame-preview.-lua-API-excel-sheet__2241) | Baertram | PC / Mac | 0.9.4 |
 | [LibSFUtils](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/LibSFUtils__2231) | Shadowfen | PC / Mac | 78 |
 | [LibShifterBox](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Klingo/LibShifterBox__2444) | Klingo | PC / Mac | 0.7.0 |
+| [LIBSIDEKICKUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FoulMouthxAmazon/LIBSIDEKICKUI__5110) | FoulMouthxAmazon | PC / Mac | 0.1.1-beta |
 | [LibSimpleArrow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/LibSimpleArrow__4251) | sshogrin | PC / Mac | 1.0.0 |
 | [LibSimpleSavedVars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/LibSimpleSavedVars__2805) | zelenin | PC / Mac | 0.0.3 |
 | [LibSkillBlocker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jarva/LibSkillBlocker__2863) | Jarva | PC / Mac | 1.1.0 |

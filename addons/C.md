@@ -75,7 +75,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Character Bound Item Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Character-Bound-Item-Hider__4922) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
 | [Character Bound Item Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/Character-Bound-Item-Hider__49e5c9da-dc0d-4bf5-b60c-6e6e53784107) | APH0NlC | Console | — |
 | [Character Homes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g0thicicecream/Character-Homes__4654) | g0thicicecream | PC / Mac | 1.5.0 |
-| [Character Knowledge (Research, Motif, Recipe, Furnishing Plan and Scribing Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Character-Knowledge-Research-Motif-Recipe-Furnishing-Plan-and-Scribing-Tracker__2938) | code65536 | PC / Mac | 3.1.7 |
+| [Character Knowledge (Research, Motif, Recipe, Furnishing Plan and Scribing Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Character-Knowledge-Research-Motif-Recipe-Furnishing-Plan-and-Scribing-Tracker__2938) | code65536 | PC / Mac | 3.1.7.2 |
+| [Character Knowledge Prices](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Character-Knowledge-Prices__5109) | DakJaniels | PC / Mac | 1.0.2 |
 | [Character Zone Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Character-Zone-Tracker__3323) | silvereyes | PC / Mac | 1.3.0 |
 | [CharacterGearUI (for alone or PerfectPixel)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Trobo/CharacterGearUI-for-alone-or-PerfectPixel__4743) | Trobo | PC / Mac | 0.4.7 |
 | [CharacterMarkdown](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/solaegis/CharacterMarkdown__4279) | solaegis | PC / Mac | 2.3.0 |
@@ -156,6 +157,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Cogs Assistants](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/coginthemachine/Cogs-Assistants__4687) | coginthemachine | PC / Mac | 0.1.5 |
 | [Collect Them All](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Springpeace2575/Collect-Them-All__75167780-fb8c-479c-86be-c0a208443b97) | Springpeace2575 | Console | — |
 | [CollectablesTesting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brossin13/CollectablesTesting__9cb042d4-e427-4f0c-9c9c-48e1a355c970) | brossin13 | Console | — |
+| [Collectible Hover Preview](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Collectible-Hover-Preview__5112) | Lykeion | PC / Mac | 1.0 |
+| [Collectible Hover Preview](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Collectible-Hover-Preview__aca5aa45-ead0-493d-96f4-34c83ddcb236) | Lykeion+ | Console | — |
 | [Collectible Toggler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Collectible-Toggler__2699) | MrPikPik | PC / Mac | 1.2 |
 | [Collectibles Tracker (formerly Event Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Collectibles-Tracker-formerly-Event-Collectibles__2588) | code65536 | PC / Mac | 3.6.6.1 |
 | [Collection bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jarth/Collection-bars__2339) | Jarth | PC / Mac | 1.1.14 |

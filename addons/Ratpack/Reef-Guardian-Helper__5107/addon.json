@@ -1,0 +1,42 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Ratpack/Reef-Guardian-Helper__5107",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Ratpack",
+  "canonical_id": "esoui:5107",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5107",
+  "deleted": false,
+  "directories": [
+    "ReefGuardianHelper"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5107/",
+  "fingerprint": "3d9e4ec8266bf83293b6edd9f528df487aa9da4900521cfb05f202519e161489",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18772.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18805.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18804.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18803.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18802.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5107",
+  "source_url": "https://www.esoui.com/downloads/info5107-ReefGuardianHelper.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 2
+  },
+  "title": "Reef Guardian Helper",
+  "updated_at": 1795595449000,
+  "version": "1.4.4"
+}

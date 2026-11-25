@@ -1,3 +1,8 @@
+Version 2.7.3 (2026/11/24)
+* Added an option to disable the teleport position counter in Dreadsail Reef
+* Addressed a formatting issue where settings labels that are indented on PC
+  appear misaligned on console where such indentation does not make sense
+
 Version 2.7.2 (2026/11/16)
 * The Cutthroat's Focus protection now determines the duration of the free dodge
   window via an API call rather than using a hard-coded value, to accommodate

@@ -31,7 +31,7 @@
 				</Texture>
 				<Label name="$(parent)AuxLabel" hidden="true" inherits="ExtendedJournalRowLabel" font="LejFontSmall" horizontalAlignment="RIGHT">
 					<Anchor point="RIGHT" relativePoint="RIGHT" relativeTo="$(parent)AuxIcon" />
-					<Dimensions x="60" y="26" />
+					<Dimensions x="72" y="26" />
 				</Label>
 				<Label name="$(parent)Extended" inherits="ExtendedJournalRowLabel" horizontalAlignment="RIGHT">
 					<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$(parent)Name" />
@@ -92,7 +92,7 @@
 						</Control>
 						<Control name="$(parent)Auxiliary" inherits="ZO_SortHeaderIcon">
 							<OnInitialized>
-								ZO_SortHeader_InitializeArrowHeader(self, "auxiliary", ZO_SORT_ORDER_DOWN)
+								ZO_SortHeader_InitializeArrowHeader(self, "auxiliary", ZO_SORT_ORDER_UP)
 							</OnInitialized>
 							<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" relativeTo="$(parent)Quality" offsetX="5" />
 							<Dimensions x="16" y="32" />

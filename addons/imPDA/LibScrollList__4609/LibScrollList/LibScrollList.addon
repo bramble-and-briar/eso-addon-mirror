@@ -1,8 +1,8 @@
 ## Title: |cAFD3FFLibScrollList|r
 ## Description: Library to create ScrollLists in LUA (no XML needed).
 ## Author: |c7c42f2@impda|r
-## AddOnVersion: 4
-## APIVersion: 101050
+## AddOnVersion: 5
+## APIVersion: 101051
 ## IsLibrary: true
 ## OptionalDependsOn: Zgoo
 

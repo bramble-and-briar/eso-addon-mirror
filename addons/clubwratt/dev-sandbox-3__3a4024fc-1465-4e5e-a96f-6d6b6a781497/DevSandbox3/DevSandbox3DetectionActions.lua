@@ -3,7 +3,10 @@
 -- Every HARVEST_NODE compass pin the engine creates is handed to us by the XML (addedAnimation OnPlay/OnStop).
 -- Every 50 ms each not-yet-located pin is sampled: strip position -> cot(angle) (Shinni's table), scale -> distance,
 -- cast from the camera in the raw world frame. After 3 samples within 3 m the node is located and never resampled.
--- Every 100 ms the pin under the reticle is named from the compass description (-> node name and pin type).
+-- Every 100 ms the pin under the reticle is named from the compass description (-> node name and pin type). The
+-- compass centre is often over several pins at once (a survey cluster 70-90 m away: all six, field log 4.21.0); each
+-- entry is matched to its control by draw level, which the engine derives from the pin's distance
+-- (2^32 - 7534 x cm), so it differs per pin at any instant and changes every tick.
 --
 -- Console facts that cost a day (2026-10-05): pin controls arrive as USERDATA, not Lua tables - never guard with
 -- type(control) == "table". And d() output is not a reliable way to see load/event-time logs on console; use
@@ -34,7 +37,10 @@ end
 function Detection.OnPinAdded(control)
     if not IsControl(control) then LogUtils.Log("OnPinAdded rejected: type=%s", type(control)); return end
     if Detection.pins[control] then return end
-    Detection.pins[control] = { control = control, samplesX = {}, samplesZ = {} }
+    -- when the engine handed the pin over and where the player stood, whatever the camera faced (a pin is located
+    -- only once it is in view): the survey log's SPAWN line
+    local _, ax, _, az = GetUnitRawWorldPosition("player")
+    Detection.pins[control] = { control = control, samplesX = {}, samplesZ = {}, addX = (ax or 0) / 100, addZ = (az or 0) / 100, addMs = GetFrameTimeMilliseconds() }
     Detection.liveCount = Detection.liveCount + 1
     LogUtils.Debug("pin + live=%d", Detection.liveCount)
 end
@@ -112,23 +118,41 @@ local function NamePins()
     local left, width = c:GetLeft(), c:GetWidth()
     for i = 1, c:GetNumCenterOveredPins() do
         if c:GetCenterOveredPinType(i) == MAP_PIN_TYPE_HARVEST_NODE then
-            local key = PinTypeUtils.Key(c:GetCenterOveredPinDescription(i))
+            local desc = c:GetCenterOveredPinDescription(i)
+            local key = PinTypeUtils.Key(desc)
             local pinTypeId = key and PinTypeUtils.TypeOfKey(key)
-            if pinTypeId then
+            -- a name the table does not hold still labels its pin (no kind, so it covers slots like an unnamed one):
+            -- a survey site of such nodes reads as what it is instead of staying unread
+            local label = not pinTypeId and type(desc) == "string" and desc ~= "" and desc or nil
+            if pinTypeId or label then
                 local _, level = c:GetCenterOveredPinLayerAndLevel(i)
                 local match
                 for control, node in pairs(Detection.pins) do
-                    if not node.pinTypeId and control:GetDrawLevel() == level and (2 * (control:GetCenter() - left) / width - 1) < 0.14 then
+                    if not node.pinTypeId and (pinTypeId or not node.label) and control:GetDrawLevel() == level and (2 * (control:GetCenter() - left) / width - 1) < 0.14 then
                         if match then match = nil; break end -- ambiguous
                         match = node
                     end
                 end
-                if match then
+                if match and pinTypeId then
                     match.pinTypeId, match.name = pinTypeId, key
-                    LogUtils.Debug("named '%s' -> type %d", tostring(c:GetCenterOveredPinDescription(i)), pinTypeId)
+                    LogUtils.Debug("named '%s' -> type %d", tostring(desc), pinTypeId)
+                elseif match then
+                    match.label = label
+                    LogUtils.Debug("labelled '%s': not a name in the table", label)
                 end
             end
         end
+    end
+end
+
+---Forget the removed nodes still lingering within `r` metres of (x, z), so a pin that turns up on one of those
+---spots inherits no name: at a survey site it is usually a new node (the next set), and the old ones stand too
+---close together to tell which of them a returning pin was.
+function Detection.ForgetLingeringNear(x, z, r)
+    local r2 = r * r
+    for node in pairs(Detection.lingering) do
+        local dx, dz = node.x - x, node.z - z
+        if dx * dx + dz * dz <= r2 then Detection.lingering[node] = nil end
     end
 end
 

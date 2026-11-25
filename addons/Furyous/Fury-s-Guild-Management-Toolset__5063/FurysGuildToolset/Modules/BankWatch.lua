@@ -258,6 +258,7 @@ function BankWatch:OnHistoryEvent(guildId, category, info, isLive)
         if link then case.items[link] = (case.items[link] or 0) + qty end
         if severity > case.severity then
             case.severity = severity
+            case.seen = nil   -- it got worse, so it is new again
             if case.status ~= "open" then
                 case.status = "open"
                 case.escalated = true
@@ -408,6 +409,14 @@ end
 -- on the alert covering the same member, guild and withdrawals.
 function BankWatch:RestoreActions(oldCases)
     for _, case in ipairs(self.sv.cases) do
+        -- Keep "seen" for an alert you already looked at, unless it is now worse than when you saw it.
+        for _, old in ipairs(oldCases or {}) do
+            if old.seen and old.guildId == case.guildId and old.name == case.name and old.kind == case.kind
+                and old.severity >= case.severity and (old.firstTs or old.lastTs) <= case.lastTs and old.lastTs >= (case.firstTs or case.lastTs) then
+                case.seen = true
+                break
+            end
+        end
         for _, old in ipairs(oldCases or {}) do
             -- "put back" is worked out again from the deposits, so it isn't carried over.
             if old.status ~= "open" and old.status ~= "returned" and old.guildId == case.guildId and old.name == case.name and old.kind == case.kind
@@ -601,7 +610,7 @@ end
 
 function BankWatch:PrintStatus()
     local log = GT:GetModule("log")
-    local entries = log and log.sv and log.sv.entries or {}
+    local entries = log and log.entries or {}
     U.Print("Bank alerts (each guild has its own limits):")
 
     -- Item withdrawals per guild and member, oldest first.
@@ -774,6 +783,9 @@ function BankWatch:GetCaseRow(case)
     end
     local text = string.format("%s %s  |cB4B0D8%s|r  %s  |cB4B0D8%s|r", SEVERITY_LABEL[case.severity], case.name, case.guildName, taken, U.FormatAgo(case.lastTs))
     if not stillMember then text = text .. " |cFF6B86(left)|r" end
+    -- 1.26.5 (Albert): the tab title counts "new" alerts (still open), so mark which ones they are.
+    -- New = open and not looked at yet. Leaving the tab (or closing the window) marks them seen.
+    if self:IsNew(case) then text = "|c5EB8FFNEW|r  " .. text end
     if case.status == "rankset" and case.rankSetTo then
         text = text .. "  |c5EE6A0set to " .. case.rankSetTo .. "|r"
     elseif case.status == "demoted" and case.autoDemoted then
@@ -862,6 +874,9 @@ function BankWatch:CaseItems(case)
     elseif not handled then
         Add({ label = "Blacklist (asks first)", fn = function() self:BlacklistCase(case) end })
     end
+    if self:IsNew(case) then
+        Add({ label = "Mark seen", fn = function() case.seen = true; GT.Report:RefreshIfShown() end })
+    end
     if case.status == "open" then
         Add({ label = "Dismiss alert", fn = function() self:CloseCase(case, "dismissed") end })
     else
@@ -886,7 +901,9 @@ end
 function BankWatch:GetVisibleCases()
     local list = {}
     for _, case in ipairs(self.sv.cases) do
-        if case.status ~= "dismissed" and GT:IsAlertGuild(case.guildId) then list[#list + 1] = case end
+        -- 1.26.7 (Albert): alerts that cleared themselves (everything put back whole, e.g. a restack)
+        -- aren't shown; they come back if the member takes more and goes over a limit again.
+        if case.status ~= "dismissed" and case.status ~= "returned" and GT:IsAlertGuild(case.guildId) then list[#list + 1] = case end
     end
     -- Newest first, and a row keeps its place when you warn/demote it
     -- (it used to jump to the bottom, which looked like it disappeared).
@@ -895,6 +912,24 @@ function BankWatch:GetVisibleCases()
         return (a.firstTs or 0) > (b.firstTs or 0)
     end)
     return list
+end
+
+-- An open alert you haven't looked at yet (1.26.6, Albert: seeing it is enough, no need to dismiss).
+function BankWatch:IsNew(case)
+    return case.status == "open" and not case.seen
+end
+
+function BankWatch:CountNew()
+    local n = 0
+    for _, case in ipairs(self.sv.cases) do
+        if self:IsNew(case) and GT:IsAlertGuild(case.guildId) then n = n + 1 end
+    end
+    return n
+end
+
+-- Called when you leave the Bank alerts tab or close the window: what you saw is no longer new.
+function BankWatch:MarkShownSeen()
+    for _, case in ipairs(self:GetVisibleCases()) do case.seen = true end
 end
 
 function BankWatch:CountOpen()
@@ -930,8 +965,8 @@ function BankWatch:TabSummary()
     for _, guildId in ipairs(U.GetGuildIds()) do
         if GT:IsAlertGuild(guildId) then parts[#parts + 1] = U.GuildName(guildId) .. ": " .. self:DescribeLimits(guildId) end
     end
-    if #parts == 0 then return "No guild is ticked under Guilds to get alerts from (/gtsettings)." end
-    return table.concat(parts, ".  ") .. ".  Stacks put back whole don't count. Hover a row for details."
+    if #parts == 0 then return "" end   -- the tab says so itself (GT:FeatureOffText)
+    return table.concat(parts, ".  ") .. ".  Stacks put back whole don't count. |c5EB8FFNEW|r = not seen yet. Hover a row for details."
 end
 
 function BankWatch:RegisterTab()
@@ -939,14 +974,25 @@ function BankWatch:RegisterTab()
         id = "bank",
             GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "Bank alerts", true) end,
         tip = "People who took more from the guild bank than your limits allow.",
-        title = function() return string.format("Bank alerts (%d new)", self:CountOpen()) end,
+        title = function() return string.format("Bank alerts (%d new)", self:CountNew()) end,
+        about = {
+            "Lists members who took more from a guild bank in one day than your limits allow.",
+            "Right-click an alert to warn, demote or kick the member, or to dismiss it. Each one asks first; nothing is automatic unless you turn on auto-demote.",
+            "Stacks a member puts back whole don't count. Limits and who to ignore are set for each guild on the Guild rules settings page.",
+        },
+        emptyText = "No one is over your limits.",
+        OnLeave = function() self:MarkShownSeen() end,
         GetSummary = function() return self:TabSummary() end,
         GetRows = function() return self:TabRows() end,
         GetExportLines = function() return self:TabExportLines() end,
         footer = {
             { label = "Rescan with settings", tip = "Checks the bank history again with your current limits.", fn = function() GT:Rescan() end },
-            { label = "Dismiss all new", tip = "Hides every new alert. Asks first.", fn = function()
-                A.Confirm("Dismiss alerts", "Dismiss every new bank alert?", function()
+            { label = "Mark all seen", tip = "Takes the NEW tag off every alert without dismissing it. Leaving this tab or closing the window does the same.", fn = function()
+                self:MarkShownSeen()
+                GT.Report:RefreshIfShown()
+            end },
+            { label = "Dismiss all open", tip = "Hides every alert you haven't dealt with yet (warned, demoted, kicked or dismissed). Asks first.", fn = function()
+                A.Confirm("Dismiss alerts", "Dismiss every bank alert you haven't dealt with yet?", function()
                     for _, case in ipairs(self.sv.cases) do
                         if case.status == "open" then self:CloseCase(case, "dismissed") end
                     end
@@ -999,7 +1045,7 @@ function BankWatch:BuildGuildSettings(controls, guildId)
           choices = { "Item quantity", "Stacks (each withdrawal = 1)" }, choicesValues = { "quantity", "withdrawals" },
           getFunc = function() return g.countMode end, setFunc = function(v) g.countMode = v end, default = defaults.countMode },
         { type = "dropdown", name = "Count per",
-          tooltip = "Calendar day: everything taken from midnight to midnight (your PC's clock) counts together, so 5 stacks Saturday night and 5 Sunday morning are 5 each day. Rolling window: everything within the hours below counts together. Click Rescan with current settings after changing it.",
+          tooltip = "Calendar day: everything taken from midnight to midnight (your PC's clock) counts together, so 5 stacks Saturday night and 5 Sunday morning are 5 each day. Rolling window: everything within the hours below counts together. Click Rescan alerts after changing it.",
           choices = { "Calendar day", "Rolling window (hours)" }, choicesValues = { "day", "rolling" },
           getFunc = function() return g.windowMode end, setFunc = function(v) g.windowMode = v end, default = defaults.windowMode },
         { type = "slider", name = "Rolling window (hours)", min = 1, max = 168, step = 1,

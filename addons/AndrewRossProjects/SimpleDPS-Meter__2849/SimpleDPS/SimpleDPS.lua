@@ -9,7 +9,7 @@ SimpleDPS = {
 	name = "SimpleDPS",
 	
 	inCombat = false,
-	inDebug = true,
+	inDebug = false,
 
 	Initialize = function (self)	
 		self.config = ZO_SavedVars:NewAccountWide("SimpleDPSSavedVariables", 1, nil, {

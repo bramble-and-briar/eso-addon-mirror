@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Lykeion/Collectible-Hover-Preview__5112",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Lykeion",
+  "canonical_id": "esoui:5112",
+  "category_id": "18",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    }
+  ],
+  "content_id": "esoui:5112",
+  "deleted": false,
+  "directories": [
+    "CollectiblesHoverPreview"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5112/",
+  "fingerprint": "26f1f4c326c5d4763bdc40ca615654aceec4251773b89e9ab01587837f01d9bb",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5112",
+  "source_url": "https://www.esoui.com/downloads/info5112-CollectibleHoverPreview.html",
+  "stats": {
+    "downloads": 1,
+    "favorites": 1,
+    "monthly_downloads": 0
+  },
+  "title": "Collectible Hover Preview",
+  "updated_at": 1795601010000,
+  "version": "1.0"
+}

@@ -1,7 +1,8 @@
--- PreviewAnywhereHoverActions.lua: "preview whatever item tooltip is on screen", for every gamepad
--- screen that is not already covered by a host (bank / guild bank / vendor: R3) or by the game
--- itself (inventory: hold Square; chat / mail / guild hub links: hold Square via ZO_GamepadLinks;
--- guild trader: Preview on the search results).
+-- PreviewAnywhereHoverActions.lua: "preview whatever item tooltip is on screen", on the gamepad
+-- screens named in SCENE_KEYBIND. Every other screen has no button: the hosts (bank / guild bank /
+-- vendor / guild trader Sell tab) offer R3 themselves, the game covers its own (inventory: hold
+-- Square; chat / mail / guild hub links: hold Square via ZO_GamepadLinks; guild trader: Preview on
+-- the search results), and an unnamed screen may navigate with the D-pad.
 --
 -- Every gamepad item tooltip (bag rows, trade offers, mail attachments, crafting lists, quest
 -- rewards, ...) funnels through ZO_Tooltip:LayoutItem(itemLink, ...) on one
@@ -15,10 +16,14 @@
 -- screens, so the button is only registered when no other button owns that keybind in the scene
 -- (the strip would evict the other one), and it is removed again as the scene hides.
 --
--- Grid screens move their selection with the D-pad through DIRECTIONAL_INPUT, which the keybind
--- strip knows nothing about: there a D-pad Left press would both step the grid and open the
--- preview. Those scenes are named in SCENE_KEYBIND and get the button on R3 (the vendor Buy tab's
--- own Preview button) instead.
+-- Why the screens are named (1.4.1) rather than "every screen but a few": grids, horizontal
+-- selectors and spinners take the D-pad through DIRECTIONAL_INPUT, which the keybind strip knows
+-- nothing about. On such a screen a D-pad Left press both moves the screen's own selection and
+-- opens the preview over it, and backing out of the preview re-opens the screen from scratch. It
+-- misfired that way in the set-piece grids (1.3.1) and at the guild trader (1.3.3), each patched
+-- with one more exclusion; naming the screens that are known to be free ends the series. A named
+-- screen is one whose gamepad source moves a vertical list and nothing else, or a D-pad grid
+-- given R3 (the vendor Buy tab's own Preview button) instead.
 local PA = PreviewAnywhere
 local ProbeUtils = PA.ProbeUtils
 
@@ -26,22 +31,23 @@ local Hover = {}
 
 local TOOLTIP_TYPES = { "GAMEPAD_LEFT_TOOLTIP", "GAMEPAD_RIGHT_TOOLTIP", "GAMEPAD_QUAD3_TOOLTIP", "GAMEPAD_QUAD1_TOOLTIP", "GAMEPAD_QUAD_2_3_TOOLTIP", "GAMEPAD_MOVABLE_TOOLTIP", "GAMEPAD_LEFT_DIALOG_TOOLTIP" }
 
--- Scenes where another mechanism already offers the preview.
-local EXCLUDED_SCENES = {
-    gamepad_inventory_root = true, -- stock hold-Square preview
-    gamepadChatMenu = true,        -- ZO_GamepadLinks hold-Square button
-    -- Guild trader: the search results have the game's own Preview button.
-    gamepad_trading_house = true,                -- Browse, search results, Sell, Listings tabs
-    gamepad_trading_house_create_listing = true, -- price entry for the item being listed
-    tradingHousePreview_Gamepad = true,          -- the game's preview scene itself
-}
+local D_PAD_LEFT = "UI_SHORTCUT_INPUT_LEFT"
+local R3 = "UI_SHORTCUT_RIGHT_STICK"
 
-local DEFAULT_KEYBIND = "UI_SHORTCUT_INPUT_LEFT"
-
--- Scenes whose own navigation is the D-pad: the button goes on the keybind named here.
+-- The screens that get the hover Preview button, and the keybind it sits on there. A screen is
+-- added once its gamepad source shows what its D-pad does (see the header).
 local SCENE_KEYBIND = {
-    reconstruct_gamepad = "UI_SHORTCUT_RIGHT_STICK", -- transmute station, Reconstruct: set-piece grid
-    gamepadItemSetsBook = "UI_SHORTCUT_RIGHT_STICK", -- Collections, Sets: the same grid
+    -- A vertical list and nothing else on the D-pad.
+    gamepadTrade = D_PAD_LEFT,                 -- trade window: both offers
+    mailGamepad = D_PAD_LEFT,                  -- mail: attachments (links step aside, OnGamepadLinksKeybinds)
+    gamepadInteract = D_PAD_LEFT,              -- NPC dialogue: quest reward choices
+    lootGamepad = D_PAD_LEFT,                  -- loot window
+    lootInventoryGamepad = D_PAD_LEFT,         -- loot window, inventory-style
+    companionEquipmentGamepad = D_PAD_LEFT,    -- companion gear
+    gamepad_smithing_deconstruct = D_PAD_LEFT, -- crafting station: deconstruct
+    -- The D-pad moves a grid: the button goes on R3.
+    reconstruct_gamepad = R3, -- transmute station, Reconstruct: set-piece grid
+    gamepadItemSetsBook = R3, -- Collections, Sets: the same grid
 }
 
 -- tooltipType -> item link currently laid out on that tooltip (nil when cleared)
@@ -74,7 +80,7 @@ end
 -- by its keybind, so it only changes while the button is off the strip.
 local hoverDescriptor = {
     alignment = KEYBIND_STRIP_ALIGN_LEFT,
-    keybind = DEFAULT_KEYBIND,
+    keybind = D_PAD_LEFT,
     name = GetString(SI_ITEM_ACTION_PREVIEW),
     order = 50,
     visible = IsHoverButtonVisible,
@@ -89,16 +95,6 @@ local hoverDescriptor = {
     end,
 }
 
-local function IsSceneEligible(sceneName)
-    if not sceneName or EXCLUDED_SCENES[sceneName] or PA.SlotPreview.IsHostScene(sceneName) then
-        return false
-    end
-    if string.find(sceneName, "^" .. PA.LinkPreview.SCENE_NAME) then
-        return false
-    end
-    return true
-end
-
 local function RemoveHoverButton()
     if buttonAdded then
         KEYBIND_STRIP:RemoveKeybindButton(hoverDescriptor)
@@ -112,7 +108,8 @@ local function TryAddHoverButton()
         return
     end
     local sceneName = ProbeUtils.CurrentSceneName()
-    if not IsSceneEligible(sceneName) or suppressedForScene == sceneName then
+    local keybind = sceneName and SCENE_KEYBIND[sceneName]
+    if not keybind or suppressedForScene == sceneName then
         return
     end
     local scene = SCENE_MANAGER:GetCurrentScene()
@@ -123,7 +120,6 @@ local function TryAddHoverButton()
     if ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
         return
     end
-    local keybind = SCENE_KEYBIND[sceneName] or DEFAULT_KEYBIND
     if KEYBIND_STRIP.keybinds and KEYBIND_STRIP.keybinds[keybind] ~= nil then
         PA.Debug("hover: %s taken in %s; no hover preview button", keybind, sceneName)
         suppressedForScene = sceneName

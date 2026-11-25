@@ -111,6 +111,10 @@ function BankCapacity:RegisterTab()
             GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "Bank space alerts", true) end,
         tip = "How full each guild bank is, counted when you open it.",
         title = "Bank space",
+        about = {
+            "Shows how full each guild bank is and alerts you when one is nearly full.",
+            "The game only lets an addon count a guild bank while it is open, so open each guild bank once to get its first count.",
+        },
         GetSummary = function() return self:TabSummary() end,
         GetRows = function() return self:TabRows() end,
         GetExportLines = function() return self:TabExportLines() end,

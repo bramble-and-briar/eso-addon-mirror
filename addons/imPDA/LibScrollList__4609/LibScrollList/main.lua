@@ -107,7 +107,7 @@ function Button:Create(name, parent, width)
 
     if self.cb then
         -- button:SetMouseEnabled(true)
-        button:SetHandler('OnMouseDown', self.cb)
+        button:SetHandler('OnClicked', self.cb)
     end
 
     __applyStyle(button, self.style)
@@ -132,7 +132,8 @@ function Column:__init(name, width, offsetX, cell, headerText, header, sortable)
     self.sortable = sortable
 
     self.header = header
-    self.headerText = headerText or ''
+    self.headerText = headerText == nil and '' or headerText
+    -- TODO: header text is not 100% correct name because in case of button - ButtonState can be used, etc.
 
     if not header then
         local copiedCell = cell:Copy()
@@ -283,6 +284,8 @@ function Table:Create(name, parent, replace)
     scroll:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT)
     self.scroll = scroll
 
+    -- TODO: iterates contiguous numeric ids starting at 1
+    -- string or sparse ids are skipped silently
     for id = 1, #self.__dataTypes do
         self:__addDataType(id)
     end
@@ -313,6 +316,19 @@ function Table:Update(dataTypeId, data)
     ZO_ScrollList_Commit(self.scroll)
 end
 
+function Table:Clear()
+    ZO_ScrollList_Clear(self.scroll)
+end
+
+function Table:GetDataList()
+    return ZO_ScrollList_GetDataList(self.scroll)
+end
+
+function Table:Commit()
+    self:__doSorting()
+    ZO_ScrollList_Commit(self.scroll)
+end
+
 function Table:__addDataType(dataTypeId)
     local scroll = self.scroll
 
@@ -322,7 +338,7 @@ function Table:__addDataType(dataTypeId)
     local postCreate = self.__dataTypes[dataTypeId].postCreate
     local factory = function(objectPool)
         local newRow = CreateControlFromVirtual(
-            '$(parent)Row', scroll.contents, 'ZO_SelectableLabel',
+            ('$(parent)Row%s_'):format(dataTypeId),scroll.contents, 'ZO_SelectableLabel',
             objectPool:GetNextControlId()
         )
         newRow:SetHeight(height)
@@ -350,7 +366,7 @@ function Table:__addDataType(dataTypeId)
     local postSetup = self.__dataTypes[dataTypeId].postSetup
     local setupCallback = function(rowControl, dataEntryData, scrollList)
         for i, column in ipairs(columns) do
-            local e = rowControl:GetNamedChild(column.name) 
+            local e = rowControl:GetNamedChild(column.name)
             if e then
                 column:Set(e, dataEntryData[i])
             end
@@ -563,19 +579,30 @@ function Table.__onHeaderClick(headerCtrl)
     self:__updateSortingIndicator(headerCtrl)
 end
 
+function Table:DefaultSortCompare(left, right)
+    local criteria = (#self.sortCriteria > 0) and self.sortCriteria or self.defaultSortingCriteria
+    if not criteria then
+        return false
+    end
+    return MultiSortCompare(left.data, right.data, criteria)
+end
+
+function Table:SetSortComparator(fn)
+    self.sortComparator = fn
+end
+
 function Table:__doSorting()
-    if #self.sortCriteria > 0 then
-        local scrollData = ZO_ScrollList_GetDataList(self.scroll)
-        table.sort(scrollData, function(left, right)
-            return MultiSortCompare(left.data, right.data, self.sortCriteria)
-        end)
-        -- ZO_ScrollList_Commit(self.scroll)
-    elseif self.defaultSortingCriteria then
-        local scrollData = ZO_ScrollList_GetDataList(self.scroll)
-        table.sort(scrollData, function(left, right)
-            return MultiSortCompare(left.data, right.data, self.defaultSortingCriteria)
-        end)
-        -- ZO_ScrollList_Commit(self.scroll)
+    local scrollData = ZO_ScrollList_GetDataList(self.scroll)
+
+    if self.sortComparator then
+        table.sort(scrollData, self.sortComparator)
+    else
+        local criteria = (#self.sortCriteria > 0) and self.sortCriteria or self.defaultSortingCriteria
+        if criteria then
+            table.sort(scrollData, function(left, right)
+                return MultiSortCompare(left.data, right.data, criteria)
+            end)
+        end
     end
 end
 
@@ -696,5 +723,12 @@ addon.Defaults = {
 }
 
 LibScrollList = addon
+
+-- TODO: parity gaps vs. ZO_ScrollList:
+--   per-type hideCallback / resetControlCallback / equalityFunction
+--   categories (categoryId on data entries)
+--   operations (ZO_SCROLL_LIST_OPERATION_ADVANCE_CURSOR / LINE_BREAK via AddOperation)
+--   selection and highlight (EnableSelection / EnableHighlight)
+--   selection-aware Clear (currently raw ZO clear only)
 
 IMP_LibScrollList__class = nil

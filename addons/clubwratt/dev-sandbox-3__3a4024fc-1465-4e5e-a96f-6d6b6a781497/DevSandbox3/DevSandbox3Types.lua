@@ -8,6 +8,15 @@
 ---@field samplesZ number[]
 ---@field pinTypeId integer|nil           HarvestMap pin type once named by the reticle
 ---@field name string|nil                 node key once named ("columbine"; see PinTypeUtils.Key)
+---@field label string|nil                the compass's own words for a pin whose name the table lacks
+---@field addX number                     where the player stood when the engine handed the pin over
+---@field addZ number
+---@field addMs number                    frame time of that
+
+---@class DevSandbox3SurveySite           a survey site met, remembered per zone
+---@field x number                        centre, HarvestMap world frame metres
+---@field z number
+---@field h number|nil                    height, once the player has stood on it
 
 ---@class DevSandbox3Slot                  a known spawn location (from HarvestMap-Data)
 ---@field x number                        HarvestMap world frame metres
@@ -44,8 +53,11 @@
 ---@field psijicColor DevSandbox3Color
 ---@field markUnknown boolean              candidate dots for war torte / psijic locations
 ---@field unknownColor DevSandbox3Color    every candidate dot
+---@field survey boolean                    survey sites: dots per node, HUD line
+---@field surveyAlertAt integer             announce at this many tracked nodes on the site
+---@field surveyLog boolean                 survey events into LibConsoleLogger's buffer
 ---@field debugNodes boolean
 ---@field debug boolean
 
 ---@class DevSandbox3State
----@field savedVars { settings: DevSandbox3Settings, checkpoints: table<integer, table<integer, number>>, verdicts: table<integer, table<integer, { e: integer, x: number, n: string|nil }>> }
+---@field savedVars { settings: DevSandbox3Settings, checkpoints: table<integer, table<integer, number>>, verdicts: table<integer, table<integer, { e: integer, x: number, n: string|nil }>>, surveySites: table<integer, DevSandbox3SurveySite[]> }

@@ -8,6 +8,9 @@ function State.CreateSavedVarsDefaults()
         --   verdicts[zone][slot]    = { e = 0|1, x = expiry }   last judgment inside confirmed range (1 = empty)
         checkpoints = {},
         verdicts = {},
+        -- survey sites met, per zone: surveySites[zone] = { { x, z, h }, ... }: the site's centre (h once the
+        -- player has stood on it)
+        surveySites = {},
         settings = {
             dotSizeCm = 40,                               -- apparent size at 10 m
             farScalePct = 50,                             -- dot size at farScaleM relative to near size (100 = constant)
@@ -28,6 +31,9 @@ function State.CreateSavedVarsDefaults()
             checkedM = 36,                                -- coming within this distance marks a slot checked...
             checkedMin = 60,                              -- ...and verdicts are remembered this many minutes; 0 = until cleared manually
             checkedColor = { r = 0.0, g = 0.9, b = 0.9, a = 0.5 }, -- neon teal, half transparent
+            survey = true,                                -- survey sites: a dot per node, the nodes counted by name
+            surveyAlertAt = 2,                            -- announce when this many tracked nodes stand at the site
+            surveyLog = true,                             -- survey events into LibConsoleLogger's buffer (never chat)
             debugNodes = false,                           -- cyan: every located node
             debug = false,
         },

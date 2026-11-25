@@ -1,0 +1,6 @@
+## Title: Collectibles Hover Preview
+## Author: Lykeion
+## Version: 1.0
+## APIVersion: 101051 101052
+## Description: Starts a collectible preview as soon as it is hovered (PC) or focused in the list (console)
+CollectiblesHoverPreview.lua

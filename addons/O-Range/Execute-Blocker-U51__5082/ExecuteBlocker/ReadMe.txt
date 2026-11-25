@@ -1,32 +1,22 @@
 # Execute Blocker
 
 **Author:** O-Range  
-**Version:** 2.4.0  
+**Version:** 2.6.0  
 **Category:** Combat / Utility
 
 ---
 
-### Short Description
-Prevents casting of execute abilities when the target is above a configurable health threshold. Soft visual flash feedback. Uses LibExecuteSkills. Supports Nightblade, Templar, Sorcerer, 2H, Dual Wield, Bow and Warden Guardians.
+### Description
+Prevents casting of execute abilities when the target is still above a configurable health threshold.
 
----
-
-### Full Description
-
-Execute Blocker stops you from wasting your execute skills too early.
-
-When you press an execute ability and the reticle target is still above the health percentage you set, the cast is blocked. A soft, fast-fading red-orange flash gives you clear but non-intrusive feedback that the ability was held back.
-
-This version uses the shared **LibExecuteSkills** library for the execute skill database.
+Uses the shared **LibExecuteSkills** library for the skill database. Ranked ability IDs (Executioner etc.) are automatically detected by name.
 
 #### Features
 - Master enable / disable
 - Per-skill on/off and independent threshold (5–100 %)
 - Option to also block when you have no living hostile target
-- Optional soft fade-in / fade-out flash (very quick, low opacity)
-- Correct front / back bar handling
-- Account-wide settings via LibAddonMenu-2.0
-- Powered by LibExecuteSkills
+- Account-wide settings
+- Clean, minimal code – no visual effects
 
 #### Supported Skills
 - Nightblade – Assassin’s Blade, Killer’s Blade, Impale
@@ -37,10 +27,10 @@ This version uses the shared **LibExecuteSkills** library for the execute skill 
 - Bow – Poison Injection
 - Warden – Feral / Eternal / Wild Guardian*
 
-\* Whirling Blades and the three Warden Guardian ultimates are disabled by default (tooltips explain why).
+\* Whirling Blades and the three Warden Guardian ultimates are disabled by default.
 
 #### Requirements
-- LibAddonMenu-2.0 (≥ 43 recommended)
+- LibAddonMenu-2.0 (≥ 43)
 - LibExecuteSkills (≥ 1.1.0)
 
 #### Installation
@@ -51,16 +41,15 @@ Configure under **Settings → Addon Settings → Execute Blocker**.
 
 ### Changelog
 
+**2.6.0**
+- Complete rewrite
+- Removed flash visual entirely
+- Cleaner structure and variable naming
+- Same reliable CanUseActionSlots blocking path
+- Ranked ability ID resolution retained
+
+**2.5.x**
+- Various reliability and flash fixes (flash later removed)
+
 **2.4.0**
-- Integrated LibExecuteSkills library for the execute skill database
-- Greatly reduced hardcoded skill data – core information now comes from the shared library
-- Only minimal local overrides remain (default thresholds, enabled state, special tooltips)
-- Updated manifest and documentation
-
-**2.3.0**
-- Fixed hotbar category handling for correct ability detection on both bars
-- Added soft animated flash feedback when a cast is blocked
-- Author name set to O-Range
-- Code cleanup and improved settings tooltips
-
-Enjoy cleaner, more intentional executes!
+- Integrated LibExecuteSkills

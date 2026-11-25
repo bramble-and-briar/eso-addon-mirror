@@ -65,6 +65,10 @@ Events.defaults = {
     -- (or whispers it) gets a group invite. Off on a new install.
     autoInvite = false,
     inviteCode = "X",        -- 1.13.2: was "+trial"
+    -- 1.25.6 (Albert): while Invite by code is on and you lead the group, group members who
+    -- have been offline this many minutes are removed from the group. Off on a new install.
+    kickOffline = false,
+    kickOfflineMinutes = 10,
 }
 
 -- Ad texts that were the default in an earlier version. A saved text still equal to one of
@@ -80,9 +84,9 @@ local CODE_HOURS_AFTER_START = 2   -- the invite code works until this long afte
 local MAX_GROUP = 12
 
 Events.columns = {
-    { title = "Signed up as", width = 130, tip = "The sign-up section in the sesh post (Tank, Healer, DPS, Standby, Attendees...)." },
-    { title = "Discord name", width = 220, tip = "The name in the sesh post." },
-    { title = "Account", width = 200, tip = "Their ESO @account. Matched by name, or the one you picked with right-click > Set account." },
+    { title = "Signed up as", width = 130, tip = "The role on the sign-up sheet (Tank, Healer, DPS, MT, Plar, Standby, Attendees...)." },
+    { title = "Name on sheet", width = 220, tip = "The name on the sign-up sheet: a Discord name, or an @name." },
+    { title = "Account", width = 200, tip = "Their ESO @account. Matched to a member of your guilds or friends by name (also when the name is only close and one account fits), written on the sheet as \"Name (@Account)\", or the one you picked with right-click > Set account." },
     { title = "Status", width = 300, tip = "In group, online (in one of your guilds or on your friends list), or offline and for how long." },
     { title = "Group role", width = 100, tip = "The role they picked in the group (from the group window)." },
     { title = "CP", width = 70, tip = "Their champion points, while they are in your group. Red when under the post's CP requirement." },
@@ -169,38 +173,335 @@ function Events.FindCP(text)
     return 0
 end
 
--- The event's start time as a timestamp, from the Time line Discord shows in your own time
--- zone: "Wednesday, November 25, 2026 20:00", "November 25, 2026 8:00 PM" or
--- "25 November 2026 20:00". nil when it can't be read.
+-- The event's start time as a timestamp. Reads (1.25.0):
+--   Discord's own time as it shows on your screen: "Wednesday, November 25, 2026 20:00",
+--   "November 25, 2026 8:00 PM", "25 November 2026 20:00" (your own time zone);
+--   a sheet's Time: tag with the time zone written out: "Sat Nov 28 1:00 PM CT",
+--   "2026-11-28 13:00 CT", "Nov 28 8pm EST", "Saturday 8:00 PM UTC+1" (the next Saturday),
+--   "tomorrow 8pm CET";
+--   a Discord time code: "<t:1795000000:F>".
+-- No time zone: your own. No year: the one that puts it closest to now. nil when it can't be read.
 local MONTHS = { jan = 1, feb = 2, mar = 3, apr = 4, may = 5, jun = 6, jul = 7, aug = 8, sep = 9, oct = 10, nov = 11, dec = 12 }
-function Events.StartTime(text)
-    if not text then return nil end
-    local lower = zo_strlower(text)
-    local monthName, day, year = lower:match("(%a+)%s+(%d%d?),?%s+(%d%d%d%d)")
-    local month = monthName and MONTHS[monthName:sub(1, 3)]
-    if not month then
-        day, monthName, year = lower:match("(%d%d?)%.?%s+(%a+)%s+(%d%d%d%d)")
-        month = monthName and MONTHS[monthName:sub(1, 3)]
-    end
-    local hour, minute = lower:match("(%d%d?):(%d%d)")
-    if not month or not hour then return nil end
-    hour = tonumber(hour)
-    local half = lower:match("%d:%d%d%s*([ap])%.?m")
-    if half == "p" and hour < 12 then hour = hour + 12 elseif half == "a" and hour == 12 then hour = 0 end
-    return os.time({ year = tonumber(year), month = month, day = tonumber(day), hour = hour, min = tonumber(minute), sec = 0 })
+local MONTH_FULL = {
+    january = 1, february = 2, march = 3, april = 4, june = 6, july = 7, august = 8,
+    september = 9, sept = 9, october = 10, november = 11, december = 12,
+}
+local WEEKDAYS = {
+    sun = 0, sunday = 0, mon = 1, monday = 1, tue = 2, tues = 2, tuesday = 2, wed = 3, weds = 3, wednesday = 3,
+    thu = 4, thur = 4, thurs = 4, thursday = 4, fri = 5, friday = 5, sat = 6, saturday = 6,
+}
+-- Time zones by the names people write. rule "us" / "eu": summer time by that region's dates,
+-- so "CT", "CST" and "CDT" all mean the clock in Chicago on that date.
+local ZONES = {
+    et = { -5, "us" }, est = { -5, "us" }, edt = { -5, "us" }, eastern = { -5, "us" },
+    ct = { -6, "us" }, cst = { -6, "us" }, cdt = { -6, "us" }, central = { -6, "us" },
+    mt = { -7, "us" }, mst = { -7, "us" }, mdt = { -7, "us" }, mountain = { -7, "us" },
+    pt = { -8, "us" }, pst = { -8, "us" }, pdt = { -8, "us" }, pacific = { -8, "us" },
+    akst = { -9, "us" }, akdt = { -9, "us" }, hst = { -10 },
+    utc = { 0 }, gmt = { 0 }, uk = { 0, "eu" }, bst = { 1 }, wet = { 0, "eu" }, west = { 0, "eu" },
+    cet = { 1, "eu" }, cest = { 1, "eu" }, eet = { 2, "eu" }, eest = { 2, "eu" }, msk = { 3 },
+    awst = { 8 }, jst = { 9 }, aest = { 10 }, aedt = { 11 }, nzst = { 12 }, nzdt = { 13 },
+}
+Events.ZONES = ZONES
+
+local function MonthOf(word)
+    if not word then return nil end
+    if MONTH_FULL[word] then return MONTH_FULL[word] end
+    if #word == 3 then return MONTHS[word] end
+    return nil
 end
 
--- Parsing a sesh post ----------------------------------------------------------------
+-- Days since 1970-01-01 for a calendar date, and back (no time zone involved).
+local function DaysFromCivil(y, m, d)
+    if m <= 2 then y = y - 1 end
+    local era = math.floor(y / 400)
+    local yoe = y - era * 400
+    local mp = (m + 9) % 12
+    local doy = math.floor((153 * mp + 2) / 5) + d - 1
+    local doe = yoe * 365 + math.floor(yoe / 4) - math.floor(yoe / 100) + doy
+    return era * 146097 + doe - 719468
+end
+
+local function CivilFromDays(z)
+    z = z + 719468
+    local era = math.floor(z / 146097)
+    local doe = z - era * 146097
+    local yoe = math.floor((doe - math.floor(doe / 1460) + math.floor(doe / 36524) - math.floor(doe / 146096)) / 365)
+    local y = yoe + era * 400
+    local doy = doe - (365 * yoe + math.floor(yoe / 4) - math.floor(yoe / 100))
+    local mp = math.floor((5 * doy + 2) / 153)
+    local d = doy - math.floor((153 * mp + 2) / 5) + 1
+    local m = mp < 10 and mp + 3 or mp - 9
+    if m <= 2 then y = y + 1 end
+    return y, m, d
+end
+
+local function Weekday(days) return (days + 4) % 7 end   -- 0 = Sunday
+
+-- Summer time (+1 hour) for a wall-clock time in a zone with a rule.
+local function SummerHour(zone, y, wall)
+    if zone[2] == "us" then
+        -- Second Sunday in March, 2 AM, to the first Sunday in November, 2 AM (local clock).
+        local march = DaysFromCivil(y, 3, 1)
+        local startDay = march + (7 - Weekday(march)) % 7 + 7
+        local nov = DaysFromCivil(y, 11, 1)
+        local endDay = nov + (7 - Weekday(nov)) % 7
+        if wall >= startDay * 86400 + 7200 and wall < endDay * 86400 + 7200 then return 1 end
+    elseif zone[2] == "eu" then
+        -- Last Sunday in March to the last Sunday in October, 1 AM UTC.
+        local utc = wall - zone[1] * 3600
+        local marchEnd = DaysFromCivil(y, 4, 1) - 1
+        local octEnd = DaysFromCivil(y, 11, 1) - 1
+        local startDay, endDay = marchEnd - Weekday(marchEnd), octEnd - Weekday(octEnd)
+        if utc >= startDay * 86400 + 3600 and utc < endDay * 86400 + 3600 then return 1 end
+    end
+    return 0
+end
+
+-- A wall-clock time in a zone (nil = your own) as a timestamp.
+local function Stamp(zone, y, mo, d, h, mi)
+    if zone then
+        local wall = DaysFromCivil(y, mo, d) * 86400 + h * 3600 + mi * 60
+        return wall - (zone[1] + SummerHour(zone, y, wall)) * 3600
+    end
+    return os.time({ year = y, month = mo, day = d, hour = h, min = mi, sec = 0 })
+end
+
+-- Today's date in a zone (nil = your own): days since 1970.
+local function TodayIn(zone, now)
+    if zone then
+        local guess = now + zone[1] * 3600
+        local y = CivilFromDays(math.floor(guess / 86400))
+        guess = guess + SummerHour(zone, y, guess) * 3600
+        return math.floor(guess / 86400)
+    end
+    local y, m, d = os.date("%Y-%m-%d", now):match("(%d+)%-(%d+)%-(%d+)")
+    return DaysFromCivil(tonumber(y), tonumber(m), tonumber(d))
+end
+
+local function ZoneIn(lower)
+    local sign, hours = lower:match("[^%a]utc%s*([%+%-])%s*(%d%d?)")
+    if not sign then sign, hours = lower:match("[^%a]gmt%s*([%+%-])%s*(%d%d?)") end
+    if sign then
+        hours = tonumber(hours)
+        return { sign == "-" and -hours or hours }, "UTC" .. sign .. hours
+    end
+    for word in lower:gmatch("%a+") do
+        if ZONES[word] then return ZONES[word], zo_strupper(word) end
+    end
+    return nil
+end
+
+-- Returns the timestamp and the time zone name it used ("CT", or nil for your own).
+function Events.StartTime(text, now)
+    if not text or text == "" then return nil end
+    now = now or GetTimeStamp()
+    local code = tostring(text):match("<t:(%d+)")
+    if code then return tonumber(code), "Discord" end
+    local lower = " " .. zo_strlower(Printable(text)):gsub("[\128-\255]+", " ") .. " "
+
+    -- Time of day: "20:00", "8:00 PM", "8pm", "8 p.m."
+    local hour, minute
+    local h, m = lower:match("(%d%d?):(%d%d)")
+    local half
+    if h then
+        half = lower:match("%d:%d%d%s*([ap])%.?m[^%a]")
+    else
+        h, half = lower:match("[^%d:](%d%d?)%s*([ap])%.?m[^%a]")
+        m = "0"
+    end
+    if not h then return nil end
+    hour, minute = tonumber(h), tonumber(m)
+    if half == "p" and hour < 12 then hour = hour + 12 elseif half == "a" and hour == 12 then hour = 0 end
+    if hour > 23 or minute > 59 then return nil end
+
+    local zone, zoneName = ZoneIn(lower)
+
+    -- The date: "2026-11-28", "November 28, 2026", "Nov 28", "28 November 2026", "11/28/2026".
+    local year, month, day
+    -- 1.25.1: "2026.11.26" and "2026/11/26" too (the game read a dotted date as today).
+    local y, mo, d = lower:match("(%d%d%d%d)[%-%./](%d%d?)[%-%./](%d%d?)")
+    if y then
+        year, month, day = tonumber(y), tonumber(mo), tonumber(d)
+    end
+    -- "26.11.2026" (day first, as in Europe).
+    if not month then
+        local d2, m2, y2 = lower:match("[^%d](%d%d?)%.(%d%d?)%.(%d%d%d%d)")
+        if d2 then year, month, day = tonumber(y2), tonumber(m2), tonumber(d2) end
+    end
+    if not month then
+        -- 1.25.1: not the hour of "26 nov 14:00" ("nov 14").
+        for name, dd, colon, rest in lower:gmatch("(%a+)%.?%s+(%d+)(:?)%a*,?%s*(%d*)") do
+            if MonthOf(name) and #dd <= 2 and colon == "" then
+                month, day = MonthOf(name), tonumber(dd)
+                if #rest == 4 then year = tonumber(rest) end
+                break
+            end
+        end
+    end
+    if not month then
+        for dd, name, rest in lower:gmatch("(%d+)%a*%.?%s+(%a+)%.?,?%s*(%d*)") do
+            if MonthOf(name) and #dd <= 2 then
+                month, day = MonthOf(name), tonumber(dd)
+                if #rest == 4 then year = tonumber(rest) end
+                break
+            end
+        end
+    end
+    if not month then
+        local m2, d2, y2 = lower:match("[^%d](%d%d?)/(%d%d?)/?(%d*)")
+        if m2 then
+            month, day = tonumber(m2), tonumber(d2)
+            -- "26/11/2026": day first.
+            if month > 12 and day <= 12 then month, day = day, month end
+            if #y2 == 4 then year = tonumber(y2) elseif #y2 == 2 then year = 2000 + tonumber(y2) end
+        end
+    end
+
+    if month then
+        if month < 1 or month > 12 or day < 1 or day > 31 then return nil end
+        if year then return Stamp(zone, year, month, day, hour, minute), zoneName end
+        -- No year: this year, unless that's long past (next year) or far ahead (last year).
+        local thisYear = CivilFromDays(TodayIn(zone, now))
+        local ts = Stamp(zone, thisYear, month, day, hour, minute)
+        if ts < now - 60 * 86400 then
+            ts = Stamp(zone, thisYear + 1, month, day, hour, minute)
+        elseif ts > now + 300 * 86400 then
+            ts = Stamp(zone, thisYear - 1, month, day, hour, minute)
+        end
+        return ts, zoneName
+    end
+
+    -- 1.25.1: a date written some other way is an error, not today.
+    if lower:find("%d[%-%./]%d") then return nil end
+
+    -- No date: a day name ("Saturday 8pm" = the next Saturday), "tomorrow", or today.
+    local today = TodayIn(zone, now)
+    local target, step = today, 1
+    for word in lower:gmatch("%a+") do
+        if WEEKDAYS[word] then target = today + (WEEKDAYS[word] - Weekday(today)) % 7; step = 7; break end
+        if word == "tomorrow" then target = today + 1; step = 0; break end
+        if word == "today" or word == "tonight" then step = 0; break end
+    end
+    local ty, tm, td = CivilFromDays(target)
+    local ts = Stamp(zone, ty, tm, td, hour, minute)
+    -- Already over by more than a few hours: the next one (next week for a day name).
+    if ts < now - 6 * 3600 and step > 0 then
+        ty, tm, td = CivilFromDays(target + step)
+        ts = Stamp(zone, ty, tm, td, hour, minute)
+    end
+    return ts, zoneName
+end
+
+-- The short name of your own time zone for the template's example time: "CT", "CET", "UTC+3".
+function Events.YourZoneName(now)
+    now = now or GetTimeStamp()
+    local today = TodayIn(nil, now)
+    local h, mi = os.date("%H:%M", now):match("(%d+):(%d+)")
+    local wall = today * 86400 + tonumber(h) * 3600 + tonumber(mi) * 60
+    local offset = math.floor((wall - now) / 60 + 0.5) / 60
+    local y = CivilFromDays(today)
+    for _, name in ipairs({ "et", "ct", "mt", "pt", "uk", "cet", "eet" }) do
+        local zone = ZONES[name]
+        if zone[1] + SummerHour(zone, y, wall) == offset then return zo_strupper(name) end
+    end
+    if offset == 0 then return "UTC" end
+    if offset == math.floor(offset) then return string.format("UTC%s%d", offset > 0 and "+" or "-", math.abs(offset)) end
+    return "UTC"
+end
+
+-- Reading a sign-up sheet --------------------------------------------------------------------
+-- 1.25.0: any guild's sheet, not only sesh posts.
+--   Line 1 is the title (unless it's already a sign-up line).
+--   Tags: "Time: Sat Nov 28 8:00 PM CT", "CP: 600", "Duration: 2 hours". Unknown lines are ignored.
+--   sesh's own layout: "Time" on one line and the date on the next.
+--   Role sections: "Tank (1 / 2)" (have / need) with one name per line under it. Role names
+--   with Tank, Heal or DPS in them are those group roles; others are the sheet's own roles.
+--   Standby, Tentative, Absent and sesh's Fills are never roles.
+--   Free-form sheets, best effort: one role per line ("MT: @Briar", "DD @Rumple",
+--   "R Plar: @Revan (Cantgetright86)", "DD" for an open slot). A boss-by-boss layout that
+--   repeats the roles without names only counts the first set.
 
 local LABELS = { time = true, duration = true, ["repeat"] = true, ["repeats"] = true, ["when"] = true }
 
+local TAGS = {
+    time = "time", when = "time", start = "time", starts = "time", ["start time"] = "time", ["date and time"] = "time",
+    date = "date", day = "date",
+    cp = "cp", ["min cp"] = "cp", ["minimum cp"] = "cp", ["cp required"] = "cp", ["cp requirement"] = "cp", ["champion points"] = "cp",
+    duration = "duration", length = "duration", ["repeat"] = "repeat", repeats = "repeat",
+    leader = "leader", lead = "leader", ["raid lead"] = "leader", ["raid leader"] = "leader", host = "leader",
+    ["hosted by"] = "leader", ["run by"] = "leader", organizer = "leader", organiser = "leader", contact = "leader",
+    whisper = "leader", dm = "leader", msg = "leader", ping = "leader",
+}
+
+-- First word of a role name, short forms included ("MT", "GH", "DD3", "Off-Heal").
+local ROLE_WORDS = {
+    tank = "tank", tanks = "tank", mt = "tank", ot = "tank", maintank = "tank", offtank = "tank",
+    heal = "heal", heals = "heal", healer = "heal", healers = "heal", gh = "heal", kh = "heal", offheal = "heal",
+    dps = "dps", dd = "dps", dds = "dps", parse = "dps", parses = "dps", damage = "dps", mdps = "dps", rdps = "dps",
+}
+-- With a number after it only: "H1", "T2".
+local NUMBERED_ROLE_WORDS = { h = "heal", t = "tank", d = "dps" }
+-- Never roles (Albert, 1.25.0).
+local RESERVED_WORDS = {
+    standby = "standby", tentative = "standby", maybe = "standby", bench = "standby", reserve = "standby",
+    reserves = "standby", backup = "standby", backups = "standby", fill = "standby", fills = "standby",
+    filler = "standby", fillers = "standby", late = "standby", sub = "standby", subs = "standby",
+    absent = "out", declined = "out", decline = "out",
+}
+local SIDE_WORDS = { l = true, r = true, left = true, right = true }
+
+local function LabelWords(label)
+    local text = Printable(label):gsub("%b()", " "):gsub("%b[]", " ")
+    local words = {}
+    for word in text:gmatch("[%w%-']+") do
+        if word:find("%w") then words[#words + 1] = word end
+    end
+    return words
+end
+
+-- "R Plar (MA/PA)" -> "Plar": the role name without side markers, numbers and notes.
+local function CleanLabel(label)
+    local words = {}
+    for _, word in ipairs(LabelWords(label)) do
+        if not SIDE_WORDS[zo_strlower(word)] and not word:match("^%d+$") then words[#words + 1] = word end
+    end
+    local text = table.concat(words, " ")
+    if #text > 30 then text = text:sub(1, 30) end
+    return text
+end
+
+-- The kind of a role name: "tank", "heal", "dps", "standby", "out", or nil for the sheet's own
+-- roles. Also the section name to show ("DD" for "DD3", "MT", "Plar").
+local function RoleOf(label)
+    local words = LabelWords(label)
+    for _, word in ipairs(words) do
+        local reserved = RESERVED_WORDS[zo_strlower(word)]
+        if reserved then return reserved, word end
+    end
+    local i = 1
+    while words[i] and (SIDE_WORDS[zo_strlower(words[i])] or words[i]:match("^%d+$")) do i = i + 1 end
+    local word = words[i]
+    if word then
+        local stem, digits = zo_strlower(word):gsub("[%-']", ""):match("^(%a+)(%d*)$")
+        local kind = stem and (ROLE_WORDS[stem] or (digits ~= "" and NUMBERED_ROLE_WORDS[stem]))
+        if kind then return kind, (word:gsub("%d+$", "")) end
+    end
+    local low = zo_strlower(table.concat(words, " "))
+    if low:find("tank") then return "tank", CleanLabel(label) end
+    if low:find("heal") then return "heal", CleanLabel(label) end
+    if low:find("dps") then return "dps", CleanLabel(label) end
+    return nil
+end
+
+-- A sesh-style section name's kind ("Tanks", "Damage Dealers", "Can't make it").
 local function KindOf(name)
+    local kind = RoleOf(name)
+    if kind then return kind end
     local low = zo_strlower(name)
-    if low:find("tank") then return "tank" end
-    if low:find("heal") then return "heal" end
-    if low:find("dps") or low:find("damage") or low:find("^dd") then return "dps" end
+    if low:find("^dd") or low:find("damage") then return "dps" end
     if low:find("standby") or low:find("bench") or low:find("reserve") or low:find("tentative") or low:find("maybe")
-        or low:find("late") or low:find("backup") or low:find("sub") then return "standby" end
+        or low:find("backup") or low:find("fill") then return "standby" end
     if low:find("absent") or low:find("declin") or low:find("can'?t") or low:find("cannot") or low:find("not ")
         or low == "no" then return "out" end
     return "any"
@@ -208,10 +509,13 @@ end
 
 local BARE_HEADERS = {
     standby = true, bench = true, reserve = true, reserves = true, tentative = true, maybe = true,
-    late = true, backup = true, backups = true, absent = true, declined = true,
+    late = true, backup = true, backups = true, absent = true, declined = true, fills = true,
+    -- 1.25.3 (Albert): classes and other events with no roles, just sign-ups.
+    attending = true, attendees = true,
 }
 
--- "Tank (1 / 2)" -> "Tank", 1, 2. "Attendees (4)" -> "Attendees", 4, nil. Otherwise nil.
+-- "Tank (1 / 2)" -> "Tank", 1, 2. "Attendees (4)" -> "Attendees", 4, nil. "Tanks:" -> "Tanks".
+-- Otherwise nil.
 local function Header(line)
     local bare = Bare(line)
     local name, count, max = bare:match("^(.-)%s*%(%s*(%d+)%s*/%s*(%d+)%s*%)$")
@@ -219,17 +523,48 @@ local function Header(line)
         name, count = bare:match("^(.-)%s*%(%s*(%d+)%s*%)$")
     end
     if not name then
+        local plain = zo_strtrim((bare:gsub(":$", "")))
         -- 1.16.11: sesh leaves the count off an empty section at the end ("Standby").
-        if BARE_HEADERS[zo_strlower(bare)] then return bare, nil, nil end
+        if BARE_HEADERS[zo_strlower(plain)] then return plain, nil, nil end
+        -- 1.25.0: "Tanks:" alone on a line, names below.
+        if bare:find(":$") and #plain <= 20 and RoleOf(plain) then return plain, nil, nil end
         return nil
     end
     if name == "" or #name > 40 or not name:find("%a") then return nil end
     return name, tonumber(count), max and tonumber(max) or nil
 end
 
+-- "Time: Sat 8 PM CT" -> "time", "Sat 8 PM CT". nil when the label isn't a known tag.
+local function Tag(line)
+    local label, value = Bare(line):match("^([^:]-)%s*:%s*(.-)$")
+    if not label then return nil end
+    local tag = TAGS[zo_strlower(Trim(label:gsub("%*", "")))]
+    if not tag then return nil end
+    return tag, Trim(Printable(value):gsub("%*", ""))
+end
+
+local PRONOUNS = {
+    he = true, him = true, his = true, she = true, her = true, hers = true, they = true, them = true,
+    theirs = true, it = true, its = true, xe = true, xem = true, ze = true, zir = true, any = true, all = true,
+}
+local function IsPronouns(parens)
+    local inner = zo_strlower(parens:sub(2, -2))
+    local any = false
+    for word in inner:gmatch("[^/%s]+") do
+        if not PRONOUNS[word] then return false end
+        any = true
+    end
+    return any and inner:find("/") ~= nil
+end
+
 -- "Furyous (Albert)" -> { raw =, base = "Furyous", nick = "Albert", key = "furyous" }
+-- 1.25.0: "@The Last Minute (@MinuteHook)" -> account = "@MinuteHook"; "[Lion]" group tags and
+-- pronouns "(he/they)" dropped; "Staff | ewilliam" and "barzel or sabayor" try each part too.
 local function Person(raw)
-    raw = Trim(raw)
+    raw = Trim(Printable(raw))
+    raw = raw:gsub("%b[]", "")
+    raw = raw:gsub("%s*%b()", function(parens) if IsPronouns(parens) then return "" end end)
+    raw = Trim(raw:gsub("%s%s+", " "))
     raw = raw:gsub("^%d+[%.%)]%s+", "")
     raw = raw:gsub("^[%-%*]%s+", "")
     raw = Trim((raw:gsub("^\226\128\162%s*", "")))
@@ -247,12 +582,83 @@ local function Person(raw)
         base = parts[1] or ""
         for i = 2, #parts do alts[#alts + 1] = Norm(parts[i]) end
     end
+    if base:find("|", 1, true) then
+        for part in base:gmatch("[^|]+") do alts[#alts + 1] = Norm(part) end
+    end
+    local low = zo_strlower(base)
+    if low:find(" or ", 1, true) then
+        local s = 1
+        while true do
+            local a, b = low:find(" or ", s, true)
+            alts[#alts + 1] = Norm(base:sub(s, (a or 0) - 1))
+            if not a then break end
+            s = b + 1
+        end
+    end
+    local account
+    if nick and nick:match("^@[^%s]+$") then account = nick end
     local key = Norm(base)
     if key == "" then key = zo_strlower(base) end
-    return { raw = raw, base = base, nick = nick and Trim(nick) or nil, key = key, alts = alts }
+    return { raw = raw, base = base, nick = nick and Trim(nick) or nil, key = key, alts = alts, account = account }
 end
 
--- Reads a pasted sesh post. Returns the event table, or nil and a reason.
+-- "@Revan (Cantgetright86), @Suki" -> { "@Revan (Cantgetright86)", "@Suki" }: a new name starts at
+-- each @ or comma outside brackets.
+local function SplitNames(text)
+    local names, current, depth = {}, {}, 0
+    local function Push()
+        local name = Trim(table.concat(current))
+        if name ~= "" and name:find("[%w\128-\255]") then names[#names + 1] = name end
+        current = {}
+    end
+    for i = 1, #text do
+        local c = text:sub(i, i)
+        if c == "(" or c == "[" then depth = depth + 1 elseif (c == ")" or c == "]") and depth > 0 then depth = depth - 1 end
+        if depth == 0 and c == "@" and Trim(table.concat(current)) ~= "" then Push() end
+        if depth == 0 and c == "," then Push() else current[#current + 1] = c end
+    end
+    Push()
+    return names
+end
+
+-- A free-form sign-up line: "MT: @Briar", "DD @Rumple", "R Plar: @Revan", or a role alone ("DD",
+-- an open slot). Returns the role label, the text after it (names), and the kind (nil = the
+-- sheet's own role). nil when the line isn't one.
+local function RoleLine(line, afterRoles)
+    if Trim(line):sub(1, 1) == "/" then return nil end   -- "/w @leader x"
+    local text = Bare(line)
+    if text == "" then return nil end
+    -- "Label: names"
+    local label, rest = text:match("^([^:@]-)%s*:%s*(.*)$")
+    if label and label ~= "" and #label <= 40 and label:find("%a") then
+        local kind = RoleOf(label)
+        if rest:sub(1, 1) == "@" then
+            if kind or #LabelWords(label) <= 4 then return label, rest, kind end
+            return nil
+        end
+        if kind then return label, rest, kind end
+        return nil
+    end
+    -- "Label @name"
+    local pre, names = text:match("^([^@]-)%s*(@.*)$")
+    if pre and pre ~= "" and #pre <= 40 and pre:find("%a") then
+        local kind = RoleOf(pre)
+        if kind or #LabelWords(pre) <= 4 then return pre, names, kind end
+        return nil
+    end
+    -- A role alone, after other sign-up lines: an open slot ("DD", "MT (LE/PW/Naz)", "1 DD [Wama]").
+    if afterRoles and not text:find("@") and #LabelWords(text) <= 4 then
+        local kind = RoleOf(text)
+        local words = LabelWords(text)
+        local i = 1
+        while words[i] and (SIDE_WORDS[zo_strlower(words[i])] or words[i]:match("^%d+$")) do i = i + 1 end
+        local first = words[i] and zo_strlower(words[i]):gsub("[%-']", ""):match("^(%a+)%d*$")
+        if kind and first and (ROLE_WORDS[first] or NUMBERED_ROLE_WORDS[first]) then return text, "", kind end
+    end
+    return nil
+end
+
+-- Reads a pasted sign-up sheet. Returns the event table, or nil and a reason.
 function Events.Parse(text)
     local lines = {}
     for line in (tostring(text or ""):gsub("\r", "") .. "\n"):gmatch("(.-)\n") do lines[#lines + 1] = Trim(line) end
@@ -263,50 +669,74 @@ function Events.Parse(text)
         if Bare(line) ~= "" then first = i; break end
     end
     if not first then return nil, "The text is empty." end
-    ev.title = Bare(lines[first])
 
-    -- Time, Duration and Repeat are a label line followed by the value.
-    local infoStart
-    for i = first + 1, #lines do
+    -- sesh: Time, Duration and Repeat are a label line followed by the value.
+    local valueLine = {}
+    for i = first, #lines do
         local label = zo_strlower(Bare(lines[i]))
         if LABELS[label] then
-            infoStart = infoStart or i
-            local value
             for j = i + 1, #lines do
-                if lines[j] ~= "" then value = lines[j]; break end
-            end
-            if value then
-                value = Trim(Printable(value):gsub("%[%+%]", ""):gsub("%s*%(in [^%)]*%)", ""))
-                if label == "time" or label == "when" then ev.time = value
-                elseif label == "duration" then ev.duration = value
-                else ev.repeatText = value end
+                if lines[j] ~= "" then
+                    valueLine[j] = true
+                    local value = Trim(Printable(lines[j]):gsub("%[%+%]", ""):gsub("%s*%(in [^%)]*%)", ""))
+                    if label == "time" or label == "when" then ev.time = ev.time or value
+                    elseif label == "duration" then ev.duration = value
+                    else ev.repeatText = value end
+                    ev.sesh = true
+                    break
+                end
             end
         end
     end
 
-    -- Sign-up sections: a header with a count, then one name per line ("-" = nobody).
-    local section
-    local valueLine = {}
-    for i = 1, #lines do
-        if LABELS[zo_strlower(Bare(lines[i]))] then
-            for j = i + 1, #lines do
-                if lines[j] ~= "" then valueLine[j] = true; break end
+    -- Line 1 is the title, unless it's already a sign-up line ("OT: @vamprave").
+    local start = first + 1
+    if Header(lines[first]) or RoleLine(lines[first], false) or Tag(lines[first]) then
+        ev.title = "Sign-up sheet"
+        start = first
+    else
+        ev.title = Bare(lines[first])
+    end
+
+    local tags = {}
+    local section             -- the sesh-style section names go into
+    local seenRoles = false   -- a section or sign-up line has been read: no more description
+    local slots = {}          -- free-form sign-up lines: { label, kind, names, block }
+    local block, blockNamed = 1, {}
+    for i = start, #lines do
+        local line = lines[i]
+        local bare = Bare(line)
+        local name, count, max = nil, nil, nil
+        if not valueLine[i] and not LABELS[zo_strlower(bare)] then name, count, max = Header(line) end
+        local tag, value = nil, nil
+        if not name and not valueLine[i] then tag, value = Tag(line) end
+        if valueLine[i] or LABELS[zo_strlower(bare)] then
+            -- sesh label or its value: read above
+        elseif tag then
+            if value ~= "" then tags[tag] = tags[tag] or value end
+        elseif name then
+            section = { name = name, kind = KindOf(name), count = count, max = max, people = {}, lines = {} }
+            ev.sections[#ev.sections + 1] = section
+            seenRoles = true
+        elseif bare == "" then
+            block = block + 1
+        elseif section then
+            if line ~= "-" then section.lines[#section.lines + 1] = line end
+        else
+            local label, rest, kind = RoleLine(line, seenRoles)
+            if label then
+                slots[#slots + 1] = { label = label, rest = rest, kind = kind, block = block, alone = not Bare(line):find("[:@]") }
+                seenRoles = true
+            else
+                if not seenRoles then ev.desc[#ev.desc + 1] = Printable(line) end
+                block = block + 1   -- a heading like "Portal 1/Right Slayer" or "Chimera"
             end
         end
     end
-    for i = (infoStart or first + 1), #lines do
-        local line = lines[i]
-        local name, count, max = Header(line)
-        if name and not valueLine[i] then
-            section = { name = name, kind = KindOf(name), count = count, max = max, people = {}, lines = {} }
-            ev.sections[#ev.sections + 1] = section
-        elseif section and line ~= "" and line ~= "-" and not LABELS[zo_strlower(Bare(line))] and not valueLine[i] then
-            section.lines[#section.lines + 1] = line
-        end
-    end
-    -- One sign-up per line. A line is split at commas into several people only when the
-    -- section's count says there are more people than lines (1.16.11: "sshogrin, barcabeagle,
-    -- (sho)" is one tank in "Tank (2 / 2)").
+
+    -- sesh-style sections: one sign-up per line. A line is split at commas into several people
+    -- only when the section's count says there are more people than lines (1.16.11: "sshogrin,
+    -- barcabeagle, (sho)" is one tank in "Tank (2 / 2)").
     for _, sec in ipairs(ev.sections) do
         local split = not sec.count or #sec.lines < sec.count
         for _, line in ipairs(sec.lines) do
@@ -323,19 +753,95 @@ function Events.Parse(text)
         end
         sec.lines = nil
     end
-    if #ev.sections == 0 then
-        return nil, "No sign-up sections found. Copy the whole sesh post, down to the last name under the last role."
+
+    -- Free-form sign-up lines. When the sheet writes names with @, text after a role without
+    -- an @ is a note ("DD ZK"), not a name. A block of role lines with no names at all, in a
+    -- sheet that has names, is the same group again for a later boss: not counted.
+    if #slots > 0 then
+        local usesAt = false
+        for _, slot in ipairs(slots) do
+            slot.names = {}
+            if slot.rest:find("@") then usesAt = true end
+        end
+        local anyNamed = false
+        for _, slot in ipairs(slots) do
+            local rest = Trim(slot.rest)
+            if rest:find("@") then
+                slot.names = SplitNames(rest:sub((rest:find("@"))))
+            elseif not usesAt and rest ~= "" then
+                slot.names = SplitNames(rest)
+            end
+            if #slot.names > 0 then
+                anyNamed = true
+                blockNamed[slot.block] = true
+            end
+        end
+        -- A role word alone ("DD") is an open slot only for a role that has names elsewhere on
+        -- the sheet; otherwise it's a note ("parse" under a name).
+        local namedRole = {}
+        for _, slot in ipairs(slots) do
+            if #slot.names > 0 and slot.kind then
+                local _, shown = RoleOf(slot.label)
+                namedRole[zo_strlower(shown)] = true
+            end
+        end
+        local byName = {}
+        for _, slot in ipairs(slots) do
+            local counts = #slot.names > 0 or not anyNamed or blockNamed[slot.block]
+            if counts and #slot.names == 0 and slot.alone and anyNamed then
+                local _, shown = RoleOf(slot.label)
+                counts = shown ~= nil and namedRole[zo_strlower(shown)] == true
+            end
+            if counts then
+                local kind, roleName = slot.kind, nil
+                if kind then
+                    local _, shown = RoleOf(slot.label)
+                    roleName = shown
+                end
+                roleName = roleName or CleanLabel(slot.label)
+                if roleName == "" then roleName = "Sign-up" end
+                local sec = byName[zo_strlower(roleName)]
+                if not sec then
+                    sec = { name = roleName, kind = kind or "any", people = {}, max = 0, freeform = true }
+                    byName[zo_strlower(roleName)] = sec
+                    ev.sections[#ev.sections + 1] = sec
+                end
+                for _, raw in ipairs(slot.names) do
+                    local person = Person(raw)
+                    if person.base ~= "" then sec.people[#sec.people + 1] = person end
+                end
+                sec.max = sec.max + math.max(1, #slot.names)
+            end
+        end
+        for _, sec in ipairs(ev.sections) do
+            if sec.freeform then
+                if sec.kind == "standby" or sec.kind == "out" then sec.max = nil end
+                sec.count = #sec.people
+            end
+        end
+        ev.freeform = true
     end
 
-    -- Description: everything between the title and the Time line (or the first section).
-    local descEnd = (infoStart or #lines + 1) - 1
-    for i = first + 1, descEnd do ev.desc[#ev.desc + 1] = Printable(lines[i]) end
+    if #ev.sections == 0 then
+        return nil, "No sign-ups found. Copy the whole sheet, down to the last name under the last role. Roles look like \"Tank (1 / 2)\" with names under them, or \"MT: @name\" one per line."
+    end
 
-    -- CP: "160 CP", "CP 160", "CP: 1800+".
-    local whole = table.concat(ev.desc, "\n")
+    -- Tags.
+    if tags.time then
+        ev.time = tags.date and (tags.date .. " " .. tags.time) or tags.time
+    elseif tags.date then
+        ev.time = tags.date
+    end
+    ev.duration = ev.duration or tags.duration
+    ev.repeatText = ev.repeatText or tags["repeat"]
+    ev.leader = tags.leader
+    ev.cpTag = tags.cp and Events.FindCP("CP " .. tags.cp) or nil
+    if ev.cpTag == 0 then ev.cpTag = nil end
+
+    -- CP: the CP: tag, or "160 CP", "CP 160", "CP: 1800+" in the description.
     -- 1.16.3: no %f patterns (the game read "600 CP" as no CP), and odd spaces or symbols
     -- (Discord's non-breaking spaces, emoji) count as spaces.
-    ev.minCP = Events.FindCP(whole)
+    ev.minCP = ev.cpTag or Events.FindCP(table.concat(ev.desc, "\n"))
 
     -- Requirements: the short lines under a line that says "required" or "requirements".
     local inList = false
@@ -363,6 +869,7 @@ function Events:Initialize(sv)
     -- from a click until the group fills or breaks up.
     sv.autoInvite = false
     sv.codeSize = nil
+    sv.codeDynamic = nil
     for key, olds in pairs(OLD_DEFAULTS) do
         for _, old in ipairs(olds) do
             if sv[key] == old then sv[key] = Events.defaults[key] end
@@ -417,10 +924,12 @@ end
 -- Online beats offline when someone is in several guilds.
 function Events:BuildIndex()
     local index = {}
+    local size = 0
     local function Add(name, status, secs, note)
         local key = Norm(name)
         local known = index[key]
         if not known then
+            size = size + 1
             index[key] = { name = name, status = status, secs = secs or 0, notes = note and { note } or {} }
         else
             if known.status == PLAYER_STATUS_OFFLINE and status ~= PLAYER_STATUS_OFFLINE then
@@ -442,6 +951,7 @@ function Events:BuildIndex()
         local name, _, status, secs = GetFriendInfo(i)
         Add(name, status, secs)
     end
+    self.indexSize = size
     return index
 end
 
@@ -465,12 +975,16 @@ function Events:BuildGroup()
     return group, count
 end
 
--- The @account for a sign-up: the one you picked, the one typed in the post, or a match by name.
--- Returns account, how ("picked", "post", "name") or nil.
+-- The @account for a sign-up: the one you picked, the one written as "Name (@Account)", a match
+-- by name, a close match when only one account fits (1.25.0), or the @name as written.
+-- Returns account, how ("picked", "post", "name", "guess") or nil.
+-- 1.25.0: an @name on a sheet is often a Discord mention (@Rumple), not an ESO account, so it's
+-- looked up like any other name first.
+local GUESS_MIN = 5
 function Events:AccountFor(person, index, group)
     local picked = self.sv.map[person.key]
     if picked and picked ~= "" then return picked, "picked" end
-    if person.base:sub(1, 1) == "@" then return person.base, "post" end
+    if person.account then return person.account, "post" end
     local keys = { person.key }
     for _, alt in ipairs(person.alts or {}) do keys[#keys + 1] = alt end
     if person.nick then keys[#keys + 1] = Norm(person.nick) end
@@ -480,6 +994,45 @@ function Events:AccountFor(person, index, group)
     end
     for _, key in ipairs(keys) do
         if key ~= "" and index[key] then return index[key].name, "name" end
+    end
+    local guess = self:Guess(keys, index, group)
+    if guess then return guess, "guess" end
+    if person.base:sub(1, 1) == "@" and not person.base:find(" ", 1, true) then return person.base, "post" end
+    return nil
+end
+
+-- The one account whose name holds one of the keys ("bearoftamriel" ->
+-- @TheBearOfTamriel). nil when none or several fit. Remembered for a minute per key.
+function Events:Guess(keys, index, group)
+    local cache = self.guessCache
+    if not cache or GetTimeStamp() - cache.at >= 60 or cache.size ~= self.indexSize then
+        cache = { size = self.indexSize, at = GetTimeStamp(), found = {} }
+        self.guessCache = cache
+    end
+    for _, key in ipairs(keys) do
+        if #key >= GUESS_MIN then
+            local found = cache.found[key]
+            if found == nil then
+                found = false
+                local hit, many = nil, false
+                local function Try(accountKey, name)
+                    if accountKey:find(key, 1, true) then
+                        if hit and hit ~= name then many = true end
+                        hit = name
+                    end
+                end
+                for accountKey, member in pairs(group) do Try(accountKey, member.name) end
+                if not hit then
+                    for accountKey, entry in pairs(index) do
+                        Try(accountKey, entry.name)
+                        if many then break end
+                    end
+                end
+                if hit and not many then found = hit end
+                cache.found[key] = found
+            end
+            if found then return found end
+        end
     end
     return nil
 end
@@ -562,7 +1115,7 @@ end
 
 function Events:BuildState(ev)
     -- 1.16.4: read the CP again every time, so a post pasted with an older version gets it too.
-    ev.minCP = Events.FindCP(table.concat(ev.desc, "\n"))
+    ev.minCP = ev.cpTag or Events.FindCP(table.concat(ev.desc, "\n"))
     local index = self:BuildIndex()
     local group, groupCount = self:BuildGroup()
     local state = { ev = ev, entries = {}, walkIns = {}, missing = {}, open = {}, here = {}, groupCount = groupCount, index = index }
@@ -686,8 +1239,13 @@ function Events:RegisterTab()
     GT.Report:RegisterTab({
         id = "events",
         title = function() return self:TabTitle() end,
-        tip = "Sign-ups from a sesh event post in Discord, checked against who is in your group: who is missing, open slots, invites, guild ads and a Group Finder listing.",
+        tip = "Sign-ups from a sign-up sheet in Discord (sesh or any guild's own), checked against who is in your group: who is missing, open slots, invites, guild ads and a Group Finder listing.",
         GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "Events") end,
+        about = {
+            "Fills your guild events from Discord sign-ups: paste a sign-up sheet and see who is in your group, who is missing and which slots are open.",
+            "From here you can invite everyone who is online, advertise the open slots in guild chat and list the group in Group Finder.",
+        },
+        emptyText = "",   -- the top line already says how to paste a sheet
         GetSummary = function() return self:TabSummary() end,
         GetRows = function() return self:TabRows() end,
         columns = Events.columns,
@@ -715,16 +1273,39 @@ function Events:TabSummary()
     if not self.sv.enabled then return "" end
     local state = self:State()
     if not state then
-        return "Copy a sesh sign-up post in Discord (select it from the title down to the last name), click Paste sign-ups and press Ctrl+V."
+        return "Copy a sign-up sheet in Discord (a sesh post or your guild's own, from the title down to the last name), click Paste sign-ups and press Ctrl+V. No sheet yet? Paste sign-ups > Copy template gives you a blank one."
     end
     local ev = state.ev
     local parts = {}
+    local shown = {}
     for _, section in ipairs(ev.sections) do
-        if section.kind ~= "out" then
-            local here = section.kind ~= "standby" and string.format(", %d here", state.here[section]) or ""
-            parts[#parts + 1] = string.format("%s %d%s%s", section.name, #section.people,
-                section.max and ("/" .. section.max) or "", here)
+        if section.kind ~= "out" then shown[#shown + 1] = section end
+    end
+    -- 1.25.0: a sheet with many roles (MT, OT, GH, KH, Plar...) is summed up per group role.
+    if #shown > 6 then
+        local KIND_NAME = { tank = "Tanks", heal = "Healers", dps = "DPS", any = "Other roles", standby = "Standby" }
+        local sums, order = {}, {}
+        for _, section in ipairs(shown) do
+            local sum = sums[section.kind]
+            if not sum then
+                sum = { name = KIND_NAME[section.kind] or section.name, people = 0, max = nil, here = 0, kind = section.kind }
+                sums[section.kind] = sum
+                order[#order + 1] = sum
+            end
+            sum.people = sum.people + #section.people
+            if section.max then sum.max = (sum.max or 0) + section.max end
+            sum.here = sum.here + state.here[section]
         end
+        shown = {}
+        for _, sum in ipairs(order) do
+            shown[#shown + 1] = { name = sum.name, kind = sum.kind, max = sum.max, people = { n = sum.people }, here = sum.here }
+        end
+    end
+    for _, section in ipairs(shown) do
+        local count = section.people.n or #section.people
+        local hereCount = section.here or state.here[section]
+        local here = section.kind ~= "standby" and string.format(", %d here", hereCount) or ""
+        parts[#parts + 1] = string.format("%s %d%s%s", section.name, count, section.max and ("/" .. section.max) or "", here)
     end
     local line = string.format("|cECEAF8%s|r%s.  %s.", ev.title, ev.time and (", " .. ev.time) or "", table.concat(parts, "; "))
     if (ev.minCP or 0) > 0 then line = line .. string.format("  CP %d+.", ev.minCP) end
@@ -761,6 +1342,8 @@ function Events:TabRows()
         local tip
         if info.how == "name" then
             tip = string.format("%s was matched to %s by name. Right-click > Set account if that's the wrong person.", person.raw, info.account)
+        elseif info.how == "guess" then
+            tip = string.format("%s was matched to %s, the only account with a name like it. Right-click > Set account if that's the wrong person.", person.raw, info.account)
         elseif info.how == "picked" then
             tip = string.format("You matched %s to %s.", person.raw, info.account)
         end
@@ -776,7 +1359,7 @@ function Events:TabRows()
     for _, info in ipairs(state.walkIns) do
         local row = {
             cells = { "|cB4B0D8Not signed up|r", "", info.account, "|c5EE6A0In group|r", ROLE_NAME[info.groupRole] or "-", CpText(info, minCP) },
-            tooltip = "In your group but not in the sesh post, or not matched to a sign-up yet.",
+            tooltip = "In your group but not on the sign-up sheet, or not matched to a sign-up yet.",
         }
         rows[#rows + 1] = GT.Report.AddMenu(row, GT.Report.ContactItems(info.account))
     end
@@ -796,7 +1379,7 @@ function Events:MenuItems(info, state)
     end
     if account then items[#items + 1] = GT.Report.CopyItem(account) end
     if info.person.base ~= "" and info.person.base ~= account then items[#items + 1] = GT.Report.CopyItem(info.person.base) end
-    if info.how ~= "picked" and info.how ~= "post" then
+    if info.how ~= "picked" and not info.person.account then
         for _, name in ipairs(self:Suggestions(info.person, state.index)) do
             if name ~= account then
                 items[#items + 1] = { label = "Set account: " .. name, fn = function() self:SetAccount(info.person, name) end }
@@ -813,10 +1396,10 @@ end
 function Events:TabFooter()
     if not self.sv.enabled then return {} end
     return {
-        { label = "Paste sign-ups", width = 150, tip = "Opens a box to paste a sesh event post into (Ctrl+V). Replaces the event shown now.", fn = function() self:AskPaste() end },
+        { label = "Paste sign-ups", width = 150, tip = "Opens a box to paste a sign-up sheet into (Ctrl+V): a sesh post or any guild's own sheet. Replaces the event shown now. The box also has Copy template (a blank sheet for Discord) and Discord time (turns a date and time into a time code that shows in everyone's own time zone).", fn = function() self:AskPaste() end },
         { label = "Clear", width = 90, tip = "Clears the event shown now, for when it's over. The accounts you matched to Discord names are kept for the next event.", fn = function() self:ClearEvent() end },
         { label = "Invite online", width = 140, tip = "Sends a group invite to every sign-up who is online and not in your group (not Standby). One click, one invite each.", fn = function() self:InviteOnline() end },
-        { label = "Advertise in guilds", width = 170, tip = "Puts an ad in the chat box of each guild ticked in the Events settings, one guild after another. You press Enter for each. Pick the kind: sign-ups (before the group forms) or replacements (once it forms). The one that fits now is first.",
+        { label = "Advertise in guilds", width = 170, tip = "Puts an ad in the chat box of each guild ticked in the Events settings, one guild after another. You press Enter for each. Pick the kind: sign-ups (before the group forms) or replacements (once it forms). The one that fits now is first. Names are written as @mentions, and roles as @Tank / @Healer / @DPS / @MT (the sheet's own role names), so Discord pings them when you send it.",
           fn = function(control) self:AdMenu(control, function(mode) self:Advertise(mode) end) end },
         { label = "Group Finder", width = 140, tip = "Shows a Group Finder listing for the open slots (title, description, CP and roles from the post) to check. Nothing is listed until you press Create listing.", fn = function() self:AskListing() end },
         { label = "Copy for Discord", width = 170, tip = "Shows a message to copy into Discord: the open sign-up slots (before the group forms), or the missing names and the slots to fill now (once it forms). The one that fits now is first.",
@@ -859,6 +1442,9 @@ function Events:OpenInput(def)
     FurysGuildToolset_EventsInputText:SetHidden(def.singleLine == true)
     FurysGuildToolset_EventsInputLine:SetHidden(def.singleLine ~= true)
     FurysGuildToolset_EventsInput:SetHeight(def.singleLine and INPUT_HEIGHT_LINE or INPUT_HEIGHT)
+    FurysGuildToolset_EventsInputTemplate:SetHidden(def.tools ~= true)
+    FurysGuildToolset_EventsInputTime:SetHidden(def.tools ~= true)
+    FurysGuildToolset_EventsInputLineBox:SetDefaultText(def.defaultText or "@account")
     local box = InputBox(def)
     box:SetText(def.text or "")
     U.ShowOnTop(FurysGuildToolset_EventsInput)
@@ -889,10 +1475,11 @@ end
 function Events:AskPaste()
     self:OpenInput({
         title = "Paste sign-ups",
-        hint = "In Discord, select the sesh event post from its title down to the last name under the last role, press Ctrl+C, then click in the box below and press Ctrl+V.",
+        hint = "In Discord, select the sign-up sheet (a sesh post or your guild's own) from its title down to the last name under the last role, press Ctrl+C, then click in the box below and press Ctrl+V.",
         okLabel = "Read sign-ups",
-        okTip = "Reads the post and shows each sign-up in the Events tab. Replaces the event shown now.",
+        okTip = "Reads the sheet and shows each sign-up in the Events tab. Replaces the event shown now.",
         onOk = function(text) self:ReadPaste(text) end,
+        tools = true,
     })
 end
 
@@ -907,8 +1494,151 @@ function Events:ReadPaste(text)
     local people = 0
     for _, section in ipairs(ev.sections) do people = people + #section.people end
     U.Print("Read %s: %d %s in %d %s%s.", ev.title, people, people == 1 and "sign-up" or "sign-ups", #ev.sections,
-        #ev.sections == 1 and "section" or "sections", (ev.minCP or 0) > 0 and string.format(", CP %d+", ev.minCP) or "")
+        #ev.sections == 1 and "role" or "roles", (ev.minCP or 0) > 0 and string.format(", CP %d+", ev.minCP) or "")
+    local start = Events.StartTime(ev.time)
+    if start then
+        U.Print("Starts %s (your time).", os.date("%a %b %d, %I:%M %p", start):gsub(" 0", " "))
+    elseif ev.time then
+        U.Print("Couldn't read the time \"%s\". Write it like Time: Sat Nov 28 8:00 PM CT.", ev.time)
+    else
+        U.Print("No time on the sheet, so ads keep asking for sign-ups. Add a line like Time: Sat Nov 28 8:00 PM CT.")
+    end
+    local state = self:State()
+    if state then
+        local matched = 0
+        for _, info in ipairs(state.entries) do
+            if info.account and info.status then matched = matched + 1 end
+        end
+        U.Print("%d of %d sign-ups matched to an account in your guilds or friends. Right-click a row to set the others.", matched, #state.entries)
+    end
     GT.Report:Show("events")
+end
+
+-- Blank sign-up sheets to post in Discord (1.25.0, Albert). Line 1 is the title, tags have a
+-- colon, roles are "Name (have / need)" with names under them. 1.25.4 (Albert): several
+-- examples, one per page of the copy window, to pick from.
+local TEMPLATE_NAMES = { "Trial with your own roles", "Trial", "Dungeon or group of 4", "Class or event with no roles" }
+
+function Events:TemplateTexts()
+    local now = GetTimeStamp()
+    -- The example time: next Saturday, 8 PM, in your own time zone.
+    local days = (6 - tonumber(os.date("%w", now))) % 7
+    if days == 0 then days = 7 end
+    local when = "Time: " .. os.date("%a %b %d", now + days * 86400):gsub(" 0", " ") .. " 8:00 PM " .. Events.YourZoneName(now)
+    return {
+        table.concat({
+            "Trial name", "A line or two about the run: what it is, what to bring.", when, "CP: 160",
+            -- 1.25.2 (Albert): example roles, any name before (have / need) works.
+            "MT (0 / 1)", "OT (0 / 1)", "GH (0 / 1)", "KH (0 / 1)", "DPS (0 / 7)", "Portal (0 / 1)",
+            "Standby", "Tentative", "Absent",
+        }, "\n"),
+        table.concat({
+            "Trial name", "A line or two about the run: what it is, what to bring.", when, "CP: 160",
+            "Tank (0 / 2)", "Healer (0 / 2)", "DPS (0 / 8)",
+            "Standby", "Tentative", "Absent",
+        }, "\n"),
+        table.concat({
+            "Dungeon name", "A line about the run: vet or normal, hard mode, what to bring.", when, "CP: 160",
+            "Tank (0 / 1)", "Healer (0 / 1)", "DPS (0 / 2)",
+            "Standby", "Tentative", "Absent",
+        }, "\n"),
+        table.concat({
+            "Class name", "A line about the class or event: what it's about, where to meet.", when,
+            "Attending (0 / 20)",
+            "Tentative", "Absent",
+        }, "\n"),
+    }
+end
+
+function Events:TemplateText(n)
+    return self:TemplateTexts()[n or 1]
+end
+
+-- Page 1 of the copy window (1.25.9, Albert): how a sheet is read. The examples follow.
+local TEMPLATE_HELP = table.concat({
+    "HOW A SIGN-UP SHEET IS READ",
+    "Click Next part for the examples. Pick one, click Select all, press Ctrl+C and paste it into Discord.",
+    "",
+    "LINE 1 is always the title of the event.",
+    "",
+    "LINES UNDER THE TITLE (before the first role) are the description. The Group Finder listing uses it. \"600 CP\" in it counts too, and \"learn\" asks for voice chat.",
+    "",
+    "TAGS have a colon and can go anywhere:",
+    "  Time: Sat Nov 28 8:00 PM CT   (write the time zone: CT, ET, PT, CET, UTC+2 and others. Also 2026-11-28 20:00 CT, 28.11.2026 20:00 CET or a Discord time code from the Discord time button)",
+    "  CP: 600",
+    "  Duration: 2 hours",
+    "",
+    "ROLES are a name with (have / need), and the names go under them, one per line:",
+    "  MT (1 / 1)",
+    "  @Furyous",
+    "  Any name works as a role. Tank, Heal or DPS in the name, and MT, OT, GH, KH and DD, are those group roles. Other names (Portal, Plar, Kite) are your own roles and count toward the group size.",
+    "  Names: @name, or Name (@Account) when the Discord name isn't the account. They're matched to your guilds and friends.",
+    "",
+    "ATTENDING (0 / 20) is for classes and events with no roles: everyone goes under it.",
+    "",
+    "STANDBY, TENTATIVE and ABSENT are never roles: people under them aren't counted as missing.",
+    "",
+    "MIX AND MATCH: the examples are only starting points. Tags and roles from any example work in any sheet, so add, rename or remove them.",
+    "",
+    "Lines the addon doesn't know are skipped. sesh posts and other guilds' sheets are read too.",
+}, "\n")
+
+function Events:CopyTemplate()
+    local Report = GT.Report
+    Report.exportParts = { TEMPLATE_HELP }
+    Report.exportTitles = { "Sign-up sheets: how they're read (examples on the next pages)" }
+    for i, text in ipairs(self:TemplateTexts()) do
+        Report.exportParts[#Report.exportParts + 1] = text
+        Report.exportTitles[#Report.exportTitles + 1] = string.format("Example %d of %d: %s", i, #TEMPLATE_NAMES, TEMPLATE_NAMES[i])
+    end
+    Report.exportTitle = "Sign-up sheet examples"
+    Report.exportHint = "Page 1 explains the layout. Next part shows the examples: pick one, Select all, Ctrl+C, paste into Discord and fill it in. Parts from different examples mix freely."
+    Report.exportIndex = 1
+    U.ShowOnTop(FurysGuildToolset_Export)
+    Report:ShowExportPart(0)
+    U.Print("How sign-up sheets work is in the copy window, with %d examples on the next pages (%s). Pick one with Next part, click Select all, press Ctrl+C and paste it into Discord.", #TEMPLATE_NAMES, table.concat(TEMPLATE_NAMES, "; "))
+end
+
+-- Discord time codes (1.25.0, Albert): a date and time becomes <t:...> codes that Discord shows
+-- in each reader's own time zone.
+function Events:AskDiscordTime()
+    local ev = self.sv.event
+    self:OpenInput({
+        title = "Discord time",
+        hint = "Type a date and time with its time zone, like Sat Nov 28 8:00 PM CT, 2026-11-28 20:00 CET, 2026.11.28 20:00, 28.11.2026 20:00 or Saturday 8pm ET. With no time zone it's your own.",
+        okLabel = "Make time code",
+        okTip = "Shows Discord time codes to copy. In Discord they show in each reader's own time zone, and a countdown.",
+        singleLine = true,
+        defaultText = "Sat Nov 28 8:00 PM CT",
+        text = ev and ev.time or "",
+        onOk = function(text) return self:ShowDiscordTime(text) end,
+    })
+end
+
+function Events:ShowDiscordTime(text)
+    local ts, zone = Events.StartTime(text)
+    if not ts then
+        U.Print("Couldn't read \"%s\" as a date and time. Try Sat Nov 28 8:00 PM CT.", Trim(text))
+        return false
+    end
+    local yours = os.date("%a %b %d, %Y %I:%M %p", ts):gsub(" 0", " ")
+    local Report = GT.Report
+    Report.exportParts = { table.concat({
+        string.format("Time: <t:%d:F> (<t:%d:R>)", ts, ts),
+        "",
+        string.format("Date and time: <t:%d:F>", ts),
+        string.format("Short: <t:%d:f>", ts),
+        string.format("Countdown: <t:%d:R>", ts),
+        string.format("Time only: <t:%d:t>", ts),
+    }, "\n") }
+    Report.exportTitle = "Discord time"
+    Report.exportTitles = nil
+    Report.exportHint = string.format("Read as %s (%s). Copy the line you want (Ctrl+C) into Discord; the first one fits a sign-up sheet's Time: line.", yours,
+        zone and zone ~= "Discord" and ("written in " .. zone) or "your time")
+    Report.exportIndex = 1
+    U.ShowOnTop(FurysGuildToolset_Export)
+    Report:ShowExportPart(0)
+    U.Print("Discord time for %s (your time) is in the copy window.", yours)
 end
 
 -- Clears the pasted event (1.15.0). The Discord name to @account matches stay.
@@ -1141,7 +1871,7 @@ end
 
 function Events:InviteOnline()
     local state = self:State()
-    if not state then U.Print("Paste a sesh sign-up post first."); return end
+    if not state then U.Print("Paste a sign-up sheet first."); return end
     if not CanInvite() then return end
     local sent = {}
     for _, info in ipairs(state.missing) do
@@ -1168,76 +1898,47 @@ local CODE_SIZES = {
     { name = "Trial", count = 12, width = 100 },
 }
 
+-- 1.25.7 (Albert): the title row keeps only the status button; everything else is in the
+-- Invite by code window it opens (FurysGuildToolset_EventsCode, UI/EventsInput.xml).
 function Events:CodeBar()
     if self.codeBar then return self.codeBar end
-    local T = GT.Theme
     local bar = WINDOW_MANAGER:CreateControl("FurysGuildToolset_EventsCodeBar", FurysGuildToolset_Report, CT_CONTROL)
-    bar:SetDimensions(640, 30)
+    bar:SetDimensions(340, 30)
     bar:SetAnchor(RIGHT, FurysGuildToolset_ReportSettings, LEFT, -12, 0)
     bar:SetDrawLayer(DL_CONTROLS)
     bar:SetHidden(true)
 
+    -- 1.25.11 (Albert): the status button turns it on or off; Options opens the window.
+    local options = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)Options", bar, "ZO_DefaultButton")
+    options:SetDimensions(100, 28)
+    options:SetAnchor(RIGHT, bar, RIGHT, 0, 0)
+    options:SetText("Options")
+    options:SetHandler("OnClicked", function() self:ToggleCodeWindow() end)
+    GT.Report.SetTip(options, "Opens the Invite by code window: the code, how big the group gets (IA / Group / Trial), kicking offline members, and how it all works.")
+
     local toggle = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)Toggle", bar, "ZO_DefaultButton")
-    toggle:SetDimensions(180, 28)
-    toggle:SetAnchor(LEFT, bar, LEFT, 0, 0)
+    toggle:SetDimensions(230, 28)
+    toggle:SetAnchor(RIGHT, options, LEFT, -6, 0)
     toggle:SetHandler("OnClicked", function() self:SetCodeOn(not self.sv.autoInvite) end)
     GT.Report.SetTip(toggle, function()
-        local now = self.sv.autoInvite and ("\n\n" .. self:CodeStatus()) or ""
-        return string.format("Turns Invite by code on or off. While it's on, anyone who types %s (upper or lower case) in the chat of a guild ticked for ads, or whispers it to you, gets a group invite. With no event pasted: anyone, up to a full group. With an event pasted: once its group forms (until 2 hours after the start), up to its group size, and not when their CP is under the post's requirement. Only while you lead the group or are solo. Starts turned off at every login, and turns itself off when your group fills up or breaks up.%s", self:CodeText(), now)
+        return "Invite by code: " .. self:CodeStateText() .. "\n" .. self:CodeStatus() .. "\n\nClick to turn it " .. (self.sv.autoInvite and "off" or "on") .. ". Turned on here with nothing picked, it's a Dynamic group: it fills the group, pauses while it's full and starts again when a spot opens. With a pasted event it fills the event's group and turns off. Options has the code, Dynamic group, the IA / Group / Trial sizes and kicking offline members."
     end)
-
-    local label = WINDOW_MANAGER:CreateControl("$(parent)Label", bar, CT_LABEL)
-    label:SetFont("ZoFontGame")
-    label:SetText("Code")
-    label:SetAnchor(LEFT, toggle, RIGHT, 12, 0)
-    T.Paint(label, T.TEXT)
-
-    local back = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)Code", bar, "ZO_SingleLineEditBackdrop_Keyboard")
-    back:SetDimensions(110, 28)
-    back:SetAnchor(LEFT, label, RIGHT, 8, 0)
-    local box = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)Box", back, "ZO_DefaultEditForBackdrop")
-    box:SetMaxInputChars(CODE_MAX_CHARS)
-    box:SetHandler("OnEnter", function(control) control:LoseFocus() end)
-    box:SetHandler("OnEscape", function(control)
-        control:SetText(self:CodeText())
-        control:LoseFocus()
-    end)
-    box:SetHandler("OnFocusLost", function(control) self:SetCode(control:GetText()) end)
-    GT.Report.SetTip(back, "The invite code: the whole chat message has to be this (upper or lower case). Type a new one and press Enter. {code} in the ads.")
-    GT.Report.SetTip(box, "The invite code: the whole chat message has to be this (upper or lower case). Type a new one and press Enter. {code} in the ads.")
-
-    -- Size buttons (1.24.0, Albert): with no event pasted, pick how big the group should get.
-    -- Invite by code turns on and turns itself off at that size, or when you leave the group.
-    local sizeButtons, previous = {}, back
-    for _, size in ipairs(CODE_SIZES) do
-        local button = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)Size" .. size.count, bar, "ZO_DefaultButton")
-        button:SetDimensions(size.width, 28)
-        button:SetAnchor(LEFT, previous, RIGHT, previous == back and 10 or 2, 0)
-        button:SetHandler("OnClicked", function() self:PickCodeSize(size.count) end)
-        GT.Report.SetTip(button, function()
-            if self.sv.codeSize == size.count then
-                return string.format("Inviting by code until your group has %d. Click to stop.", size.count)
-            end
-            return string.format("%s: turns Invite by code on until your group has %d (you included), whether you're solo or already grouped. It turns off by itself at %d, or when you leave or disband the group. For when no event is pasted; a pasted event uses its own group size.", size.name, size.count, size.count)
-        end)
-        button.furySize = size
-        sizeButtons[#sizeButtons + 1] = button
-        previous = button
-    end
 
     -- Above the title-bar glow, like the search box (1.18.3).
-    local layered = { toggle, label, back, box }
-    for _, button in ipairs(sizeButtons) do layered[#layered + 1] = button end
-    for level, control in ipairs(layered) do
+    for level, control in ipairs({ toggle, options }) do
         control:SetDrawLayer(DL_CONTROLS)
         control:SetDrawLevel(level)
     end
-    back:SetCenterColor(0, 0, 0, 1)
-    back:SetEdgeColor(T.VIOLET:UnpackRGBA())
-    T.Paint(box, T.TEXT)
 
-    self.codeBar, self.codeToggle, self.codeBox, self.codeSizeButtons = bar, toggle, box, sizeButtons
+    self.codeBar, self.codeToggle = bar, toggle
     return bar
+end
+
+-- "ON", "FULL" (paused, the group is full) or "OFF".
+function Events:CodeStateText()
+    if self.sv.autoInvite and self.codePaused then return "FULL (paused)" end
+    if self.sv.autoInvite then return "ON" end
+    return "OFF"
 end
 
 function Events:CodeText()
@@ -1247,16 +1948,160 @@ end
 function Events:UpdateCodeBar()
     local bar = self:CodeBar()
     -- Nothing to switch while the Events tab itself is off.
-    if not self.sv.enabled then bar:SetHidden(true); return end
-    if self.sv.autoInvite then
+    if not self.sv.enabled then
+        bar:SetHidden(true)
+        if self.codeWindow then SCENE_MANAGER:HideTopLevel(self.codeWindow) end
+        return
+    end
+    if self.sv.autoInvite and self.codePaused then
+        self.codeToggle:SetText("Invite by code: |cFFC857FULL|r")
+    elseif self.sv.autoInvite then
         self.codeToggle:SetText("Invite by code: |c5EE6A0ON|r")
     else
         self.codeToggle:SetText("Invite by code: |cFFA45COFF|r")
     end
-    if not self.codeBox:HasFocus() then self.codeBox:SetText(self:CodeText()) end
+    self:UpdateCodeWindow()
+end
+
+-- The Invite by code window ------------------------------------------------------------------
+
+function Events:ToggleCodeWindow()
+    local win = self:CodeWindowControl()
+    if not win:IsHidden() then
+        SCENE_MANAGER:HideTopLevel(win)
+        return
+    end
+    self:UpdateCodeWindow()
+    U.ShowOnTop(win)
+end
+
+function Events:CodeWindowControl()
+    if self.codeWindow then return self.codeWindow end
+    local T = GT.Theme
+    local win = FurysGuildToolset_EventsCode
+    SCENE_MANAGER:RegisterTopLevel(win, false)
+    local function Label(name, text, font, color)
+        local label = WINDOW_MANAGER:CreateControl("$(parent)" .. name, win, CT_LABEL)
+        label:SetFont(font or "ZoFontGame")
+        label:SetText(text or "")
+        T.Paint(label, color or T.TEXT)
+        return label
+    end
+    local function Button(name, width, tip, fn)
+        local button = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)" .. name, win, "ZO_DefaultButton")
+        button:SetDimensions(width, 28)
+        button:SetHandler("OnClicked", fn)
+        GT.Report.SetTip(button, tip)
+        return button
+    end
+    local function Box(name, width, maxChars, tip)
+        local back = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)" .. name, win, "ZO_SingleLineEditBackdrop_Keyboard")
+        back:SetDimensions(width, 28)
+        local box = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)Box", back, "ZO_DefaultEditForBackdrop")
+        box:SetMaxInputChars(maxChars)
+        box:SetHandler("OnEnter", function(control) control:LoseFocus() end)
+        back:SetCenterColor(0, 0, 0, 1)
+        back:SetEdgeColor(T.VIOLET:UnpackRGBA())
+        T.Paint(box, T.TEXT)
+        GT.Report.SetTip(back, tip)
+        GT.Report.SetTip(box, tip)
+        return back, box
+    end
+    local LEFT_X, W = 16, 640
+
+    -- Status: what the code does right now.
+    local status = Label("Status", "", "ZoFontGameSmall", T.MUTED)
+    status:SetWidth(W - 2 * LEFT_X)
+    status:SetAnchor(TOPLEFT, FurysGuildToolset_EventsCodeTitle, BOTTOMLEFT, 0, 12)
+
+    -- On / off.
+    local onOff = Button("OnOff", 200, function()
+        return string.format("Turns Invite by code on or off. While it's on, anyone who types %s (upper or lower case) in the chat of a guild ticked for ads (Events settings), or whispers it to you, gets a group invite. With no event pasted: anyone, up to a full group. With an event pasted: once its group forms (until 2 hours after the start), up to its group size, and not when their CP is under the sheet's requirement. Only while you lead the group or are solo. With no event pasted (Dynamic group) it pauses when the group is full and picks up again by itself when someone leaves; for a pasted event it fills the group and turns off. (The IA / Group / Trial buttons fill to that size and stop.) Starts turned off at every login, and turns itself off when you leave the group or it breaks up.", self:CodeText())
+    end, function() self:SetCodeOn(not self.sv.autoInvite) end)
+    onOff:SetAnchor(TOPLEFT, status, BOTTOMLEFT, 0, 12)
+
+    -- The code.
+    local codeLabel = Label("CodeLabel", "Code")
+    codeLabel:SetAnchor(TOPLEFT, onOff, BOTTOMLEFT, 0, 18)
+    local codeBack, codeBox = Box("Code", 140, CODE_MAX_CHARS, "The invite code: the whole chat message has to be this (upper or lower case). Type a new one and press Enter. {code} in the ads.")
+    codeBack:SetAnchor(LEFT, codeLabel, RIGHT, 10, 0)
+    codeBox:SetHandler("OnEscape", function(control)
+        control:SetText(self:CodeText())
+        control:LoseFocus()
+    end)
+    codeBox:SetHandler("OnFocusLost", function(control) self:SetCode(control:GetText()) end)
+
+    -- Group size (no event pasted).
+    local sizeLabel = Label("SizeLabel", "Fill the group:")
+    sizeLabel:SetAnchor(TOPLEFT, codeLabel, BOTTOMLEFT, 0, 22)
+    -- 1.25.12 (Albert): Dynamic group, the same as Turn on with nothing picked (no event).
+    local dynamic = Button("Dynamic", 150, function()
+        if self.sv.autoInvite and self.sv.codeDynamic then return "Dynamic group is on. Click to turn Invite by code off." end
+        return "Dynamic group: invites anyone who types the code until the group is full (a pasted event's size, or 12), then pauses (FULL) and starts inviting again by itself when a spot opens, until you turn it off. Turning Invite by code on with nothing picked does the same when no event is pasted."
+    end, function()
+        if self.sv.autoInvite and self.sv.codeDynamic then self:SetCodeOn(false) else self:SetCodeOn(true, nil, true) end
+    end)
+    dynamic:SetAnchor(LEFT, sizeLabel, RIGHT, 10, 0)
+    local sizeButtons, previous = {}, dynamic
+    for _, size in ipairs(CODE_SIZES) do
+        local button = Button("Size" .. size.count, size.width, function()
+            if self.sv.autoInvite and self.sv.codeSize == size.count then
+                return string.format("Inviting by code until your group has %d. Click to stop.", size.count)
+            end
+            return string.format("%s: turns Invite by code on until your group has %d (you included), whether you're solo or already grouped, then stops: at %d it turns off by itself (or when you leave or disband the group). For when no event is pasted; a pasted event uses its own group size.", size.name, size.count, size.count)
+        end, function() self:PickCodeSize(size.count) end)
+        button:SetAnchor(LEFT, previous, RIGHT, 4, 0)
+        button.furySize = size
+        sizeButtons[#sizeButtons + 1] = button
+        previous = button
+    end
+    local sizeNote = Label("SizeNote", "", "ZoFontGameSmall", T.MUTED)
+    sizeNote:SetAnchor(LEFT, dynamic, RIGHT, 10, 0)
+
+    -- Kick offline members.
+    local kick = Button("Kick", 200, "Kick offline members: while Invite by code is on (or paused because the group is full) and you lead the group, anyone in the group offline for the minutes set here is removed from the group, so their spot opens for someone who types the code. A chat line says who and why. Starts turned off. Also in the Events settings.",
+        function() self:SetKickOffline(not self.sv.kickOffline) end)
+    kick:SetAnchor(TOPLEFT, sizeLabel, BOTTOMLEFT, 0, 22)
+    local afterLabel = Label("KickAfter", "after")
+    afterLabel:SetAnchor(LEFT, kick, RIGHT, 10, 0)
+    local minutesBack, minutesBox = Box("Minutes", 50, 2, "Minutes someone has to be offline before they're removed (1 to 60). Counted from when the addon first sees them offline. Press Enter to save.")
+    minutesBack:SetAnchor(LEFT, afterLabel, RIGHT, 8, 0)
+    minutesBox:SetTextType(TEXT_TYPE_NUMERIC_UNSIGNED_INT)
+    minutesBox:SetHandler("OnFocusLost", function(control) self:SetKickMinutes(control:GetText()) end)
+    local minutesLabel = Label("KickMinutes", "minutes offline")
+    minutesLabel:SetAnchor(LEFT, minutesBack, RIGHT, 8, 0)
+
+    -- 1.25.8 (Albert): how the two ways of turning it on differ.
+    local how = Label("How", "|cECEAF8How it works|r\n"
+        .. "|cECEAF8Dynamic group|r: invites anyone who types the code until the group is full (a pasted event's size, or 12). Then it pauses (FULL) and starts inviting again by itself when a spot opens, until you turn it off. Turning it on with nothing picked does this too.\n"
+        .. "|cECEAF8IA / Group / Trial|r: fills the group to that size and then stops: Invite by code turns off.\n"
+        .. "|cECEAF8A pasted event|r: Turn on fills the event's group (its size and CP, once it forms) and then turns off. Pick Dynamic group to keep it going.\n"
+        .. "Either way it turns off when you leave the group or it breaks up, and at every login. Kick offline only works while it's on or paused.",
+        "ZoFontGameSmall", T.MUTED)
+    how:SetWidth(W - 2 * LEFT_X)
+    how:SetAnchor(TOPLEFT, kick, BOTTOMLEFT, 0, 18)
+
+    local hint = Label("Hint", "The guilds that listen for the code, and the ad texts, are in the Events settings.", "ZoFontGameSmall", T.MUTED)
+    hint:SetWidth(W - 2 * LEFT_X)
+    hint:SetAnchor(TOPLEFT, how, BOTTOMLEFT, 0, 10)
+
+    self.codeWindow = win
+    self.codeUI = { status = status, onOff = onOff, codeBox = codeBox, sizeButtons = sizeButtons, sizeNote = sizeNote, dynamic = dynamic,
+        kick = kick, minutesBox = minutesBox }
+    return win
+end
+
+function Events:UpdateCodeWindow()
+    local ui = self.codeUI
+    if not ui then return end
+    local state = self:CodeStateText()
+    local color = (state == "ON" and "5EE6A0") or (state == "OFF" and "FFA45C") or "FFC857"
+    ui.status:SetText(string.format("|cECEAF8Now:|r |c%s%s|r. %s", color, state, self:CodeStatus()))
+    ui.onOff:SetText(self.sv.autoInvite and "Turn off" or "Turn on")
+    if not ui.codeBox:HasFocus() then ui.codeBox:SetText(self:CodeText()) end
     -- The size buttons only matter with no (current) event pasted.
     local open = self:CodeWindow() == "open"
-    for _, button in ipairs(self.codeSizeButtons) do
+    for _, button in ipairs(ui.sizeButtons) do
         local size = button.furySize
         button:SetHidden(not open)
         if self.sv.autoInvite and self.sv.codeSize == size.count then
@@ -1265,6 +2110,44 @@ function Events:UpdateCodeBar()
             button:SetText(string.format("%s (%d)", size.name, size.count))
         end
     end
+    if self.sv.autoInvite and self.sv.codeDynamic then
+        ui.dynamic:SetText("|c5EE6A0Dynamic group|r")
+    else
+        ui.dynamic:SetText("Dynamic group")
+    end
+    ui.sizeNote:SetHidden(open)
+    ui.sizeNote:SetText(open and "" or "or Turn on: fills the event's group, then off")
+    if self.sv.kickOffline then
+        ui.kick:SetText("Kick offline: |c5EE6A0ON|r")
+    else
+        ui.kick:SetText("Kick offline: |cFFA45COFF|r")
+    end
+    if not ui.minutesBox:HasFocus() then ui.minutesBox:SetText(tostring(self.sv.kickOfflineMinutes or Events.defaults.kickOfflineMinutes)) end
+end
+
+function Events:SetKickOffline(on)
+    self.sv.kickOffline = on
+    self:RegisterKickOffline()
+    if on then
+        U.Print("Kick offline members is on: while Invite by code is on and you lead the group, anyone offline for %d minutes is removed from the group.", self.sv.kickOfflineMinutes or Events.defaults.kickOfflineMinutes)
+    else
+        U.Print("Kick offline members is off.")
+    end
+    GT.Report:RefreshIfShown()
+end
+
+function Events:SetKickMinutes(text)
+    local minutes = tonumber(text)
+    if not minutes then
+        self:UpdateCodeWindow()
+        return
+    end
+    minutes = zo_clamp(math.floor(minutes), 1, 60)
+    if minutes ~= self.sv.kickOfflineMinutes then
+        self.sv.kickOfflineMinutes = minutes
+        U.Print("Kick offline members: after %d minutes offline.", minutes)
+    end
+    self:UpdateCodeWindow()
 end
 
 -- Your group's size, you included (1 when solo).
@@ -1287,44 +2170,76 @@ function Events:PickCodeSize(count)
         return
     end
     self.sv.codeSize = count
+    self.sv.codeDynamic = nil
     self.codePending = {}
+    self.codePaused = nil
     self.sv.autoInvite = true
     self:RegisterCode()
     U.Print("Invite by code is on until your group has %d (it has %d now). Code: %s, in whispers and the chat of the guilds ticked for ads. It turns off by itself at %d, or when you leave or disband the group.",
         count, have, self:CodeText(), count)
+    self:UpdateCodeWindow()
     GT.Report:RefreshIfShown()
 end
 
--- With a size picked: off once the group has that many, or when you leave or disband it.
--- Off once the group is full: the picked size, else the pasted event's group size, else a full
--- group (1.24.1: every mode turns itself off, Albert).
+-- Full group: the picked size, else the pasted event's group size, else a full group.
+-- 1.25.6 (Albert): a full group pauses Invite by code instead of turning it off, and it picks
+-- up again by itself when someone leaves. It still turns off when you leave or disband.
+-- 1.25.8 (Albert): a size picked with IA / Group / Trial fills the group to that size and then
+-- stops (turns off). Turned on without a size, it pauses when full and starts again when a spot
+-- opens.
 function Events:CheckCodeSize()
-    if not self.sv.autoInvite then return end
+    if not self.sv.autoInvite then self.codePaused = nil; return end
     local have, limit = GroupCount(), self:CodeLimit()
-    if have >= limit then
-        self:SetCodeOn(false, string.format("Your group has %d now, so it's full. Invite by code is off.", have))
+    if self.sv.codeSize and have >= self.sv.codeSize then
+        self:SetCodeOn(false, string.format("Your group has %d now, the size you picked. Invite by code is off.", have))
+        return
+    end
+    -- 1.25.12 (Albert): for a pasted event it fills the event's group and then turns off,
+    -- unless Dynamic group was picked.
+    if not self.sv.codeDynamic and have >= limit and self:CodeWindow() == "event" then
+        self:SetCodeOn(false, string.format("Your group has %d now, the event's full group. Invite by code is off.", have))
+        return
+    end
+    if have >= limit and not self.codePaused then
+        self.codePaused = true
+        U.Print("Your group has %d now, so it's full. Invite by code is paused and picks up again when someone leaves.", have)
+        self:UpdateCodeWindow()
+        GT.Report:RefreshIfShown()
+    elseif have < limit and self.codePaused then
+        self.codePaused = nil
+        U.Print("A spot opened (%d of %d). Invite by code is inviting again. Code: %s.", have, limit, self:CodeText())
+        self:UpdateCodeWindow()
+        GT.Report:RefreshIfShown()
     end
 end
 
-function Events:SetCodeOn(on, message)
-    if on then
-        local have, limit = GroupCount(), self:CodeLimit(true)
-        if have >= limit then
-            U.Print("Your group already has %d, so it's full. Invite by code stays off.", have)
-            GT.Report:RefreshIfShown()
-            return
-        end
-    end
+-- dynamic: Dynamic group (pauses when full, invites again when a spot opens). Turned on with
+-- nothing picked, it's a dynamic group too, except for a pasted event, which fills its group
+-- and turns off (1.25.12, Albert).
+function Events:SetCodeOn(on, message, dynamic)
     self.sv.autoInvite = on
     -- The button turns on the plain mode (no size); off ends a picked size too.
     self.sv.codeSize = nil
+    self.codePaused = nil
+    self.sv.codeDynamic = nil
+    if on then
+        if dynamic then
+            self.sv.codeDynamic = true
+        else
+            local kind = self:CodeWindow()
+            if kind == "open" then self.sv.codeDynamic = true end
+        end
+    end
     if not on then self.codePending = nil end
     self:RegisterCode()
     if on then
         U.Print("Invite by code is on. Code: %s, in whispers and the chat of the guilds ticked for ads. %s", self:CodeText(), self:CodeStatus())
+        -- 1.25.6: a full group starts out paused.
+        self:CheckCodeSize()
     else
         U.Print(message or "Invite by code is off.")
     end
+    self:UpdateCodeWindow()
     GT.Report:RefreshIfShown()
 end
 
@@ -1332,7 +2247,7 @@ end
 function Events:SetCode(text)
     local code = zo_strtrim(text or "")
     if code == "" then
-        self.codeBox:SetText(self:CodeText())
+        if self.codeUI then self.codeUI.codeBox:SetText(self:CodeText()) end
         return
     end
     if code == self:CodeText() then return end
@@ -1356,12 +2271,69 @@ function Events:RegisterCode()
             if self.codePending and displayName then self.codePending[displayName] = nil end
             zo_callLater(function() self:CheckCodeSize() end, 500)
         end)
-        EVENT_MANAGER:RegisterForEvent(CODE_EVENT_NAME, EVENT_GROUP_MEMBER_LEFT, function(_, _, _, isLocalPlayer)
+        EVENT_MANAGER:RegisterForEvent(CODE_EVENT_NAME, EVENT_GROUP_MEMBER_LEFT, function(_, _, _, isLocalPlayer, _, displayName)
             -- You left, or the group broke up or was disbanded: done.
             if isLocalPlayer and self.sv.autoInvite then
                 self:SetCodeOn(false, "You left the group, or it broke up. Invite by code is off.")
+                return
             end
+            if displayName and self.offlineSince then self.offlineSince[displayName] = nil end
+            -- 1.25.6: a spot opened, so a paused Invite by code picks up again.
+            zo_callLater(function() self:CheckCodeSize() end, 500)
         end)
+    end
+    self:RegisterKickOffline()
+end
+
+-- Kick offline members (1.25.6, Albert) ---------------------------------------------------
+-- While Invite by code is on (or paused because the group is full), you lead the group and
+-- the setting is on: a member offline for the set minutes is removed from the group, so the
+-- spot opens for someone who types the code. Checked every 30 seconds. Off on a new install.
+local KICK_EVENT_NAME = "FurysGuildToolset_EventsKickOffline"
+local KICK_CHECK_MS = 30000
+
+function Events:RegisterKickOffline()
+    EVENT_MANAGER:UnregisterForUpdate(KICK_EVENT_NAME)
+    if self.sv.enabled and self.sv.autoInvite and self.sv.kickOffline then
+        self.offlineSince = self.offlineSince or {}
+        EVENT_MANAGER:RegisterForUpdate(KICK_EVENT_NAME, KICK_CHECK_MS, function() self:CheckOffline() end)
+        self:CheckOffline()
+    else
+        self.offlineSince = nil
+    end
+end
+
+function Events:CheckOffline()
+    if not (self.sv.autoInvite and self.sv.kickOffline) then return end
+    if not IsUnitGroupLeader("player") then return end
+    local now = GetTimeStamp()
+    local limit = (self.sv.kickOfflineMinutes or Events.defaults.kickOfflineMinutes) * 60
+    local seen = {}
+    for i = 1, GetGroupSize() do
+        local tag = GetGroupUnitTagByIndex(i)
+        if tag and not AreUnitsEqual(tag, "player") then
+            local name = GetUnitDisplayName(tag)
+            if name and name ~= "" then
+                seen[name] = true
+                if IsUnitOnline(tag) then
+                    self.offlineSince[name] = nil
+                else
+                    -- First seen offline now; the time before that isn't known.
+                    local since = self.offlineSince[name]
+                    if not since then
+                        self.offlineSince[name] = now
+                    elseif now - since >= limit then
+                        self.offlineSince[name] = nil
+                        GroupKick(tag)
+                        U.Print("Removed %s from the group: offline for %s (Kick offline members, Events settings).",
+                            ZO_LinkHandler_CreateDisplayNameLink(name), U.FormatDuration(now - since))
+                    end
+                end
+            end
+        end
+    end
+    for name in pairs(self.offlineSince) do
+        if not seen[name] then self.offlineSince[name] = nil end
     end
 end
 
@@ -1411,8 +2383,9 @@ function Events:CodeStatus()
     if kind == "open" and self.sv.codeSize then
         return string.format("It invites anyone who types it until your group has %d, then turns off.", self.sv.codeSize)
     end
-    if kind == "open" then return "It invites anyone who types it now, up to a full group (no current event pasted)." end
-    if kind == "event" then return string.format("It invites for %s now: up to the event's group size and CP.", info.ev.title) end
+    if kind == "open" then return "Dynamic group: it invites anyone who types it up to a full group, pauses while the group is full and invites again when a spot opens (no current event pasted)." end
+    if kind == "event" and self.sv.codeDynamic then return string.format("Dynamic group for %s: it invites up to the event's group size and CP, pauses while the group is full and invites again when a spot opens.", info.ev.title) end
+    if kind == "event" then return string.format("It invites for %s now: up to the event's group size and CP, then turns off.", info.ev.title) end
     return string.format("Nobody is invited yet: %s.", info)
 end
 
@@ -1524,7 +2497,7 @@ end
 -- replacements for what the group is missing now. The one that fits the time comes first.
 function Events:AdMenu(control, fn)
     local state = self:State()
-    if not state then U.Print("Paste a sesh sign-up post first."); return end
+    if not state then U.Print("Paste a sign-up sheet first."); return end
     local signup, now = self:NeedText(state, state.openSignup), self:NeedText(state, state.openNow)
     local items
     if next(state.openNow) == nil then
@@ -1549,7 +2522,7 @@ end
 -- the one before it.
 function Events:Advertise(mode)
     local state = self:State()
-    if not state then U.Print("Paste a sesh sign-up post first."); return end
+    if not state then U.Print("Paste a sign-up sheet first."); return end
     if CHAT_SYSTEM:IsTextEntryOpen() then
         U.Print("You're typing in chat. Send or close that first, then try again.")
         return
@@ -1642,7 +2615,11 @@ local function DiscordOpenLines(state, open, now)
             local label = kind == "any" and "Spots" or DISCORD_ROLE[kind][2]
             -- Taken = the limit minus the open slots, so walk-ins in your group count too.
             local count = string.format("(%d/%d %s)", math.max(0, maxOf[kind] - n), maxOf[kind], now and "here" or "taken")
-            if n > 0 then
+            if n > 0 and kind ~= "any" then
+                -- 1.26.9 (Albert): "@Tank" pings the server's Tank role when the message is
+                -- sent. Outside the ** so Discord reads it as a mention. Only open roles ping.
+                lines[#lines + 1] = string.format("> %s @%s: **%d open** %s", DISCORD_EMOJI[kind], DISCORD_ROLE[kind][1], n, count)
+            elseif n > 0 then
                 lines[#lines + 1] = string.format("> %s **%s:** %d open %s", DISCORD_EMOJI[kind], label, n, count)
             else
                 lines[#lines + 1] = string.format("> %s **%s:** full :white_check_mark: %s", DISCORD_EMOJI[kind], label, count)
@@ -1652,7 +2629,26 @@ local function DiscordOpenLines(state, open, now)
     return lines
 end
 
--- ":shield: **Tank (1/2):** Furyous, Marth Wolf", one line per section that isn't "out" (or
+-- A sign-up's Discord name as a mention, "@Furyous", so Discord pings them when the message
+-- is sent (1.26.8, Albert). Names on Sesh sheets have no @, so one is added. Not escaped:
+-- Discord usernames use "_" and "." and an escaped name would not ping.
+local function DiscordMention(person)
+    local name = Trim(person.base or ""):gsub("^@+", "")
+    if name == "" then return "" end
+    return "@" .. name
+end
+
+-- A sheet role as a Discord role mention, "@MT" (1.26.9, Albert: anything that is a role in
+-- Discord needs the @ to ping). Standby / Tentative / Absent and Attending aren't roles: nil.
+local NOT_DISCORD_ROLES = { attending = true, attendees = true, ["sign-up"] = true, ["sign-ups"] = true, signups = true }
+local function DiscordRoleTag(section)
+    if section.kind == "standby" or section.kind == "out" then return nil end
+    local name = Trim(section.name or ""):gsub("^@+", "")
+    if name == "" or NOT_DISCORD_ROLES[zo_strlower(name)] then return nil end
+    return "@" .. name
+end
+
+-- ":shield: **Tank (1/2):** @Furyous, @Marth Wolf", one line per section that isn't "out" (or
 -- an empty standby).
 -- withNames false gives counts only (for a long roster that would pass Discord's limit).
 local function DiscordRoster(state, withNames)
@@ -1660,10 +2656,12 @@ local function DiscordRoster(state, withNames)
     for _, section in ipairs(state.ev.sections) do
         if section.kind ~= "out" and not (section.kind == "standby" and #section.people == 0) then
             local count = section.max and string.format("%d/%d", #section.people, section.max) or tostring(#section.people)
-            local line = string.format("%s **%s (%s)**", DISCORD_EMOJI[section.kind] or ":small_blue_diamond:", DiscordEscape(section.name), count)
+            local tag = DiscordRoleTag(section)
+            local line = tag and string.format("%s %s **(%s)**", DISCORD_EMOJI[section.kind] or ":small_blue_diamond:", tag, count)
+                or string.format("%s **%s (%s)**", DISCORD_EMOJI[section.kind] or ":small_blue_diamond:", DiscordEscape(section.name), count)
             if withNames and #section.people > 0 then
                 local names = {}
-                for _, person in ipairs(section.people) do names[#names + 1] = DiscordEscape(person.base) end
+                for _, person in ipairs(section.people) do names[#names + 1] = DiscordMention(person) end
                 line = line .. ": " .. table.concat(names, ", ")
             end
             lines[#lines + 1] = line
@@ -1717,11 +2715,12 @@ function Events:DiscordText(state, mode, withNames)
                 local section = info.section
                 if not namesOf[section] then order[#order + 1] = section; namesOf[section] = {} end
                 local names = namesOf[section]
-                names[#names + 1] = DiscordEscape(info.person.base)
+                names[#names + 1] = DiscordMention(info.person)
             end
             for _, section in ipairs(order) do
                 local names = namesOf[section]
-                lines[#lines + 1] = string.format("> %s **%s:** %s", DISCORD_EMOJI[section.kind] or ":small_blue_diamond:", DiscordEscape(section.name),
+                local tag = DiscordRoleTag(section)
+                lines[#lines + 1] = string.format("> %s %s %s", DISCORD_EMOJI[section.kind] or ":small_blue_diamond:", tag and (tag .. ":") or ("**" .. DiscordEscape(section.name) .. ":**"),
                     withNames and table.concat(names, ", ") or (#names .. (#names == 1 and " person" or " people")))
             end
             lines[#lines + 1] = "Are you coming? Log in and we'll send an invite!"
@@ -1748,7 +2747,7 @@ end
 
 function Events:CopyForDiscord(mode)
     local state = self:State()
-    if not state then U.Print("Paste a sesh sign-up post first."); return end
+    if not state then U.Print("Paste a sign-up sheet first."); return end
     mode = mode or state.mode
     local text = self:DiscordText(state, mode, true)
     -- A long roster: counts instead of names, so the message fits one Discord post.
@@ -1756,6 +2755,7 @@ function Events:CopyForDiscord(mode)
     local Report = GT.Report
     Report.exportParts = { text }
     Report.exportTitle = "Copy for Discord"
+    Report.exportTitles = nil
     Report.exportHint = "Select all, Ctrl+C, paste into Discord. The :emoji: and <t:...> times turn fancy when you send."
     Report.exportIndex = 1
     U.ShowOnTop(FurysGuildToolset_Export)
@@ -1992,7 +2992,7 @@ end
 
 function Events:AskListing()
     local state = self:State()
-    if not state then U.Print("Paste a sesh sign-up post first."); return end
+    if not state then U.Print("Paste a sign-up sheet first."); return end
     if HasGroupListingForUserType(GROUP_FINDER_GROUP_LISTING_USER_TYPE_CREATED_GROUP_LISTING) then
         U.Print("You already have a Group Finder listing. Change or remove it in the game's Group Finder window.")
         return
@@ -2189,7 +3189,7 @@ end
 
 function Events:BuildSettings(options)
     self.panel = GT.Settings:AddPage("Events", "Events", self:SettingsControls(), true)
-    GT.Settings:AddPointer(options, "Events", "Sign-ups from sesh event posts, missing people, guild ads and Group Finder listings are on their own page: \"Fury's Guild Management - Events\" in the Add-Ons list.",
+    GT.Settings:AddPointer(options, "Events", "Sign-ups from sesh posts or any guild's sign-up sheet, missing people, guild ads and Group Finder listings are on their own page: \"Fury's Guild Management - Events\" in the Add-Ons list.",
         function() self:OpenSettings() end)
 end
 
@@ -2200,7 +3200,7 @@ end
 function Events:SettingsControls()
     local sv = self.sv
     local controls = {
-        { type = "description", text = "Copy a sesh event post in Discord and paste it into the Events tab (/gt events > Paste sign-ups). The tab shows each sign-up next to who is in your group, and lets you whisper, invite or mail the missing people, advertise the open slots in your guilds, and create a Group Finder listing. Nothing is sent without a click or Enter from you." },
+        { type = "description", text = "Copy a sign-up sheet in Discord (a sesh post, or any guild's own sheet) and paste it into the Events tab (/gt events > Paste sign-ups). Copy template there gives you a blank sheet to post, and Discord time turns a date and time into a time code that shows in each reader's own time zone. The tab shows each sign-up next to who is in your group, and lets you whisper, invite or mail the missing people, advertise the open slots in your guilds, and create a Group Finder listing. Nothing is sent without a click or Enter from you." },
         { type = "checkbox", name = "Turn on Events", tooltip = "Shows the Events tab and keeps it up to date while people join your group or log in.",
           getFunc = function() return sv.enabled end, setFunc = function(v) self:SetEnabled(v) end, default = false },
         { type = "description", title = "Texts", text = "You can use {name} (their Discord name), {event} (the event title), {time} (how long until it starts, like \"3d 4h 30m from now\", so it's right in every time zone), {date} (the time as the post shows it), {need} (open slots, like \"1 tank, 2 DPS\": sign-up slots nobody took before the group forms, what the group is missing after), {cp} (\" (CP 160+)\" when the post has a CP requirement), {code} (your invite code) and {me} (your @account)." },
@@ -2211,13 +3211,20 @@ function Events:SettingsControls()
         { type = "editbox", name = "Mail text", isMultiline = true, tooltip = "For right-click > Mail.",
           getFunc = function() return sv.mailText end, setFunc = function(v) sv.mailText = v end, default = Events.defaults.mailText },
         { type = "slider", name = "Group forms (minutes before start)", min = 0, max = 60, step = 5,
-          tooltip = "Before this, ads ask people to sign up for the slots nobody has taken. From this time on, ads ask for replacements to join now, and no-shows count as open slots. Read from the Time in the sesh post.",
+          tooltip = "Before this, ads ask people to sign up for the slots nobody has taken. From this time on, ads ask for replacements to join now, and no-shows count as open slots. Read from the time on the sign-up sheet.",
           getFunc = function() return sv.formUpMinutes or 15 end, setFunc = function(v) sv.formUpMinutes = v; self.cache = nil end, default = Events.defaults.formUpMinutes },
         { type = "editbox", name = "Guild ad for sign-ups", tooltip = "Before the group forms: Advertise in guilds puts this in each ticked guild's chat box. {need} is the sign-up slots nobody has taken. Up to 350 characters.",
           getFunc = function() return sv.signupAdText or Events.defaults.signupAdText end, setFunc = function(v) sv.signupAdText = v end, default = Events.defaults.signupAdText },
         { type = "checkbox", name = "Invite by code",
-          tooltip = "Anyone who types the invite code (upper or lower case) in the chat of a guild ticked below, or whispers it to you, gets a group invite. With no event pasted: anyone, up to a full group. With an event pasted: once its group forms (until 2 hours after the start time), up to its group size, and not when their CP is under the post's requirement. Only while you lead the group or are solo. Put {code} in the replacement ad so people know it. Also on the Events tab: the Invite by code button and Code box. Starts turned off at every login and /reloadui, and turns itself off when your group fills up or breaks up.",
+          tooltip = "Anyone who types the invite code (upper or lower case) in the chat of a guild ticked below, or whispers it to you, gets a group invite. With no event pasted: anyone, up to a full group. With an event pasted: once its group forms (until 2 hours after the start time), up to its group size, and not when their CP is under the post's requirement. Only while you lead the group or are solo. Put {code} in the replacement ad so people know it. Also on the Events tab: the Invite by code button opens a window with all of this. Starts turned off at every login and /reloadui. Turned on with no event pasted, or with the Dynamic group button in the Invite by code window, it is a Dynamic group: it pauses while your group is full and picks up again when someone leaves. Turned on with an event pasted, it fills the event's group and turns off; the IA / Group / Trial buttons fill to that size and turn it off. It also turns itself off when you leave the group or it breaks up.",
           getFunc = function() return sv.autoInvite end, setFunc = function(v) if v ~= sv.autoInvite then self:SetCodeOn(v) end end, default = false },
+        { type = "checkbox", name = "Kick offline members",
+          tooltip = "While Invite by code is on (or paused because the group is full) and you lead the group: anyone in the group who has been offline for the minutes below is removed from the group, so their spot opens for someone who types the code. A chat line says who and why. Starts turned off.",
+          getFunc = function() return sv.kickOffline == true end, setFunc = function(v) if v ~= (sv.kickOffline == true) then self:SetKickOffline(v) end end, default = false },
+        { type = "slider", name = "Kick after (minutes offline)", min = 1, max = 60, step = 1,
+          tooltip = "How long someone in the group has to be offline before Kick offline members removes them. Counted from when the addon first sees them offline.",
+          getFunc = function() return sv.kickOfflineMinutes or Events.defaults.kickOfflineMinutes end, setFunc = function(v) sv.kickOfflineMinutes = v; if self.codeUI then self:UpdateCodeWindow() end end,
+          disabled = function() return not sv.kickOffline end, default = Events.defaults.kickOfflineMinutes },
         { type = "editbox", name = "Invite code", tooltip = "The whole message has to be this (upper or lower case). {code} in the ads.",
           getFunc = function() return sv.inviteCode or Events.defaults.inviteCode end, setFunc = function(v) sv.inviteCode = zo_strtrim(v) end, default = Events.defaults.inviteCode },
         { type = "editbox", name = "Guild ad for replacements", tooltip = "Once the group forms: Advertise in guilds puts this in each ticked guild's chat box. {need} is what your group is missing now, no-shows included. While Invite by code is off, the part with {code} is left out (\"Type {code} into guild chat or whisper {me}.\" becomes \"Whisper {me}.\"). Up to 350 characters.",

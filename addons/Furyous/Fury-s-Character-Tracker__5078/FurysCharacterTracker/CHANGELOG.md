@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1
+- Windows Tools 1.4.1, offline viewer fixes:
+  - Fixed: on the Daily tab, a character who had turned in all seven writs showed Jewelry as not done (6/7), and when the first few writs were done the others could land in the wrong columns. The viewer now reads every writ under its own craft, the same as in game.
+  - The viewer window now opens in the middle of your browser, up and down as well as side to side, and stays centered when you resize the browser. Drag it if you want it elsewhere; it opens centered again next time.
+- Nothing changes in game.
+
 ## 1.4.0
 - New button in Settings > Addons > Fury's Character Tracker: "Get the Windows Tools" opens the download page for the offline viewer and Excel export in your browser (the game asks first). /fct tools does the same, so there's no more hunting for the link on the addon page.
 

@@ -1,11 +1,11 @@
 ## Title: LibConsoleLogger
 ## Author: clubwratt
-## Version: 0.6.0
-## AddOnVersion: 600
+## Version: 0.7.3
+## AddOnVersion: 703
 ## APIVersion: 101050
 ## IsLibrary: true
 ## Description: Shared console logger: chat output, export buffer, and webview export. Exposes global LibConsoleLogger for other addons.
-## OptionalDependsOn: LibHarvensAddonSettings
+## OptionalDependsOn: LibHarvensAddonSettings ErrorCatcher
 ## SavedVariables: LibConsoleLoggerSavedVars
 ## DevId: 6bd5f4ac-b518-489a-b1b8-31811650b446
 ## ProdId: 6bd5f4ac-b518-489a-b1b8-31811650b446

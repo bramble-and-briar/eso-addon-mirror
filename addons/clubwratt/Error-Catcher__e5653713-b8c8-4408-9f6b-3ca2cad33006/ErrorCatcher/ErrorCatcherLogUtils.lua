@@ -5,9 +5,10 @@ local LogUtils = {}
 
 -- Distinct once-lines kept per UI load; past it one notice is written and the rest are dropped.
 local MAX_ONCE_LINES = 300
--- Lines held back until this add-on's own load event: the hooks are placed at file scope, where the
--- library may not have read its saved "enabled" switch yet.
-local MAX_HELD_LINES = 200
+-- Lines held back until the library has loaded. This add-on loads ahead of it (the library names it as an
+-- optional dependency, so that it sees as much of the load as it can), and the library drops what it is
+-- handed before its own load event, when it reads its saved "enabled" switch.
+local MAX_HELD_LINES = 400
 
 ---@type string[]|nil nil once flushed
 local held = {}
@@ -15,14 +16,10 @@ local held = {}
 local scopedLogger = nil
 
 local function GetLogger()
-    if scopedLogger == nil then
-        if LibConsoleLogger and LibConsoleLogger.For then
-            scopedLogger = LibConsoleLogger:For(ErrorCatcher.name)
-        else
-            scopedLogger = false
-        end
+    if scopedLogger == nil and LibConsoleLogger and LibConsoleLogger.For then
+        scopedLogger = LibConsoleLogger:For(ErrorCatcher.name)
     end
-    return scopedLogger or nil
+    return scopedLogger
 end
 
 ---@param fmt string
@@ -51,12 +48,27 @@ function LogUtils.Line(fmt, ...)
     end
 end
 
----Write the lines held back since file scope; from here on a line is buffered as it comes.
+---Write the lines held back since file scope; from here on a line is buffered as it comes. Without the
+---library they are dropped.
 function LogUtils.Flush()
     local lines = held
     held = nil
     for _, line in ipairs(lines or {}) do
         LogUtils.Line("%s", line)
+    end
+end
+
+---Whether the library's own load event has run (it says so from 0.7.1).
+---@return boolean
+function LogUtils.LibraryLoaded()
+    return type(LibConsoleLogger) == "table" and LibConsoleLogger.loaded == true
+end
+
+---Write the held lines once the library has loaded. Asked at every load event, since this add-on's handler
+---of the library's own load event runs ahead of the library's.
+function LogUtils.TryFlush()
+    if held and LogUtils.LibraryLoaded() then
+        LogUtils.Flush()
     end
 end
 

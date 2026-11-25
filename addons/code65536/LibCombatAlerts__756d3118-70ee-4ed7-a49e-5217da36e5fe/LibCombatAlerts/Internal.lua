@@ -41,8 +41,8 @@ end
 
 do
 	local scratch
-	function Internal.GetScratchTable( )
-		scratch = Public.PrepareScratchTable(scratch)
+	function Internal.GetScratchTable( ... )
+		scratch = Public.PrepareScratchTable(scratch, ...)
 		return scratch
 	end
 end

@@ -287,6 +287,19 @@ function SlotActions.GroundHeight(x, z, fallback)
     return bestH
 end
 
+---Forget what was judged about the slots within `r` metres of (x, z): the nodes there were replaced (a survey reset),
+---so a name remembered for a slot no longer holds.
+function SlotActions.ForgetNear(x, z, r)
+    local verdicts, inRange = SlotActions.verdicts, SlotActions.inRange
+    if not verdicts then return end
+    local r2 = r * r
+    for i = 1, SlotActions.inRangeCount do
+        local slot = inRange[i]
+        local dx, dz = slot.x - x, slot.z - z
+        if dx * dx + dz * dz <= r2 then verdicts[slot.index] = nil end
+    end
+end
+
 ---Forget every checkpoint and verdict in every zone.
 function SlotActions.ClearCheckpoints()
     local sv = DevSandbox3.state.savedVars

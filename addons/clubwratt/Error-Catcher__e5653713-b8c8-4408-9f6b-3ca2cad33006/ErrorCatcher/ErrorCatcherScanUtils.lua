@@ -18,6 +18,18 @@ function ScanUtils.IsGameTableName(name)
     return string.sub(name, 1, 3) == GAME_PREFIX or string.match(name, "^[A-Z][A-Z0-9_][A-Z0-9_]+$") ~= nil
 end
 
+-- Game tables add-ons put functions of their own into as a matter of course: every slash command of every
+-- add-on is an untrusted member of SLASH_COMMANDS, and says nothing about a game function.
+local REGISTRY_TABLES = {
+    SLASH_COMMANDS = true,
+}
+
+---@param name string
+---@return boolean
+function ScanUtils.IsRegistryTableName(name)
+    return REGISTRY_TABLES[name] == true
+end
+
 ---Whether a table's untrusted members are worth listing, going by its own members: a table with trusted
 ---functions too is the game's with something replaced; an ALL_CAPS table without any is an add-on's own,
 ---unless it is an instance of a game class, which the caller asks of the game.

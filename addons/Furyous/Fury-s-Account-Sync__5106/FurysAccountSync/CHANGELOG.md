@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.3
+- The game language is never copied between accounts. This also clears a note from the ESOUI addon check.
+
 ## 0.2.2
 - Clearer wording: the settings and tooltips now say "starts turned off".
 - The addon list shows the right version next to the name again.

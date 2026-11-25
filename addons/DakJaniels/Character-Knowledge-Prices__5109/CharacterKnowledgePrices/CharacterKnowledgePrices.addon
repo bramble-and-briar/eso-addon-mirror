@@ -1,0 +1,20 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media
+; Inc. or its affiliates. The Elder Scrolls and related logos are registered
+; trademarks or trademarks of ZeniMax Media Inc. in the United States and/or
+; other countries. All rights reserved.
+; https://account.elderscrollsonline.com/add-on-terms
+
+## Title: Character Knowledge Prices
+## Description: Optional LibPrice values in Character Knowledge's auxiliary column for recipes and furnishing plans.
+## Author: @dack_janiels[PC]
+## Version: 1.0.2
+## AddOnVersion: 10200
+## APIVersion: 101051 101052
+## SavedVariables: CharacterKnowledgePricesSavedVariables
+## DependsOn: CharacterKnowledge>=301070 LibPrice>=70550
+## OptionalDependsOn: LibAddonMenu-2.0
+
+l10n/default.lua
+l10n/$(language).lua
+
+CharacterKnowledgePrices.lua

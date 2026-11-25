@@ -513,6 +513,7 @@ function Recruit:StopTour(reason)
     self.trip = nil
     self:RefreshBar()
     EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_RecruitJump", EVENT_SOCIAL_ERROR)
+    EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_RecruitCombat", EVENT_PLAYER_COMBAT_STATE)
     U.Print(reason or "Zone tour stopped.")
     GT.Report:RefreshIfShown()
 end
@@ -559,6 +560,12 @@ end
 
 function Recruit:Jump(trip)
     local way, zone = trip.ways[trip.index], trip.zone
+    -- The game refuses every jump while you're in combat (an aggressive mob near where you
+    -- landed is enough), so don't spend a try on it: wait until combat clears.
+    if IsUnitInCombat("player") then
+        self:WaitThenJump(trip, true, true)
+        return
+    end
     trip.tries = trip.tries + 1
     trip.from = self:CurrentZoneId()
     trip.started = false
@@ -587,22 +594,73 @@ end
 -- The next try always waits a moment. Jumping again straight from the game's error event
 -- would register the next attempt's listener while that same error is still being handed
 -- out, so one refusal would count as a failure for every attempt in a row (1.5.5 bug).
--- The same refusal for two different people in a row means it's about you, not them
--- (for example a travel cooldown or combat): the trip stops there instead of using up the list.
+-- A refusal that is about you, not the person (you're in combat, or the game gave the same
+-- answer for two different people in a row): the trip waits a few seconds, or until combat
+-- clears, and tries the same person again, up to MAX_TRIP_WAITS times. (Before 1.24.5 it
+-- gave up and asked you to press the Next zone key.)
 local RETRY_DELAY_MS = 2000
+local SETTLE_MS = 4000        -- after combat ends (or a repeated refusal), wait this long before trying again
+local MAX_TRIP_WAITS = 5
+
+-- inCombat: true when you're in combat; false for another refusal about you.
+-- beforeTry: true when the trip saw the combat before asking the game (nothing was refused yet).
+function Recruit:WaitThenJump(trip, inCombat, beforeTry)
+    trip.waits = (trip.waits or 0) + 1
+    if trip.waits > MAX_TRIP_WAITS then
+        self.trip = nil
+        EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_RecruitCombat", EVENT_PLAYER_COMBAT_STATE)
+        local msg = inCombat and "Still in combat after several tries, so travel is paused." or "The game kept refusing travel, so travel is paused."
+        U.Print("%s Press the Next zone key when you're ready to try again.", msg)
+        return
+    end
+    local token = {}
+    trip.waitToken = token
+    local function Go()
+        if self.trip ~= trip or trip.waitToken ~= token then return end
+        if IsUnitInCombat("player") then
+            EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_RecruitCombat", EVENT_PLAYER_COMBAT_STATE)
+            EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_RecruitCombat", EVENT_PLAYER_COMBAT_STATE, function(_, nowInCombat)
+                if nowInCombat then return end
+                EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_RecruitCombat", EVENT_PLAYER_COMBAT_STATE)
+                zo_callLater(Go, SETTLE_MS)
+            end)
+            return
+        end
+        trip.waitToken = nil
+        self:Jump(trip)
+    end
+    if inCombat and beforeTry then
+        if trip.waits == 1 then U.Print("You're in combat. Travel waits until it clears...") end
+    elseif inCombat then
+        U.Print("Couldn't travel: the game says you're in combat. Waiting until it clears...")
+    else
+        U.Print("Couldn't travel: the game refused twice for the same reason, so it's something on your side for a moment. Trying again in a few seconds...")
+    end
+    zo_callLater(Go, SETTLE_MS)
+end
 
 function Recruit:JumpFailed(trip, reason)
     EVENT_MANAGER:UnregisterForEvent("FurysGuildToolset_RecruitJump", EVENT_SOCIAL_ERROR)
     trip.token = nil
     local way, zone = trip.ways[trip.index], trip.zone
-    local why = (reason and reason ~= "") and reason or "the travel didn't start"
-    U.Print("Couldn't travel to %s: %s.", way.name, why)
-    if reason and reason ~= "" and reason == trip.lastReason then
-        self.trip = nil
-        self.badTargets[trip.lastTarget] = nil   -- it wasn't their fault either
-        U.Print("The game gave the same answer twice, so it's about you right now, not them. Press the Next zone key to try again.")
+    local hasReason = reason ~= nil and reason ~= ""
+    -- In combat (or the game's text says combat): not the person's fault, so wait and retry them.
+    local combat = IsUnitInCombat("player") or (hasReason and zo_strlower(reason):find("combat", 1, true) ~= nil)
+    local repeated = hasReason and reason == trip.lastReason
+    if combat or repeated then
+        trip.tries = trip.tries - 1   -- this try doesn't count against the person
+        if repeated and trip.lastTarget then
+            self.badTargets[trip.lastTarget] = nil   -- the earlier refusal wasn't their fault either
+            trip.tries = trip.tries - 1
+        end
+        trip.lastReason, trip.lastTarget = nil, nil
+        zo_callLater(function()
+            if self.trip == trip then self:WaitThenJump(trip, combat) end
+        end, RETRY_DELAY_MS)
         return
     end
+    local why = hasReason and reason or "the travel didn't start"
+    U.Print("Couldn't travel to %s: %s.", way.name, why)
     trip.lastReason = reason
     trip.lastTarget = way.kind == "house" and ("house:" .. zone.id) or way.name
     self.badTargets[trip.lastTarget] = true
@@ -876,7 +934,7 @@ end
 
 function Recruit:TabOffText()
     if self:AnyOn() then return nil end
-    return "Recruiting is turned off. Turn it on in /gtsettings under Recruiting."
+    return "Recruiting is turned off. Click Set up below, or turn it on in /gtsettings under Recruiting."
 end
 
 function Recruit:TabSummary()
@@ -999,6 +1057,12 @@ function Recruit:RegisterTab()
         tip = "Recruiting: zone ad cooldowns, the zone tour, whisper leads and welcome mails waiting to be written.",
         title = function() return self:TabTitle() end,
         GetOffText = function() return self:TabOffText() end,
+        about = {
+            "Helps you advertise in zone chat: which zones are ready for an ad, a tour from zone to zone, and people who whispered you about joining.",
+            "An ad is put in your chat box and waits for your Enter. Nothing is posted by itself.",
+            "Welcome messages, welcome mails and whisper leads are turned on separately on the Recruiting settings page.",
+        },
+        emptyText = "No whisper leads or welcome mails are waiting.",
         GetSummary = function() return self:TabSummary() end,
         GetRows = function() return self:TabRows() end,
         footer = function() return self:TabFooter() end,

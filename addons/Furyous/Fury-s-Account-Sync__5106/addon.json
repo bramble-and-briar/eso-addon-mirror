@@ -22,7 +22,7 @@
     "FurysAccountSync"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5106/",
-  "fingerprint": "5152e2cb191b0503682afc86ca58a11c8beeac52c1e6cbb5833807d1d7362e66",
+  "fingerprint": "ba928fbf213c73b7739b82c37b18b0eda85b686bf5e89a749224ee636909e360",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18771.png",
     "https://cdn-eso.mmoui.com/preview/pvw18770.png"
@@ -33,11 +33,11 @@
   "source_id": "5106",
   "source_url": "https://www.esoui.com/downloads/info5106-FurysAccountSync.html",
   "stats": {
-    "downloads": 21,
+    "downloads": 34,
     "favorites": 1,
-    "monthly_downloads": 0
+    "monthly_downloads": 25
   },
   "title": "Fury's Account Sync",
-  "updated_at": 1795505043000,
-  "version": "0.2.2"
+  "updated_at": 1795590892000,
+  "version": "0.2.3"
 }

@@ -26,6 +26,7 @@ function Slash.Status()
         list[#list + 1] = { d = math.sqrt(dx * dx + dz * dz), node = node }
     end
     table.sort(list, function(a, b) return a.d < b.d end)
+    LogUtils.Log("  " .. DevSandbox3.Survey.Describe())
     for i = 1, math.min(8, #list) do
         local n = list[i].node
         local best
@@ -45,9 +46,11 @@ function Slash.Handle(args)
     if cmd == "" or cmd == "status" then Slash.Status()
     elseif cmd == "export" then LogUtils.Export()
     elseif cmd == "clear" then DevSandbox3.SlotActions.ClearCheckpoints()
+    elseif cmd == "survey" then
+        if string.match(string.lower(args), "forget") then DevSandbox3.Survey.Forget() else LogUtils.Log(DevSandbox3.Survey.Describe()) end
     elseif cmd == "nodes" then s.debugNodes = not s.debugNodes; LogUtils.Log("cyan node dots %s", s.debugNodes and "ON" or "OFF")
     elseif cmd == "debug" then s.debug = not s.debug; LogUtils.Log("debug logging %s", s.debug and "ON" or "OFF")
-    else LogUtils.Log("/ds3 status | clear (forget checkpoints) | export (push log to receiver) | nodes (cyan dot on every located node) | debug") end
+    else LogUtils.Log("/ds3 status | clear (forget checkpoints) | survey (the site near you) | survey forget | export (push log to receiver) | nodes (cyan dot on every located node) | debug") end
 end
 
 DevSandbox3.Slash = Slash

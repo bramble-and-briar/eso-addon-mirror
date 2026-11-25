@@ -1,7 +1,7 @@
 -- DevSandbox3Settings.lua: LibHarvensAddonSettings panel (optional)
 --
 -- Top level: CLEAR CHECKPOINTS, ADD TRACKER, then TRACKER_ROWS rows per tracker (node dropdown, colour, candidates,
--- remove). Everything else is tucked into submenus: on console a section row opens the rows that follow it, up to
+-- remove). Everything else is tucked into submenus (EMPTY SPAWNS, SURVEY SITES, CANDIDATES, CHECKPOINTS, DOTS, DEBUG): on console a section row opens the rows that follow it, up to
 -- the next section. So every top-level row comes before the first section, and tracker rows are inserted and
 -- removed at an index (AddSettings / RemoveSettings) instead of rebuilding the panel.
 local Settings = {}
@@ -132,6 +132,12 @@ function Settings.Initialize()
     Add(Check(LAS, "PSIJIC PORTAL SPAWNS", "markPsijic", "Every zone. Runestone spawn locations with no node - a possible Psijic Portal.", Apply))
     Add(SettingColor(LAS, "Psijic dot color", "psijicColor"))
     Add(Check(LAS, "Candidate locations", "markUnknown", "Also mark, in the candidate color, the locations too far away to tell yet: no node seen there, but it may just be out of range."))
+
+    Add(Section(LAS, "SURVEY SITES", "The cluster of nodes a survey report spawns, whatever the craft: a dot on every node, their names counted under the compass, one white dot while no node stands there."))
+    Add(Check(LAS, "FIND SURVEY SITES", "survey", "Find survey sites (four or more nodes standing together) and draw a dot per node: tracker color for a node you track, candidate color until its name is read, grey for anything else. One white dot while no node stands there."))
+    Add(Slider(LAS, "ALERT AT", "surveyAlertAt", 1, 6, 1, "Announce on screen when this many nodes a tracker hunts stand at the site. With every name read and fewer than this: RE-ROLL."))
+    Add({ type = LAS.ST_BUTTON, label = "FORGET SITES", buttonText = "Forget", tooltip = "Forget every survey site, in every zone.", clickHandler = function() DevSandbox3.Survey.Forget() end })
+    Add(Check(LAS, "Survey log", "surveyLog", "Write what happens at a survey site to LibConsoleLogger (never to chat)."))
 
     Add(Section(LAS, "CANDIDATES", "Locations not determined yet, for trackers and empty spawns alike."))
     Add(SettingColor(LAS, "Candidate dot color", "unknownColor"))

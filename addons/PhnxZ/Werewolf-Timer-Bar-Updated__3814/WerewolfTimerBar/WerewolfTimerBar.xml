@@ -23,29 +23,115 @@
 					<Dimensions x="300" y="20"/>
 					<Anchor point="TOP" relativeTo="$(parent)_Backdrop" relativePoint="TOP" offsetX="0" offsetY="3"/>
 				</Label>
+				<Texture name="$(parent)_StatusIcon" textureFile="esoui/art/icons/icon_missing.dds">
+					<Dimensions x="20" y="20"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_Backdrop" relativePoint="TOPLEFT" offsetX="0" offsetY="23"/>
+				</Texture>
 				<StatusBar name="$(parent)_StatusBar" color="8A2BE2" alpha="1" hidden="false">
-					<Dimensions x="300" y="20"/>
-					<Anchor point="TOPLEFT" relativeTo="$(parent)_UltimateBlockButton" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="2"/>
-					<Limits min="100" max="300"/>
-				</StatusBar>
-				<Label name="$(parent)_StatusBarLabel" font="ZoFontWinH1" color="ffffff" text="Ultimate" verticalAlignment="CENTER" horizontalAlignment="CENTER"  alpha="1">			
-					<Dimensions x="300" y="20"/>
-					<Anchor point="CENTER" relativeTo="$(parent)_StatusBar" relativePoint="CENTER" offsetX="0" offsetY="0"/>
-				</Label>
-				<StatusBar name="$(parent)_FuryBar" color="8A2BE2" alpha="1" hidden="false">
-					<Dimensions x="300" y="20"/>
-					<Anchor point="TOPLEFT" relativeTo="$(parent)_StatusBar" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0"/>
-					<Limits min="100" max="300"/>
-				</StatusBar>
-				<Label name="$(parent)_FuryBarLabel" font="ZoFontWinH1" color="ffffff" text="Fury" verticalAlignment="CENTER" horizontalAlignment="CENTER"  alpha="1">			
-					<Dimensions x="300" y="20"/>
-					<Anchor point="CENTER" relativeTo="$(parent)_FuryBar" relativePoint="CENTER" offsetX="0" offsetY="0"/>
-				</Label>
-				<StatusBar name="$(parent)_HoldBar" color="FFD700" alpha="1" hidden="true">
-					<Dimensions x="300" y="10"/>
-					<Anchor point="TOPLEFT" relativeTo="$(parent)_StatusBar" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
+					<Dimensions x="280" y="20"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_StatusIcon" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
 					<Limits min="0" max="1"/>
 				</StatusBar>
+				<Label name="$(parent)_StatusBarLabel" font="ZoFontWinH1" color="ffffff" text="Ultimate" verticalAlignment="CENTER" horizontalAlignment="LEFT"  alpha="1">			
+					<Anchor point="LEFT" relativeTo="$(parent)_StatusBar" relativePoint="LEFT" offsetX="20" offsetY="2"/>
+				</Label>
+				<Label name="$(parent)_StatusBarNum" font="ZoFontWinH1" color="ffffff" text="" verticalAlignment="CENTER" horizontalAlignment="RIGHT" alpha="1">
+					<Anchor point="RIGHT" relativeTo="$(parent)_StatusBar" relativePoint="RIGHT" offsetX="-4" offsetY="2"/>
+				</Label>
+				<Texture name="$(parent)_FuryIcon" textureFile="esoui/art/icons/icon_missing.dds">
+					<Dimensions x="20" y="20"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_StatusBar" relativePoint="BOTTOMLEFT" offsetX="-20" offsetY="0"/>
+				</Texture>
+				<StatusBar name="$(parent)_FuryBar" color="8A2BE2" alpha="1" hidden="false">
+					<Dimensions x="280" y="20"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_FuryIcon" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
+					<Limits min="0" max="1"/>
+				</StatusBar>
+				<StatusBar name="$(parent)_RampageBar" color="FF0000" alpha="1" hidden="true">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_FuryBar" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
+					<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)_FuryBar" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0"/>
+					<Limits min="0" max="1"/>
+				</StatusBar>
+				<Label name="$(parent)_FuryBarLabel" font="ZoFontWinH1" color="ffffff" text="Fury" verticalAlignment="CENTER" horizontalAlignment="LEFT"  alpha="1">			
+					<Anchor point="LEFT" relativeTo="$(parent)_FuryBar" relativePoint="LEFT" offsetX="20" offsetY="2"/>
+				</Label>
+				<Label name="$(parent)_FuryBarNum" font="ZoFontWinH1" color="ffffff" text="" verticalAlignment="CENTER" horizontalAlignment="RIGHT" alpha="1">
+					<Anchor point="RIGHT" relativeTo="$(parent)_FuryBar" relativePoint="RIGHT" offsetX="-4" offsetY="2"/>
+				</Label>
+				<StatusBar name="$(parent)_HoldBar" color="FFD700" alpha="1" hidden="true">
+					<Dimensions x="280" y="10"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_StatusIcon" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
+					<Limits min="0" max="1"/>
+				</StatusBar>
+			</Controls>
+		</TopLevelControl>
+		<TopLevelControl name="WerewolfTimerBarBuffs" clampedToScreen="true" allowBringToTop="false" mouseEnabled="true" hidden="true" tier="LOW" layer="CONTROLS" inherits="ZO_HUDManager_Element">
+			<Dimensions x="310" y="90"/>
+			<Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="0"/>
+			<Controls>
+				<Backdrop name="$(parent)_Backdrop" edgeColor="000000" centerColor="000000" alpha="0.4" hidden="false">
+					<Dimensions x="310" y="90"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
+					<Edge edgeSize="2"/>
+				</Backdrop>
+				<Texture name="$(parent)_CourageIcon" textureFile="esoui/art/icons/icon_missing.dds">
+					<Dimensions x="20" y="20"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_Backdrop" relativePoint="TOPLEFT" offsetX="5" offsetY="5"/>
+				</Texture>
+				<StatusBar name="$(parent)_CourageBar" color="FFFFFF" alpha="1" hidden="false">
+					<Dimensions x="280" y="20"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_CourageIcon" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
+					<Limits min="0" max="1"/>
+				</StatusBar>
+				<Label name="$(parent)_CourageName" font="ZoFontWinH1" color="ffffff" text="Major Courage" verticalAlignment="CENTER" horizontalAlignment="LEFT" alpha="1">
+					<Anchor point="LEFT" relativeTo="$(parent)_CourageBar" relativePoint="LEFT" offsetX="20" offsetY="2"/>
+				</Label>
+				<Label name="$(parent)_CourageTime" font="ZoFontWinH1" color="ffffff" text="" verticalAlignment="CENTER" horizontalAlignment="RIGHT" alpha="1">
+					<Anchor point="RIGHT" relativeTo="$(parent)_CourageBar" relativePoint="RIGHT" offsetX="-4" offsetY="2"/>
+				</Label>
+				<Texture name="$(parent)_FrenzyIcon" textureFile="esoui/art/icons/icon_missing.dds">
+					<Dimensions x="20" y="20"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_CourageIcon" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0"/>
+				</Texture>
+				<StatusBar name="$(parent)_FrenzyBar" color="FFFFFF" alpha="1" hidden="false">
+					<Dimensions x="280" y="20"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_FrenzyIcon" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
+					<Limits min="0" max="1"/>
+				</StatusBar>
+				<Label name="$(parent)_FrenzyName" font="ZoFontWinH1" color="ffffff" text="Feeding Frenzy" verticalAlignment="CENTER" horizontalAlignment="LEFT" alpha="1">
+					<Anchor point="LEFT" relativeTo="$(parent)_FrenzyBar" relativePoint="LEFT" offsetX="20" offsetY="2"/>
+				</Label>
+				<Label name="$(parent)_FrenzyTime" font="ZoFontWinH1" color="ffffff" text="" verticalAlignment="CENTER" horizontalAlignment="RIGHT" alpha="1">
+					<Anchor point="RIGHT" relativeTo="$(parent)_FrenzyBar" relativePoint="RIGHT" offsetX="-4" offsetY="2"/>
+				</Label>
+				<Texture name="$(parent)_ProwlIcon" textureFile="esoui/art/icons/icon_missing.dds">
+					<Dimensions x="20" y="20"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_FrenzyIcon" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0"/>
+				</Texture>
+				<StatusBar name="$(parent)_ProwlBar" color="FFFFFF" alpha="1" hidden="false">
+					<Dimensions x="280" y="20"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_ProwlIcon" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
+					<Limits min="0" max="1"/>
+				</StatusBar>
+				<Label name="$(parent)_ProwlName" font="ZoFontWinH1" color="ffffff" text="Prowl" verticalAlignment="CENTER" horizontalAlignment="LEFT" alpha="1">
+					<Anchor point="LEFT" relativeTo="$(parent)_ProwlBar" relativePoint="LEFT" offsetX="20" offsetY="2"/>
+				</Label>
+				<Label name="$(parent)_ProwlTime" font="ZoFontWinH1" color="ffffff" text="" verticalAlignment="CENTER" horizontalAlignment="RIGHT" alpha="1">
+					<Anchor point="RIGHT" relativeTo="$(parent)_ProwlBar" relativePoint="RIGHT" offsetX="-4" offsetY="2"/>
+				</Label>
+			</Controls>
+		</TopLevelControl>
+		<TopLevelControl name="WerewolfTimerBarRoar" clampedToScreen="true" allowBringToTop="false" mouseEnabled="true" hidden="true" tier="LOW" layer="CONTROLS" inherits="ZO_HUDManager_Element">
+			<Dimensions x="48" y="48"/>
+			<Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="0"/>
+			<Controls>
+				<Texture name="$(parent)_Icon" textureFile="esoui/art/icons/icon_missing.dds">
+					<Dimensions x="48" y="48"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
+				</Texture>
+				<Label name="$(parent)_Count" font="ZoFontWinH1" color="ffffff" text="" verticalAlignment="CENTER" horizontalAlignment="CENTER" alpha="1">
+					<Anchor point="CENTER" relativeTo="$(parent)_Icon" relativePoint="CENTER" offsetX="0" offsetY="0"/>
+				</Label>
 			</Controls>
 		</TopLevelControl>
 	</Controls>

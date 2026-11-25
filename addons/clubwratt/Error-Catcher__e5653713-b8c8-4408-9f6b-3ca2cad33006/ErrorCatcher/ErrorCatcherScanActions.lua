@@ -15,7 +15,7 @@ local UPDATE_NAME = ErrorCatcher.name .. "_Scan"
 local ENTRIES_PER_STEP = 4000
 local MAX_LINE_CHARS = 220
 -- Lines of one listing; a longer one is cut with a count.
-local MAX_LISTING_LINES = 60
+local MAX_LISTING_LINES = 90
 
 ---Read the globals: the untrusted game functions, and the game tables to read next.
 ---@param scan ErrorCatcherScan
@@ -28,7 +28,7 @@ local function ReadGlobals(scan)
                 if ScanUtils.IsGameFunctionName(name) and GameUtils.IsTrusted(value) == false then
                     scan.functions[#scan.functions + 1] = name
                 end
-            elseif valueType == "table" and value ~= _G and ScanUtils.IsGameTableName(name) then
+            elseif valueType == "table" and value ~= _G and ScanUtils.IsGameTableName(name) and not ScanUtils.IsRegistryTableName(name) then
                 if tableNames[value] == nil then
                     tableNames[value] = name
                     scan.tableNames[#scan.tableNames + 1] = name
@@ -103,9 +103,20 @@ local function Finish(scan)
     local members = ScanUtils.SortedUnique(scan.members)
     local byAddon, addons = ErrorCatcher.HookActions.Summarize()
 
+    local untrusted = {}
+    for _, name in ipairs(functions) do untrusted[#untrusted + 1] = name end
+    for _, name in ipairs(members) do untrusted[#untrusted + 1] = name end
+
     local lines = ScanUtils.Pack("untrusted game functions", functions, MAX_LINE_CHARS)
     for _, line in ipairs(ScanUtils.Pack("untrusted members of game tables", members, MAX_LINE_CHARS)) do
         lines[#lines + 1] = line
+    end
+    -- The load order, and when each of the names above was wrapped; a scan cut short has no full list of
+    -- names, so it leaves the ones to follow as they were.
+    if scan.globalsRead or not state.trustApi then
+        for _, line in ipairs(ErrorCatcher.LoadActions.Finish(untrusted)) do
+            lines[#lines + 1] = line
+        end
     end
     local hookCount = 0
     for _, addon in ipairs(addons) do
@@ -118,13 +129,29 @@ local function Finish(scan)
 
     local totals = string.format("%d untrusted game functions, %d untrusted members of game tables, %d hooks by %d add-ons loaded after this one%s",
         #functions, #members, hookCount, #addons, scan.globalsRead and "" or " (the globals were not read to the end)")
+    -- The pool over the scan holds whatever else ran in those frames; the scan's own share is the Lua heap's
+    -- growth inside its own steps, this one included up to here.
+    local poolNow, heapNow = GameUtils.Pool(), GameUtils.HeapMB()
+    if scan.poolAtStart and poolNow then
+        totals = totals .. string.format("; add-on pool %.1f -> %.1f MB over the scan", scan.poolAtStart, poolNow)
+    end
+    if heapNow and scan.stepHeap then
+        totals = totals .. string.format(", of which the scan's own steps grew the Lua heap by %.1f MB", scan.ownMB + heapNow - scan.stepHeap)
+    end
+    -- Characters differ in their add-ons, so each has its own last listing to compare with.
     local digest = ScanUtils.Digest(lines)
-    if digest == state.savedVars.lastScanDigest and not scan.force then
-        Log.Line("scan: %s; the same as the last UI load (/ec scan lists them)", totals)
+    local digests = state.savedVars.scanDigests
+    if type(digests) ~= "table" then
+        digests = {}
+        state.savedVars.scanDigests = digests
+    end
+    local character = GameUtils.CharacterId() or "account"
+    if digest == digests[character] and not scan.force then
+        Log.Line("scan: %s; the same as this character's last UI load (/ec scan lists them)", totals)
     else
         Log.Line("scan: %s", totals)
         WriteListing(lines)
-        state.savedVars.lastScanDigest = digest
+        digests[character] = digest
     end
     scan.running, scan.done = false, true
     scan.tables, scan.tableNames = {}, {}
@@ -158,13 +185,19 @@ function ScanActions.Start(force)
     end
     local scan = ErrorCatcher.State.CreateScan()
     scan.running, scan.force = true, force == true
+    scan.poolAtStart = GameUtils.Pool()
     state.scan = scan
     -- A table is read once per scan, under the first name met.
     state.tableNames = setmetatable({}, { __mode = "k" })
     -- The steps are registered first: should reading the globals be cut short by an error pcall cannot
     -- catch (a private function met on the way), the next frame still finishes with what was read.
     EVENT_MANAGER:RegisterForUpdate(UPDATE_NAME, 0, function()
+        scan.stepHeap = GameUtils.HeapMB()
         local ok, err = pcall(Step)
+        local heap = GameUtils.HeapMB()
+        if heap and scan.stepHeap then
+            scan.ownMB = scan.ownMB + heap - scan.stepHeap
+        end
         if not ok then
             -- A step that raises would raise again every frame.
             EVENT_MANAGER:UnregisterForUpdate(UPDATE_NAME)
@@ -173,7 +206,12 @@ function ScanActions.Start(force)
         end
     end)
     if type(zo_insecurePairs) == "function" then
+        local heapBefore = GameUtils.HeapMB()
         local ok, err = pcall(ReadGlobals, scan)
+        local heapAfter = GameUtils.HeapMB()
+        if heapBefore and heapAfter then
+            scan.ownMB = heapAfter - heapBefore
+        end
         if not ok then
             Log.Line("scan: reading the globals stopped: %s", tostring(err))
         end

@@ -1,7 +1,7 @@
 ## Title: ESO Arsenal
 ## Author: Trash Man Enterprises
-## Version: 0.5.6
-## AddOnVersion: 39
+## Version: 0.5.8
+## AddOnVersion: 40
 ## APIVersion: 101051 101052 2.5.3.0
 ## OptionalDependsOn: LibAddonMenu-2.0 LibRadialMenu TSCPriceDataAPI TSCPriceDataLite
 ## SavedVariables: NexusCoreSaved NexusGoldSaved NexusDungeonSaved NexusBGSaved NexusCyroSaved

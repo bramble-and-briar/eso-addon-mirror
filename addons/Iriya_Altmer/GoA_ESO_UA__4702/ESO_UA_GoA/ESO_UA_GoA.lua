@@ -1,4 +1,5 @@
 ESO_UA_GoA = {}
+local ESO_UA_GoA = ESO_UA_GoA
 ESO_UA_GoA.name  = "ESO_UA_GoA"
 ESO_UA_GoA.version = "1.08"
 ESO_UA_GoA.langString = nil
@@ -8,6 +9,7 @@ ESO_UA_GoA.Flags = { "en", "ua" }
 ESO_UA_GoA.defaults = {
 	Enable	= true,
 	welcomeHidden = false,
+	autoApplied = false,
 	anchor	= {BOTTOMRIGHT, BOTTOMRIGHT, 0, 7},
 	Flags = {
 		["en"]	= true,
@@ -129,27 +131,6 @@ function ESO_UA_GoA.BuildWelcome()
 	return win
 end
 
-function ESO_UA_GoA.ToggleNever()
-	local c = ESO_UA_GoA_WelcomeCheck
-	if c and ZO_CheckButton_IsChecked and ZO_CheckButton_SetCheckState then
-		ZO_CheckButton_SetCheckState(c, not ZO_CheckButton_IsChecked(c))
-	end
-end
-
-function ESO_UA_GoA.ScrollWelcome(delta)
-	local sc = ESO_UA_GoA_WelcomeScroll
-	if sc and ZO_ScrollRelative then pcall(ZO_ScrollRelative, sc, delta) end
-end
-
-ESO_UA_GoA.keybinds = {
-	alignment = KEYBIND_STRIP_ALIGN_CENTER,
-	{ name = "Закрити", keybind = "UI_SHORTCUT_PRIMARY", callback = function() ESO_UA_GoA.CloseWelcome() end },
-	{ name = "Закрити", keybind = "UI_SHORTCUT_NEGATIVE", ethereal = true, callback = function() ESO_UA_GoA.CloseWelcome() end },
-	{ name = "Більше не показувати", keybind = "UI_SHORTCUT_SECONDARY", callback = function() ESO_UA_GoA.ToggleNever() end },
-	{ name = "Вгору", keybind = "UI_SHORTCUT_RIGHT_STICK_UP", ethereal = true, callback = function() ESO_UA_GoA.ScrollWelcome(-80) end },
-	{ name = "Вниз", keybind = "UI_SHORTCUT_RIGHT_STICK_DOWN", ethereal = true, callback = function() ESO_UA_GoA.ScrollWelcome(80) end },
-}
-
 function ESO_UA_GoA.SetQRShown(show)
 	local q = ESO_UA_GoA_QRWin
 	if q == nil then
@@ -197,30 +178,31 @@ function ESO_UA_GoA.ShowNativeDialog()
 end
 
 function ESO_UA_GoA.ShowWelcome()
-	local gamepad = false
-	pcall(function() gamepad = IsInGamepadPreferredMode() end)
-	if gamepad and pcall(ESO_UA_GoA.ShowNativeDialog) then return end
+	if IsInGamepadPreferredMode() then
+		ESO_UA_GoA.ShowNativeDialog()
+		return
+	end
 	local win = ESO_UA_GoA_Welcome or ESO_UA_GoA.BuildWelcome()
-	if ZO_CheckButton_SetCheckState then ZO_CheckButton_SetCheckState(ESO_UA_GoA_WelcomeCheck, false) end
+	ZO_CheckButton_SetCheckState(ESO_UA_GoA_WelcomeCheck, false)
 	win:SetHidden(false)
 	ESO_UA_GoA.welcomeOpen = true
-	pcall(function() SCENE_MANAGER:SetInUIMode(true) end)
+	SCENE_MANAGER:SetInUIMode(true)
 end
 
 function ESO_UA_GoA.CloseWelcome()
 	if ESO_UA_GoA_Welcome == nil or not ESO_UA_GoA.welcomeOpen then return end
 	ESO_UA_GoA.welcomeOpen = false
-	if ZO_CheckButton_IsChecked and ZO_CheckButton_IsChecked(ESO_UA_GoA_WelcomeCheck) then
+	if ZO_CheckButton_IsChecked(ESO_UA_GoA_WelcomeCheck) then
 		ESO_UA_GoA.settings.welcomeHidden = true
 	end
 	ESO_UA_GoA_Welcome:SetHidden(true)
-	pcall(function() SCENE_MANAGER:SetInUIMode(false) end)
+	SCENE_MANAGER:SetInUIMode(false)
 end
 
 function ESO_UA_GoA.OnPlayerActivated()
 	EVENT_MANAGER:UnregisterForEvent(ESO_UA_GoA.name .. "_Welcome", EVENT_PLAYER_ACTIVATED)
 	if not ESO_UA_GoA.settings.welcomeHidden then
-		zo_callLater(function() pcall(ESO_UA_GoA.ShowWelcome) end, 3000)
+		zo_callLater(ESO_UA_GoA.ShowWelcome, 3000)
 	end
 end
 
@@ -233,6 +215,14 @@ function ESO_UA_GoA:OnInit(eventCode, addOnName)
 	end
 
 	ESO_UA_GoA:RefreshUI()
+	-- Автоматичне вмикання української при першому запуску (для консолей без прапорців)
+	if not ESO_UA_GoA.settings.autoApplied then
+		ESO_UA_GoA.settings.autoApplied = true
+		if GetCVar("language.2") ~= "ua" then
+			ESO_UA_GoA.ChangeLanguage("ua")
+			zo_callLater(function() ReloadUI("ingame") end, 1500)
+		end
+	end
 	ESO_UA_GoAUI:ClearAnchors()
 	ESO_UA_GoAUI:SetAnchor(ESO_UA_GoA.settings.anchor[1], GuiRoot, ESO_UA_GoA.settings.anchor[2], ESO_UA_GoA.settings.anchor[3], ESO_UA_GoA.settings.anchor[4])
 	ESO_UA_GoA:registerEvents(true)
@@ -249,9 +239,9 @@ function ESO_UA_GoA:registerEvents(state)
 	end
 end
 
-SLASH_COMMANDS["/goa"] = function() pcall(ESO_UA_GoA.ShowWelcome) end
+SLASH_COMMANDS["/goa"] = ESO_UA_GoA.ShowWelcome
 
-EVENT_MANAGER:RegisterForEvent(ESO_UA_GoA.name, EVENT_ADD_ON_LOADED , function(_event, _name) ESO_UA_GoA:OnInit(_event, _name) end)
+EVENT_MANAGER:RegisterForEvent(ESO_UA_GoA.name, EVENT_ADD_ON_LOADED , function(_event, _name) if _name == ESO_UA_GoA.name then ESO_UA_GoA:OnInit(_event, _name) end end)
 
 -- Фікс: "Скриня" -> "Тулуб" лише для назв слота броні (не для скринь-контейнерів у світі,
 -- бо ті беруть назву з окремого джерела і цей override їх не зачіпає)

@@ -78,7 +78,7 @@
     "CombatAlerts"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1855/",
-  "fingerprint": "71e0209786a569976d731e1fce88c9443a8088332bab451ed2ff4d9fc39c02bf",
+  "fingerprint": "c5355978faa3cdff9a97fa38823b12b76268b00fa19892a07a93c97a6397cafa",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw7044.png",
     "https://cdn-eso.mmoui.com/preview/pvw7048.png",
@@ -93,11 +93,11 @@
   "source_id": "1855",
   "source_url": "https://www.esoui.com/downloads/info1855-CodesCombatAlerts.html",
   "stats": {
-    "downloads": 4751558,
-    "favorites": 718,
-    "monthly_downloads": 62032
+    "downloads": 4769829,
+    "favorites": 719,
+    "monthly_downloads": 63266
   },
   "title": "Code's Combat Alerts",
-  "updated_at": 1794880538000,
-  "version": "2.7.2"
+  "updated_at": 1795533403000,
+  "version": "2.7.3"
 }

@@ -320,7 +320,7 @@ function Module:GetSettingsControls( )
 		--------------------
 		{
 			type = "colorpicker",
-			name = string.format("|u40:0::%s|u", GetString(SI_LCA_COLOR_BG)),
+			name = LCA.IndentedKeyboardText(GetString(SI_LCA_COLOR_BG)),
 			getFunc = function() return LCA.UnpackRGBA(self:GetSetting("directionsColorBG")) end,
 			setFunc = function( ... )
 				self:SetSetting("directionsColorBG", LCA.PackRGBA(...))
@@ -333,7 +333,7 @@ function Module:GetSettingsControls( )
 		--------------------
 		{
 			type = "colorpicker",
-			name = string.format("|u40:0::%s|u", GetString(SI_LCA_COLOR_FG)),
+			name = LCA.IndentedKeyboardText(GetString(SI_LCA_COLOR_FG)),
 			getFunc = function() return LCA.UnpackRGBA(self:GetSetting("directionsColorFG")) end,
 			setFunc = function( ... )
 				self:SetSetting("directionsColorFG", LCA.PackRGBA(...))

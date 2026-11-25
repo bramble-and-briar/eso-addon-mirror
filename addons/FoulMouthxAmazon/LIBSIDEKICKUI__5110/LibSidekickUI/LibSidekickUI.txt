@@ -1,0 +1,13 @@
+## Title: LibSidekickUI
+## Description: Shared ESO-style controls, journal panels and author footers for Sidekick addons.
+## Author: FoulMouthxAmazon
+## Version: 0.1.1-beta
+## AddOnVersion: 101
+## APIVersion: 101051
+## IsLibrary: true
+## OptionalDependsOn: LibExtendedJournal>=205031 LibAddonMenu-2.0
+
+LibSidekickUI.lua
+Widgets.lua
+Author.lua
+Journal.lua

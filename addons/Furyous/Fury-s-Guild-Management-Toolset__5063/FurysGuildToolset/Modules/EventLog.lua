@@ -19,8 +19,14 @@ EventLog.defaults = {
     returnHours = 72,   -- a deposit of the same item by the same member within this time counts as a return
     -- History tab filters, saved so they stay as you left them after a reload or relog.
     filter = { group = "all", rangeIndex = 2, guildId = 0, view = "events", search = "" },
-    entries = {},   -- list of { g, id, ts, t, who, target, qty, link, amount, rank }
+    -- 1.28.0: the log, one line of text per event: "g;id;ts;t;who;target;qty;link;amount;rank".
+    -- Before 1.28.0 it was sv.entries, one table per event, which took three times the room in
+    -- the saved file. While the addon runs, self.entries holds the same events as tables.
+    packed = {},
 }
+
+local BACKUP_DAYS = 7      -- how long the pre-1.28.0 log stays in the saved file as a backup
+local MAX_LINE = 1900      -- the game cuts saved strings off near 2000 bytes
 
 -- Event type codes -> label, group
 local TYPES = {
@@ -65,6 +71,73 @@ end
 -- Settings each guild has its own copy of (see GT:GuildSettings).
 EventLog.guildKeys = { "returnHours" }
 
+-- Packed lines ---------------------------------------------------------------
+
+-- One event as one line of text. Text that could hold the separator is escaped (%3B), so any
+-- name, rank or item link comes back exactly as it went in.
+local ESCAPES = { [";"] = "%3B", ["%"] = "%25", ["\n"] = "%0A", ["\r"] = "%0D" }
+
+local function PackText(value)
+    if value == nil then return "" end
+    local text = tostring(value)
+    if text:find("[;%%\n\r]") then text = text:gsub("[;%%\n\r]", ESCAPES) end
+    return text
+end
+
+local function UnpackChar(hex)
+    return string.char(tonumber(hex, 16))
+end
+
+local function UnpackText(text)
+    if text == "" then return nil end
+    if text:find("%", 1, true) then text = text:gsub("%%(%x%x)", UnpackChar) end
+    return text
+end
+
+-- Whole numbers (guild ids, event ids, times, amounts) come back exactly from tostring. Anything
+-- else gets enough digits to come back exactly too.
+local function PackNumber(value)
+    if value == nil then return "" end
+    local number = tonumber(value)
+    if not number then return "" end
+    local text = tostring(number)
+    if tonumber(text) ~= number then text = string.format("%.17g", number) end
+    return text
+end
+
+local function Pack(e)
+    return table.concat({ PackNumber(e.g), PackNumber(e.id), PackNumber(e.ts), PackText(e.t), PackText(e.who),
+        PackText(e.target), PackNumber(e.qty), PackText(e.link), PackNumber(e.amount), PackText(e.rank) }, ";")
+end
+
+local LINE_PATTERN = "^([^;]*);([^;]*);([^;]*);([^;]*);([^;]*);([^;]*);([^;]*);([^;]*);([^;]*);([^;]*)"
+
+-- nil for a line that isn't an event (it is then left out of the log).
+local function Unpack(line)
+    local g, id, ts, t, who, target, qty, link, amount, rank = line:match(LINE_PATTERN)
+    g, id, ts = tonumber(g), tonumber(id), tonumber(ts)
+    if not g or not id or not ts or t == "" then return nil end
+    return { g = g, id = id, ts = ts, t = UnpackText(t), who = UnpackText(who) or "", target = UnpackText(target),
+        qty = tonumber(qty), link = UnpackText(link), amount = tonumber(amount), rank = UnpackText(rank) }
+end
+
+-- True when a line read back gives the event it was made from (empty text and no text count
+-- as the same).
+local function SameText(a, b)
+    return (a or "") == (b or "")
+end
+
+local function SameEvent(a, b)
+    return a.g == b.g and a.id == b.id and a.ts == b.ts and a.t == b.t and a.qty == b.qty and a.amount == b.amount
+        and SameText(a.who, b.who) and SameText(a.target, b.target) and SameText(a.link, b.link) and SameText(a.rank, b.rank)
+end
+
+-- v0.3.2: entries logged before names were normalized lack the "@".
+local function WithAt(name)
+    if name and name ~= "" and name:sub(1, 1) ~= "@" then return "@" .. name end
+    return name
+end
+
 function EventLog:Initialize(sv)
     self.sv = sv
     self.filter = sv.filter
@@ -75,21 +148,95 @@ function EventLog:Initialize(sv)
         if sv.maxEntries == 50000 then sv.maxEntries = EventLog.defaults.maxEntries end
         sv.settingsVersion = 2
     end
-    self.seen = {}
+    self:LoadPacked()
+    self:ImportOldLog()
     self:Prune()
-    for _, e in ipairs(sv.entries) do
+    self.seen = {}
+    for _, e in ipairs(self.entries) do
         self.seen[SeenKey(e.g, GroupOfType(e.t), e.id)] = true
-        -- v0.3.2: entries logged before names were normalized lack the "@"
-        if e.who and e.who ~= "" and e.who:sub(1, 1) ~= "@" then e.who = "@" .. e.who end
-        if e.target and e.target ~= "" and e.target:sub(1, 1) ~= "@" then e.target = "@" .. e.target end
     end
     self:RegisterTab()
+end
+
+-- Reads the saved lines into self.entries, the list every tab and module works from.
+function EventLog:LoadPacked()
+    local entries = {}
+    for _, line in ipairs(self.sv.packed) do
+        local e = Unpack(line)
+        if e then entries[#entries + 1] = e end
+    end
+    self.entries = entries
+end
+
+-- 1.28.0: moves a log saved by an older version (sv.entries) into the packed log. Every event
+-- is packed, read back and compared before it counts; one that doesn't come back the same stays
+-- in the old log, and the old log is then never removed. The old log is left exactly as it was
+-- for BACKUP_DAYS as a backup, then dropped so the saved file shrinks. Events already in the
+-- packed log are skipped, so going back to an older version and forward again loses nothing.
+function EventLog:ImportOldLog()
+    local sv = self.sv
+    local old = sv.entries
+    if not old then return end
+    if #old == 0 then
+        sv.entries, sv.oldLogSince = nil, nil
+        return
+    end
+    local known = {}
+    for _, e in ipairs(self.entries) do known[SeenKey(e.g, GroupOfType(e.t), e.id)] = true end
+    local added, failed = 0, 0
+    for _, o in ipairs(old) do
+        if o.g and o.id and o.ts and o.t then
+            local key = SeenKey(o.g, GroupOfType(o.t), o.id)
+            if not known[key] then
+                local e = { g = o.g, id = o.id, ts = o.ts, t = o.t, who = WithAt(o.who) or "", target = WithAt(o.target),
+                    qty = o.qty, link = o.link, amount = o.amount, rank = o.rank }
+                if e.target == "" then e.target = nil end
+                local line = Pack(e)
+                local back = (#line <= MAX_LINE) and Unpack(line) or nil
+                if back and SameEvent(e, back) then
+                    known[key] = true
+                    self.entries[#self.entries + 1] = back
+                    sv.packed[#sv.packed + 1] = line
+                    added = added + 1
+                else
+                    failed = failed + 1
+                end
+            end
+        else
+            failed = failed + 1
+        end
+    end
+    local now = GetTimeStamp()
+    if added > 0 or not sv.oldLogSince then sv.oldLogSince = now end
+    if failed > 0 then
+        self.importNote = string.format("History log: %d of %d old events could not be moved to the smaller format. They are still safe in the old log, which stays in your saved file. Please report this in the addon's comments.", failed, #old)
+    elseif added > 0 then
+        self.importNote = string.format("History log: %s %s now saved in the new smaller format, each one checked. The old copy stays in your saved file as a backup for %d days.", ZO_CommaDelimitNumber(added), added == 1 and "event is" or "events are", BACKUP_DAYS)
+    elseif now - sv.oldLogSince >= BACKUP_DAYS * 86400 then
+        sv.entries, sv.oldLogSince = nil, nil
+    end
+end
+
+-- How many events the pre-1.28.0 backup still holds (0 once it is gone).
+function EventLog:OldLogCount()
+    return self.sv.entries and #self.sv.entries or 0
+end
+
+function EventLog:RemoveOldLog()
+    self.sv.entries, self.sv.oldLogSince = nil, nil
+end
+
+function EventLog:OnPlayerActivated()
+    if self.importNote then
+        U.Print("%s", self.importNote)
+        self.importNote = nil
+    end
 end
 
 function EventLog:Prune()
     local cutoff = GetTimeStamp() - self.sv.keepDays * 86400
     local kept = {}
-    for _, e in ipairs(self.sv.entries) do
+    for _, e in ipairs(self.entries) do
         if e.ts >= cutoff then kept[#kept + 1] = e end
     end
     local overflow = #kept - self.sv.maxEntries
@@ -99,7 +246,13 @@ function EventLog:Prune()
         for i = overflow + 1, #kept do newest[#newest + 1] = kept[i] end
         kept = newest
     end
-    self.sv.entries = kept
+    self.entries = kept
+    -- The saved lines follow the list: written again only when something dropped out.
+    if #kept ~= #self.sv.packed then
+        local packed = {}
+        for i, e in ipairs(kept) do packed[i] = Pack(e) end
+        self.sv.packed = packed
+    end
     self.returns = nil
 end
 
@@ -155,8 +308,10 @@ function EventLog:OnHistoryEvent(guildId, category, info)
         return
     end
 
+    if e.who == nil then e.who = "" end
     self.seen[key] = true
-    table.insert(self.sv.entries, e)
+    table.insert(self.entries, e)
+    table.insert(self.sv.packed, Pack(e))
     self.dirty = true
     self.returns = nil
 end
@@ -171,7 +326,7 @@ end
 function EventLog:GetReturns()
     if self.returns then return self.returns end
     local groups = {}
-    for _, e in ipairs(self.sv.entries) do
+    for _, e in ipairs(self.entries) do
         if (e.t == "item_out" or e.t == "item_in") and e.who and e.link then
             local key = tostring(e.g) .. "\t" .. e.who .. "\t" .. e.link
             local list = groups[key]
@@ -295,14 +450,20 @@ function EventLog:GetGuildFilter()
     return nil
 end
 
+-- 1.27.0: built once per redraw (the top line and the rows used to filter and sort the whole
+-- log once each).
 function EventLog:GetFiltered()
+    return GT.Report:Cached("log:filtered", function() return self:BuildFiltered() end)
+end
+
+function EventLog:BuildFiltered()
     local f = self.filter
     local guildId = self:GetGuildFilter()
     local since = GetTimeStamp() - RANGES[f.rangeIndex] * 86400
     local tab = GT.Report:GetTab("log")
     local search = zo_strlower(zo_strtrim(tab and tab.searchText or ""))
     local list = {}
-    for _, e in ipairs(self.sv.entries) do
+    for _, e in ipairs(self.entries) do
         local wanted = TYPES[e.t] and (f.group == "all" or TYPES[e.t].group == f.group)
         if e.ts >= since and (not guildId or e.g == guildId) and wanted then
             if search == "" or zo_strlower(e.who or ""):find(search, 1, true)
@@ -321,6 +482,10 @@ end
 
 -- Per-member totals for the "By member" view.
 function EventLog:GetMemberTotals(list)
+    return GT.Report:Cached("log:memberTotals", function() return self:BuildMemberTotals(list) end)
+end
+
+function EventLog:BuildMemberTotals(list)
     local byKey, out = {}, {}
     local returns = self:GetReturns()
     for _, e in ipairs(list) do
@@ -470,12 +635,26 @@ function EventLog:TabSummary()
     return string.format("%s: %s. Use the buttons below to filter.", self:FilterSummary(), count)
 end
 
+-- The top line's note while the tab lists nothing: still loading, or nothing matches.
+function EventLog:EmptyText()
+    if not GT.History:IsCaughtUp(GUILD_HISTORY_EVENT_CATEGORY_BANKED_ITEM) then
+        return "Guild history is still loading. Events appear here as LibHistoire delivers them."
+    end
+    return "No events match. Try a longer range, another guild or clear the search."
+end
+
 function EventLog:RegisterTab()
     GT.Report:RegisterTab({
         id = "log",
             GetOffText = function() return GT:FeatureOffText(self.sv.enabled, "The history log") end,
         tip = "Bank item, bank gold and roster events for all your guilds.",
         title = "History",
+        about = {
+            "A searchable record of bank items, bank gold and roster changes in all your guilds.",
+            "The buttons below pick the kind of event, how far back to look, the guild, and single events or totals per member.",
+            "Export / copy gives you the same rows as text for Excel, Google Sheets or Discord.",
+        },
+        emptyText = function() return self:EmptyText() end,
         searchable = true,
         searchText = self.sv.filter.search or "",
         OnSearchChanged = function(text) self.sv.filter.search = text end,
@@ -525,7 +704,12 @@ function EventLog:BuildSettings(options)
           setFunc = function(v) sv.enabled = v end, default = defaults.enabled, requiresReload = true },
         { type = "slider", name = "Keep events for (days)", min = 7, max = 365, step = 1,
           getFunc = function() return sv.keepDays end, setFunc = function(v) sv.keepDays = v end, default = defaults.keepDays },
-        { type = "description", text = "The log is also saved in SavedVariables/FurysGuildToolset.lua after you log out or /reloadui, if you want the raw data." },
+        { type = "description", text = "The log is also saved in SavedVariables/FurysGuildToolset.lua after you log out or /reloadui, if you want the raw data. Each event is one line: guild id; event id; time; type; member; target; quantity; item link; gold; rank." },
+        { type = "button", name = "Remove the old log backup", width = "half",
+          tooltip = "Version 1.28.0 saves the History log in a smaller format and keeps the old copy in your saved file as a backup for " .. BACKUP_DAYS .. " days. Click to remove that backup now, so your saved file shrinks at your next logout or /reloadui. The History log itself is not touched. Greyed out when there is no backup.",
+          func = function() self:RemoveOldLog() end,
+          disabled = function() return self:OldLogCount() == 0 end,
+          isDangerous = true, warning = "Removes the old copy of the History log for good. The log in the new format stays." },
     } }
 end
 
@@ -534,7 +718,7 @@ function EventLog:BuildGuildSettings(controls, guildId)
     local g = GT:GuildSettings(self, guildId)
     controls[#controls + 1] = { type = "header", name = "Bank: put back" }
     controls[#controls + 1] = { type = "slider", name = "Count a deposit as put back within (hours)", min = 1, max = 336, step = 1,
-        tooltip = "When a member deposits the same item they withdrew within this time, the withdrawal is marked as put back, whole or partly used. Stacks put back whole don't count toward bank alert limits. After changing this, click Rescan with current settings.",
+        tooltip = "When a member deposits the same item they withdrew within this time, the withdrawal is marked as put back, whole or partly used. Stacks put back whole don't count toward bank alert limits. After changing this, click Rescan alerts.",
         getFunc = function() return g.returnHours end,
         setFunc = function(v) g.returnHours = v; self.returns = nil; GT.Report:RefreshIfShown() end,
         default = self.defaults.returnHours }

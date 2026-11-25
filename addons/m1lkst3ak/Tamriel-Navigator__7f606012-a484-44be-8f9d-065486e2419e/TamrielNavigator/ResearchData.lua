@@ -1,0 +1,1 @@
+-- Research tables are deferred in AdventureData.lua; see ResearchCredits.txt.

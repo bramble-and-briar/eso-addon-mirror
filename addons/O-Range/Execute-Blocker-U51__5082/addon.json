@@ -18,7 +18,7 @@
     "ExecuteBlocker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5082/",
-  "fingerprint": "efa9b1175ed0c5d7b3cdd4910f0a397631d73b31222a8c7a5415946aa9ab7b00",
+  "fingerprint": "3a419e3a2de543bd0944b9ad24042c340b26436c82464a7b75328a016107563d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18674.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "5082",
   "source_url": "https://www.esoui.com/downloads/info5082-ExecuteBlockerU51.html",
   "stats": {
-    "downloads": 14,
+    "downloads": 28,
     "favorites": 0,
-    "monthly_downloads": 7
+    "monthly_downloads": 24
   },
   "title": "Execute Blocker (U51+)",
-  "updated_at": 1795316433000,
-  "version": "2.4.0"
+  "updated_at": 1795568686000,
+  "version": "2.6.0"
 }

@@ -1,7 +1,7 @@
 ## Title: dev sandbox 3
 ## Author: clubwratt
-## Version: 4.20.1
-## AddOnVersion: 42001
+## Version: 4.22.0
+## AddOnVersion: 42200
 ## APIVersion: 101050
 ## Description: Dev Sandbox 3
 ## SavedVariables: DevSandbox3SavedVars
@@ -22,6 +22,7 @@ Data/DevSandbox3Data.lua
 DevSandbox3DetectionActions.lua
 DevSandbox3Compass.xml
 DevSandbox3SlotActions.lua
+DevSandbox3SurveyActions.lua
 DevSandbox3MarkerActions.lua
 DevSandbox3Settings.lua
 SlashCommandActions.lua

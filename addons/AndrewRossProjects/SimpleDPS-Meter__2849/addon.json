@@ -78,7 +78,7 @@
     "SimpleDPS"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2849/",
-  "fingerprint": "722b9f5a47603b839fa62fa8924225dca1ac818af854857d3278e10eec852ff5",
+  "fingerprint": "bb63e017321c156e2f757eadb56ab4c73521b49593ca765e2598aa3d1e3370c6",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw9660.png",
     "https://cdn-eso.mmoui.com/preview/pvw9657.png",
@@ -93,11 +93,11 @@
   "source_id": "2849",
   "source_url": "https://www.esoui.com/downloads/info2849-SimpleDPSMeter.html",
   "stats": {
-    "downloads": 93769,
+    "downloads": 94076,
     "favorites": 38,
-    "monthly_downloads": 405
+    "monthly_downloads": 741
   },
   "title": "SimpleDPS Meter",
-  "updated_at": 1795498345000,
-  "version": "4.1.101052"
+  "updated_at": 1795539828000,
+  "version": "4.1.101052+1"
 }

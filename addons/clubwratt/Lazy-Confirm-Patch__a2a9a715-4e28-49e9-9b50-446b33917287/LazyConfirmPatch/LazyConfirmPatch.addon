@@ -1,0 +1,14 @@
+## Title: Lazy Confirm (Patch)
+## Author: clubwratt
+## Version: 0.1.0
+## AddOnVersion: 100
+## APIVersion: 101050 101051
+## Description: Removes the 2 second wait on "are you sure" prompts (destroy item, ready check, locked item) without touching the game's dialog code. A rewrite of Dolgubon's Lazy Confirm, whose hook on the dialog function leaves prompt buttons unable to withdraw, deposit or accept. Use one or the other, not both.
+## DevId: a2a9a715-4e28-49e9-9b50-446b33917287
+
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+
+LazyConfirmPatch.lua
+LazyConfirmPatchCooldownUtils.lua
+LazyConfirmPatchCooldownActions.lua
+Main.lua

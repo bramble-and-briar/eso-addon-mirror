@@ -1,0 +1,21 @@
+## Title: Companion Exporter (private test build)
+## Description: Shows your own character data (research, known traits/recipes/motifs, bags, bank, craft bag, house chests) as QR codes for the Companion phone app. Only when you press Export (Settings > Add-Ons) or run /export. No automation, no network.
+## Author: eso-companion
+## Version: 0.2.1
+## AddOnVersion: 3
+## APIVersion: 101050 101051
+## SavedVariables: CompanionExport_SV
+## OptionalDependsOn: LibHarvensAddonSettings
+
+mem_begin.lua
+vendor/qrencode.lua
+guard.lua
+base45.lua
+varint.lua
+frame.lua
+payload.lua
+motif_ids_generated.lua
+render_qr.lua
+collect.lua
+ui.lua
+bindings.xml

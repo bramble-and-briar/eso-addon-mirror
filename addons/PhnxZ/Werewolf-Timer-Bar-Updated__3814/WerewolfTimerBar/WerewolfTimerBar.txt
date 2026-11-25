@@ -6,10 +6,10 @@
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
 ## Title: Werewolf Timer Bar
-## Author: maximoz, PhnxZ
+## Author: PhnxZ
 ## Description: Timer bar for tracking werewolf transformation.
-## Version: 3.11
-## AddOnVersion: 311
+## Version: 4.07
+## AddOnVersion: 407
 ## APIVersion: 101051 101052
 ## DependsOn: LibSavedVars>=60101 LibAddonMenu-2.0>=43
 ## SavedVariables: WerewolfTimerBarVars_Account WerewolfTimerBarVars_Characters

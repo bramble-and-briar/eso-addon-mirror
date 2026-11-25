@@ -1,0 +1,13 @@
+## Title: Reef Guardian Helper
+## Author: Ratpack X
+## Version: 1.4.4
+## AddOnVersion: 10404
+## APIVersion: 101051 101052
+## SavedVariables: ReefGuardianHelper_SV
+## Description: Dreadsail Reef helper. First boss: health of Lylanar and Turlassil with marks at 80/20 %. Reef Guardian: health and status of all 5 guardians, reef timers, kill lock and center alerts (STOP DAMAGE, KILL THE GUARDIANS, reef WAIT/KILL).
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls(R) and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
+; in the United States and/or other countries. All rights reserved.
+
+ReefGuardianHelper.lua

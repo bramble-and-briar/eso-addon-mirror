@@ -1,3 +1,8 @@
+[COLOR="DeepSkyBlue"]3.5.6 (64)[/COLOR]:
+[LIST]
+[*] Incorporated changes provided by P5yche3 to fix the multiline labels on the thief tools bar/belt. Thank you P5ych3!!!
+[/LIST]
+
 [COLOR="DeepSkyBlue"]3.5.5 (63)[/COLOR]:
 [LIST]
 [*] Slightly reduced the length of the mouse "hit box" so that you should be able to drag around the belt/bar by finding the small gap between the icons and labels.

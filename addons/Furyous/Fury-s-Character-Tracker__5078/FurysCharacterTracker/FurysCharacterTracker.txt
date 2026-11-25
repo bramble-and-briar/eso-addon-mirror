@@ -1,8 +1,8 @@
-## Title: |cA08CFFFury's Character Tracker|r |c8A86B0v1.4.0|r
+## Title: |cA08CFFFury's Character Tracker|r |c8A86B0v1.4.1|r
 ## Description: Your whole roster on one board: skill lines, guild ranks, crafting, research, scribing, motifs, recipes, companions, riding and time played for every character, read from the game when you log in on one. Pick roles and gear, share a brag card, export to Excel.
 ## Author: Furyous
-## Version: 1.4.0
-## AddOnVersion: 140
+## Version: 1.4.1
+## AddOnVersion: 141
 ## APIVersion: 101051 101052
 ## SavedVariables: FuryCT_SV
 ## DependsOn: LibAddonMenu-2.0>=43

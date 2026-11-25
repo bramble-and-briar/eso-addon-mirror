@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Ratpack/Goliath-Timer__5108",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Ratpack",
+  "canonical_id": "esoui:5108",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5108",
+  "deleted": false,
+  "directories": [
+    "GoliathTimer"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5108/",
+  "fingerprint": "3f0a8d12f6fbf36a9b22f6186c5072622bd7753b5d85eb580aad9650359e4e56",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18773.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5108",
+  "source_url": "https://www.esoui.com/downloads/info5108-GoliathTimer.html",
+  "stats": {
+    "downloads": 7,
+    "favorites": 0,
+    "monthly_downloads": 3
+  },
+  "title": "Goliath Timer",
+  "updated_at": 1795594983000,
+  "version": "1.1.2"
+}

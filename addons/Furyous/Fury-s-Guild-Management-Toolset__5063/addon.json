@@ -22,17 +22,18 @@
     "FurysGuildToolset"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5063/",
-  "fingerprint": "0935f6b5c43476e5d3242ef2bc090d5908492c0af3602009bed285bde4321c98",
+  "fingerprint": "e9f756d3604e13eeb52b2477457ac634fd839a7b494878ec9b203905fe566ea9",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw18529.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18530.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18531.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18532.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18533.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18534.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18535.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18536.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18537.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18794.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18793.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18792.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18791.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18790.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18789.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18788.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18787.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18786.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18785.png"
   ],
   "platform": "pc",
   "published": true,
@@ -40,11 +41,11 @@
   "source_id": "5063",
   "source_url": "https://www.esoui.com/downloads/info5063-FurysGuildManagementToolset.html",
   "stats": {
-    "downloads": 45,
+    "downloads": 54,
     "favorites": 2,
-    "monthly_downloads": 41
+    "monthly_downloads": 49
   },
   "title": "Fury's Guild Management Toolset",
-  "updated_at": 1795505043000,
-  "version": "1.24.3"
+  "updated_at": 1795595209000,
+  "version": "1.30.1"
 }

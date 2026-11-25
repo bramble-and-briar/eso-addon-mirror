@@ -1,10 +1,10 @@
 ## Title: Venom Skull Guard
 ## Author: O-Range
-## Version: 1.5.1
-## AddOnVersion: 107
+## Version: 1.6.0
+## AddOnVersion: 108
 ## APIVersion: 101051 101052
 ## DependsOn: LibSkillBlocker>=110 LibAddonMenu-2.0>=43
 ## SavedVariables: VenomSkullGuardVars
-## Description: Protects the Venom Skull morph using configurable stamina and stack thresholds.
+## Description: Protects Venom Skull using stamina/stack thresholds and Render Flesh (and morphs) above a health threshold.
 
 VenomSkullGuard.lua

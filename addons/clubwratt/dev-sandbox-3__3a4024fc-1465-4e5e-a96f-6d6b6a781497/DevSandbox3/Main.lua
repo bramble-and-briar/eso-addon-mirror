@@ -2,11 +2,14 @@ local function Initialize()
     DevSandbox3.state = DevSandbox3.State.Create()
     DevSandbox3.state.savedVars = ZO_SavedVars:NewAccountWide(DevSandbox3.savedVarsName, 17, nil, DevSandbox3.State.CreateSavedVarsDefaults())
     DevSandbox3.state.savedVars.settings.cyrodiilOnly = nil   -- setting removed in 4.20.0: each mark has its own zones
+    DevSandbox3.state.savedVars.settings.surveySound = nil    -- setting removed in 4.22.0: no sounds
     DevSandbox3.Detection.Initialize()
     DevSandbox3.SlotActions.Initialize()
     DevSandbox3.Markers.Initialize()
     DevSandbox3.Settings.Initialize()
     SLASH_COMMANDS["/ds3"] = DevSandbox3.Slash.Handle
+    -- last: the newest part, so a fault in it leaves the dots, the settings and /ds3 working
+    DevSandbox3.Survey.Initialize()
 end
 
 EVENT_MANAGER:RegisterForEvent(DevSandbox3.name, EVENT_ADD_ON_LOADED, function(_, addonName)

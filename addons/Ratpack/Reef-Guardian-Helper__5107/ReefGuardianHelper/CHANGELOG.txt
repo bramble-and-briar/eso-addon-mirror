@@ -1,0 +1,113 @@
+Reef Guardian Helper - Changelog
+================================
+
+Versionsschema: MAJOR.MINOR.PATCH
+  MAJOR = grundlegende Aenderung (z.B. neues Fensterlayout, Einstellungen nicht kompatibel)
+  MINOR = neue Funktion
+  PATCH = Fehlerbehebung / kleine Anpassung
+AddOnVersion im Manifest = MAJOR*10000 + MINOR*100 + PATCH (1.0.0 -> 10000, 1.2.3 -> 10203)
+
+1.4.4 (2026-11-25)
+  - ESOUI-Pruefung: keine globale Tabelle mehr (alles lokal), Manifest-Beschreibung
+    und README auf Englisch, Credit fuer Qcell's Dreadsail Reef Helper (Hoehenwerte Riff).
+  - ESOUI-Pruefung: Combat-Events werden per Event-Filter nach Ergebnis
+    (BEGIN / EFFECT_GAINED / EFFECT_GAINED_DURATION) und isError=false gefiltert
+    statt im Lua-Code.
+
+1.4.3 (2026-11-23)
+  - "STOP DAMAGE" und "KILL THE GUARDIANS" nur noch oben, nicht im Riff.
+    Ist man im Riff, wenn Medium 2 sein Riff setzt, kommt "KILL THE GUARDIANS" beim
+    Zurueckkommen nach oben, sofern Large oder Medium 1 dann noch lebt.
+
+1.4.2 (2026-11-23)
+  - Riff von Large (Riff 1): im Riff jetzt ebenfalls sofort "KILL THE HEART".
+
+1.4.1 (2026-11-23)
+  - Riff von Medium 1 (Riff 2): sofort "KILL THE HEART", kein Warten.
+    "WAIT" und die Wartezeit (/rgh reefwait) gelten nur noch fuer das Riff von Medium 2.
+
+1.4.0 (2026-11-23)
+  - Neue Meldung fuer Spieler im Riff (ab Riff 2, nicht beim Riff von Large):
+      "REEF n: WAIT"            solange Large oder Medium 1 lebt (mit Countdown)
+      "REEF n: KILL THE HEART"  sobald Large und Medium 1 tot sind
+                                oder das Riff schon 35 s offen ist
+    Ton beim Wechsel. "Im Riff" wird ueber die Hoehe erkannt (unter y 37000).
+  - Wartezeit einstellbar: /rgh reefwait <s> (0-60, Standard 35). Test: /rgh test reef
+  - /rgh alert off schaltet auch diese Meldung aus.
+
+1.3.1 (2026-11-23)
+  - Fix: Medium 1 wurde oft als Medium 2 angezeigt. Ursache: ESO sortiert die Boss-Tags um,
+    wenn Guardians erscheinen oder sterben, und die Zuordnung hing am Tag. Jetzt wird pro
+    Klasse ueber Lebensverlauf und Position zugeordnet, der Tag zaehlt nur noch nebenbei.
+  - Fix: Noch nicht gespawnte Guardians standen teils auf "dead". "Soon" hat jetzt Vorrang,
+    und ein Guardian, der kurz ausser Reichweite war, wird wiedererkannt statt als tot zu bleiben.
+  - Casts (Charge, Acid Reflux, Replication) werden ueber die feste unitId zugeordnet,
+    nicht mehr ueber den Boss-Tag.
+  - Reset erst, wenn 10 s lang keine Guardians sichtbar sind (vorher sofort, z.B. wenn man
+    selbst tot war und die Guardians kurz ausser Reichweite waren).
+
+1.3.0 (2026-11-23)
+  - Neues Fenster fuer den ersten Boss: Lylanar und Turlassil mit Leben,
+    Striche bei 80 % und 20 %. Erscheint nur, solange die beiden als Boss da sind.
+    Eigene Position, verschiebbar mit /rgh unlock. Test: /rgh test twins
+  - Guardian-Fenster erscheint erst, wenn die Guardians als Boss da sind,
+    nicht mehr schon beim Betreten des Gebiets.
+  - Interne Versionsnummer auf 1.3.0 (war in 1.2.2 noch 1.2.1).
+
+1.2.2 (2026-11-22)
+  - Testablauf korrigiert: Medium 2 repliziert nicht, solange sein eigenes Riff steht.
+    Szene 11 zeigt jetzt nur das gelbe Riff, Small 2 kommt erst in der neuen Szene 13
+    nach Ablauf der Vulnerability. Testablauf hat jetzt 15 Szenen.
+
+1.2.1 (2026-11-21)
+  - Fix Normalmodus: Guardians werden jetzt ueber Leben-Stufen erkannt statt ueber feste
+    Verhaeltnisse (Hard Mode: Medium 67 % / Small 50 % von Large, Normal: 48 % / 20 %).
+    Vorher landeten im Normalmodus die Mediums in den Small-Zeilen und die Smalls fehlten.
+  - Erscheint ein Small vor einem Medium, wird automatisch umsortiert.
+  - /rgh debug zeigt die erkannten Leben-Stufen.
+
+1.2.0 (2026-11-20)
+  - Gruppenfenster komplett entfernt (Building Static, Acidic Vulnerability, Warmask).
+    Das Addon zeigt wieder nur das Riff-Fenster. Alte Einstellungen werden aufgeraeumt.
+
+1.1.2 (2026-11-20)
+  - Gruppenfenster folgt jetzt auch /rgh always (ueberall anzeigen, auch allein).
+    Standard bleibt: nur in Dreadsail Reef.
+
+1.1.1 (2026-11-20)
+  - Warmask: Ersatz-Laufzeit 60 s (Mal des Hircine nach Bash), vorher 20 s
+  - Warmask: eigene Ausruestung wird erkannt (Set-ID 845), du stehst sofort in der Liste
+  - Warmask: Traeger von Hand pflegen mit /rgh mask add <Name> / del <Name>
+    (fremde Ausruestung kann die ESO-API nicht auslesen)
+
+1.1.0 (2026-11-20)
+  - Neues Gruppenfenster (GroupPanel.lua) mit allen Gruppenmitgliedern:
+    ST = Building Static (Strom), AC = Acidic Vulnerability (Gift): Stacks + Restzeit bis Verfall (5 s)
+      Farben: Static gelb ab 4 / rot ab 6, Acid gelb ab 3 / rot ab 5 (einstellbar)
+    WM = Huntsman's Warmask Buff (erster Boss): gruen mit Restzeit, rot "!" wenn im Kampf nicht aktiv.
+      Traeger werden automatisch erkannt und gespeichert.
+  - Eigene Meldung "MOVE OUT" in der Bildschirmmitte ab roter Stack-Schwelle
+  - Neue Befehle: /rgh group, /rgh gtest, /rgh static, /rgh acid, /rgh selfwarn, /rgh mask
+
+1.0.3 (2026-11-20)
+  - Testablauf: Zeitangaben aus den Szenentexten entfernt
+
+1.0.2 (2026-11-20)
+  - APIVersion auf 101051 (Update 51, live) und 101052 (Update 52, PTS) aktualisiert
+  - README.txt mit Pflicht-Hinweis gemaess ZeniMax Add-On Terms of Use
+
+1.0.1 (2026-11-20)
+  - Meldungen "STOP DAMAGE" und "KILL THE GUARDIANS" sehen jetzt standardmaessig alle
+    (vorher nur DDs). Umstellbar mit /rgh alert all | dd | off.
+    Wer 1.0.0 schon geladen hatte, wird einmalig von "dd" auf "all" umgestellt.
+
+1.0.0 (2026-11-20) - erste Version fuer den Raid
+  - Liste aller 5 Guardians (Large, Medium 1/2, Small 1/2) mit Leben,
+    noch nicht gespawnte transparent mit "Soon"
+  - Markierung bei 80 %, Balken orange ab 85 % solange noch nicht gerannt
+  - Status: Replication, CHARGE (Countdown bis Riff), Acid Reflux, Reef placed, dead
+  - Riff-Quadrat: Restzeit des offenen Riffs (60 s), danach 10 s Vulnerability (gruen)
+  - Toetungssperre "DON'T KILL" / "KILL OK" bis Medium 2 sein Riff gesetzt hat
+  - Meldung Bildschirmmitte "STOP DAMAGE" (Large/Medium 1 < 10 %, Medium 2 noch kein Riff)
+  - Meldung Bildschirmmitte "KILL THE GUARDIANS" mit Ping, sobald Medium 2 sein Riff hat
+  - Testablauf /rgh test mit 14 Szenen nach unserer Taktik

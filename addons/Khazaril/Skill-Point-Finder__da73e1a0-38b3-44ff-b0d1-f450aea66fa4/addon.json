@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/Khazaril/Skill-Point-Finder__da73e1a0-38b3-44ff-b0d1-f450aea66fa4",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Khazaril",
+  "canonical_id": "bethesda:da73e1a0-38b3-44ff-b0d1-f450aea66fa4",
+  "content_id": "da73e1a0-38b3-44ff-b0d1-f450aea66fa4",
+  "deleted": false,
+  "fingerprint": "8ac88504861412fcf783221e8ba60b8e67dcf5b016ffbc335df951dfd14ae464",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "da73e1a0-38b3-44ff-b0d1-f450aea66fa4",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/da73e1a0-38b3-44ff-b0d1-f450aea66fa4",
+  "title": "Skill Point Finder"
+}

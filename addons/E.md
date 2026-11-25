@@ -131,7 +131,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ExcalibursMovableInventory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Excalibur_1969/ExcalibursMovableInventory__4794) | Excalibur_1969 | PC / Mac | 1.1 |
 | [Excessive Withdrawals](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calia1120/Excessive-Withdrawals__1522) | calia1120 | PC / Mac | 18.23.0 |
 | [Excessive Withdrawals - Kith's Build](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kitherel/Excessive-Withdrawals---Kith-s-Build__1715) | kitherel | PC / Mac | 1 |
-| [Execute Blocker (U51+)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Execute-Blocker-U51__5082) | O-Range | PC / Mac | 2.4.0 |
+| [Execute Blocker (U51+)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/O-Range/Execute-Blocker-U51__5082) | O-Range | PC / Mac | 2.6.0 |
 | [ExecuteAssist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/10becja/ExecuteAssist__3101) | 10becja | PC / Mac | 1.0.0 |
 | [ExecuteNow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mooNylo/ExecuteNow__2058) | mooNylo | PC / Mac | 0.2 |
 | [ExecuteNow - Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PlaceHolder/ExecuteNow---Update__2710) | PlaceHolder | PC / Mac | 0.3.7 |
@@ -150,6 +150,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ExpenseReport](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Whiskers/ExpenseReport__4715) | Whiskers | PC / Mac | 1.1 |
 | [experiment](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/experiment__2b323144-77d2-41bc-9e3e-d016c4dd0f30) | Vixen_Hunny | Console | — |
 | [Experimental Dummy Pvp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lebiez/Experimental-Dummy-Pvp__4781) | lebiez | PC / Mac | 1.0 |
+| [exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tiptoeing8680/exporter__6ffa4cdf-3fbc-448c-84b8-6679bc28d4d3) | tiptoeing8680 | Console | — |
 | [Extended Achievement Credit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Extended-Achievement-Credit__3339) | code65536 | PC / Mac | 2.2.2 |
 | [Extended Friendlist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/Extended-Friendlist__3692) | akamatsu02 | PC / Mac | 1.1 |
 | [Extended Ignore List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Extended-Ignore-List__3939) | Masteroshi430 | PC / Mac | 2026.07.09 |

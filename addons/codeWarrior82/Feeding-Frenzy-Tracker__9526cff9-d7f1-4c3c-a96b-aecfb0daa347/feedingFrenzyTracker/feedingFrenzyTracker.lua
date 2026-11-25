@@ -1,4 +1,7 @@
 local appName = "feedingFrenzyTracker"
+local appVersion = 1 -- bump this on each update
+local name = "Feeding Frenzy Tracker"
+local info = "What's New:\nFixed an issue with too many equipped messages appearing."
 local frenzyAbilityID = 131353
 local ferociousRoarAbilityID = 39113
 local picPath = GetAbilityIcon(frenzyAbilityID)
@@ -12,6 +15,7 @@ local needNotify = true
 local isEquiped = false
 local ultiValuePrevious = 0
 local ultThresholdTriggered = false
+local alreadyChecked = false
 
 feedingFrenzyTracker = {}
 
@@ -22,7 +26,8 @@ feedingFrenzyTracker.defaults = {
     yAxisText = 930,
     xAxisText = 1400,
     trackUlti = true,
-    ultValueMin = 280
+    ultValueMin = 280,
+    lastSeenVersion = 0
 }
 
 --print message to chat box
@@ -380,7 +385,10 @@ local function checkSkills()
         --printMessage("skill id - " .. tostring(skillId))
         if skillId >= 0 then
             if skillId == ferociousRoarAbilityID then
-                printMessage("ferocious roar equipped")
+                if not alreadyChecked then
+                    printMessage("ferocious roar equipped")
+                end
+                alreadyChecked = true
 				isEquiped = true
 				startTrackingAuto()
                 return
@@ -388,6 +396,7 @@ local function checkSkills()
         end
     end
     printMessage("ferocious roar not equipped")
+    alreadyChecked = false
 	isEquiped = false
 	stopTrackingAuto()
     return
@@ -402,8 +411,17 @@ local function werewolfStateChanged(eventCode, isWerewolf)
     elseif not isWerewolf and feedingFrenzyTracker.savedVariables.autoTrack and feedingFrenzyTracker.savedVariables.trackFF and needNotify then
         needNotify = false
         printMessage("ferocious roar not equipped")
+        alreadyChecked = false
         stopTrackingAuto()
         zo_callLater(function() needNotify = true end, 2000)
+    end
+end
+
+--notify about update when player activates
+local function activated()
+    if feedingFrenzyTracker.savedVariables.lastSeenVersion ~= appVersion then
+        zo_callLater(function() LibNotify.postUpdateNotification(appName, info, name) end, 500)
+        feedingFrenzyTracker.savedVariables.lastSeenVersion = appVersion
     end
 end
 
@@ -496,6 +514,9 @@ local function onAddOnLoaded(event, name)
             zo_callLater(function() if IsPlayerInWerewolfForm() and feedingFrenzyTracker.savedVariables.autoTrack and feedingFrenzyTracker.savedVariables.trackFF then checkSkills() end end, 500)
         end
     end)
+
+    --register for zone change notifications, leaving this always active
+    EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, activated)
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

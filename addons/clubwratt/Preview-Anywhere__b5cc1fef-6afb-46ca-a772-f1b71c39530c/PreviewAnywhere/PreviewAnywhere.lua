@@ -3,7 +3,7 @@
 PreviewAnywhere = {
     name = "PreviewAnywhere",
     displayName = "Preview Anywhere",
-    version = "1.3.3",
+    version = "1.4.1",
     savedVarsName = "PreviewAnywhereSavedVars",
     savedVarsVersion = 3,
     state = {

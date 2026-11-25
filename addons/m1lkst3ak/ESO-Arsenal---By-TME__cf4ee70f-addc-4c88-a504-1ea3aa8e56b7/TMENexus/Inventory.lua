@@ -229,6 +229,9 @@ local function destination(e)
   end
  end
 end
+local function isContainer(e)
+ return matches(s(GetItemLinkItemType,e.link),'ITEMTYPE_CONTAINER','ITEMTYPE_CONTAINER_CURRENCY','ITEMTYPE_CONTAINER_EVENT','ITEMTYPE_CONTAINER_STYLE_PAGE')
+end
 local function primary(e,chosen,destChoice)
  if not e then return end
  if s(IsUnitInCombat,'player')~=false then notice('Direct actions require being out of combat.');return end
@@ -253,7 +256,7 @@ local function primary(e,chosen,destChoice)
   -- Avoid using equipment which failed the equip eligibility check.
   local typ=s(GetItemLinkItemType,e.link)
   if typ==ITEMTYPE_ARMOR or typ==ITEMTYPE_WEAPON then notice('Equipment is not currently eligible.');return end
-  name='UseItem';args={e.bag,e.slot};kind='Use'
+  name='UseItem';args={e.bag,e.slot};kind=isContainer(e) and 'Open container' or 'Use'
  end
  local function execute()
   if s(GetItemLink,e.bag,e.slot,LINK_STYLE_DEFAULT)~=e.link or s(IsUnitInCombat,'player')~=false then notice('Item or combat state changed.');return end
@@ -266,8 +269,11 @@ local function primary(e,chosen,destChoice)
    notice(name..' protected='..tostring(s(IsProtectedFunction,name))..' destination='..tostring(args[4]))
   end
   local oldDestination=(kind=='Equip' or kind=='Unequip') and s(GetItemLink,args[3],args[4],LINK_STYLE_DEFAULT) or nil
+  -- Yield the custom scene before opening a container so native loot can own focus.
+  local function perform()
+  if kind=='Open container' and (s(GetItemLink,e.bag,e.slot,LINK_STYLE_DEFAULT)~=e.link or s(IsUnitInCombat,'player')~=false) then I.pending=false;notice('Container or combat state changed.');return end
   local ok,result=secureAction(name,(unpack or table.unpack)(args))
-  if not ok then notice(kind..' API error: '..tostring(result)..'. R2 opens native inventory.');return end
+  if not ok then I.pending=false;notice(kind..' API error: '..tostring(result)..'. R2 opens native inventory.');return end
   if result==false and kind~='Use' then notice(kind..' returned false; checking actual inventory state.') elseif result==false then notice(kind..' rejected: false. R2 opens native inventory.');return end
   I.pending=true;notice(kind..' requested via '..name..' (return '..tostring(result)..'); checking inventory.')
   zo_callLater(function()
@@ -276,7 +282,19 @@ local function primary(e,chosen,destChoice)
    local equipment=kind=='Equip' or kind=='Unequip'
    local moved=equipment and s(GetItemLink,args[3],args[4],LINK_STYLE_DEFAULT)==e.link and (now~=e.link or oldDestination~=e.link)
    if moved or (not equipment and type(now)=='string' and (now~=e.link or (type(before)=='number' and type(count)=='number' and count<before))) then notice(kind..': inventory change confirmed.') else notice(kind..' not confirmed via '..name..'. R2 opens native inventory.') end
-  end,1500)
+  end,kind=='Open container' and 6000 or 1500)
+  end
+  if kind=='Open container' then
+   I.pending=true
+   zo_callLater(function()
+    if sceneNameNow()~=sceneName then I.pending=false;notice('Container opening cancelled: inventory closed.');return end
+    back()
+    zo_callLater(function()
+     if sceneNameNow()==sceneName or (ZO_Dialogs_IsShowingDialog and s(ZO_Dialogs_IsShowingDialog)) then I.pending=false;notice('Container opening cancelled: UI still busy.');return end
+     perform()
+    end,500)
+   end,250)
+  else perform() end
  end
  if not (ZO_Dialogs_RegisterCustomDialog and ZO_Dialogs_ShowGamepadDialog and GAMEPAD_DIALOGS and GAMEPAD_DIALOGS.BASIC and zo_callLater) then notice('Confirmation unavailable. Use R2.');return end
  if not I.primaryDialog then
@@ -341,7 +359,7 @@ local function itemActions()
   elseif matches(t,'EQUIP_TYPE_OFF_HAND') then equip('Equip — primary off hand','OFF_HAND');equip('Equip — backup off hand','BACKUP_OFF')
   elseif matches(t,'EQUIP_TYPE_RING') then equip('Equip — Ring 1','RING1');equip('Equip — Ring 2','RING2')
   else local dest=destination(e);if type(dest)=='number' then add('Equip','Equip',dest) end end
- else local usable,quick=s(IsItemUsable,e.bag,e.slot);if usable==true and quick~=true then add('Use','Use') end end
+ else local usable,quick=s(IsItemUsable,e.bag,e.slot);if usable==true and quick~=true then if isContainer(e) then add('Open container','Open container') else add('Use','Use') end end end
  local locked=s(IsItemPlayerLocked,e.bag,e.slot)
  if s(CanItemBePlayerLocked,e.bag,e.slot)==true and type(locked)=='boolean' then add(locked and 'Unlock' or 'Lock','Lock') end
  if e.bag==BAG_BACKPACK and locked==false then add('Destroy item / stack','Destroy') end

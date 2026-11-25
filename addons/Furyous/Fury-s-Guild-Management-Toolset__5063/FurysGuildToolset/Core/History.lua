@@ -57,7 +57,8 @@ local function CollectStreams()
                 local stream = StreamKey(reader, category)
                 if not subscribers[stream] then
                     subscribers[stream] = {}
-                    wanted[#wanted + 1] = { reader = reader, category = category, stream = stream }
+                    -- readAll: on first use, read everything LibHistoire has saved, not just the look-back period.
+                    wanted[#wanted + 1] = { reader = reader, category = category, stream = stream, readAll = module.historyReadAll }
                 end
                 table.insert(subscribers[stream], module)
             end
@@ -97,7 +98,7 @@ function History:PrepareBackfill()
         end
     end
     local log = GT:GetModule("log")
-    self.logCountBefore = #log.sv.entries
+    self.logCountBefore = #log.entries
 end
 
 function History:IsOtherReaderKey(key)
@@ -115,7 +116,7 @@ function History:MaybeFinishBackfill()
     self.backfill = false
     GT.sv.historyBackfill = BACKFILL_VERSION
     local log = GT:GetModule("log")
-    local added = #log.sv.entries - (self.logCountBefore or #log.sv.entries)
+    local added = #log.entries - (self.logCountBefore or #log.entries)
     GT.Util.Print("History check done: %d %s the addon had missed %s now in the History log.", added,
         added == 1 and "event" or "events", added == 1 and "is" or "are")
     GT:Rescan()
@@ -151,7 +152,8 @@ function History:StartProcessor(lib, guildId, def)
     if def.reader ~= MAIN_READER then key = def.reader .. ":" .. key end
     if cursors[key] then
         processor:SetAfterEventId(cursors[key])
-    else
+    elseif not def.readAll then
+        -- A reader with readAll sets no start, so LibHistoire starts at the oldest event it has.
         local lookback = (GT.sv.firstRunLookbackDays or 30) * 86400
         processor:SetAfterEventTime(GetTimeStamp() - lookback)
     end

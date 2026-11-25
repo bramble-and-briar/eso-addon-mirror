@@ -3,7 +3,7 @@
 ## APIVersion: 101051 101052
 ## Version: 1.08
 ## AddOnVersion: 108
-## Description: Українська локалізація «The Elder Scrolls Online» від Guards of Amber. Переклад виконано командою GoA з використанням ШІ (Claude, Anthropic) як допоміжного інструменту з подальшою людською перевіркою. Кредити: GoA / Guards of Amber. https://discord.gg/cVNYKrTmej
+## Description: Українська локалізація TESO від Guards of Amber. Переклад створено з допомогою ШІ (Claude) та перевірено людьми. Кредити: GoA
 ## SavedVariables: ESO_UA_GoA_settings
 
 ESO_UA_GoA.lua

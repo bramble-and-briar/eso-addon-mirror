@@ -1,0 +1,43 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/FoulMouthxAmazon/Vendor-Sidekick__5111",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "FoulMouthxAmazon",
+  "canonical_id": "esoui:5111",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5111",
+  "deleted": false,
+  "directories": [
+    "VendorSidekick"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5111/",
+  "fingerprint": "c9655203245cdbcb4811c9e198497d113f6a7415127f1181d66ff3d3c1cdb516",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18798.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18799.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18800.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18801.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18796.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18797.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5111",
+  "source_url": "https://www.esoui.com/downloads/info5111-VendorSidekick.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Vendor Sidekick",
+  "updated_at": 1795595226000,
+  "version": "0.1.2-beta"
+}

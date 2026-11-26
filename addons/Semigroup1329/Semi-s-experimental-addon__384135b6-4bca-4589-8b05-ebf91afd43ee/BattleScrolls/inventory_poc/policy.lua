@@ -39,6 +39,7 @@ BattleScrolls = BattleScrolls or {}
 ---@field cannotSell boolean|nil Native "Cannot Sell" marker: merchants refuse the item
 ---@field marketUnit number|nil
 ---@field priceLoading boolean|nil TSC has not finished loading; distinct from a missing quote
+---@field noOffers boolean|nil A completed guild store search found nobody selling it, and the price list has no entry
 ---@field styleMaterialLink string
 ---@field styleMaterialUnit number|nil
 ---@field traitMaterialLink string
@@ -290,6 +291,11 @@ local function classify(item)
         if item.quality <= 1 then return decision('sell', 'junk') end
         if item.tradeable == false then return decision('sell', 'duplicate') end
         if item.priceLoading then return decision('defer', 'price') end
+        -- Green pieces rarely reach a listing's worth on any market. One with no
+        -- group price that nobody sells in the trading guilds either does not wait.
+        if item.quality == 2 and item.noOffers and not policy.validPrice(item.marketUnit) then
+            return decision('sell', 'duplicate')
+        end
         return sellDuplicate(item, 'sell')
     end
     if item.kind == 'gear' then

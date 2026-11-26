@@ -1,0 +1,44 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Zerakthion/ZeraUI__5116",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Zerakthion",
+  "canonical_id": "esoui:5116",
+  "category_id": "19",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5116",
+  "deleted": false,
+  "directories": [
+    "ZeraUI"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5116/",
+  "fingerprint": "6cf95d9a434e2538407b22f6585565278e20e7d9fb7327d073f2a89f05ad3a4d",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18821.gif",
+    "https://cdn-eso.mmoui.com/preview/pvw18816.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18817.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18823.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18818.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18819.gif",
+    "https://cdn-eso.mmoui.com/preview/pvw18820.gif"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5116",
+  "source_url": "https://www.esoui.com/downloads/info5116-ZeraUI.html",
+  "stats": {
+    "downloads": 3,
+    "favorites": 1,
+    "monthly_downloads": 0
+  },
+  "title": "ZeraUI",
+  "updated_at": 1795684874000,
+  "version": "1.1.5"
+}

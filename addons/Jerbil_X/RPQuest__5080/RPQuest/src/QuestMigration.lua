@@ -1,6 +1,7 @@
 -- Ref: docs/adr/0012-savedvars-account-wide-y-migracion-por-personaje.md
 -- Ref: docs/adr/0013-protocolo-versionado-de-esquema-y-migraciones-de-misiones.md
 -- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
+-- Ref: docs/adr/0015-separacion-ciclo-de-vida-y-estado-de-resolucion.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -38,7 +39,7 @@ QuestMigration.SCHEMA_MIGRATORS[2] = function(quest)
     end
     quest.hideMapArea = nil
 
-    local defaultRad = (Addon.Constants and Addon.Constants.AREA_RADIUS and Addon.Constants.AREA_RADIUS.MEDIUM) or 0.125
+    local defaultRad = (Addon.Constants and Addon.Constants.AREA_RADIUS and Addon.Constants.AREA_RADIUS.MEDIUM) or 0.039
     local qCenterX = quest.areaCenterX
     local qCenterY = quest.areaCenterY
     local qRadius = tonumber(quest.areaRadius)
@@ -64,9 +65,6 @@ QuestMigration.SCHEMA_MIGRATORS[2] = function(quest)
                 if type(target.customMessageInLocation) ~= "string" then
                     target.customMessageInLocation = ""
                 end
-                if type(target.customMessageOutsideLocation) ~= "string" then
-                    target.customMessageOutsideLocation = ""
-                end
             end
         end
     end
@@ -74,6 +72,110 @@ QuestMigration.SCHEMA_MIGRATORS[2] = function(quest)
     quest.areaCenterX = nil
     quest.areaCenterY = nil
     quest.areaRadius = nil
+    return true
+end
+
+local VALID_LIFECYCLE = {
+    draft = true,
+    sent = true,
+    received = true,
+}
+
+local VALID_RESOLUTION = {
+    accepted = true,
+    rejected = true,
+    completed = true,
+    failed = true,
+}
+
+local function HasSentIndicators(quest)
+    return (type(quest.sentTo) == "string" and quest.sentTo ~= "")
+        or type(quest.lastResult) == "table"
+        or (type(quest.deliveries) == "table" and #quest.deliveries > 0)
+end
+
+QuestMigration.SCHEMA_MIGRATORS[3] = function(quest)
+    if type(quest) ~= "table" then
+        return true
+    end
+
+    local lifecycle = quest.lifecycle
+    if VALID_LIFECYCLE[lifecycle] then
+        if lifecycle == "draft" and HasSentIndicators(quest) then
+            lifecycle = "sent"
+        end
+    elseif quest.role == "prepared" then
+        lifecycle = HasSentIndicators(quest) and "sent" or "draft"
+    else
+        lifecycle = "received"
+    end
+    quest.lifecycle = lifecycle
+
+    if lifecycle == "draft" or lifecycle == "sent" then
+        quest.role = "prepared"
+    else
+        quest.role = "received"
+    end
+
+    if lifecycle == "draft" then
+        quest.resolution = nil
+    elseif lifecycle == "sent" then
+        if not VALID_RESOLUTION[quest.resolution] then
+            if type(quest.lastResult) == "table" then
+                local lrStatus = quest.lastResult.status
+                quest.resolution = VALID_RESOLUTION[lrStatus] and lrStatus or "completed"
+            elseif type(quest.deliveries) == "table" and #quest.deliveries > 0 then
+                local lastDelivery = quest.deliveries[#quest.deliveries]
+                if type(lastDelivery) == "table" then
+                    local dStatus = VALID_RESOLUTION[lastDelivery.status] and lastDelivery.status or "completed"
+                    quest.resolution = dStatus
+                    if quest.lastResult == nil then
+                        quest.lastResult = lastDelivery
+                    end
+                else
+                    quest.resolution = nil
+                end
+            else
+                quest.resolution = nil
+            end
+        end
+    else
+        if quest.status == "offered" then
+            quest.resolution = nil
+        elseif quest.failed == true then
+            quest.resolution = "failed"
+        elseif quest.completed == true then
+            quest.resolution = "completed"
+        elseif not VALID_RESOLUTION[quest.resolution] then
+            quest.resolution = "accepted"
+        end
+        quest.failureReported = (quest.failureReported == true)
+    end
+
+    return true
+end
+
+QuestMigration.SCHEMA_MIGRATORS[4] = function(quest)
+    if type(quest) ~= "table" then
+        return true
+    end
+    if type(quest.targets) == "table" then
+        for _, target in ipairs(quest.targets) do
+            if type(target) == "table" then
+                if type(target.customMessage) ~= "string" then
+                    target.customMessage = ""
+                end
+                if type(target.customMessageInLocation) ~= "string" then
+                    target.customMessageInLocation = ""
+                end
+                local legacyOut = target.customMessageOutsideLocation
+                if target.customMessage == "" and type(legacyOut) == "string" and legacyOut ~= "" then
+                    target.customMessage = legacyOut
+                end
+                target.customMessageOutsideLocation = nil
+            end
+        end
+    end
     return true
 end
 

@@ -1,7 +1,7 @@
 local D = {}
 D.name = "DKMasteryTracker"
 D.displayName = "DK Mastery Tracker"
-D.version = "1.0.4"
+D.version = "1.0.5"
 local EM = EVENT_MANAGER
 
 local IDS = {
@@ -112,6 +112,7 @@ end
 local function createTracker(key, def)
     local wm = WINDOW_MANAGER
     local c = wm:CreateTopLevelWindow("DKMT_"..key)
+    c:SetHidden(true)
     c:SetDimensions(250,64)
     c:SetClampedToScreen(true)
     c:SetMouseEnabled(true)

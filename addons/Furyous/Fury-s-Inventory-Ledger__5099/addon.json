@@ -22,7 +22,7 @@
     "FurysInventoryLedger"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5099/",
-  "fingerprint": "3585bb9299fd1f7f2844dc3138ea2708fa60837dd85cb8acf42e7aaa863a0d46",
+  "fingerprint": "eb0cf431eb074c3ef43150ca9fb1e9d6f10283749a8dbfd84a9dc86e543dd36e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18716.png",
     "https://cdn-eso.mmoui.com/preview/pvw18717.png"
@@ -33,11 +33,11 @@
   "source_id": "5099",
   "source_url": "https://www.esoui.com/downloads/info5099-FurysInventoryLedger.html",
   "stats": {
-    "downloads": 12,
-    "favorites": 1,
-    "monthly_downloads": 4
+    "downloads": 37,
+    "favorites": 2,
+    "monthly_downloads": 27
   },
   "title": "Fury's Inventory Ledger",
-  "updated_at": 1795499446000,
-  "version": "1.4.0"
+  "updated_at": 1795674504000,
+  "version": "1.7.4"
 }

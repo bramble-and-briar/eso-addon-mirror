@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/sshogrin/Sho-s-Build-Exporter__5113",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "sshogrin",
+  "canonical_id": "esoui:5113",
+  "category_id": "18",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    }
+  ],
+  "content_id": "esoui:5113",
+  "deleted": false,
+  "directories": [
+    "ShosBuildExporter"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5113/",
+  "fingerprint": "a886ebe9be9232442f4a1a455cbbc7dcef7a25a107f1947e2ac2712dfbbe8698",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18809.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5113",
+  "source_url": "https://www.esoui.com/downloads/info5113-ShosBuildExporter.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 0,
+    "monthly_downloads": 1
+  },
+  "title": "Sho's Build Exporter",
+  "updated_at": 1795635435000,
+  "version": "1.0.0"
+}

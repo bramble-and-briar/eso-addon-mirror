@@ -98,17 +98,21 @@ local function OnCombatEvent(setKey, _, result, _, abilityName, _, _, _, _, _, _
   if result == ACTION_RESULT_ABILITY_ON_COOLDOWN then
     Cool:Trace(1, "<<1>> (<<2>>) on Cooldown", abilityName, abilityId)
   elseif result == set.result or (type(set.result) == "table" and Cool.HasValue(set.result, result)) then
-    if set.id == 147462 or set.id == 193411 then -- Pearls and esoteric
+    if set.procCounter and Cool.Procs[setKey] then
       Cool.Procs[setKey].times = Cool.Procs[setKey].times + 1
       Cool.UI.UpdateProcs(setKey)
-      Cool.UI.PlaySound(Cool.preferences.sets[setKey].sounds.onProc)
-      Cool:Trace(1, "Name: <<1>> ID: <<2>> with result <<3>>", abilityName, abilityId, result)
-      return
+
+      -- Without a timer to display, there is nothing else to do
+      if set.resource or (set.durationms or 0) == 0 then
+        Cool.UI.PlaySound(Cool.preferences.sets[setKey].sounds.onProc)
+        Cool:Trace(1, "Name: <<1>> ID: <<2>> with result <<3>>", abilityName, abilityId, result)
+        return
+      end
     end
 
     Cool:Trace(1, "(+)Name: <<1>> ID: <<2>> with result <<3>>", abilityName, abilityId, result)
 
-    if set.cooldownDurationMs ~= 0 then set.onCooldown = true end
+    if (set.cooldownDurationMs or 0) ~= 0 then set.onCooldown = true end
 
     set.timeOfProc = GetGameTimeMilliseconds()
     set.endTime    = set.timeOfProc + set.durationms
@@ -157,6 +161,10 @@ local function OnEffectChanged(setKey, _, change, _, effectName, unitTag, beginT
     set.timeOfProc = time()
 
     if set.durationms > 0 then
+      -- Set endTime to currentTime + durationms if endTime is not provided by the event.
+      if (endTime or 0) == 0 then
+        endTime = (time() + set.durationms) / 1000
+      end
       set.endTime = endTime
       -- if not c.isUpdating then
         -- c.isUpdating = true
@@ -231,32 +239,18 @@ local function OnPowerUpdateForProcs(_, _, powerIndex, powerType, powerValue, po
   end
 
   for i, x in pairs(Cool.Procs) do
-    local set = Cool.Procs[i]
-    if set then
-      if set.id == 147462 then
-        if Cool.PlayerPower.mag.max < Cool.PlayerPower.stam.max then
-          set.powerType = POWERTYPE_STAMINA
-          set.current   = Cool.PlayerPower.stam.current
-          set.max       = Cool.PlayerPower.stam.max
-        else
-          set.powerType = POWERTYPE_MAGICKA
-          set.current   = Cool.PlayerPower.mag.current
-          set.max       = Cool.PlayerPower.mag.max
-        end
-        if set.powerType == powerType then
-          set.current = (powerValue / powerEffectiveMax) * 100
-          set.max = powerEffectiveMax
-        end
+    local set      = Cool.Procs[i]
+    local resource = Cool.Data.Sets[i].resource
+    if set and resource then
+      local wanted = resource
+      if resource == "highest" then
+        wanted = Cool.PlayerPower.mag.max < Cool.PlayerPower.stam.max and POWERTYPE_STAMINA or POWERTYPE_MAGICKA
       end
-      if set.id == 193411 then
-          set.powerType = POWERTYPE_STAMINA
-          set.current   = Cool.PlayerPower.stam.current
-          set.max       = Cool.PlayerPower.stam.max
-        if set.powerType == powerType then
-          set.current = (powerValue / powerEffectiveMax) * 100
-          set.max = powerEffectiveMax
-        end
-      end
+
+      local power = wanted == POWERTYPE_STAMINA and Cool.PlayerPower.stam or Cool.PlayerPower.mag
+      set.powerType = wanted
+      set.current   = power.current
+      set.max       = power.max
       Cool.UI.UpdateProcs(i)
     end
   end
@@ -944,32 +938,13 @@ function Cool.Tracking.EnablePowerUpdatesForProcSet(setKey)
 
   UpdateCurrentResources()
 
-  -- currently only for tracking Pearls of Ehlnofey and Esoteric Environment Greaves
-  if set.id == 147462 then
-    local p, c, m
-
-    if Cool.PlayerPower.stam.max > Cool.PlayerPower.mag.max then
-      p = POWERTYPE_STAMINA
-      c = Cool.PlayerPower.stam.current
-      m = Cool.PlayerPower.stam.max
-    else
-      p = POWERTYPE_MAGICKA
-      c = Cool.PlayerPower.mag.current
-      m = Cool.PlayerPower.mag.max
-    end
-
-    local x = { id = set.id, times = 0, powerType = p, current = c, max = m }
-    Cool.Procs[setKey] = x
+  local wanted = set.resource
+  if wanted == "highest" then
+    wanted = Cool.PlayerPower.stam.max > Cool.PlayerPower.mag.max and POWERTYPE_STAMINA or POWERTYPE_MAGICKA
   end
-  
-  if set.id == 193411 then
-    local p, c, m
-    p = POWERTYPE_STAMINA
-    c = Cool.PlayerPower.stam.current
-    m = Cool.PlayerPower.stam.max
-    local x = { id = set.id, times = 0, powerType = p, current = c, max = m }
-    Cool.Procs[setKey] = x
-  end
+
+  local power = wanted == POWERTYPE_STAMINA and Cool.PlayerPower.stam or Cool.PlayerPower.mag
+  Cool.Procs[setKey] = { id = set.id, times = 0, powerType = wanted, current = power.current, max = power.max }
 
   EM:UnregisterForEvent(Cool.name .. "_PowerStam", EVENT_POWER_UPDATE)
   EM:RegisterForEvent(  Cool.name .. "_PowerStam", EVENT_POWER_UPDATE, OnPowerUpdateForProcs)
@@ -1119,10 +1094,16 @@ function Cool.Tracking.EnableTrackingForSet(setKey, enabled, setId)
         end
       end
 
-      if set.id == 147462 or set.id == 193411 then -- pearls and esoteric
-        Cool.Tracking.EnablePowerUpdatesForProcSet(setKey)
-        Cool.resTrackerOn = true
-      elseif set.id == 154737 then -- sul-xan
+      if set.procCounter then
+        if set.resource then
+          Cool.Tracking.EnablePowerUpdatesForProcSet(setKey)
+          Cool.resTrackerOn = true
+        else
+          Cool.Procs[setKey] = { id = set.id, times = 0 }
+        end
+      end
+
+      if set.id == 154737 then -- sul-xan
         TrackSoulSpawn(true, setKey)
       elseif set.id == ZEN_ID then
         EM:RegisterForUpdate(Cool.name .. "_" .. "TrackZenDOTs", 500, function() Cool.Tracking.TrackZenDOTs(setKey) end)
@@ -1156,11 +1137,18 @@ function Cool.Tracking.EnableTrackingForSet(setKey, enabled, setId)
       end
 
       if Cool.Procs[setKey] then
+        local c = Cool.Controls[setKey]
+        if c and c.counter then c.counter:SetText("") end
         Cool.Procs[setKey] = nil
-        if Cool.Procs == {} then
+        local hasResourceSet = false
+        for key in pairs(Cool.Procs) do
+          if Cool.Data.Sets[key].resource then hasResourceSet = true end
+        end
+        if not hasResourceSet then
           Cool.resTrackerOn = false
           EM:UnregisterForEvent(Cool.name .. "_PowerMag", EVENT_POWER_UPDATE)
           EM:UnregisterForEvent(Cool.name .. "_PowerStam", EVENT_POWER_UPDATE)
+          EM:UnregisterForEvent(Cool.name .. "_PowerUlt", EVENT_POWER_UPDATE)
         end
       end
 

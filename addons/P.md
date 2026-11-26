@@ -94,6 +94,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/olegbl/PinHelper__3259) | olegbl | PC / Mac | 1.06 |
 | [PinkB's AutoLoot](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-AutoLoot__4d5ab3e7-7762-40f6-bbb8-a64c1696dbde) | PinkBanther | Console | — |
 | [PinkB's AutoLoot(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-AutoLoot-Beta__981d34f1-c0ba-4bc4-afa2-490348db8c16) | PinkBanther | Console | — |
+| [PinkB's BattleScrolls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-BattleScrolls__6f38f130-5172-4d0a-b4d1-17b00bf9679b) | PinkBanther | Console | — |
+| [PinkB's BattleScrolls(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-BattleScrolls-Beta__9dd9ee5b-e3db-4539-879a-926cb3a8daa8) | PinkBanther | Console | — |
 | [PinkB's ChatAssistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ChatAssistant__416eb892-aa32-4a10-8d1a-7ba7cf27cedf) | PinkBanther | Console | — |
 | [PinkB's ChatAssistant(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ChatAssistant-Beta__8409de55-043d-4bcc-8876-395671fdc7b5) | PinkBanther | Console | — |
 | [PinkB's ChatFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ChatFilter__f4b50a99-0e05-4748-95a8-d062f94401f3) | PinkBanther | Console | — |

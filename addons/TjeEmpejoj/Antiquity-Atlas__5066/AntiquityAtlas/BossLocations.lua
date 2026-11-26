@@ -391,8 +391,8 @@ function A.OpenBossMap(part, owner)
         ClearMenu()
         for _, target in ipairs(targets) do
             local selected = target
-            local zoneName = A.Call(GetZoneNameById, target.id) or tostring(target.id)
-            local label = string.format("%s — %s (%.1f, %.1f)", target.name, zoneName, target.x * 100, target.y * 100)
+            local zoneName = A.ZoneName(target.id)
+            local label = string.format("%s — %s (%.1f, %.1f)", A.DisplayName(target.name), zoneName, target.x * 100, target.y * 100)
             AddMenuItem(label, function() A.OpenZoneMap(selected.id, part, true, selected) end)
         end
         ShowMenu(owner or A.window)

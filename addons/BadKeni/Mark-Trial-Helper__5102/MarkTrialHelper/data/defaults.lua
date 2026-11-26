@@ -103,3 +103,4 @@ _G.MarkTrialHelper = {
     SUPPORT_SKILL_LINE = 71,
     WARDEN = 4
 }
+if AH and AH.Defaults then AH.Defaults.RoleDeathAlert = true end

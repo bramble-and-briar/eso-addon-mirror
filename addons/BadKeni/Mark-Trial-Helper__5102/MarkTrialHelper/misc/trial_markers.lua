@@ -88,9 +88,9 @@ local function ResolveMarkerId(rawName)
     local clean = zo_strformat("<<1>>", rawName)
     local id = AH.Vars.CustomMarkers[clean]
     if not id then
-        local lower = clean:lower()
+        local lower = zo_strlower(clean)
         for key, val in pairs(AH.Vars.CustomMarkers) do
-            if lower:find(key:lower(), 1, true) then id = val break end
+            if lower:find(zo_strlower(key), 1, true) then id = val break end
         end
     end
     resolvedCache[rawName] = id or false
@@ -99,12 +99,12 @@ end
 
 local function PickNonJumpingMarker(preferredId)
     local now = GetGameTimeMilliseconds()
-    if not activeCombatMarks[preferredId] or (now - activeCombatMarks[preferredId]) > 25000 then
+    if not activeCombatMarks[preferredId] or (now - activeCombatMarks[preferredId]) > 12000 then
         activeCombatMarks[preferredId] = now
         return preferredId
     end
     for _, altId in ipairs(FALLBACK_ORDER) do
-        if not activeCombatMarks[altId] or (now - activeCombatMarks[altId]) > 25000 then
+        if not activeCombatMarks[altId] or (now - activeCombatMarks[altId]) > 12000 then
             activeCombatMarks[altId] = now
             return altId
         end
@@ -157,6 +157,7 @@ function AH.ListPriorityMobs()
 end
 
 local function TryMarkReticle()
+    if IsInstanceEndlessDungeon() then return end
     UpdateLastHostile()
     if not AH.Vars then return end
     if not AH.Vars.PresetV6Loaded then AH.LoadDefaultTrialMobs(true) end

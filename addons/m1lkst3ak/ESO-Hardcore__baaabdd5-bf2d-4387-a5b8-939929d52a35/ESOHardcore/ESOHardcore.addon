@@ -1,0 +1,21 @@
+## Title: ESO Hardcore
+## Author: Trash Man Enterprises
+## Version: 0.8.9
+## AddOnVersion: 20
+## APIVersion: 101051 101052 2.5.3.0
+## OptionalDependsOn: LibRadialMenu
+## SavedVariables: ESOHardcoreSaved
+Core.lua
+Skills.lua
+SkillWindow.lua
+Expansion.lua
+Progression.lua
+Developer.lua
+Economy.lua
+BagGrid.lua
+Hardcore.lua
+NativeInventory.lua
+NativeBank.lua
+Radial.lua
+
+Bindings.xml

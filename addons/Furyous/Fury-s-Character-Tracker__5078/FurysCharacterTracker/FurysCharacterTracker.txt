@@ -1,20 +1,40 @@
-## Title: |cA08CFFFury's Character Tracker|r |c8A86B0v1.4.1|r
-## Description: Your whole roster on one board: skill lines, guild ranks, crafting, research, scribing, motifs, recipes, companions, riding and time played for every character, read from the game when you log in on one. Pick roles and gear, share a brag card, export to Excel.
+## Title: |cA08CFFFury's Character Tracker|r |c8A86B0v1.8.4|r
+## Description: Every character on one board: skill and class lines, crafting, research, daily writs, weekly leaderboards, skill points still to earn, wallet, gear, companions and progress over time, read when you log in. A brag card, copy for Discord, export to Excel.
 ## Author: Furyous
-## Version: 1.4.1
-## AddOnVersion: 141
+## Version: 1.8.4
+## AddOnVersion: 184
 ## APIVersion: 101051 101052
 ## SavedVariables: FuryCT_SV
 ## DependsOn: LibAddonMenu-2.0>=43
 
 FurysCharacterTracker.lua
+Data/Text.lua
 Data/Lines.lua
 Core/Util.lua
-Core/Scan.lua
+Core/Trackers.lua
 Core/Roster.lua
-Core/Research.lua
-Core/Daily.lua
-Core/Alerts.lua
+Core/History.lua
+Trackers/Basics.lua
+Trackers/Picks.lua
+Trackers/Skills.lua
+Trackers/ClassLines.lua
+Trackers/SkillPoints.lua
+Trackers/Research.lua
+Trackers/Knowledge.lua
+Trackers/Companions.lua
+Trackers/Writs.lua
+Trackers/Riding.lua
+Trackers/Activities.lua
+Trackers/Weekly.lua
+Trackers/Wallet.lua
+Trackers/Collections.lua
+Trackers/Gear.lua
+Trackers/Progress.lua
+Data/Views.lua
+Core/Board.lua
+Core/Pages.lua
+Game/Scan.lua
+Game/Alerts.lua
 UI/Theme.lua
 UI/Window.xml
 UI/Window.lua
@@ -24,5 +44,8 @@ UI/Timers.xml
 UI/Timers.lua
 UI/Details.xml
 UI/Details.lua
+UI/Text.xml
+UI/Text.lua
 UI/Settings.lua
+Game/Boot.lua
 Bindings.xml

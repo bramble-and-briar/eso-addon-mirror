@@ -35,10 +35,6 @@ function Addon:OnCaptureTargetKeybind()
     return Addon.TargetCapture:CaptureFromReticle()
 end
 
-function Addon:OnCaptureDiscoveryKeybind()
-    return Addon.TargetCapture:CaptureDiscoveryPoint()
-end
-
 function Addon:OnToggleJournalKeybind()
     Addon.JournalTab:ToggleTab()
 end

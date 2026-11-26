@@ -1,0 +1,10 @@
+<GuiXml>
+    <!-- Declare the optional Rajdhani faces at load time. Together with the
+         slugfont -outline conversion (fonts/Install-Rajdhani*.bat) this lets
+         ESO draw its own outline / thick-outline for them, so every label is a
+         single control. A missing .slug falls back to Univers 67 in Lua. -->
+    <String name="ZERA_RAJDHANI_BOLD_FONT" value="ZeraUI/fonts/Rajdhani-Bold-OL.slug" />
+    <String name="ZERA_RAJDHANI_SEMIBOLD_FONT" value="ZeraUI/fonts/Rajdhani-SemiBold-OL.slug" />
+    <Font name="ZeraFontRajdhaniBoldOutline" font="$(ZERA_RAJDHANI_BOLD_FONT)|30|thick-outline" />
+    <Font name="ZeraFontRajdhaniSemiBoldOutline" font="$(ZERA_RAJDHANI_SEMIBOLD_FONT)|30|thick-outline" />
+</GuiXml>

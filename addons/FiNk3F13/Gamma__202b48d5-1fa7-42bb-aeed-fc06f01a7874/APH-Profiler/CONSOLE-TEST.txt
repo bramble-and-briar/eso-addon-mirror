@@ -1,0 +1,79 @@
+APH Profiler - Konsolen-Menueanpassung fuer deinen Test
+Originalautor: @APHONlC. Original-Lizenz und Autorhinweise bleiben erhalten.
+
+Diese heruntergeladene Fassung hat bereits Controller-Bedienung, Konsolen-
+Speicherschutz und eine im Spiel nutzbare Ergebnisanzeige.
+Geaendert wurden nur:
+- UTILS/Settings.lua: Konsolen-/Gamepad-Menue direkt ueber LibHarvensAddonSettings;
+  keine Pflicht zu LibAddonMenu auf Konsole und keine falsche LAM-Warnung dort.
+- APH-Profiler.addon: LibHarvensAddonSettings als benoetigte Bibliothek und
+  Versionskennzeichnung der lokalen Anpassung.
+
+Recorder, Messwerte, Parser, Speicherschutz, Bindings und
+gespeicherte Daten wurden nicht umgebaut. Die PC-Menuevariante bleibt erhalten.
+
+Lesbarkeitsanpassung console.2: Ergebnisschrift im Controller-Modus standardmaessig
+ZoFontGamepad27 statt 18, Mindestschrift 22. Groessere Schrift und Abstaende in
+Zeitachse, Ladezeitliste und Tooltips sowie breitere Controller-Schaltflaechen.
+
+Einzeladdon-Paket console.3-single:
+LibAPH ist unter libs/LibAPH eingebettet und wird aus dem Hauptmanifest geladen.
+Nur den Ordner APH-Profiler fuer den Upload auswaehlen. LibAPH nicht separat hochladen.
+LibHarvensAddonSettings muss auf der Konsole weiterhin installiert/aktiviert sein.
+Die eingebettete Bibliothek wird beim Laden von APH-Profiler initialisiert.
+
+Test mit Controller:
+Einstellungen > Addons > APH-Profiler.
+Start Recording startet die Aufnahme. Spiele die Situation mit den Rucklern.
+Stop Recording beendet die Aufnahme und beginnt die Auswertung.
+Open Results oeffnet das vorhandene Controller-Ergebnisfenster.
+
+Die Original-Chatbefehle sind weiterhin vorhanden:
+/aphp          Aufnahme starten
+/aphpstop      Aufnahme stoppen und auswerten
+/aphpreport    Letzten Bericht anzeigen
+/aphpwindow    Ergebnisfenster ein-/ausblenden
+
+Das Addon zeigt Rechenzeit von Addons/Funktionen. Es ordnet keinen Netzwerk-
+Ping in Millisekunden einzelnen Addons zu.
+
+Pruefungen: Lua-5.1-Syntax aller Dateien, unveraenderte Recorder-/UI-Dateien,
+Menue-Konvertierung einschliesslich Auswahlwerten, deaktivierten Optionen und
+Callbacks, Konsolenbibliothekspruefung, PC-Fallback und Pfad-Grossschreibung.
+Die Menuepruefungen verwenden simulierte ESO-Funktionen. Auf echter Konsole
+wurde diese lokale Anpassung noch nicht ausgefuehrt.
+
+Die ZIP ist Quellmaterial fuer den ESO Console Add-on Developer Uploader;
+sie installiert sich nicht direkt auf PS5/Xbox. Kein Upload wurde vorgenommen.
+Die Original-Lizenz erlaubt keine oeffentliche Neuveroeffentlichung ohne
+schriftliche Freigabe des Autors. Diese Anpassung erteilt keine solche Freigabe.
+
+Controller-Bedienung console.4-single:
+- Kein automatischer Controller-Fokus mehr, wenn Ergebnisse erscheinen.
+- Keine allgemeinen Quadrat-/L3-/R3-Addon-Aktionen mehr im Spiel-Layer.
+- Aufnahmebeginn gibt die Controller-Steuerung frei und schliesst das HUD.
+- Beim Eintritt in den Kampf wird die Ergebnisbedienung beendet.
+- Nur Einstellungen > Addons > APH-Profiler > Ergebnisse bedienen schaltet
+  bewusst zur Controller-Bedienung um, ausserhalb von Aufnahme und Kampf.
+- Kreis schliesst die Ergebnisansicht. Zum Groessenaendern dort L3 druecken,
+  dann den linken Stick bewegen; nach drei Sekunden ohne Bewegung endet
+  das Groessenaendern. Im normalen Spiel ist L3 keine Addon-Taste mehr.
+
+Einfacher Test:
+1. Einstellungen > Addons > APH-Profiler > Aufnahme starten.
+2. Menue verlassen und kurz die Situation spielen, die ruckelt.
+3. Im selben Einstellungsmenue Aufnahme stoppen waehlen.
+4. Auswertung abwarten, dann ausserhalb des Kampfes Ergebnisse bedienen.
+5. Kreis druecken, bevor du wieder normal weiterspielst.
+
+Die Eingabeschutz-Aenderungen sind simuliert getestet. Eine Pruefung der
+aktualisierten Fassung auf echter Konsole steht noch aus.
+
+console.5-single: Alle HUD-Controlleraktionen reichen Eingaben waehrend einer
+Aufnahme an das Spiel weiter. Speicherabbrueche werden auch bei abgeschalteten
+Chat-Logs angezeigt. Unter Einstellungen steht der letzte automatische
+Stoppgrund. Die bestehende 65-MB-Speichergrenze wurde nicht angehoben.
+
+console.6-single: Dropdown-Eintraege verwenden das von LHAS benoetigte data-Feld.
+Timed bleibt damit nach Auswahl und Menue-Aktualisierung sichtbar ausgewaehlt.
+Geprueft mit der originalen LHAS-Vergleichslogik und erneutem Menueaufbau.

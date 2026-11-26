@@ -197,7 +197,7 @@ function Cool.Defaults:Generate()
       defaults.sets[key].stack = { color = defaults.stackColor, x = sx, y = sy }
     end
 
-    if set.id == 147462 or set.id == 193411 then -- pearls and esoteric
+    if set.resource then
       local d = defaults.sets[key]
       for i, x in pairs(resourceOptionsDefault) do
         if i then d[i] = resourceOptionsDefault[i] end

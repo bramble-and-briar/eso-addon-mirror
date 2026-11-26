@@ -1,0 +1,17 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc.
+; or its affiliates. The Elder Scrolls® and related logos are registered trademarks
+; or trademarks of ZeniMax Media Inc. in the United States and/or other countries.
+; All rights reserved.
+
+## Title: MANA Bank
+## Description: Deposits items into the bank by your rules, marks the excess as junk and keeps a set amount of gold on hand.
+## Author: Beardborn
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101051 101052
+## SavedVariables: MANABank_SV
+## DependsOn: LibAddonMenu-2.0 LibCustomMenu
+
+lang/en.lua
+lang/$(language).lua
+MANABank.lua

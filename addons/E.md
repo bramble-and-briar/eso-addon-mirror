@@ -73,6 +73,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESO Emoji](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kitkathy1994/ESO-Emoji__3376) | kitkathy1994 | PC / Mac | 0.4.2 |
 | [ESO Farm-Buddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Farm-Buddy__2553) | Keldor | PC / Mac | 1.0.36 |
 | [ESO Grinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/marcjordan/ESO-Grinder__2788) | marcjordan | PC / Mac | 2.1.0 |
+| [ESO Hardcore](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m1lkst3ak/ESO-Hardcore__baaabdd5-bf2d-4387-a5b8-939929d52a35) | m1lkst3ak | Console | — |
 | [ESO Hybrid UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ZOSPlsFix/ESO-Hybrid-UI__5011) | ZOSPlsFix | PC / Mac | 4.2.1-beta |
 | [ESO Language Overrider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hevnokaaz/ESO-Language-Overrider__2655) | Hevnokaaz | PC / Mac | 1.2.2 |
 | [ESO Launcher Closer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Draco9990/ESO-Launcher-Closer__3298) | Draco9990 | PC / Mac | 1.1 |

@@ -40,7 +40,8 @@ function Widgets.CreateEditBoxWithBackdrop(name, parent, width, height, maxChars
     bg:SetEdgeColor(0.68, 0.58, 0.36, 0.80)
 
     local edit = WINDOW_MANAGER:CreateControl(name, bg, CT_EDITBOX)
-    edit:SetDimensions(width - 12, height - 8)
+    local editWidth = isMultiLine and (width - 24) or (width - 12)
+    edit:SetDimensions(editWidth, height - 8)
     edit:SetAnchor(TOPLEFT, bg, TOPLEFT, 6, 4)
     edit:SetMouseEnabled(true)
     edit:SetEditEnabled(true)
@@ -53,6 +54,53 @@ function Widgets.CreateEditBoxWithBackdrop(name, parent, width, height, maxChars
         edit:SetSelectAllOnFocus(true)
     end
     edit:SetText("")
+
+    local scrollbar
+    local syncingScroll = false
+    local function UpdateScrollbar()
+        if not scrollbar then return end
+        local extents = edit.GetScrollExtents and edit:GetScrollExtents() or 0
+        local hasOverflow = extents > 0
+        scrollbar:SetHidden(not hasOverflow)
+        if hasOverflow then
+            scrollbar:SetMinMax(1, extents + 1)
+            local topLine = edit.GetTopLineIndex and edit:GetTopLineIndex() or 1
+            local clamped = math.max(1, math.min(extents + 1, topLine))
+            syncingScroll = true
+            scrollbar:SetValue(clamped)
+            syncingScroll = false
+        end
+    end
+
+    if isMultiLine then
+        scrollbar = WINDOW_MANAGER:CreateControlFromVirtual(name .. "_ScrollBar", bg, "ZO_VerticalScrollbarBase")
+        if scrollbar then
+            scrollbar:SetAnchor(TOPRIGHT, bg, TOPRIGHT, -4, 4)
+            scrollbar:SetAnchor(BOTTOMRIGHT, bg, BOTTOMRIGHT, -4, -4)
+            scrollbar:SetHidden(true)
+            scrollbar:SetHandler("OnValueChanged", function(_, value)
+                if syncingScroll then return end
+                local extents = edit.GetScrollExtents and edit:GetScrollExtents() or 0
+                local targetLine = math.max(1, math.min(extents + 1, math.floor(value + 0.5)))
+                if edit.SetTopLineIndex then
+                    edit:SetTopLineIndex(targetLine)
+                end
+            end)
+        end
+        edit._scrollbar = scrollbar
+        edit._updateScrollbar = UpdateScrollbar
+
+        edit:SetHandler("OnMouseWheel", function(ctrl, delta, _, _, shift)
+            if not ctrl.GetTopLineIndex or not ctrl.SetTopLineIndex or not ctrl.GetScrollExtents then
+                return
+            end
+            local step = shift and (delta * 10) or delta
+            local extents = ctrl:GetScrollExtents()
+            local nextLine = math.max(1, math.min(extents + 1, ctrl:GetTopLineIndex() - step))
+            ctrl:SetTopLineIndex(nextLine)
+            UpdateScrollbar()
+        end)
+    end
 
     local function FocusEditBox()
         if edit._disabled then return end
@@ -80,22 +128,22 @@ function Widgets.CreateEditBoxWithBackdrop(name, parent, width, height, maxChars
     end)
     edit:SetHandler("OnFocusLost", function()
         edit._focused = false
-        bg:SetEdgeColor(0.68, 0.58, 0.36, 0.80)
+        if edit._hasWarning then
+            bg:SetEdgeColor(0.95, 0.28, 0.28, 1.0)
+        else
+            bg:SetEdgeColor(0.68, 0.58, 0.36, 0.80)
+        end
     end)
-    if onTextChanged then
+    if onTextChanged or isMultiLine then
         edit:SetHandler("OnTextChanged", function(ctrl)
-            onTextChanged(ctrl:GetText())
+            UpdateScrollbar()
+            if onTextChanged then
+                onTextChanged(ctrl:GetText())
+            end
         end)
     end
 
     return bg, edit
-end
-
-function Widgets.FormatSelected(label, isSelected)
-    if isSelected then
-        return "|c33FF33[" .. label .. "]|r"
-    end
-    return label
 end
 
 function Widgets.CycleIndex(currentIndex, totalCount, delta)

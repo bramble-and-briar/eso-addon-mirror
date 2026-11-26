@@ -739,10 +739,6 @@ local function buildOptions()
             return not AH.Vars.MarkIgnore
         end
     }
-
-    -- ============================================
-    -- НОВЫЕ НАСТРОЙКИ (добавлены в конец)
-    -- ============================================
     options[#options + 1] = {
         type = "header",
         name = "|cFFFACDОпасные атаки|r",
@@ -904,5 +900,22 @@ function AH.RegisterSettings()
     local options = buildOptions()
 
     AH.OptionsPanel = AH.LAM:RegisterAddonPanel("MarkTrialHelperOptionsPanel", panel)
+    do
+        local isRu = (GetCVar("language.2") == "ru")
+        table.insert(options, {
+            type = "checkbox",
+            name = isRu and "Оповещать о смерти Танка / Хила" or "Tank / Healer Death Alerts",
+            tooltip = isRu and "Показывать уведомление по центру экрана и звук при гибели танка или хилера в группе/рейде." or "Show a center-screen alert and sound when a Tank or Healer dies in your group/raid.",
+            getFunc = function() return AH.Vars.RoleDeathAlert ~= false end,
+            setFunc = function(val) AH.Vars.RoleDeathAlert = val end,
+            default = true,
+        })
+        table.insert(options, {
+            type = "button",
+            name = isRu and "Тест оповещения Танка/Хила" or "Test Role Death Alert",
+            func = function() if AH.TestRoleDeathAlert then AH.TestRoleDeathAlert() end end,
+        })
+    end
+
     AH.LAM:RegisterOptionControls("MarkTrialHelperOptionsPanel", options)
 end

@@ -461,8 +461,15 @@ AutoInteract:Debug("New pickup: %s  (type=%d, reason=%d)", link, itemType, updat
         return
     end
 
-    local quality   = GetItemQuality(bagId, slotIndex)
-    local traitType = select(1, GetItemLinkTraitInfo(link))
+    -- GetItemQuality(bagId, slotIndex) is not a supported ESO console API.
+    -- ESO exposes link quality; GetItemInfo() is a fallback for older builds.
+    local quality
+    if type(GetItemLinkQuality) == "function" and link ~= "" then
+        quality = GetItemLinkQuality(link)
+    elseif type(GetItemInfo) == "function" then
+        quality = select(8, GetItemInfo(bagId, slotIndex))
+    end
+    local traitType = type(GetItemLinkTraitInfo) == "function" and select(1, GetItemLinkTraitInfo(link)) or nil
     local isPoor      = (quality == ITEM_QUALITY_POOR)
     local isTrash     = (itemType == ITEMTYPE_TRASH)
     local isTreasure  = (itemType == ITEMTYPE_TREASURE)

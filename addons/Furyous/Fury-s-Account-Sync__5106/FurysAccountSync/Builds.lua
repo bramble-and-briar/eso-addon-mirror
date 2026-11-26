@@ -15,6 +15,25 @@ local LAST_SKILL    = 8
 local CP_SLOTS      = 12
 local STEP_MS       = 120    -- pause between slot changes so the server keeps up
 local QUICK_SLOTS   = 8      -- the quickslot wheel: slots 1 to 8 of its own hotbar category
+local GEAR_WAIT     = 3      -- extra pauses after each piece of gear; the server takes them one at a time
+
+-- Worn gear a build keeps, in the order it is put on.
+local GEAR_SLOTS = {
+    { slot = EQUIP_SLOT_HEAD,        name = "Head" },
+    { slot = EQUIP_SLOT_SHOULDERS,   name = "Shoulders" },
+    { slot = EQUIP_SLOT_CHEST,       name = "Chest" },
+    { slot = EQUIP_SLOT_HAND,        name = "Hands" },
+    { slot = EQUIP_SLOT_WAIST,       name = "Waist" },
+    { slot = EQUIP_SLOT_LEGS,        name = "Legs" },
+    { slot = EQUIP_SLOT_FEET,        name = "Feet" },
+    { slot = EQUIP_SLOT_NECK,        name = "Necklace" },
+    { slot = EQUIP_SLOT_RING1,       name = "Ring 1" },
+    { slot = EQUIP_SLOT_RING2,       name = "Ring 2" },
+    { slot = EQUIP_SLOT_MAIN_HAND,   name = "Front bar main hand" },
+    { slot = EQUIP_SLOT_OFF_HAND,    name = "Front bar off hand" },
+    { slot = EQUIP_SLOT_BACKUP_MAIN, name = "Back bar main hand" },
+    { slot = EQUIP_SLOT_BACKUP_OFF,  name = "Back bar off hand" },
+}
 
 local function AbilityName(id)
     return zo_strformat("<<C:1>>", GetAbilityName(id))
@@ -69,6 +88,38 @@ local function ReadQuick()
     return quick
 end
 
+local function ReadGear()
+    local gear = {}
+    for _, g in ipairs(GEAR_SLOTS) do
+        local link = GetItemLink(BAG_WORN, g.slot)
+        if link ~= "" then gear[g.slot] = link end
+    end
+    return gear
+end
+
+-- Same item, trait and quality: close enough to wear when the exact piece isn't in the bag.
+local function SameKind(a, b)
+    return GetItemLinkItemId(a) == GetItemLinkItemId(b)
+       and GetItemLinkTraitInfo(a) == GetItemLinkTraitInfo(b)
+       and GetItemLinkFunctionalQuality(a) == GetItemLinkFunctionalQuality(b)
+end
+
+-- The bag slot of the wanted piece: the exact one first, then one of the same kind. taken holds
+-- bag slots already promised to another gear slot (two of the same ring).
+local function FindGear(link, taken)
+    local close
+    for slot = 0, GetBagSize(BAG_BACKPACK) - 1 do
+        if not taken[slot] then
+            local have = GetItemLink(BAG_BACKPACK, slot)
+            if have ~= "" then
+                if have == link then return slot end
+                if not close and SameKind(have, link) then close = slot end
+            end
+        end
+    end
+    return close
+end
+
 function AS.SaveBuild(name)
     name = zo_strtrim(name or "")
     if name == "" then
@@ -84,6 +135,7 @@ function AS.SaveBuild(name)
         bars  = ReadBars(),
         cp    = ReadCP(),
         quick = ReadQuick(),
+        gear  = ReadGear(),
     }
     AS.Msg("Saved build \"" .. name .. "\" from " .. GetUnitName("player") .. ".")
     AS.RefreshWindow()
@@ -156,8 +208,8 @@ function AS.LoadBuild(name)
         return false
     end
     local parts = AS.SV().buildParts
-    if not (parts.skills or parts.cp or parts.quick) then
-        AS.Msg("Nothing is ticked to load. Tick skill bars, champion stars or quickslots first.")
+    if not (parts.skills or parts.cp or parts.quick or parts.gear) then
+        AS.Msg("Nothing is ticked to load. Tick skill bars, champion stars, quickslots or gear first.")
         return false
     end
     local steps, report, skipped = {}, {}, {}
@@ -217,6 +269,31 @@ function AS.LoadBuild(name)
         report[#report + 1] = placed .. " quickslots"
     end
 
+    if parts.gear then
+        local worn, taken = 0, {}
+        for _, g in ipairs(GEAR_SLOTS) do
+            local link = build.gear and build.gear[g.slot]
+            if link then
+                local wearing = GetItemLink(BAG_WORN, g.slot)
+                if wearing == link or (wearing ~= "" and SameKind(wearing, link)) then
+                    worn = worn + 1
+                else
+                    local bagSlot = FindGear(link, taken)
+                    if bagSlot then
+                        taken[bagSlot] = true
+                        worn = worn + 1
+                        steps[#steps + 1] = function() AS.Call("EquipItem", BAG_BACKPACK, bagSlot, g.slot) end
+                        for _ = 1, GEAR_WAIT do steps[#steps + 1] = function() end end
+                    else
+                        skip(g.name .. ": " .. zo_strformat("<<t:1>>", link) .. " is not in this character's bag")
+                    end
+                end
+            end
+        end
+        if not build.gear then skip("Gear: this build was saved before builds kept gear. Save it again to add it") end
+        report[#report + 1] = worn .. " pieces of gear"
+    end
+
     if parts.cp and build.cp then
         local stars = {}
         for slot = 1, CP_SLOTS do
@@ -270,3 +347,101 @@ EVENT_MANAGER:RegisterForEvent(AS.name .. "Builds", EVENT_CHAMPION_PURCHASE_RESU
             "). Changing stars has a short cooldown; try again in a moment.")
     end
 end)
+
+------------------------------------------------------------------------------
+-- A build as one line of text, to copy to another PC or hand to a friend
+------------------------------------------------------------------------------
+-- FASB1;name;class;P=ids;B=ids;C=ids;Q=slot:kind:id,...;G=slot:link fields,...
+-- Item links are kept as their number fields only, joined with "_", so the text holds no link
+-- characters and survives a chat box, a note or a forum post.
+local function LinkToFields(link)
+    local fields = link:match("|H%d:item:([%d:%-]+)|h")
+    if not fields then return nil end
+    return (fields:gsub(":", "_"))
+end
+
+local function FieldsToLink(fields)
+    return "|H1:item:" .. fields:gsub("_", ":") .. "|h|h"
+end
+
+local function Numbers(list, first, last)
+    local out = {}
+    for i = first, last do out[#out + 1] = tostring(list and list[i] or 0) end
+    return table.concat(out, ",")
+end
+
+function AS.BuildToText(name)
+    local b = AS.SV().builds[name]
+    if not b then return nil end
+    local clean = function(text) return (tostring(text or ""):gsub("[;|]", " ")) end
+    local parts = { "FASB1", clean(name), clean(b.class) }
+    parts[#parts + 1] = "P=" .. Numbers(b.bars and b.bars[HOTBAR_CATEGORY_PRIMARY], FIRST_SKILL, LAST_SKILL)
+    parts[#parts + 1] = "B=" .. Numbers(b.bars and b.bars[HOTBAR_CATEGORY_BACKUP], FIRST_SKILL, LAST_SKILL)
+    parts[#parts + 1] = "C=" .. Numbers(b.cp, 1, CP_SLOTS)
+    local quick = {}
+    for slot = 1, QUICK_SLOTS do
+        local q = b.quick and b.quick[slot]
+        if q and q.kind == "item" and q.link and LinkToFields(q.link) then
+            quick[#quick + 1] = slot .. ":i:" .. LinkToFields(q.link)
+        elseif q and q.kind == "collectible" then
+            quick[#quick + 1] = slot .. ":c:" .. tostring(q.id)
+        end
+    end
+    parts[#parts + 1] = "Q=" .. table.concat(quick, ",")
+    local gear = {}
+    for index, g in ipairs(GEAR_SLOTS) do
+        local link = b.gear and b.gear[g.slot]
+        local fields = link and LinkToFields(link)
+        if fields then gear[#gear + 1] = index .. ":" .. fields end
+    end
+    parts[#parts + 1] = "G=" .. table.concat(gear, ",")
+    return table.concat(parts, ";")
+end
+
+local function SplitNumbers(text, first)
+    local out, index = {}, first
+    for value in text:gmatch("[^,]+") do
+        out[index] = tonumber(value) or 0
+        index = index + 1
+    end
+    return out
+end
+
+-- Returns the build's name and the build, or nil and what is wrong with the text.
+function AS.BuildFromText(text)
+    text = zo_strtrim(text or "")
+    local fields = {}
+    for field in (text .. ";"):gmatch("(.-);") do fields[#fields + 1] = field end
+    if fields[1] ~= "FASB1" or #fields < 3 then
+        return nil, "That isn't a build text. It starts with FASB1; and comes from \"Show as text\" in this window."
+    end
+    local name = zo_strtrim(fields[2])
+    if name == "" then return nil, "The build text has no name in it." end
+    local build = { by = "text", char = "shared", class = fields[3], time = GetTimeStamp(),
+                    bars = {}, cp = {}, quick = {}, gear = {} }
+    for i = 4, #fields do
+        local key, value = fields[i]:match("^(%u)=(.*)$")
+        if key == "P" then
+            build.bars[HOTBAR_CATEGORY_PRIMARY] = SplitNumbers(value, FIRST_SKILL)
+        elseif key == "B" then
+            build.bars[HOTBAR_CATEGORY_BACKUP] = SplitNumbers(value, FIRST_SKILL)
+        elseif key == "C" then
+            build.cp = SplitNumbers(value, 1)
+        elseif key == "Q" then
+            for slot, kind, id in value:gmatch("(%d+):(%a):([%d_%-]+)") do
+                if kind == "i" then
+                    local link = FieldsToLink(id)
+                    build.quick[tonumber(slot)] = { kind = "item", id = GetItemLinkItemId(link), link = link }
+                elseif kind == "c" then
+                    build.quick[tonumber(slot)] = { kind = "collectible", id = tonumber(id) }
+                end
+            end
+        elseif key == "G" then
+            for index, link in value:gmatch("(%d+):([%d_%-]+)") do
+                local g = GEAR_SLOTS[tonumber(index)]
+                if g then build.gear[g.slot] = FieldsToLink(link) end
+            end
+        end
+    end
+    return name, build
+end

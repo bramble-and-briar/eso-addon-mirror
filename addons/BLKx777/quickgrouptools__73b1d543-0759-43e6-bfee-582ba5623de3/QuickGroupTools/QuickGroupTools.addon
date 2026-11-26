@@ -1,0 +1,10 @@
+## Title: Quick Group Tools
+## Author: BLKx777
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101051 101052
+## DependsOn: LibRadialMenu LibHarvensAddonSettings
+## SavedVariables: QuickGroupToolsSavedVariables
+## Description: Instant instance and group exit actions for the addon quickslot wheel.
+
+QuickGroupTools.lua

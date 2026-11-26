@@ -1,0 +1,24 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Fury's Guild Toolset">
+            <Action name="FURYGMT_REPORT">
+                <Down>FurysGuildToolset.Report:Toggle()</Down>
+            </Action>
+            <Action name="FURYGMT_CRIER_MENU">
+                <Down>FurysGuildToolset.Crier.KeyToggleMenu()</Down>
+            </Action>
+            <Action name="FURYGMT_CRIER_POST">
+                <Down>FurysGuildToolset.Crier.KeyPost()</Down>
+            </Action>
+            <Action name="FURYGMT_RECRUIT_AD">
+                <Down>FurysGuildToolset.Recruit.KeyAd()</Down>
+            </Action>
+            <Action name="FURYGMT_RECRUIT_TOUR">
+                <Down>FurysGuildToolset.Recruit.KeyTour()</Down>
+            </Action>
+            <Action name="FURYGMT_RECRUIT_NEXT">
+                <Down>FurysGuildToolset.Recruit.KeyNext()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

@@ -78,7 +78,9 @@ Recharge.defaultSettings = {
     showRepairKitsLeftAtVendor			= false,
     useRepairKitForItemLevel            = false,
 
-	dontUseCrownRepairKits				= false,
+	dontUseCrownRepairKits				= true,
+    allowImpresarioGroupRepairKits = false,
+    myuiAllowCrownRepairKits = false,
 	useCrownRepairKitsFirst				= false,
 	useCrownSoulgemsFirst				= false,
 
@@ -132,11 +134,8 @@ Recharge.IsPlayerDead = ARC_IsPlayerDead
 --or if we are not in combat it will be allowed to proceed.
 --returns true if allowed to proceed, false if not allowed
 local function duringCombatCheck(repairOrRechargeDuringCombatSetting, inCombat)
-	if inCombat == nil then inCombat = IsUnitInCombat(PLAYER) end
-	if inCombat == true and repairOrRechargeDuringCombatSetting ~= nil then
-		return repairOrRechargeDuringCombatSetting
-	end
-	return true
+    -- The gamepad edition never allows automatic repair/charge in combat.
+    return not IsUnitInCombat("player")
 end
 
 --Check if the BagId is the one of BAG_WORN (worn items), if the player is not currently dead,
@@ -322,6 +321,52 @@ local function resetRepair()
 	return
 end
 
+-- Impresario's Group Repair Kit (item ID 157516) is NOT returned by
+-- IsItemRepairKit. Only use it after explicit opt-in, in a group, with a
+-- genuinely worn equipment piece at <=5% condition, and never in combat.
+local MYUI_IMPRESARIO_GROUP_REPAIR_KIT_ID = 157516
+local myuiLastGroupKitAttemptMs = -100000
+local function MyUI_TryImpresarioGroupRepair(slotFilter)
+    local sv = Recharge.settings
+    if not sv or not sv.repairEnabled or sv.allowImpresarioGroupRepairKits ~= true then return false end
+    if IsUnitInCombat("player") or ARC_IsPlayerDead() or not IsUnitGrouped("player") then return false end
+    if type(GetItemLinkItemId) ~= "function" or type(GetBagSize) ~= "function" then return false end
+    local now = GetGameTimeMilliseconds()
+    if now - myuiLastGroupKitAttemptMs < 3000 then return false end
+    local needsRepair = false
+    for _, equipSlot in ipairs(_repairSlots) do
+        if (not slotFilter or slotFilter == equipSlot) and HasItemInSlot(BAG_WORN, equipSlot) then
+            local condition = GetItemCondition(BAG_WORN, equipSlot)
+            if type(condition) == "number" and condition <= 5 then
+                needsRepair = true
+                break
+            end
+        end
+    end
+    if not needsRepair then return false end
+    for inventorySlot = 0, GetBagSize(BAG_BACKPACK) - 1 do
+        local link = GetItemLink(BAG_BACKPACK, inventorySlot)
+        if link and link ~= "" and GetItemLinkItemId(link) == MYUI_IMPRESARIO_GROUP_REPAIR_KIT_ID then
+            if type(IsItemUsable) ~= "function" then return false end
+            local usable, actionSlotOnly = IsItemUsable(BAG_BACKPACK, inventorySlot)
+            if not usable or actionSlotOnly then return false end
+            myuiLastGroupKitAttemptMs = now
+            if IsProtectedFunction and IsProtectedFunction("UseItem") then
+                if type(CallSecureProtected) == "function" then
+                    CallSecureProtected("UseItem", BAG_BACKPACK, inventorySlot)
+                    return true
+                end
+                return false
+            elseif type(UseItem) == "function" then
+                UseItem(BAG_BACKPACK, inventorySlot)
+                return true
+            end
+            return false
+        end
+    end
+    return false
+end
+
 --Repair the equipped item with the slotIndex. If slotIndex is nil: Repair all equipped items
 local function ARC_RepairEquipped(chatOutput, inCombat, slotIndex)
     if IsUnitInCombat("player") then return end
@@ -351,6 +396,9 @@ if isDebugEnabled then d("<<ABORT - Repair run is active") end
 	--Get the repair kits and their count
 	local kitsCount, kits = ARC_GetRepairKitsCount()
 	if kitsCount == 0 then
+        -- The special group kit is intentionally a last resort and is
+        -- never part of the ordinary IsItemRepairKit collection.
+        if MyUI_TryImpresarioGroupRepair(slotIndex) then return resetRepair() end
 		if settings.alertRepairKitsEmpty then
 			if chatOutput and not settings.chatOutputSuppressNothingMessages then
 				println(GetString(ARC_ALERT_REPAIRKITS_EMPTY))
@@ -429,6 +477,10 @@ if isDebugEnabled then d("<<ABORT - Kits count is 0") end
 						--All other further slots to check
 						--Delay each slot check by the milliseconds repair delay chosen in the settings menu
 						zo_callLater(function()
+                            -- A new fight may have begun since this callback was scheduled.
+                            if IsUnitInCombat("player") or not (Recharge.settings and Recharge.settings.repairEnabled) then
+                                return resetRepair()
+                            end
 							if isDebugEnabled then d(">> !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 								d(">>Repair check, delayed by "..tostring(currentLoopDelay)..", next slot: " ..tostring(slot) .. "(".._slotText[slot]..")-" .. GetItemLink(BAG_WORN, slot)) end
 							--Prevent the repair try if a crown store repair kit was used already
@@ -853,6 +905,10 @@ local function ARC_EnforcePolicy()
     local sv = Recharge.settings
     sv.minChargePercent = 0.05
     sv.minConditionPercent = 0.05
+    -- Explicit opt-in only: older saved vars may have
+    -- dontUseCrownRepairKits=false, which must not silently grant consent.
+    sv.dontUseCrownRepairKits = (sv.myuiAllowCrownRepairKits ~= true)
+    sv.useCrownRepairKitsFirst = false
     sv.chargeDuringCombat = false
     sv.repairDuringCombat = false
     sv.chargeOnWeaponChange = false
@@ -871,12 +927,14 @@ local function ARC_Initialize()
 		arg = trim(arg)
 		if arg == nil or arg == "" then
 			if ARC_IsPlayerDead() == true then return end
-			ARC_ChargeEquipped(true, nil, nil)
+            ARC_EnforcePolicy()
+            ARC_ChargeEquipped(true, nil, nil)
 		else
 			local percent = TryParsePercent(arg)
 			if percent ~= nil and percent >= 0 and percent < 1 then
-				settings.minChargePercent = percent
-				println(GetString(ARC_CHATOUPUT_MIN_CHARGE),tostring(percent * 100),"%")
+                -- Policy is fixed at five percent; legacy commands cannot change it.
+                settings.minChargePercent = 0.05
+                println("My UI: Auto Recharge is fixed at 5% (out of combat).")
 			elseif percent ~= nil then
 				println(zo_strformat(GetString(ARC_CHATOUPUT_INVALID_PERCENTAGE), (percent * 100)))
 			else
@@ -895,13 +953,14 @@ local function ARC_Initialize()
 		arg = trim(arg)
 		if arg == nil or arg == "" then
 			if ARC_IsPlayerDead() == true then return end
+            ARC_EnforcePolicy()
             ARC_RepairEquipped(true, nil, nil)
 		else
 			local percent = TryParsePercent(arg)
 
 			if percent ~= nil and percent >= 0 and percent < 1 then
-				settings.minConditionPercent = percent
-				println(GetString(ARC_CHATOUPUT_MIN_CONDITION),tostring(percent * 100),"%")
+                settings.minConditionPercent = 0.05
+                println("My UI: Auto Repair is fixed at 5% (out of combat).")
 			elseif percent ~= nil then
 				println(zo_strformat(GetString(ARC_CHATOUPUT_INVALID_PERCENTAGE), (percent * 100)))
 			else

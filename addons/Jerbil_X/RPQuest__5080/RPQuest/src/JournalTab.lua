@@ -3,6 +3,7 @@
 -- Ref: docs/adr/0005-separacion-misiones-preparacion-y-juego.md
 -- Ref: docs/adr/0006-puntos-de-descubrimiento-ocultos.md
 -- Ref: docs/adr/0007-dialogos-inyectados-en-npcs-nativos.md
+-- Ref: docs/adr/0015-separacion-ciclo-de-vida-y-estado-de-resolucion.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -67,8 +68,8 @@ end
 local function GetQuestSectionKey(quest)
     if not quest then return nil end
     if Addon.QuestRepository:IsPreparedQuest(quest) then
-        local pStatus = Addon.QuestRepository:GetPreparedQuestStatus(quest)
-        return (pStatus == "draft") and "preparing" or "sent"
+        local lifecycle = Addon.QuestRepository:GetQuestLifecycle(quest)
+        return (lifecycle == Addon.Constants.QUEST_LIFECYCLE.DRAFT) and "preparing" or "sent"
     elseif Addon.QuestRepository:IsOfferedQuest(quest) then
         return "pending"
     elseif quest.completed then
@@ -220,8 +221,11 @@ function JournalTab:Initialize()
     local versionLabel = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_VersionLabel", panel, CT_LABEL)
     versionLabel:SetDimensions(140, 20)
     versionLabel:SetAnchor(TOPRIGHT, panel, TOPRIGHT, -33, 38)
+    versionLabel:SetDrawLayer(DL_OVERLAY)
+    versionLabel:SetDrawLevel(10)
     if versionLabel.SetFont then versionLabel:SetFont("ZoFontGameSmall") end
-    if versionLabel.SetColor then versionLabel:SetColor(0.68, 0.68, 0.68, 1) end
+    if versionLabel.SetColor then versionLabel:SetColor(0.95, 0.92, 0.82, 1) end
+    if versionLabel.SetStyleColor then versionLabel:SetStyleColor(0, 0, 0, 1) end
     if versionLabel.SetHorizontalAlignment then
         versionLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     end
@@ -494,8 +498,34 @@ function JournalTab:IntegrateIntoQuestJournalModeBar()
         EnsureTabAdded()
     end
 
+    local pendingRPQuestMode = false
+
+    ZO_PreHook(qj, "OnShowing", function(qjSelf)
+        if self._pendingRPQuestOpen then
+            pendingRPQuestMode = true
+            self._pendingRPQuestOpen = false
+        else
+            pendingRPQuestMode = false
+            if qjSelf.mode == tabDescriptor then
+                if qjSelf.SetMode then
+                    qjSelf:SetMode(ZO_QUEST_JOURNAL_MODE.QUESTS)
+                else
+                    qjSelf.mode = ZO_QUEST_JOURNAL_MODE.QUESTS
+                end
+            end
+        end
+    end)
+
     ZO_PostHook(qj, "OnShowing", function(qjSelf)
         EnsureTabAdded()
+        if pendingRPQuestMode then
+            pendingRPQuestMode = false
+            if qjSelf.SetMode then
+                qjSelf:SetMode(tabDescriptor)
+            else
+                qjSelf.mode = tabDescriptor
+            end
+        end
         if qjSelf.mode == tabDescriptor and qjSelf.tabs and qjSelf.tabs.SelectFragment then
             qjSelf.tabs:SelectFragment(self.tabCategoryName)
             if self._dirty then
@@ -504,6 +534,16 @@ function JournalTab:IntegrateIntoQuestJournalModeBar()
         end
         if qjSelf.tabs and qjSelf.tabs.UpdateButtons then
             qjSelf.tabs:UpdateButtons()
+        end
+    end)
+
+    ZO_PostHook(qj, "OnHiding", function(qjSelf)
+        if not self._pendingRPQuestOpen and qjSelf.mode == tabDescriptor then
+            if qjSelf.SetMode then
+                qjSelf:SetMode(ZO_QUEST_JOURNAL_MODE.QUESTS)
+            else
+                qjSelf.mode = ZO_QUEST_JOURNAL_MODE.QUESTS
+            end
         end
     end)
 end
@@ -531,8 +571,13 @@ function JournalTab:SyncEditorInputsToDraft()
         Addon.QuestRepository:UpdateDraftDiscoveryPoint(discIdx, { message = self.discoveryMsgEdit:GetText() }, true)
     end
     local targetIdx = self.selectedTargetIndex
-    if targetIdx and draft.targets and draft.targets[targetIdx] and self.targetCustomEdit then
-        Addon.QuestRepository:UpdateDraftTarget(targetIdx, { customMessage = self.targetCustomEdit:GetText() }, true)
+    if targetIdx and draft.targets and draft.targets[targetIdx] then
+        local targetFields = {}
+        if self.targetCustomEdit then targetFields.customMessage = self.targetCustomEdit:GetText() end
+        if self.targetInLocEdit then targetFields.customMessageInLocation = self.targetInLocEdit:GetText() end
+        if next(targetFields) ~= nil then
+            Addon.QuestRepository:UpdateDraftTarget(targetIdx, targetFields, true)
+        end
     end
 end
 
@@ -647,6 +692,10 @@ function JournalTab:OnSaveDraftClicked()
         if self.dlgResponseEdit then dlgFields.response = self.dlgResponseEdit:GetText() end
         Addon.QuestRepository:UpdateDraftDialogue(dlgIdx, dlgFields, true)
     end
+    local discIdx = self.selectedDiscoveryIndex
+    if discIdx and draft.discoveries and draft.discoveries[discIdx] and self.discoveryMsgEdit then
+        Addon.QuestRepository:UpdateDraftDiscoveryPoint(discIdx, { message = self.discoveryMsgEdit:GetText() }, true)
+    end
 
     local savedQuest, err = Addon.QuestRepository:SaveDraft(titleText, descText, nil, compMsgText, nil, recipientText, recipientCharText)
     if not savedQuest then
@@ -716,6 +765,7 @@ function JournalTab:OpenTab()
     end
 
     local qj = QUEST_JOURNAL_KEYBOARD or SYSTEMS:GetKeyboardObject("questJournal")
+    self._pendingRPQuestOpen = true
     if qj and qj.SetMode then
         qj:SetMode(self.tabDescriptor or Addon.Constants.UI.TAB_DESCRIPTOR)
     end
@@ -729,6 +779,7 @@ function JournalTab:OpenTab()
     -- OnShowing lo seleccionará cuando la escena previa termine de ocultarse y libere su keybind strip.
     local isShowingNow = SCENE_MANAGER:IsShowing("questJournal")
     if wasShowing or isShowingNow then
+        self._pendingRPQuestOpen = false
         if qj and qj.tabs and qj.tabs.SelectFragment and self.tabCategoryName then
             qj.tabs:SelectFragment(self.tabCategoryName)
         elseif self.panel then
@@ -760,15 +811,15 @@ function JournalTab:ToggleTab()
     end
 end
 
-local SENT_STATUS_LOCALE_KEYS = {
-    sent = "LIST_SENT_STATUS_SENT",
+local SENT_RESOLUTION_LOCALE_KEYS = {
     accepted = "LIST_SENT_STATUS_ACCEPTED",
     rejected = "LIST_SENT_STATUS_REJECTED",
     completed = "LIST_SENT_STATUS_COMPLETED",
+    failed = "LIST_SENT_STATUS_FAILED",
 }
 
 local function PartitionQuestsBySection(allQuests)
-    local roles = Addon.Constants.QUEST_ROLE
+    local lifecycles = Addon.Constants.QUEST_LIFECYCLE
     local buckets = {
         pending = {},
         missions = {},
@@ -777,9 +828,9 @@ local function PartitionQuestsBySection(allQuests)
         sent = {},
     }
     for _, q in ipairs(allQuests) do
-        if q.role == roles.PREPARED then
-            local pStatus = Addon.QuestRepository:GetPreparedQuestStatus(q)
-            if pStatus == "draft" then
+        if Addon.QuestRepository:IsPreparedQuest(q) then
+            local lifecycle = Addon.QuestRepository:GetQuestLifecycle(q)
+            if lifecycle == lifecycles.DRAFT then
                 table.insert(buckets.preparing, q)
             else
                 table.insert(buckets.sent, q)
@@ -813,22 +864,20 @@ end
 local function FormatQuestRowText(tab, q, sectionKey, isCompleted, activeQuest)
     local isSelected = (tab.selectedQuestId == q.id)
     local prefix, selColor
-    local suffix = q.failed and Addon.Locale:Get("LIST_FAILED_SUFFIX") or ""
+    local suffix = ""
     if isCompleted then
         prefix = "      |t16:16:/esoui/art/cadwell/check.dds|t "
         selColor = isSelected and "|cFFFFFF" or "|c8899AA"
     elseif sectionKey == "sent" then
-        local pStatus = Addon.QuestRepository:GetPreparedQuestStatus(q)
-        if pStatus == "completed" then
+        local resolution = Addon.QuestRepository:GetQuestResolution(q)
+        if resolution == "completed" then
             prefix = "      |t16:16:/esoui/art/cadwell/check.dds|t "
         else
             prefix = "          "
         end
         selColor = isSelected and "|cFFFFFF" or "|cC5C29E"
-        local statusLocaleKey = SENT_STATUS_LOCALE_KEYS[pStatus]
-        if statusLocaleKey then
-            suffix = suffix .. Addon.Locale:Get(statusLocaleKey)
-        end
+        local statusLocaleKey = (resolution and SENT_RESOLUTION_LOCALE_KEYS[resolution]) or "LIST_SENT_STATUS_SENT"
+        suffix = Addon.Locale:Get(statusLocaleKey)
     elseif Addon.QuestRepository:IsOfferedQuest(q) then
         prefix = "      |t18:18:/esoui/art/mail/mail_tabicon_inbox_up.dds|t "
         selColor = isSelected and "|cFFFFFF" or "|cFFD155"
@@ -836,8 +885,16 @@ local function FormatQuestRowText(tab, q, sectionKey, isCompleted, activeQuest)
         local isAct = (activeQuest and activeQuest.id == q.id)
         prefix = isAct and "      |t18:18:/esoui/art/journal/journal_quest_selected.dds|t " or "          "
         selColor = isSelected and "|cFFFFFF" or "|cC5C29E"
+        if sectionKey == "missions" then
+            local resolution = Addon.QuestRepository:GetQuestResolution(q)
+            if resolution == "failed" then
+                suffix = Addon.Locale:Get("LIST_FAILED_SUFFIX")
+            end
+        end
     end
-    return prefix .. selColor .. (q.title or "") .. "|r" .. suffix
+    local iconTex = Addon.QuestDraftStore and Addon.QuestDraftStore:GetQuestIconTexture(q.icon) or nil
+    local iconMarkup = iconTex and string.format("|t18:18:%s|t ", iconTex) or ""
+    return prefix .. iconMarkup .. selColor .. (q.title or "") .. "|r" .. suffix
 end
 
 function JournalTab:EnsureAccordionRow(sectionKey, section, index)

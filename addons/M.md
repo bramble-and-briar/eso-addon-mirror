@@ -36,6 +36,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Makos's Double Cast Protection](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/makos000/Makos-s-Double-Cast-Protection__3893) | makos000 | PC / Mac | 1.0.1 |
 | [Makos's HOTwindow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/makos000/Makos-s-HOTwindow__3948) | makos000 | PC / Mac | 1.2.2 |
 | [MaliBuu Lantern Keeper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MaliBuuGaming/MaliBuu-Lantern-Keeper__555cab61-7b0a-41ba-8fe9-4c8df0f82ed3) | MaliBuuGaming | Console | — |
+| [MANA Bank](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Beardborn/MANA-Bank__5117) | Beardborn | PC / Mac | 1.0.0 |
 | [Mansu's HouseBookmarks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KarimAG/Mansu-s-HouseBookmarks__4909) | KarimAG | PC / Mac | 1.0.0 |
 | [Mansu's InstanceReset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KarimAG/Mansu-s-InstanceReset__4900) | KarimAG | PC / Mac | 1.0.1 |
 | [Many Markers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dicen9/Many-Markers__59768602-717c-425b-a4ce-7ffc14887bc0) | dicen9 | Console | — |
@@ -56,7 +57,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Marcus' Guild Management Tool (Poukav CLI)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marcus-Brody/Marcus-Guild-Management-Tool-Poukav-CLI__3484) | Marcus Brody | PC / Mac | 1.9.2 |
 | [Mark My Spot](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smaxx/Mark-My-Spot__3369) | Smaxx | PC / Mac | 1.0.1 |
 | [Mark Of The Afflicted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/WidgetInteractive/Mark-Of-The-Afflicted__1707) | WidgetInteractive | PC / Mac | 1.2.1 |
-| [Mark Trial Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BadKeni/Mark-Trial-Helper__5102) | BadKeni | PC / Mac | 2.0.3 |
+| [Mark Trial Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BadKeni/Mark-Trial-Helper__5102) | BadKeni | PC / Mac | 2.2.0 |
 | [Marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/Marker__3684) | akamatsu02 | PC / Mac | 3.16 |
 | [MarkPledges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/MarkPledges__2261) | KLISK | PC / Mac | 1.0.5 |
 | [Martial Knowledge Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Skvysh/Martial-Knowledge-Tracker__2680) | Skvysh | PC / Mac | 1.7.1 |
@@ -71,6 +72,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [MasterThief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Adalan/MasterThief__1014) | Adalan | PC / Mac | 1.9 |
 | [MasterThief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thewizadt/MasterThief__f3c99a31-b8b1-46d8-9717-1c3877f00995) | thewizadt | Console | — |
 | [MasterThief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thewizadt/MasterThief__f7a31693-2690-4ce0-973f-0af5e5ce92f8) | thewizadt | Console | — |
+| [MasterWrits Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KanashiReinkyatto/MasterWrits-Companion__5114) | KanashiReinkyatto | PC / Mac | 0.4.6b |
 | [MatCalc](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Claymourn/MatCalc__2733) | Claymourn | PC / Mac | 1.1.3 |
 | [Match Monitor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bucketmore/Match-Monitor__0d43993b-0f07-4f0b-9411-53ad5c85a2f4) | Bucketmore | Console | — |
 | [Materialist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DeDumCHee/Materialist__2574) | DeDumCHee | PC / Mac | 1.2 |

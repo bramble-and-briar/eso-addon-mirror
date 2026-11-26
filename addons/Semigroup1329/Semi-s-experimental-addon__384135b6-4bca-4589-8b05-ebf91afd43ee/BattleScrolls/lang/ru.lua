@@ -68,6 +68,7 @@ SafeAddString(BATTLESCROLLS_IPOC_MISSING_BUILD, "Проверьте назван
 SafeAddString(BATTLESCROLLS_IPOC_WORK_EQUIP, "Надеваем снаряжение спутника", 1)
 SafeAddString(BATTLESCROLLS_IPOC_COMPANION_UPGRADE, "<<1>>: доступно более подходящее снаряжение.", 1)
 SafeAddString(BATTLESCROLLS_IPOC_WORK_REOPEN, "Откройте эту услугу снова, чтобы воспользоваться её меню. После этого посещения автоматические действия приостановятся на 5 минут.", 1)
+SafeAddString(BATTLESCROLLS_IPOC_RESUME_TRADER, "Возобновить работу в гильдейском магазине", 1)
 SafeAddString(BATTLESCROLLS_IPOC_EQUIPPED, "Экипировано: <<1>>. Спутник: <<2>>", 1)
 SafeAddString(BATTLESCROLLS_IPOC_LISTED, "Выставлено: <<1>> × <<2>> за <<3>> золота в гильдии «<<4>>». Пошлина: <<5>> золота", 1)
 SafeAddString(BATTLESCROLLS_IPOC_OPENED, "Открыто: <<1>>", 1)

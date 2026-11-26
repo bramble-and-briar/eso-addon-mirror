@@ -221,6 +221,11 @@ end
 
 local function onPlayerActivated()
     local mapId = GetCurrentMapId()
+    if IsInstanceEndlessDungeon() then
+        EVENT_MANAGER:RegisterForEvent(AH.Name .. "_Mechanics", EVENT_COMBAT_EVENT, MechanicsEventHandler)
+    else
+        EVENT_MANAGER:UnregisterForEvent(AH.Name .. "_Mechanics", EVENT_COMBAT_EVENT)
+    end
 
     if (lastMapId ~= mapId) then
         lastMapId = mapId
@@ -709,10 +714,6 @@ function AH.HandleDataShare(_, info)
         AH.Debug("Received sharing notification")
     end
 end
-
--- ============================================
--- ОБРАБОТЧИК МЕХАНИК (КАК В IAHelper)
--- ============================================
 local function MechanicsEventHandler(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
     -- Pillars of Nirn
     if abilityId == 202632 then
@@ -765,14 +766,8 @@ function AH.SetupEvents()
     EVENT_MANAGER:RegisterForEvent(AH.Name, EVENT_LEADER_UPDATE, onLeaderUpdate)
     EVENT_MANAGER:RegisterForEvent(AH.Name, EVENT_PLAYER_REINCARNATED, onReincarnated)
     EVENT_MANAGER:RegisterForEvent(AH.Name, EVENT_RESURRECT_RESULT, onResurrected)
-    
-    -- Опасные атаки (таймеры)
     EVENT_MANAGER:RegisterForEvent(AH.Name .. "_Danger", EVENT_COMBAT_EVENT, AH.DangerCombatEventHandler)
-    
-    -- Механики (Pillars, Soul Cage, Meteor, Abyss, Totem, Scamp, Negate, Inferno)
-    EVENT_MANAGER:RegisterForEvent(AH.Name .. "_Mechanics", EVENT_COMBAT_EVENT, MechanicsEventHandler)
-    
-    -- Ослабление
+-- Ослабление
     EVENT_MANAGER:RegisterForEvent(AH.Name .. "_Weakening", EVENT_EFFECT_CHANGED, AH.OnWeakeningEffect)
     EVENT_MANAGER:AddFilterForEvent(AH.Name .. "_Weakening", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 17945)
     

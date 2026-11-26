@@ -206,12 +206,12 @@ function A.FindZoneName(id)
     local parts = combined[id]
     if parts then
         local names = {}
-        for _, zone in ipairs(parts) do table.insert(names, zo_strformat("<<C:1>>", GetZoneNameById(zone))) end
+        for _, zone in ipairs(parts) do table.insert(names, A.ZoneName(zone)) end
         return table.concat(names, ", ")
     end
     if id == 101010 then return A.L("Любая зона") end
     if id == 101011 then return A.L("Поля сражений") end
     if id == 101016 then return A.L("Зона неизвестна") end
-    if id == 555 then return zo_strformat("<<C:1>>", GetZoneNameById(1570)) end
-    return zo_strformat("<<C:1>>", GetZoneNameById(id))
+    if id == 555 then return A.ZoneName(1570) end
+    return A.ZoneName(id)
 end

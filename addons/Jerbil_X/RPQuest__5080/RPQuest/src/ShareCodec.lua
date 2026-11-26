@@ -4,6 +4,8 @@
 -- Ref: docs/adr/0007-dialogos-inyectados-en-npcs-nativos.md
 -- Ref: docs/adr/0008-codec-compacto-rpq3-lzss-base85.md
 -- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
+-- Ref: docs/adr/0015-separacion-ciclo-de-vida-y-estado-de-resolucion.md
+-- Ref: docs/adr/0016-limites-texto-y-entidades-presupuesto-correo.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -79,7 +81,7 @@ local function EncodeTargetsList(targets)
     if type(targets) ~= "table" or #targets == 0 then
         return ""
     end
-    local defaultRad = (Addon.Constants and Addon.Constants.DISCOVERY_RADIUS and Addon.Constants.DISCOVERY_RADIUS.MEDIUM) or 1500
+    local defaultRad = (Addon.Constants and Addon.Constants.DISCOVERY_RADIUS and Addon.Constants.DISCOVERY_RADIUS.MEDIUM) or 3900
     local items = {}
     for _, t in ipairs(targets) do
         if type(t) == "table" and type(t.name) == "string" and t.name ~= "" then
@@ -89,9 +91,8 @@ local function EncodeTargetsList(targets)
             local isOpt = (t.optional == true)
             local msg = type(t.customMessage) == "string" and t.customMessage or ""
             local msgInLoc = type(t.customMessageInLocation) == "string" and t.customMessageInLocation or ""
-            local msgOutLoc = type(t.customMessageOutsideLocation) == "string" and t.customMessageOutsideLocation or ""
             local hasArea = (t.areaCenterX ~= nil and t.areaCenterY ~= nil and t.areaRadius ~= nil and tonumber(t.areaRadius) > 0)
-            if hasLoc or reqLoc or msg ~= "" or msgInLoc ~= "" or msgOutLoc ~= "" or isOpt or hasArea then
+            if hasLoc or reqLoc or msg ~= "" or msgInLoc ~= "" or isOpt or hasArea then
                 local parts = {
                     EscapeField(t.name),
                     tostring(req),
@@ -106,7 +107,6 @@ local function EncodeTargetsList(targets)
                     hasArea and string.format("%.4f", tonumber(t.areaCenterY)) or "",
                     hasArea and string.format("%.4f", tonumber(t.areaRadius)) or "",
                     EscapeField(msgInLoc),
-                    EscapeField(msgOutLoc),
                 }
                 table.insert(items, table.concat(parts, "~"))
             else
@@ -121,7 +121,7 @@ local function EncodeDiscoveriesList(discoveries)
     if type(discoveries) ~= "table" or #discoveries == 0 then
         return ""
     end
-    local defaultRad = (Addon.Constants and Addon.Constants.DISCOVERY_RADIUS and Addon.Constants.DISCOVERY_RADIUS.MEDIUM) or 1500
+    local defaultRad = (Addon.Constants and Addon.Constants.DISCOVERY_RADIUS and Addon.Constants.DISCOVERY_RADIUS.MEDIUM) or 3900
     local items = {}
     for _, d in ipairs(discoveries) do
         if type(d) == "table" and d.worldX and d.worldZ then
@@ -146,7 +146,7 @@ local function EncodeDialoguesList(dialogues)
     if type(dialogues) ~= "table" or #dialogues == 0 then
         return ""
     end
-    local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 3
+    local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 4
     local items = {}
     for _, d in ipairs(dialogues) do
         if #items >= maxNpcs then break end
@@ -244,6 +244,11 @@ local function BuildQuestPayloadString(quest)
         EscapeField((type(quest.language) == "string" and quest.language ~= "" and quest.language:lower()) or GetClientLanguage()),
     }
 
+    local questIcon = Addon.QuestDraftStore and Addon.QuestDraftStore:NormalizeQuestIcon(quest.icon) or nil
+    if questIcon then
+        table.insert(fields, EscapeField(questIcon))
+    end
+
     return table.concat(fields, "|")
 end
 
@@ -261,7 +266,6 @@ local function PackTargetsBlock(buf, quest, targets, defaultRad)
         local isOpt = (t.optional == true)
         local tMsg = type(t.customMessage) == "string" and t.customMessage or ""
         local tMsgInLoc = type(t.customMessageInLocation) == "string" and t.customMessageInLocation or ""
-        local tMsgOutLoc = type(t.customMessageOutsideLocation) == "string" and t.customMessageOutsideLocation or ""
         local hasArea = (t.areaCenterX ~= nil and t.areaCenterY ~= nil and t.areaRadius ~= nil and (tonumber(t.areaRadius) or 0) > 0)
         local tFlags = (hasLoc and 1 or 0)
             + (reqLoc and 2 or 0)
@@ -269,7 +273,6 @@ local function PackTargetsBlock(buf, quest, targets, defaultRad)
             + (isOpt and 8 or 0)
             + (hasArea and 16 or 0)
             + (tMsgInLoc ~= "" and 32 or 0)
-            + (tMsgOutLoc ~= "" and 64 or 0)
         BinaryCodec:WriteByte(buf, tFlags)
         BinaryCodec:WriteStr(buf, t.name or "")
         BinaryCodec:WriteUVarint(buf, math.max(1, math.floor(tonumber(t.requiredCount) or 1)))
@@ -290,9 +293,6 @@ local function PackTargetsBlock(buf, quest, targets, defaultRad)
         if tMsgInLoc ~= "" then
             BinaryCodec:WriteStr(buf, tMsgInLoc)
         end
-        if tMsgOutLoc ~= "" then
-            BinaryCodec:WriteStr(buf, tMsgOutLoc)
-        end
     end
 end
 
@@ -312,7 +312,7 @@ local function PackDiscoveriesBlock(buf, discoveries, defaultRad)
 end
 
 local function PackDialoguesBlock(buf, dialogues)
-    local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 3
+    local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 4
     local count = math.min(#dialogues, maxNpcs)
     BinaryCodec:WriteUVarint(buf, count)
     for idx = 1, count do
@@ -324,7 +324,7 @@ local function PackDialoguesBlock(buf, dialogues)
 end
 
 local function PackDialogueCluesBlock(buf, dialogues, forceWrite)
-    local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 3
+    local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 4
     local count = math.min(#dialogues, maxNpcs)
     local hasPerNpcClue = forceWrite and true or false
     if not hasPerNpcClue then
@@ -376,7 +376,7 @@ local function PackQuestBinary(quest)
     BinaryCodec:WriteUVarint(buf, quest.zoneId or 0)
     BinaryCodec:WriteStr(buf, quest.mapName or "")
 
-    local defaultRad = (Addon.Constants and Addon.Constants.DISCOVERY_RADIUS and Addon.Constants.DISCOVERY_RADIUS.MEDIUM) or 1500
+    local defaultRad = (Addon.Constants and Addon.Constants.DISCOVERY_RADIUS and Addon.Constants.DISCOVERY_RADIUS.MEDIUM) or 3900
     if #targets > 0 then
         PackTargetsBlock(buf, quest, targets, defaultRad)
     end
@@ -395,7 +395,9 @@ local function PackQuestBinary(quest)
     local recipientChar = (type(quest.recipientCharacterName) == "string") and quest.recipientCharacterName or ""
     local hasCharNames = (senderChar ~= "" or recipientChar ~= "")
     local isStealthRequired = (stealthMode == modes.REQUIRED)
-    local hasTrailing = hasCharNames or isStealthRequired
+    local questIcon = Addon.QuestDraftStore and Addon.QuestDraftStore:NormalizeQuestIcon(quest.icon) or nil
+    local hasIcon = (questIcon ~= nil)
+    local hasTrailing = hasCharNames or isStealthRequired or hasIcon
 
     if #dialogues > 0 then
         PackDialogueCluesBlock(buf, dialogues, hasTrailing)
@@ -406,8 +408,12 @@ local function PackQuestBinary(quest)
         BinaryCodec:WriteStr(buf, recipientChar)
     end
 
-    if isStealthRequired then
-        BinaryCodec:WriteByte(buf, 1)
+    if isStealthRequired or hasIcon then
+        local extFlags = (isStealthRequired and 1 or 0) + (hasIcon and 2 or 0)
+        BinaryCodec:WriteByte(buf, extFlags)
+        if hasIcon then
+            BinaryCodec:WriteStr(buf, questIcon)
+        end
     end
 
     return table.concat(buf)
@@ -475,6 +481,9 @@ local function UnpackTargetsBlock(data, pos, len)
             tMsgOutLoc, pos = BinaryCodec:ReadStr(data, pos, len)
             if not tMsgOutLoc then return nil, "ERR_IMPORT_INCOMPLETE_DATA" end
         end
+        if tMsg == "" and tMsgOutLoc ~= "" then
+            tMsg = tMsgOutLoc
+        end
         table.insert(decodedTargets, {
             name = tName,
             currentCount = 0,
@@ -490,7 +499,6 @@ local function UnpackTargetsBlock(data, pos, len)
             optional = tOptional,
             customMessage = tMsg,
             customMessageInLocation = tMsgInLoc,
-            customMessageOutsideLocation = tMsgOutLoc,
         })
     end
 
@@ -594,7 +602,7 @@ local function UnpackQuestBinary(data)
         return nil, "ERR_IMPORT_INCOMPLETE_DATA"
     end
 
-    local defaultRad = (Addon.Constants and Addon.Constants.DISCOVERY_RADIUS and Addon.Constants.DISCOVERY_RADIUS.MEDIUM) or 1500
+    local defaultRad = (Addon.Constants and Addon.Constants.DISCOVERY_RADIUS and Addon.Constants.DISCOVERY_RADIUS.MEDIUM) or 3900
     local targetsResult
     local decodedTargets = {}
     if hasTargets then
@@ -657,10 +665,20 @@ local function UnpackQuestBinary(data)
 
     local modes = Addon.Constants.STEALTH_MODE
     local stealthMode = requireUndetected and modes.OPTIONAL or modes.DISABLED
+    local icon = nil
     if pos <= len then
-        local extFlags = BinaryCodec:ReadByte(data, pos, len)
-        if extFlags and (extFlags % 2) == 1 then
-            stealthMode = modes.REQUIRED
+        local extFlags, nextPos = BinaryCodec:ReadByte(data, pos, len)
+        pos = nextPos or (pos + 1)
+        if extFlags then
+            if (extFlags % 2) == 1 then
+                stealthMode = modes.REQUIRED
+            end
+            if math.floor(extFlags / 2) % 2 == 1 and pos <= len then
+                local rawIcon = BinaryCodec:ReadStr(data, pos, len)
+                if rawIcon then
+                    icon = Addon.QuestDraftStore and Addon.QuestDraftStore:NormalizeQuestIcon(rawIcon) or (rawIcon ~= "" and rawIcon or nil)
+                end
+            end
         end
     end
 
@@ -692,6 +710,7 @@ local function UnpackQuestBinary(data)
         targetY = (#decodedTargets > 0) and (targetsResult.targetY or areaCenterY) or nil,
         recommendHideMapAreas = hideMapArea,
         stealthMode = stealthMode,
+        icon = icon,
         language = (sourceLanguage ~= "" and sourceLanguage) or nil,
         senderCharacterName = (senderCharacterName ~= "" and senderCharacterName) or nil,
         recipientCharacterName = (recipientCharacterName ~= "" and recipientCharacterName) or nil,
@@ -828,8 +847,10 @@ local function EncodeResultCode(quest, characterName, timestamp, resultType)
     local ts = math.max(0, math.floor(tonumber(timestamp) or 0))
     local stealthFlag = ""
     local stealthMode = ResolveStealthMode(quest)
-    if kind == "completed" and stealthMode ~= Addon.Constants.STEALTH_MODE.DISABLED then
-        stealthFlag = quest.wasDetected and "1" or "0"
+    if stealthMode ~= Addon.Constants.STEALTH_MODE.DISABLED then
+        if kind == "completed" or (kind == "failed" and quest.wasDetected ~= nil) then
+            stealthFlag = quest.wasDetected and "1" or "0"
+        end
     end
     local optionalFlag = ""
     if kind == "completed" and type(quest.targets) == "table" then
@@ -849,6 +870,8 @@ local function EncodeResultCode(quest, characterName, timestamp, resultType)
         resultFlag = "1"
     elseif kind == "accepted" then
         resultFlag = "2"
+    elseif kind == "failed" then
+        resultFlag = "3"
     end
     local rawPayload = table.concat({
         signature,
@@ -876,6 +899,10 @@ end
 
 function ShareCodec:EncodeAcceptance(quest, characterName, acceptedAt)
     return EncodeResultCode(quest, characterName, acceptedAt, "accepted")
+end
+
+function ShareCodec:EncodeFailure(quest, characterName, failedAt)
+    return EncodeResultCode(quest, characterName, failedAt, "failed")
 end
 
 function ShareCodec:DecodeCompletion(codeString)
@@ -918,6 +945,8 @@ function ShareCodec:DecodeCompletion(codeString)
         resultType = "rejected"
     elseif flag == "2" then
         resultType = "accepted"
+    elseif flag == "3" then
+        resultType = "failed"
     else
         return nil, "VALIDATE_ERR_INVALID_CODE"
     end
@@ -951,6 +980,7 @@ function ShareCodec:DecodeCompletion(codeString)
         completed = completed,
         rejected = (resultType == "rejected"),
         accepted = (resultType == "accepted"),
+        failed = (resultType == "failed"),
         resultType = resultType,
         completedAt = math.max(0, math.floor(completedAt)),
         wasDetected = wasDetected,

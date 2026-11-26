@@ -1,4 +1,9 @@
 local appName = "warmaskTracker"
+local appVersion = 0 -- bump this on each update
+local name = "apps screen name"
+local info = "What's New:\nreason for update."
+local alreadyChecked = false
+local notFoundAlreadyChecked = false
 local maskBuffID = 252050
 local maskDebuffID = 252048
 local markOfHircineID = 252048
@@ -33,7 +38,8 @@ warmaskTracker.defaults = {
     yAxisTextW = 720,
     xAxisTextW = 830,
     yAxisTextP = 680,
-    xAxisTextP = 830
+    xAxisTextP = 830,
+	lastSeenVersion = 0
 }
 
 --print message to chat box
@@ -315,8 +321,12 @@ end
 --stop tracking if set is not equipped
 local function stopTrackingAuto()
 
-    if warmaskTracker.savedVariables.trackWarmask and warmaskTracker.savedVariables.autoTrack then
-        printMessage("Huntsman's Warmask set not found")
+    if warmaskTracker.savedVariables.trackWarmask and warmaskTracker.savedVariables.autoTrack then 
+		if not notFoundAlreadyChecked then
+            printMessage("Huntsman's Warmask set not found")
+        end
+		notFoundAlreadyChecked = true
+		alreadyChecked = false
         unRegisterAlerts()
         wmtAddonText:SetHidden(true)
     end
@@ -325,7 +335,11 @@ end
 --start tracking if set is not equipped
 local function startTrackingAuto()
     if warmaskTracker.savedVariables.trackWarmask and warmaskTracker.savedVariables.autoTrack then
-        printMessage("Found Huntsman's Warmask set")
+		if not alreadyChecked then
+			printMessage("Found Huntsman's Warmask set")
+		end
+		notFoundAlreadyChecked = false
+		alreadyChecked = true
         registerAlerts()
     end
 end
@@ -406,7 +420,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text x Position",
             tooltip = "Adjust the left and right position of the on screen icon and timer text.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return warmaskTracker.savedVariables.xAxisText
             end,
@@ -420,7 +434,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text y Position",
             tooltip = "Adjust the up and down position of the on screen icon and timer text.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return warmaskTracker.savedVariables.yAxisText
             end,
@@ -446,7 +460,7 @@ local function createOptions()
             type = "slider",
             name = "Who has debuff Text x Position",
             tooltip = "Adjust the left and right position of the on screen text that tells you who has the Mark of Hircine debuff.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return warmaskTracker.savedVariables.xAxisTextW
             end,
@@ -460,7 +474,7 @@ local function createOptions()
             type = "slider",
             name = "Who has debuff Text y Position",
             tooltip = "Adjust the up and down position of the on screen text that tells you who has the Mark of Hircine debuff.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return warmaskTracker.savedVariables.yAxisTextW
             end,
@@ -486,7 +500,7 @@ local function createOptions()
             type = "slider",
             name = "Who is targeting Text x Position",
             tooltip = "Adjust the left and right position of the on screen text that tells you who targeted you with the Mark of Hircine debuff.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return warmaskTracker.savedVariables.xAxisTextP
             end,
@@ -500,7 +514,7 @@ local function createOptions()
             type = "slider",
             name = "Who is targeting Text y Position",
             tooltip = "Adjust the up and down position of the on screen text that tells you who targeted you with the Mark of Hircine debuff.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return warmaskTracker.savedVariables.yAxisTextP
             end,
@@ -557,6 +571,14 @@ local function createOptions()
     LAM:RegisterOptionControls("Warmask Tracker", optionsData)
 end
 
+--notify about update when player activates
+local function activated()
+    if warmaskTracker.savedVariables.lastSeenVersion ~= appVersion then
+        zo_callLater(function() LibNotify.postUpdateNotification(appName, info, name) end, 500)
+        warmaskTracker.savedVariables.lastSeenVersion = appVersion
+    end
+end
+
 --an addon has loaded
 local function onAddOnLoaded(event, name)
 
@@ -589,11 +611,11 @@ local function onAddOnLoaded(event, name)
     --check if set is equipped
     if not isSetEquiped(setId, setCount) and warmaskTracker.savedVariables.autoTrack and warmaskTracker.savedVariables.trackWarmask then
         --notify set not found
-        zo_callLater(function() printMessage("Huntsman's Warmask set not found") end, 600)
+        zo_callLater(function() printMessage("Huntsman's Warmask set not found") notFoundAlreadyChecked = true end, 600)
     elseif isSetEquiped(setId, setCount) and warmaskTracker.savedVariables.autoTrack and warmaskTracker.savedVariables.trackWarmask then
         isEquiped = true
         --notify set found
-        zo_callLater(function() printMessage("Found Huntsman's Warmask set") end, 600)
+        zo_callLater(function() printMessage("Found Huntsman's Warmask set") alreadyChecked = true end, 600)
     end
 
     --double check if set is equipped without autotracking stipulation
@@ -645,6 +667,9 @@ local function onAddOnLoaded(event, name)
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
+	
+	--register for activation notifications, leaving this always active
+    EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, activated)
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

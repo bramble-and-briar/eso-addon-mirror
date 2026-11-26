@@ -24,9 +24,14 @@ Identical stacks in the same place are added together. Stolen copies get their o
 - At login, and a moment after anything in your bags, bank or craft bag changes.
 - House storage and the Furniture Vault: when you open and close them. Open each one once after installing.
 - Placed furniture: when you enter a house you own, and after you place or remove furniture there.
-- Other characters only update when you log in on them. `/ledger chars` lists the ones still missing.
+- Other characters only update when you log in on them.
+- The summary page has a **Still to read** section that lists what is missing (characters, coffers, the
+  Furniture Vault, houses) and how to add it. It disappears when nothing is left.
 
 ## Summary page (`/ledger`)
+
+- **Find:** type part of an item or set name in the Find box (top right) to see how many you own and where,
+  on every character and account read so far. Clear the box to go back. `/ledger find <words>` does the same in chat.
 
 - **Tiles:** total items, different items, stacks, gold, vendor value and characters scanned, with the
   change since yesterday.
@@ -34,10 +39,15 @@ Identical stacks in the same place are added together. Stolen copies get their o
   changed since yesterday and over the last 7 days. Currencies update the moment they change.
 - **Where it is:** items, stacks, vendor value and share for each place (characters, companions, bank,
   craft bag, house storage, Furniture Vault, placed furniture).
+- **Gold over time:** a bar for each saved day, up to 120.
+- **Space left:** used and free slots in the bank, each coffer and the Furniture Vault. Each character's free
+  bag slots are in the Characters table. Nearly full shows in amber, full in rose.
 - **By item type** and **by quality:** how many of each you own.
+- **Split stacks:** stackable items kept in more than one place, with the count in each.
+- **Gear by set:** your sets by number of pieces, and who holds them.
 - **Most owned:** your top 25 items by count, and where you keep them.
-- **Characters:** items carried and equipped, gold, and when each was last scanned. Characters not scanned
-  yet are listed too.
+- **Characters:** items carried and equipped, gold, and when each was last read. Characters not read
+  yet are listed too, and a deleted character is marked with the command that removes it.
 
 The change columns compare against a total the addon saves once a day (at logout, reload, zoning and when
 you open the summary). They fill in from your second day with the addon. If there is no saved total from
@@ -49,13 +59,20 @@ Changes are shown in green when they went up and in rose when they went down. Go
 ## Getting it into Excel
 
 **Full file (Windows):**
-1. Log out, or type `/reloadui`. The game only writes saved data at those moments.
+1. In game, click **Prepare the Excel file** under `/ledger settings` (or type `/ledger export`). It builds
+   the full list and asks before it reloads the interface, because the game only writes saved data when it
+   reloads or you log out.
 2. Download the separate **Windows tools** zip (in game: **Get the Windows tools** under `/ledger settings`, or `/ledger tools`; the game asks before it opens your browser. The link is also on the addon's ESOUI page) and unzip it anywhere,
    for example `Documents\Elder Scrolls Online`. It is not part of the addon download, because ESOUI addon
    zips may only hold addon files.
 3. Double-click `ExportToExcel.cmd`. It writes `ESO Inventory <date time>.csv` to your Desktop and opens it.
 
+**Keep the Excel file ready** (a setting, starts turned off): when on, the full list is saved every time you
+log out, reload or change zone, so step 1 is not needed. It about doubles the size of the addon's saved file.
+If you used the addon before 1.5.0 it is on for you, as before.
+
 **In game:** `/ledger copy` (or **Copy for Excel** on the summary) opens the copy window. Click **Select All**, press Ctrl+C, paste into Excel.
+The **List** picker narrows it to this account, one character or one kind of place, and **Type** to one item type.
 Large lists are split into pages; paste each page under the last. The copy window leaves out the Item Link
 column to keep pages small.
 
@@ -73,12 +90,17 @@ Scanned, Item Link.
 ## Settings
 
 The gear on the summary or the copy window, Settings > Addons > Fury's Inventory Ledger, `/ledger settings`
-or `/ledgersettings`: open the summary, copy window separator (tab or comma), open the copy window, rescan now.
+or `/ledgersettings`: open the summary, copy window separator (tab or comma), open the copy window, rescan now,
+Prepare the Excel file, Keep the Excel file ready, Get the Windows tools, and **Show what I own on item tooltips**
+(starts turned off): one line on item tooltips such as "You own 412: Bank 200, Craft Bag 212".
 
 ## Commands
 
 - `/ledger` open the summary
+- `/ledger start` the Start here page: how the ledger works, in one page
+- `/ledger find <words>` where an item or set is, across every character and account
 - `/ledger copy` open the copy window
+- `/ledger export` prepare the full Excel file for the Windows tools (asks before it reloads)
 - `/ledger scan` read everything that can be read right now
 - `/ledger chars` characters scanned so far, and the ones still missing
 - `/ledger forget <name>` remove a deleted character
@@ -96,6 +118,15 @@ or `/ledgersettings`: open the summary, copy window separator (tab or comma), op
 - Two game clients at once: each client writes its own copy of the saved data at logout or /reloadui, so the
   one that saves last wins. Let one client log out before the other logs in.
 - Item names, qualities and types come from the game in your client's language. Column headings are in English.
+
+## More from Fury
+
+- [Fury's Guild Toolset](https://www.esoui.com/downloads/info5063.html): an officer's toolkit: bank alerts, member and inactivity reports, trader week totals, raffles, event sign-ups and recruiting.
+- [Fury's Character Tracker](https://www.esoui.com/downloads/info5078.html): every character on one board: skill lines, crafting, research, daily writs, wallet and gear.
+- [Fury's Account Sync](https://www.esoui.com/downloads/info5106.html): make your other accounts on this PC match your main one: settings, keybinds, addon settings and builds.
+- [Fury's Quality of Life](https://www.esoui.com/downloads/info5115.html): small comforts for everyday play: Select all when you deconstruct, a fishing bite alert with the right bait, a queue alert and a lock for everything you wear.
+
+All free on ESOUI and in Minion.
 
 ## Credits
 

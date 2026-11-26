@@ -1,5 +1,9 @@
 local appName = "advancingYokedaTracker"
-
+local appVersion = 0 -- bump this on each update
+local name = "apps screen name"
+local info = "What's New:\nreason for update."
+local alreadyChecked = false
+local notFoundAlreadyChecked = false
 local isLoaded = false
 local advBuffID = 50978
 local timeRemaining = 0
@@ -22,6 +26,7 @@ advancingYokedaTracker.defaults = {
 	notifyStart = true,
     yAxisText = 930,
     xAxisText = 1400,
+	lastSeenVersion = 0
 }
 
 --print message to chat box
@@ -195,9 +200,12 @@ end
 
 --stop tracking if set is not equipped
 local function stopTrackingAuto()
-
     if advancingYokedaTracker.savedVariables.trackAdv and advancingYokedaTracker.savedVariables.autoTrack then
-        printMessage("Advancing Yokeda set not found")
+        if not notFoundAlreadyChecked then
+            printMessage("Advancing Yokeda set not found")
+        end
+		notFoundAlreadyChecked = true
+		alreadyChecked = false
         unRegisterAlerts()
         advAddonText:SetHidden(true)
     end
@@ -206,7 +214,11 @@ end
 --start tracking if set is not equipped
 local function startTrackingAuto()
     if advancingYokedaTracker.savedVariables.trackAdv and advancingYokedaTracker.savedVariables.autoTrack then
-        printMessage("Found Advancing Yokeda set")
+        if not alreadyChecked then
+			printMessage("Found Advancing Yokeda set")
+		end
+		alreadyChecked = true
+		notFoundAlreadyChecked = false
         registerAlerts()
     end
 end
@@ -287,7 +299,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text x Position",
             tooltip = "Adjust the left and right position of the on screen icon and timer text.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return advancingYokedaTracker.savedVariables.xAxisText
             end,
@@ -301,7 +313,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text y Position",
             tooltip = "Adjust the up and down position of the on screen icon and timer text.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return advancingYokedaTracker.savedVariables.yAxisText
             end,
@@ -346,6 +358,14 @@ local function createOptions()
     LAM:RegisterOptionControls("Adv Yok Tracker", optionsData)
 end
 
+--notify about update when player activates
+local function activated()
+    if advancingYokedaTracker.savedVariables.lastSeenVersion ~= appVersion then
+        zo_callLater(function() LibNotify.postUpdateNotification(appName, info, name) end, 500)
+        advancingYokedaTracker.savedVariables.lastSeenVersion = appVersion
+    end
+end	
+
 local function onAddOnLoadedAdv(event, name)
     --if add-on loaded was not this add-on quit
     if name ~= appName then
@@ -377,11 +397,11 @@ local function onAddOnLoadedAdv(event, name)
     --check if set is equipped
     if not isSetEquiped(setId, setCount) and advancingYokedaTracker.savedVariables.autoTrack and advancingYokedaTracker.savedVariables.trackAdv then
         --notify set not found
-        zo_callLater(function() printMessage("Advancing Yokeda set not found") end, 600)
+        zo_callLater(function() printMessage("Advancing Yokeda set not found") notFoundAlreadyChecked = true end, 600)
     elseif isSetEquiped(setId, setCount) and advancingYokedaTracker.savedVariables.autoTrack and advancingYokedaTracker.savedVariables.trackAdv then
         isEquiped = true
         --notify set found
-        zo_callLater(function() printMessage("Found Advancing Yokeda set") end, 600)
+        zo_callLater(function() printMessage("Found Advancing Yokeda set") alreadyChecked = true end, 600)
     end
 
     --double check if set is equipped without autotracking stipulation
@@ -412,6 +432,9 @@ local function onAddOnLoadedAdv(event, name)
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
+	
+	--register for activation notifications, leaving this always active
+    EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, activated)
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

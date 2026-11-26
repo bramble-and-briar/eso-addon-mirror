@@ -63,6 +63,35 @@ local function WideOf(profile, account)
 end
 
 ------------------------------------------------------------------------------
+-- HarvestMap
+------------------------------------------------------------------------------
+-- HarvestMap doesn't use the usual layout. Its settings sit in Harvest_SavedVars.account under the
+-- account name without the "@", and it only uses them when its own "account-wide settings" option
+-- is on. Otherwise every character has its own, and there is nothing to copy for the account.
+local function IsHarvest(name)
+    local rule = AS.RULES[name]
+    return type(rule) == "table" and rule.layout == "harvest"
+end
+
+local function BareName(account)
+    if account:sub(1, 1) == "@" then return account:sub(2) end
+    return account
+end
+
+-- The table that holds one settings table per account, the main's settings (only when the main
+-- uses account-wide settings) and this account's.
+local function HarvestNodes(name, main, me)
+    local root = _G[name]
+    local accounts = type(root) == "table" and root.account
+    if type(accounts) ~= "table" then return nil end
+    local mainNode = accounts[BareName(main)]
+    if type(mainNode) ~= "table" or mainNode.accountWideSettings ~= true then mainNode = nil end
+    local myNode = accounts[BareName(me)]
+    if type(myNode) ~= "table" then myNode = nil end
+    return accounts, mainNode, myNode
+end
+
+------------------------------------------------------------------------------
 -- Addon settings
 ------------------------------------------------------------------------------
 -- Every listed addon that is running here and whose settings differ from the main's:
@@ -71,10 +100,19 @@ function AS.AddonPlan()
     local list = {}
     local main, me = AS.SV().main, GetDisplayName()
     if not main or main == me then return list end
-    for name in pairs(AS.RULES) do
+    for _, name in ipairs(AS.CopiedNames()) do
         local copied, keep = AS.CopyRule(name)
+        copied = copied and AS.IsPicked(name)
         local root = copied and _G[name]
-        if type(root) == "table" then
+        if copied and IsHarvest(name) then
+            local _, mainNode, myNode = HarvestNodes(name, main, me)
+            if mainNode then
+                local parts = DiffParts(mainNode, myNode, keep)
+                if parts > 0 then
+                    list[#list + 1] = { name = name, profile = "account", parts = parts, added = (myNode == nil) }
+                end
+            end
+        elseif type(root) == "table" then
             for profileKey, profile in pairs(root) do
                 if type(profile) == "table" then
                     local mainWide = WideOf(profile, main)
@@ -125,8 +163,18 @@ function AS.CopyAddons(list, undo)
     for _, e in ipairs(list) do
         local root = _G[e.name]
         local profile = type(root) == "table" and root[e.profile]
-        local mainWide = type(profile) == "table" and WideOf(profile, main)
-        if mainWide then
+        local mainWide = not IsHarvest(e.name) and type(profile) == "table" and WideOf(profile, main)
+        if IsHarvest(e.name) then
+            local accounts, mainNode, myNode = HarvestNodes(e.name, main, me)
+            if mainNode then
+                -- a new table, for the same reason as below
+                accounts[BareName(me)] = Copy(mainNode)
+                if not have[e.name .. "/" .. tostring(e.profile)] then
+                    undo.items[#undo.items + 1] = { name = e.name, profile = e.profile, old = myNode or false, harvest = true }
+                end
+                copied = copied + 1
+            end
+        elseif mainWide then
             local _, keep = AS.CopyRule(e.name)
             local mine = profile[me]
             local madeNode = false
@@ -224,6 +272,80 @@ function AS.UndoInfo()
     return AS.SV().undo[GetDisplayName()]
 end
 
+-- Puts one addon's settings back from its undo item. Returns true when it was put back.
+local function RestoreItem(item, me)
+    local root = _G[item.name]
+    if item.harvest then
+        local accounts = type(root) == "table" and root.account
+        if type(accounts) ~= "table" then return false end
+        if type(item.old) == "table" then accounts[BareName(me)] = item.old else accounts[BareName(me)] = nil end
+        return true
+    end
+    local profile = type(root) == "table" and root[item.profile]
+    local mine = type(profile) == "table" and profile[me]
+    if type(mine) ~= "table" then return false end
+    local _, keep = AS.CopyRule(item.name)
+    local current = mine[WIDE]
+    local restored = nil
+    if type(item.old) == "table" then restored = item.old end
+    -- the kept parts (stats, logs) never left, so they stay as they are now
+    if type(current) == "table" then
+        for k in pairs(keep) do
+            if current[k] ~= nil then
+                if not restored then restored = {} end
+                restored[k] = current[k]
+            end
+        end
+    end
+    mine[WIDE] = restored
+    if item.madeNode and next(mine) == nil then profile[me] = nil end
+    return true
+end
+
+-- The names of the addons this account can undo, sorted.
+function AS.UndoNames()
+    local undo = AS.SV().undo[GetDisplayName()]
+    local seen, names = {}, {}
+    for _, item in ipairs(undo and undo.items or {}) do
+        if not seen[item.name] then
+            seen[item.name] = true
+            names[#names + 1] = item.name
+        end
+    end
+    table.sort(names, function(a, b) return a:lower() < b:lower() end)
+    return names
+end
+
+-- The undo name that matches what was typed, whatever its capitals.
+function AS.FindUndoName(typed)
+    typed = zo_strlower(zo_strtrim(typed or ""))
+    for _, name in ipairs(AS.UndoNames()) do
+        if zo_strlower(name) == typed then return name end
+    end
+    return nil
+end
+
+-- Puts back one addon's settings and unticks it, so the next Apply leaves it alone. The rest of
+-- the undo record stays. Returns how many of its profiles were put back. The caller reloads the UI.
+function AS.UndoOneAddon(name)
+    local sv = AS.SV()
+    local me = GetDisplayName()
+    local undo = sv.undo[me]
+    if not undo then return 0 end
+    local n, rest = 0, {}
+    for _, item in ipairs(undo.items or {}) do
+        if item.name == name then
+            if RestoreItem(item, me) then n = n + 1 end
+        else
+            rest[#rest + 1] = item
+        end
+    end
+    undo.items = rest
+    if #rest == 0 and next(undo.layouts or {}) == nil then sv.undo[me] = nil end
+    AS.SetPicked(name, false)
+    return n
+end
+
 -- Puts back the addon settings and window layout this account had before copying replaced them.
 -- Returns how many things were put back. The caller reloads the UI.
 function AS.UndoAddons()
@@ -233,27 +355,7 @@ function AS.UndoAddons()
     if not undo then return 0 end
     local n = 0
     for _, item in ipairs(undo.items or {}) do
-        local root = _G[item.name]
-        local profile = type(root) == "table" and root[item.profile]
-        local mine = type(profile) == "table" and profile[me]
-        if type(mine) == "table" then
-            local _, keep = AS.CopyRule(item.name)
-            local current = mine[WIDE]
-            local restored = nil
-            if type(item.old) == "table" then restored = item.old end
-            -- the kept parts (stats, logs) never left, so they stay as they are now
-            if type(current) == "table" then
-                for k in pairs(keep) do
-                    if current[k] ~= nil then
-                        if not restored then restored = {} end
-                        restored[k] = current[k]
-                    end
-                end
-            end
-            mine[WIDE] = restored
-            if item.madeNode and next(mine) == nil then profile[me] = nil end
-            n = n + 1
-        end
+        if RestoreItem(item, me) then n = n + 1 end
     end
     for character, parts in pairs(undo.layouts or {}) do
         local to = CharacterNode(me, character)

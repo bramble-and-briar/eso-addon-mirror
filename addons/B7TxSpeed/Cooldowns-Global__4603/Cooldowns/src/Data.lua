@@ -100,6 +100,19 @@
 --												  I just generally use any icon that doesn't
 --												  look like ass. A lot look like ass.
 --
+-- * procCounter (bool):    Counts the procs and displays the multiplier (x3)
+--                          below the icon. Reset when combat ends. Only for
+--                          EVENT_COMBAT_EVENT sets. The timer keeps working
+--                          if durationms is greater than 0.
+--
+-- * resource (number | string):    Only with procCounter. Adds a resource bar
+--                          and percentage to the icon. Either a power type
+--                          (e.g. POWERTYPE_STAMINA) or "highest" to follow the
+--                          highest of max magicka and max stamina.
+--
+-- * threshold (number):    Required with resource. Percentage under which the
+--                          set can proc.
+--
 -- * showFrame (bool):      Enables or disables showing the frame around
 --												  the icon. Not used for monster helm icons.
 --												  But most monster helm icons look like ass.
@@ -204,6 +217,8 @@ Cool.Data.Sets = {
     description = "Direct Damage reduced",
     id = 193411,
     enabled = false,
+    procCounter = true,
+    resource = POWERTYPE_STAMINA,
     threshold = 50,
     result = ACTION_RESULT_POWER_DRAIN,
     texture = "/esoui/art/icons/gear_dwemerharshconditions_legs_a.dds",
@@ -236,8 +251,8 @@ Cool.Data.Sets = {
     cooldownDurationMs = 60000,
     onCooldown = false,
     timeOfProc = 0,
-    texture = "/esoui/art/icons/u48_mythic_collect_1.dds",
-    showFrame = true,
+    texture = "/esoui/art/icons/gear_hircinessnarlmask_head_a.dds",
+    showFrame = false,
     durationms = 10000,
     stacks = nil,
   },
@@ -247,8 +262,10 @@ Cool.Data.Sets = {
     description = "Gain 3 ult",
     id = 147462,
     enabled = false,
+    procCounter = true,
+    resource = "highest",
     threshold = 50,
-    result = ACTION_RESULT_POWER_ENERGIZE,
+    result = ACTION_RESULT_EFFECT_GAINED,
     texture = "/esoui/art/icons/antiquities_ornate_necklace_3.dds",
     showFrame = true,
   },
@@ -2007,6 +2024,21 @@ Cool.Data.Sets = {
     cdStart = 0,
     cdEnd   = 0,
   },
+  ["Corpseburster"] = {
+    procType = "set",
+    event = EVENT_COMBAT_EVENT,
+    description = "While in combat, tracks the number of corpseburster explosions.",
+    id = 227083,
+    enabled = false,
+    result = ACTION_RESULT_EFFECT_GAINED,
+    cooldownDurationMs = 0,
+    onCooldown = false,
+    timeOfProc = 0,
+    texture = "/esoui/art/icons/death_recap_magic_aoe.dds",
+    showFrame = true,
+    durationms = 500,
+    procCounter = true,
+  },
 ["Soulcleaver"] = {
     procType = "set",
     event = EVENT_COMBAT_EVENT,
@@ -3412,6 +3444,24 @@ Cool.Data.Sets = {
     durationms = 0,
     stacks = nil,
   },
+  ["Nothing Wasted"] = {
+    procType = "passive",
+    event = EVENT_EFFECT_CHANGED,
+    description = "Displays the number and expiration time of stacks from Nothing Wasted class mastery.",
+    id = 263461,
+    enabled = false,
+    result = ACTION_RESULT_EFFECT_GAINED,
+    cooldownDurationMs = 0,
+    onCooldown = false,
+    timeOfProc = 0,
+    texture = "/esoui/art/icons/passive_necromancer_011.dds",
+    showFrame = false,
+    durationms = 12000,
+    stacks = 0,
+    endTime = 0,
+    cdStart = 0,
+    cdEnd   = 0,
+  },
   ["Prism"] = {
     procType = "passive",
     event = EVENT_COMBAT_EVENT,
@@ -3475,7 +3525,7 @@ Cool.Data.Sets = {
   ["Fated Fortune"] = {
     procType = "passive",
     event = EVENT_COMBAT_EVENT,
-    description = "arcanist ult gen",
+    description = "arcanist damage buff",
     id = 194875,
     enabled = false,
     result = ACTION_RESULT_EFFECT_GAINED,
@@ -3483,6 +3533,21 @@ Cool.Data.Sets = {
     onCooldown = false,
     timeOfProc = 0,
     texture = "/esoui/art/icons/passive_arcanist_04.dds",
+    showFrame = true,
+    durationms = 0,
+    stacks = nil,
+  },
+  ["Erudite's Rigor"] = {
+    procType = "passive",
+    event = EVENT_COMBAT_EVENT,
+    description = "arcanist class mastery",
+    id = 263413,
+    enabled = false,
+    result = ACTION_RESULT_EFFECT_GAINED,
+    cooldownDurationMs = 4000,
+    onCooldown = false,
+    timeOfProc = 0,
+    texture = "/esoui/art/icons/passive_arcanist_07.dds",
     showFrame = true,
     durationms = 0,
     stacks = nil,

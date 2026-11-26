@@ -49,6 +49,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [QuickCompass - Modified](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/QuickCompass---Modified__2471) | Phuein | PC / Mac | 1.0.1.18 |
 | [QuickEmotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/QuickEmotes__2348) | KLISK | PC / Mac | 1.0.4 |
 | [QuickEmotes Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sven_re/QuickEmotes-Updated__3456) | Sven_re | PC / Mac | 1.0.6 |
+| [quickgrouptools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BLKx777/quickgrouptools__73b1d543-0759-43e6-bfee-582ba5623de3) | BLKx777 | Console | — |
 | [QuickMapNav](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/QuickMapNav__3058) | Masteroshi430 | PC / Mac | 2026.11.23 |
 | [QuickMarker - Survey Map Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Astaro/QuickMarker---Survey-Map-Helper__4502) | Astaro | PC / Mac | 1.7 |
 | [QuickMute](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tyx/QuickMute__2557) | Tyx | PC / Mac | 1.0.1 |

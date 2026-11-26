@@ -68,6 +68,7 @@ SafeAddString(BATTLESCROLLS_IPOC_MISSING_BUILD, "Comprueba los nombres del arque
 SafeAddString(BATTLESCROLLS_IPOC_WORK_EQUIP, "Equipando al compañero", 1)
 SafeAddString(BATTLESCROLLS_IPOC_COMPANION_UPGRADE, "Hay equipo mejor disponible para <<1>>.", 1)
 SafeAddString(BATTLESCROLLS_IPOC_WORK_REOPEN, "Vuelve a abrir este servicio para usar su menú. Las acciones automáticas se pausan durante 5 minutos tras esta visita.", 1)
+SafeAddString(BATTLESCROLLS_IPOC_RESUME_TRADER, "Reanudar las acciones en la tienda del gremio", 1)
 SafeAddString(BATTLESCROLLS_IPOC_EQUIPPED, "<<1>> equipado en <<2>>", 1)
 SafeAddString(BATTLESCROLLS_IPOC_LISTED, "Publicados <<1>> × <<2>> por <<3>> de oro en <<4>>. Tarifa: <<5>> de oro", 1)
 SafeAddString(BATTLESCROLLS_IPOC_OPENED, "Abierto: <<1>>", 1)

@@ -1,0 +1,31 @@
+## Title: MasterWrits Companion |c999999v0.4.6b|r
+## Description: Plans, crafts, banks and turns in master writs of all seven crafts, plus holiday writs.
+## Author: |cFF77CC@KanashiReinkyatto|r & |cFFD700@KuraidamaSetsuro|r
+## Version: 0.4.6b
+## AddOnVersion: 16
+## APIVersion: 101051 101052
+## SavedVariables: MasterWritsCompanionSV
+## OptionalDependsOn: TamrielTradeCentre LibCharacterKnowledge LibSets
+
+Core.lua
+Activity.lua
+Price.lua
+Recipes.lua
+Writs.lua
+Journal.lua
+Alchemy.lua
+Enchanting.lua
+Gear.lua
+KeyItems.lua
+Plan.lua
+Report.lua
+Craft.lua
+GearCraft.lua
+TurnIn.lua
+Sealed.lua
+Session.lua
+Marks.lua
+Bank.lua
+UI.xml
+UI.lua
+Bindings.xml

@@ -1,0 +1,43 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/KanashiReinkyatto/MasterWrits-Companion__5114",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "KanashiReinkyatto",
+  "canonical_id": "esoui:5114",
+  "category_id": "40",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5114",
+  "deleted": false,
+  "directories": [
+    "MasterWritsCompanion"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5114/",
+  "fingerprint": "047d20bb446d3c1ed40e18b9652874875868ac3d15f479ce594e712801ea288b",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18812.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18813.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18815.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18810.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18814.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18811.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5114",
+  "source_url": "https://www.esoui.com/downloads/info5114-MasterWritsCompanion.html",
+  "stats": {
+    "downloads": 48,
+    "favorites": 2,
+    "monthly_downloads": 0
+  },
+  "title": "MasterWrits Companion",
+  "updated_at": 1795653844000,
+  "version": "0.4.6b"
+}

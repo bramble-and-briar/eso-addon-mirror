@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/Furyous/Fury-s-Guild-Management-Toolset__5063",
+  "archive_path": "addons/Furyous/Fury-s-Guild-Toolset__5063",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "Furyous",
@@ -22,7 +22,7 @@
     "FurysGuildToolset"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5063/",
-  "fingerprint": "e9f756d3604e13eeb52b2477457ac634fd839a7b494878ec9b203905fe566ea9",
+  "fingerprint": "86900178a095beef37b9103807555fb8ebbc7ba0a560c54670fb960ce72b3fc7",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18794.png",
     "https://cdn-eso.mmoui.com/preview/pvw18793.png",
@@ -39,13 +39,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "5063",
-  "source_url": "https://www.esoui.com/downloads/info5063-FurysGuildManagementToolset.html",
+  "source_url": "https://www.esoui.com/downloads/info5063-FurysGuildToolset.html",
   "stats": {
-    "downloads": 54,
+    "downloads": 70,
     "favorites": 2,
-    "monthly_downloads": 49
+    "monthly_downloads": 63
   },
-  "title": "Fury's Guild Management Toolset",
-  "updated_at": 1795595209000,
-  "version": "1.30.1"
+  "title": "Fury's Guild Toolset",
+  "updated_at": 1795674503000,
+  "version": "1.33.4"
 }

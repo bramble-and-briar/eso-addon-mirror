@@ -1,4 +1,4 @@
--- Опасные атаки из IAHelper (адаптировано для Mark Trial Helper)
+-- Опасные атаки из
 local AH = _G.MarkTrialHelper
 
 -- Цвета (чтобы не зависеть от danger.lua)
@@ -448,10 +448,7 @@ AH.DANGER_IDS = {
     [202541] = { duration = 1500, color = COLOR.YELLOW, text = "HIT" },
     [192695] = { duration = 1500, color = COLOR.YELLOW, text = "HIT" },
     [192707] = { duration = 1500, color = COLOR.YELLOW, text = "HIT" },
-
-    -- ============================================
     -- МЕХАНИКИ (отдельные уведомления в центре экрана)
-    -- ============================================
     [200060] = { duration = 10000, color = COLOR.GREEN, text = "SCAMP" },
     [200067] = { duration = 5000, color = COLOR.RED, text = "SCAMP" },
     [196806] = { duration = 1500, color = COLOR.RED, text = "NEGATE" },

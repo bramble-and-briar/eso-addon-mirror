@@ -1,0 +1,49 @@
+<GuiXml>
+    <Controls>
+        <!-- Big alert for automatic demotions. Stays until you close it (button, X or Esc).
+             Several demotions in a row are listed in the same window. -->
+        <TopLevelControl name="FurysGuildToolset_AutoAlert" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH">
+            <Dimensions x="760" y="260" />
+            <Anchor point="CENTER" offsetY="-140" />
+            <Controls>
+                <Backdrop name="$(parent)BG" centerColor="0F0E1F" edgeColor="4A3D99" alpha="1">
+                    <AnchorFill />
+                    <Edge edgeSize="2" />
+                </Backdrop>
+                <Texture name="$(parent)Bar" color="FF6B86">
+                    <Dimensions y="5" />
+                    <Anchor point="TOPLEFT" offsetX="6" offsetY="6" />
+                    <Anchor point="TOPRIGHT" offsetX="-6" offsetY="6" />
+                </Texture>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-12" offsetY="18" />
+                    <OnClicked>FurysGuildToolset.AutoLog:HideAlert()</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Close (Esc)")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
+                </Button>
+                <Label name="$(parent)Title" font="ZoFontCallout2" color="FFA45C" horizontalAlignment="CENTER">
+                    <Dimensions x="680" />
+                    <Anchor point="TOP" offsetY="20" />
+                </Label>
+                <Label name="$(parent)Body" font="ZoFontWinH4" color="ECEAF8">
+                    <Dimensions x="700" />
+                    <Anchor point="TOP" relativeTo="$(parent)Title" relativePoint="BOTTOM" offsetY="14" />
+                </Label>
+                <Button name="$(parent)Open" inherits="ZO_DefaultButton" text="Open log">
+                    <Dimensions x="160" y="30" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Body" relativePoint="BOTTOM" offsetX="-6" offsetY="18" />
+                    <OnClicked>FurysGuildToolset.AutoLog:OpenLogFromAlert()</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Closes this alert and opens the Auto tab with the full reason and every withdrawal (/gt auto).")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
+                </Button>
+                <Button name="$(parent)Dismiss" inherits="ZO_DefaultButton" text="Close">
+                    <Dimensions x="160" y="30" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Body" relativePoint="BOTTOM" offsetX="6" offsetY="18" />
+                    <OnClicked>FurysGuildToolset.AutoLog:HideAlert()</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Closes this alert (Esc does the same). Everything stays in the Auto tab.")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
+                </Button>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

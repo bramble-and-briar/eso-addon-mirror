@@ -155,7 +155,11 @@ local function IsItemType(slotIndex, Type)
 			and (
 				WhiteList[Type][id]
 				or (
-					GetItemQuality(BAG_BACKPACK, slotIndex)<ITEM_QUALITY_LEGENDARY
+					(function()
+                        local link = GetItemLink(BAG_BACKPACK, slotIndex)
+                        local quality = link and type(GetItemLinkQuality) == "function" and GetItemLinkQuality(link)
+                        return type(quality) == "number" and quality < ITEM_QUALITY_LEGENDARY
+                    end)()
 					and (
 						not GeodeContainer[id]
 						--or currentCurrency+containercurrency<=maxCurrency
@@ -921,7 +925,10 @@ function BUI.Automation_Init()
 		EVENT_MANAGER:UnregisterForEvent("ChatRouter", EVENT_FRIEND_PLAYER_STATUS_CHANGED)
 	end
 
-	if BUI.Vars.LargeGroupInvite then
+	-- PS5: keep the native console invite handler. The PC replacement below
+	-- calls ZO_ConsoleAttemptInteractOrError with unsupported arguments,
+	-- causing a UI error when accepting or inviting group members.
+	if BUI.Vars.LargeGroupInvite and not IsConsoleUI() then
 	TryGroupInviteByName=function(Name,sentFromChat,displayInvitedMessage)
 		if IsPlayerInGroup(Name) then ZO_Alert(UI_ALERT_CATEGORY_ALERT,nil,SI_GROUP_ALERT_INVITE_PLAYER_ALREADY_MEMBER) return end
 		if not IsUnitGroupLeader("player") and GetGroupSize()>0 then ZO_Alert(UI_ALERT_CATEGORY_ALERT,nil,GetString("SI_GROUPINVITERESPONSE",GROUP_INVITE_RESPONSE_ONLY_LEADER_CAN_INVITE)) return end

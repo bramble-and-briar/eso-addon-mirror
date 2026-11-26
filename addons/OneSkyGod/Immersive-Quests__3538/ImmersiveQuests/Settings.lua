@@ -50,7 +50,7 @@ local optionsTable = {
         width = "full"
     }, {
         type = "description",
-        title = "|c3CB371Tutorial - Aldmeri Dominion - Ebonheart Pact - Daggerfall Covenant - Coldharbour - Craglorn - Cyrodiil - Imperial City - Wrothgar - Vvardenfell - Hew's Bane Thieves Guild - Clockwork City - Summerset - The Reach - Solstice - Mages Guild - Glenumbra Thieves Guild - Sheogorath Takes A Holiday|r",
+        title = "|c3CB371Tutorial - Aldmeri Dominion - Ebonheart Pact - Daggerfall Covenant - Coldharbour - Craglorn - Cyrodiil - Imperial City - Wrothgar - Vvardenfell - Hew's Bane: Thieves Guild - Gold Coast: Dark Brotherhood - Clockwork City - Summerset - The Reach - Solstice - Mages Guild - Glenumbra Thieves Guild - Sheogorath Takes A Holiday|r",
         width = "full"
     }, {
         type = "header",

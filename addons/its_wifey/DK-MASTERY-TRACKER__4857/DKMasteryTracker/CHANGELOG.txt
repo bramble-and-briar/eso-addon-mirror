@@ -1,5 +1,8 @@
 DK Mastery Tracker — Change Log
 
+v1.0.5
+- Start mastery windows hidden so the saved Off setting is respected on login and reload.
+
 v1.0.4
 - Mastery HUD now hides when the player dies.
 - Mastery HUD automatically returns after resurrection.

@@ -107,44 +107,44 @@
             </Controls>
         </TopLevelControl>
 
-        <Control name="UnchainedHelperBRPMechanicRowTemplate" virtual="true" mouseEnabled="false" hidden="true" width="366" height="34">
+        <Control name="UnchainedHelperBRPMechanicRowTemplate" virtual="true" mouseEnabled="false" hidden="true" width="430" height="40">
             <Controls>
                 <Label name="$(parent)Name" text="MECHANIC" color="E8E8E8" font="$(GAMEPAD_MEDIUM_FONT)|$(KB_22)|soft-shadow-thick" verticalAlignment="CENTER">
-                    <Dimensions x="238" y="34" />
+                    <Dimensions x="260" y="40" />
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
                 </Label>
                 <Label name="$(parent)Value" text="SYNCING" color="B8B8B8" font="$(GAMEPAD_BOLD_FONT)|$(KB_24)|soft-shadow-thick" verticalAlignment="CENTER" horizontalAlignment="RIGHT">
-                    <Dimensions x="122" y="34" />
+                    <Dimensions x="150" y="40" />
                     <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="0" offsetY="0" />
                 </Label>
             </Controls>
         </Control>
 
         <TopLevelControl name="UnchainedHelperBRPMechanicTracker" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true">
-            <Dimensions x="394" y="220" />
+            <Dimensions x="458" y="290" />
             <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="1510" offsetY="300" />
             <Controls>
                 <Backdrop name="$(parent)Bg" centerColor="00000072" edgeColor="00000000" edgeSize="0">
                     <AnchorFill />
                 </Backdrop>
                 <Label name="$(parent)Title" text="BOSS MECHANICS" color="F0D58A" font="$(GAMEPAD_BOLD_FONT)|$(KB_24)|soft-shadow-thick">
-                    <Dimensions x="366" y="36" />
+                    <Dimensions x="430" y="38" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="14" offsetY="10" />
                 </Label>
                 <Control name="$(parent)Row1" inherits="UnchainedHelperBRPMechanicRowTemplate">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="8" />
                 </Control>
                 <Control name="$(parent)Row2" inherits="UnchainedHelperBRPMechanicRowTemplate">
-                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row1" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="1" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row1" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
                 </Control>
                 <Control name="$(parent)Row3" inherits="UnchainedHelperBRPMechanicRowTemplate">
-                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row2" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="1" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row2" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
                 </Control>
                 <Control name="$(parent)Row4" inherits="UnchainedHelperBRPMechanicRowTemplate">
-                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row3" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="1" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row3" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
                 </Control>
                 <Control name="$(parent)Row5" inherits="UnchainedHelperBRPMechanicRowTemplate">
-                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row4" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="1" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row4" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="6" />
                 </Control>
             </Controls>
         </TopLevelControl>

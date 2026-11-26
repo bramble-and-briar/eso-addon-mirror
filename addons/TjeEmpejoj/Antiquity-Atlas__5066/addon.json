@@ -22,7 +22,7 @@
     "AntiquityAtlas"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5066/",
-  "fingerprint": "ae85c40c4e2a7695962bb65f882f65d5938e966ba35b8d717ad62aa669e400fb",
+  "fingerprint": "3ba3d2fe8cbd8aa8c1c221305112a7c86bd1ebe1c579e05fc4242f3e04eb524d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18546.png",
     "https://cdn-eso.mmoui.com/preview/pvw18547.png",
@@ -38,11 +38,11 @@
   "source_id": "5066",
   "source_url": "https://www.esoui.com/downloads/info5066-AntiquityAtlas.html",
   "stats": {
-    "downloads": 54,
-    "favorites": 1,
-    "monthly_downloads": 23
+    "downloads": 172,
+    "favorites": 2,
+    "monthly_downloads": 127
   },
   "title": "Antiquity Atlas",
-  "updated_at": 1795060435000,
-  "version": "0.13.3"
+  "updated_at": 1795651170000,
+  "version": "0.14.0"
 }

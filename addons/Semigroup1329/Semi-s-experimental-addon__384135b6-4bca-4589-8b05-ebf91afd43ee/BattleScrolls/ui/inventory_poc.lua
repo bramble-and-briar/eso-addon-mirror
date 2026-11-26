@@ -35,6 +35,7 @@ local utils = BattleScrolls.utils
 ---@field tab 'activity'|'pack'
 ---@field pack InventoryPocPackView
 ---@field resetSelection boolean|nil The tab changed: its list starts at the top
+---@field traderPaused boolean|nil Guild-store visits open ESO's screen for now
 local LogScreen = ZO_Gamepad_ParametricList_Screen:Subclass()
 local details = BattleScrolls.inventoryPocDetails
 
@@ -211,6 +212,19 @@ function LogScreen:InitializeKeybindStripDescriptors()
                 end
             end,
         },
+        {
+            -- After an automated guild-store visit the next ones open ESO's screen for a while.
+            name = GetString(BATTLESCROLLS_IPOC_RESUME_TRADER),
+            keybind = 'UI_SHORTCUT_SECONDARY',
+            visible = function()
+                return not self.contentsFocused and BattleScrolls.inventoryPocServiceUI.pauseRemaining() > 0
+            end,
+            callback = function()
+                BattleScrolls.inventoryPocServiceUI.resumeGuildStore()
+                self.traderPaused = false
+                KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
+            end,
+        },
     }
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.keybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON, function()
         if self.contentsFocused then self:setContentsFocused(false)
@@ -338,7 +352,14 @@ function LogScreen:OnShowing()
     self:refreshHeader()
     ZO_Gamepad_ParametricList_Screen.OnShowing(self)
     ZO_GamepadGenericHeader_Activate(self.header)
+    self.traderPaused = BattleScrolls.inventoryPocServiceUI.pauseRemaining() > 0
     EVENT_MANAGER:RegisterForUpdate(SCENE_NAME, 250, function()
+        -- The pause runs out while the screen is open: its keybind leaves with it.
+        local paused = BattleScrolls.inventoryPocServiceUI.pauseRemaining() > 0
+        if paused ~= self.traderPaused then
+            self.traderPaused = paused
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindStripDescriptor)
+        end
         if self.tab == 'pack' then self.pack:update()
         elseif self.logRevision ~= poc.revision or self.buildKey ~= buildKey() then self:Update() end
     end)

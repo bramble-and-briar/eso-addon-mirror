@@ -9,9 +9,9 @@
 ## Title: |c6666FFGTA|r
 ## Description: Guild trader activity window showing current and last week sales data per guild.
 ## Author: @sinnereso
-## Version: 2026.11.23
+## Version: 2026.11.26
 ## APIVersion: 101051
-## DependsOn: LibHistoire>=1112 LibScrollList>=4
+## DependsOn: LibHistoire>=1112 LibScrollList>=5
 ## SavedVariables: GTAVars
 
 GTA.lua

@@ -202,14 +202,16 @@ function Cool.UI.Draw(key)
       r:SetDrawLevel(3)
 
       if set.showFrame then
-        -- Add black 1px border around the icon
-        local border = WM:CreateControl(key .. "_Border", c, CT_BACKDROP)
-        border:SetDimensions(scaleBase, scaleBase)
-        border:SetAnchor(CENTER, c, CENTER, 0, 0)
-        border:SetCenterColor(0, 0, 0, 0)
-        border:SetEdgeColor(0, 0, 0, 1)
-        border:SetDrawLevel(4)
-        border:SetEdgeTexture("", 1, 1, 1, 1)
+        if not set.procType == "passive" then
+          -- Add black 1px border around the icon (not for passive icon)
+          local border = WM:CreateControl(key .. "_Border", c, CT_BACKDROP)
+          border:SetDimensions(scaleBase, scaleBase)
+          border:SetAnchor(CENTER, c, CENTER, 0, 0)
+          border:SetCenterColor(0, 0, 0, 0)
+          border:SetEdgeColor(0, 0, 0, 1)
+          border:SetDrawLevel(4)
+          border:SetEdgeTexture("", 1, 1, 1, 1)
+        end
 
         local f = WM:CreateControl(key .. "_Frame", c, CT_TEXTURE)
         if set.procType == "passive" then
@@ -268,7 +270,19 @@ function Cool.UI.Draw(key)
         l:SetHidden(true)
       end
 
-      if set.id == 147462 or set.id == 193411 then -- pearls and esoteric
+      if set.procCounter then
+        local n = WM:CreateControl(key .. "_Counter", c, CT_LABEL)
+        n:SetAnchor(TOP, c, BOTTOM, 0, -5)
+        n:SetAlpha(1)
+        n:SetFont(font .. "|$(KB_30)|thick-outline")
+        n:SetDrawLevel(5)
+        n:SetHidden(false)
+        n:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+
+        c.counter = n
+      end
+
+      if set.resource then
         l:SetColor(unpack(saved.colorDown))
         if stacksWithinIcon then
           l:SetFont(font .. "|$(KB_40)|outline")
@@ -277,14 +291,6 @@ function Cool.UI.Draw(key)
         end
 
         if saved.colorFrame then c.frame:SetColor(unpack(saved.colorDown)) end
-
-        local n = WM:CreateControl(key .. "_Counter", c, CT_LABEL)
-        n:SetAnchor(TOP, c, BOTTOM, 0, -5)
-        n:SetAlpha(1)
-        n:SetFont(font .. "|$(KB_30)|thick-outline")
-        n:SetDrawLevel(5)
-        n:SetHidden(false)
-        n:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 
         local bg = WM:CreateControl(key .. "_BG", c, CT_BACKDROP)
         bg:SetDimensions(scaleBase, scaleBase)
@@ -315,7 +321,6 @@ function Cool.UI.Draw(key)
         t:SetEdgeTexture("", 1, 1, 0, 0)
         t:SetDrawLevel(2)
 
-        c.counter = n
         c.bg      = bg
         c.bar     = bar
         c.line    = t
@@ -365,18 +370,17 @@ function Cool.UI.Draw(key)
     else
 
       if set.event == EVENT_POWER_UPDATE then
-        if set.id == 147462 or set.id == 193411 then
-          Cool.UI.UpdateProcs(key)
-        else
-          current, max, effective = GetUnitPower("player", set.powerType)
-          set.currentValue = (current / effective) * 100
-          Cool.UI.UpdatePower(key)
-        end
+        current, max, effective = GetUnitPower("player", set.powerType)
+        set.currentValue = (current / effective) * 100
+        Cool.UI.UpdatePower(key)
       end
     end
 
-    if set.stacks ~= nil then Cool.Tracking.UpdateSetBuffInfo(key) end
+    if set.procCounter then Cool.UI.UpdateProcs(key) end
 
+    if set.stacks ~= nil then
+      Cool.Tracking.UpdateSetBuffInfo(key)
+    end
 
     -- Disable display
   else
@@ -409,7 +413,6 @@ function Cool.UI:ResetProcs()
 						local t = Cool.Procs[k].times
 						Cool.Procs[k].times = 0
 						Cool:Trace(2, "[<<1>>]: times = <<2>>. was <<3>>", k, Cool.Procs[k].times, t)
-						Cool.Controls[k].counter:SetText("")
 						Cool.UI.UpdateProcs(k)
 				end
 		end
@@ -537,23 +540,28 @@ end
 
 function Cool.UI.UpdateProcs(setKey)
   local set    = Cool.Procs[setKey]
+  local data   = Cool.Data.Sets[setKey]
   local c      = Cool.Controls[setKey]
   local saved  = Cool.preferences.sets[setKey]
-  local max    = GetBarContraints(setKey)
-  local h      = max * (set.current / 100)
-  local color
 
-  c.bar:SetHeight(h)
+  if set == nil or c == nil or c.counter == nil then return end
 
-  if set.id == 147462 or set.id == 193411 then
-    if saved.showProcs then
-      local n = set.times > 0 and "x" ..  set.times or ""
-      color = Cool.PlayerPower.ult == 100 and saved.colorDown or saved.colorUp
-      c.counter:SetText(n)
-      c.counter:SetColor(unpack(color))
-    else
-      c.counter:SetText("")
-    end
+  -- Multiplier below the icon. showProcs only exists for resource sets.
+  local color = saved.colorUp
+  if data.resource and Cool.PlayerPower.ult == 100 then color = saved.colorDown end
+
+  if saved.showProcs ~= false and set.times > 0 then
+    c.counter:SetText("x" .. set.times)
+  else
+    c.counter:SetText("")
+  end
+  c.counter:SetColor(unpack(color))
+
+  -- Everything below is only for the resource bar
+  if not data.resource then return end
+
+  local max = GetBarContraints(setKey)
+  c.bar:SetHeight(max * (set.current / 100))
 
     if saved.showPercent then
       local m = set.current <= 99 and string.format("%.0f", set.current) .. "%" or ""
@@ -566,7 +574,7 @@ function Cool.UI.UpdateProcs(setKey)
     c.line:SetCenterColor(unpack(color))
     c.line:SetEdgeColor(unpack(color))
 
-    if set.current < Cool.Data.Sets[setKey].threshold then
+    if set.current < data.threshold then
       c.label:SetColor(unpack(saved.colorUp))
 
       if saved.colorFrame then
@@ -593,29 +601,6 @@ function Cool.UI.UpdateProcs(setKey)
       c.bar:SetCenterColor(unpack(color))
       c.bar:SetEdgeColor(unpack(color))
     end
-  else
-    if set.current < Cool.Data.Sets[setKey].threshold then
-      if saved.colorFrame then
-        color = set.powerType == POWERTYPE_STAMINA and saved.stam.frameColorUp or saved.mag.frameColorUp
-        c.frame:SetColor(unpack(color))
-      else
-        c.frame:SetColor(1, 1, 1, 1)
-      end
-
-      color = set.powerType == POWERTYPE_STAMINA and saved.stam.barColorUp or saved.mag.barColorUp
-      c.bar:SetCenterColor(unpack(color))
-    else
-      if saved.colorFrame then
-        color = set.powerType == POWERTYPE_STAMINA and saved.stam.frameColorDown or saved.mag.frameColorDown
-        c.frame:SetColor(unpack(color))
-      else
-        c.frame:SetColor(1, 1, 1, 1)
-      end
-
-      color = set.powerType == POWERTYPE_STAMINA and saved.stam.barColorDown or saved.mag.barColorDown
-      c.bar:SetCenterColor(unpack(color))
-    end
-  end
 end
 
 function Cool.UI.UpdateToggled(setKey, active)

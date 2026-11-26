@@ -2,7 +2,7 @@ local ImmQuests = ImmersiveQuests
 
 ImmQuests.name = "ImmersiveQuests"
 ImmQuests.author = "Alianym, @OneSkyGod, Fadosch"
-ImmQuests.version = "0.0058"
+ImmQuests.version = "0.0059"
 
 local addOnName = ImmQuests.name
 local localization = ImmQuests.localization

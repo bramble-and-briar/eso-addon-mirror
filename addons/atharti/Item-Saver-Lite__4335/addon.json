@@ -18,7 +18,7 @@
     "ItemSaverLite"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4335/",
-  "fingerprint": "87996a5ee6cb823b5a99a234b81bfe428a34c0016884c097cd34a41b9dbeae06",
+  "fingerprint": "b93f107cd52b39287f8595c4718af27833077313a31b2d11f641be43c5d1f27c",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17314.png",
     "https://cdn-eso.mmoui.com/preview/pvw18082.png"
@@ -29,11 +29,11 @@
   "source_id": "4335",
   "source_url": "https://www.esoui.com/downloads/info4335-ItemSaverLite.html",
   "stats": {
-    "downloads": 1728,
+    "downloads": 1748,
     "favorites": 3,
-    "monthly_downloads": 275
+    "monthly_downloads": 279
   },
   "title": "Item Saver Lite",
-  "updated_at": 1795455081000,
-  "version": "2.5"
+  "updated_at": 1795694052000,
+  "version": "2.6"
 }

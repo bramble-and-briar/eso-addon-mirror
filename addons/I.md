@@ -27,7 +27,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Immersive Map Markers for Oblivion Style HUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MisterDahveed/Immersive-Map-Markers-for-Oblivion-Style-HUD__2165) | MisterDahveed | PC / Mac | 1.1 |
 | [Immersive Mount Camera](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dimedius/Immersive-Mount-Camera__1071) | Dimedius | PC / Mac | 1.0.1 |
 | [Immersive Overlays](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Anumaril/Immersive-Overlays__3838) | Anumaril | PC / Mac | 1.1 |
-| [Immersive Quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/OneSkyGod/Immersive-Quests__3538) | OneSkyGod | PC / Mac | 0.0058 |
+| [Immersive Quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/OneSkyGod/Immersive-Quests__3538) | OneSkyGod | PC / Mac | 0.0059 |
 | [Immersive Rumors](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fadosch/Immersive-Rumors__4901) | Fadosch | PC / Mac | 1.0.1 |
 | [immersiveMusic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Edricson/immersiveMusic__4948) | Edricson | PC / Mac | 2.0.1 |
 | [Immersives Reiten](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Immersives-Reiten__4843) | Torfason | PC / Mac | 2.0.0 |
@@ -131,7 +131,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Item Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Item-Finder__1541) | Rhyono | PC / Mac | 1.31 |
 | [Item Finder (PTS)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Item-Finder-PTS__1980) | Rhyono | PC / Mac | 1.31 |
 | [Item Quality as Text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cavalier07/Item-Quality-as-Text__745) | Cavalier07 | PC / Mac | 1.3.0 |
-| [Item Saver Lite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Item-Saver-Lite__4335) | atharti | PC / Mac | 2.5 |
+| [Item Saver Lite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Item-Saver-Lite__4335) | atharti | PC / Mac | 2.6 |
 | [Item Scripting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Amerlite/Item-Scripting__2089) | Amerlite | PC / Mac | 2.3 |
 | [Item Set Browser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Item-Set-Browser__1480) | code65536 | PC / Mac | 4.7.3 |
 | [Item Set Collection Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/Item-Set-Collection-Tracker__2816) | zelenin | PC / Mac | 0.4.1 |

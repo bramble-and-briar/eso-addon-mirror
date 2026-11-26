@@ -1,4 +1,9 @@
 local appName = "wretchedVitalityTracker"
+local appVersion = 0 -- bump this on each update
+local name = "apps screen name"
+local info = "What's New:\nreason for update."
+local alreadyChecked = false
+local notFoundAlreadyChecked = false
 local majorAbilityID = 163102
 local minorAbilityID = 163108
 local timeRemainingMajor = 15
@@ -24,7 +29,8 @@ wretchedVitalityTracker.defaults = {
 	notify = true,
 	notifyStart = false,
     yAxisText = 720,
-    xAxisText = 1060
+    xAxisText = 1060,
+	lastSeenVersion = 0
 }
 
 --print message to chat box
@@ -245,7 +251,11 @@ end
 local function stopTrackingAuto()
 
     if wretchedVitalityTracker.savedVariables.trackWretch and wretchedVitalityTracker.savedVariables.autoTrack then
-        printMessage("Wretched Vitality set not found")
+		if not notFoundAlreadyChecked then
+            printMessage("Wretched Vitality set not found")
+        end
+		notFoundAlreadyChecked = true
+		alreadyChecked = false
         unRegisterAlerts()
         wvtrack:SetHidden(true)
     end
@@ -254,7 +264,11 @@ end
 --start tracking if set is not equipped
 local function startTrackingAuto()
     if wretchedVitalityTracker.savedVariables.trackWretch and wretchedVitalityTracker.savedVariables.autoTrack then
-        printMessage("Found Wretched Vitality set")
+		if not alreadyChecked then
+			printMessage("Found Wretched Vitality set")
+		end
+		notFoundAlreadyChecked = false
+		alreadyChecked = true
         registerAlerts()
     end
 end
@@ -335,7 +349,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text x Position",
             tooltip = "Adjust the left and right position of the on screen icon and timer text.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return wretchedVitalityTracker.savedVariables.xAxisText
             end,
@@ -349,7 +363,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text y Position",
             tooltip = "Adjust the up and down position of the on screen icon and timer text.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return wretchedVitalityTracker.savedVariables.yAxisText
             end,
@@ -394,6 +408,14 @@ local function createOptions()
     LAM:RegisterOptionControls("Wretched Vitality Tracker", optionsData)
 end
 
+--notify about update when player activates
+local function activated()
+    if wretchedVitalityTracker.savedVariables.lastSeenVersion ~= appVersion then
+        zo_callLater(function() LibNotify.postUpdateNotification(appName, info, name) end, 500)
+        wretchedVitalityTracker.savedVariables.lastSeenVersion = appVersion
+    end
+end	
+
 --an addon has loaded
 local function onAddOnLoaded(event, name)
 
@@ -426,11 +448,11 @@ local function onAddOnLoaded(event, name)
     --check if set is equipped
     if not isSetEquiped(setId, setCount) and wretchedVitalityTracker.savedVariables.autoTrack and wretchedVitalityTracker.savedVariables.trackWretch then
         --notify set not found
-        zo_callLater(function() printMessage("Wretched Vitality set not found") end, 600)
+        zo_callLater(function() printMessage("Wretched Vitality set not found") notFoundAlreadyChecked = true end, 600)
     elseif isSetEquiped(setId, setCount) and wretchedVitalityTracker.savedVariables.autoTrack and wretchedVitalityTracker.savedVariables.trackWretch then
         isEquiped = true
         --notify set found
-        zo_callLater(function() printMessage("Found Wretched Vitality set") end, 600)
+        zo_callLater(function() printMessage("Found Wretched Vitality set") alreadyChecked = true end, 600)
     end
 
     --double check if set is equipped without autotracking stipulation
@@ -466,6 +488,9 @@ local function onAddOnLoaded(event, name)
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
+	
+	--register for activation notifications, leaving this always active
+    EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, activated)
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

@@ -1,5 +1,8 @@
-2026.11.23
-- Minor additional localization adjustments for libHistoire.
+2026.11.26
+- Many performance improvements.
+- Tweaked cell sizes again.
+- Updated dependencies.
+- Adjusted the scroll a little darker so item links are easier to read. It's not perfect yet and I'm still working on it.
 
 ** POSSIBLE FUTURE OPTIONS **
 - fix name length issue

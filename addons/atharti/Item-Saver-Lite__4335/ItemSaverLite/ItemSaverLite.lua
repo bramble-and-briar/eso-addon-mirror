@@ -108,16 +108,22 @@ function ISL.CreateMarkerControl(parent)
 
 	local bagId, slotIndex = ISL.GetInfoFromRowControl(parent)
 	local texturePath, r, g, b = ISL.GetMarkerInfo(bagId, slotIndex)
+
 	if not texturePath then
 		control:SetHidden(true)
 		return
 	end
 
 	local markerAnchor, customOffsetX, customOffsetY = ISL.GetMarkerAnchor()
-	local offsets = ANCHOR_OFFSETS[markerAnchor] or ANCHOR_OFFSETS[TOPLEFT]
+	local offsets = ANCHOR_OFFSETS[markerAnchor]
 
 	control:SetHidden(false)
-	control:SetTexture(texturePath)
+
+	if control.itemSaverTexture ~= texturePath then
+		control:SetTexture(texturePath)
+		control.itemSaverTexture = texturePath
+	end
+
 	control:SetColor(r, g, b)
 
 	local scale = ISL.SV.markerScale * 32

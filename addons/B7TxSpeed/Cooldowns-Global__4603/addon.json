@@ -8,6 +8,10 @@
   "category_id": "33",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     }
@@ -18,7 +22,7 @@
     "Cooldowns"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4603/",
-  "fingerprint": "a89c99b2e8919dfc399bc748dd83fac2069e45eab384353ae66b83eddd27a5d8",
+  "fingerprint": "2f7db114f71a2acd7f5ec839fb46fd8b6f2167b493c8f4d5db1052b533e690fd",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16158.png"
   ],
@@ -28,11 +32,11 @@
   "source_id": "4603",
   "source_url": "https://www.esoui.com/downloads/info4603-CooldownsGlobal.html",
   "stats": {
-    "downloads": 928,
+    "downloads": 1495,
     "favorites": 8,
-    "monthly_downloads": 164
+    "monthly_downloads": 168
   },
   "title": "Cooldowns Global",
-  "updated_at": 1790200938000,
-  "version": "2.5.2"
+  "updated_at": 1795651537000,
+  "version": "2.5.3"
 }

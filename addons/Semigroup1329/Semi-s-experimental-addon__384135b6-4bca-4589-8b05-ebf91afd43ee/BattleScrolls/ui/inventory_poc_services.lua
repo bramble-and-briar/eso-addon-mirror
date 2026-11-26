@@ -14,7 +14,8 @@ if not SemisPlaygroundCheckAccess() then return end
 ---and the search tracker with the helper, reselects its guild as it shows,
 ---and locks its input around every request. An automated guild-store visit
 ---gets this module's own scene instead and closes when its work ends; the
----next visit within the cooldown opens ESO's screen.
+---next visit within the cooldown opens ESO's screen. The cooldown ends early
+---when the bank hands the pack a listing a free slot can take, or on request.
 ---@class InventoryPocServiceUI
 local ui = {}
 BattleScrolls.inventoryPocServiceUI = ui
@@ -175,6 +176,18 @@ function ui.canAutomate()
         return bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK
     end
     return true
+end
+
+---How long guild-store visits still open ESO's screen.
+---@return number ms Zero when the next visit is automated
+function ui.pauseRemaining()
+    if armed or visiting then return 0 end
+    return math.max(0, cooldownUntil - GetFrameTimeMilliseconds())
+end
+
+---The next guild-store visit is automated again. A visit already open stays as it is.
+function ui.resumeGuildStore()
+    cooldownUntil = 0
 end
 
 ---@return InventoryPocActivity|nil

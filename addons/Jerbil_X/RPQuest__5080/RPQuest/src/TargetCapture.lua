@@ -1,5 +1,6 @@
 -- Ref: docs/adr/0002-modelo-de-dominio-captura-y-codec-de-comparticion.md
 -- Ref: docs/adr/0004-objetivos-multiples-inferidos-por-reticula.md
+-- Ref: docs/adr/0016-limites-texto-y-entidades-presupuesto-correo.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -84,7 +85,7 @@ function TargetCapture:CaptureFromReticle()
     end
 
     local ctx = self:GetPlayerMapContext(true)
-    local draft = Addon.QuestRepository:SetDraftCapturedTarget({
+    local draft, err = Addon.QuestRepository:SetDraftCapturedTarget({
         targetName = nameOrErr,
         mapId = ctx.mapId,
         mapType = ctx.mapType,
@@ -102,9 +103,11 @@ function TargetCapture:CaptureFromReticle()
         local displayTarget = draft.lastCapturedDisplay or (draft.targets and draft.targets[1] and draft.targets[1].name) or ""
         local msg = Addon.Locale:Get("ALERT_TARGET_CAPTURED", displayTarget, locText)
         Addon.Announcements:ShowAlert(msg, false)
+    elseif type(err) == "string" then
+        Addon.Announcements:ShowAlert(err, true)
     end
 
-    return draft
+    return draft, err
 end
 
 function TargetCapture:CaptureDiscoveryPoint(customMessage, customRadius)
@@ -122,13 +125,9 @@ function TargetCapture:CaptureDiscoveryPoint(customMessage, customRadius)
         rawMsg = draft.discoveryMessage or ""
     end
     local cleanMsg = rawMsg:gsub("^%s+", ""):gsub("%s+$", "")
-    if cleanMsg == "" then
-        local nextIdx = #(draft.discoveries or {}) + 1
-        cleanMsg = Addon.Locale:Get("DEFAULT_DISCOVERY_MSG", nextIdx)
-    end
 
     local radius = tonumber(customRadius) or draft.discoveryRadius or Addon.Constants.DISCOVERY_RADIUS.MEDIUM
-    local updatedDraft, count = Addon.QuestRepository:AddDraftDiscoveryPoint({
+    local updatedDraft, countOrErr = Addon.QuestRepository:AddDraftDiscoveryPoint({
         zoneId = zoneId,
         worldX = worldX,
         worldY = worldY or 0,
@@ -144,9 +143,11 @@ function TargetCapture:CaptureDiscoveryPoint(customMessage, customRadius)
     if updatedDraft then
         local locText = (ctx.mapName ~= "" and ctx.mapName) or Addon.Locale:Get("LABEL_UNKNOWN_LOCATION")
         local radiusMeters = math.floor(radius / 100)
-        local alertMsg = Addon.Locale:Get("ALERT_DISCOVERY_CAPTURED", count or 1, locText, radiusMeters)
+        local alertMsg = Addon.Locale:Get("ALERT_DISCOVERY_CAPTURED", countOrErr or 1, locText, radiusMeters)
         Addon.Announcements:ShowAlert(alertMsg, false)
+    elseif type(countOrErr) == "string" then
+        Addon.Announcements:ShowAlert(countOrErr, true)
     end
 
-    return updatedDraft, count
+    return updatedDraft, countOrErr
 end

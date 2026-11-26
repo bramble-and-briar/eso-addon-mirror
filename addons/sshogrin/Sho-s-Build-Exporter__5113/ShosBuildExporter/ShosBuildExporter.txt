@@ -1,0 +1,11 @@
+## Title: |c2046e5Sho's Build Exporter|r
+## Author: |c2046e5sshogrin|r
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101051 101052
+## SavedVariables: ShosBuildExporterSV
+## Description: Exports equipped gear, race/class, attributes, Mundus stone, CP slottables, passives, and skills (including Scribing scripts) to SavedVariables and a copyable window.
+
+ShosBuildExporterCodec.lua
+ShosBuildExporter.lua
+

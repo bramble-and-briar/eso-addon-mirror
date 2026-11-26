@@ -1,0 +1,22 @@
+## To release a new version, edit the version in the two lines below and nothing else.
+## Title: |cFFC04DPB's Battle Scrolls|r 0.3.0
+## Author: |cFF69B4PinkBanther|r
+## Description: A light DPS / HPS meter for console. Shows the fight's DPS and HPS on the HUD, and breaks the last 10 fights down by skill, target, buff and set proc uptime and skills pressed on a screen of its own (Main menu > Battle Scrolls). With LibGroupBroadcast, group members who run it share their DPS and HPS: the HUD lists them and the breakdown shows your share.
+## Version: 0.3.0
+## APIVersion: 101050 101051
+## OptionalDependsOn: LibHarvensAddonSettings>=20106 LibGroupBroadcast
+## SavedVariables: PBsBattleScrolls_Data
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls© and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+
+lang/strings.lua
+lang/$(language).lua
+
+Core.lua
+Fight.lua
+Group.lua
+Boss.lua
+Hud.lua
+Screen.lua
+Menu.lua
+Settings.lua
+Main.lua

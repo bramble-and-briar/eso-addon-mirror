@@ -1,4 +1,3 @@
--- Опасные атаки с таймерами - КАК В IAHelper (ПОЛНАЯ ВЕРСИЯ)
 local AH = _G.MarkTrialHelper
 local EM = EVENT_MANAGER
 
@@ -10,7 +9,6 @@ local dangerBlinkTimer = nil
 local mechanicFrame = nil  -- Для уведомлений о механиках
 local mechanicTimer = nil
 
--- Цвета
 local IA_COLOR_YELLOW = 'FFFF00'
 local IA_COLOR_RED = 'FF0000'
 local IA_COLOR_GREEN = '00FF00'
@@ -19,7 +17,6 @@ local IA_COLOR_CYAN = '00FFFF'
 local IA_COLOR_PINK = 'FF00FF'
 local IA_COLOR_ORANGE = 'FF6600'
 
--- Вспомогательная функция для безопасной отписки от таймеров
 local function SafeUnregisterUpdate(timerId)
     if timerId and type(timerId) == "string" then
         EM:UnregisterForUpdate(timerId)
@@ -27,8 +24,6 @@ local function SafeUnregisterUpdate(timerId)
     end
     return false
 end
-
--- Создание фрейма для опасных атак (как в IAHelper)
 local function CreateDangerFrame()
     if dangerFrame then
         return dangerFrame
@@ -74,7 +69,6 @@ local function CreateDangerFrame()
     return frame
 end
 
--- Создание фрейма для уведомлений о механиках (как IAHelper_Win1/Win2)
 local function CreateMechanicFrame()
     if mechanicFrame then
         return mechanicFrame
@@ -90,7 +84,7 @@ local function CreateMechanicFrame()
     
     local label = WINDOW_MANAGER:CreateControl(nil, frame, CT_LABEL)
     label:SetAnchor(CENTER, frame, CENTER)
-    label:SetFont("$(BOLD_FONT)|$(KB_54)|soft-shadow-thick")  -- Как в IAHelper
+    label:SetFont("$(BOLD_FONT)|$(KB_54)|soft-shadow-thick")  -- Как в
     label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     label:SetColor(1, 0, 0, 1)  -- Красный по умолчанию
@@ -101,7 +95,6 @@ local function CreateMechanicFrame()
     
     frame.Label = label
     
-    -- Позиция как в IAHelper_Win1 (центр, смещение вверх)
     local x = 0
     local y = -200
     if AH.Vars and AH.Vars.MechanicPosition then
@@ -121,7 +114,6 @@ local function CreateMechanicFrame()
     return frame
 end
 
--- Показать опасность
 function AH.ShowDanger(text, color)
     if not text or text == "" then
         return
@@ -169,11 +161,6 @@ function AH.ShowDanger(text, color)
     end
 end
 
--- ============================================
--- УВЕДОМЛЕНИЯ О МЕХАНИКАХ (КАК В IAHelper)
--- ============================================
-
--- Показать уведомление о механике (как IAHelper_Win1)
 function AH.ShowMechanic(text, color, duration)
     if not text or text == "" then
         return
@@ -184,7 +171,6 @@ function AH.ShowMechanic(text, color, duration)
         return
     end
     
-    -- Устанавливаем цвет
     if color == "FF0000" then
         frame.Label:SetColor(1, 0, 0, 1)
     elseif color == "00FF00" then
@@ -198,7 +184,6 @@ function AH.ShowMechanic(text, color, duration)
     frame.Label:SetText(text)
     frame:SetHidden(false)
     
-    -- Автоскрытие через duration секунд
     if duration and duration > 0 then
         SafeUnregisterUpdate(mechanicTimer)
         mechanicTimer = nil
@@ -209,7 +194,6 @@ function AH.ShowMechanic(text, color, duration)
     end
 end
 
--- Скрыть уведомление о механике
 function AH.HideMechanic()
     if mechanicFrame then
         mechanicFrame:SetHidden(true)
@@ -217,10 +201,6 @@ function AH.HideMechanic()
     SafeUnregisterUpdate(mechanicTimer)
     mechanicTimer = nil
 end
-
--- ============================================
--- КОНКРЕТНЫЕ МЕХАНИКИ (как в IAHelper)
--- ============================================
 
 function AH.ShowPillarsOfNirn()
     AH.PlayAlarm(AH.Sounds.Terrain)
@@ -264,10 +244,6 @@ function AH.ShowInferno()
     AH.PlayAlarm(AH.Sounds.Terrain)
     AH.ShowMechanic("|cFF0000Inferno|r", "FF0000", 3)
 end
-
--- ============================================
--- ФОРМАТИРОВАНИЕ АТАК (как в IAHelper)
--- ============================================
 
 local function FormatHeavyAttackList()
     local countdownList = {}
@@ -319,10 +295,6 @@ function AH.UpdateHeavyAttackList()
         dangerUpdateTimer = EM:RegisterForUpdate("MarkTrialHelperDangerUpdate", 100, AH.UpdateHeavyAttackList)
     end
 end
-
--- ============================================
--- ОСНОВНЫЕ ФУНКЦИИ
--- ============================================
 
 function AH.RegisterHeavyAttack(duration, color, text, sound)
     if not AH.Vars.TrackDanger then return end

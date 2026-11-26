@@ -1,4 +1,4 @@
-Antiquity Atlas 0.13.3 - full bundled-data edition
+Antiquity Atlas 0.14.0 - full bundled-data edition
 Author: TjeEmpejoj
 
 AI disclosure: Developed with code-generation assistance from ChatGPT/Codex.
@@ -8,6 +8,7 @@ in-game compatibility, performance or correctness of every source.
 REQUIRED: LibZone >= 9.01 (AddOnVersion >= 901).
 https://www.esoui.com/downloads/info2171
 Optional: Map Pins and HarvestMap for additional current-account recorded locations.
+Optional: RuESO for localized/bilingual zone names using its public zone-name API.
 Lead List, Display Leads and LibSets do not need to be installed or enabled.
 
 FULL DATA
@@ -17,6 +18,11 @@ Lead List is used. English source/search fallback is retained independently of a
 provider localization. Atlas UI/source-label translation is English/Russian.
 Data updates now require an Atlas update; updating Lead List alone cannot update this
 independent snapshot. Existing coverage is retained, not enlarged or fully fact-verified.
+
+NEW IN 0.14.0
+Native keyboard antiquity journal launch button; deferred journal initialization fix.
+Improved English/Russian text fitting and native styling; optional RuESO zone names.
+Bold tooltip regions, compact source hints and scale-aware bottom scrolling.
 
 FEATURES
 Reward cards, component leads, search, filters, mythic item tooltips and reward previews.
@@ -34,7 +40,8 @@ INSTALLATION
 Exit ESO, back up and replace the AntiquityAtlas folder completely in
 Documents/Elder Scrolls Online/live/AddOns. Keep SavedVariables.
 This is an alternative edition with the same addon ID, not a second simultaneous install.
-Enable LibZone and Atlas; use /atlas or /antiquityatlas. /atlascheck checks numeric routes.
+Enable LibZone and Atlas; use the Antiquity Atlas button below journal search,
+or /atlas or /antiquityatlas. /atlascheck checks numeric routes.
 Install and backup status is documented separately by the packaging task.
 
 NEW ROUTING LIMITATION

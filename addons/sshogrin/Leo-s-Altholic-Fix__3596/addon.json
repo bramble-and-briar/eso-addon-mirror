@@ -18,7 +18,7 @@
     "LeoAltholic"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3596/",
-  "fingerprint": "156e3ddd109a97a51914803d7c37826929587ec79da6633196f97a792148e8d2",
+  "fingerprint": "003177d963ad203a176e141cebd3887ac5192f512c546e3d2595ea4271202721",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw12351.png",
     "https://cdn-eso.mmoui.com/preview/pvw12352.png",
@@ -36,11 +36,11 @@
   "source_id": "3596",
   "source_url": "https://www.esoui.com/downloads/info3596-LeosAltholicFix.html",
   "stats": {
-    "downloads": 13867,
+    "downloads": 14190,
     "favorites": 22,
-    "monthly_downloads": 1159
+    "monthly_downloads": 1405
   },
   "title": "Leo's Altholic (Fix)",
-  "updated_at": 1795325296000,
-  "version": "1.9.8"
+  "updated_at": 1795634438000,
+  "version": "1.9.9"
 }

@@ -1,0 +1,27 @@
+<GuiXml>
+    <Controls>
+        <!-- Start here: one page on how the addon works, filled from Lua (T.StartPage in Theme.lua).
+             The same window in every Fury addon. -->
+        <TopLevelControl name="FurysQualityOfLife_StartHere" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH" level="10">
+            <Dimensions x="700" y="600" />
+            <Anchor point="CENTER" />
+            <Controls>
+                <Backdrop name="$(parent)Bg" centerColor="0F0E1F" edgeColor="4A3D99" alpha="1">
+                    <AnchorFill />
+                    <Edge edgeSize="2" />
+                </Backdrop>
+                <Label name="$(parent)Title" font="$(ANTIQUE_FONT)|26|soft-shadow-thick" color="ECEAF8" text="Start here">
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="14" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-12" offsetY="12" />
+                    <OnClicked>SCENE_MANAGER:HideTopLevel(self:GetParent())</OnClicked>
+                </Button>
+                <Control name="$(parent)Body" inherits="ZO_ScrollContainer">
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="62" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-20" />
+                </Control>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

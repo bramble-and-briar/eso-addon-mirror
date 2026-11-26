@@ -176,7 +176,7 @@ local function SetSize(setKey, size)
 
   if context ~= nil then
 
-    if Cool.Data.Sets[setKey] and Cool.Data.Sets[setKey].id == 147462 or Cool.Data.Sets[setKey].id == 193411 then -- pearls and esoteric
+    if Cool.Data.Sets[setKey] and Cool.Data.Sets[setKey].resource then
       Cool.UI.UpdateBarConstraints(setKey)
     else
       context:SetScale(size / scaleBase)
@@ -191,8 +191,11 @@ local function DisplayChangeTimeEnd()
     local set = timerUpdateTime[i]
     local t = GetGameTimeMilliseconds()
     if set.timer - t <= 0 then
-      if Cool.Data.Sets[set.key].id == 147462 or Cool.Data.Sets[setKey].id == 193411 then --pearls and esoteric
+      local data = Cool.Data.Sets[set.key]
+      if data.resource then
         Cool.UI.UpdateProcs(set.key)
+      elseif data.procCounter and (data.durationms or 0) == 0 then
+        Cool.Controls[set.key].label:SetText("")
       elseif set.key == Cool.spaulderName then
         Cool.UI.UpdateToggled(set.key, Cool.preferences.spaulderActive)
       else
@@ -226,7 +229,7 @@ local function UpdateTimerPosition(setKey)
     l:SetAnchor(CENTER, c, CENTER, x, Cool.UI.FormatTimerY(y))
 
     if not Cool.hideInMenu then
-      if set.id == 147462 or set.id == 193411 then -- pearls and esoteric
+      if set.resource then
         if l:GetText() == "" then
           l:SetText("69%")
           l:SetColor(unpack(Cool.preferences.sets[setKey].colorDown))
@@ -247,7 +250,7 @@ local function UpdateTimerPosition(setKey)
           l:SetColor(unpack(Cool.preferences.sets[setKey].colorUp))
           l:SetText("15")
         else
-          if set.durationms > 0 then
+          if (set.durationms or 0) > 0 then
             i:SetColor(1, 1, 1, 1)
             l:SetColor(unpack(Cool.preferences.sets[setKey].colorUp))
             l:SetText("1.9")
@@ -840,9 +843,9 @@ function Cool.Settings.Init()
   }
 
   for key, set in pairs(Cool.Data.Sets) do
-    if Cool.resourceSets[key] then
+    if set.resource then
       table.insert(settingsBreakout.resource.data, key)
-      table.insert(settingsBreakout.resource.description, Cool.resourceSets[key].description)
+      table.insert(settingsBreakout.resource.description, "Customize how the display behaves in regards to your resources")
     end
 
     if set.procType == "artifact" then

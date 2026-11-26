@@ -31,7 +31,6 @@ function Locale:Initialize(overrideLang)
     if not self._stringsRegistered then
         ZO_CreateStringId("SI_KEYBINDINGS_CATEGORY_RPQUEST", self:Get("SI_KEYBINDINGS_CATEGORY_RPQUEST"))
         ZO_CreateStringId("SI_BINDING_NAME_RPQUEST_CAPTURE_TARGET", self:Get("SI_BINDING_NAME_RPQUEST_CAPTURE_TARGET"))
-        ZO_CreateStringId("SI_BINDING_NAME_RPQUEST_CAPTURE_DISCOVERY", self:Get("SI_BINDING_NAME_RPQUEST_CAPTURE_DISCOVERY"))
         ZO_CreateStringId("SI_BINDING_NAME_RPQUEST_TOGGLE_JOURNAL", self:Get("SI_BINDING_NAME_RPQUEST_TOGGLE_JOURNAL"))
         self._stringsRegistered = true
     end

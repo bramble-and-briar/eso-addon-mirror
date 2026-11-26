@@ -10,7 +10,11 @@ local recharge = {}
 local function IsItemAboveThreshold(bagId,slotIndex,minPercent)
 
 	local charge,maxcharge = GetChargeInfoForItem(bagId,slotIndex)
-	local isAbove = charge >= maxcharge or (minPercent ~= nil and (charge/maxcharge) > minPercent)
+	-- Unenchanted/invalid equipment has no charge pool and must never consume a gem.
+    if type(maxcharge) ~= "number" or maxcharge <= 0 or type(charge) ~= "number" then
+        return true, 0, 0
+    end
+    local isAbove = charge >= maxcharge or (minPercent ~= nil and (charge / maxcharge) > minPercent)
 	
 	return isAbove,charge,maxcharge
 end
@@ -23,6 +27,7 @@ end
 
 local function ChargeItem(bagId,slotIndex,gems,minPercent)
 	if isPlayerDead() then return 0, true end
+    if IsUnitInCombat("player") or not (Recharge.settings and Recharge.settings.chargeEnabled) then return 0, false end
 
 	local gem
 
@@ -42,12 +47,14 @@ local function ChargeItem(bagId,slotIndex,gems,minPercent)
 	if gem ~= nil then
 
 		if isPlayerDead() then return 0, true end
+        if IsUnitInCombat("player") or not (Recharge.settings and Recharge.settings.chargeEnabled) then return 0, false end
 		local amount = GetAmountSoulGemWouldChargeItem(bagId,slotIndex,gem.bag,gem.index)
 		if amount <= 0 then return 0, false end
 
 		-->Attention: This will fire EVENT_INVENTORY_SINGLE_SLOT_UPDATE with INVENTORY_UPDATE_REASON_ITEM_CHARGE and
 		-->AutoRecharge will try to charge the item again then. So we need to set a preventer variable here
-		Recharge.noChargeChangeEvents[slotIndex] = true
+		if IsUnitInCombat("player") or not (Recharge.settings and Recharge.settings.chargeEnabled) then return 0, false end
+        Recharge.noChargeChangeEvents[slotIndex] = true
 		ChargeItemWithSoulGem(bagId,slotIndex,gem.bag,gem.index)
 
 		gem.size = gem.size - 1

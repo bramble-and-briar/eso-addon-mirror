@@ -1,6 +1,7 @@
-2026.11.23
-- Added keep recall stones, forward camps and "cold" siege to loot manager white list.
-- Added "Shimmerfrost Vale" to housing whitelist.
+2026.11.26
+- Crafting stations now automatically switch to the furnishing tab of any crafting station if your search field isn't empty.
+- Guild trader auto pricing now uses ttc preferred pricing and then rounds down to *99 and anything below 100 up to 99 to keep you on track for financial domination!
+- Stripped out the auto recharge and repair from junk manager into its own more performance refined option. You will need to go into settings panel and turn it on again.. Sorry
+- More localization of functions.
 ** POSSIBLE FUTURE OPTIONS **
-- Auto com res?
-- add needs hook to trader window
+- none

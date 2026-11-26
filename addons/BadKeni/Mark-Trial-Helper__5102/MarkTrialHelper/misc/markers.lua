@@ -3,10 +3,8 @@ local fabledText = GetString(_G.MARKTRIALHELPER_FABLED):lower()
 local shardText = GetString(_G.MARKTRIALHELPER_SHARD):lower()
 local gwText = GetString(_G.MARKTRIALHELPER_GW):lower()
 local flameShaperText = GetString(_G.MARKTRIALHELPER_FLAMESHAPER):lower()
--- local cache for performance
 local GetUnitName, GetUnitTargetMarkerType = GetUnitName, GetUnitTargetMarkerType
 local IsUnitDead, AssignTargetMarkerToReticleTarget = IsUnitDead, AssignTargetMarkerToReticleTarget
--- ТАБЛИЦА МАРКЕРОВ (КАК В IAHelper)
 local MARKER_TABLE = {
     ["Fabled Infuser"]          = TARGET_MARKER_TYPE_FIVE,
     ["Fabled Spellthief"]       = TARGET_MARKER_TYPE_SIX,
@@ -28,7 +26,6 @@ local MARKER_TABLE = {
     ["Firesong Druid"]          = TARGET_MARKER_TYPE_EIGHT,
     ["Gw the Pilferer"]         = TARGET_MARKER_TYPE_EIGHT,
     
-    -- Дополнительные опасные мобы
     ["Infuser"]                 = TARGET_MARKER_TYPE_FIVE,
     ["Spellthief"]              = TARGET_MARKER_TYPE_SIX,
     ["Flameshaper"]             = TARGET_MARKER_TYPE_FOUR,
@@ -41,7 +38,6 @@ local MARKER_TABLE = {
     ["Mystic"]                  = TARGET_MARKER_TYPE_THREE,
 }
 
--- marker 8 reserved for marauders
 AH.MARKERS = {
     [1] = {marker = TARGET_MARKER_TYPE_ONE, used = false, manual = false},
     [2] = {marker = TARGET_MARKER_TYPE_TWO, used = false, manual = false},
@@ -74,7 +70,6 @@ local function makeMarkerAvailable(marker)
 end
 
 local function getAvailableMarker()
-    -- probably not necessary, but...
     table.sort(markerKeys)
 
     for _, key in ipairs(markerKeys) do
@@ -85,7 +80,6 @@ local function getAvailableMarker()
         end
     end
 
-    -- all markers used up, reset and start again
     for _, info in pairs(AH.MARKERS) do
         info.used = false
     end
@@ -126,16 +120,13 @@ local function doChecks()
     AH.FOUND_GW = false
 
     if (arc == 1) then
-        -- no marauders in arc 1
         AH.CHECK_MARAUDERS = false
         if (cycle < 4) then
-            -- no fabled before arc 1 cycle 4
             AH.CHECK_FABLED = false
         end
     end
 
     if (cycle < 5 and stage == 3) then
-        -- possible fabled due to one boss, no marauders or shards
         AH.CHECK_FLAMESHAPER = true and AH.Vars.FabledCheck
         AH.CHECK_FABLED = false
         AH.CHECK_MARAUDERS = false
@@ -144,14 +135,12 @@ local function doChecks()
     end
 
     if (cycle == 5 and stage == 3 and arc < 4) then
-        -- only get shards in cycle 5, stage 3, up to arc 4, no marauders or fabled
         AH.CHECK_SHARDS = true and AH.Vars.ShardCheck
         AH.CHECK_MARAUDERS = false
         AH.CHECK_FABLED = false
     end
 
     if ((arc >= 4 and cycle >= 3) and (not AH.ShardIgnore)) then
-        -- shards now appear as trash mobs
         AH.CHECK_SHARDS = true and AH.Vars.ShardCheck
     end
 
@@ -167,7 +156,6 @@ local function isItDeadDave()
         end
     end
 end
--- НОВАЯ ФУНКЦИЯ МАРКЕРОВ (КАК В IAHelper)
 function AH.ReticleChanged()
     if not AH.Vars.FabledCheck and not AH.Vars.ShardCheck and not AH.Vars.GwCheck and not AH.Vars.MarauderCheck then
         return
@@ -181,7 +169,6 @@ function AH.ReticleChanged()
         return
     end
     
-    -- Проверяем, что мы лидер группы или соло
     if not IsUnitSoloOrGroupLeader("player") then
         return
     end
@@ -190,11 +177,8 @@ function AH.ReticleChanged()
     if not name or name == "" then
         return
     end
-    
-    -- Проверяем по полному имени (как в IAHelper)
     local marker = MARKER_TABLE[name]
     if not marker then
-        -- Проверяем по части имени (для мобов с доп. словами)
         for key, value in pairs(MARKER_TABLE) do
             if name:find(key, 1, true) then
                 marker = value
@@ -239,7 +223,6 @@ local function markerCheck()
             end
         end
     elseif (extantMarker ~= TARGET_MARKER_TYPE_EIGHT) then
-        -- sanity check
         local index = getMarkerIndex(extantMarker)
 
         if (not find(GetUnitName("reticleover")) and (not AH.MARKERS[index].manual)) then
@@ -258,7 +241,6 @@ function AH.MarauderCheck()
                 AssignTargetMarkerToReticleTarget(TARGET_MARKER_TYPE_EIGHT)
             end
         elseif (extantMarker == TARGET_MARKER_TYPE_EIGHT) then
-            -- sanity check
             if (not GetUnitName("reticleover") == AH.MARAUDER) then
                 AssignTargetMarkerToReticleTarget(extantMarker)
             end
@@ -266,7 +248,6 @@ function AH.MarauderCheck()
     end
 end
 
--- for keybinds
 function AH.MarkCurrentTarget()
     if (GetUnitTargetMarkerType("reticleover") == TARGET_MARKER_TYPE_NONE) then
         local marker, key = getAvailableMarker()
@@ -304,8 +285,6 @@ function AH.CombatCheck(_, incombat)
             AH.MARAUDER = nil
         else
             doChecks()
-
-            -- Используем новый обработчик как в IAHelper
             EVENT_MANAGER:RegisterForEvent(AH.Name, EVENT_RETICLE_TARGET_CHANGED, function()
                 if (AH.InsideArchive) then
                     AH.ReticleChanged()

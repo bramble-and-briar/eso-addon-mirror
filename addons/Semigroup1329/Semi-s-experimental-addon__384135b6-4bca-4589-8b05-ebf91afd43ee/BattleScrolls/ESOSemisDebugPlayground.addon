@@ -1,8 +1,8 @@
 ## Title: Semi's Debug Playground
 ## Author: Semigroup1329
 ## APIVersion: 101050 101051
-## AddOnVersion: 601
-## Version: 0.0.601
+## AddOnVersion: 604
+## Version: 0.0.604
 ## IsLibrary: False
 ## DependsOn: LibGroupBroadcast LibAsync>=30100
 ## OptionalDependsOn: LibHarvensAddonSettings WizardsWardrobe LibCharacterKnowledge TSCPriceFetcher2
@@ -174,7 +174,7 @@ antiquity_leads.lua
 ; Personal UI trust checks: /bst (docs/inventory-addon/ui-taint.md)
 ui/taint_tests.lua
 
-; Personal language overlay test: /bslang (gamedata/lang/sv.lang_htf)
+; Personal language overlay test: adds Svenska to Settings → Interface → Text Language (gamedata/lang/sv.lang_htf)
 lang_overlay_test.lua
 
 ; Reclaim load-time garbage before SavedVariables: must be the last file

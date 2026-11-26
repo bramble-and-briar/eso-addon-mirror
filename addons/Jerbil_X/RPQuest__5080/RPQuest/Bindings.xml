@@ -8,13 +8,6 @@
                     end
                 </Down>
             </Action>
-            <Action name="RPQUEST_CAPTURE_DISCOVERY">
-                <Down>
-                    if RPQuest and RPQuest.OnCaptureDiscoveryKeybind then
-                        RPQuest:OnCaptureDiscoveryKeybind()
-                    end
-                </Down>
-            </Action>
             <Action name="RPQUEST_TOGGLE_JOURNAL">
                 <Down>
                     if RPQuest and RPQuest.OnToggleJournalKeybind then

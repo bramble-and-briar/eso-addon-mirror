@@ -18,7 +18,7 @@
     "DKMasteryTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4857/",
-  "fingerprint": "b440fed0fd983187f6c753c2bdc25277fb87a9f79b130cec2a09cb92bad90be8",
+  "fingerprint": "ad18bf8ae9772d56b87697a134a58c2fc32769cd94305e6072aff0dd386a8e6c",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17458.png",
     "https://cdn-eso.mmoui.com/preview/pvw17459.png"
@@ -29,11 +29,11 @@
   "source_id": "4857",
   "source_url": "https://www.esoui.com/downloads/info4857-DKMASTERYTRACKER.html",
   "stats": {
-    "downloads": 28,
+    "downloads": 164,
     "favorites": 2,
-    "monthly_downloads": 21
+    "monthly_downloads": 65
   },
   "title": "DK MASTERY TRACKER",
-  "updated_at": 1790298431000,
-  "version": "1.0.4"
+  "updated_at": 1795665761000,
+  "version": "1.0.5"
 }

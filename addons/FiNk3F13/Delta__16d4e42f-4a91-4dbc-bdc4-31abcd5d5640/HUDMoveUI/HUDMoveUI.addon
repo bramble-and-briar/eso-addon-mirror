@@ -1,0 +1,14 @@
+## Title: HUD Move UI
+## Author: FiNk3--F13--
+## Version: 1.0.0-test
+## AddOnVersion: 10000
+## APIVersion: 101051 101052
+## DependsOn: LibHarvensAddonSettings
+## SavedVariables: HUDMoveUISavedVariables
+## Description: Move and scale supported ESO HUD elements using controller settings and the right stick.
+
+Registry.lua
+HUDMoveUI.lua
+MoveUI.lua
+Settings.lua
+Bindings.xml

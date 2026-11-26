@@ -48,8 +48,9 @@ if not SemisPlaygroundCheckAccess() then return end
 ---@field phaseSince number|nil
 ---@field trace string[]
 ---@field failureRecorded boolean
+---@field skipped table<string, number> Listings skipped this visit, by reason
 local market = { tried = {}, prepared = {}, registered = false, ownRequest = false, stopped = false, touched = false,
-    listings = {}, checked = {}, refreshUI = false, revision = 0, trace = {}, failureRecorded = false }
+    listings = {}, checked = {}, refreshUI = false, revision = 0, trace = {}, failureRecorded = false, skipped = {} }
 BattleScrolls.inventoryPocMarket = market
 local poc = BattleScrolls.inventoryPoc
 local facts = BattleScrolls.inventoryPocFacts
@@ -74,20 +75,36 @@ local function setPhase(phase)
     trace(phase)
 end
 
+---What this store offers of each trading guild, against the counts the Pack tab shows.
+---@return string
+local function guildState()
+    local offered, lines = {}, {}
+    for index = 1, GetNumTradingHouseGuilds() do offered[GetTradingHouseGuildDetails(index)] = true end
+    for _, guildId in ipairs(facts.guildIds()) do
+        local counts = market.listings[guildId]
+        lines[#lines + 1] = string.format('guild=%d offered=%s canSell=%s listings=%s fresh=%s', guildId,
+            tostring(offered[guildId] == true), tostring(CanSellOnTradingHouse(guildId)),
+            counts and (counts.used .. '/' .. counts.capacity) or 'unread', tostring(counts ~= nil and counts.fresh))
+    end
+    return table.concat(lines, '\n')
+end
+
 ---@param reason string
 ---@param result number|nil
-local function recordFailure(reason, result)
+---@param routine boolean|nil The visit ended as designed: recorded without the problem badge
+local function recordFailure(reason, result, routine)
     if market.failureRecorded or not poc.saved then return end
     market.failureRecorded = true
     local search = market.search
     local item = search and search.item
     local native = TRADING_HOUSE_SEARCH
     local awaiting = native.GetAwaitingResponseType and native:GetAwaitingResponseType()
-    local diagnostics = string.format('phase=%s reason=%s elapsed=%dms\nguild=%s target=%s awaiting=%s cooldown=%dms cached=%s\n%s',
+    local diagnostics = string.format('phase=%s reason=%s elapsed=%dms\nguild=%s target=%s awaiting=%s cooldown=%dms cached=%s\n%s\n%s',
         tostring(market.phase), reason, GetFrameTimeMilliseconds() - (market.phaseSince or GetFrameTimeMilliseconds()),
         tostring(GetSelectedTradingHouseGuildId()), tostring(market.activityGuildId), tostring(awaiting),
-        GetTradingHouseCooldownRemaining(), tostring(HasTradingHouseListings()), table.concat(market.trace, '\n'))
-    poc.appendLog({ timestamp = GetTimeStamp(), character = GetUnitName('player'), action = 'keep', result = 'uncertain',
+        GetTradingHouseCooldownRemaining(), tostring(HasTradingHouseListings()), guildState(), table.concat(market.trace, '\n'))
+    poc.appendLog({ timestamp = GetTimeStamp(), character = GetUnitName('player'), action = 'keep',
+        result = routine and 'deferred' or 'uncertain',
         itemLink = item and item.link or '', itemId = item and item.itemId or 0, quantity = item and item.stack or 0,
         fromBag = item and item.bag or BAG_BACKPACK, guildId = market.activityGuildId,
         marketIssue = { diagnostics = diagnostics, result = result } })
@@ -99,6 +116,7 @@ end
 ---@param reason string
 ---@param details string|nil
 local function recordSkip(item, stage, reason, details)
+    market.skipped[reason] = (market.skipped[reason] or 0) + 1
     if not poc.saved then return end
     local diagnostics = string.format('stage=%s reason=%s\nbag=%d slot=%d item=%d count=%d\nsearchName=%q\n%s',
         stage, reason, item.bag, item.slot, item.itemId, item.stack, item.searchName, details or '')
@@ -593,7 +611,7 @@ end
 ---@return InventoryPocDecision
 local function searchDecision(item)
     local price, loading = item.marketUnit, item.priceLoading
-    if facts.quotes[facts.variantKey(item)] then
+    if facts.quoted(item) then
         item.marketUnit = nil
         if (item.kind == 'gear' and item.tradeable) or item.kind == 'sealedLead' then item.priceLoading = true end
     end
@@ -628,8 +646,7 @@ local function nextSearch(items, reserved, unpricedOnly)
         local best, highest = nil, 0
         for index, before in ipairs(items) do
             local decision = searchDecision(before)
-            local variant = unpricedOnly and facts.variantKey(before)
-            if variant and (facts.quotes[variant] or market.checked[variant]) then
+            if unpricedOnly and (facts.quoted(before) or market.checked[facts.variantKey(before)]) then
                 -- One price check settles what an item waits for; a recheck
                 -- only matters right before a listing.
             elseif decision.action == 'list' or (decision.action == 'defer' and decision.reason == 'price') then
@@ -699,6 +716,8 @@ local function quoteSearch(search, reserved)
     local returned = policy.quote(reference, search.lowest, search.seconds, current.stack, true)
     local priced = expired and returned or normal
     if not priced then
+        -- The search is complete: remember that nobody sells this, so a rule can stop waiting.
+        facts.rememberQuote(current)
         recordSkip(current, 'quote', 'price-unavailable', quoteDiagnostics(search, reference, expired))
         return nil
     end
@@ -746,6 +765,32 @@ local function bestPrepared(reserved)
     return best, bestQuote
 end
 
+---The Pack tab promises a listing to stock it counts a free slot for. A visit
+---that ends with such stock still in the pack says why.
+---@param items InventoryPocItem[]
+---@param reserved table<string, boolean>
+---@param reason string
+---@param routine boolean|nil
+local function recordUnlisted(items, reserved, reason, routine)
+    if market.freeListingSlots() == 0 then return end
+    local waiting = 0
+    for index, before in ipairs(items) do
+        if policy.decide(before).action == 'list' then
+            -- A quote remembered during this visit can have changed the decision.
+            local item = facts.item(before.bag, before.slot, reserved)
+            if item and item.uniqueId == before.uniqueId and policy.decide(item).action == 'list' then waiting = waiting + 1 end
+        end
+        if index % 20 == 0 then Effect.Yield():Await() end
+    end
+    if waiting == 0 then return end
+    -- A skip notice is written once per item, so a repeat visit has to name its reasons here.
+    local skipped = {}
+    for skipReason, count in pairs(market.skipped) do skipped[#skipped + 1] = skipReason .. ':' .. count end
+    table.sort(skipped)
+    recordFailure(string.format('%s waiting=%d skipped=%s', reason, waiting, #skipped > 0 and table.concat(skipped, ',') or 'none'),
+        nil, routine)
+end
+
 ---One cancellable program owns a transaction. Runtime inventory events can
 ---invalidate its snapshot while the outstanding server request finishes.
 ---@param items InventoryPocItem[]
@@ -759,7 +804,11 @@ function market.step(items, reserved)
     end
     if market.fiber then return true end
     if not market.guildIds then market.guildIds = accessibleGuilds() end
-    if #market.guildIds == 0 then return false end
+    if #market.guildIds == 0 then
+        -- A kiosk offers its own guild only. Listing needs both trading guilds, as each price check does.
+        recordUnlisted(items, reserved, 'guilds-unavailable', true)
+        return false
+    end
     local revision = market.revision
     local operation = Effect.Async(function()
         local guildId = listingGuild(market.guildIds)
@@ -796,7 +845,11 @@ function market.step(items, reserved)
                 elseif not current then market.prepared[searchKey(best.item)] = nil end
                 return true
             end
-            if not candidate then market.search = nil; return false end
+            if not candidate then
+                market.search = nil
+                recordUnlisted(items, reserved, guildId and 'no-candidate' or 'no-listing-guild')
+                return false
+            end
             local key = searchKey(candidate)
             market.tried[key .. ':' .. tostring(candidate.stack)], market.touched = true, true
             market.checked[facts.variantKey(candidate)] = true
@@ -841,6 +894,7 @@ local function resetVisit()
     market.stop()
     market.tried, market.stopped, market.touched, market.guildIds = {}, false, false, nil
     market.trace, market.failureRecorded, market.phase, market.phaseSince = {}, false, nil, nil
+    market.skipped = {}
     for _, counts in pairs(market.listings) do counts.fresh = false end
 end
 
@@ -862,6 +916,7 @@ function market.initialize()
     EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_OPEN_TRADING_HOUSE, function()
         if not poc.enabled then return end
         resetVisit()
+        trace('open')
         poc.beginVisit()
     end)
     EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_CLOSE_TRADING_HOUSE, function()
@@ -870,6 +925,7 @@ function market.initialize()
     end)
     EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_TRADING_HOUSE_STATUS_RECEIVED, function()
         if not poc.enabled then return end
+        if GetInteractionType() == INTERACTION_TRADINGHOUSE then trace('status') end
         market.refreshUI = true
         poc.resume()
     end)
@@ -930,7 +986,7 @@ function market.initialize()
     -- Shared native search state has one owner. External searches, posts and
     -- guild changes end this visit's program. Opening the UI reselects its guild.
     ZO_PreHook('ExecuteTradingHouseSearch', function()
-        if poc.enabled and market.search and not market.ownRequest then market.stop() end
+        if poc.enabled and market.search and not market.ownRequest then market.stop(market.fiber and 'other-search' or nil) end
     end)
     ZO_PreHook('SelectTradingHouseGuildId', function(guildId)
         if not poc.enabled or market.ownRequest then return end
@@ -941,11 +997,11 @@ function market.initialize()
                 trace('guild-already-selected')
                 return true
             end
-        elseif market.touched then market.stop() end
+        elseif market.touched then market.stop(market.fiber and 'other-guild-change' or nil) end
     end)
     ZO_PreHook('RequestPostItemOnTradingHouse', function()
         if poc.enabled and not market.ownRequest then
-            market.stop()
+            market.stop(market.fiber and 'other-post' or nil)
             local pending = poc.saved and poc.saved.pending
             if pending and pending.action == 'list' then pending.conflicted = true end
         end

@@ -315,6 +315,12 @@ local function finish(pending, result)
     if result == 'done' and pending.action == 'list' and pending.returned then
         BattleScrolls.inventoryPocReturns.relisted(pending.item)
     end
+    -- The bank handed over a listing a free slot can take: the player is on
+    -- the way back to the guild store, so its pause after the last visit ends.
+    if result == 'done' and pending.action == 'bank' and pending.toBag == BAG_BACKPACK
+        and policy.decide(pending.item).action == 'list' and BattleScrolls.inventoryPocMarket.freeListingSlots() > 0 then
+        BattleScrolls.inventoryPocServiceUI.resumeGuildStore()
+    end
     if poc.saved.pending == pending then
         poc.saved.pending = nil
         -- Opened loot, learned recipes and binding change other slots: rescan.
@@ -567,6 +573,18 @@ local function facingInteractable()
     return action ~= nil and not blocked and additionalInfo ~= ADDITIONAL_INTERACT_INFO_EMPTY
 end
 
+---The radial menu that opened last. ESO shows one at a time and keeps it in a
+---file local, so the class's Show is where every wheel passes, other addons' included.
+---@type ZO_RadialMenu|nil
+local lastWheel
+
+---A quick wheel is up. The loot window is an interaction, and an interaction
+---closes an open wheel as if the player had picked the entry it points at.
+---@return boolean
+local function usingWheel()
+    return lastWheel ~= nil and lastWheel:IsShown()
+end
+
 ---@return boolean
 local function canUseFromPack()
     ---@diagnostic disable-next-line: undefined-field -- ZO_SceneManager_Base defines IsShowingBaseScene
@@ -575,7 +593,7 @@ local function canUseFromPack()
         and not IsPlayerInteractingWithObject() and not IsPlayerMoving() and not IsPlayerTryingToMove()
         and not IsUnitSwimming('player') and not IsUnitInCombat('player') and not IsUnitDead('player')
         and not IsLooting() and not IsInteractionUsingInteractCamera() and showingHud
-        and not facingInteractable()
+        and not facingInteractable() and not usingWheel()
 end
 
 ---@param item InventoryPocItem
@@ -1464,6 +1482,8 @@ local function activate()
             end
             poc.wake()
         end
+        -- A post hook leaves no addon frame under the wheel's own code (docs/inventory-addon/ui-taint.md).
+        SecurePostHook(ZO_RadialMenu, 'Show', function(menu) lastWheel = menu end)
         ZO_PreHook('SellInventoryItem', otherSale)
         ZO_PreHook('SellAllJunk', otherSale)
         ZO_PreHook('PrepareDeconstructMessage', function()

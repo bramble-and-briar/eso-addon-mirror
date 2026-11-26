@@ -68,6 +68,7 @@ SafeAddString(BATTLESCROLLS_IPOC_MISSING_BUILD, "武装ビルドとWardrobeペ�
 SafeAddString(BATTLESCROLLS_IPOC_WORK_EQUIP, "コンパニオンの装備を変更中", 1)
 SafeAddString(BATTLESCROLLS_IPOC_COMPANION_UPGRADE, "<<1>>用のより良い装備があります。", 1)
 SafeAddString(BATTLESCROLLS_IPOC_WORK_REOPEN, "このサービスをもう一度開くとメニューを利用できます。今回の利用後、自動処理は5分間休止します。", 1)
+SafeAddString(BATTLESCROLLS_IPOC_RESUME_TRADER, "ギルドストアでの作業を再開", 1)
 SafeAddString(BATTLESCROLLS_IPOC_EQUIPPED, "<<2>>に<<1>>を装備しました", 1)
 SafeAddString(BATTLESCROLLS_IPOC_LISTED, "<<4>>に<<1>> × <<2>>を<<3>>ゴールドで出品しました。手数料：<<5>>ゴールド", 1)
 SafeAddString(BATTLESCROLLS_IPOC_OPENED, "<<1>>を開きました", 1)

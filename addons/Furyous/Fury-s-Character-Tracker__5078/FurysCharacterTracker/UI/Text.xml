@@ -1,0 +1,38 @@
+<GuiXml>
+    <Controls>
+        <!-- A box of text, used two ways: text to copy (it opens selected, press Ctrl+C), and the note
+             you keep on a character. Drawn above the other windows. Filled in by Text.lua. -->
+        <TopLevelControl name="FurysCharacterTracker_Text" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH">
+            <Dimensions x="820" y="520" />
+            <Anchor point="CENTER" />
+            <Controls>
+                <Backdrop name="$(parent)BG" centerColor="0F0E1F" edgeColor="4A3D99" alpha="1">
+                    <AnchorFill />
+                    <Edge edgeSize="2" />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontWinH2" color="ECEAF8">
+                    <Anchor point="TOPLEFT" offsetX="18" offsetY="12" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-12" offsetY="12" />
+                    <OnClicked>FurysCharacterTracker.TextWindow:Hide()</OnClicked>
+                </Button>
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="B4B0D8" wrapMode="ELLIPSIS">
+                    <Dimensions x="780" y="20" />
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="58" />
+                </Label>
+                <Backdrop name="$(parent)Edit" inherits="ZO_MultiLineEditBackdrop_Keyboard">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Hint" relativePoint="BOTTOMLEFT" offsetY="8" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-18" offsetY="-56" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditMultiLineForBackdrop" />
+                    </Controls>
+                </Backdrop>
+                <Control name="$(parent)Buttons">
+                    <Dimensions x="780" y="30" />
+                    <Anchor point="BOTTOMLEFT" offsetX="20" offsetY="-14" />
+                </Control>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

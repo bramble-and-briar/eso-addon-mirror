@@ -1,10 +1,10 @@
 ## Title: ESO Arsenal
 ## Author: Trash Man Enterprises
-## Version: 0.5.8
-## AddOnVersion: 40
+## Version: 0.6.0
+## AddOnVersion: 41
 ## APIVersion: 101051 101052 2.5.3.0
 ## OptionalDependsOn: LibAddonMenu-2.0 LibRadialMenu TSCPriceDataAPI TSCPriceDataLite
-## SavedVariables: NexusCoreSaved NexusGoldSaved NexusDungeonSaved NexusBGSaved NexusCyroSaved
+## SavedVariables: NexusCoreSaved NexusGoldSaved NexusDungeonSaved NexusBGSaved NexusCyroSaved NexusHardcoreSaved
 Core.lua
 GoldStandard/GoldStandard.lua
 GoldStandard/GoldStandard_Empire.lua
@@ -26,3 +26,5 @@ Inventory.lua
 Inventory/Bindings.xml
 Bank.lua
 Bank/Bindings.xml
+
+Hardcore.lua

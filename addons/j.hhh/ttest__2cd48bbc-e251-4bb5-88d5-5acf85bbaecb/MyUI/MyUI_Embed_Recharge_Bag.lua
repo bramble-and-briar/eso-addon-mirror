@@ -84,8 +84,12 @@ local function GetRepairKits(bagId)
 
 
 		local tabWithRepairKits = GetBagItems(bagId, function(i)
+            local itemLink = GetItemLink(bagId, i)
+            local itemId = (itemLink and type(GetItemLinkItemId) == "function") and GetItemLinkItemId(itemLink) or nil
+            -- An Impresario group kit must never be treated as a standard kit:
+            -- its controlled fallback lives in MyUI_Embed_Recharge_AutoRecharge.lua.
 			local isRepairKit = IsItemRepairKit(bagId,i)
-			if isRepairKit == true then
+			if isRepairKit == true and itemId ~= 157516 then
 				local isCrownStoreRepairKit = (IsItemNonCrownRepairKit(bagId,i) == false) or false
 				if (isCrownStoreRepairKit == false or (isCrownStoreRepairKit == true and dontUseCrownRepairKits == false)) then
 

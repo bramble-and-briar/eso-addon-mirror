@@ -1,3 +1,12 @@
+0.14.0 - 2026-11-26
+- Added an Antiquity Atlas button below the native keyboard antiquity journal search.
+- Fixed button initialization when the journal controls are loaded later.
+- Improved English/Russian labels, text fitting and native UI styling.
+- Added optional RuESO-compatible zone names, including bilingual display modes.
+- Emphasized source and excavation regions in tooltips and removed repeated instance names where possible.
+- Shortened mouse action hints and fixed bottom scrolling at enlarged window scales.
+- Preserved the full bundled catalog, numeric routes and 0.13.3 moderator-review corrections.
+
 0.13.3 - 2026-11-19
 - Reviewed ESOUI moderator findings: direct calls for map setup, preview, known HarvestMap cache nodes, and model/provider methods; programming errors remain visible.
 - Removed unnecessary guards on documented ESO scene fragments and antiquity manager.

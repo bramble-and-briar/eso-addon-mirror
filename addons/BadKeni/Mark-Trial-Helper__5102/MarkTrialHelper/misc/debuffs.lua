@@ -5,7 +5,7 @@ local EM = EVENT_MANAGER
 AH.WeakeningEnd = 0
 AH.WeakeningTimer = nil
 
--- WEAKENING_ID из IAHelper
+-- WEAKENING_ID из
 local WEAKENING_ID = 17945
 
 function AH.OnWeakeningEffect(change, _, _, _, unitTag, beginTime, endTime, stackCount, _, _, _, _, _, unitName, unitId, abilityId)

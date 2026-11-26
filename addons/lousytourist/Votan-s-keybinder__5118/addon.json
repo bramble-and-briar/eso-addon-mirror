@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/lousytourist/Votan-s-keybinder__5118",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "lousytourist",
+  "canonical_id": "esoui:5118",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5118",
+  "deleted": false,
+  "directories": [
+    "VotansKeybinder"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5118/",
+  "fingerprint": "d49d05dc8be3507af03c6b30718cd37534a2315b5b6b59419955477975c18469",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5118",
+  "source_url": "https://www.esoui.com/downloads/info5118-Votanskeybinder.html",
+  "stats": {
+    "downloads": 1,
+    "favorites": 1,
+    "monthly_downloads": 0
+  },
+  "title": "Votan's keybinder",
+  "updated_at": 1795699821000,
+  "version": "1.0"
+}

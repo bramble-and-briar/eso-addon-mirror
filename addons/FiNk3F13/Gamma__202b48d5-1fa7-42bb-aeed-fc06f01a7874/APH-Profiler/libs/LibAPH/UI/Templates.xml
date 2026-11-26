@@ -1,0 +1,40 @@
+<GuiXml>
+    <Controls>
+        <Control name="LibAPH_ScrollListTextRow" virtual="true" mouseEnabled="true"/>
+        <Control name="LibAPH_ContextMenuRow" virtual="true" mouseEnabled="true">
+            <Dimensions y="28"/>
+            <Controls>
+                <Texture name="$(parent)Highlight" hidden="true" color="14FFFFFF">
+                    <Anchor point="TOPLEFT" offsetX="2" offsetY="1"/>
+                    <Anchor point="BOTTOMRIGHT" offsetX="-2" offsetY="-1"/>
+                </Texture>
+                <Texture name="$(parent)Icon" hidden="true">
+                    <Dimensions x="18" y="18"/>
+                    <Anchor point="LEFT" offsetX="10"/>
+                </Texture>
+                <Button name="$(parent)Check" inherits="ZO_CheckButton" hidden="true">
+                    <Anchor point="LEFT" offsetX="10"/>
+                </Button>
+                <Label name="$(parent)Label" font="ZoFontGame" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="LEFT" offsetX="10"/>
+                    <Anchor point="RIGHT" offsetX="-24"/>
+                </Label>
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" verticalAlignment="CENTER" horizontalAlignment="RIGHT" hidden="true">
+                    <Anchor point="RIGHT" offsetX="-10"/>
+                </Label>
+                <Texture name="$(parent)Selected" textureFile="EsoUI/Art/Cadwell/check.dds" hidden="true">
+                    <Dimensions x="16" y="16"/>
+                    <Anchor point="RIGHT" offsetX="-10"/>
+                </Texture>
+                <Texture name="$(parent)Arrow" textureFile="EsoUI/Art/Buttons/rightarrow_up.dds" hidden="true">
+                    <Dimensions x="14" y="14"/>
+                    <Anchor point="RIGHT" offsetX="-8"/>
+                </Texture>
+                <Texture name="$(parent)Divider" hidden="true">
+                    <Anchor point="LEFT" offsetX="8"/>
+                    <Anchor point="RIGHT" offsetX="-8"/>
+                </Texture>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

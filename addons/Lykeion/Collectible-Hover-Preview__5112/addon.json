@@ -18,7 +18,7 @@
     "CollectiblesHoverPreview"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5112/",
-  "fingerprint": "26f1f4c326c5d4763bdc40ca615654aceec4251773b89e9ab01587837f01d9bb",
+  "fingerprint": "51853c631a5cc778a81051722412d20e95d153ed9742c325594e0b53c64c70ef",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "5112",
   "source_url": "https://www.esoui.com/downloads/info5112-CollectibleHoverPreview.html",
   "stats": {
-    "downloads": 1,
-    "favorites": 1,
-    "monthly_downloads": 0
+    "downloads": 11,
+    "favorites": 2,
+    "monthly_downloads": 5
   },
   "title": "Collectible Hover Preview",
-  "updated_at": 1795601010000,
-  "version": "1.0"
+  "updated_at": 1795654750000,
+  "version": "1.1"
 }

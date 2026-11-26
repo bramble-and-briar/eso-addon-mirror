@@ -1,0 +1,22 @@
+<GuiXml>
+    <Controls>
+        <!-- Small recruiting status bar: zones posted, pending applications, whisper leads.
+             Shown only when turned on (Recruiting > Status bar). Drag it to move it. -->
+        <TopLevelControl name="FurysGuildToolset_RecruitBar" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true">
+            <Dimensions x="420" y="34" />
+            <Anchor point="TOP" relativeTo="GuiRoot" offsetY="70" />
+            <OnMoveStop>FurysGuildToolset.Recruit:SaveBarPosition()</OnMoveStop>
+            <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, FurysGuildToolset.Recruit:BarTip())</OnMouseEnter>
+            <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
+            <Controls>
+                <Backdrop name="$(parent)BG" centerColor="0F0E1F" edgeColor="4A3D99" alpha="1">
+                    <AnchorFill />
+                    <Edge edgeSize="2" />
+                </Backdrop>
+                <Label name="$(parent)Text" font="ZoFontGameSmall" color="ECEAF8" verticalAlignment="CENTER">
+                    <Anchor point="LEFT" offsetX="12" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

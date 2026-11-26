@@ -159,7 +159,7 @@ function CombatTracker:OnCombatEvent(_eventCode, result, isError, _abilityName, 
     end
 
     local playerContext = nil
-    if Addon.QuestRepository:HasTargetLocation(matchedTarget) and matchedTarget.locationRequired == true then
+    if Addon.QuestRepository:HasTargetLocation(matchedTarget) then
         local pZone, pWorldX, _, pWorldZ = GetUnitWorldPosition("player")
         playerContext = {
             worldZoneId = pZone,

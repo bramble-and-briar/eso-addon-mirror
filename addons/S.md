@@ -98,6 +98,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Shissu's Guild Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shissu/Shissu-s-Guild-Tools__910) | Shissu | PC / Mac | 3.5.19-2 |
 | [Shissu's LUA Memory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shissu/Shissu-s-LUA-Memory__883) | Shissu | PC / Mac | 2.0.1.9 |
 | [Shissu's Teleporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shissu/Shissu-s-Teleporter__2832) | Shissu | PC / Mac | 1.6.2 |
+| [Sho's Build Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Sho-s-Build-Exporter__5113) | sshogrin | PC / Mac | 1.0.0 |
 | [Sho's PvP Banker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Sho-s-PvP-Banker__4809) | sshogrin | PC / Mac | 1.0.1 |
 | [ShogrinUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/ShogrinUI__8e6dc008-7b2f-4d55-8a1b-3ee825b1de0f) | sshogrin | Console | — |
 | [ShogrinUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/ShogrinUI__3527) | sshogrin | PC / Mac | 1.1.7 |

@@ -18,3 +18,5 @@ Replace previous TMENexus folder; disable standalone engines. Saved variables re
 0.5.1: experimental personal bank grid, Triangle switches deposit/withdraw, X actions, Square sorts, R2 native fallback. Whole stacks to empty slots only; currency transfer remains native.
 
 0.5.4: Correct invalid selection edge dimensions in inventory and bank. Experimental ready-check prompt relocation with HUD-yield fallback when a pending check can be detected. Console runtime unverified.
+
+0.6.0 Hardcore survival preview: character-local opt-in test run, death flag, hunger/thirst timers and explicit XP multiplier matrix (not connected to a skill XP engine), adjustable peripheral health/status overlays using edge strips, individual preview controls and manual TEST refill buttons. Status recognition is English effect-name based and incomplete. No automatic consumable detection, full ruleset enforcement, skill grid, or directional threat detection. Existing modules unchanged except settings integration. PS5 runtime untested.

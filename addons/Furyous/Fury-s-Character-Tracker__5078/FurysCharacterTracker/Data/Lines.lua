@@ -1,3 +1,4 @@
+-- shared
 -- The skill lines on the board, grouped.
 -- name: the line's name as the game shows it (English client). max: its top rank.
 -- (Scribing is not here: it has no skill line. It is learned like recipes, so the board counts it.)
@@ -19,7 +20,7 @@ CT.GROUPS = {
         { name = "Medium Armor", short = "Medium", max = 50 },
         { name = "Heavy Armor",  short = "Heavy",  max = 50 },
     } },
-    { id = "guilds", title = "Guilds & AvA", lines = {
+    { id = "guilds", title = "Guilds & AvA", short = "Guilds", lines = {
         { name = "Dark Brotherhood", short = "Dark Bro",  max = 12 },
         { name = "Fighters Guild",   short = "Fighters",  max = 10 },
         { name = "Mages Guild",      short = "Mages",     max = 10 },
@@ -50,8 +51,11 @@ CT.RESEARCH_TOTAL = 324   -- 9 traits on each of 36 items (smithing, clothing, w
 CT.CP_MAX = 3600         -- Champion Point cap; change it here if ZOS raises it
 CT.RIDING_MAX = 180       -- speed, stamina and capacity, 60 each
 CT.SKILL_POINTS_MAX = 586 -- most a character can earn as of Update 50 (Nov 2026); change it if ZOS adds more
-CT.COMPANION_TOTAL = 8
-CT.SCRIPTS_TOTAL = 79     -- scribing grimoires + scripts, until the game has told us how many exist    -- used until the game has told us how many companions exist
+CT.COMPANION_TOTAL = 8    -- used until the game has told us how many companions exist
+CT.COMPANION_LEVEL_MAX = 20  -- top level of a companion
+CT.SCRIPTS_TOTAL = 79     -- scribing grimoires + scripts, until the game has told us how many exist
+CT.CLASS_LINE_MAX = 50    -- top rank of a class skill line
+CT.AVA_RANK_MAX = 50      -- Alliance War rank; each rank gives one skill point
 
 -- Language-neutral IDs, so the addon works on every client language. Taken with /fct ids on an
 -- English client: [skillLineId] = English line name, [questId] = companion short name.

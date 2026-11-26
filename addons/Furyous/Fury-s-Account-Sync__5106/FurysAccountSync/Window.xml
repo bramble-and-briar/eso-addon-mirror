@@ -3,6 +3,7 @@
         <TopLevelControl name="FurysAccountSync_Window" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH">
             <Dimensions x="760" y="680" />
             <Anchor point="CENTER" />
+            <OnMoveStop>FurysAccountSync.SaveWindowPlace()</OnMoveStop>
             <Controls>
                 <Backdrop name="$(parent)Bg" edgeColor="FF4A3D99">
                     <AnchorFill />
@@ -34,18 +35,18 @@
                 </Label>
 
                 <Button name="$(parent)Snapshot" inherits="ZO_DefaultButton" text="Take snapshot">
-                    <Dimensions x="200" y="30" />
+                    <Dimensions x="260" y="30" />
                     <Anchor point="TOPLEFT" offsetX="20" offsetY="90" />
-                    <OnClicked>FurysAccountSync.TakeSnapshot()</OnClicked>
-                    <OnMouseEnter>FurysAccountSync.Tip(self, "Main account only: saves this account's game settings, keybinds and chat look so your other accounts can copy them")</OnMouseEnter>
+                    <OnClicked>FurysAccountSync.FirstButton()</OnClicked>
+                    <OnMouseEnter>FurysAccountSync.ButtonTip(self, "first")</OnMouseEnter>
                     <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
                 </Button>
 
                 <Button name="$(parent)Preview" inherits="ZO_DefaultButton" text="Show changes">
-                    <Dimensions x="200" y="30" />
+                    <Dimensions x="180" y="30" />
                     <Anchor point="LEFT" relativeTo="$(parent)Snapshot" relativePoint="RIGHT" offsetX="12" />
                     <OnClicked>FurysAccountSync.RefreshWindow()</OnClicked>
-                    <OnMouseEnter>FurysAccountSync.Tip(self, "Lists everything Apply would change on this character: game settings, keybinds, chat and, when ticked in the settings, addon settings and window layout. Nothing changes yet")</OnMouseEnter>
+                    <OnMouseEnter>FurysAccountSync.Tip(self, "Works out the list below again: everything Apply would change on this character. On the main it shows what changed since the snapshot. Nothing changes yet")</OnMouseEnter>
                     <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
                 </Button>
 
@@ -53,23 +54,31 @@
                     <Dimensions x="240" y="30" />
                     <Anchor point="LEFT" relativeTo="$(parent)Preview" relativePoint="RIGHT" offsetX="12" />
                     <OnClicked>FurysAccountSync.Apply()</OnClicked>
-                    <OnMouseEnter>FurysAccountSync.Tip(self, "Copies the main account's setup onto this character: the changes listed below. Each character copies once, because the game keeps these per character. The UI reloads at the end when addon settings or window layout were copied")</OnMouseEnter>
+                    <OnMouseEnter>FurysAccountSync.ButtonTip(self, "apply")</OnMouseEnter>
                     <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
                 </Button>
 
+                <Backdrop name="$(parent)ReportBg" inherits="ZO_EditBackdrop" hidden="true">
+                    <Dimensions x="720" y="28" />
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="128" />
+                    <Controls>
+                        <EditBox name="$(parent)Edit" inherits="ZO_DefaultEditForBackdrop" maxInputCharacters="6000" />
+                    </Controls>
+                </Backdrop>
+
                 <Control name="$(parent)Body" inherits="ZO_ScrollContainer">
                     <Anchor point="TOPLEFT" offsetX="20" offsetY="134" />
-                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-198" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-240" />
                 </Control>
 
                 <Control name="$(parent)Builds">
-                    <Dimensions x="720" y="174" />
+                    <Dimensions x="720" y="216" />
                     <Anchor point="BOTTOMLEFT" offsetX="20" offsetY="-12" />
                     <Controls>
                         <Label name="$(parent)Header" font="$(ANTIQUE_FONT)|22|soft-shadow-thick" color="ECEAF8" text="Character builds">
                             <Anchor point="TOPLEFT" />
                         </Label>
-                        <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A86B0" text="Skill bars, champion stars and quickslots. Anything this character can't use is skipped.">
+                        <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A86B0" text="Skill bars, champion stars, quickslots and gear. Anything this character can't use is skipped.">
                             <Anchor point="BOTTOMLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMRIGHT" offsetX="12" offsetY="-4" />
                         </Label>
 
@@ -86,7 +95,7 @@
                             <Dimensions x="180" y="30" />
                             <Anchor point="LEFT" relativeTo="$(parent)NameBg" relativePoint="RIGHT" offsetX="12" />
                             <OnClicked>FurysAccountSync.SaveBuildFromWindow()</OnClicked>
-                            <OnMouseEnter>FurysAccountSync.Tip(self, "Saves this character's skill bars, champion stars and quickslots under the name on the left. Every account on this PC can load it")</OnMouseEnter>
+                            <OnMouseEnter>FurysAccountSync.Tip(self, "Saves this character's skill bars, champion stars, quickslots and worn gear under the name on the left. Every account on this PC can load it. A name that is already taken asks before it replaces that build")</OnMouseEnter>
                             <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
                         </Button>
 
@@ -109,9 +118,31 @@
                             <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
                         </Button>
 
-                        <Label name="$(parent)PartsLabel" font="ZoFontGame" color="B4B0D8" text="Load these parts:">
+                        <Label name="$(parent)PartsLabel" font="ZoFontGame" color="B4B0D8" text="Load these:">
                             <Anchor point="TOPLEFT" offsetY="134" />
                         </Label>
+
+                        <Backdrop name="$(parent)TextBg" inherits="ZO_EditBackdrop">
+                            <Dimensions x="300" y="28" />
+                            <Anchor point="TOPLEFT" offsetY="178" />
+                            <Controls>
+                                <EditBox name="$(parent)Edit" inherits="ZO_DefaultEditForBackdrop" maxInputCharacters="4000" defaultText="Build as text: paste one here" />
+                            </Controls>
+                        </Backdrop>
+                        <Button name="$(parent)TextShow" inherits="ZO_DefaultButton" text="Show as text">
+                            <Dimensions x="180" y="30" />
+                            <Anchor point="LEFT" relativeTo="$(parent)TextBg" relativePoint="RIGHT" offsetX="12" />
+                            <OnClicked>FurysAccountSync.ShowBuildText()</OnClicked>
+                            <OnMouseEnter>FurysAccountSync.Tip(self, "Puts the chosen build into the box on the left as one line of text, selected. Press Ctrl+C to copy it, then paste it anywhere: a note, Discord, another PC")</OnMouseEnter>
+                            <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
+                        </Button>
+                        <Button name="$(parent)TextAdd" inherits="ZO_DefaultButton" text="Add from text">
+                            <Dimensions x="180" y="30" />
+                            <Anchor point="LEFT" relativeTo="$(parent)TextShow" relativePoint="RIGHT" offsetX="12" />
+                            <OnClicked>FurysAccountSync.AddBuildFromText()</OnClicked>
+                            <OnMouseEnter>FurysAccountSync.Tip(self, "Adds the build whose text you pasted into the box on the left (Ctrl+V). It never replaces a build: a name that is taken gets a number")</OnMouseEnter>
+                            <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
+                        </Button>
                     </Controls>
                 </Control>
             </Controls>

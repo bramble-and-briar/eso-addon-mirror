@@ -17,7 +17,6 @@ end
 SLASH_COMMANDS["/mtip"] = function() AH.SendTip() end
 
 local function Initialise()
-    -- saved variables
     AH.Vars =
         _G.LibSavedVars:NewAccountWide("MarkTrialHelperSavedVars", "Account", AH.Defaults):AddCharacterSettingsToggle(
         "MarkTrialHelperSavedVars",

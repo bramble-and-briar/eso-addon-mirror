@@ -40,6 +40,7 @@ end
 ]]
 
 local function tryToUseItem(bagId, slotIndex)
+    if IsUnitInCombat("player") or not (Recharge.settings and Recharge.settings.repairEnabled) then return false end
     local usable, onlyFromActionSlot = IsItemUsable(bagId, slotIndex)
     if usable and not onlyFromActionSlot then
         --ClearCursor()
@@ -57,6 +58,10 @@ local function RepairItem(bagId,slotIndex,kits,minPercent)
     local isDebugEnabled = Recharge.debug
 if isDebugEnabled then d("[Recharge]RepairItem - slotIndex: " ..tostring(slotIndex)) end
 	if isPlayerDead() then return 0, false, false, true, 0 end
+    -- Check at the moment of consumption as delayed callbacks may fire in combat.
+    if IsUnitInCombat("player") or not (Recharge.settings and Recharge.settings.repairEnabled) then
+        return 0, false, false, false, 0
+    end
 
     --Do we have any repair kits?
 	local count = #kits 
@@ -122,12 +127,19 @@ if isDebugEnabled then d(">using any repair kit - crown first: " ..tostring(useC
                 d(">foundKit, isCrownRepair: " .. tostring(isCrownStoreRepairKit) .." - " ..GetItemLink(kit.bag,kit.index)) end
 
             local oldcondition = condition
+            -- Never consume a Crown kit unless the current explicit opt-in permits it.
+            if isCrownStoreRepairKit and settings.myuiAllowCrownRepairKits ~= true then
+                return 0, false, false, false, condition
+            end
             if isCrownStoreRepairKit == true then
                 if isDebugEnabled then d(">>crown repair kit") end
                 --Crown store repair kit will repair all equipped items to 100%
                 amount = 100
                 --Repair the item with the crown repair kit now, by using it
                 if isPlayerDead() then return 0, false, false, true, condition end
+                if IsUnitInCombat("player") or not (Recharge.settings and Recharge.settings.repairEnabled) then
+                    return 0, false, false, false, condition
+                end
 
                 if tryToUseItem(kit.bag,kit.index) == true then
                     -->Attention: This will fire EVENT_INVENTORY_SINGLE_SLOT_UPDATE with INVENTORY_UPDATE_REASON_DURABILITY_CHANGE and
@@ -145,9 +157,15 @@ if isDebugEnabled then d(">using any repair kit - crown first: " ..tostring(useC
                 if isDebugEnabled then d(">>normal repair kit") end
 
                 if isPlayerDead() then return 0, false, false, true, condition end
+                if IsUnitInCombat("player") or not (Recharge.settings and Recharge.settings.repairEnabled) then
+                    return 0, false, false, false, condition
+                end
                 --Repair the item with the repair kit now
                 -->Attention: This will fire EVENT_INVENTORY_SINGLE_SLOT_UPDATE with INVENTORY_UPDATE_REASON_DURABILITY_CHANGE and
                 -->AutoRecharge will try to repair the item again then. So we need to set a preventer variable here
+                if IsUnitInCombat("player") or not (Recharge.settings and Recharge.settings.repairEnabled) then
+                    return 0, false, false, false, condition
+                end
                 Recharge.noDurabilityChangeEvents[slotIndex] = true
                 RepairItemWithRepairKit(bagId,slotIndex,kit.bag,kit.index)
                 repairKitWasUsed = true

@@ -1,0 +1,17 @@
+MasterWrits Companion
+Copyright (c) 2026 @KanashiReinkyatto and @KuraidamaSetsuro. All rights reserved.
+
+You may download, install and use this addon for your own play in The Elder Scrolls Online.
+
+Without prior written permission from the authors you may not:
+  - copy, modify or redistribute this addon or any part of its code, in whole or in part;
+  - publish it, or any derivative of it, on ESOUI or any other site;
+  - include its code in other addons.
+
+To ask for permission, contact the authors through the addon's ESOUI page.
+
+This addon is provided "as is", without warranty of any kind. The authors are not liable for any loss or damage
+arising from its use.
+
+The Elder Scrolls Online and related names are trademarks of their respective owners. This addon is not made,
+endorsed or supported by ZeniMax Online Studios.

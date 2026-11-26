@@ -1,0 +1,11 @@
+## Title: Fury's Addons Menu
+## Description: The one key and the saved settings of the Fury sidebar (Controls > Keybindings > Fury's Addons). Ships inside every Fury addon; the game loads it once.
+## Author: Furyous
+## Version: 1.1.0
+## AddOnVersion: 2
+## IsLibrary: true
+## APIVersion: 101051 101052
+## SavedVariables: FurysAddonMenu_SV
+
+FurysAddonMenu.lua
+Bindings.xml

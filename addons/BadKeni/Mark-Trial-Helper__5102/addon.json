@@ -22,7 +22,7 @@
     "MarkTrialHelper"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5102/",
-  "fingerprint": "51ee785df8714829361152e6f4afa8d69c789e43a12689feab39e6f144d33626",
+  "fingerprint": "881ad9b517855e3bb4e5f91c8b6991164699c7422a55a791a8d6a86e7344d1cf",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18739.png",
     "https://cdn-eso.mmoui.com/preview/pvw18735.png"
@@ -33,11 +33,11 @@
   "source_id": "5102",
   "source_url": "https://www.esoui.com/downloads/info5102-MarkTrialHelper.html",
   "stats": {
-    "downloads": 8,
-    "favorites": 1,
-    "monthly_downloads": 6
+    "downloads": 41,
+    "favorites": 0,
+    "monthly_downloads": 36
   },
   "title": "Mark Trial Helper",
-  "updated_at": 1795377279000,
-  "version": "2.0.3"
+  "updated_at": 1795631323000,
+  "version": "2.2.0"
 }

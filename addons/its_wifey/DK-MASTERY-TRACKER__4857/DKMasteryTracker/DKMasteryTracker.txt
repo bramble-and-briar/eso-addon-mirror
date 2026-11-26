@@ -1,6 +1,6 @@
 ## Title: DK Mastery Tracker
 ## Author: WifeyRytic
-## Version: 1.0.4
+## Version: 1.0.5
 ## AddOnVersion: 5
 ## APIVersion: 101050 101051
 ## SavedVariables: DKMasteryTrackerSavedVariables

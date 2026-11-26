@@ -68,6 +68,7 @@ SafeAddString(BATTLESCROLLS_IPOC_MISSING_BUILD, "Prüfe die Namen der Arsenal-Zu
 SafeAddString(BATTLESCROLLS_IPOC_WORK_EQUIP, "Gefährtenausrüstung wird angelegt", 1)
 SafeAddString(BATTLESCROLLS_IPOC_COMPANION_UPGRADE, "Bessere Ausrüstung für <<1>> verfügbar.", 1)
 SafeAddString(BATTLESCROLLS_IPOC_WORK_REOPEN, "Öffnet diesen Dienst erneut, um sein Menü zu nutzen. Die automatische Verwaltung pausiert nach diesem Besuch für 5 Minuten.", 1)
+SafeAddString(BATTLESCROLLS_IPOC_RESUME_TRADER, "Gildenladen-Aktionen fortsetzen", 1)
 SafeAddString(BATTLESCROLLS_IPOC_EQUIPPED, "<<1>> für <<2>> ausgerüstet", 1)
 SafeAddString(BATTLESCROLLS_IPOC_LISTED, "<<1>> × <<2>> für <<3>> Gold bei <<4>> eingestellt. Gebühr: <<5>> Gold", 1)
 SafeAddString(BATTLESCROLLS_IPOC_OPENED, "<<1>> geöffnet", 1)

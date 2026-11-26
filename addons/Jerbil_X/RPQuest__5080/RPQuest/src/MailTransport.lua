@@ -1,5 +1,6 @@
 -- Ref: docs/adr/0001-arquitectura-modular-zero-dependency-y-savedvars-por-personaje.md
 -- Ref: docs/adr/0009-transporte-correo-multiparte-rpqp.md
+-- Ref: docs/adr/0015-separacion-ciclo-de-vida-y-estado-de-resolucion.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -22,6 +23,7 @@ local QUEST_SUBJECT_PREFIX = "[RPQuest] "
 local COMPLETION_SUBJECT_PREFIX = "[RPQuest:Done] "
 local REJECTION_SUBJECT_PREFIX = "[RPQuest:Rejected] "
 local ACCEPTANCE_SUBJECT_PREFIX = "[RPQuest:Accepted] "
+local FAILURE_SUBJECT_PREFIX = "[RPQuest:Failed] "
 local MAILBOX_OPEN_TIMEOUT_MS = 10000
 local MAIL_SEND_TIMEOUT_MS = 15000
 
@@ -103,6 +105,18 @@ function MailTransport:Initialize()
                     local sender = self:NormalizeDisplayName(payload.senderDisplayName)
                     if sender ~= "" then
                         local ok, errKey = self:SendAcceptanceReport(payload)
+                        if not ok and errKey then
+                            self:NotifySendError(sender, errKey)
+                        end
+                    end
+                end
+            elseif evType == "QUEST_FAILED" and type(payload) == "table" then
+                if Addon.QuestRepository:GetSetting("autoSendCompletionMail")
+                    and Addon.QuestRepository:GetQuestLifecycle(payload) == Addon.Constants.QUEST_LIFECYCLE.RECEIVED
+                    and not payload.failureReported then
+                    local sender = self:NormalizeDisplayName(payload.senderDisplayName)
+                    if sender ~= "" then
+                        local ok, errKey = self:SendFailureReport(payload)
                         if not ok and errKey then
                             self:NotifySendError(sender, errKey)
                         end
@@ -399,6 +413,9 @@ function MailTransport:SendQuestToRecipients(quest, rawRecipients, roleMessage)
     if not Addon.QuestRepository:HasPlayableObjectives(quest) then
         return false, "ERR_MISSING_TARGET"
     end
+    if Addon.QuestRepository:HasMissingDiscoveryMessage(quest) then
+        return false, "ERR_DISCOVERY_MISSING_MSG"
+    end
 
     local recipients, recErr = self:ParseRecipients(rawRecipients)
     if recErr then
@@ -503,6 +520,7 @@ function MailTransport:EnqueueResultMail(quest, subjectPrefix, code, resultType)
         completionQuestId = (kind == "completed") and quest.id or nil,
         rejectionQuestId = (kind == "rejected") and quest.id or nil,
         acceptanceQuestId = (kind == "accepted") and quest.id or nil,
+        failureQuestId = (kind == "failed") and quest.id or nil,
     }
 
     if self._isSending then
@@ -556,12 +574,29 @@ function MailTransport:SendAcceptanceReport(quest)
     return self:EnqueueResultMail(quest, ACCEPTANCE_SUBJECT_PREFIX, rpqc1Code, "accepted")
 end
 
+function MailTransport:SendFailureReport(quest)
+    if type(quest) ~= "table" or not quest.failed then
+        return false, "ERR_INVALID_CODE"
+    end
+    local rpqc1Code, err = Addon.QuestRepository:ExportFailureCode(quest)
+    if not rpqc1Code or rpqc1Code == "" then
+        return false, err or "ERR_INVALID_CODE"
+    end
+    return self:EnqueueResultMail(quest, FAILURE_SUBJECT_PREFIX, rpqc1Code, "failed")
+end
+
 function MailTransport:OnMailSendSuccess(_playerName)
     if not self._isSending then return end
     if self._currentSendItem and self._currentSendItem.completionQuestId then
         Addon.QuestRepository:MarkCompletionReported(self._currentSendItem.completionQuestId)
         self:NotifyListeners("MAIL_COMPLETION_SENT", {
             questId = self._currentSendItem.completionQuestId,
+            to = self._currentSendItem.to,
+        })
+    elseif self._currentSendItem and self._currentSendItem.failureQuestId then
+        Addon.QuestRepository:MarkFailureReported(self._currentSendItem.failureQuestId)
+        self:NotifyListeners("MAIL_FAILURE_SENT", {
+            questId = self._currentSendItem.failureQuestId,
             to = self._currentSendItem.to,
         })
     elseif self._currentSendItem and self._currentSendItem.sentQuestId then

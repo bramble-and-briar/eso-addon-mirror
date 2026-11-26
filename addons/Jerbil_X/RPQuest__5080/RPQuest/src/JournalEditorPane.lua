@@ -4,6 +4,7 @@
 -- Ref: docs/adr/0006-puntos-de-descubrimiento-ocultos.md
 -- Ref: docs/adr/0007-dialogos-inyectados-en-npcs-nativos.md
 -- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
+-- Ref: docs/adr/0016-limites-texto-y-entidades-presupuesto-correo.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -45,23 +46,23 @@ function EditorPane.Build(tab, parent)
     tab.editorSections = {}
     tab.editorSectionsByKey = {}
 
-    local headerSec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "header", "LABEL_HEADER_SECTION", 218)
+    local headerSec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "header", "LABEL_HEADER_SECTION", 284)
     EditorSections.BuildBaseFields(tab, headerSec.body, panelName)
 
-    local targetSec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "target", "LABEL_TARGET_SECTION", 342)
+    local optionsSec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "options", "LABEL_OPTIONS_SECTION", 186)
+    EditorSections.BuildOptionsSection(tab, optionsSec.body, panelName)
+
+    local targetSec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "target", "LABEL_TARGET_SECTION", 364)
     EditorSections.BuildTargetAreaControls(tab, targetSec.body, panelName)
     EditorSections.BuildTargetConfigControls(tab, targetSec.body, panelName)
 
-    local discoverySec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "discovery", "LABEL_DISCOVERY_SECTION", 142)
+    local discoverySec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "discovery", "LABEL_DISCOVERY_SECTION", 156)
     EditorSections.BuildDiscoveryControls(tab, discoverySec.body, panelName)
     EditorSections.BuildDiscoveryInputs(tab, discoverySec.body, panelName)
 
-    local dialogueSec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "dialogue", "LABEL_DIALOGUE_SECTION", 240)
+    local dialogueSec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "dialogue", "LABEL_DIALOGUE_SECTION", 264)
     EditorSections.BuildDialogueControls(tab, dialogueSec.body, panelName)
     EditorSections.BuildDialogueInputs(tab, dialogueSec.body, panelName)
-
-    local optionsSec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "options", "LABEL_OPTIONS_SECTION", 152)
-    EditorSections.BuildOptionsSection(tab, optionsSec.body, panelName)
 
     EditorPane.LayoutSections(tab)
     EditorSections.BuildFooterButtons(tab, pane, panelName)
@@ -70,14 +71,23 @@ end
 local function GetSectionBadge(draft, key)
     if key == "target" then
         local count = #(draft.targets or {})
-        return count > 0 and string.format("  |c33FF33[%d]|r", count) or ""
+        local maxTargets = (Addon.Constants and Addon.Constants.TARGET and Addon.Constants.TARGET.MAX_TARGETS) or 4
+        return count > 0 and string.format("  |c33FF33[%d/%d]|r", count, maxTargets) or ""
     elseif key == "discovery" then
         local count = #(draft.discoveries or {})
-        return count > 0 and string.format("  |c33FF33[%d]|r", count) or ""
+        local maxPoints = (Addon.Constants and Addon.Constants.DISCOVERY and Addon.Constants.DISCOVERY.MAX_POINTS) or 10
+        if count > 0 then
+            if Addon.QuestRepository:HasMissingDiscoveryMessage(draft) then
+                return string.format("  |cFF5555[%d/%d !]|r", count, maxPoints)
+            end
+            return string.format("  |c33FF33[%d/%d]|r", count, maxPoints)
+        end
+        return ""
     elseif key == "dialogue" then
         local count = #(draft.dialogues or {})
+        local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 4
         if count > 0 then
-            return string.format("  |c33FF33[%d/3]|r", count)
+            return string.format("  |c33FF33[%d/%d]|r", count, maxNpcs)
         elseif (draft.clue or "") ~= "" then
             return "  |c33FF33[*]|r"
         end
@@ -85,7 +95,7 @@ local function GetSectionBadge(draft, key)
     elseif key == "options" then
         local modes = Addon.Constants.STEALTH_MODE
         local stealthMode = draft.stealthMode or modes.DISABLED
-        if (draft.completionMessage or "") ~= "" or stealthMode ~= modes.DISABLED then
+        if (draft.completionMessage or "") ~= "" or stealthMode ~= modes.DISABLED or draft.recommendHideMapAreas == false then
             return "  |c33FF33[*]|r"
         end
         return ""
@@ -207,6 +217,9 @@ end
 local function SyncUnfocusedEdit(editCtrl, text)
     if editCtrl and not editCtrl._focused and editCtrl:GetText() ~= text then
         editCtrl:SetText(text)
+        if editCtrl._updateScrollbar then
+            editCtrl._updateScrollbar()
+        end
     end
 end
 
@@ -217,6 +230,15 @@ local function RefreshEditorBaseAndArea(tab, draft)
     SyncUnfocusedEdit(tab.recipientEdit, draft.recipientAccount or "")
     SyncUnfocusedEdit(tab.recipientCharEdit, draft.recipientCharacterName or "")
     SyncUnfocusedEdit(tab.completionEdit, draft.completionMessage or "")
+    if tab.questIconComboBox then
+        local targetIcon = Addon.QuestDraftStore:NormalizeQuestIcon(draft.icon) or ""
+        local selected = tab.questIconComboBox:GetSelectedItemData()
+        if not selected or selected.questIconId ~= targetIcon then
+            tab.questIconComboBox:SetSelectedItemByEval(function(item)
+                return item.questIconId == targetIcon
+            end, true)
+        end
+    end
 end
 
 local function SetButtonEnabled(btn, enabled)
@@ -249,55 +271,12 @@ local function RefreshTargetDropdown(tab, targets, hasTargets)
     end
 end
 
-local function RefreshTargetMessageControls(tab, selTarget, hasTargets, isLocRequired)
-    local validState = tab.selectedTargetMsgState
-    if isLocRequired then
-        if validState ~= "in_location" and validState ~= "outside_location" then
-            validState = "in_location"
-        end
-    else
-        validState = "elimination"
-    end
-    tab.selectedTargetMsgState = validState
+local function RefreshTargetMessageControls(tab, selTarget, hasTargets)
+    Addon.JournalWidgets.SetEditBoxEnabled(tab.targetCustomBg, tab.targetCustomEdit, hasTargets)
+    SyncUnfocusedEdit(tab.targetCustomEdit, selTarget and selTarget.customMessage or "")
 
-    local msgCombo = tab.targetMsgComboBox
-    if msgCombo then
-        msgCombo:ClearItems()
-        local msgOptions = {
-            { state = "elimination", label = Addon.Locale:Get("OPT_TARGET_MSG_ELIMINATION"), enabled = not isLocRequired },
-            { state = "in_location", label = Addon.Locale:Get("OPT_TARGET_MSG_IN_LOCATION"), enabled = isLocRequired },
-            { state = "outside_location", label = Addon.Locale:Get("OPT_TARGET_MSG_OUTSIDE_LOCATION"), enabled = isLocRequired },
-        }
-        for _, opt in ipairs(msgOptions) do
-            local entry = msgCombo:CreateItemEntry(opt.label, function()
-                tab.selectedTargetMsgState = opt.state
-                tab:RefreshEditorPane()
-            end, opt.enabled)
-            entry.msgState = opt.state
-            msgCombo:AddItem(entry)
-        end
-        msgCombo:SetEnabled(hasTargets)
-        msgCombo:SetSelectedItemByEval(function(item)
-            return item.msgState == tab.selectedTargetMsgState
-        end, true)
-    end
-
-    local isEditable = hasTargets and (
-        (tab.selectedTargetMsgState == "elimination" and not isLocRequired)
-        or ((tab.selectedTargetMsgState == "in_location" or tab.selectedTargetMsgState == "outside_location") and isLocRequired)
-    )
-    local msgText = ""
-    if selTarget then
-        if tab.selectedTargetMsgState == "in_location" then
-            msgText = selTarget.customMessageInLocation or ""
-        elseif tab.selectedTargetMsgState == "outside_location" then
-            msgText = selTarget.customMessageOutsideLocation or ""
-        else
-            msgText = selTarget.customMessage or ""
-        end
-    end
-    Addon.JournalWidgets.SetEditBoxEnabled(tab.targetCustomBg, tab.targetCustomEdit, isEditable)
-    SyncUnfocusedEdit(tab.targetCustomEdit, msgText)
+    Addon.JournalWidgets.SetEditBoxEnabled(tab.targetInLocBg, tab.targetInLocEdit, hasTargets)
+    SyncUnfocusedEdit(tab.targetInLocEdit, selTarget and selTarget.customMessageInLocation or "")
 end
 
 local function RefreshEditorTargetConfig(tab, draft)
@@ -351,11 +330,94 @@ local function RefreshEditorTargetConfig(tab, draft)
         end, true)
     end
 
-    RefreshTargetMessageControls(tab, selTarget, hasTargets, isLocRequired)
+    RefreshTargetMessageControls(tab, selTarget, hasTargets)
+end
+
+function EditorPane.RefreshDiscoveryMessageIndicator(tab, draft)
+    local discoveries = draft.discoveries or {}
+    local totalDisc = #discoveries
+    local selectedPoint = tab.selectedDiscoveryIndex and discoveries[tab.selectedDiscoveryIndex] or nil
+    local activeMsg = selectedPoint and (selectedPoint.message or "") or ""
+    local trimmed = activeMsg:gsub("^%s+", ""):gsub("%s+$", "")
+    local isPointMissing = (totalDisc > 0) and (trimmed == "")
+
+    if tab.lblDiscoveryMsg then
+        if totalDisc == 0 then
+            tab.lblDiscoveryMsg:SetText(Addon.Locale:Get("LABEL_DISCOVERY_MSG"))
+        elseif isPointMissing then
+            tab.lblDiscoveryMsg:SetText(Addon.Locale:Get("LABEL_DISCOVERY_MSG_MISSING"))
+        else
+            tab.lblDiscoveryMsg:SetText(Addon.Locale:Get("LABEL_DISCOVERY_MSG_REQUIRED"))
+        end
+    end
+
+    if tab.discoveryMsgEdit then
+        tab.discoveryMsgEdit._hasWarning = isPointMissing
+    end
+    if tab.discoveryMsgBg and tab.discoveryMsgBg.SetEdgeColor then
+        if isPointMissing then
+            tab.discoveryMsgBg:SetEdgeColor(0.95, 0.28, 0.28, 1.0)
+        elseif tab.discoveryMsgEdit and tab.discoveryMsgEdit._focused then
+            tab.discoveryMsgBg:SetEdgeColor(0.95, 0.85, 0.50, 1.0)
+        else
+            tab.discoveryMsgBg:SetEdgeColor(0.68, 0.58, 0.36, 0.80)
+        end
+    end
+end
+
+local MAX_DISCOVERY_PREVIEW_CHARS = 42
+
+local function TruncateDiscoveryText(text, maxChars)
+    local trimmed = (text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+    if trimmed == "" then return "" end
+    local count = 0
+    for i = 1, #trimmed do
+        local b = string.byte(trimmed, i)
+        if b < 128 or b >= 192 then
+            count = count + 1
+            if count > maxChars then
+                return string.sub(trimmed, 1, i - 1) .. "..."
+            end
+        end
+    end
+    return trimmed
+end
+
+local function FormatDiscoveryDropdownEntry(index, point)
+    local preview = TruncateDiscoveryText(point and point.message or "", MAX_DISCOVERY_PREVIEW_CHARS)
+    if preview == "" then
+        return string.format("#%d - ...", index)
+    end
+    return string.format("#%d - %s", index, preview)
+end
+
+function EditorPane.RefreshDiscoveryDropdown(tab, draft)
+    local combo = tab.discoveryComboBox
+    if not combo then return end
+    local discoveries = (draft and draft.discoveries) or {}
+    local hasDiscoveries = #discoveries > 0
+    combo:ClearItems()
+    if hasDiscoveries then
+        for i, point in ipairs(discoveries) do
+            local label = FormatDiscoveryDropdownEntry(i, point)
+            local entry = combo:CreateItemEntry(label, function()
+                tab.selectedDiscoveryIndex = i
+                tab:RefreshEditorPane()
+            end)
+            entry.discoveryIndex = i
+            combo:AddItem(entry)
+        end
+        combo:SetEnabled(true)
+        combo:SetSelectedItemByEval(function(item)
+            return item.discoveryIndex == tab.selectedDiscoveryIndex
+        end, true)
+    else
+        combo:SetEnabled(false)
+        combo:SetSelectedItemText(Addon.Locale:Get("DISCOVERY_NOT_CAPTURED"))
+    end
 end
 
 local function RefreshEditorDiscoveries(tab, draft)
-    local FormatSelected = Addon.JournalWidgets.FormatSelected
     local discoveries = draft.discoveries or {}
     local totalDisc = #discoveries
     if totalDisc > 0 then
@@ -366,43 +428,25 @@ local function RefreshEditorDiscoveries(tab, draft)
         tab.selectedDiscoveryIndex = nil
     end
 
+    local hasDiscoveries = totalDisc > 0
     local selectedPoint = tab.selectedDiscoveryIndex and discoveries[tab.selectedDiscoveryIndex] or nil
-    local activeDiscMsg = selectedPoint and (selectedPoint.message or "") or (draft.discoveryMessage or "")
+    local activeDiscMsg = selectedPoint and (selectedPoint.message or "") or ""
+    Addon.JournalWidgets.SetEditBoxEnabled(tab.discoveryMsgBg, tab.discoveryMsgEdit, hasDiscoveries)
     SyncUnfocusedEdit(tab.discoveryMsgEdit, activeDiscMsg)
+    EditorPane.RefreshDiscoveryMessageIndicator(tab, draft)
 
-    local discRadii = Addon.Constants.DISCOVERY_RADIUS
-    local curDiscRad = (selectedPoint and selectedPoint.radius) or draft.discoveryRadius or discRadii.MEDIUM
-    if tab.btnDiscRadSmall then
-        tab.btnDiscRadSmall:SetText(FormatSelected(Addon.Locale:Get("BTN_DISCOVERY_RAD_SMALL"), curDiscRad == discRadii.SMALL))
-    end
-    if tab.btnDiscRadMedium then
-        tab.btnDiscRadMedium:SetText(FormatSelected(Addon.Locale:Get("BTN_DISCOVERY_RAD_MEDIUM"), curDiscRad == discRadii.MEDIUM))
-    end
-    if tab.btnDiscRadLarge then
-        tab.btnDiscRadLarge:SetText(FormatSelected(Addon.Locale:Get("BTN_DISCOVERY_RAD_LARGE"), curDiscRad == discRadii.LARGE))
+    if tab.discRadComboBox then
+        local discRadii = Addon.Constants.DISCOVERY_RADIUS
+        local curDiscRad = (selectedPoint and selectedPoint.radius) or draft.discoveryRadius or discRadii.MEDIUM
+        tab.discRadComboBox:SetEnabled(hasDiscoveries)
+        tab.discRadComboBox:SetSelectedItemByEval(function(item)
+            return item.discRadius == curDiscRad
+        end, true)
     end
 
-    local showSelector = totalDisc > 0
-    if tab.btnDiscPrev then tab.btnDiscPrev:SetHidden(not showSelector) end
-    if tab.btnDiscNext then tab.btnDiscNext:SetHidden(not showSelector) end
-    if tab.btnDiscRemove then tab.btnDiscRemove:SetHidden(not showSelector) end
-    if tab.lblDiscIndex then
-        tab.lblDiscIndex:SetHidden(not showSelector)
-        if showSelector then
-            tab.lblDiscIndex:SetText(Addon.Locale:Get("DISCOVERY_INDEX_FORMAT", tab.selectedDiscoveryIndex, totalDisc))
-        end
-    end
-    if tab.lblCapturedDiscoveries then
-        if totalDisc > 0 then
-            local msgs = {}
-            for i = 1, math.min(2, totalDisc) do table.insert(msgs, discoveries[i].message or "") end
-            local preview = table.concat(msgs, " | ") .. (totalDisc > 2 and string.format(" (+%d)", totalDisc - 2) or "")
-            tab.lblCapturedDiscoveries:SetText(Addon.Locale:Get("DISCOVERY_CAPTURED_FORMAT", totalDisc, preview))
-        else
-            tab.lblCapturedDiscoveries:SetText(Addon.Locale:Get("DISCOVERY_NONE_CAPTURED"))
-        end
-    end
-    if tab.btnClearDiscoveries then tab.btnClearDiscoveries:SetHidden(totalDisc == 0) end
+    EditorPane.RefreshDiscoveryDropdown(tab, draft)
+    SetButtonEnabled(tab.btnRemoveDiscovery, hasDiscoveries)
+    SetButtonEnabled(tab.btnClearDiscoveries, hasDiscoveries)
 end
 
 local function RefreshEditorDialoguesAndOptions(tab, draft)
@@ -416,7 +460,7 @@ local function RefreshEditorDialoguesAndOptions(tab, draft)
 
     local dialogues = draft.dialogues or {}
     local totalDlg = #dialogues
-    local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 3
+    local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 4
     if totalDlg > 0 then
         if not tab.selectedDialogueIndex or tab.selectedDialogueIndex < 1 or tab.selectedDialogueIndex > totalDlg then
             tab.selectedDialogueIndex = totalDlg

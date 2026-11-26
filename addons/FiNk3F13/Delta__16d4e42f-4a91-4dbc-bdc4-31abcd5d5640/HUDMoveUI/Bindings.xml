@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="HUDMoveUI_Edit">
+        <Category>
+            <Action name="HUDMOVEUI_SAVE" hideAction="true" inheritsBindFrom="UI_SHORTCUT_PRIMARY">
+                <Down>if not HUDMoveUI.moving then return false end HUDMoveUI.StopMove(true) return true</Down>
+            </Action>
+            <Action name="HUDMOVEUI_CANCEL" hideAction="true" inheritsBindFrom="UI_SHORTCUT_NEGATIVE">
+                <Down>if not HUDMoveUI.moving then return false end HUDMoveUI.StopMove(false) return true</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

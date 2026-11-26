@@ -1,0 +1,21 @@
+<Bindings><Layer name="SI_KEYBINDINGS_LAYER_GENERAL"><Category name="SI_KEYBINDINGS_CATEGORY_USER_INTERFACE"><Action name="ESO_HARDCORE_OPEN"><Down>ESOHardcoreOpen()</Down></Action></Category></Layer><Layer name="SI_ESOHC_GRID_LAYER"><Category name="SI_KEYBINDINGS_CATEGORY_USER_INTERFACE"><Action name="ESOHC_GRID_LEFT"><Down>ESOHardcoreGridInput("LEFT")</Down></Action><Action name="ESOHC_GRID_RIGHT"><Down>ESOHardcoreGridInput("RIGHT")</Down></Action><Action name="ESOHC_GRID_UP"><Down>ESOHardcoreGridInput("UP")</Down></Action><Action name="ESOHC_GRID_DOWN"><Down>ESOHardcoreGridInput("DOWN")</Down></Action></Category></Layer>
+  <Layer name="SI_ESOHC_NATIVE_GRID_LAYER">
+    <Category name="SI_KEYBINDINGS_CATEGORY_USER_INTERFACE">
+      <Action name="ESOHC_NATIVE_GRID_LEFT"><Down>HCNativeInventoryInput('left')</Down></Action>
+      <Action name="ESOHC_NATIVE_GRID_RIGHT"><Down>HCNativeInventoryInput('right')</Down></Action>
+      <Action name="ESOHC_NATIVE_GRID_UP"><Down>HCNativeInventoryInput('up')</Down></Action>
+      <Action name="ESOHC_NATIVE_GRID_DOWN"><Down>HCNativeInventoryInput('down')</Down></Action>
+    </Category>
+  </Layer>
+
+
+  <Layer name="SI_ESOHC_NATIVE_BANK_GRID_LAYER">
+    <Category name="SI_KEYBINDINGS_CATEGORY_USER_INTERFACE">
+      <Action name="ESOHC_NATIVE_BANK_GRID_LEFT"><Down>HCNativeBankInput('left')</Down></Action>
+      <Action name="ESOHC_NATIVE_BANK_GRID_RIGHT"><Down>HCNativeBankInput('right')</Down></Action>
+      <Action name="ESOHC_NATIVE_BANK_GRID_UP"><Down>HCNativeBankInput('up')</Down></Action>
+      <Action name="ESOHC_NATIVE_BANK_GRID_DOWN"><Down>HCNativeBankInput('down')</Down></Action>
+    </Category>
+  </Layer>
+
+</Bindings>

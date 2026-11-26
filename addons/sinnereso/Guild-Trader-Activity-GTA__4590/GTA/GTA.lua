@@ -1,7 +1,7 @@
 GuildTraderActivity = {
 	name = "GTA",
 	author = "@sinnereso",
-	version = "2026.11.23",
+	version = "2026.11.26",
 	svName = "GTAVars",
 	svVersion = 1,
 }
@@ -848,12 +848,12 @@ local CenterAlignedCell = Label(combine(defaultStyle, alignCenter))
 local CenterAlignedHeader = Label(combine(combine(defaultStyle, alignCenter), headerStyle))
 
 local guildDetailColumns = {
-	Column('Rank',		30,  0,		RankCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',				CenterAlignedHeader,	SORTABLE),
-	Column('Name',		270,  0,	LeftAlignedCell, 'NAME |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',	LeftAlignedHeader,		SORTABLE),
-	Column('Sales',		140,  0,	SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t TRADED',		SalesHeader,			SORTABLE),
-	Column('Purch',		140,  0,	SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t BOUGHT',		SalesHeader,			SORTABLE),
-	Column('Activity',	140,  0,	SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t ACTIVITY',		SalesHeader,			SORTABLE),
-	Column('Notes',		20, 10,		NoteCell, '|t20:20:/esoui/art/contacts/social_note_up.dds|t',						CenterAlignedCell,		NOT_SORTABLE),
+	Column('Rank',		30,		0,		RankCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',				CenterAlignedHeader,	SORTABLE),
+	Column('Name',		270,	0,		LeftAlignedCell, 'NAME |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',	LeftAlignedHeader,		SORTABLE),
+	Column('Sales',		140,	0,		SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t TRADED',		SalesHeader,			SORTABLE),
+	Column('Purch',		140,	0,		SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t BOUGHT',		SalesHeader,			SORTABLE),
+	Column('Activity',	140,	0,		SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t ACTIVITY',		SalesHeader,			SORTABLE),
+	Column('Notes',		20,		10,		NoteCell, '|t20:20:/esoui/art/contacts/social_note_up.dds|t',						CenterAlignedCell,		NOT_SORTABLE),
 }
 
 local function sendMailCallback(scene, oldState, newState)
@@ -1009,11 +1009,11 @@ local ItemCell = Label(salesStyle)
 local ItemHeader = Label(combine(salesStyle, headerStyle))
 -- total 750
 local playerDetailColumns = {
-	Column('Item',		260,  0,	LeftAlignedCell, 'ITEM LINK |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',	LeftAlignedHeader,		SORTABLE),
-	Column('Buyer',		170,  20,	LeftAlignedCell, 'BUYER |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',		LeftAlignedHeader,		SORTABLE),
-	Column('Quant',		56,  0,		ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t Qty',				ItemHeader,				SORTABLE),
-	Column('Price',		110,  0,	ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t PRICE',				ItemHeader,				SORTABLE),
-	Column('Time',		134,  0,	ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t SALE TIME',			ItemHeader,				SORTABLE),
+	Column('Item',		266,	0,		LeftAlignedCell, 'ITEM LINK |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',	LeftAlignedHeader,		SORTABLE),
+	Column('Buyer',		170,	14,		LeftAlignedCell, 'BUYER |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',		LeftAlignedHeader,		SORTABLE),
+	Column('Quant',		56,		0,		ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t Qty',				ItemHeader,				SORTABLE),
+	Column('Price',		110,	0,		ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t PRICE',				ItemHeader,				SORTABLE),
+	Column('Time',		134,	0,		ItemCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t SALE TIME',			ItemHeader,				SORTABLE),
 }
 local function postPlayerListCallback(ctrl)
 	ctrl:SetHandler('OnMouseEnter', function(ctrl)
@@ -1071,16 +1071,16 @@ GTASelectedPlayerView:SetHidden(true)
 --------- POPULATE VIEW FUNCTIONS --
 ---------------------------------------------
 local function CreateMainGuildList()
-	local currentList = {}
-	local previousList = {}
-	local currentCounter = 0
+	local currWeek = {}
+	local prevWeek = {}
+	local currCounter = 0
 	local guildTotal = 0
 	local sales = 0
 	local purchases = 0
 	local allSales = 0
 	local allPurchases = 0
 	local allActivity = 0
-	local previousCounter = 0
+	local prevCounter = 0
 	local prevGuildTotal = 0
 	local prevSales = 0
 	local prevPurchases = 0
@@ -1089,6 +1089,7 @@ local function CreateMainGuildList()
 	local prevAllActivity = 0
 	local numGuilds = GetNumGuilds()
 	if numGuilds > 0 then
+		local myName = UndecorateDisplayName(GetUnitDisplayName("player"))
 		local resetStamp, prevStamp = GetLastKioskReset()
 		local nowStamp = GetTimeStamp()
 		for i = 1, numGuilds do
@@ -1098,19 +1099,19 @@ local function CreateMainGuildList()
 				local param1, eventStamp, param3, param4, sellerName, buyerName, itemLink, itemQuantity, itemPrice, itemTax = GetGuildHistoryTraderEventInfo(guildId, x)
 				if eventStamp > resetStamp then
 					guildTotal = (guildTotal + itemPrice)
-					if DecorateDisplayName(buyerName) == GetUnitDisplayName("player") then purchases = (purchases + itemPrice) allPurchases = (allPurchases + itemPrice) allActivity = (allActivity + itemPrice) end
-					if DecorateDisplayName(sellerName) == GetUnitDisplayName("player") then sales = (sales + itemPrice) allSales = (allSales + itemPrice) allActivity = (allActivity + itemPrice) end
+					if buyerName == myName then purchases = (purchases + itemPrice) allPurchases = (allPurchases + itemPrice) allActivity = (allActivity + itemPrice) end
+					if sellerName == myName then sales = (sales + itemPrice) allSales = (allSales + itemPrice) allActivity = (allActivity + itemPrice) end
 				elseif eventStamp > prevStamp and eventStamp < resetStamp then
 					prevGuildTotal = (prevGuildTotal + itemPrice)
-					if DecorateDisplayName(buyerName) == GetUnitDisplayName("player") then prevPurchases = (prevPurchases + itemPrice) prevAllPurchases = (prevAllPurchases + itemPrice) prevAllActivity = (prevAllActivity + itemPrice) end
-					if DecorateDisplayName(sellerName) == GetUnitDisplayName("player") then prevSales = (prevSales + itemPrice) prevAllSales = (prevAllSales + itemPrice) prevAllActivity = (prevAllActivity + itemPrice) end
+					if buyerName == myName then prevPurchases = (prevPurchases + itemPrice) prevAllPurchases = (prevAllPurchases + itemPrice) prevAllActivity = (prevAllActivity + itemPrice) end
+					if sellerName == myName then prevSales = (prevSales + itemPrice) prevAllSales = (prevAllSales + itemPrice) prevAllActivity = (prevAllActivity + itemPrice) end
 				end
 			end
 			if guildTotal ~= 0 or GTA.savedVars.showAll then
 				local isComplete = IsGuildHistoryGaplessBetween(guildId, CATEGORY, resetStamp, nowStamp)
 				if LH:IsCategoryLinked(guildId, CATEGORY) and isComplete then LINKED_INDICATOR = LINKED_IMAGE else LINKED_INDICATOR = UNLINKED_IMAGE end
-				currentCounter = currentCounter + 1
-				currentList[currentCounter] = {
+				currCounter = currCounter + 1
+				currWeek[currCounter] = {
 					index = i,
 					id = guildId,
 					name = (LINKED_INDICATOR .. guildName),
@@ -1123,8 +1124,8 @@ local function CreateMainGuildList()
 			if prevGuildTotal ~= 0 or GTA.savedVars.showAll then
 				local isComplete = IsGuildHistoryGaplessBetween(guildId, CATEGORY, prevStamp, resetStamp)
 				if isComplete then LINKED_INDICATOR = LINKED_IMAGE else LINKED_INDICATOR = UNLINKED_IMAGE end
-				previousCounter = previousCounter + 1
-				previousList[previousCounter] = {
+				prevCounter = prevCounter + 1
+				prevWeek[prevCounter] = {
 					index = i,
 					id = guildId,
 					name = (LINKED_INDICATOR .. guildName),
@@ -1148,7 +1149,7 @@ local function CreateMainGuildList()
 		GTATotalPreviousPurchaseLabel:SetText(tostring(ZO_LocalizeDecimalNumber(prevAllPurchases)))
 		GTATotalPreviousActivityLabel:SetText(tostring(ZO_LocalizeDecimalNumber(prevAllActivity)))
 		GTADisclaimer:SetText(("Based on cached data after " .. string.lower(tostring(os.date("%I %p %a %b %d", prevStamp)))))
-		return currentList, previousList
+		return currWeek, prevWeek
 	end
 end
 
@@ -1223,16 +1224,17 @@ end
 
 function GTA.CreatePlayerDetailList(data, isCurrent)
 	local resetStamp, prevStamp = GetLastKioskReset()
-	local tweakedBuyer
+	local modBuyer
+	local undecorName = UndecorateDisplayName(SELECTED_USER_DISPLAY_NAME)
 	local salesData = {}
 	if SELECTED_GUILD_IS_CURRENT then
 		for eventIndex = 1, GetNumGuildHistoryEvents(SELECTED_GUILD_ID, CATEGORY) do
 			local param1, eventStamp, param3, param4, sellerName, buyerName, itemLink, itemQuantity, itemPrice, itemTax = GetGuildHistoryTraderEventInfo(SELECTED_GUILD_ID, eventIndex)
-			if eventStamp > resetStamp and (SELECTED_USER_DISPLAY_NAME == DecorateDisplayName(sellerName) or SELECTED_USER_DISPLAY_NAME == DecorateDisplayName(buyerName)) then
-				if DecorateDisplayName(buyerName) == SELECTED_USER_DISPLAY_NAME then tweakedBuyer = "~ purchase ~" else tweakedBuyer = DecorateDisplayName(buyerName) end
+			if eventStamp > resetStamp and (sellerName == undecorName or buyerName == undecorName) then
+				if buyerName == undecorName then modBuyer = "~ purchase ~" else modBuyer = DecorateDisplayName(buyerName) end
 				salesData[#salesData+1] = {
 					itemLink,
-					tweakedBuyer,
+					modBuyer,
 					itemQuantity,
 					ZO_LocalizeDecimalNumber(itemPrice),
 					tostring(os.date("%d %b %H:%M", eventStamp)),
@@ -1246,11 +1248,11 @@ function GTA.CreatePlayerDetailList(data, isCurrent)
 	else
 		for eventIndex = 1, GetNumGuildHistoryEvents(SELECTED_GUILD_ID, CATEGORY) do
 			local param1, eventStamp, param3, param4, sellerName, buyerName, itemLink, itemQuantity, itemPrice, itemTax = GetGuildHistoryTraderEventInfo(SELECTED_GUILD_ID, eventIndex)
-			if eventStamp > prevStamp and eventStamp < resetStamp and (SELECTED_USER_DISPLAY_NAME == DecorateDisplayName(sellerName) or SELECTED_USER_DISPLAY_NAME == DecorateDisplayName(buyerName)) then
-				if DecorateDisplayName(buyerName) == SELECTED_USER_DISPLAY_NAME then tweakedBuyer = "~ purchase ~" else tweakedBuyer = DecorateDisplayName(buyerName) end
+			if eventStamp > prevStamp and eventStamp < resetStamp and (sellerName == undecorName or buyerName == undecorName) then
+				if buyerName == undecorName then modBuyer = "~ purchase ~" else modBuyer = DecorateDisplayName(buyerName) end
 				salesData[#salesData+1] = {
 					itemLink,
-					tweakedBuyer,
+					modBuyer,
 					itemQuantity,
 					ZO_LocalizeDecimalNumber(itemPrice),
 					tostring(os.date("%d %b %H:%M", eventStamp)),
@@ -1281,15 +1283,15 @@ local function UpdateTraderActivityList(ctrl, data, rowType)
 end
 
 function GTA.Refresh()
-	local currentList, previousList = CreateMainGuildList()
-	UpdateTraderActivityList(GTANameList, currentList, 1)
-	UpdateTraderActivityList(GTASalesList, currentList, 1)
-	UpdateTraderActivityList(GTAPurchaseList, currentList, 1)
-	UpdateTraderActivityList(GTAActivityList, currentList, 1)
-	UpdateTraderActivityList(GTAPreviousNameList, previousList, 2)
-	UpdateTraderActivityList(GTAPreviousSalesList, previousList, 2)
-	UpdateTraderActivityList(GTAPreviousPurchaseList, previousList, 2)
-	UpdateTraderActivityList(GTAPreviousActivityList, previousList, 2)
+	local currWeek, prevWeek = CreateMainGuildList()
+	UpdateTraderActivityList(GTANameList, currWeek, 1)
+	UpdateTraderActivityList(GTASalesList, currWeek, 1)
+	UpdateTraderActivityList(GTAPurchaseList, currWeek, 1)
+	UpdateTraderActivityList(GTAActivityList, currWeek, 1)
+	UpdateTraderActivityList(GTAPreviousNameList, prevWeek, 2)
+	UpdateTraderActivityList(GTAPreviousSalesList, prevWeek, 2)
+	UpdateTraderActivityList(GTAPreviousPurchaseList, prevWeek, 2)
+	UpdateTraderActivityList(GTAPreviousActivityList, prevWeek, 2)
 end
 
 function GTA.UpdateForGuildDataChange()

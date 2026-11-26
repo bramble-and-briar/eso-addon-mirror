@@ -77,6 +77,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Votan's Improved Provisioner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Improved-Provisioner__1917) | votan | PC / Mac | 1.2.10 |
 | [Votan's Improved Quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Improved-Quests__1523) | votan | PC / Mac | 1.3.2 |
 | [Votan's Improved Sets Book](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Improved-Sets-Book__2885) | votan | PC / Mac | 1.2.4 |
+| [Votan's keybinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/Votan-s-keybinder__5118) | lousytourist | PC / Mac | 1.0 |
 | [Votan's Keybinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Keybinder__1174) | votan | PC / Mac | 1.4.6 |
 | [Votan's Lore Library Search](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Lore-Library-Search__1248) | votan | PC / Mac | 1.1.10 |
 | [Votan's Map Pin Colors](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Map-Pin-Colors__1843) | votan | PC / Mac | 1.2.3 |

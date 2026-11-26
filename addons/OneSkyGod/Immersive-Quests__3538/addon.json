@@ -18,7 +18,7 @@
     "ImmersiveQuests"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3538/",
-  "fingerprint": "5976621422d167c8b8f4167a05a4ac028a6135e7978aeffaae1300e44a14142a",
+  "fingerprint": "554a5cbf98e884454756612bb444a5d8df9a3f9e32548f60c1c8fed10fba2f40",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw12042.png",
     "https://cdn-eso.mmoui.com/preview/pvw12041.png"
@@ -29,11 +29,11 @@
   "source_id": "3538",
   "source_url": "https://www.esoui.com/downloads/info3538-ImmersiveQuests.html",
   "stats": {
-    "downloads": 29603,
+    "downloads": 30459,
     "favorites": 43,
-    "monthly_downloads": 538
+    "monthly_downloads": 218
   },
   "title": "Immersive Quests",
-  "updated_at": 1789594500000,
-  "version": "0.0058"
+  "updated_at": 1795666342000,
+  "version": "0.0059"
 }

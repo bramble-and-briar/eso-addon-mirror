@@ -18,7 +18,7 @@
     "GTA"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4590/",
-  "fingerprint": "c9d52cafc127497329ab39dbe661731e2e9d0f6a89a1daeef53c4a2323b23639",
+  "fingerprint": "9ef0634bddeab3395d32b16ded111389f188cd65a0525bebabdb9149244a0e25",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18289.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw18119.jpg"
@@ -29,11 +29,11 @@
   "source_id": "4590",
   "source_url": "https://www.esoui.com/downloads/info4590-GuildTraderActivityGTA.html",
   "stats": {
-    "downloads": 1887,
+    "downloads": 1917,
     "favorites": 2,
-    "monthly_downloads": 591
+    "monthly_downloads": 576
   },
   "title": "Guild Trader Activity (GTA)",
-  "updated_at": 1795434655000,
-  "version": "2026.11.23"
+  "updated_at": 1795694764000,
+  "version": "2026.11.26"
 }

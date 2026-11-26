@@ -1,0 +1,18 @@
+## Title: |cA08CFFFury's Quality of Life|r |c8A86B0v0.5.5|r
+## Description: Small comforts for everyday play. Select all on the deconstruct screens, a fishing bite alert and the right bait, a queue alert, and a lock for everything you wear. Everything starts turned off.
+## Author: Furyous
+## Version: 0.5.5
+## AddOnVersion: 55
+## APIVersion: 101051 101052
+## SavedVariables: FurysQualityOfLife_SV
+## DependsOn: LibAddonMenu-2.0>=43
+
+FurysQualityOfLife.lua
+Theme.lua
+StartHere.xml
+Alerts.lua
+SelectAll.lua
+Fishing.lua
+Locks.lua
+Settings.lua
+Bindings.xml

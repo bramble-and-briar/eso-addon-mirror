@@ -26050,6 +26050,927 @@ ImmersiveQuests.localization = {
 		["Talk to Sabileh"] =
 			{appendText=". She is up in her rooftop retreat above Sharper's Alley, east of the Fighters Guild in Abah's Landing."},
 	},
+
+
+-- ==================================================================================================================================================
+--	 Gold Coast  -  Dark Brotherhood																											Wrothgar - Orsinium
+-- ==================================================================================================================================================
+
+-- 		=========================================================================
+--		 Dark Brotherhood - Main Story
+-- 		=========================================================================
+
+	[GetQuestName(5538)] = { --"Voices in the Dark" --Jordakai
+		[1] = 
+			{appendStepText="", stepTextKey="It seems that the best way to get the attention of the Dark Brotherhood is to kill an innocent person in cold blood. If I'm going to do this, I should go to Anvil on the Gold Coast and see if they think I'm worthy to join them."},
+		["Kill an Innocent in Anvil"] =
+			{appendText="."},
+		[2] = 
+			{appendStepText="I went to the Gold Coast, the westernmost region of the Old Empire. There, ", stepTextKey="I murdered an innocent in Anvil, just as Amelie suggested, but other than the spilled blood and having a sense of being watched, nothing happened. Maybe Amelie has an idea about what I should do next. She said I could find her near the Anvil docks."},
+		["Search for Amelie Crowe Near the Anvil Docks"] =
+			{appendText="."},
+		[3] = 
+			{appendStepText="In the port city of Anvil on the Gold Coast, I went to the docks. ", stepTextKey="I couldn't find Amelie, but a courier approached me. I should see what the courier wants."},
+		["Talk to the Courier"] =
+			{appendText="."},
+		[4] = 
+			{appendStepText="At the city docks of Anvil on the Gold Coast, a courier stopped me. ", stepTextKey="I received a mysterious letter and an invitation to visit the lighthouse south of Anvil. I should go and find out if this has anything to do with the Dark Brotherhood."},
+		["Go to the Anvil Lighthouse"] =
+			{appendText=" after looking at the letter. Visible from the docks, it stands just south of the city's wayshrine."},
+		[5] = 
+			{appendStepText="At the Gold Coast's port city of Anvil, I entered the lighthouse south of town. ", stepTextKey="There's someone waiting for me inside the Anvil Lighthouse. I should talk to him."},
+		["Talk to Speaker Terenus 1"] =
+			{appendText=". The robed figure sits in a chair near the fireplace. Another person sits close by.", stepTextKey="There's someone waiting for me inside the Anvil Lighthouse. I should talk to him."},
+		[6] = 
+			{appendStepText="At the Gold Coast's port city of Anvil, I entered the lighthouse south of town. ", stepTextKey="I should talk to Speaker Terenus and find out more about why I was invited to come here."},
+		["Talk to Speaker Terenus 2"] =
+			{appendText=".", stepTextKey="I should talk to Speaker Terenus and find out more about why I was invited to come here."},
+	},
+
+	[GetQuestName(5540)] = { --"Signed in Blood" --Jordakai
+		[1] = 
+			{appendStepText="Perched on the cliffs high above the western coastal waters of the Abecean Sea, a walled estate looks down on an Ayleid ruin. It is some distance north of a hostel with a dock. ", stepTextKey="To get close to the Imperial noble, I need to find a way to get inside his estate. It's located northwest of Anvil, along the Gold Road."},
+		["Find a Way Into the Jarol Estate"] =
+			{appendText=" and enter the manor house."},
+		[2] = 
+			{appendStepText="Perched on the cliffs high above the western coastal waters of the Abecean Sea, Jarol Estate looks down on an Ayleid ruin. ", stepTextKey="I'm inside the home of the Imperial noble, Quintus Jarol. Now I need to find him or uncover clues as to his current location."},
+		["Search the Manor House"] =
+			{appendText=" for the nobleman, or at least for clues regarding his whereabouts."},
+		[3] = 
+			{appendStepText="On the cliffs high above the western coastal waters of the Abecean Sea, ", stepTextKey="I made it inside the Jarol Estate. Now I need to locate my quarry, the noble Quintus Jarol."},
+		["Find Lord Quintus Jarol"] =
+			{appendText=". He is not in the manor house. Documents imply he may be in a secret underground area, entered through the wine cellar."},
+		[4] = 
+			{appendStepText="Perched on the cliffs high above the western coastal waters of the Abecean Sea, a walled estate looks down on an Ayleid ruin. Within the underground complex of his estate, ", stepTextKey="Quintus Jarol has just finished a meeting with the Provincial Governor of Anvil and the Count of Kvatch. Now that the meeting has broken up, I should finish my mission and kill the noble."},
+		["Assassinate Lord Quintus Jarol"] =
+			{appendText=". The nobleman headed into a passageway."},
+		[5] = 
+			{appendStepText="", stepTextKey="Quintus Jarol is dead. Now I need to find a way out of his estate."},
+		["Leave the Estate"] =
+			{appendText=". There is a partially open gate leading out to the sea."},
+		[6] = 
+			{appendStepText="I finished my work at the estate northwest of Anvil on the Gold Coast. ", stepTextKey="I should return to Speaker Terenus at the Anvil Lighthouse and tell him that the noble he wanted me to kill is dead."},
+		["Report to Speaker Terenus"] =
+			{appendText="."},
+		[7] = 
+			{appendStepText="After completing my work at the Jarol Estate, I returned to the Anvil Lighthouse and received instructions from the Speaker. ", stepTextKey="I need to find the Black Door and gain entry to the Gold Coast Sanctuary of the Dark Brotherhood."},
+		["Gain Entry to the Sanctuary"] =
+			{appendText=". It is hidden in the limestone near Varen's Wall in the northern hills of the Gold Coast."},
+		[8] = 
+			{appendStepText="I discovered the Black Door, hidden in the limestone near Varen's Wall in the northern hills of the Gold Coast. There, ", stepTextKey="I gained entry to the Dark Brotherhood Sanctuary. Now I should find Astara and talk to her about what they expect of me."},
+		["Talk to Astara"] =
+			{appendText=" Caerellius in the sanctuary."},
+	},
+
+	[GetQuestName(5542)] = { --"Welcome Home" --Jordakai
+		[1] = 
+			{appendStepText="In the Dark Brotherhood Sanctuary near Varen's Wall in the northern hills of the Gold Coast. I spoke with the Matron. ", stepTextKey="Astara suggested I look around the Sanctuary and introduce myself to the rest of the guild. When I'm ready, I should talk to Elam Drals and get my first contract."},
+		["Talk to Elam Drals 1"] =
+			{appendText=" in the small chamber near the Black Door. Also meet Venom-Green-Tongue, Mirabelle, Cymbar, Tanek, Kor, and Hildegard.", stepTextKey="Astara suggested I look around the Sanctuary and introduce myself to the rest of the guild. When I'm ready, I should talk to Elam Drals and get my first contract."},
+		[2] = 
+			{appendStepText="In the Dark Brotherhood Sanctuary near Varen's Wall in the northern hills of the Gold Coast. ", stepTextKey="I should talk to Elam Drals about taking on my first contract."},
+		["Talk to Elam Drals 2"] =
+			{appendText=". He coordinates the mundane contracts from his chamber near the Black Door.", stepTextKey="I should talk to Elam Drals about taking on my first contract."},
+	},
+
+
+	[GetQuestName(5595)] = { --"A Lesson in Silence" --Jordakai
+		[1] = 
+			{appendStepText="", stepTextKey="Astara and the Dark Brotherhood have need of me. I must travel to the Sanctuary and speak to Astara."},
+		["Talk to Astara 1"] =
+			{appendText=" Caerellius in the sanctuary hidden in the northern hills of the Gold Coast.", stepTextKey="Astara and the Dark Brotherhood have need of me. I must travel to the Sanctuary and speak to Astara."},
+		[2] = 
+			{appendStepText="At the Dark Brotherhood Sanctuary in the Gold Coast, I met with the Matron. ", stepTextKey="Astara ordered me to go to Kvatch to meet up with Tanek. Then we can determine how to demonstrate the Dark Brotherhood's true power to the Grand Sermonizer and her followers."},
+		["Travel to Kvatch"] =
+			{appendText=". Tanek is likely near the Cathedral of Akatosh."},
+		[3] = 
+			{appendStepText="In the Gold Coast, ", stepTextKey="I reached Kvatch. Now I should talk to Tanek and determine how we're going to proceed."},
+		["Talk to Tanek 1"] =
+			{appendText=" crouching behind a small hedge just inside the city gate.", stepTextKey="I reached Kvatch. Now I should talk to Tanek and determine how we're going to proceed."},
+		[4] = 
+			{appendStepText="I met Tanek in the Gold Coast's eastern city and we agreed on a plan. ", stepTextKey="I need to kill Akatosh Sermonizers in the streets of Kvatch, being careful to avoid guards and witnesses. The death of her priests should draw out the Grand Sermonizer so that Tanek can find her hiding spot."},
+		["Kill Akatosh Sermonizers"] =
+			{appendText="\n\nThe priests wear hooded robes and may be preaching."},
+		[5] = 
+			{appendStepText="While I was killing sermonizers in the Gold Coast's eastern city, ", stepTextKey="Tanek discovered that the Grand Sermonizer has taken refuge in her family's estate outside the walls of Kvatch. I need to travel to her estate and find a way inside."},
+		["Enter the Grand Sermonizer's Estate"] =
+			{appendText=". It seems the priestess belongs to the wealthy At-Himah family."},
+		[6] = 
+			{appendStepText="I went to the At-Himah Family Estate near Kvatch in the Gold Coast to meet Tanek. ", stepTextKey="We entered the estate where the Grand Sermonizer is hiding. I should look around and see if I can determine what's going on here."},
+		["Spy on the Grand Sermonizer"] =
+			{appendText=". Tanek headed up the stairs to a balcony overlooking a large hall."},
+		[7] = 
+			{appendStepText="Inside the At-Himah Family Estate near Kvatch in the Gold Coast, Tanek and I observed the priestess speaking with a black-armored warrior. Then the warrior left. ", stepTextKey="The Grand Sermonizer is alone in the interrogation hall. Now's our opportunity to complete our mission and assassinate her for speaking out against the Dark Brotherhood."},
+		["Enter the Interrogation Hall"] =
+			{appendText=" with Tanek."},
+		[8] = 
+			{appendStepText="Inside the At-Himah Family Estate near Kvatch in the Gold Coast, Tanek and I entered the large interrogation hall. ", stepTextKey="The Grand Sermonizer vanished, but she left behind the assassin she tortured to death. I should stand aside and let Tanek investigate the scene."},
+		["Wait for Tanek to Investigate"] =
+			{appendText=" the tortured assassin."},
+		[9] = 
+			{appendStepText="Inside the At-Himah Family Estate near Kvatch in the Gold Coast, Tanek and I entered the large interrogation hall. ", stepTextKey="Some sort of spell has paralyzed Tanek. It's a trap! I need to defend Tanek until he can throw off the effects of the spell."},
+		["Defend Tanek"] =
+			{appendText="."},
+		[10] = 
+			{appendStepText="Inside the At-Himah Family Estate near Kvatch in the Gold Coast, Tanek and I were attacked in the large interrogation hall. ", stepTextKey="The Grand Sermonizer disappeared before I could finish her off, but Tanek still suffers under her spell. I should make sure he's all right before I chase after the Grand Sermonizer."},
+		["Check on Tanek"] =
+			{appendText="'s condition."},
+		[11] = 
+			{appendStepText="Inside the At-Himah Family Estate near Kvatch in the Gold Coast, Tanek and I were attacked in the large interrogation hall. ", stepTextKey="Kor arrived to help Tanek. He ordered me to finish the mission and chase down the Grand Sermonizer. I need to follow her escape route before she gets away."},
+		["Follow the Grand Sermonizer's Escape Route"] =
+			{appendText=" through the double doors below the tapestry."},
+		[12] = 
+			{appendStepText="Inside the At-Himah Family Estate near Kvatch in the Gold Coast, after the attack in the large interrogation hall, I entered an office. There was a trapdoor. ", stepTextKey="I found the Grand Sermonizer's escape tunnel that runs beneath the estate. I should follow after her and try to catch her before she gets away."},
+		["Pursue the Grand Sermonizer"] =
+			{appendText="."},
+		[13] = 
+			{appendStepText="In the caverns below the At-Himah Family Estate near Kvatch, ", stepTextKey="I caught up to the Grand Sermonizer and her cadre of Order of the Hour soldiers. Let the final battle begin!"},
+		["Defeat the Grand Sermonizer"] =
+			{appendText=" and her minions."},
+		[14] = 
+			{appendStepText="In the caverns below the At-Himah Family Estate near Kvatch, I sent many souls to Sithis. ", stepTextKey="The Grand Sermonizer is dead. I should return to the Dark Brotherhood Sanctuary and report what happened to Astara."},
+		["Return to the Sanctuary"] =
+			{appendText=" hidden in the northern hills of the Gold Coast."},
+		[15] = 
+			{appendStepText="In the northern hills of the Gold Coast, I returned to the sanctuary. Matron ", stepTextKey="Astara needs to hear about what happened at the Grand Sermonizer's estate. I should tell her what happened to Brother Cimbar and about the warrior in black armor."},
+		["Talk to Astara 2"] =
+			{appendText=" Caerellius.", stepTextKey="Astara needs to hear about what happened at the Grand Sermonizer's estate. I should tell her what happened to Brother Cimbar and about the warrior in black armor."},
+		[16] = 
+			{appendStepText="In the Gold Coast's Dark Brotherhood Sanctuary, I spoke with the Matron. ", stepTextKey="Kor helped Tanek make it back to the Sanctuary, though Tanek was badly injured by the Grand Sermonizer's trap. Tanek has asked to see me. I should check on him."},
+		["Talk to Tanek 2"] =
+			{appendText=". The Redguard assassin is resting in the infirmary.", stepTextKey="Kor helped Tanek make it back to the Sanctuary, though Tanek was badly injured by the Grand Sermonizer's trap. Tanek has asked to see me. I should check on him."},
+		[17] = 
+			{appendStepText="In the Gold Coast's Dark Brotherhood Sanctuary, I went to its infirmary. ", stepTextKey="Tanek recovers under the watchful eyes of Kor and Hildegard. I should wait for them to finish their visit."},
+		["Wait for Kor and Hildegard"] =
+			{appendText="."},
+		[18] = 
+			{appendStepText="In the infirmary of the Gold Coast's Dark Brotherhood Sanctuary, I waited until ", stepTextKey="Tanek sent Kor and Hildegarde away and asked to speak to me privately. I should find out what he wants."},
+		["Talk to Tanek 3"] =
+			{appendText=".", stepTextKey="Tanek sent Kor and Hildegarde away and asked to speak to me privately. I should find out what he wants."},
+		[19] = 
+			{appendStepText="At the Gold Coast's Dark Brotherhood Sanctuary, ", stepTextKey="Tanek will recover, given rest and time. I should see if there's anything else he needs before we consider the Grand Sermonizer situation dealt with."},
+		["Talk to Tanek 4"] =
+			{appendText=", resting in the infirmary.", stepTextKey="Tanek will recover, given rest and time. I should see if there's anything else he needs before we consider the Grand Sermonizer situation dealt with."},
+	},
+
+	[GetQuestName(5599)] = { --"Questions of Faith" --Jordakai
+		[1] = 
+			{appendStepText="In the northern hills of the Gold Coast, a Brother of the Dark Brotherhood waits. ", stepTextKey="I should find Kor in the Sanctuary as soon as I can."},
+		["Talk to Kor 1"] =
+			{appendText=".", stepTextKey="I should find Kor in the Sanctuary as soon as I can."},
+		[2] = 
+			{appendStepText="In the Dark Brotherhood Sanctuary, I spoke with my Brother in the dining area. ", stepTextKey="Kor suggested we start our search at Anvil's Great Chapel of Dibella. Hildegard often goes there to pray and contemplate the Divines."},
+		["Go to the Chapel of Dibella in Anvil"] =
+			{appendText=", the port city of the Gold Coast."},
+		[3] = 
+			{appendStepText="I met my Brother in the Great Chapel of Dibella at the Gold Coast's port city of Anvil. ", stepTextKey="Kor suggested we talk to the worshipers to find out if any of them saw Hildegard in the chapel recently."},
+		["Interview Worshipers"] =
+			{appendText=" in the chapel."},
+		[4] = 
+			{appendStepText="In speaking with worshipers at the Great Chapel of Dibella in Anvil on the Gold Coast, ", stepTextKey="I found out that a woman saw Hildegard talking to Chanter Nemus near the Akatosh shrine. I should let Kor know and ask him if he discovered anything that can help us locate Hildegard."},
+		["Talk to Kor 2"] =
+			{appendText=".", stepTextKey="I found out that a woman saw Hildegard talking to Chanter Nemus near the Akatosh shrine. I should let Kor know and ask him if he discovered anything that can help us locate Hildegard."},
+		[5] = 
+			{appendStepText="Our Sister Hildegard spoke with a chanter at the chapel in Anvil on the Gold Coast. She left in tears. ", stepTextKey="A very worried Kor thinks that Hildegard may have gone back to where he first found her—the wilderness of Skyrim. While he checks at the docks, he wants me to talk to the caravan master to see if she arranged travel there."},
+		["Talk to the Caravan Master"] =
+			{appendText=" near Midnight Riders, the city's stables."},
+		[6] = 
+			{appendStepText="Near Midnight Riders, the stables at the Gold Coast's port city of Anvil, I spoke with Bilami. ", stepTextKey="I think the caravan master helped Hildegard leave Anvil, but I can't get a straight answer out of her. Maybe Kor can convince her to help us. I should stand back and let him give it a try."},
+		["Listen to Kor"] =
+			{appendText="."},
+		[7] = 
+			{appendStepText="Near Midnight Riders, the stables at the Gold Coast's port city of Anvil, Kor succeeded in getting Bilami the Caravaneer to share what she knew. ", stepTextKey="Hildegard told the caravan master about Kor, and she recognized him. She's agreed to take us to the Jerall Mountains in Skyrim, where she took Hildegard. I should talk to her when we're ready to go."},
+		["Travel to the Jerall Mountains"] =
+			{appendText="."},
+		[8] = 
+			{appendStepText="Bilami the Caravaneer arranged our long journey from Anvil on the Gold Coast. ", stepTextKey="We arrived in the Jerall Mountains of Skyrim. Now we need to track Hildegard and find her before the Silver Dawn hunters kill her."},
+		["Track Hildegard"] =
+			{appendText=" by crouching and searching for signs of her trail through the wooded vale."},
+		[9] = 
+			{appendStepText="Bilami arranged our long journey from Anvil on the Gold Coast to a logging tract in the Jerall Mountains of Skyrim. In the wooded vale, ", stepTextKey="I tracked Hildegard to a camp that's overrun with Silver Dawn hunters. I should deal with these hunters before I continue to search for Hildegard."},
+		["Defeat the Silver Dawn"] =
+			{appendText=" hunters."},
+		[10] = 
+			{appendStepText="Bilami arranged our long journey from Anvil on the Gold Coast to a logging tract in the Jerall Mountains of Skyrim. In the wooded vale, ", stepTextKey="The Silver Dawn has apparently been tracking Hildegard, too. They reached this spot and set up a camp. A surviving member of their hunting party suggested that her trail continues to the south. I should hurry and find Hildegard."},
+		["Continue Tracking Hildegard"] =
+			{appendText=" after a quick search of the camp."},
+		[11] = 
+			{appendStepText="Bilami arranged our long journey from Anvil on the Gold Coast to a logging tract in the Jerall Mountains of Skyrim. In the wooded vale, ", stepTextKey="I watched as Kor calmed Hildegard and got her to change back into human form. I should talk to her and find out what this was all about."},
+		["Talk to Hildegard 1"] =
+			{appendText=".", stepTextKey="I watched as Kor calmed Hildegard and got her to change back into human form. I should talk to her and find out what this was all about."},
+		[12] = 
+			{appendStepText="Bilami arranged our long journey from Anvil on the Gold Coast to a logging tract in the Jerall Mountains of Skyrim. In the wooded vale, we found our Dark Brotherhood Sister. ", stepTextKey="Hildegard was tricked by Chanter Nemus and then set upon by the Silver Dawn. It was all some sort of elaborate trap, but we don't know what motivated the chanter. I need to either offer Hilde words of encouragement or scold her to teach her a lesson."},
+		["Talk to Hildegard 2"] =
+			{appendText=".", stepTextKey="Hildegard was tricked by Chanter Nemus and then set upon by the Silver Dawn. It was all some sort of elaborate trap, but we don't know what motivated the chanter. I need to either offer Hilde words of encouragement or scold her to teach her a lesson."},
+		[13] = 
+			{appendStepText="Bilami arranged our long journey from Anvil on the Gold Coast to a logging tract in the Jerall Mountains of Skyrim. In the wooded vale, ", stepTextKey="I let Hildegard know what I think of her actions. It's time for us to return to Anvil."},
+		["Return to Anvil"] =
+			{appendText=" on the Gold Coast. Bilami has arranged transportation for the trip."},
+		[14] = 
+			{appendStepText="We arrived back in Anvil, the port city of the Gold Coast. ", stepTextKey="I should talk to Kor and make sure he gets Hildegard safely back to the Sanctuary."},
+		["Talk to Kor 3"] =
+			{appendText=". He is with Hildegard near Midnight Riders, the city's stables.", stepTextKey="I should talk to Kor and make sure he gets Hildegard safely back to the Sanctuary."},
+		[15] = 
+			{appendStepText="On the Gold Coast, near the stables at Anvil, I spoke with Kor. Now, ", stepTextKey="I should talk to Hildegard to find out what I can about Chanter Nemus."},
+		["Talk to Hildegard 3"] =
+			{appendText=".", stepTextKey="I should talk to Hildegard to find out what I can about Chanter Nemus."},
+		[16] = 
+			{appendStepText="After our return to the Gold Coast, I spoke with Kor and Hildegard. She mentioned ", stepTextKey="Chanter Nemus has an office beneath the Chapel of Dibella in Anvil. I should travel there and deal with him for trying to deceive the Dark Brotherhood."},
+		["Kill Chanter Nemus"] =
+			{appendText="."},
+		[17] = 
+			{appendStepText="At the Chapel of Dibella in Anvil on the Gold Coast, I ended the deceit of Chanter Nemus. Permanently. Sithis should be pleased. ", stepTextKey="I should return to the Sanctuary and let Astara know what happened."},
+		["Return to the Sanctuary"] =
+			{appendText=" of the Dark Brotherhood."},
+		[18] = 
+			{appendStepText="After killing Chanter Nemus, I returned to the Dark Brotherhood Sanctuary in the northern hills of the Gold Coast. ", stepTextKey="Hildegard was tricked by Chanter Nemus for some unknown reason, but Kor and I were able to keep her safe. I should let Astara know what happened."},
+		["Talk to Astara"] =
+			{appendText=" Caerellius, the Matron."},
+	},
+
+	[GetQuestName(5596)] = { --"A Special Request" --Jordakai
+		[1] = 
+			{appendStepText="Near the Gold Coast Wayshrine, I spoke with a Sister of the Dark Brotherhood. ", stepTextKey="Grazda informed me that Matron Astara has another task for me to perform. I should go to the Sanctuary and find out what Astara needs this time."},
+		["Talk to Astara"] =
+			{appendText=" Caerellius."},
+		[2] = 
+			{appendStepText="I met with our Matron at the Dark Brotherhood Sanctuary on the Gold Coast. She gave me information on this special contract. Of note, Mirabelle, our Sister, is a spy at the castle. ", stepTextKey="I should go to Anvil Castle and find out who Governor Fortunata ap Dugal wants me to kill."},
+		["Talk to Governor Fortunata 1"] =
+			{appendText=" ap Dugal at her castle on an island, not far from the docks.", stepTextKey="I should go to Anvil Castle and find out who Governor Fortunata ap Dugal wants me to kill."},
+		[3] = 
+			{appendStepText="In Anvil Castle on the Gold Coast, I met with the Governor. ", stepTextKey="In order to carry out Governor Fortunata's contract, I first have to find a way to get inside Castle Kvatch. She suggested getting a key to the gatehouse from the castellan or I can talk to one of the officers at the gate and try to gain entry there."},
+		["Infiltrate Castle Kvatch"] =
+			{appendText=". The stronghold sits behind a small moat in the city's northwest. Guild traders have settled in the circular plaza near its gate. If the guards are uncooperative, the castellan has a house in the city and there is a gatehouse near the bank. Or there may be another way."},
+		[4] = 
+			{appendStepText="After traveling to the city of Kvatch on the Gold Coast, I found a way to infiltrate its stronghold. ", stepTextKey="I'm inside Castle Kvatch. Now I need to locate and murder Commander Marcus Scipio, leader of the Order of the Hour."},
+		["Kill Commander Marcus Scipio"] =
+			{appendText=". Members of the Order tend to congregate in the southern areas of the castle."},
+		[5] = 
+			{appendStepText="In Kvatch on the Gold Coast, I entered the city's castle and found Commander Marcus Scipio in a southeastern room. As agreed, ", stepTextKey="I murdered the commander of the Order of the Hour. Now I need to find Count Carolus and tell him what happened to Commander Scipio to complete this contract."},
+		["Find Count Carolus"] =
+			{appendText=" Aquilarios. His quarters are likely in the northern area of the castle."},
+		[6] = 
+			{appendStepText="In Kvatch on the Gold Coast, I entered the city's castle and murdered Commander Marcus Scipio. Then I made my way to the northeastern chamber in the castle. There, ", stepTextKey="I found Count Carolus in the midst of performing the Black Sacrament—the ritual used to summon the Dark Brotherhood. I should talk to him and see what this is all about."},
+		["Talk to Count Carolus"] =
+			{appendText=" Aquilarios."},
+		[7] = 
+			{appendStepText="In the city of Kvatch on the Gold Coast, I was in the city's castle speaking with Count Carolus Aquilarios in his chamber. ", stepTextKey="It appears that Speaker Terenus came in response to the Count's Black Sacrament ritual. He wants to speak with me."},
+		["Talk to Speaker Terenus"] =
+			{appendText="."},
+		[8] = 
+			{appendStepText="Speaker Terenus said I fulfilled Governor Fortunata's contract and mentioned a secret exit from Castle Kvatch in its northwestern suite. ", stepTextKey="My new contract calls for the death of Governor Fortunata. I should meet Mirabelle at Anvil Castle and see if she has any advice on breaching the Pirate Queen's defenses."},
+		["Find Mirabelle Outside Anvil Castle"] =
+			{appendText=" in its courtyard. The castle rests on its island near the docks of the Gold Coast's only port city."},
+		[9] = 
+			{appendStepText="In Anvil on the Gold Coast, I spoke with Mirabelle, a Sister, in the castle's courtyard. ", stepTextKey="I need to reach Governor Fortunata's private pantry on the upper level of the castle and put poison in her favorite wine. Mirabelle suggests I use the secret passages to get around. I can find an entrance wherever I see a red drape over an alcove."},
+		["Poison the Wine Decanter"] =
+			{appendText=". It sits in storage behind the bar room in the southeastern hall of the castle."},
+		[10] = 
+			{appendStepText="At Anvil Castle in the Gold Coast's port city, I made my way to the wine room. ", stepTextKey="The wine decanter has been poisoned. Now to let Governor Fortunata know that I killed Marcus Scipio and see if I can get her to drink to her good fortune."},
+		["Talk to Governor Fortunata 2"] =
+			{appendText=" ap Dugal, the Pirate Queen. Her private suite is the southernmost chamber of the castle.", stepTextKey="The wine decanter has been poisoned. Now to let Governor Fortunata know that I killed Marcus Scipio and see if I can get her to drink to her good fortune."},
+		[11] = 
+			{appendStepText="At Anvil Castle on the Gold Coast, in her private suite, the southernmost chamber of the castle, I met with the Pirate Queen. ", stepTextKey="Governor Fortunata is so pleased that I completed her contract, she's invited me to share a drink on her private balcony. I should follow her to the balcony."},
+		["Share a Drink with the Governor"] =
+			{appendText="."},
+		[12] = 
+			{appendStepText="", stepTextKey="Governor Fortunata is dead and Count Carolus's contract has been fulfilled. I should return to the Sanctuary and let Astara know what happened here."},
+		["Return to Astara at the Sanctuary"] =
+			{appendText=" of the Dark Brotherhood in the northern hills of the Gold Coast."},
+	},
+
+	[GetQuestName(5567)] = { --"Dark Revelations" --Jordakai
+		[1] = 
+			{appendStepText="At the Gold Coast Wayshrine, I heard that Mirabelle has been watching Count Carolus and had just raced off to the Dark Brotherhood Sanctuary. Then ", stepTextKey="Grazda informed me that Astara has a task for me. I should go to the Sanctuary and talk to her."},
+		["Talk to Astara"] =
+			{appendText=" Caerellius, the Matron."},
+		[2] = 
+			{appendStepText="In the Dark Brotherhood Sanctuary hidden in the northern hills of the Gold Coast, I met with the Matron and received an assignment. ", stepTextKey="Before I head out to meet with Count Carolus, Astara asked me to talk to Mirabelle. She has information that might be of use to me when I meet with the Count."},
+		["Talk to Mirabelle Motierre"] =
+			{appendText=" in the central area."},
+		[3] = 
+			{appendStepText="In the southeastern wilds of the Gold Coast, ", stepTextKey="I need to meet Count Carolus south of Kvatch, in the ruins of Dasek Moor so that he can fulfill his obligation and tell us about the Black Dragon."},
+		["Talk to Count Carolus Aquilarios"] =
+			{appendText=" at the small ruins nestled under an outcropping with a view of a large keep to its south."},
+		[4] = 
+			{appendStepText="I met with Count Carolus Aquilarios at the ruins in the southeastern wilds of the Gold Coast. ", stepTextKey="Count Carolus revealed that the Black Dragon is the First Sword of the Order of the Hour, and that the Order has once again occupied their old enclave outside of Kvatch. I should go there and investigate."},
+		["Investigate the Enclave"] =
+			{appendText=" of the Hourglass, just south of the Dasek Moor ruins."},
+		[5] = 
+			{appendStepText="In the southeastern wilds of the Gold Coast, ", stepTextKey="I entered the Enclave of the Hourglass and walked in on a meeting between one of the Red Sails captains and an officer of the Order of the Hour. I should put an end to their negotiations."},
+		["Stop the Negotiations"] =
+			{appendText=" in the central hall."},
+		[6] = 
+			{appendStepText="After I entered the Enclave of the Hourglass in the southeastern wilds of the Gold Coast, I stopped the negotiations between the Order and the pirates. ", stepTextKey="Apparently, a group of Red Sails pirates is about to be initiated into the Order of the Hour. If I can stop the initiation, I can keep the Order from growing and gaining more recruits."},
+		["Stop the Initiation"] =
+			{appendText=" in the lower Basilica of Eternity."},
+		[7] = 
+			{appendStepText="After I entered the Enclave of the Hourglass in the southeastern wilds of the Gold Coast, I continued down into the Basilica of Eternity. There, ", stepTextKey="I disrupted the initiation. Now I should look around and try to find the Black Dragon or any information that will give the Brotherhood an advantage against the Order's First Sword."},
+		["Search the Enclave of the Hourglass"] =
+			{appendText=", working through the hallways and rooms to reach the southeastern area."},
+		[8] = 
+			{appendStepText="After I entered the Enclave of the Hourglass in the southeastern wilds of the Gold Coast, I continued down into the Basilica of Eternity. I reached the southeastern end of the complex and discovered the Black Dragon's Chamber. ", stepTextKey="I should search the Black Dragon's chamber and see what I can find."},
+		["Search the Black Dragon's Chamber"] =
+			{appendText=" for a journal or other clues."},
+		[9] = 
+			{appendStepText="My Sister, Mirabelle, is dead. Murdered by the Black Dragon. ", stepTextKey="I should return to the Sanctuary and tell Astara what transpired at the Enclave of the Hourglass. I should also turn over the journal I recovered from the Black Dragon."},
+		["Talk to Astara Caerellius 1"] =
+			{appendText=" at the Dark Brotherhood Sanctuary in the northern hills of the Gold Coast.", stepTextKey="I should return to the Sanctuary and tell Astara what transpired at the Enclave of the Hourglass. I should also turn over the journal I recovered from the Black Dragon."},
+		[10] = 
+			{appendStepText="", stepTextKey="I should tell Astara what transpired at the Enclave of the Hourglass."},
+		["Talk to Astara Caerellius 2"] =
+			{appendText=" at the Dark Brotherhood Sanctuary in the northern hills of the Gold Coast.", stepTextKey="I should tell Astara what transpired at the Enclave of the Hourglass."},
+	},
+
+	[GetQuestName(5597)] = { --"A Ghost from the Past" --Jordakai
+		[1] = 
+			{appendStepText="At the Gold Coast Wayshrine, I spoke with Grazda, my Sister in the Dark Brotherhood. She is concerned about our Brother. ", stepTextKey="I should head into the Sanctuary and talk to Green-Venom-Tongue."},
+		["Talk to Green-Venom-Tongue 1"] =
+			{appendText=".", stepTextKey="I should head into the Sanctuary and talk to Green-Venom-Tongue."},
+		[2] = 
+			{appendStepText="At our sanctuary in the Gold Coast, my Brother in the Dark Brotherhood asked for my assistance. ", stepTextKey="Green-Venom-Tongue is arranging transportation for us to his former Sanctuary. When I'm ready to depart, I should meet him near the gates of Anvil."},
+		["Meet Green-Venom-Tongue Near Anvil"] =
+			{appendText="'s northern gate, at the caravans by the city's stables."},
+		[3] = 
+			{appendStepText="Near the city's stables, ", stepTextKey="I met up with Green-Venom-Tongue in Anvil. He arranged for an Argonian tracker named Shazara-Ta to transport us to his former Sanctuary. I should climb aboard her cart when we're ready to make the trip."},
+		["Travel to the Purified Sanctuary"] =
+			{appendText=" in Black Marsh, leaving the Gold Coast far behind."},
+		[4] = 
+			{appendStepText="My Brother and I left the Gold Coast. ", stepTextKey="After traveling by horse and cart to Blackwood and then by boat up the river, we've reached the vicinity of Green-Venom-Tongue's former Sanctuary. Now I should follow him to the exact location."},
+		["Enter the Purified Sanctuary"] =
+			{appendText=" in Xith-Izkul, east beyond the abandoned village. Green-Venom-Tongue knows the path."},
+		[5] = 
+			{appendStepText="By cart from Anvil in the Gold Coast and by boat through the marshlands, we reached the ruins of Xith-Izkul. ", stepTextKey="We passed through the Black Door and into the old Sanctuary. I should talk to Green-Venom-Tongue and find out how he thinks we should proceed."},
+		["Talk to Green-Venom-Tongue 2"] =
+			{appendText=" inside the Xith-Izkul Sanctuary.", stepTextKey="We passed through the Black Door and into the old Sanctuary. I should talk to Green-Venom-Tongue and find out how he thinks we should proceed."},
+		[6] = 
+			{appendStepText="From Anvil in the Gold Coast, by cart and boat, we reached the ruins of Xith-Izkul. Within the purified sanctuary, ", stepTextKey="Green-Venom-Tongue burns resin from the Hist. He claims the fumes will allow us to see truths hidden in the ruins. We should search the Sanctuary and see what the fumes reveal."},
+		["Search the Sanctuary"] =
+			{appendText=" at Xith-Izkul. Perhaps the resin fumes will reveal secrets from the skeletal remains found in the larger chambers."},
+		[7] = 
+			{appendStepText="From Anvil in the Gold Coast, by cart and boat, we reached the ruins of Xith-Izkul. In the Sanctuary, the resin fumes revealed secrets from the purification. ", stepTextKey="We saw reflections of what occurred here. Lyra was the Black Hand's instrument in purging this Sanctuary. I should talk to Green-Venom-Tongue and see what he thinks we should do next."},
+		["Talk to Green-Venom-Tongue 3"] =
+			{appendText=" now that he has seen what befell his brothers and sisters in his former home.", stepTextKey="We saw reflections of what occurred here. Lyra was the Black Hand's instrument in purging this Sanctuary. I should talk to Green-Venom-Tongue and see what he thinks we should do next."},
+		[8] = 
+			{appendStepText="From Anvil in the Gold Coast, by cart and boat, we reached the ruins of Xith-Izkul. Within the purged Dark Brotherhood Sanctuary, ", stepTextKey="Green-Venom-Tongue wants to use the last of the resin fumes to see if any signs of Lyra remain around the shrine of Sithis. He said to approach the shrine and see what is revealed."},
+		["Approach the Shrine of Sithis"] =
+			{appendText="."},
+		[9] = 
+			{appendStepText="From Anvil in the Gold Coast, by cart and boat, we reached the ruins of Xith-Izkul. In the sanctuary, we entered the Shrine of Sithis. ", stepTextKey="We saw through the resin fumes how Lyra completed her mission to purge this Sanctuary and then received a new contract that took her to Kvatch. I should talk to Green-Venom-Tongue to see if we've learned everything we can here."},
+		["Talk to Green-Venom-Tongue 4"] =
+			{appendText=" in the old sanctuary at Xith-Izkul.", stepTextKey="We saw through the resin fumes how Lyra completed her mission to purge this Sanctuary and then received a new contract that took her to Kvatch. I should talk to Green-Venom-Tongue to see if we've learned everything we can here."},
+		[10] = 
+			{appendStepText="We saw memories of the purification at the Xith-Izkul Sanctuary. Now, ", stepTextKey="Green-Venom-Tongue wants me to meet him in Kvatch, in front of the Cathedral of Akatosh. He hopes to use the last of his resin to see what occurred during Lyra's contract to kill Primate Jonas."},
+		["Meet Green-Venom-Tongue in Kvatch"] =
+			{appendText=", the eastern city of the Gold Coast."},
+		[11] = 
+			{appendStepText="Green-Venom-Tongue and I stand in front of the Cathedral of Akatosh in the city of Kvatch on the Gold Coast. ", stepTextKey="Once more the fumes of the burning resin reveal events from the past. I should pay attention and find out what happened to Lyra in Kvatch."},
+		["Learn Lyra's Fate"] =
+			{appendText="."},
+		[12] = 
+			{appendStepText="On the front steps of the Cathedral of Akatosh in the city of Kvatch on the Gold Coast, the resin fumes revealed one more secret. ", stepTextKey="We saw how Primate Artorius convinced Lyra to become his Black Dragon. I should talk to Green-Venom-Tongue and see what he thinks about all this."},
+		["Talk to Green-Venom-Tongue 5"] =
+			{appendText=".", stepTextKey="We saw how Primate Artorius convinced Lyra to become his Black Dragon. I should talk to Green-Venom-Tongue and see what he thinks about all this."},
+		[13] = 
+			{appendStepText="Back to the northern hills of the Gold Coast. ", stepTextKey="I should return to the Sanctuary and tell Astara what we learned about the Black Dragon."},
+		["Talk to Astara"] =
+			{appendText=" Caerellius, the Matron of the Dark Brotherhood Sanctuary."},
+	},
+
+	[GetQuestName(5598)] = { --"The Wrath of Sithis" --Jordakai
+		[1] = 
+			{appendStepText="At the Gold Coast Wayshrine, I spoke with my Sister. ", stepTextKey="Grazda informed me that Astara has requested my presence in the Dark Brotherhood Sanctuary. I should go and talk to her."},
+		["Talk to Astara 1"] =
+			{appendText=" Caerellius, the Matron.", stepTextKey="Grazda informed me that Astara has requested my presence in the Dark Brotherhood Sanctuary. I should go and talk to her."},
+		[2] = 
+			{appendStepText="At the Gold Coast Dark Brotherhood Sanctuary, I received an assignment from our Matron, Astara. ", stepTextKey="I need to travel to Knightsgrave and follow Green-Venom-Tongue into the ruins to make sure he's able to complete the kill."},
+		["Enter Knightsgrave"] =
+			{appendText=", an ancient Imperial ruin far northwest of Anvil. It rests on a gentle slope near the mouth of the Bree River on the Abecean Sea."},
+		[3] = 
+			{appendStepText="Near the mouth of the Bree River on the Abecean Sea, far northwest of Anvil on the Gold Coast, ", stepTextKey="I entered the ruins of Knightsgrave. Now I need to find Green-Venom-Tongue."},
+		["Find Green-Venom-Tongue 1"] =
+			{appendText=", my Brother. Statues of ancient heroes line the stairs leading down into the underground complex. Each with a plaque.", stepTextKey="I entered the ruins of Knightsgrave. Now I need to find Green-Venom-Tongue."},
+		[4] = 
+			{appendStepText="In the ancient ruin of Knightsgrave in the northwestern wilds of the Gold Coast, I caught up with my Brother in the first chamber. ", stepTextKey="I should listen to Green-Venom-Tongue and help him figure out how to open the door that leads deeper into the ruins."},
+		["Open the Sealed Doors"] =
+			{appendText=". Four braziers glow. Each awaiting a new flame. Each representing a hero of the Order of the Hour."},
+		[5] = 
+			{appendStepText="In the ancient ruin of Knightsgrave in the northwestern wilds of the Gold Coast, I caught up with my Brother in the first chamber. ", stepTextKey="The doors leading deeper into the ruins have been opened. I should follow Green-Venom-Tongue and help him hunt down the Black Dragon."},
+		["Hunt Down the Black Dragon"] =
+			{appendText=", Lyra."},
+		[6] = 
+			{appendStepText="In the ancient ruin of Knightsgrave in the northwestern wilds of the Gold Coast, my Brother and I traveled south. ", stepTextKey="The chamber ahead might contain a clue as to where the Black Dragon is hiding. I should explore it."},
+		["Explore the Chamber of Enduring Flame"] =
+			{appendText="."},
+		[7] = 
+			{appendStepText="In the ancient ruin of Knightsgrave in the northwestern wilds of the Gold Coast, Green-Venom-Tongue scaled a gate, but I will need to find another way. ", stepTextKey="Two minotaurs smashed through the wall. I'll need to defeat the minotaurs before I can follow after Green-Venom-Tongue and proceed with the hunt for the Black Dragon."},
+		["Defeat the Minotaurs"] =
+			{appendText="."},
+		[8] = 
+			{appendStepText="In the ancient ruin of Knightsgrave in the northwestern wilds of the Gold Coast, ", stepTextKey="Green-Venom-Tongue was able to scale the gate and continue on without me. I'll need to find another path and meet up with him deeper within the ruins. Maybe the path the minotaurs opened is the way to go."},
+		["Find Green-Venom-Tongue 2"] =
+			{appendText=", continuing on through the southern chambers of the ruin.", stepTextKey="Green-Venom-Tongue was able to scale the gate and continue on without me. I'll need to find another path and meet up with him deeper within the ruins. Maybe the path the minotaurs opened is the way to go."},
+		[9] = 
+			{appendStepText="In the ancient ruin of Knightsgrave in the northwestern wilds of the Gold Coast, I caught up with my Brother in a southeastern hallway. But ", stepTextKey="Green-Venom-Tongue reached the Black Dragon before I could get to him. She killed him. That's one more death I owe her for. Now I have to finish this on my own."},
+		["Find the Black Dragon 1"] =
+			{appendText=" in the eastern ruins.", stepTextKey="Green-Venom-Tongue reached the Black Dragon before I could get to him. She killed him. That's one more death I owe her for. Now I have to finish this on my own."},
+		[10] = 
+			{appendStepText="In the ancient ruin of Knightsgrave in the northwestern wilds of the Gold Coast, I reached a large, circular chamber. ", stepTextKey="The Black Dragon has decided to send her shadow forms against me. I need to defeat them before I can continue my hunt for the Black Dragon."},
+		["Defeat the Black Dragon's Shadows"] =
+			{appendText="."},
+		[11] = 
+			{appendStepText="In the ancient ruin of Knightsgrave in the northwestern wilds of the Gold Coast, in the large, circular chamber, ", stepTextKey="I defeated the Black Dragon's shadow forms. Now I can resume my hunt for the Black Dragon."},
+		["Find the Black Dragon 2"] =
+			{appendText=", north of the circular chamber.", stepTextKey="I defeated the Black Dragon's shadow forms. Now I can resume my hunt for the Black Dragon."},
+		[12] = 
+			{appendStepText="In the ancient ruin of Knightsgrave in the northwestern wilds of the Gold Coast, north of the circular chamber, ", stepTextKey="I tracked the Black Dragon to an even more ancient ruin beneath the ruins of Knightsgrave. It appears the Order of the Hour built its original headquarters atop a temple to the Dragon God of Time. Now we can have our final confrontation."},
+		["Defeat the Black Dragon"] =
+			{appendText=" in the cavernous Shrine of Akatosh."},
+		[13] = 
+			{appendStepText="In the cavernous Shrine of Akatosh, ", stepTextKey="I defeated the Black Dragon and the Wrath of Sithis has claimed her soul. Now I need to find my way out of these ruins."},
+		["Exit Knightsgrave"] =
+			{appendText=". The Black Dragon must have had an exit nearby."},
+		[14] = 
+			{appendStepText="I should travel to the northern hills of the Gold Coast. ", stepTextKey="I need to return to the Sanctuary and tell Astara what happened with the Black Dragon and Green-Venom-Tongue. She also needs to know that Artorius now knows the location of our Sanctuary."},
+		["Talk to Astara in the Sanctuary"] =
+			{appendText=" of the Dark Brotherhood."},
+		[15] = 
+			{appendStepText="At the Dark Brotherhood Sanctuary in the northern hills of the Gold Coast, ", stepTextKey="I should talk to Astara and find out what she thinks we should do about Primate Artorius and the Order of the Hour."},
+		["Talk to Astara 2"] =
+			{appendText=" Caerellius, the Matron.", stepTextKey="I should talk to Astara and find out what she thinks we should do about Primate Artorius and the Order of the Hour."},
+	},
+
+	[GetQuestName(5600)] = { --"Filling the Void" --Jordakai
+		[1] = 
+			{appendStepText="At the Gold Coast Wayshrine, I met my Sister, Grazda. ", stepTextKey="I need to go to the Sanctuary and answer Speaker Terenus's call."},
+		["Talk to Speaker Terenus 1"] =
+			{appendText=" at the Dark Brotherhood Sanctuary in the northern hills of the Gold Coast.", stepTextKey="I need to go to the Sanctuary and answer Speaker Terenus's call."},
+		[2] = 
+			{appendStepText="In the Dark Brotherhood Sanctuary in the northern hills of the Gold Coast, I met Speaker Terenus. The Black Hand has devised a strategy. ", stepTextKey="Tanek was sent ahead to scout out the heavily fortified Cathedral in Kvatch and try to find a way inside. I should travel to Kvatch and meet up with him."},
+		["Meet Tanek in Kvatch"] =
+			{appendText=" at the cathedral."},
+		[3] = 
+			{appendStepText="In the cathedral graveyard at Kvatch on the Gold Coast, I found my Brother, with a shovel. ", stepTextKey="Tanek found a way into the catacombs that lie beneath the Cathedral. I need to explore these catacombs to find a way to enter the Cathedral proper."},
+		["Explore the Cathedral Catacombs 1"] =
+			{appendText=". Speaker Terenus said Brothers and Sisters would be joining in the hunt.", stepTextKey="Tanek found a way into the catacombs that lie beneath the Cathedral. I need to explore these catacombs to find a way to enter the Cathedral proper."},
+		[4] = 
+			{appendStepText="From the cathedral graveyard at Kvatch on the Gold Coast, I made my way through the catacombs. ", stepTextKey="While exploring the Cathedral Catacombs, I encountered a Wamasu Matriarch. It blocks the way ahead so I need to kill it to proceed."},
+		["Kill the Wamasu Matriarch"] =
+			{appendText="."},
+		[5] = 
+			{appendStepText="From the cathedral graveyard at Kvatch on the Gold Coast, I made my way through the catacombs. ", stepTextKey="The Wamasu Matriarch is dead. Now I can continue exploring the catacombs until I find a way into the Cathedral above."},
+		["Explore the Cathedral Catacombs 2"] =
+			{appendText=".", stepTextKey="The Wamasu Matriarch is dead. Now I can continue exploring the catacombs until I find a way into the Cathedral above."},
+		[6] = 
+			{appendStepText="From the cathedral graveyard at Kvatch on the Gold Coast, I made my way through the catacombs. ", stepTextKey="A group of Order of the Hour warriors has cornered Grazda, one of my Brotherhood sisters, in the chamber ahead. We'll need to defeat them and their leader before we can proceed."},
+		["Defeat the Order of the Hour"] =
+			{appendText=" in the southwestern room of the catacombs."},
+		[7] = 
+			{appendStepText="From the cathedral graveyard at Kvatch on the Gold Coast, I made my way through the catacombs. ", stepTextKey="The way into the Cathedral is just ahead. Time to go upstairs and find Primate Artorius."},
+		["Enter the Cathedral"] =
+			{appendText=" at the east end of the catacombs."},
+		[8] = 
+			{appendStepText="From the cathedral graveyard at Kvatch on the Gold Coast, I made my way through the catacombs. ", stepTextKey="I found a way into the Cathedral of Akatosh. Now I need to deal with Primate Artorius and make him pay for his transgressions against the Dark Brotherhood."},
+		["Defeat Primate Artorius"] =
+			{appendText=" with the assistance of the Brothers and Sisters of the Dark Brotherhood."},
+		[9] = 
+			{appendStepText="From the cathedral graveyard at Kvatch on the Gold Coast, I made my way through the catacombs and entered the chapel. ", stepTextKey="Now that Primate Artorius has been defeated, I should finish him off once and for all."},
+		["Assassinate Primate Artorius"] =
+			{appendText=" with the Blade of Woe. Send his soul to the Void and please the Dread Father, Sithis."},
+		[10] = 
+			{appendStepText="The Primate is dead, his soul sent to the Void. ", stepTextKey="I should return to the Sanctuary and let Speaker Terenus know everything that occurred at the Cathedral."},
+		["Return to Speaker Terenus"] =
+			{appendText=" at the Dark Brotherhood Sanctuary in the northern hills of the Gold Coast."},
+		[11] = 
+			{appendStepText="Hidden in the northern hills of the Gold Coast, our sanctuary is safe. ", stepTextKey="I should talk to Speaker Terenus and see if there's anything else he needs me to do."},
+		["Talk to Speaker Terenus 2"] =
+			{appendText=" in the Sanctuary of the Dark Brotherhood.", stepTextKey="I should talk to Speaker Terenus and see if there's anything else he needs me to do."},
+	},
+
+	[GetQuestName(5708)] = { --"Contract: Kvatch" --Jordakai
+		[1] = 
+			{appendStepText="I spoke with Elam Drals in the Dark Brotherhood Sanctuary hidden in the northern hills of the Gold Coast. He coordinates the mundane contracts found in the \"Marked for Death\" ledger. My first contract states ", stepTextKey="I must locate my target within the city of Kvatch."},
+		["Go to Kvatch"] =
+			{appendText=", the large eastern city."},
+		[2] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Roliand Maraennius"] =
+			{appendText=", a well-dressed Imperial. He enjoys fishing at the castle's moat.  He may be carrying a dagger for protection."},
+		[3] = 
+			{appendStepText="In the eastern city of Kvatch in the Gold Coast, I fulfilled the contract. ", stepTextKey="My target is dead. I should report my success to Elam Drals in the Sanctuary."},
+		["Return to Elam Drals"] =
+			{appendText=" at the Dark Brotherhood Sanctuary."},
+		[4] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I  identified my target. I'll make the kill at the first opportunity."},
+		["Kill Plautis Denian"] =
+			{appendText=", with his warrior dreads, may be a guard for a local merchant. He is on the square just north of the Merchant Stalls. He may be carrying a dagger for protection."},
+		[5] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Fruscia Tiragrius"] =
+			{appendText=". She is often near the city's eastern houses and prefers to wear a simple hat with her common dress. She may be carrying a dagger for protection."},
+		[6] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Mirarkier"] =
+			{appendText=". The Khajiit is usually busy near the well in the city's southeast. He may be carrying a dagger for protection."},
+		[7] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Bivale Moren"] =
+			{appendText=", a Dunmer, prefers Imperial dresses. She often roams the street behind the city's cathedral. She may be carrying a dagger for protection."},
+		[8] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Izdirah"] =
+			{appendText=", a Redguard. She is often near the city's alchemy shop, Famula's Wonders. She may be carrying a dagger for protection."},
+		[9] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Humius Arquitius"] =
+			{appendText=", a busy Imperial outside the city's alchemy shop, Famula's Wonders. He may be carrying a dagger for protection."},
+		[10] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Cania Varian"] =
+			{appendText=", dressed in her casual Imperial tuinc, often spends time near the Bank of Kvatch and Famula's Wonders. She may be carrying a dagger for protection."},
+		[11] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Plautisanus Reburrus"] =
+			{appendText=", an Imperial, prefers fingerless gloves. He often walks the road behind the alchemy shop and the Bank of Kvatch. He may be carrying a dagger for protection."},
+		[12] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Augustina Salvius"] =
+			{appendText=", an older Imperial woman, is usually near The Crafter's Square. She may be carrying a dagger for protection."},
+		[13] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Elsmira"] =
+			{appendText=", a Nord. She works chopping wood at The Crafter's Square. She may be carrying a sword for protection."},
+		[14] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Ganna Falvius"] =
+			{appendText=", an Imperial. She prefers a simple headband and can be seen near the guild trader's plaza. She may be carrying a dagger for protection."},
+		[15] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Elethir"] =
+			{appendText=", a dual-wielding Bosmer in leathers. He tends to keep an eye on Trader's Circle. Perhaps his daggers are for more than protection."},
+		[16] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Priscus Urthinius"] =
+			{appendText=", an Imperial groundskeeper, is often working near the castle's moat, west of Trader's Circle. He may be carrying a dagger for protection."},
+		[17] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Nesulmawen"] =
+			{appendText=", an Altmer with long hair, prefers Imperial dresses. She is often seen by the square west of the enchanter's shop. She may be carrying a dagger for protection."},
+		[18] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Poneria Andus"] =
+			{appendText=", an Imperial lady, knows a fine gown deserves fine jewelry. She has been seen near The Eight Blessings tavern and Famula's Wonders, the alchemist's shop. She may be carrying a dagger for protection."},
+		[19] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Tappius Avidius"] =
+			{appendText=", a bald Imperial wearing a sleeveless robe. He seems to be waiting for someone near the Kvatch Arena. He may be carrying a dagger for protection."},
+		[20] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Horatia Angius"] =
+			{appendText=", a dark-haired Imperial writer. She is often seen near the Kvatch Arena and the Spectator's Shop. She may be carrying a dagger for protection."},
+		[21] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Pantea Salvius"] =
+			{appendText=", dressed in fine Imperial light armor, walks near the square west of Famula's Wonders, the enchanter's shop. She may be carrying a dagger for protection."},
+		[22] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Sergus Vonius"] =
+			{appendText=", a bearded Imperial. He often ponders at the Monument to Rislav, an obelisk by the Spectator's Shop near the Kvatch Arena. He may be carrying a dagger for protection."},
+		[23] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Fralav Portius"] =
+			{appendText=", an Imperial soldier. He is usually near the large tree in the plaza near the Kvatch Arena. He carries two blades for protection."},
+		[24] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Pamunara"] =
+			{appendText=", a Khajiit clothier. She often visits the merchants at Trader's Circle. She may be carrying a dagger for protection."},
+		[25] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Diana Gravius"] =
+			{appendText=", an Imperial. Wearing a sleeveless Imperial tunic, she has been seen near the city's Cathedral of Akatosh. She may be carrying a dagger for protection."},
+		[26] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Regine Emax"] =
+			{appendText=", a well-dressed Imperial lady. She is usually near the houses south of the city's Cathedral of Akatosh. She may be carrying a dagger for protection."},
+		[27] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Natalo Fauseius"] =
+			{appendText=", in his Imperial-style leather armor. He wanders the back road in the city's south. He may be carrying a dagger for protection."},
+		[28] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Junia Truiand"] =
+			{appendText=", an Imperial. She is busy with her laundry near the house tucked in the city's southeast, not far from the hourglass pool. She may be carrying a dagger for protection."},
+		[29] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Shinizar"] =
+			{appendText=", a Khajiit. He sometimes sweeps near the well, not far from the hourglass pool in the city's southeast. He may be carrying a dagger for protection."},
+		[30] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Ghrategg"] =
+			{appendText=", a bearded Orc. He often sweeps the street near the city's gate. He may be carrying a dagger for protection."},
+		[31] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Lusilla Cipius"] =
+			{appendText=", a groundskeeper. She works in the yard of The Eight Blessings, the city's tavern. She may be carrying a dagger for protection."},
+		[32] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill  Saulius Rusonius"] =
+			{appendText=", an Imperial who enjoys a good drink. He is on the patio of The Eight Blessings. He may be carrying a dagger for protection."},
+		[33] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Pad-Maxath"] =
+			{appendText=", an Argonian. She works at Mane and Muzzle, the city's stables. It appears she prefers a bow for protection."},
+		[34] = 
+			{appendStepText="At the eastern city of Kvatch in the Gold Coast, ", stepTextKey="I identified my target. I'll make the kill at the first opportunity."},
+		["Kill Borgh"] =
+			{appendText=", an Orc chef. He usually enjoys a sandwich near the Kvatch Arena. He keeps his cherished cleaver with him."},
+	},
+-- 		=========================================================================
+--		 Dark Brotherhood - Side Quests
+-- 		=========================================================================
+
+	[GetQuestName(5541)] = { --"Pious Intervention" --Jordakai
+		[1] = 
+			{appendStepText="I met her at The Eight Blessings tavern. ", stepTextKey="Crafty Lerisa wants me to spread the word of Boethiah in front of initiates of the Society of the Dragon. She thinks if I spout enough heresy, I'll get arrested and show her sister just how bad this Akatosh cult really is."},
+		["Spread the Word of Boethiah in Kvatch"] =
+			{appendText="\n\nThe captain knows quite a bit about the cult. It shouldn't be too difficult finding its robed initiates around the city."},
+		[2] = 
+			{appendStepText="In Kvatch, ", stepTextKey="I guess my efforts have been successful. An officer from the Order of the Hour has come to scold me for blasphemy. I suppose I should talk to her."},
+		["Talk to Lieutenant Mervial"] =
+			{appendText=", looking rather stern in her brassy armor."},
+		[3] = 
+			{appendStepText="In Kvatch, ", stepTextKey="I got the attention of an officer of the Order of the Hour, just like Crafty Lerisa wanted. I suppose I need to go along with this nonsense and report to the Chamber of Penance so I can meet the Grand Chanter and reveal his treachery to Josseline."},
+		["Report to the Chamber of Penance"] =
+			{appendText="."},
+		[4] = 
+			{appendStepText="", stepTextKey="I arrived in Grand Chanter Surus's private chamber. I need to see what the Grand Chanter decides to do to determine if this Society of the Dragon is as bad as Crafty Lerisa claims."},
+		["Wait to be Judged"] =
+			{appendText=" for speaking of Boethiah in the streets of Kvatch."},
+		[5] = 
+			{appendStepText="In his chamber at a secure place in Kvatch, ", stepTextKey="Josseline and I got to see just how bloodthirsty the Grand Chanter actually is. But before I could deal with him, Crafty Lerisa revealed herself and spirited us out of the chamber. I should talk to her."},
+		["Talk to Crafty Lerisa 1"] =
+			{appendText=" by the hedge behind a house, south of the Cathedral of Akatosh and west of the Tower of Judgment's hourglass pool.", stepTextKey="Josseline and I got to see just how bloodthirsty the Grand Chanter actually is. But before I could deal with him, Crafty Lerisa revealed herself and spirited us out of the chamber. I should talk to her."},
+		[6] = 
+			{appendStepText="I spoke with the pirate captain in Kvatch. ", stepTextKey="Crafty Lerisa suspects that her sister Josseline fled to one of the old Akatosh shrines along Varen's Wall. We decided to split up and search for her among the shrines."},
+		["Search the Old Shrines"] =
+			{appendText=", circled columns of white stone. Perhaps someone has seen Josseline.\n\nThere are four spread across the northern hills, west of Kvatch. Three close to the tall graystone wall, and one between the West Weald gate and the city of Anvil."},
+		[7] = 
+			{appendStepText="By Varen's Wall in the northern hills, far northwest of Anvil, ", stepTextKey="I found Josseline at one of the old Akatosh shrines. Now I need  to convince her to wait until Crafty Lerisa arrives."},
+		["Talk to Josseline"] =
+			{appendText="."},
+		[8] = 
+			{appendStepText="At the old Shrine of Akatosh by Varen's Wall in the northern hills, far northwest of Anvil, ", stepTextKey="Josseline and Crafty Lerisa have a lot to talk about. I should ask Crafty Lerisa if she needs anything else from me before I leave them to it."},
+		["Talk to Crafty Lerisa 2"] =
+			{appendText=".", stepTextKey="Josseline and Crafty Lerisa have a lot to talk about. I should ask Crafty Lerisa if she needs anything else from me before I leave them to it."},
+	},
+
+	[GetQuestName(5544)] = { --"A Profitable Venture" --Jordakai
+		[1] = 
+			{appendStepText="On her ship, The Prowler, ", stepTextKey="Captain Jimila advised me to find Dock Master Qamar's lackeys dicing on Anvil's docks and get them to tell me the location of his hidden stash."},
+		["Confront Qamar's Lackeys"] =
+			{appendText="."},
+		[2] = 
+			{appendStepText="While they were dicing at the Anvil docks, ", stepTextKey="I convinced a Red Sails pirate to reveal the location of Dock Master Qamar's stash. Now I need to retrieve it from its hiding spot."},
+		["Reach Dock Master Qamar's Stash"] =
+			{appendText=" in a small cave near the shore on the coast of the Abecean Sea, a short distance west of Anvil."},
+		[3] = 
+			{appendStepText="In a small cave near the shore on the coast west of Anvil, ", stepTextKey="I found Dock Master Qamar's hidden stash, but I need to pick the lock to access the contents."},
+		["Pick the Lock and Steal Qamar's Stash"] =
+			{appendText=" from his safebox."},
+		[4] = 
+			{appendStepText="From his safebox in the cave, ", stepTextKey="I retrieved Dock Master Qamar's private stash. Now I should get the gold back to Captain Jimila."},
+		["Talk to Captain Jimila 1"] =
+			{appendText=" aboard The Prowler, her ship anchored at Anvil's docks.", stepTextKey="I retrieved Dock Master Qamar's private stash. Now I should get the gold back to Captain Jimila."},
+		[5] = 
+			{appendStepText="At the Anvil docks, on board her ship, The Prowler, ", stepTextKey="I slipped Captain Jimila the Dock Master's stolen gold. Now to see how she deals with Qamar."},
+		["Watch Captain Jimila \"Negotiate\""] =
+			{appendText="."},
+		[6] = 
+			{appendStepText="", stepTextKey="Captain Jimila's plan to pay Qamar with his own gold worked. I should confer with her now that he's gone."},
+		["Talk to Captain Jimila 2"] =
+			{appendText=" on board her ship, The Prowler, anchored at the docks of Anvil.", stepTextKey="Captain Jimila's plan to pay Qamar with his own gold worked. I should confer with her now that he's gone."},
+		[7] = 
+			{appendStepText="I watched Jimila work her magic on the gullible Dock Master at Anvil's docks. ", stepTextKey="Captain Jimila promised me a split of Qamar's remaining gold. I should speak to her and ask for my share."},
+		["Talk to Captain Jimila 3"] =
+			{appendText=" on her ship, The Prowler.", stepTextKey="Captain Jimila promised me a split of Qamar's remaining gold. I should speak to her and ask for my share."},
+	},
+
+	[GetQuestName(5546)] = { --"Honest Work" --Jordakai
+		[1] = 
+			{appendStepText="I spoke with the brother and sister who enjoy exploring Dwarven ruins, but are stuck here. ", stepTextKey="There has to be someone in a city this size who's willing to hire Kireth and Raynor. I should ask around town, starting at the tavern, the smithy, the docks, and the bank."},
+		["Find a Job for Kireth"] =
+			{appendText=". She mentioned she enjoys singing, but can work with her hands.\n"},
+		["Find a Job for Raynor"] =
+			{appendText=", an artificer. He prefers to use his brains.\n\nRumor has it that the smithy was robbed by bandits from the docks near The Withered Rose hostel, northwest of Anvil."},
+		[2] = 
+			{appendStepText="In Anvil, ", stepTextKey="I secured jobs for Kireth and Raynor. They'll be able to earn gold to pay for their passage to Sentinel now. I should find them and deliver the good news."},
+		["Talk to Raynor Vanos"] =
+			{appendText=", near the stables. Kireth is with him."},
+		[3] = 
+			{appendStepText="Near the stables of Anvil, ", stepTextKey="I told Raynor about the job I secured for him. Now I should tell Kireth about her new job."},
+		["Talk to Kireth Vanos 1"] =
+			{appendText=". She is with her brother.", stepTextKey="I told Raynor about the job I secured for him. Now I should tell Kireth about her new job."},
+		[4] = 
+			{appendStepText="In Anvil, ", stepTextKey="I secured jobs for Raynor and Kireth Vanos. Now they can raise the gold they need to complete their journey to Hammerfell. I should see if Kireth needs anything else before I take my leave."},
+		["Talk to Kireth Vanos 2"] =
+			{appendText=" near the stables.", stepTextKey="I secured jobs for Raynor and Kireth Vanos. Now they can raise the gold they need to complete their journey to Hammerfell. I should see if Kireth needs anything else before I take my leave."},
+	},
+
+	[GetQuestName(5547)] = { --"The Vampire's Prey" --Jordakai
+		[1] = 
+			{appendStepText="At the cave in the rocky slopes north of Anvil, Mel advised me of the situation. ", stepTextKey="The vampire lord Zalar-do lurks somewhere in Hrota Cave with two people from Anvil that she captured. I agreed to help Mel Adrys track down the vampire and rescue her captives—provided they're still alive."},
+		["Find and Kill Zalar-do"] =
+			{appendText=", the Khajiiti vampire lord. She may have a lair through a secret passage in a northeastern cavern."},
+		["Find Hiwoud"] =
+			{appendText=" in the tunnels."},
+		["Find Jakja"] =
+			{appendText=" in the tunnels."},
+		[2] = 
+			{appendStepText="North of Anvil, I entered a vampire's lair. ", stepTextKey="I helped the vampire hunter Mel Adrys defeat the vampire lord Zalar-do in the Hrota Cave. I should meet him at the cave's entrance and make sure the threat to Anvil has been eliminated."},
+		["Talk to Mel Adrys at Entrance"] =
+			{appendText="."},
+	},
+
+	[GetQuestName(5548)] = { --"Debts of War" --Jordakai
+		[1] = 
+			{appendStepText="Northeast of Anvil and southeast of the Gold Coast Wayshrine, I met Razum-dar in the ruins. ", stepTextKey="Razum-dar and I need to find and kill Captain Jena Apinia to make her pay for her war crimes. She's somewhere in the Ayleid ruins known as Garlas Agea. He also wants us to recover the items she stole from the city of Bravil before she fled."},
+		["Kill Captain Jena Apinia"] =
+			{appendText=". As the leader, her quarters are likely deep within Garlas Agea."},
+		["Recover the City of Bravil Seal"] =
+			{appendText=". It could be ready to load onto a nearby cart in a room near the eastern chamber."},
+		["Recover the Tax Collector's Ledger"] =
+			{appendText=" from a shipping crate, probably being kept in the large central chamber of the ruins."},
+		["Recover the Signet Ring of Bravil"] =
+			{appendText=". It is probably in a crate, upstairs in the halls just north of the entrance."},
+		[2] = 
+			{appendStepText="We made our way through the ancient Ayleid ruins northeast of Anvil. ", stepTextKey="We killed Captain Jena Apinia and avenged the people of Bravil. I should meet Razum-dar at the entrance to Garlas Agea and make sure we can consider this war crime solved."},
+		["Meet Razum-dar at Entrance"] =
+			{appendText="."},
+	},
+
+	[GetQuestName(5569)] = { --"A Cordial Collaboration" --Jordakai
+		[1] = 
+			{appendStepText="While in the city of Kvatch, I spotted Naryu hiding by the secret side entrance to Castle Kvatch. She proposed a collaboration. ", stepTextKey="I need to reach the room where Dathus Ildrim is hiding and open a secret passage. This will allow Naryu to covertly enter the castle, dispatch her target, and leave without being spotted."},
+		["Find Dathus Ildram's Room"] =
+			{appendText=". He is likely staying in the dignitary's suite in the castle's northwest."},
+		[2] = 
+			{appendStepText="In the city of Kvatch, I entered the castle and went to the dignitary's suite. ", stepTextKey="Dathus is fast asleep. I need to open the secret passage so Naryu can enter his room and dispatch him."},
+		["Open the Secret Passage"] =
+			{appendText=" in the northwestern suite by using the wall-mounted sconce."},
+		[3] = 
+			{appendStepText="In the dignitary's suite of the castle in the city of Kvatch, I opened a secret passage. ", stepTextKey="Naryu has arrived to dispatch Dathus Ildrim. I should stand back and let her complete her contract without interference."},
+		["Allow Naryu To Complete Her Contract"] =
+			{appendText=" for the Morag Tong."},
+		[4] = 
+			{appendStepText="After I let Naryu into the dignitary's suite of the castle, ", stepTextKey="Naryu allowed Dathus to call for the Castle Kvatch sentinels before she killed him. To fulfill my part of the bargain, I need to leave by the main entrance and make sure someone spots me so I can take credit for assassinating Dathus."},
+		["Get Spotted in the Courtyard"] =
+			{appendText="."},
+		["Get Spotted in the Castle"] =
+			{appendText="."},
+		[5] = 
+			{appendStepText="", stepTextKey="I made sure I was seen leaving Castle Kvatch so that I'm sure to be blamed for the assassination of the Dark Elf noble. I should meet Naryu at the inn and wrap up our business arrangement."},
+		["Talk to Naryu Virian 1"] =
+			{appendText=" at The Eight Blessings, the tavern in Kvatch.", stepTextKey="I made sure I was seen leaving Castle Kvatch so that I'm sure to be blamed for the assassination of the Dark Elf noble. I should meet Naryu at the inn and wrap up our business arrangement."},
+		[6] = 
+			{appendStepText="At The Eight Blessings, the tavern in Kvatch, ", stepTextKey="Naryu confirmed that no one spotted her leaving the castle. Her secret is safe, thanks to my help. I should find out what she plans to do next."},
+		["Talk to Naryu Virian 2"] =
+			{appendText=" as she enjoys a drink.", stepTextKey="Naryu confirmed that no one spotted her leaving the castle. Her secret is safe, thanks to my help. I should find out what she plans to do next."},
+	},
+
+	[GetQuestName(5664)] = { --"The Sweetroll Killer" --Jordakai
+		[1] = 
+			{appendStepText="", stepTextKey="To learn more about this \"urgent matter,\" I need to travel to the inn in Kvatch and seek out an Imperial named Reman Mavavius."},
+		["Talk to Reman Mevavius"] =
+			{appendText=" at The Eight Blessings tavern."},
+		[2] = 
+			{appendStepText="At the tavern in Kvatch, The Eight Blessings, I met the Imperial. ", stepTextKey="Reman provided a list of people who have received the threatening sweetrolls. I should talk to them and try to determine what connects them so I can identify the murderer who targeted them."},
+		["Interview Targets on List"] =
+			{appendText=":\n • Dobias, a merchant, may be doing business with the guild traders.\n • Louna, recently widowed, is tending a garden at a house behind the cathedral.\n • Tuindal, an Altmer baker, is probably near Crafter's Square or the bank.\n • Yarmia, a Bosmer, is likely begging near the city's gate."},
+		[3] = 
+			{appendStepText="", stepTextKey="Razum-dar seems to be hunting the Sweetroll Killer, too. He suggested we meet at his hide-out above the enchanter's shop and discuss a plan of action."},
+		["Talk to Razum-dar at the Enchanter's Shop"] =
+			{appendText=" in Kvatch, Famula's Wonders."},
+		[4] = 
+			{appendStepText="In Kvatch, I met the Eye of the Queen upstairs at Famula's Wonders. ", stepTextKey="Razum-dar thinks the messengers delivering notes throughout Kvatch might be connected to the Sweetroll Killer. He wants me to meet him outside so we can track the messengers and see what their notes have to say."},
+		["Track the Messengers"] =
+			{appendText=" to find a suspicious message scroll in the hedge maze near the city's western wall."},
+		[5] = 
+			{appendStepText="Razum-dar and I searched the hedge maze by the western city wall in Kvatch. ", stepTextKey="We located a note concerning drop locations, but it's written in some kind of code. I should check around the city to see if I can find locations that match these references."},
+		["Find the Hidden Messages"] =
+			{appendText="\n\nThe four drop location clues are:\n • Wolf's Everlasting Stream. Could this mean in the water of the fountain?\n • Perch Above the Sport Fighters. The Kvatch Arena?\n • Eternal Knight. A statue, perhaps?\n • Where We Gaze Down on the Streets. Some sort of bridge?"},
+		[6] = 
+			{appendStepText="Razum-dar and I found the four secret notes scattered around Kvatch. ", stepTextKey="The notes contain background information on the targets, but not who commissioned the research. Each note provides a code phrase at the bottom. If I can figure out how to break the code, I might be able to find the recipient of these messages."},
+		["Decipher the Coded Notes"] =
+			{appendText=" that have been collected to find the location and confront the killer. Razum-dar may have an idea to share."},
+		[7] = 
+			{appendStepText="Razum-dar and I used the coded clues to enter a small house in the southeastern part of Kvatch. Naryu Virian was there and I spoke with her. Now, ", stepTextKey="Naryu and Raz have agreed to work together to track the Sweetroll Killer down. I should meet them in Anvil, where most of the current targets have gone to hide. We'll plan our next move there."},
+		["Meet Naryu and Razum-dar in Anvil"] =
+			{appendText=", the port city on the Gold Coast. They are on the rear patio of Coastal Clothiers and Fabrics, near the city's northern gate."},
+		[8] = 
+			{appendStepText="I found Naryu and Raz on the rear patio of the clothier's shop. ", stepTextKey="Now that we're all in Anvil, I need to talk to my allies and come up with a plan to catch the Sweetroll Killer."},
+		["Discuss the Plan with Your Allies"] =
+			{appendText="."},
+		[9] = 
+			{appendStepText="", stepTextKey="While Naryu and Razum-dar gather the killer's targets and get them to Engar's Hostel for safekeeping, they asked me to talk to Reman Mevavius at the Gold Coast Trading Company and find out what else he knows about the killer."},
+		["Find Reman at the Gold Coast Trading Company"] =
+			{appendText="'s Anvil headquarters. Its Imperial architecture diminishes the simpler buildings nearby. It is just north of Enrick's Public House."},
+		[10] = 
+			{appendStepText="I went to the Gold Coast Trading Company and found Reman Mevavius, dying. ", stepTextKey="Reman was somehow involved with the Sweetroll Killer. He was using me to eliminate the killer and hide his involvement. But the killer found out and killed him instead. I should meet Naryu and Raz at Engar's Hostel and tell them what I learned."},
+		["Report to Your Allies"] =
+			{appendText=" at the hostel, next door to the Anvil Mages Guild."},
+		[11] = 
+			{appendStepText="At the hostel in Anvil, I shared what I learned about Louna with my allies. ", stepTextKey="The Sweetroll Killer has a farmhouse southeast of Anvil. I should head out and meet Naryu and Raz there."},
+		["Investigate the Farmhouse"] =
+			{appendText=" at the end of the winding road. Once there, Raz may have an idea on how to proceed."},
+		[12] = 
+			{appendStepText="I met my allies at the end of the winding road southeast of Anvil. ", stepTextKey="We fended off an attack outside the farmhouse. Now we need to enter the farmhouse and confront the Sweetroll Killer, Louna."},
+		["Confront Louna Inside the Farmhouse"] =
+			{appendText="."},
+		[13] = 
+			{appendStepText="In her farmhouse at the end of the winding road, southeast of Anvil, Louna claimed she is a Fate-Bearer. She said her victims could cause great harm in the future. Or possibly could. Or possibly not. ", stepTextKey="I should confer with Naryu and Razum-dar about what to do with the Sweetroll Killer."},
+		["Talk to Your Companions"] =
+			{appendText="."},
+		[14] = 
+			{appendStepText="At the farmhouse southeast of Anvil, I spoke with Naryu and Raz about Louna, the Sweetroll Killer, the Fate-Bearer. ", stepTextKey="I can either kill Louna or let her live. There are advantages and disadvantages to both options, but the decision is up to me."},
+		["Determine the Fate of Louna"] =
+			{appendText=" and speak with her."},
+		[15] = 
+			{appendStepText="", stepTextKey="We let Louna go. Now I should meet Razum-dar at the enchanter's shop in Kvatch and make sure the case of the Sweetroll Killer is really closed."},
+		["Meet Raz at the Enchanter's Shop"] =
+			{appendText=", Famula's Wonders."},
+		[16] = 
+			{appendStepText="", stepTextKey="I should talk to Razum-dar and make sure the case of the Sweetroll Killer is actually closed."},
+		["Talk to Razum-dar"] =
+			{appendText=" at the enchanter's shop in Kvatch."},
+		[17] = 
+			{appendStepText="", stepTextKey="We killed Louna. Now I should meet Naryu at the Kvatch inn and make sure the case of the Sweetroll Killer is really closed."},
+		["Meet Naryu At the Kvatch Inn"] =
+			{appendText=", The Eight Blessings."},
+		[18] = 
+			{appendStepText="At The Eight Blessings in Kvatch, ", stepTextKey="I should talk to Naryu Virian and make sure the case of the Sweetroll Killer is actually closed."},
+		["Talk to Naryu Virian"] =
+			{appendText=" in her room, upstairs."},
+	},
+
+-- 		=========================================================================
+--		 Dark Brotherhood - Dailies
+-- 		=========================================================================
+
+	[GetQuestName(5603)] = { --"Buried Evil" --Jordakai
+		[1] = 
+			{appendStepText="After checking with the cleric, I will be traveling to the rocky slopes just north of Anvil. ", stepTextKey="I must destroy Exulus the Wispmother and retrieve pauldrons from the fallen warriors of Arkay in Hrota Cave."},
+		["Kill Exulus the Wispmother"] =
+			{appendText=" in its lair in the secret southeastern cavern."},
+		["Retrieve Pauldrons from Fallen Soldiers"] =
+			{appendText="\nThe soldiers' remains are in a dead end just north of the entrance, in the northern cavern, the northeastern cavern, and the southern passageway."},
+		[2] = 
+			{appendStepText="In Hrota Cave, ", stepTextKey="I destroyed Exulus and retrieved the pauldrons of the fallen Arkay warriors. Now I should meet Cleric Arvina in Anvil's Mages Guild and claim my reward."},
+		["Talk to Cleric Arvina"] =
+			{appendText="."},
+	},
+
+	[GetQuestName(5604)] = { --"The Common Good" --Jordakai
+		[1] = 
+			{appendStepText="I will be traveling to the hills northeast of Anvil and southeast of the Gold Coast Wayshrine. ", stepTextKey="I need to go to Garlas Agea to find and destroy Ironfang. I should also take any company ledgers I come across during my search or seize them from company functionaries in order to complete the job."},
+		["Kill Ironfang"] =
+			{appendText=", an enormous beast. The creature is kept in the eastern area of the large central chamber. It has been known to disappear, so patience may be needed until its invisibility magic wears off and it reappears.\n"},
+		["Steal Company Ledgers"] =
+			{appendText="\n\nLaronen, an Altmer merchant, is often at the Anvil docks. The ledgers are probably scattered about the ancient Ayleid ruin."},
+		[2] = 
+			{appendStepText="I entered the Ayleid ruin of Garlas Agea, northeast of Anvil. ", stepTextKey="Ironfang is dead and I collected several ledgers containing the transactions of the Gold Coast Trading Company. I should find Laronen to collect my reward."},
+		["Talk to Laronen"] =
+			{appendText=", the Altmer merchant. He should be at the Anvil docks."},
+	},
+
+	[GetQuestName(5605)] = { --"Looming Shadows" --Jordakai
+		[1] = 
+			{appendStepText="After I speak with Finia Sele, I will be going to the wilds southwest of Kvatch. ", stepTextKey="I need to clear the excavation site of the source of the trouble and recover abandoned artifacts unearthed from the dig."},
+		["Clear the Excavation Site"] =
+			{appendText=" of the shadowy creatures in the chamber discovered at Tribune's Folly."},
+		["Collect Martial Relic"] =
+			{appendText=" from an abandoned chest at the foot of a crumbling tower, between Anvil and the dig site."},
+		["Collect Personal Relic"] =
+			{appendText=" from the chest in the ancient chamber discovered at the dig site."},
+		["Collect Cross-Cultural Relic"] =
+			{appendText=" from a campsite below an outcropping southeast of Tribune's Folly."},
+		[2] = 
+			{appendStepText="At Tribune's Folly and nearby, ", stepTextKey="I recovered the relics and cleared the dig site of threats. I should return to Kvatch and speak with Finia Sele to claim my reward."},
+		["Talk to Finia Sele"] =
+			{appendText=". The redheaded Imperial should be in the city's market plaza with the guild traders."},
+	},
+
+	[GetQuestName(5606)] = { --"The Roar of the Crowds" --Jordakai
+		[1] = 
+			{appendStepText="In the city of Kvatch, ", stepTextKey="I must defeat one of the best gladiators and conquer the challenge of the Kvatch Arena to claim a significant victory purse."},
+		["Conquer the Kvatch Arena"] =
+			{appendText=", after speaking with Codus ap Dugal at the arena."},
+		[2] = 
+			{appendStepText="In the city of Kvatch, ", stepTextKey="I defeated one of the best gladiators and conquered the challenge of the Kvatch Arena. I should speak to Codus ap Dugal to claim my prize."},
+		["Talk to Codus ap Dugal"] =
+			{appendText="."},
+	},
+
+
 -- ==================================================================================================================================================
 --	Vvardenfell																															Undaunted
 -- ==================================================================================================================================================

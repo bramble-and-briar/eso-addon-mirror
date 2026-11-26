@@ -174,7 +174,7 @@ function A.RefreshGeography()
                 local parent, _, poiIndex, valid = LibZone:GetZoneMapPinInfo(id)
                 parent = parent or LibZone:GetZoneGeographicalParentZoneId(id) or id
                 zones[id] = {id = id, parent = parent,
-                    name = zo_strformat("<<C:1>>", GetZoneNameById(id))}
+                    name = A.ZoneName(id)}
                 if valid and type(poiIndex) == "number" and poiIndex > 0 then
                     zones[id].poiIndex = poiIndex
                 end
@@ -186,7 +186,7 @@ function A.RefreshGeography()
     return true
 end
 function A.SourceLabel(en, ru)
-    return (A.language or (GetCVar and GetCVar("language.2"))) == "ru" and ru or en
+    return A.IsRussian() and ru or en
 end
 -- High Isle native POI order: Ghost Haven Bay 12, Whalefall 17;
 -- world-boss POIs follow the six delves (19 through 24).

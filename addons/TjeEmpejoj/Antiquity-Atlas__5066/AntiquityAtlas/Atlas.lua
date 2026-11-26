@@ -1,16 +1,16 @@
 local A = AntiquityAtlas
 local W = WINDOW_MANAGER
-local BODY_FONT = "$(MEDIUM_FONT)|18|soft-shadow-thin"
-local BOLD_FONT = "$(BOLD_FONT)|20|soft-shadow-thin"
-local SMALL_FONT = "$(MEDIUM_FONT)|16|soft-shadow-thin"
+local BODY_FONT = "ZoFontGame"
+local BOLD_FONT = "ZoFontWinH4"
+local SMALL_FONT = "ZoFontGameSmall"
 local colors = { [0] = "AAAAAA", "79C870", "73B9ED", "BE8DF2", "E8C563", "ED9B65" }
 local function colored(text, quality) return "|c" .. (colors[quality] or "FFFFFF") .. text .. "|r" end
 local function panel(parent, x, y, width, height)
     local c = W:CreateControl(nil, parent, CT_BACKDROP)
     c:SetAnchor(TOPLEFT, parent, TOPLEFT, x, y)
     c:SetDimensions(width, height)
-    c:SetCenterColor(0.055, 0.075, 0.09, 0.98)
-    c:SetEdgeColor(0.23, 0.29, 0.31, 1)
+    c:SetCenterColor(0.035, 0.032, 0.025, 0.96)
+    c:SetEdgeColor(0.36, 0.33, 0.24, 0.8)
     c:SetEdgeTexture(nil, 1, 1, 1)
     c:SetMouseEnabled(false)
     return c
@@ -45,7 +45,12 @@ local function dropdown(parent, name, x, y, width, options, selected, onChange)
     control:SetAnchor(TOPLEFT, parent, TOPLEFT, x, y)
     control:SetDimensions(width, 30)
     local combo = ZO_ComboBox_ObjectFromContainer(control)
-    combo:SetFont(BODY_FONT)
+    -- Virtual initialization caches the template width before SetDimensions.
+    combo.m_containerWidth = width
+    -- The native dropdown resolves its font through _G to measure entry widths.
+    -- A custom font descriptor here produces a nil font object and clipped menus.
+    combo:SetFont("ZoFontGame")
+    combo:SetSelectedItemFont(SMALL_FONT)
     combo:SetSortsItems(false)
     for index, text in ipairs(options) do
         local value = index
@@ -61,39 +66,66 @@ function A.ApplyScale(value)
     A.settings.scale = scale
     A.window:SetScale(scale)
     if A.content then A.content:SetScale(scale); A.window:SetScale(1); A.window:SetDimensions(1120 * scale, 730 * scale) end
+    if A.list then A.Render() end
+end
+function A.UpdateListPadding()
+    -- Native scroll-list extents use GetHeight(), while row offsets are in the
+    -- scaled parent's local units. Reserve the difference so the last row can
+    -- clear the clipped viewport at enlarged UI scales.
+    local height = A.list:GetHeight()
+    local scale = A.list:GetScale()
+    local padding = 16 + math.ceil(math.max(0, height - height / scale))
+    ZO_ScrollList_UpdateDataTypeHeight(A.list, 2, padding)
 end
 function A.ShowPartTooltip(owner, part, group)
     if not part then return end
     A.HideRewardTooltip()
     A.tooltipTarget = owner
     InitializeTooltip(InformationTooltip, owner, TOPRIGHT, 8, 0, TOPLEFT)
-    InformationTooltip:SetWidth(460)
+    InformationTooltip:SetWidth(480)
     InformationTooltip:AddLine(colored(part.name, part.quality), BOLD_FONT)
     InformationTooltip:AddLine(A.PartStatus(part, group), BODY_FONT)
-    InformationTooltip:AddLine(A.L("|cE8C563Где получить:|r ") .. part.findZone, BODY_FONT)
-    InformationTooltip:AddLine(A.ExpandSourceText(part.source), BODY_FONT)
+    local function section(title)
+        ZO_Tooltip_AddDivider(InformationTooltip)
+        InformationTooltip:AddLine(title, "ZoFontWinH4", 0.77, 0.72, 0.56)
+    end
+    local function body(text, font)
+        InformationTooltip:AddLine(text, font or BODY_FONT, 0.9, 0.88, 0.82, LEFT, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_LEFT)
+    end
+    section(A.L("Место получения"))
+    body(A.DisplayName(part.findZone), BOLD_FONT)
+    local sourceText = A.ExpandSourceText(part.source)
+    body(sourceText)
     if part.id == 473 then
-        InformationTooltip:AddLine(A.SourceLabel("Ordinary sea adders along the coasts of High Isle and Summerset. No fixed spawn coordinates are bundled; left click chooses a region.", "Обычные морские змеи вдоль побережий Высокого острова и Саммерсета. Точные точки появления не записаны; ЛКМ позволяет выбрать регион."), SMALL_FONT)
+        body(A.SourceLabel("Ordinary sea adders along the coasts of High Isle and Summerset. No fixed spawn coordinates are bundled; left click chooses a region.", "Обычные морские змеи вдоль побережий Высокого острова и Саммерсета. Точные точки появления не записаны; ЛКМ позволяет выбрать регион."), SMALL_FONT)
     end
     local detail = A.SourceDetail(part)
     if detail and A.IsBossSource(part) then
-        InformationTooltip:AddLine(A.SourceLabel("Boss: ", "Босс: ") .. detail.boss, BODY_FONT)
+        body(A.SourceLabel("Boss: ", "Босс: ") .. A.DisplayName(detail.boss))
     end
     local action=A.SourceModifierAction(part)
-    if action=="boss" then
-        InformationTooltip:AddLine(A.SourceLabel("Shift + left mouse button: instance entrance or source map.", "Shift + ЛКМ: вход в подземелье или карта источника."), SMALL_FONT)
-    end
     local targets = A.ResolveSourceZones(part)
     for _, target in ipairs(targets) do
-        local name = A.Call(GetZoneNameById, target.id)
+        local name = A.ZoneName(target.id)
         if not name or name == "" then name = target.name or tostring(target.id) end
         local kind = target.worldBoss and A.SourceLabel("World boss: ", "Мировой босс: ")
             or target.region and A.SourceLabel("Other sources in region: ", "Другие источники в регионе: ")
-            or A.SourceLabel("Instance: ", "Инстанс: ")
-        InformationTooltip:AddLine(kind .. name, BODY_FONT)
+            or A.SourceLabel("Instance: ", "Подземелье: ")
+        name = A.DisplayName(name)
+        -- The source already describes the dungeon and its loot. Keep additional
+        -- destinations and world-boss details, but do not repeat that instance.
+        local mentioned = name ~= "" and A.Lower(sourceText):find(A.Lower(name), 1, true)
+        if target.worldBoss or target.region or not mentioned then
+            body(kind .. name)
+        end
     end
-    InformationTooltip:AddLine(A.L("|cE8C563Раскопки:|r ") .. part.zone, BODY_FONT)
-    InformationTooltip:AddLine(A.SourceClickHint(part), SMALL_FONT)
+    section(A.L("Область раскопок"))
+    body(A.DisplayName(part.zone), BOLD_FONT)
+    section(A.L("Управление"))
+    body(A.SourceClickHint(part), SMALL_FONT)
+    if action=="boss" then
+        body(A.SourceLabel("Shift + left click: instance entrance or source map.", "Shift + ЛКМ: вход в подземелье или карта источника."), SMALL_FONT)
+    end
 end
 function A.HideRewardTooltip()
     ClearTooltip(ItemTooltip)
@@ -304,7 +336,7 @@ function A.OpenPartMap(part, source, owner, entranceOnly)
             ClearMenu()
             for _, target in ipairs(targets) do
                 local selected = target
-                local name = A.Call(GetZoneNameById, selected.id)
+                local name = A.ZoneName(selected.id)
                 if not name or name == "" then name = selected.name or tostring(selected.id) end
                 if selected.region then name = A.SourceLabel("Other sources: ", "Другие источники: ") .. name end
                 AddMenuItem(zo_strformat("<<C:1>>", name), function() A.OpenZoneMap(A.InstanceMapZone(selected), part, true, selected) end)
@@ -319,7 +351,7 @@ function A.OpenPartMap(part, source, owner, entranceOnly)
         ClearMenu()
         for _, id in ipairs(zones) do
             local selectedZone = id
-            AddMenuItem(zo_strformat("<<C:1>>", GetZoneNameById(id)), function()
+            AddMenuItem(A.ZoneName(id), function()
                 A.OpenZoneMap(selectedZone, part, true)
             end)
         end
@@ -364,8 +396,8 @@ function A.PaintCard(card, group)
                     end
                 end
             end
-            card.background:SetCenterColor(group.key == A.selectedKey and 0.06 or 0.035, group.key == A.selectedKey and 0.16 or 0.045, group.key == A.selectedKey and 0.19 or 0.05, 0.97)
-            card.background:SetEdgeColor(group.key == A.selectedKey and 0.80 or 0.23, group.key == A.selectedKey and 0.65 or 0.29, 0.31, 1)
+            card.background:SetCenterColor(group.key == A.selectedKey and 0.16 or 0.025, group.key == A.selectedKey and 0.14 or 0.023, group.key == A.selectedKey and 0.08 or 0.018, 0.94)
+            card.background:SetEdgeColor(group.key == A.selectedKey and 0.80 or 0.30, group.key == A.selectedKey and 0.65 or 0.28, 0.20, 0.85)
 end
 function A.CreateCard(card)
         card:SetMouseEnabled(true)
@@ -384,6 +416,7 @@ function A.CreateCard(card)
         card.image = icon(card.rewardHit, 0, 0, 58)
         card.title = label(card, "", 82, 7, 780, BOLD_FONT)
         card.title:SetHeight(24)
+        card.title:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
         A.BindRewardTooltip(card.rewardHit, function() return card.data end, selectCard)
         A.BindRewardTooltip(card.title, function() return card.data end, selectCard)
         card.kind = label(card, "", 82, 31, 780, SMALL_FONT)
@@ -400,7 +433,7 @@ function A.CreateCard(card)
             local badge = panel(slot, 0, size, size, 22)
             badge:SetCenterColor(0, 0, 0, 0.95)
             badge:SetEdgeColor(0, 0, 0, 0)
-            slot.status = label(badge, "", 0, 0, size, BOLD_FONT)
+            slot.status = label(badge, "", 0, 1, size, SMALL_FONT)
             slot.status:SetHeight(22)
             slot.status:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
             slot.status:SetDrawLayer(DL_OVERLAY)
@@ -449,6 +482,7 @@ function A.Render(resetScroll)
         table.insert(dataList, ZO_ScrollList_CreateDataEntry(1, group))
     end
     table.insert(dataList, ZO_ScrollList_CreateDataEntry(2, {}))
+    A.UpdateListPadding()
     ZO_ScrollList_Commit(A.list)
     if resetScroll then ZO_ScrollList_ResetToTop(A.list) end
     A.empty:SetHidden(#entries > 0)
@@ -534,11 +568,11 @@ function A.Build()
         A.Render(true)
     end
     dropdown(c, "AntiquityAtlasSort", 24, 178, 258,
-        { A.L("По названию"), A.L("Редкость: сначала высокая"), A.L("Скоро истекают"), A.L("Прогресс сборки") }, 2, function(i) change("sort", i) end)
+        { A.L("По названию"), A.L("Редкость: по убыванию"), A.L("Срок зацепки"), A.L("Прогресс сборки") }, 2, function(i) change("sort", i) end)
     dropdown(c, "AntiquityAtlasQuality", 294, 178, 258,
         { A.L("Любая редкость"), A.L("Обычная"), A.L("Необычная"), A.L("Редкая"), A.L("Эпическая"), A.L("Легендарная"), A.L("Мифическая") }, 1, function(i) change("quality", i == 1 and -1 or i - 2) end)
     dropdown(c, "AntiquityAtlasStatus", 564, 178, 258,
-        { A.L("Любой статус"), A.L("Есть зацепки"), A.L("Ни разу не выкопано"), A.L("Награда ещё не собрана") }, 1, function(i) change("status", i) end)
+        { A.L("Любой статус"), A.L("Есть зацепки"), A.L("Не выкопано"), A.L("Не собрано") }, 1, function(i) change("status", i) end)
     local kinds, seen = { A.L("Все типы") }, {}
     for _, group in ipairs(A.rewards) do
         if not seen[group.kind] then table.insert(kinds, group.kind); seen[group.kind] = true end
@@ -562,7 +596,7 @@ function A.Build()
     ZO_ScrollList_AddDataType(A.list, 2, "AntiquityAtlasListPadding", 52, function() end)
     A.empty = label(c, A.L("Ничего не найдено. Измените поиск или фильтры."), 48, 300, 970)
     A.pageLabel = label(c, "", 24, 690, 680, SMALL_FONT)
-    A.previewButton = button(c, A.L("3D выбранной награды"), 792, 682, 280, A.Preview)
+    A.previewButton = button(c, A.L("Предпросмотр"), 792, 682, 280, A.Preview)
     label(c, A.L("|cA0FFAFВык.|r — выкопано   |c86E8FFЕсть|r — зацепка есть   |cDDDDDDНет|r — нужна зацепка"), 24, 650, 1030, SMALL_FONT)
     SCENE_MANAGER:RegisterTopLevel(A.window, false)
     A.window:SetHandler("OnHide", A.HideRewardTooltip)
@@ -620,6 +654,7 @@ local function loaded(_, name)
     if not rewards then d(message); return end
     A.Build()
     A.Render()
+    A.InitJournalButton()
     SLASH_COMMANDS["/atlas"] = A.Toggle
     SLASH_COMMANDS["/atlascheck"] = A.AuditSources
     SLASH_COMMANDS["/antiquityatlas"] = A.Toggle

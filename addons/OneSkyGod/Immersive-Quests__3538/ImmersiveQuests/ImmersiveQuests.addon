@@ -2,9 +2,9 @@
 ## Title: Immersive Quests
 ## Author: Alianym, @OneSkyGod, Fadosch
 ## Description: Immersive Quests Adds Lore Friendly Clues To the Quest Journal
-## Version: 0.0058
-## AddOnVersion: 00058
-## APIVersion: 101050
+## Version: 0.0059
+## AddOnVersion: 00059
+## APIVersion: 101051
 ## SavedVariables: ImmersiveQuestsVars
 ## DependsOn: LibAddonMenu-2.0>=40
 

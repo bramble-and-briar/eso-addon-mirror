@@ -107,6 +107,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [HidePlayerMapMarker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HidePlayerMapMarker__4249) | VollständigerName | PC / Mac | 1.0.2 |
 | [HideResearchIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/smj2k/HideResearchIcon__5016) | smj2k | PC / Mac | 1.1.3 |
 | [HideReticleMounted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HideReticleMounted__4332) | VollständigerName | PC / Mac | 1.0.1 |
+| [High Achiever](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Khazaril/High-Achiever__acff27a7-c726-484e-a8a2-5f2d1c9dfbf0) | Khazaril | Console | — |
 | [High-Low - ESO Group Roll Game](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Riparoo/High-Low---ESO-Group-Roll-Game__4877) | Riparoo | PC / Mac | 0.1.9 |
 | [Highland Sentinel Tick Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/Highland-Sentinel-Tick-Tracker__4045) | SkullElf | PC / Mac | 1.2 |
 | [Highly Detailed World Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Highly-Detailed-World-Map__3023) | MrPikPik | PC / Mac | 1.9 |

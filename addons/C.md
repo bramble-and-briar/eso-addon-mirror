@@ -157,7 +157,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Cogs Assistants](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/coginthemachine/Cogs-Assistants__4687) | coginthemachine | PC / Mac | 0.1.5 |
 | [Collect Them All](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Springpeace2575/Collect-Them-All__75167780-fb8c-479c-86be-c0a208443b97) | Springpeace2575 | Console | — |
 | [CollectablesTesting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brossin13/CollectablesTesting__9cb042d4-e427-4f0c-9c9c-48e1a355c970) | brossin13 | Console | — |
-| [Collectible Hover Preview](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Collectible-Hover-Preview__5112) | Lykeion | PC / Mac | 1.0 |
+| [Collectible Hover Preview](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Collectible-Hover-Preview__5112) | Lykeion | PC / Mac | 1.1 |
 | [Collectible Hover Preview](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Collectible-Hover-Preview__aca5aa45-ead0-493d-96f4-34c83ddcb236) | Lykeion+ | Console | — |
 | [Collectible Toggler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Collectible-Toggler__2699) | MrPikPik | PC / Mac | 1.2 |
 | [Collectibles Tracker (formerly Event Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Collectibles-Tracker-formerly-Event-Collectibles__2588) | code65536 | PC / Mac | 3.6.6.1 |
@@ -236,7 +236,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Cooldowns](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g4rr3t/Cooldowns__2164) | g4rr3t | PC / Mac | 1.6.1 |
 | [Cooldowns - HT Update Branch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/hacktank/Cooldowns---HT-Update-Branch__2879) | hacktank | PC / Mac | 1.8.0 |
 | [Cooldowns - Stonethorn Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BREADANDMlLK/Cooldowns---Stonethorn-Update__2776) | BREADANDMlLK | PC / Mac | 1.0.0 |
-| [Cooldowns Global](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/B7TxSpeed/Cooldowns-Global__4603) | B7TxSpeed | PC / Mac | 2.5.2 |
+| [Cooldowns Global](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/B7TxSpeed/Cooldowns-Global__4603) | B7TxSpeed | PC / Mac | 2.5.3 |
 | [cOOLsp0t's Loot Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cOOLsp0T/cOOLsp0t-s-Loot-Manager__2433) | cOOLsp0T | PC / Mac | 1.6 |
 | [CoordsAndHeading](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Andre/CoordsAndHeading__2665) | Andre | PC / Mac | 1.0 |
 | [CoordsAndHeading OverHaul!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jord56/CoordsAndHeading-OverHaul__2877) | Jord56 | PC / Mac | 1.2 |

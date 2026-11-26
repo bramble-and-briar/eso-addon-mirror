@@ -64,6 +64,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Default Guild Bank](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AssemblerManiac/Default-Guild-Bank__1747) | AssemblerManiac | PC / Mac | 1.07 |
 | [Default Language Ninja - Language Selector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinntarou/Default-Language-Ninja---Language-Selector__2692) | Shinntarou | PC / Mac | 1.0.3 |
 | [DELET NEED](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SiameseCat/DELET-NEED__2926) | SiameseCat | PC / Mac | 0.0.1 |
+| [Delta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Delta__16d4e42f-4a91-4dbc-bdc4-31abcd5d5640) | FiNk3F13 | Console | — |
 | [DeltaScry](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/DeltaScry__4679) | sshogrin | PC / Mac | 1.0.0 |
 | [DelugeBlame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aeric_ESO/DelugeBlame__4988) | Aeric_ESO | PC / Mac | 1.0.0 |
 | [Deome's Settings Profiles Updated by BSKCorp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BSKCorp/Deome-s-Settings-Profiles-Updated-by-BSKCorp__1942) | BSKCorp | PC / Mac | 1.11 |
@@ -117,7 +118,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Display Leads - with Location Info - ZH PATCH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/Display-Leads---with-Location-Info---ZH-PATCH__3898) | FusRoDah | PC / Mac | 10.0.2 |
 | [Divergent Tales](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ericstoesser/Divergent-Tales__4415) | ericstoesser | PC / Mac | 2.0.0 |
 | [Dizzy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PurpleFinch/Dizzy__4021) | PurpleFinch | PC / Mac | 1.23 |
-| [DK MASTERY TRACKER](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/DK-MASTERY-TRACKER__4857) | its_wifey | PC / Mac | 1.0.4 |
+| [DK MASTERY TRACKER](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/DK-MASTERY-TRACKER__4857) | its_wifey | PC / Mac | 1.0.5 |
 | [DKcorrosiveAlert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lebiez/DKcorrosiveAlert__4444) | lebiez | PC / Mac | 1.10 |
 | [DLC Notice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrilledSpamSteaks/DLC-Notice__3603) | GrilledSpamSteaks | PC / Mac | 1.6 |
 | [DLC Roulette](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chin/DLC-Roulette__0f2a1db4-049e-454b-96b8-52c65ff6cb85) | -Chin | Console | — |

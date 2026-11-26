@@ -1,93 +1,107 @@
--- Fury's Character Tracker: namespace, saved variables, events and slash commands.
+-- shared
+-- Fury's Character Tracker: the namespace, the saved data and its upgrade steps.
 --
---   Data/Lines.lua   the skill lines tracked, grouped, with their max ranks
---   Core/Scan.lua    reads the character you are logged in on
---   Core/Roster.lua  the stored roster: characters, manual fields, totals, export rows
---   UI/              the board (/fct) and the brag card (/fct brag)
+-- How the addon is laid out:
+--   Data/        text shown on screen, the skill lines, the tabs of the board
+--   Core/        helpers, the list of tracked things, the roster, history, the board's rules, the pages
+--   Trackers/    ONE FILE PER TRACKED THING: how to read it from the game, which game events make
+--                it stale, its board columns, its details lines, its export columns
+--   Game/        what only runs in game: reading (Scan), alerts, startup and slash commands
+--   UI/          the windows
+--
+-- A file whose first line is "-- shared" makes no game calls while it loads. The offline viewer
+-- (Windows Tools) runs those same files in the browser, so the viewer shows what the board shows
+-- without a second copy of the rules.
 
 FurysCharacterTracker = {}
 local CT = FurysCharacterTracker
 
 CT.name = "FurysCharacterTracker"
 CT.displayName = "Fury's Character Tracker"
-CT.version = "1.4.0"
+CT.version = "1.8.4"
 -- The Windows Tools (offline viewer, Excel export) can't ship in the ESOUI zip; this page has the download.
 CT.toolsUrl = "https://github.com/AlbertHoffpauir/FurysCharacterTracker#downloads"
 
+-- Saved per account, split per megaserver. Characters are saved under the game's own character ID
+-- (it never changes, a name can).
 CT.defaults = {
-    characters = {},   -- [character name] = everything read from that character (see Core/Scan.lua)
-    manual = {},       -- [character name] = { role =, dpsGear =, roleGear =, plannedRace = } picked by you
-    order = {},        -- character names in board order
-    hidden = {},       -- [character name] = true: deleted characters you removed from the board
-    exportRows = {},   -- "FCT|..." lines for ExportToExcel.ps1, rebuilt after every scan
+    characters = {},   -- [character id] = everything read from that character (see Trackers/)
+    manual = {},       -- [character id] = what only you know: role, gear, planned race, note
+    order = {},        -- character ids in your board order
+    hidden = {},       -- [character id] = true: characters you took off the board
+    history = {},      -- [character id] = one short text per day played (see Core/History.lua)
+    exportRows = {},   -- "FCT|..." lines for the Windows Tools, written at logout and when you export
     exportRequestedAt = 0,  -- set by the Export button; AutoExport.ps1 writes the CSV when it sees a new one
     exportPending = false,
-    window = nil,
     lastView = "overview",
     sort = {},         -- [view id] = { col =, desc = } column the board is sorted by
 }
 
-ZO_CreateStringId("SI_BINDING_NAME_FURYCT_WINDOW", "Open the character board")
-ZO_CreateStringId("SI_BINDING_NAME_FURYCT_BRAG", "Show the brag card")
-ZO_CreateStringId("SI_BINDING_NAME_FURYCT_TIMERS", "Show research timers")
+-- True in game, false in the offline viewer.
+CT.live = false
 
-local function OnAddOnLoaded(_, addonName)
-    if addonName ~= CT.name then return end
-    EVENT_MANAGER:UnregisterForEvent(CT.name, EVENT_ADD_ON_LOADED)
+-- What a read of a character gathers. Raise it when a new version reads something more: the board
+-- then says which characters need one login to fill the new columns (each read stamps c.v).
+CT.READ_VERSION = 3
 
-    -- Account-wide, split per megaserver: NA and EU are different rosters.
-    CT.sv = ZO_SavedVars:NewAccountWide("FuryCT_SV", 1, nil, CT.defaults, GetWorldName())
-    CT.home = { world = GetWorldName(), account = GetDisplayName() }
-    CT.view = CT.home
+-- Saved data version ------------------------------------------------------------------------
+-- Each step runs once, in order, on data saved before it existed. A change to the shape of the
+-- saved data is a new step at the end of this list. Steps only look at the data they are given,
+-- so they can run on every account in the file, whoever is logged in.
+CT.UPGRADES = {
+    -- 1: picks renamed and starter rows dropped (pre-1.0 test builds); one alert switch became two (1.2.0 test builds).
+    function(data)
+        CT.Roster.UpgradeOldPicks(data)
+        if data.alertsOff then data.alertResearch, data.alertRiding, data.alertsOff = false, false, nil end
+    end,
+    -- 2 (1.5.0): characters saved under their character ID instead of their name.
+    function(data)
+        CT.Roster.UpgradeToIds(data)
+    end,
+}
 
-    CT.Roster:Initialize()
-    CT.Window:Initialize()
-    local T = CT.Theme
-    T.Window(FurysCharacterTracker_Window, { bg = "BG" })
-    T.Window(FurysCharacterTracker_Timers, { bg = "BG" })
-    T.Window(FurysCharacterTracker_Details, { bg = "BG", bar = 66 })
-    T.Window(FurysCharacterTracker_Brag, { bg = "BG", bar = 92, center = true, font = "$(ANTIQUE_FONT)|36|soft-shadow-thick" })
-    CT.Settings:Build()
-    CT.RegisterSlashCommands()
-end
-
-local function OnPlayerActivated()
-    -- Every zone change fires this; one full read per login or /reloadui is plenty,
-    -- the events in Scan:Start catch progress made after that.
-    EVENT_MANAGER:UnregisterForEvent(CT.name, EVENT_PLAYER_ACTIVATED)
-    CT.Scan:Start()
-    if CT.sv.loginNotice ~= false then CT.Research:LoginNotice() end
-    CT.Alerts:Start()
-    if CT.sv.openAtLogin then CT.Window:Show() end
-    if CT.sv.exportPending then
-        CT.sv.exportPending = false
-        CT.Util.Print("Exported %d characters. With Auto Export on, ESO Characters.csv is in Documents\\Elder Scrolls Online in a few seconds.", #CT.sv.exportRows - 1)
+function CT.UpgradeProfile(data, isNewInstall)
+    for key, value in pairs(CT.defaults) do
+        if data[key] == nil and type(value) == "table" then data[key] = {} end
     end
+    local from = isNewInstall and #CT.UPGRADES or (data.dataVersion or 0)
+    for step = from + 1, #CT.UPGRADES do CT.UPGRADES[step](data) end
+    data.dataVersion = #CT.UPGRADES
 end
 
--- Windows: the one you open or click comes to the front.
--- Each raise puts the window one draw level above the last one raised.
-local topLevel = 10
-function CT.Raise(control)
-    topLevel = topLevel + 1
-    control:SetDrawLevel(topLevel)
-    if control.BringWindowToTop then control:BringWindowToTop() end
+-- Every account and megaserver in the file: the board can show any of them, so all of them have
+-- to be in today's shape.
+function CT.UpgradeAll()
+    for _, accounts in pairs(FuryCT_SV or {}) do
+        if type(accounts) == "table" then
+            for _, profile in pairs(accounts) do
+                local data = type(profile) == "table" and profile["$AccountWide"]
+                if type(data) == "table" and (data.dataVersion or 0) < #CT.UPGRADES then CT.UpgradeProfile(data) end
+            end
+        end
+    end
 end
 
 -- Other accounts and megaservers -----------------------------------------------------------
 -- Every account that plays on this PC saves into the same file, so the board can show any of them.
 -- What you see for another account is what it saved the last time it logged out.
+-- CT.home = the account you are logged in on (in the viewer: nobody). CT.view = the one on the board.
 
-function CT.IsHome() return CT.view == CT.home end
+function CT.IsHome() return CT.live and CT.view == CT.home end
+
+local function Profile(entry)
+    local world = FuryCT_SV and FuryCT_SV[entry.world]
+    return world and world[entry.account] and world[entry.account]["$AccountWide"]
+end
 
 -- The saved data of the account being viewed (yours, unless you picked another one).
 function CT.Data()
     if CT.IsHome() then return CT.sv end
-    local world = FuryCT_SV and FuryCT_SV[CT.view.world]
-    local data = world and world[CT.view.account] and world[CT.view.account]["$AccountWide"]
-    if not data then CT.view = CT.home; return CT.sv end
-    data.characters, data.order = data.characters or {}, data.order or {}
-    data.hidden, data.manual = data.hidden or {}, data.manual or {}
+    local data = CT.view and Profile(CT.view)
+    if not data then
+        CT.view = CT.home or CT.Accounts()[1]
+        return CT.sv or (CT.view and Profile(CT.view)) or CT.defaults
+    end
     return data
 end
 
@@ -98,8 +112,8 @@ function CT.Accounts()
         if type(accounts) == "table" then
             for account, profile in pairs(accounts) do
                 local data = type(profile) == "table" and profile["$AccountWide"]
-                if data and next(data.characters or {}) then
-                    local isHome = world == CT.home.world and account == CT.home.account
+                if type(data) == "table" and type(data.characters) == "table" and next(data.characters) then
+                    local isHome = CT.home and world == CT.home.world and account == CT.home.account
                     list[#list + 1] = isHome and CT.home or { world = world, account = account }
                 end
             end
@@ -113,73 +127,15 @@ function CT.Accounts()
     return list
 end
 
-function CT.SetView(entry)
-    CT.view = entry
-    CT.Window:Refresh()
-    if not FurysCharacterTracker_Brag:IsHidden() then CT.Brag:Refresh() end
-    CT.Timers:RefreshIfShown()
-end
-
 -- "@Furyous · NA"
 function CT.ViewLabel(entry)
     entry = entry or CT.view
     return string.format("%s  ·  %s", entry.account, (entry.world:gsub(" Megaserver", "")))
 end
 
--- Export button: the game only writes SavedVariables on a reload or logout, so save and reload in one go.
--- AutoExport.ps1 (Windows Tools download, turned on with "Turn On Auto Export.cmd") sees the new request and writes the CSV.
-function CT.RequestExport()
-    CT.Roster:BuildExportRows()
-    CT.sv.exportRequestedAt = GetTimeStamp()
-    CT.sv.exportPending = true
-    ReloadUI("ingame")
+-- Windows that want to redraw when the account on the board changes add themselves here.
+CT.viewListeners = {}
+function CT.SetView(entry)
+    CT.view = entry
+    for _, listener in ipairs(CT.viewListeners) do listener() end
 end
-
-function CT.RegisterSlashCommands()
-    local U = CT.Util
-    SLASH_COMMANDS["/fct"] = function(arg)
-        arg = zo_strlower(zo_strtrim(arg or ""))
-        if arg == "" or arg == "show" then
-            CT.Window:Toggle()
-        elseif CT.Window:HasView(arg) then
-            CT.Window:Show(arg)
-        elseif arg == "brag" then
-            CT.Brag:Toggle()
-        elseif arg == "todo" or arg:match("^todo %d+$") then
-            CT.Roster:PrintToDo(tonumber(arg:match("%d+")) or 7)
-        elseif arg == "scan" then
-            CT.Scan:Run()
-            U.Print("Updated %s.", CT.Scan.CurrentName())
-        elseif arg == "export" then
-            CT.RequestExport()
-        elseif arg == "settings" then
-            CT.Settings:Open()
-        elseif arg == "tools" then
-            RequestOpenUnsafeURL(CT.toolsUrl)
-        elseif arg == "alerts on" or arg == "alerts off" then
-            CT.Alerts:Set(arg == "alerts on")
-        elseif arg == "research" then
-            CT.Research:Print()
-        elseif arg == "timers" then
-            CT.Timers:Toggle()
-        elseif arg == "ids" then
-            CT.Scan:PrintIds()
-        else
-            U.Print("%s v%s", CT.displayName, CT.version)
-            U.Print("/fct  open the board (also on a key: Controls > Fury's Character Tracker)")
-            U.Print("/fct overview, weapons, armor, guilds, world, crafting, traits, collections, sets  open a view")
-            U.Print("/fct brag  the brag card: your best numbers on one screen, for a screenshot")
-            U.Print("/fct timers  research timers window: what each character is researching and time left")
-            U.Print("/fct research  research slots and timers in chat")
-            U.Print("/fct settings  open the settings page (or the gear on the board)")
-            U.Print("/fct alerts on | off  chat line when research or a riding lesson is ready on any character (on by default)")
-            U.Print("/fct todo  characters never read, or not read in 7 days (/fct todo 30 for 30 days)")
-            U.Print("/fct scan  read this character again now")
-            U.Print("/fct export  export to Excel (reloads the UI; Auto Export writes the CSV)")
-            U.Print("/fct tools  get the Windows Tools (offline viewer, Excel export) from GitHub")
-        end
-    end
-end
-
-EVENT_MANAGER:RegisterForEvent(CT.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)
-EVENT_MANAGER:RegisterForEvent(CT.name, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)

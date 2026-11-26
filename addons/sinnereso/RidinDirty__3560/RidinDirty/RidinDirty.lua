@@ -1,13 +1,13 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.11.23",
+	version = "2026.11.26",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
-	tradeTable = {},
-	craftTable = {},
 }
 local RD = RidinDirty
+local TTC = TamrielTradeCentre
+local LCK = LibCharacterKnowledge
 local RD_LOGO = "|c6666FF[RD]|r "
 local GOLD_ICON = " |t18:18:/esoui/art/currency/currency_gold.dds|t"
 local AP_ICON = " |t18:18:/esoui/art/currency/alliancepoints.dds|t"
@@ -30,7 +30,8 @@ local avpData = {
 local avpProcessing = false
 local TICK_REASON = nil
 local REASON_INFO = nil
-local LCK = LibCharacterKnowledge
+local tradeTable = {}
+local craftTable = {}
 ---------------------------------------------
 --------- HELPER FUNCTIONS --
 ---------------------------------------------
@@ -50,7 +51,7 @@ local function IsKnowledgeUnknown(itemLink)
 	local itemId = GetItemLinkItemId(itemLink)
 	local itemType, specialType = GetItemLinkItemType(itemLink)
 	if IsItemLinkSetCollectionPiece(itemLink) and not IsItemSetCollectionPieceUnlocked(itemId) then return "|cFB2C36(+)|r" end
-	if LibCharacterKnowledge then
+	if LCK then
 		if specialType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_STYLE_PAGE and CanItemLinkBeUsedToLearn(itemLink) then return "|cFB2C36(+)|r" end
 		if LCK.GetItemKnowledgeForCharacter(itemId, nil, GetCurrentCharacterId()) == LCK.KNOWLEDGE_UNKNOWN then return "|cFB2C36(+)|r" end
 		local characters = LCK.GetItemKnowledgeList(itemLink)
@@ -127,9 +128,9 @@ local function PassengerStateChange(eventCode, isMounted)
 	end
 	if mountedState == MOUNTED_STATE_MOUNT_RIDER and hasEnabledGroupMount then zo_callLater(function() PassengerStateChange() end, 1000) end
 end
-
+--MAX_JOURNAL_QUESTS do
 local function HasWritQuest()
-	for quest = 1, MAX_JOURNAL_QUESTS do
+	for quest = 1, GetNumJournalQuests() + 1 do
 		if GetJournalQuestType(quest) == QUEST_TYPE_CRAFTING then return true end
 	end
 	return false
@@ -721,7 +722,7 @@ local function RDInitializeControls()
 			{
 				type = "checkbox",
 				name = "Junk Manager",
-				tooltip = "Marks & sells all trash, monster trophy's, rare fish and ornates plus enabled options below. Also self cleans junk list of enabled options below as looted and repairs all gear at merchants & with kits and gems",
+				tooltip = "Marks & sells all trash, monster trophy's, rare fish and ornates plus enabled options below and self cleans junk list",
 				getFunc = function() return RD.acctVars.junkManager end,
 				setFunc = function(value) RD.JunkManagerToggle(value) end,
 				width = "half",
@@ -864,7 +865,7 @@ local function RDInitializeControls()
 			{
 				type = "checkbox",
 				name = "Trader Enhancements",
-				tooltip = "Adds some QoL features to the trader window including active trader cycling by clicking guild name(skips non trading guilds with no listings), auto pricing, auto last search, listing counts & totals",
+				tooltip = "Adds QoL trader features including trader cycling, auto pricing(ttc preferred rounded down *99), auto last search, listing counts & totals",
 				getFunc = function() return RD.acctVars.traderEnhance end,
 				setFunc = function(value) RD.TraderEnhanceToggle(value) end,
 				warning = "NOT compatible with AwesomeGuildStore. Requires LibCharacterKnowledge to detect what is knownst on other characters & TTC for pricing data",
@@ -1005,6 +1006,13 @@ local function RDInitializeControls()
 		tooltip = "Auto accept queues for dungeons, battlegrounds, cyrodiil and imperial city",
 		getFunc = function() return RD.acctVars.autoQueue end,
 		setFunc = function(value) RD.AutoQueueToggle(value) end,
+	},
+	{
+		type = "checkbox",
+		name = "Auto Repair & Charge",
+		tooltip = "Auto repairs worn gear with kits and recharges worn weapons with gems",
+		getFunc = function() return RD.acctVars.autoRepair end,
+		setFunc = function(value) RD.AutoRepairToggle(value) end,
 	},
 	{
 		type = "checkbox",
@@ -1244,7 +1252,7 @@ local function OnPlayerActivated()
 		local origFormat = CHAT_ROUTER:GetRegisteredMessageFormatters()[EVENT_CHAT_MESSAGE_CHANNEL]
 		CHAT_ROUTER:RegisterMessageFormatter(EVENT_CHAT_MESSAGE_CHANNEL, function(channelType, fromName, text, isCustomerService, fromDisplayName)
 			if RD.acctVars.spamFilter then
-				text = string.gsub(text, ".-(|H.:guild:.-|h.-|h).*", (RD_LOGO .. "[SPAM]: %1"))
+				text = string.gsub(text, ".-(|H.:guild:.-|h.-|h).*", "[SPAM]: %1")
 			end
 			local text = string.gsub(text, "|H.:item:.-|h.-|h", function(itemLink)
 				local itemNeeded = IsKnowledgeUnknown(itemLink)
@@ -1257,7 +1265,7 @@ local function OnPlayerActivated()
 		chatHook = true
 		local origFormat = CHAT_ROUTER:GetRegisteredMessageFormatters()[EVENT_CHAT_MESSAGE_CHANNEL]
 		CHAT_ROUTER:RegisterMessageFormatter(EVENT_CHAT_MESSAGE_CHANNEL, function(channelType, fromName, text, isCustomerService, fromDisplayName)
-			text = string.gsub(text, ".-(|H.:guild:.-|h.-|h).*", (RD_LOGO .. "[SPAM]: %1"))
+			text = string.gsub(text, ".-(|H.:guild:.-|h.-|h).*", "[SPAM]: %1")
 			local formattedText, saveTarget, _, originalText = origFormat(channelType, fromName, text, isCustomerService, fromDisplayName)
 			return formattedText, saveTarget, fromDisplayName, originalText
 		end)
@@ -1818,13 +1826,13 @@ local function DepositCurrency(eventCode, bagId)
 		BankBalances(eventCode, bagId, carriedGold, carriedAP, carriedTelvar, carriedVoucher, moveGold, moveAP, moveTelvar, moveVoucher)
 	end
 	if RD.acctVars.checkBankMemory then
-		CheckBankMemory()
+		zo_callLater(function() CheckBankMemory() end, 1000)
 	end
 end
 
 local function BankManager(eventCode, bagId)
 	if bagId ~= BAG_BANK and not RD.acctVars.storageManager then return end
-	if HasWritQuest() then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Auto deposit disabled while writ quests active.") return end--<< CRAFTING WRIT COMPATIBILITY
+	if HasWritQuest() then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Auto deposit disabled while writs active.") return end--<< CRAFTING WRIT COMPATIBILITY
 	local bankCache = SHARED_INVENTORY:GetOrCreateBagCache(bagId)
 	local bagCache  = SHARED_INVENTORY:GetOrCreateBagCache(BAG_BACKPACK)
 	if (RD.acctVars.bankManager and bagId == BAG_BANK) or (RD.acctVars.storageManager and bagId ~= BAG_BANK) then
@@ -2000,56 +2008,8 @@ end
 ---------------------------------------------
 -------- JUNK MANAGER --
 ---------------------------------------------
-local function GetSoulGemSlot()
-	for slotId = 0, GetBagSize(BAG_BACKPACK) do
-		if IsItemSoulGem(SOUL_GEM_TYPE_FILLED, BAG_BACKPACK, slotId) then
-			return slotId
-		end
-	end
-end
---IsItemNonCrownRepairKit(BAG_BACKPACK, slotId)
-local function GetRepairKitSlot()
-	for slotId = 0, GetBagSize(BAG_BACKPACK) do
-		if IsItemRepairKit(BAG_BACKPACK, slotId) and IsItemNonGroupRepairKit(BAG_BACKPACK, slotId) then
-			return slotId
-		end
-	end
-end
-
---if IsItemChargeable(BAG_WORN, slotIndex) or DoesItemHaveDurability(BAG_WORN, slotIndex) then df(tostring(GetItemName(BAG_WORN, slotIndex))) end
-local function AutoRepCharge(_, bagId, slotIndex, _, _, updateReason)
-	if updateReason == INVENTORY_UPDATE_REASON_ITEM_CHARGE then
-		local minCharge = 50--500 max
-		local charge, maxCharge = GetChargeInfoForItem(bagId, slotIndex)
-		if IsItemChargeable(bagId, slotIndex) and charge <= minCharge and not IsUnitDeadOrReincarnating("player") then
-			local gemSlot = GetSoulGemSlot()
-			if gemSlot ~= nil then
-				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "InventoryItem_ApplyCharge", (GetItemName(bagId, slotIndex) .. " recharged."))
-				ChargeItemWithSoulGem(bagId, slotIndex, BAG_BACKPACK, gemSlot)
-			else
-				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("No soul gems to recharge " .. GetItemName(bagId, slotIndex) .. "."))
-			end
-		end
-	elseif updateReason == INVENTORY_UPDATE_REASON_DURABILITY_CHANGE then
-		local minDura = 10--100 max
-		if DoesItemHaveDurability(bagId, slotIndex) and GetItemCondition(bagId, slotIndex) <= minDura and not IsUnitDeadOrReincarnating("player") then
-			local kitSlot = GetRepairKitSlot()
-			if kitSlot ~= nil then
-				PlaySound("InventoryItem_ApplyCharge")
-				RepairItemWithRepairKit(bagId, slotIndex, BAG_BACKPACK, kitSlot)
-			else
-				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("No repair kits to repair " .. GetItemName(bagId, slotIndex) .. "."))
-			end
-		end
-	end
-end
---INVENTORY_UPDATE_REASON_DURABILITY_CHANGE--INVENTORY_UPDATE_REASON_ITEM_CHARGE--ZO_SharedInventoryManager:ClearNewStatus(bagId, slotIndex)--ITEMTYPE_CONTAINER_STACKABLE--SPECIALIZED_ITEMTYPE_CONTAINER_STACKABLE
+--ZO_SharedInventoryManager:ClearNewStatus(bagId, slotIndex)--ITEMTYPE_CONTAINER_STACKABLE--SPECIALIZED_ITEMTYPE_CONTAINER_STACKABLE
 local function JunkManager(eventCode, bagId, slotIndex, isNewItem, soundCategory, updateReason, stackChange, byCharacterName, byDisplayName, isLastUpdate, bonusDropSource)
-	if bagId == BAG_WORN and (updateReason == INVENTORY_UPDATE_REASON_DURABILITY_CHANGE or updateReason == INVENTORY_UPDATE_REASON_ITEM_CHARGE) then
-		AutoRepCharge(_, bagId, slotIndex, _, _, updateReason)
-		return
-	end
-	if not isNewItem or bagId ~= BAG_BACKPACK then return end
 	local itemId = GetItemId(bagId, slotIndex)
 	local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
 	local itemType, specialType = GetItemType(bagId, slotIndex)
@@ -2211,25 +2171,6 @@ function RD.JunkMemoryLayoutRow(rowControl, data, scrollList)
 	end)
 end
 
-local function ChatLinkUnMarkMenu(itemLink, button, _, _, linkType, ...)--<< UNUSED
-	local itemId = GetItemLinkItemId(itemLink)
-	local itemType, specialType = GetItemLinkItemType(itemLink)
-	if button == MOUSE_BUTTON_INDEX_RIGHT and linkType == ITEM_LINK_TYPE and RD.junkMemory[itemId] ~= nil then
-		zo_callLater(function()
-			AddCustomMenuItem("UnMark Perm Junk", function() RD.junkMemory[itemId] = nil
-			for slotIndex = 1, GetBagSize(BAG_BACKPACK) do
-				local bagitemId = GetItemId(BAG_BACKPACK, slotIndex)
-				if IsItemJunk(BAG_BACKPACK, slotIndex) and bagitemId == itemId then
-					SetItemIsJunk(BAG_BACKPACK, slotIndex, false)
-				end
-			end
-			df(RD_LOGO .. "Removed " .. itemLink .. " from junk list!")
-			end, MENU_ADD_OPTION_LABEL)
-			ShowMenu()
-		end, hookDelay)
-	end
-end
-
 local function AutoSellRepair()
 	local junkValue = 0
 	if HasAnyJunk(BAG_BACKPACK, true) then
@@ -2259,14 +2200,14 @@ function RD.JunkManagerToggle(toggle)
 		local tertiary = LibCustomMenu.CATEGORY_TERTIARY
 		LibCustomMenu:RegisterContextMenu(MarkPermJunkMenu, tertiary)
 		LibCustomMenu:RegisterContextMenu(UnMarkPermJunkMenu, tertiary)
-		--LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_MOUSE_UP_EVENT, ChatLinkUnMarkMenu)
 		EVENT_MANAGER:RegisterForEvent("RidinDirtyJunk", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, JunkManager)
-		--EVENT_MANAGER:AddFilterForEvent("RidinDirtyJunk", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
-		EVENT_MANAGER:RegisterForEvent("RidinDirtyJunk", EVENT_OPEN_STORE, AutoSellRepair)
+		EVENT_MANAGER:AddFilterForEvent("RidinDirtyJunk", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
+		EVENT_MANAGER:AddFilterForEvent("RidinDirtyJunk", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_IS_NEW_ITEM, true)
+		EVENT_MANAGER:RegisterForEvent("RidinDirtyRepair", EVENT_OPEN_STORE, AutoSellRepair)
 	else
 		RD.acctVars.junkManager = toggle
 		EVENT_MANAGER:UnregisterForEvent("RidinDirtyJunk", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
-		EVENT_MANAGER:UnregisterForEvent("RidinDirtyJunk", EVENT_OPEN_STORE)
+		EVENT_MANAGER:UnregisterForEvent("RidinDirtyRepair", EVENT_OPEN_STORE)
 		ReloadUI()
 	end
 end
@@ -2350,7 +2291,7 @@ local function NeedsAndPrice(control, slot)
 	end
 	if slot.lootId or STORE_FRAGMENT:IsShowing() then return end
 	if bagId and (IsItemBound(bagId, slotIndex) or IsItemBoPAndTradeable(bagId, slotIndex)) then return end
-	if not TamrielTradeCentre then return end
+	if not TTC then return end
 	local SellPriceControl = control:GetNamedChild("SellPriceText") or control:GetNamedChild("SellPrice")
 	if not SellPriceControl then return end
 	local ttcPriceData = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
@@ -2422,6 +2363,15 @@ function RD.lootManagerToggle(toggle)
 		SecurePostHook(ZO_LootAlphaContainerList.dataTypes[1], "setupCallback", function(control, slot)
 			NeedsAndPrice(control, slot)
 		end)
+		--Trade window
+		--SecurePostHook(TRADE, "AddItemToTrade", OnAddItemToTrade)
+		--SecurePostHook(ZO_TradeWindow, "InitializeSlot", function(self, who, tradeIndex, name, icon, stackCount, displayQuality)
+			--if who == TRADE_ME then
+				--df("BYE")
+			--elseif who == TRADE_THEM then
+				--df("HI")
+			--end
+		--end)
 		--Store window
 		EVENT_MANAGER:RegisterForEvent("RidinDirtyLoot", EVENT_COLLECTION_UPDATED, RefreshStore)
 		SecurePostHook(ZO_StoreManager, "SetUpBuySlot", function(self, control, slot)
@@ -2540,7 +2490,7 @@ function RD.TraderEnhanceToggle(toggle)
 			end
 		end)
 		SecurePostHook(TRADING_HOUSE, "OnPendingPostItemUpdated", function(tradingHouse, slotId, isPending)
-			if not isPending or not slotId or not TamrielTradeCentrePrice then return end
+			if not isPending or not slotId or not TTC then return end
 			local itemLink = GetItemLink(BAG_BACKPACK, slotId)
 			if not itemLink or itemLink == "" then return end
 			local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
@@ -2548,8 +2498,8 @@ function RD.TraderEnhanceToggle(toggle)
 			local unitPrice = priceInfo[RD.acctVars.ttcPricing] or priceInfo.Avg
 			if not unitPrice or unitPrice <= 0 then return end
 			local stackCount = GetSlotStackSize(BAG_BACKPACK, slotId)
-			local totalPrice = math.floor(unitPrice * stackCount + 0.5)
-			TRADING_HOUSE:SetPendingPostPrice(totalPrice)
+			local finalPrice = math.max(99, math.floor(((unitPrice * stackCount) + 1) / 100) * 100 - 1)
+			TRADING_HOUSE:SetPendingPostPrice(finalPrice)
 		end)
 		SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
 			zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)
@@ -3026,9 +2976,9 @@ local function ChatterMonitor(eventCode, optionCount, debugSource)
 		choiceNames[i] = choiceName
 		choiceNumbers[i] = choiceNumber
 	end
-	if (choiceNames[2] == nil or choiceNumbers[2] == 3800) and ChatterWhiteList(GetChatterOption(1)) then
+	if ChatterWhiteList(GetChatterOption(1)) and (choiceNames[2] == nil or choiceNumbers[2] == 3800) then
 		if HasWritQuest() then
-			ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Skip many dialogs disabled while writ quests active.")
+			ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Skip dialogs disabled while writs active.")
 		else
 			SelectChatterOption(1)
 		end
@@ -3093,6 +3043,68 @@ function RD.AutoQueueToggle(toggle)
 		RD.acctVars.autoQueue = toggle
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_ACTIVITY_FINDER_STATUS_UPDATE)
 		EVENT_MANAGER:UnregisterForEvent("RidinDirty", EVENT_CAMPAIGN_QUEUE_STATE_CHANGED)
+	end
+end
+---------------------------------------------
+------ AUTO REPAIR & RECHARGE --
+---------------------------------------------
+local function GetSoulGemSlot()
+	for slotId = 0, GetBagSize(BAG_BACKPACK) do
+		if IsItemSoulGem(SOUL_GEM_TYPE_FILLED, BAG_BACKPACK, slotId) then
+			return slotId
+		end
+	end
+end
+--IsItemNonCrownRepairKit(BAG_BACKPACK, slotId)
+local function GetRepairKitSlot()
+	for slotId = 0, GetBagSize(BAG_BACKPACK) do
+		if IsItemRepairKit(BAG_BACKPACK, slotId) and IsItemNonGroupRepairKit(BAG_BACKPACK, slotId) then
+			return slotId
+		end
+	end
+end
+--if IsItemChargeable(BAG_WORN, slotIndex) or DoesItemHaveDurability(BAG_WORN, slotIndex) then df(tostring(GetItemName(BAG_WORN, slotIndex))) end
+local function AutoRepair(_, bagId, slotIndex, _, _, updateReason)
+	if SCENE_MANAGER:IsShowing("store") then return end
+	local minDura = 10--100 max
+	if DoesItemHaveDurability(bagId, slotIndex) and GetItemCondition(bagId, slotIndex) <= minDura and not IsUnitDeadOrReincarnating("player") then
+		local kitSlot = GetRepairKitSlot()
+		if kitSlot ~= nil then
+			PlaySound("InventoryItem_ApplyCharge")
+			RepairItemWithRepairKit(bagId, slotIndex, BAG_BACKPACK, kitSlot)
+		else
+			ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("No repair kits to repair " .. GetItemName(bagId, slotIndex) .. "."))
+		end
+	end
+end
+
+local function AutoRecharge(_, bagId, slotIndex, _, _, updateReason)
+	local minCharge = 50--500 max
+	local charge, maxCharge = GetChargeInfoForItem(bagId, slotIndex)
+	if IsItemChargeable(bagId, slotIndex) and charge <= minCharge and not IsUnitDeadOrReincarnating("player") then
+		local gemSlot = GetSoulGemSlot()
+		if gemSlot ~= nil then
+			ZO_Alert(UI_ALERT_CATEGORY_ALERT, "InventoryItem_ApplyCharge", (GetItemName(bagId, slotIndex) .. " recharged."))
+			ChargeItemWithSoulGem(bagId, slotIndex, BAG_BACKPACK, gemSlot)
+		else
+			ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("No soul gems to recharge " .. GetItemName(bagId, slotIndex) .. "."))
+		end
+	end
+end
+
+function RD.AutoRepairToggle(toggle)
+	if toggle then
+		RD.acctVars.autoRepair = toggle
+		EVENT_MANAGER:RegisterForEvent("RidinDirtyRepair", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, AutoRepair)
+		EVENT_MANAGER:AddFilterForEvent("RidinDirtyRepair", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
+		EVENT_MANAGER:AddFilterForEvent("RidinDirtyRepair", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, INVENTORY_UPDATE_REASON_DURABILITY_CHANGE)
+		EVENT_MANAGER:RegisterForEvent("RidinDirtyRecharge", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, AutoRecharge)
+		EVENT_MANAGER:AddFilterForEvent("RidinDirtyRecharge", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
+		EVENT_MANAGER:AddFilterForEvent("RidinDirtyRecharge", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, INVENTORY_UPDATE_REASON_ITEM_CHARGE)
+	else
+		RD.acctVars.autoRepair = toggle
+		EVENT_MANAGER:UnregisterForEvent("RidinDirtyRepair", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+		EVENT_MANAGER:UnregisterForEvent("RidinDirtyRecharge", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
 	end
 end
 ---------------------------------------------
@@ -3181,8 +3193,23 @@ end
 ---------------------------------------------
 local function CraftingTabChanged(provisioner)
 	local show = provisioner.filterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING
-	if SCENE_MANAGER:GetCurrentScene() == PROVISIONER_SCENE then RD.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, -20, -42) else RD.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, 20, -48) end
+	if SCENE_MANAGER:GetCurrentScene() == PROVISIONER_SCENE then RD.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, -20, -42)
+		else RD.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, 20, -48) end
 	RD.CraftSearchBox:SetHidden(not show)
+end
+
+local function CraftingModeSelector(eventId, stationType, sameStation, craftMode)
+	if not sameStation and RD.CraftBoxSearch:GetText() ~= "" then
+		if stationType == CRAFTING_TYPE_ALCHEMY then
+			ZO_MenuBar_SelectDescriptor(ALCHEMY.modeBar, ZO_ALCHEMY_MODE_RECIPES)
+		elseif stationType == CRAFTING_TYPE_ENCHANTING then
+			ZO_MenuBar_SelectDescriptor(ENCHANTING.modeBar, ENCHANTING_MODE_RECIPES)
+		elseif stationType == CRAFTING_TYPE_PROVISIONING then
+			ZO_MenuBar_SelectDescriptor(PROVISIONER.tabs, PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING)
+		else
+			ZO_MenuBar_SelectDescriptor(SMITHING.modeBar, SMITHING_MODE_RECIPES)
+		end
+	end
 end
 
 function RD.CraftingSearchToggle(toggle)
@@ -3191,13 +3218,14 @@ function RD.CraftingSearchToggle(toggle)
 		RD.CraftSearchBox:SetHidden(false)
 		ZO_PostHook(ZO_Provisioner, "OnTabFilterChanged", function(provisioner)
 			local show = provisioner.filterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING
-			if SCENE_MANAGER:GetCurrentScene() == PROVISIONER_SCENE then RD.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, -20, -42) else RD.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, 20, -48) end
+			if SCENE_MANAGER:GetCurrentScene() == PROVISIONER_SCENE then RD.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, -20, -42)
+				else RD.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, 20, -48) end
 			RD.CraftSearchBox:SetHidden(not show)
 		end)
 		ZO_PreHook(ZO_Provisioner, "RefreshRecipeList", function()
 			for _, list in pairs(PROVISIONER_MANAGER:GetRecipeListData(GetCraftingInteractionType())) do
 				for _, recipe in ipairs(list.recipes) do
-					RD.craftTable[recipe.resultItemId] = zo_strlower(recipe.name)
+					craftTable[recipe.resultItemId] = zo_strlower(recipe.name)
 				end
 			end
 		end)
@@ -3205,8 +3233,9 @@ function RD.CraftingSearchToggle(toggle)
 			local text = zo_strlower(RD.CraftBoxSearch:GetText())
 			if text == "" or self.filterType ~= PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING then return false end
 			local resultItemId = select(10, ...)
-			return not (RD.craftTable[resultItemId] or ""):find(text, 1, true)
+			return not (craftTable[resultItemId] or ""):find(text, 1, true)
 		end)
+		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CRAFTING_STATION_INTERACT, CraftingModeSelector)
 	else
 		RD.acctVars.craftingSearch = toggle
 		ReloadUI()
@@ -3241,7 +3270,10 @@ function RD.SiegeCameraToggle()
     SetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_THIRD_PERSON_SIEGE_WEAPONRY, setting, 1)
 end
 ---------------------------------------------
---------- SLASH COMMANDS --
+------------- SLASH COMMANDS --
+---------------------------------------------
+---------------------------------------------
+---------------- /tp --
 ---------------------------------------------
 local function TeleportInstructions()
 	df(RD_LOGO .. " /tp partialzonename => overland zones") df(RD_LOGO .. " /tp home => your primary home")
@@ -3273,16 +3305,24 @@ if not Teleport and not EasyTravel then
 		end
 	end
 end
-
-SLASH_COMMANDS["/rdlink"] = function (option)
-	local bagId = BAG_BACKPACK
-	for slotIndex = 0, GetBagSize(bagId) do
-		if IsItemBoPAndTradeable(bagId, slotIndex) and IsUnitInDungeon("player") then
-			RD.RDBopTradeable()
-			return
-		end
+---------------------------------------------
+---------------- /rdlink --
+---------------------------------------------
+local function InTradeTable(itemLink)
+	for _, link in ipairs(tradeTable) do
+		if link == itemLink then return true end
 	end
-	RD.RDUnboundSets()
+	return false
+end
+
+local function TradeLinkWait(decision)
+	if CHAT_SYSTEM.textEntry:GetEditControl():GetText() ~= "" then
+		zo_callLater(function() TradeLinkWait(decision) end, 1000)
+	elseif decision == "sets" then
+		RD.RDUnboundSets()
+	elseif decision == "bops" then
+		RD.RDBopTradeable()
+	end
 end
 
 function RD.RDBopTradeable()
@@ -3293,7 +3333,7 @@ function RD.RDBopTradeable()
 		local itemId = GetItemId(bagId, slotIndex)
 		local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
 		local itemType, specialType = GetItemType(bagId, slotIndex)
-		if count < 4 and IsItemBoPAndTradeable(bagId, slotIndex) and not IsKnowledgeUnknown(itemLink) and not RD.InTradeTable(itemLink) then
+		if count < 4 and IsItemBoPAndTradeable(bagId, slotIndex) and not IsKnowledgeUnknown(itemLink) and not InTradeTable(itemLink) then
 			local isTradeable = false
 			for iD = 1, GetGroupSize() do
 				local playerID = GetGroupUnitTagByIndex(iD)
@@ -3305,17 +3345,17 @@ function RD.RDBopTradeable()
 			end
 			if isTradeable then
 				count = count + 1
-				table.insert(RD.tradeTable, itemLink)
+				table.insert(tradeTable, itemLink)
 				links = (links .. itemLink)
 			end
 		end
 	end
 	local editControl = CHAT_SYSTEM.textEntry:GetEditControl()
 	if links == "" and editControl:GetText() == "" then
-		ZO_ClearTable(RD.tradeTable) df(RD_LOGO .. "*Linking complete*") CHAT_SYSTEM.textEntry:GetEditControl():LoseFocus()
+		ZO_ClearTable(tradeTable) df(RD_LOGO .. "*Linking complete*") CHAT_SYSTEM.textEntry:GetEditControl():LoseFocus()
 	else
 		StartChatInput(links, CHAT_CHANNEL_PARTY)
-		RD.TradeLinkWait("bops")
+		TradeLinkWait("bops")
 	end
 end
 
@@ -3327,37 +3367,33 @@ function RD.RDUnboundSets()
 		local itemId = GetItemId(bagId, slotIndex)
 		local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
 		local itemType, specialType = GetItemType(bagId, slotIndex)
-		if count < 4 and not IsItemBound(bagId, slotIndex) and not IsItemBoPAndTradeable(bagId, slotIndex) and IsItemLinkSetCollectionPiece(itemLink) and IsItemSetCollectionPieceUnlocked(itemId) and not RD.InTradeTable(itemLink) then
+		if count < 4 and not IsItemBound(bagId, slotIndex) and not IsItemBoPAndTradeable(bagId, slotIndex) and IsItemLinkSetCollectionPiece(itemLink) and IsItemSetCollectionPieceUnlocked(itemId) and not InTradeTable(itemLink) then
 			count = count + 1
-			table.insert(RD.tradeTable, itemLink)
+			table.insert(tradeTable, itemLink)
 			if count == 1 then links = (links .. itemLink) else links = (links .. "-" .. itemLink) end
 		end
 	end
 	if links == "" then
-		ZO_ClearTable(RD.tradeTable) df(RD_LOGO .. "*Linking complete*") CHAT_SYSTEM.textEntry:GetEditControl():LoseFocus()
+		ZO_ClearTable(tradeTable) df(RD_LOGO .. "*Linking complete*") CHAT_SYSTEM.textEntry:GetEditControl():LoseFocus()
 	else
 		StartChatInput(links, CHAT_CHANNEL_PARTY)
-		RD.TradeLinkWait("sets")
+		TradeLinkWait("sets")
 	end
 end
 
-function RD.InTradeTable(itemLink)
-	for _, link in ipairs(RD.tradeTable) do
-		if link == itemLink then return true end
+SLASH_COMMANDS["/rdlink"] = function (option)
+	local bagId = BAG_BACKPACK
+	for slotIndex = 0, GetBagSize(bagId) do
+		if IsItemBoPAndTradeable(bagId, slotIndex) and IsUnitInDungeon("player") then
+			RD.RDBopTradeable()
+			return
+		end
 	end
-	return false
+	RD.RDUnboundSets()
 end
-
-function RD.TradeLinkWait(decision)
-	if CHAT_SYSTEM.textEntry:GetEditControl():GetText() ~= "" then
-		zo_callLater(function() RD.TradeLinkWait(decision) end, 1000)
-	elseif decision == "sets" then
-		RD.RDUnboundSets()
-	elseif decision == "bops" then
-		RD.RDBopTradeable()
-	end
-end
-
+---------------------------------------------
+---------------- /rdpvp --
+---------------------------------------------
 SLASH_COMMANDS["/rdpvp"] = function (option)
 	local addOnManager = GetAddOnManager()
 	local numAddOns = addOnManager:GetNumAddOns()
@@ -3386,7 +3422,9 @@ SLASH_COMMANDS["/rdpvp"] = function (option)
 	end
 	zo_callLater(function() ReloadUI() end, 2000)
 end
-
+---------------------------------------------
+---------------- /rdfc --
+---------------------------------------------
 SLASH_COMMANDS["/rdfc"] = function (option)
 	local secondsLeft = ((GetNextForwardCampRespawnTime() - GetGameTimeMilliseconds()) / 1000)
 	if GetNextForwardCampRespawnTime() ~= 0 and secondsLeft > 0 then
@@ -3396,7 +3434,9 @@ SLASH_COMMANDS["/rdfc"] = function (option)
 		df(RD_LOGO .. "Forward Camp Use Available")
 	end
 end
-
+---------------------------------------------
+---------------- /admin slash stuff --
+---------------------------------------------
 if InAlphaList(GetUnitDisplayName("player")) then
 	SLASH_COMMANDS["/rdadmin"] = function (option)--<< ADMIN INVENTORY DATA FUNCTION
 		if option ~= "" then
@@ -3448,8 +3488,9 @@ local function RDInitializeSettings()
 		LibCustomMenu:RegisterContextMenu(UnMarkPermJunkMenu, tertiary)
 		--LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_MOUSE_UP_EVENT, ChatLinkUnMarkMenu)
 		EVENT_MANAGER:RegisterForEvent("RidinDirtyJunk", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, JunkManager)
-		--EVENT_MANAGER:AddFilterForEvent("RidinDirtyJunk", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
-		EVENT_MANAGER:RegisterForEvent("RidinDirtyJunk", EVENT_OPEN_STORE, AutoSellRepair)
+		EVENT_MANAGER:AddFilterForEvent("RidinDirtyJunk", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
+		EVENT_MANAGER:AddFilterForEvent("RidinDirtyJunk", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_IS_NEW_ITEM, true)
+		EVENT_MANAGER:RegisterForEvent("RidinDirtyRepair", EVENT_OPEN_STORE, AutoSellRepair)
 	end
 	if RD.acctVars.lockArmory then
 		ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled = false
@@ -3478,6 +3519,14 @@ local function RDInitializeSettings()
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_ACTIVITY_FINDER_STATUS_UPDATE, AutoQueue)
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CAMPAIGN_QUEUE_STATE_CHANGED, PvPAutoQueue)
 	end
+	if RD.acctVars.autoRepair then
+		EVENT_MANAGER:RegisterForEvent("RidinDirtyRepair", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, AutoRepair)
+		EVENT_MANAGER:AddFilterForEvent("RidinDirtyRepair", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
+		EVENT_MANAGER:AddFilterForEvent("RidinDirtyRepair", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, INVENTORY_UPDATE_REASON_DURABILITY_CHANGE)
+		EVENT_MANAGER:RegisterForEvent("RidinDirtyRecharge", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, AutoRecharge)
+		EVENT_MANAGER:AddFilterForEvent("RidinDirtyRecharge", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
+		EVENT_MANAGER:AddFilterForEvent("RidinDirtyRecharge", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, INVENTORY_UPDATE_REASON_ITEM_CHARGE)
+	end
 	if RD.acctVars.combatReticle then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_PLAYER_COMBAT_STATE, CombatState)
 		EVENT_MANAGER:RegisterForEvent("RDCombatDeath", EVENT_PLAYER_DEAD, CombatState)
@@ -3487,13 +3536,14 @@ local function RDInitializeSettings()
 		RD.CraftSearchBox:SetHidden(false)
 		ZO_PostHook(ZO_Provisioner, "OnTabFilterChanged", function(provisioner)
 			local show = provisioner.filterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING
-			if SCENE_MANAGER:GetCurrentScene() == PROVISIONER_SCENE then RD.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, -20, -42) else RD.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, 20, -48) end
+			if SCENE_MANAGER:GetCurrentScene() == PROVISIONER_SCENE then RD.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, -20, -42)
+				else RD.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, 20, -48) end
 			RD.CraftSearchBox:SetHidden(not show)
 		end)
 		ZO_PreHook(ZO_Provisioner, "RefreshRecipeList", function()
 			for _, list in pairs(PROVISIONER_MANAGER:GetRecipeListData(GetCraftingInteractionType())) do
 				for _, recipe in ipairs(list.recipes) do
-					RD.craftTable[recipe.resultItemId] = zo_strlower(recipe.name)
+					craftTable[recipe.resultItemId] = zo_strlower(recipe.name)
 				end
 			end
 		end)
@@ -3501,8 +3551,9 @@ local function RDInitializeSettings()
 			local text = zo_strlower(RD.CraftBoxSearch:GetText())
 			if text == "" or self.filterType ~= PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING then return false end
 			local resultItemId = select(10, ...)
-			return not (RD.craftTable[resultItemId] or ""):find(text, 1, true)
+			return not (craftTable[resultItemId] or ""):find(text, 1, true)
 		end)
+		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CRAFTING_STATION_INTERACT, CraftingModeSelector)
 	end
 	if RD.acctVars.withdrawOne then
 		local primary = LibCustomMenu.CATEGORY_PRIMARY
@@ -3570,6 +3621,15 @@ local function RDInitializeSettings()
 		SecurePostHook(ZO_LootAlphaContainerList.dataTypes[1], "setupCallback", function(control, slot)
 			NeedsAndPrice(control, slot)
 		end)
+		--Trade window
+		--SecurePostHook(TRADE, "AddItemToTrade", OnAddItemToTrade)
+		--SecurePostHook(ZO_TradeWindow, "InitializeSlot", function(self, who, tradeIndex, name, icon, stackCount, displayQuality)
+			--if who == TRADE_ME then
+				--df("BYE")
+			--elseif who == TRADE_THEM then
+				--df("HI")
+			--end
+		--end)
 		--Store window
 		EVENT_MANAGER:RegisterForEvent("RidinDirtyLoot", EVENT_COLLECTION_UPDATED, RefreshStore)
 		SecurePostHook(ZO_StoreManager, "SetUpBuySlot", function(self, control, slot)
@@ -3645,7 +3705,7 @@ local function RDInitializeSettings()
 			end
 		end)
 		SecurePostHook(TRADING_HOUSE, "OnPendingPostItemUpdated", function(tradingHouse, slotId, isPending)
-			if not isPending or not slotId or not TamrielTradeCentrePrice then return end
+			if not isPending or not slotId or not TTC then return end
 			local itemLink = GetItemLink(BAG_BACKPACK, slotId)
 			if not itemLink or itemLink == "" then return end
 			local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
@@ -3653,8 +3713,8 @@ local function RDInitializeSettings()
 			local unitPrice = priceInfo[RD.acctVars.ttcPricing] or priceInfo.Avg
 			if not unitPrice or unitPrice <= 0 then return end
 			local stackCount = GetSlotStackSize(BAG_BACKPACK, slotId)
-			local totalPrice = math.floor(unitPrice * stackCount + 0.5)
-			TRADING_HOUSE:SetPendingPostPrice(totalPrice)
+			local finalPrice = math.max(99, math.floor(((unitPrice * stackCount) + 1) / 100) * 100 - 1)
+			TRADING_HOUSE:SetPendingPostPrice(finalPrice)
 		end)
 		SecurePostHook(TRADING_HOUSE, "OpenTradingHouse", function()
 			zo_callLater(function() if TRADING_HOUSE_SEARCH:CanDoCommonOperation() then TRADING_HOUSE_SEARCH:DoSearch() end end, searchDelay)
@@ -3721,6 +3781,7 @@ local function AddOnLoaded(eventCode, addOnName)
 		skipDialogs = false,
 		spamFilter = false,
 		autoQueue = false,
+		autoRepair = false,
 		combatReticle = false,
 		craftingSearch = false,
 	}

@@ -13,7 +13,7 @@ local function method(object, name, ...)
 end
 A.Method = method
 local function format(text)
-    return zo_strformat("<<C:1>>", text or "")
+    return A.DisplayName(text)
 end
 local function lower(text)
     return (zo_strlower or string.lower)(text or "")
@@ -49,7 +49,7 @@ function A.Read()
             quality = GetAntiquityQuality(id) or 1,
             have = DoesAntiquityHaveLead(id), dug = GetNumAntiquitiesRecovered(id) or 0,
             seconds = GetAntiquityLeadTimeRemainingSeconds(id) or 0,
-            zone = format(GetZoneNameById(zoneId)), findZone = findZone,
+            zone = A.ZoneName(zoneId), findZone = findZone,
             zoneId = zoneId, findZoneId = findZoneId,
             sourceRaw = source and source[1] or "",
             sourceShort = source and source[3] or "",
@@ -60,6 +60,7 @@ function A.Read()
             reward = GetAntiquityRewardId(id),
             icon = call(GetAntiquityIcon, id),
         }
+        row.source = A.LocalizeSource(source and source[1] ~= "" and source[1] or A.L("Источник пока не указан"), row)
         local key = setId > 0 and "s" .. setId or "a" .. id
         local group = groups[key]
         if not group then

@@ -4,11 +4,12 @@ local GAMEPAD_PREVIEW_KEYBIND = "UI_SHORTCUT_QUATERNARY"
 local UNLOAD_UPDATE = ADDON_NAME .. "Unload"
 local CURSOR_UPDATE = ADDON_NAME .. "Cursor"
 local STICK_UPDATE = ADDON_NAME .. "Stick"
+local MOUSE_UP_EVENT = ADDON_NAME .. "MouseUp"
+local UI_CHANGE_EVENT = ADDON_NAME .. "InputMode"
 local LOAD_REFRESH_MS = 100
 local CURSOR_REFRESH_MS = 50
 local STICK_REFRESH_MS = 50
 local STICK_THRESHOLD = 0.02
-
 local GAMEPAD_LOAD_SETTLE_S = 0.02
 local GAMEPAD_LOAD_TIMEOUT_S = 0.2
 
@@ -17,6 +18,7 @@ local hoveredTile
 local spinPendingTile
 local spinning = false
 local cursorUpdateActive = false
+local mouseUpWatching = false
 
 local gamepadPreviewCallback
 local gamepadTargetData
@@ -50,7 +52,7 @@ local function GetPreviewCallback(tile)
 end
 
 local function CanSpinTile(tile)
-    -- categories that show the utility wheel are left  alone
+    -- categories that show the utility wheel are left alone
     if not tile or tile.utilityWheel then
         return false
     end
@@ -111,6 +113,35 @@ local function StopSpin()
     end
 end
 
+local function StopWatchingMouseUp()
+    if not mouseUpWatching then
+        return
+    end
+    mouseUpWatching = false
+    EVENT_MANAGER:UnregisterForEvent(MOUSE_UP_EVENT, EVENT_GLOBAL_MOUSE_UP)
+end
+
+local function EndSpin()
+    StopWatchingMouseUp()
+    StopSpin()
+end
+
+local function OnGlobalMouseUp(_, button)
+    if 
+    -- IsCurrentlyPreviewing() and 
+    button == MOUSE_BUTTON_INDEX_LEFT then
+        EndSpin()
+    end
+end
+
+local function WatchMouseUp()
+    if mouseUpWatching then
+        return
+    end
+    mouseUpWatching = true
+    EVENT_MANAGER:RegisterForEvent(MOUSE_UP_EVENT, EVENT_GLOBAL_MOUSE_UP, OnGlobalMouseUp)
+end
+
 local function HookTileMouse(tile)
     local control = tile.control
     if not control or control.collectiblesHoverPreviewHooked then
@@ -122,6 +153,7 @@ local function HookTileMouse(tile)
         if button == MOUSE_BUTTON_INDEX_LEFT then
             -- the preview may still be loading, so retry until it can spin
             spinPendingTile = tile
+            WatchMouseUp()
             StartSpin(tile)
             if spinning then
                 UpdateCursor()
@@ -132,9 +164,32 @@ local function HookTileMouse(tile)
 end
 
 local function OnCollectibleTileFocusChanged(tile, isFocused)
+    if not tile.collectibleData then
+        return
+    end
+    if tile.utilityWheel then
+        return
+    end
+    
+    if not IsCharacterPreviewingAvailable() or not tile:CanPreview() then
+        return
+    end
+
+    local collectibleId = tile.collectibleData:GetId()
+    if ITEM_PREVIEW_KEYBOARD:IsCurrentlyPreviewing(ZO_ITEM_PREVIEW_COLLECTIBLE, collectibleId) then
+        return
+    end
+        local previewCallback = GetPreviewCallback(tile)
+    if not previewCallback then
+        return
+    end
+
     if not isFocused then
         if spinPendingTile == tile then
             spinPendingTile = nil
+            if not spinning then
+                StopWatchingMouseUp()
+            end
         end
         if loadedTile == tile then
             Unload()
@@ -149,31 +204,10 @@ local function OnCollectibleTileFocusChanged(tile, isFocused)
         return
     end
 
-    if tile.utilityWheel then
-        return
-    end
-
     hoveredTile = tile
     SetCursorUpdateActive(true)
     UpdateCursor()
     HookTileMouse(tile)
-
-    if not tile.collectibleData or not ITEM_PREVIEW_KEYBOARD then
-        return
-    end
-    if not IsCharacterPreviewingAvailable() or not tile:CanPreview() then
-        return
-    end
-
-    local collectibleId = tile.collectibleData:GetId()
-    if ITEM_PREVIEW_KEYBOARD:IsCurrentlyPreviewing(ZO_ITEM_PREVIEW_COLLECTIBLE, collectibleId) then
-        return
-    end
-
-    local previewCallback = GetPreviewCallback(tile)
-    if not previewCallback then
-        return
-    end
 
     if loadedTile then
         Unload()
@@ -182,12 +216,6 @@ local function OnCollectibleTileFocusChanged(tile, isFocused)
     loadedTile = tile
     tile.OnUpdate = previewCallback
     EVENT_MANAGER:RegisterForUpdate(UNLOAD_UPDATE, LOAD_REFRESH_MS, Unload, true)
-end
-
-local function OnGlobalMouseUp(_, button)
-    if button == MOUSE_BUTTON_INDEX_LEFT then
-        StopSpin()
-    end
 end
 
 local function IsUtilityWheelOpen(book)
@@ -306,30 +334,90 @@ local function StopGamepadActivity()
     gamepadPreviewedId = nil
 end
 
+local function OnGamepadSceneStateChanged(_, newState)
+    if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
+        gamepadTargetData = nil
+        gamepadPreviewedId = nil
+        SetStickUpdateActive(true)
+    elseif newState == SCENE_HIDING or newState == SCENE_HIDDEN then
+        StopGamepadActivity()
+    end
+end
+
+-- This is mainly to handle players switching back and forth between keyboard/gamepad UI on PC
+local keyboardHook
+local keyboardOriginalOnFocusChanged
+
+local function InstallKeyboardHooks()
+    if keyboardHook then
+        return
+    end
+    keyboardOriginalOnFocusChanged = ZO_PostHook(ZO_CollectibleTile_Keyboard, "OnFocusChanged",
+        OnCollectibleTileFocusChanged)
+    keyboardHook = ZO_CollectibleTile_Keyboard.OnFocusChanged
+    ITEM_PREVIEW_KEYBOARD:RegisterCallback("EndCurrentPreview", EndSpin)
+end
+
+local function RemoveKeyboardHooks()
+    EndSpin()
+    hoveredTile = nil
+    Unload()
+    SetCursorUpdateActive(false)
+    UpdateCursor()
+    ITEM_PREVIEW_KEYBOARD:UnregisterCallback("EndCurrentPreview", EndSpin)
+    if keyboardHook and ZO_CollectibleTile_Keyboard.OnFocusChanged == keyboardHook then
+        ZO_CollectibleTile_Keyboard.OnFocusChanged = keyboardOriginalOnFocusChanged
+    end
+    keyboardHook = nil
+    keyboardOriginalOnFocusChanged = nil
+end
+
+local function InstallGamepadHooks()
+    GAMEPAD_COLLECTIONS_BOOK_SCENE:UnregisterCallback("StateChange", OnGamepadSceneStateChanged)
+    ITEM_PREVIEW_GAMEPAD:UnregisterCallback("EndCurrentPreview", OnGamepadPreviewEnded)
+    ITEM_PREVIEW_GAMEPAD:UnregisterCallback("RefreshActions", RestoreGamepadUpdate)
+    GAMEPAD_COLLECTIONS_BOOK_SCENE:RegisterCallback("StateChange", OnGamepadSceneStateChanged)
+    ITEM_PREVIEW_GAMEPAD:RegisterCallback("EndCurrentPreview", OnGamepadPreviewEnded)
+    ITEM_PREVIEW_GAMEPAD:RegisterCallback("RefreshActions", RestoreGamepadUpdate)
+end
+
+local function RemoveGamepadHooks()
+    StopGamepadActivity()
+    GAMEPAD_COLLECTIONS_BOOK_SCENE:UnregisterCallback("StateChange", OnGamepadSceneStateChanged)
+    ITEM_PREVIEW_GAMEPAD:UnregisterCallback("EndCurrentPreview", OnGamepadPreviewEnded)
+    ITEM_PREVIEW_GAMEPAD:UnregisterCallback("RefreshActions", RestoreGamepadUpdate)
+end
+
+local function OnUIChanged(_, gamepadPreferred)
+    if gamepadPreferred then
+        RemoveKeyboardHooks()
+        InstallGamepadHooks()
+    else
+        RemoveGamepadHooks()
+        InstallKeyboardHooks()
+    end
+end
+
+local function OnLoadHook()
+    if ZO_IsConsoleOrGameCoreUI() then
+        InstallGamepadHooks()
+        return
+    end
+    if IsInGamepadPreferredMode() then
+        InstallGamepadHooks()
+    else
+        InstallKeyboardHooks()
+    end
+    EVENT_MANAGER:RegisterForEvent(UI_CHANGE_EVENT, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, OnUIChanged)
+end
+
 local function OnAddOnLoaded(eventCode, addonName)
     if addonName ~= ADDON_NAME then
         return
     end
     EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
 
-    GAMEPAD_COLLECTIONS_BOOK_SCENE:RegisterCallback("StateChange", function(_, newState)
-        if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
-            gamepadTargetData = nil
-            gamepadPreviewedId = nil
-            SetStickUpdateActive(true)
-        elseif newState == SCENE_HIDING or newState == SCENE_HIDDEN then
-            StopGamepadActivity()
-        end
-    end)
-
-    ITEM_PREVIEW_GAMEPAD:RegisterCallback("EndCurrentPreview", OnGamepadPreviewEnded)
-    ITEM_PREVIEW_GAMEPAD:RegisterCallback("RefreshActions", RestoreGamepadUpdate)
-
-    ZO_PostHook(ZO_CollectibleTile_Keyboard, "OnFocusChanged", OnCollectibleTileFocusChanged)
-
-    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "Spin", EVENT_GLOBAL_MOUSE_UP, OnGlobalMouseUp)
-
-    ITEM_PREVIEW_KEYBOARD:RegisterCallback("EndCurrentPreview", StopSpin)
+    OnLoadHook()
 end
 
 EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, OnAddOnLoaded)

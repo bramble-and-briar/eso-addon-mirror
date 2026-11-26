@@ -1,6 +1,6 @@
 <GuiXml>
     <Controls>
-        <!-- One character per row. The cells are made in Window.lua, as many as the widest view needs. -->
+        <!-- One character per row. The cells are made in Window.lua, as many as the widest tab needs. -->
         <Control name="FurysCharacterTracker_Row" virtual="true" mouseEnabled="true">
             <Dimensions x="1368" y="28" />
             <Controls>
@@ -14,7 +14,7 @@
         </Control>
 
         <TopLevelControl name="FurysCharacterTracker_Window" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true">
-            <Dimensions x="1420" y="760" />
+            <Dimensions x="1420" y="784" />
             <Anchor point="CENTER" />
             <OnMouseDown>FurysCharacterTracker.Raise(self)</OnMouseDown>
             <OnMoveStop>FurysCharacterTracker.Window.SavePosition()</OnMoveStop>
@@ -33,13 +33,18 @@
                     <Anchor point="TOPRIGHT" offsetX="-12" offsetY="12" />
                     <OnClicked>FurysCharacterTracker.Window:Hide()</OnClicked>
                 </Button>
+                <!-- The tabs, made in Window.lua, and the line they sit on. -->
                 <Control name="$(parent)Views">
-                    <Dimensions x="1384" y="30" />
-                    <Anchor point="TOPLEFT" offsetX="18" offsetY="56" />
+                    <Dimensions x="1384" y="32" />
+                    <Anchor point="TOPLEFT" offsetX="18" offsetY="54" />
                 </Control>
-                <Label name="$(parent)Summary" font="ZoFontGameSmall" color="B4B0D8">
+                <Texture name="$(parent)ViewsLine" color="4A3D99">
+                    <Dimensions x="1384" y="1" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Views" relativePoint="BOTTOMLEFT" />
+                </Texture>
+                <Label name="$(parent)Summary" font="ZoFontGameSmall" color="B4B0D8" wrapMode="ELLIPSIS" mouseEnabled="true">
                     <Dimensions x="1384" y="20" />
-                    <Anchor point="TOPLEFT" relativeTo="$(parent)Views" relativePoint="BOTTOMLEFT" offsetY="8" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ViewsLine" relativePoint="BOTTOMLEFT" offsetY="8" />
                 </Label>
                 <Control name="$(parent)Header">
                     <Dimensions x="1384" y="26" />
@@ -51,11 +56,11 @@
                 </Texture>
                 <Control name="$(parent)List" inherits="ZO_ScrollList">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)HeaderLine" relativePoint="BOTTOMLEFT" offsetY="4" />
-                    <Anchor point="BOTTOMRIGHT" offsetX="-18" offsetY="-92" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-18" offsetY="-116" />
                 </Control>
                 <Texture name="$(parent)TotalsLine" color="4A3D99">
                     <Dimensions x="1384" y="1" />
-                    <Anchor point="BOTTOMLEFT" offsetX="18" offsetY="-88" />
+                    <Anchor point="BOTTOMLEFT" offsetX="18" offsetY="-112" />
                 </Texture>
                 <Control name="$(parent)Totals" inherits="FurysCharacterTracker_Row">
                     <Dimensions x="1384" />
@@ -63,10 +68,10 @@
                 </Control>
                 <Control name="$(parent)Footer">
                     <Dimensions x="1384" y="30" />
-                    <Anchor point="BOTTOMLEFT" offsetX="18" offsetY="-14" />
+                    <Anchor point="BOTTOMLEFT" offsetX="18" offsetY="-38" />
                 </Control>
                 <Label name="$(parent)Legend" font="ZoFontGameSmall" color="B4B0D8">
-                    <Anchor point="BOTTOMRIGHT" offsetX="-20" offsetY="-20" />
+                    <Anchor point="BOTTOMLEFT" offsetX="20" offsetY="-12" />
                 </Label>
             </Controls>
         </TopLevelControl>

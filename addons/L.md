@@ -50,8 +50,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ledger - Unofficial Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BSKCorp/Ledger---Unofficial-Patch__2380) | BSKCorp | PC / Mac | 1.3.2 |
 | [Left Right Simple Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sergi4ek/Left-Right-Simple-Addon__3767) | sergi4ek | PC / Mac | 1.2.2 |
 | [Lens Flare Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Lens-Flare-Toggle__1215) | CaptainBlagbird | PC / Mac | 1.0.14 |
-| [Leo's Altholic (Fix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Fix__3596) | sshogrin | PC / Mac | 1.9.8 |
-| [Leo's Altholic Standalone Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Standalone-Viewer__5071) | sshogrin | PC / Mac | 1.1.2 |
+| [Leo's Altholic (Fix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Fix__3596) | sshogrin | PC / Mac | 1.9.9 |
+| [Leo's Altholic Standalone Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Standalone-Viewer__5071) | sshogrin | PC / Mac | 1.2.0 |
 | [Leo's Dolmen Runner - LDR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Dolmen-Runner---LDR__2534) | LeandroSilva | PC / Mac | 1.3.1 |
 | [Leo's Dolmen Runner - REDUX (with inviter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kiasmalyn/Leo-s-Dolmen-Runner---REDUX-with-inviter__3629) | Kiasmalyn | PC / Mac | 2.1.5 |
 | [Leo's Guild Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Guild-Manager__2151) | LeandroSilva | PC / Mac | 1.3.0 |

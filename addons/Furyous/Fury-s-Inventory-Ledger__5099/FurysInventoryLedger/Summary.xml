@@ -28,13 +28,25 @@
                     <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
                 </Button>
 
+                <Backdrop name="$(parent)FindBg" inherits="ZO_EditBackdrop">
+                    <Dimensions x="300" y="28" />
+                    <Anchor point="TOPRIGHT" offsetX="-20" offsetY="52" />
+                    <Controls>
+                        <EditBox name="$(parent)Edit" inherits="ZO_DefaultEditForBackdrop" maxInputCharacters="60">
+                            <OnTextChanged>FurysInventoryLedger.OnFindChanged(self)</OnTextChanged>
+                            <OnMouseEnter>InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -4); SetTooltipText(InformationTooltip, "Type part of an item or set name to see where it is, on every character and account. Clear the box to go back.")</OnMouseEnter>
+                            <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
+                        </EditBox>
+                    </Controls>
+                </Backdrop>
+
                 <Label name="$(parent)Sub" font="ZoFontGame" color="B4B0D8" wrapMode="ELLIPSIS">
-                    <Dimensions x="940" y="24" />
+                    <Dimensions x="620" y="24" />
                     <Anchor point="TOPLEFT" offsetX="20" offsetY="54" />
                 </Label>
 
                 <Control name="$(parent)Body" inherits="ZO_ScrollContainer">
-                    <Anchor point="TOPLEFT" offsetX="20" offsetY="82" />
+                    <Anchor point="TOPLEFT" offsetX="20" offsetY="90" />
                     <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-60" />
                 </Control>
 
@@ -42,12 +54,16 @@
                     <Dimensions x="140" y="30" />
                     <Anchor point="BOTTOMLEFT" offsetX="20" offsetY="-16" />
                     <OnClicked>FurysInventoryLedger.RefreshSummary()</OnClicked>
+                    <OnMouseEnter>InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -4); SetTooltipText(InformationTooltip, "Redraws the page with the latest numbers.")</OnMouseEnter>
+                    <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
                 </Button>
 
                 <Button name="$(parent)Copy" inherits="ZO_DefaultButton" text="Copy for Excel">
                     <Dimensions x="200" y="30" />
                     <Anchor point="BOTTOMRIGHT" offsetX="-20" offsetY="-16" />
                     <OnClicked>FurysInventoryLedger.SummaryToCopy()</OnClicked>
+                    <OnMouseEnter>InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -4); SetTooltipText(InformationTooltip, "Opens the whole list as text you can copy and paste into Excel (also /ledger copy).")</OnMouseEnter>
+                    <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
                 </Button>
             </Controls>
         </TopLevelControl>

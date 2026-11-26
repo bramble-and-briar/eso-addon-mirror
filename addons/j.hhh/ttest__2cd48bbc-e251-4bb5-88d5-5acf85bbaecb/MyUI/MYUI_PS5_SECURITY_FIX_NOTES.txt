@@ -1,0 +1,10 @@
+My UI PS5 - defensive fixes (2026-11-25)
+
+- BUI_Automation: replaced unavailable GetItemQuality with guarded item-link quality check.
+- Recharge Charge: skips invalid/zero maximum charge, prevents division by zero.
+- Recharge Charge/Repair: checks combat and enable toggles at the actual consumption point, including delayed callbacks.
+- Repair: enforces explicit Crown-kit consent even for stale cached kit lists.
+- Recharge: old /arc and /arp numerical parameters cannot change fixed 5-percent policy.
+- Impresario group-kit automatic consumption remains OPT-IN ONLY and needs a real PS5 runtime test (item ID and secure call not independently validated).
+- Settings nesting remains dependent on native LibGamepad availability; deep LAM-console fallback is NOT a guaranteed nested UI. No untested menu rewrite claimed.
+- Static Lua syntax and ZIP integrity validated; no access to PS5 ESO runtime.

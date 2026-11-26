@@ -1,0 +1,18 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Fury's Quality of Life">
+            <Action name="FURYSQUALITYOFLIFE_SELECT_ALL">
+                <Down>FurysQualityOfLife.SelectAllKey()</Down>
+            </Action>
+            <Action name="FURYSQUALITYOFLIFE_LOCK">
+                <Down>FurysQualityOfLife.LockWorn()</Down>
+            </Action>
+            <Action name="FURYSQUALITYOFLIFE_UNLOCK">
+                <Down>FurysQualityOfLife.UnlockWorn()</Down>
+            </Action>
+            <Action name="FURYSQUALITYOFLIFE_GUIDE">
+                <Down>FurysQualityOfLife.ToggleStart()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

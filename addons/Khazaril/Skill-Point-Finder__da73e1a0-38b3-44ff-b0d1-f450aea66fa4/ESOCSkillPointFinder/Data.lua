@@ -59,6 +59,13 @@ Data.BASE_ZONES = {
 -- PvP zones: skyshards here are risky, so they go last and can be hidden.
 Data.PVP_ZONES = { ["cyrodiil"] = true, ["imperial city"] = true, ["imperial sewers"] = true }
 
+-- Group event achievements that aren't named "<public dungeon> Group Event", by lower-case
+-- achievement name. Source: UESP "Achievements with Skill Points", checked 25 November 2026.
+Data.GROUP_EVENT_EXTRA = {
+    ["brazen victory"] = "Silorn",                   -- Gold Road
+    ["mirror smasher"] = "Leftwheal Trading Post",   -- Gold Road
+}
+
 -- Zones whose skyshards are mostly inside group delves: soloable for a decent player, but tougher than normal delves.
 Data.GROUP_SHARD_ZONES = { ["craglorn"] = true }
 

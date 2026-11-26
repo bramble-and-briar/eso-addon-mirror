@@ -65,7 +65,12 @@ local function look(achievementId)
     local raw = SP.Safe(GetAchievementInfo, achievementId)
     if type(raw) ~= "string" then return end
     local lower = string.lower(raw)
-    if string.find(lower, "group event", 1, true) then
+    local extra = SP.Data.GROUP_EVENT_EXTRA[lower]
+    if extra then
+        achievementIndex.groupEvents[SP.Loose(extra)] = achievementId
+        local list = achievementIndex.groupEventList
+        list[#list + 1] = { id = achievementId, name = SP.Clean(raw), pairsWith = extra }
+    elseif string.find(lower, "group event", 1, true) then
         local public = string.match(SP.Loose(raw), "^(.-) group event$")
         if public then
             achievementIndex.groupEvents[public] = achievementId
@@ -137,7 +142,7 @@ local function readZoneStories(state)
                 local achievementId = groupEvents[SP.Loose(name)]
                 if not achievementId then
                     for _, event in ipairs(indexAchievements().groupEventList) do
-                        if SP.WordsMatch(event.name, name) then
+                        if SP.WordsMatch(event.pairsWith or event.name, name) then
                             achievementId = event.id
                             break
                         end

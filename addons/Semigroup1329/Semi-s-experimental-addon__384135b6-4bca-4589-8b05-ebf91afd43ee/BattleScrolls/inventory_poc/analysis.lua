@@ -127,7 +127,7 @@ function analysis.build(items, deposits, size)
         local fate = deposit and 'bank' or decidedFate(decision)
         ---@type InventoryPocAnalysisRow
         local row = { item = item, decision = decision, fate = fate, quantity = item.stack,
-            quoted = facts.quotes[facts.variantKey(item)] ~= nil, discounted = returns.isDiscounted(item),
+            quoted = facts.quoted(item), discounted = returns.isDiscounted(item),
             buildDeposit = deposit, overflow = false }
         if fate == 'list' then
             row.quantity = policy.listingQuantity(item)

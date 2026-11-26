@@ -1,6 +1,7 @@
 -- Ref: docs/adr/0001-arquitectura-modular-zero-dependency-y-savedvars-por-personaje.md
 -- Ref: docs/adr/0009-transporte-correo-multiparte-rpqp.md
 -- Ref: docs/adr/0011-flujo-solo-correo-1-a-1-y-eliminacion-codigos-manuales.md
+-- Ref: docs/adr/0015-separacion-ciclo-de-vida-y-estado-de-resolucion.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -13,6 +14,7 @@ local QUEST_SUBJECT_PREFIX = "[RPQuest] "
 local COMPLETION_SUBJECT_PREFIX = "[RPQuest:Done] "
 local REJECTION_SUBJECT_PREFIX = "[RPQuest:Rejected] "
 local ACCEPTANCE_SUBJECT_PREFIX = "[RPQuest:Accepted] "
+local FAILURE_SUBJECT_PREFIX = "[RPQuest:Failed] "
 
 function MailInbox:Initialize()
     self._receivedMails = {}
@@ -71,6 +73,7 @@ function MailInbox:IsCompletionMailSubject(subject)
     return string.sub(subject, 1, #COMPLETION_SUBJECT_PREFIX) == COMPLETION_SUBJECT_PREFIX
         or string.sub(subject, 1, #REJECTION_SUBJECT_PREFIX) == REJECTION_SUBJECT_PREFIX
         or string.sub(subject, 1, #ACCEPTANCE_SUBJECT_PREFIX) == ACCEPTANCE_SUBJECT_PREFIX
+        or string.sub(subject, 1, #FAILURE_SUBJECT_PREFIX) == FAILURE_SUBJECT_PREFIX
 end
 
 function MailInbox:ParseCompletionMailBody(body)
@@ -104,6 +107,8 @@ function MailInbox:ProcessCompletionMail(mailId, senderDisplayName, _subject, bo
                 local alertKey = "ALERT_MAIL_DELIVERY_VALIDATED"
                 if res.resultType == "accepted" or res.accepted then
                     alertKey = "ALERT_MAIL_ACCEPTANCE_RECEIVED"
+                elseif res.resultType == "failed" or res.failed then
+                    alertKey = "ALERT_MAIL_FAILURE_RECEIVED"
                 elseif res.resultType == "rejected" or res.rejected or res.completed == false then
                     alertKey = "ALERT_MAIL_REJECTION_RECEIVED"
                 end

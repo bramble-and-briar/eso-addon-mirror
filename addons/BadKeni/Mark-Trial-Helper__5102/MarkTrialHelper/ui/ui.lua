@@ -211,10 +211,7 @@ function AH.ShowNotice(message)
         AH.Keys["Notice"] = noticeKey
     end
 end
-
--- ============================================
 -- УЛУЧШЕННОЕ УВЕДОМЛЕНИЕ О КВЕСТОВОМ ПРЕДМЕТЕ
--- ============================================
 function AH.ShowQuestReminder()
     if (AH.Vars.CheckQuestItems and AH.FoundQuestItem) then
         ensureFramePoolExists()
@@ -630,10 +627,7 @@ function AH.HideCrossingHelper()
         AH.CrossingHelperFrame:SetHidden(true)
     end
 end
-
--- ============================================
 -- ФУНКЦИЯ RELEASE С ОСТАНОВКОЙ МИГАНИЯ
--- ============================================
 function AH.Release(frame)
     -- Останавливаем мигание для квестового уведомления
     if frame == "QuestReminder" or frame == "Quest" then

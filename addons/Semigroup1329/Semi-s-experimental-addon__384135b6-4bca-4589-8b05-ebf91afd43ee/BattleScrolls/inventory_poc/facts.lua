@@ -138,7 +138,7 @@ end
 
 local policy = BattleScrolls.inventoryPocPolicy
 ---@class InventoryPocCachedQuote
----@field price number
+---@field price number|nil Nil when a completed guild store search found nobody selling and no price list entry
 ---@field expiredPrice number|nil
 
 ---Item id from the link text. GetItemLinkItemId would create native item
@@ -164,11 +164,19 @@ function facts.variantKey(item)
 end
 
 ---@param item InventoryPocVariant
----@param price number
+---@param price number|nil Nil records a completed search that found no price
 ---@param expiredPrice number|nil
 function facts.rememberQuote(item, price, expiredPrice)
     facts.quotes[facts.variantKey(item)] = { price = price, expiredPrice = expiredPrice }
     facts.quoteRevision = facts.quoteRevision + 1
+end
+
+---A guild store price is remembered for this variant.
+---@param item InventoryPocVariant
+---@return boolean
+function facts.quoted(item)
+    local quote = facts.quotes[facts.variantKey(item)]
+    return quote ~= nil and quote.price ~= nil
 end
 
 ---@param link string
@@ -191,11 +199,13 @@ end
 ---@param expired boolean|nil
 ---@return number|nil
 ---@return boolean|nil loading
+---@return boolean noOffers A completed guild store search found nobody selling it
 function facts.marketPrice(link, expired)
     local quote = facts.quotes[facts.variantKey(facts.variant(link))]
-    if quote then return expired and quote.expiredPrice or quote.price end
+    if quote and quote.price then return expired and quote.expiredPrice or quote.price, nil, false end
+    -- A search that found nothing leaves the price list in charge: an entry can still appear.
     local price, loading = facts.referencePrice(link)
-    return price and (expired and price * 0.5 or price) or nil, loading
+    return price and (expired and price * 0.5 or price) or nil, loading, quote ~= nil
 end
 local CRAFTER_NAME = 'Isomorphism'
 -- Confirmed in game; native fragment APIs do not expose pieces consumed per use.
@@ -678,7 +688,7 @@ function facts.item(bag, slot, reserved)
         end
     end
     local sellInformation = GetItemSellInformation(bag, slot)
-    local marketUnit, marketLoading = facts.marketPrice(link)
+    local marketUnit, marketLoading, noOffers = facts.marketPrice(link)
     local styleMaterialUnit, styleLoading, traitMaterialUnit, traitLoading, improvementUnit, improvementLoading
     local baseMaterialUnit, baseLoading
     if baseMaterial ~= '' then baseMaterialUnit, baseLoading = facts.price(baseMaterial) end
@@ -696,7 +706,7 @@ function facts.item(bag, slot, reserved)
         locked = locked,
         reserved = equipped or locked or IsItemInArmory(bag, slot) or (reserved and reserved[uniqueId]) == true,
         stolen = IsItemStolen(bag, slot), crown = IsItemLinkFromCrownStore(link) or IsItemLinkFromCrownCrate(link),
-        vendorUnit = GetItemSellValueWithBonuses(bag, slot), marketUnit = marketUnit,
+        vendorUnit = GetItemSellValueWithBonuses(bag, slot), marketUnit = marketUnit, noOffers = noOffers or nil,
         prioritySell = sellInformation == ITEM_SELL_INFORMATION_PRIORITY_SELL,
         cannotSell = sellInformation == ITEM_SELL_INFORMATION_CANNOT_SELL,
         styleMaterialLink = material, styleMaterialUnit = styleMaterialUnit,

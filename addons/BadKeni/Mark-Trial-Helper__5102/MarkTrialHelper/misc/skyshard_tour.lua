@@ -16,7 +16,7 @@ local EXTRA_ZONE_SHARDS = {
 
 local function GetLineControl(idx)
     if not lineControls[idx] then
-        local line = WINDOW_MANAGER:CreateControlFromVirtual("MarkTrialHelper_SkyLine_" .. idx, ZO_WorldMapContainer, "HarvestLink")
+        local line = (Harvest and Harvest.mapPins) and WINDOW_MANAGER:CreateControlFromVirtual("MarkTrialHelper_SkyLine_" .. idx, ZO_WorldMapContainer, "HarvestLink") or WINDOW_MANAGER:CreateControl("MarkTrialHelper_SkyLine_" .. idx, ZO_WorldMapContainer, CT_TEXTURE)
         line:SetDrawTier(DT_HIGH)
         line:SetDrawLayer(DL_OVERLAY)
         lineControls[idx] = line

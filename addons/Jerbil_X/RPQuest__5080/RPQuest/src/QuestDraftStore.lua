@@ -5,6 +5,7 @@
 -- Ref: docs/adr/0006-puntos-de-descubrimiento-ocultos.md
 -- Ref: docs/adr/0007-dialogos-inyectados-en-npcs-nativos.md
 -- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
+-- Ref: docs/adr/0016-limites-texto-y-entidades-presupuesto-correo.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -29,11 +30,41 @@ function QuestDraftStore:NormalizeStealthMode(value, legacyBool)
     return disabled
 end
 
+function QuestDraftStore:GetQuestIconEntry(iconId)
+    if type(iconId) ~= "string" or iconId == "" then
+        return nil
+    end
+    local catalog = Addon.Constants and Addon.Constants.QUEST_ICONS
+    if type(catalog) ~= "table" then
+        return nil
+    end
+    for _, entry in ipairs(catalog) do
+        if entry.id == iconId then
+            return entry
+        end
+    end
+    return nil
+end
+
+function QuestDraftStore:NormalizeQuestIcon(value)
+    if type(value) ~= "string" or value == "" or value == "none" then
+        return nil
+    end
+    local entry = self:GetQuestIconEntry(value)
+    return entry and entry.id or nil
+end
+
+function QuestDraftStore:GetQuestIconTexture(iconId)
+    local entry = self:GetQuestIconEntry(iconId)
+    return entry and entry.texture or nil
+end
+
 function QuestDraftStore:CreateDefaultDraft()
     return {
         editingQuestId = nil,
         title = "",
         description = "",
+        icon = nil,
         recipientAccount = "",
         recipientCharacterName = "",
         clue = "",
@@ -75,13 +106,14 @@ function QuestDraftStore:EnsureDraft(draft)
     draft.hideMapArea = nil
     draft.stealthMode = self:NormalizeStealthMode(draft.stealthMode, draft.requireUndetected)
     draft.requireUndetected = nil
+    draft.icon = self:NormalizeQuestIcon(draft.icon)
     return draft
 end
 
 function QuestDraftStore:CloneDialoguesList(dialogues, fallbackClue)
     local out = {}
     if type(dialogues) ~= "table" then return out end
-    local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 3
+    local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 4
     local fallback = type(fallbackClue) == "string" and fallbackClue or ""
     for _, d in ipairs(dialogues) do
         if #out >= maxNpcs then break end
@@ -153,7 +185,6 @@ function QuestDraftStore:CloneTargetsList(targets, existingTargetsByName)
                 optional = (t.optional == true),
                 customMessage = type(t.customMessage) == "string" and t.customMessage or "",
                 customMessageInLocation = type(t.customMessageInLocation) == "string" and t.customMessageInLocation or "",
-                customMessageOutsideLocation = type(t.customMessageOutsideLocation) == "string" and t.customMessageOutsideLocation or "",
             })
         end
     end
@@ -251,6 +282,10 @@ function QuestDraftStore:AddDraftDiscoveryPoint(repo, data)
     end
     local draft = self:GetDraft(repo)
     draft.discoveries = draft.discoveries or {}
+    local maxPoints = (Addon.Constants and Addon.Constants.DISCOVERY and Addon.Constants.DISCOVERY.MAX_POINTS) or 10
+    if #draft.discoveries >= maxPoints then
+        return nil, Addon.Locale:Get("ALERT_DISCOVERY_LIMIT", maxPoints)
+    end
     local defaultRad = draft.discoveryRadius or Addon.Constants.DISCOVERY_RADIUS.MEDIUM
     local point = {
         zoneId = math.floor(tonumber(data.zoneId) or 0),
@@ -329,7 +364,7 @@ end
 function QuestDraftStore:AddDraftDialogue(repo, npcName, zoneId, responseText, clueText)
     local draft = self:GetDraft(repo)
     draft.dialogues = draft.dialogues or {}
-    local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 3
+    local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 4
     if #draft.dialogues >= maxNpcs then
         return nil, Addon.Locale:Get("ALERT_DIALOGUE_LIMIT", maxNpcs)
     end
@@ -437,6 +472,7 @@ function QuestDraftStore:LoadQuestIntoDraft(repo, questId)
         areaRadius = (quest.targets and quest.targets[1] and quest.targets[1].areaRadius) or quest.areaRadius or Addon.Constants.AREA_RADIUS.MEDIUM,
         recommendHideMapAreas = (quest.recommendHideMapAreas ~= nil) and (quest.recommendHideMapAreas == true) or (quest.hideMapArea == true),
         stealthMode = self:NormalizeStealthMode(quest.stealthMode, quest.requireUndetected),
+        icon = self:NormalizeQuestIcon(quest.icon),
     }
     repo:NotifyListeners("DRAFT_UPDATED", repo.savedVars.draft)
     return repo.savedVars.draft
@@ -448,6 +484,7 @@ function QuestDraftStore:UpdateDraftFields(repo, fields, silent)
 
     if fields.title ~= nil then draft.title = tostring(fields.title) end
     if fields.description ~= nil then draft.description = tostring(fields.description) end
+    if fields.icon ~= nil then draft.icon = self:NormalizeQuestIcon(fields.icon) end
     if fields.recipientAccount ~= nil then draft.recipientAccount = tostring(fields.recipientAccount) end
     if fields.recipientCharacterName ~= nil then draft.recipientCharacterName = tostring(fields.recipientCharacterName) end
     if fields.clue ~= nil then draft.clue = tostring(fields.clue) end
@@ -528,6 +565,10 @@ function QuestDraftStore:SetDraftCapturedTarget(repo, captureData)
         matchedEntry.areaCenterX = tAreaCenterX
         matchedEntry.areaCenterY = tAreaCenterY
     else
+        local maxTargets = (Addon.Constants and Addon.Constants.TARGET and Addon.Constants.TARGET.MAX_TARGETS) or 4
+        if #draft.targets >= maxTargets then
+            return nil, Addon.Locale:Get("ALERT_TARGET_LIMIT", maxTargets)
+        end
         matchedEntry = {
             name = cleanName,
             currentCount = 0,
@@ -540,7 +581,6 @@ function QuestDraftStore:SetDraftCapturedTarget(repo, captureData)
             optional = false,
             customMessage = "",
             customMessageInLocation = "",
-            customMessageOutsideLocation = "",
         }
         table.insert(draft.targets, matchedEntry)
     end
@@ -614,9 +654,6 @@ function QuestDraftStore:UpdateDraftTarget(repo, index, fields, silent)
     end
     if fields.customMessageInLocation ~= nil then
         target.customMessageInLocation = tostring(fields.customMessageInLocation)
-    end
-    if fields.customMessageOutsideLocation ~= nil then
-        target.customMessageOutsideLocation = tostring(fields.customMessageOutsideLocation)
     end
     if fields.areaRadius ~= nil then
         local newAreaRad = tonumber(fields.areaRadius)
@@ -698,6 +735,8 @@ local function ApplyDraftFieldsToQuest(store, repo, existing, draft, fields)
         existing.sentAt = nil
         existing.lastResult = nil
         existing.deliveries = {}
+        existing.lifecycle = Addon.Constants.QUEST_LIFECYCLE.DRAFT
+        existing.resolution = nil
     end
     existing.clue = fields.clue
     existing.completionMessage = fields.completionMessage
@@ -719,6 +758,7 @@ local function ApplyDraftFieldsToQuest(store, repo, existing, draft, fields)
     existing.recommendHideMapAreas = (draft.recommendHideMapAreas ~= false)
     local stealthMode = store:NormalizeStealthMode(draft.stealthMode)
     existing.stealthMode = stealthMode
+    existing.icon = store:NormalizeQuestIcon(draft.icon)
     existing.requireUndetected = nil
     if stealthMode == Addon.Constants.STEALTH_MODE.DISABLED then
         existing.wasDetected = false
@@ -809,6 +849,7 @@ local function CreateQuestFromDraft(store, repo, targetId, draft, fields)
         worldZ = draft.worldZ,
         recommendHideMapAreas = (draft.recommendHideMapAreas ~= false),
         stealthMode = store:NormalizeStealthMode(draft.stealthMode),
+        icon = store:NormalizeQuestIcon(draft.icon),
     }
 
     local newQuest = repo:BuildQuestRecord(
@@ -853,6 +894,10 @@ function QuestDraftStore:SaveDraft(repo, titleInput, descriptionInput, areaRadiu
 
     draft.targets = draft.targets or {}
     draft.discoveries = draft.discoveries or {}
+
+    if repo:HasMissingDiscoveryMessage(draft) then
+        return nil, Addon.Locale:Get("ERR_DISCOVERY_MISSING_MSG")
+    end
 
     local defaultAreaRad = draft.areaRadius or Addon.Constants.AREA_RADIUS.MEDIUM
     for _, t in ipairs(draft.targets) do

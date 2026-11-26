@@ -7,6 +7,8 @@ local function EnforceFivePercent()
     if not sv then return end
     sv.minChargePercent = 0.05
     sv.minConditionPercent = 0.05
+    sv.dontUseCrownRepairKits = (sv.myuiAllowCrownRepairKits ~= true)
+    sv.useCrownRepairKitsFirst = false
     sv.chargeDuringCombat = false
     sv.repairDuringCombat = false
     sv.chargeOnWeaponChange = false
@@ -37,6 +39,27 @@ function Recharge.BuildSettingsMenu()
                 if Recharge.settings then Recharge.settings.repairEnabled = value == true; EnforceFivePercent() end
             end,
             default = true, width = "full",
+        },
+        {
+            type = "checkbox", name = "Kronen-Reparaturkits erlauben",
+            tooltip = "Aus: Kronen-Reparaturkits werden niemals automatisch verbraucht. Standard: Aus.",
+            getFunc = function() return Recharge.settings and Recharge.settings.myuiAllowCrownRepairKits == true end,
+            setFunc = function(value)
+                if Recharge.settings then
+                    Recharge.settings.myuiAllowCrownRepairKits = (value == true)
+                    EnforceFivePercent()
+                end
+            end,
+            default = false, width = "full",
+        },
+        {
+            type = "checkbox", name = "Impresario-Gruppenreparaturkits erlauben",
+            tooltip = "Aus: Impresario-Gruppenreparaturkits bleiben geschützt. Ein: Nur in einer Gruppe und nur als Ersatz, wenn keine normalen Reparaturkits verfügbar sind. Standard: Aus.",
+            getFunc = function() return Recharge.settings and Recharge.settings.allowImpresarioGroupRepairKits == true end,
+            setFunc = function(value)
+                if Recharge.settings then Recharge.settings.allowImpresarioGroupRepairKits = (value == true); EnforceFivePercent() end
+            end,
+            default = false, width = "full",
         },
     }
     if MyUI_RegisterExternalSection then

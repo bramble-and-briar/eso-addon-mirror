@@ -68,6 +68,7 @@ ZO_CreateStringId("BATTLESCROLLS_IPOC_MISSING_BUILD", "Check the Armory build an
 ZO_CreateStringId("BATTLESCROLLS_IPOC_WORK_EQUIP", "Equipping companion gear")
 ZO_CreateStringId("BATTLESCROLLS_IPOC_COMPANION_UPGRADE", "Gear upgrade available for <<1>>.")
 ZO_CreateStringId("BATTLESCROLLS_IPOC_WORK_REOPEN", "Reopen this service to use its menu. Automatic work pauses for 5 minutes after this visit.")
+ZO_CreateStringId("BATTLESCROLLS_IPOC_RESUME_TRADER", "Resume guild store work")
 ZO_CreateStringId("BATTLESCROLLS_IPOC_EQUIPPED", "Equipped <<1>> on <<2>>")
 ZO_CreateStringId("BATTLESCROLLS_IPOC_LISTED", "Listed <<1>> × <<2>> for <<3>> gold in <<4>>. Fee: <<5>> gold")
 ZO_CreateStringId("BATTLESCROLLS_IPOC_OPENED", "Opened <<1>>")

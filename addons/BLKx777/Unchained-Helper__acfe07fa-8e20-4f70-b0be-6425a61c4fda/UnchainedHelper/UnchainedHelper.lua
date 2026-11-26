@@ -2,7 +2,7 @@ UnchainedHelper = UnchainedHelper or { }
 local UnchainedHelper = UnchainedHelper
 
 UnchainedHelper.name		= "UnchainedHelper"
-UnchainedHelper.version = "1.0.19"
+UnchainedHelper.version = "1.0.20"
 UnchainedHelper.varVersion 	= "9"
 
 UnchainedHelper.defaults	= {
@@ -3063,6 +3063,56 @@ local function UH_AddMechanicSample(state, measured)
     return true
 end
 
+function UnchainedHelper.LayoutBRPMechanicRows()
+    local tracker = UnchainedHelperBRPMechanicTracker
+    if not tracker then return end
+
+    -- Explicit runtime layout: every mechanic owns a fixed vertical row.
+    -- This avoids text collision on gamepad UI where inherited XML dimensions
+    -- can render tightly at larger console scales.
+    local panelWidth = 458
+    local rowWidth = 430
+    local rowHeight = 40
+    local rowGap = 6
+    local rowStartY = 54
+
+    tracker:SetWidth(panelWidth)
+
+    local title = UnchainedHelperBRPMechanicTrackerTitle
+    if title then
+        title:ClearAnchors()
+        title:SetAnchor(TOPLEFT, tracker, TOPLEFT, 14, 10)
+        title:SetDimensions(rowWidth, 38)
+    end
+
+    for i = 1, 5 do
+        local row = _G["UnchainedHelperBRPMechanicTrackerRow" .. tostring(i)]
+        local name = _G["UnchainedHelperBRPMechanicTrackerRow" .. tostring(i) .. "Name"]
+        local value = _G["UnchainedHelperBRPMechanicTrackerRow" .. tostring(i) .. "Value"]
+        if row then
+            row:ClearAnchors()
+            row:SetAnchor(TOPLEFT, tracker, TOPLEFT, 14, rowStartY + ((i - 1) * (rowHeight + rowGap)))
+            row:SetDimensions(rowWidth, rowHeight)
+        end
+        if name and row then
+            name:ClearAnchors()
+            name:SetAnchor(LEFT, row, LEFT, 0, 0)
+            name:SetDimensions(260, rowHeight)
+        end
+        if value and row then
+            value:ClearAnchors()
+            value:SetAnchor(RIGHT, row, RIGHT, 0, 0)
+            value:SetDimensions(150, rowHeight)
+        end
+    end
+end
+
+local function UH_SetMechanicPanelHeight(rowCount)
+    if not UnchainedHelperBRPMechanicTracker then return end
+    rowCount = math.max(1, math.min(5, tonumber(rowCount) or 1))
+    UnchainedHelperBRPMechanicTracker:SetHeight(60 + (rowCount * 46))
+end
+
 function UnchainedHelper.UpdateBRPMechanicPosition()
     if not UnchainedHelperBRPMechanicTracker or not UnchainedHelper.savedVars then return end
     local x = UnchainedHelper.savedVars.brpMechanicOffsetX or 1510
@@ -3070,6 +3120,7 @@ function UnchainedHelper.UpdateBRPMechanicPosition()
     UnchainedHelperBRPMechanicTracker:ClearAnchors()
     UnchainedHelperBRPMechanicTracker:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
     UnchainedHelperBRPMechanicTracker:SetScale((UnchainedHelper.savedVars.brpMechanicScale or 100) / 100)
+    UnchainedHelper.LayoutBRPMechanicRows()
 end
 
 function UnchainedHelper.HideBRPMechanicTracker()
@@ -3213,6 +3264,9 @@ function UnchainedHelper.UpdateBRPMechanicTracker()
     if UnchainedHelperBRPMechanicTrackerTitle then
         UnchainedHelperBRPMechanicTrackerTitle:SetText(UH_BRP_STAGE_TITLES[stage] or "BOSS MECHANICS")
     end
+
+    UnchainedHelper.LayoutBRPMechanicRows()
+    UH_SetMechanicPanelHeight(#rows)
 
     local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
     for i = 1, 5 do
@@ -3559,11 +3613,13 @@ function UnchainedHelper.RefreshUIPreview()
     if UnchainedHelperBRPSplitTracker then UnchainedHelperBRPSplitTracker:SetHidden(false) end
 
     UnchainedHelper.UpdateBRPMechanicPosition()
-    if UnchainedHelperBRPMechanicTrackerTitle then UnchainedHelperBRPMechanicTrackerTitle:SetText("LADY MINARA") end
-    UH_PreviewMechanicRow(1, "CURSE", "17.8s", 0.38, 0.92, 0.42)
-    UH_PreviewMechanicRow(2, "BAT SWARM", "4.2s", 1.00, 0.48, 0.10)
-    UH_PreviewMechanicRow(3, nil)
-    UH_PreviewMechanicRow(4, nil)
+    UnchainedHelper.LayoutBRPMechanicRows()
+    UH_SetMechanicPanelHeight(4)
+    if UnchainedHelperBRPMechanicTrackerTitle then UnchainedHelperBRPMechanicTrackerTitle:SetText("BOSS GAUNTLET") end
+    UH_PreviewMechanicRow(1, "METEOR", "18.4s", 0.38, 0.92, 0.42)
+    UH_PreviewMechanicRow(2, "BUG BOMB", "12.3s", 0.93, 0.93, 0.93)
+    UH_PreviewMechanicRow(3, "CURSE", "8.7s", 1.00, 0.88, 0.18)
+    UH_PreviewMechanicRow(4, "BAT SWARM", "3.4s", 1.00, 0.48, 0.10)
     UH_PreviewMechanicRow(5, nil)
     if UnchainedHelperBRPMechanicTracker then UnchainedHelperBRPMechanicTracker:SetHidden(false) end
 

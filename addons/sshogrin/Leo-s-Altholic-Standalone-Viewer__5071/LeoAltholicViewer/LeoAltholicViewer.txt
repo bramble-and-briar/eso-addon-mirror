@@ -1,6 +1,7 @@
 ## Title: Leo's Altholic Viewer
 ## APIVersion: 101051 101052
-## Version: 1.1.2
+## Version: 1.2.0
 ## Author: |c2046e5sshogrin|r
 ## DependsOn: LeoAltholic
+## OptionalDependsOn: ShosBuildExporter
 ## Description: Standalone Windows desktop viewer for Leo's Altholic SavedVariables. Run LeoAltholicViewer.exe inside this folder.

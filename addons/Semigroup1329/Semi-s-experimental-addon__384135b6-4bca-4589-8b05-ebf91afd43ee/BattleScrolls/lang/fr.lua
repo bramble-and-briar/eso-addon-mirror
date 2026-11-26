@@ -68,6 +68,7 @@ SafeAddString(BATTLESCROLLS_IPOC_MISSING_BUILD, "Vérifiez les noms de l’arch�
 SafeAddString(BATTLESCROLLS_IPOC_WORK_EQUIP, "Équipement du compagnon", 1)
 SafeAddString(BATTLESCROLLS_IPOC_COMPANION_UPGRADE, "Un meilleur équipement est disponible pour <<1>>.", 1)
 SafeAddString(BATTLESCROLLS_IPOC_WORK_REOPEN, "Rouvrez ce service pour utiliser son menu. Les actions automatiques sont suspendues pendant 5 minutes après cette visite.", 1)
+SafeAddString(BATTLESCROLLS_IPOC_RESUME_TRADER, "Reprendre les opérations en boutique de guilde", 1)
 SafeAddString(BATTLESCROLLS_IPOC_EQUIPPED, "<<1>> équipé sur <<2>>", 1)
 SafeAddString(BATTLESCROLLS_IPOC_LISTED, "Mis en vente : <<1>> × <<2>> pour <<3>> pièces d’or chez <<4>>. Frais : <<5>> pièces d’or", 1)
 SafeAddString(BATTLESCROLLS_IPOC_OPENED, "Ouvert : <<1>>", 1)

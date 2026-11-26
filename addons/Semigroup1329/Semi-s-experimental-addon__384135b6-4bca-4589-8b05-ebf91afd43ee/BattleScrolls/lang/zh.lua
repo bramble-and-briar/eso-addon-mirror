@@ -68,6 +68,7 @@ SafeAddString(BATTLESCROLLS_IPOC_MISSING_BUILD, "检查军械库方案和Wardrob
 SafeAddString(BATTLESCROLLS_IPOC_WORK_EQUIP, "正在为伙伴装备物品", 1)
 SafeAddString(BATTLESCROLLS_IPOC_COMPANION_UPGRADE, "<<1>>有更好的装备可用。", 1)
 SafeAddString(BATTLESCROLLS_IPOC_WORK_REOPEN, "再次打开此服务即可使用其菜单。本次操作结束后，自动处理将暂停5分钟。", 1)
+SafeAddString(BATTLESCROLLS_IPOC_RESUME_TRADER, "恢复公会商店操作", 1)
 SafeAddString(BATTLESCROLLS_IPOC_EQUIPPED, "已为<<2>>装备<<1>>", 1)
 SafeAddString(BATTLESCROLLS_IPOC_LISTED, "已在<<4>>以<<3>>金币上架<<1>> × <<2>>。手续费：<<5>>金币", 1)
 SafeAddString(BATTLESCROLLS_IPOC_OPENED, "已打开<<1>>", 1)

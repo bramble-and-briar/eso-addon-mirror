@@ -189,7 +189,7 @@ function A.OpenResourceMap(part,owner)
  elseif #choices>1 then
   ClearMenu()
   for _,choice in ipairs(choices) do local selected=choice
-   local name=(choice.mapId and A.Call(GetMapNameById,choice.mapId)) or A.Call(GetZoneNameById,choice.id) or tostring(choice.id)
+   local name=A.DisplayName((choice.mapId and A.Call(GetMapNameById,choice.mapId)) or A.ZoneName(choice.id))
    AddMenuItem(name,function() A.OpenZoneMap(selected.id,part,true,selected) end)
   end
   ShowMenu(owner or A.window)
